@@ -1,30 +1,81 @@
-import { Type, TYPE_CHART } from './type'
-import { Skill, SkillType, EffectTriggerPhase } from './skill'
+import { TYPE_CHART } from './type'
+import { SkillType, EffectTriggerPhase, Skill } from './skill'
 import { Pet } from './pet'
-import { Mark, TriggerCondition } from './mark'
+import { MAX_RAGE, RAGE_PER_TURN, RAGE_PER_DAMAGE } from './const'
 
-// 新增怒气相关配置
-const MAX_RAGE = 100
-const RAGE_PER_TURN = 15
-const RAGE_PER_DAMAGE = 0.5
+export class Player {
+  constructor(
+    public readonly name: string,
+    public activePet: Pet,
+    public readonly team: Pet[],
+  ) {}
+}
 
 // 对战系统
 export class BattleSystem {
+  private currentRound = 0
   constructor(
-    public readonly petA: Pet,
-    public readonly petB: Pet,
+    public readonly playerA: Player,
+    public readonly playerB: Player,
+    private readonly ui: BattleUI,
   ) {}
 
+  private generateAvailableActions(player: Player): PlayerAction[] {
+    const actions = [
+      // 1. 可用技能
+      ...this.getAvailableSkills(player),
+      // 3. 可换精灵
+      ...this.getSwitchActions(player),
+    ]
+    if (actions.length > 0) return actions
+    return [{ source: player, type: 'do-nothing' }]
+  }
+
+  private getAvailableSkills(player: Player): PlayerAction[] {
+    return player.activePet.skills
+      .filter(
+        skill => skill.rageCost <= player.activePet.currentRage, // 怒气足够
+      )
+      .map(skill => ({
+        type: 'use-skill',
+        skill,
+        source: player,
+      }))
+  }
+
+  private getSwitchActions(player: Player): PlayerAction[] {
+    return player.team
+      .filter(
+        pet =>
+          pet !== player.activePet && // 非当前出战精灵
+          pet.isAlive, // 存活状态
+      )
+      .map(pet => ({
+        type: 'switch-pet',
+        pet,
+        source: player,
+      }))
+  }
+
   // 判断先攻顺序
-  getAttackOrder(): [Pet, Pet] {
-    if (this.petA.speed === this.petB.speed) {
-      return Math.random() > 0.5 ? [this.petA, this.petB] : [this.petB, this.petA]
+  private getAttackOrder(): [Pet, Pet] {
+    if (this.playerA.activePet.stat.spd === this.playerB.activePet.stat.spd) {
+      return Math.random() > 0.5
+        ? [this.playerA.activePet, this.playerB.activePet]
+        : [this.playerB.activePet, this.playerA.activePet]
     }
-    return this.petA.speed > this.petB.speed ? [this.petA, this.petB] : [this.petB, this.petA]
+    return this.playerA.activePet.stat.spd > this.playerB.activePet.stat.spd
+      ? [this.playerA.activePet, this.playerB.activePet]
+      : [this.playerB.activePet, this.playerA.activePet]
+  }
+
+  private getOpponent(player: Player) {
+    if (player === this.playerA) return this.playerB
+    return this.playerA
   }
 
   private addTurnRage() {
-    ;[this.petA, this.petB].forEach(pet => {
+    ;[this.playerA.activePet, this.playerB.activePet].forEach(pet => {
       const before = pet.currentRage
       pet.currentRage = Math.min(pet.currentRage + RAGE_PER_TURN, MAX_RAGE)
       console.log(`${pet.name} 获得${RAGE_PER_TURN}怒气 (${before}→${pet.currentRage})`)
@@ -32,36 +83,83 @@ export class BattleSystem {
   }
 
   // 执行对战回合
-  performTurn(): boolean {
-    this.triggerGlobal(TriggerCondition.ROUND_START) // 触发回合开始效果
+  private async performTurn(): Promise<boolean> {
+    this.currentRound++
+    this.ui.showMessage(`\n=== 第 ${this.currentRound} 回合 ===`)
 
-    const [attacker, defender] = this.getAttackOrder()
+    this.ui.showMessage('回合开始！')
 
-    // 第一只攻击
-    this.performAttack(attacker, defender)
-    if (defender.currentHp <= 0) return true
+    const [availableActionsA, availableActionsB] = [
+      this.generateAvailableActions(this.playerA),
+      this.generateAvailableActions(this.playerB),
+    ]
 
-    // 第二只反击
-    this.performAttack(defender, attacker)
-    if (attacker.currentHp <= 0) return true
+    const [actionA, actionB] = await this.ui.getPlayersActions(
+      this.playerA,
+      availableActionsA,
+      this.playerB,
+      availableActionsB,
+    )
 
-    this.triggerGlobal(TriggerCondition.ROUND_END) // 触发回合结束效果
-    ;[this.petA, this.petB].forEach(p => p.updateRoundMarks()) // 更新回合型印记
-    if (attacker.currentHp <= 0 || defender.currentHp <= 0) return true
+    const results = await this.executeActions(actionA, actionB)
 
     this.addTurnRage() // 每回合结束获得怒气
-    return false
+    return results.some(r => r.targetDefeated)
   }
 
-  private performAttack(attacker: Pet, defender: Pet) {
+  private async executeActions(
+    actionA: PlayerAction,
+    actionB: PlayerAction,
+  ): Promise<{ source: Player; targetDefeated: boolean }[]> {
+    // 根据速度决定执行顺序
+    const first = this.getActionOrder(actionA, actionB)
+    const results = []
+
+    for (const action of [first.fast, first.slow]) {
+      if (!action.source.activePet?.isAlive) continue
+
+      const result = await this.handleSingleAction(action, this.getOpponent(action.source).activePet)
+      results.push(result)
+
+      if (result.targetDefeated) break // 有宝可梦倒下则终止回合
+    }
+
+    return results
+  }
+
+  private getActionOrder(a: PlayerAction, b: PlayerAction) {
+    const speedA = a.source.activePet.stat.spd
+    const speedB = b.source.activePet.stat.spd
+
+    if (speedA === speedB) {
+      return Math.random() > 0.5 ? { fast: a, slow: b } : { fast: b, slow: a }
+    }
+    return speedA > speedB ? { fast: a, slow: b } : { fast: b, slow: a }
+  }
+
+  private async handleSingleAction(action: PlayerAction, target: Pet) {
+    const targetPlayer = action.source === this.playerA ? this.playerB : this.playerA
+    let targetDefeated = false
+
+    switch (action.type) {
+      case 'use-skill':
+        this.ui.showMessage(`${action.source.name} 的 ${action.source.activePet.name} 使用 ${action.skill.name}！`)
+        this.performAttack(action.source.activePet, target, action.skill)
+        targetDefeated = !targetPlayer.activePet.isAlive
+        break
+      case 'do-nothing':
+        this.ui.showMessage(`${action.source.name} 无法行动！`)
+    }
+
+    return { source: action.source, targetDefeated }
+  }
+
+  private performAttack(attacker: Pet, defender: Pet, skill: Skill) {
     // 攻击前触发
-    attacker.triggerMarks(TriggerCondition.BEFORE_ATTACK, attacker)
-    const skill = attacker.selectRandomSkill()
     if (!skill) {
       console.log(`${attacker.name} 没有可用技能!`)
       return false
     }
-    // attacker.attackTarget(defender, skill);
     if (attacker.currentHp <= 0) return
 
     console.log(`${attacker.name} 使用 ${skill.name}！`)
@@ -83,7 +181,7 @@ export class BattleSystem {
     }
 
     // 暴击判定
-    const isCrit = Math.random() < attacker.critRate
+    const isCrit = Math.random() < attacker.stat.critRate
     if (isCrit) {
       console.log('暴击！')
       skill.applyEffects(EffectTriggerPhase.ON_CRIT_PRE_DAMAGE, attacker, defender) // 触发暴击前特效
@@ -96,7 +194,7 @@ export class BattleSystem {
     if (skill.SkillType !== SkillType.Status) {
       const typeMultiplier = TYPE_CHART[skill.type][defender.type] || 1
       let damage = Math.floor(
-        ((((2 * defender.level) / 5 + 2) * skill.power * (attacker.attack / defender.defense)) / 50 + 2) *
+        ((((2 * defender.level) / 5 + 2) * skill.power * (attacker.stat.atk / defender.stat.def)) / 50 + 2) *
           (Math.random() * 0.15 + 0.85) * // 随机波动
           typeMultiplier *
           (isCrit ? 1.5 : 1), // 暴击伤害
@@ -112,9 +210,6 @@ export class BattleSystem {
       console.log(`${defender.name} 受到了 ${damage} 点伤害！`)
       if (typeMultiplier > 1) console.log('效果拔群！')
       if (typeMultiplier < 1) console.log('效果不佳...')
-
-      // 受伤者触发效果
-      defender.triggerMarks(TriggerCondition.AFTER_DAMAGED, attacker, damage)
 
       // 受伤者获得怒气
       const gainedRage = Math.floor(damage * RAGE_PER_DAMAGE)
@@ -135,30 +230,37 @@ export class BattleSystem {
     }
   }
 
-  private triggerGlobal(condition: TriggerCondition): void {
-    ;[this.petA, this.petB].forEach(p => {
-      p.triggerMarks(condition)
-    })
-  }
-
   // 开始对战
-  startBattle(): void {
-    console.log(`对战开始：${this.petA.name} vs ${this.petB.name}!`)
-    this.triggerGlobal(TriggerCondition.ROUND_START) // 触发回合开始效果
-    let turn = 1
+  async startBattle(): Promise<void> {
+    console.log(`对战开始：${this.playerA.activePet.name} vs ${this.playerB.activePet.name}!`)
 
-    while (this.petA.currentHp > 0 && this.petB.currentHp > 0) {
+    while (this.playerA.activePet.currentHp > 0 && this.playerB.activePet.currentHp > 0) {
       console.log('\n====================')
-      console.log(`${this.petA.name} HP: ${this.petA.currentHp} / ${this.petA.maxHp} (${this.petA.currentRage} Rage)`) // 显示当前血量和怒气
-      console.log(`印记状态: ${this.petA.markStatus}`) // 显示印记状态
-      console.log(`${this.petB.name} HP: ${this.petB.currentHp} / ${this.petB.maxHp} (${this.petB.currentRage} Rage)`) // 显示当前血量和怒气
-      console.log(`印记状态: ${this.petB.markStatus}`) // 显示印记状态
-      console.log(`\n=== 第 ${turn} 回合 ===`)
-      if (this.performTurn()) break
-      turn++
+      console.log(
+        `${this.playerA.activePet.name} HP: ${this.playerA.activePet.currentHp} / ${this.playerA.activePet.maxHp} (${this.playerA.activePet.currentRage} Rage)`,
+      ) // 显示当前血量和怒气
+      console.log(
+        `${this.playerB.activePet.name} HP: ${this.playerB.activePet.currentHp} / ${this.playerB.activePet.maxHp} (${this.playerB.activePet.currentRage} Rage)`,
+      ) // 显示当前血量和怒气
+      if (await this.performTurn()) break
     }
 
-    const winner = this.petA.currentHp > 0 ? this.petA : this.petB
+    const winner = this.playerA.activePet.currentHp > 0 ? this.playerA.activePet : this.playerB.activePet
     console.log(`\n${winner.name} 获得了胜利！`)
   }
+}
+
+export type PlayerAction =
+  | { source: Player; type: 'use-skill'; skill: Skill }
+  | { source: Player; type: 'switch-pet'; pet: Pet }
+  | { source: Player; type: 'do-nothing' }
+
+export interface BattleUI {
+  showMessage(msg: string): void
+  getPlayersActions(
+    player1: Player,
+    player1Actions: PlayerAction[],
+    player2: Player,
+    player2Actions: PlayerAction[],
+  ): Promise<[PlayerAction, PlayerAction]>
 }

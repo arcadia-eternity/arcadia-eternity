@@ -1,9 +1,10 @@
 import { Type } from './src/type'
 import { Skill, SkillType } from './src/skill'
 import { Pet } from './src/pet'
-import { BattleSystem } from './src/battleSystem'
+import { BattleSystem, Player } from './src/battleSystem'
 import { Species } from './src/pet'
 import { Nature } from './src/nature'
+import { ConsoleUI } from './src/consoleUI'
 // 使用示例
 const charizardSpecies: Species = {
   name: '休罗斯',
@@ -83,6 +84,7 @@ const blastoise = new Pet(
   Nature.Adamant,
   [new Skill('水枪', SkillType.Special, Type.Water, 160, 1, 100)],
 )
-
-const battle = new BattleSystem(charizard, blastoise)
+const player1 = new Player('小智', blastoise, [blastoise])
+const player2 = new Player('小茂', charizard, [charizard])
+const battle = new BattleSystem(player1, player2, new ConsoleUI(player1, player2))
 battle.startBattle()

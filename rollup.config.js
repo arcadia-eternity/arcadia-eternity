@@ -4,7 +4,7 @@ export default {
   input: 'test.ts',
   output: {
     dir: 'dist',
-    format: 'cjs',
+    format: 'module',
   },
   plugins: [typescript({ tsconfig: './tsconfig.json' })],
 };

@@ -1,4 +1,4 @@
-import { StatType } from './mark'
+import { StatType } from './const'
 
 export enum Nature {
   Hardy = 'Hardy',
