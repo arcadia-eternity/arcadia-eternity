@@ -1,4 +1,11 @@
-import { Player, PlayerSelection, UseSkillSelection, SwitchPetSelection, BattleSystem } from './battleSystem'
+import {
+  Player,
+  PlayerSelection,
+  UseSkillSelection,
+  SwitchPetSelection,
+  BattleSystem,
+  DoNothingSelection,
+} from './battleSystem'
 import readline from 'readline'
 import { BattleUI } from './ui'
 
@@ -18,18 +25,6 @@ export class ConsoleUI extends BattleUI {
     console.log(message)
   }
 
-  private async getPlayersActions(player1: Player, player2: Player): Promise<[PlayerSelection, PlayerSelection]> {
-    // 显示玩家1的选择界面
-    console.log('=== 玩家1 的选择 ===')
-    const player1Action = await this.getPlayerAction(player1)
-
-    // 显示玩家2的选择界面
-    console.log('\n=== 玩家2 的选择 ===')
-    const player2Action = await this.getPlayerAction(player2)
-
-    return [player1Action, player2Action]
-  }
-
   private async getPlayerAction(player: Player): Promise<PlayerSelection> {
     console.log(player.activePet.status)
 
@@ -47,20 +42,20 @@ export class ConsoleUI extends BattleUI {
     switchActions.forEach((a, i) => console.log(`${validSkills.length + i + 1}. 更换精灵: ${a.pet.name}`))
 
     // 3. 显示什么都不做选项
-    const doNothingIndex = validSkills.length + switchActions.length + 1
-    console.log(`${doNothingIndex}. 什么都不做`)
+    const doNothingIndex = actions.filter((a): a is DoNothingSelection => a.type === 'do-nothing')
+    doNothingIndex.forEach(() => console.log(`${validSkills.length + switchActions.length + 1}. 什么都不做`))
 
     // 4. 获取玩家选择
     while (true) {
       const choice = parseInt(await this.question('选择操作编号: '))
-      const action = this.getActionByChoice(player, choice, validSkills, switchActions)
+      const action = this.getSelectionByChoice(player, choice, validSkills, switchActions)
       if (action) return action
 
       console.log('无效选择，请输入正确的操作编号！')
     }
   }
 
-  private getActionByChoice(
+  private getSelectionByChoice(
     player: Player,
     choice: number,
     validSkills: UseSkillSelection[],
@@ -101,8 +96,12 @@ export class ConsoleUI extends BattleUI {
   public async run(): Promise<void> {
     this.battle.startBattle()
     do {
-      this.battle.setSelection(this.playerA, await this.getPlayerAction(this.playerA))
-      this.battle.setSelection(this.playerB, await this.getPlayerAction(this.playerB))
+      while (!this.battle.setSelection(this.playerA, await this.getPlayerAction(this.playerA))) {
+        console.log('选择无效，请重新选择!')
+      }
+      while (!this.battle.setSelection(this.playerB, await this.getPlayerAction(this.playerB))) {
+        console.log('选择无效，请重新选择!')
+      }
     } while (!this.battle.performTurn())
   }
 }

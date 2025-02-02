@@ -21,6 +21,7 @@ export class BattleSystem {
   public status: BattleStatus = BattleStatus.Unstarted
   private currentRound = 1
   private messageCallbacks: Array<(message: string) => void> = []
+  private trackDefeatedPlayer?: Player // 新增状态跟踪被击败的玩家
 
   constructor(
     public readonly playerA: Player,
@@ -38,12 +39,21 @@ export class BattleSystem {
   }
 
   public getAvailableSelection(player: Player): PlayerSelection[] {
-    const actions = [
-      // 1. 可用技能
-      ...this.getAvailableSkills(player),
-      // 3. 可换精灵
-      ...this.getAvailableSwitch(player),
-    ]
+    // 如果玩家有宝可梦被击败，强制必须换宠
+    if (this.trackDefeatedPlayer === player) {
+      const switchActions = this.getAvailableSwitch(player)
+      if (switchActions.length === 0) {
+        this.emitMessage(`${player.name} 没有可用的宝可梦可以更换！`)
+      }
+      return switchActions
+    }
+
+    const actions = [...this.getAvailableSkills(player), ...this.getAvailableSwitch(player)]
+    if (actions.length == 0)
+      actions.push({
+        source: player,
+        type: 'do-nothing',
+      } as DoNothingSelection)
     return actions
   }
 
@@ -52,11 +62,15 @@ export class BattleSystem {
       .filter(
         skill => skill.rageCost <= player.currentRage, // 怒气足够
       )
-      .map(skill => ({
-        type: 'use-skill',
-        skill,
-        source: player,
-      }))
+      .map(
+        skill =>
+          ({
+            type: 'use-skill',
+            skill,
+            source: player,
+            target: this.getOpponent(player).activePet,
+          }) as UseSkillSelection,
+      )
   }
 
   private getAvailableSwitch(player: Player): PlayerSelection[] {
@@ -82,7 +96,7 @@ export class BattleSystem {
   }
 
   private checkDoNothingActionAvailable(player: Player) {
-    return this.getAvailableSelection(player).length == 0
+    return this.getAvailableSelection(player)[0].type == 'do-nothing'
   }
 
   private checkSwitchAvailable(player: Player, selection: SwitchPetSelection) {
@@ -132,8 +146,8 @@ export class BattleSystem {
           const _selection = selection as UseSkillSelection
           const context: UseSkillContext = {
             type: 'use-skill',
-            source: this.playerA.activePet,
-            target: this.playerB.activePet,
+            source: _selection.source.activePet,
+            target: _selection.target,
             skill: _selection.skill,
             skillPriority: _selection.skill.priority,
             power: _selection.skill.power,
@@ -164,30 +178,30 @@ export class BattleSystem {
     contexts.sort(this.contextSort)
 
     this.currentRound++
-    // this.ui.showMessage(`\n=== 第 ${this.currentRound} 回合 ===`)
-    // this.ui.showMessage('回合开始！')
+    this.emitMessage(`\n=== 第 ${this.currentRound} 回合 ===`)
+    this.emitMessage('回合开始！')
 
-    while (contexts.length > 0) {
+    contextpop: while (contexts.length > 0) {
       const context = contexts.pop()
       if (!context) break
       switch (context.type) {
         case 'use-skill': {
           const _context = context as UseSkillContext
-          this.performAttack(_context)
+          if (!this.performAttack(_context)) break contextpop
           break
         }
         case 'mark-effect':
           break
         case 'switch-pet': {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const _context = context as SwitchPetContext
-          //TODO: this.performSwitchPet(_context)
+          this.performSwitchPet(_context)
           break
         }
       }
     }
 
     this.addTurnRage() // 每回合结束获得怒气
+
     return this.isOneSuccess()
   }
 
@@ -238,23 +252,47 @@ export class BattleSystem {
     }
   }
 
-  private performAttack(context: UseSkillContext) {
+  private performSwitchPet(context: SwitchPetContext) {
+    const player = context.player
+    const newPet = context.target
+
+    // 检查新宠物是否可用
+    if (!player.team.includes(newPet) || !newPet.isAlive) {
+      this.emitMessage(`${newPet.name} 无法出战！`)
+      return
+    }
+
+    // 执行换宠
+    const oldPet = player.activePet
+    player.activePet = newPet
+    this.emitMessage(`${player.name} 将 ${oldPet.name} 换下，派出 ${newPet.name}！`)
+
+    // 换宠后恢复部分怒气
+    this.addRage(player, 20, true)
+
+    // 重置被击败状态
+    if (this.trackDefeatedPlayer === player) {
+      this.trackDefeatedPlayer = undefined
+    }
+  }
+
+  private performAttack(context: UseSkillContext): boolean {
     // 攻击前触发
     const skill = context.skill
     const attacker = context.source
     const defender = context.target
     if (!skill) {
       this.emitMessage(`${attacker.name} 没有可用技能!`)
-      return
+      return false
     }
-    if (attacker.currentHp <= 0) return
+    if (attacker.currentHp <= 0 || !attacker.isAlive) return false
 
     this.emitMessage(`${attacker.name} 使用 ${skill.name}！`)
 
     // 怒气检查
     if (context.player.currentRage < skill.rageCost) {
       this.emitMessage(`${attacker.name} 怒气不足无法使用 ${skill.name}!`)
-      return
+      return false
     }
 
     this.emitMessage(`${attacker.name} 使用 ${skill.name} (消耗${skill.rageCost}怒气)!`)
@@ -264,7 +302,7 @@ export class BattleSystem {
     if (Math.random() > skill.accuracy) {
       this.emitMessage(`${attacker.name} 的攻击没有命中！`)
       skill.applyEffects(EffectTriggerPhase.ON_MISS, context) // 触发未命中特效
-      return
+      return false
     }
 
     // 暴击判定
@@ -317,7 +355,14 @@ export class BattleSystem {
       this.emitMessage(`${defender.name} 倒下了！`)
       defender.isAlive = false
       skill.applyEffects(EffectTriggerPhase.ON_DEFEAT, context) // 触发击败特效
+
+      const defeatedPlayer = defender.owner
+      if (defeatedPlayer) {
+        this.trackDefeatedPlayer = defeatedPlayer
+      }
+      return true
     }
+    return false
   }
 
   private settingRage(player: Player, value: number) {
@@ -336,7 +381,7 @@ export class BattleSystem {
     }
     const before = player.currentRage
     this.settingRage(player, (player.currentRage += rageDelta))
-    this.emitMessage(`${player.activePet.name} 获得${rageDelta}怒气 (${before}→${player.currentRage})`)
+    this.emitMessage(`${player.activePet.name} ${rageDelta}怒气 (${before}→${player.currentRage})`)
   }
 
   // 开始对战
@@ -350,6 +395,13 @@ export class BattleSystem {
   }
 
   private isOneSuccess() {
+    // 检查是否有玩家必须换宠但无可用宠物的情况
+    if (this.trackDefeatedPlayer?.team.every(pet => !pet.isAlive)) {
+      const winner = this.trackDefeatedPlayer === this.playerA ? '玩家B' : '玩家A'
+      this.emitMessage(`${winner}胜利！！`)
+      return true
+    }
+
     if (this.playerA.team.every(pet => !pet.isAlive)) this.emitMessage('玩家B胜利！！')
     else if (this.playerB.team.every(pet => !pet.isAlive)) this.emitMessage('玩家A胜利！！')
     return this.playerA.team.every(pet => !pet.isAlive) || this.playerB.team.every(pet => !pet.isAlive)
@@ -358,7 +410,7 @@ export class BattleSystem {
 
 export type PlayerSelection = UseSkillSelection | SwitchPetSelection | DoNothingSelection
 
-export type UseSkillSelection = { source: Player; type: 'use-skill'; skill: Skill }
+export type UseSkillSelection = { source: Player; type: 'use-skill'; skill: Skill; target: Pet }
 export type SwitchPetSelection = { source: Player; type: 'switch-pet'; pet: Pet }
 export type DoNothingSelection = { source: Player; type: 'do-nothing' }
 
