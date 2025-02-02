@@ -1,4 +1,4 @@
-// 宝可梦属性类型
+// 精灵属性类型
 export enum Type {
   Normal = 'Normal',
   Fire = 'Fire',

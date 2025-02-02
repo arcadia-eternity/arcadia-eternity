@@ -107,7 +107,18 @@ export class ConsoleUI extends BattleUI {
     let generator = battle.next() // 初始化生成器
 
     while (!generator.done) {
-      // 获取当前需要操作的玩家
+      if (this.battle.pendingDefeatedPlayer) {
+        const action = await this.getForcedSwitchAction(this.battle.pendingDefeatedPlayer)
+        generator = battle.next(action)
+        continue
+      }
+
+      // 处理击败方换宠
+      if (this.battle.lastKiller && this.battle.allowKillerSwitch) {
+        const action = await this.handleKillerSwitch(this.battle.lastKiller)
+        generator = battle.next(action)
+        continue
+      }
       const currentPlayer = this.getCurrentActivePlayer()
       if (!currentPlayer) break
 
@@ -117,6 +128,8 @@ export class ConsoleUI extends BattleUI {
       // 将选择发送给生成器
       generator = battle.next(selection)
     }
+    const victor = generator.value as Player
+    console.log(`胜利者是: ${victor.name}`)
   }
 
   private getCurrentActivePlayer(): Player | null {
@@ -131,13 +144,33 @@ export class ConsoleUI extends BattleUI {
     return null
   }
 
+  private async handleKillerSwitch(player: Player): Promise<PlayerSelection> {
+    console.log(`\n==== ${player.name} 可以更换精灵 ====`)
+    const actions = this.battle.getAvailableSwitch(player)
+
+    // 显示可选操作
+    console.log('1. 保持当前精灵')
+    actions.forEach((a, i) => console.log(`${i + 2}. 更换为 ${a.pet.name}`))
+
+    while (true) {
+      const choice = parseInt(await this.question('请选择操作: '))
+      if (choice === 1) {
+        return { type: 'do-nothing', source: player }
+      }
+      if (choice >= 2 && choice <= actions.length + 1) {
+        return actions[choice - 2]
+      }
+      console.log('无效的选择！')
+    }
+  }
+
   private async getForcedSwitchAction(player: Player): Promise<PlayerSelection> {
     const actions = this.battle.getAvailableSwitch(player) as SwitchPetSelection[]
-    console.log('必须更换宝可梦！可用选项：')
+    console.log('必须更换精灵！可用选项：')
     actions.forEach((a, i) => console.log(`${i + 1}. 更换为 ${a.pet.name}`))
 
     while (true) {
-      const choice = parseInt(await this.question('请选择更换的宝可梦：'))
+      const choice = parseInt(await this.question('请选择更换的精灵：'))
       if (choice >= 1 && choice <= actions.length) {
         return actions[choice - 1]
       }

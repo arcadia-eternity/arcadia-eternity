@@ -23,7 +23,7 @@ export interface Species {
   emblem?: string //TODO: 纹章
 }
 
-// 宝可梦类
+// 精灵类
 export class Pet {
   public currentHp: number
   public baseCritRate: number = 0.1 // 暴击率默认为10%
