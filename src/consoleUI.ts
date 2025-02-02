@@ -25,7 +25,16 @@ export class ConsoleUI extends BattleUI {
     console.log(message)
   }
 
+  // 修改操作提示逻辑
   private async getPlayerAction(player: Player): Promise<PlayerSelection> {
+    // 强制换宠时限制只能选择换宠
+    if (this.battle.pendingDefeatedPlayer === player) {
+      return this.getForcedSwitchAction(player)
+    }
+    return this.getNormalAction(player)
+  }
+
+  private async getNormalAction(player: Player): Promise<PlayerSelection> {
     console.log(player.activePet.status)
 
     const actions = this.battle.getAvailableSelection(player)
@@ -94,14 +103,45 @@ export class ConsoleUI extends BattleUI {
   }
 
   public async run(): Promise<void> {
-    this.battle.startBattle()
-    do {
-      while (!this.battle.setSelection(this.playerA, await this.getPlayerAction(this.playerA))) {
-        console.log('选择无效，请重新选择!')
+    const battle = this.battle.startBattle()
+    let generator = battle.next() // 初始化生成器
+
+    while (!generator.done) {
+      // 获取当前需要操作的玩家
+      const currentPlayer = this.getCurrentActivePlayer()
+      if (!currentPlayer) break
+
+      // 获取玩家选择
+      const selection = await this.getPlayerAction(currentPlayer)
+
+      // 将选择发送给生成器
+      generator = battle.next(selection)
+    }
+  }
+
+  private getCurrentActivePlayer(): Player | null {
+    // 优先处理强制换宠
+    if (this.battle.pendingDefeatedPlayer) {
+      return this.battle.pendingDefeatedPlayer
+    }
+
+    // 正常回合按顺序处理
+    if (!this.playerA.selection) return this.playerA
+    if (!this.playerB.selection) return this.playerB
+    return null
+  }
+
+  private async getForcedSwitchAction(player: Player): Promise<PlayerSelection> {
+    const actions = this.battle.getAvailableSwitch(player) as SwitchPetSelection[]
+    console.log('必须更换宝可梦！可用选项：')
+    actions.forEach((a, i) => console.log(`${i + 1}. 更换为 ${a.pet.name}`))
+
+    while (true) {
+      const choice = parseInt(await this.question('请选择更换的宝可梦：'))
+      if (choice >= 1 && choice <= actions.length) {
+        return actions[choice - 1]
       }
-      while (!this.battle.setSelection(this.playerB, await this.getPlayerAction(this.playerB))) {
-        console.log('选择无效，请重新选择!')
-      }
-    } while (!this.battle.performTurn())
+      console.log('无效选择！')
+    }
   }
 }

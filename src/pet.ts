@@ -131,6 +131,6 @@ export class Pet {
   }
 
   get status(): string {
-    return [`HP: ${this.currentHp}/${this.maxHp}`].join(' | ')
+    return [`NAME:${this.name} HP: ${this.currentHp}/${this.maxHp}`].join(' | ')
   }
 }

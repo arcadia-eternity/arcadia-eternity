@@ -10,7 +10,7 @@ export class Player {
     public readonly name: string,
     public activePet: Pet,
     public readonly team: Pet[],
-    public selection?: PlayerSelection,
+    public selection: PlayerSelection | null = null,
   ) {
     team.forEach(pet => pet.setOwner(this))
   }
@@ -21,7 +21,7 @@ export class BattleSystem {
   public status: BattleStatus = BattleStatus.Unstarted
   private currentRound = 1
   private messageCallbacks: Array<(message: string) => void> = []
-  private trackDefeatedPlayer?: Player // 新增状态跟踪被击败的玩家
+  public pendingDefeatedPlayer?: Player // 新增：需要在下回合换宠的玩家
 
   constructor(
     public readonly playerA: Player,
@@ -39,16 +39,7 @@ export class BattleSystem {
   }
 
   public getAvailableSelection(player: Player): PlayerSelection[] {
-    // 如果玩家有宝可梦被击败，强制必须换宠
-    if (this.trackDefeatedPlayer === player) {
-      const switchActions = this.getAvailableSwitch(player)
-      if (switchActions.length === 0) {
-        this.emitMessage(`${player.name} 没有可用的宝可梦可以更换！`)
-      }
-      return switchActions
-    }
-
-    const actions = [...this.getAvailableSkills(player), ...this.getAvailableSwitch(player)]
+    const actions: PlayerSelection[] = [...this.getAvailableSkills(player), ...this.getAvailableSwitch(player)]
     if (actions.length == 0)
       actions.push({
         source: player,
@@ -57,7 +48,7 @@ export class BattleSystem {
     return actions
   }
 
-  private getAvailableSkills(player: Player): PlayerSelection[] {
+  public getAvailableSkills(player: Player): UseSkillSelection[] {
     return player.activePet.skills
       .filter(
         skill => skill.rageCost <= player.currentRage, // 怒气足够
@@ -73,7 +64,7 @@ export class BattleSystem {
       )
   }
 
-  private getAvailableSwitch(player: Player): PlayerSelection[] {
+  public getAvailableSwitch(player: Player): SwitchPetSelection[] {
     return player.team
       .filter(
         pet =>
@@ -135,7 +126,7 @@ export class BattleSystem {
   }
 
   // 执行对战回合
-  public performTurn(): boolean {
+  private performTurn(): boolean {
     if (!this.playerA.selection || !this.playerB.selection) throw '有人还未选择好！'
 
     const contexts: Context[] = []
@@ -202,7 +193,23 @@ export class BattleSystem {
 
     this.addTurnRage() // 每回合结束获得怒气
 
-    return this.isOneSuccess()
+    // 战斗结束后重置状态
+    if (this.isBattleEnded()) {
+      this.status = BattleStatus.Ended
+      return true
+    }
+    return false
+  }
+
+  private isBattleEnded(): boolean {
+    // 检查强制换宠失败
+    if (this.pendingDefeatedPlayer) {
+      const available = this.getAvailableSwitch(this.pendingDefeatedPlayer)
+      if (available.length === 0) return true
+    }
+
+    // 检查队伍存活状态
+    return this.playerA.team.every(p => !p.isAlive) || this.playerB.team.every(p => !p.isAlive)
   }
 
   private contextSort(a: Context, b: Context): number {
@@ -267,13 +274,40 @@ export class BattleSystem {
     player.activePet = newPet
     this.emitMessage(`${player.name} 将 ${oldPet.name} 换下，派出 ${newPet.name}！`)
 
-    // 换宠后恢复部分怒气
-    this.addRage(player, 20, true)
+    // 换宠后怒气为原怒气的80%
+    this.settingRage(player, Math.floor(player.currentRage * 0.8))
+  }
 
-    // 重置被击败状态
-    if (this.trackDefeatedPlayer === player) {
-      this.trackDefeatedPlayer = undefined
+  private *handleForcedSwitch(player: Player): Generator<void, void, PlayerSelection> {
+    this.emitMessage(`${player.name} 必须更换倒下的宝可梦！`)
+
+    // 获取可换宠列表
+    const switchActions = this.getAvailableSwitch(player)
+    if (switchActions.length === 0) {
+      this.emitMessage(`${player.name} 没有可用的宝可梦！`)
+      return
     }
+
+    // 强制玩家选择换宠
+    let selection: PlayerSelection
+    do {
+      selection = yield
+      if (selection.type === 'switch-pet' && selection.source === player) {
+        this.setSelection(player, selection)
+      } else {
+        this.emitMessage('必须选择更换宝可梦！')
+      }
+    } while (!player.selection)
+
+    // 执行换宠
+    this.performSwitchPet({
+      type: 'switch-pet',
+      player,
+      target: (player.selection as SwitchPetSelection).pet,
+    })
+
+    // 清空选择以准备正常回合
+    player.selection = null
   }
 
   private performAttack(context: UseSkillContext): boolean {
@@ -358,11 +392,11 @@ export class BattleSystem {
 
       const defeatedPlayer = defender.owner
       if (defeatedPlayer) {
-        this.trackDefeatedPlayer = defeatedPlayer
+        this.pendingDefeatedPlayer = defeatedPlayer
       }
       return true
     }
-    return false
+    return this.isOneSuccess()
   }
 
   private settingRage(player: Player, value: number) {
@@ -385,21 +419,57 @@ export class BattleSystem {
   }
 
   // 开始对战
-  public startBattle() {
-    if (this.status != BattleStatus.Unstarted) {
-      throw '战斗已经开始过了！'
-    }
+  public *startBattle(): Generator<void, void, PlayerSelection> {
+    if (this.status != BattleStatus.Unstarted) throw '战斗已经开始过了！'
     this.status = BattleStatus.OnBattle
-    //TODO: eventOnBattleStart
     this.emitMessage(`对战开始：${this.playerA.activePet.name} vs ${this.playerB.activePet.name}!`)
+
+    while (true) {
+      // 阶段1：处理强制换宠
+      if (this.pendingDefeatedPlayer) {
+        yield* this.handleForcedSwitch(this.pendingDefeatedPlayer)
+        this.pendingDefeatedPlayer = undefined
+      }
+
+      // 阶段2：收集玩家指令
+      this.clearSelections()
+      while (!this.bothPlayersReady()) {
+        const selection: PlayerSelection = yield
+        this.setSelection(selection.source, selection)
+      }
+
+      // 阶段3：执行回合
+      if (this.performTurn()) break
+    }
+    this.status = BattleStatus.Ended
+  }
+
+  public isInForcedSwitchPhase(): boolean {
+    return !!this.pendingDefeatedPlayer
+  }
+
+  public getPendingSwitchPlayer(): Player | undefined {
+    return this.pendingDefeatedPlayer
+  }
+
+  private clearSelections() {
+    this.playerA.selection = null
+    this.playerB.selection = null
+  }
+
+  private bothPlayersReady(): boolean {
+    return !!this.playerA.selection && !!this.playerB.selection
   }
 
   private isOneSuccess() {
-    // 检查是否有玩家必须换宠但无可用宠物的情况
-    if (this.trackDefeatedPlayer?.team.every(pet => !pet.isAlive)) {
-      const winner = this.trackDefeatedPlayer === this.playerA ? '玩家B' : '玩家A'
-      this.emitMessage(`${winner}胜利！！`)
-      return true
+    // 检查强制换宠失败的情况
+    if (this.pendingDefeatedPlayer) {
+      const available = this.getAvailableSwitch(this.pendingDefeatedPlayer)
+      if (available.length === 0) {
+        const winner = this.pendingDefeatedPlayer === this.playerA ? this.playerB : this.playerA
+        this.emitMessage(`${winner.name} 获胜！`)
+        return true
+      }
     }
 
     if (this.playerA.team.every(pet => !pet.isAlive)) this.emitMessage('玩家B胜利！！')
@@ -409,6 +479,7 @@ export class BattleSystem {
 }
 
 export type PlayerSelection = UseSkillSelection | SwitchPetSelection | DoNothingSelection
+export type PlayerSelections = { player: Player; selections: PlayerSelection[] }
 
 export type UseSkillSelection = { source: Player; type: 'use-skill'; skill: Skill; target: Pet }
 export type SwitchPetSelection = { source: Player; type: 'switch-pet'; pet: Pet }

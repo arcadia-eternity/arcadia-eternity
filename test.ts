@@ -48,6 +48,33 @@ const charizard: Pet = new Pet(
   ],
 )
 
+const charizard2: Pet = new Pet(
+  '火狗2',
+  charizardSpecies,
+  50,
+  {
+    hp: 255,
+    atk: 0,
+    def: 0,
+    spa: 255,
+    spd: 0,
+    spe: 0,
+  },
+  {
+    hp: 31,
+    atk: 31,
+    def: 31,
+    spa: 31,
+    spd: 31,
+    spe: 31,
+  },
+  Nature.Adamant,
+  [
+    new Skill('火焰拳', SkillType.Physical, Type.Fire, 75, 1, 20, 1),
+    new Skill('飞翔', SkillType.Physical, Type.Flying, 25, 1, 5, 1),
+  ],
+)
+
 const blastoiseSpecies: Species = {
   name: '迪兰特',
   type: Type.Water,
@@ -86,7 +113,7 @@ const blastoise = new Pet(
   [new Skill('水枪', SkillType.Special, Type.Water, 160, 1, 100, 1)],
 )
 
-const player2 = new Player('小茂', charizard, [charizard])
+const player2 = new Player('小茂', charizard, [charizard, charizard2])
 const player1 = new Player('小智', blastoise, [blastoise])
 
 const battle = new BattleSystem(player1, player2)
