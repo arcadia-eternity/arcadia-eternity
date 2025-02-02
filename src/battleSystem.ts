@@ -319,7 +319,7 @@ export class BattleSystem {
     const switchActions = this.getAvailableSwitch(player)
     if (switchActions.length === 0) return
 
-    this.emitMessage(`${player.name} 可以更换精灵（击败奖励）！`)
+    this.emitMessage(`${player.name} 可以更换精灵（击破奖励）！`)
 
     let selection: PlayerSelection
     do {

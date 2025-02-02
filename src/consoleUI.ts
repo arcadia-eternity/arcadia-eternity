@@ -145,7 +145,7 @@ export class ConsoleUI extends BattleUI {
   }
 
   private async handleKillerSwitch(player: Player): Promise<PlayerSelection> {
-    console.log(`\n==== ${player.name} 可以更换精灵 ====`)
+    console.log(`\n==== ${player.name} 可以更换精灵(击破奖励) ====`)
     const actions = this.battle.getAvailableSwitch(player)
 
     // 显示可选操作
