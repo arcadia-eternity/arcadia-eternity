@@ -1,4 +1,4 @@
-import { UseSkillContext } from './battleSystem'
+import { UseSkillEvent } from './battleSystem'
 import { Type } from './type'
 
 export enum EffectTriggerPhase {
@@ -13,7 +13,7 @@ export enum EffectTriggerPhase {
 
 export interface SkillEffect {
   phase: EffectTriggerPhase
-  apply(context: UseSkillContext): void
+  apply(event: UseSkillEvent): void
   probability?: number // 触发概率（0-1）
 }
 
@@ -37,13 +37,13 @@ export class Skill {
     public readonly effects?: SkillEffect[], // 可选特效
   ) {}
 
-  public applyEffects(EffectTriggerPhase: EffectTriggerPhase, context: UseSkillContext) {
+  public applyEffects(EffectTriggerPhase: EffectTriggerPhase, event: UseSkillEvent) {
     if (!this.effects) return
     this.effects
       .filter(effect => effect.phase === EffectTriggerPhase)
       .forEach(effect => {
         if (Math.random() < (effect.probability ?? 1)) {
-          effect.apply(context)
+          effect.apply(event)
         }
       })
   }
