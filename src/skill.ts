@@ -1,4 +1,4 @@
-import { Pet } from './pet'
+import { UseSkillContext } from './battleSystem'
 import { Type } from './type'
 
 export enum EffectTriggerPhase {
@@ -13,7 +13,7 @@ export enum EffectTriggerPhase {
 
 export interface SkillEffect {
   phase: EffectTriggerPhase
-  apply(attacker: Pet, target: Pet, skill: Skill, damage?: number): void
+  apply(context: UseSkillContext): void
   probability?: number // 触发概率（0-1）
 }
 
@@ -26,7 +26,6 @@ export enum SkillType {
 
 // 技能类
 export class Skill {
-  public readonly effects: SkillEffect[]
   constructor(
     public readonly name: string,
     public readonly SkillType: SkillType,
@@ -34,17 +33,17 @@ export class Skill {
     public readonly power: number,
     public readonly accuracy: number,
     public readonly rageCost: number, // 新增怒气消耗
-    effects?: SkillEffect[], // 可选特效
-  ) {
-    this.effects = effects || []
-  }
+    public readonly priority: number,
+    public readonly effects?: SkillEffect[], // 可选特效
+  ) {}
 
-  public applyEffects(EffectTriggerPhase: EffectTriggerPhase, attacker: Pet, target: Pet, damage?: number) {
+  public applyEffects(EffectTriggerPhase: EffectTriggerPhase, context: UseSkillContext) {
+    if (!this.effects) return
     this.effects
       .filter(effect => effect.phase === EffectTriggerPhase)
       .forEach(effect => {
         if (Math.random() < (effect.probability ?? 1)) {
-          effect.apply(attacker, target, this, damage)
+          effect.apply(context)
         }
       })
   }
@@ -61,6 +60,7 @@ class SkillBuilder {
   private power = 0
   private accuracy = 1
   private rageCost = 0
+  private priority = 0
   private effects: SkillEffect[] = []
 
   withName(name: string) {
@@ -94,6 +94,15 @@ class SkillBuilder {
   }
 
   build() {
-    return new Skill(this.name, this.SkillType, this.type, this.power, this.accuracy, this.rageCost, this.effects)
+    return new Skill(
+      this.name,
+      this.SkillType,
+      this.type,
+      this.power,
+      this.accuracy,
+      this.rageCost,
+      this.priority,
+      this.effects,
+    )
   }
 }

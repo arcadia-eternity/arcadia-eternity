@@ -6,6 +6,7 @@ import { Species } from './src/pet'
 import { Nature } from './src/nature'
 import { ConsoleUI } from './src/consoleUI'
 // 使用示例
+
 const charizardSpecies: Species = {
   name: '休罗斯',
   type: Type.Fire,
@@ -20,7 +21,7 @@ const charizardSpecies: Species = {
   skills: [],
 }
 
-const charizard = new Pet(
+const charizard: Pet = new Pet(
   '火狗',
   charizardSpecies,
   50,
@@ -42,8 +43,8 @@ const charizard = new Pet(
   },
   Nature.Adamant,
   [
-    new Skill('火焰拳', SkillType.Physical, Type.Fire, 75, 1, 20),
-    new Skill('飞翔', SkillType.Physical, Type.Flying, 25, 1, 5),
+    new Skill('火焰拳', SkillType.Physical, Type.Fire, 75, 1, 20, 1),
+    new Skill('飞翔', SkillType.Physical, Type.Flying, 25, 1, 5, 1),
   ],
 )
 
@@ -82,9 +83,12 @@ const blastoise = new Pet(
     spe: 31,
   },
   Nature.Adamant,
-  [new Skill('水枪', SkillType.Special, Type.Water, 160, 1, 100)],
+  [new Skill('水枪', SkillType.Special, Type.Water, 160, 1, 100, 1)],
 )
-const player1 = new Player('小智', blastoise, [blastoise])
+
 const player2 = new Player('小茂', charizard, [charizard])
-const battle = new BattleSystem(player1, player2, new ConsoleUI(player1, player2))
-battle.startBattle()
+const player1 = new Player('小智', blastoise, [blastoise])
+
+const battle = new BattleSystem(player1, player2)
+const consoleui = new ConsoleUI(battle, player1, player2)
+consoleui.run()

@@ -1,7 +1,7 @@
 import { Skill } from './skill'
 import { Type } from './type'
 import {
-  MAX_RAGE,
+  RAGE_PER_TURN,
   StatBuffOnBattle,
   StatOnBattle,
   StatOutBattle,
@@ -11,6 +11,7 @@ import {
   StatTypeWithoutHp,
 } from './const'
 import { Nature, NatureMap } from './nature'
+import { Player } from './battleSystem'
 
 export interface Species {
   name: string
@@ -25,21 +26,25 @@ export interface Species {
 // 宝可梦类
 export class Pet {
   public currentHp: number
-  public currentRage: number
   public baseCritRate: number = 0.1 // 暴击率默认为10%
   public baseAccuracy: number = 1 // 命中率默认为100%
   public statModifiers: StatBuffOnBattle = {
-    atk: [1, 0],
-    def: [1, 0],
-    spa: [1, 0],
-    spd: [1, 0],
-    spe: [1, 0],
-    accuracy: [1, 0],
-    critRate: [1, 0],
-    evasion: [1, 0],
+    atk: [100, 0],
+    def: [100, 0],
+    spa: [100, 0],
+    spd: [100, 0],
+    spe: [100, 0],
+    accuracy: [100, 0],
+    critRate: [100, 0],
+    evasion: [100, 0],
+    ragePerTurn: [15, 0],
+    rageObtainEfficiency: [100, 0],
   }
   public type: Type
   public isAlive: boolean = true
+  public lastUseSkill: Skill | null = null
+  public baseRageObtainEfficiency: number = 1
+  public owner: Player | null
 
   constructor(
     public readonly name: string,
@@ -53,8 +58,8 @@ export class Pet {
   ) {
     this.maxHp = maxHp ? maxHp : this.calculateMaxHp()
     this.currentHp = this.maxHp
-    this.currentRage = 20 // 初始怒气为20
     this.type = species.type
+    this.owner = null
   }
 
   // 选择随机技能
@@ -89,6 +94,10 @@ export class Pet {
       return this.baseCritRate
     } else if (type === 'evasion') {
       return 0
+    } else if (type === 'ragePerTurn') {
+      return RAGE_PER_TURN
+    } else if (type === 'rageObtainEfficiency') {
+      return this.baseRageObtainEfficiency
     } else {
       return this.calculateStatWithoutHp(type)
     }
@@ -102,6 +111,9 @@ export class Pet {
 
     return Math.floor(((2 * baseStat + iv + Math.floor(ev / 4)) * level) / 100) + level + 10
   }
+  public setOwner(player: Player) {
+    this.owner = player
+  }
 
   get stat(): StatOnBattle {
     return {
@@ -113,14 +125,12 @@ export class Pet {
       accuracy: this.calculateStat(StatTypeOnlyBattle.accuracy),
       critRate: this.calculateStat(StatTypeOnlyBattle.critRate),
       evasion: this.calculateStat(StatTypeOnlyBattle.evasion),
+      ragePerTurn: this.calculateStat(StatTypeOnlyBattle.ragePerTurn),
+      rageObtainEfficiency: this.calculateStat(StatTypeOnlyBattle.rageObtainEfficiency),
     }
   }
 
-  get accuracy(): number {
-    return this.baseAccuracy
-  }
-
   get status(): string {
-    return [`HP: ${this.currentHp}/${this.maxHp}`, `怒气: ${this.currentRage}/${MAX_RAGE}`].join(' | ')
+    return [`HP: ${this.currentHp}/${this.maxHp}`].join(' | ')
   }
 }

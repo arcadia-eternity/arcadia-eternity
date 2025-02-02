@@ -24,6 +24,8 @@ export enum StatTypeOnlyBattle {
   accuracy = 'accuracy',
   evasion = 'evasion',
   critRate = 'critRate',
+  ragePerTurn = 'ragePerTurn',
+  rageObtainEfficiency = 'rageObtainEfficiency',
 }
 
 export type StatOutBattle = Record<StatType, number>
