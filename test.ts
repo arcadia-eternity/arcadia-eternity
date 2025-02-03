@@ -1,9 +1,9 @@
-import { Type } from './src/type'
-import { Skill, SkillType } from './src/skill'
-import { Pet } from './src/pet'
-import { BattleSystem, Player } from './src/battleSystem'
-import { Species } from './src/pet'
-import { Nature } from './src/nature'
+import { Type } from './src/simulation/type'
+import { Skill, SkillType } from './src/simulation/skill'
+import { Pet } from './src/simulation/pet'
+import { BattleSystem, Player } from './src/simulation/battleSystem'
+import { Species } from './src/simulation/pet'
+import { Nature } from './src/simulation/nature'
 import { ConsoleUI } from './src/consoleUI'
 // 使用示例
 
@@ -94,7 +94,7 @@ const thunderPikachu: Pet = new Pet(
 // 耿鬼系列
 const gengarSpecies: Species = {
   name: '耿鬼',
-  type: Type.Ghost,
+  type: Type.Shadow,
   baseStats: {
     hp: 60,
     atk: 65,
@@ -128,8 +128,8 @@ const shadowGengar: Pet = new Pet(
   },
   Nature.Timid,
   [
-    new Skill('暗影球', SkillType.Special, Type.Ghost, 80, 1, 15, 1),
-    new Skill('污泥炸弹', SkillType.Special, Type.Poison, 90, 1, 10, 1),
+    new Skill('暗影球', SkillType.Special, Type.Shadow, 80, 1, 15, 1),
+    new Skill('污泥炸弹', SkillType.Special, Type.Grass, 90, 1, 10, 1),
   ],
 )
 

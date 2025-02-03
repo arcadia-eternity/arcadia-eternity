@@ -37,3 +37,8 @@ export type StatOnBattle = Record<StatTypeOnBattle, number>
 export type StatBuffOnBattle = Record<StatTypeOnBattle, BuffNumber> // [百分比，固定值]
 
 export type BuffNumber = [number, number] // [百分比，固定值]
+
+export enum AttackTargetOpinion {
+  self = 'self',
+  opponent = 'opponent',
+}

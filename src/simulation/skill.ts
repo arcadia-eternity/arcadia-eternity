@@ -1,4 +1,5 @@
 import { UseSkillEvent } from './battleSystem'
+import { AttackTargetOpinion } from './const'
 import { Type } from './type'
 
 export enum EffectTriggerPhase {
@@ -34,6 +35,7 @@ export class Skill {
     public readonly accuracy: number,
     public readonly rageCost: number, // 新增怒气消耗
     public readonly priority: number,
+    public readonly target: AttackTargetOpinion = AttackTargetOpinion.self,
     public readonly effects?: SkillEffect[], // 可选特效
   ) {}
 
@@ -62,6 +64,7 @@ class SkillBuilder {
   private rageCost = 0
   private priority = 0
   private effects: SkillEffect[] = []
+  private attackTarget: AttackTargetOpinion = AttackTargetOpinion.opponent
 
   withName(name: string) {
     this.name = name
@@ -93,6 +96,11 @@ class SkillBuilder {
     return this
   }
 
+  withAttackTarget(attackTarget: AttackTargetOpinion) {
+    this.attackTarget = attackTarget
+    return this
+  }
+
   build() {
     return new Skill(
       this.name,
@@ -102,6 +110,7 @@ class SkillBuilder {
       this.accuracy,
       this.rageCost,
       this.priority,
+      this.attackTarget,
       this.effects,
     )
   }

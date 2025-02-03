@@ -5,9 +5,13 @@ import {
   SwitchPetSelection,
   BattleSystem,
   DoNothingSelection,
-} from './battleSystem'
+  BattlePhase,
+} from './simulation/battleSystem'
 import readline from 'readline'
 import { BattleUI } from './ui'
+import { BattleMessage, BattleMessageType } from './simulation/message'
+import { Pet } from './simulation/pet'
+import { TYPE_MAP } from './simulation/type'
 
 export class ConsoleUI extends BattleUI {
   protected battle: BattleSystem
@@ -18,11 +22,172 @@ export class ConsoleUI extends BattleUI {
   ) {
     super(battle)
     this.battle = battle
-    battle.onMessage(this.handleMessage)
+    battle.onMessage(this.handleMessage.bind(this)) //this的上下文应该为本身
   }
 
-  private handleMessage(message: string) {
-    console.log(message)
+  private getPetStatus = (pet: Pet) =>
+    `${TYPE_MAP[pet.type].emoji}${pet.name}(${pet.species.name}) [Lv.${pet.level} HP:${pet.currentHp}/${pet.maxHp} Rage:${pet.owner?.currentRage}/100]`
+
+  private handleMessage(message: BattleMessage) {
+    switch (message.type) {
+      case BattleMessageType.BattleStart:
+        console.log(`⚔️ 对战开始！`)
+        console.log(`玩家A: ${this.getPetStatus(this.playerA.activePet)}`)
+        console.log(`玩家B: ${this.getPetStatus(this.playerB.activePet)}`)
+        break
+
+      case BattleMessageType.RoundStart:
+        console.log(`\n=== 第 ${message.data.round} 回合 ===`)
+        break
+
+      case BattleMessageType.PhaseChange:
+        console.log(`🔄 阶段转换：${this.translatePhase(message.data.from)} → ${this.translatePhase(message.data.to)}`)
+        break
+
+      case BattleMessageType.RageChange: {
+        const d = message.data
+        console.log(`⚡ ${d.pet} 怒气 ${d.before} → ${d.after} (${this.getRageReason(d.reason)})`)
+        break
+      }
+
+      case BattleMessageType.SkillUse: {
+        const d = message.data
+        console.log(`🎯 ${d.user} 使用 ${d.skill}（消耗${d.rageCost}怒气） → ${d.target}`)
+        break
+      }
+
+      case BattleMessageType.SkillMiss: {
+        const d = message.data
+        console.log(`❌ ${d.user} 的 ${d.skill} 未命中！ (${this.translateMissReason(d.reason)})`)
+        break
+      }
+
+      case BattleMessageType.Damage: {
+        const d = message.data
+        let log = `💥 ${d.target} 受到 ${d.damage}点${this.getDamageType(d.damageType)}伤害`
+        if (d.isCrit) log += ' (暴击)'
+        if (d.effectiveness > 1) log += ' 效果拔群！'
+        if (d.effectiveness < 1) log += ' 效果不佳...'
+        log += ` (剩余HP: ${d.currentHp}/${d.maxHp})`
+        console.log(log)
+        break
+      }
+
+      case BattleMessageType.Heal:
+        console.log(`💚 ${message.data.target} 恢复 ${message.data.amount}点HP`)
+        break
+
+      case BattleMessageType.PetSwitch: {
+        const d = message.data
+        console.log(`🔄 ${d.player} 更换精灵：${d.fromPet} → ${d.toPet}`)
+        console.log(`   ${d.toPet} 剩余HP: ${d.currentHp}`)
+        break
+      }
+
+      case BattleMessageType.PetDefeated:
+        console.log(`☠️ ${message.data.pet} 倒下！${message.data.killer ? `(击败者: ${message.data.killer})` : ''}`)
+        break
+
+      case BattleMessageType.StatChange: {
+        const d = message.data
+        const arrow = d.stage > 0 ? '↑' : '↓'
+        console.log(`📈 ${d.pet} ${this.translateStat(d.stat)} ${arrow.repeat(Math.abs(d.stage))} (${d.reason})`)
+        break
+      }
+
+      case BattleMessageType.StatusAdd:
+        console.log(
+          `⚠️ ${message.data.target} 陷入【${message.data.status}】状态 ${
+            message.data.source ? `(来自 ${message.data.source})` : ''
+          }`,
+        )
+        break
+
+      case BattleMessageType.StatusRemove:
+        console.log(`✅ ${message.data.target} 解除【${message.data.status}】状态`)
+        break
+
+      case BattleMessageType.MarkApply:
+        console.log(`🔖 ${message.data.target} 被施加【${message.data.markType}】印记`)
+        break
+
+      case BattleMessageType.MarkTrigger:
+        console.log(`✨ ${message.data.markType} 印记触发：${message.data.effect}`)
+        break
+
+      case BattleMessageType.BattleEnd:
+        console.log(`\n🎉 对战结束！胜利者：${message.data.winner}`)
+        console.log(`➤ 结束原因：${this.translateEndReason(message.data.reason)}`)
+        break
+
+      case BattleMessageType.ForcedSwitch:
+        console.log(`${message.data.player}必须更换倒下的精灵！`)
+        break
+
+      case BattleMessageType.Crit: {
+        const d = message.data
+        console.log(`🔥 ${d.attacker} 对 ${d.target} 造成了暴击伤害！`)
+        break
+      }
+
+      default:
+        console.warn('未知消息类型:', JSON.stringify(message))
+    }
+  }
+
+  // ---------- 辅助方法 ----------
+  private translatePhase(phase: BattlePhase): string {
+    const phases: Record<BattlePhase, string> = {
+      [BattlePhase.SwitchPhase]: '换宠阶段',
+      [BattlePhase.SelectionPhase]: '指令选择',
+      [BattlePhase.ExecutionPhase]: '执行阶段',
+      [BattlePhase.Ended]: '战斗结束',
+    }
+    return phases[phase] || phase
+  }
+
+  private getRageReason(reason: string): string {
+    const reasons: Record<string, string> = {
+      turn: '回合增长',
+      damage: '受伤获得',
+      skill: '技能消耗',
+      switch: '切换精灵',
+    }
+    return reasons[reason] || reason
+  }
+
+  private translateMissReason(reason: string): string {
+    return (
+      {
+        accuracy: '命中未达标',
+        dodge: '被对方闪避',
+        immune: '属性免疫',
+      }[reason] || reason
+    )
+  }
+
+  private getDamageType(type: string): string {
+    return (
+      {
+        physical: '物理',
+        special: '特殊',
+        fixed: '固定',
+      }[type] || type
+    )
+  }
+
+  private translateStat(stat: string): string {
+    const stats: Record<string, string> = {
+      atk: '攻击',
+      def: '防御',
+      spd: '速度',
+      critRate: '暴击率',
+    }
+    return stats[stat] || stat
+  }
+
+  private translateEndReason(reason: string): string {
+    return reason === 'all_pet_fainted' ? '全部精灵失去战斗能力' : '玩家投降'
   }
 
   // 修改操作提示逻辑
@@ -35,7 +200,7 @@ export class ConsoleUI extends BattleUI {
   }
 
   private async getNormalAction(player: Player): Promise<PlayerSelection> {
-    console.log(player.activePet.status)
+    console.log(this.getPetStatus(player.activePet))
 
     const actions = this.battle.getAvailableSelection(player)
     console.log('可用操作：')
@@ -48,7 +213,7 @@ export class ConsoleUI extends BattleUI {
 
     // 2. 显示更换精灵选项
     const switchActions = actions.filter((a): a is SwitchPetSelection => a.type === 'switch-pet')
-    switchActions.forEach((a, i) => console.log(`${validSkills.length + i + 1}. 更换精灵: ${a.pet.name}`))
+    switchActions.forEach((a, i) => console.log(`${validSkills.length + i + 1}. 更换精灵: ${this.getPetStatus(a.pet)}`))
 
     // 3. 显示什么都不做选项
     const doNothingIndex = actions.filter((a): a is DoNothingSelection => a.type === 'do-nothing')
@@ -150,7 +315,7 @@ export class ConsoleUI extends BattleUI {
 
     // 显示可选操作
     console.log('1. 保持当前精灵')
-    actions.forEach((a, i) => console.log(`${i + 2}. 更换为 ${a.pet.name}`))
+    actions.forEach((a, i) => console.log(`${i + 2}. 更换精灵: ${this.getPetStatus(a.pet)}`))
 
     while (true) {
       const choice = parseInt(await this.question('请选择操作: '))
@@ -167,7 +332,7 @@ export class ConsoleUI extends BattleUI {
   private async getForcedSwitchAction(player: Player): Promise<PlayerSelection> {
     const actions = this.battle.getAvailableSwitch(player) as SwitchPetSelection[]
     console.log('必须更换精灵！可用选项：')
-    actions.forEach((a, i) => console.log(`${i + 1}. 更换为 ${a.pet.name}`))
+    actions.forEach((a, i) => console.log(`${i + 1}. 更换精灵: ${this.getPetStatus(a.pet)}`))
 
     while (true) {
       const choice = parseInt(await this.question('请选择更换的精灵：'))

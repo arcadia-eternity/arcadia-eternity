@@ -1,8 +1,16 @@
 import { TYPE_CHART } from './type'
 import { SkillType, EffectTriggerPhase, Skill } from './skill'
 import { Pet } from './pet'
-import { MAX_RAGE, RAGE_PER_TURN, RAGE_PER_DAMAGE } from './const'
+import { MAX_RAGE, RAGE_PER_TURN, RAGE_PER_DAMAGE, AttackTargetOpinion } from './const'
 import { Mark } from './mark'
+import { BattleMessage, BattleMessageType, BattleMessageData } from './message'
+
+export enum BattlePhase {
+  SwitchPhase = 'SWITCH_PHASE',
+  SelectionPhase = 'SELECTION_PHASE',
+  ExecutionPhase = 'EXECUTION_PHASE',
+  Ended = 'ENDED',
+}
 
 export class Player {
   public currentRage: number = 20
@@ -19,8 +27,9 @@ export class Player {
 // 对战系统
 export class BattleSystem {
   public status: BattleStatus = BattleStatus.Unstarted
+  public currentPhase: BattlePhase = BattlePhase.SelectionPhase
   private currentRound = 1
-  private messageCallbacks: Array<(message: string) => void> = []
+  private messageCallbacks: Array<(message: BattleMessage) => void> = []
   public pendingDefeatedPlayer?: Player // 新增：需要在下回合换宠的玩家
   public allowKillerSwitch: boolean
   public lastKiller?: Player
@@ -34,12 +43,17 @@ export class BattleSystem {
   }
 
   // 注册消息回调
-  public onMessage(callback: (message: string) => void) {
+  public onMessage(callback: (message: BattleMessage) => void) {
     this.messageCallbacks.push(callback)
   }
 
   // 发送消息给所有回调
-  private emitMessage(message: string) {
+  private emitMessage<T extends BattleMessageType>(type: T, data: BattleMessageData[T]) {
+    const message: BattleMessage = {
+      type,
+      data,
+      timestamp: Date.now(),
+    } as BattleMessage
     this.messageCallbacks.forEach(cb => cb(message))
   }
 
@@ -64,7 +78,7 @@ export class BattleSystem {
             type: 'use-skill',
             skill,
             source: player,
-            target: this.getOpponent(player).activePet,
+            target: skill.target,
           }) as UseSkillSelection,
       )
   }
@@ -106,9 +120,7 @@ export class BattleSystem {
 
   private addTurnRage() {
     ;[this.playerA, this.playerB].forEach(player => {
-      const before = player.currentRage
       player.currentRage = Math.min(player.currentRage + RAGE_PER_TURN, MAX_RAGE)
-      this.emitMessage(`${player.activePet.name} 获得${RAGE_PER_TURN}怒气 (${before}→${player.currentRage})`)
     })
   }
 
@@ -143,7 +155,7 @@ export class BattleSystem {
           const event: UseSkillEvent = {
             type: 'use-skill',
             source: _selection.source.activePet,
-            target: _selection.target,
+            target: _selection.skill.target,
             skill: _selection.skill,
             skillPriority: _selection.skill.priority,
             power: _selection.skill.power,
@@ -174,8 +186,9 @@ export class BattleSystem {
     events.sort(this.eventSort)
 
     this.currentRound++
-    this.emitMessage(`\n=== 第 ${this.currentRound} 回合 ===`)
-    this.emitMessage('回合开始！')
+    this.emitMessage(BattleMessageType.RoundStart, {
+      round: this.currentRound,
+    })
 
     eventpop: while (events.length > 0) {
       const event = events.pop()
@@ -270,28 +283,32 @@ export class BattleSystem {
 
     // 检查新宠物是否可用
     if (!player.team.includes(newPet) || !newPet.isAlive) {
-      this.emitMessage(`${newPet.name} 无法出战！`)
+      this.emitMessage(BattleMessageType.Error, { message: `${newPet.name} 无法出战！` })
       return
     }
 
     // 执行换宠
     const oldPet = player.activePet
     player.activePet = newPet
-    this.emitMessage(`${player.name} 将 ${oldPet.name} 换下，派出 ${newPet.name}！`)
+    this.emitMessage(BattleMessageType.PetSwitch, {
+      player: player.name,
+      fromPet: oldPet.name,
+      toPet: newPet.name,
+      currentHp: newPet.currentHp,
+    })
 
     // 换宠后怒气为原怒气的80%
     this.settingRage(player, Math.floor(player.currentRage * 0.8))
   }
 
   private *handleForcedSwitch(player: Player): Generator<void, void, PlayerSelection> {
-    this.emitMessage(`${player.name} 必须更换倒下的精灵！`)
-
     // 获取可换宠列表
     const switchActions = this.getAvailableSwitch(player)
     if (switchActions.length === 0) {
-      this.emitMessage(`${player.name} 没有可用的精灵！`)
+      this.emitMessage(BattleMessageType.Error, { message: `${player.name} 没有可用的精灵！` })
       return
     }
+    this.emitMessage(BattleMessageType.ForcedSwitch, { player: player.name, required: true })
 
     // 强制玩家选择换宠
     let selection: PlayerSelection
@@ -300,7 +317,7 @@ export class BattleSystem {
       if (selection.type === 'switch-pet' && selection.source === player) {
         this.setSelection(player, selection)
       } else {
-        this.emitMessage('必须选择更换精灵！')
+        this.emitMessage(BattleMessageType.Error, { message: '必须选择更换精灵！' })
       }
     } while (!player.selection)
 
@@ -319,7 +336,7 @@ export class BattleSystem {
     const switchActions = this.getAvailableSwitch(player)
     if (switchActions.length === 0) return
 
-    this.emitMessage(`${player.name} 可以更换精灵（击破奖励）！`)
+    this.emitMessage(BattleMessageType.KillerSwitch, { player: player.name, available: this.allowKillerSwitch })
 
     let selection: PlayerSelection
     do {
@@ -330,7 +347,11 @@ export class BattleSystem {
       ) {
         break
       }
-      this.emitMessage('请选择是否更换精灵')
+      this.emitMessage(BattleMessageType.InvalidAction, {
+        player: player.name,
+        action: selection.type,
+        reason: 'invalid_action',
+      })
     } while (true)
 
     if (selection.type === 'switch-pet') {
@@ -346,27 +367,37 @@ export class BattleSystem {
     // 攻击前触发
     const skill = event.skill
     const attacker = event.source
-    const defender = event.target
+    const defender =
+      event.skill.target === AttackTargetOpinion.opponent ? this.getOpponent(event.player).activePet : attacker // 动态获取当前目标
     if (!skill) {
-      this.emitMessage(`${attacker.name} 没有可用技能!`)
+      this.emitMessage(BattleMessageType.Error, { message: `${attacker.name} 没有可用技能!` })
       return false
     }
     if (attacker.currentHp <= 0 || !attacker.isAlive) return false
 
-    this.emitMessage(`${attacker.name} 使用 ${skill.name}！`)
+    this.emitMessage(BattleMessageType.SkillUse, {
+      user: attacker.name,
+      target: defender.name,
+      skill: skill.name,
+      rageCost: skill.rageCost,
+    })
 
     // 怒气检查
     if (event.player.currentRage < skill.rageCost) {
-      this.emitMessage(`${attacker.name} 怒气不足无法使用 ${skill.name}!`)
+      this.emitMessage(BattleMessageType.Error, { message: `${attacker.name} 怒气不足无法使用 ${skill.name}!` })
       return false
     }
 
-    this.emitMessage(`${attacker.name} 使用 ${skill.name} (消耗${skill.rageCost}怒气)!`)
-    this.addRage(event.player, -skill.rageCost)
+    this.addRage(event.player, -skill.rageCost, 'skill')
 
     // 命中判定
     if (Math.random() > skill.accuracy) {
-      this.emitMessage(`${attacker.name} 的攻击没有命中！`)
+      this.emitMessage(BattleMessageType.SkillMiss, {
+        user: attacker.name,
+        target: defender.name,
+        skill: skill.name,
+        reason: 'accuracy',
+      })
       skill.applyEffects(EffectTriggerPhase.ON_MISS, event) // 触发未命中特效
       return false
     }
@@ -374,7 +405,7 @@ export class BattleSystem {
     // 暴击判定
     const isCrit = Math.random() < attacker.stat.critRate
     if (isCrit) {
-      this.emitMessage('暴击！')
+      this.emitMessage(BattleMessageType.Crit, { attacker: attacker.name, target: defender.name })
       skill.applyEffects(EffectTriggerPhase.ON_CRIT_PRE_DAMAGE, event) // 触发暴击前特效
     }
 
@@ -398,18 +429,30 @@ export class BattleSystem {
 
       // TODO:对护盾类特性的特判
       defender.currentHp = Math.max(defender.currentHp - event.damage, 0)
-      this.emitMessage(`${defender.name} 受到了 ${event.damage} 点伤害！`)
-      if (typeMultiplier > 1) this.emitMessage('效果拔群！')
-      if (typeMultiplier < 1) this.emitMessage('效果不佳...')
+      this.emitMessage(BattleMessageType.Damage, {
+        currentHp: defender.currentHp,
+        maxHp: defender.maxHp!,
+        source: attacker.name,
+        target: defender.name,
+        damage: event.damage,
+        basePower: skill.power,
+        isCrit: isCrit,
+        effectiveness: typeMultiplier,
+        damageType:
+          skill.SkillType === SkillType.Physical
+            ? 'physical'
+            : skill.SkillType === SkillType.Special
+              ? 'special'
+              : 'fixed',
+      })
 
       // 受伤者获得怒气
       const gainedRage = Math.floor(event.damage * RAGE_PER_DAMAGE)
-      if (defender.owner) this.addRage(defender.owner, gainedRage)
-      this.emitMessage(`${defender.name} 因受伤获得${gainedRage}怒气`)
+      this.addRage(defender.owner!, gainedRage, 'damage')
 
       skill.applyEffects(EffectTriggerPhase.POST_DAMAGE, event) // 触发伤害后特效
 
-      this.addRage(event.player, 15) //命中奖励
+      this.addRage(event.player, 15, 'skillHit') //命中奖励
     }
 
     skill.applyEffects(EffectTriggerPhase.ON_HIT, event) // 触发命中特效
@@ -418,7 +461,7 @@ export class BattleSystem {
     }
 
     if (defender.currentHp <= 0) {
-      this.emitMessage(`${defender.name} 倒下了！`)
+      this.emitMessage(BattleMessageType.PetDefeated, { pet: defender.name, killer: event.source.name })
       defender.isAlive = false
       skill.applyEffects(EffectTriggerPhase.ON_DEFEAT, event) // 触发击败特效
 
@@ -437,7 +480,12 @@ export class BattleSystem {
     player.currentRage = Math.max(Math.min(value, 100), 0)
   }
 
-  private addRage(player: Player, value: number, ignoreRageObtainEfficiency: boolean = false) {
+  private addRage(
+    player: Player,
+    value: number,
+    reason: 'turn' | 'damage' | 'skill' | 'skillHit' | 'switch',
+    ignoreRageObtainEfficiency: boolean = false,
+  ) {
     let rageObtainEfficiency = player.activePet.stat.rageObtainEfficiency
     if (ignoreRageObtainEfficiency) rageObtainEfficiency = 1
     const rageDelta = value * rageObtainEfficiency
@@ -448,17 +496,31 @@ export class BattleSystem {
     }
     const before = player.currentRage
     this.settingRage(player, (player.currentRage += rageDelta))
-    this.emitMessage(`${player.activePet.name} ${rageDelta}怒气 (${before}→${player.currentRage})`)
+    this.emitMessage(BattleMessageType.RageChange, {
+      player: player.name,
+      pet: player.activePet.name,
+      before: before,
+      after: player.currentRage,
+      reason: reason,
+    })
   }
 
   // 开始对战
   public *startBattle(): Generator<void, Player, PlayerSelection> {
     if (this.status != BattleStatus.Unstarted) throw '战斗已经开始过了！'
     this.status = BattleStatus.OnBattle
-    this.emitMessage(`对战开始：${this.playerA.activePet.name} vs ${this.playerB.activePet.name}!`)
+    this.emitMessage(BattleMessageType.BattleStart, {
+      playerA: this.playerA.name,
+      playerB: this.playerB.name,
+      pets: {
+        playerA: this.playerA.activePet.name,
+        playerB: this.playerB.activePet.name,
+      },
+    })
 
     while (true) {
       // 阶段1：处理强制换宠
+      this.currentPhase = BattlePhase.SwitchPhase
       if (this.pendingDefeatedPlayer) {
         yield* this.handleForcedSwitch(this.pendingDefeatedPlayer)
         this.pendingDefeatedPlayer = undefined
@@ -471,6 +533,7 @@ export class BattleSystem {
       }
 
       // 阶段3：收集玩家指令
+      this.currentPhase = BattlePhase.SelectionPhase
       this.clearSelections()
       while (!this.bothPlayersReady()) {
         const selection: PlayerSelection = yield
@@ -478,9 +541,11 @@ export class BattleSystem {
       }
 
       // 阶段4：执行回合
+      this.currentPhase = BattlePhase.ExecutionPhase
       if (this.performTurn()) break
     }
     this.status = BattleStatus.Ended
+    this.currentPhase = BattlePhase.Ended
     return this.getVictor()
   }
 
@@ -504,10 +569,10 @@ export class BattleSystem {
   private getVictor() {
     if (this.status != BattleStatus.Ended) throw '战斗未结束'
     if (this.playerA.team.every(pet => !pet.isAlive)) {
-      this.emitMessage('玩家B胜利！！')
+      this.emitMessage(BattleMessageType.BattleEnd, { winner: this.playerB.name, reason: 'all_pet_fainted' })
       return this.playerB
     } else if (this.playerB.team.every(pet => !pet.isAlive)) {
-      this.emitMessage('玩家A胜利！！')
+      this.emitMessage(BattleMessageType.BattleEnd, { winner: this.playerA.name, reason: 'all_pet_fainted' })
       return this.playerA
     }
     throw '不存在胜利者'
@@ -517,7 +582,7 @@ export class BattleSystem {
 export type PlayerSelection = UseSkillSelection | SwitchPetSelection | DoNothingSelection
 export type PlayerSelections = { player: Player; selections: PlayerSelection[] }
 
-export type UseSkillSelection = { source: Player; type: 'use-skill'; skill: Skill; target: Pet }
+export type UseSkillSelection = { source: Player; type: 'use-skill'; skill: Skill; target: AttackTargetOpinion }
 export type SwitchPetSelection = { source: Player; type: 'switch-pet'; pet: Pet }
 export type DoNothingSelection = { source: Player; type: 'do-nothing' }
 
@@ -533,7 +598,7 @@ export type UseSkillEvent = {
   type: 'use-skill'
   player: Player
   source: Pet
-  target: Pet
+  target: AttackTargetOpinion
   skill: Skill
   skillPriority: number
   power: number
