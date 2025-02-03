@@ -415,15 +415,33 @@ export class BattleSystem {
       context.skill.applyEffects(this, EffectTriggerPhase.ON_CRIT_PRE_DAMAGE, context) // 触发暴击前特效
     }
 
-    // 攻击命中
-    context.skill.applyEffects(this, EffectTriggerPhase.PRE_DAMAGE, context) // 触发伤害前特效
-
     // 伤害计算
     if (context.skill.SkillType !== SkillType.Status) {
+      // 攻击命中
+      //TODO: 影响伤害的印记
+      context.skill.applyEffects(this, EffectTriggerPhase.PRE_DAMAGE, context) // 触发伤害前特效
       const typeMultiplier = TYPE_CHART[context.skill.type][defender.type] || 1
-      const baseDamage = Math.floor(
-        (((2 * defender.level) / 5 + 2) * context.skill.power * (attacker.stat.atk / defender.stat.def)) / 50 + 2,
-      )
+      let atk = 0
+      let def = 0
+      switch (context.skill.SkillType) {
+        case SkillType.Physical:
+          atk = attacker.stat.atk
+          def = defender.stat.def
+          break
+        case SkillType.Special:
+          atk = attacker.stat.spa
+          def = defender.stat.spd
+          break
+        case SkillType.Climax:
+          if (attacker.stat.atk > attacker.stat.spa) {
+            atk = attacker.stat.atk
+            def = defender.stat.def
+          } else {
+            atk = attacker.stat.spa
+            def = defender.stat.spd
+          }
+      }
+      const baseDamage = Math.floor((((2 * defender.level) / 5 + 2) * context.skill.power * (atk / def)) / 50 + 2)
 
       // 随机波动
       const randomFactor = Math.random() * 0.15 + 0.85
