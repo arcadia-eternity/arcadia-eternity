@@ -417,14 +417,14 @@ export class BattleSystem {
     }
 
     // 伤害计算
-    if (context.skill.SkillType !== SkillType.Status) {
+    if (context.skill.skillType !== SkillType.Status) {
       // 攻击命中
       //TODO: 影响伤害的印记
       context.skill.applyEffects(this, EffectTriggerPhase.PRE_DAMAGE, context) // 触发伤害前特效
       const typeMultiplier = TYPE_CHART[context.skill.type][defender.type] || 1
       let atk = 0
       let def = 0
-      switch (context.skill.SkillType) {
+      switch (context.skill.skillType) {
         case SkillType.Physical:
           atk = attacker.stat.atk
           def = defender.stat.def
@@ -491,9 +491,9 @@ export class BattleSystem {
         isCrit: context.crit,
         effectiveness: typeMultiplier,
         damageType:
-          context.skill.SkillType === SkillType.Physical
+          context.skill.skillType === SkillType.Physical
             ? 'physical'
-            : context.skill.SkillType === SkillType.Special
+            : context.skill.skillType === SkillType.Special
               ? 'special'
               : 'fixed',
       })
