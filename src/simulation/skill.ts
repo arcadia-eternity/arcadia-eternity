@@ -164,7 +164,7 @@ export class ConditionFactory {
 // 常用目标选择器库
 export const Selectors = {
   // 选择敌方出战精灵
-  opponentActive: (context: UseSkillContext) => [context.target],
+  opponentActive: (context: UseSkillContext) => [context.actualTarget],
 
   // // 选择敌方存活精灵（包括后备）
   // opponentAlive: (context: UseSkillContext) => context.opponent.team.filter(pet => pet.isAlive),

@@ -1,4 +1,4 @@
-import { BattlePhase } from './battleSystem'
+import { BattlePhase, Player } from './battleSystem'
 import { StatTypeOnBattle } from './const'
 
 // battleSystem.ts
@@ -226,7 +226,7 @@ export interface BattleMessageData {
     actionDetail: string
   }
   [BattleMessageType.ForcedSwitch]: {
-    player: string
+    player: Player
     required: boolean
   }
   [BattleMessageType.KillerSwitch]: {

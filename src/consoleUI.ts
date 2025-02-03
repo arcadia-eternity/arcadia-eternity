@@ -121,12 +121,15 @@ export class ConsoleUI extends BattleUI {
         break
 
       case BattleMessageType.ForcedSwitch:
-        console.log(`${message.data.player}必须更换倒下的精灵！`)
+        console.log(`${message.data.player.name}必须更换倒下的精灵！`)
         break
 
       case BattleMessageType.Crit: {
         const d = message.data
         console.log(`🔥 ${d.attacker} 对 ${d.target} 造成了暴击伤害！`)
+        break
+      }
+      case BattleMessageType.KillerSwitch: {
         break
       }
 

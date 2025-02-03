@@ -156,7 +156,7 @@ export class BattleSystem {
             type: 'use-skill',
             battleSystem: this,
             source: _selection.source.activePet,
-            target: _selection.skill.target,
+            selectTarget: _selection.skill.target,
             skill: _selection.skill,
             skillPriority: _selection.skill.priority,
             power: _selection.skill.power,
@@ -313,7 +313,7 @@ export class BattleSystem {
       this.emitMessage(BattleMessageType.Error, { message: `${player.name} 没有可用的精灵！` })
       return
     }
-    this.emitMessage(BattleMessageType.ForcedSwitch, { player: player.name, required: true })
+    this.emitMessage(BattleMessageType.ForcedSwitch, { player: player, required: true })
 
     // 强制玩家选择换宠
     let selection: PlayerSelection
@@ -375,6 +375,7 @@ export class BattleSystem {
     const attacker = context.source
     const defender =
       context.skill.target === AttackTargetOpinion.opponent ? this.getOpponent(context.player).activePet : attacker // 动态获取当前目标
+    context.actualTarget = defender
     if (!context.skill) {
       this.emitMessage(BattleMessageType.Error, { message: `${attacker.name} 没有可用技能!` })
       return false
@@ -668,7 +669,8 @@ export type UseSkillContext = {
   battleSystem: BattleSystem
   player: Player
   source: Pet
-  target: AttackTargetOpinion
+  selectTarget: AttackTargetOpinion
+  actualTarget?: Pet
   skill: Skill
   skillPriority: number
   power: number
