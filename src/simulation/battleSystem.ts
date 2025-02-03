@@ -201,7 +201,7 @@ export class BattleSystem {
       switch (context.type) {
         case 'use-skill': {
           const _context = context as UseSkillContext
-          if (!this.performAttack(_context)) break contextpop
+          if (this.performAttack(_context)) break contextpop
           break
         }
         case 'mark-effect':

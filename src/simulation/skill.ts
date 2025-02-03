@@ -37,7 +37,7 @@ export class Skill {
     public readonly accuracy: number,
     public readonly rageCost: number,
     public readonly priority: number,
-    public readonly target: AttackTargetOpinion = AttackTargetOpinion.self,
+    public readonly target: AttackTargetOpinion = AttackTargetOpinion.opponent,
 
     public readonly effects?: SkillEffect[], // 可选特效
     public readonly sureHit: boolean = false,
