@@ -50,8 +50,7 @@ export class Mark implements EffectContainer {
   trigger(trigger: EffectTrigger, context: Omit<EffectContext, 'mark'>) {
     const markContext: EffectContext = {
       ...context,
-      mark: this,
-      stacks: this.stacks,
+      source: this,
     }
     EffectApplicator.apply(this, trigger, markContext)
   }

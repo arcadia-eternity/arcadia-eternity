@@ -1,7 +1,6 @@
 // effect.ts
 import { BattleSystem, UseSkillContext } from './battleSystem'
 import { Mark } from './mark'
-import { Pet } from './pet'
 
 // 统一效果触发阶段
 export enum EffectTrigger {
@@ -10,7 +9,8 @@ export enum EffectTrigger {
   SkillPostDamage = 'SKILL_POST_DAMAGE',
   SkillOnHit = 'SKILL_ON_HIT',
   SkillOnMiss = 'SKILL_ON_MISS',
-  SkillOnCrit = 'SKILL_ON_CRIT',
+  SkillOnCritPreDamage = 'SKILL_ON_CRIT_PRE_DAMAGE',
+  SkillOnCritPostDamage = 'SKILL_ON_CRIT_POST_DAMAGE',
 
   // 印记相关
   MarkTurnStart = 'MARK_TURN_START',
@@ -28,14 +28,7 @@ export enum EffectTrigger {
 // 效果上下文
 export interface EffectContext {
   battle: BattleSystem
-  source?: Pet
-  target?: Pet
-  skillContext?: UseSkillContext
-  mark?: Mark
-  damage?: number
-  heal?: number
-  switchedPet?: Pet
-  stacks?: number
+  source: UseSkillContext | Mark
 }
 
 // 基础效果接口

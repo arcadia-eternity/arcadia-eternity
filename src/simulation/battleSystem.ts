@@ -1,5 +1,5 @@
 import { TYPE_CHART } from './type'
-import { SkillType, EffectTriggerPhase, Skill } from './skill'
+import { SkillType, EffectTrigger, Skill } from './skill'
 import { Pet } from './pet'
 import { MAX_RAGE, RAGE_PER_TURN, RAGE_PER_DAMAGE, AttackTargetOpinion } from './const'
 import { Mark } from './mark'
@@ -405,7 +405,7 @@ export class BattleSystem {
         skill: context.skill.name,
         reason: 'accuracy',
       })
-      context.skill.applyEffects(this, EffectTriggerPhase.ON_MISS, context) // 触发未命中特效
+      context.skill.applyEffects(this, EffectTrigger.SkillOnMiss, context) // 触发未命中特效
       return false
     }
 
@@ -413,14 +413,14 @@ export class BattleSystem {
     context.crit = Math.random() < attacker.stat.critRate
     if (context.crit) {
       this.emitMessage(BattleMessageType.Crit, { attacker: attacker.name, target: defender.name })
-      context.skill.applyEffects(this, EffectTriggerPhase.ON_CRIT_PRE_DAMAGE, context) // 触发暴击前特效
+      context.skill.applyEffects(this, EffectTrigger.SkillOnCritPreDamage, context) // 触发暴击前特效
     }
 
     // 伤害计算
     if (context.skill.skillType !== SkillType.Status) {
       // 攻击命中
       //TODO: 影响伤害的印记
-      context.skill.applyEffects(this, EffectTriggerPhase.PRE_DAMAGE, context) // 触发伤害前特效
+      context.skill.applyEffects(this, EffectTrigger.SkillPreDamage, context) // 触发伤害前特效
       const typeMultiplier = TYPE_CHART[context.skill.type][defender.type] || 1
       let atk = 0
       let def = 0
@@ -502,20 +502,20 @@ export class BattleSystem {
       const gainedRage = Math.floor(context.damageResult * RAGE_PER_DAMAGE)
       this.addRage(defender.owner!, gainedRage, 'damage')
 
-      context.skill.applyEffects(this, EffectTriggerPhase.POST_DAMAGE, context) // 触发伤害后特效
+      context.skill.applyEffects(this, EffectTrigger.SkillPostDamage, context) // 触发伤害后特效
 
       this.addRage(context.player, 15, 'skillHit') //命中奖励
     }
 
-    context.skill.applyEffects(this, EffectTriggerPhase.ON_HIT, context) // 触发命中特效
+    context.skill.applyEffects(this, EffectTrigger.SkillOnCritPostDamage, context) // 触发命中特效
     if (context.crit) {
-      context.skill.applyEffects(this, EffectTriggerPhase.ON_CRIT_POST_DAMAGE, context) // 触发暴击后特效
+      context.skill.applyEffects(this, EffectTrigger.SkillOnCritPostDamage, context) // 触发暴击后特效
     }
 
     if (defender.currentHp <= 0) {
       this.emitMessage(BattleMessageType.PetDefeated, { pet: defender.name, killer: context.source.name })
       defender.isAlive = false
-      context.skill.applyEffects(this, EffectTriggerPhase.ON_DEFEAT, context) // 触发击败特效
+      context.skill.applyEffects(this, EffectTrigger.OnDefeat, context) // 触发击败特效
 
       const defeatedPlayer = defender.owner
       if (defeatedPlayer) {

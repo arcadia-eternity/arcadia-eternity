@@ -2,6 +2,7 @@
 import { Effect, EffectContainer, EffectTrigger, EffectApplicator, EffectContext } from './effect'
 import { Type } from './type'
 import { AttackTargetOpinion } from './const'
+import { BattleSystem, UseSkillContext } from './battleSystem'
 
 export enum SkillType {
   Physical = 'Physical',
@@ -32,8 +33,12 @@ export class Skill implements EffectContainer {
     return this.effects.filter(e => e.trigger === trigger)
   }
 
-  applyEffects(trigger: EffectTrigger, context: EffectContext) {
-    EffectApplicator.apply(this, trigger, context)
+  applyEffects(battle: BattleSystem, trigger: EffectTrigger, context: UseSkillContext) {
+    const effectContext: EffectContext = {
+      battle: battle,
+      source: context,
+    }
+    EffectApplicator.apply(this, trigger, effectContext)
   }
 
   static Builder = class {
