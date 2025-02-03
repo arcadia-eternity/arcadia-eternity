@@ -175,7 +175,7 @@ export interface BattleMessageData {
   [BattleMessageType.Heal]: {
     target: string
     amount: number
-    source: 'skill' | 'item' | 'ability'
+    source: 'skill' | 'item' | 'effect'
     healer?: string
   }
   [BattleMessageType.Crit]: {

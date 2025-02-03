@@ -48,7 +48,7 @@ export class BattleSystem {
   }
 
   // 发送消息给所有回调
-  private emitMessage<T extends BattleMessageType>(type: T, data: BattleMessageData[T]) {
+  protected emitMessage<T extends BattleMessageType>(type: T, data: BattleMessageData[T]) {
     const message: BattleMessage = {
       type,
       data,
@@ -146,64 +146,69 @@ export class BattleSystem {
   private performTurn(): boolean {
     if (!this.playerA.selection || !this.playerB.selection) throw '有人还未选择好！'
 
-    const events: Event[] = []
+    const contexts: Context[] = []
 
     for (const selection of [this.playerA.selection, this.playerB.selection]) {
       switch (selection.type) {
         case 'use-skill': {
           const _selection = selection as UseSkillSelection
-          const event: UseSkillEvent = {
+          const context: UseSkillContext = {
             type: 'use-skill',
+            battleSystem: this,
             source: _selection.source.activePet,
             target: _selection.skill.target,
             skill: _selection.skill,
             skillPriority: _selection.skill.priority,
             power: _selection.skill.power,
-            damage: -1,
+            damageResult: -1,
             player: selection.source,
+            damageModified: [100, 0],
+            sureHit: _selection.skill.sureHit,
+            crit: false,
           }
           //TODO: 触发在决定使用技能阶段影响技能效果的印记
-          events.push(event)
+          contexts.push(context)
           break
         }
         case 'switch-pet': {
           const _selection = selection as SwitchPetSelection
-          const event: SwitchPetEvent = {
+          const context: SwitchPetContext = {
+            battleSystem: this,
             type: 'switch-pet',
             player: _selection.source,
             target: _selection.pet,
           }
-          events.push(event)
+          contexts.push(context)
           break
         }
         case 'do-nothing':
           //确实啥都没干
           break
         default:
-          throw '未知的event'
+          throw '未知的context'
       }
     }
-    events.sort(this.eventSort)
+    contexts.sort(this.contextSort)
 
     this.currentRound++
     this.emitMessage(BattleMessageType.RoundStart, {
       round: this.currentRound,
     })
 
-    eventpop: while (events.length > 0) {
-      const event = events.pop()
-      if (!event) break
-      switch (event.type) {
+    contextpop: while (contexts.length > 0) {
+      const context = contexts.pop()
+      if (!context) break
+      switch (context.type) {
         case 'use-skill': {
-          const _event = event as UseSkillEvent
-          if (!this.performAttack(_event)) break eventpop
+          const _context = context as UseSkillContext
+          if (!this.performAttack(_context)) break contextpop
           break
         }
         case 'mark-effect':
           break
         case 'switch-pet': {
-          const _event = event as SwitchPetEvent
-          this.performSwitchPet(_event)
+          const _context = context as SwitchPetContext
+          this.performSwitchPet(_context)
           break
         }
       }
@@ -230,7 +235,7 @@ export class BattleSystem {
     return this.playerA.team.every(p => !p.isAlive) || this.playerB.team.every(p => !p.isAlive)
   }
 
-  private eventSort(a: Event, b: Event): number {
+  private contextSort(a: Context, b: Context): number {
     // 类型优先级：换宠 > 印记效果 > 使用技能
     const typeOrder = {
       'switch-pet': 2,
@@ -255,11 +260,11 @@ export class BattleSystem {
 
       case 'mark-effect':
         // 比较印记效果优先级（数值大的优先）
-        return (a as MarkEffectEvent).priority - (b as MarkEffectEvent).priority
+        return (a as MarkEffectContext).priority - (b as MarkEffectContext).priority
 
       case 'use-skill': {
-        const aSkill = a as UseSkillEvent
-        const bSkill = b as UseSkillEvent
+        const aSkill = a as UseSkillContext
+        const bSkill = b as UseSkillContext
 
         // 先比较技能优先级
         if (aSkill.skillPriority !== bSkill.skillPriority) {
@@ -277,9 +282,9 @@ export class BattleSystem {
     }
   }
 
-  private performSwitchPet(event: SwitchPetEvent) {
-    const player = event.player
-    const newPet = event.target
+  private performSwitchPet(context: SwitchPetContext) {
+    const player = context.player
+    const newPet = context.target
 
     // 检查新宠物是否可用
     if (!player.team.includes(newPet) || !newPet.isAlive) {
@@ -323,6 +328,7 @@ export class BattleSystem {
 
     // 执行换宠
     this.performSwitchPet({
+      battleSystem: this,
       type: 'switch-pet',
       player,
       target: (player.selection as SwitchPetSelection).pet,
@@ -356,6 +362,7 @@ export class BattleSystem {
 
     if (selection.type === 'switch-pet') {
       this.performSwitchPet({
+        battleSystem: this,
         type: 'switch-pet',
         player,
         target: selection.pet,
@@ -363,13 +370,12 @@ export class BattleSystem {
     }
   }
 
-  private performAttack(event: UseSkillEvent): boolean {
+  private performAttack(context: UseSkillContext): boolean {
     // 攻击前触发
-    const skill = event.skill
-    const attacker = event.source
+    const attacker = context.source
     const defender =
-      event.skill.target === AttackTargetOpinion.opponent ? this.getOpponent(event.player).activePet : attacker // 动态获取当前目标
-    if (!skill) {
+      context.skill.target === AttackTargetOpinion.opponent ? this.getOpponent(context.player).activePet : attacker // 动态获取当前目标
+    if (!context.skill) {
       this.emitMessage(BattleMessageType.Error, { message: `${attacker.name} 没有可用技能!` })
       return false
     }
@@ -378,101 +384,146 @@ export class BattleSystem {
     this.emitMessage(BattleMessageType.SkillUse, {
       user: attacker.name,
       target: defender.name,
-      skill: skill.name,
-      rageCost: skill.rageCost,
+      skill: context.skill.name,
+      rageCost: context.skill.rageCost,
     })
 
     // 怒气检查
-    if (event.player.currentRage < skill.rageCost) {
-      this.emitMessage(BattleMessageType.Error, { message: `${attacker.name} 怒气不足无法使用 ${skill.name}!` })
+    if (context.player.currentRage < context.skill.rageCost) {
+      this.emitMessage(BattleMessageType.Error, { message: `${attacker.name} 怒气不足无法使用 ${context.skill.name}!` })
       return false
     }
 
-    this.addRage(event.player, -skill.rageCost, 'skill')
+    this.addRage(context.player, -context.skill.rageCost, 'skill')
 
     // 命中判定
-    if (Math.random() > skill.accuracy) {
+    if (Math.random() > context.skill.accuracy) {
       this.emitMessage(BattleMessageType.SkillMiss, {
         user: attacker.name,
         target: defender.name,
-        skill: skill.name,
+        skill: context.skill.name,
         reason: 'accuracy',
       })
-      skill.applyEffects(EffectTriggerPhase.ON_MISS, event) // 触发未命中特效
+      context.skill.applyEffects(this, EffectTriggerPhase.ON_MISS, context) // 触发未命中特效
       return false
     }
 
     // 暴击判定
-    const isCrit = Math.random() < attacker.stat.critRate
-    if (isCrit) {
+    context.crit = Math.random() < attacker.stat.critRate
+    if (context.crit) {
       this.emitMessage(BattleMessageType.Crit, { attacker: attacker.name, target: defender.name })
-      skill.applyEffects(EffectTriggerPhase.ON_CRIT_PRE_DAMAGE, event) // 触发暴击前特效
+      context.skill.applyEffects(this, EffectTriggerPhase.ON_CRIT_PRE_DAMAGE, context) // 触发暴击前特效
     }
 
     // 攻击命中
-    skill.applyEffects(EffectTriggerPhase.PRE_DAMAGE, event) // 触发伤害前特效
+    context.skill.applyEffects(this, EffectTriggerPhase.PRE_DAMAGE, context) // 触发伤害前特效
 
     // 伤害计算
-    if (skill.SkillType !== SkillType.Status) {
-      const typeMultiplier = TYPE_CHART[skill.type][defender.type] || 1
-      event.damage = Math.floor(
-        ((((2 * defender.level) / 5 + 2) * skill.power * (attacker.stat.atk / defender.stat.def)) / 50 + 2) *
-          (Math.random() * 0.15 + 0.85) * // 随机波动
-          typeMultiplier *
-          (isCrit ? 1.5 : 1), // 暴击伤害
+    if (context.skill.SkillType !== SkillType.Status) {
+      const typeMultiplier = TYPE_CHART[context.skill.type][defender.type] || 1
+      const baseDamage = Math.floor(
+        (((2 * defender.level) / 5 + 2) * context.skill.power * (attacker.stat.atk / defender.stat.def)) / 50 + 2,
       )
 
-      //STAB
-      if (attacker.species.type === skill.type) {
-        event.damage = Math.floor(event.damage * 1.5)
+      // 随机波动
+      const randomFactor = Math.random() * 0.15 + 0.85
+
+      // STAB加成
+      const stabMultiplier = attacker.species.type === context.skill.type ? 1.5 : 1
+
+      // 暴击加成
+      const critMultiplier = context.crit ? 1.5 : 1
+
+      // 应用百分比修正（叠加计算）
+      const percentModifier = 1 + context.damageModified[0] / 100
+
+      // 计算中间伤害
+      let intermediateDamage = Math.floor(
+        baseDamage * randomFactor * typeMultiplier * stabMultiplier * critMultiplier * percentModifier,
+      )
+
+      // 应用固定值修正
+      intermediateDamage += context.damageModified[1]
+
+      // 应用伤害阈值（先处理最小值再处理最大值）
+      // 最小值阈值处理
+      if (context.minThreshold) {
+        intermediateDamage = Math.min(intermediateDamage, context.minThreshold)
       }
 
-      // TODO:对护盾类特性的特判
-      defender.currentHp = Math.max(defender.currentHp - event.damage, 0)
+      // 最大值阈值处理
+      if (context.maxThreshold) {
+        intermediateDamage = Math.max(intermediateDamage, context.maxThreshold)
+      }
+
+      // 记录最终伤害
+      context.damageResult = Math.max(0, intermediateDamage)
+
+      // 应用伤害
+      defender.currentHp = Math.max(defender.currentHp - context.damageResult, 0)
+
       this.emitMessage(BattleMessageType.Damage, {
         currentHp: defender.currentHp,
         maxHp: defender.maxHp!,
         source: attacker.name,
         target: defender.name,
-        damage: event.damage,
-        basePower: skill.power,
-        isCrit: isCrit,
+        damage: context.damageResult,
+        basePower: context.skill.power,
+        isCrit: context.crit,
         effectiveness: typeMultiplier,
         damageType:
-          skill.SkillType === SkillType.Physical
+          context.skill.SkillType === SkillType.Physical
             ? 'physical'
-            : skill.SkillType === SkillType.Special
+            : context.skill.SkillType === SkillType.Special
               ? 'special'
               : 'fixed',
       })
 
       // 受伤者获得怒气
-      const gainedRage = Math.floor(event.damage * RAGE_PER_DAMAGE)
+      const gainedRage = Math.floor(context.damageResult * RAGE_PER_DAMAGE)
       this.addRage(defender.owner!, gainedRage, 'damage')
 
-      skill.applyEffects(EffectTriggerPhase.POST_DAMAGE, event) // 触发伤害后特效
+      context.skill.applyEffects(this, EffectTriggerPhase.POST_DAMAGE, context) // 触发伤害后特效
 
-      this.addRage(event.player, 15, 'skillHit') //命中奖励
+      this.addRage(context.player, 15, 'skillHit') //命中奖励
     }
 
-    skill.applyEffects(EffectTriggerPhase.ON_HIT, event) // 触发命中特效
-    if (isCrit) {
-      skill.applyEffects(EffectTriggerPhase.ON_CRIT_POST_DAMAGE, event) // 触发暴击后特效
+    context.skill.applyEffects(this, EffectTriggerPhase.ON_HIT, context) // 触发命中特效
+    if (context.crit) {
+      context.skill.applyEffects(this, EffectTriggerPhase.ON_CRIT_POST_DAMAGE, context) // 触发暴击后特效
     }
 
     if (defender.currentHp <= 0) {
-      this.emitMessage(BattleMessageType.PetDefeated, { pet: defender.name, killer: event.source.name })
+      this.emitMessage(BattleMessageType.PetDefeated, { pet: defender.name, killer: context.source.name })
       defender.isAlive = false
-      skill.applyEffects(EffectTriggerPhase.ON_DEFEAT, event) // 触发击败特效
+      context.skill.applyEffects(this, EffectTriggerPhase.ON_DEFEAT, context) // 触发击败特效
 
       const defeatedPlayer = defender.owner
       if (defeatedPlayer) {
         this.pendingDefeatedPlayer = defeatedPlayer
-        this.lastKiller = event.player
+        this.lastKiller = context.player
       }
       return true
     }
     return false
+  }
+
+  public performHeal(pet: Pet, value: number, source?: Pet, ignoreHealEfficiency: boolean = false) {
+    const healObtainEfficiency = pet.stat.rageObtainEfficiency
+    const effectiveHealEfficiency = ignoreHealEfficiency ? 1 : healObtainEfficiency
+    const healDelta = value * effectiveHealEfficiency
+    if (healDelta > 0) {
+      //TODO: 触发和怒气增加相关的时间
+    } else if (healDelta < 0) {
+      //TODO: 触发和怒气增加相关的事件
+    }
+    pet.currentHp += healDelta
+    this.emitMessage(BattleMessageType.Heal, {
+      healer: source instanceof Skill ? source.name : undefined,
+      source: source instanceof Pet ? 'skill' : 'effect',
+      target: pet.name,
+      amount: healDelta,
+    })
   }
 
   private settingRage(player: Player, value: number) {
@@ -592,35 +643,44 @@ export enum BattleStatus {
   Ended = 'Ended',
 }
 
-export type Event = UseSkillEvent | MarkEffectEvent | SwitchPetEvent
+export type Context = UseSkillContext | MarkEffectContext | SwitchPetContext
 
-export type UseSkillEvent = {
+export type UseSkillContext = {
   type: 'use-skill'
+  battleSystem: BattleSystem
   player: Player
   source: Pet
   target: AttackTargetOpinion
   skill: Skill
   skillPriority: number
   power: number
-  damage: number
+  damageModified: [number, number] // 百分比修正, 固定值修正
+  damageResult: number
+  minThreshold?: number // 最小伤害阈值数值
+  maxThreshold?: number // 最大伤害阈值数值
+  crit: boolean
+  sureHit: boolean
 }
 
-export type SwitchPetEvent = {
+export type SwitchPetContext = {
   type: 'switch-pet'
+  battleSystem: BattleSystem
   player: Player
   target: Pet
 }
 
-export type MarkEffectEvent = {
+export type MarkEffectContext = {
   type: 'mark-effect'
+  battleSystem: BattleSystem
   source: Mark
   target: Pet | Mark
   priority: number
   damage: number
 }
 
-export type rageEvent = {
+export type rageContext = {
   type: 'rage-cost'
+  battleSystem: BattleSystem
   source: Skill | Mark
   target: Player
   modifiedType: 'setting' | 'add' | 'reduce'
