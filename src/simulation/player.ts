@@ -150,7 +150,7 @@ export class Player {
     // 执行换宠
     this.performSwitchPet({
       battleSystem: this.battle!,
-      source: this,
+      parent: this,
       type: 'switch-pet',
       player: this,
       target: (this.selection as SwitchPetSelection).pet,
@@ -188,7 +188,7 @@ export class Player {
     if (selection.type === 'switch-pet') {
       this.performSwitchPet({
         battleSystem: this.battle!,
-        source: this,
+        parent: this,
         type: 'switch-pet',
         player: this,
         target: selection.pet,
@@ -198,7 +198,7 @@ export class Player {
 
   public performAttack(context: UseSkillContext): boolean {
     // 攻击前触发
-    const attacker = context.source
+    const attacker = context.pet
     const defender =
       context.skill.target === AttackTargetOpinion.opponent
         ? this.battle!.getOpponent(context.player).activePet
@@ -349,7 +349,7 @@ export class Player {
     }
 
     if (defender.currentHp <= 0) {
-      this.battle!.emitMessage(BattleMessageType.PetDefeated, { pet: defender.name, killer: context.source.name })
+      this.battle!.emitMessage(BattleMessageType.PetDefeated, { pet: defender.name, killer: context.pet.name })
       defender.isAlive = false
       context.skill.applyEffects(this.battle!, EffectTrigger.OnDefeat, context) // 触发击败特效
 

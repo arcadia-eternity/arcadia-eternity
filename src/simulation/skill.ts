@@ -39,8 +39,8 @@ export class Skill implements EffectContainer {
     const effectContext: EffectContext = {
       type: 'effect',
       battle: battle,
-      source: context,
-      owner: context.source,
+      parent: context,
+      owner: context.pet,
     }
     EffectApplicator.apply(this, trigger, effectContext)
   }

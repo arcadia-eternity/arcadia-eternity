@@ -7,14 +7,19 @@ import { Skill } from './skill'
 
 export type Context = {
   type: string
-  source: null | UseSkillContext | SwitchPetContext | Pet | Player | Mark
+  parent: null | BattleSystem | TurnContext | UseSkillContext | SwitchPetContext | Pet | Player | Mark //指明该上下文是由哪个上下文或者对象产生的
+}
+
+export type TurnContext = Context & {
+  parent: BattleSystem
 }
 
 export type UseSkillContext = Context & {
   type: 'use-skill'
   battleSystem: BattleSystem
+  parent: TurnContext
+  pet: Pet
   player: Player
-  source: Pet
   selectTarget: AttackTargetOpinion
   actualTarget?: Pet
   skill: Skill
@@ -32,15 +37,16 @@ export type UseSkillContext = Context & {
 
 export type SwitchPetContext = Context & {
   type: 'switch-pet'
+  parent: TurnContext | Player
   battleSystem: BattleSystem
   player: Player
   target: Pet
 }
 
-export type rageContext = Context & {
+export type RageContext = Context & {
   type: 'rage-cost'
   battleSystem: BattleSystem
-  source: Skill | Mark
+  parent: UseSkillContext | EffectContext
   target: Player
   modifiedType: 'setting' | 'add' | 'reduce'
   value: number | [number, number]
@@ -49,6 +55,6 @@ export type rageContext = Context & {
 export type EffectContext = Context & {
   type: 'effect'
   battle: BattleSystem
-  source: UseSkillContext | Mark
+  parent: UseSkillContext | Mark
   owner: Pet
 }

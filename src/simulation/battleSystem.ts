@@ -1,7 +1,7 @@
 import { Skill } from './skill'
 import { Pet } from './pet'
 import { RAGE_PER_TURN, AttackTargetOpinion } from './const'
-import { Context, SwitchPetContext, UseSkillContext } from './context'
+import { Context, SwitchPetContext, TurnContext, UseSkillContext } from './context'
 import { BattleMessage, BattleMessageType, BattleMessageData } from './message'
 import { Player } from './player'
 
@@ -62,6 +62,11 @@ export class BattleSystem {
   private performTurn(): boolean {
     if (!this.playerA.selection || !this.playerB.selection) throw '有人还未选择好！'
 
+    const turnContext: TurnContext = {
+      type: 'turn',
+      parent: this,
+    }
+
     const contexts: Context[] = []
 
     for (const selection of [this.playerA.selection, this.playerB.selection]) {
@@ -71,7 +76,8 @@ export class BattleSystem {
           const context: UseSkillContext = {
             type: 'use-skill',
             battleSystem: this,
-            source: _selection.source.activePet,
+            parent: turnContext,
+            pet: _selection.source.activePet,
             selectTarget: _selection.skill.target,
             skill: _selection.skill,
             skillPriority: _selection.skill.priority,
@@ -91,7 +97,7 @@ export class BattleSystem {
         case 'switch-pet': {
           const _selection = selection as SwitchPetSelection
           const context: SwitchPetContext = {
-            source: _selection.source,
+            parent: turnContext,
             battleSystem: this,
             type: 'switch-pet',
             player: _selection.source,
@@ -184,8 +190,8 @@ export class BattleSystem {
         }
 
         // 同优先级比较速度
-        if (aSkill.source.stat.spd !== bSkill.source.stat.spd) {
-          return aSkill.source.stat.spd - bSkill.source.stat.spd
+        if (aSkill.pet.stat.spd !== bSkill.pet.stat.spd) {
+          return aSkill.pet.stat.spd - bSkill.pet.stat.spd
         }
 
         // 速度相同,始终是a先手
