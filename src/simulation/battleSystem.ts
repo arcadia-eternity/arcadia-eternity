@@ -59,13 +59,8 @@ export class BattleSystem {
   }
 
   // 执行对战回合
-  private performTurn(): boolean {
+  private performTurn(context: TurnContext): boolean {
     if (!this.playerA.selection || !this.playerB.selection) throw '有人还未选择好！'
-
-    const turnContext: TurnContext = {
-      type: 'turn',
-      parent: this,
-    }
 
     const contexts: Context[] = []
 
@@ -73,10 +68,10 @@ export class BattleSystem {
       switch (selection.type) {
         case 'use-skill': {
           const _selection = selection as UseSkillSelection
-          const context: UseSkillContext = {
+          const skillContext: UseSkillContext = {
             type: 'use-skill',
             battleSystem: this,
-            parent: turnContext,
+            parent: context,
             pet: _selection.source.activePet,
             selectTarget: _selection.skill.target,
             skill: _selection.skill,
@@ -91,19 +86,19 @@ export class BattleSystem {
             crit: false,
           }
           //TODO: 触发在决定使用技能阶段影响技能效果的印记
-          contexts.push(context)
+          contexts.push(skillContext)
           break
         }
         case 'switch-pet': {
           const _selection = selection as SwitchPetSelection
-          const context: SwitchPetContext = {
-            parent: turnContext,
+          const switchContext: SwitchPetContext = {
+            parent: context,
             battleSystem: this,
             type: 'switch-pet',
             player: _selection.source,
             target: _selection.pet,
           }
-          contexts.push(context)
+          contexts.push(switchContext)
           break
         }
         case 'do-nothing':
@@ -257,7 +252,11 @@ export class BattleSystem {
 
       // 阶段4：执行回合
       this.currentPhase = BattlePhase.ExecutionPhase
-      if (this.performTurn()) break
+      const turnContext: TurnContext = {
+        type: 'turn',
+        parent: this,
+      }
+      if (this.performTurn(turnContext)) break
     }
     this.status = BattleStatus.Ended
     this.currentPhase = BattlePhase.Ended

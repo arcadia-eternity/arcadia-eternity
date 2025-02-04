@@ -48,8 +48,10 @@ export type RageContext = Context & {
   battleSystem: BattleSystem
   parent: UseSkillContext | EffectContext
   target: Player
+  reason: 'turn' | 'damage' | 'skill' | 'skillHit' | 'switch'
   modifiedType: 'setting' | 'add' | 'reduce'
   value: number | [number, number]
+  ignoreRageObtainEfficiency: boolean
 }
 
 export type EffectContext = Context & {
