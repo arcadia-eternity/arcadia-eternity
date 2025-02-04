@@ -11,7 +11,7 @@ import {
   StatTypeWithoutHp,
 } from './const'
 import { Nature, NatureMap } from './nature'
-import { Player } from './battleSystem'
+import { Player } from './player'
 import { Mark } from './mark'
 
 export interface Species {

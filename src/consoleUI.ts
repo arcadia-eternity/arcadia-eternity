@@ -1,5 +1,4 @@
 import {
-  Player,
   PlayerSelection,
   UseSkillSelection,
   SwitchPetSelection,
@@ -7,6 +6,7 @@ import {
   DoNothingSelection,
   BattlePhase,
 } from './simulation/battleSystem'
+import { Player } from './simulation/player'
 import readline from 'readline'
 import { BattleUI } from './ui'
 import { BattleMessage, BattleMessageType } from './simulation/message'
@@ -205,7 +205,7 @@ export class ConsoleUI extends BattleUI {
   private async getNormalAction(player: Player): Promise<PlayerSelection> {
     console.log(this.getPetStatus(player.activePet))
 
-    const actions = this.battle.getAvailableSelection(player)
+    const actions = player.getAvailableSelection()
     console.log('可用操作：')
 
     // 1. 显示可用技能
@@ -314,7 +314,7 @@ export class ConsoleUI extends BattleUI {
 
   private async handleKillerSwitch(player: Player): Promise<PlayerSelection> {
     console.log(`\n==== ${player.name} 可以更换精灵(击破奖励) ====`)
-    const actions = this.battle.getAvailableSwitch(player)
+    const actions = player.getAvailableSwitch()
 
     // 显示可选操作
     console.log('1. 保持当前精灵')
@@ -333,7 +333,7 @@ export class ConsoleUI extends BattleUI {
   }
 
   private async getForcedSwitchAction(player: Player): Promise<PlayerSelection> {
-    const actions = this.battle.getAvailableSwitch(player) as SwitchPetSelection[]
+    const actions = player.getAvailableSwitch() as SwitchPetSelection[]
     console.log('必须更换精灵！可用选项：')
     actions.forEach((a, i) => console.log(`${i + 1}. 更换精灵: ${this.getPetStatus(a.pet)}`))
 

@@ -1,4 +1,5 @@
-import { BattleSystem, Player } from './battleSystem'
+import { BattleSystem } from './battleSystem'
+import { Player } from './player'
 import { AttackTargetOpinion } from './const'
 import { Mark } from './mark'
 import { Pet } from './pet'

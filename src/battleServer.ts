@@ -1,7 +1,8 @@
 // battle-server.ts
 import { WebSocketServer } from 'ws'
 import { BattlePhase, BattleSystem, UseSkillSelection } from './simulation/battleSystem'
-import { Player, PlayerSelection } from './simulation/battleSystem'
+import { PlayerSelection } from './simulation/battleSystem'
+import { Player } from './simulation/player'
 
 type ClientMessage =
   | {

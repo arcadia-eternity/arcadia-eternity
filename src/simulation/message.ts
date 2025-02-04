@@ -1,4 +1,5 @@
-import { BattlePhase, Player } from './battleSystem'
+import { BattlePhase } from './battleSystem'
+import { Player } from './player'
 import { StatTypeOnBattle } from './const'
 
 // battleSystem.ts
