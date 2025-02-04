@@ -79,20 +79,18 @@ export type ConditionOperator<U> = (values: U[]) => boolean // 判断逻辑
 export type ValueExtractor<T, U> = (target: T) => U | U[]
 
 // 重构链式选择器类（支持类型转换）
-class ChainableSelector<T> {
+class ChainableSelector<T extends SelectorOpinion> {
   constructor(private selector: TargetSelector<T>) {}
 
-  // 类型转换核心方法
-  select<U>(extractor: ValueExtractor<T, U>): ChainableSelector<U> {
-    return new ChainableSelector<U>(context => {
-      return this.selector(context).flatMap(target => {
+  select<U extends SelectorOpinion>(extractor: (target: T) => U | U[]): ChainableSelector<U> {
+    return new ChainableSelector<U>(context =>
+      this.selector(context).flatMap(target => {
         const result = extractor(target)
         return Array.isArray(result) ? result : [result]
-      })
-    })
+      }),
+    )
   }
 
-  // 保留原有链式方法（带泛型约束）
   where(predicate: (target: T, context: EffectContext) => boolean): ChainableSelector<T> {
     return new ChainableSelector(context => {
       return this.selector(context).filter(t => predicate(t, context))
@@ -122,85 +120,55 @@ class ChainableSelector<T> {
 }
 
 // 类型增强装饰器
-function createChainable<T>(selector: TargetSelector<T>): ChainableSelector<T> {
+function createChainable<T extends SelectorOpinion>(selector: TargetSelector<T>): ChainableSelector<T> {
   return new ChainableSelector(selector)
 }
 
-export type SelectorOpinion = Player | Pet | Mark | Skill | UseSkillContext
+export type SelectorOpinion = Player | Pet | Mark | Skill | UseSkillContext | StatOnBattle
 
 // 基础选择器
-export const Selectors: Record<string, ChainableSelector<SelectorOpinion>> = {
-  self: createChainable((context: EffectContext) => [context.owner]),
-  opponentActive: createChainable((context: EffectContext) => [(context.source as UseSkillContext).actualTarget!]),
-  petOwners: createChainable((context: EffectContext) => [context.owner.owner!]),
-  usingSkillContext: createChainable((context: EffectContext) => [context.source as UseSkillContext]),
+export const Selectors: {
+  self: ChainableSelector<Pet>
+  opponentActive: ChainableSelector<Pet>
+  petOwners: ChainableSelector<Player>
+  usingSkillContext: ChainableSelector<UseSkillContext>
+} = {
+  self: createChainable<Pet>((context: EffectContext) => [context.owner]),
+  opponentActive: createChainable<Pet>((context: EffectContext) => [(context.source as UseSkillContext).actualTarget!]),
+  petOwners: createChainable<Player>((context: EffectContext) => [context.owner.owner!]),
+  usingSkillContext: createChainable<UseSkillContext>((context: EffectContext) => [context.source as UseSkillContext]),
 }
 
-// 提取器
-export const Extractors = {
-  owner: (target: SelectorOpinion): Player => {
-    if (target instanceof Pet) return target.owner!
-    throw new Error('Target does not have owner')
-  },
+type ExtractorsMap = {
+  hp: (target: Pet) => number
+  rage: (target: Player) => number
+  owner: (target: Pet) => Player
+  type: (target: Pet) => Type
+  marks: (target: Pet) => Mark[]
+  stats: (target: Pet) => StatOnBattle
+  stack: (target: Mark) => number
+  duration: (target: Mark) => number
+  power: (target: UseSkillContext) => number
+  priority: (target: UseSkillContext) => number
+  activePet: (target: Player) => Pet
+  skills: (target: Pet) => Skill[]
+}
 
-  skills: (target: SelectorOpinion): Skill[] => {
-    if (target instanceof Pet) return target.skills
-    throw new Error('Target does not have skills')
-  },
-
-  hp: (target: SelectorOpinion): number => {
-    if (target instanceof Pet) return target.currentHp
-    throw new Error('Target does not have hp')
-  },
-
-  rage: (target: SelectorOpinion): number => {
-    if (target instanceof Player) return target.currentRage
-    throw new Error('Target does not have rage')
-  },
-
-  type: (target: SelectorOpinion): Type => {
-    if (target instanceof Pet) return target.type
-    throw new Error('Target is not a pet')
-  },
-
-  marks: (target: SelectorOpinion): Mark[] => {
-    if (target instanceof Pet) return target.marks
-    throw new Error('Target does not have marks')
-  },
-
-  stats: (target: SelectorOpinion): StatOnBattle => {
-    if (target instanceof Pet) return target.stat
-    throw new Error('Target does not have stats')
-  },
-
-  stack: (target: SelectorOpinion): number => {
-    if (target instanceof Mark) return target.stacks
-    throw new Error('Target is not a mark')
-  },
-
-  duration: (target: SelectorOpinion): number => {
-    if (target instanceof Mark) return target.duration
-    throw new Error('Target is not a mark')
-  },
-
-  power: (target: SelectorOpinion): number => {
-    if ('power' in target && 'actualTarget' in target) return target.power
-    throw new Error('Target does not have power')
-  },
-
-  priority: (target: SelectorOpinion): number => {
-    if ('skillPriority' in target) return target.skillPriority
-    throw new Error('Target does not have priority')
-  },
-
-  activePet: (target: SelectorOpinion): Pet => {
-    if (target instanceof Player) return target.activePet
-    throw new Error('Target is not a player')
-  },
-} satisfies Record<
-  string,
-  ValueExtractor<SelectorOpinion, number | Player | Skill[] | string | Mark[] | StatOnBattle | Pet | StatOnBattle>
->
+// 实现提取函数
+export const Extractors: ExtractorsMap = {
+  hp: (target: Pet) => target.currentHp,
+  rage: (target: Player) => target.currentRage,
+  owner: (target: Pet) => target.owner!,
+  type: (target: Pet) => target.type,
+  marks: (target: Pet) => target.marks,
+  stats: (target: Pet) => target.stat,
+  stack: (target: Mark) => target.stacks,
+  duration: (target: Mark) => target.duration,
+  power: (target: UseSkillContext) => target.power,
+  priority: (target: UseSkillContext) => target.skillPriority,
+  activePet: (target: Player) => target.activePet,
+  skills: (target: Pet) => target.skills,
+}
 
 export const Conditioner = {
   // number
