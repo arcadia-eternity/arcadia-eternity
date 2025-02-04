@@ -78,7 +78,7 @@ export type ValueExtractor<T, U> = (target: T) => U | U[]
 class ChainableSelector<T extends SelectorOpinion> {
   constructor(private selector: TargetSelector<T>) {}
 
-  select<U extends SelectorOpinion>(extractor: (target: T) => U | U[]): ChainableSelector<U> {
+  select<U extends SelectorOpinion>(extractor: ValueExtractor<T, U>): ChainableSelector<U> {
     return new ChainableSelector<U>(context =>
       this.selector(context).flatMap(target => {
         const result = extractor(target)
@@ -123,7 +123,7 @@ function createChainable<T extends SelectorOpinion>(selector: TargetSelector<T>)
 export type SelectorOpinion = Player | Pet | Mark | Skill | UseSkillContext | StatOnBattle
 
 // 基础选择器
-export const Selectors: {
+export const BaseSelectors: {
   self: ChainableSelector<Pet>
   opponentActive: ChainableSelector<Pet>
   petOwners: ChainableSelector<Player>
@@ -188,12 +188,13 @@ export class ConditionFactory {
     return (ctx: EffectContext) => conditioner(selector(ctx))
   }
 }
-// const complexSelector = Selectors.opponentActive
+
+// const complexSelector = BaseSelectors.opponentActive
 //   .select(Extractors.owner) // 从Pet转换到Player
 //   .where(player => player?.currentRage > 50) // 过滤怒气值
 //   .select(Extractors.activePet) // 从Player转换到Pet
 //   .where(pet => pet?.currentHp < 30) // 过滤血量
 //   .where(() => Math.random() < 0.5) //随机
-//   .select(Extractors.stats)
+//   .select(Extractors.skills) // 从Pet转换到Skill[]
 //   .where(() => true)
 //   .build()
