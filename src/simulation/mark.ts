@@ -4,7 +4,7 @@ import { Pet } from './pet'
 
 export class Mark implements EffectContainer {
   public stacks: number = 1
-  private duration: number
+  public duration: number
   private source: Pet | null = null
 
   constructor(

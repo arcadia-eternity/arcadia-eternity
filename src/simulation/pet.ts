@@ -12,6 +12,7 @@ import {
 } from './const'
 import { Nature, NatureMap } from './nature'
 import { Player } from './battleSystem'
+import { Mark } from './mark'
 
 export interface Species {
   name: string
@@ -45,6 +46,7 @@ export class Pet {
   public lastUseSkill: Skill | null = null
   public baseRageObtainEfficiency: number = 1
   public owner: Player | null
+  public marks: Mark[] = []
 
   constructor(
     public readonly name: string,

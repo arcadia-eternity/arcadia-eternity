@@ -160,6 +160,7 @@ export class BattleSystem {
             skill: _selection.skill,
             skillPriority: _selection.skill.priority,
             power: _selection.skill.power,
+            rageCost: _selection.skill.rageCost,
             damageResult: -1,
             player: selection.source,
             damageModified: [100, 0],
@@ -386,11 +387,13 @@ export class BattleSystem {
       user: attacker.name,
       target: defender.name,
       skill: context.skill.name,
-      rageCost: context.skill.rageCost,
+      rageCost: context.rageCost,
     })
 
+    context.skill.applyEffects(this, EffectTrigger.BeforeAttack, context)
+
     // 怒气检查
-    if (context.player.currentRage < context.skill.rageCost) {
+    if (context.player.currentRage < context.rageCost) {
       this.emitMessage(BattleMessageType.Error, { message: `${attacker.name} 怒气不足无法使用 ${context.skill.name}!` })
       return false
     }
@@ -405,7 +408,7 @@ export class BattleSystem {
         skill: context.skill.name,
         reason: 'accuracy',
       })
-      context.skill.applyEffects(this, EffectTrigger.SkillOnMiss, context) // 触发未命中特效
+      context.skill.applyEffects(this, EffectTrigger.OnMiss, context) // 触发未命中特效
       return false
     }
 
@@ -413,14 +416,14 @@ export class BattleSystem {
     context.crit = Math.random() < attacker.stat.critRate
     if (context.crit) {
       this.emitMessage(BattleMessageType.Crit, { attacker: attacker.name, target: defender.name })
-      context.skill.applyEffects(this, EffectTrigger.SkillOnCritPreDamage, context) // 触发暴击前特效
+      context.skill.applyEffects(this, EffectTrigger.OnCritPreDamage, context) // 触发暴击前特效
     }
 
     // 伤害计算
     if (context.skill.skillType !== SkillType.Status) {
       // 攻击命中
       //TODO: 影响伤害的印记
-      context.skill.applyEffects(this, EffectTrigger.SkillPreDamage, context) // 触发伤害前特效
+      context.skill.applyEffects(this, EffectTrigger.PreDamage, context) // 触发伤害前特效
       const typeMultiplier = TYPE_CHART[context.skill.type][defender.type] || 1
       let atk = 0
       let def = 0
@@ -502,14 +505,14 @@ export class BattleSystem {
       const gainedRage = Math.floor(context.damageResult * RAGE_PER_DAMAGE)
       this.addRage(defender.owner!, gainedRage, 'damage')
 
-      context.skill.applyEffects(this, EffectTrigger.SkillPostDamage, context) // 触发伤害后特效
+      context.skill.applyEffects(this, EffectTrigger.PostDamage, context) // 触发伤害后特效
 
       this.addRage(context.player, 15, 'skillHit') //命中奖励
     }
 
-    context.skill.applyEffects(this, EffectTrigger.SkillOnCritPostDamage, context) // 触发命中特效
+    context.skill.applyEffects(this, EffectTrigger.OnCritPostDamage, context) // 触发命中特效
     if (context.crit) {
-      context.skill.applyEffects(this, EffectTrigger.SkillOnCritPostDamage, context) // 触发暴击后特效
+      context.skill.applyEffects(this, EffectTrigger.OnCritPostDamage, context) // 触发暴击后特效
     }
 
     if (defender.currentHp <= 0) {
@@ -674,6 +677,7 @@ export type UseSkillContext = {
   skill: Skill
   skillPriority: number
   power: number
+  rageCost: number
   damageModified: [number, number] // 百分比修正, 固定值修正
   damageResult: number
   minThreshold?: number // 最小伤害阈值数值

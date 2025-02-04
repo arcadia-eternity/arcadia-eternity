@@ -37,6 +37,7 @@ export class Skill implements EffectContainer {
     const effectContext: EffectContext = {
       battle: battle,
       source: context,
+      owner: context.source,
     }
     EffectApplicator.apply(this, trigger, effectContext)
   }
@@ -113,3 +114,4 @@ export class Skill implements EffectContainer {
     }
   }
 }
+export { EffectTrigger }
