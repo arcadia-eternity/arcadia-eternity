@@ -1,5 +1,6 @@
-import { BattleSystem, Player, UseSkillContext } from './battleSystem'
+import { Player } from './battleSystem'
 import { StatOnBattle } from './const'
+import { EffectContext, UseSkillContext } from './context'
 import { Mark } from './mark'
 import { Pet } from './pet'
 import { Skill } from './skill'
@@ -31,11 +32,6 @@ export enum EffectTrigger {
 }
 
 // 效果上下文
-export interface EffectContext {
-  battle: BattleSystem
-  source: UseSkillContext | Mark
-  owner: Pet
-}
 
 // 基础效果接口
 export interface Effect {
@@ -192,12 +188,12 @@ export class ConditionFactory {
     return (ctx: EffectContext) => conditioner(selector(ctx))
   }
 }
-const complexSelector = Selectors.opponentActive
-  .select(Extractors.owner) // 从Pet转换到Player
-  .where(player => player?.currentRage > 50) // 过滤怒气值
-  .select(Extractors.activePet) // 从Player转换到Pet
-  .where(pet => pet?.currentHp < 30) // 过滤血量
-  .where(() => Math.random() < 0.5) //随机
-  .select(Extractors.stats)
-  .where(() => true)
-  .build()
+// const complexSelector = Selectors.opponentActive
+//   .select(Extractors.owner) // 从Pet转换到Player
+//   .where(player => player?.currentRage > 50) // 过滤怒气值
+//   .select(Extractors.activePet) // 从Player转换到Pet
+//   .where(pet => pet?.currentHp < 30) // 过滤血量
+//   .where(() => Math.random() < 0.5) //随机
+//   .select(Extractors.stats)
+//   .where(() => true)
+//   .build()

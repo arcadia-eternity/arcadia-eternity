@@ -1,5 +1,6 @@
 // mark.ts
-import { Effect, EffectContainer, EffectTrigger, EffectApplicator, EffectContext } from './effect'
+import { Effect, EffectContainer, EffectTrigger, EffectApplicator } from './effect'
+import { EffectContext } from './context'
 import { Pet } from './pet'
 
 export class Mark implements EffectContainer {
@@ -25,7 +26,7 @@ export class Mark implements EffectContainer {
 
   attachTo(target: Pet, source?: Pet) {
     this.source = source || null
-    target.addMark(this)
+    // target.addMark(this)
   }
 
   update(): boolean {

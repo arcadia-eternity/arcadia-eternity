@@ -2,7 +2,7 @@ import { TYPE_CHART } from './type'
 import { SkillType, EffectTrigger, Skill } from './skill'
 import { Pet } from './pet'
 import { MAX_RAGE, RAGE_PER_TURN, RAGE_PER_DAMAGE, AttackTargetOpinion } from './const'
-import { Mark } from './mark'
+import { Context, SwitchPetContext, UseSkillContext } from './context'
 import { BattleMessage, BattleMessageType, BattleMessageData } from './message'
 
 export enum BattlePhase {
@@ -159,6 +159,7 @@ export class BattleSystem {
             selectTarget: _selection.skill.target,
             skill: _selection.skill,
             skillPriority: _selection.skill.priority,
+            useSkillSuccess: true,
             power: _selection.skill.power,
             rageCost: _selection.skill.rageCost,
             damageResult: -1,
@@ -174,6 +175,7 @@ export class BattleSystem {
         case 'switch-pet': {
           const _selection = selection as SwitchPetSelection
           const context: SwitchPetContext = {
+            source: _selection.source,
             battleSystem: this,
             type: 'switch-pet',
             player: _selection.source,
@@ -205,8 +207,6 @@ export class BattleSystem {
           if (this.performAttack(_context)) break contextpop
           break
         }
-        case 'mark-effect':
-          break
         case 'switch-pet': {
           const _context = context as SwitchPetContext
           this.performSwitchPet(_context)
@@ -238,9 +238,8 @@ export class BattleSystem {
 
   private contextSort(a: Context, b: Context): number {
     // 类型优先级：换宠 > 印记效果 > 使用技能
-    const typeOrder = {
+    const typeOrder: Record<Context['type'], number> = {
       'switch-pet': 2,
-      'mark-effect': 1,
       'use-skill': 0,
     }
 
@@ -259,10 +258,6 @@ export class BattleSystem {
         // 换宠始终优先
         return 1
 
-      case 'mark-effect':
-        // 比较印记效果优先级（数值大的优先）
-        return (a as MarkEffectContext).priority - (b as MarkEffectContext).priority
-
       case 'use-skill': {
         const aSkill = a as UseSkillContext
         const bSkill = b as UseSkillContext
@@ -280,6 +275,8 @@ export class BattleSystem {
         // 速度相同,始终是a先手
         return 1
       }
+      default:
+        return 1
     }
   }
 
@@ -330,6 +327,7 @@ export class BattleSystem {
     // 执行换宠
     this.performSwitchPet({
       battleSystem: this,
+      source: player,
       type: 'switch-pet',
       player,
       target: (player.selection as SwitchPetSelection).pet,
@@ -364,6 +362,7 @@ export class BattleSystem {
     if (selection.type === 'switch-pet') {
       this.performSwitchPet({
         battleSystem: this,
+        source: player,
         type: 'switch-pet',
         player,
         target: selection.pet,
@@ -389,6 +388,10 @@ export class BattleSystem {
       skill: context.skill.name,
       rageCost: context.rageCost,
     })
+
+    if (!context.useSkillSuccess) {
+      return false
+    }
 
     context.skill.applyEffects(this, EffectTrigger.BeforeAttack, context)
 
@@ -663,50 +666,4 @@ export enum BattleStatus {
   Unstarted = 'Unstarted',
   OnBattle = 'On',
   Ended = 'Ended',
-}
-
-export type Context = UseSkillContext | MarkEffectContext | SwitchPetContext
-
-export type UseSkillContext = {
-  type: 'use-skill'
-  battleSystem: BattleSystem
-  player: Player
-  source: Pet
-  selectTarget: AttackTargetOpinion
-  actualTarget?: Pet
-  skill: Skill
-  skillPriority: number
-  power: number
-  rageCost: number
-  damageModified: [number, number] // 百分比修正, 固定值修正
-  damageResult: number
-  minThreshold?: number // 最小伤害阈值数值
-  maxThreshold?: number // 最大伤害阈值数值
-  crit: boolean
-  sureHit: boolean
-}
-
-export type SwitchPetContext = {
-  type: 'switch-pet'
-  battleSystem: BattleSystem
-  player: Player
-  target: Pet
-}
-
-export type MarkEffectContext = {
-  type: 'mark-effect'
-  battleSystem: BattleSystem
-  source: Mark
-  target: Pet | Mark
-  priority: number
-  damage: number
-}
-
-export type rageContext = {
-  type: 'rage-cost'
-  battleSystem: BattleSystem
-  source: Skill | Mark
-  target: Player
-  modifiedType: 'setting' | 'add' | 'reduce'
-  value: number | [number, number]
 }

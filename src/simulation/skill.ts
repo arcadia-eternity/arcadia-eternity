@@ -1,8 +1,10 @@
 // skill.ts
-import { Effect, EffectContainer, EffectTrigger, EffectApplicator, EffectContext } from './effect'
+import { Effect, EffectContainer, EffectTrigger, EffectApplicator } from './effect'
+import { EffectContext } from './context'
 import { Type } from './type'
 import { AttackTargetOpinion } from './const'
-import { BattleSystem, UseSkillContext } from './battleSystem'
+import { BattleSystem } from './battleSystem'
+import { UseSkillContext } from './context'
 
 export enum SkillType {
   Physical = 'Physical',
@@ -16,13 +18,13 @@ export class Skill implements EffectContainer {
 
   constructor(
     public readonly name: string,
+    public readonly skillType: SkillType,
     public readonly type: Type,
     public readonly power: number,
     public readonly accuracy: number,
     public readonly rageCost: number,
-    public readonly target: AttackTargetOpinion,
-    public readonly skillType: SkillType,
-    public readonly priority: number,
+    public readonly priority: number = 0,
+    public readonly target: AttackTargetOpinion = AttackTargetOpinion.opponent,
     public readonly sureHit: boolean = false,
     effects: Effect[] = [],
   ) {
@@ -35,6 +37,7 @@ export class Skill implements EffectContainer {
 
   applyEffects(battle: BattleSystem, trigger: EffectTrigger, context: UseSkillContext) {
     const effectContext: EffectContext = {
+      type: 'effect',
       battle: battle,
       source: context,
       owner: context.source,
@@ -101,13 +104,13 @@ export class Skill implements EffectContainer {
     build() {
       return new Skill(
         this.name,
+        this.skillType,
         this.type,
         this.power,
         this.accuracy,
         this.rageCost,
-        this.target,
-        this.skillType,
         this.priority,
+        this.target,
         this.sureHit,
         this.effects,
       )
