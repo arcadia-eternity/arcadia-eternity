@@ -1,4 +1,4 @@
-import { Player } from './battleSystem'
+import { Player } from './player'
 import { StatOnBattle } from './const'
 import { EffectContext, UseSkillContext } from './context'
 import { Mark } from './mark'
@@ -71,20 +71,22 @@ export type ChainableTargetSelector<T> = TargetSelector<T> & {
   and: (other: TargetSelector<T>) => ChainableTargetSelector<T>
   or: (other: TargetSelector<T>) => ChainableTargetSelector<T>
 }
-export type ConditionOperator<U> = (values: U[]) => boolean // 判断逻辑
 export type ValueExtractor<T, U> = (target: T) => U | U[]
+export type ConditionOperator<U> = (values: U[]) => boolean // 判断逻辑
+export type Operator<U> = (values: U[]) => void
 
 // 重构链式选择器类（支持类型转换）
 class ChainableSelector<T extends SelectorOpinion> {
   constructor(private selector: TargetSelector<T>) {}
-
   select<U extends SelectorOpinion>(extractor: ValueExtractor<T, U>): ChainableSelector<U> {
-    return new ChainableSelector<U>(context =>
-      this.selector(context).flatMap(target => {
-        const result = extractor(target)
-        return Array.isArray(result) ? result : [result]
-      }),
-    )
+    return new ChainableSelector<U>(context => [
+      ...new Set(
+        this.selector(context).flatMap(target => {
+          const result = extractor(target)
+          return Array.isArray(result) ? result : [result]
+        }),
+      ),
+    ])
   }
 
   where(predicate: (target: T, context: EffectContext) => boolean): ChainableSelector<T> {
@@ -130,9 +132,9 @@ export const BaseSelectors: {
   usingSkillContext: ChainableSelector<UseSkillContext>
 } = {
   self: createChainable<Pet>((context: EffectContext) => [context.owner]),
-  opponentActive: createChainable<Pet>((context: EffectContext) => [(context.source as UseSkillContext).actualTarget!]),
+  opponentActive: createChainable<Pet>((context: EffectContext) => [(context.parent as UseSkillContext).actualTarget!]),
   petOwners: createChainable<Player>((context: EffectContext) => [context.owner.owner!]),
-  usingSkillContext: createChainable<UseSkillContext>((context: EffectContext) => [context.source as UseSkillContext]),
+  usingSkillContext: createChainable<UseSkillContext>((context: EffectContext) => [context.parent as UseSkillContext]),
 }
 
 type ExtractorsMap = {
@@ -150,7 +152,7 @@ type ExtractorsMap = {
   skills: (target: Pet) => Skill[]
 }
 
-// 实现提取函数
+// Extractors用于提取Selector得到的一组对象的某个值，将这个值的类型作为新的Selector
 export const Extractors: ExtractorsMap = {
   hp: (target: Pet) => target.currentHp,
   rage: (target: Player) => target.currentRage,
@@ -180,12 +182,63 @@ export const Conditioner = {
   hasMark: (markid: string) => (marks: Mark[]) => marks.some(v => v.id == markid),
 }
 
+// 操作符系统
+export const Operator = {
+  // 宠物操作
+  dealDamage: (damage: number) => (targets: Pet[]) => {
+    targets.forEach(pet => pet.takeDamage(damage))
+  },
+  heal: (amount: number) => (targets: Pet[]) => {
+    targets.forEach(pet => pet.heal(amount))
+  },
+  addMark: (mark: Mark) => (targets: Pet[]) => {
+    targets.forEach(pet => pet.addMark(mark.clone()))
+  },
+  removeMark: (markId: string) => (targets: Pet[]) => {
+    targets.forEach(pet => pet.removeMark(markId))
+  },
+
+  // 玩家操作
+  addRage: (amount: number) => (targets: Player[]) => {
+    targets.forEach(player => player.addRage(amount))
+  },
+  reduceRage: (amount: number) => (targets: Player[]) => {
+    targets.forEach(player => player.addRage(amount))
+  },
+
+  // 印记操作
+  incrementMarkStack: (amount: number) => (targets: Mark[]) => {
+    targets.forEach(mark => mark.addStack(amount))
+  },
+  setMarkDuration: (duration: number) => (targets: Mark[]) => {
+    targets.forEach(mark => mark.setDuration(duration))
+  },
+
+  // 属性直接操作（需要确保对象可修改）
+  modifyStat:
+    <K extends keyof StatOnBattle>(stat: K, value: number) =>
+    (targets: Pet[]) => {
+      targets.forEach(pet => (pet.stat[stat] += value))
+    },
+
+  // 技能上下文操作
+  amplifyPower: (multiplier: number) => (contexts: UseSkillContext[]) => {
+    contexts.forEach(ctx => (ctx.power *= multiplier))
+  },
+}
+
 export class ConditionFactory {
   static CreateCondition<T>(
     selector: TargetSelector<T>,
     conditioner: ConditionOperator<T>,
   ): (ctx: EffectContext) => boolean {
     return (ctx: EffectContext) => conditioner(selector(ctx))
+  }
+}
+
+export class ApplyerFactory {
+  static CreactApply<T>(selector: TargetSelector<T>, operator: Operator<T>): (ctx: EffectContext) => void {
+    return (ctx: EffectContext) => operator(selector(ctx))
   }
 }
 

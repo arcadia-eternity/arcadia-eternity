@@ -1,4 +1,3 @@
-// mark.ts
 import { Effect, EffectContainer, EffectTrigger, EffectApplicator } from './effect'
 import { EffectContext, UseSkillContext } from './context'
 import { Pet } from './pet'
