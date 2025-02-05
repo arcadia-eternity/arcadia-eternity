@@ -86,7 +86,7 @@ export type ValueSource<T, U extends SelectorOpinion> =
 // 重构链式选择器类（支持类型转换）
 class ChainableSelector<T extends SelectorOpinion> {
   constructor(private selector: TargetSelector<T>) {}
-  focusOn<U extends SelectorOpinion>(extractor: ValueExtractor<T, U>): ChainableSelector<U> {
+  extract<U extends SelectorOpinion>(extractor: ValueExtractor<T, U>): ChainableSelector<U> {
     return new ChainableSelector<U>(context => [
       ...new Set(
         this.selector(context).flatMap(target => {
@@ -97,7 +97,7 @@ class ChainableSelector<T extends SelectorOpinion> {
     ])
   }
 
-  when(predicate: (target: T) => boolean): ChainableSelector<T> {
+  select(predicate: (target: T) => boolean): ChainableSelector<T> {
     return new ChainableSelector(context => {
       return this.selector(context).filter(t => predicate(t))
     })
