@@ -1,7 +1,7 @@
 import { Skill } from './skill'
 import { Pet } from './pet'
 import { RAGE_PER_TURN, AttackTargetOpinion } from './const'
-import { Context, SwitchPetContext, TurnContext, UseSkillContext } from './context'
+import { Context, RageContext, SwitchPetContext, TurnContext, UseSkillContext } from './context'
 import { BattleMessage, BattleMessageType, BattleMessageData } from './message'
 import { Player } from './player'
 
@@ -52,9 +52,9 @@ export class BattleSystem {
     return this.playerA
   }
 
-  private addTurnRage() {
+  private addTurnRage(ctx: TurnContext) {
     ;[this.playerA, this.playerB].forEach(player => {
-      player.addRage(RAGE_PER_TURN, 'turn')
+      player.addRage(new RageContext(this, ctx, player, 'turn', 'add', RAGE_PER_TURN))
     })
   }
 
@@ -68,36 +68,21 @@ export class BattleSystem {
       switch (selection.type) {
         case 'use-skill': {
           const _selection = selection as UseSkillSelection
-          const skillContext: UseSkillContext = {
-            type: 'use-skill',
-            battleSystem: this,
-            parent: context,
-            pet: _selection.source.activePet,
-            selectTarget: _selection.skill.target,
-            skill: _selection.skill,
-            skillPriority: _selection.skill.priority,
-            useSkillSuccess: true,
-            power: _selection.skill.power,
-            rageCost: _selection.skill.rageCost,
-            damageResult: -1,
-            player: selection.source,
-            damageModified: [100, 0],
-            sureHit: _selection.skill.sureHit,
-            crit: false,
-          }
+          const skillContext = new UseSkillContext(
+            this,
+            context,
+            _selection.source.activePet,
+            _selection.source,
+            _selection.skill.target,
+            _selection.skill,
+          )
           //TODO: 触发在决定使用技能阶段影响技能效果的印记
           contexts.push(skillContext)
           break
         }
         case 'switch-pet': {
           const _selection = selection as SwitchPetSelection
-          const switchContext: SwitchPetContext = {
-            parent: context,
-            battleSystem: this,
-            type: 'switch-pet',
-            player: _selection.source,
-            target: _selection.pet,
-          }
+          const switchContext = new SwitchPetContext(this, context, _selection.source, _selection.pet)
           contexts.push(switchContext)
           break
         }
@@ -132,7 +117,7 @@ export class BattleSystem {
       }
     }
 
-    this.addTurnRage() // 每回合结束获得怒气
+    this.addTurnRage(context) // 每回合结束获得怒气
 
     // 战斗结束后重置状态
     if (this.isBattleEnded()) {
@@ -197,24 +182,6 @@ export class BattleSystem {
     }
   }
 
-  public performHeal(pet: Pet, value: number, source?: Pet, ignoreHealEfficiency: boolean = false) {
-    const healObtainEfficiency = pet.stat.rageObtainEfficiency
-    const effectiveHealEfficiency = ignoreHealEfficiency ? 1 : healObtainEfficiency
-    const healDelta = value * effectiveHealEfficiency
-    if (healDelta > 0) {
-      //TODO: 触发和怒气增加相关的时间
-    } else if (healDelta < 0) {
-      //TODO: 触发和怒气增加相关的事件
-    }
-    pet.currentHp += healDelta
-    this.emitMessage(BattleMessageType.Heal, {
-      healer: source instanceof Skill ? source.name : undefined,
-      source: source instanceof Pet ? 'skill' : 'effect',
-      target: pet.name,
-      amount: healDelta,
-    })
-  }
-
   // 开始对战
   public *startBattle(): Generator<void, Player, PlayerSelection> {
     if (this.status != BattleStatus.Unstarted) throw '战斗已经开始过了！'
@@ -252,10 +219,7 @@ export class BattleSystem {
 
       // 阶段4：执行回合
       this.currentPhase = BattlePhase.ExecutionPhase
-      const turnContext: TurnContext = {
-        type: 'turn',
-        parent: this,
-      }
+      const turnContext: TurnContext = new TurnContext(this, this)
       if (this.performTurn(turnContext)) break
     }
     this.status = BattleStatus.Ended

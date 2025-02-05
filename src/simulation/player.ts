@@ -6,7 +6,7 @@ import {
   UseSkillSelection,
 } from './battleSystem'
 import { AttackTargetOpinion, RAGE_PER_DAMAGE } from './const'
-import { SwitchPetContext, UseSkillContext } from './context'
+import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { EffectTrigger } from './effect'
 import { BattleMessageType } from './message'
 import { Pet } from './pet'
@@ -148,13 +148,7 @@ export class Player {
     } while (!this.selection)
 
     // 执行换宠
-    this.performSwitchPet({
-      battleSystem: this.battle!,
-      parent: this,
-      type: 'switch-pet',
-      player: this,
-      target: (this.selection as SwitchPetSelection).pet,
-    })
+    this.performSwitchPet(new SwitchPetContext(this.battle!, this, this, (this.selection as SwitchPetSelection).pet))
 
     // 清空选择以准备正常回合
     this.selection = null
@@ -186,13 +180,7 @@ export class Player {
     } while (true)
 
     if (selection.type === 'switch-pet') {
-      this.performSwitchPet({
-        battleSystem: this.battle!,
-        parent: this,
-        type: 'switch-pet',
-        player: this,
-        target: selection.pet,
-      })
+      this.performSwitchPet(new SwitchPetContext(this.battle!, this, this, selection.pet))
     }
   }
 
@@ -231,7 +219,9 @@ export class Player {
       return false
     }
 
-    context.player.addRage(-context.skill.rageCost, 'skill')
+    context.player.addRage(
+      new RageContext(context.battle, context, context.player, 'skill', 'reduce', context.skill.rageCost),
+    )
 
     // 命中判定
     if (Math.random() > context.skill.accuracy) {
@@ -315,7 +305,7 @@ export class Player {
       context.damageResult = Math.max(0, intermediateDamage)
 
       // 应用伤害
-      defender.currentHp = Math.max(defender.currentHp - context.damageResult, 0)
+      defender.damage(new DamageContext(context.battle, context, context.damageResult))
 
       this.battle!.emitMessage(BattleMessageType.Damage, {
         currentHp: defender.currentHp,
@@ -336,11 +326,11 @@ export class Player {
 
       // 受伤者获得怒气
       const gainedRage = Math.floor(context.damageResult * RAGE_PER_DAMAGE)
-      defender.owner!.addRage(gainedRage, 'damage')
+      defender.owner!.addRage(new RageContext(this.battle!, context, defender.owner!, 'damage', 'add', gainedRage))
 
       context.skill.applyEffects(this.battle!, EffectTrigger.PostDamage, context) // 触发伤害后特效
 
-      context.player.addRage(15, 'skillHit') //命中奖励
+      context.player.addRage(new RageContext(this.battle!, context, context.player, 'skillHit', 'add', 15)) //命中奖励
     }
 
     context.skill.applyEffects(this.battle!, EffectTrigger.OnCritPostDamage, context) // 触发命中特效
@@ -368,27 +358,32 @@ export class Player {
     this.currentRage = Math.max(Math.min(value, 100), 0)
   }
 
-  public addRage(
-    value: number,
-    reason: 'turn' | 'damage' | 'skill' | 'skillHit' | 'switch',
-    ignoreRageObtainEfficiency: boolean = false,
-  ) {
-    let rageObtainEfficiency = this.activePet.stat.rageObtainEfficiency
-    if (ignoreRageObtainEfficiency) rageObtainEfficiency = 1
-    const rageDelta = value * rageObtainEfficiency
-    if (rageDelta > 0) {
+  public addRage(ctx: RageContext) {
+    const before = this.currentRage
+
+    if (ctx.value > 0) {
       //TODO: 触发和怒气增加相关的时间
-    } else if (rageDelta < 0) {
+    } else if (ctx.value < 0) {
       //TODO: 触发和怒气增加相关的事件
     }
-    const before = this.currentRage
-    this.settingRage((this.currentRage += rageDelta))
+    switch (ctx.modifiedType) {
+      case 'setting':
+        this.settingRage(ctx.value)
+        break
+      case 'add':
+        this.settingRage(this.currentRage + ctx.value)
+        break
+      case 'reduce':
+        this.settingRage(this.currentRage - ctx.value)
+        break
+    }
+
     this.battle!.emitMessage(BattleMessageType.RageChange, {
       player: this.name,
       pet: this.activePet.name,
       before: before,
       after: this.currentRage,
-      reason: reason,
+      reason: ctx.reason,
     })
   }
 }

@@ -1,6 +1,6 @@
 import { Player } from './player'
 import { StatOnBattle } from './const'
-import { EffectContext, UseSkillContext } from './context'
+import { AddMarkContext, DamageContext, EffectContext, HealContext, RageContext, UseSkillContext } from './context'
 import { Mark } from './mark'
 import { Pet } from './pet'
 import { Skill } from './skill'
@@ -73,7 +73,7 @@ export type ChainableTargetSelector<T> = TargetSelector<T> & {
 }
 export type ValueExtractor<T, U> = (target: T) => U | U[]
 export type ConditionOperator<U> = (values: U[]) => boolean // 判断逻辑
-export type Operator<U> = (values: U[]) => void
+export type Operator<U> = (ctx: EffectContext, values: U[]) => void
 
 // 重构链式选择器类（支持类型转换）
 class ChainableSelector<T extends SelectorOpinion> {
@@ -185,61 +185,57 @@ export const Conditioner = {
 // 操作符系统
 export const Operator = {
   // 宠物操作
-  dealDamage: (damage: number) => (targets: Pet[]) => {
-    targets.forEach(pet => pet.takeDamage(damage))
+  dealDamage: (damage: number) => (ctx: EffectContext, targets: Pet[]) => {
+    targets.forEach(pet => pet.damage(new DamageContext(pet.owner!.battle!, ctx, damage, true)))
   },
-  heal: (amount: number) => (targets: Pet[]) => {
-    targets.forEach(pet => pet.heal(amount))
+  heal: (amount: number) => (ctx: EffectContext, targets: Pet[]) => {
+    targets.forEach(pet => pet.heal(new HealContext(pet.owner!.battle!, ctx, pet, amount)))
   },
-  addMark: (mark: Mark) => (targets: Pet[]) => {
-    targets.forEach(pet => pet.addMark(mark.clone()))
+  addMark: (mark: Mark) => (ctx: EffectContext, targets: Pet[]) => {
+    targets.forEach(pet => pet.addMark(new AddMarkContext(ctx.battle, ctx, pet, mark)))
   },
-  removeMark: (markId: string) => (targets: Pet[]) => {
-    targets.forEach(pet => pet.removeMark(markId))
+  removeMark: (markId: string) => (ctx: EffectContext, targets: Pet[]) => {
+    targets.forEach(pet => (pet.marks = pet.marks.filter(m => m.id !== markId)))
   },
 
   // 玩家操作
-  addRage: (amount: number) => (targets: Player[]) => {
-    targets.forEach(player => player.addRage(amount))
+  addRage: (amount: number) => (ctx: EffectContext, targets: Player[]) => {
+    targets.forEach(player => player.addRage(new RageContext(player.battle!, ctx, player, 'effect', 'add', amount)))
   },
-  reduceRage: (amount: number) => (targets: Player[]) => {
-    targets.forEach(player => player.addRage(amount))
+  reduceRage: (amount: number) => (ctx: EffectContext, targets: Player[]) => {
+    targets.forEach(player => player.addRage(new RageContext(player.battle!, ctx, player, 'effect', 'reduce', amount)))
   },
 
   // 印记操作
-  incrementMarkStack: (amount: number) => (targets: Mark[]) => {
+  incrementMarkStack: (amount: number) => (ctx: EffectContext, targets: Mark[]) => {
     targets.forEach(mark => mark.addStack(amount))
   },
-  setMarkDuration: (duration: number) => (targets: Mark[]) => {
+  setMarkDuration: (duration: number) => (ctx: EffectContext, targets: Mark[]) => {
     targets.forEach(mark => mark.setDuration(duration))
   },
 
   // 属性直接操作（需要确保对象可修改）
   modifyStat:
-    <K extends keyof StatOnBattle>(stat: K, value: number) =>
+    <K extends keyof StatOnBattle>(ctx: EffectContext, stat: K, value: number) =>
     (targets: Pet[]) => {
       targets.forEach(pet => (pet.stat[stat] += value))
     },
 
   // 技能上下文操作
-  amplifyPower: (multiplier: number) => (contexts: UseSkillContext[]) => {
+  amplifyPower: (ctx: EffectContext, multiplier: number) => (contexts: UseSkillContext[]) => {
     contexts.forEach(ctx => (ctx.power *= multiplier))
   },
 }
 
-export class ConditionFactory {
-  static CreateCondition<T>(
-    selector: TargetSelector<T>,
-    conditioner: ConditionOperator<T>,
-  ): (ctx: EffectContext) => boolean {
-    return (ctx: EffectContext) => conditioner(selector(ctx))
-  }
+export function CreateCondition<T>(
+  selector: TargetSelector<T>,
+  conditioner: ConditionOperator<T>,
+): (ctx: EffectContext) => boolean {
+  return (ctx: EffectContext) => conditioner(selector(ctx))
 }
 
-export class ApplyerFactory {
-  static CreactApply<T>(selector: TargetSelector<T>, operator: Operator<T>): (ctx: EffectContext) => void {
-    return (ctx: EffectContext) => operator(selector(ctx))
-  }
+export function CreactApply<T>(selector: TargetSelector<T>, operator: Operator<T>): (ctx: EffectContext) => void {
+  return (ctx: EffectContext) => operator(ctx, selector(ctx))
 }
 
 // const complexSelector = BaseSelectors.opponentActive

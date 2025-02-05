@@ -1,4 +1,4 @@
-import { Skill } from './skill'
+import { EffectTrigger, Skill } from './skill'
 import { Type } from './type'
 import {
   RAGE_PER_TURN,
@@ -13,6 +13,7 @@ import {
 import { Nature, NatureMap } from './nature'
 import { Player } from './player'
 import { Mark } from './mark'
+import { AddMarkContext, DamageContext, EffectContext, HealContext, RemoveMarkContext } from './context'
 
 export interface Species {
   name: string
@@ -39,7 +40,6 @@ export class Pet {
     critRate: [100, 0],
     evasion: [100, 0],
     ragePerTurn: [15, 0],
-    rageObtainEfficiency: [100, 0],
   }
   public type: Type
   public isAlive: boolean = true
@@ -64,9 +64,30 @@ export class Pet {
     this.owner = null
   }
 
-  // 选择随机技能
-  selectRandomSkill(): Skill {
-    return this.skills[Math.floor(Math.random() * this.skills.length)]
+  public damage(ctx: DamageContext): boolean {
+    this.currentHp = Math.max(0, this.currentHp - ctx.value)
+    if (this.currentHp === 0) {
+      this.isAlive = false
+    }
+    return this.isAlive
+  }
+
+  public heal(ctx: HealContext): boolean {
+    this.currentHp = Math.min(this.maxHp!, this.currentHp + ctx.value)
+    return this.isAlive
+  }
+
+  public addMark(ctx: AddMarkContext) {
+    const existingMark = this.marks.find(mark => mark.id === ctx.mark.id)
+    if (existingMark) {
+      existingMark.trigger(EffectTrigger.OnStack, new EffectContext(this.owner!.battle!, ctx, this))
+    } else {
+      this.marks.push(ctx.mark.clone())
+    }
+  }
+
+  public removeMark(ctx: RemoveMarkContext) {
+    this.marks = this.marks.filter(mark => mark.id !== ctx.mark.id)
   }
 
   //TODO: 属性修改器
@@ -98,8 +119,6 @@ export class Pet {
       return 0
     } else if (type === 'ragePerTurn') {
       return RAGE_PER_TURN
-    } else if (type === 'rageObtainEfficiency') {
-      return this.baseRageObtainEfficiency
     } else {
       return this.calculateStatWithoutHp(type)
     }
@@ -113,6 +132,7 @@ export class Pet {
 
     return Math.floor(((2 * baseStat + iv + Math.floor(ev / 4)) * level) / 100) + level + 10
   }
+
   public setOwner(player: Player) {
     this.owner = player
   }
@@ -128,7 +148,6 @@ export class Pet {
       critRate: this.calculateStat(StatTypeOnlyBattle.critRate),
       evasion: this.calculateStat(StatTypeOnlyBattle.evasion),
       ragePerTurn: this.calculateStat(StatTypeOnlyBattle.ragePerTurn),
-      rageObtainEfficiency: this.calculateStat(StatTypeOnlyBattle.rageObtainEfficiency),
     }
   }
 

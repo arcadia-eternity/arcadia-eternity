@@ -1,5 +1,5 @@
 import { Effect, EffectContainer, EffectTrigger, EffectApplicator } from './effect'
-import { EffectContext, UseSkillContext } from './context'
+import { EffectContext } from './context'
 import { Pet } from './pet'
 
 export class Mark implements EffectContainer {
@@ -47,12 +47,17 @@ export class Mark implements EffectContainer {
     return this.effects.some(e => e.meta?.stackable)
   }
 
-  trigger(trigger: EffectTrigger, context: UseSkillContext | Mark) {
-    const markContext: EffectContext = {
-      type: 'effect',
-      parent: context,
-    }
+  trigger(trigger: EffectTrigger, context: EffectContext) {
+    const markContext: EffectContext = new EffectContext(context.battle, context, context.owner)
     EffectApplicator.apply(this, trigger, markContext)
+  }
+
+  clone(): Mark {
+    const mark = new Mark(this.id, this.effects, this.config)
+    mark.stacks = this.stacks
+    mark.duration = this.duration
+    mark.source = this.source
+    return mark
   }
 }
 
