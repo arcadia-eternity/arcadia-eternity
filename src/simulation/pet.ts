@@ -31,6 +31,7 @@ export class Pet {
   public baseCritRate: number = 0.1 // 暴击率默认为10%
   public baseAccuracy: number = 1 // 命中率默认为100%
   public statModifiers: StatBuffOnBattle = {
+    // [百分比，固定值]
     atk: [100, 0],
     def: [100, 0],
     spa: [100, 0],

@@ -70,11 +70,6 @@ export class EffectApplicator {
 // 条件系统分为三个层级
 // 修改选择器类型定义
 export type TargetSelector<T> = (context: EffectContext) => T[]
-export type ChainableTargetSelector<T> = TargetSelector<T> & {
-  where: (predicate: (target: T, context: EffectContext) => boolean) => ChainableTargetSelector<T>
-  and: (other: TargetSelector<T>) => ChainableTargetSelector<T>
-  or: (other: TargetSelector<T>) => ChainableTargetSelector<T>
-}
 export type ValueExtractor<T, U> = (target: T) => U | U[]
 export type ConditionOperator<U> = (values: U[]) => boolean // 判断逻辑
 export type Operator<U> = (ctx: EffectContext, values: U[]) => void
@@ -97,7 +92,7 @@ class ChainableSelector<T extends SelectorOpinion> {
     ])
   }
 
-  select(predicate: (target: T) => boolean): ChainableSelector<T> {
+  where(predicate: (target: T) => boolean): ChainableSelector<T> {
     return new ChainableSelector(context => {
       return this.selector(context).filter(t => predicate(t))
     })
@@ -116,6 +111,69 @@ class ChainableSelector<T extends SelectorOpinion> {
       const prev = this.selector(context)
       const otherResults = other(context)
       return [...new Set([...prev, ...otherResults])]
+    })
+  }
+
+  sum(this: ChainableSelector<number>): ChainableSelector<number> {
+    return new ChainableSelector<number>(context => {
+      const values = this.selector(context)
+      return [values.reduce((acc, cur) => acc + cur, 0)]
+    })
+  }
+
+  add(value: number): ChainableSelector<number>
+  add(selector: ChainableSelector<number>): ChainableSelector<number>
+  add(valueOrSelector: number | ChainableSelector<number>): ChainableSelector<number> {
+    if (typeof valueOrSelector === 'number') {
+      return this.mapNumber(v => v + valueOrSelector)
+    }
+    return this.combine(valueOrSelector, (a, b) => a + b)
+  }
+
+  // 函数重载声明
+  multiply(value: number): ChainableSelector<number>
+  multiply(selector: ChainableSelector<number>): ChainableSelector<number>
+  multiply(valueOrSelector: number | ChainableSelector<number>): ChainableSelector<number> {
+    if (typeof valueOrSelector === 'number') {
+      return this.mapNumber(v => v * valueOrSelector)
+    }
+    return this.combine(valueOrSelector, (a, b) => a * b)
+  }
+
+  // 除法运算
+  divide(value: number): ChainableSelector<number> {
+    return this.mapNumber(v => v / value)
+  }
+
+  // 最大值限制
+  clampMax(max: number): ChainableSelector<number> {
+    return this.mapNumber(v => Math.min(v, max))
+  }
+
+  // 最小值限制
+  clampMin(min: number): ChainableSelector<number> {
+    return this.mapNumber(v => Math.max(v, min))
+  }
+
+  // 公共数值处理方法
+  private mapNumber(fn: (v: number) => number): ChainableSelector<number> {
+    return new ChainableSelector<number>(context => {
+      const values = this.selector(context)
+      return values.map(v => {
+        const num = Number(v)
+        return isNaN(num) ? 0 : fn(num)
+      })
+    })
+  }
+
+  private combine(
+    other: ChainableSelector<number>,
+    operation: (a: number, b: number) => number,
+  ): ChainableSelector<number> {
+    return new ChainableSelector<number>(context => {
+      const valuesA = this.selector(context) as number[]
+      const valuesB = other.selector(context) as number[]
+      return valuesA.map((a, i) => operation(a, valuesB[i] ?? 0))
     })
   }
 
@@ -164,10 +222,6 @@ type BattleAttributesMap = {
   skills: (target: Pet) => Skill[]
 }
 
-type DynamicBattleAttributesMap = {
-  amplify: (value: number) => (target: number) => number
-}
-
 // BattleAttributes用于提取Selector得到的一组对象的某个值，将这个值的类型作为新的Selector
 export const BattleAttributes: BattleAttributesMap = {
   hp: (target: Pet) => target.currentHp,
@@ -182,10 +236,6 @@ export const BattleAttributes: BattleAttributesMap = {
   priority: (target: UseSkillContext) => target.skillPriority,
   activePet: (target: Player) => target.activePet,
   skills: (target: Pet) => target.skills,
-}
-
-export const DynamicBattleAttributes: DynamicBattleAttributesMap = {
-  amplify: (value: number) => (target: number) => target * value,
 }
 
 export const BattleConditions = {
