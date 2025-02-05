@@ -16,7 +16,7 @@ export enum BattlePhase {
 export class BattleSystem {
   public status: BattleStatus = BattleStatus.Unstarted
   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
-  private currentRound = 1
+  public currentTurn = 1
   private messageCallbacks: Array<(message: BattleMessage) => void> = []
   public pendingDefeatedPlayer?: Player // 新增：需要在下回合换宠的玩家
   public allowKillerSwitch: boolean
@@ -94,9 +94,9 @@ export class BattleSystem {
     }
     contexts.sort(this.contextSort)
 
-    this.currentRound++
+    this.currentTurn++
     this.emitMessage(BattleMessageType.RoundStart, {
-      round: this.currentRound,
+      round: this.currentTurn,
     })
 
     contextpop: while (contexts.length > 0) {

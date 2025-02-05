@@ -71,7 +71,7 @@ export class EffectApplicator {
 // 修改选择器类型定义
 export type TargetSelector<T> = (context: EffectContext) => T[]
 export type ValueExtractor<T, U> = (target: T) => U | U[]
-export type ConditionOperator<U> = (values: U[]) => boolean // 判断逻辑
+export type ConditionOperator<U> = (ctx: EffectContext, values: U[]) => boolean // 判断逻辑
 export type Operator<U> = (ctx: EffectContext, values: U[]) => void
 export type ValueSource<T, U extends SelectorOpinion> =
   | DynamicValue<T, U> // 直接值或目标相关值
@@ -182,6 +182,10 @@ class ChainableSelector<T extends SelectorOpinion> {
     return this.selector
   }
 
+  condition(conditioner: ConditionOperator<T>) {
+    return (ctx: EffectContext) => conditioner(ctx, this.selector(ctx))
+  }
+
   apply(operator: Operator<T>) {
     return (ctx: EffectContext) => operator(ctx, this.selector(ctx))
   }
@@ -240,16 +244,86 @@ export const BattleAttributes: BattleAttributesMap = {
 
 export const BattleConditions = {
   // number
-  up: (value: number) => (targets: number[]) => targets.some(target => target > value),
-  down: (value: number) => (targets: number[]) => targets.some(target => target < value),
-  equal: (value: number) => (targets: number[]) => targets.some(target => target == value),
-  upEqual: (value: number) => (targets: number[]) => targets.some(target => target >= value),
-  downEqual: (value: number) => (targets: number[]) => targets.some(target => target <= value),
-  notEqual: (value: number) => (targets: number[]) => targets.some(target => target != value),
-  between: (min: number, max: number) => (targets: number[]) => targets.some(target => target >= min && target <= max),
+  up: (value: number) => (_: EffectContext, targets: number[]) => targets.some(target => target > value),
+  down: (value: number) => (_: EffectContext, targets: number[]) => targets.some(target => target < value),
+  equal: (value: number) => (_: EffectContext, targets: number[]) => targets.some(target => target == value),
+  upEqual: (value: number) => (_: EffectContext, targets: number[]) => targets.some(target => target >= value),
+  downEqual: (value: number) => (_: EffectContext, targets: number[]) => targets.some(target => target <= value),
+  notEqual: (value: number) => (_: EffectContext, targets: number[]) => targets.some(target => target != value),
+  between: (min: number, max: number) => (_: EffectContext, targets: number[]) =>
+    targets.some(target => target >= min && target <= max),
 
   // marks
   hasMark: (markid: string) => (marks: Mark[]) => marks.some(v => v.id == markid),
+}
+
+export function createDynamicCondition<T extends SelectorOpinion, U>(
+  selector: ChainableSelector<T>,
+  extractor: ValueExtractor<T, U>,
+  operator: ConditionOperator<U>,
+): (ctx: EffectContext) => boolean {
+  return (ctx: EffectContext) => {
+    try {
+      const targets = selector.build()(ctx)
+      const values = targets.flatMap(t => {
+        const extracted = extractor(t)
+        return Array.isArray(extracted) ? extracted : [extracted]
+      })
+      return operator(ctx, values)
+    } catch (error) {
+      console.error('Condition evaluation failed:', error)
+      return false
+    }
+  }
+}
+
+export const DynamicConditions = {
+  compare:
+    <T extends number>(operator: '>' | '<' | '>=' | '<=' | '==') =>
+    (values: T[], ctx: EffectContext, compareValue: T): boolean => {
+      return values.some(value => {
+        switch (operator) {
+          case '>':
+            return value > compareValue
+          case '<':
+            return value < compareValue
+          case '>=':
+            return value >= compareValue
+          case '<=':
+            return value <= compareValue
+          case '==':
+            return value === compareValue
+          default:
+            return false
+        }
+      })
+    },
+
+  hasStatus:
+    <T extends { id: string }>(statusId: string) =>
+    (values: T[]): boolean => {
+      return values.some(v => v.id === statusId)
+    },
+
+  any:
+    <T>(...ops: ConditionOperator<T>[]): ConditionOperator<T> =>
+    (ctx: EffectContext, values: T[]) =>
+      ops.some(op => op(ctx, values)),
+
+  all:
+    <T>(...ops: ConditionOperator<T>[]): ConditionOperator<T> =>
+    (ctx: EffectContext, values: T[]) =>
+      ops.every(op => op(ctx, values)),
+
+  probability:
+    (percent: number): ConditionOperator<unknown> =>
+    (ctx: EffectContext) =>
+      ctx.battle.random() < percent / 100,
+
+  turnCount:
+    (predicate: (n: number) => boolean): ConditionOperator<unknown> =>
+    (ctx: EffectContext) =>
+      predicate(ctx.battle.currentTurn),
 }
 
 type DynamicValue<T, U extends SelectorOpinion> = T | ((target: U, context: EffectContext) => T)
@@ -348,9 +422,11 @@ export const BattleActions = {
     },
 }
 
-export function CreateCondition<T>(
-  selector: TargetSelector<T>,
-  conditioner: ConditionOperator<T>,
-): (ctx: EffectContext) => boolean {
-  return (ctx: EffectContext) => conditioner(selector(ctx))
+const BurnEffect: Effect = {
+  id: 'burn',
+  trigger: EffectTrigger.TurnEnd,
+  condition: BattleTarget.self.extract(BattleAttributes.hp).condition(BattleConditions.down(200)),
+  apply: BattleTarget.self.apply(
+    BattleActions.dealDamage(BattleTarget.self.extract(BattleAttributes.hp).multiply(0.125).build()),
+  ),
 }
