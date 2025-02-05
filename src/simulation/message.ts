@@ -133,7 +133,7 @@ export interface BattleMessageData {
     pet: string
     before: number
     after: number
-    reason: 'turn' | 'damage' | 'skill' | 'skillHit' | 'switch'
+    reason: 'turn' | 'damage' | 'skill' | 'skillHit' | 'switch' | 'effect'
   }
   [BattleMessageType.HpChange]: {
     pet: string

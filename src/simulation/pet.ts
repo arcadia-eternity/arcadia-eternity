@@ -82,7 +82,9 @@ export class Pet {
     if (existingMark) {
       existingMark.trigger(EffectTrigger.OnStack, new EffectContext(this.owner!.battle!, ctx, this))
     } else {
-      this.marks.push(ctx.mark.clone())
+      const newMark = ctx.mark.clone()
+      this.marks.push(newMark)
+      newMark.attachTo(this)
     }
   }
 

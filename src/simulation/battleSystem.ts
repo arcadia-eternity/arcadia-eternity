@@ -54,7 +54,7 @@ export class BattleSystem {
 
   private addTurnRage(ctx: TurnContext) {
     ;[this.playerA, this.playerB].forEach(player => {
-      player.addRage(new RageContext(this, ctx, player, 'turn', 'add', RAGE_PER_TURN))
+      player.addRage(new RageContext(ctx, player, 'turn', 'add', RAGE_PER_TURN))
     })
   }
 
@@ -69,7 +69,6 @@ export class BattleSystem {
         case 'use-skill': {
           const _selection = selection as UseSkillSelection
           const skillContext = new UseSkillContext(
-            this,
             context,
             _selection.source.activePet,
             _selection.source,
@@ -82,7 +81,7 @@ export class BattleSystem {
         }
         case 'switch-pet': {
           const _selection = selection as SwitchPetSelection
-          const switchContext = new SwitchPetContext(this, context, _selection.source, _selection.pet)
+          const switchContext = new SwitchPetContext(context, _selection.source, _selection.pet)
           contexts.push(switchContext)
           break
         }
@@ -219,7 +218,7 @@ export class BattleSystem {
 
       // 阶段4：执行回合
       this.currentPhase = BattlePhase.ExecutionPhase
-      const turnContext: TurnContext = new TurnContext(this, this)
+      const turnContext: TurnContext = new TurnContext(this)
       if (this.performTurn(turnContext)) break
     }
     this.status = BattleStatus.Ended

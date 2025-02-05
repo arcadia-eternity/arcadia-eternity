@@ -148,7 +148,7 @@ export class Player {
     } while (!this.selection)
 
     // 执行换宠
-    this.performSwitchPet(new SwitchPetContext(this.battle!, this, this, (this.selection as SwitchPetSelection).pet))
+    this.performSwitchPet(new SwitchPetContext(this, this, (this.selection as SwitchPetSelection).pet))
 
     // 清空选择以准备正常回合
     this.selection = null
@@ -180,7 +180,7 @@ export class Player {
     } while (true)
 
     if (selection.type === 'switch-pet') {
-      this.performSwitchPet(new SwitchPetContext(this.battle!, this, this, selection.pet))
+      this.performSwitchPet(new SwitchPetContext(this, this, selection.pet))
     }
   }
 
@@ -219,9 +219,7 @@ export class Player {
       return false
     }
 
-    context.player.addRage(
-      new RageContext(context.battle, context, context.player, 'skill', 'reduce', context.skill.rageCost),
-    )
+    context.player.addRage(new RageContext(context, context.player, 'skill', 'reduce', context.skill.rageCost))
 
     // 命中判定
     if (Math.random() > context.skill.accuracy) {
@@ -305,7 +303,7 @@ export class Player {
       context.damageResult = Math.max(0, intermediateDamage)
 
       // 应用伤害
-      defender.damage(new DamageContext(context.battle, context, context.damageResult))
+      defender.damage(new DamageContext(context, context.damageResult))
 
       this.battle!.emitMessage(BattleMessageType.Damage, {
         currentHp: defender.currentHp,
@@ -326,11 +324,11 @@ export class Player {
 
       // 受伤者获得怒气
       const gainedRage = Math.floor(context.damageResult * RAGE_PER_DAMAGE)
-      defender.owner!.addRage(new RageContext(this.battle!, context, defender.owner!, 'damage', 'add', gainedRage))
+      defender.owner!.addRage(new RageContext(context, defender.owner!, 'damage', 'add', gainedRage))
 
       context.skill.applyEffects(this.battle!, EffectTrigger.PostDamage, context) // 触发伤害后特效
 
-      context.player.addRage(new RageContext(this.battle!, context, context.player, 'skillHit', 'add', 15)) //命中奖励
+      context.player.addRage(new RageContext(context, context.player, 'skillHit', 'add', 15)) //命中奖励
     }
 
     context.skill.applyEffects(this.battle!, EffectTrigger.OnCritPostDamage, context) // 触发命中特效

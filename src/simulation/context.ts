@@ -8,7 +8,6 @@ import { Skill } from './skill'
 export class Context {
   readonly type: string = 'base'
   constructor(
-    public readonly battle: BattleSystem,
     public readonly parent:
       | null
       | BattleSystem
@@ -27,16 +26,16 @@ export class Context {
 
 export class TurnContext extends Context {
   readonly type = 'turn'
-  constructor(
-    public readonly battle: BattleSystem,
-    public readonly parent: BattleSystem,
-  ) {
-    super(battle, parent)
+  public readonly battle: BattleSystem
+  constructor(public readonly parent: BattleSystem) {
+    super(parent)
+    this.battle = parent
   }
 }
 
 export class UseSkillContext extends Context {
   readonly type = 'use-skill'
+  public readonly battle: BattleSystem
   public skillPriority: number
   public power: number
   public rageCost: number
@@ -49,16 +48,16 @@ export class UseSkillContext extends Context {
   crit: boolean
   sureHit: boolean
   constructor(
-    public readonly battleSystem: BattleSystem,
     public readonly parent: TurnContext,
     public pet: Pet,
     public player: Player,
     public selectTarget: AttackTargetOpinion,
     public skill: Skill,
   ) {
-    super(battleSystem, parent)
+    super(parent)
+    this.battle = parent.battle
     this.actualTarget = undefined
-    this.useSkillSuccess = false
+    this.useSkillSuccess = true
     this.damageModified = [0, 0]
     this.damageResult = 0
     this.minThreshold = undefined
@@ -73,28 +72,30 @@ export class UseSkillContext extends Context {
 
 export class SwitchPetContext extends Context {
   readonly type = 'switch-pet'
+  public readonly battle: BattleSystem
   constructor(
-    public readonly battleSystem: BattleSystem,
     public readonly parent: TurnContext | Player,
     public player: Player,
     public target: Pet,
   ) {
-    super(battleSystem, parent)
+    super(parent)
+    this.battle = parent.battle!
   }
 }
 
 export class RageContext extends Context {
   readonly type = 'rage-cost'
+  public readonly battle: BattleSystem
   constructor(
-    public readonly battleSystem: BattleSystem,
     public readonly parent: UseSkillContext | EffectContext | TurnContext,
     public target: Player,
-    public reason: 'turn' | 'damage' | 'skill' | 'skillHit' | 'switch',
+    public reason: 'turn' | 'damage' | 'skill' | 'skillHit' | 'switch' | 'effect',
     public modifiedType: 'setting' | 'add' | 'reduce',
     public value: number,
     public ignoreRageObtainEfficiency: boolean = false,
   ) {
-    super(battleSystem, parent)
+    super(parent)
+    this.battle = parent.battle
   }
 }
 
@@ -105,55 +106,60 @@ export class EffectContext extends Context {
     public readonly parent: UseSkillContext | EffectContext | DamageContext | HealContext | AddMarkContext,
     public readonly owner: Pet,
   ) {
-    super(battle, parent)
+    super(parent)
+    this.battle = parent.battle
   }
 }
 
 export class DamageContext extends Context {
   readonly type = 'damage'
+  public readonly battle: BattleSystem
   constructor(
-    public readonly battle: BattleSystem,
     public readonly parent: UseSkillContext | EffectContext,
     public value: number,
     public ingoreShield: boolean = false,
   ) {
-    super(battle, parent)
+    super(parent)
+    this.battle = parent.battle
   }
 }
 
 export class HealContext extends Context {
   readonly type = 'heal'
+  public readonly battle: BattleSystem
   constructor(
-    public readonly battle: BattleSystem,
     public readonly parent: EffectContext,
     public target: Pet,
     public value: number,
     public ingoreEffect: boolean = false,
   ) {
-    super(battle, parent)
+    super(parent)
+    this.battle = parent.battle
   }
 }
 
 export class AddMarkContext extends Context {
   readonly type = 'add-mark'
+  public readonly battle: BattleSystem
   constructor(
-    public readonly battle: BattleSystem,
     public readonly parent: EffectContext,
     public target: Pet,
     public mark: Mark,
   ) {
-    super(battle, parent)
+    super(parent)
+    this.battle = parent.battle
   }
 }
 
 export class RemoveMarkContext extends Context {
   readonly type = 'remove-mark'
+  public readonly battle: BattleSystem
   constructor(
-    public readonly battle: BattleSystem,
     public readonly parent: EffectContext,
     public target: Pet,
     public mark: Mark,
   ) {
-    super(battle, parent)
+    super(parent)
+    this.battle = parent.battle
   }
 }

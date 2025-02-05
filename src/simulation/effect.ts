@@ -186,13 +186,13 @@ export const Conditioner = {
 export const Operator = {
   // 宠物操作
   dealDamage: (damage: number) => (ctx: EffectContext, targets: Pet[]) => {
-    targets.forEach(pet => pet.damage(new DamageContext(pet.owner!.battle!, ctx, damage, true)))
+    targets.forEach(pet => pet.damage(new DamageContext(ctx, damage, true)))
   },
   heal: (amount: number) => (ctx: EffectContext, targets: Pet[]) => {
-    targets.forEach(pet => pet.heal(new HealContext(pet.owner!.battle!, ctx, pet, amount)))
+    targets.forEach(pet => pet.heal(new HealContext(ctx, pet, amount)))
   },
   addMark: (mark: Mark) => (ctx: EffectContext, targets: Pet[]) => {
-    targets.forEach(pet => pet.addMark(new AddMarkContext(ctx.battle, ctx, pet, mark)))
+    targets.forEach(pet => pet.addMark(new AddMarkContext(ctx, pet, mark)))
   },
   removeMark: (markId: string) => (ctx: EffectContext, targets: Pet[]) => {
     targets.forEach(pet => (pet.marks = pet.marks.filter(m => m.id !== markId)))
@@ -200,19 +200,19 @@ export const Operator = {
 
   // 玩家操作
   addRage: (amount: number) => (ctx: EffectContext, targets: Player[]) => {
-    targets.forEach(player => player.addRage(new RageContext(player.battle!, ctx, player, 'effect', 'add', amount)))
+    targets.forEach(player => player.addRage(new RageContext(ctx, player, 'effect', 'add', amount)))
   },
   reduceRage: (amount: number) => (ctx: EffectContext, targets: Player[]) => {
-    targets.forEach(player => player.addRage(new RageContext(player.battle!, ctx, player, 'effect', 'reduce', amount)))
+    targets.forEach(player => player.addRage(new RageContext(ctx, player, 'effect', 'reduce', amount)))
   },
 
-  // 印记操作
-  incrementMarkStack: (amount: number) => (ctx: EffectContext, targets: Mark[]) => {
-    targets.forEach(mark => mark.addStack(amount))
-  },
-  setMarkDuration: (duration: number) => (ctx: EffectContext, targets: Mark[]) => {
-    targets.forEach(mark => mark.setDuration(duration))
-  },
+  // // 印记操作
+  // incrementMarkStack: (amount: number) => (ctx: EffectContext, targets: Mark[]) => {
+  //   targets.forEach(mark => mark.addStack(amount))
+  // },
+  // setMarkDuration: (duration: number) => (ctx: EffectContext, targets: Mark[]) => {
+  //   targets.forEach(mark => mark.setDuration(duration))
+  // },
 
   // 属性直接操作（需要确保对象可修改）
   modifyStat:
