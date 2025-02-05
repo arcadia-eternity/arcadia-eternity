@@ -57,8 +57,12 @@ export class EffectApplicator {
   static apply(container: EffectContainer, trigger: EffectTrigger, context: EffectContext) {
     const effects = container.getEffects(trigger)
     effects.forEach(effect => {
-      if (!effect.condition || effect.condition(context)) {
-        effect.apply(context)
+      try {
+        if (!effect.condition || effect.condition(context)) {
+          effect.apply(context)
+        }
+      } catch (error) {
+        console.error(`Effect ${effect.id} failed:`, error)
       }
     })
   }
@@ -74,11 +78,15 @@ export type ChainableTargetSelector<T> = TargetSelector<T> & {
 export type ValueExtractor<T, U> = (target: T) => U | U[]
 export type ConditionOperator<U> = (values: U[]) => boolean // 判断逻辑
 export type Operator<U> = (ctx: EffectContext, values: U[]) => void
+export type ValueSource<T, U extends SelectorOpinion> =
+  | DynamicValue<T, U> // 直接值或目标相关值
+  | TargetSelector<T> // 选择器系统产生的值
+  | ((ctx: EffectContext) => T) // 上下文相关值
 
 // 重构链式选择器类（支持类型转换）
 class ChainableSelector<T extends SelectorOpinion> {
   constructor(private selector: TargetSelector<T>) {}
-  select<U extends SelectorOpinion>(extractor: ValueExtractor<T, U>): ChainableSelector<U> {
+  focusOn<U extends SelectorOpinion>(extractor: ValueExtractor<T, U>): ChainableSelector<U> {
     return new ChainableSelector<U>(context => [
       ...new Set(
         this.selector(context).flatMap(target => {
@@ -89,9 +97,9 @@ class ChainableSelector<T extends SelectorOpinion> {
     ])
   }
 
-  where(predicate: (target: T, context: EffectContext) => boolean): ChainableSelector<T> {
+  when(predicate: (target: T) => boolean): ChainableSelector<T> {
     return new ChainableSelector(context => {
-      return this.selector(context).filter(t => predicate(t, context))
+      return this.selector(context).filter(t => predicate(t))
     })
   }
 
@@ -115,6 +123,10 @@ class ChainableSelector<T extends SelectorOpinion> {
   build(): TargetSelector<T> {
     return this.selector
   }
+
+  apply(operator: Operator<T>) {
+    return (ctx: EffectContext) => operator(ctx, this.selector(ctx))
+  }
 }
 
 // 类型增强装饰器
@@ -122,22 +134,22 @@ function createChainable<T extends SelectorOpinion>(selector: TargetSelector<T>)
   return new ChainableSelector(selector)
 }
 
-export type SelectorOpinion = Player | Pet | Mark | Skill | UseSkillContext | StatOnBattle
+export type SelectorOpinion = Player | Pet | Mark | Skill | UseSkillContext | StatOnBattle | number
 
 // 基础选择器
-export const BaseSelectors: {
+export const BattleTarget: {
   self: ChainableSelector<Pet>
-  opponentActive: ChainableSelector<Pet>
+  foe: ChainableSelector<Pet>
   petOwners: ChainableSelector<Player>
   usingSkillContext: ChainableSelector<UseSkillContext>
 } = {
   self: createChainable<Pet>((context: EffectContext) => [context.owner]),
-  opponentActive: createChainable<Pet>((context: EffectContext) => [(context.parent as UseSkillContext).actualTarget!]),
+  foe: createChainable<Pet>((context: EffectContext) => [(context.parent as UseSkillContext).actualTarget!]),
   petOwners: createChainable<Player>((context: EffectContext) => [context.owner.owner!]),
   usingSkillContext: createChainable<UseSkillContext>((context: EffectContext) => [context.parent as UseSkillContext]),
 }
 
-type ExtractorsMap = {
+type BattleAttributesMap = {
   hp: (target: Pet) => number
   rage: (target: Player) => number
   owner: (target: Pet) => Player
@@ -152,8 +164,12 @@ type ExtractorsMap = {
   skills: (target: Pet) => Skill[]
 }
 
-// Extractors用于提取Selector得到的一组对象的某个值，将这个值的类型作为新的Selector
-export const Extractors: ExtractorsMap = {
+type DynamicBattleAttributesMap = {
+  amplify: (value: number) => (target: number) => number
+}
+
+// BattleAttributes用于提取Selector得到的一组对象的某个值，将这个值的类型作为新的Selector
+export const BattleAttributes: BattleAttributesMap = {
   hp: (target: Pet) => target.currentHp,
   rage: (target: Player) => target.currentRage,
   owner: (target: Pet) => target.owner!,
@@ -168,7 +184,11 @@ export const Extractors: ExtractorsMap = {
   skills: (target: Pet) => target.skills,
 }
 
-export const Conditioner = {
+export const DynamicBattleAttributes: DynamicBattleAttributesMap = {
+  amplify: (value: number) => (target: number) => target * value,
+}
+
+export const BattleConditions = {
   // number
   up: (value: number) => (targets: number[]) => targets.some(target => target > value),
   down: (value: number) => (targets: number[]) => targets.some(target => target < value),
@@ -182,49 +202,100 @@ export const Conditioner = {
   hasMark: (markid: string) => (marks: Mark[]) => marks.some(v => v.id == markid),
 }
 
+type DynamicValue<T, U extends SelectorOpinion> = T | ((target: U, context: EffectContext) => T)
+
+function createDynamicOperator<T extends SelectorOpinion, U>(
+  handler: (value: U | undefined, target: T, ctx: EffectContext) => void,
+) {
+  return (source: ValueSource<U, T>) => {
+    return (ctx: EffectContext, targets: T[]) => {
+      targets.forEach(target => {
+        let finalValue: U | undefined
+
+        if (typeof source === 'function') {
+          try {
+            // 处理选择器函数
+            if (source.length === 1) {
+              // Context函数
+              finalValue = (source as (ctx: EffectContext) => U)(ctx)
+            } else if (source.length === 2) {
+              // Target+Context函数
+              finalValue = (source as (target: T, ctx: EffectContext) => U)(target, ctx)
+            } else {
+              // 选择器类型
+              const values = (source as TargetSelector<U>)(ctx)
+              finalValue = values.length > 0 ? values[0] : undefined
+            }
+          } catch {
+            finalValue = undefined
+          }
+        } else {
+          finalValue = source as U
+        }
+
+        if (finalValue !== undefined) {
+          handler(finalValue, target, ctx)
+        }
+      })
+    }
+  }
+}
+
+type NumberOperator<T extends SelectorOpinion> = (
+  source: ValueSource<number, T> | TargetSelector<number>,
+) => (ctx: EffectContext, targets: T[]) => void
+
 // 操作符系统
-export const Operator = {
-  // 宠物操作
-  dealDamage: (damage: number) => (ctx: EffectContext, targets: Pet[]) => {
-    targets.forEach(pet => pet.damage(new DamageContext(ctx, damage, true)))
-  },
-  heal: (amount: number) => (ctx: EffectContext, targets: Pet[]) => {
-    targets.forEach(pet => pet.heal(new HealContext(ctx, pet, amount)))
-  },
-  addMark: (mark: Mark) => (ctx: EffectContext, targets: Pet[]) => {
-    targets.forEach(pet => pet.addMark(new AddMarkContext(ctx, pet, mark)))
-  },
-  removeMark: (markId: string) => (ctx: EffectContext, targets: Pet[]) => {
-    targets.forEach(pet => (pet.marks = pet.marks.filter(m => m.id !== markId)))
-  },
+export const BattleActions = {
+  dealDamage: createDynamicOperator<Pet, number>((value, pet, ctx) => {
+    if (typeof value === 'number') {
+      pet.damage(new DamageContext(ctx, value, true))
+    }
+  }) as NumberOperator<Pet>,
 
-  // 玩家操作
-  addRage: (amount: number) => (ctx: EffectContext, targets: Player[]) => {
-    targets.forEach(player => player.addRage(new RageContext(ctx, player, 'effect', 'add', amount)))
-  },
-  reduceRage: (amount: number) => (ctx: EffectContext, targets: Player[]) => {
-    targets.forEach(player => player.addRage(new RageContext(ctx, player, 'effect', 'reduce', amount)))
-  },
+  heal: createDynamicOperator<Pet, number>((value, pet, ctx) => {
+    if (typeof value === 'number') {
+      pet.heal(new HealContext(ctx, pet, value))
+    }
+  }) as NumberOperator<Pet>,
 
-  // // 印记操作
-  // incrementMarkStack: (amount: number) => (ctx: EffectContext, targets: Mark[]) => {
-  //   targets.forEach(mark => mark.addStack(amount))
-  // },
-  // setMarkDuration: (duration: number) => (ctx: EffectContext, targets: Mark[]) => {
-  //   targets.forEach(mark => mark.setDuration(duration))
-  // },
-
-  // 属性直接操作（需要确保对象可修改）
-  modifyStat:
-    <K extends keyof StatOnBattle>(ctx: EffectContext, stat: K, value: number) =>
-    (targets: Pet[]) => {
-      targets.forEach(pet => (pet.stat[stat] += value))
+  addMark:
+    <T extends Pet>(markFactory: (target: T, ctx: EffectContext) => Mark) =>
+    (ctx: EffectContext, targets: T[]) => {
+      targets.forEach(pet => {
+        const mark = markFactory(pet, ctx)
+        pet.addMark(new AddMarkContext(ctx, pet, mark))
+      })
     },
 
-  // 技能上下文操作
-  amplifyPower: (ctx: EffectContext, multiplier: number) => (contexts: UseSkillContext[]) => {
-    contexts.forEach(ctx => (ctx.power *= multiplier))
-  },
+  // 玩家操作
+  addRage:
+    <T extends Player>(amount: DynamicValue<number, T>) =>
+    (ctx: EffectContext, targets: T[]) => {
+      targets.forEach(player => {
+        const finalAmount = typeof amount === 'function' ? amount(player, ctx) : amount
+        player.addRage(new RageContext(ctx, player, 'effect', 'add', finalAmount))
+      })
+    },
+
+  // 属性操作增强
+  modifyStat:
+    <T extends Pet, K extends keyof StatOnBattle>(stat: K, value: DynamicValue<number, T>) =>
+    (ctx: EffectContext, targets: T[]) => {
+      targets.forEach(pet => {
+        const finalValue = typeof value === 'function' ? value(pet, ctx) : value
+        pet.stat[stat] += finalValue
+      })
+    },
+
+  // 上下文相关操作
+  amplifyPower:
+    (multiplier: DynamicValue<number, UseSkillContext>) => (ctx: EffectContext, contexts: UseSkillContext[]) => {
+      contexts.forEach(skillCtx => {
+        const finalMultiplier = typeof multiplier === 'function' ? multiplier(skillCtx, ctx) : multiplier
+        skillCtx.power *= finalMultiplier
+      })
+    },
 }
 
 export function CreateCondition<T>(
@@ -233,17 +304,3 @@ export function CreateCondition<T>(
 ): (ctx: EffectContext) => boolean {
   return (ctx: EffectContext) => conditioner(selector(ctx))
 }
-
-export function CreactApply<T>(selector: TargetSelector<T>, operator: Operator<T>): (ctx: EffectContext) => void {
-  return (ctx: EffectContext) => operator(ctx, selector(ctx))
-}
-
-// const complexSelector = BaseSelectors.opponentActive
-//   .select(Extractors.owner) // 从Pet转换到Player
-//   .where(player => player?.currentRage > 50) // 过滤怒气值
-//   .select(Extractors.activePet) // 从Player转换到Pet
-//   .where(pet => pet?.currentHp < 30) // 过滤血量
-//   .where(() => Math.random() < 0.5) //随机
-//   .select(Extractors.skills) // 从Pet转换到Skill[]
-//   .where(() => true)
-//   .build()
