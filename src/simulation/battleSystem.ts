@@ -4,6 +4,7 @@ import { RAGE_PER_TURN, AttackTargetOpinion } from './const'
 import { Context, RageContext, SwitchPetContext, TurnContext, UseSkillContext } from './context'
 import { BattleMessage, BattleMessageType, BattleMessageData } from './message'
 import { Player } from './player'
+import prand from 'pure-rand'
 
 export enum BattlePhase {
   SwitchPhase = 'SWITCH_PHASE',
@@ -21,6 +22,7 @@ export class BattleSystem {
   public pendingDefeatedPlayer?: Player // 新增：需要在下回合换宠的玩家
   public allowKillerSwitch: boolean
   public lastKiller?: Player
+  private rng: prand.RandomGenerator = prand.xoroshiro128plus(Date.now() ^ (Math.random() * 0x100000000))
 
   constructor(
     public readonly playerA: Player,
@@ -35,6 +37,10 @@ export class BattleSystem {
   // 注册消息回调
   public onMessage(callback: (message: BattleMessage) => void) {
     this.messageCallbacks.push(callback)
+  }
+
+  public random() {
+    return prand.unsafeUniformIntDistribution(0, 1, this.rng)
   }
 
   // 发送消息给所有回调

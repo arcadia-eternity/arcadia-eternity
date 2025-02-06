@@ -1,5 +1,5 @@
 import { Player } from './player'
-import { StatOnBattle } from './const'
+import { Prototype, StatOnBattle } from './const'
 import { AddMarkContext, DamageContext, EffectContext, HealContext, RageContext, UseSkillContext } from './context'
 import { Mark } from './mark'
 import { Pet } from './pet'
@@ -34,7 +34,7 @@ export enum EffectTrigger {
 // 效果上下文
 
 // 基础效果接口
-export interface Effect {
+export interface Effect extends Prototype {
   id: string
   trigger: EffectTrigger
   condition?: (ctx: EffectContext) => boolean
@@ -81,7 +81,7 @@ export type ValueSource<T, U extends SelectorOpinion> =
 // 重构链式选择器类（支持类型转换）
 class ChainableSelector<T extends SelectorOpinion> {
   constructor(private selector: TargetSelector<T>) {}
-  extract<U extends SelectorOpinion>(extractor: ValueExtractor<T, U>): ChainableSelector<U> {
+  select<U extends SelectorOpinion>(extractor: ValueExtractor<T, U>): ChainableSelector<U> {
     return new ChainableSelector<U>(context => [
       ...new Set(
         this.selector(context).flatMap(target => {
@@ -299,10 +299,10 @@ export const DynamicConditions = {
       })
     },
 
-  hasStatus:
-    <T extends { id: string }>(statusId: string) =>
+  hasId:
+    <T extends Prototype>(id: string) =>
     (values: T[]): boolean => {
-      return values.some(v => v.id === statusId)
+      return values.some(v => v.id === id)
     },
 
   any:
@@ -365,23 +365,19 @@ function createDynamicOperator<T extends SelectorOpinion, U>(
   }
 }
 
-type NumberOperator<T extends SelectorOpinion> = (
-  source: ValueSource<number, T> | TargetSelector<number>,
-) => (ctx: EffectContext, targets: T[]) => void
-
 // 操作符系统
 export const BattleActions = {
   dealDamage: createDynamicOperator<Pet, number>((value, pet, ctx) => {
     if (typeof value === 'number') {
       pet.damage(new DamageContext(ctx, value, true))
     }
-  }) as NumberOperator<Pet>,
+  }),
 
   heal: createDynamicOperator<Pet, number>((value, pet, ctx) => {
     if (typeof value === 'number') {
       pet.heal(new HealContext(ctx, pet, value))
     }
-  }) as NumberOperator<Pet>,
+  }),
 
   addMark:
     <T extends Pet>(markFactory: (target: T, ctx: EffectContext) => Mark) =>
@@ -393,14 +389,11 @@ export const BattleActions = {
     },
 
   // 玩家操作
-  addRage:
-    <T extends Player>(amount: DynamicValue<number, T>) =>
-    (ctx: EffectContext, targets: T[]) => {
-      targets.forEach(player => {
-        const finalAmount = typeof amount === 'function' ? amount(player, ctx) : amount
-        player.addRage(new RageContext(ctx, player, 'effect', 'add', finalAmount))
-      })
-    },
+  addRage: createDynamicOperator<Player, number>((value, player, ctx) => {
+    if (typeof value === 'number') {
+      player.addRage(new RageContext(ctx, player, 'effect', 'add', value))
+    }
+  }),
 
   // 属性操作增强
   modifyStat:
@@ -420,13 +413,4 @@ export const BattleActions = {
         skillCtx.power *= finalMultiplier
       })
     },
-}
-
-const BurnEffect: Effect = {
-  id: 'burn',
-  trigger: EffectTrigger.TurnEnd,
-  condition: BattleTarget.self.extract(BattleAttributes.hp).condition(BattleConditions.down(200)),
-  apply: BattleTarget.self.apply(
-    BattleActions.dealDamage(BattleTarget.self.extract(BattleAttributes.hp).multiply(0.125).build()),
-  ),
 }

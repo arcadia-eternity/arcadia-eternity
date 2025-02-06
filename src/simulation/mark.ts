@@ -2,6 +2,7 @@ import { Effect, EffectContainer, EffectTrigger, EffectApplicator } from './effe
 import { EffectContext } from './context'
 import { Pet } from './pet'
 import { BattleSystem } from './battleSystem'
+import { Prototype } from './const'
 
 export type StackStrategy =
   | 'stack' // 叠加层数并刷新持续时间
@@ -10,7 +11,7 @@ export type StackStrategy =
   | 'max' // 取最大层数并刷新持续时间
   | 'replace' // 完全替换为新的印记
 
-export class Mark implements EffectContainer {
+export class Mark implements EffectContainer, Prototype {
   public stacks: number = 1
   public duration: number
   private owner?: Pet | BattleSystem

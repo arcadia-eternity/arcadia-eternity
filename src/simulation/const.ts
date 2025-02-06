@@ -41,3 +41,8 @@ export enum AttackTargetOpinion {
   self = 'self',
   opponent = 'opponent',
 }
+
+//Pet,Skill,Mark,Effect
+export interface Prototype {
+  id: string
+}

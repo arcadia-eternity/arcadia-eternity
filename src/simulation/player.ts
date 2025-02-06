@@ -222,7 +222,7 @@ export class Player {
     context.player.addRage(new RageContext(context, context.player, 'skill', 'reduce', context.skill.rageCost))
 
     // 命中判定
-    if (Math.random() > context.skill.accuracy) {
+    if (this.battle!.random() > context.skill.accuracy) {
       this.battle!.emitMessage(BattleMessageType.SkillMiss, {
         user: attacker.name,
         target: defender.name,
@@ -269,7 +269,7 @@ export class Player {
       const baseDamage = Math.floor((((2 * defender.level) / 5 + 2) * context.skill.power * (atk / def)) / 50 + 2)
 
       // 随机波动
-      const randomFactor = Math.random() * 0.15 + 0.85
+      const randomFactor = this.battle!.random() * 0.15 + 0.85
 
       // STAB加成
       const stabMultiplier = attacker.species.type === context.skill.type ? 1.5 : 1

@@ -2,7 +2,7 @@
 import { Effect, EffectContainer, EffectTrigger, EffectApplicator } from './effect'
 import { EffectContext } from './context'
 import { Type } from './type'
-import { AttackTargetOpinion } from './const'
+import { AttackTargetOpinion, Prototype } from './const'
 import { BattleSystem } from './battleSystem'
 import { UseSkillContext } from './context'
 
@@ -13,10 +13,11 @@ export enum SkillType {
   Climax = 'Climax',
 }
 
-export class Skill implements EffectContainer {
+export class Skill implements EffectContainer, Prototype {
   private effects: Effect[] = []
 
   constructor(
+    public readonly id: string,
     public readonly name: string,
     public readonly skillType: SkillType,
     public readonly type: Type,
@@ -46,6 +47,7 @@ export class Skill implements EffectContainer {
   }
 
   static Builder = class {
+    private id = 'Unnamed'
     private name = 'Unnamed Skill'
     private type = Type.Normal
     private power = 0
@@ -103,6 +105,7 @@ export class Skill implements EffectContainer {
 
     build() {
       return new Skill(
+        this.id,
         this.name,
         this.skillType,
         this.type,

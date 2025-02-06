@@ -1,6 +1,7 @@
 import { EffectTrigger, Skill } from './skill'
 import { Type } from './type'
 import {
+  Prototype,
   RAGE_PER_TURN,
   StatBuffOnBattle,
   StatOnBattle,
@@ -15,7 +16,8 @@ import { Player } from './player'
 import { Mark } from './mark'
 import { AddMarkContext, DamageContext, EffectContext, HealContext, RemoveMarkContext } from './context'
 
-export interface Species {
+export interface Species extends Prototype {
+  id: string
   name: string
   type: Type
   baseStats: { [key in StatType]: number }
