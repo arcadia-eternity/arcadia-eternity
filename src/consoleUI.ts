@@ -12,6 +12,8 @@ import { BattleUI } from './ui'
 import { BattleMessage, BattleMessageType } from './simulation/message'
 import { Pet } from './simulation/pet'
 import { TYPE_MAP } from './simulation/type'
+import { Mark } from './simulation/mark'
+import { SkillType } from './simulation/skill'
 
 export class ConsoleUI extends BattleUI {
   protected battle: BattleSystem
@@ -25,8 +27,13 @@ export class ConsoleUI extends BattleUI {
     battle.onMessage(this.handleMessage.bind(this)) //this的上下文应该为本身
   }
 
-  private getPetStatus = (pet: Pet) =>
-    `${TYPE_MAP[pet.type].emoji}${pet.name}(${pet.species.name}) [Lv.${pet.level} HP:${pet.currentHp}/${pet.maxHp} Rage:${pet.owner?.currentRage}/100]`
+  private getPetStatus = (pet: Pet) => {
+    const baseInfo = `${TYPE_MAP[pet.type].emoji}${pet.name}(${pet.species.name}) [Lv.${pet.level} HP:${pet.currentHp}/${pet.maxHp} Rage:${pet.owner?.currentRage}/100]`
+    const markInfo = pet.marks.length > 0 ? ' 印记:' + pet.marks.map(mark => this.getMarkStatus(mark)).join(' ') : ''
+    return baseInfo + markInfo
+  }
+
+  private getMarkStatus = (mark: Mark) => `{<${mark.name}> [剩余${mark.duration}回合] ${mark.stacks}层}`
 
   private handleMessage(message: BattleMessage) {
     switch (message.type) {
@@ -211,9 +218,19 @@ export class ConsoleUI extends BattleUI {
 
     // 1. 显示可用技能
     const validSkills = actions.filter((a): a is UseSkillSelection => a.type === 'use-skill')
-    validSkills.forEach((a, i) =>
-      console.log(`${i + 1}. 使用技能: ${a.skill.name} (威力:${a.skill.power}, 消耗:${a.skill.rageCost})`),
-    )
+    validSkills.forEach((a, i) => {
+      const skillTypeIcon = {
+        [SkillType.Physical]: '⚔️',
+        [SkillType.Special]: '🔮',
+        [SkillType.Status]: '⭐',
+        [SkillType.Climax]: '⚡',
+      }[a.skill.skillType]
+
+      const powerText = a.skill.skillType === SkillType.Status ? '' : `, 威力:${a.skill.power}`
+      console.log(
+        `${i + 1}. 使用技能: ${TYPE_MAP[a.skill.type].emoji}${a.skill.name} (${skillTypeIcon}${powerText}, 消耗:${a.skill.rageCost})`,
+      )
+    })
 
     // 2. 显示更换精灵选项
     const switchActions = actions.filter((a): a is SwitchPetSelection => a.type === 'switch-pet')

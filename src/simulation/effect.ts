@@ -33,9 +33,11 @@ export class EffectScheduler {
     while (this.globalEffectQueue.length > 0) {
       const { effect, context } = this.globalEffectQueue.shift()!
       try {
-        effect.apply(context)
+        effect.innerApply(context)
       } catch (error) {
         console.error(`[Effect Error] ${effect.id}:`, error)
+      } finally {
+        // TODO
       }
     }
   }
@@ -64,9 +66,14 @@ export enum EffectTrigger {
   OnStack = 'ON_STACK',
   OnHeal = 'ON_HEAL',
 
+  OnRageGain = 'ON_RAGE_GAIN',
+  OnRageLoss = 'ON_RAGE_LOSS',
+
   OnSwitchIn = 'ON_SWITCH_IN',
   OnSwitchOut = 'ON_SWITCH_OUT',
   OnDefeat = 'ON_DEFEAT',
+
+  // AfterEffect = 'AFTER_EFFECT',
 }
 
 export class Effect implements Prototype, OwnedEntity {
@@ -77,7 +84,21 @@ export class Effect implements Prototype, OwnedEntity {
     public readonly apply: (ctx: EffectContext) => void,
     public readonly priority: number,
     public readonly condition?: (ctx: EffectContext) => boolean,
+    public readonly consumesStacks?: number, // 新增可选消耗层数配置
   ) {}
+
+  public innerApply(ctx: EffectContext) {
+    // 先执行消耗逻辑
+    if (ctx.source instanceof Mark) {
+      if (!ctx.source.isActive) return
+      if (this.consumesStacks) {
+        ctx.source.consumeStacks(this.consumesStacks)
+      }
+    }
+
+    // 执行实际效果
+    this.apply(ctx)
+  }
 
   setOwner(owner: Mark | Skill): void {
     this.owner = owner

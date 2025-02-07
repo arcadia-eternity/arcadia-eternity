@@ -1,5 +1,5 @@
 import { Effect, EffectContainer, EffectScheduler, EffectTrigger } from './effect'
-import { AllContext, EffectContext } from './context'
+import { AddMarkContext, AllContext, EffectContext } from './context'
 import { Pet } from './pet'
 import { BattleSystem } from './battleSystem'
 import { OwnedEntity, Prototype } from './const'
@@ -45,17 +45,22 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
   update(): boolean {
     if (this.config.persistent) return false
     this.duration--
-    return this.duration <= 0
+    if (this.duration > 0) return false
+    this.destory()
+    return true
   }
 
-  tryStack(newMark: Mark): boolean {
+  tryStack(ctx: AddMarkContext): boolean {
     if (!this.isStackable) return false
 
     const maxStacks = this.config.maxStacks ?? Infinity
     const strategy = this.config.stackStrategy!
+    const newMark = ctx.mark
 
     let newStacks = this.stacks
     let newDuration = this.duration
+
+    ctx.battle.applyEffects(ctx, EffectTrigger.OnStack)
 
     switch (strategy) {
       case 'stack':
@@ -88,8 +93,20 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     const changed = newStacks !== this.stacks || newDuration !== this.duration
     this.stacks = newStacks
     this.duration = newDuration
+    this.isActive = true
 
     return changed
+  }
+
+  consumeStacks(amount: number): number {
+    const actual = Math.min(amount, this.stacks)
+    this.stacks -= actual
+
+    if (this.stacks <= 0) {
+      this.destory()
+    }
+
+    return actual
   }
 
   get isStackable() {
@@ -120,7 +137,6 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
 
   destory() {
     this.isActive = false
-    this.owner = null
   }
 }
 

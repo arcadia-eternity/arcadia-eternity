@@ -1,7 +1,15 @@
 import { Skill } from './skill'
 import { Pet } from './pet'
 import { RAGE_PER_TURN, AttackTargetOpinion } from './const'
-import { Context, RageContext, SwitchPetContext, TurnContext, UseSkillContext } from './context'
+import {
+  AddMarkContext,
+  Context,
+  RageContext,
+  RemoveMarkContext,
+  SwitchPetContext,
+  TurnContext,
+  UseSkillContext,
+} from './context'
 import { BattleMessage, BattleMessageType, BattleMessageData } from './message'
 import { Player } from './player'
 import prand from 'pure-rand'
@@ -61,6 +69,21 @@ export class BattleSystem extends Context {
     this.messageCallbacks.forEach(cb => cb(message))
   }
 
+  public addMark(ctx: AddMarkContext) {
+    const existingMark = this.marks.find(mark => mark.id === ctx.mark.id)
+    if (existingMark) {
+      existingMark.tryStack(ctx)
+    } else {
+      const newMark = ctx.mark.clone()
+      this.marks.push(newMark)
+      newMark.attachTo(this)
+    }
+  }
+
+  public removeMark(ctx: RemoveMarkContext) {
+    this.marks = this.marks.filter(mark => mark.id !== ctx.mark.id)
+  }
+
   public getOpponent(player: Player) {
     if (player === this.playerA) return this.playerB
     return this.playerA
@@ -69,6 +92,15 @@ export class BattleSystem extends Context {
   private addTurnRage(ctx: TurnContext) {
     ;[this.playerA, this.playerB].forEach(player => {
       player.addRage(new RageContext(ctx, player, 'turn', 'add', RAGE_PER_TURN))
+    })
+  }
+
+  //TODO: addContext
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private updateTurnMark(_: TurnContext) {
+    ;[this.playerA, this.playerB].forEach(player => {
+      player.activePet.marks.forEach(mark => mark.update())
+      player.activePet.marks = player.activePet.marks.filter(mark => mark.isActive)
     })
   }
 
@@ -153,12 +185,14 @@ export class BattleSystem extends Context {
 
     this.applyEffects(context, EffectTrigger.TurnEnd)
     this.addTurnRage(context) // 每回合结束获得怒气
+    this.updateTurnMark(context)
 
     // 战斗结束后重置状态
     if (this.isBattleEnded()) {
       this.status = BattleStatus.Ended
       return true
     }
+
     return false
   }
 
@@ -256,14 +290,32 @@ export class BattleSystem extends Context {
       this.pendingDefeatedPlayers = []
 
       // 阶段2：击败方换宠
-      while (this.allowKillerSwitch && this.lastKiller) {
+      if (this.allowKillerSwitch && this.lastKiller) {
         this.battle!.emitMessage(BattleMessageType.KillerSwitch, {
           player: this.lastKiller.name,
           available: this.battle!.allowKillerSwitch,
         })
-        yield
+        yield // 等待玩家选择换宠
+
+        if (this.lastKiller.selection?.type === 'switch-pet') {
+          const switchContext = new SwitchPetContext(
+            this,
+            this.lastKiller,
+            (this.lastKiller.selection as SwitchPetSelection).pet,
+          )
+
+          // 执行换宠并触发相关效果
+          this.lastKiller.performSwitchPet(switchContext)
+
+          // 立即检查新宠物状态
+          if (!this.lastKiller.activePet.isAlive) {
+            this.pendingDefeatedPlayers.push(this.lastKiller)
+            this.lastKiller = undefined
+            continue // 直接跳回阶段1处理
+          }
+        }
+        this.lastKiller = undefined
       }
-      this.lastKiller = undefined
 
       // 阶段3：收集玩家指令
       this.currentPhase = BattlePhase.SelectionPhase

@@ -35,17 +35,18 @@ export class TurnContext extends Context {
 export class UseSkillContext extends Context {
   readonly type = 'use-skill'
   public readonly battle: BattleSystem
-  public skillPriority: number
-  public power: number
-  public rageCost: number
-  actualTarget?: Pet
-  useSkillSuccess: boolean
-  damageModified: [number, number] // 百分比修正, 固定值修正
-  damageResult: number
-  minThreshold?: number // 最小伤害阈值数值
-  maxThreshold?: number // 最大伤害阈值数值
-  crit: boolean
-  sureHit: boolean
+  public skillPriority: number = 0
+  public power: number = 0
+  public rageCost: number = 0
+  actualTarget?: Pet = undefined
+  useSkillSuccess: boolean = true
+  damageModified: [number, number] = [0, 0] // 百分比修正, 固定值修正
+  damageResult: number = 0
+  minThreshold?: number = undefined // 最小伤害阈值数值
+  maxThreshold?: number = undefined // 最大伤害阈值数值
+  crit: boolean = false
+  sureHit: boolean = false
+
   constructor(
     public readonly parent: TurnContext,
     public origin: Player,
@@ -55,17 +56,6 @@ export class UseSkillContext extends Context {
   ) {
     super(parent)
     this.battle = parent.battle
-    this.actualTarget = undefined
-    this.useSkillSuccess = true
-    this.damageModified = [0, 0]
-    this.damageResult = 0
-    this.minThreshold = undefined
-    this.maxThreshold = undefined
-    this.crit = false
-    this.sureHit = false
-    this.skillPriority = 0
-    this.power = 0
-    this.rageCost = 0
   }
 }
 

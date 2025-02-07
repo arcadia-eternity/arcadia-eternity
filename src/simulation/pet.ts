@@ -16,7 +16,6 @@ import { Nature, NatureMap } from './nature'
 import { Player } from './player'
 import { Mark } from './mark'
 import { AddMarkContext, DamageContext, HealContext, RemoveMarkContext } from './context'
-import { EffectTrigger } from './effect'
 import { BattleMessageType } from './message'
 
 export interface Species extends Prototype {
@@ -97,7 +96,7 @@ export class Pet implements OwnedEntity {
   public addMark(ctx: AddMarkContext) {
     const existingMark = this.marks.find(mark => mark.id === ctx.mark.id)
     if (existingMark) {
-      ctx.battle.applyEffects(ctx, EffectTrigger.OnStack)
+      existingMark.tryStack(ctx)
     } else {
       const newMark = ctx.mark.clone()
       this.marks.push(newMark)

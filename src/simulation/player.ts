@@ -105,23 +105,25 @@ export class Player {
 
   public performSwitchPet(context: SwitchPetContext) {
     const player = context.origin
-    const newPet = context.target
 
     // 检查新宠物是否可用
-    if (!player.team.includes(newPet) || !newPet.isAlive) {
-      this.battle!.emitMessage(BattleMessageType.Error, { message: `${newPet.name} 无法出战！` })
+    if (!player.team.includes(context.target) || !context.target.isAlive) {
+      this.battle!.emitMessage(BattleMessageType.Error, { message: `${context.target.name} 无法出战！` })
       return
     }
 
     // 执行换宠
+    this.battle?.applyEffects(context, EffectTrigger.OnSwitchOut)
     const oldPet = player.activePet
-    player.activePet = newPet
+    player.activePet = context.target
     this.battle!.emitMessage(BattleMessageType.PetSwitch, {
       player: this.name,
       fromPet: oldPet.name,
-      toPet: newPet.name,
-      currentHp: newPet.currentHp,
+      toPet: context.target.name,
+      currentHp: context.target.currentHp,
     })
+
+    this.battle?.applyEffects(context, EffectTrigger.OnSwitchIn)
 
     // 换宠后怒气为原怒气的80%
     player.settingRage(Math.floor(player.currentRage * 0.8))
@@ -285,19 +287,16 @@ export class Player {
   public addRage(ctx: RageContext) {
     const before = this.currentRage
 
-    if (ctx.value > 0) {
-      //TODO: 触发和怒气增加相关的事件
-    } else if (ctx.value < 0) {
-      //TODO: 触发和怒气增加相关的事件
-    }
     switch (ctx.modifiedType) {
       case 'setting':
         this.settingRage(ctx.value)
         break
       case 'add':
+        this.battle?.applyEffects(ctx, EffectTrigger.OnRageGain)
         this.settingRage(this.currentRage + ctx.value)
         break
       case 'reduce':
+        this.battle?.applyEffects(ctx, EffectTrigger.OnRageLoss)
         this.settingRage(this.currentRage - ctx.value)
         break
     }

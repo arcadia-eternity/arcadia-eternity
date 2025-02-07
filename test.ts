@@ -18,9 +18,7 @@ const burn = new Mark(
     new Effect(
       'shaoshang',
       EffectTrigger.TurnEnd,
-      BattleTarget.self.apply(
-        BattleActions.dealDamage(BattleTarget.self.select(BattleAttributes.maxhp).divide(1).build()),
-      ),
+      BattleTarget.self.apply(BattleActions.dealDamage(BattleTarget.self.select(BattleAttributes.maxhp).divide(8))),
       0,
     ),
   ],
