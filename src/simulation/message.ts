@@ -168,10 +168,9 @@ export interface BattleMessageData {
     source: string
     target: string
     damage: number
-    basePower: number
     isCrit: boolean
     effectiveness: number
-    damageType: 'physical' | 'special' | 'fixed'
+    damageType: 'physical' | 'special' | 'effect'
   }
   [BattleMessageType.Heal]: {
     target: string

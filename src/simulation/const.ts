@@ -1,3 +1,9 @@
+import { BattleSystem } from './battleSystem'
+import { Mark } from './mark'
+import { Pet } from './pet'
+import { Player } from './player'
+import { Skill } from './skill'
+
 // 新增怒气相关配置
 export const MAX_RAGE = 100
 export const RAGE_PER_TURN = 15
@@ -27,6 +33,12 @@ export enum StatTypeOnlyBattle {
   ragePerTurn = 'ragePerTurn',
 }
 
+export enum DamageType {
+  physical = 'physical',
+  special = 'special',
+  effect = 'effect',
+}
+
 export type StatOutBattle = Record<StatType, number>
 
 export type StatTypeOnBattle = StatTypeWithoutHp | StatTypeOnlyBattle
@@ -45,4 +57,10 @@ export enum AttackTargetOpinion {
 //Pet,Skill,Mark,Effect
 export interface Prototype {
   id: string
+}
+
+export interface OwnedEntity {
+  owner: BattleSystem | Player | Pet | Mark | Skill | null
+
+  setOwner(owner: BattleSystem | Player | Pet | Mark | Skill): void
 }

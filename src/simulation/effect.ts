@@ -1,86 +1,130 @@
 import { Player } from './player'
-import { Prototype, StatOnBattle } from './const'
-import { AddMarkContext, DamageContext, EffectContext, HealContext, RageContext, UseSkillContext } from './context'
+import { OwnedEntity, Prototype, StatOnBattle } from './const'
+import {
+  AddMarkContext,
+  Context,
+  DamageContext,
+  EffectContext,
+  HealContext,
+  RageContext,
+  UseSkillContext,
+} from './context'
 import { Mark } from './mark'
 import { Pet } from './pet'
 import { Skill } from './skill'
 import { Type } from './type'
+import { BattleSystem } from './battleSystem'
+
+export class EffectScheduler {
+  private static instance: EffectScheduler
+  private constructor() {}
+
+  public static getInstance(): EffectScheduler {
+    if (!EffectScheduler.instance) {
+      EffectScheduler.instance = new EffectScheduler()
+    }
+    return EffectScheduler.instance
+  }
+
+  // 全局效果队列（按优先级排序）
+  private globalEffectQueue: Array<{
+    effect: Effect
+    context: EffectContext
+  }> = []
+
+  // 添加效果到队列
+  public addEffect(effect: Effect, context: EffectContext) {
+    this.globalEffectQueue.push({ effect, context })
+
+    // 按优先级降序排序（数值越大优先级越高）
+    this.globalEffectQueue.sort((a, b) => b.effect.priority - a.effect.priority)
+  }
+
+  // 执行所有已排序效果
+  public flushEffects() {
+    while (this.globalEffectQueue.length > 0) {
+      const { effect, context } = this.globalEffectQueue.shift()!
+      try {
+        effect.apply(context)
+      } catch (error) {
+        console.error(`[Effect Error] ${effect.id}:`, error)
+      }
+    }
+  }
+}
 
 // 统一效果触发阶段
 export enum EffectTrigger {
   OnBattleStart = 'ON_BATTLE_START',
+
+  //以下EffectTrigger下的，context的parent一定是UseSkillContext
   PreDamage = 'PRE_DAMAGE',
   PostDamage = 'POST_DAMAGE',
+  OnDamage = 'ON_DAMAGE',
   OnHit = 'ON_HIT',
   OnMiss = 'ON_MISS',
+  BeforeAttack = 'BEFORE_ATTACK',
+  AfterAttacked = 'AFTER_ATTACKED',
   OnCritPreDamage = 'ON_CRIT_PRE_DAMAGE',
   OnCritPostDamage = 'ON_CRIT_POST_DAMAGE',
 
   // 印记相关
   TurnStart = 'TURN_START',
   TurnEnd = 'TURN_END',
-  BeforeAttack = 'BEFORE_ATTACK',
-  AfterAttacked = 'AFTER_ATTACKED',
 
+  //以下一定是EffectContext
   OnStack = 'ON_STACK',
-
-  // 通用
   OnHeal = 'ON_HEAL',
+
   OnSwitchIn = 'ON_SWITCH_IN',
   OnSwitchOut = 'ON_SWITCH_OUT',
   OnDefeat = 'ON_DEFEAT',
 }
 
-// 效果上下文
+export class Effect implements Prototype, OwnedEntity {
+  public owner: Skill | Mark | null = null
+  constructor(
+    public readonly id: string,
+    public readonly trigger: EffectTrigger,
+    public readonly apply: (ctx: EffectContext) => void,
+    public readonly priority: number,
+    public readonly condition?: (ctx: EffectContext) => boolean,
+  ) {}
 
-// 基础效果接口
-export interface Effect extends Prototype {
-  id: string
-  trigger: EffectTrigger
-  condition?: (ctx: EffectContext) => boolean
-  apply: (ctx: EffectContext) => void
-  meta?: {
-    stackable?: boolean
-    maxStacks?: number
-    duration?: number
-    persistent?: boolean
+  setOwner(owner: Mark | Skill): void {
+    this.owner = owner
+  }
+
+  clone(): Effect {
+    return new Effect(this.id, this.trigger, this.apply, this.priority, this.condition)
   }
 }
 
 // 效果容器接口
 export interface EffectContainer {
-  getEffects(trigger: EffectTrigger): Effect[]
+  collectEffects(trigger: EffectTrigger, baseContext: Context): void
 }
 
-// 效果应用器
-export class EffectApplicator {
-  static apply(container: EffectContainer, trigger: EffectTrigger, context: EffectContext) {
-    const effects = container.getEffects(trigger)
-    effects.forEach(effect => {
-      try {
-        if (!effect.condition || effect.condition(context)) {
-          effect.apply(context)
-        }
-      } catch (error) {
-        console.error(`Effect ${effect.id} failed:`, error)
-      }
-    })
-  }
-}
 // 条件系统分为三个层级
 // 修改选择器类型定义
 export type TargetSelector<T> = (context: EffectContext) => T[]
 export type ValueExtractor<T, U> = (target: T) => U | U[]
 export type ConditionOperator<U> = (ctx: EffectContext, values: U[]) => boolean // 判断逻辑
 export type Operator<U> = (ctx: EffectContext, values: U[]) => void
-export type ValueSource<T, U extends SelectorOpinion> =
+export type ValueSource<T extends SelectorOpinion, U extends SelectorOpinion> =
   | DynamicValue<T, U> // 直接值或目标相关值
   | TargetSelector<T> // 选择器系统产生的值
+  | ChainableSelector<T> // 链式选择器
   | ((ctx: EffectContext) => T) // 上下文相关值
 
 // 重构链式选择器类（支持类型转换）
 class ChainableSelector<T extends SelectorOpinion> {
   constructor(private selector: TargetSelector<T>) {}
+
+  [Symbol.toPrimitive](context: EffectContext): T[] {
+    return this.selector(context)
+  }
+
   select<U extends SelectorOpinion>(extractor: ValueExtractor<T, U>): ChainableSelector<U> {
     return new ChainableSelector<U>(context => [
       ...new Set(
@@ -205,16 +249,33 @@ export const BattleTarget: {
   petOwners: ChainableSelector<Player>
   usingSkillContext: ChainableSelector<UseSkillContext>
 } = {
-  self: createChainable<Pet>((context: EffectContext) => [context.owner]),
-  foe: createChainable<Pet>((context: EffectContext) => [(context.parent as UseSkillContext).actualTarget!]),
-  petOwners: createChainable<Player>((context: EffectContext) => [context.owner.owner!]),
-  usingSkillContext: createChainable<UseSkillContext>((context: EffectContext) => [context.parent as UseSkillContext]),
+  self: createChainable<Pet>((context: EffectContext) => {
+    if (context.source.owner instanceof Pet) return [context.source.owner]
+    //TODO: error with use owners with global marks
+    return []
+  }),
+  foe: createChainable<Pet>((context: EffectContext) => {
+    if (context.parent instanceof UseSkillContext) return [context.parent.actualTarget!]
+    if (context.source.owner instanceof Pet) return [context.battle.getOpponent(context.source.owner.owner!).activePet]
+    //TODO: error with use owners with global marks
+    return []
+  }),
+  petOwners: createChainable<Player>((context: EffectContext) => {
+    if (context.source.owner instanceof Pet) return [context.source.owner.owner!]
+    //TODO: error with use owners with global marks
+    return []
+  }),
+  usingSkillContext: createChainable<UseSkillContext>((context: EffectContext) => {
+    if (context.parent instanceof UseSkillContext) return [context.parent]
+    //TODO: error with use get context with non-Useskill context
+    return []
+  }),
 }
 
 type BattleAttributesMap = {
   hp: (target: Pet) => number
   rage: (target: Player) => number
-  owner: (target: Pet) => Player
+  owner: (target: OwnedEntity) => BattleSystem | Player | Pet | Mark | Skill | null
   type: (target: Pet) => Type
   marks: (target: Pet) => Mark[]
   stats: (target: Pet) => StatOnBattle
@@ -230,7 +291,7 @@ type BattleAttributesMap = {
 export const BattleAttributes: BattleAttributesMap = {
   hp: (target: Pet) => target.currentHp,
   rage: (target: Player) => target.currentRage,
-  owner: (target: Pet) => target.owner!,
+  owner: (target: OwnedEntity) => target.owner!,
   type: (target: Pet) => target.type,
   marks: (target: Pet) => target.marks,
   stats: (target: Pet) => target.stat,
@@ -328,7 +389,7 @@ export const DynamicConditions = {
 
 type DynamicValue<T, U extends SelectorOpinion> = T | ((target: U, context: EffectContext) => T)
 
-function createDynamicOperator<T extends SelectorOpinion, U>(
+function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpinion>(
   handler: (value: U | undefined, target: T, ctx: EffectContext) => void,
 ) {
   return (source: ValueSource<U, T>) => {
@@ -369,22 +430,25 @@ function createDynamicOperator<T extends SelectorOpinion, U>(
 export const BattleActions = {
   dealDamage: createDynamicOperator<Pet, number>((value, pet, ctx) => {
     if (typeof value === 'number') {
-      pet.damage(new DamageContext(ctx, value, true))
+      let source
+      if (ctx.parent instanceof UseSkillContext) source = ctx.parent.pet
+      else source = ctx.source
+      pet.damage(new DamageContext(ctx, source, value))
     }
   }),
 
   heal: createDynamicOperator<Pet, number>((value, pet, ctx) => {
     if (typeof value === 'number') {
-      pet.heal(new HealContext(ctx, pet, value))
+      pet.heal(new HealContext(ctx, ctx.source, value))
     }
   }),
 
   addMark:
-    <T extends Pet>(markFactory: (target: T, ctx: EffectContext) => Mark) =>
+    <T extends Pet>(mark: Mark) =>
     (ctx: EffectContext, targets: T[]) => {
       targets.forEach(pet => {
-        const mark = markFactory(pet, ctx)
-        pet.addMark(new AddMarkContext(ctx, pet, mark))
+        const newMark = mark.clone()
+        pet.addMark(new AddMarkContext(ctx, pet, newMark))
       })
     },
 

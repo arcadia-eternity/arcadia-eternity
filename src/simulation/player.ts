@@ -5,7 +5,7 @@ import {
   SwitchPetSelection,
   UseSkillSelection,
 } from './battleSystem'
-import { AttackTargetOpinion, RAGE_PER_DAMAGE } from './const'
+import { AttackTargetOpinion, DamageType, RAGE_PER_DAMAGE } from './const'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { EffectTrigger } from './effect'
 import { BattleMessageType } from './message'
@@ -104,7 +104,7 @@ export class Player {
   }
 
   public performSwitchPet(context: SwitchPetContext) {
-    const player = context.player
+    const player = context.origin
     const newPet = context.target
 
     // 检查新宠物是否可用
@@ -148,7 +148,7 @@ export class Player {
     } while (!this.selection)
 
     // 执行换宠
-    this.performSwitchPet(new SwitchPetContext(this, this, (this.selection as SwitchPetSelection).pet))
+    this.performSwitchPet(new SwitchPetContext(this.battle!, this, (this.selection as SwitchPetSelection).pet))
 
     // 清空选择以准备正常回合
     this.selection = null
@@ -180,7 +180,7 @@ export class Player {
     } while (true)
 
     if (selection.type === 'switch-pet') {
-      this.performSwitchPet(new SwitchPetContext(this, this, selection.pet))
+      this.performSwitchPet(new SwitchPetContext(this.battle!, this, selection.pet))
     }
   }
 
@@ -189,7 +189,7 @@ export class Player {
     const attacker = context.pet
     const defender =
       context.skill.target === AttackTargetOpinion.opponent
-        ? this.battle!.getOpponent(context.player).activePet
+        ? this.battle!.getOpponent(context.origin).activePet
         : attacker // 动态获取当前目标
     context.actualTarget = defender
     if (!context.skill) {
@@ -209,17 +209,17 @@ export class Player {
       return false
     }
 
-    context.skill.applyEffects(this.battle!, EffectTrigger.BeforeAttack, context)
+    this.battle!.applyEffects(context, EffectTrigger.BeforeAttack)
 
     // 怒气检查
-    if (context.player.currentRage < context.rageCost) {
+    if (context.origin.currentRage < context.rageCost) {
       this.battle!.emitMessage(BattleMessageType.Error, {
         message: `${attacker.name} 怒气不足无法使用 ${context.skill.name}!`,
       })
       return false
     }
 
-    context.player.addRage(new RageContext(context, context.player, 'skill', 'reduce', context.skill.rageCost))
+    context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.skill.rageCost))
 
     // 命中判定
     if (this.battle!.random() > context.skill.accuracy) {
@@ -229,41 +229,40 @@ export class Player {
         skill: context.skill.name,
         reason: 'accuracy',
       })
-      context.skill.applyEffects(this.battle!, EffectTrigger.OnMiss, context) // 触发未命中特效
+      this.battle!.applyEffects(context, EffectTrigger.OnMiss)
       return false
-    }
-
-    // 暴击判定
-    context.crit = Math.random() < attacker.stat.critRate
-    if (context.crit) {
-      this.battle!.emitMessage(BattleMessageType.Crit, { attacker: attacker.name, target: defender.name })
-      context.skill.applyEffects(this.battle!, EffectTrigger.OnCritPreDamage, context) // 触发暴击前特效
     }
 
     // 伤害计算
     if (context.skill.skillType !== SkillType.Status) {
-      // 攻击命中
-      //TODO: 影响伤害的印记
-      context.skill.applyEffects(this.battle!, EffectTrigger.PreDamage, context) // 触发伤害前特效
+      // 暴击判定
+      context.crit = context.crit || Math.random() < attacker.stat.critRate
+      if (context.crit) this.battle!.applyEffects(context, EffectTrigger.OnCritPreDamage)
+      this.battle!.applyEffects(context, EffectTrigger.PreDamage)
       const typeMultiplier = TYPE_CHART[context.skill.type][defender.type] || 1
       let atk = 0
       let def = 0
+      let damageType: DamageType
       switch (context.skill.skillType) {
         case SkillType.Physical:
           atk = attacker.stat.atk
           def = defender.stat.def
+          damageType = DamageType.physical
           break
         case SkillType.Special:
           atk = attacker.stat.spa
           def = defender.stat.spd
+          damageType = DamageType.special
           break
         case SkillType.Climax:
           if (attacker.stat.atk > attacker.stat.spa) {
             atk = attacker.stat.atk
             def = defender.stat.def
+            damageType = DamageType.physical
           } else {
             atk = attacker.stat.spa
             def = defender.stat.spd
+            damageType = DamageType.special
           }
       }
       const baseDamage = Math.floor((((2 * defender.level) / 5 + 2) * context.skill.power * (atk / def)) / 50 + 2)
@@ -303,48 +302,36 @@ export class Player {
       context.damageResult = Math.max(0, intermediateDamage)
 
       // 应用伤害
-      defender.damage(new DamageContext(context, context.damageResult))
+      defender.damage(
+        new DamageContext(context, attacker, context.damageResult, damageType, context.crit, typeMultiplier),
+      )
 
-      this.battle!.emitMessage(BattleMessageType.Damage, {
-        currentHp: defender.currentHp,
-        maxHp: defender.maxHp!,
-        source: attacker.name,
-        target: defender.name,
-        damage: context.damageResult,
-        basePower: context.skill.power,
-        isCrit: context.crit,
-        effectiveness: typeMultiplier,
-        damageType:
-          context.skill.skillType === SkillType.Physical
-            ? 'physical'
-            : context.skill.skillType === SkillType.Special
-              ? 'special'
-              : 'fixed',
-      })
+      if (context.crit)
+        this.battle!.emitMessage(BattleMessageType.Crit, { attacker: attacker.name, target: defender.name })
 
       // 受伤者获得怒气
       const gainedRage = Math.floor(context.damageResult * RAGE_PER_DAMAGE)
       defender.owner!.addRage(new RageContext(context, defender.owner!, 'damage', 'add', gainedRage))
 
-      context.skill.applyEffects(this.battle!, EffectTrigger.PostDamage, context) // 触发伤害后特效
+      this.battle!.applyEffects(context, EffectTrigger.PostDamage) // 触发伤害后特效
 
-      context.player.addRage(new RageContext(context, context.player, 'skillHit', 'add', 15)) //命中奖励
+      context.origin.addRage(new RageContext(context, context.origin, 'skillHit', 'add', 15)) //命中奖励
     }
 
-    context.skill.applyEffects(this.battle!, EffectTrigger.OnCritPostDamage, context) // 触发命中特效
+    this.battle!.applyEffects(context, EffectTrigger.OnCritPostDamage) // 触发命中特效
     if (context.crit) {
-      context.skill.applyEffects(this.battle!, EffectTrigger.OnCritPostDamage, context) // 触发暴击后特效
+      this.battle!.applyEffects(context, EffectTrigger.OnCritPostDamage) // 触发暴击后特效
     }
 
     if (defender.currentHp <= 0) {
       this.battle!.emitMessage(BattleMessageType.PetDefeated, { pet: defender.name, killer: context.pet.name })
       defender.isAlive = false
-      context.skill.applyEffects(this.battle!, EffectTrigger.OnDefeat, context) // 触发击败特效
+      this.battle!.applyEffects(context, EffectTrigger.OnDefeat) // 触发击败特效
 
       const defeatedPlayer = defender.owner
       if (defeatedPlayer) {
         this.battle!.pendingDefeatedPlayer = defeatedPlayer
-        this.battle!.lastKiller = context.player
+        this.battle!.lastKiller = context.origin
       }
       return true
     }
@@ -360,7 +347,7 @@ export class Player {
     const before = this.currentRage
 
     if (ctx.value > 0) {
-      //TODO: 触发和怒气增加相关的时间
+      //TODO: 触发和怒气增加相关的事件
     } else if (ctx.value < 0) {
       //TODO: 触发和怒气增加相关的事件
     }

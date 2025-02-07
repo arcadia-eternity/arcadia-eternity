@@ -1,18 +1,40 @@
 import { Type } from './src/simulation/type'
 import { Skill, SkillType } from './src/simulation/skill'
 import { Pet } from './src/simulation/pet'
-import { BattleSystem, Player } from './src/simulation/battleSystem'
+import { BattleSystem } from './src/simulation/battleSystem'
+import { Player } from './src/simulation/player'
 import { Species } from './src/simulation/pet'
 import { Nature } from './src/simulation/nature'
 import { ConsoleUI } from './src/consoleUI'
-// 使用示例
+import { Mark } from './src/simulation/mark'
+import { BattleActions, BattleAttributes, BattleTarget, Effect, EffectTrigger } from './src/simulation/effect'
+import { AttackTargetOpinion } from './src/simulation/const'
+const burn = new Mark(
+  'burn',
+  '烧伤',
+  [
+    new Effect(
+      'shaoshang',
+      EffectTrigger.TurnEnd,
+      BattleTarget.self.apply(
+        BattleActions.dealDamage(BattleTarget.self.select(BattleAttributes.hp).divide(0.125).build()),
+      ),
+      0,
+    ),
+  ],
+  {
+    duration: 3,
+    persistent: false,
+  },
+)
 
 // 妙蛙草系列
 const venusaurSpecies: Species = {
+  id: 'miaowahua',
   name: '妙蛙草',
   type: Type.Grass,
   baseStats: {
-    hp: 80,
+    hp: 160,
     atk: 82,
     def: 83,
     spa: 100,
@@ -44,13 +66,14 @@ const venusaur: Pet = new Pet(
   },
   Nature.Modest,
   [
-    new Skill('强力鞭打', SkillType.Physical, Type.Grass, 120, 0.85, 10, 1),
-    new Skill('寄生种子', SkillType.Status, Type.Grass, 0, 1, 20, 1),
+    new Skill('qianglibianda', '强力鞭打', SkillType.Physical, Type.Grass, 120, 0.85, 10, 1),
+    new Skill('jishengzhongzi', '寄生种子', SkillType.Status, Type.Grass, 0, 1, 20, 1),
   ],
 )
 
 // 皮卡丘系列
 const pikachuSpecies: Species = {
+  id: 'pikaqiu',
   name: '皮卡丘',
   type: Type.Electric,
   baseStats: {
@@ -86,13 +109,14 @@ const thunderPikachu: Pet = new Pet(
   },
   Nature.Timid,
   [
-    new Skill('十万伏特', SkillType.Special, Type.Electric, 90, 1, 15, 1),
-    new Skill('电光一闪', SkillType.Physical, Type.Normal, 40, 1, 30, 1),
+    new Skill('shiwanfute', '十万伏特', SkillType.Special, Type.Electric, 90, 1, 15, 1),
+    new Skill('dianguangyishan', '电光一闪', SkillType.Physical, Type.Normal, 40, 1, 30, 1),
   ],
 )
 
 // 耿鬼系列
 const gengarSpecies: Species = {
+  id: 'genggui',
   name: '耿鬼',
   type: Type.Shadow,
   baseStats: {
@@ -128,13 +152,14 @@ const shadowGengar: Pet = new Pet(
   },
   Nature.Timid,
   [
-    new Skill('暗影球', SkillType.Special, Type.Shadow, 80, 1, 15, 1),
-    new Skill('污泥炸弹', SkillType.Special, Type.Grass, 90, 1, 10, 1),
+    new Skill('anyingqiu', '暗影球', SkillType.Special, Type.Shadow, 80, 1, 15, 0),
+    new Skill('wunizhadan', '污泥炸弹', SkillType.Special, Type.Grass, 90, 1, 10, 0),
   ],
 )
 
 // 快龙系列
 const dragoniteSpecies: Species = {
+  id: 'kuailong',
   name: '快龙',
   type: Type.Dragon,
   baseStats: {
@@ -170,14 +195,28 @@ const stormDragon: Pet = new Pet(
   },
   Nature.Adamant,
   [
-    new Skill('龙爪', SkillType.Physical, Type.Dragon, 80, 1, 15, 1),
-    new Skill('神速', SkillType.Physical, Type.Normal, 80, 1, 5, 1),
+    new Skill(
+      'penshehuoyan',
+      '喷射火焰',
+      SkillType.Physical,
+      Type.Fire,
+      80,
+      1,
+      15,
+      0,
+      AttackTargetOpinion.opponent,
+      false,
+      [new Effect('addBurn', EffectTrigger.PostDamage, BattleTarget.foe.apply(BattleActions.addMark(burn)), 1)],
+    ),
+    new Skill('shensu', '神速', SkillType.Physical, Type.Normal, 80, 1, 5, 2),
   ],
 )
 
 const player2 = new Player('小茂', stormDragon, [stormDragon, shadowGengar])
 const player1 = new Player('小智', venusaur, [venusaur, thunderPikachu])
 
-const battle = new BattleSystem(player1, player2)
+const battle = new BattleSystem(player1, player2, {
+  allowKillerSwitch: true,
+})
 const consoleui = new ConsoleUI(battle, player1, player2)
 consoleui.run()

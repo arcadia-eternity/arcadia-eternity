@@ -31,6 +31,10 @@
   },
   "dependencies": {
     "@types/ws": "^8.5.14",
-    "tslib": "^2.8.1"
+    "@types/yup": "^0.32.0",
+    "js-yaml": "^4.1.0",
+    "pure-rand": "^6.1.0",
+    "tslib": "^2.8.1",
+    "yup": "^1.6.1"
   }
 }

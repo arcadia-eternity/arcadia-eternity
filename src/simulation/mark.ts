@@ -1,8 +1,8 @@
-import { Effect, EffectContainer, EffectTrigger, EffectApplicator } from './effect'
-import { EffectContext } from './context'
+import { Effect, EffectContainer, EffectScheduler, EffectTrigger } from './effect'
+import { AllContext, EffectContext } from './context'
 import { Pet } from './pet'
 import { BattleSystem } from './battleSystem'
-import { Prototype } from './const'
+import { OwnedEntity, Prototype } from './const'
 
 export type StackStrategy =
   | 'stack' // 叠加层数并刷新持续时间
@@ -11,13 +11,15 @@ export type StackStrategy =
   | 'max' // 取最大层数并刷新持续时间
   | 'replace' // 完全替换为新的印记
 
-export class Mark implements EffectContainer, Prototype {
+export class Mark implements EffectContainer, Prototype, OwnedEntity {
   public stacks: number = 1
   public duration: number
-  private owner?: Pet | BattleSystem
+  public owner: Pet | BattleSystem | null = null
+  public isActive: boolean = true
 
   constructor(
     public readonly id: string,
+    public readonly name: string,
     private readonly effects: Effect[],
     private config: {
       duration?: number
@@ -26,14 +28,14 @@ export class Mark implements EffectContainer, Prototype {
       stackable?: boolean
       stackStrategy?: StackStrategy
     } = {},
-    private readonly tags: string[],
+    private readonly tags: string[] = [],
   ) {
     this.duration = config.duration ?? 3
     this.config.stackStrategy = config.stackStrategy ?? 'stack'
   }
 
-  getEffects(trigger: EffectTrigger): Effect[] {
-    return this.effects.filter(e => e.trigger === trigger)
+  setOwner(owner: BattleSystem | Pet): void {
+    this.owner = owner
   }
 
   attachTo(target: Pet | BattleSystem) {
@@ -92,20 +94,33 @@ export class Mark implements EffectContainer, Prototype {
 
   get isStackable() {
     if (this.config.stackable !== undefined) return this.config.stackable
-    return this.effects.some(e => e.meta?.stackable)
+    return false
   }
 
-  trigger(trigger: EffectTrigger, context: EffectContext) {
-    const markContext: EffectContext = new EffectContext(context.battle, context, context.owner)
-    EffectApplicator.apply(this, trigger, markContext)
+  collectEffects(trigger: EffectTrigger, baseContext: AllContext) {
+    if (!this.isActive) return
+
+    this.effects
+      .filter(effect => effect.trigger === trigger)
+      .forEach(effect => {
+        const effectContext = new EffectContext(baseContext, this)
+        if (!effect.condition || effect.condition(effectContext)) {
+          EffectScheduler.getInstance().addEffect(effect, effectContext)
+        }
+      })
   }
 
   clone(): Mark {
-    const mark = new Mark(this.id, this.effects, this.config, this.tags)
+    const mark = new Mark(this.id, this.name, this.effects, this.config, this.tags)
     mark.stacks = this.stacks
     mark.duration = this.duration
     mark.owner = this.owner
     return mark
+  }
+
+  destory() {
+    this.isActive = false
+    this.owner = null
   }
 }
 
@@ -118,6 +133,7 @@ export class MarkRegistry {
 
   static create(
     id: string,
+    name: string,
     config?: {
       duration?: number
       persistent?: boolean
@@ -127,6 +143,6 @@ export class MarkRegistry {
   ): Mark {
     const effects = this.marks.get(id)
     if (!effects) throw new Error(`Unknown mark: ${id}`)
-    return new Mark(id, effects, config, tags)
+    return new Mark(id, name, effects, config, tags)
   }
 }

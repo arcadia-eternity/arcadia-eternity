@@ -5,6 +5,8 @@ import { Context, RageContext, SwitchPetContext, TurnContext, UseSkillContext } 
 import { BattleMessage, BattleMessageType, BattleMessageData } from './message'
 import { Player } from './player'
 import prand from 'pure-rand'
+import { Mark } from './mark'
+import { EffectContainer, EffectScheduler, EffectTrigger } from './effect'
 
 export enum BattlePhase {
   SwitchPhase = 'SWITCH_PHASE',
@@ -14,7 +16,10 @@ export enum BattlePhase {
 }
 
 // 对战系统
-export class BattleSystem {
+export class BattleSystem extends Context {
+  public readonly parent: null = null
+  public readonly battle: BattleSystem = this
+
   public status: BattleStatus = BattleStatus.Unstarted
   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
   public currentTurn = 1
@@ -22,14 +27,17 @@ export class BattleSystem {
   public pendingDefeatedPlayer?: Player // 新增：需要在下回合换宠的玩家
   public allowKillerSwitch: boolean
   public lastKiller?: Player
+  public marks: Mark[] = [] //用于存放天气一类的效果
   private rng: prand.RandomGenerator = prand.xoroshiro128plus(Date.now() ^ (Math.random() * 0x100000000))
 
   constructor(
     public readonly playerA: Player,
     public readonly playerB: Player,
-    options?: { allowKillerSwitch?: boolean },
+    options?: { allowKillerSwitch?: boolean; rngSeed?: number },
   ) {
+    super(null)
     this.allowKillerSwitch = options?.allowKillerSwitch ?? true
+    if (options?.rngSeed) this.rng = prand.xoroshiro128plus(options.rngSeed)
     this.playerA.registerBattle(this)
     this.playerB.registerBattle(this)
   }
@@ -64,6 +72,24 @@ export class BattleSystem {
     })
   }
 
+  public applyEffects(ctx: Context, trigger: EffectTrigger) {
+    const effectContainers: EffectContainer[] = [
+      ...this.marks,
+      ...this.playerA.activePet.marks,
+      ...this.playerB.activePet.marks,
+    ]
+
+    if (ctx instanceof UseSkillContext) {
+      effectContainers.push(ctx.skill)
+    }
+
+    // 阶段1：收集所有待触发效果
+    effectContainers.forEach(container => container.collectEffects(trigger, ctx))
+
+    // 阶段2：按全局优先级执行
+    EffectScheduler.getInstance().flushEffects()
+  }
+
   // 执行对战回合
   private performTurn(context: TurnContext): boolean {
     if (!this.playerA.selection || !this.playerB.selection) throw '有人还未选择好！'
@@ -76,8 +102,8 @@ export class BattleSystem {
           const _selection = selection as UseSkillSelection
           const skillContext = new UseSkillContext(
             context,
-            _selection.source.activePet,
             _selection.source,
+            _selection.source.activePet,
             _selection.skill.target,
             _selection.skill,
           )
@@ -101,9 +127,12 @@ export class BattleSystem {
     contexts.sort(this.contextSort)
 
     this.currentTurn++
+
     this.emitMessage(BattleMessageType.RoundStart, {
       round: this.currentTurn,
     })
+
+    this.applyEffects(context, EffectTrigger.TurnEnd)
 
     contextpop: while (contexts.length > 0) {
       const context = contexts.pop()
@@ -111,17 +140,18 @@ export class BattleSystem {
       switch (context.type) {
         case 'use-skill': {
           const _context = context as UseSkillContext
-          if (_context.player.performAttack(_context)) break contextpop
+          if (_context.origin.performAttack(_context)) break contextpop
           break
         }
         case 'switch-pet': {
           const _context = context as SwitchPetContext
-          _context.player.performSwitchPet(_context)
+          _context.origin.performSwitchPet(_context)
           break
         }
       }
     }
 
+    this.applyEffects(context, EffectTrigger.TurnEnd)
     this.addTurnRage(context) // 每回合结束获得怒气
 
     // 战斗结束后重置状态

@@ -1,6 +1,7 @@
-import { EffectTrigger, Skill } from './skill'
+import { Skill } from './skill'
 import { Type } from './type'
 import {
+  OwnedEntity,
   Prototype,
   RAGE_PER_TURN,
   StatBuffOnBattle,
@@ -14,7 +15,9 @@ import {
 import { Nature, NatureMap } from './nature'
 import { Player } from './player'
 import { Mark } from './mark'
-import { AddMarkContext, DamageContext, EffectContext, HealContext, RemoveMarkContext } from './context'
+import { AddMarkContext, DamageContext, HealContext, RemoveMarkContext } from './context'
+import { EffectTrigger } from './effect'
+import { BattleMessageType } from './message'
 
 export interface Species extends Prototype {
   id: string
@@ -28,7 +31,7 @@ export interface Species extends Prototype {
 }
 
 // 精灵类
-export class Pet {
+export class Pet implements OwnedEntity {
   public currentHp: number
   public baseCritRate: number = 0.1 // 暴击率默认为10%
   public baseAccuracy: number = 1 // 命中率默认为100%
@@ -72,6 +75,17 @@ export class Pet {
     if (this.currentHp === 0) {
       this.isAlive = false
     }
+
+    ctx.battle!.emitMessage(BattleMessageType.Damage, {
+      currentHp: this.currentHp,
+      maxHp: this.maxHp!,
+      source: ctx.source.name,
+      target: this.name,
+      damage: ctx.value,
+      isCrit: ctx.crit,
+      effectiveness: ctx.effectiveness,
+      damageType: ctx.damageType,
+    })
     return this.isAlive
   }
 
@@ -83,7 +97,7 @@ export class Pet {
   public addMark(ctx: AddMarkContext) {
     const existingMark = this.marks.find(mark => mark.id === ctx.mark.id)
     if (existingMark) {
-      existingMark.trigger(EffectTrigger.OnStack, new EffectContext(this.owner!.battle!, ctx, this))
+      ctx.battle.applyEffects(ctx, EffectTrigger.OnStack)
     } else {
       const newMark = ctx.mark.clone()
       this.marks.push(newMark)

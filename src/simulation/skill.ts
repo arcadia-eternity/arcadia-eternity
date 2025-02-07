@@ -1,10 +1,9 @@
 // skill.ts
-import { Effect, EffectContainer, EffectTrigger, EffectApplicator } from './effect'
-import { EffectContext } from './context'
+import { Effect, EffectContainer, EffectScheduler, EffectTrigger } from './effect'
+import { EffectContext, UseSkillContext } from './context'
 import { Type } from './type'
-import { AttackTargetOpinion, Prototype } from './const'
-import { BattleSystem } from './battleSystem'
-import { UseSkillContext } from './context'
+import { AttackTargetOpinion, OwnedEntity, Prototype } from './const'
+import { Pet } from './pet'
 
 export enum SkillType {
   Physical = 'Physical',
@@ -13,8 +12,9 @@ export enum SkillType {
   Climax = 'Climax',
 }
 
-export class Skill implements EffectContainer, Prototype {
-  private effects: Effect[] = []
+export class Skill implements EffectContainer, Prototype, OwnedEntity {
+  private readonly effects: Effect[] = []
+  public owner: Pet | null = null
 
   constructor(
     public readonly id: string,
@@ -30,20 +30,42 @@ export class Skill implements EffectContainer, Prototype {
     effects: Effect[] = [],
   ) {
     this.effects = effects
+    this.effects.forEach(effect => effect.setOwner(this))
+  }
+
+  setOwner(owner: Pet): void {
+    this.owner = owner
   }
 
   getEffects(trigger: EffectTrigger): Effect[] {
     return this.effects.filter(e => e.trigger === trigger)
   }
 
-  applyEffects(battle: BattleSystem, trigger: EffectTrigger, context: UseSkillContext) {
-    const effectContext: EffectContext = {
-      type: 'effect',
-      battle: battle,
-      parent: context,
-      owner: context.pet,
-    }
-    EffectApplicator.apply(this, trigger, effectContext)
+  collectEffects(trigger: EffectTrigger, baseContext: UseSkillContext) {
+    this.effects
+      .filter(effect => effect.trigger === trigger)
+      .forEach(effect => {
+        const effectContext = new EffectContext(baseContext, this)
+        if (!effect.condition || effect.condition(effectContext)) {
+          EffectScheduler.getInstance().addEffect(effect, effectContext)
+        }
+      })
+  }
+
+  clone(): Skill {
+    return new Skill(
+      this.id,
+      this.name,
+      this.skillType,
+      this.type,
+      this.power,
+      this.accuracy,
+      this.rageCost,
+      this.priority,
+      this.target,
+      this.sureHit,
+      this.effects,
+    )
   }
 
   static Builder = class {
@@ -120,4 +142,3 @@ export class Skill implements EffectContainer, Prototype {
     }
   }
 }
-export { EffectTrigger }
