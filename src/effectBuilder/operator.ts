@@ -9,6 +9,7 @@ import {
 import { Mark } from '../simulation/mark'
 import { Pet } from '../simulation/pet'
 import { Player } from '../simulation/player'
+import { DynamicValue } from './effectBuilder'
 import { SelectorOpinion, ValueSource, ChainableSelector } from './selector'
 
 function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpinion>(
@@ -68,6 +69,18 @@ export const BattleActions = {
       })
     },
 
+  addStack:
+    <T extends Mark>(markid: string, value: number) =>
+    (ctx: EffectContext, targets: T[]) => {
+      targets.filter(mark => mark.id == markid).forEach(mark => mark.addStack(value))
+    },
+
+  consumeStacks:
+    <T extends Mark>(markid: string, value: number) =>
+    (ctx: EffectContext, targets: T[]) => {
+      targets.filter(mark => mark.id == markid).forEach(mark => mark.consumeStacks(value))
+    },
+
   // 玩家操作
   addRage: createDynamicOperator<Player, number>((value, player, ctx) => {
     player.addRage(new RageContext(ctx, player, 'effect', 'add', value[0]))
@@ -82,10 +95,15 @@ export const BattleActions = {
   //     })
   //   },
   // // 上下文相关操作
-  // amplifyPower:
-  //   (multiplier: DynamicValue<number, UseSkillContext>) => (ctx: EffectContext, contexts: UseSkillContext[]) => {
-  //     contexts.forEach(skillCtx => {
-  //       const finalMultiplier = typeof multiplier === 'function' ? multiplier(skillCtx, ctx) : multiplier
-  //       skillCtx.power *= finalMultiplier
-  //     })
+  amplifyPower:
+    (multiplier: DynamicValue<number, UseSkillContext>) => (ctx: EffectContext, contexts: UseSkillContext[]) => {
+      contexts.forEach(skillCtx => {
+        const finalMultiplier = typeof multiplier === 'function' ? multiplier(skillCtx, ctx) : multiplier
+        if (typeof finalMultiplier === 'number') {
+          skillCtx.power *= finalMultiplier
+        } else {
+          finalMultiplier.forEach(v => (skillCtx.power *= v))
+        }
+      })
+    },
 }

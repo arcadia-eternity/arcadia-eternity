@@ -17,6 +17,7 @@ import { Player } from './player'
 import { Mark } from './mark'
 import { AddMarkContext, DamageContext, HealContext, RemoveMarkContext } from './context'
 import { BattleMessageType } from './message'
+import { EffectTrigger } from './effect'
 
 export interface Species extends Prototype {
   id: string
@@ -69,6 +70,10 @@ export class Pet implements OwnedEntity {
   }
 
   public damage(ctx: DamageContext): boolean {
+    //通过技能威力造成伤害的事件
+    if (ctx.source instanceof Pet) {
+      ctx.battle.applyEffects(ctx, EffectTrigger.OnDamage)
+    }
     this.currentHp = Math.max(0, this.currentHp - ctx.value)
     if (this.currentHp === 0) {
       this.isAlive = false
@@ -88,6 +93,7 @@ export class Pet implements OwnedEntity {
   }
 
   public heal(ctx: HealContext): boolean {
+    ctx.battle.applyEffects(ctx, EffectTrigger.OnHeal)
     this.currentHp = Math.min(this.maxHp!, this.currentHp + ctx.value)
     return this.isAlive
   }

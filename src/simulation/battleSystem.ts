@@ -139,7 +139,7 @@ export class BattleSystem extends Context {
             _selection.skill.target,
             _selection.skill,
           )
-          //TODO: 触发在决定使用技能阶段影响技能效果的印记
+          this.battle.applyEffects(skillContext, EffectTrigger.BeforeSort)
           contexts.push(skillContext)
           break
         }

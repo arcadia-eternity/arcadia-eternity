@@ -50,6 +50,10 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     return true
   }
 
+  addStack(value: number) {
+    this.stacks = Math.min(this.config.maxStacks ?? Infinity, this.stacks + value)
+  }
+
   tryStack(ctx: AddMarkContext): boolean {
     if (!this.isStackable) return false
 

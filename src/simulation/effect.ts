@@ -48,15 +48,16 @@ export enum EffectTrigger {
   OnBattleStart = 'ON_BATTLE_START',
 
   //以下EffectTrigger下的，context的parent一定是UseSkillContext
+  BeforeSort = 'BEFORE_SORT',
+  BeforeAttack = 'BEFORE_ATTACK',
   PreDamage = 'PRE_DAMAGE',
-  PostDamage = 'POST_DAMAGE',
+  OnCritPreDamage = 'ON_CRIT_PRE_DAMAGE',
   OnDamage = 'ON_DAMAGE',
+  PostDamage = 'POST_DAMAGE',
+  OnCritPostDamage = 'ON_CRIT_POST_DAMAGE',
   OnHit = 'ON_HIT',
   OnMiss = 'ON_MISS',
-  BeforeAttack = 'BEFORE_ATTACK',
   AfterAttacked = 'AFTER_ATTACKED',
-  OnCritPreDamage = 'ON_CRIT_PRE_DAMAGE',
-  OnCritPostDamage = 'ON_CRIT_POST_DAMAGE',
 
   // 印记相关
   TurnStart = 'TURN_START',
