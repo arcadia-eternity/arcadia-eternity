@@ -22,7 +22,7 @@ export class BattleSystem extends Context {
 
   public status: BattleStatus = BattleStatus.Unstarted
   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
-  public currentTurn = 1
+  public currentTurn = 0
   private messageCallbacks: Array<(message: BattleMessage) => void> = []
   public pendingDefeatedPlayer?: Player // 新增：需要在下回合换宠的玩家
   public allowKillerSwitch: boolean
@@ -132,7 +132,7 @@ export class BattleSystem extends Context {
       round: this.currentTurn,
     })
 
-    this.applyEffects(context, EffectTrigger.TurnEnd)
+    this.applyEffects(context, EffectTrigger.TurnStart)
 
     contextpop: while (contexts.length > 0) {
       const context = contexts.pop()
@@ -153,6 +153,16 @@ export class BattleSystem extends Context {
 
     this.applyEffects(context, EffectTrigger.TurnEnd)
     this.addTurnRage(context) // 每回合结束获得怒气
+
+    // Check for newly defeated pets and update pendingDefeatedPlayer
+    if (!this.playerA.activePet.isAlive && !this.pendingDefeatedPlayer) {
+      this.pendingDefeatedPlayer = this.playerA
+      this.lastKiller = this.playerB
+    }
+    if (!this.playerA.activePet.isAlive && !this.pendingDefeatedPlayer) {
+      this.pendingDefeatedPlayer = this.playerB
+      this.lastKiller = this.playerA
+    }
 
     // 战斗结束后重置状态
     if (this.isBattleEnded()) {

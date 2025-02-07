@@ -1,14 +1,16 @@
-import { Type } from './src/simulation/type'
-import { Skill, SkillType } from './src/simulation/skill'
-import { Pet } from './src/simulation/pet'
-import { BattleSystem } from './src/simulation/battleSystem'
-import { Player } from './src/simulation/player'
-import { Species } from './src/simulation/pet'
-import { Nature } from './src/simulation/nature'
 import { ConsoleUI } from './src/consoleUI'
-import { Mark } from './src/simulation/mark'
-import { BattleActions, BattleAttributes, BattleTarget, Effect, EffectTrigger } from './src/simulation/effect'
+import { BattleActions } from './src/effectBuilder/operator'
+import { BattleTarget, BattleAttributes } from './src/effectBuilder/selector'
+import { BattleSystem } from './src/simulation/battleSystem'
 import { AttackTargetOpinion } from './src/simulation/const'
+import { Effect, EffectTrigger } from './src/simulation/effect'
+import { Mark } from './src/simulation/mark'
+import { Nature } from './src/simulation/nature'
+import { Species, Pet } from './src/simulation/pet'
+import { Player } from './src/simulation/player'
+import { Skill, SkillType } from './src/simulation/skill'
+import { Type } from './src/simulation/type'
+
 const burn = new Mark(
   'burn',
   '烧伤',
@@ -17,7 +19,7 @@ const burn = new Mark(
       'shaoshang',
       EffectTrigger.TurnEnd,
       BattleTarget.self.apply(
-        BattleActions.dealDamage(BattleTarget.self.select(BattleAttributes.hp).divide(0.125).build()),
+        BattleActions.dealDamage(BattleTarget.self.select(BattleAttributes.maxhp).divide(1).build()),
       ),
       0,
     ),
@@ -26,6 +28,20 @@ const burn = new Mark(
     duration: 3,
     persistent: false,
   },
+)
+
+const penshehuoyan = new Skill(
+  'penshehuoyan',
+  '喷射火焰',
+  SkillType.Physical,
+  Type.Fire,
+  80,
+  1,
+  15,
+  0,
+  AttackTargetOpinion.opponent,
+  false,
+  [new Effect('addBurn', EffectTrigger.PostDamage, BattleTarget.foe.apply(BattleActions.addMark(burn)), 1)],
 )
 
 // 妙蛙草系列
@@ -65,10 +81,7 @@ const venusaur: Pet = new Pet(
     spe: 31,
   },
   Nature.Modest,
-  [
-    new Skill('qianglibianda', '强力鞭打', SkillType.Physical, Type.Grass, 120, 0.85, 10, 1),
-    new Skill('jishengzhongzi', '寄生种子', SkillType.Status, Type.Grass, 0, 1, 20, 1),
-  ],
+  [penshehuoyan, new Skill('jishengzhongzi', '寄生种子', SkillType.Status, Type.Grass, 0, 1, 20, 1)],
 )
 
 // 皮卡丘系列
@@ -194,22 +207,7 @@ const stormDragon: Pet = new Pet(
     spe: 31,
   },
   Nature.Adamant,
-  [
-    new Skill(
-      'penshehuoyan',
-      '喷射火焰',
-      SkillType.Physical,
-      Type.Fire,
-      80,
-      1,
-      15,
-      0,
-      AttackTargetOpinion.opponent,
-      false,
-      [new Effect('addBurn', EffectTrigger.PostDamage, BattleTarget.foe.apply(BattleActions.addMark(burn)), 1)],
-    ),
-    new Skill('shensu', '神速', SkillType.Physical, Type.Normal, 80, 1, 5, 2),
-  ],
+  [penshehuoyan, new Skill('shensu', '神速', SkillType.Physical, Type.Normal, 80, 1, 5, 2)],
 )
 
 const player2 = new Player('小茂', stormDragon, [stormDragon, shadowGengar])

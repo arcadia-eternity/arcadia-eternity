@@ -64,7 +64,7 @@ export class ConsoleUI extends BattleUI {
 
       case BattleMessageType.Damage: {
         const d = message.data
-        let log = `💥 ${d.target} 受到 ${d.damage}点${this.getDamageType(d.damageType)}伤害`
+        let log = `💥 ${d.target} 受到 ${d.damage}点 来自<${d.source}>的${this.getDamageType(d.damageType)}伤害`
         if (d.isCrit) log += ' (暴击)'
         if (d.effectiveness > 1) log += ' 效果拔群！'
         if (d.effectiveness < 1) log += ' 效果不佳...'
@@ -174,7 +174,7 @@ export class ConsoleUI extends BattleUI {
       {
         physical: '物理',
         special: '特殊',
-        fixed: '固定',
+        effect: '效果',
       }[type] || type
     )
   }
