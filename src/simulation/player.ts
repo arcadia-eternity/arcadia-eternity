@@ -127,63 +127,6 @@ export class Player {
     player.settingRage(Math.floor(player.currentRage * 0.8))
   }
 
-  public *handleForcedSwitch(): Generator<void, void, PlayerSelection> {
-    // 获取可换宠列表
-    const switchActions = this.getAvailableSwitch()
-    if (switchActions.length === 0) {
-      this.battle!.emitMessage(BattleMessageType.Error, { message: `${this.name} 没有可用的精灵！` })
-      return
-    }
-    this.battle!.emitMessage(BattleMessageType.ForcedSwitch, { player: this, required: true })
-
-    // 强制玩家选择换宠
-    let selection: PlayerSelection
-    do {
-      selection = yield
-      if (selection.type === 'switch-pet' && selection.source === this) {
-        this.setSelection(selection)
-      } else {
-        this.battle!.emitMessage(BattleMessageType.Error, { message: '必须选择更换精灵！' })
-      }
-    } while (!this.selection)
-
-    // 执行换宠
-    this.performSwitchPet(new SwitchPetContext(this.battle!, this, (this.selection as SwitchPetSelection).pet))
-
-    // 清空选择以准备正常回合
-    this.selection = null
-  }
-
-  public *handleOptionalSwitch(): Generator<void, void, PlayerSelection> {
-    const switchActions = this.getAvailableSwitch()
-    if (switchActions.length === 0) return
-
-    this.battle!.emitMessage(BattleMessageType.KillerSwitch, {
-      player: this.name,
-      available: this.battle!.allowKillerSwitch,
-    })
-
-    let selection: PlayerSelection
-    do {
-      selection = yield
-      if (
-        (selection.type === 'switch-pet' && selection.source === this) ||
-        (selection.type === 'do-nothing' && selection.source === this)
-      ) {
-        break
-      }
-      this.battle!.emitMessage(BattleMessageType.InvalidAction, {
-        player: this.name,
-        action: selection.type,
-        reason: 'invalid_action',
-      })
-    } while (true)
-
-    if (selection.type === 'switch-pet') {
-      this.performSwitchPet(new SwitchPetContext(this.battle!, this, selection.pet))
-    }
-  }
-
   public performAttack(context: UseSkillContext): boolean {
     // 攻击前触发
     const attacker = context.pet
@@ -328,11 +271,7 @@ export class Player {
       defender.isAlive = false
       this.battle!.applyEffects(context, EffectTrigger.OnDefeat) // 触发击败特效
 
-      const defeatedPlayer = defender.owner
-      if (defeatedPlayer) {
-        this.battle!.pendingDefeatedPlayer = defeatedPlayer
-        this.battle!.lastKiller = context.origin
-      }
+      this.battle!.lastKiller = context.origin
       return true
     }
     return false

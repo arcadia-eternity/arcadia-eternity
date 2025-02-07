@@ -130,6 +130,7 @@ export class ConsoleUI extends BattleUI {
         break
       }
       case BattleMessageType.KillerSwitch: {
+        console.log(`🎁 ${message.data.player} 击倒对手，获得换宠机会！`)
         break
       }
 
@@ -196,7 +197,7 @@ export class ConsoleUI extends BattleUI {
   // 修改操作提示逻辑
   private async getPlayerAction(player: Player): Promise<PlayerSelection> {
     // 强制换宠时限制只能选择换宠
-    if (this.battle.pendingDefeatedPlayer === player) {
+    if (this.battle.pendingDefeatedPlayers.includes(player)) {
       return this.getForcedSwitchAction(player)
     }
     return this.getNormalAction(player)
@@ -275,35 +276,46 @@ export class ConsoleUI extends BattleUI {
     let generator = battle.next() // 初始化生成器
 
     while (!generator.done) {
-      if (this.battle.pendingDefeatedPlayer) {
-        const action = await this.getForcedSwitchAction(this.battle.pendingDefeatedPlayer)
-        generator = battle.next(action)
-        continue
+      // 处理强制换宠阶段
+      if (this.battle.pendingDefeatedPlayers.length > 0) {
+        const player = this.battle.getPendingSwitchPlayer()
+        if (player && !player.selection) {
+          console.log(`\n==== ${player.name} 必须更换倒下的精灵 ====`)
+          const action = await this.getForcedSwitchAction(player)
+          player.selection = action
+          generator = battle.next()
+          continue
+        }
       }
 
-      // 处理击败方换宠
-      if (this.battle.lastKiller && this.battle.allowKillerSwitch) {
+      // 处理击破奖励换宠
+      if (this.battle.allowKillerSwitch && this.battle.lastKiller && !this.battle.lastKiller.selection) {
+        console.log(`\n==== ${this.battle.lastKiller.name} 获得击破奖励换宠机会 ====`)
         const action = await this.handleKillerSwitch(this.battle.lastKiller)
-        generator = battle.next(action)
+        this.battle.lastKiller.selection = action
+        generator = battle.next()
         continue
       }
+
+      // 获取当前需要操作的玩家
       const currentPlayer = this.getCurrentActivePlayer()
-      if (!currentPlayer) break
-
-      // 获取玩家选择
+      if (!currentPlayer) {
+        generator = battle.next()
+        continue
+      }
       const selection = await this.getPlayerAction(currentPlayer)
+      currentPlayer.selection = selection
 
-      // 将选择发送给生成器
-      generator = battle.next(selection)
+      battle.next()
     }
-    const victor = generator.value as Player
-    console.log(`胜利者是: ${victor.name}`)
+    const victor = this.battle.getVictor()
+    console.log(`\n🏆 胜利者是: ${victor?.name || '平局'}！`)
   }
 
   private getCurrentActivePlayer(): Player | null {
     // 优先处理强制换宠
-    if (this.battle.pendingDefeatedPlayer) {
-      return this.battle.pendingDefeatedPlayer
+    if (this.battle.pendingDefeatedPlayers.length > 0) {
+      return null
     }
 
     // 正常回合按顺序处理

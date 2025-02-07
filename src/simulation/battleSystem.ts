@@ -24,7 +24,7 @@ export class BattleSystem extends Context {
   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
   public currentTurn = 0
   private messageCallbacks: Array<(message: BattleMessage) => void> = []
-  public pendingDefeatedPlayer?: Player // 新增：需要在下回合换宠的玩家
+  public pendingDefeatedPlayers: Player[] = [] // 新增：需要在下回合换宠的玩家
   public allowKillerSwitch: boolean
   public lastKiller?: Player
   public marks: Mark[] = [] //用于存放天气一类的效果
@@ -154,16 +154,6 @@ export class BattleSystem extends Context {
     this.applyEffects(context, EffectTrigger.TurnEnd)
     this.addTurnRage(context) // 每回合结束获得怒气
 
-    // Check for newly defeated pets and update pendingDefeatedPlayer
-    if (!this.playerA.activePet.isAlive && !this.pendingDefeatedPlayer) {
-      this.pendingDefeatedPlayer = this.playerA
-      this.lastKiller = this.playerB
-    }
-    if (!this.playerA.activePet.isAlive && !this.pendingDefeatedPlayer) {
-      this.pendingDefeatedPlayer = this.playerB
-      this.lastKiller = this.playerA
-    }
-
     // 战斗结束后重置状态
     if (this.isBattleEnded()) {
       this.status = BattleStatus.Ended
@@ -174,11 +164,10 @@ export class BattleSystem extends Context {
 
   private isBattleEnded(): boolean {
     // 检查强制换宠失败
-    if (this.pendingDefeatedPlayer) {
-      const available = this.pendingDefeatedPlayer.getAvailableSwitch()
+    for (const player of this.pendingDefeatedPlayers) {
+      const available = player.getAvailableSwitch()
       if (available.length === 0) return true
     }
-
     // 检查队伍存活状态
     return this.playerA.team.every(p => !p.isAlive) || this.playerB.team.every(p => !p.isAlive)
   }
@@ -228,7 +217,7 @@ export class BattleSystem extends Context {
   }
 
   // 开始对战
-  public *startBattle(): Generator<void, Player, PlayerSelection> {
+  public *startBattle(): Generator<void, void, void> {
     if (this.status != BattleStatus.Unstarted) throw '战斗已经开始过了！'
     this.status = BattleStatus.OnBattle
     this.emitMessage(BattleMessageType.BattleStart, {
@@ -243,41 +232,63 @@ export class BattleSystem extends Context {
     while (true) {
       // 阶段1：处理强制换宠
       this.currentPhase = BattlePhase.SwitchPhase
-      if (this.pendingDefeatedPlayer) {
-        yield* this.pendingDefeatedPlayer.handleForcedSwitch()
-        this.pendingDefeatedPlayer = undefined
+      while (!(this.playerA.activePet.isAlive && this.playerB.activePet.isAlive)) {
+        this.pendingDefeatedPlayers = [this.playerA, this.playerB].filter(player => !player.activePet.isAlive)
+        if (this.isBattleEnded()) {
+          this.status = BattleStatus.Ended
+          return
+        }
+
+        if (this.pendingDefeatedPlayers.length > 0) {
+          while (
+            ![...this.pendingDefeatedPlayers].every(player => player.selection && player.selection.type == 'switch-pet')
+          ) {
+            yield
+          }
+          ;[...this.pendingDefeatedPlayers].forEach(player => {
+            player.performSwitchPet(
+              new SwitchPetContext(this.battle!, player, (player.selection as SwitchPetSelection).pet),
+            )
+            player.selection = null
+          })
+        }
       }
+      this.pendingDefeatedPlayers = []
 
       // 阶段2：击败方换宠
-      if (this.allowKillerSwitch && this.lastKiller) {
-        yield* this.lastKiller.handleOptionalSwitch()
-        this.lastKiller = undefined
+      while (this.allowKillerSwitch && this.lastKiller) {
+        this.battle!.emitMessage(BattleMessageType.KillerSwitch, {
+          player: this.lastKiller.name,
+          available: this.battle!.allowKillerSwitch,
+        })
+        yield
       }
+      this.lastKiller = undefined
 
       // 阶段3：收集玩家指令
       this.currentPhase = BattlePhase.SelectionPhase
       this.clearSelections()
       while (!this.bothPlayersReady()) {
-        const selection: PlayerSelection = yield
-        selection.source.setSelection(selection)
+        yield
       }
 
       // 阶段4：执行回合
       this.currentPhase = BattlePhase.ExecutionPhase
       const turnContext: TurnContext = new TurnContext(this)
       if (this.performTurn(turnContext)) break
+      this.clearSelections()
     }
     this.status = BattleStatus.Ended
     this.currentPhase = BattlePhase.Ended
-    return this.getVictor()
+    return
   }
 
   public isInForcedSwitchPhase(): boolean {
-    return !!this.pendingDefeatedPlayer
+    return this.pendingDefeatedPlayers.length > 0
   }
 
   public getPendingSwitchPlayer(): Player | undefined {
-    return this.pendingDefeatedPlayer
+    return this.pendingDefeatedPlayers.find(player => !player.selection)
   }
 
   private clearSelections() {
@@ -289,7 +300,7 @@ export class BattleSystem extends Context {
     return !!this.playerA.selection && !!this.playerB.selection
   }
 
-  private getVictor() {
+  public getVictor() {
     if (this.status != BattleStatus.Ended) throw '战斗未结束'
     if (this.playerA.team.every(pet => !pet.isAlive)) {
       this.emitMessage(BattleMessageType.BattleEnd, { winner: this.playerB.name, reason: 'all_pet_fainted' })
