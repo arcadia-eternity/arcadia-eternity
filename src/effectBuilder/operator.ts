@@ -5,10 +5,10 @@ import {
   HealContext,
   AddMarkContext,
   RageContext,
-} from '../simulation/context'
-import { Mark } from '../simulation/mark'
-import { Pet } from '../simulation/pet'
-import { Player } from '../simulation/player'
+} from '../core/context'
+import { Mark } from '../core/mark'
+import { Pet } from '../core/pet'
+import { Player } from '../core/player'
 import { DynamicValue } from './effectBuilder'
 import { SelectorOpinion, ValueSource, ChainableSelector } from './selector'
 

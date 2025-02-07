@@ -1,4 +1,4 @@
-import { EffectContext } from '../simulation/context'
+import { EffectContext } from '../core/context'
 import { SelectorOpinion } from './selector'
 
 export type ValueExtractor<T, U> = (target: T) => U | U[]

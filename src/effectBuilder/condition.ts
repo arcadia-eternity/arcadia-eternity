@@ -1,5 +1,5 @@
-import { Prototype } from '../simulation/const'
-import { EffectContext } from '../simulation/context'
+import { Prototype } from '../core/const'
+import { EffectContext } from '../core/context'
 import { ValueExtractor, ConditionOperator } from './effectBuilder'
 import { SelectorOpinion, ChainableSelector } from './selector'
 
