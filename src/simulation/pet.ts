@@ -23,7 +23,6 @@ export interface Species extends Prototype {
   name: string
   type: Type
   baseStats: { [key in StatType]: number }
-  skills: Skill[]
   genderRatio?: [number, number]
   abilities?: string //TODO: 特性
   emblem?: string //TODO: 纹章
