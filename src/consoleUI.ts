@@ -142,7 +142,7 @@ export class ConsoleUI extends BattleUI {
       }
 
       case BattleMessageType.Info: {
-        console.log(`INFO: ${message.data}`)
+        console.log(`INFO: ${message.data.message}`)
         break
       }
 
