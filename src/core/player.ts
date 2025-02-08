@@ -11,7 +11,7 @@ import { EffectTrigger } from './effect'
 import { BattleMessageType } from './message'
 import { Pet } from './pet'
 import { SkillType } from './skill'
-import { TYPE_CHART } from './type'
+import { TYPE_CHART } from './element'
 
 export class Player {
   public currentRage: number = 20
@@ -155,6 +155,13 @@ export class Player {
     }
 
     this.battle!.applyEffects(context, EffectTrigger.BeforeAttack)
+
+    if (!context.available) {
+      this.battle!.emitMessage(BattleMessageType.Error, {
+        message: `${attacker.name} 无法使用 ${context.skill.name}!`,
+      })
+      return false
+    }
 
     // 怒气检查
     if (context.origin.currentRage < context.rageCost) {

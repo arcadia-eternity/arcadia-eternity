@@ -1,5 +1,5 @@
 import { Effect, EffectContainer, EffectScheduler, EffectTrigger } from './effect'
-import { AddMarkContext, AllContext, EffectContext } from './context'
+import { AddMarkContext, AllContext, EffectContext, TurnContext } from './context'
 import { Pet } from './pet'
 import { BattleSystem } from './battleSystem'
 import { OwnedEntity, Prototype } from './const'
@@ -20,7 +20,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
   constructor(
     public readonly id: string,
     public readonly name: string,
-    private readonly effects: Effect[],
+    private readonly effects: Effect<EffectTrigger>[],
     private config: {
       duration?: number
       persistent?: boolean
@@ -42,12 +42,25 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     this.owner = target
   }
 
-  update(): boolean {
+  private detach() {
+    if (this.owner) {
+      this.owner.marks = this.owner.marks.filter(m => m !== this)
+    }
+    this.owner = null
+  }
+
+  update(ctx: TurnContext): boolean {
+    if (!this.isActive) return true
     if (this.config.persistent) return false
+
     this.duration--
-    if (this.duration > 0) return false
-    this.destory()
-    return true
+    const expired = this.duration <= 0
+
+    if (expired) {
+      this.destory(ctx)
+    }
+
+    return expired
   }
 
   addStack(value: number) {
@@ -102,12 +115,12 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     return changed
   }
 
-  consumeStacks(amount: number): number {
+  consumeStacks(ctx: EffectContext<EffectTrigger>, amount: number): number {
     const actual = Math.min(amount, this.stacks)
     this.stacks -= actual
 
     if (this.stacks <= 0) {
-      this.destory()
+      this.destory(ctx)
     }
 
     return actual
@@ -124,14 +137,15 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     this.effects
       .filter(effect => effect.trigger === trigger)
       .forEach(effect => {
-        const effectContext = new EffectContext(baseContext, this)
+        const effectContext = new EffectContext(baseContext, trigger, this)
         if (!effect.condition || effect.condition(effectContext)) {
           EffectScheduler.getInstance().addEffect(effect, effectContext)
         }
       })
   }
 
-  clone(): Mark {
+  clone(ctx: AddMarkContext): Mark {
+    ctx.battle.applyEffects(ctx, EffectTrigger.OnMarkCreate)
     const mark = new Mark(this.id, this.name, this.effects, this.config, this.tags)
     mark.stacks = this.stacks
     mark.duration = this.duration
@@ -139,15 +153,22 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     return mark
   }
 
-  destory() {
+  destory(ctx: EffectContext<EffectTrigger> | TurnContext) {
+    if (!this.isActive) return
     this.isActive = false
+
+    // 触发移除效果
+    if (this.owner instanceof Pet) {
+      ctx.battle.applyEffects(ctx, EffectTrigger.OnMarkDestroy)
+      ctx.battle.cleanupMarks()
+    }
   }
 }
 
 export class MarkRegistry {
-  private static marks = new Map<string, Effect[]>()
+  private static marks = new Map<string, Effect<EffectTrigger>[]>()
 
-  static register(id: string, effects: Effect[]) {
+  static register(id: string, effects: Effect<EffectTrigger>[]) {
     this.marks.set(id, effects)
   }
 

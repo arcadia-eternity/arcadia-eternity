@@ -4,6 +4,7 @@ import { AttackTargetOpinion, DamageType } from './const'
 import { Mark } from './mark'
 import { Pet } from './pet'
 import { Skill } from './skill'
+import { EffectTrigger } from './effect'
 
 export abstract class Context {
   readonly type: string = 'base'
@@ -17,11 +18,13 @@ export type AllContext =
   | BattleSystem
   | TurnContext
   | UseSkillContext
-  | SwitchPetContext
-  | EffectContext
   | DamageContext
   | HealContext
   | AddMarkContext
+  | RemoveMarkContext
+  | SwitchPetContext
+  | RageContext
+  | EffectContext<EffectTrigger>
 
 export class TurnContext extends Context {
   readonly type = 'turn'
@@ -35,6 +38,7 @@ export class TurnContext extends Context {
 export class UseSkillContext extends Context {
   readonly type = 'use-skill'
   public readonly battle: BattleSystem
+  public readonly available: boolean = true
   public skillPriority: number = 0
   public power: number = 0
   public rageCost: number = 0
@@ -75,8 +79,9 @@ export class SwitchPetContext extends Context {
 export class RageContext extends Context {
   readonly type = 'rage-cost'
   public readonly battle: BattleSystem
+  public readonly available: boolean = true
   constructor(
-    public readonly parent: UseSkillContext | EffectContext | TurnContext,
+    public readonly parent: UseSkillContext | EffectContext<EffectTrigger> | TurnContext,
     public target: Player,
     public reason: 'turn' | 'damage' | 'skill' | 'skillHit' | 'switch' | 'effect',
     public modifiedType: 'setting' | 'add' | 'reduce',
@@ -88,23 +93,12 @@ export class RageContext extends Context {
   }
 }
 
-export class EffectContext extends Context {
-  readonly type = 'effect'
-  public readonly battle: BattleSystem
-  constructor(
-    public readonly parent: AllContext,
-    public readonly source: Skill | Mark,
-  ) {
-    super(parent)
-    this.battle = parent.battle
-  }
-}
-
 export class DamageContext extends Context {
   readonly type = 'damage'
   public readonly battle: BattleSystem
+  public readonly available: boolean = true
   constructor(
-    public readonly parent: UseSkillContext | EffectContext,
+    public readonly parent: UseSkillContext | EffectContext<EffectTrigger>,
     public readonly source: Pet | Mark | Skill, //来自技能伤害，还是印记和技能的效果获得的伤害
     public value: number,
 
@@ -121,8 +115,9 @@ export class DamageContext extends Context {
 export class HealContext extends Context {
   readonly type = 'heal'
   public readonly battle: BattleSystem
+  public readonly available: boolean = true
   constructor(
-    public readonly parent: EffectContext,
+    public readonly parent: EffectContext<EffectTrigger>,
     public readonly source: Mark | Skill,
     public value: number,
     public ingoreEffect: boolean = false,
@@ -135,8 +130,9 @@ export class HealContext extends Context {
 export class AddMarkContext extends Context {
   readonly type = 'add-mark'
   public readonly battle: BattleSystem
+  public readonly available: boolean = true
   constructor(
-    public readonly parent: EffectContext,
+    public readonly parent: EffectContext<EffectTrigger>,
     public target: Pet,
     public mark: Mark,
   ) {
@@ -148,10 +144,60 @@ export class AddMarkContext extends Context {
 export class RemoveMarkContext extends Context {
   readonly type = 'remove-mark'
   public readonly battle: BattleSystem
+  public readonly available: boolean = true
   constructor(
-    public readonly parent: EffectContext,
+    public readonly parent: EffectContext<EffectTrigger>,
     public target: Pet,
     public mark: Mark,
+  ) {
+    super(parent)
+    this.battle = parent.battle
+  }
+}
+
+type TriggerContextMap = {
+  [EffectTrigger.OnBattleStart]: BattleSystem
+
+  [EffectTrigger.BeforeSort]: UseSkillContext
+  [EffectTrigger.BeforeAttack]: UseSkillContext
+  [EffectTrigger.PreDamage]: UseSkillContext
+  [EffectTrigger.OnCritPreDamage]: UseSkillContext
+  [EffectTrigger.OnDamage]: UseSkillContext
+  [EffectTrigger.PostDamage]: UseSkillContext
+  [EffectTrigger.OnCritPostDamage]: UseSkillContext
+  [EffectTrigger.OnHit]: UseSkillContext
+  [EffectTrigger.OnMiss]: UseSkillContext
+  [EffectTrigger.AfterAttacked]: UseSkillContext
+  [EffectTrigger.OnDefeat]: UseSkillContext
+
+  [EffectTrigger.TurnStart]: TurnContext
+  [EffectTrigger.TurnEnd]: TurnContext
+
+  [EffectTrigger.OnAddMark]: AddMarkContext
+  [EffectTrigger.OnRemoveMark]: RemoveMarkContext
+  [EffectTrigger.OnMarkCreate]: AddMarkContext
+  [EffectTrigger.OnMarkDestroy]: RemoveMarkContext
+
+  [EffectTrigger.OnStack]: EffectContext<EffectTrigger>
+  [EffectTrigger.OnHeal]: EffectContext<EffectTrigger>
+  [EffectTrigger.OnRageGain]: RageContext
+  [EffectTrigger.OnRageLoss]: RageContext
+
+  [EffectTrigger.OnSwitchIn]: SwitchPetContext
+  [EffectTrigger.OnSwitchOut]: SwitchPetContext
+
+  [EffectTrigger.BeforeEffect]: AllContext
+  [EffectTrigger.AfterEffect]: AllContext
+}
+
+export class EffectContext<T extends EffectTrigger> extends Context {
+  readonly type = 'effect'
+  public readonly battle: BattleSystem
+  public readonly available: boolean = true
+  constructor(
+    public readonly parent: TriggerContextMap[T],
+    public readonly trigger: T,
+    public readonly source: Skill | Mark,
   ) {
     super(parent)
     this.battle = parent.battle

@@ -11,7 +11,7 @@ import readline from 'readline'
 import { BattleUI } from './ui'
 import { BattleMessage, BattleMessageType } from './core/message'
 import { Pet } from './core/pet'
-import { TYPE_MAP } from './core/type'
+import { ELEMENT_MAP } from './core/element'
 import { Mark } from './core/mark'
 import { SkillType } from './core/skill'
 
@@ -28,7 +28,7 @@ export class ConsoleUI extends BattleUI {
   }
 
   private getPetStatus = (pet: Pet) => {
-    const baseInfo = `${TYPE_MAP[pet.type].emoji}${pet.name}(${pet.species.name}) [Lv.${pet.level} HP:${pet.currentHp}/${pet.maxHp} Rage:${pet.owner?.currentRage}/100]`
+    const baseInfo = `${ELEMENT_MAP[pet.type].emoji}${pet.name}(${pet.species.name}) [Lv.${pet.level} HP:${pet.currentHp}/${pet.maxHp} Rage:${pet.owner?.currentRage}/100]`
     const markInfo = pet.marks.length > 0 ? ' 印记:' + pet.marks.map(mark => this.getMarkStatus(mark)).join(' ') : ''
     return baseInfo + markInfo
   }
@@ -141,6 +141,11 @@ export class ConsoleUI extends BattleUI {
         break
       }
 
+      case BattleMessageType.Info: {
+        console.log(`INFO: ${message.data}`)
+        break
+      }
+
       default:
         console.warn('未知消息类型:', JSON.stringify(message))
     }
@@ -228,7 +233,7 @@ export class ConsoleUI extends BattleUI {
 
       const powerText = a.skill.skillType === SkillType.Status ? '' : `, 威力:${a.skill.power}`
       console.log(
-        `${i + 1}. 使用技能: ${TYPE_MAP[a.skill.type].emoji}${a.skill.name} (${skillTypeIcon}${powerText}, 消耗:${a.skill.rageCost})`,
+        `${i + 1}. 使用技能: ${ELEMENT_MAP[a.skill.type].emoji}${a.skill.name} (${skillTypeIcon}${powerText}, 消耗:${a.skill.rageCost})`,
       )
     })
 

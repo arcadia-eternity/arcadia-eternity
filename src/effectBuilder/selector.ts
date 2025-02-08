@@ -5,7 +5,7 @@ import { Mark } from '../core/mark'
 import { Pet } from '../core/pet'
 import { Player } from '../core/player'
 import { Skill } from '../core/skill'
-import { Type } from '../core/type'
+import { Element } from '../core/element'
 import { ValueExtractor, ConditionOperator, Operator, DynamicValue } from './effectBuilder'
 
 // 条件系统分为三个层级
@@ -147,6 +147,7 @@ export const BattleTarget: {
   foe: ChainableSelector<Pet>
   petOwners: ChainableSelector<Player>
   usingSkillContext: ChainableSelector<UseSkillContext>
+  mark: ChainableSelector<Mark>
 } = {
   self: createChainable<Pet>((context: EffectContext) => {
     if (context.source.owner instanceof Pet) return [context.source.owner]
@@ -169,13 +170,19 @@ export const BattleTarget: {
     //TODO: error with use get context with non-Useskill context
     return []
   }),
+  mark: createChainable<Mark>((context: EffectContext) => {
+    if (context.source instanceof Mark) return [context.source]
+    //TODO: error with use get context with non-MarkEffect context
+    return []
+  }),
 }
+
 type BattleAttributesMap = {
   hp: (target: Pet) => number
   maxhp: (target: Pet) => number
   rage: (target: Player) => number
   owner: (target: OwnedEntity) => BattleSystem | Player | Pet | Mark | Skill | null
-  type: (target: Pet) => Type
+  type: (target: Pet) => Element
   marks: (target: Pet) => Mark[]
   stats: (target: Pet) => StatOnBattle
   stack: (target: Mark) => number

@@ -1,3 +1,4 @@
+import { EffectTrigger } from '../core/effect'
 import {
   EffectContext,
   UseSkillContext,
@@ -13,10 +14,10 @@ import { DynamicValue } from './effectBuilder'
 import { SelectorOpinion, ValueSource, ChainableSelector } from './selector'
 
 function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpinion>(
-  handler: (value: U[], target: T, ctx: EffectContext) => void,
+  handler: (value: U[], target: T, ctx: EffectContext<EffectTrigger>) => void,
 ) {
   return (source: ValueSource<U, T>) => {
-    return (ctx: EffectContext, targets: T[]) => {
+    return (ctx: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.forEach(target => {
         let finalValue: U[] = []
 
@@ -25,10 +26,10 @@ function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpin
             // 处理选择器函数
             if (source.length === 1) {
               // Context函数
-              finalValue = (source as (ctx: EffectContext) => U[])(ctx)
+              finalValue = (source as (ctx: EffectContext<EffectTrigger>) => U[])(ctx)
             } else if (source.length === 2) {
               // Target+Context函数
-              finalValue = (source as (target: T, ctx: EffectContext) => U[])(target, ctx)
+              finalValue = (source as (target: T, ctx: EffectContext<EffectTrigger>) => U[])(target, ctx)
             }
           } catch {
             finalValue = []
@@ -62,23 +63,22 @@ export const BattleActions = {
 
   addMark:
     <T extends Pet>(mark: Mark) =>
-    (ctx: EffectContext, targets: T[]) => {
+    (ctx: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.forEach(pet => {
-        const newMark = mark.clone()
-        pet.addMark(new AddMarkContext(ctx, pet, newMark))
+        pet.addMark(new AddMarkContext(ctx, pet, mark))
       })
     },
 
   addStack:
     <T extends Mark>(markid: string, value: number) =>
-    (ctx: EffectContext, targets: T[]) => {
+    (ctx: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.filter(mark => mark.id == markid).forEach(mark => mark.addStack(value))
     },
 
   consumeStacks:
     <T extends Mark>(markid: string, value: number) =>
-    (ctx: EffectContext, targets: T[]) => {
-      targets.filter(mark => mark.id == markid).forEach(mark => mark.consumeStacks(value))
+    (ctx: EffectContext<EffectTrigger>, targets: T[]) => {
+      targets.filter(mark => mark.id == markid).forEach(mark => mark.consumeStacks(ctx, value))
     },
 
   // 玩家操作
@@ -88,7 +88,7 @@ export const BattleActions = {
   // // 属性操作增强
   // modifyStat:
   //   <T extends Pet, K extends keyof StatOnBattle>(stat: K, value: DynamicValue<number, T>) =>
-  //   (ctx: EffectContext, targets: T[]) => {
+  //   (ctx: EffectContext<EffectTrigger>, targets: T[]) => {
   //     targets.forEach(pet => {
   //       const finalValue = typeof value === 'function' ? value(pet, ctx) : value
   //       pet.stat[stat] += finalValue
@@ -96,7 +96,8 @@ export const BattleActions = {
   //   },
   // // 上下文相关操作
   amplifyPower:
-    (multiplier: DynamicValue<number, UseSkillContext>) => (ctx: EffectContext, contexts: UseSkillContext[]) => {
+    (multiplier: DynamicValue<number, UseSkillContext>) =>
+    (ctx: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
       contexts.forEach(skillCtx => {
         const finalMultiplier = typeof multiplier === 'function' ? multiplier(skillCtx, ctx) : multiplier
         if (typeof finalMultiplier === 'number') {

@@ -9,7 +9,7 @@ import { Nature } from './src/core/nature'
 import { Species, Pet } from './src/core/pet'
 import { Player } from './src/core/player'
 import { Skill, SkillType } from './src/core/skill'
-import { Type } from './src/core/type'
+import { Element } from './src/core/element'
 
 const burn = new Mark(
   'burn',
@@ -32,7 +32,7 @@ const penshehuoyan = new Skill(
   'penshehuoyan',
   '喷射火焰',
   SkillType.Physical,
-  Type.Fire,
+  Element.Fire,
   80,
   1,
   15,
@@ -46,7 +46,7 @@ const penshehuoyan = new Skill(
 const venusaurSpecies: Species = {
   id: 'miaowahua',
   name: '妙蛙草',
-  type: Type.Grass,
+  type: Element.Grass,
   baseStats: {
     hp: 160,
     atk: 82,
@@ -55,7 +55,6 @@ const venusaurSpecies: Species = {
     spd: 100,
     spe: 80,
   },
-  skills: [],
 }
 
 const venusaur: Pet = new Pet(
@@ -79,14 +78,14 @@ const venusaur: Pet = new Pet(
     spe: 31,
   },
   Nature.Modest,
-  [penshehuoyan, new Skill('jishengzhongzi', '寄生种子', SkillType.Status, Type.Grass, 0, 1, 20, 1)],
+  [penshehuoyan, new Skill('jishengzhongzi', '寄生种子', SkillType.Status, Element.Grass, 0, 1, 20, 1)],
 )
 
 // 皮卡丘系列
 const pikachuSpecies: Species = {
   id: 'pikaqiu',
   name: '皮卡丘',
-  type: Type.Electric,
+  type: Element.Electric,
   baseStats: {
     hp: 35,
     atk: 55,
@@ -95,7 +94,6 @@ const pikachuSpecies: Species = {
     spd: 50,
     spe: 90,
   },
-  skills: [],
 }
 
 const thunderPikachu: Pet = new Pet(
@@ -120,8 +118,8 @@ const thunderPikachu: Pet = new Pet(
   },
   Nature.Timid,
   [
-    new Skill('shiwanfute', '十万伏特', SkillType.Special, Type.Electric, 90, 1, 15, 1),
-    new Skill('dianguangyishan', '电光一闪', SkillType.Physical, Type.Normal, 40, 1, 30, 1),
+    new Skill('shiwanfute', '十万伏特', SkillType.Special, Element.Electric, 90, 1, 15, 1),
+    new Skill('dianguangyishan', '电光一闪', SkillType.Physical, Element.Normal, 40, 1, 30, 1),
   ],
 )
 
@@ -129,7 +127,7 @@ const thunderPikachu: Pet = new Pet(
 const gengarSpecies: Species = {
   id: 'genggui',
   name: '耿鬼',
-  type: Type.Shadow,
+  type: Element.Shadow,
   baseStats: {
     hp: 60,
     atk: 65,
@@ -138,7 +136,6 @@ const gengarSpecies: Species = {
     spd: 75,
     spe: 110,
   },
-  skills: [],
 }
 
 const shadowGengar: Pet = new Pet(
@@ -163,8 +160,8 @@ const shadowGengar: Pet = new Pet(
   },
   Nature.Timid,
   [
-    new Skill('anyingqiu', '暗影球', SkillType.Special, Type.Shadow, 80, 1, 15, 0),
-    new Skill('wunizhadan', '污泥炸弹', SkillType.Special, Type.Grass, 90, 1, 10, 0),
+    new Skill('anyingqiu', '暗影球', SkillType.Special, Element.Shadow, 80, 1, 15, 0),
+    new Skill('wunizhadan', '污泥炸弹', SkillType.Special, Element.Grass, 90, 1, 10, 0),
   ],
 )
 
@@ -172,7 +169,7 @@ const shadowGengar: Pet = new Pet(
 const dragoniteSpecies: Species = {
   id: 'kuailong',
   name: '快龙',
-  type: Type.Dragon,
+  type: Element.Dragon,
   baseStats: {
     hp: 91,
     atk: 134,
@@ -181,7 +178,6 @@ const dragoniteSpecies: Species = {
     spd: 100,
     spe: 80,
   },
-  skills: [],
 }
 
 const stormDragon: Pet = new Pet(
@@ -205,7 +201,7 @@ const stormDragon: Pet = new Pet(
     spe: 31,
   },
   Nature.Adamant,
-  [penshehuoyan, new Skill('shensu', '神速', SkillType.Physical, Type.Normal, 80, 1, 5, 2)],
+  [penshehuoyan, new Skill('shensu', '神速', SkillType.Physical, Element.Normal, 80, 1, 5, 2)],
 )
 
 const player2 = new Player('小茂', stormDragon, [stormDragon, shadowGengar])

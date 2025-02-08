@@ -46,7 +46,8 @@ export enum BattleMessageType {
   ForcedSwitch = 'FORCED_SWITCH',
   KillerSwitch = 'KILLER_SWITCH',
   InvalidAction = 'INVALID_ACTION',
-  Error = 'Error',
+  Info = 'INFO',
+  Error = 'ERROR',
 }
 
 export type BattleMessage =
@@ -77,6 +78,8 @@ export type BattleMessage =
   | ForcedSwitchMessage
   | KillerSwitchMessage
   | InvalidActionMessage
+  | InfoMessage
+  | ErrorMessage
 
 // 基础消息结构
 interface BaseBattleMessage<T extends BattleMessageType> {
@@ -238,6 +241,9 @@ export interface BattleMessageData {
     action: string
     reason: 'no_rage' | 'cooldown' | 'invalid_target' | 'dead_pet' | 'invalid_action'
   }
+  [BattleMessageType.Info]: {
+    message: string
+  }
   [BattleMessageType.Error]: {
     message: string
   }
@@ -271,3 +277,5 @@ type TurnActionMessage = BaseBattleMessage<BattleMessageType.TurnAction>
 type ForcedSwitchMessage = BaseBattleMessage<BattleMessageType.ForcedSwitch>
 type KillerSwitchMessage = BaseBattleMessage<BattleMessageType.KillerSwitch>
 type InvalidActionMessage = BaseBattleMessage<BattleMessageType.InvalidAction>
+type InfoMessage = BaseBattleMessage<BattleMessageType.Info>
+type ErrorMessage = BaseBattleMessage<BattleMessageType.Error>

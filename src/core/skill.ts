@@ -1,7 +1,7 @@
 // skill.ts
 import { Effect, EffectContainer, EffectScheduler, EffectTrigger } from './effect'
 import { EffectContext, UseSkillContext } from './context'
-import { Type } from './type'
+import { Element } from './element'
 import { AttackTargetOpinion, OwnedEntity, Prototype } from './const'
 import { Pet } from './pet'
 
@@ -13,21 +13,21 @@ export enum SkillType {
 }
 
 export class Skill implements EffectContainer, Prototype, OwnedEntity {
-  private readonly effects: Effect[] = []
+  private readonly effects: Effect<EffectTrigger>[] = []
   public owner: Pet | null = null
 
   constructor(
     public readonly id: string,
     public readonly name: string,
     public readonly skillType: SkillType,
-    public readonly type: Type,
+    public readonly type: Element,
     public readonly power: number,
     public readonly accuracy: number,
     public readonly rageCost: number,
     public readonly priority: number = 0,
     public readonly target: AttackTargetOpinion = AttackTargetOpinion.opponent,
     public readonly sureHit: boolean = false,
-    effects: Effect[] = [],
+    effects: Effect<EffectTrigger>[] = [],
   ) {
     this.effects = effects
     this.effects.forEach(effect => effect.setOwner(this))
@@ -37,7 +37,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
     this.owner = owner
   }
 
-  getEffects(trigger: EffectTrigger): Effect[] {
+  getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[] {
     return this.effects.filter(e => e.trigger === trigger)
   }
 
@@ -45,7 +45,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
     this.effects
       .filter(effect => effect.trigger === trigger)
       .forEach(effect => {
-        const effectContext = new EffectContext(baseContext, this)
+        const effectContext = new EffectContext(baseContext, trigger, this)
         if (!effect.condition || effect.condition(effectContext)) {
           EffectScheduler.getInstance().addEffect(effect, effectContext)
         }
@@ -71,13 +71,13 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
   static Builder = class {
     private id = 'Unnamed'
     private name = 'Unnamed Skill'
-    private type = Type.Normal
+    private type = Element.Normal
     private power = 0
     private accuracy = 1
     private rageCost = 0
     private target = AttackTargetOpinion.opponent
     private skillType = SkillType.Physical
-    private effects: Effect[] = []
+    private effects: Effect<EffectTrigger>[] = []
     private priority: number = 0
     private sureHit: boolean = false
 
@@ -86,7 +86,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
       return this
     }
 
-    withType(type: Type) {
+    withType(type: Element) {
       this.type = type
       return this
     }
@@ -116,7 +116,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
       return this
     }
 
-    addEffect(effect: Effect) {
+    addEffect(effect: Effect<EffectTrigger>) {
       this.effects.push(effect)
       return this
     }

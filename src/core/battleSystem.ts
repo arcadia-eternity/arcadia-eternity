@@ -3,6 +3,7 @@ import { Pet } from './pet'
 import { RAGE_PER_TURN, AttackTargetOpinion } from './const'
 import {
   AddMarkContext,
+  AllContext,
   Context,
   RageContext,
   RemoveMarkContext,
@@ -74,7 +75,7 @@ export class BattleSystem extends Context {
     if (existingMark) {
       existingMark.tryStack(ctx)
     } else {
-      const newMark = ctx.mark.clone()
+      const newMark = ctx.mark.clone(ctx)
       this.marks.push(newMark)
       newMark.attachTo(this)
     }
@@ -95,16 +96,31 @@ export class BattleSystem extends Context {
     })
   }
 
-  //TODO: addContext
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private updateTurnMark(_: TurnContext) {
+  private updateTurnMark(ctx: TurnContext) {
     ;[this.playerA, this.playerB].forEach(player => {
-      player.activePet.marks.forEach(mark => mark.update())
+      player.activePet.marks.forEach(mark => mark.update(ctx))
       player.activePet.marks = player.activePet.marks.filter(mark => mark.isActive)
     })
   }
 
-  public applyEffects(ctx: Context, trigger: EffectTrigger) {
+  public cleanupMarks() {
+    // 清理战场标记
+    this.marks = this.marks.filter(mark => {
+      return mark.isActive
+    })
+
+    // 清理玩家精灵标记
+    const cleanPetMarks = (pet: Pet) => {
+      pet.marks = pet.marks.filter(mark => {
+        return mark.isActive
+      })
+    }
+
+    cleanPetMarks(this.playerA.activePet)
+    cleanPetMarks(this.playerB.activePet)
+  }
+
+  public applyEffects<T extends EffectTrigger>(ctx: AllContext, trigger: T) {
     const effectContainers: EffectContainer[] = [
       ...this.marks,
       ...this.playerA.activePet.marks,
@@ -167,25 +183,27 @@ export class BattleSystem extends Context {
     this.applyEffects(context, EffectTrigger.TurnStart)
 
     contextpop: while (contexts.length > 0) {
-      const context = contexts.pop()
-      if (!context) break
-      switch (context.type) {
+      const nowContext = contexts.pop()
+      if (!nowContext) break
+      switch (nowContext.type) {
         case 'use-skill': {
-          const _context = context as UseSkillContext
+          const _context = nowContext as UseSkillContext
           if (_context.origin.performAttack(_context)) break contextpop
           break
         }
         case 'switch-pet': {
-          const _context = context as SwitchPetContext
+          const _context = nowContext as SwitchPetContext
           _context.origin.performSwitchPet(_context)
           break
         }
       }
+      this.cleanupMarks()
     }
 
     this.applyEffects(context, EffectTrigger.TurnEnd)
     this.addTurnRage(context) // 每回合结束获得怒气
     this.updateTurnMark(context)
+    this.cleanupMarks()
 
     // 战斗结束后重置状态
     if (this.isBattleEnded()) {

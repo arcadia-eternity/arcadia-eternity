@@ -1,5 +1,5 @@
 import { Skill } from './skill'
-import { Type } from './type'
+import { Element } from './element'
 import {
   OwnedEntity,
   Prototype,
@@ -22,7 +22,7 @@ import { EffectTrigger } from './effect'
 export interface Species extends Prototype {
   id: string
   name: string
-  type: Type
+  type: Element
   baseStats: { [key in StatType]: number }
   genderRatio?: [number, number]
   abilities?: string //TODO: 特性
@@ -46,7 +46,7 @@ export class Pet implements OwnedEntity {
     evasion: [100, 0],
     ragePerTurn: [15, 0],
   }
-  public type: Type
+  public type: Element
   public isAlive: boolean = true
   public lastUseSkill: Skill | null = null
   public baseRageObtainEfficiency: number = 1
@@ -74,6 +74,12 @@ export class Pet implements OwnedEntity {
     if (ctx.source instanceof Pet) {
       ctx.battle.applyEffects(ctx, EffectTrigger.OnDamage)
     }
+    if (!ctx.available) {
+      ctx.battle.emitMessage(BattleMessageType.Info, {
+        message: `${this.name}受到的伤害被防止了！!`,
+      })
+      return this.isAlive
+    }
     this.currentHp = Math.max(0, this.currentHp - ctx.value)
     if (this.currentHp === 0) {
       this.isAlive = false
@@ -94,16 +100,24 @@ export class Pet implements OwnedEntity {
 
   public heal(ctx: HealContext): boolean {
     ctx.battle.applyEffects(ctx, EffectTrigger.OnHeal)
+    if (!ctx.available) {
+      ctx.battle.emitMessage(BattleMessageType.Info, {
+        message: `${this.name}受到的治疗被阻止了！!`,
+      })
+      return this.isAlive
+    }
     this.currentHp = Math.min(this.maxHp!, this.currentHp + ctx.value)
     return this.isAlive
   }
 
   public addMark(ctx: AddMarkContext) {
+    ctx.battle.applyEffects(ctx, EffectTrigger.OnAddMark)
+    if (!ctx.available) return
     const existingMark = this.marks.find(mark => mark.id === ctx.mark.id)
     if (existingMark) {
       existingMark.tryStack(ctx)
     } else {
-      const newMark = ctx.mark.clone()
+      const newMark = ctx.mark.clone(ctx)
       this.marks.push(newMark)
       newMark.attachTo(this)
     }
