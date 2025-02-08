@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "references": [{ "path": "./tsconfig.core.json" }],
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "types": ["node"],
+    "outDir": "./dist/server",
+    "sourceMap": true
+  },
+  "include": ["src/server/**/*"]
+}

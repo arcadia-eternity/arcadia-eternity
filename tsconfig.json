@@ -1,13 +1,18 @@
 {
   "compilerOptions": {
-    "target": "ES6",
-    "module": "esnext",
-    "moduleResolution": "bundler",
+    "target": "ESNext",
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist"
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@core/*": ["./src/core/*"]
+    },
+    "types": [],
+    "skipLibCheck": true
   },
-  "include": ["src/**/*", "test.ts"],
+  "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]
 }

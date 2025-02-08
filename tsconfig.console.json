@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "references": [{ "path": "./tsconfig.core.json" }],
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "types": ["node"],
+    "moduleResolution": "nodenext",
+    "outDir": "./dist/server",
+    "sourceMap": true
+  },
+  "include": ["test.ts", "src/consoleUI.ts"]
+}

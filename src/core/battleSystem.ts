@@ -3,7 +3,7 @@ import { Pet } from './pet'
 import { RAGE_PER_TURN, AttackTargetOpinion } from './const'
 import {
   AddMarkContext,
-  AllContext,
+  type AllContext,
   Context,
   RageContext,
   RemoveMarkContext,
@@ -11,11 +11,11 @@ import {
   TurnContext,
   UseSkillContext,
 } from './context'
-import { BattleMessage, BattleMessageType, BattleMessageData } from './message'
+import { type BattleMessage, BattleMessageType, type BattleMessageData } from './message'
 import { Player } from './player'
 import prand from 'pure-rand'
 import { Mark } from './mark'
-import { EffectContainer, EffectScheduler, EffectTrigger } from './effect'
+import { type EffectContainer, EffectScheduler, EffectTrigger } from './effect'
 
 export enum BattlePhase {
   SwitchPhase = 'SWITCH_PHASE',

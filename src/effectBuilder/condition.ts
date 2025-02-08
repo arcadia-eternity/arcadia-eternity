@@ -1,14 +1,15 @@
-import { Prototype } from '../core/const'
-import { EffectContext } from '../core/context'
+import { Prototype } from '@core/const'
+import { EffectContext } from '@core/context'
 import { ValueExtractor, ConditionOperator } from './effectBuilder'
 import { SelectorOpinion, ChainableSelector } from './selector'
+import { EffectTrigger } from '@core/effect'
 
 export function createDynamicCondition<T extends SelectorOpinion, U>(
   selector: ChainableSelector<T>,
   extractor: ValueExtractor<T, U>,
   operator: ConditionOperator<U>,
-): (ctx: EffectContext) => boolean {
-  return (ctx: EffectContext) => {
+): (ctx: EffectContext<EffectTrigger>) => boolean {
+  return (ctx: EffectContext<EffectTrigger>) => {
     try {
       const targets = selector.build()(ctx)
       const values = targets.flatMap(t => {
@@ -26,7 +27,7 @@ export function createDynamicCondition<T extends SelectorOpinion, U>(
 export const Conditions = {
   compare:
     <T extends number>(operator: '>' | '<' | '>=' | '<=' | '==') =>
-    (values: T[], ctx: EffectContext, compareValue: T): boolean => {
+    (values: T[], ctx: EffectContext<EffectTrigger>, compareValue: T): boolean => {
       return values.some(value => {
         switch (operator) {
           case '>':
@@ -53,21 +54,21 @@ export const Conditions = {
 
   any:
     <T>(...ops: ConditionOperator<T>[]): ConditionOperator<T> =>
-    (ctx: EffectContext, values: T[]) =>
+    (ctx: EffectContext<EffectTrigger>, values: T[]) =>
       ops.some(op => op(ctx, values)),
 
   all:
     <T>(...ops: ConditionOperator<T>[]): ConditionOperator<T> =>
-    (ctx: EffectContext, values: T[]) =>
+    (ctx: EffectContext<EffectTrigger>, values: T[]) =>
       ops.every(op => op(ctx, values)),
 
   probability:
     (percent: number): ConditionOperator<unknown> =>
-    (ctx: EffectContext) =>
+    (ctx: EffectContext<EffectTrigger>) =>
       ctx.battle.random() < percent / 100,
 
   turnCount:
     (predicate: (n: number) => boolean): ConditionOperator<unknown> =>
-    (ctx: EffectContext) =>
+    (ctx: EffectContext<EffectTrigger>) =>
       predicate(ctx.battle.currentTurn),
 }

@@ -1,14 +1,14 @@
 import { Skill } from './skill'
 import { Element } from './element'
 import {
-  OwnedEntity,
-  Prototype,
+  type OwnedEntity,
+  type Prototype,
   RAGE_PER_TURN,
-  StatBuffOnBattle,
-  StatOnBattle,
-  StatOutBattle,
+  type StatBuffOnBattle,
+  type StatOnBattle,
+  type StatOutBattle,
   StatType,
-  StatTypeOnBattle,
+  type StatTypeOnBattle,
   StatTypeOnlyBattle,
   StatTypeWithoutHp,
 } from './const'

@@ -1,28 +1,29 @@
-import { BattleSystem } from '../core/battleSystem'
-import { OwnedEntity, StatOnBattle } from '../core/const'
-import { EffectContext, UseSkillContext } from '../core/context'
-import { Mark } from '../core/mark'
-import { Pet } from '../core/pet'
-import { Player } from '../core/player'
-import { Skill } from '../core/skill'
-import { Element } from '../core/element'
+import { BattleSystem } from '@core/battleSystem'
+import { OwnedEntity, StatOnBattle } from '@core/const'
+import { EffectContext, UseSkillContext } from '@core/context'
+import { Mark } from '@core/mark'
+import { Pet } from '@core/pet'
+import { Player } from '@core/player'
+import { Skill } from '@core/skill'
+import { Element } from '@core/element'
 import { ValueExtractor, ConditionOperator, Operator, DynamicValue } from './effectBuilder'
+import { EffectTrigger } from '@core/effect'
 
 // 条件系统分为三个层级
 // 修改选择器类型定义
 
-export type TargetSelector<T> = (context: EffectContext) => T[]
+export type TargetSelector<T> = (context: EffectContext<EffectTrigger>) => T[]
 export type ValueSource<T extends SelectorOpinion, U extends SelectorOpinion> =
   | DynamicValue<T, U> // 直接值或目标相关值
   | TargetSelector<T> // 选择器系统产生的值
   | ChainableSelector<T> // 链式选择器
-  | ((ctx: EffectContext) => T[]) // 上下文相关值
+  | ((ctx: EffectContext<EffectTrigger>) => T[]) // 上下文相关值
 
 // 重构链式选择器类（支持类型转换）
 export class ChainableSelector<T extends SelectorOpinion> {
   constructor(private selector: TargetSelector<T>) {}
 
-  [Symbol.toPrimitive](context: EffectContext): T[] {
+  [Symbol.toPrimitive](context: EffectContext<EffectTrigger>): T[] {
     return this.selector(context)
   }
 
@@ -128,11 +129,11 @@ export class ChainableSelector<T extends SelectorOpinion> {
   }
 
   condition(conditioner: ConditionOperator<T>) {
-    return (ctx: EffectContext) => conditioner(ctx, this.selector(ctx))
+    return (ctx: EffectContext<EffectTrigger>) => conditioner(ctx, this.selector(ctx))
   }
 
   apply(operator: Operator<T>) {
-    return (ctx: EffectContext) => operator(ctx, this.selector(ctx))
+    return (ctx: EffectContext<EffectTrigger>) => operator(ctx, this.selector(ctx))
   }
 }
 // 类型增强装饰器
@@ -149,28 +150,28 @@ export const BattleTarget: {
   usingSkillContext: ChainableSelector<UseSkillContext>
   mark: ChainableSelector<Mark>
 } = {
-  self: createChainable<Pet>((context: EffectContext) => {
+  self: createChainable<Pet>((context: EffectContext<EffectTrigger>) => {
     if (context.source.owner instanceof Pet) return [context.source.owner]
     //TODO: error with use owners with global marks
     return []
   }),
-  foe: createChainable<Pet>((context: EffectContext) => {
+  foe: createChainable<Pet>((context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent.actualTarget!]
     if (context.source.owner instanceof Pet) return [context.battle.getOpponent(context.source.owner.owner!).activePet]
     //TODO: error with use owners with global marks
     return []
   }),
-  petOwners: createChainable<Player>((context: EffectContext) => {
+  petOwners: createChainable<Player>((context: EffectContext<EffectTrigger>) => {
     if (context.source.owner instanceof Pet) return [context.source.owner.owner!]
     //TODO: error with use owners with global marks
     return []
   }),
-  usingSkillContext: createChainable<UseSkillContext>((context: EffectContext) => {
+  usingSkillContext: createChainable<UseSkillContext>((context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent]
     //TODO: error with use get context with non-Useskill context
     return []
   }),
-  mark: createChainable<Mark>((context: EffectContext) => {
+  mark: createChainable<Mark>((context: EffectContext<EffectTrigger>) => {
     if (context.source instanceof Mark) return [context.source]
     //TODO: error with use get context with non-MarkEffect context
     return []

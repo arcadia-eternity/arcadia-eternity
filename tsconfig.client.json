@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "references": [{ "path": "./tsconfig.core.json" }],
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["DOM", "ESNext"],
+    "module": "ESNext",
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
+    "types": ["vite/client"],
+    "outDir": "./dist/client"
+  },
+  "include": ["src/client/**/*", "src/web/**/*"]
+}

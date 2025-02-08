@@ -1,8 +1,8 @@
-import { Effect, EffectContainer, EffectScheduler, EffectTrigger } from './effect'
-import { AddMarkContext, AllContext, EffectContext, TurnContext } from './context'
+import { Effect, type EffectContainer, EffectScheduler, EffectTrigger } from './effect'
+import { AddMarkContext, type AllContext, EffectContext, TurnContext } from './context'
 import { Pet } from './pet'
 import { BattleSystem } from './battleSystem'
-import { OwnedEntity, Prototype } from './const'
+import { type OwnedEntity, type Prototype } from './const'
 
 export type StackStrategy =
   | 'stack' // 叠加层数并刷新持续时间

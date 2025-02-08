@@ -1,8 +1,8 @@
 // skill.ts
-import { Effect, EffectContainer, EffectScheduler, EffectTrigger } from './effect'
+import { Effect, type EffectContainer, EffectScheduler, EffectTrigger } from './effect'
 import { EffectContext, UseSkillContext } from './context'
 import { Element } from './element'
-import { AttackTargetOpinion, OwnedEntity, Prototype } from './const'
+import { AttackTargetOpinion, type OwnedEntity, type Prototype } from './const'
 import { Pet } from './pet'
 
 export enum SkillType {
@@ -69,75 +69,76 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
   }
 
   static Builder = class {
-    private id = 'Unnamed'
-    private name = 'Unnamed Skill'
-    private type = Element.Normal
-    private power = 0
-    private accuracy = 1
-    private rageCost = 0
-    private target = AttackTargetOpinion.opponent
-    private skillType = SkillType.Physical
-    private effects: Effect<EffectTrigger>[] = []
-    private priority: number = 0
-    private sureHit: boolean = false
+    #id = 'Unnamed'
+    #name = 'Unnamed Skill'
+    #type = Element.Normal
+    #power = 0
+    #accuracy = 1
+    #rageCost = 0
+    #target = AttackTargetOpinion.opponent
+    #skillType = SkillType.Physical
+    #effects: Effect<EffectTrigger>[] = []
+    #priority: number = 0
+    #sureHit: boolean = false
 
     withName(name: string) {
-      this.name = name
+      this.#name = name
       return this
     }
 
     withType(type: Element) {
-      this.type = type
+      this.#type = type
       return this
     }
 
     withPower(power: number) {
-      this.power = power
+      this.#power = power
       return this
     }
 
     withAccuracy(accuracy: number) {
-      this.accuracy = accuracy
+      this.#accuracy = accuracy
       return this
     }
 
     withRageCost(cost: number) {
-      this.rageCost = cost
+      this.#rageCost = cost
       return this
     }
 
     withTarget(target: AttackTargetOpinion) {
-      this.target = target
+      this.#target = target
       return this
     }
 
     withSkillType(type: SkillType) {
-      this.skillType = type
+      this.#skillType = type
       return this
     }
 
     addEffect(effect: Effect<EffectTrigger>) {
-      this.effects.push(effect)
+      this.#effects.push(effect)
       return this
     }
 
     setSureHit() {
-      this.sureHit = true
+      this.#sureHit = true
+      return this
     }
 
     build() {
       return new Skill(
-        this.id,
-        this.name,
-        this.skillType,
-        this.type,
-        this.power,
-        this.accuracy,
-        this.rageCost,
-        this.priority,
-        this.target,
-        this.sureHit,
-        this.effects,
+        this.#id,
+        this.#name,
+        this.#skillType,
+        this.#type,
+        this.#power,
+        this.#accuracy,
+        this.#rageCost,
+        this.#priority,
+        this.#target,
+        this.#sureHit,
+        this.#effects,
       )
     }
   }

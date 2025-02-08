@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["ESNext", "DOM"],
+    "module": "ESNext",
+    "outDir": "./dist/core",
+    "declaration": true,
+    "declarationMap": true
+  },
+  "include": ["src/core/**/*", "src/effectBuilder/**/*"]
+}

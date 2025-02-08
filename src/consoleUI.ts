@@ -1,15 +1,15 @@
 import {
-  PlayerSelection,
-  UseSkillSelection,
-  SwitchPetSelection,
+  type PlayerSelection,
+  type UseSkillSelection,
+  type SwitchPetSelection,
   BattleSystem,
-  DoNothingSelection,
+  type DoNothingSelection,
   BattlePhase,
 } from './core/battleSystem'
 import { Player } from './core/player'
 import readline from 'readline'
 import { BattleUI } from './ui'
-import { BattleMessage, BattleMessageType } from './core/message'
+import { type BattleMessage, BattleMessageType } from './core/message'
 import { Pet } from './core/pet'
 import { ELEMENT_MAP } from './core/element'
 import { Mark } from './core/mark'
