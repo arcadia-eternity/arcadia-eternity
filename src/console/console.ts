@@ -5,15 +5,15 @@ import {
   BattleSystem,
   type DoNothingSelection,
   BattlePhase,
-} from './core/battleSystem'
-import { Player } from './core/player'
+} from '@core/battleSystem'
+import { Player } from '@core/player'
 import readline from 'readline'
 import { BattleUI } from './ui'
-import { type BattleMessage, BattleMessageType } from './core/message'
-import { Pet } from './core/pet'
-import { ELEMENT_MAP } from './core/element'
-import { Mark } from './core/mark'
-import { SkillType } from './core/skill'
+import { type BattleMessage, BattleMessageType } from '@core/message'
+import { Pet } from '@core/pet'
+import { ELEMENT_MAP } from '@core/element'
+import { Mark } from '@core/mark'
+import { SkillType } from '@core/skill'
 
 export class ConsoleUI extends BattleUI {
   protected battle: BattleSystem

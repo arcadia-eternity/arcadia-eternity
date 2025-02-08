@@ -1,4 +1,4 @@
-import { ConsoleUI } from './src/consoleUI'
+import { ConsoleUI } from './src/console/console'
 import { BattleActions } from './src/effectBuilder/operator'
 import { BattleTarget, BattleAttributes } from './src/effectBuilder/selector'
 import { BattleSystem } from './src/core/battleSystem'

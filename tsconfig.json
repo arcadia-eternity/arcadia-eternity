@@ -14,5 +14,12 @@
     "skipLibCheck": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "references": [
+    { "path": "./tsconfig.core.json" },
+    { "path": "./tsconfig.console.json" },
+    { "path": "./tsconfig.client.json" },
+    { "path": "./tsconfig.server.json" },
+    { "path": "./tsconfig.test.json" }
+  ]
 }
