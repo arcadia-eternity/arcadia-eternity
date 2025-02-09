@@ -1,0 +1,493 @@
+[
+    {
+        "id": 10001,
+        "name": "拍打",
+        "element": "Normal",
+        "category": "Physical",
+        "power": 40,
+        "rage": 0,
+        "accuracy": 95,
+        "description": "5%弱化对手物防1级"
+    },
+    {
+        "id": 10002,
+        "name": "水泡",
+        "element": "Water",
+        "category": "Special",
+        "power": 60,
+        "rage": 5,
+        "accuracy": 95,
+        "description": "5%弱化对手特防1级"
+    },
+    {
+        "id": 10003,
+        "name": "脱力",
+        "element": "Normal",
+        "category": "Status",
+        "power": 0,
+        "rage": 10,
+        "accuracy": 95,
+        "description": "弱化对手物攻1级"
+    },
+    {
+        "id": 10004,
+        "name": "弱点攻击",
+        "element": "Water",
+        "category": "Physical",
+        "power": 70,
+        "rage": 10,
+        "accuracy": 95,
+        "description": "攻击对手并留下弱点记号 使自身速度值增加50点 最多2个"
+    },
+    {
+        "id": 10005,
+        "name": "激流穿击",
+        "element": "Water",
+        "category": "Special",
+        "power": 75,
+        "rage": 15,
+        "accuracy": 95,
+        "description": "喷射出激流攻击对手 每1个记号使致命率增加45%"
+    },
+    {
+        "id": 10006,
+        "name": "洒水",
+        "element": "Water",
+        "category": "Status",
+        "power": 0,
+        "rage": 10,
+        "accuracy": 100,
+        "description": "向对手洒水降低对手的特攻"
+    },
+    {
+        "id": 10007,
+        "name": "以怒打怒",
+        "element": "Normal",
+        "category": "Physical",
+        "power": 10,
+        "rage": 5,
+        "accuracy": 95,
+        "description": "消除对手20点怒气"
+    },
+    {
+        "id": 10008,
+        "name": "海啸连击",
+        "element": "Water",
+        "category": "Special",
+        "power": 65,
+        "rage": 15,
+        "accuracy": 95,
+        "description": "刮起海啸连续冲击对手 每1个记号使连击数加1"
+    },
+    {
+        "id": 10009,
+        "name": "水流护体",
+        "element": "Water",
+        "category": "Status",
+        "power": 0,
+        "rage": 20,
+        "accuracy": 100,
+        "description": "召唤水流包围全身增加物防和特防"
+    },
+    {
+        "id": 10010,
+        "name": "弱化打击",
+        "element": "Normal",
+        "category": "Physical",
+        "power": 80,
+        "rage": 15,
+        "accuracy": 95,
+        "description": "5%弱化对手特防1级"
+    },
+    {
+        "id": 10011,
+        "name": "飞流瀑布",
+        "element": "Water",
+        "category": "Special",
+        "power": 100,
+        "rage": 15,
+        "accuracy": 95,
+        "description": "从上倾下瀑布攻击对手 每1个记号使威力增加50"
+    },
+    {
+        "id": 10012,
+        "name": "海浪之盾",
+        "element": "Water",
+        "category": "Status",
+        "power": 0,
+        "rage": 15,
+        "accuracy": 100,
+        "description": "展开海浪之盾抵御Special攻击"
+    },
+    {
+        "id": 10013,
+        "name": "无尽大漩涡",
+        "element": "Water",
+        "category": "Climax",
+        "power": 170,
+        "rage": 100,
+        "accuracy": 95,
+        "description": "必杀技 施展无尽大漩涡淹没对手"
+    },
+    {
+        "id": 10014,
+        "name": "水花溅射",
+        "element": "Water",
+        "category": "Special",
+        "power": 80,
+        "rage": 15,
+        "accuracy": 95,
+        "description": "发出水花溅射对手的眼睛使其命中率减少15%"
+    },
+    {
+        "id": 10015,
+        "name": "淹没",
+        "element": "Water",
+        "category": "Status",
+        "power": 0,
+        "rage": 20,
+        "accuracy": 85,
+        "description": "向对手施放大量潮水淹没对手 使其溺水"
+    },
+    {
+        "id": 10016,
+        "name": "弱点标记",
+        "element": "Water",
+        "category": "Special",
+        "power": 65,
+        "rage": 15,
+        "accuracy": 95,
+        "description": "在对手身上同时标记2个弱点记号 使自身速度值增加50点"
+    },
+    {
+        "id": 10018,
+        "name": "利爪",
+        "element": "Normal",
+        "category": "Physical",
+        "power": 45,
+        "rage": 0,
+        "accuracy": 95,
+        "description": "5%弱化对手物攻1级"
+    },
+    {
+        "id": 10019,
+        "name": "Fire焰",
+        "element": "Fire",
+        "category": "Special",
+        "power": 60,
+        "rage": 5,
+        "accuracy": 95,
+        "description": "5%弱化对手特攻1级"
+    },
+    {
+        "id": 10020,
+        "name": "气力",
+        "element": "Normal",
+        "category": "Status",
+        "power": 0,
+        "rage": 10,
+        "accuracy": 100,
+        "description": "集合气力增加自身的物攻"
+    },
+    {
+        "id": 10021,
+        "name": "奋力突破",
+        "element": "Normal",
+        "category": "Physical",
+        "power": 75,
+        "rage": 10,
+        "accuracy": 95,
+        "description": "奋力的突破对手的防御 使对手易伤"
+    },
+    {
+        "id": 10022,
+        "name": "踏火冲撞",
+        "element": "Fire",
+        "category": "Physical",
+        "power": 80,
+        "rage": 15,
+        "accuracy": 95,
+        "description": "5%使对手烧伤"
+    },
+    {
+        "id": 10023,
+        "name": "加速",
+        "element": "Physical",
+        "category": "Status",
+        "power": 0,
+        "rage": 10,
+        "accuracy": 100,
+        "description": "脚下生风 提升自身的速度"
+    },
+    {
+        "id": 10024,
+        "name": "佯攻",
+        "element": "Normal",
+        "category": "Physical",
+        "power": 75,
+        "rage": 15,
+        "accuracy": 95,
+        "priority": 2,
+        "description": "超速的佯装攻击 并使下一个除佯攻外技能威力增加50 先制+2"
+    },
+    {
+        "id": 10025,
+        "name": "集中",
+        "element": "Physical",
+        "category": "Status",
+        "power": 0,
+        "rage": 10,
+        "accuracy": 100,
+        "description": "集中精力 使技能必中"
+    },
+    {
+        "id": 10026,
+        "name": "火海",
+        "element": "Fire",
+        "category": "Special",
+        "power": 70,
+        "rage": 15,
+        "accuracy": 90,
+        "description": "放出大片Fire海包围对手 50%几率烧伤对手"
+    },
+    {
+        "id": 10027,
+        "name": "怒火猛攻",
+        "element": "Fire",
+        "category": "Physical",
+        "power": 100,
+        "rage": 20,
+        "accuracy": 95,
+        "description": "怒火集中猛攻对手 造成的伤害不低于100"
+    },
+    {
+        "id": 10028,
+        "name": "嗜血",
+        "element": "Physical",
+        "category": "Status",
+        "power": 0,
+        "rage": 0,
+        "accuracy": 100,
+        "description": "蒸发血液获得怒气 减少自身1/6体力增加35点怒气"
+    },
+    {
+        "id": 10029,
+        "name": "烈焰绝袭击",
+        "element": "Fire",
+        "category": "Physical",
+        "power": 125,
+        "rage": 30,
+        "accuracy": 95,
+        "description": "5%弱化对手物防1级"
+    },
+    {
+        "id": 10030,
+        "name": "烈火焚天烧",
+        "element": "Fire",
+        "category": "Climax",
+        "power": 175,
+        "rage": 100,
+        "accuracy": 95,
+        "description": "必杀技 召唤巨大火焰焚烧一切"
+    },
+    {
+        "id": 10031,
+        "name": "炎之意志",
+        "element": "Fire",
+        "category": "Status",
+        "power": 0,
+        "rage": 15,
+        "accuracy": 100,
+        "description": "燃起火焰斗气 使下一个技能伤害增加100%"
+    },
+    {
+        "id": 10032,
+        "name": "绝处逢生",
+        "element": "Normal",
+        "category": "Physical",
+        "power": 50,
+        "rage": 10,
+        "accuracy": 95,
+        "description": "背水一战 自身体力低于1/6时威力4倍"
+    },
+    {
+        "id": 10033,
+        "name": "不灭之心",
+        "element": "Physical",
+        "category": "Status",
+        "power": 0,
+        "rage": 25,
+        "accuracy": 100,
+        "description": "获得不灭的意志 下一次受到致死攻击会剩下1点体力"
+    },
+    {
+        "id": 10034,
+        "name": "冲撞",
+        "element": "Normal",
+        "category": "Physical",
+        "power": 35,
+        "rage": 0,
+        "accuracy": 95,
+        "description": "5%弱化对手速度1级"
+    },
+    {
+        "id": 10035,
+        "name": "种子爆弹",
+        "element": "Grass",
+        "category": "Special",
+        "power": 25,
+        "rage": 5,
+        "accuracy": 95,
+        "description": "连击2~3次"
+    },
+    {
+        "id": 10036,
+        "name": "治愈",
+        "element": "Grass",
+        "category": "Status",
+        "power": 0,
+        "rage": 20,
+        "accuracy": 100,
+        "description": "用叶子滋润 恢复自身1/4的体力"
+    },
+    {
+        "id": 10037,
+        "name": "种子能量",
+        "element": "Grass",
+        "category": "Special",
+        "power": 60,
+        "rage": 10,
+        "accuracy": 95,
+        "description": "攻击对手同时给自身增加4个种子 减少20%受到的伤害"
+    },
+    {
+        "id": 10038,
+        "name": "能量释放",
+        "element": "Grass",
+        "category": "Special",
+        "power": 50,
+        "rage": 15,
+        "accuracy": 95,
+        "description": "释放所有种子能量攻击对手 每1个种子使威力增加25"
+    },
+    {
+        "id": 10039,
+        "name": "削弱",
+        "element": "Normal",
+        "category": "Status",
+        "power": 0,
+        "rage": 20,
+        "accuracy": 95,
+        "description": "削弱对手的物攻和特攻"
+    },
+    {
+        "id": 10040,
+        "name": "飞叶速射",
+        "element": "Grass",
+        "category": "Special",
+        "power": 25,
+        "rage": 15,
+        "accuracy": 95,
+        "description": "连续射出3~5片飞叶攻击对手"
+    },
+    {
+        "id": 10041,
+        "name": "寄生种子",
+        "element": "Grass",
+        "category": "Status",
+        "power": 0,
+        "rage": 15,
+        "accuracy": 95,
+        "description": "放出寄生种子吸收对手体力补充自身"
+    },
+    {
+        "id": 10042,
+        "name": "能量榨取",
+        "element": "Grass",
+        "category": "Physical",
+        "power": 80,
+        "rage": 15,
+        "accuracy": 95,
+        "description": "榨取对手的体力 每1个种子可恢复伤害量1/4的体力"
+    },
+    {
+        "id": 10043,
+        "name": "净化汁液",
+        "element": "Grass",
+        "category": "Status",
+        "power": 0,
+        "rage": 20,
+        "accuracy": 100,
+        "description": "放出一滴净化汁液来清除对手能力强化"
+    },
+    {
+        "id": 10044,
+        "name": "利刃刀叶",
+        "element": "Grass",
+        "category": "Special",
+        "power": 10,
+        "rage": 15,
+        "accuracy": 95,
+        "description": "利用锋利的叶子割伤对手 每1个种子增加1回合持续时间"
+    },
+    {
+        "id": 10045,
+        "name": "干扰",
+        "element": "Normal",
+        "category": "Status",
+        "power": 0,
+        "rage": 10,
+        "accuracy": 95,
+        "description": "干扰对手 使其命中率减少15%"
+    },
+    {
+        "id": 10046,
+        "name": "拉奥的呼唤",
+        "element": "Grass",
+        "category": "Climax",
+        "power": 165,
+        "rage": 100,
+        "accuracy": 95,
+        "description": "必杀技 呼唤拉奥一族协助攻击并回复自身"
+    },
+    {
+        "id": 10047,
+        "name": "千叶杀",
+        "element": "Grass",
+        "category": "Special",
+        "power": 100,
+        "rage": 10,
+        "accuracy": 95,
+        "description": "发射出千片叶子击杀对手 对手体力低于1/4时威力2倍"
+    },
+    {
+        "id": 10048,
+        "name": "寄生炸弹",
+        "element": "Grass",
+        "category": "Status",
+        "power": 0,
+        "rage": 15,
+        "accuracy": 95,
+        "description": "给对手身上注入一个3回合爆炸的寄生炸弹 爆炸伤害为300"
+    },
+    {
+        "id": 10049,
+        "name": "引爆种子",
+        "element": "Normal",
+        "category": "Status",
+        "power": 0,
+        "rage": 20,
+        "accuracy": 100,
+        "description": "利用种子能量瞬间引爆寄生炸弹"
+    },
+    {
+        "id": 10017,
+        "name": "迪休拉之怒",
+        "element": "Normal",
+        "category": "Climax",
+        "power": 90,
+        "rage": 100,
+        "accuracy": 95,
+        "description": "合体必杀 迪兰特 休罗斯 拉奥叶 合力攻击"
+    }
+]

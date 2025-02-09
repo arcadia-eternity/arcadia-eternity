@@ -18,7 +18,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
   public isActive: boolean = true
 
   constructor(
-    public readonly id: string,
+    public readonly id: number,
     public readonly name: string,
     private readonly effects: Effect<EffectTrigger>[],
     private config: {
@@ -27,7 +27,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
       maxStacks?: number
       stackable?: boolean
       stackStrategy?: StackStrategy
-      destoyable: boolean
+      destoyable?: boolean
     } = {
       destoyable: true,
     },
@@ -169,14 +169,14 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
 }
 
 export class MarkRegistry {
-  private static marks = new Map<string, Effect<EffectTrigger>[]>()
+  private static marks = new Map<number, Effect<EffectTrigger>[]>()
 
-  static register(id: string, effects: Effect<EffectTrigger>[]) {
+  static register(id: number, effects: Effect<EffectTrigger>[]) {
     this.marks.set(id, effects)
   }
 
   static create(
-    id: string,
+    id: number,
     name: string,
     config?: {
       duration?: number

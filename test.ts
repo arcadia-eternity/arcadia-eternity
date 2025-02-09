@@ -8,7 +8,7 @@ import { Mark } from './src/core/mark'
 import { Nature } from './src/core/nature'
 import { Species, Pet } from './src/core/pet'
 import { Player } from './src/core/player'
-import { Skill, SkillType } from './src/core/skill'
+import { Skill, Category } from './src/core/skill'
 import { Element } from './src/core/element'
 
 const burn = new Mark(
@@ -31,7 +31,7 @@ const burn = new Mark(
 const penshehuoyan = new Skill(
   'penshehuoyan',
   '喷射火焰',
-  SkillType.Physical,
+  Category.Physical,
   Element.Fire,
   80,
   1,
@@ -78,7 +78,7 @@ const venusaur: Pet = new Pet(
     spe: 31,
   },
   Nature.Modest,
-  [penshehuoyan, new Skill('jishengzhongzi', '寄生种子', SkillType.Status, Element.Grass, 0, 1, 20, 1)],
+  [penshehuoyan, new Skill('jishengzhongzi', '寄生种子', Category.Status, Element.Grass, 0, 1, 20, 1)],
 )
 
 // 皮卡丘系列
@@ -118,8 +118,8 @@ const thunderPikachu: Pet = new Pet(
   },
   Nature.Timid,
   [
-    new Skill('shiwanfute', '十万伏特', SkillType.Special, Element.Electric, 90, 1, 15, 1),
-    new Skill('dianguangyishan', '电光一闪', SkillType.Physical, Element.Normal, 40, 1, 30, 1),
+    new Skill('shiwanfute', '十万伏特', Category.Special, Element.Electric, 90, 1, 15, 1),
+    new Skill('dianguangyishan', '电光一闪', Category.Physical, Element.Normal, 40, 1, 30, 1),
   ],
 )
 
@@ -160,8 +160,8 @@ const shadowGengar: Pet = new Pet(
   },
   Nature.Timid,
   [
-    new Skill('anyingqiu', '暗影球', SkillType.Special, Element.Shadow, 80, 1, 15, 0),
-    new Skill('wunizhadan', '污泥炸弹', SkillType.Special, Element.Grass, 90, 1, 10, 0),
+    new Skill('anyingqiu', '暗影球', Category.Special, Element.Shadow, 80, 1, 15, 0),
+    new Skill('wunizhadan', '污泥炸弹', Category.Special, Element.Grass, 90, 1, 10, 0),
   ],
 )
 
@@ -201,7 +201,7 @@ const stormDragon: Pet = new Pet(
     spe: 31,
   },
   Nature.Adamant,
-  [penshehuoyan, new Skill('shensu', '神速', SkillType.Physical, Element.Normal, 80, 1, 5, 2)],
+  [penshehuoyan, new Skill('shensu', '神速', Category.Physical, Element.Normal, 80, 1, 5, 2)],
 )
 
 const player2 = new Player('小茂', stormDragon, [stormDragon, shadowGengar])

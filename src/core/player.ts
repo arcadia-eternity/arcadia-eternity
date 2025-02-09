@@ -10,7 +10,7 @@ import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from '.
 import { EffectTrigger } from './effect'
 import { BattleMessageType } from './message'
 import { Pet } from './pet'
-import { SkillType } from './skill'
+import { Category } from './skill'
 import { ELEMENT_CHART } from './element'
 
 export class Player {
@@ -42,7 +42,7 @@ export class Player {
   public getAvailableSkills(): UseSkillSelection[] {
     return this.activePet.skills
       .filter(
-        skill => skill.rageCost <= this.currentRage, // 怒气足够
+        skill => skill.rage <= this.currentRage, // 怒气足够
       )
       .map(
         skill =>
@@ -74,7 +74,7 @@ export class Player {
     if (selection.type !== 'use-skill') {
       throw new Error("Invalid action type. Expected 'use-skill'.")
     }
-    return selection.source.currentRage >= selection.skill.rageCost
+    return selection.source.currentRage >= selection.skill.rage
   }
 
   private checkDoNothingActionAvailable() {
@@ -171,7 +171,7 @@ export class Player {
       return false
     }
 
-    context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.skill.rageCost))
+    context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.skill.rage))
 
     // 命中判定
     if (this.battle!.random() > context.skill.accuracy) {
@@ -186,7 +186,7 @@ export class Player {
     }
 
     // 伤害计算
-    if (context.skill.skillType !== SkillType.Status) {
+    if (context.skill.category !== Category.Status) {
       // 暴击判定
       context.crit = context.crit || Math.random() < attacker.stat.critRate
       if (context.crit) this.battle!.applyEffects(context, EffectTrigger.OnCritPreDamage)
@@ -195,18 +195,18 @@ export class Player {
       let atk = 0
       let def = 0
       let damageType: DamageType
-      switch (context.skill.skillType) {
-        case SkillType.Physical:
+      switch (context.skill.category) {
+        case Category.Physical:
           atk = attacker.stat.atk
           def = defender.stat.def
           damageType = DamageType.physical
           break
-        case SkillType.Special:
+        case Category.Special:
           atk = attacker.stat.spa
           def = defender.stat.spd
           damageType = DamageType.special
           break
-        case SkillType.Climax:
+        case Category.Climax:
           if (attacker.stat.atk > attacker.stat.spa) {
             atk = attacker.stat.atk
             def = defender.stat.def

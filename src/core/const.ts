@@ -56,7 +56,7 @@ export enum AttackTargetOpinion {
 
 //Pet,Skill,Mark,Effect
 export interface Prototype {
-  id: string
+  id: number
 }
 
 export interface OwnedEntity {

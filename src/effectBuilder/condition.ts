@@ -4,6 +4,15 @@ import { ValueExtractor, ConditionOperator } from './effectBuilder'
 import { SelectorOpinion, ChainableSelector } from './selector'
 import { EffectTrigger } from '@core/effect'
 
+export type Condition<T = unknown> =
+  | { type: 'compare'; operator: '>' | '<' | '>=' | '<=' | '=='; value: number }
+  | { type: 'hasId'; id: number }
+  | { type: 'any'; conditions: Condition<T>[] }
+  | { type: 'all'; conditions: Condition<T>[] }
+  | { type: 'probability'; percent: number }
+  | { type: 'turnCount'; predicate: (n: number) => boolean }
+  | { type: 'custom'; operator: ConditionOperator<T> }
+
 export function createDynamicCondition<T extends SelectorOpinion, U>(
   selector: ChainableSelector<T>,
   extractor: ValueExtractor<T, U>,
@@ -47,7 +56,7 @@ export const Conditions = {
     },
 
   hasId:
-    <T extends Prototype>(id: string) =>
+    <T extends Prototype>(id: number) =>
     (values: T[]): boolean => {
       return values.some(v => v.id === id)
     },

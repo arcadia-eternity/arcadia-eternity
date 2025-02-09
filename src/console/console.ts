@@ -13,7 +13,7 @@ import { type BattleMessage, BattleMessageType } from '@core/message'
 import { Pet } from '@core/pet'
 import { ELEMENT_MAP } from '@core/element'
 import { Mark } from '@core/mark'
-import { SkillType } from '@core/skill'
+import { Category } from '@core/skill'
 
 export class ConsoleUI extends BattleUI {
   protected battle: BattleSystem
@@ -232,15 +232,15 @@ export class ConsoleUI extends BattleUI {
     const validSkills = actions.filter((a): a is UseSkillSelection => a.type === 'use-skill')
     validSkills.forEach((a, i) => {
       const skillTypeIcon = {
-        [SkillType.Physical]: '⚔️',
-        [SkillType.Special]: '🔮',
-        [SkillType.Status]: '⭐',
-        [SkillType.Climax]: '⚡',
-      }[a.skill.skillType]
+        [Category.Physical]: '⚔️',
+        [Category.Special]: '🔮',
+        [Category.Status]: '⭐',
+        [Category.Climax]: '⚡',
+      }[a.skill.category]
 
-      const powerText = a.skill.skillType === SkillType.Status ? '' : `, 威力:${a.skill.power}`
+      const powerText = a.skill.category === Category.Status ? '' : `, 威力:${a.skill.power}`
       console.log(
-        `${i + 1}. 使用技能: ${ELEMENT_MAP[a.skill.type].emoji}${a.skill.name} (${skillTypeIcon}${powerText}, 消耗:${a.skill.rageCost})`,
+        `${i + 1}. 使用技能: ${ELEMENT_MAP[a.skill.type].emoji}${a.skill.name} (${skillTypeIcon}${powerText}, 消耗:${a.skill.rage})`,
       )
     })
 

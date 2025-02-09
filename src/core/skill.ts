@@ -5,7 +5,7 @@ import { Element } from './element'
 import { AttackTargetOpinion, type OwnedEntity, type Prototype } from './const'
 import { Pet } from './pet'
 
-export enum SkillType {
+export enum Category {
   Physical = 'Physical',
   Special = 'Special',
   Status = 'Status',
@@ -17,13 +17,13 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
   public owner: Pet | null = null
 
   constructor(
-    public readonly id: string,
+    public readonly id: number,
     public readonly name: string,
-    public readonly skillType: SkillType,
+    public readonly category: Category,
     public readonly type: Element,
     public readonly power: number,
     public readonly accuracy: number,
-    public readonly rageCost: number,
+    public readonly rage: number,
     public readonly priority: number = 0,
     public readonly target: AttackTargetOpinion = AttackTargetOpinion.opponent,
     public readonly sureHit: boolean = false,
@@ -56,11 +56,11 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
     return new Skill(
       this.id,
       this.name,
-      this.skillType,
+      this.category,
       this.type,
       this.power,
       this.accuracy,
-      this.rageCost,
+      this.rage,
       this.priority,
       this.target,
       this.sureHit,
@@ -69,14 +69,14 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
   }
 
   static Builder = class {
-    #id = 'Unnamed'
+    #id = 0
     #name = 'Unnamed Skill'
     #type = Element.Normal
     #power = 0
     #accuracy = 1
     #rageCost = 0
     #target = AttackTargetOpinion.opponent
-    #skillType = SkillType.Physical
+    #skillType = Category.Physical
     #effects: Effect<EffectTrigger>[] = []
     #priority: number = 0
     #sureHit: boolean = false
@@ -111,7 +111,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
       return this
     }
 
-    withSkillType(type: SkillType) {
+    withSkillType(type: Category) {
       this.#skillType = type
       return this
     }

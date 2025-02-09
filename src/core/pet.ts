@@ -20,12 +20,12 @@ import { BattleMessageType } from './message'
 import { EffectTrigger } from './effect'
 
 export interface Species extends Prototype {
-  id: string
+  id: number
   name: string
   type: Element
   baseStats: { [key in StatType]: number }
   genderRatio?: [number, number]
-  abilities?: Mark[] //TODO: 特性
+  abilities?: Mark //TODO: 特性
   emblem?: Mark[] //TODO: 纹章
 }
 
