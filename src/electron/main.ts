@@ -1,10 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import path from 'path'
 import fs from 'fs/promises'
-import { validateMark } from '../src/protocol/mark'
-import { validateSkill } from '../src/protocol/skill'
-import { validateSpecies } from '../src/protocol/species'
-
 const isDev = process.env.NODE_ENV === 'development'
 
 async function createWindow() {
@@ -32,12 +28,12 @@ async function createWindow() {
   })
 }
 
-// 数据验证映射
-const validators = {
-  mark: validateMark,
-  skill: validateSkill,
-  species: validateSpecies,
-}
+// // 数据验证映射
+// const validators = {
+//   mark: validateMark,
+//   skill: validateSkill,
+//   species: validateSpecies,
+// }
 
 // 带校验的数据写入
 ipcMain.handle('write-data', async (_, type: keyof typeof validators, content: string) => {

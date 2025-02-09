@@ -50,6 +50,8 @@ export class UseSkillContext extends Context {
   maxThreshold?: number = undefined // 最大伤害阈值数值
   crit: boolean = false
   sureHit: boolean = false
+  multihit: [number, number] | number = 1
+  multihitResult = 1
 
   constructor(
     public readonly parent: TurnContext,

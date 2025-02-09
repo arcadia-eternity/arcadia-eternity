@@ -11,7 +11,7 @@ const ElementSchema = z.nativeEnum(Element)
 const CategorySchema = z.nativeEnum(Category)
 
 // 技能基础校验
-const BaseSkillSchema = z.object({
+export const SkillSchema = z.object({
   /** 技能ID */
   id: z.number().int().positive(),
   /** 技能名称 */
@@ -28,14 +28,9 @@ const BaseSkillSchema = z.object({
   accuracy: z.number().min(0).max(100),
   /** 技能描述 */
   description: z.string(),
-})
 
-// 扩展技能校验（包含可选字段）
-export const SkillSchema = BaseSkillSchema.extend({
-  /** 先制度（仅部分技能有） */
   priority: z.number().int().optional(),
 })
-
 // 推导 TypeScript 类型
 export type Skill = z.infer<typeof SkillSchema>
 

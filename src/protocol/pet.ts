@@ -1,6 +1,5 @@
 import { Nature } from '@/core/nature'
 import { z } from 'zod'
-import { SkillSchema } from './skill'
 
 const StatOutBattleSchema = z.object({
   hp: z.number().int().nonnegative(),
@@ -18,7 +17,7 @@ export const PetSchema = z.object({
   evs: StatOutBattleSchema,
   ivs: StatOutBattleSchema,
   nature: z.nativeEnum(Nature),
-  skills: z.array(SkillSchema).min(1).max(4), // 假设最多4个技能
+  skills: z.array(z.string()).min(1).max(5),
   maxHp: z.number().int().positive().optional(),
   abilities: z.string(),
   emblem: z.string(),

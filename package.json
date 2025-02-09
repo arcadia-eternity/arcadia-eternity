@@ -17,6 +17,7 @@
     "electron": "^34.1.1",
     "electron-builder": "^25.1.8",
     "js-yaml": "^4.1.0",
+    "prando": "^6.0.1",
     "pure-rand": "^6.1.0",
     "vue": "^3.5.13",
     "zod": "^3.24.1"

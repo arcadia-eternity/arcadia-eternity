@@ -92,7 +92,7 @@ export enum EffectTrigger {
 export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity {
   public owner: Skill | Mark | null = null
   constructor(
-    public readonly id: string,
+    public readonly id: number,
     public readonly trigger: EffectTrigger,
     public readonly apply: (ctx: EffectContext<T>) => void,
     public readonly priority: number,

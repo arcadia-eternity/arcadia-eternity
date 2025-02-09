@@ -26,6 +26,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
     public readonly rage: number,
     public readonly priority: number = 0,
     public readonly target: AttackTargetOpinion = AttackTargetOpinion.opponent,
+    public readonly multihit: [number, number] | number = 1,
     public readonly sureHit: boolean = false,
     effects: Effect<EffectTrigger>[] = [],
   ) {
@@ -63,6 +64,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
       this.rage,
       this.priority,
       this.target,
+      this.multihit,
       this.sureHit,
       this.effects,
     )
@@ -80,6 +82,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
     #effects: Effect<EffectTrigger>[] = []
     #priority: number = 0
     #sureHit: boolean = false
+    #multihit: [number, number] | number = 0
 
     withName(name: string) {
       this.#name = name
@@ -126,6 +129,10 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
       return this
     }
 
+    withMultihit(hit: [number, number] | number) {
+      this.#multihit = hit
+    }
+
     build() {
       return new Skill(
         this.#id,
@@ -137,6 +144,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
         this.#rageCost,
         this.#priority,
         this.#target,
+        this.#multihit,
         this.#sureHit,
         this.#effects,
       )

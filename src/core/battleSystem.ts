@@ -13,7 +13,7 @@ import {
 } from './context'
 import { type BattleMessage, BattleMessageType, type BattleMessageData } from './message'
 import { Player } from './player'
-import prand from 'pure-rand'
+import Prando from 'prando'
 import { Mark } from './mark'
 import { type EffectContainer, EffectScheduler, EffectTrigger } from './effect'
 
@@ -37,7 +37,7 @@ export class BattleSystem extends Context {
   public allowKillerSwitch: boolean
   public lastKiller?: Player
   public marks: Mark[] = [] //用于存放天气一类的效果
-  private rng: prand.RandomGenerator = prand.xoroshiro128plus(Date.now() ^ (Math.random() * 0x100000000))
+  private rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
 
   constructor(
     public readonly playerA: Player,
@@ -46,7 +46,7 @@ export class BattleSystem extends Context {
   ) {
     super(null)
     this.allowKillerSwitch = options?.allowKillerSwitch ?? true
-    if (options?.rngSeed) this.rng = prand.xoroshiro128plus(options.rngSeed)
+    if (options?.rngSeed) this.rng = new Prando(options.rngSeed)
     this.playerA.registerBattle(this)
     this.playerB.registerBattle(this)
   }
@@ -57,7 +57,11 @@ export class BattleSystem extends Context {
   }
 
   public random() {
-    return prand.unsafeUniformIntDistribution(0, 1, this.rng)
+    return this.rng.next()
+  }
+
+  public randomInt(min: number, max: number) {
+    return this.rng.nextInt(min, max)
   }
 
   // 发送消息给所有回调
