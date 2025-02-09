@@ -17,6 +17,7 @@ import { SkillType } from '@core/skill'
 
 export class ConsoleUI extends BattleUI {
   protected battle: BattleSystem
+  private messages: BattleMessage[] = []
   constructor(
     battle: BattleSystem,
     private playerA: Player,
@@ -36,6 +37,7 @@ export class ConsoleUI extends BattleUI {
   private getMarkStatus = (mark: Mark) => `{<${mark.name}> [剩余${mark.duration}回合] ${mark.stacks}层}`
 
   private handleMessage(message: BattleMessage) {
+    this.messages.push(message)
     switch (message.type) {
       case BattleMessageType.BattleStart:
         console.log(`⚔️ 对战开始！`)
@@ -128,7 +130,7 @@ export class ConsoleUI extends BattleUI {
         break
 
       case BattleMessageType.ForcedSwitch:
-        console.log(`${message.data.player.name}必须更换倒下的精灵！`)
+        console.log(`${message.data.player.join(',')} 必须更换倒下的精灵！`)
         break
 
       case BattleMessageType.Crit: {
@@ -143,6 +145,11 @@ export class ConsoleUI extends BattleUI {
 
       case BattleMessageType.Info: {
         console.log(`INFO: ${message.data.message}`)
+        break
+      }
+
+      case BattleMessageType.TurnAction: {
+        console.log(`===========选择============`)
         break
       }
 
@@ -298,8 +305,10 @@ export class ConsoleUI extends BattleUI {
     let generator = battle.next() // 初始化生成器
 
     while (!generator.done) {
+      const lastMessage = this.messages.findLast(() => true)
+
       // 处理强制换宠阶段
-      if (this.battle.pendingDefeatedPlayers.length > 0) {
+      if (lastMessage?.type == BattleMessageType.ForcedSwitch) {
         const player = this.battle.getPendingSwitchPlayer()
         if (player && !player.selection) {
           console.log(`\n==== ${player.name} 必须更换倒下的精灵 ====`)
@@ -311,10 +320,12 @@ export class ConsoleUI extends BattleUI {
       }
 
       // 处理击破奖励换宠
-      if (this.battle.allowKillerSwitch && this.battle.lastKiller && !this.battle.lastKiller.selection) {
-        console.log(`\n==== ${this.battle.lastKiller.name} 获得击破奖励换宠机会 ====`)
-        const action = await this.handleKillerSwitch(this.battle.lastKiller)
-        this.battle.lastKiller.selection = action
+      if (lastMessage?.type == BattleMessageType.KillerSwitch) {
+        console.log(`\n==== ${lastMessage.data.player} 获得击破奖励换宠机会 ====`)
+        const player = [this.playerA, this.playerB].find(player => player.name === lastMessage.data.player)
+        if (!player) continue
+        const action = await this.handleKillerSwitch(player)
+        player.selection = action
         generator = battle.next()
         continue
       }

@@ -27,7 +27,10 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
       maxStacks?: number
       stackable?: boolean
       stackStrategy?: StackStrategy
-    } = {},
+      destoyable: boolean
+    } = {
+      destoyable: true,
+    },
     private readonly tags: string[] = [],
   ) {
     this.duration = config.duration ?? 3
@@ -154,7 +157,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
   }
 
   destory(ctx: EffectContext<EffectTrigger> | TurnContext) {
-    if (!this.isActive) return
+    if (!this.isActive || !this.config.destoyable) return
     this.isActive = false
 
     // 触发移除效果
@@ -179,6 +182,7 @@ export class MarkRegistry {
       duration?: number
       persistent?: boolean
       maxStacks?: number
+      destoyable: boolean
     },
     tags: string[] = [],
   ): Mark {

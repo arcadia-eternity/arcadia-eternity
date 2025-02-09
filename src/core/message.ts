@@ -1,5 +1,4 @@
 import { BattlePhase } from './battleSystem'
-import { Player } from './player'
 import { StatTypeOnBattle } from './const'
 
 // battleSystem.ts
@@ -41,10 +40,11 @@ export enum BattleMessageType {
   MarkTrigger = 'MARK_TRIGGER',
   MarkExpire = 'MARK_EXPIRE',
 
-  // 系统信息
+  // 需要等待回应的信息
   TurnAction = 'TURN_ACTION',
   ForcedSwitch = 'FORCED_SWITCH',
   KillerSwitch = 'KILLER_SWITCH',
+
   InvalidAction = 'INVALID_ACTION',
   Info = 'INFO',
   Error = 'ERROR',
@@ -223,18 +223,13 @@ export interface BattleMessageData {
     target: string
   }
 
-  [BattleMessageType.TurnAction]: {
-    player: string
-    actionType: 'skill' | 'switch' | 'item' | 'wait'
-    actionDetail: string
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  [BattleMessageType.TurnAction]: {} //TODO: 我寻思应该不需要特别的信息来提示该选择了
   [BattleMessageType.ForcedSwitch]: {
-    player: Player
-    required: boolean
+    player: string[]
   }
   [BattleMessageType.KillerSwitch]: {
     player: string
-    available: boolean
   }
   [BattleMessageType.InvalidAction]: {
     player: string

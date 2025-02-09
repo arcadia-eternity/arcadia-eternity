@@ -50,7 +50,7 @@ export const ELEMENT_MAP: { [key: string]: { name: string; emoji: string } } = {
   ElfKing: { name: '精灵王', emoji: '🧝‍♂️' },
 }
 
-export const TYPE_CHART: Record<Element, Record<Element, number>> = {
+export const ELEMENT_CHART: Record<Element, Record<Element, number>> = {
   [Element.Normal]: {
     [Element.Normal]: 1,
     [Element.Grass]: 1,

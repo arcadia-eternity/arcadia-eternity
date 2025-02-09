@@ -226,8 +226,9 @@ export class BattleSystem extends Context {
 
   private contextSort(a: Context, b: Context): number {
     // 类型优先级：换宠 > 印记效果 > 使用技能
+    // 等下，真的有印记效果会在这个时候触发吗？
     const typeOrder: Record<Context['type'], number> = {
-      'switch-pet': 2,
+      'switch-pet': 1,
       'use-skill': 0,
     }
 
@@ -295,6 +296,9 @@ export class BattleSystem extends Context {
           while (
             ![...this.pendingDefeatedPlayers].every(player => player.selection && player.selection.type == 'switch-pet')
           ) {
+            this.emitMessage(BattleMessageType.ForcedSwitch, {
+              player: this.pendingDefeatedPlayers.map(player => player.name),
+            })
             yield
           }
           ;[...this.pendingDefeatedPlayers].forEach(player => {
@@ -311,7 +315,6 @@ export class BattleSystem extends Context {
       if (this.allowKillerSwitch && this.lastKiller) {
         this.battle!.emitMessage(BattleMessageType.KillerSwitch, {
           player: this.lastKiller.name,
-          available: this.battle!.allowKillerSwitch,
         })
         yield // 等待玩家选择换宠
 
@@ -339,6 +342,7 @@ export class BattleSystem extends Context {
       this.currentPhase = BattlePhase.SelectionPhase
       this.clearSelections()
       while (!this.bothPlayersReady()) {
+        this.emitMessage(BattleMessageType.TurnAction, {})
         yield
       }
 

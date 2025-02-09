@@ -1,7 +1,7 @@
 import {
   BattleSystem,
   DoNothingSelection,
-  PlayerSelection,
+  type PlayerSelection,
   SwitchPetSelection,
   UseSkillSelection,
 } from './battleSystem'
@@ -11,7 +11,7 @@ import { EffectTrigger } from './effect'
 import { BattleMessageType } from './message'
 import { Pet } from './pet'
 import { SkillType } from './skill'
-import { TYPE_CHART } from './element'
+import { ELEMENT_CHART } from './element'
 
 export class Player {
   public currentRage: number = 20
@@ -191,7 +191,7 @@ export class Player {
       context.crit = context.crit || Math.random() < attacker.stat.critRate
       if (context.crit) this.battle!.applyEffects(context, EffectTrigger.OnCritPreDamage)
       this.battle!.applyEffects(context, EffectTrigger.PreDamage)
-      const typeMultiplier = TYPE_CHART[context.skill.type][defender.type] || 1
+      const typeMultiplier = ELEMENT_CHART[context.skill.type][defender.type] || 1
       let atk = 0
       let def = 0
       let damageType: DamageType
@@ -317,3 +317,5 @@ export class Player {
     })
   }
 }
+
+export { PlayerSelection }

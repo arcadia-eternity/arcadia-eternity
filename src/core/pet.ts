@@ -25,8 +25,8 @@ export interface Species extends Prototype {
   type: Element
   baseStats: { [key in StatType]: number }
   genderRatio?: [number, number]
-  abilities?: string //TODO: 特性
-  emblem?: string //TODO: 纹章
+  abilities?: Mark[] //TODO: 特性
+  emblem?: Mark[] //TODO: 纹章
 }
 
 // 精灵类
@@ -61,6 +61,8 @@ export class Pet implements OwnedEntity {
     public readonly ivs: StatOutBattle,
     public readonly nature: Nature,
     public readonly skills: Skill[],
+    // abilities?: Mark,
+    // emblem?: Mark, //TODO: 暂时没想好怎么实现特性和纹章
     public maxHp?: number, //可以额外手动设置hp
   ) {
     this.maxHp = maxHp ? maxHp : this.calculateMaxHp()
