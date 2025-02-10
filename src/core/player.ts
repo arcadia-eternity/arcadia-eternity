@@ -207,23 +207,23 @@ export class Player {
         let damageType: DamageType
         switch (context.skill.category) {
           case Category.Physical:
-            atk = attacker.stat.atk
-            def = defender.stat.def
+            atk = attacker.actualStat.atk
+            def = defender.actualStat.def
             damageType = DamageType.physical
             break
           case Category.Special:
-            atk = attacker.stat.spa
-            def = defender.stat.spd
+            atk = attacker.actualStat.spa
+            def = defender.actualStat.spd
             damageType = DamageType.special
             break
           case Category.Climax:
-            if (attacker.stat.atk > attacker.stat.spa) {
-              atk = attacker.stat.atk
-              def = defender.stat.def
+            if (attacker.actualStat.atk > attacker.actualStat.spa) {
+              atk = attacker.actualStat.atk
+              def = defender.actualStat.def
               damageType = DamageType.physical
             } else {
-              atk = attacker.stat.spa
-              def = defender.stat.spd
+              atk = attacker.actualStat.spa
+              def = defender.actualStat.spd
               damageType = DamageType.special
             }
         }

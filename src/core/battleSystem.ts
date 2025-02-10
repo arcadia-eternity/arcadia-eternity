@@ -270,8 +270,8 @@ export class BattleSystem extends Context {
         }
 
         // 同优先级比较速度
-        if (aSkill.pet.stat.spd !== bSkill.pet.stat.spd) {
-          return aSkill.pet.stat.spd - bSkill.pet.stat.spd
+        if (aSkill.pet.actualStat.spd !== bSkill.pet.actualStat.spd) {
+          return aSkill.pet.actualStat.spd - bSkill.pet.actualStat.spd
         }
 
         // 速度相同,始终是a先手

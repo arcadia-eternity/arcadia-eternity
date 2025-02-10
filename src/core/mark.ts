@@ -2,7 +2,7 @@ import { Effect, type EffectContainer, EffectScheduler, EffectTrigger } from './
 import { AddMarkContext, type AllContext, EffectContext, TurnContext } from './context'
 import { Pet } from './pet'
 import { BattleSystem } from './battleSystem'
-import { type OwnedEntity, type Prototype } from './const'
+import { STAT_STAGE_MULTIPLIER, StatTypeOnBattle, type OwnedEntity, type Prototype } from './const'
 
 export enum StackStrategy {
   'stack', // 叠加层数并刷新持续时间
@@ -13,16 +13,16 @@ export enum StackStrategy {
 }
 
 export class Mark implements EffectContainer, Prototype, OwnedEntity {
-  public stacks: number = 1
+  public _stacks: number = 1
   public duration: number
   public owner: Pet | BattleSystem | null = null
   public isActive: boolean = true
 
   constructor(
-    public readonly id: number,
-    public readonly name: string,
-    private readonly effects: Effect<EffectTrigger>[],
-    private config: {
+    public readonly id: string,
+    public name: string,
+    public readonly effects: Effect<EffectTrigger>[],
+    public config: {
       duration?: number
       persistent?: boolean
       maxStacks?: number
@@ -36,6 +36,14 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
   ) {
     this.duration = config.duration ?? 3
     this.config.stackStrategy = config.stackStrategy ?? StackStrategy.stack
+  }
+
+  get stacks(): number {
+    return this._stacks
+  }
+
+  set stacks(value: number) {
+    this._stacks = value
   }
 
   setOwner(owner: BattleSystem | Pet): void {
@@ -153,11 +161,10 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     const mark = new Mark(this.id, this.name, this.effects, this.config, this.tags)
     mark.stacks = this.stacks
     mark.duration = this.duration
-    mark.owner = this.owner
     return mark
   }
 
-  destory(ctx: EffectContext<EffectTrigger> | TurnContext) {
+  destory(ctx: EffectContext<EffectTrigger> | TurnContext | AddMarkContext) {
     if (!this.isActive || !this.config.destoyable) return
     this.isActive = false
 
@@ -169,26 +176,86 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
   }
 }
 
-export class MarkRegistry {
-  private static marks = new Map<number, Effect<EffectTrigger>[]>()
-
-  static register(id: number, effects: Effect<EffectTrigger>[]) {
-    this.marks.set(id, effects)
-  }
-
-  static create(
-    id: number,
+//能力强化印记
+export class StatLevelMark extends Mark {
+  constructor(
+    public readonly statType: StatTypeOnBattle, // 改用StatTypeOnBattle类型
+    public level: number,
+    id: string,
     name: string,
-    config?: {
-      duration?: number
-      persistent?: boolean
-      maxStacks?: number
-      destoyable: boolean
-    },
-    tags: string[] = [],
-  ): Mark {
-    const effects = this.marks.get(id)
-    if (!effects) throw new Error(`Unknown mark: ${id}`)
-    return new Mark(id, name, effects, config, tags)
+    effects: Effect<EffectTrigger>[] = [],
+    config: Mark['config'] = {},
+  ) {
+    super(
+      id,
+      name,
+      effects,
+      {
+        ...config,
+        persistent: true,
+        maxStacks: 6,
+        stackStrategy: StackStrategy.stack,
+      },
+      ['stat-stage'],
+    )
   }
+
+  tryStack(ctx: AddMarkContext): boolean {
+    const isSameType = ctx.mark instanceof StatLevelMark && ctx.mark.statType === this.statType
+
+    if (!isSameType) return super.tryStack(ctx)
+
+    // 计算新等级
+    const maxLevel = (STAT_STAGE_MULTIPLIER.length - 1) / 2
+    const newLevel = Math.max(-maxLevel, Math.min(maxLevel, this.level + (ctx.mark as StatLevelMark).level))
+
+    // 等级归零时标记为待移除
+    if (newLevel === 0) {
+      this.destory(ctx)
+      return true
+    }
+
+    // 正常更新等级
+    this.level = newLevel
+    this.name = `${this.statType.toUpperCase()} ${this.level > 0 ? '+' : ''}${this.level}`
+
+    if (this.owner instanceof Pet) {
+      this.owner.statStage[this.statType] = this.level
+    }
+
+    return true
+  }
+
+  attachTo(target: Pet | BattleSystem) {
+    super.attachTo(target)
+    if (target instanceof Pet) {
+      target.statStage[this.statType] = this.level
+    }
+  }
+
+  get stacks() {
+    return this.level
+  }
+
+  clone(ctx: AddMarkContext): StatLevelMark {
+    ctx.battle.applyEffects(ctx, EffectTrigger.OnMarkCreate)
+    const cloned = new StatLevelMark(this.statType, this.level, this.id, this.name, this.effects, this.config)
+    return cloned
+  }
+}
+
+export function CreateStatStageMark(statType: StatTypeOnBattle, level: number): StatLevelMark {
+  return new StatLevelMark(
+    statType,
+    level,
+    `stat-stage-${statType}-${level > 0 ? 'up' : 'down'}`,
+    `${statType.toUpperCase()} ${level > 0 ? '+' : ''}${level}`,
+    [], // 可添加额外效果
+    {
+      persistent: true,
+      duration: -1,
+      maxStacks: 6,
+      stackStrategy: StackStrategy.stack,
+    },
+  )
 }

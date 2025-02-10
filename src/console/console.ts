@@ -34,7 +34,8 @@ export class ConsoleUI extends BattleUI {
     return baseInfo + markInfo
   }
 
-  private getMarkStatus = (mark: Mark) => `{<${mark.name}> [剩余${mark.duration}回合] ${mark.stacks}层}`
+  private getMarkStatus = (mark: Mark) =>
+    `{<${mark.name}> ${mark.config.persistent ? '' : `[剩余${mark.duration}回合]`} ${mark.stacks}层}`
 
   private handleMessage(message: BattleMessage) {
     this.messages.push(message)

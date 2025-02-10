@@ -17,7 +17,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
   public owner: Pet | null = null
 
   constructor(
-    public readonly id: number,
+    public readonly id: string,
     public readonly name: string,
     public readonly category: Category,
     public readonly type: Element,
@@ -71,7 +71,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
   }
 
   static Builder = class {
-    #id = 0
+    #id = ''
     #name = 'Unnamed Skill'
     #type = Element.Normal
     #power = 0
@@ -83,6 +83,11 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
     #priority: number = 0
     #sureHit: boolean = false
     #multihit: [number, number] | number = 0
+
+    withID(id: string) {
+      this.#id = id
+      return this
+    }
 
     withName(name: string) {
       this.#name = name

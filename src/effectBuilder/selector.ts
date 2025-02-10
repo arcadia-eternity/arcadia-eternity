@@ -108,7 +108,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
   divide(selector: ChainableSelector<number>): ChainableSelector<number>
   divide(valueOrSelector: number | ChainableSelector<number>): ChainableSelector<number> {
     if (typeof valueOrSelector === 'number') {
-      return this.mapNumber(v => Math.floor(v * valueOrSelector))
+      return this.mapNumber(v => Math.floor(v / valueOrSelector))
     }
     return this.combine(valueOrSelector, (a, b) => a / b)
   }

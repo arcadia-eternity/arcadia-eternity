@@ -137,6 +137,7 @@ export class AddMarkContext extends Context {
     public readonly parent: EffectContext<EffectTrigger>,
     public target: Pet,
     public mark: Mark,
+    public stack: number,
   ) {
     super(parent)
     this.battle = parent.battle

@@ -2,14 +2,57 @@ import { ConsoleUI } from './src/console/console'
 import { BattleActions } from './src/effectBuilder/operator'
 import { BattleTarget, BattleAttributes } from './src/effectBuilder/selector'
 import { BattleSystem } from './src/core/battleSystem'
-import { AttackTargetOpinion } from './src/core/const'
+import { AttackTargetOpinion, StatTypeWithoutHp } from './src/core/const'
 import { Effect, EffectTrigger } from './src/core/effect'
-import { Mark } from './src/core/mark'
+import { CreateStatStageMark, Mark } from './src/core/mark'
 import { Nature } from './src/core/nature'
 import { Species, Pet } from './src/core/pet'
 import { Player } from './src/core/player'
 import { Skill, Category } from './src/core/skill'
 import { Element } from './src/core/element'
+import { EffectContext, UseSkillContext, AddMarkContext } from '@/core/context'
+import { BattleMessageType } from '@/core/message'
+
+const swordsDance = new Skill.Builder()
+  .withID('swords-dance')
+  .withName('剑舞')
+  .withSkillType(Category.Status) // 变化类技能
+  .withType(Element.Normal) // 一般系
+  .withPower(0) // 无直接伤害
+  .withAccuracy(1) // 必定命中
+  .withRageCost(10) // 消耗30怒气
+  .withTarget(AttackTargetOpinion.self) // 目标为自身
+  .addEffect(
+    new Effect(
+      'swords-dance-effect',
+      EffectTrigger.BeforeAttack, // 在攻击前触发
+      (ctx: EffectContext<EffectTrigger>) => {
+        if (ctx.source instanceof Skill && ctx.parent instanceof UseSkillContext) {
+          // 创建攻击+2的印记
+          const atkUpMark = CreateStatStageMark(StatTypeWithoutHp.atk, 2)
+
+          // 添加到使用者身上
+          ctx.parent.pet.addMark(
+            new AddMarkContext(
+              ctx, // 父级上下文
+              ctx.parent.pet, // 目标宠物
+              atkUpMark, // 攻击强化印记
+              2,
+            ),
+          )
+          // 战斗信息提示
+          ctx.battle.emitMessage(BattleMessageType.StatChange, {
+            pet: ctx.parent.pet.name,
+            stat: StatTypeWithoutHp.atk,
+            stage: 2,
+            reason: 'swords-dance',
+          })
+        }
+      },
+      100, // 高优先级确保先执行
+    ),
+  )
+  .build()
 
 const burn = new Mark(
   'burn',
@@ -38,13 +81,15 @@ const penshehuoyan = new Skill(
   15,
   0,
   AttackTargetOpinion.opponent,
+  1,
   false,
-  [new Effect('addBurn', EffectTrigger.PostDamage, BattleTarget.foe.apply(BattleActions.addMark(burn)), 1)],
+  [new Effect('pshy', EffectTrigger.PostDamage, BattleTarget.foe.apply(BattleActions.addMark(burn, 1)), 1)],
 )
 
 // 妙蛙草系列
 const venusaurSpecies: Species = {
   id: 'miaowahua',
+  num: 1,
   name: '妙蛙草',
   type: Element.Grass,
   baseStats: {
@@ -78,12 +123,13 @@ const venusaur: Pet = new Pet(
     spe: 31,
   },
   Nature.Modest,
-  [penshehuoyan, new Skill('jishengzhongzi', '寄生种子', Category.Status, Element.Grass, 0, 1, 20, 1)],
+  [penshehuoyan, new Skill('ee', '寄生种子', Category.Status, Element.Grass, 0, 1, 10, 1)],
 )
 
 // 皮卡丘系列
 const pikachuSpecies: Species = {
   id: 'pikaqiu',
+  num: 2,
   name: '皮卡丘',
   type: Element.Electric,
   baseStats: {
@@ -118,14 +164,15 @@ const thunderPikachu: Pet = new Pet(
   },
   Nature.Timid,
   [
-    new Skill('shiwanfute', '十万伏特', Category.Special, Element.Electric, 90, 1, 15, 1),
-    new Skill('dianguangyishan', '电光一闪', Category.Physical, Element.Normal, 40, 1, 30, 1),
+    new Skill('dd', '十万伏特', Category.Special, Element.Electric, 90, 1, 15, 1),
+    new Skill('ff', '电光一闪', Category.Physical, Element.Normal, 40, 1, 30, 1),
   ],
 )
 
 // 耿鬼系列
 const gengarSpecies: Species = {
   id: 'genggui',
+  num: 514,
   name: '耿鬼',
   type: Element.Shadow,
   baseStats: {
@@ -160,14 +207,15 @@ const shadowGengar: Pet = new Pet(
   },
   Nature.Timid,
   [
-    new Skill('anyingqiu', '暗影球', Category.Special, Element.Shadow, 80, 1, 15, 0),
-    new Skill('wunizhadan', '污泥炸弹', Category.Special, Element.Grass, 90, 1, 10, 0),
+    new Skill('ggsd', '暗影球', Category.Special, Element.Shadow, 80, 1, 15, 0),
+    new Skill('cc', '污泥炸弹', Category.Special, Element.Grass, 90, 1, 10, 0),
   ],
 )
 
 // 快龙系列
 const dragoniteSpecies: Species = {
   id: 'kuailong',
+  num: 114,
   name: '快龙',
   type: Element.Dragon,
   baseStats: {
@@ -201,7 +249,7 @@ const stormDragon: Pet = new Pet(
     spe: 31,
   },
   Nature.Adamant,
-  [penshehuoyan, new Skill('shensu', '神速', Category.Physical, Element.Normal, 80, 1, 5, 2)],
+  [penshehuoyan, swordsDance, new Skill('ll', '神速', Category.Physical, Element.Normal, 80, 1, 5, 2)],
 )
 
 const player2 = new Player('小茂', stormDragon, [stormDragon, shadowGengar])

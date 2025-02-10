@@ -4,7 +4,7 @@ import {
   type OwnedEntity,
   type Prototype,
   RAGE_PER_TURN,
-  type StatBuffOnBattle,
+  STAT_STAGE_MULTIPLIER,
   type StatOnBattle,
   type StatOutBattle,
   StatType,
@@ -14,13 +14,14 @@ import {
 } from './const'
 import { Nature, NatureMap } from './nature'
 import { Player } from './player'
-import { Mark } from './mark'
-import { AddMarkContext, DamageContext, HealContext, RemoveMarkContext } from './context'
+import { StatLevelMark, Mark } from './mark'
+import { AddMarkContext, DamageContext, EffectContext, HealContext, RemoveMarkContext } from './context'
 import { BattleMessageType } from './message'
 import { EffectTrigger } from './effect'
 
 export interface Species extends Prototype {
-  id: number
+  id: string //约定:id为原中文名的拼音拼写
+  num: number //用于原游戏内的序号
   name: string
   type: Element
   baseStats: { [key in StatType]: number }
@@ -34,18 +35,18 @@ export class Pet implements OwnedEntity {
   public currentHp: number
   public baseCritRate: number = 0.1 // 暴击率默认为10%
   public baseAccuracy: number = 1 // 命中率默认为100%
-  public statModifiers: StatBuffOnBattle = {
-    // [百分比，固定值]
-    atk: [100, 0],
-    def: [100, 0],
-    spa: [100, 0],
-    spd: [100, 0],
-    spe: [100, 0],
-    accuracy: [100, 0],
-    critRate: [100, 0],
-    evasion: [100, 0],
-    ragePerTurn: [15, 0],
-  }
+  public statStage: Partial<Record<StatTypeOnBattle, number>> = {} //能力等级
+  // public statModifiers: StatBuffOnBattle = {
+  //   atk: [100, 0],
+  //   def: [100, 0],
+  //   spa: [100, 0],
+  //   spd: [100, 0],
+  //   spe: [100, 0],
+  //   accuracy: [100, 0],
+  //   critRate: [100, 0],
+  //   evasion: [100, 0],
+  //   ragePerTurn: [15, 0],
+  // }
   public type: Element
   public isAlive: boolean = true
   public lastUseSkill: Skill | null = null
@@ -122,6 +123,9 @@ export class Pet implements OwnedEntity {
       const newMark = ctx.mark.clone(ctx)
       this.marks.push(newMark)
       newMark.attachTo(this)
+      if (newMark instanceof StatLevelMark) {
+        this.statStage[newMark.statType] = newMark.level
+      }
     }
   }
 
@@ -188,6 +192,52 @@ export class Pet implements OwnedEntity {
       evasion: this.calculateStat(StatTypeOnlyBattle.evasion),
       ragePerTurn: this.calculateStat(StatTypeOnlyBattle.ragePerTurn),
     }
+  }
+
+  get actualStat(): Record<StatTypeOnBattle, number> {
+    const base = this.stat
+    const modifiers = this.calculateStageModifiers()
+
+    return {
+      atk: modifiers.atk ?? base.atk,
+      def: modifiers.def ?? base.def,
+      spa: modifiers.spa ?? base.spa,
+      spd: modifiers.spd ?? base.spd,
+      spe: modifiers.spe ?? base.spe,
+      accuracy: modifiers.accuracy ?? base.accuracy,
+      evasion: modifiers.evasion ?? base.evasion,
+      critRate: modifiers.critRate ?? base.critRate,
+      ragePerTurn: modifiers.ragePerTurn ?? base.ragePerTurn,
+    }
+  }
+
+  private calculateStageModifiers(): Partial<Record<StatTypeOnBattle, number>> {
+    const modifiers: Partial<Record<StatTypeOnBattle, number>> = {}
+    Object.entries(this.statStage).forEach(([stat, stage]) => {
+      const statType = stat as StatTypeOnBattle
+      const baseValue = this.stat[statType] // 直接使用 stat 中的基础值
+      modifiers[statType] = this.applyStageModifier(baseValue, stage)
+    })
+    return modifiers
+  }
+
+  // 增强安全性的修正计算
+  private applyStageModifier(base: number, stage: number): number {
+    const validStage = Math.max(-6, Math.min(6, stage)) // 强制等级范围
+    const index = validStage + 6
+    return Math.floor(base * STAT_STAGE_MULTIPLIER[index])
+  }
+
+  // 清理能力等级时同时清除相关印记
+  clearStatStage(ctx: EffectContext<EffectTrigger>) {
+    this.statStage = {}
+    this.marks = this.marks.filter(mark => {
+      if (mark instanceof StatLevelMark) {
+        mark.destory(ctx)
+        return false
+      }
+      return true
+    })
   }
 
   get status(): string {

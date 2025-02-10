@@ -55,21 +55,21 @@ export const BattleActions = {
   }),
 
   addMark:
-    <T extends Pet>(mark: Mark) =>
+    <T extends Pet>(mark: Mark, stack: number) =>
     (ctx: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.forEach(pet => {
-        pet.addMark(new AddMarkContext(ctx, pet, mark))
+        pet.addMark(new AddMarkContext(ctx, pet, mark, stack))
       })
     },
 
   addStack:
-    <T extends Mark>(markid: number, value: number) =>
+    <T extends Mark>(markid: string, value: number) =>
     (ctx: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.filter(mark => mark.id == markid).forEach(mark => mark.addStack(value))
     },
 
   consumeStacks:
-    <T extends Mark>(markid: number, value: number) =>
+    <T extends Mark>(markid: string, value: number) =>
     (ctx: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.filter(mark => mark.id == markid).forEach(mark => mark.consumeStacks(ctx, value))
     },

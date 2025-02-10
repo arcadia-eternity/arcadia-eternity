@@ -92,7 +92,7 @@ export enum EffectTrigger {
 export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity {
   public owner: Skill | Mark | null = null
   constructor(
-    public readonly id: number,
+    public readonly id: string,
     public readonly trigger: EffectTrigger,
     public readonly apply: (ctx: EffectContext<T>) => void,
     public readonly priority: number,
@@ -125,4 +125,17 @@ export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity {
 // 效果容器接口
 export interface EffectContainer {
   collectEffects(trigger: EffectTrigger, baseContext: Context): void
+}
+
+export interface EffectConfig<T extends EffectTrigger> {
+  id: string
+  trigger: T
+  apply: (ctx: EffectContext<T>) => void
+  priority: number
+  condition?: (ctx: EffectContext<T>) => boolean
+  consumesStacks?: number // 新增可选消耗层数配置
+}
+
+export function CreateEffect<T extends EffectTrigger>(config: EffectConfig<T>): Effect<T> {
+  return new Effect(config.id, config.trigger, config.apply, config.priority, config.condition)
 }
