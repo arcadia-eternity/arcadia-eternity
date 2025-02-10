@@ -1,6 +1,9 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import path from 'path'
 import fs from 'fs/promises'
+import { validateSkill } from '@/schema/skill'
+import { validateSpecies } from '@/schema/species'
+import { validateMark } from '@/schema/mark'
 const isDev = process.env.NODE_ENV === 'development'
 
 async function createWindow() {
@@ -28,12 +31,12 @@ async function createWindow() {
   })
 }
 
-// // 数据验证映射
-// const validators = {
-//   mark: validateMark,
-//   skill: validateSkill,
-//   species: validateSpecies,
-// }
+// 数据验证映射
+const validators = {
+  mark: validateMark,
+  skill: validateSkill,
+  species: validateSpecies,
+}
 
 // 带校验的数据写入
 ipcMain.handle('write-data', async (_, type: keyof typeof validators, content: string) => {
@@ -42,7 +45,7 @@ ipcMain.handle('write-data', async (_, type: keyof typeof validators, content: s
 
   // 校验数据结构
   const data = JSON.parse(content)
-  const result = validators[type].safeParse(data)
+  const result = validators[type].Parse(data)
   if (!result.success) {
     throw new Error(`数据校验失败: ${result.error.message}`)
   }

@@ -4,12 +4,13 @@ import { Pet } from './pet'
 import { BattleSystem } from './battleSystem'
 import { type OwnedEntity, type Prototype } from './const'
 
-export type StackStrategy =
-  | 'stack' // 叠加层数并刷新持续时间
-  | 'refresh' // 保持层数但刷新持续时间
-  | 'extend' // 叠加层数并延长持续时间
-  | 'max' // 取最大层数并刷新持续时间
-  | 'replace' // 完全替换为新的印记
+export enum StackStrategy {
+  'stack', // 叠加层数并刷新持续时间
+  'refresh', // 保持层数但刷新持续时间
+  'extend', // 叠加层数并延长持续时间
+  'max', // 取最大层数并刷新持续时间
+  'replace', // 完全替换为新的印记
+}
 
 export class Mark implements EffectContainer, Prototype, OwnedEntity {
   public stacks: number = 1
@@ -34,7 +35,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     private readonly tags: string[] = [],
   ) {
     this.duration = config.duration ?? 3
-    this.config.stackStrategy = config.stackStrategy ?? 'stack'
+    this.config.stackStrategy = config.stackStrategy ?? StackStrategy.stack
   }
 
   setOwner(owner: BattleSystem | Pet): void {
@@ -83,26 +84,26 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     ctx.battle.applyEffects(ctx, EffectTrigger.OnStack)
 
     switch (strategy) {
-      case 'stack':
+      case StackStrategy.stack:
         newStacks = Math.min(newStacks + newMark.stacks, maxStacks)
         newDuration = Math.max(newDuration, newMark.duration)
         break
 
-      case 'refresh':
+      case StackStrategy.refresh:
         newDuration = Math.max(newDuration, newMark.duration)
         break
 
-      case 'extend':
+      case StackStrategy.extend:
         newStacks = Math.min(newStacks + newMark.stacks, maxStacks)
         newDuration += newMark.duration
         break
 
-      case 'max':
+      case StackStrategy.max:
         newStacks = Math.min(Math.max(newStacks, newMark.stacks), maxStacks)
         newDuration = Math.max(newDuration, newMark.duration)
         break
 
-      case 'replace':
+      case StackStrategy.replace:
         newStacks = Math.min(newMark.stacks, maxStacks)
         newDuration = newMark.duration
         break

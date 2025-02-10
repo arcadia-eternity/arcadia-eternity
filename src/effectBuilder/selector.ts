@@ -27,6 +27,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
     return this.selector(context)
   }
 
+  //选择一组对象的某一个参数
   select<U extends SelectorOpinion>(extractor: ValueExtractor<T, U>): ChainableSelector<U> {
     return new ChainableSelector<U>(context => [
       ...new Set(
@@ -38,12 +39,25 @@ export class ChainableSelector<T extends SelectorOpinion> {
     ])
   }
 
+  //对结果进行筛选
   where(predicate: (target: T) => boolean): ChainableSelector<T> {
     return new ChainableSelector(context => {
       return this.selector(context).filter(t => predicate(t))
     })
   }
 
+  //在保持当前结果的同时，对参数进行筛选
+  whereAttr<U>(extractor: ValueExtractor<T, U>, condition: ConditionOperator<U>): ChainableSelector<T> {
+    return new ChainableSelector(context => {
+      return this.selector(context).filter(t => {
+        const value = extractor(t)
+        const values = Array.isArray(value) ? value : [value]
+        return condition(context, values)
+      })
+    })
+  }
+
+  //两个同类型的结果取交集
   and(other: TargetSelector<T>): ChainableSelector<T> {
     return new ChainableSelector(context => {
       const prev = this.selector(context)
@@ -52,6 +66,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
     })
   }
 
+  //两个同类型的结果取并集
   or(other: TargetSelector<T>): ChainableSelector<T> {
     return new ChainableSelector(context => {
       const prev = this.selector(context)
@@ -60,6 +75,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
     })
   }
 
+  //对所有的结果进行求和，得到唯一的参数
   sum(this: ChainableSelector<number>): ChainableSelector<number> {
     return new ChainableSelector<number>(context => {
       const values = this.selector(context)
@@ -67,6 +83,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
     })
   }
 
+  //加一个固定数，或者加一个来源的数。如果来源选择了多个数，则会加上来源的每一个数。
   add(value: number): ChainableSelector<number>
   add(selector: ChainableSelector<number>): ChainableSelector<number>
   add(valueOrSelector: number | ChainableSelector<number>): ChainableSelector<number> {
@@ -76,7 +93,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
     return this.combine(valueOrSelector, (a, b) => a + b)
   }
 
-  // 函数重载声明
+  // 乘一个固定数，或者乘一个来源的数。如果来源选择了多个数，则会乘上来源的每一个数。
   multiply(value: number): ChainableSelector<number>
   multiply(selector: ChainableSelector<number>): ChainableSelector<number>
   multiply(valueOrSelector: number | ChainableSelector<number>): ChainableSelector<number> {
@@ -86,9 +103,38 @@ export class ChainableSelector<T extends SelectorOpinion> {
     return this.combine(valueOrSelector, (a, b) => a * b)
   }
 
-  // 除法运算
-  divide(value: number): ChainableSelector<number> {
-    return this.mapNumber(v => Math.floor(v / value))
+  // 除以一个固定数，或者除以一个来源的数。如果来源选择了多个数，则会除以上来源的每一个数。
+  divide(value: number): ChainableSelector<number>
+  divide(selector: ChainableSelector<number>): ChainableSelector<number>
+  divide(valueOrSelector: number | ChainableSelector<number>): ChainableSelector<number> {
+    if (typeof valueOrSelector === 'number') {
+      return this.mapNumber(v => Math.floor(v * valueOrSelector))
+    }
+    return this.combine(valueOrSelector, (a, b) => a / b)
+  }
+
+  randomPick(count: number): ChainableSelector<T> {
+    return new ChainableSelector(ctx => {
+      const list = this.selector(ctx)
+      return ctx.battle.shuffle(list).slice(0, count) // 使用随机洗牌
+    })
+  }
+
+  /**
+   * 按百分比概率选取每个目标
+   * @param percent 命中概率(0-100)
+   **/
+  randomSample(percent: number): ChainableSelector<T> {
+    return new ChainableSelector(ctx => {
+      return this.selector(ctx).filter(() => ctx.battle.randomInt(1, 100) <= percent)
+    })
+  }
+
+  /**
+   * 对目标列表乱序后返回
+   **/
+  shuffled(): ChainableSelector<T> {
+    return new ChainableSelector(ctx => ctx.battle.shuffle(this.selector(ctx)))
   }
 
   // 最大值限制
@@ -141,7 +187,7 @@ function createChainable<T extends SelectorOpinion>(selector: TargetSelector<T>)
   return new ChainableSelector(selector)
 }
 
-export type SelectorOpinion = Player | Pet | Mark | Skill | UseSkillContext | StatOnBattle | number
+export type SelectorOpinion = Player | Pet | Mark | Skill | UseSkillContext | StatOnBattle | number | string | boolean
 // 基础选择器
 export const BattleTarget: {
   self: ChainableSelector<Pet>

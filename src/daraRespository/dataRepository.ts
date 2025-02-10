@@ -5,10 +5,10 @@ import { Skill } from '@/core/skill'
 
 export class DataRepository {
   private static instance: DataRepository
-  private species = new Map<string, Species>()
-  private skills = new Map<string, Skill>()
-  private marks = new Map<string, Mark>()
-  private effects = new Map<string, Effect<EffectTrigger>>()
+  private species = new Map<number, Species>()
+  private skills = new Map<number, Skill>()
+  private marks = new Map<number, Mark>()
+  private effects = new Map<number, Effect<EffectTrigger>>()
 
   static getInstance() {
     if (!DataRepository.instance) {
@@ -17,7 +17,7 @@ export class DataRepository {
     return DataRepository.instance
   }
 
-  getSpecies(id: string): Species {
+  getSpecies(id: number): Species {
     const species = this.species.get(id)
     if (!species) {
       throw new Error(`Species with id ${id} not found`)
@@ -25,7 +25,7 @@ export class DataRepository {
     return species
   }
 
-  getSkill(id: string): Skill {
+  getSkill(id: number): Skill {
     const skill = this.skills.get(id)
     if (!skill) {
       throw new Error(`Skill with id ${id} not found`)
@@ -33,7 +33,7 @@ export class DataRepository {
     return skill
   }
 
-  getMark(id: string): Mark {
+  getMark(id: number): Mark {
     const mark = this.marks.get(id)
     if (!mark) {
       throw new Error(`Mark with id ${id} not found`)
@@ -41,7 +41,7 @@ export class DataRepository {
     return mark
   }
 
-  getEffect(id: string): Effect<EffectTrigger> {
+  getEffect(id: number): Effect<EffectTrigger> {
     const effect = this.effects.get(id)
     if (!effect) {
       throw new Error(`Effect with id ${id} not found`)

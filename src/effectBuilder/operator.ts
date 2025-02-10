@@ -63,13 +63,13 @@ export const BattleActions = {
     },
 
   addStack:
-    <T extends Mark>(markid: string, value: number) =>
+    <T extends Mark>(markid: number, value: number) =>
     (ctx: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.filter(mark => mark.id == markid).forEach(mark => mark.addStack(value))
     },
 
   consumeStacks:
-    <T extends Mark>(markid: string, value: number) =>
+    <T extends Mark>(markid: number, value: number) =>
     (ctx: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.filter(mark => mark.id == markid).forEach(mark => mark.consumeStacks(ctx, value))
     },

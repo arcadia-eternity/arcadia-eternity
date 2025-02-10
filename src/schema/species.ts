@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Element } from './element'
+import { ElementSchema } from './element'
 
 const SkillSchema = z.object({
   skill_id: z.number(),
@@ -10,7 +10,7 @@ const SkillSchema = z.object({
 export const SpeciesSchema = z.object({
   id: z.number(),
   name: z.string(),
-  element: z.nativeEnum(Element),
+  element: ElementSchema,
   star: z.number(),
   baseStats: z.object({
     hp: z.number(),
@@ -37,3 +37,9 @@ export const SpeciesSchema = z.object({
   ability: z.string(),
   emblems: z.array(z.string()),
 })
+
+type Species = z.infer<typeof SpeciesSchema>
+
+export function validateSpecies(data: unknown): Species {
+  return SpeciesSchema.parse(data)
+}
