@@ -116,6 +116,18 @@ export class Pet implements OwnedEntity {
   public addMark(ctx: AddMarkContext) {
     ctx.battle.applyEffects(ctx, EffectTrigger.OnAddMark)
     if (!ctx.available) return
+
+    const newMark = ctx.mark.clone(ctx)
+    const existingOppositeMark = this.marks.find(
+      mark => mark instanceof StatLevelMark && newMark instanceof StatLevelMark && mark.isOppositeMark(newMark),
+    )
+
+    // 优先抵消互斥印记
+    if (existingOppositeMark) {
+      existingOppositeMark.tryStack(ctx) // 触发抵消逻辑
+      return
+    }
+
     const existingMark = this.marks.find(mark => mark.id === ctx.mark.id)
     if (existingMark) {
       existingMark.tryStack(ctx)

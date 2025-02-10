@@ -54,6 +54,47 @@ const swordsDance = new Skill.Builder()
   )
   .build()
 
+const shiledDance = new Skill.Builder()
+  .withID('shiled-dance')
+  .withName('盾舞')
+  .withSkillType(Category.Status) // 变化类技能
+  .withType(Element.Normal) // 一般系
+  .withPower(0) // 无直接伤害
+  .withAccuracy(1) // 必定命中
+  .withRageCost(10) // 消耗30怒气
+  .withTarget(AttackTargetOpinion.self) // 目标为自身
+  .addEffect(
+    new Effect(
+      'swords-dance-effect',
+      EffectTrigger.BeforeAttack, // 在攻击前触发
+      (ctx: EffectContext<EffectTrigger>) => {
+        if (ctx.source instanceof Skill && ctx.parent instanceof UseSkillContext) {
+          // 创建攻击+2的印记
+          const atkUpMark = CreateStatStageMark(StatTypeWithoutHp.atk, -2)
+
+          // 添加到使用者身上
+          ctx.parent.pet.addMark(
+            new AddMarkContext(
+              ctx, // 父级上下文
+              ctx.parent.pet, // 目标宠物
+              atkUpMark, // 攻击强化印记
+              2,
+            ),
+          )
+          // 战斗信息提示
+          ctx.battle.emitMessage(BattleMessageType.StatChange, {
+            pet: ctx.parent.pet.name,
+            stat: StatTypeWithoutHp.atk,
+            stage: 2,
+            reason: 'swords-dance',
+          })
+        }
+      },
+      100, // 高优先级确保先执行
+    ),
+  )
+  .build()
+
 const burn = new Mark(
   'burn',
   '烧伤',
@@ -68,6 +109,7 @@ const burn = new Mark(
   {
     duration: 3,
     persistent: false,
+    destoyable: true,
   },
 )
 
@@ -249,7 +291,7 @@ const stormDragon: Pet = new Pet(
     spe: 31,
   },
   Nature.Adamant,
-  [penshehuoyan, swordsDance, new Skill('ll', '神速', Category.Physical, Element.Normal, 80, 1, 5, 2)],
+  [penshehuoyan, swordsDance, shiledDance, new Skill('ll', '神速', Category.Physical, Element.Normal, 80, 1, 5, 2)],
 )
 
 const player2 = new Player('小茂', stormDragon, [stormDragon, shadowGengar])

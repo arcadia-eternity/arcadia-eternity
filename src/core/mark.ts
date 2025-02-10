@@ -184,7 +184,9 @@ export class StatLevelMark extends Mark {
     id: string,
     name: string,
     effects: Effect<EffectTrigger>[] = [],
-    config: Mark['config'] = {},
+    config: Mark['config'] = {
+      destoyable: true,
+    },
   ) {
     super(
       id,
@@ -201,6 +203,33 @@ export class StatLevelMark extends Mark {
   }
 
   tryStack(ctx: AddMarkContext): boolean {
+    const otherMark = ctx.mark
+
+    // 如果对方是互斥的 StatLevelMark
+    if (otherMark instanceof StatLevelMark && this.isOppositeMark(otherMark)) {
+      // 计算抵消后的剩余等级
+      const remainingLevel = this.level + otherMark.level
+
+      if (remainingLevel === 0) {
+        // 完全抵消，销毁当前印记
+        this.destory(ctx)
+        return true
+      } else if (Math.sign(remainingLevel) === Math.sign(this.level)) {
+        // 同方向叠加剩余等级
+        this.level = remainingLevel
+      } else {
+        // 反转方向并更新等级
+        this.level = remainingLevel
+      }
+
+      // 更新名称和所有者 statStage
+      this.name = `${this.statType.toUpperCase()} ${this.level > 0 ? '+' : ''}${this.level}`
+      if (this.owner instanceof Pet) {
+        this.owner.statStage[this.statType] = this.level
+      }
+      return true
+    }
+
     const isSameType = ctx.mark instanceof StatLevelMark && ctx.mark.statType === this.statType
 
     if (!isSameType) return super.tryStack(ctx)
@@ -233,6 +262,11 @@ export class StatLevelMark extends Mark {
     }
   }
 
+  public isOppositeMark(other: StatLevelMark): boolean {
+    // 判断是否为同一属性但等级方向相反
+    return this.statType === other.statType && Math.sign(this.level) !== Math.sign(other.level)
+  }
+
   get stacks() {
     return this.level
   }
@@ -256,6 +290,7 @@ export function CreateStatStageMark(statType: StatTypeOnBattle, level: number): 
       duration: -1,
       maxStacks: 6,
       stackStrategy: StackStrategy.stack,
+      destoyable: true,
     },
   )
 }
