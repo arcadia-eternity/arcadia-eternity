@@ -1,15 +1,16 @@
 import { EffectContext } from '@core/context'
-import { ConditionOperator, DynamicValue } from './effectBuilder'
+import { ConditionOperator } from './effectBuilder'
 import { EffectTrigger } from '@core/effect'
 import { Primitive } from 'zod'
+import { GetValueFromSource, ValueSource } from './selector'
 
 export type CompareOperator = '>' | '<' | '>=' | '<=' | '=='
 
-export const Condition = {
+export const Conditions = {
   compare:
-    <T extends number>(operator: CompareOperator, dynamicValue: DynamicValue<number, T>) =>
+    <T extends number>(operator: CompareOperator, dynamicValue: ValueSource<number>) =>
     (ctx: EffectContext<EffectTrigger>, values: T[]): boolean => {
-      const compareValue = typeof dynamicValue === 'function' ? dynamicValue(values[0], ctx)[0] : dynamicValue
+      const compareValue = GetValueFromSource(ctx, dynamicValue)[0]
       return values.some(value => {
         switch (operator) {
           case '>':
@@ -29,9 +30,9 @@ export const Condition = {
     },
 
   same:
-    <T extends Primitive>(dynamicValue: DynamicValue<T, T>) =>
+    <T extends Primitive>(dynamicValue: ValueSource<T>) =>
     (ctx: EffectContext<EffectTrigger>, values: T[]): boolean => {
-      const comparValue = typeof dynamicValue === 'function' ? dynamicValue(values[0], ctx)[0] : dynamicValue
+      const comparValue = GetValueFromSource(ctx, dynamicValue)[0]
       return comparValue === values[0]
     },
 
@@ -45,10 +46,8 @@ export const Condition = {
     (ctx: EffectContext<EffectTrigger>, values: T[]) =>
       ops.every(op => op(ctx, values)),
 
-  probability:
-    <T extends number>(dynamicPercent: DynamicValue<number, T>) =>
-    (ctx: EffectContext<EffectTrigger>, values: T[]) => {
-      const percent = typeof dynamicPercent === 'function' ? dynamicPercent(values[0], ctx)[0] : dynamicPercent
-      return ctx.battle.random() < percent / 100
-    },
+  probability: (dynamicPercent: ValueSource<number>) => (ctx: EffectContext<EffectTrigger>) => {
+    const percent = GetValueFromSource(ctx, dynamicPercent)[0]
+    return ctx.battle.random() < percent / 100
+  },
 }

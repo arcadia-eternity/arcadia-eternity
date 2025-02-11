@@ -1,6 +1,7 @@
 import { ConsoleUI } from './src/console/console'
 import { Operators } from './src/effectBuilder/operator'
 import { BaseSelector, Extractor } from './src/effectBuilder/selector'
+import { Conditions } from './src/effectBuilder/condition'
 import { BattleSystem } from './src/core/battleSystem'
 import { AttackTargetOpinion, StatTypeWithoutHp } from './src/core/const'
 import { Effect, EffectTrigger } from './src/core/effect'
@@ -102,7 +103,9 @@ const burn = new Mark(
     new Effect(
       'shaoshang',
       EffectTrigger.TurnEnd,
-      BaseSelector.self.apply(Operators.dealDamage(BaseSelector.self.select(Extractor.maxhp).divide(8))),
+      BaseSelector.self
+        .whereAttr(Extractor.hp, Conditions.compare('>', BaseSelector.self.select(Extractor.maxhp).divide(2)))
+        .apply(Operators.dealDamage(BaseSelector.self.select(Extractor.maxhp).divide(8))),
       0,
     ),
   ],

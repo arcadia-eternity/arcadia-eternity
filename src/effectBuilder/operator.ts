@@ -1,29 +1,22 @@
 import { EffectTrigger } from '@core/effect'
 import { EffectContext, UseSkillContext, DamageContext, HealContext, AddMarkContext, RageContext } from '@core/context'
-import { Mark } from '@core/mark'
+import { CreateStatStageMark, Mark } from '@core/mark'
 import { Pet } from '@core/pet'
 import { Player } from '@core/player'
-import type { DynamicValue } from './effectBuilder'
-import { type SelectorOpinion, type ValueSource, ChainableSelector } from './selector'
+import { type SelectorOpinion, type ValueSource, ChainableSelector, GetValueFromSource } from './selector'
+import { StatTypeWithoutHp } from '@/core/const'
 
 function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpinion>(
   handler: (value: U[], target: T, ctx: EffectContext<EffectTrigger>) => void,
 ) {
-  return (source: ValueSource<U, T>) => {
+  return (source: ValueSource<U>) => {
     return (ctx: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.forEach(target => {
         let finalValue: U[] = []
 
         if (typeof source === 'function') {
           try {
-            // 处理选择器函数
-            if (source.length === 1) {
-              // Context函数
-              finalValue = (source as (ctx: EffectContext<EffectTrigger>) => U[])(ctx)
-            } else if (source.length === 2) {
-              // Target+Context函数
-              finalValue = (source as (target: T, ctx: EffectContext<EffectTrigger>) => U[])(target, ctx)
-            }
+            finalValue = (source as (ctx: EffectContext<EffectTrigger>) => U[])(ctx)
           } catch {
             finalValue = []
           }
@@ -89,15 +82,24 @@ export const Operators = {
   //   },
   // // 上下文相关操作
   amplifyPower:
-    (multiplier: DynamicValue<number, UseSkillContext>) =>
-    (ctx: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
+    (multiplier: ValueSource<number>) => (ctx: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
       contexts.forEach(skillCtx => {
-        const finalMultiplier = typeof multiplier === 'function' ? multiplier(skillCtx, ctx) : multiplier
+        const finalMultiplier = GetValueFromSource(ctx, multiplier)
         if (typeof finalMultiplier === 'number') {
           skillCtx.power *= finalMultiplier
         } else {
           finalMultiplier.forEach(v => (skillCtx.power *= v))
         }
       })
+    },
+
+  statStageBuff:
+    (value: ValueSource<number>, statType: ValueSource<StatTypeWithoutHp>) =>
+    (ctx: EffectContext<EffectTrigger>, target: Pet[]) => {
+      //TODO: 万一找不到呢？
+      const _value = GetValueFromSource(ctx, value)[0]
+      const _statType = GetValueFromSource(ctx, statType)[0]
+      const upMark = CreateStatStageMark(_statType, _value)
+      target.forEach(v => v.addMark(new AddMarkContext(ctx, v, upMark, _value)))
     },
 }

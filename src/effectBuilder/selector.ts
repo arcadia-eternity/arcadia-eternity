@@ -6,7 +6,7 @@ import { Pet } from '@core/pet'
 import { Player } from '@core/player'
 import { Skill } from '@core/skill'
 import { Element } from '@core/element'
-import { ValueExtractor, ConditionOperator, Operator, DynamicValue } from './effectBuilder'
+import { ValueExtractor, ConditionOperator, Operator } from './effectBuilder'
 import { EffectTrigger } from '@core/effect'
 import { Primitive } from 'zod'
 
@@ -14,11 +14,10 @@ import { Primitive } from 'zod'
 // 修改选择器类型定义
 
 export type TargetSelector<T> = (context: EffectContext<EffectTrigger>) => T[]
-export type ValueSource<T extends SelectorOpinion, U extends SelectorOpinion> =
-  | DynamicValue<T, U> // 直接值或目标相关值
+export type ValueSource<T extends SelectorOpinion> =
+  | T
   | TargetSelector<T> // 选择器系统产生的值
   | ChainableSelector<T> // 链式选择器
-  | ((ctx: EffectContext<EffectTrigger>) => T[]) // 上下文相关值
 
 // 重构链式选择器类（支持类型转换）
 export class ChainableSelector<T extends SelectorOpinion> {
@@ -262,7 +261,7 @@ export const Extractor: ExtractorMap = {
   tags: (mark: Mark) => mark.tags,
 }
 
-type Path<T, P extends string> = P extends `${infer HeadPath}[]${infer Tail}`
+export type Path<T, P extends string> = P extends `${infer HeadPath}[]${infer Tail}`
   ? Path<T, HeadPath> extends Array<infer U>
     ? Path<U, Tail> extends infer R
       ? R extends never
@@ -298,4 +297,13 @@ export function createExtractor<T, P extends string>(path: P): (target: T) => Pa
     }
     return value as Path<T, P>
   }
+}
+
+export function GetValueFromSource<T extends SelectorOpinion>(
+  ctx: EffectContext<EffectTrigger>,
+  source: ValueSource<T>,
+): T[] {
+  if (source instanceof ChainableSelector) return source.build()(ctx)
+  if (typeof source == 'function') return source(ctx)
+  return [source]
 }

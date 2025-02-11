@@ -1,6 +1,7 @@
 import { EffectTrigger } from '@/core/effect'
 import { CompareOperator } from '@/effectBuilder/condition'
 import { Operators } from '@/effectBuilder/operator'
+import { BaseSelector, Extractor } from '@/effectBuilder/selector'
 import { Primitive } from 'zod'
 
 export { EffectTrigger }
@@ -16,36 +17,49 @@ export interface EffectDSL {
 
 export type ActionDSL = {
   operator: keyof typeof Operators
-  target?: SelectorDSL // 操作目标选择器
-  source?: SelectorDSL // 操作来源选择器（可选）
-  args?: Array<
-    // 操作参数，支持动态值
-    Primitive | { selector: SelectorDSL } | { value: DynamicValueDSL }
-  >
+  target: SelectorDSL // 操作目标选择器
+  args?: Array<Value>
 }
 
-export type DynamicValueDSL = {
-  selector: string // 使用点分路径语法：如 "foe.hp"、"self.marks[].duration"
-  filters?: ConditionDSL[] // 过滤条件
-  operation?: 'sum' | 'avg' // 聚合操作
-  then?: [CompareOperator, number] // 后续数值处理
-  multiplier?: number // 数值乘数
+export type Value = PrimitiveValue | DynamicValue
+
+export type PrimitiveValue = {
+  type: 'primitive'
+  value: Primitive
 }
 
-export type BaseSelector = 'self' | 'foe' | 'petOwners' | 'usingSkillContext' | 'mark'
+export type DynamicValue = {
+  type: 'dynamic'
+  selector: SelectorDSL
+}
+
+export type BaseSelector = keyof typeof BaseSelector
 
 export type SelectorDSL =
   | BaseSelector
   | {
       base: BaseSelector
-      chain: Array<{
-        type: 'select' | 'where' | 'randomPick'
-        arg?: string | number | ConditionDSL
-      }>
+      chain: Array<SelectorChain>
     }
 
-type ConditionDSL =
-  | { type: 'compare'; target: string; operator: CompareOperator; value: number }
-  | { type: 'hasOne'; value: Primitive }
+type SelectorChain =
+  | {
+      type: 'select'
+      arg: keyof typeof Extractor | string
+    }
+  | {
+      type: 'where'
+      arg: ConditionDSL
+    }
+
+export type ConditionDSL =
+  | {
+      type: 'compare'
+      target: string
+      operator: CompareOperator
+      value: Value
+    }
+  | { type: 'same'; value: Value }
   | { type: 'any'; conditions: ConditionDSL[] }
   | { type: 'all'; conditions: ConditionDSL[] }
+  | { type: 'probability'; percent: Value }
