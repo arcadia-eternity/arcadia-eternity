@@ -1,7 +1,7 @@
 import { EffectContext } from '@core/context'
 import { EffectTrigger } from '@/core/effect'
 
-export type ValueExtractor<T, U> = (target: T) => U | U[]
+export type ValueExtractor<T, U> = (target: T) => U
 
 export type ConditionOperator<U> = (ctx: EffectContext<EffectTrigger>, values: U[]) => boolean // 判断逻辑
 

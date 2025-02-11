@@ -29,20 +29,13 @@ export class ChainableSelector<T extends SelectorOpinion> {
 
   //选择一组对象的某一个参数
   select<U extends SelectorOpinion>(extractor: ValueExtractor<T, U>): ChainableSelector<U> {
-    return new ChainableSelector<U>(context => [
-      ...new Set(
-        this.selector(context).flatMap(target => {
-          const result = extractor(target)
-          return Array.isArray(result) ? result : [result]
-        }),
-      ),
-    ])
+    return new ChainableSelector<U>(context => [...new Set(this.selector(context).map(target => extractor(target)))])
   }
 
   //对结果进行筛选
-  where(predicate: (target: T) => boolean): ChainableSelector<T> {
+  where(predicate: ConditionOperator<T>): ChainableSelector<T> {
     return new ChainableSelector(context => {
-      return this.selector(context).filter(t => predicate(t))
+      return this.selector(context).filter(t => predicate(context, [t]))
     })
   }
 
@@ -193,10 +186,14 @@ export const BaseSelector: {
   self: ChainableSelector<Pet>
   foe: ChainableSelector<Pet>
   petOwners: ChainableSelector<Player>
+  foeOwners: ChainableSelector<Player>
   usingSkillContext: ChainableSelector<UseSkillContext>
   mark: ChainableSelector<Mark>
+  selfMarks: ChainableSelector<Mark>
+  foeMarks: ChainableSelector<Mark>
 } = {
   self: createChainable<Pet>((context: EffectContext<EffectTrigger>) => {
+    if (context.parent instanceof UseSkillContext) return [context.parent.pet]
     if (context.source.owner instanceof Pet) return [context.source.owner]
     //TODO: error with use owners with global marks
     return []
@@ -208,7 +205,14 @@ export const BaseSelector: {
     return []
   }),
   petOwners: createChainable<Player>((context: EffectContext<EffectTrigger>) => {
+    if (context.parent instanceof UseSkillContext) return [context.parent.pet.owner!]
     if (context.source.owner instanceof Pet) return [context.source.owner.owner!]
+    //TODO: error with use owners with global marks
+    return []
+  }),
+  foeOwners: createChainable<Player>((context: EffectContext<EffectTrigger>) => {
+    if (context.parent instanceof UseSkillContext) return [context.parent.actualTarget!.owner!]
+    if (context.source.owner instanceof Pet) return [context.battle.getOpponent(context.source.owner.owner!)]
     //TODO: error with use owners with global marks
     return []
   }),
@@ -220,6 +224,18 @@ export const BaseSelector: {
   mark: createChainable<Mark>((context: EffectContext<EffectTrigger>) => {
     if (context.source instanceof Mark) return [context.source]
     //TODO: error with use get context with non-MarkEffect context
+    return []
+  }),
+  selfMarks: createChainable<Mark>((context: EffectContext<EffectTrigger>) => {
+    if (context.source.owner instanceof Pet) return context.source.owner.marks
+    //TODO: error with use owners with global marks
+    return []
+  }),
+  foeMarks: createChainable<Mark>((context: EffectContext<EffectTrigger>) => {
+    if (context.parent instanceof UseSkillContext) return context.parent.actualTarget!.marks
+    if (context.source.owner instanceof Pet)
+      return context.battle.getOpponent(context.source.owner.owner!).activePet.marks
+    //TODO: error with use owners with global marks
     return []
   }),
 }
@@ -242,7 +258,7 @@ type ExtractorMap = {
   tags: (mark: Mark) => string[]
 }
 
-// BattleAttributes用于提取Selector得到的一组对象的某个值，将这个值的类型作为新的Selector
+// Extractor用于提取Selector得到的一组对象的某个值，将这个值的类型作为新的Selector
 export const Extractor: ExtractorMap = {
   hp: (target: Pet) => target.currentHp,
   maxhp: (target: Pet) => target.maxHp!,

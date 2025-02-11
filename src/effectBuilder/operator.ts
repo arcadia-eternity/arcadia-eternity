@@ -94,7 +94,7 @@ export const Operators = {
     },
 
   statStageBuff:
-    (value: ValueSource<number>, statType: ValueSource<StatTypeWithoutHp>) =>
+    (statType: ValueSource<StatTypeWithoutHp>, value: ValueSource<number>) =>
     (ctx: EffectContext<EffectTrigger>, target: Pet[]) => {
       //TODO: 万一找不到呢？
       const _value = GetValueFromSource(ctx, value)[0]

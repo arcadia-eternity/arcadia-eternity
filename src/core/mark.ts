@@ -198,7 +198,7 @@ export class StatLevelMark extends Mark {
         maxStacks: 6,
         stackStrategy: StackStrategy.stack,
       },
-      ['stat-stage'],
+      ['statStage'],
     )
   }
 

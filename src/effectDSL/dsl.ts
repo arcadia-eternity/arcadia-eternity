@@ -2,9 +2,8 @@ import { EffectTrigger } from '@/core/effect'
 import { CompareOperator } from '@/effectBuilder/condition'
 import { Operators } from '@/effectBuilder/operator'
 import { BaseSelector, Extractor } from '@/effectBuilder/selector'
-import { Primitive } from 'zod'
 
-export { EffectTrigger }
+export { EffectTrigger, SelectorChain }
 
 export interface EffectDSL {
   id: string
@@ -21,11 +20,11 @@ export type ActionDSL = {
   args?: Array<Value>
 }
 
-export type Value = PrimitiveValue | DynamicValue
+export type Value = RawValue | DynamicValue
 
-export type PrimitiveValue = {
-  type: 'primitive'
-  value: Primitive
+export type RawValue = {
+  type: 'raw'
+  value: number | string
 }
 
 export type DynamicValue = {
@@ -50,6 +49,53 @@ type SelectorChain =
   | {
       type: 'where'
       arg: ConditionDSL
+    }
+  | {
+      type: 'whereAttr'
+      extractor: keyof typeof Extractor | string
+      condition: ConditionDSL
+    }
+  | {
+      type: 'and'
+      arg: SelectorDSL // 交集
+    }
+  | {
+      type: 'or'
+      arg: SelectorDSL // 并集
+    }
+  | {
+      type: 'randomPick'
+      arg: number // 随机选取数量
+    }
+  | {
+      type: 'randomSample'
+      arg: number // 百分比概率筛选
+    }
+  | {
+      type: 'sum' // 数值求和（无参数）
+    }
+  | {
+      type: 'add'
+      arg: number | SelectorDSL // 数值加法
+    }
+  | {
+      type: 'multiply'
+      arg: number | SelectorDSL // 数值乘法
+    }
+  | {
+      type: 'divide'
+      arg: number | SelectorDSL // 数值除法
+    }
+  | {
+      type: 'shuffled' // 乱序（无参数）
+    }
+  | {
+      type: 'clampMax'
+      arg: number // 最大值限制
+    }
+  | {
+      type: 'clampMin'
+      arg: number // 最小值限制
     }
 
 export type ConditionDSL =

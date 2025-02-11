@@ -25,31 +25,9 @@ const swordsDance = new Skill.Builder()
   .withTarget(AttackTargetOpinion.self) // 目标为自身
   .addEffect(
     new Effect(
-      'swords-dance-effect',
+      'shiled-dance-effect',
       EffectTrigger.BeforeAttack, // 在攻击前触发
-      (ctx: EffectContext<EffectTrigger>) => {
-        if (ctx.source instanceof Skill && ctx.parent instanceof UseSkillContext) {
-          // 创建攻击+2的印记
-          const atkUpMark = CreateStatStageMark(StatTypeWithoutHp.atk, 2)
-
-          // 添加到使用者身上
-          ctx.parent.pet.addMark(
-            new AddMarkContext(
-              ctx, // 父级上下文
-              ctx.parent.pet, // 目标宠物
-              atkUpMark, // 攻击强化印记
-              2,
-            ),
-          )
-          // 战斗信息提示
-          ctx.battle.emitMessage(BattleMessageType.StatChange, {
-            pet: ctx.parent.pet.name,
-            stat: StatTypeWithoutHp.atk,
-            stage: 2,
-            reason: 'swords-dance',
-          })
-        }
-      },
+      BaseSelector.self.apply(Operators.statStageBuff(StatTypeWithoutHp.atk, 2)),
       100, // 高优先级确保先执行
     ),
   )
@@ -66,31 +44,9 @@ const shiledDance = new Skill.Builder()
   .withTarget(AttackTargetOpinion.self) // 目标为自身
   .addEffect(
     new Effect(
-      'swords-dance-effect',
+      'shiled-dance-effect',
       EffectTrigger.BeforeAttack, // 在攻击前触发
-      (ctx: EffectContext<EffectTrigger>) => {
-        if (ctx.source instanceof Skill && ctx.parent instanceof UseSkillContext) {
-          // 创建攻击+2的印记
-          const atkUpMark = CreateStatStageMark(StatTypeWithoutHp.atk, -2)
-
-          // 添加到使用者身上
-          ctx.parent.pet.addMark(
-            new AddMarkContext(
-              ctx, // 父级上下文
-              ctx.parent.pet, // 目标宠物
-              atkUpMark, // 攻击强化印记
-              2,
-            ),
-          )
-          // 战斗信息提示
-          ctx.battle.emitMessage(BattleMessageType.StatChange, {
-            pet: ctx.parent.pet.name,
-            stat: StatTypeWithoutHp.atk,
-            stage: 2,
-            reason: 'swords-dance',
-          })
-        }
-      },
+      BaseSelector.self.apply(Operators.statStageBuff(StatTypeWithoutHp.atk, -2)),
       100, // 高优先级确保先执行
     ),
   )
@@ -107,6 +63,9 @@ const burn = new Mark(
         .whereAttr(Extractor.hp, Conditions.compare('>', BaseSelector.self.select(Extractor.maxhp).divide(2)))
         .apply(Operators.dealDamage(BaseSelector.self.select(Extractor.maxhp).divide(8))),
       0,
+      BaseSelector.self
+        .select(Extractor.hp)
+        .condition(Conditions.compare('>', BaseSelector.self.select(Extractor.maxhp).divide(2))),
     ),
   ],
   {
@@ -128,7 +87,15 @@ const penshehuoyan = new Skill(
   AttackTargetOpinion.opponent,
   1,
   false,
-  [new Effect('pshy', EffectTrigger.PostDamage, BaseSelector.foe.apply(Operators.addMark(burn, 1)), 1)],
+  [
+    new Effect(
+      'pshy',
+      EffectTrigger.PostDamage,
+      BaseSelector.foe.apply(Operators.addMark(burn, 1)),
+      1,
+      BaseSelector.self.condition(Conditions.probability(5)),
+    ),
+  ],
 )
 
 // 妙蛙草系列

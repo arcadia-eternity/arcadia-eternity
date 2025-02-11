@@ -3,25 +3,16 @@ import {
   ChainableSelector,
   createExtractor,
   Extractor,
-  type Path,
   SelectorOpinion,
   ValueSource,
 } from '@/effectBuilder/selector'
 import { ActionDSL, SelectorDSL, ConditionDSL, Value, EffectTrigger } from './dsl'
 import { EffectContext } from '@/core/context'
-import { ConditionOperator, ValueExtractor } from '@/effectBuilder/effectBuilder'
-import { BattleSystem } from '@/core/battleSystem'
-import { Player } from '@/core/player'
-import { Pet } from '@/core/pet'
-import { Mark } from '@/core/mark'
-import { Skill } from '@/core/skill'
-import { Element } from '@/core/element'
-import { StatOnBattle } from '@/core/const'
 import { Conditions } from '@/effectBuilder/condition'
 import { Operators } from '@/effectBuilder/operator'
+import { ConditionOperator } from '@/effectBuilder/effectBuilder'
 
 function parseSelector(dsl: SelectorDSL): ChainableSelector<SelectorOpinion> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let selector: ChainableSelector<SelectorOpinion>
 
   if (typeof dsl === 'string') {
@@ -49,8 +40,20 @@ function parseSelector(dsl: SelectorDSL): ChainableSelector<SelectorOpinion> {
             selector = selector.where(condition)
             break
           }
+          case 'whereAttr':
+          case 'and':
+          case 'or':
+          case 'randomPick':
+          case 'randomSample':
+          case 'sum':
+          case 'add':
+          case 'multiply':
+          case 'divide':
+          case 'shuffled':
+          case 'clampMax':
+          case 'clampMin':
           default:
-            throw new Error(`未知的操作类型: ${(step as any).type}`)
+            throw new Error(`未知的操作类型: ${(step as { type: string }).type}`)
         }
       } catch (e) {
         const error = e instanceof Error ? e : new Error(String(e))
@@ -98,12 +101,17 @@ function parseExtractor(value: keyof typeof Extractor | string) {
   return createExtractor(value)
 }
 
-function parseCondition(dsl: ConditionDSL) {
+function parseCondition(dsl: ConditionDSL): ConditionOperator<SelectorOpinion> {
   switch (dsl.type) {
     case 'compare':
-      return Conditions.compare(dsl.operator, parseValue(dsl.value))
+      return Conditions.compare(
+        dsl.operator,
+        parseValue(dsl.value) as ValueSource<number>,
+      ) as ConditionOperator<SelectorOpinion>
     case 'same':
-      return Conditions.same(parseValue(dsl.value))
+      return Conditions.same(
+        parseValue(dsl.value) as ValueSource<string | number>,
+      ) as ConditionOperator<SelectorOpinion>
     case 'any':
       // 递归解析嵌套条件（OR 逻辑）
       return Conditions.any(...dsl.conditions.map(v => parseCondition(v)))
@@ -111,7 +119,7 @@ function parseCondition(dsl: ConditionDSL) {
       // 递归解析嵌套条件（AND 逻辑）
       return Conditions.all(...dsl.conditions.map(v => parseCondition(v)))
     case 'probability':
-      return Conditions.probability(parseValue(dsl.percent))
+      return Conditions.probability(parseValue(dsl.percent) as ValueSource<number>)
     default: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`Unknown condition type: ${(dsl as any).type}`)
@@ -121,7 +129,7 @@ function parseCondition(dsl: ConditionDSL) {
 
 function parseValue(v: Value): ValueSource<SelectorOpinion> {
   switch (v.type) {
-    case 'primitive':
+    case 'raw':
       return v.value
     case 'dynamic':
       return parseSelector(v.selector).build()
@@ -135,5 +143,5 @@ export function createAction(dsl: ActionDSL): (ctx: EffectContext<EffectTrigger>
   // 处理动态参数
   const args = dsl.args?.map(v => parseValue(v)) ?? []
 
-  return targetSelector.apply(operator(...args))
+  return targetSelector.apply(operator(...(args as Parameters<typeof operator>)))
 }
