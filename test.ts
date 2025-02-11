@@ -1,6 +1,6 @@
 import { ConsoleUI } from './src/console/console'
-import { BattleActions } from './src/effectBuilder/operator'
-import { Selector, Extractor } from './src/effectBuilder/selector'
+import { Operators } from './src/effectBuilder/operator'
+import { BaseSelector, Extractor } from './src/effectBuilder/selector'
 import { BattleSystem } from './src/core/battleSystem'
 import { AttackTargetOpinion, StatTypeWithoutHp } from './src/core/const'
 import { Effect, EffectTrigger } from './src/core/effect'
@@ -102,7 +102,7 @@ const burn = new Mark(
     new Effect(
       'shaoshang',
       EffectTrigger.TurnEnd,
-      Selector.self.apply(BattleActions.dealDamage(Selector.self.select(Extractor.maxhp).divide(8))),
+      BaseSelector.self.apply(Operators.dealDamage(BaseSelector.self.select(Extractor.maxhp).divide(8))),
       0,
     ),
   ],
@@ -125,7 +125,7 @@ const penshehuoyan = new Skill(
   AttackTargetOpinion.opponent,
   1,
   false,
-  [new Effect('pshy', EffectTrigger.PostDamage, Selector.foe.apply(BattleActions.addMark(burn, 1)), 1)],
+  [new Effect('pshy', EffectTrigger.PostDamage, BaseSelector.foe.apply(Operators.addMark(burn, 1)), 1)],
 )
 
 // 妙蛙草系列
@@ -166,49 +166,6 @@ const venusaur: Pet = new Pet(
   },
   Nature.Modest,
   [penshehuoyan, new Skill('ee', '寄生种子', Category.Status, Element.Grass, 0, 1, 10, 1)],
-)
-
-// 皮卡丘系列
-const pikachuSpecies: Species = {
-  id: 'pikaqiu',
-  num: 2,
-  name: '皮卡丘',
-  type: Element.Electric,
-  baseStats: {
-    hp: 35,
-    atk: 55,
-    def: 40,
-    spa: 50,
-    spd: 50,
-    spe: 90,
-  },
-}
-
-const thunderPikachu: Pet = new Pet(
-  '闪电小子',
-  pikachuSpecies,
-  50,
-  {
-    hp: 0,
-    atk: 0,
-    def: 0,
-    spa: 252,
-    spd: 4,
-    spe: 252,
-  },
-  {
-    hp: 31,
-    atk: 31,
-    def: 31,
-    spa: 31,
-    spd: 31,
-    spe: 31,
-  },
-  Nature.Timid,
-  [
-    new Skill('dd', '十万伏特', Category.Special, Element.Electric, 90, 1, 15, 1),
-    new Skill('ff', '电光一闪', Category.Physical, Element.Normal, 40, 1, 30, 1),
-  ],
 )
 
 // 耿鬼系列
@@ -292,6 +249,49 @@ const stormDragon: Pet = new Pet(
   },
   Nature.Adamant,
   [penshehuoyan, swordsDance, shiledDance, new Skill('ll', '神速', Category.Physical, Element.Normal, 80, 1, 5, 2)],
+)
+
+// 皮卡丘系列
+const pikachuSpecies: Species = {
+  id: 'pikaqiu',
+  num: 2,
+  name: '皮卡丘',
+  type: Element.Electric,
+  baseStats: {
+    hp: 35,
+    atk: 55,
+    def: 40,
+    spa: 50,
+    spd: 50,
+    spe: 90,
+  },
+}
+
+const thunderPikachu: Pet = new Pet(
+  '闪电小子',
+  pikachuSpecies,
+  50,
+  {
+    hp: 0,
+    atk: 0,
+    def: 0,
+    spa: 252,
+    spd: 4,
+    spe: 252,
+  },
+  {
+    hp: 31,
+    atk: 31,
+    def: 31,
+    spa: 31,
+    spd: 31,
+    spe: 31,
+  },
+  Nature.Timid,
+  [
+    new Skill('dd', '十万伏特', Category.Special, Element.Electric, 90, 1, 15, 1),
+    new Skill('ff', '电光一闪', Category.Physical, Element.Normal, 40, 1, 30, 1),
+  ],
 )
 
 const player2 = new Player('小茂', stormDragon, [stormDragon, shadowGengar])

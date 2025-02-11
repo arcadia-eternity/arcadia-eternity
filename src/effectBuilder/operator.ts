@@ -34,7 +34,7 @@ function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpin
         }
 
         if (finalValue.length != 0) {
-          handler(finalValue, target, ctx)
+          return handler(finalValue, target, ctx)
         }
       })
     }
@@ -42,7 +42,7 @@ function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpin
 }
 // 操作符系统
 
-export const BattleActions = {
+export const Operators = {
   dealDamage: createDynamicOperator<Pet, number>((value, pet, ctx) => {
     let source
     if (ctx.parent instanceof UseSkillContext) source = ctx.parent.pet

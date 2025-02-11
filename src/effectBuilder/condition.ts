@@ -1,42 +1,15 @@
-import { Prototype } from '@core/const'
 import { EffectContext } from '@core/context'
-import { ValueExtractor, ConditionOperator } from './effectBuilder'
-import { SelectorOpinion, ChainableSelector } from './selector'
+import { ConditionOperator, DynamicValue } from './effectBuilder'
 import { EffectTrigger } from '@core/effect'
+import { Primitive } from 'zod'
 
-export type Condition<T = unknown> =
-  | { type: 'compare'; operator: '>' | '<' | '>=' | '<=' | '=='; value: number }
-  | { type: 'hasId'; id: number }
-  | { type: 'any'; conditions: Condition<T>[] }
-  | { type: 'all'; conditions: Condition<T>[] }
-  | { type: 'probability'; percent: number }
-  | { type: 'turnCount'; predicate: (n: number) => boolean }
-  | { type: 'custom'; operator: ConditionOperator<T> }
+export type CompareOperator = '>' | '<' | '>=' | '<=' | '=='
 
-export function createDynamicCondition<T extends SelectorOpinion, U>(
-  selector: ChainableSelector<T>,
-  extractor: ValueExtractor<T, U>,
-  operator: ConditionOperator<U>,
-): (ctx: EffectContext<EffectTrigger>) => boolean {
-  return (ctx: EffectContext<EffectTrigger>) => {
-    try {
-      const targets = selector.build()(ctx)
-      const values = targets.flatMap(t => {
-        const extracted = extractor(t)
-        return Array.isArray(extracted) ? extracted : [extracted]
-      })
-      return operator(ctx, values)
-    } catch (error) {
-      console.error('Condition evaluation failed:', error)
-      return false
-    }
-  }
-}
-
-export const Conditions = {
+export const Condition = {
   compare:
-    <T extends number>(operator: '>' | '<' | '>=' | '<=' | '==') =>
-    (values: T[], ctx: EffectContext<EffectTrigger>, compareValue: T): boolean => {
+    <T extends number>(operator: CompareOperator, dynamicValue: DynamicValue<number, T>) =>
+    (ctx: EffectContext<EffectTrigger>, values: T[]): boolean => {
+      const compareValue = typeof dynamicValue === 'function' ? dynamicValue(values[0], ctx)[0] : dynamicValue
       return values.some(value => {
         switch (operator) {
           case '>':
@@ -55,10 +28,11 @@ export const Conditions = {
       })
     },
 
-  hasId:
-    <T extends Prototype>(id: string) =>
-    (values: T[]): boolean => {
-      return values.some(v => v.id === id)
+  same:
+    <T extends Primitive>(dynamicValue: DynamicValue<T, T>) =>
+    (ctx: EffectContext<EffectTrigger>, values: T[]): boolean => {
+      const comparValue = typeof dynamicValue === 'function' ? dynamicValue(values[0], ctx)[0] : dynamicValue
+      return comparValue === values[0]
     },
 
   any:
@@ -72,17 +46,9 @@ export const Conditions = {
       ops.every(op => op(ctx, values)),
 
   probability:
-    (percent: number): ConditionOperator<unknown> =>
-    (ctx: EffectContext<EffectTrigger>) =>
-      ctx.battle.random() < percent / 100,
-
-  turnCount:
-    (predicate: (n: number) => boolean): ConditionOperator<unknown> =>
-    (ctx: EffectContext<EffectTrigger>) =>
-      predicate(ctx.battle.currentTurn),
-
-  hasTag:
-    (tag: string): ConditionOperator<string[]> =>
-    (_, tagsList) =>
-      tagsList.some(tags => tags.includes(tag)),
+    <T extends number>(dynamicPercent: DynamicValue<number, T>) =>
+    (ctx: EffectContext<EffectTrigger>, values: T[]) => {
+      const percent = typeof dynamicPercent === 'function' ? dynamicPercent(values[0], ctx)[0] : dynamicPercent
+      return ctx.battle.random() < percent / 100
+    },
 }

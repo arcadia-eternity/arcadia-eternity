@@ -8,6 +8,7 @@ import { Skill } from '@core/skill'
 import { Element } from '@core/element'
 import { ValueExtractor, ConditionOperator, Operator, DynamicValue } from './effectBuilder'
 import { EffectTrigger } from '@core/effect'
+import { Primitive } from 'zod'
 
 // 条件系统分为三个层级
 // 修改选择器类型定义
@@ -46,7 +47,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
     })
   }
 
-  //在保持当前结果的同时，对参数进行筛选
+  //在保持当前结果类型的同时，对参数进行筛选
   whereAttr<U>(extractor: ValueExtractor<T, U>, condition: ConditionOperator<U>): ChainableSelector<T> {
     return new ChainableSelector(context => {
       return this.selector(context).filter(t => {
@@ -187,9 +188,9 @@ function createChainable<T extends SelectorOpinion>(selector: TargetSelector<T>)
   return new ChainableSelector(selector)
 }
 
-export type SelectorOpinion = Player | Pet | Mark | Skill | UseSkillContext | StatOnBattle | number | string | boolean
+export type SelectorOpinion = Player | Pet | Mark | Skill | UseSkillContext | StatOnBattle | Primitive
 // 基础选择器
-export const Selector: {
+export const BaseSelector: {
   self: ChainableSelector<Pet>
   foe: ChainableSelector<Pet>
   petOwners: ChainableSelector<Player>
@@ -257,34 +258,32 @@ export const Extractor: ExtractorMap = {
   priority: (target: UseSkillContext) => target.skillPriority,
   activePet: (target: Player) => target.activePet,
   skills: (target: Pet) => target.skills,
-  id: (mark: Mark) => mark.id, // 提取 Mark 的 id
-  tags: (mark: Mark) => mark.tags, // 提取 Mark 的标签数组
+  id: (mark: Mark) => mark.id,
+  tags: (mark: Mark) => mark.tags,
 }
 
-type Path<T, P extends string> =
-  // 处理数组路径（如 `a.b[].c`）
-  P extends `${infer HeadPath}[]${infer Tail}`
-    ? Path<T, HeadPath> extends Array<infer U> // 解析 HeadPath 是否为数组
-      ? Path<U, Tail> extends infer R // 递归解析 Tail 部分
-        ? R extends never
-          ? never
-          : R[] // 返回结果数组
-        : never
+type Path<T, P extends string> = P extends `${infer HeadPath}[]${infer Tail}`
+  ? Path<T, HeadPath> extends Array<infer U>
+    ? Path<U, Tail> extends infer R
+      ? R extends never
+        ? never
+        : R[]
       : never
-    : // 处理以 `.` 开头的路径（兼容分割后的空字符）
-      P extends `.${infer Rest}`
-      ? Path<T, Rest>
-      : // 处理普通属性访问（如 `owner.activePet`）
-        P extends `${infer Head}.${infer Tail}`
-        ? Head extends keyof T
-          ? T[Head] extends (object | Array<unknown>) | null | undefined
-            ? Path<NonNullable<T[Head]>, Tail> // 递归处理非空属性
-            : never
+    : never
+  : // 处理以 `.` 开头的路径（兼容分割后的空字符）
+    P extends `.${infer Rest}`
+    ? Path<T, Rest>
+    : // 处理普通属性访问（如 `owner.activePet`）
+      P extends `${infer Head}.${infer Tail}`
+      ? Head extends keyof T
+        ? T[Head] extends object | Array<unknown> | null | undefined
+          ? Path<NonNullable<T[Head]>, Tail> // 递归处理非空属性
           : never
-        : // 处理直接属性（如 `duration`）
-          P extends keyof T
-          ? T[P]
-          : never
+        : never
+      : // 处理直接属性（如 `duration`）
+        P extends keyof T
+        ? T[P]
+        : never
 
 export function createExtractor<T, P extends string>(path: P): (target: T) => Path<T, P> {
   const keys = path.split(/\.|\[\]/).filter(Boolean)
@@ -300,7 +299,3 @@ export function createExtractor<T, P extends string>(path: P): (target: T) => Pa
     return value as Path<T, P>
   }
 }
-const extractSkillElements = createExtractor<Pet, 'owner.activePet.skills[].element'>(
-  'owner.activePet.skills[].element',
-)
-const elements = extractSkillElements(pet2) // 应为 Element[] Element.Normal[] | Element.Grass[] | Element.Water[] | Element.Fire[] | Element.Wind[] | Element.Bug[] | Element.Flying[] | Element.Electric[] | Element.Ground[] | ... 13 more ... | Element.ElfKing[]
