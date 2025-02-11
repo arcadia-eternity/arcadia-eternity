@@ -201,7 +201,7 @@ export class Player {
         context.crit = context.crit || Math.random() < attacker.stat.critRate
         if (context.crit) this.battle!.applyEffects(context, EffectTrigger.OnCritPreDamage)
         this.battle!.applyEffects(context, EffectTrigger.PreDamage)
-        const typeMultiplier = ELEMENT_CHART[context.skill.type][defender.type] || 1
+        const typeMultiplier = ELEMENT_CHART[context.skill.element][defender.type] || 1
         let atk = 0
         let def = 0
         let damageType: DamageType
@@ -233,7 +233,7 @@ export class Player {
         const randomFactor = this.battle!.random() * 0.15 + 0.85
 
         // STAB加成
-        const stabMultiplier = attacker.species.type === context.skill.type ? 1.5 : 1
+        const stabMultiplier = attacker.species.type === context.skill.element ? 1.5 : 1
 
         // 暴击加成
         const critMultiplier = context.crit ? 1.5 : 1

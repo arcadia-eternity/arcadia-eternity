@@ -1,6 +1,6 @@
 import { ConsoleUI } from './src/console/console'
 import { BattleActions } from './src/effectBuilder/operator'
-import { BattleTarget, BattleAttributes } from './src/effectBuilder/selector'
+import { Selector, Extractor } from './src/effectBuilder/selector'
 import { BattleSystem } from './src/core/battleSystem'
 import { AttackTargetOpinion, StatTypeWithoutHp } from './src/core/const'
 import { Effect, EffectTrigger } from './src/core/effect'
@@ -102,7 +102,7 @@ const burn = new Mark(
     new Effect(
       'shaoshang',
       EffectTrigger.TurnEnd,
-      BattleTarget.self.apply(BattleActions.dealDamage(BattleTarget.self.select(BattleAttributes.maxhp).divide(8))),
+      Selector.self.apply(BattleActions.dealDamage(Selector.self.select(Extractor.maxhp).divide(8))),
       0,
     ),
   ],
@@ -125,7 +125,7 @@ const penshehuoyan = new Skill(
   AttackTargetOpinion.opponent,
   1,
   false,
-  [new Effect('pshy', EffectTrigger.PostDamage, BattleTarget.foe.apply(BattleActions.addMark(burn, 1)), 1)],
+  [new Effect('pshy', EffectTrigger.PostDamage, Selector.foe.apply(BattleActions.addMark(burn, 1)), 1)],
 )
 
 // 妙蛙草系列

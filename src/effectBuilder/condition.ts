@@ -56,7 +56,7 @@ export const Conditions = {
     },
 
   hasId:
-    <T extends Prototype>(id: number) =>
+    <T extends Prototype>(id: string) =>
     (values: T[]): boolean => {
       return values.some(v => v.id === id)
     },
@@ -80,4 +80,9 @@ export const Conditions = {
     (predicate: (n: number) => boolean): ConditionOperator<unknown> =>
     (ctx: EffectContext<EffectTrigger>) =>
       predicate(ctx.battle.currentTurn),
+
+  hasTag:
+    (tag: string): ConditionOperator<string[]> =>
+    (_, tagsList) =>
+      tagsList.some(tags => tags.includes(tag)),
 }

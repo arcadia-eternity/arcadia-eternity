@@ -32,7 +32,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     } = {
       destoyable: true,
     },
-    private readonly tags: string[] = [],
+    public readonly tags: string[] = [],
   ) {
     this.duration = config.duration ?? 3
     this.config.stackStrategy = config.stackStrategy ?? StackStrategy.stack

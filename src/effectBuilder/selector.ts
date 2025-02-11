@@ -189,7 +189,7 @@ function createChainable<T extends SelectorOpinion>(selector: TargetSelector<T>)
 
 export type SelectorOpinion = Player | Pet | Mark | Skill | UseSkillContext | StatOnBattle | number | string | boolean
 // 基础选择器
-export const BattleTarget: {
+export const Selector: {
   self: ChainableSelector<Pet>
   foe: ChainableSelector<Pet>
   petOwners: ChainableSelector<Player>
@@ -224,7 +224,7 @@ export const BattleTarget: {
   }),
 }
 
-type BattleAttributesMap = {
+type ExtractorMap = {
   hp: (target: Pet) => number
   maxhp: (target: Pet) => number
   rage: (target: Player) => number
@@ -238,9 +238,12 @@ type BattleAttributesMap = {
   priority: (target: UseSkillContext) => number
   activePet: (target: Player) => Pet
   skills: (target: Pet) => Skill[]
+  id: (mark: Mark) => string
+  tags: (mark: Mark) => string[]
 }
+
 // BattleAttributes用于提取Selector得到的一组对象的某个值，将这个值的类型作为新的Selector
-export const BattleAttributes: BattleAttributesMap = {
+export const Extractor: ExtractorMap = {
   hp: (target: Pet) => target.currentHp,
   maxhp: (target: Pet) => target.maxHp!,
   rage: (target: Player) => target.currentRage,
@@ -254,4 +257,50 @@ export const BattleAttributes: BattleAttributesMap = {
   priority: (target: UseSkillContext) => target.skillPriority,
   activePet: (target: Player) => target.activePet,
   skills: (target: Pet) => target.skills,
+  id: (mark: Mark) => mark.id, // 提取 Mark 的 id
+  tags: (mark: Mark) => mark.tags, // 提取 Mark 的标签数组
 }
+
+type Path<T, P extends string> =
+  // 处理数组路径（如 `a.b[].c`）
+  P extends `${infer HeadPath}[]${infer Tail}`
+    ? Path<T, HeadPath> extends Array<infer U> // 解析 HeadPath 是否为数组
+      ? Path<U, Tail> extends infer R // 递归解析 Tail 部分
+        ? R extends never
+          ? never
+          : R[] // 返回结果数组
+        : never
+      : never
+    : // 处理以 `.` 开头的路径（兼容分割后的空字符）
+      P extends `.${infer Rest}`
+      ? Path<T, Rest>
+      : // 处理普通属性访问（如 `owner.activePet`）
+        P extends `${infer Head}.${infer Tail}`
+        ? Head extends keyof T
+          ? T[Head] extends (object | Array<unknown>) | null | undefined
+            ? Path<NonNullable<T[Head]>, Tail> // 递归处理非空属性
+            : never
+          : never
+        : // 处理直接属性（如 `duration`）
+          P extends keyof T
+          ? T[P]
+          : never
+
+export function createExtractor<T, P extends string>(path: P): (target: T) => Path<T, P> {
+  const keys = path.split(/\.|\[\]/).filter(Boolean)
+  return (target: T) => {
+    let value: unknown = target
+    for (const key of keys) {
+      if (Array.isArray(value)) {
+        value = value.flatMap(v => v[key as keyof typeof v])
+      } else {
+        value = value?.[key as keyof typeof value]
+      }
+    }
+    return value as Path<T, P>
+  }
+}
+const extractSkillElements = createExtractor<Pet, 'owner.activePet.skills[].element'>(
+  'owner.activePet.skills[].element',
+)
+const elements = extractSkillElements(pet2) // 应为 Element[] Element.Normal[] | Element.Grass[] | Element.Water[] | Element.Fire[] | Element.Wind[] | Element.Bug[] | Element.Flying[] | Element.Electric[] | Element.Ground[] | ... 13 more ... | Element.ElfKing[]

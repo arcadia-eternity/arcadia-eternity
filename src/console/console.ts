@@ -241,7 +241,7 @@ export class ConsoleUI extends BattleUI {
 
       const powerText = a.skill.category === Category.Status ? '' : `, 威力:${a.skill.power}`
       console.log(
-        `${i + 1}. 使用技能: ${ELEMENT_MAP[a.skill.type].emoji}${a.skill.name} (${skillTypeIcon}${powerText}, 消耗:${a.skill.rage})`,
+        `${i + 1}. 使用技能: ${ELEMENT_MAP[a.skill.element].emoji}${a.skill.name} (${skillTypeIcon}${powerText}, 消耗:${a.skill.rage})`,
       )
     })
 
