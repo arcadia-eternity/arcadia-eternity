@@ -7,7 +7,7 @@ import eslintConfigPrettier from "eslint-config-prettier";
 /** @type {import('eslint').Linter.Config[]} */
 export default [
   {
-    ignores: ["dist/", "tsconfig.json"]
+    ignores: ["dist/", "tsconfig.json", "test/"]
   },
   { files: ["**/*.{js,mjs,cjs,ts}"] },
   { languageOptions: { globals: { ...globals.browser, ...globals.node } } },

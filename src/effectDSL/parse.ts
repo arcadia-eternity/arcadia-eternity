@@ -47,7 +47,7 @@ export function parseSelector<T extends SelectorOpinion>(dsl: SelectorDSL): Chai
             // 动态推断当前泛型类型
             type CurrentType = typeof selector._type
             const extractor = parseExtractor<CurrentType>(step.arg)
-            selector = selector.select(extractor) as ChainableSelector<SelectorOpinion>
+            selector = selector.select(extractor)
             break
           }
           case 'where': {
@@ -88,28 +88,28 @@ export function parseSelector<T extends SelectorOpinion>(dsl: SelectorDSL): Chai
           }
           case 'add': {
             if (typeof step.arg === 'number') {
-              selector = selector.add(step.arg) as ChainableSelector<SelectorOpinion>
+              selector = selector.add(step.arg)
             } else {
               const otherSelector = parseSelector<number>(step.arg)
-              selector = selector.add(otherSelector) as ChainableSelector<SelectorOpinion>
+              selector = selector.add(otherSelector)
             }
             break
           }
           case 'multiply': {
             if (typeof step.arg === 'number') {
-              selector = selector.multiply(step.arg) as ChainableSelector<SelectorOpinion>
+              selector = selector.multiply(step.arg)
             } else {
               const otherSelector = parseSelector<number>(step.arg)
-              selector = selector.multiply(otherSelector) as ChainableSelector<SelectorOpinion>
+              selector = selector.multiply(otherSelector)
             }
             break
           }
           case 'divide': {
             if (typeof step.arg === 'number') {
-              selector = selector.divide(step.arg) as ChainableSelector<SelectorOpinion>
+              selector = selector.divide(step.arg)
             } else {
               const otherSelector = parseSelector<number>(step.arg)
-              selector = selector.divide(otherSelector) as ChainableSelector<SelectorOpinion>
+              selector = selector.divide(otherSelector)
             }
             break
           }
@@ -117,10 +117,10 @@ export function parseSelector<T extends SelectorOpinion>(dsl: SelectorDSL): Chai
             selector = selector.shuffled()
             break
           case 'clampMax':
-            selector = selector.clampMax(step.arg) as ChainableSelector<SelectorOpinion>
+            selector = selector.clampMax(step.arg)
             break
           case 'clampMin':
-            selector = selector.clampMin(step.arg) as ChainableSelector<SelectorOpinion>
+            selector = selector.clampMin(step.arg)
             break
           default:
             throw new Error(`未知的操作类型: ${(step as { type: string }).type}`)

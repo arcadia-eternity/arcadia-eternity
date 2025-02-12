@@ -24,8 +24,8 @@ export class ChainableSelector<T extends SelectorOpinion> {
   public readonly _type!: T
   public readonly valueType: string
   constructor(private selector: TargetSelector<T>) {
-    const sample = this.selector({} as EffectContext<EffectTrigger>)[0]
-    this.valueType = typeof sample === 'object' ? sample?.constructor?.name || 'object' : typeof sample
+    // const sample = this.selector({} as EffectContext<EffectTrigger>)[0]
+    // this.valueType = typeof sample === 'object' ? sample?.constructor?.name || 'object' : typeof sample
   }
 
   [Symbol.toPrimitive](context: EffectContext<EffectTrigger>): T[] {

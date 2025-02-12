@@ -51,43 +51,43 @@ export class EffectScheduler {
 
 // 统一效果触发阶段
 export enum EffectTrigger {
-  OnBattleStart = 'ON_BATTLE_START',
+  OnBattleStart = 'OnBattleStart',
 
   //以下EffectTrigger下的，context的parent一定是UseSkillContext
-  BeforeSort = 'BEFORE_SORT',
-  BeforeAttack = 'BEFORE_ATTACK',
-  PreDamage = 'PRE_DAMAGE',
-  OnCritPreDamage = 'ON_CRIT_PRE_DAMAGE',
-  OnDamage = 'ON_DAMAGE',
-  PostDamage = 'POST_DAMAGE',
-  OnCritPostDamage = 'ON_CRIT_POST_DAMAGE',
-  OnHit = 'ON_HIT',
-  OnMiss = 'ON_MISS',
-  AfterAttacked = 'AFTER_ATTACKED',
-  OnDefeat = 'ON_DEFEAT',
+  BeforeSort = 'BeforeSort',
+  BeforeAttack = 'BeforeAttack',
+  PreDamage = 'PreDamage',
+  OnCritPreDamage = 'OnCritPreDamage',
+  OnDamage = 'OnDamage',
+  PostDamage = 'PostDamage',
+  OnCritPostDamage = 'OnCritPostDamage',
+  OnHit = 'OnHit',
+  OnMiss = 'OnMiss',
+  AfterAttacked = 'AfterAttacked',
+  OnDefeat = 'OnDefeat',
 
   // 印记相关
-  TurnStart = 'TURN_START',
-  TurnEnd = 'TURN_END',
+  TurnStart = 'TurnStart',
+  TurnEnd = 'TurnEnd',
 
   //仅作用于自身触发
-  OnAddMark = 'ON_ADD_MARK',
-  OnRemoveMark = 'ON_REMOVE_MARK',
+  OnAddMark = 'OnAddMark',
+  OnRemoveMark = 'OnRemoveMark',
 
-  OnMarkCreate = 'ON_MARK_CREATE',
-  OnMarkDestroy = 'ON_MARK_DESTROY',
+  OnMarkCreate = 'OnMarkCreate',
+  OnMarkDestroy = 'OnMarkDestroy',
 
   //以下一定是EffectContext
-  OnStack = 'ON_STACK',
-  OnHeal = 'ON_HEAL',
-  OnRageGain = 'ON_RAGE_GAIN',
-  OnRageLoss = 'ON_RAGE_LOSS',
+  OnStack = 'OnStack',
+  OnHeal = 'OnHeal',
+  OnRageGain = 'OnRageGain',
+  OnRageLoss = 'OnRageLoss',
 
-  OnSwitchIn = 'ON_SWITCH_IN',
-  OnSwitchOut = 'ON_SWITCH_OUT',
+  OnSwitchIn = 'OnSwitchIn',
+  OnSwitchOut = 'OnSwitchOut',
 
-  BeforeEffect = 'BEFORE_EFFECT',
-  AfterEffect = 'AFTER_EFFECT',
+  BeforeEffect = 'BeforeEffect',
+  AfterEffect = 'AfterEffect',
 }
 
 export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity {
