@@ -22,7 +22,11 @@ export type ValueSource<T extends SelectorOpinion> =
 
 export class ChainableSelector<T extends SelectorOpinion> {
   public readonly _type!: T
-  constructor(private selector: TargetSelector<T>) {}
+  public readonly valueType: string
+  constructor(private selector: TargetSelector<T>) {
+    const sample = this.selector({} as EffectContext<EffectTrigger>)[0]
+    this.valueType = typeof sample === 'object' ? sample?.constructor?.name || 'object' : typeof sample
+  }
 
   [Symbol.toPrimitive](context: EffectContext<EffectTrigger>): T[] {
     return this.selector(context)
@@ -186,6 +190,10 @@ export class ChainableSelector<T extends SelectorOpinion> {
 
   apply(operator: Operator<T>) {
     return (ctx: EffectContext<EffectTrigger>) => operator(ctx, this.selector(ctx))
+  }
+
+  isNumberType(): this is ChainableSelector<number> {
+    return typeof this._type === 'number'
   }
 }
 // 类型增强装饰器
@@ -353,20 +361,17 @@ export type Path<T, P extends string> = P extends `${infer HeadPath}[]${infer Ta
         : R[]
       : never
     : never
-  : // 处理以 `.` 开头的路径（兼容分割后的空字符）
-    P extends `.${infer Rest}`
+  : P extends `.${infer Rest}`
     ? Path<T, Rest>
-    : // 处理普通属性访问（如 `owner.activePet`）
-      P extends `${infer Head}.${infer Tail}`
+    : P extends `${infer Head}.${infer Tail}`
       ? Head extends keyof T
         ? T[Head] extends object | Array<unknown> | null | undefined
-          ? Path<NonNullable<T[Head]>, Tail> // 递归处理非空属性
+          ? Path<NonNullable<T[Head]>, Tail>
           : never
         : never
-      : // 处理直接属性（如 `duration`）
-        P extends keyof T
+      : P extends keyof T
         ? T[P]
-        : never & SelectorOpinion
+        : never
 
 export function createExtractor<T, P extends string>(path: P): (target: T) => Path<T, P> {
   const keys = path.split(/\.|\[\]/).filter(Boolean)
@@ -387,31 +392,23 @@ export function createExtractor<T, P extends string>(path: P): (target: T) => Pa
   }
 }
 
+// selector.ts
 function isValidSelectorOpinion(value: unknown): value is SelectorOpinion {
-  const validTypes = [
-    Pet,
-    Mark,
-    Player,
-    Skill,
-    UseSkillContext,
-    BattleSystem,
-    Number,
-    String,
-    Boolean,
-    Array,
-    Object,
-    null,
-  ]
   return (
-    validTypes.some(
-      type => (typeof type === 'function' && value instanceof type) || (value === null && type === null),
-    ) || isStatOnBattle(value)
+    value instanceof Pet ||
+    value instanceof Mark ||
+    value instanceof Player ||
+    value instanceof Skill ||
+    value instanceof UseSkillContext ||
+    value instanceof BattleSystem ||
+    typeof value === 'number' ||
+    typeof value === 'string' ||
+    typeof value === 'boolean' ||
+    value === null ||
+    Array.isArray(value) ||
+    // StatOnBattle结构检查（示例）
+    (typeof value === 'object' && value !== null && 'attack' in value && 'defense' in value)
   )
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function isStatOnBattle(value: any): value is StatOnBattle {
-  return value && typeof value.attack === 'number' && typeof value.defense === 'number'
 }
 
 export function GetValueFromSource<T extends SelectorOpinion>(

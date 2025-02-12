@@ -146,7 +146,6 @@ export class Pet implements OwnedEntity {
     this.marks = this.marks.filter(mark => mark.id !== ctx.mark.id)
   }
 
-  //TODO: 属性修改器
   private calculateStat(type: StatTypeOnBattle): number {
     if (type in StatTypeOnlyBattle) {
       return this.calculateStatOnlyBattle(type)
@@ -169,17 +168,19 @@ export class Pet implements OwnedEntity {
   }
 
   private calculateStatOnlyBattle(type: StatTypeOnBattle): number {
+    let base: number
     if (type === 'accuracy') {
-      return this.baseAccuracy
+      base = this.baseAccuracy
     } else if (type === 'critRate') {
-      return this.baseCritRate
+      base = this.baseCritRate
     } else if (type === 'evasion') {
-      return 0
+      base = 0
     } else if (type === 'ragePerTurn') {
-      return RAGE_PER_TURN
+      base = RAGE_PER_TURN
     } else {
       return this.calculateStatWithoutHp(type)
     }
+    return ((base + this.statModifiers[type][1]) * this.statModifiers[type][0]) / 100
   }
 
   private calculateMaxHp(): number {

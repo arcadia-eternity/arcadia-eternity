@@ -12,6 +12,7 @@ export enum StackStrategy {
   'replace', // 完全替换为新的印记
 }
 
+//TODO: 印记的换场逻辑，以及传递的逻辑。
 export class Mark implements EffectContainer, Prototype, OwnedEntity {
   public _stacks: number = 1
   public duration: number

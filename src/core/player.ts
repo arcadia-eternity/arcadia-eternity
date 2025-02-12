@@ -299,7 +299,7 @@ export class Player {
   }
 
   public settingRage(value: number) {
-    //TODO:触发怒气相关事件
+    //TODO:触发设定怒气相关事件
     this.currentRage = Math.max(Math.min(value, 100), 0)
   }
 
