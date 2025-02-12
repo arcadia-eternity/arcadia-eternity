@@ -105,7 +105,7 @@ export type SelectorDSL =
   | BaseSelector
   | {
       base: BaseSelector
-      chain: Array<SelectorChain>
+      chain?: Array<SelectorChain>
     }
 export type SelectStepDSL = {
   type: 'select'

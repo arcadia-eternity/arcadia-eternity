@@ -127,7 +127,7 @@ export const selectorDSLSchema: z.ZodSchema<SelectorDSL> = z.lazy(() =>
     baseSelectorSchema,
     z.object({
       base: baseSelectorSchema,
-      chain: z.array(selectorChainSchema),
+      chain: z.array(selectorChainSchema).optional(),
     }),
   ]),
 )

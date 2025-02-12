@@ -39,6 +39,7 @@ export function parseSelector<T extends SelectorOpinion>(dsl: SelectorDSL): Chai
     selector = BaseSelector[base as keyof typeof BaseSelector]
 
     // 处理链式操作
+    if (!dsl.chain) return selector as ChainableSelector<T>
     for (const step of dsl.chain) {
       try {
         switch (step.type) {
