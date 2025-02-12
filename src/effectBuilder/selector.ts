@@ -21,6 +21,7 @@ export type ValueSource<T extends SelectorOpinion> =
 // 重构链式选择器类（支持类型转换）
 
 export class ChainableSelector<T extends SelectorOpinion> {
+  public readonly _type!: T
   constructor(private selector: TargetSelector<T>) {}
 
   [Symbol.toPrimitive](context: EffectContext<EffectTrigger>): T[] {
@@ -29,7 +30,16 @@ export class ChainableSelector<T extends SelectorOpinion> {
 
   //选择一组对象的某一个参数
   select<U extends SelectorOpinion>(extractor: ValueExtractor<T, U>): ChainableSelector<U> {
-    return new ChainableSelector<U>(context => [...new Set(this.selector(context).map(target => extractor(target)))])
+    return new ChainableSelector<U>(context =>
+      this.selector(context).map(t => {
+        // 运行时类型检查
+        if (typeof extractor !== 'function') {
+          throw new Error(`提取器必须为函数，实际类型：${typeof extractor}`)
+        }
+        const value = extractor(t)
+        return value as U
+      }),
+    )
   }
 
   //对结果进行筛选
@@ -298,6 +308,43 @@ export const Extractor: ExtractorMap = {
   tags: (mark: Mark) => mark.tags,
 }
 
+export function isPet(target: SelectorOpinion): target is Pet {
+  return target instanceof Pet
+}
+
+export function isPlayer(target: SelectorOpinion): target is Player {
+  return target instanceof Player
+}
+
+export function isMark(target: SelectorOpinion): target is Mark {
+  return target instanceof Mark
+}
+
+export function isSkill(target: SelectorOpinion): target is Skill {
+  return target instanceof Skill
+}
+
+export function isUseSkillContext(target: SelectorOpinion): target is UseSkillContext {
+  return target instanceof UseSkillContext
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isOwnedEntity(obj: any): obj is OwnedEntity {
+  return (
+    // 检查是否存在owner属性（不验证类型）
+    'owner' in obj &&
+    // 检查是否存在setOwner方法
+    typeof obj.setOwner === 'function' &&
+    // 可选：进一步验证owner类型（需要递归类型检查）
+    (obj.owner === null ||
+      obj.owner instanceof BattleSystem ||
+      obj.owner instanceof Player ||
+      obj.owner instanceof Pet ||
+      obj.owner instanceof Mark ||
+      obj.owner instanceof Skill)
+  )
+}
+
 export type Path<T, P extends string> = P extends `${infer HeadPath}[]${infer Tail}`
   ? Path<T, HeadPath> extends Array<infer U>
     ? Path<U, Tail> extends infer R
@@ -319,7 +366,7 @@ export type Path<T, P extends string> = P extends `${infer HeadPath}[]${infer Ta
       : // 处理直接属性（如 `duration`）
         P extends keyof T
         ? T[P]
-        : never
+        : never & SelectorOpinion
 
 export function createExtractor<T, P extends string>(path: P): (target: T) => Path<T, P> {
   const keys = path.split(/\.|\[\]/).filter(Boolean)
@@ -332,8 +379,39 @@ export function createExtractor<T, P extends string>(path: P): (target: T) => Pa
         value = value?.[key as keyof typeof value]
       }
     }
+    if (!isValidSelectorOpinion(value)) {
+      throw new Error(`路径${path}解析到无效类型: ${typeof value}`)
+    }
+
     return value as Path<T, P>
   }
+}
+
+function isValidSelectorOpinion(value: unknown): value is SelectorOpinion {
+  const validTypes = [
+    Pet,
+    Mark,
+    Player,
+    Skill,
+    UseSkillContext,
+    BattleSystem,
+    Number,
+    String,
+    Boolean,
+    Array,
+    Object,
+    null,
+  ]
+  return (
+    validTypes.some(
+      type => (typeof type === 'function' && value instanceof type) || (value === null && type === null),
+    ) || isStatOnBattle(value)
+  )
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isStatOnBattle(value: any): value is StatOnBattle {
+  return value && typeof value.attack === 'number' && typeof value.defense === 'number'
 }
 
 export function GetValueFromSource<T extends SelectorOpinion>(
