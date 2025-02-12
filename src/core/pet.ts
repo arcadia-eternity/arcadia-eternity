@@ -5,6 +5,7 @@ import {
   type Prototype,
   RAGE_PER_TURN,
   STAT_STAGE_MULTIPLIER,
+  StatBuffOnBattle,
   type StatOnBattle,
   type StatOutBattle,
   StatType,
@@ -36,17 +37,17 @@ export class Pet implements OwnedEntity {
   public baseCritRate: number = 0.1 // 暴击率默认为10%
   public baseAccuracy: number = 1 // 命中率默认为100%
   public statStage: Partial<Record<StatTypeOnBattle, number>> = {} //能力等级
-  // public statModifiers: StatBuffOnBattle = {
-  //   atk: [100, 0],
-  //   def: [100, 0],
-  //   spa: [100, 0],
-  //   spd: [100, 0],
-  //   spe: [100, 0],
-  //   accuracy: [100, 0],
-  //   critRate: [100, 0],
-  //   evasion: [100, 0],
-  //   ragePerTurn: [15, 0],
-  // }
+  public statModifiers: StatBuffOnBattle = {
+    atk: [100, 0],
+    def: [100, 0],
+    spa: [100, 0],
+    spd: [100, 0],
+    spe: [100, 0],
+    accuracy: [100, 0],
+    critRate: [100, 0],
+    evasion: [100, 0],
+    ragePerTurn: [15, 0],
+  }
   public type: Element
   public isAlive: boolean = true
   public lastUseSkill: Skill | null = null
@@ -161,8 +162,10 @@ export class Pet implements OwnedEntity {
     const level = this.level
     const iv = this.ivs[type]
     const ev = this.evs[type]
+    const base = Math.floor(((2 * baseStat + iv + Math.floor(ev / 4)) * level) / 100 + 5) * natureMultiplier
+    const result = (base + this.statModifiers[type][1]) * (this.statModifiers[type][0] / 100)
 
-    return Math.floor(((2 * baseStat + iv + Math.floor(ev / 4)) * level) / 100 + 5) * natureMultiplier
+    return result
   }
 
   private calculateStatOnlyBattle(type: StatTypeOnBattle): number {
@@ -184,8 +187,8 @@ export class Pet implements OwnedEntity {
     const level = this.level
     const iv = this.ivs.hp
     const ev = this.evs.hp
-
-    return Math.floor(((2 * baseStat + iv + Math.floor(ev / 4)) * level) / 100) + level + 10
+    const base = Math.floor(((2 * baseStat + iv + Math.floor(ev / 4)) * level) / 100) + level + 10
+    return base
   }
 
   public setOwner(player: Player) {

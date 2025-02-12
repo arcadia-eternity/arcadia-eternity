@@ -1,5 +1,5 @@
 import { BattleSystem } from '@core/battleSystem'
-import { OwnedEntity, StatOnBattle } from '@core/const'
+import { OwnedEntity, StatOnBattle, StatTypeOnBattle } from '@core/const'
 import { EffectContext, UseSkillContext } from '@core/context'
 import { Mark } from '@core/mark'
 import { Pet } from '@core/pet'
@@ -8,7 +8,6 @@ import { Skill } from '@core/skill'
 import { Element } from '@core/element'
 import { ValueExtractor, ConditionOperator, Operator } from './effectBuilder'
 import { EffectTrigger } from '@core/effect'
-import { Primitive } from 'zod'
 
 // 条件系统分为三个层级
 // 修改选择器类型定义
@@ -20,6 +19,7 @@ export type ValueSource<T extends SelectorOpinion> =
   | ChainableSelector<T> // 链式选择器
 
 // 重构链式选择器类（支持类型转换）
+
 export class ChainableSelector<T extends SelectorOpinion> {
   constructor(private selector: TargetSelector<T>) {}
 
@@ -51,20 +51,23 @@ export class ChainableSelector<T extends SelectorOpinion> {
   }
 
   //两个同类型的结果取交集
-  and(other: TargetSelector<T>): ChainableSelector<T> {
+  and(other: TargetSelector<T> | ChainableSelector<T>): ChainableSelector<T> {
     return new ChainableSelector(context => {
       const prev = this.selector(context)
-      const otherResults = other(context)
+      let otherResults
+      if (other instanceof ChainableSelector) otherResults = other.build()(context)
+      else otherResults = other(context)
       return prev.filter(t => otherResults.includes(t))
     })
   }
 
-  //两个同类型的结果取并集
-  or(other: TargetSelector<T>): ChainableSelector<T> {
+  //两个同类型的结果取并集,相同的值会省略
+  or(other: TargetSelector<T>, duplicate: boolean): ChainableSelector<T> {
     return new ChainableSelector(context => {
       const prev = this.selector(context)
       const otherResults = other(context)
-      return [...new Set([...prev, ...otherResults])]
+      if (!duplicate) return [...new Set([...prev, ...otherResults])]
+      return [...prev, ...otherResults]
     })
   }
 
@@ -180,7 +183,25 @@ function createChainable<T extends SelectorOpinion>(selector: TargetSelector<T>)
   return new ChainableSelector(selector)
 }
 
-export type SelectorOpinion = Player | Pet | Mark | Skill | UseSkillContext | StatOnBattle | Primitive
+export type SelectorOpinion =
+  | Pet
+  | Mark
+  | Player
+  | Skill
+  | StatOnBattle
+  | UseSkillContext
+  | BattleSystem
+  | number
+  | StatTypeOnBattle
+  | string
+  | boolean
+  | null
+  | Mark[]
+  | Skill[]
+  | string[]
+  | Element
+  | OwnedEntity
+
 // 基础选择器
 export const BaseSelector: {
   self: ChainableSelector<Pet>

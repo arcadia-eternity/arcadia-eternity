@@ -5,14 +5,12 @@ import { Conditions } from './src/effectBuilder/condition'
 import { BattleSystem } from './src/core/battleSystem'
 import { AttackTargetOpinion, StatTypeWithoutHp } from './src/core/const'
 import { Effect, EffectTrigger } from './src/core/effect'
-import { CreateStatStageMark, Mark } from './src/core/mark'
+import { Mark } from './src/core/mark'
 import { Nature } from './src/core/nature'
 import { Species, Pet } from './src/core/pet'
 import { Player } from './src/core/player'
 import { Skill, Category } from './src/core/skill'
 import { Element } from './src/core/element'
-import { EffectContext, UseSkillContext, AddMarkContext } from '@/core/context'
-import { BattleMessageType } from '@/core/message'
 
 const swordsDance = new Skill.Builder()
   .withID('swords-dance')

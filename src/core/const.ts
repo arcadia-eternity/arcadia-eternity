@@ -59,6 +59,10 @@ export interface Prototype {
   id: string
 }
 
+export interface Entity {
+  type: string
+}
+
 export interface OwnedEntity {
   owner: BattleSystem | Player | Pet | Mark | Skill | null
 

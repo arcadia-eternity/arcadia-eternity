@@ -6,11 +6,11 @@ import {
   SelectorOpinion,
   ValueSource,
 } from '@/effectBuilder/selector'
-import { ActionDSL, SelectorDSL, ConditionDSL, Value, EffectTrigger } from './dsl'
-import { EffectContext } from '@/core/context'
+import { ActionDSL, SelectorDSL, ConditionDSL, Value } from './dsl'
 import { Conditions } from '@/effectBuilder/condition'
 import { Operators } from '@/effectBuilder/operator'
 import { ConditionOperator } from '@/effectBuilder/effectBuilder'
+import { DataRepository } from '@/daraRespository/dataRepository'
 
 function parseSelector(dsl: SelectorDSL): ChainableSelector<SelectorOpinion> {
   let selector: ChainableSelector<SelectorOpinion>
@@ -40,18 +40,67 @@ function parseSelector(dsl: SelectorDSL): ChainableSelector<SelectorOpinion> {
             selector = selector.where(condition)
             break
           }
-          case 'whereAttr':
-          case 'and':
-          case 'or':
+          case 'whereAttr': {
+            const extractor = parseExtractor(step.extractor)
+            const condition = parseCondition(step.condition)
+            selector = selector.whereAttr(extractor, condition)
+            break
+          }
+          case 'and': {
+            const otherselector = parseSelector(step.arg).build()
+            selector = selector.and(otherselector)
+            break
+          }
+          case 'or': {
+            const otherselector = parseSelector(step.arg).build()
+            selector = selector.or(otherselector, step.duplicate ?? false)
+            break
+          }
           case 'randomPick':
+            selector = selector.randomPick(step.arg)
+            break
           case 'randomSample':
+            selector = selector.randomSample(step.arg)
+            break
           case 'sum':
-          case 'add':
-          case 'multiply':
-          case 'divide':
+            selector = selector.sum()
+            break
+          case 'add': {
+            if (typeof step.arg === 'number') {
+              selector = selector.add(step.arg)
+              break
+            }
+            const otherselector = parseSelector(step.arg) as ChainableSelector<number>
+            selector = selector.add(otherselector)
+            break
+          }
+          case 'multiply': {
+            if (typeof step.arg === 'number') {
+              selector = selector.multiply(step.arg)
+              break
+            }
+            const otherselector = parseSelector(step.arg) as ChainableSelector<number>
+            selector = selector.multiply(otherselector)
+            break
+          }
+          case 'divide': {
+            if (typeof step.arg === 'number') {
+              selector = selector.divide(step.arg)
+              break
+            }
+            const otherselector = parseSelector(step.arg) as ChainableSelector<number>
+            selector = selector.divide(otherselector)
+            break
+          }
           case 'shuffled':
+            selector = selector.shuffled()
+            break
           case 'clampMax':
+            selector = selector.clampMax(step.arg)
+            break
           case 'clampMin':
+            selector = selector.clampMin(step.arg)
+            break
           default:
             throw new Error(`未知的操作类型: ${(step as { type: string }).type}`)
         }
@@ -62,7 +111,7 @@ function parseSelector(dsl: SelectorDSL): ChainableSelector<SelectorOpinion> {
     }
   }
 
-  return selector
+  return selector as ChainableSelector<SelectorOpinion>
 }
 
 function parseExtractor(value: keyof typeof Extractor | string) {
@@ -110,7 +159,7 @@ function parseCondition(dsl: ConditionDSL): ConditionOperator<SelectorOpinion> {
       ) as ConditionOperator<SelectorOpinion>
     case 'same':
       return Conditions.same(
-        parseValue(dsl.value) as ValueSource<string | number>,
+        parseValue(dsl.value) as ValueSource<number | string | boolean>,
       ) as ConditionOperator<SelectorOpinion>
     case 'any':
       // 递归解析嵌套条件（OR 逻辑）
@@ -127,21 +176,92 @@ function parseCondition(dsl: ConditionDSL): ConditionOperator<SelectorOpinion> {
   }
 }
 
-function parseValue(v: Value): ValueSource<SelectorOpinion> {
-  switch (v.type) {
-    case 'raw':
-      return v.value
-    case 'dynamic':
-      return parseSelector(v.selector).build()
+export function createAction(dsl: ActionDSL) {
+  switch (dsl.type) {
+    case 'dealDamage':
+      return parseDamageAction(dsl)
+    case 'heal':
+      return parseHealAction(dsl)
+    case 'addMark':
+      return parseAddMarkAction(dsl)
+    case 'addStacks':
+      return parseAddStacksAction(dsl)
+    case 'consumeStacks':
+      return parseConsumeStacksAction(dsl)
+    case 'modifyStat':
+      return parseModifyStatAction(dsl)
+    case 'statStageBuff':
+      return parseStatStageBuffAction(dsl)
+    case 'addRage':
+      return parseAddRageAction(dsl)
+    case 'amplifyPower':
+      return parseAmplifyPowerAction(dsl)
+    case 'addPower':
+      return parseAddPowerAction(dsl)
   }
 }
 
-export function createAction(dsl: ActionDSL): (ctx: EffectContext<EffectTrigger>) => void {
-  const operator = Operators[dsl.operator]
-  const targetSelector = parseSelector(dsl.target)
+// Common value parser reused across actions [source_id: parse.ts]
+function parseValue(v: Value): string | number | boolean | ChainableSelector<SelectorOpinion> {
+  if (v.type === 'raw:number') return v.value as number
+  if (v.type === 'raw:string') return v.value as string
+  if (v.type === 'raw:boolean') return v.value as boolean
+  if (v.type === 'raw:markId') return v.value as string
+  return parseSelector(v.selector)
+}
 
-  // 处理动态参数
-  const args = dsl.args?.map(v => parseValue(v)) ?? []
+function isNumberValue(value: ValueSource<SelectorOpinion>): value is number {
+  return typeof value === 'number'
+}
 
-  return targetSelector.apply(operator(...(args as Parameters<typeof operator>)))
+function parseDamageAction(dsl: Extract<ActionDSL, { type: 'dealDamage' }>) {
+  const value = parseValue(dsl.value)
+  if (!isNumberValue(value)) {
+    throw new Error('Damage value must be a number')
+  }
+  return parseSelector(dsl.target).apply(Operators.dealDamage(parseValue(dsl.value) as ValueSource<number>))
+}
+
+function parseHealAction(dsl: Extract<ActionDSL, { type: 'heal' }>) {
+  const selector = parseSelector(dsl.target)
+  return selector.apply(Operators.heal(parseValue(dsl.value)))
+}
+
+function parseAddMarkAction(dsl: Extract<ActionDSL, { type: 'addMark' }>) {
+  const selector = parseSelector(dsl.target)
+  const mark = DataRepository.getInstance().getMark(dsl.mark)
+  return selector.apply(Operators.addMark(mark, parseValue(dsl.duration)))
+}
+
+// Pattern for stack-related actions [source_id: operator.ts]
+function parseAddStacksAction(dsl: Extract<ActionDSL, { type: 'addStacks' }>) {
+  return parseSelector(dsl.target).apply(Operators.addStack(dsl.mark, dsl.value))
+}
+
+function parseConsumeStacksAction(dsl: Extract<ActionDSL, { type: 'consumeStacks' }>) {
+  return parseSelector(dsl.target).apply(Operators.consumeStacks(dsl.mark, dsl.value))
+}
+
+// Stat modification pattern [source_id: parse.ts]
+function parseModifyStatAction(dsl: Extract<ActionDSL, { type: 'modifyStat' }>) {
+  return parseSelector(dsl.target).apply(
+    Operators.modifyStat(parseValue(dsl.statType), parseValue(dsl.value), parseValue(dsl.percent)),
+  )
+}
+
+function parseStatStageBuffAction(dsl: Extract<ActionDSL, { type: 'statStageBuff' }>) {
+  return parseSelector(dsl.target).apply(Operators.statStageBuff(parseValue(dsl.statType), parseValue(dsl.value)))
+}
+
+// Utility action handlers [source_id: operator.ts]
+function parseAddRageAction(dsl: Extract<ActionDSL, { type: 'addRage' }>) {
+  return parseSelector(dsl.target).apply(Operators.addRage(parseValue(dsl.value)))
+}
+
+function parseAmplifyPowerAction(dsl: Extract<ActionDSL, { type: 'amplifyPower' }>) {
+  return parseSelector(dsl.target).apply(Operators.amplifyPower(parseValue(dsl.value)))
+}
+
+function parseAddPowerAction(dsl: Extract<ActionDSL, { type: 'addPower' }>) {
+  return parseSelector(dsl.target).apply(Operators.addPower(parseValue(dsl.value) as ValueSource<number>))
 }

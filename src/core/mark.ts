@@ -284,7 +284,7 @@ export function CreateStatStageMark(statType: StatTypeOnBattle, level: number): 
     level,
     `stat-stage-${statType}-${level > 0 ? 'up' : 'down'}`,
     `${statType.toUpperCase()} ${level > 0 ? '+' : ''}${level}`,
-    [], // 可添加额外效果
+    [],
     {
       persistent: true,
       duration: -1,

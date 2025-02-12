@@ -73,6 +73,7 @@ export enum EffectTrigger {
   //仅作用于自身触发
   OnAddMark = 'ON_ADD_MARK',
   OnRemoveMark = 'ON_REMOVE_MARK',
+
   OnMarkCreate = 'ON_MARK_CREATE',
   OnMarkDestroy = 'ON_MARK_DESTROY',
 

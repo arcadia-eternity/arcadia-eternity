@@ -1,6 +1,6 @@
 import { EffectTrigger } from '@/core/effect'
 import { CompareOperator } from '@/effectBuilder/condition'
-import { Operators } from '@/effectBuilder/operator'
+
 import { BaseSelector, Extractor } from '@/effectBuilder/selector'
 
 export { EffectTrigger, SelectorChain }
@@ -14,23 +14,90 @@ export interface EffectDSL {
   consumesStacks?: number
 }
 
-export type ActionDSL = {
-  operator: keyof typeof Operators
-  target: SelectorDSL // 操作目标选择器
-  args?: Array<Value>
+export type ActionDSL =
+  | {
+      type: 'dealDamage'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'heal'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'addMark'
+      target: SelectorDSL
+      mark: string //id
+      duration: number
+    }
+  | {
+      type: 'addStacks'
+      target: SelectorDSL
+      mark: string //id
+      value: number
+    }
+  | {
+      type: 'consumeStacks'
+      target: SelectorDSL
+      mark: string //id
+      value: number
+    }
+  | {
+      type: 'modifyStat'
+      target: SelectorDSL
+      statType: Value
+      value: Value
+      percent: Value
+    }
+  | {
+      type: 'statStageBuff'
+      target: SelectorDSL
+      statType: Value
+      value: Value
+    }
+  | {
+      type: 'addRage'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'amplifyPower'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'addPower'
+      target: SelectorDSL
+      value: Value
+    } // 其他操作符按相同模式扩展
+
+export type RawNumberValue = {
+  type: 'raw:number'
+  value: number
 }
 
-export type Value = RawValue | DynamicValue
+export type RawStringValue = {
+  type: 'raw:string'
+  value: string
+}
 
-export type RawValue = {
-  type: 'raw'
-  value: number | string
+export type RawBooleanValue = {
+  type: 'raw:boolean'
+  value: boolean
+}
+
+export type RawMarkIdValue = {
+  type: 'raw:markId'
+  value: string // Mark的ID需符合特定格式
 }
 
 export type DynamicValue = {
   type: 'dynamic'
   selector: SelectorDSL
 }
+
+export type Value = RawNumberValue | RawStringValue | RawBooleanValue | RawMarkIdValue | DynamicValue
 
 export type BaseSelector = keyof typeof BaseSelector
 
@@ -40,12 +107,12 @@ export type SelectorDSL =
       base: BaseSelector
       chain: Array<SelectorChain>
     }
-
+export type SelectStepDSL = {
+  type: 'select'
+  arg: keyof typeof Extractor | string
+}
 type SelectorChain =
-  | {
-      type: 'select'
-      arg: keyof typeof Extractor | string
-    }
+  | SelectStepDSL
   | {
       type: 'where'
       arg: ConditionDSL
@@ -62,6 +129,7 @@ type SelectorChain =
   | {
       type: 'or'
       arg: SelectorDSL // 并集
+      duplicate?: boolean
     }
   | {
       type: 'randomPick'

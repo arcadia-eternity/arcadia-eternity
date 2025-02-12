@@ -4,7 +4,8 @@ import { CreateStatStageMark, Mark } from '@core/mark'
 import { Pet } from '@core/pet'
 import { Player } from '@core/player'
 import { type SelectorOpinion, type ValueSource, ChainableSelector, GetValueFromSource } from './selector'
-import { StatTypeWithoutHp } from '@/core/const'
+import { StatTypeOnBattle, StatTypeWithoutHp } from '@/core/const'
+import { Operator } from './effectBuilder'
 
 function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpinion>(
   handler: (value: U[], target: T, ctx: EffectContext<EffectTrigger>) => void,
@@ -71,34 +72,41 @@ export const Operators = {
   addRage: createDynamicOperator<Player, number>((value, player, ctx) => {
     player.addRage(new RageContext(ctx, player, 'effect', 'add', value[0]))
   }),
-  // // 属性操作增强
-  // modifyStat:
-  //   <T extends Pet, K extends keyof StatOnBattle>(stat: K, value: DynamicValue<number, T>) =>
-  //   (ctx: EffectContext<EffectTrigger>, targets: T[]) => {
-  //     targets.forEach(pet => {
-  //       const finalValue = typeof value === 'function' ? value(pet, ctx) : value
-  //       pet.stat[stat] += finalValue
-  //     })
-  //   },
-  // // 上下文相关操作
-  amplifyPower:
-    (multiplier: ValueSource<number>) => (ctx: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
-      contexts.forEach(skillCtx => {
-        const finalMultiplier = GetValueFromSource(ctx, multiplier)
-        if (typeof finalMultiplier === 'number') {
-          skillCtx.power *= finalMultiplier
-        } else {
-          finalMultiplier.forEach(v => (skillCtx.power *= v))
-        }
+
+  modifyStat:
+    (stat: ValueSource<StatTypeOnBattle>, percent: ValueSource<number>, value: ValueSource<number>) =>
+    (ctx: EffectContext<EffectTrigger>, targets: Pet[]) => {
+      targets.forEach(pet => {
+        const _stat = GetValueFromSource(ctx, stat)[0]
+        const _percent = GetValueFromSource(ctx, percent)[0] ?? 0
+        const _value = GetValueFromSource(ctx, value)[0] ?? 0
+        pet.statModifiers[_stat][0] += _percent
+        pet.statModifiers[_stat][1] += _value
       })
     },
+
+  amplifyPower:
+    (multiplier: ValueSource<number>): Operator<UseSkillContext> =>
+    (ctx: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
+      contexts.forEach(skillCtx => {
+        const finalMultiplier = GetValueFromSource(ctx, multiplier)
+        finalMultiplier.forEach(v => (skillCtx.power *= v))
+      })
+    },
+
+  addPower: (value: ValueSource<number>) => (ctx: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
+    contexts.forEach(skillCtx => {
+      const _value = GetValueFromSource(ctx, value)
+      _value.forEach(v => (skillCtx.power += v))
+    })
+  },
 
   statStageBuff:
     (statType: ValueSource<StatTypeWithoutHp>, value: ValueSource<number>) =>
     (ctx: EffectContext<EffectTrigger>, target: Pet[]) => {
       //TODO: 万一找不到呢？
-      const _value = GetValueFromSource(ctx, value)[0]
-      const _statType = GetValueFromSource(ctx, statType)[0]
+      const _value = GetValueFromSource(ctx, value)[0] ?? 0
+      const _statType = GetValueFromSource(ctx, statType)[0] ?? null
       const upMark = CreateStatStageMark(_statType, _value)
       target.forEach(v => v.addMark(new AddMarkContext(ctx, v, upMark, _value)))
     },

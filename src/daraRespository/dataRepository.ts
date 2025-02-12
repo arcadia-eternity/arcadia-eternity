@@ -1,5 +1,4 @@
 import { Prototype } from '@/core/const'
-import { EffectContext } from '@/core/context'
 import { Effect, EffectTrigger } from '@/core/effect'
 import { Mark } from '@/core/mark'
 import { Species } from '@/core/pet'
