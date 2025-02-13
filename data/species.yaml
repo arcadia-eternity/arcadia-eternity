@@ -36,9 +36,9 @@
   description: 漂亮冷酷的精灵 不爱说话
   obtain_method: 新手任务
   ability:
-    - 终结
+    - mark_ability_zhongjie
   emblem: &id001
-    - 追击
+    - mark_emblem_zhuiji
 - id: pet_didilan
   num: 2
   name: 迪迪兰
@@ -77,7 +77,7 @@
   description: 常被误认为雌性精灵 经常受到雄性精灵追求 使它非常郁闷
   obtain_method: 新手任务
   ability:
-    - 终结
+    - mark_ability_zhongjie
   emblem: *id001
 - id: pet_dilante
   num: 3
@@ -132,7 +132,7 @@
   description: 战斗时的它非常冷静 习惯看破对方的弱点加以攻击
   obtain_method: 新手任务
   ability:
-    - 终结
+    - mark_ability_zhongjie
   emblem: *id001
 - id: pet_xiuxiu
   num: 4
@@ -172,9 +172,9 @@
   description: 做任何事都喜欢冲在最前面 一心想当迪兰、拉奥的队长
   obtain_method: 新手任务
   ability:
-    - 炎火
+    - mark_ability_yanhuo
   emblem: &id002
-    - 怒火
+    - mark_emblem_nuhuo
 - id: pet_xiuyier
   num: 5
   name: 休伊尔
@@ -213,7 +213,7 @@
   description: 非常勇敢有自信的精灵 但有时会显得比较莽撞
   obtain_method: 新手任务
   ability:
-    - 炎火
+    - mark_ability_yanhuo
   emblem: *id002
 - id: pet_xiuluosi
   num: 6
@@ -268,7 +268,7 @@
   description: 过大的信心有时让人觉得是虚张声势 有时又非常可靠
   obtain_method: 新手任务
   ability:
-    - 炎火
+    - mark_ability_yanhuo
   emblem: *id002
 - id: pet_laao
   num: 7
@@ -308,9 +308,9 @@
   description: 心地善良的小精灵 不愿看到任何精灵受到伤害
   obtain_method: 新手任务
   ability:
-    - 坚韧
+    - mark_ability_jianren
   emblem: &id003
-    - 治愈
+    - mark_emblem_zhiyu
 - id: pet_laaomiao
   num: 8
   name: 拉奥苗
@@ -349,7 +349,7 @@
   description: 经常和对手战斗完也会帮它恢复体力以示友善
   obtain_method: 新手任务
   ability:
-    - 坚韧
+    - mark_ability_jianren
   emblem: *id003
 - id: pet_laaoye
   num: 9
@@ -404,7 +404,7 @@
   description: 对自己关心很少 有时只顾着帮助别的精灵忘记自己受了重伤
   obtain_method: 新手任务
   ability:
-    - 坚韧
+    - mark_ability_jianren
   emblem: *id003
 - id: pet_fala
   num: 10
@@ -444,9 +444,9 @@
   description: 当有部落居民的时候 法拉就已在阿卡迪亚星球生活了很久很久
   obtain_method: 异蘑世界
   ability:
-    - 入梦
+    - mark_ability_rumeng
   emblem: &id004
-    - 魅惑
+    - mark_emblem_meihuo
 - id: pet_fana
   num: 11
   name: 法娜
@@ -485,7 +485,7 @@
   description: 温顺的法娜从不主动靠近人类 它只是远远地看着世界的变化
   obtain_method: 异蘑世界
   ability:
-    - 入梦
+    - mark_ability_rumeng
   emblem: *id004
 - id: pet_fayina
   num: 12
@@ -540,7 +540,7 @@
   description: 在寂静的星空里 似乎有法伊娜信奉的力量
   obtain_method: 异蘑世界
   ability:
-    - 入梦
+    - mark_ability_rumeng
   emblem: *id004
 - id: pet_xiaoxiaokui
   num: 13
@@ -580,9 +580,9 @@
   description: 小小葵是草系精灵中 与自然界融合得很好的精灵
   obtain_method: 荆棘林
   ability:
-    - 阳光
+    - mark_ability_yangguang
   emblem: &id005
-    - 抗毒
+    - mark_emblem_kangdu
 - id: pet_daidaikui
   num: 14
   name: 呆呆葵
@@ -621,9 +621,9 @@
   description: 呆呆葵能从周围的草木呼吸中 获得不断成长的能量
   obtain_method: 荆棘林
   ability:
-    - 阳光
+    - mark_ability_yangguang
   emblem: *id005
-- id: pet_xiaoxiaokui
+- id: pet_xiaoxiaokui_2
   num: 15
   name: 笑笑葵
   element: Grass
@@ -676,7 +676,7 @@
   description: 笑笑葵能用爽朗的笑声改变天气 将周围变成明媚的晴天
   obtain_method: 荆棘林
   ability:
-    - 阳光
+    - mark_ability_yangguang
   emblem: *id005
 - id: pet_buer
   num: 16
@@ -722,9 +722,9 @@
   description: 布尔的脂肪是它最有利的攻击武器
   obtain_method: 巨石洞穴
   ability:
-    - 重压
+    - mark_ability_zhongya
   emblem: &id006
-    - 重量
+    - mark_emblem_zhongliang
 - id: pet_bulutuo
   num: 17
   name: 布鲁托
@@ -784,7 +784,7 @@
   description: 布鲁托最喜欢坐在小树根的脑袋上 享受小精灵们的进贡
   obtain_method: 巨石洞穴
   ability:
-    - 重压
+    - mark_ability_zhongya
   emblem: *id006
 - id: pet_xiaoshugen
   num: 18
@@ -830,9 +830,9 @@
   description: 小树根是非常胆小的精灵 一直被布鲁托欺负 垫在屁股下
   obtain_method: 幻影崖
   ability:
-    - 坚强
+    - mark_ability_jianqiang
   emblem: &id007
-    - 树皮
+    - mark_emblem_shupi
 - id: pet_shugenshizhe
   num: 19
   name: 树根使者
@@ -892,7 +892,7 @@
   description: 勇敢的力量让小树根成长为树根使者 长出尖尖的木椎
   obtain_method: 幻影崖
   ability:
-    - 坚强
+    - mark_ability_jianqiang
   emblem: *id007
 - id: pet_qilu
   num: 20
@@ -938,9 +938,9 @@
   description: 奇鲁在石头下出生 需要依靠自己的力量 将身上的大石顶开
   obtain_method: 水仙草界
   ability:
-    - 流水
+    - mark_ability_liushui
   emblem: &id008
-    - 失明
+    - mark_emblem_shiming
 - id: pet_kuqilu
   num: 21
   name: 库奇鲁
@@ -1000,7 +1000,7 @@
   description: 库奇鲁深信河流是精灵王的血液 它的职责是清除血液的障碍
   obtain_method: 水仙草界
   ability:
-    - 流水
+    - mark_ability_liushui
   emblem: *id008
 - id: pet_gusi
   num: 22
@@ -1040,9 +1040,9 @@
   description: 古斯是非常胆小的精灵 隐藏在很深很深的荆棘里
   obtain_method: 小小葵梦境
   ability:
-    - 毒药
+    - mark_ability_duyao
   emblem: &id009
-    - 毒药
+    - mark_emblem_duyao
 - id: pet_gujialuo
   num: 23
   name: 古加罗
@@ -1081,7 +1081,7 @@
   description: 胆小的古斯成长到一定阶段 会找到共生精灵 合体成古加罗
   obtain_method: 小小葵梦境
   ability:
-    - 毒药
+    - mark_ability_duyao
   emblem: *id009
 - id: pet_gujialuosi
   num: 24
@@ -1136,7 +1136,7 @@
   description: 它们的能量共生、互补 进化为古加罗斯这时古斯不再胆小
   obtain_method: 小小葵梦境
   ability:
-    - 毒药
+    - mark_ability_duyao
   emblem: *id009
 - id: pet_anke
   num: 25
@@ -1176,9 +1176,9 @@
   description: 安可是谜一样的精灵 身为水系精灵的它 无法在水下呼吸
   obtain_method: 狂暴旋涡
   ability:
-    - 空气
+    - mark_ability_kongqi
   emblem: &id010
-    - 窒息
+    - mark_emblem_zhixi
 - id: pet_anya
   num: 26
   name: 安亚
@@ -1217,7 +1217,7 @@
   description: 安亚能将头上的水泡渐渐转变为保护自己的呼吸罩
   obtain_method: 狂暴旋涡
   ability:
-    - 空气
+    - mark_ability_kongqi
   emblem: *id010
 - id: pet_anmiya
   num: 27
@@ -1272,7 +1272,7 @@
   description: 强大的安迷亚 让呼吸罩成为了它最强的防护和能量来源
   obtain_method: 狂暴旋涡
   ability:
-    - 空气
+    - mark_ability_kongqi
   emblem: *id010
 - id: pet_lanmiao
   num: 28
@@ -1318,9 +1318,9 @@
   description: 最大胆妄为的蓝喵敢用坚硬的脑袋去冲撞任何物体
   obtain_method: 残骸通道
   ability:
-    - 锋利
+    - mark_ability_fengli
   emblem: &id011
-    - 星之
+    - mark_emblem_xingzhi
 - id: pet_lanhujing
   num: 29
   name: 蓝虎鲸
@@ -1380,7 +1380,7 @@
   description: 蓝虎鲸最大的目标 就是撞破阿卡纳斯的水纹护盾
   obtain_method: 残骸通道
   ability:
-    - 锋利
+    - mark_ability_fengli
   emblem: *id011
 - id: pet_aka
   num: 30
@@ -1426,9 +1426,9 @@
   description: 阿卡从小就是水上霸主 这是所有水系精灵都不会否认的事实
   obtain_method: 悲伤残骸
   ability:
-    - 潮湿
+    - mark_ability_chaoshi
   emblem: &id012
-    - 震击
+    - mark_emblem_zhenji
 - id: pet_akanasi
   num: 31
   name: 阿卡纳斯
@@ -1488,7 +1488,7 @@
   description: 蓝虎鲸的冲撞 激发了阿卡纳斯真正的防护能量 撑开了水盾
   obtain_method: 悲伤残骸
   ability:
-    - 潮湿
+    - mark_ability_chaoshi
   emblem: *id012
 - id: pet_youni
   num: 32
@@ -1534,9 +1534,9 @@
   description: 尤尼生活在火山周围 非常好动 喜欢自己蜷成球到处冲撞
   obtain_method: 幻空通道
   ability:
-    - 燃烧
+    - mark_ability_ranshao
   emblem: &id013
-    - 易燃
+    - mark_emblem_yiran
 - id: pet_qiaoni
   num: 33
   name: 乔尼
@@ -1596,7 +1596,7 @@
   description: 有传言 乔尼身后的火焰促使它需要不断冲撞 消耗多余能量
   obtain_method: 幻空通道
   ability:
-    - 燃烧
+    - mark_ability_ranshao
   emblem: *id013
 - id: pet_xiaoyanfu
   num: 34
@@ -1636,9 +1636,9 @@
   description: 小岩浮喜欢成群结队的出现 用大钳子在火山口不停的翻找
   obtain_method: 灰烬之地
   ability:
-    - 眩晕
+    - mark_ability_xuanyun
   emblem: &id014
-    - 眩晕
+    - mark_emblem_xuanyun
 - id: pet_dajiaoyanfu
   num: 35
   name: 大角岩浮
@@ -1677,7 +1677,7 @@
   description: 它似乎在火山口 不停的寻找遗失的某个重要东西
   obtain_method: 灰烬之地
   ability:
-    - 眩晕
+    - mark_ability_xuanyun
   emblem: *id014
 - id: pet_dajiangyanfu
   num: 36
@@ -1732,7 +1732,7 @@
   description: 它最担心的就是遇上乔尼 这个顽皮的家伙总喜欢把它撞倒
   obtain_method: 灰烬之地
   ability:
-    - 眩晕
+    - mark_ability_xuanyun
   emblem: *id014
 - id: pet_huoke
   num: 37
@@ -1778,9 +1778,9 @@
   description: 霍克是自卑而孤独的精灵 经常受欺负也趴着一动不动
   obtain_method: 焰之森
   ability:
-    - 阳炎
+    - mark_ability_yangyan
   emblem: &id015
-    - 威严
+    - mark_emblem_weiyan
 - id: pet_huokenuer
   num: 38
   name: 霍克努尔
@@ -1840,7 +1840,7 @@
   description: 当霍克的怒火如火山般的喷发 它成长为了强大的霍克努尔
   obtain_method: 焰之森
   ability:
-    - 阳炎
+    - mark_ability_yangyan
   emblem: *id015
 - id: pet_xiaochitun
   num: 39
@@ -1886,9 +1886,9 @@
   description: 传说 小赤豚是神手在勾画强大精灵时 遗落的星火化身出的
   obtain_method: 赤链山脉
   ability:
-    - 抢攻
+    - mark_ability_qianggong
   emblem: &id016
-    - 焰火
+    - mark_emblem_yanhuo
 - id: pet_chiyanshou
   num: 40
   name: 赤焰兽
@@ -1948,7 +1948,7 @@
   description: 赤焰兽坚硬如铁石的大嘴 能吸收火山熔浆的神奇力量
   obtain_method: 赤链山脉
   ability:
-    - 抢攻
+    - mark_ability_qianggong
   emblem: *id016
 - id: pet_shuimodiandian
   num: 41
@@ -1994,9 +1994,9 @@
   description: 水墨点点从小就被嘲笑 只能在水中行走 而不能畅游
   obtain_method: 银脉山脊
   ability:
-    - 光滑
+    - mark_ability_guanghua
   emblem: &id017
-    - 虚弱
+    - mark_emblem_xuruo
 - id: pet_shuimofeima
   num: 42
   name: 水墨飞马
@@ -2056,7 +2056,7 @@
   description: 经过艰难的成长 强韧的双翼让水墨飞马游得像箭一样快
   obtain_method: 银脉山脊
   ability:
-    - 光滑
+    - mark_ability_guanghua
   emblem: *id017
 - id: pet_jiujiu
   num: 43
@@ -2096,9 +2096,9 @@
   description: 啾啾是非常迷糊的小精灵 经常碰壁
   obtain_method: 朽木桥
   ability:
-    - 轻盈
+    - mark_ability_qingying
   emblem: &id018
-    - 心锁
+    - mark_emblem_xinsuo
 - id: pet_weinijiujiu
   num: 44
   name: 维尼啾啾
@@ -2137,7 +2137,7 @@
   description: 维尼啾啾很迷糊 经常碰壁它被撞到的大黑眼圈 总也不消
   obtain_method: 朽木桥
   ability:
-    - 轻盈
+    - mark_ability_qingying
   emblem: *id018
 - id: pet_kadunjiujiu
   num: 45
@@ -2192,7 +2192,7 @@
   description: 卡顿强壮的双臂能把障碍扫开 却常被反弹的东西撞成黑眼圈
   obtain_method: 朽木桥
   ability:
-    - 轻盈
+    - mark_ability_qingying
   emblem: *id018
 - id: pet_tangni
   num: 46
@@ -2232,9 +2232,9 @@
   description: 汤尼来自一个彩虹山谷 拥有像石头一般坚硬的双拳
   obtain_method: 英格瓦要塞
   ability:
-    - 偏斜
+    - mark_ability_pianxie
   emblem: &id019
-    - 辉之
+    - mark_emblem_huizhi
 - id: pet_taini
   num: 47
   name: 泰尼
@@ -2273,7 +2273,7 @@
   description: 被守护师收服后 泰尼跟随他来到了赛尔号的竞技场
   obtain_method: 英格瓦要塞
   ability:
-    - 偏斜
+    - mark_ability_pianxie
   emblem: *id019
 - id: pet_luni
   num: 48
@@ -2328,7 +2328,7 @@
   description: 不停的锻炼 让鲁尼成为了竞技场上最震撼的拳手
   obtain_method: 英格瓦要塞
   ability:
-    - 偏斜
+    - mark_ability_pianxie
   emblem: *id019
 - id: pet_duomo
   num: 49
@@ -2374,9 +2374,9 @@
   description: 多摩是很古怪的精灵 平日昏昏沉沉 爱打呵欠做白日梦
   obtain_method: 焰之森
   ability:
-    - 音网
+    - mark_ability_yinwang
   emblem: &id020
-    - 音波
+    - mark_emblem_yinbo
 - id: pet_duomosang
   num: 50
   name: 多摩桑
@@ -2436,5 +2436,5 @@
   description: 声波攻击是多摩桑最强的必杀 传闻X字是能量未释放的刻印
   obtain_method: 焰之森
   ability:
-    - 音网
+    - mark_ability_yinwang
   emblem: *id020

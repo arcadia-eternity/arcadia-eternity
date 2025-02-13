@@ -12,7 +12,8 @@
     "dev:editor": "vite --config vite.editor.config.ts",
     "dev:client": "vite --config vite.client.config.ts",
     "generate:schema": "tsx script/schema.ts",
-    "validate": "tsx script/schema.ts --validate-only"
+    "validate": "tsx script/schema.ts --validate-only",
+    "cli": "tsx ./src/console/cli.ts"
   },
   "dependencies": {
     "chevrotain": "^11.0.3",

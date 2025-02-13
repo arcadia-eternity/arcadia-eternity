@@ -7,7 +7,7 @@ export class SpeciesParser {
     // 1. 验证基础数据结构
     const validated = SpeciesSchema.parse(rawData)
 
-    const abilities = validated.abilities.map(abilitiesID => {
+    const abilities = validated.ability.map(abilitiesID => {
       try {
         return DataRepository.getInstance().getMark(abilitiesID)
       } catch (e) {

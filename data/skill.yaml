@@ -158,16 +158,6 @@
   accuracy: 95
   description: 在对手身上同时标记2个弱点记号 使自身速度值增加50点
   evolved_skill_id: 10033
-- id: skill_dixiulazhinu
-  num: 10017
-  name: 迪休拉之怒
-  element: Normal
-  category: Climax
-  power: 90
-  rage: 100
-  accuracy: 95
-  description: 合体必杀 迪兰特 休罗斯 拉奥叶 合力攻击
-  evolved_skill_id: -1
 - id: skill_lizhua
   num: 10018
   name: 利爪
@@ -328,26 +318,6 @@
   accuracy: 100
   description: 获得不灭的意志 下一次受到致死攻击会剩下1点体力
   evolved_skill_id: 10016
-- id: skill_dixiulazhinu
-  num: 10017
-  name: 迪休拉之怒
-  element: Normal
-  category: Climax
-  power: 90
-  rage: 100
-  accuracy: 95
-  description: 合体必杀 迪兰特 休罗斯 拉奥叶 合力攻击
-  evolved_skill_id: -1
-- id: skill_chongzhuang
-  num: 10034
-  name: 冲撞
-  element: Normal
-  category: Physical
-  power: 35
-  rage: 0
-  accuracy: 95
-  description: 5%弱化对手速度1级
-  evolved_skill_id: -1
 - id: skill_zhongzibaodan
   num: 10035
   name: 种子爆弹
@@ -898,16 +868,6 @@
   accuracy: 100
   description: 使自身的脂肪变硬提升物防
   evolved_skill_id: -1
-- id: skill_zhifanghudun
-  num: 10089
-  name: 脂肪护盾
-  element: Normal
-  category: Special
-  power: 0
-  rage: 20
-  accuracy: 100
-  description: 用脂肪抵御伤害 抵消自身总体重值的伤害
-  evolved_skill_id: -1
 - id: skill_qilingruoxiao
   num: 10090
   name: 欺凌弱小
@@ -1358,16 +1318,6 @@
   accuracy: 95
   description: 射出虚弱水线消弱对手的特攻和特防
   evolved_skill_id: -1
-- id: skill_zhuangji
-  num: 10050
-  name: 撞击
-  element: Normal
-  category: Physical
-  power: 35
-  rage: 0
-  accuracy: 95
-  description: 5%弱化对手物防1级
-  evolved_skill_id: -1
 - id: skill_duci
   num: 10135
   name: 毒刺
@@ -1407,16 +1357,6 @@
   rage: 15
   accuracy: 95
   description: 进行一次合作攻击
-  evolved_skill_id: -1
-- id: skill_shuaitui
-  num: 10129
-  name: 衰退
-  element: Normal
-  category: Special
-  power: 0
-  rage: 10
-  accuracy: 95
-  description: 使对手的特攻衰退
   evolved_skill_id: -1
 - id: skill_duye
   num: 10139
@@ -1578,16 +1518,6 @@
   accuracy: 95
   description: 消耗10空气使用空气泡 空气不足时伤害减少25%
   evolved_skill_id: -1
-- id: skill_ningju
-  num: 10120
-  name: 凝聚
-  element: Normal
-  category: Special
-  power: 0
-  rage: 10
-  accuracy: 100
-  description: 凝聚自身的力量提升特攻
-  evolved_skill_id: -1
 - id: skill_mozhipenshe
   num: 10155
   name: 墨汁喷射
@@ -1597,16 +1527,6 @@
   rage: 15
   accuracy: 95
   description: 消耗15空气使用墨汁喷射 空气不足时伤害减少25%
-  evolved_skill_id: -1
-- id: skill_shuaitui
-  num: 10129
-  name: 衰退
-  element: Normal
-  category: Special
-  power: 0
-  rage: 10
-  accuracy: 95
-  description: 使对手的特攻衰退
   evolved_skill_id: -1
 - id: skill_gaoyashuipao
   num: 10156
@@ -1708,26 +1628,6 @@
   accuracy: 95
   description: 5%弱化对手速度1级
   evolved_skill_id: -1
-- id: skill_penshui
-  num: 10151
-  name: 喷水
-  element: Water
-  category: Status
-  power: 60
-  rage: 5
-  accuracy: 95
-  description: 5%弱化对手特防1级
-  evolved_skill_id: -1
-- id: skill_fengli
-  num: 10165
-  name: 锋利
-  element: Normal
-  category: Special
-  power: 0
-  rage: 10
-  accuracy: 100
-  description: 使自身的攻击更加凌厉 提升物攻
-  evolved_skill_id: -1
 - id: skill_quanlichongzhuang
   num: 10166
   name: 全力冲撞
@@ -1737,16 +1637,6 @@
   rage: 10
   accuracy: 95
   description: 用尽全力的冲撞 连续命中时威力减少10 最多2次
-  evolved_skill_id: -1
-- id: skill_jianqiang
-  num: 10103
-  name: 坚强
-  element: Normal
-  category: Special
-  power: 0
-  rage: 10
-  accuracy: 100
-  description: 使自身变的更坚强 提升自身的物防
   evolved_skill_id: -1
 - id: skill_xingzhiwei
   num: 10167
@@ -1868,16 +1758,6 @@
   accuracy: 100
   description: 永不服输的精神使自身恢复1/4体力并解除能力下降
   evolved_skill_id: -1
-- id: skill_paida
-  num: 10001
-  name: 拍打
-  element: Normal
-  category: Physical
-  power: 40
-  rage: 0
-  accuracy: 95
-  description: 5%弱化对手物防1级
-  evolved_skill_id: -1
 - id: skill_hailang
   num: 10179
   name: 海浪
@@ -1887,16 +1767,6 @@
   rage: 5
   accuracy: 95
   description: 5%弱化对手特防1级
-  evolved_skill_id: -1
-- id: skill_tuoli
-  num: 10003
-  name: 脱力
-  element: Normal
-  category: Special
-  power: 0
-  rage: 10
-  accuracy: 95
-  description: 弱化对手物攻1级
   evolved_skill_id: -1
 - id: skill_shuiwenzhenji
   num: 10180
@@ -1947,16 +1817,6 @@
   rage: 15
   accuracy: 95
   description: 向对手进行渗透攻击 运用水纹使致命率增加70%
-  evolved_skill_id: -1
-- id: skill_weishe
-  num: 10170
-  name: 威慑
-  element: Normal
-  category: Special
-  power: 0
-  rage: 25
-  accuracy: 50
-  description: 威慑对手使其害怕
   evolved_skill_id: -1
 - id: skill_xushuipao
   num: 10185
@@ -2038,16 +1898,6 @@
   accuracy: 95
   description: 召唤川流攻击对手 30%几率使对手溺水
   evolved_skill_id: -1
-- id: skill_chongfeng
-  num: 10084
-  name: 冲锋
-  element: Normal
-  category: Physical
-  power: 40
-  rage: 0
-  accuracy: 95
-  description: 5%弱化对手物攻1级
-  evolved_skill_id: -1
 - id: skill_penhuo
   num: 10193
   name: 喷火
@@ -2087,16 +1937,6 @@
   rage: 10
   accuracy: 95
   description: 用高热的火焰溶解对手 对手烧伤时威力2倍
-  evolved_skill_id: -1
-- id: skill_jiangu
-  num: 10181
-  name: 坚固
-  element: Normal
-  category: Special
-  power: 0
-  rage: 10
-  accuracy: 100
-  description: 使自身变的更坚固提升物防
   evolved_skill_id: -1
 - id: skill_huoyanchongzhuang
   num: 10197
@@ -2208,16 +2048,6 @@
   accuracy: 35
   description: 给对手造成毁灭性的攻击 对手体力低于1/4时必中
   evolved_skill_id: -1
-- id: skill_zhuangji
-  num: 10050
-  name: 撞击
-  element: Normal
-  category: Physical
-  power: 35
-  rage: 0
-  accuracy: 95
-  description: 5%弱化对手物防1级
-  evolved_skill_id: -1
 - id: skill_huoqiu
   num: 10208
   name: 火球
@@ -2267,16 +2097,6 @@
   rage: 15
   accuracy: 60
   description: 用滚烫的钳子夹住对手 对手眩晕时必中
-  evolved_skill_id: -1
-- id: skill_fengli
-  num: 10165
-  name: 锋利
-  element: Normal
-  category: Special
-  power: 0
-  rage: 10
-  accuracy: 100
-  description: 使自身的攻击更加凌厉 提升物攻
   evolved_skill_id: -1
 - id: skill_huoqiulianshe
   num: 10213
@@ -2378,36 +2198,6 @@
   accuracy: 95
   description: 发出一个带有眩晕效果的火球并使对手速度值减少50点
   evolved_skill_id: -1
-- id: skill_lizhua
-  num: 10018
-  name: 利爪
-  element: Normal
-  category: Physical
-  power: 45
-  rage: 0
-  accuracy: 95
-  description: 5%弱化对手物攻1级
-  evolved_skill_id: -1
-- id: skill_huoqiu
-  num: 10208
-  name: 火球
-  element: Fire
-  category: Status
-  power: 55
-  rage: 5
-  accuracy: 95
-  description: 5%弱化对手特防1级
-  evolved_skill_id: -1
-- id: skill_fengli
-  num: 10165
-  name: 锋利
-  element: Normal
-  category: Special
-  power: 0
-  rage: 10
-  accuracy: 100
-  description: 使自身的攻击更加凌厉 提升物攻
-  evolved_skill_id: -1
 - id: skill_guntangchongji
   num: 10223
   name: 滚烫冲击
@@ -2427,16 +2217,6 @@
   rage: 10
   accuracy: 95
   description: 发出一个高热量的火环 使下一个物理技能伤害增加50%
-  evolved_skill_id: -1
-- id: skill_jiare
-  num: 10194
-  name: 加热
-  element: Fire
-  category: Special
-  power: 0
-  rage: 10
-  accuracy: 100
-  description: 用火焰加热自身提升特攻
   evolved_skill_id: -1
 - id: skill_julizhizhao
   num: 10225
@@ -2548,26 +2328,6 @@
   accuracy: 100
   description: 用火山的力量强化自身来提升物攻和特攻
   evolved_skill_id: -1
-- id: skill_zhuangji
-  num: 10050
-  name: 撞击
-  element: Normal
-  category: Physical
-  power: 35
-  rage: 0
-  accuracy: 95
-  description: 5%弱化对手物防1级
-  evolved_skill_id: -1
-- id: skill_penhuo
-  num: 10193
-  name: 喷火
-  element: Fire
-  category: Status
-  power: 55
-  rage: 5
-  accuracy: 95
-  description: 5%弱化对手特防1级
-  evolved_skill_id: -1
 - id: skill_moya
   num: 10236
   name: 磨牙
@@ -2597,16 +2357,6 @@
   rage: 10
   accuracy: 95
   description: 5%使对手烧伤
-  evolved_skill_id: -1
-- id: skill_huoqiulianshe
-  num: 10213
-  name: 火球连射
-  element: Fire
-  category: Status
-  power: 40
-  rage: 15
-  accuracy: 95
-  description: 连续发出2~3枚火球
   evolved_skill_id: -1
 - id: skill_lieyanzhuangji
   num: 10239
@@ -2647,16 +2397,6 @@
   rage: 20
   accuracy: 90
   description: 发出3~5枚火焰弹从天而降
-  evolved_skill_id: -1
-- id: skill_jiare
-  num: 10194
-  name: 加热
-  element: Fire
-  category: Special
-  power: 0
-  rage: 10
-  accuracy: 100
-  description: 用火焰加热自身 提升特攻
   evolved_skill_id: -1
 - id: skill_zouhuo
   num: 10243
@@ -2717,36 +2457,6 @@
   rage: 10
   accuracy: 100
   description: 引爆对手身上的烧伤效果 引爆伤害为150
-  evolved_skill_id: -1
-- id: skill_chongfeng
-  num: 10084
-  name: 冲锋
-  element: Normal
-  category: Physical
-  power: 40
-  rage: 0
-  accuracy: 95
-  description: 5%弱化对手物攻1级
-  evolved_skill_id: -1
-- id: skill_shuipao
-  num: 10002
-  name: 水泡
-  element: Water
-  category: Status
-  power: 60
-  rage: 5
-  accuracy: 95
-  description: 5%弱化对手特防1级
-  evolved_skill_id: -1
-- id: skill_niliu
-  num: 10122
-  name: 逆流
-  element: Water
-  category: Special
-  power: 0
-  rage: 10
-  accuracy: 95
-  description: 使水流逆转降低对手的速度
   evolved_skill_id: -1
 - id: skill_xuruoshuiqiang
   num: 10249
@@ -2888,16 +2598,6 @@
   accuracy: 100
   description: 以纯净之心防止异常
   evolved_skill_id: -1
-- id: skill_chongzhuang
-  num: 10034
-  name: 冲撞
-  element: Normal
-  category: Physical
-  power: 35
-  rage: 0
-  accuracy: 95
-  description: 5%弱化对手速度1级
-  evolved_skill_id: -1
 - id: skill_hongxin
   num: 10263
   name: 红心
@@ -2937,26 +2637,6 @@
   rage: 15
   accuracy: 60
   description: 发出一个红心与对手相连 对手有印记时必中
-  evolved_skill_id: -1
-- id: skill_jianqiang
-  num: 10103
-  name: 坚强
-  element: Normal
-  category: Special
-  power: 0
-  rage: 10
-  accuracy: 100
-  description: 使自身变的更坚强 提升自身的物防
-  evolved_skill_id: -1
-- id: skill_quanliyiji
-  num: 10094
-  name: 全力一击
-  element: Normal
-  category: Physical
-  power: 100
-  rage: 20
-  accuracy: 85
-  description: 5%强化自身物攻1级
   evolved_skill_id: -1
 - id: skill_jianren
   num: 10267
@@ -3058,26 +2738,6 @@
   accuracy: 100
   description: 为自身祈祷 恢复1/4的体力 连续饮用效果减半
   evolved_skill_id: -1
-- id: skill_paida
-  num: 10001
-  name: 拍打
-  element: Normal
-  category: Physical
-  power: 40
-  rage: 0
-  accuracy: 95
-  description: 5%弱化对手物防1级
-  evolved_skill_id: -1
-- id: skill_zhongji
-  num: 10085
-  name: 重击
-  element: Normal
-  category: Physical
-  power: 60
-  rage: 5
-  accuracy: 95
-  description: 5%弱化对手物防1级
-  evolved_skill_id: -1
 - id: skill_yili
   num: 10276
   name: 毅力
@@ -3107,16 +2767,6 @@
   rage: 15
   accuracy: 95
   description: 用脚绊倒对手 造成对手总体重的伤害
-  evolved_skill_id: -1
-- id: skill_jiasu
-  num: 10023
-  name: 加速
-  element: Normal
-  category: Special
-  power: 0
-  rage: 10
-  accuracy: 100
-  description: 脚下生风 提升自身的速度
   evolved_skill_id: -1
 - id: skill_houkongfan
   num: 10279
@@ -3227,16 +2877,6 @@
   rage: 15
   accuracy: 100
   description: 利用星之辉使技能效果触发率提升20%
-  evolved_skill_id: -1
-- id: skill_chongfeng
-  num: 10084
-  name: 冲锋
-  element: Normal
-  category: Physical
-  power: 40
-  rage: 0
-  accuracy: 95
-  description: 5%弱化对手物攻1级
   evolved_skill_id: -1
 - id: skill_shengbo
   num: 10290

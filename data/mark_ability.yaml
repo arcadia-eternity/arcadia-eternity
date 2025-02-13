@@ -58,3 +58,6 @@
 - id: mark_ability_yinwang
   name: 音网
   description: 减少对手5%闪避率
+- id: mark_ability_qingying
+  name: 轻盈
+  description: 自身使用攻击性技能时有10%先制+1

@@ -15,7 +15,7 @@ const __dirname = dirname(__filename)
 const SCHEMA_MAP: Record<string, z.ZodSchema> = {
   mark: MarkDataSetSchema,
   mark_ability: MarkDataSetSchema,
-  mark_elblem: MarkDataSetSchema,
+  mark_emblem: MarkDataSetSchema,
   skill: SkillDataSetSchema,
   species: SpeciesDataSetSchema,
 }

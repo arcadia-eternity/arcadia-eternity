@@ -98,11 +98,6 @@
   name: 禁闭
   description: 无法使用属性技能(释放属性技能时无法行动) 持续2回合
   image_link: =DISPIMG("ID_966E8E13DE6D4A2C8E28B07A40456C90",1)
-- id: mark_jingu
-  num: 22
-  name: 禁锢
-  description: 使对手物攻技能失效 无法闪避攻击性技能
-  image_link: =DISPIMG("ID_80E539FED0FC43A6B0B05B680568CF32",1)
 - id: mark_shixiao
   num: 23
   name: 失效
@@ -398,11 +393,6 @@
   name: 免疫不良
   description: 免疫不良状态
   image_link: =DISPIMG("ID_AE7FBC87A22A49BF90683200C2E7779F",1)
-- id: mark_judushenti
-  num: 3038
-  name: 剧毒身体
-  description: 5回合使对手每次物理攻击都有10%几率中毒
-  image_link: =DISPIMG("ID_8C34CBA097AC4FBBB718DCFC0709241C",1)
 - id: mark_huoxishanghaizengjia
   num: 3039
   name: 火系伤害增加
