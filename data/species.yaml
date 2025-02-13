@@ -623,7 +623,7 @@
   ability:
     - mark_ability_yangguang
   emblem: *id005
-- id: pet_xiaoxiaokui_2
+- id: pet_xiaoxiaokui_1
   num: 15
   name: 笑笑葵
   element: Grass
