@@ -39,8 +39,4 @@ export const SpeciesSchema = z.object({
   emblems: z.array(z.string()),
 })
 
-type Species = z.infer<typeof SpeciesSchema>
-
-export function validateSpecies(data: unknown): Species {
-  return SpeciesSchema.parse(data)
-}
+export type Species = z.infer<typeof SpeciesSchema>

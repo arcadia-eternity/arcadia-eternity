@@ -16,13 +16,15 @@ import { ELEMENT_CHART } from './element'
 export class Player {
   public currentRage: number = 20
   public battle?: BattleSystem
+  public selection: PlayerSelection | null = null
+  public activePet: Pet
   constructor(
     public readonly name: string,
-    public activePet: Pet,
+
     public readonly team: Pet[],
-    public selection: PlayerSelection | null = null,
   ) {
     team.forEach(pet => pet.setOwner(this))
+    this.activePet = team[0]
   }
 
   public registerBattle(battle: BattleSystem) {

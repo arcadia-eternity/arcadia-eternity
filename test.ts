@@ -262,8 +262,8 @@ const thunderPikachu: Pet = new Pet(
   ],
 )
 
-const player2 = new Player('小茂', stormDragon, [stormDragon, shadowGengar])
-const player1 = new Player('小智', venusaur, [venusaur, thunderPikachu])
+const player2 = new Player('小茂', [stormDragon, shadowGengar])
+const player1 = new Player('小智', [venusaur, thunderPikachu])
 
 const battle = new BattleSystem(player1, player2, {
   allowKillerSwitch: true,

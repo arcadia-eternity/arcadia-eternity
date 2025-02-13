@@ -35,11 +35,3 @@ export type Skill = z.infer<typeof SkillSchema>
 export const SkillDataSetSchema = z.array(SkillSchema)
 
 export type SkillDataSet = z.infer<typeof SkillDataSetSchema>
-
-export function validateSkill(data: unknown): Skill {
-  return SkillSchema.parse(data)
-}
-
-export function validateSkillSet(data: unknown): SkillDataSet {
-  return SkillDataSetSchema.parse(data)
-}
