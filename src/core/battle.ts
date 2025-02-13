@@ -1,6 +1,5 @@
-import { Skill } from './skill'
 import { Pet } from './pet'
-import { RAGE_PER_TURN, AttackTargetOpinion } from './const'
+import { RAGE_PER_TURN } from './const'
 import {
   AddMarkContext,
   type AllContext,
@@ -16,6 +15,7 @@ import { Player } from './player'
 import Prando from 'prando'
 import { Mark } from './mark'
 import { type EffectContainer, EffectScheduler, EffectTrigger } from './effect'
+import { UseSkillSelection, SwitchPetSelection } from './selection'
 
 export enum BattlePhase {
   SwitchPhase = 'SWITCH_PHASE',
@@ -25,9 +25,9 @@ export enum BattlePhase {
 }
 
 // 对战系统
-export class BattleSystem extends Context {
+export class Battle extends Context {
   public readonly parent: null = null
-  public readonly battle: BattleSystem = this
+  public readonly battle: Battle = this
 
   public status: BattleStatus = BattleStatus.Unstarted
   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
@@ -38,6 +38,7 @@ export class BattleSystem extends Context {
   public lastKiller?: Player
   public marks: Mark[] = [] //用于存放天气一类的效果
   private rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
+  public vitcor?: Player
 
   constructor(
     public readonly playerA: Player,
@@ -181,6 +182,10 @@ export class BattleSystem extends Context {
         case 'do-nothing':
           //确实啥都没干
           break
+        case 'surrunder':
+          this.vitcor = this.getOpponent(selection.source)
+          this.status = BattleStatus.Ended
+          return true
         default:
           throw '未知的context'
       }
@@ -228,13 +233,24 @@ export class BattleSystem extends Context {
   }
 
   private isBattleEnded(): boolean {
+    if (this.vitcor) return true
     // 检查强制换宠失败
+    let isBattleEnded = false
     for (const player of this.pendingDefeatedPlayers) {
       const available = player.getAvailableSwitch()
-      if (available.length === 0) return true
+      if (available.length === 0) {
+        isBattleEnded = true
+      }
     }
-    // 检查队伍存活状态
-    return this.playerA.team.every(p => !p.isAlive) || this.playerB.team.every(p => !p.isAlive)
+    const playerAisDefeat = this.playerA.team.every(p => !p.isAlive)
+    const playerBisDefeat = this.playerB.team.every(p => !p.isAlive)
+    if (playerAisDefeat || playerBisDefeat) {
+      isBattleEnded = true
+    }
+    if (playerAisDefeat && !playerBisDefeat) this.vitcor = this.playerB
+    if (playerBisDefeat && !playerAisDefeat) this.vitcor = this.playerA
+
+    return isBattleEnded
   }
 
   private contextSort(a: Context, b: Context): number {
@@ -383,8 +399,10 @@ export class BattleSystem extends Context {
     return !!this.playerA.selection && !!this.playerB.selection
   }
 
+  //TODO: 平局
   public getVictor() {
-    if (this.status != BattleStatus.Ended) throw '战斗未结束'
+    if (this.status != BattleStatus.Ended && this.isBattleEnded()) throw '战斗未结束'
+
     if (this.playerA.team.every(pet => !pet.isAlive)) {
       this.emitMessage(BattleMessageType.BattleEnd, { winner: this.playerB.id, reason: 'all_pet_fainted' })
       return this.playerB
@@ -392,16 +410,14 @@ export class BattleSystem extends Context {
       this.emitMessage(BattleMessageType.BattleEnd, { winner: this.playerA.id, reason: 'all_pet_fainted' })
       return this.playerA
     }
+    if (this.vitcor) {
+      this.emitMessage(BattleMessageType.BattleEnd, { winner: this.vitcor.id, reason: 'all_pet_fainted' })
+      return this.vitcor
+    }
+
     throw '不存在胜利者'
   }
 }
-
-export type PlayerSelection = UseSkillSelection | SwitchPetSelection | DoNothingSelection
-export type PlayerSelections = { player: Player; selections: PlayerSelection[] }
-
-export type UseSkillSelection = { source: Player; type: 'use-skill'; skill: Skill; target: AttackTargetOpinion }
-export type SwitchPetSelection = { source: Player; type: 'switch-pet'; pet: Pet }
-export type DoNothingSelection = { source: Player; type: 'do-nothing' }
 
 export enum BattleStatus {
   Unstarted = 'Unstarted',

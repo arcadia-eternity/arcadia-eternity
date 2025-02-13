@@ -1,4 +1,4 @@
-import { BattleSystem } from '@core/battleSystem'
+import { Battle } from '@/core/battle'
 import { OwnedEntity, StatOnBattle, StatTypeOnBattle } from '@core/const'
 import { EffectContext, UseSkillContext } from '@core/context'
 import { Mark } from '@core/mark'
@@ -208,7 +208,7 @@ export type SelectorOpinion =
   | Skill
   | StatOnBattle
   | UseSkillContext
-  | BattleSystem
+  | Battle
   | number
   | StatTypeOnBattle
   | string
@@ -283,7 +283,7 @@ type ExtractorMap = {
   hp: (target: Pet) => number
   maxhp: (target: Pet) => number
   rage: (target: Player) => number
-  owner: (target: OwnedEntity) => BattleSystem | Player | Pet | Mark | Skill | null
+  owner: (target: OwnedEntity) => Battle | Player | Pet | Mark | Skill | null
   type: (target: Pet) => Element
   marks: (target: Pet) => Mark[]
   stats: (target: Pet) => StatOnBattle
@@ -345,7 +345,7 @@ export function isOwnedEntity(obj: any): obj is OwnedEntity {
     typeof obj.setOwner === 'function' &&
     // 可选：进一步验证owner类型（需要递归类型检查）
     (obj.owner === null ||
-      obj.owner instanceof BattleSystem ||
+      obj.owner instanceof Battle ||
       obj.owner instanceof Player ||
       obj.owner instanceof Pet ||
       obj.owner instanceof Mark ||
@@ -400,7 +400,7 @@ function isValidSelectorOpinion(value: unknown): value is SelectorOpinion {
     value instanceof Player ||
     value instanceof Skill ||
     value instanceof UseSkillContext ||
-    value instanceof BattleSystem ||
+    value instanceof Battle ||
     typeof value === 'number' ||
     typeof value === 'string' ||
     typeof value === 'boolean' ||

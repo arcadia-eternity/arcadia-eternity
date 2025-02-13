@@ -1,7 +1,7 @@
 import { Effect, type EffectContainer, EffectScheduler, EffectTrigger } from './effect'
 import { AddMarkContext, type AllContext, EffectContext, TurnContext } from './context'
 import { Pet } from './pet'
-import { BattleSystem } from './battleSystem'
+import { Battle } from './battle'
 import { STAT_STAGE_MULTIPLIER, StatTypeOnBattle, type OwnedEntity, type Prototype } from './const'
 import { MarkMessage } from './message'
 
@@ -17,7 +17,7 @@ export enum StackStrategy {
 export class Mark implements EffectContainer, Prototype, OwnedEntity {
   public _stack: number = 1
   public duration: number
-  public owner: Pet | BattleSystem | null = null
+  public owner: Pet | Battle | null = null
   public isActive: boolean = true
 
   constructor(
@@ -48,11 +48,11 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     this._stack = value
   }
 
-  setOwner(owner: BattleSystem | Pet): void {
+  setOwner(owner: Battle | Pet): void {
     this.owner = owner
   }
 
-  attachTo(target: Pet | BattleSystem) {
+  attachTo(target: Pet | Battle) {
     this.owner = target
   }
 
@@ -267,7 +267,7 @@ export class StatLevelMark extends Mark {
     return true
   }
 
-  attachTo(target: Pet | BattleSystem) {
+  attachTo(target: Pet | Battle) {
     super.attachTo(target)
     if (target instanceof Pet) {
       target.statStage[this.statType] = this.level

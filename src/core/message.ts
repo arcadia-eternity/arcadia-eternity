@@ -1,4 +1,4 @@
-import { BattlePhase } from './battleSystem'
+import { BattlePhase } from './battle'
 import { AttackTargetOpinion, StatOnBattle, StatTypeOnBattle } from './const'
 import { Element } from './element'
 import { Category } from './skill'

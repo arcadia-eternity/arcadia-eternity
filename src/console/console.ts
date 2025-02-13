@@ -1,12 +1,5 @@
-import {
-  type PlayerSelection,
-  type UseSkillSelection,
-  type SwitchPetSelection,
-  BattleSystem,
-  type DoNothingSelection,
-  BattlePhase,
-} from '@core/battleSystem'
-import { Player } from '@core/player'
+import { Battle, BattlePhase } from '@/core/battle'
+import { Player, type PlayerSelection } from '@core/player'
 import readline from 'readline'
 import { BattleUI } from './ui'
 import { type BattleMessage, BattleMessageType } from '@core/message'
@@ -14,12 +7,13 @@ import { Pet } from '@core/pet'
 import { ELEMENT_MAP } from '@core/element'
 import { Mark } from '@core/mark'
 import { Category } from '@core/skill'
+import { UseSkillSelection, SwitchPetSelection, DoNothingSelection } from '@/core/selection'
 
 export class ConsoleUI extends BattleUI {
-  protected battle: BattleSystem
+  protected battle: Battle
   private messages: BattleMessage[] = []
   constructor(
-    battle: BattleSystem,
+    battle: Battle,
     private playerA: Player,
     private playerB: Player,
   ) {
@@ -313,8 +307,10 @@ export class ConsoleUI extends BattleUI {
         const player = this.battle.getPendingSwitchPlayer()
         if (player && !player.selection) {
           console.log(`\n==== ${player.name} 必须更换倒下的精灵 ====`)
-          const action = await this.getForcedSwitchAction(player)
-          player.selection = action
+          let action: PlayerSelection
+          do {
+            action = await this.getForcedSwitchAction(player)
+          } while (!player.setSelection(action))
           generator = battle.next()
           continue
         }
@@ -325,8 +321,10 @@ export class ConsoleUI extends BattleUI {
         console.log(`\n==== ${lastMessage.data.player} 获得击破奖励换宠机会 ====`)
         const player = [this.playerA, this.playerB].find(player => player.name === lastMessage.data.player)
         if (!player) continue
-        const action = await this.handleKillerSwitch(player)
-        player.selection = action
+        let action: PlayerSelection
+        do {
+          action = await this.handleKillerSwitch(player)
+        } while (!player.setSelection(action))
         generator = battle.next()
         continue
       }
@@ -337,9 +335,10 @@ export class ConsoleUI extends BattleUI {
         generator = battle.next()
         continue
       }
-      const selection = await this.getPlayerAction(currentPlayer)
-      currentPlayer.selection = selection
-
+      let selection: PlayerSelection
+      do {
+        selection = await this.getPlayerAction(currentPlayer)
+      } while (!currentPlayer.setSelection(selection))
       battle.next()
     }
     const victor = this.battle.getVictor()

@@ -1,4 +1,4 @@
-import { BattleSystem } from './battleSystem'
+import { Battle } from './battle'
 import { Mark } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
@@ -64,9 +64,9 @@ export interface Entity {
 }
 
 export interface OwnedEntity {
-  owner: BattleSystem | Player | Pet | Mark | Skill | null
+  owner: Battle | Player | Pet | Mark | Skill | null
 
-  setOwner(owner: BattleSystem | Player | Pet | Mark | Skill): void
+  setOwner(owner: Battle | Player | Pet | Mark | Skill): void
 }
 
 // 宝可梦能力等级修正表

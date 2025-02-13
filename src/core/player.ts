@@ -1,10 +1,5 @@
-import {
-  BattleSystem,
-  DoNothingSelection,
-  type PlayerSelection,
-  SwitchPetSelection,
-  UseSkillSelection,
-} from './battleSystem'
+import { Battle } from './battle'
+import { DoNothingSelection, type PlayerSelection, SwitchPetSelection, UseSkillSelection } from './selection'
 import { AttackTargetOpinion, DamageType, RAGE_PER_DAMAGE } from './const'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { EffectTrigger } from './effect'
@@ -15,7 +10,7 @@ import { ELEMENT_CHART } from './element'
 
 export class Player {
   public currentRage: number = 20
-  public battle?: BattleSystem
+  public battle?: Battle
   public selection: PlayerSelection | null = null
   public activePet: Pet
   constructor(
@@ -27,7 +22,7 @@ export class Player {
     this.activePet = team[0]
   }
 
-  public registerBattle(battle: BattleSystem) {
+  public registerBattle(battle: Battle) {
     this.battle = battle
   }
 

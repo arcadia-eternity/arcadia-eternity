@@ -2,7 +2,7 @@ import { ConsoleUI } from './src/console/console'
 import { Operators } from './src/effectBuilder/operator'
 import { BaseSelector, Extractor } from './src/effectBuilder/selector'
 import { Conditions } from './src/effectBuilder/condition'
-import { BattleSystem } from './src/core/battleSystem'
+import { Battle } from './src/core/battle'
 import { AttackTargetOpinion, StatTypeWithoutHp } from './src/core/const'
 import { Effect, EffectTrigger } from './src/core/effect'
 import { Mark } from './src/core/mark'
@@ -270,7 +270,7 @@ const thunderPikachu: Pet = new Pet(
 const player2 = new Player('小茂', '4', [stormDragon, shadowGengar])
 const player1 = new Player('小智', '5', [venusaur, thunderPikachu])
 
-const battle = new BattleSystem(player1, player2, {
+const battle = new Battle(player1, player2, {
   allowKillerSwitch: true,
 })
 const consoleui = new ConsoleUI(battle, player1, player2)

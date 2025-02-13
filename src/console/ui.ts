@@ -1,5 +1,5 @@
-import { BattleSystem } from '@core/battleSystem'
+import { Battle } from '@/core/battle'
 
 export abstract class BattleUI {
-  constructor(protected battle: BattleSystem) {}
+  constructor(protected battle: Battle) {}
 }
