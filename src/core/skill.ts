@@ -4,6 +4,7 @@ import { EffectContext, UseSkillContext } from './context'
 import { Element } from './element'
 import { AttackTargetOpinion, type OwnedEntity, type Prototype } from './const'
 import { Pet } from './pet'
+import { SkillMessage } from './message'
 
 export enum Category {
   Physical = 'Physical',
@@ -153,6 +154,22 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
         this.#sureHit,
         this.#effects,
       )
+    }
+  }
+
+  toMessage(): SkillMessage {
+    return {
+      id: this.id,
+      name: this.name,
+      category: this.category,
+      element: this.element,
+      power: this.power,
+      rage: this.rage,
+      accuracy: this.accuracy,
+      priority: this.priority,
+      target: this.target,
+      multihit: this.multihit,
+      sureHit: this.sureHit,
     }
   }
 }

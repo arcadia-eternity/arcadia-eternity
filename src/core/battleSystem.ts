@@ -287,12 +287,8 @@ export class BattleSystem extends Context {
     if (this.status != BattleStatus.Unstarted) throw '战斗已经开始过了！'
     this.status = BattleStatus.OnBattle
     this.emitMessage(BattleMessageType.BattleStart, {
-      playerA: this.playerA.name,
-      playerB: this.playerB.name,
-      pets: {
-        playerA: this.playerA.activePet.name,
-        playerB: this.playerB.activePet.name,
-      },
+      playerA: this.playerA.toMessage(),
+      playerB: this.playerB.toMessage(),
     })
 
     while (true) {
@@ -310,7 +306,7 @@ export class BattleSystem extends Context {
             ![...this.pendingDefeatedPlayers].every(player => player.selection && player.selection.type == 'switch-pet')
           ) {
             this.emitMessage(BattleMessageType.ForcedSwitch, {
-              player: this.pendingDefeatedPlayers.map(player => player.name),
+              player: this.pendingDefeatedPlayers.map(player => player.id),
             })
             yield
           }
@@ -327,7 +323,7 @@ export class BattleSystem extends Context {
       // 阶段2：击败方换宠
       if (this.allowKillerSwitch && this.lastKiller) {
         this.battle!.emitMessage(BattleMessageType.KillerSwitch, {
-          player: this.lastKiller.name,
+          player: this.lastKiller.id,
         })
         yield // 等待玩家选择换宠
 
@@ -390,10 +386,10 @@ export class BattleSystem extends Context {
   public getVictor() {
     if (this.status != BattleStatus.Ended) throw '战斗未结束'
     if (this.playerA.team.every(pet => !pet.isAlive)) {
-      this.emitMessage(BattleMessageType.BattleEnd, { winner: this.playerB.name, reason: 'all_pet_fainted' })
+      this.emitMessage(BattleMessageType.BattleEnd, { winner: this.playerB.id, reason: 'all_pet_fainted' })
       return this.playerB
     } else if (this.playerB.team.every(pet => !pet.isAlive)) {
-      this.emitMessage(BattleMessageType.BattleEnd, { winner: this.playerA.name, reason: 'all_pet_fainted' })
+      this.emitMessage(BattleMessageType.BattleEnd, { winner: this.playerA.id, reason: 'all_pet_fainted' })
       return this.playerA
     }
     throw '不存在胜利者'

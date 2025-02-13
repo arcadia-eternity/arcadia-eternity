@@ -21,6 +21,7 @@ export const StatOutBattleIVSSchema = z.object({
 
 export const PetSchema = z.object({
   name: z.string().min(1),
+  uid: z.string().nanoid().optional(),
   species: z.string(), //种族的编号
   level: z.number().int().min(1).max(100),
   evs: StatOutBattleEVSSchema,

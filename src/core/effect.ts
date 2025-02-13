@@ -106,7 +106,7 @@ export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity {
     if (ctx.source instanceof Mark) {
       if (!ctx.source.isActive) return
       if (this.consumesStacks) {
-        ctx.source.consumeStacks(ctx, this.consumesStacks)
+        ctx.source.consumeStack(ctx, this.consumesStacks)
       }
     }
 

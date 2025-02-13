@@ -11,6 +11,7 @@ import { Species, Pet } from './src/core/pet'
 import { Player } from './src/core/player'
 import { Skill, Category } from './src/core/skill'
 import { Element } from './src/core/element'
+import { nanoid } from 'nanoid'
 
 const swordsDance = new Skill.Builder()
   .withID('swords-dance')
@@ -114,6 +115,7 @@ const venusaurSpecies: Species = {
 
 const venusaur: Pet = new Pet(
   '叶之守护',
+  nanoid(),
   venusaurSpecies,
   50,
   {
@@ -154,6 +156,7 @@ const gengarSpecies: Species = {
 
 const shadowGengar: Pet = new Pet(
   '暗影行者',
+  nanoid(),
   gengarSpecies,
   50,
   {
@@ -197,6 +200,7 @@ const dragoniteSpecies: Species = {
 
 const stormDragon: Pet = new Pet(
   '暴风龙',
+  nanoid(),
   dragoniteSpecies,
   50,
   {
@@ -237,6 +241,7 @@ const pikachuSpecies: Species = {
 
 const thunderPikachu: Pet = new Pet(
   '闪电小子',
+  nanoid(),
   pikachuSpecies,
   50,
   {
@@ -262,8 +267,8 @@ const thunderPikachu: Pet = new Pet(
   ],
 )
 
-const player2 = new Player('小茂', [stormDragon, shadowGengar])
-const player1 = new Player('小智', [venusaur, thunderPikachu])
+const player2 = new Player('小茂', '4', [stormDragon, shadowGengar])
+const player1 = new Player('小智', '5', [venusaur, thunderPikachu])
 
 const battle = new BattleSystem(player1, player2, {
   allowKillerSwitch: true,

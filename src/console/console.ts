@@ -29,13 +29,13 @@ export class ConsoleUI extends BattleUI {
   }
 
   private getPetStatus = (pet: Pet) => {
-    const baseInfo = `${ELEMENT_MAP[pet.type].emoji}${pet.name}(${pet.species.name}) [Lv.${pet.level} HP:${pet.currentHp}/${pet.maxHp} Rage:${pet.owner?.currentRage}/100]`
+    const baseInfo = `${ELEMENT_MAP[pet.element].emoji}${pet.name}(${pet.species.name}) [Lv.${pet.level} HP:${pet.currentHp}/${pet.maxHp} Rage:${pet.owner?.currentRage}/100]`
     const markInfo = pet.marks.length > 0 ? ' 印记:' + pet.marks.map(mark => this.getMarkStatus(mark)).join(' ') : ''
     return baseInfo + markInfo
   }
 
   private getMarkStatus = (mark: Mark) =>
-    `{<${mark.name}> ${mark.config.persistent ? '' : `[剩余${mark.duration}回合]`} ${mark.stacks}层}`
+    `{<${mark.name}> ${mark.config.persistent ? '' : `[剩余${mark.duration}回合]`} ${mark.stack}层}`
 
   private handleMessage(message: BattleMessage) {
     this.messages.push(message)

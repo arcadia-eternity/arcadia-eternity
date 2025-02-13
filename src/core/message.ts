@@ -1,5 +1,48 @@
 import { BattlePhase } from './battleSystem'
-import { StatTypeOnBattle } from './const'
+import { AttackTargetOpinion, StatOnBattle, StatTypeOnBattle } from './const'
+import { Element } from './element'
+import { Category } from './skill'
+
+export interface SkillMessage {
+  id: string
+  name: string
+  category: Category
+  element: Element
+  power: number
+  rage: number
+  accuracy: number
+  priority: number
+  target: AttackTargetOpinion
+  multihit: [number, number] | number
+  sureHit: boolean
+}
+
+export interface PetMessage {
+  name: string
+  uid: string
+  speciesID: string
+  element: Element
+  currentHp: number
+  maxHp: number
+  skills: SkillMessage[] //skillmessage
+  stats: StatOnBattle
+  marks: MarkMessage[] //markmessage
+}
+
+export interface MarkMessage {
+  name: string
+  id: string
+  stack: number
+  duration: number
+  isActive: boolean
+}
+
+export interface PlayerMessage {
+  name: string
+  uid: string
+  activePet: PetMessage
+  team: PetMessage[]
+}
 
 // battleSystem.ts
 export enum BattleMessageType {
@@ -91,12 +134,8 @@ interface BaseBattleMessage<T extends BattleMessageType> {
 // 各消息类型数据结构
 export interface BattleMessageData {
   [BattleMessageType.BattleStart]: {
-    playerA: string
-    playerB: string
-    pets: {
-      playerA: string
-      playerB: string
-    }
+    playerA: PlayerMessage
+    playerB: PlayerMessage
   }
   [BattleMessageType.RoundStart]: {
     round: number

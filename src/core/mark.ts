@@ -3,6 +3,7 @@ import { AddMarkContext, type AllContext, EffectContext, TurnContext } from './c
 import { Pet } from './pet'
 import { BattleSystem } from './battleSystem'
 import { STAT_STAGE_MULTIPLIER, StatTypeOnBattle, type OwnedEntity, type Prototype } from './const'
+import { MarkMessage } from './message'
 
 export enum StackStrategy {
   'stack', // 叠加层数并刷新持续时间
@@ -14,7 +15,7 @@ export enum StackStrategy {
 
 //TODO: 印记的换场逻辑，以及传递的逻辑。
 export class Mark implements EffectContainer, Prototype, OwnedEntity {
-  public _stacks: number = 1
+  public _stack: number = 1
   public duration: number
   public owner: Pet | BattleSystem | null = null
   public isActive: boolean = true
@@ -39,12 +40,12 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     this.config.stackStrategy = config.stackStrategy ?? StackStrategy.stack
   }
 
-  get stacks(): number {
-    return this._stacks
+  get stack(): number {
+    return this._stack
   }
 
-  set stacks(value: number) {
-    this._stacks = value
+  set stack(value: number) {
+    this._stack = value
   }
 
   setOwner(owner: BattleSystem | Pet): void {
@@ -77,7 +78,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
   }
 
   addStack(value: number) {
-    this.stacks = Math.min(this.config.maxStacks ?? Infinity, this.stacks + value)
+    this.stack = Math.min(this.config.maxStacks ?? Infinity, this.stack + value)
   }
 
   tryStack(ctx: AddMarkContext): boolean {
@@ -87,14 +88,14 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     const strategy = this.config.stackStrategy!
     const newMark = ctx.mark
 
-    let newStacks = this.stacks
+    let newStacks = this.stack
     let newDuration = this.duration
 
     ctx.battle.applyEffects(ctx, EffectTrigger.OnStack)
 
     switch (strategy) {
       case StackStrategy.stack:
-        newStacks = Math.min(newStacks + newMark.stacks, maxStacks)
+        newStacks = Math.min(newStacks + newMark.stack, maxStacks)
         newDuration = Math.max(newDuration, newMark.duration)
         break
 
@@ -103,36 +104,36 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
         break
 
       case StackStrategy.extend:
-        newStacks = Math.min(newStacks + newMark.stacks, maxStacks)
+        newStacks = Math.min(newStacks + newMark.stack, maxStacks)
         newDuration += newMark.duration
         break
 
       case StackStrategy.max:
-        newStacks = Math.min(Math.max(newStacks, newMark.stacks), maxStacks)
+        newStacks = Math.min(Math.max(newStacks, newMark.stack), maxStacks)
         newDuration = Math.max(newDuration, newMark.duration)
         break
 
       case StackStrategy.replace:
-        newStacks = Math.min(newMark.stacks, maxStacks)
+        newStacks = Math.min(newMark.stack, maxStacks)
         newDuration = newMark.duration
         break
       default:
         return false
     }
     // 只有当数值发生变化时才更新
-    const changed = newStacks !== this.stacks || newDuration !== this.duration
-    this.stacks = newStacks
+    const changed = newStacks !== this.stack || newDuration !== this.duration
+    this.stack = newStacks
     this.duration = newDuration
     this.isActive = true
 
     return changed
   }
 
-  consumeStacks(ctx: EffectContext<EffectTrigger>, amount: number): number {
-    const actual = Math.min(amount, this.stacks)
-    this.stacks -= actual
+  consumeStack(ctx: EffectContext<EffectTrigger>, amount: number): number {
+    const actual = Math.min(amount, this.stack)
+    this.stack -= actual
 
-    if (this.stacks <= 0) {
+    if (this.stack <= 0) {
       this.destory(ctx)
     }
 
@@ -160,7 +161,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
   clone(ctx: AddMarkContext): Mark {
     ctx.battle.applyEffects(ctx, EffectTrigger.OnMarkCreate)
     const mark = new Mark(this.id, this.name, this.effects, this.config, this.tags)
-    mark.stacks = this.stacks
+    mark.stack = this.stack
     mark.duration = this.duration
     return mark
   }
@@ -173,6 +174,16 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     if (this.owner instanceof Pet) {
       ctx.battle.applyEffects(ctx, EffectTrigger.OnMarkDestroy)
       ctx.battle.cleanupMarks()
+    }
+  }
+
+  toMessage(): MarkMessage {
+    return {
+      name: this.name,
+      id: this.id,
+      stack: this.stack,
+      duration: this.duration,
+      isActive: this.isActive,
     }
   }
 }
@@ -268,7 +279,7 @@ export class StatLevelMark extends Mark {
     return this.statType === other.statType && Math.sign(this.level) !== Math.sign(other.level)
   }
 
-  get stacks() {
+  get stack() {
     return this.level
   }
 

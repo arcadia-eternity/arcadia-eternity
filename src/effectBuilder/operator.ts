@@ -65,7 +65,7 @@ export const Operators = {
   consumeStacks:
     <T extends Mark>(markid: string, value: number) =>
     (ctx: EffectContext<EffectTrigger>, targets: T[]) => {
-      targets.filter(mark => mark.id == markid).forEach(mark => mark.consumeStacks(ctx, value))
+      targets.filter(mark => mark.id == markid).forEach(mark => mark.consumeStack(ctx, value))
     },
 
   // 玩家操作

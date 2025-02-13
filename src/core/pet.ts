@@ -17,7 +17,7 @@ import { Nature, NatureMap } from './nature'
 import { Player } from './player'
 import { StatLevelMark, Mark } from './mark'
 import { AddMarkContext, DamageContext, EffectContext, HealContext, RemoveMarkContext } from './context'
-import { BattleMessageType } from './message'
+import { BattleMessageType, PetMessage } from './message'
 import { EffectTrigger } from './effect'
 
 export interface Species extends Prototype {
@@ -48,15 +48,17 @@ export class Pet implements OwnedEntity {
     evasion: [100, 0],
     ragePerTurn: [15, 0],
   }
-  public type: Element
+  public element: Element
   public isAlive: boolean = true
   public lastUseSkill: Skill | null = null
   public baseRageObtainEfficiency: number = 1
   public owner: Player | null
   public marks: Mark[] = []
+  public maxHp: number
 
   constructor(
     public readonly name: string,
+    public readonly id: string,
     public readonly species: Species,
     public readonly level: number,
     public readonly evs: StatOutBattle,
@@ -65,11 +67,11 @@ export class Pet implements OwnedEntity {
     public readonly skills: Skill[],
     // abilities?: Mark,
     // emblem?: Mark, //TODO: 暂时没想好怎么实现特性和纹章
-    public maxHp?: number, //可以额外手动设置hp
+    maxHp?: number, //可以额外手动设置hp
   ) {
     this.maxHp = maxHp ? maxHp : this.calculateMaxHp()
     this.currentHp = this.maxHp
-    this.type = species.element
+    this.element = species.element
     this.owner = null
   }
 
@@ -92,8 +94,8 @@ export class Pet implements OwnedEntity {
     ctx.battle!.emitMessage(BattleMessageType.Damage, {
       currentHp: this.currentHp,
       maxHp: this.maxHp!,
-      source: ctx.source.name,
-      target: this.name,
+      source: ctx.source.id,
+      target: this.id,
       damage: ctx.value,
       isCrit: ctx.crit,
       effectiveness: ctx.effectiveness,
@@ -245,7 +247,7 @@ export class Pet implements OwnedEntity {
   }
 
   // 清理能力等级时同时清除相关印记
-  clearStatStage(ctx: EffectContext<EffectTrigger>) {
+  public clearStatStage(ctx: EffectContext<EffectTrigger>) {
     this.statStage = {}
     this.marks = this.marks.filter(mark => {
       if (mark instanceof StatLevelMark) {
@@ -254,6 +256,20 @@ export class Pet implements OwnedEntity {
       }
       return true
     })
+  }
+
+  public toMessage(): PetMessage {
+    return {
+      name: this.name,
+      uid: this.id,
+      speciesID: this.species.id,
+      element: this.element,
+      currentHp: this.currentHp,
+      maxHp: this.maxHp,
+      skills: this.skills.map(s => s.toMessage()),
+      stats: this.actualStat,
+      marks: this.marks.map(m => m.toMessage()),
+    }
   }
 
   get status(): string {

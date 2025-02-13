@@ -1,10 +1,12 @@
 import { Pet, Species } from '@/core/pet'
 import { DataRepository } from '@/daraRespository/dataRepository'
 import { PetSchema } from '@/schema/pet'
+import { nanoid } from 'nanoid'
 
 export class PetParser {
   static parse(rawData: unknown): Pet {
     const validated = PetSchema.parse(rawData)
+    const uid = validated.uid ?? nanoid()
 
     let species: Species
     try {
@@ -25,6 +27,15 @@ export class PetParser {
       }
     })
 
-    return new Pet(validated.name, species, validated.level, validated.evs, validated.ivs, validated.nature, skills)
+    return new Pet(
+      validated.name,
+      uid,
+      species,
+      validated.level,
+      validated.evs,
+      validated.ivs,
+      validated.nature,
+      skills,
+    )
   }
 }

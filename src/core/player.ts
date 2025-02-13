@@ -8,7 +8,7 @@ import {
 import { AttackTargetOpinion, DamageType, RAGE_PER_DAMAGE } from './const'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { EffectTrigger } from './effect'
-import { BattleMessageType } from './message'
+import { BattleMessageType, PlayerMessage } from './message'
 import { Pet } from './pet'
 import { Category } from './skill'
 import { ELEMENT_CHART } from './element'
@@ -20,7 +20,7 @@ export class Player {
   public activePet: Pet
   constructor(
     public readonly name: string,
-    public readonly nanoid: string,
+    public readonly id: string,
     public readonly team: Pet[],
   ) {
     team.forEach(pet => pet.setOwner(this))
@@ -119,9 +119,9 @@ export class Player {
     const oldPet = player.activePet
     player.activePet = context.target
     this.battle!.emitMessage(BattleMessageType.PetSwitch, {
-      player: this.name,
-      fromPet: oldPet.name,
-      toPet: context.target.name,
+      player: this.id,
+      fromPet: oldPet.id,
+      toPet: context.target.id,
       currentHp: context.target.currentHp,
     })
 
@@ -155,9 +155,9 @@ export class Player {
     context.rageCost = context.skill.rage
 
     this.battle!.emitMessage(BattleMessageType.SkillUse, {
-      user: attacker.name,
-      target: defender.name,
-      skill: context.skill.name,
+      user: attacker.id,
+      target: defender.id,
+      skill: context.skill.id,
       rageCost: context.rageCost,
     })
 
@@ -169,7 +169,7 @@ export class Player {
 
     if (!context.available) {
       this.battle!.emitMessage(BattleMessageType.Error, {
-        message: `${attacker.name} 无法使用 ${context.skill.name}!`,
+        message: `${attacker.id} 无法使用 ${context.skill.id}!`,
       })
       return false
     }
@@ -177,7 +177,7 @@ export class Player {
     if (context.origin.currentRage < context.rageCost) {
       // 怒气检查
       this.battle!.emitMessage(BattleMessageType.Error, {
-        message: `${attacker.name} 怒气不足无法使用 ${context.skill.name}!`,
+        message: `${attacker.id} 怒气不足无法使用 ${context.skill.id}!`,
       })
       return false
     }
@@ -188,9 +188,9 @@ export class Player {
       // 命中判定
       if (this.battle!.random() > context.skill.accuracy) {
         this.battle!.emitMessage(BattleMessageType.SkillMiss, {
-          user: attacker.name,
-          target: defender.name,
-          skill: context.skill.name,
+          user: attacker.id,
+          target: defender.id,
+          skill: context.skill.id,
           reason: 'accuracy',
         })
         this.battle!.applyEffects(context, EffectTrigger.OnMiss)
@@ -203,7 +203,7 @@ export class Player {
         context.crit = context.crit || Math.random() < attacker.stat.critRate
         if (context.crit) this.battle!.applyEffects(context, EffectTrigger.OnCritPreDamage)
         this.battle!.applyEffects(context, EffectTrigger.PreDamage)
-        const typeMultiplier = ELEMENT_CHART[context.skill.element][defender.type] || 1
+        const typeMultiplier = ELEMENT_CHART[context.skill.element][defender.element] || 1
         let atk = 0
         let def = 0
         let damageType: DamageType
@@ -271,7 +271,7 @@ export class Player {
         )
 
         if (context.crit)
-          this.battle!.emitMessage(BattleMessageType.Crit, { attacker: attacker.name, target: defender.name })
+          this.battle!.emitMessage(BattleMessageType.Crit, { attacker: attacker.id, target: defender.id })
 
         // 受伤者获得怒气
         const gainedRage = Math.floor(context.damageResult * RAGE_PER_DAMAGE)
@@ -288,7 +288,7 @@ export class Player {
       }
 
       if (defender.currentHp <= 0) {
-        this.battle!.emitMessage(BattleMessageType.PetDefeated, { pet: defender.name, killer: context.pet.name })
+        this.battle!.emitMessage(BattleMessageType.PetDefeated, { pet: defender.id, killer: context.pet.id })
         defender.isAlive = false
         this.battle!.applyEffects(context, EffectTrigger.OnDefeat) // 触发击败特效
 
@@ -323,12 +323,21 @@ export class Player {
     }
 
     this.battle!.emitMessage(BattleMessageType.RageChange, {
-      player: this.name,
-      pet: this.activePet.name,
+      player: this.id,
+      pet: this.activePet.id,
       before: before,
       after: this.currentRage,
       reason: ctx.reason,
     })
+  }
+
+  public toMessage(): PlayerMessage {
+    return {
+      name: this.name,
+      uid: this.id,
+      activePet: this.activePet.toMessage(),
+      team: this.team.map(p => p.toMessage()),
+    }
   }
 }
 
