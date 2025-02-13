@@ -21,24 +21,24 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_paida
-    level: 1
-    hidden: false
-  - skill_id: skill_shuipao
-    level: 5
-    hidden: false
-  - skill_id: skill_tuoli
-    level: 10
-    hidden: false
-  - skill_id: skill_ruodiangongji
-    level: 15
-    hidden: false
+    - skill_id: skill_paida
+      level: 1
+      hidden: false
+    - skill_id: skill_shuipao
+      level: 5
+      hidden: false
+    - skill_id: skill_tuoli
+      level: 10
+      hidden: false
+    - skill_id: skill_ruodiangongji
+      level: 15
+      hidden: false
   description: 漂亮冷酷的精灵 不爱说话
   obtain_method: 新手任务
   ability:
-  - 终结
+    - 终结
   emblem: &id001
-  - 追击
+    - 追击
 - id: pet_didilan
   num: 2
   name: 迪迪兰
@@ -62,22 +62,22 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_paida
-    level: 1
-    hidden: false
-  - skill_id: skill_shuipao
-    level: 5
-    hidden: false
-  - skill_id: skill_tuoli
-    level: 10
-    hidden: false
-  - skill_id: skill_ruodiangongji
-    level: 15
-    hidden: false
+    - skill_id: skill_paida
+      level: 1
+      hidden: false
+    - skill_id: skill_shuipao
+      level: 5
+      hidden: false
+    - skill_id: skill_tuoli
+      level: 10
+      hidden: false
+    - skill_id: skill_ruodiangongji
+      level: 15
+      hidden: false
   description: 常被误认为雌性精灵 经常受到雄性精灵追求 使它非常郁闷
   obtain_method: 新手任务
   ability:
-  - 终结
+    - 终结
   emblem: *id001
 - id: pet_dilante
   num: 3
@@ -102,37 +102,37 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_shuiliuhuti
-    level: 40
-    hidden: false
-  - skill_id: skill_ruohuadaji
-    level: 45
-    hidden: false
-  - skill_id: skill_feiliupubu
-    level: 50
-    hidden: false
-  - skill_id: skill_hailangzhidun
-    level: 55
-    hidden: false
-  - skill_id: skill_wujindaxuanwo
-    level: 60
-    hidden: false
-  - skill_id: skill_shuihuajianshe
-    level: 65
-    hidden: false
-  - skill_id: skill_yanmo
-    level: 70
-    hidden: false
-  - skill_id: skill_ruodianbiaoji
-    level: 75
-    hidden: false
-  - skill_id: skill_dixiulazhinu
-    level: 80
-    hidden: false
+    - skill_id: skill_shuiliuhuti
+      level: 40
+      hidden: false
+    - skill_id: skill_ruohuadaji
+      level: 45
+      hidden: false
+    - skill_id: skill_feiliupubu
+      level: 50
+      hidden: false
+    - skill_id: skill_hailangzhidun
+      level: 55
+      hidden: false
+    - skill_id: skill_wujindaxuanwo
+      level: 60
+      hidden: false
+    - skill_id: skill_shuihuajianshe
+      level: 65
+      hidden: false
+    - skill_id: skill_yanmo
+      level: 70
+      hidden: false
+    - skill_id: skill_ruodianbiaoji
+      level: 75
+      hidden: false
+    - skill_id: skill_dixiulazhinu
+      level: 80
+      hidden: false
   description: 战斗时的它非常冷静 习惯看破对方的弱点加以攻击
   obtain_method: 新手任务
   ability:
-  - 终结
+    - 终结
   emblem: *id001
 - id: pet_xiuxiu
   num: 4
@@ -157,24 +157,24 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_lizhua
-    level: 1
-    hidden: false
-  - skill_id: skill_huoyan
-    level: 5
-    hidden: false
-  - skill_id: skill_qili
-    level: 10
-    hidden: false
-  - skill_id: skill_fenlitupo
-    level: 15
-    hidden: false
+    - skill_id: skill_lizhua
+      level: 1
+      hidden: false
+    - skill_id: skill_huoyan
+      level: 5
+      hidden: false
+    - skill_id: skill_qili
+      level: 10
+      hidden: false
+    - skill_id: skill_fenlitupo
+      level: 15
+      hidden: false
   description: 做任何事都喜欢冲在最前面 一心想当迪兰、拉奥的队长
   obtain_method: 新手任务
   ability:
-  - 炎火
+    - 炎火
   emblem: &id002
-  - 怒火
+    - 怒火
 - id: pet_xiuyier
   num: 5
   name: 休伊尔
@@ -198,22 +198,22 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_tahuochongzhuang
-    level: 20
-    hidden: false
-  - skill_id: skill_jiasu
-    level: 25
-    hidden: false
-  - skill_id: skill_yanggong
-    level: 30
-    hidden: false
-  - skill_id: skill_jizhong
-    level: 35
-    hidden: false
+    - skill_id: skill_tahuochongzhuang
+      level: 20
+      hidden: false
+    - skill_id: skill_jiasu
+      level: 25
+      hidden: false
+    - skill_id: skill_yanggong
+      level: 30
+      hidden: false
+    - skill_id: skill_jizhong
+      level: 35
+      hidden: false
   description: 非常勇敢有自信的精灵 但有时会显得比较莽撞
   obtain_method: 新手任务
   ability:
-  - 炎火
+    - 炎火
   emblem: *id002
 - id: pet_xiuluosi
   num: 6
@@ -238,37 +238,37 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_huohai
-    level: 40
-    hidden: false
-  - skill_id: skill_nuhuomenggong
-    level: 45
-    hidden: false
-  - skill_id: skill_shixue
-    level: 50
-    hidden: false
-  - skill_id: skill_lieyanjuexiji
-    level: 55
-    hidden: false
-  - skill_id: skill_liehuofentianshao
-    level: 60
-    hidden: false
-  - skill_id: skill_yanzhiyizhi
-    level: 65
-    hidden: false
-  - skill_id: skill_juechufengsheng
-    level: 70
-    hidden: false
-  - skill_id: skill_bumiezhixin
-    level: 75
-    hidden: false
-  - skill_id: skill_dixiulazhinu
-    level: 80
-    hidden: false
+    - skill_id: skill_huohai
+      level: 40
+      hidden: false
+    - skill_id: skill_nuhuomenggong
+      level: 45
+      hidden: false
+    - skill_id: skill_shixue
+      level: 50
+      hidden: false
+    - skill_id: skill_lieyanjuexiji
+      level: 55
+      hidden: false
+    - skill_id: skill_liehuofentianshao
+      level: 60
+      hidden: false
+    - skill_id: skill_yanzhiyizhi
+      level: 65
+      hidden: false
+    - skill_id: skill_juechufengsheng
+      level: 70
+      hidden: false
+    - skill_id: skill_bumiezhixin
+      level: 75
+      hidden: false
+    - skill_id: skill_dixiulazhinu
+      level: 80
+      hidden: false
   description: 过大的信心有时让人觉得是虚张声势 有时又非常可靠
   obtain_method: 新手任务
   ability:
-  - 炎火
+    - 炎火
   emblem: *id002
 - id: pet_laao
   num: 7
@@ -293,24 +293,24 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_chongzhuang
-    level: 1
-    hidden: false
-  - skill_id: skill_zhongzibaodan
-    level: 5
-    hidden: false
-  - skill_id: skill_zhiyu
-    level: 10
-    hidden: false
-  - skill_id: skill_zhongzinengliang
-    level: 15
-    hidden: false
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongzibaodan
+      level: 5
+      hidden: false
+    - skill_id: skill_zhiyu
+      level: 10
+      hidden: false
+    - skill_id: skill_zhongzinengliang
+      level: 15
+      hidden: false
   description: 心地善良的小精灵 不愿看到任何精灵受到伤害
   obtain_method: 新手任务
   ability:
-  - 坚韧
+    - 坚韧
   emblem: &id003
-  - 治愈
+    - 治愈
 - id: pet_laaomiao
   num: 8
   name: 拉奥苗
@@ -334,22 +334,22 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_nengliangshifang
-    level: 20
-    hidden: false
-  - skill_id: skill_xueruo
-    level: 25
-    hidden: false
-  - skill_id: skill_feiyesushe
-    level: 30
-    hidden: false
-  - skill_id: skill_jishengzhongzi
-    level: 35
-    hidden: false
+    - skill_id: skill_nengliangshifang
+      level: 20
+      hidden: false
+    - skill_id: skill_xueruo
+      level: 25
+      hidden: false
+    - skill_id: skill_feiyesushe
+      level: 30
+      hidden: false
+    - skill_id: skill_jishengzhongzi
+      level: 35
+      hidden: false
   description: 经常和对手战斗完也会帮它恢复体力以示友善
   obtain_method: 新手任务
   ability:
-  - 坚韧
+    - 坚韧
   emblem: *id003
 - id: pet_laaoye
   num: 9
@@ -374,37 +374,37 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_nengliangzhaqu
-    level: 40
-    hidden: false
-  - skill_id: skill_jinghuazhiye
-    level: 45
-    hidden: false
-  - skill_id: skill_lirendaoye
-    level: 50
-    hidden: false
-  - skill_id: skill_ganrao
-    level: 55
-    hidden: false
-  - skill_id: skill_laaodehuhuan
-    level: 60
-    hidden: false
-  - skill_id: skill_qianyesha
-    level: 65
-    hidden: false
-  - skill_id: skill_jishengzhadan
-    level: 70
-    hidden: false
-  - skill_id: skill_yinbaozhongzi
-    level: 75
-    hidden: false
-  - skill_id: skill_dixiulazhinu
-    level: 80
-    hidden: false
+    - skill_id: skill_nengliangzhaqu
+      level: 40
+      hidden: false
+    - skill_id: skill_jinghuazhiye
+      level: 45
+      hidden: false
+    - skill_id: skill_lirendaoye
+      level: 50
+      hidden: false
+    - skill_id: skill_ganrao
+      level: 55
+      hidden: false
+    - skill_id: skill_laaodehuhuan
+      level: 60
+      hidden: false
+    - skill_id: skill_qianyesha
+      level: 65
+      hidden: false
+    - skill_id: skill_jishengzhadan
+      level: 70
+      hidden: false
+    - skill_id: skill_yinbaozhongzi
+      level: 75
+      hidden: false
+    - skill_id: skill_dixiulazhinu
+      level: 80
+      hidden: false
   description: 对自己关心很少 有时只顾着帮助别的精灵忘记自己受了重伤
   obtain_method: 新手任务
   ability:
-  - 坚韧
+    - 坚韧
   emblem: *id003
 - id: pet_fala
   num: 10
@@ -429,24 +429,24 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_zhuangji
-    level: 1
-    hidden: false
-  - skill_id: skill_shouxialiuqing
-    level: 5
-    hidden: false
-  - skill_id: skill_baihuaguangxian
-    level: 9
-    hidden: false
-  - skill_id: skill_miaozhun
-    level: 13
-    hidden: false
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_shouxialiuqing
+      level: 5
+      hidden: false
+    - skill_id: skill_baihuaguangxian
+      level: 9
+      hidden: false
+    - skill_id: skill_miaozhun
+      level: 13
+      hidden: false
   description: 当有部落居民的时候 法拉就已在阿卡迪亚星球生活了很久很久
   obtain_method: 异蘑世界
   ability:
-  - 入梦
+    - 入梦
   emblem: &id004
-  - 魅惑
+    - 魅惑
 - id: pet_fana
   num: 11
   name: 法娜
@@ -470,22 +470,22 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_qianghuazhuangtai
-    level: 18
-    hidden: false
-  - skill_id: skill_xianfazhiren
-    level: 22
-    hidden: false
-  - skill_id: skill_shouxiawuqing
-    level: 26
-    hidden: false
-  - skill_id: skill_meihuo
-    level: 30
-    hidden: false
+    - skill_id: skill_qianghuazhuangtai
+      level: 18
+      hidden: false
+    - skill_id: skill_xianfazhiren
+      level: 22
+      hidden: false
+    - skill_id: skill_shouxiawuqing
+      level: 26
+      hidden: false
+    - skill_id: skill_meihuo
+      level: 30
+      hidden: false
   description: 温顺的法娜从不主动靠近人类 它只是远远地看着世界的变化
   obtain_method: 异蘑世界
   ability:
-  - 入梦
+    - 入梦
   emblem: *id004
 - id: pet_fayina
   num: 12
@@ -510,37 +510,37 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_ruilishexian
-    level: 36
-    hidden: false
-  - skill_id: skill_chihuanguangbo
-    level: 40
-    hidden: false
-  - skill_id: skill_houfazhiren
-    level: 44
-    hidden: false
-  - skill_id: skill_shanbi
-    level: 50
-    hidden: false
-  - skill_id: skill_huanjinglieshanguang
-    level: 60
-    hidden: false
-  - skill_id: skill_lingcaiguangxian
-    level: 65
-    hidden: false
-  - skill_id: skill_huanjuezhuangtai
-    level: 70
-    hidden: false
-  - skill_id: skill_mihuo
-    level: 75
-    hidden: false
-  - skill_id: skill_tongshenggongsi
-    level: 80
-    hidden: false
+    - skill_id: skill_ruilishexian
+      level: 36
+      hidden: false
+    - skill_id: skill_chihuanguangbo
+      level: 40
+      hidden: false
+    - skill_id: skill_houfazhiren
+      level: 44
+      hidden: false
+    - skill_id: skill_shanbi
+      level: 50
+      hidden: false
+    - skill_id: skill_huanjinglieshanguang
+      level: 60
+      hidden: false
+    - skill_id: skill_lingcaiguangxian
+      level: 65
+      hidden: false
+    - skill_id: skill_huanjuezhuangtai
+      level: 70
+      hidden: false
+    - skill_id: skill_mihuo
+      level: 75
+      hidden: false
+    - skill_id: skill_tongshenggongsi
+      level: 80
+      hidden: false
   description: 在寂静的星空里 似乎有法伊娜信奉的力量
   obtain_method: 异蘑世界
   ability:
-  - 入梦
+    - 入梦
   emblem: *id004
 - id: pet_xiaoxiaokui
   num: 13
@@ -565,24 +565,24 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_chongding
-    level: 1
-    hidden: false
-  - skill_id: skill_sanyecao
-    level: 6
-    hidden: false
-  - skill_id: skill_yepianbaohu
-    level: 11
-    hidden: false
-  - skill_id: skill_kuihuazhongzi
-    level: 16
-    hidden: false
+    - skill_id: skill_chongding
+      level: 1
+      hidden: false
+    - skill_id: skill_sanyecao
+      level: 6
+      hidden: false
+    - skill_id: skill_yepianbaohu
+      level: 11
+      hidden: false
+    - skill_id: skill_kuihuazhongzi
+      level: 16
+      hidden: false
   description: 小小葵是草系精灵中 与自然界融合得很好的精灵
   obtain_method: 荆棘林
   ability:
-  - 阳光
+    - 阳光
   emblem: &id005
-  - 抗毒
+    - 抗毒
 - id: pet_daidaikui
   num: 14
   name: 呆呆葵
@@ -606,22 +606,22 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_gundongzhuiji
-    level: 21
-    hidden: false
-  - skill_id: skill_yuhe
-    level: 26
-    hidden: false
-  - skill_id: skill_gundongtupo
-    level: 31
-    hidden: false
-  - skill_id: skill_xuruo
-    level: 36
-    hidden: false
+    - skill_id: skill_gundongzhuiji
+      level: 21
+      hidden: false
+    - skill_id: skill_yuhe
+      level: 26
+      hidden: false
+    - skill_id: skill_gundongtupo
+      level: 31
+      hidden: false
+    - skill_id: skill_xuruo
+      level: 36
+      hidden: false
   description: 呆呆葵能从周围的草木呼吸中 获得不断成长的能量
   obtain_method: 荆棘林
   ability:
-  - 阳光
+    - 阳光
   emblem: *id005
 - id: pet_xiaoxiaokui
   num: 15
@@ -646,37 +646,37 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_wulicao
-    level: 41
-    hidden: false
-  - skill_id: skill_xishou
-    level: 46
-    hidden: false
-  - skill_id: skill_gundongzhenci
-    level: 51
-    hidden: false
-  - skill_id: skill_jieducao
-    level: 56
-    hidden: false
-  - skill_id: skill_qiyeduoming
-    level: 60
-    hidden: false
-  - skill_id: skill_ducao
-    level: 2011
-    hidden: true
-  - skill_id: skill_fangqing
-    level: 2012
-    hidden: true
-  - skill_id: skill_duhua
-    level: 2013
-    hidden: true
-  - skill_id: skill_qianghuachongji
-    level: 2001
-    hidden: true
+    - skill_id: skill_wulicao
+      level: 41
+      hidden: false
+    - skill_id: skill_xishou
+      level: 46
+      hidden: false
+    - skill_id: skill_gundongzhenci
+      level: 51
+      hidden: false
+    - skill_id: skill_jieducao
+      level: 56
+      hidden: false
+    - skill_id: skill_qiyeduoming
+      level: 60
+      hidden: false
+    - skill_id: skill_ducao
+      level: 2011
+      hidden: true
+    - skill_id: skill_fangqing
+      level: 2012
+      hidden: true
+    - skill_id: skill_duhua
+      level: 2013
+      hidden: true
+    - skill_id: skill_qianghuachongji
+      level: 2001
+      hidden: true
   description: 笑笑葵能用爽朗的笑声改变天气 将周围变成明媚的晴天
   obtain_method: 荆棘林
   ability:
-  - 阳光
+    - 阳光
   emblem: *id005
 - id: pet_buer
   num: 16
@@ -701,30 +701,30 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_chongfeng
-    level: 1
-    hidden: false
-  - skill_id: skill_zhongji
-    level: 4
-    hidden: false
-  - skill_id: skill_bianfei
-    level: 8
-    hidden: false
-  - skill_id: skill_tizhongyapo
-    level: 11
-    hidden: false
-  - skill_id: skill_yinghuazhifang
-    level: 14
-    hidden: false
-  - skill_id: skill_zhifanghudun
-    level: 17
-    hidden: false
+    - skill_id: skill_chongfeng
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 4
+      hidden: false
+    - skill_id: skill_bianfei
+      level: 8
+      hidden: false
+    - skill_id: skill_tizhongyapo
+      level: 11
+      hidden: false
+    - skill_id: skill_yinghuazhifang
+      level: 14
+      hidden: false
+    - skill_id: skill_zhifanghudun
+      level: 17
+      hidden: false
   description: 布尔的脂肪是它最有利的攻击武器
   obtain_method: 巨石洞穴
   ability:
-  - 重压
+    - 重压
   emblem: &id006
-  - 重量
+    - 重量
 - id: pet_bulutuo
   num: 17
   name: 布鲁托
@@ -748,43 +748,43 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_qilingruoxiao
-    level: 20
-    hidden: false
-  - skill_id: skill_konghe
-    level: 25
-    hidden: false
-  - skill_id: skill_weiheguangbo
-    level: 30
-    hidden: false
-  - skill_id: skill_tuidao
-    level: 35
-    hidden: false
-  - skill_id: skill_quanliyiji
-    level: 40
-    hidden: false
-  - skill_id: skill_tizhongbaozhang
-    level: 46
-    hidden: false
-  - skill_id: skill_chaozhonglianggongji
-    level: 60
-    hidden: false
-  - skill_id: skill_tizhongzhishang
-    level: 65
-    hidden: false
-  - skill_id: skill_zhifangranshao
-    level: 70
-    hidden: false
-  - skill_id: skill_zhifangzhengqi
-    level: 75
-    hidden: false
-  - skill_id: skill_tanxingzhifang
-    level: 80
-    hidden: false
+    - skill_id: skill_qilingruoxiao
+      level: 20
+      hidden: false
+    - skill_id: skill_konghe
+      level: 25
+      hidden: false
+    - skill_id: skill_weiheguangbo
+      level: 30
+      hidden: false
+    - skill_id: skill_tuidao
+      level: 35
+      hidden: false
+    - skill_id: skill_quanliyiji
+      level: 40
+      hidden: false
+    - skill_id: skill_tizhongbaozhang
+      level: 46
+      hidden: false
+    - skill_id: skill_chaozhonglianggongji
+      level: 60
+      hidden: false
+    - skill_id: skill_tizhongzhishang
+      level: 65
+      hidden: false
+    - skill_id: skill_zhifangranshao
+      level: 70
+      hidden: false
+    - skill_id: skill_zhifangzhengqi
+      level: 75
+      hidden: false
+    - skill_id: skill_tanxingzhifang
+      level: 80
+      hidden: false
   description: 布鲁托最喜欢坐在小树根的脑袋上 享受小精灵们的进贡
   obtain_method: 巨石洞穴
   ability:
-  - 重压
+    - 重压
   emblem: *id006
 - id: pet_xiaoshugen
   num: 18
@@ -809,30 +809,30 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_qiaoda
-    level: 1
-    hidden: false
-  - skill_id: skill_genzhici
-    level: 5
-    hidden: false
-  - skill_id: skill_jianqiang
-    level: 10
-    hidden: false
-  - skill_id: skill_shugenyinghua
-    level: 14
-    hidden: false
-  - skill_id: skill_shutichongzhuang
-    level: 18
-    hidden: false
-  - skill_id: skill_shuairuo
-    level: 22
-    hidden: false
+    - skill_id: skill_qiaoda
+      level: 1
+      hidden: false
+    - skill_id: skill_genzhici
+      level: 5
+      hidden: false
+    - skill_id: skill_jianqiang
+      level: 10
+      hidden: false
+    - skill_id: skill_shugenyinghua
+      level: 14
+      hidden: false
+    - skill_id: skill_shutichongzhuang
+      level: 18
+      hidden: false
+    - skill_id: skill_shuairuo
+      level: 22
+      hidden: false
   description: 小树根是非常胆小的精灵 一直被布鲁托欺负 垫在屁股下
   obtain_method: 幻影崖
   ability:
-  - 坚强
+    - 坚强
   emblem: &id007
-  - 树皮
+    - 树皮
 - id: pet_shugenshizhe
   num: 19
   name: 树根使者
@@ -856,43 +856,43 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_jianruiciji
-    level: 26
-    hidden: false
-  - skill_id: skill_juxinggenci
-    level: 30
-    hidden: false
-  - skill_id: skill_shupibaoza
-    level: 34
-    hidden: false
-  - skill_id: skill_shuangzhuichuanci
-    level: 39
-    hidden: false
-  - skill_id: skill_jiancifangyu
-    level: 44
-    hidden: false
-  - skill_id: skill_fenglizuantou
-    level: 50
-    hidden: false
-  - skill_id: skill_qianchuangbaikong
-    level: 60
-    hidden: false
-  - skill_id: skill_caomujiebing
-    level: 2017
-    hidden: true
-  - skill_id: skill_ehuashangkou
-    level: 2018
-    hidden: true
-  - skill_id: skill_suixinci
-    level: 2001
-    hidden: true
-  - skill_id: skill_muyexuanfeng
-    level: 2019
-    hidden: true
+    - skill_id: skill_jianruiciji
+      level: 26
+      hidden: false
+    - skill_id: skill_juxinggenci
+      level: 30
+      hidden: false
+    - skill_id: skill_shupibaoza
+      level: 34
+      hidden: false
+    - skill_id: skill_shuangzhuichuanci
+      level: 39
+      hidden: false
+    - skill_id: skill_jiancifangyu
+      level: 44
+      hidden: false
+    - skill_id: skill_fenglizuantou
+      level: 50
+      hidden: false
+    - skill_id: skill_qianchuangbaikong
+      level: 60
+      hidden: false
+    - skill_id: skill_caomujiebing
+      level: 2017
+      hidden: true
+    - skill_id: skill_ehuashangkou
+      level: 2018
+      hidden: true
+    - skill_id: skill_suixinci
+      level: 2001
+      hidden: true
+    - skill_id: skill_muyexuanfeng
+      level: 2019
+      hidden: true
   description: 勇敢的力量让小树根成长为树根使者 长出尖尖的木椎
   obtain_method: 幻影崖
   ability:
-  - 坚强
+    - 坚强
   emblem: *id007
 - id: pet_qilu
   num: 20
@@ -917,30 +917,30 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_touchui
-    level: 1
-    hidden: false
-  - skill_id: skill_shuiqiang
-    level: 5
-    hidden: false
-  - skill_id: skill_ningju
-    level: 9
-    hidden: false
-  - skill_id: skill_chuanjibo
-    level: 13
-    hidden: false
-  - skill_id: skill_niliu
-    level: 17
-    hidden: false
-  - skill_id: skill_zhimingshuiqiang
-    level: 21
-    hidden: false
+    - skill_id: skill_touchui
+      level: 1
+      hidden: false
+    - skill_id: skill_shuiqiang
+      level: 5
+      hidden: false
+    - skill_id: skill_ningju
+      level: 9
+      hidden: false
+    - skill_id: skill_chuanjibo
+      level: 13
+      hidden: false
+    - skill_id: skill_niliu
+      level: 17
+      hidden: false
+    - skill_id: skill_zhimingshuiqiang
+      level: 21
+      hidden: false
   description: 奇鲁在石头下出生 需要依靠自己的力量 将身上的大石顶开
   obtain_method: 水仙草界
   ability:
-  - 流水
+    - 流水
   emblem: &id008
-  - 失明
+    - 失明
 - id: pet_kuqilu
   num: 21
   name: 库奇鲁
@@ -964,43 +964,43 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_jingzhun
-    level: 25
-    hidden: false
-  - skill_id: skill_fenlitouchui
-    level: 29
-    hidden: false
-  - skill_id: skill_shuiqianglianbo
-    level: 33
-    hidden: false
-  - skill_id: skill_chunjingshuiyu
-    level: 38
-    hidden: false
-  - skill_id: skill_pinmingtouchui
-    level: 43
-    hidden: false
-  - skill_id: skill_shuaitui
-    level: 49
-    hidden: false
-  - skill_id: skill_junengshuiguangpao
-    level: 60
-    hidden: false
-  - skill_id: skill_chuantoushuipao
-    level: 2020
-    hidden: true
-  - skill_id: skill_hunzhuoshuiyu
-    level: 2021
-    hidden: true
-  - skill_id: skill_linweiyichui
-    level: 2019
-    hidden: true
-  - skill_id: skill_xuruoshuixian
-    level: 2001
-    hidden: true
+    - skill_id: skill_jingzhun
+      level: 25
+      hidden: false
+    - skill_id: skill_fenlitouchui
+      level: 29
+      hidden: false
+    - skill_id: skill_shuiqianglianbo
+      level: 33
+      hidden: false
+    - skill_id: skill_chunjingshuiyu
+      level: 38
+      hidden: false
+    - skill_id: skill_pinmingtouchui
+      level: 43
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 49
+      hidden: false
+    - skill_id: skill_junengshuiguangpao
+      level: 60
+      hidden: false
+    - skill_id: skill_chuantoushuipao
+      level: 2020
+      hidden: true
+    - skill_id: skill_hunzhuoshuiyu
+      level: 2021
+      hidden: true
+    - skill_id: skill_linweiyichui
+      level: 2019
+      hidden: true
+    - skill_id: skill_xuruoshuixian
+      level: 2001
+      hidden: true
   description: 库奇鲁深信河流是精灵王的血液 它的职责是清除血液的障碍
   obtain_method: 水仙草界
   ability:
-  - 流水
+    - 流水
   emblem: *id008
 - id: pet_gusi
   num: 22
@@ -1025,24 +1025,24 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_zhuangji
-    level: 1
-    hidden: false
-  - skill_id: skill_duci
-    level: 5
-    hidden: false
-  - skill_id: skill_tuihuaye
-    level: 10
-    hidden: false
-  - skill_id: skill_manxingduyao
-    level: 14
-    hidden: false
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_duci
+      level: 5
+      hidden: false
+    - skill_id: skill_tuihuaye
+      level: 10
+      hidden: false
+    - skill_id: skill_manxingduyao
+      level: 14
+      hidden: false
   description: 古斯是非常胆小的精灵 隐藏在很深很深的荆棘里
   obtain_method: 小小葵梦境
   ability:
-  - 毒药
+    - 毒药
   emblem: &id009
-  - 毒药
+    - 毒药
 - id: pet_gujialuo
   num: 23
   name: 古加罗
@@ -1066,22 +1066,22 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_guluoheji
-    level: 19
-    hidden: false
-  - skill_id: skill_shuaitui
-    level: 24
-    hidden: false
-  - skill_id: skill_duye
-    level: 29
-    hidden: false
-  - skill_id: skill_duliao
-    level: 34
-    hidden: false
+    - skill_id: skill_guluoheji
+      level: 19
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 24
+      hidden: false
+    - skill_id: skill_duye
+      level: 29
+      hidden: false
+    - skill_id: skill_duliao
+      level: 34
+      hidden: false
   description: 胆小的古斯成长到一定阶段 会找到共生精灵 合体成古加罗
   obtain_method: 小小葵梦境
   ability:
-  - 毒药
+    - 毒药
   emblem: *id009
 - id: pet_gujialuosi
   num: 24
@@ -1106,37 +1106,37 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_duzhibian
-    level: 39
-    hidden: false
-  - skill_id: skill_fengkuanghuida
-    level: 44
-    hidden: false
-  - skill_id: skill_duzhenrugu
-    level: 49
-    hidden: false
-  - skill_id: skill_juduyeti
-    level: 54
-    hidden: false
-  - skill_id: skill_duqigongxin
-    level: 60
-    hidden: false
-  - skill_id: skill_yidugongdu
-    level: 2001
-    hidden: true
-  - skill_id: skill_suxiaoduyao
-    level: 2022
-    hidden: true
-  - skill_id: skill_chuisizhenzha
-    level: 2019
-    hidden: true
-  - skill_id: skill_judushenti
-    level: 2023
-    hidden: true
+    - skill_id: skill_duzhibian
+      level: 39
+      hidden: false
+    - skill_id: skill_fengkuanghuida
+      level: 44
+      hidden: false
+    - skill_id: skill_duzhenrugu
+      level: 49
+      hidden: false
+    - skill_id: skill_juduyeti
+      level: 54
+      hidden: false
+    - skill_id: skill_duqigongxin
+      level: 60
+      hidden: false
+    - skill_id: skill_yidugongdu
+      level: 2001
+      hidden: true
+    - skill_id: skill_suxiaoduyao
+      level: 2022
+      hidden: true
+    - skill_id: skill_chuisizhenzha
+      level: 2019
+      hidden: true
+    - skill_id: skill_judushenti
+      level: 2023
+      hidden: true
   description: 它们的能量共生、互补 进化为古加罗斯这时古斯不再胆小
   obtain_method: 小小葵梦境
   ability:
-  - 毒药
+    - 毒药
   emblem: *id009
 - id: pet_anke
   num: 25
@@ -1161,24 +1161,24 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_chouda
-    level: 1
-    hidden: false
-  - skill_id: skill_penshui
-    level: 5
-    hidden: false
-  - skill_id: skill_mozhipao
-    level: 9
-    hidden: false
-  - skill_id: skill_kongqitianchong
-    level: 13
-    hidden: false
+    - skill_id: skill_chouda
+      level: 1
+      hidden: false
+    - skill_id: skill_penshui
+      level: 5
+      hidden: false
+    - skill_id: skill_mozhipao
+      level: 9
+      hidden: false
+    - skill_id: skill_kongqitianchong
+      level: 13
+      hidden: false
   description: 安可是谜一样的精灵 身为水系精灵的它 无法在水下呼吸
   obtain_method: 狂暴旋涡
   ability:
-  - 空气
+    - 空气
   emblem: &id010
-  - 窒息
+    - 窒息
 - id: pet_anya
   num: 26
   name: 安亚
@@ -1202,22 +1202,22 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_kongqipao
-    level: 18
-    hidden: false
-  - skill_id: skill_ningju
-    level: 23
-    hidden: false
-  - skill_id: skill_mozhipenshe
-    level: 28
-    hidden: false
-  - skill_id: skill_shuaitui
-    level: 33
-    hidden: false
+    - skill_id: skill_kongqipao
+      level: 18
+      hidden: false
+    - skill_id: skill_ningju
+      level: 23
+      hidden: false
+    - skill_id: skill_mozhipenshe
+      level: 28
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 33
+      hidden: false
   description: 安亚能将头上的水泡渐渐转变为保护自己的呼吸罩
   obtain_method: 狂暴旋涡
   ability:
-  - 空气
+    - 空气
   emblem: *id010
 - id: pet_anmiya
   num: 27
@@ -1242,37 +1242,37 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_gaoyashuipao
-    level: 38
-    hidden: false
-  - skill_id: skill_mozhishuiyu
-    level: 43
-    hidden: false
-  - skill_id: skill_lianxuchouda
-    level: 48
-    hidden: false
-  - skill_id: skill_kongqihudun
-    level: 53
-    hidden: false
-  - skill_id: skill_yasuoningjupao
-    level: 60
-    hidden: false
-  - skill_id: skill_gaoyakongqi
-    level: 2024
-    hidden: true
-  - skill_id: skill_zhixi
-    level: 2025
-    hidden: true
-  - skill_id: skill_luoxuanshuiqiang
-    level: 2001
-    hidden: true
-  - skill_id: skill_kongqizhiyu
-    level: 2026
-    hidden: true
+    - skill_id: skill_gaoyashuipao
+      level: 38
+      hidden: false
+    - skill_id: skill_mozhishuiyu
+      level: 43
+      hidden: false
+    - skill_id: skill_lianxuchouda
+      level: 48
+      hidden: false
+    - skill_id: skill_kongqihudun
+      level: 53
+      hidden: false
+    - skill_id: skill_yasuoningjupao
+      level: 60
+      hidden: false
+    - skill_id: skill_gaoyakongqi
+      level: 2024
+      hidden: true
+    - skill_id: skill_zhixi
+      level: 2025
+      hidden: true
+    - skill_id: skill_luoxuanshuiqiang
+      level: 2001
+      hidden: true
+    - skill_id: skill_kongqizhiyu
+      level: 2026
+      hidden: true
   description: 强大的安迷亚 让呼吸罩成为了它最强的防护和能量来源
   obtain_method: 狂暴旋涡
   ability:
-  - 空气
+    - 空气
   emblem: *id010
 - id: pet_lanmiao
   num: 28
@@ -1297,30 +1297,30 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_chongzhuang
-    level: 1
-    hidden: false
-  - skill_id: skill_penshui
-    level: 5
-    hidden: false
-  - skill_id: skill_fengli
-    level: 10
-    hidden: false
-  - skill_id: skill_quanlichongzhuang
-    level: 15
-    hidden: false
-  - skill_id: skill_jianqiang
-    level: 20
-    hidden: false
-  - skill_id: skill_xingzhiwei
-    level: 25
-    hidden: false
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_penshui
+      level: 5
+      hidden: false
+    - skill_id: skill_fengli
+      level: 10
+      hidden: false
+    - skill_id: skill_quanlichongzhuang
+      level: 15
+      hidden: false
+    - skill_id: skill_jianqiang
+      level: 20
+      hidden: false
+    - skill_id: skill_xingzhiwei
+      level: 25
+      hidden: false
   description: 最大胆妄为的蓝喵敢用坚硬的脑袋去冲撞任何物体
   obtain_method: 残骸通道
   ability:
-  - 锋利
+    - 锋利
   emblem: &id011
-  - 星之
+    - 星之
 - id: pet_lanhujing
   num: 29
   name: 蓝虎鲸
@@ -1344,43 +1344,43 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_yingjiachongding
-    level: 31
-    hidden: false
-  - skill_id: skill_pensheshuizhu
-    level: 36
-    hidden: false
-  - skill_id: skill_weishe
-    level: 41
-    hidden: false
-  - skill_id: skill_shuangxingzhiwei
-    level: 46
-    hidden: false
-  - skill_id: skill_fengkuanglianchong
-    level: 50
-    hidden: false
-  - skill_id: skill_bomingyiji
-    level: 54
-    hidden: false
-  - skill_id: skill_nuhailiantao
-    level: 60
-    hidden: false
-  - skill_id: skill_talangchongji
-    level: 2027
-    hidden: true
-  - skill_id: skill_xingzhili
-    level: 2001
-    hidden: true
-  - skill_id: skill_sisui
-    level: 2021
-    hidden: true
-  - skill_id: skill_yongbuyanbai
-    level: 2028
-    hidden: true
+    - skill_id: skill_yingjiachongding
+      level: 31
+      hidden: false
+    - skill_id: skill_pensheshuizhu
+      level: 36
+      hidden: false
+    - skill_id: skill_weishe
+      level: 41
+      hidden: false
+    - skill_id: skill_shuangxingzhiwei
+      level: 46
+      hidden: false
+    - skill_id: skill_fengkuanglianchong
+      level: 50
+      hidden: false
+    - skill_id: skill_bomingyiji
+      level: 54
+      hidden: false
+    - skill_id: skill_nuhailiantao
+      level: 60
+      hidden: false
+    - skill_id: skill_talangchongji
+      level: 2027
+      hidden: true
+    - skill_id: skill_xingzhili
+      level: 2001
+      hidden: true
+    - skill_id: skill_sisui
+      level: 2021
+      hidden: true
+    - skill_id: skill_yongbuyanbai
+      level: 2028
+      hidden: true
   description: 蓝虎鲸最大的目标 就是撞破阿卡纳斯的水纹护盾
   obtain_method: 残骸通道
   ability:
-  - 锋利
+    - 锋利
   emblem: *id011
 - id: pet_aka
   num: 30
@@ -1405,30 +1405,30 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_paida
-    level: 1
-    hidden: false
-  - skill_id: skill_hailang
-    level: 5
-    hidden: false
-  - skill_id: skill_tuoli
-    level: 10
-    hidden: false
-  - skill_id: skill_shuiwenzhenji
-    level: 15
-    hidden: false
-  - skill_id: skill_jiangu
-    level: 20
-    hidden: false
-  - skill_id: skill_hailangzhenji
-    level: 25
-    hidden: false
+    - skill_id: skill_paida
+      level: 1
+      hidden: false
+    - skill_id: skill_hailang
+      level: 5
+      hidden: false
+    - skill_id: skill_tuoli
+      level: 10
+      hidden: false
+    - skill_id: skill_shuiwenzhenji
+      level: 15
+      hidden: false
+    - skill_id: skill_jiangu
+      level: 20
+      hidden: false
+    - skill_id: skill_hailangzhenji
+      level: 25
+      hidden: false
   description: 阿卡从小就是水上霸主 这是所有水系精灵都不会否认的事实
   obtain_method: 悲伤残骸
   ability:
-  - 潮湿
+    - 潮湿
   emblem: &id012
-  - 震击
+    - 震击
 - id: pet_akanasi
   num: 31
   name: 阿卡纳斯
@@ -1452,43 +1452,43 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_shuiwenpingzhang
-    level: 30
-    hidden: false
-  - skill_id: skill_shentouzhenji
-    level: 34
-    hidden: false
-  - skill_id: skill_weishe
-    level: 39
-    hidden: false
-  - skill_id: skill_xushuipao
-    level: 44
-    hidden: false
-  - skill_id: skill_pubuzhenji
-    level: 49
-    hidden: false
-  - skill_id: skill_fansheshuidun
-    level: 53
-    hidden: false
-  - skill_id: skill_chongnengjizhuangbo
-    level: 60
-    hidden: false
-  - skill_id: skill_yazhi
-    level: 65
-    hidden: false
-  - skill_id: skill_yapo
-    level: 70
-    hidden: false
-  - skill_id: skill_huanyu
-    level: 75
-    hidden: false
-  - skill_id: skill_jishuichuanliu
-    level: 80
-    hidden: false
+    - skill_id: skill_shuiwenpingzhang
+      level: 30
+      hidden: false
+    - skill_id: skill_shentouzhenji
+      level: 34
+      hidden: false
+    - skill_id: skill_weishe
+      level: 39
+      hidden: false
+    - skill_id: skill_xushuipao
+      level: 44
+      hidden: false
+    - skill_id: skill_pubuzhenji
+      level: 49
+      hidden: false
+    - skill_id: skill_fansheshuidun
+      level: 53
+      hidden: false
+    - skill_id: skill_chongnengjizhuangbo
+      level: 60
+      hidden: false
+    - skill_id: skill_yazhi
+      level: 65
+      hidden: false
+    - skill_id: skill_yapo
+      level: 70
+      hidden: false
+    - skill_id: skill_huanyu
+      level: 75
+      hidden: false
+    - skill_id: skill_jishuichuanliu
+      level: 80
+      hidden: false
   description: 蓝虎鲸的冲撞 激发了阿卡纳斯真正的防护能量 撑开了水盾
   obtain_method: 悲伤残骸
   ability:
-  - 潮湿
+    - 潮湿
   emblem: *id012
 - id: pet_youni
   num: 32
@@ -1513,30 +1513,30 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_chongfeng
-    level: 1
-    hidden: false
-  - skill_id: skill_penhuo
-    level: 6
-    hidden: false
-  - skill_id: skill_jiare
-    level: 11
-    hidden: false
-  - skill_id: skill_zhuoshao
-    level: 16
-    hidden: false
-  - skill_id: skill_rongjiezhiyan
-    level: 21
-    hidden: false
-  - skill_id: skill_jiangu
-    level: 26
-    hidden: false
+    - skill_id: skill_chongfeng
+      level: 1
+      hidden: false
+    - skill_id: skill_penhuo
+      level: 6
+      hidden: false
+    - skill_id: skill_jiare
+      level: 11
+      hidden: false
+    - skill_id: skill_zhuoshao
+      level: 16
+      hidden: false
+    - skill_id: skill_rongjiezhiyan
+      level: 21
+      hidden: false
+    - skill_id: skill_jiangu
+      level: 26
+      hidden: false
   description: 尤尼生活在火山周围 非常好动 喜欢自己蜷成球到处冲撞
   obtain_method: 幻空通道
   ability:
-  - 燃烧
+    - 燃烧
   emblem: &id013
-  - 易燃
+    - 易燃
 - id: pet_qiaoni
   num: 33
   name: 乔尼
@@ -1560,43 +1560,43 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_huoyanchongzhuang
-    level: 31
-    hidden: false
-  - skill_id: skill_shuangguihuopao
-    level: 36
-    hidden: false
-  - skill_id: skill_lieyanzhiqu
-    level: 41
-    hidden: false
-  - skill_id: skill_huoyanxuanfeng
-    level: 46
-    hidden: false
-  - skill_id: skill_mijisaoshe
-    level: 50
-    hidden: false
-  - skill_id: skill_chaodahuoqiu
-    level: 54
-    hidden: false
-  - skill_id: skill_rongyanbaolie
-    level: 60
-    hidden: false
-  - skill_id: skill_jisuhuodan
-    level: 2032
-    hidden: true
-  - skill_id: skill_dianran
-    level: 2033
-    hidden: true
-  - skill_id: skill_chuantouhuoyan
-    level: 2001
-    hidden: true
-  - skill_id: skill_fennuzhihuo
-    level: 2019
-    hidden: true
+    - skill_id: skill_huoyanchongzhuang
+      level: 31
+      hidden: false
+    - skill_id: skill_shuangguihuopao
+      level: 36
+      hidden: false
+    - skill_id: skill_lieyanzhiqu
+      level: 41
+      hidden: false
+    - skill_id: skill_huoyanxuanfeng
+      level: 46
+      hidden: false
+    - skill_id: skill_mijisaoshe
+      level: 50
+      hidden: false
+    - skill_id: skill_chaodahuoqiu
+      level: 54
+      hidden: false
+    - skill_id: skill_rongyanbaolie
+      level: 60
+      hidden: false
+    - skill_id: skill_jisuhuodan
+      level: 2032
+      hidden: true
+    - skill_id: skill_dianran
+      level: 2033
+      hidden: true
+    - skill_id: skill_chuantouhuoyan
+      level: 2001
+      hidden: true
+    - skill_id: skill_fennuzhihuo
+      level: 2019
+      hidden: true
   description: 有传言 乔尼身后的火焰促使它需要不断冲撞 消耗多余能量
   obtain_method: 幻空通道
   ability:
-  - 燃烧
+    - 燃烧
   emblem: *id013
 - id: pet_xiaoyanfu
   num: 34
@@ -1621,24 +1621,24 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_zhuangji
-    level: 1
-    hidden: false
-  - skill_id: skill_huoqiu
-    level: 5
-    hidden: false
-  - skill_id: skill_jianying
-    level: 9
-    hidden: false
-  - skill_id: skill_zhuangyun
-    level: 13
-    hidden: false
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_huoqiu
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 9
+      hidden: false
+    - skill_id: skill_zhuangyun
+      level: 13
+      hidden: false
   description: 小岩浮喜欢成群结队的出现 用大钳子在火山口不停的翻找
   obtain_method: 灰烬之地
   ability:
-  - 眩晕
+    - 眩晕
   emblem: &id014
-  - 眩晕
+    - 眩晕
 - id: pet_dajiaoyanfu
   num: 35
   name: 大角岩浮
@@ -1662,22 +1662,22 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_daliqian
-    level: 17
-    hidden: false
-  - skill_id: skill_reliqian
-    level: 22
-    hidden: false
-  - skill_id: skill_fengli
-    level: 27
-    hidden: false
-  - skill_id: skill_huoqiulianshe
-    level: 32
-    hidden: false
+    - skill_id: skill_daliqian
+      level: 17
+      hidden: false
+    - skill_id: skill_reliqian
+      level: 22
+      hidden: false
+    - skill_id: skill_fengli
+      level: 27
+      hidden: false
+    - skill_id: skill_huoqiulianshe
+      level: 32
+      hidden: false
   description: 它似乎在火山口 不停的寻找遗失的某个重要东西
   obtain_method: 灰烬之地
   ability:
-  - 眩晕
+    - 眩晕
   emblem: *id014
 - id: pet_dajiangyanfu
   num: 36
@@ -1702,37 +1702,37 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_guailiqian
-    level: 37
-    hidden: false
-  - skill_id: skill_huoyanqian
-    level: 42
-    hidden: false
-  - skill_id: skill_juansuo
-    level: 47
-    hidden: false
-  - skill_id: skill_huoyantuxi
-    level: 52
-    hidden: false
-  - skill_id: skill_huoyanshazhen
-    level: 60
-    hidden: false
-  - skill_id: skill_xuli
-    level: 2001
-    hidden: true
-  - skill_id: skill_fensuiqian
-    level: 2034
-    hidden: true
-  - skill_id: skill_rongyanqian
-    level: 2035
-    hidden: true
-  - skill_id: skill_xuanyunhuoqiu
-    level: 2036
-    hidden: true
+    - skill_id: skill_guailiqian
+      level: 37
+      hidden: false
+    - skill_id: skill_huoyanqian
+      level: 42
+      hidden: false
+    - skill_id: skill_juansuo
+      level: 47
+      hidden: false
+    - skill_id: skill_huoyantuxi
+      level: 52
+      hidden: false
+    - skill_id: skill_huoyanshazhen
+      level: 60
+      hidden: false
+    - skill_id: skill_xuli
+      level: 2001
+      hidden: true
+    - skill_id: skill_fensuiqian
+      level: 2034
+      hidden: true
+    - skill_id: skill_rongyanqian
+      level: 2035
+      hidden: true
+    - skill_id: skill_xuanyunhuoqiu
+      level: 2036
+      hidden: true
   description: 它最担心的就是遇上乔尼 这个顽皮的家伙总喜欢把它撞倒
   obtain_method: 灰烬之地
   ability:
-  - 眩晕
+    - 眩晕
   emblem: *id014
 - id: pet_huoke
   num: 37
@@ -1757,30 +1757,30 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_lizhua
-    level: 1
-    hidden: false
-  - skill_id: skill_huoqiu
-    level: 5
-    hidden: false
-  - skill_id: skill_fengli
-    level: 10
-    hidden: false
-  - skill_id: skill_guntangchongji
-    level: 14
-    hidden: false
-  - skill_id: skill_gaowenhuohuan
-    level: 19
-    hidden: false
-  - skill_id: skill_jiare
-    level: 24
-    hidden: false
+    - skill_id: skill_lizhua
+      level: 1
+      hidden: false
+    - skill_id: skill_huoqiu
+      level: 5
+      hidden: false
+    - skill_id: skill_fengli
+      level: 10
+      hidden: false
+    - skill_id: skill_guntangchongji
+      level: 14
+      hidden: false
+    - skill_id: skill_gaowenhuohuan
+      level: 19
+      hidden: false
+    - skill_id: skill_jiare
+      level: 24
+      hidden: false
   description: 霍克是自卑而孤独的精灵 经常受欺负也趴着一动不动
   obtain_method: 焰之森
   ability:
-  - 阳炎
+    - 阳炎
   emblem: &id015
-  - 威严
+    - 威严
 - id: pet_huokenuer
   num: 38
   name: 霍克努尔
@@ -1804,43 +1804,43 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_julizhizhao
-    level: 29
-    hidden: false
-  - skill_id: skill_zhengfa
-    level: 34
-    hidden: false
-  - skill_id: skill_nuhou
-    level: 39
-    hidden: false
-  - skill_id: skill_rongyanchuanci
-    level: 44
-    hidden: false
-  - skill_id: skill_huoshanpenfa
-    level: 49
-    hidden: false
-  - skill_id: skill_huoshanhujia
-    level: 54
-    hidden: false
-  - skill_id: skill_huoshanbaoliequan
-    level: 60
-    hidden: false
-  - skill_id: skill_yanzhizhao
-    level: 65
-    hidden: false
-  - skill_id: skill_yanbao
-    level: 70
-    hidden: false
-  - skill_id: skill_yangyan
-    level: 75
-    hidden: false
-  - skill_id: skill_huoshanzhili
-    level: 80
-    hidden: false
+    - skill_id: skill_julizhizhao
+      level: 29
+      hidden: false
+    - skill_id: skill_zhengfa
+      level: 34
+      hidden: false
+    - skill_id: skill_nuhou
+      level: 39
+      hidden: false
+    - skill_id: skill_rongyanchuanci
+      level: 44
+      hidden: false
+    - skill_id: skill_huoshanpenfa
+      level: 49
+      hidden: false
+    - skill_id: skill_huoshanhujia
+      level: 54
+      hidden: false
+    - skill_id: skill_huoshanbaoliequan
+      level: 60
+      hidden: false
+    - skill_id: skill_yanzhizhao
+      level: 65
+      hidden: false
+    - skill_id: skill_yanbao
+      level: 70
+      hidden: false
+    - skill_id: skill_yangyan
+      level: 75
+      hidden: false
+    - skill_id: skill_huoshanzhili
+      level: 80
+      hidden: false
   description: 当霍克的怒火如火山般的喷发 它成长为了强大的霍克努尔
   obtain_method: 焰之森
   ability:
-  - 阳炎
+    - 阳炎
   emblem: *id015
 - id: pet_xiaochitun
   num: 39
@@ -1865,30 +1865,30 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_zhuangji
-    level: 1
-    hidden: false
-  - skill_id: skill_penhuo
-    level: 6
-    hidden: false
-  - skill_id: skill_moya
-    level: 10
-    hidden: false
-  - skill_id: skill_yanhuo
-    level: 14
-    hidden: false
-  - skill_id: skill_huozhiya
-    level: 17
-    hidden: false
-  - skill_id: skill_huoqiulianshe
-    level: 22
-    hidden: false
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_penhuo
+      level: 6
+      hidden: false
+    - skill_id: skill_moya
+      level: 10
+      hidden: false
+    - skill_id: skill_yanhuo
+      level: 14
+      hidden: false
+    - skill_id: skill_huozhiya
+      level: 17
+      hidden: false
+    - skill_id: skill_huoqiulianshe
+      level: 22
+      hidden: false
   description: 传说 小赤豚是神手在勾画强大精灵时 遗落的星火化身出的
   obtain_method: 赤链山脉
   ability:
-  - 抢攻
+    - 抢攻
   emblem: &id016
-  - 焰火
+    - 焰火
 - id: pet_chiyanshou
   num: 40
   name: 赤焰兽
@@ -1912,43 +1912,43 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_lieyanzhuangji
-    level: 27
-    hidden: false
-  - skill_id: skill_yezhuzhisu
-    level: 32
-    hidden: false
-  - skill_id: skill_baoya
-    level: 37
-    hidden: false
-  - skill_id: skill_huoyufeidan
-    level: 42
-    hidden: false
-  - skill_id: skill_jiare
-    level: 47
-    hidden: false
-  - skill_id: skill_zouhuo
-    level: 52
-    hidden: false
-  - skill_id: skill_lieyanyachongpo
-    level: 60
-    hidden: false
-  - skill_id: skill_yanwu
-    level: 2001
-    hidden: true
-  - skill_id: skill_badetouchou
-    level: 2040
-    hidden: true
-  - skill_id: skill_huoxing
-    level: 2041
-    hidden: true
-  - skill_id: skill_huozhong
-    level: 2033
-    hidden: true
+    - skill_id: skill_lieyanzhuangji
+      level: 27
+      hidden: false
+    - skill_id: skill_yezhuzhisu
+      level: 32
+      hidden: false
+    - skill_id: skill_baoya
+      level: 37
+      hidden: false
+    - skill_id: skill_huoyufeidan
+      level: 42
+      hidden: false
+    - skill_id: skill_jiare
+      level: 47
+      hidden: false
+    - skill_id: skill_zouhuo
+      level: 52
+      hidden: false
+    - skill_id: skill_lieyanyachongpo
+      level: 60
+      hidden: false
+    - skill_id: skill_yanwu
+      level: 2001
+      hidden: true
+    - skill_id: skill_badetouchou
+      level: 2040
+      hidden: true
+    - skill_id: skill_huoxing
+      level: 2041
+      hidden: true
+    - skill_id: skill_huozhong
+      level: 2033
+      hidden: true
   description: 赤焰兽坚硬如铁石的大嘴 能吸收火山熔浆的神奇力量
   obtain_method: 赤链山脉
   ability:
-  - 抢攻
+    - 抢攻
   emblem: *id016
 - id: pet_shuimodiandian
   num: 41
@@ -1973,30 +1973,30 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_chongfeng
-    level: 1
-    hidden: false
-  - skill_id: skill_shuipao
-    level: 5
-    hidden: false
-  - skill_id: skill_niliu
-    level: 9
-    hidden: false
-  - skill_id: skill_xuruoshuiqiang
-    level: 13
-    hidden: false
-  - skill_id: skill_xuruoshuipao
-    level: 18
-    hidden: false
-  - skill_id: skill_guanghuapifu
-    level: 23
-    hidden: false
+    - skill_id: skill_chongfeng
+      level: 1
+      hidden: false
+    - skill_id: skill_shuipao
+      level: 5
+      hidden: false
+    - skill_id: skill_niliu
+      level: 9
+      hidden: false
+    - skill_id: skill_xuruoshuiqiang
+      level: 13
+      hidden: false
+    - skill_id: skill_xuruoshuipao
+      level: 18
+      hidden: false
+    - skill_id: skill_guanghuapifu
+      level: 23
+      hidden: false
   description: 水墨点点从小就被嘲笑 只能在水中行走 而不能畅游
   obtain_method: 银脉山脊
   ability:
-  - 光滑
+    - 光滑
   emblem: &id017
-  - 虚弱
+    - 虚弱
 - id: pet_shuimofeima
   num: 42
   name: 水墨飞马
@@ -2020,43 +2020,43 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_talangchongfeng
-    level: 28
-    hidden: false
-  - skill_id: skill_shuimo
-    level: 33
-    hidden: false
-  - skill_id: skill_shuihuasijian
-    level: 38
-    hidden: false
-  - skill_id: skill_wuyi
-    level: 43
-    hidden: false
-  - skill_id: skill_xuanzhuanshuiqiang
-    level: 48
-    hidden: false
-  - skill_id: skill_xuanzhuanchongfeng
-    level: 53
-    hidden: false
-  - skill_id: skill_chaoliupo
-    level: 60
-    hidden: false
-  - skill_id: skill_junengchongfeng
-    level: 65
-    hidden: false
-  - skill_id: skill_jushuipao
-    level: 70
-    hidden: false
-  - skill_id: skill_nongsuoshuimo
-    level: 75
-    hidden: false
-  - skill_id: skill_chunjingzhixin
-    level: 80
-    hidden: false
+    - skill_id: skill_talangchongfeng
+      level: 28
+      hidden: false
+    - skill_id: skill_shuimo
+      level: 33
+      hidden: false
+    - skill_id: skill_shuihuasijian
+      level: 38
+      hidden: false
+    - skill_id: skill_wuyi
+      level: 43
+      hidden: false
+    - skill_id: skill_xuanzhuanshuiqiang
+      level: 48
+      hidden: false
+    - skill_id: skill_xuanzhuanchongfeng
+      level: 53
+      hidden: false
+    - skill_id: skill_chaoliupo
+      level: 60
+      hidden: false
+    - skill_id: skill_junengchongfeng
+      level: 65
+      hidden: false
+    - skill_id: skill_jushuipao
+      level: 70
+      hidden: false
+    - skill_id: skill_nongsuoshuimo
+      level: 75
+      hidden: false
+    - skill_id: skill_chunjingzhixin
+      level: 80
+      hidden: false
   description: 经过艰难的成长 强韧的双翼让水墨飞马游得像箭一样快
   obtain_method: 银脉山脊
   ability:
-  - 光滑
+    - 光滑
   emblem: *id017
 - id: pet_jiujiu
   num: 43
@@ -2081,24 +2081,24 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_chongzhuang
-    level: 1
-    hidden: false
-  - skill_id: skill_hongxin
-    level: 5
-    hidden: false
-  - skill_id: skill_rouruan
-    level: 9
-    hidden: false
-  - skill_id: skill_xinzhiyinji
-    level: 13
-    hidden: false
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_hongxin
+      level: 5
+      hidden: false
+    - skill_id: skill_rouruan
+      level: 9
+      hidden: false
+    - skill_id: skill_xinzhiyinji
+      level: 13
+      hidden: false
   description: 啾啾是非常迷糊的小精灵 经常碰壁
   obtain_method: 朽木桥
   ability:
-  - 轻盈
+    - 轻盈
   emblem: &id018
-  - 心锁
+    - 心锁
 - id: pet_weinijiujiu
   num: 44
   name: 维尼啾啾
@@ -2122,22 +2122,22 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_xinlianxin
-    level: 18
-    hidden: false
-  - skill_id: skill_jianqiang
-    level: 23
-    hidden: false
-  - skill_id: skill_quanliyiji
-    level: 28
-    hidden: false
-  - skill_id: skill_jianren
-    level: 33
-    hidden: false
+    - skill_id: skill_xinlianxin
+      level: 18
+      hidden: false
+    - skill_id: skill_jianqiang
+      level: 23
+      hidden: false
+    - skill_id: skill_quanliyiji
+      level: 28
+      hidden: false
+    - skill_id: skill_jianren
+      level: 33
+      hidden: false
   description: 维尼啾啾很迷糊 经常碰壁它被撞到的大黑眼圈 总也不消
   obtain_method: 朽木桥
   ability:
-  - 轻盈
+    - 轻盈
   emblem: *id018
 - id: pet_kadunjiujiu
   num: 45
@@ -2162,37 +2162,37 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_hongxinyu
-    level: 38
-    hidden: false
-  - skill_id: skill_rouren
-    level: 43
-    hidden: false
-  - skill_id: skill_zhifanghudun
-    level: 48
-    hidden: false
-  - skill_id: skill_quanlichongfeng
-    level: 53
-    hidden: false
-  - skill_id: skill_mantianhongxin
-    level: 60
-    hidden: false
-  - skill_id: skill_xinxinxiangyin
-    level: 2001
-    hidden: true
-  - skill_id: skill_dahongxin
-    level: 2044
-    hidden: true
-  - skill_id: skill_xuehongyinji
-    level: 2045
-    hidden: true
-  - skill_id: skill_xinyuan
-    level: 2019
-    hidden: true
+    - skill_id: skill_hongxinyu
+      level: 38
+      hidden: false
+    - skill_id: skill_rouren
+      level: 43
+      hidden: false
+    - skill_id: skill_zhifanghudun
+      level: 48
+      hidden: false
+    - skill_id: skill_quanlichongfeng
+      level: 53
+      hidden: false
+    - skill_id: skill_mantianhongxin
+      level: 60
+      hidden: false
+    - skill_id: skill_xinxinxiangyin
+      level: 2001
+      hidden: true
+    - skill_id: skill_dahongxin
+      level: 2044
+      hidden: true
+    - skill_id: skill_xuehongyinji
+      level: 2045
+      hidden: true
+    - skill_id: skill_xinyuan
+      level: 2019
+      hidden: true
   description: 卡顿强壮的双臂能把障碍扫开 却常被反弹的东西撞成黑眼圈
   obtain_method: 朽木桥
   ability:
-  - 轻盈
+    - 轻盈
   emblem: *id018
 - id: pet_tangni
   num: 46
@@ -2217,24 +2217,24 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_paida
-    level: 1
-    hidden: false
-  - skill_id: skill_zhongji
-    level: 4
-    hidden: false
-  - skill_id: skill_yili
-    level: 8
-    hidden: false
-  - skill_id: skill_liuxingquan
-    level: 12
-    hidden: false
+    - skill_id: skill_paida
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 4
+      hidden: false
+    - skill_id: skill_yili
+      level: 8
+      hidden: false
+    - skill_id: skill_liuxingquan
+      level: 12
+      hidden: false
   description: 汤尼来自一个彩虹山谷 拥有像石头一般坚硬的双拳
   obtain_method: 英格瓦要塞
   ability:
-  - 偏斜
+    - 偏斜
   emblem: &id019
-  - 辉之
+    - 辉之
 - id: pet_taini
   num: 47
   name: 泰尼
@@ -2258,22 +2258,22 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_bandao
-    level: 17
-    hidden: false
-  - skill_id: skill_jiasu
-    level: 22
-    hidden: false
-  - skill_id: skill_houkongfan
-    level: 27
-    hidden: false
-  - skill_id: skill_huixingquan
-    level: 32
-    hidden: false
+    - skill_id: skill_bandao
+      level: 17
+      hidden: false
+    - skill_id: skill_jiasu
+      level: 22
+      hidden: false
+    - skill_id: skill_houkongfan
+      level: 27
+      hidden: false
+    - skill_id: skill_huixingquan
+      level: 32
+      hidden: false
   description: 被守护师收服后 泰尼跟随他来到了赛尔号的竞技场
   obtain_method: 英格瓦要塞
   ability:
-  - 偏斜
+    - 偏斜
   emblem: *id019
 - id: pet_luni
   num: 48
@@ -2298,37 +2298,37 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_baiguangpao
-    level: 37
-    hidden: false
-  - skill_id: skill_xiaoruo
-    level: 42
-    hidden: false
-  - skill_id: skill_ziguangpao
-    level: 47
-    hidden: false
-  - skill_id: skill_suixingquan
-    level: 52
-    hidden: false
-  - skill_id: skill_xingchenfensuiquan
-    level: 60
-    hidden: false
-  - skill_id: skill_luoxuanguangpao
-    level: 65
-    hidden: false
-  - skill_id: skill_qiangxingbandao
-    level: 70
-    hidden: false
-  - skill_id: skill_zhuixingquan
-    level: 75
-    hidden: false
-  - skill_id: skill_xingzhihui
-    level: 80
-    hidden: false
+    - skill_id: skill_baiguangpao
+      level: 37
+      hidden: false
+    - skill_id: skill_xiaoruo
+      level: 42
+      hidden: false
+    - skill_id: skill_ziguangpao
+      level: 47
+      hidden: false
+    - skill_id: skill_suixingquan
+      level: 52
+      hidden: false
+    - skill_id: skill_xingchenfensuiquan
+      level: 60
+      hidden: false
+    - skill_id: skill_luoxuanguangpao
+      level: 65
+      hidden: false
+    - skill_id: skill_qiangxingbandao
+      level: 70
+      hidden: false
+    - skill_id: skill_zhuixingquan
+      level: 75
+      hidden: false
+    - skill_id: skill_xingzhihui
+      level: 80
+      hidden: false
   description: 不停的锻炼 让鲁尼成为了竞技场上最震撼的拳手
   obtain_method: 英格瓦要塞
   ability:
-  - 偏斜
+    - 偏斜
   emblem: *id019
 - id: pet_duomo
   num: 49
@@ -2353,30 +2353,30 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_chongfeng
-    level: 1
-    hidden: false
-  - skill_id: skill_shengbo
-    level: 5
-    hidden: false
-  - skill_id: skill_shenhuxi
-    level: 9
-    hidden: false
-  - skill_id: skill_yinbohuan
-    level: 13
-    hidden: false
-  - skill_id: skill_yinbopao
-    level: 18
-    hidden: false
-  - skill_id: skill_siyao
-    level: 23
-    hidden: false
+    - skill_id: skill_chongfeng
+      level: 1
+      hidden: false
+    - skill_id: skill_shengbo
+      level: 5
+      hidden: false
+    - skill_id: skill_shenhuxi
+      level: 9
+      hidden: false
+    - skill_id: skill_yinbohuan
+      level: 13
+      hidden: false
+    - skill_id: skill_yinbopao
+      level: 18
+      hidden: false
+    - skill_id: skill_siyao
+      level: 23
+      hidden: false
   description: 多摩是很古怪的精灵 平日昏昏沉沉 爱打呵欠做白日梦
   obtain_method: 焰之森
   ability:
-  - 音网
+    - 音网
   emblem: &id020
-  - 音波
+    - 音波
 - id: pet_duomosang
   num: 50
   name: 多摩桑
@@ -2400,41 +2400,41 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
-  - skill_id: skill_jinyin
-    level: 28
-    hidden: false
-  - skill_id: skill_zaoyin
-    level: 33
-    hidden: false
-  - skill_id: skill_yinbozhadan
-    level: 38
-    hidden: false
-  - skill_id: skill_dafengche
-    level: 43
-    hidden: false
-  - skill_id: skill_yinbopingzhang
-    level: 48
-    hidden: false
-  - skill_id: skill_xuanzhuansiyao
-    level: 53
-    hidden: false
-  - skill_id: skill_chaojiyinbopao
-    level: 60
-    hidden: false
-  - skill_id: skill_paoxiaodan
-    level: 2001
-    hidden: true
-  - skill_id: skill_yinbao
-    level: 2049
-    hidden: true
-  - skill_id: skill_yinbofeidan
-    level: 2050
-    hidden: true
-  - skill_id: skill_yinzhiwang
-    level: 2051
-    hidden: true
+    - skill_id: skill_jinyin
+      level: 28
+      hidden: false
+    - skill_id: skill_zaoyin
+      level: 33
+      hidden: false
+    - skill_id: skill_yinbozhadan
+      level: 38
+      hidden: false
+    - skill_id: skill_dafengche
+      level: 43
+      hidden: false
+    - skill_id: skill_yinbopingzhang
+      level: 48
+      hidden: false
+    - skill_id: skill_xuanzhuansiyao
+      level: 53
+      hidden: false
+    - skill_id: skill_chaojiyinbopao
+      level: 60
+      hidden: false
+    - skill_id: skill_paoxiaodan
+      level: 2001
+      hidden: true
+    - skill_id: skill_yinbao
+      level: 2049
+      hidden: true
+    - skill_id: skill_yinbofeidan
+      level: 2050
+      hidden: true
+    - skill_id: skill_yinzhiwang
+      level: 2051
+      hidden: true
   description: 声波攻击是多摩桑最强的必杀 传闻X字是能量未释放的刻印
   obtain_method: 焰之森
   ability:
-  - 音网
+    - 音网
   emblem: *id020
