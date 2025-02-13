@@ -16,7 +16,7 @@ export const MarkSchema = z.object({
     destoyable: z.boolean().default(true),
   }),
   tags: z.array(z.string()),
-  effect: z.array(z.string()),
+  effect: z.array(z.string()).optional(),
 })
 
 export type Mark = z.infer<typeof MarkSchema>

@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { ElementSchema } from './element'
 
 const SkillSchema = z.object({
-  skill_id: z.number(),
+  skill_id: z.string(),
   level: z.number(),
   hidden: z.boolean(),
 })
