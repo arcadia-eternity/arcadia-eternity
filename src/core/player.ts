@@ -20,7 +20,7 @@ export class Player {
   public activePet: Pet
   constructor(
     public readonly name: string,
-
+    public readonly nanoid: string,
     public readonly team: Pet[],
   ) {
     team.forEach(pet => pet.setOwner(this))

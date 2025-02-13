@@ -18,6 +18,7 @@
     "electron": "^34.1.1",
     "electron-builder": "^25.1.8",
     "js-yaml": "^4.1.0",
+    "nanoid": "^5.0.9",
     "prando": "^6.0.1",
     "pure-rand": "^6.1.0",
     "ts-to-zod": "^3.15.0",

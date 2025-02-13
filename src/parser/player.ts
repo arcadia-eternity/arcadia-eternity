@@ -8,6 +8,6 @@ export class PlayerParser {
 
     const pets = validated.team.map(pet => PetParser.parse(pet))
 
-    return new Player(validated.name, pets)
+    return new Player(validated.name, validated.uid, pets)
   }
 }
