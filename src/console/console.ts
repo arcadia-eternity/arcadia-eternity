@@ -1,7 +1,6 @@
 import { Battle, BattlePhase } from '@/core/battle'
 import { Player, type PlayerSelection } from '@core/player'
 import readline from 'readline'
-import { BattleUI } from './ui'
 import { type BattleMessage, BattleMessageType } from '@core/message'
 import { Pet } from '@core/pet'
 import { ELEMENT_MAP } from '@core/element'
@@ -9,7 +8,7 @@ import { Mark } from '@core/mark'
 import { Category } from '@core/skill'
 import { UseSkillSelection, SwitchPetSelection, DoNothingSelection } from '@/core/selection'
 
-export class ConsoleUI extends BattleUI {
+export class ConsoleUI {
   protected battle: Battle
   private messages: BattleMessage[] = []
   constructor(
@@ -17,7 +16,6 @@ export class ConsoleUI extends BattleUI {
     private playerA: Player,
     private playerB: Player,
   ) {
-    super(battle)
     this.battle = battle
     battle.onMessage(this.handleMessage.bind(this)) //this的上下文应该为本身
   }
