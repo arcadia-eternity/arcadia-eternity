@@ -3,5 +3,10 @@
   "editor.formatOnSaveMode": "file",
   "[csv]": {
     "editor.inlayHints.maximumLength": 0
+  },
+  "yaml.schemas": {
+    "schema/mark.schema.json": ["./data/mark.yaml", "./data/mark_*.yaml"],
+    "schema/skill.schema.json": ["./data/skill.yaml", "./data/skill_*.yaml"],
+    "schema/species.schema.json": ["./data/species.yaml", "./data/species_*.yaml"]
   }
 }
