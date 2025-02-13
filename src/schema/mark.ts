@@ -4,7 +4,7 @@ import { StackStrategy } from '@/core/mark'
 export const StackStrategySchema = z.nativeEnum(StackStrategy)
 
 export const MarkSchema = z.object({
-  id: z.number().int().positive(),
+  id: z.string().min(1),
   name: z.string().min(1),
   description: z.string(),
   config: z.object({

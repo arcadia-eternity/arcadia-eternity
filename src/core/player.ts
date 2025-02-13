@@ -233,7 +233,7 @@ export class Player {
         const randomFactor = this.battle!.random() * 0.15 + 0.85
 
         // STAB加成
-        const stabMultiplier = attacker.species.type === context.skill.element ? 1.5 : 1
+        const stabMultiplier = attacker.species.element === context.skill.element ? 1.5 : 1
 
         // 暴击加成
         const critMultiplier = context.crit ? 1.5 : 1

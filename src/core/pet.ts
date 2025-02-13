@@ -24,11 +24,11 @@ export interface Species extends Prototype {
   id: string //约定:id为原中文名的拼音拼写
   num: number //用于原游戏内的序号
   name: string
-  type: Element
+  element: Element
   baseStats: { [key in StatType]: number }
   genderRatio?: [number, number]
-  abilities?: Mark //TODO: 特性
-  emblem?: Mark[] //TODO: 纹章
+  abilities?: Mark[] //TODO: 特性
+  emblems?: Mark[] //TODO: 纹章
 }
 
 // 精灵类
@@ -69,7 +69,7 @@ export class Pet implements OwnedEntity {
   ) {
     this.maxHp = maxHp ? maxHp : this.calculateMaxHp()
     this.currentHp = this.maxHp
-    this.type = species.type
+    this.type = species.element
     this.owner = null
   }
 

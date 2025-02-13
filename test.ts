@@ -101,7 +101,7 @@ const venusaurSpecies: Species = {
   id: 'miaowahua',
   num: 1,
   name: '妙蛙草',
-  type: Element.Grass,
+  element: Element.Grass,
   baseStats: {
     hp: 160,
     atk: 82,
@@ -141,7 +141,7 @@ const gengarSpecies: Species = {
   id: 'genggui',
   num: 514,
   name: '耿鬼',
-  type: Element.Shadow,
+  element: Element.Shadow,
   baseStats: {
     hp: 60,
     atk: 65,
@@ -184,7 +184,7 @@ const dragoniteSpecies: Species = {
   id: 'kuailong',
   num: 114,
   name: '快龙',
-  type: Element.Dragon,
+  element: Element.Dragon,
   baseStats: {
     hp: 91,
     atk: 134,
@@ -224,7 +224,7 @@ const pikachuSpecies: Species = {
   id: 'pikaqiu',
   num: 2,
   name: '皮卡丘',
-  type: Element.Electric,
+  element: Element.Electric,
   baseStats: {
     hp: 35,
     atk: 55,

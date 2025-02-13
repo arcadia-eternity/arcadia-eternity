@@ -8,7 +8,8 @@ const SkillSchema = z.object({
 })
 
 export const SpeciesSchema = z.object({
-  id: z.number(),
+  id: z.string().min(1),
+  num: z.number(),
   name: z.string(),
   element: ElementSchema,
   star: z.number(),
@@ -34,7 +35,7 @@ export const SpeciesSchema = z.object({
   description: z.string(),
   obtain_method: z.string(),
   race_values: z.null(),
-  ability: z.string(),
+  abilities: z.array(z.string()),
   emblems: z.array(z.string()),
 })
 

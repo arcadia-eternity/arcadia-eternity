@@ -1,11 +1,14 @@
 import { z } from 'zod'
 import { ElementSchema } from './element'
 import { Category } from '@/core/skill'
+import { AttackTargetOpinion } from '@/core/const'
 
 export const CategorySchema = z.nativeEnum(Category)
 
+export const AttackTargetOpinionSchema = z.nativeEnum(AttackTargetOpinion)
+
 export const SkillSchema = z.object({
-  id: z.number().int().positive(),
+  id: z.string().min(1),
   name: z.string().min(1),
   element: ElementSchema,
   category: CategorySchema,
@@ -13,8 +16,18 @@ export const SkillSchema = z.object({
   rage: z.number().int().min(0),
   accuracy: z.number().min(0).max(100),
   description: z.string(),
-  effect: z.array(z.string()).optional(),
   priority: z.number().int().optional(),
+  target: AttackTargetOpinionSchema,
+  multihit: z
+    .union([
+      z.number(),
+      z.tuple([z.number(), z.number()]).refine(arr => arr[0] < arr[1], {
+        message: '第一个元素必须小于第二个元素',
+      }),
+    ])
+    .optional(),
+  sureHit: z.boolean().optional(),
+  effect: z.array(z.string()).optional(),
 })
 
 export type Skill = z.infer<typeof SkillSchema>
