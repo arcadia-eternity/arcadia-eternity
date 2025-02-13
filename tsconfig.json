@@ -6,6 +6,7 @@
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "bundler",
     "baseUrl": ".",
+    "outDir": "./dist/",
     "paths": {
       "@/*": ["./src/*"],
       "@core/*": ["./src/core/*"]
