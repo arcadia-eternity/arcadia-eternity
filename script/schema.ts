@@ -1,4 +1,3 @@
-// script/generate-json-schema.ts
 import fs from 'fs/promises'
 import path from 'path'
 import yaml from 'yaml'
