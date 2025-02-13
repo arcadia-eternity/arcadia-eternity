@@ -4,13 +4,13 @@
 
 ### 效果以外的对象
 
-类型[_子类型]_名称[_附加信息]
+类型[_子类型/基础形态属性]_名称[_附加信息/派生形态]
 
 其中名称为原对象的中文名的拼音缩写,仅使用 小写字母、数字、下划线。
 
 ``` example:plaintext
-pet_dilante #精灵-迪兰特
-pet_ailudake_form_desert #精灵-埃鲁达克-形态-沙漠
+pet_water_dilante #精灵-迪兰特
+pet_ground_ailudake_form_desert #精灵-埃鲁达克-形态-沙漠
 skill_fenlitupo #技能-奋力突破
 mark_yinyueyinji #印记-银月印记
 mark_status_burn #印记—不良状态-烧伤

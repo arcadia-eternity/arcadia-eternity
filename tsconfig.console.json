@@ -11,5 +11,5 @@
     "esModuleInterop": true,
     "isolatedModules": true
   },
-  "include": ["test.ts", "src/console/**/*"]
+  "include": ["test.ts", "src/console/**/*", "script/"]
 }

@@ -51,28 +51,45 @@ export class DataRepository {
   }
 
   registerSpecies(id: string, species: Species) {
+    if (this.species.has(id)) {
+      throw new Error(`Species with id "${id}" already exists`)
+    }
     this.species.set(id, species)
   }
 
   registerSkill(id: string, skill: Skill) {
+    if (this.skills.has(id)) {
+      throw new Error(`Skill with id "${id}" already exists`)
+    }
     this.skills.set(id, skill)
   }
 
   registerMark(id: string, mark: Mark) {
+    if (this.marks.has(id)) {
+      throw new Error(`Mark with id "${id}" already exists`)
+    }
     this.marks.set(id, mark)
   }
 
   registerEffect(id: string, effect: Effect<EffectTrigger>) {
+    if (this.effects.has(id)) {
+      throw new Error(`Effect with id "${id}" already exists`)
+    }
     this.effects.set(id, effect)
   }
 }
 
-// 通用装饰器工厂函数
 function createRegisterDecorator<T extends Prototype>(registerFn: (instance: T) => void) {
   return () => {
     return (constructor: new () => T) => {
-      const instance = new constructor()
-      registerFn(instance)
+      try {
+        const instance = new constructor()
+        registerFn(instance)
+      } catch (error) {
+        // 包装错误信息，增加类名信息
+        const className = constructor.name
+        throw new Error(`Failed to register ${className}: ${(error as Error).message}`)
+      }
     }
   }
 }

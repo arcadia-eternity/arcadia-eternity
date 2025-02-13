@@ -1,0 +1,146 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/species",
+  "definitions": {
+    "species": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "num": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "element": {
+            "type": "string",
+            "enum": [
+              "Normal",
+              "Grass",
+              "Water",
+              "Fire",
+              "Wind",
+              "Bug",
+              "Flying",
+              "Electric",
+              "Ground",
+              "Ice",
+              "Psychic",
+              "Fighting",
+              "Trait",
+              "Light",
+              "Mystery",
+              "Shadow",
+              "Dragon",
+              "Desert",
+              "Ancient",
+              "Divine",
+              "Miracle",
+              "Holy",
+              "ElfKing"
+            ]
+          },
+          "star": {
+            "type": "number"
+          },
+          "baseStats": {
+            "type": "object",
+            "properties": {
+              "hp": {
+                "type": "number"
+              },
+              "atk": {
+                "type": "number"
+              },
+              "spa": {
+                "type": "number"
+              },
+              "def": {
+                "type": "number"
+              },
+              "spd": {
+                "type": "number"
+              },
+              "spe": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "hp",
+              "atk",
+              "spa",
+              "def",
+              "spd",
+              "spe"
+            ],
+            "additionalProperties": false
+          },
+          "previous_form": {
+            "type": "number"
+          },
+          "next_form": {
+            "type": "number"
+          },
+          "learnable_skills": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "skill_id": {
+                  "type": "string"
+                },
+                "level": {
+                  "type": "number"
+                },
+                "hidden": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "skill_id",
+                "level",
+                "hidden"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "description": {
+            "type": "string"
+          },
+          "ability": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "emblem": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "num",
+          "name",
+          "element",
+          "star",
+          "baseStats",
+          "previous_form",
+          "next_form",
+          "learnable_skills",
+          "description",
+          "ability",
+          "emblem"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

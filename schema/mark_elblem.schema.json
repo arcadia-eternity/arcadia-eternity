@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/mark_elblem",
+  "definitions": {
+    "mark_elblem": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "config": {
+            "type": "object",
+            "properties": {
+              "duration": {
+                "type": "number"
+              },
+              "persistent": {
+                "type": "boolean",
+                "default": true
+              },
+              "maxStacks": {
+                "type": "integer"
+              },
+              "stackable": {
+                "type": "boolean",
+                "default": false
+              },
+              "stackStrategy": {
+                "type": "number",
+                "enum": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4
+                ],
+                "default": 2
+              },
+              "destoyable": {
+                "type": "boolean",
+                "default": true
+              }
+            },
+            "additionalProperties": false
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "effect": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

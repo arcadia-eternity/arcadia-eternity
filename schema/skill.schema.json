@@ -1,0 +1,125 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/skill",
+  "definitions": {
+    "skill": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "element": {
+            "type": "string",
+            "enum": [
+              "Normal",
+              "Grass",
+              "Water",
+              "Fire",
+              "Wind",
+              "Bug",
+              "Flying",
+              "Electric",
+              "Ground",
+              "Ice",
+              "Psychic",
+              "Fighting",
+              "Trait",
+              "Light",
+              "Mystery",
+              "Shadow",
+              "Dragon",
+              "Desert",
+              "Ancient",
+              "Divine",
+              "Miracle",
+              "Holy",
+              "ElfKing"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "Physical",
+              "Special",
+              "Status",
+              "Climax"
+            ]
+          },
+          "power": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rage": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "accuracy": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "description": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "target": {
+            "type": "string",
+            "enum": [
+              "self",
+              "opponent"
+            ]
+          },
+          "multihit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              }
+            ]
+          },
+          "sureHit": {
+            "type": "boolean"
+          },
+          "effect": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "element",
+          "category",
+          "power",
+          "rage",
+          "accuracy",
+          "description"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

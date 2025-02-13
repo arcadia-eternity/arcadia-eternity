@@ -17,7 +17,7 @@ export class SpeciesParser {
       }
     })
 
-    const emblems = validated.emblems.map(emblemsID => {
+    const emblems = validated.emblem.map(emblemsID => {
       try {
         return DataRepository.getInstance().getMark(emblemsID)
       } catch (e) {
@@ -27,6 +27,6 @@ export class SpeciesParser {
       }
     })
 
-    return { ...validated, abilities: abilities, emblems: emblems }
+    return { ...validated, ability: abilities, emblem: emblems }
   }
 }

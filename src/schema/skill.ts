@@ -17,7 +17,7 @@ export const SkillSchema = z.object({
   accuracy: z.number().min(0).max(100),
   description: z.string(),
   priority: z.number().int().optional(),
-  target: AttackTargetOpinionSchema,
+  target: AttackTargetOpinionSchema.optional(),
   multihit: z
     .union([
       z.number(),

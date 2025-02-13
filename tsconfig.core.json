@@ -9,5 +9,5 @@
     "declarationMap": true,
     "strictPropertyInitialization": false
   },
-  "include": ["src/core/**/*", "src/effectBuilder/**/*", "src/effectDSL/**/*", "src/daraRespository/**/*", "test2.ts"]
+  "include": ["src/core/**/*", "src/effectBuilder/**/*", "src/effectDSL/**/*", "src/daraRespository/**/*", "src/schema"]
 }
