@@ -86,7 +86,7 @@ export enum BattleMessageType {
   // 需要等待回应的信息
   TurnAction = 'TURN_ACTION',
   ForcedSwitch = 'FORCED_SWITCH',
-  KillerSwitch = 'KILLER_SWITCH',
+  FaintSwitch = 'FAINT_SWITCH',
 
   InvalidAction = 'INVALID_ACTION',
   Info = 'INFO',
@@ -119,7 +119,7 @@ export type BattleMessage =
   | MarkExpireMessage
   | TurnActionMessage
   | ForcedSwitchMessage
-  | KillerSwitchMessage
+  | FaintSwitchMessage
   | InvalidActionMessage
   | InfoMessage
   | ErrorMessage
@@ -267,7 +267,7 @@ export interface BattleMessageData {
   [BattleMessageType.ForcedSwitch]: {
     player: string[]
   }
-  [BattleMessageType.KillerSwitch]: {
+  [BattleMessageType.FaintSwitch]: {
     player: string
   }
   [BattleMessageType.InvalidAction]: {
@@ -309,7 +309,7 @@ type MarkTriggerMessage = BaseBattleMessage<BattleMessageType.MarkTrigger>
 type MarkExpireMessage = BaseBattleMessage<BattleMessageType.MarkExpire>
 type TurnActionMessage = BaseBattleMessage<BattleMessageType.TurnAction>
 type ForcedSwitchMessage = BaseBattleMessage<BattleMessageType.ForcedSwitch>
-type KillerSwitchMessage = BaseBattleMessage<BattleMessageType.KillerSwitch>
+type FaintSwitchMessage = BaseBattleMessage<BattleMessageType.FaintSwitch>
 type InvalidActionMessage = BaseBattleMessage<BattleMessageType.InvalidAction>
 type InfoMessage = BaseBattleMessage<BattleMessageType.Info>
 type ErrorMessage = BaseBattleMessage<BattleMessageType.Error>

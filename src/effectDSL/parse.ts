@@ -256,6 +256,8 @@ export function createAction(dsl: ActionDSL) {
       return parseAmplifyPowerAction(dsl)
     case 'addPower':
       return parseAddPowerAction(dsl)
+    case 'transferMark':
+      return parseTransferMark(dsl)
   }
 }
 
@@ -335,4 +337,8 @@ export function parseAddPowerAction(dsl: Extract<ActionDSL, { type: 'addPower' }
   return parseSelector<UseSkillContext>(dsl.target).apply(
     Operators.addPower(parseValue(dsl.value) as ValueSource<number>),
   )
+}
+
+export function parseTransferMark(dsl: Extract<ActionDSL, { type: 'transferMark' }>) {
+  return parseSelector<Pet>(dsl.target).apply(Operators.transferMark(parseValue(dsl.mark) as ValueSource<Mark>))
 }

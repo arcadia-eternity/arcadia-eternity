@@ -16,7 +16,14 @@ import {
 import { Nature, NatureMap } from './nature'
 import { Player } from './player'
 import { StatLevelMark, Mark } from './mark'
-import { AddMarkContext, DamageContext, EffectContext, HealContext, RemoveMarkContext } from './context'
+import {
+  AddMarkContext,
+  DamageContext,
+  EffectContext,
+  HealContext,
+  RemoveMarkContext,
+  SwitchPetContext,
+} from './context'
 import { BattleMessageType, PetMessage } from './message'
 import { EffectTrigger } from './effect'
 
@@ -75,77 +82,78 @@ export class Pet implements OwnedEntity {
     this.owner = null
   }
 
-  public damage(ctx: DamageContext): boolean {
+  public damage(context: DamageContext): boolean {
     //通过技能威力造成伤害的事件
-    if (ctx.source instanceof Pet) {
-      ctx.battle.applyEffects(ctx, EffectTrigger.OnDamage)
+    if (context.source instanceof Pet) {
+      context.battle.applyEffects(context, EffectTrigger.OnDamage)
     }
-    if (!ctx.available) {
-      ctx.battle.emitMessage(BattleMessageType.Info, {
+    if (!context.available) {
+      context.battle.emitMessage(BattleMessageType.Info, {
         message: `${this.name}受到的伤害被防止了！!`,
       })
       return this.isAlive
     }
-    this.currentHp = Math.max(0, this.currentHp - ctx.value)
+    this.currentHp = Math.max(0, this.currentHp - context.value)
     if (this.currentHp === 0) {
       this.isAlive = false
     }
 
-    ctx.battle!.emitMessage(BattleMessageType.Damage, {
+    context.battle!.emitMessage(BattleMessageType.Damage, {
       currentHp: this.currentHp,
       maxHp: this.maxHp!,
-      source: ctx.source.id,
+      source: context.source.id,
       target: this.id,
-      damage: ctx.value,
-      isCrit: ctx.crit,
-      effectiveness: ctx.effectiveness,
-      damageType: ctx.damageType,
+      damage: context.value,
+      isCrit: context.crit,
+      effectiveness: context.effectiveness,
+      damageType: context.damageType,
     })
     return this.isAlive
   }
 
-  public heal(ctx: HealContext): boolean {
-    ctx.battle.applyEffects(ctx, EffectTrigger.OnHeal)
-    if (!ctx.available) {
-      ctx.battle.emitMessage(BattleMessageType.Info, {
+  public heal(context: HealContext): boolean {
+    context.battle.applyEffects(context, EffectTrigger.OnHeal)
+    if (!context.available) {
+      context.battle.emitMessage(BattleMessageType.Info, {
         message: `${this.name}受到的治疗被阻止了！!`,
       })
       return this.isAlive
     }
-    this.currentHp = Math.min(this.maxHp!, this.currentHp + ctx.value)
+    this.currentHp = Math.min(this.maxHp!, this.currentHp + context.value)
     return this.isAlive
   }
 
-  public addMark(ctx: AddMarkContext) {
-    ctx.battle.applyEffects(ctx, EffectTrigger.OnAddMark)
-    if (!ctx.available) return
+  public addMark(context: AddMarkContext) {
+    if (!context.available) return
 
-    const newMark = ctx.mark.clone(ctx)
+    const newMark = context.mark.clone(context)
+    if (context.stack) newMark._stack = context.stack
     const existingOppositeMark = this.marks.find(
       mark => mark instanceof StatLevelMark && newMark instanceof StatLevelMark && mark.isOppositeMark(newMark),
     )
 
     // 优先抵消互斥印记
     if (existingOppositeMark) {
-      existingOppositeMark.tryStack(ctx) // 触发抵消逻辑
+      existingOppositeMark.tryStack(context) // 触发抵消逻辑
       return
     }
 
-    const existingMark = this.marks.find(mark => mark.id === ctx.mark.id)
+    const existingMark = this.marks.find(mark => mark.id === context.mark.id)
     if (existingMark) {
-      existingMark.tryStack(ctx)
+      existingMark.tryStack(context)
     } else {
-      const newMark = ctx.mark.clone(ctx)
-      this.marks.push(newMark)
+      context.battle.applyEffects(context, EffectTrigger.OnAddMark)
+      context.battle.applyEffects(context, EffectTrigger.OnMarkCreate, newMark)
       newMark.attachTo(this)
+      this.marks.push(newMark)
       if (newMark instanceof StatLevelMark) {
         this.statStage[newMark.statType] = newMark.level
       }
     }
   }
 
-  public removeMark(ctx: RemoveMarkContext) {
-    this.marks = this.marks.filter(mark => mark.id !== ctx.mark.id)
+  public removeMark(context: RemoveMarkContext) {
+    this.marks = this.marks.filter(mark => mark.id !== context.mark.id)
   }
 
   private calculateStat(type: StatTypeOnBattle): number {
@@ -247,15 +255,36 @@ export class Pet implements OwnedEntity {
   }
 
   // 清理能力等级时同时清除相关印记
-  public clearStatStage(ctx: EffectContext<EffectTrigger>) {
+  public clearStatStage(context: EffectContext<EffectTrigger>) {
     this.statStage = {}
     this.marks = this.marks.filter(mark => {
       if (mark instanceof StatLevelMark) {
-        mark.destory(ctx)
+        mark.destory(context)
         return false
       }
       return true
     })
+  }
+
+  public switchOut(context: SwitchPetContext) {
+    context.battle.applyEffects(context, EffectTrigger.OnOwnerSwitchOut, ...this.marks)
+    this.marks = this.marks.filter(mark => {
+      const shouldKeep = mark.config.keepOnSwitchOut ?? false
+
+      // 需要转移的印记
+      if (mark.config.transferOnSwitch && context.target) {
+        context.target.addMark(new AddMarkContext(context, context.target, mark))
+      }
+      if (!shouldKeep) {
+        mark.destory(context)
+      }
+
+      return shouldKeep
+    })
+  }
+
+  switchIn(context: SwitchPetContext) {
+    context.battle.applyEffects(context, EffectTrigger.OnOwnerSwitchIn, ...this.marks)
   }
 
   public toMessage(): PetMessage {

@@ -271,7 +271,7 @@ const player2 = new Player('小茂', '4', [stormDragon, shadowGengar])
 const player1 = new Player('小智', '5', [venusaur, thunderPikachu])
 
 const battle = new Battle(player1, player2, {
-  allowKillerSwitch: true,
+  allowFaintSwitch: true,
 })
 const consoleui = new ConsoleUI(battle, player1, player2)
 consoleui.run()

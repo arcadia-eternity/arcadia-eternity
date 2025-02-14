@@ -34,7 +34,7 @@ export class Battle extends Context {
   public currentTurn = 0
   private messageCallbacks: Array<(message: BattleMessage) => void> = []
   public pendingDefeatedPlayers: Player[] = [] // 新增：需要在下回合换宠的玩家
-  public allowKillerSwitch: boolean
+  public allowFaintSwitch: boolean
   public lastKiller?: Player
   public marks: Mark[] = [] //用于存放天气一类的效果
   private rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
@@ -43,10 +43,10 @@ export class Battle extends Context {
   constructor(
     public readonly playerA: Player,
     public readonly playerB: Player,
-    options?: { allowKillerSwitch?: boolean; rngSeed?: number },
+    options?: { allowFaintSwitch?: boolean; rngSeed?: number },
   ) {
     super(null)
-    this.allowKillerSwitch = options?.allowKillerSwitch ?? true
+    this.allowFaintSwitch = options?.allowFaintSwitch ?? true
     if (options?.rngSeed) this.rng = new Prando(options.rngSeed)
     this.playerA.registerBattle(this)
     this.playerB.registerBattle(this)
@@ -84,19 +84,19 @@ export class Battle extends Context {
     this.messageCallbacks.forEach(cb => cb(message))
   }
 
-  public addMark(ctx: AddMarkContext) {
-    const existingMark = this.marks.find(mark => mark.id === ctx.mark.id)
+  public addMark(context: AddMarkContext) {
+    const existingMark = this.marks.find(mark => mark.id === context.mark.id)
     if (existingMark) {
-      existingMark.tryStack(ctx)
+      existingMark.tryStack(context)
     } else {
-      const newMark = ctx.mark.clone(ctx)
+      const newMark = context.mark.clone(context)
       this.marks.push(newMark)
       newMark.attachTo(this)
     }
   }
 
-  public removeMark(ctx: RemoveMarkContext) {
-    this.marks = this.marks.filter(mark => mark.id !== ctx.mark.id)
+  public removeMark(context: RemoveMarkContext) {
+    this.marks = this.marks.filter(mark => mark.id !== context.mark.id)
   }
 
   public getOpponent(player: Player) {
@@ -104,15 +104,15 @@ export class Battle extends Context {
     return this.playerA
   }
 
-  private addTurnRage(ctx: TurnContext) {
+  private addTurnRage(context: TurnContext) {
     ;[this.playerA, this.playerB].forEach(player => {
-      player.addRage(new RageContext(ctx, player, 'turn', 'add', RAGE_PER_TURN))
+      player.addRage(new RageContext(context, player, 'turn', 'add', RAGE_PER_TURN))
     })
   }
 
-  private updateTurnMark(ctx: TurnContext) {
+  private updateTurnMark(context: TurnContext) {
     ;[this.playerA, this.playerB].forEach(player => {
-      player.activePet.marks.forEach(mark => mark.update(ctx))
+      player.activePet.marks.forEach(mark => mark.update(context))
       player.activePet.marks = player.activePet.marks.filter(mark => mark.isActive)
     })
   }
@@ -126,7 +126,7 @@ export class Battle extends Context {
     // 清理玩家精灵标记
     const cleanPetMarks = (pet: Pet) => {
       pet.marks = pet.marks.filter(mark => {
-        return mark.isActive
+        return mark.isActive || mark.owner !== pet
       })
     }
 
@@ -134,19 +134,17 @@ export class Battle extends Context {
     cleanPetMarks(this.playerB.activePet)
   }
 
-  public applyEffects<T extends EffectTrigger>(ctx: AllContext, trigger: T) {
-    const effectContainers: EffectContainer[] = [
-      ...this.marks,
-      ...this.playerA.activePet.marks,
-      ...this.playerB.activePet.marks,
-    ]
+  public applyEffects<T extends EffectTrigger>(context: AllContext, trigger: T, ...target: EffectContainer[]) {
+    let effectContainers = [...target]
+    if (target.length == 0)
+      effectContainers = [...this.marks, ...this.playerA.activePet.marks, ...this.playerB.activePet.marks]
 
-    if (ctx instanceof UseSkillContext) {
-      effectContainers.push(ctx.skill)
+    if (context instanceof UseSkillContext) {
+      effectContainers.push(context.skill)
     }
 
     // 阶段1：收集所有待触发效果
-    effectContainers.forEach(container => container.collectEffects(trigger, ctx))
+    effectContainers.forEach(container => container.collectEffects(trigger, context))
 
     // 阶段2：按全局优先级执行
     EffectScheduler.getInstance().flushEffects()
@@ -337,8 +335,8 @@ export class Battle extends Context {
       this.pendingDefeatedPlayers = []
 
       // 阶段2：击败方换宠
-      if (this.allowKillerSwitch && this.lastKiller) {
-        this.battle!.emitMessage(BattleMessageType.KillerSwitch, {
+      if (this.allowFaintSwitch && this.lastKiller) {
+        this.battle!.emitMessage(BattleMessageType.FaintSwitch, {
           player: this.lastKiller.id,
         })
         yield // 等待玩家选择换宠

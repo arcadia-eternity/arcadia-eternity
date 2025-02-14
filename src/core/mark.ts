@@ -1,5 +1,5 @@
 import { Effect, type EffectContainer, EffectScheduler, EffectTrigger } from './effect'
-import { AddMarkContext, type AllContext, EffectContext, TurnContext } from './context'
+import { AddMarkContext, type AllContext, EffectContext, SwitchPetContext, TurnContext } from './context'
 import { Pet } from './pet'
 import { Battle } from './battle'
 import { STAT_STAGE_MULTIPLIER, StatTypeOnBattle, type OwnedEntity, type Prototype } from './const'
@@ -31,6 +31,9 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
       stackable?: boolean
       stackStrategy?: StackStrategy
       destoyable?: boolean
+      keepOnSwitchOut?: boolean // 换场时是否保留（默认false）
+      transferOnSwitch?: boolean // 换场时是否转移给新精灵（默认false）
+      inheritOnFaint?: boolean // 死亡时是否继承给队友（默认false）
     } = {
       destoyable: true,
     },
@@ -63,7 +66,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     this.owner = null
   }
 
-  update(ctx: TurnContext): boolean {
+  update(context: TurnContext): boolean {
     if (!this.isActive) return true
     if (this.config.persistent) return false
 
@@ -71,7 +74,8 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     const expired = this.duration <= 0
 
     if (expired) {
-      this.destory(ctx)
+      context.battle.applyEffects(context, EffectTrigger.OnMarkDurationEnd, this)
+      this.destory(context)
     }
 
     return expired
@@ -81,17 +85,17 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     this.stack = Math.min(this.config.maxStacks ?? Infinity, this.stack + value)
   }
 
-  tryStack(ctx: AddMarkContext): boolean {
+  tryStack(context: AddMarkContext): boolean {
     if (!this.isStackable) return false
 
     const maxStacks = this.config.maxStacks ?? Infinity
     const strategy = this.config.stackStrategy!
-    const newMark = ctx.mark
+    const newMark = context.mark
 
     let newStacks = this.stack
     let newDuration = this.duration
 
-    ctx.battle.applyEffects(ctx, EffectTrigger.OnStack)
+    context.battle.applyEffects(context, EffectTrigger.OnStack)
 
     switch (strategy) {
       case StackStrategy.stack:
@@ -129,12 +133,12 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     return changed
   }
 
-  consumeStack(ctx: EffectContext<EffectTrigger>, amount: number): number {
+  consumeStack(context: EffectContext<EffectTrigger>, amount: number): number {
     const actual = Math.min(amount, this.stack)
     this.stack -= actual
 
     if (this.stack <= 0) {
-      this.destory(ctx)
+      this.destory(context)
     }
 
     return actual
@@ -158,23 +162,30 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
       })
   }
 
-  clone(ctx: AddMarkContext): Mark {
-    ctx.battle.applyEffects(ctx, EffectTrigger.OnMarkCreate)
+  clone(context: AddMarkContext): Mark {
+    context.battle.applyEffects(context, EffectTrigger.OnMarkCreate)
     const mark = new Mark(this.id, this.name, this.effects, this.config, this.tags)
     mark.stack = this.stack
     mark.duration = this.duration
     return mark
   }
 
-  destory(ctx: EffectContext<EffectTrigger> | TurnContext | AddMarkContext) {
+  destory(context: EffectContext<EffectTrigger> | TurnContext | AddMarkContext | SwitchPetContext) {
     if (!this.isActive || !this.config.destoyable) return
     this.isActive = false
 
     // 触发移除效果
     if (this.owner instanceof Pet) {
-      ctx.battle.applyEffects(ctx, EffectTrigger.OnMarkDestroy)
-      ctx.battle.cleanupMarks()
+      context.battle.applyEffects(context, EffectTrigger.OnMarkDestroy, this)
+      context.battle.applyEffects(context, EffectTrigger.OnRemoveMark)
+      context.battle.cleanupMarks()
     }
+  }
+
+  public transfer(context: EffectContext<EffectTrigger>, target: Pet) {
+    this.attachTo(target)
+    target.marks.push(this)
+    context.battle.cleanupMarks()
   }
 
   toMessage(): MarkMessage {
@@ -214,8 +225,8 @@ export class StatLevelMark extends Mark {
     )
   }
 
-  tryStack(ctx: AddMarkContext): boolean {
-    const otherMark = ctx.mark
+  tryStack(context: AddMarkContext): boolean {
+    const otherMark = context.mark
 
     // 如果对方是互斥的 StatLevelMark
     if (otherMark instanceof StatLevelMark && this.isOppositeMark(otherMark)) {
@@ -224,7 +235,7 @@ export class StatLevelMark extends Mark {
 
       if (remainingLevel === 0) {
         // 完全抵消，销毁当前印记
-        this.destory(ctx)
+        this.destory(context)
         return true
       } else if (Math.sign(remainingLevel) === Math.sign(this.level)) {
         // 同方向叠加剩余等级
@@ -242,17 +253,17 @@ export class StatLevelMark extends Mark {
       return true
     }
 
-    const isSameType = ctx.mark instanceof StatLevelMark && ctx.mark.statType === this.statType
+    const isSameType = context.mark instanceof StatLevelMark && context.mark.statType === this.statType
 
-    if (!isSameType) return super.tryStack(ctx)
+    if (!isSameType) return super.tryStack(context)
 
     // 计算新等级
     const maxLevel = (STAT_STAGE_MULTIPLIER.length - 1) / 2
-    const newLevel = Math.max(-maxLevel, Math.min(maxLevel, this.level + (ctx.mark as StatLevelMark).level))
+    const newLevel = Math.max(-maxLevel, Math.min(maxLevel, this.level + (context.mark as StatLevelMark).level))
 
     // 等级归零时标记为待移除
     if (newLevel === 0) {
-      this.destory(ctx)
+      this.destory(context)
       return true
     }
 
@@ -283,8 +294,8 @@ export class StatLevelMark extends Mark {
     return this.level
   }
 
-  clone(ctx: AddMarkContext): StatLevelMark {
-    ctx.battle.applyEffects(ctx, EffectTrigger.OnMarkCreate)
+  clone(context: AddMarkContext): StatLevelMark {
+    context.battle.applyEffects(context, EffectTrigger.OnMarkCreate)
     const cloned = new StatLevelMark(this.statType, this.level, this.id, this.name, this.effects, this.config)
     return cloned
   }

@@ -71,6 +71,11 @@ export type ActionDSL =
       target: SelectorDSL
       value: Value
     } // 其他操作符按相同模式扩展
+  | {
+      type: 'transferMark'
+      target: SelectorDSL
+      mark: DynamicValue
+    }
 
 export type RawNumberValue = {
   type: 'raw:number'

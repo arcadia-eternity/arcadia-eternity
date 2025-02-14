@@ -110,17 +110,18 @@ export class Player {
     }
 
     // 执行换宠
-    this.battle?.applyEffects(context, EffectTrigger.OnSwitchOut)
     const oldPet = player.activePet
+    context.battle.applyEffects(context, EffectTrigger.OnSwitchOut)
+    oldPet.switchOut(context)
     player.activePet = context.target
+    context.battle.applyEffects(context, EffectTrigger.OnSwitchIn)
+    player.activePet.switchIn(context)
     this.battle!.emitMessage(BattleMessageType.PetSwitch, {
       player: this.id,
       fromPet: oldPet.id,
       toPet: context.target.id,
       currentHp: context.target.currentHp,
     })
-
-    this.battle?.applyEffects(context, EffectTrigger.OnSwitchIn)
 
     // 换宠后怒气为原怒气的80%
     player.settingRage(Math.floor(player.currentRage * 0.8))
@@ -300,20 +301,20 @@ export class Player {
     this.currentRage = Math.max(Math.min(value, 100), 0)
   }
 
-  public addRage(ctx: RageContext) {
+  public addRage(context: RageContext) {
     const before = this.currentRage
 
-    switch (ctx.modifiedType) {
+    switch (context.modifiedType) {
       case 'setting':
-        this.settingRage(ctx.value)
+        this.settingRage(context.value)
         break
       case 'add':
-        this.battle?.applyEffects(ctx, EffectTrigger.OnRageGain)
-        this.settingRage(this.currentRage + ctx.value)
+        context.battle.applyEffects(context, EffectTrigger.OnRageGain)
+        this.settingRage(this.currentRage + context.value)
         break
       case 'reduce':
-        this.battle?.applyEffects(ctx, EffectTrigger.OnRageLoss)
-        this.settingRage(this.currentRage - ctx.value)
+        context.battle.applyEffects(context, EffectTrigger.OnRageLoss)
+        this.settingRage(this.currentRage - context.value)
         break
     }
 
@@ -322,7 +323,7 @@ export class Player {
       pet: this.activePet.id,
       before: before,
       after: this.currentRage,
-      reason: ctx.reason,
+      reason: context.reason,
     })
   }
 

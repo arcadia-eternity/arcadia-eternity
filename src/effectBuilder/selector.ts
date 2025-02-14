@@ -124,9 +124,9 @@ export class ChainableSelector<T extends SelectorOpinion> {
   }
 
   randomPick(count: number): ChainableSelector<T> {
-    return new ChainableSelector(ctx => {
-      const list = this.selector(ctx)
-      return ctx.battle.shuffle(list).slice(0, count) // 使用随机洗牌
+    return new ChainableSelector(context => {
+      const list = this.selector(context)
+      return context.battle.shuffle(list).slice(0, count) // 使用随机洗牌
     })
   }
 
@@ -135,8 +135,8 @@ export class ChainableSelector<T extends SelectorOpinion> {
    * @param percent 命中概率(0-100)
    **/
   randomSample(percent: number): ChainableSelector<T> {
-    return new ChainableSelector(ctx => {
-      return this.selector(ctx).filter(() => ctx.battle.randomInt(1, 100) <= percent)
+    return new ChainableSelector(context => {
+      return this.selector(context).filter(() => context.battle.randomInt(1, 100) <= percent)
     })
   }
 
@@ -144,7 +144,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
    * 对目标列表乱序后返回
    **/
   shuffled(): ChainableSelector<T> {
-    return new ChainableSelector(ctx => ctx.battle.shuffle(this.selector(ctx)))
+    return new ChainableSelector(context => context.battle.shuffle(this.selector(context)))
   }
 
   // 最大值限制
@@ -185,11 +185,11 @@ export class ChainableSelector<T extends SelectorOpinion> {
   }
 
   condition(conditioner: ConditionOperator<T>) {
-    return (ctx: EffectContext<EffectTrigger>) => conditioner(ctx, this.selector(ctx))
+    return (context: EffectContext<EffectTrigger>) => conditioner(context, this.selector(context))
   }
 
   apply(operator: Operator<T>) {
-    return (ctx: EffectContext<EffectTrigger>) => operator(ctx, this.selector(ctx))
+    return (context: EffectContext<EffectTrigger>) => operator(context, this.selector(context))
   }
 
   isNumberType(): this is ChainableSelector<number> {
@@ -412,10 +412,10 @@ function isValidSelectorOpinion(value: unknown): value is SelectorOpinion {
 }
 
 export function GetValueFromSource<T extends SelectorOpinion>(
-  ctx: EffectContext<EffectTrigger>,
+  context: EffectContext<EffectTrigger>,
   source: ValueSource<T>,
 ): T[] {
-  if (source instanceof ChainableSelector) return source.build()(ctx)
-  if (typeof source == 'function') return source(ctx)
+  if (source instanceof ChainableSelector) return source.build()(context)
+  if (typeof source == 'function') return source(context)
   return [source]
 }

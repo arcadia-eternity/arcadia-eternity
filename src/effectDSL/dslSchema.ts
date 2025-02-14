@@ -26,6 +26,9 @@ const compareOperatorSchema = z.enum(COMPARE_OPERATORS)
 const extractorKeys = Object.keys(Extractor)
 const extractorSchema = z.enum(extractorKeys as [keyof typeof Extractor])
 
+// const operatorKeys = Object.keys(Operators)
+// const operatorSchema = z.enum(operatorKeys as [keyof typeof Operators])
+
 export const rawNumberValueSchema: z.ZodSchema<RawNumberValue> = z.object({
   type: z.literal('raw:number'),
   value: z.number(),
@@ -216,6 +219,11 @@ export const actionDSLSchema: z.ZodSchema<ActionDSL> = z.lazy(() =>
       type: z.literal('addPower'),
       target: selectorDSLSchema,
       value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('transferMark'),
+      target: selectorDSLSchema,
+      mark: dynamicValueSchema,
     }),
   ]),
 )

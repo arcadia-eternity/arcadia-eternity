@@ -77,6 +77,8 @@ export enum EffectTrigger {
   OnMarkCreate = 'OnMarkCreate',
   OnMarkDestroy = 'OnMarkDestroy',
 
+  OnMarkDurationEnd = 'OnMarkDurationEnd',
+
   //以下一定是EffectContext
   OnStack = 'OnStack',
   OnHeal = 'OnHeal',
@@ -85,6 +87,8 @@ export enum EffectTrigger {
 
   OnSwitchIn = 'OnSwitchIn',
   OnSwitchOut = 'OnSwitchOut',
+  OnOwnerSwitchIn = 'OnOwnerSwitchIn',
+  OnOwnerSwitchOut = 'OnOwnerSwitchOut',
 
   BeforeEffect = 'BeforeEffect',
   AfterEffect = 'AfterEffect',
@@ -95,23 +99,23 @@ export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity {
   constructor(
     public readonly id: string,
     public readonly trigger: EffectTrigger,
-    public readonly apply: (ctx: EffectContext<T>) => void,
+    public readonly apply: (context: EffectContext<T>) => void,
     public readonly priority: number,
-    public readonly condition?: (ctx: EffectContext<T>) => boolean,
+    public readonly condition?: (context: EffectContext<T>) => boolean,
     public readonly consumesStacks?: number, // 新增可选消耗层数配置
   ) {}
 
-  public innerApply(ctx: EffectContext<T>) {
+  public innerApply(context: EffectContext<T>) {
     // 先执行消耗逻辑
-    if (ctx.source instanceof Mark) {
-      if (!ctx.source.isActive) return
+    if (context.source instanceof Mark) {
+      if (!context.source.isActive) return
       if (this.consumesStacks) {
-        ctx.source.consumeStack(ctx, this.consumesStacks)
+        context.source.consumeStack(context, this.consumesStacks)
       }
     }
 
     // 执行实际效果
-    this.apply.call(this, ctx)
+    this.apply.call(this, context)
   }
 
   setOwner(owner: Mark | Skill): void {
@@ -131,9 +135,9 @@ export interface EffectContainer {
 export interface EffectConfig<T extends EffectTrigger> {
   id: string
   trigger: T
-  apply: (ctx: EffectContext<T>) => void
+  apply: (context: EffectContext<T>) => void
   priority: number
-  condition?: (ctx: EffectContext<T>) => boolean
+  condition?: (context: EffectContext<T>) => boolean
   consumesStacks?: number // 新增可选消耗层数配置
 }
 

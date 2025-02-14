@@ -120,7 +120,7 @@ program
       // 步骤3: 开始战斗
       console.log('[⚔️] 战斗开始！')
       const battle = new Battle(player1, player2, {
-        allowKillerSwitch: true,
+        allowFaintSwitch: true,
       })
       const consoleUI = new ConsoleUI(battle, player1, player2)
       await consoleUI.run()

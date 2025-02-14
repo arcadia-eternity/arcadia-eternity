@@ -134,10 +134,10 @@ export class AddMarkContext extends Context {
   public readonly battle: Battle
   public readonly available: boolean = true
   constructor(
-    public readonly parent: EffectContext<EffectTrigger>,
+    public readonly parent: EffectContext<EffectTrigger> | SwitchPetContext,
     public target: Pet,
     public mark: Mark,
-    public stack: number,
+    public stack?: number,
   ) {
     super(parent)
     this.battle = parent.battle
@@ -180,6 +180,7 @@ type TriggerContextMap = {
   [EffectTrigger.OnRemoveMark]: RemoveMarkContext
   [EffectTrigger.OnMarkCreate]: AddMarkContext
   [EffectTrigger.OnMarkDestroy]: RemoveMarkContext
+  [EffectTrigger.OnMarkDurationEnd]: TurnContext
 
   [EffectTrigger.OnStack]: EffectContext<EffectTrigger>
   [EffectTrigger.OnHeal]: EffectContext<EffectTrigger>
@@ -188,6 +189,8 @@ type TriggerContextMap = {
 
   [EffectTrigger.OnSwitchIn]: SwitchPetContext
   [EffectTrigger.OnSwitchOut]: SwitchPetContext
+  [EffectTrigger.OnOwnerSwitchIn]: SwitchPetContext
+  [EffectTrigger.OnOwnerSwitchOut]: SwitchPetContext
 
   [EffectTrigger.BeforeEffect]: AllContext
   [EffectTrigger.AfterEffect]: AllContext
