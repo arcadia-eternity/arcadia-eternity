@@ -317,7 +317,7 @@ export class ConsoleUI {
       // 处理击破奖励换宠
       if (lastMessage?.type == BattleMessageType.FaintSwitch) {
         console.log(`\n==== ${lastMessage.data.player} 获得击破奖励换宠机会 ====`)
-        const player = [this.playerA, this.playerB].find(player => player.name === lastMessage.data.player)
+        const player = [this.playerA, this.playerB].find(player => player.id === lastMessage.data.player)
         if (!player) continue
         let action: PlayerSelection
         do {

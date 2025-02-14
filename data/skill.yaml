@@ -12,7 +12,7 @@
   num: 10002
   name: 水泡
   element: Water
-  category: Status
+  category: Special
   power: 60
   rage: 5
   accuracy: 95
@@ -22,7 +22,7 @@
   num: 10003
   name: 脱力
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 95
@@ -42,7 +42,7 @@
   num: 10005
   name: 激流穿击
   element: Water
-  category: Status
+  category: Special
   power: 75
   rage: 15
   accuracy: 95
@@ -52,7 +52,7 @@
   num: 10006
   name: 洒水
   element: Water
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -72,7 +72,7 @@
   num: 10008
   name: 海啸连击
   element: Water
-  category: Status
+  category: Special
   power: 65
   rage: 15
   accuracy: 95
@@ -82,7 +82,7 @@
   num: 10009
   name: 水流护体
   element: Water
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -102,7 +102,7 @@
   num: 10011
   name: 飞流瀑布
   element: Water
-  category: Status
+  category: Special
   power: 100
   rage: 15
   accuracy: 95
@@ -112,7 +112,7 @@
   num: 10012
   name: 海浪之盾
   element: Water
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 100
@@ -132,7 +132,7 @@
   num: 10014
   name: 水花溅射
   element: Water
-  category: Status
+  category: Special
   power: 80
   rage: 15
   accuracy: 95
@@ -142,7 +142,7 @@
   num: 10015
   name: 淹没
   element: Water
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 85
@@ -152,7 +152,7 @@
   num: 10016
   name: 弱点标记
   element: Water
-  category: Status
+  category: Special
   power: 65
   rage: 15
   accuracy: 95
@@ -172,7 +172,7 @@
   num: 10019
   name: 火焰
   element: Fire
-  category: Status
+  category: Special
   power: 60
   rage: 5
   accuracy: 95
@@ -182,7 +182,7 @@
   num: 10020
   name: 气力
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -212,7 +212,7 @@
   num: 10023
   name: 加速
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -232,7 +232,7 @@
   num: 10025
   name: 集中
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -242,7 +242,7 @@
   num: 10026
   name: 火海
   element: Fire
-  category: Status
+  category: Special
   power: 70
   rage: 15
   accuracy: 90
@@ -262,7 +262,7 @@
   num: 10028
   name: 嗜血
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 0
   accuracy: 100
@@ -292,7 +292,7 @@
   num: 10031
   name: 炎之意志
   element: Fire
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 100
@@ -312,7 +312,7 @@
   num: 10033
   name: 不灭之心
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 25
   accuracy: 100
@@ -322,7 +322,7 @@
   num: 10035
   name: 种子爆弹
   element: Grass
-  category: Status
+  category: Special
   power: 25
   rage: 5
   accuracy: 95
@@ -332,7 +332,7 @@
   num: 10036
   name: 治愈
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -342,7 +342,7 @@
   num: 10037
   name: 种子能量
   element: Grass
-  category: Status
+  category: Special
   power: 60
   rage: 10
   accuracy: 95
@@ -352,7 +352,7 @@
   num: 10038
   name: 能量释放
   element: Grass
-  category: Status
+  category: Special
   power: 50
   rage: 15
   accuracy: 95
@@ -362,7 +362,7 @@
   num: 10039
   name: 削弱
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 95
@@ -372,7 +372,7 @@
   num: 10040
   name: 飞叶速射
   element: Grass
-  category: Status
+  category: Special
   power: 25
   rage: 15
   accuracy: 95
@@ -382,7 +382,7 @@
   num: 10041
   name: 寄生种子
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 95
@@ -402,7 +402,7 @@
   num: 10043
   name: 净化汁液
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -412,7 +412,7 @@
   num: 10044
   name: 利刃刀叶
   element: Grass
-  category: Status
+  category: Special
   power: 10
   rage: 15
   accuracy: 95
@@ -422,7 +422,7 @@
   num: 10045
   name: 干扰
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 95
@@ -442,7 +442,7 @@
   num: 10047
   name: 千叶杀
   element: Grass
-  category: Status
+  category: Special
   power: 100
   rage: 10
   accuracy: 95
@@ -452,7 +452,7 @@
   num: 10048
   name: 寄生炸弹
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 95
@@ -462,7 +462,7 @@
   num: 10049
   name: 引爆种子
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -502,7 +502,7 @@
   num: 10052
   name: 白化光线
   element: Normal
-  category: Status
+  category: Special
   power: 60
   rage: 10
   accuracy: 95
@@ -512,7 +512,7 @@
   num: 10053
   name: 瞄准
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -522,7 +522,7 @@
   num: 10054
   name: 强化状态
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -552,7 +552,7 @@
   num: 10057
   name: 魅惑
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 35
@@ -562,7 +562,7 @@
   num: 10058
   name: 锐利射线
   element: Normal
-  category: Status
+  category: Special
   power: 75
   rage: 15
   accuracy: 95
@@ -572,7 +572,7 @@
   num: 10059
   name: 迟缓光波
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 95
@@ -592,7 +592,7 @@
   num: 10061
   name: 闪避
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 35
@@ -612,7 +612,7 @@
   num: 10063
   name: 绫彩光线
   element: Normal
-  category: Status
+  category: Special
   power: 100
   rage: 20
   accuracy: 100
@@ -622,7 +622,7 @@
   num: 10064
   name: 幻觉状态
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -632,7 +632,7 @@
   num: 10065
   name: 迷惑
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 35
@@ -662,7 +662,7 @@
   num: 10068
   name: 三叶草
   element: Grass
-  category: Status
+  category: Special
   power: 20
   rage: 5
   accuracy: 95
@@ -672,7 +672,7 @@
   num: 10069
   name: 叶片保护
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -682,7 +682,7 @@
   num: 10070
   name: 葵花种子
   element: Grass
-  category: Status
+  category: Special
   power: 65
   rage: 10
   accuracy: 95
@@ -702,7 +702,7 @@
   num: 10072
   name: 愈合
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -722,7 +722,7 @@
   num: 10074
   name: 虚弱
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 95
@@ -732,7 +732,7 @@
   num: 10075
   name: 无力草
   element: Grass
-  category: Status
+  category: Special
   power: 70
   rage: 15
   accuracy: 95
@@ -742,7 +742,7 @@
   num: 10076
   name: 吸收
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -762,7 +762,7 @@
   num: 10078
   name: 解毒草
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -782,7 +782,7 @@
   num: 10080
   name: 毒草
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 85
@@ -792,7 +792,7 @@
   num: 10081
   name: 放晴
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -802,7 +802,7 @@
   num: 10082
   name: 毒化
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -842,7 +842,7 @@
   num: 10086
   name: 变肥
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -862,7 +862,7 @@
   num: 10088
   name: 硬化脂肪
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -882,7 +882,7 @@
   num: 10091
   name: 恐吓
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 25
@@ -892,7 +892,7 @@
   num: 10092
   name: 威吓光波
   element: Normal
-  category: Status
+  category: Special
   power: 70
   rage: 10
   accuracy: 95
@@ -922,7 +922,7 @@
   num: 10095
   name: 体重暴涨
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -952,7 +952,7 @@
   num: 10098
   name: 脂肪燃烧
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -962,7 +962,7 @@
   num: 10099
   name: 脂肪蒸汽
   element: Normal
-  category: Status
+  category: Special
   power: 80
   rage: 20
   accuracy: 85
@@ -972,7 +972,7 @@
   num: 10100
   name: 弹性脂肪
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -992,7 +992,7 @@
   num: 10102
   name: 根之刺
   element: Grass
-  category: Status
+  category: Special
   power: 20
   rage: 5
   accuracy: 95
@@ -1002,7 +1002,7 @@
   num: 10103
   name: 坚强
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -1012,7 +1012,7 @@
   num: 10104
   name: 树根硬化
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -1032,7 +1032,7 @@
   num: 10106
   name: 衰弱
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 95
@@ -1052,7 +1052,7 @@
   num: 10108
   name: 巨型根刺
   element: Grass
-  category: Status
+  category: Special
   power: 80
   rage: 15
   accuracy: 90
@@ -1062,7 +1062,7 @@
   num: 10109
   name: 树皮包扎
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -1082,7 +1082,7 @@
   num: 10111
   name: 尖刺防御
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -1112,7 +1112,7 @@
   num: 10114
   name: 草木皆兵
   element: Grass
-  category: Status
+  category: Special
   power: 100
   rage: 20
   accuracy: 100
@@ -1122,7 +1122,7 @@
   num: 10115
   name: 恶化伤口
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 95
@@ -1162,7 +1162,7 @@
   num: 10119
   name: 水枪
   element: Water
-  category: Status
+  category: Special
   power: 60
   rage: 5
   accuracy: 95
@@ -1172,7 +1172,7 @@
   num: 10120
   name: 凝聚
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -1182,7 +1182,7 @@
   num: 10121
   name: 穿击波
   element: Water
-  category: Status
+  category: Special
   power: 65
   rage: 10
   accuracy: 95
@@ -1192,7 +1192,7 @@
   num: 10122
   name: 逆流
   element: Water
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 95
@@ -1202,7 +1202,7 @@
   num: 10123
   name: 致命水枪
   element: Water
-  category: Status
+  category: Special
   power: 70
   rage: 10
   accuracy: 95
@@ -1212,7 +1212,7 @@
   num: 10124
   name: 精准
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -1232,7 +1232,7 @@
   num: 10126
   name: 水枪连波
   element: Water
-  category: Status
+  category: Special
   power: 50
   rage: 10
   accuracy: 95
@@ -1242,7 +1242,7 @@
   num: 10127
   name: 纯净水域
   element: Water
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 100
@@ -1262,7 +1262,7 @@
   num: 10129
   name: 衰退
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 95
@@ -1282,7 +1282,7 @@
   num: 10131
   name: 穿透水炮
   element: Water
-  category: Status
+  category: Special
   power: 85
   rage: 15
   accuracy: 95
@@ -1292,7 +1292,7 @@
   num: 10132
   name: 浑浊水域
   element: Water
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -1312,7 +1312,7 @@
   num: 10134
   name: 虚弱水线
   element: Water
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 95
@@ -1322,7 +1322,7 @@
   num: 10135
   name: 毒刺
   element: Grass
-  category: Status
+  category: Special
   power: 55
   rage: 5
   accuracy: 95
@@ -1332,7 +1332,7 @@
   num: 10136
   name: 退化液
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 95
@@ -1342,7 +1342,7 @@
   num: 10137
   name: 慢性毒药
   element: Grass
-  category: Status
+  category: Special
   power: 65
   rage: 10
   accuracy: 95
@@ -1362,7 +1362,7 @@
   num: 10139
   name: 毒叶
   element: Grass
-  category: Status
+  category: Special
   power: 80
   rage: 15
   accuracy: 95
@@ -1372,7 +1372,7 @@
   num: 10140
   name: 毒疗
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -1402,7 +1402,7 @@
   num: 10143
   name: 毒针入骨
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 95
@@ -1412,7 +1412,7 @@
   num: 10144
   name: 剧毒液体
   element: Grass
-  category: Status
+  category: Special
   power: 100
   rage: 20
   accuracy: 95
@@ -1432,7 +1432,7 @@
   num: 10146
   name: 以毒攻毒
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -1442,7 +1442,7 @@
   num: 10147
   name: 速效毒药
   element: Grass
-  category: Status
+  category: Special
   power: 100
   rage: 20
   accuracy: 95
@@ -1462,7 +1462,7 @@
   num: 10149
   name: 剧毒身体
   element: Grass
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 100
@@ -1482,7 +1482,7 @@
   num: 10151
   name: 喷水
   element: Water
-  category: Status
+  category: Special
   power: 60
   rage: 5
   accuracy: 95
@@ -1492,7 +1492,7 @@
   num: 10152
   name: 墨汁泡
   element: Water
-  category: Status
+  category: Special
   power: 65
   rage: 10
   accuracy: 95
@@ -1502,7 +1502,7 @@
   num: 10153
   name: 空气填充
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 100
@@ -1512,7 +1512,7 @@
   num: 10154
   name: 空气泡
   element: Normal
-  category: Status
+  category: Special
   power: 100
   rage: 10
   accuracy: 95
@@ -1522,7 +1522,7 @@
   num: 10155
   name: 墨汁喷射
   element: Water
-  category: Status
+  category: Special
   power: 110
   rage: 15
   accuracy: 95
@@ -1532,7 +1532,7 @@
   num: 10156
   name: 高压水泡
   element: Water
-  category: Status
+  category: Special
   power: 130
   rage: 20
   accuracy: 95
@@ -1542,7 +1542,7 @@
   num: 10157
   name: 墨汁水域
   element: Water
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 100
@@ -1562,7 +1562,7 @@
   num: 10159
   name: 空气护盾
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -1582,7 +1582,7 @@
   num: 10161
   name: 高压空气
   element: Normal
-  category: Status
+  category: Special
   power: 85
   rage: 15
   accuracy: 95
@@ -1592,7 +1592,7 @@
   num: 10162
   name: 窒息
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 25
   accuracy: 50
@@ -1602,7 +1602,7 @@
   num: 10163
   name: 螺旋水枪
   element: Water
-  category: Status
+  category: Special
   power: 140
   rage: 20
   accuracy: 90
@@ -1612,7 +1612,7 @@
   num: 10164
   name: 空气治愈
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -1662,7 +1662,7 @@
   num: 10169
   name: 喷射水柱
   element: Water
-  category: Status
+  category: Special
   power: 60
   rage: 15
   accuracy: 95
@@ -1672,7 +1672,7 @@
   num: 10170
   name: 威慑
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 25
   accuracy: 50
@@ -1732,7 +1732,7 @@
   num: 10176
   name: 星之力
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 100
@@ -1742,7 +1742,7 @@
   num: 10177
   name: 撕碎
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 95
@@ -1752,7 +1752,7 @@
   num: 10178
   name: 永不言败
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 25
   accuracy: 100
@@ -1762,7 +1762,7 @@
   num: 10179
   name: 海浪
   element: Water
-  category: Status
+  category: Special
   power: 60
   rage: 5
   accuracy: 95
@@ -1782,7 +1782,7 @@
   num: 10181
   name: 坚固
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -1802,7 +1802,7 @@
   num: 10183
   name: 水纹屏障
   element: Water
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 100
@@ -1822,7 +1822,7 @@
   num: 10185
   name: 蓄水炮
   element: Water
-  category: Status
+  category: Special
   power: 90
   rage: 15
   accuracy: 95
@@ -1842,7 +1842,7 @@
   num: 10187
   name: 反射水盾
   element: Water
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 100
@@ -1872,7 +1872,7 @@
   num: 10190
   name: 压迫
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 95
@@ -1882,7 +1882,7 @@
   num: 10191
   name: 唤雨
   element: Water
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -1892,7 +1892,7 @@
   num: 10192
   name: 急水川流
   element: Water
-  category: Status
+  category: Special
   power: 110
   rage: 20
   accuracy: 95
@@ -1902,7 +1902,7 @@
   num: 10193
   name: 喷火
   element: Fire
-  category: Status
+  category: Special
   power: 55
   rage: 5
   accuracy: 95
@@ -1912,7 +1912,7 @@
   num: 10194
   name: 加热
   element: Fire
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -1922,7 +1922,7 @@
   num: 10195
   name: 灼烧
   element: Fire
-  category: Status
+  category: Special
   power: 60
   rage: 10
   accuracy: 95
@@ -1932,7 +1932,7 @@
   num: 10196
   name: 溶解之炎
   element: Fire
-  category: Status
+  category: Special
   power: 60
   rage: 10
   accuracy: 95
@@ -1952,7 +1952,7 @@
   num: 10198
   name: 双轨火炮
   element: Fire
-  category: Status
+  category: Special
   power: 35
   rage: 15
   accuracy: 95
@@ -1962,7 +1962,7 @@
   num: 10199
   name: 烈焰之躯
   element: Fire
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 100
@@ -1972,7 +1972,7 @@
   num: 10200
   name: 火焰旋风
   element: Fire
-  category: Status
+  category: Special
   power: 100
   rage: 20
   accuracy: 75
@@ -1982,7 +1982,7 @@
   num: 10201
   name: 密集扫射
   element: Fire
-  category: Status
+  category: Special
   power: 30
   rage: 20
   accuracy: 95
@@ -1992,7 +1992,7 @@
   num: 10202
   name: 超大火球
   element: Fire
-  category: Status
+  category: Special
   power: 110
   rage: 25
   accuracy: 90
@@ -2012,7 +2012,7 @@
   num: 10204
   name: 急速火弹
   element: Fire
-  category: Status
+  category: Special
   power: 50
   rage: 15
   accuracy: 95
@@ -2022,7 +2022,7 @@
   num: 10205
   name: 点燃
   element: Fire
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 85
@@ -2032,7 +2032,7 @@
   num: 10206
   name: 穿透火焰
   element: Fire
-  category: Status
+  category: Special
   power: 95
   rage: 15
   accuracy: 95
@@ -2042,7 +2042,7 @@
   num: 10207
   name: 愤怒之火
   element: Fire
-  category: Status
+  category: Special
   power: 120
   rage: 15
   accuracy: 35
@@ -2052,7 +2052,7 @@
   num: 10208
   name: 火球
   element: Fire
-  category: Status
+  category: Special
   power: 55
   rage: 5
   accuracy: 95
@@ -2062,7 +2062,7 @@
   num: 10209
   name: 坚硬
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -2102,7 +2102,7 @@
   num: 10213
   name: 火球连射
   element: Fire
-  category: Status
+  category: Special
   power: 40
   rage: 15
   accuracy: 95
@@ -2132,7 +2132,7 @@
   num: 10216
   name: 卷缩
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 100
@@ -2142,7 +2142,7 @@
   num: 10217
   name: 火焰吐息
   element: Fire
-  category: Status
+  category: Special
   power: 100
   rage: 15
   accuracy: 95
@@ -2162,7 +2162,7 @@
   num: 10219
   name: 蓄力
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 100
@@ -2192,7 +2192,7 @@
   num: 10222
   name: 眩晕火球
   element: Fire
-  category: Status
+  category: Special
   power: 75
   rage: 15
   accuracy: 95
@@ -2212,7 +2212,7 @@
   num: 10224
   name: 高温火环
   element: Fire
-  category: Status
+  category: Special
   power: 65
   rage: 10
   accuracy: 95
@@ -2232,7 +2232,7 @@
   num: 10226
   name: 蒸发
   element: Normal
-  category: Status
+  category: Special
   power: 80
   rage: 15
   accuracy: 95
@@ -2242,7 +2242,7 @@
   num: 10227
   name: 怒吼
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 25
   accuracy: 50
@@ -2262,7 +2262,7 @@
   num: 10229
   name: 火山喷发
   element: Fire
-  category: Status
+  category: Special
   power: 105
   rage: 20
   accuracy: 90
@@ -2272,7 +2272,7 @@
   num: 10230
   name: 火山护甲
   element: Fire
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 100
@@ -2302,7 +2302,7 @@
   num: 10233
   name: 炎爆
   element: Fire
-  category: Status
+  category: Special
   power: 55
   rage: 15
   accuracy: 95
@@ -2312,7 +2312,7 @@
   num: 10234
   name: 阳炎
   element: Fire
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -2322,7 +2322,7 @@
   num: 10235
   name: 火山之力
   element: Fire
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -2332,7 +2332,7 @@
   num: 10236
   name: 磨牙
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -2342,7 +2342,7 @@
   num: 10237
   name: 焰火
   element: Fire
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -2372,7 +2372,7 @@
   num: 10240
   name: 野猪之速
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -2392,7 +2392,7 @@
   num: 10242
   name: 火雨飞弹
   element: Fire
-  category: Status
+  category: Special
   power: 30
   rage: 20
   accuracy: 90
@@ -2442,7 +2442,7 @@
   num: 10247
   name: 火星
   element: Fire
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -2452,7 +2452,7 @@
   num: 10248
   name: 火种
   element: Fire
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -2462,7 +2462,7 @@
   num: 10249
   name: 虚弱水枪
   element: Water
-  category: Status
+  category: Special
   power: 65
   rage: 10
   accuracy: 95
@@ -2472,7 +2472,7 @@
   num: 10250
   name: 虚弱水泡
   element: Water
-  category: Status
+  category: Special
   power: 65
   rage: 10
   accuracy: 95
@@ -2482,7 +2482,7 @@
   num: 10251
   name: 光滑皮肤
   element: Water
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -2502,7 +2502,7 @@
   num: 10253
   name: 水墨
   element: Water
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -2512,7 +2512,7 @@
   num: 10254
   name: 水花四溅
   element: Water
-  category: Status
+  category: Special
   power: 90
   rage: 15
   accuracy: 95
@@ -2522,7 +2522,7 @@
   num: 10255
   name: 舞翼
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -2532,7 +2532,7 @@
   num: 10256
   name: 旋转水枪
   element: Water
-  category: Status
+  category: Special
   power: 100
   rage: 20
   accuracy: 95
@@ -2572,7 +2572,7 @@
   num: 10260
   name: 聚水炮
   element: Water
-  category: Status
+  category: Special
   power: 110
   rage: 15
   accuracy: 50
@@ -2582,7 +2582,7 @@
   num: 10261
   name: 浓缩水墨
   element: Water
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 95
@@ -2592,7 +2592,7 @@
   num: 10262
   name: 纯净之心
   element: Water
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 100
@@ -2602,7 +2602,7 @@
   num: 10263
   name: 红心
   element: Normal
-  category: Status
+  category: Special
   power: 55
   rage: 5
   accuracy: 95
@@ -2612,7 +2612,7 @@
   num: 10264
   name: 柔软
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -2622,7 +2622,7 @@
   num: 10265
   name: 心之印记
   element: Normal
-  category: Status
+  category: Special
   power: 65
   rage: 10
   accuracy: 95
@@ -2632,7 +2632,7 @@
   num: 10266
   name: 心连心
   element: Normal
-  category: Status
+  category: Special
   power: 95
   rage: 15
   accuracy: 60
@@ -2642,7 +2642,7 @@
   num: 10267
   name: 坚韧
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -2652,7 +2652,7 @@
   num: 10268
   name: 红心雨
   element: Normal
-  category: Status
+  category: Special
   power: 25
   rage: 20
   accuracy: 95
@@ -2662,7 +2662,7 @@
   num: 10269
   name: 柔韧
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -2672,7 +2672,7 @@
   num: 10089
   name: 脂肪护盾
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -2702,7 +2702,7 @@
   num: 10272
   name: 心心相印
   element: Normal
-  category: Status
+  category: Special
   power: 80
   rage: 20
   accuracy: 95
@@ -2712,7 +2712,7 @@
   num: 10273
   name: 大红心
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -2722,7 +2722,7 @@
   num: 10274
   name: 血红印记
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 95
@@ -2732,7 +2732,7 @@
   num: 10275
   name: 心愿
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 100
@@ -2742,7 +2742,7 @@
   num: 10276
   name: 毅力
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -2772,7 +2772,7 @@
   num: 10279
   name: 后空翻
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 25
   accuracy: 95
@@ -2792,7 +2792,7 @@
   num: 10281
   name: 白光炮
   element: Normal
-  category: Status
+  category: Special
   power: 100
   rage: 15
   accuracy: 90
@@ -2802,7 +2802,7 @@
   num: 10282
   name: 消弱
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 95
@@ -2812,7 +2812,7 @@
   num: 10283
   name: 紫光炮
   element: Normal
-  category: Status
+  category: Special
   power: 110
   rage: 20
   accuracy: 90
@@ -2842,7 +2842,7 @@
   num: 10286
   name: 螺旋光炮
   element: Normal
-  category: Status
+  category: Special
   power: 120
   rage: 25
   accuracy: 90
@@ -2872,7 +2872,7 @@
   num: 10289
   name: 星之辉
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 100
@@ -2882,7 +2882,7 @@
   num: 10290
   name: 声波
   element: Normal
-  category: Status
+  category: Special
   power: 55
   rage: 5
   accuracy: 95
@@ -2892,7 +2892,7 @@
   num: 10291
   name: 深呼吸
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 100
@@ -2902,7 +2902,7 @@
   num: 10292
   name: 音波环
   element: Normal
-  category: Status
+  category: Special
   power: 65
   rage: 10
   accuracy: 95
@@ -2912,7 +2912,7 @@
   num: 10293
   name: 音波炮
   element: Normal
-  category: Status
+  category: Special
   power: 80
   rage: 15
   accuracy: 75
@@ -2932,7 +2932,7 @@
   num: 10295
   name: 禁音
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 95
@@ -2942,7 +2942,7 @@
   num: 10296
   name: 噪音
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 15
   accuracy: 95
@@ -2952,7 +2952,7 @@
   num: 10297
   name: 音波炸弹
   element: Normal
-  category: Status
+  category: Special
   power: 95
   rage: 20
   accuracy: 95
@@ -2972,7 +2972,7 @@
   num: 10299
   name: 音波屏障
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 95
@@ -3002,7 +3002,7 @@
   num: 10302
   name: 咆哮弹
   element: Normal
-  category: Status
+  category: Special
   power: 105
   rage: 25
   accuracy: 95
@@ -3012,7 +3012,7 @@
   num: 10303
   name: 音爆
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 10
   accuracy: 95
@@ -3022,7 +3022,7 @@
   num: 10304
   name: 音波飞弹
   element: Normal
-  category: Status
+  category: Special
   power: 25
   rage: 20
   accuracy: 95
@@ -3032,7 +3032,7 @@
   num: 10305
   name: 音之网
   element: Normal
-  category: Special
+  category: Status
   power: 0
   rage: 20
   accuracy: 95
