@@ -11,6 +11,7 @@ import { UseSkillSelection, SwitchPetSelection, DoNothingSelection } from '@/cor
 export class ConsoleUI {
   protected battle: Battle
   private messages: BattleMessage[] = []
+  private allPets: Pet[] // 新增：存储所有宠物的数组
   constructor(
     battle: Battle,
     private playerA: Player,
@@ -18,12 +19,23 @@ export class ConsoleUI {
   ) {
     this.battle = battle
     battle.onMessage(this.handleMessage.bind(this)) //this的上下文应该为本身
+    this.allPets = [...playerA.team, ...playerB.team]
   }
 
   private getPetStatus = (pet: Pet) => {
     const baseInfo = `${ELEMENT_MAP[pet.element].emoji}${pet.name}(${pet.species.name}) [Lv.${pet.level} HP:${pet.currentHp}/${pet.maxHp} Rage:${pet.owner?.currentRage}/100]`
     const markInfo = pet.marks.length > 0 ? ' 印记:' + pet.marks.map(mark => this.getMarkStatus(mark)).join(' ') : ''
     return baseInfo + markInfo
+  }
+
+  private getPetNameById(id: string): string {
+    const pet = this.allPets.find(p => p.id === id)
+    return pet ? pet.name : id
+  }
+
+  private getPlayerNameById(id: string): string {
+    const name = [this.playerA, this.playerB].find(p => p.id === id)?.name
+    return name ?? id
   }
 
   private getMarkStatus = (mark: Mark) =>
@@ -48,25 +60,31 @@ export class ConsoleUI {
 
       case BattleMessageType.RageChange: {
         const d = message.data
-        console.log(`⚡ ${d.pet} 怒气 ${d.before} → ${d.after} (${this.getRageReason(d.reason)})`)
+        const name = this.getPetNameById(d.pet)
+        console.log(`⚡ ${name} 怒气 ${d.before} → ${d.after} (${this.getRageReason(d.reason)})`)
         break
       }
 
       case BattleMessageType.SkillUse: {
         const d = message.data
-        console.log(`🎯 ${d.user} 使用 ${d.skill}（消耗${d.rageCost}怒气） → ${d.target}`)
+        const userName = this.getPetNameById(d.user)
+        const targetName = this.getPetNameById(d.target)
+        console.log(`🎯 ${userName} 使用 ${d.skill}（消耗${d.rageCost}怒气） → ${targetName}`)
         break
       }
 
       case BattleMessageType.SkillMiss: {
         const d = message.data
-        console.log(`❌ ${d.user} 的 ${d.skill} 未命中！ (${this.translateMissReason(d.reason)})`)
+        const userName = this.getPetNameById(d.user)
+        console.log(`❌ ${userName} 的 ${d.skill} 未命中！ (${this.translateMissReason(d.reason)})`)
         break
       }
 
       case BattleMessageType.Damage: {
         const d = message.data
-        let log = `💥 ${d.target} 受到 ${d.damage}点 来自<${d.source}>的${this.getDamageType(d.damageType)}伤害`
+        const targetName = this.getPetNameById(d.target)
+        const sourceName = this.getPetNameById(d.source)
+        let log = `💥 ${targetName} 受到 ${d.damage}点 来自<${sourceName}>的${this.getDamageType(d.damageType)}伤害`
         if (d.isCrit) log += ' (暴击)'
         if (d.effectiveness > 1) log += ' 效果拔群！'
         if (d.effectiveness < 1) log += ' 效果不佳...'
@@ -75,43 +93,45 @@ export class ConsoleUI {
         break
       }
 
-      case BattleMessageType.Heal:
-        console.log(`💚 ${message.data.target} 恢复 ${message.data.amount}点HP`)
+      case BattleMessageType.Heal: {
+        const d = message.data
+        const targetName = this.getPetNameById(d.target)
+        console.log(`💚 ${targetName} 恢复 ${message.data.amount}点HP`)
         break
+      }
 
       case BattleMessageType.PetSwitch: {
         const d = message.data
-        console.log(`🔄 ${d.player} 更换精灵：${d.fromPet} → ${d.toPet}`)
-        console.log(`   ${d.toPet} 剩余HP: ${d.currentHp}`)
+        const fromPetName = this.getPetNameById(d.fromPet)
+        const toPetName = this.getPetNameById(d.toPet)
+        const playerName = this.getPlayerNameById(d.player)
+        console.log(`🔄 ${playerName} 更换精灵：${fromPetName} → ${toPetName}`)
+        console.log(`   ${toPetName} 剩余HP: ${d.currentHp}`)
         break
       }
 
-      case BattleMessageType.PetDefeated:
-        console.log(`☠️ ${message.data.pet} 倒下！${message.data.killer ? `(击败者: ${message.data.killer})` : ''}`)
+      case BattleMessageType.PetDefeated: {
+        const d = message.data
+        const killerName = this.getPetNameById(d.pet)
+        const petName = d.killer ? this.getPlayerNameById(d.killer) : ''
+        console.log(`☠️ ${petName} 倒下！${message.data.killer ? `(击败者: ${killerName})` : ''}`)
         break
+      }
 
       case BattleMessageType.StatChange: {
         const d = message.data
+        const petName = this.getPetNameById(d.pet)
         const arrow = d.stage > 0 ? '↑' : '↓'
-        console.log(`📈 ${d.pet} ${this.translateStat(d.stat)} ${arrow.repeat(Math.abs(d.stage))} (${d.reason})`)
+        console.log(`📈 ${petName} ${this.translateStat(d.stat)} ${arrow.repeat(Math.abs(d.stage))} (${d.reason})`)
         break
       }
 
-      case BattleMessageType.StatusAdd:
-        console.log(
-          `⚠️ ${message.data.target} 陷入【${message.data.status}】状态 ${
-            message.data.source ? `(来自 ${message.data.source})` : ''
-          }`,
-        )
+      case BattleMessageType.MarkApply: {
+        const d = message.data
+        const targetName = this.getPetNameById(d.target)
+        console.log(`🔖 ${targetName} 被施加【${message.data.markType}】印记`)
         break
-
-      case BattleMessageType.StatusRemove:
-        console.log(`✅ ${message.data.target} 解除【${message.data.status}】状态`)
-        break
-
-      case BattleMessageType.MarkApply:
-        console.log(`🔖 ${message.data.target} 被施加【${message.data.markType}】印记`)
-        break
+      }
 
       case BattleMessageType.MarkTrigger:
         console.log(`✨ ${message.data.markType} 印记触发：${message.data.effect}`)
@@ -128,7 +148,9 @@ export class ConsoleUI {
 
       case BattleMessageType.Crit: {
         const d = message.data
-        console.log(`🔥 ${d.attacker} 对 ${d.target} 造成了暴击伤害！`)
+        const targetName = this.getPetNameById(d.target)
+        const attackerName = this.getPetNameById(d.attacker)
+        console.log(`🔥 ${attackerName} 对 ${targetName} 造成了暴击伤害！`)
         break
       }
       case BattleMessageType.FaintSwitch: {

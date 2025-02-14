@@ -73,11 +73,6 @@ export enum BattleMessageType {
   Crit = 'CRIT',
   TypeEffectiveness = 'TYPE_EFFECTIVENESS',
 
-  // 状态效果
-  StatusAdd = 'STATUS_ADD',
-  StatusRemove = 'STATUS_REMOVE',
-  StatusTrigger = 'STATUS_TRIGGER',
-
   // 印记相关
   MarkApply = 'MARK_APPLY',
   MarkTrigger = 'MARK_TRIGGER',
@@ -111,9 +106,6 @@ export type BattleMessage =
   | HealMessage
   | CritMessage
   | TypeEffectivenessMessage
-  | StatusAddMessage
-  | StatusRemoveMessage
-  | StatusTriggerMessage
   | MarkApplyMessage
   | MarkTriggerMessage
   | MarkExpireMessage
@@ -230,22 +222,6 @@ export interface BattleMessageData {
     multiplier: number
   }
 
-  [BattleMessageType.StatusAdd]: {
-    target: string
-    status: string
-    source?: string
-  }
-  [BattleMessageType.StatusRemove]: {
-    target: string
-    status: string
-    reason: 'timeout' | 'clear' | 'replace'
-  }
-  [BattleMessageType.StatusTrigger]: {
-    target: string
-    status: string
-    effect: string
-  }
-
   [BattleMessageType.MarkApply]: {
     markType: string
     applier: string
@@ -301,9 +277,6 @@ type DamageMessage = BaseBattleMessage<BattleMessageType.Damage>
 type HealMessage = BaseBattleMessage<BattleMessageType.Heal>
 type CritMessage = BaseBattleMessage<BattleMessageType.Crit>
 type TypeEffectivenessMessage = BaseBattleMessage<BattleMessageType.TypeEffectiveness>
-type StatusAddMessage = BaseBattleMessage<BattleMessageType.StatusAdd>
-type StatusRemoveMessage = BaseBattleMessage<BattleMessageType.StatusRemove>
-type StatusTriggerMessage = BaseBattleMessage<BattleMessageType.StatusTrigger>
 type MarkApplyMessage = BaseBattleMessage<BattleMessageType.MarkApply>
 type MarkTriggerMessage = BaseBattleMessage<BattleMessageType.MarkTrigger>
 type MarkExpireMessage = BaseBattleMessage<BattleMessageType.MarkExpire>
