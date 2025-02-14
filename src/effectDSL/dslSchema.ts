@@ -238,3 +238,5 @@ export const effectDSLSchema = z.lazy(() =>
     consumesStacks: z.number().optional(),
   }),
 )
+
+export const EffectDSLSetSchema = z.array(effectDSLSchema)

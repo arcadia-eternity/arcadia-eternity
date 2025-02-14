@@ -4,6 +4,7 @@ import yaml from 'yaml'
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 import { MarkDataSetSchema, SkillDataSetSchema, SpeciesDataSetSchema } from '../src/schema'
+import { EffectDSLSetSchema } from '@/effectDSL/dslSchema'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -18,6 +19,7 @@ const SCHEMA_MAP: Record<string, z.ZodSchema> = {
   mark_emblem: MarkDataSetSchema,
   skill: SkillDataSetSchema,
   species: SpeciesDataSetSchema,
+  effect: EffectDSLSetSchema,
 }
 
 // 创建目录（如果不存在）
