@@ -1,6 +1,6 @@
 import { EffectTrigger } from '@core/effect'
 import { EffectContext, UseSkillContext, DamageContext, HealContext, AddMarkContext, RageContext } from '@core/context'
-import { CreateStatStageMark, Mark } from '@core/mark'
+import { Mark } from '@core/mark'
 import { Pet } from '@core/pet'
 import { Player } from '@core/player'
 import { type SelectorOpinion, type ValueSource, ChainableSelector, GetValueFromSource } from './selector'
@@ -99,14 +99,14 @@ export const Operators = {
     (context: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
       contexts.forEach(skillCtx => {
         const finalMultiplier = GetValueFromSource(context, multiplier)
-        finalMultiplier.forEach(v => (skillCtx.power *= v))
+        finalMultiplier.forEach(v => skillCtx.amplifyPower(v))
       })
     },
 
   addPower: (value: ValueSource<number>) => (context: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
     contexts.forEach(skillCtx => {
       const _value = GetValueFromSource(context, value)
-      _value.forEach(v => (skillCtx.power += v))
+      _value.forEach(v => skillCtx.addPower(v))
     })
   },
 
@@ -116,7 +116,6 @@ export const Operators = {
       //TODO: 万一找不到呢？
       const _value = GetValueFromSource(context, value)[0] ?? 0
       const _statType = GetValueFromSource(context, statType)[0] ?? null
-      const upMark = CreateStatStageMark(_statType, _value)
-      target.forEach(v => v.addMark(new AddMarkContext(context, v, upMark, _value)))
+      target.forEach(v => v.addStatStage(context, _statType, _value))
     },
 }

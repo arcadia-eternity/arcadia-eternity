@@ -15,7 +15,7 @@ import {
 } from './const'
 import { Nature, NatureMap } from './nature'
 import { Player } from './player'
-import { StatLevelMark, Mark } from './mark'
+import { StatLevelMark, Mark, CreateStatStageMark } from './mark'
 import {
   AddMarkContext,
   DamageContext,
@@ -153,7 +153,11 @@ export class Pet implements OwnedEntity {
   }
 
   public removeMark(context: RemoveMarkContext) {
-    this.marks = this.marks.filter(mark => mark.id !== context.mark.id)
+    this.marks.forEach(mark => {
+      const filltered = mark.id !== context.mark.id
+      if (filltered) mark.destory(context)
+      return false
+    })
   }
 
   private calculateStat(type: StatTypeOnBattle): number {
@@ -252,6 +256,11 @@ export class Pet implements OwnedEntity {
     const validStage = Math.max(-6, Math.min(6, stage)) // 强制等级范围
     const index = validStage + 6
     return Math.floor(base * STAT_STAGE_MULTIPLIER[index])
+  }
+
+  public addStatStage(context: EffectContext<EffectTrigger>, statType: StatTypeWithoutHp, value: number) {
+    const upMark = CreateStatStageMark(statType, value)
+    this.addMark(new AddMarkContext(context, this, upMark, value))
   }
 
   // 清理能力等级时同时清除相关印记

@@ -1,5 +1,12 @@
 import { Effect, type EffectContainer, EffectScheduler, EffectTrigger } from './effect'
-import { AddMarkContext, type AllContext, EffectContext, SwitchPetContext, TurnContext } from './context'
+import {
+  AddMarkContext,
+  type AllContext,
+  EffectContext,
+  RemoveMarkContext,
+  SwitchPetContext,
+  TurnContext,
+} from './context'
 import { Pet } from './pet'
 import { Battle } from './battle'
 import { STAT_STAGE_MULTIPLIER, StatTypeOnBattle, type OwnedEntity, type Prototype } from './const'
@@ -170,7 +177,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     return mark
   }
 
-  destory(context: EffectContext<EffectTrigger> | TurnContext | AddMarkContext | SwitchPetContext) {
+  destory(context: EffectContext<EffectTrigger> | TurnContext | AddMarkContext | SwitchPetContext | RemoveMarkContext) {
     if (!this.isActive || !this.config.destoyable) return
     this.isActive = false
 

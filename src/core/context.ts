@@ -63,6 +63,23 @@ export class UseSkillContext extends Context {
     super(parent)
     this.battle = parent.battle
   }
+
+  amplifyPower(multiplier: number) {
+    this.power *= multiplier
+  }
+
+  addPower(value: number) {
+    this.power += value
+  }
+
+  setThreshold(min?: number, max?: number) {
+    if (min) this.minThreshold = min
+    if (max) this.maxThreshold = max
+  }
+
+  setCrit(crit: boolean) {
+    this.crit = crit
+  }
 }
 
 export class SwitchPetContext extends Context {
