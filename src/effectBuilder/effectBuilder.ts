@@ -3,7 +3,11 @@ import { EffectTrigger } from '@/core/effect'
 
 export type ValueExtractor<T, U> = (target: T) => U
 
-export type ConditionOperator<U> = (context: EffectContext<EffectTrigger>, values: U[]) => boolean // 判断逻辑
+export type Action = (context: EffectContext<EffectTrigger>) => void
+
+export type Condition = (context: EffectContext<EffectTrigger>) => boolean
+
+export type Evaluator<U> = (context: EffectContext<EffectTrigger>, values: U[]) => boolean
 
 export type Operator<U> = (context: EffectContext<EffectTrigger>, values: U[]) => void
 

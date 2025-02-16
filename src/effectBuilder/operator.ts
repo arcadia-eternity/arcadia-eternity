@@ -4,8 +4,9 @@ import { Mark } from '@core/mark'
 import { Pet } from '@core/pet'
 import { Player } from '@core/player'
 import { type SelectorOpinion, type ValueSource, ChainableSelector, GetValueFromSource } from './selector'
-import { StatTypeOnBattle, StatTypeWithoutHp } from '@/core/const'
+import { MarkOwner, StatTypeOnBattle, StatTypeWithoutHp } from '@/core/const'
 import { Operator } from './effectBuilder'
+import { Battle } from '@/core/battle'
 
 function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpinion>(
   handler: (value: U[], target: T, context: EffectContext<EffectTrigger>) => void,
@@ -49,15 +50,15 @@ export const Operators = {
   }),
 
   addMark:
-    <T extends Pet>(mark: Mark, stack: number) =>
+    <T extends MarkOwner>(mark: Mark, stack: number) =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
-      targets.forEach(pet => {
-        pet.addMark(new AddMarkContext(context, pet, mark, stack))
+      targets.forEach(target => {
+        target.addMark(new AddMarkContext(context, target, mark, stack))
       })
     },
 
   transferMark:
-    <T extends Pet, U extends Mark>(mark: ValueSource<U>) =>
+    <T extends Battle | Pet, U extends Mark>(mark: ValueSource<U>) =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       const _mark = GetValueFromSource(context, mark)
       _mark.forEach(m => {

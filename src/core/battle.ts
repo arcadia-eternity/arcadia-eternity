@@ -1,5 +1,5 @@
 import { Pet } from './pet'
-import { RAGE_PER_TURN } from './const'
+import { MarkOwner, RAGE_PER_TURN } from './const'
 import {
   AddMarkContext,
   type AllContext,
@@ -10,7 +10,7 @@ import {
   TurnContext,
   UseSkillContext,
 } from './context'
-import { type BattleMessage, BattleMessageType, type BattleMessageData } from './message'
+import { type BattleMessage, BattleMessageType, type BattleMessageData, type BattleState } from './message'
 import { Player } from './player'
 import Prando from 'prando'
 import { Mark } from './mark'
@@ -25,7 +25,7 @@ export enum BattlePhase {
 }
 
 // 对战系统
-export class Battle extends Context {
+export class Battle extends Context implements MarkOwner {
   public readonly parent: null = null
   public readonly battle: Battle = this
 
@@ -85,18 +85,28 @@ export class Battle extends Context {
   }
 
   public addMark(context: AddMarkContext) {
+    if (!context.available) return
+
+    const newMark = context.mark.clone(context)
+    if (context.stack) newMark._stack = context.stack
+
     const existingMark = this.marks.find(mark => mark.id === context.mark.id)
     if (existingMark) {
       existingMark.tryStack(context)
     } else {
-      const newMark = context.mark.clone(context)
-      this.marks.push(newMark)
+      context.battle.applyEffects(context, EffectTrigger.OnAddMark)
+      context.battle.applyEffects(context, EffectTrigger.OnMarkCreate, newMark)
       newMark.attachTo(this)
+      this.marks.push(newMark)
     }
   }
 
   public removeMark(context: RemoveMarkContext) {
-    this.marks = this.marks.filter(mark => mark.id !== context.mark.id)
+    this.marks.forEach(mark => {
+      const filltered = mark.id !== context.mark.id
+      if (filltered) mark.destory(context)
+      return false
+    })
   }
 
   public getOpponent(player: Player) {
@@ -414,6 +424,16 @@ export class Battle extends Context {
     }
 
     throw '不存在胜利者'
+  }
+
+  toMessage(): BattleState {
+    return {
+      status: this.status,
+      currentPhase: this.currentPhase,
+      currentTurn: this.currentTurn,
+      marks: this.marks,
+      players: [this.playerA, this.playerB].map(p => p.toMessage()),
+    }
   }
 }
 

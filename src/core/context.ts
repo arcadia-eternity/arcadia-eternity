@@ -1,6 +1,6 @@
 import { Battle } from './battle'
 import { Player } from './player'
-import { AttackTargetOpinion, DamageType } from './const'
+import { AttackTargetOpinion, DamageType, MarkOwner } from './const'
 import { Mark } from './mark'
 import { Pet } from './pet'
 import { Skill } from './skill'
@@ -152,7 +152,7 @@ export class AddMarkContext extends Context {
   public readonly available: boolean = true
   constructor(
     public readonly parent: EffectContext<EffectTrigger> | SwitchPetContext,
-    public target: Pet,
+    public target: MarkOwner,
     public mark: Mark,
     public stack?: number,
   ) {

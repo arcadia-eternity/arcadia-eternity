@@ -1,6 +1,7 @@
 import { Skill } from './skill'
 import { Element } from './element'
 import {
+  MarkOwner,
   type OwnedEntity,
   type Prototype,
   RAGE_PER_TURN,
@@ -39,7 +40,7 @@ export interface Species extends Prototype {
 }
 
 // 精灵类
-export class Pet implements OwnedEntity {
+export class Pet implements OwnedEntity, MarkOwner {
   public currentHp: number
   public baseCritRate: number = 0.1 // 暴击率默认为10%
   public baseAccuracy: number = 1 // 命中率默认为100%

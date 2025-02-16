@@ -1,4 +1,5 @@
 import { Battle } from './battle'
+import { AddMarkContext, RemoveMarkContext } from './context'
 import { Mark } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
@@ -63,10 +64,16 @@ export interface Entity {
   type: string
 }
 
-export interface OwnedEntity {
-  owner: Battle | Player | Pet | Mark | Skill | null
+export interface OwnedEntity<T = Battle | Player | Pet | Mark | Skill | null> {
+  owner: T
+  setOwner(owner: Exclude<T, null>): void // 排除 null
+}
 
-  setOwner(owner: Battle | Player | Pet | Mark | Skill): void
+export interface MarkOwner {
+  marks: Mark[]
+
+  addMark(context: AddMarkContext): void
+  removeMark(context: RemoveMarkContext): void
 }
 
 // 宝可梦能力等级修正表

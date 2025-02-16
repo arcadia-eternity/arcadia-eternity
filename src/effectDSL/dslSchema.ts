@@ -7,12 +7,14 @@ import {
   Value,
   SelectorChain,
   SelectorDSL,
-  ConditionDSL,
+  EvaluatorDSL,
   ActionDSL,
   RawNumberValue,
   RawStringValue,
   RawBooleanValue,
   RawMarkIdValue,
+  ConditionDSL,
+  EffectDSL,
 } from './dsl'
 
 const selectorKeys = Object.keys(BaseSelector)
@@ -72,12 +74,12 @@ export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
     }),
     z.object({
       type: z.literal('where'),
-      arg: conditionDSLSchema,
+      arg: evaluatorDSLSchema,
     }),
     z.object({
       type: z.literal('whereAttr'),
       extractor: z.union([extractorSchema, z.string()]),
-      condition: conditionDSLSchema,
+      condition: evaluatorDSLSchema,
     }),
     z.object({
       type: z.literal('and'),
@@ -135,7 +137,7 @@ export const selectorDSLSchema: z.ZodSchema<SelectorDSL> = z.lazy(() =>
   ]),
 )
 
-export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
+export const evaluatorDSLSchema: z.ZodSchema<EvaluatorDSL> = z.lazy(() =>
   z.union([
     z.object({
       type: z.literal('compare'),
@@ -149,11 +151,11 @@ export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
     }),
     z.object({
       type: z.literal('any'),
-      conditions: z.array(conditionDSLSchema),
+      conditions: z.array(evaluatorDSLSchema),
     }),
     z.object({
       type: z.literal('all'),
-      conditions: z.array(conditionDSLSchema),
+      conditions: z.array(evaluatorDSLSchema),
     }),
     z.object({
       type: z.literal('probability'),
@@ -228,7 +230,14 @@ export const actionDSLSchema: z.ZodSchema<ActionDSL> = z.lazy(() =>
   ]),
 )
 
-export const effectDSLSchema = z.lazy(() =>
+export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
+  z.object({
+    target: selectorDSLSchema,
+    evaluator: evaluatorDSLSchema,
+  }),
+)
+
+export const effectDSLSchema: z.ZodSchema<EffectDSL> = z.lazy(() =>
   z.object({
     id: z.string(),
     trigger: effectTriggerSchema,

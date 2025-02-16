@@ -825,7 +825,20 @@
             ]
           },
           "condition": {
-            "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/1/properties/arg"
+            "type": "object",
+            "properties": {
+              "target": {
+                "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
+              },
+              "evaluator": {
+                "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/1/properties/arg"
+              }
+            },
+            "required": [
+              "target",
+              "evaluator"
+            ],
+            "additionalProperties": false
           },
           "consumesStacks": {
             "type": "number"

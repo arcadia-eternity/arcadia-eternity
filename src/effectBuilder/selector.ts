@@ -6,7 +6,7 @@ import { Pet } from '@core/pet'
 import { Player } from '@core/player'
 import { Skill } from '@core/skill'
 import { Element } from '@core/element'
-import { ValueExtractor, ConditionOperator, Operator } from './effectBuilder'
+import { ValueExtractor, Evaluator, Operator, Action, Condition } from './effectBuilder'
 import { EffectTrigger } from '@core/effect'
 
 // 条件系统分为三个层级
@@ -36,10 +36,6 @@ export class ChainableSelector<T extends SelectorOpinion> {
   select<U extends SelectorOpinion>(extractor: ValueExtractor<T, U>): ChainableSelector<U> {
     return new ChainableSelector<U>(context =>
       this.selector(context).map(t => {
-        // 运行时类型检查
-        if (typeof extractor !== 'function') {
-          throw new Error(`提取器必须为函数，实际类型：${typeof extractor}`)
-        }
         const value = extractor(t)
         return value as U
       }),
@@ -47,14 +43,14 @@ export class ChainableSelector<T extends SelectorOpinion> {
   }
 
   //对结果进行筛选
-  where(predicate: ConditionOperator<T>): ChainableSelector<T> {
+  where(predicate: Evaluator<T>): ChainableSelector<T> {
     return new ChainableSelector(context => {
       return this.selector(context).filter(t => predicate(context, [t]))
     })
   }
 
   //在保持当前结果类型的同时，对参数进行筛选
-  whereAttr<U>(extractor: ValueExtractor<T, U>, condition: ConditionOperator<U>): ChainableSelector<T> {
+  whereAttr<U>(extractor: ValueExtractor<T, U>, condition: Evaluator<U>): ChainableSelector<T> {
     return new ChainableSelector(context => {
       return this.selector(context).filter(t => {
         const value = extractor(t)
@@ -184,11 +180,11 @@ export class ChainableSelector<T extends SelectorOpinion> {
     return this.selector
   }
 
-  condition(conditioner: ConditionOperator<T>) {
+  condition(conditioner: Evaluator<T>): Condition {
     return (context: EffectContext<EffectTrigger>) => conditioner(context, this.selector(context))
   }
 
-  apply(operator: Operator<T>) {
+  apply(operator: Operator<T>): Action {
     return (context: EffectContext<EffectTrigger>) => operator(context, this.selector(context))
   }
 

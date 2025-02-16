@@ -120,12 +120,12 @@ type SelectorChain =
   | SelectStepDSL
   | {
       type: 'where'
-      arg: ConditionDSL
+      arg: EvaluatorDSL
     }
   | {
       type: 'whereAttr'
       extractor: keyof typeof Extractor | string
-      condition: ConditionDSL
+      condition: EvaluatorDSL
     }
   | {
       type: 'and'
@@ -171,7 +171,7 @@ type SelectorChain =
       arg: number // 最小值限制
     }
 
-export type ConditionDSL =
+export type EvaluatorDSL =
   | {
       type: 'compare'
       target: string
@@ -179,6 +179,11 @@ export type ConditionDSL =
       value: Value
     }
   | { type: 'same'; value: Value }
-  | { type: 'any'; conditions: ConditionDSL[] }
-  | { type: 'all'; conditions: ConditionDSL[] }
+  | { type: 'any'; conditions: EvaluatorDSL[] }
+  | { type: 'all'; conditions: EvaluatorDSL[] }
   | { type: 'probability'; percent: Value }
+
+export type ConditionDSL = {
+  target: SelectorDSL
+  evaluator: EvaluatorDSL
+}

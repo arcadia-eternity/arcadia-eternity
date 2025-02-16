@@ -21,10 +21,10 @@ export enum StackStrategy {
 }
 
 //TODO: 印记的换场逻辑，以及传递的逻辑。
-export class Mark implements EffectContainer, Prototype, OwnedEntity {
+export class Mark implements EffectContainer, Prototype, OwnedEntity<Battle | Pet | null> {
   public _stack: number = 1
   public duration: number
-  public owner: Pet | Battle | null = null
+  public owner: Battle | Pet | null = null
   public isActive: boolean = true
 
   constructor(
@@ -62,7 +62,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     this.owner = owner
   }
 
-  attachTo(target: Pet | Battle) {
+  attachTo(target: Battle | Pet) {
     this.owner = target
   }
 
@@ -189,7 +189,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity {
     }
   }
 
-  public transfer(context: EffectContext<EffectTrigger>, target: Pet) {
+  public transfer(context: EffectContext<EffectTrigger>, target: Battle | Pet) {
     this.attachTo(target)
     target.marks.push(this)
     context.battle.cleanupMarks()

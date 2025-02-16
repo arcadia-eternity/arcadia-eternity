@@ -1,4 +1,4 @@
-import { BattlePhase } from './battle'
+import { BattlePhase, BattleStatus } from './battle'
 import { AttackTargetOpinion, StatOnBattle, StatTypeOnBattle } from './const'
 import { Element } from './element'
 import { Category } from './skill'
@@ -44,8 +44,19 @@ export interface PlayerMessage {
   team: PetMessage[]
 }
 
+export interface BattleState {
+  status: BattleStatus
+  currentPhase: BattlePhase
+  currentTurn: number
+  marks: MarkMessage[]
+
+  players: PlayerMessage[]
+}
+
 // battleSystem.ts
 export enum BattleMessageType {
+  BattleState = 'BATTLE_STATE',
+
   // 战斗流程
   BattleStart = 'BATTLE_START',
   RoundStart = 'ROUND_START',
@@ -89,6 +100,7 @@ export enum BattleMessageType {
 }
 
 export type BattleMessage =
+  | BattleStateMessage
   | BattleStartMessage
   | RoundStartMessage
   | PhaseChangeMessage
@@ -125,6 +137,8 @@ interface BaseBattleMessage<T extends BattleMessageType> {
 
 // 各消息类型数据结构
 export interface BattleMessageData {
+  [BattleMessageType.BattleState]: BattleState
+
   [BattleMessageType.BattleStart]: {
     playerA: PlayerMessage
     playerB: PlayerMessage
@@ -260,6 +274,7 @@ export interface BattleMessageData {
 }
 
 // 具体消息类型定义
+type BattleStateMessage = BaseBattleMessage<BattleMessageType.BattleState>
 type BattleStartMessage = BaseBattleMessage<BattleMessageType.BattleStart>
 type RoundStartMessage = BaseBattleMessage<BattleMessageType.RoundStart>
 type PhaseChangeMessage = BaseBattleMessage<BattleMessageType.PhaseChange>

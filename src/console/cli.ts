@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import yaml from 'yaml'
 import { DataRepository } from '@/daraRespository/dataRepository'
-import { PlayerParser, SpeciesParser, SkillParser, MarkParser } from '@/parser'
+import { PlayerParser, SpeciesParser, SkillParser, MarkParser, EffectParser } from '@/parser'
 import { Battle } from '@/core/battle'
 import { ConsoleUI } from '@/console/console'
 import { Player } from '@/core/player'
@@ -42,13 +42,13 @@ async function loadGameData() {
         DataRepository.getInstance().registerMark(mark.id, mark)
       }
     },
-    // effect: async content => {
-    //   const data = yaml.parse(content)
-    //   for (const item of data) {
-    //     const effect = EffectParser.parse(item) // 需要实现EffectParser
-    //     DataRepository.getInstance().registerEffect(effect.id, effect)
-    //   }
-    // },
+    effect: async content => {
+      const data = yaml.parse(content)
+      for (const item of data) {
+        const effect = EffectParser.parse(item) // 需要实现EffectParser
+        DataRepository.getInstance().registerEffect(effect.id, effect)
+      }
+    },
     mark_ability: async content => {
       const data = yaml.parse(content)
       for (const item of data) {

@@ -11,16 +11,23 @@ import {
   SelectorOpinion,
   ValueSource,
 } from '@/effectBuilder/selector'
-import { ActionDSL, SelectorDSL, ConditionDSL, Value } from './dsl'
+import { ActionDSL, SelectorDSL, EvaluatorDSL, Value, EffectDSL, ConditionDSL } from './dsl'
 import { Conditions } from '@/effectBuilder/condition'
 import { Operators } from '@/effectBuilder/operator'
-import { ConditionOperator, ValueExtractor } from '@/effectBuilder/effectBuilder'
+import { Condition, Evaluator, ValueExtractor } from '@/effectBuilder/effectBuilder'
 import { DataRepository } from '@/daraRespository/dataRepository'
 import { Pet } from '@/core/pet'
 import { Mark } from '@/core/mark'
 import { StatTypeOnBattle, StatTypeWithoutHp } from '@/core/const'
 import { Player } from '@/core/player'
 import { UseSkillContext } from '@/core/context'
+import { Effect, EffectTrigger } from '@/core/effect'
+
+export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
+  const actions = createAction(dsl.apply)
+  const condition = dsl.condition ? parseCondition(dsl.condition) : undefined
+  return new Effect(dsl.id, dsl.trigger, actions, dsl.priority, condition)
+}
 
 export function parseSelector<T extends SelectorOpinion>(dsl: SelectorDSL): ChainableSelector<T> {
   let selector: ChainableSelector<SelectorOpinion>
@@ -51,14 +58,14 @@ export function parseSelector<T extends SelectorOpinion>(dsl: SelectorDSL): Chai
             break
           }
           case 'where': {
-            const condition = parseCondition(step.arg)
+            const condition = parseEvaluator(step.arg)
             selector = selector.where(condition)
             break
           }
           case 'whereAttr': {
             type CurrentType = typeof selector._type
             const extractor = parseExtractor<CurrentType>(step.extractor)
-            const condition = parseCondition(step.condition)
+            const condition = parseEvaluator(step.condition)
             selector = selector.whereAttr(extractor, condition)
             break
           }
@@ -208,23 +215,23 @@ export function parseExtractor<T extends SelectorOpinion>(
   }
 }
 
-function parseCondition(dsl: ConditionDSL): ConditionOperator<SelectorOpinion> {
+function parseEvaluator(dsl: EvaluatorDSL): Evaluator<SelectorOpinion> {
   switch (dsl.type) {
     case 'compare':
       return Conditions.compare(
         dsl.operator,
         parseValue(dsl.value) as ValueSource<number>,
-      ) as ConditionOperator<SelectorOpinion>
+      ) as Evaluator<SelectorOpinion>
     case 'same':
       return Conditions.same(
         parseValue(dsl.value) as ValueSource<number | string | boolean>,
-      ) as ConditionOperator<SelectorOpinion>
+      ) as Evaluator<SelectorOpinion>
     case 'any':
       // 递归解析嵌套条件（OR 逻辑）
-      return Conditions.any(...dsl.conditions.map(v => parseCondition(v)))
+      return Conditions.any(...dsl.conditions.map(v => parseEvaluator(v)))
     case 'all':
       // 递归解析嵌套条件（AND 逻辑）
-      return Conditions.all(...dsl.conditions.map(v => parseCondition(v)))
+      return Conditions.all(...dsl.conditions.map(v => parseEvaluator(v)))
     case 'probability':
       return Conditions.probability(parseValue(dsl.percent) as ValueSource<number>)
     default: {
@@ -341,4 +348,10 @@ export function parseAddPowerAction(dsl: Extract<ActionDSL, { type: 'addPower' }
 
 export function parseTransferMark(dsl: Extract<ActionDSL, { type: 'transferMark' }>) {
   return parseSelector<Pet>(dsl.target).apply(Operators.transferMark(parseValue(dsl.mark) as ValueSource<Mark>))
+}
+
+export function parseCondition(dsl: ConditionDSL): Condition {
+  const target = parseSelector(dsl.target)
+  const evaluator = parseEvaluator(dsl.evaluator)
+  return target.condition(evaluator)
 }
