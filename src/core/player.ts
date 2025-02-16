@@ -128,7 +128,7 @@ export class Player {
   }
 
   public performAttack(context: UseSkillContext): boolean {
-    // 攻击前触发
+    this.battle!.applyEffects(context, EffectTrigger.BeforeAttack)
     const attacker = context.pet
     const defender =
       context.skill.target === AttackTargetOpinion.opponent
@@ -160,8 +160,6 @@ export class Player {
     if (!context.useSkillSuccess) {
       return false
     }
-
-    this.battle!.applyEffects(context, EffectTrigger.BeforeAttack)
 
     if (!context.available) {
       this.battle!.emitMessage(BattleMessageType.Error, {
@@ -278,7 +276,7 @@ export class Player {
         context.origin.addRage(new RageContext(context, context.origin, 'skillHit', 'add', 15)) //命中奖励
       }
 
-      this.battle!.applyEffects(context, EffectTrigger.OnCritPostDamage) // 触发命中特效
+      this.battle!.applyEffects(context, EffectTrigger.PostDamage) // 触发命中特效
       if (context.crit) {
         this.battle!.applyEffects(context, EffectTrigger.OnCritPostDamage) // 触发暴击后特效
       }

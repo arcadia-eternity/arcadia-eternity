@@ -1,0 +1,100 @@
+# yaml-language-server:$schema=../schema/effect.schema.json
+- id: 'meihuo_cannot_act'
+  trigger: 'OnAddMark'
+  priority: 1
+  apply:
+    type: 'addMark'
+    target: 'self'
+    mark: 'mark_meihuo'
+    duration: 2
+  condition:
+    type: 'compare'
+    target: 'mark'
+    operator: '=='
+    value:
+      type: 'raw:string'
+      value: 'mark_meihuo'
+
+- id: 'meihuo_block_action'
+  trigger: 'BeforeAttack'
+  priority: 10
+  apply:
+    type: 'modifyStat'
+    target:
+      base: 'self'
+    statType:
+      type: 'raw:string'
+      value: 'canAct'
+    value:
+      type: 'raw:boolean'
+      value: false
+    percent: false
+  condition:
+    type: 'compare'
+    target: 'marks'
+    operator: 'includes'
+    value:
+      type: 'raw:string'
+      value: 'mark_meihuo'
+
+# 石化 (mark_shihua)
+- id: 'shihua_remove_on_crit'
+  trigger: 'OnCritPostDamage'
+  priority: 1
+  apply:
+    type: 'consumeStacks'
+    target:
+      base: 'self'
+    mark: 'mark_shihua'
+    value: 9999 # 强制移除所有层数
+
+# 烧伤 (mark_shaoshang)
+- id: 'shaoshang_damage'
+  trigger: 'TurnEnd'
+  priority: 1
+  apply:
+    type: 'dealDamage'
+    target:
+      base: 'self'
+    value:
+      type: 'dynamic'
+      selector:
+        base: 'self'
+        chain:
+          - type: 'select'
+            arg: 'hp'
+          - type: 'divide'
+            arg: 8
+  condition:
+    type: 'compare'
+    target: 'marks'
+    operator: 'includes'
+    value:
+      type: 'raw:string'
+      value: 'mark_shaoshang'
+
+# 恐惧 (mark_kongju)
+- id: 'kongju_clear_on_high_damage'
+  trigger: 'OnDamage'
+  priority: 1
+  apply:
+    type: 'consumeStacks'
+    target:
+      base: 'self'
+    mark: 'mark_kongju'
+    value: 9999
+  condition:
+    type: 'and'
+    arg:
+      - type: 'compare'
+        target: 'marks'
+        operator: 'includes'
+        value:
+          type: 'raw:string'
+          value: 'mark_kongju'
+      - type: 'compare'
+        target: 'damageValue'
+        operator: '>'
+        value:
+          type: 'raw:number'
+          value: 100
