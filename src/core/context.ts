@@ -43,7 +43,6 @@ export class UseSkillContext extends Context {
   public power: number = 0
   public rageCost: number = 0
   actualTarget?: Pet = undefined
-  useSkillSuccess: boolean = true
   damageModified: [number, number] = [0, 0] // 百分比修正, 固定值修正
   damageResult: number = 0
   minThreshold?: number = undefined // 最小伤害阈值数值
@@ -62,6 +61,18 @@ export class UseSkillContext extends Context {
   ) {
     super(parent)
     this.battle = parent.battle
+    this.actualTarget =
+      this.skill.target === AttackTargetOpinion.opponent ? this.battle!.getOpponent(origin).activePet : pet // 动态获取当前目标
+
+    if (Array.isArray(this.multihit)) {
+      const [low, high] = this.multihit
+      this.multihitResult = this.battle.randomInt(low, high)
+    } else {
+      this.multihitResult = this.multihit
+    }
+    this.power = this.skill.power
+    this.rageCost = this.skill.rage
+    this.sureHit = skill.sureHit
   }
 
   amplifyPower(multiplier: number) {
@@ -182,9 +193,10 @@ type TriggerContextMap = {
   [EffectTrigger.BeforeAttack]: UseSkillContext
   [EffectTrigger.PreDamage]: UseSkillContext
   [EffectTrigger.OnCritPreDamage]: UseSkillContext
-  [EffectTrigger.OnDamage]: UseSkillContext
-  [EffectTrigger.PostDamage]: UseSkillContext
+  [EffectTrigger.OnDamage]: DamageContext
+  [EffectTrigger.PostDamage]: DamageContext
   [EffectTrigger.OnCritPostDamage]: UseSkillContext
+  [EffectTrigger.OnBeforeHit]: UseSkillContext
   [EffectTrigger.OnHit]: UseSkillContext
   [EffectTrigger.OnMiss]: UseSkillContext
   [EffectTrigger.AfterAttacked]: UseSkillContext

@@ -24,8 +24,8 @@ export interface PetMessage {
   element: Element
   currentHp: number
   maxHp: number
-  skills: SkillMessage[] //skillmessage
-  stats: StatOnBattle
+  skills?: SkillMessage[] //skillmessage
+  stats?: StatOnBattle
   marks: MarkMessage[] //markmessage
 }
 
@@ -41,7 +41,8 @@ export interface PlayerMessage {
   name: string
   uid: string
   activePet: PetMessage
-  team: PetMessage[]
+  team?: PetMessage[]
+  teamAlives: number
 }
 
 export interface BattleState {
@@ -193,7 +194,7 @@ export interface BattleMessageData {
 
   [BattleMessageType.SkillUse]: {
     user: string
-    target: string
+    target: AttackTargetOpinion
     skill: string
     rageCost: number
   }

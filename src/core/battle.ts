@@ -53,7 +53,7 @@ export class Battle extends Context implements MarkOwner {
   }
 
   // 注册消息回调
-  public onMessage(callback: (message: BattleMessage) => void) {
+  public registerListener(callback: (message: BattleMessage) => void) {
     this.messageCallbacks.push(callback)
   }
 
@@ -208,13 +208,13 @@ export class Battle extends Context implements MarkOwner {
 
     this.applyEffects(context, EffectTrigger.TurnStart)
 
-    contextpop: while (contexts.length > 0) {
+    while (contexts.length > 0) {
       const nowContext = contexts.pop()
       if (!nowContext) break
       switch (nowContext.type) {
         case 'use-skill': {
           const _context = nowContext as UseSkillContext
-          if (_context.origin.performAttack(_context)) break contextpop
+          _context.origin.performAttack(_context)
           break
         }
         case 'switch-pet': {
@@ -224,12 +224,15 @@ export class Battle extends Context implements MarkOwner {
         }
       }
       this.cleanupMarks()
+      this.emitMessage(BattleMessageType.BattleState, this.toMessage())
     }
 
     this.applyEffects(context, EffectTrigger.TurnEnd)
     this.addTurnRage(context) // 每回合结束获得怒气
     this.updateTurnMark(context)
     this.cleanupMarks()
+
+    this.emitMessage(BattleMessageType.BattleState, this.toMessage())
 
     // 战斗结束后重置状态
     if (this.isBattleEnded()) {
@@ -310,19 +313,20 @@ export class Battle extends Context implements MarkOwner {
   public *startBattle(): Generator<void, void, void> {
     if (this.status != BattleStatus.Unstarted) throw '战斗已经开始过了！'
     this.status = BattleStatus.OnBattle
+    this.applyEffects(this, EffectTrigger.OnBattleStart)
     this.emitMessage(BattleMessageType.BattleStart, {
       playerA: this.playerA.toMessage(),
       playerB: this.playerB.toMessage(),
     })
+    this.emitMessage(BattleMessageType.BattleState, this.toMessage())
 
-    while (true) {
+    turnLoop: while (true) {
       // 阶段1：处理强制换宠
       this.currentPhase = BattlePhase.SwitchPhase
       while (!(this.playerA.activePet.isAlive && this.playerB.activePet.isAlive)) {
         this.pendingDefeatedPlayers = [this.playerA, this.playerB].filter(player => !player.activePet.isAlive)
         if (this.isBattleEnded()) {
-          this.status = BattleStatus.Ended
-          return
+          break turnLoop
         }
 
         if (this.pendingDefeatedPlayers.length > 0) {
@@ -357,9 +361,9 @@ export class Battle extends Context implements MarkOwner {
             this.lastKiller,
             (this.lastKiller.selection as SwitchPetSelection).pet,
           )
-
           // 执行换宠并触发相关效果
           this.lastKiller.performSwitchPet(switchContext)
+          this.emitMessage(BattleMessageType.BattleState, this.toMessage())
 
           // 立即检查新宠物状态
           if (!this.lastKiller.activePet.isAlive) {
@@ -382,7 +386,7 @@ export class Battle extends Context implements MarkOwner {
       // 阶段4：执行回合
       this.currentPhase = BattlePhase.ExecutionPhase
       const turnContext: TurnContext = new TurnContext(this)
-      if (this.performTurn(turnContext)) break
+      if (this.performTurn(turnContext)) break turnLoop
       this.clearSelections()
     }
     this.status = BattleStatus.Ended
@@ -426,13 +430,13 @@ export class Battle extends Context implements MarkOwner {
     throw '不存在胜利者'
   }
 
-  toMessage(): BattleState {
+  toMessage(viewerId?: string): BattleState {
     return {
       status: this.status,
       currentPhase: this.currentPhase,
       currentTurn: this.currentTurn,
-      marks: this.marks,
-      players: [this.playerA, this.playerB].map(p => p.toMessage()),
+      marks: this.marks.map(m => m.toMessage()),
+      players: [this.playerA, this.playerB].map(p => p.toMessage(viewerId)),
     }
   }
 }

@@ -109,6 +109,14 @@ export class Pet implements OwnedEntity, MarkOwner {
       effectiveness: context.effectiveness,
       damageType: context.damageType,
     })
+
+    if (context.source instanceof Pet) {
+      context.battle.applyEffects(context, EffectTrigger.PostDamage)
+      if (context.crit) {
+        context.battle.applyEffects(context, EffectTrigger.OnCritPostDamage) // 触发暴击后特效
+      }
+    }
+
     return this.isAlive
   }
 
@@ -297,7 +305,9 @@ export class Pet implements OwnedEntity, MarkOwner {
     context.battle.applyEffects(context, EffectTrigger.OnOwnerSwitchIn, ...this.marks)
   }
 
-  public toMessage(): PetMessage {
+  toMessage(viewerId?: string): PetMessage {
+    const isSelf = viewerId === this.owner?.id
+
     return {
       name: this.name,
       uid: this.id,
@@ -305,9 +315,9 @@ export class Pet implements OwnedEntity, MarkOwner {
       element: this.element,
       currentHp: this.currentHp,
       maxHp: this.maxHp,
-      skills: this.skills.map(s => s.toMessage()),
-      stats: this.actualStat,
       marks: this.marks.map(m => m.toMessage()),
+      stats: isSelf ? this.stat : undefined,
+      skills: isSelf ? this.skills : undefined,
     }
   }
 

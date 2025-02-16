@@ -1,6 +1,6 @@
 import { Battle } from './battle'
 import { DoNothingSelection, type PlayerSelection, SwitchPetSelection, UseSkillSelection } from './selection'
-import { AttackTargetOpinion, DamageType, RAGE_PER_DAMAGE } from './const'
+import { DamageType, RAGE_PER_DAMAGE } from './const'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { EffectTrigger } from './effect'
 import { BattleMessageType, PlayerMessage } from './message'
@@ -129,161 +129,143 @@ export class Player {
 
   public performAttack(context: UseSkillContext): boolean {
     this.battle!.applyEffects(context, EffectTrigger.BeforeAttack)
-    const attacker = context.pet
-    const defender =
-      context.skill.target === AttackTargetOpinion.opponent
-        ? this.battle!.getOpponent(context.origin).activePet
-        : attacker // 动态获取当前目标
-    context.actualTarget = defender
     if (!context.skill) {
-      this.battle!.emitMessage(BattleMessageType.Error, { message: `${attacker.name} 没有可用技能!` })
-      return false
-    }
-    if (attacker.currentHp <= 0 || !attacker.isAlive) return false
-
-    if (Array.isArray(context.multihit)) {
-      const [low, high] = context.multihit
-      context.multihitResult = context.battle.randomInt(low, high)
-    } else {
-      context.multihitResult = context.multihit
-    }
-    context.power = context.skill.power
-    context.rageCost = context.skill.rage
-
-    this.battle!.emitMessage(BattleMessageType.SkillUse, {
-      user: attacker.id,
-      target: defender.id,
-      skill: context.skill.id,
-      rageCost: context.rageCost,
-    })
-
-    if (!context.useSkillSuccess) {
+      this.battle!.emitMessage(BattleMessageType.Error, { message: `${context.pet.name} 没有可用技能!` })
       return false
     }
 
-    if (!context.available) {
+    if (context.pet.currentHp <= 0 || !context.pet.isAlive || !context.available || !context.actualTarget) {
       this.battle!.emitMessage(BattleMessageType.Error, {
-        message: `${attacker.id} 无法使用 ${context.skill.id}!`,
+        message: `${context.pet.id} 无法使用 ${context.skill.id}!`,
       })
       return false
     }
-
     if (context.origin.currentRage < context.rageCost) {
       // 怒气检查
       this.battle!.emitMessage(BattleMessageType.Error, {
-        message: `${attacker.id} 怒气不足无法使用 ${context.skill.id}!`,
+        message: `${context.pet.id} 怒气不足无法使用 ${context.skill.id}!`,
       })
       return false
     }
+
+    this.battle!.emitMessage(BattleMessageType.SkillUse, {
+      user: context.pet.id,
+      target: context.selectTarget,
+      skill: context.skill.id,
+      rageCost: context.rageCost,
+    })
 
     context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.skill.rage))
 
     for (; context.multihitResult > 0; context.multihitResult--) {
       // 命中判定
-      if (this.battle!.random() > context.skill.accuracy) {
+      if (this.battle!.random() > context.skill.accuracy && !context.sureHit) {
         this.battle!.emitMessage(BattleMessageType.SkillMiss, {
-          user: attacker.id,
-          target: defender.id,
+          user: context.pet.id,
+          target: context.actualTarget.id,
           skill: context.skill.id,
           reason: 'accuracy',
         })
         this.battle!.applyEffects(context, EffectTrigger.OnMiss)
-        return false
-      }
-
-      // 伤害计算
-      if (context.skill.category !== Category.Status) {
-        // 暴击判定
-        context.crit = context.crit || Math.random() < attacker.stat.critRate
-        if (context.crit) this.battle!.applyEffects(context, EffectTrigger.OnCritPreDamage)
-        this.battle!.applyEffects(context, EffectTrigger.PreDamage)
-        const typeMultiplier = ELEMENT_CHART[context.skill.element][defender.element] || 1
-        let atk = 0
-        let def = 0
-        let damageType: DamageType
-        switch (context.skill.category) {
-          case Category.Physical:
-            atk = attacker.actualStat.atk
-            def = defender.actualStat.def
-            damageType = DamageType.physical
-            break
-          case Category.Special:
-            atk = attacker.actualStat.spa
-            def = defender.actualStat.spd
-            damageType = DamageType.special
-            break
-          case Category.Climax:
-            if (attacker.actualStat.atk > attacker.actualStat.spa) {
-              atk = attacker.actualStat.atk
-              def = defender.actualStat.def
+      } else {
+        this.battle!.applyEffects(context, EffectTrigger.OnBeforeHit)
+        if (context.skill.category !== Category.Status) {
+          // 暴击判定
+          context.crit = context.crit || Math.random() < context.pet.stat.critRate
+          if (context.crit) this.battle!.applyEffects(context, EffectTrigger.OnCritPreDamage)
+          this.battle!.applyEffects(context, EffectTrigger.PreDamage)
+          const typeMultiplier = ELEMENT_CHART[context.skill.element][context.actualTarget.element] || 1
+          let atk = 0
+          let def = 0
+          let damageType: DamageType
+          switch (context.skill.category) {
+            case Category.Physical:
+              atk = context.pet.actualStat.atk
+              def = context.actualTarget.actualStat.def
               damageType = DamageType.physical
-            } else {
-              atk = attacker.actualStat.spa
-              def = defender.actualStat.spd
+              break
+            case Category.Special:
+              atk = context.pet.actualStat.spa
+              def = context.actualTarget.actualStat.spd
               damageType = DamageType.special
-            }
+              break
+            case Category.Climax:
+              if (context.pet.actualStat.atk > context.pet.actualStat.spa) {
+                atk = context.pet.actualStat.atk
+                def = context.actualTarget.actualStat.def
+                damageType = DamageType.physical
+              } else {
+                atk = context.pet.actualStat.spa
+                def = context.actualTarget.actualStat.spd
+                damageType = DamageType.special
+              }
+          }
+          const baseDamage = Math.floor(
+            (((2 * context.actualTarget.level) / 5 + 2) * context.power * (atk / def)) / 50 + 2,
+          )
+
+          // 随机波动
+          const randomFactor = this.battle!.random() * 0.15 + 0.85
+
+          // STAB加成
+          const stabMultiplier = context.pet.species.element === context.skill.element ? 1.5 : 1
+
+          // 暴击加成
+          const critMultiplier = context.crit ? 2 : 1
+
+          // 应用百分比修正（叠加计算）
+          const percentModifier = 1 + context.damageModified[0] / 100
+
+          // 计算中间伤害
+          let intermediateDamage = Math.floor(
+            baseDamage * randomFactor * typeMultiplier * stabMultiplier * critMultiplier * percentModifier,
+          )
+
+          // 应用固定值修正
+          intermediateDamage += context.damageModified[1]
+
+          // 应用伤害阈值（先处理最小值再处理最大值）
+          // 最小值阈值处理
+          if (context.minThreshold) {
+            intermediateDamage = Math.min(intermediateDamage, context.minThreshold)
+          }
+
+          // 最大值阈值处理
+          if (context.maxThreshold) {
+            intermediateDamage = Math.max(intermediateDamage, context.maxThreshold)
+          }
+
+          // 记录最终伤害
+          context.damageResult = Math.max(0, intermediateDamage)
+
+          // 应用伤害
+          context.actualTarget.damage(
+            new DamageContext(context, context.pet, context.damageResult, damageType, context.crit, typeMultiplier),
+          )
+
+          if (context.crit)
+            this.battle!.emitMessage(BattleMessageType.Crit, {
+              attacker: context.pet.id,
+              target: context.actualTarget.id,
+            })
+
+          // 受伤者获得怒气
+          const gainedRage = Math.floor(context.damageResult * RAGE_PER_DAMAGE)
+          context.actualTarget.owner!.addRage(
+            new RageContext(context, context.actualTarget.owner!, 'damage', 'add', gainedRage),
+          )
+
+          context.origin.addRage(new RageContext(context, context.origin, 'skillHit', 'add', 15)) //命中奖励
         }
-        const baseDamage = Math.floor((((2 * defender.level) / 5 + 2) * context.power * (atk / def)) / 50 + 2)
-
-        // 随机波动
-        const randomFactor = this.battle!.random() * 0.15 + 0.85
-
-        // STAB加成
-        const stabMultiplier = attacker.species.element === context.skill.element ? 1.5 : 1
-
-        // 暴击加成
-        const critMultiplier = context.crit ? 1.5 : 1
-
-        // 应用百分比修正（叠加计算）
-        const percentModifier = 1 + context.damageModified[0] / 100
-
-        // 计算中间伤害
-        let intermediateDamage = Math.floor(
-          baseDamage * randomFactor * typeMultiplier * stabMultiplier * critMultiplier * percentModifier,
-        )
-
-        // 应用固定值修正
-        intermediateDamage += context.damageModified[1]
-
-        // 应用伤害阈值（先处理最小值再处理最大值）
-        // 最小值阈值处理
-        if (context.minThreshold) {
-          intermediateDamage = Math.min(intermediateDamage, context.minThreshold)
-        }
-
-        // 最大值阈值处理
-        if (context.maxThreshold) {
-          intermediateDamage = Math.max(intermediateDamage, context.maxThreshold)
-        }
-
-        // 记录最终伤害
-        context.damageResult = Math.max(0, intermediateDamage)
-
-        // 应用伤害
-        defender.damage(
-          new DamageContext(context, attacker, context.damageResult, damageType, context.crit, typeMultiplier),
-        )
-
-        if (context.crit)
-          this.battle!.emitMessage(BattleMessageType.Crit, { attacker: attacker.id, target: defender.id })
-
-        // 受伤者获得怒气
-        const gainedRage = Math.floor(context.damageResult * RAGE_PER_DAMAGE)
-        defender.owner!.addRage(new RageContext(context, defender.owner!, 'damage', 'add', gainedRage))
-
-        this.battle!.applyEffects(context, EffectTrigger.PostDamage) // 触发伤害后特效
-        if (context.crit) {
-          this.battle!.applyEffects(context, EffectTrigger.OnCritPostDamage) // 触发暴击后特效
-        }
-
-        context.origin.addRage(new RageContext(context, context.origin, 'skillHit', 'add', 15)) //命中奖励
+        this.battle!.applyEffects(context, EffectTrigger.OnHit) // 触发命中特效
       }
 
-      this.battle!.applyEffects(context, EffectTrigger.OnHit) // 触发命中特效
-
-      if (defender.currentHp <= 0) {
-        this.battle!.emitMessage(BattleMessageType.PetDefeated, { pet: defender.id, killer: context.pet.id })
-        defender.isAlive = false
+      if (context.actualTarget.currentHp <= 0) {
+        this.battle!.emitMessage(BattleMessageType.PetDefeated, {
+          pet: context.actualTarget.id,
+          killer: context.pet.id,
+        })
+        context.actualTarget.isAlive = false
         this.battle!.applyEffects(context, EffectTrigger.OnDefeat) // 触发击败特效
 
         this.battle!.lastKiller = context.origin
@@ -325,12 +307,16 @@ export class Player {
     })
   }
 
-  public toMessage(): PlayerMessage {
+  public toMessage(viewerId?: string): PlayerMessage {
+    const isSelf = viewerId === this.id
+    const teamAlives = this.team.filter(p => p.isAlive).length
+
     return {
       name: this.name,
       uid: this.id,
-      activePet: this.activePet.toMessage(),
-      team: this.team.map(p => p.toMessage()),
+      activePet: this.activePet.toMessage(viewerId),
+      teamAlives,
+      team: isSelf ? this.team.map(p => p.toMessage(viewerId)) : undefined,
     }
   }
 }

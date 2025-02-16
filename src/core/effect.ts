@@ -61,6 +61,7 @@ export enum EffectTrigger {
   OnDamage = 'OnDamage',
   PostDamage = 'PostDamage',
   OnCritPostDamage = 'OnCritPostDamage',
+  OnBeforeHit = 'OnBeforeHit',
   OnHit = 'OnHit',
   OnMiss = 'OnMiss',
   AfterAttacked = 'AfterAttacked',

@@ -218,6 +218,7 @@ export type SelectorOpinion =
 
 // 基础选择器
 export const BaseSelector: {
+  target: ChainableSelector<Pet>
   self: ChainableSelector<Pet>
   foe: ChainableSelector<Pet>
   petOwners: ChainableSelector<Player>
@@ -227,12 +228,22 @@ export const BaseSelector: {
   selfMarks: ChainableSelector<Mark>
   foeMarks: ChainableSelector<Mark>
 } = {
+  //选择目标，在使用技能的场景下，为技能实际指向的目标，在印记的场景下指向印记的所有者。
+  target: createChainable<Pet>((context: EffectContext<EffectTrigger>) => {
+    if (context.parent instanceof UseSkillContext)
+      return context.parent.actualTarget ? [context.parent.actualTarget] : []
+    if (context.source.owner instanceof Pet) return [context.source.owner]
+    //TODO: error with use owners with global marks
+    return []
+  }),
+  //在使用技能的场景和印记的场景都指向拥有者自身。
   self: createChainable<Pet>((context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent.pet]
     if (context.source.owner instanceof Pet) return [context.source.owner]
     //TODO: error with use owners with global marks
     return []
   }),
+  //在使用技能的场景，指向技能拥有者的敌方玩家的当前首发，在印记的场景指向印记所有者的敌方玩家的当前首发。
   foe: createChainable<Pet>((context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent.actualTarget!]
     if (context.source.owner instanceof Pet) return [context.battle.getOpponent(context.source.owner.owner!).activePet]
