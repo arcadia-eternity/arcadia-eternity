@@ -272,14 +272,14 @@ export class Player {
         defender.owner!.addRage(new RageContext(context, defender.owner!, 'damage', 'add', gainedRage))
 
         this.battle!.applyEffects(context, EffectTrigger.PostDamage) // 触发伤害后特效
+        if (context.crit) {
+          this.battle!.applyEffects(context, EffectTrigger.OnCritPostDamage) // 触发暴击后特效
+        }
 
         context.origin.addRage(new RageContext(context, context.origin, 'skillHit', 'add', 15)) //命中奖励
       }
 
-      this.battle!.applyEffects(context, EffectTrigger.PostDamage) // 触发命中特效
-      if (context.crit) {
-        this.battle!.applyEffects(context, EffectTrigger.OnCritPostDamage) // 触发暴击后特效
-      }
+      this.battle!.applyEffects(context, EffectTrigger.OnHit) // 触发命中特效
 
       if (defender.currentHp <= 0) {
         this.battle!.emitMessage(BattleMessageType.PetDefeated, { pet: defender.id, killer: context.pet.id })
