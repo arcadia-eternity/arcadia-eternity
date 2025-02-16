@@ -18,7 +18,7 @@ export class ConsoleUI {
     private playerB: Player,
   ) {
     this.battle = battle
-    battle.onMessage(this.handleMessage.bind(this)) //this的上下文应该为本身
+    battle.registerListener(this.handleMessage.bind(this)) //this的上下文应该为本身
     this.allPets = [...playerA.team, ...playerB.team]
   }
 
@@ -43,7 +43,12 @@ export class ConsoleUI {
 
   private handleMessage(message: BattleMessage) {
     this.messages.push(message)
+
     switch (message.type) {
+      case BattleMessageType.BattleState:
+        //TODO：全局状态展示
+        break
+
       case BattleMessageType.BattleStart:
         console.log(`⚔️ 对战开始！`)
         console.log(`玩家A: ${this.getPetStatus(this.playerA.activePet)}`)
