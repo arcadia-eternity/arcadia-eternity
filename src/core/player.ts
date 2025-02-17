@@ -1,6 +1,6 @@
 import { Battle, BattlePhase } from './battle'
 import { DoNothingSelection, type PlayerSelection, SwitchPetSelection, UseSkillSelection } from './selection'
-import { DamageType, RAGE_PER_DAMAGE } from './const'
+import { AttackTargetOpinion, DamageType, RAGE_PER_DAMAGE } from './const'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { EffectTrigger } from './effect'
 import { BattleMessage, BattleMessageType, PlayerMessage } from './message'
@@ -130,6 +130,10 @@ export class Player {
       this.battle!.emitMessage(BattleMessageType.Error, { message: `${context.target.name} 无法出战！` })
       return
     }
+    if (player.activePet === context.target) {
+      //如果所换上的就是首发的精灵，则不做任何操作
+      return
+    }
 
     // 执行换宠
     const oldPet = player.activePet
@@ -155,6 +159,11 @@ export class Player {
       this.battle!.emitMessage(BattleMessageType.Error, { message: `${context.pet.name} 没有可用技能!` })
       return false
     }
+
+    context.actualTarget =
+      context.skill.target === AttackTargetOpinion.opponent
+        ? this.battle!.getOpponent(context.origin).activePet
+        : context.pet // 动态获取当前目标
 
     if (context.pet.currentHp <= 0 || !context.pet.isAlive || !context.available || !context.actualTarget) {
       this.battle!.emitMessage(BattleMessageType.Error, {

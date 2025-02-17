@@ -61,8 +61,6 @@ export class UseSkillContext extends Context {
   ) {
     super(parent)
     this.battle = parent.battle
-    this.actualTarget =
-      this.skill.target === AttackTargetOpinion.opponent ? this.battle!.getOpponent(origin).activePet : pet // 动态获取当前目标
 
     if (Array.isArray(this.multihit)) {
       const [low, high] = this.multihit
