@@ -95,6 +95,9 @@ export class Pet implements OwnedEntity, MarkOwner {
       return this.isAlive
     }
     this.currentHp = Math.max(0, this.currentHp - context.value)
+    if (this.currentHp === 0) {
+      this.isAlive = false
+    }
 
     context.battle!.emitMessage(BattleMessageType.Damage, {
       currentHp: this.currentHp,
@@ -112,15 +115,6 @@ export class Pet implements OwnedEntity, MarkOwner {
       if (context.crit) {
         context.battle.applyEffects(context, EffectTrigger.OnCritPostDamage) // 触发暴击后特效
       }
-    }
-
-    if (this.currentHp <= 0) {
-      this.isAlive = false
-      context.battle.pendingDefeatedPlayers.push(this.owner!)
-      context.battle.emitMessage(BattleMessageType.PetDefeated, {
-        pet: this.id,
-        killer: context.source.id,
-      })
     }
 
     return this.isAlive
