@@ -263,7 +263,7 @@ export class Battle extends Context implements MarkOwner {
   }
 
   private isBattleEnded(): boolean {
-    if ((this.status = BattleStatus.Ended)) return true
+    if (this.status === BattleStatus.Ended) return true
     if (this.victor) return true
     // 检查强制换宠失败
     let isBattleEnded = false
