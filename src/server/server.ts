@@ -150,9 +150,34 @@ function createBattleRoom(p1: Socket, p2: Socket): string {
   const player1 = initializePlayer(p1, p1.data.playerData)
   const player2 = initializePlayer(p2, p2.data.playerData)
 
+  const battle = new Battle(player1.playerData, player2.playerData)
+
+  // 绑定战斗消息到Socket.IO
+  battle.registerListener(message => {
+    // 转换消息格式
+    const socketMessage = {
+      type: message.type,
+      data: message.data,
+      timestamp: message.timestamp,
+    }
+
+    // 发送给房间内所有玩家
+    io.to(roomId).emit('battleEvent', socketMessage)
+
+    // 特殊事件处理
+    switch (message.type) {
+      case BattleMessageType.BattleEnd:
+        cleanupRoom(roomId, io)
+        break
+      case BattleMessageType.ForcedSwitch:
+        handleForcedSwitch(roomId, message.data.player)
+        break
+    }
+  })
+
   rooms.set(roomId, {
     id: roomId,
-    battle: new Battle(player1.playerData, player2.playerData),
+    battle,
     players: new Map([
       [p1.id, player1],
       [p2.id, player2],
@@ -162,6 +187,43 @@ function createBattleRoom(p1: Socket, p2: Socket): string {
   })
 
   return roomId
+}
+
+async function initRoomState(room: BattleRoom, io: Server) {
+  // 发送初始化数据
+  const initData = {
+    roomId: room.id,
+    players: Array.from(room.players.values()).map(p => ({
+      id: p.playerData.id,
+      name: p.playerData.name,
+      team: p.playerData.team.map(pet => ({
+        id: pet.id,
+        name: pet.name,
+        level: pet.level,
+      })),
+    })),
+  }
+
+  // 单独发送给每个玩家
+  room.players.forEach((player, socketId) => {
+    io.to(socketId).emit('battleInit', {
+      ...initData,
+      isPlayerA: socketId === room.battle.playerA.id,
+    })
+  })
+
+  // 启动战斗循环时添加状态同步
+  setInterval(() => {
+    const state = room.battle.toMessage()
+    io.to(room.id).emit('battleSync', {
+      phase: state.currentPhase,
+      turn: state.currentTurn,
+      players: state.players.map(p => ({
+        activePet: p.activePet,
+        rage: p.rage,
+      })),
+    })
+  }, 1000) // 每秒同步一次基础状态
 }
 
 // 错误处理增强

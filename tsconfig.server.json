@@ -8,15 +8,6 @@
     "moduleResolution": "Bundler",
     "types": ["bun-types"],
     "composite": true,
-
-    /* 类型检查强化 */
-    "strict": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-
-    /* 调试优化 */
-    "sourceMap": true,
-    "inlineSources": true
   },
   "include": ["src/server/**/*"]
 }
