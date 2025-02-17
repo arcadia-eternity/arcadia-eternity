@@ -15,7 +15,8 @@ import { Player } from './player'
 import Prando from 'prando'
 import { Mark } from './mark'
 import { type EffectContainer, EffectScheduler, EffectTrigger } from './effect'
-import { UseSkillSelection, SwitchPetSelection } from './selection'
+import { SwitchPetSelection } from './selection'
+import { Skill } from './skill'
 
 export enum BattlePhase {
   SwitchPhase = 'SWITCH_PHASE',
@@ -40,6 +41,9 @@ export class Battle extends Context implements MarkOwner {
   private rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
   public victor?: Player
 
+  public petMap: Map<string, Pet> = new Map() // ID -> Pet 实例
+  public skillMap: Map<string, Skill> = new Map() // ID -> Skill 实例
+
   constructor(
     public readonly playerA: Player,
     public readonly playerB: Player,
@@ -50,6 +54,8 @@ export class Battle extends Context implements MarkOwner {
     if (options?.rngSeed) this.rng = new Prando(options.rngSeed)
     this.playerA.registerBattle(this)
     this.playerB.registerBattle(this)
+    ;[...this.playerA.team, ...this.playerB.team].forEach(p => this.petMap.set(p.id, p))
+    this.petMap.forEach(p => p.skills.forEach(s => this.skillMap.set(s.id, s)))
   }
 
   // 注册消息回调
@@ -144,6 +150,24 @@ export class Battle extends Context implements MarkOwner {
     cleanPetMarks(this.playerB.activePet)
   }
 
+  public getPlayerByID(id: string): Player {
+    const player = [this.playerA, this.playerB].find(p => p.id === id)
+    if (!player) throw new Error('Unknown player')
+    return player
+  }
+
+  public getPetByID(id: string): Pet {
+    const pet = this.petMap.get(id)
+    if (!pet) throw new Error('Unknown pet')
+    return pet
+  }
+
+  public getSkillByID(id: string): Skill {
+    const skill = this.skillMap.get(id)
+    if (!skill) throw new Error('Unknown skill')
+    return skill
+  }
+
   public applyEffects<T extends EffectTrigger>(context: AllContext, trigger: T, ...target: EffectContainer[]) {
     let effectContainers = [...target]
     if (target.length == 0)
@@ -167,33 +191,30 @@ export class Battle extends Context implements MarkOwner {
     const contexts: Context[] = []
 
     for (const selection of [this.playerA.selection, this.playerB.selection]) {
+      const player = this.getPlayerByID(selection.player)
       switch (selection.type) {
         case 'use-skill': {
-          const _selection = selection as UseSkillSelection
-          const skillContext = new UseSkillContext(
-            context,
-            _selection.source,
-            _selection.source.activePet,
-            _selection.skill.target,
-            _selection.skill,
-          )
+          const skill = this.getSkillByID(selection.skill)
+          const skillContext = new UseSkillContext(context, player, player.activePet, skill.target, skill)
           this.battle.applyEffects(skillContext, EffectTrigger.BeforeSort)
           contexts.push(skillContext)
           break
         }
         case 'switch-pet': {
-          const _selection = selection as SwitchPetSelection
-          const switchContext = new SwitchPetContext(context, _selection.source, _selection.pet)
+          const pet = this.getPetByID(selection.pet)
+          const switchContext = new SwitchPetContext(context, player, pet)
           contexts.push(switchContext)
           break
         }
         case 'do-nothing':
           //确实啥都没干
           break
-        case 'surrunder':
-          this.victor = this.getOpponent(selection.source)
+        case 'surrender': {
+          const player = this.getPlayerByID(selection.player)
+          this.victor = this.getOpponent(player)
           this.status = BattleStatus.Ended
           return true
+        }
         default:
           throw '未知的context'
       }
@@ -340,9 +361,8 @@ export class Battle extends Context implements MarkOwner {
             yield
           }
           ;[...this.pendingDefeatedPlayers].forEach(player => {
-            player.performSwitchPet(
-              new SwitchPetContext(this.battle!, player, (player.selection as SwitchPetSelection).pet),
-            )
+            const selectionPet = this.getPetByID((player.selection as SwitchPetSelection).pet)
+            player.performSwitchPet(new SwitchPetContext(this.battle!, player, selectionPet))
             player.selection = null
           })
         }
@@ -357,11 +377,8 @@ export class Battle extends Context implements MarkOwner {
         yield // 等待玩家选择换宠
 
         if (this.lastKiller.selection?.type === 'switch-pet') {
-          const switchContext = new SwitchPetContext(
-            this,
-            this.lastKiller,
-            (this.lastKiller.selection as SwitchPetSelection).pet,
-          )
+          const selectionPet = this.getPetByID((this.lastKiller.selection as SwitchPetSelection).pet)
+          const switchContext = new SwitchPetContext(this, this.lastKiller, selectionPet)
           // 执行换宠并触发相关效果
           this.lastKiller.performSwitchPet(switchContext)
           this.emitMessage(BattleMessageType.BattleState, this.toMessage())

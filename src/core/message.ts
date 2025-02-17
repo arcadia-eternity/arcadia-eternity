@@ -39,7 +39,7 @@ export interface MarkMessage {
 
 export interface PlayerMessage {
   name: string
-  uid: string
+  id: string
   activePet: PetMessage
   team?: PetMessage[]
   teamAlives: number

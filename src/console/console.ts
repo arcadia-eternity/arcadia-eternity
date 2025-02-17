@@ -1,11 +1,11 @@
-import { Battle, BattlePhase } from '@/core/battle'
+import { Battle } from '@/core/battle'
 import { Player, type PlayerSelection } from '@core/player'
 import readline from 'readline'
 import { type BattleMessage, BattleMessageType } from '@core/message'
 import { Pet } from '@core/pet'
 import { ELEMENT_MAP } from '@core/element'
 import { Mark } from '@core/mark'
-import { Category } from '@core/skill'
+import { Category, Skill } from '@core/skill'
 import { UseSkillSelection, SwitchPetSelection, DoNothingSelection } from '@/core/selection'
 
 export class ConsoleUI {
@@ -26,6 +26,14 @@ export class ConsoleUI {
     const baseInfo = `${ELEMENT_MAP[pet.element].emoji}${pet.name}(${pet.species.name}) [Lv.${pet.level} HP:${pet.currentHp}/${pet.maxHp} Rage:${pet.owner?.currentRage}/100]`
     const markInfo = pet.marks.length > 0 ? ' 印记:' + pet.marks.map(mark => this.getMarkStatus(mark)).join(' ') : ''
     return baseInfo + markInfo
+  }
+
+  private getPetById(id: string): Pet {
+    return this.battle.getPetByID(id)
+  }
+
+  private getSkillById(id: string): Skill {
+    return this.battle.getSkillByID(id)
   }
 
   private getPetNameById(id: string): string {
@@ -174,17 +182,6 @@ export class ConsoleUI {
     }
   }
 
-  // ---------- 辅助方法 ----------
-  private translatePhase(phase: BattlePhase): string {
-    const phases: Record<BattlePhase, string> = {
-      [BattlePhase.SwitchPhase]: '换宠阶段',
-      [BattlePhase.SelectionPhase]: '指令选择',
-      [BattlePhase.ExecutionPhase]: '执行阶段',
-      [BattlePhase.Ended]: '战斗结束',
-    }
-    return phases[phase] || phase
-  }
-
   private getRageReason(reason: string): string {
     const reasons: Record<string, string> = {
       turn: '回合增长',
@@ -247,22 +244,26 @@ export class ConsoleUI {
     // 1. 显示可用技能
     const validSkills = actions.filter((a): a is UseSkillSelection => a.type === 'use-skill')
     validSkills.forEach((a, i) => {
+      const skill = this.getSkillById(a.skill)
       const skillTypeIcon = {
         [Category.Physical]: '⚔️',
         [Category.Special]: '🔮',
         [Category.Status]: '⭐',
         [Category.Climax]: '⚡',
-      }[a.skill.category]
+      }[skill.category]
 
-      const powerText = a.skill.category === Category.Status ? '' : `, 威力:${a.skill.power}`
+      const powerText = skill.category === Category.Status ? '' : `, 威力:${skill.power}`
       console.log(
-        `${i + 1}. 使用技能: ${ELEMENT_MAP[a.skill.element].emoji}${a.skill.name} (${skillTypeIcon}${powerText}, 消耗:${a.skill.rage})`,
+        `${i + 1}. 使用技能: ${ELEMENT_MAP[skill.element].emoji}${skill.name} (${skillTypeIcon}${powerText}, 消耗:${skill.rage})`,
       )
     })
 
     // 2. 显示更换精灵选项
     const switchActions = actions.filter((a): a is SwitchPetSelection => a.type === 'switch-pet')
-    switchActions.forEach((a, i) => console.log(`${validSkills.length + i + 1}. 更换精灵: ${this.getPetStatus(a.pet)}`))
+    switchActions.forEach((a, i) => {
+      const pet = this.getPetById(a.pet)
+      console.log(`${validSkills.length + i + 1}. 更换精灵: ${this.getPetStatus(pet)}`)
+    })
 
     // 3. 显示什么都不做选项
     const doNothingIndex = actions.filter((a): a is DoNothingSelection => a.type === 'do-nothing')
@@ -296,7 +297,7 @@ export class ConsoleUI {
 
     // 选择什么都不做
     if (choice === validSkills.length + switchActions.length + 1) {
-      return { type: 'do-nothing', source: player }
+      return { type: 'do-nothing', player: player.id }
     }
 
     // 无效选择
@@ -384,12 +385,16 @@ export class ConsoleUI {
 
     // 显示可选操作
     console.log('1. 保持当前精灵')
-    actions.forEach((a, i) => console.log(`${i + 2}. 更换精灵: ${this.getPetStatus(a.pet)}`))
+
+    actions.forEach((a, i) => {
+      const pet = this.getPetById(a.pet)
+      console.log(`${i + 2}. 更换精灵: ${this.getPetStatus(pet)}`)
+    })
 
     while (true) {
       const choice = parseInt(await this.question('请选择操作: '))
       if (choice === 1) {
-        return { type: 'do-nothing', source: player }
+        return { type: 'do-nothing', player: player.id }
       }
       if (choice >= 2 && choice <= actions.length + 1) {
         return actions[choice - 2]
@@ -401,7 +406,10 @@ export class ConsoleUI {
   private async getForcedSwitchAction(player: Player): Promise<PlayerSelection> {
     const actions = player.getAvailableSwitch() as SwitchPetSelection[]
     console.log('必须更换精灵！可用选项：')
-    actions.forEach((a, i) => console.log(`${i + 1}. 更换精灵: ${this.getPetStatus(a.pet)}`))
+    actions.forEach((a, i) => {
+      const pet = this.getPetById(a.pet)
+      console.log(`${i + 1}. 更换精灵: ${this.getPetStatus(pet)}`)
+    })
 
     while (true) {
       const choice = parseInt(await this.question('请选择更换的精灵：'))

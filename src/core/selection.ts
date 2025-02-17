@@ -1,12 +1,9 @@
 import { AttackTargetOpinion } from './const'
-import { Pet } from './pet'
-import { Player } from './player'
-import { Skill } from './skill'
 
-export type PlayerSelection = UseSkillSelection | SwitchPetSelection | DoNothingSelection | SurrunderSelection
-export type PlayerSelections = { player: Player; selections: PlayerSelection[] }
+export type PlayerSelection = UseSkillSelection | SwitchPetSelection | DoNothingSelection | SurrenderSelection
+export type PlayerSelections = { player: string; selections: PlayerSelection[] }
 
-export type UseSkillSelection = { source: Player; type: 'use-skill'; skill: Skill; target: AttackTargetOpinion }
-export type SwitchPetSelection = { source: Player; type: 'switch-pet'; pet: Pet }
-export type DoNothingSelection = { source: Player; type: 'do-nothing' }
-export type SurrunderSelection = { source: Player; type: 'surrunder' }
+export type UseSkillSelection = { player: string; type: 'use-skill'; skill: string; target: AttackTargetOpinion }
+export type SwitchPetSelection = { player: string; type: 'switch-pet'; pet: string }
+export type DoNothingSelection = { player: string; type: 'do-nothing' }
+export type SurrenderSelection = { player: string; type: 'surrender' }

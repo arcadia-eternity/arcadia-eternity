@@ -1,9 +1,9 @@
-import { Battle } from './battle'
+import { Battle, BattlePhase } from './battle'
 import { DoNothingSelection, type PlayerSelection, SwitchPetSelection, UseSkillSelection } from './selection'
 import { DamageType, RAGE_PER_DAMAGE } from './const'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { EffectTrigger } from './effect'
-import { BattleMessageType, PlayerMessage } from './message'
+import { BattleMessage, BattleMessageType, PlayerMessage } from './message'
 import { Pet } from './pet'
 import { Category } from './skill'
 import { ELEMENT_CHART } from './element'
@@ -13,6 +13,7 @@ export class Player {
   public battle?: Battle
   public selection: PlayerSelection | null = null
   public activePet: Pet
+  private messageCallbacks: Array<(message: BattleMessage) => void> = []
   constructor(
     public readonly name: string,
     public readonly id: string,
@@ -24,13 +25,29 @@ export class Player {
 
   public registerBattle(battle: Battle) {
     this.battle = battle
+    battle.registerListener(this.handleMessage.bind(this))
+  }
+
+  public registerListener(callback: (message: BattleMessage) => void) {
+    this.messageCallbacks.push(callback)
+  }
+
+  public emitMessage(message: BattleMessage) {
+    this.messageCallbacks.forEach(cb => cb(message))
+  }
+
+  private handleMessage(message: BattleMessage) {
+    if (message.type === BattleMessageType.BattleState) {
+      message.data.players[message.data.players.findIndex(p => p.id === this.id)] = this.toMessage(this.id)
+    }
+    this.emitMessage(message)
   }
 
   public getAvailableSelection(): PlayerSelection[] {
     const actions: PlayerSelection[] = [...this.getAvailableSkills(), ...this.getAvailableSwitch()]
     if (actions.length == 0)
       actions.push({
-        source: this,
+        player: this.id,
         type: 'do-nothing',
       } as DoNothingSelection)
     return actions
@@ -45,8 +62,8 @@ export class Player {
         skill =>
           ({
             type: 'use-skill',
-            skill,
-            source: this,
+            skill: skill.id,
+            player: this.id,
             target: skill.target,
           }) as UseSkillSelection,
       )
@@ -61,8 +78,8 @@ export class Player {
       )
       .map(pet => ({
         type: 'switch-pet',
-        pet,
-        source: this,
+        pet: pet.id,
+        player: this.id,
       }))
   }
 
@@ -71,15 +88,20 @@ export class Player {
     if (selection.type !== 'use-skill') {
       throw new Error("Invalid action type. Expected 'use-skill'.")
     }
-    return selection.source.currentRage >= selection.skill.rage
+    if (this.battle?.currentPhase != BattlePhase.SelectionPhase) {
+      return false
+    }
+    const skill = this.battle!.getSkillByID(selection.skill)
+    return this.currentRage >= skill.rage
   }
 
   private checkDoNothingActionAvailable() {
-    return this.getAvailableSelection()[0].type == 'do-nothing'
+    return this.battle?.lastKiller === this || this.getAvailableSelection()[0].type == 'do-nothing'
   }
 
   private checkSwitchAvailable(selection: SwitchPetSelection) {
-    return selection.pet !== this.activePet && selection.pet.isAlive
+    const selectionPet = this.battle!.getPetByID(selection.pet)
+    return selection.pet !== this.activePet.id && selectionPet.isAlive
   }
 
   public setSelection(selection: PlayerSelection): boolean {
@@ -313,7 +335,7 @@ export class Player {
 
     return {
       name: this.name,
-      uid: this.id,
+      id: this.id,
       activePet: this.activePet.toMessage(viewerId),
       teamAlives,
       team: isSelf ? this.team.map(p => p.toMessage(viewerId)) : undefined,
