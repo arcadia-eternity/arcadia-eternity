@@ -10,13 +10,7 @@ import {
   TurnContext,
   UseSkillContext,
 } from './context'
-import {
-  type BattleMessage,
-  BattleMessageType,
-  type BattleMessageData,
-  type BattleState,
-  BattleMessageHandler,
-} from './message'
+import { type BattleMessage, BattleMessageType, type BattleMessageData, type BattleState } from './message'
 import { Player } from './player'
 import Prando from 'prando'
 import { Mark } from './mark'
@@ -38,9 +32,7 @@ export class Battle extends Context implements MarkOwner {
   public status: BattleStatus = BattleStatus.Unstarted
   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
   public currentTurn = 0
-  // private messageCallbacks: Array<(message: BattleMessage) => void> = []
-  public playerAMessageCallbacks: Array<(message: BattleMessage) => void> = []
-  public playerBMessageCallbacks: Array<(message: BattleMessage) => void> = []
+  private messageCallbacks: Array<(message: BattleMessage) => void> = []
   public pendingDefeatedPlayers: Player[] = [] // 新增：需要在下回合换宠的玩家
   public allowFaintSwitch: boolean
   public lastKiller?: Player
@@ -61,10 +53,8 @@ export class Battle extends Context implements MarkOwner {
   }
 
   // 注册消息回调
-  public registerListener(player: Player, callback: BattleMessageHandler) {
-    const callbacks = player === this.playerA ? this.playerAMessageCallbacks : this.playerBMessageCallbacks
-
-    callbacks.push(callback)
+  public registerListener(callback: (message: BattleMessage) => void) {
+    this.messageCallbacks.push(callback)
   }
 
   public random() {
@@ -85,22 +75,13 @@ export class Battle extends Context implements MarkOwner {
   }
 
   // 发送消息给所有回调
-  public emitMessage<T extends BattleMessageType>(
-    type: T,
-    data: BattleMessageData[T],
-    targetPlayer?: Player, // 新增：指定目标玩家
-  ) {
-    const message: BattleMessage = { type, data, timestamp: Date.now() } as BattleMessage
-
-    // 按目标玩家发送消息
-    if (targetPlayer) {
-      const callbacks = targetPlayer === this.playerA ? this.playerAMessageCallbacks : this.playerBMessageCallbacks
-      callbacks.forEach(cb => cb(message))
-    } else {
-      // 全局广播
-      this.playerAMessageCallbacks.forEach(cb => cb(message))
-      this.playerBMessageCallbacks.forEach(cb => cb(message))
-    }
+  public emitMessage<T extends BattleMessageType>(type: T, data: BattleMessageData[T]) {
+    const message: BattleMessage = {
+      type,
+      data,
+      timestamp: Date.now(),
+    } as BattleMessage
+    this.messageCallbacks.forEach(cb => cb(message))
   }
 
   public addMark(context: AddMarkContext) {
@@ -277,8 +258,6 @@ export class Battle extends Context implements MarkOwner {
     const playerBisDefeat = this.playerB.team.every(p => !p.isAlive)
     if (playerAisDefeat || playerBisDefeat) {
       isBattleEnded = true
-      this.status = BattleStatus.Ended
-      this.currentPhase = BattlePhase.Ended
     }
     if (playerAisDefeat && !playerBisDefeat) this.victor = this.playerB
     if (playerBisDefeat && !playerAisDefeat) this.victor = this.playerA
@@ -331,67 +310,9 @@ export class Battle extends Context implements MarkOwner {
     }
   }
 
-  private async collectSelections() {
-    // 创建两个独立的选择Promise，每个包含校验逻辑
-    const playerAPromise = this.waitForValidSelection(this.playerA)
-    const playerBPromise = this.waitForValidSelection(this.playerB)
-
-    // 并行等待双方有效提交
-    await Promise.all([playerAPromise, playerBPromise])
-  }
-
-  private waitForValidSelection(player: Player): Promise<void> {
-    return new Promise((resolve, reject) => {
-      ;(async () => {
-        try {
-          while (true) {
-            // 等待玩家提交动作
-            await this.waitForSelection(player)
-            // 验证动作有效性
-            if (player.setSelection(player.selection!)) {
-              resolve()
-              break
-            } else {
-              // 发送无效操作消息，清空选择并重新等待
-              this.emitMessage(
-                BattleMessageType.InvalidAction,
-                {
-                  player: player.id,
-                  action: player.selection!.type,
-                  reason: 'invalid_action',
-                },
-                player,
-              )
-            }
-          }
-        } catch (error) {
-          reject(error)
-        }
-      })()
-    })
-  }
-
-  private waitForSelection(player: Player): Promise<void> {
-    return new Promise(resolve => {
-      const listener: BattleMessageHandler = (message: BattleMessage) => {
-        if (message.type === BattleMessageType.TurnAction && player.selection) {
-          this.unregisterListener(player, listener)
-          resolve()
-        }
-      }
-      this.registerListener(player, listener)
-    })
-  }
-
-  private unregisterListener(player: Player, callback: BattleMessageHandler) {
-    const callbacks = player === this.playerA ? this.playerAMessageCallbacks : this.playerBMessageCallbacks
-    const index = callbacks.findIndex(cb => cb === callback)
-    if (index !== -1) callbacks.splice(index, 1)
-  }
-
   // 开始对战
-  public async startBattle() {
-    if (this.status !== BattleStatus.Unstarted) throw '战斗已经开始过了！'
+  public *startBattle(): Generator<void, void, void> {
+    if (this.status != BattleStatus.Unstarted) throw '战斗已经开始过了！'
     this.status = BattleStatus.OnBattle
     this.applyEffects(this, EffectTrigger.OnBattleStart)
     this.emitMessage(BattleMessageType.BattleStart, {
@@ -400,132 +321,78 @@ export class Battle extends Context implements MarkOwner {
     })
     this.emitMessage(BattleMessageType.BattleState, this.toMessage())
 
-    await this.processBattlePhases()
-
-    if ([BattleStatus.OnBattle, BattleStatus.Unstarted].includes(this.status)) {
-      this.status = BattleStatus.Ended
-    }
-  }
-
-  private async processBattlePhases() {
-    while (true) {
-      if (this.isBattleEnded()) break
-
+    turnLoop: while (true) {
       // 阶段1：处理强制换宠
-      await this.handleForcedSwitchPhase()
-      if (this.isBattleEnded()) break
-
-      // 阶段2：处理击破奖励换宠
-      await this.handleFaintSwitchPhase()
-      if (this.isBattleEnded()) break
-      if (this.pendingDefeatedPlayers.length > 0) {
-        continue // 立即跳回阶段一
-      }
-
-      // 阶段3：收集指令
-      await this.collectSelectionsPhase()
-      if (this.isBattleEnded()) break
-
-      // 阶段4：执行回合
-      await this.executeTurnPhase()
-    }
-  }
-
-  private async handleForcedSwitchPhase() {
-    this.currentPhase = BattlePhase.SwitchPhase
-
-    // 循环处理直到没有待处理玩家
-    while (this.pendingDefeatedPlayers.length > 0) {
-      if (this.isBattleEnded()) return
-      const playersToHandle = [...this.pendingDefeatedPlayers]
-      this.pendingDefeatedPlayers = [] // 清空以避免重复处理
-
-      // 发送强制换宠消息
-      this.emitMessage(BattleMessageType.ForcedSwitch, {
-        player: playersToHandle.map(p => p.id),
-      })
-
-      // 等待所有玩家提交换宠选择
-      await Promise.all(
-        playersToHandle.map(
-          player =>
-            new Promise<void>(resolve => {
-              const listener = () => {
-                if (player.selection?.type === 'switch-pet') {
-                  this.unregisterListener(player, listener)
-                  resolve()
-                }
-              }
-              this.registerListener(player, listener)
-            }),
-        ),
-      )
-
-      // 执行换宠
-      playersToHandle.forEach(player => {
-        const selection = player.selection as SwitchPetSelection
-        player.performSwitchPet(new SwitchPetContext(this, player, selection.pet))
-        player.selection = null
-
-        // 换宠后立即检查新宠物状态
-        if (!player.activePet.isAlive) {
-          this.pendingDefeatedPlayers.push(player) // 新宠物死亡则重新加入队列
+      this.currentPhase = BattlePhase.SwitchPhase
+      while (!(this.playerA.activePet.isAlive && this.playerB.activePet.isAlive)) {
+        this.pendingDefeatedPlayers = [this.playerA, this.playerB].filter(player => !player.activePet.isAlive)
+        if (this.isBattleEnded()) {
+          break turnLoop
         }
-      })
-    }
-  }
 
-  private async handleFaintSwitchPhase() {
-    if (!this.allowFaintSwitch || !this.lastKiller) return
+        if (this.pendingDefeatedPlayers.length > 0) {
+          while (
+            ![...this.pendingDefeatedPlayers].every(player => player.selection && player.selection.type == 'switch-pet')
+          ) {
+            this.emitMessage(BattleMessageType.ForcedSwitch, {
+              player: this.pendingDefeatedPlayers.map(player => player.id),
+            })
+            yield
+          }
+          ;[...this.pendingDefeatedPlayers].forEach(player => {
+            player.performSwitchPet(
+              new SwitchPetContext(this.battle!, player, (player.selection as SwitchPetSelection).pet),
+            )
+            player.selection = null
+          })
+        }
+      }
+      this.pendingDefeatedPlayers = []
 
-    await new Promise<void>(resolve => {
-      this.emitMessage(BattleMessageType.FaintSwitch, {
-        player: this.lastKiller!.id,
-      })
+      // 阶段2：击败方换宠
+      if (this.allowFaintSwitch && this.lastKiller) {
+        this.battle!.emitMessage(BattleMessageType.FaintSwitch, {
+          player: this.lastKiller.id,
+        })
+        yield // 等待玩家选择换宠
 
-      const checkSwitch = () => {
-        if (this.lastKiller?.selection?.type === 'switch-pet') {
+        if (this.lastKiller.selection?.type === 'switch-pet') {
           const switchContext = new SwitchPetContext(
             this,
             this.lastKiller,
             (this.lastKiller.selection as SwitchPetSelection).pet,
           )
-
-          // 执行换宠
+          // 执行换宠并触发相关效果
           this.lastKiller.performSwitchPet(switchContext)
+          this.emitMessage(BattleMessageType.BattleState, this.toMessage())
 
+          // 立即检查新宠物状态
           if (!this.lastKiller.activePet.isAlive) {
             this.pendingDefeatedPlayers.push(this.lastKiller)
             this.lastKiller = undefined
-            resolve()
-            return
+            continue // 直接跳回阶段1处理
           }
-
-          this.emitMessage(BattleMessageType.BattleState, this.toMessage())
-          resolve()
         }
+        this.lastKiller = undefined
       }
 
-      const listener = () => checkSwitch()
-      this.playerAMessageCallbacks.push(listener)
-      this.playerBMessageCallbacks.push(listener)
-    })
+      // 阶段3：收集玩家指令
+      this.currentPhase = BattlePhase.SelectionPhase
+      this.clearSelections()
+      while (!this.bothPlayersReady()) {
+        this.emitMessage(BattleMessageType.TurnAction, {})
+        yield
+      }
 
-    this.lastKiller = undefined
-  }
-
-  private async collectSelectionsPhase() {
-    this.currentPhase = BattlePhase.SelectionPhase
-    this.clearSelections()
-    await this.collectSelections()
-  }
-
-  private async executeTurnPhase() {
-    this.currentPhase = BattlePhase.ExecutionPhase
-    const turnContext = new TurnContext(this)
-    const battleEnded = this.performTurn(turnContext)
-    if (battleEnded) this.status = BattleStatus.Ended
-    this.clearSelections()
+      // 阶段4：执行回合
+      this.currentPhase = BattlePhase.ExecutionPhase
+      const turnContext: TurnContext = new TurnContext(this)
+      if (this.performTurn(turnContext)) break turnLoop
+      this.clearSelections()
+    }
+    this.status = BattleStatus.Ended
+    this.currentPhase = BattlePhase.Ended
+    return
   }
 
   public isInForcedSwitchPhase(): boolean {
@@ -577,6 +444,6 @@ export class Battle extends Context implements MarkOwner {
 
 export enum BattleStatus {
   Unstarted = 'Unstarted',
-  OnBattle = 'OnBattle',
+  OnBattle = 'On',
   Ended = 'Ended',
 }
