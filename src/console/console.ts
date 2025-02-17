@@ -59,10 +59,6 @@ export class ConsoleUI {
         console.log(`\n=== 第 ${message.data.round} 回合 ===`)
         break
 
-      case BattleMessageType.PhaseChange:
-        console.log(`🔄 阶段转换：${this.translatePhase(message.data.from)} → ${this.translatePhase(message.data.to)}`)
-        break
-
       case BattleMessageType.RageChange: {
         const d = message.data
         const name = this.getPetNameById(d.pet)

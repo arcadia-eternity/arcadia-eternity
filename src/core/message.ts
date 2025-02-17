@@ -19,7 +19,7 @@ export interface SkillMessage {
 
 export interface PetMessage {
   name: string
-  uid: string
+  id: string
   speciesID: string
   element: Element
   currentHp: number
@@ -61,7 +61,6 @@ export enum BattleMessageType {
   // 战斗流程
   BattleStart = 'BATTLE_START',
   RoundStart = 'ROUND_START',
-  PhaseChange = 'PHASE_CHANGE',
   BattleEnd = 'BATTLE_END',
 
   // 精灵相关
@@ -104,7 +103,6 @@ export type BattleMessage =
   | BattleStateMessage
   | BattleStartMessage
   | RoundStartMessage
-  | PhaseChangeMessage
   | BattleEndMessage
   | PetSwitchMessage
   | PetDefeatedMessage
@@ -146,10 +144,6 @@ export interface BattleMessageData {
   }
   [BattleMessageType.RoundStart]: {
     round: number
-  }
-  [BattleMessageType.PhaseChange]: {
-    from: BattlePhase
-    to: BattlePhase
   }
   [BattleMessageType.BattleEnd]: {
     winner: string
@@ -278,7 +272,6 @@ export interface BattleMessageData {
 type BattleStateMessage = BaseBattleMessage<BattleMessageType.BattleState>
 type BattleStartMessage = BaseBattleMessage<BattleMessageType.BattleStart>
 type RoundStartMessage = BaseBattleMessage<BattleMessageType.RoundStart>
-type PhaseChangeMessage = BaseBattleMessage<BattleMessageType.PhaseChange>
 type BattleEndMessage = BaseBattleMessage<BattleMessageType.BattleEnd>
 type PetSwitchMessage = BaseBattleMessage<BattleMessageType.PetSwitch>
 type PetDefeatedMessage = BaseBattleMessage<BattleMessageType.PetDefeated>

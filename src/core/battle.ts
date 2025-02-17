@@ -395,10 +395,6 @@ export class Battle extends Context implements MarkOwner {
     return
   }
 
-  public isInForcedSwitchPhase(): boolean {
-    return this.pendingDefeatedPlayers.length > 0
-  }
-
   public getPendingSwitchPlayer(): Player | undefined {
     return this.pendingDefeatedPlayers.find(player => !player.selection)
   }
