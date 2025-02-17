@@ -265,7 +265,6 @@ export class Player {
           pet: context.actualTarget.id,
           killer: context.pet.id,
         })
-        context.actualTarget.isAlive = false
         this.battle!.applyEffects(context, EffectTrigger.OnDefeat) // 触发击败特效
 
         this.battle!.lastKiller = context.origin

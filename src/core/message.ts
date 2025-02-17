@@ -3,6 +3,8 @@ import { AttackTargetOpinion, StatOnBattle, StatTypeOnBattle } from './const'
 import { Element } from './element'
 import { Category } from './skill'
 
+export type BattleMessageHandler = (message: BattleMessage) => void
+
 export interface SkillMessage {
   id: string
   name: string
@@ -19,7 +21,7 @@ export interface SkillMessage {
 
 export interface PetMessage {
   name: string
-  uid: string
+  id: string
   speciesID: string
   element: Element
   currentHp: number
@@ -278,7 +280,7 @@ export interface BattleMessageData {
 type BattleStateMessage = BaseBattleMessage<BattleMessageType.BattleState>
 type BattleStartMessage = BaseBattleMessage<BattleMessageType.BattleStart>
 type RoundStartMessage = BaseBattleMessage<BattleMessageType.RoundStart>
-type PhaseChangeMessage = BaseBattleMessage<BattleMessageType.PhaseChange>
+export type PhaseChangeMessage = BaseBattleMessage<BattleMessageType.PhaseChange>
 type BattleEndMessage = BaseBattleMessage<BattleMessageType.BattleEnd>
 type PetSwitchMessage = BaseBattleMessage<BattleMessageType.PetSwitch>
 type PetDefeatedMessage = BaseBattleMessage<BattleMessageType.PetDefeated>
