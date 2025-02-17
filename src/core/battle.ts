@@ -46,7 +46,7 @@ export class Battle extends Context implements MarkOwner {
   public lastKiller?: Player
   public marks: Mark[] = [] //用于存放天气一类的效果
   private rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
-  public vitcor?: Player
+  public victor?: Player
 
   constructor(
     public readonly playerA: Player,
@@ -210,7 +210,7 @@ export class Battle extends Context implements MarkOwner {
           //确实啥都没干
           break
         case 'surrunder':
-          this.vitcor = this.getOpponent(selection.source)
+          this.victor = this.getOpponent(selection.source)
           this.status = BattleStatus.Ended
           return true
         default:
@@ -264,7 +264,7 @@ export class Battle extends Context implements MarkOwner {
 
   private isBattleEnded(): boolean {
     if ((this.status = BattleStatus.Ended)) return true
-    if (this.vitcor) return true
+    if (this.victor) return true
     // 检查强制换宠失败
     let isBattleEnded = false
     for (const player of this.pendingDefeatedPlayers) {
@@ -280,8 +280,8 @@ export class Battle extends Context implements MarkOwner {
       this.status = BattleStatus.Ended
       this.currentPhase = BattlePhase.Ended
     }
-    if (playerAisDefeat && !playerBisDefeat) this.vitcor = this.playerB
-    if (playerBisDefeat && !playerAisDefeat) this.vitcor = this.playerA
+    if (playerAisDefeat && !playerBisDefeat) this.victor = this.playerB
+    if (playerBisDefeat && !playerAisDefeat) this.victor = this.playerA
 
     return isBattleEnded
   }
@@ -556,9 +556,9 @@ export class Battle extends Context implements MarkOwner {
       this.emitMessage(BattleMessageType.BattleEnd, { winner: this.playerA.id, reason: 'all_pet_fainted' })
       return this.playerA
     }
-    if (this.vitcor) {
-      this.emitMessage(BattleMessageType.BattleEnd, { winner: this.vitcor.id, reason: 'all_pet_fainted' })
-      return this.vitcor
+    if (this.victor) {
+      this.emitMessage(BattleMessageType.BattleEnd, { winner: this.victor.id, reason: 'all_pet_fainted' })
+      return this.victor
     }
 
     throw '不存在胜利者'
