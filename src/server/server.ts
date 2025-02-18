@@ -377,20 +377,84 @@ export class BattleServer {
 
   private cleanupRoom(roomId: string) {
     const room = this.rooms.get(roomId)
-    if (!room) return
+    if (!room) {
+      logger.warn({ roomId }, '尝试清理不存在的房间')
+      return
+    }
+    if (room?.battleGenerator) {
+      try {
+        room.battleGenerator.return() // 强制终止生成器
+      } catch (e) {
+        logger.error(e, '终止生成器失败')
+      }
+    }
+    room.battle.clearListeners()
 
-    room.players.forEach(player => {
-      player.socket.leave(roomId)
-      player.socket.data.roomId = undefined
-    })
+    logger.info(
+      {
+        roomId,
+        playerCount: room.players.size,
+        roomStatus: room.status,
+      },
+      '开始清理房间',
+    )
 
-    this.rooms.delete(roomId)
-    this.io.to(roomId).emit('roomClosed', { roomId })
+    try {
+      // 记录每个玩家的离开情况
+      room.players.forEach((player, socketId) => {
+        try {
+          player.socket.leave(roomId)
+          player.socket.data.roomId = undefined
+          logger.debug(
+            {
+              socketId,
+              playerId: player.playerData.id,
+              roomId,
+            },
+            '玩家已移出房间',
+          )
+        } catch (error) {
+          logger.error(
+            {
+              socketId,
+              error: error instanceof Error ? error.stack : error,
+            },
+            '移除玩家时发生异常',
+          )
+        }
+      })
+
+      // 删除房间记录
+      this.rooms.delete(roomId)
+      logger.info({ roomId }, '房间数据已从内存移除')
+
+      // 广播房间关闭事件
+      this.io.to(roomId).emit('roomClosed', {
+        roomId,
+      })
+      logger.info({ roomId }, '已广播房间关闭通知')
+    } catch (error) {
+      logger.error(
+        {
+          roomId,
+          error: error instanceof Error ? error.stack : error,
+        },
+        '清理房间过程中发生未预期错误',
+      )
+    } finally {
+      // 最终确认状态
+      logger.debug(
+        {
+          roomExists: this.rooms.has(roomId),
+          activeRooms: this.rooms.size,
+        },
+        '房间清理最终状态',
+      )
+    }
   }
 
   private setupHeartbeatSystem() {
-    // 全局心跳检测定时器
-    setInterval(() => {
+    const timer = setInterval(() => {
       const now = Date.now()
       this.players.forEach((player, socketId) => {
         if (now - player.lastPing > this.HEARTBEAT_INTERVAL * 2) {
@@ -400,6 +464,8 @@ export class BattleServer {
         }
       })
     }, this.HEARTBEAT_INTERVAL)
+
+    this.io.engine.on('close', () => clearInterval(timer))
   }
 
   // 玩家连接时注册

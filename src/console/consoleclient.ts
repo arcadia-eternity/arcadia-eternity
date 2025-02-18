@@ -45,7 +45,6 @@ export class ConsoleClient {
     // 处理强制换宠逻辑
     if (message.type === BattleMessageType.ForcedSwitch) {
       const targetPlayers = message.data.player
-      console.log(targetPlayers, this.playerData.id)
       if (targetPlayers.includes(this.playerData.id!)) {
         console.log('\n⚠️ 你必须更换倒下的精灵！')
         await this.handlePlayerInput()
@@ -366,13 +365,30 @@ export class ConsoleClient {
   private showSelectionMenu(selections: PlayerSelection[]) {
     console.log('\n=== 可用操作 ===')
     selections.forEach((s, i) => {
-      if (s.type === 'use-skill') {
-        const skill = this.findSkill(s.skill)
-        console.log(`${i + 1}. 使用技能：${skill?.name}`)
-      }
-      if (s.type === 'switch-pet') {
-        const pet = this.findPet(s.pet)
-        console.log(`${i + 1}. 更换精灵：${pet?.name}`)
+      const index = i + 1
+      switch (s.type) {
+        case 'use-skill': {
+          const skill = this.findSkill(s.skill)
+          console.log(`${index}. [技能] ${skill?.name}`)
+          break
+        }
+
+        case 'switch-pet': {
+          const pet = this.findPet(s.pet)
+          console.log(`${index}. [换宠] 更换为 ${pet?.name}`)
+          break
+        }
+
+        case 'do-nothing':
+          console.log(`${index}. [待机] 本回合不行动`)
+          break
+
+        case 'surrender':
+          console.log(`${index}. [投降] 结束对战`)
+          break
+
+        default:
+          console.log(`${index}. 未知操作类型`)
       }
     })
   }

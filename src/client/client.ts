@@ -75,7 +75,6 @@ export class BattleClient {
     })
 
     this.socket.on('ping', () => {
-      console.debug('收到服务端心跳 ping')
       this.socket.emit('pong')
     })
   }

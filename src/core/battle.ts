@@ -63,6 +63,10 @@ export class Battle extends Context implements MarkOwner {
     this.messageCallbacks.push(callback)
   }
 
+  clearListeners() {
+    this.messageCallbacks = []
+  }
+
   public random() {
     return this.rng.next()
   }
@@ -212,6 +216,7 @@ export class Battle extends Context implements MarkOwner {
         case 'surrender': {
           const player = this.getPlayerByID(selection.player)
           this.victor = this.getOpponent(player)
+          this.getVictor()
           this.status = BattleStatus.Ended
           return true
         }
@@ -429,7 +434,11 @@ export class Battle extends Context implements MarkOwner {
   }
 
   //TODO: 平局
-  public getVictor() {
+  public getVictor(surrender = true) {
+    if (surrender && this.victor) {
+      this.emitMessage(BattleMessageType.BattleEnd, { winner: this.victor.id, reason: 'surrender' })
+      return this.victor
+    }
     if (this.status != BattleStatus.Ended && this.isBattleEnded()) throw '战斗未结束'
 
     if (this.playerA.team.every(pet => !pet.isAlive)) {
@@ -438,10 +447,6 @@ export class Battle extends Context implements MarkOwner {
     } else if (this.playerB.team.every(pet => !pet.isAlive)) {
       this.emitMessage(BattleMessageType.BattleEnd, { winner: this.playerA.id, reason: 'all_pet_fainted' })
       return this.playerA
-    }
-    if (this.victor) {
-      this.emitMessage(BattleMessageType.BattleEnd, { winner: this.victor.id, reason: 'all_pet_fainted' })
-      return this.victor
     }
 
     throw '不存在胜利者'

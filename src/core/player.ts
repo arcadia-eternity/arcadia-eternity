@@ -59,6 +59,10 @@ export class Player {
         player: this.id,
         type: 'do-nothing',
       } as DoNothingSelection)
+    actions.push({
+      type: 'surrender',
+      player: this.id,
+    })
     return actions
   }
 
@@ -123,6 +127,8 @@ export class Player {
         break
       case 'do-nothing':
         if (!this.checkDoNothingActionAvailable()) return false
+        break
+      case 'surrender':
         break
       default:
         throw '未实现的selection类型'
