@@ -21,6 +21,7 @@
               "OnDamage",
               "PostDamage",
               "OnCritPostDamage",
+              "OnBeforeHit",
               "OnHit",
               "OnMiss",
               "AfterAttacked",
@@ -61,6 +62,7 @@
                       {
                         "type": "string",
                         "enum": [
+                          "target",
                           "self",
                           "foe",
                           "petOwners",
