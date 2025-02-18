@@ -23,6 +23,7 @@ type BattleRoom = {
   battleGenerator: Generator<void, void, void>
   players: Map<string, GamePlayer>
   status: 'waiting' | 'active' | 'ended'
+  lastActive: number
 }
 
 type GamePlayer = {
@@ -46,6 +47,8 @@ interface SocketData {
 }
 
 export class BattleServer {
+  private readonly INACTIVE_TIMEOUT = 30 * 60 * 1000 // 30分钟不活跃超时
+  private readonly CLEANUP_INTERVAL = 5 * 60 * 1000 // 每5分钟检查一次
   private readonly rooms = new Map<string, BattleRoom>()
   private readonly matchQueue = new Set<string>()
   private readonly HEARTBEAT_INTERVAL = 5000
@@ -55,6 +58,7 @@ export class BattleServer {
     this.initializeMiddleware()
     this.setupConnectionHandlers()
     this.setupHeartbeatSystem()
+    this.setupAutoCleanup()
   }
 
   private initializeMiddleware() {
@@ -71,6 +75,8 @@ export class BattleServer {
       socket.on('pong', () => {
         const player = this.players.get(socket.id)
         if (player) player.lastPing = Date.now()
+        const room = this.getPlayerRoom(socket.id)
+        if (room) room.lastActive = Date.now()
       })
 
       socket.on('disconnect', () => {
@@ -89,6 +95,43 @@ export class BattleServer {
     socket.on('playerAction', (data, ack) => this.handlePlayerAction(socket, data, ack))
     socket.on('getState', ack => this.handleGetState(socket, ack))
     socket.on('getAvailableSelection', ack => this.handleGetSelection(socket, ack))
+  }
+
+  private setupAutoCleanup() {
+    const cleaner = setInterval(() => {
+      const now = Date.now()
+      this.rooms.forEach((room, roomId) => {
+        // 跳过已结束的房间
+        if (room.status === 'ended') return
+
+        const inactiveDuration = now - room.lastActive
+        const shouldCleanup = inactiveDuration > this.INACTIVE_TIMEOUT
+
+        logger.debug(
+          {
+            roomId,
+            status: room.status,
+            inactiveMinutes: Math.floor(inactiveDuration / 60000),
+            players: Array.from(room.players.keys()),
+          },
+          '检查房间活跃状态',
+        )
+
+        if (shouldCleanup) {
+          logger.warn(
+            {
+              roomId,
+              lastActive: new Date(room.lastActive).toISOString(),
+              inactiveMinutes: Math.floor(inactiveDuration / 60000),
+            },
+            '清理不活跃房间',
+          )
+          this.cleanupRoom(roomId)
+        }
+      })
+    }, this.CLEANUP_INTERVAL)
+
+    this.io.engine.on('close', () => clearInterval(cleaner))
   }
 
   private handleJoinMatchmaking(
@@ -147,6 +190,7 @@ export class BattleServer {
       const room = this.getPlayerRoom(socket.id)
 
       if (!room) throw new Error('NOT_IN_BATTLE')
+      room.lastActive = Date.now()
       if (!room.players.get(socket.id)?.playerData.setSelection(selection)) {
         throw new Error('INVALID_SELECTION')
       }
@@ -357,6 +401,7 @@ export class BattleServer {
         [p2.id, player2],
       ]),
       status: 'waiting',
+      lastActive: Date.now(),
     })
 
     return roomId
@@ -389,6 +434,7 @@ export class BattleServer {
       }
     }
     room.battle.clearListeners()
+    room.status = 'ended'
 
     logger.info(
       {
@@ -506,8 +552,15 @@ export class BattleServer {
   private checkBattleProgress(room: BattleRoom) {
     try {
       const result = room.battleGenerator.next()
-      if (result.done) this.cleanupRoom(room.id)
+      room.lastActive = Date.now()
+      if (result.done) {
+        room.status = 'ended'
+        this.cleanupRoom(room.id)
+      } else {
+        room.status = 'active'
+      }
     } catch (error) {
+      room.status = 'ended'
       logger.error({ error, roomId: room.id }, 'Battle progression error')
     }
   }
