@@ -1,5 +1,6 @@
 import { Battle } from '@/core/battle'
-import { Player, type PlayerSelection } from '@core/player'
+import { Player } from '@core/player'
+import { type PlayerSelection } from '@core/selection'
 import readline from 'readline'
 import { type BattleMessage, BattleMessageType } from '@core/message'
 import { Pet } from '@core/pet'
@@ -351,17 +352,19 @@ export class ConsoleUI {
         continue
       }
 
-      // 获取当前需要操作的玩家
-      const currentPlayer = this.getCurrentActivePlayer()
-      if (!currentPlayer) {
-        generator = battle.next()
-        continue
+      if (lastMessage?.type == BattleMessageType.TurnAction) {
+        // 获取当前需要操作的玩家
+        const currentPlayer = this.getCurrentActivePlayer()
+        if (!currentPlayer) {
+          generator = battle.next()
+          continue
+        }
+        let selection: PlayerSelection
+        do {
+          selection = await this.getPlayerAction(currentPlayer)
+        } while (!currentPlayer.setSelection(selection))
+        battle.next()
       }
-      let selection: PlayerSelection
-      do {
-        selection = await this.getPlayerAction(currentPlayer)
-      } while (!currentPlayer.setSelection(selection))
-      battle.next()
     }
     const victor = this.battle.getVictor()
     console.log(`\n🏆 胜利者是: ${victor?.name || '平局'}！`)
@@ -404,7 +407,7 @@ export class ConsoleUI {
   }
 
   private async getForcedSwitchAction(player: Player): Promise<PlayerSelection> {
-    const actions = player.getAvailableSwitch() as SwitchPetSelection[]
+    const actions = player.getAvailableSelection() as SwitchPetSelection[]
     console.log('必须更换精灵！可用选项：')
     actions.forEach((a, i) => {
       const pet = this.getPetById(a.pet)

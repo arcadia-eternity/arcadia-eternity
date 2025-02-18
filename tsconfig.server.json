@@ -3,11 +3,11 @@
   "references": [{ "path": "./tsconfig.core.json" }],
   "compilerOptions": {
     "target": "ESNext",
-    "lib": ["ESNext", "DOM"],
+    "lib": ["ESNext"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "types": ["bun-types"],
-    "composite": true,
+    "types": ["bun-types", "node"],
+    "composite": true
   },
-  "include": ["src/server/**/*"]
+  "include": ["src/server/**/*", "src/protocol/**/*"]
 }

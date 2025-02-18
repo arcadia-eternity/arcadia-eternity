@@ -3,7 +3,7 @@ import { DoNothingSelection, type PlayerSelection, SwitchPetSelection, UseSkillS
 import { AttackTargetOpinion, DamageType, RAGE_PER_DAMAGE } from './const'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { EffectTrigger } from './effect'
-import { BattleMessage, BattleMessageType, PlayerMessage } from './message'
+import { BattleMessage, BattleMessageType, BattleState, PlayerMessage } from './message'
 import { Pet } from './pet'
 import { Category } from './skill'
 import { ELEMENT_CHART } from './element'
@@ -44,6 +44,15 @@ export class Player {
   }
 
   public getAvailableSelection(): PlayerSelection[] {
+    if (this.battle!.pendingDefeatedPlayers.includes(this)) return this.getAvailableSwitch()
+    if (this.battle?.lastKiller === this)
+      return [
+        {
+          player: this.id,
+          type: 'do-nothing',
+        },
+        ...this.getAvailableSwitch(),
+      ]
     const actions: PlayerSelection[] = [...this.getAvailableSkills(), ...this.getAvailableSwitch()]
     if (actions.length == 0)
       actions.push({
@@ -346,10 +355,13 @@ export class Player {
       name: this.name,
       id: this.id,
       activePet: this.activePet.toMessage(viewerId),
+      rage: this.currentRage,
       teamAlives,
       team: isSelf ? this.team.map(p => p.toMessage(viewerId)) : undefined,
     }
   }
-}
 
-export { PlayerSelection }
+  public getState(): BattleState {
+    return this.battle!.toMessage(this.id)
+  }
+}

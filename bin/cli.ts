@@ -10,13 +10,19 @@ import { PlayerParser, SpeciesParser, SkillParser, MarkParser, EffectParser } fr
 import { Battle } from '@/core/battle'
 import { ConsoleUI } from '@/console/console'
 import { Player } from '@/core/player'
+import { ConsoleClient } from '../src/console/consoleclient'
+import { PlayerSchema } from '@/schema'
+import { BattleServer } from '@/server'
+import { Server } from 'socket.io'
+import express from 'express'
+import { createServer } from 'node:http'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 // 初始化游戏数据加载
 async function loadGameData() {
-  const dataDir = join(__dirname, '../../data')
+  const dataDir = join(__dirname, '../data')
   const files = await fs.readdir(dataDir)
 
   // 定义文件类型与处理逻辑的映射
@@ -100,9 +106,33 @@ async function parsePlayerFile(filePath: string): Promise<Player> {
   }
 }
 
+program
+  .command('online')
+  .description('启动在线对战')
+  .requiredOption('-d, --data <path>', '玩家数据文件路径')
+  .option('-s, --server <url>', '服务器地址', 'ws://localhost:8102')
+  .action(async options => {
+    try {
+      console.log('[🌀] 正在加载游戏数据...')
+      await loadGameData()
+
+      console.log('[🌀] 正在解析玩家数据...')
+      const content = await fs.readFile(path.resolve(options.data), 'utf-8')
+      const rawData = yaml.parse(content)
+      const player = PlayerSchema.parse(rawData)
+
+      const consoleUI = new ConsoleClient(options.server, player)
+      consoleUI.connect()
+    } catch (err) {
+      console.error('[💥] 错误:', err instanceof Error ? err.message : err)
+      process.exit(1)
+    }
+  })
+
 // 主程序
 program
   .name('pokemon-battle')
+  .command('local')
   .description('精灵对战命令行工具')
   .requiredOption('-1, --player1 <path>', '玩家1数据文件路径')
   .requiredOption('-2, --player2 <path>', '玩家2数据文件路径')
@@ -126,6 +156,51 @@ program
       await consoleUI.run()
     } catch (err) {
       console.error('[💥] 致命错误:', err instanceof Error ? err.message : err)
+      process.exit(1)
+    }
+  })
+
+program
+  .command('server')
+  .description('启动对战服务器')
+  .option('-p, --port <number>', '服务器端口', '8102')
+  .action(async options => {
+    try {
+      console.log('[🌀] 正在加载游戏数据...')
+      await loadGameData()
+
+      const app = express()
+      const httpServer = createServer(app)
+
+      // 添加基础健康检查端点
+      app.get('/health', (_, res) => {
+        res.status(200).json({
+          status: 'OK',
+          uptime: process.uptime(),
+          timestamp: Date.now(),
+        })
+      })
+
+      // 配置Socket.IO
+      const io = new Server(httpServer, {
+        cors: {
+          origin: '*',
+          methods: ['GET', 'POST'],
+        },
+      })
+
+      // 初始化战斗服务器
+      new BattleServer(io)
+
+      // 启动服务器
+      httpServer.listen(parseInt(options.port), () => {
+        console.log(`🖥  Express服务器已启动`)
+        console.log(`📡 监听端口: ${options.port}`)
+        console.log(`⚔  等待玩家连接...`)
+        console.log(`🏥 健康检查端点: http://localhost:${options.port}/health`)
+      })
+    } catch (err) {
+      console.error('[💥] 服务器启动失败:', err instanceof Error ? err.message : err)
       process.exit(1)
     }
   })

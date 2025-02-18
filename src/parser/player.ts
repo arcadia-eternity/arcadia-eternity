@@ -6,7 +6,7 @@ import { nanoid } from 'nanoid'
 export class PlayerParser {
   static parse(rawData: unknown): Player {
     const validated = PlayerSchema.parse(rawData)
-    const uid = validated.uid ?? nanoid()
+    const uid = validated.id ?? nanoid()
 
     const pets = validated.team.map(pet => PetParser.parse(pet))
 

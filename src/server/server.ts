@@ -1,329 +1,492 @@
-// server.ts
-import { Server, Socket } from 'socket.io'
-import { Battle } from '@core/battle'
+import { BattleMessageType, BattleState } from '@/core/message'
 import { PlayerParser } from '@/parser/player'
 import { SelectionParser } from '@/parser/selection'
-import { PetParser } from '@/parser/pet'
-import { ZodError } from 'zod'
-import { PlayerSelection } from '@/core/selection'
+import { AckResponse, ClientToServerEvents, ErrorResponse, ServerToClientEvents } from '@/protocol'
+import { PlayerSelection, PlayerSelectionSchema } from '@/schema'
+import { Battle } from '@core/battle'
 import { nanoid } from 'nanoid'
-import { PlayerSelectionSchema } from '@/schema/selection'
+import pino from 'pino'
+import { Server, Socket } from 'socket.io'
+import { ZodError } from 'zod'
 
-// 类型定义
+const logger = pino({
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  formatters: {
+    level: label => ({ level: label }),
+  },
+  timestamp: () => `,"time":"${new Date().toISOString()}"`,
+})
+
 type BattleRoom = {
   id: string
   battle: Battle
+  battleGenerator: Generator<void, void, void>
   players: Map<string, GamePlayer>
-  selections: Map<string, PlayerSelection> // 改用Map存储选择
   status: 'waiting' | 'active' | 'ended'
 }
 
 type GamePlayer = {
-  socket: Socket
+  socket: Socket<ClientToServerEvents, ServerToClientEvents>
   playerData: ReturnType<typeof PlayerParser.parse>
   lastPing: number
 }
 
-// 全局状态
-const rooms = new Map<string, BattleRoom>()
-const matchQueue = new Set<string>()
-const HEARTBEAT_INTERVAL = 5000
-
-export function initBattleServer(io: Server) {
-  // 心跳中间件
-  io.use((socket, next) => {
-    socket.on('ping', () => updatePlayerHeartbeat(socket.id))
-    next()
-  })
-
-  io.on('connection', (socket: Socket) => {
-    console.log(`玩家连接: ${socket.id}`)
-    const heartbeat = setupHeartbeat(socket)
-
-    // 加入匹配队列
-    socket.on('joinMatchmaking', async (rawPlayerData, ack) => {
-      try {
-        const playerData = await validatePlayerData(rawPlayerData)
-        initializePlayer(socket, playerData)
-
-        matchQueue.add(socket.id)
-        ack?.({ status: 'QUEUED' })
-        attemptMatchmaking(io)
-      } catch (error) {
-        handleValidationError(error, socket, ack)
-      }
-    })
-
-    // 处理玩家操作
-    socket.on('playerAction', async (rawData, ack) => {
-      try {
-        const selection = await processPlayerAction(socket.id, rawData)
-        const room = getPlayerRoom(socket.id)
-
-        if (!room) throw new Error('NOT_IN_BATTLE')
-
-        room.selections.set(socket.id, selection)
-        checkBattleProgress(room, io)
-        ack?.({ status: 'ACTION_ACCEPTED' })
-      } catch (error) {
-        handleActionError(error, socket, ack)
-      }
-    })
-
-    socket.on('disconnect', () => {
-      clearInterval(heartbeat)
-      handleDisconnect(socket.id, io)
-    })
-  })
+type PlayerMeta = {
+  socket: Socket<ClientToServerEvents, ServerToClientEvents>
+  lastPing: number
+  heartbeatTimer?: ReturnType<typeof setTimeout>
 }
 
-// 核心逻辑函数
-async function validatePlayerData(rawData: unknown) {
-  try {
-    // 先验证基础结构
-    const baseData = PlayerParser.parse(rawData)
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+interface InterServerEvents {}
 
-    // 深度验证宠物数据
-    baseData.team.forEach(pet => PetParser.parse(pet))
+interface SocketData {
+  data: ReturnType<typeof PlayerParser.parse>
+  roomId: string
+}
 
-    return baseData
-  } catch (error) {
-    throw new Error(`数据验证失败: ${error instanceof ZodError ? error.errors : error}`)
+export class BattleServer {
+  private readonly rooms = new Map<string, BattleRoom>()
+  private readonly matchQueue = new Set<string>()
+  private readonly HEARTBEAT_INTERVAL = 5000
+  private readonly players = new Map<string, PlayerMeta>() // 新增玩家池
+
+  constructor(private readonly io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>) {
+    this.initializeMiddleware()
+    this.setupConnectionHandlers()
+    this.setupHeartbeatSystem()
   }
-}
 
-function initializePlayer(socket: Socket, playerData: unknown) {
-  const parsedPlayer = PlayerParser.parse(playerData)
-  return {
-    socket,
-    playerData: parsedPlayer,
-    lastPing: Date.now(),
+  private initializeMiddleware() {
+    this.io.use((socket, next) => {
+      next()
+    })
   }
-}
 
-async function processPlayerAction(socketId: string, rawData: unknown) {
-  try {
-    // 双重验证
-    const schemaValidated = PlayerSelectionSchema.parse(rawData)
-    return SelectionParser.parse(schemaValidated)
-  } catch (error) {
-    console.error(`玩家操作解析失败 [${socketId}]:`, error)
-    throw new Error('INVALID_ACTION')
+  private setupConnectionHandlers() {
+    this.io.on('connection', socket => {
+      logger.info({ socketId: socket.id }, '玩家连接')
+      this.registerPlayer(socket) // 注册到玩家池
+
+      socket.on('pong', () => {
+        const player = this.players.get(socket.id)
+        if (player) player.lastPing = Date.now()
+      })
+
+      socket.on('disconnect', () => {
+        logger.info({ socketId: socket.id }, '玩家断开连接')
+        this.removePlayer(socket.id)
+      })
+
+      this.setupSocketHandlers(socket)
+    })
   }
-}
 
-// 匹配逻辑优化
-function attemptMatchmaking(io: Server) {
-  const MAX_RETRIES = 3
-  let retryCount = 0
+  private setupSocketHandlers(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+  ) {
+    socket.on('joinMatchmaking', (data, ack) => this.handleJoinMatchmaking(socket, data, ack))
+    socket.on('playerAction', (data, ack) => this.handlePlayerAction(socket, data, ack))
+    socket.on('getState', ack => this.handleGetState(socket, ack))
+    socket.on('getAvailableSelection', ack => this.handleGetSelection(socket, ack))
+  }
 
-  const tryMatch = () => {
-    if (matchQueue.size < 2 || retryCount >= MAX_RETRIES) return
-
-    const candidates = Array.from(matchQueue)
-    const [p1Id, p2Id] = candidates.slice(0, 2)
-
-    const p1 = io.sockets.sockets.get(p1Id)
-    const p2 = io.sockets.sockets.get(p2Id)
-
-    if (!p1 || !p2) {
-      matchQueue.delete(p1Id)
-      matchQueue.delete(p2Id)
-      retryCount++
-      setTimeout(tryMatch, 1000)
-      return
-    }
-
+  private handleJoinMatchmaking(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    rawPlayerData: unknown,
+    ack?: AckResponse<{ status: 'QUEUED' }>,
+  ) {
     try {
-      const roomId = createBattleRoom(p1, p2)
-      finalizeMatchmaking(roomId, p1, p2)
+      const playerData = this.validatePlayerData(rawPlayerData)
+      socket.data.data = playerData
+      logger.info(
+        {
+          socketId: socket.id,
+          player: {
+            id: socket.data.data.id,
+            name: socket.data.data.name,
+            teamSize: socket.data.data.team.length,
+          },
+          queueSize: this.matchQueue.size + 1,
+        },
+        '玩家加入匹配队列',
+      )
+      this.matchQueue.add(socket.id)
+      ack?.({
+        status: 'SUCCESS',
+        data: { status: 'QUEUED' },
+      })
+      logger.debug(
+        {
+          currentQueue: Array.from(this.matchQueue),
+          roomCount: this.rooms.size,
+        },
+        '匹配系统状态',
+      )
+      this.attemptMatchmaking()
     } catch (error) {
-      handleMatchmakingError(error, p1, p2)
+      logger.error(
+        {
+          socketId: socket.id,
+          error: error instanceof Error ? error.stack : error,
+          inputData: rawPlayerData,
+        },
+        '加入匹配队列失败',
+      )
+      this.handleValidationError(error, socket, ack)
     }
   }
 
-  tryMatch()
-}
+  private handlePlayerAction(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    rawData: unknown,
+    ack?: AckResponse<{ status: 'ACTION_ACCEPTED' }>,
+  ) {
+    try {
+      const selection = this.processPlayerAction(socket.id, rawData)
+      const room = this.getPlayerRoom(socket.id)
 
-function createBattleRoom(p1: Socket, p2: Socket): string {
-  const roomId = `battle_${nanoid(12)}`
-  const player1 = initializePlayer(p1, p1.data.playerData)
-  const player2 = initializePlayer(p2, p2.data.playerData)
+      if (!room) throw new Error('NOT_IN_BATTLE')
+      if (!room.players.get(socket.id)?.playerData.setSelection(selection)) {
+        throw new Error('INVALID_SELECTION')
+      }
 
-  const battle = new Battle(player1.playerData, player2.playerData)
-
-  // 绑定战斗消息到Socket.IO
-  battle.registerListener(message => {
-    // 转换消息格式
-    const socketMessage = {
-      type: message.type,
-      data: message.data,
-      timestamp: message.timestamp,
+      this.checkBattleProgress(room)
+      ack?.({
+        status: 'SUCCESS',
+        data: { status: 'ACTION_ACCEPTED' },
+      })
+    } catch (error) {
+      this.handleActionError(error, socket, ack)
     }
-
-    // 发送给房间内所有玩家
-    io.to(roomId).emit('battleEvent', socketMessage)
-
-    // 特殊事件处理
-    switch (message.type) {
-      case BattleMessageType.BattleEnd:
-        cleanupRoom(roomId, io)
-        break
-      case BattleMessageType.ForcedSwitch:
-        handleForcedSwitch(roomId, message.data.player)
-        break
-    }
-  })
-
-  rooms.set(roomId, {
-    id: roomId,
-    battle,
-    players: new Map([
-      [p1.id, player1],
-      [p2.id, player2],
-    ]),
-    selections: new Map(),
-    status: 'waiting',
-  })
-
-  return roomId
-}
-
-async function initRoomState(room: BattleRoom, io: Server) {
-  // 发送初始化数据
-  const initData = {
-    roomId: room.id,
-    players: Array.from(room.players.values()).map(p => ({
-      id: p.playerData.id,
-      name: p.playerData.name,
-      team: p.playerData.team.map(pet => ({
-        id: pet.id,
-        name: pet.name,
-        level: pet.level,
-      })),
-    })),
   }
 
-  // 单独发送给每个玩家
-  room.players.forEach((player, socketId) => {
-    io.to(socketId).emit('battleInit', {
-      ...initData,
-      isPlayerA: socketId === room.battle.playerA.id,
+  private handleGetState(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    ack?: AckResponse<BattleState>,
+  ) {
+    try {
+      const player = this.getPlayerBySocket(socket.id)
+      ack?.({
+        status: 'SUCCESS',
+        data: player.playerData.getState(),
+      })
+    } catch (error) {
+      this.handleGetStateError(error, socket, ack)
+    }
+  }
+
+  private handleGetSelection(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    ack?: AckResponse<PlayerSelection[]>,
+  ) {
+    try {
+      const player = this.getPlayerBySocket(socket.id)
+      ack?.({
+        status: 'SUCCESS',
+        data: player.playerData.getAvailableSelection().map(v => SelectionParser.serialize(v)),
+      })
+    } catch (error) {
+      this.handleGetSelectionError(error, socket, ack)
+    }
+  }
+
+  // 修改后的错误处理方法
+  private handleValidationError(
+    error: unknown,
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ack?: AckResponse<any>,
+  ) {
+    const response: ErrorResponse = {
+      status: 'ERROR',
+      code: 'VALIDATION_ERROR',
+      details: error instanceof Error ? error.message : 'Invalid data format',
+    }
+
+    // 同时发送两种错误通知
+    ack?.(response)
+  }
+
+  private handleActionError(
+    error: unknown,
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    ack?: AckResponse<{ status: 'ACTION_ACCEPTED' }>,
+  ) {
+    const response: ErrorResponse = {
+      status: 'ERROR',
+      code: error instanceof Error ? error.message : 'ACTION_FAILED',
+    }
+
+    ack?.(response)
+  }
+
+  private handleGetStateError(
+    error: unknown,
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    ack?: AckResponse<BattleState>,
+  ) {
+    const response: ErrorResponse = {
+      status: 'ERROR',
+      code: 'STATE_ERROR',
+      details: error instanceof Error ? error.message : 'Failed to get state',
+    }
+
+    ack?.(response)
+  }
+
+  private handleMatchmakingError(
+    error: unknown,
+    ...sockets: (Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData> | undefined)[]
+  ) {
+    // 构建标准错误响应
+    const errorResponse: ErrorResponse = {
+      status: 'ERROR',
+      code: 'MATCH_FAILED',
+      details: error instanceof Error ? error.message : String(error),
+    }
+
+    // 发送给所有相关客户端
+    sockets.forEach(socket => {
+      if (socket?.connected) {
+        socket.emit('matchmakingError', errorResponse)
+      }
     })
-  })
 
-  // 启动战斗循环时添加状态同步
-  setInterval(() => {
-    const state = room.battle.toMessage()
-    io.to(room.id).emit('battleSync', {
-      phase: state.currentPhase,
-      turn: state.currentTurn,
-      players: state.players.map(p => ({
-        activePet: p.activePet,
-        rage: p.rage,
-      })),
+    // 清理无效的匹配队列
+    sockets.forEach(socket => {
+      if (socket) {
+        this.matchQueue.delete(socket.id)
+      }
     })
-  }, 1000) // 每秒同步一次基础状态
-}
+  }
 
-// 错误处理增强
-function handleValidationError(
-  error: unknown,
-  socket: Socket,
-  ack?: (response: { error: string; details?: string }) => void,
-) {
-  const message =
-    error instanceof ZodError
-      ? error.errors.map(e => `${e.path}: ${e.message}`).join(', ')
-      : error instanceof Error
-        ? error.message
-        : '未知错误'
-
-  console.error(`数据验证失败 [${socket.id}]: ${message}`)
-  socket.emit('validationError', { code: 'INVALID_DATA', details: message })
-  ack?.({ error: 'INVALID_DATA', details: message })
-}
-
-function handleActionError(
-  error: unknown,
-  socket: Socket,
-  ack?: (response: { error: string; details?: string }) => void,
-) {
-  const errorCode = error instanceof Error ? error.message : 'UNKNOWN_ERROR'
-  socket.emit('actionError', { code: errorCode })
-  ack?.({ error: errorCode })
-}
-
-// 工具函数优化
-function setupHeartbeat(socket: Socket) {
-  return setInterval(() => {
-    const player = getPlayerBySocket(socket.id)
-    if (player && Date.now() - player.lastPing > HEARTBEAT_INTERVAL * 2) {
-      console.log(`[${socket.id}] 心跳丢失，强制断开`)
-      socket.disconnect(true)
+  private handleGetSelectionError(
+    error: unknown,
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    ack?: AckResponse<PlayerSelection[]>,
+  ) {
+    const response: ErrorResponse = {
+      status: 'ERROR',
+      code: 'SELECTION_ERROR',
+      details: error instanceof Error ? error.message : 'Failed to get available selections',
     }
-  }, HEARTBEAT_INTERVAL)
-}
 
-function updatePlayerHeartbeat(socketId: string) {
-  const player = getPlayerBySocket(socketId)
-  if (player) player.lastPing = Date.now()
-}
-
-function getPlayerRoom(socketId: string): BattleRoom | undefined {
-  for (const room of rooms.values()) {
-    if (room.players.has(socketId)) return room
+    // 同时通过ACK返回错误（如果存在回调）
+    ack?.(response)
   }
-}
 
-function checkBattleProgress(room: BattleRoom, io: Server) {
-  if (room.selections.size === 2) {
-    io.to(room.id).emit('battleReadyCheck', { ready: true })
-    return true
+  private validatePlayerData(rawData: unknown) {
+    try {
+      const baseData = PlayerParser.parse(rawData)
+      return baseData
+    } catch (error) {
+      if (error instanceof ZodError) {
+        throw new Error(
+          `玩家数据验证失败:\n${error.errors.map(e => `[字段 ${e.path.join('.')}] ${e.message}`).join('\n')}`,
+        )
+      }
+      throw error
+    }
   }
-  return false
-}
 
-function handleDisconnect(socketId: string, io: Server) {
-  matchQueue.delete(socketId)
-  const room = getPlayerRoom(socketId)
-  if (room) cleanupRoom(room.id, io)
-}
-
-function finalizeMatchmaking(roomId: string, p1: Socket, p2: Socket) {
-  p1.data.roomId = roomId
-  p2.data.roomId = roomId
-  console.log(`匹配成功: ${p1.id} vs ${p2.id}`)
-}
-
-function handleMatchmakingError(error: unknown, p1?: Socket, p2?: Socket) {
-  console.error(`匹配失败: ${error}`)
-  p1?.emit('matchmakingError', 'MATCH_FAILED')
-  p2?.emit('matchmakingError', 'MATCH_FAILED')
-}
-
-function getPlayerBySocket(socketId: string): GamePlayer | undefined {
-  for (const room of rooms.values()) {
-    const player = room.players.get(socketId)
-    if (player) return player
+  private processPlayerAction(socketId: string, rawData: unknown) {
+    try {
+      const schemaValidated = PlayerSelectionSchema.parse(rawData)
+      return SelectionParser.parse(schemaValidated)
+    } catch (error) {
+      logger.error(`Action parse failed [${socketId}]:`, error)
+      throw error
+    }
   }
-}
 
-export function cleanupRoom(roomId: string, io: Server) {
-  const room = rooms.get(roomId)
-  if (!room) return
+  private attemptMatchmaking(maxRetries = 3) {
+    let retryCount = 0
 
-  // 1. 清理所有玩家
-  room.players.forEach(player => {
-    player.socket.leave(roomId)
-    player.socket.data.roomId = undefined
-  })
+    const tryMatch = () => {
+      if (this.matchQueue.size < 2 || retryCount >= maxRetries) return
 
-  // 2. 删除房间记录
-  rooms.delete(roomId)
+      const [p1Id, p2Id] = Array.from(this.matchQueue).slice(0, 2)
+      const p1 = this.io.sockets.sockets.get(p1Id)
+      const p2 = this.io.sockets.sockets.get(p2Id)
 
-  // 3. 发送清理完成事件
-  io.to(roomId).emit('roomClosed', { roomId })
+      if (!p1 || !p2) {
+        this.matchQueue.delete(p1Id)
+        this.matchQueue.delete(p2Id)
+        retryCount++
+        setTimeout(tryMatch, 1000)
+        return
+      }
 
-  console.log(`[Room ${roomId}] Cleanup completed`)
+      try {
+        const roomId = this.createBattleRoom(p1, p2)
+        this.finalizeMatchmaking(roomId, p1, p2)
+      } catch (error) {
+        this.handleMatchmakingError(error, p1, p2)
+      }
+    }
+
+    tryMatch()
+  }
+
+  private createBattleRoom(
+    p1: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    p2: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+  ) {
+    const roomId = `battle_${nanoid(12)}`
+    p1.join(roomId)
+    p2.join(roomId)
+
+    const player1 = this.initializePlayer(p1)
+    const player2 = this.initializePlayer(p2)
+    const battle = new Battle(player1.playerData, player2.playerData)
+
+    battle.registerListener(message => {
+      this.io.to(roomId).emit('battleEvent', message)
+      if (message.type === BattleMessageType.BattleEnd) {
+        this.cleanupRoom(roomId)
+      }
+    })
+
+    this.rooms.set(roomId, {
+      id: roomId,
+      battle,
+      battleGenerator: battle.startBattle(),
+      players: new Map([
+        [p1.id, player1],
+        [p2.id, player2],
+      ]),
+      status: 'waiting',
+    })
+
+    return roomId
+  }
+
+  private initializePlayer(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+  ): GamePlayer {
+    if (!socket.data.data) {
+      throw new Error('Player data not loaded')
+    }
+    return {
+      socket,
+      playerData: socket.data.data,
+      lastPing: Date.now(),
+    }
+  }
+
+  private cleanupRoom(roomId: string) {
+    const room = this.rooms.get(roomId)
+    if (!room) return
+
+    room.players.forEach(player => {
+      player.socket.leave(roomId)
+      player.socket.data.roomId = undefined
+    })
+
+    this.rooms.delete(roomId)
+    this.io.to(roomId).emit('roomClosed', { roomId })
+  }
+
+  private setupHeartbeatSystem() {
+    // 全局心跳检测定时器
+    setInterval(() => {
+      const now = Date.now()
+      this.players.forEach((player, socketId) => {
+        if (now - player.lastPing > this.HEARTBEAT_INTERVAL * 2) {
+          logger.warn({ socketId }, '心跳丢失，断开连接')
+          player.socket.disconnect(true)
+          this.removePlayer(socketId)
+        }
+      })
+    }, this.HEARTBEAT_INTERVAL)
+  }
+
+  // 玩家连接时注册
+  private registerPlayer(socket: Socket) {
+    this.players.set(socket.id, {
+      socket,
+      lastPing: Date.now(),
+      // 初始化定时器
+      heartbeatTimer: setInterval(() => {
+        socket.emit('ping')
+      }, this.HEARTBEAT_INTERVAL),
+    })
+  }
+
+  // 清理玩家数据
+  private removePlayer(socketId: string) {
+    const player = this.players.get(socketId)
+    if (player) {
+      clearInterval(player.heartbeatTimer)
+      this.players.delete(socketId)
+      this.matchQueue.delete(socketId)
+      logger.debug({ socketId }, '玩家已从池中移除')
+    }
+  }
+
+  private getPlayerRoom(socketId: string) {
+    return Array.from(this.rooms.values()).find(room => room.players.has(socketId))
+  }
+
+  private getPlayerBySocket(socketId: string): GamePlayer {
+    const player = this.getPlayerRoom(socketId)?.players.get(socketId)
+    if (!player) {
+      throw new Error('Player not in game')
+    }
+    return player
+  }
+
+  private checkBattleProgress(room: BattleRoom) {
+    try {
+      const result = room.battleGenerator.next()
+      if (result.done) this.cleanupRoom(room.id)
+    } catch (error) {
+      logger.error({ error, roomId: room.id }, 'Battle progression error')
+    }
+  }
+
+  private handleDisconnect(socketId: string, heartbeat: ReturnType<typeof setInterval>) {
+    clearInterval(heartbeat)
+    this.matchQueue.delete(socketId)
+    const room = this.getPlayerRoom(socketId)
+    if (room) this.cleanupRoom(room.id)
+  }
+
+  private finalizeMatchmaking(
+    roomId: string,
+    p1: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    p2: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+  ) {
+    p1.data.roomId = roomId
+    p2.data.roomId = roomId
+    this.matchQueue.delete(p1.id)
+    this.matchQueue.delete(p2.id)
+    const p1Data = {
+      status: 'SUCCESS' as const,
+      data: {
+        roomId,
+        opponent: {
+          id: p2.id,
+          name: p2.data.data?.name || 'Unknown',
+        },
+      },
+    }
+
+    const p2Data = {
+      status: 'SUCCESS' as const,
+      data: {
+        roomId,
+        opponent: {
+          id: p1.id,
+          name: p1.data.data?.name || 'Unknown',
+        },
+      },
+    }
+
+    p1.emit('matchSuccess', p1Data)
+    p2.emit('matchSuccess', p2Data)
+    this.rooms.get(roomId)?.battleGenerator.next()
+    logger.info(`Matched: room:${roomId} ${p1.id} vs ${p2.id}`)
+  }
 }

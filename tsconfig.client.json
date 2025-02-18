@@ -10,5 +10,5 @@
     "types": ["vite/client"],
     "outDir": "./dist/client"
   },
-  "include": ["src/client/**/*", "src/web/**/*"]
+  "include": ["src/client/**/*", "src/protocol"]
 }

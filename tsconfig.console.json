@@ -1,6 +1,10 @@
 {
   "extends": "./tsconfig.json",
-  "references": [{ "path": "./tsconfig.core.json" }],
+  "references": [
+    { "path": "./tsconfig.core.json" },
+    { "path": "./tsconfig.client.json" },
+    { "path": "./tsconfig.server.json" }
+  ],
   "compilerOptions": {
     "composite": true,
     "moduleDetection": "force",
@@ -11,5 +15,5 @@
     "esModuleInterop": true,
     "isolatedModules": true
   },
-  "include": ["test.ts", "src/console/**/*", "script/"]
+  "include": ["src/console/**/*", "script/", "bin/cli.ts"]
 }

@@ -257,7 +257,6 @@ export class Battle extends Context implements MarkOwner {
 
     // 战斗结束后重置状态
     if (this.isBattleEnded()) {
-      this.status = BattleStatus.Ended
       return true
     }
 
@@ -282,6 +281,12 @@ export class Battle extends Context implements MarkOwner {
     }
     if (playerAisDefeat && !playerBisDefeat) this.victor = this.playerB
     if (playerBisDefeat && !playerAisDefeat) this.victor = this.playerA
+
+    if (isBattleEnded) {
+      this.status = BattleStatus.Ended
+      this.currentPhase = BattlePhase.Ended
+      this.getVictor()
+    }
 
     return isBattleEnded
   }
@@ -352,12 +357,12 @@ export class Battle extends Context implements MarkOwner {
         }
 
         if (this.pendingDefeatedPlayers.length > 0) {
+          this.emitMessage(BattleMessageType.ForcedSwitch, {
+            player: this.pendingDefeatedPlayers.map(player => player.id),
+          })
           while (
             ![...this.pendingDefeatedPlayers].every(player => player.selection && player.selection.type == 'switch-pet')
           ) {
-            this.emitMessage(BattleMessageType.ForcedSwitch, {
-              player: this.pendingDefeatedPlayers.map(player => player.id),
-            })
             yield
           }
           ;[...this.pendingDefeatedPlayers].forEach(player => {
@@ -396,8 +401,8 @@ export class Battle extends Context implements MarkOwner {
       // 阶段3：收集玩家指令
       this.currentPhase = BattlePhase.SelectionPhase
       this.clearSelections()
+      this.emitMessage(BattleMessageType.TurnAction, {})
       while (!this.bothPlayersReady()) {
-        this.emitMessage(BattleMessageType.TurnAction, {})
         yield
       }
 
@@ -407,8 +412,6 @@ export class Battle extends Context implements MarkOwner {
       if (this.performTurn(turnContext)) break turnLoop
       this.clearSelections()
     }
-    this.status = BattleStatus.Ended
-    this.currentPhase = BattlePhase.Ended
     return
   }
 
@@ -452,6 +455,10 @@ export class Battle extends Context implements MarkOwner {
       marks: this.marks.map(m => m.toMessage()),
       players: [this.playerA, this.playerB].map(p => p.toMessage(viewerId)),
     }
+  }
+
+  public getState(): BattleState {
+    return this.toMessage()
   }
 }
 
