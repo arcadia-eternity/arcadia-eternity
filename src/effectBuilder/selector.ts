@@ -319,7 +319,7 @@ export const Extractor: ExtractorMap = {
   priority: (target: UseSkillContext) => target.skillPriority,
   activePet: (target: Player) => target.activePet,
   skills: (target: Pet) => target.skills,
-  id: (mark: Mark) => mark.id,
+  id: (target: Mark | Pet) => target.id,
   tags: (mark: Mark) => mark.tags,
 }
 
