@@ -10,11 +10,11 @@
     "strictPropertyInitialization": false
   },
   "include": [
-    "src/core/**/*",
-    "src/effectBuilder/**/*",
-    "src/effectDSL/**/*",
-    "src/daraRespository/**/*",
-    "src/schema/**/*",
-    "src/parser/**/*"
+    "package/core/**/*",
+    "package/effectBuilder/**/*",
+    "package/effectDSL/**/*",
+    "package/daraRespository/**/*",
+    "package/schema/**/*",
+    "package/parser/**/*"
   ]
 }

@@ -9,5 +9,5 @@
     "types": ["bun-types", "node"],
     "composite": true
   },
-  "include": ["src/server/**/*", "src/protocol/**/*"]
+  "include": ["package/server/**/*", "package/protocol/**/*"]
 }
