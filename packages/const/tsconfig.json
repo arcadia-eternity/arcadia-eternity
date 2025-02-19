@@ -3,7 +3,7 @@
     "composite": true,
     "lib": ["ESNext", "DOM"],
     "module": "ESNext",
-    "outDir": "./dist/core",
+    "outDir": "../../dist/const",
     "declaration": true,
     "declarationMap": true,
     "strictPropertyInitialization": false,

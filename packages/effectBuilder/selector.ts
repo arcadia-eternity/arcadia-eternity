@@ -1,14 +1,7 @@
-import { Battle } from '@/battle/battle'
-import { StatOnBattle, StatTypeOnBattle } from '@/const/const'
-import { OwnedEntity } from '@/battle/entity'
-import { DamageContext, EffectContext, UseSkillContext } from '@/battle/context'
-import { Mark } from '@/battle/mark'
-import { Pet } from '@/battle/pet'
-import { Player } from '@/battle/player'
-import { Skill } from '@/battle/skill'
-import { Element } from '@/const/element'
-import { ValueExtractor, Evaluator, Operator, Action, Condition } from './effectBuilder'
-import { EffectTrigger } from '@/const/EffectTrigger'
+import { Battle, DamageContext, EffectContext, Mark, Pet, Player, Skill, UseSkillContext } from '@test-battle/battle'
+import { OwnedEntity } from '@test-battle/battle/entity'
+import { EffectTrigger, Element, StatOnBattle, StatTypeOnBattle } from '@test-battle/const'
+import { Action, Condition, Evaluator, Operator, ValueExtractor } from './effectBuilder'
 
 // 条件系统分为三个层级
 // 修改选择器类型定义
@@ -23,7 +16,6 @@ export type ValueSource<T extends SelectorOpinion> =
 
 export class ChainableSelector<T extends SelectorOpinion> {
   public readonly _type!: T
-  public readonly valueType: string
   constructor(private selector: TargetSelector<T>) {
     // const sample = this.selector({} as EffectContext<EffectTrigger>)[0]
     // this.valueType = typeof sample === 'object' ? sample?.constructor?.name || 'object' : typeof sample

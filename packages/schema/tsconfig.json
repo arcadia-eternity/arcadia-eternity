@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "composite": true,
-    "lib": ["ESNext", "DOM"],
+    "lib": ["ESNext"],
     "module": "ESNext",
-    "outDir": "../../dist/battle",
+    "outDir": "../../dist/schema",
     "declaration": true,
     "declarationMap": true,
     "strictPropertyInitialization": false,

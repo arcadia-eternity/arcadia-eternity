@@ -1,9 +1,5 @@
-import { Prototype } from '@/battle/entity'
-import { Effect } from '@/battle/effect'
-import { EffectTrigger } from '@/const/EffectTrigger'
-import { Mark } from '@/battle/mark'
-import { Species } from '@/battle/pet'
-import { Skill } from '@/battle/skill'
+import { Species, Skill, Prototype, Effect, Mark } from '@test-battle/battle'
+import { EffectTrigger } from '@test-battle/const'
 
 export class DataRepository {
   private static instance: DataRepository

@@ -132,6 +132,15 @@ importers:
 
   packages/const: {}
 
+  packages/daraRespository:
+    dependencies:
+      '@test-battle/battle':
+        specifier: workspace:^
+        version: link:../battle
+      '@test-battle/const':
+        specifier: workspace:^
+        version: link:../const
+
   packages/effectBuilder:
     dependencies:
       '@test-battle/battle':
@@ -140,6 +149,18 @@ importers:
       '@test-battle/const':
         specifier: workspace:^
         version: link:../const
+
+  packages/schema:
+    dependencies:
+      '@test-battle/const':
+        specifier: workspace:^
+        version: link:../const
+      nanoid:
+        specifier: ^5.0.9
+        version: 5.0.9
+      zod:
+        specifier: ^3.24.1
+        version: 3.24.1
 
 packages:
 
