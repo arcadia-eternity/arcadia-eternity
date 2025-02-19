@@ -1,6 +1,5 @@
 {
   "extends": "./tsconfig.json",
-  "references": [{ "path": "./tsconfig.core.json" }],
   "compilerOptions": {
     "target": "ESNext",
     "lib": ["ESNext"],

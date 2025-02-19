@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "references": [{ "path": "./tsconfig.core.json" }, { "path": "./tsconfig.server.json" }],
+  "references": [{ "path": "./tsconfig.server.json" }],
   "compilerOptions": {
     "composite": true,
     "lib": ["ESNext"],

@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["ESNext", "DOM"],
+    "module": "ESNext",
+    "outDir": "./dist/core",
+    "declaration": true,
+    "declarationMap": true,
+    "strictPropertyInitialization": false,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [["./*"]]
+}

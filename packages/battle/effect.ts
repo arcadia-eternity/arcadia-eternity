@@ -1,9 +1,9 @@
 import { OwnedEntity, Prototype } from './entity'
 import { Context, EffectContext } from './context'
 import { Mark } from './mark'
-import { BattleMessageType } from '../const/message'
 import { Skill } from './skill'
-import { EffectTrigger } from '../const/EffectTrigger'
+import { EffectTrigger } from '@/const/EffectTrigger'
+import { BattleMessageType } from '@/const/message'
 
 export class EffectScheduler {
   private static instance: EffectScheduler

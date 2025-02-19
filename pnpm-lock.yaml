@@ -35,9 +35,6 @@ importers:
       prando:
         specifier: ^6.0.1
         version: 6.0.1
-      pure-rand:
-        specifier: ^6.1.0
-        version: 6.1.0
       socket.io:
         specifier: ^4.8.1
         version: 4.8.1
@@ -123,6 +120,26 @@ importers:
       typescript-eslint:
         specifier: ^8.22.0
         version: 8.23.0(eslint@9.20.0)(typescript@5.7.3)
+
+  packages/battle:
+    dependencies:
+      '@test-battle/const':
+        specifier: workspace:*
+        version: link:../const
+      prando:
+        specifier: ^6.0.1
+        version: 6.0.1
+
+  packages/const: {}
+
+  packages/effectBuilder:
+    dependencies:
+      '@test-battle/battle':
+        specifier: workspace:^
+        version: link:../battle
+      '@test-battle/const':
+        specifier: workspace:^
+        version: link:../const
 
 packages:
 

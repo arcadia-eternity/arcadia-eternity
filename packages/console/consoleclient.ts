@@ -5,8 +5,9 @@ import readline from 'readline'
 import { Player } from 'packages/schema/player'
 import { PetMessage, SkillMessage } from '@/const/message'
 import { DataRepository } from 'packages/daraRespository/dataRepository'
-import { BattlePhase, BattleStatus } from '@/battle/battle'
 import { ELEMENT_MAP } from 'packages/schema'
+import { BattlePhase } from '@/const/BattlePhase'
+import { BattleStatus } from '@/const/BattleStatus'
 
 export class ConsoleClient {
   private client: BattleClient

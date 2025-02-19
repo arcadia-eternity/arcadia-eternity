@@ -1,5 +1,5 @@
 import { Skill } from './skill'
-import { Element } from '../const/element'
+import { Element } from '@test-battle/const/element'
 import {
   RAGE_PER_TURN,
   STAT_STAGE_MULTIPLIER,
@@ -10,9 +10,9 @@ import {
   type StatTypeOnBattle,
   StatTypeOnlyBattle,
   StatTypeWithoutHp,
-} from '../const/const'
+} from '@test-battle/const/const'
 import { MarkOwner, type OwnedEntity, type Prototype } from './entity'
-import { Nature, NatureMap } from '../const/nature'
+import { Nature, NatureMap } from '@test-battle/const/nature'
 import { Player } from './player'
 import { StatLevelMark, Mark, CreateStatStageMark } from './mark'
 import {
@@ -23,8 +23,8 @@ import {
   RemoveMarkContext,
   SwitchPetContext,
 } from './context'
-import { BattleMessageType, PetMessage } from '../const/message'
-import { EffectTrigger } from '../const/EffectTrigger'
+import { BattleMessageType, PetMessage } from '@test-battle/const/message'
+import { EffectTrigger } from '@test-battle/const/EffectTrigger'
 
 export interface Species extends Prototype {
   id: string //约定:id为原中文名的拼音拼写

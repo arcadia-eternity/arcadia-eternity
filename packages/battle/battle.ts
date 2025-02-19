@@ -1,5 +1,5 @@
 import { Pet } from './pet'
-import { RAGE_PER_TURN } from '../const/const'
+import { RAGE_PER_TURN } from '@test-battle/const/const'
 import { MarkOwner } from './entity'
 import {
   AddMarkContext,
@@ -11,16 +11,21 @@ import {
   TurnContext,
   UseSkillContext,
 } from './context'
-import { type BattleMessage, BattleMessageType, type BattleMessageData, type BattleState } from '../const/message'
+import {
+  type BattleMessage,
+  BattleMessageType,
+  type BattleMessageData,
+  type BattleState,
+} from '@test-battle/const/message'
 import { Player } from './player'
 import Prando from 'prando'
 import { Mark } from './mark'
 import { type EffectContainer, EffectScheduler } from './effect'
-import { EffectTrigger } from '../const/EffectTrigger'
-import { SwitchPetSelection } from '../const/selection'
+import { EffectTrigger } from '@test-battle/const/EffectTrigger'
+import { SwitchPetSelection } from '@test-battle/const/selection'
 import { Skill } from './skill'
-import { BattlePhase } from '../const/BattlePhase'
-import { BattleStatus } from '../const/BattleStatus'
+import { BattlePhase } from '@test-battle/const/BattlePhase'
+import { BattleStatus } from '@test-battle/const/BattleStatus'
 
 // 对战系统
 export class Battle extends Context implements MarkOwner {
