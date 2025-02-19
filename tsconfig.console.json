@@ -15,5 +15,5 @@
     "esModuleInterop": true,
     "isolatedModules": true
   },
-  "include": ["package/console/**/*", "script/", "bin/cli.ts"]
+  "include": ["packages/console/**/*", "script/", "bin/cli.ts"]
 }
