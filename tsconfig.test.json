@@ -8,5 +8,5 @@
     "types": ["node", "jest"],
     "outDir": "./dist/test"
   },
-  "include": ["test/**/*", "package/core/**/*.spec.ts", "package/consoleUI.ts"]
+  "include": ["test/**/*", "packages/core/**/*.spec.ts", "packages/consoleUI.ts"]
 }
