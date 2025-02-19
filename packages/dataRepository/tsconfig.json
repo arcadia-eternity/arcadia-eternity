@@ -1,8 +1,11 @@
 {
   "compilerOptions": {
     "composite": true,
+    "baseUrl": ".",
     "lib": ["ESNext"],
     "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "bundler",
     "outDir": "../../dist/daraRespository",
     "declaration": true,
     "declarationMap": true,
@@ -10,5 +13,5 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": [["./*"]]
+  "include": ["*"]
 }

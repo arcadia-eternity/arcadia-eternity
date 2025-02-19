@@ -1,28 +1,25 @@
+import { Effect, Mark, Pet, Player, UseSkillContext } from '@test-battle/battle'
+import { EffectTrigger, StatTypeOnBattle, StatTypeWithoutHp } from '@test-battle/const'
 import {
   BaseSelector,
   ChainableSelector,
+  Condition,
+  Conditions,
   createExtractor,
+  Evaluator,
   Extractor,
   isMark,
   isOwnedEntity,
   isPet,
   isPlayer,
   isUseSkillContext,
+  Operators,
   SelectorOpinion,
+  ValueExtractor,
   ValueSource,
-} from 'packages/effectBuilder/selector'
-import { ActionDSL, SelectorDSL, EvaluatorDSL, Value, EffectDSL, ConditionDSL } from './dsl'
-import { Conditions } from 'packages/effectBuilder/condition'
-import { Operators } from 'packages/effectBuilder/operator'
-import { Condition, Evaluator, ValueExtractor } from 'packages/effectBuilder/effectBuilder'
-import { DataRepository } from 'packages/daraRespository/dataRepository'
-import { Pet } from '@/battle/pet'
-import { Mark } from '@/battle/mark'
-import { StatTypeOnBattle, StatTypeWithoutHp } from '@/const/const'
-import { Player } from '@/battle/player'
-import { UseSkillContext } from '@/battle/context'
-import { Effect } from '@/battle/effect'
-import { EffectTrigger } from '@/const/EffectTrigger'
+} from '@test-battle/effect-builder'
+import { DataRepository } from '@test-battle/data-repository'
+import { ActionDSL, ConditionDSL, EffectDSL, EvaluatorDSL, SelectorDSL, Value } from './dsl'
 
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   const actions = createAction(dsl.apply)

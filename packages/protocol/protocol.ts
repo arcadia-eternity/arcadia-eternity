@@ -1,8 +1,6 @@
 // src/protocol.ts
-import { BattleMessage } from '@/const/message'
-import { BattleState } from '@/const/message'
-import { PlayerSelection } from 'packages/schema/selection'
-import { Player } from 'packages/schema'
+import { BattleMessage, BattleState } from '@test-battle/const'
+import { Player, PlayerSelection } from '@test-battle/schema'
 
 // 统一响应类型
 export type SuccessResponse<T = undefined> = {

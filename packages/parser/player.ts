@@ -1,7 +1,7 @@
-import { Player } from '@/battle/player'
-import { PlayerSchema } from 'packages/schema/player'
-import { PetParser } from './pet'
+import { Player } from '@test-battle/battle'
+import { PlayerSchema } from '@test-battle/schema'
 import { nanoid } from 'nanoid'
+import { PetParser } from './pet'
 
 export class PlayerParser {
   static parse(rawData: unknown): Player {

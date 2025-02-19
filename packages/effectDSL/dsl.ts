@@ -1,7 +1,5 @@
-import { EffectTrigger } from '@/const/EffectTrigger'
-import { CompareOperator } from 'packages/effectBuilder/condition'
-
-import { BaseSelector, Extractor } from 'packages/effectBuilder/selector'
+import { EffectTrigger } from '@test-battle/const'
+import { BaseSelector, Extractor, CompareOperator } from '@test-battle/effect-builder'
 
 export { EffectTrigger, SelectorChain }
 

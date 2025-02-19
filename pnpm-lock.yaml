@@ -66,9 +66,6 @@ importers:
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
-      '@types/node':
-        specifier: ^22.12.0
-        version: 22.12.0
       '@types/ws':
         specifier: ^8.5.14
         version: 8.5.14
@@ -130,9 +127,26 @@ importers:
         specifier: ^6.0.1
         version: 6.0.1
 
+  packages/client: {}
+
+  packages/console:
+    dependencies:
+      '@test-battle/battle':
+        specifier: workspace:^
+        version: link:../battle
+      '@test-battle/const':
+        specifier: workspace:^
+        version: link:../const
+    devDependencies:
+      '@types/node':
+        specifier: ^22.12.0
+        version: 22.12.0
+
+  packages/consoleClient: {}
+
   packages/const: {}
 
-  packages/daraRespository:
+  packages/dataRepository:
     dependencies:
       '@test-battle/battle':
         specifier: workspace:^
@@ -150,6 +164,60 @@ importers:
         specifier: workspace:^
         version: link:../const
 
+  packages/effectDSL:
+    dependencies:
+      '@test-battle/battle':
+        specifier: workspace:^
+        version: link:../battle
+      '@test-battle/const':
+        specifier: workspace:^
+        version: link:../const
+      '@test-battle/data-repository':
+        specifier: workspace:^
+        version: link:../dataRepository
+      '@test-battle/effect-builder':
+        specifier: workspace:^
+        version: link:../effectBuilder
+      zod:
+        specifier: ^3.24.1
+        version: 3.24.1
+
+  packages/parser:
+    dependencies:
+      '@test-battle/battle':
+        specifier: workspace:^
+        version: link:../battle
+      '@test-battle/const':
+        specifier: workspace:^
+        version: link:../const
+      '@test-battle/data-repository':
+        specifier: workspace:^
+        version: link:../dataRepository
+      '@test-battle/effect-builder':
+        specifier: workspace:^
+        version: link:../effectBuilder
+      '@test-battle/effectdsl':
+        specifier: workspace:^
+        version: link:../effectDSL
+      '@test-battle/schema':
+        specifier: workspace:^
+        version: link:../schema
+      nanoid:
+        specifier: ^5.0.9
+        version: 5.0.9
+      zod:
+        specifier: ^3.24.1
+        version: 3.24.1
+
+  packages/protocol:
+    dependencies:
+      '@test-battle/const':
+        specifier: workspace:^
+        version: link:../const
+      '@test-battle/schema':
+        specifier: workspace:^
+        version: link:../schema
+
   packages/schema:
     dependencies:
       '@test-battle/const':
@@ -161,6 +229,8 @@ importers:
       zod:
         specifier: ^3.24.1
         version: 3.24.1
+
+  packages/server: {}
 
 packages:
 

@@ -32,7 +32,6 @@
     "@rollup/plugin-typescript": "^12.1.2",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
-    "@types/node": "^22.12.0",
     "@types/ws": "^8.5.14",
     "babel-jest": "^29.7.0",
     "bun-types": "^1.2.2",

@@ -1,6 +1,6 @@
-import { Species } from '@/battle/pet'
-import { DataRepository } from 'packages/daraRespository/dataRepository'
-import { SpeciesSchema } from 'packages/schema/species'
+import { Species } from '@test-battle/battle'
+import { DataRepository } from '@test-battle/data-repository'
+import { SpeciesSchema } from '@test-battle/schema'
 
 export class SpeciesParser {
   static parse(rawData: unknown): Species {

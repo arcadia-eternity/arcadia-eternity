@@ -6,7 +6,7 @@
     "module": "ESNext",
     "target": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "../../dist/effectBuilder",
+    "outDir": "../../dist/parser",
     "declaration": true,
     "declarationMap": true,
     "strictPropertyInitialization": false,

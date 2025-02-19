@@ -1,5 +1,5 @@
 {
-  "name": "@test-battle/schema",
+  "name": "console-client",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -8,10 +8,5 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@test-battle/const": "workspace:^",
-    "nanoid": "^5.0.9",
-    "zod": "^3.24.1"
-  }
+  "license": "ISC"
 }

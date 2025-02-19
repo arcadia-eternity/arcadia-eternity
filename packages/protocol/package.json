@@ -1,5 +1,5 @@
 {
-  "name": "@test-battle/schema",
+  "name": "protocol",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -11,7 +11,6 @@
   "license": "ISC",
   "dependencies": {
     "@test-battle/const": "workspace:^",
-    "nanoid": "^5.0.9",
-    "zod": "^3.24.1"
+    "@test-battle/schema": "workspace:^"
   }
 }

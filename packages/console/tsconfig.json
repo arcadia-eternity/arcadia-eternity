@@ -1,17 +1,14 @@
 {
   "compilerOptions": {
-    "composite": true,
     "baseUrl": ".",
     "lib": ["ESNext"],
     "module": "ESNext",
     "target": "ESNext",
+    "outDir": "../../dist/console",
     "moduleResolution": "bundler",
-    "outDir": "../../dist/battle",
-    "declaration": true,
-    "declarationMap": true,
-    "strictPropertyInitialization": false,
+    "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "forceConsistentCasingInFileNames": true
+    "types": ["node"]
   },
   "include": ["./*"]
 }

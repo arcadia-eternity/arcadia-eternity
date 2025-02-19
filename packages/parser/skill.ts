@@ -1,8 +1,8 @@
-import { DataRepository } from 'packages/daraRespository/dataRepository'
-import { SkillSchema } from 'packages/schema/skill'
-import { Skill } from '@/battle/skill'
-import { Effect } from '@/battle/effect'
-import { EffectTrigger } from '@/const/EffectTrigger'
+import { Skill, Effect } from '@test-battle/battle'
+import { EffectTrigger } from '@test-battle/const'
+import { DataRepository } from '@test-battle/data-repository'
+import { SkillSchema } from '@test-battle/schema'
+import {} from 'zod'
 
 export class SkillParser {
   static parse(rawData: unknown): Skill {
