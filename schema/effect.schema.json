@@ -19,6 +19,7 @@
               "PreDamage",
               "OnCritPreDamage",
               "OnDamage",
+              "Shield",
               "PostDamage",
               "OnCritPostDamage",
               "OnBeforeHit",

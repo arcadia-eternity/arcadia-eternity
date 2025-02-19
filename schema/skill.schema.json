@@ -99,7 +99,12 @@
             ]
           },
           "sureHit": {
-            "type": "boolean"
+            "type": "boolean",
+            "default": false
+          },
+          "ignoreShield": {
+            "type": "boolean",
+            "default": false
           },
           "tag": {
             "type": "array",
