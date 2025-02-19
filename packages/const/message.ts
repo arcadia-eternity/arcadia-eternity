@@ -1,7 +1,8 @@
-import { BattlePhase, BattleStatus } from './battle'
+import { BattleStatus } from './BattleStatus'
+import { BattlePhase } from './BattlePhase'
 import { AttackTargetOpinion, StatOnBattle, StatTypeOnBattle } from './const'
 import { Element } from './element'
-import { Category } from './skill'
+import { Category } from './Category'
 
 export interface SkillMessage {
   id: string

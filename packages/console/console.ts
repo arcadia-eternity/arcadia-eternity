@@ -1,13 +1,14 @@
-import { Battle } from 'packages/core/battle'
-import { Player } from 'packages/core/player'
-import { type PlayerSelection } from 'packages/core/selection'
+import { Battle } from '@/battle/battle'
+import { Player } from '@/battle/player'
+import { type PlayerSelection } from '@/const/selection'
 import readline from 'readline'
-import { type BattleMessage, BattleMessageType } from 'packages/core/message'
-import { Pet } from 'packages/core/pet'
-import { ELEMENT_MAP } from 'packages/core/element'
-import { Mark } from 'packages/core/mark'
-import { Category, Skill } from 'packages/core/skill'
-import { UseSkillSelection, SwitchPetSelection, DoNothingSelection } from 'packages/core/selection'
+import { type BattleMessage, BattleMessageType } from '@/const/message'
+import { Pet } from '@/battle/pet'
+import { ELEMENT_MAP } from '@/const/element'
+import { Mark } from '@/battle/mark'
+import { Skill } from '@/battle/skill'
+import { UseSkillSelection, SwitchPetSelection, DoNothingSelection } from '@/const/selection'
+import { Category } from '@/const/Category'
 
 export class ConsoleUI {
   protected battle: Battle

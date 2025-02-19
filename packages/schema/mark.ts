@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { StackStrategy } from 'packages/core/mark'
+import { StackStrategy } from '@/const/StackStrategy'
 
 export const StackStrategySchema = z.nativeEnum(StackStrategy)
 

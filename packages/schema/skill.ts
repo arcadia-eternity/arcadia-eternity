@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { ElementSchema } from './element'
-import { Category } from 'packages/core/skill'
-import { AttackTargetOpinion } from 'packages/core/const'
+import { Category } from '@/const/Category'
+import { AttackTargetOpinion } from '@/const/const'
 
 export const CategorySchema = z.nativeEnum(Category)
 

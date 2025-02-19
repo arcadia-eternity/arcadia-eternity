@@ -1,4 +1,4 @@
-import { Pet, Species } from 'packages/core/pet'
+import { Pet, Species } from '@/battle/pet'
 import { DataRepository } from 'packages/daraRespository/dataRepository'
 import { PetSchema } from 'packages/schema/pet'
 import { nanoid } from 'nanoid'

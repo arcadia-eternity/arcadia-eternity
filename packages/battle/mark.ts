@@ -1,4 +1,5 @@
-import { Effect, type EffectContainer, EffectScheduler, EffectTrigger } from './effect'
+import { Effect, type EffectContainer, EffectScheduler } from './effect'
+import { EffectTrigger } from '../const/EffectTrigger'
 import {
   AddMarkContext,
   type AllContext,
@@ -10,16 +11,10 @@ import {
 } from './context'
 import { Pet } from './pet'
 import { Battle } from './battle'
-import { STAT_STAGE_MULTIPLIER, StatTypeOnBattle, type OwnedEntity, type Prototype } from './const'
-import { MarkMessage } from './message'
-
-export enum StackStrategy {
-  'stack', // 叠加层数并刷新持续时间
-  'refresh', // 保持层数但刷新持续时间
-  'extend', // 叠加层数并延长持续时间
-  'max', // 取最大层数并刷新持续时间
-  'replace', // 完全替换为新的印记
-}
+import { STAT_STAGE_MULTIPLIER, StatTypeOnBattle } from '../const/const'
+import { type OwnedEntity, type Prototype } from './entity'
+import { MarkMessage } from '../const/message'
+import { StackStrategy } from '../const/StackStrategy'
 
 //TODO: 印记的换场逻辑，以及传递的逻辑。
 export class Mark implements EffectContainer, Prototype, OwnedEntity<Battle | Pet | null> {

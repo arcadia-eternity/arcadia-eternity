@@ -1,17 +1,13 @@
 // skill.ts
-import { Effect, type EffectContainer, EffectScheduler, EffectTrigger } from './effect'
+import { Effect, type EffectContainer, EffectScheduler } from './effect'
+import { EffectTrigger } from '../const/EffectTrigger'
 import { EffectContext, UseSkillContext } from './context'
-import { Element } from './element'
-import { AttackTargetOpinion, type OwnedEntity, type Prototype } from './const'
+import { Element } from '../const/element'
+import { AttackTargetOpinion } from '../const/const'
+import { type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
-import { SkillMessage } from './message'
-
-export enum Category {
-  Physical = 'Physical',
-  Special = 'Special',
-  Status = 'Status',
-  Climax = 'Climax',
-}
+import { SkillMessage } from '../const/message'
+import { Category } from '../const/Category'
 
 export class Skill implements EffectContainer, Prototype, OwnedEntity {
   private readonly effects: Effect<EffectTrigger>[] = []

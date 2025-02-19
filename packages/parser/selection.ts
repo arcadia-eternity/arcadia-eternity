@@ -1,4 +1,4 @@
-import { PlayerSelection } from 'packages/core/selection'
+import { PlayerSelection } from '@/const/selection'
 import { PlayerSelectionSchema } from 'packages/schema/selection'
 import { PlayerSelection as PlayerSelectionSchemaType } from 'packages/schema/selection'
 

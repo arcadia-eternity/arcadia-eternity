@@ -1,4 +1,5 @@
-import { Effect, EffectTrigger } from 'packages/core/effect'
+import { Effect } from '@/battle/effect'
+import { EffectTrigger } from '@/const/EffectTrigger'
 import { parseEffect } from 'packages/effectDSL/parse'
 import { effectDSLSchema } from 'packages/effectDSL/dslSchema'
 

@@ -1,4 +1,4 @@
-import { BattleMessage, BattleState } from 'packages/core/message'
+import { BattleMessage, BattleState } from '@/const/message'
 import { ClientToServerEvents, ServerToClientEvents } from 'packages/protocol'
 import { Player, PlayerSelection } from 'packages/schema'
 import { io, Socket } from 'socket.io-client'

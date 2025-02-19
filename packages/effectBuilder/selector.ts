@@ -1,13 +1,14 @@
-import { Battle } from 'packages/core/battle'
-import { OwnedEntity, StatOnBattle, StatTypeOnBattle } from 'packages/core/const'
-import { DamageContext, EffectContext, UseSkillContext } from 'packages/core/context'
-import { Mark } from 'packages/core/mark'
-import { Pet } from 'packages/core/pet'
-import { Player } from 'packages/core/player'
-import { Skill } from 'packages/core/skill'
-import { Element } from 'packages/core/element'
+import { Battle } from '@/battle/battle'
+import { StatOnBattle, StatTypeOnBattle } from '@/const/const'
+import { OwnedEntity } from '@/battle/entity'
+import { DamageContext, EffectContext, UseSkillContext } from '@/battle/context'
+import { Mark } from '@/battle/mark'
+import { Pet } from '@/battle/pet'
+import { Player } from '@/battle/player'
+import { Skill } from '@/battle/skill'
+import { Element } from '@/const/element'
 import { ValueExtractor, Evaluator, Operator, Action, Condition } from './effectBuilder'
-import { EffectTrigger } from 'packages/core/effect'
+import { EffectTrigger } from '@/const/EffectTrigger'
 
 // 条件系统分为三个层级
 // 修改选择器类型定义

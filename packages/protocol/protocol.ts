@@ -1,6 +1,6 @@
 // src/protocol.ts
-import { BattleMessage } from 'packages/core/message'
-import { BattleState } from 'packages/core/message'
+import { BattleMessage } from '@/const/message'
+import { BattleState } from '@/const/message'
 import { PlayerSelection } from 'packages/schema/selection'
 import { Player } from 'packages/schema'
 

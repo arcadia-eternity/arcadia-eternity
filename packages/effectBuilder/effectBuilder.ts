@@ -1,5 +1,5 @@
-import { EffectContext } from 'packages/core/context'
-import { EffectTrigger } from 'packages/core/effect'
+import { EffectContext } from '@/battle/context'
+import { EffectTrigger } from '@/const/EffectTrigger'
 
 export type ValueExtractor<T, U> = (target: T) => U
 

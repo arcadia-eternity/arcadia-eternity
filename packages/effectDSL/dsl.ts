@@ -1,4 +1,4 @@
-import { EffectTrigger } from 'packages/core/effect'
+import { EffectTrigger } from '@/const/EffectTrigger'
 import { CompareOperator } from 'packages/effectBuilder/condition'
 
 import { BaseSelector, Extractor } from 'packages/effectBuilder/selector'

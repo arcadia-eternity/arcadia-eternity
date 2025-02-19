@@ -1,6 +1,6 @@
-import { EffectContext } from 'packages/core/context'
+import { EffectContext } from '@/battle/context'
 import { Evaluator } from './effectBuilder'
-import { EffectTrigger } from 'packages/core/effect'
+import { EffectTrigger } from '@/const/EffectTrigger'
 import { GetValueFromSource, SelectorOpinion, ValueSource } from './selector'
 
 export type CompareOperator = '>' | '<' | '>=' | '<=' | '=='

@@ -9,7 +9,7 @@
     "outDir": "./dist/",
     "paths": {
       "@/*": ["packages/*"],
-      "@core/*": ["packages/core/*"]
+      "@core/*": ["packages/battle/*"]
     },
     "types": [],
     "skipLibCheck": true

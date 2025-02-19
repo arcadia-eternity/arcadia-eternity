@@ -1,12 +1,13 @@
-import { Battle, BattlePhase } from './battle'
-import { DoNothingSelection, type PlayerSelection, SwitchPetSelection, UseSkillSelection } from './selection'
-import { AttackTargetOpinion, DamageType, RAGE_PER_DAMAGE } from './const'
+import { Battle } from './battle'
+import { BattlePhase } from '../const/BattlePhase'
+import { DoNothingSelection, type PlayerSelection, SwitchPetSelection, UseSkillSelection } from '../const/selection'
+import { AttackTargetOpinion, DamageType, RAGE_PER_DAMAGE } from '../const/const'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
-import { EffectTrigger } from './effect'
-import { BattleMessage, BattleMessageType, BattleState, PlayerMessage } from './message'
+import { EffectTrigger } from '../const/EffectTrigger'
+import { BattleMessage, BattleMessageType, BattleState, PlayerMessage } from '../const/message'
 import { Pet } from './pet'
-import { Category } from './skill'
-import { ELEMENT_CHART } from './element'
+import { Category } from '../const/Category'
+import { ELEMENT_CHART } from '../const/element'
 
 export class Player {
   public currentRage: number = 20

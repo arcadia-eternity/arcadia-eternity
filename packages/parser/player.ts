@@ -1,4 +1,4 @@
-import { Player } from 'packages/core/player'
+import { Player } from '@/battle/player'
 import { PlayerSchema } from 'packages/schema/player'
 import { PetParser } from './pet'
 import { nanoid } from 'nanoid'

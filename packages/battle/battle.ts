@@ -1,5 +1,6 @@
 import { Pet } from './pet'
-import { MarkOwner, RAGE_PER_TURN } from './const'
+import { RAGE_PER_TURN } from '../const/const'
+import { MarkOwner } from './entity'
 import {
   AddMarkContext,
   type AllContext,
@@ -10,20 +11,16 @@ import {
   TurnContext,
   UseSkillContext,
 } from './context'
-import { type BattleMessage, BattleMessageType, type BattleMessageData, type BattleState } from './message'
+import { type BattleMessage, BattleMessageType, type BattleMessageData, type BattleState } from '../const/message'
 import { Player } from './player'
 import Prando from 'prando'
 import { Mark } from './mark'
-import { type EffectContainer, EffectScheduler, EffectTrigger } from './effect'
-import { SwitchPetSelection } from './selection'
+import { type EffectContainer, EffectScheduler } from './effect'
+import { EffectTrigger } from '../const/EffectTrigger'
+import { SwitchPetSelection } from '../const/selection'
 import { Skill } from './skill'
-
-export enum BattlePhase {
-  SwitchPhase = 'SWITCH_PHASE',
-  SelectionPhase = 'SELECTION_PHASE',
-  ExecutionPhase = 'EXECUTION_PHASE',
-  Ended = 'ENDED',
-}
+import { BattlePhase } from '../const/BattlePhase'
+import { BattleStatus } from '../const/BattleStatus'
 
 // 对战系统
 export class Battle extends Context implements MarkOwner {
@@ -465,10 +462,4 @@ export class Battle extends Context implements MarkOwner {
   public getState(): BattleState {
     return this.toMessage()
   }
-}
-
-export enum BattleStatus {
-  Unstarted = 'Unstarted',
-  OnBattle = 'On',
-  Ended = 'Ended',
 }
