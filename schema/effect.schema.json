@@ -69,6 +69,7 @@
                           "petOwners",
                           "foeOwners",
                           "usingSkillContext",
+                          "damageContext",
                           "mark",
                           "selfMarks",
                           "foeMarks"

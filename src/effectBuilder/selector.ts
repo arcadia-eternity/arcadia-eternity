@@ -1,6 +1,6 @@
 import { Battle } from '@/core/battle'
 import { OwnedEntity, StatOnBattle, StatTypeOnBattle } from '@core/const'
-import { EffectContext, UseSkillContext } from '@core/context'
+import { DamageContext, EffectContext, UseSkillContext } from '@core/context'
 import { Mark } from '@core/mark'
 import { Pet } from '@core/pet'
 import { Player } from '@core/player'
@@ -204,6 +204,7 @@ export type SelectorOpinion =
   | Skill
   | StatOnBattle
   | UseSkillContext
+  | DamageContext
   | Battle
   | number
   | StatTypeOnBattle
@@ -224,6 +225,7 @@ export const BaseSelector: {
   petOwners: ChainableSelector<Player>
   foeOwners: ChainableSelector<Player>
   usingSkillContext: ChainableSelector<UseSkillContext>
+  damageContext: ChainableSelector<DamageContext>
   mark: ChainableSelector<Mark>
   selfMarks: ChainableSelector<Mark>
   foeMarks: ChainableSelector<Mark>
@@ -265,6 +267,11 @@ export const BaseSelector: {
   usingSkillContext: createChainable<UseSkillContext>((context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent]
     //TODO: error with use get context with non-Useskill context
+    return []
+  }),
+  damageContext: createChainable<DamageContext>((context: EffectContext<EffectTrigger>) => {
+    if (context.parent instanceof DamageContext) return [context.parent]
+    //TODO: error with use get context with non-Damage context
     return []
   }),
   mark: createChainable<Mark>((context: EffectContext<EffectTrigger>) => {
