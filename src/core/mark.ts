@@ -2,6 +2,7 @@ import { Effect, type EffectContainer, EffectScheduler, EffectTrigger } from './
 import {
   AddMarkContext,
   type AllContext,
+  DamageContext,
   EffectContext,
   RemoveMarkContext,
   SwitchPetContext,
@@ -38,6 +39,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity<Battle | Pe
       stackable?: boolean
       stackStrategy?: StackStrategy
       destoyable?: boolean
+      isShield?: boolean
       keepOnSwitchOut?: boolean // 换场时是否保留（默认false）
       transferOnSwitch?: boolean // 换场时是否转移给新精灵（默认false）
       inheritOnFaint?: boolean // 死亡时是否继承给队友（默认false）
@@ -48,6 +50,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity<Battle | Pe
   ) {
     this.duration = config.duration ?? 3
     this.config.stackStrategy = config.stackStrategy ?? StackStrategy.stack
+    this.config.isShield = false
   }
 
   get stack(): number {
@@ -140,7 +143,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity<Battle | Pe
     return changed
   }
 
-  consumeStack(context: EffectContext<EffectTrigger>, amount: number): number {
+  consumeStack(context: EffectContext<EffectTrigger> | DamageContext, amount: number): number {
     const actual = Math.min(amount, this.stack)
     this.stack -= actual
 
@@ -177,7 +180,15 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity<Battle | Pe
     return mark
   }
 
-  destory(context: EffectContext<EffectTrigger> | TurnContext | AddMarkContext | SwitchPetContext | RemoveMarkContext) {
+  destory(
+    context:
+      | EffectContext<EffectTrigger>
+      | TurnContext
+      | AddMarkContext
+      | SwitchPetContext
+      | RemoveMarkContext
+      | DamageContext,
+  ) {
     if (!this.isActive || !this.config.destoyable) return
     this.isActive = false
 

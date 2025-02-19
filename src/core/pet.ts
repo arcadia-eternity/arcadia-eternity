@@ -89,6 +89,10 @@ export class Pet implements OwnedEntity, MarkOwner {
       context.battle.applyEffects(context, EffectTrigger.OnDamage)
       if (!context.ignoreShield) {
         context.battle.applyEffects(context, EffectTrigger.Shield)
+        const shields = this.getShieldMark()
+        shields.forEach(s => {
+          context.value -= s.consumeStack(context, context.value)
+        })
       }
     }
     if (!context.available) {
@@ -170,6 +174,10 @@ export class Pet implements OwnedEntity, MarkOwner {
       if (filltered) mark.destory(context)
       return false
     })
+  }
+
+  private getShieldMark() {
+    return this.marks.filter(m => m.config.isShield)
   }
 
   private calculateStat(type: StatTypeOnBattle): number {
