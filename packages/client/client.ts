@@ -1,8 +1,7 @@
+import { BattleMessage, BattleState } from 'packages/core/message'
+import { ClientToServerEvents, ServerToClientEvents } from 'packages/protocol'
+import { Player, PlayerSelection } from 'packages/schema'
 import { io, Socket } from 'socket.io-client'
-import { BattleMessage, BattleState } from 'package/core/message'
-import { PlayerSelection } from 'package/schema'
-import { Player } from 'package/schema'
-import { ClientToServerEvents, ServerToClientEvents } from 'package/protocol'
 
 type ClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>
 

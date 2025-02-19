@@ -1,5 +1,5 @@
-import { Player } from 'package/core/player'
-import { PlayerSchema } from 'package/schema/player'
+import { Player } from 'packages/core/player'
+import { PlayerSchema } from 'packages/schema/player'
 import { PetParser } from './pet'
 import { nanoid } from 'nanoid'
 

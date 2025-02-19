@@ -1,4 +1,4 @@
-import { EffectTrigger } from 'package/core/effect'
+import { EffectTrigger } from 'packages/core/effect'
 import {
   EffectContext,
   UseSkillContext,
@@ -6,14 +6,14 @@ import {
   HealContext,
   AddMarkContext,
   RageContext,
-} from 'package/core/context'
-import { Mark } from 'package/core/mark'
-import { Pet } from 'package/core/pet'
-import { Player } from 'package/core/player'
+} from 'packages/core/context'
+import { Mark } from 'packages/core/mark'
+import { Pet } from 'packages/core/pet'
+import { Player } from 'packages/core/player'
 import { type SelectorOpinion, type ValueSource, ChainableSelector, GetValueFromSource } from './selector'
-import { MarkOwner, StatTypeOnBattle, StatTypeWithoutHp } from 'package/core/const'
+import { MarkOwner, StatTypeOnBattle, StatTypeWithoutHp } from 'packages/core/const'
 import { Operator } from './effectBuilder'
-import { Battle } from 'package/core/battle'
+import { Battle } from 'packages/core/battle'
 
 function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpinion>(
   handler: (value: U[], target: T, context: EffectContext<EffectTrigger>) => void,

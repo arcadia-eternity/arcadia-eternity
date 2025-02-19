@@ -1,6 +1,6 @@
-import { PlayerSelection } from 'package/core/selection'
-import { PlayerSelectionSchema } from 'package/schema/selection'
-import { PlayerSelection as PlayerSelectionSchemaType } from 'package/schema/selection'
+import { PlayerSelection } from 'packages/core/selection'
+import { PlayerSelectionSchema } from 'packages/schema/selection'
+import { PlayerSelection as PlayerSelectionSchemaType } from 'packages/schema/selection'
 
 export class SelectionParser {
   static parse(rawData: unknown): PlayerSelection {

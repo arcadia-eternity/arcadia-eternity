@@ -1,7 +1,7 @@
-import { DataRepository } from 'package/daraRespository/dataRepository'
-import { MarkSchema } from 'package/schema/mark'
-import { Mark } from 'package/core/mark'
-import { Effect, EffectTrigger } from 'package/core/effect'
+import { DataRepository } from 'packages/daraRespository/dataRepository'
+import { MarkSchema } from 'packages/schema/mark'
+import { Mark } from 'packages/core/mark'
+import { Effect, EffectTrigger } from 'packages/core/effect'
 
 export class MarkParser {
   static parse(rawData: unknown): Mark {

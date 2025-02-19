@@ -1,7 +1,7 @@
-import { DataRepository } from 'package/daraRespository/dataRepository'
-import { SkillSchema } from 'package/schema/skill'
-import { Skill } from 'package/core/skill'
-import { Effect, EffectTrigger } from 'package/core/effect'
+import { DataRepository } from 'packages/daraRespository/dataRepository'
+import { SkillSchema } from 'packages/schema/skill'
+import { Skill } from 'packages/core/skill'
+import { Effect, EffectTrigger } from 'packages/core/effect'
 
 export class SkillParser {
   static parse(rawData: unknown): Skill {

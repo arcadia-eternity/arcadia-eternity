@@ -1,6 +1,6 @@
-import { Species } from 'package/core/pet'
-import { DataRepository } from 'package/daraRespository/dataRepository'
-import { SpeciesSchema } from 'package/schema/species'
+import { Species } from 'packages/core/pet'
+import { DataRepository } from 'packages/daraRespository/dataRepository'
+import { SpeciesSchema } from 'packages/schema/species'
 
 export class SpeciesParser {
   static parse(rawData: unknown): Species {

@@ -1,6 +1,6 @@
-import { Effect, EffectTrigger } from 'package/core/effect'
-import { parseEffect } from 'package/effectDSL/parse'
-import { effectDSLSchema } from 'package/effectDSL/dslSchema'
+import { Effect, EffectTrigger } from 'packages/core/effect'
+import { parseEffect } from 'packages/effectDSL/parse'
+import { effectDSLSchema } from 'packages/effectDSL/dslSchema'
 
 export class EffectParser {
   static parse(rawData: unknown): Effect<EffectTrigger> {

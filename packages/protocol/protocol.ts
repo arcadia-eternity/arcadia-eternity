@@ -1,8 +1,8 @@
 // src/protocol.ts
-import { BattleMessage } from 'package/core/message'
-import { BattleState } from 'package/core/message'
-import { PlayerSelection } from 'package/schema/selection'
-import { Player } from 'package/schema'
+import { BattleMessage } from 'packages/core/message'
+import { BattleState } from 'packages/core/message'
+import { PlayerSelection } from 'packages/schema/selection'
+import { Player } from 'packages/schema'
 
 // 统一响应类型
 export type SuccessResponse<T = undefined> = {

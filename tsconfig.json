@@ -8,8 +8,8 @@
     "baseUrl": ".",
     "outDir": "./dist/",
     "paths": {
-      "@/*": ["package/*"],
-      "@core/*": ["package/core/*"]
+      "@/*": ["packages/*"],
+      "@core/*": ["packages/core/*"]
     },
     "types": [],
     "skipLibCheck": true

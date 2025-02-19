@@ -10,18 +10,18 @@ import {
   isUseSkillContext,
   SelectorOpinion,
   ValueSource,
-} from 'package/effectBuilder/selector'
+} from 'packages/effectBuilder/selector'
 import { ActionDSL, SelectorDSL, EvaluatorDSL, Value, EffectDSL, ConditionDSL } from './dsl'
-import { Conditions } from 'package/effectBuilder/condition'
-import { Operators } from 'package/effectBuilder/operator'
-import { Condition, Evaluator, ValueExtractor } from 'package/effectBuilder/effectBuilder'
-import { DataRepository } from 'package/daraRespository/dataRepository'
-import { Pet } from 'package/core/pet'
-import { Mark } from 'package/core/mark'
-import { StatTypeOnBattle, StatTypeWithoutHp } from 'package/core/const'
-import { Player } from 'package/core/player'
-import { UseSkillContext } from 'package/core/context'
-import { Effect, EffectTrigger } from 'package/core/effect'
+import { Conditions } from 'packages/effectBuilder/condition'
+import { Operators } from 'packages/effectBuilder/operator'
+import { Condition, Evaluator, ValueExtractor } from 'packages/effectBuilder/effectBuilder'
+import { DataRepository } from 'packages/daraRespository/dataRepository'
+import { Pet } from 'packages/core/pet'
+import { Mark } from 'packages/core/mark'
+import { StatTypeOnBattle, StatTypeWithoutHp } from 'packages/core/const'
+import { Player } from 'packages/core/player'
+import { UseSkillContext } from 'packages/core/context'
+import { Effect, EffectTrigger } from 'packages/core/effect'
 
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   const actions = createAction(dsl.apply)

@@ -1,7 +1,7 @@
-import { EffectTrigger } from 'package/core/effect'
-import { CompareOperator } from 'package/effectBuilder/condition'
+import { EffectTrigger } from 'packages/core/effect'
+import { CompareOperator } from 'packages/effectBuilder/condition'
 
-import { BaseSelector, Extractor } from 'package/effectBuilder/selector'
+import { BaseSelector, Extractor } from 'packages/effectBuilder/selector'
 
 export { EffectTrigger, SelectorChain }
 

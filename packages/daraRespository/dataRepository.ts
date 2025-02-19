@@ -1,8 +1,8 @@
-import { Prototype } from 'package/core/const'
-import { Effect, EffectTrigger } from 'package/core/effect'
-import { Mark } from 'package/core/mark'
-import { Species } from 'package/core/pet'
-import { Skill } from 'package/core/skill'
+import { Prototype } from 'packages/core/const'
+import { Effect, EffectTrigger } from 'packages/core/effect'
+import { Mark } from 'packages/core/mark'
+import { Species } from 'packages/core/pet'
+import { Skill } from 'packages/core/skill'
 
 export class DataRepository {
   private static instance: DataRepository

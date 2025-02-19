@@ -1,6 +1,6 @@
-import { Pet, Species } from 'package/core/pet'
-import { DataRepository } from 'package/daraRespository/dataRepository'
-import { PetSchema } from 'package/schema/pet'
+import { Pet, Species } from 'packages/core/pet'
+import { DataRepository } from 'packages/daraRespository/dataRepository'
+import { PetSchema } from 'packages/schema/pet'
 import { nanoid } from 'nanoid'
 
 export class PetParser {
