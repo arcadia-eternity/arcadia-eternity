@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ESNext",
+    "outDir": "../../dist/server",
+    "types": ["bun-types", "node"],
+    "composite": true
+  },
+  "include": ["./*"]
+}

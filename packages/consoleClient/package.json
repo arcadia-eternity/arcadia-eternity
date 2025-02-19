@@ -8,5 +8,14 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@test-battle/client": "workspace:^",
+    "@test-battle/const": "workspace:^",
+    "@test-battle/schema": "workspace:^",
+    "@test-battle/data-repository": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/node": "^22.12.0"
+  }
 }

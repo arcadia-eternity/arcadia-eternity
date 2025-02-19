@@ -127,7 +127,26 @@ importers:
         specifier: ^6.0.1
         version: 6.0.1
 
-  packages/client: {}
+  packages/client:
+    dependencies:
+      '@test-battle/const':
+        specifier: workspace:^
+        version: link:../const
+      '@test-battle/protocol':
+        specifier: workspace:^
+        version: link:../protocol
+      '@test-battle/schema':
+        specifier: workspace:^
+        version: link:../schema
+      nanoid:
+        specifier: ^5.0.9
+        version: 5.0.9
+      socket.io-client:
+        specifier: ^4.8.1
+        version: 4.8.1
+      zod:
+        specifier: ^3.24.1
+        version: 3.24.1
 
   packages/console:
     dependencies:
@@ -142,7 +161,24 @@ importers:
         specifier: ^22.12.0
         version: 22.12.0
 
-  packages/consoleClient: {}
+  packages/consoleClient:
+    dependencies:
+      '@test-battle/client':
+        specifier: workspace:^
+        version: link:../client
+      '@test-battle/const':
+        specifier: workspace:^
+        version: link:../const
+      '@test-battle/data-repository':
+        specifier: workspace:^
+        version: link:../dataRepository
+      '@test-battle/schema':
+        specifier: workspace:^
+        version: link:../schema
+    devDependencies:
+      '@types/node':
+        specifier: ^22.12.0
+        version: 22.12.0
 
   packages/const: {}
 
@@ -230,7 +266,39 @@ importers:
         specifier: ^3.24.1
         version: 3.24.1
 
-  packages/server: {}
+  packages/server:
+    dependencies:
+      '@test-battle/battle':
+        specifier: workspace:^
+        version: link:../battle
+      '@test-battle/const':
+        specifier: workspace:^
+        version: link:../const
+      '@test-battle/parser':
+        specifier: workspace:^
+        version: link:../parser
+      '@test-battle/protocol':
+        specifier: workspace:^
+        version: link:../protocol
+      '@test-battle/schema':
+        specifier: workspace:^
+        version: link:../schema
+      nanoid:
+        specifier: ^5.0.9
+        version: 5.0.9
+      pino:
+        specifier: ^9.6.0
+        version: 9.6.0
+      socket.io:
+        specifier: ^4.8.1
+        version: 4.8.1
+      zod:
+        specifier: ^3.24.1
+        version: 3.24.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22.12.0
+        version: 22.12.0
 
 packages:
 

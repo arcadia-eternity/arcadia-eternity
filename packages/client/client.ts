@@ -1,6 +1,6 @@
-import { BattleMessage, BattleState } from '@/const/message'
-import { ClientToServerEvents, ServerToClientEvents } from 'packages/protocol'
-import { Player, PlayerSelection } from 'packages/schema'
+import { BattleMessage, BattleState } from '@test-battle/const'
+import { ClientToServerEvents, ServerToClientEvents } from '@test-battle/protocol'
+import { Player, PlayerSelection } from '@test-battle/schema'
 import { io, Socket } from 'socket.io-client'
 
 type ClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>

@@ -1,13 +1,17 @@
-import { BattleClient } from 'packages/client'
-import { BattleMessage, BattleMessageType, BattleState } from '@/const/message'
-import { PlayerSelection } from 'packages/schema'
+import {
+  BattleMessage,
+  BattleState,
+  BattleMessageType,
+  PetMessage,
+  ELEMENT_MAP,
+  BattlePhase,
+  BattleStatus,
+  SkillMessage,
+} from '@test-battle/const'
+import { DataRepository } from '@test-battle/data-repository'
+import { Player, PlayerSelection } from '@test-battle/schema'
+import { BattleClient } from '@test-battle/client'
 import readline from 'readline'
-import { Player } from 'packages/schema/player'
-import { PetMessage, SkillMessage } from '@/const/message'
-import { DataRepository } from '@/daraRepository/dataRepository'
-import { ELEMENT_MAP } from 'packages/schema'
-import { BattlePhase } from '@/const/BattlePhase'
-import { BattleStatus } from '@/const/BattleStatus'
 
 export class ConsoleClient {
   private client: BattleClient

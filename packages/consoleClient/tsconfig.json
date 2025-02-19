@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "target": "ESNext",
+    "outDir": "../../dist/consoleClient",
+    "moduleResolution": "bundler",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "types": ["node"]
+  },
+  "include": ["./*"]
+}

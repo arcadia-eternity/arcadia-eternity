@@ -8,5 +8,19 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@test-battle/battle": "workspace:^",
+    "@test-battle/const": "workspace:^",
+    "@test-battle/parser": "workspace:^",
+    "@test-battle/protocol": "workspace:^",
+    "@test-battle/schema": "workspace:^",
+    "nanoid": "^5.0.9",
+    "pino": "^9.6.0",
+    "socket.io": "^4.8.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.12.0"
+  }
 }
