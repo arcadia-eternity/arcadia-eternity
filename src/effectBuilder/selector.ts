@@ -307,7 +307,7 @@ type ExtractorMap = {
   priority: (target: UseSkillContext) => number
   activePet: (target: Player) => Pet
   skills: (target: Pet) => Skill[]
-  id: (mark: Mark) => string
+  id: (mark: Mark | Pet) => string
   tags: (mark: Mark) => string[]
 }
 
