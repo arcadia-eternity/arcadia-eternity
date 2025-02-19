@@ -1,4 +1,4 @@
-import { Nature } from '@/const/nature'
+import { Nature } from '@test-battle/const'
 import { z } from 'zod'
 
 export const StatOutBattleEVSSchema = z.object({

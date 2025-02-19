@@ -1,4 +1,4 @@
-import { Element, ELEMENT_MAP, ELEMENT_CHART } from '@/const/element'
+import { Element, ELEMENT_MAP, ELEMENT_CHART } from '@test-battle/const'
 import { z } from 'zod'
 
 export { Element, ELEMENT_MAP, ELEMENT_CHART }
