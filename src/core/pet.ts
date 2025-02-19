@@ -87,6 +87,9 @@ export class Pet implements OwnedEntity, MarkOwner {
     //通过技能威力造成伤害的事件
     if (context.source instanceof Pet) {
       context.battle.applyEffects(context, EffectTrigger.OnDamage)
+      if (!context.ignoreShield) {
+        context.battle.applyEffects(context, EffectTrigger.Shield)
+      }
     }
     if (!context.available) {
       context.battle.emitMessage(BattleMessageType.Info, {

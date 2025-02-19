@@ -59,6 +59,7 @@ export enum EffectTrigger {
   PreDamage = 'PreDamage',
   OnCritPreDamage = 'OnCritPreDamage',
   OnDamage = 'OnDamage',
+  Shield = 'Shield', //专门用于处理护盾效果的Trigger,可以被“无视护盾类效果”给无视
   PostDamage = 'PostDamage',
   OnCritPostDamage = 'OnCritPostDamage',
   OnBeforeHit = 'OnBeforeHit',

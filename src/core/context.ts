@@ -51,6 +51,7 @@ export class UseSkillContext extends Context {
   sureHit: boolean = false
   multihit: [number, number] | number = 1
   multihitResult = 1
+  ignoreShield = false
 
   constructor(
     public readonly parent: TurnContext,
@@ -71,6 +72,7 @@ export class UseSkillContext extends Context {
     this.power = this.skill.power
     this.rageCost = this.skill.rage
     this.sureHit = skill.sureHit
+    this.ignoreShield = skill.ignoreShield
   }
 
   amplifyPower(multiplier: number) {
@@ -129,11 +131,10 @@ export class DamageContext extends Context {
     public readonly parent: UseSkillContext | EffectContext<EffectTrigger>,
     public readonly source: Pet | Mark | Skill, //来自技能伤害，还是印记和技能的效果获得的伤害
     public value: number,
-
-    //不涉及逻辑仅用于显示
     public damageType: DamageType = DamageType.effect,
     public crit: boolean = false,
     public effectiveness: number = 1,
+    public ignoreShield: boolean = false,
   ) {
     super(parent)
     this.battle = parent.battle
@@ -192,6 +193,7 @@ type TriggerContextMap = {
   [EffectTrigger.PreDamage]: UseSkillContext
   [EffectTrigger.OnCritPreDamage]: UseSkillContext
   [EffectTrigger.OnDamage]: DamageContext
+  [EffectTrigger.Shield]: DamageContext
   [EffectTrigger.PostDamage]: DamageContext
   [EffectTrigger.OnCritPostDamage]: UseSkillContext
   [EffectTrigger.OnBeforeHit]: UseSkillContext

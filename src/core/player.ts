@@ -286,7 +286,15 @@ export class Player {
 
           // 应用伤害
           context.actualTarget.damage(
-            new DamageContext(context, context.pet, context.damageResult, damageType, context.crit, typeMultiplier),
+            new DamageContext(
+              context,
+              context.pet,
+              context.damageResult,
+              damageType,
+              context.crit,
+              typeMultiplier,
+              context.ignoreShield,
+            ),
           )
 
           if (context.crit)
