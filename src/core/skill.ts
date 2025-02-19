@@ -29,6 +29,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
     public readonly target: AttackTargetOpinion = AttackTargetOpinion.opponent,
     public readonly multihit: [number, number] | number = 1,
     public readonly sureHit: boolean = false,
+    public readonly tag: string[] = [],
     effects: Effect<EffectTrigger>[] = [],
   ) {
     this.effects = effects
@@ -67,6 +68,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
       this.target,
       this.multihit,
       this.sureHit,
+      this.tag,
       this.effects,
     )
   }
@@ -84,6 +86,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
     #priority: number = 0
     #sureHit: boolean = false
     #multihit: [number, number] | number = 0
+    #tag: string[] = []
 
     withID(id: string) {
       this.#id = id
@@ -139,6 +142,10 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
       this.#multihit = hit
     }
 
+    withTag(...arg: string[]) {
+      this.#tag.push(...arg)
+    }
+
     build() {
       return new Skill(
         this.#id,
@@ -152,6 +159,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
         this.#target,
         this.#multihit,
         this.#sureHit,
+        this.#tag,
         this.#effects,
       )
     }
@@ -170,6 +178,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
       target: this.target,
       multihit: this.multihit,
       sureHit: this.sureHit,
+      tag: this.tag,
     }
   }
 }

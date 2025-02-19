@@ -27,6 +27,7 @@ export const SkillSchema = z.object({
     ])
     .optional(),
   sureHit: z.boolean().optional(),
+  tag: z.array(z.string()).default([]),
   effect: z.array(z.string()).optional(),
 })
 

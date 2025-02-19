@@ -101,6 +101,13 @@
           "sureHit": {
             "type": "boolean"
           },
+          "tag": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
           "effect": {
             "type": "array",
             "items": {

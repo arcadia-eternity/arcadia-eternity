@@ -15,6 +15,7 @@ export interface SkillMessage {
   target: AttackTargetOpinion
   multihit: [number, number] | number
   sureHit: boolean
+  tag: string[]
 }
 
 export interface PetMessage {
