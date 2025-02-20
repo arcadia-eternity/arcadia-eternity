@@ -27,16 +27,16 @@ export class PetParser {
       }
     })
 
-    let abilities: Mark | undefined
+    let ability: Mark | undefined
     if (validated.ability) {
       try {
-        abilities = DataRepository.getInstance().getMark(validated.ability)
+        ability = DataRepository.getInstance().getMark(validated.ability)
       } catch (e) {
         throw new Error(
           `[PetParser] Failed to load abilities '${validated.ability}' for pet '${validated.name}': ${(e as Error).message}`,
         )
       }
-    } else if (species.ability && species.ability[0]) abilities = species.ability[0]
+    } else if (species.ability && species.ability[0]) ability = species.ability[0]
 
     let emblem: Mark | undefined
     if (validated.emblem) {
@@ -44,7 +44,7 @@ export class PetParser {
         emblem = DataRepository.getInstance().getMark(validated.emblem)
       } catch (e) {
         throw new Error(
-          `[PetParser] Failed to load abilities '${validated.emblem}' for pet '${validated.name}': ${(e as Error).message}`,
+          `[PetParser] Failed to load emblem '${validated.emblem}' for pet '${validated.name}': ${(e as Error).message}`,
         )
       }
     }
@@ -58,7 +58,7 @@ export class PetParser {
       validated.ivs,
       validated.nature,
       skills,
-      abilities,
+      ability,
       emblem,
     )
   }
