@@ -9,7 +9,12 @@
   },
   "dependencies": {
     "@test-battle/battle": "workspace:^",
+    "@test-battle/console": "workspace:^",
+    "@test-battle/console-client": "workspace:^",
     "@test-battle/data-repository": "workspace:^",
+    "@test-battle/parser": "workspace:^",
+    "@test-battle/schema": "workspace:^",
+    "@test-battle/server": "workspace:^",
     "commander": "^13.1.0",
     "express": "^4.21.2",
     "socket.io": "^4.8.1",

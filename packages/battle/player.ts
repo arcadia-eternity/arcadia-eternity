@@ -120,7 +120,7 @@ export class Player {
 
   private checkSwitchAvailable(selection: SwitchPetSelection) {
     const selectionPet = this.battle!.getPetByID(selection.pet)
-    return selection.pet !== this.activePet.id && selectionPet.isAlive
+    return selection.pet !== this.activePet.id && selectionPet.isAlive && this.team.some(v => v.id === selection.pet)
   }
 
   public setSelection(selection: PlayerSelection): boolean {

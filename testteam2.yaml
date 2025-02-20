@@ -1,6 +1,6 @@
 name: '示例训练师2'
 team:
-  - name: '迪兰特'
+  - name: '迪兰特2'
     species: 'pet_dilante' # 种族编号
     level: 100
     evs:
@@ -27,7 +27,7 @@ team:
     abilities: 'mark_ability_zhongjie'
     emblem: 'mark_emblem_zhuiji'
 
-  - name: '休罗斯'
+  - name: '休罗斯2'
     species: 'pet_xiuluosi' # 种族编号
     level: 100
     evs:
@@ -54,7 +54,7 @@ team:
     abilities: 'mark_ability_yanhuo'
     emblem: 'mark_emblem_nuhuo'
 
-  - name: '拉奥叶'
+  - name: '拉奥叶2'
     species: 'pet_laaoye' # 种族编号
     level: 100
     evs:

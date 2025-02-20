@@ -11,9 +11,24 @@ importers:
       '@test-battle/battle':
         specifier: workspace:^
         version: link:packages/battle
+      '@test-battle/console':
+        specifier: workspace:^
+        version: link:packages/console
+      '@test-battle/console-client':
+        specifier: workspace:^
+        version: link:packages/consoleClient
       '@test-battle/data-repository':
         specifier: workspace:^
         version: link:packages/dataRepository
+      '@test-battle/parser':
+        specifier: workspace:^
+        version: link:packages/parser
+      '@test-battle/schema':
+        specifier: workspace:^
+        version: link:packages/schema
+      '@test-battle/server':
+        specifier: workspace:^
+        version: link:packages/server
       commander:
         specifier: ^13.1.0
         version: 13.1.0
