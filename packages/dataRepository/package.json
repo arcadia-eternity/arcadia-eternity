@@ -7,8 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "yuuinih",
+  "license": "MIT",
   "dependencies": {
     "@test-battle/battle": "workspace:^",
     "@test-battle/const": "workspace:^"

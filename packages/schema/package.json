@@ -7,7 +7,7 @@
     "generate": "tsx script/schema.ts"
   },
   "keywords": [],
-  "author": "",
+  "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
     "@test-battle/const": "workspace:^",
