@@ -1,4 +1,4 @@
-import { OwnedEntity, Prototype } from './entity'
+import { type OwnedEntity, type Prototype } from './entity'
 import { Context, EffectContext } from './context'
 import { Mark } from './mark'
 import { Skill } from './skill'

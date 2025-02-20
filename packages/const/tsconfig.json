@@ -4,11 +4,13 @@
     "lib": ["ESNext", "DOM"],
     "module": "ESNext",
     "outDir": "../../dist/const",
+    "verbatimModuleSyntax": true,
     "declaration": true,
     "declarationMap": true,
     "strictPropertyInitialization": false,
     "strict": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["./*"]
+  "include": ["./*"],
+  "exclude": ["./node_modules"]
 }

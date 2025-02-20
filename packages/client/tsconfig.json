@@ -5,10 +5,12 @@
     "module": "ESNext",
     "target": "ESNext",
     "outDir": "../../dist/client",
+    "verbatimModuleSyntax": true,
     "moduleResolution": "bundler",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "types": []
   },
-  "include": ["./*"]
+  "include": ["./*"],
+  "exclude": ["./node_modules"]
 }

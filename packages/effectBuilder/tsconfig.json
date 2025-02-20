@@ -7,11 +7,13 @@
     "target": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "../../dist/effectBuilder",
+    "verbatimModuleSyntax": true,
     "declaration": true,
     "declarationMap": true,
     "strictPropertyInitialization": false,
     "strict": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["./*"]
+  "include": ["./*"],
+  "exclude": ["./node_modules"]
 }

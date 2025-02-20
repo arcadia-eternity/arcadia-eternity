@@ -1,96 +1,141 @@
 <template>
-  <div class="battle-container">
-    <!-- 对战状态区 -->
-    <div class="battle-state">
-      <h2>第 {{ battleState?.currentTurn }} 回合 - {{ translatePhase(battleState?.currentPhase) }}</h2>
-      <div class="players">
-        <div v-for="player in battleState?.players" :key="player.id" class="player">
-          <h3>{{ player.name }}</h3>
-          <div class="rage">怒气值: {{ player.rage }}/100</div>
-          <pet-info v-if="player.activePet" :pet="player.activePet" />
+  <div class="seer-battle-container">
+    <!-- 顶部匹配按钮 -->
+    <div class="match-control" v-if="!isMatching">
+      <button class="seer-btn" @click="startMatch">
+        <span class="glow-text">⚡ 开始匹配</span>
+      </button>
+    </div>
+
+    <!-- 加载状态 -->
+    <div v-if="isMatching && !battleState" class="matching-status">
+      <div class="scanning-animation"></div>
+      <h3 class="neon-text">扫描对手中... {{ scanningDots }}</h3>
+    </div>
+
+    <!-- 主战场 -->
+    <div v-if="battleState" class="battle-main">
+      <!-- 对手信息 -->
+      <div class="battle-side foe-side">
+        <div class="trainer-card">
+          <img src="~/assets/foe-trainer.png" class="trainer-img" />
+          <div class="trainer-info">
+            <h3 class="foe-name">{{ foe?.name }}</h3>
+            <div class="rage-bar">
+              <div class="rage-fill" :style="{ width: foeRage + '%' }"></div>
+            </div>
+          </div>
+        </div>
+        <pet-display :pet="foeActivePet" side="right" />
+      </div>
+
+      <!-- 战场中央 -->
+      <div class="battle-center">
+        <div class="stage-effects">
+          <div v-for="(mark, index) in battleState.marks" :key="index" class="stage-mark">
+            {{ mark.name }} ×{{ mark.stack }}
+          </div>
+        </div>
+        <div class="turn-counter">第 {{ battleState.currentTurn }} 回合</div>
+      </div>
+
+      <!-- 玩家信息 -->
+      <div class="battle-side player-side">
+        <div class="trainer-card">
+          <img src="~/assets/player-trainer.png" class="trainer-img" />
+          <div class="trainer-info">
+            <h3 class="player-name">{{ playerData.name }}</h3>
+            <div class="rage-bar">
+              <div class="rage-fill" :style="{ width: playerRage + '%' }"></div>
+            </div>
+          </div>
+        </div>
+        <pet-display :pet="playerActivePet" side="left" />
+      </div>
+
+      <!-- 战斗操作面板 -->
+      <div class="action-panel">
+        <div class="action-category" v-if="availableSelections.length">
+          <button
+            v-for="(action, index) in availableSelections"
+            :key="index"
+            class="seer-action-btn"
+            @click="handleAction(action)"
+            :class="getActionTypeClass(action)"
+          >
+            <span class="action-icon">{{ getActionIcon(action) }}</span>
+            {{ getActionLabel(action) }}
+          </button>
         </div>
       </div>
-    </div>
 
-    <!-- 操作选择区 -->
-    <div class="action-panel" v-if="availableSelections.length">
-      <h3>选择你的行动</h3>
-      <div class="actions">
-        <button v-for="(action, index) in availableSelections" :key="index" @click="handleAction(action)">
-          {{ getActionLabel(action) }}
-        </button>
-      </div>
-    </div>
-
-    <!-- 战斗日志区 -->
-    <div class="battle-log">
-      <div v-for="(msg, index) in messages" :key="index" class="log-entry">
-        <span :class="logTypeClass(msg.type)">[{{ formatTime(msg.timestamp) }}]</span>
-        {{ formatMessage(msg) }}
+      <!-- 战斗日志 -->
+      <div class="battle-log">
+        <div v-for="(msg, index) in messages" :key="index" class="log-entry" :class="logTypeClass(msg.type)">
+          <span class="log-time">{{ formatTime(msg.timestamp) }}</span>
+          <span v-html="formatMessage(msg)"></span>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
-import {
-  type BattleMessage,
-  type BattleState,
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import type {
+  BattleMessage,
+  BattleState,
   BattleMessageType,
-  type PlayerSelection,
-  type PetMessage,
+  PlayerSelection,
+  PetMessage,
+  Player,
 } from '@test-battle/const'
 import { BattleClient } from '@test-battle/client'
 
-const props = defineProps({
-  serverUrl: {
-    type: String,
-    required: true,
-  },
-  playerData: {
-    type: Object,
-    required: true,
-  },
-})
+// 类型定义增强
+interface BattleMessageWithTimestamp extends BattleMessage {
+  timestamp: number
+}
+
+// 组件属性定义
+const props = defineProps<{
+  serverUrl: string
+  playerData: Player
+}>()
 
 // 响应式状态
 const battleState = ref<BattleState>()
-const messages = ref<BattleMessage[]>([])
+const messages = ref<BattleMessageWithTimestamp[]>([])
 const availableSelections = ref<PlayerSelection[]>([])
+const isMatching = ref(false)
+const scanningDots = ref('')
 const client = ref<BattleClient>()
 
-// 初始化客户端
-onMounted(() => {
-  client.value = new BattleClient({ serverUrl: props.serverUrl })
-  setupEventHandlers()
-  connect()
-})
+// 计算属性
+const foe = computed(() => battleState.value?.players.find(p => p.id !== props.playerData.id))
 
-// 清理资源
-onUnmounted(() => {
-  client.value?.disconnect()
-})
+const playerRage = computed(() => battleState.value?.players.find(p => p.id === props.playerData.id)?.rage ?? 0)
 
-// 事件处理
-const setupEventHandlers = () => {
-  client.value?.on('battleEvent', handleBattleMessage)
-  client.value?.on('matchSuccess', handleMatchSuccess)
+const foeRage = computed(() => foe.value?.rage ?? 0)
+
+// 时间格式化方法
+const formatTime = (timestamp: number) => {
+  return new Date(timestamp).toLocaleTimeString()
 }
 
-// 连接服务器
-const connect = async () => {
-  try {
-    await client.value?.joinMatchmaking(props.playerData)
-    console.log('等待匹配对手...')
-  } catch (error) {
-    console.error('连接失败:', error)
-  }
+// 匹配成功处理
+const handleMatchSuccess = () => {
+  isMatching.value = false
+  console.log('匹配成功！对战即将开始...')
 }
 
-// 处理战斗消息
+// 战斗消息处理
 const handleBattleMessage = (msg: BattleMessage) => {
-  messages.value.push(msg)
+  const messageWithTimestamp = {
+    ...msg,
+    timestamp: Date.now(),
+  }
+  messages.value.push(messageWithTimestamp)
 
   switch (msg.type) {
     case BattleMessageType.BattleState:
@@ -102,67 +147,50 @@ const handleBattleMessage = (msg: BattleMessage) => {
   }
 }
 
-// 获取可用操作
+// 获取可用操作（调整类型匹配）
 const fetchAvailableActions = async () => {
   try {
     const actions = await client.value?.getAvailableSelection()
-    availableSelections.value = actions || []
+    // 添加必要的player字段
+    availableSelections.value =
+      actions?.map(action => ({
+        ...action,
+        player: props.playerData.id,
+      })) || []
   } catch (error) {
     console.error('获取操作失败:', error)
   }
 }
 
-// 执行玩家操作
+// 处理玩家操作（类型适配）
 const handleAction = async (action: PlayerSelection) => {
   try {
-    await client.value?.sendPlayerAction(action)
+    // 添加source字段
+    const enhancedAction = {
+      ...action,
+      source: props.playerData.id,
+    }
+    await client.value?.sendPlayerAction(enhancedAction)
     availableSelections.value = []
   } catch (error) {
     console.error('操作失败:', error)
   }
 }
 
-// 格式化操作标签
-const getActionLabel = (action: PlayerSelection) => {
-  switch (action.type) {
-    case 'use-skill':
-      return `使用技能 ${action.skill}`
-    case 'switch-pet':
-      return `更换精灵 ${action.pet}`
-    case 'do-nothing':
-      return '本回合待机'
-    case 'surrender':
-      return '投降'
-    default:
-      return '未知操作'
-  }
-}
-
-// 消息格式化逻辑（部分示例）
-const formatMessage = (msg: BattleMessage) => {
-  switch (msg.type) {
-    case BattleMessageType.Damage:
-      return `${msg.data.target} 受到 ${msg.data.damage}点伤害`
-    case BattleMessageType.SkillUse:
-      return `${msg.data.user} 使用 ${msg.data.skill}`
-    // 其他消息类型处理...
-    default:
-      return msg.data?.toString() || ''
-  }
-}
-
-// 辅助方法
-const translatePhase = (phase?: string) => {
-  // 实现阶段翻译逻辑...
-}
-
+// 日志类型样式
 const logTypeClass = (type: BattleMessageType) => {
-  return {
+  const typeMap = {
     [BattleMessageType.Damage]: 'damage-log',
     [BattleMessageType.Heal]: 'heal-log',
     [BattleMessageType.Info]: 'info-log',
-  }[type]
+    [BattleMessageType.BattleState]: 'state-log',
+    [BattleMessageType.SkillUse]: 'skill-log',
+    // 添加其他消息类型...
+  }
+  return typeMap[type] || 'info-log'
 }
+
+// 清理未使用的导入和变量
 </script>
 
 <style scoped>

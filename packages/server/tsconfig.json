@@ -8,8 +8,10 @@
     "moduleResolution": "bundler",
     "target": "ESNext",
     "outDir": "../../dist/server",
+    "verbatimModuleSyntax": true,
     "types": ["bun-types", "node"],
     "composite": true
   },
-  "include": ["./*"]
+  "include": ["./*"],
+  "exclude": ["./node_modules"]
 }
