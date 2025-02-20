@@ -124,8 +124,8 @@ export class ConsoleUI {
 
       case BattleMessageType.PetDefeated: {
         const d = message.data
-        const killerName = this.getPetNameById(d.pet)
-        const petName = d.killer ? this.getPlayerNameById(d.killer) : ''
+        const killerName = this.getPetNameById(d.killer ?? '')
+        const petName = d.pet ? this.getPetNameById(d.pet) : ''
         console.log(`☠️ ${petName} 倒下！${message.data.killer ? `(击败者: ${killerName})` : ''}`)
         break
       }
@@ -154,9 +154,11 @@ export class ConsoleUI {
         console.log(`➤ 结束原因：${this.translateEndReason(message.data.reason)}`)
         break
 
-      case BattleMessageType.ForcedSwitch:
-        console.log(`${message.data.player.join(',')} 必须更换倒下的精灵！`)
+      case BattleMessageType.ForcedSwitch: {
+        const playerNames = message.data.player.map(p => this.getPlayerNameById(p))
+        console.log(`${playerNames.join(',')} 必须更换倒下的精灵！`)
         break
+      }
 
       case BattleMessageType.Crit: {
         const d = message.data
