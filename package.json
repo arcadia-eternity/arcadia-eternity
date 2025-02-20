@@ -4,15 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build": "npm run build:core && npm run build:server",
-    "build:core": "tsc -b tsconfig.core.json",
-    "build:server": "tsc -b tsconfig.server.json",
-    "validate": "tsx script/schema.ts --validate-only",
+    "generate": "pnpm --filter @test-battle/schema run generate",
     "cli": "tsx ./bin/cli.ts"
   },
   "dependencies": {
+    "@test-battle/battle": "workspace:^",
+    "@test-battle/data-repository": "workspace:^",
     "commander": "^13.1.0",
     "express": "^4.21.2",
+    "socket.io": "^4.8.1",
     "yaml": "^2.7.0",
     "zod": "^3.24.1",
     "zod-to-json-schema": "^3.24.1"

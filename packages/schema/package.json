@@ -2,8 +2,9 @@
   "name": "@test-battle/schema",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "scripts": {
-    "validate": "tsx script/schema.ts --validate-only"
+    "generate": "tsx script/schema.ts"
   },
   "keywords": [],
   "author": "",

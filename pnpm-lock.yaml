@@ -8,12 +8,21 @@ importers:
 
   .:
     dependencies:
+      '@test-battle/battle':
+        specifier: workspace:^
+        version: link:packages/battle
+      '@test-battle/data-repository':
+        specifier: workspace:^
+        version: link:packages/dataRepository
       commander:
         specifier: ^13.1.0
         version: 13.1.0
       express:
         specifier: ^4.21.2
         version: 4.21.2
+      socket.io:
+        specifier: ^4.8.1
+        version: 4.8.1
       yaml:
         specifier: ^2.7.0
         version: 2.7.0

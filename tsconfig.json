@@ -10,5 +10,5 @@
     "strict": true,
     "types": ["node"]
   },
-  "include": ["packages/schema/script", "./cli"]
+  "include": ["bin"]
 }
