@@ -29,7 +29,7 @@ export const PetSchema = z.object({
   nature: z.nativeEnum(Nature),
   skills: z.array(z.string()).min(1).max(5),
   maxHp: z.number().int().positive().optional(),
-  abilities: z.string().optional(),
+  ability: z.string().optional(),
   emblem: z.string().optional(),
 })
 // 推导 TypeScript 类型

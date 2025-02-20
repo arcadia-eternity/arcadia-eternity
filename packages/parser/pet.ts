@@ -28,15 +28,15 @@ export class PetParser {
     })
 
     let abilities: Mark | undefined
-    if (validated.abilities) {
+    if (validated.ability) {
       try {
-        abilities = DataRepository.getInstance().getMark(validated.abilities)
+        abilities = DataRepository.getInstance().getMark(validated.ability)
       } catch (e) {
         throw new Error(
-          `[PetParser] Failed to load abilities '${validated.abilities}' for pet '${validated.name}': ${(e as Error).message}`,
+          `[PetParser] Failed to load abilities '${validated.ability}' for pet '${validated.name}': ${(e as Error).message}`,
         )
       }
-    }
+    } else if (species.ability && species.ability[0]) abilities = species.ability[0]
 
     let emblem: Mark | undefined
     if (validated.emblem) {

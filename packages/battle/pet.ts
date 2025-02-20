@@ -71,7 +71,7 @@ export class Pet implements OwnedEntity, MarkOwner {
     public readonly ivs: StatOutBattle,
     public readonly nature: Nature,
     public readonly skills: Skill[],
-    abilities?: Mark,
+    ability?: Mark,
     emblem?: Mark, //TODO: 暂时没想好怎么实现特性和纹章
     maxHp?: number, //可以额外手动设置hp
   ) {
@@ -79,7 +79,7 @@ export class Pet implements OwnedEntity, MarkOwner {
     this.currentHp = this.maxHp
     this.element = species.element
     this.owner = null
-    if (abilities) this.marks.push(abilities)
+    if (ability) this.marks.push(ability)
     if (emblem) this.marks.push(emblem)
   }
 
