@@ -1,5 +1,5 @@
 {
-  "name": "console",
+  "name": "@test-battle/console",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
