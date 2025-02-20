@@ -4,6 +4,8 @@
   "creator": {
     "version": "3.8.5"
   },
+  "author": "yuuinih",
+  "license": "MIT",
   "dependencies": {
     "@test-battle/client": "workspace:^"
   }
