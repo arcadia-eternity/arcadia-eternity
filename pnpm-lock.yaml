@@ -44,9 +44,6 @@ importers:
       zod:
         specifier: ^3.24.1
         version: 3.24.1
-      zod-to-json-schema:
-        specifier: ^3.24.1
-        version: 3.24.1(zod@3.24.1)
     devDependencies:
       '@eslint/js':
         specifier: ^9.19.0
@@ -2584,11 +2581,6 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
-
-  zod-to-json-schema@3.24.1:
-    resolution: {integrity: sha512-3h08nf3Vw3Wl3PK+q3ow/lIil81IT2Oa7YpQyUUDsEWbXveMesdfK1xBd2RhCkynwZndAxixji/7SYJJowr62w==}
-    peerDependencies:
-      zod: ^3.24.1
 
   zod@3.24.1:
     resolution: {integrity: sha512-muH7gBL9sI1nciMZV67X5fTKKBLtwpZ5VBp1vsOQzj1MhrBZ4wlVCm3gedKZWLp0Oyel8sIGfeiz54Su+OVT+A==}
@@ -5180,9 +5172,5 @@ snapshots:
       yargs-parser: 21.1.1
 
   yocto-queue@0.1.0: {}
-
-  zod-to-json-schema@3.24.1(zod@3.24.1):
-    dependencies:
-      zod: 3.24.1
 
   zod@3.24.1: {}
