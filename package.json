@@ -11,18 +11,8 @@
     "cli": "tsx ./bin/cli.ts"
   },
   "dependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.24.0",
-    "chevrotain": "^11.0.3",
     "commander": "^13.1.0",
-    "concurrently": "^9.1.2",
     "express": "^4.21.2",
-    "js-yaml": "^4.1.0",
-    "nanoid": "^5.0.9",
-    "pino": "^9.6.0",
-    "prando": "^6.0.1",
-    "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1",
-    "ts-to-zod": "^3.15.0",
     "yaml": "^2.7.0",
     "zod": "^3.24.1",
     "zod-to-json-schema": "^3.24.1"
@@ -33,9 +23,9 @@
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
     "@types/ws": "^8.5.14",
+    "@typescript-eslint/eslint-plugin": "^8.24.0",
     "babel-jest": "^29.7.0",
     "bun-types": "^1.2.2",
-    "csv-parser": "^3.2.0",
     "eslint": "^9.19.0",
     "eslint-config-prettier": "^10.0.1",
     "fs": "0.0.1-security",
@@ -49,5 +39,8 @@
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.22.0"
-  }
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }

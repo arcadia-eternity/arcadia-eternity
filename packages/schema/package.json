@@ -2,16 +2,19 @@
   "name": "@test-battle/schema",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "validate": "tsx script/schema.ts --validate-only"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@test-battle/const": "workspace:^",
+    "@test-battle/effect-dsl": "workspace:^",
     "nanoid": "^5.0.9",
     "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.12.0"
   }
 }

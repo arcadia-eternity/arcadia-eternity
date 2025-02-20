@@ -3,6 +3,7 @@
     "composite": true,
     "lib": ["ESNext"],
     "module": "ESNext",
+    "moduleResolution": "bundler",
     "outDir": "../../dist/schema",
     "declaration": true,
     "declarationMap": true,
@@ -10,5 +11,5 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": [["./*"]]
+  "include": ["./*"]
 }

@@ -1,10 +1,9 @@
 import fs from 'fs/promises'
 import path from 'path'
-import yaml from 'yaml'
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import { MarkDataSetSchema, SkillDataSetSchema, SpeciesDataSetSchema } from '../packages/schema'
-import { EffectDSLSetSchema } from 'packages/effectDSL/dslSchema'
+import { MarkDataSetSchema, SkillDataSetSchema, SpeciesDataSetSchema } from '..'
+import { EffectDSLSetSchema } from '@test-battle/effect-dsl'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -15,8 +14,6 @@ const __dirname = dirname(__filename)
 // 定义文件名前缀与 Zod Schema 的映射关系
 const SCHEMA_MAP: Record<string, z.ZodSchema> = {
   mark: MarkDataSetSchema,
-  mark_ability: MarkDataSetSchema,
-  mark_emblem: MarkDataSetSchema,
   skill: SkillDataSetSchema,
   species: SpeciesDataSetSchema,
   effect: EffectDSLSetSchema,
@@ -59,52 +56,10 @@ async function generateJsonSchema() {
     console.log(`[📄] Generated schema: ${schemaPath}`)
   }
 }
-
-// 校验 YAML 文件数据
-async function validateYamlFiles() {
-  const dataDir = path.join(__dirname, '../data')
-  const files = await fs.readdir(dataDir)
-
-  for (const file of files) {
-    if (!file.endsWith('.yaml') && !file.endsWith('.yml')) continue
-
-    const [prefix] = file.split('.')
-    const schema = SCHEMA_MAP[prefix]
-
-    if (!schema) {
-      console.warn(`[⚠️] No schema found for ${file}`)
-      continue
-    }
-
-    try {
-      const filePath = path.join(dataDir, file)
-      const content = await fs.readFile(filePath, 'utf-8')
-      const data = yaml.parse(content)
-
-      // 执行严格校验
-      const result = schema.safeParse(data)
-
-      if (!result.success) {
-        console.error(`[❌] Validation failed for ${file}:`)
-        result.error.errors.forEach(err => {
-          console.error(`  - ${err.path.join('.')}: ${err.message}`)
-        })
-        process.exitCode = 1
-      } else {
-        console.log(`[✅] Successfully validated ${file}`)
-      }
-    } catch (err) {
-      console.error(`[💥] Error processing ${file}:`, err instanceof Error ? err.message : err)
-      process.exitCode = 1
-    }
-  }
-}
-
 // 主流程
 async function main() {
   try {
     await generateJsonSchema() // 先生成 Schema
-    await validateYamlFiles() // 再校验数据
   } catch (err) {
     console.error('[🔥] Fatal error:', err instanceof Error ? err.message : err)
     process.exit(1)
