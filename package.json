@@ -30,7 +30,6 @@
     "bun-types": "^1.2.2",
     "eslint": "^9.19.0",
     "eslint-config-prettier": "^10.0.1",
-    "fs": "0.0.1-security",
     "jest": "^29.7.0",
     "prettier": "3.4.2",
     "ts-jest": "^29.2.5",
