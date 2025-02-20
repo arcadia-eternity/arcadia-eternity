@@ -298,6 +298,12 @@ importers:
         specifier: ^22.12.0
         version: 22.12.0
 
+  packages/ui:
+    dependencies:
+      '@test-battle/client':
+        specifier: workspace:^
+        version: link:../client
+
 packages:
 
   '@ampproject/remapping@2.3.0':
