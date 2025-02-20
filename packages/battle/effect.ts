@@ -2,7 +2,7 @@ import { OwnedEntity, Prototype } from './entity'
 import { Context, EffectContext } from './context'
 import { Mark } from './mark'
 import { Skill } from './skill'
-import { EffectTrigger } from '@test-battle/const/EffectTrigger'
+import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import { BattleMessageType } from '@test-battle/const/message'
 
 export class EffectScheduler {

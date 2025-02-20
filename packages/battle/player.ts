@@ -1,5 +1,5 @@
 import { Battle } from './battle'
-import { BattlePhase } from '@test-battle/const/BattlePhase'
+import { BattlePhase } from '@test-battle/const/battlePhase'
 import {
   DoNothingSelection,
   type PlayerSelection,
@@ -8,10 +8,10 @@ import {
 } from '@test-battle/const/selection'
 import { AttackTargetOpinion, DamageType, RAGE_PER_DAMAGE } from '@test-battle/const/const'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
-import { EffectTrigger } from '@test-battle/const/EffectTrigger'
+import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import { BattleMessage, BattleMessageType, BattleState, PlayerMessage } from '@test-battle/const/message'
 import { Pet } from './pet'
-import { Category } from '@test-battle/const/Category'
+import { Category } from '@test-battle/const/category'
 import { ELEMENT_CHART } from '@test-battle/const/element'
 
 export class Player {

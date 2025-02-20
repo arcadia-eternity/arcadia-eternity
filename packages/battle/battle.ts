@@ -21,11 +21,11 @@ import { Player } from './player'
 import Prando from 'prando'
 import { Mark } from './mark'
 import { type EffectContainer, EffectScheduler } from './effect'
-import { EffectTrigger } from '@test-battle/const/EffectTrigger'
+import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import { SwitchPetSelection } from '@test-battle/const/selection'
 import { Skill } from './skill'
-import { BattlePhase } from '@test-battle/const/BattlePhase'
-import { BattleStatus } from '@test-battle/const/BattleStatus'
+import { BattlePhase } from '@test-battle/const/battlePhase'
+import { BattleStatus } from '@test-battle/const/battleStatus'
 
 // 对战系统
 export class Battle extends Context implements MarkOwner {

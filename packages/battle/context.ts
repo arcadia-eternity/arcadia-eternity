@@ -5,7 +5,7 @@ import { MarkOwner } from './entity'
 import { Mark } from './mark'
 import { Pet } from './pet'
 import { Skill } from './skill'
-import { EffectTrigger } from '@test-battle/const/EffectTrigger'
+import { EffectTrigger } from '@test-battle/const/effectTrigger'
 
 export abstract class Context {
   readonly type: string = 'base'

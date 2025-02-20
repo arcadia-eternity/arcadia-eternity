@@ -24,7 +24,7 @@ import {
   SwitchPetContext,
 } from './context'
 import { BattleMessageType, PetMessage } from '@test-battle/const/message'
-import { EffectTrigger } from '@test-battle/const/EffectTrigger'
+import { EffectTrigger } from '@test-battle/const/effectTrigger'
 
 export interface Species extends Prototype {
   id: string //约定:id为原中文名的拼音拼写

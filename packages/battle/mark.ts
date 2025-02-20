@@ -1,5 +1,5 @@
 import { Effect, type EffectContainer, EffectScheduler } from './effect'
-import { EffectTrigger } from '@test-battle/const/EffectTrigger'
+import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import {
   AddMarkContext,
   type AllContext,
@@ -14,7 +14,7 @@ import { Battle } from './battle'
 import { STAT_STAGE_MULTIPLIER, StatTypeOnBattle } from '@test-battle/const/const'
 import { type OwnedEntity, type Prototype } from './entity'
 import { MarkMessage } from '@test-battle/const/message'
-import { StackStrategy } from '@test-battle/const/StackStrategy'
+import { StackStrategy } from '@test-battle/const/stackStrategy'
 
 //TODO: 印记的换场逻辑，以及传递的逻辑。
 export class Mark implements EffectContainer, Prototype, OwnedEntity<Battle | Pet | null> {
