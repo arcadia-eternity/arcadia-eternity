@@ -3,11 +3,11 @@ import {
   type BattleMessage,
   BattleMessageType,
   Category,
-  DoNothingSelection,
+  type DoNothingSelection,
   ELEMENT_MAP,
   type PlayerSelection,
-  SwitchPetSelection,
-  UseSkillSelection,
+  type SwitchPetSelection,
+  type UseSkillSelection,
 } from '@test-battle/const'
 import readline from 'readline'
 

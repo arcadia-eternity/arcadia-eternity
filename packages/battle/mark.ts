@@ -1,5 +1,8 @@
-import { Effect, type EffectContainer, EffectScheduler } from './effect'
+import { STAT_STAGE_MULTIPLIER, type StatTypeOnBattle } from '@test-battle/const/const'
 import { EffectTrigger } from '@test-battle/const/effectTrigger'
+import type { MarkMessage } from '@test-battle/const/message'
+import { StackStrategy } from '@test-battle/const/stackStrategy'
+import { Battle } from './battle'
 import {
   AddMarkContext,
   type AllContext,
@@ -9,12 +12,9 @@ import {
   SwitchPetContext,
   TurnContext,
 } from './context'
-import { Pet } from './pet'
-import { Battle } from './battle'
-import { STAT_STAGE_MULTIPLIER, StatTypeOnBattle } from '@test-battle/const/const'
+import { Effect, type EffectContainer, EffectScheduler } from './effect'
 import { type OwnedEntity, type Prototype } from './entity'
-import { MarkMessage } from '@test-battle/const/message'
-import { StackStrategy } from '@test-battle/const/stackStrategy'
+import { Pet } from './pet'
 
 //TODO: 印记的换场逻辑，以及传递的逻辑。
 export class Mark implements EffectContainer, Prototype, OwnedEntity<Battle | Pet | null> {

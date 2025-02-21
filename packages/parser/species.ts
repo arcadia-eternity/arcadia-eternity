@@ -1,4 +1,4 @@
-import { Species } from '@test-battle/battle'
+import { type Species } from '@test-battle/battle'
 import { DataRepository } from '@test-battle/data-repository'
 import { SpeciesSchema } from '@test-battle/schema'
 

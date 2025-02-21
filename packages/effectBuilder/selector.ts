@@ -1,12 +1,11 @@
 import { Battle, DamageContext, EffectContext, Mark, Pet, Player, Skill, UseSkillContext } from '@test-battle/battle'
-import { OwnedEntity } from '@test-battle/battle/entity'
-import { EffectTrigger, Element, StatOnBattle, StatTypeOnBattle } from '@test-battle/const'
-import { Action, Condition, Evaluator, Operator, ValueExtractor } from './effectBuilder'
+import type { OwnedEntity } from '@test-battle/battle/entity'
+import { EffectTrigger, Element, type StatOnBattle, type StatTypeOnBattle } from '@test-battle/const'
+import type { Action, Condition, Evaluator, Operator, TargetSelector, ValueExtractor } from './effectBuilder'
 
 // 条件系统分为三个层级
 // 修改选择器类型定义
 
-export type TargetSelector<T> = (context: EffectContext<EffectTrigger>) => T[]
 export type ValueSource<T extends SelectorOpinion> =
   | T
   | TargetSelector<T> // 选择器系统产生的值

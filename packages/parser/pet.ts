@@ -1,4 +1,4 @@
-import { Mark, Pet, Species } from '@test-battle/battle'
+import { Mark, Pet, type Species } from '@test-battle/battle'
 import { DataRepository } from '@test-battle/data-repository'
 import { PetSchema } from '@test-battle/schema'
 import { nanoid } from 'nanoid'

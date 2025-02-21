@@ -1,12 +1,13 @@
 import { Effect, Mark, Pet, Player, UseSkillContext } from '@test-battle/battle'
-import { EffectTrigger, StatTypeOnBattle, StatTypeWithoutHp } from '@test-battle/const'
+import { EffectTrigger, type StatTypeOnBattle, StatTypeWithoutHp } from '@test-battle/const'
+import { DataRepository } from '@test-battle/data-repository'
 import {
   BaseSelector,
   ChainableSelector,
-  Condition,
+  type Condition,
   Conditions,
   createExtractor,
-  Evaluator,
+  type Evaluator,
   Extractor,
   isMark,
   isOwnedEntity,
@@ -14,12 +15,11 @@ import {
   isPlayer,
   isUseSkillContext,
   Operators,
-  SelectorOpinion,
-  ValueExtractor,
-  ValueSource,
+  type SelectorOpinion,
+  type ValueExtractor,
+  type ValueSource,
 } from '@test-battle/effect-builder'
-import { DataRepository } from '@test-battle/data-repository'
-import { ActionDSL, ConditionDSL, EffectDSL, EvaluatorDSL, SelectorDSL, Value } from './dsl'
+import type { ActionDSL, ConditionDSL, EffectDSL, EvaluatorDSL, SelectorDSL, Value } from './dsl'
 
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   const actions = createAction(dsl.apply)

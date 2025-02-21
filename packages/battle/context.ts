@@ -1,11 +1,11 @@
-import { Battle } from './battle'
-import { Player } from './player'
 import { AttackTargetOpinion, DamageType } from '@test-battle/const/const'
-import { MarkOwner } from './entity'
+import { EffectTrigger } from '@test-battle/const/effectTrigger'
+import { Battle } from './battle'
+import { type MarkOwner } from './entity'
 import { Mark } from './mark'
 import { Pet } from './pet'
+import { Player } from './player'
 import { Skill } from './skill'
-import { EffectTrigger } from '@test-battle/const/effectTrigger'
 
 export abstract class Context {
   readonly type: string = 'base'

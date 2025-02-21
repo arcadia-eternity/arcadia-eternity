@@ -1,5 +1,5 @@
-import { PlayerSelection } from '@test-battle/const'
-import { PlayerSelectionSchema, PlayerSelection as PlayerSelectionSchemaType } from '@test-battle/schema'
+import type { PlayerSelection } from '@test-battle/const'
+import { PlayerSelectionSchema, type PlayerSelection as PlayerSelectionSchemaType } from '@test-battle/schema'
 
 export class SelectionParser {
   static parse(rawData: unknown): PlayerSelection {

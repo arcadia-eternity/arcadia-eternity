@@ -1,9 +1,9 @@
-import { type OwnedEntity, type Prototype } from './entity'
-import { Context, EffectContext } from './context'
-import { Mark } from './mark'
-import { Skill } from './skill'
 import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import { BattleMessageType } from '@test-battle/const/message'
+import { Context, EffectContext } from './context'
+import { type OwnedEntity, type Prototype } from './entity'
+import { Mark } from './mark'
+import { Skill } from './skill'
 
 export class EffectScheduler {
   private static instance: EffectScheduler

@@ -14,13 +14,14 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
+import { type PetMessage } from '@test-battle/const'
 
-const props = defineProps({
-  pet: Object,
-  isOpponent: Boolean,
-})
+const props = defineProps<{
+  pet: PetMessage
+  isOpponent: boolean
+}>()
 
 const elementIcon = computed(() => `/elements/${props.pet.element}.png`)
 </script>

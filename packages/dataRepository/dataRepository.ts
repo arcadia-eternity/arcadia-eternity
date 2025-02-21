@@ -1,4 +1,4 @@
-import { Species, Skill, Prototype, Effect, Mark } from '@test-battle/battle'
+import { type Prototype, type Species, Effect, Mark, Skill } from '@test-battle/battle'
 import { EffectTrigger } from '@test-battle/const'
 
 export class DataRepository {

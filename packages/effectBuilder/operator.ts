@@ -5,15 +5,15 @@ import {
   EffectContext,
   HealContext,
   Mark,
-  MarkOwner,
+  type MarkOwner,
   Pet,
   Player,
   RageContext,
   UseSkillContext,
 } from '@test-battle/battle'
-import { EffectTrigger, StatTypeOnBattle, StatTypeWithoutHp } from '@test-battle/const'
-import { Operator } from './effectBuilder'
-import { type SelectorOpinion, type ValueSource, ChainableSelector, GetValueFromSource } from './selector'
+import { EffectTrigger, type StatTypeOnBattle, StatTypeWithoutHp } from '@test-battle/const'
+import type { Operator } from './effectBuilder'
+import { ChainableSelector, GetValueFromSource, type SelectorOpinion, type ValueSource } from './selector'
 
 function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpinion>(
   handler: (value: U[], target: T, context: EffectContext<EffectTrigger>) => void,

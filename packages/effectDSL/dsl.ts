@@ -1,7 +1,8 @@
 import { EffectTrigger } from '@test-battle/const'
-import { BaseSelector, Extractor, CompareOperator } from '@test-battle/effect-builder'
+import { BaseSelector, Extractor, type CompareOperator } from '@test-battle/effect-builder'
 
-export { EffectTrigger, SelectorChain }
+export { EffectTrigger }
+export type { SelectorChain }
 
 export interface EffectDSL {
   id: string

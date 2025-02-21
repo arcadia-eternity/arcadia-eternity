@@ -1,16 +1,16 @@
+import { BattleClient } from '@test-battle/client'
 import {
-  BattleMessage,
-  BattleState,
   BattleMessageType,
-  PetMessage,
-  ELEMENT_MAP,
   BattlePhase,
   BattleStatus,
-  SkillMessage,
+  ELEMENT_MAP,
+  type BattleMessage,
+  type BattleState,
+  type PetMessage,
+  type SkillMessage,
 } from '@test-battle/const'
 import { DataRepository } from '@test-battle/data-repository'
-import { Player, PlayerSelection } from '@test-battle/schema'
-import { BattleClient } from '@test-battle/client'
+import type { Player, PlayerSelection } from '@test-battle/schema'
 import readline from 'readline'
 
 export class ConsoleClient {
