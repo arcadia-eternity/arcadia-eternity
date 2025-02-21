@@ -1,4 +1,3 @@
-<!-- src/views/LobbyView.vue -->
 <template>
   <div class="lobby-container">
     <h1>对战匹配大厅</h1>
@@ -47,7 +46,7 @@ const handleMatchmaking = async () => {
       isMatching.value = true
       errorMessage.value = null
 
-      const session = await battleStore.startMatchmaking()
+      const session = await battleStore.joinMatchmaking()
 
       // 匹配成功后跳转
       if (session?.battleSessionId) {

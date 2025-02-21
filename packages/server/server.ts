@@ -91,6 +91,7 @@ export class BattleServer {
     socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
   ) {
     socket.on('joinMatchmaking', (data, ack) => this.handleJoinMatchmaking(socket, data, ack))
+    socket.on('cancelMatchmaking', ack => this.handleCancelMatchmaking(socket, ack))
     socket.on('playerAction', (data, ack) => this.handlePlayerAction(socket, data, ack))
     socket.on('getState', ack => this.handleGetState(socket, ack))
     socket.on('getAvailableSelection', ack => this.handleGetSelection(socket, ack))
@@ -177,6 +178,48 @@ export class BattleServer {
       )
       this.handleValidationError(error, socket, ack)
     }
+  }
+
+  // 新增取消匹配处理方法
+  private handleCancelMatchmaking(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    ack?: AckResponse<{ status: 'CANCELED' }>,
+  ) {
+    try {
+      // 检查是否在匹配队列中
+      if (!this.matchQueue.has(socket.id)) {
+        throw new Error('NOT_IN_QUEUE')
+      }
+
+      // 从队列中移除
+      this.matchQueue.delete(socket.id)
+
+      logger.info({ socketId: socket.id, queueSize: this.matchQueue.size }, '玩家取消匹配')
+
+      // 发送成功响应
+      ack?.({
+        status: 'SUCCESS',
+        data: { status: 'CANCELED' },
+      })
+    } catch (error) {
+      this.handleCancelError(error, socket, ack)
+    }
+  }
+
+  // 新增取消错误处理
+  private handleCancelError(
+    error: unknown,
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    ack?: AckResponse<{ status: 'CANCELED' }>,
+  ) {
+    const errorResponse: ErrorResponse = {
+      status: 'ERROR',
+      code: 'CANCEL_FAILED',
+      details: error instanceof Error ? error.message : '取消匹配失败',
+    }
+
+    ack?.(errorResponse)
+    logger.warn({ socketId: socket.id, error: error instanceof Error ? error.stack : error }, '取消匹配时发生错误')
   }
 
   private handlePlayerAction(

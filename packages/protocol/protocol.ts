@@ -6,7 +6,7 @@ import type { Player, PlayerSelection } from '@test-battle/schema'
 // 统一响应类型
 export type SuccessResponse<T = undefined> = {
   status: 'SUCCESS'
-  data?: T
+  data: T
 }
 
 export type ErrorResponse = {
@@ -15,7 +15,7 @@ export type ErrorResponse = {
   details?: string
 }
 
-export type AckResponse<T = undefined> = (response: SuccessResponse<T> | ErrorResponse) => void
+export type AckResponse<T = unknown> = (response: SuccessResponse<T> | ErrorResponse) => void
 
 export interface ServerToClientEvents {
   ping: () => void
@@ -39,6 +39,8 @@ export interface ClientToServerEvents {
   pong: () => void
   // 加入匹配队列
   joinMatchmaking: (playerSchema: Player, callback: AckResponse<{ status: 'QUEUED' }>) => void
+  //取消匹配
+  cancelMatchmaking: (ack: AckResponse<{ status: 'CANCELED' }>) => void
   // 玩家动作
   playerAction: (selection: PlayerSelection, callback: AckResponse<{ status: 'ACTION_ACCEPTED' }>) => void
   // 获取状态

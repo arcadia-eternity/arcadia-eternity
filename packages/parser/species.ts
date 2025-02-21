@@ -7,12 +7,12 @@ export class SpeciesParser {
     // 1. 验证基础数据结构
     const validated = SpeciesSchema.parse(rawData)
 
-    const abilities = validated.ability.map(abilitiesID => {
+    const ability = validated.ability.map(abilityID => {
       try {
-        return DataRepository.getInstance().getMark(abilitiesID)
+        return DataRepository.getInstance().getMark(abilityID)
       } catch (e) {
         throw new Error(
-          `[SpeciesParser] Failed to load effect '${abilitiesID}' for Species '${validated.name}': ${(e as Error).message}`,
+          `[SpeciesParser] Failed to load effect '${abilityID}' for Species '${validated.name}': ${(e as Error).message}`,
         )
       }
     })
@@ -27,6 +27,6 @@ export class SpeciesParser {
       }
     })
 
-    return { ...validated, ability: abilities, emblem: emblems }
+    return { ...validated, ability: ability, emblem: emblems }
   }
 }

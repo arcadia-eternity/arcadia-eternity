@@ -33,7 +33,7 @@ export class PetParser {
         ability = DataRepository.getInstance().getMark(validated.ability)
       } catch (e) {
         throw new Error(
-          `[PetParser] Failed to load abilities '${validated.ability}' for pet '${validated.name}': ${(e as Error).message}`,
+          `[PetParser] Failed to load ability '${validated.ability}' for pet '${validated.name}': ${(e as Error).message}`,
         )
       }
     } else if (species.ability && species.ability[0]) ability = species.ability[0]

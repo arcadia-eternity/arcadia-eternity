@@ -24,7 +24,7 @@ team:
       - 'skill_yanmo' # 45级可学
       - 'skill_tuoli' # 50级可学
       - 'skill_wujindaxuanwo' # 55级可学
-    abilities: 'mark_ability_zhongjie'
+    ability: 'mark_ability_zhongjie'
     emblem: 'mark_emblem_zhuiji'
 
   - name: '休罗斯2'
@@ -51,7 +51,7 @@ team:
       - 'skill_lieyanjuexiji' # 50级可学
       - 'skill_yanggong' # 55级可学
       - 'skill_dixiulazhinu' # 55级可学
-    abilities: 'mark_ability_yanhuo'
+    ability: 'mark_ability_yanhuo'
     emblem: 'mark_emblem_nuhuo'
 
   - name: '拉奥叶2'
@@ -78,5 +78,5 @@ team:
       - 'skill_lirendaoye' # 50级可学
       - 'skill_ganrao' # 55级可学
       - 'skill_laaodehuhuan'
-    abilities: 'mark_ability_jianren'
+    ability: 'mark_ability_jianren'
     emblem: 'mark_emblem_zhiyu'

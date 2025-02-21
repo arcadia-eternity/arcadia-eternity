@@ -24,6 +24,7 @@ export interface PetMessage {
   id: string
   speciesID: string
   element: Element
+  level: number
   currentHp: number
   maxHp: number
   skills?: SkillMessage[] //skillmessage

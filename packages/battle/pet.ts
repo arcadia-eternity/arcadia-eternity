@@ -324,6 +324,7 @@ export class Pet implements OwnedEntity, MarkOwner {
       id: this.id,
       speciesID: this.species.id,
       element: this.element,
+      level: this.level,
       currentHp: this.currentHp,
       maxHp: this.maxHp,
       marks: this.marks.map(m => m.toMessage()),
