@@ -18,16 +18,20 @@
         <!-- 队伍列表 -->
         <el-col :span="7">
           <div class="team-list">
-            <Draggable
+            <VueDraggable
               v-model="currentTeam"
-              item-key="id"
-              class="drag-container"
+              :animation="150"
+              handle=".drag-handle"
+              @start="onStart"
               @end="handleDragEnd"
               :disabled="currentTeam.length <= 1"
             >
-              <template #item="{ element: pet }">
+              <!-- 每个拖拽项 -->
+              <TransitionGroup type="transition" :name="!drag ? 'pet-list' : undefined">
                 <el-card
-                  class="pet-card"
+                  v-for="pet in currentTeam"
+                  :key="pet.id"
+                  class="pet-card drag-item drag-handle"
                   :class="{ selected: selectedPetId === pet.id }"
                   @click="selectedPetId = pet.id"
                   size="small"
@@ -35,7 +39,6 @@
                   <template #header>
                     <div class="card-header">
                       <span class="pet-name">{{ pet.name }}</span>
-                      <el-icon class="drag-handle"><Rank /></el-icon>
                       <el-button
                         type="danger"
                         icon="Delete"
@@ -45,14 +48,15 @@
                       />
                     </div>
                   </template>
+
                   <div class="pet-info">
                     <el-tag type="info">#{{ pet.id.slice(-6) }}</el-tag>
                     <el-tag type="success">{{ gameDataStore.getSpecies(pet.species)?.name }}</el-tag>
                     <el-tag class="level-tag">Lv.{{ pet.level }}</el-tag>
                   </div>
                 </el-card>
-              </template>
-            </Draggable>
+              </TransitionGroup>
+            </VueDraggable>
 
             <el-button type="primary" class="add-button" @click="addNewPet" :disabled="currentTeam.length >= 6">
               <el-icon><Plus /></el-icon>
@@ -268,7 +272,7 @@ import StorageManager from '@/components/StorageManager.vue'
 import type { Player, Pet, Skill } from '@test-battle/schema'
 import { NatureMap } from '@test-battle/const'
 import { Nature } from '@test-battle/const'
-import Draggable from 'vuedraggable'
+import { VueDraggable } from 'vue-draggable-plus'
 
 const playerStore = usePlayerStore()
 const gameDataStore = useGameDataStore()
@@ -282,6 +286,35 @@ const showStorage = ref(false)
 type StatKey = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe'
 
 const statList: StatKey[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe']
+
+const drag = ref(false)
+
+const onStart = () => {
+  drag.value = true
+}
+
+const handleDragEnd = () => {
+  nextTick(() => {
+    drag.value = false
+  })
+  try {
+    // 更新 Pinia 存储
+    petStorage.updateTeamOrder(
+      petStorage.currentTeamIndex,
+      // 创建新数组引用确保响应性
+      [...currentTeam.value],
+    )
+
+    // 自动保存机制
+    petStorage.saveToLocal()
+
+    // 视觉反馈
+    ElMessage.success('队伍顺序已自动保存')
+  } catch (error) {
+    console.error('拖拽操作保存失败:', error)
+    ElMessage.error('队伍顺序保存失败，请手动保存')
+  }
+}
 
 // 表单验证规则
 const formRules: FormRules = {
@@ -316,8 +349,11 @@ const formRules: FormRules = {
 }
 
 // 计算属性
-const currentTeam = computed<Pet[]>(() => {
-  return petStorage.getCurrentTeam()
+const currentTeam = computed<Pet[]>({
+  get: () => petStorage.getCurrentTeam(),
+  set: newOrder => {
+    petStorage.updateTeamOrder(petStorage.currentTeamIndex, newOrder)
+  },
 })
 
 const selectedPet = computed<Pet | null>(() => {
@@ -431,11 +467,6 @@ const addNewPet = () => {
   petStorage.moveToTeam(newPet.id, petStorage.currentTeamIndex)
 }
 
-const handleDragEnd = () => {
-  // 更新存储中的队伍顺序
-  petStorage.updateTeamOrder(petStorage.currentTeamIndex, currentTeam.value)
-}
-
 const removePet = (petId: string) => {
   if (currentTeam.value.length <= 1) {
     ElMessage.warning('队伍中至少需要保留一个精灵')
@@ -517,6 +548,11 @@ const sliderStyle = computed(() => (stat: StatKey) => {
     '--el-slider-runway-bg-color': effectiveMax < 255 ? '#ffd6d6' : 'var(--el-border-color-light)',
   }
 })
+const getMaxEV = (stat: StatKey) => {
+  if (!selectedPet.value) return 255
+  const otherSum = currentEVTotal.value - selectedPet.value.evs[stat]
+  return Math.min(255, 510 - otherSum)
+}
 
 const computedStats = computed(() => {
   if (!selectedPet.value || !currentSpecies.value) return {} as Record<StatKey, number>
@@ -651,35 +687,35 @@ const importTeamConfig = async () => {
   }
 }
 
-.main-content {
-  padding: 0 16px;
+.drag-item {
+  cursor: grab;
+  user-select: none; /* 防止文字被选中 */
+  transition: transform 0.2s ease;
 
-  .el-row {
-    margin-left: -8px !important;
-    margin-right: -8px !important;
+  /* 移动端优化 */
+  touch-action: none; /* 禁用默认触摸行为 */
 
-    > .el-col {
-      padding-left: 8px !important;
-      padding-right: 8px !important;
-    }
+  &:active {
+    cursor: grabbing;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 }
 
-.drag-container {
+/* 调整删除按钮位置 */
+.card-header {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
 }
 
-/* 拖拽手柄样式 */
-.drag-handle {
-  margin: 0 8px;
-  cursor: move;
-  color: var(--el-text-color-secondary);
-  transition: color 0.2s;
+/* 防止表单元素触发拖拽 */
+.el-input,
+.el-select,
+.el-slider {
+  cursor: auto; /* 恢复默认光标 */
 
-  &:hover {
-    color: var(--el-color-primary);
+  &:active {
+    cursor: auto;
   }
 }
 
@@ -689,10 +725,6 @@ const importTeamConfig = async () => {
   .pet-card {
     transition: all 0.2s ease;
     cursor: pointer;
-
-    /* 默认状态 */
-    border: 1px solid var(--el-border-color);
-    background: var(--el-bg-color);
 
     &:hover {
       border-color: var(--el-color-primary-light-5);
@@ -723,17 +755,6 @@ const importTeamConfig = async () => {
     }
   }
 
-  .pet-card.sortable-chosen {
-    opacity: 0.8;
-    transform: scale(1.02);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  }
-
-  .pet-card.sortable-ghost {
-    opacity: 0.4;
-    background: var(--el-color-primary-light-9);
-  }
-
   /* 选中卡片内部元素样式 */
   .pet-card.selected {
     .pet-name {
@@ -743,131 +764,6 @@ const importTeamConfig = async () => {
 
     .el-tag:not(.level-tag) {
       border-color: var(--el-color-primary-light-5);
-    }
-  }
-
-  .add-button {
-    margin-top: 4px;
-    padding: 8px;
-  }
-}
-
-/* 属性卡片统一样式 */
-.stat-card {
-  margin-bottom: 12px;
-
-  :deep(.el-card__body) {
-    padding: 12px;
-  }
-
-  .stat-header {
-    margin-bottom: 8px;
-
-    .stat-name {
-      font-size: 14px;
-    }
-
-    .stat-values {
-      gap: 4px;
-
-      .final-value {
-        font-size: 14px;
-      }
-
-      .el-tag {
-        height: 22px;
-        padding: 0 6px;
-      }
-    }
-  }
-
-  .stat-details {
-    margin-top: 8px;
-
-    .detail-group {
-      gap: 8px;
-
-      .detail-item {
-        padding: 6px;
-        border-radius: 3px;
-
-        .label {
-          font-size: 12px;
-          margin-bottom: 2px;
-        }
-
-        .value {
-          font-size: 13px;
-        }
-
-        .el-input-number {
-          --el-input-number-width: 100px;
-
-          :deep(.el-input__wrapper) {
-            padding: 0 8px;
-          }
-        }
-      }
-    }
-  }
-}
-
-.global-actions {
-  padding: 8px 12px;
-  bottom: 16px;
-  right: 16px;
-
-  .el-button {
-    padding: 8px 12px;
-  }
-}
-
-.el-form-item {
-  margin-bottom: 12px;
-
-  :deep(.el-form-item__label) {
-    font-size: 13px;
-    padding-right: 8px;
-    line-height: 24px;
-  }
-
-  :deep(.el-select) {
-    width: 100%;
-  }
-}
-
-@media (max-width: 768px) {
-  .pet-card.selected {
-    border-width: 1px;
-    box-shadow: 0 1px 4px rgba(var(--el-color-primary-rgb), 0.1);
-  }
-
-  .drag-handle {
-    margin: 0 4px;
-    font-size: 14px;
-  }
-
-  .el-col {
-    width: 100%;
-
-    &.stat-card {
-      margin-bottom: 8px;
-    }
-  }
-
-  .detail-group {
-    .detail-item {
-      width: 100% !important;
-    }
-  }
-
-  .global-actions {
-    bottom: 8px;
-    right: 8px;
-    padding: 6px;
-
-    .el-button {
-      padding: 6px 8px;
     }
   }
 }
