@@ -1,14 +1,22 @@
 <template>
-  <div class="app-container">
+  <el-container class="app-container" direction="vertical">
     <!-- 全局导航栏 -->
     <el-header class="main-header" height="60px">
       <div class="logo">
-        <img src="@/assets/logo.png" alt="赛尔号对战" class="logo-img" />
+        <img src="@/assets/logo.svg" alt="赛尔号对战" class="logo-img" />
         <span class="title">赛尔号网络对战</span>
       </div>
       <div class="nav-buttons">
         <el-button type="primary" icon="House" @click="router.push('/')" :disabled="$route.path === '/'">
           匹配大厅
+        </el-button>
+        <el-button
+          type="warning"
+          icon="Edit"
+          @click="router.push('/team-builder')"
+          :disabled="$route.path === '/team-builder'"
+        >
+          队伍编辑
         </el-button>
         <el-button type="success" icon="Promotion" @click="handleReconnect" v-if="$route.path === '/battle'">
           重连对战
@@ -34,7 +42,7 @@
         </el-tag>
       </div>
     </el-affix>
-  </div>
+  </el-container>
 </template>
 
 <script setup lang="ts">
@@ -42,15 +50,24 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { battleClient } from './utils/battleClient'
+import { useGameDataStore } from './stores/gameData'
+import { usePlayerStore } from './stores/player'
+import { usePetStorageStore } from './stores/petStorage'
 
 const router = useRouter()
 const route = useRoute()
+const dataStore = useGameDataStore()
+const playerStore = usePlayerStore()
+const petStorage = usePetStorageStore()
 
 // 连接状态
 const connectionState = ref<'connected' | 'disconnected'>('disconnected')
 
 // 初始化连接
 onMounted(async () => {
+  dataStore.initialize()
+  playerStore.loadFromLocal()
+  petStorage.loadFromLocal()
   try {
     await battleClient.connect()
     connectionState.value = 'connected'
@@ -74,7 +91,6 @@ const handleReconnect = async () => {
 
 <style scoped>
 .app-container {
-  min-height: 100vh;
   background: url('@/assets/bg-stars.jpg') no-repeat center/cover;
 }
 
@@ -84,6 +100,18 @@ const handleReconnect = async () => {
   align-items: center;
   background: rgba(0, 0, 0, 0.8);
   border-bottom: 1px solid #304156;
+}
+
+.router-content {
+  height: 100%;
+  min-height: calc(100vh - 60px);
+}
+
+.connection-status {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1000;
 }
 
 .logo {
@@ -106,12 +134,6 @@ const handleReconnect = async () => {
 .nav-buttons {
   display: flex;
   gap: 12px;
-}
-
-.connection-status {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
 }
 
 .fade-enter-active,

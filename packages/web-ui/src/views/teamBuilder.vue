@@ -1,273 +1,882 @@
 <template>
-  <div class="team-builder">
-    <el-row :gutter="20">
-      <!-- 队伍列表 -->
-      <el-col :span="8">
-        <div class="team-list">
-          <el-card
-            v-for="(pet, index) in team"
-            :key="index"
-            class="pet-card"
-            :class="{ selected: selectedIndex === index }"
-            @click="selectedIndex = index"
-          >
-            <template #header>
-              <div class="card-header">
-                <span class="pet-name">{{ pet.name }}</span>
-                <el-button type="danger" icon="Delete" circle @click.stop="removePet(index)" />
-              </div>
-            </template>
-            <div class="pet-info">
-              <el-tag type="info">{{ gameDataStore.getSpecies(pet.species)?.name }}</el-tag>
-              <el-tag class="level-tag">Lv.{{ pet.level }}</el-tag>
-            </div>
-          </el-card>
-
-          <el-button type="primary" class="add-button" @click="addPet">
-            <el-icon><Plus /></el-icon>
-            添加精灵
+  <el-container class="team-builder" direction="vertical">
+    <!-- 玩家信息栏 -->
+    <el-header class="player-header" height="auto">
+      <div class="header-content">
+        <el-tag type="info" size="large"> 当前玩家：{{ playerStore.name || '未命名训练师' }} </el-tag>
+        <div class="header-actions">
+          <el-button @click="showStorage = true">
+            <el-icon><Box /></el-icon>
+            打开仓库
           </el-button>
         </div>
-      </el-col>
+      </div>
+    </el-header>
 
-      <!-- 详细配置 -->
-      <el-col :span="16" v-if="selectedIndex !== null">
-        <el-form :model="currentPet" label-width="100px" label-position="left" :rules="rules" ref="formRef">
-          <el-card shadow="never">
-            <!-- 基础信息 -->
-            <el-form-item label="名称" prop="name">
-              <el-input v-model="currentPet.name" />
-            </el-form-item>
-
-            <el-form-item label="种族" prop="species">
-              <el-select v-model="currentPet.species" placeholder="请选择种族" filterable>
-                <el-option
-                  v-for="species in gameDataStore.species"
-                  :key="species.id"
-                  :label="species.name"
-                  :value="species.id"
+    <el-main class="main-content">
+      <el-row :gutter="16">
+        <!-- 队伍列表 -->
+        <el-col :span="7">
+          <div class="team-list">
+            <Draggable
+              v-model="currentTeam"
+              item-key="id"
+              class="drag-container"
+              @end="handleDragEnd"
+              :disabled="currentTeam.length <= 1"
+            >
+              <template #item="{ element: pet }">
+                <el-card
+                  class="pet-card"
+                  :class="{ selected: selectedPetId === pet.id }"
+                  @click="selectedPetId = pet.id"
+                  size="small"
                 >
-                  <span class="option-label">{{ species.name }}</span>
-                  <span class="option-id">({{ species.id }})</span>
-                </el-option>
-              </el-select>
-            </el-form-item>
+                  <template #header>
+                    <div class="card-header">
+                      <span class="pet-name">{{ pet.name }}</span>
+                      <el-icon class="drag-handle"><Rank /></el-icon>
+                      <el-button
+                        type="danger"
+                        icon="Delete"
+                        circle
+                        @click.stop="removePet(pet.id)"
+                        :disabled="currentTeam.length === 1"
+                      />
+                    </div>
+                  </template>
+                  <div class="pet-info">
+                    <el-tag type="info">#{{ pet.id.slice(-6) }}</el-tag>
+                    <el-tag type="success">{{ gameDataStore.getSpecies(pet.species)?.name }}</el-tag>
+                    <el-tag class="level-tag">Lv.{{ pet.level }}</el-tag>
+                  </div>
+                </el-card>
+              </template>
+            </Draggable>
 
-            <!-- 能力值配置 -->
-            <el-divider content-position="left">能力值配置</el-divider>
-            <el-row :gutter="20">
-              <el-col v-for="stat in stats" :key="stat" :xs="12" :sm="8" :md="6">
-                <el-form-item :label="stat.toUpperCase()" :prop="`evs.${stat}`" :rules="evRules">
-                  <el-input-number
-                    v-model.number="currentPet.evs[stat]"
-                    :min="0"
-                    :max="255"
-                    controls-position="right"
+            <el-button type="primary" class="add-button" @click="addNewPet" :disabled="currentTeam.length >= 6">
+              <el-icon><Plus /></el-icon>
+              添加精灵
+            </el-button>
+          </div>
+        </el-col>
+
+        <!-- 详细配置 -->
+        <el-col :span="16" v-if="selectedPet">
+          <el-form :model="selectedPet" label-width="100px" label-position="left" :rules="formRules" ref="formRef">
+            <el-card shadow="never">
+              <!-- ID显示 -->
+              <el-form-item label="唯一ID">
+                <el-input v-model="selectedPet.id" disabled />
+              </el-form-item>
+
+              <!-- 基础信息 -->
+              <el-form-item label="名称" prop="name">
+                <el-input v-model="selectedPet.name" size="small" />
+              </el-form-item>
+
+              <el-form-item label="种族" prop="species">
+                <el-select
+                  v-model="selectedPet.species"
+                  placeholder="选择种族"
+                  filterable
+                  @change="handleSpeciesChange"
+                >
+                  <el-option
+                    v-for="species in gameDataStore.speciesList"
+                    :key="species.id"
+                    :label="species.name"
+                    :value="species.id"
+                  >
+                    <span class="species-option">
+                      {{ species.name }}
+                      <el-tag size="small">{{ species.id }}</el-tag>
+                    </span>
+                  </el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item label="等级" prop="level">
+                <el-input-number v-model="selectedPet.level" :min="1" :max="100" controls-position="right" />
+              </el-form-item>
+
+              <el-divider content-position="left">特性配置</el-divider>
+              <el-form-item label="特性" prop="ability">
+                <el-select v-model="selectedPet.ability" placeholder="选择特性" :disabled="!currentSpecies">
+                  <el-option
+                    v-for="ability in gameDataStore.marksList"
+                    :key="ability.id"
+                    :label="ability.name"
+                    :value="ability.id"
                   />
-                </el-form-item>
-              </el-col>
-            </el-row>
+                </el-select>
+              </el-form-item>
 
-            <!-- 技能配置 -->
-            <el-divider content-position="left">技能配置</el-divider>
-            <el-row :gutter="20">
-              <el-col v-for="(_, index) in currentPet.skills" :key="index" :xs="12" :sm="8" :md="6">
-                <el-form-item :label="`技能 ${index + 1}`">
-                  <el-select v-model="currentPet.skills[index]" placeholder="选择技能" clearable>
-                    <el-option
-                      v-for="skill in gameDataStore.skills"
-                      :key="skill.id"
-                      :label="skill.name"
-                      :value="skill.id"
-                    />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-            </el-row>
+              <el-divider content-position="left">纹章配置</el-divider>
+              <el-form-item label="纹章" prop="emblem">
+                <el-select v-model="selectedPet.emblem" placeholder="选择纹章" clearable>
+                  <el-option
+                    v-for="emblem in gameDataStore.marksList"
+                    :key="emblem.id"
+                    :label="emblem.name"
+                    :value="emblem.id"
+                  />
+                </el-select>
+              </el-form-item>
 
-            <!-- 特性/徽章 -->
-            <el-divider content-position="left">特性与徽章</el-divider>
-            <el-row :gutter="20">
-              <el-col :span="12">
-                <el-form-item label="特性">
-                  <el-select v-model="currentPet.ability">
-                    <el-option
-                      v-for="ability in gameDataStore.marks"
-                      :key="ability.id"
-                      :label="ability.name"
-                      :value="ability.id"
-                    />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="徽章">
-                  <el-select v-model="currentPet.emblem">
-                    <el-option
-                      v-for="emblem in gameDataStore.marks"
-                      :key="emblem.id"
-                      :label="emblem.name"
-                      :value="emblem.id"
-                    />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </el-card>
-        </el-form>
-      </el-col>
-    </el-row>
+              <el-divider content-position="left">性格配置</el-divider>
+              <el-form-item label="性格" prop="nature">
+                <el-select v-model="selectedPet.nature" placeholder="选择性格" style="width: 200px">
+                  <el-option
+                    v-for="nature in Object.values(Nature)"
+                    :key="nature"
+                    :label="natureChineseMap[nature]"
+                    :value="nature"
+                  >
+                    <span class="nature-option">
+                      {{ natureChineseMap[nature] }}
+                      <el-tag
+                        v-for="(value, stat) in NatureMap[nature as Nature]"
+                        :key="stat"
+                        :type="value > 1 ? 'success' : value < 1 ? 'danger' : 'info'"
+                        size="small"
+                      >
+                        {{ stat.toUpperCase() }} {{ value }}x
+                      </el-tag>
+                    </span>
+                  </el-option>
+                </el-select>
+              </el-form-item>
 
-    <!-- 操作栏 -->
-    <div class="action-bar">
-      <el-button-group>
-        <el-button type="primary" @click="importConfig">
-          <el-icon><Upload /></el-icon>
-          导入配置
-        </el-button>
-        <el-button type="success" @click="exportConfig">
-          <el-icon><Download /></el-icon>
-          导出配置
-        </el-button>
-      </el-button-group>
+              <el-divider content-position="left">能力值配置</el-divider>
+              <div class="ev-total">
+                <el-tag type="warning">当前学习力总和: {{ currentEVTotal }}/510</el-tag>
+              </div>
+              <el-row :gutter="20">
+                <el-col v-for="stat in statList" :key="stat" :xs="24" :sm="12" :md="8">
+                  <el-card shadow="never" class="stat-card">
+                    <div class="stat-header">
+                      <span class="stat-name">{{ statChineseMap[stat] }}</span>
+                      <div class="stat-values">
+                        <span class="final-value">{{ computedStats[stat] }}</span>
+                        <el-tag type="info" size="small">EV: {{ selectedPet?.evs[stat] || 0 }}</el-tag>
+                      </div>
+                    </div>
+
+                    <el-form-item :label="`学习力`" :prop="`evs.${stat}`">
+                      <el-slider
+                        v-model="selectedPet.evs[stat]"
+                        :class="sliderStyle"
+                        @update:model-value="val => handleEVUpdate(stat, val as number)"
+                        :min="0"
+                        :max="255"
+                        :step="4"
+                        show-input
+                        :format-tooltip="(val: number) => `${val} EV`"
+                      />
+                    </el-form-item>
+
+                    <div class="stat-details">
+                      <div class="detail-group">
+                        <div class="detail-item">
+                          <span class="label">种族</span>
+                          <span class="value">{{ currentSpecies?.baseStats[stat] || 0 }}</span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="label">个体</span>
+                          <el-input-number
+                            v-model="selectedPet.ivs[stat]"
+                            :min="0"
+                            :max="31"
+                            :step="1"
+                            controls-position="right"
+                            size="small"
+                          />
+                        </div>
+                        <div class="detail-item" v-if="stat !== 'hp'">
+                          <span class="label">性格</span>
+                          <span
+                            class="value"
+                            :data-positive="getNatureMultiplier(selectedPet.nature, stat) > 1"
+                            :data-negative="getNatureMultiplier(selectedPet.nature, stat) < 1"
+                          >
+                            {{ getNatureMultiplier(selectedPet.nature, stat) }}x
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </el-card>
+                </el-col>
+              </el-row>
+
+              <!-- 技能配置 -->
+              <el-divider content-position="left">技能配置</el-divider>
+              <el-row :gutter="20">
+                <el-col v-for="(_, index) in 5" :key="index">
+                  <el-form-item :label="`技能 ${index + 1}`">
+                    <el-select
+                      v-model="displayedSkills[index]"
+                      :disabled="!currentSpecies"
+                      @change="val => handleSkillChange(val, index)"
+                      clearable
+                    >
+                      <el-option
+                        v-for="skill in skillOptions"
+                        :key="skill?.id"
+                        :label="skill?.name"
+                        :value="skill?.id ?? ''"
+                        :disabled="skill?.disabled"
+                      />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-card>
+          </el-form>
+        </el-col>
+      </el-row>
+    </el-main>
+
+    <!-- 全局操作栏 -->
+    <div class="global-actions">
+      <el-button type="primary" @click="saveCurrentTeam">
+        <el-icon><Check /></el-icon>
+        保存队伍
+      </el-button>
+      <el-button @click="exportTeamConfig">
+        <el-icon><Download /></el-icon>
+        导出配置
+      </el-button>
+      <el-button @click="importTeamConfig">
+        <el-icon><Upload /></el-icon>
+        导入配置
+      </el-button>
     </div>
-  </div>
+    <el-dialog v-model="showStorage" title="精灵仓库" width="80%">
+      <storage-manager @select-pet="handleSelectFromStorage" />
+    </el-dialog>
+  </el-container>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { usePetStore } from '../stores/pet'
-import { useGameDataStore } from '../stores/gameData'
-import type { FormInstance, FormRules } from 'element-plus'
+import { ref, computed, watch, nextTick } from 'vue'
+import { type FormInstance, type FormRules } from 'element-plus'
+import { nanoid } from 'nanoid'
+import { usePlayerStore } from '@/stores/player'
+import { useGameDataStore } from '@/stores/gameData'
+import { usePetStorageStore } from '@/stores/petStorage'
+import StorageManager from '@/components/StorageManager.vue'
+import type { Player, Pet, Skill } from '@test-battle/schema'
+import { NatureMap } from '@test-battle/const'
 import { Nature } from '@test-battle/const'
+import Draggable from 'vuedraggable'
 
-const petStore = usePetStore()
+const playerStore = usePlayerStore()
 const gameDataStore = useGameDataStore()
+const petStorage = usePetStorageStore()
 
-// 响应式数据
-const team = ref(petStore.team)
-const selectedIndex = ref<number | null>(null)
+// 响应式状态
+const selectedPetId = ref<string | null>(null)
 const formRef = ref<FormInstance>()
-const stats = ['hp', 'atk', 'def', 'spa', 'spd', 'spe']
+const showStorage = ref(false)
+
+type StatKey = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe'
+
+const statList: StatKey[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe']
 
 // 表单验证规则
-const rules: FormRules = {
+const formRules: FormRules = {
   name: [
     { required: true, message: '请输入精灵名称', trigger: 'blur' },
-    { max: 20, message: '名称长度不能超过20个字符', trigger: 'blur' },
+    { max: 20, message: '名称不能超过20个字符', trigger: 'blur' },
   ],
-  species: [{ required: true, message: '请选择精灵种族', trigger: 'change' }],
+  species: [
+    {
+      required: true,
+      message: '请选择精灵种族',
+      trigger: 'change',
+    },
+    {
+      validator: (_, value, callback) => {
+        if (!gameDataStore.speciesList.find(v => v.id === selectedPet.value?.species || '')) {
+          callback(new Error('无效的种族ID'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'change',
+    },
+  ],
+  evs: [
+    {
+      validator: () => currentEVTotal.value <= 510,
+      message: '学习力总和不能超过510',
+      trigger: 'change',
+    },
+  ],
 }
 
-const evRules: FormRules = {
-  validator: (_, value, callback) => {
-    if (value < 0 || value > 255) {
-      callback(new Error('能力值范围0-255'))
-    } else {
-      callback()
-    }
-  },
-}
-
-// 当前选中的精灵
-const currentPet = computed(() => {
-  return selectedIndex.value !== null ? team.value[selectedIndex.value] : null
+// 计算属性
+const currentTeam = computed<Pet[]>(() => {
+  return petStorage.getCurrentTeam()
 })
 
-// 添加新精灵
-const addPet = () => {
-  team.value.push({
-    name: '新精灵',
-    species: '',
+const selectedPet = computed<Pet | null>(() => {
+  return currentTeam.value.find(p => p.id === selectedPetId.value) || null
+})
+
+const currentSpecies = computed(() => {
+  return gameDataStore.speciesList.find(v => v.id === selectedPet.value?.species || '')
+})
+
+const filteredSkills = computed(() => {
+  if (!currentSpecies.value) return []
+
+  return currentSpecies.value.learnable_skills
+    .filter(learnable => (selectedPet.value?.level ?? 0) >= learnable.level)
+    .map(learnable => gameDataStore.skillList.find(v => v.id === learnable.skill_id))
+    .filter(Boolean)
+})
+
+// 从仓库选择精灵
+const handleSelectFromStorage = (pet: Pet) => {
+  // 检查队伍容量
+  if (currentTeam.value.length >= 6) {
+    ElMessage.warning('队伍已满，无法添加更多精灵')
+    return
+  }
+  // 移动精灵到队伍
+  petStorage.moveToTeam(pet.id, petStorage.currentTeamIndex)
+}
+
+const natureChineseMap: Record<Nature, string> = {
+  [Nature.Adamant]: '固执',
+  [Nature.Bashful]: '害羞',
+  [Nature.Bold]: '大胆',
+  [Nature.Brave]: '勇敢',
+  [Nature.Calm]: '冷静',
+  [Nature.Careful]: '慎重',
+  [Nature.Docile]: '坦率',
+  [Nature.Gentle]: '温和',
+  [Nature.Hardy]: '勤奋',
+  [Nature.Hasty]: '急躁',
+  [Nature.Impish]: '淘气',
+  [Nature.Jolly]: '爽朗',
+  [Nature.Lax]: '乐天',
+  [Nature.Lonely]: '怕寂寞',
+  [Nature.Mild]: '温和',
+  [Nature.Modest]: '内敛',
+  [Nature.Naive]: '天真',
+  [Nature.Naughty]: '顽皮',
+  [Nature.Quiet]: '冷静',
+  [Nature.Quirky]: '古怪',
+  [Nature.Rash]: '马虎',
+  [Nature.Relaxed]: '悠闲',
+  [Nature.Sassy]: '自大',
+  [Nature.Serious]: '认真',
+  [Nature.Timid]: '胆小',
+}
+
+const statChineseMap: Record<StatKey, string> = {
+  hp: '体力',
+  atk: '攻击',
+  def: '防御',
+  spa: '特攻',
+  spd: '特防',
+  spe: '速度',
+}
+
+const displayedSkills = computed({
+  get: () => {
+    return Array.from({ length: 5 }, (_, i) => selectedPet.value?.skills[i] || '')
+  },
+  set: newValues => {
+    if (!selectedPet.value) return
+
+    // 保留所有位置，空字符串转为undefined后过滤
+    selectedPet.value.skills = newValues.map(s => s || undefined).filter((s): s is string => s !== undefined)
+  },
+})
+
+const skillOptions = computed(() => {
+  const currentSkills = displayedSkills.value.filter(s => s)
+  return filteredSkills.value
+    .filter(skill => !!skill)
+    .map(skill => ({
+      ...skill,
+      disabled: currentSkills.includes(skill.id),
+    }))
+})
+
+const addNewPet = () => {
+  if (currentTeam.value.length >= 6) {
+    ElMessage.warning('队伍已满，最多只能添加六个精灵')
+    return
+  }
+
+  const newPet: Pet = {
+    id: nanoid(),
+    name: '迪兰特',
+    species: 'pet_dilante',
     level: 100,
-    evs: { hp: 85, atk: 85, def: 85, spa: 85, spd: 85, spe: 85 },
+    evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+    skills: [],
     nature: Nature.Adamant,
-    skills: Array(4).fill(''),
-    ability: '',
-    emblem: '',
+    ability: 'mark_ability_zhongjie',
+    emblem: 'mark_emblem_zhuiji',
+  }
+
+  // 先添加到仓库再移动到队伍
+  petStorage.addToStorage(newPet)
+  petStorage.moveToTeam(newPet.id, petStorage.currentTeamIndex)
+}
+
+const handleDragEnd = () => {
+  // 更新存储中的队伍顺序
+  petStorage.updateTeamOrder(petStorage.currentTeamIndex, currentTeam.value)
+}
+
+const removePet = (petId: string) => {
+  if (currentTeam.value.length <= 1) {
+    ElMessage.warning('队伍中至少需要保留一个精灵')
+    return
+  }
+  petStorage.moveToPC(petId)
+}
+
+const saveCurrentTeam = async () => {
+  try {
+    if (currentTeam.value.length < 1 || currentTeam.value.length > 6) {
+      ElMessage.error('队伍数量必须在1到6之间')
+      return
+    }
+
+    await formRef.value?.validate()
+    petStorage.saveToLocal()
+    ElMessage.success('队伍保存成功')
+  } catch (err) {
+    ElMessage.error('保存失败，请检查表单')
+  }
+}
+
+const handleSpeciesChange = (newSpeciesId: string) => {
+  if (!selectedPet.value) return
+
+  // 获取新的种族数据
+  const species = gameDataStore.getSpecies(newSpeciesId)
+  if (!species) return
+
+  petStorage.$patch(state => {
+    const pet = state.teams[state.currentTeamIndex].find(p => p.id === selectedPetId.value)
+    if (pet) {
+      pet.skills = [] // 直接置空数组，displayedSkills会自动处理显示
+      pet.name = species.name
+      pet.evs = {
+        hp: 0,
+        atk: 0,
+        def: 0,
+        spa: 0,
+        spd: 0,
+        spe: 0,
+      }
+      pet.emblem = undefined
+    }
   })
-  selectedIndex.value = team.value.length - 1
 }
 
-// 删除精灵
-const removePet = (index: number) => {
-  team.value.splice(index, 1)
-  if (selectedIndex.value === index) selectedIndex.value = null
+const currentEVTotal = computed(() => {
+  if (!selectedPet.value) return 0
+  return Object.values(selectedPet.value.evs).reduce((a, b) => a + b, 0)
+})
+
+const handleEVUpdate = (stat: StatKey, value: number) => {
+  if (!selectedPet.value) return
+
+  const currentStatEV = selectedPet.value.evs[stat]
+  const otherEVSum = currentEVTotal.value - currentStatEV
+  let maxAllowed = Math.min(255, 510 - otherEVSum)
+
+  // 确保maxAllowed是4的倍数
+  maxAllowed = Math.floor(maxAllowed / 4) * 4
+
+  const roundedValue = Math.round(value / 4) * 4
+  const clampedValue = Math.min(Math.max(0, roundedValue), maxAllowed)
+
+  selectedPet.value.evs[stat] = clampedValue
 }
 
-// 导入/导出逻辑保持不变...
+// 添加视觉提示
+const sliderStyle = computed(() => (stat: StatKey) => {
+  if (!selectedPet.value) return {}
+  const percent = (selectedPet.value.evs[stat] / 255) * 100
+  const otherSum = currentEVTotal.value - selectedPet.value.evs[stat]
+  const available = 510 - otherSum
+  const effectiveMax = Math.min(255, available)
 
-// 数据持久化
+  return {
+    '--el-slider-runway-bg-color': effectiveMax < 255 ? '#ffd6d6' : 'var(--el-border-color-light)',
+  }
+})
+
+const computedStats = computed(() => {
+  if (!selectedPet.value || !currentSpecies.value) return {} as Record<StatKey, number>
+
+  const stats: Record<StatKey, number> = {
+    hp: 0,
+    atk: 0,
+    def: 0,
+    spa: 0,
+    spd: 0,
+    spe: 0,
+  }
+
+  const level = selectedPet.value.level
+  const baseStats = currentSpecies.value.baseStats
+  const nature = selectedPet.value.nature // 从宠物数据获取性格
+
+  // HP计算
+  stats.hp = Math.floor(
+    ((2 * baseStats.hp + selectedPet.value.ivs.hp + Math.floor(selectedPet.value.evs.hp / 4)) * level) / 100 +
+      level +
+      10,
+  )
+
+  // 其他属性计算
+  const otherStats: Exclude<StatKey, 'hp'>[] = ['atk', 'def', 'spa', 'spd', 'spe']
+  otherStats.forEach(stat => {
+    const base = Math.floor(
+      ((2 * baseStats[stat] + selectedPet.value!.ivs[stat] + Math.floor(selectedPet.value!.evs[stat] / 4)) * level) /
+        100 +
+        5,
+    )
+
+    // 应用性格修正
+    const natureMultiplier = getNatureMultiplier(nature, stat)
+    stats[stat] = Math.floor(base * natureMultiplier)
+  })
+
+  return stats
+})
+
+// 添加性格修正映射
+const getNatureMultiplier = (nature: Nature, stat: Exclude<StatKey, 'hp'>): number => {
+  return NatureMap[nature]?.[stat] ?? 1.0
+}
+
+const debouncedSave = debounce(() => {
+  if (!selectedPet.value) return
+
+  try {
+    petStorage.saveToLocal()
+  } catch (err) {
+    ElMessage.error('自动保存失败')
+  }
+}, 100)
+
 watch(
-  team,
-  newVal => {
-    petStore.saveTeam(newVal)
+  () => ({
+    skills: selectedPet.value?.skills,
+    evs: selectedPet.value?.evs,
+    ability: selectedPet.value?.ability,
+    emblem: selectedPet.value?.emblem,
+  }),
+  (newVal, oldVal) => {
+    if (JSON.stringify(newVal) !== JSON.stringify(oldVal)) {
+      debouncedSave()
+    }
   },
   { deep: true },
 )
+
+const handleSkillChange = (newVal: string, index: number) => {
+  const newSkills = [...displayedSkills.value]
+
+  // 处理清空操作（newVal为null）
+  const value = newVal ?? ''
+
+  // 检查重复
+  if (value && newSkills.filter(s => s === value).length > 1) {
+    ElMessage.warning('该技能已存在于其他槽位')
+    newSkills[index] = ''
+    displayedSkills.value = newSkills
+    return
+  }
+
+  // 更新指定位置的值
+  newSkills[index] = value
+  displayedSkills.value = newSkills
+  debouncedSave()
+}
+
+function debounce(fn: Function, delay: number) {
+  let timer: number
+  return function (this: any, ...args: any[]) {
+    clearTimeout(timer)
+    timer = setTimeout(() => fn.apply(this, args), delay)
+  }
+}
+
+const exportTeamConfig = () => {
+  // 实现导出逻辑...
+}
+
+const importTeamConfig = async () => {
+  // 实现导入逻辑...
+}
 </script>
 
 <style scoped>
+/* 基础布局 */
 .team-builder {
-  padding: 20px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 头部区域优化 */
+.player-header {
+  padding: 12px 16px;
+  .header-content {
+    gap: 8px;
+
+    .el-tag {
+      font-size: 14px;
+      padding: 8px 12px;
+    }
+  }
+
+  .header-actions {
+    gap: 12px;
+  }
+}
+
+.main-content {
+  padding: 0 16px;
+
+  .el-row {
+    margin-left: -8px !important;
+    margin-right: -8px !important;
+
+    > .el-col {
+      padding-left: 8px !important;
+      padding-right: 8px !important;
+    }
+  }
+}
+
+.drag-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 拖拽手柄样式 */
+.drag-handle {
+  margin: 0 8px;
+  cursor: move;
+  color: var(--el-text-color-secondary);
+  transition: color 0.2s;
+
+  &:hover {
+    color: var(--el-color-primary);
+  }
 }
 
 .team-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.pet-card {
-  margin-bottom: 12px;
-  transition: all 0.3s;
-  cursor: pointer;
-}
-
-.pet-card.selected {
-  border-color: var(--el-color-primary);
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.pet-name {
-  font-weight: bold;
-}
-
-.pet-info {
-  display: flex;
   gap: 8px;
-  flex-wrap: wrap;
+
+  .pet-card {
+    transition: all 0.2s ease;
+    cursor: pointer;
+
+    /* 默认状态 */
+    border: 1px solid var(--el-border-color);
+    background: var(--el-bg-color);
+
+    &:hover {
+      border-color: var(--el-color-primary-light-5);
+    }
+
+    &.selected {
+      /* 边框强调 */
+      border: 2px solid var(--el-color-primary);
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.15);
+
+      /* 背景色强调 */
+      background-color: rgba(var(--el-color-primary-rgb), 0.05);
+
+      /* 左侧标记线 */
+      position: relative;
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--el-color-primary);
+      }
+
+      /* 缩放效果 */
+      transform: scale(1.02);
+    }
+  }
+
+  .pet-card.sortable-chosen {
+    opacity: 0.8;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .pet-card.sortable-ghost {
+    opacity: 0.4;
+    background: var(--el-color-primary-light-9);
+  }
+
+  /* 选中卡片内部元素样式 */
+  .pet-card.selected {
+    .pet-name {
+      color: var(--el-color-primary);
+      font-weight: bold;
+    }
+
+    .el-tag:not(.level-tag) {
+      border-color: var(--el-color-primary-light-5);
+    }
+  }
+
+  .add-button {
+    margin-top: 4px;
+    padding: 8px;
+  }
 }
 
-.level-tag {
-  margin-left: auto;
+/* 属性卡片统一样式 */
+.stat-card {
+  margin-bottom: 12px;
+
+  :deep(.el-card__body) {
+    padding: 12px;
+  }
+
+  .stat-header {
+    margin-bottom: 8px;
+
+    .stat-name {
+      font-size: 14px;
+    }
+
+    .stat-values {
+      gap: 4px;
+
+      .final-value {
+        font-size: 14px;
+      }
+
+      .el-tag {
+        height: 22px;
+        padding: 0 6px;
+      }
+    }
+  }
+
+  .stat-details {
+    margin-top: 8px;
+
+    .detail-group {
+      gap: 8px;
+
+      .detail-item {
+        padding: 6px;
+        border-radius: 3px;
+
+        .label {
+          font-size: 12px;
+          margin-bottom: 2px;
+        }
+
+        .value {
+          font-size: 13px;
+        }
+
+        .el-input-number {
+          --el-input-number-width: 100px;
+
+          :deep(.el-input__wrapper) {
+            padding: 0 8px;
+          }
+        }
+      }
+    }
+  }
 }
 
-.add-button {
-  width: 100%;
-  margin-top: 12px;
+.global-actions {
+  padding: 8px 12px;
+  bottom: 16px;
+  right: 16px;
+
+  .el-button {
+    padding: 8px 12px;
+  }
 }
 
-.action-bar {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 1000;
+.el-form-item {
+  margin-bottom: 12px;
+
+  :deep(.el-form-item__label) {
+    font-size: 13px;
+    padding-right: 8px;
+    line-height: 24px;
+  }
+
+  :deep(.el-select) {
+    width: 100%;
+  }
 }
 
-.option-label {
-  margin-right: 8px;
+@media (max-width: 768px) {
+  .pet-card.selected {
+    border-width: 1px;
+    box-shadow: 0 1px 4px rgba(var(--el-color-primary-rgb), 0.1);
+  }
+
+  .drag-handle {
+    margin: 0 4px;
+    font-size: 14px;
+  }
+
+  .el-col {
+    width: 100%;
+
+    &.stat-card {
+      margin-bottom: 8px;
+    }
+  }
+
+  .detail-group {
+    .detail-item {
+      width: 100% !important;
+    }
+  }
+
+  .global-actions {
+    bottom: 8px;
+    right: 8px;
+    padding: 6px;
+
+    .el-button {
+      padding: 6px 8px;
+    }
+  }
 }
 
-.option-id {
-  color: var(--el-text-color-secondary);
-  font-size: 0.9em;
+/* 通用颜色定义 */
+.value[data-positive='true'] {
+  color: var(--el-color-success);
+}
+.value[data-positive='false'] {
+  color: var(--el-color-danger);
 }
 </style>

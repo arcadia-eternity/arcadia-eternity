@@ -6,7 +6,7 @@ import { nanoid } from 'nanoid'
 export class PetParser {
   static parse(rawData: unknown): Pet {
     const validated = PetSchema.parse(rawData)
-    const uid = validated.uid ?? nanoid()
+    const uid = validated.id ?? nanoid()
 
     let species: Species
     try {

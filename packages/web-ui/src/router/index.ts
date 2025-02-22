@@ -4,6 +4,7 @@ import BattleView from '../views/battleViews.vue'
 
 // 路由守卫
 import { battleGuard } from './guards'
+import TeamBuilder from '@/views/teamBuilder.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -21,6 +22,14 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '对战界面',
       requiresBattle: true, // 需要有效对战会话
+    },
+  },
+  {
+    path: '/team-builder',
+    name: 'TeamBuilder',
+    component: TeamBuilder,
+    meta: {
+      title: '队伍编辑器',
     },
   },
   {

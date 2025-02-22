@@ -182,6 +182,11 @@ export class BattleClient {
     })
   }
 
+  once<T extends keyof ServerToClientEvents>(event: T, listener: ServerToClientEvents[T]): this {
+    this.socket.once(event, listener as any)
+    return this
+  }
+
   on<T extends keyof ServerToClientEvents>(
     event: T,
     handler: (...args: Parameters<ServerToClientEvents[T]>) => void,

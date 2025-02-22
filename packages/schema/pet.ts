@@ -1,13 +1,14 @@
 import { Nature } from '@test-battle/const'
+import { nanoid } from 'nanoid'
 import { z } from 'zod'
 
 export const StatOutBattleEVSSchema = z.object({
   hp: z.number().int().nonnegative().min(0).max(255),
-  atk: z.number().int().nonnegative(),
-  def: z.number().int().nonnegative(),
-  spa: z.number().int().nonnegative(),
-  spd: z.number().int().nonnegative(),
-  spe: z.number().int().nonnegative(),
+  atk: z.number().int().nonnegative().min(0).max(255),
+  def: z.number().int().nonnegative().min(0).max(255),
+  spa: z.number().int().nonnegative().min(0).max(255),
+  spd: z.number().int().nonnegative().min(0).max(255),
+  spe: z.number().int().nonnegative().min(0).max(255),
 })
 
 export const StatOutBattleIVSSchema = z.object({
@@ -21,7 +22,10 @@ export const StatOutBattleIVSSchema = z.object({
 
 export const PetSchema = z.object({
   name: z.string().min(1),
-  uid: z.string().nanoid().optional(),
+  id: z
+    .string()
+    .nanoid()
+    .default(() => nanoid()),
   species: z.string(), //种族的编号
   level: z.number().int().min(1).max(100),
   evs: StatOutBattleEVSSchema,

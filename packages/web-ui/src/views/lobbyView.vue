@@ -26,7 +26,9 @@
 import { ref, computed, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
+import { useGameDataStore } from '@/stores/gameData'
 
+const gameDataStore = useGameDataStore()
 const router = useRouter()
 const battleStore = useBattleStore()
 
@@ -37,29 +39,10 @@ const errorMessage = ref<string | null>(null)
 // 处理匹配操作
 const handleMatchmaking = async () => {
   try {
-    if (isMatching.value) {
-      // 取消匹配逻辑
-      await battleStore.cancelMatchmaking()
-      isMatching.value = false
-    } else {
-      // 开始匹配逻辑
-      isMatching.value = true
-      errorMessage.value = null
-
-      const session = await battleStore.joinMatchmaking()
-
-      // 匹配成功后跳转
-      if (session?.battleSessionId) {
-        router.push({
-          name: 'Battle',
-          params: { sessionId: session.battleSessionId },
-        })
-      }
-    }
+    await battleStore.joinMatchmaking()
+    router.push('/battle')
   } catch (error) {
-    handleMatchError(error)
-  } finally {
-    isMatching.value = false
+    errorMessage.value = '匹配失败: ' + (error as Error).message
   }
 }
 

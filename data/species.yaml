@@ -74,6 +74,18 @@
     - skill_id: skill_ruodiangongji
       level: 15
       hidden: false
+    - skill_id: skill_jiliuchuanji
+      level: 20
+      hidden: false
+    - skill_id: skill_sashui
+      level: 25
+      hidden: false
+    - skill_id: skill_yinudanu
+      level: 30
+      hidden: false
+    - skill_id: skill_haixiaolianji
+      level: 35
+      hidden: false
   description: 常被误认为雌性精灵 经常受到雄性精灵追求 使它非常郁闷
   obtain_method: 新手任务
   ability:
@@ -102,6 +114,30 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
+    - skill_id: skill_paida
+      level: 1
+      hidden: false
+    - skill_id: skill_shuipao
+      level: 5
+      hidden: false
+    - skill_id: skill_tuoli
+      level: 10
+      hidden: false
+    - skill_id: skill_ruodiangongji
+      level: 15
+      hidden: false
+    - skill_id: skill_jiliuchuanji
+      level: 20
+      hidden: false
+    - skill_id: skill_sashui
+      level: 25
+      hidden: false
+    - skill_id: skill_yinudanu
+      level: 30
+      hidden: false
+    - skill_id: skill_haixiaolianji
+      level: 35
+      hidden: false
     - skill_id: skill_shuiliuhuti
       level: 40
       hidden: false
@@ -198,6 +234,18 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
+    - skill_id: skill_lizhua
+      level: 1
+      hidden: false
+    - skill_id: skill_huoyan
+      level: 5
+      hidden: false
+    - skill_id: skill_qili
+      level: 10
+      hidden: false
+    - skill_id: skill_fenlitupo
+      level: 15
+      hidden: false
     - skill_id: skill_tahuochongzhuang
       level: 20
       hidden: false
@@ -238,6 +286,30 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
+    - skill_id: skill_lizhua
+      level: 1
+      hidden: false
+    - skill_id: skill_huoyan
+      level: 5
+      hidden: false
+    - skill_id: skill_qili
+      level: 10
+      hidden: false
+    - skill_id: skill_fenlitupo
+      level: 15
+      hidden: false
+    - skill_id: skill_tahuochongzhuang
+      level: 20
+      hidden: false
+    - skill_id: skill_jiasu
+      level: 25
+      hidden: false
+    - skill_id: skill_yanggong
+      level: 30
+      hidden: false
+    - skill_id: skill_jizhong
+      level: 35
+      hidden: false
     - skill_id: skill_huohai
       level: 40
       hidden: false
@@ -334,6 +406,18 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongzibaodan
+      level: 5
+      hidden: false
+    - skill_id: skill_zhiyu
+      level: 10
+      hidden: false
+    - skill_id: skill_zhongzinengliang
+      level: 15
+      hidden: false
     - skill_id: skill_nengliangshifang
       level: 20
       hidden: false
@@ -374,6 +458,30 @@
   team_limit: '-'
   god_transform_id: null
   learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongzibaodan
+      level: 5
+      hidden: false
+    - skill_id: skill_zhiyu
+      level: 10
+      hidden: false
+    - skill_id: skill_zhongzinengliang
+      level: 15
+      hidden: false
+    - skill_id: skill_nengliangshifang
+      level: 20
+      hidden: false
+    - skill_id: skill_xueruo
+      level: 25
+      hidden: false
+    - skill_id: skill_feiyesushe
+      level: 30
+      hidden: false
+    - skill_id: skill_jishengzhongzi
+      level: 35
+      hidden: false
     - skill_id: skill_nengliangzhaqu
       level: 40
       hidden: false

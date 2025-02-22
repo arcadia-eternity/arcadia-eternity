@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useBattleStore } from '@/stores/battle'
 import { battleClient } from '@/utils/battleClient'
+import BattleLog from '@/components/BattleLog.vue'
 import { onMounted, onUnmounted } from 'vue'
 
 const store = useBattleStore()
