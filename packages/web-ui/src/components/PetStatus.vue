@@ -20,7 +20,7 @@ import { type PetMessage } from '@test-battle/const'
 
 const props = defineProps<{
   pet: PetMessage
-  isOpponent: boolean
+  isOpponent?: boolean
 }>()
 
 const elementIcon = computed(() => `/elements/${props.pet.element}.png`)

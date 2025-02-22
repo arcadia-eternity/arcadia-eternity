@@ -42,9 +42,9 @@ export const usePlayerStore = defineStore('player', {
   },
 
   getters: {
-    getName: state => state.name,
-    getId: state => state.id,
-    getPlayer: (state): Player => {
+    name: state => state.name,
+    id: state => state.id,
+    player: (state): Player => {
       const petStorage = usePetStorageStore()
       const team = petStorage.getCurrentTeam()
       return {

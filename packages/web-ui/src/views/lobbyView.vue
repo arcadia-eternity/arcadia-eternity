@@ -26,11 +26,11 @@
 import { ref, computed, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
-import { useGameDataStore } from '@/stores/gameData'
+import { usePlayerStore } from '@/stores/player'
 
-const gameDataStore = useGameDataStore()
 const router = useRouter()
 const battleStore = useBattleStore()
+const playerStore = usePlayerStore()
 
 // 响应式状态
 const isMatching = ref(false)
@@ -39,7 +39,7 @@ const errorMessage = ref<string | null>(null)
 // 处理匹配操作
 const handleMatchmaking = async () => {
   try {
-    await battleStore.joinMatchmaking()
+    await battleStore.joinMatchmaking(playerStore.player)
     router.push('/battle')
   } catch (error) {
     errorMessage.value = '匹配失败: ' + (error as Error).message

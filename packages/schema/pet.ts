@@ -31,7 +31,7 @@ export const PetSchema = z.object({
   evs: StatOutBattleEVSSchema,
   ivs: StatOutBattleIVSSchema,
   nature: z.nativeEnum(Nature),
-  skills: z.array(z.string()).min(1).max(5),
+  skills: z.array(z.string()).min(0).max(5),
   maxHp: z.number().int().positive().optional(),
   ability: z.string().optional(),
   emblem: z.string().optional(),

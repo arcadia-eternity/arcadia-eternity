@@ -2,6 +2,7 @@
 import { useBattleStore } from '@/stores/battle'
 import { battleClient } from '@/utils/battleClient'
 import BattleLog from '@/components/BattleLog.vue'
+import PetStatus from '@/components/PetStatus.vue'
 import { onMounted, onUnmounted } from 'vue'
 
 const store = useBattleStore()
@@ -14,7 +15,7 @@ onUnmounted(() => battleClient.disconnect())
   <div class="battle-container">
     <!-- 对手区域 -->
     <div class="opponent-side">
-      <PetStatus :pet="store.state?.players[1].activePet" is-opponent />
+      <PetStatus :pet="store.state!.players[1].activePet" is-opponent />
     </div>
 
     <!-- 战场区域 -->
@@ -27,7 +28,7 @@ onUnmounted(() => battleClient.disconnect())
 
     <!-- 玩家区域 -->
     <div class="player-side">
-      <PetStatus :pet="store.state?.players[0].activePet" />
+      <PetStatus :pet="store.state!.players[0].activePet" />
     </div>
 
     <!-- 操作面板 -->
