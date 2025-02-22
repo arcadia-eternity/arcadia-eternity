@@ -42,8 +42,6 @@ export const usePlayerStore = defineStore('player', {
   },
 
   getters: {
-    name: state => state.name,
-    id: state => state.id,
     player: (state): Player => {
       const petStorage = usePetStorageStore()
       const team = petStorage.getCurrentTeam()

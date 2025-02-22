@@ -498,7 +498,7 @@ const handleSpeciesChange = (newSpeciesId: string) => {
   if (!species) return
 
   petStorage.$patch(state => {
-    const pet = state.teams[state.currentTeamIndex].find(p => p.id === selectedPetId.value)
+    const pet = state.teams[state.currentTeamIndex].pets.find(p => p.id === selectedPetId.value)
     if (pet) {
       pet.skills = [] // 直接置空数组，displayedSkills会自动处理显示
       pet.name = species.name

@@ -109,18 +109,22 @@ export class BattleClient {
 
   async cancelMatchmaking(): Promise<void> {
     if (this.state.matchmaking !== 'searching') {
-      throw new Error('Not in matchmaking queue')
+      throw new Error('当前没有在匹配队列中')
     }
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('Cancel timeout'))
+        reject(new Error('取消匹配超时'))
       }, this.options.actionTimeout)
 
       this.socket.emit('cancelMatchmaking', response => {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
-          this.updateState({ matchmaking: 'idle' })
+          this.updateState({
+            matchmaking: 'idle',
+            roomId: undefined,
+            opponent: undefined,
+          })
           resolve()
         } else {
           reject(this.parseError(response))

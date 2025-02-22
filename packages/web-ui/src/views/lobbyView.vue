@@ -4,7 +4,7 @@
 
     <!-- 匹配控制区域 -->
     <div class="match-control">
-      <button @click="handleMatchmaking" :disabled="isMatching" class="match-button">
+      <button @click="handleMatchmaking" class="match-button">
         {{ isMatching ? '取消匹配' : '开始匹配' }}
       </button>
 
@@ -33,16 +33,21 @@ const battleStore = useBattleStore()
 const playerStore = usePlayerStore()
 
 // 响应式状态
-const isMatching = ref(false)
+const isMatching = computed(() => battleStore.isMatching)
 const errorMessage = ref<string | null>(null)
 
 // 处理匹配操作
 const handleMatchmaking = async () => {
   try {
-    await battleStore.joinMatchmaking(playerStore.player)
-    router.push('/battle')
+    if (isMatching.value) {
+      await battleStore.cancelMatchmaking()
+    } else {
+      await battleStore.joinMatchmaking(playerStore.player)
+      router.push('/battle')
+    }
   } catch (error) {
-    errorMessage.value = '匹配失败: ' + (error as Error).message
+    errorMessage.value = (error as Error).message
+    setTimeout(() => (errorMessage.value = null), 3000)
   }
 }
 

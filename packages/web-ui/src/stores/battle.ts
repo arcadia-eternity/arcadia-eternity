@@ -89,7 +89,7 @@ export const useBattleStore = defineStore('battle', {
     },
 
     async cancelMatchmaking() {
-      if (this.battleSessionId) {
+      if (!this.battleSessionId) {
         await battleClient.cancelMatchmaking()
         this.isMatching = false
         this.resetBattle()
@@ -108,7 +108,6 @@ export const useBattleStore = defineStore('battle', {
     },
 
     resetBattle() {
-      battleClient.disconnect()
       this.battleSessionId = null
       this.state = null
       this.log = []

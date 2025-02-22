@@ -3,7 +3,7 @@
     <template #header>
       <div class="card-header">
         <span>{{ pet.name }}</span>
-        <el-button type="danger" icon="Delete" circle size="small" @click.stop="$emit('remove')" />
+        <el-button type="danger" icon="Delete" circle size="small" @click.stop="$emit('remove')" v-if="showRemove" />
       </div>
     </template>
     <div class="pet-info">
@@ -18,10 +18,11 @@ import type { Pet } from '@test-battle/schema'
 import { useGameDataStore } from '../stores/gameData'
 import { computed } from 'vue'
 
-const props = defineProps<{
+const { pet, showRemove = true } = defineProps<{
   pet: Pet
+  showRemove?: boolean
 }>()
 
 const gameData = useGameDataStore()
-const speciesName = computed(() => gameData.getSpecies(props.pet.species)?.name || '未知')
+const speciesName = computed(() => gameData.getSpecies(pet.species)?.name || '未知')
 </script>
