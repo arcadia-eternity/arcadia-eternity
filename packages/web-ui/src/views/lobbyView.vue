@@ -36,25 +36,21 @@ const playerStore = usePlayerStore()
 const isMatching = computed(() => battleStore.isMatching)
 const errorMessage = ref<string | null>(null)
 
-// 处理匹配操作
 const handleMatchmaking = async () => {
   try {
     if (isMatching.value) {
       await battleStore.cancelMatchmaking()
     } else {
-      await battleStore.joinMatchmaking(playerStore.player)
-      router.push('/battle')
+      const roomId = await battleStore.joinMatchmaking(playerStore.player)
+      router.push({
+        path: '/battle',
+        query: { roomId },
+      })
     }
   } catch (error) {
     errorMessage.value = (error as Error).message
     setTimeout(() => (errorMessage.value = null), 3000)
   }
-}
-
-// 错误处理
-const handleMatchError = (error: any) => {
-  errorMessage.value = error.response?.data?.message || '匹配失败，请重试'
-  setTimeout(() => (errorMessage.value = null), 3000)
 }
 
 // 组件卸载时取消匹配

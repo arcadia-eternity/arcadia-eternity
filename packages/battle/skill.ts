@@ -29,7 +29,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
     public readonly tag: string[] = [],
     effects: Effect<EffectTrigger>[] = [],
   ) {
-    this.effects = effects
+    this.effects = effects.map(e => e.clone())
     this.effects.forEach(effect => effect.setOwner(this))
   }
 

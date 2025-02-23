@@ -13,7 +13,13 @@ import {
 } from '@test-battle/battle'
 import { EffectTrigger, type StatTypeOnBattle, StatTypeWithoutHp } from '@test-battle/const'
 import type { Operator } from './effectBuilder'
-import { ChainableSelector, GetValueFromSource, type SelectorOpinion, type ValueSource } from './selector'
+import {
+  ChainableSelector,
+  GetValueFromSource,
+  type PropertyRef,
+  type SelectorOpinion,
+  type ValueSource,
+} from './selector'
 
 function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpinion>(
   handler: (value: U[], target: T, context: EffectContext<EffectTrigger>) => void,
@@ -126,4 +132,14 @@ export const Operators = {
       const _statType = GetValueFromSource(context, statType)[0] ?? null
       target.forEach(v => v.addStatStage(context, _statType, _value))
     },
+
+  modify: <T, V extends SelectorOpinion>(valueSelector: ValueSource<V>): Operator<PropertyRef<T, V>> => {
+    return (context: EffectContext<EffectTrigger>, refs: PropertyRef<T, V>[]) => {
+      const values = GetValueFromSource(context, valueSelector)
+      refs.forEach((ref, index) => {
+        const value = values[index % values.length]
+        ref.set(value)
+      })
+    }
+  },
 }

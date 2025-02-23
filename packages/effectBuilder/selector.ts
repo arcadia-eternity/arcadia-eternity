@@ -3,6 +3,12 @@ import type { OwnedEntity } from '@test-battle/battle/entity'
 import { EffectTrigger, Element, type StatOnBattle, type StatTypeOnBattle } from '@test-battle/const'
 import type { Action, Condition, Evaluator, Operator, TargetSelector, ValueExtractor } from './effectBuilder'
 
+export type PropertyRef<T, V> = {
+  get: () => V
+  set: (value: V) => void
+  target: T // 保留原对象引用
+}
+
 // 条件系统分为三个层级
 // 修改选择器类型定义
 
@@ -22,6 +28,18 @@ export class ChainableSelector<T extends SelectorOpinion> {
 
   [Symbol.toPrimitive](context: EffectContext<EffectTrigger>): T[] {
     return this.selector(context)
+  }
+
+  asRef<V>(extractor: (t: T) => V): ChainableSelector<PropertyRef<T, V>> {
+    return new ChainableSelector(context =>
+      this.selector(context).map(target => ({
+        target,
+        get: () => extractor(target),
+        set: (value: V) => {
+          //TODO
+        },
+      })),
+    )
   }
 
   //选择一组对象的某一个参数
@@ -208,6 +226,7 @@ export type SelectorOpinion =
   | string[]
   | Element
   | OwnedEntity
+  | PropertyRef<any, any> //TODO
 
 // 基础选择器
 export const BaseSelector: {
@@ -422,6 +441,13 @@ export function GetValueFromSource<T extends SelectorOpinion>(
   source: ValueSource<T>,
 ): T[] {
   if (source instanceof ChainableSelector) return source.build()(context)
-  if (typeof source == 'function') return source(context)
+  if (typeof source == 'function') return source(context) //TargetSelector
+  if (isPropertyRef(source)) {
+    return [source.get()] // 返回当前值
+  }
   return [source]
+}
+
+function isPropertyRef(obj: any): obj is PropertyRef<any, any> {
+  return obj && typeof obj.get === 'function' && typeof obj.set === 'function'
 }

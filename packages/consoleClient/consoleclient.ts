@@ -33,7 +33,7 @@ export class ConsoleClient {
   }
 
   public async connect() {
-    this.client.connect()
+    await this.client.connect()
     await this.client.joinMatchmaking(this.playerData)
     console.log('等待匹配对手...')
   }

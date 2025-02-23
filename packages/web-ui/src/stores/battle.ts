@@ -1,9 +1,8 @@
 import { defineStore } from 'pinia'
 import { battleClient } from '../utils/battleClient'
-import type { BattleState, BattleMessage } from '@test-battle/const'
+import { type BattleState, type BattleMessage, BattleMessageType } from '@test-battle/const'
 import type { Player, PlayerSelection } from '@test-battle/schema'
 import type { ErrorResponse, SuccessResponse } from '@test-battle/protocol'
-import { useRouter } from 'vue-router'
 
 export const useBattleStore = defineStore('battle', {
   state: () => ({
@@ -13,6 +12,7 @@ export const useBattleStore = defineStore('battle', {
     availableActions: [] as PlayerSelection[],
     isMatching: false,
     errorMessage: null as string | null,
+    playerId: '',
   }),
 
   actions: {
@@ -77,10 +77,8 @@ export const useBattleStore = defineStore('battle', {
 
         // 发起匹配请求（不等待立即返回的ACK）
         await battleClient.joinMatchmaking(playerData)
-
-        // 等待匹配成功事件
         const roomId = await matchPromise
-        await this.initSession(roomId)
+        return this.initSession(roomId) // 返回 roomId
       } catch (err) {
         this.errorMessage = (err as Error).message || '匹配失败'
         this.isMatching = false
@@ -98,8 +96,7 @@ export const useBattleStore = defineStore('battle', {
 
     async initSession(roomId: string) {
       this.battleSessionId = roomId
-      const router = useRouter()
-      router.push({ path: '/battle', query: { roomId } }) // 添加类型安全跳转
+      return roomId
     },
 
     handleMatchFound(roomId: string) {
@@ -114,5 +111,53 @@ export const useBattleStore = defineStore('battle', {
       this.availableActions = []
       this.isMatching = false
     },
+
+    async sendPlayerAction(selection: PlayerSelection) {
+      try {
+        await battleClient.sendPlayerAction(selection)
+        this.availableActions = []
+      } catch (err) {
+        this.errorMessage = (err as Error).message
+      }
+    },
+
+    // 新增战斗事件处理器
+    async handleBattleMessage(msg: BattleMessage) {
+      this.log.push(msg)
+
+      switch (msg.type) {
+        case BattleMessageType.BattleState:
+          this.state = msg.data
+          break
+
+        case BattleMessageType.TurnAction:
+          this.availableActions = await this.fetchAvailableSelection()
+          break
+
+        case BattleMessageType.ForcedSwitch:
+        case BattleMessageType.FaintSwitch:
+          this.fetchAvailableSwitch()
+          break
+
+        case BattleMessageType.BattleEnd:
+          //TODO
+          break
+      }
+    },
+
+    async fetchAvailableSelection() {
+      const res = await battleClient.getAvailableSelection()
+      return res
+    },
+
+    async fetchAvailableSwitch() {
+      const res = await battleClient.getAvailableSelection()
+      this.availableActions = res.filter(a => a.type === 'switch-pet')
+    },
+  },
+
+  getters: {
+    currentPlayer: state => state.state?.players.find(p => p.id === state.playerId),
+    opponent: state => state.state?.players.find(p => p.id !== state.playerId),
   },
 })

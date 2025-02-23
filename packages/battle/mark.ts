@@ -22,11 +22,12 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity<Battle | Pe
   public duration: number
   public owner: Battle | Pet | null = null
   public isActive: boolean = true
+  public readonly effects: Effect<EffectTrigger>[]
 
   constructor(
     public readonly id: string,
     public name: string,
-    public readonly effects: Effect<EffectTrigger>[],
+    effects: Effect<EffectTrigger>[],
     public config: {
       duration?: number
       persistent?: boolean
@@ -43,6 +44,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity<Battle | Pe
     },
     public readonly tags: string[] = [],
   ) {
+    this.effects = effects.map(e => e.clone())
     this.duration = config.duration ?? 3
     this.config.stackStrategy = config.stackStrategy ?? StackStrategy.stack
     this.config.isShield = false
