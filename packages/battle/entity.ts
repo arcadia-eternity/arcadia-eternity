@@ -3,7 +3,7 @@ import { AddMarkContext, RemoveMarkContext } from './context'
 import { Mark } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
-import { Skill } from './skill'
+import { BaseSkill } from './skill'
 
 //Pet,Skill,Mark,Effect
 
@@ -15,7 +15,7 @@ export interface Entity {
   type: string
 }
 
-export interface OwnedEntity<T = Battle | Player | Pet | Mark | Skill | null> {
+export interface OwnedEntity<T = Battle | Player | Pet | Mark | BaseSkill | null> {
   owner: T
   setOwner(owner: Exclude<T, null>): void // 排除 null
 }

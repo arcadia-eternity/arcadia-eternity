@@ -1,11 +1,11 @@
-import { Skill, Effect } from '@test-battle/battle'
+import { BaseSkill, Effect } from '@test-battle/battle'
 import { EffectTrigger } from '@test-battle/const'
 import { DataRepository } from '@test-battle/data-repository'
 import { SkillSchema } from '@test-battle/schema'
 import {} from 'zod'
 
 export class SkillParser {
-  static parse(rawData: unknown): Skill {
+  static parse(rawData: unknown): BaseSkill {
     const validated = SkillSchema.parse(rawData)
 
     let effects: Effect<EffectTrigger>[] = []
@@ -22,7 +22,7 @@ export class SkillParser {
       })
     }
 
-    return new Skill(
+    return new BaseSkill(
       validated.id,
       validated.name,
       validated.category,

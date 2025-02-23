@@ -8,9 +8,10 @@ import { EffectContext, UseSkillContext } from './context'
 import { Effect, type EffectContainer, EffectScheduler } from './effect'
 import { type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
+import { nanoid } from 'nanoid'
 
-export class Skill implements EffectContainer, Prototype, OwnedEntity {
-  private readonly effects: Effect<EffectTrigger>[] = []
+export class BaseSkill implements Prototype {
+  public readonly effects: Effect<EffectTrigger>[] = []
   public owner: Pet | null = null
 
   constructor(
@@ -33,27 +34,8 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
     this.effects.forEach(effect => effect.setOwner(this))
   }
 
-  setOwner(owner: Pet): void {
-    this.owner = owner
-  }
-
-  getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[] {
-    return this.effects.filter(e => e.trigger === trigger)
-  }
-
-  collectEffects(trigger: EffectTrigger, baseContext: UseSkillContext) {
-    this.effects
-      .filter(effect => effect.trigger === trigger)
-      .forEach(effect => {
-        const effectContext = new EffectContext(baseContext, trigger, this)
-        if (!effect.condition || effect.condition(effectContext)) {
-          EffectScheduler.getInstance().addEffect(effect, effectContext)
-        }
-      })
-  }
-
-  clone(): Skill {
-    return new Skill(
+  clone(): BaseSkill {
+    return new BaseSkill(
       this.id,
       this.name,
       this.category,
@@ -146,7 +128,7 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
     }
 
     build() {
-      return new Skill(
+      return new BaseSkill(
         this.#id,
         this.#name,
         this.#skillType,
@@ -164,21 +146,49 @@ export class Skill implements EffectContainer, Prototype, OwnedEntity {
       )
     }
   }
+}
+
+export class SkillInstance implements EffectContainer, OwnedEntity {
+  public owner: Pet | null = null
+  public readonly id: string
+  constructor(private readonly baseSkill: BaseSkill) {
+    this.id = nanoid()
+  }
+
+  setOwner(owner: Pet): void {
+    this.owner = owner
+  }
+
+  getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[] {
+    return this.baseSkill.effects.filter(e => e.trigger === trigger)
+  }
+
+  collectEffects(trigger: EffectTrigger, baseContext: UseSkillContext) {
+    this.baseSkill.effects
+      .filter(effect => effect.trigger === trigger)
+      .forEach(effect => {
+        const effectContext = new EffectContext(baseContext, trigger, this)
+        if (!effect.condition || effect.condition(effectContext)) {
+          EffectScheduler.getInstance().addEffect(effect, effectContext)
+        }
+      })
+  }
 
   toMessage(): SkillMessage {
     return {
       id: this.id,
-      name: this.name,
-      category: this.category,
-      element: this.element,
-      power: this.power,
-      rage: this.rage,
-      accuracy: this.accuracy,
-      priority: this.priority,
-      target: this.target,
-      multihit: this.multihit,
-      sureHit: this.sureHit,
-      tag: this.tag,
+      baseId: this.baseSkill.id,
+      name: this.baseSkill.name,
+      category: this.baseSkill.category,
+      element: this.baseSkill.element,
+      power: this.baseSkill.power,
+      rage: this.baseSkill.rage,
+      accuracy: this.baseSkill.accuracy,
+      priority: this.baseSkill.priority,
+      target: this.baseSkill.target,
+      multihit: this.baseSkill.multihit,
+      sureHit: this.baseSkill.sureHit,
+      tag: this.baseSkill.tag,
     }
   }
 }

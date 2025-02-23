@@ -25,7 +25,7 @@ import { type MarkOwner } from './entity'
 import { Mark } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
-import { Skill } from './skill'
+import { BaseSkill } from './skill'
 
 // 对战系统
 export class Battle extends Context implements MarkOwner {
@@ -44,7 +44,7 @@ export class Battle extends Context implements MarkOwner {
   public victor?: Player
 
   public petMap: Map<string, Pet> = new Map() // ID -> Pet 实例
-  public skillMap: Map<string, Skill> = new Map() // ID -> Skill 实例
+  public skillMap: Map<string, BaseSkill> = new Map() // ID -> Skill 实例
 
   constructor(
     public readonly playerA: Player,
@@ -168,7 +168,7 @@ export class Battle extends Context implements MarkOwner {
     return pet
   }
 
-  public getSkillByID(id: string): Skill {
+  public getSkillByID(id: string): BaseSkill {
     const skill = this.skillMap.get(id)
     if (!skill) throw new Error('Unknown skill')
     return skill

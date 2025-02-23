@@ -5,7 +5,7 @@ import { type MarkOwner } from './entity'
 import { Mark } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
-import { Skill } from './skill'
+import { BaseSkill, SkillInstance } from './skill'
 
 export abstract class Context {
   readonly type: string = 'base'
@@ -59,7 +59,7 @@ export class UseSkillContext extends Context {
     public origin: Player,
     public pet: Pet,
     public selectTarget: AttackTargetOpinion,
-    public skill: Skill,
+    public skill: BaseSkill,
   ) {
     super(parent)
     this.battle = parent.battle
@@ -130,7 +130,7 @@ export class DamageContext extends Context {
   public readonly available: boolean = true
   constructor(
     public readonly parent: UseSkillContext | EffectContext<EffectTrigger>,
-    public readonly source: Pet | Mark | Skill, //来自技能伤害，还是印记和技能的效果获得的伤害
+    public readonly source: Pet | Mark | BaseSkill, //来自技能伤害，还是印记和技能的效果获得的伤害
     public value: number,
     public damageType: DamageType = DamageType.effect,
     public crit: boolean = false,
@@ -148,7 +148,7 @@ export class HealContext extends Context {
   public readonly available: boolean = true
   constructor(
     public readonly parent: EffectContext<EffectTrigger>,
-    public readonly source: Mark | Skill,
+    public readonly source: Mark | BaseSkill,
     public value: number,
     public ingoreEffect: boolean = false,
   ) {
@@ -233,7 +233,7 @@ export class EffectContext<T extends EffectTrigger> extends Context {
   constructor(
     public readonly parent: TriggerContextMap[T],
     public readonly trigger: T,
-    public readonly source: Skill | Mark,
+    public readonly source: SkillInstance | Mark,
   ) {
     super(parent)
     this.battle = parent.battle

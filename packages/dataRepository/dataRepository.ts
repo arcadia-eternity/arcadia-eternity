@@ -1,10 +1,10 @@
-import { type Prototype, type Species, Effect, Mark, Skill } from '@test-battle/battle'
+import { type Prototype, type Species, Effect, Mark, BaseSkill } from '@test-battle/battle'
 import { EffectTrigger } from '@test-battle/const'
 
 export class DataRepository {
   private static instance: DataRepository
   private species = new Map<string, Species>()
-  private skills = new Map<string, Skill>()
+  private skills = new Map<string, BaseSkill>()
   private marks = new Map<string, Mark>()
   private effects = new Map<string, Effect<EffectTrigger>>()
 
@@ -23,7 +23,7 @@ export class DataRepository {
     return species
   }
 
-  getSkill(id: string): Skill {
+  getSkill(id: string): BaseSkill {
     const skill = this.skills.get(id)
     if (!skill) {
       throw new Error(`Skill with id ${id} not found`)
@@ -54,7 +54,7 @@ export class DataRepository {
     this.species.set(id, species)
   }
 
-  registerSkill(id: string, skill: Skill) {
+  registerSkill(id: string, skill: BaseSkill) {
     if (this.skills.has(id)) {
       throw new Error(`Skill with id "${id}" already exists`)
     }
@@ -100,7 +100,7 @@ export const RegisterSpecies = createRegisterDecorator<Species>(species =>
   DataRepository.getInstance().registerSpecies(species.id, species),
 )
 
-export const RegisterSkill = createRegisterDecorator<Skill>(skill =>
+export const RegisterSkill = createRegisterDecorator<BaseSkill>(skill =>
   DataRepository.getInstance().registerSkill(skill.id, skill),
 )
 

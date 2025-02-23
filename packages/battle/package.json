@@ -10,7 +10,8 @@
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
-    "prando": "^6.0.1",
-    "@test-battle/const": "workspace:*"
+    "@test-battle/const": "workspace:*",
+    "nanoid": "^5.0.9",
+    "prando": "^6.0.1"
   }
 }

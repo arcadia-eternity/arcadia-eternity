@@ -24,7 +24,7 @@ import {
 import type { MarkOwner, OwnedEntity, Prototype } from './entity'
 import { CreateStatStageMark, Mark, StatLevelMark } from './mark'
 import { Player } from './player'
-import { Skill } from './skill'
+import { BaseSkill, SkillInstance } from './skill'
 
 export interface Species extends Prototype {
   id: string //约定:id为原中文名的拼音拼写
@@ -56,10 +56,11 @@ export class Pet implements OwnedEntity, MarkOwner {
   }
   public element: Element
   public isAlive: boolean = true
-  public lastUseSkill: Skill | null = null
+  public lastUseSkill: SkillInstance | null = null
   public baseRageObtainEfficiency: number = 1
   public owner: Player | null
   public marks: Mark[] = []
+  public readonly skills: SkillInstance[]
   public maxHp: number
 
   constructor(
@@ -70,7 +71,7 @@ export class Pet implements OwnedEntity, MarkOwner {
     public readonly evs: StatOutBattle,
     public readonly ivs: StatOutBattle,
     public readonly nature: Nature,
-    public readonly skills: Skill[],
+    skills: BaseSkill[],
     ability?: Mark,
     emblem?: Mark,
     maxHp?: number, //可以额外手动设置hp
@@ -79,6 +80,7 @@ export class Pet implements OwnedEntity, MarkOwner {
     this.currentHp = this.maxHp
     this.element = species.element
     this.owner = null
+    this.skills = skills.map(s => new SkillInstance(s))
     if (ability) this.marks.push(ability)
     if (emblem) this.marks.push(emblem)
   }
@@ -329,7 +331,7 @@ export class Pet implements OwnedEntity, MarkOwner {
       maxHp: this.maxHp,
       marks: this.marks.map(m => m.toMessage()),
       stats: isSelf ? this.stat : undefined,
-      skills: isSelf ? this.skills : undefined,
+      skills: isSelf ? this.skills.map(s => s.toMessage()) : undefined,
     }
   }
 

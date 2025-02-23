@@ -1,4 +1,4 @@
-import { Battle, Mark, Pet, Player, Skill } from '@test-battle/battle'
+import { Battle, Mark, Pet, Player, BaseSkill } from '@test-battle/battle'
 import {
   type BattleMessage,
   BattleMessageType,
@@ -35,7 +35,7 @@ export class ConsoleUI {
     return this.battle.getPetByID(id)
   }
 
-  private getSkillById(id: string): Skill {
+  private getSkillById(id: string): BaseSkill {
     return this.battle.getSkillByID(id)
   }
 

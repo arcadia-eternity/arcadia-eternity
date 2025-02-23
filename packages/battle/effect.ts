@@ -3,7 +3,7 @@ import { BattleMessageType } from '@test-battle/const/message'
 import { Context, EffectContext } from './context'
 import { type OwnedEntity, type Prototype } from './entity'
 import { Mark } from './mark'
-import { Skill } from './skill'
+import { BaseSkill } from './skill'
 
 export class EffectScheduler {
   private static instance: EffectScheduler
@@ -51,7 +51,7 @@ export class EffectScheduler {
 }
 
 export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity {
-  public owner: Skill | Mark | null = null
+  public owner: BaseSkill | Mark | null = null
   constructor(
     public readonly id: string,
     public readonly trigger: EffectTrigger,
@@ -74,7 +74,7 @@ export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity {
     this.apply.call(this, context)
   }
 
-  setOwner(owner: Mark | Skill): void {
+  setOwner(owner: Mark | BaseSkill): void {
     this.owner = owner
   }
 

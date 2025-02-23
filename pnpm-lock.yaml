@@ -99,6 +99,9 @@ importers:
       '@test-battle/const':
         specifier: workspace:*
         version: link:../const
+      nanoid:
+        specifier: ^5.0.9
+        version: 5.0.9
       prando:
         specifier: ^6.0.1
         version: 6.0.1

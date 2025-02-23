@@ -6,6 +6,7 @@ import { Element } from './element'
 
 export interface SkillMessage {
   id: string
+  baseId: string
   name: string
   category: Category
   element: Element

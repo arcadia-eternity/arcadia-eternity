@@ -1,4 +1,13 @@
-import { Battle, DamageContext, EffectContext, Mark, Pet, Player, Skill, UseSkillContext } from '@test-battle/battle'
+import {
+  Battle,
+  DamageContext,
+  EffectContext,
+  Mark,
+  Pet,
+  Player,
+  BaseSkill,
+  UseSkillContext,
+} from '@test-battle/battle'
 import type { OwnedEntity } from '@test-battle/battle/entity'
 import { EffectTrigger, Element, type StatOnBattle, type StatTypeOnBattle } from '@test-battle/const'
 import type { Action, Condition, Evaluator, Operator, TargetSelector, ValueExtractor } from './effectBuilder'
@@ -211,7 +220,7 @@ export type SelectorOpinion =
   | Pet
   | Mark
   | Player
-  | Skill
+  | BaseSkill
   | StatOnBattle
   | UseSkillContext
   | DamageContext
@@ -222,7 +231,7 @@ export type SelectorOpinion =
   | boolean
   | null
   | Mark[]
-  | Skill[]
+  | BaseSkill[]
   | string[]
   | Element
   | OwnedEntity
@@ -308,7 +317,7 @@ type ExtractorMap = {
   hp: (target: Pet) => number
   maxhp: (target: Pet) => number
   rage: (target: Player) => number
-  owner: (target: OwnedEntity) => Battle | Player | Pet | Mark | Skill | null
+  owner: (target: OwnedEntity) => Battle | Player | Pet | Mark | BaseSkill | null
   type: (target: Pet) => Element
   marks: (target: Pet) => Mark[]
   stats: (target: Pet) => StatOnBattle
@@ -317,7 +326,7 @@ type ExtractorMap = {
   power: (target: UseSkillContext) => number
   priority: (target: UseSkillContext) => number
   activePet: (target: Player) => Pet
-  skills: (target: Pet) => Skill[]
+  skills: (target: Pet) => BaseSkill[]
   id: (mark: Mark | Pet) => string
   tags: (mark: Mark) => string[]
 }
@@ -353,8 +362,8 @@ export function isMark(target: SelectorOpinion): target is Mark {
   return target instanceof Mark
 }
 
-export function isSkill(target: SelectorOpinion): target is Skill {
-  return target instanceof Skill
+export function isSkill(target: SelectorOpinion): target is BaseSkill {
+  return target instanceof BaseSkill
 }
 
 export function isUseSkillContext(target: SelectorOpinion): target is UseSkillContext {
@@ -374,7 +383,7 @@ export function isOwnedEntity(obj: any): obj is OwnedEntity {
       obj.owner instanceof Player ||
       obj.owner instanceof Pet ||
       obj.owner instanceof Mark ||
-      obj.owner instanceof Skill)
+      obj.owner instanceof BaseSkill)
   )
 }
 
@@ -423,7 +432,7 @@ function isValidSelectorOpinion(value: unknown): value is SelectorOpinion {
     value instanceof Pet ||
     value instanceof Mark ||
     value instanceof Player ||
-    value instanceof Skill ||
+    value instanceof BaseSkill ||
     value instanceof UseSkillContext ||
     value instanceof Battle ||
     typeof value === 'number' ||
