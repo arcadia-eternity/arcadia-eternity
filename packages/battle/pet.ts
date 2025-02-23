@@ -35,8 +35,8 @@ export interface Species extends Prototype {
   element: Element
   baseStats: { [key in StatType]: number }
   genderRatio?: [number, number]
-  ability?: MarkInstance[]
-  emblem?: MarkInstance[]
+  ability?: BaseMark[]
+  emblem?: BaseMark[]
 }
 
 // 精灵类

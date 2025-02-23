@@ -1,4 +1,4 @@
-import { type Prototype, type Species, Effect, MarkInstance as BaseMark, BaseSkill } from '@test-battle/battle'
+import { type Prototype, type Species, Effect, BaseMark, BaseSkill } from '@test-battle/battle'
 import { EffectTrigger, type baseMarkId, type baseSkillId, type effectId, type speciesId } from '@test-battle/const'
 
 export class DataRepository {
