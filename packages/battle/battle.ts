@@ -30,6 +30,7 @@ import { BaseSkill, SkillInstance } from './skill'
 export class Battle extends Context implements MarkOwner {
   public readonly parent: null = null
   public readonly battle: Battle = this
+  private readonly rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
 
   public status: BattleStatus = BattleStatus.Unstarted
   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
@@ -39,11 +40,10 @@ export class Battle extends Context implements MarkOwner {
   public allowFaintSwitch: boolean
   public lastKiller?: Player
   public marks: MarkInstance[] = [] //用于存放天气一类的效果
-  private rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
   public victor?: Player
 
-  public petMap: Map<string, Pet> = new Map() // ID -> Pet 实例
-  public skillMap: Map<string, SkillInstance> = new Map() // ID -> Skill 实例
+  public readonly petMap: Map<string, Pet> = new Map() // ID -> Pet 实例
+  public readonly skillMap: Map<string, SkillInstance> = new Map() // ID -> Skill 实例
 
   constructor(
     public readonly playerA: Player,
