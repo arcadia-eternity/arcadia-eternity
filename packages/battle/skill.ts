@@ -30,7 +30,7 @@ export class BaseSkill implements Prototype {
     public readonly tag: string[] = [],
     effects: Effect<EffectTrigger>[] = [],
   ) {
-    this.effects = effects.map(e => e.clone())
+    this.effects = effects
   }
 
   static Builder = class {
@@ -171,10 +171,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null> {
     this.sureHit = overrides?.sureHit ?? base.sureHit
     this.ignoreShield = overrides?.ignoreShield ?? base.ignoreShield
     this.tag = overrides?.tag ? [...base.tag, ...overrides.tag] : [...base.tag]
-    this.effects = [
-      ...base.effects.map(e => e.clone()),
-      ...(overrides?.effects ? overrides.effects.map(e => e.clone()) : []),
-    ]
+    this.effects = [...base.effects, ...(overrides?.effects ? overrides.effects : [])]
   }
 
   get name() {

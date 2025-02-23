@@ -37,13 +37,7 @@ export class BaseMark implements Prototype {
   ) {}
 
   clone(): BaseMark {
-    return new BaseMark(
-      this.id,
-      this.name,
-      this.effects.map(e => e.clone()),
-      { ...this.config },
-      [...this.tags],
-    )
+    return new BaseMark(this.id, this.name, this.effects, { ...this.config }, [...this.tags])
   }
 }
 
@@ -94,7 +88,7 @@ export class MarkInstance implements EffectContainer, Prototype, OwnedEntity<Bat
     this.config = mergedConfig
     this.name = overrides?.name ?? base.name
     this.tags = [...base.tags, ...(overrides?.tags || [])]
-    this.effects = [...base.effects.map(e => e.clone()), ...(overrides?.effects?.map(e => e.clone()) || [])]
+    this.effects = [...base.effects, ...(overrides?.effects || [])]
 
     this.config.isShield = mergedConfig.isShield ?? false
   }
