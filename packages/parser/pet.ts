@@ -1,4 +1,4 @@
-import { MarkInstance, Pet, type Species } from '@test-battle/battle'
+import { BaseMark, MarkInstance, Pet, type Species } from '@test-battle/battle'
 import { DataRepository } from '@test-battle/data-repository'
 import { PetSchema } from '@test-battle/schema'
 import { nanoid } from 'nanoid'
@@ -27,7 +27,7 @@ export class PetParser {
       }
     })
 
-    let ability: MarkInstance | undefined
+    let ability: BaseMark | undefined
     if (validated.ability) {
       try {
         ability = DataRepository.getInstance().getMark(validated.ability)
@@ -38,7 +38,7 @@ export class PetParser {
       }
     } else if (species.ability && species.ability[0]) ability = species.ability[0]
 
-    let emblem: MarkInstance | undefined
+    let emblem: BaseMark | undefined
     if (validated.emblem) {
       try {
         emblem = DataRepository.getInstance().getMark(validated.emblem)

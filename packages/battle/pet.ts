@@ -24,7 +24,7 @@ import {
   SwitchPetContext,
 } from './context'
 import type { MarkOwner, OwnedEntity, Prototype } from './entity'
-import { CreateStatStageMark, MarkInstance, StatLevelMarkInstance } from './mark'
+import { BaseMark, CreateStatStageMark, MarkInstance, StatLevelMarkInstance } from './mark'
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
 
@@ -74,8 +74,8 @@ export class Pet implements OwnedEntity, MarkOwner {
     public readonly ivs: StatOutBattle,
     public readonly nature: Nature,
     skills: BaseSkill[],
-    ability?: MarkInstance,
-    emblem?: MarkInstance,
+    ability?: BaseMark,
+    emblem?: BaseMark,
     maxHp?: number, //可以额外手动设置hp
   ) {
     this.maxHp = maxHp ? maxHp : this.calculateMaxHp()
@@ -83,8 +83,8 @@ export class Pet implements OwnedEntity, MarkOwner {
     this.element = species.element
     this.owner = null
     this.skills = skills.map(s => new SkillInstance(s))
-    if (ability) this.marks.push(ability)
-    if (emblem) this.marks.push(emblem)
+    if (ability) this.marks.push(new MarkInstance(ability))
+    if (emblem) this.marks.push(new MarkInstance(emblem))
   }
 
   public damage(context: DamageContext): boolean {
