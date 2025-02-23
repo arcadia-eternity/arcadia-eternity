@@ -35,10 +35,6 @@ export class BaseMark implements Prototype {
     } = { destoyable: true },
     public readonly tags: string[] = [],
   ) {}
-
-  clone(): BaseMark {
-    return new BaseMark(this.id, this.name, this.effects, { ...this.config }, [...this.tags])
-  }
 }
 
 //TODO: 印记的换场逻辑，以及传递的逻辑。
