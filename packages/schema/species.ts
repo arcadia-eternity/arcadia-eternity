@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { ElementSchema } from './element'
 
-const SkillSchema = z.object({
+const LearnableSkillSchema = z.object({
   skill_id: z.string(),
   level: z.number(),
   hidden: z.boolean(),
@@ -23,7 +23,7 @@ export const SpeciesSchema = z.object({
   }),
   previous_form: z.number(),
   next_form: z.number(),
-  learnable_skills: z.array(SkillSchema),
+  learnable_skills: z.array(LearnableSkillSchema),
   description: z.string(),
   ability: z.array(z.string()),
   emblem: z.array(z.string()),
