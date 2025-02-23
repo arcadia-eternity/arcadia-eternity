@@ -12,7 +12,6 @@ import { nanoid } from 'nanoid'
 
 export class BaseSkill implements Prototype {
   public readonly effects: Effect<EffectTrigger>[] = []
-  public owner: Pet | null = null
 
   constructor(
     public readonly id: baseSkillId,

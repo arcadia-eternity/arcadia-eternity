@@ -19,19 +19,19 @@ import { Pet } from './pet'
 export class BaseMark implements Prototype {
   constructor(
     public readonly id: markId,
-    public name: string,
+    public readonly name: string,
     public readonly effects: Effect<EffectTrigger>[],
-    public config: {
-      duration?: number
-      persistent?: boolean
-      maxStacks?: number
-      stackable?: boolean
-      stackStrategy?: StackStrategy
-      destoyable?: boolean
-      isShield?: boolean
-      keepOnSwitchOut?: boolean
-      transferOnSwitch?: boolean
-      inheritOnFaint?: boolean
+    public readonly config: {
+      readonly duration?: number
+      readonly persistent?: boolean
+      readonly maxStacks?: number
+      readonly stackable?: boolean
+      readonly stackStrategy?: StackStrategy
+      readonly destoyable?: boolean
+      readonly isShield?: boolean
+      readonly keepOnSwitchOut?: boolean
+      readonly transferOnSwitch?: boolean
+      readonly inheritOnFaint?: boolean
     } = { destoyable: true },
     public readonly tags: string[] = [],
   ) {}
@@ -294,7 +294,7 @@ export class StatLevelMarkInstance extends MarkInstance {
   }
 
   public updateName() {
-    this.base.name = `${this.base.statType.toUpperCase()} ${this.level > 0 ? '+' : ''}${this.level}`
+    this.name = `${this.base.statType.toUpperCase()} ${this.level > 0 ? '+' : ''}${this.level}`
   }
 
   tryStack(context: AddMarkContext): boolean {
