@@ -78,10 +78,6 @@ export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity<S
   setOwner(owner: MarkInstance | SkillInstance): void {
     this.owner = owner
   }
-
-  clone(): Effect<T> {
-    return new Effect(this.id, this.trigger, this.apply, this.priority, this.condition)
-  }
 }
 
 export interface EffectContainer {
