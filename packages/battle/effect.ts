@@ -2,8 +2,9 @@ import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import { BattleMessageType } from '@test-battle/const/message'
 import { Context, EffectContext } from './context'
 import { type OwnedEntity, type Prototype } from './entity'
-import { Mark } from './mark'
-import { BaseSkill } from './skill'
+import { MarkInstance } from './mark'
+import { BaseSkill, SkillInstance } from './skill'
+import type { effectId } from '@test-battle/const'
 
 export class EffectScheduler {
   private static instance: EffectScheduler
@@ -50,10 +51,10 @@ export class EffectScheduler {
   }
 }
 
-export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity {
-  public owner: BaseSkill | Mark | null = null
+export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity<SkillInstance | MarkInstance | null> {
+  public owner: SkillInstance | MarkInstance | null = null
   constructor(
-    public readonly id: string,
+    public readonly id: effectId,
     public readonly trigger: EffectTrigger,
     public readonly apply: (context: EffectContext<T>) => void,
     public readonly priority: number,
@@ -63,7 +64,7 @@ export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity {
 
   public innerApply(context: EffectContext<T>) {
     // 先执行消耗逻辑
-    if (context.source instanceof Mark) {
+    if (context.source instanceof MarkInstance) {
       if (!context.source.isActive) return
       if (this.consumesStacks) {
         context.source.consumeStack(context, this.consumesStacks)
@@ -74,7 +75,7 @@ export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity {
     this.apply.call(this, context)
   }
 
-  setOwner(owner: Mark | BaseSkill): void {
+  setOwner(owner: MarkInstance | SkillInstance): void {
     this.owner = owner
   }
 
@@ -83,7 +84,6 @@ export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity {
   }
 }
 
-// 效果容器接口
 export interface EffectContainer {
   collectEffects(trigger: EffectTrigger, baseContext: Context): void
 }

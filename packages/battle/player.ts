@@ -1,6 +1,6 @@
 import { BattlePhase } from '@test-battle/const/battlePhase'
 import { Category } from '@test-battle/const/category'
-import { AttackTargetOpinion, DamageType, RAGE_PER_DAMAGE } from '@test-battle/const/const'
+import { AttackTargetOpinion, DamageType, RAGE_PER_DAMAGE, type playerId } from '@test-battle/const/const'
 import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import { ELEMENT_CHART } from '@test-battle/const/element'
 import { type BattleMessage, BattleMessageType, type BattleState, type PlayerMessage } from '@test-battle/const/message'
@@ -22,7 +22,7 @@ export class Player {
   private messageCallbacks: Array<(message: BattleMessage) => void> = []
   constructor(
     public readonly name: string,
-    public readonly id: string,
+    public readonly id: playerId,
     public readonly team: Pet[],
   ) {
     team.forEach(pet => pet.setOwner(this))

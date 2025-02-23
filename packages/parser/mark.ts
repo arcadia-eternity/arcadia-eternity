@@ -1,10 +1,10 @@
-import { Effect, Mark } from '@test-battle/battle'
+import { Effect, MarkInstance } from '@test-battle/battle'
 import { EffectTrigger } from '@test-battle/const'
 import { DataRepository } from '@test-battle/data-repository'
 import { MarkSchema } from '@test-battle/schema'
 
 export class MarkParser {
-  static parse(rawData: unknown): Mark {
+  static parse(rawData: unknown): MarkInstance {
     const validated = MarkSchema.parse(rawData)
 
     let effects: Effect<EffectTrigger>[] = []
@@ -20,6 +20,6 @@ export class MarkParser {
       })
     }
 
-    return new Mark(validated.id, validated.name, effects, validated.config, validated.tags)
+    return new MarkInstance(validated.id, validated.name, effects, validated.config, validated.tags)
   }
 }

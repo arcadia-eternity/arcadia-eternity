@@ -1,12 +1,23 @@
 import { BattlePhase } from './battlePhase'
 import { BattleStatus } from './battleStatus'
 import { Category } from './category'
-import { AttackTargetOpinion, type StatOnBattle, type StatTypeOnBattle } from './const'
+import {
+  AttackTargetOpinion,
+  type baseMarkId,
+  type baseSkillId,
+  type markId,
+  type petId,
+  type playerId,
+  type skillId,
+  type speciesId,
+  type StatOnBattle,
+  type StatTypeOnBattle,
+} from './const'
 import { Element } from './element'
 
 export interface SkillMessage {
-  id: string
-  baseId: string
+  id: skillId
+  baseId: baseSkillId
   name: string
   category: Category
   element: Element
@@ -22,8 +33,8 @@ export interface SkillMessage {
 
 export interface PetMessage {
   name: string
-  id: string
-  speciesID: string
+  id: petId
+  speciesID: speciesId
   element: Element
   level: number
   currentHp: number
@@ -35,7 +46,8 @@ export interface PetMessage {
 
 export interface MarkMessage {
   name: string
-  id: string
+  id: markId
+  baseId: baseMarkId
   stack: number
   duration: number
   isActive: boolean
@@ -43,7 +55,7 @@ export interface MarkMessage {
 
 export interface PlayerMessage {
   name: string
-  id: string
+  id: playerId
   rage: number
   activePet: PetMessage
   team?: PetMessage[]

@@ -2,7 +2,7 @@ import { AttackTargetOpinion, DamageType } from '@test-battle/const/const'
 import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import { Battle } from './battle'
 import { type MarkOwner } from './entity'
-import { Mark } from './mark'
+import { BaseMark, MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
@@ -59,7 +59,7 @@ export class UseSkillContext extends Context {
     public origin: Player,
     public pet: Pet,
     public selectTarget: AttackTargetOpinion,
-    public skill: BaseSkill,
+    public skill: SkillInstance,
   ) {
     super(parent)
     this.battle = parent.battle
@@ -130,7 +130,7 @@ export class DamageContext extends Context {
   public readonly available: boolean = true
   constructor(
     public readonly parent: UseSkillContext | EffectContext<EffectTrigger>,
-    public readonly source: Pet | Mark | BaseSkill, //来自技能伤害，还是印记和技能的效果获得的伤害
+    public readonly source: Pet | MarkInstance | BaseSkill, //来自技能伤害，还是印记和技能的效果获得的伤害
     public value: number,
     public damageType: DamageType = DamageType.effect,
     public crit: boolean = false,
@@ -148,7 +148,7 @@ export class HealContext extends Context {
   public readonly available: boolean = true
   constructor(
     public readonly parent: EffectContext<EffectTrigger>,
-    public readonly source: Mark | BaseSkill,
+    public readonly source: MarkInstance | BaseSkill,
     public value: number,
     public ingoreEffect: boolean = false,
   ) {
@@ -164,7 +164,7 @@ export class AddMarkContext extends Context {
   constructor(
     public readonly parent: EffectContext<EffectTrigger> | SwitchPetContext,
     public target: MarkOwner,
-    public mark: Mark,
+    public mark: BaseMark,
     public stack?: number,
   ) {
     super(parent)
@@ -179,7 +179,7 @@ export class RemoveMarkContext extends Context {
   constructor(
     public readonly parent: EffectContext<EffectTrigger>,
     public target: Pet,
-    public mark: Mark,
+    public mark: MarkInstance,
   ) {
     super(parent)
     this.battle = parent.battle
@@ -233,7 +233,7 @@ export class EffectContext<T extends EffectTrigger> extends Context {
   constructor(
     public readonly parent: TriggerContextMap[T],
     public readonly trigger: T,
-    public readonly source: SkillInstance | Mark,
+    public readonly source: SkillInstance | MarkInstance,
   ) {
     super(parent)
     this.battle = parent.battle

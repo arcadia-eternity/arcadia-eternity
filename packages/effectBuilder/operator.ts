@@ -1,10 +1,11 @@
 import {
   AddMarkContext,
+  BaseMark,
   Battle,
   DamageContext,
   EffectContext,
   HealContext,
-  Mark,
+  MarkInstance,
   type MarkOwner,
   Pet,
   Player,
@@ -63,7 +64,7 @@ export const Operators = {
   }),
 
   addMark:
-    <T extends MarkOwner>(mark: Mark, stack: number) =>
+    <T extends MarkOwner>(mark: BaseMark, stack: number) =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.forEach(target => {
         target.addMark(new AddMarkContext(context, target, mark, stack))
@@ -71,7 +72,7 @@ export const Operators = {
     },
 
   transferMark:
-    <T extends Battle | Pet, U extends Mark>(mark: ValueSource<U>) =>
+    <T extends Battle | Pet, U extends MarkInstance>(mark: ValueSource<U>) =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       const _mark = GetValueFromSource(context, mark)
       _mark.forEach(m => {
@@ -80,13 +81,13 @@ export const Operators = {
     },
 
   addStack:
-    <T extends Mark>(markid: string, value: number) =>
+    <T extends MarkInstance>(markid: string, value: number) =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.filter(mark => mark.id == markid).forEach(mark => mark.addStack(value))
     },
 
   consumeStacks:
-    <T extends Mark>(markid: string, value: number) =>
+    <T extends MarkInstance>(markid: string, value: number) =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.filter(mark => mark.id == markid).forEach(mark => mark.consumeStack(context, value))
     },

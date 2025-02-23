@@ -22,12 +22,11 @@ import {
 } from './context'
 import { type EffectContainer, EffectScheduler } from './effect'
 import { type MarkOwner } from './entity'
-import { Mark } from './mark'
+import { MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
-import { BaseSkill } from './skill'
+import { BaseSkill, SkillInstance } from './skill'
 
-// 对战系统
 export class Battle extends Context implements MarkOwner {
   public readonly parent: null = null
   public readonly battle: Battle = this
@@ -39,12 +38,12 @@ export class Battle extends Context implements MarkOwner {
   public pendingDefeatedPlayers: Player[] = [] // 新增：需要在下回合换宠的玩家
   public allowFaintSwitch: boolean
   public lastKiller?: Player
-  public marks: Mark[] = [] //用于存放天气一类的效果
+  public marks: MarkInstance[] = [] //用于存放天气一类的效果
   private rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
   public victor?: Player
 
   public petMap: Map<string, Pet> = new Map() // ID -> Pet 实例
-  public skillMap: Map<string, BaseSkill> = new Map() // ID -> Skill 实例
+  public skillMap: Map<string, SkillInstance> = new Map() // ID -> Skill 实例
 
   constructor(
     public readonly playerA: Player,
@@ -99,7 +98,7 @@ export class Battle extends Context implements MarkOwner {
   public addMark(context: AddMarkContext) {
     if (!context.available) return
 
-    const newMark = context.mark.clone(context)
+    const newMark = new MarkInstance(context.mark)
     if (context.stack) newMark._stack = context.stack
 
     const existingMark = this.marks.find(mark => mark.id === context.mark.id)
@@ -168,7 +167,7 @@ export class Battle extends Context implements MarkOwner {
     return pet
   }
 
-  public getSkillByID(id: string): BaseSkill {
+  public getSkillByID(id: string): SkillInstance {
     const skill = this.skillMap.get(id)
     if (!skill) throw new Error('Unknown skill')
     return skill

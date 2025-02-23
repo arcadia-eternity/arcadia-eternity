@@ -1,4 +1,4 @@
-import { Effect, Mark, Pet, Player, UseSkillContext } from '@test-battle/battle'
+import { Effect, MarkInstance, Pet, Player, UseSkillContext } from '@test-battle/battle'
 import { EffectTrigger, type StatTypeOnBattle, StatTypeWithoutHp } from '@test-battle/const'
 import { DataRepository } from '@test-battle/data-repository'
 import {
@@ -300,11 +300,11 @@ export function parseAddMarkAction(dsl: Extract<ActionDSL, { type: 'addMark' }>)
 
 // Pattern for stack-related actions [source_id: operator.ts]
 export function parseAddStacksAction(dsl: Extract<ActionDSL, { type: 'addStacks' }>) {
-  return parseSelector<Mark>(dsl.target).apply(Operators.addStack(dsl.mark, dsl.value))
+  return parseSelector<MarkInstance>(dsl.target).apply(Operators.addStack(dsl.mark, dsl.value))
 }
 
 export function parseConsumeStacksAction(dsl: Extract<ActionDSL, { type: 'consumeStacks' }>) {
-  return parseSelector<Mark>(dsl.target).apply(Operators.consumeStacks(dsl.mark, dsl.value))
+  return parseSelector<MarkInstance>(dsl.target).apply(Operators.consumeStacks(dsl.mark, dsl.value))
 }
 
 // Stat modification pattern [source_id: parse.ts]
@@ -345,7 +345,7 @@ export function parseAddPowerAction(dsl: Extract<ActionDSL, { type: 'addPower' }
 }
 
 export function parseTransferMark(dsl: Extract<ActionDSL, { type: 'transferMark' }>) {
-  return parseSelector<Pet>(dsl.target).apply(Operators.transferMark(parseValue(dsl.mark) as ValueSource<Mark>))
+  return parseSelector<Pet>(dsl.target).apply(Operators.transferMark(parseValue(dsl.mark) as ValueSource<MarkInstance>))
 }
 
 export function parseCondition(dsl: ConditionDSL): Condition {

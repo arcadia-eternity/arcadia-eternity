@@ -3,6 +3,23 @@ export const MAX_RAGE = 100
 export const RAGE_PER_TURN = 15
 export const RAGE_PER_DAMAGE = 0.5
 
+export type entityId = string
+
+export type speciesId = string
+export type petId = string
+
+export type baseSkillId = string
+export type skillId = string
+
+export type playerId = string
+
+export type baseMarkId = string
+export type markId = string
+
+export type effectId = string
+
+export type Id = speciesId | petId | baseMarkId | skillId | baseMarkId | markId | effectId
+
 export enum StatType {
   atk = 'atk',
   def = 'def',

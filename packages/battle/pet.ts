@@ -1,5 +1,7 @@
 import {
+  type petId,
   RAGE_PER_TURN,
+  type speciesId,
   STAT_STAGE_MULTIPLIER,
   type StatBuffOnBattle,
   type StatOnBattle,
@@ -22,19 +24,19 @@ import {
   SwitchPetContext,
 } from './context'
 import type { MarkOwner, OwnedEntity, Prototype } from './entity'
-import { CreateStatStageMark, Mark, StatLevelMark } from './mark'
+import { CreateStatStageMark, MarkInstance, StatLevelMarkInstance } from './mark'
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
 
 export interface Species extends Prototype {
-  id: string //约定:id为原中文名的拼音拼写
+  id: speciesId //约定:id为原中文名的拼音拼写
   num: number //用于原游戏内的序号
   name: string
   element: Element
   baseStats: { [key in StatType]: number }
   genderRatio?: [number, number]
-  ability?: Mark[]
-  emblem?: Mark[]
+  ability?: MarkInstance[]
+  emblem?: MarkInstance[]
 }
 
 // 精灵类
@@ -59,21 +61,21 @@ export class Pet implements OwnedEntity, MarkOwner {
   public lastUseSkill: SkillInstance | null = null
   public baseRageObtainEfficiency: number = 1
   public owner: Player | null
-  public marks: Mark[] = []
+  public marks: MarkInstance[] = []
   public readonly skills: SkillInstance[]
   public maxHp: number
 
   constructor(
     public readonly name: string,
-    public readonly id: string,
+    public readonly id: petId,
     public readonly species: Species,
     public readonly level: number,
     public readonly evs: StatOutBattle,
     public readonly ivs: StatOutBattle,
     public readonly nature: Nature,
     skills: BaseSkill[],
-    ability?: Mark,
-    emblem?: Mark,
+    ability?: MarkInstance,
+    emblem?: MarkInstance,
     maxHp?: number, //可以额外手动设置hp
   ) {
     this.maxHp = maxHp ? maxHp : this.calculateMaxHp()
@@ -144,10 +146,13 @@ export class Pet implements OwnedEntity, MarkOwner {
   public addMark(context: AddMarkContext) {
     if (!context.available) return
 
-    const newMark = context.mark.clone(context)
+    const newMark = new MarkInstance(context.mark)
     if (context.stack) newMark._stack = context.stack
     const existingOppositeMark = this.marks.find(
-      mark => mark instanceof StatLevelMark && newMark instanceof StatLevelMark && mark.isOppositeMark(newMark),
+      mark =>
+        mark instanceof StatLevelMarkInstance &&
+        newMark instanceof StatLevelMarkInstance &&
+        mark.isOppositeMark(newMark),
     )
 
     // 优先抵消互斥印记
@@ -164,7 +169,7 @@ export class Pet implements OwnedEntity, MarkOwner {
       context.battle.applyEffects(context, EffectTrigger.OnMarkCreate, newMark)
       newMark.attachTo(this)
       this.marks.push(newMark)
-      if (newMark instanceof StatLevelMark) {
+      if (newMark instanceof StatLevelMarkInstance) {
         this.statStage[newMark.statType] = newMark.level
       }
     }
@@ -289,12 +294,16 @@ export class Pet implements OwnedEntity, MarkOwner {
   public clearStatStage(context: EffectContext<EffectTrigger>) {
     this.statStage = {}
     this.marks = this.marks.filter(mark => {
-      if (mark instanceof StatLevelMark) {
+      if (mark instanceof StatLevelMarkInstance) {
         mark.destory(context)
         return false
       }
       return true
     })
+  }
+
+  public transferMarks(...marks: MarkInstance[]) {
+    this.marks.push(...marks)
   }
 
   public switchOut(context: SwitchPetContext) {
@@ -304,8 +313,9 @@ export class Pet implements OwnedEntity, MarkOwner {
 
       // 需要转移的印记
       if (mark.config.transferOnSwitch && context.target) {
-        context.target.addMark(new AddMarkContext(context, context.target, mark))
+        context.target.transferMarks(mark)
       }
+
       if (!shouldKeep) {
         mark.destory(context)
       }

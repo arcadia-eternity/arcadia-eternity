@@ -1,4 +1,4 @@
-import { Battle, Mark, Pet, Player, BaseSkill } from '@test-battle/battle'
+import { Battle, MarkInstance, Pet, Player, BaseSkill } from '@test-battle/battle'
 import {
   type BattleMessage,
   BattleMessageType,
@@ -49,7 +49,7 @@ export class ConsoleUI {
     return name ?? id
   }
 
-  private getMarkStatus = (mark: Mark) =>
+  private getMarkStatus = (mark: MarkInstance) =>
     `{<${mark.name}> ${mark.config.persistent ? '' : `[剩余${mark.duration}回合]`} ${mark.stack}层}`
 
   private handleMessage(message: BattleMessage) {

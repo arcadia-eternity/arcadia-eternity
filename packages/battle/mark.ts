@@ -1,4 +1,4 @@
-import { STAT_STAGE_MULTIPLIER, type StatTypeOnBattle } from '@test-battle/const/const'
+import { STAT_STAGE_MULTIPLIER, type markId, type StatTypeOnBattle } from '@test-battle/const/const'
 import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import type { MarkMessage } from '@test-battle/const/message'
 import { StackStrategy } from '@test-battle/const/stackStrategy'
@@ -16,18 +16,11 @@ import { Effect, type EffectContainer, EffectScheduler } from './effect'
 import { type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 
-//TODO: 印记的换场逻辑，以及传递的逻辑。
-export class Mark implements EffectContainer, Prototype, OwnedEntity<Battle | Pet | null> {
-  public _stack: number = 1
-  public duration: number
-  public owner: Battle | Pet | null = null
-  public isActive: boolean = true
-  public readonly effects: Effect<EffectTrigger>[]
-
+export class BaseMark implements Prototype {
   constructor(
-    public readonly id: string,
+    public readonly id: markId,
     public name: string,
-    effects: Effect<EffectTrigger>[],
+    public readonly effects: Effect<EffectTrigger>[],
     public config: {
       duration?: number
       persistent?: boolean
@@ -36,18 +29,74 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity<Battle | Pe
       stackStrategy?: StackStrategy
       destoyable?: boolean
       isShield?: boolean
-      keepOnSwitchOut?: boolean // 换场时是否保留（默认false）
-      transferOnSwitch?: boolean // 换场时是否转移给新精灵（默认false）
-      inheritOnFaint?: boolean // 死亡时是否继承给队友（默认false）
-    } = {
-      destoyable: true,
-    },
+      keepOnSwitchOut?: boolean
+      transferOnSwitch?: boolean
+      inheritOnFaint?: boolean
+    } = { destoyable: true },
     public readonly tags: string[] = [],
+  ) {}
+
+  clone(): BaseMark {
+    return new BaseMark(
+      this.id,
+      this.name,
+      this.effects.map(e => e.clone()),
+      { ...this.config },
+      [...this.tags],
+    )
+  }
+}
+
+//TODO: 印记的换场逻辑，以及传递的逻辑。
+export class MarkInstance implements EffectContainer, Prototype, OwnedEntity<Battle | Pet | null> {
+  public _stack: number = 1
+  public duration: number
+  public owner: Battle | Pet | null = null
+  public isActive: boolean = true
+
+  public readonly id: string
+  public name: string
+  public readonly effects: Effect<EffectTrigger>[]
+  public config: {
+    duration?: number
+    persistent?: boolean
+    maxStacks?: number
+    stackable?: boolean
+    stackStrategy?: StackStrategy
+    destoyable?: boolean
+    isShield?: boolean
+    keepOnSwitchOut?: boolean
+    transferOnSwitch?: boolean
+    inheritOnFaint?: boolean
+  } = { destoyable: true }
+  public readonly tags: string[] = []
+
+  constructor(
+    public readonly base: BaseMark,
+    overrides?: {
+      duration?: number
+      stack?: number
+      config?: Partial<BaseMark['config']>
+      name?: string
+      tags?: string[]
+      effects?: Effect<EffectTrigger>[]
+    },
   ) {
-    this.effects = effects.map(e => e.clone())
-    this.duration = config.duration ?? 3
-    this.config.stackStrategy = config.stackStrategy ?? StackStrategy.stack
-    this.config.isShield = false
+    const mergedConfig = {
+      ...base.config,
+      ...overrides?.config,
+      // 确保枚举类型有默认值
+      stackStrategy: overrides?.config?.stackStrategy ?? base.config.stackStrategy ?? StackStrategy.stack,
+    }
+
+    this.duration = overrides?.duration ?? mergedConfig.duration ?? 3
+    this._stack = overrides?.stack ?? 1
+    this.config = mergedConfig
+    this.name = overrides?.name ?? base.name
+    this.tags = [...base.tags, ...(overrides?.tags || [])]
+    this.effects = [...base.effects.map(e => e.clone()), ...(overrides?.effects?.map(e => e.clone()) || [])]
+
+    this.config.isShield = mergedConfig.isShield ?? false
   }
 
   get stack(): number {
@@ -97,7 +146,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity<Battle | Pe
 
     const maxStacks = this.config.maxStacks ?? Infinity
     const strategy = this.config.stackStrategy!
-    const newMark = context.mark
+    const newMark = new MarkInstance(context.mark)
 
     let newStacks = this.stack
     let newDuration = this.duration
@@ -169,14 +218,6 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity<Battle | Pe
       })
   }
 
-  clone(context: AddMarkContext): Mark {
-    context.battle.applyEffects(context, EffectTrigger.OnMarkCreate)
-    const mark = new Mark(this.id, this.name, this.effects, this.config, this.tags)
-    mark.stack = this.stack
-    mark.duration = this.duration
-    return mark
-  }
-
   destory(
     context:
       | EffectContext<EffectTrigger>
@@ -207,6 +248,7 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity<Battle | Pe
     return {
       name: this.name,
       id: this.id,
+      baseId: this.base.id,
       stack: this.stack,
       duration: this.duration,
       isActive: this.isActive,
@@ -214,15 +256,14 @@ export class Mark implements EffectContainer, Prototype, OwnedEntity<Battle | Pe
   }
 }
 
-//能力强化印记
-export class StatLevelMark extends Mark {
+export class BaseStatLevelMark extends BaseMark {
   constructor(
-    public readonly statType: StatTypeOnBattle, // 改用StatTypeOnBattle类型
-    public level: number,
+    public readonly statType: StatTypeOnBattle,
+    public initialLevel: number,
     id: string,
     name: string,
     effects: Effect<EffectTrigger>[] = [],
-    config: Mark['config'] = {
+    config: BaseMark['config'] = {
       destoyable: true,
     },
   ) {
@@ -240,54 +281,71 @@ export class StatLevelMark extends Mark {
     )
   }
 
+  createInstance(context: AddMarkContext): StatLevelMarkInstance {
+    const instance = new StatLevelMarkInstance(this)
+    instance.level = this.initialLevel
+    instance.updateName()
+    context.battle.applyEffects(context, EffectTrigger.OnMarkCreate)
+    return instance
+  }
+}
+
+export class StatLevelMarkInstance extends MarkInstance {
+  public level: number
+
+  constructor(public readonly base: BaseStatLevelMark) {
+    super(base)
+    this.level = base.initialLevel
+    this.updateName()
+  }
+
+  get statType() {
+    return this.base.statType
+  }
+
+  public updateName() {
+    this.base.name = `${this.base.statType.toUpperCase()} ${this.level > 0 ? '+' : ''}${this.level}`
+  }
+
   tryStack(context: AddMarkContext): boolean {
     const otherMark = context.mark
 
-    // 如果对方是互斥的 StatLevelMark
-    if (otherMark instanceof StatLevelMark && this.isOppositeMark(otherMark)) {
-      // 计算抵消后的剩余等级
+    if (otherMark instanceof StatLevelMarkInstance && this.isOppositeMark(otherMark)) {
       const remainingLevel = this.level + otherMark.level
 
       if (remainingLevel === 0) {
-        // 完全抵消，销毁当前印记
         this.destory(context)
         return true
       } else if (Math.sign(remainingLevel) === Math.sign(this.level)) {
-        // 同方向叠加剩余等级
         this.level = remainingLevel
       } else {
-        // 反转方向并更新等级
         this.level = remainingLevel
       }
 
-      // 更新名称和所有者 statStage
-      this.name = `${this.statType.toUpperCase()} ${this.level > 0 ? '+' : ''}${this.level}`
+      this.updateName()
       if (this.owner instanceof Pet) {
-        this.owner.statStage[this.statType] = this.level
+        this.owner.statStage[this.base.statType] = this.level
       }
       return true
     }
 
-    const isSameType = context.mark instanceof StatLevelMark && context.mark.statType === this.statType
+    const isSameType = otherMark instanceof StatLevelMarkInstance && otherMark.base.statType === this.base.statType
 
     if (!isSameType) return super.tryStack(context)
 
-    // 计算新等级
     const maxLevel = (STAT_STAGE_MULTIPLIER.length - 1) / 2
-    const newLevel = Math.max(-maxLevel, Math.min(maxLevel, this.level + (context.mark as StatLevelMark).level))
+    const newLevel = Math.max(-maxLevel, Math.min(maxLevel, this.level + (otherMark as StatLevelMarkInstance).level))
 
-    // 等级归零时标记为待移除
     if (newLevel === 0) {
       this.destory(context)
       return true
     }
 
-    // 正常更新等级
     this.level = newLevel
-    this.name = `${this.statType.toUpperCase()} ${this.level > 0 ? '+' : ''}${this.level}`
+    this.updateName()
 
     if (this.owner instanceof Pet) {
-      this.owner.statStage[this.statType] = this.level
+      this.owner.statStage[this.base.statType] = this.level
     }
 
     return true
@@ -296,28 +354,17 @@ export class StatLevelMark extends Mark {
   attachTo(target: Pet | Battle) {
     super.attachTo(target)
     if (target instanceof Pet) {
-      target.statStage[this.statType] = this.level
+      target.statStage[this.base.statType] = this.level
     }
   }
 
-  public isOppositeMark(other: StatLevelMark): boolean {
-    // 判断是否为同一属性但等级方向相反
-    return this.statType === other.statType && Math.sign(this.level) !== Math.sign(other.level)
-  }
-
-  get stack() {
-    return this.level
-  }
-
-  clone(context: AddMarkContext): StatLevelMark {
-    context.battle.applyEffects(context, EffectTrigger.OnMarkCreate)
-    const cloned = new StatLevelMark(this.statType, this.level, this.id, this.name, this.effects, this.config)
-    return cloned
+  public isOppositeMark(other: StatLevelMarkInstance): boolean {
+    return this.base.statType === other.base.statType && Math.sign(this.level) !== Math.sign(other.level)
   }
 }
 
-export function CreateStatStageMark(statType: StatTypeOnBattle, level: number): StatLevelMark {
-  return new StatLevelMark(
+export function CreateStatStageMark(statType: StatTypeOnBattle, level: number): BaseStatLevelMark {
+  return new BaseStatLevelMark(
     statType,
     level,
     `stat-stage-${statType}-${level > 0 ? 'up' : 'down'}`,

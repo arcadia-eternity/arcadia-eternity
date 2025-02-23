@@ -2,7 +2,7 @@ import {
   Battle,
   DamageContext,
   EffectContext,
-  Mark,
+  MarkInstance,
   Pet,
   Player,
   BaseSkill,
@@ -218,7 +218,7 @@ function createChainable<T extends SelectorOpinion>(selector: TargetSelector<T>)
 
 export type SelectorOpinion =
   | Pet
-  | Mark
+  | MarkInstance
   | Player
   | BaseSkill
   | StatOnBattle
@@ -230,7 +230,7 @@ export type SelectorOpinion =
   | string
   | boolean
   | null
-  | Mark[]
+  | MarkInstance[]
   | BaseSkill[]
   | string[]
   | Element
@@ -246,9 +246,9 @@ export const BaseSelector: {
   foeOwners: ChainableSelector<Player>
   usingSkillContext: ChainableSelector<UseSkillContext>
   damageContext: ChainableSelector<DamageContext>
-  mark: ChainableSelector<Mark>
-  selfMarks: ChainableSelector<Mark>
-  foeMarks: ChainableSelector<Mark>
+  mark: ChainableSelector<MarkInstance>
+  selfMarks: ChainableSelector<MarkInstance>
+  foeMarks: ChainableSelector<MarkInstance>
 } = {
   //选择目标，在使用技能的场景下，为技能实际指向的目标，在印记的场景下指向印记的所有者。
   target: createChainable<Pet>((context: EffectContext<EffectTrigger>) => {
@@ -294,17 +294,17 @@ export const BaseSelector: {
     //TODO: error with use get context with non-Damage context
     return []
   }),
-  mark: createChainable<Mark>((context: EffectContext<EffectTrigger>) => {
-    if (context.source instanceof Mark) return [context.source]
+  mark: createChainable<MarkInstance>((context: EffectContext<EffectTrigger>) => {
+    if (context.source instanceof MarkInstance) return [context.source]
     //TODO: error with use get context with non-MarkEffect context
     return []
   }),
-  selfMarks: createChainable<Mark>((context: EffectContext<EffectTrigger>) => {
+  selfMarks: createChainable<MarkInstance>((context: EffectContext<EffectTrigger>) => {
     if (context.source.owner instanceof Pet) return context.source.owner.marks
     //TODO: error with use owners with global marks
     return []
   }),
-  foeMarks: createChainable<Mark>((context: EffectContext<EffectTrigger>) => {
+  foeMarks: createChainable<MarkInstance>((context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return context.parent.actualTarget!.marks
     if (context.source.owner instanceof Pet)
       return context.battle.getOpponent(context.source.owner.owner!).activePet.marks
@@ -317,18 +317,18 @@ type ExtractorMap = {
   hp: (target: Pet) => number
   maxhp: (target: Pet) => number
   rage: (target: Player) => number
-  owner: (target: OwnedEntity) => Battle | Player | Pet | Mark | BaseSkill | null
+  owner: (target: OwnedEntity) => Battle | Player | Pet | MarkInstance | BaseSkill | null
   type: (target: Pet) => Element
-  marks: (target: Pet) => Mark[]
+  marks: (target: Pet) => MarkInstance[]
   stats: (target: Pet) => StatOnBattle
-  stack: (target: Mark) => number
-  duration: (target: Mark) => number
+  stack: (target: MarkInstance) => number
+  duration: (target: MarkInstance) => number
   power: (target: UseSkillContext) => number
   priority: (target: UseSkillContext) => number
   activePet: (target: Player) => Pet
   skills: (target: Pet) => BaseSkill[]
-  id: (mark: Mark | Pet) => string
-  tags: (mark: Mark) => string[]
+  id: (mark: MarkInstance | Pet) => string
+  tags: (mark: MarkInstance) => string[]
 }
 
 // Extractor用于提取Selector得到的一组对象的某个值，将这个值的类型作为新的Selector
@@ -340,14 +340,14 @@ export const Extractor: ExtractorMap = {
   type: (target: Pet) => target.element,
   marks: (target: Pet) => target.marks,
   stats: (target: Pet) => target.stat,
-  stack: (target: Mark) => target.stack,
-  duration: (target: Mark) => target.duration,
+  stack: (target: MarkInstance) => target.stack,
+  duration: (target: MarkInstance) => target.duration,
   power: (target: UseSkillContext) => target.power,
   priority: (target: UseSkillContext) => target.skillPriority,
   activePet: (target: Player) => target.activePet,
   skills: (target: Pet) => target.skills,
-  id: (target: Mark | Pet) => target.id,
-  tags: (mark: Mark) => mark.tags,
+  id: (target: MarkInstance | Pet) => target.id,
+  tags: (mark: MarkInstance) => mark.tags,
 }
 
 export function isPet(target: SelectorOpinion): target is Pet {
@@ -358,8 +358,8 @@ export function isPlayer(target: SelectorOpinion): target is Player {
   return target instanceof Player
 }
 
-export function isMark(target: SelectorOpinion): target is Mark {
-  return target instanceof Mark
+export function isMark(target: SelectorOpinion): target is MarkInstance {
+  return target instanceof MarkInstance
 }
 
 export function isSkill(target: SelectorOpinion): target is BaseSkill {
@@ -382,7 +382,7 @@ export function isOwnedEntity(obj: any): obj is OwnedEntity {
       obj.owner instanceof Battle ||
       obj.owner instanceof Player ||
       obj.owner instanceof Pet ||
-      obj.owner instanceof Mark ||
+      obj.owner instanceof MarkInstance ||
       obj.owner instanceof BaseSkill)
   )
 }
@@ -430,7 +430,7 @@ export function createExtractor<T, P extends string>(path: P): (target: T) => Pa
 function isValidSelectorOpinion(value: unknown): value is SelectorOpinion {
   return (
     value instanceof Pet ||
-    value instanceof Mark ||
+    value instanceof MarkInstance ||
     value instanceof Player ||
     value instanceof BaseSkill ||
     value instanceof UseSkillContext ||
