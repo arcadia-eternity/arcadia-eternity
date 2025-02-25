@@ -23,7 +23,7 @@ import {
   RemoveMarkContext,
   SwitchPetContext,
 } from './context'
-import type { MarkOwner, OwnedEntity, Prototype } from './entity'
+import type { Instance, MarkOwner, OwnedEntity, Prototype } from './entity'
 import { BaseMark, CreateStatStageMark, MarkInstance, StatLevelMarkInstance } from './mark'
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
@@ -43,7 +43,7 @@ export interface Species extends Prototype {
 }
 
 // 精灵类
-export class Pet implements OwnedEntity, MarkOwner {
+export class Pet implements OwnedEntity, MarkOwner, Instance {
   public currentHp: number
   public baseCritRate: number = 0.1 // 暴击率默认为10%
   public baseAccuracy: number = 1 // 命中率默认为100%
@@ -67,6 +67,7 @@ export class Pet implements OwnedEntity, MarkOwner {
   public marks: MarkInstance[] = []
   public readonly skills: SkillInstance[]
   public maxHp: number
+  public base: Species
 
   constructor(
     public readonly name: string,
@@ -85,6 +86,7 @@ export class Pet implements OwnedEntity, MarkOwner {
     maxHp?: number, //可以额外手动设置hp
   ) {
     this.maxHp = maxHp ? maxHp : this.calculateMaxHp()
+    this.base = species
     this.currentHp = this.maxHp
     this.element = species.element
     this.owner = null

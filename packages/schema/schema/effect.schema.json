@@ -111,6 +111,7 @@
                                             "activePet",
                                             "skills",
                                             "id",
+                                            "baseId",
                                             "tags"
                                           ]
                                         },

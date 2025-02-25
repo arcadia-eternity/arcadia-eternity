@@ -13,7 +13,7 @@ import {
   TurnContext,
 } from './context'
 import { Effect, type EffectContainer, EffectScheduler } from './effect'
-import { type OwnedEntity, type Prototype } from './entity'
+import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 
 export class BaseMark implements Prototype {
@@ -38,7 +38,7 @@ export class BaseMark implements Prototype {
 }
 
 //TODO: 印记的换场逻辑，以及传递的逻辑。
-export class MarkInstance implements EffectContainer, Prototype, OwnedEntity<Battle | Pet | null> {
+export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet | null>, Instance {
   public _stack: number = 1
   public duration: number
   public owner: Battle | Pet | null = null

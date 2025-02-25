@@ -1,4 +1,4 @@
-import type { Id } from '@test-battle/const'
+import type { Id, InstanceId, PrototypeId } from '@test-battle/const'
 import { Battle } from './battle'
 import { AddMarkContext, RemoveMarkContext } from './context'
 import { MarkInstance } from './mark'
@@ -9,11 +9,12 @@ import { SkillInstance } from './skill'
 //Pet,Skill,Mark,Effect
 
 export interface Prototype {
-  id: Id
+  id: PrototypeId
 }
 
-export interface Entity {
-  type: string
+export interface Instance {
+  id: InstanceId
+  base: Prototype
 }
 
 export interface OwnedEntity<T = Battle | Player | Pet | MarkInstance | SkillInstance | null> {

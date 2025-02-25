@@ -18,7 +18,11 @@ export type markId = string & { readonly __brand: 'markId' }
 
 export type effectId = string & { readonly __brand: 'effectId' }
 
-export type Id = speciesId | petId | baseMarkId | skillId | baseMarkId | markId | effectId
+export type Id = PrototypeId | InstanceId
+
+export type PrototypeId = speciesId | baseMarkId | baseSkillId | effectId
+
+export type InstanceId = petId | skillId | markId
 
 export enum StatType {
   atk = 'atk',

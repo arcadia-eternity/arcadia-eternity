@@ -29,7 +29,7 @@ export class ConsoleUI {
   }
 
   private getPetStatus = (pet: Pet) => {
-    const baseInfo = `${ELEMENT_MAP[pet.element].emoji}${pet.name}(${pet.species.name}) [Lv.${pet.level} HP:${pet.currentHp}/${pet.maxHp} Rage:${pet.owner?.currentRage}/100]`
+    const baseInfo = `${ELEMENT_MAP[pet.element].emoji}${pet.name}(${pet.base.name}) [Lv.${pet.level} HP:${pet.currentHp}/${pet.maxHp} Rage:${pet.owner?.currentRage}/100]`
     const markInfo = pet.marks.length > 0 ? ' 印记:' + pet.marks.map(mark => this.getMarkStatus(mark)).join(' ') : ''
     return baseInfo + markInfo
   }

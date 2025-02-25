@@ -6,7 +6,7 @@ import { Element } from '@test-battle/const/element'
 import { type SkillMessage } from '@test-battle/const/message'
 import { EffectContext, UseSkillContext } from './context'
 import { Effect, type EffectContainer, EffectScheduler } from './effect'
-import { type OwnedEntity, type Prototype } from './entity'
+import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 import { nanoid } from 'nanoid'
 
@@ -127,7 +127,7 @@ export class BaseSkill implements Prototype {
   }
 }
 
-export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null> {
+export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, Instance {
   public owner: Pet | null = null
   public readonly id: skillId
   public readonly category: Category
@@ -143,7 +143,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null> {
   public readonly tag: string[] = []
   effects: Effect<EffectTrigger>[] = []
   constructor(
-    private readonly base: BaseSkill,
+    public readonly base: BaseSkill,
     overrides?: {
       power?: number
       accuracy?: number

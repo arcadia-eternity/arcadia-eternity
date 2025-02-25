@@ -1,5 +1,7 @@
 import {
+  type Instance,
   type OwnedEntity,
+  type Prototype,
   Battle,
   DamageContext,
   MarkInstance,
@@ -8,7 +10,7 @@ import {
   SkillInstance,
   UseSkillContext,
 } from '@test-battle/battle'
-import type { Element, StatOnBattle } from '@test-battle/const'
+import type { Element, InstanceId, PrototypeId, StatOnBattle } from '@test-battle/const'
 import type { SelectorOpinion } from 'selector'
 
 type ExtractorMap = {
@@ -25,7 +27,8 @@ type ExtractorMap = {
   priority: (target: UseSkillContext) => number
   activePet: (target: Player) => Pet
   skills: (target: Pet) => SkillInstance[]
-  id: (mark: MarkInstance | Pet) => string
+  id: (target: Instance) => InstanceId
+  baseId: (target: Instance) => PrototypeId
   tags: (mark: MarkInstance) => string[]
 }
 // Extractor用于提取Selector得到的一组对象的某个值，将这个值的类型作为新的Selector
@@ -44,7 +47,8 @@ export const Extractor: ExtractorMap = {
   priority: (target: UseSkillContext) => target.skillPriority,
   activePet: (target: Player) => target.activePet,
   skills: (target: Pet) => target.skills,
-  id: (target: MarkInstance | Pet) => target.id,
+  id: (target: Instance) => target.id,
+  baseId: (target: Instance) => target.base.id,
   tags: (mark: MarkInstance) => mark.tags,
 }
 

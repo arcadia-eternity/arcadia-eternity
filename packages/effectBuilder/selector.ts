@@ -8,7 +8,7 @@ import {
   UseSkillContext,
   SkillInstance,
 } from '@test-battle/battle'
-import type { OwnedEntity } from '@test-battle/battle/entity'
+import type { OwnedEntity, Prototype } from '@test-battle/battle/entity'
 import { EffectTrigger, Element, type StatOnBattle, type StatTypeOnBattle } from '@test-battle/const'
 import type {
   Action,
@@ -236,6 +236,7 @@ export type SelectorOpinion =
   | string[]
   | Element
   | OwnedEntity
+  | Prototype
   | PropertyRef<any, any> //TODO
 
 // 基础选择器
