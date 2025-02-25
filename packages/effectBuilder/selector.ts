@@ -108,9 +108,9 @@ export class ChainableSelector<T extends SelectorOpinion> {
   }
 
   //加一个固定数，或者加一个来源的数。如果来源选择了多个数，则会加上来源的每一个数。
-  add(value: number): ChainableSelector<number>
-  add(selector: ChainableSelector<number>): ChainableSelector<number>
-  add(valueOrSelector: number | ChainableSelector<number>): ChainableSelector<number> {
+  add(this: ChainableSelector<number>, value: number): ChainableSelector<number>
+  add(this: ChainableSelector<number>, selector: ChainableSelector<number>): ChainableSelector<number>
+  add(this: ChainableSelector<number>, valueOrSelector: number | ChainableSelector<number>): ChainableSelector<number> {
     if (typeof valueOrSelector === 'number') {
       return this.mapNumber(v => v + valueOrSelector)
     }
@@ -118,9 +118,12 @@ export class ChainableSelector<T extends SelectorOpinion> {
   }
 
   // 乘一个固定数，或者乘一个来源的数。如果来源选择了多个数，则会乘上来源的每一个数。
-  multiply(value: number): ChainableSelector<number>
-  multiply(selector: ChainableSelector<number>): ChainableSelector<number>
-  multiply(valueOrSelector: number | ChainableSelector<number>): ChainableSelector<number> {
+  multiply(this: ChainableSelector<number>, value: number): ChainableSelector<number>
+  multiply(this: ChainableSelector<number>, selector: ChainableSelector<number>): ChainableSelector<number>
+  multiply(
+    this: ChainableSelector<number>,
+    valueOrSelector: number | ChainableSelector<number>,
+  ): ChainableSelector<number> {
     if (typeof valueOrSelector === 'number') {
       return this.mapNumber(v => Math.floor(v * valueOrSelector))
     }
@@ -128,9 +131,12 @@ export class ChainableSelector<T extends SelectorOpinion> {
   }
 
   // 除以一个固定数，或者除以一个来源的数。如果来源选择了多个数，则会除以上来源的每一个数。
-  divide(value: number): ChainableSelector<number>
-  divide(selector: ChainableSelector<number>): ChainableSelector<number>
-  divide(valueOrSelector: number | ChainableSelector<number>): ChainableSelector<number> {
+  divide(this: ChainableSelector<number>, value: number): ChainableSelector<number>
+  divide(this: ChainableSelector<number>, selector: ChainableSelector<number>): ChainableSelector<number>
+  divide(
+    this: ChainableSelector<number>,
+    valueOrSelector: number | ChainableSelector<number>,
+  ): ChainableSelector<number> {
     if (typeof valueOrSelector === 'number') {
       return this.mapNumber(v => Math.floor(v / valueOrSelector))
     }
