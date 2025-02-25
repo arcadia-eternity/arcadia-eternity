@@ -131,7 +131,6 @@ program
 
 // 主程序
 program
-  .name('pokemon-battle')
   .command('local')
   .description('精灵对战命令行工具')
   .requiredOption('-1, --player1 <path>', '玩家1数据文件路径')

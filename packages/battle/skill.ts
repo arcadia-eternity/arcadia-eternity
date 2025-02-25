@@ -33,7 +33,7 @@ export class BaseSkill implements Prototype {
   }
 
   static Builder = class {
-    #id = ''
+    #id = '' as baseSkillId
     #name = 'Unnamed Skill'
     #type = Element.Normal
     #power = 0
@@ -49,7 +49,7 @@ export class BaseSkill implements Prototype {
     #tag: string[] = []
 
     withID(id: string) {
-      this.#id = id
+      this.#id = id as baseSkillId
       return this
     }
 
@@ -157,7 +157,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null> {
       effects?: Effect<EffectTrigger>[]
     },
   ) {
-    this.id = nanoid()
+    this.id = nanoid() as skillId
     this.effects.forEach(effect => effect.setOwner(this))
     this.category = base.category
     this.element = base.element

@@ -5,7 +5,7 @@ import { type MarkOwner } from './entity'
 import { BaseMark, MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
-import { BaseSkill, SkillInstance } from './skill'
+import { SkillInstance } from './skill'
 
 export abstract class Context {
   readonly type: string = 'base'
@@ -130,7 +130,7 @@ export class DamageContext extends Context {
   public readonly available: boolean = true
   constructor(
     public readonly parent: UseSkillContext | EffectContext<EffectTrigger>,
-    public readonly source: Pet | MarkInstance | BaseSkill, //来自技能伤害，还是印记和技能的效果获得的伤害
+    public readonly source: Pet | MarkInstance | SkillInstance, //来自技能伤害，还是印记和技能的效果获得的伤害
     public value: number,
     public damageType: DamageType = DamageType.effect,
     public crit: boolean = false,
@@ -148,7 +148,7 @@ export class HealContext extends Context {
   public readonly available: boolean = true
   constructor(
     public readonly parent: EffectContext<EffectTrigger>,
-    public readonly source: MarkInstance | BaseSkill,
+    public readonly source: MarkInstance | SkillInstance,
     public value: number,
     public ingoreEffect: boolean = false,
   ) {

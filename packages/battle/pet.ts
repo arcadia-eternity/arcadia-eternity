@@ -161,7 +161,7 @@ export class Pet implements OwnedEntity, MarkOwner {
       return
     }
 
-    const existingMark = this.marks.find(mark => mark.id === context.mark.id)
+    const existingMark = this.marks.find(mark => mark.base.id === context.mark.id)
     if (existingMark) {
       existingMark.tryStack(context)
     } else {

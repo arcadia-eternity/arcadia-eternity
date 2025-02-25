@@ -1,6 +1,6 @@
 import { BattlePhase } from '@test-battle/const/battlePhase'
 import { BattleStatus } from '@test-battle/const/battleStatus'
-import { RAGE_PER_TURN } from '@test-battle/const/const'
+import { RAGE_PER_TURN, type petId, type playerId, type skillId } from '@test-battle/const/const'
 import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import {
   type BattleMessage,
@@ -25,7 +25,7 @@ import { type MarkOwner } from './entity'
 import { MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
-import { BaseSkill, SkillInstance } from './skill'
+import { SkillInstance } from './skill'
 
 export class Battle extends Context implements MarkOwner {
   public readonly parent: null = null
@@ -101,7 +101,7 @@ export class Battle extends Context implements MarkOwner {
     const newMark = new MarkInstance(context.mark)
     if (context.stack) newMark._stack = context.stack
 
-    const existingMark = this.marks.find(mark => mark.id === context.mark.id)
+    const existingMark = this.marks.find(mark => mark.base.id === context.mark.id)
     if (existingMark) {
       existingMark.tryStack(context)
     } else {
@@ -155,19 +155,19 @@ export class Battle extends Context implements MarkOwner {
     cleanPetMarks(this.playerB.activePet)
   }
 
-  public getPlayerByID(id: string): Player {
+  public getPlayerByID(id: playerId): Player {
     const player = [this.playerA, this.playerB].find(p => p.id === id)
     if (!player) throw new Error('Unknown player')
     return player
   }
 
-  public getPetByID(id: string): Pet {
+  public getPetByID(id: petId): Pet {
     const pet = this.petMap.get(id)
     if (!pet) throw new Error('Unknown pet')
     return pet
   }
 
-  public getSkillByID(id: string): SkillInstance {
+  public getSkillByID(id: skillId): SkillInstance {
     const skill = this.skillMap.get(id)
     if (!skill) throw new Error('Unknown skill')
     return skill

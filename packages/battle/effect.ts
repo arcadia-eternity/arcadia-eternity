@@ -3,7 +3,7 @@ import { BattleMessageType } from '@test-battle/const/message'
 import { Context, EffectContext } from './context'
 import { type OwnedEntity, type Prototype } from './entity'
 import { MarkInstance } from './mark'
-import { BaseSkill, SkillInstance } from './skill'
+import { SkillInstance } from './skill'
 import type { effectId } from '@test-battle/const'
 
 export class EffectScheduler {
@@ -94,5 +94,5 @@ export interface EffectConfig<T extends EffectTrigger> {
 }
 
 export function CreateEffect<T extends EffectTrigger>(config: EffectConfig<T>): Effect<T> {
-  return new Effect(config.id, config.trigger, config.apply, config.priority, config.condition)
+  return new Effect(config.id as effectId, config.trigger, config.apply, config.priority, config.condition)
 }

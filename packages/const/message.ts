@@ -5,6 +5,7 @@ import {
   AttackTargetOpinion,
   type baseMarkId,
   type baseSkillId,
+  type effectId,
   type markId,
   type petId,
   type playerId,
@@ -163,40 +164,40 @@ export interface BattleMessageData {
     round: number
   }
   [BattleMessageType.BattleEnd]: {
-    winner: string
+    winner: playerId
     reason: 'all_pet_fainted' | 'surrender'
   }
 
   [BattleMessageType.PetSwitch]: {
-    player: string
-    fromPet: string
-    toPet: string
+    player: playerId
+    fromPet: petId
+    toPet: petId
     currentHp: number
   }
   [BattleMessageType.PetDefeated]: {
-    pet: string
-    killer?: string
+    pet: petId
+    killer?: petId
   }
   [BattleMessageType.PetRevive]: {
-    pet: string
-    revivedBy: string
+    pet: petId
+    revivedBy: petId
   }
   [BattleMessageType.StatChange]: {
-    pet: string
+    pet: petId
     stat: StatTypeOnBattle
     stage: number // -6到+6
     reason: string
   }
 
   [BattleMessageType.RageChange]: {
-    player: string
-    pet: string
+    player: playerId
+    pet: petId
     before: number
     after: number
     reason: 'turn' | 'damage' | 'skill' | 'skillHit' | 'switch' | 'effect'
   }
   [BattleMessageType.HpChange]: {
-    pet: string
+    pet: petId
     before: number
     after: number
     maxHp: number
@@ -204,20 +205,20 @@ export interface BattleMessageData {
   }
 
   [BattleMessageType.SkillUse]: {
-    user: string
+    user: petId
     target: AttackTargetOpinion
     skill: string
     rageCost: number
   }
   [BattleMessageType.SkillMiss]: {
-    user: string
-    target: string
+    user: petId
+    target: petId
     skill: string
     reason: 'accuracy' | 'dodge' | 'immune'
   }
   [BattleMessageType.SkillEffect]: {
-    user?: string
-    target: string
+    user?: petId
+    target: petId
     effect: string
     description: string
   }
@@ -225,55 +226,55 @@ export interface BattleMessageData {
   [BattleMessageType.Damage]: {
     maxHp: number
     currentHp: number
-    source: string
-    target: string
+    source: petId | markId | skillId
+    target: petId
     damage: number
     isCrit: boolean
     effectiveness: number
     damageType: 'physical' | 'special' | 'effect'
   }
   [BattleMessageType.Heal]: {
-    target: string
+    target: petId
     amount: number
     source: 'skill' | 'item' | 'effect'
     healer?: string
   }
   [BattleMessageType.Crit]: {
-    attacker: string
-    target: string
+    attacker: petId
+    target: petId
   }
   [BattleMessageType.TypeEffectiveness]: {
-    attackerType: string
-    defenderType: string
+    attackerType: Element
+    defenderType: Element
     multiplier: number
   }
 
   [BattleMessageType.MarkApply]: {
-    markType: string
-    applier: string
-    target: string
+    markType: baseMarkId
+    applier: petId
+    target: petId
     duration: number
   }
   [BattleMessageType.MarkTrigger]: {
-    markType: string
-    trigger: string
-    effect: string
+    markType: markId
+    trigger: petId
+    effect: effectId
   }
   [BattleMessageType.MarkExpire]: {
-    markType: string
-    target: string
+    markType: markId
+    target: petId
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   [BattleMessageType.TurnAction]: {} //TODO: 我寻思应该不需要特别的信息来提示该选择了
   [BattleMessageType.ForcedSwitch]: {
-    player: string[]
+    player: playerId[]
   }
   [BattleMessageType.FaintSwitch]: {
-    player: string
+    player: playerId
   }
   [BattleMessageType.InvalidAction]: {
-    player: string
+    player: playerId
     action: string
     reason: 'no_rage' | 'cooldown' | 'invalid_target' | 'dead_pet' | 'invalid_action'
   }

@@ -1,4 +1,4 @@
-import { STAT_STAGE_MULTIPLIER, type markId, type StatTypeOnBattle } from '@test-battle/const/const'
+import { STAT_STAGE_MULTIPLIER, type baseMarkId, type markId, type StatTypeOnBattle } from '@test-battle/const/const'
 import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import type { MarkMessage } from '@test-battle/const/message'
 import { StackStrategy } from '@test-battle/const/stackStrategy'
@@ -18,7 +18,7 @@ import { Pet } from './pet'
 
 export class BaseMark implements Prototype {
   constructor(
-    public readonly id: markId,
+    public readonly id: baseMarkId,
     public readonly name: string,
     public readonly effects: Effect<EffectTrigger>[],
     public readonly config: {
@@ -44,7 +44,7 @@ export class MarkInstance implements EffectContainer, Prototype, OwnedEntity<Bat
   public owner: Battle | Pet | null = null
   public isActive: boolean = true
 
-  public readonly id: string
+  public readonly id: markId
   public name: string
   public readonly effects: Effect<EffectTrigger>[]
   public config: {
@@ -250,7 +250,7 @@ export class BaseStatLevelMark extends BaseMark {
   constructor(
     public readonly statType: StatTypeOnBattle,
     public initialLevel: number,
-    id: string,
+    id: baseMarkId,
     name: string,
     effects: Effect<EffectTrigger>[] = [],
     config: BaseMark['config'] = {
@@ -357,7 +357,7 @@ export function CreateStatStageMark(statType: StatTypeOnBattle, level: number): 
   return new BaseStatLevelMark(
     statType,
     level,
-    `stat-stage-${statType}-${level > 0 ? 'up' : 'down'}`,
+    `stat-stage-${statType}-${level > 0 ? 'up' : 'down'}` as baseMarkId,
     `${statType.toUpperCase()} ${level > 0 ? '+' : ''}${level}`,
     [],
     {

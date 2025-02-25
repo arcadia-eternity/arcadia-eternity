@@ -3,8 +3,8 @@
     <!-- 全局导航栏 -->
     <el-header class="main-header" height="60px">
       <div class="logo">
-        <img src="@/assets/logo.svg" alt="赛尔号对战" class="logo-img" />
-        <span class="title">赛尔号网络对战</span>
+        <img src="@/assets/logo.svg" alt="约瑟传说对战" class="logo-img" />
+        <span class="title">约瑟传说网络对战</span>
       </div>
       <div class="nav-buttons">
         <el-button type="primary" icon="House" @click="router.push('/')" :disabled="$route.path === '/'">

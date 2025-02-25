@@ -4,9 +4,12 @@ import {
   BattlePhase,
   BattleStatus,
   ELEMENT_MAP,
+  type baseSkillId,
   type BattleMessage,
   type BattleState,
   type PetMessage,
+  type playerId,
+  type skillId,
   type SkillMessage,
 } from '@test-battle/const'
 import { DataRepository } from '@test-battle/data-repository'
@@ -50,7 +53,7 @@ export class ConsoleClient {
     // 处理强制换宠逻辑
     if (message.type === BattleMessageType.ForcedSwitch) {
       const targetPlayers = message.data.player
-      if (targetPlayers.includes(this.playerData.id!)) {
+      if (targetPlayers.includes(this.playerData.id as playerId)) {
         console.log('\n⚠️ 你必须更换倒下的精灵！')
         await this.handlePlayerInput()
       }
@@ -296,7 +299,7 @@ export class ConsoleClient {
 
   private getSkillNameById(skillId: string): string {
     try {
-      return DataRepository.getInstance().getSkill(skillId)?.name || skillId
+      return DataRepository.getInstance().getSkill(skillId as baseSkillId)?.name || skillId
     } catch {
       return skillId
     }
@@ -415,7 +418,11 @@ export class ConsoleClient {
 
   private findSkill(skillId: string): SkillMessage | undefined {
     try {
-      return DataRepository.getInstance().getSkill(skillId)
+      return this.battleState?.players
+        .map(p => p.activePet)
+        .map(p => p.skills)
+        .flat()
+        .find(v => v && v.id && v.id == skillId)
     } catch (error) {
       console.log(error)
       return undefined

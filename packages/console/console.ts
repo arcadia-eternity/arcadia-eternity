@@ -1,11 +1,14 @@
-import { Battle, MarkInstance, Pet, Player, BaseSkill } from '@test-battle/battle'
+import { Battle, MarkInstance, Pet, Player, BaseSkill, SkillInstance } from '@test-battle/battle'
 import {
   type BattleMessage,
   BattleMessageType,
   Category,
   type DoNothingSelection,
   ELEMENT_MAP,
+  type petId,
+  type playerId,
   type PlayerSelection,
+  type skillId,
   type SwitchPetSelection,
   type UseSkillSelection,
 } from '@test-battle/const'
@@ -31,20 +34,20 @@ export class ConsoleUI {
     return baseInfo + markInfo
   }
 
-  private getPetById(id: string): Pet {
+  private getPetById(id: petId): Pet {
     return this.battle.getPetByID(id)
   }
 
-  private getSkillById(id: string): BaseSkill {
+  private getSkillById(id: skillId): SkillInstance {
     return this.battle.getSkillByID(id)
   }
 
-  private getPetNameById(id: string): string {
+  private getPetNameById(id: petId): string {
     const pet = this.allPets.find(p => p.id === id)
     return pet ? pet.name : id
   }
 
-  private getPlayerNameById(id: string): string {
+  private getPlayerNameById(id: playerId): string {
     const name = [this.playerA, this.playerB].find(p => p.id === id)?.name
     return name ?? id
   }
@@ -80,7 +83,7 @@ export class ConsoleUI {
       case BattleMessageType.SkillUse: {
         const d = message.data
         const userName = this.getPetNameById(d.user)
-        const targetName = this.getPetNameById(d.target)
+        const targetName = d.target
         console.log(`🎯 ${userName} 使用 ${d.skill}（消耗${d.rageCost}怒气） → ${targetName}`)
         break
       }

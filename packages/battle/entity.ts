@@ -3,7 +3,7 @@ import { AddMarkContext, RemoveMarkContext } from './context'
 import { MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
-import { BaseSkill, SkillInstance } from './skill'
+import { SkillInstance } from './skill'
 
 //Pet,Skill,Mark,Effect
 
