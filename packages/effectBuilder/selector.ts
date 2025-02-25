@@ -144,6 +144,13 @@ export class ChainableSelector<T extends SelectorOpinion> {
     })
   }
 
+  length(): ChainableSelector<number> {
+    return new ChainableSelector(context => {
+      const list = this.selector(context)
+      return [list.length]
+    })
+  }
+
   /**
    * 按百分比概率选取每个目标
    * @param percent 命中概率(0-100)
