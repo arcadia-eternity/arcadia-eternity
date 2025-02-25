@@ -81,11 +81,11 @@ onMounted(scrollToBottom)
       <div class="round-number">{{ store.state?.currentTurn || 0 }}</div>
       <div v-if="store.state?.marks?.length" class="field-effects">
         <div v-for="mark in store.state.marks" :key="mark.id" class="field-effect" :title="`剩余${mark.duration}回合`">
-          {{ ELEMENT_MAP[mark.element]?.emoji || '⭕' }} {{ mark.name }} ×{{ mark.stack }}
+          {{ '⭕' }} {{ mark.name }} ×{{ mark.stack }}
         </div>
       </div>
       <div class="battle-message">
-        <p>{{ store.log[store.log.length - 1]?.message || '战斗开始！' }}</p>
+        <p>{{ '战斗开始！' }}</p>
       </div>
     </div>
 
