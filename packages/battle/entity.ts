@@ -1,3 +1,4 @@
+import type { Id } from '@test-battle/const'
 import { Battle } from './battle'
 import { AddMarkContext, RemoveMarkContext } from './context'
 import { MarkInstance } from './mark'
@@ -8,7 +9,7 @@ import { SkillInstance } from './skill'
 //Pet,Skill,Mark,Effect
 
 export interface Prototype {
-  id: string
+  id: Id
 }
 
 export interface Entity {

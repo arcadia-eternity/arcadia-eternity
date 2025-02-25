@@ -1,4 +1,5 @@
 export * from './condition'
 export * from './effectBuilder'
+export * from './extractor'
 export * from './operator'
 export * from './selector'
