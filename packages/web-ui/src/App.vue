@@ -18,11 +18,32 @@
         >
           队伍编辑
         </el-button>
-        <el-button type="success" icon="Promotion" @click="handleReconnect" v-if="$route.path === '/battle'">
-          重连对战
+        <el-button type="info" @click="showEditDialog = true">
+          <el-icon><User /></el-icon>
+          {{ player.name }}
         </el-button>
       </div>
     </el-header>
+
+    <el-dialog v-model="showEditDialog" title="玩家信息设置" width="500px" destroy-on-close>
+      <el-form label-width="80px">
+        <el-form-item label="玩家名称">
+          <el-input v-model="playerStore.name" placeholder="请输入玩家名称" maxlength="30" show-word-limit />
+        </el-form-item>
+
+        <el-form-item label="玩家ID">
+          <div class="id-container">
+            <span class="id-value">{{ playerStore.id }}</span>
+            <el-button type="warning" plain @click="handleGenerateNewId"> 生成新ID </el-button>
+          </div>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="showEditDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleSave"> 保存更改 </el-button>
+      </template>
+    </el-dialog>
 
     <!-- 路由视图 -->
     <router-view v-slot="{ Component }">
@@ -46,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { battleClient } from './utils/battleClient'
@@ -55,7 +76,6 @@ import { usePlayerStore } from './stores/player'
 import { usePetStorageStore } from './stores/petStorage'
 
 const router = useRouter()
-const route = useRoute()
 const dataStore = useGameDataStore()
 const playerStore = usePlayerStore()
 const petStorage = usePetStorageStore()
@@ -66,7 +86,6 @@ const connectionState = ref<'connected' | 'disconnected'>('disconnected')
 // 初始化连接
 onMounted(async () => {
   dataStore.initialize()
-  playerStore.loadFromLocal()
   petStorage.loadFromLocal()
   try {
     await battleClient.connect()
@@ -76,18 +95,32 @@ onMounted(async () => {
   }
 })
 
-// 重连处理
-const handleReconnect = async () => {
-  try {
-    await battleClient.disconnect()
-    await battleClient.connect()
-    ElMessage.success('重新连接成功')
-    connectionState.value = 'connected'
-  } catch (err) {
-    ElMessage.error('重连失败')
-  }
+const showEditDialog = ref(false)
+
+// 处理生成新ID
+const handleGenerateNewId = () => {
+  playerStore.generateNewId()
 }
+
+// 处理保存
+const handleSave = () => {
+  playerStore.saveToLocal()
+  showEditDialog.value = false
+  ElMessage.success('玩家信息已保存')
+}
+
+const player = computed(() => playerStore)
 </script>
+
+<style>
+html,
+body,
+#app {
+  height: 100vh;
+  width: 100vw;
+  margin: 0px;
+}
+</style>
 
 <style scoped>
 .app-container {
@@ -144,5 +177,23 @@ const handleReconnect = async () => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.user-info {
+  margin-left: auto;
+  margin-right: 20px;
+}
+
+.id-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.id-value {
+  flex: 1;
+  color: #666;
+  font-family: monospace;
+  font-size: 0.9em;
 }
 </style>

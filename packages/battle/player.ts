@@ -59,8 +59,10 @@ export class Player {
         },
         ...this.getAvailableSwitch(),
       ]
-    const actions: PlayerSelection[] = [...this.getAvailableSkills(), ...this.getAvailableSwitch()]
-    if (actions.length == 0)
+    const skillSelection = this.getAvailableSkills()
+    const switchSelection = this.getAvailableSwitch()
+    const actions: PlayerSelection[] = [...skillSelection, ...switchSelection]
+    if (skillSelection.length == 0)
       actions.push({
         player: this.id,
         type: 'do-nothing',
@@ -115,7 +117,7 @@ export class Player {
   }
 
   private checkDoNothingActionAvailable() {
-    return this.battle?.lastKiller === this || this.getAvailableSelection()[0].type == 'do-nothing'
+    return this.battle?.lastKiller === this || this.getAvailableSkills().length === 0
   }
 
   private checkSwitchAvailable(selection: SwitchPetSelection) {

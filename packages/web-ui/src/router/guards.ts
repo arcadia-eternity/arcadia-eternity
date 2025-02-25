@@ -14,7 +14,7 @@ export const battleGuard = (to: RouteLocationNormalized, from: RouteLocationNorm
   }
 
   // 离开对战页面确认
-  if (from.name === 'Battle' && to.name !== 'Battle') {
+  if (from.name === 'Battle' && to.name !== 'Battle' && !store.isBattleEnd) {
     ElMessageBox.confirm('确定要离开对战吗？当前进度将会丢失', '警告', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',

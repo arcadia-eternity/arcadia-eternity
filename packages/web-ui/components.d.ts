@@ -9,6 +9,8 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     BattleLog: typeof import('./src/components/BattleLog.vue')['default']
+    BattlelogEntry: typeof import('./src/components/BattlelogEntry.vue')['default']
+    BattleLogEntry: typeof import('./src/components/BattleLogEntry.vue')['default']
     ElAffix: typeof import('element-plus/es')['ElAffix']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCard: typeof import('element-plus/es')['ElCard']
@@ -38,6 +40,5 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     StorageManager: typeof import('./src/components/StorageManager.vue')['default']
     StorgeManager: typeof import('./src/components/StorgeManager.vue')['default']
-    StorgeManeger: typeof import('./src/components/StorgeManeger.vue')['default']
   }
 }

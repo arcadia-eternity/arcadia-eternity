@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { battleClient } from '../utils/battleClient'
-import { type BattleState, type BattleMessage, BattleMessageType } from '@test-battle/const'
+import { type BattleState, type BattleMessage, BattleMessageType, type petId, type playerId } from '@test-battle/const'
 import type { Player, PlayerSelection } from '@test-battle/schema'
 import type { ErrorResponse, SuccessResponse } from '@test-battle/protocol'
 
@@ -12,43 +12,20 @@ export const useBattleStore = defineStore('battle', {
     availableActions: [] as PlayerSelection[],
     isMatching: false,
     errorMessage: null as string | null,
+    isBattleEnd: false,
+    victor: '' as string | null,
     playerId: '',
+    reconnectAttempts: 0, // 新增重连尝试次数
+    lastRoomId: localStorage.getItem('lastBattleRoom') || null, // 持久化存储
   }),
 
   actions: {
-    async init() {
-      try {
-        battleClient.on('battleEvent', (msg: BattleMessage) => {
-          this.log.push(msg)
-          if (msg.type === 'BATTLE_STATE') this.state = msg.data
-        })
-
-        battleClient.on(
-          'matchSuccess',
-          (
-            res: SuccessResponse<{
-              roomId: string
-              opponent: { id: string; name: string }
-            }>,
-          ) => {
-            if (res.status === 'SUCCESS') {
-              this.handleMatchFound(res.data.roomId)
-            }
-          },
-        )
-
-        battleClient.on('matchmakingError', (err: ErrorResponse) => {
-          this.errorMessage = err.details || '匹配服务错误'
-        })
-      } catch (err) {
-        this.errorMessage = (err as Error).message || '连接服务器失败'
-      }
-    },
-
     async joinMatchmaking(playerData: Player) {
       try {
+        this.resetBattle()
         this.isMatching = true
         this.errorMessage = null
+        this.playerId = playerData.id
 
         // 先注册匹配成功监听
         const matchPromise = new Promise<string>((resolve, reject) => {
@@ -96,6 +73,11 @@ export const useBattleStore = defineStore('battle', {
 
     async initSession(roomId: string) {
       this.battleSessionId = roomId
+      this.state = null
+      battleClient.on('battleEvent', (msg: BattleMessage) => {
+        if (msg.type === 'BATTLE_STATE') this.state = msg.data
+        this.handleBattleMessage(msg)
+      })
       return roomId
     },
 
@@ -105,11 +87,21 @@ export const useBattleStore = defineStore('battle', {
     },
 
     resetBattle() {
+      if (this.battleSessionId) {
+        this.sendPlayerAction({
+          source: this.playerId,
+          type: 'surrender',
+        })
+      }
+
       this.battleSessionId = null
       this.state = null
       this.log = []
       this.availableActions = []
       this.isMatching = false
+      this.isBattleEnd = false
+      this.victor = ''
+      this.clearPersistedSession()
     },
 
     async sendPlayerAction(selection: PlayerSelection) {
@@ -135,24 +127,67 @@ export const useBattleStore = defineStore('battle', {
           break
 
         case BattleMessageType.ForcedSwitch:
+          if (msg.data.player.includes(this.playerId as playerId)) {
+            this.availableActions = await this.fetchAvailableSelection()
+          }
         case BattleMessageType.FaintSwitch:
-          this.fetchAvailableSwitch()
+          if (msg.data.player === (this.playerId as playerId)) {
+            this.availableActions = await this.fetchAvailableSelection()
+          }
           break
 
         case BattleMessageType.BattleEnd:
-          //TODO
+          this.isBattleEnd = true
+          this.victor = msg.data.winner
           break
       }
+    },
+
+    // 新增持久化方法
+    persistSession() {
+      if (this.battleSessionId && this.playerId) {
+        localStorage.setItem('lastBattleRoom', this.battleSessionId)
+        localStorage.setItem('lastPlayerId', this.playerId)
+      }
+    },
+
+    clearPersistedSession() {
+      localStorage.removeItem('lastBattleRoom')
+      localStorage.removeItem('lastPlayerId')
+      this.lastRoomId = null
+      this.reconnectAttempts = 0
+    },
+
+    getPetById(petId: petId) {
+      return this.state?.players
+        .map(p => p.team)
+        .flat()
+        .find(p => p?.id === petId)
+    },
+
+    getPlayerById(playerId: playerId) {
+      return this.state?.players.find(p => p.id === playerId)
+    },
+
+    getSkillInfo(skillId: string) {
+      return (
+        this.state?.players
+          .flatMap(p => p.team)
+          .flatMap(
+            p =>
+              p?.skills?.map(s => ({
+                id: s?.id,
+                name: s?.name || '未知技能',
+                cost: s?.rage || 0,
+              })) || [],
+          )
+          .find(s => s?.id === skillId) || { name: skillId, cost: 0 }
+      )
     },
 
     async fetchAvailableSelection() {
       const res = await battleClient.getAvailableSelection()
       return res
-    },
-
-    async fetchAvailableSwitch() {
-      const res = await battleClient.getAvailableSelection()
-      this.availableActions = res.filter(a => a.type === 'switch-pet')
     },
   },
 

@@ -1,4 +1,4 @@
-import { type BattleMessage, type BattleState } from '@test-battle/const'
+import { type BattleMessage, type BattleState, type playerId } from '@test-battle/const'
 import {
   type ClientToServerEvents,
   type ServerToClientEvents,
@@ -170,6 +170,7 @@ export class BattleClient {
       })
     })
   }
+
   async getAvailableSelection(): Promise<PlayerSelection[]> {
     this.verifyBattleActive()
 

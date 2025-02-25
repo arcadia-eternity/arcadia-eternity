@@ -23,12 +23,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onBeforeUnmount, onMounted, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
 
 const router = useRouter()
+const route = useRoute()
 const battleStore = useBattleStore()
 const playerStore = usePlayerStore()
 
@@ -52,6 +53,11 @@ const handleMatchmaking = async () => {
     setTimeout(() => (errorMessage.value = null), 3000)
   }
 }
+onMounted(() => {
+  nextTick(() => {
+    if (route.query.startMatching === 'true') handleMatchmaking()
+  })
+})
 
 // 组件卸载时取消匹配
 onBeforeUnmount(async () => {

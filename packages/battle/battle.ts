@@ -30,6 +30,7 @@ import { SkillInstance } from './skill'
 export class Battle extends Context implements MarkOwner {
   public readonly parent: null = null
   public readonly battle: Battle = this
+  public readonly effectScheduler: EffectScheduler = new EffectScheduler()
   private readonly rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
 
   public status: BattleStatus = BattleStatus.Unstarted
@@ -186,7 +187,7 @@ export class Battle extends Context implements MarkOwner {
     effectContainers.forEach(container => container.collectEffects(trigger, context))
 
     // 阶段2：按全局优先级执行
-    EffectScheduler.getInstance().flushEffects()
+    this.effectScheduler.flushEffects()
   }
 
   // 执行对战回合
@@ -442,15 +443,29 @@ export class Battle extends Context implements MarkOwner {
     }
     if (this.status != BattleStatus.Ended && this.isBattleEnded()) throw '战斗未结束'
 
-    if (this.playerA.team.every(pet => !pet.isAlive)) {
+    const playerAloose = this.playerA.team.every(pet => !pet.isAlive)
+    const playerBloose = this.playerB.team.every(pet => !pet.isAlive)
+
+    if (playerAloose && playerBloose) {
+      this.emitMessage(BattleMessageType.BattleEnd, { winner: null, reason: 'all_pet_fainted' })
+      return undefined
+    } else if (playerAloose) {
       this.emitMessage(BattleMessageType.BattleEnd, { winner: this.playerB.id, reason: 'all_pet_fainted' })
       return this.playerB
-    } else if (this.playerB.team.every(pet => !pet.isAlive)) {
+    } else if (playerBloose) {
       this.emitMessage(BattleMessageType.BattleEnd, { winner: this.playerA.id, reason: 'all_pet_fainted' })
       return this.playerA
     }
 
     throw '不存在胜利者'
+  }
+
+  public abandonPlayer(playerId: playerId) {
+    const abandonPlayer = [this.playerA, this.playerB].find(v => v.id === playerId)
+    if (!abandonPlayer) return
+    this.victor = this.getOpponent(abandonPlayer)
+    this.status = BattleStatus.Ended
+    this.getVictor(true)
   }
 
   toMessage(viewerId?: string): BattleState {

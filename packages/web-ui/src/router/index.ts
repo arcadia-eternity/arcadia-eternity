@@ -14,6 +14,10 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '匹配大厅',
     },
+    props: route => ({
+      // 将查询参数转换为props
+      startMatching: route.query.startMatching === 'true',
+    }),
   },
   {
     path: '/battle',

@@ -29,6 +29,8 @@ type GamePlayer = {
   socket: Socket<ClientToServerEvents, ServerToClientEvents>
   playerData: ReturnType<typeof PlayerParser.parse>
   lastPing: number
+  online: boolean
+  disconnectTimer?: ReturnType<typeof setTimeout>
 }
 
 type PlayerMeta = {
@@ -46,12 +48,13 @@ interface SocketData {
 }
 
 export class BattleServer {
-  private readonly INACTIVE_TIMEOUT = 30 * 60 * 1000 // 30分钟不活跃超时
-  private readonly CLEANUP_INTERVAL = 5 * 60 * 1000 // 每5分钟检查一次
+  private readonly INACTIVE_TIMEOUT = 30 * 60 * 1000
+  private readonly CLEANUP_INTERVAL = 5 * 60 * 1000
+  private readonly RECONNECT_TIMEOUT = 30 * 1000
   private readonly rooms = new Map<string, BattleRoom>()
   private readonly matchQueue = new Set<string>()
   private readonly HEARTBEAT_INTERVAL = 5000
-  private readonly players = new Map<string, PlayerMeta>() // 新增玩家池
+  private readonly players = new Map<string, PlayerMeta>()
 
   constructor(private readonly io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>) {
     this.initializeMiddleware()
@@ -80,7 +83,17 @@ export class BattleServer {
 
       socket.on('disconnect', () => {
         logger.info({ socketId: socket.id }, '玩家断开连接')
-        this.removePlayer(socket.id)
+        const room = this.getPlayerRoom(socket.id)
+
+        if (room) {
+          const player = room.players.get(socket.id)
+          if (player) {
+            this.handlePlayerAbandon(room.id, socket.id)
+          }
+          this.removePlayer(socket.id)
+        } else {
+          this.removePlayer(socket.id)
+        }
       })
 
       this.setupSocketHandlers(socket)
@@ -177,6 +190,31 @@ export class BattleServer {
         '加入匹配队列失败',
       )
       this.handleValidationError(error, socket, ack)
+    }
+  }
+
+  private handlePlayerAbandon(roomId: string, socketId: string) {
+    const room = this.rooms.get(roomId)
+    if (!room) return
+
+    const player = room.players.get(socketId)
+    if (!player) return
+
+    logger.warn({ socketId, roomId }, '玩家放弃战斗')
+
+    // 在战斗逻辑中标记玩家放弃
+    room.battle.abandonPlayer(player.playerData.id)
+
+    // 推进战斗流程
+    this.checkBattleProgress(room)
+
+    // 清理玩家数据
+    room.players.delete(socketId)
+    this.players.delete(socketId)
+
+    // 如果房间为空则清理
+    if (room.players.size === 0) {
+      this.cleanupRoom(roomId)
     }
   }
 
@@ -428,6 +466,7 @@ export class BattleServer {
     const battle = new Battle(player1.playerData, player2.playerData)
 
     battle.registerListener(message => {
+      message.sequenceId = Date.now()
       this.io.to(roomId).emit('battleEvent', message)
       if (message.type === BattleMessageType.BattleEnd) {
         this.cleanupRoom(roomId)
@@ -459,6 +498,7 @@ export class BattleServer {
       socket,
       playerData: socket.data.data,
       lastPing: Date.now(),
+      online: true,
     }
   }
 
@@ -491,6 +531,7 @@ export class BattleServer {
       // 记录每个玩家的离开情况
       room.players.forEach((player, socketId) => {
         try {
+          if (!player.socket) return
           player.socket.leave(roomId)
           player.socket.data.roomId = undefined
           logger.debug(
@@ -579,8 +620,12 @@ export class BattleServer {
     }
   }
 
-  private getPlayerRoom(socketId: string) {
-    return Array.from(this.rooms.values()).find(room => room.players.has(socketId))
+  private getPlayerRoom(socketId: string, byPlayerId?: string) {
+    return Array.from(this.rooms.values()).find(room =>
+      byPlayerId
+        ? Array.from(room.players.values()).some(p => p.playerData.id === byPlayerId)
+        : room.players.has(socketId),
+    )
   }
 
   private getPlayerBySocket(socketId: string): GamePlayer {

@@ -7,15 +7,7 @@ import { SkillInstance } from './skill'
 import type { effectId } from '@test-battle/const'
 
 export class EffectScheduler {
-  private static instance: EffectScheduler
-  private constructor() {}
-
-  public static getInstance(): EffectScheduler {
-    if (!EffectScheduler.instance) {
-      EffectScheduler.instance = new EffectScheduler()
-    }
-    return EffectScheduler.instance
-  }
+  constructor() {}
 
   // 全局效果队列（按优先级排序）
   private globalEffectQueue: Array<{

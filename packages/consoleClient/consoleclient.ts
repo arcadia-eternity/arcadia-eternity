@@ -14,6 +14,7 @@ import {
 } from '@test-battle/const'
 import { DataRepository } from '@test-battle/data-repository'
 import type { Player, PlayerSelection } from '@test-battle/schema'
+import { exit } from 'process'
 import readline from 'readline'
 
 export class ConsoleClient {
@@ -249,7 +250,7 @@ export class ConsoleClient {
       case BattleMessageType.BattleEnd:
         console.log(`\n🎉 对战结束！胜利者：${message.data.winner}`)
         console.log(`➤ 结束原因：${this.translateEndReason(message.data.reason)}`)
-        break
+        exit(0)
 
       case BattleMessageType.ForcedSwitch:
         console.log(`${message.data.player.join(',')} 必须更换倒下的精灵！`)

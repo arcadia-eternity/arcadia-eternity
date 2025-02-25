@@ -164,7 +164,7 @@ export interface BattleMessageData {
     round: number
   }
   [BattleMessageType.BattleEnd]: {
-    winner: playerId
+    winner: playerId | null
     reason: 'all_pet_fainted' | 'surrender'
   }
 

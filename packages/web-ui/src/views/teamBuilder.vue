@@ -107,7 +107,7 @@
               <el-form-item label="特性" prop="ability">
                 <el-select v-model="selectedPet.ability" placeholder="选择特性" :disabled="!currentSpecies">
                   <el-option
-                    v-for="ability in gameDataStore.marksList"
+                    v-for="ability in abilityOptions"
                     :key="ability.id"
                     :label="ability.name"
                     :value="ability.id"
@@ -118,12 +118,7 @@
               <el-divider content-position="left">纹章配置</el-divider>
               <el-form-item label="纹章" prop="emblem">
                 <el-select v-model="selectedPet.emblem" placeholder="选择纹章" clearable>
-                  <el-option
-                    v-for="emblem in gameDataStore.marksList"
-                    :key="emblem.id"
-                    :label="emblem.name"
-                    :value="emblem.id"
-                  />
+                  <el-option v-for="emblem in elblemOptions" :key="emblem.id" :label="emblem.name" :value="emblem.id" />
                 </el-select>
               </el-form-item>
 
@@ -269,10 +264,12 @@ import { usePlayerStore } from '@/stores/player'
 import { useGameDataStore } from '@/stores/gameData'
 import { usePetStorageStore } from '@/stores/petStorage'
 import StorageManager from '@/components/StorageManager.vue'
-import type { Player, Pet, Skill } from '@test-battle/schema'
+import { type Player, type Pet, type Skill, PetSetSchema } from '@test-battle/schema'
 import { NatureMap } from '@test-battle/const'
 import { Nature } from '@test-battle/const'
 import { VueDraggable } from 'vue-draggable-plus'
+import { parse, stringify } from 'yaml'
+import { z } from 'zod'
 
 const playerStore = usePlayerStore()
 const gameDataStore = useGameDataStore()
@@ -364,6 +361,20 @@ const currentSpecies = computed(() => {
   return gameDataStore.speciesList.find(v => v.id === selectedPet.value?.species || '')
 })
 
+const filteredAbility = computed(() => {
+  if (!currentSpecies.value) return []
+
+  return currentSpecies.value.ability
+    .map(ability => gameDataStore.marksList.find(m => m.id === ability))
+    .filter(Boolean)
+})
+
+const filteredElblem = computed(() => {
+  if (!currentSpecies.value) return []
+
+  return currentSpecies.value.emblem.map(elblem => gameDataStore.marksList.find(m => m.id === elblem)).filter(Boolean)
+})
+
 const filteredSkills = computed(() => {
   if (!currentSpecies.value) return []
 
@@ -431,6 +442,28 @@ const displayedSkills = computed({
     // 保留所有位置，空字符串转为undefined后过滤
     selectedPet.value.skills = newValues.map(s => s || undefined).filter((s): s is string => s !== undefined)
   },
+})
+
+const abilityOptions = computed(() => {
+  if (!selectedPet.value) return []
+  const currentAblity = selectedPet.value.ability
+  return filteredAbility.value
+    .filter(ability => !!ability)
+    .map(ability => ({
+      ...ability,
+      disabled: currentAblity === ability.id,
+    }))
+})
+
+const elblemOptions = computed(() => {
+  if (!selectedPet.value) return []
+  const currentElblem = selectedPet.value.emblem
+  return filteredElblem.value
+    .filter(elblem => !!elblem)
+    .map(elblem => ({
+      ...elblem,
+      disabled: currentElblem === elblem.id,
+    }))
 })
 
 const skillOptions = computed(() => {
@@ -510,6 +543,7 @@ const handleSpeciesChange = (newSpeciesId: string) => {
         spd: 0,
         spe: 0,
       }
+      pet.ability = species.ability[0] ?? undefined
       pet.emblem = undefined
     }
   })
@@ -548,11 +582,6 @@ const sliderStyle = computed(() => (stat: StatKey) => {
     '--el-slider-runway-bg-color': effectiveMax < 255 ? '#ffd6d6' : 'var(--el-border-color-light)',
   }
 })
-const getMaxEV = (stat: StatKey) => {
-  if (!selectedPet.value) return 255
-  const otherSum = currentEVTotal.value - selectedPet.value.evs[stat]
-  return Math.min(255, 510 - otherSum)
-}
 
 const computedStats = computed(() => {
   if (!selectedPet.value || !currentSpecies.value) return {} as Record<StatKey, number>
@@ -653,11 +682,98 @@ function debounce(fn: Function, delay: number) {
 }
 
 const exportTeamConfig = () => {
-  // 实现导出逻辑...
+  try {
+    // 直接使用YAML格式，不再询问
+    const filename = `team-${new Date().toISOString().slice(0, 10)}.yaml`
+
+    // 创建数据副本
+    const exportData = currentTeam.value.map(pet => ({
+      ...pet,
+      maxHp: undefined,
+    }))
+
+    // 数据验证
+    const validated = PetSetSchema.parse(exportData)
+
+    // 使用YAML序列化
+    const content = stringify(validated, {
+      indent: 2,
+      aliasDuplicateObjects: false,
+    })
+
+    // 创建下载链接
+    const blob = new Blob([content], {
+      type: 'application/yaml',
+    })
+
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = filename
+    link.click()
+
+    URL.revokeObjectURL(link.href)
+
+    ElMessage.success('队伍配置已导出为YAML格式')
+  } catch (err) {
+    console.error('导出失败:', err)
+    ElMessage.error('导出失败，请检查队伍数据')
+  }
 }
 
 const importTeamConfig = async () => {
-  // 实现导入逻辑...
+  try {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json,.yaml,.yml' // 仍然允许JSON文件
+
+    input.onchange = async e => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+
+      const reader = new FileReader()
+      reader.onload = async e => {
+        try {
+          const content = e.target?.result?.toString() || ''
+          // 统一使用YAML解析（兼容JSON）
+          const parsedData = parse(content, {
+            strict: true,
+            maxAliasCount: 100,
+          })
+
+          // 统一验证逻辑
+          const importedTeam = PetSetSchema.parse(parsedData)
+
+          if (importedTeam.length < 1 || importedTeam.length > 6) {
+            throw new Error('队伍数量必须在1-6之间')
+          }
+
+          const newTeam = importedTeam.map(pet => ({
+            ...pet,
+            id: nanoid(),
+            skills: pet.skills.slice(0, 5),
+          }))
+
+          petStorage.$patch(state => {
+            state.teams[state.currentTeamIndex].pets = newTeam
+          })
+
+          petStorage.saveToLocal()
+          ElMessage.success(`成功导入 ${newTeam.length} 只精灵（${file.name}）`)
+        } catch (err) {
+          console.error('导入失败:', err)
+          const errorMsg =
+            err instanceof z.ZodError ? `YAML/JSON格式校验失败: ${err.errors[0].message}` : (err as Error).message
+
+          ElMessage.error(`导入失败: ${errorMsg}`)
+        }
+      }
+      reader.readAsText(file)
+    }
+
+    input.click()
+  } catch (err) {
+    ElMessage.error('导入过程中发生错误')
+  }
 }
 </script>
 
