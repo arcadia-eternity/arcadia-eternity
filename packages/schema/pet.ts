@@ -1,4 +1,4 @@
-import { Nature } from '@test-battle/const'
+import { Gender, Nature } from '@test-battle/const'
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
 
@@ -34,6 +34,9 @@ export const PetSchema = z.object({
   ),
   ivs: StatOutBattleIVSSchema,
   nature: z.nativeEnum(Nature),
+  gender: z.nativeEnum(Gender).optional(),
+  height: z.number().optional(),
+  weight: z.number().optional(),
   skills: z.array(z.string()).min(0).max(5),
   maxHp: z.number().int().positive().optional(),
   ability: z.string().optional(),

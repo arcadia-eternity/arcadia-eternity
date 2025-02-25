@@ -4,7 +4,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useBattleStore } from '@/stores/battle'
 import { BattlePhase, BattleStatus, ELEMENT_MAP, type petId, type PetMessage } from '@test-battle/const'
 import PetStatus from '@/components/PetStatus.vue'
-import BattleLogEntry from '@/components/BattlelogEntry.vue'
+import BattleLogEntry from '@/components/BattleLogEntry.vue'
 
 const store = useBattleStore()
 

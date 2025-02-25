@@ -1,4 +1,5 @@
 import { type Species } from '@test-battle/battle'
+import type { baseMarkId, speciesId } from '@test-battle/const'
 import { DataRepository } from '@test-battle/data-repository'
 import { SpeciesSchema } from '@test-battle/schema'
 
@@ -9,7 +10,7 @@ export class SpeciesParser {
 
     const ability = validated.ability.map(abilityID => {
       try {
-        return DataRepository.getInstance().getMark(abilityID)
+        return DataRepository.getInstance().getMark(abilityID as baseMarkId)
       } catch (e) {
         throw new Error(
           `[SpeciesParser] Failed to load effect '${abilityID}' for Species '${validated.name}': ${(e as Error).message}`,
@@ -19,7 +20,7 @@ export class SpeciesParser {
 
     const emblems = validated.emblem.map(emblemsID => {
       try {
-        return DataRepository.getInstance().getMark(emblemsID)
+        return DataRepository.getInstance().getMark(emblemsID as baseMarkId)
       } catch (e) {
         throw new Error(
           `[SpeciesParser] Failed to load effect '${emblemsID}' for Species '${validated.name}': ${(e as Error).message}`,
@@ -27,6 +28,6 @@ export class SpeciesParser {
       }
     })
 
-    return { ...validated, ability: ability, emblem: emblems }
+    return { ...validated, id: validated.id as speciesId, ability: ability, emblem: emblems }
   }
 }

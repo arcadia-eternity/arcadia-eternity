@@ -102,6 +102,32 @@
               <el-form-item label="等级" prop="level">
                 <el-input-number v-model="selectedPet.level" :min="1" :max="100" controls-position="right" />
               </el-form-item>
+              <el-form-item label="体重" prop="weight">
+                <el-input-number
+                  v-model="selectedPet.weight"
+                  :min="currentSpecies?.weightRange[0]"
+                  :max="currentSpecies?.weightRange[1]"
+                  controls-position="right"
+                />
+              </el-form-item>
+              <el-form-item label="身高" prop="height">
+                <el-input-number
+                  v-model="selectedPet.height"
+                  :min="currentSpecies?.heightRange[0]"
+                  :max="currentSpecies?.heightRange[1]"
+                  controls-position="right"
+                />
+              </el-form-item>
+              <el-form-item label="性别" prop="gender">
+                <el-select v-model="selectedPet.gender" placeholder="选择性别" :disabled="!currentSpecies?.genderRatio">
+                  <el-option
+                    v-for="gender in Object.values(Gender)"
+                    :key="gender"
+                    :label="genderChineseMap[gender as Gender]"
+                    :value="gender"
+                  />
+                </el-select>
+              </el-form-item>
 
               <el-divider content-position="left">特性配置</el-divider>
               <el-form-item label="特性" prop="ability">
@@ -265,7 +291,7 @@ import { useGameDataStore } from '@/stores/gameData'
 import { usePetStorageStore } from '@/stores/petStorage'
 import StorageManager from '@/components/StorageManager.vue'
 import { type Player, type Pet, type Skill, PetSetSchema } from '@test-battle/schema'
-import { NatureMap } from '@test-battle/const'
+import { Gender, NatureMap } from '@test-battle/const'
 import { Nature } from '@test-battle/const'
 import { VueDraggable } from 'vue-draggable-plus'
 import { parse, stringify } from 'yaml'
@@ -341,6 +367,20 @@ const formRules: FormRules = {
       validator: () => currentEVTotal.value <= 510,
       message: '学习力总和不能超过510',
       trigger: 'change',
+    },
+  ],
+  gender: [
+    {
+      required: true,
+      message: '请选择性别',
+      trigger: 'change',
+      validator: (_, value, callback) => {
+        if (!currentSpecies.value?.genderRatio && value !== Gender.NoGender) {
+          callback(new Error('该物种无性别'))
+        } else {
+          callback()
+        }
+      },
     },
   ],
 }
@@ -432,6 +472,12 @@ const statChineseMap: Record<StatKey, string> = {
   spe: '速度',
 }
 
+const genderChineseMap: Record<Gender, string> = {
+  [Gender.Male]: '雄性',
+  [Gender.Female]: '雌性',
+  [Gender.NoGender]: '无性别',
+}
+
 const displayedSkills = computed({
   get: () => {
     return Array.from({ length: 5 }, (_, i) => selectedPet.value?.skills[i] || '')
@@ -490,6 +536,7 @@ const addNewPet = () => {
     evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
     skills: [],
+    gender: Gender.Male,
     nature: Nature.Adamant,
     ability: 'mark_ability_zhongjie',
     emblem: 'mark_emblem_zhuiji',
@@ -498,6 +545,8 @@ const addNewPet = () => {
   // 先添加到仓库再移动到队伍
   petStorage.addToStorage(newPet)
   petStorage.moveToTeam(newPet.id, petStorage.currentTeamIndex)
+  selectedPetId.value = newPet.id
+  handleSpeciesChange(newPet.species)
 }
 
 const removePet = (petId: string) => {
@@ -545,6 +594,14 @@ const handleSpeciesChange = (newSpeciesId: string) => {
       }
       pet.ability = species.ability[0] ?? undefined
       pet.emblem = undefined
+      if (!species.genderRatio) {
+        pet.gender = Gender.NoGender
+      } else {
+        pet.gender = species.genderRatio[0] > 0 ? Gender.Female : Gender.Male
+      }
+
+      pet.height = species.heightRange[1]
+      pet.weight = species.weightRange[1]
     }
   })
 }
@@ -751,6 +808,9 @@ const importTeamConfig = async () => {
             ...pet,
             id: nanoid(),
             skills: pet.skills.slice(0, 5),
+            gender: pet.gender ?? getDefaultGender(pet.species),
+            height: pet.height ?? gameDataStore.getSpecies(pet.species)?.heightRange[1] ?? 0,
+            weight: pet.weight ?? gameDataStore.getSpecies(pet.species)?.weightRange[1] ?? 0,
           }))
 
           petStorage.$patch(state => {
@@ -774,6 +834,12 @@ const importTeamConfig = async () => {
   } catch (err) {
     ElMessage.error('导入过程中发生错误')
   }
+}
+
+function getDefaultGender(speciesId: string): Gender {
+  const species = gameDataStore.getSpecies(speciesId)
+  if (!species?.genderRatio) return Gender.NoGender
+  return species.genderRatio[0] > 0 ? Gender.Female : Gender.Male
 }
 </script>
 

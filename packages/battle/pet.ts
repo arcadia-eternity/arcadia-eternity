@@ -27,6 +27,7 @@ import type { MarkOwner, OwnedEntity, Prototype } from './entity'
 import { BaseMark, CreateStatStageMark, MarkInstance, StatLevelMarkInstance } from './mark'
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
+import { Gender } from '@test-battle/const'
 
 export interface Species extends Prototype {
   id: speciesId //约定:id为原中文名的拼音拼写
@@ -34,7 +35,9 @@ export interface Species extends Prototype {
   name: string
   element: Element
   baseStats: { [key in StatType]: number }
-  genderRatio?: [number, number]
+  genderRatio: [number, number] | null
+  heightRange: [number, number]
+  weightRange: [number, number]
   ability?: BaseMark[]
   emblem?: BaseMark[]
 }
@@ -76,6 +79,9 @@ export class Pet implements OwnedEntity, MarkOwner {
     skills: BaseSkill[],
     ability?: BaseMark,
     emblem?: BaseMark,
+    public readonly weight?: number,
+    public readonly height?: number,
+    public readonly gender?: Gender,
     maxHp?: number, //可以额外手动设置hp
   ) {
     this.maxHp = maxHp ? maxHp : this.calculateMaxHp()
@@ -83,6 +89,13 @@ export class Pet implements OwnedEntity, MarkOwner {
     this.element = species.element
     this.owner = null
     this.skills = skills.map(s => new SkillInstance(s))
+    if (!weight) this.weight = species.weightRange[1]
+    if (!height) this.height = species.heightRange[1]
+    if (!gender) {
+      if (!this.species.genderRatio) this.gender = Gender.NoGender
+      else if (this.species.genderRatio[0] != 0) this.gender = Gender.Female
+      else this.gender = Gender.Male
+    }
     if (ability) this.marks.push(new MarkInstance(ability))
     if (emblem) this.marks.push(new MarkInstance(emblem))
   }

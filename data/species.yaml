@@ -10,6 +10,15 @@
     def: 114
     spd: 121
     spe: 115
+  heightRange:
+    - 39
+    - 44
+  weightRange:
+    - 7
+    - 12
+  genderRatio:
+    - 0.0
+    - 1.0
   previous_form: 0
   next_form: 2
   evolution_level: 20
@@ -51,6 +60,15 @@
     def: 139
     spd: 146
     spe: 135
+  heightRange:
+    - 65
+    - 70
+  weightRange:
+    - 17
+    - 22
+  genderRatio:
+    - 0.0
+    - 1.0
   previous_form: 1
   next_form: 3
   evolution_level: 40
@@ -103,6 +121,15 @@
     def: 164
     spd: 171
     spe: 155
+  heightRange:
+    - 97
+    - 102
+  weightRange:
+    - 26
+    - 31
+  genderRatio:
+    - 0.0
+    - 1.0
   previous_form: 2
   next_form: 0
   evolution_level: 100
@@ -155,16 +182,16 @@
       hidden: false
     - skill_id: skill_shuihuajianshe
       level: 65
-      hidden: false
+      hidden: true
     - skill_id: skill_yanmo
       level: 70
-      hidden: false
+      hidden: true
     - skill_id: skill_ruodianbiaoji
       level: 75
-      hidden: false
+      hidden: true
     - skill_id: skill_dixiulazhinu
       level: 80
-      hidden: false
+      hidden: true
   description: 战斗时的它非常冷静 习惯看破对方的弱点加以攻击
   obtain_method: 新手任务
   ability:
@@ -182,6 +209,15 @@
     def: 111
     spd: 110
     spe: 120
+  heightRange:
+    - 35
+    - 40
+  weightRange:
+    - 8
+    - 13
+  genderRatio:
+    - 0.0
+    - 1.0
   previous_form: 0
   next_form: 5
   evolution_level: 20
@@ -223,6 +259,15 @@
     def: 136
     spd: 135
     spe: 140
+  heightRange:
+    - 54
+    - 59
+  weightRange:
+    - 20
+    - 25
+  genderRatio:
+    - 0.0
+    - 1.0
   previous_form: 4
   next_form: 6
   evolution_level: 40
@@ -275,6 +320,15 @@
     def: 161
     spd: 160
     spe: 170
+  heightRange:
+    - 72
+    - 77
+  weightRange:
+    - 34
+    - 39
+  genderRatio:
+    - 0.0
+    - 1.0
   previous_form: 5
   next_form: 0
   evolution_level: 100
@@ -327,16 +381,16 @@
       hidden: false
     - skill_id: skill_yanzhiyizhi
       level: 65
-      hidden: false
+      hidden: true
     - skill_id: skill_juechufengsheng
       level: 70
-      hidden: false
+      hidden: true
     - skill_id: skill_bumiezhixin
       level: 75
-      hidden: false
+      hidden: true
     - skill_id: skill_dixiulazhinu
       level: 80
-      hidden: false
+      hidden: true
   description: 过大的信心有时让人觉得是虚张声势 有时又非常可靠
   obtain_method: 新手任务
   ability:
@@ -354,6 +408,15 @@
     def: 123
     spd: 128
     spe: 105
+  heightRange:
+    - 28
+    - 33
+  weightRange:
+    - 4
+    - 9
+  genderRatio:
+    - 1.0
+    - 0.0
   previous_form: 0
   next_form: 8
   evolution_level: 20
@@ -395,6 +458,15 @@
     def: 153
     spd: 158
     spe: 125
+  heightRange:
+    - 38
+    - 43
+  weightRange:
+    - 11
+    - 16
+  genderRatio:
+    - 1.0
+    - 0.0
   previous_form: 7
   next_form: 9
   evolution_level: 40
@@ -447,6 +519,15 @@
     def: 183
     spd: 188
     spe: 145
+  heightRange:
+    - 78
+    - 83
+  weightRange:
+    - 28
+    - 33
+  genderRatio:
+    - 1.0
+    - 0.0
   previous_form: 8
   next_form: 0
   evolution_level: 100
@@ -499,16 +580,16 @@
       hidden: false
     - skill_id: skill_qianyesha
       level: 65
-      hidden: false
+      hidden: true
     - skill_id: skill_jishengzhadan
       level: 70
-      hidden: false
+      hidden: true
     - skill_id: skill_yinbaozhongzi
       level: 75
-      hidden: false
+      hidden: true
     - skill_id: skill_dixiulazhinu
       level: 80
-      hidden: false
+      hidden: true
   description: 对自己关心很少 有时只顾着帮助别的精灵忘记自己受了重伤
   obtain_method: 新手任务
   ability:
@@ -526,6 +607,15 @@
     def: 111
     spd: 112
     spe: 108
+  heightRange:
+    - 32
+    - 37
+  weightRange:
+    - 5
+    - 10
+  genderRatio:
+    - 1.0
+    - 0.0
   previous_form: 0
   next_form: 11
   evolution_level: 18
@@ -567,6 +657,15 @@
     def: 118
     spd: 137
     spe: 128
+  heightRange:
+    - 49
+    - 54
+  weightRange:
+    - 13
+    - 18
+  genderRatio:
+    - 1.0
+    - 0.0
   previous_form: 10
   next_form: 12
   evolution_level: 36
@@ -607,6 +706,15 @@
     def: 161
     spd: 162
     spe: 148
+  heightRange:
+    - 99
+    - 104
+  weightRange:
+    - 40
+    - 45
+  genderRatio:
+    - 1.0
+    - 0.0
   previous_form: 11
   next_form: 0
   evolution_level: 100
@@ -635,16 +743,16 @@
       hidden: false
     - skill_id: skill_lingcaiguangxian
       level: 65
-      hidden: false
+      hidden: true
     - skill_id: skill_huanjuezhuangtai
       level: 70
-      hidden: false
+      hidden: true
     - skill_id: skill_mihuo
       level: 75
-      hidden: false
+      hidden: true
     - skill_id: skill_tongshenggongsi
       level: 80
-      hidden: false
+      hidden: true
   description: 在寂静的星空里 似乎有法伊娜信奉的力量
   obtain_method: 异蘑世界
   ability:
@@ -662,6 +770,15 @@
     def: 121
     spd: 120
     spe: 100
+  heightRange:
+    - 33
+    - 38
+  weightRange:
+    - 6
+    - 11
+  genderRatio:
+    - 0.2
+    - 0.8
   previous_form: 0
   next_form: 14
   evolution_level: 21
@@ -703,6 +820,15 @@
     def: 151
     spd: 150
     spe: 120
+  heightRange:
+    - 55
+    - 60
+  weightRange:
+    - 12
+    - 17
+  genderRatio:
+    - 0.2
+    - 0.8
   previous_form: 13
   next_form: 15
   evolution_level: 41
@@ -743,6 +869,15 @@
     def: 181
     spd: 180
     spe: 140
+  heightRange:
+    - 94
+    - 99
+  weightRange:
+    - 22
+    - 27
+  genderRatio:
+    - 0.2
+    - 0.8
   previous_form: 14
   next_form: 0
   evolution_level: 0
@@ -798,6 +933,15 @@
     def: 126
     spd: 110
     spe: 106
+  heightRange:
+    - 65
+    - 70
+  weightRange:
+    - 33
+    - 38
+  genderRatio:
+    - 0.0
+    - 1.0
   previous_form: 0
   next_form: 17
   evolution_level: 20
@@ -845,6 +989,15 @@
     def: 176
     spd: 155
     spe: 146
+  heightRange:
+    - 134
+    - 139
+  weightRange:
+    - 95
+    - 100
+  genderRatio:
+    - 0.0
+    - 1.0
   previous_form: 16
   next_form: 0
   evolution_level: 100
@@ -879,16 +1032,16 @@
       hidden: false
     - skill_id: skill_tizhongzhishang
       level: 65
-      hidden: false
+      hidden: true
     - skill_id: skill_zhifangranshao
       level: 70
-      hidden: false
+      hidden: true
     - skill_id: skill_zhifangzhengqi
       level: 75
-      hidden: false
+      hidden: true
     - skill_id: skill_tanxingzhifang
       level: 80
-      hidden: false
+      hidden: true
   description: 布鲁托最喜欢坐在小树根的脑袋上 享受小精灵们的进贡
   obtain_method: 巨石洞穴
   ability:
@@ -906,6 +1059,13 @@
     def: 125
     spd: 109
     spe: 90
+  heightRange:
+    - 35
+    - 40
+  weightRange:
+    - 15
+    - 20
+  genderRatio: null
   previous_form: 0
   next_form: 19
   evolution_level: 26
@@ -953,6 +1113,13 @@
     def: 175
     spd: 154
     spe: 139
+  heightRange:
+    - 82
+    - 87
+  weightRange:
+    - 50
+    - 55
+  genderRatio: null
   previous_form: 18
   next_form: 0
   evolution_level: 0
@@ -1014,6 +1181,15 @@
     def: 116
     spd: 123
     spe: 107
+  heightRange:
+    - 31
+    - 36
+  weightRange:
+    - 9
+    - 14
+  genderRatio:
+    - 0.8
+    - 0.2
   previous_form: 0
   next_form: 21
   evolution_level: 25
@@ -1061,6 +1237,15 @@
     def: 161
     spd: 168
     spe: 147
+  heightRange:
+    - 71
+    - 76
+  weightRange:
+    - 35
+    - 40
+  genderRatio:
+    - 0.8
+    - 0.2
   previous_form: 20
   next_form: 0
   evolution_level: 0
@@ -1122,6 +1307,13 @@
     def: 114
     spd: 115
     spe: 92
+  heightRange:
+    - 32
+    - 37
+  weightRange:
+    - 7
+    - 12
+  genderRatio: null
   previous_form: 0
   next_form: 23
   evolution_level: 19
@@ -1163,6 +1355,13 @@
     def: 144
     spd: 145
     spe: 112
+  heightRange:
+    - 59
+    - 64
+  weightRange:
+    - 23
+    - 28
+  genderRatio: null
   previous_form: 22
   next_form: 24
   evolution_level: 39
@@ -1203,6 +1402,13 @@
     def: 174
     spd: 175
     spe: 132
+  heightRange:
+    - 103
+    - 108
+  weightRange:
+    - 56
+    - 61
+  genderRatio: null
   previous_form: 23
   next_form: 0
   evolution_level: 0
@@ -1258,6 +1464,15 @@
     def: 115
     spd: 113
     spe: 106
+  heightRange:
+    - 34
+    - 39
+  weightRange:
+    - 9
+    - 14
+  genderRatio:
+    - 0.5
+    - 0.5
   previous_form: 0
   next_form: 26
   evolution_level: 18
@@ -1299,6 +1514,15 @@
     def: 140
     spd: 138
     spe: 126
+  heightRange:
+    - 56
+    - 61
+  weightRange:
+    - 18
+    - 23
+  genderRatio:
+    - 0.5
+    - 0.5
   previous_form: 25
   next_form: 27
   evolution_level: 38
@@ -1339,6 +1563,15 @@
     def: 165
     spd: 163
     spe: 146
+  heightRange:
+    - 96
+    - 101
+  weightRange:
+    - 43
+    - 48
+  genderRatio:
+    - 0.5
+    - 0.5
   previous_form: 26
   next_form: 0
   evolution_level: 0
@@ -1394,6 +1627,15 @@
     def: 118
     spd: 117
     spe: 110
+  heightRange:
+    - 40
+    - 45
+  weightRange:
+    - 27
+    - 34
+  genderRatio:
+    - 0.3
+    - 0.7
   previous_form: 0
   next_form: 29
   evolution_level: 31
@@ -1441,6 +1683,15 @@
     def: 168
     spd: 162
     spe: 150
+  heightRange:
+    - 100
+    - 105
+  weightRange:
+    - 130
+    - 135
+  genderRatio:
+    - 0.3
+    - 0.7
   previous_form: 28
   next_form: 0
   evolution_level: 0
@@ -1502,6 +1753,15 @@
     def: 120
     spd: 120
     spe: 108
+  heightRange:
+    - 53
+    - 58
+  weightRange:
+    - 29
+    - 34
+  genderRatio:
+    - 0.0
+    - 1.0
   previous_form: 0
   next_form: 31
   evolution_level: 29
@@ -1549,6 +1809,15 @@
     def: 170
     spd: 170
     spe: 148
+  heightRange:
+    - 139
+    - 144
+  weightRange:
+    - 135
+    - 140
+  genderRatio:
+    - 0.0
+    - 1.0
   previous_form: 30
   next_form: 0
   evolution_level: 100
@@ -1583,16 +1852,16 @@
       hidden: false
     - skill_id: skill_yazhi
       level: 65
-      hidden: false
+      hidden: true
     - skill_id: skill_yapo
       level: 70
-      hidden: false
+      hidden: true
     - skill_id: skill_huanyu
       level: 75
-      hidden: false
+      hidden: true
     - skill_id: skill_jishuichuanliu
       level: 80
-      hidden: false
+      hidden: true
   description: 蓝虎鲸的冲撞 激发了阿卡纳斯真正的防护能量 撑开了水盾
   obtain_method: 悲伤残骸
   ability:
@@ -1610,6 +1879,15 @@
     def: 113
     spd: 114
     spe: 117
+  heightRange:
+    - 43
+    - 48
+  weightRange:
+    - 19
+    - 24
+  genderRatio:
+    - 0.2
+    - 0.8
   previous_form: 0
   next_form: 33
   evolution_level: 31
@@ -1657,6 +1935,15 @@
     def: 158
     spd: 159
     spe: 162
+  heightRange:
+    - 82
+    - 87
+  weightRange:
+    - 46
+    - 51
+  genderRatio:
+    - 0.2
+    - 0.8
   previous_form: 32
   next_form: 0
   evolution_level: 0
@@ -1718,6 +2005,15 @@
     def: 109
     spd: 111
     spe: 110
+  heightRange:
+    - 44
+    - 49
+  weightRange:
+    - 20
+    - 25
+  genderRatio:
+    - 0.8
+    - 0.2
   previous_form: 0
   next_form: 35
   evolution_level: 17
@@ -1759,6 +2055,15 @@
     def: 134
     spd: 136
     spe: 130
+  heightRange:
+    - 61
+    - 66
+  weightRange:
+    - 36
+    - 41
+  genderRatio:
+    - 0.8
+    - 0.2
   previous_form: 34
   next_form: 36
   evolution_level: 37
@@ -1799,6 +2104,15 @@
     def: 159
     spd: 161
     spe: 150
+  heightRange:
+    - 95
+    - 100
+  weightRange:
+    - 57
+    - 62
+  genderRatio:
+    - 0.8
+    - 0.2
   previous_form: 35
   next_form: 0
   evolution_level: 0
@@ -1854,6 +2168,15 @@
     def: 110
     spd: 110
     spe: 118
+  heightRange:
+    - 45
+    - 50
+  weightRange:
+    - 21
+    - 26
+  genderRatio:
+    - 0.0
+    - 1.0
   previous_form: 0
   next_form: 38
   evolution_level: 29
@@ -1901,6 +2224,15 @@
     def: 155
     spd: 155
     spe: 163
+  heightRange:
+    - 85
+    - 90
+  weightRange:
+    - 58
+    - 63
+  genderRatio:
+    - 0.0
+    - 1.0
   previous_form: 37
   next_form: 0
   evolution_level: 100
@@ -1935,16 +2267,16 @@
       hidden: false
     - skill_id: skill_yanzhizhao
       level: 65
-      hidden: false
+      hidden: true
     - skill_id: skill_yanbao
       level: 70
-      hidden: false
+      hidden: true
     - skill_id: skill_yangyan
       level: 75
-      hidden: false
+      hidden: true
     - skill_id: skill_huoshanzhili
       level: 80
-      hidden: false
+      hidden: true
   description: 当霍克的怒火如火山般的喷发 它成长为了强大的霍克努尔
   obtain_method: 焰之森
   ability:
@@ -1962,6 +2294,15 @@
     def: 114
     spd: 113
     spe: 118
+  heightRange:
+    - 38
+    - 43
+  weightRange:
+    - 20
+    - 25
+  genderRatio:
+    - 0.5
+    - 0.5
   previous_form: 0
   next_form: 40
   evolution_level: 27
@@ -2009,6 +2350,15 @@
     def: 159
     spd: 158
     spe: 163
+  heightRange:
+    - 63
+    - 68
+  weightRange:
+    - 48
+    - 53
+  genderRatio:
+    - 0.5
+    - 0.5
   previous_form: 39
   next_form: 0
   evolution_level: 0
@@ -2070,6 +2420,15 @@
     def: 113
     spd: 114
     spe: 110
+  heightRange:
+    - 33
+    - 38
+  weightRange:
+    - 6
+    - 11
+  genderRatio:
+    - 0.8
+    - 0.2
   previous_form: 0
   next_form: 42
   evolution_level: 28
@@ -2117,6 +2476,15 @@
     def: 158
     spd: 159
     spe: 155
+  heightRange:
+    - 88
+    - 93
+  weightRange:
+    - 24
+    - 29
+  genderRatio:
+    - 0.8
+    - 0.2
   previous_form: 41
   next_form: 0
   evolution_level: 100
@@ -2151,16 +2519,16 @@
       hidden: false
     - skill_id: skill_junengchongfeng
       level: 65
-      hidden: false
+      hidden: true
     - skill_id: skill_jushuipao
       level: 70
-      hidden: false
+      hidden: true
     - skill_id: skill_nongsuoshuimo
       level: 75
-      hidden: false
+      hidden: true
     - skill_id: skill_chunjingzhixin
       level: 80
-      hidden: false
+      hidden: true
   description: 经过艰难的成长 强韧的双翼让水墨飞马游得像箭一样快
   obtain_method: 银脉山脊
   ability:
@@ -2178,6 +2546,15 @@
     def: 112
     spd: 114
     spe: 102
+  heightRange:
+    - 27
+    - 32
+  weightRange:
+    - 10
+    - 15
+  genderRatio:
+    - 0.6
+    - 0.4
   previous_form: 0
   next_form: 44
   evolution_level: 18
@@ -2219,6 +2596,15 @@
     def: 137
     spd: 144
     spe: 122
+  heightRange:
+    - 42
+    - 47
+  weightRange:
+    - 20
+    - 25
+  genderRatio:
+    - 0.6
+    - 0.4
   previous_form: 43
   next_form: 45
   evolution_level: 38
@@ -2259,6 +2645,15 @@
     def: 162
     spd: 174
     spe: 142
+  heightRange:
+    - 79
+    - 84
+  weightRange:
+    - 94
+    - 99
+  genderRatio:
+    - 0.6
+    - 0.4
   previous_form: 44
   next_form: 0
   evolution_level: 0
@@ -2314,6 +2709,15 @@
     def: 113
     spd: 110
     spe: 109
+  heightRange:
+    - 30
+    - 35
+  weightRange:
+    - 11
+    - 16
+  genderRatio:
+    - 0.5
+    - 0.5
   previous_form: 0
   next_form: 47
   evolution_level: 17
@@ -2355,6 +2759,15 @@
     def: 138
     spd: 135
     spe: 129
+  heightRange:
+    - 46
+    - 51
+  weightRange:
+    - 27
+    - 32
+  genderRatio:
+    - 0.5
+    - 0.5
   previous_form: 46
   next_form: 48
   evolution_level: 37
@@ -2395,6 +2808,15 @@
     def: 163
     spd: 160
     spe: 149
+  heightRange:
+    - 89
+    - 94
+  weightRange:
+    - 79
+    - 84
+  genderRatio:
+    - 0.5
+    - 0.5
   previous_form: 47
   next_form: 0
   evolution_level: 0
@@ -2423,16 +2845,16 @@
       hidden: false
     - skill_id: skill_luoxuanguangpao
       level: 65
-      hidden: false
+      hidden: true
     - skill_id: skill_qiangxingbandao
       level: 70
-      hidden: false
+      hidden: true
     - skill_id: skill_zhuixingquan
       level: 75
-      hidden: false
+      hidden: true
     - skill_id: skill_xingzhihui
       level: 80
-      hidden: false
+      hidden: true
   description: 不停的锻炼 让鲁尼成为了竞技场上最震撼的拳手
   obtain_method: 英格瓦要塞
   ability:
@@ -2450,6 +2872,15 @@
     def: 121
     spd: 121
     spe: 103
+  heightRange:
+    - 32
+    - 37
+  weightRange:
+    - 10
+    - 15
+  genderRatio:
+    - 0.7
+    - 0.3
   previous_form: 0
   next_form: 50
   evolution_level: 28
@@ -2497,6 +2928,15 @@
     def: 166
     spd: 166
     spe: 148
+  heightRange:
+    - 87
+    - 92
+  weightRange:
+    - 77
+    - 82
+  genderRatio:
+    - 0.7
+    - 0.3
   previous_form: 49
   next_form: 0
   evolution_level: 0
