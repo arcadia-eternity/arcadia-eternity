@@ -746,14 +746,12 @@ const exportTeamConfig = () => {
     // 创建数据副本
     const exportData = currentTeam.value.map(pet => ({
       ...pet,
+      id: undefined,
       maxHp: undefined,
     }))
 
-    // 数据验证
-    const validated = PetSetSchema.parse(exportData)
-
     // 使用YAML序列化
-    const content = stringify(validated, {
+    const content = stringify(exportData, {
       indent: 2,
       aliasDuplicateObjects: false,
     })
