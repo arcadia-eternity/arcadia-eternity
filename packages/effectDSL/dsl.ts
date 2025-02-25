@@ -69,7 +69,7 @@ export type ActionDSL =
       type: 'addPower'
       target: SelectorDSL
       value: Value
-    } // 其他操作符按相同模式扩展
+    }
   | {
       type: 'transferMark'
       target: SelectorDSL

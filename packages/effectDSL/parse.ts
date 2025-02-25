@@ -1,5 +1,12 @@
 import { Effect, MarkInstance, Pet, Player, UseSkillContext } from '@test-battle/battle'
-import { EffectTrigger, type StatTypeOnBattle, StatTypeWithoutHp } from '@test-battle/const'
+import {
+  type baseMarkId,
+  type effectId,
+  EffectTrigger,
+  type markId,
+  type StatTypeOnBattle,
+  StatTypeWithoutHp,
+} from '@test-battle/const'
 import { DataRepository } from '@test-battle/data-repository'
 import {
   BaseSelector,
@@ -24,7 +31,7 @@ import type { ActionDSL, ConditionDSL, EffectDSL, EvaluatorDSL, SelectorDSL, Val
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   const actions = createAction(dsl.apply)
   const condition = dsl.condition ? parseCondition(dsl.condition) : undefined
-  return new Effect(dsl.id, dsl.trigger, actions, dsl.priority, condition)
+  return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition)
 }
 
 export function parseSelector<T extends SelectorOpinion>(dsl: SelectorDSL): ChainableSelector<T> {
@@ -294,7 +301,7 @@ export function parseHealAction(dsl: Extract<ActionDSL, { type: 'heal' }>) {
 
 export function parseAddMarkAction(dsl: Extract<ActionDSL, { type: 'addMark' }>) {
   const selector = parseSelector<Pet>(dsl.target)
-  const mark = DataRepository.getInstance().getMark(dsl.mark)
+  const mark = DataRepository.getInstance().getMark(dsl.mark as baseMarkId)
   return selector.apply(Operators.addMark(mark, dsl.duration))
 }
 
