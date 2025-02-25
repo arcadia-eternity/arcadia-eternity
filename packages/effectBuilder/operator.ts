@@ -76,15 +76,15 @@ export const Operators = {
     },
 
   addStack:
-    <T extends MarkInstance>(markid: string, value: number) =>
+    <T extends MarkInstance>(value: number) =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
-      targets.filter(mark => mark.id == markid).forEach(mark => mark.addStack(value))
+      targets.forEach(mark => mark.addStack(value))
     },
 
   consumeStacks:
-    <T extends MarkInstance>(markid: string, value: number) =>
+    <T extends MarkInstance>(value: number) =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
-      targets.filter(mark => mark.id == markid).forEach(mark => mark.consumeStack(context, value))
+      targets.forEach(mark => mark.consumeStack(context, value))
     },
 
   // 玩家操作

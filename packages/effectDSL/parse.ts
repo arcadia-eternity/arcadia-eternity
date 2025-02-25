@@ -307,11 +307,11 @@ export function parseAddMarkAction(dsl: Extract<ActionDSL, { type: 'addMark' }>)
 
 // Pattern for stack-related actions [source_id: operator.ts]
 export function parseAddStacksAction(dsl: Extract<ActionDSL, { type: 'addStacks' }>) {
-  return parseSelector<MarkInstance>(dsl.target).apply(Operators.addStack(dsl.mark, dsl.value))
+  return parseSelector<MarkInstance>(dsl.target).apply(Operators.addStack(dsl.value))
 }
 
 export function parseConsumeStacksAction(dsl: Extract<ActionDSL, { type: 'consumeStacks' }>) {
-  return parseSelector<MarkInstance>(dsl.target).apply(Operators.consumeStacks(dsl.mark, dsl.value))
+  return parseSelector<MarkInstance>(dsl.target).apply(Operators.consumeStacks(dsl.value))
 }
 
 // Stat modification pattern [source_id: parse.ts]

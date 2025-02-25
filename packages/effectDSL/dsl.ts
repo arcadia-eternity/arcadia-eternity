@@ -33,13 +33,11 @@ export type ActionDSL =
   | {
       type: 'addStacks'
       target: SelectorDSL
-      mark: string //id
       value: number
     }
   | {
       type: 'consumeStacks'
       target: SelectorDSL
-      mark: string //id
       value: number
     }
   | {

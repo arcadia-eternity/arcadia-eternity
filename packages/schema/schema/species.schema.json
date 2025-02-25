@@ -80,6 +80,52 @@
             ],
             "additionalProperties": false
           },
+          "genderRatio": {
+            "anyOf": [
+              {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "heightRange": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "weightRange": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
           "previous_form": {
             "type": "number"
           },
@@ -132,6 +178,9 @@
           "element",
           "star",
           "baseStats",
+          "genderRatio",
+          "heightRange",
+          "weightRange",
           "previous_form",
           "next_form",
           "learnable_skills",

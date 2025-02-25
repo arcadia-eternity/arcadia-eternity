@@ -93,6 +93,10 @@ export class MarkInstance implements EffectContainer, Prototype, OwnedEntity<Bat
     return this._stack
   }
 
+  get baseId(): baseMarkId {
+    return this.base.id
+  }
+
   set stack(value: number) {
     this._stack = value
   }
