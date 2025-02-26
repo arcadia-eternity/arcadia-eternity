@@ -3,7 +3,6 @@ import {
   type baseMarkId,
   type effectId,
   EffectTrigger,
-  type markId,
   type StatTypeOnBattle,
   StatTypeWithoutHp,
 } from '@test-battle/const'
@@ -26,7 +25,7 @@ import {
   type ValueExtractor,
   type ValueSource,
 } from '@test-battle/effect-builder'
-import type { ActionDSL, ConditionDSL, EffectDSL, EvaluatorDSL, SelectorDSL, Value } from './dsl'
+import type { ActionDSL, ConditionDSL, EffectDSL, EvaluatorDSL, SelectorDSL, Value } from '@test-battle/effect-dsl'
 
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   const actions = createAction(dsl.apply)
@@ -100,28 +99,28 @@ export function parseSelector<T extends SelectorOpinion>(dsl: SelectorDSL): Chai
           }
           case 'add': {
             if (typeof step.arg === 'number') {
-              selector = selector.add(step.arg)
+              selector = (selector as ChainableSelector<number>).add(step.arg)
             } else {
               const otherSelector = parseSelector<number>(step.arg)
-              selector = selector.add(otherSelector)
+              selector = (selector as ChainableSelector<number>).add(otherSelector)
             }
             break
           }
           case 'multiply': {
             if (typeof step.arg === 'number') {
-              selector = selector.multiply(step.arg)
+              selector = (selector as ChainableSelector<number>).multiply(step.arg)
             } else {
               const otherSelector = parseSelector<number>(step.arg)
-              selector = selector.multiply(otherSelector)
+              selector = (selector as ChainableSelector<number>).multiply(otherSelector)
             }
             break
           }
           case 'divide': {
             if (typeof step.arg === 'number') {
-              selector = selector.divide(step.arg)
+              selector = (selector as ChainableSelector<number>).divide(step.arg)
             } else {
               const otherSelector = parseSelector<number>(step.arg)
-              selector = selector.divide(otherSelector)
+              selector = (selector as ChainableSelector<number>).divide(otherSelector)
             }
             break
           }
@@ -196,7 +195,6 @@ export function parseExtractor<T extends SelectorOpinion>(
             }
             break
         }
-
         // 执行实际提取逻辑
         return builtInExtractor(target as never)
       } catch (e) {

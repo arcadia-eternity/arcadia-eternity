@@ -1,6 +1,8 @@
 import { Effect } from '@test-battle/battle'
 import { EffectTrigger } from '@test-battle/const'
-import { effectDSLSchema, parseEffect } from '@test-battle/effect-dsl'
+import { effectDSLSchema } from '@test-battle/effect-dsl'
+
+import { parseEffect } from './parseEffect'
 
 export class EffectParser {
   static parse(rawData: unknown): Effect<EffectTrigger> {

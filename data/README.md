@@ -2,6 +2,18 @@
 
 ## 关于命名规范
 
+### 文件标识
+
+``` yaml
+    # data/effect.yaml 文件的名和路径，注意文件名需要带上类型名的前缀。
+
+    # yaml-language-server: $schema=../packages/schema/schema/effect.schema.json 用来引入yaml的自动提示
+
+    # @metaType effect 标明这个是哪个类型的数据文件，在导入的时候会检测他的类型，允许effect/mark/skill/species
+
+    # @version 1.0.0 版本信息
+```
+
 ### 效果以外的对象
 
 类型[_子类型]_名称[_附加信息/派生形态]

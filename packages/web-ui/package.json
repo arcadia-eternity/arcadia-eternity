@@ -15,11 +15,14 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@anatine/zod-mock": "^3.13.5",
     "@element-plus/icons-vue": "^2.3.1",
+    "@faker-js/faker": "^9.5.0",
     "@test-battle/client": "workspace:^",
     "@test-battle/const": "workspace:^",
     "@test-battle/protocol": "workspace:^",
     "@test-battle/schema": "workspace:^",
+    "axios": "^1.8.1",
     "element-plus": "^2.9.4",
     "nanoid": "^5.0.9",
     "pinia": "^3.0.1",
@@ -27,13 +30,13 @@
     "vue": "^3.5.13",
     "vue-draggable-plus": "^0.6.0",
     "vue-router": "^4.5.0",
-    "yaml": "^2.7.0"
+    "yaml": "^2.7.0",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@rollup/plugin-yaml": "^4.1.2",
     "@tsconfig/node22": "^22.0.0",
     "@types/node": "^22.13.4",
-    "@types/yaml": "^1.9.7",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.4.0",

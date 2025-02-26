@@ -14,6 +14,6 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["./*"],
+  "include": ["./*", "../parser/parseEffect.ts"],
   "exclude": ["./node_modules"]
 }

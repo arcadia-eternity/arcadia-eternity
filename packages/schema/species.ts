@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { ElementSchema } from './element'
 
-const LearnableSkillSchema = z.object({
+export const LearnableSkillSchema = z.object({
   skill_id: z.string(),
   level: z.number(),
   hidden: z.boolean(),
@@ -25,14 +25,16 @@ export const SpeciesSchema = z
     genderRatio: z.tuple([z.number(), z.number()]).nullable(),
     heightRange: z.tuple([z.number(), z.number()]),
     weightRange: z.tuple([z.number(), z.number()]),
-    previous_form: z.number(),
-    next_form: z.number(),
+    // previous_form: z.string().optional(),
+    // next_form: z.string().optional(),
     learnable_skills: z.array(LearnableSkillSchema),
     description: z.string(),
     ability: z.array(z.string()),
     emblem: z.array(z.string()),
   })
   .passthrough()
+
+export type LearnableSkill = z.infer<typeof LearnableSkillSchema>
 
 export type Species = z.infer<typeof SpeciesSchema>
 

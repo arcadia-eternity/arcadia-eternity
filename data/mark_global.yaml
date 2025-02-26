@@ -2,93 +2,94 @@
 # yaml-language-server: $schema=../packages/schema/schema/mark.schema.json
 # @metaType mark
 # @version 1.0.0
+
 - id: mark_global_qingtian
-  num: 20001
   name: 晴天
   description: 草系和光系精灵使用本系技能时伤害提高35%
+  num: 20001
   image_link: =DISPIMG("ID_12DB04AF388F4693931C990CEA4102A3",1)
 - id: mark_global_yutian
-  num: 20002
   name: 雨天
   description: 水系精灵使用本系技能时伤害提高35%
+  num: 20002
   image_link: =DISPIMG("ID_8735FBD903DF4E3BA63032943E9AF9DF",1)
 - id: mark_global_yanre
-  num: 20003
   name: 炎热
   description: 火系精灵使用本系技能时伤害提高35%
+  num: 20003
   image_link: =DISPIMG("ID_1B20CC07EE4B4BAA97875625CE25991B",1)
 - id: mark_global_baofengxue
-  num: 20004
   name: 暴风雪
   description: 冰系精灵使用本系技能时伤害提高35%
+  num: 20004
   image_link: =DISPIMG("ID_35D4F49C2EF7490D86A9374C3C04EE7B",1)
 - id: mark_global_shachenbao
-  num: 20005
   name: 沙尘暴
   description: 沙漠系精灵使用本系技能时伤害提高35%
+  num: 20005
   image_link: =DISPIMG("ID_8F42AF75826742609899CFD14B239BED",1)
 - id: mark_global_dizhen
-  num: 20006
   name: 地震
   description: 地面系精灵使用本系技能时伤害提高35%
+  num: 20006
   image_link: =DISPIMG("ID_5DFB79E7A94747FA85A62C6AB6C832C1",1)
 - id: mark_global_leibaotian
-  num: 20007
   name: 雷暴天
   description: 电系精灵使用本系技能时伤害提高35%
+  num: 20007
   image_link: =DISPIMG("ID_A256EFE8175B4F198BA3694C8D16B25E",1)
 - id: mark_global_jufeng
-  num: 20008
   name: 飓风
   description: 飞行系和风系精灵使用本系技能时伤害提高35%
+  num: 20008
   image_link: =DISPIMG("ID_EAFC903285044096BF195C773572A230",1)
 - id: mark_global_yemu
-  num: 20009
   name: 夜幕
   description: 特质系和暗影系精灵使用本系技能时伤害提高35%
+  num: 20009
   image_link: =DISPIMG("ID_F4F33EBC7A12464690770AB20B60F38A",1)
 - id: mark_global_yikongjian
-  num: 0
   name: 异空间
   description: 神秘系和超能系精灵使用本系技能时伤害提高35%
+  num: 0
   image_link: =DISPIMG("ID_DB1EC296ADE849DE872BBAB6CD5F9794",1)
 - id: mark_global_guzhanchang
-  num: 0
   name: 古战场
   description: 战斗系和龙系和上古系精灵使用本系技能时伤害提高35%
+  num: 0
   image_link: =DISPIMG("ID_858F63A56A0445AE948FDD2F0F36BBB6",1)
 - id: mark_global_chongqun
-  num: 0
   name: 虫群
   description: 虫系精灵使用本系技能时伤害提高35%
+  num: 0
   image_link: =DISPIMG("ID_781B2A1678A44C0C941DC1AFFA17D31E",1)
 - id: mark_global_xingyi
-  num: 0
   name: 星移
   description: 降低双方全能力值15点
+  num: 0
   image_link: =DISPIMG("ID_549FF0E2337044AABEB229CF420ECF50",1)
 - id: mark_global_3jixingyi
-  num: 0
   name: 3级星移
   description: 降低双方全能力值？点
+  num: 0
   image_link: =DISPIMG("ID_749F45083F8245BEBF82ECFDD01F1290",1)
 - id: mark_global_2jixingyi
-  num: 0
   name: 2级星移
   description: 降低双方全能力值？点
+  num: 0
   image_link: =DISPIMG("ID_308D234D802544F994CA844DA7AA5663",1)
 - id: mark_global_maxxingyi
-  num: 0
   name: MAX星移
   description: 降低双方全能力值？点
+  num: 0
   image_link: =DISPIMG("ID_5073A5D30CB64B148DBF0C0E86588521",1)
 - id: mark_global_lieri
-  num: 0
   name: 烈日
   description: 光系和火系精灵使用本系技能时伤害提高35%
+  num: 0
   image_link: =DISPIMG("ID_BACA52798714476CA042C4E2B93667DB",1)
 - id: mark_global_xingyu
-  num: 0
   name: 星域
   description: 每回合特质系精灵恢复25点体力 非特质系的精灵扣除25点体力
+  num: 0
   image_link: =DISPIMG("ID_F6A42A825D0847CF8BBB650E19886A72",1)

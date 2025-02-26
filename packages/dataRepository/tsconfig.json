@@ -14,6 +14,6 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["./*"],
+  "include": ["./*", "loader.ts"],
   "exclude": ["./node_modules"]
 }

@@ -1,24 +1,29 @@
 import { z } from 'zod'
+export type FileMetadata = {
+  metaType: 'effect' | 'mark' | 'skill' | 'species'
+  version: string
+}
 
 export const MetadataSchema = z.object({
   metaType: z.enum(['effect', 'mark', 'skill', 'species']),
   version: z.string().regex(/^\d+\.\d+\.\d+$/),
-})
-
-export type FileMetadata = z.infer<typeof MetadataSchema>
+}) satisfies z.ZodType<FileMetadata>
 
 export function extractMetadata(content: string): FileMetadata {
-  const metadataLines = content
+  const metadata = content
     .split('\n')
     .filter(line => line.startsWith('# @'))
-    .map(line => line.replace(/^#\s*@/, ''))
+    .reduce(
+      (acc, line) => {
+        const [key, ...values] = line.slice(3).split(/\s+/) // 使用 slice 替代 replace
+        if (key && values.length) {
+          acc[key] = values.join(' ')
+        }
+        return acc
+      },
+      {} as Record<string, string>,
+    )
 
-  const metadata = Object.fromEntries(
-    metadataLines.map(line => {
-      const [key, ...values] = line.split(/\s+/)
-      return [key, values.join(' ')]
-    }),
-  )
-
-  return MetadataSchema.parse(metadata)
+  // 添加类型断言
+  return MetadataSchema.parse(metadata) as FileMetadata
 }

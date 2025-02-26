@@ -11,9 +11,15 @@ import { Player } from '@test-battle/battle'
 import { ConsoleClient } from '@test-battle/console-client'
 import { PlayerSchema } from '@test-battle/schema'
 import { BattleServer } from '@test-battle/server'
+import DevServer from 'packages/devServer'
 import { Server } from 'socket.io'
 import express from 'express'
 import { createServer } from 'node:http'
+import { fileURLToPath } from 'node:url'
+import { dirname } from 'node:path'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 // 解析玩家文件
 async function parsePlayerFile(filePath: string): Promise<Player> {
@@ -89,6 +95,7 @@ program
       await loadGameData()
 
       const app = express()
+      new DevServer(app)
       const httpServer = createServer(app)
 
       // 添加基础健康检查端点

@@ -45,12 +45,13 @@
       </template>
     </el-dialog>
 
-    <!-- 路由视图 -->
-    <router-view v-slot="{ Component }">
-      <transition name="fade" mode="out-in">
-        <component :is="Component" />
-      </transition>
-    </router-view>
+    <el-main class="router-main">
+      <router-view v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" class="router-content" />
+        </transition>
+      </router-view>
+    </el-main>
 
     <!-- 全局状态提示 -->
     <el-affix position="bottom" :offset="20">
@@ -116,15 +117,29 @@ const player = computed(() => playerStore)
 html,
 body,
 #app {
-  height: 100vh;
-  width: 100vw;
   margin: 0px;
 }
 </style>
 
 <style scoped>
 .app-container {
-  background: url('@/assets/bg-stars.jpg') no-repeat center/cover;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.router-main {
+  flex: 1;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.router-content {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  overflow: auto;
 }
 
 .main-header {

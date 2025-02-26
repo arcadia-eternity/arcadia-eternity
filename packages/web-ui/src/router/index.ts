@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import LobbyView from '../views/lobbyView.vue'
 import BattleView from '../views/battleViews.vue'
+import DataEditor from '../views/dataEditor.vue'
 
 // 路由守卫
 import { battleGuard } from './guards'
@@ -37,6 +38,14 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/data-editor',
+    name: 'DataEditor',
+    component: DataEditor,
+    meta: {
+      title: '数据编辑器',
+    },
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/',
   },
@@ -56,7 +65,7 @@ router.beforeEach(battleGuard)
 // 动态设置页面标题
 router.afterEach(to => {
   const title = (to.meta.title as string) || '赛尔号对战'
-  document.title = `${title} | PokeBattle`
+  document.title = `${title} | Seer2Battle`
 })
 
 export default router

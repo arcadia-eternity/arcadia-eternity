@@ -1,7 +1,7 @@
 import fs from 'fs/promises'
 import path, { dirname } from 'path'
 import YAML from 'yaml'
-import { DataRepository } from './dataRepository'
+import { DataRepository } from '@test-battle/data-repository/dataRepository'
 import { extractMetadata } from '@test-battle/schema'
 import { EffectParser, MarkParser, SkillParser, SpeciesParser } from '@test-battle/parser'
 import { fileURLToPath } from 'url'

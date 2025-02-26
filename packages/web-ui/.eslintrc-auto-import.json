@@ -1,6 +1,7 @@
 {
   "globals": {
     "ElMessage": true,
-    "ElMessageBox": true
+    "ElMessageBox": true,
+    "ElDialog": true
   }
 }
