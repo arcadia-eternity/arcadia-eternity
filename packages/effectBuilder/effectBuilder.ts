@@ -1,6 +1,6 @@
 import { EffectContext } from '@test-battle/battle'
 import { EffectTrigger } from '@test-battle/const'
-import type { SelectorOpinion, ChainableSelector } from 'selector'
+import type { SelectorOpinion, ChainableSelector, PropertyRef, PrimitiveOpinion } from './selector'
 
 export type ValueExtractor<T, U> = (target: T) => U
 
@@ -16,5 +16,16 @@ export type TargetSelector<T> = (context: EffectContext<EffectTrigger>) => T[]
 
 export type ValueSource<T extends SelectorOpinion> =
   | T
-  | TargetSelector<T> // 选择器系统产生的值
-  | ChainableSelector<T> // 链式选择器
+  | TargetSelector<T>
+  | ChainableSelector<T>
+  | (T extends PrimitiveOpinion ? ChainableSelector<PropertyRef<SelectorOpinion, T>> : never)
+
+export type WidenLiteral<T> = T extends string
+  ? string
+  : T extends number
+    ? number
+    : T extends boolean
+      ? boolean
+      : T extends null
+        ? null
+        : T

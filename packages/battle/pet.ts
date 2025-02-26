@@ -68,6 +68,9 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public readonly skills: SkillInstance[]
   public maxHp: number
   public base: Species
+  public readonly weight: number
+  public readonly height: number
+  public readonly gender: Gender
 
   constructor(
     public readonly name: string,
@@ -80,9 +83,9 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     skills: BaseSkill[],
     ability?: BaseMark,
     emblem?: BaseMark,
-    public readonly weight?: number,
-    public readonly height?: number,
-    public readonly gender?: Gender,
+    weight?: number,
+    height?: number,
+    gender?: Gender,
     maxHp?: number, //可以额外手动设置hp
   ) {
     this.maxHp = maxHp ? maxHp : this.calculateMaxHp()

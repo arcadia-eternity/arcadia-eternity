@@ -7,3 +7,12 @@ export type UseSkillSelection = { player: playerId; type: 'use-skill'; skill: sk
 export type SwitchPetSelection = { player: playerId; type: 'switch-pet'; pet: petId }
 export type DoNothingSelection = { player: playerId; type: 'do-nothing' }
 export type SurrenderSelection = { player: playerId; type: 'surrender' }
+export type WidenLiteral<T> = T extends string
+  ? string
+  : T extends number
+    ? number
+    : T extends boolean
+      ? boolean
+      : T extends null
+        ? null
+        : T

@@ -14,8 +14,14 @@ import {
 } from '@test-battle/battle'
 import { EffectTrigger, type StatTypeOnBattle, StatTypeWithoutHp } from '@test-battle/const'
 import type { Operator } from './effectBuilder'
-import { ChainableSelector, GetValueFromSource, type PropertyRef, type SelectorOpinion } from './selector'
-import { type ValueSource } from 'effectBuilder'
+import {
+  ChainableSelector,
+  isPropertyRef,
+  type PrimitiveOpinion,
+  type PropertyRef,
+  type SelectorOpinion,
+} from './selector'
+import { type ValueSource } from './effectBuilder'
 
 function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpinion>(
   handler: (value: U[], target: T, context: EffectContext<EffectTrigger>) => void,
@@ -32,7 +38,8 @@ function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpin
             finalValue = []
           }
         } else if (source instanceof ChainableSelector) {
-          finalValue = source.build()(context)
+          const value = source.build()(context)
+          finalValue = [isPropertyRef(value) ? value.get() : value]
         } else {
           finalValue = [source]
         }
@@ -129,14 +136,45 @@ export const Operators = {
       target.forEach(v => v.addStatStage(context, _statType, _value))
     },
 
-  //通用修改方法
-  modify: <T, V extends SelectorOpinion>(valueSelector: ValueSource<V>): Operator<PropertyRef<T, V>> => {
-    return (context: EffectContext<EffectTrigger>, refs: PropertyRef<T, V>[]) => {
-      const values = GetValueFromSource(context, valueSelector)
+  setValue: <U extends SelectorOpinion, V extends PrimitiveOpinion>(
+    value: ValueSource<V>,
+  ): Operator<PropertyRef<U, V>> => {
+    return (context, refs) => {
+      const _value = GetValueFromSource(context, value)
+      refs.forEach(ref => ref.set(_value[0]))
+    }
+  },
+
+  /** 数值累加操作 */
+  addValue: (valueSource: ValueSource<number>): Operator<PropertyRef<any, number>> => {
+    return (context, refs) => {
+      const values = GetValueFromSource(context, valueSource)
       refs.forEach((ref, index) => {
-        const value = values[index % values.length]
-        ref.set(value)
+        const delta = values[index % values.length]
+        ref.set(ref.get() + delta)
       })
     }
   },
+
+  /** 布尔值翻转 */
+  toggle: (): Operator<PropertyRef<any, boolean>> => {
+    return (context, refs) => {
+      refs.forEach(ref => ref.set(!ref.get()))
+    }
+  },
+}
+
+export function GetValueFromSource<T extends SelectorOpinion>(
+  context: EffectContext<EffectTrigger>,
+  source: ValueSource<T>,
+): T[] {
+  if (source instanceof ChainableSelector) {
+    const result = source.build()(context)
+    return result.flatMap(item => (isPropertyRef(item) ? [item.get()] : [item]))
+  }
+  if (typeof source == 'function') return source(context) //TargetSelector
+  if (isPropertyRef(source)) {
+    return [source.get()] // 返回当前值
+  }
+  return [source]
 }

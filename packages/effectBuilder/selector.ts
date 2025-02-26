@@ -10,15 +10,8 @@ import {
 } from '@test-battle/battle'
 import type { OwnedEntity, Prototype } from '@test-battle/battle/entity'
 import { EffectTrigger, Element, type StatOnBattle, type StatTypeOnBattle } from '@test-battle/const'
-import type {
-  Action,
-  Condition,
-  Evaluator,
-  Operator,
-  TargetSelector,
-  ValueExtractor,
-  ValueSource,
-} from './effectBuilder'
+import type { Action, Condition, Evaluator, Operator, TargetSelector, ValueExtractor } from './effectBuilder'
+import { createExtractor, type Path } from './extractor'
 
 export type PropertyRef<T, V> = {
   get: () => V
@@ -38,16 +31,24 @@ export class ChainableSelector<T extends SelectorOpinion> {
     return this.selector(context)
   }
 
-  asRef<V>(extractor: (t: T) => V): ChainableSelector<PropertyRef<T, V>> {
+  selectProp<K extends keyof NonNullable<T>>(
+    prop: K,
+  ): T extends object ? ChainableSelector<PropertyRef<NonNullable<T>, NonNullable<T>[K]>> : never {
     return new ChainableSelector(context =>
-      this.selector(context).map(target => ({
-        target,
-        get: () => extractor(target),
-        set: (value: V) => {
-          //TODO
-        },
-      })),
-    )
+      this.selector(context)
+        .filter((target): target is NonNullable<T> => !!target)
+        .map(target => ({
+          target: target as NonNullable<T>,
+          get: () => (target as NonNullable<T>)[prop],
+          set: (value: NonNullable<T>[K]) => {
+            ;(target as NonNullable<T>)[prop] = value
+          },
+        })),
+    ) as T extends object ? ChainableSelector<PropertyRef<NonNullable<T>, NonNullable<T>[K]>> : never
+  }
+
+  selectPath<P extends string>(path: P): ChainableSelector<Path<T, P>> {
+    return this.select(createExtractor<T, P>(path)) as ChainableSelector<Path<T, P>>
   }
 
   //选择一组对象的某一个参数
@@ -222,35 +223,35 @@ export class ChainableSelector<T extends SelectorOpinion> {
   isNumberType(): this is ChainableSelector<number> {
     return typeof this._type === 'number'
   }
+
+  isObjectType(): this is ChainableSelector<ObjectOpinion> {
+    const sample = this.selector({} as EffectContext<EffectTrigger>)[0]
+    return typeof sample === 'object' && sample !== null
+  }
 }
 // 类型增强装饰器
 function createChainable<T extends SelectorOpinion>(selector: TargetSelector<T>): ChainableSelector<T> {
   return new ChainableSelector(selector)
 }
 
-export type SelectorOpinion =
+export type PrimitiveOpinion = number | string | boolean
+
+export type ObjectOpinion =
   | Pet
-  | MarkInstance
   | Player
   | StatOnBattle
   | UseSkillContext
   | DamageContext
   | Battle
-  | number
   | StatTypeOnBattle
-  | string
-  | boolean
-  | null
   | MarkInstance
-  | MarkInstance[]
   | SkillInstance
-  | SkillInstance[]
-  | string
-  | string[]
   | Element
   | OwnedEntity
   | Prototype
-  | PropertyRef<any, any> //TODO
+  | PropertyRef<any, any>
+
+export type SelectorOpinion = PrimitiveOpinion | ObjectOpinion | Array<SelectorOpinion>
 
 // 基础选择器
 export const BaseSelector: {
@@ -348,7 +349,6 @@ export function isUseSkillContext(target: SelectorOpinion): target is UseSkillCo
   return target instanceof UseSkillContext
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isOwnedEntity(obj: any): obj is OwnedEntity {
   return (
     // 检查是否存在owner属性（不验证类型）
@@ -365,18 +365,21 @@ export function isOwnedEntity(obj: any): obj is OwnedEntity {
   )
 }
 
-export function GetValueFromSource<T extends SelectorOpinion>(
-  context: EffectContext<EffectTrigger>,
-  source: ValueSource<T>,
-): T[] {
-  if (source instanceof ChainableSelector) return source.build()(context)
-  if (typeof source == 'function') return source(context) //TargetSelector
-  if (isPropertyRef(source)) {
-    return [source.get()] // 返回当前值
-  }
-  return [source]
+export function isPropertyRef(obj: any): obj is PropertyRef<any, any> {
+  return obj && typeof obj.get === 'function' && typeof obj.set === 'function'
 }
 
-function isPropertyRef(obj: any): obj is PropertyRef<any, any> {
-  return obj && typeof obj.get === 'function' && typeof obj.set === 'function'
+export function isNumberRef(target: any): target is PropertyRef<any, number> {
+  return isPropertyRef(target) && typeof target.get() === 'number'
+}
+
+export function isBooleanRef(target: any): target is PropertyRef<any, boolean> {
+  return isPropertyRef(target) && typeof target.get() === 'boolean'
+}
+
+export function isPropertyRefSelector(
+  selector: ChainableSelector<any>,
+): selector is ChainableSelector<PropertyRef<any, any>> {
+  const sample = selector.build()({} as EffectContext<EffectTrigger>)[0]
+  return isPropertyRef(sample)
 }
