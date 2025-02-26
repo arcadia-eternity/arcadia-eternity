@@ -2,6 +2,7 @@
 # yaml-language-server: $schema=../packages/schema/schema/species.schema.json
 # @metaType species
 # @version 1.0.0
+
 - id: pet_dilan
   num: 1
   name: 迪兰
@@ -14,25 +15,15 @@
     def: 114
     spd: 121
     spe: 115
+  genderRatio:
+    - 0
+    - 1
   heightRange:
     - 39
     - 44
   weightRange:
     - 7
     - 12
-  genderRatio:
-    - 0.0
-    - 1.0
-  previous_form: 0
-  next_form: 2
-  evolution_level: 20
-  exp_type: 2
-  exp_yield: 65
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_paida
       level: 1
@@ -47,11 +38,21 @@
       level: 15
       hidden: false
   description: 漂亮冷酷的精灵 不爱说话
-  obtain_method: 新手任务
   ability:
     - mark_ability_zhongjie
-  emblem: &id001
+  emblem:
     - mark_emblem_zhuiji
+  previous_form: 0
+  next_form: 2
+  evolution_level: 20
+  exp_type: 2
+  exp_yield: 65
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 新手任务
 - id: pet_didilan
   num: 2
   name: 迪迪兰
@@ -64,25 +65,15 @@
     def: 139
     spd: 146
     spe: 135
+  genderRatio:
+    - 0
+    - 1
   heightRange:
     - 65
     - 70
   weightRange:
     - 17
     - 22
-  genderRatio:
-    - 0.0
-    - 1.0
-  previous_form: 1
-  next_form: 3
-  evolution_level: 40
-  exp_type: 2
-  exp_yield: 95
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_paida
       level: 1
@@ -109,10 +100,21 @@
       level: 35
       hidden: false
   description: 常被误认为雌性精灵 经常受到雄性精灵追求 使它非常郁闷
-  obtain_method: 新手任务
   ability:
     - mark_ability_zhongjie
-  emblem: *id001
+  emblem:
+    - mark_emblem_zhuiji
+  previous_form: 1
+  next_form: 3
+  evolution_level: 40
+  exp_type: 2
+  exp_yield: 95
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 新手任务
 - id: pet_dilante
   num: 3
   name: 迪兰特
@@ -125,25 +127,15 @@
     def: 164
     spd: 171
     spe: 155
+  genderRatio:
+    - 0
+    - 1
   heightRange:
     - 97
     - 102
   weightRange:
     - 26
     - 31
-  genderRatio:
-    - 0.0
-    - 1.0
-  previous_form: 2
-  next_form: 0
-  evolution_level: 100
-  exp_type: 2
-  exp_yield: 125
-  catchable: 'No'
-  catch_rate: 1
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_paida
       level: 1
@@ -197,10 +189,21 @@
       level: 80
       hidden: true
   description: 战斗时的它非常冷静 习惯看破对方的弱点加以攻击
-  obtain_method: 新手任务
   ability:
     - mark_ability_zhongjie
-  emblem: *id001
+  emblem:
+    - mark_emblem_zhuiji
+  previous_form: 2
+  next_form: 0
+  evolution_level: 100
+  exp_type: 2
+  exp_yield: 125
+  catchable: No
+  catch_rate: 1
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 新手任务
 - id: pet_xiuxiu
   num: 4
   name: 休咻
@@ -213,25 +216,15 @@
     def: 111
     spd: 110
     spe: 120
+  genderRatio:
+    - 0
+    - 1
   heightRange:
     - 35
     - 40
   weightRange:
     - 8
     - 13
-  genderRatio:
-    - 0.0
-    - 1.0
-  previous_form: 0
-  next_form: 5
-  evolution_level: 20
-  exp_type: 2
-  exp_yield: 65
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_lizhua
       level: 1
@@ -246,11 +239,21 @@
       level: 15
       hidden: false
   description: 做任何事都喜欢冲在最前面 一心想当迪兰、拉奥的队长
-  obtain_method: 新手任务
   ability:
     - mark_ability_yanhuo
-  emblem: &id002
+  emblem:
     - mark_emblem_nuhuo
+  previous_form: 0
+  next_form: 5
+  evolution_level: 20
+  exp_type: 2
+  exp_yield: 65
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 新手任务
 - id: pet_xiuyier
   num: 5
   name: 休伊尔
@@ -263,25 +266,15 @@
     def: 136
     spd: 135
     spe: 140
+  genderRatio:
+    - 0
+    - 1
   heightRange:
     - 54
     - 59
   weightRange:
     - 20
     - 25
-  genderRatio:
-    - 0.0
-    - 1.0
-  previous_form: 4
-  next_form: 6
-  evolution_level: 40
-  exp_type: 2
-  exp_yield: 95
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_lizhua
       level: 1
@@ -308,10 +301,21 @@
       level: 35
       hidden: false
   description: 非常勇敢有自信的精灵 但有时会显得比较莽撞
-  obtain_method: 新手任务
   ability:
     - mark_ability_yanhuo
-  emblem: *id002
+  emblem:
+    - mark_emblem_nuhuo
+  previous_form: 4
+  next_form: 6
+  evolution_level: 40
+  exp_type: 2
+  exp_yield: 95
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 新手任务
 - id: pet_xiuluosi
   num: 6
   name: 休罗斯
@@ -324,25 +328,15 @@
     def: 161
     spd: 160
     spe: 170
+  genderRatio:
+    - 0
+    - 1
   heightRange:
     - 72
     - 77
   weightRange:
     - 34
     - 39
-  genderRatio:
-    - 0.0
-    - 1.0
-  previous_form: 5
-  next_form: 0
-  evolution_level: 100
-  exp_type: 2
-  exp_yield: 125
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_lizhua
       level: 1
@@ -396,10 +390,21 @@
       level: 80
       hidden: true
   description: 过大的信心有时让人觉得是虚张声势 有时又非常可靠
-  obtain_method: 新手任务
   ability:
     - mark_ability_yanhuo
-  emblem: *id002
+  emblem:
+    - mark_emblem_nuhuo
+  previous_form: 5
+  next_form: 0
+  evolution_level: 100
+  exp_type: 2
+  exp_yield: 125
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 新手任务
 - id: pet_laao
   num: 7
   name: 拉奥
@@ -412,25 +417,15 @@
     def: 123
     spd: 128
     spe: 105
+  genderRatio:
+    - 1
+    - 0
   heightRange:
     - 28
     - 33
   weightRange:
     - 4
     - 9
-  genderRatio:
-    - 1.0
-    - 0.0
-  previous_form: 0
-  next_form: 8
-  evolution_level: 20
-  exp_type: 2
-  exp_yield: 65
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_chongzhuang
       level: 1
@@ -445,11 +440,21 @@
       level: 15
       hidden: false
   description: 心地善良的小精灵 不愿看到任何精灵受到伤害
-  obtain_method: 新手任务
   ability:
     - mark_ability_jianren
-  emblem: &id003
+  emblem:
     - mark_emblem_zhiyu
+  previous_form: 0
+  next_form: 8
+  evolution_level: 20
+  exp_type: 2
+  exp_yield: 65
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 新手任务
 - id: pet_laaomiao
   num: 8
   name: 拉奥苗
@@ -462,25 +467,15 @@
     def: 153
     spd: 158
     spe: 125
+  genderRatio:
+    - 1
+    - 0
   heightRange:
     - 38
     - 43
   weightRange:
     - 11
     - 16
-  genderRatio:
-    - 1.0
-    - 0.0
-  previous_form: 7
-  next_form: 9
-  evolution_level: 40
-  exp_type: 2
-  exp_yield: 95
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_chongzhuang
       level: 1
@@ -507,10 +502,21 @@
       level: 35
       hidden: false
   description: 经常和对手战斗完也会帮它恢复体力以示友善
-  obtain_method: 新手任务
   ability:
     - mark_ability_jianren
-  emblem: *id003
+  emblem:
+    - mark_emblem_zhiyu
+  previous_form: 7
+  next_form: 9
+  evolution_level: 40
+  exp_type: 2
+  exp_yield: 95
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 新手任务
 - id: pet_laaoye
   num: 9
   name: 拉奥叶
@@ -523,25 +529,15 @@
     def: 183
     spd: 188
     spe: 145
+  genderRatio:
+    - 1
+    - 0
   heightRange:
     - 78
     - 83
   weightRange:
     - 28
     - 33
-  genderRatio:
-    - 1.0
-    - 0.0
-  previous_form: 8
-  next_form: 0
-  evolution_level: 100
-  exp_type: 2
-  exp_yield: 125
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_chongzhuang
       level: 1
@@ -595,10 +591,21 @@
       level: 80
       hidden: true
   description: 对自己关心很少 有时只顾着帮助别的精灵忘记自己受了重伤
-  obtain_method: 新手任务
   ability:
     - mark_ability_jianren
-  emblem: *id003
+  emblem:
+    - mark_emblem_zhiyu
+  previous_form: 8
+  next_form: 0
+  evolution_level: 100
+  exp_type: 2
+  exp_yield: 125
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 新手任务
 - id: pet_fala
   num: 10
   name: 法拉
@@ -611,25 +618,15 @@
     def: 111
     spd: 112
     spe: 108
+  genderRatio:
+    - 1
+    - 0
   heightRange:
     - 32
     - 37
   weightRange:
     - 5
     - 10
-  genderRatio:
-    - 1.0
-    - 0.0
-  previous_form: 0
-  next_form: 11
-  evolution_level: 18
-  exp_type: 3
-  exp_yield: 60
-  catchable: 'No'
-  catch_rate: 1
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_zhuangji
       level: 1
@@ -644,11 +641,21 @@
       level: 13
       hidden: false
   description: 当有部落居民的时候 法拉就已在阿卡迪亚星球生活了很久很久
-  obtain_method: 异蘑世界
   ability:
     - mark_ability_rumeng
-  emblem: &id004
+  emblem:
     - mark_emblem_meihuo
+  previous_form: 0
+  next_form: 11
+  evolution_level: 18
+  exp_type: 3
+  exp_yield: 60
+  catchable: No
+  catch_rate: 1
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 异蘑世界
 - id: pet_fana
   num: 11
   name: 法娜
@@ -661,25 +668,15 @@
     def: 118
     spd: 137
     spe: 128
+  genderRatio:
+    - 1
+    - 0
   heightRange:
     - 49
     - 54
   weightRange:
     - 13
     - 18
-  genderRatio:
-    - 1.0
-    - 0.0
-  previous_form: 10
-  next_form: 12
-  evolution_level: 36
-  exp_type: 3
-  exp_yield: 90
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_qianghuazhuangtai
       level: 18
@@ -694,10 +691,21 @@
       level: 30
       hidden: false
   description: 温顺的法娜从不主动靠近人类 它只是远远地看着世界的变化
-  obtain_method: 异蘑世界
   ability:
     - mark_ability_rumeng
-  emblem: *id004
+  emblem:
+    - mark_emblem_meihuo
+  previous_form: 10
+  next_form: 12
+  evolution_level: 36
+  exp_type: 3
+  exp_yield: 90
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 异蘑世界
 - id: pet_fayina
   num: 12
   name: 法伊娜
@@ -710,25 +718,15 @@
     def: 161
     spd: 162
     spe: 148
+  genderRatio:
+    - 1
+    - 0
   heightRange:
     - 99
     - 104
   weightRange:
     - 40
     - 45
-  genderRatio:
-    - 1.0
-    - 0.0
-  previous_form: 11
-  next_form: 0
-  evolution_level: 100
-  exp_type: 3
-  exp_yield: 120
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_ruilishexian
       level: 36
@@ -758,10 +756,21 @@
       level: 80
       hidden: true
   description: 在寂静的星空里 似乎有法伊娜信奉的力量
-  obtain_method: 异蘑世界
   ability:
     - mark_ability_rumeng
-  emblem: *id004
+  emblem:
+    - mark_emblem_meihuo
+  previous_form: 11
+  next_form: 0
+  evolution_level: 100
+  exp_type: 3
+  exp_yield: 120
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 异蘑世界
 - id: pet_xiaoxiaokui
   num: 13
   name: 小小葵
@@ -774,25 +783,15 @@
     def: 121
     spd: 120
     spe: 100
+  genderRatio:
+    - 0.2
+    - 0.8
   heightRange:
     - 33
     - 38
   weightRange:
     - 6
     - 11
-  genderRatio:
-    - 0.2
-    - 0.8
-  previous_form: 0
-  next_form: 14
-  evolution_level: 21
-  exp_type: 4
-  exp_yield: 67
-  catchable: 'No'
-  catch_rate: 0.274509803921569
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_chongding
       level: 1
@@ -807,11 +806,21 @@
       level: 16
       hidden: false
   description: 小小葵是草系精灵中 与自然界融合得很好的精灵
-  obtain_method: 荆棘林
   ability:
     - mark_ability_yangguang
-  emblem: &id005
+  emblem:
     - mark_emblem_kangdu
+  previous_form: 0
+  next_form: 14
+  evolution_level: 21
+  exp_type: 4
+  exp_yield: 67
+  catchable: No
+  catch_rate: 0.274509803921569
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 荆棘林
 - id: pet_daidaikui
   num: 14
   name: 呆呆葵
@@ -824,25 +833,15 @@
     def: 151
     spd: 150
     spe: 120
+  genderRatio:
+    - 0.2
+    - 0.8
   heightRange:
     - 55
     - 60
   weightRange:
     - 12
     - 17
-  genderRatio:
-    - 0.2
-    - 0.8
-  previous_form: 13
-  next_form: 15
-  evolution_level: 41
-  exp_type: 4
-  exp_yield: 97
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_gundongzhuiji
       level: 21
@@ -857,10 +856,21 @@
       level: 36
       hidden: false
   description: 呆呆葵能从周围的草木呼吸中 获得不断成长的能量
-  obtain_method: 荆棘林
   ability:
     - mark_ability_yangguang
-  emblem: *id005
+  emblem:
+    - mark_emblem_kangdu
+  previous_form: 13
+  next_form: 15
+  evolution_level: 41
+  exp_type: 4
+  exp_yield: 97
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 荆棘林
 - id: pet_xiaoxiaokui_1
   num: 15
   name: 笑笑葵
@@ -873,25 +883,15 @@
     def: 181
     spd: 180
     spe: 140
+  genderRatio:
+    - 0.2
+    - 0.8
   heightRange:
     - 94
     - 99
   weightRange:
     - 22
     - 27
-  genderRatio:
-    - 0.2
-    - 0.8
-  previous_form: 14
-  next_form: 0
-  evolution_level: 0
-  exp_type: 4
-  exp_yield: 127
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_wulicao
       level: 41
@@ -921,10 +921,21 @@
       level: 2001
       hidden: true
   description: 笑笑葵能用爽朗的笑声改变天气 将周围变成明媚的晴天
-  obtain_method: 荆棘林
   ability:
     - mark_ability_yangguang
-  emblem: *id005
+  emblem:
+    - mark_emblem_kangdu
+  previous_form: 14
+  next_form: 0
+  evolution_level: 0
+  exp_type: 4
+  exp_yield: 127
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 荆棘林
 - id: pet_buer
   num: 16
   name: 布尔
@@ -937,25 +948,15 @@
     def: 126
     spd: 110
     spe: 106
+  genderRatio:
+    - 0
+    - 1
   heightRange:
     - 65
     - 70
   weightRange:
     - 33
     - 38
-  genderRatio:
-    - 0.0
-    - 1.0
-  previous_form: 0
-  next_form: 17
-  evolution_level: 20
-  exp_type: 4
-  exp_yield: 70
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_chongfeng
       level: 1
@@ -976,11 +977,21 @@
       level: 17
       hidden: false
   description: 布尔的脂肪是它最有利的攻击武器
-  obtain_method: 巨石洞穴
   ability:
     - mark_ability_zhongya
-  emblem: &id006
+  emblem:
     - mark_emblem_zhongliang
+  previous_form: 0
+  next_form: 17
+  evolution_level: 20
+  exp_type: 4
+  exp_yield: 70
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 巨石洞穴
 - id: pet_bulutuo
   num: 17
   name: 布鲁托
@@ -993,25 +1004,15 @@
     def: 176
     spd: 155
     spe: 146
+  genderRatio:
+    - 0
+    - 1
   heightRange:
     - 134
     - 139
   weightRange:
     - 95
     - 100
-  genderRatio:
-    - 0.0
-    - 1.0
-  previous_form: 16
-  next_form: 0
-  evolution_level: 100
-  exp_type: 4
-  exp_yield: 120
-  catchable: 'No'
-  catch_rate: 0.392156862745098
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_qilingruoxiao
       level: 20
@@ -1047,10 +1048,21 @@
       level: 80
       hidden: true
   description: 布鲁托最喜欢坐在小树根的脑袋上 享受小精灵们的进贡
-  obtain_method: 巨石洞穴
   ability:
     - mark_ability_zhongya
-  emblem: *id006
+  emblem:
+    - mark_emblem_zhongliang
+  previous_form: 16
+  next_form: 0
+  evolution_level: 100
+  exp_type: 4
+  exp_yield: 120
+  catchable: No
+  catch_rate: 0.392156862745098
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 巨石洞穴
 - id: pet_xiaoshugen
   num: 18
   name: 小树根
@@ -1063,23 +1075,13 @@
     def: 125
     spd: 109
     spe: 90
+  genderRatio: null
   heightRange:
     - 35
     - 40
   weightRange:
     - 15
     - 20
-  genderRatio: null
-  previous_form: 0
-  next_form: 19
-  evolution_level: 26
-  exp_type: 3
-  exp_yield: 63
-  catchable: 'No'
-  catch_rate: 0.490196078431373
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_qiaoda
       level: 1
@@ -1100,11 +1102,21 @@
       level: 22
       hidden: false
   description: 小树根是非常胆小的精灵 一直被布鲁托欺负 垫在屁股下
-  obtain_method: 幻影崖
   ability:
     - mark_ability_jianqiang
-  emblem: &id007
+  emblem:
     - mark_emblem_shupi
+  previous_form: 0
+  next_form: 19
+  evolution_level: 26
+  exp_type: 3
+  exp_yield: 63
+  catchable: No
+  catch_rate: 0.490196078431373
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 幻影崖
 - id: pet_shugenshizhe
   num: 19
   name: 树根使者
@@ -1117,23 +1129,13 @@
     def: 175
     spd: 154
     spe: 139
+  genderRatio: null
   heightRange:
     - 82
     - 87
   weightRange:
     - 50
     - 55
-  genderRatio: null
-  previous_form: 18
-  next_form: 0
-  evolution_level: 0
-  exp_type: 3
-  exp_yield: 113
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_jianruiciji
       level: 26
@@ -1169,10 +1171,21 @@
       level: 2019
       hidden: true
   description: 勇敢的力量让小树根成长为树根使者 长出尖尖的木椎
-  obtain_method: 幻影崖
   ability:
     - mark_ability_jianqiang
-  emblem: *id007
+  emblem:
+    - mark_emblem_shupi
+  previous_form: 18
+  next_form: 0
+  evolution_level: 0
+  exp_type: 3
+  exp_yield: 113
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 幻影崖
 - id: pet_qilu
   num: 20
   name: 奇鲁
@@ -1185,25 +1198,15 @@
     def: 116
     spd: 123
     spe: 107
+  genderRatio:
+    - 0.8
+    - 0.2
   heightRange:
     - 31
     - 36
   weightRange:
     - 9
     - 14
-  genderRatio:
-    - 0.8
-    - 0.2
-  previous_form: 0
-  next_form: 21
-  evolution_level: 25
-  exp_type: 3
-  exp_yield: 64
-  catchable: 'No'
-  catch_rate: 0.490196078431373
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_touchui
       level: 1
@@ -1224,11 +1227,21 @@
       level: 21
       hidden: false
   description: 奇鲁在石头下出生 需要依靠自己的力量 将身上的大石顶开
-  obtain_method: 水仙草界
   ability:
     - mark_ability_liushui
-  emblem: &id008
+  emblem:
     - mark_emblem_shiming
+  previous_form: 0
+  next_form: 21
+  evolution_level: 25
+  exp_type: 3
+  exp_yield: 64
+  catchable: No
+  catch_rate: 0.490196078431373
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 水仙草界
 - id: pet_kuqilu
   num: 21
   name: 库奇鲁
@@ -1241,25 +1254,15 @@
     def: 161
     spd: 168
     spe: 147
+  genderRatio:
+    - 0.8
+    - 0.2
   heightRange:
     - 71
     - 76
   weightRange:
     - 35
     - 40
-  genderRatio:
-    - 0.8
-    - 0.2
-  previous_form: 20
-  next_form: 0
-  evolution_level: 0
-  exp_type: 3
-  exp_yield: 114
-  catchable: 'No'
-  catch_rate: 0.490196078431373
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_jingzhun
       level: 25
@@ -1295,10 +1298,21 @@
       level: 2001
       hidden: true
   description: 库奇鲁深信河流是精灵王的血液 它的职责是清除血液的障碍
-  obtain_method: 水仙草界
   ability:
     - mark_ability_liushui
-  emblem: *id008
+  emblem:
+    - mark_emblem_shiming
+  previous_form: 20
+  next_form: 0
+  evolution_level: 0
+  exp_type: 3
+  exp_yield: 114
+  catchable: No
+  catch_rate: 0.490196078431373
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 水仙草界
 - id: pet_gusi
   num: 22
   name: 古斯
@@ -1311,23 +1325,13 @@
     def: 114
     spd: 115
     spe: 92
+  genderRatio: null
   heightRange:
     - 32
     - 37
   weightRange:
     - 7
     - 12
-  genderRatio: null
-  previous_form: 0
-  next_form: 23
-  evolution_level: 19
-  exp_type: 3
-  exp_yield: 64
-  catchable: 'No'
-  catch_rate: 0.411764705882353
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_zhuangji
       level: 1
@@ -1342,11 +1346,21 @@
       level: 14
       hidden: false
   description: 古斯是非常胆小的精灵 隐藏在很深很深的荆棘里
-  obtain_method: 小小葵梦境
   ability:
     - mark_ability_duyao
-  emblem: &id009
+  emblem:
     - mark_emblem_duyao
+  previous_form: 0
+  next_form: 23
+  evolution_level: 19
+  exp_type: 3
+  exp_yield: 64
+  catchable: No
+  catch_rate: 0.411764705882353
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 小小葵梦境
 - id: pet_gujialuo
   num: 23
   name: 古加罗
@@ -1359,23 +1373,13 @@
     def: 144
     spd: 145
     spe: 112
+  genderRatio: null
   heightRange:
     - 59
     - 64
   weightRange:
     - 23
     - 28
-  genderRatio: null
-  previous_form: 22
-  next_form: 24
-  evolution_level: 39
-  exp_type: 3
-  exp_yield: 94
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_guluoheji
       level: 19
@@ -1390,10 +1394,21 @@
       level: 34
       hidden: false
   description: 胆小的古斯成长到一定阶段 会找到共生精灵 合体成古加罗
-  obtain_method: 小小葵梦境
   ability:
     - mark_ability_duyao
-  emblem: *id009
+  emblem:
+    - mark_emblem_duyao
+  previous_form: 22
+  next_form: 24
+  evolution_level: 39
+  exp_type: 3
+  exp_yield: 94
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 小小葵梦境
 - id: pet_gujialuosi
   num: 24
   name: 古加罗斯
@@ -1406,23 +1421,13 @@
     def: 174
     spd: 175
     spe: 132
+  genderRatio: null
   heightRange:
     - 103
     - 108
   weightRange:
     - 56
     - 61
-  genderRatio: null
-  previous_form: 23
-  next_form: 0
-  evolution_level: 0
-  exp_type: 3
-  exp_yield: 124
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_duzhibian
       level: 39
@@ -1452,10 +1457,21 @@
       level: 2023
       hidden: true
   description: 它们的能量共生、互补 进化为古加罗斯这时古斯不再胆小
-  obtain_method: 小小葵梦境
   ability:
     - mark_ability_duyao
-  emblem: *id009
+  emblem:
+    - mark_emblem_duyao
+  previous_form: 23
+  next_form: 0
+  evolution_level: 0
+  exp_type: 3
+  exp_yield: 124
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 小小葵梦境
 - id: pet_anke
   num: 25
   name: 安可
@@ -1468,25 +1484,15 @@
     def: 115
     spd: 113
     spe: 106
+  genderRatio:
+    - 0.5
+    - 0.5
   heightRange:
     - 34
     - 39
   weightRange:
     - 9
     - 14
-  genderRatio:
-    - 0.5
-    - 0.5
-  previous_form: 0
-  next_form: 26
-  evolution_level: 18
-  exp_type: 3
-  exp_yield: 66
-  catchable: 'No'
-  catch_rate: 0.470588235294118
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_chouda
       level: 1
@@ -1501,11 +1507,21 @@
       level: 13
       hidden: false
   description: 安可是谜一样的精灵 身为水系精灵的它 无法在水下呼吸
-  obtain_method: 狂暴旋涡
   ability:
     - mark_ability_kongqi
-  emblem: &id010
+  emblem:
     - mark_emblem_zhixi
+  previous_form: 0
+  next_form: 26
+  evolution_level: 18
+  exp_type: 3
+  exp_yield: 66
+  catchable: No
+  catch_rate: 0.470588235294118
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 狂暴旋涡
 - id: pet_anya
   num: 26
   name: 安亚
@@ -1518,25 +1534,15 @@
     def: 140
     spd: 138
     spe: 126
+  genderRatio:
+    - 0.5
+    - 0.5
   heightRange:
     - 56
     - 61
   weightRange:
     - 18
     - 23
-  genderRatio:
-    - 0.5
-    - 0.5
-  previous_form: 25
-  next_form: 27
-  evolution_level: 38
-  exp_type: 3
-  exp_yield: 96
-  catchable: 'No'
-  catch_rate: 0.470588235294118
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_kongqipao
       level: 18
@@ -1551,10 +1557,21 @@
       level: 33
       hidden: false
   description: 安亚能将头上的水泡渐渐转变为保护自己的呼吸罩
-  obtain_method: 狂暴旋涡
   ability:
     - mark_ability_kongqi
-  emblem: *id010
+  emblem:
+    - mark_emblem_zhixi
+  previous_form: 25
+  next_form: 27
+  evolution_level: 38
+  exp_type: 3
+  exp_yield: 96
+  catchable: No
+  catch_rate: 0.470588235294118
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 狂暴旋涡
 - id: pet_anmiya
   num: 27
   name: 安迷亚
@@ -1567,25 +1584,15 @@
     def: 165
     spd: 163
     spe: 146
+  genderRatio:
+    - 0.5
+    - 0.5
   heightRange:
     - 96
     - 101
   weightRange:
     - 43
     - 48
-  genderRatio:
-    - 0.5
-    - 0.5
-  previous_form: 26
-  next_form: 0
-  evolution_level: 0
-  exp_type: 3
-  exp_yield: 126
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_gaoyashuipao
       level: 38
@@ -1615,10 +1622,21 @@
       level: 2026
       hidden: true
   description: 强大的安迷亚 让呼吸罩成为了它最强的防护和能量来源
-  obtain_method: 狂暴旋涡
   ability:
     - mark_ability_kongqi
-  emblem: *id010
+  emblem:
+    - mark_emblem_zhixi
+  previous_form: 26
+  next_form: 0
+  evolution_level: 0
+  exp_type: 3
+  exp_yield: 126
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 狂暴旋涡
 - id: pet_lanmiao
   num: 28
   name: 蓝喵
@@ -1631,25 +1649,15 @@
     def: 118
     spd: 117
     spe: 110
+  genderRatio:
+    - 0.3
+    - 0.7
   heightRange:
     - 40
     - 45
   weightRange:
     - 27
     - 34
-  genderRatio:
-    - 0.3
-    - 0.7
-  previous_form: 0
-  next_form: 29
-  evolution_level: 31
-  exp_type: 3
-  exp_yield: 65
-  catchable: 'No'
-  catch_rate: 0.470588235294118
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_chongzhuang
       level: 1
@@ -1670,11 +1678,21 @@
       level: 25
       hidden: false
   description: 最大胆妄为的蓝喵敢用坚硬的脑袋去冲撞任何物体
-  obtain_method: 残骸通道
   ability:
     - mark_ability_fengli
-  emblem: &id011
+  emblem:
     - mark_emblem_xingzhi
+  previous_form: 0
+  next_form: 29
+  evolution_level: 31
+  exp_type: 3
+  exp_yield: 65
+  catchable: No
+  catch_rate: 0.470588235294118
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 残骸通道
 - id: pet_lanhujing
   num: 29
   name: 蓝虎鲸
@@ -1687,25 +1705,15 @@
     def: 168
     spd: 162
     spe: 150
+  genderRatio:
+    - 0.3
+    - 0.7
   heightRange:
     - 100
     - 105
   weightRange:
     - 130
     - 135
-  genderRatio:
-    - 0.3
-    - 0.7
-  previous_form: 28
-  next_form: 0
-  evolution_level: 0
-  exp_type: 3
-  exp_yield: 115
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_yingjiachongding
       level: 31
@@ -1741,10 +1749,21 @@
       level: 2028
       hidden: true
   description: 蓝虎鲸最大的目标 就是撞破阿卡纳斯的水纹护盾
-  obtain_method: 残骸通道
   ability:
     - mark_ability_fengli
-  emblem: *id011
+  emblem:
+    - mark_emblem_xingzhi
+  previous_form: 28
+  next_form: 0
+  evolution_level: 0
+  exp_type: 3
+  exp_yield: 115
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 残骸通道
 - id: pet_aka
   num: 30
   name: 阿卡
@@ -1757,25 +1776,15 @@
     def: 120
     spd: 120
     spe: 108
+  genderRatio:
+    - 0
+    - 1
   heightRange:
     - 53
     - 58
   weightRange:
     - 29
     - 34
-  genderRatio:
-    - 0.0
-    - 1.0
-  previous_form: 0
-  next_form: 31
-  evolution_level: 29
-  exp_type: 4
-  exp_yield: 70
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_paida
       level: 1
@@ -1796,11 +1805,21 @@
       level: 25
       hidden: false
   description: 阿卡从小就是水上霸主 这是所有水系精灵都不会否认的事实
-  obtain_method: 悲伤残骸
   ability:
     - mark_ability_chaoshi
-  emblem: &id012
+  emblem:
     - mark_emblem_zhenji
+  previous_form: 0
+  next_form: 31
+  evolution_level: 29
+  exp_type: 4
+  exp_yield: 70
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 悲伤残骸
 - id: pet_akanasi
   num: 31
   name: 阿卡纳斯
@@ -1813,25 +1832,15 @@
     def: 170
     spd: 170
     spe: 148
+  genderRatio:
+    - 0
+    - 1
   heightRange:
     - 139
     - 144
   weightRange:
     - 135
     - 140
-  genderRatio:
-    - 0.0
-    - 1.0
-  previous_form: 30
-  next_form: 0
-  evolution_level: 100
-  exp_type: 4
-  exp_yield: 120
-  catchable: 'No'
-  catch_rate: 0.372549019607843
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_shuiwenpingzhang
       level: 30
@@ -1867,10 +1876,21 @@
       level: 80
       hidden: true
   description: 蓝虎鲸的冲撞 激发了阿卡纳斯真正的防护能量 撑开了水盾
-  obtain_method: 悲伤残骸
   ability:
     - mark_ability_chaoshi
-  emblem: *id012
+  emblem:
+    - mark_emblem_zhenji
+  previous_form: 30
+  next_form: 0
+  evolution_level: 100
+  exp_type: 4
+  exp_yield: 120
+  catchable: No
+  catch_rate: 0.372549019607843
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 悲伤残骸
 - id: pet_youni
   num: 32
   name: 尤尼
@@ -1883,25 +1903,15 @@
     def: 113
     spd: 114
     spe: 117
+  genderRatio:
+    - 0.2
+    - 0.8
   heightRange:
     - 43
     - 48
   weightRange:
     - 19
     - 24
-  genderRatio:
-    - 0.2
-    - 0.8
-  previous_form: 0
-  next_form: 33
-  evolution_level: 31
-  exp_type: 3
-  exp_yield: 67
-  catchable: 'No'
-  catch_rate: 0.490196078431373
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_chongfeng
       level: 1
@@ -1922,11 +1932,21 @@
       level: 26
       hidden: false
   description: 尤尼生活在火山周围 非常好动 喜欢自己蜷成球到处冲撞
-  obtain_method: 幻空通道
   ability:
     - mark_ability_ranshao
-  emblem: &id013
+  emblem:
     - mark_emblem_yiran
+  previous_form: 0
+  next_form: 33
+  evolution_level: 31
+  exp_type: 3
+  exp_yield: 67
+  catchable: No
+  catch_rate: 0.490196078431373
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 幻空通道
 - id: pet_qiaoni
   num: 33
   name: 乔尼
@@ -1939,25 +1959,15 @@
     def: 158
     spd: 159
     spe: 162
+  genderRatio:
+    - 0.2
+    - 0.8
   heightRange:
     - 82
     - 87
   weightRange:
     - 46
     - 51
-  genderRatio:
-    - 0.2
-    - 0.8
-  previous_form: 32
-  next_form: 0
-  evolution_level: 0
-  exp_type: 3
-  exp_yield: 117
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_huoyanchongzhuang
       level: 31
@@ -1993,10 +2003,21 @@
       level: 2019
       hidden: true
   description: 有传言 乔尼身后的火焰促使它需要不断冲撞 消耗多余能量
-  obtain_method: 幻空通道
   ability:
     - mark_ability_ranshao
-  emblem: *id013
+  emblem:
+    - mark_emblem_yiran
+  previous_form: 32
+  next_form: 0
+  evolution_level: 0
+  exp_type: 3
+  exp_yield: 117
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 幻空通道
 - id: pet_xiaoyanfu
   num: 34
   name: 小岩浮
@@ -2009,25 +2030,15 @@
     def: 109
     spd: 111
     spe: 110
+  genderRatio:
+    - 0.8
+    - 0.2
   heightRange:
     - 44
     - 49
   weightRange:
     - 20
     - 25
-  genderRatio:
-    - 0.8
-    - 0.2
-  previous_form: 0
-  next_form: 35
-  evolution_level: 17
-  exp_type: 3
-  exp_yield: 66
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_zhuangji
       level: 1
@@ -2042,11 +2053,21 @@
       level: 13
       hidden: false
   description: 小岩浮喜欢成群结队的出现 用大钳子在火山口不停的翻找
-  obtain_method: 灰烬之地
   ability:
     - mark_ability_xuanyun
-  emblem: &id014
+  emblem:
     - mark_emblem_xuanyun
+  previous_form: 0
+  next_form: 35
+  evolution_level: 17
+  exp_type: 3
+  exp_yield: 66
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 灰烬之地
 - id: pet_dajiaoyanfu
   num: 35
   name: 大角岩浮
@@ -2059,25 +2080,15 @@
     def: 134
     spd: 136
     spe: 130
+  genderRatio:
+    - 0.8
+    - 0.2
   heightRange:
     - 61
     - 66
   weightRange:
     - 36
     - 41
-  genderRatio:
-    - 0.8
-    - 0.2
-  previous_form: 34
-  next_form: 36
-  evolution_level: 37
-  exp_type: 3
-  exp_yield: 96
-  catchable: 'No'
-  catch_rate: 0.470588235294118
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_daliqian
       level: 17
@@ -2092,10 +2103,21 @@
       level: 32
       hidden: false
   description: 它似乎在火山口 不停的寻找遗失的某个重要东西
-  obtain_method: 灰烬之地
   ability:
     - mark_ability_xuanyun
-  emblem: *id014
+  emblem:
+    - mark_emblem_xuanyun
+  previous_form: 34
+  next_form: 36
+  evolution_level: 37
+  exp_type: 3
+  exp_yield: 96
+  catchable: No
+  catch_rate: 0.470588235294118
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 灰烬之地
 - id: pet_dajiangyanfu
   num: 36
   name: 大将岩浮
@@ -2108,25 +2130,15 @@
     def: 159
     spd: 161
     spe: 150
+  genderRatio:
+    - 0.8
+    - 0.2
   heightRange:
     - 95
     - 100
   weightRange:
     - 57
     - 62
-  genderRatio:
-    - 0.8
-    - 0.2
-  previous_form: 35
-  next_form: 0
-  evolution_level: 0
-  exp_type: 3
-  exp_yield: 126
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_guailiqian
       level: 37
@@ -2156,10 +2168,21 @@
       level: 2036
       hidden: true
   description: 它最担心的就是遇上乔尼 这个顽皮的家伙总喜欢把它撞倒
-  obtain_method: 灰烬之地
   ability:
     - mark_ability_xuanyun
-  emblem: *id014
+  emblem:
+    - mark_emblem_xuanyun
+  previous_form: 35
+  next_form: 0
+  evolution_level: 0
+  exp_type: 3
+  exp_yield: 126
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 灰烬之地
 - id: pet_huoke
   num: 37
   name: 霍克
@@ -2172,25 +2195,15 @@
     def: 110
     spd: 110
     spe: 118
+  genderRatio:
+    - 0
+    - 1
   heightRange:
     - 45
     - 50
   weightRange:
     - 21
     - 26
-  genderRatio:
-    - 0.0
-    - 1.0
-  previous_form: 0
-  next_form: 38
-  evolution_level: 29
-  exp_type: 4
-  exp_yield: 70
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_lizhua
       level: 1
@@ -2211,11 +2224,21 @@
       level: 24
       hidden: false
   description: 霍克是自卑而孤独的精灵 经常受欺负也趴着一动不动
-  obtain_method: 焰之森
   ability:
     - mark_ability_yangyan
-  emblem: &id015
+  emblem:
     - mark_emblem_weiyan
+  previous_form: 0
+  next_form: 38
+  evolution_level: 29
+  exp_type: 4
+  exp_yield: 70
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 焰之森
 - id: pet_huokenuer
   num: 38
   name: 霍克努尔
@@ -2228,25 +2251,15 @@
     def: 155
     spd: 155
     spe: 163
+  genderRatio:
+    - 0
+    - 1
   heightRange:
     - 85
     - 90
   weightRange:
     - 58
     - 63
-  genderRatio:
-    - 0.0
-    - 1.0
-  previous_form: 37
-  next_form: 0
-  evolution_level: 100
-  exp_type: 4
-  exp_yield: 120
-  catchable: 'No'
-  catch_rate: 0.352941176470588
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_julizhizhao
       level: 29
@@ -2282,10 +2295,21 @@
       level: 80
       hidden: true
   description: 当霍克的怒火如火山般的喷发 它成长为了强大的霍克努尔
-  obtain_method: 焰之森
   ability:
     - mark_ability_yangyan
-  emblem: *id015
+  emblem:
+    - mark_emblem_weiyan
+  previous_form: 37
+  next_form: 0
+  evolution_level: 100
+  exp_type: 4
+  exp_yield: 120
+  catchable: No
+  catch_rate: 0.352941176470588
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 焰之森
 - id: pet_xiaochitun
   num: 39
   name: 小赤豚
@@ -2298,25 +2322,15 @@
     def: 114
     spd: 113
     spe: 118
+  genderRatio:
+    - 0.5
+    - 0.5
   heightRange:
     - 38
     - 43
   weightRange:
     - 20
     - 25
-  genderRatio:
-    - 0.5
-    - 0.5
-  previous_form: 0
-  next_form: 40
-  evolution_level: 27
-  exp_type: 4
-  exp_yield: 68
-  catchable: 'No'
-  catch_rate: 0.470588235294118
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_zhuangji
       level: 1
@@ -2337,11 +2351,21 @@
       level: 22
       hidden: false
   description: 传说 小赤豚是神手在勾画强大精灵时 遗落的星火化身出的
-  obtain_method: 赤链山脉
   ability:
     - mark_ability_qianggong
-  emblem: &id016
+  emblem:
     - mark_emblem_yanhuo
+  previous_form: 0
+  next_form: 40
+  evolution_level: 27
+  exp_type: 4
+  exp_yield: 68
+  catchable: No
+  catch_rate: 0.470588235294118
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 赤链山脉
 - id: pet_chiyanshou
   num: 40
   name: 赤焰兽
@@ -2354,25 +2378,15 @@
     def: 159
     spd: 158
     spe: 163
+  genderRatio:
+    - 0.5
+    - 0.5
   heightRange:
     - 63
     - 68
   weightRange:
     - 48
     - 53
-  genderRatio:
-    - 0.5
-    - 0.5
-  previous_form: 39
-  next_form: 0
-  evolution_level: 0
-  exp_type: 4
-  exp_yield: 118
-  catchable: 'No'
-  catch_rate: 0.470588235294118
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_lieyanzhuangji
       level: 27
@@ -2408,10 +2422,21 @@
       level: 2033
       hidden: true
   description: 赤焰兽坚硬如铁石的大嘴 能吸收火山熔浆的神奇力量
-  obtain_method: 赤链山脉
   ability:
     - mark_ability_qianggong
-  emblem: *id016
+  emblem:
+    - mark_emblem_yanhuo
+  previous_form: 39
+  next_form: 0
+  evolution_level: 0
+  exp_type: 4
+  exp_yield: 118
+  catchable: No
+  catch_rate: 0.470588235294118
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 赤链山脉
 - id: pet_shuimodiandian
   num: 41
   name: 水墨点点
@@ -2424,25 +2449,15 @@
     def: 113
     spd: 114
     spe: 110
+  genderRatio:
+    - 0.8
+    - 0.2
   heightRange:
     - 33
     - 38
   weightRange:
     - 6
     - 11
-  genderRatio:
-    - 0.8
-    - 0.2
-  previous_form: 0
-  next_form: 42
-  evolution_level: 28
-  exp_type: 4
-  exp_yield: 68
-  catchable: 'No'
-  catch_rate: 0.274509803921569
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_chongfeng
       level: 1
@@ -2463,11 +2478,21 @@
       level: 23
       hidden: false
   description: 水墨点点从小就被嘲笑 只能在水中行走 而不能畅游
-  obtain_method: 银脉山脊
   ability:
     - mark_ability_guanghua
-  emblem: &id017
+  emblem:
     - mark_emblem_xuruo
+  previous_form: 0
+  next_form: 42
+  evolution_level: 28
+  exp_type: 4
+  exp_yield: 68
+  catchable: No
+  catch_rate: 0.274509803921569
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 银脉山脊
 - id: pet_shuimofeima
   num: 42
   name: 水墨飞马
@@ -2480,25 +2505,15 @@
     def: 158
     spd: 159
     spe: 155
+  genderRatio:
+    - 0.8
+    - 0.2
   heightRange:
     - 88
     - 93
   weightRange:
     - 24
     - 29
-  genderRatio:
-    - 0.8
-    - 0.2
-  previous_form: 41
-  next_form: 0
-  evolution_level: 100
-  exp_type: 4
-  exp_yield: 118
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_talangchongfeng
       level: 28
@@ -2534,10 +2549,21 @@
       level: 80
       hidden: true
   description: 经过艰难的成长 强韧的双翼让水墨飞马游得像箭一样快
-  obtain_method: 银脉山脊
   ability:
     - mark_ability_guanghua
-  emblem: *id017
+  emblem:
+    - mark_emblem_xuruo
+  previous_form: 41
+  next_form: 0
+  evolution_level: 100
+  exp_type: 4
+  exp_yield: 118
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 银脉山脊
 - id: pet_jiujiu
   num: 43
   name: 啾啾
@@ -2550,25 +2576,15 @@
     def: 112
     spd: 114
     spe: 102
+  genderRatio:
+    - 0.6
+    - 0.4
   heightRange:
     - 27
     - 32
   weightRange:
     - 10
     - 15
-  genderRatio:
-    - 0.6
-    - 0.4
-  previous_form: 0
-  next_form: 44
-  evolution_level: 18
-  exp_type: 3
-  exp_yield: 66
-  catchable: 'No'
-  catch_rate: 0.588235294117647
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_chongzhuang
       level: 1
@@ -2583,11 +2599,21 @@
       level: 13
       hidden: false
   description: 啾啾是非常迷糊的小精灵 经常碰壁
-  obtain_method: 朽木桥
   ability:
     - mark_ability_qingying
-  emblem: &id018
+  emblem:
     - mark_emblem_xinsuo
+  previous_form: 0
+  next_form: 44
+  evolution_level: 18
+  exp_type: 3
+  exp_yield: 66
+  catchable: No
+  catch_rate: 0.588235294117647
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 朽木桥
 - id: pet_weinijiujiu
   num: 44
   name: 维尼啾啾
@@ -2600,25 +2626,15 @@
     def: 137
     spd: 144
     spe: 122
+  genderRatio:
+    - 0.6
+    - 0.4
   heightRange:
     - 42
     - 47
   weightRange:
     - 20
     - 25
-  genderRatio:
-    - 0.6
-    - 0.4
-  previous_form: 43
-  next_form: 45
-  evolution_level: 38
-  exp_type: 3
-  exp_yield: 96
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_xinlianxin
       level: 18
@@ -2633,10 +2649,21 @@
       level: 33
       hidden: false
   description: 维尼啾啾很迷糊 经常碰壁它被撞到的大黑眼圈 总也不消
-  obtain_method: 朽木桥
   ability:
     - mark_ability_qingying
-  emblem: *id018
+  emblem:
+    - mark_emblem_xinsuo
+  previous_form: 43
+  next_form: 45
+  evolution_level: 38
+  exp_type: 3
+  exp_yield: 96
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 朽木桥
 - id: pet_kadunjiujiu
   num: 45
   name: 卡顿啾啾
@@ -2649,25 +2676,15 @@
     def: 162
     spd: 174
     spe: 142
+  genderRatio:
+    - 0.6
+    - 0.4
   heightRange:
     - 79
     - 84
   weightRange:
     - 94
     - 99
-  genderRatio:
-    - 0.6
-    - 0.4
-  previous_form: 44
-  next_form: 0
-  evolution_level: 0
-  exp_type: 3
-  exp_yield: 126
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_hongxinyu
       level: 38
@@ -2697,10 +2714,21 @@
       level: 2019
       hidden: true
   description: 卡顿强壮的双臂能把障碍扫开 却常被反弹的东西撞成黑眼圈
-  obtain_method: 朽木桥
   ability:
     - mark_ability_qingying
-  emblem: *id018
+  emblem:
+    - mark_emblem_xinsuo
+  previous_form: 44
+  next_form: 0
+  evolution_level: 0
+  exp_type: 3
+  exp_yield: 126
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 朽木桥
 - id: pet_tangni
   num: 46
   name: 汤尼
@@ -2713,25 +2741,15 @@
     def: 113
     spd: 110
     spe: 109
+  genderRatio:
+    - 0.5
+    - 0.5
   heightRange:
     - 30
     - 35
   weightRange:
     - 11
     - 16
-  genderRatio:
-    - 0.5
-    - 0.5
-  previous_form: 0
-  next_form: 47
-  evolution_level: 17
-  exp_type: 3
-  exp_yield: 64
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_paida
       level: 1
@@ -2746,11 +2764,21 @@
       level: 12
       hidden: false
   description: 汤尼来自一个彩虹山谷 拥有像石头一般坚硬的双拳
-  obtain_method: 英格瓦要塞
   ability:
     - mark_ability_pianxie
-  emblem: &id019
+  emblem:
     - mark_emblem_huizhi
+  previous_form: 0
+  next_form: 47
+  evolution_level: 17
+  exp_type: 3
+  exp_yield: 64
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 英格瓦要塞
 - id: pet_taini
   num: 47
   name: 泰尼
@@ -2763,25 +2791,15 @@
     def: 138
     spd: 135
     spe: 129
+  genderRatio:
+    - 0.5
+    - 0.5
   heightRange:
     - 46
     - 51
   weightRange:
     - 27
     - 32
-  genderRatio:
-    - 0.5
-    - 0.5
-  previous_form: 46
-  next_form: 48
-  evolution_level: 37
-  exp_type: 3
-  exp_yield: 94
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_bandao
       level: 17
@@ -2796,10 +2814,21 @@
       level: 32
       hidden: false
   description: 被守护师收服后 泰尼跟随他来到了赛尔号的竞技场
-  obtain_method: 英格瓦要塞
   ability:
     - mark_ability_pianxie
-  emblem: *id019
+  emblem:
+    - mark_emblem_huizhi
+  previous_form: 46
+  next_form: 48
+  evolution_level: 37
+  exp_type: 3
+  exp_yield: 94
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 英格瓦要塞
 - id: pet_luni
   num: 48
   name: 鲁尼
@@ -2812,25 +2841,15 @@
     def: 163
     spd: 160
     spe: 149
+  genderRatio:
+    - 0.5
+    - 0.5
   heightRange:
     - 89
     - 94
   weightRange:
     - 79
     - 84
-  genderRatio:
-    - 0.5
-    - 0.5
-  previous_form: 47
-  next_form: 0
-  evolution_level: 0
-  exp_type: 3
-  exp_yield: 124
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_baiguangpao
       level: 37
@@ -2860,10 +2879,21 @@
       level: 80
       hidden: true
   description: 不停的锻炼 让鲁尼成为了竞技场上最震撼的拳手
-  obtain_method: 英格瓦要塞
   ability:
     - mark_ability_pianxie
-  emblem: *id019
+  emblem:
+    - mark_emblem_huizhi
+  previous_form: 47
+  next_form: 0
+  evolution_level: 0
+  exp_type: 3
+  exp_yield: 124
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 英格瓦要塞
 - id: pet_duomo
   num: 49
   name: 多摩
@@ -2876,25 +2906,15 @@
     def: 121
     spd: 121
     spe: 103
+  genderRatio:
+    - 0.7
+    - 0.3
   heightRange:
     - 32
     - 37
   weightRange:
     - 10
     - 15
-  genderRatio:
-    - 0.7
-    - 0.3
-  previous_form: 0
-  next_form: 50
-  evolution_level: 28
-  exp_type: 3
-  exp_yield: 67
-  catchable: 'No'
-  catch_rate: 0.470588235294118
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_chongfeng
       level: 1
@@ -2915,11 +2935,21 @@
       level: 23
       hidden: false
   description: 多摩是很古怪的精灵 平日昏昏沉沉 爱打呵欠做白日梦
-  obtain_method: 焰之森
   ability:
     - mark_ability_yinwang
-  emblem: &id020
+  emblem:
     - mark_emblem_yinbo
+  previous_form: 0
+  next_form: 50
+  evolution_level: 28
+  exp_type: 3
+  exp_yield: 67
+  catchable: No
+  catch_rate: 0.470588235294118
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 焰之森
 - id: pet_duomosang
   num: 50
   name: 多摩桑
@@ -2932,25 +2962,15 @@
     def: 166
     spd: 166
     spe: 148
+  genderRatio:
+    - 0.7
+    - 0.3
   heightRange:
     - 87
     - 92
   weightRange:
     - 77
     - 82
-  genderRatio:
-    - 0.7
-    - 0.3
-  previous_form: 49
-  next_form: 0
-  evolution_level: 0
-  exp_type: 3
-  exp_yield: 117
-  catchable: 'No'
-  catch_rate: '-'
-  rideable: 'No'
-  team_limit: '-'
-  god_transform_id: null
   learnable_skills:
     - skill_id: skill_jinyin
       level: 28
@@ -2986,7 +3006,18 @@
       level: 2051
       hidden: true
   description: 声波攻击是多摩桑最强的必杀 传闻X字是能量未释放的刻印
-  obtain_method: 焰之森
   ability:
     - mark_ability_yinwang
-  emblem: *id020
+  emblem:
+    - mark_emblem_yinbo
+  previous_form: 49
+  next_form: 0
+  evolution_level: 0
+  exp_type: 3
+  exp_yield: 117
+  catchable: No
+  catch_rate: "-"
+  rideable: No
+  team_limit: "-"
+  god_transform_id: null
+  obtain_method: 焰之森
