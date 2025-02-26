@@ -46,9 +46,13 @@
 
       <!-- 分页数据区 -->
       <el-table :data="paginatedData" v-loading="loading" border stripe height="calc(100vh - 180px)" size="small">
+        <el-table-column label="操作" width="120" fixed="right">
+          <template #default="{ $index }">
+            <el-button type="danger" size="small" :icon="Delete" @click="removeItem($index)" circle />
+          </template>
+        </el-table-column>
         <el-table-column v-for="col in columns" :key="col.prop" :prop="col.prop" :label="col.label" min-width="150">
           <template #default="{ row, $index }">
-            <span v-if="getValueByPath(row, col.prop) === undefined" class="optional-tag">(可选)</span>
             <component v-if="col.render" :is="col.render(row)" />
             <el-input
               v-else
@@ -227,14 +231,27 @@ const addNewItem = () => {
   markDirty('data', currentData.value.data.length - 1)
 }
 
-const removeItem = (index: number) => {
+const removeItem = (pageIndex: number) => {
   if (!currentData.value) return
-  currentData.value.data.splice(index, 1)
-  markDirty('data', index)
+
+  // 获取实际数据索引
+  const start = (currentPage.value - 1) * pageSize.value
+  const actualIndex = start + pageIndex
+
+  // 执行删除
+  currentData.value.data.splice(actualIndex, 1)
+  markDirty('data', actualIndex)
+
+  // 自动调整页码
+  if (paginatedData.value.length === 1 && currentPage.value > 1) {
+    currentPage.value--
+  }
 }
 
 const createTemplate = (type: keyof typeof SCHEMA_MAP) => {
   const schema = SCHEMA_MAP[type]
+
+  // @ts-ignore
   const template = generateMock(schema)
 
   const cleanOptionalFields = (obj: any, currentSchema: z.ZodTypeAny): any => {
@@ -354,7 +371,7 @@ const generateColumns = (schema: z.ZodObject<any>, prefix = ''): ColumnConfig[] 
         render: row =>
           h(ArrayTagCell, {
             items: getValueByPath(row, currentPath) || [],
-            onUpdate: val => {
+            'onUpdate:modelValue': val => {
               setValueByPath(row, currentPath, val)
               markDirty(currentPath)
             },
@@ -370,8 +387,9 @@ const generateColumns = (schema: z.ZodObject<any>, prefix = ''): ColumnConfig[] 
             modelValue: getValueByPath(row, currentPath),
             schema: field,
             label: key.replace(/_/g, ' '),
-            onChange: val => {
-              setValueByPath(row, currentPath, val)
+            'onUpdate:modelValue': val => {
+              const newValue = val
+              setValueByPath(row, currentPath, newValue)
               markDirty(currentPath)
             },
           }),

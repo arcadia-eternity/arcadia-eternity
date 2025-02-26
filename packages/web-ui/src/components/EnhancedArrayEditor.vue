@@ -29,7 +29,7 @@ const props = defineProps<{
   type: 'skill' | 'ability' | 'emblem'
 }>()
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['onUpdate:modelValue'])
 
 const gameData = useGameDataStore()
 const isEditing = ref(false)
@@ -54,7 +54,7 @@ const startEdit = () => {
 }
 
 const confirmEdit = () => {
-  emit('update:modelValue', tempValue.value)
+  emit('onUpdate:modelValue', tempValue.value)
   isEditing.value = false
 }
 
