@@ -11,7 +11,7 @@ import {
 import type { OwnedEntity, Prototype } from '@test-battle/battle/entity'
 import { EffectTrigger, Element, type StatOnBattle, type StatTypeOnBattle } from '@test-battle/const'
 import type { Action, Condition, Evaluator, Operator, TargetSelector, ValueExtractor } from './effectBuilder'
-import { createExtractor, type Path } from './extractor'
+import { createExtractor } from './extractor'
 
 export type PropertyRef<T, V> = {
   get: () => V
@@ -47,8 +47,8 @@ export class ChainableSelector<T extends SelectorOpinion> {
     ) as T extends object ? ChainableSelector<PropertyRef<NonNullable<T>, NonNullable<T>[K]>> : never
   }
 
-  selectPath<P extends string>(path: P): ChainableSelector<Path<T, P>> {
-    return this.select(createExtractor<T, P>(path)) as ChainableSelector<Path<T, P>>
+  selectPath<P extends string>(path: P) {
+    return this.select(createExtractor<T, P>(path))
   }
 
   //选择一组对象的某一个参数

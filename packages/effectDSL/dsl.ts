@@ -109,12 +109,26 @@ export type SelectorDSL =
       base: BaseSelector
       chain?: Array<SelectorChain>
     }
+
 export type SelectStepDSL = {
   type: 'select'
-  arg: keyof typeof Extractor | string
+  arg: keyof typeof Extractor
 }
+
+export type SelectPathDSL = {
+  type: 'selectPath'
+  arg: string
+}
+
+export type SelectPropDSL = {
+  type: 'selectProp'
+  arg: string
+}
+
 type SelectorChain =
   | SelectStepDSL
+  | SelectPathDSL
+  | SelectPropDSL
   | {
       type: 'where'
       arg: EvaluatorDSL

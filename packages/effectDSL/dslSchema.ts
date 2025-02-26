@@ -70,7 +70,15 @@ export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
   z.union([
     z.object({
       type: z.literal('select'),
-      arg: z.union([extractorSchema, z.string()]),
+      arg: extractorSchema,
+    }),
+    z.object({
+      type: z.literal('selectPath'),
+      arg: z.string(),
+    }),
+    z.object({
+      type: z.literal('selectProp'),
+      arg: z.string(),
     }),
     z.object({
       type: z.literal('where'),

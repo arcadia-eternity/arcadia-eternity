@@ -51,6 +51,14 @@ export const Extractor: ExtractorMap = {
   tags: (mark: MarkInstance) => mark.tags,
 }
 
+type SelectorOpinionPath<T> = T extends SelectorOpinion
+  ? T
+  : T extends Array<infer U>
+    ? U extends SelectorOpinion
+      ? T
+      : never
+    : never
+
 export type Path<T, P extends string> = P extends `.${infer Rest}`
   ? Path<T, Rest>
   : P extends `${infer Head}[]${infer Tail}`
@@ -66,7 +74,7 @@ export type Path<T, P extends string> = P extends `.${infer Rest}`
         ? Path<T[Head], Tail>
         : never
       : P extends keyof T
-        ? T[P] // 此处能正确识别数组
+        ? SelectorOpinionPath<T[P]> // 此处能正确识别数组
         : never
 
 export function createExtractor<T, P extends string>(path: P): (target: T) => Path<T, P> {
