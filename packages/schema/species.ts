@@ -7,30 +7,32 @@ const LearnableSkillSchema = z.object({
   hidden: z.boolean(),
 })
 
-export const SpeciesSchema = z.object({
-  id: z.string().min(1),
-  num: z.number(),
-  name: z.string(),
-  element: ElementSchema,
-  star: z.number(),
-  baseStats: z.object({
-    hp: z.number(),
-    atk: z.number(),
-    spa: z.number(),
-    def: z.number(),
-    spd: z.number(),
-    spe: z.number(),
-  }),
-  genderRatio: z.tuple([z.number(), z.number()]).nullable(),
-  heightRange: z.tuple([z.number(), z.number()]),
-  weightRange: z.tuple([z.number(), z.number()]),
-  previous_form: z.number(),
-  next_form: z.number(),
-  learnable_skills: z.array(LearnableSkillSchema),
-  description: z.string(),
-  ability: z.array(z.string()),
-  emblem: z.array(z.string()),
-})
+export const SpeciesSchema = z
+  .object({
+    id: z.string().min(1),
+    num: z.number(),
+    name: z.string(),
+    element: ElementSchema,
+    star: z.number(),
+    baseStats: z.object({
+      hp: z.number(),
+      atk: z.number(),
+      spa: z.number(),
+      def: z.number(),
+      spd: z.number(),
+      spe: z.number(),
+    }),
+    genderRatio: z.tuple([z.number(), z.number()]).nullable(),
+    heightRange: z.tuple([z.number(), z.number()]),
+    weightRange: z.tuple([z.number(), z.number()]),
+    previous_form: z.number(),
+    next_form: z.number(),
+    learnable_skills: z.array(LearnableSkillSchema),
+    description: z.string(),
+    ability: z.array(z.string()),
+    emblem: z.array(z.string()),
+  })
+  .passthrough()
 
 export type Species = z.infer<typeof SpeciesSchema>
 

@@ -188,7 +188,7 @@
           "ability",
           "emblem"
         ],
-        "additionalProperties": false
+        "additionalProperties": true
       }
     }
   }

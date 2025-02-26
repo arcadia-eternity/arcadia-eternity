@@ -4,6 +4,9 @@
     "lib": ["ESNext"],
     "module": "ESNext",
     "target": "ESNext",
+    "paths": {
+      "@data/": ["./data"]
+    },
     "outDir": "./dist/",
     "moduleResolution": "bundler",
     "forceConsistentCasingInFileNames": true,

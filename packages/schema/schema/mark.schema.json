@@ -71,7 +71,7 @@
           "name",
           "description"
         ],
-        "additionalProperties": false
+        "additionalProperties": true
       }
     }
   }

@@ -1,3 +1,7 @@
+# data/mark_global.yaml
+# yaml-language-server: $schema=../packages/schema/schema/mark.schema.json
+# @metaType mark
+# @version 1.0.0
 - id: mark_global_qingtian
   num: 20001
   name: 晴天

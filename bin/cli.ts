@@ -2,11 +2,9 @@
 import { program } from 'commander'
 import path from 'path'
 import fs from 'fs/promises'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
 import yaml from 'yaml'
-import { DataRepository } from '@test-battle/data-repository'
-import { PlayerParser, SpeciesParser, SkillParser, MarkParser, EffectParser } from '@test-battle/parser'
+import { loadGameData } from '@test-battle/data-repository'
+import { PlayerParser } from '@test-battle/parser'
 import { Battle } from '@test-battle/battle'
 import { ConsoleUI } from '@test-battle/console'
 import { Player } from '@test-battle/battle'
@@ -16,84 +14,6 @@ import { BattleServer } from '@test-battle/server'
 import { Server } from 'socket.io'
 import express from 'express'
 import { createServer } from 'node:http'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
-// 初始化游戏数据加载
-async function loadGameData() {
-  const dataDir = join(__dirname, '../data')
-  const files = await fs.readdir(dataDir)
-
-  // 定义文件类型与处理逻辑的映射
-  const handlers: Record<string, (content: string) => Promise<void>> = {
-    species: async content => {
-      const data = yaml.parse(content)
-      for (const item of data) {
-        const species = SpeciesParser.parse(item)
-        DataRepository.getInstance().registerSpecies(species.id, species)
-      }
-    },
-    skill: async content => {
-      const data = yaml.parse(content)
-      for (const item of data) {
-        const skill = SkillParser.parse(item)
-        DataRepository.getInstance().registerSkill(skill.id, skill)
-      }
-    },
-    mark: async content => {
-      const data = yaml.parse(content)
-      for (const item of data) {
-        const mark = MarkParser.parse(item)
-        DataRepository.getInstance().registerMark(mark.id, mark)
-      }
-    },
-    effect: async content => {
-      const data = yaml.parse(content)
-      for (const item of data) {
-        const effect = EffectParser.parse(item) // 需要实现EffectParser
-        DataRepository.getInstance().registerEffect(effect.id, effect)
-      }
-    },
-    mark_ability: async content => {
-      const data = yaml.parse(content)
-      for (const item of data) {
-        const mark = MarkParser.parse(item) // 需要修改MarkParser
-        DataRepository.getInstance().registerMark(mark.id, mark)
-      }
-    },
-    mark_emblem: async content => {
-      const data = yaml.parse(content)
-      for (const item of data) {
-        const mark = MarkParser.parse(item) // 需要修改MarkParser
-        DataRepository.getInstance().registerMark(mark.id, mark)
-      }
-    },
-  }
-
-  for (const file of files) {
-    if (!file.endsWith('.yaml') && !file.endsWith('.yml')) continue
-
-    // 提取文件名前缀（如 "species" from "species.yaml"）
-    const [prefix] = file.split('.')
-    const handler = handlers[prefix]
-
-    if (!handler) {
-      console.warn(`[⚠️] 未注册的文件类型: ${file}`)
-      continue
-    }
-
-    try {
-      const filePath = path.join(dataDir, file)
-      const content = await fs.readFile(filePath, 'utf-8')
-      await handler(content)
-      console.log(`[✅] 成功加载: ${file}`)
-    } catch (err) {
-      console.error(`[💥] 加载失败 ${file}:`, err instanceof Error ? err.message : err)
-      process.exit(1)
-    }
-  }
-}
 
 // 解析玩家文件
 async function parsePlayerFile(filePath: string): Promise<Player> {

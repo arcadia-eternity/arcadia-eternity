@@ -1,3 +1,7 @@
+# data/species.yaml
+# yaml-language-server: $schema=../packages/schema/schema/species.schema.json
+# @metaType species
+# @version 1.0.0
 - id: pet_dilan
   num: 1
   name: 迪兰

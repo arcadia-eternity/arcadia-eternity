@@ -130,7 +130,7 @@
           "accuracy",
           "description"
         ],
-        "additionalProperties": false
+        "additionalProperties": true
       }
     }
   }

@@ -1,3 +1,7 @@
+# data/skill.yaml
+# yaml-language-server: $schema=../packages/schema/schema/skill.schema.json
+# @metaType skill
+# @version 1.0.0
 - id: skill_paida
   num: 10001
   name: 拍打
