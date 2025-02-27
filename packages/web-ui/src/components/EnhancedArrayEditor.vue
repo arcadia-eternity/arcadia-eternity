@@ -40,12 +40,12 @@
 
 <script setup lang="ts">
 import { useGameDataStore } from '@/stores/gameData'
-import { ref, computed, nextTick, watchEffect } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 
 const props = defineProps<{
   modelValue: string[]
-  type: 'ability' | 'emblem'
+  type: 'ability' | 'emblem' | 'effect'
 }>()
 
 const emit = defineEmits(['update:modelValue'])
@@ -53,11 +53,12 @@ const emit = defineEmits(['update:modelValue'])
 const gameData = useGameDataStore()
 const isEditing = ref(false)
 const selectRef = ref()
-const tempValue = ref([...props.modelValue])
+const tempValue = ref(props.modelValue ? [...props.modelValue] : [])
 
 // 获取对应数据源
 const dataSource = computed(() => {
-  return gameData.marks.byId
+  if (props.type != 'effect') return gameData.marks.byId
+  return gameData.effects.byId
 })
 
 const searchLoading = ref(false)
@@ -125,10 +126,12 @@ const performSearch = async (query: string) => {
 
 // 处理标签显示
 const filteredItems = computed(() => {
-  return props.modelValue.map(id => ({
-    id,
-    name: dataSource.value[id]?.name || id,
-  }))
+  return props.modelValue
+    ? props.modelValue.map(id => ({
+        id,
+        name: props.type == 'effect' ? id : dataSource.value[id]?.name || id,
+      }))
+    : []
 })
 
 // 启动编辑

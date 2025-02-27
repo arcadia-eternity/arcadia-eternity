@@ -105,7 +105,7 @@ type SpecialFieldConfig = {
   component: any
   label?: string
   editorProps?: Record<string, any>
-  dataSource?: 'skills' | 'abilities' | 'emblems' // 关联的数据源
+  dataSource?: 'skills' | 'marks' | 'effect'
 }
 
 const SPECIAL_FIELDS: Record<string, SpecialFieldConfig> = {
@@ -119,13 +119,19 @@ const SPECIAL_FIELDS: Record<string, SpecialFieldConfig> = {
     component: EnhancedArrayEditor,
     label: '特性',
     editorProps: { type: 'ability' },
-    dataSource: 'abilities',
+    dataSource: 'marks',
   },
   emblem: {
     component: EnhancedArrayEditor,
     label: '纹章',
     editorProps: { type: 'emblem' },
-    dataSource: 'emblems',
+    dataSource: 'marks',
+  },
+  effect: {
+    component: EnhancedArrayEditor,
+    label: '效果',
+    editorProps: { type: 'effect' },
+    dataSource: 'effect',
   },
 }
 
@@ -463,6 +469,7 @@ watch(
     if (metaType && fileName) {
       const schema = DATA_SCHEMA_MAP[metaType]
       // 强制重新解析schema
+      // @ts-ignore
       const itemSchema = schema instanceof z.ZodArray ? schema.element : schema
       columns.value = isZodObject(itemSchema) ? generateColumns(itemSchema) : []
     }
@@ -534,32 +541,6 @@ onMounted(() => {
 
     .el-sub-menu__title span {
       display: none;
-    }
-  }
-}
-
-.optional-editor {
-  position: relative;
-  min-height: 36px;
-
-  .optional-placeholder {
-    @apply cursor-pointer p-2 border-dashed border-gray-300 rounded hover:bg-gray-50;
-    border-width: 1px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #909399;
-  }
-
-  .nested-object {
-    @apply border-l-4 border-blue-100 pl-2;
-
-    .object-header {
-      @apply flex justify-between items-center mb-2;
-
-      .title {
-        @apply text-sm font-medium text-gray-600;
-      }
     }
   }
 }
