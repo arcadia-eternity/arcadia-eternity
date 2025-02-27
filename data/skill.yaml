@@ -298,6 +298,7 @@
   rage: 15
   accuracy: 95
   description: 超速的佯装攻击 并使下一个除佯攻外技能威力增加50 先制+2
+  priority: 2
   sureHit: false
   ignoreShield: false
   tag: []

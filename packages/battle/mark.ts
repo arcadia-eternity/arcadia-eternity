@@ -87,6 +87,7 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
     this.effects = [...base.effects, ...(overrides?.effects || [])]
 
     this.config.isShield = mergedConfig.isShield ?? false
+    this.effects.forEach(effect => effect.setOwner(this))
   }
 
   get stack(): number {

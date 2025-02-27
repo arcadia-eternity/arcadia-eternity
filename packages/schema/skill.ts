@@ -22,7 +22,7 @@ export const SkillSchema = z
     multihit: z
       .union([
         z.number(),
-        z.tuple([z.number(), z.number()]).refine(arr => arr[0] < arr[1], {
+        z.tuple([z.number(), z.number()]).refine(([min, max]) => min < max, {
           message: '第一个元素必须小于第二个元素',
         }),
       ])

@@ -23,6 +23,7 @@
     "@test-battle/protocol": "workspace:^",
     "@test-battle/schema": "workspace:^",
     "@types/lodash": "^4.17.15",
+    "@vue-flow/core": "^1.42.1",
     "@vueuse/core": "^12.7.0",
     "axios": "^1.8.1",
     "element-plus": "^2.9.4",

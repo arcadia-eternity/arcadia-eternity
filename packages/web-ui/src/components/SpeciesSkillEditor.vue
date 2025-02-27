@@ -148,7 +148,6 @@ const shouldRenderAdd = ref(false)
 
 // Popover 显示控制
 const togglePopover = (index: number) => {
-  console.log(index)
   activeIndex.value = activeIndex.value === index ? null : index
 }
 
@@ -168,7 +167,6 @@ const toggleAddPopover = () => {
 }
 
 const handleAddPopoverShow = () => {
-  console.log('add')
   shouldRenderAdd.value = true
   startAdd()
 }

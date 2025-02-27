@@ -158,7 +158,6 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     },
   ) {
     this.id = nanoid() as skillId
-    this.effects.forEach(effect => effect.setOwner(this))
     this.category = base.category
     this.element = base.element
     this.power = overrides?.power ?? base.power
@@ -171,6 +170,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     this.ignoreShield = overrides?.ignoreShield ?? base.ignoreShield
     this.tag = overrides?.tag ? [...base.tag, ...overrides.tag] : [...base.tag]
     this.effects = [...base.effects, ...(overrides?.effects ? overrides.effects : [])]
+    this.effects.forEach(effect => effect.setOwner(this))
   }
 
   get name() {

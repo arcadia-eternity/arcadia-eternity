@@ -6,6 +6,8 @@
 - id: mark_meihuo
   name: 魅惑
   description: 2回合无法行动 被攻击不会闪避
+  tags:
+    - status
   num: 1
   image_link: =DISPIMG("ID_045453E85D744956AF560D592FA17F6E",1)
 - id: mark_haipa

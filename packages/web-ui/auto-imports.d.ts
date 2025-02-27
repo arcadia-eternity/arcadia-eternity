@@ -9,4 +9,5 @@ declare global {
   const ElDialog: typeof import('element-plus/es')['ElDialog']
   const ElMessage: typeof import('element-plus/es')['ElMessage']
   const ElMessageBox: typeof import('element-plus/es')['ElMessageBox']
+  const ElNotification: typeof import('element-plus/es')['ElNotification']
 }

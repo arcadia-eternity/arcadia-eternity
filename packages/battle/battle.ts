@@ -435,7 +435,6 @@ export class Battle extends Context implements MarkOwner {
     return !!this.playerA.selection && !!this.playerB.selection
   }
 
-  //TODO: 平局
   public getVictor(surrender = true) {
     if (surrender && this.victor) {
       this.emitMessage(BattleMessageType.BattleEnd, { winner: this.victor.id, reason: 'surrender' })

@@ -23,8 +23,12 @@ export const SpeciesSchema = z
       spe: z.number(),
     }),
     genderRatio: z.tuple([z.number(), z.number()]).nullable(),
-    heightRange: z.tuple([z.number(), z.number()]),
-    weightRange: z.tuple([z.number(), z.number()]),
+    heightRange: z.tuple([z.number(), z.number()]).refine(([min, max]) => min < max, {
+      message: '第一个元素必须小于第二个元素',
+    }),
+    weightRange: z.tuple([z.number(), z.number()]).refine(([min, max]) => min < max, {
+      message: '第一个元素必须小于第二个元素',
+    }),
     // previous_form: z.string().optional(),
     // next_form: z.string().optional(),
     learnable_skills: z.array(LearnableSkillSchema),

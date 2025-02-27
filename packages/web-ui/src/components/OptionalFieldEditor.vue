@@ -13,6 +13,9 @@
         <el-tooltip v-if="isOptional" content="清空字段" placement="top">
           <el-button class="clear-btn" type="danger" :icon="Close" circle size="small" @click="clearValue" />
         </el-tooltip>
+        <el-tooltip v-if="isNullable" content="设为空值" placement="top">
+          <el-button class="null-btn" type="warning" :icon="Remove" circle size="small" @click="setToNull" />
+        </el-tooltip>
         <div v-if="isObjectType" class="nested-object">
           <div class="object-header">
             <span class="title">{{ label }}</span>
@@ -51,6 +54,42 @@
           />
         </div>
 
+        <div v-else-if="isTupleType" class="tuple-editor">
+          <div class="tuple-header">
+            <span class="title">{{ label }}</span>
+            <el-tooltip v-if="tupleError" effect="dark" :content="tupleError" placement="top">
+              <el-icon class="error-icon"><Warning /></el-icon>
+            </el-tooltip>
+          </div>
+
+          <div class="tuple-items">
+            <div v-for="(itemSchema, index) in tupleSchemas" :key="index" class="tuple-item">
+              <el-input-number
+                v-if="itemSchema instanceof z.ZodNumber"
+                v-model="localTupleValue[index]"
+                :placeholder="getPlaceholder(itemSchema)"
+                :step="getNumberStep(itemSchema)"
+                :min="getNumberMin(itemSchema)"
+                :max="getNumberMax(itemSchema)"
+                @change="val => handleTupleChange(index, val)"
+                :class="{ 'error-field': tupleError }"
+              />
+              <el-input
+                v-else-if="itemSchema instanceof z.ZodString"
+                v-model="localTupleValue[index]"
+                :placeholder="getPlaceholder(itemSchema)"
+                @change="val => handleTupleChange(index, val)"
+                :class="{ 'error-field': tupleError }"
+              />
+              <span v-else class="unsupported-type"> 不支持的类型：{{ itemSchema.constructor.name }} </span>
+            </div>
+          </div>
+
+          <div v-if="tupleError" class="error-message">
+            {{ tupleError }}
+          </div>
+        </div>
+
         <!-- 数字类型 -->
         <div v-else-if="isNumberType" class="number-editor">
           <el-input-number
@@ -80,7 +119,7 @@
 <script setup lang="ts">
 import { computed, h, ref, resolveComponent, watch } from 'vue'
 import { z } from 'zod'
-import { CirclePlus, Close } from '@element-plus/icons-vue'
+import { CirclePlus, Close, Remove } from '@element-plus/icons-vue'
 import EnhancedArrayEditor from './EnhancedArrayEditor.vue'
 
 // 修改组件props定义
@@ -91,21 +130,72 @@ const props = defineProps<{
 }>()
 
 const isOptional = computed(() => {
-  return props.schema instanceof z.ZodOptional || props.schema instanceof z.ZodDefault
+  // 递归解包函数
+  const checkOptional = (schema: z.ZodTypeAny): boolean => {
+    if (schema instanceof z.ZodOptional) return true
+    if (schema instanceof z.ZodDefault) return true
+
+    // 处理特殊包装类型
+    if (schema instanceof z.ZodEffects) {
+      return checkOptional(schema._def.schema)
+    }
+    if (schema instanceof z.ZodNullable) {
+      return checkOptional(schema._def.innerType)
+    }
+
+    // 处理对象和数组类型（可选字段）
+    if (schema instanceof z.ZodObject) {
+      return Object.values(schema.shape).some(fieldSchema => fieldSchema.isOptional())
+    }
+    if (schema instanceof z.ZodArray) {
+      return schema._def.exactLength === undefined
+    }
+
+    return false
+  }
+
+  return checkOptional(props.schema)
 })
 
 const emit = defineEmits(['update:modelValue'])
 
-// 类型判断辅助函数
 const unwrappedSchema = computed(() => {
   let schema = props.schema
-  while (schema instanceof z.ZodOptional || schema instanceof z.ZodDefault) {
-    schema = schema._def.innerType
+  while (
+    schema instanceof z.ZodOptional ||
+    schema instanceof z.ZodDefault ||
+    schema instanceof z.ZodNullable ||
+    schema instanceof z.ZodEffects
+  ) {
+    if (schema instanceof z.ZodEffects) {
+      schema = schema._def.schema
+    } else {
+      schema = schema._def.innerType
+    }
   }
   return schema
 })
 
-const isUndefined = computed(() => props.modelValue === undefined)
+const tupleChecks = computed(() => {
+  try {
+    const checks = []
+    let current: any = props.schema
+    while (current instanceof z.ZodEffects) {
+      checks.push(...current._def.checks)
+      current = current._def.schema
+    }
+    return checks
+  } catch {
+    return []
+  }
+})
+
+const isNullable = computed(() => {
+  return props.schema instanceof z.ZodNullable
+})
+
+const isNullValue = computed(() => props.modelValue === null)
+const isUndefined = computed(() => props.modelValue === undefined || props.modelValue === null)
 const isObjectType = computed(() => unwrappedSchema.value instanceof z.ZodObject)
 const isArrayType = computed(() => unwrappedSchema.value instanceof z.ZodArray)
 const isEnumType = computed(() => {
@@ -113,6 +203,17 @@ const isEnumType = computed(() => {
 })
 const isBooleanType = computed(() => unwrappedSchema.value instanceof z.ZodBoolean)
 const isNumberType = computed(() => unwrappedSchema.value instanceof z.ZodNumber)
+const isTupleType = computed(() => {
+  return unwrappedSchema.value instanceof z.ZodTuple
+})
+const isNullableTuple = computed(() => {
+  const checkNullable = (schema: z.ZodTypeAny): boolean => {
+    if (schema instanceof z.ZodNullable) return true
+    if (schema instanceof z.ZodEffects) return checkNullable(schema._def.schema)
+    return false
+  }
+  return checkNullable(props.schema) && unwrappedSchema.value instanceof z.ZodTuple
+})
 
 // 修改枚举类型处理
 
@@ -147,6 +248,11 @@ const numberOptions = computed(() => {
     max: schema.maxValue ?? Infinity,
     step: 1,
   }
+})
+
+const tupleSchemas = computed<z.ZodTypeAny[]>(() => {
+  if (!(unwrappedSchema.value instanceof z.ZodTuple)) return []
+  return unwrappedSchema.value.items
 })
 
 // 布尔类型显示配置
@@ -184,6 +290,9 @@ const localStringValue = computed({
   set: val => emit('update:modelValue', val.trim() || undefined),
 })
 
+const localTupleValue = ref<any[]>([])
+const tupleError = ref<string | null>(null)
+
 // 修改placeholder计算属性
 const placeholder = computed(() => `${props.label || ''}${isOptional.value ? '（可选）' : ''}`)
 
@@ -192,20 +301,63 @@ const nestedEditorComponent = computed(() => {
   return resolveComponent('DynamicTableEditor')
 })
 
+const validateTuple = (value: any[]) => {
+  try {
+    // 使用原始 Schema 校验（包含所有 refine 规则）
+    props.schema.parse(value)
+    tupleError.value = null
+    return true
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      tupleError.value = err.errors.map(e => `${e.path.join('.')} ${e.message}`).join('; ')
+    } else {
+      tupleError.value = '无效的元组格式'
+    }
+    return false
+  }
+}
+
 // 事件处理
 const initValue = () => {
   let defaultValue: any
-  if (isObjectType.value) defaultValue = {}
-  else if (isArrayType.value) defaultValue = []
-  else if (isBooleanType.value) defaultValue = false
-  else if (isNumberType.value) defaultValue = 0
-  else defaultValue = ''
+  if (isNullableTuple.value) {
+    const tupleSchema = unwrappedSchema.value as z.ZodTuple
+    const defaultValue = tupleSchema.items.map(s => {
+      if (s instanceof z.ZodNumber) return 0
+      if (s instanceof z.ZodString) return ''
+      return undefined
+    })
+    handleChange(defaultValue)
+  } else {
+    if (isObjectType.value) defaultValue = {}
+    else if (isArrayType.value) defaultValue = []
+    else if (isBooleanType.value) defaultValue = false
+    else if (isNumberType.value) defaultValue = 0
+    else if (isTupleType.value) {
+      const tupleSchema = unwrappedSchema.value as z.ZodTuple
+      defaultValue = tupleSchema.items.map(s => {
+        if (s instanceof z.ZodNumber) return 0
+        if (s instanceof z.ZodString) return ''
+        return undefined
+      })
+    } else defaultValue = ''
+  }
 
   handleChange(defaultValue)
 }
 
 const clearValue = () => {
-  emit('update:modelValue', undefined)
+  if (isNullableTuple.value) {
+    emit('update:modelValue', null)
+  } else {
+    emit('update:modelValue', undefined)
+  }
+}
+
+const setToNull = () => {
+  if (isNullable.value) {
+    emit('update:modelValue', null)
+  }
 }
 
 const handleChange = (value: unknown) => {
@@ -228,12 +380,73 @@ const handleStringChange = (val: string) => {
   emit('update:modelValue', val !== '' ? val : undefined)
 }
 
+const handleTupleChange = (index: number, value: any) => {
+  const newValue = [...localTupleValue.value]
+  newValue[index] = value
+
+  // 自动排序（示例：当检测到 refine 包含排序规则时）
+  if (tupleChecks.value.some(c => c.kind === 'sort')) {
+    newValue.sort((a, b) => a - b)
+  }
+
+  if (validateTuple(newValue)) {
+    emit('update:modelValue', newValue)
+  }
+}
+
+const getNumberStep = (schema: z.ZodNumber) => {
+  return schema._def.checks.some((c: any) => c.kind === 'int') ? 1 : 0.1
+}
+
+const getNumberMin = (schema: z.ZodNumber) => {
+  return schema.minValue ?? -Infinity
+}
+
+const getNumberMax = (schema: z.ZodNumber) => {
+  return schema.maxValue ?? Infinity
+}
+
+const getPlaceholder = (schema: z.ZodTypeAny) => {
+  if (schema instanceof z.ZodNumber) {
+    const checks = schema._def.checks
+    const min = checks.find((c: any) => c.kind === 'min')?.value
+    const max = checks.find((c: any) => c.kind === 'max')?.value
+    return `请输入${min ?? '-∞'}~${max ?? '+∞'}之间的数值`
+  }
+  if (schema instanceof z.ZodString) {
+    const min = schema._def.checks.find((c: any) => c.kind === 'min')?.value
+    return `至少${min ?? 0}个字符`
+  }
+  return '请输入'
+}
+
 watch(
   () => props.modelValue,
   newVal => {
-    localValue.value = newVal
+    if (isNullableTuple.value) {
+      // 当值为 null 时，不初始化本地值，保持显示占位符
+      if (isNullableTuple.value && newVal === null) {
+        localTupleValue.value = []
+        return
+      }
+      if (newVal === null) {
+        localTupleValue.value = []
+        return
+      }
+    }
+    if (Array.isArray(newVal)) {
+      localTupleValue.value = newVal.map((val, index) => {
+        const schema = tupleSchemas.value[index]
+        if (schema instanceof z.ZodNumber) return Number(val) || 0
+        if (schema instanceof z.ZodString) return String(val)
+        return val
+      })
+      validateTuple(newVal)
+    } else {
+      localValue.value = newVal
+    }
   },
-  { immediate: true },
+  { immediate: true, deep: true },
 )
 </script>
 
@@ -275,6 +488,22 @@ watch(
 }
 
 .clear-btn:hover {
+  opacity: 1;
+  transform: translateY(-50%) scale(1.1);
+}
+
+/* 清除按钮优化 */
+.null-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.6;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.null-btn:hover {
   opacity: 1;
   transform: translateY(-50%) scale(1.1);
 }
@@ -328,5 +557,60 @@ watch(
     right: 4px;
     padding: 4px;
   }
+}
+
+.tuple-editor {
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  padding: 12px;
+  position: relative;
+}
+
+.tuple-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+
+  .title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #606266;
+  }
+
+  .error-icon {
+    color: #f56c6c;
+    margin-left: 8px;
+    cursor: help;
+  }
+}
+
+.tuple-items {
+  display: grid;
+  gap: 8px;
+}
+
+.tuple-item {
+  position: relative;
+
+  :deep(.el-input-number) {
+    width: 100%;
+  }
+}
+
+.error-field {
+  :deep(.el-input__inner) {
+    border-color: #f56c6c;
+  }
+}
+
+.error-message {
+  color: #f56c6c;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.unsupported-type {
+  color: #909399;
+  font-style: italic;
 }
 </style>
