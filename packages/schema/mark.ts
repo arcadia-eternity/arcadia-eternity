@@ -14,8 +14,8 @@ export const MarkSchema = z
         persistent: z.boolean().optional().default(true),
         maxStacks: z.number().int().optional(),
         stackable: z.boolean().optional().default(false),
-        stackStrategy: StackStrategySchema.default(StackStrategy.extend),
-        destoyable: z.boolean().default(true),
+        stackStrategy: StackStrategySchema.optional().default(StackStrategy.extend),
+        destoyable: z.boolean().optional().default(true),
       })
       .optional(),
     tags: z.array(z.string()).optional(),

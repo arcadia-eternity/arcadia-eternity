@@ -91,7 +91,7 @@ const props = defineProps<{
 }>()
 
 const isOptional = computed(() => {
-  return props.schema instanceof z.ZodOptional
+  return props.schema instanceof z.ZodOptional || props.schema instanceof z.ZodDefault
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -185,7 +185,7 @@ const localStringValue = computed({
 })
 
 // 修改placeholder计算属性
-const placeholder = computed(() => `${props.label || ''}${isUndefined.value ? '（可选）' : ''}`)
+const placeholder = computed(() => `${props.label || ''}${isOptional.value ? '（可选）' : ''}`)
 
 // 嵌套编辑器组件
 const nestedEditorComponent = computed(() => {

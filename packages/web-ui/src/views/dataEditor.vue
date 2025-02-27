@@ -282,7 +282,7 @@ const createTemplate = (type: keyof typeof SCHEMA_MAP) => {
 }
 
 const isZodOptional = (schema: any): schema is z.ZodOptional<any> => {
-  return schema?._def?.typeName === 'ZodOptional'
+  return schema instanceof z.ZodOptional || schema instanceof z.ZodDefault
 }
 
 const unwrapOptional = (schema: any): z.ZodTypeAny => {
