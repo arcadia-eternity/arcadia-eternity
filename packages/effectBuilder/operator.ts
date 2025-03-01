@@ -14,13 +14,7 @@ import {
 } from '@test-battle/battle'
 import { EffectTrigger, type StatTypeOnBattle, StatTypeWithoutHp } from '@test-battle/const'
 import type { Operator } from './effectBuilder'
-import {
-  ChainableSelector,
-  isPropertyRef,
-  type PrimitiveOpinion,
-  type PropertyRef,
-  type SelectorOpinion,
-} from './selector'
+import { ChainableSelector, type PrimitiveOpinion, type PropertyRef, type SelectorOpinion } from './selector'
 import { type ValueSource } from './effectBuilder'
 
 function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpinion>(
@@ -39,7 +33,7 @@ function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpin
           }
         } else if (source instanceof ChainableSelector) {
           const value = source.build()(context)
-          finalValue = [isPropertyRef(value) ? value.get() : value]
+          finalValue = value
         } else {
           finalValue = [source]
         }
@@ -170,11 +164,8 @@ export function GetValueFromSource<T extends SelectorOpinion>(
 ): T[] {
   if (source instanceof ChainableSelector) {
     const result = source.build()(context)
-    return result.flatMap(item => (isPropertyRef(item) ? [item.get()] : [item]))
+    return result
   }
   if (typeof source == 'function') return source(context) //TargetSelector
-  if (isPropertyRef(source)) {
-    return [source.get()] // 返回当前值
-  }
   return [source]
 }

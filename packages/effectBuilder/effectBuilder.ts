@@ -14,11 +14,7 @@ export type Operator<U> = (context: EffectContext<EffectTrigger>, values: U[]) =
 
 export type TargetSelector<T> = (context: EffectContext<EffectTrigger>) => T[]
 
-export type ValueSource<T extends SelectorOpinion> =
-  | T
-  | TargetSelector<T>
-  | ChainableSelector<T>
-  | (T extends PrimitiveOpinion ? ChainableSelector<PropertyRef<SelectorOpinion, T>> : never)
+export type ValueSource<T extends SelectorOpinion> = T | TargetSelector<T> | ChainableSelector<T>
 
 export type WidenLiteral<T> = T extends string
   ? string
