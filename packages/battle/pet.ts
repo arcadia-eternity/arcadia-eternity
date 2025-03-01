@@ -47,7 +47,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public currentHp: number
   public baseCritRate: number = 0.1 // 暴击率默认为10%
   public baseAccuracy: number = 1 // 命中率默认为100%
-  public statStage: Partial<Record<StatTypeOnBattle, number>> = {} //能力等级
+  public statStage: Record<StatTypeWithoutHp, number> = { atk: 1, def: 1, spa: 1, spd: 1, spe: 1 } //能力等级
   public statModifiers: StatBuffOnBattle = {
     atk: [100, 0],
     def: [100, 0],
@@ -310,7 +310,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
 
   // 清理能力等级时同时清除相关印记
   public clearStatStage(context: EffectContext<EffectTrigger>) {
-    this.statStage = {}
+    this.statStage = { atk: 1, def: 1, spa: 1, spd: 1, spe: 1 }
     this.marks = this.marks.filter(mark => {
       if (mark instanceof StatLevelMarkInstance) {
         mark.destory(context)

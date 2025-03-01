@@ -3,20 +3,18 @@ export const MAX_RAGE = 100
 export const RAGE_PER_TURN = 15
 export const RAGE_PER_DAMAGE = 0.5
 
-export type entityId = string & { readonly __brand: 'entityId' }
+type Brand<T, B> = T & { readonly __brand: B }
 
-export type speciesId = string & { readonly __brand: 'speciesId' }
-export type petId = string & { readonly __brand: 'petId' }
-
-export type baseSkillId = string & { readonly __brand: 'baseSkillId' }
-export type skillId = string & { readonly __brand: 'skillId' }
-
-export type playerId = string & { readonly __brand: 'playerId' }
-
-export type baseMarkId = string & { readonly __brand: 'baseMarkId' }
-export type markId = string & { readonly __brand: 'markId' }
-
-export type effectId = string & { readonly __brand: 'effectId' }
+export type entityId = Brand<string, 'entityId'>
+export type speciesId = Brand<string, 'speciesId'>
+export type petId = Brand<string, 'petId'>
+export type baseSkillId = Brand<string, 'baseSkillId'>
+export type skillId = Brand<string, 'skillId'>
+export type playerId = Brand<string, 'playerId'>
+export type baseMarkId = Brand<string, 'baseMarkId'>
+export type markId = Brand<string, 'markId'>
+export type effectId = Brand<string, 'effectId'>
+export type effectStateId = Brand<string, 'effectStateId'>
 
 export type Id = PrototypeId | InstanceId
 

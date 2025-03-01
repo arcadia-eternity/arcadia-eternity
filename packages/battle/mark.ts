@@ -1,4 +1,10 @@
-import { STAT_STAGE_MULTIPLIER, type baseMarkId, type markId, type StatTypeOnBattle } from '@test-battle/const/const'
+import {
+  STAT_STAGE_MULTIPLIER,
+  StatTypeWithoutHp,
+  type baseMarkId,
+  type markId,
+  type StatTypeOnBattle,
+} from '@test-battle/const/const'
 import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import type { MarkMessage } from '@test-battle/const/message'
 import { StackStrategy } from '@test-battle/const/stackStrategy'
@@ -253,7 +259,7 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
 
 export class BaseStatLevelMark extends BaseMark {
   constructor(
-    public readonly statType: StatTypeOnBattle,
+    public readonly statType: StatTypeWithoutHp,
     public initialLevel: number,
     id: baseMarkId,
     name: string,
@@ -358,7 +364,7 @@ export class StatLevelMarkInstance extends MarkInstance {
   }
 }
 
-export function CreateStatStageMark(statType: StatTypeOnBattle, level: number): BaseStatLevelMark {
+export function CreateStatStageMark(statType: StatTypeWithoutHp, level: number): BaseStatLevelMark {
   return new BaseStatLevelMark(
     statType,
     level,

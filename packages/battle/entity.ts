@@ -17,7 +17,9 @@ export interface Instance {
   base: Prototype
 }
 
-export interface OwnedEntity<T = Battle | Player | Pet | MarkInstance | SkillInstance | null> {
+export type CanOwnedEntity = Battle | Player | Pet | MarkInstance | SkillInstance | null
+
+export interface OwnedEntity<T = CanOwnedEntity> {
   owner: T
   setOwner(owner: Exclude<T, null>): void // 排除 null
 }

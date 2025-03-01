@@ -8,8 +8,17 @@ import {
   UseSkillContext,
   SkillInstance,
 } from '@test-battle/battle'
-import type { OwnedEntity, Prototype } from '@test-battle/battle/entity'
-import { EffectTrigger, Element, type StatOnBattle, type StatTypeOnBattle } from '@test-battle/const'
+import type { CanOwnedEntity, Instance, OwnedEntity, Prototype } from '@test-battle/battle/entity'
+import {
+  AttackTargetOpinion,
+  Category,
+  EffectTrigger,
+  Element,
+  Gender,
+  Nature,
+  type StatOnBattle,
+  type StatTypeOnBattle,
+} from '@test-battle/const'
 import type { Action, Condition, Evaluator, Operator, TargetSelector, ValueExtractor } from './effectBuilder'
 import { createExtractor } from './extractor'
 
@@ -20,7 +29,6 @@ export type PropertyRef<T, V> = {
 }
 
 export class ChainableSelector<T extends SelectorOpinion> {
-  public readonly _type!: T
   constructor(private selector: TargetSelector<T>) {
     //TODO: 运行时检测当前type
     // const sample = this.selector({} as EffectContext<EffectTrigger>)[0]
@@ -219,15 +227,6 @@ export class ChainableSelector<T extends SelectorOpinion> {
   apply(operator: Operator<T>): Action {
     return (context: EffectContext<EffectTrigger>) => operator(context, this.selector(context))
   }
-
-  isNumberType(): this is ChainableSelector<number> {
-    return typeof this._type === 'number'
-  }
-
-  isObjectType(): this is ChainableSelector<ObjectOpinion> {
-    const sample = this.selector({} as EffectContext<EffectTrigger>)[0]
-    return typeof sample === 'object' && sample !== null
-  }
 }
 // 类型增强装饰器
 function createChainable<T extends SelectorOpinion>(selector: TargetSelector<T>): ChainableSelector<T> {
@@ -236,7 +235,10 @@ function createChainable<T extends SelectorOpinion>(selector: TargetSelector<T>)
 
 export type PrimitiveOpinion = number | string | boolean
 
+export type EnumOpinion = Element | Gender | Nature | Category | AttackTargetOpinion
+
 export type ObjectOpinion =
+  | null
   | Pet
   | Player
   | StatOnBattle
@@ -244,14 +246,15 @@ export type ObjectOpinion =
   | DamageContext
   | Battle
   | StatTypeOnBattle
+  | Instance
   | MarkInstance
   | SkillInstance
-  | Element
+  | CanOwnedEntity
   | OwnedEntity
   | Prototype
   | PropertyRef<any, any>
 
-export type SelectorOpinion = PrimitiveOpinion | ObjectOpinion | Array<SelectorOpinion>
+export type SelectorOpinion = PrimitiveOpinion | ObjectOpinion | EnumOpinion | Array<SelectorOpinion>
 
 // 基础选择器
 export const BaseSelector: {
