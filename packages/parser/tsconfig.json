@@ -6,7 +6,7 @@
     "module": "ESNext",
     "target": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "../../dist/parser",
+    "outDir": "./dist/",
     "verbatimModuleSyntax": true,
     "declaration": true,
     "declarationMap": true,

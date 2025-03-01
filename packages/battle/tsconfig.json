@@ -7,13 +7,15 @@
     "target": "ESNext",
     "moduleResolution": "bundler",
     "verbatimModuleSyntax": true,
-    "outDir": "../../dist/battle",
+    "outDir": "./dist/",
     "declaration": true,
     "declarationMap": true,
     "strictPropertyInitialization": false,
     "strict": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
-  "include": ["./*"],
+  "include": ["./*", "./effectBuilder/*"],
   "exclude": ["./node_modules"]
 }

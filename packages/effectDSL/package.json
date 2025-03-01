@@ -4,7 +4,8 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "build:watch": "swc ./ -d dist --watch --config-file=../../.swcrc"
   },
   "keywords": [],
   "author": "yuuinih",
@@ -13,7 +14,6 @@
     "@test-battle/battle": "workspace:^",
     "@test-battle/const": "workspace:^",
     "@test-battle/data-repository": "workspace:^",
-    "@test-battle/effect-builder": "workspace:^",
     "zod": "^3.24.1"
   }
 }

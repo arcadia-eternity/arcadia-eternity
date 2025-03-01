@@ -13,18 +13,28 @@ import {
 import { Battle } from './battle'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { Pet } from './pet'
+import { PropType } from './effectBuilder'
 
 export class Player {
+  @PropType()
+  public readonly name: string
+  @PropType()
+  public readonly id: playerId
+  @PropType()
+  public readonly team: Pet[]
+  @PropType()
   public currentRage: number = 20
+  @PropType()
   public battle?: Battle
+  @PropType()
   public selection: PlayerSelection | null = null
+  @PropType()
   public activePet: Pet
   private messageCallbacks: Array<(message: BattleMessage) => void> = []
-  constructor(
-    public readonly name: string,
-    public readonly id: playerId,
-    public readonly team: Pet[],
-  ) {
+  constructor(name: string, id: playerId, team: Pet[]) {
+    this.name = name
+    this.id = id
+    this.team = team
     team.forEach(pet => pet.setOwner(this))
     this.activePet = team[0]
   }

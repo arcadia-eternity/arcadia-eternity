@@ -8,10 +8,12 @@ import {
   UseSkillContext,
   SkillInstance,
 } from '@test-battle/battle'
-import type { OwnedEntity, Prototype } from '@test-battle/battle/entity'
-import { EffectTrigger, Element, type StatOnBattle, type StatTypeOnBattle } from '@test-battle/const'
+import type { OwnedEntity } from '@test-battle/battle/entity'
+import { EffectTrigger } from '@test-battle/const'
 import type { Action, Condition, Evaluator, Operator, TargetSelector, ValueExtractor } from './effectBuilder'
 import { createExtractor } from './extractor'
+import type { SelectorTypeMap } from './selectortypemap'
+import { type SelectorOpinion, SelectorType } from './SelectorOpinion'
 
 export type PropertyRef<T, V> = {
   get: () => V
@@ -20,12 +22,7 @@ export type PropertyRef<T, V> = {
 }
 
 export class ChainableSelector<T extends SelectorOpinion> {
-  public readonly _type!: T
-  constructor(private selector: TargetSelector<T>) {
-    //TODO: 运行时检测当前type
-    // const sample = this.selector({} as EffectContext<EffectTrigger>)[0]
-    // this.valueType = typeof sample === 'object' ? sample?.constructor?.name || 'object' : typeof sample
-  }
+  constructor(private selector: TargetSelector<T>) {}
 
   [Symbol.toPrimitive](context: EffectContext<EffectTrigger>): T[] {
     return this.selector(context)
@@ -56,7 +53,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
     return new ChainableSelector<U>(context =>
       this.selector(context).map(t => {
         const value = extractor(t)
-        return value as U
+        return value
       }),
     )
   }
@@ -69,12 +66,12 @@ export class ChainableSelector<T extends SelectorOpinion> {
   }
 
   //在保持当前结果类型的同时，对参数进行筛选
-  whereAttr<U>(extractor: ValueExtractor<T, U>, condition: Evaluator<U>): ChainableSelector<T> {
+  whereAttr<U>(extractor: ValueExtractor<T, U>, predicate: Evaluator<U>): ChainableSelector<T> {
     return new ChainableSelector(context => {
       return this.selector(context).filter(t => {
         const value = extractor(t)
         const values = Array.isArray(value) ? value : [value]
-        return condition(context, values)
+        return predicate(context, values)
       })
     })
   }
@@ -219,39 +216,14 @@ export class ChainableSelector<T extends SelectorOpinion> {
   apply(operator: Operator<T>): Action {
     return (context: EffectContext<EffectTrigger>) => operator(context, this.selector(context))
   }
-
-  isNumberType(): this is ChainableSelector<number> {
-    return typeof this._type === 'number'
-  }
-
-  isObjectType(): this is ChainableSelector<ObjectOpinion> {
-    const sample = this.selector({} as EffectContext<EffectTrigger>)[0]
-    return typeof sample === 'object' && sample !== null
-  }
 }
 // 类型增强装饰器
-function createChainable<T extends SelectorOpinion>(selector: TargetSelector<T>): ChainableSelector<T> {
+function createChainable<K extends keyof SelectorTypeMap>(
+  selector: TargetSelector<SelectorTypeMap[K]>,
+  typeName: K,
+): ChainableSelector<SelectorTypeMap[K]> {
   return new ChainableSelector(selector)
 }
-
-export type PrimitiveOpinion = number | string | boolean
-
-export type ObjectOpinion =
-  | Pet
-  | Player
-  | StatOnBattle
-  | UseSkillContext
-  | DamageContext
-  | Battle
-  | StatTypeOnBattle
-  | MarkInstance
-  | SkillInstance
-  | Element
-  | OwnedEntity
-  | Prototype
-  | PropertyRef<any, any>
-
-export type SelectorOpinion = PrimitiveOpinion | ObjectOpinion | Array<SelectorOpinion>
 
 // 基础选择器
 export const BaseSelector: {
@@ -267,66 +239,66 @@ export const BaseSelector: {
   foeMarks: ChainableSelector<MarkInstance>
 } = {
   //选择目标，在使用技能的场景下，为技能实际指向的目标，在印记的场景下指向印记的所有者。
-  target: createChainable<Pet>((context: EffectContext<EffectTrigger>) => {
+  target: createChainable<SelectorType.Pet>((context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext)
       return context.parent.actualTarget ? [context.parent.actualTarget] : []
     if (context.source.owner instanceof Pet) return [context.source.owner]
     //TODO: error with use owners with global marks
     return []
-  }),
+  }, SelectorType.Pet),
   //在使用技能的场景和印记的场景都指向拥有者自身。
-  self: createChainable<Pet>((context: EffectContext<EffectTrigger>) => {
+  self: createChainable<SelectorType.Pet>((context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent.pet]
     if (context.source.owner instanceof Pet) return [context.source.owner]
     //TODO: error with use owners with global marks
     return []
-  }),
+  }, SelectorType.Pet),
   //在使用技能的场景，指向技能拥有者的敌方玩家的当前首发，在印记的场景指向印记所有者的敌方玩家的当前首发。
-  foe: createChainable<Pet>((context: EffectContext<EffectTrigger>) => {
+  foe: createChainable<SelectorType.Pet>((context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent.actualTarget!]
     if (context.source.owner instanceof Pet) return [context.battle.getOpponent(context.source.owner.owner!).activePet]
     //TODO: error with use owners with global marks
     return []
-  }),
-  petOwners: createChainable<Player>((context: EffectContext<EffectTrigger>) => {
+  }, SelectorType.Pet),
+  petOwners: createChainable<SelectorType.Player>((context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent.pet.owner!]
     if (context.source.owner instanceof Pet) return [context.source.owner.owner!]
     //TODO: error with use owners with global marks
     return []
-  }),
-  foeOwners: createChainable<Player>((context: EffectContext<EffectTrigger>) => {
+  }, SelectorType.Player),
+  foeOwners: createChainable<SelectorType.Player>((context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent.actualTarget!.owner!]
     if (context.source.owner instanceof Pet) return [context.battle.getOpponent(context.source.owner.owner!)]
     //TODO: error with use owners with global marks
     return []
-  }),
-  usingSkillContext: createChainable<UseSkillContext>((context: EffectContext<EffectTrigger>) => {
+  }, SelectorType.Player),
+  usingSkillContext: createChainable<SelectorType.UseSkillContext>((context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent]
     //TODO: error with use get context with non-Useskill context
     return []
-  }),
-  damageContext: createChainable<DamageContext>((context: EffectContext<EffectTrigger>) => {
+  }, SelectorType.UseSkillContext),
+  damageContext: createChainable<SelectorType.DamageContext>((context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof DamageContext) return [context.parent]
     //TODO: error with use get context with non-Damage context
     return []
-  }),
-  mark: createChainable<MarkInstance>((context: EffectContext<EffectTrigger>) => {
+  }, SelectorType.DamageContext),
+  mark: createChainable<SelectorType.MarkInstance>((context: EffectContext<EffectTrigger>) => {
     if (context.source instanceof MarkInstance) return [context.source]
     //TODO: error with use get context with non-MarkEffect context
     return []
-  }),
-  selfMarks: createChainable<MarkInstance>((context: EffectContext<EffectTrigger>) => {
+  }, SelectorType.MarkInstance),
+  selfMarks: createChainable<SelectorType.MarkInstance>((context: EffectContext<EffectTrigger>) => {
     if (context.source.owner instanceof Pet) return context.source.owner.marks
     //TODO: error with use owners with global marks
     return []
-  }),
-  foeMarks: createChainable<MarkInstance>((context: EffectContext<EffectTrigger>) => {
+  }, SelectorType.MarkInstance),
+  foeMarks: createChainable<SelectorType.MarkInstance>((context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return context.parent.actualTarget!.marks
     if (context.source.owner instanceof Pet)
       return context.battle.getOpponent(context.source.owner.owner!).activePet.marks
     //TODO: error with use owners with global marks
     return []
-  }),
+  }, SelectorType.MarkInstance),
 }
 
 export function isPet(target: SelectorOpinion): target is Pet {

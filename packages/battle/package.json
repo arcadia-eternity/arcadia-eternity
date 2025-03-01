@@ -4,7 +4,8 @@
   "type": "module",
   "description": "",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "build:watch": "swc ./ -d dist --watch"
   },
   "keywords": [],
   "author": "yuuinih",
@@ -12,6 +13,7 @@
   "dependencies": {
     "@test-battle/const": "workspace:*",
     "nanoid": "^5.0.9",
-    "prando": "^6.0.1"
+    "prando": "^6.0.1",
+    "reflect-metadata": "^0.2.2"
   }
 }

@@ -79,7 +79,7 @@ type SpecialFieldConfig = {
   component: any
   label?: string
   editorProps?: Record<string, any>
-  dataSource?: 'skills' | 'marks' | 'effect'
+  dataSource?: 'skills' | 'marks' | 'effects'
 }
 
 const SPECIAL_FIELDS: Record<string, SpecialFieldConfig> = {
@@ -101,11 +101,11 @@ const SPECIAL_FIELDS: Record<string, SpecialFieldConfig> = {
     editorProps: { type: 'emblem' },
     dataSource: 'marks',
   },
-  effect: {
+  effects: {
     component: EnhancedArrayEditor,
     label: '效果',
-    editorProps: { type: 'effect' },
-    dataSource: 'effect',
+    editorProps: { type: 'effects' },
+    dataSource: 'effects',
   },
 }
 

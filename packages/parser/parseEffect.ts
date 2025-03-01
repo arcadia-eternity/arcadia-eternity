@@ -21,16 +21,16 @@ import {
   isPlayer,
   isUseSkillContext,
   Operators,
-  type SelectorOpinion,
   type ValueExtractor,
   type ValueSource,
-} from '@test-battle/effect-builder'
+} from '@test-battle/battle/effectBuilder'
 import type { ActionDSL, ConditionDSL, EffectDSL, EvaluatorDSL, SelectorDSL, Value } from '@test-battle/effect-dsl'
+import type { SelectorOpinion } from '@test-battle/battle/effectBuilder/SelectorOpinion'
 
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   const actions = createAction(dsl.apply)
   const condition = dsl.condition ? parseCondition(dsl.condition) : undefined
-  return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition)
+  return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, dsl.scope, condition)
 }
 
 export function parseSelector<T extends SelectorOpinion>(dsl: SelectorDSL): ChainableSelector<T> {
@@ -56,8 +56,7 @@ export function parseSelector<T extends SelectorOpinion>(dsl: SelectorDSL): Chai
         switch (step.type) {
           case 'select': {
             // 动态推断当前泛型类型
-            type CurrentType = typeof selector._type
-            const extractor = parseExtractor<CurrentType>(step.arg)
+            const extractor = parseExtractor<any>(step.arg)
             selector = selector.select(extractor)
             break
           }
@@ -67,8 +66,7 @@ export function parseSelector<T extends SelectorOpinion>(dsl: SelectorDSL): Chai
             break
           }
           case 'whereAttr': {
-            type CurrentType = typeof selector._type
-            const extractor = parseExtractor<CurrentType>(step.extractor)
+            const extractor = parseExtractor<any>(step.extractor)
             const condition = parseEvaluator(step.condition)
             selector = selector.whereAttr(extractor, condition)
             break
@@ -90,9 +88,6 @@ export function parseSelector<T extends SelectorOpinion>(dsl: SelectorDSL): Chai
             selector = selector.randomSample(step.arg)
             break
           case 'sum': {
-            if (!selector.isNumberType()) {
-              throw new Error(`sum操作需要数值类型选择器，当前类型为${typeof selector._type}`)
-            }
             const numberSelector = selector as ChainableSelector<number>
             selector = numberSelector.sum()
             break
@@ -151,7 +146,8 @@ export function parseExtractor<T extends SelectorOpinion>(
   value: keyof typeof Extractor | string,
 ): ValueExtractor<T, SelectorOpinion> {
   // 处理内置提取器
-  const builtInExtractor = value in Extractor ? Extractor[value as keyof typeof Extractor] : null
+  if (!(value in Extractor)) throw Error('unable key')
+  const builtInExtractor = Extractor[value as keyof typeof Extractor]
 
   if (builtInExtractor) {
     // 返回带运行时类型检查的包装函数

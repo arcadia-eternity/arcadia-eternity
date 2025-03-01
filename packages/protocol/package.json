@@ -4,7 +4,8 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "build:watch": "swc ./ -d dist --watch --config-file=../../.swcrc"
   },
   "keywords": [],
   "author": "yuuinih",

@@ -1,4 +1,10 @@
-import { STAT_STAGE_MULTIPLIER, type baseMarkId, type markId, type StatTypeOnBattle } from '@test-battle/const/const'
+import {
+  STAT_STAGE_MULTIPLIER,
+  type baseMarkId,
+  type effectStateId,
+  type markId,
+  type StatTypeOnBattle,
+} from '@test-battle/const/const'
 import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import type { MarkMessage } from '@test-battle/const/message'
 import { StackStrategy } from '@test-battle/const/stackStrategy'
@@ -15,6 +21,8 @@ import {
 import { Effect, type EffectContainer, EffectScheduler } from './effect'
 import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
+import type { EffectState, EffectStateType, StatTypeWithoutHp } from '@test-battle/const'
+import { nanoid } from 'nanoid'
 
 export class BaseMark implements Prototype {
   constructor(
@@ -37,7 +45,6 @@ export class BaseMark implements Prototype {
   ) {}
 }
 
-//TODO: 印记的换场逻辑，以及传递的逻辑。
 export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet | null>, Instance {
   public _stack: number = 1
   public duration: number
@@ -47,6 +54,7 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
   public readonly id: markId
   public name: string
   public readonly effects: Effect<EffectTrigger>[]
+  public readonly effectsState: Map<effectStateId, EffectState<EffectStateType>> = new Map()
   public config: {
     duration?: number
     persistent?: boolean
@@ -78,6 +86,7 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
       // 确保枚举类型有默认值
       stackStrategy: overrides?.config?.stackStrategy ?? base.config.stackStrategy ?? StackStrategy.stack,
     }
+    this.id = nanoid() as markId
 
     this.duration = overrides?.duration ?? mergedConfig.duration ?? 3
     this._stack = overrides?.stack ?? 1
@@ -253,7 +262,7 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
 
 export class BaseStatLevelMark extends BaseMark {
   constructor(
-    public readonly statType: StatTypeOnBattle,
+    public readonly statType: StatTypeWithoutHp,
     public initialLevel: number,
     id: baseMarkId,
     name: string,
@@ -358,7 +367,7 @@ export class StatLevelMarkInstance extends MarkInstance {
   }
 }
 
-export function CreateStatStageMark(statType: StatTypeOnBattle, level: number): BaseStatLevelMark {
+export function CreateStatStageMark(statType: StatTypeWithoutHp, level: number): BaseStatLevelMark {
   return new BaseStatLevelMark(
     statType,
     level,

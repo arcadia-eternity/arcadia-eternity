@@ -3,7 +3,7 @@
     "composite": true,
     "lib": ["ESNext", "DOM"],
     "module": "ESNext",
-    "outDir": "../../dist/const",
+    "outDir": "./dist/",
     "verbatimModuleSyntax": true,
     "declaration": true,
     "declarationMap": true,

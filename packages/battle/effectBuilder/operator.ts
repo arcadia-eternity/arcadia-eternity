@@ -14,13 +14,8 @@ import {
 } from '@test-battle/battle'
 import { EffectTrigger, type StatTypeOnBattle, StatTypeWithoutHp } from '@test-battle/const'
 import type { Operator } from './effectBuilder'
-import {
-  ChainableSelector,
-  isPropertyRef,
-  type PrimitiveOpinion,
-  type PropertyRef,
-  type SelectorOpinion,
-} from './selector'
+import { ChainableSelector, isPropertyRef, type PropertyRef } from './selector'
+import { type PrimitiveOpinion, type SelectorOpinion } from './SelectorOpinion'
 import { type ValueSource } from './effectBuilder'
 
 function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpinion>(

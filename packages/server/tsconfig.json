@@ -7,7 +7,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "target": "ESNext",
-    "outDir": "../../dist/server",
+    "outDir": "./dist/",
     "verbatimModuleSyntax": true,
     "types": ["bun-types", "node"],
     "composite": true
