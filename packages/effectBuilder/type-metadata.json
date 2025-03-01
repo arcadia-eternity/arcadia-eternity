@@ -1,4 +1,157 @@
 {
+  "CompareOperator": [
+    {
+      "n": "type",
+      "t": "\">\" | \"<\" | \">=\" | \"<=\" | \"==\"",
+      "iu": true,
+      "u": [
+        "\">\"",
+        "\"<\"",
+        "\">=\"",
+        "\"<=\"",
+        "\"==\""
+      ],
+      "a": false
+    }
+  ],
+  "ValueExtractor": [],
+  "Action": [],
+  "Condition": [],
+  "Evaluator": [],
+  "Operator": [],
+  "TargetSelector": [],
+  "ValueSource": [
+    {
+      "n": "type",
+      "t": "T | TargetSelector<T> | ChainableSelector<T>",
+      "iu": true,
+      "u": [
+        "T",
+        "TargetSelector<T>",
+        "ChainableSelector<T>"
+      ],
+      "a": false
+    }
+  ],
+  "WidenLiteral": [],
+  "ExtractorMap": [
+    {
+      "n": "hp",
+      "t": "(target: Pet) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "maxhp",
+      "t": "(target: Pet) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "rage",
+      "t": "(target: Player) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "owner",
+      "t": "(target: OwnedEntity<CanOwnedEntity>) => Pet | Player | Battle | MarkInstance | SkillInstance | null",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "type",
+      "t": "(target: Pet) => Element",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "marks",
+      "t": "(target: Pet) => MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(target: Pet) => MarkInstance"
+    },
+    {
+      "n": "stats",
+      "t": "(target: Pet) => StatOnBattle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stack",
+      "t": "(target: MarkInstance) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "duration",
+      "t": "(target: MarkInstance) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "power",
+      "t": "(target: UseSkillContext) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "priority",
+      "t": "(target: UseSkillContext) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "activePet",
+      "t": "(target: Player) => Pet",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "skills",
+      "t": "(target: Pet) => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(target: Pet) => SkillInstance"
+    },
+    {
+      "n": "id",
+      "t": "(target: Instance) => InstanceId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "baseId",
+      "t": "(target: Instance) => PrototypeId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "tags",
+      "t": "(mark: MarkInstance) => string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(mark: MarkInstance) => string"
+    }
+  ],
+  "Path": [],
   "RuntimeTypeChecker": [
     {
       "n": "metadata",
@@ -8,7 +161,172 @@
       "a": false
     }
   ],
+  "TypeMetadata": [],
   "ChainableSelector": [],
+  "PropertyRef": [
+    {
+      "n": "get",
+      "t": "() => V",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "set",
+      "t": "(value: V) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "target",
+      "t": "T",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "PrimitiveOpinion": [
+    {
+      "n": "type",
+      "t": "string | number | false | true",
+      "iu": true,
+      "u": [
+        "string",
+        "number",
+        "false",
+        "true"
+      ],
+      "a": false
+    }
+  ],
+  "EnumOpinion": [
+    {
+      "n": "type",
+      "t": "Element.Normal | Element.Grass | Element.Water | Element.Fire | Element.Wind | Element.Bug | Element.Flying | Element.Electric | Element.Ground | Element.Ice | Element.Psychic | Element.Fighting | Element.Trait | Element.Light | Element.Mystery | Element.Shadow | Element.Dragon | Element.Desert | Element.Ancient | Element.Divine | Element.Miracle | Element.Holy | Element.ElfKing | Gender.NoGender | Gender.Male | Gender.Female | Nature.Hardy | Nature.Lonely | Nature.Brave | Nature.Adamant | Nature.Naughty | Nature.Bold | Nature.Docile | Nature.Relaxed | Nature.Impish | Nature.Lax | Nature.Timid | Nature.Hasty | Nature.Serious | Nature.Jolly | Nature.Naive | Nature.Modest | Nature.Mild | Nature.Quiet | Nature.Bashful | Nature.Rash | Nature.Calm | Nature.Gentle | Nature.Sassy | Nature.Careful | Nature.Quirky | Category.Physical | Category.Special | Category.Status | Category.Climax | AttackTargetOpinion.self | AttackTargetOpinion.opponent",
+      "iu": true,
+      "u": [
+        "Element.Normal",
+        "Element.Grass",
+        "Element.Water",
+        "Element.Fire",
+        "Element.Wind",
+        "Element.Bug",
+        "Element.Flying",
+        "Element.Electric",
+        "Element.Ground",
+        "Element.Ice",
+        "Element.Psychic",
+        "Element.Fighting",
+        "Element.Trait",
+        "Element.Light",
+        "Element.Mystery",
+        "Element.Shadow",
+        "Element.Dragon",
+        "Element.Desert",
+        "Element.Ancient",
+        "Element.Divine",
+        "Element.Miracle",
+        "Element.Holy",
+        "Element.ElfKing",
+        "Gender.NoGender",
+        "Gender.Male",
+        "Gender.Female",
+        "Nature.Hardy",
+        "Nature.Lonely",
+        "Nature.Brave",
+        "Nature.Adamant",
+        "Nature.Naughty",
+        "Nature.Bold",
+        "Nature.Docile",
+        "Nature.Relaxed",
+        "Nature.Impish",
+        "Nature.Lax",
+        "Nature.Timid",
+        "Nature.Hasty",
+        "Nature.Serious",
+        "Nature.Jolly",
+        "Nature.Naive",
+        "Nature.Modest",
+        "Nature.Mild",
+        "Nature.Quiet",
+        "Nature.Bashful",
+        "Nature.Rash",
+        "Nature.Calm",
+        "Nature.Gentle",
+        "Nature.Sassy",
+        "Nature.Careful",
+        "Nature.Quirky",
+        "Category.Physical",
+        "Category.Special",
+        "Category.Status",
+        "Category.Climax",
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
+      "a": false
+    }
+  ],
+  "ObjectOpinion": [
+    {
+      "n": "type",
+      "t": "null | Pet | Player | Battle | MarkInstance | SkillInstance | StatTypeWithoutHp.atk | StatTypeWithoutHp.def | StatTypeWithoutHp.spa | StatTypeWithoutHp.spd | StatTypeWithoutHp.spe | StatTypeOnlyBattle.accuracy | StatTypeOnlyBattle.evasion | StatTypeOnlyBattle.critRate | StatTypeOnlyBattle.ragePerTurn | StatOnBattle | UseSkillContext | Instance | DamageContext | OwnedEntity<CanOwnedEntity> | Prototype | PropertyRef<any, any>",
+      "iu": true,
+      "u": [
+        "null",
+        "Pet",
+        "Player",
+        "Battle",
+        "MarkInstance",
+        "SkillInstance",
+        "StatTypeWithoutHp.atk",
+        "StatTypeWithoutHp.def",
+        "StatTypeWithoutHp.spa",
+        "StatTypeWithoutHp.spd",
+        "StatTypeWithoutHp.spe",
+        "StatTypeOnlyBattle.accuracy",
+        "StatTypeOnlyBattle.evasion",
+        "StatTypeOnlyBattle.critRate",
+        "StatTypeOnlyBattle.ragePerTurn",
+        "StatOnBattle",
+        "UseSkillContext",
+        "Instance",
+        "DamageContext",
+        "OwnedEntity<CanOwnedEntity>",
+        "Prototype",
+        "PropertyRef<any, any>"
+      ],
+      "a": false
+    }
+  ],
+  "SelectorOpinion": [
+    {
+      "n": "type",
+      "t": "null | string | number | false | true | Pet | Player | Battle | MarkInstance | SkillInstance | StatOnBattle | UseSkillContext | Instance | DamageContext | OwnedEntity<CanOwnedEntity> | Prototype | PropertyRef<any, any> | SelectorOpinion",
+      "iu": true,
+      "u": [
+        "null",
+        "string",
+        "number",
+        "false",
+        "true",
+        "Pet",
+        "Player",
+        "Battle",
+        "MarkInstance",
+        "SkillInstance",
+        "StatOnBattle",
+        "UseSkillContext",
+        "Instance",
+        "DamageContext",
+        "OwnedEntity<CanOwnedEntity>",
+        "Prototype",
+        "PropertyRef<any, any>",
+        "SelectorOpinion"
+      ],
+      "a": false
+    }
+  ],
   "Battle": [
     {
       "n": "parent",
@@ -40,16 +358,25 @@
     },
     {
       "n": "status",
-      "t": "BattleStatus",
-      "iu": false,
-      "u": [],
+      "t": "BattleStatus.Unstarted | BattleStatus.OnBattle | BattleStatus.Ended",
+      "iu": true,
+      "u": [
+        "BattleStatus.Unstarted",
+        "BattleStatus.OnBattle",
+        "BattleStatus.Ended"
+      ],
       "a": false
     },
     {
       "n": "currentPhase",
-      "t": "BattlePhase",
-      "iu": false,
-      "u": [],
+      "t": "BattlePhase.SwitchPhase | BattlePhase.SelectionPhase | BattlePhase.ExecutionPhase | BattlePhase.Ended",
+      "iu": true,
+      "u": [
+        "BattlePhase.SwitchPhase",
+        "BattlePhase.SelectionPhase",
+        "BattlePhase.ExecutionPhase",
+        "BattlePhase.Ended"
+      ],
       "a": false
     },
     {
@@ -77,18 +404,21 @@
     },
     {
       "n": "allowFaintSwitch",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "lastKiller",
-      "t": "Player | undefined",
+      "t": "undefined | Player",
       "iu": true,
       "u": [
-        "Player",
-        "undefined"
+        "undefined",
+        "Player"
       ],
       "a": false
     },
@@ -102,11 +432,11 @@
     },
     {
       "n": "victor",
-      "t": "Player | undefined",
+      "t": "undefined | Player",
       "iu": true,
       "u": [
-        "Player",
-        "undefined"
+        "undefined",
+        "Player"
       ],
       "a": false
     },
@@ -149,21 +479,30 @@
     },
     {
       "n": "battle",
-      "t": "Battle | undefined",
+      "t": "undefined | Battle",
       "iu": true,
       "u": [
-        "Battle",
-        "undefined"
+        "undefined",
+        "Battle"
       ],
       "a": false
     },
     {
       "n": "parent",
-      "t": "AllContext | null",
+      "t": "null | Battle | UseSkillContext | DamageContext | TurnContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
-        "AllContext",
-        "null"
+        "null",
+        "Battle",
+        "UseSkillContext",
+        "DamageContext",
+        "TurnContext",
+        "HealContext",
+        "AddMarkContext",
+        "RemoveMarkContext",
+        "SwitchPetContext",
+        "RageContext",
+        "EffectContext<EffectTrigger>"
       ],
       "a": false
     }
@@ -208,9 +547,12 @@
     },
     {
       "n": "available",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -236,11 +578,11 @@
     },
     {
       "n": "actualTarget",
-      "t": "Pet | undefined",
+      "t": "undefined | Pet",
       "iu": true,
       "u": [
-        "Pet",
-        "undefined"
+        "undefined",
+        "Pet"
       ],
       "a": false
     },
@@ -260,36 +602,42 @@
     },
     {
       "n": "minThreshold",
-      "t": "number | undefined",
+      "t": "undefined | number",
       "iu": true,
       "u": [
-        "number",
-        "undefined"
+        "undefined",
+        "number"
       ],
       "a": false
     },
     {
       "n": "maxThreshold",
-      "t": "number | undefined",
+      "t": "undefined | number",
       "iu": true,
       "u": [
-        "number",
-        "undefined"
+        "undefined",
+        "number"
       ],
       "a": false
     },
     {
       "n": "crit",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "sureHit",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -311,9 +659,12 @@
     },
     {
       "n": "ignoreShield",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -339,9 +690,12 @@
     },
     {
       "n": "selectTarget",
-      "t": "AttackTargetOpinion",
-      "iu": false,
-      "u": [],
+      "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
+      "iu": true,
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
       "a": false
     },
     {
@@ -409,18 +763,21 @@
     },
     {
       "n": "available",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "parent",
-      "t": "TurnContext | UseSkillContext | EffectContext<EffectTrigger>",
+      "t": "UseSkillContext | TurnContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
-        "TurnContext",
         "UseSkillContext",
+        "TurnContext",
         "EffectContext<EffectTrigger>"
       ],
       "a": false
@@ -466,9 +823,12 @@
     },
     {
       "n": "ignoreRageObtainEfficiency",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     }
   ],
@@ -489,9 +849,12 @@
     },
     {
       "n": "available",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -506,11 +869,11 @@
     },
     {
       "n": "source",
-      "t": "MarkInstance | Pet | SkillInstance",
+      "t": "Pet | MarkInstance | SkillInstance",
       "iu": true,
       "u": [
-        "MarkInstance",
         "Pet",
+        "MarkInstance",
         "SkillInstance"
       ],
       "a": false
@@ -524,16 +887,23 @@
     },
     {
       "n": "damageType",
-      "t": "DamageType",
-      "iu": false,
-      "u": [],
+      "t": "DamageType.physical | DamageType.special | DamageType.effect",
+      "iu": true,
+      "u": [
+        "DamageType.physical",
+        "DamageType.special",
+        "DamageType.effect"
+      ],
       "a": false
     },
     {
       "n": "crit",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -545,9 +915,12 @@
     },
     {
       "n": "ignoreShield",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     }
   ],
@@ -568,9 +941,12 @@
     },
     {
       "n": "available",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -599,9 +975,12 @@
     },
     {
       "n": "ingoreEffect",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     }
   ],
@@ -622,9 +1001,12 @@
     },
     {
       "n": "available",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -653,11 +1035,11 @@
     },
     {
       "n": "stack",
-      "t": "number | undefined",
+      "t": "undefined | number",
       "iu": true,
       "u": [
-        "number",
-        "undefined"
+        "undefined",
+        "number"
       ],
       "a": false
     }
@@ -679,9 +1061,12 @@
     },
     {
       "n": "available",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -723,9 +1108,12 @@
     },
     {
       "n": "available",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -753,6 +1141,267 @@
       "a": false
     }
   ],
+  "AllContext": [
+    {
+      "n": "type",
+      "t": "Battle | UseSkillContext | DamageContext | TurnContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | EffectContext<EffectTrigger>",
+      "iu": true,
+      "u": [
+        "Battle",
+        "UseSkillContext",
+        "DamageContext",
+        "TurnContext",
+        "HealContext",
+        "AddMarkContext",
+        "RemoveMarkContext",
+        "SwitchPetContext",
+        "RageContext",
+        "EffectContext<EffectTrigger>"
+      ],
+      "a": false
+    }
+  ],
+  "TriggerContextMap": [
+    {
+      "n": "OnBattleStart",
+      "t": "Battle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "BeforeSort",
+      "t": "UseSkillContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "BeforeAttack",
+      "t": "UseSkillContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "PreDamage",
+      "t": "UseSkillContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnCritPreDamage",
+      "t": "UseSkillContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnDamage",
+      "t": "DamageContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "Shield",
+      "t": "DamageContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "PostDamage",
+      "t": "DamageContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnCritPostDamage",
+      "t": "UseSkillContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnBeforeHit",
+      "t": "UseSkillContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnHit",
+      "t": "UseSkillContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnMiss",
+      "t": "UseSkillContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "AfterAttacked",
+      "t": "UseSkillContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnDefeat",
+      "t": "UseSkillContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "TurnStart",
+      "t": "TurnContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "TurnEnd",
+      "t": "TurnContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnAddMark",
+      "t": "AddMarkContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnRemoveMark",
+      "t": "RemoveMarkContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnMarkCreate",
+      "t": "AddMarkContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnMarkDestroy",
+      "t": "RemoveMarkContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnMarkDurationEnd",
+      "t": "TurnContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnStack",
+      "t": "EffectContext<EffectTrigger>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnHeal",
+      "t": "EffectContext<EffectTrigger>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnRageGain",
+      "t": "RageContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnRageLoss",
+      "t": "RageContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnSwitchIn",
+      "t": "SwitchPetContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnSwitchOut",
+      "t": "SwitchPetContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnOwnerSwitchIn",
+      "t": "SwitchPetContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnOwnerSwitchOut",
+      "t": "SwitchPetContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "BeforeEffect",
+      "t": "Battle | UseSkillContext | DamageContext | TurnContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | EffectContext<EffectTrigger>",
+      "iu": true,
+      "u": [
+        "Battle",
+        "UseSkillContext",
+        "DamageContext",
+        "TurnContext",
+        "HealContext",
+        "AddMarkContext",
+        "RemoveMarkContext",
+        "SwitchPetContext",
+        "RageContext",
+        "EffectContext<EffectTrigger>"
+      ],
+      "a": false
+    },
+    {
+      "n": "AfterEffect",
+      "t": "Battle | UseSkillContext | DamageContext | TurnContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | EffectContext<EffectTrigger>",
+      "iu": true,
+      "u": [
+        "Battle",
+        "UseSkillContext",
+        "DamageContext",
+        "TurnContext",
+        "HealContext",
+        "AddMarkContext",
+        "RemoveMarkContext",
+        "SwitchPetContext",
+        "RageContext",
+        "EffectContext<EffectTrigger>"
+      ],
+      "a": false
+    }
+  ],
   "EffectScheduler": [
     {
       "n": "globalEffectQueue",
@@ -766,12 +1415,12 @@
   "Effect": [
     {
       "n": "owner",
-      "t": "MarkInstance | SkillInstance | null",
+      "t": "null | MarkInstance | SkillInstance",
       "iu": true,
       "u": [
+        "null",
         "MarkInstance",
-        "SkillInstance",
-        "null"
+        "SkillInstance"
       ],
       "a": false
     },
@@ -784,9 +1433,41 @@
     },
     {
       "n": "trigger",
-      "t": "EffectTrigger",
-      "iu": false,
-      "u": [],
+      "t": "EffectTrigger.OnBattleStart | EffectTrigger.BeforeSort | EffectTrigger.BeforeAttack | EffectTrigger.PreDamage | EffectTrigger.OnCritPreDamage | EffectTrigger.OnDamage | EffectTrigger.Shield | EffectTrigger.PostDamage | EffectTrigger.OnCritPostDamage | EffectTrigger.OnBeforeHit | EffectTrigger.OnHit | EffectTrigger.OnMiss | EffectTrigger.AfterAttacked | EffectTrigger.OnDefeat | EffectTrigger.TurnStart | EffectTrigger.TurnEnd | EffectTrigger.OnAddMark | EffectTrigger.OnRemoveMark | EffectTrigger.OnMarkCreate | EffectTrigger.OnMarkDestroy | EffectTrigger.OnMarkDurationEnd | EffectTrigger.OnStack | EffectTrigger.OnHeal | EffectTrigger.OnRageGain | EffectTrigger.OnRageLoss | EffectTrigger.OnSwitchIn | EffectTrigger.OnSwitchOut | EffectTrigger.OnOwnerSwitchIn | EffectTrigger.OnOwnerSwitchOut | EffectTrigger.BeforeEffect | EffectTrigger.AfterEffect",
+      "iu": true,
+      "u": [
+        "EffectTrigger.OnBattleStart",
+        "EffectTrigger.BeforeSort",
+        "EffectTrigger.BeforeAttack",
+        "EffectTrigger.PreDamage",
+        "EffectTrigger.OnCritPreDamage",
+        "EffectTrigger.OnDamage",
+        "EffectTrigger.Shield",
+        "EffectTrigger.PostDamage",
+        "EffectTrigger.OnCritPostDamage",
+        "EffectTrigger.OnBeforeHit",
+        "EffectTrigger.OnHit",
+        "EffectTrigger.OnMiss",
+        "EffectTrigger.AfterAttacked",
+        "EffectTrigger.OnDefeat",
+        "EffectTrigger.TurnStart",
+        "EffectTrigger.TurnEnd",
+        "EffectTrigger.OnAddMark",
+        "EffectTrigger.OnRemoveMark",
+        "EffectTrigger.OnMarkCreate",
+        "EffectTrigger.OnMarkDestroy",
+        "EffectTrigger.OnMarkDurationEnd",
+        "EffectTrigger.OnStack",
+        "EffectTrigger.OnHeal",
+        "EffectTrigger.OnRageGain",
+        "EffectTrigger.OnRageLoss",
+        "EffectTrigger.OnSwitchIn",
+        "EffectTrigger.OnSwitchOut",
+        "EffectTrigger.OnOwnerSwitchIn",
+        "EffectTrigger.OnOwnerSwitchOut",
+        "EffectTrigger.BeforeEffect",
+        "EffectTrigger.AfterEffect"
+      ],
       "a": false
     },
     {
@@ -805,21 +1486,21 @@
     },
     {
       "n": "condition",
-      "t": "((context: EffectContext<T>) => boolean) | undefined",
+      "t": "undefined | (context: EffectContext<T>) => boolean",
       "iu": true,
       "u": [
-        "((context: EffectContext<T>) => boolean)",
-        "undefined"
+        "undefined",
+        "(context: EffectContext<T>) => boolean"
       ],
       "a": false
     },
     {
       "n": "consumesStacks",
-      "t": "number | undefined",
+      "t": "undefined | number",
       "iu": true,
       "u": [
-        "number",
-        "undefined"
+        "undefined",
+        "number"
       ],
       "a": false
     }
@@ -856,21 +1537,37 @@
     },
     {
       "n": "condition",
-      "t": "((context: EffectContext<T>) => boolean) | undefined",
+      "t": "undefined | (context: EffectContext<T>) => boolean",
       "iu": true,
       "u": [
-        "((context: EffectContext<T>) => boolean)",
-        "undefined"
+        "undefined",
+        "(context: EffectContext<T>) => boolean"
       ],
       "a": false
     },
     {
       "n": "consumesStacks",
-      "t": "number | undefined",
+      "t": "undefined | number",
       "iu": true,
       "u": [
-        "number",
-        "undefined"
+        "undefined",
+        "number"
+      ],
+      "a": false
+    }
+  ],
+  "CanOwnedEntity": [
+    {
+      "n": "type",
+      "t": "null | Pet | Player | Battle | MarkInstance | SkillInstance",
+      "iu": true,
+      "u": [
+        "null",
+        "Pet",
+        "Player",
+        "Battle",
+        "MarkInstance",
+        "SkillInstance"
       ],
       "a": false
     }
@@ -878,18 +1575,27 @@
   "Prototype": [
     {
       "n": "id",
-      "t": "PrototypeId",
-      "iu": false,
-      "u": [],
+      "t": "speciesId | baseMarkId | baseSkillId | effectId",
+      "iu": true,
+      "u": [
+        "speciesId",
+        "baseMarkId",
+        "baseSkillId",
+        "effectId"
+      ],
       "a": false
     }
   ],
   "Instance": [
     {
       "n": "id",
-      "t": "InstanceId",
-      "iu": false,
-      "u": [],
+      "t": "petId | skillId | markId",
+      "iu": true,
+      "u": [
+        "petId",
+        "skillId",
+        "markId"
+      ],
       "a": false
     },
     {
@@ -975,20 +1681,23 @@
     },
     {
       "n": "owner",
-      "t": "Battle | Pet | null",
+      "t": "null | Pet | Battle",
       "iu": true,
       "u": [
-        "Battle",
+        "null",
         "Pet",
-        "null"
+        "Battle"
       ],
       "a": false
     },
     {
       "n": "isActive",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -1051,18 +1760,27 @@
     },
     {
       "n": "isStackable",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     }
   ],
   "BaseStatLevelMark": [
     {
       "n": "statType",
-      "t": "StatTypeWithoutHp",
-      "iu": false,
-      "u": [],
+      "t": "StatTypeWithoutHp.atk | StatTypeWithoutHp.def | StatTypeWithoutHp.spa | StatTypeWithoutHp.spd | StatTypeWithoutHp.spe",
+      "iu": true,
+      "u": [
+        "StatTypeWithoutHp.atk",
+        "StatTypeWithoutHp.def",
+        "StatTypeWithoutHp.spa",
+        "StatTypeWithoutHp.spd",
+        "StatTypeWithoutHp.spe"
+      ],
       "a": false
     },
     {
@@ -1090,9 +1808,15 @@
     },
     {
       "n": "statType",
-      "t": "StatTypeWithoutHp",
-      "iu": false,
-      "u": [],
+      "t": "StatTypeWithoutHp.atk | StatTypeWithoutHp.def | StatTypeWithoutHp.spa | StatTypeWithoutHp.spd | StatTypeWithoutHp.spe",
+      "iu": true,
+      "u": [
+        "StatTypeWithoutHp.atk",
+        "StatTypeWithoutHp.def",
+        "StatTypeWithoutHp.spa",
+        "StatTypeWithoutHp.spd",
+        "StatTypeWithoutHp.spe"
+      ],
       "a": false
     }
   ],
@@ -1120,7 +1844,7 @@
     },
     {
       "n": "statStage",
-      "t": "Record<StatTypeWithoutHp, number>",
+      "t": "StatStage",
       "iu": false,
       "u": [],
       "a": false
@@ -1134,25 +1858,52 @@
     },
     {
       "n": "element",
-      "t": "Element",
-      "iu": false,
-      "u": [],
+      "t": "Element.Normal | Element.Grass | Element.Water | Element.Fire | Element.Wind | Element.Bug | Element.Flying | Element.Electric | Element.Ground | Element.Ice | Element.Psychic | Element.Fighting | Element.Trait | Element.Light | Element.Mystery | Element.Shadow | Element.Dragon | Element.Desert | Element.Ancient | Element.Divine | Element.Miracle | Element.Holy | Element.ElfKing",
+      "iu": true,
+      "u": [
+        "Element.Normal",
+        "Element.Grass",
+        "Element.Water",
+        "Element.Fire",
+        "Element.Wind",
+        "Element.Bug",
+        "Element.Flying",
+        "Element.Electric",
+        "Element.Ground",
+        "Element.Ice",
+        "Element.Psychic",
+        "Element.Fighting",
+        "Element.Trait",
+        "Element.Light",
+        "Element.Mystery",
+        "Element.Shadow",
+        "Element.Dragon",
+        "Element.Desert",
+        "Element.Ancient",
+        "Element.Divine",
+        "Element.Miracle",
+        "Element.Holy",
+        "Element.ElfKing"
+      ],
       "a": false
     },
     {
       "n": "isAlive",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "lastUseSkill",
-      "t": "SkillInstance | null",
+      "t": "null | SkillInstance",
       "iu": true,
       "u": [
-        "SkillInstance",
-        "null"
+        "null",
+        "SkillInstance"
       ],
       "a": false
     },
@@ -1165,11 +1916,11 @@
     },
     {
       "n": "owner",
-      "t": "Player | null",
+      "t": "null | Player",
       "iu": true,
       "u": [
-        "Player",
-        "null"
+        "null",
+        "Player"
       ],
       "a": false
     },
@@ -1219,9 +1970,13 @@
     },
     {
       "n": "gender",
-      "t": "Gender",
-      "iu": false,
-      "u": [],
+      "t": "Gender.NoGender | Gender.Male | Gender.Female",
+      "iu": true,
+      "u": [
+        "Gender.NoGender",
+        "Gender.Male",
+        "Gender.Female"
+      ],
       "a": false
     },
     {
@@ -1268,9 +2023,35 @@
     },
     {
       "n": "nature",
-      "t": "Nature",
-      "iu": false,
-      "u": [],
+      "t": "Nature.Hardy | Nature.Lonely | Nature.Brave | Nature.Adamant | Nature.Naughty | Nature.Bold | Nature.Docile | Nature.Relaxed | Nature.Impish | Nature.Lax | Nature.Timid | Nature.Hasty | Nature.Serious | Nature.Jolly | Nature.Naive | Nature.Modest | Nature.Mild | Nature.Quiet | Nature.Bashful | Nature.Rash | Nature.Calm | Nature.Gentle | Nature.Sassy | Nature.Careful | Nature.Quirky",
+      "iu": true,
+      "u": [
+        "Nature.Hardy",
+        "Nature.Lonely",
+        "Nature.Brave",
+        "Nature.Adamant",
+        "Nature.Naughty",
+        "Nature.Bold",
+        "Nature.Docile",
+        "Nature.Relaxed",
+        "Nature.Impish",
+        "Nature.Lax",
+        "Nature.Timid",
+        "Nature.Hasty",
+        "Nature.Serious",
+        "Nature.Jolly",
+        "Nature.Naive",
+        "Nature.Modest",
+        "Nature.Mild",
+        "Nature.Quiet",
+        "Nature.Bashful",
+        "Nature.Rash",
+        "Nature.Calm",
+        "Nature.Gentle",
+        "Nature.Sassy",
+        "Nature.Careful",
+        "Nature.Quirky"
+      ],
       "a": false
     },
     {
@@ -1282,7 +2063,7 @@
     },
     {
       "n": "actualStat",
-      "t": "Record<StatTypeOnBattle, number>",
+      "t": "StatOnBattle",
       "iu": false,
       "u": [],
       "a": false
@@ -1319,25 +2100,49 @@
     },
     {
       "n": "element",
-      "t": "Element",
-      "iu": false,
-      "u": [],
+      "t": "Element.Normal | Element.Grass | Element.Water | Element.Fire | Element.Wind | Element.Bug | Element.Flying | Element.Electric | Element.Ground | Element.Ice | Element.Psychic | Element.Fighting | Element.Trait | Element.Light | Element.Mystery | Element.Shadow | Element.Dragon | Element.Desert | Element.Ancient | Element.Divine | Element.Miracle | Element.Holy | Element.ElfKing",
+      "iu": true,
+      "u": [
+        "Element.Normal",
+        "Element.Grass",
+        "Element.Water",
+        "Element.Fire",
+        "Element.Wind",
+        "Element.Bug",
+        "Element.Flying",
+        "Element.Electric",
+        "Element.Ground",
+        "Element.Ice",
+        "Element.Psychic",
+        "Element.Fighting",
+        "Element.Trait",
+        "Element.Light",
+        "Element.Mystery",
+        "Element.Shadow",
+        "Element.Dragon",
+        "Element.Desert",
+        "Element.Ancient",
+        "Element.Divine",
+        "Element.Miracle",
+        "Element.Holy",
+        "Element.ElfKing"
+      ],
       "a": false
     },
     {
       "n": "baseStats",
-      "t": "{ atk: number, def: number, spa: number, spd: number, spe: number, hp: number }",
+      "t": "StatOutBattle",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "genderRatio",
-      "t": "[number, number] | null",
+      "t": "null | [number, number]",
       "iu": true,
       "u": [
-        "[number, number]",
-        "null"
+        "null",
+        "[number, number]"
       ],
       "a": false
     },
@@ -1357,21 +2162,21 @@
     },
     {
       "n": "ability",
-      "t": "BaseMark[] | undefined",
+      "t": "undefined | BaseMark",
       "iu": true,
       "u": [
-        "BaseMark[]",
-        "undefined"
+        "undefined",
+        "BaseMark"
       ],
       "a": false
     },
     {
       "n": "emblem",
-      "t": "BaseMark[] | undefined",
+      "t": "undefined | BaseMark",
       "iu": true,
       "u": [
-        "BaseMark[]",
-        "undefined"
+        "undefined",
+        "BaseMark"
       ],
       "a": false
     }
@@ -1386,21 +2191,24 @@
     },
     {
       "n": "battle",
-      "t": "Battle | undefined",
+      "t": "undefined | Battle",
       "iu": true,
       "u": [
-        "Battle",
-        "undefined"
+        "undefined",
+        "Battle"
       ],
       "a": false
     },
     {
       "n": "selection",
-      "t": "PlayerSelection | null",
+      "t": "null | UseSkillSelection | SwitchPetSelection | DoNothingSelection | SurrenderSelection",
       "iu": true,
       "u": [
-        "PlayerSelection",
-        "null"
+        "null",
+        "UseSkillSelection",
+        "SwitchPetSelection",
+        "DoNothingSelection",
+        "SurrenderSelection"
       ],
       "a": false
     },
@@ -1474,16 +2282,45 @@
     },
     {
       "n": "category",
-      "t": "Category",
-      "iu": false,
-      "u": [],
+      "t": "Category.Physical | Category.Special | Category.Status | Category.Climax",
+      "iu": true,
+      "u": [
+        "Category.Physical",
+        "Category.Special",
+        "Category.Status",
+        "Category.Climax"
+      ],
       "a": false
     },
     {
       "n": "element",
-      "t": "Element",
-      "iu": false,
-      "u": [],
+      "t": "Element.Normal | Element.Grass | Element.Water | Element.Fire | Element.Wind | Element.Bug | Element.Flying | Element.Electric | Element.Ground | Element.Ice | Element.Psychic | Element.Fighting | Element.Trait | Element.Light | Element.Mystery | Element.Shadow | Element.Dragon | Element.Desert | Element.Ancient | Element.Divine | Element.Miracle | Element.Holy | Element.ElfKing",
+      "iu": true,
+      "u": [
+        "Element.Normal",
+        "Element.Grass",
+        "Element.Water",
+        "Element.Fire",
+        "Element.Wind",
+        "Element.Bug",
+        "Element.Flying",
+        "Element.Electric",
+        "Element.Ground",
+        "Element.Ice",
+        "Element.Psychic",
+        "Element.Fighting",
+        "Element.Trait",
+        "Element.Light",
+        "Element.Mystery",
+        "Element.Shadow",
+        "Element.Dragon",
+        "Element.Desert",
+        "Element.Ancient",
+        "Element.Divine",
+        "Element.Miracle",
+        "Element.Holy",
+        "Element.ElfKing"
+      ],
       "a": false
     },
     {
@@ -1516,9 +2353,12 @@
     },
     {
       "n": "target",
-      "t": "AttackTargetOpinion",
-      "iu": false,
-      "u": [],
+      "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
+      "iu": true,
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
       "a": false
     },
     {
@@ -1533,16 +2373,22 @@
     },
     {
       "n": "sureHit",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "ignoreShield",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -1557,11 +2403,11 @@
   "SkillInstance": [
     {
       "n": "owner",
-      "t": "Pet | null",
+      "t": "null | Pet",
       "iu": true,
       "u": [
-        "Pet",
-        "null"
+        "null",
+        "Pet"
       ],
       "a": false
     },
@@ -1574,16 +2420,45 @@
     },
     {
       "n": "category",
-      "t": "Category",
-      "iu": false,
-      "u": [],
+      "t": "Category.Physical | Category.Special | Category.Status | Category.Climax",
+      "iu": true,
+      "u": [
+        "Category.Physical",
+        "Category.Special",
+        "Category.Status",
+        "Category.Climax"
+      ],
       "a": false
     },
     {
       "n": "element",
-      "t": "Element",
-      "iu": false,
-      "u": [],
+      "t": "Element.Normal | Element.Grass | Element.Water | Element.Fire | Element.Wind | Element.Bug | Element.Flying | Element.Electric | Element.Ground | Element.Ice | Element.Psychic | Element.Fighting | Element.Trait | Element.Light | Element.Mystery | Element.Shadow | Element.Dragon | Element.Desert | Element.Ancient | Element.Divine | Element.Miracle | Element.Holy | Element.ElfKing",
+      "iu": true,
+      "u": [
+        "Element.Normal",
+        "Element.Grass",
+        "Element.Water",
+        "Element.Fire",
+        "Element.Wind",
+        "Element.Bug",
+        "Element.Flying",
+        "Element.Electric",
+        "Element.Ground",
+        "Element.Ice",
+        "Element.Psychic",
+        "Element.Fighting",
+        "Element.Trait",
+        "Element.Light",
+        "Element.Mystery",
+        "Element.Shadow",
+        "Element.Dragon",
+        "Element.Desert",
+        "Element.Ancient",
+        "Element.Divine",
+        "Element.Miracle",
+        "Element.Holy",
+        "Element.ElfKing"
+      ],
       "a": false
     },
     {
@@ -1616,9 +2491,12 @@
     },
     {
       "n": "target",
-      "t": "AttackTargetOpinion",
-      "iu": false,
-      "u": [],
+      "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
+      "iu": true,
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
       "a": false
     },
     {
@@ -1633,16 +2511,22 @@
     },
     {
       "n": "sureHit",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "ignoreShield",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -1683,6 +2567,1340 @@
       "a": false
     }
   ],
+  "Brand": [],
+  "entityId": [],
+  "speciesId": [],
+  "petId": [],
+  "baseSkillId": [],
+  "skillId": [],
+  "playerId": [],
+  "baseMarkId": [],
+  "markId": [],
+  "effectId": [],
+  "effectStateId": [],
+  "Id": [
+    {
+      "n": "type",
+      "t": "petId | skillId | markId | speciesId | baseMarkId | baseSkillId | effectId",
+      "iu": true,
+      "u": [
+        "petId",
+        "skillId",
+        "markId",
+        "speciesId",
+        "baseMarkId",
+        "baseSkillId",
+        "effectId"
+      ],
+      "a": false
+    }
+  ],
+  "PrototypeId": [
+    {
+      "n": "type",
+      "t": "speciesId | baseMarkId | baseSkillId | effectId",
+      "iu": true,
+      "u": [
+        "speciesId",
+        "baseMarkId",
+        "baseSkillId",
+        "effectId"
+      ],
+      "a": false
+    }
+  ],
+  "InstanceId": [
+    {
+      "n": "type",
+      "t": "petId | skillId | markId",
+      "iu": true,
+      "u": [
+        "petId",
+        "skillId",
+        "markId"
+      ],
+      "a": false
+    }
+  ],
+  "StatOutBattle": [
+    {
+      "n": "atk",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "def",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "spa",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "spd",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "spe",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "hp",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "StatTypeOnBattle": [
+    {
+      "n": "type",
+      "t": "StatTypeWithoutHp.atk | StatTypeWithoutHp.def | StatTypeWithoutHp.spa | StatTypeWithoutHp.spd | StatTypeWithoutHp.spe | StatTypeOnlyBattle.accuracy | StatTypeOnlyBattle.evasion | StatTypeOnlyBattle.critRate | StatTypeOnlyBattle.ragePerTurn",
+      "iu": true,
+      "u": [
+        "StatTypeWithoutHp.atk",
+        "StatTypeWithoutHp.def",
+        "StatTypeWithoutHp.spa",
+        "StatTypeWithoutHp.spd",
+        "StatTypeWithoutHp.spe",
+        "StatTypeOnlyBattle.accuracy",
+        "StatTypeOnlyBattle.evasion",
+        "StatTypeOnlyBattle.critRate",
+        "StatTypeOnlyBattle.ragePerTurn"
+      ],
+      "a": false
+    }
+  ],
+  "StatStage": [
+    {
+      "n": "atk",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "def",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "spa",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "spd",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "spe",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "StatOnBattle": [
+    {
+      "n": "atk",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "def",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "spa",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "spd",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "spe",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "accuracy",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "evasion",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "critRate",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "ragePerTurn",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "StatBuffOnBattle": [
+    {
+      "n": "atk",
+      "t": "BuffNumber",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "def",
+      "t": "BuffNumber",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "spa",
+      "t": "BuffNumber",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "spd",
+      "t": "BuffNumber",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "spe",
+      "t": "BuffNumber",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "accuracy",
+      "t": "BuffNumber",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "evasion",
+      "t": "BuffNumber",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "critRate",
+      "t": "BuffNumber",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "ragePerTurn",
+      "t": "BuffNumber",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "BuffNumber": [
+    {
+      "n": "0",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "1",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "length",
+      "t": "2",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toString",
+      "t": "() => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toLocaleString",
+      "t": "{ (): string, (locales: string | string[], options?: (Intl.NumberFormatOptions & Intl.DateTimeFormatOptions) | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "pop",
+      "t": "() => number | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "push",
+      "t": "(...items: number[]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "concat",
+      "t": "{ (...items: ConcatArray<number>[]), (...items: (number | ConcatArray<number>)[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "join",
+      "t": "(separator?: string | undefined) => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reverse",
+      "t": "() => number",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => number"
+    },
+    {
+      "n": "shift",
+      "t": "() => number | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "slice",
+      "t": "(start?: number | undefined, end?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(start?: number | undefined, end?: number | undefined) => number"
+    },
+    {
+      "n": "sort",
+      "t": "(compareFn?: ((a: number, b: number) => number) | undefined) => BuffNumber",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "splice",
+      "t": "{ (start: number, deleteCount?: number | undefined), (start: number, deleteCount: number, ...items: number[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "unshift",
+      "t": "(...items: number[]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "indexOf",
+      "t": "(searchElement: number, fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "lastIndexOf",
+      "t": "(searchElement: number, fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "every",
+      "t": "{ <S>(predicate: (value, index: number, array: number[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: number[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "some",
+      "t": "(predicate: (value: number, index: number, array: number[]) => unknown, thisArg?: any) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "forEach",
+      "t": "(callbackfn: (value: number, index: number, array: number[]) => void, thisArg?: any) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "map",
+      "t": "<U>(callbackfn: (value: number, index: number, array: number[]) => U, thisArg?: any) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U>(callbackfn: (value: number, index: number, array: number[]) => U, thisArg?: any) => U"
+    },
+    {
+      "n": "filter",
+      "t": "{ <S>(predicate: (value, index: number, array: number[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: number[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduce",
+      "t": "{ (callbackfn: (previousValue, currentValue: number, currentIndex: number, array: number[]) => number), (callbackfn: (previousValue, currentValue: number, currentIndex: number, array: number[]) => number, initialValue: number), <U>(callbackfn: (previousValue, currentValue: number, currentIndex: number, array: number[]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduceRight",
+      "t": "{ (callbackfn: (previousValue, currentValue: number, currentIndex: number, array: number[]) => number), (callbackfn: (previousValue, currentValue: number, currentIndex: number, array: number[]) => number, initialValue: number), <U>(callbackfn: (previousValue, currentValue: number, currentIndex: number, array: number[]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "find",
+      "t": "{ <S>(predicate: (value, index: number, obj: number[]) => value is S, thisArg?: any), (predicate: (value, index: number, obj: number[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findIndex",
+      "t": "(predicate: (value: number, index: number, obj: number[]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "fill",
+      "t": "(value: number, start?: number | undefined, end?: number | undefined) => BuffNumber",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "copyWithin",
+      "t": "(target: number, start: number, end?: number | undefined) => BuffNumber",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "entries",
+      "t": "() => ArrayIterator<[number, number]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "keys",
+      "t": "() => ArrayIterator<number>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "values",
+      "t": "() => ArrayIterator<number>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "includes",
+      "t": "(searchElement: number, fromIndex?: number | undefined) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "flatMap",
+      "t": "<U, This>(callback: (this: This, value: number, index: number, array: number[]) => U | readonly U[], thisArg?: This | undefined) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U, This>(callback: (this: This, value: number, index: number, array: number[]) => U | readonly U[], thisArg?: This | undefined) => U"
+    },
+    {
+      "n": "flat",
+      "t": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>"
+    },
+    {
+      "n": "at",
+      "t": "(index: number) => number | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLast",
+      "t": "{ <S>(predicate: (value, index: number, array: number[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: number[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLastIndex",
+      "t": "(predicate: (value: number, index: number, array: number[]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toReversed",
+      "t": "() => number",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => number"
+    },
+    {
+      "n": "toSorted",
+      "t": "(compareFn?: ((a: number, b: number) => number) | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: number, b: number) => number) | undefined) => number"
+    },
+    {
+      "n": "toSpliced",
+      "t": "{ (start: number, deleteCount: number, ...items: number[]), (start: number, deleteCount?: number | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "with",
+      "t": "(index: number, value: number) => number",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(index: number, value: number) => number"
+    },
+    {
+      "n": "__@iterator@189",
+      "t": "() => ArrayIterator<number>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "__@unscopables@777",
+      "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "BattleMessage": [
+    {
+      "n": "type",
+      "t": "BattleStateMessage | BattleStartMessage | RoundStartMessage | BattleEndMessage | PetSwitchMessage | PetDefeatedMessage | PetReviveMessage | StatChangeMessage | RageChangeMessage | HpChangeMessage | SkillUseMessage | SkillMissMessage | SkillEffectMessage | DamageMessage | HealMessage | CritMessage | TypeEffectivenessMessage | MarkApplyMessage | MarkTriggerMessage | MarkExpireMessage | TurnActionMessage | ForcedSwitchMessage | FaintSwitchMessage | InvalidActionMessage | InfoMessage | ErrorMessage",
+      "iu": true,
+      "u": [
+        "BattleStateMessage",
+        "BattleStartMessage",
+        "RoundStartMessage",
+        "BattleEndMessage",
+        "PetSwitchMessage",
+        "PetDefeatedMessage",
+        "PetReviveMessage",
+        "StatChangeMessage",
+        "RageChangeMessage",
+        "HpChangeMessage",
+        "SkillUseMessage",
+        "SkillMissMessage",
+        "SkillEffectMessage",
+        "DamageMessage",
+        "HealMessage",
+        "CritMessage",
+        "TypeEffectivenessMessage",
+        "MarkApplyMessage",
+        "MarkTriggerMessage",
+        "MarkExpireMessage",
+        "TurnActionMessage",
+        "ForcedSwitchMessage",
+        "FaintSwitchMessage",
+        "InvalidActionMessage",
+        "InfoMessage",
+        "ErrorMessage"
+      ],
+      "a": false
+    }
+  ],
+  "BattleStateMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.BattleState",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "BattleState",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "BattleStartMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.BattleStart",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ playerA: PlayerMessage, playerB: PlayerMessage }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "RoundStartMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.RoundStart",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "round",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "BattleEndMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.BattleEnd",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ winner: playerId | null, reason: \"all_pet_fainted\" | \"surrender\" }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "PetSwitchMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.PetSwitch",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ player: playerId, fromPet: petId, toPet: petId, currentHp: number }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "PetDefeatedMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.PetDefeated",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ pet: petId, killer?: petId | undefined }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "PetReviveMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.PetRevive",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ pet: petId, revivedBy: petId }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "StatChangeMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.StatChange",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ pet: petId, stat: StatTypeOnBattle, stage: number, reason: string }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "RageChangeMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.RageChange",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ player: playerId, pet: petId, before: number, after: number, reason: \"turn\" | \"damage\" | \"skill\" | \"skillHit\" | \"switch\" | \"effect\" }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "HpChangeMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.HpChange",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ pet: petId, before: number, after: number, maxHp: number, reason: \"damage\" | \"heal\" | \"drain\" | \"revive\" }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "SkillUseMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.SkillUse",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ user: petId, target: AttackTargetOpinion, skill: string, rageCost: number }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "SkillMissMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.SkillMiss",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ user: petId, target: petId, skill: string, reason: \"accuracy\" | \"dodge\" | \"immune\" }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "SkillEffectMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.SkillEffect",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ user?: petId | undefined, target: petId, effect: string, description: string }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "DamageMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.Damage",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ maxHp: number, currentHp: number, source: petId | skillId | markId, target: petId, damage: number, isCrit: boolean, effectiveness: number, damageType: \"effect\" | \"physical\" | \"special\" }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "HealMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.Heal",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ target: petId, amount: number, source: \"skill\" | \"effect\" | \"item\", healer?: string | undefined }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "CritMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.Crit",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ attacker: petId, target: petId }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "TypeEffectivenessMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.TypeEffectiveness",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ attackerType: Element, defenderType: Element, multiplier: number }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "MarkApplyMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.MarkApply",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ markType: baseMarkId, applier: petId, target: petId, duration: number }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "MarkTriggerMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.MarkTrigger",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ markType: markId, trigger: petId, effect: effectId }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "MarkExpireMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.MarkExpire",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ markType: markId, target: petId }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "TurnActionMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.TurnAction",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{  }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "ForcedSwitchMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.ForcedSwitch",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "player",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "FaintSwitchMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.FaintSwitch",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "player",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "InvalidActionMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.InvalidAction",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ player: playerId, action: string, reason: \"no_rage\" | \"cooldown\" | \"invalid_target\" | \"dead_pet\" | \"invalid_action\" }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "InfoMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.Info",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "message",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "ErrorMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.Error",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "message",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
   "SkillMessage": [
     {
       "n": "id",
@@ -1707,16 +3925,45 @@
     },
     {
       "n": "category",
-      "t": "Category",
-      "iu": false,
-      "u": [],
+      "t": "Category.Physical | Category.Special | Category.Status | Category.Climax",
+      "iu": true,
+      "u": [
+        "Category.Physical",
+        "Category.Special",
+        "Category.Status",
+        "Category.Climax"
+      ],
       "a": false
     },
     {
       "n": "element",
-      "t": "Element",
-      "iu": false,
-      "u": [],
+      "t": "Element.Normal | Element.Grass | Element.Water | Element.Fire | Element.Wind | Element.Bug | Element.Flying | Element.Electric | Element.Ground | Element.Ice | Element.Psychic | Element.Fighting | Element.Trait | Element.Light | Element.Mystery | Element.Shadow | Element.Dragon | Element.Desert | Element.Ancient | Element.Divine | Element.Miracle | Element.Holy | Element.ElfKing",
+      "iu": true,
+      "u": [
+        "Element.Normal",
+        "Element.Grass",
+        "Element.Water",
+        "Element.Fire",
+        "Element.Wind",
+        "Element.Bug",
+        "Element.Flying",
+        "Element.Electric",
+        "Element.Ground",
+        "Element.Ice",
+        "Element.Psychic",
+        "Element.Fighting",
+        "Element.Trait",
+        "Element.Light",
+        "Element.Mystery",
+        "Element.Shadow",
+        "Element.Dragon",
+        "Element.Desert",
+        "Element.Ancient",
+        "Element.Divine",
+        "Element.Miracle",
+        "Element.Holy",
+        "Element.ElfKing"
+      ],
       "a": false
     },
     {
@@ -1749,9 +3996,12 @@
     },
     {
       "n": "target",
-      "t": "AttackTargetOpinion",
-      "iu": false,
-      "u": [],
+      "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
+      "iu": true,
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
       "a": false
     },
     {
@@ -1766,9 +4016,12 @@
     },
     {
       "n": "sureHit",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -1804,9 +4057,33 @@
     },
     {
       "n": "element",
-      "t": "Element",
-      "iu": false,
-      "u": [],
+      "t": "Element.Normal | Element.Grass | Element.Water | Element.Fire | Element.Wind | Element.Bug | Element.Flying | Element.Electric | Element.Ground | Element.Ice | Element.Psychic | Element.Fighting | Element.Trait | Element.Light | Element.Mystery | Element.Shadow | Element.Dragon | Element.Desert | Element.Ancient | Element.Divine | Element.Miracle | Element.Holy | Element.ElfKing",
+      "iu": true,
+      "u": [
+        "Element.Normal",
+        "Element.Grass",
+        "Element.Water",
+        "Element.Fire",
+        "Element.Wind",
+        "Element.Bug",
+        "Element.Flying",
+        "Element.Electric",
+        "Element.Ground",
+        "Element.Ice",
+        "Element.Psychic",
+        "Element.Fighting",
+        "Element.Trait",
+        "Element.Light",
+        "Element.Mystery",
+        "Element.Shadow",
+        "Element.Dragon",
+        "Element.Desert",
+        "Element.Ancient",
+        "Element.Divine",
+        "Element.Miracle",
+        "Element.Holy",
+        "Element.ElfKing"
+      ],
       "a": false
     },
     {
@@ -1832,21 +4109,21 @@
     },
     {
       "n": "skills",
-      "t": "SkillMessage[] | undefined",
+      "t": "undefined | SkillMessage",
       "iu": true,
       "u": [
-        "SkillMessage[]",
-        "undefined"
+        "undefined",
+        "SkillMessage"
       ],
       "a": false
     },
     {
       "n": "stats",
-      "t": "StatOnBattle | undefined",
+      "t": "undefined | StatOnBattle",
       "iu": true,
       "u": [
-        "StatOnBattle",
-        "undefined"
+        "undefined",
+        "StatOnBattle"
       ],
       "a": false
     },
@@ -1897,9 +4174,12 @@
     },
     {
       "n": "isActive",
-      "t": "boolean",
-      "iu": false,
-      "u": [],
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     }
   ],
@@ -1934,11 +4214,11 @@
     },
     {
       "n": "team",
-      "t": "PetMessage[] | undefined",
+      "t": "undefined | PetMessage",
       "iu": true,
       "u": [
-        "PetMessage[]",
-        "undefined"
+        "undefined",
+        "PetMessage"
       ],
       "a": false
     },
@@ -1953,16 +4233,25 @@
   "BattleState": [
     {
       "n": "status",
-      "t": "BattleStatus",
-      "iu": false,
-      "u": [],
+      "t": "BattleStatus.Unstarted | BattleStatus.OnBattle | BattleStatus.Ended",
+      "iu": true,
+      "u": [
+        "BattleStatus.Unstarted",
+        "BattleStatus.OnBattle",
+        "BattleStatus.Ended"
+      ],
       "a": false
     },
     {
       "n": "currentPhase",
-      "t": "BattlePhase",
-      "iu": false,
-      "u": [],
+      "t": "BattlePhase.SwitchPhase | BattlePhase.SelectionPhase | BattlePhase.ExecutionPhase | BattlePhase.Ended",
+      "iu": true,
+      "u": [
+        "BattlePhase.SwitchPhase",
+        "BattlePhase.SelectionPhase",
+        "BattlePhase.ExecutionPhase",
+        "BattlePhase.Ended"
+      ],
       "a": false
     },
     {
@@ -1999,11 +4288,11 @@
     },
     {
       "n": "sequenceId",
-      "t": "number | undefined",
+      "t": "undefined | number",
       "iu": true,
       "u": [
-        "number",
-        "undefined"
+        "undefined",
+        "number"
       ],
       "a": false
     },
@@ -2194,6 +4483,125 @@
     {
       "n": "[BattleMessageType.Error]",
       "t": "message",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "PlayerSelection": [
+    {
+      "n": "type",
+      "t": "UseSkillSelection | SwitchPetSelection | DoNothingSelection | SurrenderSelection",
+      "iu": true,
+      "u": [
+        "UseSkillSelection",
+        "SwitchPetSelection",
+        "DoNothingSelection",
+        "SurrenderSelection"
+      ],
+      "a": false
+    }
+  ],
+  "PlayerSelections": [
+    {
+      "n": "player",
+      "t": "playerId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "selections",
+      "t": "PlayerSelection",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "PlayerSelection"
+    }
+  ],
+  "UseSkillSelection": [
+    {
+      "n": "player",
+      "t": "playerId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "type",
+      "t": "\"use-skill\"",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "skill",
+      "t": "skillId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "target",
+      "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
+      "iu": true,
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
+      "a": false
+    }
+  ],
+  "SwitchPetSelection": [
+    {
+      "n": "player",
+      "t": "playerId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "type",
+      "t": "\"switch-pet\"",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "pet",
+      "t": "petId",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "DoNothingSelection": [
+    {
+      "n": "player",
+      "t": "playerId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "type",
+      "t": "\"do-nothing\"",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "SurrenderSelection": [
+    {
+      "n": "player",
+      "t": "playerId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "type",
+      "t": "\"surrender\"",
       "iu": false,
       "u": [],
       "a": false

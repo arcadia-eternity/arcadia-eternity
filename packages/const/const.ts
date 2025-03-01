@@ -56,6 +56,8 @@ export type StatOutBattle = Record<StatType, number>
 
 export type StatTypeOnBattle = StatTypeWithoutHp | StatTypeOnlyBattle
 
+export type StatStage = Record<StatTypeWithoutHp, number>
+
 export type StatOnBattle = Record<StatTypeOnBattle, number>
 
 export type StatBuffOnBattle = Record<StatTypeOnBattle, BuffNumber> // [百分比，固定值]

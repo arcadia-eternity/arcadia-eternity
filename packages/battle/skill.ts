@@ -1,11 +1,11 @@
 // skill.ts
 import { Category } from '@test-battle/const/category'
-import { AttackTargetOpinion, type baseSkillId, type entityId, type skillId } from '@test-battle/const/const'
+import { AttackTargetOpinion, type baseSkillId, type skillId } from '@test-battle/const/const'
 import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import { Element } from '@test-battle/const/element'
 import { type SkillMessage } from '@test-battle/const/message'
 import { EffectContext, UseSkillContext } from './context'
-import { Effect, type EffectContainer, EffectScheduler } from './effect'
+import { Effect, type EffectContainer } from './effect'
 import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 import { nanoid } from 'nanoid'

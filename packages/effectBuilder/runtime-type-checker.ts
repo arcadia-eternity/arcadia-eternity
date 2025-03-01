@@ -1,4 +1,5 @@
 // runtime-type-checker.ts
+import { StatTypeWithoutHp } from '@test-battle/const'
 import typeMetadata from './type-metadata.json'
 
 type TypeMetadata = Record<
@@ -44,11 +45,6 @@ export class RuntimeTypeChecker {
         // 处理嵌套属性
         const propInfo = typeInfo.find(p => p.n === currentPart)
         if (!propInfo) {
-          // 尝试处理动态 Record 类型
-          if (typeName.startsWith('Record_')) {
-            const valueType = typeName.split('_')[2]
-            return validate([valueType], restParts)
-          }
           return false
         }
 

@@ -1,22 +1,24 @@
 // type-analyzer.ts
-import { Project, InterfaceDeclaration, PropertySignature, Type } from 'ts-morph'
-
+import { Project, PropertySignature, Type, TypeAliasDeclaration } from 'ts-morph'
+export type PropertyTypeInfo = {
+  name: string
+  type: string
+  isUnion: boolean
+  unionTypes: string[]
+  isArray: boolean
+  nestedType?: string
+}
 // 类型元数据结构
 export type ClassTypeInfo = {
   className: string
-  properties: {
-    name: string
-    type: string
-    isUnion: boolean
-    unionTypes: string[]
-    isArray: boolean
-    nestedType?: string
-  }[]
+  properties: PropertyTypeInfo[]
 }
 
 export class TypeAnalyzer {
   private project: Project
   private typeCache = new Map<string, ClassTypeInfo>()
+  private tempFileCreated = false
+  private maxDepth = 5
 
   constructor(tsConfigPath: string) {
     this.project = new Project({ tsConfigFilePath: tsConfigPath })
@@ -78,6 +80,16 @@ export class TypeAnalyzer {
         this.typeCache.set(className, typeInfo)
       })
 
+      sourceFile.getTypeAliases().forEach(typeAlias => {
+        const typeName = typeAlias.getName()
+        const typeInfo: ClassTypeInfo = {
+          className: typeName,
+          properties: this.parseTypeAlias(typeAlias),
+        }
+
+        this.typeCache.set(typeName, typeInfo)
+      })
+
       // 处理接口
       sourceFile.getInterfaces().forEach(interfaceDeclaration => {
         const interfaceName = interfaceDeclaration.getName()!
@@ -100,7 +112,85 @@ export class TypeAnalyzer {
     return this.typeCache
   }
 
-  private parseType(name: string, type: Type) {
+  private parseTypeAlias(typeAlias: TypeAliasDeclaration): PropertyTypeInfo[] {
+    const type = typeAlias.getType()
+    const checker = this.project.getTypeChecker()
+    const properties: PropertyTypeInfo[] = []
+
+    // 处理对象类型（包含映射类型）
+    if (type.isObject()) {
+      type.getProperties().forEach(symbol => {
+        const propertyName = symbol.getName()
+        const propertyType = checker.getTypeOfSymbolAtLocation(symbol, typeAlias)
+
+        // 检测可选性
+        const declaration = symbol.getDeclarations()?.[0] as PropertySignature | undefined
+        const isOptional = declaration?.hasQuestionToken() || false
+
+        // 解析类型
+        const parsed = this.parseType(propertyName, propertyType, 0, true)
+
+        // 标记可选性
+        if (isOptional) {
+          parsed.unionTypes = [...parsed.unionTypes, 'undefined']
+          parsed.isUnion = true
+          parsed.type = parsed.unionTypes.join(' | ')
+        }
+
+        properties.push(parsed)
+      })
+    }
+    // 处理 Record 映射类型
+    else if (type.getText().startsWith('Record<')) {
+      const [keyType, valueType] = type.getTypeArguments()
+      const parsedKey = this.parseType('key', keyType, 0, true)
+      const parsedValue = this.parseType('value', valueType, 0, true)
+
+      properties.push({
+        name: '[key]',
+        type: `Record<${parsedKey.type}, ${parsedValue.type}>`,
+        isUnion: false,
+        unionTypes: [],
+        isArray: false,
+      })
+    }
+    // 处理联合类型
+    else if (type.isUnion()) {
+      const unionTypes = type.getUnionTypes().map(t => this.parseType('union', t, 0, true).type)
+      properties.push({
+        name: 'type',
+        type: unionTypes.join(' | '),
+        isUnion: true,
+        unionTypes: unionTypes,
+        isArray: false,
+      })
+    }
+
+    return properties
+  }
+
+  private parseType(name: string, type: Type, depth: number = 0, isFromAlias: boolean = false) {
+    if (depth > this.maxDepth) {
+      return this.createFallbackType(name)
+    }
+
+    const aliasSymbol = type.getAliasSymbol()
+    if (aliasSymbol && !isFromAlias) {
+      const resolvedType = type.getAliasTypeArguments()[0] || type
+      return this.parseType(name, resolvedType, depth + 1, true)
+    }
+
+    // 处理联合类型（深度展开）
+    if (type.isUnion()) {
+      const unionTypes = type.getUnionTypes().map(t => this.parseType('union', t, depth + 1).type)
+      return {
+        name,
+        type: unionTypes.join(' | '),
+        isUnion: true,
+        unionTypes,
+        isArray: false,
+      }
+    }
     let typeText = type.getText()
 
     // 新的处理流程
@@ -125,6 +215,9 @@ export class TypeAnalyzer {
       // 6. 处理联合类型
       .replace(/\s*\|\s*/g, ' | ')
 
+    const isUnion = false
+    const unionTypes = []
+
     // 智能识别对象类型
     const isObjectType = /^{.*}$/.test(typeText)
     if (isObjectType) {
@@ -134,10 +227,6 @@ export class TypeAnalyzer {
     // 处理数组类型（保持原逻辑）
     const isArray = /\[\]$/.test(typeText)
     const baseType = typeText.replace(/\[\]$/, '')
-
-    // 解析联合类型
-    const isUnion = baseType.includes('|')
-    const unionTypes = isUnion ? baseType.split('|').map(t => t.trim()) : []
 
     return {
       name,
@@ -202,6 +291,26 @@ export class TypeAnalyzer {
       unionTypes: [],
       isArray: false,
     }
+  }
+
+  private createFallbackType(name: string): PropertyTypeInfo {
+    return {
+      name,
+      type: 'any',
+      isUnion: false,
+      unionTypes: [],
+      isArray: false,
+    }
+  }
+
+  private parseTypeReference(typeName: string, typeArgs: Type[], depth: number) {
+    // 获取类型别名的实际定义
+    const resolvedType = this.project.getTypeChecker().getTypeAtLocation(
+      this.project.getSourceFiles()[0], // 假设类型定义在第一个文件
+    )
+
+    // 递归解析实际类型
+    return this.parseType(typeName, resolvedType, depth + 1)
   }
 
   getTypeInfo(className: string): ClassTypeInfo | undefined {

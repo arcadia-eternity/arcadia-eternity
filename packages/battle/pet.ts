@@ -6,6 +6,7 @@ import {
   type StatBuffOnBattle,
   type StatOnBattle,
   type StatOutBattle,
+  type StatStage,
   StatType,
   type StatTypeOnBattle,
   StatTypeOnlyBattle,
@@ -34,7 +35,7 @@ export interface Species extends Prototype {
   num: number //用于原游戏内的序号
   name: string
   element: Element
-  baseStats: { [key in StatType]: number }
+  baseStats: StatOutBattle
   genderRatio: [number, number] | null
   heightRange: [number, number]
   weightRange: [number, number]
@@ -47,7 +48,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public currentHp: number
   public baseCritRate: number = 0.1 // 暴击率默认为10%
   public baseAccuracy: number = 1 // 命中率默认为100%
-  public statStage: Record<StatTypeWithoutHp, number> = { atk: 1, def: 1, spa: 1, spd: 1, spe: 1 } //能力等级
+  public statStage: StatStage = { atk: 1, def: 1, spa: 1, spd: 1, spe: 1 } //能力等级
   public statModifiers: StatBuffOnBattle = {
     atk: [100, 0],
     def: [100, 0],
@@ -269,7 +270,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     }
   }
 
-  get actualStat(): Record<StatTypeOnBattle, number> {
+  get actualStat(): StatOnBattle {
     const base = this.stat
     const modifiers = this.calculateStageModifiers()
 
