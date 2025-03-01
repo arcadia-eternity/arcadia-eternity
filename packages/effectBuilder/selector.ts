@@ -21,6 +21,7 @@ import {
 } from '@test-battle/const'
 import type { Action, Condition, Evaluator, Operator, TargetSelector, ValueExtractor } from './effectBuilder'
 import { createExtractor } from './extractor'
+import { RuntimeTypeChecker } from './runtime-type-checker'
 
 export type PropertyRef<T, V> = {
   get: () => V
@@ -29,11 +30,10 @@ export type PropertyRef<T, V> = {
 }
 
 export class ChainableSelector<T extends SelectorOpinion> {
-  constructor(private selector: TargetSelector<T>) {
-    //TODO: 运行时检测当前type
-    // const sample = this.selector({} as EffectContext<EffectTrigger>)[0]
-    // this.valueType = typeof sample === 'object' ? sample?.constructor?.name || 'object' : typeof sample
-  }
+  constructor(
+    private selector: TargetSelector<T>,
+    private typePath: string,
+  ) {}
 
   [Symbol.toPrimitive](context: EffectContext<EffectTrigger>): T[] {
     return this.selector(context)
@@ -42,30 +42,63 @@ export class ChainableSelector<T extends SelectorOpinion> {
   selectProp<K extends keyof NonNullable<T>>(
     prop: K,
   ): T extends object ? ChainableSelector<PropertyRef<NonNullable<T>, NonNullable<T>[K]>> : never {
-    return new ChainableSelector(context =>
-      this.selector(context)
-        .filter((target): target is NonNullable<T> => !!target)
-        .map(target => ({
-          target: target as NonNullable<T>,
-          get: () => (target as NonNullable<T>)[prop],
-          set: (value: NonNullable<T>[K]) => {
-            ;(target as NonNullable<T>)[prop] = value
-          },
-        })),
+    const newTypePath = this.getPropTypePath(prop as string)
+    return new ChainableSelector(
+      context =>
+        this.selector(context)
+          .filter((target): target is NonNullable<T> => !!target)
+          .map(target => ({
+            target: target as NonNullable<T>,
+            get: () => (target as NonNullable<T>)[prop],
+            set: (value: NonNullable<T>[K]) => {
+              ;(target as NonNullable<T>)[prop] = value
+            },
+          })),
+      newTypePath,
     ) as T extends object ? ChainableSelector<PropertyRef<NonNullable<T>, NonNullable<T>[K]>> : never
   }
 
   selectPath<P extends string>(path: P) {
-    return this.select(createExtractor<T, P>(path))
+    if (process.env.NODE_ENV !== 'production') {
+      if (!/^[\w\[\].]+$/.test(path)) {
+        throw new Error(`Invalid path format: ${path}`)
+      }
+    }
+    // 执行运行时验证
+    if (!RuntimeTypeChecker.validatePath(this.typePath, path)) {
+      const expected = RuntimeTypeChecker.getExpectedType(this.typePath, path)
+      throw new Error(`[TypeError] Path '${path}' not found on ${this.typePath}\n` + `Expected type: ${expected}`)
+    }
+
+    // 计算新类型路径（例如：Pet.marks[] -> MarkInstance[]）
+    const newTypePath = RuntimeTypeChecker.getExpectedType(this.typePath, path).replace(/\[\]$/, '[]') // 保持数组标记
+
+    return new ChainableSelector(context => this.selector(context).flatMap(createExtractor(path)), newTypePath)
   }
 
   //选择一组对象的某一个参数
-  select<U extends SelectorOpinion>(extractor: ValueExtractor<T, U>): ChainableSelector<U> {
-    return new ChainableSelector<U>(context =>
-      this.selector(context).map(t => {
-        const value = extractor(t)
-        return value as U
-      }),
+  select<U extends SelectorOpinion>(
+    extractor: ValueExtractor<T, U>,
+    extractorPath?: string, // 新增可选参数用于显式指定提取路径
+  ): ChainableSelector<U> {
+    // 开发环境下的路径验证
+    if (process.env.NODE_ENV !== 'production' && extractorPath) {
+      const fullPath = `${this.typePath}.${extractorPath}`
+
+      if (!RuntimeTypeChecker.validatePath(this.typePath, extractorPath)) {
+        throw new Error(`[TypeCheck] Invalid path: ${fullPath}`)
+      }
+
+      // 获取新类型路径（例如从 Pet 提取 marks -> MarkInstance[]）
+      const newType = RuntimeTypeChecker.getExpectedType(this.typePath, extractorPath).replace(/\[\]$/, '[]') // 标准化数组表示
+
+      return new ChainableSelector<U>(context => this.selector(context).map(extractor), newType)
+    }
+
+    // 生产环境跳过验证
+    return new ChainableSelector<U>(
+      context => this.selector(context).map(extractor),
+      'any', // 生产环境类型追踪可关闭
     )
   }
 
@@ -73,7 +106,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
   where(predicate: Evaluator<T>): ChainableSelector<T> {
     return new ChainableSelector(context => {
       return this.selector(context).filter(t => predicate(context, [t]))
-    })
+    }, this.typePath)
   }
 
   //在保持当前结果类型的同时，对参数进行筛选
@@ -84,7 +117,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
         const values = Array.isArray(value) ? value : [value]
         return condition(context, values)
       })
-    })
+    }, this.typePath)
   }
 
   //两个同类型的结果取交集
@@ -95,7 +128,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
       if (other instanceof ChainableSelector) otherResults = other.build()(context)
       else otherResults = other(context)
       return prev.filter(t => otherResults.includes(t))
-    })
+    }, this.typePath)
   }
 
   //两个同类型的结果取并集,相同的值会省略
@@ -105,7 +138,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
       const otherResults = other(context)
       if (!duplicate) return [...new Set([...prev, ...otherResults])]
       return [...prev, ...otherResults]
-    })
+    }, this.typePath)
   }
 
   //对所有的结果进行求和，得到唯一的参数
@@ -113,7 +146,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
     return new ChainableSelector<number>(context => {
       const values = this.selector(context)
       return [values.reduce((acc, cur) => acc + cur, 0)]
-    })
+    }, this.typePath)
   }
 
   //加一个固定数，或者加一个来源的数。如果来源选择了多个数，则会加上来源的每一个数。
@@ -156,14 +189,14 @@ export class ChainableSelector<T extends SelectorOpinion> {
     return new ChainableSelector(context => {
       const list = this.selector(context)
       return context.battle.shuffle(list).slice(0, count) // 使用随机洗牌
-    })
+    }, this.typePath)
   }
 
   length(): ChainableSelector<number> {
     return new ChainableSelector(context => {
       const list = this.selector(context)
       return [list.length]
-    })
+    }, this.typePath)
   }
 
   /**
@@ -173,14 +206,14 @@ export class ChainableSelector<T extends SelectorOpinion> {
   randomSample(percent: number): ChainableSelector<T> {
     return new ChainableSelector(context => {
       return this.selector(context).filter(() => context.battle.randomInt(1, 100) <= percent)
-    })
+    }, this.typePath)
   }
 
   /**
    * 对目标列表乱序后返回
    **/
   shuffled(): ChainableSelector<T> {
-    return new ChainableSelector(context => context.battle.shuffle(this.selector(context)))
+    return new ChainableSelector(context => context.battle.shuffle(this.selector(context)), this.typePath)
   }
 
   // 最大值限制
@@ -201,7 +234,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
         const num = Number(v)
         return isNaN(num) ? 0 : fn(num)
       })
-    })
+    }, this.typePath)
   }
 
   private combine(
@@ -212,7 +245,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
       const valuesA = this.selector(context) as number[]
       const valuesB = other.selector(context) as number[]
       return valuesA.map((a, i) => operation(a, valuesB[i] ?? 0))
-    })
+    }, this.typePath)
   }
 
   // 最终构建方法
@@ -227,10 +260,21 @@ export class ChainableSelector<T extends SelectorOpinion> {
   apply(operator: Operator<T>): Action {
     return (context: EffectContext<EffectTrigger>) => operator(context, this.selector(context))
   }
+
+  private getPropTypePath(prop: string): string {
+    // 从元数据获取属性类型
+    const propType = RuntimeTypeChecker.getExpectedType(this.typePath, prop)
+
+    // 处理数组类型（例如 marks[] -> MarkInstance[]）
+    return propType.replace(/\[\]$/, '[]')
+  }
 }
 // 类型增强装饰器
-function createChainable<T extends SelectorOpinion>(selector: TargetSelector<T>): ChainableSelector<T> {
-  return new ChainableSelector(selector)
+function createChainable<T extends SelectorOpinion>(
+  typePath: string,
+  selector: TargetSelector<T>,
+): ChainableSelector<T> {
+  return new ChainableSelector(selector, typePath)
 }
 
 export type PrimitiveOpinion = number | string | boolean
@@ -270,7 +314,7 @@ export const BaseSelector: {
   foeMarks: ChainableSelector<MarkInstance>
 } = {
   //选择目标，在使用技能的场景下，为技能实际指向的目标，在印记的场景下指向印记的所有者。
-  target: createChainable<Pet>((context: EffectContext<EffectTrigger>) => {
+  target: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext)
       return context.parent.actualTarget ? [context.parent.actualTarget] : []
     if (context.source.owner instanceof Pet) return [context.source.owner]
@@ -278,52 +322,52 @@ export const BaseSelector: {
     return []
   }),
   //在使用技能的场景和印记的场景都指向拥有者自身。
-  self: createChainable<Pet>((context: EffectContext<EffectTrigger>) => {
+  self: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent.pet]
     if (context.source.owner instanceof Pet) return [context.source.owner]
     //TODO: error with use owners with global marks
     return []
   }),
   //在使用技能的场景，指向技能拥有者的敌方玩家的当前首发，在印记的场景指向印记所有者的敌方玩家的当前首发。
-  foe: createChainable<Pet>((context: EffectContext<EffectTrigger>) => {
+  foe: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent.actualTarget!]
     if (context.source.owner instanceof Pet) return [context.battle.getOpponent(context.source.owner.owner!).activePet]
     //TODO: error with use owners with global marks
     return []
   }),
-  petOwners: createChainable<Player>((context: EffectContext<EffectTrigger>) => {
+  petOwners: createChainable<Player>('Player', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent.pet.owner!]
     if (context.source.owner instanceof Pet) return [context.source.owner.owner!]
     //TODO: error with use owners with global marks
     return []
   }),
-  foeOwners: createChainable<Player>((context: EffectContext<EffectTrigger>) => {
+  foeOwners: createChainable<Player>('Player', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent.actualTarget!.owner!]
     if (context.source.owner instanceof Pet) return [context.battle.getOpponent(context.source.owner.owner!)]
     //TODO: error with use owners with global marks
     return []
   }),
-  usingSkillContext: createChainable<UseSkillContext>((context: EffectContext<EffectTrigger>) => {
+  usingSkillContext: createChainable<UseSkillContext>('UseSkillContext', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent]
     //TODO: error with use get context with non-Useskill context
     return []
   }),
-  damageContext: createChainable<DamageContext>((context: EffectContext<EffectTrigger>) => {
+  damageContext: createChainable<DamageContext>('DamageContext', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof DamageContext) return [context.parent]
     //TODO: error with use get context with non-Damage context
     return []
   }),
-  mark: createChainable<MarkInstance>((context: EffectContext<EffectTrigger>) => {
+  mark: createChainable<MarkInstance>('MarkInstance', (context: EffectContext<EffectTrigger>) => {
     if (context.source instanceof MarkInstance) return [context.source]
     //TODO: error with use get context with non-MarkEffect context
     return []
   }),
-  selfMarks: createChainable<MarkInstance>((context: EffectContext<EffectTrigger>) => {
+  selfMarks: createChainable<MarkInstance>('MarkInstance', (context: EffectContext<EffectTrigger>) => {
     if (context.source.owner instanceof Pet) return context.source.owner.marks
     //TODO: error with use owners with global marks
     return []
   }),
-  foeMarks: createChainable<MarkInstance>((context: EffectContext<EffectTrigger>) => {
+  foeMarks: createChainable<MarkInstance>('MarkInstance', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return context.parent.actualTarget!.marks
     if (context.source.owner instanceof Pet)
       return context.battle.getOpponent(context.source.owner.owner!).activePet.marks

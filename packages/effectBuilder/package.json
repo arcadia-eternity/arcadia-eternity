@@ -12,5 +12,13 @@
   "dependencies": {
     "@test-battle/battle": "workspace:^",
     "@test-battle/const": "workspace:^"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.9",
+    "@babel/preset-env": "^7.26.9",
+    "@babel/preset-typescript": "^7.26.0",
+    "@jest/transform": "^29.7.0",
+    "@swc/core": "^1.11.5",
+    "@swc/jest": "^0.2.37"
   }
 }
