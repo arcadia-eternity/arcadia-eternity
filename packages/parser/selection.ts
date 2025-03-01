@@ -1,4 +1,4 @@
-import type { petId, playerId, PlayerSelection, skillId } from '@test-battle/const'
+import type { PlayerSelection } from '@test-battle/const'
 import { PlayerSelectionSchema, type PlayerSelection as PlayerSelectionSchemaType } from '@test-battle/schema'
 
 export class SelectionParser {
@@ -8,25 +8,25 @@ export class SelectionParser {
       case 'use-skill':
         return {
           type: 'use-skill',
-          player: schema.source as playerId,
-          skill: schema.skill as skillId,
+          player: schema.source,
+          skill: schema.skill,
           target: schema.target,
         }
       case 'switch-pet':
         return {
           type: 'switch-pet',
-          player: schema.source as playerId,
-          pet: schema.pet as petId,
+          player: schema.source,
+          pet: schema.pet,
         }
       case 'do-nothing':
         return {
           type: 'do-nothing',
-          player: schema.source as playerId,
+          player: schema.source,
         }
       case 'surrender':
         return {
           type: 'surrender',
-          player: schema.source as playerId,
+          player: schema.source,
         }
       default:
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

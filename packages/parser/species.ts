@@ -1,4 +1,4 @@
-import { Species } from '@test-battle/battle'
+import { type Species } from '@test-battle/battle'
 import type { baseMarkId, speciesId } from '@test-battle/const'
 import { DataRepository } from '@test-battle/data-repository'
 import { SpeciesSchema } from '@test-battle/schema'
@@ -18,7 +18,7 @@ export class SpeciesParser {
       }
     })
 
-    const emblem = validated.emblem.map(emblemsID => {
+    const emblems = validated.emblem.map(emblemsID => {
       try {
         return DataRepository.getInstance().getMark(emblemsID as baseMarkId)
       } catch (e) {
@@ -28,17 +28,6 @@ export class SpeciesParser {
       }
     })
 
-    return new Species({
-      id: validated.id as speciesId,
-      num: validated.num,
-      name: validated.name,
-      element: validated.element,
-      baseStats: validated.baseStats,
-      genderRatio: validated.genderRatio,
-      heightRange: validated.heightRange,
-      weightRange: validated.weightRange,
-      ability: ability,
-      emblem: emblem,
-    })
+    return { ...validated, id: validated.id as speciesId, ability: ability, emblem: emblems }
   }
 }

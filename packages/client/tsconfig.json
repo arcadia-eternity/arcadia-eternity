@@ -4,7 +4,7 @@
     "lib": ["ESNext", "DOM"],
     "module": "ESNext",
     "target": "ESNext",
-    "outDir": "./dist/",
+    "outDir": "../../dist/client",
     "verbatimModuleSyntax": true,
     "moduleResolution": "bundler",
     "forceConsistentCasingInFileNames": true,

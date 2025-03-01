@@ -1,9 +1,12 @@
 {
   "compilerOptions": {
     "composite": true,
-    "lib": ["ESNext", "DOM"],
+    "baseUrl": ".",
+    "lib": ["ESNext"],
     "module": "ESNext",
-    "outDir": "../../dist/const",
+    "target": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "../../dist/effectBuilder",
     "verbatimModuleSyntax": true,
     "declaration": true,
     "declarationMap": true,

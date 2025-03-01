@@ -40,13 +40,14 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, h, watch, nextTick } from 'vue'
 import axios, { type AxiosResponse, type AxiosError } from 'axios'
-import EffectGraphEditor from './EffectGraphEditor.vue'
+// import EffectGraphEditor from './EffectGraphEditor.vue'
 import GenericTableEditor from './GenericTableEditor.vue'
 import { DATA_SCHEMA_MAP, SCHEMA_MAP } from '@test-battle/schema'
 import type { FileData, ErrorDetail } from './fileData'
 
 const editorComponent = computed(() => {
-  return currentData.value?.metadata.metaType === 'effect' ? EffectGraphEditor : GenericTableEditor
+  // return currentData.value?.metadata.metaType === 'effect' ? EffectGraphEditor : GenericTableEditor
+  return GenericTableEditor
 })
 
 const fileList = ref<string[]>([])

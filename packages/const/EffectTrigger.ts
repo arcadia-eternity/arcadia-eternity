@@ -45,10 +45,3 @@ export enum EffectTrigger {
   BeforeEffect = 'BeforeEffect',
   AfterEffect = 'AfterEffect',
 }
-
-export enum EffectScope {
-  global = 'global',
-  self = 'self',
-  source = 'source',
-  target = 'target',
-}

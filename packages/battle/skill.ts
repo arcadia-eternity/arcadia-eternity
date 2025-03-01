@@ -1,11 +1,6 @@
+// skill.ts
 import { Category } from '@test-battle/const/category'
-import {
-  AttackTargetOpinion,
-  type baseSkillId,
-  type effectStateId,
-  type entityId,
-  type skillId,
-} from '@test-battle/const/const'
+import { AttackTargetOpinion, type baseSkillId, type entityId, type skillId } from '@test-battle/const/const'
 import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import { Element } from '@test-battle/const/element'
 import { type SkillMessage } from '@test-battle/const/message'
@@ -14,82 +9,26 @@ import { Effect, type EffectContainer, EffectScheduler } from './effect'
 import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 import { nanoid } from 'nanoid'
-import type { EffectState, EffectStateType } from '@test-battle/const'
-import { PropType } from './effectBuilder'
-import { SelectorType } from './effectBuilder/SelectorOpinion'
 
 export class BaseSkill implements Prototype {
-  @PropType()
-  public readonly id: baseSkillId
-
-  @PropType()
-  public readonly name: string
-
-  @PropType(SelectorType.Category)
-  public readonly category: Category
-
-  @PropType(SelectorType.Element)
-  public readonly element: Element
-
-  @PropType()
-  public readonly power: number
-
-  @PropType()
-  public readonly accuracy: number
-
-  @PropType()
-  public readonly rage: number
-
-  @PropType()
-  public readonly priority: number
-
-  @PropType(SelectorType.AttackTargetOpinion)
-  public readonly target: AttackTargetOpinion
-
-  @PropType()
-  public readonly multihit: [number, number] | number
-
-  @PropType()
-  public readonly sureHit: boolean
-
-  @PropType()
-  public readonly ignoreShield: boolean
-
-  @PropType()
-  public readonly tag: string[]
-
-  @PropType()
-  public readonly effects: Effect<EffectTrigger>[]
+  public readonly effects: Effect<EffectTrigger>[] = []
 
   constructor(
-    id: baseSkillId,
-    name: string,
-    category: Category,
-    element: Element,
-    power: number,
-    accuracy: number,
-    rage: number,
-    priority: number = 0,
-    target: AttackTargetOpinion = AttackTargetOpinion.opponent,
-    multihit: [number, number] | number = 1,
-    sureHit: boolean = false,
-    ignoreShield: boolean = false,
-    tag: string[] = [],
+    public readonly id: baseSkillId,
+    public readonly name: string,
+    public readonly category: Category,
+    public readonly element: Element,
+    public readonly power: number,
+    public readonly accuracy: number,
+    public readonly rage: number,
+    public readonly priority: number = 0,
+    public readonly target: AttackTargetOpinion = AttackTargetOpinion.opponent,
+    public readonly multihit: [number, number] | number = 1,
+    public readonly sureHit: boolean = false,
+    public readonly ignoreShield: boolean = false,
+    public readonly tag: string[] = [],
     effects: Effect<EffectTrigger>[] = [],
   ) {
-    this.id = id
-    this.name = name
-    this.category = category
-    this.element = element
-    this.power = power
-    this.accuracy = accuracy
-    this.rage = rage
-    this.priority = priority
-    this.target = target
-    this.multihit = multihit
-    this.sureHit = sureHit
-    this.ignoreShield = ignoreShield
-    this.tag = tag
     this.effects = effects
   }
 
@@ -189,50 +128,20 @@ export class BaseSkill implements Prototype {
 }
 
 export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, Instance {
-  @PropType()
   public owner: Pet | null = null
-
-  @PropType()
   public readonly id: skillId
-
-  @PropType(SelectorType.Category)
   public readonly category: Category
-
-  @PropType(SelectorType.Element)
   public readonly element: Element
-
-  @PropType()
   public readonly power: number
-
-  @PropType()
   public readonly accuracy: number
-
-  @PropType()
   public readonly rage: number
-
-  @PropType()
-  public readonly priority: number
-
-  @PropType(SelectorType.AttackTargetOpinion)
-  public readonly target: AttackTargetOpinion
-
-  @PropType()
-  public readonly multihit: [number, number] | number
-
-  @PropType()
-  public readonly sureHit: boolean
-
-  @PropType()
-  public readonly ignoreShield: boolean
-
-  @PropType()
-  public readonly tag: string[]
-
-  public readonly effects: Effect<EffectTrigger>[]
-
-  @PropType()
-  public readonly effectsState: Map<effectStateId, EffectState<EffectStateType>>
-
+  public readonly priority: number = 0
+  public readonly target: AttackTargetOpinion = AttackTargetOpinion.opponent
+  public readonly multihit: [number, number] | number = 1
+  public readonly sureHit: boolean = false
+  public readonly ignoreShield: boolean = false
+  public readonly tag: string[] = []
+  effects: Effect<EffectTrigger>[] = []
   constructor(
     public readonly base: BaseSkill,
     overrides?: {
@@ -260,8 +169,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     this.sureHit = overrides?.sureHit ?? base.sureHit
     this.ignoreShield = overrides?.ignoreShield ?? base.ignoreShield
     this.tag = overrides?.tag ? [...base.tag, ...overrides.tag] : [...base.tag]
-    this.effects = [...base.effects, ...(overrides?.effects ?? [])]
-    this.effectsState = new Map()
+    this.effects = [...base.effects, ...(overrides?.effects ? overrides.effects : [])]
     this.effects.forEach(effect => effect.setOwner(this))
   }
 

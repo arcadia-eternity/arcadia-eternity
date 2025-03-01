@@ -4,8 +4,7 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "build": "tsc",
-    "build:watch": "swc ./ -d dist --watch --config-file=../../.swcrc"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "yuuinih",
@@ -14,6 +13,7 @@
     "@test-battle/battle": "workspace:^",
     "@test-battle/const": "workspace:^",
     "@test-battle/data-repository": "workspace:^",
+    "@test-battle/effect-builder": "workspace:^",
     "@test-battle/effect-dsl": "workspace:^",
     "@test-battle/schema": "workspace:^",
     "nanoid": "^5.0.9",

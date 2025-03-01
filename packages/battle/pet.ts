@@ -28,88 +28,26 @@ import { BaseMark, CreateStatStageMark, MarkInstance, StatLevelMarkInstance } fr
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
 import { Gender } from '@test-battle/const'
-import { SelectorType } from './effectBuilder/SelectorOpinion'
-import { PropType } from './effectBuilder/selectortypemap'
 
-export class Species implements Prototype {
-  @PropType()
-  id: speciesId
-
-  @PropType()
-  num: number
-
-  @PropType()
+export interface Species extends Prototype {
+  id: speciesId //约定:id为原中文名的拼音拼写
+  num: number //用于原游戏内的序号
   name: string
-
-  @PropType(SelectorType.Element)
   element: Element
-
-  @PropType()
   baseStats: { [key in StatType]: number }
-
-  @PropType()
   genderRatio: [number, number] | null
-
-  @PropType()
   heightRange: [number, number]
-
-  @PropType()
   weightRange: [number, number]
-
-  @PropType()
   ability?: BaseMark[]
-
-  @PropType()
   emblem?: BaseMark[]
-
-  constructor(data: Species) {
-    this.id = data.id
-    this.num = data.num
-    this.name = data.name
-    this.element = data.element
-    this.baseStats = data.baseStats
-    this.genderRatio = data.genderRatio
-    this.heightRange = data.heightRange
-    this.weightRange = data.weightRange
-    this.ability = data.ability
-    this.emblem = data.emblem
-  }
 }
 
 // 精灵类
-export class Pet implements OwnedEntity<Player | null>, MarkOwner, Instance {
-  public readonly baseCritRate: number = 0.1 // 暴击率默认为10%
-  public readonly baseAccuracy: number = 1 // 命中率默认为100%
-  public readonly baseRageObtainEfficiency: number = 1
-
-  @PropType()
-  public readonly name: string
-
-  @PropType()
-  public readonly id: petId
-
-  @PropType()
-  public species: Species
-
-  @PropType()
-  public readonly level: number
-
-  @PropType()
-  public readonly evs: StatOutBattle
-
-  @PropType()
-  public readonly ivs: StatOutBattle
-
-  @PropType(SelectorType.Nature)
-  public readonly nature: Nature
-
-  @PropType()
+export class Pet implements OwnedEntity, MarkOwner, Instance {
   public currentHp: number
-
-  @PropType(SelectorType.StatStage)
-  public statStage: Record<StatTypeWithoutHp, number> = { atk: 1, def: 1, spa: 1, spd: 1, spe: 1 } //能力等级
-
-  @PropType(SelectorType.StatBuffOnBattle)
+  public baseCritRate: number = 0.1 // 暴击率默认为10%
+  public baseAccuracy: number = 1 // 命中率默认为100%
+  public statStage: Partial<Record<StatTypeOnBattle, number>> = {} //能力等级
   public statModifiers: StatBuffOnBattle = {
     atk: [100, 0],
     def: [100, 0],
@@ -121,45 +59,27 @@ export class Pet implements OwnedEntity<Player | null>, MarkOwner, Instance {
     evasion: [100, 0],
     ragePerTurn: [15, 0],
   }
-
-  @PropType(SelectorType.Element)
   public element: Element
-
-  @PropType()
   public isAlive: boolean = true
-
-  @PropType()
+  public lastUseSkill: SkillInstance | null = null
+  public baseRageObtainEfficiency: number = 1
   public owner: Player | null
-
-  @PropType()
   public marks: MarkInstance[] = []
-
-  @PropType()
   public readonly skills: SkillInstance[]
-
-  @PropType()
   public maxHp: number
-
-  @PropType()
   public base: Species
-
-  @PropType()
   public readonly weight: number
-
-  @PropType()
   public readonly height: number
-
-  @PropType(SelectorType.Gender)
   public readonly gender: Gender
 
   constructor(
-    name: string,
-    id: petId,
-    species: Species,
-    level: number,
-    evs: StatOutBattle,
-    ivs: StatOutBattle,
-    nature: Nature,
+    public readonly name: string,
+    public readonly id: petId,
+    public readonly species: Species,
+    public readonly level: number,
+    public readonly evs: StatOutBattle,
+    public readonly ivs: StatOutBattle,
+    public readonly nature: Nature,
     skills: BaseSkill[],
     ability?: BaseMark,
     emblem?: BaseMark,
@@ -168,27 +88,18 @@ export class Pet implements OwnedEntity<Player | null>, MarkOwner, Instance {
     gender?: Gender,
     maxHp?: number, //可以额外手动设置hp
   ) {
-    this.name = name
-    this.id = id
-    this.species = species
-    this.level = level
-    this.evs = evs
-    this.ivs = ivs
-    this.nature = nature
     this.maxHp = maxHp ? maxHp : this.calculateMaxHp()
     this.base = species
     this.currentHp = this.maxHp
     this.element = species.element
     this.owner = null
     this.skills = skills.map(s => new SkillInstance(s))
-    this.weight = weight ?? species.weightRange[1]
-    this.height = height ?? species.heightRange[1]
+    if (!weight) this.weight = species.weightRange[1]
+    if (!height) this.height = species.heightRange[1]
     if (!gender) {
       if (!this.species.genderRatio) this.gender = Gender.NoGender
       else if (this.species.genderRatio[0] != 0) this.gender = Gender.Female
       else this.gender = Gender.Male
-    } else {
-      this.gender = gender
     }
     if (ability) this.marks.push(new MarkInstance(ability))
     if (emblem) this.marks.push(new MarkInstance(emblem))
@@ -399,7 +310,7 @@ export class Pet implements OwnedEntity<Player | null>, MarkOwner, Instance {
 
   // 清理能力等级时同时清除相关印记
   public clearStatStage(context: EffectContext<EffectTrigger>) {
-    this.statStage = { atk: 1, def: 1, spa: 1, spd: 1, spe: 1 }
+    this.statStage = {}
     this.marks = this.marks.filter(mark => {
       if (mark instanceof StatLevelMarkInstance) {
         mark.destory(context)

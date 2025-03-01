@@ -127,7 +127,7 @@ export class ConsoleUI {
 
       case BattleMessageType.PetDefeated: {
         const d = message.data
-        const killerName = this.getPetNameById((d.killer as petId) ?? '')
+        const killerName = this.getPetNameById(d.killer ?? '')
         const petName = d.pet ? this.getPetNameById(d.pet) : ''
         console.log(`☠️ ${petName} 倒下！${message.data.killer ? `(击败者: ${killerName})` : ''}`)
         break

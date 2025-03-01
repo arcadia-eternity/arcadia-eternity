@@ -4,7 +4,7 @@ import { Context, EffectContext } from './context'
 import { type OwnedEntity, type Prototype } from './entity'
 import { MarkInstance } from './mark'
 import { SkillInstance } from './skill'
-import type { effectId, EffectScope } from '@test-battle/const'
+import type { effectId } from '@test-battle/const'
 
 export class EffectScheduler {
   constructor() {}
@@ -50,7 +50,6 @@ export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity<S
     public readonly trigger: EffectTrigger,
     public readonly apply: (context: EffectContext<T>) => void,
     public readonly priority: number,
-    public readonly scope: EffectScope,
     public readonly condition?: (context: EffectContext<T>) => boolean,
     public readonly consumesStacks?: number, // 新增可选消耗层数配置
   ) {}
@@ -82,18 +81,10 @@ export interface EffectConfig<T extends EffectTrigger> {
   trigger: T
   apply: (context: EffectContext<T>) => void
   priority: number
-  scope: EffectScope
   condition?: (context: EffectContext<T>) => boolean
   consumesStacks?: number // 新增可选消耗层数配置
 }
 
 export function CreateEffect<T extends EffectTrigger>(config: EffectConfig<T>): Effect<T> {
-  return new Effect(
-    config.id as effectId,
-    config.trigger,
-    config.apply,
-    config.priority,
-    config.scope,
-    config.condition,
-  )
+  return new Effect(config.id as effectId, config.trigger, config.apply, config.priority, config.condition)
 }

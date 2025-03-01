@@ -1,7 +1,6 @@
 import { EffectContext } from '@test-battle/battle'
 import { EffectTrigger } from '@test-battle/const'
-import type { ChainableSelector, PropertyRef } from './selector'
-import type { SelectorOpinion, PrimitiveOpinion } from './SelectorOpinion'
+import type { SelectorOpinion, ChainableSelector, PropertyRef, PrimitiveOpinion } from './selector'
 
 export type ValueExtractor<T, U> = (target: T) => U
 

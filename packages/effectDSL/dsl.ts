@@ -1,5 +1,5 @@
-import { EffectScope, EffectTrigger } from '@test-battle/const'
-import { BaseSelector, Extractor, type CompareOperator } from '@test-battle/battle/effectBuilder'
+import { EffectTrigger } from '@test-battle/const'
+import { BaseSelector, Extractor, type CompareOperator } from '@test-battle/effect-builder'
 
 export { EffectTrigger }
 export type { SelectorChain }
@@ -9,7 +9,6 @@ export interface EffectDSL {
   trigger: EffectTrigger
   priority: number
   apply: ActionDSL
-  scope: EffectScope
   condition?: ConditionDSL
   consumesStacks?: number
 }

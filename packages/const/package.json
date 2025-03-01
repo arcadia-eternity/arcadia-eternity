@@ -5,9 +5,5 @@
   "keywords": [],
   "author": "yuuinih",
   "license": "MIT",
-  "type": "module",
-  "scripts": {
-    "build": "tsc",
-    "build:watch": "swc ./ -d dist --watch --config-file=../../.swcrc"
-  }
+  "type": "module"
 }

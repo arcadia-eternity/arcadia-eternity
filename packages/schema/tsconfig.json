@@ -4,7 +4,7 @@
     "lib": ["ESNext"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "./dist/",
+    "outDir": "../../dist/schema",
     "verbatimModuleSyntax": true,
     "declaration": true,
     "declarationMap": true,

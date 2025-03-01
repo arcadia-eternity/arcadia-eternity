@@ -1,5 +1,5 @@
 {
-  "name": "@test-battle/effect-dsl",
+  "name": "@test-battle/effect-builder",
   "version": "1.0.0",
   "description": "",
   "type": "module",
@@ -11,9 +11,6 @@
   "license": "MIT",
   "dependencies": {
     "@test-battle/battle": "workspace:^",
-    "@test-battle/const": "workspace:^",
-    "@test-battle/data-repository": "workspace:^",
-    "@test-battle/effect-builder": "workspace:^",
-    "zod": "^3.24.1"
+    "@test-battle/const": "workspace:^"
   }
 }

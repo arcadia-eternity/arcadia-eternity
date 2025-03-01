@@ -4,9 +4,7 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "generate": "tsx script/schema.ts",
-    "build": "tsc",
-    "build:watch": "swc ./ -d dist --watch --config-file=../../.swcrc"
+    "generate": "tsx script/schema.ts"
   },
   "keywords": [],
   "author": "yuuinih",

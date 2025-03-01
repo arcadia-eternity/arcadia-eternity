@@ -10,7 +10,7 @@ import {
   UseSkillContext,
 } from '@test-battle/battle'
 import type { Element, InstanceId, PrototypeId, StatOnBattle } from '@test-battle/const'
-import { type SelectorOpinion } from './SelectorOpinion'
+import type { SelectorOpinion } from './selector'
 
 type ExtractorMap = {
   hp: (target: Pet) => number
@@ -30,8 +30,8 @@ type ExtractorMap = {
   baseId: (target: Instance) => PrototypeId
   tags: (mark: MarkInstance) => string[]
 }
+// Extractor用于提取Selector得到的一组对象的某个值，将这个值的类型作为新的Selector
 
-// 实现 Extractor
 export const Extractor: ExtractorMap = {
   hp: (target: Pet) => target.currentHp,
   maxhp: (target: Pet) => target.maxHp!,
@@ -51,53 +51,68 @@ export const Extractor: ExtractorMap = {
   tags: (mark: MarkInstance) => mark.tags,
 }
 
-export type Path<T, P extends string> = P extends ''
+type SelectorOpinionPath<T> = T extends SelectorOpinion
   ? T
-  : P extends `.${infer Rest}`
-    ? Path<T, Rest>
-    : P extends `${infer Head}[]${infer Tail}`
-      ? T extends any
-        ? Head extends keyof T
-          ? T[Head] extends Array<infer U>
-            ? Array<Path<U, Tail>>
-            : never
-          : never
+  : T extends Array<infer U>
+    ? U extends SelectorOpinion
+      ? T
+      : never
+    : never
+
+export type Path<T, P extends string> = P extends `.${infer Rest}`
+  ? Path<T, Rest>
+  : P extends `${infer Head}[]${infer Tail}`
+    ? Head extends keyof T
+      ? T[Head] extends Array<infer U>
+        ? Tail extends ''
+          ? U[]
+          : Path<U, Tail>
         : never
-      : P extends `${infer Head}.${infer Tail}`
-        ? T extends any
-          ? Head extends keyof T
-            ? Path<T[Head], Tail>
-            : never
-          : never
-        : T extends any
-          ? P extends keyof T
-            ? Exclude<T[P], null>
-            : T extends Record<string, infer V>
-              ? V
-              : never
-          : never
+      : never
+    : P extends `${infer Head}.${infer Tail}`
+      ? Head extends keyof T
+        ? Path<T[Head], Tail>
+        : never
+      : P extends keyof T
+        ? SelectorOpinionPath<T[P]> // 此处能正确识别数组
+        : never
 
 export function createExtractor<T, P extends string>(path: P): (target: T) => Path<T, P> {
-  const parts = path.split(/(\.|\[\])/g).filter(p => p && p !== '.') // 分割路径并保留 []
-  const hasArray = parts.includes('[]') // 标记路径是否包含数组展开
+  const parts = (path.match(/([^\.\[\]]+|\[\])/g) || []).filter(p => p !== '')
+  const hasArray = parts.includes('[]') // 检查路径中是否有数组访问符
 
   return (target: T) => {
-    let current: any[] = [target]
+    let current: any = [target]
 
     for (const part of parts) {
-      if (part === '[]') {
-        current = current.flat() // 展平一层数组
-      } else {
-        current = current.flatMap(item => {
-          if (item == null) return [] // 过滤 null/undefined
-          const value = item[part as keyof typeof item]
-          return Array.isArray(value) ? value : [value] // 非数组值包装成数组
-        })
+      if (current === null || current === undefined) {
+        throw new Error(`路径访问中断：在 '${part}' 处遇到 null/undefined`)
       }
+
+      if (part === '[]') {
+        if (!Array.isArray(current)) {
+          throw new Error(`路径错误：'${part}' 前导值不是数组`)
+        }
+        current = current.flat()
+        continue
+      }
+
+      current = Array.isArray(current)
+        ? current.flatMap(item => {
+            const val = item?.[part as keyof typeof item]
+            return val !== undefined ? [val] : []
+          })
+        : [current?.[part as keyof typeof current]]
     }
 
-    // 根据路径是否包含数组展开决定返回形式
-    return (hasArray ? current : current[0]) as Path<T, P>
+    // 根据路径中是否有数组访问符决定是否返回数组
+    const finalValue = hasArray ? current : current[0]
+
+    if (!isValidSelectorOpinion(finalValue)) {
+      throw new Error(`路径 ${path} 解析到无效类型: ${typeof finalValue}`)
+    }
+
+    return finalValue as Path<T, P>
   }
 }
 
