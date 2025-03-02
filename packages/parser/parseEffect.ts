@@ -13,7 +13,6 @@ import {
   ChainableSelector,
   type Condition,
   Conditions,
-  createExtractor,
   type Evaluator,
   Extractor,
   Operators,
