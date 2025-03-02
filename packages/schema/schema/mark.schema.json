@@ -36,15 +36,15 @@
                 "default": false
               },
               "stackStrategy": {
-                "type": "number",
+                "type": "string",
                 "enum": [
-                  0,
-                  1,
-                  2,
-                  3,
-                  4
+                  "stack",
+                  "refresh",
+                  "extend",
+                  "max",
+                  "replace"
                 ],
-                "default": 2
+                "default": "extend"
               },
               "destoyable": {
                 "type": "boolean",

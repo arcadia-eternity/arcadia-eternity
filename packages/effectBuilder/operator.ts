@@ -17,9 +17,7 @@ import type { Operator } from './effectBuilder'
 import { ChainableSelector, type PrimitiveOpinion, type PropertyRef, type SelectorOpinion } from './selector'
 import { type ValueSource } from './effectBuilder'
 
-function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpinion>(
-  handler: (value: U[], target: T, context: EffectContext<EffectTrigger>) => void,
-) {
+function createDynamicOperator<T, U>(handler: (value: U[], target: T, context: EffectContext<EffectTrigger>) => void) {
   return (source: ValueSource<U>) => {
     return (context: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.forEach(target => {
@@ -45,7 +43,6 @@ function createDynamicOperator<T extends SelectorOpinion, U extends SelectorOpin
     }
   }
 }
-// 操作符系统
 
 export const Operators = {
   dealDamage: createDynamicOperator<Pet, number>((value, pet, context) => {
@@ -89,8 +86,10 @@ export const Operators = {
     },
 
   // 玩家操作
-  addRage: createDynamicOperator<Player, number>((value, player, context) => {
-    player.addRage(new RageContext(context, player, 'effect', 'add', value[0]))
+  addRage: createDynamicOperator<Player | Pet, number>((value, target, context) => {
+    target.addRage(
+      new RageContext(context, target instanceof Player ? target : target.owner!, 'effect', 'add', value[0]),
+    )
   }),
 
   modifyStat:

@@ -21,6 +21,7 @@ import {
   DamageContext,
   EffectContext,
   HealContext,
+  RageContext,
   RemoveMarkContext,
   SwitchPetContext,
 } from './context'
@@ -104,6 +105,22 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     }
     if (ability) this.marks.push(new MarkInstance(ability))
     if (emblem) this.marks.push(new MarkInstance(emblem))
+  }
+
+  get currentRage() {
+    return this.owner?.currentRage ?? 0
+  }
+
+  set currentRage(value) {
+    if (this.owner) this.owner.currentRage = value
+  }
+
+  public settingRage(value: number) {
+    this.owner?.settingRage(value)
+  }
+
+  public addRage(context: RageContext) {
+    this.owner?.addRage(context)
   }
 
   public damage(context: DamageContext): boolean {

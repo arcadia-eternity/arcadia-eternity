@@ -126,12 +126,6 @@
               }
             ]
           },
-          "previous_form": {
-            "type": "number"
-          },
-          "next_form": {
-            "type": "number"
-          },
           "learnable_skills": {
             "type": "array",
             "items": {
@@ -181,8 +175,6 @@
           "genderRatio",
           "heightRange",
           "weightRange",
-          "previous_form",
-          "next_form",
           "learnable_skills",
           "description",
           "ability",

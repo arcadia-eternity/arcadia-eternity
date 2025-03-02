@@ -189,7 +189,7 @@ describe('ChainableSelector 类型安全测试', () => {
     const selector = BaseSelector.selfMarks.selectPath('duration') // MarkInstance[].duration → number[]
 
     expect(() => selector.build()(mockContext)).not.toThrow()
-    expect(selector['typePath']).toBe('number[]')
+    expect(selector['type']).toBe('number[]')
   })
 
   // 测试用例 2: 无效路径检测
@@ -212,7 +212,7 @@ describe('ChainableSelector 类型安全测试', () => {
   test('应验证联合类型的所有可能路径', () => {
     const damageSelector = BaseSelector.damageContext.selectPath('source.owner') // DamageContext.source → Pet | MarkInstance
 
-    expect(damageSelector['typePath']).toMatch(/Player|Pet|Battle/)
+    expect(damageSelector['type']).toMatch(/Player|Pet|Battle/)
   })
 
   // 测试用例 5: 生产环境优化
@@ -231,7 +231,7 @@ describe('ChainableSelector 类型安全测试', () => {
   test('应支持多级属性访问', () => {
     const selector = BaseSelector.target.selectPath('marks[].duration') // Pet.marks → MarkInstance[].duration → number[]
 
-    expect(selector['typePath']).toBe('number[]')
+    expect(selector['type']).toBe('number[]')
     expect(() => selector.build()(mockContext)).not.toThrow()
   })
 

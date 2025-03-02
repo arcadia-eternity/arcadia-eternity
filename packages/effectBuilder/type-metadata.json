@@ -37,121 +37,141 @@
   "ExtractorMap": [
     {
       "n": "hp",
-      "t": "(target: Pet) => number",
+      "t": "PathExtractor<Pet, number>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "maxhp",
-      "t": "(target: Pet) => number",
+      "t": "PathExtractor<Pet, number>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "rage",
-      "t": "(target: Player) => number",
+      "t": "PathExtractor<Player, number>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "owner",
-      "t": "(target: OwnedEntity<CanOwnedEntity>) => Pet | Player | Battle | MarkInstance | SkillInstance | null",
+      "t": "PathExtractor<OwnedEntity<CanOwnedEntity>, Pet | Player | Battle | MarkInstance | SkillInstance | null>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "type",
-      "t": "(target: Pet) => Element",
+      "t": "PathExtractor<Pet, Element>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "marks",
-      "t": "(target: Pet) => MarkInstance",
+      "t": "PathExtractor<Pet, MarkInstance[]>",
       "iu": false,
       "u": [],
-      "a": true,
-      "nt": "(target: Pet) => MarkInstance"
+      "a": false
     },
     {
       "n": "stats",
-      "t": "(target: Pet) => StatOnBattle",
+      "t": "PathExtractor<Pet, StatOnBattle>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "stack",
-      "t": "(target: MarkInstance) => number",
+      "t": "PathExtractor<MarkInstance, number>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "duration",
-      "t": "(target: MarkInstance) => number",
+      "t": "PathExtractor<MarkInstance, number>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "power",
-      "t": "(target: UseSkillContext) => number",
+      "t": "PathExtractor<UseSkillContext, number>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "priority",
-      "t": "(target: UseSkillContext) => number",
+      "t": "PathExtractor<UseSkillContext, number>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "activePet",
-      "t": "(target: Player) => Pet",
+      "t": "PathExtractor<Player, Pet>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "skills",
-      "t": "(target: Pet) => SkillInstance",
+      "t": "PathExtractor<Pet, SkillInstance[]>",
       "iu": false,
       "u": [],
-      "a": true,
-      "nt": "(target: Pet) => SkillInstance"
+      "a": false
     },
     {
       "n": "id",
-      "t": "(target: Instance) => InstanceId",
+      "t": "PathExtractor<Instance, InstanceId>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "baseId",
-      "t": "(target: Instance) => PrototypeId",
+      "t": "PathExtractor<Instance, PrototypeId>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "tags",
-      "t": "(mark: MarkInstance) => string",
+      "t": "PathExtractor<MarkInstance, string[]>",
       "iu": false,
       "u": [],
-      "a": true,
-      "nt": "(mark: MarkInstance) => string"
+      "a": false
     }
   ],
   "Path": [],
+  "PathExtractor": [
+    {
+      "n": "path",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "extract",
+      "t": "T",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "type",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
   "RuntimeTypeChecker": [
     {
       "n": "metadata",
@@ -162,7 +182,32 @@
     }
   ],
   "TypeMetadata": [],
-  "ChainableSelector": [],
+  "ChainableSelector": [
+    {
+      "n": "_isNumberType",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "selector",
+      "t": "T",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "type",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
   "PropertyRef": [
     {
       "n": "get",
@@ -196,6 +241,23 @@
         "number",
         "false",
         "true"
+      ],
+      "a": false
+    }
+  ],
+  "IdOpinion": [
+    {
+      "n": "type",
+      "t": "petId | skillId | markId | speciesId | baseMarkId | baseSkillId | playerId",
+      "iu": true,
+      "u": [
+        "petId",
+        "skillId",
+        "markId",
+        "speciesId",
+        "baseMarkId",
+        "baseSkillId",
+        "playerId"
       ],
       "a": false
     }
@@ -2055,6 +2117,13 @@
       "a": false
     },
     {
+      "n": "currentRage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "stat",
       "t": "StatOnBattle",
       "iu": false,
@@ -3149,14 +3218,14 @@
       "nt": "(index: number, value: number) => number"
     },
     {
-      "n": "__@iterator@189",
+      "n": "__@iterator@165",
       "t": "() => ArrayIterator<number>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
-      "n": "__@unscopables@777",
+      "n": "__@unscopables@774",
       "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
       "iu": false,
       "u": [],
@@ -4602,6 +4671,3370 @@
     {
       "n": "type",
       "t": "\"surrender\"",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "checkOwner": [
+    {
+      "n": "currentRage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "battle",
+      "t": "undefined | Battle | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "Battle",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "selection",
+      "t": "null | UseSkillSelection | SwitchPetSelection | DoNothingSelection | SurrenderSelection",
+      "iu": true,
+      "u": [
+        "null",
+        "UseSkillSelection",
+        "SwitchPetSelection",
+        "DoNothingSelection",
+        "SurrenderSelection"
+      ],
+      "a": false
+    },
+    {
+      "n": "activePet",
+      "t": "Pet",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "messageCallbacks",
+      "t": "((message: BattleMessage) => void)",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "((message: BattleMessage) => void)"
+    },
+    {
+      "n": "name",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "id",
+      "t": "playerId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "team",
+      "t": "Pet",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "Pet"
+    },
+    {
+      "n": "registerBattle",
+      "t": "(battle: Battle) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "registerListener",
+      "t": "(callback: (message: BattleMessage) => void) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "emitMessage",
+      "t": "(message: BattleMessage) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "handleMessage",
+      "t": "(message: BattleMessage) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "getAvailableSelection",
+      "t": "() => PlayerSelection",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => PlayerSelection"
+    },
+    {
+      "n": "getAvailableSkills",
+      "t": "() => UseSkillSelection",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => UseSkillSelection"
+    },
+    {
+      "n": "getAvailableSwitch",
+      "t": "() => SwitchPetSelection",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => SwitchPetSelection"
+    },
+    {
+      "n": "checkSkillsActionAvailable",
+      "t": "(selection: UseSkillSelection) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "checkDoNothingActionAvailable",
+      "t": "() => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "checkSwitchAvailable",
+      "t": "(selection: SwitchPetSelection) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "setSelection",
+      "t": "(selection: PlayerSelection) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "performSwitchPet",
+      "t": "(context: SwitchPetContext) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "performAttack",
+      "t": "(context: UseSkillContext) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "settingRage",
+      "t": "(value: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "addRage",
+      "t": "(context: RageContext) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toMessage",
+      "t": "(viewerId?: string | undefined) => PlayerMessage",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "getState",
+      "t": "() => BattleState",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "checkOwnerName": [],
+  "checkStat": [
+    {
+      "n": "atk",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "def",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "spa",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "spd",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "spe",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "accuracy",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "evasion",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "critRate",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "ragePerTurn",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "checkStatAtk": [],
+  "checkStatModifiers": [],
+  "checkMark": [
+    {
+      "n": "length",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toString",
+      "t": "() => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toLocaleString",
+      "t": "{ (): string, (locales: string | string[], options?: (Intl.NumberFormatOptions & Intl.DateTimeFormatOptions) | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "pop",
+      "t": "() => MarkInstance | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "push",
+      "t": "(...items: MarkInstance[]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "concat",
+      "t": "{ (...items: ConcatArray<MarkInstance>[]), (...items: (MarkInstance | ConcatArray<MarkInstance>)[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "join",
+      "t": "(separator?: string | undefined) => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reverse",
+      "t": "() => MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => MarkInstance"
+    },
+    {
+      "n": "shift",
+      "t": "() => MarkInstance | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "slice",
+      "t": "(start?: number | undefined, end?: number | undefined) => MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(start?: number | undefined, end?: number | undefined) => MarkInstance"
+    },
+    {
+      "n": "sort",
+      "t": "(compareFn?: ((a: MarkInstance, b: MarkInstance) => number) | undefined) => MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: MarkInstance, b: MarkInstance) => number) | undefined) => MarkInstance"
+    },
+    {
+      "n": "splice",
+      "t": "{ (start: number, deleteCount?: number | undefined), (start: number, deleteCount: number, ...items: MarkInstance[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "unshift",
+      "t": "(...items: MarkInstance[]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "indexOf",
+      "t": "(searchElement: MarkInstance, fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "lastIndexOf",
+      "t": "(searchElement: MarkInstance, fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "every",
+      "t": "{ <S>(predicate: (value, index: number, array: MarkInstance[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: MarkInstance[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "some",
+      "t": "(predicate: (value: MarkInstance, index: number, array: MarkInstance[]) => unknown, thisArg?: any) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "forEach",
+      "t": "(callbackfn: (value: MarkInstance, index: number, array: MarkInstance[]) => void, thisArg?: any) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "map",
+      "t": "<U>(callbackfn: (value: MarkInstance, index: number, array: MarkInstance[]) => U, thisArg?: any) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U>(callbackfn: (value: MarkInstance, index: number, array: MarkInstance[]) => U, thisArg?: any) => U"
+    },
+    {
+      "n": "filter",
+      "t": "{ <S>(predicate: (value, index: number, array: MarkInstance[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: MarkInstance[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduce",
+      "t": "{ (callbackfn: (previousValue, currentValue: MarkInstance, currentIndex: number, array: MarkInstance[]) => MarkInstance), (callbackfn: (previousValue, currentValue: MarkInstance, currentIndex: number, array: MarkInstance[]) => MarkInstance, initialValue: MarkInstance), <U>(callbackfn: (previousValue, currentValue: MarkInstance, currentIndex: number, array: MarkInstance[]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduceRight",
+      "t": "{ (callbackfn: (previousValue, currentValue: MarkInstance, currentIndex: number, array: MarkInstance[]) => MarkInstance), (callbackfn: (previousValue, currentValue: MarkInstance, currentIndex: number, array: MarkInstance[]) => MarkInstance, initialValue: MarkInstance), <U>(callbackfn: (previousValue, currentValue: MarkInstance, currentIndex: number, array: MarkInstance[]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "find",
+      "t": "{ <S>(predicate: (value, index: number, obj: MarkInstance[]) => value is S, thisArg?: any), (predicate: (value, index: number, obj: MarkInstance[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findIndex",
+      "t": "(predicate: (value: MarkInstance, index: number, obj: MarkInstance[]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "fill",
+      "t": "(value: MarkInstance, start?: number | undefined, end?: number | undefined) => MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(value: MarkInstance, start?: number | undefined, end?: number | undefined) => MarkInstance"
+    },
+    {
+      "n": "copyWithin",
+      "t": "(target: number, start: number, end?: number | undefined) => MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(target: number, start: number, end?: number | undefined) => MarkInstance"
+    },
+    {
+      "n": "entries",
+      "t": "() => ArrayIterator<[number, MarkInstance]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "keys",
+      "t": "() => ArrayIterator<number>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "values",
+      "t": "() => ArrayIterator<MarkInstance>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "includes",
+      "t": "(searchElement: MarkInstance, fromIndex?: number | undefined) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "flatMap",
+      "t": "<U, This>(callback: (this: This, value: MarkInstance, index: number, array: MarkInstance[]) => U | readonly U[], thisArg?: This | undefined) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U, This>(callback: (this: This, value: MarkInstance, index: number, array: MarkInstance[]) => U | readonly U[], thisArg?: This | undefined) => U"
+    },
+    {
+      "n": "flat",
+      "t": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>"
+    },
+    {
+      "n": "at",
+      "t": "(index: number) => MarkInstance | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLast",
+      "t": "{ <S>(predicate: (value, index: number, array: MarkInstance[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: MarkInstance[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLastIndex",
+      "t": "(predicate: (value: MarkInstance, index: number, array: MarkInstance[]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toReversed",
+      "t": "() => MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => MarkInstance"
+    },
+    {
+      "n": "toSorted",
+      "t": "(compareFn?: ((a: MarkInstance, b: MarkInstance) => number) | undefined) => MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: MarkInstance, b: MarkInstance) => number) | undefined) => MarkInstance"
+    },
+    {
+      "n": "toSpliced",
+      "t": "{ (start: number, deleteCount: number, ...items: MarkInstance[]), (start: number, deleteCount?: number | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "with",
+      "t": "(index: number, value: MarkInstance) => MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(index: number, value: MarkInstance) => MarkInstance"
+    },
+    {
+      "n": "__@iterator@165",
+      "t": "() => ArrayIterator<MarkInstance>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "__@unscopables@774",
+      "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "checkMarkDurations": [
+    {
+      "n": "length",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toString",
+      "t": "() => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toLocaleString",
+      "t": "{ (): string, (locales: string | string[], options?: (Intl.NumberFormatOptions & Intl.DateTimeFormatOptions) | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "pop",
+      "t": "() => number | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "push",
+      "t": "(...items: number[]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "concat",
+      "t": "{ (...items: ConcatArray<number>[]), (...items: (number | ConcatArray<number>)[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "join",
+      "t": "(separator?: string | undefined) => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reverse",
+      "t": "() => number",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => number"
+    },
+    {
+      "n": "shift",
+      "t": "() => number | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "slice",
+      "t": "(start?: number | undefined, end?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(start?: number | undefined, end?: number | undefined) => number"
+    },
+    {
+      "n": "sort",
+      "t": "(compareFn?: ((a: number, b: number) => number) | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: number, b: number) => number) | undefined) => number"
+    },
+    {
+      "n": "splice",
+      "t": "{ (start: number, deleteCount?: number | undefined), (start: number, deleteCount: number, ...items: number[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "unshift",
+      "t": "(...items: number[]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "indexOf",
+      "t": "(searchElement: number, fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "lastIndexOf",
+      "t": "(searchElement: number, fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "every",
+      "t": "{ <S>(predicate: (value, index: number, array: number[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: number[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "some",
+      "t": "(predicate: (value: number, index: number, array: number[]) => unknown, thisArg?: any) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "forEach",
+      "t": "(callbackfn: (value: number, index: number, array: number[]) => void, thisArg?: any) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "map",
+      "t": "<U>(callbackfn: (value: number, index: number, array: number[]) => U, thisArg?: any) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U>(callbackfn: (value: number, index: number, array: number[]) => U, thisArg?: any) => U"
+    },
+    {
+      "n": "filter",
+      "t": "{ <S>(predicate: (value, index: number, array: number[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: number[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduce",
+      "t": "{ (callbackfn: (previousValue, currentValue: number, currentIndex: number, array: number[]) => number), (callbackfn: (previousValue, currentValue: number, currentIndex: number, array: number[]) => number, initialValue: number), <U>(callbackfn: (previousValue, currentValue: number, currentIndex: number, array: number[]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduceRight",
+      "t": "{ (callbackfn: (previousValue, currentValue: number, currentIndex: number, array: number[]) => number), (callbackfn: (previousValue, currentValue: number, currentIndex: number, array: number[]) => number, initialValue: number), <U>(callbackfn: (previousValue, currentValue: number, currentIndex: number, array: number[]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "find",
+      "t": "{ <S>(predicate: (value, index: number, obj: number[]) => value is S, thisArg?: any), (predicate: (value, index: number, obj: number[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findIndex",
+      "t": "(predicate: (value: number, index: number, obj: number[]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "fill",
+      "t": "(value: number, start?: number | undefined, end?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(value: number, start?: number | undefined, end?: number | undefined) => number"
+    },
+    {
+      "n": "copyWithin",
+      "t": "(target: number, start: number, end?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(target: number, start: number, end?: number | undefined) => number"
+    },
+    {
+      "n": "entries",
+      "t": "() => ArrayIterator<[number, number]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "keys",
+      "t": "() => ArrayIterator<number>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "values",
+      "t": "() => ArrayIterator<number>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "includes",
+      "t": "(searchElement: number, fromIndex?: number | undefined) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "flatMap",
+      "t": "<U, This>(callback: (this: This, value: number, index: number, array: number[]) => U | readonly U[], thisArg?: This | undefined) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U, This>(callback: (this: This, value: number, index: number, array: number[]) => U | readonly U[], thisArg?: This | undefined) => U"
+    },
+    {
+      "n": "flat",
+      "t": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>"
+    },
+    {
+      "n": "at",
+      "t": "(index: number) => number | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLast",
+      "t": "{ <S>(predicate: (value, index: number, array: number[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: number[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLastIndex",
+      "t": "(predicate: (value: number, index: number, array: number[]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toReversed",
+      "t": "() => number",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => number"
+    },
+    {
+      "n": "toSorted",
+      "t": "(compareFn?: ((a: number, b: number) => number) | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: number, b: number) => number) | undefined) => number"
+    },
+    {
+      "n": "toSpliced",
+      "t": "{ (start: number, deleteCount: number, ...items: number[]), (start: number, deleteCount?: number | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "with",
+      "t": "(index: number, value: number) => number",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(index: number, value: number) => number"
+    },
+    {
+      "n": "__@iterator@165",
+      "t": "() => ArrayIterator<number>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "__@unscopables@774",
+      "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "checkMarkTag": [
+    {
+      "n": "length",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toString",
+      "t": "() => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toLocaleString",
+      "t": "{ (): string, (locales: string | string[], options?: (Intl.NumberFormatOptions & Intl.DateTimeFormatOptions) | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "pop",
+      "t": "() => string[] | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "push",
+      "t": "(...items: string[][]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "concat",
+      "t": "{ (...items: ConcatArray<string[]>[]), (...items: (string[] | ConcatArray<string[]>)[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "join",
+      "t": "(separator?: string | undefined) => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reverse",
+      "t": "() => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => string[]"
+    },
+    {
+      "n": "shift",
+      "t": "() => string[] | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "slice",
+      "t": "(start?: number | undefined, end?: number | undefined) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(start?: number | undefined, end?: number | undefined) => string[]"
+    },
+    {
+      "n": "sort",
+      "t": "(compareFn?: ((a: string[], b: string[]) => number) | undefined) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: string[], b: string[]) => number) | undefined) => string[]"
+    },
+    {
+      "n": "splice",
+      "t": "{ (start: number, deleteCount?: number | undefined), (start: number, deleteCount: number, ...items: string[][]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "unshift",
+      "t": "(...items: string[][]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "indexOf",
+      "t": "(searchElement: string[], fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "lastIndexOf",
+      "t": "(searchElement: string[], fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "every",
+      "t": "{ <S>(predicate: (value, index: number, array: string[][]) => value is S, thisArg?: any), (predicate: (value, index: number, array: string[][]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "some",
+      "t": "(predicate: (value: string[], index: number, array: string[][]) => unknown, thisArg?: any) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "forEach",
+      "t": "(callbackfn: (value: string[], index: number, array: string[][]) => void, thisArg?: any) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "map",
+      "t": "<U>(callbackfn: (value: string[], index: number, array: string[][]) => U, thisArg?: any) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U>(callbackfn: (value: string[], index: number, array: string[][]) => U, thisArg?: any) => U"
+    },
+    {
+      "n": "filter",
+      "t": "{ <S>(predicate: (value, index: number, array: string[][]) => value is S, thisArg?: any), (predicate: (value, index: number, array: string[][]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduce",
+      "t": "{ (callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => string[]), (callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => string[], initialValue: string[]), <U>(callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduceRight",
+      "t": "{ (callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => string[]), (callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => string[], initialValue: string[]), <U>(callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "find",
+      "t": "{ <S>(predicate: (value, index: number, obj: string[][]) => value is S, thisArg?: any), (predicate: (value, index: number, obj: string[][]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findIndex",
+      "t": "(predicate: (value: string[], index: number, obj: string[][]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "fill",
+      "t": "(value: string[], start?: number | undefined, end?: number | undefined) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(value: string[], start?: number | undefined, end?: number | undefined) => string[]"
+    },
+    {
+      "n": "copyWithin",
+      "t": "(target: number, start: number, end?: number | undefined) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(target: number, start: number, end?: number | undefined) => string[]"
+    },
+    {
+      "n": "entries",
+      "t": "() => ArrayIterator<[number, string[]]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "keys",
+      "t": "() => ArrayIterator<number>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "values",
+      "t": "() => ArrayIterator<string[]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "includes",
+      "t": "(searchElement: string[], fromIndex?: number | undefined) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "flatMap",
+      "t": "<U, This>(callback: (this: This, value: string[], index: number, array: string[][]) => U | readonly U[], thisArg?: This | undefined) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U, This>(callback: (this: This, value: string[], index: number, array: string[][]) => U | readonly U[], thisArg?: This | undefined) => U"
+    },
+    {
+      "n": "flat",
+      "t": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>"
+    },
+    {
+      "n": "at",
+      "t": "(index: number) => string[] | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLast",
+      "t": "{ <S>(predicate: (value, index: number, array: string[][]) => value is S, thisArg?: any), (predicate: (value, index: number, array: string[][]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLastIndex",
+      "t": "(predicate: (value: string[], index: number, array: string[][]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toReversed",
+      "t": "() => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => string[]"
+    },
+    {
+      "n": "toSorted",
+      "t": "(compareFn?: ((a: string[], b: string[]) => number) | undefined) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: string[], b: string[]) => number) | undefined) => string[]"
+    },
+    {
+      "n": "toSpliced",
+      "t": "{ (start: number, deleteCount: number, ...items: string[][]), (start: number, deleteCount?: number | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "with",
+      "t": "(index: number, value: string[]) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(index: number, value: string[]) => string[]"
+    },
+    {
+      "n": "__@iterator@165",
+      "t": "() => ArrayIterator<string[]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "__@unscopables@774",
+      "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "checkMarkTags": [
+    {
+      "n": "length",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toString",
+      "t": "() => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toLocaleString",
+      "t": "{ (): string, (locales: string | string[], options?: (Intl.NumberFormatOptions & Intl.DateTimeFormatOptions) | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "pop",
+      "t": "() => string[] | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "push",
+      "t": "(...items: string[][]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "concat",
+      "t": "{ (...items: ConcatArray<string[]>[]), (...items: (string[] | ConcatArray<string[]>)[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "join",
+      "t": "(separator?: string | undefined) => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reverse",
+      "t": "() => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => string[]"
+    },
+    {
+      "n": "shift",
+      "t": "() => string[] | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "slice",
+      "t": "(start?: number | undefined, end?: number | undefined) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(start?: number | undefined, end?: number | undefined) => string[]"
+    },
+    {
+      "n": "sort",
+      "t": "(compareFn?: ((a: string[], b: string[]) => number) | undefined) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: string[], b: string[]) => number) | undefined) => string[]"
+    },
+    {
+      "n": "splice",
+      "t": "{ (start: number, deleteCount?: number | undefined), (start: number, deleteCount: number, ...items: string[][]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "unshift",
+      "t": "(...items: string[][]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "indexOf",
+      "t": "(searchElement: string[], fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "lastIndexOf",
+      "t": "(searchElement: string[], fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "every",
+      "t": "{ <S>(predicate: (value, index: number, array: string[][]) => value is S, thisArg?: any), (predicate: (value, index: number, array: string[][]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "some",
+      "t": "(predicate: (value: string[], index: number, array: string[][]) => unknown, thisArg?: any) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "forEach",
+      "t": "(callbackfn: (value: string[], index: number, array: string[][]) => void, thisArg?: any) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "map",
+      "t": "<U>(callbackfn: (value: string[], index: number, array: string[][]) => U, thisArg?: any) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U>(callbackfn: (value: string[], index: number, array: string[][]) => U, thisArg?: any) => U"
+    },
+    {
+      "n": "filter",
+      "t": "{ <S>(predicate: (value, index: number, array: string[][]) => value is S, thisArg?: any), (predicate: (value, index: number, array: string[][]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduce",
+      "t": "{ (callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => string[]), (callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => string[], initialValue: string[]), <U>(callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduceRight",
+      "t": "{ (callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => string[]), (callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => string[], initialValue: string[]), <U>(callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "find",
+      "t": "{ <S>(predicate: (value, index: number, obj: string[][]) => value is S, thisArg?: any), (predicate: (value, index: number, obj: string[][]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findIndex",
+      "t": "(predicate: (value: string[], index: number, obj: string[][]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "fill",
+      "t": "(value: string[], start?: number | undefined, end?: number | undefined) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(value: string[], start?: number | undefined, end?: number | undefined) => string[]"
+    },
+    {
+      "n": "copyWithin",
+      "t": "(target: number, start: number, end?: number | undefined) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(target: number, start: number, end?: number | undefined) => string[]"
+    },
+    {
+      "n": "entries",
+      "t": "() => ArrayIterator<[number, string[]]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "keys",
+      "t": "() => ArrayIterator<number>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "values",
+      "t": "() => ArrayIterator<string[]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "includes",
+      "t": "(searchElement: string[], fromIndex?: number | undefined) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "flatMap",
+      "t": "<U, This>(callback: (this: This, value: string[], index: number, array: string[][]) => U | readonly U[], thisArg?: This | undefined) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U, This>(callback: (this: This, value: string[], index: number, array: string[][]) => U | readonly U[], thisArg?: This | undefined) => U"
+    },
+    {
+      "n": "flat",
+      "t": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>"
+    },
+    {
+      "n": "at",
+      "t": "(index: number) => string[] | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLast",
+      "t": "{ <S>(predicate: (value, index: number, array: string[][]) => value is S, thisArg?: any), (predicate: (value, index: number, array: string[][]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLastIndex",
+      "t": "(predicate: (value: string[], index: number, array: string[][]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toReversed",
+      "t": "() => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => string[]"
+    },
+    {
+      "n": "toSorted",
+      "t": "(compareFn?: ((a: string[], b: string[]) => number) | undefined) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: string[], b: string[]) => number) | undefined) => string[]"
+    },
+    {
+      "n": "toSpliced",
+      "t": "{ (start: number, deleteCount: number, ...items: string[][]), (start: number, deleteCount?: number | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "with",
+      "t": "(index: number, value: string[]) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(index: number, value: string[]) => string[]"
+    },
+    {
+      "n": "__@iterator@165",
+      "t": "() => ArrayIterator<string[]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "__@unscopables@774",
+      "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "checkOwnerActivePet": [
+    {
+      "n": "currentHp",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "baseCritRate",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "baseAccuracy",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "statStage",
+      "t": "StatStage",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "statModifiers",
+      "t": "StatBuffOnBattle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "element",
+      "t": "Element.Normal | Element.Grass | Element.Water | Element.Fire | Element.Wind | Element.Bug | Element.Flying | Element.Electric | Element.Ground | Element.Ice | Element.Psychic | Element.Fighting | Element.Trait | Element.Light | Element.Mystery | Element.Shadow | Element.Dragon | Element.Desert | Element.Ancient | Element.Divine | Element.Miracle | Element.Holy | Element.ElfKing",
+      "iu": true,
+      "u": [
+        "Element.Normal",
+        "Element.Grass",
+        "Element.Water",
+        "Element.Fire",
+        "Element.Wind",
+        "Element.Bug",
+        "Element.Flying",
+        "Element.Electric",
+        "Element.Ground",
+        "Element.Ice",
+        "Element.Psychic",
+        "Element.Fighting",
+        "Element.Trait",
+        "Element.Light",
+        "Element.Mystery",
+        "Element.Shadow",
+        "Element.Dragon",
+        "Element.Desert",
+        "Element.Ancient",
+        "Element.Divine",
+        "Element.Miracle",
+        "Element.Holy",
+        "Element.ElfKing"
+      ],
+      "a": false
+    },
+    {
+      "n": "isAlive",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "lastUseSkill",
+      "t": "null | SkillInstance",
+      "iu": true,
+      "u": [
+        "null",
+        "SkillInstance"
+      ],
+      "a": false
+    },
+    {
+      "n": "baseRageObtainEfficiency",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "owner",
+      "t": "null | Player",
+      "iu": true,
+      "u": [
+        "null",
+        "Player"
+      ],
+      "a": false
+    },
+    {
+      "n": "marks",
+      "t": "MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "MarkInstance"
+    },
+    {
+      "n": "skills",
+      "t": "SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "SkillInstance"
+    },
+    {
+      "n": "maxHp",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "base",
+      "t": "Species",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "weight",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "height",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "gender",
+      "t": "Gender.NoGender | Gender.Male | Gender.Female",
+      "iu": true,
+      "u": [
+        "Gender.NoGender",
+        "Gender.Male",
+        "Gender.Female"
+      ],
+      "a": false
+    },
+    {
+      "n": "name",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "id",
+      "t": "petId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "species",
+      "t": "Species",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "level",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "evs",
+      "t": "StatOutBattle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "ivs",
+      "t": "StatOutBattle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "nature",
+      "t": "Nature.Hardy | Nature.Lonely | Nature.Brave | Nature.Adamant | Nature.Naughty | Nature.Bold | Nature.Docile | Nature.Relaxed | Nature.Impish | Nature.Lax | Nature.Timid | Nature.Hasty | Nature.Serious | Nature.Jolly | Nature.Naive | Nature.Modest | Nature.Mild | Nature.Quiet | Nature.Bashful | Nature.Rash | Nature.Calm | Nature.Gentle | Nature.Sassy | Nature.Careful | Nature.Quirky",
+      "iu": true,
+      "u": [
+        "Nature.Hardy",
+        "Nature.Lonely",
+        "Nature.Brave",
+        "Nature.Adamant",
+        "Nature.Naughty",
+        "Nature.Bold",
+        "Nature.Docile",
+        "Nature.Relaxed",
+        "Nature.Impish",
+        "Nature.Lax",
+        "Nature.Timid",
+        "Nature.Hasty",
+        "Nature.Serious",
+        "Nature.Jolly",
+        "Nature.Naive",
+        "Nature.Modest",
+        "Nature.Mild",
+        "Nature.Quiet",
+        "Nature.Bashful",
+        "Nature.Rash",
+        "Nature.Calm",
+        "Nature.Gentle",
+        "Nature.Sassy",
+        "Nature.Careful",
+        "Nature.Quirky"
+      ],
+      "a": false
+    },
+    {
+      "n": "currentRage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "settingRage",
+      "t": "(value: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "addRage",
+      "t": "(context: RageContext) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "damage",
+      "t": "(context: DamageContext) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "heal",
+      "t": "(context: HealContext) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "addMark",
+      "t": "(context: AddMarkContext) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "removeMark",
+      "t": "(context: RemoveMarkContext) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "getShieldMark",
+      "t": "() => MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => MarkInstance"
+    },
+    {
+      "n": "calculateStat",
+      "t": "(type: StatTypeOnBattle) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "calculateStatWithoutHp",
+      "t": "(type: StatTypeWithoutHp) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "calculateStatOnlyBattle",
+      "t": "(type: StatTypeOnBattle) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "calculateMaxHp",
+      "t": "() => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "setOwner",
+      "t": "(player: Player) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stat",
+      "t": "StatOnBattle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "actualStat",
+      "t": "StatOnBattle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "calculateStageModifiers",
+      "t": "() => Partial<Record<StatTypeOnBattle, number>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "applyStageModifier",
+      "t": "(base: number, stage: number) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "addStatStage",
+      "t": "(context: EffectContext<EffectTrigger>, statType: StatTypeWithoutHp, value: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "clearStatStage",
+      "t": "(context: EffectContext<EffectTrigger>) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "transferMarks",
+      "t": "(...marks: MarkInstance[]) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "switchOut",
+      "t": "(context: SwitchPetContext) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "switchIn",
+      "t": "(context: SwitchPetContext) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toMessage",
+      "t": "(viewerId?: string | undefined) => PetMessage",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "status",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "checkSkills": [
+    {
+      "n": "length",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toString",
+      "t": "() => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toLocaleString",
+      "t": "{ (): string, (locales: string | string[], options?: (Intl.NumberFormatOptions & Intl.DateTimeFormatOptions) | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "pop",
+      "t": "() => SkillInstance | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "push",
+      "t": "(...items: SkillInstance[]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "concat",
+      "t": "{ (...items: ConcatArray<SkillInstance>[]), (...items: (SkillInstance | ConcatArray<SkillInstance>)[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "join",
+      "t": "(separator?: string | undefined) => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reverse",
+      "t": "() => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => SkillInstance"
+    },
+    {
+      "n": "shift",
+      "t": "() => SkillInstance | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "slice",
+      "t": "(start?: number | undefined, end?: number | undefined) => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(start?: number | undefined, end?: number | undefined) => SkillInstance"
+    },
+    {
+      "n": "sort",
+      "t": "(compareFn?: ((a: SkillInstance, b: SkillInstance) => number) | undefined) => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: SkillInstance, b: SkillInstance) => number) | undefined) => SkillInstance"
+    },
+    {
+      "n": "splice",
+      "t": "{ (start: number, deleteCount?: number | undefined), (start: number, deleteCount: number, ...items: SkillInstance[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "unshift",
+      "t": "(...items: SkillInstance[]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "indexOf",
+      "t": "(searchElement: SkillInstance, fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "lastIndexOf",
+      "t": "(searchElement: SkillInstance, fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "every",
+      "t": "{ <S>(predicate: (value, index: number, array: SkillInstance[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: SkillInstance[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "some",
+      "t": "(predicate: (value: SkillInstance, index: number, array: SkillInstance[]) => unknown, thisArg?: any) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "forEach",
+      "t": "(callbackfn: (value: SkillInstance, index: number, array: SkillInstance[]) => void, thisArg?: any) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "map",
+      "t": "<U>(callbackfn: (value: SkillInstance, index: number, array: SkillInstance[]) => U, thisArg?: any) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U>(callbackfn: (value: SkillInstance, index: number, array: SkillInstance[]) => U, thisArg?: any) => U"
+    },
+    {
+      "n": "filter",
+      "t": "{ <S>(predicate: (value, index: number, array: SkillInstance[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: SkillInstance[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduce",
+      "t": "{ (callbackfn: (previousValue, currentValue: SkillInstance, currentIndex: number, array: SkillInstance[]) => SkillInstance), (callbackfn: (previousValue, currentValue: SkillInstance, currentIndex: number, array: SkillInstance[]) => SkillInstance, initialValue: SkillInstance), <U>(callbackfn: (previousValue, currentValue: SkillInstance, currentIndex: number, array: SkillInstance[]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduceRight",
+      "t": "{ (callbackfn: (previousValue, currentValue: SkillInstance, currentIndex: number, array: SkillInstance[]) => SkillInstance), (callbackfn: (previousValue, currentValue: SkillInstance, currentIndex: number, array: SkillInstance[]) => SkillInstance, initialValue: SkillInstance), <U>(callbackfn: (previousValue, currentValue: SkillInstance, currentIndex: number, array: SkillInstance[]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "find",
+      "t": "{ <S>(predicate: (value, index: number, obj: SkillInstance[]) => value is S, thisArg?: any), (predicate: (value, index: number, obj: SkillInstance[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findIndex",
+      "t": "(predicate: (value: SkillInstance, index: number, obj: SkillInstance[]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "fill",
+      "t": "(value: SkillInstance, start?: number | undefined, end?: number | undefined) => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(value: SkillInstance, start?: number | undefined, end?: number | undefined) => SkillInstance"
+    },
+    {
+      "n": "copyWithin",
+      "t": "(target: number, start: number, end?: number | undefined) => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(target: number, start: number, end?: number | undefined) => SkillInstance"
+    },
+    {
+      "n": "entries",
+      "t": "() => ArrayIterator<[number, SkillInstance]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "keys",
+      "t": "() => ArrayIterator<number>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "values",
+      "t": "() => ArrayIterator<SkillInstance>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "includes",
+      "t": "(searchElement: SkillInstance, fromIndex?: number | undefined) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "flatMap",
+      "t": "<U, This>(callback: (this: This, value: SkillInstance, index: number, array: SkillInstance[]) => U | readonly U[], thisArg?: This | undefined) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U, This>(callback: (this: This, value: SkillInstance, index: number, array: SkillInstance[]) => U | readonly U[], thisArg?: This | undefined) => U"
+    },
+    {
+      "n": "flat",
+      "t": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>"
+    },
+    {
+      "n": "at",
+      "t": "(index: number) => SkillInstance | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLast",
+      "t": "{ <S>(predicate: (value, index: number, array: SkillInstance[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: SkillInstance[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLastIndex",
+      "t": "(predicate: (value: SkillInstance, index: number, array: SkillInstance[]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toReversed",
+      "t": "() => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => SkillInstance"
+    },
+    {
+      "n": "toSorted",
+      "t": "(compareFn?: ((a: SkillInstance, b: SkillInstance) => number) | undefined) => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: SkillInstance, b: SkillInstance) => number) | undefined) => SkillInstance"
+    },
+    {
+      "n": "toSpliced",
+      "t": "{ (start: number, deleteCount: number, ...items: SkillInstance[]), (start: number, deleteCount?: number | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "with",
+      "t": "(index: number, value: SkillInstance) => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(index: number, value: SkillInstance) => SkillInstance"
+    },
+    {
+      "n": "__@iterator@165",
+      "t": "() => ArrayIterator<SkillInstance>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "__@unscopables@774",
+      "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "checkSkill": [
+    {
+      "n": "length",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toString",
+      "t": "() => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toLocaleString",
+      "t": "{ (): string, (locales: string | string[], options?: (Intl.NumberFormatOptions & Intl.DateTimeFormatOptions) | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "pop",
+      "t": "() => SkillInstance | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "push",
+      "t": "(...items: SkillInstance[]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "concat",
+      "t": "{ (...items: ConcatArray<SkillInstance>[]), (...items: (SkillInstance | ConcatArray<SkillInstance>)[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "join",
+      "t": "(separator?: string | undefined) => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reverse",
+      "t": "() => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => SkillInstance"
+    },
+    {
+      "n": "shift",
+      "t": "() => SkillInstance | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "slice",
+      "t": "(start?: number | undefined, end?: number | undefined) => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(start?: number | undefined, end?: number | undefined) => SkillInstance"
+    },
+    {
+      "n": "sort",
+      "t": "(compareFn?: ((a: SkillInstance, b: SkillInstance) => number) | undefined) => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: SkillInstance, b: SkillInstance) => number) | undefined) => SkillInstance"
+    },
+    {
+      "n": "splice",
+      "t": "{ (start: number, deleteCount?: number | undefined), (start: number, deleteCount: number, ...items: SkillInstance[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "unshift",
+      "t": "(...items: SkillInstance[]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "indexOf",
+      "t": "(searchElement: SkillInstance, fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "lastIndexOf",
+      "t": "(searchElement: SkillInstance, fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "every",
+      "t": "{ <S>(predicate: (value, index: number, array: SkillInstance[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: SkillInstance[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "some",
+      "t": "(predicate: (value: SkillInstance, index: number, array: SkillInstance[]) => unknown, thisArg?: any) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "forEach",
+      "t": "(callbackfn: (value: SkillInstance, index: number, array: SkillInstance[]) => void, thisArg?: any) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "map",
+      "t": "<U>(callbackfn: (value: SkillInstance, index: number, array: SkillInstance[]) => U, thisArg?: any) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U>(callbackfn: (value: SkillInstance, index: number, array: SkillInstance[]) => U, thisArg?: any) => U"
+    },
+    {
+      "n": "filter",
+      "t": "{ <S>(predicate: (value, index: number, array: SkillInstance[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: SkillInstance[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduce",
+      "t": "{ (callbackfn: (previousValue, currentValue: SkillInstance, currentIndex: number, array: SkillInstance[]) => SkillInstance), (callbackfn: (previousValue, currentValue: SkillInstance, currentIndex: number, array: SkillInstance[]) => SkillInstance, initialValue: SkillInstance), <U>(callbackfn: (previousValue, currentValue: SkillInstance, currentIndex: number, array: SkillInstance[]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduceRight",
+      "t": "{ (callbackfn: (previousValue, currentValue: SkillInstance, currentIndex: number, array: SkillInstance[]) => SkillInstance), (callbackfn: (previousValue, currentValue: SkillInstance, currentIndex: number, array: SkillInstance[]) => SkillInstance, initialValue: SkillInstance), <U>(callbackfn: (previousValue, currentValue: SkillInstance, currentIndex: number, array: SkillInstance[]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "find",
+      "t": "{ <S>(predicate: (value, index: number, obj: SkillInstance[]) => value is S, thisArg?: any), (predicate: (value, index: number, obj: SkillInstance[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findIndex",
+      "t": "(predicate: (value: SkillInstance, index: number, obj: SkillInstance[]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "fill",
+      "t": "(value: SkillInstance, start?: number | undefined, end?: number | undefined) => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(value: SkillInstance, start?: number | undefined, end?: number | undefined) => SkillInstance"
+    },
+    {
+      "n": "copyWithin",
+      "t": "(target: number, start: number, end?: number | undefined) => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(target: number, start: number, end?: number | undefined) => SkillInstance"
+    },
+    {
+      "n": "entries",
+      "t": "() => ArrayIterator<[number, SkillInstance]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "keys",
+      "t": "() => ArrayIterator<number>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "values",
+      "t": "() => ArrayIterator<SkillInstance>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "includes",
+      "t": "(searchElement: SkillInstance, fromIndex?: number | undefined) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "flatMap",
+      "t": "<U, This>(callback: (this: This, value: SkillInstance, index: number, array: SkillInstance[]) => U | readonly U[], thisArg?: This | undefined) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U, This>(callback: (this: This, value: SkillInstance, index: number, array: SkillInstance[]) => U | readonly U[], thisArg?: This | undefined) => U"
+    },
+    {
+      "n": "flat",
+      "t": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>"
+    },
+    {
+      "n": "at",
+      "t": "(index: number) => SkillInstance | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLast",
+      "t": "{ <S>(predicate: (value, index: number, array: SkillInstance[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: SkillInstance[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLastIndex",
+      "t": "(predicate: (value: SkillInstance, index: number, array: SkillInstance[]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toReversed",
+      "t": "() => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => SkillInstance"
+    },
+    {
+      "n": "toSorted",
+      "t": "(compareFn?: ((a: SkillInstance, b: SkillInstance) => number) | undefined) => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: SkillInstance, b: SkillInstance) => number) | undefined) => SkillInstance"
+    },
+    {
+      "n": "toSpliced",
+      "t": "{ (start: number, deleteCount: number, ...items: SkillInstance[]), (start: number, deleteCount?: number | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "with",
+      "t": "(index: number, value: SkillInstance) => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(index: number, value: SkillInstance) => SkillInstance"
+    },
+    {
+      "n": "__@iterator@165",
+      "t": "() => ArrayIterator<SkillInstance>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "__@unscopables@774",
+      "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "checkSkillTag": [
+    {
+      "n": "length",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toString",
+      "t": "() => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toLocaleString",
+      "t": "{ (): string, (locales: string | string[], options?: (Intl.NumberFormatOptions & Intl.DateTimeFormatOptions) | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "pop",
+      "t": "() => string[] | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "push",
+      "t": "(...items: string[][]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "concat",
+      "t": "{ (...items: ConcatArray<string[]>[]), (...items: (string[] | ConcatArray<string[]>)[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "join",
+      "t": "(separator?: string | undefined) => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reverse",
+      "t": "() => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => string[]"
+    },
+    {
+      "n": "shift",
+      "t": "() => string[] | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "slice",
+      "t": "(start?: number | undefined, end?: number | undefined) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(start?: number | undefined, end?: number | undefined) => string[]"
+    },
+    {
+      "n": "sort",
+      "t": "(compareFn?: ((a: string[], b: string[]) => number) | undefined) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: string[], b: string[]) => number) | undefined) => string[]"
+    },
+    {
+      "n": "splice",
+      "t": "{ (start: number, deleteCount?: number | undefined), (start: number, deleteCount: number, ...items: string[][]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "unshift",
+      "t": "(...items: string[][]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "indexOf",
+      "t": "(searchElement: string[], fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "lastIndexOf",
+      "t": "(searchElement: string[], fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "every",
+      "t": "{ <S>(predicate: (value, index: number, array: string[][]) => value is S, thisArg?: any), (predicate: (value, index: number, array: string[][]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "some",
+      "t": "(predicate: (value: string[], index: number, array: string[][]) => unknown, thisArg?: any) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "forEach",
+      "t": "(callbackfn: (value: string[], index: number, array: string[][]) => void, thisArg?: any) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "map",
+      "t": "<U>(callbackfn: (value: string[], index: number, array: string[][]) => U, thisArg?: any) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U>(callbackfn: (value: string[], index: number, array: string[][]) => U, thisArg?: any) => U"
+    },
+    {
+      "n": "filter",
+      "t": "{ <S>(predicate: (value, index: number, array: string[][]) => value is S, thisArg?: any), (predicate: (value, index: number, array: string[][]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduce",
+      "t": "{ (callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => string[]), (callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => string[], initialValue: string[]), <U>(callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduceRight",
+      "t": "{ (callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => string[]), (callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => string[], initialValue: string[]), <U>(callbackfn: (previousValue, currentValue: string[], currentIndex: number, array: string[][]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "find",
+      "t": "{ <S>(predicate: (value, index: number, obj: string[][]) => value is S, thisArg?: any), (predicate: (value, index: number, obj: string[][]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findIndex",
+      "t": "(predicate: (value: string[], index: number, obj: string[][]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "fill",
+      "t": "(value: string[], start?: number | undefined, end?: number | undefined) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(value: string[], start?: number | undefined, end?: number | undefined) => string[]"
+    },
+    {
+      "n": "copyWithin",
+      "t": "(target: number, start: number, end?: number | undefined) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(target: number, start: number, end?: number | undefined) => string[]"
+    },
+    {
+      "n": "entries",
+      "t": "() => ArrayIterator<[number, string[]]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "keys",
+      "t": "() => ArrayIterator<number>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "values",
+      "t": "() => ArrayIterator<string[]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "includes",
+      "t": "(searchElement: string[], fromIndex?: number | undefined) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "flatMap",
+      "t": "<U, This>(callback: (this: This, value: string[], index: number, array: string[][]) => U | readonly U[], thisArg?: This | undefined) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U, This>(callback: (this: This, value: string[], index: number, array: string[][]) => U | readonly U[], thisArg?: This | undefined) => U"
+    },
+    {
+      "n": "flat",
+      "t": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>"
+    },
+    {
+      "n": "at",
+      "t": "(index: number) => string[] | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLast",
+      "t": "{ <S>(predicate: (value, index: number, array: string[][]) => value is S, thisArg?: any), (predicate: (value, index: number, array: string[][]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLastIndex",
+      "t": "(predicate: (value: string[], index: number, array: string[][]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toReversed",
+      "t": "() => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => string[]"
+    },
+    {
+      "n": "toSorted",
+      "t": "(compareFn?: ((a: string[], b: string[]) => number) | undefined) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: string[], b: string[]) => number) | undefined) => string[]"
+    },
+    {
+      "n": "toSpliced",
+      "t": "{ (start: number, deleteCount: number, ...items: string[][]), (start: number, deleteCount?: number | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "with",
+      "t": "(index: number, value: string[]) => string[]",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(index: number, value: string[]) => string[]"
+    },
+    {
+      "n": "__@iterator@165",
+      "t": "() => ArrayIterator<string[]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "__@unscopables@774",
+      "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "checkSkillsOwner": [
+    {
+      "n": "length",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toString",
+      "t": "() => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toLocaleString",
+      "t": "{ (): string, (locales: string | string[], options?: (Intl.NumberFormatOptions & Intl.DateTimeFormatOptions) | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "pop",
+      "t": "() => Pet | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "push",
+      "t": "(...items: Pet[]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "concat",
+      "t": "{ (...items: ConcatArray<Pet>[]), (...items: (Pet | ConcatArray<Pet>)[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "join",
+      "t": "(separator?: string | undefined) => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reverse",
+      "t": "() => Pet",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => Pet"
+    },
+    {
+      "n": "shift",
+      "t": "() => Pet | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "slice",
+      "t": "(start?: number | undefined, end?: number | undefined) => Pet",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(start?: number | undefined, end?: number | undefined) => Pet"
+    },
+    {
+      "n": "sort",
+      "t": "(compareFn?: ((a: Pet, b: Pet) => number) | undefined) => Pet",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: Pet, b: Pet) => number) | undefined) => Pet"
+    },
+    {
+      "n": "splice",
+      "t": "{ (start: number, deleteCount?: number | undefined), (start: number, deleteCount: number, ...items: Pet[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "unshift",
+      "t": "(...items: Pet[]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "indexOf",
+      "t": "(searchElement: Pet, fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "lastIndexOf",
+      "t": "(searchElement: Pet, fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "every",
+      "t": "{ <S>(predicate: (value, index: number, array: Pet[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: Pet[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "some",
+      "t": "(predicate: (value: Pet, index: number, array: Pet[]) => unknown, thisArg?: any) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "forEach",
+      "t": "(callbackfn: (value: Pet, index: number, array: Pet[]) => void, thisArg?: any) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "map",
+      "t": "<U>(callbackfn: (value: Pet, index: number, array: Pet[]) => U, thisArg?: any) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U>(callbackfn: (value: Pet, index: number, array: Pet[]) => U, thisArg?: any) => U"
+    },
+    {
+      "n": "filter",
+      "t": "{ <S>(predicate: (value, index: number, array: Pet[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: Pet[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduce",
+      "t": "{ (callbackfn: (previousValue, currentValue: Pet, currentIndex: number, array: Pet[]) => Pet), (callbackfn: (previousValue, currentValue: Pet, currentIndex: number, array: Pet[]) => Pet, initialValue: Pet), <U>(callbackfn: (previousValue, currentValue: Pet, currentIndex: number, array: Pet[]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduceRight",
+      "t": "{ (callbackfn: (previousValue, currentValue: Pet, currentIndex: number, array: Pet[]) => Pet), (callbackfn: (previousValue, currentValue: Pet, currentIndex: number, array: Pet[]) => Pet, initialValue: Pet), <U>(callbackfn: (previousValue, currentValue: Pet, currentIndex: number, array: Pet[]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "find",
+      "t": "{ <S>(predicate: (value, index: number, obj: Pet[]) => value is S, thisArg?: any), (predicate: (value, index: number, obj: Pet[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findIndex",
+      "t": "(predicate: (value: Pet, index: number, obj: Pet[]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "fill",
+      "t": "(value: Pet, start?: number | undefined, end?: number | undefined) => Pet",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(value: Pet, start?: number | undefined, end?: number | undefined) => Pet"
+    },
+    {
+      "n": "copyWithin",
+      "t": "(target: number, start: number, end?: number | undefined) => Pet",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(target: number, start: number, end?: number | undefined) => Pet"
+    },
+    {
+      "n": "entries",
+      "t": "() => ArrayIterator<[number, Pet]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "keys",
+      "t": "() => ArrayIterator<number>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "values",
+      "t": "() => ArrayIterator<Pet>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "includes",
+      "t": "(searchElement: Pet, fromIndex?: number | undefined) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "flatMap",
+      "t": "<U, This>(callback: (this: This, value: Pet, index: number, array: Pet[]) => U | readonly U[], thisArg?: This | undefined) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U, This>(callback: (this: This, value: Pet, index: number, array: Pet[]) => U | readonly U[], thisArg?: This | undefined) => U"
+    },
+    {
+      "n": "flat",
+      "t": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>"
+    },
+    {
+      "n": "at",
+      "t": "(index: number) => Pet | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLast",
+      "t": "{ <S>(predicate: (value, index: number, array: Pet[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: Pet[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLastIndex",
+      "t": "(predicate: (value: Pet, index: number, array: Pet[]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toReversed",
+      "t": "() => Pet",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => Pet"
+    },
+    {
+      "n": "toSorted",
+      "t": "(compareFn?: ((a: Pet, b: Pet) => number) | undefined) => Pet",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: Pet, b: Pet) => number) | undefined) => Pet"
+    },
+    {
+      "n": "toSpliced",
+      "t": "{ (start: number, deleteCount: number, ...items: Pet[]), (start: number, deleteCount?: number | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "with",
+      "t": "(index: number, value: Pet) => Pet",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(index: number, value: Pet) => Pet"
+    },
+    {
+      "n": "__@iterator@165",
+      "t": "() => ArrayIterator<Pet>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "__@unscopables@774",
+      "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "checkSkillsOwnerName": [
+    {
+      "n": "length",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toString",
+      "t": "() => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toLocaleString",
+      "t": "{ (): string, (locales: string | string[], options?: (Intl.NumberFormatOptions & Intl.DateTimeFormatOptions) | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "pop",
+      "t": "() => string | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "push",
+      "t": "(...items: string[]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "concat",
+      "t": "{ (...items: ConcatArray<string>[]), (...items: (string | ConcatArray<string>)[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "join",
+      "t": "(separator?: string | undefined) => string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reverse",
+      "t": "() => string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => string"
+    },
+    {
+      "n": "shift",
+      "t": "() => string | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "slice",
+      "t": "(start?: number | undefined, end?: number | undefined) => string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(start?: number | undefined, end?: number | undefined) => string"
+    },
+    {
+      "n": "sort",
+      "t": "(compareFn?: ((a: string, b: string) => number) | undefined) => string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: string, b: string) => number) | undefined) => string"
+    },
+    {
+      "n": "splice",
+      "t": "{ (start: number, deleteCount?: number | undefined), (start: number, deleteCount: number, ...items: string[]) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "unshift",
+      "t": "(...items: string[]) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "indexOf",
+      "t": "(searchElement: string, fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "lastIndexOf",
+      "t": "(searchElement: string, fromIndex?: number | undefined) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "every",
+      "t": "{ <S>(predicate: (value, index: number, array: string[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: string[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "some",
+      "t": "(predicate: (value: string, index: number, array: string[]) => unknown, thisArg?: any) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "forEach",
+      "t": "(callbackfn: (value: string, index: number, array: string[]) => void, thisArg?: any) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "map",
+      "t": "<U>(callbackfn: (value: string, index: number, array: string[]) => U, thisArg?: any) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U>(callbackfn: (value: string, index: number, array: string[]) => U, thisArg?: any) => U"
+    },
+    {
+      "n": "filter",
+      "t": "{ <S>(predicate: (value, index: number, array: string[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: string[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduce",
+      "t": "{ (callbackfn: (previousValue, currentValue: string, currentIndex: number, array: string[]) => string), (callbackfn: (previousValue, currentValue: string, currentIndex: number, array: string[]) => string, initialValue: string), <U>(callbackfn: (previousValue, currentValue: string, currentIndex: number, array: string[]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reduceRight",
+      "t": "{ (callbackfn: (previousValue, currentValue: string, currentIndex: number, array: string[]) => string), (callbackfn: (previousValue, currentValue: string, currentIndex: number, array: string[]) => string, initialValue: string), <U>(callbackfn: (previousValue, currentValue: string, currentIndex: number, array: string[]) => U, initialValue: U) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "find",
+      "t": "{ <S>(predicate: (value, index: number, obj: string[]) => value is S, thisArg?: any), (predicate: (value, index: number, obj: string[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findIndex",
+      "t": "(predicate: (value: string, index: number, obj: string[]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "fill",
+      "t": "(value: string, start?: number | undefined, end?: number | undefined) => string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(value: string, start?: number | undefined, end?: number | undefined) => string"
+    },
+    {
+      "n": "copyWithin",
+      "t": "(target: number, start: number, end?: number | undefined) => string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(target: number, start: number, end?: number | undefined) => string"
+    },
+    {
+      "n": "entries",
+      "t": "() => ArrayIterator<[number, string]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "keys",
+      "t": "() => ArrayIterator<number>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "values",
+      "t": "() => ArrayIterator<string>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "includes",
+      "t": "(searchElement: string, fromIndex?: number | undefined) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "flatMap",
+      "t": "<U, This>(callback: (this: This, value: string, index: number, array: string[]) => U | readonly U[], thisArg?: This | undefined) => U",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<U, This>(callback: (this: This, value: string, index: number, array: string[]) => U | readonly U[], thisArg?: This | undefined) => U"
+    },
+    {
+      "n": "flat",
+      "t": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "<A, D>(this: A, depth?: D | undefined) => FlatArray<A, D>"
+    },
+    {
+      "n": "at",
+      "t": "(index: number) => string | undefined",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLast",
+      "t": "{ <S>(predicate: (value, index: number, array: string[]) => value is S, thisArg?: any), (predicate: (value, index: number, array: string[]) => unknown, thisArg?: any) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "findLastIndex",
+      "t": "(predicate: (value: string, index: number, array: string[]) => unknown, thisArg?: any) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toReversed",
+      "t": "() => string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => string"
+    },
+    {
+      "n": "toSorted",
+      "t": "(compareFn?: ((a: string, b: string) => number) | undefined) => string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(compareFn?: ((a: string, b: string) => number) | undefined) => string"
+    },
+    {
+      "n": "toSpliced",
+      "t": "{ (start: number, deleteCount: number, ...items: string[]), (start: number, deleteCount?: number | undefined) }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "with",
+      "t": "(index: number, value: string) => string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(index: number, value: string) => string"
+    },
+    {
+      "n": "__@iterator@165",
+      "t": "() => ArrayIterator<string>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "__@unscopables@774",
+      "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
       "iu": false,
       "u": [],
       "a": false

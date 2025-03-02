@@ -9,6 +9,7 @@ import {
 import { DataRepository } from '@test-battle/data-repository'
 import {
   BaseSelector,
+  type PathExtractor,
   ChainableSelector,
   type Condition,
   Conditions,
@@ -18,6 +19,7 @@ import {
   Operators,
   type SelectorOpinion,
   type ValueSource,
+  createPathExtractor,
 } from '@test-battle/effect-builder'
 import { RuntimeTypeChecker } from '@test-battle/effect-builder/runtime-type-checker'
 import type {
@@ -65,9 +67,11 @@ function applySelectorStep(
 ): ChainableSelector<SelectorOpinion> {
   try {
     switch (step.type) {
-      case 'select':
-        return selector.select(parseExtractor(step.arg))
-
+      case 'select': {
+        // 解析提取器，可能为ChainableExtractor或ValueExtractor
+        const extractor = parseExtractor(selector, step.arg)
+        return selector.select(extractor)
+      }
       case 'selectPath': {
         validatePath(selector, step.arg)
         return selector.selectPath(step.arg)
@@ -84,8 +88,11 @@ function applySelectorStep(
       case 'where':
         return selector.where(parseEvaluator(step.arg))
 
-      case 'whereAttr':
-        return selector.whereAttr(parseExtractor(step.extractor), parseEvaluator(step.condition))
+      case 'whereAttr': {
+        const extractor = parseExtractor(selector, step.extractor)
+        const condition = parseEvaluator(step.condition)
+        return selector.whereAttr(extractor, condition)
+      }
 
       case 'and':
         return selector.and(parseSelector(step.arg).build())
@@ -151,16 +158,21 @@ function assertNumberSelector(
   selector: ChainableSelector<SelectorOpinion>,
 ): asserts selector is ChainableSelector<number> {
   if (!selector.isNumberType()) {
-    throw new Error(`数值操作需要选择器返回数字类型，当前类型为 ${selector.typePath}`)
+    throw new Error(`数值操作需要选择器返回数字类型，当前类型为 ${selector.type}`)
   }
 }
 
-export function parseExtractor(dsl: ExtractorDSL) {
+export function parseExtractor(
+  selector: ChainableSelector<SelectorOpinion>,
+  dsl: ExtractorDSL,
+): PathExtractor<SelectorOpinion, SelectorOpinion> {
   switch (dsl.type) {
     case 'base':
-      return Extractor[dsl.arg]
+      return Extractor[dsl.arg] as PathExtractor<SelectorOpinion, SelectorOpinion>
     case 'dynamic':
-      return createExtractor(dsl.arg)
+      return createPathExtractor(selector.type, dsl.arg)
+    default:
+      throw Error('未知的提取器')
   }
 }
 
@@ -306,8 +318,8 @@ export function parseCondition(dsl: ConditionDSL): Condition {
 }
 
 function validatePath(selector: ChainableSelector<SelectorOpinion>, path: string) {
-  if (!RuntimeTypeChecker.validatePath(selector.typePath, path)) {
-    const expected = RuntimeTypeChecker.getExpectedType(selector.typePath, path)
-    throw new Error(`[路径校验失败] 路径 '${path}' 在类型 ${selector.typePath} 中不存在\n预期类型: ${expected}`)
+  if (!RuntimeTypeChecker.validatePath(selector.type, path)) {
+    const expected = RuntimeTypeChecker.getExpectedType(selector.type, path)
+    throw new Error(`[路径校验失败] 路径 '${path}' 在类型 ${selector.type} 中不存在\n预期类型: ${expected}`)
   }
 }

@@ -16,11 +16,18 @@ import {
   Element,
   Gender,
   Nature,
+  type baseMarkId,
+  type baseSkillId,
+  type markId,
+  type petId,
+  type playerId,
+  type skillId,
+  type speciesId,
   type StatOnBattle,
   type StatTypeOnBattle,
 } from '@test-battle/const'
 import type { Action, Condition, Evaluator, Operator, TargetSelector, ValueExtractor } from './effectBuilder'
-import { createExtractor, type ChainableExtractor } from './extractor'
+import { createExtractor, type PathExtractor } from './extractor'
 import { RuntimeTypeChecker } from './runtime-type-checker'
 
 export type PropertyRef<T, V> = {
@@ -29,13 +36,13 @@ export type PropertyRef<T, V> = {
   target: T // 保留原对象引用
 }
 
-export class ChainableSelector<T extends SelectorOpinion> {
+export class ChainableSelector<T> {
   private readonly _isNumberType: boolean
   constructor(
     public selector: TargetSelector<T>,
-    public typePath: string,
+    public type: string,
   ) {
-    this._isNumberType = RuntimeTypeChecker.isNumberType(typePath)
+    this._isNumberType = RuntimeTypeChecker.isNumberType(type)
   }
 
   [Symbol.toPrimitive](context: EffectContext<EffectTrigger>): T[] {
@@ -68,38 +75,35 @@ export class ChainableSelector<T extends SelectorOpinion> {
       }
     }
     // 执行运行时验证
-    if (!RuntimeTypeChecker.validatePath(this.typePath, path)) {
-      const expected = RuntimeTypeChecker.getExpectedType(this.typePath, path)
-      throw new Error(`[TypeError] Path '${path}' not found on ${this.typePath}\n` + `Expected type: ${expected}`)
+    if (!RuntimeTypeChecker.validatePath(this.type, path)) {
+      const expected = RuntimeTypeChecker.getExpectedType(this.type, path)
+      throw new Error(`[TypeError] Path '${path}' not found on ${this.type}\n` + `Expected type: ${expected}`)
     }
 
     // 计算新类型路径（例如：Pet.marks[] -> MarkInstance[]）
-    const newTypePath = RuntimeTypeChecker.getExpectedType(this.typePath, path).replace(/\[\]$/, '[]') // 保持数组标记
+    const newType = RuntimeTypeChecker.getExpectedType(this.type, path).replace(/\[\]$/, '[]') // 保持数组标记
 
-    return new ChainableSelector(context => this.selector(context).flatMap(createExtractor(path)), newTypePath)
+    return new ChainableSelector(context => this.selector(context).flatMap(createExtractor(path)), newType)
   }
 
   //选择一组对象的某一个参数
-  select<U extends SelectorOpinion>(extractor: ChainableExtractor<T, U>): ChainableSelector<U>
-  select<U extends SelectorOpinion>(extractor: ValueExtractor<T, U>, extractorPath?: string): ChainableSelector<U>
-  select<U extends SelectorOpinion>(
-    extractor: ChainableExtractor<T, U> | ValueExtractor<T, U>,
-    extractorPath?: string,
-  ): ChainableSelector<U> {
+  select<U>(extractor: PathExtractor<T, U>): ChainableSelector<U>
+  select<U>(extractor: ValueExtractor<T, U>, extractorPath?: string): ChainableSelector<U>
+  select<U>(extractor: PathExtractor<T, U> | ValueExtractor<T, U>, extractorPath?: string): ChainableSelector<U> {
     if (typeof extractor !== 'function') {
       return this.createExtractedSelector(extractor)
     }
 
     // 开发环境下的路径验证
     if (process.env.NODE_ENV !== 'production' && extractorPath) {
-      const fullPath = `${this.typePath}.${extractorPath}`
+      const fullPath = `${this.type}.${extractorPath}`
 
-      if (!RuntimeTypeChecker.validatePath(this.typePath, extractorPath)) {
+      if (!RuntimeTypeChecker.validatePath(this.type, extractorPath)) {
         throw new Error(`[TypeCheck] Invalid path: ${fullPath}`)
       }
 
       // 获取新类型路径（例如从 Pet 提取 marks -> MarkInstance[]）
-      const newType = RuntimeTypeChecker.getExpectedType(this.typePath, extractorPath).replace(/\[\]$/, '[]') // 标准化数组表示
+      const newType = RuntimeTypeChecker.getExpectedType(this.type, extractorPath).replace(/\[\]$/, '[]') // 标准化数组表示
 
       return new ChainableSelector<U>(context => this.selector(context).map(extractor), newType)
     }
@@ -111,18 +115,16 @@ export class ChainableSelector<T extends SelectorOpinion> {
     )
   }
 
-  private createExtractedSelector<U extends SelectorOpinion>(
-    extractor: ChainableExtractor<T, U>,
-  ): ChainableSelector<U> {
+  private createExtractedSelector<U>(extractor: PathExtractor<T, U>): ChainableSelector<U> {
     // 自动构建新类型路径
-    const newTypePath = `${this.typePath}.${extractor.path}`
+    const newTypePath = `${this.type}.${extractor.path}`
       .replace(/\.\[\]/g, '[]') // 处理数组语法
       .replace(/\[\]\./g, '[]')
 
     // 开发环境类型校验
     if (process.env.NODE_ENV !== 'production') {
-      if (!RuntimeTypeChecker.validatePath(this.typePath, extractor.path)) {
-        throw new Error(`[类型错误] 路径 ${extractor.path} 在 ${this.typePath} 中不存在`)
+      if (!RuntimeTypeChecker.validatePath(this.type, extractor.path)) {
+        throw new Error(`[类型错误] 路径 ${extractor.path} 在 ${this.type} 中不存在`)
       }
     }
 
@@ -133,13 +135,10 @@ export class ChainableSelector<T extends SelectorOpinion> {
   where(predicate: Evaluator<T>): ChainableSelector<T> {
     return new ChainableSelector(context => {
       return this.selector(context).filter(t => predicate(context, [t]))
-    }, this.typePath)
+    }, this.type)
   }
 
-  whereAttr<U extends SelectorOpinion>(
-    extractor: ChainableExtractor<T, U>,
-    condition: Evaluator<U>,
-  ): ChainableSelector<T>
+  whereAttr<U extends SelectorOpinion>(extractor: PathExtractor<T, U>, condition: Evaluator<U>): ChainableSelector<T>
   // 使用函数式提取器 + 路径的签名
   whereAttr<U extends SelectorOpinion>(
     extractor: ValueExtractor<T, U>,
@@ -148,7 +147,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
   ): ChainableSelector<T>
   //在保持当前结果类型的同时，对参数进行筛选
   whereAttr<U extends SelectorOpinion>(
-    extractor: ChainableExtractor<T, U> | ValueExtractor<T, U>,
+    extractor: PathExtractor<T, U> | ValueExtractor<T, U>,
     pathOrCondition: string | Evaluator<U>,
     condition?: Evaluator<U>,
   ): ChainableSelector<T> {
@@ -165,12 +164,12 @@ export class ChainableSelector<T extends SelectorOpinion> {
 
       // 开发环境路径校验
       if (process.env.NODE_ENV !== 'production') {
-        if (!RuntimeTypeChecker.validatePath(this.typePath, actualPath)) {
-          throw new Error(`[路径校验失败] 路径 "${actualPath}" 在类型 "${this.typePath}" 中无效\n`)
+        if (!RuntimeTypeChecker.validatePath(this.type, actualPath)) {
+          throw new Error(`[路径校验失败] 路径 "${actualPath}" 在类型 "${this.type}" 中无效\n`)
         }
       }
     } else {
-      const chainableExtractor = extractor as ChainableExtractor<T, U>
+      const chainableExtractor = extractor as PathExtractor<T, U>
       actualExtractor = chainableExtractor.extract
       actualPath = chainableExtractor.path
       actualCondition = pathOrCondition as Evaluator<U>
@@ -183,7 +182,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
 
         return actualCondition(context, values as U[])
       })
-    }, this.typePath)
+    }, this.type)
   }
 
   //两个同类型的结果取交集
@@ -194,7 +193,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
       if (other instanceof ChainableSelector) otherResults = other.build()(context)
       else otherResults = other(context)
       return prev.filter(t => otherResults.includes(t))
-    }, this.typePath)
+    }, this.type)
   }
 
   //两个同类型的结果取并集,相同的值会省略
@@ -204,7 +203,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
       const otherResults = other(context)
       if (!duplicate) return [...new Set([...prev, ...otherResults])]
       return [...prev, ...otherResults]
-    }, this.typePath)
+    }, this.type)
   }
 
   //对所有的结果进行求和，得到唯一的参数
@@ -212,7 +211,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
     return new ChainableSelector<number>(context => {
       const values = this.selector(context)
       return [values.reduce((acc, cur) => acc + cur, 0)]
-    }, this.typePath)
+    }, this.type)
   }
 
   //加一个固定数，或者加一个来源的数。如果来源选择了多个数，则会加上来源的每一个数。
@@ -255,14 +254,14 @@ export class ChainableSelector<T extends SelectorOpinion> {
     return new ChainableSelector(context => {
       const list = this.selector(context)
       return context.battle.shuffle(list).slice(0, count) // 使用随机洗牌
-    }, this.typePath)
+    }, this.type)
   }
 
   length(): ChainableSelector<number> {
     return new ChainableSelector(context => {
       const list = this.selector(context)
       return [list.length]
-    }, this.typePath)
+    }, this.type)
   }
 
   /**
@@ -272,14 +271,14 @@ export class ChainableSelector<T extends SelectorOpinion> {
   randomSample(percent: number): ChainableSelector<T> {
     return new ChainableSelector(context => {
       return this.selector(context).filter(() => context.battle.randomInt(1, 100) <= percent)
-    }, this.typePath)
+    }, this.type)
   }
 
   /**
    * 对目标列表乱序后返回
    **/
   shuffled(): ChainableSelector<T> {
-    return new ChainableSelector(context => context.battle.shuffle(this.selector(context)), this.typePath)
+    return new ChainableSelector(context => context.battle.shuffle(this.selector(context)), this.type)
   }
 
   // 最大值限制
@@ -300,7 +299,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
         const num = Number(v)
         return isNaN(num) ? 0 : fn(num)
       })
-    }, this.typePath)
+    }, this.type)
   }
 
   private combine(
@@ -311,7 +310,7 @@ export class ChainableSelector<T extends SelectorOpinion> {
       const valuesA = this.selector(context) as number[]
       const valuesB = other.selector(context) as number[]
       return valuesA.map((a, i) => operation(a, valuesB[i] ?? 0))
-    }, this.typePath)
+    }, this.type)
   }
 
   // 最终构建方法
@@ -333,32 +332,31 @@ export class ChainableSelector<T extends SelectorOpinion> {
 
   private getPropTypePath(prop: string): string {
     // 从元数据获取属性类型
-    const propType = RuntimeTypeChecker.getExpectedType(this.typePath, prop)
+    const propType = RuntimeTypeChecker.getExpectedType(this.type, prop)
 
     // 处理数组类型（例如 marks[] -> MarkInstance[]）
     return propType.replace(/\[\]$/, '[]')
   }
 }
 // 类型增强装饰器
-function createChainable<T extends SelectorOpinion>(
-  typePath: string,
-  selector: TargetSelector<T>,
-): ChainableSelector<T> {
-  return new ChainableSelector(selector, typePath)
+function createChainable<T extends SelectorOpinion>(type: string, selector: TargetSelector<T>): ChainableSelector<T> {
+  return new ChainableSelector(selector, type)
 }
 
 export type PrimitiveOpinion = number | string | boolean
+
+export type IdOpinion = skillId | baseSkillId | markId | baseMarkId | speciesId | petId | playerId
 
 export type EnumOpinion = Element | Gender | Nature | Category | AttackTargetOpinion
 
 export type ObjectOpinion =
   | null
+  | Battle
   | Pet
   | Player
   | StatOnBattle
   | UseSkillContext
   | DamageContext
-  | Battle
   | StatTypeOnBattle
   | Instance
   | MarkInstance

@@ -125,7 +125,7 @@ export class TypeAnalyzer {
 
         // 检测可选性
         const declaration = symbol.getDeclarations()?.[0] as PropertySignature | undefined
-        const isOptional = declaration?.hasQuestionToken() || false
+        const isOptional = (declaration?.hasQuestionToken ? declaration?.hasQuestionToken() : false) || false
 
         // 解析类型
         const parsed = this.parseType(propertyName, propertyType, 0, true)

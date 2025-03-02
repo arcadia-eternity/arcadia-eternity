@@ -12,111 +12,112 @@ import {
 import type { Element, InstanceId, PrototypeId, StatOnBattle } from '@test-battle/const'
 import type { SelectorOpinion } from './selector'
 import type { ValueExtractor } from './effectBuilder'
+import { RuntimeTypeChecker } from './runtime-type-checker'
 
-export interface ChainableExtractor<T extends SelectorOpinion, U extends SelectorOpinion> {
+export interface PathExtractor<T, U> {
   path: string
   extract: ValueExtractor<T, U>
-  typePath: string
+  type: string
 }
 
 type ExtractorMap = {
-  hp: ChainableExtractor<Pet, number>
-  maxhp: ChainableExtractor<Pet, number>
-  rage: ChainableExtractor<Player, number>
-  owner: ChainableExtractor<OwnedEntity, Battle | Player | Pet | MarkInstance | SkillInstance | null>
-  type: ChainableExtractor<Pet, Element>
-  marks: ChainableExtractor<Pet, MarkInstance[]>
-  stats: ChainableExtractor<Pet, StatOnBattle>
-  stack: ChainableExtractor<MarkInstance, number>
-  duration: ChainableExtractor<MarkInstance, number>
-  power: ChainableExtractor<UseSkillContext, number>
-  priority: ChainableExtractor<UseSkillContext, number>
-  activePet: ChainableExtractor<Player, Pet>
-  skills: ChainableExtractor<Pet, SkillInstance[]>
-  id: ChainableExtractor<Instance, InstanceId>
-  baseId: ChainableExtractor<Instance, PrototypeId>
-  tags: ChainableExtractor<MarkInstance, string[]>
+  hp: PathExtractor<Pet, number>
+  maxhp: PathExtractor<Pet, number>
+  rage: PathExtractor<Player, number>
+  owner: PathExtractor<OwnedEntity, Battle | Player | Pet | MarkInstance | SkillInstance | null>
+  type: PathExtractor<Pet, Element>
+  marks: PathExtractor<Pet, MarkInstance[]>
+  stats: PathExtractor<Pet, StatOnBattle>
+  stack: PathExtractor<MarkInstance, number>
+  duration: PathExtractor<MarkInstance, number>
+  power: PathExtractor<UseSkillContext, number>
+  priority: PathExtractor<UseSkillContext, number>
+  activePet: PathExtractor<Player, Pet>
+  skills: PathExtractor<Pet, SkillInstance[]>
+  id: PathExtractor<Instance, InstanceId>
+  baseId: PathExtractor<Instance, PrototypeId>
+  tags: PathExtractor<MarkInstance, string[]>
 }
 
 export const Extractor: ExtractorMap = {
   hp: {
     path: 'hp',
-    typePath: 'number',
+    type: 'number',
     extract: (target: Pet) => target.currentHp,
   },
   maxhp: {
     path: 'maxhp',
-    typePath: 'number',
+    type: 'number',
     extract: (target: Pet) => target.maxHp!,
   },
   rage: {
-    path: 'rage',
-    typePath: 'number',
-    extract: (target: Player) => target.currentRage,
+    path: 'currentRage',
+    type: 'number',
+    extract: (target: Player | Pet) => target.currentRage,
   },
   owner: {
     path: 'owner',
-    typePath: 'OwnedEntity.owner',
+    type: 'CanOwnedEntity',
     extract: (target: OwnedEntity) => target.owner!,
   },
   type: {
     path: 'type',
-    typePath: 'Element',
+    type: 'Element',
     extract: (target: Pet) => target.element,
   },
   marks: {
     path: 'marks',
-    typePath: 'MarkInstance[]',
+    type: 'MarkInstance[]',
     extract: (target: Pet) => target.marks,
   },
   stats: {
     path: 'stats',
-    typePath: 'StatOnBattle',
+    type: 'StatOnBattle',
     extract: (target: Pet) => target.stat,
   },
   stack: {
     path: 'stack',
-    typePath: 'number',
+    type: 'number',
     extract: (target: MarkInstance) => target.stack,
   },
   duration: {
     path: 'duration',
-    typePath: 'number',
+    type: 'number',
     extract: (target: MarkInstance) => target.duration,
   },
   power: {
     path: 'power',
-    typePath: 'number',
+    type: 'number',
     extract: (target: UseSkillContext) => target.power,
   },
   priority: {
     path: 'priority',
-    typePath: 'number',
+    type: 'number',
     extract: (target: UseSkillContext) => target.skillPriority,
   },
   activePet: {
     path: 'activePet',
-    typePath: 'Pet',
+    type: 'Pet',
     extract: (target: Player) => target.activePet,
   },
   skills: {
     path: 'skills',
-    typePath: 'SkillInstance[]',
+    type: 'SkillInstance[]',
     extract: (target: Pet) => target.skills,
   },
   id: {
     path: 'id',
-    typePath: 'InstanceId',
+    type: 'InstanceId',
     extract: (target: Instance) => target.id,
   },
   baseId: {
     path: 'base.id',
-    typePath: 'PrototypeId',
+    type: 'PrototypeId',
     extract: (target: Instance) => target.base.id,
   },
   tags: {
     path: 'tags',
-    typePath: 'string[]',
+    type: 'string[]',
     extract: (target: MarkInstance) => target.tags,
   },
 }
@@ -166,6 +167,14 @@ export function createExtractor<T, P extends string>(path: P): (target: T) => Pa
       }
     }
     return (hasArray ? current : current[0]) as Path<T, P>
+  }
+}
+
+export function createPathExtractor<T, P extends string>(type: string, path: P): PathExtractor<T, Path<T, P>> {
+  return {
+    path: path,
+    type: RuntimeTypeChecker.getExpectedType(type, path),
+    extract: createExtractor(path),
   }
 }
 
