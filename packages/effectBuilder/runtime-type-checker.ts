@@ -1,5 +1,3 @@
-// runtime-type-checker.ts
-import { StatTypeWithoutHp } from '@test-battle/const'
 import typeMetadata from './type-metadata.json'
 
 type TypeMetadata = Record<
@@ -82,5 +80,29 @@ export class RuntimeTypeChecker {
     }
 
     return currentType
+  }
+
+  static isNumberType(typePath: string): boolean {
+    const normalizedPath = typePath.replace(/\[\]$/g, '')
+    const parts = normalizedPath.split('.')
+    let currentType = parts[0]
+
+    // 递归解析类型
+    for (let i = 1; i < parts.length; i++) {
+      const prop = parts[i]
+      const typeInfo = this.metadata[currentType]?.find(p => p.n === prop)
+
+      if (!typeInfo) return false
+
+      currentType = typeInfo.t
+
+      // 处理联合类型（取第一个匹配类型）
+      if (typeInfo.iu && typeInfo.u.length > 0) {
+        currentType = typeInfo.u[0]
+      }
+    }
+
+    // 最终类型判断
+    return currentType === 'number' || currentType === 'number[]'
   }
 }

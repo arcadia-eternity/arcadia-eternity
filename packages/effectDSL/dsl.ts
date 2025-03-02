@@ -112,7 +112,7 @@ export type SelectorDSL =
 
 export type SelectStepDSL = {
   type: 'select'
-  arg: keyof typeof Extractor
+  arg: ExtractorDSL
 }
 
 export type SelectPathDSL = {
@@ -125,6 +125,16 @@ export type SelectPropDSL = {
   arg: string
 }
 
+export type ExtractorDSL =
+  | {
+      type: 'base'
+      arg: keyof typeof Extractor
+    }
+  | {
+      type: 'dynamic'
+      arg: string
+    }
+
 type SelectorChain =
   | SelectStepDSL
   | SelectPathDSL
@@ -135,7 +145,7 @@ type SelectorChain =
     }
   | {
       type: 'whereAttr'
-      extractor: keyof typeof Extractor | string
+      extractor: ExtractorDSL
       condition: EvaluatorDSL
     }
   | {

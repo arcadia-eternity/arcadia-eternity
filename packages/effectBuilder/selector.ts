@@ -20,7 +20,7 @@ import {
   type StatTypeOnBattle,
 } from '@test-battle/const'
 import type { Action, Condition, Evaluator, Operator, TargetSelector, ValueExtractor } from './effectBuilder'
-import { createExtractor } from './extractor'
+import { createExtractor, type ChainableExtractor } from './extractor'
 import { RuntimeTypeChecker } from './runtime-type-checker'
 
 export type PropertyRef<T, V> = {
@@ -30,10 +30,13 @@ export type PropertyRef<T, V> = {
 }
 
 export class ChainableSelector<T extends SelectorOpinion> {
+  private readonly _isNumberType: boolean
   constructor(
-    private selector: TargetSelector<T>,
-    private typePath: string,
-  ) {}
+    public selector: TargetSelector<T>,
+    public typePath: string,
+  ) {
+    this._isNumberType = RuntimeTypeChecker.isNumberType(typePath)
+  }
 
   [Symbol.toPrimitive](context: EffectContext<EffectTrigger>): T[] {
     return this.selector(context)
@@ -77,10 +80,16 @@ export class ChainableSelector<T extends SelectorOpinion> {
   }
 
   //选择一组对象的某一个参数
+  select<U extends SelectorOpinion>(extractor: ChainableExtractor<T, U>): ChainableSelector<U>
+  select<U extends SelectorOpinion>(extractor: ValueExtractor<T, U>, extractorPath?: string): ChainableSelector<U>
   select<U extends SelectorOpinion>(
-    extractor: ValueExtractor<T, U>,
-    extractorPath?: string, // 新增可选参数用于显式指定提取路径
+    extractor: ChainableExtractor<T, U> | ValueExtractor<T, U>,
+    extractorPath?: string,
   ): ChainableSelector<U> {
+    if (typeof extractor !== 'function') {
+      return this.createExtractedSelector(extractor)
+    }
+
     // 开发环境下的路径验证
     if (process.env.NODE_ENV !== 'production' && extractorPath) {
       const fullPath = `${this.typePath}.${extractorPath}`
@@ -102,6 +111,24 @@ export class ChainableSelector<T extends SelectorOpinion> {
     )
   }
 
+  private createExtractedSelector<U extends SelectorOpinion>(
+    extractor: ChainableExtractor<T, U>,
+  ): ChainableSelector<U> {
+    // 自动构建新类型路径
+    const newTypePath = `${this.typePath}.${extractor.path}`
+      .replace(/\.\[\]/g, '[]') // 处理数组语法
+      .replace(/\[\]\./g, '[]')
+
+    // 开发环境类型校验
+    if (process.env.NODE_ENV !== 'production') {
+      if (!RuntimeTypeChecker.validatePath(this.typePath, extractor.path)) {
+        throw new Error(`[类型错误] 路径 ${extractor.path} 在 ${this.typePath} 中不存在`)
+      }
+    }
+
+    return new ChainableSelector<U>(context => this.selector(context).map(extractor.extract), newTypePath)
+  }
+
   //对结果进行筛选
   where(predicate: Evaluator<T>): ChainableSelector<T> {
     return new ChainableSelector(context => {
@@ -109,13 +136,52 @@ export class ChainableSelector<T extends SelectorOpinion> {
     }, this.typePath)
   }
 
+  whereAttr<U extends SelectorOpinion>(
+    extractor: ChainableExtractor<T, U>,
+    condition: Evaluator<U>,
+  ): ChainableSelector<T>
+  // 使用函数式提取器 + 路径的签名
+  whereAttr<U extends SelectorOpinion>(
+    extractor: ValueExtractor<T, U>,
+    path: string,
+    condition: Evaluator<U>,
+  ): ChainableSelector<T>
   //在保持当前结果类型的同时，对参数进行筛选
-  whereAttr<U>(extractor: ValueExtractor<T, U>, condition: Evaluator<U>): ChainableSelector<T> {
+  whereAttr<U extends SelectorOpinion>(
+    extractor: ChainableExtractor<T, U> | ValueExtractor<T, U>,
+    pathOrCondition: string | Evaluator<U>,
+    condition?: Evaluator<U>,
+  ): ChainableSelector<T> {
+    // 参数类型解析
+    let actualExtractor: ValueExtractor<T, U>
+    let actualPath: string
+    let actualCondition: Evaluator<U>
+
+    if (typeof pathOrCondition === 'string') {
+      // 处理函数式提取器 + 路径的情况
+      actualExtractor = extractor as ValueExtractor<T, U>
+      actualPath = pathOrCondition
+      actualCondition = condition!
+
+      // 开发环境路径校验
+      if (process.env.NODE_ENV !== 'production') {
+        if (!RuntimeTypeChecker.validatePath(this.typePath, actualPath)) {
+          throw new Error(`[路径校验失败] 路径 "${actualPath}" 在类型 "${this.typePath}" 中无效\n`)
+        }
+      }
+    } else {
+      const chainableExtractor = extractor as ChainableExtractor<T, U>
+      actualExtractor = chainableExtractor.extract
+      actualPath = chainableExtractor.path
+      actualCondition = pathOrCondition as Evaluator<U>
+    }
+
     return new ChainableSelector(context => {
-      return this.selector(context).filter(t => {
-        const value = extractor(t)
-        const values = Array.isArray(value) ? value : [value]
-        return condition(context, values)
+      return this.selector(context).filter(target => {
+        const rawValue = actualExtractor(target)
+        const values = Array.isArray(rawValue) ? rawValue : [rawValue]
+
+        return actualCondition(context, values as U[])
       })
     }, this.typePath)
   }
@@ -259,6 +325,10 @@ export class ChainableSelector<T extends SelectorOpinion> {
 
   apply(operator: Operator<T>): Action {
     return (context: EffectContext<EffectTrigger>) => operator(context, this.selector(context))
+  }
+
+  isNumberType(): this is ChainableSelector<number> {
+    return this._isNumberType
   }
 
   private getPropTypePath(prop: string): string {

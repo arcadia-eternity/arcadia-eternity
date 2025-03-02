@@ -11,44 +11,114 @@ import {
 } from '@test-battle/battle'
 import type { Element, InstanceId, PrototypeId, StatOnBattle } from '@test-battle/const'
 import type { SelectorOpinion } from './selector'
+import type { ValueExtractor } from './effectBuilder'
+
+export interface ChainableExtractor<T extends SelectorOpinion, U extends SelectorOpinion> {
+  path: string
+  extract: ValueExtractor<T, U>
+  typePath: string
+}
 
 type ExtractorMap = {
-  hp: (target: Pet) => number
-  maxhp: (target: Pet) => number
-  rage: (target: Player) => number
-  owner: (target: OwnedEntity) => Battle | Player | Pet | MarkInstance | SkillInstance | null
-  type: (target: Pet) => Element
-  marks: (target: Pet) => MarkInstance[]
-  stats: (target: Pet) => StatOnBattle
-  stack: (target: MarkInstance) => number
-  duration: (target: MarkInstance) => number
-  power: (target: UseSkillContext) => number
-  priority: (target: UseSkillContext) => number
-  activePet: (target: Player) => Pet
-  skills: (target: Pet) => SkillInstance[]
-  id: (target: Instance) => InstanceId
-  baseId: (target: Instance) => PrototypeId
-  tags: (mark: MarkInstance) => string[]
+  hp: ChainableExtractor<Pet, number>
+  maxhp: ChainableExtractor<Pet, number>
+  rage: ChainableExtractor<Player, number>
+  owner: ChainableExtractor<OwnedEntity, Battle | Player | Pet | MarkInstance | SkillInstance | null>
+  type: ChainableExtractor<Pet, Element>
+  marks: ChainableExtractor<Pet, MarkInstance[]>
+  stats: ChainableExtractor<Pet, StatOnBattle>
+  stack: ChainableExtractor<MarkInstance, number>
+  duration: ChainableExtractor<MarkInstance, number>
+  power: ChainableExtractor<UseSkillContext, number>
+  priority: ChainableExtractor<UseSkillContext, number>
+  activePet: ChainableExtractor<Player, Pet>
+  skills: ChainableExtractor<Pet, SkillInstance[]>
+  id: ChainableExtractor<Instance, InstanceId>
+  baseId: ChainableExtractor<Instance, PrototypeId>
+  tags: ChainableExtractor<MarkInstance, string[]>
 }
-// Extractor用于提取Selector得到的一组对象的某个值，将这个值的类型作为新的Selector
 
 export const Extractor: ExtractorMap = {
-  hp: (target: Pet) => target.currentHp,
-  maxhp: (target: Pet) => target.maxHp!,
-  rage: (target: Player) => target.currentRage,
-  owner: (target: OwnedEntity) => target.owner!,
-  type: (target: Pet) => target.element,
-  marks: (target: Pet) => target.marks,
-  stats: (target: Pet) => target.stat,
-  stack: (target: MarkInstance) => target.stack,
-  duration: (target: MarkInstance) => target.duration,
-  power: (target: UseSkillContext) => target.power,
-  priority: (target: UseSkillContext) => target.skillPriority,
-  activePet: (target: Player) => target.activePet,
-  skills: (target: Pet) => target.skills,
-  id: (target: Instance) => target.id,
-  baseId: (target: Instance) => target.base.id,
-  tags: (mark: MarkInstance) => mark.tags,
+  hp: {
+    path: 'hp',
+    typePath: 'number',
+    extract: (target: Pet) => target.currentHp,
+  },
+  maxhp: {
+    path: 'maxhp',
+    typePath: 'number',
+    extract: (target: Pet) => target.maxHp!,
+  },
+  rage: {
+    path: 'rage',
+    typePath: 'number',
+    extract: (target: Player) => target.currentRage,
+  },
+  owner: {
+    path: 'owner',
+    typePath: 'OwnedEntity.owner',
+    extract: (target: OwnedEntity) => target.owner!,
+  },
+  type: {
+    path: 'type',
+    typePath: 'Element',
+    extract: (target: Pet) => target.element,
+  },
+  marks: {
+    path: 'marks',
+    typePath: 'MarkInstance[]',
+    extract: (target: Pet) => target.marks,
+  },
+  stats: {
+    path: 'stats',
+    typePath: 'StatOnBattle',
+    extract: (target: Pet) => target.stat,
+  },
+  stack: {
+    path: 'stack',
+    typePath: 'number',
+    extract: (target: MarkInstance) => target.stack,
+  },
+  duration: {
+    path: 'duration',
+    typePath: 'number',
+    extract: (target: MarkInstance) => target.duration,
+  },
+  power: {
+    path: 'power',
+    typePath: 'number',
+    extract: (target: UseSkillContext) => target.power,
+  },
+  priority: {
+    path: 'priority',
+    typePath: 'number',
+    extract: (target: UseSkillContext) => target.skillPriority,
+  },
+  activePet: {
+    path: 'activePet',
+    typePath: 'Pet',
+    extract: (target: Player) => target.activePet,
+  },
+  skills: {
+    path: 'skills',
+    typePath: 'SkillInstance[]',
+    extract: (target: Pet) => target.skills,
+  },
+  id: {
+    path: 'id',
+    typePath: 'InstanceId',
+    extract: (target: Instance) => target.id,
+  },
+  baseId: {
+    path: 'base.id',
+    typePath: 'PrototypeId',
+    extract: (target: Instance) => target.base.id,
+  },
+  tags: {
+    path: 'tags',
+    typePath: 'string[]',
+    extract: (target: MarkInstance) => target.tags,
+  },
 }
 
 export type Path<T, P extends string> = P extends ''

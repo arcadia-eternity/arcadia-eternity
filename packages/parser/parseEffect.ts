@@ -15,17 +15,21 @@ import {
   createExtractor,
   type Evaluator,
   Extractor,
-  isMark,
-  isOwnedEntity,
-  isPet,
-  isPlayer,
-  isUseSkillContext,
   Operators,
   type SelectorOpinion,
-  type ValueExtractor,
   type ValueSource,
 } from '@test-battle/effect-builder'
-import type { ActionDSL, ConditionDSL, EffectDSL, EvaluatorDSL, SelectorDSL, Value } from '@test-battle/effect-dsl'
+import { RuntimeTypeChecker } from '@test-battle/effect-builder/runtime-type-checker'
+import type {
+  ActionDSL,
+  ConditionDSL,
+  EffectDSL,
+  EvaluatorDSL,
+  ExtractorDSL,
+  SelectorChain,
+  SelectorDSL,
+  Value,
+} from '@test-battle/effect-dsl'
 
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   const actions = createAction(dsl.apply)
@@ -34,187 +38,129 @@ export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
 }
 
 export function parseSelector<T extends SelectorOpinion>(dsl: SelectorDSL): ChainableSelector<T> {
-  let selector: ChainableSelector<SelectorOpinion>
+  // 解析基础选择器
+  const baseSelector = typeof dsl === 'string' ? getBaseSelector(dsl) : getBaseSelector(dsl.base)
 
-  // 处理基础选择器
-  if (typeof dsl === 'string') {
-    if (!(dsl in BaseSelector)) {
-      throw new Error(`未知的基础选择器: ${dsl}`)
-    }
-    selector = BaseSelector[dsl as keyof typeof BaseSelector]
-  } else {
-    const base = dsl.base
-    if (!(base in BaseSelector)) {
-      throw new Error(`未知的基础选择器: ${base}`)
-    }
-    selector = BaseSelector[base as keyof typeof BaseSelector]
-
-    // 处理链式操作
-    if (!dsl.chain) return selector as ChainableSelector<T>
-    for (const step of dsl.chain) {
-      try {
-        switch (step.type) {
-          case 'select': {
-            // 动态推断当前泛型类型
-            type CurrentType = typeof selector._type
-            const extractor = parseExtractor<CurrentType>(step.arg)
-            selector = selector.select(extractor)
-            break
-          }
-          case 'where': {
-            const condition = parseEvaluator(step.arg)
-            selector = selector.where(condition)
-            break
-          }
-          case 'whereAttr': {
-            type CurrentType = typeof selector._type
-            const extractor = parseExtractor<CurrentType>(step.extractor)
-            const condition = parseEvaluator(step.condition)
-            selector = selector.whereAttr(extractor, condition)
-            break
-          }
-          case 'and': {
-            const otherSelector = parseSelector(step.arg).build()
-            selector = selector.and(otherSelector)
-            break
-          }
-          case 'or': {
-            const otherSelector = parseSelector(step.arg).build()
-            selector = selector.or(otherSelector, step.duplicate ?? false)
-            break
-          }
-          case 'randomPick':
-            selector = selector.randomPick(step.arg)
-            break
-          case 'randomSample':
-            selector = selector.randomSample(step.arg)
-            break
-          case 'sum': {
-            if (!selector.isNumberType()) {
-              throw new Error(`sum操作需要数值类型选择器，当前类型为${typeof selector._type}`)
-            }
-            const numberSelector = selector as ChainableSelector<number>
-            selector = numberSelector.sum()
-            break
-          }
-          case 'add': {
-            if (typeof step.arg === 'number') {
-              selector = (selector as ChainableSelector<number>).add(step.arg)
-            } else {
-              const otherSelector = parseSelector<number>(step.arg)
-              selector = (selector as ChainableSelector<number>).add(otherSelector)
-            }
-            break
-          }
-          case 'multiply': {
-            if (typeof step.arg === 'number') {
-              selector = (selector as ChainableSelector<number>).multiply(step.arg)
-            } else {
-              const otherSelector = parseSelector<number>(step.arg)
-              selector = (selector as ChainableSelector<number>).multiply(otherSelector)
-            }
-            break
-          }
-          case 'divide': {
-            if (typeof step.arg === 'number') {
-              selector = (selector as ChainableSelector<number>).divide(step.arg)
-            } else {
-              const otherSelector = parseSelector<number>(step.arg)
-              selector = (selector as ChainableSelector<number>).divide(otherSelector)
-            }
-            break
-          }
-          case 'shuffled':
-            selector = selector.shuffled()
-            break
-          case 'clampMax':
-            selector = selector.clampMax(step.arg)
-            break
-          case 'clampMin':
-            selector = selector.clampMin(step.arg)
-            break
-          default:
-            throw new Error(`未知的操作类型: ${(step as { type: string }).type}`)
-        }
-      } catch (e) {
-        const error = e instanceof Error ? e : new Error(String(e))
-        throw new Error(`步骤[${step.type}]执行失败: ${error.message}`)
-      }
-    }
+  // 处理链式操作
+  if (typeof dsl !== 'string' && dsl.chain) {
+    return dsl.chain.reduce(
+      (selector, step) => applySelectorStep(selector, step),
+      baseSelector as ChainableSelector<SelectorOpinion>,
+    ) as ChainableSelector<T>
   }
 
-  // 最终类型断言为调用方期望的类型
-  return selector as ChainableSelector<T>
+  return baseSelector as ChainableSelector<T>
 }
 
-export function parseExtractor<T extends SelectorOpinion>(
-  value: keyof typeof Extractor | string,
-): ValueExtractor<T, SelectorOpinion> {
-  // 处理内置提取器
-  const builtInExtractor = value in Extractor ? Extractor[value as keyof typeof Extractor] : null
-
-  if (builtInExtractor) {
-    // 返回带运行时类型检查的包装函数
-    return (target: T) => {
-      try {
-        // 根据提取器类型进行运行时验证
-        switch (value) {
-          case 'hp':
-          case 'maxhp':
-          case 'type':
-          case 'marks':
-          case 'stats':
-          case 'skills':
-            if (!isPet(target)) {
-              throw new Error(`提取器'${value}'需要Pet类型目标，但传入的是${target?.constructor.name}`)
-            }
-            break
-          case 'rage':
-          case 'activePet':
-            if (!isPlayer(target)) {
-              throw new Error(`提取器'${value}'需要Player类型目标，但传入的是${target?.constructor.name}`)
-            }
-            break
-          case 'owner':
-            if (!isOwnedEntity(target)) {
-              throw new Error(`提取器'owner'需要拥有owner属性的对象，但传入的是${target?.constructor.name}`)
-            }
-            break
-          case 'stack':
-          case 'duration':
-          case 'id':
-          case 'tags':
-            if (!isMark(target)) {
-              throw new Error(`提取器'${value}'需要Mark类型目标，但传入的是${target?.constructor.name}`)
-            }
-            break
-          case 'power':
-          case 'priority':
-            if (!isUseSkillContext(target)) {
-              throw new Error(`提取器'${value}'需要UseSkillContext类型目标，但传入的是${target?.constructor.name}`)
-            }
-            break
-        }
-        // 执行实际提取逻辑
-        return builtInExtractor(target as never)
-      } catch (e) {
-        throw new Error(`提取器'${value}'执行失败: ${e instanceof Error ? e.message : String(e)}`)
-      }
-    }
+function getBaseSelector(selectorKey: string): ChainableSelector<SelectorOpinion> {
+  if (!(selectorKey in BaseSelector)) {
+    throw new Error(`未知的基础选择器: ${selectorKey}`)
   }
+  return BaseSelector[selectorKey as keyof typeof BaseSelector]
+}
 
-  // 处理动态路径提取器（例如通过createExtractor生成的）
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dynamicExtractor = createExtractor<T, any>(value)
+function applySelectorStep(
+  selector: ChainableSelector<SelectorOpinion>,
+  step: SelectorChain,
+): ChainableSelector<SelectorOpinion> {
+  try {
+    switch (step.type) {
+      case 'select':
+        return selector.select(parseExtractor(step.arg))
 
-  // 添加基础类型检查（确保目标为对象）
-  return (target: T) => {
-    if (typeof target !== 'object' || target === null) {
-      throw new Error(`动态提取器'${value}'需要对象类型目标，但传入的是${typeof target}`)
+      case 'selectPath': {
+        validatePath(selector, step.arg)
+        return selector.selectPath(step.arg)
+      }
+
+      case 'selectProp': {
+        if (process.env.NODE_ENV !== 'production') {
+          validatePath(selector, step.arg)
+        }
+
+        return selector.selectProp(step.arg as keyof NonNullable<SelectorOpinion>) as ChainableSelector<SelectorOpinion>
+      }
+
+      case 'where':
+        return selector.where(parseEvaluator(step.arg))
+
+      case 'whereAttr':
+        return selector.whereAttr(parseExtractor(step.extractor), parseEvaluator(step.condition))
+
+      case 'and':
+        return selector.and(parseSelector(step.arg).build())
+
+      case 'or':
+        return selector.or(parseSelector(step.arg).build(), step.duplicate ?? false)
+
+      case 'randomPick':
+        return selector.randomPick(step.arg)
+
+      case 'randomSample':
+        return selector.randomSample(step.arg)
+
+      case 'sum': {
+        assertNumberSelector(selector)
+        return selector.sum()
+      }
+
+      case 'add': {
+        assertNumberSelector(selector)
+        return typeof step.arg === 'number' ? selector.add(step.arg) : selector.add(parseSelector<number>(step.arg))
+      }
+
+      case 'multiply': {
+        assertNumberSelector(selector)
+        return typeof step.arg === 'number'
+          ? selector.multiply(step.arg)
+          : selector.multiply(parseSelector<number>(step.arg))
+      }
+
+      case 'divide': {
+        assertNumberSelector(selector)
+        if (typeof step.arg === 'number' && step.arg === 0) {
+          throw new Error('除数不能为0')
+        }
+        return typeof step.arg === 'number'
+          ? selector.divide(step.arg)
+          : selector.divide(parseSelector<number>(step.arg))
+      }
+
+      case 'shuffled':
+        return selector.shuffled()
+
+      case 'clampMax': {
+        assertNumberSelector(selector)
+        return selector.clampMax(step.arg)
+      }
+
+      case 'clampMin': {
+        assertNumberSelector(selector)
+        return selector.clampMax(step.arg)
+      }
+
+      default:
+        throw new Error(`未知的操作类型: ${(step as any).type}`)
     }
-    const result = dynamicExtractor(target)
+  } catch (e) {
+    throw new Error(`步骤[${step.type}]执行失败: ${e instanceof Error ? e.message : String(e)}`)
+  }
+}
 
-    return result as SelectorOpinion
+function assertNumberSelector(
+  selector: ChainableSelector<SelectorOpinion>,
+): asserts selector is ChainableSelector<number> {
+  if (!selector.isNumberType()) {
+    throw new Error(`数值操作需要选择器返回数字类型，当前类型为 ${selector.typePath}`)
+  }
+}
+
+export function parseExtractor(dsl: ExtractorDSL) {
+  switch (dsl.type) {
+    case 'base':
+      return Extractor[dsl.arg]
+    case 'dynamic':
+      return createExtractor(dsl.arg)
   }
 }
 
@@ -357,4 +303,11 @@ export function parseCondition(dsl: ConditionDSL): Condition {
   const target = parseSelector(dsl.target)
   const evaluator = parseEvaluator(dsl.evaluator)
   return target.condition(evaluator)
+}
+
+function validatePath(selector: ChainableSelector<SelectorOpinion>, path: string) {
+  if (!RuntimeTypeChecker.validatePath(selector.typePath, path)) {
+    const expected = RuntimeTypeChecker.getExpectedType(selector.typePath, path)
+    throw new Error(`[路径校验失败] 路径 '${path}' 在类型 ${selector.typePath} 中不存在\n预期类型: ${expected}`)
+  }
 }

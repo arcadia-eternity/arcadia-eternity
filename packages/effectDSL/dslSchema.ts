@@ -8,6 +8,7 @@ import type {
   DynamicValue,
   EffectDSL,
   EvaluatorDSL,
+  ExtractorDSL,
   RawBooleanValue,
   RawMarkIdValue,
   RawNumberValue,
@@ -26,7 +27,7 @@ const COMPARE_OPERATORS = ['>', '<', '>=', '<=', '=='] as const
 const compareOperatorSchema = z.enum(COMPARE_OPERATORS)
 
 const extractorKeys = Object.keys(Extractor)
-const extractorSchema = z.enum(extractorKeys as [keyof typeof Extractor])
+const baseExtractorSchema = z.enum(extractorKeys as [keyof typeof Extractor])
 
 // const operatorKeys = Object.keys(Operators)
 // const operatorSchema = z.enum(operatorKeys as [keyof typeof Operators])
@@ -66,6 +67,19 @@ export const valueSchema: z.ZodSchema<Value> = z.union([
   dynamicValueSchema,
 ])
 
+export const extractorSchema: z.ZodSchema<ExtractorDSL> = z.lazy(() =>
+  z.union([
+    z.object({
+      type: z.literal('base'),
+      arg: baseExtractorSchema,
+    }),
+    z.object({
+      type: z.literal('dynamic'),
+      arg: z.string(),
+    }),
+  ]),
+)
+
 export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
   z.union([
     z.object({
@@ -86,7 +100,7 @@ export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
     }),
     z.object({
       type: z.literal('whereAttr'),
-      extractor: z.union([extractorSchema, z.string()]),
+      extractor: extractorSchema,
       condition: evaluatorDSLSchema,
     }),
     z.object({

@@ -1,5 +1,5 @@
 import { BaseSkill, Effect } from '@test-battle/battle'
-import { EffectTrigger } from '@test-battle/const'
+import { EffectTrigger, type baseSkillId, type effectId } from '@test-battle/const'
 import { DataRepository } from '@test-battle/data-repository'
 import { SkillSchema } from '@test-battle/schema'
 import {} from 'zod'
@@ -13,7 +13,7 @@ export class SkillParser {
     if (validated.effect) {
       effects = validated.effect.map(effectId => {
         try {
-          return DataRepository.getInstance().getEffect(effectId)
+          return DataRepository.getInstance().getEffect(effectId as effectId)
         } catch (e) {
           throw new Error(
             `[SkillParser] Failed to load effect '${effectId}' for skill '${validated.name}': ${(e as Error).message}`,
@@ -23,7 +23,7 @@ export class SkillParser {
     }
 
     return new BaseSkill(
-      validated.id,
+      validated.id as baseSkillId,
       validated.name,
       validated.category,
       validated.element,
