@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@anatine/zod-mock": "^3.13.5",
+    "@comfyorg/litegraph": "^0.9.3",
     "@element-plus/icons-vue": "^2.3.1",
     "@faker-js/faker": "^9.5.0",
     "@test-battle/client": "workspace:^",
@@ -23,7 +24,6 @@
     "@test-battle/protocol": "workspace:^",
     "@test-battle/schema": "workspace:^",
     "@types/lodash": "^4.17.15",
-    "@vue-flow/core": "^1.42.1",
     "@vueuse/core": "^12.7.0",
     "axios": "^1.8.1",
     "element-plus": "^2.9.4",

@@ -19,6 +19,7 @@ import {
   type SelectorOpinion,
   type ValueSource,
   createPathExtractor,
+  Conditions,
 } from '@test-battle/effect-builder'
 import { RuntimeTypeChecker } from '@test-battle/effect-builder/runtime-type-checker'
 import type {
@@ -311,9 +312,34 @@ export function parseTransferMark(dsl: Extract<OperatorDSL, { type: 'transferMar
 }
 
 export function parseCondition(dsl: ConditionDSL): Condition {
+  switch (dsl.type) {
+    case 'evaluate':
+      return parseEvaluateCondition(dsl)
+    case 'some':
+      return parseSomeCondition(dsl)
+    case 'every':
+      return parseEveryCondition(dsl)
+    case 'not':
+      return parseNotCondition(dsl)
+  }
+}
+
+export function parseEvaluateCondition(dsl: Extract<ConditionDSL, { type: 'evaluate' }>): Condition {
   const target = parseSelector(dsl.target)
   const evaluator = parseEvaluator(dsl.evaluator)
   return target.condition(evaluator)
+}
+
+export function parseSomeCondition(dsl: Extract<ConditionDSL, { type: 'some' }>): Condition {
+  return Conditions.some(dsl.conditions.map(parseCondition))
+}
+
+export function parseEveryCondition(dsl: Extract<ConditionDSL, { type: 'every' }>): Condition {
+  return Conditions.every(dsl.conditions.map(parseCondition))
+}
+
+export function parseNotCondition(dsl: Extract<ConditionDSL, { type: 'not' }>): Condition {
+  return Conditions.not(parseCondition(dsl.condition))
 }
 
 function validatePath(selector: ChainableSelector<SelectorOpinion>, path: string) {

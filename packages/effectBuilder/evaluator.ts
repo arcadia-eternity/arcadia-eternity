@@ -1,7 +1,7 @@
 import { EffectContext } from '@test-battle/battle'
 import { EffectTrigger } from '@test-battle/const'
-import type { Evaluator } from './effectBuilder'
-import { type SelectorOpinion } from './selector'
+import type { Condition, Evaluator, TargetSelector } from './effectBuilder'
+import { ChainableSelector, type SelectorOpinion } from './selector'
 import { GetValueFromSource } from './operator'
 import { type ValueSource } from './effectBuilder'
 
@@ -99,4 +99,16 @@ export const Evaluators = {
       const percent = GetValueFromSource(context, dynamicPercent)[0]
       return context.battle.random() < percent / 100
     },
+}
+
+export const ConditionUtils = {
+  fromEvaluator: <T>(selector: TargetSelector<T> | ChainableSelector<T>, evaluator: Evaluator<T>): Condition => {
+    let _selector: TargetSelector<T>
+    if (selector instanceof ChainableSelector) {
+      _selector = selector.build()
+    } else _selector = selector
+    return context => {
+      return evaluator(context, _selector(context))
+    }
+  },
 }

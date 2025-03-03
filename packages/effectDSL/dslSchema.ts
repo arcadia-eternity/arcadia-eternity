@@ -253,10 +253,25 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
 )
 
 export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
-  z.object({
-    target: selectorDSLSchema,
-    evaluator: evaluatorDSLSchema,
-  }),
+  z.union([
+    z.object({
+      type: z.literal('evaluate'),
+      target: selectorDSLSchema,
+      evaluator: evaluatorDSLSchema,
+    }),
+    z.object({
+      type: z.literal('some'),
+      conditions: z.array(conditionDSLSchema),
+    }),
+    z.object({
+      type: z.literal('every'),
+      conditions: z.array(conditionDSLSchema),
+    }),
+    z.object({
+      type: z.literal('not'),
+      condition: conditionDSLSchema,
+    }),
+  ]),
 )
 
 export const effectDSLSchema: z.ZodSchema<EffectDSL> = z.lazy(() =>

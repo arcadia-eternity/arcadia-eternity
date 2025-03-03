@@ -204,7 +204,21 @@ export type EvaluatorDSL =
   | { type: 'all'; conditions: EvaluatorDSL[] }
   | { type: 'probability'; percent: Value }
 
-export type ConditionDSL = {
-  target: SelectorDSL
-  evaluator: EvaluatorDSL
-}
+export type ConditionDSL =
+  | {
+      type: 'evaluate'
+      target: SelectorDSL
+      evaluator: EvaluatorDSL
+    }
+  | {
+      type: 'some'
+      conditions: ConditionDSL[]
+    }
+  | {
+      type: 'every'
+      conditions: ConditionDSL[]
+    }
+  | {
+      type: 'not'
+      condition: ConditionDSL
+    }
