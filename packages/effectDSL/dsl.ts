@@ -8,12 +8,12 @@ export interface EffectDSL {
   id: string
   trigger: EffectTrigger
   priority: number
-  apply: ActionDSL
+  apply: OperatorDSL
   condition?: ConditionDSL
   consumesStacks?: number
 }
 
-export type ActionDSL =
+export type OperatorDSL =
   | {
       type: 'dealDamage'
       target: SelectorDSL

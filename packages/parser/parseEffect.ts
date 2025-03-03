@@ -12,7 +12,7 @@ import {
   type PathExtractor,
   ChainableSelector,
   type Condition,
-  Conditions,
+  Evaluators,
   type Evaluator,
   Extractor,
   Operators,
@@ -22,7 +22,7 @@ import {
 } from '@test-battle/effect-builder'
 import { RuntimeTypeChecker } from '@test-battle/effect-builder/runtime-type-checker'
 import type {
-  ActionDSL,
+  OperatorDSL,
   ConditionDSL,
   EffectDSL,
   EvaluatorDSL,
@@ -178,22 +178,22 @@ export function parseExtractor(
 function parseEvaluator(dsl: EvaluatorDSL): Evaluator<SelectorOpinion> {
   switch (dsl.type) {
     case 'compare':
-      return Conditions.compare(
+      return Evaluators.compare(
         dsl.operator,
         parseValue(dsl.value) as ValueSource<number>,
       ) as Evaluator<SelectorOpinion>
     case 'same':
-      return Conditions.same(
+      return Evaluators.same(
         parseValue(dsl.value) as ValueSource<number | string | boolean>,
       ) as Evaluator<SelectorOpinion>
     case 'any':
       // 递归解析嵌套条件（OR 逻辑）
-      return Conditions.any(...dsl.conditions.map(v => parseEvaluator(v)))
+      return Evaluators.any(...dsl.conditions.map(v => parseEvaluator(v)))
     case 'all':
       // 递归解析嵌套条件（AND 逻辑）
-      return Conditions.all(...dsl.conditions.map(v => parseEvaluator(v)))
+      return Evaluators.all(...dsl.conditions.map(v => parseEvaluator(v)))
     case 'probability':
-      return Conditions.probability(parseValue(dsl.percent) as ValueSource<number>)
+      return Evaluators.probability(parseValue(dsl.percent) as ValueSource<number>)
     default: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`Unknown condition type: ${(dsl as any).type}`)
@@ -201,7 +201,7 @@ function parseEvaluator(dsl: EvaluatorDSL): Evaluator<SelectorOpinion> {
   }
 }
 
-export function createAction(dsl: ActionDSL) {
+export function createAction(dsl: OperatorDSL) {
   switch (dsl.type) {
     case 'dealDamage':
       return parseDamageAction(dsl)
@@ -241,7 +241,7 @@ export function isNumberValue(value: ValueSource<SelectorOpinion>): value is num
   return typeof value === 'number'
 }
 
-export function parseDamageAction(dsl: Extract<ActionDSL, { type: 'dealDamage' }>) {
+export function parseDamageAction(dsl: Extract<OperatorDSL, { type: 'dealDamage' }>) {
   const value = parseValue(dsl.value)
   if (!isNumberValue(value)) {
     throw new Error('Damage value must be a number')
@@ -249,28 +249,28 @@ export function parseDamageAction(dsl: Extract<ActionDSL, { type: 'dealDamage' }
   return parseSelector<Pet>(dsl.target).apply(Operators.dealDamage(parseValue(dsl.value) as ValueSource<number>))
 }
 
-export function parseHealAction(dsl: Extract<ActionDSL, { type: 'heal' }>) {
+export function parseHealAction(dsl: Extract<OperatorDSL, { type: 'heal' }>) {
   const selector = parseSelector<Pet>(dsl.target)
   return selector.apply(Operators.heal(parseValue(dsl.value) as ValueSource<number>))
 }
 
-export function parseAddMarkAction(dsl: Extract<ActionDSL, { type: 'addMark' }>) {
+export function parseAddMarkAction(dsl: Extract<OperatorDSL, { type: 'addMark' }>) {
   const selector = parseSelector<Pet>(dsl.target)
   const mark = DataRepository.getInstance().getMark(dsl.mark as baseMarkId)
   return selector.apply(Operators.addMark(mark, dsl.duration))
 }
 
 // Pattern for stack-related actions [source_id: operator.ts]
-export function parseAddStacksAction(dsl: Extract<ActionDSL, { type: 'addStacks' }>) {
+export function parseAddStacksAction(dsl: Extract<OperatorDSL, { type: 'addStacks' }>) {
   return parseSelector<MarkInstance>(dsl.target).apply(Operators.addStack(dsl.value))
 }
 
-export function parseConsumeStacksAction(dsl: Extract<ActionDSL, { type: 'consumeStacks' }>) {
+export function parseConsumeStacksAction(dsl: Extract<OperatorDSL, { type: 'consumeStacks' }>) {
   return parseSelector<MarkInstance>(dsl.target).apply(Operators.consumeStacks(dsl.value))
 }
 
 // Stat modification pattern [source_id: parse.ts]
-export function parseModifyStatAction(dsl: Extract<ActionDSL, { type: 'modifyStat' }>) {
+export function parseModifyStatAction(dsl: Extract<OperatorDSL, { type: 'modifyStat' }>) {
   return parseSelector<Pet>(dsl.target).apply(
     Operators.modifyStat(
       parseValue(dsl.statType) as ValueSource<StatTypeOnBattle>,
@@ -280,7 +280,7 @@ export function parseModifyStatAction(dsl: Extract<ActionDSL, { type: 'modifySta
   )
 }
 
-export function parseStatStageBuffAction(dsl: Extract<ActionDSL, { type: 'statStageBuff' }>) {
+export function parseStatStageBuffAction(dsl: Extract<OperatorDSL, { type: 'statStageBuff' }>) {
   return parseSelector<Pet>(dsl.target).apply(
     Operators.statStageBuff(
       parseValue(dsl.statType) as ValueSource<StatTypeWithoutHp>,
@@ -290,23 +290,23 @@ export function parseStatStageBuffAction(dsl: Extract<ActionDSL, { type: 'statSt
 }
 
 // Utility action handlers [source_id: operator.ts]
-export function parseAddRageAction(dsl: Extract<ActionDSL, { type: 'addRage' }>) {
+export function parseAddRageAction(dsl: Extract<OperatorDSL, { type: 'addRage' }>) {
   return parseSelector<Player>(dsl.target).apply(Operators.addRage(parseValue(dsl.value) as ValueSource<number>))
 }
 
-export function parseAmplifyPowerAction(dsl: Extract<ActionDSL, { type: 'amplifyPower' }>) {
+export function parseAmplifyPowerAction(dsl: Extract<OperatorDSL, { type: 'amplifyPower' }>) {
   return parseSelector<UseSkillContext>(dsl.target).apply(
     Operators.amplifyPower(parseValue(dsl.value) as ValueSource<number>),
   )
 }
 
-export function parseAddPowerAction(dsl: Extract<ActionDSL, { type: 'addPower' }>) {
+export function parseAddPowerAction(dsl: Extract<OperatorDSL, { type: 'addPower' }>) {
   return parseSelector<UseSkillContext>(dsl.target).apply(
     Operators.addPower(parseValue(dsl.value) as ValueSource<number>),
   )
 }
 
-export function parseTransferMark(dsl: Extract<ActionDSL, { type: 'transferMark' }>) {
+export function parseTransferMark(dsl: Extract<OperatorDSL, { type: 'transferMark' }>) {
   return parseSelector<Pet>(dsl.target).apply(Operators.transferMark(parseValue(dsl.mark) as ValueSource<MarkInstance>))
 }
 

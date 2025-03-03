@@ -7,7 +7,7 @@ import { type ValueSource } from './effectBuilder'
 
 export type CompareOperator = '>' | '<' | '>=' | '<=' | '=='
 
-export const Conditions = {
+export const Evaluators = {
   //只要筛选组内有满足要求的数则返回，被比较的数位于运算符的左侧。
   compare:
     <T extends number>(operator: CompareOperator, dynamicValue: ValueSource<number>): Evaluator<T> =>

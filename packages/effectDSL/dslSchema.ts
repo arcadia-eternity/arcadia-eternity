@@ -3,7 +3,7 @@ import { EffectTrigger } from '@test-battle/const'
 import { BaseSelector, Extractor } from '@test-battle/effect-builder'
 import { z } from 'zod'
 import type {
-  ActionDSL,
+  OperatorDSL,
   ConditionDSL,
   DynamicValue,
   EffectDSL,
@@ -186,7 +186,7 @@ export const evaluatorDSLSchema: z.ZodSchema<EvaluatorDSL> = z.lazy(() =>
   ]),
 )
 
-export const actionDSLSchema: z.ZodSchema<ActionDSL> = z.lazy(() =>
+export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
   z.union([
     z.object({
       type: z.literal('dealDamage'),
@@ -264,7 +264,7 @@ export const effectDSLSchema: z.ZodSchema<EffectDSL> = z.lazy(() =>
     id: z.string(),
     trigger: effectTriggerSchema,
     priority: z.number(),
-    apply: actionDSLSchema,
+    apply: operatorDSLSchema,
     condition: conditionDSLSchema.optional(),
     consumesStacks: z.number().optional(),
   }),
