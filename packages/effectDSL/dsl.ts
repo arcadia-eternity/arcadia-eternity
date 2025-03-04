@@ -2,7 +2,6 @@ import { EffectTrigger } from '@test-battle/const'
 import { BaseSelector, Extractor, type CompareOperator } from '@test-battle/effect-builder'
 
 export { EffectTrigger }
-export type { SelectorChain }
 
 export interface EffectDSL {
   id: string
@@ -135,7 +134,7 @@ export type ExtractorDSL =
       arg: string
     }
 
-type SelectorChain =
+export type SelectorChain =
   | SelectStepDSL
   | SelectPathDSL
   | SelectPropDSL
