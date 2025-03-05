@@ -1,19 +1,18 @@
 import { LGraphNode, type INodeOutputSlot, type INodeInputSlot, LiteGraph } from '@comfyorg/litegraph'
-import type { OperatorDSL, SelectorDSL, Value, DynamicValue } from '../../../effectDSL'
+import type { OperatorDSL, SelectorDSL } from '../../../effectDSL'
 import { StatTypeWithoutHp, StatTypeOnlyBattle } from '@test-battle/const'
+import { BaseGetVariableNode } from './BaseGetVariableNode'
 
-abstract class BaseOperatorNode extends LGraphNode {
+abstract class BaseOperatorNode extends BaseGetVariableNode {
   static operatorType: OperatorDSL['type']
   abstract title: string
   abstract color: string
-
-  private inputLinks = new Map<number, boolean>()
 
   constructor(title: string) {
     super(title)
     this.size = [240, 120]
     this.addOutput('apply', 'object')
-    this.addInput('target', 'selector_dsl')
+    this.addInput('target', 'selector')
 
     this.addWidget('button', 'debug', 'debug', (v, widget, node, pos, graphcanvas) => {
       console.log(this.toDSL())
@@ -21,20 +20,8 @@ abstract class BaseOperatorNode extends LGraphNode {
     })
   }
 
-  onConnectionsChange(type: number, slotIndex: number, isConnected: boolean, linkInfo: any, portInfo: any) {
-    if (super.onConnectionsChange) super.onConnectionsChange(type, slotIndex, isConnected, linkInfo, portInfo)
-    this.updateWidgetVisibility()
-  }
-
-  private updateWidgetVisibility() {
-    this.widgets?.forEach(widget => {
-      const options = widget.options as { associatedInput?: string }
-      if (options?.associatedInput) {
-        const input = this.inputs.find(i => i.name === options.associatedInput)
-        widget.hidden = !!input?.link // 有连接时隐藏控件
-      }
-    })
-    this.setDirtyCanvas(true) // 强制重绘
+  onSerialize(info: any) {
+    info.properties = { ...this.properties }
   }
 
   onConnectInput(target_slot: number, type: unknown, output: INodeOutputSlot, node: LGraphNode, slot: number): boolean {
@@ -56,12 +43,6 @@ abstract class BaseOperatorNode extends LGraphNode {
 
   // 公共属性处理
   toDSL(): OperatorDSL {
-    // const { success, data, error } = operatorDSLSchema.safeParse(this.getSpecificProperties())
-    // if (!success) {
-    //   ElMessage.error('OperatorDSL schema validation failed')
-    //   console.log(error)
-    //   throw new Error('OperatorDSL schema validation failed')
-    // }
     return {
       target: this.inputs[0].link ? (this.getInputData(0) as SelectorDSL) : undefined,
       ...this.getSpecificProperties(),
@@ -70,67 +51,6 @@ abstract class BaseOperatorNode extends LGraphNode {
 
   onExecute(): void {
     this.setOutputData(0, this.toDSL())
-  }
-
-  protected getValue(inputSlot: number, rawType: Value['type'], defaultValue: unknown): Value {
-    const input = this.inputs[inputSlot]
-
-    // 优先使用动态选择器
-    if (input?.link) {
-      return {
-        type: 'dynamic',
-        selector: this.getInputData(inputSlot) as SelectorDSL,
-      }
-    }
-
-    // 回退到控件静态值
-    const widget = this.widgets?.find(w => (w.options as any)?.associatedInput === input?.name)
-    return {
-      type: rawType,
-      value: widget ? this.properties[(widget.options as any).property] : defaultValue,
-    }
-  }
-
-  protected getNumberValue(inputSlot: number, defaultValue: number): Value {
-    const input = this.inputs[inputSlot]
-
-    // 优先使用动态选择器
-    if (input?.link) {
-      return {
-        type: 'dynamic',
-        selector: this.getInputData(inputSlot) as SelectorDSL,
-      }
-    }
-
-    // 回退到控件静态值
-    const widget = this.widgets?.find(w => (w.options as any)?.associatedInput === input?.name)
-    return {
-      type: 'raw:number',
-      value: widget ? this.properties[(widget.options as any).property] : defaultValue,
-    }
-  }
-
-  protected getStringValue(inputSlot: number, defaultValue: string): Value {
-    const input = this.inputs[inputSlot]
-
-    // 优先使用动态选择器
-    if (input?.link) {
-      return {
-        type: 'dynamic',
-        selector: this.getInputData(inputSlot) as SelectorDSL,
-      }
-    }
-
-    // 回退到控件静态值
-    const widget = this.widgets?.find(w => (w.options as any)?.associatedInput === input?.name)
-    return {
-      type: 'raw:string',
-      value: widget ? this.properties[(widget.options as any).property] : defaultValue,
-    }
-  }
-
-  protected getDynamicValue(inputSlot: number): DynamicValue {
-    return this.getValue(inputSlot, 'dynamic', '') as DynamicValue
   }
 
   protected abstract getSpecificProperties(): Partial<OperatorDSL>
@@ -144,22 +64,16 @@ export class DealDamageNode extends BaseOperatorNode {
 
   constructor() {
     super('造成伤害')
-    this.addInput('value', 'selector_dsl', {
-      name: 'heal_value',
+    this.addInput('value', 'selector', {
+      name: 'damage_value',
     })
 
-    this.addWidget(
-      'number',
-      '治疗量',
-      100,
-      v => {
-        this.properties.staticHeal = v
-      },
-      {
-        property: 'staticHeal',
-        associatedInput: 'heal_value', // 关联输入端口名称
-      },
-    )
+    this.addWidget('number', '伤害量', 100, v => (this.properties.staticDamage = v), {
+      property: 'staticDamage',
+      associatedInput: 'damage_value', // 关联输入端口名称
+    })
+
+    this.properties.staticDamage = 100
   }
 
   protected getSpecificProperties() {
@@ -178,21 +92,15 @@ export class HealNode extends BaseOperatorNode {
 
   constructor() {
     super('治疗')
-    this.addInput('value', 'selector_dsl', {
+    this.addInput('value', 'selector', {
       name: 'heal_value',
     })
-    this.addWidget(
-      'number',
-      '治疗量',
-      100,
-      v => {
-        this.properties.staticHeal = v
-      },
-      {
-        property: 'staticHeal',
-        associatedInput: 'heal_value', // 关联输入端口名称
-      },
-    )
+    this.addWidget('number', '治疗量', 100, v => (this.properties.staticHeal = v), {
+      property: 'staticHeal',
+      associatedInput: 'heal_value', // 关联输入端口名称
+    })
+
+    this.properties.staticHeal = 100
   }
 
   protected getSpecificProperties() {
@@ -211,9 +119,13 @@ export class AddMarkNode extends BaseOperatorNode {
 
   constructor() {
     super('添加标记')
-    this.addWidget('number', '持续时间', 3, null, { property: 'duration' })
-    this.addWidget('text', '标记ID', 'mark_1', null, { property: 'mark' })
-    this.addWidget('number', '持续时间', 3, null, { property: 'duration' })
+    this.addWidget('number', '持续时间', 3, v => (this.properties.duration = v), { property: 'duration' })
+    this.addWidget('text', '标记ID', 'mark_1', v => (this.properties.mark = v), { property: 'mark' })
+
+    this.properties = {
+      mark: 'mark_1',
+      duration: 3,
+    }
   }
 
   protected getSpecificProperties() {
@@ -229,8 +141,9 @@ export class AddMarkNode extends BaseOperatorNode {
 abstract class StackOperatorNode extends BaseOperatorNode {
   constructor(title: string, color: string) {
     super(title)
-    this.addInput('value', 'selector_dsl')
-    this.addWidget('number', '数量', 1, null, { property: 'value' })
+    this.addInput('value', 'selector')
+    this.addWidget('number', '数量', 1, v => (this.properties.value = v), { property: 'value' })
+    this.properties.value = 1
   }
 }
 
@@ -273,18 +186,9 @@ export class ModifyStatNode extends BaseOperatorNode {
   constructor() {
     super('属性调整')
 
-    // const statTypeWidget = this.addWidget('combo', '属性类型', 'ATK', null, {
-    //   values: Object.values(StatTypeWithoutHp),
-    // })
-    // const valueWidget = this.addWidget('number', '调整值', 10, v => (this.properties.value = v))
-    // const percentWidget = this.addWidget('number', '百分比', 10, v => (this.properties.percent = v))
-    // this.addInput('statType', 'selector_dsl')
-    // this.addInput('value', 'selector_dsl')
-    // this.addInput('percent', 'selector_dsl')
-
-    this.addInput('statType', 'selector_dsl')
-    this.addInput('value', 'selector_dsl')
-    this.addInput('percent', 'selector_dsl')
+    this.addInput('statType', 'selector')
+    this.addInput('value', 'selector')
+    this.addInput('percent', 'selector')
     this.addWidget('combo', '属性类型', 'atk', v => (this.properties.statType = v), {
       values: [...Object.values(StatTypeWithoutHp), ...Object.values(StatTypeOnlyBattle)],
       property: 'statType',
@@ -298,6 +202,11 @@ export class ModifyStatNode extends BaseOperatorNode {
       property: 'percent',
       associatedInput: 'percent',
     })
+    this.properties = {
+      statType: 'atk',
+      value: 10,
+      percent: 0,
+    }
   }
 
   protected getSpecificProperties() {
@@ -318,8 +227,8 @@ export class StatStageBuffNode extends BaseOperatorNode {
 
   constructor() {
     super('状态增益')
-    this.addInput('statType', 'selector_dsl')
-    this.addInput('value', 'selector_dsl')
+    this.addInput('statType', 'selector')
+    this.addInput('value', 'selector')
     this.addWidget('combo', '属性类型', 'atk', v => (this.properties.statType = v), {
       values: Object.values(StatTypeWithoutHp),
       property: 'statType',
@@ -329,6 +238,11 @@ export class StatStageBuffNode extends BaseOperatorNode {
       property: 'value',
       associatedInput: 'value',
     })
+
+    this.properties = {
+      statType: 'atk',
+      value: 1,
+    }
   }
 
   protected getSpecificProperties() {
@@ -354,11 +268,12 @@ export class AddRageNode extends ResourceOperatorNode {
   static operatorType = 'addRage' as const
   constructor() {
     super('增加怒气', '#ff6666')
-    this.addInput('value', 'selector_dsl')
+    this.addInput('value', 'selector')
     this.addWidget('number', '数值', 10, v => (this.properties.value = v), {
       property: 'value',
       associatedInput: 'value',
     })
+    this.properties.value = 10
   }
   protected getSpecificProperties() {
     return { value: this.getNumberValue(1, 10) }
@@ -369,7 +284,7 @@ export class AmplifyPowerNode extends ResourceOperatorNode {
   static operatorType = 'amplifyPower' as const
   constructor() {
     super('强化威力', '#ff66ff')
-    this.addInput('value', 'selector_dsl')
+    this.addInput('value', 'selector')
     this.addWidget('number', '数值', 10, v => (this.properties.value = v), {
       min: 0,
       max: 114514,
@@ -377,6 +292,7 @@ export class AmplifyPowerNode extends ResourceOperatorNode {
       property: 'value',
       associatedInput: 'value',
     })
+    this.properties.value = 10
   }
   protected getSpecificProperties() {
     return { value: this.getNumberValue(1, 10) }
@@ -395,6 +311,7 @@ export class AddPowerNode extends ResourceOperatorNode {
       property: 'value',
       associatedInput: 'value',
     })
+    this.properties.value = 10
   }
   protected getSpecificProperties() {
     return { value: this.getNumberValue(1, 10000) }
@@ -409,7 +326,7 @@ export class TransferMarkNode extends BaseOperatorNode {
 
   constructor() {
     super('转移标记')
-    this.addInput('mark', 'selector_dsl')
+    this.addInput('mark', 'selector')
   }
 
   protected getSpecificProperties() {
@@ -437,4 +354,26 @@ export function registerOperatorNodes() {
   NODE_CLASSES.forEach(cls => {
     LiteGraph.registerNodeType(`operators/${(cls as any).operatorType}`, cls)
   })
+}
+
+export const NODE_TYPE_MAP = {
+  dealDamage: DealDamageNode,
+  heal: HealNode,
+  addMark: AddMarkNode,
+  addStacks: AddStacksNode,
+  consumeStacks: ConsumeStacksNode,
+  modifyStat: ModifyStatNode,
+  statStageBuff: StatStageBuffNode,
+  addRage: AddRageNode,
+  amplifyPower: AmplifyPowerNode,
+  addPower: AddPowerNode,
+  transferMark: TransferMarkNode,
+}
+
+export function createOperatorNode(type: OperatorDSL['type']) {
+  const cls = NODE_TYPE_MAP[type]
+  if (!cls) {
+    throw new Error(`Unknown operator type: ${type}`)
+  }
+  return new cls()
 }

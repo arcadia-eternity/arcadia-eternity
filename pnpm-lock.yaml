@@ -343,6 +343,9 @@ importers:
       '@test-battle/const':
         specifier: workspace:^
         version: link:../const
+      '@test-battle/effect-dsl':
+        specifier: workspace:^
+        version: link:../effectDSL
       '@test-battle/protocol':
         specifier: workspace:^
         version: link:../protocol

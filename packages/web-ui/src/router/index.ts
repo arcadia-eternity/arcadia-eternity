@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import LobbyView from '../views/lobbyView.vue'
 import BattleView from '../views/battleViews.vue'
 import DataEditor from '../views/dataEditor.vue'
+import EffectGraphEditor from '@/views/EffectGraphEditor.vue'
 
 // 路由守卫
 import { battleGuard } from './guards'
@@ -44,6 +45,12 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '数据编辑器',
     },
+  },
+  {
+    path: '/effect-editor',
+    name: 'EffectGraphEditor',
+    component: EffectGraphEditor,
+    props: true, // 直接接收DSL数据
   },
   {
     path: '/:pathMatch(.*)*',

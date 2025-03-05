@@ -2,6 +2,7 @@ import { EffectTrigger } from '@test-battle/const'
 import { BaseSelector, Extractor, type CompareOperator } from '@test-battle/effect-builder'
 
 export { EffectTrigger }
+export type { CompareOperator }
 
 export interface EffectDSL {
   id: string
@@ -145,7 +146,7 @@ export type SelectorChain =
   | {
       type: 'whereAttr'
       extractor: ExtractorDSL
-      condition: EvaluatorDSL
+      evaluator: EvaluatorDSL
     }
   | {
       type: 'and'
@@ -158,43 +159,42 @@ export type SelectorChain =
     }
   | {
       type: 'randomPick'
-      arg: number // 随机选取数量
+      arg: Value
     }
   | {
       type: 'randomSample'
-      arg: number // 百分比概率筛选
+      arg: Value
     }
   | {
       type: 'sum' // 数值求和（无参数）
     }
   | {
       type: 'add'
-      arg: number | SelectorDSL // 数值加法
+      arg: Value
     }
   | {
       type: 'multiply'
-      arg: number | SelectorDSL // 数值乘法
+      arg: Value
     }
   | {
       type: 'divide'
-      arg: number | SelectorDSL // 数值除法
+      arg: Value
     }
   | {
       type: 'shuffled' // 乱序（无参数）
     }
   | {
       type: 'clampMax'
-      arg: number // 最大值限制
+      arg: Value
     }
   | {
       type: 'clampMin'
-      arg: number // 最小值限制
+      arg: Value
     }
 
 export type EvaluatorDSL =
   | {
       type: 'compare'
-      target: string
       operator: CompareOperator
       value: Value
     }

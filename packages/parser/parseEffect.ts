@@ -101,10 +101,10 @@ function applySelectorStep(
         return selector.or(parseSelector(step.arg).build(), step.duplicate ?? false)
 
       case 'randomPick':
-        return selector.randomPick(step.arg)
+        return selector.randomPick(parseValue(step.arg) as ValueSource<number>)
 
       case 'randomSample':
-        return selector.randomSample(step.arg)
+        return selector.randomSample(parseValue(step.arg) as ValueSource<number>)
 
       case 'sum': {
         assertNumberSelector(selector)
@@ -113,24 +113,20 @@ function applySelectorStep(
 
       case 'add': {
         assertNumberSelector(selector)
-        return typeof step.arg === 'number' ? selector.add(step.arg) : selector.add(parseSelector<number>(step.arg))
+        return selector.add(parseValue(step.arg) as ValueSource<number>)
       }
 
       case 'multiply': {
         assertNumberSelector(selector)
-        return typeof step.arg === 'number'
-          ? selector.multiply(step.arg)
-          : selector.multiply(parseSelector<number>(step.arg))
+        return selector.multiply(parseValue(step.arg) as ValueSource<number>)
       }
 
       case 'divide': {
         assertNumberSelector(selector)
-        if (typeof step.arg === 'number' && step.arg === 0) {
+        if (step.arg.type === 'raw:number' && step.arg.value === 0) {
           throw new Error('除数不能为0')
         }
-        return typeof step.arg === 'number'
-          ? selector.divide(step.arg)
-          : selector.divide(parseSelector<number>(step.arg))
+        return selector.divide(parseValue(step.arg) as ValueSource<number>)
       }
 
       case 'shuffled':
@@ -138,12 +134,12 @@ function applySelectorStep(
 
       case 'clampMax': {
         assertNumberSelector(selector)
-        return selector.clampMax(step.arg)
+        return selector.clampMax(parseValue(step.arg) as ValueSource<number>)
       }
 
       case 'clampMin': {
         assertNumberSelector(selector)
-        return selector.clampMax(step.arg)
+        return selector.clampMax(parseValue(step.arg) as ValueSource<number>)
       }
 
       default:

@@ -26,9 +26,18 @@ import {
   type StatOnBattle,
   type StatTypeOnBattle,
 } from '@test-battle/const'
-import type { Action, Condition, Evaluator, Operator, TargetSelector, ValueExtractor } from './effectBuilder'
+import type {
+  Action,
+  Condition,
+  Evaluator,
+  Operator,
+  TargetSelector,
+  ValueExtractor,
+  ValueSource,
+} from './effectBuilder'
 import { createExtractor, type PathExtractor } from './extractor'
 import { RuntimeTypeChecker } from './runtime-type-checker'
+import { GetValueFromSource } from './operator'
 
 export type PropertyRef<T, V> = {
   get: () => V
@@ -215,45 +224,26 @@ export class ChainableSelector<T> {
   }
 
   //加一个固定数，或者加一个来源的数。如果来源选择了多个数，则会加上来源的每一个数。
-  add(this: ChainableSelector<number>, value: number): ChainableSelector<number>
-  add(this: ChainableSelector<number>, selector: ChainableSelector<number>): ChainableSelector<number>
-  add(this: ChainableSelector<number>, valueOrSelector: number | ChainableSelector<number>): ChainableSelector<number> {
-    if (typeof valueOrSelector === 'number') {
-      return this.mapNumber(v => v + valueOrSelector)
-    }
-    return this.combine(valueOrSelector, (a, b) => a + b)
+  add(this: ChainableSelector<number>, valueSource: ValueSource<number>): ChainableSelector<number> {
+    return this.combine(valueSource, (a, b) => a + b)
   }
 
   // 乘一个固定数，或者乘一个来源的数。如果来源选择了多个数，则会乘上来源的每一个数。
-  multiply(this: ChainableSelector<number>, value: number): ChainableSelector<number>
-  multiply(this: ChainableSelector<number>, selector: ChainableSelector<number>): ChainableSelector<number>
-  multiply(
-    this: ChainableSelector<number>,
-    valueOrSelector: number | ChainableSelector<number>,
-  ): ChainableSelector<number> {
-    if (typeof valueOrSelector === 'number') {
-      return this.mapNumber(v => Math.floor(v * valueOrSelector))
-    }
-    return this.combine(valueOrSelector, (a, b) => a * b)
+  multiply(this: ChainableSelector<number>, valueSource: ValueSource<number>): ChainableSelector<number> {
+    return this.combine(valueSource, (a, b) => a * b)
   }
 
   // 除以一个固定数，或者除以一个来源的数。如果来源选择了多个数，则会除以上来源的每一个数。
-  divide(this: ChainableSelector<number>, value: number): ChainableSelector<number>
-  divide(this: ChainableSelector<number>, selector: ChainableSelector<number>): ChainableSelector<number>
-  divide(
-    this: ChainableSelector<number>,
-    valueOrSelector: number | ChainableSelector<number>,
-  ): ChainableSelector<number> {
-    if (typeof valueOrSelector === 'number') {
-      return this.mapNumber(v => Math.floor(v / valueOrSelector))
-    }
-    return this.combine(valueOrSelector, (a, b) => a / b)
+  divide(this: ChainableSelector<number>, valueSource: ValueSource<number>): ChainableSelector<number> {
+    return this.combine(valueSource, (a, b) => a / b)
   }
 
-  randomPick(count: number): ChainableSelector<T> {
+  randomPick(count: ValueSource<number>): ChainableSelector<T> {
     return new ChainableSelector(context => {
       const list = this.selector(context)
-      return context.battle.shuffle(list).slice(0, count) // 使用随机洗牌
+      const _count = GetValueFromSource(context, count)
+      if (_count.length === 0) return []
+      return context.battle.shuffle(list).slice(0, _count[0]) // 使用随机洗牌
     }, this.type)
   }
 
@@ -268,9 +258,11 @@ export class ChainableSelector<T> {
    * 按百分比概率选取每个目标
    * @param percent 命中概率(0-100)
    **/
-  randomSample(percent: number): ChainableSelector<T> {
+  randomSample(percent: ValueSource<number>): ChainableSelector<T> {
     return new ChainableSelector(context => {
-      return this.selector(context).filter(() => context.battle.randomInt(1, 100) <= percent)
+      const _percent = GetValueFromSource(context, percent)
+      if (_percent.length === 0) return []
+      return this.selector(context).filter(() => context.battle.randomInt(1, 100) <= _percent[0])
     }, this.type)
   }
 
@@ -282,33 +274,31 @@ export class ChainableSelector<T> {
   }
 
   // 最大值限制
-  clampMax(max: number): ChainableSelector<number> {
-    return this.mapNumber(v => Math.min(v, max))
+  clampMax(max: ValueSource<number>): ChainableSelector<number> {
+    return this.mapNumber(max, (v, value) => Math.min(v, value))
   }
 
   // 最小值限制
   clampMin(min: number): ChainableSelector<number> {
-    return this.mapNumber(v => Math.max(v, min))
+    return this.mapNumber(min, (v, value) => Math.max(v, value))
   }
 
   // 公共数值处理方法
-  private mapNumber(fn: (v: number) => number): ChainableSelector<number> {
+  private mapNumber(
+    numberSource: ValueSource<number>,
+    fn: (v: number, value: number) => number,
+  ): ChainableSelector<number> {
     return new ChainableSelector<number>(context => {
-      const values = this.selector(context)
-      return values.map(v => {
-        const num = Number(v)
-        return isNaN(num) ? 0 : fn(num)
-      })
+      const values = this.selector(context) as number[]
+      const numberValues = GetValueFromSource(context, numberSource)
+      return values.map((v, i) => fn(v, numberValues[i] ?? 0))
     }, this.type)
   }
 
-  private combine(
-    other: ChainableSelector<number>,
-    operation: (a: number, b: number) => number,
-  ): ChainableSelector<number> {
+  private combine(other: ValueSource<number>, operation: (a: number, b: number) => number): ChainableSelector<number> {
     return new ChainableSelector<number>(context => {
       const valuesA = this.selector(context) as number[]
-      const valuesB = other.selector(context) as number[]
+      const valuesB = GetValueFromSource(context, other)
       return valuesA.map((a, i) => operation(a, valuesB[i] ?? 0))
     }, this.type)
   }

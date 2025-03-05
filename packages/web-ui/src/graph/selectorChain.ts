@@ -9,10 +9,15 @@ import type {
   SelectStepDSL,
 } from '../../../effectDSL'
 import { Extractor } from '../../../effectBuilder'
+import { BaseGetVariableNode } from './BaseGetVariableNode'
+import { BaseExtractorNode, createBaseExtractorNode } from './baseExtractor'
+import { DynamicExtractorNode } from './dynamicExtractor'
+import { CompareEvaluatorNode } from './evaluator'
 
 /* ---------- SelectorChain 链式节点基类 ---------- */
-export abstract class SelectorStepNode extends LGraphNode {
+export abstract class SelectorStepNode extends BaseGetVariableNode {
   // 节点类型，对应 SelectorChain.type
+  title: string = ''
   static stepType: SelectorChain['type']
 
   constructor() {
@@ -27,6 +32,12 @@ export abstract class SelectorStepNode extends LGraphNode {
 
   // 构建链式步骤的 DSL 结构
   abstract buildStep(): SelectorChain
+
+  onSerialize(info: any) {
+    info.stepType = this.constructor.stepType
+  }
+
+  onConfigure(info: any) {}
 
   onExecute() {
     const prevStep = this.getInputData(0) // 获取前驱步骤
@@ -43,205 +54,155 @@ export abstract class SelectorStepNode extends LGraphNode {
   }
 }
 
+/* ---------- 改造后的 SelectStep 节点 ---------- */
 export class SelectStepNode extends SelectorStepNode {
   static stepType = 'select' as const
-  private extractorType: ExtractorDSL['type'] = 'base'
-  private extractorArg: string = ''
-  private dynamicExtractor?: ExtractorDSL
+  title = '选择步骤'
 
   constructor() {
     super()
-    this.title = '选择步骤'
     this.color = '#99ccff'
-    this.size = [200, 80]
+    this.size = [200, 60]
 
-    // 提取类型切换
-    this.addWidget(
-      'combo',
-      '类型',
-      'base',
-      v => {
-        this.extractorType = v
-        this.updateUI()
-      },
-      {
-        values: ['base', 'dynamic'],
-      },
-    )
-
-    // 基础提取器参数
-    this.addWidget(
-      'combo',
-      '提取器',
-      'owner',
-      v => {
-        this.extractorArg = v
-      },
-      {
-        values: Object.keys(Extractor), // 从 Extractor 枚举获取
-      },
-    )
-
-    // 动态提取器输入
-    this.addInput('dynamicArg', 'string')
-  }
-
-  private updateUI() {
-    const isDynamic = this.extractorType === 'dynamic'
-    this.widgets![1].hidden = isDynamic // 基础参数控件
-    this.inputs![1].hidden = !isDynamic // 动态参数端口
+    // 提取器输入端口
+    this.addInput('extractor', 'extractor')
   }
 
   buildStep(): SelectStepDSL {
-    let arg: ExtractorDSL
-
-    if (this.extractorType === 'dynamic') {
-      arg = this.getInputData(1) || {
-        type: 'dynamic',
-        arg: this.extractorArg,
-      }
-    } else {
-      arg = {
-        type: 'base',
-        arg: this.extractorArg as keyof typeof Extractor,
-      }
-    }
-
+    const extractor = this.getInputData(0) as ExtractorDSL | undefined
     return {
       type: 'select',
-      arg,
+      arg: extractor || { type: 'base', arg: 'hp' }, // 默认值
     }
   }
 }
 
-/* ---------- SelectPath 节点 ---------- */
+/* ---------- 改造后的 SelectPath 节点 ---------- */
 export class SelectPathNode extends SelectorStepNode {
-  static override stepType = 'selectPath' as const
-  private path: string = ''
+  static stepType = 'selectPath' as const
+  title = '路径选择'
 
   constructor() {
     super()
-    this.title = '路径选择'
     this.color = '#99ffcc'
     this.size = [220, 60]
 
-    // 路径输入控件
+    // 路径输入支持动态或静态
+    this.addInput('path', 'string|extractor')
     this.addWidget(
       'text',
-      '路径表达式',
-      'marks.poison.targets',
+      '路径',
+      '',
       v => {
-        this.path = v
+        this.properties.staticPath = v
       },
-      {
-        placeholder: '例如：marks.poison.targets',
-      },
+      { associatedInput: 'path' },
     )
-
-    // 动态路径输入
-    this.addInput('dynamicPath', 'string')
   }
 
   buildStep(): SelectPathDSL {
-    const arg = this.getInputData(1) || this.path
+    const path = this.getInputOrProperty('path')
     return {
       type: 'selectPath',
-      arg: String(arg),
+      arg: path.toString(),
     }
+  }
+
+  getInputOrProperty(name: string): string | number {
+    const input = this.getInputData(0)
+    return input !== undefined ? input : this.properties[name] || ''
   }
 }
 
-/* ---------- SelectProp 节点 ---------- */
+/* ---------- 改造后的 SelectProp 节点 ---------- */
 export class SelectPropNode extends SelectorStepNode {
-  static override stepType = 'selectProp' as const
-  private propName: string = 'hp'
+  static stepType = 'selectProp' as const
+  title = '属性选择'
 
   constructor() {
     super()
-    this.title = '属性选择'
     this.color = '#ffcc99'
     this.size = [200, 60]
 
-    // 属性名输入
+    // 属性输入支持动态或静态
+    this.addInput('prop', 'string|extractor')
     this.addWidget(
       'combo',
       '属性',
       'hp',
       v => {
-        this.propName = v
+        this.properties.staticProp = v
       },
       {
-        values: ['hp', 'atk', 'def', 'spd'],
-        allow_any: true, // 允许自定义输入
+        values: ['hp', 'atk', 'def'],
+        associatedInput: 'prop',
       },
     )
-
-    // 动态属性输入
-    this.addInput('dynamicProp', 'string')
   }
 
   buildStep(): SelectPropDSL {
-    const arg = this.getInputData(1) || this.propName
+    const prop = this.getInputOrProperty('prop')
     return {
       type: 'selectProp',
-      arg: String(arg),
+      arg: prop.toString(),
     }
   }
 }
 
-/* ---------- 条件筛选类节点 ---------- */
-
-// Where 条件节点
+/* ---------- 改造后的 Where 条件节点 ---------- */
 export class WhereNode extends SelectorStepNode {
   static stepType = 'where' as const
-  private condition: EvaluatorDSL = {
-    type: 'compare',
-    operator: '>',
-    target: 'hp',
-    value: { type: 'raw:number', value: 50 },
-  }
+  title = '条件筛选'
 
   constructor() {
     super()
-    this.title = '条件筛选'
-    this.addInput('condition', 'evaluator') // 连接条件节点
-    this.addWidget('combo', '属性', 'hp', v => (this.condition.target = v), {
-      values: ['hp', 'atk', 'def'],
+    this.color = '#ff9999'
+    this.size = [240, 80]
+
+    // 评估器输入
+    this.addInput('evaluator', 'evaluator')
+    this.addWidget('button', '创建条件', 'new', () => {
+      this.createConditionEvaluator()
     })
-    this.addWidget('combo', '比较符', '>', v => (this.condition.operator = v), {
-      values: ['>', '<', '==', '!='],
-    })
-    this.addWidget('number', '值', 50, v => {
-      ;(this.condition.value as RawNumberValue).value = v
-    })
+  }
+
+  private createConditionEvaluator() {
+    const evaluator = new CompareEvaluatorNode()
+    evaluator.connect(0, this, 0)
+    this.graph.add(evaluator)
   }
 
   buildStep(): SelectorChain {
-    // 优先使用外部连接的条件
-    const externalCond = this.getInputData(1)
-    return {
-      type: 'where',
-      arg: externalCond || this.condition,
-    }
+    const condition = this.getInputData(0) as EvaluatorDSL | undefined
+    return condition
+      ? {
+          type: 'where',
+          arg: condition,
+        }
+      : { type: 'where', arg: { type: 'compare', operator: '>', value: 0 } }
   }
 }
 
-// 属性条件节点
+/* ---------- 改造后的 WhereAttr 节点 ---------- */
 export class WhereAttrNode extends SelectorStepNode {
   static stepType = 'whereAttr' as const
+  title = '属性条件'
 
   constructor() {
     super()
-    this.title = '属性条件'
+    this.color = '#ff6666'
+    this.size = [280, 100]
+
+    // 双输入配置
     this.addInput('extractor', 'extractor')
-    this.addInput('condition', 'evaluator')
+    this.addInput('evaluator', 'evaluator')
   }
 
   buildStep(): SelectorChain {
     return {
       type: 'whereAttr',
-      extractor: this.getInputData(1),
-      condition: this.getInputData(2),
+      extractor: this.getInputData(0) || { type: 'base', arg: 'hp' },
+      evaluator: this.getInputData(1) || { type: 'compare', operator: '>', value: 0 },
     }
   }
 }
@@ -256,6 +217,14 @@ export class AndNode extends SelectorStepNode {
     super()
     this.title = '与组合'
     this.addInput('selector', 'selector')
+  }
+
+  onSerialize(info: any): void {
+    // 无需保存参数
+  }
+
+  onConfigure(info: any): void {
+    // 无需加载参数
   }
 
   buildStep(): SelectorChain {
@@ -278,6 +247,14 @@ export class OrNode extends SelectorStepNode {
     this.addWidget('toggle', '允许重复', false, v => (this.duplicate = v))
   }
 
+  onSerialize(info: any): void {
+    // 无需保存参数
+  }
+
+  onConfigure(info: any): void {
+    // 无需加载参数
+  }
+
   buildStep(): SelectorChain {
     return {
       type: 'or',
@@ -287,108 +264,66 @@ export class OrNode extends SelectorStepNode {
   }
 }
 
-/* ---------- 数学运算节点 ---------- */
+abstract class MathOperationNode extends SelectorStepNode {
+  title: string
+  protected stepType: string
+  protected operationName: string
+
+  constructor(title: string, stepType: string, operationName: string) {
+    super()
+    this.title = title
+    this.stepType = stepType
+    this.operationName = operationName
+
+    // 公共初始化逻辑
+    this.addInput('value', 'selector')
+    this.addWidget(
+      'number',
+      operationName, // 使用构造函数参数而非抽象属性
+      0,
+      v => (this.properties.numberValue = v),
+      { property: 'numberValue', associatedInput: 'value' },
+    )
+  }
+
+  // 保留公共方法
+  onSerialize(info: any): void {
+    info.properties = this.properties
+  }
+
+  onConfigure(info: any): void {
+    this.properties = info.properties
+  }
+
+  buildStep(): SelectorChain {
+    return {
+      type: this.stepType as any,
+      arg: this.getNumberValue(1, 0),
+    }
+  }
+}
 
 // 加法节点
-export class AddNode extends SelectorStepNode {
+export class AddNode extends MathOperationNode {
   static stepType = 'add' as const
-  private valueType: 'number' | 'selector' = 'number'
-  private numberValue = 0
-
   constructor() {
-    super()
-    this.title = '数值加法'
-    this.addInput('value', 'number|selector')
-    this.addWidget(
-      'combo',
-      '类型',
-      'number',
-      v => {
-        this.valueType = v
-        this.updateUI()
-      },
-      { values: ['number', 'selector'] },
-    )
-    this.addWidget('number', '加数', 0, v => (this.numberValue = v))
-  }
-
-  private updateUI() {
-    const widget = this.widgets?.find(w => w.name === '加数')
-    if (widget) {
-      widget.disabled = this.valueType !== 'number'
-    }
-  }
-
-  buildStep(): SelectorChain {
-    const arg = this.valueType === 'number' ? this.numberValue : this.getInputData(1)
-
-    return { type: 'add', arg }
+    super('数值加法', AddNode.stepType, '加数')
   }
 }
 
-// 乘法节点（类似加法实现）
-export class MultiplyNode extends SelectorStepNode {
+// 乘法节点
+export class MultiplyNode extends MathOperationNode {
   static stepType = 'multiply' as const
-  private valueType: 'number' | 'selector' = 'number'
-  private numberValue = 0
   constructor() {
-    super()
-    this.title = '数值乘法'
-    this.addInput('value', 'number|selector')
-    this.addWidget(
-      'combo',
-      '类型',
-      'number',
-      v => {
-        this.valueType = v
-        this.updateUI()
-      },
-      { values: ['number', 'selector'] },
-    )
-    this.addWidget('number', '乘数', 0, v => (this.numberValue = v))
-  }
-  private updateUI() {
-    const widget = this.widgets?.find(w => w.name === '乘数')
-    if (widget) {
-      widget.disabled = this.valueType !== 'number'
-    }
-  }
-  buildStep(): SelectorChain {
-    const arg = this.valueType === 'number' ? this.numberValue : this.getInputData(1)
-    return { type: 'multiply', arg }
+    super('数值乘法', MultiplyNode.stepType, '乘数')
   }
 }
 
-// 除法节点（类似加法实现）
-export class DivideNode extends SelectorStepNode {
+// 除法节点
+export class DivideNode extends MathOperationNode {
   static stepType = 'divide' as const
-  private valueType: 'number' | 'selector' = 'number'
-  private numberValue = 0
   constructor() {
-    super()
-    this.title = '数值除法'
-    this.addInput('value', 'number|selector')
-    this.addWidget(
-      'combo',
-      '类型',
-      'number',
-      v => {
-        this.valueType = v
-        this.updateUI()
-      },
-      { values: ['number', 'selector'] },
-    )
-    this.addWidget('number', '除数', 0, v => (this.numberValue = v))
-  }
-  private updateUI() {
-    const widget = this.widgets?.find(w => w.name === '除数')
-    if (widget) {
-      widget.disabled = this.valueType !== 'number'
-    }
-  }
-  buildStep(): SelectorChain {
-    const arg = this.valueType === 'number' ? this.numberValue : this.getInputData(1)
-    return { type: 'divide', arg }
+    super('数值除法', DivideNode.stepType, '除数')
   }
 }
 
@@ -397,35 +332,42 @@ export class DivideNode extends SelectorStepNode {
 // 随机选取节点
 export class RandomPickNode extends SelectorStepNode {
   static stepType = 'randomPick' as const
-  private count = 1
 
   constructor() {
     super()
     this.title = '随机选取'
-    this.addWidget('number', '数量', 1, v => (this.count = v))
+    this.addInput('value', 'selector')
+    this.addWidget('number', '数量', 1, v => (this.properties.count = v), {
+      property: 'count',
+      associatedInput: 'value',
+    })
+    this.properties.count = 1
   }
 
   buildStep(): SelectorChain {
-    return { type: 'randomPick', arg: this.count }
+    return { type: 'randomPick', arg: this.getNumberValue(1, 1) }
   }
 }
 
 // 概率采样节点
 export class RandomSampleNode extends SelectorStepNode {
   static stepType = 'randomSample' as const
-  private percent = 50
 
   constructor() {
     super()
     this.title = '概率筛选'
-    this.addWidget('slider', '概率%', 50, v => (this.percent = v), {
+    this.addInput('value', 'selector')
+    this.addWidget('slider', '概率%', 50, v => (this.properties.percent = v), {
       min: 0,
       max: 100,
+      property: 'percent',
+      associatedInput: 'value',
     })
+    this.properties.percent = 50
   }
 
   buildStep(): SelectorChain {
-    return { type: 'randomSample', arg: this.percent }
+    return { type: 'randomSample', arg: this.getNumberValue(1, 50) }
   }
 }
 
@@ -439,6 +381,14 @@ export class ShuffledNode extends SelectorStepNode {
     super()
     this.title = '乱序排列'
     // 无参数，直接输出
+  }
+
+  onSerialize(info: any): void {
+    // 无需保存参数
+  }
+
+  onConfigure(info: any): void {
+    // 无需加载参数
   }
 
   buildStep(): SelectorChain {
@@ -455,6 +405,14 @@ export class SumNode extends SelectorStepNode {
     this.title = '数值求和'
   }
 
+  onSerialize(info: any): void {
+    // 无需保存参数
+  }
+
+  onConfigure(info: any): void {
+    // 无需加载参数
+  }
+
   buildStep(): SelectorChain {
     return { type: 'sum' }
   }
@@ -466,10 +424,16 @@ export class ClampMaxNode extends SelectorStepNode {
   constructor() {
     super()
     this.title = '数值上限'
-    this.addWidget('number', '上限', 10, v => (this.max = v))
+    this.addInput('value', 'selector')
+    this.addWidget('number', '上限', 10, v => (this.properties.max = v), {
+      property: 'max',
+      associatedInput: 'value',
+    })
+    this.properties.max = 10
   }
+
   buildStep(): SelectorChain {
-    return { type: 'clampMax', arg: this.max }
+    return { type: 'clampMax', arg: this.getNumberValue(1, 10) }
   }
 }
 
@@ -479,10 +443,16 @@ export class ClampMinNode extends SelectorStepNode {
   constructor() {
     super()
     this.title = '数值下限'
-    this.addWidget('number', '下限', 10, v => (this.min = v))
+    this.addInput('value', 'selector')
+    this.addWidget('number', '下限', 10, v => (this.properties.min = v), {
+      property: 'min',
+      associatedInput: 'value',
+    })
+    this.properties.min = 10
   }
+
   buildStep(): SelectorChain {
-    return { type: 'clampMin', arg: this.min }
+    return { type: 'clampMin', arg: this.getNumberValue(1, 10) }
   }
 }
 

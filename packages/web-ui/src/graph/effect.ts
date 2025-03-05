@@ -90,6 +90,7 @@ export class EffectNode extends LGraphNode {
     // 输入输出端口
     this.addInput('apply', 'object')
     this.addInput('condition', 'object')
+    this.addOutput('effect', 'object')
 
     this.properties = {
       id: 'effect_1',
@@ -144,6 +145,34 @@ export class EffectNode extends LGraphNode {
     return result.success ? null : result.error
   }
 
+  onSerialize(info: any) {
+    info.properties = { ...this.properties }
+  }
+
+  onConfigure(info: any) {
+    this.properties = info.properties
+    this.widgets?.forEach(widget => {
+      switch (widget.name) {
+        case '效果ID':
+          widget.value = this.properties.id
+          break
+        case '触发时机':
+          widget.value = this.properties.trigger
+          break
+        case '是否消耗层数':
+          widget.value = this.properties.allowConsumesStacks
+          // 更新子控件状态
+          const stackWidget = this.widgets!.find(w => w.name === '消耗层数')!
+          stackWidget.disabled = !this.properties.allowConsumesStacks
+          stackWidget.value = this.properties.consumesStacks || 0
+          break
+      }
+    })
+
+    // 强制刷新控件状态
+    this.setDirtyCanvas(true, true)
+  }
+
   // 导出为 EffectDSL 结构
   toDSL(): Effect {
     return {
@@ -163,31 +192,30 @@ export class EffectNode extends LGraphNode {
     this.properties.priority = dsl.priority
     this.properties.consumesStacks = dsl.consumesStacks
 
-    // 重建连接关系（需实现 connectOperator 和 connectCondition）
-    if (dsl.apply) this.connectOperator(dsl.apply)
-    if (dsl.condition) this.connectCondition(dsl.condition)
+    // // 重建连接关系（需实现 connectOperator 和 connectCondition）
+    // if (dsl.apply) this.connectOperator(dsl.apply)
+    // if (dsl.condition) this.connectCondition(dsl.condition)
   }
 
   onExecute(): void {
     this.setOutputData(0, this.toDSL())
   }
 
-  // 私有方法：连接 Apply 操作节点
-  private connectOperator(operatorDSL: OperatorDSL) {
-    const node = createOperatorNode(operatorDSL.type) // 根据类型创建对应节点
-    this.graph.add(node)
-    this.connect('apply', node, 'input')
-    node.fromDSL(operatorDSL) // 假设 Operator 节点实现了 fromDSL
-  }
+  // // 私有方法：连接 Apply 操作节点
+  // private connectOperator(operatorDSL: OperatorDSL) {
+  //   const node = createOperatorNode(operatorDSL.type) // 根据类型创建对应节点
+  //   this.graph.add(node)
+  //   this.connect('apply', node, 'input')
+  //   node.fromDSL(operatorDSL) // 假设 Operator 节点实现了 fromDSL
+  // }
 
-  private connectCondition(conditionDSL: ConditionDSL) {
-    const node = createConditionNode(conditionDSL) // 根据类型创建对应节点
-    this.graph.add(node)
-    this.connect('condition', node, 'input')
-    node.fromDSL(conditionDSL) // 假设 Condition 节点实现了 fromDSL
-  }
+  // private connectCondition(conditionDSL: ConditionDSL) {
+  //   const node = createConditionNode(conditionDSL) // 根据类型创建对应节点
+  //   this.graph.add(node)
+  //   this.connect('condition', node, 'input')
+  //   node.fromDSL(conditionDSL) // 假设 Condition 节点实现了 fromDSL
+  // }
 }
-LiteGraph.registerNodeType('effect/Effect', EffectNode)
 
 export function registerEffectNodes() {
   LiteGraph.registerNodeType('effect/Effect', EffectNode)

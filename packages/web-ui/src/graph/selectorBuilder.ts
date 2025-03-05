@@ -4,12 +4,12 @@ import { SelectorStepNode } from './selectorChain'
 import { BaseSelectorNode, IsBaseSelectorNode } from './baseSelector'
 
 export class SelectorBuilderNode extends LGraphNode {
-  private baseSelector?: BaseSelector
-  private chainSteps: SelectorChain[] = []
+  baseSelector?: BaseSelector
+  chainSteps: SelectorChain[] = []
 
   constructor() {
     super('Selector Builder')
-    this.size = [320, 160]
+    this.size = [320, 120]
     this.color = '#66ccff'
 
     // 输入端口
@@ -17,7 +17,7 @@ export class SelectorBuilderNode extends LGraphNode {
     this.addInput('step', 'selector_chain') // 链式步骤输入
 
     // 输出端口
-    this.addOutput('selector', 'selector_dsl')
+    this.addOutput('selector', 'selector')
 
     // 调试按钮
     this.addWidget('button', 'debug', '查看DSL', () => {
@@ -37,6 +37,22 @@ export class SelectorBuilderNode extends LGraphNode {
       return false
     }
     return true
+  }
+
+  onSerialize(info: any) {
+    info.baseSelector = this.baseSelector
+    info.chainSteps = this.chainSteps
+  }
+
+  onConfigure(info: any) {
+    this.baseSelector = info.baseSelector
+    this.chainSteps = info.chainSteps
+
+    // 重建连接关系
+    setTimeout(() => {
+      this.onExecute() // 重新执行生成 DSL
+      this.setDirtyCanvas(true)
+    }, 10)
   }
 
   // 执行逻辑

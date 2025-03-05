@@ -14,6 +14,6 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["./*"],
+  "include": ["./*", "../web-ui/src/graph/evaluator.ts"],
   "exclude": ["./node_modules"]
 }

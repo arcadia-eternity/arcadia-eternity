@@ -101,7 +101,7 @@ export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
     z.object({
       type: z.literal('whereAttr'),
       extractor: extractorSchema,
-      condition: evaluatorDSLSchema,
+      evaluator: evaluatorDSLSchema,
     }),
     z.object({
       type: z.literal('and'),
@@ -114,37 +114,37 @@ export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
     }),
     z.object({
       type: z.literal('randomPick'),
-      arg: z.number().int().positive(),
+      arg: valueSchema,
     }),
     z.object({
       type: z.literal('randomSample'),
-      arg: z.number().min(0).max(1),
+      arg: valueSchema,
     }),
     z.object({
       type: z.literal('sum'),
     }),
     z.object({
       type: z.literal('add'),
-      arg: z.union([z.number(), z.lazy(() => selectorDSLSchema)]),
+      arg: valueSchema,
     }),
     z.object({
       type: z.literal('multiply'),
-      arg: z.union([z.number(), z.lazy(() => selectorDSLSchema)]),
+      arg: valueSchema,
     }),
     z.object({
       type: z.literal('divide'),
-      arg: z.union([z.number().refine(v => v !== 0, { message: '除数不能为0' }), z.lazy(() => selectorDSLSchema)]),
+      arg: valueSchema,
     }),
     z.object({
       type: z.literal('shuffled'),
     }),
     z.object({
       type: z.literal('clampMax'),
-      arg: z.number(),
+      arg: valueSchema,
     }),
     z.object({
       type: z.literal('clampMin'),
-      arg: z.number(),
+      arg: valueSchema,
     }),
   ]),
 )
@@ -163,7 +163,6 @@ export const evaluatorDSLSchema: z.ZodSchema<EvaluatorDSL> = z.lazy(() =>
   z.union([
     z.object({
       type: z.literal('compare'),
-      target: z.string(),
       operator: compareOperatorSchema,
       value: valueSchema,
     }),
