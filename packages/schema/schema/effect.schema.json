@@ -205,9 +205,6 @@
                                               "type": "string",
                                               "const": "compare"
                                             },
-                                            "target": {
-                                              "type": "string"
-                                            },
                                             "operator": {
                                               "type": "string",
                                               "enum": [
@@ -310,7 +307,6 @@
                                           },
                                           "required": [
                                             "type",
-                                            "target",
                                             "operator",
                                             "value"
                                           ],
@@ -409,14 +405,14 @@
                                     "extractor": {
                                       "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/0/properties/arg"
                                     },
-                                    "condition": {
+                                    "evaluator": {
                                       "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg"
                                     }
                                   },
                                   "required": [
                                     "type",
                                     "extractor",
-                                    "condition"
+                                    "evaluator"
                                   ],
                                   "additionalProperties": false
                                 },
@@ -465,8 +461,7 @@
                                       "const": "randomPick"
                                     },
                                     "arg": {
-                                      "type": "integer",
-                                      "exclusiveMinimum": 0
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
                                     }
                                   },
                                   "required": [
@@ -483,9 +478,7 @@
                                       "const": "randomSample"
                                     },
                                     "arg": {
-                                      "type": "number",
-                                      "minimum": 0,
-                                      "maximum": 1
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
                                     }
                                   },
                                   "required": [
@@ -515,14 +508,7 @@
                                       "const": "add"
                                     },
                                     "arg": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
-                                        }
-                                      ]
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
                                     }
                                   },
                                   "required": [
@@ -539,14 +525,7 @@
                                       "const": "multiply"
                                     },
                                     "arg": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
-                                        }
-                                      ]
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
                                     }
                                   },
                                   "required": [
@@ -563,14 +542,7 @@
                                       "const": "divide"
                                     },
                                     "arg": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
-                                        }
-                                      ]
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
                                     }
                                   },
                                   "required": [
@@ -600,7 +572,7 @@
                                       "const": "clampMax"
                                     },
                                     "arg": {
-                                      "type": "number"
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
                                     }
                                   },
                                   "required": [
@@ -617,7 +589,7 @@
                                       "const": "clampMin"
                                     },
                                     "arg": {
-                                      "type": "number"
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
                                     }
                                   },
                                   "required": [

@@ -7,8 +7,8 @@ import type {
   ExtractorDSL,
   SelectPathDSL,
   SelectStepDSL,
-} from '../../../effectDSL'
-import { Extractor } from '../../../effectBuilder'
+} from '@test-battle/effect-dsl'
+import { Extractor } from '../../../../effectBuilder'
 import { BaseGetVariableNode } from './BaseGetVariableNode'
 import { BaseExtractorNode, createBaseExtractorNode } from './baseExtractor'
 import { DynamicExtractorNode } from './dynamicExtractor'

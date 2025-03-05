@@ -1,15 +1,15 @@
 // graph-editor.ts
 import { LGraph, LGraphCanvas, LiteGraph } from '@comfyorg/litegraph'
-import { registerBaseSelectorNodes } from './baseSelector'
-import { registerEffectNodes } from './effect'
-import { registerOperatorNodes } from './opreator'
-import { registerSelectorBuilderNode } from './selectorBuilder'
-import { registerSelectorChainNodes } from './selectorChain'
+import { registerBaseSelectorNodes } from './dslNode/baseSelector'
+import { registerEffectNodes } from './dslNode/effect'
+import { registerOperatorNodes } from './dslNode/opreator'
+import { registerSelectorBuilderNode } from './dslNode/selectorBuilder'
+import { registerSelectorChainNodes } from './dslNode/selectorChain'
 import type { EffectDSL } from '../../../effectDSL'
-import { EffectSchema, EffectSetSchema } from '@test-battle/schema'
-import { registerEvaluatorNodes } from './evaluator'
-import { registerBaseExtractorNodes } from './baseExtractor'
-import { registerDynamicExtractorNode } from './dynamicExtractor'
+import { EffectSetSchema } from '@test-battle/schema'
+import { registerEvaluatorNodes } from './dslNode/evaluator'
+import { registerBaseExtractorNodes } from './dslNode/baseExtractor'
+import { registerDynamicExtractorNode } from './dslNode/dynamicExtractor'
 
 // 全局单例
 let globalInstance: GraphEditor | null = null

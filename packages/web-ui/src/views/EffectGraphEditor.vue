@@ -142,7 +142,12 @@ const importProject = () => {
 const exportEffectData = () => {
   try {
     const data = editor?.buildEffectDSL()
-    const blob = new Blob([YAML.stringify(data)])
+    const tag = `# data/effect.yaml
+# yaml-language-server: $schema=../packages/schema/schema/effect.schema.json
+# @metaType effect
+# @version 1.0.0
+`
+    const blob = new Blob([tag, YAML.stringify(data)])
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url

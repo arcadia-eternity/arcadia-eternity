@@ -1,5 +1,5 @@
 import { LGraphNode, LiteGraph } from '@comfyorg/litegraph'
-import type { BaseSelector, SelectorChain, SelectorDSL } from '../../../effectDSL'
+import type { BaseSelector, SelectorChain, SelectorDSL } from '@test-battle/effect-dsl'
 import { SelectorStepNode } from './selectorChain'
 import { BaseSelectorNode, IsBaseSelectorNode } from './baseSelector'
 

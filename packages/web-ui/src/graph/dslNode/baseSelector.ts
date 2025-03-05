@@ -1,5 +1,5 @@
 import { LGraphNode, LiteGraph } from '@comfyorg/litegraph'
-import type { BaseSelector } from '../../../effectBuilder'
+import type { BaseSelector } from '../../../../effectBuilder'
 
 /* ---------- BaseSelector 节点基类 ---------- */
 export abstract class BaseSelectorNode extends LGraphNode {

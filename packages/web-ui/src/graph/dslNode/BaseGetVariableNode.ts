@@ -1,5 +1,5 @@
 import { LGraphNode } from '@comfyorg/litegraph'
-import type { Value, SelectorDSL, DynamicValue } from '../../../effectDSL'
+import type { Value, SelectorDSL, DynamicValue } from '@test-battle/effect-dsl'
 
 export abstract class BaseGetVariableNode extends LGraphNode {
   abstract title: string
