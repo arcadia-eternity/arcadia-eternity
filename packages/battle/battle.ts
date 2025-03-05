@@ -177,11 +177,13 @@ export class Battle extends Context implements MarkOwner {
   public applyEffects<T extends EffectTrigger>(context: AllContext, trigger: T, ...target: EffectContainer[]) {
     let effectContainers = [...target]
     if (target.length == 0)
-      effectContainers = [...this.marks, ...this.playerA.activePet.marks, ...this.playerB.activePet.marks]
-
-    if (context instanceof UseSkillContext) {
-      effectContainers.push(context.skill)
-    }
+      effectContainers = [
+        ...this.marks,
+        ...this.playerA.activePet.marks,
+        ...this.playerB.activePet.marks,
+        ...this.playerA.activePet.skills,
+        ...this.playerB.activePet.skills,
+      ]
 
     // 阶段1：收集所有待触发效果
     effectContainers.forEach(container => container.collectEffects(trigger, context))
