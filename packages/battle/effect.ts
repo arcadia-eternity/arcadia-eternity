@@ -4,7 +4,21 @@ import { Context, EffectContext } from './context'
 import { type OwnedEntity, type Prototype } from './entity'
 import { MarkInstance } from './mark'
 import { SkillInstance } from './skill'
-import type { effectId } from '@test-battle/const'
+import type { effectId, effectStateId } from '@test-battle/const'
+
+export class EffectState {
+  id: effectStateId;
+  [k: string]: any
+  constructor(id: effectStateId) {
+    this.id = id
+  }
+  get<T>(key: string): T {
+    return this[key]
+  }
+  set<T>(key: string, value: T) {
+    this[key] = value
+  }
+}
 
 export class EffectScheduler {
   constructor() {}
@@ -20,6 +34,7 @@ export class EffectScheduler {
     this.globalEffectQueue.push({ effect, context })
 
     // 按优先级降序排序（数值越大优先级越高）
+    // TODO:应该还有一些不稳定的边界情况
     this.globalEffectQueue.sort((a, b) => b.effect.priority - a.effect.priority)
   }
 
@@ -74,6 +89,9 @@ export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity<S
 
 export interface EffectContainer {
   collectEffects(trigger: EffectTrigger, baseContext: Context): void
+  effectState: {
+    [id: string]: EffectState
+  }
 }
 
 export interface EffectConfig<T extends EffectTrigger> {

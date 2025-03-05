@@ -5,7 +5,7 @@ import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import { Element } from '@test-battle/const/element'
 import { type SkillMessage } from '@test-battle/const/message'
 import { EffectContext, UseSkillContext } from './context'
-import { Effect, type EffectContainer } from './effect'
+import { Effect, EffectState, type EffectContainer } from './effect'
 import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 import { nanoid } from 'nanoid'
@@ -141,6 +141,9 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
   public readonly sureHit: boolean = false
   public readonly ignoreShield: boolean = false
   public readonly tag: string[] = []
+  public readonly effectState: {
+    [id: string]: EffectState
+  }
   effects: Effect<EffectTrigger>[] = []
   constructor(
     public readonly base: BaseSkill,

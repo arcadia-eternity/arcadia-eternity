@@ -1,5 +1,122 @@
-# data/effect.yaml
+# data/effect_mark.yaml
 # yaml-language-server: $schema=../packages/schema/schema/effect.schema.json
 # @metaType effect
 # @version 1.0.0
-[]
+- id: effect_stun
+  trigger: BeforeAttack
+  priority: 0
+  condition:
+    type: checkSelf
+  apply:
+    type: stun
+    target: usingSkillContext
+- id: effect_cant_evasion
+  trigger: BeforeAttack
+  priority: 0
+  condition:
+    type: checkSelf
+  apply:
+    type: setSureHit
+    target: usingSkillContext
+    value:
+      type: raw:boolean
+      value: true
+- id: effect_40probability_stun
+  trigger: BeforeAttack
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent:
+            type: raw:number
+            value: 40
+  apply:
+    type: stun
+    target: usingSkillContext
+- id: effect_onDamage_recovery
+  trigger: PostDamage
+  priority: 0
+  condition:
+    type: selfDamage
+  apply:
+    type: destroyMark
+    target:
+      base: mark
+- id: effect_onCritDamage_recovery
+  trigger: OnCritPostDamage
+  priority: 0
+  condition:
+    type: selfDamage
+  apply:
+    type: destroyMark
+    target:
+      base: mark
+- id: effect_randomUseSkill
+  trigger: BeforeAttack
+  priority: 0
+  condition:
+    type: checkSelf
+  apply:
+    type: setSkill
+    target: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: selfAvailableSkills
+        chain:
+          - type: shuffled
+          - type: limit
+            arg:
+              type: raw:number
+              value: 1
+- id: effect_onDamage_over100_recovery
+  trigger: PostDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfDamage
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: value
+        evaluator:
+          type: compare
+          operator: '>='
+          value:
+            type: raw:number
+            value: 100
+  apply:
+    type: destroyMark
+    target:
+      base: mark
+- id: effect_curse_add_random_status
+  trigger: OnMarkDestroy
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: dynamic
+      selector:
+        base: dataMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: tags
+            evaluator:
+              type: hasTag
+              tag: status
+          - type: shuffled
+          - type: limit
+            arg:
+              type: raw:number
+              value: 1

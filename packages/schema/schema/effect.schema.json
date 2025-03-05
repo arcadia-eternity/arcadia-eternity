@@ -72,7 +72,12 @@
                           "damageContext",
                           "mark",
                           "selfMarks",
-                          "foeMarks"
+                          "foeMarks",
+                          "selfSkills",
+                          "foeSkills",
+                          "selfAvailableSkills",
+                          "foeAvailableSkills",
+                          "dataMarks"
                         ]
                       },
                       {
@@ -119,7 +124,8 @@
                                                 "skills",
                                                 "id",
                                                 "baseId",
-                                                "tags"
+                                                "tags",
+                                                "rageCost"
                                               ]
                                             }
                                           },
@@ -273,7 +279,7 @@
                                                   "properties": {
                                                     "type": {
                                                       "type": "string",
-                                                      "const": "raw:markId"
+                                                      "const": "entity:baseMark"
                                                     },
                                                     "value": {
                                                       "type": "string"
@@ -383,6 +389,23 @@
                                           "required": [
                                             "type",
                                             "percent"
+                                          ],
+                                          "additionalProperties": false
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string",
+                                              "const": "hasTag"
+                                            },
+                                            "tag": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "type",
+                                            "tag"
                                           ],
                                           "additionalProperties": false
                                         }
@@ -569,6 +592,23 @@
                                   "properties": {
                                     "type": {
                                       "type": "string",
+                                      "const": "limit"
+                                    },
+                                    "arg": {
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "arg"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
                                       "const": "clampMax"
                                     },
                                     "arg": {
@@ -652,17 +692,19 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "mark": {
-                    "type": "string"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
                   },
                   "duration": {
-                    "type": "number"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                  },
+                  "stack": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
                   }
                 },
                 "required": [
                   "type",
                   "target",
-                  "mark",
-                  "duration"
+                  "mark"
                 ],
                 "additionalProperties": false
               },
@@ -853,6 +895,82 @@
                   "mark"
                 ],
                 "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "stun"
+                  },
+                  "target": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
+                  }
+                },
+                "required": [
+                  "type",
+                  "target"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "setSureHit"
+                  },
+                  "target": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
+                  },
+                  "value": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                  }
+                },
+                "required": [
+                  "type",
+                  "target",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "destroyMark"
+                  },
+                  "target": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
+                  }
+                },
+                "required": [
+                  "type",
+                  "target"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "setSkill"
+                  },
+                  "target": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
+                  },
+                  "value": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value/anyOf/4"
+                  }
+                },
+                "required": [
+                  "type",
+                  "target",
+                  "value"
+                ],
+                "additionalProperties": false
               }
             ]
           },
@@ -933,6 +1051,58 @@
                 "required": [
                   "type",
                   "condition"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "selfUseSkill"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "checkSelf"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "foeUseSkill"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "selfDamage"
+                  }
+                },
+                "required": [
+                  "type"
                 ],
                 "additionalProperties": false
               }

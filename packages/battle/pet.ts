@@ -182,8 +182,11 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public addMark(context: AddMarkContext) {
     if (!context.available) return
 
-    const newMark = new MarkInstance(context.mark)
-    if (context.stack) newMark._stack = context.stack
+    const config = {
+      duration: context.duration,
+      stack: context.stack,
+    }
+    const newMark = new MarkInstance(context.mark, config)
     const existingOppositeMark = this.marks.find(
       mark =>
         mark instanceof StatLevelMarkInstance &&
@@ -214,7 +217,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public removeMark(context: RemoveMarkContext) {
     this.marks.forEach(mark => {
       const filltered = mark.id !== context.mark.id
-      if (filltered) mark.destory(context)
+      if (filltered) mark.destroy(context)
       return false
     })
   }
@@ -331,7 +334,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     this.statStage = { atk: 1, def: 1, spa: 1, spd: 1, spe: 1 }
     this.marks = this.marks.filter(mark => {
       if (mark instanceof StatLevelMarkInstance) {
-        mark.destory(context)
+        mark.destroy(context)
         return false
       }
       return true
@@ -353,7 +356,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       }
 
       if (!shouldKeep) {
-        mark.destory(context)
+        mark.destroy(context)
       }
 
       return shouldKeep

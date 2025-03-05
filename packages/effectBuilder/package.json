@@ -11,7 +11,8 @@
   "license": "MIT",
   "dependencies": {
     "@test-battle/battle": "workspace:^",
-    "@test-battle/const": "workspace:^"
+    "@test-battle/const": "workspace:^",
+    "@test-battle/data-repository": "workspace:^"
   },
   "devDependencies": {
     "@babel/core": "^7.26.9",

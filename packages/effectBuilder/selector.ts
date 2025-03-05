@@ -7,6 +7,7 @@ import {
   Player,
   UseSkillContext,
   SkillInstance,
+  BaseMark,
 } from '@test-battle/battle'
 import type { CanOwnedEntity, Instance, OwnedEntity, Prototype } from '@test-battle/battle/entity'
 import {
@@ -38,6 +39,7 @@ import type {
 import { createExtractor, type PathExtractor } from './extractor'
 import { RuntimeTypeChecker } from './runtime-type-checker'
 import { GetValueFromSource } from './operator'
+import { DataRepository } from '@test-battle/data-repository'
 
 export type PropertyRef<T, V> = {
   get: () => V
@@ -283,6 +285,14 @@ export class ChainableSelector<T> {
     return this.mapNumber(min, (v, value) => Math.max(v, value))
   }
 
+  limit(limit: ValueSource<number>): ChainableSelector<T> {
+    return new ChainableSelector(context => {
+      const _limit = GetValueFromSource(context, limit)
+      if (_limit.length === 0) return this.selector(context)
+      return this.selector(context).slice(0, _limit[0])
+    }, this.type)
+  }
+
   // 公共数值处理方法
   private mapNumber(
     numberSource: ValueSource<number>,
@@ -370,6 +380,11 @@ export const BaseSelector: {
   mark: ChainableSelector<MarkInstance>
   selfMarks: ChainableSelector<MarkInstance>
   foeMarks: ChainableSelector<MarkInstance>
+  selfSkills: ChainableSelector<SkillInstance>
+  foeSkills: ChainableSelector<SkillInstance>
+  selfAvailableSkills: ChainableSelector<SkillInstance>
+  foeAvailableSkills: ChainableSelector<SkillInstance>
+  dataMarks: ChainableSelector<BaseMark>
 } = {
   //选择目标，在使用技能的场景下，为技能实际指向的目标，在印记的场景下指向印记的所有者。
   target: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
@@ -431,5 +446,40 @@ export const BaseSelector: {
       return context.battle.getOpponent(context.source.owner.owner!).activePet.marks
     //TODO: error with use owners with global marks
     return []
+  }),
+  selfSkills: createChainable<SkillInstance>('SkillInstance', (context: EffectContext<EffectTrigger>) => {
+    if (context.parent instanceof UseSkillContext) return [...context.parent.pet.skills]
+    if (context.source.owner instanceof Pet) return [...context.source.owner.skills]
+    return []
+  }),
+  foeSkills: createChainable<SkillInstance>('SkillInstance', (context: EffectContext<EffectTrigger>) => {
+    if (context.parent instanceof UseSkillContext) return [...context.parent.actualTarget!.skills]
+    if (context.source.owner instanceof Pet)
+      return [...context.battle.getOpponent(context.source.owner.owner!).activePet.skills]
+    //TODO: error with use owners with global marks
+    return []
+  }),
+  selfAvailableSkills: createChainable<SkillInstance>('SkillInstance', (context: EffectContext<EffectTrigger>) => {
+    let pet: Pet
+    if (context.parent instanceof UseSkillContext) {
+      pet = context.parent.pet
+    } else if (context.source.owner instanceof Pet) {
+      pet = context.source.owner
+    } else return []
+
+    return [...pet.skills].filter(skill => skill.rage <= pet.currentRage)
+  }),
+  foeAvailableSkills: createChainable<SkillInstance>('SkillInstance', (context: EffectContext<EffectTrigger>) => {
+    let pet: Pet
+    if (context.parent instanceof UseSkillContext) {
+      pet = context.parent.actualTarget!
+    } else if (context.source.owner instanceof Pet) {
+      pet = context.battle.getOpponent(context.source.owner.owner!).activePet
+    } else return []
+
+    return [...pet.skills].filter(skill => skill.rage <= pet.currentRage)
+  }),
+  dataMarks: createChainable<BaseMark>('BaseMark', (context: EffectContext<EffectTrigger>) => {
+    return DataRepository.getInstance().getAllMarks()
   }),
 }

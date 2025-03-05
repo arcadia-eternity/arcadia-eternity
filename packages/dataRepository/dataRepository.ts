@@ -47,6 +47,10 @@ export class DataRepository {
     return effect
   }
 
+  getAllMarks(): BaseMark[] {
+    return [...this.marks.values()]
+  }
+
   registerSpecies(id: string, species: Species) {
     if (this.species.has(id)) {
       throw new Error(`Species with id "${id}" already exists`)

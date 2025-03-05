@@ -116,7 +116,7 @@ export class Battle extends Context implements MarkOwner {
   public removeMark(context: RemoveMarkContext) {
     this.marks.forEach(mark => {
       const filltered = mark.id !== context.mark.id
-      if (filltered) mark.destory(context)
+      if (filltered) mark.destroy(context)
       return false
     })
   }

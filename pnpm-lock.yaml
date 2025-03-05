@@ -193,6 +193,9 @@ importers:
       '@test-battle/const':
         specifier: workspace:^
         version: link:../const
+      '@test-battle/data-repository':
+        specifier: workspace:^
+        version: link:../dataRepository
     devDependencies:
       '@babel/core':
         specifier: ^7.26.9

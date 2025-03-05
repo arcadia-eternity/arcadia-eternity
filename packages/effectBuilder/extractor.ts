@@ -37,6 +37,7 @@ type ExtractorMap = {
   id: PathExtractor<Instance, InstanceId>
   baseId: PathExtractor<Instance, PrototypeId>
   tags: PathExtractor<MarkInstance, string[]>
+  rageCost: PathExtractor<SkillInstance, number>
 }
 
 export const Extractor: ExtractorMap = {
@@ -119,6 +120,11 @@ export const Extractor: ExtractorMap = {
     path: 'tags',
     type: 'string[]',
     extract: (target: MarkInstance) => target.tags,
+  },
+  rageCost: {
+    path: 'rage',
+    type: 'number',
+    extract: (target: SkillInstance) => target.rage,
   },
 }
 

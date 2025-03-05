@@ -297,6 +297,7 @@ export class Player {
             new DamageContext(
               context,
               context.pet,
+              context.actualTarget,
               context.damageResult,
               damageType,
               context.crit,

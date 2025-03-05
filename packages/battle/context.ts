@@ -39,7 +39,7 @@ export class TurnContext extends Context {
 export class UseSkillContext extends Context {
   readonly type = 'use-skill'
   public readonly battle: Battle
-  public readonly available: boolean = true
+  public available: boolean = true
   public skillPriority: number = 0
   public power: number = 0
   public rageCost: number = 0
@@ -64,16 +64,32 @@ export class UseSkillContext extends Context {
     super(parent)
     this.battle = parent.battle
 
+    this.multihit = skill.multihit
+    this.power = this.skill.power
+    this.rageCost = this.skill.rage
+    this.sureHit = skill.sureHit
+    this.ignoreShield = skill.ignoreShield
+    this.updateMultihitResult()
+  }
+
+  updateMultihitResult() {
     if (Array.isArray(this.multihit)) {
       const [low, high] = this.multihit
       this.multihitResult = this.battle.randomInt(low, high)
     } else {
       this.multihitResult = this.multihit
     }
-    this.power = this.skill.power
-    this.rageCost = this.skill.rage
-    this.sureHit = skill.sureHit
-    this.ignoreShield = skill.ignoreShield
+  }
+
+  setSkill(skill: SkillInstance, updateConfig?: boolean) {
+    this.skill = skill
+    if (updateConfig) {
+      this.power = skill.power
+      this.rageCost = skill.rage
+      this.sureHit = skill.sureHit
+      this.multihit = skill.multihit
+      this.ignoreShield = skill.ignoreShield
+    }
   }
 
   amplifyPower(multiplier: number) {
@@ -91,6 +107,10 @@ export class UseSkillContext extends Context {
 
   setCrit(crit: boolean) {
     this.crit = crit
+  }
+
+  setSureHit(sureHit: boolean) {
+    this.sureHit = sureHit
   }
 }
 
@@ -131,6 +151,7 @@ export class DamageContext extends Context {
   constructor(
     public readonly parent: UseSkillContext | EffectContext<EffectTrigger>,
     public readonly source: Pet | MarkInstance | SkillInstance, //来自技能伤害，还是印记和技能的效果获得的伤害
+    public readonly target: Pet,
     public value: number,
     public damageType: DamageType = DamageType.effect,
     public crit: boolean = false,
@@ -166,6 +187,7 @@ export class AddMarkContext extends Context {
     public target: MarkOwner,
     public mark: BaseMark,
     public stack?: number,
+    public duration?: number,
   ) {
     super(parent)
     this.battle = parent.battle

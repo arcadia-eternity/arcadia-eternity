@@ -10,7 +10,7 @@ import type {
   EvaluatorDSL,
   ExtractorDSL,
   RawBooleanValue,
-  RawMarkIdValue,
+  RawBaseMarkIdValue,
   RawNumberValue,
   RawStringValue,
   SelectorChain,
@@ -47,8 +47,8 @@ export const rawBooleanValueSchema: z.ZodSchema<RawBooleanValue> = z.object({
   value: z.boolean(),
 })
 
-export const rawMarkIdValueSchema: z.ZodSchema<RawMarkIdValue> = z.object({
-  type: z.literal('raw:markId'),
+export const rawBaseMarkIdValueSchema: z.ZodSchema<RawBaseMarkIdValue> = z.object({
+  type: z.literal('entity:baseMark'),
   value: z.string().refine(v => v.startsWith('mark_')),
 })
 
@@ -63,7 +63,7 @@ export const valueSchema: z.ZodSchema<Value> = z.union([
   rawNumberValueSchema,
   rawStringValueSchema,
   rawBooleanValueSchema,
-  rawMarkIdValueSchema,
+  rawBaseMarkIdValueSchema,
   dynamicValueSchema,
 ])
 
@@ -139,6 +139,10 @@ export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
       type: z.literal('shuffled'),
     }),
     z.object({
+      type: z.literal('limit'),
+      arg: valueSchema,
+    }),
+    z.object({
       type: z.literal('clampMax'),
       arg: valueSchema,
     }),
@@ -182,6 +186,10 @@ export const evaluatorDSLSchema: z.ZodSchema<EvaluatorDSL> = z.lazy(() =>
       type: z.literal('probability'),
       percent: valueSchema,
     }),
+    z.object({
+      type: z.literal('hasTag'),
+      tag: z.string(),
+    }),
   ]),
 )
 
@@ -200,8 +208,9 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
     z.object({
       type: z.literal('addMark'),
       target: selectorDSLSchema,
-      mark: z.string(),
-      duration: z.number(),
+      mark: valueSchema,
+      duration: valueSchema.optional(),
+      stack: valueSchema.optional(),
     }),
     z.object({
       type: z.literal('addStacks'),
@@ -248,6 +257,24 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       target: selectorDSLSchema,
       mark: dynamicValueSchema,
     }),
+    z.object({
+      type: z.literal('stun'),
+      target: selectorDSLSchema,
+    }),
+    z.object({
+      type: z.literal('setSureHit'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('destroyMark'),
+      target: selectorDSLSchema,
+    }),
+    z.object({
+      type: z.literal('setSkill'),
+      target: selectorDSLSchema,
+      value: dynamicValueSchema,
+    }),
   ]),
 )
 
@@ -271,7 +298,16 @@ export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
       condition: conditionDSLSchema,
     }),
     z.object({
-      type: z.literal('selfUse'),
+      type: z.literal('selfUseSkill'),
+    }),
+    z.object({
+      type: z.literal('checkSelf'),
+    }),
+    z.object({
+      type: z.literal('foeUseSkill'),
+    }),
+    z.object({
+      type: z.literal('selfDamage'),
     }),
   ]),
 )

@@ -27,8 +27,9 @@ export type OperatorDSL =
   | {
       type: 'addMark'
       target: SelectorDSL
-      mark: string //id
-      duration: number
+      mark: Value
+      stack?: Value
+      duration?: Value
     }
   | {
       type: 'addStacks'
@@ -73,6 +74,24 @@ export type OperatorDSL =
       target: SelectorDSL
       mark: DynamicValue
     }
+  | {
+      type: 'destroyMark'
+      target: SelectorDSL
+    }
+  | {
+      type: 'stun'
+      target: SelectorDSL
+    }
+  | {
+      type: 'setSureHit'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'setSkill'
+      target: SelectorDSL
+      value: DynamicValue
+    }
 
 export type RawNumberValue = {
   type: 'raw:number'
@@ -89,8 +108,8 @@ export type RawBooleanValue = {
   value: boolean
 }
 
-export type RawMarkIdValue = {
-  type: 'raw:markId'
+export type RawBaseMarkIdValue = {
+  type: 'entity:baseMark'
   value: string // Mark的ID需符合特定格式
 }
 
@@ -99,7 +118,7 @@ export type DynamicValue = {
   selector: SelectorDSL
 }
 
-export type Value = RawNumberValue | RawStringValue | RawBooleanValue | RawMarkIdValue | DynamicValue
+export type Value = RawNumberValue | RawStringValue | RawBooleanValue | RawBaseMarkIdValue | DynamicValue
 
 export type BaseSelector = keyof typeof BaseSelector
 
@@ -184,6 +203,10 @@ export type SelectorChain =
       type: 'shuffled' // 乱序（无参数）
     }
   | {
+      type: 'limit'
+      arg: Value
+    }
+  | {
       type: 'clampMax'
       arg: Value
     }
@@ -202,6 +225,7 @@ export type EvaluatorDSL =
   | { type: 'any'; conditions: EvaluatorDSL[] }
   | { type: 'all'; conditions: EvaluatorDSL[] }
   | { type: 'probability'; percent: Value }
+  | { type: 'hasTag'; tag: string }
 
 export type ConditionDSL =
   | {
@@ -222,5 +246,14 @@ export type ConditionDSL =
       condition: ConditionDSL
     }
   | {
-      type: 'selfUse'
+      type: 'selfUseSkill'
+    }
+  | {
+      type: 'checkSelf'
+    }
+  | {
+      type: 'foeUseSkill'
+    }
+  | {
+      type: 'selfDamage'
     }

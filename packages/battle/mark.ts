@@ -3,7 +3,7 @@ import {
   StatTypeWithoutHp,
   type baseMarkId,
   type markId,
-  type StatTypeOnBattle,
+  type effectStateId,
 } from '@test-battle/const/const'
 import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import type { MarkMessage } from '@test-battle/const/message'
@@ -18,7 +18,7 @@ import {
   SwitchPetContext,
   TurnContext,
 } from './context'
-import { Effect, type EffectContainer, EffectScheduler } from './effect'
+import { Effect, type EffectContainer, EffectScheduler, EffectState } from './effect'
 import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 
@@ -43,7 +43,6 @@ export class BaseMark implements Prototype {
   ) {}
 }
 
-//TODO: 印记的换场逻辑，以及传递的逻辑。
 export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet | null>, Instance {
   public _stack: number = 1
   public duration: number
@@ -66,6 +65,9 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
     inheritOnFaint?: boolean
   } = { destoyable: true }
   public readonly tags: string[] = []
+  public readonly effectState: {
+    [id: string]: EffectState
+  }
 
   constructor(
     public readonly base: BaseMark,
@@ -132,7 +134,7 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
 
     if (expired) {
       context.battle.applyEffects(context, EffectTrigger.OnMarkDurationEnd, this)
-      this.destory(context)
+      this.destroy(context)
     }
 
     return expired
@@ -195,7 +197,7 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
     this.stack -= actual
 
     if (this.stack <= 0) {
-      this.destory(context)
+      this.destroy(context)
     }
 
     return actual
@@ -219,7 +221,7 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
       })
   }
 
-  destory(
+  destroy(
     context:
       | EffectContext<EffectTrigger>
       | TurnContext
@@ -243,6 +245,17 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
     this.attachTo(target)
     target.marks.push(this)
     context.battle.cleanupMarks()
+  }
+
+  public setState(id: string, key: string, data: any) {
+    if (!this.effectState[id]) {
+      this.effectState[id] = new EffectState(id as effectStateId)
+    }
+    this.effectState[id][key] = data
+  }
+
+  public getState(id: string, key: string): any {
+    return this.effectState[id]?.[key]
   }
 
   toMessage(): MarkMessage {
@@ -315,7 +328,7 @@ export class StatLevelMarkInstance extends MarkInstance {
       const remainingLevel = this.level + otherMark.level
 
       if (remainingLevel === 0) {
-        this.destory(context)
+        this.destroy(context)
         return true
       } else if (Math.sign(remainingLevel) === Math.sign(this.level)) {
         this.level = remainingLevel
@@ -338,7 +351,7 @@ export class StatLevelMarkInstance extends MarkInstance {
     const newLevel = Math.max(-maxLevel, Math.min(maxLevel, this.level + (otherMark as StatLevelMarkInstance).level))
 
     if (newLevel === 0) {
-      this.destory(context)
+      this.destroy(context)
       return true
     }
 

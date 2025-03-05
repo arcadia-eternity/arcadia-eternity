@@ -1,0 +1,5 @@
+# data/effect.yaml
+# yaml-language-server: $schema=../packages/schema/schema/effect.schema.json
+# @metaType effect
+# @version 1.0.0
+[]

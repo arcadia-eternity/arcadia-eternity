@@ -10,6 +10,7 @@ import {
   Pet,
   Player,
   RageContext,
+  SkillInstance,
   UseSkillContext,
 } from '@test-battle/battle'
 import { EffectTrigger, type StatTypeOnBattle, StatTypeWithoutHp } from '@test-battle/const'
@@ -49,7 +50,7 @@ export const Operators = {
     let source
     if (context.parent instanceof UseSkillContext) source = context.parent.pet
     else source = context.source
-    pet.damage(new DamageContext(context, source, value[0]))
+    pet.damage(new DamageContext(context, source, pet, value[0]))
   }),
 
   heal: createDynamicOperator<Pet, number>((value, pet, context) => {
@@ -57,10 +58,15 @@ export const Operators = {
   }),
 
   addMark:
-    <T extends MarkOwner>(mark: BaseMark, stack: number) =>
+    <T extends MarkOwner>(mark: ValueSource<BaseMark>, stack?: ValueSource<number>, duration?: ValueSource<number>) =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
+      const marks = GetValueFromSource(context, mark)
+      if (marks.length === 0) return
+
+      const stackValue = stack ? GetValueFromSource(context, stack)[0] : undefined
+      const durationValue = duration ? GetValueFromSource(context, duration)[0] : undefined
       targets.forEach(target => {
-        target.addMark(new AddMarkContext(context, target, mark, stack))
+        target.addMark(new AddMarkContext(context, target, marks[0], stackValue, durationValue))
       })
     },
 
@@ -70,6 +76,14 @@ export const Operators = {
       const _mark = GetValueFromSource(context, mark)
       _mark.forEach(m => {
         m.transfer(context, targets[0])
+      })
+    },
+
+  destroyMark:
+    <T extends MarkInstance>() =>
+    (context: EffectContext<EffectTrigger>, targets: T[]) => {
+      targets.forEach(m => {
+        m.destroy(context)
       })
     },
 
@@ -134,6 +148,7 @@ export const Operators = {
   ): Operator<PropertyRef<U, V>> => {
     return (context, refs) => {
       const _value = GetValueFromSource(context, value)
+      if (_value.length == 0) return
       refs.forEach(ref => ref.set(_value[0]))
     }
   },
@@ -153,6 +168,33 @@ export const Operators = {
   toggle: (): Operator<PropertyRef<any, boolean>> => {
     return (context, refs) => {
       refs.forEach(ref => ref.set(!ref.get()))
+    }
+  },
+
+  stun: (): Operator<UseSkillContext> => {
+    return (context, contexts) => {
+      contexts.forEach(ctx => {
+        ctx.available = false
+      })
+    }
+  },
+
+  setSureHit: (value: ValueSource<boolean>): Operator<UseSkillContext> => {
+    return (context, contexts) => {
+      const _value = GetValueFromSource(context, value)
+      contexts.forEach(ctx => {
+        ctx.setSureHit(_value[0])
+      })
+    }
+  },
+
+  setSkill: (skill: ValueSource<SkillInstance>): Operator<UseSkillContext> => {
+    return (context, contexts) => {
+      const _skill = GetValueFromSource(context, skill)
+      if (_skill.length === 0) return
+      contexts.forEach(ctx => {
+        ctx.setSkill(_skill[0])
+      })
     }
   },
 }

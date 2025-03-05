@@ -1,4 +1,4 @@
-import { Effect, MarkInstance, Pet, Player, UseSkillContext } from '@test-battle/battle'
+import { BaseMark, Effect, MarkInstance, Pet, Player, SkillInstance, UseSkillContext } from '@test-battle/battle'
 import {
   type baseMarkId,
   type effectId,
@@ -191,6 +191,8 @@ function parseEvaluator(dsl: EvaluatorDSL): Evaluator<SelectorOpinion> {
       return Evaluators.all(...dsl.conditions.map(v => parseEvaluator(v)))
     case 'probability':
       return Evaluators.probability(parseValue(dsl.percent) as ValueSource<number>)
+    case 'hasTag':
+      return Evaluators.hasTag(dsl.tag) as Evaluator<SelectorOpinion>
     default: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`Unknown condition type: ${(dsl as any).type}`)
@@ -222,15 +224,23 @@ export function createAction(dsl: OperatorDSL) {
       return parseAddPowerAction(dsl)
     case 'transferMark':
       return parseTransferMark(dsl)
+    case 'stun':
+      return parseStunAction(dsl)
+    case 'setSureHit':
+      return parseSetSureHitAction(dsl)
+    case 'destroyMark':
+      return parseDestroyMarkAction(dsl)
+    case 'setSkill':
+      return parseSetSkill(dsl)
   }
 }
 
 // Common value parser reused across actions [source_id: parse.ts]
-export function parseValue(v: Value): string | number | boolean | ChainableSelector<SelectorOpinion> {
+export function parseValue(v: Value): string | number | boolean | ValueSource<SelectorOpinion> {
   if (v.type === 'raw:number') return v.value as number
   if (v.type === 'raw:string') return v.value as string
   if (v.type === 'raw:boolean') return v.value as boolean
-  if (v.type === 'raw:markId') return v.value as string
+  if (v.type === 'entity:baseMark') return DataRepository.getInstance().getMark(v.value as baseMarkId)
   return parseSelector(v.selector)
 }
 
@@ -253,8 +263,10 @@ export function parseHealAction(dsl: Extract<OperatorDSL, { type: 'heal' }>) {
 
 export function parseAddMarkAction(dsl: Extract<OperatorDSL, { type: 'addMark' }>) {
   const selector = parseSelector<Pet>(dsl.target)
-  const mark = DataRepository.getInstance().getMark(dsl.mark as baseMarkId)
-  return selector.apply(Operators.addMark(mark, dsl.duration))
+  const mark = parseValue(dsl.mark) as ValueSource<BaseMark>
+  const duration = dsl.duration ? (parseValue(dsl.duration) as ValueSource<number>) : undefined
+  const stack = dsl.stack ? (parseValue(dsl.stack) as ValueSource<number>) : undefined
+  return selector.apply(Operators.addMark(mark, stack, duration))
 }
 
 // Pattern for stack-related actions [source_id: operator.ts]
@@ -303,8 +315,28 @@ export function parseAddPowerAction(dsl: Extract<OperatorDSL, { type: 'addPower'
   )
 }
 
+export function parseStunAction(dsl: Extract<OperatorDSL, { type: 'stun' }>) {
+  return parseSelector<UseSkillContext>(dsl.target).apply(Operators.stun())
+}
+
 export function parseTransferMark(dsl: Extract<OperatorDSL, { type: 'transferMark' }>) {
   return parseSelector<Pet>(dsl.target).apply(Operators.transferMark(parseValue(dsl.mark) as ValueSource<MarkInstance>))
+}
+
+export function parseSetSureHitAction(dsl: Extract<OperatorDSL, { type: 'setSureHit' }>) {
+  return parseSelector<UseSkillContext>(dsl.target).apply(
+    Operators.setSureHit(parseValue(dsl.value) as ValueSource<boolean>),
+  )
+}
+
+export function parseDestroyMarkAction(dsl: Extract<OperatorDSL, { type: 'destroyMark' }>) {
+  return parseSelector<MarkInstance>(dsl.target).apply(Operators.destroyMark())
+}
+
+export function parseSetSkill(dsl: Extract<OperatorDSL, { type: 'setSkill' }>) {
+  return parseSelector<UseSkillContext>(dsl.target).apply(
+    Operators.setSkill(parseValue(dsl.value) as ValueSource<SkillInstance>),
+  )
 }
 
 export function parseCondition(dsl: ConditionDSL): Condition {
@@ -317,8 +349,14 @@ export function parseCondition(dsl: ConditionDSL): Condition {
       return parseEveryCondition(dsl)
     case 'not':
       return parseNotCondition(dsl)
-    case 'selfUse':
-      return parseSelfUseCondition(dsl)
+    case 'selfUseSkill':
+      return Conditions.selfUseSkill()
+    case 'checkSelf':
+      return Conditions.checkSelf()
+    case 'foeUseSkill':
+      return Conditions.foeUseSkill()
+    case 'selfDamage':
+      return Conditions.selfDamage()
   }
 }
 
@@ -338,10 +376,6 @@ export function parseEveryCondition(dsl: Extract<ConditionDSL, { type: 'every' }
 
 export function parseNotCondition(dsl: Extract<ConditionDSL, { type: 'not' }>): Condition {
   return Conditions.not(parseCondition(dsl.condition))
-}
-
-export function parseSelfUseCondition(dsl: Extract<ConditionDSL, { type: 'selfUse' }>): Condition {
-  return Conditions.selfUse()
 }
 
 function validatePath(selector: ChainableSelector<SelectorOpinion>, path: string) {
