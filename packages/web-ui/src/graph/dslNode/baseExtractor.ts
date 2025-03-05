@@ -25,7 +25,7 @@ export abstract class BaseExtractorNode extends LGraphNode {
   }
 
   onExecute() {
-    this.setOutputData(0, (this.constructor as any).selectorType)
+    this.setOutputData(0, this.toExtractorDSL() as any)
   }
 }
 

@@ -7,11 +7,10 @@ import type {
   ExtractorDSL,
   SelectPathDSL,
   SelectStepDSL,
+  SelectorDSL,
+  ChainSelector,
 } from '@test-battle/effect-dsl'
-import { Extractor } from '../../../../effectBuilder'
 import { BaseGetVariableNode } from './BaseGetVariableNode'
-import { BaseExtractorNode, createBaseExtractorNode } from './baseExtractor'
-import { DynamicExtractorNode } from './dynamicExtractor'
 import { CompareEvaluatorNode } from './evaluator'
 
 /* ---------- SelectorChain 链式节点基类 ---------- */
@@ -26,31 +25,32 @@ export abstract class SelectorStepNode extends BaseGetVariableNode {
     this.color = '#cc99ff' // 紫色系
     this.size = [180, 60]
     // 链式输入输出端口
-    this.addInput('prev', 'selector_chain')
-    this.addOutput('next', 'selector_chain')
+    this.addWidget('button', 'debug', 'debug', () => {
+      console.log(this.buildStep())
+    })
+    this.addInput('prev', 'selector')
+    this.addOutput('next', 'selector')
   }
 
   // 构建链式步骤的 DSL 结构
   abstract buildStep(): SelectorChain
 
-  onSerialize(info: any) {
-    info.stepType = this.constructor.stepType
-  }
+  onSerialize(info: any) {}
 
   onConfigure(info: any) {}
 
   onExecute() {
-    const prevStep = this.getInputData(0) // 获取前驱步骤
+    if (!this.getInputData(0)) {
+      return
+    }
+    const prevDSL = this.getInputData(0) as ChainSelector
     const currentStep = this.buildStep()
 
-    // 组合链式结构
-    const chain = Array.isArray(prevStep)
-      ? [...prevStep, currentStep]
-      : prevStep
-        ? [prevStep, currentStep]
-        : [currentStep]
-
-    this.setOutputData(0, chain)
+    const newDsl = {
+      base: prevDSL.base,
+      chain: prevDSL.chain?[...prevDSL.chain, currentStep]:[currentStep],
+    }
+    this.setOutputData(0, newDsl as any)
   }
 }
 
@@ -69,10 +69,10 @@ export class SelectStepNode extends SelectorStepNode {
   }
 
   buildStep(): SelectStepDSL {
-    const extractor = this.getInputData(0) as ExtractorDSL | undefined
+    const extractor = this.getInputData(1) as ExtractorDSL | undefined
     return {
       type: 'select',
-      arg: extractor || { type: 'base', arg: 'hp' }, // 默认值
+      arg: extractor,
     }
   }
 }
@@ -109,7 +109,7 @@ export class SelectPathNode extends SelectorStepNode {
   }
 
   getInputOrProperty(name: string): string | number {
-    const input = this.getInputData(0)
+    const input = this.getInputData(1)
     return input !== undefined ? input : this.properties[name] || ''
   }
 }
@@ -173,7 +173,7 @@ export class WhereNode extends SelectorStepNode {
   }
 
   buildStep(): SelectorChain {
-    const condition = this.getInputData(0) as EvaluatorDSL | undefined
+    const condition = this.getInputData(1) as EvaluatorDSL | undefined
     return condition
       ? {
           type: 'where',
@@ -201,8 +201,8 @@ export class WhereAttrNode extends SelectorStepNode {
   buildStep(): SelectorChain {
     return {
       type: 'whereAttr',
-      extractor: this.getInputData(0) || { type: 'base', arg: 'hp' },
-      evaluator: this.getInputData(1) || { type: 'compare', operator: '>', value: 0 },
+      extractor: this.getInputData(1) || { type: 'base', arg: 'hp' },
+      evaluator: this.getInputData(2) || { type: 'compare', operator: '>', value: 0 },
     }
   }
 }

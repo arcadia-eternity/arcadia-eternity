@@ -3,13 +3,13 @@ import { LGraph, LGraphCanvas, LiteGraph } from '@comfyorg/litegraph'
 import { registerBaseSelectorNodes } from './dslNode/baseSelector'
 import { registerEffectNodes } from './dslNode/effect'
 import { registerOperatorNodes } from './dslNode/opreator'
-import { registerSelectorBuilderNode } from './dslNode/selectorBuilder'
 import { registerSelectorChainNodes } from './dslNode/selectorChain'
 import type { EffectDSL } from '../../../effectDSL'
 import { EffectSetSchema } from '@test-battle/schema'
 import { registerEvaluatorNodes } from './dslNode/evaluator'
 import { registerBaseExtractorNodes } from './dslNode/baseExtractor'
 import { registerDynamicExtractorNode } from './dslNode/dynamicExtractor'
+import { registerConditionNodes } from './dslNode/condition'
 
 // 全局单例
 let globalInstance: GraphEditor | null = null
@@ -49,7 +49,7 @@ export class GraphEditor {
     if (!LiteGraph.registered_node_types['base/selector']) {
       registerEffectNodes()
       registerOperatorNodes()
-      registerSelectorBuilderNode()
+      registerConditionNodes()
       registerBaseSelectorNodes()
       registerSelectorChainNodes()
       registerEvaluatorNodes()

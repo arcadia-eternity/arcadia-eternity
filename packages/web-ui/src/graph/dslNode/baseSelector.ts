@@ -1,5 +1,6 @@
 import { LGraphNode, LiteGraph } from '@comfyorg/litegraph'
 import type { BaseSelector } from '../../../../effectBuilder'
+import type { SelectorDSL } from '@test-battle/effect-dsl'
 
 /* ---------- BaseSelector 节点基类 ---------- */
 export abstract class BaseSelectorNode extends LGraphNode {
@@ -10,14 +11,21 @@ export abstract class BaseSelectorNode extends LGraphNode {
   constructor() {
     super('BaseSelector')
     // 所有基础选择器节点只有一个输出端口
-    this.addOutput('selector', 'base_selector')
+    this.addOutput('selector', 'selector')
     // 统一节点样式
     this.size = [120, 40]
     this.color = '#66ccff' // 基础选择器统一用蓝色系
   }
 
+  toDsl():SelectorDSL {
+    return {
+      base: (this.constructor as any).selectorType,
+      chain:[],
+    }
+  }
+
   onExecute() {
-    this.setOutputData(0, (this.constructor as any).selectorType)
+    this.setOutputData(0, this.toDsl())
   }
 }
 

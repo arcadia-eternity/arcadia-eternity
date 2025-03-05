@@ -11,7 +11,7 @@ abstract class BaseOperatorNode extends BaseGetVariableNode {
   constructor(title: string) {
     super(title)
     this.size = [240, 120]
-    this.addOutput('apply', 'object')
+    this.addOutput('apply', 'apply')
     this.addInput('target', 'selector')
 
     this.addWidget('button', 'debug', 'debug', (v, widget, node, pos, graphcanvas) => {
@@ -26,7 +26,7 @@ abstract class BaseOperatorNode extends BaseGetVariableNode {
 
   onConnectInput(target_slot: number, type: unknown, output: INodeOutputSlot, node: LGraphNode, slot: number): boolean {
     //如果已经有一个连接，则不允许再连接
-    if (this.inputs[slot].link !== null) {
+    if (this.inputs[target_slot].link !== null) {
       ElMessage.error('该输入端口已经有连接')
       return false
     }

@@ -53,7 +53,7 @@ export class CompareEvaluatorNode extends BaseEvaluatorNode {
       '比较值',
       0,
       (v: number) => {
-        this.properties.compareValue = v
+        this.properties.value = v
       },
       {
         associatedInput: 'value',
@@ -62,7 +62,7 @@ export class CompareEvaluatorNode extends BaseEvaluatorNode {
     )
     this.properties = {
       operator: '>',
-      compareValue: 0,
+      value: 0,
     }
   }
 
@@ -101,7 +101,7 @@ export class SameEvaluatorNode extends BaseEvaluatorNode {
       '比较值',
       0,
       (v: number | string | boolean) => {
-        this.properties.compareValue = v
+        this.properties.value = v
       },
       {
         associatedInput: 'value',
@@ -110,7 +110,7 @@ export class SameEvaluatorNode extends BaseEvaluatorNode {
     )
     this.properties = {
       compareType: 'number',
-      compareValue: 0,
+      value: 0,
     }
   }
 
@@ -126,7 +126,6 @@ export class SameEvaluatorNode extends BaseEvaluatorNode {
 export class ProbabilityEvaluatorNode extends BaseEvaluatorNode {
   title: string = '概率条件'
   evaluatorType = 'probability' as const
-  private percent: number = 50
 
   constructor() {
     super('概率条件')
@@ -138,7 +137,7 @@ export class ProbabilityEvaluatorNode extends BaseEvaluatorNode {
       '概率%',
       50,
       (v: number) => {
-        this.percent = v
+        this.properties.percent = v
       },
       {
         min: 0,
@@ -147,22 +146,16 @@ export class ProbabilityEvaluatorNode extends BaseEvaluatorNode {
         property: 'percent',
       },
     )
+    this.properties = {
+      percent: 50,
+    }
   }
 
   toEvaluatorDSL(): EvaluatorDSL {
     return {
       type: 'probability',
-      percent: this.getNumberValue(0, this.percent),
+      percent: this.getNumberValue(0, this.properties.percent as number),
     }
-  }
-
-  onSerialize(info: any) {
-    info.percent = this.percent
-  }
-
-  onConfigure(info: any) {
-    this.percent = info.percent || 50
-    this.widgets![0].value = this.percent
   }
 }
 

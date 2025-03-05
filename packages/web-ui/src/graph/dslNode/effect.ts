@@ -88,9 +88,9 @@ export class EffectNode extends LGraphNode {
     }
 
     // 输入输出端口
-    this.addInput('apply', 'object')
-    this.addInput('condition', 'object')
-    this.addOutput('effect', 'object')
+    this.addInput('apply', 'apply')
+    this.addInput('condition', 'condition')
+    this.addOutput('effect', 'effect')
 
     this.properties = {
       id: 'effect_1',
@@ -110,7 +110,7 @@ export class EffectNode extends LGraphNode {
     slot: number,
   ): boolean {
     //如果对应的输入端口已经有连接，则拒绝新的连接
-    if (this.inputs[slot].link !== null) {
+    if (this.inputs[target_slot].link !== null) {
       ElMessage.error('该输入端口已经有连接')
       return false
       //拒绝重复的链接
