@@ -270,6 +270,9 @@ export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
       type: z.literal('not'),
       condition: conditionDSLSchema,
     }),
+    z.object({
+      type: z.literal('selfUse'),
+    }),
   ]),
 )
 

@@ -90,7 +90,7 @@ function applySelectorStep(
 
       case 'whereAttr': {
         const extractor = parseExtractor(selector, step.extractor)
-        const condition = parseEvaluator(step.condition)
+        const condition = parseEvaluator(step.evaluator)
         return selector.whereAttr(extractor, condition)
       }
 
@@ -317,6 +317,8 @@ export function parseCondition(dsl: ConditionDSL): Condition {
       return parseEveryCondition(dsl)
     case 'not':
       return parseNotCondition(dsl)
+    case 'selfUse':
+      return parseSelfUseCondition(dsl)
   }
 }
 
@@ -336,6 +338,10 @@ export function parseEveryCondition(dsl: Extract<ConditionDSL, { type: 'every' }
 
 export function parseNotCondition(dsl: Extract<ConditionDSL, { type: 'not' }>): Condition {
   return Conditions.not(parseCondition(dsl.condition))
+}
+
+export function parseSelfUseCondition(dsl: Extract<ConditionDSL, { type: 'selfUse' }>): Condition {
+  return Conditions.selfUse()
 }
 
 function validatePath(selector: ChainableSelector<SelectorOpinion>, path: string) {

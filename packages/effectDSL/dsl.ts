@@ -103,14 +103,12 @@ export type Value = RawNumberValue | RawStringValue | RawBooleanValue | RawMarkI
 
 export type BaseSelector = keyof typeof BaseSelector
 
-export type ChainSelector ={
+export type ChainSelector = {
   base: BaseSelector
   chain?: Array<SelectorChain>
 }
 
-export type SelectorDSL =
-  | BaseSelector
-  | ChainSelector
+export type SelectorDSL = BaseSelector | ChainSelector
 
 export type SelectStepDSL = {
   type: 'select'
@@ -222,4 +220,7 @@ export type ConditionDSL =
   | {
       type: 'not'
       condition: ConditionDSL
+    }
+  | {
+      type: 'selfUse'
     }

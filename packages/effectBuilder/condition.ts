@@ -1,3 +1,4 @@
+import { SkillInstance, UseSkillContext } from '@test-battle/battle'
 import type { Condition } from 'effectBuilder'
 
 export const Conditions = {
@@ -14,6 +15,16 @@ export const Conditions = {
   not: (condition: Condition): Condition => {
     return context => {
       return !condition(context)
+    }
+  },
+
+  //用于技能，检查正在使用的技能是否是自身，仅当使用的技能是自身时生效
+  selfUse: (): Condition => {
+    return context => {
+      if (context.parent instanceof UseSkillContext && context.source instanceof SkillInstance) {
+        return context.source === context.parent.skill
+      }
+      return false
     }
   },
 }
