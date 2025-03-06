@@ -28,6 +28,7 @@ export const SkillSchema = z
       ])
       .optional(),
     sureHit: z.boolean().default(false),
+    sureCrit: z.boolean().default(false),
     ignoreShield: z.boolean().default(false),
     tag: z.array(z.string()).default([]),
     effect: z.array(z.string()).optional(),

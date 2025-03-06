@@ -144,6 +144,9 @@ function applySelectorStep(
       case 'shuffled':
         return selector.shuffled()
 
+      case 'limit':
+        return selector.limit(parseValue(step.arg) as ValueSource<number>)
+
       case 'clampMax': {
         assertNumberSelector(selector)
         return selector.clampMax(parseValue(step.arg) as ValueSource<number>)
@@ -275,10 +278,6 @@ export function isNumberValue(value: ValueSource<SelectorOpinion>): value is num
 }
 
 export function parseDamageAction(dsl: Extract<OperatorDSL, { type: 'dealDamage' }>) {
-  const value = parseValue(dsl.value)
-  if (!isNumberValue(value)) {
-    throw new Error('Damage value must be a number')
-  }
   return parseSelector<Pet>(dsl.target).apply(Operators.dealDamage(parseValue(dsl.value) as ValueSource<number>))
 }
 

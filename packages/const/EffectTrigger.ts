@@ -1,6 +1,6 @@
 // 统一效果触发阶段
 
-export enum EffectTrigger {
+export const enum EffectTrigger {
   OnBattleStart = 'OnBattleStart',
 
   //以下EffectTrigger下的，context的parent一定是UseSkillContext

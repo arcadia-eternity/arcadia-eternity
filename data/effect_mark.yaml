@@ -225,3 +225,35 @@
             arg:
               type: raw:number
               value: 8
+- id: effect_reduce_hit_rate
+  trigger: OnMarkCreate
+  priority: 0
+  apply:
+    type: modifyStat
+    target:
+      base: self
+    statType:
+      type: raw:string
+      value: accuracy
+    value:
+      type: raw:number
+      value: 0
+    percent:
+      type: raw:number
+      value: -10
+- id: effect_reset_hit_rate
+  trigger: OnMarkDestroy
+  priority: 0
+  apply:
+    type: modifyStat
+    target:
+      base: self
+    statType:
+      type: raw:string
+      value: accuracy
+    value:
+      type: raw:number
+      value: 0
+    percent:
+      type: raw:number
+      value: 10

@@ -50,10 +50,8 @@ async function loadDataFile(filePath: string, category: FileCategory) {
         break
       case 'effect':
         for (const item of data) {
-          for (const item of data) {
-            const effect = EffectParser.parse(item)
-            DataRepository.getInstance().registerEffect(effect.id, effect)
-          }
+          const effect = EffectParser.parse(item)
+          DataRepository.getInstance().registerEffect(effect.id, effect)
         }
         break
       case 'skill':

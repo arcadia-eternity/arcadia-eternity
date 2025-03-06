@@ -42,12 +42,12 @@ type ExtractorMap = {
 
 export const Extractor: ExtractorMap = {
   hp: {
-    path: 'hp',
+    path: 'currentHp',
     type: 'number',
     extract: (target: Pet) => target.currentHp,
   },
   maxhp: {
-    path: 'maxhp',
+    path: 'maxHp',
     type: 'number',
     extract: (target: Pet) => target.maxHp!,
   },
@@ -62,7 +62,7 @@ export const Extractor: ExtractorMap = {
     extract: (target: OwnedEntity) => target.owner!,
   },
   type: {
-    path: 'type',
+    path: 'element',
     type: 'Element',
     extract: (target: Pet) => target.element,
   },
@@ -72,7 +72,7 @@ export const Extractor: ExtractorMap = {
     extract: (target: Pet) => target.marks,
   },
   stats: {
-    path: 'stats',
+    path: 'stat',
     type: 'StatOnBattle',
     extract: (target: Pet) => target.stat,
   },

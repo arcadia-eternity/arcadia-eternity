@@ -99,6 +99,7 @@ export class UseSkillContext extends Context {
     this.multihit = skill.multihit
     this.power = skill.power
     this.accuracy = skill.accuracy
+    this.petAccurancy = skill.owner?.stat.accuracy || 100
     this.rage = skill.rage
     if (skill.sureHit)
       this.hitOverrides.push({
@@ -111,6 +112,7 @@ export class UseSkillContext extends Context {
   updateActualTarget() {
     this.actualTarget =
       this.skill.target === AttackTargetOpinion.opponent ? this.battle!.getOpponent(this.origin).activePet : this.pet // 动态获取当前目标
+    this.evasion = this.actualTarget?.stat.evasion || 100
   }
 
   updateMultihitResult() {
@@ -126,7 +128,7 @@ export class UseSkillContext extends Context {
   updateHitResult() {
     if (this.hitOverrides.length > 0)
       this.hitResult = this.hitOverrides.reduce((a, b) => (a.priority > b.priority ? a : b)).willHit
-    else this.hitResult = this.battle!.random() > this.skill.accuracy
+    else this.hitResult = this.battle!.random() > (this.accuracy * this.petAccurancy) / this.evasion / 100
   }
 
   updateCritResult() {
@@ -209,12 +211,12 @@ export class UseSkillContext extends Context {
     // 应用伤害阈值（先处理最小值再处理最大值）
     // 最小值阈值处理
     if (this.minThreshold) {
-      intermediateDamage = Math.min(intermediateDamage, this.minThreshold)
+      intermediateDamage = Math.max(intermediateDamage, this.minThreshold)
     }
 
     // 最大值阈值处理
     if (this.maxThreshold) {
-      intermediateDamage = Math.max(intermediateDamage, this.maxThreshold)
+      intermediateDamage = Math.min(intermediateDamage, this.maxThreshold)
     }
 
     // 记录最终伤害

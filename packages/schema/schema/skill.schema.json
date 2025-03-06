@@ -102,6 +102,10 @@
             "type": "boolean",
             "default": false
           },
+          "sureCrit": {
+            "type": "boolean",
+            "default": false
+          },
           "ignoreShield": {
             "type": "boolean",
             "default": false

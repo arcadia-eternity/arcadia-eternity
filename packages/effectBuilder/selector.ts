@@ -140,7 +140,7 @@ export class ChainableSelector<T> {
       }
     }
 
-    return new ChainableSelector<U>(context => this.selector(context).map(extractor.extract), newTypePath)
+    return new ChainableSelector<U>(context => this.selector(context).map(extractor.extract), extractor.type)
   }
 
   //对结果进行筛选
