@@ -183,14 +183,13 @@ export class Player {
       return false
     }
 
-    context.actualTarget =
-      context.skill.target === AttackTargetOpinion.opponent
-        ? this.battle!.getOpponent(context.origin).activePet
-        : context.pet // 动态获取当前目标
-    if (!context.actualTarget) {
-      return false
-    }
+    context.updateActualTarget()
 
+    /*几个无法使用技能的情况：
+    1.当前使用技能的精灵倒下了（生命值低于0或标明了isAlive=false）
+    2.当前的释放技能被打断（通过context.available=false）
+    3.当前的目标不存在
+     */
     if (context.pet.currentHp <= 0 || !context.pet.isAlive || !context.available || !context.actualTarget) {
       this.battle!.emitMessage(BattleMessageType.Error, {
         message: `${context.pet.id} 无法使用 ${context.skill.id}!`,
@@ -214,9 +213,9 @@ export class Player {
 
     context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.skill.rage))
 
-    context.hitResult = this.battle!.random() > context.skill.accuracy && !context.sureHit
+    context.updateHitResult()
     context.updateMultihitResult()
-    context.crit = context.crit || Math.random() < context.pet.stat.critRate || context.sureCrit
+    context.updateCritResult()
 
     this.battle!.applyEffects(context, EffectTrigger.AfterUseSkillCheck)
 
@@ -230,73 +229,14 @@ export class Player {
           reason: 'accuracy',
         })
         this.battle!.applyEffects(context, EffectTrigger.OnMiss)
+        // 后面都会Miss，没必要继续检定了
         break
       } else {
         this.battle!.applyEffects(context, EffectTrigger.BeforeHit)
+
+        //开始计算伤害
         if (context.category !== Category.Status) {
-          const typeMultiplier = ELEMENT_CHART[context.skill.element][context.actualTarget.element] || 1
-          let atk = 0
-          let def = 0
-          let damageType: DamageType
-          switch (context.category) {
-            case Category.Physical:
-              atk = context.pet.actualStat.atk
-              def = context.actualTarget.actualStat.def
-              damageType = DamageType.physical
-              break
-            case Category.Special:
-              atk = context.pet.actualStat.spa
-              def = context.actualTarget.actualStat.spd
-              damageType = DamageType.special
-              break
-            case Category.Climax:
-              if (context.pet.actualStat.atk > context.pet.actualStat.spa) {
-                atk = context.pet.actualStat.atk
-                def = context.actualTarget.actualStat.def
-                damageType = DamageType.physical
-              } else {
-                atk = context.pet.actualStat.spa
-                def = context.actualTarget.actualStat.spd
-                damageType = DamageType.special
-              }
-          }
-          const baseDamage = Math.floor(
-            (((2 * context.actualTarget.level) / 5 + 2) * context.power * (atk / def)) / 50 + 2,
-          )
-
-          // 随机波动
-          const randomFactor = this.battle!.random() * 0.15 + 0.85
-
-          // STAB加成
-          const stabMultiplier = context.pet.species.element === context.skill.element ? 1.5 : 1
-
-          // 暴击加成
-          const critMultiplier = context.crit ? 2 : 1
-
-          // 应用百分比修正（叠加计算）
-          const percentModifier = 1 + context.damageModified[0] / 100
-
-          // 计算中间伤害
-          let intermediateDamage = Math.floor(
-            baseDamage * randomFactor * typeMultiplier * stabMultiplier * critMultiplier * percentModifier,
-          )
-
-          // 应用固定值修正
-          intermediateDamage += context.damageModified[1]
-
-          // 应用伤害阈值（先处理最小值再处理最大值）
-          // 最小值阈值处理
-          if (context.minThreshold) {
-            intermediateDamage = Math.min(intermediateDamage, context.minThreshold)
-          }
-
-          // 最大值阈值处理
-          if (context.maxThreshold) {
-            intermediateDamage = Math.max(intermediateDamage, context.maxThreshold)
-          }
-
-          // 记录最终伤害
-          context.damageResult = Math.max(0, intermediateDamage)
+          context.updateDamageResult()
 
           if (context.crit) this.battle!.applyEffects(context, EffectTrigger.OnCritPreDamage)
           this.battle!.applyEffects(context, EffectTrigger.PreDamage)
@@ -308,9 +248,9 @@ export class Player {
               context.pet,
               context.actualTarget,
               context.damageResult,
-              damageType,
+              context.damageType,
               context.crit,
-              typeMultiplier,
+              context.typeMultiplier,
               context.ignoreShield,
             ),
           )

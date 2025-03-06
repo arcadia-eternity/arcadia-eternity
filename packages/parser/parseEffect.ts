@@ -240,6 +240,12 @@ export function createAction(dsl: OperatorDSL) {
       return parseStunAction(dsl)
     case 'setSureHit':
       return parseSetSureHitAction(dsl)
+    case 'setSureCrit':
+      return parseSetSureCritAction(dsl)
+    case 'setSureMiss':
+      return parseSetSureMissAction(dsl)
+    case 'setSureNoCrit':
+      return parseSetSureNoCritAction(dsl)
     case 'destroyMark':
       return parseDestroyMarkAction(dsl)
     case 'setSkill':
@@ -344,9 +350,19 @@ export function parseTransferMark(dsl: Extract<OperatorDSL, { type: 'transferMar
 }
 
 export function parseSetSureHitAction(dsl: Extract<OperatorDSL, { type: 'setSureHit' }>) {
-  return parseSelector<UseSkillContext>(dsl.target).apply(
-    Operators.setSureHit(parseValue(dsl.value) as ValueSource<boolean>),
-  )
+  return parseSelector<UseSkillContext>(dsl.target).apply(Operators.setSureHit(dsl.priority))
+}
+
+export function parseSetSureCritAction(dsl: Extract<OperatorDSL, { type: 'setSureCrit' }>) {
+  return parseSelector<UseSkillContext>(dsl.target).apply(Operators.setSureCrit(dsl.priority))
+}
+
+export function parseSetSureMissAction(dsl: Extract<OperatorDSL, { type: 'setSureMiss' }>) {
+  return parseSelector<UseSkillContext>(dsl.target).apply(Operators.setSureMiss(dsl.priority))
+}
+
+export function parseSetSureNoCritAction(dsl: Extract<OperatorDSL, { type: 'setSureNoCrit' }>) {
+  return parseSelector<UseSkillContext>(dsl.target).apply(Operators.setSureNoCrit(dsl.priority))
 }
 
 export function parseDestroyMarkAction(dsl: Extract<OperatorDSL, { type: 'destroyMark' }>) {

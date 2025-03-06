@@ -924,14 +924,77 @@
                   "target": {
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
-                  "value": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                  "priority": {
+                    "type": "number"
                   }
                 },
                 "required": [
                   "type",
                   "target",
-                  "value"
+                  "priority"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "setSureCrit"
+                  },
+                  "target": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
+                  },
+                  "priority": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "type",
+                  "target",
+                  "priority"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "setSureMiss"
+                  },
+                  "target": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
+                  },
+                  "priority": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "type",
+                  "target",
+                  "priority"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "setSureNoCrit"
+                  },
+                  "target": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
+                  },
+                  "priority": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "type",
+                  "target",
+                  "priority"
                 ],
                 "additionalProperties": false
               },

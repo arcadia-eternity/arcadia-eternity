@@ -6,7 +6,7 @@ import { BaseMark, MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
 import { SkillInstance } from './skill'
-import type { Category, Element } from '@test-battle/const'
+import { Category, ELEMENT_CHART, type Element } from '@test-battle/const'
 
 export abstract class Context {
   readonly type: string = 'base'
@@ -49,21 +49,34 @@ export class UseSkillContext extends Context {
   accuracy: number = 100
   rage: number = 0
 
-  sureHit: boolean = false
-  sureCrit: boolean = false
+  hitOverrides: {
+    willHit: boolean
+    priority: number
+  }[] = []
+
+  critOverrides: {
+    willCrit: boolean
+    priority: number
+  }[] = []
+
   ignoreShield = false
   multihit: [number, number] | number = 1
 
   available: boolean = true
 
   damageModified: [number, number] = [0, 0] // 百分比修正, 固定值修正
-  minThreshold?: number = undefined // 最小伤害阈值数值
-  maxThreshold?: number = undefined // 最大伤害阈值数值
+  minThreshold: number = 0 // 最小伤害阈值数值
+  maxThreshold: number = Number.MAX_SAFE_INTEGER // 最大伤害阈值数值
 
   actualTarget?: Pet = undefined
   hitResult: boolean = false
   crit: boolean = false
   multihitResult = 1
+
+  damageType: DamageType = DamageType.physical
+  typeMultiplier = 1
+  stabMultiplier = 1.5
+  critMultiplier = 1
 
   damageResult: number = 0
 
@@ -84,9 +97,17 @@ export class UseSkillContext extends Context {
     this.power = skill.power
     this.accuracy = skill.accuracy
     this.rage = skill.rage
-    this.sureHit = skill.sureHit
-    this.sureCrit = skill.sureCrit
+    if (skill.sureHit)
+      this.hitOverrides.push({
+        willHit: true,
+        priority: 0,
+      })
     this.ignoreShield = skill.ignoreShield
+  }
+
+  updateActualTarget() {
+    this.actualTarget =
+      this.skill.target === AttackTargetOpinion.opponent ? this.battle!.getOpponent(this.origin).activePet : this.pet // 动态获取当前目标
   }
 
   updateMultihitResult() {
@@ -98,12 +119,28 @@ export class UseSkillContext extends Context {
     }
   }
 
+  //以下都是取最大优先级的结果
+  updateHitResult() {
+    if (this.hitOverrides.length > 0)
+      this.hitResult = this.hitOverrides.reduce((a, b) => (a.priority > b.priority ? a : b)).willHit
+    else this.hitResult = this.battle!.random() > this.skill.accuracy
+  }
+
+  updateCritResult() {
+    if (this.critOverrides.length > 0) this.critOverrides.reduce((a, b) => (a.priority > b.priority ? a : b)).willCrit
+    else this.crit = this.battle.random() < this.pet.stat.critRate
+  }
+
   setSkill(skill: SkillInstance, updateConfig?: boolean) {
     this.skill = skill
     if (updateConfig) {
       this.power = skill.power
       this.rage = skill.rage
-      this.sureHit = skill.sureHit
+      if (skill.sureHit)
+        this.hitOverrides.push({
+          willHit: true,
+          priority: 0,
+        })
       this.multihit = skill.multihit
       this.ignoreShield = skill.ignoreShield
     }
@@ -117,6 +154,70 @@ export class UseSkillContext extends Context {
     this.power += value
   }
 
+  updateDamageResult() {
+    if (!this.actualTarget) return
+    this.typeMultiplier = ELEMENT_CHART[this.skill.element][this.actualTarget.element] || 1
+    let atk = 0
+    let def = 0
+    switch (this.category) {
+      case Category.Physical:
+        atk = this.pet.actualStat.atk
+        def = this.actualTarget.actualStat.def
+        this.damageType = DamageType.physical
+        break
+      case Category.Special:
+        atk = this.pet.actualStat.spa
+        def = this.actualTarget.actualStat.spd
+        this.damageType = DamageType.special
+        break
+      case Category.Climax:
+        if (this.pet.actualStat.atk > this.pet.actualStat.spa) {
+          atk = this.pet.actualStat.atk
+          def = this.actualTarget.actualStat.def
+          this.damageType = DamageType.physical
+        } else {
+          atk = this.pet.actualStat.spa
+          def = this.actualTarget.actualStat.spd
+          this.damageType = DamageType.special
+        }
+    }
+    const baseDamage = Math.floor((((2 * this.actualTarget.level) / 5 + 2) * this.power * (atk / def)) / 50 + 2)
+
+    // 随机波动
+    const randomFactor = this.battle!.random() * 0.15 + 0.85
+
+    // STAB加成
+    this.stabMultiplier = this.pet.species.element === this.skill.element ? 1.5 : 1
+
+    // 暴击加成
+    this.critMultiplier = this.crit ? 2 : 1
+
+    // 应用百分比修正（叠加计算）
+    const percentModifier = 1 + this.damageModified[0] / 100
+
+    // 计算中间伤害
+    let intermediateDamage = Math.floor(
+      baseDamage * randomFactor * this.typeMultiplier * this.stabMultiplier * this.critMultiplier * percentModifier,
+    )
+
+    // 应用固定值修正
+    intermediateDamage += this.damageModified[1]
+
+    // 应用伤害阈值（先处理最小值再处理最大值）
+    // 最小值阈值处理
+    if (this.minThreshold) {
+      intermediateDamage = Math.min(intermediateDamage, this.minThreshold)
+    }
+
+    // 最大值阈值处理
+    if (this.maxThreshold) {
+      intermediateDamage = Math.max(intermediateDamage, this.maxThreshold)
+    }
+
+    // 记录最终伤害
+    this.damageResult = Math.max(0, intermediateDamage)
+  }
+
   setThreshold(min?: number, max?: number) {
     if (min) this.minThreshold = min
     if (max) this.maxThreshold = max
@@ -126,12 +227,32 @@ export class UseSkillContext extends Context {
     this.crit = crit
   }
 
-  setSureHit(sureHit: boolean) {
-    this.sureHit = sureHit
+  setSureHit(priority = 0) {
+    this.hitOverrides.push({
+      willHit: true,
+      priority: priority,
+    })
   }
 
-  setSureCrit(sureCrit: boolean) {
-    this.sureCrit = sureCrit
+  setSureCrit(priority = 0) {
+    this.critOverrides.push({
+      willCrit: true,
+      priority,
+    })
+  }
+
+  setSureMiss(priority = -1) {
+    this.hitOverrides.push({
+      willHit: false,
+      priority: priority,
+    })
+  }
+
+  setSureNoCrit(priority = -1) {
+    this.critOverrides.push({
+      willCrit: false,
+      priority,
+    })
   }
 
   setActualTarget(target: Pet) {

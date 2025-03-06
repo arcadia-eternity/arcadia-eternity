@@ -85,7 +85,22 @@ export type OperatorDSL =
   | {
       type: 'setSureHit'
       target: SelectorDSL
-      value: Value
+      priority: number
+    }
+  | {
+      type: 'setSureCrit'
+      target: SelectorDSL
+      priority: number
+    }
+  | {
+      type: 'setSureMiss'
+      target: SelectorDSL
+      priority: number
+    }
+  | {
+      type: 'setSureNoCrit'
+      target: SelectorDSL
+      priority: number
     }
   | {
       type: 'setSkill'

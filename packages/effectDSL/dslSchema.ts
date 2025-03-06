@@ -264,7 +264,22 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
     z.object({
       type: z.literal('setSureHit'),
       target: selectorDSLSchema,
-      value: valueSchema,
+      priority: z.number(),
+    }),
+    z.object({
+      type: z.literal('setSureCrit'),
+      target: selectorDSLSchema,
+      priority: z.number(),
+    }),
+    z.object({
+      type: z.literal('setSureMiss'),
+      target: selectorDSLSchema,
+      priority: z.number(),
+    }),
+    z.object({
+      type: z.literal('setSureNoCrit'),
+      target: selectorDSLSchema,
+      priority: z.number(),
     }),
     z.object({
       type: z.literal('destroyMark'),

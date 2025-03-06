@@ -18,9 +18,7 @@
   apply:
     type: setSureHit
     target: usingSkillContext
-    value:
-      type: raw:boolean
-      value: true
+    priority: 1
 - id: effect_40probability_stun
   trigger: BeforeUseSkillCheck
   priority: 0

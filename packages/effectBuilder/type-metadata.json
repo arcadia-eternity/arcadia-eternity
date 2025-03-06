@@ -748,22 +748,16 @@
     },
     {
       "n": "minThreshold",
-      "t": "undefined | number",
-      "iu": true,
-      "u": [
-        "undefined",
-        "number"
-      ],
+      "t": "number",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
       "n": "maxThreshold",
-      "t": "undefined | number",
-      "iu": true,
-      "u": [
-        "undefined",
-        "number"
-      ],
+      "t": "number",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -1365,13 +1359,6 @@
       "a": false
     },
     {
-      "n": "OnCritPostDamage",
-      "t": "UseSkillContext",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
       "n": "BeforeHit",
       "t": "UseSkillContext",
       "iu": false,
@@ -1422,6 +1409,13 @@
     },
     {
       "n": "PostDamage",
+      "t": "DamageContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnCritPostDamage",
       "t": "DamageContext",
       "iu": false,
       "u": [],

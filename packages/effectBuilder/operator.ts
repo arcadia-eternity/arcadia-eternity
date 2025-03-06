@@ -179,11 +179,34 @@ export const Operators = {
     }
   },
 
-  setSureHit: (value: ValueSource<boolean>): Operator<UseSkillContext> => {
+  setSureHit: (priority?: number): Operator<UseSkillContext> => {
     return (context, contexts) => {
-      const _value = GetValueFromSource(context, value)
       contexts.forEach(ctx => {
-        ctx.setSureHit(_value[0])
+        ctx.setSureHit(priority)
+      })
+    }
+  },
+
+  setSureCrit: (priority?: number): Operator<UseSkillContext> => {
+    return (context, contexts) => {
+      contexts.forEach(ctx => {
+        ctx.setSureCrit(priority)
+      })
+    }
+  },
+
+  setSureMiss: (priority?: number): Operator<UseSkillContext> => {
+    return (context, contexts) => {
+      contexts.forEach(ctx => {
+        ctx.setSureMiss(priority)
+      })
+    }
+  },
+
+  setSureNoCrit: (priority?: number): Operator<UseSkillContext> => {
+    return (context, contexts) => {
+      contexts.forEach(ctx => {
+        ctx.setSureNoCrit(priority)
       })
     }
   },
