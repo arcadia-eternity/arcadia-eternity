@@ -183,10 +183,9 @@ export class Player {
       return false
     }
 
-    context.actualTarget =
-      context.skill.target === AttackTargetOpinion.opponent
-        ? this.battle!.getOpponent(context.origin).activePet
-        : context.pet // 动态获取当前目标
+    if (!context.actualTarget) {
+      return false
+    }
 
     if (context.pet.currentHp <= 0 || !context.pet.isAlive || !context.available || !context.actualTarget) {
       this.battle!.emitMessage(BattleMessageType.Error, {

@@ -1,6 +1,18 @@
-import { BaseMark, Effect, MarkInstance, Pet, Player, SkillInstance, UseSkillContext } from '@test-battle/battle'
+import {
+  BaseMark,
+  BaseSkill,
+  DamageContext,
+  Effect,
+  EffectContext,
+  MarkInstance,
+  Pet,
+  Player,
+  SkillInstance,
+  UseSkillContext,
+} from '@test-battle/battle'
 import {
   type baseMarkId,
+  type baseSkillId,
   type effectId,
   EffectTrigger,
   type StatTypeOnBattle,
@@ -232,6 +244,10 @@ export function createAction(dsl: OperatorDSL) {
       return parseDestroyMarkAction(dsl)
     case 'setSkill':
       return parseSetSkill(dsl)
+    case 'preventDamage':
+      return parsePreventDamage(dsl)
+    case 'setActualTarget':
+      return parseSetActualTarget(dsl)
   }
 }
 
@@ -240,8 +256,12 @@ export function parseValue(v: Value): string | number | boolean | ValueSource<Se
   if (v.type === 'raw:number') return v.value as number
   if (v.type === 'raw:string') return v.value as string
   if (v.type === 'raw:boolean') return v.value as boolean
-  if (v.type === 'entity:baseMark') return DataRepository.getInstance().getMark(v.value as baseMarkId)
-  return parseSelector(v.selector)
+  if (v.type === 'entity:baseMark')
+    return (() => [DataRepository.getInstance().getMark(v.value as baseMarkId)]) as ValueSource<BaseMark>
+  if (v.type === 'entity:baseSkill')
+    return (() => [DataRepository.getInstance().getSkill(v.value as baseSkillId)]) as ValueSource<BaseSkill>
+  if (v.type === 'dynamic') return parseSelector(v.selector)
+  throw Error('未知的数值类型')
 }
 
 export function isNumberValue(value: ValueSource<SelectorOpinion>): value is number {
@@ -336,6 +356,16 @@ export function parseDestroyMarkAction(dsl: Extract<OperatorDSL, { type: 'destro
 export function parseSetSkill(dsl: Extract<OperatorDSL, { type: 'setSkill' }>) {
   return parseSelector<UseSkillContext>(dsl.target).apply(
     Operators.setSkill(parseValue(dsl.value) as ValueSource<SkillInstance>),
+  )
+}
+
+export function parsePreventDamage(dsl: Extract<OperatorDSL, { type: 'preventDamage' }>) {
+  return parseSelector<DamageContext>(dsl.target).apply(Operators.preventDamage())
+}
+
+export function parseSetActualTarget(dsl: Extract<OperatorDSL, { type: 'setActualTarget' }>) {
+  return parseSelector<UseSkillContext>(dsl.target).apply(
+    Operators.setActualTarget(parseValue(dsl.newTarget) as ValueSource<Pet>),
   )
 }
 

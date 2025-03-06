@@ -275,6 +275,15 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       target: selectorDSLSchema,
       value: dynamicValueSchema,
     }),
+    z.object({
+      type: z.literal('preventDamage'),
+      target: selectorDSLSchema,
+    }),
+    z.object({
+      type: z.literal('setActualTarget'),
+      target: selectorDSLSchema,
+      newTarget: dynamicValueSchema,
+    }),
   ]),
 )
 

@@ -127,6 +127,12 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     //通过技能威力造成伤害的事件
     if (context.source instanceof Pet) {
       context.battle.applyEffects(context, EffectTrigger.OnDamage)
+      if (!context.available) {
+        context.battle.emitMessage(BattleMessageType.Info, {
+          message: `${this.name}受到的伤害被防止了！!`,
+        })
+        return this.isAlive
+      }
       if (!context.ignoreShield) {
         context.battle.applyEffects(context, EffectTrigger.Shield)
         const shields = this.getShieldMark()
@@ -134,12 +140,6 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
           context.value -= s.consumeStack(context, context.value)
         })
       }
-    }
-    if (!context.available) {
-      context.battle.emitMessage(BattleMessageType.Info, {
-        message: `${this.name}受到的伤害被防止了！!`,
-      })
-      return this.isAlive
     }
     this.currentHp = Math.max(0, this.currentHp - context.value)
     if (this.currentHp === 0) {

@@ -90,7 +90,16 @@ export type OperatorDSL =
   | {
       type: 'setSkill'
       target: SelectorDSL
-      value: DynamicValue
+      value: Value
+    }
+  | {
+      type: 'preventDamage'
+      target: SelectorDSL
+    }
+  | {
+      type: 'setActualTarget'
+      target: SelectorDSL
+      newTarget: DynamicValue
     }
 
 export type RawNumberValue = {
@@ -113,12 +122,23 @@ export type RawBaseMarkIdValue = {
   value: string // Mark的ID需符合特定格式
 }
 
+export type RawBaseSkillIdValue = {
+  type: 'entity:baseSkill'
+  value: string // Mark的ID需符合特定格式
+}
+
 export type DynamicValue = {
   type: 'dynamic'
   selector: SelectorDSL
 }
 
-export type Value = RawNumberValue | RawStringValue | RawBooleanValue | RawBaseMarkIdValue | DynamicValue
+export type Value =
+  | RawNumberValue
+  | RawStringValue
+  | RawBooleanValue
+  | RawBaseMarkIdValue
+  | RawBaseSkillIdValue
+  | DynamicValue
 
 export type BaseSelector = keyof typeof BaseSelector
 

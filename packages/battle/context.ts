@@ -70,6 +70,9 @@ export class UseSkillContext extends Context {
     this.sureHit = skill.sureHit
     this.ignoreShield = skill.ignoreShield
     this.updateMultihitResult()
+
+    this.actualTarget =
+      this.skill.target === AttackTargetOpinion.opponent ? this.battle!.getOpponent(this.origin).activePet : this.pet
   }
 
   updateMultihitResult() {
@@ -112,6 +115,10 @@ export class UseSkillContext extends Context {
   setSureHit(sureHit: boolean) {
     this.sureHit = sureHit
   }
+
+  setActualTarget(target: Pet) {
+    this.actualTarget = target
+  }
 }
 
 export class SwitchPetContext extends Context {
@@ -147,7 +154,7 @@ export class RageContext extends Context {
 export class DamageContext extends Context {
   readonly type = 'damage'
   public readonly battle: Battle
-  public readonly available: boolean = true
+  public available: boolean = true
   constructor(
     public readonly parent: UseSkillContext | EffectContext<EffectTrigger>,
     public readonly source: Pet | MarkInstance | SkillInstance, //来自技能伤害，还是印记和技能的效果获得的伤害

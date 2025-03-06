@@ -8,6 +8,7 @@ import {
   UseSkillContext,
   SkillInstance,
   BaseMark,
+  BaseSkill,
 } from '@test-battle/battle'
 import type { CanOwnedEntity, Instance, OwnedEntity, Prototype } from '@test-battle/battle/entity'
 import {
@@ -359,7 +360,9 @@ export type ObjectOpinion =
   | DamageContext
   | StatTypeOnBattle
   | Instance
+  | BaseMark
   | MarkInstance
+  | BaseSkill
   | SkillInstance
   | CanOwnedEntity
   | OwnedEntity

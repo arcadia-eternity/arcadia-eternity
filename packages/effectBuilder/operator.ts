@@ -197,6 +197,24 @@ export const Operators = {
       })
     }
   },
+
+  preventDamage: (): Operator<DamageContext> => {
+    return (context, contexts) => {
+      contexts.forEach(ctx => {
+        ctx.available = false
+      })
+    }
+  },
+
+  setActualTarget: (newTarget: ValueSource<Pet>): Operator<UseSkillContext> => {
+    return (context, contexts) => {
+      const _target = GetValueFromSource(context, newTarget)
+      if (_target.length === 0) return
+      contexts.forEach(ctx => {
+        ctx.setActualTarget(_target[0])
+      })
+    }
+  },
 }
 
 export function GetValueFromSource<T extends SelectorOpinion>(

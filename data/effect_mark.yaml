@@ -120,3 +120,22 @@
             arg:
               type: raw:number
               value: 1
+- id: effect_prevent_damage
+  trigger: OnDamage
+  priority: 0
+  condition:
+    type: checkSelf
+  apply:
+    type: preventDamage
+    target: damageContext
+- id: effect_confuse
+  trigger: BeforeAttack
+  priority: 0
+  condition:
+    type: checkSelf
+  apply:
+    type: setActualTarget
+    target: usingSkillContext
+    newTarget:
+      type: dynamic
+      selector: self
