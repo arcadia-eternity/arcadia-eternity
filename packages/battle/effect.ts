@@ -97,12 +97,4 @@ export interface EffectContainer {
 export interface EffectConfig<T extends EffectTrigger> {
   id: string
   trigger: T
-  apply: (context: EffectContext<T>) => void
-  priority: number
-  condition?: (context: EffectContext<T>) => boolean
-  consumesStacks?: number // 新增可选消耗层数配置
-}
-
-export function CreateEffect<T extends EffectTrigger>(config: EffectConfig<T>): Effect<T> {
-  return new Effect(config.id as effectId, config.trigger, config.apply, config.priority, config.condition)
-}
+  apply: (context: Effe

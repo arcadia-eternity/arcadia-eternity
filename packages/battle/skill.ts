@@ -25,6 +25,7 @@ export class BaseSkill implements Prototype {
     public readonly target: AttackTargetOpinion = AttackTargetOpinion.opponent,
     public readonly multihit: [number, number] | number = 1,
     public readonly sureHit: boolean = false,
+    public readonly sureCrit: boolean = false,
     public readonly ignoreShield: boolean = false,
     public readonly tag: string[] = [],
     effects: Effect<EffectTrigger>[] = [],
@@ -44,6 +45,7 @@ export class BaseSkill implements Prototype {
     #effects: Effect<EffectTrigger>[] = []
     #priority: number = 0
     #sureHit: boolean = false
+    #sureCrit: boolean = false
     #ignoreShield: boolean = false
     #multihit: [number, number] | number = 0
     #tag: string[] = []
@@ -98,6 +100,11 @@ export class BaseSkill implements Prototype {
       return this
     }
 
+    setSureCrit() {
+      this.#sureCrit = true
+      return this
+    }
+
     withMultihit(hit: [number, number] | number) {
       this.#multihit = hit
     }
@@ -119,6 +126,7 @@ export class BaseSkill implements Prototype {
         this.#target,
         this.#multihit,
         this.#sureHit,
+        this.#sureCrit,
         this.#ignoreShield,
         this.#tag,
         this.#effects,
@@ -139,6 +147,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
   public readonly target: AttackTargetOpinion = AttackTargetOpinion.opponent
   public readonly multihit: [number, number] | number = 1
   public readonly sureHit: boolean = false
+  public readonly sureCrit: boolean = false
   public readonly ignoreShield: boolean = false
   public readonly tag: string[] = []
   public readonly effectState: {
@@ -155,6 +164,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
       target?: AttackTargetOpinion
       multihit?: [number, number] | number
       sureHit?: boolean
+      sureCrit?: boolean
       ignoreShield?: boolean
       tag?: string[]
       effects?: Effect<EffectTrigger>[]
@@ -170,6 +180,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     this.target = overrides?.target ?? base.target
     this.multihit = overrides?.multihit ?? base.multihit
     this.sureHit = overrides?.sureHit ?? base.sureHit
+    this.sureCrit = overrides?.sureCrit ?? base.sureCrit
     this.ignoreShield = overrides?.ignoreShield ?? base.ignoreShield
     this.tag = overrides?.tag ? [...base.tag, ...overrides.tag] : [...base.tag]
     this.effects = [...base.effects, ...(overrides?.effects ? overrides.effects : [])]

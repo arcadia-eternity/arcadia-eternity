@@ -3,7 +3,7 @@
 # @metaType effect
 # @version 1.0.0
 - id: effect_stun
-  trigger: BeforeAttack
+  trigger: BeforeUseSkillCheck
   priority: 0
   condition:
     type: checkSelf
@@ -11,7 +11,7 @@
     type: stun
     target: usingSkillContext
 - id: effect_cant_evasion
-  trigger: BeforeAttack
+  trigger: BeforeUseSkillCheck
   priority: 0
   condition:
     type: checkSelf
@@ -22,7 +22,7 @@
       type: raw:boolean
       value: true
 - id: effect_40probability_stun
-  trigger: BeforeAttack
+  trigger: BeforeUseSkillCheck
   priority: 0
   condition:
     type: every
@@ -57,7 +57,7 @@
     target:
       base: mark
 - id: effect_randomUseSkill
-  trigger: BeforeAttack
+  trigger: BeforeUseSkillCheck
   priority: 0
   condition:
     type: checkSelf
@@ -129,7 +129,7 @@
     type: preventDamage
     target: damageContext
 - id: effect_confuse
-  trigger: BeforeAttack
+  trigger: BeforeUseSkillCheck
   priority: 0
   condition:
     type: checkSelf
@@ -139,3 +139,47 @@
     newTarget:
       type: dynamic
       selector: self
+- id: effect_taunt
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: not
+        condition:
+          type: evaluate
+          target:
+            base: usingSkillContext
+            chain:
+              - type: selectPath
+                arg: category
+          evaluator:
+            type: same
+            value:
+              type: raw:string
+              value: Status
+  apply:
+    type: stun
+    target: usingSkillContext
+- id: effect_physical_stun
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value:
+            type: raw:string
+            value: Physical
+  apply:
+    type: stun
+    target: usingSkillContext

@@ -5,18 +5,21 @@ export enum EffectTrigger {
 
   //以下EffectTrigger下的，context的parent一定是UseSkillContext
   BeforeSort = 'BeforeSort',
-  BeforeAttack = 'BeforeAttack',
-  PreDamage = 'PreDamage',
+  BeforeUseSkillCheck = 'BeforeUseSkillCheck',
+  AfterUseSkillCheck = 'AfterUseSkillCheck',
+  BeforeHit = 'BeforeHit',
   OnCritPreDamage = 'OnCritPreDamage',
-  OnDamage = 'OnDamage',
-  Shield = 'Shield', //专门用于处理护盾效果的Trigger,可以被“无视护盾类效果”给无视
-  PostDamage = 'PostDamage',
-  OnCritPostDamage = 'OnCritPostDamage',
-  OnBeforeHit = 'OnBeforeHit',
+  PreDamage = 'PreDamage',
   OnHit = 'OnHit',
   OnMiss = 'OnMiss',
   AfterAttacked = 'AfterAttacked',
   OnDefeat = 'OnDefeat',
+
+  //以下context的parent一定是DamageContext
+  OnDamage = 'OnDamage',
+  Shield = 'Shield', //专门用于处理护盾效果的Trigger,可以被“无视护盾类效果”给无视
+  PostDamage = 'PostDamage',
+  OnCritPostDamage = 'OnCritPostDamage',
 
   // 印记相关
   TurnStart = 'TurnStart',

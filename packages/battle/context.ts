@@ -6,6 +6,7 @@ import { BaseMark, MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
 import { SkillInstance } from './skill'
+import type { Category, Element } from '@test-battle/const'
 
 export abstract class Context {
   readonly type: string = 'base'
@@ -39,20 +40,32 @@ export class TurnContext extends Context {
 export class UseSkillContext extends Context {
   readonly type = 'use-skill'
   public readonly battle: Battle
-  public available: boolean = true
-  public skillPriority: number = 0
-  public power: number = 0
-  public rageCost: number = 0
-  actualTarget?: Pet = undefined
+
+  priority: number
+
+  category: Category
+  element: Element
+  power: number = 0
+  accuracy: number = 100
+  rage: number = 0
+
+  sureHit: boolean = false
+  sureCrit: boolean = false
+  ignoreShield = false
+  multihit: [number, number] | number = 1
+
+  available: boolean = true
+
   damageModified: [number, number] = [0, 0] // 百分比修正, 固定值修正
-  damageResult: number = 0
   minThreshold?: number = undefined // 最小伤害阈值数值
   maxThreshold?: number = undefined // 最大伤害阈值数值
+
+  actualTarget?: Pet = undefined
+  hitResult: boolean = false
   crit: boolean = false
-  sureHit: boolean = false
-  multihit: [number, number] | number = 1
   multihitResult = 1
-  ignoreShield = false
+
+  damageResult: number = 0
 
   constructor(
     public readonly parent: TurnContext,
@@ -64,15 +77,16 @@ export class UseSkillContext extends Context {
     super(parent)
     this.battle = parent.battle
 
+    this.priority = skill.priority
+    this.category = skill.category
+    this.element = skill.element
     this.multihit = skill.multihit
-    this.power = this.skill.power
-    this.rageCost = this.skill.rage
+    this.power = skill.power
+    this.accuracy = skill.accuracy
+    this.rage = skill.rage
     this.sureHit = skill.sureHit
+    this.sureCrit = skill.sureCrit
     this.ignoreShield = skill.ignoreShield
-    this.updateMultihitResult()
-
-    this.actualTarget =
-      this.skill.target === AttackTargetOpinion.opponent ? this.battle!.getOpponent(this.origin).activePet : this.pet
   }
 
   updateMultihitResult() {
@@ -88,7 +102,7 @@ export class UseSkillContext extends Context {
     this.skill = skill
     if (updateConfig) {
       this.power = skill.power
-      this.rageCost = skill.rage
+      this.rage = skill.rage
       this.sureHit = skill.sureHit
       this.multihit = skill.multihit
       this.ignoreShield = skill.ignoreShield
@@ -114,6 +128,10 @@ export class UseSkillContext extends Context {
 
   setSureHit(sureHit: boolean) {
     this.sureHit = sureHit
+  }
+
+  setSureCrit(sureCrit: boolean) {
+    this.sureCrit = sureCrit
   }
 
   setActualTarget(target: Pet) {
@@ -219,18 +237,20 @@ type TriggerContextMap = {
   [EffectTrigger.OnBattleStart]: Battle
 
   [EffectTrigger.BeforeSort]: UseSkillContext
-  [EffectTrigger.BeforeAttack]: UseSkillContext
+  [EffectTrigger.BeforeUseSkillCheck]: UseSkillContext
+  [EffectTrigger.AfterUseSkillCheck]: UseSkillContext
   [EffectTrigger.PreDamage]: UseSkillContext
   [EffectTrigger.OnCritPreDamage]: UseSkillContext
-  [EffectTrigger.OnDamage]: DamageContext
-  [EffectTrigger.Shield]: DamageContext
-  [EffectTrigger.PostDamage]: DamageContext
-  [EffectTrigger.OnCritPostDamage]: UseSkillContext
-  [EffectTrigger.OnBeforeHit]: UseSkillContext
+  [EffectTrigger.BeforeHit]: UseSkillContext
   [EffectTrigger.OnHit]: UseSkillContext
   [EffectTrigger.OnMiss]: UseSkillContext
   [EffectTrigger.AfterAttacked]: UseSkillContext
   [EffectTrigger.OnDefeat]: UseSkillContext
+
+  [EffectTrigger.OnDamage]: DamageContext
+  [EffectTrigger.Shield]: DamageContext
+  [EffectTrigger.PostDamage]: DamageContext
+  [EffectTrigger.OnCritPostDamage]: DamageContext
 
   [EffectTrigger.TurnStart]: TurnContext
   [EffectTrigger.TurnEnd]: TurnContext

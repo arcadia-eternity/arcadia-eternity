@@ -94,7 +94,7 @@ export const Extractor: ExtractorMap = {
   priority: {
     path: 'priority',
     type: 'number',
-    extract: (target: UseSkillContext) => target.skillPriority,
+    extract: (target: UseSkillContext) => target.priority,
   },
   activePet: {
     path: 'activePet',

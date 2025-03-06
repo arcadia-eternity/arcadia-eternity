@@ -328,8 +328,8 @@ export class Battle extends Context implements MarkOwner {
         const bSkill = b as UseSkillContext
 
         // 先比较技能优先级
-        if (aSkill.skillPriority !== bSkill.skillPriority) {
-          return aSkill.skillPriority - bSkill.skillPriority
+        if (aSkill.priority !== bSkill.priority) {
+          return aSkill.priority - bSkill.priority
         }
 
         // 同优先级比较速度

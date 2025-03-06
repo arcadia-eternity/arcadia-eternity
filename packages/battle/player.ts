@@ -177,12 +177,16 @@ export class Player {
   }
 
   public performAttack(context: UseSkillContext): boolean {
-    this.battle!.applyEffects(context, EffectTrigger.BeforeAttack)
+    this.battle!.applyEffects(context, EffectTrigger.BeforeUseSkillCheck)
     if (!context.skill) {
       this.battle!.emitMessage(BattleMessageType.Error, { message: `${context.pet.name} 没有可用技能!` })
       return false
     }
 
+    context.actualTarget =
+      context.skill.target === AttackTargetOpinion.opponent
+        ? this.battle!.getOpponent(context.origin).activePet
+        : context.pet // 动态获取当前目标
     if (!context.actualTarget) {
       return false
     }
@@ -193,7 +197,7 @@ export class Player {
       })
       return false
     }
-    if (context.origin.currentRage < context.rageCost) {
+    if (context.origin.currentRage < context.rage) {
       // 怒气检查
       this.battle!.emitMessage(BattleMessageType.Error, {
         message: `${context.pet.id} 怒气不足无法使用 ${context.skill.id}!`,
@@ -205,14 +209,20 @@ export class Player {
       user: context.pet.id,
       target: context.selectTarget,
       skill: context.skill.id,
-      rageCost: context.rageCost,
+      rageCost: context.rage,
     })
 
     context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.skill.rage))
 
+    context.hitResult = this.battle!.random() > context.skill.accuracy && !context.sureHit
+    context.updateMultihitResult()
+    context.crit = context.crit || Math.random() < context.pet.stat.critRate || context.sureCrit
+
+    this.battle!.applyEffects(context, EffectTrigger.AfterUseSkillCheck)
+
     for (; context.multihitResult > 0; context.multihitResult--) {
       // 命中判定
-      if (this.battle!.random() > context.skill.accuracy && !context.sureHit) {
+      if (context.hitResult) {
         this.battle!.emitMessage(BattleMessageType.SkillMiss, {
           user: context.pet.id,
           target: context.actualTarget.id,
@@ -220,18 +230,15 @@ export class Player {
           reason: 'accuracy',
         })
         this.battle!.applyEffects(context, EffectTrigger.OnMiss)
+        break
       } else {
-        this.battle!.applyEffects(context, EffectTrigger.OnBeforeHit)
-        if (context.skill.category !== Category.Status) {
-          // 暴击判定
-          context.crit = context.crit || Math.random() < context.pet.stat.critRate
-          if (context.crit) this.battle!.applyEffects(context, EffectTrigger.OnCritPreDamage)
-          this.battle!.applyEffects(context, EffectTrigger.PreDamage)
+        this.battle!.applyEffects(context, EffectTrigger.BeforeHit)
+        if (context.category !== Category.Status) {
           const typeMultiplier = ELEMENT_CHART[context.skill.element][context.actualTarget.element] || 1
           let atk = 0
           let def = 0
           let damageType: DamageType
-          switch (context.skill.category) {
+          switch (context.category) {
             case Category.Physical:
               atk = context.pet.actualStat.atk
               def = context.actualTarget.actualStat.def
@@ -290,6 +297,9 @@ export class Player {
 
           // 记录最终伤害
           context.damageResult = Math.max(0, intermediateDamage)
+
+          if (context.crit) this.battle!.applyEffects(context, EffectTrigger.OnCritPreDamage)
+          this.battle!.applyEffects(context, EffectTrigger.PreDamage)
 
           // 应用伤害
           context.actualTarget.damage(
