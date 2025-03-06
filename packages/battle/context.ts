@@ -47,7 +47,10 @@ export class UseSkillContext extends Context {
   element: Element
   power: number = 0
   accuracy: number = 100
+  petAccurancy: number = 100
+  targetAccurancy: number = 100
   rage: number = 0
+  evasion: number = 100
 
   hitOverrides: {
     willHit: boolean
