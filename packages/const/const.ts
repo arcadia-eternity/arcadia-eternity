@@ -22,7 +22,7 @@ export type PrototypeId = speciesId | baseMarkId | baseSkillId | effectId
 
 export type InstanceId = petId | skillId | markId
 
-export const enum StatType {
+export enum StatType {
   atk = 'atk',
   def = 'def',
   spa = 'spa',
@@ -31,7 +31,7 @@ export const enum StatType {
   hp = 'hp',
 }
 
-export const enum StatTypeWithoutHp {
+export enum StatTypeWithoutHp {
   atk = 'atk',
   def = 'def',
   spa = 'spa',
@@ -39,14 +39,14 @@ export const enum StatTypeWithoutHp {
   spe = 'spe',
 }
 
-export const enum StatTypeOnlyBattle {
+export enum StatTypeOnlyBattle {
   accuracy = 'accuracy',
   evasion = 'evasion',
   critRate = 'critRate',
   ragePerTurn = 'ragePerTurn',
 }
 
-export const enum DamageType {
+export enum DamageType {
   physical = 'physical',
   special = 'special',
   effect = 'effect',
@@ -64,7 +64,7 @@ export type StatBuffOnBattle = Record<StatTypeOnBattle, BuffNumber> // [百分�
 
 export type BuffNumber = [number, number] // [百分比，固定值]
 
-export const enum AttackTargetOpinion {
+export enum AttackTargetOpinion {
   self = 'self',
   opponent = 'opponent',
 }

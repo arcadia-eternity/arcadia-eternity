@@ -67,10 +67,6 @@ export class UseSkillContext extends Context {
 
   available: boolean = true
 
-  damageModified: [number, number] = [0, 0] // 百分比修正, 固定值修正
-  minThreshold: number = 0 // 最小伤害阈值数值
-  maxThreshold: number = Number.MAX_SAFE_INTEGER // 最大伤害阈值数值
-
   actualTarget?: Pet = undefined
   hitResult: boolean = false
   crit: boolean = false
@@ -79,9 +75,10 @@ export class UseSkillContext extends Context {
   damageType: DamageType = DamageType.physical
   typeMultiplier = 1
   stabMultiplier = 1.5
-  critMultiplier = 1
+  critMultiplier = 2
 
-  damageResult: number = 0
+  baseDamage: number = 0
+  randomFactor: number = 1
 
   constructor(
     public readonly parent: TurnContext,
@@ -136,32 +133,8 @@ export class UseSkillContext extends Context {
     else this.crit = this.battle.random() < this.pet.stat.critRate
   }
 
-  setSkill(skill: SkillInstance, updateConfig?: boolean) {
-    this.skill = skill
-    if (updateConfig) {
-      this.power = skill.power
-      this.rage = skill.rage
-      if (skill.sureHit)
-        this.hitOverrides.push({
-          willHit: true,
-          priority: 0,
-        })
-      this.multihit = skill.multihit
-      this.ignoreShield = skill.ignoreShield
-    }
-  }
-
-  amplifyPower(multiplier: number) {
-    this.power *= multiplier
-  }
-
-  addPower(value: number) {
-    this.power += value
-  }
-
   updateDamageResult() {
     if (!this.actualTarget) return
-    this.typeMultiplier = ELEMENT_CHART[this.skill.element][this.actualTarget.element] || 1
     let atk = 0
     let def = 0
     switch (this.category) {
@@ -186,46 +159,45 @@ export class UseSkillContext extends Context {
           this.damageType = DamageType.special
         }
     }
+
+    this.typeMultiplier = ELEMENT_CHART[this.skill.element][this.actualTarget.element] || 1
+
     const baseDamage = Math.floor((((2 * this.actualTarget.level) / 5 + 2) * this.power * (atk / def)) / 50 + 2)
 
-    // 随机波动
-    const randomFactor = this.battle!.random() * 0.15 + 0.85
-
     // STAB加成
-    this.stabMultiplier = this.pet.species.element === this.skill.element ? 1.5 : 1
+    const stabMultiplier = this.pet.species.element === this.skill.element ? this.stabMultiplier : 1
 
     // 暴击加成
-    this.critMultiplier = this.crit ? 2 : 1
+    const critMultiplier = this.crit ? this.critMultiplier : 1
 
-    // 应用百分比修正（叠加计算）
-    const percentModifier = 1 + this.damageModified[0] / 100
+    // 得到基础伤害
+    this.baseDamage = Math.floor(baseDamage * this.typeMultiplier * stabMultiplier * critMultiplier)
 
-    // 计算中间伤害
-    let intermediateDamage = Math.floor(
-      baseDamage * randomFactor * this.typeMultiplier * this.stabMultiplier * this.critMultiplier * percentModifier,
-    )
-
-    // 应用固定值修正
-    intermediateDamage += this.damageModified[1]
-
-    // 应用伤害阈值（先处理最小值再处理最大值）
-    // 最小值阈值处理
-    if (this.minThreshold) {
-      intermediateDamage = Math.max(intermediateDamage, this.minThreshold)
-    }
-
-    // 最大值阈值处理
-    if (this.maxThreshold) {
-      intermediateDamage = Math.min(intermediateDamage, this.maxThreshold)
-    }
-
-    // 记录最终伤害
-    this.damageResult = Math.max(0, intermediateDamage)
+    // 随机波动
+    this.randomFactor = this.battle!.random() * 0.15 + 0.85
   }
 
-  setThreshold(min?: number, max?: number) {
-    if (min) this.minThreshold = min
-    if (max) this.maxThreshold = max
+  setSkill(skill: SkillInstance, updateConfig?: boolean) {
+    this.skill = skill
+    if (updateConfig) {
+      this.power = skill.power
+      this.rage = skill.rage
+      if (skill.sureHit)
+        this.hitOverrides.push({
+          willHit: true,
+          priority: 0,
+        })
+      this.multihit = skill.multihit
+      this.ignoreShield = skill.ignoreShield
+    }
+  }
+
+  amplifyPower(multiplier: number) {
+    this.power *= multiplier
+  }
+
+  addPower(value: number) {
+    this.power += value
   }
 
   setCrit(crit: boolean) {
@@ -299,18 +271,44 @@ export class DamageContext extends Context {
   readonly type = 'damage'
   public readonly battle: Battle
   public available: boolean = true
+  public damageResult: number = 0
   constructor(
     public readonly parent: UseSkillContext | EffectContext<EffectTrigger>,
     public readonly source: Pet | MarkInstance | SkillInstance, //来自技能伤害，还是印记和技能的效果获得的伤害
     public readonly target: Pet,
-    public value: number,
+    public baseDamage: number,
     public damageType: DamageType = DamageType.effect,
     public crit: boolean = false,
     public effectiveness: number = 1,
     public ignoreShield: boolean = false,
+    public randomFactor: number = 1,
+    public damageModified: [number, number] = [0, 0], // 百分比修正, 固定值修正
+    public minThreshold: number = 0, // 最小伤害阈值数值
+    public maxThreshold: number = Number.MAX_SAFE_INTEGER, // 最大伤害阈值数值
   ) {
     super(parent)
     this.battle = parent.battle
+  }
+
+  updateDamageResult() {
+    // 应用百分比修正（叠加计算）
+    const percentModifier = 1 + this.damageModified[0] / 100
+    const deltaModifier = this.damageModified[1]
+    let intermediateDamage = (this.baseDamage * percentModifier + deltaModifier) * this.randomFactor
+
+    // 应用伤害阈值（先处理最小值再处理最大值）
+    // 最小值阈值处理
+    if (this.minThreshold) {
+      intermediateDamage = Math.max(intermediateDamage, this.minThreshold)
+    }
+
+    // 最大值阈值处理
+    if (this.maxThreshold) {
+      intermediateDamage = Math.min(intermediateDamage, this.maxThreshold)
+    }
+
+    // 记录最终伤害
+    this.damageResult = Math.max(0, intermediateDamage)
   }
 }
 

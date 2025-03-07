@@ -137,11 +137,11 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
         context.battle.applyEffects(context, EffectTrigger.Shield)
         const shields = this.getShieldMark()
         shields.forEach(s => {
-          context.value -= s.consumeStack(context, context.value)
+          context.baseDamage -= s.consumeStack(context, context.baseDamage)
         })
       }
     }
-    this.currentHp = Math.max(0, this.currentHp - context.value)
+    this.currentHp = Math.max(0, this.currentHp - context.baseDamage)
     if (this.currentHp === 0) {
       this.isAlive = false
     }
@@ -151,7 +151,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       maxHp: this.maxHp!,
       source: context.source.id,
       target: this.id,
-      damage: context.value,
+      damage: context.baseDamage,
       isCrit: context.crit,
       effectiveness: context.effectiveness,
       damageType: context.damageType,

@@ -241,19 +241,19 @@ export class Player {
           if (context.crit) this.battle!.applyEffects(context, EffectTrigger.OnCritPreDamage)
           this.battle!.applyEffects(context, EffectTrigger.PreDamage)
 
-          // 应用伤害
-          context.actualTarget.damage(
-            new DamageContext(
-              context,
-              context.pet,
-              context.actualTarget,
-              context.damageResult,
-              context.damageType,
-              context.crit,
-              context.typeMultiplier,
-              context.ignoreShield,
-            ),
+          const damageContext = new DamageContext(
+            context,
+            context.pet,
+            context.actualTarget,
+            context.baseDamage,
+            context.damageType,
+            context.crit,
+            context.typeMultiplier,
+            context.ignoreShield,
+            context.randomFactor,
           )
+          // 应用伤害
+          context.actualTarget.damage(damageContext)
 
           if (context.crit)
             this.battle!.emitMessage(BattleMessageType.Crit, {
@@ -262,7 +262,7 @@ export class Player {
             })
 
           // 受伤者获得怒气
-          const gainedRage = Math.floor(context.damageResult * RAGE_PER_DAMAGE)
+          const gainedRage = Math.floor(damageContext.damageResult * RAGE_PER_DAMAGE)
           context.actualTarget.owner!.addRage(
             new RageContext(context, context.actualTarget.owner!, 'damage', 'add', gainedRage),
           )
