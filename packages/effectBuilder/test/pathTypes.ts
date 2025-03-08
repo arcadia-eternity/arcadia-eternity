@@ -1,5 +1,5 @@
 import { Pet } from '@test-battle/battle'
-import { Path } from '../extractor'
+import type { Path } from '../extractor'
 
 type checkOwner = Path<Pet, 'owner'> //expect player
 

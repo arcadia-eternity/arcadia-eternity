@@ -35,7 +35,9 @@ async function loadDataFile(filePath: string, category: FileCategory) {
     }
 
     // YAML 解析
-    const data = YAML.parse(content)
+    const data = YAML.parse(content, {
+      merge: true,
+    })
 
     // 数据校验与注册
     switch (category) {

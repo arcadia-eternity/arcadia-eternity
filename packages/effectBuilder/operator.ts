@@ -88,15 +88,19 @@ export const Operators = {
     },
 
   addStack:
-    <T extends MarkInstance>(value: number) =>
+    <T extends MarkInstance>(value: ValueSource<number>) =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
-      targets.forEach(mark => mark.addStack(value))
+      const _value = GetValueFromSource(context, value)
+      if (_value.length === 0) return
+      targets.forEach(mark => mark.addStack(_value[0]))
     },
 
   consumeStacks:
-    <T extends MarkInstance>(value: number) =>
+    <T extends MarkInstance>(value: ValueSource<number>) =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
-      targets.forEach(mark => mark.consumeStack(context, value))
+      const _value = GetValueFromSource(context, value)
+      if (_value.length === 0) return
+      targets.forEach(mark => mark.consumeStack(context, _value[0]))
     },
 
   // 玩家操作
@@ -131,6 +135,13 @@ export const Operators = {
     contexts.forEach(skillCtx => {
       const _value = GetValueFromSource(context, value)
       _value.forEach(v => skillCtx.addPower(v))
+    })
+  },
+
+  addCritRate: (value: ValueSource<number>) => (context: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
+    contexts.forEach(skillCtx => {
+      const _value = GetValueFromSource(context, value)
+      _value.forEach(v => skillCtx.addCritRate(v))
     })
   },
 

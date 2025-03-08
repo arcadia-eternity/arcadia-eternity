@@ -1,52 +1,343 @@
-# data/effect.yaml
+# data/effect_skill.yaml
 # yaml-language-server: $schema=../packages/schema/schema/effect.schema.json
 # @metaType effect
 # @version 1.0.0
+- id: effect_reduce_stat_5_percent
+  trigger: OnDamage
+  priority: 0
+  apply: &apply_foe_statstage_-1_template
+    type: statStageBuff
+    target:
+      base: foe
+    statType:
+      type: raw:string
+      value: def # 默认值为def，可以根据需要修改
+    value:
+      type: raw:number
+      value: -1
+  condition: &condition_probability_5_percent_template
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent:
+            type: raw:number
+            value: 5
 - id: effect_reduce_def_5_percent
   trigger: OnDamage
   priority: 0
   apply:
-    type: statStageBuff
-    target:
-      base: foe
+    <<: *apply_foe_statstage_-1_template
     statType:
       type: raw:string
       value: def
-    value:
-      type: raw:number
-      value: -1
-  condition:
-    type: every
-    conditions:
-      - type: selfUseSkill
-      - type: evaluate
-        target: self
-        evaluator:
-          type: probability
-          percent:
-            type: raw:number
-            value: 5
+  condition: *condition_probability_5_percent_template
+- id: effect_reduce_spe_5_percent
+  trigger: OnDamage
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType:
+      type: raw:string
+      value: spe
+  condition: *condition_probability_5_percent_template
+- id: effect_reduce_atk_5_percent
+  trigger: OnDamage
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType:
+      type: raw:string
+      value: atk
+  condition: *condition_probability_5_percent_template
+- id: effect_reduce_spa_5_percent
+  trigger: OnDamage
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType:
+      type: raw:string
+      value: spa
+  condition: *condition_probability_5_percent_template
 - id: effect_reduce_spd_5_percent
   trigger: OnDamage
   priority: 0
   apply:
-    type: statStageBuff
-    target:
-      base: foe
+    <<: *apply_foe_statstage_-1_template
     statType:
       type: raw:string
       value: spd
+  condition: *condition_probability_5_percent_template
+- id: effect_raise_atk_1_stages
+  trigger: BeforeHit
+  priority: 0
+  apply: &apply_self_statstage_+1_template
+    type: statStageBuff
+    target:
+      base: self
+    statType:
+      type: raw:string
+      value: atk
     value:
       type: raw:number
-      value: -1
-  condition:
-    type: every
-    conditions:
-      - type: selfUseSkill
-      - type: evaluate
-        target: self
-        evaluator:
-          type: probability
-          percent:
-            type: raw:number
-            value: 5
+      value: 1
+  condition: &condition_self_use_skill_template
+    type: selfUseSkill
+- id: effect_raise_def_1_stages
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType:
+      type: raw:string
+      value: def
+  condition: *condition_self_use_skill_template
+- id: effect_raise_spa_1_stages
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType:
+      type: raw:string
+      value: spa
+  condition: *condition_self_use_skill_template
+- id: effect_raise_spd_1_stages
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType:
+      type: raw:string
+      value: spd
+  condition: *condition_self_use_skill_template
+- id: effect_raise_spe_1_stages
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType:
+      type: raw:string
+      value: spe
+  condition: *condition_self_use_skill_template
+- id: effect_raise_atk_2_stages
+  trigger: BeforeHit
+  priority: 0
+  apply: &apply_self_statstage_+2_template
+    type: statStageBuff
+    target:
+      base: self
+    statType:
+      type: raw:string
+      value: atk
+    value:
+      type: raw:number
+      value: 2
+  condition: *condition_self_use_skill_template
+- id: effect_raise_def_2_stages
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+2_template
+    statType:
+      type: raw:string
+      value: def
+  condition: *condition_self_use_skill_template
+- id: effect_raise_spa_2_stages
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+2_template
+    statType:
+      type: raw:string
+      value: spa
+  condition: *condition_self_use_skill_template
+- id: effect_raise_spd_2_stages
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+2_template
+    statType:
+      type: raw:string
+      value: spd
+  condition: *condition_self_use_skill_template
+- id: effect_raise_spe_2_stages
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+2_template
+    statType:
+      type: raw:string
+      value: spe
+  condition: *condition_self_use_skill_template
+- id: effect_reduce_foe_stat_1_stage
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType:
+      type: raw:string
+      value: def
+  condition: *condition_probability_5_percent_template
+- id: effect_reduce_foe_atk_1_stage
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType:
+      type: raw:string
+      value: atk
+  condition: *condition_probability_5_percent_template
+- id: effect_reduce_foe_def_1_stage
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType:
+      type: raw:string
+      value: def
+  condition: *condition_probability_5_percent_template
+- id: effect_reduce_foe_spa_1_stage
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType:
+      type: raw:string
+      value: spa
+  condition: *condition_probability_5_percent_template
+- id: effect_reduce_foe_spd_1_stage
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType:
+      type: raw:string
+      value: spd
+  condition: *condition_probability_5_percent_template
+- id: effect_reduce_foe_spe_1_stage
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType:
+      type: raw:string
+      value: spe
+  condition: *condition_probability_5_percent_template
+- id: effect_add_ruodian
+  trigger: OnHit
+  priority: 0
+  apply: &apply_foe_add_ruodian_template
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_ruodianjihao
+    stack:
+      type: raw:number
+      value: 1
+  condition: *condition_self_use_skill_template
+- id: effect_add_ruodian_2
+  trigger: OnHit
+  priority: 0
+  apply:
+    <<: *apply_foe_add_ruodian_template
+    stack:
+      type: raw:number
+      value: 2
+  condition: *condition_self_use_skill_template
+- id: effect_consume_ruodian
+  trigger: OnHit
+  priority: -1
+  apply:
+    type: consumeStacks
+    target:
+      base: self
+      chain:
+        - type: select
+          arg:
+            type: base
+            arg: marks
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value:
+              type: raw:string
+              value: mark_ruodianjihao
+    value:
+      type: raw:number
+      value: 1
+  condition: *condition_self_use_skill_template
+- id: effect_add_crit_rate_ruodian
+  trigger: BeforeUseSkillCheck
+  priority: 1
+  apply:
+    type: addCritRate
+    target:
+      base: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: marks
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value:
+                type: raw:string
+                value: mark_ruodianjihao
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg:
+              type: raw:number
+              value: 45
+  condition: *condition_self_use_skill_template
+- id: effect_add_hit_result_ruodian
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addCritRate
+    target:
+      base: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: marks
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value:
+                type: raw:string
+                value: mark_ruodianjihao
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg:
+              type: raw:number
+              value: 45
+  condition: *condition_self_use_skill_template

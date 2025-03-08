@@ -298,6 +298,23 @@
                                                   "properties": {
                                                     "type": {
                                                       "type": "string",
+                                                      "const": "entity:baseSkill"
+                                                    },
+                                                    "value": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "value"
+                                                  ],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
                                                       "const": "dynamic"
                                                     },
                                                     "selector": {
@@ -720,17 +737,13 @@
                   "target": {
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
-                  "mark": {
-                    "type": "string"
-                  },
                   "value": {
-                    "type": "number"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
                   }
                 },
                 "required": [
                   "type",
                   "target",
-                  "mark",
                   "value"
                 ],
                 "additionalProperties": false
@@ -745,17 +758,13 @@
                   "target": {
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
-                  "mark": {
-                    "type": "string"
-                  },
                   "value": {
-                    "type": "number"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
                   }
                 },
                 "required": [
                   "type",
                   "target",
-                  "mark",
                   "value"
                 ],
                 "additionalProperties": false
@@ -882,13 +891,34 @@
                 "properties": {
                   "type": {
                     "type": "string",
+                    "const": "addCritRate"
+                  },
+                  "target": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
+                  },
+                  "value": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                  }
+                },
+                "required": [
+                  "type",
+                  "target",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
                     "const": "transferMark"
                   },
                   "target": {
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "mark": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value/anyOf/4"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value/anyOf/5"
                   }
                 },
                 "required": [
@@ -1027,7 +1057,7 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "value": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value/anyOf/4"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value/anyOf/5"
                   }
                 },
                 "required": [
@@ -1065,7 +1095,7 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "newTarget": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value/anyOf/4"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value/anyOf/5"
                   }
                 },
                 "required": [

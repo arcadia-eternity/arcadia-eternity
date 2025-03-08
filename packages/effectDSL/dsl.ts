@@ -34,12 +34,12 @@ export type OperatorDSL =
   | {
       type: 'addStacks'
       target: SelectorDSL
-      value: number
+      value: Value
     }
   | {
       type: 'consumeStacks'
       target: SelectorDSL
-      value: number
+      value: Value
     }
   | {
       type: 'modifyStat'
@@ -66,6 +66,11 @@ export type OperatorDSL =
     }
   | {
       type: 'addPower'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'addCritRate'
       target: SelectorDSL
       value: Value
     }

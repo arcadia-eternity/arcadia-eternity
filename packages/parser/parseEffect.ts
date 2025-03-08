@@ -47,9 +47,14 @@ import type {
 } from '@test-battle/effect-dsl'
 
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
-  const actions = createAction(dsl.apply)
-  const condition = dsl.condition ? parseCondition(dsl.condition) : undefined
-  return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition)
+  try {
+    const actions = createAction(dsl.apply)
+    const condition = dsl.condition ? parseCondition(dsl.condition) : undefined
+    return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition)
+  } catch (error) {
+    console.log(`解析${dsl.id}时出现问题,`, error)
+    throw error
+  }
 }
 
 export function parseSelector<T extends SelectorOpinion>(dsl: SelectorDSL): ChainableSelector<T> {
@@ -238,6 +243,8 @@ export function createAction(dsl: OperatorDSL) {
       return parseAmplifyPowerAction(dsl)
     case 'addPower':
       return parseAddPowerAction(dsl)
+    case 'addCritRate':
+      return parseAddCritRate(dsl)
     case 'transferMark':
       return parseTransferMark(dsl)
     case 'stun':
@@ -299,11 +306,13 @@ export function parseAddMarkAction(dsl: Extract<OperatorDSL, { type: 'addMark' }
 
 // Pattern for stack-related actions [source_id: operator.ts]
 export function parseAddStacksAction(dsl: Extract<OperatorDSL, { type: 'addStacks' }>) {
-  return parseSelector<MarkInstance>(dsl.target).apply(Operators.addStack(dsl.value))
+  return parseSelector<MarkInstance>(dsl.target).apply(Operators.addStack(parseValue(dsl.value) as ValueSource<number>))
 }
 
 export function parseConsumeStacksAction(dsl: Extract<OperatorDSL, { type: 'consumeStacks' }>) {
-  return parseSelector<MarkInstance>(dsl.target).apply(Operators.consumeStacks(dsl.value))
+  return parseSelector<MarkInstance>(dsl.target).apply(
+    Operators.consumeStacks(parseValue(dsl.value) as ValueSource<number>),
+  )
 }
 
 // Stat modification pattern [source_id: parse.ts]
@@ -340,6 +349,12 @@ export function parseAmplifyPowerAction(dsl: Extract<OperatorDSL, { type: 'ampli
 export function parseAddPowerAction(dsl: Extract<OperatorDSL, { type: 'addPower' }>) {
   return parseSelector<UseSkillContext>(dsl.target).apply(
     Operators.addPower(parseValue(dsl.value) as ValueSource<number>),
+  )
+}
+
+export function parseAddCritRate(dsl: Extract<OperatorDSL, { type: 'addCritRate' }>) {
+  return parseSelector<UseSkillContext>(dsl.target).apply(
+    Operators.addCritRate(parseValue(dsl.value) as ValueSource<number>),
   )
 }
 

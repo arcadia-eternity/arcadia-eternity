@@ -16,6 +16,7 @@ import type {
   SelectorChain,
   SelectorDSL,
   Value,
+  RawBaseSkillIdValue,
 } from './dsl'
 
 const selectorKeys = Object.keys(BaseSelector)
@@ -52,6 +53,13 @@ export const rawBaseMarkIdValueSchema: z.ZodSchema<RawBaseMarkIdValue> = z.objec
   value: z.string().refine(v => v.startsWith('mark_')),
 })
 
+const rawBaseSkillIdValueSchema: z.ZodSchema<RawBaseSkillIdValue> = z.object({
+  type: z.literal('entity:baseSkill'),
+  value: z.string().refine(v => v.startsWith('skill_'), {
+    message: "Skill ID must start with 'skill_'",
+  }),
+})
+
 export const dynamicValueSchema: z.ZodSchema<DynamicValue> = z.lazy(() =>
   z.object({
     type: z.literal('dynamic'),
@@ -64,6 +72,7 @@ export const valueSchema: z.ZodSchema<Value> = z.union([
   rawStringValueSchema,
   rawBooleanValueSchema,
   rawBaseMarkIdValueSchema,
+  rawBaseSkillIdValueSchema,
   dynamicValueSchema,
 ])
 
@@ -215,14 +224,12 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
     z.object({
       type: z.literal('addStacks'),
       target: selectorDSLSchema,
-      mark: z.string(),
-      value: z.number(),
+      value: valueSchema,
     }),
     z.object({
       type: z.literal('consumeStacks'),
       target: selectorDSLSchema,
-      mark: z.string(),
-      value: z.number(),
+      value: valueSchema,
     }),
     z.object({
       type: z.literal('modifyStat'),
@@ -249,6 +256,11 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
     }),
     z.object({
       type: z.literal('addPower'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('addCritRate'),
       target: selectorDSLSchema,
       value: valueSchema,
     }),
