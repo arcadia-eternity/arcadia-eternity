@@ -241,6 +241,10 @@ export class UseSkillContext extends Context {
   addCritRate(delta: number) {
     this.critRate = Math.max(0, Math.min(this.critRate + delta, 1))
   }
+
+  addMultihitResult(delta: number) {
+    this.multihitResult += delta
+  }
 }
 
 export class SwitchPetContext extends Context {

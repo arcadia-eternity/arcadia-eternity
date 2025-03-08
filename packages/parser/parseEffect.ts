@@ -112,6 +112,9 @@ function applySelectorStep(
         return selector.whereAttr(extractor, condition)
       }
 
+      case 'flat':
+        return selector.flat()
+
       case 'and':
         return selector.and(parseSelector(step.arg).build())
 

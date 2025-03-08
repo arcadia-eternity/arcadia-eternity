@@ -214,6 +214,9 @@ export type SelectorChain =
       evaluator: EvaluatorDSL
     }
   | {
+      type: 'flat'
+    }
+  | {
       type: 'and'
       arg: SelectorDSL // 交集
     }

@@ -96,7 +96,7 @@ export class ChainableSelector<T> {
     // 计算新类型路径（例如：Pet.marks[] -> MarkInstance[]）
     const newType = RuntimeTypeChecker.getExpectedType(this.type, path).replace(/\[\]$/, '[]') // 保持数组标记
 
-    return new ChainableSelector(context => this.selector(context).flatMap(createExtractor(path)), newType)
+    return new ChainableSelector(context => this.selector(context).map(createExtractor(path)), newType)
   }
 
   //选择一组对象的某一个参数
@@ -196,6 +196,16 @@ export class ChainableSelector<T> {
         return actualCondition(context, values as U[])
       })
     }, this.type)
+  }
+
+  flat(): ChainableSelector<T extends Array<infer U> ? U : T> {
+    return new ChainableSelector(
+      context => {
+        const results = this.selector(context)
+        return results.flat() as T extends Array<infer U> ? U[] : T[]
+      },
+      this.type.replace(/\[\]$/, ''),
+    ) as ChainableSelector<T extends Array<infer U> ? U : T>
   }
 
   //两个同类型的结果取交集

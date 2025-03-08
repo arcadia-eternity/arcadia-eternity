@@ -283,12 +283,8 @@
     value:
       type: dynamic
       selector:
-        base: self
+        base: selfMarks
         chain:
-          - type: select
-            arg:
-              type: base
-              arg: marks
           - type: whereAttr
             extractor:
               type: base
@@ -317,12 +313,8 @@
     value:
       type: dynamic
       selector:
-        base: self
+        base: selfMarks
         chain:
-          - type: select
-            arg:
-              type: base
-              arg: marks
           - type: whereAttr
             extractor:
               type: base

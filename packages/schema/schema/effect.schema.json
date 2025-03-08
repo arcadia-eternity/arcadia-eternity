@@ -202,6 +202,19 @@
                                   "properties": {
                                     "type": {
                                       "type": "string",
+                                      "const": "flat"
+                                    }
+                                  },
+                                  "required": [
+                                    "type"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
                                       "const": "where"
                                     },
                                     "arg": {
@@ -345,7 +358,7 @@
                                               "const": "same"
                                             },
                                             "value": {
-                                              "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                                              "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                             }
                                           },
                                           "required": [
@@ -364,7 +377,7 @@
                                             "conditions": {
                                               "type": "array",
                                               "items": {
-                                                "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg"
+                                                "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
                                               }
                                             }
                                           },
@@ -384,7 +397,7 @@
                                             "conditions": {
                                               "type": "array",
                                               "items": {
-                                                "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg"
+                                                "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
                                               }
                                             }
                                           },
@@ -402,7 +415,7 @@
                                               "const": "probability"
                                             },
                                             "percent": {
-                                              "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                                              "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                             }
                                           },
                                           "required": [
@@ -448,7 +461,7 @@
                                       "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/0/properties/arg"
                                     },
                                     "evaluator": {
-                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg"
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
                                     }
                                   },
                                   "required": [
@@ -503,7 +516,7 @@
                                       "const": "randomPick"
                                     },
                                     "arg": {
-                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                     }
                                   },
                                   "required": [
@@ -520,7 +533,7 @@
                                       "const": "randomSample"
                                     },
                                     "arg": {
-                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                     }
                                   },
                                   "required": [
@@ -550,7 +563,7 @@
                                       "const": "add"
                                     },
                                     "arg": {
-                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                     }
                                   },
                                   "required": [
@@ -567,7 +580,7 @@
                                       "const": "multiply"
                                     },
                                     "arg": {
-                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                     }
                                   },
                                   "required": [
@@ -584,7 +597,7 @@
                                       "const": "divide"
                                     },
                                     "arg": {
-                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                     }
                                   },
                                   "required": [
@@ -614,7 +627,7 @@
                                       "const": "limit"
                                     },
                                     "arg": {
-                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                     }
                                   },
                                   "required": [
@@ -631,7 +644,7 @@
                                       "const": "clampMax"
                                     },
                                     "arg": {
-                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                     }
                                   },
                                   "required": [
@@ -648,7 +661,7 @@
                                       "const": "clampMin"
                                     },
                                     "arg": {
-                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                     }
                                   },
                                   "required": [
@@ -669,7 +682,7 @@
                     ]
                   },
                   "value": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   }
                 },
                 "required": [
@@ -690,7 +703,7 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "value": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   }
                 },
                 "required": [
@@ -711,13 +724,13 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "mark": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   },
                   "duration": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   },
                   "stack": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   }
                 },
                 "required": [
@@ -738,7 +751,7 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "value": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   }
                 },
                 "required": [
@@ -759,7 +772,7 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "value": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   }
                 },
                 "required": [
@@ -780,13 +793,13 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "statType": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   },
                   "value": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   },
                   "percent": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   }
                 },
                 "required": [
@@ -809,10 +822,10 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "statType": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   },
                   "value": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   }
                 },
                 "required": [
@@ -834,7 +847,7 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "value": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   }
                 },
                 "required": [
@@ -855,7 +868,7 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "value": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   }
                 },
                 "required": [
@@ -876,7 +889,7 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "value": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   }
                 },
                 "required": [
@@ -897,7 +910,7 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "value": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   }
                 },
                 "required": [
@@ -918,7 +931,7 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "mark": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value/anyOf/5"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/5"
                   }
                 },
                 "required": [
@@ -1057,7 +1070,7 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "value": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value/anyOf/5"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/5"
                   }
                 },
                 "required": [
@@ -1095,7 +1108,7 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "newTarget": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value/anyOf/5"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/5"
                   }
                 },
                 "required": [
@@ -1116,10 +1129,10 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "delta": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   },
                   "percent": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                   }
                 },
                 "required": [
@@ -1145,7 +1158,7 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "evaluator": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
                   }
                 },
                 "required": [

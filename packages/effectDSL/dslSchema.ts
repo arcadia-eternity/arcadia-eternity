@@ -104,6 +104,9 @@ export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
       arg: z.string(),
     }),
     z.object({
+      type: z.literal('flat'),
+    }),
+    z.object({
       type: z.literal('where'),
       arg: evaluatorDSLSchema,
     }),
