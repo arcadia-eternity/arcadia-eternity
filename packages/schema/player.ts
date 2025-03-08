@@ -11,4 +11,4 @@ export const PlayerSchema = z.object({
   team: z.array(PetSchema).min(1).max(6), //约定：位于第一位的为首发
 })
 
-export type Player = z.infer<typeof PlayerSchema>
+export type PlayerSchemaType = z.infer<typeof PlayerSchema>

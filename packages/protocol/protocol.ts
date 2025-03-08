@@ -1,7 +1,7 @@
 // src/protocol.ts
 // src/protocol.ts
 import type { BattleMessage, BattleState } from '@test-battle/const'
-import type { Player, PlayerSelection } from '@test-battle/schema'
+import type { PlayerSchemaType, PlayerSelectionSchemaType } from '@test-battle/schema'
 
 // 统一响应类型
 export type SuccessResponse<T = undefined> = {
@@ -38,13 +38,13 @@ export interface ClientToServerEvents {
   // 心跳
   pong: () => void
   // 加入匹配队列
-  joinMatchmaking: (playerSchema: Player, callback: AckResponse<{ status: 'QUEUED' }>) => void
+  joinMatchmaking: (playerSchema: PlayerSchemaType, callback: AckResponse<{ status: 'QUEUED' }>) => void
   //取消匹配
   cancelMatchmaking: (ack: AckResponse<{ status: 'CANCELED' }>) => void
   // 玩家动作
-  playerAction: (selection: PlayerSelection, callback: AckResponse<{ status: 'ACTION_ACCEPTED' }>) => void
+  playerAction: (selection: PlayerSelectionSchemaType, callback: AckResponse<{ status: 'ACTION_ACCEPTED' }>) => void
   // 获取状态
   getState: (ack: AckResponse<BattleState>) => void
   // 获取可用选项
-  getAvailableSelection: (ack: AckResponse<PlayerSelection[]>) => void
+  getAvailableSelection: (ack: AckResponse<PlayerSelectionSchemaType[]>) => void
 }

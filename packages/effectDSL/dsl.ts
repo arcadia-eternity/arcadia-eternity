@@ -287,6 +287,9 @@ export type ConditionDSL =
       condition: ConditionDSL
     }
   | {
+      type: 'petIsActive'
+    }
+  | {
       type: 'selfUseSkill'
     }
   | {

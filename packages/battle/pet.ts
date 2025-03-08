@@ -115,6 +115,10 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     if (this.owner) this.owner.currentRage = value
   }
 
+  public isActive() {
+    return this.owner?.activePet === this
+  }
+
   public settingRage(value: number) {
     this.owner?.settingRage(value)
   }

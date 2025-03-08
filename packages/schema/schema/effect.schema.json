@@ -78,7 +78,8 @@
                           "foeSkills",
                           "selfAvailableSkills",
                           "foeAvailableSkills",
-                          "dataMarks"
+                          "dataMarks",
+                          "healContext"
                         ]
                       },
                       {
@@ -1178,6 +1179,19 @@
                 "required": [
                   "type",
                   "condition"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "petIsActive"
+                  }
+                },
+                "required": [
+                  "type"
                 ],
                 "additionalProperties": false
               },

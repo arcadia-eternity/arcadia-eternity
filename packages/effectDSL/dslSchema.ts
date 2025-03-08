@@ -328,6 +328,9 @@ export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
       condition: conditionDSLSchema,
     }),
     z.object({
+      type: z.literal('petIsActive'),
+    }),
+    z.object({
       type: z.literal('selfUseSkill'),
     }),
     z.object({

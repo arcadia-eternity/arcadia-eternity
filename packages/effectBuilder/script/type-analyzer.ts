@@ -17,7 +17,6 @@ export type ClassTypeInfo = {
 export class TypeAnalyzer {
   private project: Project
   private typeCache = new Map<string, ClassTypeInfo>()
-  private tempFileCreated = false
   private maxDepth = 5
 
   constructor(tsConfigPath: string) {

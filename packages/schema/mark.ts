@@ -23,9 +23,9 @@ export const MarkSchema = z
   })
   .passthrough()
 
-export type Mark = z.infer<typeof MarkSchema>
+export type MarkSchemaType = z.infer<typeof MarkSchema>
 
-export function validateMark(data: unknown): Mark {
+export function validateMark(data: unknown): MarkSchemaType {
   return MarkSchema.parse(data)
 }
 

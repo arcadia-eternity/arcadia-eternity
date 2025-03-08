@@ -35,7 +35,7 @@ export const SkillSchema = z
   })
   .passthrough()
 
-export type Skill = z.infer<typeof SkillSchema>
+export type SkillSchemaType = z.infer<typeof SkillSchema>
 
 export const SkillDataSetSchema = z.array(SkillSchema)
 

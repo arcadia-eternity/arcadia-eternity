@@ -39,7 +39,7 @@ export const PlayerSelectionSchema = z.discriminatedUnion('type', [
   SurrenderSelectionSchema,
 ])
 
-export type PlayerSelection = z.infer<typeof PlayerSelectionSchema>
+export type PlayerSelectionSchemaType = z.infer<typeof PlayerSelectionSchema>
 
 // 最终命令结构
 export const PlayerSelectionsSchema = z.object({

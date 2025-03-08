@@ -403,6 +403,8 @@ export function parseCondition(dsl: ConditionDSL): Condition {
       return parseEveryCondition(dsl)
     case 'not':
       return parseNotCondition(dsl)
+    case 'petIsActive':
+      return Conditions.petIsActive()
     case 'selfUseSkill':
       return Conditions.selfUseSkill()
     case 'checkSelf':

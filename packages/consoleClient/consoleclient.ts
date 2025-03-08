@@ -13,7 +13,7 @@ import {
   type SkillMessage,
 } from '@test-battle/const'
 import { DataRepository } from '@test-battle/data-repository'
-import type { Player, PlayerSelection } from '@test-battle/schema'
+import type { PlayerSchemaType, PlayerSelectionSchemaType } from '@test-battle/schema'
 import { exit } from 'process'
 import readline from 'readline'
 
@@ -21,11 +21,11 @@ export class ConsoleClient {
   private client: BattleClient
   private messages: BattleMessage[] = []
   public battleState?: BattleState
-  public foe?: Player
+  public foe?: PlayerSchemaType
 
   constructor(
     serverUrl: string,
-    private playerData: Player,
+    private playerData: PlayerSchemaType,
   ) {
     this.client = new BattleClient({ serverUrl })
     this.setupEventHandlers()
@@ -371,7 +371,7 @@ export class ConsoleClient {
     }
   }
 
-  private showSelectionMenu(selections: PlayerSelection[]) {
+  private showSelectionMenu(selections: PlayerSelectionSchemaType[]) {
     console.log('\n=== 可用操作 ===')
     selections.forEach((s, i) => {
       const index = i + 1
@@ -402,7 +402,7 @@ export class ConsoleClient {
     })
   }
 
-  private parseSelection(selections: PlayerSelection[], choice: number): PlayerSelection | null {
+  private parseSelection(selections: PlayerSelectionSchemaType[], choice: number): PlayerSelectionSchemaType | null {
     return choice >= 1 && choice <= selections.length ? selections[choice - 1] : null
   }
 

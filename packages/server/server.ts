@@ -2,7 +2,7 @@ import { Battle } from '@test-battle/battle'
 import { BattleMessageType, type BattleState } from '@test-battle/const'
 import { PlayerParser, SelectionParser } from '@test-battle/parser'
 import type { AckResponse, ClientToServerEvents, ErrorResponse, ServerToClientEvents } from '@test-battle/protocol'
-import { type PlayerSelection, PlayerSelectionSchema } from '@test-battle/schema'
+import { type PlayerSelectionSchemaType, PlayerSelectionSchema } from '@test-battle/schema'
 import { nanoid } from 'nanoid'
 import pino from 'pino'
 import { Server, Socket } from 'socket.io'
@@ -302,7 +302,7 @@ export class BattleServer {
 
   private handleGetSelection(
     socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
-    ack?: AckResponse<PlayerSelection[]>,
+    ack?: AckResponse<PlayerSelectionSchemaType[]>,
   ) {
     try {
       const player = this.getPlayerBySocket(socket.id)
@@ -388,7 +388,7 @@ export class BattleServer {
   private handleGetSelectionError(
     error: unknown,
     socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
-    ack?: AckResponse<PlayerSelection[]>,
+    ack?: AckResponse<PlayerSelectionSchemaType[]>,
   ) {
     const response: ErrorResponse = {
       status: 'ERROR',

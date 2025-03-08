@@ -179,10 +179,10 @@ export class Battle extends Context implements MarkOwner {
     if (target.length == 0)
       effectContainers = [
         ...this.marks,
-        ...this.playerA.activePet.marks,
-        ...this.playerB.activePet.marks,
-        ...this.playerA.activePet.skills,
-        ...this.playerB.activePet.skills,
+        ...this.playerA.team.map(p => p.marks).flat(),
+        ...this.playerB.team.map(p => p.marks).flat(),
+        ...this.playerA.team.map(p => p.skills).flat(),
+        ...this.playerB.team.map(p => p.skills).flat(),
       ]
 
     // 阶段1：收集所有待触发效果

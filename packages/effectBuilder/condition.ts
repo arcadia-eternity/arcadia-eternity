@@ -1,4 +1,4 @@
-import { DamageContext, MarkInstance, SkillInstance, UseSkillContext } from '@test-battle/battle'
+import { DamageContext, Pet, SkillInstance, UseSkillContext } from '@test-battle/battle'
 import type { Condition } from 'effectBuilder'
 
 export const Conditions = {
@@ -15,6 +15,15 @@ export const Conditions = {
   not: (condition: Condition): Condition => {
     return context => {
       return !condition(context)
+    }
+  },
+
+  petIsActive: (): Condition => {
+    return context => {
+      if (context.source.owner instanceof Pet) {
+        return context.source.owner.isActive()
+      }
+      return false
     }
   },
 

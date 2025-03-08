@@ -43,7 +43,7 @@ export const PetSchema = z.object({
   emblem: z.string().optional(),
 })
 // 推导 TypeScript 类型
-export type Pet = z.infer<typeof PetSchema>
+export type PetSchemaType = z.infer<typeof PetSchema>
 
 // 技能集合校验
 export const PetSetSchema = z.array(PetSchema)
@@ -51,7 +51,7 @@ export const PetSetSchema = z.array(PetSchema)
 // 推导数据集类型
 export type PetSet = z.infer<typeof PetSetSchema>
 
-export function validatePet(data: unknown): Pet {
+export function validatePet(data: unknown): PetSchemaType {
   return PetSchema.parse(data)
 }
 

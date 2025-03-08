@@ -2,4 +2,51 @@
 # yaml-language-server: $schema=../packages/schema/schema/effect.schema.json
 # @metaType effect
 # @version 1.0.0
-[]
+- id: effect_reduce_def_5_percent
+  trigger: OnDamage
+  priority: 0
+  apply:
+    type: statStageBuff
+    target:
+      base: foe
+    statType:
+      type: raw:string
+      value: def
+    value:
+      type: raw:number
+      value: -1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent:
+            type: raw:number
+            value: 5
+- id: effect_reduce_spd_5_percent
+  trigger: OnDamage
+  priority: 0
+  apply:
+    type: statStageBuff
+    target:
+      base: foe
+    statType:
+      type: raw:string
+      value: spd
+    value:
+      type: raw:number
+      value: -1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent:
+            type: raw:number
+            value: 5

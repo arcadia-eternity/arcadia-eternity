@@ -2,7 +2,7 @@
 import { TypeAnalyzer } from './type-analyzer'
 import { writeFileSync } from 'fs'
 
-const analyzer = new TypeAnalyzer('./tsconfig.json')
+const analyzer = new TypeAnalyzer('../battle/tsconfig.json')
 const typeMap = analyzer.analyzeClasses()
 
 // 转换为更紧凑的格式

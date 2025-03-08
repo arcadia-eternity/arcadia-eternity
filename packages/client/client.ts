@@ -6,7 +6,7 @@ import {
   type SuccessResponse,
   type ErrorResponse,
 } from '@test-battle/protocol'
-import { type Player, type PlayerSelection } from '@test-battle/schema'
+import { type PlayerSchemaType, type PlayerSelectionSchemaType } from '@test-battle/schema'
 import { io, type Socket } from 'socket.io-client'
 
 type BattleClientOptions = {
@@ -91,7 +91,7 @@ export class BattleClient {
     })
   }
 
-  async joinMatchmaking(playerData: Player): Promise<void> {
+  async joinMatchmaking(playerData: PlayerSchemaType): Promise<void> {
     this.verifyConnection()
     this.updateState({ matchmaking: 'searching' })
 
@@ -133,7 +133,7 @@ export class BattleClient {
     })
   }
 
-  async sendPlayerAction(selection: PlayerSelection): Promise<void> {
+  async sendPlayerAction(selection: PlayerSelectionSchemaType): Promise<void> {
     this.verifyBattleActive()
 
     return new Promise((resolve, reject) => {
@@ -171,14 +171,14 @@ export class BattleClient {
     })
   }
 
-  async getAvailableSelection(): Promise<PlayerSelection[]> {
+  async getAvailableSelection(): Promise<PlayerSelectionSchemaType[]> {
     this.verifyBattleActive()
 
     return new Promise((resolve, reject) => {
       this.socket.emit('getAvailableSelection', response => {
         if (response.status === 'SUCCESS') {
           // 添加类型断言和空值检查
-          const data = response.data as PlayerSelection[] | undefined
+          const data = response.data as PlayerSelectionSchemaType[] | undefined
           resolve(data || [])
         } else {
           reject(this.parseError(response))

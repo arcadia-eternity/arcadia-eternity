@@ -40,7 +40,7 @@ export const SpeciesSchema = z
 
 export type LearnableSkill = z.infer<typeof LearnableSkillSchema>
 
-export type Species = z.infer<typeof SpeciesSchema>
+export type SpeciesSchemaType = z.infer<typeof SpeciesSchema>
 
 export const SpeciesDataSetSchema = z.array(SpeciesSchema)
 
