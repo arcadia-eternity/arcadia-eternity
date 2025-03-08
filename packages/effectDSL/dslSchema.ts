@@ -299,6 +299,12 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       target: selectorDSLSchema,
       newTarget: dynamicValueSchema,
     }),
+    z.object({
+      type: z.literal('addModified'),
+      target: selectorDSLSchema,
+      delta: valueSchema,
+      percent: valueSchema,
+    }),
   ]),
 )
 
@@ -331,7 +337,7 @@ export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
       type: z.literal('foeUseSkill'),
     }),
     z.object({
-      type: z.literal('selfDamage'),
+      type: z.literal('selfBeDamaged'),
     }),
   ]),
 )

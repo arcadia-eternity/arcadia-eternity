@@ -238,6 +238,17 @@ export const Operators = {
       })
     }
   },
+
+  addModified: (percent: ValueSource<number>, delta: ValueSource<number>): Operator<DamageContext | HealContext> => {
+    return (context, contexts) => {
+      const _percent = GetValueFromSource(context, percent)
+      const _delta = GetValueFromSource(context, delta)
+      if (_percent.length === 0 || _delta.length === 0) return
+      contexts.forEach(ctx => {
+        ctx.addModified(_percent[0], _delta[0])
+      })
+    }
+  },
 }
 
 export function GetValueFromSource<T extends SelectorOpinion>(

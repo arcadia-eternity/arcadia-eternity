@@ -116,6 +116,12 @@ export type OperatorDSL =
       target: SelectorDSL
       newTarget: DynamicValue
     }
+  | {
+      type: 'addModified'
+      target: SelectorDSL
+      delta: Value
+      percent: Value
+    }
 
 export type RawNumberValue = {
   type: 'raw:number'
@@ -290,5 +296,5 @@ export type ConditionDSL =
       type: 'foeUseSkill'
     }
   | {
-      type: 'selfDamage'
+      type: 'selfBeDamaged'
     }

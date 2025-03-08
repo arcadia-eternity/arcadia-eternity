@@ -282,7 +282,7 @@ export class DamageContext extends Context {
     public effectiveness: number = 1,
     public ignoreShield: boolean = false,
     public randomFactor: number = 1,
-    public damageModified: [number, number] = [0, 0], // 百分比修正, 固定值修正
+    public modified: [number, number] = [0, 0], // 百分比修正, 固定值修正
     public minThreshold: number = 0, // 最小伤害阈值数值
     public maxThreshold: number = Number.MAX_SAFE_INTEGER, // 最大伤害阈值数值
   ) {
@@ -292,8 +292,8 @@ export class DamageContext extends Context {
 
   updateDamageResult() {
     // 应用百分比修正（叠加计算）
-    const percentModifier = 1 + this.damageModified[0] / 100
-    const deltaModifier = this.damageModified[1]
+    const percentModifier = 1 + this.modified[0] / 100
+    const deltaModifier = this.modified[1]
     let intermediateDamage = (this.baseDamage * percentModifier + deltaModifier) * this.randomFactor
 
     // 应用伤害阈值（先处理最小值再处理最大值）
@@ -310,6 +310,11 @@ export class DamageContext extends Context {
     // 记录最终伤害
     this.damageResult = Math.max(0, intermediateDamage)
   }
+
+  addModified: (percent: number, delta: number) => void = (percent, delta) => {
+    this.modified[0] += percent
+    this.modified[1] += delta
+  }
 }
 
 export class HealContext extends Context {
@@ -321,9 +326,15 @@ export class HealContext extends Context {
     public readonly source: MarkInstance | SkillInstance,
     public value: number,
     public ingoreEffect: boolean = false,
+    public modified: [number, number] = [0, 0], // 百分比修正, 固定值修正
   ) {
     super(parent)
     this.battle = parent.battle
+  }
+
+  addModified: (percent: number, delta: number) => void = (percent, delta) => {
+    this.modified[0] += percent
+    this.modified[1] += delta
   }
 }
 

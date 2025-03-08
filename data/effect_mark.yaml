@@ -40,7 +40,7 @@
   trigger: PostDamage
   priority: 0
   condition:
-    type: selfDamage
+    type: selfBeDamaged
   apply:
     type: destroyMark
     target:
@@ -49,7 +49,7 @@
   trigger: OnCritPostDamage
   priority: 0
   condition:
-    type: selfDamage
+    type: selfBeDamaged
   apply:
     type: destroyMark
     target:
@@ -78,7 +78,7 @@
   condition:
     type: every
     conditions:
-      - type: selfDamage
+      - type: selfBeDamaged
       - type: evaluate
         target:
           base: damageContext
@@ -257,3 +257,67 @@
     percent:
       type: raw:number
       value: 10
+- id: effect_decrease_atk
+  trigger: OnMarkCreate
+  priority: 0
+  apply:
+    type: modifyStat
+    target:
+      base: self
+    statType:
+      type: raw:string
+      value: atk
+    value:
+      type: raw:number
+      value: 0
+    percent:
+      type: raw:number
+      value: -25
+- id: effect_decrease_atk_reset
+  trigger: OnMarkCreate
+  priority: 0
+  apply:
+    type: modifyStat
+    target:
+      base: self
+    statType:
+      type: raw:string
+      value: atk
+    value:
+      type: raw:number
+      value: 0
+    percent:
+      type: raw:number
+      value: 25
+- id: effect_decrease_spa
+  trigger: OnMarkCreate
+  priority: 0
+  apply:
+    type: modifyStat
+    target:
+      base: self
+    statType:
+      type: raw:string
+      value: spa
+    value:
+      type: raw:number
+      value: 0
+    percent:
+      type: raw:number
+      value: -25
+- id: effect_decrease_spa_reset
+  trigger: OnMarkCreate
+  priority: 0
+  apply:
+    type: modifyStat
+    target:
+      base: self
+    statType:
+      type: raw:string
+      value: spa
+    value:
+      type: raw:number
+      value: 0
+    percent:
+      type: raw:number
+      value: 25

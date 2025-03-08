@@ -4,6 +4,7 @@ import {
   DamageContext,
   Effect,
   EffectContext,
+  HealContext,
   MarkInstance,
   Pet,
   Player,
@@ -257,6 +258,8 @@ export function createAction(dsl: OperatorDSL) {
       return parsePreventDamage(dsl)
     case 'setActualTarget':
       return parseSetActualTarget(dsl)
+    case 'addModified':
+      return parseAddModified(dsl)
   }
 }
 
@@ -384,6 +387,12 @@ export function parseSetActualTarget(dsl: Extract<OperatorDSL, { type: 'setActua
   )
 }
 
+export function parseAddModified(dsl: Extract<OperatorDSL, { type: 'addModified' }>) {
+  return parseSelector<DamageContext | HealContext>(dsl.target).apply(
+    Operators.addModified(parseValue(dsl.percent) as ValueSource<number>, parseValue(dsl.delta) as ValueSource<number>),
+  )
+}
+
 export function parseCondition(dsl: ConditionDSL): Condition {
   switch (dsl.type) {
     case 'evaluate':
@@ -400,8 +409,8 @@ export function parseCondition(dsl: ConditionDSL): Condition {
       return Conditions.checkSelf()
     case 'foeUseSkill':
       return Conditions.foeUseSkill()
-    case 'selfDamage':
-      return Conditions.selfDamage()
+    case 'selfBeDamaged':
+      return Conditions.selfBeDamaged()
   }
 }
 

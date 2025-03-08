@@ -1073,6 +1073,31 @@
                   "newTarget"
                 ],
                 "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "addModified"
+                  },
+                  "target": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
+                  },
+                  "delta": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                  },
+                  "percent": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/3/properties/arg/anyOf/0/properties/value"
+                  }
+                },
+                "required": [
+                  "type",
+                  "target",
+                  "delta",
+                  "percent"
+                ],
+                "additionalProperties": false
               }
             ]
           },
@@ -1200,7 +1225,7 @@
                 "properties": {
                   "type": {
                     "type": "string",
-                    "const": "selfDamage"
+                    "const": "selfBeDamaged"
                   }
                 },
                 "required": [

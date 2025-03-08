@@ -46,7 +46,7 @@ export const Conditions = {
     }
   },
 
-  selfDamage: (): Condition => {
+  selfBeDamaged: (): Condition => {
     return context => {
       if (context.parent instanceof DamageContext) {
         return context.source.owner === context.parent.target
