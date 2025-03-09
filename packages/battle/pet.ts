@@ -97,12 +97,14 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     this.owner = null
     this.skills = skills.map(s => new SkillInstance(s))
     if (!weight) this.weight = species.weightRange[1]
+    else this.weight = weight
     if (!height) this.height = species.heightRange[1]
+    else this.height = height
     if (!gender) {
       if (!this.species.genderRatio) this.gender = Gender.NoGender
       else if (this.species.genderRatio[0] != 0) this.gender = Gender.Female
       else this.gender = Gender.Male
-    }
+    } else this.gender = gender
     if (ability) this.marks.push(new MarkInstance(ability))
     if (emblem) this.marks.push(new MarkInstance(emblem))
   }
@@ -335,15 +337,30 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   // 清理能力等级时同时清除相关印记
-  public clearStatStage(context: EffectContext<EffectTrigger>) {
-    this.statStage = { atk: 1, def: 1, spa: 1, spd: 1, spe: 1 }
-    this.marks = this.marks.filter(mark => {
-      if (mark instanceof StatLevelMarkInstance) {
-        mark.destroy(context)
-        return false
-      }
-      return true
-    })
+  public clearStatStage(context: EffectContext<EffectTrigger>, ...statTypes: StatTypeWithoutHp[]) {
+    if (!statTypes || statTypes.length === 0) {
+      // Clear all stat stages
+      this.statStage = { atk: 1, def: 1, spa: 1, spd: 1, spe: 1 }
+      this.marks = this.marks.filter(mark => {
+        if (mark instanceof StatLevelMarkInstance) {
+          mark.destroy(context)
+          return false
+        }
+        return true
+      })
+    } else {
+      // Clear only specified stat stages
+      statTypes.forEach(statType => {
+        this.statStage[statType] = 1
+        this.marks = this.marks.filter(mark => {
+          if (mark instanceof StatLevelMarkInstance && mark.statType === statType) {
+            mark.destroy(context)
+            return false
+          }
+          return true
+        })
+      })
+    }
   }
 
   public transferMarks(...marks: MarkInstance[]) {

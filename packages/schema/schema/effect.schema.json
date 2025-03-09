@@ -256,6 +256,9 @@
                                                   "additionalProperties": false
                                                 },
                                                 {
+                                                  "type": "number"
+                                                },
+                                                {
                                                   "type": "object",
                                                   "properties": {
                                                     "type": {
@@ -273,6 +276,9 @@
                                                   "additionalProperties": false
                                                 },
                                                 {
+                                                  "type": "string"
+                                                },
+                                                {
                                                   "type": "object",
                                                   "properties": {
                                                     "type": {
@@ -288,6 +294,9 @@
                                                     "value"
                                                   ],
                                                   "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "boolean"
                                                 },
                                                 {
                                                   "type": "object",
@@ -841,6 +850,26 @@
                 "properties": {
                   "type": {
                     "type": "string",
+                    "const": "clearStatStage"
+                  },
+                  "target": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
+                  },
+                  "statType": {
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                  }
+                },
+                "required": [
+                  "type",
+                  "target"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
                     "const": "addRage"
                   },
                   "target": {
@@ -952,7 +981,7 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "mark": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/5"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/8"
                   }
                 },
                 "required": [
@@ -1091,7 +1120,7 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "value": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/5"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/8"
                   }
                 },
                 "required": [
@@ -1129,7 +1158,7 @@
                     "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target"
                   },
                   "newTarget": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/5"
+                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/8"
                   }
                 },
                 "required": [

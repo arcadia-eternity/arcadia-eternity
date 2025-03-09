@@ -1,5 +1,5 @@
 import { DamageContext, Pet, SkillInstance, UseSkillContext } from '@test-battle/battle'
-import type { Condition } from 'effectBuilder'
+import type { Condition } from './effectBuilder'
 
 export const Conditions = {
   some: (...conditions: Condition[]): Condition => {

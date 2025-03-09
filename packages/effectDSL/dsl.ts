@@ -55,6 +55,11 @@ export type OperatorDSL =
       value: Value
     }
   | {
+      type: 'clearStatStage'
+      target: SelectorDSL
+      statType?: Value
+    }
+  | {
       type: 'addRage'
       target: SelectorDSL
       value: Value
@@ -176,6 +181,10 @@ export type Value =
   | RawBaseMarkIdValue
   | RawBaseSkillIdValue
   | DynamicValue
+  | Array<Value>
+  | number
+  | string
+  | boolean
 
 export type BaseSelector = keyof typeof BaseSelector
 

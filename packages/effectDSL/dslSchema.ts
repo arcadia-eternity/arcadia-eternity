@@ -69,8 +69,11 @@ export const dynamicValueSchema: z.ZodSchema<DynamicValue> = z.lazy(() =>
 
 export const valueSchema: z.ZodSchema<Value> = z.union([
   rawNumberValueSchema,
+  z.number(),
   rawStringValueSchema,
+  z.string(),
   rawBooleanValueSchema,
+  z.boolean(),
   rawBaseMarkIdValueSchema,
   rawBaseSkillIdValueSchema,
   dynamicValueSchema,
@@ -246,6 +249,11 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       target: selectorDSLSchema,
       statType: valueSchema,
       value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('clearStatStage'),
+      target: selectorDSLSchema,
+      statType: valueSchema.optional(),
     }),
     z.object({
       type: z.literal('addRage'),

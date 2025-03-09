@@ -18,7 +18,9 @@ import type { Operator } from './effectBuilder'
 import { ChainableSelector, type PrimitiveOpinion, type PropertyRef, type SelectorOpinion } from './selector'
 import { type ValueSource } from './effectBuilder'
 
-function createDynamicOperator<T, U>(handler: (value: U[], target: T, context: EffectContext<EffectTrigger>) => void) {
+function createDynamicOperator<T, U extends SelectorOpinion>(
+  handler: (value: U[], target: T, context: EffectContext<EffectTrigger>) => void,
+) {
   return (source: ValueSource<U>) => {
     return (context: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.forEach(target => {
@@ -33,6 +35,8 @@ function createDynamicOperator<T, U>(handler: (value: U[], target: T, context: E
         } else if (source instanceof ChainableSelector) {
           const value = source.build()(context)
           finalValue = value
+        } else if (Array.isArray(source)) {
+          finalValue = source.map(v => GetValueFromSource(context, v)[0]).filter((v): v is U => v !== null)
         } else {
           finalValue = [source]
         }
@@ -156,10 +160,16 @@ export const Operators = {
   statStageBuff:
     (statType: ValueSource<StatTypeWithoutHp>, value: ValueSource<number>) =>
     (context: EffectContext<EffectTrigger>, target: Pet[]) => {
-      //TODO: 万一找不到呢？
       const _value = GetValueFromSource(context, value)[0] ?? 0
       const _statType = GetValueFromSource(context, statType)[0] ?? null
       target.forEach(v => v.addStatStage(context, _statType, _value))
+    },
+
+  clearStatStage:
+    (statType?: ValueSource<StatTypeWithoutHp>) => (context: EffectContext<EffectTrigger>, target: Pet[]) => {
+      const _statTypes = statType ? GetValueFromSource(context, statType) : undefined
+      if (!_statTypes) target.forEach(v => v.clearStatStage(context))
+      else target.forEach(v => v.clearStatStage(context, ..._statTypes))
     },
 
   setValue: <U extends SelectorOpinion, V extends PrimitiveOpinion>(
@@ -290,5 +300,6 @@ export function GetValueFromSource<T extends SelectorOpinion>(
     return result
   }
   if (typeof source == 'function') return source(context) //TargetSelector
+  if (Array.isArray(source)) return source.map(v => GetValueFromSource(context, v)[0]) as T[]
   return [source]
 }

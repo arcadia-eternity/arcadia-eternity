@@ -152,7 +152,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
   public readonly tag: string[] = []
   public readonly effectState: {
     [id: string]: EffectState
-  }
+  } = {}
   effects: Effect<EffectTrigger>[] = []
   constructor(
     public readonly base: BaseSkill,

@@ -21,6 +21,7 @@ import {
 import { Effect, type EffectContainer, EffectScheduler, EffectState } from './effect'
 import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
+import { nanoid } from 'nanoid'
 
 export class BaseMark implements Prototype {
   constructor(
@@ -67,7 +68,7 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
   public readonly tags: string[] = []
   public readonly effectState: {
     [id: string]: EffectState
-  }
+  } = {}
 
   constructor(
     public readonly base: BaseMark,
@@ -80,6 +81,7 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
       effects?: Effect<EffectTrigger>[]
     },
   ) {
+    this.id = nanoid() as markId
     const mergedConfig = {
       ...base.config,
       ...overrides?.config,

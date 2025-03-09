@@ -144,7 +144,12 @@ function applySelectorStep(
 
       case 'divide': {
         assertNumberSelector(selector)
-        if (step.arg.type === 'raw:number' && step.arg.value === 0) {
+        if (
+          !Array.isArray(step.arg) &&
+          typeof step.arg === 'object' &&
+          step.arg.type === 'raw:number' &&
+          step.arg.value === 0
+        ) {
           throw new Error('除数不能为0')
         }
         return selector.divide(parseValue(step.arg) as ValueSource<number>)
@@ -240,6 +245,8 @@ export function createAction(dsl: OperatorDSL) {
       return parseModifyStatAction(dsl)
     case 'statStageBuff':
       return parseStatStageBuffAction(dsl)
+    case 'clearStatStage':
+      return parseClearStatStage(dsl)
     case 'addRage':
       return parseAddRageAction(dsl)
     case 'amplifyPower':
@@ -279,6 +286,10 @@ export function createAction(dsl: OperatorDSL) {
 
 // Common value parser reused across actions [source_id: parse.ts]
 export function parseValue(v: Value): string | number | boolean | ValueSource<SelectorOpinion> {
+  if (Array.isArray(v)) return v.map(value => parseValue(value))
+  if (typeof v === 'string') return v
+  if (typeof v === 'number') return v
+  if (typeof v === 'boolean') return v
   if (v.type === 'raw:number') return v.value as number
   if (v.type === 'raw:string') return v.value as string
   if (v.type === 'raw:boolean') return v.value as boolean
@@ -339,6 +350,12 @@ export function parseStatStageBuffAction(dsl: Extract<OperatorDSL, { type: 'stat
       parseValue(dsl.statType) as ValueSource<StatTypeWithoutHp>,
       parseValue(dsl.value) as ValueSource<number>,
     ),
+  )
+}
+
+export function parseClearStatStage(dsl: Extract<OperatorDSL, { type: 'clearStatStage' }>) {
+  return parseSelector<Pet>(dsl.target).apply(
+    Operators.clearStatStage(dsl.statType ? (parseValue(dsl.statType) as ValueSource<StatTypeWithoutHp>) : undefined),
   )
 }
 
@@ -457,11 +474,11 @@ export function parseEvaluateCondition(dsl: Extract<ConditionDSL, { type: 'evalu
 }
 
 export function parseSomeCondition(dsl: Extract<ConditionDSL, { type: 'some' }>): Condition {
-  return Conditions.some(dsl.conditions.map(parseCondition))
+  return Conditions.some(...dsl.conditions.map(parseCondition))
 }
 
 export function parseEveryCondition(dsl: Extract<ConditionDSL, { type: 'every' }>): Condition {
-  return Conditions.every(dsl.conditions.map(parseCondition))
+  return Conditions.every(...dsl.conditions.map(parseCondition))
 }
 
 export function parseNotCondition(dsl: Extract<ConditionDSL, { type: 'not' }>): Condition {

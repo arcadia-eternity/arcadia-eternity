@@ -686,3 +686,49 @@
     mark:
       type: entity:baseMark
       value: mark_mingzhongdixia
+  condition: *condition_self_use_skill_template
+- id: effect_skill_foe_clear_stage
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: clearStatStage
+    target: foe
+  condition: *condition_self_use_skill_template
+- id: effect_skill_power_2x_foe_below_quarter_hp
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value:
+      type: raw:number
+      value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foe
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: hp
+        evaluator:
+          type: compare
+          operator: <=
+          value:
+            type: dynamic
+            selector:
+              base: foe
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxhp
+                - type: divide
+                  arg:
+                    type: raw:number
+                    value: 4

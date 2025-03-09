@@ -14,7 +14,7 @@ export type Operator<U> = (context: EffectContext<EffectTrigger>, values: U[]) =
 
 export type TargetSelector<T> = (context: EffectContext<EffectTrigger>) => T[]
 
-export type ValueSource<T> = T | TargetSelector<T> | ChainableSelector<T>
+export type ValueSource<T> = T | TargetSelector<T> | ChainableSelector<T> | Array<ValueSource<T>>
 
 export type WidenLiteral<T> = T extends string
   ? string
