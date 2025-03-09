@@ -33,6 +33,9 @@ export const Conditions = {
       if (context.parent instanceof UseSkillContext && context.source instanceof SkillInstance) {
         return context.source === context.parent.skill
       }
+      if (context.parent instanceof DamageContext && context.parent.parent instanceof UseSkillContext) {
+        return context.source === context.parent.source
+      }
       return false
     }
   },

@@ -325,6 +325,11 @@ export class DamageContext extends Context {
     this.modified[0] += percent
     this.modified[1] += delta
   }
+
+  addThreshold(min?: number, max?: number) {
+    if (min) this.minThreshold = min
+    if (max) this.maxThreshold = max
+  }
 }
 
 export class HealContext extends Context {

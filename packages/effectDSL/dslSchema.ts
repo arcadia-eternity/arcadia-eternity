@@ -268,6 +268,11 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       value: valueSchema,
     }),
     z.object({
+      type: z.literal('addMultihitResult'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
       type: z.literal('transferMark'),
       target: selectorDSLSchema,
       mark: dynamicValueSchema,
@@ -319,6 +324,12 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       target: selectorDSLSchema,
       delta: valueSchema,
       percent: valueSchema,
+    }),
+    z.object({
+      type: z.literal('addThreshold'),
+      target: selectorDSLSchema,
+      min: valueSchema.optional(),
+      max: valueSchema.optional(),
     }),
   ]),
 )

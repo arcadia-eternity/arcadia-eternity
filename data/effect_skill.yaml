@@ -1,8 +1,8 @@
-# data/effect_skill.yaml
+# data/effect_skill_skill.yaml
 # yaml-language-server: $schema=../packages/schema/schema/effect.schema.json
 # @metaType effect
 # @version 1.0.0
-- id: effect_reduce_stat_5_percent
+- id: effect_skill_reduce_stat_5_percent
   trigger: OnDamage
   priority: 0
   apply: &apply_foe_statstage_-1_template
@@ -26,7 +26,7 @@
           percent:
             type: raw:number
             value: 5
-- id: effect_reduce_def_5_percent
+- id: effect_skill_reduce_def_5_percent
   trigger: OnDamage
   priority: 0
   apply:
@@ -35,7 +35,7 @@
       type: raw:string
       value: def
   condition: *condition_probability_5_percent_template
-- id: effect_reduce_spe_5_percent
+- id: effect_skill_reduce_spe_5_percent
   trigger: OnDamage
   priority: 0
   apply:
@@ -44,7 +44,7 @@
       type: raw:string
       value: spe
   condition: *condition_probability_5_percent_template
-- id: effect_reduce_atk_5_percent
+- id: effect_skill_reduce_atk_5_percent
   trigger: OnDamage
   priority: 0
   apply:
@@ -53,7 +53,7 @@
       type: raw:string
       value: atk
   condition: *condition_probability_5_percent_template
-- id: effect_reduce_spa_5_percent
+- id: effect_skill_reduce_spa_5_percent
   trigger: OnDamage
   priority: 0
   apply:
@@ -62,7 +62,7 @@
       type: raw:string
       value: spa
   condition: *condition_probability_5_percent_template
-- id: effect_reduce_spd_5_percent
+- id: effect_skill_reduce_spd_5_percent
   trigger: OnDamage
   priority: 0
   apply:
@@ -71,7 +71,7 @@
       type: raw:string
       value: spd
   condition: *condition_probability_5_percent_template
-- id: effect_raise_atk_1_stages
+- id: effect_skill_raise_atk_1_stages
   trigger: BeforeHit
   priority: 0
   apply: &apply_self_statstage_+1_template
@@ -86,7 +86,7 @@
       value: 1
   condition: &condition_self_use_skill_template
     type: selfUseSkill
-- id: effect_raise_def_1_stages
+- id: effect_skill_raise_def_1_stages
   trigger: BeforeHit
   priority: 0
   apply:
@@ -95,7 +95,7 @@
       type: raw:string
       value: def
   condition: *condition_self_use_skill_template
-- id: effect_raise_spa_1_stages
+- id: effect_skill_raise_spa_1_stages
   trigger: BeforeHit
   priority: 0
   apply:
@@ -104,7 +104,7 @@
       type: raw:string
       value: spa
   condition: *condition_self_use_skill_template
-- id: effect_raise_spd_1_stages
+- id: effect_skill_raise_spd_1_stages
   trigger: BeforeHit
   priority: 0
   apply:
@@ -113,7 +113,7 @@
       type: raw:string
       value: spd
   condition: *condition_self_use_skill_template
-- id: effect_raise_spe_1_stages
+- id: effect_skill_raise_spe_1_stages
   trigger: BeforeHit
   priority: 0
   apply:
@@ -122,7 +122,7 @@
       type: raw:string
       value: spe
   condition: *condition_self_use_skill_template
-- id: effect_raise_atk_2_stages
+- id: effect_skill_raise_atk_2_stages
   trigger: BeforeHit
   priority: 0
   apply: &apply_self_statstage_+2_template
@@ -136,7 +136,7 @@
       type: raw:number
       value: 2
   condition: *condition_self_use_skill_template
-- id: effect_raise_def_2_stages
+- id: effect_skill_raise_def_2_stages
   trigger: BeforeHit
   priority: 0
   apply:
@@ -145,7 +145,7 @@
       type: raw:string
       value: def
   condition: *condition_self_use_skill_template
-- id: effect_raise_spa_2_stages
+- id: effect_skill_raise_spa_2_stages
   trigger: BeforeHit
   priority: 0
   apply:
@@ -154,7 +154,7 @@
       type: raw:string
       value: spa
   condition: *condition_self_use_skill_template
-- id: effect_raise_spd_2_stages
+- id: effect_skill_raise_spd_2_stages
   trigger: BeforeHit
   priority: 0
   apply:
@@ -163,7 +163,7 @@
       type: raw:string
       value: spd
   condition: *condition_self_use_skill_template
-- id: effect_raise_spe_2_stages
+- id: effect_skill_raise_spe_2_stages
   trigger: BeforeHit
   priority: 0
   apply:
@@ -172,7 +172,7 @@
       type: raw:string
       value: spe
   condition: *condition_self_use_skill_template
-- id: effect_reduce_foe_stat_1_stage
+- id: effect_skill_reduce_foe_stat_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
@@ -181,7 +181,7 @@
       type: raw:string
       value: def
   condition: *condition_probability_5_percent_template
-- id: effect_reduce_foe_atk_1_stage
+- id: effect_skill_reduce_foe_atk_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
@@ -190,7 +190,7 @@
       type: raw:string
       value: atk
   condition: *condition_probability_5_percent_template
-- id: effect_reduce_foe_def_1_stage
+- id: effect_skill_reduce_foe_def_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
@@ -199,7 +199,7 @@
       type: raw:string
       value: def
   condition: *condition_probability_5_percent_template
-- id: effect_reduce_foe_spa_1_stage
+- id: effect_skill_reduce_foe_spa_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
@@ -208,7 +208,7 @@
       type: raw:string
       value: spa
   condition: *condition_probability_5_percent_template
-- id: effect_reduce_foe_spd_1_stage
+- id: effect_skill_reduce_foe_spd_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
@@ -217,7 +217,7 @@
       type: raw:string
       value: spd
   condition: *condition_probability_5_percent_template
-- id: effect_reduce_foe_spe_1_stage
+- id: effect_skill_reduce_foe_spe_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
@@ -226,10 +226,10 @@
       type: raw:string
       value: spe
   condition: *condition_probability_5_percent_template
-- id: effect_add_ruodian
+- id: effect_skill_add_mark_foe_ruodian
   trigger: OnHit
   priority: 0
-  apply: &apply_foe_add_ruodian_template
+  apply: &apply_foe_add_mark_ruodian_template
     type: addMark
     target: foe
     mark:
@@ -239,18 +239,354 @@
       type: raw:number
       value: 1
   condition: *condition_self_use_skill_template
-- id: effect_add_ruodian_2
+- id: effect_skill_add_mark_foe_ruodian_2
   trigger: OnHit
   priority: 0
   apply:
-    <<: *apply_foe_add_ruodian_template
+    <<: *apply_foe_add_mark_ruodian_template
     stack:
       type: raw:number
       value: 2
   condition: *condition_self_use_skill_template
-- id: effect_consume_ruodian
+- id: effect_skill_consume_ruodian
   trigger: OnHit
-  priority: -1
+  priority: -50
+  apply:
+    type: consumeStacks
+    target:
+      base: foeMarks
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value:
+              type: raw:string
+              value: mark_ruodianjihao
+    value:
+      type: raw:number
+      value: 2
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_crit_rate_ruodian
+  trigger: BeforeUseSkillCheck
+  priority: 1
+  apply:
+    type: addCritRate
+    target:
+      base: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value:
+                type: raw:string
+                value: mark_ruodianjihao
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg:
+              type: raw:number
+              value: 45
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_hit_result_ruodian
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addMultihitResult
+    target:
+      base: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value:
+                type: raw:string
+                value: mark_ruodianjihao
+          - type: select
+            arg:
+              type: base
+              arg: stack
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_power_50_ruodian
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target:
+      base: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value:
+                type: raw:string
+                value: mark_ruodianjihao
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg:
+              type: raw:number
+              value: 50
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_foe_yishang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_yishang
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_foe_shaoshang_5_percent
+  trigger: OnHit
+  priority: 0
+  apply: &apply_foe_add_mark_shaoshang_template
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_shaoshang
+  condition: *condition_probability_5_percent_template
+- id: effect_skill_add_mark_foe_shaoshang_50_percent
+  trigger: OnHit
+  priority: 0
+  apply: *apply_foe_add_mark_shaoshang_template
+  condition:
+    type: every
+    conditions: &condition_probability_50_percent_template
+      - type: selfUseSkill
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent:
+            type: raw:number
+            value: 50
+- id: effect_skill_min_damage_100
+  trigger: OnDamage
+  priority: 0
+  apply:
+    type: addThreshold
+    target:
+      base: damageContext
+    min:
+      type: raw:number
+      value: 100
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_yanggong
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_yanggong
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_jizhong
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_jizhong
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_bumieyizhi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_bumieyizhi
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_yanzhiyizhi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_bumiezhixin
+  condition: *condition_self_use_skill_template
+- id: effect_skill_reduce_self_hp
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: dealDamage
+    target:
+      base: self
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: maxhp
+          - type: divide
+            arg:
+              type: raw:number
+              value: 6
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_rage_35
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target:
+      base: self
+    value:
+      type: raw:number
+      value: 35
+- id: effect_skill_power_4x_below_1_6_hp
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value:
+      type: raw:number
+      value: 4
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: hp
+        evaluator:
+          type: compare
+          operator: <=
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxhp
+                - type: divide
+                  arg:
+                    type: raw:number
+                    value: 6
+- id: effect_heal_self_half
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: heal
+    target:
+      base: self
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: maxhp
+          - type: divide
+            arg:
+              type: raw:number
+              value: 2
+  condition: *condition_self_use_skill_template
+- id: effect_heal_self_onethird
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: heal
+    target:
+      base: self
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: maxhp
+          - type: divide
+            arg:
+              type: raw:number
+              value: 3
+  condition: *condition_self_use_skill_template
+- id: effect_heal_self_quarter
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: heal
+    target:
+      base: self
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: maxhp
+          - type: divide
+            arg:
+              type: raw:number
+              value: 4
+- id: effect_skill_add_mark_zhongzinengliang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_zhongzinengliang
+    stack:
+      type: raw:number
+      value: 4
+- id: effect_skill_consume_all_zhongzinengliang
+  trigger: OnHit
+  priority: -50
   apply:
     type: consumeStacks
     target:
@@ -268,46 +604,16 @@
             type: same
             value:
               type: raw:string
-              value: mark_ruodianjihao
+              value: mark_zhongzinengliang
     value:
       type: raw:number
-      value: 1
+      value: 4
   condition: *condition_self_use_skill_template
-- id: effect_add_crit_rate_ruodian
-  trigger: BeforeUseSkillCheck
-  priority: 1
-  apply:
-    type: addCritRate
-    target:
-      base: usingSkillContext
-    value:
-      type: dynamic
-      selector:
-        base: selfMarks
-        chain:
-          - type: whereAttr
-            extractor:
-              type: base
-              arg: baseId
-            evaluator:
-              type: same
-              value:
-                type: raw:string
-                value: mark_ruodianjihao
-          - type: select
-            arg:
-              type: base
-              arg: stack
-          - type: multiply
-            arg:
-              type: raw:number
-              value: 45
-  condition: *condition_self_use_skill_template
-- id: effect_add_hit_result_ruodian
+- id: effect_skill_add_power_25_zhongzinengliang
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
-    type: addCritRate
+    type: addPower
     target:
       base: usingSkillContext
     value:
@@ -323,7 +629,7 @@
               type: same
               value:
                 type: raw:string
-                value: mark_ruodianjihao
+                value: mark_zhongzinengliang
           - type: select
             arg:
               type: base
@@ -331,5 +637,52 @@
           - type: multiply
             arg:
               type: raw:number
-              value: 45
+              value: 25
   condition: *condition_self_use_skill_template
+- id: effect_skill_heal_by_damage_25_zhongzinengliang
+  trigger: PostDamage
+  priority: 0
+  apply:
+    type: heal
+    target:
+      base: self
+    value:
+      type: dynamic
+      selector:
+        base: damageContext
+        chain:
+          - type: selectPath
+            arg: damageResult
+          - type: divide
+            arg:
+              type: raw:number
+              value: 4
+          - type: multiply
+            arg:
+              type: dynamic
+              selector:
+                base: selfMarks
+                chain:
+                  - type: whereAttr
+                    extractor:
+                      type: base
+                      arg: baseId
+                    evaluator:
+                      type: same
+                      value:
+                        type: raw:string
+                        value: mark_zhongzinengliang
+                  - type: select
+                    arg:
+                      type: base
+                      arg: stack
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_foe_mingzhongdixia
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_mingzhongdixia

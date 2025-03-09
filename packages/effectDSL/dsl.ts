@@ -75,6 +75,11 @@ export type OperatorDSL =
       value: Value
     }
   | {
+      type: 'addMultihitResult'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
       type: 'transferMark'
       target: SelectorDSL
       mark: DynamicValue
@@ -126,6 +131,12 @@ export type OperatorDSL =
       target: SelectorDSL
       delta: Value
       percent: Value
+    }
+  | {
+      type: 'addThreshold'
+      target: SelectorDSL
+      min?: Value
+      max?: Value
     }
 
 export type RawNumberValue = {

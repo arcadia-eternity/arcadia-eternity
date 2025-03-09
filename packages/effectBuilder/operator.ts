@@ -47,13 +47,12 @@ function createDynamicOperator<T, U>(handler: (value: U[], target: T, context: E
 
 export const Operators = {
   dealDamage: createDynamicOperator<Pet, number>((value, pet, context) => {
-    let source
-    if (context.parent instanceof UseSkillContext) source = context.parent.pet
-    else source = context.source
-    pet.damage(new DamageContext(context, source, pet, value[0]))
+    if (value.length === 0) return
+    pet.damage(new DamageContext(context, context.source, pet, value[0]))
   }),
 
   heal: createDynamicOperator<Pet, number>((value, pet, context) => {
+    if (value.length === 0) return
     pet.heal(new HealContext(context, context.source, value[0]))
   }),
 
@@ -73,6 +72,7 @@ export const Operators = {
   transferMark:
     <T extends Battle | Pet, U extends MarkInstance>(mark: ValueSource<U>) =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
+      if (targets.length === 0) return
       const _mark = GetValueFromSource(context, mark)
       _mark.forEach(m => {
         m.transfer(context, targets[0])
@@ -144,6 +144,14 @@ export const Operators = {
       _value.forEach(v => skillCtx.addCritRate(v))
     })
   },
+
+  addMultihitResult:
+    (value: ValueSource<number>) => (context: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
+      contexts.forEach(skillCtx => {
+        const _value = GetValueFromSource(context, value)
+        _value.forEach(v => skillCtx.addMultihitResult(v))
+      })
+    },
 
   statStageBuff:
     (statType: ValueSource<StatTypeWithoutHp>, value: ValueSource<number>) =>
@@ -257,6 +265,17 @@ export const Operators = {
       if (_percent.length === 0 || _delta.length === 0) return
       contexts.forEach(ctx => {
         ctx.addModified(_percent[0], _delta[0])
+      })
+    }
+  },
+
+  addThreshold: (min?: ValueSource<number>, max?: ValueSource<number>): Operator<DamageContext> => {
+    return (context: EffectContext<EffectTrigger>, contexts: DamageContext[]) => {
+      const _min = min ? GetValueFromSource(context, min)[0] : undefined
+      const _max = max ? GetValueFromSource(context, max)[0] : undefined
+      if (!_min && !_max) return
+      contexts.forEach(ctx => {
+        ctx.addThreshold(_min, _max)
       })
     }
   },

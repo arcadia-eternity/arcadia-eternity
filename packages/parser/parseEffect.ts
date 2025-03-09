@@ -248,6 +248,8 @@ export function createAction(dsl: OperatorDSL) {
       return parseAddPowerAction(dsl)
     case 'addCritRate':
       return parseAddCritRate(dsl)
+    case 'addMultihitResult':
+      return parseAddMultihitResult(dsl)
     case 'transferMark':
       return parseTransferMark(dsl)
     case 'stun':
@@ -270,6 +272,8 @@ export function createAction(dsl: OperatorDSL) {
       return parseSetActualTarget(dsl)
     case 'addModified':
       return parseAddModified(dsl)
+    case 'addThreshold':
+      return parseAddThresholdAction(dsl)
   }
 }
 
@@ -361,6 +365,12 @@ export function parseAddCritRate(dsl: Extract<OperatorDSL, { type: 'addCritRate'
   )
 }
 
+export function parseAddMultihitResult(dsl: Extract<OperatorDSL, { type: 'addMultihitResult' }>) {
+  return parseSelector<UseSkillContext>(dsl.target).apply(
+    Operators.addMultihitResult(parseValue(dsl.value) as ValueSource<number>),
+  )
+}
+
 export function parseStunAction(dsl: Extract<OperatorDSL, { type: 'stun' }>) {
   return parseSelector<UseSkillContext>(dsl.target).apply(Operators.stun())
 }
@@ -409,6 +419,12 @@ export function parseAddModified(dsl: Extract<OperatorDSL, { type: 'addModified'
   return parseSelector<DamageContext | HealContext>(dsl.target).apply(
     Operators.addModified(parseValue(dsl.percent) as ValueSource<number>, parseValue(dsl.delta) as ValueSource<number>),
   )
+}
+
+export function parseAddThresholdAction(dsl: Extract<OperatorDSL, { type: 'addThreshold' }>) {
+  const min = dsl.min ? (parseValue(dsl.min) as ValueSource<number>) : undefined
+  const max = dsl.max ? (parseValue(dsl.max) as ValueSource<number>) : undefined
+  return parseSelector<DamageContext>(dsl.target).apply(Operators.addThreshold(min, max))
 }
 
 export function parseCondition(dsl: ConditionDSL): Condition {
