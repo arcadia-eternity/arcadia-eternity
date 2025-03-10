@@ -8,7 +8,7 @@ export interface EffectDSL {
   id: string
   trigger: EffectTrigger
   priority: number
-  apply: OperatorDSL
+  apply: OperatorDSL | Array<OperatorDSL>
   condition?: ConditionDSL
   consumesStacks?: number
 }
@@ -219,6 +219,7 @@ export type ExtractorDSL =
       type: 'dynamic'
       arg: string
     }
+  | keyof typeof Extractor
 
 export type SelectorChain =
   | SelectStepDSL
@@ -295,6 +296,7 @@ export type EvaluatorDSL =
   | { type: 'all'; conditions: EvaluatorDSL[] }
   | { type: 'probability'; percent: Value }
   | { type: 'hasTag'; tag: string }
+  | { type: 'exist' }
 
 export type ConditionDSL =
   | {

@@ -89,6 +89,7 @@ export const extractorSchema: z.ZodSchema<ExtractorDSL> = z.lazy(() =>
       type: z.literal('dynamic'),
       arg: z.string(),
     }),
+    baseExtractorSchema,
   ]),
 )
 
@@ -204,6 +205,9 @@ export const evaluatorDSLSchema: z.ZodSchema<EvaluatorDSL> = z.lazy(() =>
     z.object({
       type: z.literal('hasTag'),
       tag: z.string(),
+    }),
+    z.object({
+      type: z.literal('exist'),
     }),
   ]),
 )
@@ -384,7 +388,7 @@ export const effectDSLSchema: z.ZodSchema<EffectDSL> = z.lazy(() =>
     id: z.string(),
     trigger: effectTriggerSchema,
     priority: z.number(),
-    apply: operatorDSLSchema,
+    apply: z.union([operatorDSLSchema, z.array(operatorDSLSchema)]),
     condition: conditionDSLSchema.optional(),
     consumesStacks: z.number().optional(),
   }),

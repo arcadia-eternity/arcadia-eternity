@@ -33,6 +33,7 @@ import {
   type ValueSource,
   createPathExtractor,
   Conditions,
+  type Action,
 } from '@test-battle/effect-builder'
 import { RuntimeTypeChecker } from '@test-battle/effect-builder/runtime-type-checker'
 import type {
@@ -48,9 +49,14 @@ import type {
 
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   try {
-    const actions = createAction(dsl.apply)
     const condition = dsl.condition ? parseCondition(dsl.condition) : undefined
-    return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition)
+    if (Array.isArray(dsl.apply)) {
+      const actions = dsl.apply.map(a => createAction(a))
+      return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition)
+    } else {
+      const actions = createAction(dsl.apply)
+      return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition)
+    }
   } catch (error) {
     console.log(`解析${dsl.id}时出现问题,`, error)
     throw error
@@ -191,6 +197,10 @@ export function parseExtractor(
   selector: ChainableSelector<SelectorOpinion>,
   dsl: ExtractorDSL,
 ): PathExtractor<SelectorOpinion, SelectorOpinion> {
+  if (typeof dsl === 'string') {
+    if (Object.keys(Extractor).includes(dsl)) return Extractor[dsl] as PathExtractor<SelectorOpinion, SelectorOpinion>
+    else throw Error('未知的提取器')
+  }
   switch (dsl.type) {
     case 'base':
       return Extractor[dsl.arg] as PathExtractor<SelectorOpinion, SelectorOpinion>
@@ -222,6 +232,8 @@ function parseEvaluator(dsl: EvaluatorDSL): Evaluator<SelectorOpinion> {
       return Evaluators.probability(parseValue(dsl.percent) as ValueSource<number>)
     case 'hasTag':
       return Evaluators.hasTag(dsl.tag) as Evaluator<SelectorOpinion>
+    case 'exist':
+      return Evaluators.exist()
     default: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`Unknown condition type: ${(dsl as any).type}`)

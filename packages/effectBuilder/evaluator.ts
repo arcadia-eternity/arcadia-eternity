@@ -99,6 +99,12 @@ export const Evaluators = {
       const percent = GetValueFromSource(context, dynamicPercent)[0]
       return context.battle.random() < percent / 100
     },
+
+  //如果至少存在一个元素，返回真
+  exist:
+    <T>(): Evaluator<T> =>
+    (context: EffectContext<EffectTrigger>, values: T[]) =>
+      values.length > 0,
 }
 
 export const ConditionUtils = {

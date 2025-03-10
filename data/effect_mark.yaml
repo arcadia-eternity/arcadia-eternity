@@ -30,9 +30,7 @@
         target: self
         evaluator:
           type: probability
-          percent:
-            type: raw:number
-            value: 40
+          percent: 40
   apply:
     type: stun
     target: usingSkillContext
@@ -69,9 +67,7 @@
         chain:
           - type: shuffled
           - type: limit
-            arg:
-              type: raw:number
-              value: 1
+            arg: 1
 - id: effect_mark_onDamage_over100_recovery
   trigger: PostDamage
   priority: 0
@@ -88,9 +84,7 @@
         evaluator:
           type: compare
           operator: '>='
-          value:
-            type: raw:number
-            value: 100
+          value: 100
   apply:
     type: destroyMark
     target:
@@ -115,9 +109,7 @@
               tag: status
           - type: shuffled
           - type: limit
-            arg:
-              type: raw:number
-              value: 1
+            arg: 1
 - id: effect_mark_prevent_damage
   trigger: OnDamage
   priority: 0
@@ -154,9 +146,7 @@
                 arg: category
           evaluator:
             type: same
-            value:
-              type: raw:string
-              value: Status
+            value: Status
   apply:
     type: stun
     target: usingSkillContext
@@ -175,9 +165,7 @@
               arg: category
         evaluator:
           type: same
-          value:
-            type: raw:string
-            value: Physical
+          value: Physical
   apply:
     type: stun
     target: usingSkillContext
@@ -198,9 +186,7 @@
                 arg: category
           evaluator:
             type: same
-            value:
-              type: raw:string
-              value: Status
+            value: Status
   apply:
     type: setSureMiss
     priority: 1
@@ -224,9 +210,7 @@
               type: base
               arg: maxhp
           - type: divide
-            arg:
-              type: raw:number
-              value: 8
+            arg: 8
 - id: effect_mark_reduce_hit_rate
   trigger: OnMarkCreate
   priority: 0
@@ -234,15 +218,9 @@
     type: modifyStat
     target:
       base: self
-    statType:
-      type: raw:string
-      value: accuracy
-    value:
-      type: raw:number
-      value: 0
-    percent:
-      type: raw:number
-      value: -10
+    statType: accuracy
+    value: 0
+    percent: -10
 - id: effect_mark_reset_hit_rate
   trigger: OnMarkDestroy
   priority: 0
@@ -250,15 +228,9 @@
     type: modifyStat
     target:
       base: self
-    statType:
-      type: raw:string
-      value: accuracy
-    value:
-      type: raw:number
-      value: 0
-    percent:
-      type: raw:number
-      value: 10
+    statType: accuracy
+    value: 0
+    percent: 10
 - id: effect_mark_decrease_atk
   trigger: OnMarkCreate
   priority: 0
@@ -266,15 +238,9 @@
     type: modifyStat
     target:
       base: self
-    statType:
-      type: raw:string
-      value: atk
-    value:
-      type: raw:number
-      value: 0
-    percent:
-      type: raw:number
-      value: -25
+    statType: atk
+    value: 0
+    percent: -25
 - id: effect_mark_decrease_atk_reset
   trigger: OnMarkCreate
   priority: 0
@@ -282,15 +248,9 @@
     type: modifyStat
     target:
       base: self
-    statType:
-      type: raw:string
-      value: atk
-    value:
-      type: raw:number
-      value: 0
-    percent:
-      type: raw:number
-      value: 25
+    statType: atk
+    value: 0
+    percent: 25
 - id: effect_mark_decrease_spa
   trigger: OnMarkCreate
   priority: 0
@@ -298,15 +258,9 @@
     type: modifyStat
     target:
       base: self
-    statType:
-      type: raw:string
-      value: spa
-    value:
-      type: raw:number
-      value: 0
-    percent:
-      type: raw:number
-      value: -25
+    statType: spa
+    value: 0
+    percent: -25
 - id: effect_mark_decrease_spa_reset
   trigger: OnMarkCreate
   priority: 0
@@ -314,15 +268,9 @@
     type: modifyStat
     target:
       base: self
-    statType:
-      type: raw:string
-      value: spa
-    value:
-      type: raw:number
-      value: 0
-    percent:
-      type: raw:number
-      value: 25
+    statType: spa
+    value: 0
+    percent: 25
 - id: effect_mark_decrease_heal
   trigger: OnHeal
   priority: 0
@@ -330,12 +278,8 @@
     type: addModified
     target:
       base: healContext
-    percent:
-      type: raw:number
-      value: -15
-    delta:
-      type: raw:number
-      value: 0
+    percent: -15
+    delta: 0
 - id: effect_mark_damage_with_stack
   trigger: TurnEnd
   condition:
@@ -361,15 +305,9 @@
     type: modifyStat
     target:
       base: self
-    statType:
-      type: raw:string
-      value: accuracy
-    value:
-      type: raw:number
-      value: 0
-    percent:
-      type: raw:number
-      value: -50
+    statType: accuracy
+    value: 0
+    percent: -50
 - id: effect_mark_restore_hit_rate
   trigger: OnMarkDestroy
   priority: 0
@@ -377,15 +315,9 @@
     type: modifyStat
     target:
       base: self
-    statType:
-      type: raw:string
-      value: accuracy
-    value:
-      type: raw:number
-      value: 0
-    percent:
-      type: raw:number
-      value: 50
+    statType: accuracy
+    value: 0
+    percent: 50
 - id: effect_mark_absorb_hp_to_foe
   trigger: TurnEnd
   condition:
@@ -405,9 +337,7 @@
               type: base
               arg: hp
           - type: divide
-            arg:
-              type: raw:number
-              value: 8
+            arg: 8
           - type: clampMax
             arg:
               type: dynamic
@@ -419,9 +349,7 @@
                       type: base
                       arg: maxhp
                   - type: divide
-                    arg:
-                      type: raw:number
-                      value: 8
+                    arg: 8
 - id: effect_mark_posion_damage
   trigger: TurnEnd
   priority: 0
@@ -441,9 +369,7 @@
               type: base
               arg: stack
           - type: multiply
-            arg:
-              type: raw:number
-              value: 10
+            arg: 10
 - id: effect_mark_reduce_speed_on_mark_create
   trigger: OnMarkCreate
   priority: 0
@@ -451,15 +377,9 @@
     type: modifyStat
     target:
       base: self
-    statType:
-      type: raw:string
-      value: spe
-    value:
-      type: raw:number
-      value: -50
-    percent:
-      type: raw:number
-      value: 0
+    statType: spe
+    value: -50
+    percent: 0
 - id: effect_mark_restore_speed_on_mark_destroy
   trigger: OnMarkDestroy
   priority: 0
@@ -467,15 +387,9 @@
     type: modifyStat
     target:
       base: self
-    statType:
-      type: raw:string
-      value: spe
-    value:
-      type: raw:number
-      value: 50
-    percent:
-      type: raw:number
-      value: 0
+    statType: spe
+    value: 50
+    percent: 0
 - id: effect_mark_increase_damage_taken
   trigger: OnDamage
   condition:
@@ -485,9 +399,7 @@
     type: addModified
     target:
       base: damageContext
-    delta:
-      type: raw:number
-      value: 0
+    delta: 0
     percent:
       type: dynamic
       selector:
@@ -498,9 +410,7 @@
               type: base
               arg: stack
           - type: multiply
-            arg:
-              type: raw:number
-              value: 10 # Increase damage by 10% per stack
+            arg: 10
 - id: effect_mark_self_damage_on_expire
   trigger: OnMarkDurationEnd
   priority: 0
@@ -508,6 +418,4 @@
     type: dealDamage
     target:
       base: self
-    value:
-      type: raw:number
-      value: 300
+    value: 300

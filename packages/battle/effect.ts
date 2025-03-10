@@ -62,8 +62,8 @@ export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity<S
   public owner: SkillInstance | MarkInstance | null = null
   constructor(
     public readonly id: effectId,
-    public readonly trigger: EffectTrigger,
-    public readonly apply: (context: EffectContext<T>) => void,
+    public readonly trigger: T,
+    public readonly apply: ((context: EffectContext<T>) => void) | ((context: EffectContext<T>) => void)[],
     public readonly priority: number,
     public readonly condition?: (context: EffectContext<T>) => boolean,
     public readonly consumesStacks?: number, // 新增可选消耗层数配置
@@ -79,7 +79,8 @@ export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity<S
     }
 
     // 执行实际效果
-    this.apply.call(this, context)
+    if (Array.isArray(this.apply)) this.apply.forEach(a => a.call(this, context))
+    else this.apply.call(this, context)
   }
 
   setOwner(owner: MarkInstance | SkillInstance): void {
@@ -97,7 +98,7 @@ export interface EffectContainer {
 export interface EffectConfig<T extends EffectTrigger> {
   id: string
   trigger: T
-  apply: (context: EffectContext<T>) => void
+  apply: (context: EffectContext<T>) => void | ((context: EffectContext<T>) => void)[]
   priority: number
   condition?: (context: EffectContext<T>) => boolean
   consumesStacks?: number // 新增可选消耗层数配置

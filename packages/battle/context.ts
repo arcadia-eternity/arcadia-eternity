@@ -429,12 +429,27 @@ export class EffectContext<T extends EffectTrigger> extends Context {
   readonly type = 'effect'
   public readonly battle: Battle
   public readonly available: boolean = true
+
+  private _parentContext: EffectContext<any> | null = null
+  public success?: boolean
   constructor(
     public readonly parent: TriggerContextMap[T],
     public readonly trigger: T,
     public readonly source: SkillInstance | MarkInstance,
+    parentContext?: EffectContext<any>, // 允许传入父级上下文
   ) {
     super(parent)
     this.battle = parent.battle
+    this._parentContext = parentContext || null
+  }
+
+  private states = new Map<string, any>()
+
+  setState(key: string, value: any) {
+    this.states.set(key, value)
+  }
+
+  getState<T>(key: string): T | undefined {
+    return this.states.get(key) as T
   }
 }
