@@ -439,14 +439,4 @@ export class EffectContext<T extends EffectTrigger> extends Context {
     super(parent)
     this.battle = parent.battle
   }
-
-  private states = new Map<string, any>()
-
-  setState(key: string, value: any) {
-    this.states.set(key, value)
-  }
-
-  getState<T>(key: string): T | undefined {
-    return this.states.get(key) as T
-  }
 }
