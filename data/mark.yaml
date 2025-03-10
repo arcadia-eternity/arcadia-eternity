@@ -8,86 +8,182 @@
   description: 2回合无法行动 被攻击不会闪避
   tags:
     - status
+  config: &status_config
+    persistent: false
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    duration: 2
+  effect:
+    - effect_mark_stun
+    - effect_mark_cant_evasion
   num: 1
   image_link: =DISPIMG("ID_045453E85D744956AF560D592FA17F6E",1)
 - id: mark_haipa
   name: 害怕
   description: 2回合无法行动 被攻击不会闪避
+  config: *status_config
+  effect:
+    - effect_mark_stun
+    - effect_mark_cant_evasion
   num: 2
   image_link: =DISPIMG("ID_F5C74BFDB2B74FE18C2BFE86413E6F8F",1)
 - id: mark_tanhuan
   name: 瘫痪
   description: 2回合无法行动 被攻击会复原
+  config: *status_config
+  effect:
+    - effect_mark_stun
+    - effect_mark_onDamage_recovery
   num: 3
   image_link: =DISPIMG("ID_5930268B07384E46AD3A75B18A89C581",1)
 - id: mark_mabi
   name: 麻痹
   description: 5回合攻击时有40%几率被迫中断
+  config:
+    persistent: false
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    duration: 5
+  effect:
+    - effect_mark_40probability_stun
   num: 4
   image_link: =DISPIMG("ID_AEF7CF49D67D46E38C10A10062262E0D",1)
 - id: mark_hunmi
   name: 昏迷
   description: 2回合无法行动 被攻击不会闪避
+  config: *status_config
+  effect:
+    - effect_mark_stun
+    - effect_mark_cant_evasion
   num: 5
   image_link: =DISPIMG("ID_3E74CA8814974469A1CA4E3A4913084B",1)
 - id: mark_shuimian
   name: 睡眠
   description: 2回合无法行动 被攻击会苏醒
+  config: *status_config
   num: 6
+  effect:
+    - effect_mark_stun
+    - effect_mark_onDamage_recovery
   image_link: =DISPIMG("ID_44EC71C0C05642BBB5462320A1302E95",1)
 - id: mark_shihua
   name: 石化
-  description: 2回合无法行动 受到致命几率提升10% 被暴击会解除
+  description: 2回合无法行动 {受到致命几率提升10%} 被暴击会解除
   num: 7
+  config: *status_config
+  effect:
+    - effect_mark_stun
+    - effect_mark_onCritDamage_recovery
   image_link: =DISPIMG("ID_76BC4821D9CB4E9FA6548930C2F42E91",1)
 - id: mark_zhixi
   name: 窒息
   description: 2回合无法行动
+  config: *status_config
   num: 8
+  effect:
+    - effect_mark_stun
   image_link: =DISPIMG("ID_05DAC94A46394687AF54C500237C0F65",1)
 - id: mark_bingdong
   name: 冰冻
-  description: 2回合无法行动 受到暴击伤害提升20% 被暴击会解冻
+  description: 2回合无法行动 {受到暴击伤害提升20%} 被暴击会解冻
+  config: *status_config
+  effect:
+    - effect_mark_stun
+    - effect_mark_onCritDamage_recovery
   num: 9
   image_link: =DISPIMG("ID_BB8FF480143C418085E1D67D709AE945",1)
 - id: mark_kongju
   name: 恐惧
   description: 2回合随机在可用技能中出招 受到超过100点伤害会清醒
   num: 10
+  config: *status_config
+  effect:
+    - effect_mark_randomUseSkill
+    - effect_mark_onDamage_over100_recovery
   image_link: =DISPIMG("ID_777A22E1E7E24C819F78D68B0DF000C5",1)
 - id: mark_zuzhou
   name: 诅咒
   description: 3回合后对手会在异常状态中随机获得一种 对手换下精灵不保留
+  config:
+    persistent: false
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    duration: 3
+    keepOnSwitchOut: false
+  effect:
+    - effect_mark_curse_add_random_status
   num: 11
   image_link: =DISPIMG("ID_AAE62D004C4F4F2BB4D022D1D1665C6C",1)
 - id: mark_taobi
   name: 逃避
   description: 2回合不能行动也不会受到伤害
+  config: *status_config
   num: 12
+  effect:
+    - effect_mark_stun
+    - effect_mark_prevent_damage
   image_link: =DISPIMG("ID_85F2FDA49BB54ECA8A35326C82A27CE3",1)
 - id: mark_hunluan
   name: 混乱
   description: 下一回合对手使用攻击技能 此技能将作用于自身
   num: 13
+  config:
+    duration: 1
+    persistent: false
+    maxStacks: 1
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+  effect:
+    - effect_mark_confuse
   image_link: =DISPIMG("ID_573EB1AB24F543D7BE78436498DEFB60",1)
 - id: mark_chenmo
   name: 沉默
   description: 对手的属性技能失效
+  config: *status_config
+  effect:
+    - effect_mark_taunt
   num: 14
   image_link: =DISPIMG("ID_A280A64B4B134FF2BE8DC1D106BFEB2D",1)
 - id: mark_jingu
   name: 禁锢
   description: 2回合使物攻技能失效 不会闪避攻击性技能
+  config: *status_config
+  effect:
+    - effect_mark_cant_evasion
+    - effect_mark_physical_stun
   num: 15
   image_link: =DISPIMG("ID_80E539FED0FC43A6B0B05B680568CF32",1)
 - id: mark_xuankong
   name: 悬空
   description: 1回合无法行动 不会闪避攻击性技能
+  config:
+    duration: 1
+    persistent: false
+    maxStacks: 1
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+  effect:
+    - effect_mark_stun
+    - effect_mark_cant_evasion
   num: 16
   image_link: =DISPIMG("ID_DC7B1C5143FD4525B7C193560ABDF546",1)
 - id: mark_lijie
   name: 力竭
   description: 1回合无法行动
+  config:
+    duration: 1
+    persistent: false
+    maxStacks: 1
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+  effect:
+    - effect_mark_stun
   num: 17
   image_link: =DISPIMG("ID_1432470AB656453CBB103A34E76D6C0C",1)
 - id: mark_meimeng
@@ -119,41 +215,81 @@
   name: 溺水
   description: 3回合每回合损失1/8体力 并且命中率降低10%（对水系无效）
   num: 1000
+  config: *status_config
+  effect:
+    - effect_mark_turn_damage
+    - effect_mark_reduce_accuracy
+    - effect_mark_reset_accuracy
   image_link: =DISPIMG("ID_87610E281900458085D77BDB74E938E8",1)
 - id: mark_shaoshang
   name: 烧伤
   description: 3回合每回合损失1/8体力 并且造成的物理攻击伤害降低25%（对火系无效）
+  config: *status_config
   num: 1001
+  effect:
+    - effect_mark_turn_damage
+    - effect_mark_decrease_atk
+    - effect_mark_decrease_atk_reset
   image_link: =DISPIMG("ID_135E0F7DDB964C08B9AB0D0D434E1417",1)
 - id: mark_dongshang
   name: 冻伤
   description: 3回合每回合损失1/8体力 并且造成的特殊攻击伤害降低25%（对冰系无效）
   num: 1002
+  config: *status_config
+  effect:
+    - effect_mark_turn_damage
+    - effect_mark_decrease_spa
+    - effect_mark_decrease_spa_reset
   image_link: =DISPIMG("ID_5B72F7DFECF74B6B8FBF6EA3A84A8F45",1)
 - id: mark_zhongdu
   name: 中毒
   description: 3回合每回合损失1/8体力 并且受到的治疗效果降低15%
   num: 1003
+  config: *status_config
+  effect:
+    - effect_mark_turn_damage
+    - effect_mark_decrease_heal
   image_link: =DISPIMG("ID_488C5E684E56445DAC70345DF420D9BA",1)
 - id: mark_liuxie
   name: 流血
   description: x回合每回合受到一定的固定伤害
+  config: *status_config
+  effect:
+    - effect_mark_damage_with_stack
   num: 1004
   image_link: =DISPIMG("ID_E9B68855D0EE47C09DD3F057F3281C14",1)
 - id: mark_exin
   name: 恶心
   description: 2回合命中率降低50%
+  config: *status_config
+  effect:
+    - effect_mark_reduce_accuracy_50
+    - effect_mark_restore_accuracy_50
   num: 1005
   image_link: =DISPIMG("ID_A51787F6228C463F83DA04708EDD5729",1)
 - id: mark_shiming
   name: 失明
   description: 2回合命中率降低50%
+  config: *status_config
+  effect:
+    - effect_mark_reduce_accuracy_50
+    - effect_mark_restore_accuracy_50
   num: 1006
   image_link: =DISPIMG("ID_FE9FD6F3674D4A65BD776A2B361D449B",1)
 - id: mark_jisheng
   name: 寄生
   description: 每回合吸收对手当前体力的1/8 恢复量不超过自身最大体力的1/8 （对草系无效）
+  config:
+    duration: 1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: false
   num: 1007
+  effect:
+    - effect_mark_absorb_hp_to_foe
   image_link: =DISPIMG("ID_FF6330D99D69434B993C5BE765F2F018",1)
 - id: mark_manxingduyao
   name: 慢性毒药
@@ -217,18 +353,47 @@
   image_link: =DISPIMG("ID_C1CA1DC6B7324EA4B0D0714AD2D56B0B",1)
 - id: mark_ruodianjihao
   name: 弱点记号
-  description: ""
+  description: ''
   num: 3000
+  config:
+    duration: 1
+    persistent: true
+    maxStacks: 2
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+  effect:
+    - effect_mark_reduce_speed_on_mark_create
+    - effect_mark_restore_speed_on_mark_destroy
   image_link: =DISPIMG("ID_F4DE2FABEC114FB498CA90C6A6861C41",1)
 - id: mark_yishang
   name: 易伤
   description: 受到的所有伤害增加50%
+  config:
+    duration: 3
+    persistent: true
+    maxStacks: 5
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_increase_damage_taken
   num: 3001
   image_link: =DISPIMG("ID_517045BBE88347D990FC59EBD51EDC69",1)
 - id: mark_jishengzhadan
   name: 寄生炸弹
   description: 3回合后对手受到300点固定伤害（若精灵换场则不保留）
+  config:
+    duration: 3
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
   num: 3002
+  effect:
+    - effect_mark_self_damage_on_expire
   image_link: =DISPIMG("ID_984DC8987FF94528A26B6759E34D82C1",1)
 - id: mark_mihuo
   name: 迷惑
@@ -247,22 +412,22 @@
   image_link: =DISPIMG("ID_FD4B52DBE71A4D38A31D57AF6161BA03",1)
 - id: mark_fandan
   name: 反弹
-  description: ""
+  description: ''
   num: 3006
   image_link: =DISPIMG("ID_355C639548BB458E8C0025E389FE1975",1)
 - id: mark_teshushanghaizengjia
   name: 特殊伤害增加
-  description: ""
+  description: ''
   num: 3007
   image_link: =DISPIMG("ID_15F5CAA2A9D44206B28E9956BA4C6CE9",1)
 - id: mark_wulishanghaizengjia
   name: 物理伤害增加
-  description: ""
+  description: ''
   num: 3008
   image_link: =DISPIMG("ID_2EB0C0000C364C2194F4F0D7BECBD7CD",1)
 - id: mark_shuiwenzhenji
   name: 水纹震击
-  description: ""
+  description: ''
   num: 3009
   image_link: =DISPIMG("ID_A4BFB836593E4DB1B13670A82D0AC671",1)
 - id: mark_xuanyun
@@ -272,12 +437,12 @@
   image_link: =DISPIMG("ID_55CBBFC1E7474FD7B979A44B31B3F9ED",1)
 - id: mark_shoudaowulishanghaijianshao
   name: 受到物理伤害减少
-  description: ""
+  description: ''
   num: 3011
   image_link: =DISPIMG("ID_EE5759E5CF3E43A1B93D0C2C9B36D87C",1)
 - id: mark_shoudaoteshushanghaijianban
   name: 受到特殊伤害减半
-  description: ""
+  description: ''
   num: 3012
   image_link: =DISPIMG("ID_F487B3C05F564824B52D826E4439D0BE",1)
 - id: mark_mingzhongdixia
@@ -285,9 +450,18 @@
   description: 命中下降15%
   num: 3013
   image_link: =DISPIMG("ID_51DF4638C2674A8EAD992C8F19A231CB",1)
-- id: mark_weilitisheng
-  name: 威力提升
+- id: mark_yanggong
+  name: 佯攻
   description: 除佯攻外的技能威力增加
+  config:
+    duration: 1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+  effect:
+    - effect_mark_amplify_non_yanggong
   num: 3014
   image_link: =DISPIMG("ID_19CCC30AC8BB440AAB82E7A1F4ECC4B6",1)
 - id: mark_bizhong
@@ -317,7 +491,7 @@
   image_link: =DISPIMG("ID_DB98F9427F804651A5D2B970F9FB22BC",1)
 - id: mark_shoushangfanbei
   name: 受伤翻倍
-  description: ""
+  description: ''
   num: 3020
   image_link: =DISPIMG("ID_0A366DA80ACD4916AD300435203FB278",1)
 - id: mark_mingzhongtisheng
@@ -327,7 +501,7 @@
   image_link: =DISPIMG("ID_9F259D5D10634A77A85896AA2A8F8C1F",1)
 - id: mark_weilibianhua
   name: 威力变化
-  description: ""
+  description: ''
   num: 3022
   image_link: =DISPIMG("ID_43998118406F4C45B42BE855B871158B",1)
 - id: mark_shanbi
@@ -347,7 +521,7 @@
   image_link: =DISPIMG("ID_E1C5D4CC04CE4BF3A2FAAF323218B345",1)
 - id: mark_shanghaizhuanhua
   name: 伤害转化
-  description: ""
+  description: ''
   num: 3026
   image_link: =DISPIMG("ID_8E2FD49C15854669ADFBF8E63131C6A1",1)
 - id: mark_jinzhenfenmo
@@ -357,17 +531,17 @@
   image_link: =DISPIMG("ID_88CF6D84E7714B5CB2C615F23D5C9D49",1)
 - id: mark_dixiaowulishanghai
   name: 抵消物理伤害
-  description: ""
+  description: ''
   num: 3028
   image_link: =DISPIMG("ID_45FD93006AAA4A908BE3BB0574656E41",1)
 - id: mark_tizhongjiangdi
   name: 体重降低
-  description: ""
+  description: ''
   num: 3029
   image_link: =DISPIMG("ID_97FB68C2894F4993995815203A888A21",1)
 - id: mark_fanshe
   name: 反射
-  description: ""
+  description: ''
   num: 3030
   image_link: =DISPIMG("ID_5E266C3E1FC74E44BEDA5F92FAECA9D8",1)
 - id: mark_mianyiruohua
@@ -412,12 +586,12 @@
   image_link: =DISPIMG("ID_9D564BA029294F64966656F8C901AE15",1)
 - id: mark_shoudaoshanghaizengjia
   name: 受到伤害增加
-  description: ""
+  description: ''
   num: 3042
   image_link: =DISPIMG("ID_BBEAF8AF528C4D8F8824189476A2CB62",1)
 - id: mark_suijixianzhi
   name: 随机先制
-  description: ""
+  description: ''
   num: 3043
   image_link: =DISPIMG("ID_32F142DD36E441E896C1866AF52F9EA1",1)
 - id: mark_mianyiyichang
@@ -427,17 +601,17 @@
   image_link: =DISPIMG("ID_391BE16CBFE949AD936B3515C4764A91",1)
 - id: mark_xinzhiyinji
   name: 心之印记
-  description: ""
+  description: ''
   num: 3045
   image_link: =DISPIMG("ID_411E3ECEC3F94F62A82B0E64AE0121A9",1)
 - id: mark_xuehongyinji
   name: 血红印记
-  description: ""
+  description: ''
   num: 3046
   image_link: =DISPIMG("ID_6AC63F37F2D24FE4B0BF451C2F924109",1)
 - id: mark_texiaochufalvshangsheng
   name: 特效触发率上升
-  description: ""
+  description: ''
   num: 3048
   image_link: =DISPIMG("ID_7E27E6CA301D41648288F2520793F99E",1)
 - id: mark_kongqichuliang
@@ -447,7 +621,7 @@
   image_link: =DISPIMG("ID_A29273FD69E1408CA91D6E25F1512104",1)
 - id: mark_yinbozhi
   name: 音波值
-  description: ""
+  description: ''
   num: 3050
   image_link: =DISPIMG("ID_C5ACB7C9435842F1849E0180385EE14C",1)
 - id: mark_zaoyin

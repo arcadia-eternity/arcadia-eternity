@@ -22,14 +22,16 @@
             "type": "object",
             "properties": {
               "duration": {
-                "type": "number"
+                "type": "number",
+                "default": 3
               },
               "persistent": {
                 "type": "boolean",
                 "default": true
               },
               "maxStacks": {
-                "type": "integer"
+                "type": "integer",
+                "default": 1
               },
               "stackable": {
                 "type": "boolean",
@@ -46,9 +48,21 @@
                 ],
                 "default": "extend"
               },
-              "destoyable": {
+              "destroyable": {
                 "type": "boolean",
                 "default": true
+              },
+              "isShield": {
+                "type": "boolean"
+              },
+              "keepOnSwitchOut": {
+                "type": "boolean"
+              },
+              "transferOnSwitch": {
+                "type": "boolean"
+              },
+              "inheritOnFaint": {
+                "type": "boolean"
               }
             },
             "additionalProperties": false

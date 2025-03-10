@@ -14,7 +14,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
-  effect: []
+  effect:
+    - effect_skill_reduce_def_5_percent
   num: 10001
   evolved_skill_id: 10018
 - id: skill_shuipao
@@ -28,6 +29,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_reduce_spd_5_percent
   num: 10002
   evolved_skill_id: 10019
 - id: skill_tuoli
@@ -41,6 +44,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_reduce_foe_atk_1_stage
   num: 10003
   evolved_skill_id: 10020
 - id: skill_ruodiangongji
@@ -54,6 +59,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_add_mark_foe_ruodian
   num: 10004
   evolved_skill_id: 10021
 - id: skill_jiliuchuanji
@@ -66,7 +73,9 @@
   description: 喷射出激流攻击对手 每1个记号使致命率增加45%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tag: ['consume_ruodian']
+  effect:
+    - effect_skill_add_crit_rate_ruodian
   num: 10005
   evolved_skill_id: 10022
 - id: skill_sashui
@@ -80,6 +89,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_reduce_foe_spa_1_stage
   num: 10006
   evolved_skill_id: 10023
 - id: skill_yinudanu
@@ -105,7 +116,10 @@
   description: 刮起海啸连续冲击对手 每1个记号使连击数加1
   sureHit: false
   ignoreShield: false
-  tag: []
+  tag: ['consume_ruodian']
+  effect:
+    - effect_skill_add_hit_result_ruodian
+    - effect_skill_consume_ruodian
   num: 10008
   evolved_skill_id: 10025
 - id: skill_shuiliuhuti
@@ -119,6 +133,9 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_raise_def_1_stages
+    - effect_skill_raise_spd_1_stages
   num: 10009
   evolved_skill_id: 10026
 - id: skill_ruohuadaji
@@ -132,6 +149,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_reduce_spd_5_percent
   num: 10010
   evolved_skill_id: 10027
 - id: skill_feiliupubu
@@ -144,7 +163,10 @@
   description: 从上倾下瀑布攻击对手 每1个记号使威力增加50
   sureHit: false
   ignoreShield: false
-  tag: []
+  tag: ['consume_ruodian']
+  effect:
+    - effect_skill_add_power_50_ruodian
+    - effect_skill_consume_ruodian
   num: 10011
   evolved_skill_id: 10028
 - id: skill_hailangzhidun
@@ -184,6 +206,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_add_mark_foe_mingzhongdixia
   num: 10014
   evolved_skill_id: 10031
 - id: skill_yanmo
@@ -210,6 +234,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_add_mark_foe_ruodian_2
   num: 10016
   evolved_skill_id: 10033
 - id: skill_lizhua
@@ -223,6 +249,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_reduce_atk_5_percent
   num: 10018
   evolved_skill_id: 10001
 - id: skill_huoyan
@@ -236,6 +264,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_reduce_spa_5_percent
   num: 10019
   evolved_skill_id: 10002
 - id: skill_qili
@@ -249,6 +279,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_raise_atk_1_stages
   num: 10020
   evolved_skill_id: 10003
 - id: skill_fenlitupo
@@ -262,6 +294,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_add_mark_foe_yishang
   num: 10021
   evolved_skill_id: 10004
 - id: skill_tahuochongzhuang
@@ -275,6 +309,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_add_mark_foe_shaoshang_5_percent
   num: 10022
   evolved_skill_id: 10005
 - id: skill_jiasu
@@ -288,6 +324,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_raise_spe_1_stages
   num: 10023
   evolved_skill_id: 10006
 - id: skill_yanggong
@@ -302,6 +340,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_add_mark_yanggong
   num: 10024
   evolved_skill_id: 10007
 - id: skill_jizhong
@@ -315,6 +355,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_add_mark_jizhong
   num: 10025
   evolved_skill_id: 10008
 - id: skill_huohai
@@ -328,6 +370,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_add_mark_foe_shaoshang_50_percent
   num: 10026
   evolved_skill_id: 10009
 - id: skill_nuhuomenggong
@@ -341,6 +385,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_min_damage_100
   num: 10027
   evolved_skill_id: 10010
 - id: skill_shixue
@@ -354,6 +400,9 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_reduce_self_hp_1_6
+    - effect_skill_add_rage_35
   num: 10028
   evolved_skill_id: 10011
 - id: skill_lieyanjuexiji
@@ -367,6 +416,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_reduce_def_5_percent
   num: 10029
   evolved_skill_id: 10012
 - id: skill_liehuofentianshao
@@ -393,6 +444,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_add_mark_yanzhiyizhi
   num: 10031
   evolved_skill_id: 10014
 - id: skill_juechufengsheng
@@ -406,6 +459,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_power_4x_below_1_6_hp
   num: 10032
   evolved_skill_id: 10015
 - id: skill_bumiezhixin
@@ -419,6 +474,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_add_mark_bumieyizhi
   num: 10033
   evolved_skill_id: 10016
 - id: skill_zhongzibaodan
@@ -431,6 +488,7 @@
   description: 连击2~3次
   sureHit: false
   ignoreShield: false
+  multihit: [2, 3]
   tag: []
   num: 10035
   evolved_skill_id: -1
@@ -445,6 +503,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_heal_self_quarter
   num: 10036
   evolved_skill_id: -1
 - id: skill_zhongzinengliang
@@ -458,6 +518,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_add_mark_zhongzinengliang
   num: 10037
   evolved_skill_id: -1
 - id: skill_nengliangshifang
@@ -471,6 +533,9 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_add_power_25_zhongzinengliang
+    - effect_skill_consume_all_zhongzinengliang
   num: 10038
   evolved_skill_id: -1
 - id: skill_xueruo
@@ -484,6 +549,9 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_reduce_foe_atk_1_stage
+    - effect_skill_reduce_foe_spa_1_stage
   num: 10039
   evolved_skill_id: -1
 - id: skill_feiyesushe
@@ -497,6 +565,7 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  multihit: [3, 5]
   num: 10040
   evolved_skill_id: -1
 - id: skill_jishengzhongzi
@@ -510,6 +579,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_add_mark_foe_jisheng
   num: 10041
   evolved_skill_id: -1
 - id: skill_nengliangzhaqu
@@ -523,6 +594,9 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_heal_by_damage_25_zhongzinengliang
+    - effect_skill_consume_all_zhongzinengliang
   num: 10042
   evolved_skill_id: -1
 - id: skill_jinghuazhiye
@@ -535,6 +609,8 @@
   description: 放出一滴净化汁液来清除对手能力强化
   sureHit: false
   ignoreShield: false
+  effect:
+    - effect_skill_foe_clear_stage
   tag: []
   num: 10043
   evolved_skill_id: -1
@@ -549,6 +625,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_add_mark_foe_liuxie_with_zhongzinengliang
   num: 10044
   evolved_skill_id: -1
 - id: skill_ganrao
@@ -562,6 +640,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_add_mark_foe_mingzhongdixia
   num: 10045
   evolved_skill_id: -1
 - id: skill_laaodehuhuan
@@ -588,6 +668,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_power_2x_foe_below_quarter_hp
   num: 10047
   evolved_skill_id: -1
 - id: skill_jishengzhadan
@@ -601,6 +683,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_add_mark_foe_jishengzhadan
   num: 10048
   evolved_skill_id: -1
 - id: skill_yinbaozhongzi
@@ -614,6 +698,8 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  effect:
+    - effect_skill_ignite_foe_mark_jishengzhadan
   num: 10049
   evolved_skill_id: -1
 - id: skill_dixiulazhinu
@@ -627,6 +713,7 @@
   sureHit: false
   ignoreShield: false
   tag: []
+  multihit: 3
   num: 10017
   evolved_skill_id: -1
 - id: skill_zhuangji

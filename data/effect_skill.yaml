@@ -1,4 +1,4 @@
-# data/effect_skill_skill.yaml
+# data/effect_skill.yaml
 # yaml-language-server: $schema=../packages/schema/schema/effect.schema.json
 # @metaType effect
 # @version 1.0.0
@@ -138,42 +138,42 @@
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: def
-  condition: *condition_probability_5_percent_template
+  condition: *condition_self_use_skill_template
 - id: effect_skill_reduce_foe_atk_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: atk
-  condition: *condition_probability_5_percent_template
+  condition: *condition_self_use_skill_template
 - id: effect_skill_reduce_foe_def_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: def
-  condition: *condition_probability_5_percent_template
+  condition: *condition_self_use_skill_template
 - id: effect_skill_reduce_foe_spa_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: spa
-  condition: *condition_probability_5_percent_template
+  condition: *condition_self_use_skill_template
 - id: effect_skill_reduce_foe_spd_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: spd
-  condition: *condition_probability_5_percent_template
+  condition: *condition_self_use_skill_template
 - id: effect_skill_reduce_foe_spe_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: spe
-  condition: *condition_probability_5_percent_template
+  condition: *condition_self_use_skill_template
 - id: effect_skill_add_mark_foe_ruodian
   trigger: OnHit
   priority: 0
@@ -332,7 +332,7 @@
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: self
     mark:
       type: entity:baseMark
       value: mark_yanggong
@@ -365,9 +365,9 @@
     target: self
     mark:
       type: entity:baseMark
-      value: mark_bumiezhixin
+      value: mark_weilibianhua
   condition: *condition_self_use_skill_template
-- id: effect_skill_reduce_self_hp
+- id: effect_skill_reduce_self_hp_1_6
   trigger: BeforeHit
   priority: 0
   apply:
@@ -660,3 +660,42 @@
                 value: mark_jishengzhadan
         evaluator:
           type: exist
+- id: effect_skill_add_mark_foe_jisheng
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_jisheng
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_foe_liuxie_with_zhongzinengliang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_liuxie
+    duration:
+      type: dynamic
+      selector:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_zhongzinengliang
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: add
+            arg: 3
+    stack: 50
+  condition: *condition_self_use_skill_template

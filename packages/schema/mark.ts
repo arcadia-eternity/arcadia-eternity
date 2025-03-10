@@ -10,12 +10,16 @@ export const MarkSchema = z
     description: z.string(),
     config: z
       .object({
-        duration: z.number().optional(),
+        duration: z.number().optional().default(3),
         persistent: z.boolean().optional().default(true),
-        maxStacks: z.number().int().optional(),
+        maxStacks: z.number().int().optional().default(1),
         stackable: z.boolean().optional().default(false),
         stackStrategy: StackStrategySchema.optional().default(StackStrategy.extend),
-        destoyable: z.boolean().optional().default(true),
+        destroyable: z.boolean().optional().default(true),
+        isShield: z.boolean().optional(),
+        keepOnSwitchOut: z.boolean().optional(),
+        transferOnSwitch: z.boolean().optional(),
+        inheritOnFaint: z.boolean().optional(),
       })
       .optional(),
     tags: z.array(z.string()).optional(),

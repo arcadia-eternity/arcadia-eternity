@@ -193,7 +193,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       duration: context.duration,
       stack: context.stack,
     }
-    const newMark = new MarkInstance(context.mark, config)
+    const newMark = context.mark.createInstance(config)
     const existingOppositeMark = this.marks.find(
       mark =>
         mark instanceof StatLevelMarkInstance &&

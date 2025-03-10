@@ -292,10 +292,12 @@ export type EvaluatorDSL =
       value: Value
     }
   | { type: 'same'; value: Value }
+  | { type: 'notSame'; value: Value }
   | { type: 'any'; conditions: EvaluatorDSL[] }
   | { type: 'all'; conditions: EvaluatorDSL[] }
+  | { type: 'not'; condition: EvaluatorDSL }
   | { type: 'probability'; percent: Value }
-  | { type: 'hasTag'; tag: string }
+  | { type: 'contain'; tag: string }
   | { type: 'exist' }
 
 export type ConditionDSL =

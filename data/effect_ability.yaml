@@ -1,0 +1,27 @@
+# data/effect_ability.yaml
+# yaml-language-server: $schema=../packages/schema/schema/effect.schema.json
+# @metaType effect
+# @version 1.0.0
+- id: effect_skill_amplify_power_consume_ruodian
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 0.25
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: tags
+        evaluator:
+          type: contain
+          tag: consume_ruodian

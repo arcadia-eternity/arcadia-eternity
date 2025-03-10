@@ -10,7 +10,7 @@
     persistent: true
     stackable: false
     stackStrategy: extend
-    destoyable: true
+    destroyable: true
   num: 20001
   image_link: =DISPIMG("ID_12DB04AF388F4693931C990CEA4102A3",1)
 - id: mark_global_yutian

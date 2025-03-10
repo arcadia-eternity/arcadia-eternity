@@ -955,4 +955,71 @@ function getDefaultGender(speciesId: string): Gender {
 .value[data-positive='false'] {
   color: var(--el-color-danger);
 }
+
+.global-actions {
+  /* 基础定位 */
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
+
+  /* 布局样式 */
+  display: flex;
+  gap: 16px;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 28px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--el-border-color-lighter);
+
+  /* 按钮统一样式 */
+  .el-button {
+    padding: 12px 24px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: all 0.3s var(--el-transition-function-fast-bezier);
+
+    /* 带图标按钮样式 */
+    .el-icon {
+      margin-right: 8px;
+      font-size: 1.1em;
+      vertical-align: -0.15em;
+    }
+
+    /* 主按钮强化 */
+    &--primary {
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.4);
+      }
+    }
+
+    /* 默认按钮悬停效果 */
+    &:not(.el-button--primary):hover {
+      background-color: var(--el-color-info-light-9);
+      border-color: var(--el-color-info-light-5);
+    }
+  }
+
+  /* 移动端适配 */
+  @media (max-width: 768px) {
+    bottom: 10px;
+    padding: 8px 16px;
+    gap: 12px;
+
+    .el-button {
+      padding: 10px 16px;
+      font-size: 0.9em;
+
+      .el-icon {
+        margin-right: 6px;
+        font-size: 1em;
+      }
+    }
+  }
+}
 </style>

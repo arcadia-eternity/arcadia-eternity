@@ -60,6 +60,13 @@ export const Evaluators = {
       return comparValue === values[0]
     },
 
+  notSame:
+    <T extends SelectorOpinion>(dynamicValue: ValueSource<T>): Evaluator<T> =>
+    (context: EffectContext<EffectTrigger>, values: T[]): boolean => {
+      const comparValue = GetValueFromSource(context, dynamicValue)[0]
+      return comparValue !== values[0]
+    },
+
   has:
     <T extends SelectorOpinion>(dynamicValue: ValueSource<T>): Evaluator<T> =>
     (context: EffectContext<EffectTrigger>, values: T[]): boolean => {
@@ -86,8 +93,13 @@ export const Evaluators = {
     (context: EffectContext<EffectTrigger>, values: T[]) =>
       ops.every(op => op(context, values)),
 
-  //这是一个特殊处理，Mark的Tag通过筛选获得的时候嵌套了两层，有点难搞了
-  hasTag:
+  not:
+    <T extends SelectorOpinion>(op: Evaluator<T>): Evaluator<T> =>
+    (context: EffectContext<EffectTrigger>, values: T[]): boolean => {
+      return !op(context, values)
+    },
+
+  contain:
     <T extends string[]>(tag: string): Evaluator<T> =>
     (context: EffectContext<EffectTrigger>, values: T[]) =>
       values.some(v => v.some(w => w === tag)),

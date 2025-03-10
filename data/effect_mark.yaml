@@ -1,4 +1,4 @@
-# data/effect_mark_mark.yaml
+# data/effect_mark.yaml
 # yaml-language-server: $schema=../packages/schema/schema/effect.schema.json
 # @metaType effect
 # @version 1.0.0
@@ -105,7 +105,7 @@
               type: base
               arg: tags
             evaluator:
-              type: hasTag
+              type: contain
               tag: status
           - type: shuffled
           - type: limit
@@ -211,7 +211,7 @@
               arg: maxhp
           - type: divide
             arg: 8
-- id: effect_mark_reduce_hit_rate
+- id: effect_mark_reduce_accuracy
   trigger: OnMarkCreate
   priority: 0
   apply:
@@ -221,7 +221,7 @@
     statType: accuracy
     value: 0
     percent: -10
-- id: effect_mark_reset_hit_rate
+- id: effect_mark_reset_accuracy
   trigger: OnMarkDestroy
   priority: 0
   apply:
@@ -298,7 +298,7 @@
             arg:
               type: base
               arg: stack
-- id: effect_mark_reduce_hit_rate_50
+- id: effect_mark_reduce_accuracy_50
   trigger: OnMarkCreate
   priority: 0
   apply:
@@ -308,7 +308,7 @@
     statType: accuracy
     value: 0
     percent: -50
-- id: effect_mark_restore_hit_rate
+- id: effect_mark_restore_accuracy_50
   trigger: OnMarkDestroy
   priority: 0
   apply:
@@ -324,32 +324,34 @@
     type: petIsActive
   priority: 0
   apply:
-    type: heal
-    target:
-      base: foe
-    value:
-      type: dynamic
-      selector:
-        base: self
-        chain:
-          - type: select
-            arg:
-              type: base
-              arg: hp
-          - type: divide
-            arg: 8
-          - type: clampMax
-            arg:
-              type: dynamic
-              selector:
-                base: foe
-                chain:
-                  - type: select
-                    arg:
-                      type: base
-                      arg: maxhp
-                  - type: divide
-                    arg: 8
+    - type: dealDamage
+      target: foe
+      value: &absorb_hp_value
+        type: dynamic
+        selector:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: hp
+            - type: divide
+              arg: 8
+            - type: clampMax
+              arg:
+                type: dynamic
+                selector:
+                  base: foe
+                  chain:
+                    - type: select
+                      arg:
+                        type: base
+                        arg: maxhp
+                    - type: divide
+                      arg: 8
+    - type: heal
+      target: self
+      value: *absorb_hp_value
 - id: effect_mark_posion_damage
   trigger: TurnEnd
   priority: 0
@@ -419,3 +421,26 @@
     target:
       base: self
     value: 300
+- id: effect_mark_amplify_non_yanggong
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: usingSkillContext
+    value: 50
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill.baseId
+        evaluator:
+          type: notSame
+          value: skill_yanggong
+  consumesStacks: 1

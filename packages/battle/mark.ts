@@ -34,14 +34,25 @@ export class BaseMark implements Prototype {
       readonly maxStacks?: number
       readonly stackable?: boolean
       readonly stackStrategy?: StackStrategy
-      readonly destoyable?: boolean
+      readonly destroyable?: boolean
       readonly isShield?: boolean
       readonly keepOnSwitchOut?: boolean
       readonly transferOnSwitch?: boolean
       readonly inheritOnFaint?: boolean
-    } = { destoyable: true },
+    } = { destroyable: true },
     public readonly tags: string[] = [],
   ) {}
+
+  createInstance(overrides?: {
+    duration?: number
+    stack?: number
+    config?: Partial<BaseMark['config']>
+    name?: string
+    tags?: string[]
+    effects?: Effect<EffectTrigger>[]
+  }) {
+    return new MarkInstance(this, overrides)
+  }
 }
 
 export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet | null>, Instance {
@@ -59,12 +70,12 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
     maxStacks?: number
     stackable?: boolean
     stackStrategy?: StackStrategy
-    destoyable?: boolean
+    destroyable?: boolean
     isShield?: boolean
     keepOnSwitchOut?: boolean
     transferOnSwitch?: boolean
     inheritOnFaint?: boolean
-  } = { destoyable: true }
+  } = { destroyable: true }
   public readonly tags: string[] = []
   public readonly effectState: {
     [id: string]: EffectState
@@ -232,7 +243,7 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
       | RemoveMarkContext
       | DamageContext,
   ) {
-    if (!this.isActive || !this.config.destoyable) return
+    if (!this.isActive || !this.config.destroyable) return
     this.isActive = false
 
     // 触发移除效果
@@ -280,7 +291,8 @@ export class BaseStatLevelMark extends BaseMark {
     name: string,
     effects: Effect<EffectTrigger>[] = [],
     config: BaseMark['config'] = {
-      destoyable: true,
+      destroyable: true,
+      stackable: true,
     },
   ) {
     super(
@@ -292,16 +304,17 @@ export class BaseStatLevelMark extends BaseMark {
         persistent: true,
         maxStacks: 6,
         stackStrategy: StackStrategy.stack,
+        destroyable: true,
+        stackable: true,
       },
       ['statStage'],
     )
   }
 
-  createInstance(context: AddMarkContext): StatLevelMarkInstance {
+  createInstance(): StatLevelMarkInstance {
     const instance = new StatLevelMarkInstance(this)
     instance.level = this.initialLevel
     instance.updateName()
-    context.battle.applyEffects(context, EffectTrigger.OnMarkCreate)
     return instance
   }
 }
@@ -317,6 +330,10 @@ export class StatLevelMarkInstance extends MarkInstance {
 
   get statType() {
     return this.base.statType
+  }
+
+  get stack() {
+    return this.level
   }
 
   public updateName() {
@@ -345,12 +362,12 @@ export class StatLevelMarkInstance extends MarkInstance {
       return true
     }
 
-    const isSameType = otherMark instanceof StatLevelMarkInstance && otherMark.base.statType === this.base.statType
+    const isSameType = otherMark instanceof BaseStatLevelMark && otherMark.statType === this.base.statType
 
     if (!isSameType) return super.tryStack(context)
 
     const maxLevel = (STAT_STAGE_MULTIPLIER.length - 1) / 2
-    const newLevel = Math.max(-maxLevel, Math.min(maxLevel, this.level + (otherMark as StatLevelMarkInstance).level))
+    const newLevel = Math.max(-maxLevel, Math.min(maxLevel, this.level + otherMark.initialLevel))
 
     if (newLevel === 0) {
       this.destroy(context)
@@ -391,7 +408,7 @@ export function CreateStatStageMark(statType: StatTypeWithoutHp, level: number):
       duration: -1,
       maxStacks: 6,
       stackStrategy: StackStrategy.stack,
-      destoyable: true,
+      destroyable: true,
     },
   )
 }

@@ -224,9 +224,6 @@ importers:
       '@test-battle/const':
         specifier: workspace:^
         version: link:../const
-      '@test-battle/data-repository':
-        specifier: workspace:^
-        version: link:../dataRepository
       '@test-battle/effect-builder':
         specifier: workspace:^
         version: link:../effectBuilder

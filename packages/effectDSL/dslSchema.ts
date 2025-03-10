@@ -191,6 +191,10 @@ export const evaluatorDSLSchema: z.ZodSchema<EvaluatorDSL> = z.lazy(() =>
       value: valueSchema,
     }),
     z.object({
+      type: z.literal('notSame'),
+      value: valueSchema,
+    }),
+    z.object({
       type: z.literal('any'),
       conditions: z.array(evaluatorDSLSchema),
     }),
@@ -199,11 +203,15 @@ export const evaluatorDSLSchema: z.ZodSchema<EvaluatorDSL> = z.lazy(() =>
       conditions: z.array(evaluatorDSLSchema),
     }),
     z.object({
+      type: z.literal('not'),
+      condition: evaluatorDSLSchema,
+    }),
+    z.object({
       type: z.literal('probability'),
       percent: valueSchema,
     }),
     z.object({
-      type: z.literal('hasTag'),
+      type: z.literal('contain'),
       tag: z.string(),
     }),
     z.object({

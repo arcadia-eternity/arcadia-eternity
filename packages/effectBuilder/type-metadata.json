@@ -1526,7 +1526,7 @@
     },
     {
       "n": "config",
-      "t": "{ readonly duration?: number | undefined, readonly persistent?: boolean | undefined, readonly maxStacks?: number | undefined, readonly stackable?: boolean | undefined, readonly stackStrategy?: StackStrategy | undefined, readonly destoyable?: boolean | undefined, readonly isShield?: boolean | undefined, readonly keepOnSwitchOut?: boolean | undefined, readonly transferOnSwitch?: boolean | undefined, readonly inheritOnFaint?: boolean | undefined }",
+      "t": "{ readonly duration?: number | undefined, readonly persistent?: boolean | undefined, readonly maxStacks?: number | undefined, readonly stackable?: boolean | undefined, readonly stackStrategy?: StackStrategy | undefined, readonly destroyable?: boolean | undefined, readonly isShield?: boolean | undefined, readonly keepOnSwitchOut?: boolean | undefined, readonly transferOnSwitch?: boolean | undefined, readonly inheritOnFaint?: boolean | undefined }",
       "iu": false,
       "u": [],
       "a": false
@@ -1600,7 +1600,7 @@
     },
     {
       "n": "config",
-      "t": "{ duration?: number | undefined, persistent?: boolean | undefined, maxStacks?: number | undefined, stackable?: boolean | undefined, stackStrategy?: StackStrategy | undefined, destoyable?: boolean | undefined, isShield?: boolean | undefined, keepOnSwitchOut?: boolean | undefined, transferOnSwitch?: boolean | undefined, inheritOnFaint?: boolean | undefined }",
+      "t": "{ duration?: number | undefined, persistent?: boolean | undefined, maxStacks?: number | undefined, stackable?: boolean | undefined, stackStrategy?: StackStrategy | undefined, destroyable?: boolean | undefined, isShield?: boolean | undefined, keepOnSwitchOut?: boolean | undefined, transferOnSwitch?: boolean | undefined, inheritOnFaint?: boolean | undefined }",
       "iu": false,
       "u": [],
       "a": false

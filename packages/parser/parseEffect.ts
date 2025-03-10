@@ -52,10 +52,10 @@ export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
     const condition = dsl.condition ? parseCondition(dsl.condition) : undefined
     if (Array.isArray(dsl.apply)) {
       const actions = dsl.apply.map(a => createAction(a))
-      return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition)
+      return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition, dsl.consumesStacks)
     } else {
       const actions = createAction(dsl.apply)
-      return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition)
+      return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition, dsl.consumesStacks)
     }
   } catch (error) {
     console.log(`解析${dsl.id}时出现问题,`, error)
@@ -222,16 +222,22 @@ function parseEvaluator(dsl: EvaluatorDSL): Evaluator<SelectorOpinion> {
       return Evaluators.same(
         parseValue(dsl.value) as ValueSource<number | string | boolean>,
       ) as Evaluator<SelectorOpinion>
+    case 'notSame':
+      return Evaluators.notSame(
+        parseValue(dsl.value) as ValueSource<number | string | boolean>,
+      ) as Evaluator<SelectorOpinion>
     case 'any':
       // 递归解析嵌套条件（OR 逻辑）
       return Evaluators.any(...dsl.conditions.map(v => parseEvaluator(v)))
     case 'all':
       // 递归解析嵌套条件（AND 逻辑）
       return Evaluators.all(...dsl.conditions.map(v => parseEvaluator(v)))
+    case 'not':
+      return Evaluators.not(parseEvaluator(dsl.condition))
     case 'probability':
       return Evaluators.probability(parseValue(dsl.percent) as ValueSource<number>)
-    case 'hasTag':
-      return Evaluators.hasTag(dsl.tag) as Evaluator<SelectorOpinion>
+    case 'contain':
+      return Evaluators.contain(dsl.tag) as Evaluator<SelectorOpinion>
     case 'exist':
       return Evaluators.exist()
     default: {
