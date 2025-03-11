@@ -271,9 +271,15 @@ export class RageContext extends Context {
     public modifiedType: 'setting' | 'add' | 'reduce',
     public value: number,
     public ignoreRageObtainEfficiency: boolean = false,
+    public modified: [number, number] = [0, 0],
   ) {
     super(parent)
     this.battle = parent.battle
+  }
+
+  addModified: (percent: number, delta: number) => void = (percent, delta) => {
+    this.modified[0] += percent
+    this.modified[1] += delta
   }
 }
 

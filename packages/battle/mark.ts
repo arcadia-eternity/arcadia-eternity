@@ -160,6 +160,8 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
   tryStack(context: AddMarkContext): boolean {
     if (!this.isStackable) return false
 
+    // 始终使用叠加印记的config
+    this.config = context.config || context.baseMark.config
     const maxStacks = this.config.maxStacks ?? Infinity
     const strategy = this.config.stackStrategy!
     const newMark = new MarkInstance(context.baseMark)

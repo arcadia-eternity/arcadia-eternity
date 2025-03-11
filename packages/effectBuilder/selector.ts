@@ -509,7 +509,6 @@ export const BaseSelector: {
   }),
   addMarkContext: createChainable<AddMarkContext>('AddMarkContext', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof AddMarkContext) return [context.parent]
-    //TODO: error with use get context with non-Damage context
     return []
   }),
 }
