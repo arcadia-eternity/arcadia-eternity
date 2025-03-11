@@ -394,3 +394,15 @@ export type ConditionDSL =
   | {
       type: 'selfBeDamaged'
     }
+  | {
+      type: 'selfAddMark'
+    }
+  | {
+      type: 'foeAddMark'
+    }
+  | {
+      type: 'selfBeAddMark'
+    }
+  | {
+      type: 'foeBeAddMark'
+    }

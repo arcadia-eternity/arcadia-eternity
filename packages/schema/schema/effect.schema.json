@@ -82,7 +82,8 @@
                               "selfAvailableSkills",
                               "foeAvailableSkills",
                               "dataMarks",
-                              "healContext"
+                              "healContext",
+                              "addMarkContext"
                             ]
                           },
                           {
@@ -1715,6 +1716,58 @@
                   "type": {
                     "type": "string",
                     "const": "selfBeDamaged"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "selfAddMark"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "foeAddMark"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "selfBeAddMark"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "foeBeAddMark"
                   }
                 },
                 "required": [

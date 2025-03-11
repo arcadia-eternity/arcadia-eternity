@@ -10,21 +10,21 @@
     persistent: true
     stackable: false
     stackStrategy: extend
-    destroyable: true
+    destroyable: false
   effect:
-    - effect_skill_amplify_power_consume_ruodian
+    - effect_ability_amplify_power_consume_ruodian
 - id: mark_ability_yanhuo
   name: 炎火
   config: *ablitity_config
   description: 体力低于1/4以下时火系技能造成的伤害增加25%
   effect:
-    - effect_mark_fire_power_boost
+    - effect_ability_fire_power_boost
 - id: mark_ability_jianren
   name: 坚韧
   config: *ablitity_config
   description: 体力低于1/4以下时受到伤害减少25%
   effect:
-    - effect_mark_damage_reduction_below_25_percent
+    - effect_ability_damage_reduction_below_25_percent
 - id: mark_ability_rumeng
   name: 入梦
   description: 跟随身边时可以进入精灵的梦境

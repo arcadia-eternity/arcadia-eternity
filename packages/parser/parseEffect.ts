@@ -578,6 +578,14 @@ export function parseCondition(dsl: ConditionDSL): Condition {
       return Conditions.foeUseSkill()
     case 'selfBeDamaged':
       return Conditions.selfBeDamaged()
+    case 'selfAddMark':
+      return Conditions.selfAddMark()
+    case 'foeAddMark':
+      return Conditions.foeAddMark()
+    case 'selfBeAddMark':
+      return Conditions.selfBeAddMark()
+    case 'foeBeAddMark':
+      return Conditions.foeBeAddMark()
   }
 }
 

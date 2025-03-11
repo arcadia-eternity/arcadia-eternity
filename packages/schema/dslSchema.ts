@@ -449,6 +449,18 @@ export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
     z.object({
       type: z.literal('selfBeDamaged'),
     }),
+    z.object({
+      type: z.literal('selfAddMark'),
+    }),
+    z.object({
+      type: z.literal('foeAddMark'),
+    }),
+    z.object({
+      type: z.literal('selfBeAddMark'),
+    }),
+    z.object({
+      type: z.literal('foeBeAddMark'),
+    }),
   ]),
 )
 

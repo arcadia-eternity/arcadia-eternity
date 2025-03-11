@@ -358,9 +358,9 @@ export class AddMarkContext extends Context {
   public readonly battle: Battle
   public readonly available: boolean = true
   constructor(
-    public readonly parent: EffectContext<EffectTrigger> | SwitchPetContext,
+    public readonly parent: EffectContext<EffectTrigger>,
     public target: MarkOwner,
-    public mark: BaseMark,
+    public baseMark: BaseMark,
     public stack?: number,
     public duration?: number,
     public config?: Partial<MarkInstance['config']>,
@@ -368,7 +368,7 @@ export class AddMarkContext extends Context {
     super(parent)
     this.battle = parent.battle
     //拷贝，因为原值是可读的
-    if (!config) this.config = JSON.parse(JSON.stringify(mark.config))
+    if (!config) this.config = JSON.parse(JSON.stringify(baseMark.config))
   }
 
   overrideConfig(overrideConfig: Partial<MarkInstance['config']>) {

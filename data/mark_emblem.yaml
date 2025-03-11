@@ -5,6 +5,13 @@
 - id: mark_emblem_zhuiji
   name: 追击
   description: 使弱点记号复制到对手下一只精灵上
+  config: &emblem_config
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+  effect:
+    - effect_emblem_set_ruodianbiaoji_keeponswitchout
 - id: mark_emblem_nuhuo
   name: 怒火
   description: 受到伤害时增加的怒气额外提高20%

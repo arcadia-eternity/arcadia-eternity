@@ -1,4 +1,4 @@
-import { DamageContext, Pet, SkillInstance, UseSkillContext } from '@test-battle/battle'
+import { AddMarkContext, DamageContext, Pet, SkillInstance, UseSkillContext } from '@test-battle/battle'
 import type { Condition } from './effectBuilder'
 
 export const Conditions = {
@@ -62,6 +62,50 @@ export const Conditions = {
     return context => {
       if (context.parent instanceof DamageContext) {
         return context.source.owner === context.parent.target
+      }
+      return false
+    }
+  },
+
+  selfAddMark: (): Condition => {
+    return context => {
+      if (context.parent instanceof AddMarkContext) {
+        return context.source.owner === context.parent.parent.source.owner
+      }
+      return false
+    }
+  },
+
+  foeAddMark: (): Condition => {
+    return context => {
+      if (
+        context.parent instanceof AddMarkContext &&
+        context.source.owner instanceof Pet &&
+        context.parent.parent.source.owner instanceof Pet
+      ) {
+        return context.source.owner !== context.parent.parent.source.owner
+      }
+      return false
+    }
+  },
+
+  selfBeAddMark: (): Condition => {
+    return context => {
+      if (context.parent instanceof AddMarkContext) {
+        return context.source.owner === context.parent.target
+      }
+      return false
+    }
+  },
+
+  foeBeAddMark: (): Condition => {
+    return context => {
+      if (
+        context.parent instanceof AddMarkContext &&
+        context.source.owner instanceof Pet &&
+        context.parent.target instanceof Pet
+      ) {
+        return context.source.owner !== context.parent.target
       }
       return false
     }

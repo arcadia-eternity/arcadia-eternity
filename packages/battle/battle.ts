@@ -100,9 +100,11 @@ export class Battle extends Context implements MarkOwner {
     if (!context.available) return
 
     context.battle.applyEffects(context, EffectTrigger.OnBeforeAddMark)
-    const newMark = context.mark.createInstance(context.config)
+    const newMark = context.baseMark.createInstance({
+      config: context.config,
+    })
 
-    const existingMark = this.marks.find(mark => mark.base.id === context.mark.id)
+    const existingMark = this.marks.find(mark => mark.base.id === context.baseMark.id)
     if (existingMark) {
       existingMark.tryStack(context)
     } else {

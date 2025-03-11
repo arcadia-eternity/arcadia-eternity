@@ -2,4 +2,25 @@
 # yaml-language-server: $schema=../packages/schema/schema/effect.schema.json
 # @metaType effect
 # @version 1.0.0
-[]
+- id: effect_emblem_set_ruodianbiaoji_keeponswitchout
+  trigger: OnBeforeAddMark
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark.id
+        evaluator:
+          type: same
+          value: mark_ruodianjihao
+  apply:
+    type: setMarkTransferOnSwitch
+    target: addMarkContext
+    value: true

@@ -162,7 +162,7 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
 
     const maxStacks = this.config.maxStacks ?? Infinity
     const strategy = this.config.stackStrategy!
-    const newMark = new MarkInstance(context.mark)
+    const newMark = new MarkInstance(context.baseMark)
 
     let newStacks = this.stack
     let newDuration = this.duration
@@ -254,7 +254,7 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
     }
   }
 
-  public transfer(context: EffectContext<EffectTrigger>, target: Battle | Pet) {
+  public transfer(context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet) {
     this.attachTo(target)
     target.marks.push(this)
     context.battle.cleanupMarks()
@@ -341,7 +341,7 @@ export class StatLevelMarkInstance extends MarkInstance {
   }
 
   tryStack(context: AddMarkContext): boolean {
-    const otherMark = context.mark
+    const otherMark = context.baseMark
 
     if (otherMark instanceof StatLevelMarkInstance && this.isOppositeMark(otherMark)) {
       const remainingLevel = this.level + otherMark.level

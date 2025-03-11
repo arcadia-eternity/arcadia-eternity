@@ -2,7 +2,7 @@
 # yaml-language-server: $schema=../packages/schema/schema/effect.schema.json
 # @metaType effect
 # @version 1.0.0
-- id: effect_skill_amplify_power_consume_ruodian
+- id: effect_ability_amplify_power_consume_ruodian
   trigger: BeforeUseSkillCheck
   priority: 0
   apply:
@@ -53,7 +53,7 @@
         evaluator:
           type: contain
           tag: consume_ruodian
-- id: effect_mark_fire_power_boost
+- id: effect_ability_fire_power_boost
   trigger: BeforeUseSkillCheck
   priority: 0
   condition:
@@ -74,7 +74,7 @@
     type: amplifyPower
     target: usingSkillContext
     value: 1.25
-- id: effect_mark_damage_reduction_below_25_percent
+- id: effect_ability_damage_reduction_below_25_percent
   trigger: OnDamage
   priority: 0
   condition:

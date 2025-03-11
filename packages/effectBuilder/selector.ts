@@ -404,6 +404,7 @@ export const BaseSelector: {
   foeAvailableSkills: ChainableSelector<SkillInstance>
   dataMarks: ChainableSelector<BaseMark>
   healContext: ChainableSelector<HealContext>
+  addMarkContext: ChainableSelector<AddMarkContext>
 } = {
   //选择目标，在使用技能的场景下，为技能实际指向的目标，在印记的场景下指向印记的所有者。
   target: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
@@ -503,6 +504,11 @@ export const BaseSelector: {
   }),
   healContext: createChainable<HealContext>('HealContext', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof HealContext) return [context.parent]
+    //TODO: error with use get context with non-Damage context
+    return []
+  }),
+  addMarkContext: createChainable<AddMarkContext>('AddMarkContext', (context: EffectContext<EffectTrigger>) => {
+    if (context.parent instanceof AddMarkContext) return [context.parent]
     //TODO: error with use get context with non-Damage context
     return []
   }),

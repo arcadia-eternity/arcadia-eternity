@@ -30,6 +30,7 @@ import { BaseMark, CreateStatStageMark, MarkInstance, StatLevelMarkInstance } fr
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
 import { Gender } from '@test-battle/const'
+import { config } from 'process'
 
 export interface Species extends Prototype {
   id: speciesId //约定:id为原中文名的拼音拼写
@@ -48,7 +49,7 @@ export interface Species extends Prototype {
 export class Pet implements OwnedEntity, MarkOwner, Instance {
   public currentHp: number
   public baseCritRate: number = 0.07 // 暴击率默认为7%
-  public baseAccuracy: number = 1 // 命中率默认为100%
+  public baseAccuracy: number = 100 // 命中率默认为100%
   public statStage: StatStage = { atk: 1, def: 1, spa: 1, spd: 1, spe: 1 } //能力等级
   public statModifiers: StatBuffOnBattle = {
     atk: [100, 0],
@@ -96,6 +97,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     this.element = species.element
     this.owner = null
     this.skills = skills.map(s => new SkillInstance(s))
+    this.skills.forEach(skill => skill.setOwner(this))
     if (!weight) this.weight = species.weightRange[1]
     else this.weight = weight
     if (!height) this.height = species.heightRange[1]
@@ -199,11 +201,11 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
 
     context.battle.applyEffects(context, EffectTrigger.OnBeforeAddMark)
     const config = {
-      ...context.config,
+      config: context.config,
       duration: context.duration ?? context.config?.duration,
       stack: context.stack ?? context.config?.duration,
     }
-    const newMark = context.mark.createInstance(config)
+    const newMark = context.baseMark.createInstance(config)
     const existingOppositeMark = this.marks.find(
       mark =>
         mark instanceof StatLevelMarkInstance &&
@@ -217,7 +219,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       return
     }
 
-    const existingMark = this.marks.find(mark => mark.base.id === context.mark.id)
+    const existingMark = this.marks.find(mark => mark.base.id === context.baseMark.id)
     if (existingMark) {
       existingMark.tryStack(context)
     } else {
@@ -373,25 +375,42 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     }
   }
 
-  public transferMarks(...marks: MarkInstance[]) {
-    this.marks.push(...marks)
+  public transferMarks(context: SwitchPetContext, ...marks: MarkInstance[]) {
+    marks.forEach(mark => {
+      const existingMark = this.marks.find(m => m.base.id === mark.base.id)
+      if (existingMark) {
+        // 创建 AddMarkContext，使用当前 SwitchPetContext 作为父上下文，这个被视为隐式的effect
+        const effectContext = new EffectContext(context, EffectTrigger.OnOwnerSwitchOut, mark)
+        const addMarkContext = new AddMarkContext(
+          effectContext,
+          this,
+          mark.base,
+          mark.stack,
+          mark.duration,
+          mark.config,
+        )
+        existingMark.tryStack(addMarkContext)
+      } else {
+        // 添加新印记
+        mark.transfer(context, this)
+      }
+    })
   }
 
   public switchOut(context: SwitchPetContext) {
     context.battle.applyEffects(context, EffectTrigger.OnOwnerSwitchOut, ...this.marks)
     this.marks = this.marks.filter(mark => {
       const shouldKeep = mark.config.keepOnSwitchOut ?? false
+      const shouldTransfer = mark.config.transferOnSwitch && context.target
 
       // 需要转移的印记
       if (mark.config.transferOnSwitch && context.target) {
-        context.target.transferMarks(mark)
-      }
-
-      if (!shouldKeep) {
+        context.target.transferMarks(context, mark)
+      } else if (!shouldKeep) {
         mark.destroy(context)
       }
 
-      return shouldKeep
+      return shouldKeep || shouldTransfer
     })
   }
 
