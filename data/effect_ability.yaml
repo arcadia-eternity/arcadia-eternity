@@ -22,7 +22,7 @@
             - type: select
               arg:
                 type: base
-                arg: hp
+                arg: currentHp
         evaluator:
           type: compare
           operator: '<'
@@ -34,7 +34,7 @@
                 - type: select
                   arg:
                     type: base
-                    arg: maxhp
+                    arg: maxHp
                 - type: divide
                   arg: 4
       - type: evaluate

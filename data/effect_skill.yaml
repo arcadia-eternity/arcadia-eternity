@@ -347,7 +347,7 @@
       type: entity:baseMark
       value: mark_jizhong
   condition: *condition_self_use_skill_template
-- id: effect_skill_add_mark_bumieyizhi
+- id: effect_skill_add_mark_busi
   trigger: OnHit
   priority: 0
   apply:
@@ -355,7 +355,7 @@
     target: self
     mark:
       type: entity:baseMark
-      value: mark_bumieyizhi
+      value: mark_busi
   condition: *condition_self_use_skill_template
 - id: effect_skill_add_mark_yanzhiyizhi
   trigger: OnHit
@@ -365,7 +365,7 @@
     target: self
     mark:
       type: entity:baseMark
-      value: mark_weilibianhua
+      value: mark_weilifanbei
   condition: *condition_self_use_skill_template
 - id: effect_skill_reduce_self_hp_1_6
   trigger: BeforeHit
@@ -382,7 +382,7 @@
           - type: select
             arg:
               type: base
-              arg: maxhp
+              arg: maxHp
           - type: divide
             arg: 6
   condition: *condition_self_use_skill_template
@@ -413,7 +413,7 @@
             - type: select
               arg:
                 type: base
-                arg: hp
+                arg: currentHp
         evaluator:
           type: compare
           operator: <=
@@ -425,7 +425,7 @@
                 - type: select
                   arg:
                     type: base
-                    arg: maxhp
+                    arg: maxHp
                 - type: divide
                   arg: 6
 - id: effect_heal_self_half
@@ -443,7 +443,7 @@
           - type: select
             arg:
               type: base
-              arg: maxhp
+              arg: maxHp
           - type: divide
             arg: 2
   condition: *condition_self_use_skill_template
@@ -462,7 +462,7 @@
           - type: select
             arg:
               type: base
-              arg: maxhp
+              arg: maxHp
           - type: divide
             arg: 3
   condition: *condition_self_use_skill_template
@@ -481,7 +481,7 @@
           - type: select
             arg:
               type: base
-              arg: maxhp
+              arg: maxHp
           - type: divide
             arg: 4
 - id: effect_skill_add_mark_zhongzinengliang
@@ -611,7 +611,7 @@
             - type: select
               arg:
                 type: base
-                arg: hp
+                arg: currentHp
         evaluator:
           type: compare
           operator: <=
@@ -623,7 +623,7 @@
                 - type: select
                   arg:
                     type: base
-                    arg: maxhp
+                    arg: maxHp
                 - type: divide
                   arg: 4
 - id: effect_skill_add_mark_foe_jishengzhadan
@@ -698,4 +698,14 @@
           - type: add
             arg: 3
     stack: 50
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_foe_nishui
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_nishui
   condition: *condition_self_use_skill_template

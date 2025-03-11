@@ -61,7 +61,12 @@ export const Operators = {
   }),
 
   addMark:
-    <T extends MarkOwner>(mark: ValueSource<BaseMark>, stack?: ValueSource<number>, duration?: ValueSource<number>) =>
+    <T extends MarkOwner>(
+      mark: ValueSource<BaseMark>,
+      stack?: ValueSource<number>,
+      duration?: ValueSource<number>,
+      config?: Partial<MarkInstance['config']>,
+    ) =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       const marks = GetValueFromSource(context, mark)
       if (marks.length === 0) return
@@ -69,7 +74,7 @@ export const Operators = {
       const stackValue = stack ? GetValueFromSource(context, stack)[0] : undefined
       const durationValue = duration ? GetValueFromSource(context, duration)[0] : undefined
       targets.forEach(target => {
-        target.addMark(new AddMarkContext(context, target, marks[0], stackValue, durationValue))
+        target.addMark(new AddMarkContext(context, target, marks[0], stackValue, durationValue, config))
       })
     },
 

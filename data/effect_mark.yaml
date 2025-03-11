@@ -208,10 +208,10 @@
           - type: select
             arg:
               type: base
-              arg: maxhp
+              arg: maxHp
           - type: divide
             arg: 8
-- id: effect_mark_reduce_accuracy
+- id: effect_mark_reduce_accuracy_10
   trigger: OnMarkCreate
   priority: 0
   apply:
@@ -221,7 +221,7 @@
     statType: accuracy
     value: 0
     percent: -10
-- id: effect_mark_reset_accuracy
+- id: effect_mark_reset_accuracy_10
   trigger: OnMarkDestroy
   priority: 0
   apply:
@@ -334,7 +334,7 @@
             - type: select
               arg:
                 type: base
-                arg: hp
+                arg: currentHp
             - type: divide
               arg: 8
             - type: clampMax
@@ -346,7 +346,7 @@
                     - type: select
                       arg:
                         type: base
-                        arg: maxhp
+                        arg: maxHp
                     - type: divide
                       arg: 8
     - type: heal
@@ -443,4 +443,73 @@
         evaluator:
           type: notSame
           value: skill_yanggong
+  consumesStacks: 1
+- id: effect_mark_reduce_accuracy_15
+  trigger: OnMarkCreate
+  priority: 0
+  apply:
+    type: modifyStat
+    target:
+      base: self
+    statType: accuracy
+    value: 0
+    percent: -10
+- id: effect_mark_reset_accuracy_15
+  trigger: OnMarkDestroy
+  priority: 0
+  apply:
+    type: modifyStat
+    target:
+      base: self
+    statType: accuracy
+    value: 0
+    percent: 10
+- id: effect_mark_amplify_next_damage_skill_power
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: notSame
+          value: Status
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 2
+  consumesStacks: 1
+- id: effect_mark_set_health_to_1_on_damage
+  trigger: PostDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: '<='
+          value: 0
+  apply:
+    type: setValue
+    target:
+      base: self
+      chain:
+        - type: selectProp
+          arg: currentHp
+    value: 1
   consumesStacks: 1

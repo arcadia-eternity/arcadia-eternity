@@ -14,6 +14,7 @@
     stackStrategy: refresh
     destroyable: true
     duration: 2
+    keepOnSwitchOut: true
   effect:
     - effect_mark_stun
     - effect_mark_cant_evasion
@@ -218,8 +219,8 @@
   config: *status_config
   effect:
     - effect_mark_turn_damage
-    - effect_mark_reduce_accuracy
-    - effect_mark_reset_accuracy
+    - effect_mark_reduce_accuracy_10
+    - effect_mark_reset_accuracy_10
   image_link: =DISPIMG("ID_87610E281900458085D77BDB74E938E8",1)
 - id: mark_shaoshang
   name: 烧伤
@@ -362,6 +363,7 @@
     stackable: true
     stackStrategy: extend
     destroyable: true
+    keepOnSwitchOut: true
   effect:
     - effect_mark_reduce_speed_on_mark_create
     - effect_mark_restore_speed_on_mark_destroy
@@ -448,7 +450,18 @@
 - id: mark_mingzhongdixia
   name: 命中低下
   description: 命中下降15%
+  config:
+    duration: 1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
   num: 3013
+  effect:
+    - effect_mark_reduce_accuracy_15
+    - effect_mark_reset_accuracy_15
   image_link: =DISPIMG("ID_51DF4638C2674A8EAD992C8F19A231CB",1)
 - id: mark_yanggong
   name: 佯攻
@@ -460,6 +473,7 @@
     stackable: false
     stackStrategy: extend
     destroyable: true
+    keepOnSwitchOut: true
   effect:
     - effect_mark_amplify_non_yanggong
   num: 3014
@@ -469,14 +483,34 @@
   description: 技能必定命中对手
   num: 3015
   image_link: =DISPIMG("ID_27F2DCB48FDC4B2AAECD5543E06A0F79",1)
-- id: mark_shanghaitisheng
-  name: 伤害提升
-  description: 使下一个伤害性技能造成的伤害增加100%
+- id: mark_weilifanbei
+  name: 威力翻倍
+  description: 使下一个伤害性技能的威力翻倍
+  config:
+    duration: 3
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_amplify_next_damage_skill_power
   num: 3016
   image_link: =DISPIMG("ID_033CF0B6D763402D8F11D8C05CF92393",1)
 - id: mark_busi
   name: 不死
   description: 下一次受到致死攻击会剩下1点体力
+  config:
+    duration: 3
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_set_health_to_1_on_damage
   num: 3017
   image_link: =DISPIMG("ID_806A297F1A2945EABD98659BFEC83822",1)
 - id: mark_huifu

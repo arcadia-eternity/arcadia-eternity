@@ -21,8 +21,8 @@ export interface PathExtractor<T, U> {
 }
 
 type ExtractorMap = {
-  hp: PathExtractor<Pet, number>
-  maxhp: PathExtractor<Pet, number>
+  currentHp: PathExtractor<Pet, number>
+  maxHp: PathExtractor<Pet, number>
   rage: PathExtractor<Player, number>
   owner: PathExtractor<OwnedEntity, Battle | Player | Pet | MarkInstance | SkillInstance | null>
   type: PathExtractor<Pet, Element>
@@ -41,12 +41,12 @@ type ExtractorMap = {
 }
 
 export const Extractor: ExtractorMap = {
-  hp: {
+  currentHp: {
     path: 'currentHp',
     type: 'number',
     extract: (target: Pet) => target.currentHp,
   },
-  maxhp: {
+  maxHp: {
     path: 'maxHp',
     type: 'number',
     extract: (target: Pet) => target.maxHp!,

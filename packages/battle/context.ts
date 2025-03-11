@@ -381,7 +381,7 @@ export class AddMarkContext extends Context {
   ) {
     super(parent)
     this.battle = parent.battle
-    //拷贝，因为原值是可读的
+    //拷贝，因为原值是只读的
     if (!config) this.config = JSON.parse(JSON.stringify(baseMark.config))
   }
 

@@ -36,6 +36,8 @@ import {
   createPathExtractor,
   Conditions,
   type Action,
+  type PropertyRef,
+  type PrimitiveOpinion,
 } from '@test-battle/effect-builder'
 import { RuntimeTypeChecker } from '@test-battle/effect-builder/runtime-type-checker'
 import type {
@@ -325,6 +327,12 @@ export function createAction(dsl: OperatorDSL) {
       return parseSetMarkTransferOnSwitch(dsl)
     case 'setMarkInheritOnFaint':
       return parseSetMarkInheritOnFaint(dsl)
+    case 'addValue':
+      return parseAddValue(dsl)
+    case 'setValue':
+      return parseSetValue(dsl)
+    case 'toggle':
+      return parseToggle(dsl)
   }
 }
 
@@ -556,6 +564,22 @@ export function parseSetMarkInheritOnFaint(dsl: Extract<OperatorDSL, { type: 'se
   return parseSelector<AddMarkContext>(dsl.target).apply(
     Operators.setMarkInheritOnFaint(parseValue(dsl.value) as ValueSource<boolean>),
   )
+}
+
+function parseAddValue(dsl: Extract<OperatorDSL, { type: 'addValue' }>) {
+  return parseSelector<PropertyRef<any, number>>(dsl.target).apply(
+    Operators.addValue(parseValue(dsl.value) as ValueSource<number>),
+  )
+}
+
+function parseSetValue(dsl: Extract<OperatorDSL, { type: 'setValue' }>) {
+  return parseSelector<PropertyRef<any, PrimitiveOpinion>>(dsl.target).apply(
+    Operators.setValue(parseValue(dsl.value) as ValueSource<PrimitiveOpinion>),
+  )
+}
+
+function parseToggle(dsl: Extract<OperatorDSL, { type: 'toggle' }>) {
+  return parseSelector<PropertyRef<any, boolean>>(dsl.target).apply(Operators.toggle())
 }
 
 export function parseCondition(dsl: ConditionDSL): Condition {

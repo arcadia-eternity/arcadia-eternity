@@ -100,8 +100,8 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
       stackStrategy: overrides?.config?.stackStrategy ?? base.config.stackStrategy ?? StackStrategy.stack,
     }
 
-    this.duration = overrides?.duration ?? mergedConfig.duration ?? 3
-    this._stack = overrides?.stack ?? 1
+    this.duration = overrides?.duration ?? mergedConfig.duration ?? base.config.duration ?? 3
+    this._stack = overrides?.stack ?? base.config.maxStacks ?? 1
     this.config = mergedConfig
     this.name = overrides?.name ?? base.name
     this.tags = [...base.tags, ...(overrides?.tags || [])]

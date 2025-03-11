@@ -7,7 +7,6 @@ import {
   type StatOnBattle,
   type StatOutBattle,
   type StatStage,
-  StatType,
   type StatTypeOnBattle,
   StatTypeOnlyBattle,
   StatTypeWithoutHp,
@@ -30,7 +29,6 @@ import { BaseMark, CreateStatStageMark, MarkInstance, StatLevelMarkInstance } fr
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
 import { Gender } from '@test-battle/const'
-import { config } from 'process'
 
 export interface Species extends Prototype {
   id: speciesId //约定:id为原中文名的拼音拼写
@@ -143,13 +141,13 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     //通过技能威力造成伤害的事件
     if (context.source instanceof Pet) {
       context.battle.applyEffects(context, EffectTrigger.OnDamage)
-      context.updateDamageResult()
       if (!context.available) {
         context.battle.emitMessage(BattleMessageType.Info, {
           message: `${this.name}受到的伤害被防止了！!`,
         })
         return this.isAlive
       }
+      context.updateDamageResult()
       if (!context.ignoreShield) {
         context.battle.applyEffects(context, EffectTrigger.Shield)
         const shields = this.getShieldMark()
@@ -157,6 +155,8 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
           context.damageResult -= s.consumeStack(context, context.damageResult)
         })
       }
+    } else {
+      context.updateDamageResult()
     }
     this.currentHp = Math.max(0, this.currentHp - context.damageResult)
 
@@ -204,7 +204,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     const config = {
       config: context.config,
       duration: context.duration ?? context.config?.duration,
-      stack: context.stack ?? context.config?.duration,
+      stack: context.stack ?? context.config?.maxStacks,
     }
     const newMark = context.baseMark.createInstance(config)
     const existingOppositeMark = this.marks.find(

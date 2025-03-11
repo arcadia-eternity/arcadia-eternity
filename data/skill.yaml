@@ -221,6 +221,8 @@
   sureHit: false
   ignoreShield: false
   tags: []
+  effect:
+    - effect_skill_add_mark_foe_nishui
   num: 10015
   evolved_skill_id: 10032
 - id: skill_ruodianbiaoji
@@ -475,7 +477,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_bumieyizhi
+    - effect_skill_add_mark_busi
   num: 10033
   evolved_skill_id: 10016
 - id: skill_zhongzibaodan

@@ -10,6 +10,7 @@
     stackable: false
     stackStrategy: extend
     destroyable: true
+    keepOnSwitchOut: true
   effect:
     - effect_emblem_set_ruodianbiaoji_keeponswitchout
 - id: mark_emblem_nuhuo
@@ -21,6 +22,9 @@
 - id: mark_emblem_zhiyu
   name: 治愈
   description: 20%恢复量翻倍
+  config: *emblem_config
+  effect:
+    - effect_emblem_20percent_double_heal
 - id: mark_emblem_meihuo
   name: 魅惑
   description: 被对手魅惑时在下一回合会自动解除魅惑

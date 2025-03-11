@@ -204,6 +204,20 @@ export type OperatorDSL =
       target: SelectorDSL
       value: Value
     }
+  | {
+      type: 'addValue'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'setValue'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'toggle'
+      target: SelectorDSL
+    }
 
 export type RawNumberValue = {
   type: 'raw:number'
