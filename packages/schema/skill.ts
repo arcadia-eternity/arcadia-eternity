@@ -30,7 +30,7 @@ export const SkillSchema = z
     sureHit: z.boolean().default(false),
     sureCrit: z.boolean().default(false),
     ignoreShield: z.boolean().default(false),
-    tag: z.array(z.string()).default([]),
+    tags: z.array(z.string()).default([]),
     effect: z.array(z.string()).optional(),
   })
   .passthrough()

@@ -30,6 +30,7 @@
               "OnCritPostDamage",
               "TurnStart",
               "TurnEnd",
+              "OnBeforeAddMark",
               "OnAddMark",
               "OnRemoveMark",
               "OnMarkCreate",
@@ -1265,6 +1266,304 @@
                     "required": [
                       "type",
                       "target"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "overrideMarkConfig"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target"
+                      },
+                      "config": {
+                        "type": "object",
+                        "properties": {
+                          "duration": {
+                            "type": "number",
+                            "default": 3
+                          },
+                          "persistent": {
+                            "type": "boolean",
+                            "default": true
+                          },
+                          "maxStacks": {
+                            "type": "integer",
+                            "default": 1
+                          },
+                          "stackable": {
+                            "type": "boolean",
+                            "default": false
+                          },
+                          "stackStrategy": {
+                            "type": "string",
+                            "enum": [
+                              "stack",
+                              "refresh",
+                              "extend",
+                              "max",
+                              "replace"
+                            ],
+                            "default": "extend"
+                          },
+                          "destroyable": {
+                            "type": "boolean",
+                            "default": true
+                          },
+                          "isShield": {
+                            "type": "boolean"
+                          },
+                          "keepOnSwitchOut": {
+                            "type": "boolean"
+                          },
+                          "transferOnSwitch": {
+                            "type": "boolean"
+                          },
+                          "inheritOnFaint": {
+                            "type": "boolean"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "config"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "setMarkDuration"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "setMarkStack"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "setMarkMaxStack"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "setMarkPersistent"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "setMarkStackable"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "setMarkStackStrategy"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "setMarkDestroyable"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "setMarkIsShield"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "setMarkKeepOnSwitchOut"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "setMarkTransferOnSwitch"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "setMarkInheritOnFaint"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
                     ],
                     "additionalProperties": false
                   }

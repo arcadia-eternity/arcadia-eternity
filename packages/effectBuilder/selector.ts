@@ -10,6 +10,7 @@ import {
   BaseMark,
   BaseSkill,
   HealContext,
+  AddMarkContext,
 } from '@test-battle/battle'
 import type { CanOwnedEntity, Instance, OwnedEntity, Prototype } from '@test-battle/battle/entity'
 import {
@@ -19,6 +20,7 @@ import {
   Element,
   Gender,
   Nature,
+  StackStrategy,
   type baseMarkId,
   type baseSkillId,
   type markId,
@@ -359,7 +361,7 @@ export type PrimitiveOpinion = number | string | boolean
 
 export type IdOpinion = skillId | baseSkillId | markId | baseMarkId | speciesId | petId | playerId
 
-export type EnumOpinion = Element | Gender | Nature | Category | AttackTargetOpinion
+export type EnumOpinion = Element | Gender | Nature | Category | AttackTargetOpinion | StackStrategy
 
 export type ObjectOpinion =
   | null
@@ -370,6 +372,7 @@ export type ObjectOpinion =
   | UseSkillContext
   | DamageContext
   | HealContext
+  | AddMarkContext
   | StatTypeOnBattle
   | Instance
   | BaseMark

@@ -9,19 +9,82 @@
     type: amplifyPower
     target:
       base: usingSkillContext
-    value: 0.25
+    value: 1.25
   condition:
     type: every
     conditions:
-      - type: selfUseSkill
+      - type: checkSelf
+      - &hp_below_1_4
+        type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: hp
+        evaluator:
+          type: compare
+          operator: '<'
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxhp
+                - type: divide
+                  arg: 4
       - type: evaluate
         target:
           base: usingSkillContext
           chain:
             - type: select
               arg:
+                type: dynamic
+                arg: skill
+            - type: select
+              arg:
                 type: base
                 arg: tags
+            - type: flat
         evaluator:
           type: contain
           tag: consume_ruodian
+- id: effect_mark_fire_power_boost
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - *hp_below_1_4
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Fire
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 1.25
+- id: effect_mark_damage_reduction_below_25_percent
+  trigger: OnDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - *hp_below_1_4
+  apply:
+    type: addModified
+    target:
+      base: damageContext
+    delta: 0
+    percent: -25

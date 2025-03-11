@@ -13,7 +13,7 @@
   description: 5%弱化对手物防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_reduce_def_5_percent
   num: 10001
@@ -28,7 +28,7 @@
   description: 5%弱化对手特防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_reduce_spd_5_percent
   num: 10002
@@ -43,7 +43,7 @@
   description: 弱化对手物攻1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_reduce_foe_atk_1_stage
   num: 10003
@@ -58,7 +58,7 @@
   description: 攻击对手并留下弱点记号 使自身速度值增加50点 最多2个
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_add_mark_foe_ruodian
   num: 10004
@@ -73,7 +73,7 @@
   description: 喷射出激流攻击对手 每1个记号使致命率增加45%
   sureHit: false
   ignoreShield: false
-  tag: ['consume_ruodian']
+  tags: ['consume_ruodian']
   effect:
     - effect_skill_add_crit_rate_ruodian
   num: 10005
@@ -88,7 +88,7 @@
   description: 向对手洒水降低对手的特攻
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_reduce_foe_spa_1_stage
   num: 10006
@@ -103,7 +103,7 @@
   description: 消除对手20点怒气
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10007
   evolved_skill_id: 10024
 - id: skill_haixiaolianji
@@ -116,7 +116,7 @@
   description: 刮起海啸连续冲击对手 每1个记号使连击数加1
   sureHit: false
   ignoreShield: false
-  tag: ['consume_ruodian']
+  tags: ['consume_ruodian']
   effect:
     - effect_skill_add_hit_result_ruodian
     - effect_skill_consume_ruodian
@@ -132,7 +132,7 @@
   description: 召唤水流包围全身增加物防和特防
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_raise_def_1_stages
     - effect_skill_raise_spd_1_stages
@@ -148,7 +148,7 @@
   description: 5%弱化对手特防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_reduce_spd_5_percent
   num: 10010
@@ -163,7 +163,7 @@
   description: 从上倾下瀑布攻击对手 每1个记号使威力增加50
   sureHit: false
   ignoreShield: false
-  tag: ['consume_ruodian']
+  tags: ['consume_ruodian']
   effect:
     - effect_skill_add_power_50_ruodian
     - effect_skill_consume_ruodian
@@ -179,7 +179,7 @@
   description: 展开海浪之盾抵御特殊攻击
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10012
   evolved_skill_id: 10029
 - id: skill_wujindaxuanwo
@@ -192,7 +192,7 @@
   description: 必杀技 施展无尽大漩涡淹没对手
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10013
   evolved_skill_id: 10030
 - id: skill_shuihuajianshe
@@ -205,7 +205,7 @@
   description: 发出水花溅射对手的眼睛使其命中率减少15%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_add_mark_foe_mingzhongdixia
   num: 10014
@@ -220,7 +220,7 @@
   description: 向对手施放大量潮水淹没对手 使其溺水
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10015
   evolved_skill_id: 10032
 - id: skill_ruodianbiaoji
@@ -233,7 +233,7 @@
   description: 在对手身上同时标记2个弱点记号 使自身速度值增加50点
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_add_mark_foe_ruodian_2
   num: 10016
@@ -248,7 +248,7 @@
   description: 5%弱化对手物攻1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_reduce_atk_5_percent
   num: 10018
@@ -263,7 +263,7 @@
   description: 5%弱化对手特攻1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_reduce_spa_5_percent
   num: 10019
@@ -278,7 +278,7 @@
   description: 集合气力增加自身的物攻
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_raise_atk_1_stages
   num: 10020
@@ -293,7 +293,7 @@
   description: 奋力的突破对手的防御 使对手易伤
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_add_mark_foe_yishang
   num: 10021
@@ -308,7 +308,7 @@
   description: 5%使对手烧伤
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_add_mark_foe_shaoshang_5_percent
   num: 10022
@@ -323,7 +323,7 @@
   description: 脚下生风 提升自身的速度
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_raise_spe_1_stages
   num: 10023
@@ -339,7 +339,7 @@
   priority: 2
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_add_mark_yanggong
   num: 10024
@@ -354,7 +354,7 @@
   description: 集中精力 使技能必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_add_mark_jizhong
   num: 10025
@@ -369,7 +369,7 @@
   description: 放出大片火海包围对手 50%几率烧伤对手
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_add_mark_foe_shaoshang_50_percent
   num: 10026
@@ -384,7 +384,7 @@
   description: 怒火集中猛攻对手 造成的伤害不低于100
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_min_damage_100
   num: 10027
@@ -399,7 +399,7 @@
   description: 蒸发血液获得怒气 减少自身1/6体力增加35点怒气
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_reduce_self_hp_1_6
     - effect_skill_add_rage_35
@@ -415,7 +415,7 @@
   description: 5%弱化对手物防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_reduce_def_5_percent
   num: 10029
@@ -430,7 +430,7 @@
   description: 必杀技 召唤巨大火焰焚烧一切
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10030
   evolved_skill_id: 10013
 - id: skill_yanzhiyizhi
@@ -443,7 +443,7 @@
   description: 燃起火焰斗气 使下一个技能伤害增加100%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_add_mark_yanzhiyizhi
   num: 10031
@@ -458,7 +458,7 @@
   description: 背水一战 自身体力低于1/6时威力4倍
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_power_4x_below_1_6_hp
   num: 10032
@@ -473,7 +473,7 @@
   description: 获得不灭的意志 下一次受到致死攻击会剩下1点体力
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_add_mark_bumieyizhi
   num: 10033
@@ -489,7 +489,7 @@
   sureHit: false
   ignoreShield: false
   multihit: [2, 3]
-  tag: []
+  tags: []
   num: 10035
   evolved_skill_id: -1
 - id: skill_zhiyu
@@ -502,7 +502,7 @@
   description: 用叶子滋润 恢复自身1/4的体力
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_heal_self_quarter
   num: 10036
@@ -517,7 +517,7 @@
   description: 攻击对手同时给自身增加4个种子 减少20%受到的伤害
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_add_mark_zhongzinengliang
   num: 10037
@@ -532,7 +532,7 @@
   description: 释放所有种子能量攻击对手 每1个种子使威力增加25
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_add_power_25_zhongzinengliang
     - effect_skill_consume_all_zhongzinengliang
@@ -548,7 +548,7 @@
   description: 削弱对手的物攻和特攻
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_reduce_foe_atk_1_stage
     - effect_skill_reduce_foe_spa_1_stage
@@ -564,7 +564,7 @@
   description: 连续射出3~5片飞叶攻击对手
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   multihit: [3, 5]
   num: 10040
   evolved_skill_id: -1
@@ -578,7 +578,7 @@
   description: 放出寄生种子吸收对手体力补充自身
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_add_mark_foe_jisheng
   num: 10041
@@ -593,7 +593,7 @@
   description: 榨取对手的体力 每1个种子可恢复伤害量1/4的体力
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_heal_by_damage_25_zhongzinengliang
     - effect_skill_consume_all_zhongzinengliang
@@ -611,7 +611,7 @@
   ignoreShield: false
   effect:
     - effect_skill_foe_clear_stage
-  tag: []
+  tags: []
   num: 10043
   evolved_skill_id: -1
 - id: skill_lirendaoye
@@ -624,7 +624,7 @@
   description: 利用锋利的叶子割伤对手 每1个种子增加1回合持续时间
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_add_mark_foe_liuxie_with_zhongzinengliang
   num: 10044
@@ -639,7 +639,7 @@
   description: 干扰对手 使其命中率减少15%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_add_mark_foe_mingzhongdixia
   num: 10045
@@ -654,7 +654,7 @@
   description: 必杀技 呼唤拉奥一族协助攻击并回复自身
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10046
   evolved_skill_id: -1
 - id: skill_qianyesha
@@ -667,7 +667,7 @@
   description: 发射出千片叶子击杀对手 对手体力低于1/4时威力2倍
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_power_2x_foe_below_quarter_hp
   num: 10047
@@ -682,7 +682,7 @@
   description: 给对手身上注入一个3回合爆炸的寄生炸弹 爆炸伤害为300
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_add_mark_foe_jishengzhadan
   num: 10048
@@ -697,7 +697,7 @@
   description: 利用种子能量瞬间引爆寄生炸弹
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   effect:
     - effect_skill_ignite_foe_mark_jishengzhadan
   num: 10049
@@ -712,7 +712,7 @@
   description: 合体必杀 迪兰特 休罗斯 拉奥叶 合力攻击
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   multihit: 3
   num: 10017
   evolved_skill_id: -1
@@ -726,7 +726,7 @@
   description: 5%弱化对手物防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10050
   evolved_skill_id: -1
 - id: skill_shouxialiuqing
@@ -739,7 +739,7 @@
   description: 不会使对手的体力低于1
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10051
   evolved_skill_id: -1
 - id: skill_baihuaguangxian
@@ -752,7 +752,7 @@
   description: 5%弱化对手特防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10052
   evolved_skill_id: -1
 - id: skill_miaozhun
@@ -765,7 +765,7 @@
   description: 瞄准对手 使自身的命中率+10%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10053
   evolved_skill_id: -1
 - id: skill_qianghuazhuangtai
@@ -778,7 +778,7 @@
   description: 强化自身进攻能力 使自身5回合技能威力增加50
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10054
   evolved_skill_id: -1
 - id: skill_xianfazhiren
@@ -791,7 +791,7 @@
   description: 以迅速的行动率先出击 对手满血时威力2倍 先制+1
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10055
   evolved_skill_id: -1
 - id: skill_shouxiawuqing
@@ -804,7 +804,7 @@
   description: 无情的给对手最后一击 对手体力低于1/4时威力4倍
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10056
   evolved_skill_id: -1
 - id: skill_meihuo
@@ -817,7 +817,7 @@
   description: 魅惑对手 让对手无法行动 在幻觉下使用时使自身速度下降1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10057
   evolved_skill_id: -1
 - id: skill_ruilishexian
@@ -830,7 +830,7 @@
   description: 5%弱化对手特防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10058
   evolved_skill_id: -1
 - id: skill_chihuanguangbo
@@ -843,7 +843,7 @@
   description: 放出迟缓光波降低对手的速度
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10059
   evolved_skill_id: -1
 - id: skill_houfazhiren
@@ -856,7 +856,7 @@
   description: 后发制人 自身体力低于1/4时致命率+100% 后制-1
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10060
   evolved_skill_id: -1
 - id: skill_shanbi
@@ -869,7 +869,7 @@
   description: 以灵巧的动作闪避攻击
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10061
   evolved_skill_id: -1
 - id: skill_huanjinglieshanguang
@@ -882,7 +882,7 @@
   description: 必杀技 在幻境中发射无数闪光攻击对手使其命中率下降
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10062
   evolved_skill_id: -1
 - id: skill_lingcaiguangxian
@@ -895,7 +895,7 @@
   description: 发出绫彩的光线攻击对手 必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10063
   evolved_skill_id: -1
 - id: skill_huanjuezhuangtai
@@ -908,7 +908,7 @@
   description: 进入幻觉使自身属性技能必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10064
   evolved_skill_id: -1
 - id: skill_mihuo
@@ -921,7 +921,7 @@
   description: 迷惑对手使其攻击误伤自身
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10065
   evolved_skill_id: -1
 - id: skill_tongshenggongsi
@@ -934,7 +934,7 @@
   description: 与对手同生共死的攻击 对手满体力时额外减少其1/4体力 附加伤害最高不超过180点伤害
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10066
   evolved_skill_id: -1
 - id: skill_chongding
@@ -947,7 +947,7 @@
   description: 5%弱化对手物防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10067
   evolved_skill_id: -1
 - id: skill_sanyecao
@@ -960,7 +960,7 @@
   description: 发射3枚叶片攻击对手
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10068
   evolved_skill_id: -1
 - id: skill_yepianbaohu
@@ -973,7 +973,7 @@
   description: 将草叶包围自身来提升物防
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10069
   evolved_skill_id: -1
 - id: skill_kuihuazhongzi
@@ -986,7 +986,7 @@
   description: 在对手体内种下葵花种子 可使对手造成的伤害降低15%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10070
   evolved_skill_id: -1
 - id: skill_gundongzhuiji
@@ -999,7 +999,7 @@
   description: 卷成一团撞向对手 通过种子使连击数加1
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10071
   evolved_skill_id: -1
 - id: skill_yuhe
@@ -1012,7 +1012,7 @@
   description: 愈合自身的伤口 恢复自身1/4的体力
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10072
   evolved_skill_id: -1
 - id: skill_gundongtupo
@@ -1025,7 +1025,7 @@
   description: 卷成一团突破对手防线 通过种子可无视对手的防御强化
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10073
   evolved_skill_id: -1
 - id: skill_xuruo
@@ -1038,7 +1038,7 @@
   description: 使对手进入虚弱降低物防和特防
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10074
   evolved_skill_id: -1
 - id: skill_wulicao
@@ -1051,7 +1051,7 @@
   description: 发出一枚无力草消弱对手特殊攻击能力
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10075
   evolved_skill_id: -1
 - id: skill_xishou
@@ -1064,7 +1064,7 @@
   description: 吸收对手攻击的部分伤害 通过种子提升吸收量 连续使用无效
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10076
   evolved_skill_id: -1
 - id: skill_gundongzhenci
@@ -1077,7 +1077,7 @@
   description: 卷成一团冲击对手 通过种子达到必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10077
   evolved_skill_id: -1
 - id: skill_jieducao
@@ -1090,7 +1090,7 @@
   description: 用自身的解毒草解除自身的不良效果
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10078
   evolved_skill_id: -1
 - id: skill_qiyeduoming
@@ -1103,7 +1103,7 @@
   description: 必杀技 飞出七枚叶片猛毒的攻击对手
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10079
   evolved_skill_id: -1
 - id: skill_ducao
@@ -1116,7 +1116,7 @@
   description: 使用毒草使对手中毒
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10080
   evolved_skill_id: -1
 - id: skill_fangqing
@@ -1129,7 +1129,7 @@
   description: 召唤太阳 环境效果转换为晴天
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10081
   evolved_skill_id: -1
 - id: skill_duhua
@@ -1142,7 +1142,7 @@
   description: 释放剧毒使中毒延长2回合
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10082
   evolved_skill_id: -1
 - id: skill_qianghuachongji
@@ -1155,7 +1155,7 @@
   description: 强化自身的叶片冲撞对手 连续使用命中率增加25%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10083
   evolved_skill_id: -1
 - id: skill_chongfeng
@@ -1168,7 +1168,7 @@
   description: 5%弱化对手物攻1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10084
   evolved_skill_id: -1
 - id: skill_zhongji
@@ -1181,7 +1181,7 @@
   description: 5%弱化对手物防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10085
   evolved_skill_id: -1
 - id: skill_bianfei
@@ -1194,7 +1194,7 @@
   description: 使自身变得更重 增重50KG 最多增加2次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10086
   evolved_skill_id: -1
 - id: skill_tizhongyapo
@@ -1207,7 +1207,7 @@
   description: 用自身的体重压倒对手 比对手重时威力2倍
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10087
   evolved_skill_id: -1
 - id: skill_yinghuazhifang
@@ -1220,7 +1220,7 @@
   description: 使自身的脂肪变硬提升物防
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10088
   evolved_skill_id: -1
 - id: skill_qilingruoxiao
@@ -1233,7 +1233,7 @@
   description: 以大欺小的攻击对手 等级比对手高时威力2倍
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10090
   evolved_skill_id: -1
 - id: skill_konghe
@@ -1246,7 +1246,7 @@
   description: 吓唬对手使其害怕 等级比对手高时命中率增加50%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10091
   evolved_skill_id: -1
 - id: skill_weiheguangbo
@@ -1259,7 +1259,7 @@
   description: 放射出恐怖的光波 等级比对手高时触发率增加30%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10092
   evolved_skill_id: -1
 - id: skill_tuidao
@@ -1272,7 +1272,7 @@
   description: 用力推倒对手 造成自身总体重值的固定伤害
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10093
   evolved_skill_id: -1
 - id: skill_quanliyiji
@@ -1285,7 +1285,7 @@
   description: 5%强化自身物攻1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10094
   evolved_skill_id: -1
 - id: skill_tizhongbaozhang
@@ -1298,7 +1298,7 @@
   description: 瞬间增加自身大量的体重 直接获得2层增重
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10095
   evolved_skill_id: -1
 - id: skill_chaozhonglianggongji
@@ -1311,7 +1311,7 @@
   description: 必杀技 以超强的重量压垮对手
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10096
   evolved_skill_id: -1
 - id: skill_tizhongzhishang
@@ -1324,7 +1324,7 @@
   description: 以至高的体重压倒对手 体重高于99时威力2倍
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10097
   evolved_skill_id: -1
 - id: skill_zhifangranshao
@@ -1337,7 +1337,7 @@
   description: 燃烧自身的脂肪来获得伤害提升 每1层增重增加1回合时间
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10098
   evolved_skill_id: -1
 - id: skill_zhifangzhengqi
@@ -1350,7 +1350,7 @@
   description: 散发脂肪的热量形成的蒸汽 50%几率使对手恶心
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10099
   evolved_skill_id: -1
 - id: skill_tanxingzhifang
@@ -1363,7 +1363,7 @@
   description: 用肥硕的身体抵消攻击 但自身会失重
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10100
   evolved_skill_id: -1
 - id: skill_qiaoda
@@ -1376,7 +1376,7 @@
   description: 5%弱化对手特攻1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10101
   evolved_skill_id: -1
 - id: skill_genzhici
@@ -1389,7 +1389,7 @@
   description: 连续发射2~4枚根之刺
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10102
   evolved_skill_id: -1
 - id: skill_jianqiang
@@ -1402,7 +1402,7 @@
   description: 使自身变的更坚强 提升自身的物防
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10103
   evolved_skill_id: -1
 - id: skill_shugenyinghua
@@ -1415,7 +1415,7 @@
   description: 硬化自身的树根 使自身5回合受到物理伤害减少25%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10104
   evolved_skill_id: -1
 - id: skill_shutichongzhuang
@@ -1428,7 +1428,7 @@
   description: 用自身的身体冲撞对手 硬化时威力增加30
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10105
   evolved_skill_id: -1
 - id: skill_shuairuo
@@ -1441,7 +1441,7 @@
   description: 使对手的能力变弱 降低其物攻和特防
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10106
   evolved_skill_id: -1
 - id: skill_jianruiciji
@@ -1454,7 +1454,7 @@
   description: 有手上的钻头刺击对手 硬化时威力增加30
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10107
   evolved_skill_id: -1
 - id: skill_juxinggenci
@@ -1467,7 +1467,7 @@
   description: 发出巨大的根之刺攻击对手 硬化时可消除对手特防强化
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10108
   evolved_skill_id: -1
 - id: skill_shupibaoza
@@ -1480,7 +1480,7 @@
   description: 用树皮包扎伤口 恢复90体力并持续3回合恢复30体力
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10109
   evolved_skill_id: -1
 - id: skill_shuangzhuichuanci
@@ -1493,7 +1493,7 @@
   description: 用手上的钻头刺击对手2次 硬化时威力增加30
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10110
   evolved_skill_id: -1
 - id: skill_jiancifangyu
@@ -1506,7 +1506,7 @@
   description: 用尖锐的砖头反弹一半的伤害
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10111
   evolved_skill_id: -1
 - id: skill_fenglizuantou
@@ -1519,7 +1519,7 @@
   description: 用手部钻头使对手流血
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10112
   evolved_skill_id: -1
 - id: skill_qianchuangbaikong
@@ -1532,7 +1532,7 @@
   description: 必杀技 疯狂的用钻头刺击对手使其流血
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10113
   evolved_skill_id: -1
 - id: skill_caomujiebing
@@ -1545,7 +1545,7 @@
   description: 召唤许多小树根帮助攻击 必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10114
   evolved_skill_id: -1
 - id: skill_ehuashangkou
@@ -1558,7 +1558,7 @@
   description: 恶化对手的伤口 使流血效果翻倍
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10115
   evolved_skill_id: -1
 - id: skill_suixinci
@@ -1571,7 +1571,7 @@
   description: 用尖刺穿击对手胸口 硬化时可消除对手防御强化
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10116
   evolved_skill_id: -1
 - id: skill_muyexuanfeng
@@ -1584,7 +1584,7 @@
   description: 冲向对手用木叶和旋风的力量攻击 对手流血时必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10117
   evolved_skill_id: -1
 - id: skill_touchui
@@ -1597,7 +1597,7 @@
   description: 5%弱化对手物防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10118
   evolved_skill_id: -1
 - id: skill_shuiqiang
@@ -1610,7 +1610,7 @@
   description: 5%弱化对手特攻1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10119
   evolved_skill_id: -1
 - id: skill_ningju
@@ -1623,7 +1623,7 @@
   description: 凝聚自身的力量提升特攻
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10120
   evolved_skill_id: -1
 - id: skill_chuanjibo
@@ -1636,7 +1636,7 @@
   description: 射出可以穿击对手的水波 连续命中威力增加30 最多3次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10121
   evolved_skill_id: -1
 - id: skill_niliu
@@ -1649,7 +1649,7 @@
   description: 使水流逆转 降低对手的速度
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10122
   evolved_skill_id: -1
 - id: skill_zhimingshuiqiang
@@ -1662,7 +1662,7 @@
   description: 射出极具威胁的水枪 连续命中致命率增加30% 最多3次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10123
   evolved_skill_id: -1
 - id: skill_jingzhun
@@ -1675,7 +1675,7 @@
   description: 使自身的命中率提升
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10124
   evolved_skill_id: -1
 - id: skill_fenlitouchui
@@ -1688,7 +1688,7 @@
   description: 5%弱化对手物防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10125
   evolved_skill_id: -1
 - id: skill_shuiqianglianbo
@@ -1701,7 +1701,7 @@
   description: 连续射出水枪攻击 连续命中连击数加1 最多3次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10126
   evolved_skill_id: -1
 - id: skill_chunjingshuiyu
@@ -1714,7 +1714,7 @@
   description: 使水域变的清澈 免疫能力下降
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10127
   evolved_skill_id: -1
 - id: skill_pinmingtouchui
@@ -1727,7 +1727,7 @@
   description: 用头槌与对手拼命 但自身也会受伤
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10128
   evolved_skill_id: -1
 - id: skill_shuaitui
@@ -1740,7 +1740,7 @@
   description: 使对手的特攻衰退
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10129
   evolved_skill_id: -1
 - id: skill_junengshuiguangpao
@@ -1753,7 +1753,7 @@
   description: 5%使对手失明
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10130
   evolved_skill_id: -1
 - id: skill_chuantoushuipao
@@ -1766,7 +1766,7 @@
   description: 射出具有穿透力的水炮 连续命中伤害增加50% 最多3次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10131
   evolved_skill_id: -1
 - id: skill_hunzhuoshuiyu
@@ -1779,7 +1779,7 @@
   description: 使水域变的浑浊 使能力下降效果翻倍
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10132
   evolved_skill_id: -1
 - id: skill_linweiyichui
@@ -1792,7 +1792,7 @@
   description: 危机关头的临危一锤 自身体力低于1/4时必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10133
   evolved_skill_id: -1
 - id: skill_xuruoshuixian
@@ -1805,7 +1805,7 @@
   description: 射出虚弱水线消弱对手的特攻和特防
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10134
   evolved_skill_id: -1
 - id: skill_duci
@@ -1818,7 +1818,7 @@
   description: 5%使对手中毒
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10135
   evolved_skill_id: -1
 - id: skill_tuihuaye
@@ -1831,7 +1831,7 @@
   description: 弱化对手物攻1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10136
   evolved_skill_id: -1
 - id: skill_manxingduyao
@@ -1844,7 +1844,7 @@
   description: 使其增加1层慢性毒药 慢性毒药层数可叠加
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10137
   evolved_skill_id: -1
 - id: skill_guluoheji
@@ -1857,7 +1857,7 @@
   description: 进行一次合作攻击
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10138
   evolved_skill_id: -1
 - id: skill_duye
@@ -1870,7 +1870,7 @@
   description: 用毒叶攻击对手 70%几率使其增加1层慢性毒药
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10139
   evolved_skill_id: -1
 - id: skill_duliao
@@ -1883,7 +1883,7 @@
   description: 用毒疗来治愈自身 恢复120体力
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10140
   evolved_skill_id: -1
 - id: skill_duzhibian
@@ -1896,7 +1896,7 @@
   description: 用毒鞭抽打对手 70%几率使其增加1层慢性毒药
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10141
   evolved_skill_id: -1
 - id: skill_fengkuanghuida
@@ -1909,7 +1909,7 @@
   description: 50%弱化对手物防或特防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10142
   evolved_skill_id: -1
 - id: skill_duzhenrugu
@@ -1922,7 +1922,7 @@
   description: 将毒针打入对手体内降低其物防和特防
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10143
   evolved_skill_id: -1
 - id: skill_juduyeti
@@ -1935,7 +1935,7 @@
   description: 放射含有剧毒的液体 70%几率使其增加1层慢性毒药
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10144
   evolved_skill_id: -1
 - id: skill_duqigongxin
@@ -1948,7 +1948,7 @@
   description: 必杀技 释放大量毒气攻击对手并使其增加5层慢性毒药
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10145
   evolved_skill_id: -1
 - id: skill_yidugongdu
@@ -1961,7 +1961,7 @@
   description: 以毒攻毒解除自身的中毒并恢复1/4体力
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10146
   evolved_skill_id: -1
 - id: skill_suxiaoduyao
@@ -1974,7 +1974,7 @@
   description: 以速效毒药瞬间击溃对手 每1层增加技能威力10点
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10147
   evolved_skill_id: -1
 - id: skill_chuisizhenzha
@@ -1987,7 +1987,7 @@
   description: 做出垂死针扎的攻击 低于1/4时威力2倍
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10148
   evolved_skill_id: -1
 - id: skill_judushenti
@@ -2000,7 +2000,7 @@
   description: 使自身的身体带有剧毒 5回合受到攻击时有50%几率使对手中毒
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10149
   evolved_skill_id: -1
 - id: skill_chouda
@@ -2013,7 +2013,7 @@
   description: 5%弱化对手速度1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10150
   evolved_skill_id: -1
 - id: skill_penshui
@@ -2026,7 +2026,7 @@
   description: 5%弱化对手特防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10151
   evolved_skill_id: -1
 - id: skill_mozhipao
@@ -2039,7 +2039,7 @@
   description: 用墨汁阻挡对手的视线 20%几率使其速度下降
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10152
   evolved_skill_id: -1
 - id: skill_kongqitianchong
@@ -2052,7 +2052,7 @@
   description: 为自身填充100空气值并有70%几率具有剩余空气值时提升自身1级速度
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10153
   evolved_skill_id: -1
 - id: skill_kongqipao
@@ -2065,7 +2065,7 @@
   description: 消耗10空气使用空气泡 空气不足时伤害减少25%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10154
   evolved_skill_id: -1
 - id: skill_mozhipenshe
@@ -2078,7 +2078,7 @@
   description: 消耗15空气使用墨汁喷射 空气不足时伤害减少25%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10155
   evolved_skill_id: -1
 - id: skill_gaoyashuipao
@@ -2091,7 +2091,7 @@
   description: 消耗20空气使用高压水泡 空气不足时伤害减少25%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10156
   evolved_skill_id: -1
 - id: skill_mozhishuiyu
@@ -2104,7 +2104,7 @@
   description: 将周围水域布满墨汁使其命中率减少15%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10157
   evolved_skill_id: -1
 - id: skill_lianxuchouda
@@ -2117,7 +2117,7 @@
   description: 用触手连续攻击3次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10158
   evolved_skill_id: -1
 - id: skill_kongqihudun
@@ -2130,7 +2130,7 @@
   description: 消耗所有空气形成护盾 每1点空气可抵挡2点伤害
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10159
   evolved_skill_id: -1
 - id: skill_yasuoningjupao
@@ -2143,7 +2143,7 @@
   description: 5%弱化对手特防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10160
   evolved_skill_id: -1
 - id: skill_gaoyakongqi
@@ -2156,7 +2156,7 @@
   description: 消耗所有空气 每1点空气额外造成1点伤害
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10161
   evolved_skill_id: -1
 - id: skill_zhixi
@@ -2169,7 +2169,7 @@
   description: 抽干对手的空气使其窒息
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10162
   evolved_skill_id: -1
 - id: skill_luoxuanshuiqiang
@@ -2182,7 +2182,7 @@
   description: 消耗25空气使用螺旋水枪 空气不足时伤害减少25%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10163
   evolved_skill_id: -1
 - id: skill_kongqizhiyu
@@ -2195,7 +2195,7 @@
   description: 恢复自身1/8体力 每具有1点空气值额外恢复1点体力 不会消耗空
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10164
   evolved_skill_id: -1
 - id: skill_chongzhuang
@@ -2208,7 +2208,7 @@
   description: 5%弱化对手速度1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10034
   evolved_skill_id: -1
 - id: skill_quanlichongzhuang
@@ -2221,7 +2221,7 @@
   description: 用尽全力的冲撞 连续命中时威力减少10 最多2次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10166
   evolved_skill_id: -1
 - id: skill_xingzhiwei
@@ -2234,7 +2234,7 @@
   description: 用星之尾神奇的力量穿透对手的护盾
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10167
   evolved_skill_id: -1
 - id: skill_yingjiachongding
@@ -2247,7 +2247,7 @@
   description: 用头冲顶对手 连续命中时自身受到伤害增加10% 最多2次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10168
   evolved_skill_id: -1
 - id: skill_pensheshuizhu
@@ -2260,7 +2260,7 @@
   description: 快速的将水柱从孔中喷出 先制+1
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10169
   evolved_skill_id: -1
 - id: skill_weishe
@@ -2273,7 +2273,7 @@
   description: 威慑对手使其害怕
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10170
   evolved_skill_id: -1
 - id: skill_shuangxingzhiwei
@@ -2286,7 +2286,7 @@
   description: 用二条星之尾攻击并穿透对手的护盾
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10171
   evolved_skill_id: -1
 - id: skill_fengkuanglianchong
@@ -2299,7 +2299,7 @@
   description: 连击3次 连续命中时连击数减1 最多2次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10172
   evolved_skill_id: -1
 - id: skill_bomingyiji
@@ -2312,7 +2312,7 @@
   description: 最后关头的搏命一击 但自身也会受伤
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10173
   evolved_skill_id: -1
 - id: skill_nuhailiantao
@@ -2325,7 +2325,7 @@
   description: 连击5~6次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10174
   evolved_skill_id: -1
 - id: skill_talangchongji
@@ -2338,7 +2338,7 @@
   description: 踏着海浪冲击对手 连续命中时伤害减少10% 最多2次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10175
   evolved_skill_id: -1
 - id: skill_xingzhili
@@ -2351,7 +2351,7 @@
   description: 发挥尾部星之力的能量 使负面效果失效
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10176
   evolved_skill_id: -1
 - id: skill_sisui
@@ -2364,7 +2364,7 @@
   description: 撕碎对手使其物防和特防下降
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10177
   evolved_skill_id: -1
 - id: skill_yongbuyanbai
@@ -2377,7 +2377,7 @@
   description: 永不服输的精神使自身恢复1/4体力并解除能力下降
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10178
   evolved_skill_id: -1
 - id: skill_hailang
@@ -2390,7 +2390,7 @@
   description: 5%弱化对手特防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10179
   evolved_skill_id: -1
 - id: skill_shuiwenzhenji
@@ -2403,7 +2403,7 @@
   description: 用水纹震击对手
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10180
   evolved_skill_id: -1
 - id: skill_jiangu
@@ -2416,7 +2416,7 @@
   description: 使自身变的更坚固 提升物防
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10181
   evolved_skill_id: -1
 - id: skill_hailangzhenji
@@ -2429,7 +2429,7 @@
   description: 海浪般的打击对手 运用水纹使致命率增加50%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10182
   evolved_skill_id: -1
 - id: skill_shuiwenpingzhang
@@ -2442,7 +2442,7 @@
   description: 开启水纹屏障 吸收最大体力1/4的伤害后增加自身的伤害
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10183
   evolved_skill_id: -1
 - id: skill_shentouzhenji
@@ -2455,7 +2455,7 @@
   description: 向对手进行渗透攻击 运用水纹使致命率增加70%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10184
   evolved_skill_id: -1
 - id: skill_xushuipao
@@ -2468,7 +2468,7 @@
   description: 20%使对手溺水
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10185
   evolved_skill_id: -1
 - id: skill_pubuzhenji
@@ -2481,7 +2481,7 @@
   description: 瀑布倾下般得攻击对手 运用水纹使致命率增加100%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10186
   evolved_skill_id: -1
 - id: skill_fansheshuidun
@@ -2494,7 +2494,7 @@
   description: 制造一个可以5回合反射1/4伤害的水盾 先制+1
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10187
   evolved_skill_id: -1
 - id: skill_chongnengjizhuangbo
@@ -2507,7 +2507,7 @@
   description: 5%弱化对手物攻1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10188
   evolved_skill_id: -1
 - id: skill_yazhi
@@ -2520,7 +2520,7 @@
   description: 给对手1.5倍的反击 后制-3
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10189
   evolved_skill_id: -1
 - id: skill_yapo
@@ -2533,7 +2533,7 @@
   description: 压迫对手使其降低物攻和特攻
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10190
   evolved_skill_id: -1
 - id: skill_huanyu
@@ -2546,7 +2546,7 @@
   description: 召唤大雨降临 环境效果转换为雨天
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10191
   evolved_skill_id: -1
 - id: skill_jishuichuanliu
@@ -2559,7 +2559,7 @@
   description: 召唤川流攻击对手 30%几率使对手溺水
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10192
   evolved_skill_id: -1
 - id: skill_penhuo
@@ -2572,7 +2572,7 @@
   description: 5%弱化对手特防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10193
   evolved_skill_id: -1
 - id: skill_jiare
@@ -2585,7 +2585,7 @@
   description: 用火焰加热自身提升特攻
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10194
   evolved_skill_id: -1
 - id: skill_zhuoshao
@@ -2598,7 +2598,7 @@
   description: 用火焰灼烧对手 60%几率烧伤对手
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10195
   evolved_skill_id: -1
 - id: skill_rongjiezhiyan
@@ -2611,7 +2611,7 @@
   description: 用高热的火焰溶解对手 对手烧伤时威力2倍
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10196
   evolved_skill_id: -1
 - id: skill_huoyanchongzhuang
@@ -2624,7 +2624,7 @@
   description: 5%使对手烧伤
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10197
   evolved_skill_id: -1
 - id: skill_shuangguihuopao
@@ -2637,7 +2637,7 @@
   description: 射出2发火焰弹 对手烧伤时威力2倍
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10198
   evolved_skill_id: -1
 - id: skill_lieyanzhiqu
@@ -2650,7 +2650,7 @@
   description: 使全身燃烧起来 免疫不良
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10199
   evolved_skill_id: -1
 - id: skill_huoyanxuanfeng
@@ -2663,7 +2663,7 @@
   description: 掀起火焰的旋风 对手烧伤时必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10200
   evolved_skill_id: -1
 - id: skill_mijisaoshe
@@ -2676,7 +2676,7 @@
   description: 集中火力密集发射3~5枚火球
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10201
   evolved_skill_id: -1
 - id: skill_chaodahuoqiu
@@ -2689,7 +2689,7 @@
   description: 5%使对手烧伤
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10202
   evolved_skill_id: -1
 - id: skill_rongyanbaolie
@@ -2702,7 +2702,7 @@
   description: 5%使对手烧伤
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10203
   evolved_skill_id: -1
 - id: skill_jisuhuodan
@@ -2715,7 +2715,7 @@
   description: 快速的射出火弹攻击 先制+1
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10204
   evolved_skill_id: -1
 - id: skill_dianran
@@ -2728,7 +2728,7 @@
   description: 点燃对手的身体使其烧伤
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10205
   evolved_skill_id: -1
 - id: skill_chuantouhuoyan
@@ -2741,7 +2741,7 @@
   description: 射出穿透一切的火焰 造成的伤害不会低于95
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10206
   evolved_skill_id: -1
 - id: skill_fennuzhihuo
@@ -2754,7 +2754,7 @@
   description: 给对手造成毁灭性的攻击 对手体力低于1/4时必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10207
   evolved_skill_id: -1
 - id: skill_huoqiu
@@ -2767,7 +2767,7 @@
   description: 5%弱化对手特防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10208
   evolved_skill_id: -1
 - id: skill_jianying
@@ -2780,7 +2780,7 @@
   description: 使自身变的更坚硬 提升物防
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10209
   evolved_skill_id: -1
 - id: skill_zhuangyun
@@ -2793,7 +2793,7 @@
   description: 把对手撞晕并使对手速度值减少50点
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10210
   evolved_skill_id: -1
 - id: skill_daliqian
@@ -2806,7 +2806,7 @@
   description: 用钳子夹住对手 对手眩晕时必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10211
   evolved_skill_id: -1
 - id: skill_reliqian
@@ -2819,7 +2819,7 @@
   description: 用滚烫的钳子夹住对手 对手眩晕时必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10212
   evolved_skill_id: -1
 - id: skill_huoqiulianshe
@@ -2832,7 +2832,7 @@
   description: 连续发出2~3枚火球
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10213
   evolved_skill_id: -1
 - id: skill_guailiqian
@@ -2845,7 +2845,7 @@
   description: 用出全力夹住对手 对手眩晕时必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10214
   evolved_skill_id: -1
 - id: skill_huoyanqian
@@ -2858,7 +2858,7 @@
   description: 用带有火焰的钳子夹住对手 对手眩晕时必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10215
   evolved_skill_id: -1
 - id: skill_juansuo
@@ -2871,7 +2871,7 @@
   description: 卷缩身体抵挡一半的攻击
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10216
   evolved_skill_id: -1
 - id: skill_huoyantuxi
@@ -2884,7 +2884,7 @@
   description: 5%使对手烧伤
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10217
   evolved_skill_id: -1
 - id: skill_huoyanshazhen
@@ -2897,7 +2897,7 @@
   description: 连击4次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10218
   evolved_skill_id: -1
 - id: skill_xuli
@@ -2910,7 +2910,7 @@
   description: 积蓄力量 使下一个技能伤害增加75%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10219
   evolved_skill_id: -1
 - id: skill_fensuiqian
@@ -2923,7 +2923,7 @@
   description: 用强有力的钳子来粉碎对手 对手眩晕时必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10220
   evolved_skill_id: -1
 - id: skill_rongyanqian
@@ -2936,7 +2936,7 @@
   description: 带有熔岩的钳子夹击对手 对手眩晕时必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10221
   evolved_skill_id: -1
 - id: skill_xuanyunhuoqiu
@@ -2949,7 +2949,7 @@
   description: 发出一个带有眩晕效果的火球并使对手速度值减少50点
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10222
   evolved_skill_id: -1
 - id: skill_guntangchongji
@@ -2962,7 +2962,7 @@
   description: 用发烫的身体冲击对手 使下一个特殊技能伤害增加50%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10223
   evolved_skill_id: -1
 - id: skill_gaowenhuohuan
@@ -2975,7 +2975,7 @@
   description: 发出一个高热量的火环 使下一个物理技能伤害增加50%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10224
   evolved_skill_id: -1
 - id: skill_julizhizhao
@@ -2988,7 +2988,7 @@
   description: 用巨大的爪子攻击对手 使下一个特殊技能伤害增加35%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10225
   evolved_skill_id: -1
 - id: skill_zhengfa
@@ -3001,7 +3001,7 @@
   description: 蒸发空气 使下一个物理技能伤害增加35%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10226
   evolved_skill_id: -1
 - id: skill_nuhou
@@ -3014,7 +3014,7 @@
   description: 发出怒吼威慑对手 使其害怕
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10227
   evolved_skill_id: -1
 - id: skill_rongyanchuanci
@@ -3027,7 +3027,7 @@
   description: 5%弱化对手物防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10228
   evolved_skill_id: -1
 - id: skill_huoshanpenfa
@@ -3040,7 +3040,7 @@
   description: 5%弱化对手特防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10229
   evolved_skill_id: -1
 - id: skill_huoshanhujia
@@ -3053,7 +3053,7 @@
   description: 火山熔岩包围自身 免疫不良
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10230
   evolved_skill_id: -1
 - id: skill_huoshanbaoliequan
@@ -3066,7 +3066,7 @@
   description: 5%强化自身特攻1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10231
   evolved_skill_id: -1
 - id: skill_yanzhizhao
@@ -3079,7 +3079,7 @@
   description: 用炎之爪攻击对手 使下一个特殊技能伤害增加100% 先制+1
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10232
   evolved_skill_id: -1
 - id: skill_yanbao
@@ -3092,7 +3092,7 @@
   description: 喷出巨大的炎爆 使下一个物理技能伤害增加100% 先制+1
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10233
   evolved_skill_id: -1
 - id: skill_yangyan
@@ -3105,7 +3105,7 @@
   description: 使温度瞬间提升 环境效果转换为炎热
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10234
   evolved_skill_id: -1
 - id: skill_huoshanzhili
@@ -3118,7 +3118,7 @@
   description: 用火山的力量强化自身来提升物攻和特攻
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10235
   evolved_skill_id: -1
 - id: skill_moya
@@ -3131,7 +3131,7 @@
   description: 使自身的攻击更加凌厉 提升物攻
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10236
   evolved_skill_id: -1
 - id: skill_yanhuo
@@ -3144,7 +3144,7 @@
   description: 用焰火提升自身的火攻 2回合使火系技能伤害增加70%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10237
   evolved_skill_id: -1
 - id: skill_huozhiya
@@ -3157,7 +3157,7 @@
   description: 5%使对手烧伤
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10238
   evolved_skill_id: -1
 - id: skill_lieyanzhuangji
@@ -3170,7 +3170,7 @@
   description: 5%弱化对手物防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10239
   evolved_skill_id: -1
 - id: skill_yezhuzhisu
@@ -3183,7 +3183,7 @@
   description: 发挥野性 提升自身的速度
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10240
   evolved_skill_id: -1
 - id: skill_baoya
@@ -3196,7 +3196,7 @@
   description: 带有爆炸效果牙击 先手时威力2倍
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10241
   evolved_skill_id: -1
 - id: skill_huoyufeidan
@@ -3209,7 +3209,7 @@
   description: 发出3~5枚火焰弹从天而降
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10242
   evolved_skill_id: -1
 - id: skill_zouhuo
@@ -3222,7 +3222,7 @@
   description: 脚底走出一条火路 50%几率烧伤对手
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10243
   evolved_skill_id: -1
 - id: skill_lieyanyachongpo
@@ -3235,7 +3235,7 @@
   description: 5%使对手烧伤
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10244
   evolved_skill_id: -1
 - id: skill_yanwu
@@ -3248,7 +3248,7 @@
   description: 跳起火焰之舞 30%几率烧伤对手
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10245
   evolved_skill_id: -1
 - id: skill_badetouchou
@@ -3261,7 +3261,7 @@
   description: 率先抢占先机的攻击 战斗第一回合威力2倍 先制+1
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10246
   evolved_skill_id: -1
 - id: skill_huoxing
@@ -3274,7 +3274,7 @@
   description: 摩擦出许多火星使焰火持续回合翻倍
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10247
   evolved_skill_id: -1
 - id: skill_huozhong
@@ -3287,7 +3287,7 @@
   description: 引爆对手身上的烧伤效果 引爆伤害为150
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10248
   evolved_skill_id: -1
 - id: skill_xuruoshuiqiang
@@ -3300,7 +3300,7 @@
   description: 射出虚弱效果的水枪 使对手受到伤害增加30 叠加2次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10249
   evolved_skill_id: -1
 - id: skill_xuruoshuipao
@@ -3313,7 +3313,7 @@
   description: 射出虚弱效果的水泡 使对手造成伤害减少30 叠加2次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10250
   evolved_skill_id: -1
 - id: skill_guanghuapifu
@@ -3326,7 +3326,7 @@
   description: 皮肤变的光滑 能闪躲2次对手的攻击 但自身容易受伤
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10251
   evolved_skill_id: -1
 - id: skill_talangchongfeng
@@ -3339,7 +3339,7 @@
   description: 5%弱化对手物防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10252
   evolved_skill_id: -1
 - id: skill_shuimo
@@ -3352,7 +3352,7 @@
   description: 用水墨降低对手特防
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10253
   evolved_skill_id: -1
 - id: skill_shuihuasijian
@@ -3365,7 +3365,7 @@
   description: 5%弱化对手特防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10254
   evolved_skill_id: -1
 - id: skill_wuyi
@@ -3378,7 +3378,7 @@
   description: 舞动自身的双翼 有2次快攻的机会
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10255
   evolved_skill_id: -1
 - id: skill_xuanzhuanshuiqiang
@@ -3391,7 +3391,7 @@
   description: 5%弱化对手特防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10256
   evolved_skill_id: -1
 - id: skill_xuanzhuanchongfeng
@@ -3404,7 +3404,7 @@
   description: 5%弱化对手物防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10257
   evolved_skill_id: -1
 - id: skill_chaoliupo
@@ -3417,7 +3417,7 @@
   description: 必杀技 聚集周围水能攻击对手 使下回合技能必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10258
   evolved_skill_id: -1
 - id: skill_junengchongfeng
@@ -3430,7 +3430,7 @@
   description: 5%弱化对手物防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10259
   evolved_skill_id: -1
 - id: skill_jushuipao
@@ -3443,7 +3443,7 @@
   description: 5%弱化对手特防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10260
   evolved_skill_id: -1
 - id: skill_nongsuoshuimo
@@ -3456,7 +3456,7 @@
   description: 用浓缩的水墨喷洒对手降低其物防和特防
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10261
   evolved_skill_id: -1
 - id: skill_chunjingzhixin
@@ -3469,7 +3469,7 @@
   description: 以纯净之心防止异常
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10262
   evolved_skill_id: -1
 - id: skill_hongxin
@@ -3482,7 +3482,7 @@
   description: 发出一个红色爱心来降低对手命中率
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10263
   evolved_skill_id: -1
 - id: skill_rouruan
@@ -3495,7 +3495,7 @@
   description: 使身体变的更柔软 提升特防
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10264
   evolved_skill_id: -1
 - id: skill_xinzhiyinji
@@ -3508,7 +3508,7 @@
   description: 给对手身上增加一个心之印记
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10265
   evolved_skill_id: -1
 - id: skill_xinlianxin
@@ -3521,7 +3521,7 @@
   description: 发出一个红心与对手相连 对手有印记时必中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10266
   evolved_skill_id: -1
 - id: skill_jianren
@@ -3534,7 +3534,7 @@
   description: 使自身变得更坚韧了 提升物防和特防
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10267
   evolved_skill_id: -1
 - id: skill_hongxinyu
@@ -3547,7 +3547,7 @@
   description: 降下大片红心雨 对手有印记时连击数为5~8次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10268
   evolved_skill_id: -1
 - id: skill_rouren
@@ -3560,7 +3560,7 @@
   description: 使自身变的更柔韧 可反弹1/4伤害
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10269
   evolved_skill_id: -1
 - id: skill_zhifanghudun
@@ -3573,7 +3573,7 @@
   description: 用脂肪抵御伤害 抵消自身总体重值的伤害
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10089
   evolved_skill_id: -1
 - id: skill_quanlichongfeng
@@ -3586,7 +3586,7 @@
   description: 5%强化自身物攻1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10270
   evolved_skill_id: -1
 - id: skill_mantianhongxin
@@ -3599,7 +3599,7 @@
   description: 5%强化自身特攻1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10271
   evolved_skill_id: -1
 - id: skill_xinxinxiangyin
@@ -3612,7 +3612,7 @@
   description: 放出一个红心与对手相呼应 对手有印记时威力2倍
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10272
   evolved_skill_id: -1
 - id: skill_dahongxin
@@ -3625,7 +3625,7 @@
   description: 放出一个大型的红心 使对手命中率减少15%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10273
   evolved_skill_id: -1
 - id: skill_xuehongyinji
@@ -3638,7 +3638,7 @@
   description: 给对手身上增加一个血红印记 效果等同于3回合心之印记
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10274
   evolved_skill_id: -1
 - id: skill_xinyuan
@@ -3651,7 +3651,7 @@
   description: 为自身祈祷 恢复1/4的体力 连续饮用效果减半
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10275
   evolved_skill_id: -1
 - id: skill_yili
@@ -3664,7 +3664,7 @@
   description: 凭借毅力提升自身的物攻
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10276
   evolved_skill_id: -1
 - id: skill_liuxingquan
@@ -3677,7 +3677,7 @@
   description: 使出流星拳攻击对手 50%几率多攻击1次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10277
   evolved_skill_id: -1
 - id: skill_bandao
@@ -3690,7 +3690,7 @@
   description: 用脚绊倒对手 造成对手总体重的伤害
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10278
   evolved_skill_id: -1
 - id: skill_houkongfan
@@ -3703,7 +3703,7 @@
   description: 后空翻躲避物理攻击 但自身受到特殊攻击伤害翻倍
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10279
   evolved_skill_id: -1
 - id: skill_huixingquan
@@ -3716,7 +3716,7 @@
   description: 使出彗星拳攻击对手 40%几率多攻击2次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10280
   evolved_skill_id: -1
 - id: skill_baiguangpao
@@ -3729,7 +3729,7 @@
   description: 5%使对手害怕
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10281
   evolved_skill_id: -1
 - id: skill_xiaoruo
@@ -3742,7 +3742,7 @@
   description: 消弱对手的物防和特防
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10282
   evolved_skill_id: -1
 - id: skill_ziguangpao
@@ -3755,7 +3755,7 @@
   description: 5%使对手害怕
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10283
   evolved_skill_id: -1
 - id: skill_suixingquan
@@ -3768,7 +3768,7 @@
   description: 使出碎星拳攻击对手 35%几率多攻击3次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10284
   evolved_skill_id: -1
 - id: skill_xingchenfensuiquan
@@ -3781,7 +3781,7 @@
   description: 必杀技 足以粉碎星辰的攻击并使下回合效果触发率提升50%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10285
   evolved_skill_id: -1
 - id: skill_luoxuanguangpao
@@ -3794,7 +3794,7 @@
   description: 5%使对手害怕
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10286
   evolved_skill_id: -1
 - id: skill_qiangxingbandao
@@ -3807,7 +3807,7 @@
   description: 强行的绊倒对手 造成对手总体重的伤害
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10287
   evolved_skill_id: -1
 - id: skill_zhuixingquan
@@ -3820,7 +3820,7 @@
   description: 使出坠星拳攻击对手 30%几率多攻击4次
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10288
   evolved_skill_id: -1
 - id: skill_xingzhihui
@@ -3833,7 +3833,7 @@
   description: 利用星之辉使技能效果触发率提升20%
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10289
   evolved_skill_id: -1
 - id: skill_shengbo
@@ -3846,7 +3846,7 @@
   description: 5%弱化对手特防1级
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10290
   evolved_skill_id: -1
 - id: skill_shenhuxi
@@ -3859,7 +3859,7 @@
   description: 做深呼吸来提升自身的特攻
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10291
   evolved_skill_id: -1
 - id: skill_yinbohuan
@@ -3872,7 +3872,7 @@
   description: 用音波环攻击对手并积累45音波值 达到100时爆炸
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10292
   evolved_skill_id: -1
 - id: skill_yinbopao
@@ -3885,7 +3885,7 @@
   description: 用音波炮攻击对手并积累40音波值 达到100时爆炸
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10293
   evolved_skill_id: -1
 - id: skill_siyao
@@ -3898,7 +3898,7 @@
   description: 用自身的大嘴巴撕咬对手 使其流血
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10294
   evolved_skill_id: -1
 - id: skill_jinyin
@@ -3911,7 +3911,7 @@
   description: 转换对手身上的音波值来补充自身体力
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10295
   evolved_skill_id: -1
 - id: skill_zaoyin
@@ -3924,7 +3924,7 @@
   description: 转换对手身上的音波值来降低对手的命中
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10296
   evolved_skill_id: -1
 - id: skill_yinbozhadan
@@ -3937,7 +3937,7 @@
   description: 用音波炸弹攻击对手并积累35音波值 达到100时爆炸
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10297
   evolved_skill_id: -1
 - id: skill_dafengche
@@ -3950,7 +3950,7 @@
   description: 疯狂的挥舞3~4次 50%几率使对手物防下降
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10298
   evolved_skill_id: -1
 - id: skill_yinbopingzhang
@@ -3963,7 +3963,7 @@
   description: 转换对手身上的音波值来保护自身
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10299
   evolved_skill_id: -1
 - id: skill_xuanzhuansiyao
@@ -3976,7 +3976,7 @@
   description: 旋转中用自身的大嘴巴撕咬对手 使其流血
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10300
   evolved_skill_id: -1
 - id: skill_chaojiyinbopao
@@ -3989,7 +3989,7 @@
   description: 必杀技 使出超级音波炮攻击对手并积累40音波值
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10301
   evolved_skill_id: -1
 - id: skill_paoxiaodan
@@ -4002,7 +4002,7 @@
   description: 用咆哮弹攻击对手并积累30音波值 达到100时爆炸
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10302
   evolved_skill_id: -1
 - id: skill_yinbao
@@ -4015,7 +4015,7 @@
   description: 转换对手身上的音波值来使其受到伤害
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10303
   evolved_skill_id: -1
 - id: skill_yinbofeidan
@@ -4028,7 +4028,7 @@
   description: 用音波飞弹连续4次攻击并积累50音波值 达到100时爆炸
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10304
   evolved_skill_id: -1
 - id: skill_yinzhiwang
@@ -4041,6 +4041,6 @@
   description: 用音之网来判断对手的行动 使其无法闪避
   sureHit: false
   ignoreShield: false
-  tag: []
+  tags: []
   num: 10305
   evolved_skill_id: -1

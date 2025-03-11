@@ -5,7 +5,7 @@ import {
   type EffectDSL as Effect,
   type OperatorDSL,
   type ConditionDSL,
-} from '@test-battle/effect-dsl'
+} from '@test-battle/schema'
 
 const TRIGGER_OPTIONS = Object.values(EffectTrigger).map(value => ({
   value,

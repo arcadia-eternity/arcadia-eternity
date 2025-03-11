@@ -105,8 +105,16 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       else if (this.species.genderRatio[0] != 0) this.gender = Gender.Female
       else this.gender = Gender.Male
     } else this.gender = gender
-    if (ability) this.marks.push(new MarkInstance(ability))
-    if (emblem) this.marks.push(new MarkInstance(emblem))
+    if (ability) {
+      const abilityMark = ability.createInstance()
+      abilityMark.setOwner(this)
+      this.marks.push(abilityMark)
+    }
+    if (emblem) {
+      const emblemMark = emblem.createInstance()
+      emblemMark.setOwner(this)
+      this.marks.push(emblemMark)
+    }
   }
 
   get currentRage() {
@@ -189,9 +197,11 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public addMark(context: AddMarkContext) {
     if (!context.available) return
 
+    context.battle.applyEffects(context, EffectTrigger.OnBeforeAddMark)
     const config = {
-      duration: context.duration,
-      stack: context.stack,
+      ...context.config,
+      duration: context.duration ?? context.config?.duration,
+      stack: context.stack ?? context.config?.duration,
     }
     const newMark = context.mark.createInstance(config)
     const existingOppositeMark = this.marks.find(

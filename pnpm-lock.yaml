@@ -216,21 +216,6 @@ importers:
         specifier: ^0.2.37
         version: 0.2.37(@swc/core@1.11.5)
 
-  packages/effectDSL:
-    dependencies:
-      '@test-battle/battle':
-        specifier: workspace:^
-        version: link:../battle
-      '@test-battle/const':
-        specifier: workspace:^
-        version: link:../const
-      '@test-battle/effect-builder':
-        specifier: workspace:^
-        version: link:../effectBuilder
-      zod:
-        specifier: ^3.24.1
-        version: 3.24.1
-
   packages/parser:
     dependencies:
       '@test-battle/battle':
@@ -245,9 +230,6 @@ importers:
       '@test-battle/effect-builder':
         specifier: workspace:^
         version: link:../effectBuilder
-      '@test-battle/effect-dsl':
-        specifier: workspace:^
-        version: link:../effectDSL
       '@test-battle/schema':
         specifier: workspace:^
         version: link:../schema
@@ -272,9 +254,9 @@ importers:
       '@test-battle/const':
         specifier: workspace:^
         version: link:../const
-      '@test-battle/effect-dsl':
+      '@test-battle/effect-builder':
         specifier: workspace:^
-        version: link:../effectDSL
+        version: link:../effectBuilder
       nanoid:
         specifier: ^5.0.9
         version: 5.0.9
@@ -343,9 +325,6 @@ importers:
       '@test-battle/const':
         specifier: workspace:^
         version: link:../const
-      '@test-battle/effect-dsl':
-        specifier: workspace:^
-        version: link:../effectDSL
       '@test-battle/protocol':
         specifier: workspace:^
         version: link:../protocol

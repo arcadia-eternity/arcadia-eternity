@@ -968,6 +968,17 @@
       "a": false
     },
     {
+      "n": "success",
+      "t": "undefined | false | true",
+      "iu": true,
+      "u": [
+        "undefined",
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
       "n": "parent",
       "t": "TriggerContextMap[T]",
       "iu": false,
@@ -1300,49 +1311,19 @@
     },
     {
       "n": "trigger",
-      "t": "EffectTrigger.OnBattleStart | EffectTrigger.BeforeSort | EffectTrigger.BeforeUseSkillCheck | EffectTrigger.AfterUseSkillCheck | EffectTrigger.BeforeHit | EffectTrigger.OnCritPreDamage | EffectTrigger.PreDamage | EffectTrigger.OnHit | EffectTrigger.OnMiss | EffectTrigger.AfterAttacked | EffectTrigger.OnDefeat | EffectTrigger.OnDamage | EffectTrigger.Shield | EffectTrigger.PostDamage | EffectTrigger.OnCritPostDamage | EffectTrigger.TurnStart | EffectTrigger.TurnEnd | EffectTrigger.OnAddMark | EffectTrigger.OnRemoveMark | EffectTrigger.OnMarkCreate | EffectTrigger.OnMarkDestroy | EffectTrigger.OnMarkDurationEnd | EffectTrigger.OnStack | EffectTrigger.OnHeal | EffectTrigger.OnRageGain | EffectTrigger.OnRageLoss | EffectTrigger.OnSwitchIn | EffectTrigger.OnSwitchOut | EffectTrigger.OnOwnerSwitchIn | EffectTrigger.OnOwnerSwitchOut | EffectTrigger.BeforeEffect | EffectTrigger.AfterEffect",
-      "iu": true,
-      "u": [
-        "EffectTrigger.OnBattleStart",
-        "EffectTrigger.BeforeSort",
-        "EffectTrigger.BeforeUseSkillCheck",
-        "EffectTrigger.AfterUseSkillCheck",
-        "EffectTrigger.BeforeHit",
-        "EffectTrigger.OnCritPreDamage",
-        "EffectTrigger.PreDamage",
-        "EffectTrigger.OnHit",
-        "EffectTrigger.OnMiss",
-        "EffectTrigger.AfterAttacked",
-        "EffectTrigger.OnDefeat",
-        "EffectTrigger.OnDamage",
-        "EffectTrigger.Shield",
-        "EffectTrigger.PostDamage",
-        "EffectTrigger.OnCritPostDamage",
-        "EffectTrigger.TurnStart",
-        "EffectTrigger.TurnEnd",
-        "EffectTrigger.OnAddMark",
-        "EffectTrigger.OnRemoveMark",
-        "EffectTrigger.OnMarkCreate",
-        "EffectTrigger.OnMarkDestroy",
-        "EffectTrigger.OnMarkDurationEnd",
-        "EffectTrigger.OnStack",
-        "EffectTrigger.OnHeal",
-        "EffectTrigger.OnRageGain",
-        "EffectTrigger.OnRageLoss",
-        "EffectTrigger.OnSwitchIn",
-        "EffectTrigger.OnSwitchOut",
-        "EffectTrigger.OnOwnerSwitchIn",
-        "EffectTrigger.OnOwnerSwitchOut",
-        "EffectTrigger.BeforeEffect",
-        "EffectTrigger.AfterEffect"
-      ],
+      "t": "T",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
       "n": "apply",
-      "t": "(context: EffectContext<T>) => void",
-      "iu": false,
-      "u": [],
+      "t": "(context: EffectContext<T>) => void | ((context: EffectContext<T>) => void)",
+      "iu": true,
+      "u": [
+        "(context: EffectContext<T>) => void",
+        "((context: EffectContext<T>) => void)"
+      ],
       "a": false
     },
     {
@@ -1399,10 +1380,11 @@
     },
     {
       "n": "apply",
-      "t": "(context: EffectContext<T>) => void",
+      "t": "(context: EffectContext<T>) => void | ((context: EffectContext<T>) => void)",
       "iu": false,
       "u": [],
-      "a": false
+      "a": true,
+      "nt": "(context: EffectContext<T>) => void | ((context: EffectContext<T>) => void)"
     },
     {
       "n": "priority",
@@ -1700,6 +1682,13 @@
         "StatTypeWithoutHp.spd",
         "StatTypeWithoutHp.spe"
       ],
+      "a": false
+    },
+    {
+      "n": "stack",
+      "t": "number",
+      "iu": false,
+      "u": [],
       "a": false
     }
   ],
@@ -2292,7 +2281,7 @@
       "a": false
     },
     {
-      "n": "tag",
+      "n": "tags",
       "t": "string",
       "iu": false,
       "u": [],
@@ -2440,7 +2429,7 @@
       "a": false
     },
     {
-      "n": "tag",
+      "n": "tags",
       "t": "string",
       "iu": false,
       "u": [],
@@ -3066,14 +3055,14 @@
       "nt": "(index: number, value: number) => number"
     },
     {
-      "n": "__@iterator@372",
+      "n": "__@iterator@373",
       "t": "() => ArrayIterator<number>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
-      "n": "__@unscopables@705",
+      "n": "__@unscopables@711",
       "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
       "iu": false,
       "u": [],

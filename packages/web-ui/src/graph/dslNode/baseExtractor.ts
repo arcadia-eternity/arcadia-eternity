@@ -1,6 +1,6 @@
 import { LGraphNode, LiteGraph } from '@comfyorg/litegraph'
 import type { Extractor } from '../../../../effectBuilder'
-import type { ExtractorDSL } from '@test-battle/effect-dsl'
+import type { ExtractorDSL } from '@test-battle/schema'
 
 export abstract class BaseExtractorNode extends LGraphNode {
   // 静态属性定义选择器类型，子类需要覆盖

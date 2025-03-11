@@ -1,5 +1,5 @@
 import { LGraphNode, type INodeOutputSlot, type INodeInputSlot, LiteGraph } from '@comfyorg/litegraph'
-import type { OperatorDSL, SelectorDSL } from '@test-battle/effect-dsl'
+import type { OperatorDSL, SelectorDSL } from '@test-battle/schema'
 import { StatTypeWithoutHp, StatTypeOnlyBattle } from '@test-battle/const'
 import { BaseGetVariableNode } from './BaseGetVariableNode'
 

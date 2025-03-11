@@ -9,7 +9,7 @@ import type {
   SelectStepDSL,
   SelectorDSL,
   ChainSelector,
-} from '@test-battle/effect-dsl'
+} from '@test-battle/schema'
 import { BaseGetVariableNode } from './BaseGetVariableNode'
 import { CompareEvaluatorNode } from './evaluator'
 
@@ -48,7 +48,7 @@ export abstract class SelectorStepNode extends BaseGetVariableNode {
 
     const newDsl = {
       base: prevDSL.base,
-      chain: prevDSL.chain?[...prevDSL.chain, currentStep]:[currentStep],
+      chain: prevDSL.chain ? [...prevDSL.chain, currentStep] : [currentStep],
     }
     this.setOutputData(0, newDsl as any)
   }

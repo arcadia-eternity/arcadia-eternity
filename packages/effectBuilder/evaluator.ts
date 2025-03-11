@@ -100,9 +100,9 @@ export const Evaluators = {
     },
 
   contain:
-    <T extends string[]>(tag: string): Evaluator<T> =>
+    <T extends string>(tag: string): Evaluator<T> =>
     (context: EffectContext<EffectTrigger>, values: T[]) =>
-      values.some(v => v.some(w => w === tag)),
+      values.some(v => v === tag),
 
   //对任意元素均有百分比的筛选几率，亦能直接作为随机按几率触发效果的Condition。
   probability:

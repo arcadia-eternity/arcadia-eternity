@@ -13,7 +13,7 @@ import {
   SkillInstance,
   UseSkillContext,
 } from '@test-battle/battle'
-import { EffectTrigger, type StatTypeOnBattle, StatTypeWithoutHp } from '@test-battle/const'
+import { EffectTrigger, StackStrategy, type StatTypeOnBattle, StatTypeWithoutHp } from '@test-battle/const'
 import type { Operator } from './effectBuilder'
 import { ChainableSelector, type PrimitiveOpinion, type PropertyRef, type SelectorOpinion } from './selector'
 import { type ValueSource } from './effectBuilder'
@@ -286,6 +286,141 @@ export const Operators = {
       if (!_min && !_max) return
       contexts.forEach(ctx => {
         ctx.addThreshold(_min, _max)
+      })
+    }
+  },
+
+  /** 覆盖标记配置 */
+  overrideMarkConfig: (config: Partial<MarkInstance['config']>): Operator<AddMarkContext> => {
+    return (context, targets) => {
+      targets.forEach((target, index) => {
+        target.overrideConfig(config)
+      })
+    }
+  },
+
+  /** 设置标记持续时间 */
+  setMarkDuration: (duration: ValueSource<number>): Operator<AddMarkContext> => {
+    return (context, targets) => {
+      const durations = GetValueFromSource(context, duration)
+      targets.forEach((target, index) => {
+        const dur = durations[index % durations.length]
+        if (dur !== undefined) target.setDuration(dur)
+      })
+    }
+  },
+
+  /** 设置初始堆叠数 */
+  setMarkStack: (stack: ValueSource<number>): Operator<AddMarkContext> => {
+    return (context, targets) => {
+      const stacks = GetValueFromSource(context, stack)
+      targets.forEach((target, index) => {
+        const stk = stacks[index % stacks.length]
+        if (stk !== undefined) target.setStack(stk)
+      })
+    }
+  },
+
+  /** 设置最大堆叠数 */
+  setMarkMaxStack: (maxStack: ValueSource<number>): Operator<AddMarkContext> => {
+    return (context, targets) => {
+      const maxStacks = GetValueFromSource(context, maxStack)
+      targets.forEach((target, index) => {
+        const max = maxStacks[index % maxStacks.length]
+        if (max !== undefined) target.setMaxStack(max)
+      })
+    }
+  },
+
+  /** 设置是否持久化 */
+  setMarkPersistent: (persistent: ValueSource<boolean>): Operator<AddMarkContext> => {
+    return (context, targets) => {
+      const persistValues = GetValueFromSource(context, persistent)
+      targets.forEach((target, index) => {
+        const value = persistValues[index % persistValues.length]
+        if (typeof value === 'boolean') target.setPersistent(value)
+      })
+    }
+  },
+
+  setMarkStackable: (stackable: ValueSource<boolean>): Operator<AddMarkContext> => {
+    return (context, targets) => {
+      const values = GetValueFromSource(context, stackable)
+      targets.forEach((target, index) => {
+        const value = values[index % values.length]
+        if (typeof value === 'boolean') {
+          target.setStackable(value)
+        }
+      })
+    }
+  },
+
+  /** 设置堆叠策略 */
+  setMarkStackStrategy: (strategy: ValueSource<StackStrategy>): Operator<AddMarkContext> => {
+    return (context, targets) => {
+      const strategies = GetValueFromSource(context, strategy)
+      targets.forEach((target, index) => {
+        const strat = strategies[index % strategies.length]
+        if (strat) target.setStackStrategy(strat)
+      })
+    }
+  },
+
+  setMarkDestroyable: (destroyable: ValueSource<boolean>): Operator<AddMarkContext> => {
+    return (context, targets) => {
+      const values = GetValueFromSource(context, destroyable)
+      targets.forEach((target, index) => {
+        const value = values[index % values.length]
+        if (typeof value === 'boolean') {
+          target.setDestroyable(value)
+        }
+      })
+    }
+  },
+
+  /** 设置是否为护盾 */
+  setMarkIsShield: (isShield: ValueSource<boolean>): Operator<AddMarkContext> => {
+    return (context, targets) => {
+      const shieldValues = GetValueFromSource(context, isShield)
+      targets.forEach((target, index) => {
+        const value = shieldValues[index % shieldValues.length]
+        if (typeof value === 'boolean') target.setIsShield(value)
+      })
+    }
+  },
+
+  setMarkKeepOnSwitchOut: (keep: ValueSource<boolean>): Operator<AddMarkContext> => {
+    return (context, targets) => {
+      const values = GetValueFromSource(context, keep)
+      targets.forEach((target, index) => {
+        const value = values[index % values.length]
+        if (typeof value === 'boolean') {
+          target.setKeepOnSwitchOut(value)
+        }
+      })
+    }
+  },
+
+  setMarkTransferOnSwitch: (transfer: ValueSource<boolean>): Operator<AddMarkContext> => {
+    return (context, targets) => {
+      const values = GetValueFromSource(context, transfer)
+      targets.forEach((target, index) => {
+        const value = values[index % values.length]
+        if (typeof value === 'boolean') {
+          target.setTransferOnSwitch(value)
+        }
+      })
+    }
+  },
+
+  setMarkInheritOnFaint: (inherit: ValueSource<boolean>): Operator<AddMarkContext> => {
+    return (context, targets) => {
+      const values = GetValueFromSource(context, inherit)
+      targets.forEach((target, index) => {
+        const value = values[index % values.length]
+        if (typeof value === 'boolean') {
+          target.setInheritOnFaint(value)
+        }
       })
     }
   },

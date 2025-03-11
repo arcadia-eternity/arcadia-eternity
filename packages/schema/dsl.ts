@@ -1,3 +1,4 @@
+import type { MarkInstance } from '@test-battle/battle'
 import { EffectTrigger } from '@test-battle/const'
 import { BaseSelector, Extractor, type CompareOperator } from '@test-battle/effect-builder'
 
@@ -142,6 +143,66 @@ export type OperatorDSL =
       target: SelectorDSL
       min?: Value
       max?: Value
+    }
+  | {
+      type: 'overrideMarkConfig'
+      target: SelectorDSL
+      config: Partial<MarkInstance['config']>
+    }
+  | {
+      type: 'setMarkDuration'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'setMarkStack'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'setMarkMaxStack'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'setMarkPersistent'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'setMarkStackable'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'setMarkStackStrategy'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'setMarkDestroyable'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'setMarkIsShield'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'setMarkKeepOnSwitchOut'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'setMarkTransferOnSwitch'
+      target: SelectorDSL
+      value: Value
+    }
+  | {
+      type: 'setMarkInheritOnFaint'
+      target: SelectorDSL
+      value: Value
     }
 
 export type RawNumberValue = {

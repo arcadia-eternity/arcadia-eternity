@@ -36,7 +36,7 @@ export class SkillParser {
       validated.sureHit,
       validated.sureCrit,
       validated.ignoreShield,
-      validated.tag,
+      validated.tags,
       effects,
     )
   }

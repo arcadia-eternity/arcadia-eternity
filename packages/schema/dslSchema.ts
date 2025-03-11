@@ -18,6 +18,7 @@ import type {
   Value,
   RawBaseSkillIdValue,
 } from './dsl'
+import { MarkConfigSchema } from './mark'
 
 const selectorKeys = Object.keys(BaseSelector)
 export const baseSelectorSchema = z.enum(selectorKeys as [keyof typeof BaseSelector])
@@ -350,6 +351,66 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       target: selectorDSLSchema,
       min: valueSchema.optional(),
       max: valueSchema.optional(),
+    }),
+    z.object({
+      type: z.literal('overrideMarkConfig'),
+      target: selectorDSLSchema,
+      config: MarkConfigSchema,
+    }),
+    z.object({
+      type: z.literal('setMarkDuration'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('setMarkStack'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('setMarkMaxStack'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('setMarkPersistent'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('setMarkStackable'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('setMarkStackStrategy'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('setMarkDestroyable'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('setMarkIsShield'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('setMarkKeepOnSwitchOut'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('setMarkTransferOnSwitch'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('setMarkInheritOnFaint'),
+      target: selectorDSLSchema,
+      value: valueSchema,
     }),
   ]),
 )

@@ -26,6 +26,7 @@ export enum EffectTrigger {
   TurnEnd = 'TurnEnd',
 
   //仅作用于自身触发
+  OnBeforeAddMark = 'OnBeforeAddMark',
   OnAddMark = 'OnAddMark',
   OnRemoveMark = 'OnRemoveMark',
 

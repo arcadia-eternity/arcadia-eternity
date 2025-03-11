@@ -6,7 +6,7 @@ import { BaseMark, MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
 import { SkillInstance } from './skill'
-import { Category, ELEMENT_CHART, type Element } from '@test-battle/const'
+import { Category, ELEMENT_CHART, StackStrategy, type Element } from '@test-battle/const'
 
 export abstract class Context {
   readonly type: string = 'base'
@@ -363,9 +363,72 @@ export class AddMarkContext extends Context {
     public mark: BaseMark,
     public stack?: number,
     public duration?: number,
+    public config?: Partial<MarkInstance['config']>,
   ) {
     super(parent)
     this.battle = parent.battle
+    //拷贝，因为原值是可读的
+    if (!config) this.config = JSON.parse(JSON.stringify(mark.config))
+  }
+
+  overrideConfig(overrideConfig: Partial<MarkInstance['config']>) {
+    this.config = {
+      ...this.config,
+      ...overrideConfig,
+    }
+  }
+
+  setDuration(duration: number) {
+    this.duration = duration
+  }
+
+  setStack(stack: number) {
+    this.stack = stack
+  }
+
+  setMaxStack(stack: number) {
+    if (!this.config) this.config = {}
+    this.config.maxStacks = stack
+  }
+
+  setPersistent(persistent: boolean) {
+    if (!this.config) this.config = {}
+    this.config.persistent = persistent
+  }
+
+  setStackable(stackable: boolean) {
+    if (!this.config) this.config = {}
+    this.config.stackable = stackable
+  }
+
+  setStackStrategy(stackStrategy: StackStrategy) {
+    if (!this.config) this.config = {}
+    this.config.stackStrategy = stackStrategy
+  }
+
+  setDestroyable(destroyable: boolean) {
+    if (!this.config) this.config = {}
+    this.config.destroyable = destroyable
+  }
+
+  setIsShield(isShield: boolean) {
+    if (!this.config) this.config = {}
+    this.config.isShield = isShield
+  }
+
+  setKeepOnSwitchOut(keepOnSwitchOut: boolean) {
+    if (!this.config) this.config = {}
+    this.config.keepOnSwitchOut = keepOnSwitchOut
+  }
+
+  setTransferOnSwitch(transferOnSwitch: boolean) {
+    if (!this.config) this.config = {}
+    this.config.transferOnSwitch = transferOnSwitch
+  }
+
+  setInheritOnFaint(inheritOnFaint: boolean) {
+    if (!this.config) this.config = {}
+    this.config.inheritOnFaint = inheritOnFaint
   }
 }
 
@@ -405,6 +468,7 @@ type TriggerContextMap = {
   [EffectTrigger.TurnStart]: TurnContext
   [EffectTrigger.TurnEnd]: TurnContext
 
+  [EffectTrigger.OnBeforeAddMark]: AddMarkContext
   [EffectTrigger.OnAddMark]: AddMarkContext
   [EffectTrigger.OnRemoveMark]: RemoveMarkContext
   [EffectTrigger.OnMarkCreate]: AddMarkContext

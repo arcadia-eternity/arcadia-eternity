@@ -27,7 +27,7 @@ export class BaseSkill implements Prototype {
     public readonly sureHit: boolean = false,
     public readonly sureCrit: boolean = false,
     public readonly ignoreShield: boolean = false,
-    public readonly tag: string[] = [],
+    public readonly tags: string[] = [],
     effects: Effect<EffectTrigger>[] = [],
   ) {
     this.effects = effects
@@ -48,7 +48,7 @@ export class BaseSkill implements Prototype {
     #sureCrit: boolean = false
     #ignoreShield: boolean = false
     #multihit: [number, number] | number = 0
-    #tag: string[] = []
+    #tags: string[] = []
 
     withID(id: string) {
       this.#id = id as baseSkillId
@@ -110,7 +110,7 @@ export class BaseSkill implements Prototype {
     }
 
     withTag(...arg: string[]) {
-      this.#tag.push(...arg)
+      this.#tags.push(...arg)
     }
 
     build() {
@@ -128,7 +128,7 @@ export class BaseSkill implements Prototype {
         this.#sureHit,
         this.#sureCrit,
         this.#ignoreShield,
-        this.#tag,
+        this.#tags,
         this.#effects,
       )
     }
@@ -149,7 +149,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
   public readonly sureHit: boolean = false
   public readonly sureCrit: boolean = false
   public readonly ignoreShield: boolean = false
-  public readonly tag: string[] = []
+  public readonly tags: string[] = []
   public readonly effectState: {
     [id: string]: EffectState
   } = {}
@@ -182,7 +182,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     this.sureHit = overrides?.sureHit ?? base.sureHit
     this.sureCrit = overrides?.sureCrit ?? base.sureCrit
     this.ignoreShield = overrides?.ignoreShield ?? base.ignoreShield
-    this.tag = overrides?.tag ? [...base.tag, ...overrides.tag] : [...base.tag]
+    this.tags = overrides?.tag ? [...base.tags, ...overrides.tag] : [...base.tags]
     this.effects = [...base.effects, ...(overrides?.effects ? overrides.effects : [])]
     this.effects.forEach(effect => effect.setOwner(this))
   }
@@ -228,7 +228,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
       target: this.target,
       multihit: this.multihit,
       sureHit: this.sureHit,
-      tag: this.tag,
+      tag: this.tags,
     }
   }
 }

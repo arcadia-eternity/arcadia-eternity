@@ -44,9 +44,13 @@ export class EffectScheduler {
       const { effect, context } = this.globalEffectQueue.shift()!
       context.battle.applyEffects(context, EffectTrigger.BeforeEffect)
       if (!context.available) {
-        context.battle!.emitMessage(BattleMessageType.Info, { message: `${context.source.name}的效果被阻止了！` })
+        context.battle!.emitMessage(BattleMessageType.Info, {
+          message: `${context.source.name}的效果${effect.id}被阻止了！`,
+        })
       }
-      context.battle!.emitMessage(BattleMessageType.Info, { message: `${context.source.name}的效果被触发了！` })
+      context.battle!.emitMessage(BattleMessageType.Info, {
+        message: `${context.source.name}的效果${effect.id}被触发了！`,
+      })
       try {
         effect.innerApply(context)
       } catch (error) {

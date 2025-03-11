@@ -1,4 +1,5 @@
 import {
+  AddMarkContext,
   BaseMark,
   BaseSkill,
   DamageContext,
@@ -16,6 +17,7 @@ import {
   type baseSkillId,
   type effectId,
   EffectTrigger,
+  StackStrategy,
   type StatTypeOnBattle,
   StatTypeWithoutHp,
 } from '@test-battle/const'
@@ -45,7 +47,7 @@ import type {
   SelectorChain,
   SelectorDSL,
   Value,
-} from '@test-battle/effect-dsl'
+} from '@test-battle/schema'
 
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   try {
@@ -299,6 +301,30 @@ export function createAction(dsl: OperatorDSL) {
       return parseAddModified(dsl)
     case 'addThreshold':
       return parseAddThresholdAction(dsl)
+    case 'overrideMarkConfig':
+      return parseOverrideMarkConfig(dsl)
+    case 'setMarkDuration':
+      return parseSetMarkDuration(dsl)
+    case 'setMarkStack':
+      return parseSetMarkStack(dsl)
+    case 'setMarkMaxStack':
+      return parseSetMarkMaxStack(dsl)
+    case 'setMarkPersistent':
+      return parseSetMarkPersistent(dsl)
+    case 'setMarkStackable':
+      return parseSetMarkStackable(dsl)
+    case 'setMarkStackStrategy':
+      return parseSetMarkStackStrategy(dsl)
+    case 'setMarkDestroyable':
+      return parseSetMarkDestroyable(dsl)
+    case 'setMarkIsShield':
+      return parseSetMarkIsShield(dsl)
+    case 'setMarkKeepOnSwitchOut':
+      return parseSetMarkKeepOnSwitchOut(dsl)
+    case 'setMarkTransferOnSwitch':
+      return parseSetMarkTransferOnSwitch(dsl)
+    case 'setMarkInheritOnFaint':
+      return parseSetMarkInheritOnFaint(dsl)
   }
 }
 
@@ -460,6 +486,76 @@ export function parseAddThresholdAction(dsl: Extract<OperatorDSL, { type: 'addTh
   const min = dsl.min ? (parseValue(dsl.min) as ValueSource<number>) : undefined
   const max = dsl.max ? (parseValue(dsl.max) as ValueSource<number>) : undefined
   return parseSelector<DamageContext>(dsl.target).apply(Operators.addThreshold(min, max))
+}
+
+export function parseOverrideMarkConfig(dsl: Extract<OperatorDSL, { type: 'overrideMarkConfig' }>) {
+  return parseSelector<AddMarkContext>(dsl.target).apply(Operators.overrideMarkConfig(dsl.config))
+}
+
+export function parseSetMarkDuration(dsl: Extract<OperatorDSL, { type: 'setMarkDuration' }>) {
+  return parseSelector<AddMarkContext>(dsl.target).apply(
+    Operators.setMarkDuration(parseValue(dsl.value) as ValueSource<number>),
+  )
+}
+
+export function parseSetMarkStack(dsl: Extract<OperatorDSL, { type: 'setMarkStack' }>) {
+  return parseSelector<AddMarkContext>(dsl.target).apply(
+    Operators.setMarkStack(parseValue(dsl.value) as ValueSource<number>),
+  )
+}
+
+export function parseSetMarkMaxStack(dsl: Extract<OperatorDSL, { type: 'setMarkMaxStack' }>) {
+  return parseSelector<AddMarkContext>(dsl.target).apply(
+    Operators.setMarkMaxStack(parseValue(dsl.value) as ValueSource<number>),
+  )
+}
+
+export function parseSetMarkPersistent(dsl: Extract<OperatorDSL, { type: 'setMarkPersistent' }>) {
+  return parseSelector<AddMarkContext>(dsl.target).apply(
+    Operators.setMarkPersistent(parseValue(dsl.value) as ValueSource<boolean>),
+  )
+}
+
+export function parseSetMarkStackable(dsl: Extract<OperatorDSL, { type: 'setMarkStackable' }>) {
+  return parseSelector<AddMarkContext>(dsl.target).apply(
+    Operators.setMarkStackable(parseValue(dsl.value) as ValueSource<boolean>),
+  )
+}
+
+export function parseSetMarkStackStrategy(dsl: Extract<OperatorDSL, { type: 'setMarkStackStrategy' }>) {
+  return parseSelector<AddMarkContext>(dsl.target).apply(
+    Operators.setMarkStackStrategy(parseValue(dsl.value) as ValueSource<StackStrategy>),
+  )
+}
+
+export function parseSetMarkDestroyable(dsl: Extract<OperatorDSL, { type: 'setMarkDestroyable' }>) {
+  return parseSelector<AddMarkContext>(dsl.target).apply(
+    Operators.setMarkDestroyable(parseValue(dsl.value) as ValueSource<boolean>),
+  )
+}
+
+export function parseSetMarkIsShield(dsl: Extract<OperatorDSL, { type: 'setMarkIsShield' }>) {
+  return parseSelector<AddMarkContext>(dsl.target).apply(
+    Operators.setMarkIsShield(parseValue(dsl.value) as ValueSource<boolean>),
+  )
+}
+
+export function parseSetMarkKeepOnSwitchOut(dsl: Extract<OperatorDSL, { type: 'setMarkKeepOnSwitchOut' }>) {
+  return parseSelector<AddMarkContext>(dsl.target).apply(
+    Operators.setMarkKeepOnSwitchOut(parseValue(dsl.value) as ValueSource<boolean>),
+  )
+}
+
+export function parseSetMarkTransferOnSwitch(dsl: Extract<OperatorDSL, { type: 'setMarkTransferOnSwitch' }>) {
+  return parseSelector<AddMarkContext>(dsl.target).apply(
+    Operators.setMarkTransferOnSwitch(parseValue(dsl.value) as ValueSource<boolean>),
+  )
+}
+
+export function parseSetMarkInheritOnFaint(dsl: Extract<OperatorDSL, { type: 'setMarkInheritOnFaint' }>) {
+  return parseSelector<AddMarkContext>(dsl.target).apply(
+    Operators.setMarkInheritOnFaint(parseValue(dsl.value) as ValueSource<boolean>),
+  )
 }
 
 export function parseCondition(dsl: ConditionDSL): Condition {

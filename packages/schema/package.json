@@ -11,7 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "@test-battle/const": "workspace:^",
-    "@test-battle/effect-dsl": "workspace:^",
+    "@test-battle/effect-builder": "workspace:^",
     "nanoid": "^5.0.9",
     "zod": "^3.24.1"
   },

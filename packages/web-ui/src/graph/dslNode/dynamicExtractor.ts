@@ -1,5 +1,5 @@
 import { LGraphNode, LiteGraph } from '@comfyorg/litegraph'
-import type { ExtractorDSL } from '@test-battle/effect-dsl'
+import type { ExtractorDSL } from '@test-battle/schema'
 
 export class DynamicExtractorNode extends LGraphNode {
   constructor() {

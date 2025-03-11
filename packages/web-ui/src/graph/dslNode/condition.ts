@@ -1,6 +1,6 @@
 // conditionNodes.ts
 import { LGraphNode, LiteGraph } from '@comfyorg/litegraph'
-import type { ConditionDSL, EvaluatorDSL, SelectorDSL } from '@test-battle/effect-dsl'
+import type { ConditionDSL, EvaluatorDSL, SelectorDSL } from '@test-battle/schema'
 import { SelectStepNode } from './selectorChain'
 import { CompareEvaluatorNode } from './evaluator'
 
@@ -146,7 +146,7 @@ export class NotConditionNode extends BaseConditionNode {
   toConditionDSL(): ConditionDSL {
     return {
       type: 'not',
-      condition: (this.getInputData(0) as ConditionDSL),
+      condition: this.getInputData(0) as ConditionDSL,
     }
   }
 }
