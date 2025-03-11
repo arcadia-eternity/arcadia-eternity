@@ -586,6 +586,8 @@ export function parseCondition(dsl: ConditionDSL): Condition {
       return Conditions.selfBeAddMark()
     case 'foeBeAddMark':
       return Conditions.foeBeAddMark()
+    case 'selfBeHeal':
+      return Conditions.selfBeHeal()
   }
 }
 

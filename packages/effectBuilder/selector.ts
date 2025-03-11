@@ -11,6 +11,7 @@ import {
   BaseSkill,
   HealContext,
   AddMarkContext,
+  RageContext,
 } from '@test-battle/battle'
 import type { CanOwnedEntity, Instance, OwnedEntity, Prototype } from '@test-battle/battle/entity'
 import {
@@ -373,6 +374,7 @@ export type ObjectOpinion =
   | DamageContext
   | HealContext
   | AddMarkContext
+  | RageContext
   | StatTypeOnBattle
   | Instance
   | BaseMark
@@ -405,6 +407,7 @@ export const BaseSelector: {
   dataMarks: ChainableSelector<BaseMark>
   healContext: ChainableSelector<HealContext>
   addMarkContext: ChainableSelector<AddMarkContext>
+  rageContext: ChainableSelector<RageContext>
 } = {
   //选择目标，在使用技能的场景下，为技能实际指向的目标，在印记的场景下指向印记的所有者。
   target: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
@@ -509,6 +512,10 @@ export const BaseSelector: {
   }),
   addMarkContext: createChainable<AddMarkContext>('AddMarkContext', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof AddMarkContext) return [context.parent]
+    return []
+  }),
+  rageContext: createChainable<RageContext>('RageContext', (context: EffectContext<EffectTrigger>) => {
+    if (context.parent instanceof RageContext) return [context.parent]
     return []
   }),
 }

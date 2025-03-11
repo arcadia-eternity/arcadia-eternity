@@ -264,6 +264,7 @@ export class RageContext extends Context {
   readonly type = 'rage-cost'
   public readonly battle: Battle
   public readonly available: boolean = true
+  public rageChangeResult = 0
   constructor(
     public readonly parent: UseSkillContext | EffectContext<EffectTrigger> | TurnContext,
     public target: Player,
@@ -275,6 +276,12 @@ export class RageContext extends Context {
   ) {
     super(parent)
     this.battle = parent.battle
+  }
+
+  updateRageChangeResult() {
+    const percentModifier = 1 + this.modified[0] / 100
+    const deltaModifier = this.modified[1]
+    this.rageChangeResult = this.value * percentModifier + deltaModifier
   }
 
   addModified: (percent: number, delta: number) => void = (percent, delta) => {
@@ -324,7 +331,7 @@ export class DamageContext extends Context {
     }
 
     // 记录最终伤害
-    this.damageResult = Math.max(0, intermediateDamage)
+    this.damageResult = Math.floor(Math.max(0, intermediateDamage))
   }
 
   addModified: (percent: number, delta: number) => void = (percent, delta) => {
@@ -345,6 +352,7 @@ export class HealContext extends Context {
   constructor(
     public readonly parent: EffectContext<EffectTrigger>,
     public readonly source: MarkInstance | SkillInstance,
+    public readonly target: Pet,
     public value: number,
     public ingoreEffect: boolean = false,
     public modified: [number, number] = [0, 0], // 百分比修正, 固定值修正

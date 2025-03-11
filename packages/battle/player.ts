@@ -302,11 +302,13 @@ export class Player {
         break
       case 'add':
         context.battle.applyEffects(context, EffectTrigger.OnRageGain)
-        this.settingRage(this.currentRage + context.value)
+        context.updateRageChangeResult()
+        this.settingRage(this.currentRage + context.rageChangeResult)
         break
       case 'reduce':
         context.battle.applyEffects(context, EffectTrigger.OnRageLoss)
-        this.settingRage(this.currentRage - context.value)
+        context.updateRageChangeResult()
+        this.settingRage(this.currentRage - context.rageChangeResult)
         break
     }
 

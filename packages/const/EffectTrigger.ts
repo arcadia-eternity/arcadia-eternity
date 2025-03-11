@@ -38,6 +38,7 @@ export enum EffectTrigger {
   //以下一定是EffectContext
   OnStack = 'OnStack',
   OnHeal = 'OnHeal',
+
   OnRageGain = 'OnRageGain',
   OnRageLoss = 'OnRageLoss',
 

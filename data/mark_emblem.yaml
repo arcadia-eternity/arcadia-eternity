@@ -15,6 +15,9 @@
 - id: mark_emblem_nuhuo
   name: 怒火
   description: 受到伤害时增加的怒气额外提高20%
+  config: *emblem_config
+  effect:
+    - effect_emblem_increase_rage_on_damage
 - id: mark_emblem_zhiyu
   name: 治愈
   description: 20%恢复量翻倍

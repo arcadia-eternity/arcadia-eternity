@@ -57,7 +57,7 @@ export const Operators = {
 
   heal: createDynamicOperator<Pet, number>((value, pet, context) => {
     if (value.length === 0) return
-    pet.heal(new HealContext(context, context.source, value[0]))
+    pet.heal(new HealContext(context, context.source, pet, value[0]))
   }),
 
   addMark:
@@ -268,7 +268,10 @@ export const Operators = {
     }
   },
 
-  addModified: (percent: ValueSource<number>, delta: ValueSource<number>): Operator<DamageContext | HealContext> => {
+  addModified: (
+    percent: ValueSource<number>,
+    delta: ValueSource<number>,
+  ): Operator<DamageContext | HealContext | RageContext> => {
     return (context, contexts) => {
       const _percent = GetValueFromSource(context, percent)
       const _delta = GetValueFromSource(context, delta)

@@ -406,3 +406,6 @@ export type ConditionDSL =
   | {
       type: 'foeBeAddMark'
     }
+  | {
+      type: 'selfBeHeal'
+    }

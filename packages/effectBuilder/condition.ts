@@ -1,4 +1,12 @@
-import { AddMarkContext, DamageContext, Pet, SkillInstance, UseSkillContext } from '@test-battle/battle'
+import {
+  AddMarkContext,
+  DamageContext,
+  HealContext,
+  Pet,
+  RageContext,
+  SkillInstance,
+  UseSkillContext,
+} from '@test-battle/battle'
 import type { Condition } from './effectBuilder'
 
 export const Conditions = {
@@ -45,6 +53,20 @@ export const Conditions = {
       if (context.parent instanceof UseSkillContext) {
         return context.source.owner === context.parent.pet
       }
+      if (context.parent instanceof DamageContext) {
+        return context.source.owner === context.parent.target
+      }
+      if (
+        context.parent instanceof RageContext &&
+        context.parent.reason === 'damage' &&
+        context.parent.parent instanceof UseSkillContext &&
+        context.source.owner instanceof Pet
+      ) {
+        return context.source.owner.owner === context.parent.target
+      }
+      if (context.parent instanceof HealContext) {
+        return context.source.owner === context.parent.target
+      }
       return false
     }
   },
@@ -62,6 +84,14 @@ export const Conditions = {
     return context => {
       if (context.parent instanceof DamageContext) {
         return context.source.owner === context.parent.target
+      }
+      if (
+        context.parent instanceof RageContext &&
+        context.parent.reason === 'damage' &&
+        context.parent.parent instanceof UseSkillContext &&
+        context.source.owner instanceof Pet
+      ) {
+        return context.source.owner.owner === context.parent.target
       }
       return false
     }
@@ -89,6 +119,7 @@ export const Conditions = {
     }
   },
 
+  //自己被添加印记时
   selfBeAddMark: (): Condition => {
     return context => {
       if (context.parent instanceof AddMarkContext) {
@@ -98,6 +129,7 @@ export const Conditions = {
     }
   },
 
+  //对方被添加印记时
   foeBeAddMark: (): Condition => {
     return context => {
       if (
@@ -106,6 +138,15 @@ export const Conditions = {
         context.parent.target instanceof Pet
       ) {
         return context.source.owner !== context.parent.target
+      }
+      return false
+    }
+  },
+
+  selfBeHeal: (): Condition => {
+    return context => {
+      if (context.parent instanceof HealContext) {
+        return context.source.owner === context.parent.target
       }
       return false
     }

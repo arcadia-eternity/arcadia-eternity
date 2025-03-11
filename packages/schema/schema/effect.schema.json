@@ -83,7 +83,8 @@
                               "foeAvailableSkills",
                               "dataMarks",
                               "healContext",
-                              "addMarkContext"
+                              "addMarkContext",
+                              "rageContext"
                             ]
                           },
                           {
@@ -1768,6 +1769,19 @@
                   "type": {
                     "type": "string",
                     "const": "foeBeAddMark"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "selfBeHeal"
                   }
                 },
                 "required": [
