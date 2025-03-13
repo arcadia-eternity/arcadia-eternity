@@ -28,6 +28,7 @@
 - id: mark_ability_rumeng
   name: 入梦
   description: 跟随身边时可以进入精灵的梦境
+  config: *ablitity_config
 - id: mark_ability_yangguang
   name: 阳光
   description: 晴天时每回合恢复最大体力的1/16
