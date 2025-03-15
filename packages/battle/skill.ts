@@ -181,7 +181,6 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     this.ignoreShield = overrides?.ignoreShield ?? base.ignoreShield
     this.tags = overrides?.tag ? [...base.tags, ...overrides.tag] : [...base.tags]
     this.effects = [...base.effects, ...(overrides?.effects ? overrides.effects : [])]
-    this.effects.forEach(effect => effect.setOwner(this))
   }
 
   get name() {

@@ -26,20 +26,7 @@ function createDynamicOperator<T, U extends SelectorOpinion>(
       targets.forEach(target => {
         let finalValue: U[] = []
 
-        if (typeof source === 'function') {
-          try {
-            finalValue = (source as (context: EffectContext<EffectTrigger>) => U[])(context)
-          } catch {
-            finalValue = []
-          }
-        } else if (source instanceof ChainableSelector) {
-          const value = source.build()(context)
-          finalValue = value
-        } else if (Array.isArray(source)) {
-          finalValue = source.map(v => GetValueFromSource(context, v)[0]).filter((v): v is U => v !== null)
-        } else {
-          finalValue = [source]
-        }
+        finalValue = GetValueFromSource(context, source)
 
         if (finalValue.length != 0) {
           return handler(finalValue, target, context)

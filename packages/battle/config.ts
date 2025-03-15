@@ -9,12 +9,11 @@ import type {
   skillId,
   speciesId,
 } from '@test-battle/const'
-import { Battle } from 'battle'
-import type { Effect } from 'effect'
-import type { MarkInstance } from 'mark'
-import type { Pet } from 'pet'
-import type { Player } from 'player'
-import type { SkillInstance } from 'skill'
+import { Battle } from './battle'
+import type { MarkInstance } from './mark'
+import type { Pet } from './pet'
+import type { Player } from './player'
+import type { SkillInstance } from './skill'
 
 type ScopeObject = MarkInstance | SkillInstance | Pet | Player | Battle
 type ConfigValue =
@@ -28,7 +27,6 @@ type ConfigValue =
   | baseMarkId
   | baseSkillId
   | speciesId
-  | effectId
   | null
 
 export class ConfigSystem {

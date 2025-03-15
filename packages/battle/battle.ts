@@ -26,7 +26,7 @@ import { MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
 import { SkillInstance } from './skill'
-import { ConfigSystem } from 'config'
+import { ConfigSystem } from './config'
 
 export class Battle extends Context implements MarkOwner {
   public readonly parent: null = null
