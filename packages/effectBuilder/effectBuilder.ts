@@ -1,6 +1,6 @@
 import { ConfigSystem, Effect, EffectContext } from '@test-battle/battle'
 import { EffectTrigger, type effectId } from '@test-battle/const'
-import type { ChainableSelector } from './selector'
+import { BaseSelector, type ChainableSelector } from './selector'
 import { nanoid } from 'nanoid'
 import { Operators } from 'operator'
 
@@ -16,12 +16,12 @@ export type Operator<U> = (context: EffectContext<EffectTrigger>, values: U[]) =
 
 export type TargetSelector<T> = (context: EffectContext<EffectTrigger>) => T[]
 
-export type ConfigValue<T> = {
+export type ConfigValueSource<T> = {
   configId: string
   defaultValue: T
 }
 
-export type ValueSource<T> = T | TargetSelector<T> | ChainableSelector<T> | Array<ValueSource<T>> | ConfigValue<T>
+export type ValueSource<T> = T | TargetSelector<T> | ChainableSelector<T> | Array<ValueSource<T>> | ConfigValueSource<T>
 
 export type WidenLiteral<T> = T extends string
   ? string
@@ -40,4 +40,55 @@ export function registerLiteralValue(effectId: string, value: any, configId?: st
 
   configSystem.set(fullKey, value)
   return fullKey
+}
+
+export class EffectBuilder<T extends EffectTrigger> {
+  private constructor(
+    private readonly trigger: T,
+    private id: effectId = `effect_${nanoid(8)}` as effectId,
+    private apply: Action | Action[] = () => {},
+    private priority: number = 0,
+    private condition?: Condition,
+    private consumesStacks?: number,
+  ) {}
+
+  static create<T extends EffectTrigger>(trigger: T): EffectBuilder<T> {
+    return new EffectBuilder(trigger)
+  }
+
+  setId(id: string): this {
+    this.id = id as effectId
+    return this
+  }
+
+  setApply(action: Action | Action[]): this {
+    this.apply = action
+    return this
+  }
+
+  setPriority(priority: number): this {
+    this.priority = priority
+    return this
+  }
+
+  setCondition(condition: Condition): this {
+    this.condition = condition
+    return this
+  }
+
+  setConsumesStacks(consumesStacks: number): this {
+    this.consumesStacks = consumesStacks
+    return this
+  }
+
+  createConfigValue<U>(value: U, configId?: string): ConfigValueSource<U> {
+    return {
+      configId: registerLiteralValue(this.id, value, configId),
+      defaultValue: value,
+    }
+  }
+
+  build(): Effect<T> {
+    return new Effect(this.id, this.trigger, this.apply, this.priority, this.condition, this.consumesStacks)
+  }
 }

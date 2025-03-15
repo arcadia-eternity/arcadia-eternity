@@ -75,23 +75,3 @@ export class Effect<T extends EffectTrigger> implements Prototype {
 export interface EffectContainer {
   collectEffects(trigger: EffectTrigger, baseContext: Context): void
 }
-
-export interface EffectConfig<T extends EffectTrigger> {
-  id: string
-  trigger: T
-  apply: (context: EffectContext<T>) => void | ((context: EffectContext<T>) => void)[]
-  priority: number
-  condition?: (context: EffectContext<T>) => boolean
-  consumesStacks?: number
-}
-
-export function CreateEffect<T extends EffectTrigger>(config: EffectConfig<T>): Effect<T> {
-  return new Effect(
-    config.id as effectId,
-    config.trigger,
-    config.apply,
-    config.priority,
-    config.condition,
-    config.consumesStacks,
-  )
-}

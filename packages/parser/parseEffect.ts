@@ -39,7 +39,7 @@ import {
   type PropertyRef,
   type PrimitiveOpinion,
   registerLiteralValue,
-  type ConfigValue,
+  type ConfigValueSource,
 } from '@test-battle/effect-builder'
 import { RuntimeTypeChecker } from '@test-battle/effect-builder/runtime-type-checker'
 import type {
@@ -348,15 +348,15 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
   if (typeof v === 'boolean') return v
   if (v.type === 'raw:number') {
     const fullKey = registerLiteralValue(effectId, v.value, v.configId)
-    return { configId: fullKey, defaultValue: v.value } as ConfigValue<number>
+    return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<number>
   }
   if (v.type === 'raw:string') {
     const fullKey = registerLiteralValue(effectId, v.value, v.configId)
-    return { configId: fullKey, defaultValue: v.value } as ConfigValue<string>
+    return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<string>
   }
   if (v.type === 'raw:boolean') {
     const fullKey = registerLiteralValue(effectId, v.value, v.configId)
-    return { configId: fullKey, defaultValue: v.value } as ConfigValue<boolean>
+    return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<boolean>
   }
   if (v.type === 'entity:baseMark')
     return (() => [DataRepository.getInstance().getMark(v.value as baseMarkId)]) as ValueSource<BaseMark>

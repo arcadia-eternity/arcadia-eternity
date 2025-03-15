@@ -13,6 +13,8 @@ import {
   AddMarkContext,
   RageContext,
   MarkInstanceImpl,
+  ConfigSystem,
+  type ScopeObject,
 } from '@test-battle/battle'
 import type { CanOwnedEntity, Instance, OwnedEntity, Prototype } from '@test-battle/battle/entity'
 import {
@@ -269,7 +271,7 @@ export class ChainableSelector<T> {
     return new ChainableSelector(context => {
       const list = this.selector(context)
       return [list.length]
-    }, this.type)
+    }, 'number')
   }
 
   /**
@@ -353,6 +355,12 @@ export class ChainableSelector<T> {
     // 处理数组类型（例如 marks[] -> MarkInstance[]）
     return propType.replace(/\[\]$/, '[]')
   }
+
+  configGet(this: ChainableSelector<ScopeObject>, key: string) {
+    return new ChainableSelector(context => {
+      return this.selector(context).map(target => context.battle.configSystem.get(key, target))
+    }, 'any') //TODO: 这里的类型
+  }
 }
 // 类型增强装饰器
 function createChainable<T extends SelectorOpinion>(type: string, selector: TargetSelector<T>): ChainableSelector<T> {
@@ -409,6 +417,7 @@ export const BaseSelector: {
   healContext: ChainableSelector<HealContext>
   addMarkContext: ChainableSelector<AddMarkContext>
   rageContext: ChainableSelector<RageContext>
+  battle: ChainableSelector<Battle>
 } = {
   //选择目标，在使用技能的场景下，为技能实际指向的目标，在印记的场景下指向印记的所有者。
   target: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
@@ -518,5 +527,8 @@ export const BaseSelector: {
   rageContext: createChainable<RageContext>('RageContext', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof RageContext) return [context.parent]
     return []
+  }),
+  battle: createChainable<Battle>('Battle', (context: EffectContext<EffectTrigger>) => {
+    return [context.battle]
   }),
 }

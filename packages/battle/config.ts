@@ -15,8 +15,8 @@ import type { Pet } from './pet'
 import type { Player } from './player'
 import type { SkillInstance } from './skill'
 
-type ScopeObject = MarkInstance | SkillInstance | Pet | Player | Battle
-type ConfigValue =
+export type ScopeObject = MarkInstance | SkillInstance | Pet | Player | Battle
+export type ConfigValue =
   | string
   | number
   | boolean
