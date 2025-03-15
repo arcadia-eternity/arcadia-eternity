@@ -297,7 +297,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   get stat(): StatOnBattle {
-    return {
+    const stat = {
       atk: this.calculateStat(StatTypeWithoutHp.atk),
       def: this.calculateStat(StatTypeWithoutHp.def),
       spa: this.calculateStat(StatTypeWithoutHp.spa),
@@ -308,6 +308,8 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       evasion: this.calculateStat(StatTypeOnlyBattle.evasion),
       ragePerTurn: this.calculateStat(StatTypeOnlyBattle.ragePerTurn),
     }
+
+    return stat
   }
 
   get actualStat(): StatOnBattle {

@@ -69,5 +69,4 @@ export enum AttackTargetOpinion {
   opponent = 'opponent',
 }
 
-// 宝可梦能力等级修正表
 export const STAT_STAGE_MULTIPLIER = [0.25, 0.28, 0.33, 0.4, 0.5, 0.66, 1, 1.5, 2, 2.5, 3, 3.5, 4] as const

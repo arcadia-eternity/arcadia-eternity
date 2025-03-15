@@ -1,4 +1,4 @@
-import { AttackTargetOpinion, DamageType } from '@test-battle/const/const'
+import { AttackTargetOpinion, DamageType, type StatOnBattle } from '@test-battle/const/const'
 import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import { Battle } from './battle'
 import { type MarkOwner } from './entity'
@@ -26,6 +26,7 @@ export type AllContext =
   | RemoveMarkContext
   | SwitchPetContext
   | RageContext
+  | UpdateStatContext
   | EffectContext<EffectTrigger>
 
 export class TurnContext extends Context {
@@ -460,6 +461,20 @@ export class RemoveMarkContext extends Context {
   }
 }
 
+export class UpdateStatContext extends Context {
+  readonly type = 'add-mark'
+  public readonly battle: Battle
+  public readonly available: boolean = true
+  constructor(
+    public readonly parent: Battle,
+    public readonly stat: StatOnBattle,
+    public readonly pet: Pet,
+  ) {
+    super(parent)
+    this.battle = parent.battle
+  }
+}
+
 type TriggerContextMap = {
   [EffectTrigger.OnBattleStart]: Battle
 
@@ -501,6 +516,8 @@ type TriggerContextMap = {
 
   [EffectTrigger.BeforeEffect]: AllContext
   [EffectTrigger.AfterEffect]: AllContext
+
+  [EffectTrigger.OnUpdateStat]: UpdateStatContext
 }
 
 export class EffectContext<T extends EffectTrigger> extends Context {
