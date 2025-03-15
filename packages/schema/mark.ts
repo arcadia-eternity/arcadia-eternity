@@ -3,18 +3,20 @@ import { StackStrategy } from '@test-battle/const'
 
 export const StackStrategySchema = z.nativeEnum(StackStrategy)
 
-export const MarkConfigSchema = z.object({
-  duration: z.number().optional().default(3),
-  persistent: z.boolean().optional().default(true),
-  maxStacks: z.number().int().optional().default(1),
-  stackable: z.boolean().optional().default(false),
-  stackStrategy: StackStrategySchema.optional().default(StackStrategy.extend),
-  destroyable: z.boolean().optional().default(true),
-  isShield: z.boolean().optional(),
-  keepOnSwitchOut: z.boolean().optional(),
-  transferOnSwitch: z.boolean().optional(),
-  inheritOnFaint: z.boolean().optional(),
-})
+export const MarkConfigSchema = z
+  .object({
+    duration: z.number().optional().default(-1),
+    persistent: z.boolean().optional().default(true),
+    maxStacks: z.number().int().optional().default(1),
+    stackable: z.boolean().optional().default(false),
+    stackStrategy: StackStrategySchema.optional().default(StackStrategy.extend),
+    destroyable: z.boolean().optional().default(true),
+    isShield: z.boolean().optional().default(false),
+    keepOnSwitchOut: z.boolean().optional().default(false),
+    transferOnSwitch: z.boolean().optional().default(false),
+    inheritOnFaint: z.boolean().optional().default(false),
+  })
+  .catchall(z.any())
 
 export const MarkSchema = z
   .object({

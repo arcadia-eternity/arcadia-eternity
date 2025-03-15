@@ -48,8 +48,7 @@ export class EffectScheduler {
   }
 }
 
-export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity<SkillInstance | MarkInstance | null> {
-  public owner: SkillInstance | MarkInstance | null = null
+export class Effect<T extends EffectTrigger> implements Prototype {
   constructor(
     public readonly id: effectId,
     public readonly trigger: T,
@@ -72,10 +71,6 @@ export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity<S
     if (Array.isArray(this.apply)) this.apply.forEach(a => a.call(this, context))
     else this.apply.call(this, context)
   }
-
-  setOwner(owner: MarkInstance | SkillInstance): void {
-    this.owner = owner
-  }
 }
 
 export interface EffectContainer {
@@ -88,9 +83,16 @@ export interface EffectConfig<T extends EffectTrigger> {
   apply: (context: EffectContext<T>) => void | ((context: EffectContext<T>) => void)[]
   priority: number
   condition?: (context: EffectContext<T>) => boolean
-  consumesStacks?: number // 新增可选消耗层数配置
+  consumesStacks?: number
 }
 
 export function CreateEffect<T extends EffectTrigger>(config: EffectConfig<T>): Effect<T> {
-  return new Effect(config.id as effectId, config.trigger, config.apply, config.priority, config.condition)
+  return new Effect(
+    config.id as effectId,
+    config.trigger,
+    config.apply,
+    config.priority,
+    config.condition,
+    config.consumesStacks,
+  )
 }

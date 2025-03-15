@@ -26,11 +26,13 @@ import { MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
 import { SkillInstance } from './skill'
+import { ConfigSystem } from 'config'
 
 export class Battle extends Context implements MarkOwner {
   public readonly parent: null = null
   public readonly battle: Battle = this
   public readonly effectScheduler: EffectScheduler = new EffectScheduler()
+  public readonly configSystem: ConfigSystem = ConfigSystem.getInstance()
   private readonly rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
 
   public status: BattleStatus = BattleStatus.Unstarted
@@ -50,10 +52,13 @@ export class Battle extends Context implements MarkOwner {
     public readonly playerA: Player,
     public readonly playerB: Player,
     options?: { allowFaintSwitch?: boolean; rngSeed?: number },
+    configSystem?: ConfigSystem,
   ) {
     super(null)
-    this.allowFaintSwitch = options?.allowFaintSwitch ?? true
     if (options?.rngSeed) this.rng = new Prando(options.rngSeed)
+    if (configSystem) this.configSystem = configSystem
+    this.allowFaintSwitch = options?.allowFaintSwitch ?? true
+
     this.playerA.registerBattle(this)
     this.playerB.registerBattle(this)
     ;[...this.playerA.team, ...this.playerB.team].forEach(p => this.petMap.set(p.id, p))

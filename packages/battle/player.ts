@@ -17,6 +17,7 @@ import { Pet } from './pet'
 export class Player {
   public currentRage: number = 20
   public battle?: Battle
+  public owner?: Battle
   public selection: PlayerSelection | null = null
   public activePet: Pet
   private messageCallbacks: Array<(message: BattleMessage) => void> = []
@@ -31,6 +32,7 @@ export class Player {
 
   public registerBattle(battle: Battle) {
     this.battle = battle
+    this.owner = battle
     battle.registerListener(this.handleMessage.bind(this))
   }
 

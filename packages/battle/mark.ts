@@ -23,23 +23,37 @@ import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 import { nanoid } from 'nanoid'
 
+export type MarkConfig = {
+  duration: number
+  persistent: boolean
+  maxStacks: number
+  stackable: boolean
+  stackStrategy: StackStrategy
+  destroyable: boolean
+  isShield: boolean
+  keepOnSwitchOut: boolean
+  transferOnSwitch: boolean
+  inheritOnFaint: boolean
+  [id: string]: any
+}
+
 export class BaseMark implements Prototype {
   constructor(
     public readonly id: baseMarkId,
     public readonly name: string,
     public readonly effects: Effect<EffectTrigger>[],
-    public readonly config: {
-      readonly duration?: number
-      readonly persistent?: boolean
-      readonly maxStacks?: number
-      readonly stackable?: boolean
-      readonly stackStrategy?: StackStrategy
-      readonly destroyable?: boolean
-      readonly isShield?: boolean
-      readonly keepOnSwitchOut?: boolean
-      readonly transferOnSwitch?: boolean
-      readonly inheritOnFaint?: boolean
-    } = { destroyable: true },
+    public readonly config: Readonly<MarkConfig> = {
+      duration: 3,
+      persistent: true,
+      maxStacks: 1,
+      stackable: false,
+      stackStrategy: StackStrategy.extend,
+      destroyable: true,
+      isShield: false,
+      keepOnSwitchOut: false,
+      transferOnSwitch: false,
+      inheritOnFaint: false,
+    },
     public readonly tags: string[] = [],
   ) {}
 
@@ -64,18 +78,7 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
   public readonly id: markId
   public name: string
   public readonly effects: Effect<EffectTrigger>[]
-  public config: {
-    duration?: number
-    persistent?: boolean
-    maxStacks?: number
-    stackable?: boolean
-    stackStrategy?: StackStrategy
-    destroyable?: boolean
-    isShield?: boolean
-    keepOnSwitchOut?: boolean
-    transferOnSwitch?: boolean
-    inheritOnFaint?: boolean
-  } = { destroyable: true }
+  public config: Partial<MarkConfig> = { destroyable: true }
   public readonly tags: string[] = []
 
   constructor(
@@ -105,7 +108,6 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
     this.effects = [...base.effects, ...(overrides?.effects || [])]
 
     this.config.isShield = mergedConfig.isShield ?? false
-    this.effects.forEach(effect => effect.setOwner(this))
   }
 
   get stack(): number {
@@ -278,22 +280,22 @@ export class BaseStatLevelMark extends BaseMark {
     id: baseMarkId,
     name: string,
     effects: Effect<EffectTrigger>[] = [],
-    config: BaseMark['config'] = {
-      destroyable: true,
-      stackable: true,
-    },
   ) {
     super(
       id,
       name,
       effects,
       {
-        ...config,
+        duration: -1,
         persistent: true,
         maxStacks: 6,
         stackStrategy: StackStrategy.stack,
         destroyable: true,
         stackable: true,
+        isShield: false,
+        keepOnSwitchOut: true,
+        transferOnSwitch: false,
+        inheritOnFaint: false,
       },
       ['statStage'],
     )
@@ -391,12 +393,5 @@ export function CreateStatStageMark(statType: StatTypeWithoutHp, level: number):
     `stat-stage-${statType}-${level > 0 ? 'up' : 'down'}` as baseMarkId,
     `${statType.toUpperCase()} ${level > 0 ? '+' : ''}${level}`,
     [],
-    {
-      persistent: true,
-      duration: -1,
-      maxStacks: 6,
-      stackStrategy: StackStrategy.stack,
-      destroyable: true,
-    },
   )
 }

@@ -1,4 +1,4 @@
-import { BaseMark, Effect, MarkInstance } from '@test-battle/battle'
+import { BaseMark, Effect } from '@test-battle/battle'
 import { EffectTrigger, type baseMarkId, type effectId } from '@test-battle/const'
 import { DataRepository } from '@test-battle/data-repository'
 import { MarkSchema } from '@test-battle/schema'
