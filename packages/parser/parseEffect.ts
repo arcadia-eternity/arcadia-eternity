@@ -38,6 +38,8 @@ import {
   type Action,
   type PropertyRef,
   type PrimitiveOpinion,
+  registerLiteralValue,
+  type ConfigValue,
 } from '@test-battle/effect-builder'
 import { RuntimeTypeChecker } from '@test-battle/effect-builder/runtime-type-checker'
 import type {
@@ -53,12 +55,12 @@ import type {
 
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   try {
-    const condition = dsl.condition ? parseCondition(dsl.condition) : undefined
+    const condition = dsl.condition ? parseCondition(dsl.id, dsl.condition) : undefined
     if (Array.isArray(dsl.apply)) {
-      const actions = dsl.apply.map(a => createAction(a))
+      const actions = dsl.apply.map(a => createAction(dsl.id, a))
       return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition, dsl.consumesStacks)
     } else {
-      const actions = createAction(dsl.apply)
+      const actions = createAction(dsl.id, dsl.apply)
       return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition, dsl.consumesStacks)
     }
   } catch (error) {
@@ -67,14 +69,14 @@ export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   }
 }
 
-export function parseSelector<T extends SelectorOpinion>(dsl: SelectorDSL): ChainableSelector<T> {
+export function parseSelector<T extends SelectorOpinion>(effectId: string, dsl: SelectorDSL): ChainableSelector<T> {
   // 解析基础选择器
   const baseSelector = typeof dsl === 'string' ? getBaseSelector(dsl) : getBaseSelector(dsl.base)
 
   // 处理链式操作
   if (typeof dsl !== 'string' && dsl.chain) {
     return dsl.chain.reduce(
-      (selector, step) => applySelectorStep(selector, step),
+      (selector, step) => applySelectorStep(effectId, selector, step),
       baseSelector as ChainableSelector<SelectorOpinion>,
     ) as ChainableSelector<T>
   }
@@ -90,6 +92,7 @@ function getBaseSelector(selectorKey: string): ChainableSelector<SelectorOpinion
 }
 
 function applySelectorStep(
+  effectId: string,
   selector: ChainableSelector<SelectorOpinion>,
   step: SelectorChain,
 ): ChainableSelector<SelectorOpinion> {
@@ -97,7 +100,7 @@ function applySelectorStep(
     switch (step.type) {
       case 'select': {
         // 解析提取器，可能为ChainableExtractor或ValueExtractor
-        const extractor = parseExtractor(selector, step.arg)
+        const extractor = parseExtractor(effectId, selector, step.arg)
         return selector.select(extractor)
       }
       case 'selectPath': {
@@ -114,11 +117,11 @@ function applySelectorStep(
       }
 
       case 'where':
-        return selector.where(parseEvaluator(step.arg))
+        return selector.where(parseEvaluator(effectId, step.arg))
 
       case 'whereAttr': {
-        const extractor = parseExtractor(selector, step.extractor)
-        const condition = parseEvaluator(step.evaluator)
+        const extractor = parseExtractor(effectId, selector, step.extractor)
+        const condition = parseEvaluator(effectId, step.evaluator)
         return selector.whereAttr(extractor, condition)
       }
 
@@ -126,16 +129,16 @@ function applySelectorStep(
         return selector.flat()
 
       case 'and':
-        return selector.and(parseSelector(step.arg).build())
+        return selector.and(parseSelector(effectId, step.arg).build())
 
       case 'or':
-        return selector.or(parseSelector(step.arg).build(), step.duplicate ?? false)
+        return selector.or(parseSelector(effectId, step.arg).build(), step.duplicate ?? false)
 
       case 'randomPick':
-        return selector.randomPick(parseValue(step.arg) as ValueSource<number>)
+        return selector.randomPick(parseValue(effectId, step.arg) as ValueSource<number>)
 
       case 'randomSample':
-        return selector.randomSample(parseValue(step.arg) as ValueSource<number>)
+        return selector.randomSample(parseValue(effectId, step.arg) as ValueSource<number>)
 
       case 'sum': {
         assertNumberSelector(selector)
@@ -144,12 +147,12 @@ function applySelectorStep(
 
       case 'add': {
         assertNumberSelector(selector)
-        return selector.add(parseValue(step.arg) as ValueSource<number>)
+        return selector.add(parseValue(effectId, step.arg) as ValueSource<number>)
       }
 
       case 'multiply': {
         assertNumberSelector(selector)
-        return selector.multiply(parseValue(step.arg) as ValueSource<number>)
+        return selector.multiply(parseValue(effectId, step.arg) as ValueSource<number>)
       }
 
       case 'divide': {
@@ -162,23 +165,23 @@ function applySelectorStep(
         ) {
           throw new Error('除数不能为0')
         }
-        return selector.divide(parseValue(step.arg) as ValueSource<number>)
+        return selector.divide(parseValue(effectId, step.arg) as ValueSource<number>)
       }
 
       case 'shuffled':
         return selector.shuffled()
 
       case 'limit':
-        return selector.limit(parseValue(step.arg) as ValueSource<number>)
+        return selector.limit(parseValue(effectId, step.arg) as ValueSource<number>)
 
       case 'clampMax': {
         assertNumberSelector(selector)
-        return selector.clampMax(parseValue(step.arg) as ValueSource<number>)
+        return selector.clampMax(parseValue(effectId, step.arg) as ValueSource<number>)
       }
 
       case 'clampMin': {
         assertNumberSelector(selector)
-        return selector.clampMax(parseValue(step.arg) as ValueSource<number>)
+        return selector.clampMax(parseValue(effectId, step.arg) as ValueSource<number>)
       }
 
       default:
@@ -198,6 +201,7 @@ function assertNumberSelector(
 }
 
 export function parseExtractor(
+  effectId: string,
   selector: ChainableSelector<SelectorOpinion>,
   dsl: ExtractorDSL,
 ): PathExtractor<SelectorOpinion, SelectorOpinion> {
@@ -215,31 +219,31 @@ export function parseExtractor(
   }
 }
 
-function parseEvaluator(dsl: EvaluatorDSL): Evaluator<SelectorOpinion> {
+function parseEvaluator(effectId: string, dsl: EvaluatorDSL): Evaluator<SelectorOpinion> {
   switch (dsl.type) {
     case 'compare':
       return Evaluators.compare(
         dsl.operator,
-        parseValue(dsl.value) as ValueSource<number>,
+        parseValue(effectId, dsl.value) as ValueSource<number>,
       ) as Evaluator<SelectorOpinion>
     case 'same':
       return Evaluators.same(
-        parseValue(dsl.value) as ValueSource<number | string | boolean>,
+        parseValue(effectId, dsl.value) as ValueSource<number | string | boolean>,
       ) as Evaluator<SelectorOpinion>
     case 'notSame':
       return Evaluators.notSame(
-        parseValue(dsl.value) as ValueSource<number | string | boolean>,
+        parseValue(effectId, dsl.value) as ValueSource<number | string | boolean>,
       ) as Evaluator<SelectorOpinion>
     case 'any':
       // 递归解析嵌套条件（OR 逻辑）
-      return Evaluators.any(...dsl.conditions.map(v => parseEvaluator(v)))
+      return Evaluators.any(...dsl.conditions.map(v => parseEvaluator(effectId, v)))
     case 'all':
       // 递归解析嵌套条件（AND 逻辑）
-      return Evaluators.all(...dsl.conditions.map(v => parseEvaluator(v)))
+      return Evaluators.all(...dsl.conditions.map(v => parseEvaluator(effectId, v)))
     case 'not':
-      return Evaluators.not(parseEvaluator(dsl.condition))
+      return Evaluators.not(parseEvaluator(effectId, dsl.condition))
     case 'probability':
-      return Evaluators.probability(parseValue(dsl.percent) as ValueSource<number>)
+      return Evaluators.probability(parseValue(effectId, dsl.percent) as ValueSource<number>)
     case 'contain':
       return Evaluators.contain(dsl.tag) as Evaluator<SelectorOpinion>
     case 'exist':
@@ -251,105 +255,114 @@ function parseEvaluator(dsl: EvaluatorDSL): Evaluator<SelectorOpinion> {
   }
 }
 
-export function createAction(dsl: OperatorDSL) {
+export function createAction(effectId: string, dsl: OperatorDSL) {
   switch (dsl.type) {
     case 'dealDamage':
-      return parseDamageAction(dsl)
+      return parseDamageAction(effectId, dsl)
     case 'heal':
-      return parseHealAction(dsl)
+      return parseHealAction(effectId, dsl)
     case 'addMark':
-      return parseAddMarkAction(dsl)
+      return parseAddMarkAction(effectId, dsl)
     case 'addStacks':
-      return parseAddStacksAction(dsl)
+      return parseAddStacksAction(effectId, dsl)
     case 'consumeStacks':
-      return parseConsumeStacksAction(dsl)
+      return parseConsumeStacksAction(effectId, dsl)
     case 'modifyStat':
-      return parseModifyStatAction(dsl)
+      return parseModifyStatAction(effectId, dsl)
     case 'statStageBuff':
-      return parseStatStageBuffAction(dsl)
+      return parseStatStageBuffAction(effectId, dsl)
     case 'clearStatStage':
-      return parseClearStatStage(dsl)
+      return parseClearStatStage(effectId, dsl)
     case 'addRage':
-      return parseAddRageAction(dsl)
+      return parseAddRageAction(effectId, dsl)
     case 'amplifyPower':
-      return parseAmplifyPowerAction(dsl)
+      return parseAmplifyPowerAction(effectId, dsl)
     case 'addPower':
-      return parseAddPowerAction(dsl)
+      return parseAddPowerAction(effectId, dsl)
     case 'addCritRate':
-      return parseAddCritRate(dsl)
+      return parseAddCritRate(effectId, dsl)
     case 'addMultihitResult':
-      return parseAddMultihitResult(dsl)
+      return parseAddMultihitResult(effectId, dsl)
     case 'transferMark':
-      return parseTransferMark(dsl)
+      return parseTransferMark(effectId, dsl)
     case 'stun':
-      return parseStunAction(dsl)
+      return parseStunAction(effectId, dsl)
     case 'setSureHit':
-      return parseSetSureHitAction(dsl)
+      return parseSetSureHitAction(effectId, dsl)
     case 'setSureCrit':
-      return parseSetSureCritAction(dsl)
+      return parseSetSureCritAction(effectId, dsl)
     case 'setSureMiss':
-      return parseSetSureMissAction(dsl)
+      return parseSetSureMissAction(effectId, dsl)
     case 'setSureNoCrit':
-      return parseSetSureNoCritAction(dsl)
+      return parseSetSureNoCritAction(effectId, dsl)
     case 'destroyMark':
-      return parseDestroyMarkAction(dsl)
+      return parseDestroyMarkAction(effectId, dsl)
     case 'setSkill':
-      return parseSetSkill(dsl)
+      return parseSetSkill(effectId, dsl)
     case 'preventDamage':
-      return parsePreventDamage(dsl)
+      return parsePreventDamage(effectId, dsl)
     case 'setActualTarget':
-      return parseSetActualTarget(dsl)
+      return parseSetActualTarget(effectId, dsl)
     case 'addModified':
-      return parseAddModified(dsl)
+      return parseAddModified(effectId, dsl)
     case 'addThreshold':
-      return parseAddThresholdAction(dsl)
+      return parseAddThresholdAction(effectId, dsl)
     case 'overrideMarkConfig':
-      return parseOverrideMarkConfig(dsl)
+      return parseOverrideMarkConfig(effectId, dsl)
     case 'setMarkDuration':
-      return parseSetMarkDuration(dsl)
+      return parseSetMarkDuration(effectId, dsl)
     case 'setMarkStack':
-      return parseSetMarkStack(dsl)
+      return parseSetMarkStack(effectId, dsl)
     case 'setMarkMaxStack':
-      return parseSetMarkMaxStack(dsl)
+      return parseSetMarkMaxStack(effectId, dsl)
     case 'setMarkPersistent':
-      return parseSetMarkPersistent(dsl)
+      return parseSetMarkPersistent(effectId, dsl)
     case 'setMarkStackable':
-      return parseSetMarkStackable(dsl)
+      return parseSetMarkStackable(effectId, dsl)
     case 'setMarkStackStrategy':
-      return parseSetMarkStackStrategy(dsl)
+      return parseSetMarkStackStrategy(effectId, dsl)
     case 'setMarkDestroyable':
-      return parseSetMarkDestroyable(dsl)
+      return parseSetMarkDestroyable(effectId, dsl)
     case 'setMarkIsShield':
-      return parseSetMarkIsShield(dsl)
+      return parseSetMarkIsShield(effectId, dsl)
     case 'setMarkKeepOnSwitchOut':
-      return parseSetMarkKeepOnSwitchOut(dsl)
+      return parseSetMarkKeepOnSwitchOut(effectId, dsl)
     case 'setMarkTransferOnSwitch':
-      return parseSetMarkTransferOnSwitch(dsl)
+      return parseSetMarkTransferOnSwitch(effectId, dsl)
     case 'setMarkInheritOnFaint':
-      return parseSetMarkInheritOnFaint(dsl)
+      return parseSetMarkInheritOnFaint(effectId, dsl)
     case 'addValue':
-      return parseAddValue(dsl)
+      return parseAddValue(effectId, dsl)
     case 'setValue':
-      return parseSetValue(dsl)
+      return parseSetValue(effectId, dsl)
     case 'toggle':
-      return parseToggle(dsl)
+      return parseToggle(effectId, dsl)
   }
 }
 
 // Common value parser reused across actions [source_id: parse.ts]
-export function parseValue(v: Value): string | number | boolean | ValueSource<SelectorOpinion> {
-  if (Array.isArray(v)) return v.map(value => parseValue(value))
+export function parseValue(effectId: string, v: Value): string | number | boolean | ValueSource<SelectorOpinion> {
+  if (Array.isArray(v)) return v.map(value => parseValue(effectId, value))
   if (typeof v === 'string') return v
   if (typeof v === 'number') return v
   if (typeof v === 'boolean') return v
-  if (v.type === 'raw:number') return v.value as number
-  if (v.type === 'raw:string') return v.value as string
-  if (v.type === 'raw:boolean') return v.value as boolean
+  if (v.type === 'raw:number') {
+    const fullKey = registerLiteralValue(effectId, v.value, v.configId)
+    return { configId: fullKey, defaultValue: v.value } as ConfigValue<number>
+  }
+  if (v.type === 'raw:string') {
+    const fullKey = registerLiteralValue(effectId, v.value, v.configId)
+    return { configId: fullKey, defaultValue: v.value } as ConfigValue<string>
+  }
+  if (v.type === 'raw:boolean') {
+    const fullKey = registerLiteralValue(effectId, v.value, v.configId)
+    return { configId: fullKey, defaultValue: v.value } as ConfigValue<boolean>
+  }
   if (v.type === 'entity:baseMark')
     return (() => [DataRepository.getInstance().getMark(v.value as baseMarkId)]) as ValueSource<BaseMark>
   if (v.type === 'entity:baseSkill')
     return (() => [DataRepository.getInstance().getSkill(v.value as baseSkillId)]) as ValueSource<BaseSkill>
-  if (v.type === 'dynamic') return parseSelector(v.selector)
+  if (v.type === 'dynamic') return parseSelector(effectId, v.selector)
   throw Error('未知的数值类型')
 }
 
@@ -357,241 +370,266 @@ export function isNumberValue(value: ValueSource<SelectorOpinion>): value is num
   return typeof value === 'number'
 }
 
-export function parseDamageAction(dsl: Extract<OperatorDSL, { type: 'dealDamage' }>) {
-  return parseSelector<Pet>(dsl.target).apply(Operators.dealDamage(parseValue(dsl.value) as ValueSource<number>))
+export function parseDamageAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'dealDamage' }>) {
+  return parseSelector<Pet>(effectId, dsl.target).apply(
+    Operators.dealDamage(parseValue(effectId, dsl.value) as ValueSource<number>),
+  )
 }
 
-export function parseHealAction(dsl: Extract<OperatorDSL, { type: 'heal' }>) {
-  const selector = parseSelector<Pet>(dsl.target)
-  return selector.apply(Operators.heal(parseValue(dsl.value) as ValueSource<number>))
+export function parseHealAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'heal' }>) {
+  const selector = parseSelector<Pet>(effectId, dsl.target)
+  return selector.apply(Operators.heal(parseValue(effectId, dsl.value) as ValueSource<number>))
 }
 
-export function parseAddMarkAction(dsl: Extract<OperatorDSL, { type: 'addMark' }>) {
-  const selector = parseSelector<Pet>(dsl.target)
-  const mark = parseValue(dsl.mark) as ValueSource<BaseMark>
-  const duration = dsl.duration ? (parseValue(dsl.duration) as ValueSource<number>) : undefined
-  const stack = dsl.stack ? (parseValue(dsl.stack) as ValueSource<number>) : undefined
+export function parseAddMarkAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'addMark' }>) {
+  const selector = parseSelector<Pet>(effectId, dsl.target)
+  const mark = parseValue(effectId, dsl.mark) as ValueSource<BaseMark>
+  const duration = dsl.duration ? (parseValue(effectId, dsl.duration) as ValueSource<number>) : undefined
+  const stack = dsl.stack ? (parseValue(effectId, dsl.stack) as ValueSource<number>) : undefined
   return selector.apply(Operators.addMark(mark, stack, duration))
 }
 
 // Pattern for stack-related actions [source_id: operator.ts]
-export function parseAddStacksAction(dsl: Extract<OperatorDSL, { type: 'addStacks' }>) {
-  return parseSelector<MarkInstance>(dsl.target).apply(Operators.addStack(parseValue(dsl.value) as ValueSource<number>))
+export function parseAddStacksAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'addStacks' }>) {
+  return parseSelector<MarkInstance>(effectId, dsl.target).apply(
+    Operators.addStack(parseValue(effectId, dsl.value) as ValueSource<number>),
+  )
 }
 
-export function parseConsumeStacksAction(dsl: Extract<OperatorDSL, { type: 'consumeStacks' }>) {
-  return parseSelector<MarkInstance>(dsl.target).apply(
-    Operators.consumeStacks(parseValue(dsl.value) as ValueSource<number>),
+export function parseConsumeStacksAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'consumeStacks' }>) {
+  return parseSelector<MarkInstance>(effectId, dsl.target).apply(
+    Operators.consumeStacks(parseValue(effectId, dsl.value) as ValueSource<number>),
   )
 }
 
 // Stat modification pattern [source_id: parse.ts]
-export function parseModifyStatAction(dsl: Extract<OperatorDSL, { type: 'modifyStat' }>) {
-  return parseSelector<Pet>(dsl.target).apply(
+export function parseModifyStatAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'modifyStat' }>) {
+  return parseSelector<Pet>(effectId, dsl.target).apply(
     Operators.modifyStat(
-      parseValue(dsl.statType) as ValueSource<StatTypeOnBattle>,
-      parseValue(dsl.value) as ValueSource<number>,
-      parseValue(dsl.percent) as ValueSource<number>,
+      parseValue(effectId, dsl.statType) as ValueSource<StatTypeOnBattle>,
+      parseValue(effectId, dsl.value) as ValueSource<number>,
+      parseValue(effectId, dsl.percent) as ValueSource<number>,
     ),
   )
 }
 
-export function parseStatStageBuffAction(dsl: Extract<OperatorDSL, { type: 'statStageBuff' }>) {
-  return parseSelector<Pet>(dsl.target).apply(
+export function parseStatStageBuffAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'statStageBuff' }>) {
+  return parseSelector<Pet>(effectId, dsl.target).apply(
     Operators.statStageBuff(
-      parseValue(dsl.statType) as ValueSource<StatTypeWithoutHp>,
-      parseValue(dsl.value) as ValueSource<number>,
+      parseValue(effectId, dsl.statType) as ValueSource<StatTypeWithoutHp>,
+      parseValue(effectId, dsl.value) as ValueSource<number>,
     ),
   )
 }
 
-export function parseClearStatStage(dsl: Extract<OperatorDSL, { type: 'clearStatStage' }>) {
-  return parseSelector<Pet>(dsl.target).apply(
-    Operators.clearStatStage(dsl.statType ? (parseValue(dsl.statType) as ValueSource<StatTypeWithoutHp>) : undefined),
+export function parseClearStatStage(effectId: string, dsl: Extract<OperatorDSL, { type: 'clearStatStage' }>) {
+  return parseSelector<Pet>(effectId, dsl.target).apply(
+    Operators.clearStatStage(
+      dsl.statType ? (parseValue(effectId, dsl.statType) as ValueSource<StatTypeWithoutHp>) : undefined,
+    ),
   )
 }
 
 // Utility action handlers [source_id: operator.ts]
-export function parseAddRageAction(dsl: Extract<OperatorDSL, { type: 'addRage' }>) {
-  return parseSelector<Player>(dsl.target).apply(Operators.addRage(parseValue(dsl.value) as ValueSource<number>))
-}
-
-export function parseAmplifyPowerAction(dsl: Extract<OperatorDSL, { type: 'amplifyPower' }>) {
-  return parseSelector<UseSkillContext>(dsl.target).apply(
-    Operators.amplifyPower(parseValue(dsl.value) as ValueSource<number>),
+export function parseAddRageAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'addRage' }>) {
+  return parseSelector<Player>(effectId, dsl.target).apply(
+    Operators.addRage(parseValue(effectId, dsl.value) as ValueSource<number>),
   )
 }
 
-export function parseAddPowerAction(dsl: Extract<OperatorDSL, { type: 'addPower' }>) {
-  return parseSelector<UseSkillContext>(dsl.target).apply(
-    Operators.addPower(parseValue(dsl.value) as ValueSource<number>),
+export function parseAmplifyPowerAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'amplifyPower' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(
+    Operators.amplifyPower(parseValue(effectId, dsl.value) as ValueSource<number>),
   )
 }
 
-export function parseAddCritRate(dsl: Extract<OperatorDSL, { type: 'addCritRate' }>) {
-  return parseSelector<UseSkillContext>(dsl.target).apply(
-    Operators.addCritRate(parseValue(dsl.value) as ValueSource<number>),
+export function parseAddPowerAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'addPower' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(
+    Operators.addPower(parseValue(effectId, dsl.value) as ValueSource<number>),
   )
 }
 
-export function parseAddMultihitResult(dsl: Extract<OperatorDSL, { type: 'addMultihitResult' }>) {
-  return parseSelector<UseSkillContext>(dsl.target).apply(
-    Operators.addMultihitResult(parseValue(dsl.value) as ValueSource<number>),
+export function parseAddCritRate(effectId: string, dsl: Extract<OperatorDSL, { type: 'addCritRate' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(
+    Operators.addCritRate(parseValue(effectId, dsl.value) as ValueSource<number>),
   )
 }
 
-export function parseStunAction(dsl: Extract<OperatorDSL, { type: 'stun' }>) {
-  return parseSelector<UseSkillContext>(dsl.target).apply(Operators.stun())
-}
-
-export function parseTransferMark(dsl: Extract<OperatorDSL, { type: 'transferMark' }>) {
-  return parseSelector<Pet>(dsl.target).apply(Operators.transferMark(parseValue(dsl.mark) as ValueSource<MarkInstance>))
-}
-
-export function parseSetSureHitAction(dsl: Extract<OperatorDSL, { type: 'setSureHit' }>) {
-  return parseSelector<UseSkillContext>(dsl.target).apply(Operators.setSureHit(dsl.priority))
-}
-
-export function parseSetSureCritAction(dsl: Extract<OperatorDSL, { type: 'setSureCrit' }>) {
-  return parseSelector<UseSkillContext>(dsl.target).apply(Operators.setSureCrit(dsl.priority))
-}
-
-export function parseSetSureMissAction(dsl: Extract<OperatorDSL, { type: 'setSureMiss' }>) {
-  return parseSelector<UseSkillContext>(dsl.target).apply(Operators.setSureMiss(dsl.priority))
-}
-
-export function parseSetSureNoCritAction(dsl: Extract<OperatorDSL, { type: 'setSureNoCrit' }>) {
-  return parseSelector<UseSkillContext>(dsl.target).apply(Operators.setSureNoCrit(dsl.priority))
-}
-
-export function parseDestroyMarkAction(dsl: Extract<OperatorDSL, { type: 'destroyMark' }>) {
-  return parseSelector<MarkInstance>(dsl.target).apply(Operators.destroyMark())
-}
-
-export function parseSetSkill(dsl: Extract<OperatorDSL, { type: 'setSkill' }>) {
-  return parseSelector<UseSkillContext>(dsl.target).apply(
-    Operators.setSkill(parseValue(dsl.value) as ValueSource<SkillInstance>),
+export function parseAddMultihitResult(effectId: string, dsl: Extract<OperatorDSL, { type: 'addMultihitResult' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(
+    Operators.addMultihitResult(parseValue(effectId, dsl.value) as ValueSource<number>),
   )
 }
 
-export function parsePreventDamage(dsl: Extract<OperatorDSL, { type: 'preventDamage' }>) {
-  return parseSelector<DamageContext>(dsl.target).apply(Operators.preventDamage())
+export function parseStunAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'stun' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(Operators.stun())
 }
 
-export function parseSetActualTarget(dsl: Extract<OperatorDSL, { type: 'setActualTarget' }>) {
-  return parseSelector<UseSkillContext>(dsl.target).apply(
-    Operators.setActualTarget(parseValue(dsl.newTarget) as ValueSource<Pet>),
+export function parseTransferMark(effectId: string, dsl: Extract<OperatorDSL, { type: 'transferMark' }>) {
+  return parseSelector<Pet>(effectId, dsl.target).apply(
+    Operators.transferMark(parseValue(effectId, dsl.mark) as ValueSource<MarkInstance>),
   )
 }
 
-export function parseAddModified(dsl: Extract<OperatorDSL, { type: 'addModified' }>) {
-  return parseSelector<DamageContext | HealContext>(dsl.target).apply(
-    Operators.addModified(parseValue(dsl.percent) as ValueSource<number>, parseValue(dsl.delta) as ValueSource<number>),
+export function parseSetSureHitAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'setSureHit' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(Operators.setSureHit(dsl.priority))
+}
+
+export function parseSetSureCritAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'setSureCrit' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(Operators.setSureCrit(dsl.priority))
+}
+
+export function parseSetSureMissAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'setSureMiss' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(Operators.setSureMiss(dsl.priority))
+}
+
+export function parseSetSureNoCritAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'setSureNoCrit' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(Operators.setSureNoCrit(dsl.priority))
+}
+
+export function parseDestroyMarkAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'destroyMark' }>) {
+  return parseSelector<MarkInstance>(effectId, dsl.target).apply(Operators.destroyMark())
+}
+
+export function parseSetSkill(effectId: string, dsl: Extract<OperatorDSL, { type: 'setSkill' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(
+    Operators.setSkill(parseValue(effectId, dsl.value) as ValueSource<SkillInstance>),
   )
 }
 
-export function parseAddThresholdAction(dsl: Extract<OperatorDSL, { type: 'addThreshold' }>) {
-  const min = dsl.min ? (parseValue(dsl.min) as ValueSource<number>) : undefined
-  const max = dsl.max ? (parseValue(dsl.max) as ValueSource<number>) : undefined
-  return parseSelector<DamageContext>(dsl.target).apply(Operators.addThreshold(min, max))
+export function parsePreventDamage(effectId: string, dsl: Extract<OperatorDSL, { type: 'preventDamage' }>) {
+  return parseSelector<DamageContext>(effectId, dsl.target).apply(Operators.preventDamage())
 }
 
-export function parseOverrideMarkConfig(dsl: Extract<OperatorDSL, { type: 'overrideMarkConfig' }>) {
-  return parseSelector<AddMarkContext>(dsl.target).apply(Operators.overrideMarkConfig(dsl.config))
-}
-
-export function parseSetMarkDuration(dsl: Extract<OperatorDSL, { type: 'setMarkDuration' }>) {
-  return parseSelector<AddMarkContext>(dsl.target).apply(
-    Operators.setMarkDuration(parseValue(dsl.value) as ValueSource<number>),
+export function parseSetActualTarget(effectId: string, dsl: Extract<OperatorDSL, { type: 'setActualTarget' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(
+    Operators.setActualTarget(parseValue(effectId, dsl.newTarget) as ValueSource<Pet>),
   )
 }
 
-export function parseSetMarkStack(dsl: Extract<OperatorDSL, { type: 'setMarkStack' }>) {
-  return parseSelector<AddMarkContext>(dsl.target).apply(
-    Operators.setMarkStack(parseValue(dsl.value) as ValueSource<number>),
+export function parseAddModified(effectId: string, dsl: Extract<OperatorDSL, { type: 'addModified' }>) {
+  return parseSelector<DamageContext | HealContext>(effectId, dsl.target).apply(
+    Operators.addModified(
+      parseValue(effectId, dsl.percent) as ValueSource<number>,
+      parseValue(effectId, dsl.delta) as ValueSource<number>,
+    ),
   )
 }
 
-export function parseSetMarkMaxStack(dsl: Extract<OperatorDSL, { type: 'setMarkMaxStack' }>) {
-  return parseSelector<AddMarkContext>(dsl.target).apply(
-    Operators.setMarkMaxStack(parseValue(dsl.value) as ValueSource<number>),
+export function parseAddThresholdAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'addThreshold' }>) {
+  const min = dsl.min ? (parseValue(effectId, dsl.min) as ValueSource<number>) : undefined
+  const max = dsl.max ? (parseValue(effectId, dsl.max) as ValueSource<number>) : undefined
+  return parseSelector<DamageContext>(effectId, dsl.target).apply(Operators.addThreshold(min, max))
+}
+
+export function parseOverrideMarkConfig(effectId: string, dsl: Extract<OperatorDSL, { type: 'overrideMarkConfig' }>) {
+  return parseSelector<AddMarkContext>(effectId, dsl.target).apply(Operators.overrideMarkConfig(dsl.config))
+}
+
+export function parseSetMarkDuration(effectId: string, dsl: Extract<OperatorDSL, { type: 'setMarkDuration' }>) {
+  return parseSelector<AddMarkContext>(effectId, dsl.target).apply(
+    Operators.setMarkDuration(parseValue(effectId, dsl.value) as ValueSource<number>),
   )
 }
 
-export function parseSetMarkPersistent(dsl: Extract<OperatorDSL, { type: 'setMarkPersistent' }>) {
-  return parseSelector<AddMarkContext>(dsl.target).apply(
-    Operators.setMarkPersistent(parseValue(dsl.value) as ValueSource<boolean>),
+export function parseSetMarkStack(effectId: string, dsl: Extract<OperatorDSL, { type: 'setMarkStack' }>) {
+  return parseSelector<AddMarkContext>(effectId, dsl.target).apply(
+    Operators.setMarkStack(parseValue(effectId, dsl.value) as ValueSource<number>),
   )
 }
 
-export function parseSetMarkStackable(dsl: Extract<OperatorDSL, { type: 'setMarkStackable' }>) {
-  return parseSelector<AddMarkContext>(dsl.target).apply(
-    Operators.setMarkStackable(parseValue(dsl.value) as ValueSource<boolean>),
+export function parseSetMarkMaxStack(effectId: string, dsl: Extract<OperatorDSL, { type: 'setMarkMaxStack' }>) {
+  return parseSelector<AddMarkContext>(effectId, dsl.target).apply(
+    Operators.setMarkMaxStack(parseValue(effectId, dsl.value) as ValueSource<number>),
   )
 }
 
-export function parseSetMarkStackStrategy(dsl: Extract<OperatorDSL, { type: 'setMarkStackStrategy' }>) {
-  return parseSelector<AddMarkContext>(dsl.target).apply(
-    Operators.setMarkStackStrategy(parseValue(dsl.value) as ValueSource<StackStrategy>),
+export function parseSetMarkPersistent(effectId: string, dsl: Extract<OperatorDSL, { type: 'setMarkPersistent' }>) {
+  return parseSelector<AddMarkContext>(effectId, dsl.target).apply(
+    Operators.setMarkPersistent(parseValue(effectId, dsl.value) as ValueSource<boolean>),
   )
 }
 
-export function parseSetMarkDestroyable(dsl: Extract<OperatorDSL, { type: 'setMarkDestroyable' }>) {
-  return parseSelector<AddMarkContext>(dsl.target).apply(
-    Operators.setMarkDestroyable(parseValue(dsl.value) as ValueSource<boolean>),
+export function parseSetMarkStackable(effectId: string, dsl: Extract<OperatorDSL, { type: 'setMarkStackable' }>) {
+  return parseSelector<AddMarkContext>(effectId, dsl.target).apply(
+    Operators.setMarkStackable(parseValue(effectId, dsl.value) as ValueSource<boolean>),
   )
 }
 
-export function parseSetMarkIsShield(dsl: Extract<OperatorDSL, { type: 'setMarkIsShield' }>) {
-  return parseSelector<AddMarkContext>(dsl.target).apply(
-    Operators.setMarkIsShield(parseValue(dsl.value) as ValueSource<boolean>),
+export function parseSetMarkStackStrategy(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'setMarkStackStrategy' }>,
+) {
+  return parseSelector<AddMarkContext>(effectId, dsl.target).apply(
+    Operators.setMarkStackStrategy(parseValue(effectId, dsl.value) as ValueSource<StackStrategy>),
   )
 }
 
-export function parseSetMarkKeepOnSwitchOut(dsl: Extract<OperatorDSL, { type: 'setMarkKeepOnSwitchOut' }>) {
-  return parseSelector<AddMarkContext>(dsl.target).apply(
-    Operators.setMarkKeepOnSwitchOut(parseValue(dsl.value) as ValueSource<boolean>),
+export function parseSetMarkDestroyable(effectId: string, dsl: Extract<OperatorDSL, { type: 'setMarkDestroyable' }>) {
+  return parseSelector<AddMarkContext>(effectId, dsl.target).apply(
+    Operators.setMarkDestroyable(parseValue(effectId, dsl.value) as ValueSource<boolean>),
   )
 }
 
-export function parseSetMarkTransferOnSwitch(dsl: Extract<OperatorDSL, { type: 'setMarkTransferOnSwitch' }>) {
-  return parseSelector<AddMarkContext>(dsl.target).apply(
-    Operators.setMarkTransferOnSwitch(parseValue(dsl.value) as ValueSource<boolean>),
+export function parseSetMarkIsShield(effectId: string, dsl: Extract<OperatorDSL, { type: 'setMarkIsShield' }>) {
+  return parseSelector<AddMarkContext>(effectId, dsl.target).apply(
+    Operators.setMarkIsShield(parseValue(effectId, dsl.value) as ValueSource<boolean>),
   )
 }
 
-export function parseSetMarkInheritOnFaint(dsl: Extract<OperatorDSL, { type: 'setMarkInheritOnFaint' }>) {
-  return parseSelector<AddMarkContext>(dsl.target).apply(
-    Operators.setMarkInheritOnFaint(parseValue(dsl.value) as ValueSource<boolean>),
+export function parseSetMarkKeepOnSwitchOut(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'setMarkKeepOnSwitchOut' }>,
+) {
+  return parseSelector<AddMarkContext>(effectId, dsl.target).apply(
+    Operators.setMarkKeepOnSwitchOut(parseValue(effectId, dsl.value) as ValueSource<boolean>),
   )
 }
 
-function parseAddValue(dsl: Extract<OperatorDSL, { type: 'addValue' }>) {
-  return parseSelector<PropertyRef<any, number>>(dsl.target).apply(
-    Operators.addValue(parseValue(dsl.value) as ValueSource<number>),
+export function parseSetMarkTransferOnSwitch(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'setMarkTransferOnSwitch' }>,
+) {
+  return parseSelector<AddMarkContext>(effectId, dsl.target).apply(
+    Operators.setMarkTransferOnSwitch(parseValue(effectId, dsl.value) as ValueSource<boolean>),
   )
 }
 
-function parseSetValue(dsl: Extract<OperatorDSL, { type: 'setValue' }>) {
-  return parseSelector<PropertyRef<any, PrimitiveOpinion>>(dsl.target).apply(
-    Operators.setValue(parseValue(dsl.value) as ValueSource<PrimitiveOpinion>),
+export function parseSetMarkInheritOnFaint(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'setMarkInheritOnFaint' }>,
+) {
+  return parseSelector<AddMarkContext>(effectId, dsl.target).apply(
+    Operators.setMarkInheritOnFaint(parseValue(effectId, dsl.value) as ValueSource<boolean>),
   )
 }
 
-function parseToggle(dsl: Extract<OperatorDSL, { type: 'toggle' }>) {
-  return parseSelector<PropertyRef<any, boolean>>(dsl.target).apply(Operators.toggle())
+function parseAddValue(effectId: string, dsl: Extract<OperatorDSL, { type: 'addValue' }>) {
+  return parseSelector<PropertyRef<any, number>>(effectId, dsl.target).apply(
+    Operators.addValue(parseValue(effectId, dsl.value) as ValueSource<number>),
+  )
 }
 
-export function parseCondition(dsl: ConditionDSL): Condition {
+function parseSetValue(effectId: string, dsl: Extract<OperatorDSL, { type: 'setValue' }>) {
+  return parseSelector<PropertyRef<any, PrimitiveOpinion>>(effectId, dsl.target).apply(
+    Operators.setValue(parseValue(effectId, dsl.value) as ValueSource<PrimitiveOpinion>),
+  )
+}
+
+function parseToggle(effectId: string, dsl: Extract<OperatorDSL, { type: 'toggle' }>) {
+  return parseSelector<PropertyRef<any, boolean>>(effectId, dsl.target).apply(Operators.toggle())
+}
+
+export function parseCondition(effectId: string, dsl: ConditionDSL): Condition {
   switch (dsl.type) {
     case 'evaluate':
-      return parseEvaluateCondition(dsl)
+      return parseEvaluateCondition(effectId, dsl)
     case 'some':
-      return parseSomeCondition(dsl)
+      return parseSomeCondition(effectId, dsl)
     case 'every':
-      return parseEveryCondition(dsl)
+      return parseEveryCondition(effectId, dsl)
     case 'not':
-      return parseNotCondition(dsl)
+      return parseNotCondition(effectId, dsl)
     case 'petIsActive':
       return Conditions.petIsActive()
     case 'selfUseSkill':
@@ -615,22 +653,22 @@ export function parseCondition(dsl: ConditionDSL): Condition {
   }
 }
 
-export function parseEvaluateCondition(dsl: Extract<ConditionDSL, { type: 'evaluate' }>): Condition {
-  const target = parseSelector(dsl.target)
-  const evaluator = parseEvaluator(dsl.evaluator)
+export function parseEvaluateCondition(effectId: string, dsl: Extract<ConditionDSL, { type: 'evaluate' }>): Condition {
+  const target = parseSelector(effectId, dsl.target)
+  const evaluator = parseEvaluator(effectId, dsl.evaluator)
   return target.condition(evaluator)
 }
 
-export function parseSomeCondition(dsl: Extract<ConditionDSL, { type: 'some' }>): Condition {
-  return Conditions.some(...dsl.conditions.map(parseCondition))
+export function parseSomeCondition(effectId: string, dsl: Extract<ConditionDSL, { type: 'some' }>): Condition {
+  return Conditions.some(...dsl.conditions.map(v => parseCondition(effectId, v)))
 }
 
-export function parseEveryCondition(dsl: Extract<ConditionDSL, { type: 'every' }>): Condition {
-  return Conditions.every(...dsl.conditions.map(parseCondition))
+export function parseEveryCondition(effectId: string, dsl: Extract<ConditionDSL, { type: 'every' }>): Condition {
+  return Conditions.every(...dsl.conditions.map(v => parseCondition(effectId, v)))
 }
 
-export function parseNotCondition(dsl: Extract<ConditionDSL, { type: 'not' }>): Condition {
-  return Conditions.not(parseCondition(dsl.condition))
+export function parseNotCondition(effectId: string, dsl: Extract<ConditionDSL, { type: 'not' }>): Condition {
+  return Conditions.not(parseCondition(effectId, dsl.condition))
 }
 
 function validatePath(selector: ChainableSelector<SelectorOpinion>, path: string) {

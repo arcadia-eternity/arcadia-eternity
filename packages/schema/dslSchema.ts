@@ -37,16 +37,19 @@ const baseExtractorSchema = z.enum(extractorKeys as [keyof typeof Extractor])
 export const rawNumberValueSchema: z.ZodSchema<RawNumberValue> = z.object({
   type: z.literal('raw:number'),
   value: z.number(),
+  configId: z.string().optional(),
 })
 
 export const rawStringValueSchema: z.ZodSchema<RawStringValue> = z.object({
   type: z.literal('raw:string'),
   value: z.string(),
+  configId: z.string().optional(),
 })
 
 export const rawBooleanValueSchema: z.ZodSchema<RawBooleanValue> = z.object({
   type: z.literal('raw:boolean'),
   value: z.boolean(),
+  configId: z.string().optional(),
 })
 
 export const rawBaseMarkIdValueSchema: z.ZodSchema<RawBaseMarkIdValue> = z.object({

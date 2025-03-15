@@ -255,6 +255,9 @@
                                                         },
                                                         "value": {
                                                           "type": "number"
+                                                        },
+                                                        "configId": {
+                                                          "type": "string"
                                                         }
                                                       },
                                                       "required": [
@@ -274,6 +277,9 @@
                                                           "const": "raw:string"
                                                         },
                                                         "value": {
+                                                          "type": "string"
+                                                        },
+                                                        "configId": {
                                                           "type": "string"
                                                         }
                                                       },
@@ -295,6 +301,9 @@
                                                         },
                                                         "value": {
                                                           "type": "boolean"
+                                                        },
+                                                        "configId": {
+                                                          "type": "string"
                                                         }
                                                       },
                                                       "required": [
@@ -1286,7 +1295,7 @@
                         "properties": {
                           "duration": {
                             "type": "number",
-                            "default": 3
+                            "default": -1
                           },
                           "persistent": {
                             "type": "boolean",
@@ -1316,19 +1325,23 @@
                             "default": true
                           },
                           "isShield": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "default": false
                           },
                           "keepOnSwitchOut": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "default": false
                           },
                           "transferOnSwitch": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "default": false
                           },
                           "inheritOnFaint": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "default": false
                           }
                         },
-                        "additionalProperties": false
+                        "additionalProperties": {}
                       }
                     },
                     "required": [

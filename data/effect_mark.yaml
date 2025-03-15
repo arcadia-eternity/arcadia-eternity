@@ -380,7 +380,10 @@
     target:
       base: self
     statType: spe
-    value: -50
+    value:
+      type: raw:number
+      value: -50
+      configId: reduce_spe_per_stack
     percent: 0
 - id: effect_mark_restore_speed_on_mark_destroy
   trigger: OnMarkDestroy

@@ -222,16 +222,19 @@ export type OperatorDSL =
 export type RawNumberValue = {
   type: 'raw:number'
   value: number
+  configId?: string
 }
 
 export type RawStringValue = {
   type: 'raw:string'
   value: string
+  configId?: string
 }
 
 export type RawBooleanValue = {
   type: 'raw:boolean'
   value: boolean
+  configId?: string
 }
 
 export type RawBaseMarkIdValue = {

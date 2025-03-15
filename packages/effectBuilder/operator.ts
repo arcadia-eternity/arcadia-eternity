@@ -2,6 +2,7 @@ import {
   AddMarkContext,
   BaseMark,
   Battle,
+  ConfigSystem,
   DamageContext,
   EffectContext,
   HealContext,
@@ -14,7 +15,7 @@ import {
   UseSkillContext,
 } from '@test-battle/battle'
 import { EffectTrigger, StackStrategy, type StatTypeOnBattle, StatTypeWithoutHp } from '@test-battle/const'
-import type { Operator } from './effectBuilder'
+import type { ConfigValue, Operator } from './effectBuilder'
 import { ChainableSelector, type PrimitiveOpinion, type PropertyRef, type SelectorOpinion } from './selector'
 import { type ValueSource } from './effectBuilder'
 
@@ -418,5 +419,9 @@ export function GetValueFromSource<T extends SelectorOpinion>(
   }
   if (typeof source == 'function') return source(context) //TargetSelector
   if (Array.isArray(source)) return source.map(v => GetValueFromSource(context, v)[0]) as T[]
+  if (source && typeof source === 'object' && 'configId' in source) {
+    const _source = source as ConfigValue<T>
+    return [ConfigSystem.getInstance().get(_source.configId, context.source) ?? _source.defaultValue] as T[]
+  }
   return [source]
 }

@@ -216,7 +216,9 @@
   name: 溺水
   description: 3回合每回合损失1/8体力 并且命中率降低10%（对水系无效）
   num: 1000
-  config: *status_config
+  config: &status_config_turn_3
+    <<: *status_config
+    duration: 3
   effect:
     - effect_mark_turn_damage
     - effect_mark_reduce_accuracy_10
@@ -225,7 +227,7 @@
 - id: mark_shaoshang
   name: 烧伤
   description: 3回合每回合损失1/8体力 并且造成的物理攻击伤害降低25%（对火系无效）
-  config: *status_config
+  config: *status_config_turn_3
   num: 1001
   effect:
     - effect_mark_turn_damage
@@ -236,7 +238,7 @@
   name: 冻伤
   description: 3回合每回合损失1/8体力 并且造成的特殊攻击伤害降低25%（对冰系无效）
   num: 1002
-  config: *status_config
+  config: *status_config_turn_3
   effect:
     - effect_mark_turn_damage
     - effect_mark_decrease_spa
@@ -246,7 +248,7 @@
   name: 中毒
   description: 3回合每回合损失1/8体力 并且受到的治疗效果降低15%
   num: 1003
-  config: *status_config
+  config: *status_config_turn_3
   effect:
     - effect_mark_turn_damage
     - effect_mark_decrease_heal
@@ -254,7 +256,7 @@
 - id: mark_liuxie
   name: 流血
   description: x回合每回合受到一定的固定伤害
-  config: *status_config
+  config: *status_config_turn_3
   effect:
     - effect_mark_damage_with_stack
   num: 1004

@@ -37,7 +37,11 @@ export type MarkConfig = {
   [id: string]: any
 }
 
-export class BaseMark implements Prototype {
+export interface IBaseMark extends Prototype {
+  createInstance(...arg: any[]): MarkInstance
+}
+
+export class BaseMark implements Prototype, IBaseMark {
   constructor(
     public readonly id: baseMarkId,
     public readonly name: string,
