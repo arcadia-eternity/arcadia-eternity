@@ -1,7 +1,7 @@
 import type { Id, InstanceId, PrototypeId } from '@test-battle/const'
 import { Battle } from './battle'
 import { AddMarkContext, RemoveMarkContext } from './context'
-import { MarkInstance } from './mark'
+import type { MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
 import { SkillInstance } from './skill'

@@ -1,4 +1,5 @@
 export * from './battle'
+export * from './config'
 export * from './context'
 export * from './effect'
 export * from './entity'

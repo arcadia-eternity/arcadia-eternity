@@ -6,7 +6,7 @@ import {
   Effect,
   EffectContext,
   HealContext,
-  MarkInstance,
+  type MarkInstance,
   Pet,
   Player,
   SkillInstance,

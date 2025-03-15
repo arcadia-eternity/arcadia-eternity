@@ -22,6 +22,13 @@
       "a": false
     },
     {
+      "n": "configSystem",
+      "t": "ConfigSystem",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "rng",
       "t": "default",
       "iu": false,
@@ -138,6 +145,66 @@
       "t": "Player",
       "iu": false,
       "u": [],
+      "a": false
+    }
+  ],
+  "ConfigSystem": [
+    {
+      "n": "instance",
+      "t": "ConfigSystem",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "configMap",
+      "t": "Map<string, ConfigValue>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "instanceMap",
+      "t": "WeakMap<ScopeObject, Map<string, ConfigValue>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "ScopeObject": [
+    {
+      "n": "type",
+      "t": "Battle | Player | MarkInstance | Pet | SkillInstance",
+      "iu": true,
+      "u": [
+        "Battle",
+        "Player",
+        "MarkInstance",
+        "Pet",
+        "SkillInstance"
+      ],
+      "a": false
+    }
+  ],
+  "ConfigValue": [
+    {
+      "n": "type",
+      "t": "null | string | number | false | true | markId | skillId | petId | playerId | baseMarkId | baseSkillId | speciesId",
+      "iu": true,
+      "u": [
+        "null",
+        "string",
+        "number",
+        "false",
+        "true",
+        "markId",
+        "skillId",
+        "petId",
+        "playerId",
+        "baseMarkId",
+        "baseSkillId",
+        "speciesId"
+      ],
       "a": false
     }
   ],
@@ -550,6 +617,20 @@
       "a": false
     },
     {
+      "n": "rageChangeResult",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "addModified",
+      "t": "(percent: number, delta: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "parent",
       "t": "TurnContext | UseSkillContext | EffectContext<EffectTrigger>",
       "iu": true,
@@ -607,6 +688,13 @@
         "false",
         "true"
       ],
+      "a": false
+    },
+    {
+      "n": "modified",
+      "t": "[number, number]",
+      "iu": false,
+      "u": [],
       "a": false
     }
   ],
@@ -801,6 +889,13 @@
       "a": false
     },
     {
+      "n": "target",
+      "t": "Pet",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "value",
       "t": "number",
       "iu": false,
@@ -852,12 +947,9 @@
     },
     {
       "n": "parent",
-      "t": "SwitchPetContext | EffectContext<EffectTrigger>",
-      "iu": true,
-      "u": [
-        "SwitchPetContext",
-        "EffectContext<EffectTrigger>"
-      ],
+      "t": "EffectContext<EffectTrigger>",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -896,11 +988,11 @@
     },
     {
       "n": "config",
-      "t": "undefined | { duration?: number | undefined, persistent?: boolean | undefined, maxStacks?: number | undefined, stackable?: boolean | undefined, stackStrategy?: StackStrategy | undefined, destroyable?: boolean | undefined, isShield?: boolean | undefined, keepOnSwitchOut?: boolean | undefined, transferOnSwitch?: boolean | undefined, inheritOnFaint?: boolean | undefined }",
+      "t": "undefined | Partial<MarkConfig>",
       "iu": true,
       "u": [
         "undefined",
-        "{ duration?: number | undefined, persistent?: boolean | undefined, maxStacks?: number | undefined, stackable?: boolean | undefined, stackStrategy?: StackStrategy | undefined, destroyable?: boolean | undefined, isShield?: boolean | undefined, keepOnSwitchOut?: boolean | undefined, transferOnSwitch?: boolean | undefined, inheritOnFaint?: boolean | undefined }"
+        "Partial<MarkConfig>"
       ],
       "a": false
     }
@@ -1288,15 +1380,6 @@
       "a": false
     }
   ],
-  "EffectState": [
-    {
-      "n": "id",
-      "t": "effectStateId",
-      "iu": false,
-      "u": [],
-      "a": false
-    }
-  ],
   "EffectScheduler": [
     {
       "n": "globalEffectQueue",
@@ -1308,17 +1391,6 @@
     }
   ],
   "Effect": [
-    {
-      "n": "owner",
-      "t": "null | MarkInstance | SkillInstance",
-      "iu": true,
-      "u": [
-        "null",
-        "MarkInstance",
-        "SkillInstance"
-      ],
-      "a": false
-    },
     {
       "n": "id",
       "t": "effectId",
@@ -1371,15 +1443,7 @@
       "a": false
     }
   ],
-  "EffectContainer": [
-    {
-      "n": "effectState",
-      "t": "Record<id: string, EffectState,>",
-      "iu": false,
-      "u": [],
-      "a": false
-    }
-  ],
+  "EffectContainer": [],
   "EffectConfig": [
     {
       "n": "id",
@@ -1450,13 +1514,13 @@
   "Prototype": [
     {
       "n": "id",
-      "t": "effectId | speciesId | baseMarkId | baseSkillId",
+      "t": "baseMarkId | baseSkillId | speciesId | effectId",
       "iu": true,
       "u": [
-        "effectId",
-        "speciesId",
         "baseMarkId",
-        "baseSkillId"
+        "baseSkillId",
+        "speciesId",
+        "effectId"
       ],
       "a": false
     }
@@ -1464,12 +1528,12 @@
   "Instance": [
     {
       "n": "id",
-      "t": "petId | skillId | markId",
+      "t": "markId | skillId | petId",
       "iu": true,
       "u": [
-        "petId",
+        "markId",
         "skillId",
-        "markId"
+        "petId"
       ],
       "a": false
     },
@@ -1525,7 +1589,7 @@
     },
     {
       "n": "config",
-      "t": "{ readonly duration?: number | undefined, readonly persistent?: boolean | undefined, readonly maxStacks?: number | undefined, readonly stackable?: boolean | undefined, readonly stackStrategy?: StackStrategy | undefined, readonly destroyable?: boolean | undefined, readonly isShield?: boolean | undefined, readonly keepOnSwitchOut?: boolean | undefined, readonly transferOnSwitch?: boolean | undefined, readonly inheritOnFaint?: boolean | undefined }",
+      "t": "MarkConfig",
       "iu": false,
       "u": [],
       "a": false
@@ -1537,6 +1601,268 @@
       "u": [],
       "a": true,
       "nt": "string"
+    }
+  ],
+  "MarkInstanceImpl": [
+    {
+      "n": "_stack",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "duration",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "owner",
+      "t": "null | Battle | Pet",
+      "iu": true,
+      "u": [
+        "null",
+        "Battle",
+        "Pet"
+      ],
+      "a": false
+    },
+    {
+      "n": "isActive",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "id",
+      "t": "markId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "name",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "effects",
+      "t": "Effect<EffectTrigger>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "Effect<EffectTrigger>"
+    },
+    {
+      "n": "config",
+      "t": "MarkConfig",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "tags",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "string"
+    },
+    {
+      "n": "base",
+      "t": "BaseMark",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stack",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "baseId",
+      "t": "baseMarkId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "isStackable",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    }
+  ],
+  "BaseStatLevelMark": [
+    {
+      "n": "statType",
+      "t": "StatTypeWithoutHp.atk | StatTypeWithoutHp.def | StatTypeWithoutHp.spa | StatTypeWithoutHp.spd | StatTypeWithoutHp.spe",
+      "iu": true,
+      "u": [
+        "StatTypeWithoutHp.atk",
+        "StatTypeWithoutHp.def",
+        "StatTypeWithoutHp.spa",
+        "StatTypeWithoutHp.spd",
+        "StatTypeWithoutHp.spe"
+      ],
+      "a": false
+    },
+    {
+      "n": "initialLevel",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "StatLevelMarkInstanceImpl": [
+    {
+      "n": "level",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "base",
+      "t": "BaseStatLevelMark",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "statType",
+      "t": "StatTypeWithoutHp.atk | StatTypeWithoutHp.def | StatTypeWithoutHp.spa | StatTypeWithoutHp.spd | StatTypeWithoutHp.spe",
+      "iu": true,
+      "u": [
+        "StatTypeWithoutHp.atk",
+        "StatTypeWithoutHp.def",
+        "StatTypeWithoutHp.spa",
+        "StatTypeWithoutHp.spd",
+        "StatTypeWithoutHp.spe"
+      ],
+      "a": false
+    },
+    {
+      "n": "stack",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "MarkConfig": [
+    {
+      "n": "duration",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "persistent",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "maxStacks",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stackable",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "stackStrategy",
+      "t": "StackStrategy.stack | StackStrategy.refresh | StackStrategy.extend | StackStrategy.max | StackStrategy.replace",
+      "iu": true,
+      "u": [
+        "StackStrategy.stack",
+        "StackStrategy.refresh",
+        "StackStrategy.extend",
+        "StackStrategy.max",
+        "StackStrategy.replace"
+      ],
+      "a": false
+    },
+    {
+      "n": "destroyable",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "isShield",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "keepOnSwitchOut",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "transferOnSwitch",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "inheritOnFaint",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
     }
   ],
   "MarkInstance": [
@@ -1599,7 +1925,7 @@
     },
     {
       "n": "config",
-      "t": "{ duration?: number | undefined, persistent?: boolean | undefined, maxStacks?: number | undefined, stackable?: boolean | undefined, stackStrategy?: StackStrategy | undefined, destroyable?: boolean | undefined, isShield?: boolean | undefined, keepOnSwitchOut?: boolean | undefined, transferOnSwitch?: boolean | undefined, inheritOnFaint?: boolean | undefined }",
+      "t": "MarkConfig",
       "iu": false,
       "u": [],
       "a": false
@@ -1611,13 +1937,6 @@
       "u": [],
       "a": true,
       "nt": "string"
-    },
-    {
-      "n": "effectState",
-      "t": "Record<id: string, EffectState,>",
-      "iu": false,
-      "u": [],
-      "a": false
     },
     {
       "n": "base",
@@ -1648,64 +1967,6 @@
         "false",
         "true"
       ],
-      "a": false
-    }
-  ],
-  "BaseStatLevelMark": [
-    {
-      "n": "statType",
-      "t": "StatTypeWithoutHp.atk | StatTypeWithoutHp.def | StatTypeWithoutHp.spa | StatTypeWithoutHp.spd | StatTypeWithoutHp.spe",
-      "iu": true,
-      "u": [
-        "StatTypeWithoutHp.atk",
-        "StatTypeWithoutHp.def",
-        "StatTypeWithoutHp.spa",
-        "StatTypeWithoutHp.spd",
-        "StatTypeWithoutHp.spe"
-      ],
-      "a": false
-    },
-    {
-      "n": "initialLevel",
-      "t": "number",
-      "iu": false,
-      "u": [],
-      "a": false
-    }
-  ],
-  "StatLevelMarkInstance": [
-    {
-      "n": "level",
-      "t": "number",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "base",
-      "t": "BaseStatLevelMark",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "statType",
-      "t": "StatTypeWithoutHp.atk | StatTypeWithoutHp.def | StatTypeWithoutHp.spa | StatTypeWithoutHp.spd | StatTypeWithoutHp.spe",
-      "iu": true,
-      "u": [
-        "StatTypeWithoutHp.atk",
-        "StatTypeWithoutHp.def",
-        "StatTypeWithoutHp.spa",
-        "StatTypeWithoutHp.spd",
-        "StatTypeWithoutHp.spe"
-      ],
-      "a": false
-    },
-    {
-      "n": "stack",
-      "t": "number",
-      "iu": false,
-      "u": [],
       "a": false
     }
   ],
@@ -2096,6 +2357,16 @@
       "a": false
     },
     {
+      "n": "owner",
+      "t": "undefined | Battle",
+      "iu": true,
+      "u": [
+        "undefined",
+        "Battle"
+      ],
+      "a": false
+    },
+    {
       "n": "selection",
       "t": "null | UseSkillSelection | SwitchPetSelection | DoNothingSelection | SurrenderSelection",
       "iu": true,
@@ -2454,13 +2725,6 @@
       "nt": "string"
     },
     {
-      "n": "effectState",
-      "t": "Record<id: string, EffectState,>",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
       "n": "effects",
       "t": "Effect<EffectTrigger>",
       "iu": false,
@@ -2504,16 +2768,16 @@
   "Id": [
     {
       "n": "type",
-      "t": "effectId | speciesId | baseMarkId | baseSkillId | petId | skillId | markId",
+      "t": "markId | skillId | petId | baseMarkId | baseSkillId | speciesId | effectId",
       "iu": true,
       "u": [
-        "effectId",
-        "speciesId",
+        "markId",
+        "skillId",
+        "petId",
         "baseMarkId",
         "baseSkillId",
-        "petId",
-        "skillId",
-        "markId"
+        "speciesId",
+        "effectId"
       ],
       "a": false
     }
@@ -2521,13 +2785,13 @@
   "PrototypeId": [
     {
       "n": "type",
-      "t": "effectId | speciesId | baseMarkId | baseSkillId",
+      "t": "baseMarkId | baseSkillId | speciesId | effectId",
       "iu": true,
       "u": [
-        "effectId",
-        "speciesId",
         "baseMarkId",
-        "baseSkillId"
+        "baseSkillId",
+        "speciesId",
+        "effectId"
       ],
       "a": false
     }
@@ -2535,12 +2799,12 @@
   "InstanceId": [
     {
       "n": "type",
-      "t": "petId | skillId | markId",
+      "t": "markId | skillId | petId",
       "iu": true,
       "u": [
-        "petId",
+        "markId",
         "skillId",
-        "markId"
+        "petId"
       ],
       "a": false
     }
@@ -3072,14 +3336,14 @@
       "nt": "(index: number, value: number) => number"
     },
     {
-      "n": "__@iterator@413",
+      "n": "__@iterator@152",
       "t": "() => ArrayIterator<number>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
-      "n": "__@unscopables@717",
+      "n": "__@unscopables@749",
       "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
       "iu": false,
       "u": [],
@@ -3494,7 +3758,7 @@
     },
     {
       "n": "data",
-      "t": "{ maxHp: number, currentHp: number, source: petId | skillId | markId, target: petId, damage: number, isCrit: boolean, effectiveness: number, damageType: \"effect\" | \"physical\" | \"special\" }",
+      "t": "{ maxHp: number, currentHp: number, source: markId | skillId | petId, target: petId, damage: number, isCrit: boolean, effectiveness: number, damageType: \"effect\" | \"physical\" | \"special\" }",
       "iu": false,
       "u": [],
       "a": false
@@ -4321,7 +4585,7 @@
     },
     {
       "n": "[BattleMessageType.Damage]",
-      "t": "{ maxHp: number, currentHp: number, source: petId | skillId | markId, target: petId, damage: number, isCrit: boolean, effectiveness: number, damageType: \"effect\" | \"physical\" | \"special\" }",
+      "t": "{ maxHp: number, currentHp: number, source: markId | skillId | petId, target: petId, damage: number, isCrit: boolean, effectiveness: number, damageType: \"effect\" | \"physical\" | \"special\" }",
       "iu": false,
       "u": [],
       "a": false

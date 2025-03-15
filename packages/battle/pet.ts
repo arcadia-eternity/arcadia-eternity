@@ -25,7 +25,7 @@ import {
   SwitchPetContext,
 } from './context'
 import type { Instance, MarkOwner, OwnedEntity, Prototype } from './entity'
-import { BaseMark, CreateStatStageMark, MarkInstance, StatLevelMarkInstance } from './mark'
+import { BaseMark, CreateStatStageMark, type MarkInstance, StatLevelMarkInstanceImpl } from './mark'
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
 import { Gender } from '@test-battle/const'
@@ -209,8 +209,8 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     const newMark = context.baseMark.createInstance(config)
     const existingOppositeMark = this.marks.find(
       mark =>
-        mark instanceof StatLevelMarkInstance &&
-        newMark instanceof StatLevelMarkInstance &&
+        mark instanceof StatLevelMarkInstanceImpl &&
+        newMark instanceof StatLevelMarkInstanceImpl &&
         mark.isOppositeMark(newMark),
     )
 
@@ -228,7 +228,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       context.battle.applyEffects(context, EffectTrigger.OnMarkCreate, newMark)
       newMark.attachTo(this)
       this.marks.push(newMark)
-      if (newMark instanceof StatLevelMarkInstance) {
+      if (newMark instanceof StatLevelMarkInstanceImpl) {
         this.statStage[newMark.statType] = newMark.level
       }
     }
@@ -355,7 +355,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       // Clear all stat stages
       this.statStage = { atk: 1, def: 1, spa: 1, spd: 1, spe: 1 }
       this.marks = this.marks.filter(mark => {
-        if (mark instanceof StatLevelMarkInstance) {
+        if (mark instanceof StatLevelMarkInstanceImpl) {
           mark.destroy(context)
           return false
         }
@@ -366,7 +366,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       statTypes.forEach(statType => {
         this.statStage[statType] = 1
         this.marks = this.marks.filter(mark => {
-          if (mark instanceof StatLevelMarkInstance && mark.statType === statType) {
+          if (mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType) {
             mark.destroy(context)
             return false
           }

@@ -1,10 +1,9 @@
 import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import { BattleMessageType } from '@test-battle/const/message'
 import { Context, EffectContext } from './context'
-import { type OwnedEntity, type Prototype } from './entity'
-import { MarkInstance } from './mark'
-import { SkillInstance } from './skill'
+import { type Prototype } from './entity'
 import type { effectId, effectStateId } from '@test-battle/const'
+import { MarkInstanceImpl } from './mark'
 
 export class EffectScheduler {
   constructor() {}
@@ -60,7 +59,7 @@ export class Effect<T extends EffectTrigger> implements Prototype {
 
   public innerApply(context: EffectContext<T>) {
     // 先执行消耗逻辑
-    if (context.source instanceof MarkInstance) {
+    if (context.source instanceof MarkInstanceImpl) {
       if (!context.source.isActive) return
       if (this.consumesStacks) {
         context.source.consumeStack(context, this.consumesStacks)

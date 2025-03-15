@@ -22,7 +22,7 @@ import {
 } from './context'
 import { type EffectContainer, EffectScheduler } from './effect'
 import { type MarkOwner } from './entity'
-import { MarkInstance } from './mark'
+import { type MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
 import { SkillInstance } from './skill'

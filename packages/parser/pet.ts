@@ -1,4 +1,4 @@
-import { BaseMark, MarkInstance, Pet, type Species } from '@test-battle/battle'
+import { BaseMark, Pet, type Species } from '@test-battle/battle'
 import { Gender, type baseMarkId, type baseSkillId, type petId, type speciesId } from '@test-battle/const'
 import { DataRepository } from '@test-battle/data-repository'
 import { PetSchema } from '@test-battle/schema'

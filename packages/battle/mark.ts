@@ -65,11 +65,49 @@ export class BaseMark implements Prototype {
     tags?: string[]
     effects?: Effect<EffectTrigger>[]
   }) {
-    return new MarkInstance(this, overrides)
+    return new MarkInstanceImpl(this, overrides)
   }
 }
 
-export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet | null>, Instance {
+export interface MarkInstance extends EffectContainer, OwnedEntity<Battle | Pet | null>, Instance {
+  _stack: number
+  duration: number
+  owner: Battle | Pet | null
+  isActive: boolean
+
+  readonly id: markId
+  name: string
+  readonly effects: Effect<EffectTrigger>[]
+  config: Partial<MarkConfig>
+  readonly tags: string[]
+
+  readonly base: BaseMark
+
+  get stack(): number
+  set stack(value: number)
+  get baseId(): baseMarkId
+  setOwner(owner: Battle | Pet): void
+  attachTo(target: Battle | Pet): void
+  update(context: TurnContext): boolean
+  addStack(value: number): void
+  tryStack(context: AddMarkContext): boolean
+  consumeStack(context: EffectContext<EffectTrigger> | DamageContext, amount: number): number
+  get isStackable(): boolean
+  collectEffects(trigger: EffectTrigger, baseContext: AllContext): void
+  destroy(
+    context:
+      | EffectContext<EffectTrigger>
+      | TurnContext
+      | AddMarkContext
+      | SwitchPetContext
+      | RemoveMarkContext
+      | DamageContext,
+  ): void
+  transfer(context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet): void
+  toMessage(): MarkMessage
+}
+
+export class MarkInstanceImpl implements MarkInstance {
   public _stack: number = 1
   public duration: number
   public owner: Battle | Pet | null = null
@@ -114,12 +152,12 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
     return this._stack
   }
 
-  get baseId(): baseMarkId {
-    return this.base.id
-  }
-
   set stack(value: number) {
     this._stack = value
+  }
+
+  get baseId(): baseMarkId {
+    return this.base.id
   }
 
   setOwner(owner: Battle | Pet): void {
@@ -163,7 +201,7 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
     this.config = context.config || context.baseMark.config
     const maxStacks = this.config.maxStacks ?? Infinity
     const strategy = this.config.stackStrategy!
-    const newMark = new MarkInstance(context.baseMark)
+    const newMark = new MarkInstanceImpl(context.baseMark)
 
     let newStacks = this.stack
     let newDuration = this.duration
@@ -301,15 +339,15 @@ export class BaseStatLevelMark extends BaseMark {
     )
   }
 
-  createInstance(): StatLevelMarkInstance {
-    const instance = new StatLevelMarkInstance(this)
+  createInstance(): StatLevelMarkInstanceImpl {
+    const instance = new StatLevelMarkInstanceImpl(this)
     instance.level = this.initialLevel
     instance.updateName()
     return instance
   }
 }
 
-export class StatLevelMarkInstance extends MarkInstance {
+export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkInstance {
   public level: number
 
   constructor(public readonly base: BaseStatLevelMark) {
@@ -333,7 +371,7 @@ export class StatLevelMarkInstance extends MarkInstance {
   tryStack(context: AddMarkContext): boolean {
     const otherMark = context.baseMark
 
-    if (otherMark instanceof StatLevelMarkInstance && this.isOppositeMark(otherMark)) {
+    if (otherMark instanceof StatLevelMarkInstanceImpl && this.isOppositeMark(otherMark)) {
       const remainingLevel = this.level + otherMark.level
 
       if (remainingLevel === 0) {
@@ -381,7 +419,7 @@ export class StatLevelMarkInstance extends MarkInstance {
     }
   }
 
-  public isOppositeMark(other: StatLevelMarkInstance): boolean {
+  public isOppositeMark(other: StatLevelMarkInstanceImpl): boolean {
     return this.base.statType === other.base.statType && Math.sign(this.level) !== Math.sign(other.level)
   }
 }

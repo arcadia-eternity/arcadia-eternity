@@ -5,7 +5,7 @@ import {
   DamageContext,
   EffectContext,
   HealContext,
-  MarkInstance,
+  type MarkInstance,
   type MarkOwner,
   Pet,
   Player,
@@ -18,34 +18,18 @@ import type { Operator } from './effectBuilder'
 import { ChainableSelector, type PrimitiveOpinion, type PropertyRef, type SelectorOpinion } from './selector'
 import { type ValueSource } from './effectBuilder'
 
-function createDynamicOperator<T, U extends SelectorOpinion>(
-  handler: (value: U[], target: T, context: EffectContext<EffectTrigger>) => void,
-) {
-  return (source: ValueSource<U>) => {
-    return (context: EffectContext<EffectTrigger>, targets: T[]) => {
-      targets.forEach(target => {
-        let finalValue: U[] = []
-
-        finalValue = GetValueFromSource(context, source)
-
-        if (finalValue.length != 0) {
-          return handler(finalValue, target, context)
-        }
-      })
-    }
-  }
-}
-
 export const Operators = {
-  dealDamage: createDynamicOperator<Pet, number>((value, pet, context) => {
-    if (value.length === 0) return
-    pet.damage(new DamageContext(context, context.source, pet, value[0]))
-  }),
+  dealDamage: (value: ValueSource<number>) => (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
+    const _value = GetValueFromSource(context, value)
+    if (_value.length === 0) return
+    targets.forEach(p => p.damage(new DamageContext(context, context.source, p, _value[0])))
+  },
 
-  heal: createDynamicOperator<Pet, number>((value, pet, context) => {
-    if (value.length === 0) return
-    pet.heal(new HealContext(context, context.source, pet, value[0]))
-  }),
+  heal: (value: ValueSource<number>) => (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
+    const _value = GetValueFromSource(context, value)
+    if (_value.length === 0) return
+    targets.forEach(p => p.heal(new HealContext(context, context.source, p, _value[0])))
+  },
 
   addMark:
     <T extends MarkOwner>(
@@ -99,12 +83,15 @@ export const Operators = {
       targets.forEach(mark => mark.consumeStack(context, _value[0]))
     },
 
-  // 玩家操作
-  addRage: createDynamicOperator<Player | Pet, number>((value, target, context) => {
-    target.addRage(
-      new RageContext(context, target instanceof Player ? target : target.owner!, 'effect', 'add', value[0]),
+  addRage: (value: ValueSource<number>) => (context: EffectContext<EffectTrigger>, targets: (Player | Pet)[]) => {
+    const _value = GetValueFromSource(context, value)
+    if (_value.length === 0) return
+    targets.forEach(player =>
+      player.addRage(
+        new RageContext(context, player instanceof Player ? player : player.owner!, 'effect', 'add', _value[0]),
+      ),
     )
-  }),
+  },
 
   modifyStat:
     (stat: ValueSource<StatTypeOnBattle>, percent: ValueSource<number>, value: ValueSource<number>) =>

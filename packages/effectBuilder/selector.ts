@@ -2,7 +2,7 @@ import {
   Battle,
   DamageContext,
   EffectContext,
-  MarkInstance,
+  type MarkInstance,
   Pet,
   Player,
   UseSkillContext,
@@ -12,6 +12,7 @@ import {
   HealContext,
   AddMarkContext,
   RageContext,
+  MarkInstanceImpl,
 } from '@test-battle/battle'
 import type { CanOwnedEntity, Instance, OwnedEntity, Prototype } from '@test-battle/battle/entity'
 import {
@@ -454,7 +455,7 @@ export const BaseSelector: {
     return []
   }),
   mark: createChainable<MarkInstance>('MarkInstance', (context: EffectContext<EffectTrigger>) => {
-    if (context.source instanceof MarkInstance) return [context.source]
+    if (context.source instanceof MarkInstanceImpl) return [context.source]
     //TODO: error with use get context with non-MarkEffect context
     return []
   }),

@@ -3,11 +3,12 @@ import {
   type OwnedEntity,
   Battle,
   DamageContext,
-  MarkInstance,
+  type MarkInstance,
   Pet,
   Player,
   SkillInstance,
   UseSkillContext,
+  MarkInstanceImpl,
 } from '@test-battle/battle'
 import type { Element, InstanceId, PrototypeId, StatOnBattle } from '@test-battle/const'
 import type { SelectorOpinion } from './selector'
@@ -187,7 +188,7 @@ export function createPathExtractor<T, P extends string>(type: string, path: P):
 export function isValidSelectorOpinion(value: unknown): value is SelectorOpinion {
   return (
     value instanceof Pet ||
-    value instanceof MarkInstance ||
+    value instanceof MarkInstanceImpl ||
     value instanceof Player ||
     value instanceof SkillInstance ||
     value instanceof UseSkillContext ||

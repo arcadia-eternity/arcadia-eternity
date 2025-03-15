@@ -104,6 +104,19 @@ export class TypeAnalyzer {
           typeInfo.properties.push(this.parseType(propName, type))
         })
 
+        interfaceDeclaration.getGetAccessors().forEach(getter => {
+          const propName = getter.getName()
+          try {
+            const returnType = getter.getReturnType()
+            const parsedType = this.parseType(propName, returnType)
+
+            // Getter 优先级高于普通属性
+            typeInfo.properties.push(parsedType)
+          } catch (e) {
+            console.warn(`Failed to parse return type for getter ${interfaceName}.${propName}`)
+          }
+        })
+
         this.typeCache.set(interfaceName, typeInfo)
       })
     })
@@ -300,16 +313,6 @@ export class TypeAnalyzer {
       unionTypes: [],
       isArray: false,
     }
-  }
-
-  private parseTypeReference(typeName: string, typeArgs: Type[], depth: number) {
-    // 获取类型别名的实际定义
-    const resolvedType = this.project.getTypeChecker().getTypeAtLocation(
-      this.project.getSourceFiles()[0], // 假设类型定义在第一个文件
-    )
-
-    // 递归解析实际类型
-    return this.parseType(typeName, resolvedType, depth + 1)
   }
 
   getTypeInfo(className: string): ClassTypeInfo | undefined {
