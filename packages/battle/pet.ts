@@ -58,7 +58,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     accuracy: [100, 0],
     critRate: [100, 0],
     evasion: [100, 0],
-    ragePerTurn: [15, 0],
+    ragePerTurn: [100, 0],
   }
   public element: Element
   public isAlive: boolean = true
