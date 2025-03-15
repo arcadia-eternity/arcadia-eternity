@@ -6,20 +6,6 @@ import { MarkInstance } from './mark'
 import { SkillInstance } from './skill'
 import type { effectId, effectStateId } from '@test-battle/const'
 
-export class EffectState {
-  id: effectStateId;
-  [k: string]: any
-  constructor(id: effectStateId) {
-    this.id = id
-  }
-  get<T>(key: string): T {
-    return this[key]
-  }
-  set<T>(key: string, value: T) {
-    this[key] = value
-  }
-}
-
 export class EffectScheduler {
   constructor() {}
 
@@ -94,9 +80,6 @@ export class Effect<T extends EffectTrigger> implements Prototype, OwnedEntity<S
 
 export interface EffectContainer {
   collectEffects(trigger: EffectTrigger, baseContext: Context): void
-  effectState: {
-    [id: string]: EffectState
-  }
 }
 
 export interface EffectConfig<T extends EffectTrigger> {

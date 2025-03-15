@@ -296,7 +296,7 @@ export class ChainableSelector<T> {
   }
 
   // 最小值限制
-  clampMin(min: number): ChainableSelector<number> {
+  clampMin(min: ValueSource<number>): ChainableSelector<number> {
     return this.mapNumber(min, (v, value) => Math.max(v, value))
   }
 

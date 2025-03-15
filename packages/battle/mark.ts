@@ -18,7 +18,7 @@ import {
   SwitchPetContext,
   TurnContext,
 } from './context'
-import { Effect, type EffectContainer, EffectScheduler, EffectState } from './effect'
+import { Effect, type EffectContainer, EffectScheduler } from './effect'
 import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 import { nanoid } from 'nanoid'
@@ -77,9 +77,6 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
     inheritOnFaint?: boolean
   } = { destroyable: true }
   public readonly tags: string[] = []
-  public readonly effectState: {
-    [id: string]: EffectState
-  } = {}
 
   constructor(
     public readonly base: BaseMark,
@@ -260,17 +257,6 @@ export class MarkInstance implements EffectContainer, OwnedEntity<Battle | Pet |
     this.attachTo(target)
     target.marks.push(this)
     context.battle.cleanupMarks()
-  }
-
-  public setState(id: string, key: string, data: any) {
-    if (!this.effectState[id]) {
-      this.effectState[id] = new EffectState(id as effectStateId)
-    }
-    this.effectState[id][key] = data
-  }
-
-  public getState(id: string, key: string): any {
-    return this.effectState[id]?.[key]
   }
 
   toMessage(): MarkMessage {
