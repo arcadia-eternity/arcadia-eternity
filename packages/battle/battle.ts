@@ -232,8 +232,9 @@ export class Battle extends Context implements MarkOwner {
         case 'surrender': {
           const player = this.getPlayerByID(selection.player)
           this.victor = this.getOpponent(player)
-          this.getVictor()
+
           this.status = BattleStatus.Ended
+          this.getVictor(true)
           return true
         }
         default:
@@ -449,7 +450,7 @@ export class Battle extends Context implements MarkOwner {
     return !!this.playerA.selection && !!this.playerB.selection
   }
 
-  public getVictor(surrender = true) {
+  public getVictor(surrender = false) {
     if (surrender && this.victor) {
       this.emitMessage(BattleMessageType.BattleEnd, { winner: this.victor.id, reason: 'surrender' })
       return this.victor

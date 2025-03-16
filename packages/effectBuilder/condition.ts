@@ -42,7 +42,7 @@ export const Conditions = {
         return context.source === context.parent.skill
       }
       if (context.parent instanceof DamageContext && context.parent.parent instanceof UseSkillContext) {
-        return context.source === context.parent.source
+        return context.source.owner === context.parent.source && context.source === context.parent.parent.skill
       }
       return false
     }
@@ -91,7 +91,7 @@ export const Conditions = {
         context.parent.parent instanceof UseSkillContext &&
         context.source.owner instanceof Pet
       ) {
-        return context.source.owner.owner?.activePet === context.source.owner
+        return context.source.owner === context.parent.target.activePet
       }
       return false
     }

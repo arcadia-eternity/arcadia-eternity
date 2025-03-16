@@ -370,7 +370,7 @@
   config:
     duration: 3
     persistent: true
-    maxStacks: 5
+    maxStacks: 50
     stackable: true
     stackStrategy: extend
     destroyable: true
@@ -384,7 +384,7 @@
   description: 3回合后对手受到300点固定伤害（若精灵换场则不保留）
   config:
     duration: 3
-    persistent: true
+    persistent: false
     maxStacks: 1
     stackable: false
     stackStrategy: extend
@@ -517,6 +517,16 @@
   name: 种子能量
   description: 受到伤害减少20% 被攻击会减少1层
   num: 3019
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 4
+    stackable: true
+    stackStrategy: max
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_zhongzinengliang_damage_reduction
   image_link: =DISPIMG("ID_DB98F9427F804651A5D2B970F9FB22BC",1)
 - id: mark_shoushangfanbei
   name: 受伤翻倍

@@ -189,7 +189,7 @@
   power: 170
   rage: 100
   accuracy: 95
-  description: 必杀技 施展无尽大漩涡淹没对手
+  description: 必杀技 施展无尽大漩涡淹没对手 10%使对手溺水
   sureHit: false
   ignoreShield: false
   tags: []
@@ -429,7 +429,7 @@
   power: 175
   rage: 100
   accuracy: 95
-  description: 必杀技 召唤巨大火焰焚烧一切
+  description: 必杀技 召唤巨大火焰焚烧一切 10%使对手烧伤
   sureHit: false
   ignoreShield: false
   tags: []
@@ -629,6 +629,7 @@
   tags: []
   effect:
     - effect_skill_add_mark_foe_liuxie_with_zhongzinengliang
+    - effect_skill_consume_all_zhongzinengliang
   num: 10044
   evolved_skill_id: -1
 - id: skill_ganrao
@@ -653,7 +654,7 @@
   power: 165
   rage: 100
   accuracy: 95
-  description: 必杀技 呼唤拉奥一族协助攻击并回复自身
+  description: 必杀技 呼唤拉奥一族协助攻击并回复自身 使自身获得5回合的1/8的回复
   sureHit: false
   ignoreShield: false
   tags: []

@@ -11,6 +11,7 @@
     stackable: false
     stackStrategy: extend
     destroyable: false
+    keepOnSwitchOut: true
   effect:
     - effect_ability_amplify_power_consume_ruodian
 - id: mark_ability_yanhuo

@@ -264,14 +264,16 @@ export class Player {
             })
 
           // 受伤者获得怒气
-          const gainedRage = Math.floor(damageContext.damageResult * RAGE_PER_DAMAGE)
+          const gainedRage = Math.floor((damageContext.damageResult * 49) / context.actualTarget.maxHp)
           context.actualTarget.owner!.addRage(
             new RageContext(context, context.actualTarget.owner!, 'damage', 'add', gainedRage),
           )
-
-          context.origin.addRage(new RageContext(context, context.origin, 'skillHit', 'add', 15)) //命中奖励
         }
         this.battle!.applyEffects(context, EffectTrigger.OnHit) // 触发命中特效
+      }
+
+      if (context.category !== Category.Status) {
+        context.origin.addRage(new RageContext(context, context.origin, 'skillHit', 'add', 15)) //命中奖励
       }
 
       if (context.actualTarget.currentHp <= 0) {

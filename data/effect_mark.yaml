@@ -281,7 +281,7 @@
   priority: 0
   apply:
     - type: dealDamage
-      target: foe
+      target: self
       value: &absorb_hp_value
         type: dynamic
         selector:
@@ -297,7 +297,7 @@
               arg:
                 type: dynamic
                 selector:
-                  base: foe
+                  base: self
                   chain:
                     - type: select
                       arg:
@@ -306,7 +306,7 @@
                     - type: divide
                       arg: 8
     - type: heal
-      target: self
+      target: foe
       value: *absorb_hp_value
 - id: effect_mark_posion_damage
   trigger: TurnEnd
@@ -374,8 +374,6 @@
             arg:
               type: base
               arg: stack
-          - type: multiply
-            arg: 10
 - id: effect_mark_self_damage_on_expire
   trigger: OnMarkDurationEnd
   priority: 0
@@ -464,4 +462,17 @@
         - type: selectProp
           arg: currentHp
     value: 1
+  consumesStacks: 1
+- id: effect_zhongzinengliang_damage_reduction
+  trigger: OnDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: -20
+    delta: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
   consumesStacks: 1

@@ -323,8 +323,7 @@
   priority: 0
   apply:
     type: addThreshold
-    target:
-      base: damageContext
+    target: damageContext
     min: 100
   condition: *condition_self_use_skill_template
 - id: effect_skill_add_mark_yanggong
@@ -345,7 +344,7 @@
     target: self
     mark:
       type: entity:baseMark
-      value: mark_jizhong
+      value: mark_bizhong
   condition: *condition_self_use_skill_template
 - id: effect_skill_add_mark_busi
   trigger: OnHit
@@ -394,6 +393,7 @@
     target:
       base: self
     value: 35
+  condition: *condition_self_use_skill_template
 - id: effect_skill_power_4x_below_1_6_hp
   trigger: BeforeUseSkillCheck
   priority: 0
@@ -489,11 +489,12 @@
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: self
     mark:
       type: entity:baseMark
       value: mark_zhongzinengliang
     stack: 4
+  condition: *condition_self_use_skill_template
 - id: effect_skill_consume_all_zhongzinengliang
   trigger: OnHit
   priority: -50
@@ -640,11 +641,18 @@
   trigger: OnHit
   priority: 0
   apply:
-    type: addMark
-    target: foe
-    mark:
-      type: entity:baseMark
-      value: mark_jishengzhadan
+    - type: destroyMark
+      target:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor: baseId
+            evaluator:
+              type: same
+              value: mark_jishengzhadan
+    - type: dealDamage
+      target: foe
+      value: 300
   condition:
     type: every
     conditions:
