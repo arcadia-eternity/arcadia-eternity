@@ -359,8 +359,6 @@ export class AIPlayer extends Player {
   }
 
   private handleBattleMessage(message: BattleMessage) {
-    // 根据message.ts中定义的消息类型处理阶段变更
-
     if (message.type === BattleMessageType.TurnAction && this.battle?.currentPhase === BattlePhase.SelectionPhase) {
       this.decisionPending = true
       this.processAIDecision()
@@ -384,8 +382,6 @@ export class AIPlayer extends Player {
     try {
       const selection = this.makeAIDecision()
       if (selection) {
-        // 模拟网络延迟并提交选择
-        await new Promise(resolve => setTimeout(resolve, 500))
         this.setSelection(selection)
       }
     } catch (error) {
