@@ -1,19 +1,19 @@
 // src/stores/gameData.ts
 import { defineStore } from 'pinia'
 import { GameDataLoader } from '@/utils/gameLoader'
-import type { Species, Skill, Mark, Effect } from '@test-battle/schema'
+import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType, Effect } from '@test-battle/schema'
 
 interface GameDataState {
   species: {
-    byId: Record<string, Species>
+    byId: Record<string, SpeciesSchemaType>
     allIds: string[] // 维护有序ID列表
   }
   skills: {
-    byId: Record<string, Skill>
+    byId: Record<string, SkillSchemaType>
     allIds: string[]
   }
   marks: {
-    byId: Record<string, Mark>
+    byId: Record<string, MarkSchemaType>
     allIds: string[]
   }
   effects: {
@@ -129,21 +129,21 @@ export const useGameDataStore = defineStore('gameData', {
     },
 
     // 修改后的加载方法（保持返回原始数组）
-    async loadSpecies(loader: GameDataLoader): Promise<Species[]> {
-      const data = await loader.load<Species>('species')
+    async loadSpecies(loader: GameDataLoader): Promise<SpeciesSchemaType[]> {
+      const data = await loader.load<SpeciesSchemaType>('species')
       return data
     },
 
-    async loadSkills(loader: GameDataLoader): Promise<Skill[]> {
-      const data = await loader.load<Skill>('skill')
+    async loadSkills(loader: GameDataLoader): Promise<SkillSchemaType[]> {
+      const data = await loader.load<SkillSchemaType>('skill')
       return data
     },
 
-    async loadMarks(loader: GameDataLoader): Promise<Mark[]> {
-      const data = await loader.load<Mark>('mark')
-      const data1 = await loader.load<Mark>('mark_ability')
-      const data2 = await loader.load<Mark>('mark_emblem')
-      const data3 = await loader.load<Mark>('mark_global')
+    async loadMarks(loader: GameDataLoader): Promise<MarkSchemaType[]> {
+      const data = await loader.load<MarkSchemaType>('mark')
+      const data1 = await loader.load<MarkSchemaType>('mark_ability')
+      const data2 = await loader.load<MarkSchemaType>('mark_emblem')
+      const data3 = await loader.load<MarkSchemaType>('mark_global')
 
       // 合并前检查ID冲突
       const allMarks = [...data, ...data1, ...data2, ...data3]

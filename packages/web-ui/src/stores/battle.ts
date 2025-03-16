@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { battleClient } from '../utils/battleClient'
 import { type BattleState, type BattleMessage, BattleMessageType, type petId, type playerId } from '@test-battle/const'
-import type { Player, PlayerSelection } from '@test-battle/schema'
+import type { PlayerSchemaType, PlayerSelectionSchemaType } from '@test-battle/schema'
 import type { ErrorResponse, SuccessResponse } from '@test-battle/protocol'
 
 export const useBattleStore = defineStore('battle', {
@@ -9,7 +9,7 @@ export const useBattleStore = defineStore('battle', {
     battleSessionId: null as string | null,
     state: null as BattleState | null,
     log: [] as BattleMessage[],
-    availableActions: [] as PlayerSelection[],
+    availableActions: [] as PlayerSelectionSchemaType[],
     isMatching: false,
     errorMessage: null as string | null,
     isBattleEnd: false,
@@ -20,7 +20,7 @@ export const useBattleStore = defineStore('battle', {
   }),
 
   actions: {
-    async joinMatchmaking(playerData: Player) {
+    async joinMatchmaking(playerData: PlayerSchemaType) {
       try {
         this.resetBattle()
         this.isMatching = true
@@ -104,7 +104,7 @@ export const useBattleStore = defineStore('battle', {
       this.clearPersistedSession()
     },
 
-    async sendPlayerAction(selection: PlayerSelection) {
+    async sendPlayerAction(selection: PlayerSelectionSchemaType) {
       try {
         await battleClient.sendPlayerAction(selection)
         this.availableActions = []

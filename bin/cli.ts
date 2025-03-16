@@ -4,7 +4,7 @@ import fs from 'fs/promises'
 import yaml from 'yaml'
 import { loadGameData } from '@test-battle/data-repository/loader'
 import { PlayerParser } from '@test-battle/parser'
-import { Battle } from '@test-battle/battle'
+import { AIPlayer, Battle } from '@test-battle/battle'
 import { ConsoleUI } from '@test-battle/console'
 import { Player } from '@test-battle/battle'
 import { ConsoleClient } from '@test-battle/console-client'
@@ -57,21 +57,33 @@ program
 // 主程序
 program
   .command('local')
-  .description('精灵对战命令行工具')
+  .description('精灵对战命令行工具（支持AI对战）')
   .requiredOption('-1, --player1 <path>', '玩家1数据文件路径')
   .requiredOption('-2, --player2 <path>', '玩家2数据文件路径')
+  .option('--ai <players>', '指定AI控制的玩家（支持多个，如：player1,player2）', val => val.split(','))
   .action(async options => {
     try {
-      // 步骤1: 加载游戏数据
       console.log('[🌀] 正在加载游戏数据...')
       await loadGameData()
 
-      // 步骤2: 解析玩家数据
       console.log('[🌀] 正在解析玩家数据...')
-      const player1 = await parsePlayerFile(options.player1)
-      const player2 = await parsePlayerFile(options.player2)
+      let player1 = await parsePlayerFile(options.player1)
+      let player2 = await parsePlayerFile(options.player2)
 
-      // 步骤3: 开始战斗
+      if (options.ai) {
+        const aiPlayers = options.ai.map((p: string) => p.toLowerCase().trim())
+        const createAIPlayer = (basePlayer: Player) => new AIPlayer(basePlayer.name, basePlayer.id, basePlayer.team)
+
+        if (aiPlayers.includes('player1')) {
+          player1 = createAIPlayer(player1)
+          console.log('[🤖] 玩家1已设置为AI控制')
+        }
+        if (aiPlayers.includes('player2')) {
+          player2 = createAIPlayer(player2)
+          console.log('[🤖] 玩家2已设置为AI控制')
+        }
+      }
+
       console.log('[⚔️] 战斗开始！')
       const battle = new Battle(player1, player2, {
         allowFaintSwitch: true,

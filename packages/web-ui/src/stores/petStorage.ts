@@ -1,14 +1,14 @@
 // src/stores/petStorage.ts
 import { defineStore } from 'pinia'
-import type { Pet } from '@test-battle/schema'
+import type { PetSchemaType } from '@test-battle/schema'
 
 interface Team {
   name: string
-  pets: Pet[]
+  pets: PetSchemaType[]
 }
 
 interface PetStorageState {
-  storage: Pet[]
+  storage: PetSchemaType[]
   teams: Team[]
   currentTeamIndex: number
 }
@@ -47,13 +47,13 @@ export const usePetStorageStore = defineStore('petStorage', {
       this.saveToLocal()
     },
 
-    updateTeamOrder(teamIndex: number, newOrder: Pet[]) {
+    updateTeamOrder(teamIndex: number, newOrder: PetSchemaType[]) {
       this.teams[teamIndex].pets = newOrder
       this.saveToLocal()
     },
 
     // 其他方法保持原有逻辑，移除playerId参数
-    addToStorage(pet: Pet) {
+    addToStorage(pet: PetSchemaType) {
       this.storage.push(pet)
       this.saveToLocal()
     },
@@ -101,7 +101,7 @@ export const usePetStorageStore = defineStore('petStorage', {
       this.saveToLocal()
     },
 
-    getCurrentTeam(): Pet[] {
+    getCurrentTeam(): PetSchemaType[] {
       return this.teams[this.currentTeamIndex].pets
     },
 
@@ -119,7 +119,7 @@ export const usePetStorageStore = defineStore('petStorage', {
       this.saveToLocal()
     },
 
-    updateTeam(index: number, newTeam: Pet[]) {
+    updateTeam(index: number, newTeam: PetSchemaType[]) {
       this.teams[index].pets = newTeam
     },
 
@@ -143,7 +143,7 @@ export const usePetStorageStore = defineStore('petStorage', {
     },
   },
   getters: {
-    currentTeam(): Pet[] {
+    currentTeam(): PetSchemaType[] {
       return this.teams[this.currentTeamIndex].pets
     },
   },

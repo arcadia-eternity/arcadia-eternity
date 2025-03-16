@@ -1,4 +1,4 @@
-import { Battle, MarkInstance, Pet, Player, BaseSkill, SkillInstance } from '@test-battle/battle'
+import { Battle, MarkInstance, Pet, Player, BaseSkill, SkillInstance, AIPlayer } from '@test-battle/battle'
 import {
   type BattleMessage,
   BattleMessageType,
@@ -332,25 +332,47 @@ export class ConsoleUI {
     while (!generator.done) {
       const lastMessage = this.messages.findLast(() => true)
 
+      const pendingSwitchAI = this.battle.pendingDefeatedPlayers.find(p => p instanceof AIPlayer)
+      if (pendingSwitchAI) {
+        console.log(`🤖 ${pendingSwitchAI.name} 正在处理强制换宠...`)
+        await new Promise(resolve => setTimeout(resolve, 800))
+        generator = battle.next()
+        continue
+      }
+
+      const currentPlayer = this.getCurrentActivePlayer()
+      if (currentPlayer && currentPlayer instanceof AIPlayer) {
+        console.log(`🤖 ${currentPlayer.name} 正在思考...`)
+        await new Promise(resolve => setTimeout(resolve, 1000)) // 等待AI决策
+        generator = battle.next()
+        continue
+      }
+
       // 处理强制换宠阶段
       if (lastMessage?.type == BattleMessageType.ForcedSwitch) {
         const player = this.battle.getPendingSwitchPlayer()
-        if (player && !player.selection) {
+        if (player && !player.selection && !(player instanceof AIPlayer)) {
           console.log(`\n==== ${player.name} 必须更换倒下的精灵 ====`)
           let action: PlayerSelection
           do {
             action = await this.getForcedSwitchAction(player)
           } while (!player.setSelection(action))
           generator = battle.next()
-          continue
         }
+        continue
       }
 
       // 处理击破奖励换宠
       if (lastMessage?.type == BattleMessageType.FaintSwitch) {
         console.log(`\n==== ${lastMessage.data.player} 获得击破奖励换宠机会 ====`)
-        const player = [this.playerA, this.playerB].find(player => player.id === lastMessage.data.player)
-        if (!player) continue
+        const player = [this.playerA, this.playerB]
+          .filter(p => !(p instanceof AIPlayer))
+          .find(player => player.id === lastMessage.data.player)
+        if (!player) {
+          await new Promise(resolve => setTimeout(resolve, 1000)) // 等待AI决策
+          generator = battle.next()
+          continue
+        }
         let action: PlayerSelection
         do {
           action = await this.handleFaintSwitch(player)
@@ -363,6 +385,7 @@ export class ConsoleUI {
         // 获取当前需要操作的玩家
         const currentPlayer = this.getCurrentActivePlayer()
         if (!currentPlayer) {
+          await new Promise(resolve => setTimeout(resolve, 1000)) // 等待AI决策
           generator = battle.next()
           continue
         }
@@ -378,15 +401,15 @@ export class ConsoleUI {
   }
 
   private getCurrentActivePlayer(): Player | null {
+    const humanPlayers = [this.playerA, this.playerB].filter(p => !(p instanceof AIPlayer))
+
     // 优先处理强制换宠
     if (this.battle.pendingDefeatedPlayers.length > 0) {
-      return null
+      return this.battle.pendingDefeatedPlayers.find(p => !(p instanceof AIPlayer)) || null
     }
 
-    // 正常回合按顺序处理
-    if (!this.playerA.selection) return this.playerA
-    if (!this.playerB.selection) return this.playerB
-    return null
+    // 正常回合按顺序处理人类玩家
+    return humanPlayers.find(p => !p.selection) || null
   }
 
   private async handleFaintSwitch(player: Player): Promise<PlayerSelection> {

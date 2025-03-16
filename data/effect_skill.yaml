@@ -501,12 +501,8 @@
   apply:
     type: consumeStacks
     target:
-      base: self
+      base: selfMarks
       chain:
-        - type: select
-          arg:
-            type: base
-            arg: marks
         - type: whereAttr
           extractor:
             type: base

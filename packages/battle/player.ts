@@ -44,7 +44,7 @@ export class Player {
     this.messageCallbacks.forEach(cb => cb(message))
   }
 
-  private handleMessage(message: BattleMessage) {
+  public handleMessage(message: BattleMessage) {
     if (message.type === BattleMessageType.BattleState) {
       message.data.players[message.data.players.findIndex(p => p.id === this.id)] = this.toMessage(this.id)
     }
@@ -341,5 +341,113 @@ export class Player {
 
   public getState(): BattleState {
     return this.battle!.toMessage(this.id)
+  }
+}
+export class AIPlayer extends Player {
+  private decisionPending = false
+  private phaseChangeRegistered = false
+  constructor(name: string, id: playerId, team: Pet[]) {
+    super(name, id, team)
+    this.registerPhaseListener()
+  }
+
+  private registerPhaseListener() {
+    if (!this.phaseChangeRegistered) {
+      this.registerListener(this.handleBattleMessage.bind(this))
+      this.phaseChangeRegistered = true
+    }
+  }
+
+  private handleBattleMessage(message: BattleMessage) {
+    // 根据message.ts中定义的消息类型处理阶段变更
+
+    if (message.type === BattleMessageType.TurnAction && this.battle?.currentPhase === BattlePhase.SelectionPhase) {
+      this.decisionPending = true
+      this.processAIDecision()
+      return
+    }
+
+    if (message.type === BattleMessageType.ForcedSwitch && message.data.player.includes(this.id)) {
+      this.handleForcedSwitch()
+      return
+    }
+
+    if (message.type === BattleMessageType.FaintSwitch && message.data.player === this.id) {
+      this.handleFaintSwitch()
+      return
+    }
+  }
+
+  private async processAIDecision() {
+    if (!this.decisionPending || !this.battle) return
+
+    try {
+      const selection = this.makeAIDecision()
+      if (selection) {
+        // 模拟网络延迟并提交选择
+        await new Promise(resolve => setTimeout(resolve, 500))
+        this.setSelection(selection)
+      }
+    } catch (error) {
+      this.battle.emitMessage(BattleMessageType.Error, {
+        message: `AI决策失败: ${error instanceof Error ? error.message : '未知错误'}`,
+      })
+    } finally {
+      this.decisionPending = false
+    }
+  }
+
+  private async handleForcedSwitch() {
+    const switchActions = this.getAvailableSwitch()
+    if (switchActions.length > 0) {
+      const selection = this.selectRandom(switchActions)
+      this.setSelection(selection)
+    }
+  }
+
+  private async handleFaintSwitch() {
+    const availableActions = [
+      { type: 'do-nothing', player: this.id } as DoNothingSelection,
+      ...this.getAvailableSwitch(),
+    ]
+    console.log('emm')
+    const selection = this.selectRandom(availableActions)
+    this.setSelection(selection)
+  }
+
+  public makeAIDecision(): PlayerSelection {
+    const availableActions = this.getAvailableSelection()
+
+    // Filter powerful skill actions (power > 80)
+    const powerfulSkills = availableActions.filter(action => {
+      if (action.type !== 'use-skill') return false
+      const skill = this.battle!.getSkillByID(action.skill)
+      return skill.power > 80
+    })
+    if (powerfulSkills.length > 0) {
+      return this.selectRandom(powerfulSkills)
+    }
+
+    // Check for emergency switch condition
+    const switchActions = availableActions.filter(a => a.type === 'switch-pet')
+    if (this.shouldEmergencySwitch() && switchActions.length > 0) {
+      return this.selectRandom(switchActions)
+    }
+
+    // Filter out surrender and do-nothing for priority selection
+    const combatActions = availableActions.filter(a => a.type === 'use-skill' || a.type === 'switch-pet')
+
+    return combatActions.length > 0 ? this.selectRandom(combatActions) : this.selectRandom(availableActions) // Fallback to any remaining action
+  }
+
+  private shouldEmergencySwitch(): boolean {
+    return this.activePet.currentHp / this.activePet.maxHp < 0.3
+  }
+
+  private selectRandom<T extends PlayerSelection>(actions: T[]): T {
+    if (actions.length === 0) {
+      throw new Error('No actions available for random selection')
+    }
+    return actions[Math.floor(Math.random() * actions.length)]
   }
 }
