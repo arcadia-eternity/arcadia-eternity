@@ -2,6 +2,7 @@ import {
   AddMarkContext,
   BaseMark,
   BaseSkill,
+  type ConfigValue,
   DamageContext,
   Effect,
   EffectContext,
@@ -9,7 +10,9 @@ import {
   type MarkInstance,
   Pet,
   Player,
+  type ScopeObject,
   SkillInstance,
+  UpdateStatContext,
   UseSkillContext,
 } from '@test-battle/battle'
 import {
@@ -337,6 +340,8 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseSetValue(effectId, dsl)
     case 'toggle':
       return parseToggle(effectId, dsl)
+    case 'setConfig':
+      return parseSetconfig(effectId, dsl)
   }
 }
 
@@ -404,11 +409,11 @@ export function parseConsumeStacksAction(effectId: string, dsl: Extract<Operator
 
 // Stat modification pattern [source_id: parse.ts]
 export function parseModifyStatAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'modifyStat' }>) {
-  return parseSelector<Pet>(effectId, dsl.target).apply(
+  return parseSelector<UpdateStatContext>(effectId, dsl.target).apply(
     Operators.modifyStat(
       parseValue(effectId, dsl.statType) as ValueSource<StatTypeOnBattle>,
-      parseValue(effectId, dsl.value) as ValueSource<number>,
-      parseValue(effectId, dsl.percent) as ValueSource<number>,
+      parseValue(effectId, dsl.delta ?? 0) as ValueSource<number>,
+      parseValue(effectId, dsl.percent ?? 0) as ValueSource<number>,
     ),
   )
 }
@@ -618,6 +623,15 @@ function parseSetValue(effectId: string, dsl: Extract<OperatorDSL, { type: 'setV
 
 function parseToggle(effectId: string, dsl: Extract<OperatorDSL, { type: 'toggle' }>) {
   return parseSelector<PropertyRef<any, boolean>>(effectId, dsl.target).apply(Operators.toggle())
+}
+
+function parseSetconfig(effectId: string, dsl: Extract<OperatorDSL, { type: 'setConfig' }>) {
+  return parseSelector<ScopeObject>(effectId, dsl.target).apply(
+    Operators.setConfig(
+      parseValue(effectId, dsl.key) as ValueSource<string>,
+      parseValue(effectId, dsl.value) as ValueSource<ConfigValue>,
+    ),
+  )
 }
 
 export function parseCondition(effectId: string, dsl: ConditionDSL): Condition {

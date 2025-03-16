@@ -45,7 +45,8 @@
               "OnOwnerSwitchIn",
               "OnOwnerSwitchOut",
               "BeforeEffect",
-              "AfterEffect"
+              "AfterEffect",
+              "OnUpdateStat"
             ]
           },
           "priority": {
@@ -84,7 +85,9 @@
                               "dataMarks",
                               "healContext",
                               "addMarkContext",
-                              "rageContext"
+                              "rageContext",
+                              "battle",
+                              "updateStatContext"
                             ]
                           },
                           {
@@ -742,6 +745,23 @@
                                         "arg"
                                       ],
                                       "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "const": "configGet"
+                                        },
+                                        "key": {
+                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "key"
+                                      ],
+                                      "additionalProperties": false
                                     }
                                   ]
                                 }
@@ -868,19 +888,19 @@
                       "statType": {
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       },
-                      "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      "delta": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value",
+                        "default": 0
                       },
                       "percent": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value",
+                        "default": 0
                       }
                     },
                     "required": [
                       "type",
                       "target",
-                      "statType",
-                      "value",
-                      "percent"
+                      "statType"
                     ],
                     "additionalProperties": false
                   },
@@ -1638,6 +1658,31 @@
                     "required": [
                       "type",
                       "target"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "setConfig"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target"
+                      },
+                      "key": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "key",
+                      "value"
                     ],
                     "additionalProperties": false
                   }

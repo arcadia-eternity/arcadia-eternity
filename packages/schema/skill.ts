@@ -1,11 +1,13 @@
 import { z } from 'zod'
 import { ElementSchema } from './element'
-import { Category } from '@test-battle/const'
+import { Category, IgnoreStageStrategy } from '@test-battle/const'
 import { AttackTargetOpinion } from '@test-battle/const'
 
 export const CategorySchema = z.nativeEnum(Category)
 
 export const AttackTargetOpinionSchema = z.nativeEnum(AttackTargetOpinion)
+
+export const ignoreStageStrategySchema = z.nativeEnum(IgnoreStageStrategy)
 
 export const SkillSchema = z
   .object({
@@ -30,6 +32,7 @@ export const SkillSchema = z
     sureHit: z.boolean().default(false),
     sureCrit: z.boolean().default(false),
     ignoreShield: z.boolean().default(false),
+    ignoreFoeStageStrategy: ignoreStageStrategySchema.default(IgnoreStageStrategy.none),
     tags: z.array(z.string()).default([]),
     effect: z.array(z.string()).optional(),
   })

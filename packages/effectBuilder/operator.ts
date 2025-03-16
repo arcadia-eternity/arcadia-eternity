@@ -14,9 +14,16 @@ import {
   RageContext,
   type ScopeObject,
   SkillInstance,
+  UpdateStatContext,
   UseSkillContext,
 } from '@test-battle/battle'
-import { EffectTrigger, StackStrategy, type StatTypeOnBattle, StatTypeWithoutHp } from '@test-battle/const'
+import {
+  CleanStageStrategy,
+  EffectTrigger,
+  StackStrategy,
+  type StatTypeOnBattle,
+  StatTypeWithoutHp,
+} from '@test-battle/const'
 import type { ConfigValueSource, Operator } from './effectBuilder'
 import { ChainableSelector, type PrimitiveOpinion, type PropertyRef, type SelectorOpinion } from './selector'
 import { type ValueSource } from './effectBuilder'
@@ -98,13 +105,13 @@ export const Operators = {
 
   modifyStat:
     (stat: ValueSource<StatTypeOnBattle>, percent: ValueSource<number>, value: ValueSource<number>) =>
-    (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
-      targets.forEach(pet => {
+    (context: EffectContext<EffectTrigger>, targets: UpdateStatContext[]) => {
+      targets.forEach(contexts => {
         const _stat = GetValueFromSource(context, stat)[0]
         const _percent = GetValueFromSource(context, percent)[0] ?? 0
         const _value = GetValueFromSource(context, value)[0] ?? 0
-        pet.statModifiers[_stat][0] += _percent
-        pet.statModifiers[_stat][1] += _value
+        contexts.stat[_stat] += _value
+        contexts.stat[_stat] *= (100 + _percent) / 100
       })
     },
 
@@ -148,10 +155,11 @@ export const Operators = {
     },
 
   clearStatStage:
-    (statType?: ValueSource<StatTypeWithoutHp>) => (context: EffectContext<EffectTrigger>, target: Pet[]) => {
+    (statType?: ValueSource<StatTypeWithoutHp>, cleanStageStrategy: CleanStageStrategy = CleanStageStrategy.positive) =>
+    (context: EffectContext<EffectTrigger>, target: Pet[]) => {
       const _statTypes = statType ? GetValueFromSource(context, statType) : undefined
       if (!_statTypes) target.forEach(v => v.clearStatStage(context))
-      else target.forEach(v => v.clearStatStage(context, ..._statTypes))
+      else target.forEach(v => v.clearStatStage(context, cleanStageStrategy, ..._statTypes))
     },
 
   setValue: <U extends SelectorOpinion, V extends PrimitiveOpinion>(
@@ -410,11 +418,12 @@ export const Operators = {
     }
   },
 
-  setConfig: (key: string, value: ValueSource<ConfigValue>): Operator<ScopeObject> => {
+  setConfig: (key: ValueSource<string>, value: ValueSource<ConfigValue>): Operator<ScopeObject> => {
     return (context, targets) => {
       const _value = GetValueFromSource(context, value)
-      if (_value.length === 0) return
-      targets.forEach(t => context.battle.configSystem.set(key, _value[0], t))
+      const _key = GetValueFromSource(context, key)
+      if (_value.length === 0 || _key.length === 0) return
+      targets.forEach(t => context.battle.configSystem.set(_key[0], _value[0], t))
     }
   },
 }

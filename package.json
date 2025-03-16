@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "generate": "pnpm --filter @test-battle/schema run generate",
-    "cli": "tsx ./bin/cli.ts"
+    "cli": "tsx ./bin/cli.ts",
+    "web:dev": "pnpm --filter @test-battle/web-ui run dev"
   },
   "dependencies": {
     "@test-battle/battle": "workspace:^",

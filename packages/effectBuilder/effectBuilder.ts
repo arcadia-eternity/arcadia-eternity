@@ -1,8 +1,7 @@
 import { ConfigSystem, Effect, EffectContext } from '@test-battle/battle'
 import { EffectTrigger, type effectId } from '@test-battle/const'
-import { BaseSelector, type ChainableSelector } from './selector'
+import { type ChainableSelector } from './selector'
 import { nanoid } from 'nanoid'
-import { Operators } from 'operator'
 
 export type ValueExtractor<T, U> = (target: T) => U
 

@@ -23,12 +23,13 @@ import {
   RageContext,
   RemoveMarkContext,
   SwitchPetContext,
+  UpdateStatContext,
 } from './context'
 import type { Instance, MarkOwner, OwnedEntity, Prototype } from './entity'
 import { BaseMark, CreateStatStageMark, type MarkInstance, StatLevelMarkInstanceImpl } from './mark'
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
-import { Gender } from '@test-battle/const'
+import { CleanStageStrategy, Gender, IgnoreStageStrategy } from '@test-battle/const'
 
 export interface Species extends Prototype {
   id: speciesId //约定:id为原中文名的拼音拼写
@@ -48,18 +49,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public currentHp: number
   public baseCritRate: number = 0.07 // 暴击率默认为7%
   public baseAccuracy: number = 100 // 命中率默认为100%
-  public statStage: StatStage = { atk: 1, def: 1, spa: 1, spd: 1, spe: 1 } //能力等级
-  public statModifiers: StatBuffOnBattle = {
-    atk: [100, 0],
-    def: [100, 0],
-    spa: [100, 0],
-    spd: [100, 0],
-    spe: [100, 0],
-    accuracy: [100, 0],
-    critRate: [100, 0],
-    evasion: [100, 0],
-    ragePerTurn: [100, 0],
-  }
+  public statStage: StatStage = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 } //能力等级
   public element: Element
   public isAlive: boolean = true
   public lastUseSkill: SkillInstance | null = null
@@ -115,6 +105,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       emblemMark.setOwner(this)
       this.marks.push(emblemMark)
     }
+    this.updateStat()
   }
 
   get currentRage() {
@@ -217,6 +208,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     // 优先抵消互斥印记
     if (existingOppositeMark) {
       existingOppositeMark.tryStack(context) // 触发抵消逻辑
+      this.updateStat()
       return
     }
 
@@ -232,6 +224,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
         this.statStage[newMark.statType] = newMark.level
       }
     }
+    this.updateStat()
   }
 
   public removeMark(context: RemoveMarkContext) {
@@ -240,6 +233,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       if (filltered) mark.destroy(context)
       return false
     })
+    this.updateStat()
   }
 
   private getShieldMark() {
@@ -262,9 +256,8 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     const iv = this.ivs[type]
     const ev = this.evs[type]
     const base = Math.floor(((2 * baseStat + iv + Math.floor(ev / 4)) * level) / 100 + 5) * natureMultiplier
-    const result = (base + this.statModifiers[type][1]) * (this.statModifiers[type][0] / 100)
 
-    return result
+    return base
   }
 
   private calculateStatOnlyBattle(type: StatTypeOnBattle): number {
@@ -280,7 +273,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     } else {
       return this.calculateStatWithoutHp(type)
     }
-    return ((base + this.statModifiers[type][1]) * this.statModifiers[type][0]) / 100
+    return base
   }
 
   private calculateMaxHp(): number {
@@ -296,7 +289,19 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     this.owner = player
   }
 
-  get stat(): StatOnBattle {
+  public stat: StatOnBattle = {
+    atk: 0,
+    def: 0,
+    spa: 0,
+    spd: 0,
+    spe: 0,
+    accuracy: 100,
+    critRate: 0.07,
+    evasion: 0,
+    ragePerTurn: 15,
+  }
+
+  updateStat() {
     const stat = {
       atk: this.calculateStat(StatTypeWithoutHp.atk),
       def: this.calculateStat(StatTypeWithoutHp.def),
@@ -308,25 +313,58 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       evasion: this.calculateStat(StatTypeOnlyBattle.evasion),
       ragePerTurn: this.calculateStat(StatTypeOnlyBattle.ragePerTurn),
     }
-
-    return stat
+    this.owner?.battle?.applyEffects(
+      new UpdateStatContext(this.owner.battle, stat, this),
+      EffectTrigger.OnUpdateStat,
+      ...this.marks,
+    )
+    this.stat = stat
   }
 
   get actualStat(): StatOnBattle {
-    const base = this.stat
+    return this.getEffectiveStat()
+  }
+
+  public getEffectiveStat(ignoreMark = false, ignoreStageStrategy = IgnoreStageStrategy.none): StatOnBattle {
+    // Start with base stats
+    const baseStats = { ...this.stat }
+
+    // If we're ignoring marks, return base stats
+    if (ignoreMark) {
+      return baseStats
+    }
+
+    // Get stage modifiers
     const modifiers = this.calculateStageModifiers()
 
-    return {
-      atk: modifiers.atk ?? base.atk,
-      def: modifiers.def ?? base.def,
-      spa: modifiers.spa ?? base.spa,
-      spd: modifiers.spd ?? base.spd,
-      spe: modifiers.spe ?? base.spe,
-      accuracy: modifiers.accuracy ?? base.accuracy,
-      evasion: modifiers.evasion ?? base.evasion,
-      critRate: modifiers.critRate ?? base.critRate,
-      ragePerTurn: modifiers.ragePerTurn ?? base.ragePerTurn,
-    }
+    // Apply modifiers based on strategy
+    return Object.entries(baseStats).reduce((result, [statKey, baseValue]) => {
+      const statType = statKey as keyof StatOnBattle
+      const modifier = modifiers[statType]
+
+      // If no modifier exists, keep base value
+      if (!modifier) {
+        result[statType] = baseValue
+        return result
+      }
+
+      // Determine if we should apply the modifier based on strategy
+      const shouldApplyModifier = (() => {
+        switch (ignoreStageStrategy) {
+          case IgnoreStageStrategy.all:
+            return false
+          case IgnoreStageStrategy.positive:
+            return modifier <= baseValue
+          case IgnoreStageStrategy.negative:
+            return modifier >= baseValue
+          default:
+            return true
+        }
+      })()
+
+      result[statType] = shouldApplyModifier ? modifier : baseValue
+      return result
+    }, {} as StatOnBattle)
   }
 
   private calculateStageModifiers(): Partial<Record<StatTypeOnBattle, number>> {
@@ -352,28 +390,72 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   // 清理能力等级时同时清除相关印记
-  public clearStatStage(context: EffectContext<EffectTrigger>, ...statTypes: StatTypeWithoutHp[]) {
+  public clearStatStage(
+    context: EffectContext<EffectTrigger>,
+    cleanStageStrategy = CleanStageStrategy.positive,
+    ...statTypes: StatTypeWithoutHp[]
+  ) {
     if (!statTypes || statTypes.length === 0) {
-      // Clear all stat stages
-      this.statStage = { atk: 1, def: 1, spa: 1, spd: 1, spe: 1 }
+      const shouldClearStage = (stage: number) => {
+        return (
+          cleanStageStrategy === CleanStageStrategy.all ||
+          (cleanStageStrategy === CleanStageStrategy.positive && stage >= 1) ||
+          (cleanStageStrategy === CleanStageStrategy.negative && stage <= -1)
+        )
+      }
+
+      // 记录被清理的状态类型
+      const clearedStats = new Set<StatTypeWithoutHp>()
+
+      if (!statTypes || statTypes.length === 0) {
+        // 收集需要清理的状态类型
+        Object.entries(this.statStage).forEach(([stat, stage]) => {
+          const statType = stat as StatTypeWithoutHp
+          if (shouldClearStage(stage)) {
+            clearedStats.add(statType)
+            this.statStage[statType] = 1
+          }
+        })
+      } else {
+        statTypes.forEach(statType => {
+          const stage = this.statStage[statType]
+          if (shouldClearStage(stage)) {
+            clearedStats.add(statType)
+            this.statStage[statType] = 1
+          }
+        })
+      }
+
+      // 根据记录的statType清理标记
       this.marks = this.marks.filter(mark => {
-        if (mark instanceof StatLevelMarkInstanceImpl) {
-          mark.destroy(context)
+        if (!(mark instanceof StatLevelMarkInstanceImpl)) {
+          return true
+        }
+        // 使用清除前的状态类型记录进行判断
+        if (clearedStats.has(mark.statType)) {
+          mark.destroy(new RemoveMarkContext(context, mark))
           return false
         }
         return true
       })
     } else {
-      // Clear only specified stat stages
+      // Clear only specified stat stages based on strategy
       statTypes.forEach(statType => {
-        this.statStage[statType] = 1
-        this.marks = this.marks.filter(mark => {
-          if (mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType) {
-            mark.destroy(context)
-            return false
-          }
-          return true
-        })
+        const stage = this.statStage[statType]
+        const shouldClear =
+          cleanStageStrategy === CleanStageStrategy.all ||
+          (cleanStageStrategy === CleanStageStrategy.positive && stage > 1) ||
+          (cleanStageStrategy === CleanStageStrategy.negative && stage < 1)
+        if (shouldClear) {
+          this.statStage[statType] = 1
+          this.marks = this.marks.filter(mark => {
+            if (mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType) {
+              mark.destroy(new RemoveMarkContext(context, mark))
+              return false
+            }
+            return true
+          })
+        }
       })
     }
   }

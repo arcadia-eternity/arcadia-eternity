@@ -9,6 +9,7 @@ import { Effect, type EffectContainer } from './effect'
 import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 import { nanoid } from 'nanoid'
+import { IgnoreStageStrategy } from '@test-battle/const'
 
 export class BaseSkill implements Prototype {
   public readonly effects: Effect<EffectTrigger>[] = []
@@ -27,6 +28,7 @@ export class BaseSkill implements Prototype {
     public readonly sureHit: boolean = false,
     public readonly sureCrit: boolean = false,
     public readonly ignoreShield: boolean = false,
+    public readonly ignoreFoeStageStrategy: IgnoreStageStrategy = IgnoreStageStrategy.none,
     public readonly tags: string[] = [],
     effects: Effect<EffectTrigger>[] = [],
   ) {
@@ -47,6 +49,7 @@ export class BaseSkill implements Prototype {
     #sureHit: boolean = false
     #sureCrit: boolean = false
     #ignoreShield: boolean = false
+    #ignoreFoeStageStrategy: IgnoreStageStrategy = IgnoreStageStrategy.none
     #multihit: [number, number] | number = 0
     #tags: string[] = []
 
@@ -128,6 +131,7 @@ export class BaseSkill implements Prototype {
         this.#sureHit,
         this.#sureCrit,
         this.#ignoreShield,
+        this.#ignoreFoeStageStrategy,
         this.#tags,
         this.#effects,
       )

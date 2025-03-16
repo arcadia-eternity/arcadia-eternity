@@ -17,6 +17,7 @@ import {
   RageContext,
   RemoveMarkContext,
   SwitchPetContext,
+  type TriggerContextMap,
   TurnContext,
   UseSkillContext,
 } from './context'
@@ -181,7 +182,11 @@ export class Battle extends Context implements MarkOwner {
     return skill
   }
 
-  public applyEffects<T extends EffectTrigger>(context: AllContext, trigger: T, ...target: EffectContainer[]) {
+  public applyEffects<T extends EffectTrigger>(
+    context: TriggerContextMap[T],
+    trigger: T,
+    ...target: EffectContainer[]
+  ) {
     let effectContainers = [...target]
     if (target.length == 0)
       effectContainers = [

@@ -91,7 +91,7 @@ export const Conditions = {
         context.parent.parent instanceof UseSkillContext &&
         context.source.owner instanceof Pet
       ) {
-        return context.source.owner.owner === context.parent.target
+        return context.source.owner.owner?.activePet === context.source.owner
       }
       return false
     }

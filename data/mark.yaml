@@ -222,7 +222,6 @@
   effect:
     - effect_mark_turn_damage
     - effect_mark_reduce_accuracy_10
-    - effect_mark_reset_accuracy_10
   image_link: =DISPIMG("ID_87610E281900458085D77BDB74E938E8",1)
 - id: mark_shaoshang
   name: 烧伤
@@ -232,7 +231,6 @@
   effect:
     - effect_mark_turn_damage
     - effect_mark_decrease_atk
-    - effect_mark_decrease_atk_reset
   image_link: =DISPIMG("ID_135E0F7DDB964C08B9AB0D0D434E1417",1)
 - id: mark_dongshang
   name: 冻伤
@@ -242,7 +240,6 @@
   effect:
     - effect_mark_turn_damage
     - effect_mark_decrease_spa
-    - effect_mark_decrease_spa_reset
   image_link: =DISPIMG("ID_5B72F7DFECF74B6B8FBF6EA3A84A8F45",1)
 - id: mark_zhongdu
   name: 中毒
@@ -267,7 +264,6 @@
   config: *status_config
   effect:
     - effect_mark_reduce_accuracy_50
-    - effect_mark_restore_accuracy_50
   num: 1005
   image_link: =DISPIMG("ID_A51787F6228C463F83DA04708EDD5729",1)
 - id: mark_shiming
@@ -276,7 +272,6 @@
   config: *status_config
   effect:
     - effect_mark_reduce_accuracy_50
-    - effect_mark_restore_accuracy_50
   num: 1006
   image_link: =DISPIMG("ID_FE9FD6F3674D4A65BD776A2B361D449B",1)
 - id: mark_jisheng
@@ -367,8 +362,7 @@
     destroyable: true
     keepOnSwitchOut: true
   effect:
-    - effect_mark_reduce_speed_on_mark_create
-    - effect_mark_restore_speed_on_mark_destroy
+    - effect_mark_reduce_speed_ruodian
   image_link: =DISPIMG("ID_F4DE2FABEC114FB498CA90C6A6861C41",1)
 - id: mark_yishang
   name: 易伤
@@ -463,7 +457,6 @@
   num: 3013
   effect:
     - effect_mark_reduce_accuracy_15
-    - effect_mark_reset_accuracy_15
   image_link: =DISPIMG("ID_51DF4638C2674A8EAD992C8F19A231CB",1)
 - id: mark_yanggong
   name: 佯攻

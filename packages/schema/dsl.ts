@@ -46,8 +46,8 @@ export type OperatorDSL =
       type: 'modifyStat'
       target: SelectorDSL
       statType: Value
-      value: Value
-      percent: Value
+      delta?: Value
+      percent?: Value
     }
   | {
       type: 'statStageBuff'
@@ -218,6 +218,12 @@ export type OperatorDSL =
       type: 'toggle'
       target: SelectorDSL
     }
+  | {
+      type: 'setConfig'
+      target: SelectorDSL
+      key: Value
+      value: Value
+    }
 
 export type RawNumberValue = {
   type: 'raw:number'
@@ -361,6 +367,10 @@ export type SelectorChain =
   | {
       type: 'clampMin'
       arg: Value
+    }
+  | {
+      type: 'configGet'
+      key: Value
     }
 
 export type EvaluatorDSL =

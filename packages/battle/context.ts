@@ -53,6 +53,7 @@ export class UseSkillContext extends Context {
   rage: number = 0
   evasion: number = 100
   critRate: number = 0.07
+  ignoreShield = false
 
   hitOverrides: {
     willHit: boolean
@@ -64,7 +65,6 @@ export class UseSkillContext extends Context {
     priority: number
   }[] = []
 
-  ignoreShield = false
   multihit: [number, number] | number = 1
 
   available: boolean = true
@@ -282,7 +282,7 @@ export class RageContext extends Context {
   updateRageChangeResult() {
     const percentModifier = 1 + this.modified[0] / 100
     const deltaModifier = this.modified[1]
-    this.rageChangeResult = this.value * percentModifier + deltaModifier
+    this.rageChangeResult = Math.floor(this.value * percentModifier + deltaModifier)
   }
 
   addModified: (percent: number, delta: number) => void = (percent, delta) => {
@@ -452,8 +452,7 @@ export class RemoveMarkContext extends Context {
   public readonly battle: Battle
   public readonly available: boolean = true
   constructor(
-    public readonly parent: EffectContext<EffectTrigger>,
-    public target: Pet,
+    public readonly parent: EffectContext<EffectTrigger> | DamageContext | AddMarkContext | TurnContext,
     public mark: MarkInstance,
   ) {
     super(parent)
@@ -462,7 +461,7 @@ export class RemoveMarkContext extends Context {
 }
 
 export class UpdateStatContext extends Context {
-  readonly type = 'add-mark'
+  readonly type = 'update-stat'
   public readonly battle: Battle
   public readonly available: boolean = true
   constructor(
@@ -475,7 +474,7 @@ export class UpdateStatContext extends Context {
   }
 }
 
-type TriggerContextMap = {
+export type TriggerContextMap = {
   [EffectTrigger.OnBattleStart]: Battle
 
   [EffectTrigger.BeforeSort]: UseSkillContext
@@ -504,8 +503,8 @@ type TriggerContextMap = {
   [EffectTrigger.OnMarkDestroy]: RemoveMarkContext
   [EffectTrigger.OnMarkDurationEnd]: TurnContext
 
-  [EffectTrigger.OnStack]: EffectContext<EffectTrigger>
-  [EffectTrigger.OnHeal]: EffectContext<EffectTrigger>
+  [EffectTrigger.OnStack]: AddMarkContext
+  [EffectTrigger.OnHeal]: HealContext
   [EffectTrigger.OnRageGain]: RageContext
   [EffectTrigger.OnRageLoss]: RageContext
 

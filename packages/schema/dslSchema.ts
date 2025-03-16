@@ -170,6 +170,10 @@ export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
       type: z.literal('clampMin'),
       arg: valueSchema,
     }),
+    z.object({
+      type: z.literal('configGet'),
+      key: valueSchema,
+    }),
   ]),
 )
 
@@ -257,8 +261,8 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       type: z.literal('modifyStat'),
       target: selectorDSLSchema,
       statType: valueSchema,
-      value: valueSchema,
-      percent: valueSchema,
+      delta: valueSchema.default(0),
+      percent: valueSchema.default(0),
     }),
     z.object({
       type: z.literal('statStageBuff'),
@@ -428,6 +432,12 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
     z.object({
       type: z.literal('toggle'),
       target: selectorDSLSchema,
+    }),
+    z.object({
+      type: z.literal('setConfig'),
+      target: selectorDSLSchema,
+      key: valueSchema,
+      value: valueSchema,
     }),
   ]),
 )

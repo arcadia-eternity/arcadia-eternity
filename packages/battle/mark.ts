@@ -188,7 +188,7 @@ export class MarkInstanceImpl implements MarkInstance {
 
     if (expired) {
       context.battle.applyEffects(context, EffectTrigger.OnMarkDurationEnd, this)
-      this.destroy(context)
+      this.destroy(new RemoveMarkContext(context, this))
     }
 
     return expired
@@ -253,7 +253,11 @@ export class MarkInstanceImpl implements MarkInstance {
     this.stack -= actual
 
     if (this.stack <= 0) {
-      this.destroy(context)
+      this.destroy(new RemoveMarkContext(context, this))
+    }
+
+    if (this.owner instanceof Pet) {
+      this.owner.updateStat()
     }
 
     return actual
@@ -277,15 +281,7 @@ export class MarkInstanceImpl implements MarkInstance {
       })
   }
 
-  destroy(
-    context:
-      | EffectContext<EffectTrigger>
-      | TurnContext
-      | AddMarkContext
-      | SwitchPetContext
-      | RemoveMarkContext
-      | DamageContext,
-  ) {
+  destroy(context: RemoveMarkContext) {
     if (!this.isActive || !this.config.destroyable) return
     this.isActive = false
 
@@ -294,6 +290,7 @@ export class MarkInstanceImpl implements MarkInstance {
       context.battle.applyEffects(context, EffectTrigger.OnMarkDestroy, this)
       context.battle.applyEffects(context, EffectTrigger.OnRemoveMark)
       context.battle.cleanupMarks()
+      this.owner.updateStat()
     }
   }
 
@@ -379,7 +376,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
       const remainingLevel = this.level + otherMark.level
 
       if (remainingLevel === 0) {
-        this.destroy(context)
+        this.destroy(new RemoveMarkContext(context, this))
         return true
       } else if (Math.sign(remainingLevel) === Math.sign(this.level)) {
         this.level = remainingLevel
@@ -402,7 +399,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
     const newLevel = Math.max(-maxLevel, Math.min(maxLevel, this.level + otherMark.initialLevel))
 
     if (newLevel === 0) {
-      this.destroy(context)
+      this.destroy(new RemoveMarkContext(context, this))
       return true
     }
 

@@ -217,60 +217,27 @@
   apply:
     type: modifyStat
     target:
-      base: self
+      base: updateStatContext
     statType: accuracy
-    value: 0
     percent: -10
-- id: effect_mark_reset_accuracy_10
-  trigger: OnMarkDestroy
-  priority: 0
-  apply:
-    type: modifyStat
-    target:
-      base: self
-    statType: accuracy
-    value: 0
-    percent: 10
 - id: effect_mark_decrease_atk
   trigger: OnMarkCreate
   priority: 0
   apply:
     type: modifyStat
     target:
-      base: self
+      base: updateStatContext
     statType: atk
-    value: 0
     percent: -25
-- id: effect_mark_decrease_atk_reset
-  trigger: OnMarkCreate
-  priority: 0
-  apply:
-    type: modifyStat
-    target:
-      base: self
-    statType: atk
-    value: 0
-    percent: 25
 - id: effect_mark_decrease_spa
   trigger: OnMarkCreate
   priority: 0
   apply:
     type: modifyStat
     target:
-      base: self
+      base: updateStatContext
     statType: spa
-    value: 0
     percent: -25
-- id: effect_mark_decrease_spa_reset
-  trigger: OnMarkCreate
-  priority: 0
-  apply:
-    type: modifyStat
-    target:
-      base: self
-    statType: spa
-    value: 0
-    percent: 25
 - id: effect_mark_decrease_heal
   trigger: OnHeal
   priority: 0
@@ -304,20 +271,9 @@
   apply:
     type: modifyStat
     target:
-      base: self
+      base: updateStatContext
     statType: accuracy
-    value: 0
     percent: -50
-- id: effect_mark_restore_accuracy_50
-  trigger: OnMarkDestroy
-  priority: 0
-  apply:
-    type: modifyStat
-    target:
-      base: self
-    statType: accuracy
-    value: 0
-    percent: 50
 - id: effect_mark_absorb_hp_to_foe
   trigger: TurnEnd
   condition:
@@ -372,28 +328,32 @@
               arg: stack
           - type: multiply
             arg: 10
-- id: effect_mark_reduce_speed_on_mark_create
-  trigger: OnMarkCreate
+- id: effect_mark_reduce_speed_ruodian
+  trigger: OnUpdateStat
   priority: 0
   apply:
     type: modifyStat
     target:
-      base: self
+      base: updateStatContext
     statType: spe
-    value:
-      type: raw:number
-      value: -50
-      configId: reduce_spe_per_stack
-    percent: 0
-- id: effect_mark_restore_speed_on_mark_destroy
-  trigger: OnMarkDestroy
-  priority: 0
-  apply:
-    type: modifyStat
-    target:
-      base: self
-    statType: spe
-    value: 50
+    delta:
+      type: dynamic
+      selector:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_ruodianjihao
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: -50
     percent: 0
 - id: effect_mark_increase_damage_taken
   trigger: OnDamage
@@ -453,20 +413,9 @@
   apply:
     type: modifyStat
     target:
-      base: self
+      base: updateStatContext
     statType: accuracy
-    value: 0
     percent: -10
-- id: effect_mark_reset_accuracy_15
-  trigger: OnMarkDestroy
-  priority: 0
-  apply:
-    type: modifyStat
-    target:
-      base: self
-    statType: accuracy
-    value: 0
-    percent: 10
 - id: effect_mark_amplify_next_damage_skill_power
   trigger: BeforeUseSkillCheck
   priority: 0
