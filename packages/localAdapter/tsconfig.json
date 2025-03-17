@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "target": "ESNext",
+    "outDir": "../../dist/localAdapter",
+    "verbatimModuleSyntax": true,
+    "moduleResolution": "bundler",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "types": ["node"]
+  },
+  "include": ["./*"],
+  "exclude": ["./node_modules"]
+}

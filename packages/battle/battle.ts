@@ -509,4 +509,8 @@ export class Battle extends Context implements MarkOwner {
   public getState(viewerId?: playerId, showHidden = false): BattleState {
     return this.toMessage(viewerId, showHidden)
   }
+
+  public cleanup() {
+    this.clearListeners()
+  }
 }

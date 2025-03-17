@@ -16,7 +16,7 @@ import express from 'express'
 import { createServer } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
-import { LocalBattleSystem } from '../packages/localAdapter/localBattle'
+import { LocalBattleSystem } from '@test-battle/local-adapter'
 import { playerId } from 'packages/const'
 
 const __filename = fileURLToPath(import.meta.url)

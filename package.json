@@ -14,6 +14,7 @@
     "@test-battle/console": "workspace:^",
     "@test-battle/data-repository": "workspace:^",
     "@test-battle/interface": "workspace:^",
+    "@test-battle/local-adapter": "workspace:^",
     "@test-battle/parser": "workspace:^",
     "@test-battle/schema": "workspace:^",
     "@test-battle/server": "workspace:^",

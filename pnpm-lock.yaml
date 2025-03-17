@@ -23,6 +23,9 @@ importers:
       '@test-battle/interface':
         specifier: workspace:^
         version: link:packages/interface
+      '@test-battle/local-adapter':
+        specifier: workspace:^
+        version: link:packages/localAdapter
       '@test-battle/parser':
         specifier: workspace:^
         version: link:packages/parser
@@ -246,6 +249,22 @@ importers:
         specifier: ^3.24.1
         version: 3.24.2
 
+  packages/localAdapter:
+    dependencies:
+      '@test-battle/battle':
+        specifier: workspace:^
+        version: link:../battle
+      '@test-battle/const':
+        specifier: workspace:^
+        version: link:../const
+      '@test-battle/interface':
+        specifier: workspace:^
+        version: link:../interface
+    devDependencies:
+      '@types/node':
+        specifier: ^22.12.0
+        version: 22.13.4
+
   packages/parser:
     dependencies:
       '@test-battle/battle':
@@ -355,6 +374,9 @@ importers:
       '@test-battle/const':
         specifier: workspace:^
         version: link:../const
+      '@test-battle/parser':
+        specifier: workspace:^
+        version: link:../parser
       '@test-battle/protocol':
         specifier: workspace:^
         version: link:../protocol
