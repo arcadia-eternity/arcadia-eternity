@@ -88,7 +88,7 @@ export const useBattleStore = defineStore('battle', {
 
     resetBattle() {
       if (this.battleSessionId) {
-        this.sendPlayerAction({
+        this.sendplayerSelection({
           source: this.playerId,
           type: 'surrender',
         })
@@ -104,9 +104,9 @@ export const useBattleStore = defineStore('battle', {
       this.clearPersistedSession()
     },
 
-    async sendPlayerAction(selection: PlayerSelectionSchemaType) {
+    async sendplayerSelection(selection: PlayerSelectionSchemaType) {
       try {
-        await battleClient.sendPlayerAction(selection)
+        await battleClient.sendplayerSelection(selection)
         this.availableActions = []
       } catch (err) {
         this.errorMessage = (err as Error).message

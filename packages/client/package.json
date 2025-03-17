@@ -10,11 +10,13 @@
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
-    "socket.io-client": "^4.8.1",
-    "zod": "^3.24.1",
     "@test-battle/const": "workspace:^",
-    "@test-battle/schema": "workspace:^",
+    "@test-battle/interface": "workspace:^",
+    "@test-battle/parser": "workspace:^",
     "@test-battle/protocol": "workspace:^",
-    "nanoid": "^5.0.9"
+    "@test-battle/schema": "workspace:^",
+    "nanoid": "^5.0.9",
+    "socket.io-client": "^4.8.1",
+    "zod": "^3.24.1"
   }
 }

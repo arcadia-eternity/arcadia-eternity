@@ -14,12 +14,12 @@ importers:
       '@test-battle/console':
         specifier: workspace:^
         version: link:packages/console
-      '@test-battle/console-client':
-        specifier: workspace:^
-        version: link:packages/consoleClient
       '@test-battle/data-repository':
         specifier: workspace:^
         version: link:packages/dataRepository
+      '@test-battle/interface':
+        specifier: workspace:^
+        version: link:packages/interface
       '@test-battle/parser':
         specifier: workspace:^
         version: link:packages/parser
@@ -123,6 +123,12 @@ importers:
       '@test-battle/const':
         specifier: workspace:^
         version: link:../const
+      '@test-battle/interface':
+        specifier: workspace:^
+        version: link:../interface
+      '@test-battle/parser':
+        specifier: workspace:^
+        version: link:../parser
       '@test-battle/protocol':
         specifier: workspace:^
         version: link:../protocol
@@ -147,6 +153,9 @@ importers:
       '@test-battle/const':
         specifier: workspace:^
         version: link:../const
+      '@test-battle/interface':
+        specifier: workspace:^
+        version: link:../interface
     devDependencies:
       '@types/node':
         specifier: ^22.12.0
@@ -212,6 +221,27 @@ importers:
       '@jest/transform':
         specifier: ^29.7.0
         version: 29.7.0
+
+  packages/interface:
+    dependencies:
+      '@test-battle/const':
+        specifier: workspace:^
+        version: link:../const
+      '@test-battle/protocol':
+        specifier: workspace:^
+        version: link:../protocol
+      '@test-battle/schema':
+        specifier: workspace:^
+        version: link:../schema
+      nanoid:
+        specifier: ^5.0.9
+        version: 5.0.9
+      socket.io-client:
+        specifier: ^4.8.1
+        version: 4.8.1
+      zod:
+        specifier: ^3.24.1
+        version: 3.24.2
 
   packages/parser:
     dependencies:

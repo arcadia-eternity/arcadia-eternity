@@ -42,7 +42,10 @@ export interface ClientToServerEvents {
   //取消匹配
   cancelMatchmaking: (ack: AckResponse<{ status: 'CANCELED' }>) => void
   // 玩家动作
-  playerAction: (selection: PlayerSelectionSchemaType, callback: AckResponse<{ status: 'ACTION_ACCEPTED' }>) => void
+  submitPlayerSelection: (
+    selection: PlayerSelectionSchemaType,
+    callback: AckResponse<{ status: 'ACTION_ACCEPTED' }>,
+  ) => void
   // 获取状态
   getState: (ack: AckResponse<BattleState>) => void
   // 获取可用选项

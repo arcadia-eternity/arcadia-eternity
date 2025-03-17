@@ -115,7 +115,7 @@ onMounted(scrollToBottom)
             :key="index"
             class="action-btn"
             :class="[`action-${action.type.replace('_', '-')}`]"
-            @click="store.sendPlayerAction(action)"
+            @click="store.sendplayerSelection(action)"
           >
             <template v-if="action.type === 'use-skill'">
               <span class="action-icon">🎯</span>

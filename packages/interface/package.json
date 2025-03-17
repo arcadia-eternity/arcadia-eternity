@@ -1,5 +1,5 @@
 {
-  "name": "@test-battle/console-client",
+  "name": "@test-battle/interface",
   "version": "1.0.0",
   "description": "",
   "type": "module",
@@ -10,13 +10,11 @@
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
-    "@test-battle/client": "workspace:^",
+    "socket.io-client": "^4.8.1",
+    "zod": "^3.24.1",
     "@test-battle/const": "workspace:^",
-    "@test-battle/data-repository": "workspace:^",
     "@test-battle/schema": "workspace:^",
-    "zod": "^3.24.1"
-  },
-  "devDependencies": {
-    "@types/node": "^22.12.0"
+    "@test-battle/protocol": "workspace:^",
+    "nanoid": "^5.0.9"
   }
 }

@@ -8,25 +8,25 @@ export class SelectionParser {
       case 'use-skill':
         return {
           type: 'use-skill',
-          player: schema.source as playerId,
+          player: schema.player as playerId,
           skill: schema.skill as skillId,
           target: schema.target,
         }
       case 'switch-pet':
         return {
           type: 'switch-pet',
-          player: schema.source as playerId,
+          player: schema.player as playerId,
           pet: schema.pet as petId,
         }
       case 'do-nothing':
         return {
           type: 'do-nothing',
-          player: schema.source as playerId,
+          player: schema.player as playerId,
         }
       case 'surrender':
         return {
           type: 'surrender',
-          player: schema.source as playerId,
+          player: schema.player as playerId,
         }
       default:
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,21 +39,21 @@ export class SelectionParser {
       case 'use-skill':
         return {
           type: 'use-skill',
-          source: selection.player, // 注意字段名与 schema 一致
+          player: selection.player, // 注意字段名与 schema 一致
           skill: selection.skill,
           target: selection.target,
         }
       case 'switch-pet':
         return {
           type: 'switch-pet',
-          source: selection.player,
+          player: selection.player,
           pet: selection.pet,
         }
       case 'do-nothing':
       case 'surrender':
         return {
           type: selection.type,
-          source: selection.player,
+          player: selection.player,
         }
       default: {
         // 类型保护，确保处理所有可能类型

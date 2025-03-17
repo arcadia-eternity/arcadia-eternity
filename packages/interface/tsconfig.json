@@ -1,15 +1,15 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM"],
     "module": "ESNext",
     "target": "ESNext",
-    "outDir": "../../dist/consoleClient",
+    "outDir": "../../dist/interface",
     "verbatimModuleSyntax": true,
     "moduleResolution": "bundler",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "types": ["node"]
+    "types": []
   },
   "include": ["./*"],
   "exclude": ["./node_modules"]

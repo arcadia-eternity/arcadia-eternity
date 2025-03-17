@@ -11,8 +11,8 @@
   "dependencies": {
     "@test-battle/battle": "workspace:^",
     "@test-battle/console": "workspace:^",
-    "@test-battle/console-client": "workspace:^",
     "@test-battle/data-repository": "workspace:^",
+    "@test-battle/interface": "workspace:^",
     "@test-battle/parser": "workspace:^",
     "@test-battle/schema": "workspace:^",
     "@test-battle/server": "workspace:^",

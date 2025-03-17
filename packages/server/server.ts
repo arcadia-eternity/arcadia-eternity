@@ -105,7 +105,7 @@ export class BattleServer {
   ) {
     socket.on('joinMatchmaking', (data, ack) => this.handleJoinMatchmaking(socket, data, ack))
     socket.on('cancelMatchmaking', ack => this.handleCancelMatchmaking(socket, ack))
-    socket.on('playerAction', (data, ack) => this.handlePlayerAction(socket, data, ack))
+    socket.on('submitPlayerSelection', (data, ack) => this.handleplayerSelection(socket, data, ack))
     socket.on('getState', ack => this.handleGetState(socket, ack))
     socket.on('getAvailableSelection', ack => this.handleGetSelection(socket, ack))
   }
@@ -260,13 +260,13 @@ export class BattleServer {
     logger.warn({ socketId: socket.id, error: error instanceof Error ? error.stack : error }, '取消匹配时发生错误')
   }
 
-  private handlePlayerAction(
+  private handleplayerSelection(
     socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
     rawData: unknown,
     ack?: AckResponse<{ status: 'ACTION_ACCEPTED' }>,
   ) {
     try {
-      const selection = this.processPlayerAction(socket.id, rawData)
+      const selection = this.processplayerSelection(socket.id, rawData)
       const room = this.getPlayerRoom(socket.id)
 
       if (!room) throw new Error('NOT_IN_BATTLE')
@@ -414,7 +414,7 @@ export class BattleServer {
     }
   }
 
-  private processPlayerAction(socketId: string, rawData: unknown) {
+  private processplayerSelection(socketId: string, rawData: unknown) {
     try {
       const schemaValidated = PlayerSelectionSchema.parse(rawData)
       return SelectionParser.parse(schemaValidated)

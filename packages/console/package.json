@@ -11,7 +11,8 @@
   "license": "MIT",
   "dependencies": {
     "@test-battle/battle": "workspace:^",
-    "@test-battle/const": "workspace:^"
+    "@test-battle/const": "workspace:^",
+    "@test-battle/interface": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^22.12.0"

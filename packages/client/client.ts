@@ -1,8 +1,7 @@
-import { type BattleMessage, type BattleState, type playerId } from '@test-battle/const'
+import { type BattleState, type playerId } from '@test-battle/const'
 import {
   type ClientToServerEvents,
   type ServerToClientEvents,
-  type AckResponse,
   type SuccessResponse,
   type ErrorResponse,
 } from '@test-battle/protocol'
@@ -133,7 +132,7 @@ export class BattleClient {
     })
   }
 
-  async sendPlayerAction(selection: PlayerSelectionSchemaType): Promise<void> {
+  async sendplayerSelection(selection: PlayerSelectionSchemaType): Promise<void> {
     this.verifyBattleActive()
 
     return new Promise((resolve, reject) => {
@@ -141,7 +140,7 @@ export class BattleClient {
         reject(new Error('Action timeout'))
       }, this.options.actionTimeout)
 
-      this.socket.emit('playerAction', selection, response => {
+      this.socket.emit('submitPlayerSelection', selection, response => {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
           resolve()
