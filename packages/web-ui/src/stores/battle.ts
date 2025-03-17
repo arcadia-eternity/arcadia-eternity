@@ -89,7 +89,7 @@ export const useBattleStore = defineStore('battle', {
     resetBattle() {
       if (this.battleSessionId) {
         this.sendplayerSelection({
-          source: this.playerId,
+          player: this.playerId,
           type: 'surrender',
         })
       }
