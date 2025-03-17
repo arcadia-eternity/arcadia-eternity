@@ -1,8 +1,8 @@
-import type { BattleMessage, BattlePhase, BattleState, PlayerSelection } from '@test-battle/const'
+import type { BattleMessage, BattlePhase, BattleState, playerId, PlayerSelection } from '@test-battle/const'
 
 export interface IBattleSystem {
-  getState(): Promise<BattleState>
-  getAvailableSelection(): Promise<PlayerSelection[]>
+  getState(playerId?: playerId, showHidden?: boolean): Promise<BattleState>
+  getAvailableSelection(playerId: playerId): Promise<PlayerSelection[]>
 
   submitAction(selection: PlayerSelection): Promise<void>
 

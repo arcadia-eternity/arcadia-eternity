@@ -511,7 +511,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     context.battle.applyEffects(context, EffectTrigger.OnOwnerSwitchIn, ...this.marks)
   }
 
-  toMessage(viewerId?: string): PetMessage {
+  toMessage(viewerId?: string, showHidden = false): PetMessage {
     const isSelf = viewerId === this.owner?.id
 
     return {
@@ -523,8 +523,8 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       currentHp: this.currentHp,
       maxHp: this.maxHp,
       marks: this.marks.map(m => m.toMessage()),
-      stats: isSelf ? this.stat : undefined,
-      skills: isSelf ? this.skills.map(s => s.toMessage()) : undefined,
+      stats: isSelf || showHidden ? this.stat : undefined,
+      skills: isSelf || showHidden ? this.skills.map(s => s.toMessage()) : undefined,
     }
   }
 

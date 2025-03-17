@@ -5,9 +5,9 @@ import yaml from 'yaml'
 import { loadGameData } from '@test-battle/data-repository/loader'
 import { PlayerParser } from '@test-battle/parser'
 import { AIPlayer, Battle } from '@test-battle/battle'
-import { ConsoleUI } from '@test-battle/console'
+import { ConsoleUIV2 } from '@test-battle/console'
 import { Player } from '@test-battle/battle'
-import { ConsoleClient } from '@test-battle/console-client'
+import { BattleClient, RemoteBattleSystem } from '@test-battle/client'
 import { PlayerSchema } from '@test-battle/schema'
 import { BattleServer } from '@test-battle/server'
 import DevServer from 'packages/devServer'
@@ -16,6 +16,8 @@ import express from 'express'
 import { createServer } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
+import { LocalBattleSystem } from '../packages/localAdapter/localBattle'
+import { playerId } from 'packages/const'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -46,8 +48,16 @@ program
       const rawData = yaml.parse(content)
       const player = PlayerSchema.parse(rawData)
 
-      const consoleUI = new ConsoleClient(options.server, player)
-      consoleUI.connect()
+      const client = new BattleClient({
+        serverUrl: options.server,
+      })
+
+      const remote = new RemoteBattleSystem(client)
+
+      const consoleUI = new ConsoleUIV2(remote, player.id as playerId)
+      await client.connect()
+      console.log('等待匹配对手...')
+      await client.joinMatchmaking(player)
     } catch (err) {
       console.error('[💥] 错误:', err instanceof Error ? err.message : err)
       process.exit(1)
@@ -70,6 +80,8 @@ program
       let player1 = await parsePlayerFile(options.player1)
       let player2 = await parsePlayerFile(options.player2)
 
+      let selfControl = [player1.id, player2.id]
+
       if (options.ai) {
         const aiPlayers = options.ai.map((p: string) => p.toLowerCase().trim())
         const createAIPlayer = (basePlayer: Player) => new AIPlayer(basePlayer.name, basePlayer.id, basePlayer.team)
@@ -77,19 +89,22 @@ program
         if (aiPlayers.includes('player1')) {
           player1 = createAIPlayer(player1)
           console.log('[🤖] 玩家1已设置为AI控制')
+          selfControl = selfControl.filter(p => p != player1.id)
         }
         if (aiPlayers.includes('player2')) {
           player2 = createAIPlayer(player2)
           console.log('[🤖] 玩家2已设置为AI控制')
+          selfControl = selfControl.filter(p => p != player2.id)
         }
       }
 
-      console.log('[⚔️] 战斗开始！')
       const battle = new Battle(player1, player2, {
         allowFaintSwitch: true,
       })
-      const consoleUI = new ConsoleUI(battle, player1, player2)
-      await consoleUI.run()
+      const battleSystem = new LocalBattleSystem(battle)
+      console.log(selfControl)
+      const ui = new ConsoleUIV2(battleSystem, ...selfControl)
+      battleSystem.init()
     } catch (err) {
       console.error('[💥] 致命错误:', err instanceof Error ? err.message : err)
       process.exit(1)

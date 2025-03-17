@@ -8,7 +8,7 @@ import {
   BattleMessageType,
   type BattleState,
 } from '@test-battle/const/message'
-import { type SwitchPetSelection } from '@test-battle/const/selection'
+import { type PlayerSelection, type SwitchPetSelection } from '@test-battle/const/selection'
 import Prando from 'prando'
 import {
   AddMarkContext,
@@ -401,7 +401,9 @@ export class Battle extends Context implements MarkOwner {
         this.battle!.emitMessage(BattleMessageType.FaintSwitch, {
           player: this.lastKiller.id,
         })
-        yield // 等待玩家选择换宠
+        while (!this.lastKiller.selection) {
+          yield // 等待玩家选择换宠
+        }
 
         if (this.lastKiller.selection?.type === 'switch-pet') {
           const selectionPet = this.getPetByID((this.lastKiller.selection as SwitchPetSelection).pet)
@@ -446,6 +448,18 @@ export class Battle extends Context implements MarkOwner {
     this.playerB.selection = null
   }
 
+  public setSelection(selection: PlayerSelection): boolean {
+    const player = [this.playerA, this.playerB].find(p => p.id === selection.player)
+    if (!player) return false
+    return player.setSelection(selection)
+  }
+
+  public getAvailableSelection(playerId: playerId): PlayerSelection[] {
+    const player = [this.playerA, this.playerB].find(p => p.id === playerId)
+    if (!player) return []
+    return player.getAvailableSelection()
+  }
+
   private bothPlayersReady(): boolean {
     return !!this.playerA.selection && !!this.playerB.selection
   }
@@ -482,17 +496,17 @@ export class Battle extends Context implements MarkOwner {
     this.getVictor(true)
   }
 
-  toMessage(viewerId?: string): BattleState {
+  toMessage(viewerId?: playerId, showHidden = false): BattleState {
     return {
       status: this.status,
       currentPhase: this.currentPhase,
       currentTurn: this.currentTurn,
       marks: this.marks.map(m => m.toMessage()),
-      players: [this.playerA, this.playerB].map(p => p.toMessage(viewerId)),
+      players: [this.playerA, this.playerB].map(p => p.toMessage(viewerId, showHidden)),
     }
   }
 
-  public getState(): BattleState {
-    return this.toMessage()
+  public getState(viewerId?: playerId, showHidden = false): BattleState {
+    return this.toMessage(viewerId, showHidden)
   }
 }

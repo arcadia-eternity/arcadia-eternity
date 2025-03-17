@@ -271,7 +271,7 @@ export class BattleServer {
 
       if (!room) throw new Error('NOT_IN_BATTLE')
       room.lastActive = Date.now()
-      if (!room.players.get(socket.id)?.playerData.setSelection(selection)) {
+      if (!room.battle.setSelection(selection)) {
         throw new Error('INVALID_SELECTION')
       }
 
@@ -290,10 +290,14 @@ export class BattleServer {
     ack?: AckResponse<BattleState>,
   ) {
     try {
+      const room = this.getPlayerRoom(socket.id)
+
+      if (!room) throw new Error('NOT_IN_BATTLE')
+      room.lastActive = Date.now()
       const player = this.getPlayerBySocket(socket.id)
       ack?.({
         status: 'SUCCESS',
-        data: player.playerData.getState(),
+        data: room.battle.getState(player.playerData.id, false),
       })
     } catch (error) {
       this.handleGetStateError(error, socket, ack)

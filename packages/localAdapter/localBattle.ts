@@ -1,27 +1,32 @@
 import type { IBattleSystem } from '@test-battle/interface'
 import { Battle, Player } from '@test-battle/battle'
-import { BattleMessage, BattleState, PlayerSelection } from '../const'
+import { BattleMessage, BattleState, playerId, PlayerSelection } from '../const'
 
 export class LocalBattleSystem implements IBattleSystem {
-  constructor(
-    private battle: Battle,
-    private player: Player,
-  ) {}
+  private generator: Generator<void, void, void>
+  constructor(private battle: Battle) {
+    this.generator = battle.startBattle()
+  }
 
-  async getAvailableSelection() {
-    return this.player.getAvailableSelection()
+  init() {
+    this.generator.next()
+  }
+
+  async getAvailableSelection(playerId: playerId) {
+    return this.battle.getAvailableSelection(playerId)
   }
 
   async submitAction(selection: PlayerSelection) {
-    this.player.setSelection(selection)
+    this.battle.setSelection(selection)
+    this.generator.next()
   }
 
-  async getState(): Promise<BattleState> {
-    return this.player.getState()
+  async getState(playerId?: playerId, showHidden = false): Promise<BattleState> {
+    return this.battle.getState(playerId, showHidden)
   }
 
   BattleEvent(callback: (message: BattleMessage) => void): () => void {
-    this.player.registerListener(callback)
+    this.battle.registerListener(callback)
     return () => {}
   }
 }

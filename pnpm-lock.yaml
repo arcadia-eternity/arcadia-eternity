@@ -11,6 +11,9 @@ importers:
       '@test-battle/battle':
         specifier: workspace:^
         version: link:packages/battle
+      '@test-battle/client':
+        specifier: workspace:^
+        version: link:packages/client
       '@test-battle/console':
         specifier: workspace:^
         version: link:packages/console

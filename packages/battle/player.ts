@@ -325,7 +325,7 @@ export class Player {
     })
   }
 
-  public toMessage(viewerId?: string): PlayerMessage {
+  public toMessage(viewerId?: string, showHidden = false): PlayerMessage {
     const isSelf = viewerId === this.id
     const teamAlives = this.team.filter(p => p.isAlive).length
 
@@ -335,7 +335,7 @@ export class Player {
       activePet: this.activePet.toMessage(viewerId),
       rage: this.currentRage,
       teamAlives,
-      team: isSelf ? this.team.map(p => p.toMessage(viewerId)) : undefined,
+      team: isSelf || showHidden ? this.team.map(p => p.toMessage(viewerId, showHidden)) : undefined,
     }
   }
 
