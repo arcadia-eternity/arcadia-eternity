@@ -164,6 +164,13 @@ export class MarkInstanceImpl implements MarkInstance {
     return this.base.id
   }
 
+  onAddMark(target: MarkOwner, context: AddMarkContext) {
+    context.battle.applyEffects(context, EffectTrigger.OnAddMark)
+    context.battle.applyEffects(context, EffectTrigger.OnMarkCreate, this)
+    this.attachTo(target)
+    target.marks.push(this)
+  }
+
   setOwner(owner: MarkOwner): void {
     this.owner = owner
   }
@@ -352,6 +359,8 @@ export class BaseStatLevelMark extends BaseMark {
 
 export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkInstance {
   public level: number
+  //一般是Pet，我知道你们可能会尝试加到奇怪的地方。
+  declare public owner: Pet | null
 
   constructor(public readonly base: BaseStatLevelMark) {
     super(base)
@@ -369,6 +378,13 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
 
   public updateName() {
     this.name = `${this.base.statType.toUpperCase()} ${this.level > 0 ? '+' : ''}${this.level}`
+  }
+
+  override onAddMark(target: MarkOwner, context: AddMarkContext): void {
+    super.onAddMark(target, context)
+    if (!(target instanceof Pet)) return
+    target.statStage[this.statType] = this.level
+    target.updateStat()
   }
 
   tryStack(context: AddMarkContext): boolean {
@@ -389,6 +405,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
       this.updateName()
       if (this.owner instanceof Pet) {
         this.owner.statStage[this.base.statType] = this.level
+        this.owner.updateStat()
       }
       return true
     }
@@ -410,6 +427,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
 
     if (this.owner instanceof Pet) {
       this.owner.statStage[this.base.statType] = this.level
+      this.owner.updateStat()
     }
 
     return true
@@ -452,34 +470,24 @@ export class MarkSystem {
     }
     const newMark = context.baseMark.createInstance(config)
 
-    // 以下是处理stageMark的逻辑
-    if (target instanceof Pet) {
-      const existingOppositeMark = target.marks.find(
-        mark =>
-          mark instanceof StatLevelMarkInstanceImpl &&
-          newMark instanceof StatLevelMarkInstanceImpl &&
-          mark.isOppositeMark(newMark),
-      )
-
-      if (existingOppositeMark) {
-        existingOppositeMark.tryStack(context) // 触发抵消逻辑
-        target.updateStat()
-        return
-      }
-    }
+    const existingOppositeMark = target.marks.find(
+      mark =>
+        mark instanceof StatLevelMarkInstanceImpl &&
+        newMark instanceof StatLevelMarkInstanceImpl &&
+        mark.isOppositeMark(newMark),
+    )
 
     const existingMark = target.marks.find(mark => mark.base.id === context.baseMark.id)
-    if (existingMark) {
-      existingMark.tryStack(context)
-    } else {
-      context.battle.applyEffects(context, EffectTrigger.OnAddMark)
-      context.battle.applyEffects(context, EffectTrigger.OnMarkCreate, newMark)
-      newMark.attachTo(target)
-      target.marks.push(newMark)
-      if (newMark instanceof StatLevelMarkInstanceImpl && target instanceof Pet) {
-        target.statStage[newMark.statType] = newMark.level
-        target.updateStat()
+    if (existingMark || existingOppositeMark) {
+      if (existingMark) {
+        existingMark.tryStack(context)
+        return
+      } else if (existingOppositeMark) {
+        existingOppositeMark.tryStack(context)
+        return
       }
+    } else {
+      newMark.onAddMark(target, context)
     }
   }
 
