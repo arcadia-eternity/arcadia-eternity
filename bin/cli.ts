@@ -17,7 +17,7 @@ import { createServer } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
 import { LocalBattleSystem } from '@test-battle/local-adapter'
-import { playerId } from 'packages/const'
+import type { playerId } from '@test-battle/const'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)

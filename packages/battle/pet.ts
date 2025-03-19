@@ -196,51 +196,11 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   public addMark(context: AddMarkContext) {
-    if (!context.available) return
-
-    context.battle.applyEffects(context, EffectTrigger.OnBeforeAddMark)
-    const config = {
-      config: context.config,
-      duration: context.duration ?? context.config?.duration,
-      stack: context.stack ?? context.config?.maxStacks,
-    }
-    const newMark = context.baseMark.createInstance(config)
-    const existingOppositeMark = this.marks.find(
-      mark =>
-        mark instanceof StatLevelMarkInstanceImpl &&
-        newMark instanceof StatLevelMarkInstanceImpl &&
-        mark.isOppositeMark(newMark),
-    )
-
-    // 优先抵消互斥印记
-    if (existingOppositeMark) {
-      existingOppositeMark.tryStack(context) // 触发抵消逻辑
-      this.updateStat()
-      return
-    }
-
-    const existingMark = this.marks.find(mark => mark.base.id === context.baseMark.id)
-    if (existingMark) {
-      existingMark.tryStack(context)
-    } else {
-      context.battle.applyEffects(context, EffectTrigger.OnAddMark)
-      context.battle.applyEffects(context, EffectTrigger.OnMarkCreate, newMark)
-      newMark.attachTo(this)
-      this.marks.push(newMark)
-      if (newMark instanceof StatLevelMarkInstanceImpl) {
-        this.statStage[newMark.statType] = newMark.level
-      }
-    }
-    this.updateStat()
+    context.battle.markSystem.addMark(this, context)
   }
 
   public removeMark(context: RemoveMarkContext) {
-    this.marks.forEach(mark => {
-      const filltered = mark.id !== context.mark.id
-      if (filltered) mark.destroy(context)
-      return false
-    })
-    this.updateStat()
+    context.battle.markSystem.removeMark(this, context)
   }
 
   private getShieldMark() {

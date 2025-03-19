@@ -23,7 +23,7 @@ import {
 } from './context'
 import { type EffectContainer, EffectScheduler } from './effect'
 import { type MarkOwner } from './entity'
-import { type MarkInstance } from './mark'
+import { MarkSystem, type MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
 import { SkillInstance } from './skill'
@@ -34,6 +34,7 @@ export class Battle extends Context implements MarkOwner {
   public readonly battle: Battle = this
   public readonly effectScheduler: EffectScheduler = new EffectScheduler()
   public readonly configSystem: ConfigSystem = ConfigSystem.getInstance()
+  public readonly markSystem: MarkSystem = new MarkSystem(this)
   private readonly rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
 
   public status: BattleStatus = BattleStatus.Unstarted
@@ -103,30 +104,11 @@ export class Battle extends Context implements MarkOwner {
   }
 
   public addMark(context: AddMarkContext) {
-    if (!context.available) return
-
-    context.battle.applyEffects(context, EffectTrigger.OnBeforeAddMark)
-    const newMark = context.baseMark.createInstance({
-      config: context.config,
-    })
-
-    const existingMark = this.marks.find(mark => mark.base.id === context.baseMark.id)
-    if (existingMark) {
-      existingMark.tryStack(context)
-    } else {
-      context.battle.applyEffects(context, EffectTrigger.OnAddMark)
-      context.battle.applyEffects(context, EffectTrigger.OnMarkCreate, newMark)
-      newMark.attachTo(this)
-      this.marks.push(newMark)
-    }
+    this.markSystem.addMark(this, context)
   }
 
   public removeMark(context: RemoveMarkContext) {
-    this.marks.forEach(mark => {
-      const filltered = mark.id !== context.mark.id
-      if (filltered) mark.destroy(context)
-      return false
-    })
+    this.markSystem.removeMark(this, context)
   }
 
   public getOpponent(player: Player) {

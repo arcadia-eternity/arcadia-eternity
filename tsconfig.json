@@ -9,6 +9,7 @@
     },
     "outDir": "./dist/",
     "moduleResolution": "bundler",
+    "verbatimModuleSyntax": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "types": ["node"]

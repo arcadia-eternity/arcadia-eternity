@@ -19,7 +19,7 @@ import {
   TurnContext,
 } from './context'
 import { Effect, type EffectContainer, EffectScheduler } from './effect'
-import { type Instance, type OwnedEntity, type Prototype } from './entity'
+import { type Instance, type MarkOwner, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 import { nanoid } from 'nanoid'
 
@@ -73,10 +73,10 @@ export class BaseMark implements Prototype, IBaseMark {
   }
 }
 
-export interface MarkInstance extends EffectContainer, OwnedEntity<Battle | Pet | null>, Instance {
+export interface MarkInstance extends EffectContainer, OwnedEntity<MarkOwner | null>, Instance {
   _stack: number
   duration: number
-  owner: Battle | Pet | null
+  owner: MarkOwner | null
   isActive: boolean
 
   readonly id: markId
@@ -90,8 +90,8 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Battle | Pet 
   get stack(): number
   set stack(value: number)
   get baseId(): baseMarkId
-  setOwner(owner: Battle | Pet): void
-  attachTo(target: Battle | Pet): void
+  setOwner(owner: MarkOwner): void
+  attachTo(target: MarkOwner): void
   update(context: TurnContext): boolean
   addStack(value: number): void
   tryStack(context: AddMarkContext): boolean
@@ -114,7 +114,7 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Battle | Pet 
 export class MarkInstanceImpl implements MarkInstance {
   public _stack: number = 1
   public duration: number
-  public owner: Battle | Pet | null = null
+  public owner: MarkOwner | null = null
   public isActive: boolean = true
 
   public readonly id: markId
@@ -164,11 +164,11 @@ export class MarkInstanceImpl implements MarkInstance {
     return this.base.id
   }
 
-  setOwner(owner: Battle | Pet): void {
+  setOwner(owner: MarkOwner): void {
     this.owner = owner
   }
 
-  attachTo(target: Battle | Pet) {
+  attachTo(target: MarkOwner) {
     this.owner = target
   }
 
@@ -285,11 +285,13 @@ export class MarkInstanceImpl implements MarkInstance {
     if (!this.isActive || !this.config.destroyable) return
     this.isActive = false
 
+    //TODO:这俩的语义感觉能分一下
+    context.battle.applyEffects(context, EffectTrigger.OnMarkDestroy, this)
+    context.battle.applyEffects(context, EffectTrigger.OnRemoveMark)
+    context.battle.cleanupMarks()
+
     // 触发移除效果
     if (this.owner instanceof Pet) {
-      context.battle.applyEffects(context, EffectTrigger.OnMarkDestroy, this)
-      context.battle.applyEffects(context, EffectTrigger.OnRemoveMark)
-      context.battle.cleanupMarks()
       this.owner.updateStat()
     }
   }
@@ -433,4 +435,60 @@ export function CreateStatStageMark(statType: StatTypeWithoutHp, level: number):
     `${statType.toUpperCase()} ${level > 0 ? '+' : ''}${level}`,
     [],
   )
+}
+
+export class MarkSystem {
+  public marks: Map<markId, MarkInstance>
+  constructor(private readonly battle: Battle) {}
+
+  addMark(target: MarkOwner, context: AddMarkContext) {
+    if (!context.available) return
+
+    context.battle.applyEffects(context, EffectTrigger.OnBeforeAddMark)
+    const config = {
+      config: context.config,
+      duration: context.duration ?? context.config?.duration,
+      stack: context.stack ?? context.config?.maxStacks,
+    }
+    const newMark = context.baseMark.createInstance(config)
+
+    // 以下是处理stageMark的逻辑
+    if (target instanceof Pet) {
+      const existingOppositeMark = target.marks.find(
+        mark =>
+          mark instanceof StatLevelMarkInstanceImpl &&
+          newMark instanceof StatLevelMarkInstanceImpl &&
+          mark.isOppositeMark(newMark),
+      )
+
+      if (existingOppositeMark) {
+        existingOppositeMark.tryStack(context) // 触发抵消逻辑
+        target.updateStat()
+        return
+      }
+    }
+
+    const existingMark = target.marks.find(mark => mark.base.id === context.baseMark.id)
+    if (existingMark) {
+      existingMark.tryStack(context)
+    } else {
+      context.battle.applyEffects(context, EffectTrigger.OnAddMark)
+      context.battle.applyEffects(context, EffectTrigger.OnMarkCreate, newMark)
+      newMark.attachTo(target)
+      target.marks.push(newMark)
+      if (newMark instanceof StatLevelMarkInstanceImpl && target instanceof Pet) {
+        target.statStage[newMark.statType] = newMark.level
+        target.updateStat()
+      }
+    }
+  }
+
+  public removeMark(target: MarkOwner, context: RemoveMarkContext) {
+    target.marks.forEach(mark => {
+      const filltered = mark.id !== context.mark.id
+      if (filltered) mark.destroy(context)
+      return false
+    })
+    if (target instanceof Pet) target.updateStat()
+  }
 }

@@ -1,7 +1,7 @@
 import type { BattleState, PlayerSelection, BattleMessage } from '@test-battle/const'
 import { SelectionParser } from '@test-battle/parser'
 import type { IBattleSystem } from '@test-battle/interface'
-import type { BattleClient } from 'client'
+import type { BattleClient } from './client'
 
 export class RemoteBattleSystem implements IBattleSystem {
   constructor(private client: BattleClient) {}

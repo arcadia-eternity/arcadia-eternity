@@ -1,6 +1,6 @@
 import type { IBattleSystem } from '@test-battle/interface'
 import { Battle } from '@test-battle/battle'
-import { BattleMessage, BattleState, playerId, PlayerSelection } from '@test-battle/const'
+import type { BattleMessage, BattleState, playerId, PlayerSelection } from '@test-battle/const'
 
 export class LocalBattleSystem implements IBattleSystem {
   private generator: Generator<void, void, void>
