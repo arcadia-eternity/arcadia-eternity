@@ -406,7 +406,9 @@ export class Battle extends Context implements MarkOwner {
       // 阶段3：收集玩家指令
       this.currentPhase = BattlePhase.SelectionPhase
       this.clearSelections()
-      this.emitMessage(BattleMessageType.TurnAction, {})
+      this.emitMessage(BattleMessageType.TurnAction, {
+        player: [this.playerA.id, this.playerB.id],
+      })
       while (!this.bothPlayersReady()) {
         yield
       }

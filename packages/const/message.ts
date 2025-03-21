@@ -262,9 +262,9 @@ export interface BattleMessageData {
     markType: markId
     target: petId
   }
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  [BattleMessageType.TurnAction]: {} //TODO: 我寻思应该不需要特别的信息来提示该选择了
+  [BattleMessageType.TurnAction]: {
+    player: playerId[]
+  }
   [BattleMessageType.ForcedSwitch]: {
     player: playerId[]
   }

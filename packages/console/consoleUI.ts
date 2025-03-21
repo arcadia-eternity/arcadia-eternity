@@ -43,8 +43,11 @@ export class ConsoleUIV2 {
 
     // 只在需要当前玩家操作时触发输入
     if (message.type === BattleMessageType.TurnAction) {
+      const targetPlayers = message.data.player
       for (const p of this.currentPlayer) {
-        await this.handlePlayerInput(p)
+        if (targetPlayers.includes(p)) {
+          await this.handlePlayerInput(p)
+        }
       }
     }
 
