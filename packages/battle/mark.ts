@@ -44,7 +44,6 @@ export interface IBaseMark extends Prototype {
 export class BaseMark implements Prototype, IBaseMark {
   constructor(
     public readonly id: baseMarkId,
-    public readonly name: string,
     public readonly effects: Effect<EffectTrigger>[],
     public readonly config: Readonly<MarkConfig> = {
       duration: 3,
@@ -80,7 +79,6 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   isActive: boolean
 
   readonly id: markId
-  name: string
   readonly effects: Effect<EffectTrigger>[]
   config: Partial<MarkConfig>
   readonly tags: string[]
@@ -118,7 +116,6 @@ export class MarkInstanceImpl implements MarkInstance {
   public isActive: boolean = true
 
   public readonly id: markId
-  public name: string
   public readonly effects: Effect<EffectTrigger>[]
   public config: Partial<MarkConfig> = { destroyable: true }
   public readonly tags: string[] = []
@@ -129,7 +126,6 @@ export class MarkInstanceImpl implements MarkInstance {
       duration?: number
       stack?: number
       config?: Partial<BaseMark['config']>
-      name?: string
       tags?: string[]
       effects?: Effect<EffectTrigger>[]
     },
@@ -145,7 +141,6 @@ export class MarkInstanceImpl implements MarkInstance {
     this.duration = overrides?.duration ?? mergedConfig.duration ?? base.config.duration ?? 3
     this._stack = overrides?.stack ?? base.config.maxStacks ?? 1
     this.config = mergedConfig
-    this.name = overrides?.name ?? base.name
     this.tags = [...base.tags, ...(overrides?.tags || [])]
     this.effects = [...base.effects, ...(overrides?.effects || [])]
 
@@ -311,7 +306,6 @@ export class MarkInstanceImpl implements MarkInstance {
 
   toMessage(): MarkMessage {
     return {
-      name: this.name,
       id: this.id,
       baseId: this.base.id,
       stack: this.stack,
@@ -331,7 +325,6 @@ export class BaseStatLevelMark extends BaseMark {
   ) {
     super(
       id,
-      name,
       effects,
       {
         duration: -1,
@@ -352,7 +345,6 @@ export class BaseStatLevelMark extends BaseMark {
   createInstance(): StatLevelMarkInstanceImpl {
     const instance = new StatLevelMarkInstanceImpl(this)
     instance.level = this.initialLevel
-    instance.updateName()
     return instance
   }
 }
@@ -365,7 +357,6 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
   constructor(public readonly base: BaseStatLevelMark) {
     super(base)
     this.level = base.initialLevel
-    this.updateName()
   }
 
   get statType() {
@@ -374,10 +365,6 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
 
   get stack() {
     return this.level
-  }
-
-  public updateName() {
-    this.name = `${this.base.statType.toUpperCase()} ${this.level > 0 ? '+' : ''}${this.level}`
   }
 
   override onAddMark(target: Battle | Pet, context: AddMarkContext): void {
@@ -402,7 +389,6 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
         this.level = remainingLevel
       }
 
-      this.updateName()
       if (this.owner instanceof Pet) {
         this.owner.statStage[this.base.statType] = this.level
         this.owner.updateStat()
@@ -423,7 +409,6 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
     }
 
     this.level = newLevel
-    this.updateName()
 
     if (this.owner instanceof Pet) {
       this.owner.statStage[this.base.statType] = this.level

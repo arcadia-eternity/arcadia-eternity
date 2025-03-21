@@ -24,7 +24,6 @@ export class SkillParser {
 
     return new BaseSkill(
       validated.id as baseSkillId,
-      validated.name,
       validated.category,
       validated.element,
       validated.power,

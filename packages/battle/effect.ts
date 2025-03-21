@@ -30,11 +30,11 @@ export class EffectScheduler {
       context.battle.applyEffects(context, EffectTrigger.BeforeEffect)
       if (!context.available) {
         context.battle!.emitMessage(BattleMessageType.Info, {
-          message: `${context.source.name}的效果${effect.id}被阻止了！`,
+          message: `${context.source.id}的效果${effect.id}被阻止了！`,
         })
       }
       context.battle!.emitMessage(BattleMessageType.Info, {
-        message: `${context.source.name}的效果${effect.id}被触发了！`,
+        message: `${context.source.id}的效果${effect.id}被触发了！`,
       })
       try {
         effect.innerApply(context)

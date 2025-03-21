@@ -16,7 +16,6 @@ export class BaseSkill implements Prototype {
 
   constructor(
     public readonly id: baseSkillId,
-    public readonly name: string,
     public readonly category: Category,
     public readonly element: Element,
     public readonly power: number,
@@ -37,7 +36,6 @@ export class BaseSkill implements Prototype {
 
   static Builder = class {
     #id = '' as baseSkillId
-    #name = 'Unnamed Skill'
     #type = Element.Normal
     #power = 0
     #accuracy = 1
@@ -55,11 +53,6 @@ export class BaseSkill implements Prototype {
 
     withID(id: string) {
       this.#id = id as baseSkillId
-      return this
-    }
-
-    withName(name: string) {
-      this.#name = name
       return this
     }
 
@@ -119,7 +112,6 @@ export class BaseSkill implements Prototype {
     build() {
       return new BaseSkill(
         this.#id,
-        this.#name,
         this.#skillType,
         this.#type,
         this.#power,
@@ -187,10 +179,6 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     this.effects = [...base.effects, ...(overrides?.effects ? overrides.effects : [])]
   }
 
-  get name() {
-    return this.base.name
-  }
-
   get baseId() {
     return this.base.id
   }
@@ -218,7 +206,6 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     return {
       id: this.id,
       baseId: this.baseId,
-      name: this.name,
       category: this.category,
       element: this.element,
       power: this.power,

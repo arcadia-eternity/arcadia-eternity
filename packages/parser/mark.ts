@@ -20,6 +20,6 @@ export class MarkParser {
       })
     }
 
-    return new BaseMark(validated.id as baseMarkId, validated.name, effects, validated.config, validated.tags)
+    return new BaseMark(validated.id as baseMarkId, effects, validated.config, validated.tags)
   }
 }

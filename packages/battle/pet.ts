@@ -34,7 +34,6 @@ import { CleanStageStrategy, Gender, IgnoreStageStrategy } from '@test-battle/co
 export interface Species extends Prototype {
   id: speciesId //约定:id为原中文名的拼音拼写
   num: number //用于原游戏内的序号
-  name: string
   element: Element
   baseStats: StatOutBattle
   genderRatio: [number, number] | null

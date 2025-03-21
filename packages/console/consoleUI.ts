@@ -105,7 +105,7 @@ export class ConsoleUIV2 {
   ${elementEmoji} ${pet.name} [Lv.??]
   HP: ${hpBar} ${pet.currentHp}/${pet.maxHp}
   属性：${this.getElementName(pet.element)}
-  状态：${pet.marks.map(m => `${m.name}×${m.stack}`).join(' ') || '无'}
+  状态：${pet.marks.map(m => `${m.id}×${m.stack}`).join(' ') || '无'}
     `.trim(),
     )
   }
@@ -119,7 +119,7 @@ export class ConsoleUIV2 {
     console.log('\n=== 印记效果 ===')
     this.battleState!.marks.forEach(mark => {
       const durationInfo = mark.duration > 0 ? `剩余 ${mark.duration} 回合` : '持续生效'
-      console.log(`◈ ${mark.name} ×${mark.stack} (${durationInfo})`)
+      console.log(`◈ ${mark.id} ×${mark.stack} (${durationInfo})`)
     })
   }
 
@@ -300,7 +300,7 @@ export class ConsoleUIV2 {
 
   private getSkillNameById(baseSkillId: string): string {
     try {
-      return DataRepository.getInstance().getSkill(baseSkillId as baseSkillId)?.name || baseSkillId
+      return DataRepository.getInstance().getSkill(baseSkillId as baseSkillId)?.id || baseSkillId
     } catch {
       return baseSkillId
     }
@@ -309,7 +309,7 @@ export class ConsoleUIV2 {
   private getMarkNameById(baseMarkId: string): string {
     if (!this.battleState) return baseMarkId
     const mark = this.battleState.marks.find(m => m.id === baseMarkId)
-    return mark?.name || baseMarkId
+    return mark?.id || baseMarkId
   }
 
   private getRageReason(reason: string): string {
@@ -329,7 +329,7 @@ export class ConsoleUIV2 {
   }
 
   private getMarkStatus = (mark: MarkMessage) =>
-    `{<${mark.name}> ${mark.duration < 0 ? '' : `[剩余${mark.duration}回合]`} ${mark.stack}层}`
+    `{<${mark.id}> ${mark.duration < 0 ? '' : `[剩余${mark.duration}回合]`} ${mark.stack}层}`
 
   private translateMissReason(reason: string): string {
     return (
@@ -397,7 +397,7 @@ export class ConsoleUIV2 {
 
           const powerText = skill!.category === Category.Status ? '' : `, 威力:${skill!.power}`
           console.log(
-            `${index}. [技能] ${ELEMENT_MAP[skill!.element].emoji}${skill!.name} (${skillTypeIcon}${powerText}, 消耗:${skill!.rage})`,
+            `${index}. [技能] ${ELEMENT_MAP[skill!.element].emoji}${skill!.id} (${skillTypeIcon}${powerText}, 消耗:${skill!.rage})`,
           )
           break
         }

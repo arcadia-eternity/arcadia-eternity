@@ -19,7 +19,6 @@ import { Element } from './element'
 export interface SkillMessage {
   id: skillId
   baseId: baseSkillId
-  name: string
   category: Category
   element: Element
   power: number
@@ -46,7 +45,6 @@ export interface PetMessage {
 }
 
 export interface MarkMessage {
-  name: string
   id: markId
   baseId: baseMarkId
   stack: number
@@ -84,35 +82,35 @@ export enum BattleMessageType {
   // 精灵相关
   PetSwitch = 'PET_SWITCH',
   PetDefeated = 'PET_DEFEATED',
-  PetRevive = 'PET_REVIVE',
-  StatChange = 'STAT_CHANGE',
+  PetRevive = 'PET_REVIVE', //UnUsed
+  StatChange = 'STAT_CHANGE', //UnUsed
 
   // 资源变化
   RageChange = 'RAGE_CHANGE',
-  HpChange = 'HP_CHANGE',
+  HpChange = 'HP_CHANGE', //UnUsed
 
   // 技能相关
   SkillUse = 'SKILL_USE',
   SkillMiss = 'SKILL_MISS',
-  SkillEffect = 'SKILL_EFFECT',
+  SkillEffect = 'SKILL_EFFECT', //UnUsed
 
   // 战斗事件
   Damage = 'DAMAGE',
   Heal = 'HEAL',
   Crit = 'CRIT',
-  TypeEffectiveness = 'TYPE_EFFECTIVENESS',
+  TypeEffectiveness = 'TYPE_EFFECTIVENESS', //UnUsed
 
   // 印记相关
-  MarkApply = 'MARK_APPLY',
-  MarkTrigger = 'MARK_TRIGGER',
-  MarkExpire = 'MARK_EXPIRE',
+  MarkApply = 'MARK_APPLY', //UnUsed
+  MarkTrigger = 'MARK_TRIGGER', //UnUsed
+  MarkExpire = 'MARK_EXPIRE', //UnUsed
 
   // 需要等待回应的信息
   TurnAction = 'TURN_ACTION',
   ForcedSwitch = 'FORCED_SWITCH',
   FaintSwitch = 'FAINT_SWITCH',
 
-  InvalidAction = 'INVALID_ACTION',
+  InvalidAction = 'INVALID_ACTION', //UnUsed
   Info = 'INFO',
   Error = 'ERROR',
 }
