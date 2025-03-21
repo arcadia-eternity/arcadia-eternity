@@ -362,57 +362,25 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     ...statTypes: StatTypeWithoutHp[]
   ) {
     if (!statTypes || statTypes.length === 0) {
-      const shouldClearStage = (stage: number) => {
-        return (
-          cleanStageStrategy === CleanStageStrategy.all ||
-          (cleanStageStrategy === CleanStageStrategy.positive && stage >= 1) ||
-          (cleanStageStrategy === CleanStageStrategy.negative && stage <= -1)
-        )
-      }
-
-      // 记录被清理的状态类型
-      const clearedStats = new Set<StatTypeWithoutHp>()
-
-      Object.entries(this.statStage).forEach(([stat, stage]) => {
-        const statType = stat as StatTypeWithoutHp
-        if (shouldClearStage(stage)) {
-          clearedStats.add(statType)
-          this.statStage[statType] = 1
-        }
-      })
-
-      // 根据记录的statType清理标记
-      this.marks = this.marks.filter(mark => {
-        if (!(mark instanceof StatLevelMarkInstanceImpl)) {
-          return true
-        }
-        // 使用清除前的状态类型记录进行判断
-        if (clearedStats.has(mark.statType)) {
-          mark.destroy(new RemoveMarkContext(context, mark))
-          return false
-        }
-        return true
-      })
-    } else {
-      // Clear only specified stat stages based on strategy
-      statTypes.forEach(statType => {
-        const stage = this.statStage[statType]
-        const shouldClear =
-          cleanStageStrategy === CleanStageStrategy.all ||
-          (cleanStageStrategy === CleanStageStrategy.positive && stage > 1) ||
-          (cleanStageStrategy === CleanStageStrategy.negative && stage < 1)
-        if (shouldClear) {
-          this.statStage[statType] = 1
-          this.marks = this.marks.filter(mark => {
-            if (mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType) {
-              mark.destroy(new RemoveMarkContext(context, mark))
-              return false
-            }
-            return true
-          })
-        }
-      })
+      statTypes = Object.keys(this.statStage) as StatTypeWithoutHp[]
     }
+    statTypes.forEach(statType => {
+      const stage = this.statStage[statType]
+      const shouldClear =
+        cleanStageStrategy === CleanStageStrategy.all ||
+        (cleanStageStrategy === CleanStageStrategy.positive && stage > 1) ||
+        (cleanStageStrategy === CleanStageStrategy.negative && stage < 1)
+      if (shouldClear) {
+        this.statStage[statType] = 1
+        this.marks = this.marks.filter(mark => {
+          if (mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType) {
+            mark.destroy(new RemoveMarkContext(context, mark))
+            return false
+          }
+          return true
+        })
+      }
+    })
   }
 
   public transferMarks(context: SwitchPetContext, ...marks: MarkInstance[]) {
