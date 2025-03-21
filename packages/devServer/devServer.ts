@@ -1,4 +1,4 @@
-import { DATA_SCHEMA_MAP, FileMetadata, MetadataSchema, SchemaType } from '@test-battle/schema'
+import { DATA_SCHEMA_MAP, type FileMetadata, MetadataSchema, type SchemaType } from '@test-battle/schema'
 import cors from 'cors'
 import express from 'express'
 import fs from 'fs/promises'

@@ -406,7 +406,6 @@ export class AIPlayer extends Player {
       { type: 'do-nothing', player: this.id } as DoNothingSelection,
       ...this.getAvailableSwitch(),
     ]
-    console.log('emm')
     const selection = this.selectRandom(availableActions)
     this.setSelection(selection)
   }

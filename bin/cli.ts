@@ -102,7 +102,6 @@ program
         allowFaintSwitch: true,
       })
       const battleSystem = new LocalBattleSystem(battle)
-      console.log(selfControl)
       const ui = new ConsoleUIV2(battleSystem, ...selfControl)
       battleSystem.init()
     } catch (err) {

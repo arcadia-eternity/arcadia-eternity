@@ -105,6 +105,9 @@ importers:
       quicktype:
         specifier: ^23.0.171
         version: 23.0.171
+      quicktype-core:
+        specifier: ^23.0.171
+        version: 23.0.171
       ts-jest:
         specifier: ^29.2.5
         version: 29.2.5(@babel/core@7.26.9)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.26.9))(esbuild@0.25.1)(jest@29.7.0(@types/node@22.13.4)(ts-node@10.9.2(@types/node@22.13.4)(typescript@5.7.3)))(typescript@5.7.3)
