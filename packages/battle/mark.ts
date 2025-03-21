@@ -73,10 +73,10 @@ export class BaseMark implements Prototype, IBaseMark {
   }
 }
 
-export interface MarkInstance extends EffectContainer, OwnedEntity<MarkOwner | null>, Instance {
+export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle | null>, Instance {
   _stack: number
   duration: number
-  owner: MarkOwner | null
+  owner: Pet | Battle | null
   isActive: boolean
 
   readonly id: markId
@@ -114,7 +114,7 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<MarkOwner | n
 export class MarkInstanceImpl implements MarkInstance {
   public _stack: number = 1
   public duration: number
-  public owner: MarkOwner | null = null
+  public owner: Battle | Pet | null = null
   public isActive: boolean = true
 
   public readonly id: markId
@@ -164,18 +164,18 @@ export class MarkInstanceImpl implements MarkInstance {
     return this.base.id
   }
 
-  onAddMark(target: MarkOwner, context: AddMarkContext) {
+  onAddMark(target: Battle | Pet, context: AddMarkContext) {
     context.battle.applyEffects(context, EffectTrigger.OnAddMark)
     context.battle.applyEffects(context, EffectTrigger.OnMarkCreate, this)
     this.attachTo(target)
     target.marks.push(this)
   }
 
-  setOwner(owner: MarkOwner): void {
+  setOwner(owner: Battle | Pet): void {
     this.owner = owner
   }
 
-  attachTo(target: MarkOwner) {
+  attachTo(target: Battle | Pet) {
     this.owner = target
   }
 
@@ -380,7 +380,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
     this.name = `${this.base.statType.toUpperCase()} ${this.level > 0 ? '+' : ''}${this.level}`
   }
 
-  override onAddMark(target: MarkOwner, context: AddMarkContext): void {
+  override onAddMark(target: Battle | Pet, context: AddMarkContext): void {
     super.onAddMark(target, context)
     if (!(target instanceof Pet)) return
     target.statStage[this.statType] = this.level
@@ -459,7 +459,7 @@ export class MarkSystem {
   public marks: Map<markId, MarkInstance>
   constructor(private readonly battle: Battle) {}
 
-  addMark(target: MarkOwner, context: AddMarkContext) {
+  addMark(target: Battle | Pet, context: AddMarkContext) {
     if (!context.available) return
 
     context.battle.applyEffects(context, EffectTrigger.OnBeforeAddMark)
