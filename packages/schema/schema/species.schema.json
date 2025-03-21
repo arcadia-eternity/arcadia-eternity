@@ -14,9 +14,6 @@
           "num": {
             "type": "number"
           },
-          "name": {
-            "type": "string"
-          },
           "element": {
             "type": "string",
             "enum": [
@@ -44,9 +41,6 @@
               "Holy",
               "ElfKing"
             ]
-          },
-          "star": {
-            "type": "number"
           },
           "baseStats": {
             "type": "object",
@@ -149,9 +143,6 @@
               "additionalProperties": false
             }
           },
-          "description": {
-            "type": "string"
-          },
           "ability": {
             "type": "array",
             "items": {
@@ -168,15 +159,12 @@
         "required": [
           "id",
           "num",
-          "name",
           "element",
-          "star",
           "baseStats",
           "genderRatio",
           "heightRange",
           "weightRange",
           "learnable_skills",
-          "description",
           "ability",
           "emblem"
         ],

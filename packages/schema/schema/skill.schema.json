@@ -110,6 +110,16 @@
             "type": "boolean",
             "default": false
           },
+          "ignoreFoeStageStrategy": {
+            "type": "string",
+            "enum": [
+              "none",
+              "all",
+              "positive",
+              "negative"
+            ],
+            "default": "none"
+          },
           "tags": {
             "type": "array",
             "items": {
