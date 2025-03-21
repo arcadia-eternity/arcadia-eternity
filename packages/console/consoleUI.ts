@@ -4,21 +4,21 @@ import {
   BattleStatus,
   Category,
   ELEMENT_MAP,
-  type baseSkillId,
   type BattleMessage,
   type BattleState,
   type MarkMessage,
   type PetMessage,
   type playerId,
   type PlayerSelection,
-  type skillId,
   type SkillMessage,
 } from '@test-battle/const'
-import { DataRepository } from '@test-battle/data-repository'
-import type { PlayerSchemaType, PlayerSelectionSchemaType } from '@test-battle/schema'
+import type { PlayerSelectionSchemaType } from '@test-battle/schema'
 import { exit } from 'process'
 import readline from 'readline'
 import type { IBattleSystem } from '@test-battle/interface'
+import i18next from 'i18next'
+import { marked } from 'marked'
+import TerminalRenderer, { markedTerminal, type TerminalRendererOptions } from 'marked-terminal'
 
 export class ConsoleUIV2 {
   private messages: BattleMessage[] = []
@@ -30,6 +30,14 @@ export class ConsoleUIV2 {
     ...currentPlayer: playerId[]
   ) {
     this.setupEventHandlers()
+
+    const renderer = new TerminalRenderer({
+      reflowText: false,
+    })
+
+    // 配置 marked
+    // @ts-ignore
+    marked.setOptions({ renderer })
     this.currentPlayer = currentPlayer
   }
 
@@ -105,10 +113,10 @@ export class ConsoleUIV2 {
 
     console.log(
       `
-  ${elementEmoji} ${pet.name} [Lv.??]
+  ${elementEmoji} ${pet.name} [Lv.${pet.level}]
   HP: ${hpBar} ${pet.currentHp}/${pet.maxHp}
   属性：${this.getElementName(pet.element)}
-  状态：${pet.marks.map(m => `${m.id}×${m.stack}`).join(' ') || '无'}
+  状态：${pet.marks.map(m => `\n    ${this.getMarkNameById(m.id)}×${m.stack} ${this.getMarkDescriptionById(m.id)}`).join(' ') || '无'}
     `.trim(),
     )
   }
@@ -122,7 +130,7 @@ export class ConsoleUIV2 {
     console.log('\n=== 印记效果 ===')
     this.battleState!.marks.forEach(mark => {
       const durationInfo = mark.duration > 0 ? `剩余 ${mark.duration} 回合` : '持续生效'
-      console.log(`◈ ${mark.id} ×${mark.stack} (${durationInfo})`)
+      console.log(`◈ ${this.getMarkNameById(mark.id)} ×${mark.stack} (${durationInfo})`)
     })
   }
 
@@ -182,14 +190,16 @@ export class ConsoleUIV2 {
         const d = message.data
         const userName = this.getPetNameById(d.user)
         const targetName = this.getPetNameById(d.target)
-        console.log(`🎯 ${userName} 使用 ${d.skill}（消耗${d.rageCost}怒气） → ${targetName}`)
+        console.log(`🎯 ${userName} 使用 ${this.getSkillNameById(d.skill)}（消耗${d.rageCost}怒气） → ${targetName}`)
         break
       }
 
       case BattleMessageType.SkillMiss: {
         const d = message.data
         const userName = this.getPetNameById(d.user)
-        console.log(`❌ ${userName} 的 ${d.skill} 未命中！ (${this.translateMissReason(d.reason)})`)
+        console.log(
+          `❌ ${userName} 的 ${this.getSkillNameById(d.skill)} 未命中！ (${this.translateMissReason(d.reason)})`,
+        )
         break
       }
 
@@ -226,8 +236,8 @@ export class ConsoleUIV2 {
       case BattleMessageType.PetDefeated: {
         const d = message.data
         const killerName = this.getPetNameById(d.pet)
-        const petName = d.killer ? this.getPlayerNameById(d.killer) : ''
-        console.log(`☠️ ${petName} 倒下！${message.data.killer ? `(击败者: ${killerName})` : ''}`)
+        const petId = d.killer ? this.getPlayerNameById(d.killer) : ''
+        console.log(`☠️ ${this.getPetNameById(petId)} 倒下！${message.data.killer ? `(击败者: ${killerName})` : ''}`)
         break
       }
 
@@ -301,18 +311,99 @@ export class ConsoleUIV2 {
     return petId
   }
 
-  private getSkillNameById(baseSkillId: string): string {
+  private getSkillById(skillId: string): SkillMessage | undefined {
+    if (!this.battleState) return undefined
+    return this.battleState.players
+      .map(p => p.team)
+      .flat()
+      .filter(p => p != undefined)
+      .map(p => p.skills)
+      .flat()
+      .find(v => v && v.id && v.id == skillId)
+  }
+
+  private getSkillNameByBaseId(baseSkillId: string): string {
     try {
-      return DataRepository.getInstance().getSkill(baseSkillId as baseSkillId)?.id || baseSkillId
+      return i18next.t(`${baseSkillId}.name`, {
+        ns: 'skill',
+      })
     } catch {
       return baseSkillId
     }
   }
 
-  private getMarkNameById(baseMarkId: string): string {
-    if (!this.battleState) return baseMarkId
-    const mark = this.battleState.marks.find(m => m.id === baseMarkId)
-    return mark?.id || baseMarkId
+  private getSkillNameById(skillId: string): string {
+    const skill = this.getSkillById(skillId)
+    return skill ? this.getSkillNameByBaseId(skill.baseId) : skillId
+  }
+
+  private getSkillDescriptionByBaseId(baseSkillId: string, skillMessage?: SkillMessage): string {
+    try {
+      return marked(
+        i18next.t(`${baseSkillId}.description`, {
+          ns: 'skill',
+          skill: skillMessage,
+        }),
+        {
+          async: false,
+        },
+      ).replace(/\n{2,}/g, '')
+    } catch {
+      return baseSkillId
+    }
+  }
+
+  private getSkillDescriptionById(skillId: string): string {
+    const skill = this.getSkillById(skillId)
+    return skill ? this.getSkillDescriptionByBaseId(skill.baseId, skill) : skillId
+  }
+
+  private getMarkNameByBaseId(baseMarkId: string): string {
+    try {
+      return i18next.t(`${baseMarkId}.name`, {
+        ns: ['mark', 'mark_ability', 'mark_emblem'],
+      })
+    } catch {
+      return baseMarkId
+    }
+  }
+
+  private getMarkDescriptionByBaseId(baseMarkId: string, markMessage?: MarkMessage): string {
+    try {
+      return i18next
+        .t(`${baseMarkId}.description`, {
+          ns: ['mark', 'mark_ability', 'mark_emblem'],
+          mark: markMessage,
+        })
+        .replace(/\n{2,}/g, '')
+    } catch {
+      return baseMarkId
+    }
+  }
+
+  private getMarkById(markId: string): MarkMessage | undefined {
+    if (!this.battleState) return undefined
+    return [
+      ...this.battleState.marks,
+      ...this.battleState.players
+        .map(p => p.team)
+        .flat()
+        .filter(p => p != undefined)
+        .map(p => p.marks)
+        .flat(),
+    ].find(m => m.id === markId)
+  }
+
+  private getMarkNameById(markId: string): string {
+    if (!this.battleState) return markId
+    const mark = this.getMarkById(markId)
+    return mark ? this.getMarkNameByBaseId(mark.baseId) : markId
+  }
+
+  private getMarkDescriptionById(markId: string): string {
+    if (!this.battleState) return markId
+    const mark = this.getMarkById(markId)
+    return mark ? this.getMarkDescriptionByBaseId(mark.baseId, mark) : markId
   }
 
   private getRageReason(reason: string): string {
@@ -325,14 +416,24 @@ export class ConsoleUIV2 {
     return reasons[reason] || reason
   }
 
+  private getSpeciesNameById(speciesId: string): string {
+    try {
+      return i18next.t(`${speciesId}.name`, {
+        ns: 'species',
+      })
+    } catch {
+      return speciesId
+    }
+  }
+
   private getPetStatus = (pet: PetMessage) => {
-    const baseInfo = `${ELEMENT_MAP[pet.element].emoji}${pet.name}[Lv.${pet.level} HP:${pet.currentHp}/${pet.maxHp}]`
+    const baseInfo = `${ELEMENT_MAP[pet.element].emoji}${pet.name}(${this.getSpeciesNameById(pet.speciesID)})[Lv.${pet.level} HP:${pet.currentHp}/${pet.maxHp}]`
     const markInfo = pet.marks.length > 0 ? ' 印记:' + pet.marks.map(mark => this.getMarkStatus(mark)).join(' ') : ''
     return baseInfo + markInfo
   }
 
   private getMarkStatus = (mark: MarkMessage) =>
-    `{<${mark.id}> ${mark.duration < 0 ? '' : `[剩余${mark.duration}回合]`} ${mark.stack}层}`
+    `{<${this.getMarkNameById(mark.id)}> ${mark.duration < 0 ? '' : `[剩余${mark.duration}回合]`} ${mark.stack}层}`
 
   private translateMissReason(reason: string): string {
     return (
@@ -390,7 +491,8 @@ export class ConsoleUIV2 {
       const index = i + 1
       switch (s.type) {
         case 'use-skill': {
-          const skill = this.findSkill(s.skill)
+          const skill = this.getSkillById(s.skill)
+          const description = this.getSkillDescriptionByBaseId(skill!.baseId, skill)
           const skillTypeIcon = {
             [Category.Physical]: '⚔️',
             [Category.Special]: '🔮',
@@ -400,7 +502,7 @@ export class ConsoleUIV2 {
 
           const powerText = skill!.category === Category.Status ? '' : `, 威力:${skill!.power}`
           console.log(
-            `${index}. [技能] ${ELEMENT_MAP[skill!.element].emoji}${skill!.id} (${skillTypeIcon}${powerText}, 消耗:${skill!.rage})`,
+            `${index}. [技能] ${ELEMENT_MAP[skill!.element].emoji}${this.getSkillNameById(skill!.id)} (${skillTypeIcon}${powerText}, 消耗:${skill!.rage},${description})`,
           )
           break
         }
@@ -438,21 +540,6 @@ export class ConsoleUIV2 {
       if (teamPet) return teamPet
     }
     return undefined
-  }
-
-  private findSkill(skillId: string): SkillMessage | undefined {
-    try {
-      return this.battleState?.players
-        .map(p => p.team)
-        .flat()
-        .filter(p => p != undefined)
-        .map(p => p.skills)
-        .flat()
-        .find(v => v && v.id && v.id == skillId)
-    } catch (error) {
-      console.log(error)
-      return undefined
-    }
   }
 
   private prompt(question: string): Promise<string> {

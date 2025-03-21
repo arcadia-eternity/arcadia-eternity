@@ -93,7 +93,7 @@ mark_zhongdu:
   description: 每回合失去最大体力的1/8 恢复量降低15%
 mark_liuxue:
   name: 流血
-  description: 每回合体力y点
+  description: 回合结束时受到{{mark.stack}}点伤害
 mark_exin:
   name: 恶心
   description: 命中率降低50%
@@ -156,58 +156,58 @@ mark_ruodianjihao:
   description: 每个增加对手25点速度值 最多2个
 mark_yishang:
   name: 易伤
-  description: 受到伤害增加y%
+  description: 受到伤害增加{{mark.stack}}%
 mark_jishengzhadan:
   name: 寄生炸弹
-  description: 结束时失去y点体力 换场消失
+  description: 结束时失去{{mark.stack}}点体力 换场消失
 mark_mihuo:
   name: 迷惑
   description: 造成伤害由双方平分
 mark_kuihuazhongzi:
   name: 葵花种子
-  description: 造成伤害y%
+  description: 造成伤害{{mark.stack}}%
 mark_zengzhong:
   name: 增重
   description: 每层增加自身体重50KG 最多2层
 mark_fantan:
   name: 反弹
-  description: 反弹受到伤害的y%
+  description: 反弹受到伤害的{{mark.stack}}%
 mark_tezengshang:
   name: 特伤增加
-  description: 特攻伤害增加y%
+  description: 特攻伤害增加{{mark.stack}}%
 mark_wuzengshang:
   name: 物伤增加
-  description: 物攻伤害增加y%
+  description: 物攻伤害增加{{mark.stack}}%
 mark_shuiwenzhenji:
   name: 水纹震击
-  description: 暴击率提升y%
+  description: 暴击率提升{{mark.stack}}%
 mark_xuanyun:
   name: 眩晕
   description: 速度值减少50点
 mark_yinghua:
   name: 硬化
-  description: 受到物攻伤害y%
+  description: 受到物攻伤害{{mark.stack}}%
 mark_rouhua:
   name: 柔化
-  description: 受到特攻伤害y%
+  description: 受到特攻伤害{{mark.stack}}%
 mark_mingzhongxiajiang:
   name: 命中下降
-  description: 命中率降低y%
+  description: 命中率降低{{mark.stack}}%
 mark_yanggongqianghua:
   name: 佯攻强化
-  description: 增加非佯攻的攻击技能y点威力
+  description: 增加非佯攻的攻击技能{{mark.stack}}点威力
 mark_bizhong:
   name: 必中
   description: 所有技能必中
 mark_shanghaizengjia:
   name: 伤害增加
-  description: 伤害增加y%
+  description: 伤害增加{{mark.stack}}%
 mark_busi:
   name: 不死
   description: 受到致死打击时保留1点体力
 mark_huifu:
   name: 恢复
-  description: 每回合恢复y点体力
+  description: 每回合恢复{{mark.stack}}点体力
 mark_zhongzinengliang:
   name: 种子能量
   description: 受到伤害减少20% 被攻击会减少1层
@@ -216,10 +216,10 @@ mark_shoushangfanbei:
   description: ''
 mark_mingzhongtisheng:
   name: 命中提升
-  description: 命中率提升y%
+  description: 命中率提升{{mark.stack}}%
 mark_weilibianhua:
   name: 威力变化
-  description: 攻击技能威力增加y点
+  description: 攻击技能威力增加{{mark.stack}}点
 mark_shanbi:
   name: 闪避
   description: 闪避攻击
@@ -234,13 +234,13 @@ mark_xishoucao:
   description: 抵挡伤害并转化伤害的1/4为体力 对手具有葵花种子时效果2倍
 mark_jinzhenfenmo:
   name: 金针粉末
-  description: 造成伤害增加y%
+  description: 造成伤害增加{{mark.stack}}%
 mark_tanxingzhifang:
   name: 弹性脂肪
   description: 抵挡自身体重的物攻伤害 生效使自身获得体重降低
 mark_tizhongjiangdi:
   name: 体重降低
-  description: 基础体重值降低y%
+  description: 基础体重值降低{{mark.stack}}%
 mark_fanshe:
   name: 反射
   description: 反弹受到伤害的1.5倍
@@ -255,7 +255,7 @@ mark_judushenti:
   description: 受到攻击时50%使对手中毒
 mark_yuansuzhufu:
   name: 元素祝福
-  description: 受到伤害增加y%
+  description: 受到伤害增加{{mark.stack}}%
 mark_3035:
   name: 3035
   description: ''
@@ -270,7 +270,7 @@ mark_judushenti2:
   description: 受到攻击时50%使对手中毒
 mark_yanhuo:
   name: 焰火
-  description: 火系伤害增加y%
+  description: 火系伤害增加{{mark.stack}}%
 mark_huoxing:
   name: 火星
   description: 使焰火的回合数翻倍
@@ -282,7 +282,7 @@ mark_xuruoshuipao2:
   description: 每层增加30点受到伤害 最多2层
 mark_suijixianzhi:
   name: 随机先制
-  description: 20%先制+1 必定生效y次
+  description: 20%先制+1 必定生效{{mark.stack}}次
 mark_mianyiyichang:
   name: 免疫异常
   description: 免疫异常
@@ -297,16 +297,16 @@ mark_houkongfan:
   description: 闪避物攻 受到特攻伤害2倍
 mark_xingzhihui:
   name: 星之辉
-  description: 技能触发率提升y%
+  description: 技能触发率提升{{mark.stack}}%
 mark_kongqichuliang:
   name: 空气储量
-  description: 剩余y点空气值
+  description: 剩余{{mark.stack}}点空气值
 mark_yinbozhi:
   name: 音波值
   description: 达到100点时受到伤害变为100点
 mark_zaoyin:
   name: 噪音
-  description: 命中率y%
+  description: 命中率{{mark.stack}}%
 mark_yinzhizhiwang:
   name: 音之网
   description: ''

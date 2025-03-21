@@ -205,19 +205,19 @@ export interface BattleMessageData {
   [BattleMessageType.SkillUse]: {
     user: petId
     target: AttackTargetOpinion
-    skill: string
+    skill: skillId
     rageCost: number
   }
   [BattleMessageType.SkillMiss]: {
     user: petId
     target: petId
-    skill: string
+    skill: skillId
     reason: 'accuracy' | 'dodge' | 'immune'
   }
   [BattleMessageType.SkillEffect]: {
     user?: petId
     target: petId
-    effect: string
+    effect: effectId
     description: string
   }
 

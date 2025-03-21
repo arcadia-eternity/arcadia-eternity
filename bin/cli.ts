@@ -5,7 +5,7 @@ import yaml from 'yaml'
 import { loadGameData } from '@test-battle/data-repository/loader'
 import { PlayerParser } from '@test-battle/parser'
 import { AIPlayer, Battle } from '@test-battle/battle'
-import { ConsoleUIV2 } from '@test-battle/console'
+import { ConsoleUIV2, initI18n } from '@test-battle/console'
 import { Player } from '@test-battle/battle'
 import { BattleClient, RemoteBattleSystem } from '@test-battle/client'
 import { PlayerSchema } from '@test-battle/schema'
@@ -54,6 +54,7 @@ program
 
       const remote = new RemoteBattleSystem(client)
 
+      await initI18n()
       const consoleUI = new ConsoleUIV2(remote, player.id as playerId)
       await client.connect()
       console.log('等待匹配对手...')
@@ -71,6 +72,7 @@ program
   .requiredOption('-1, --player1 <path>', '玩家1数据文件路径')
   .requiredOption('-2, --player2 <path>', '玩家2数据文件路径')
   .option('--ai <players>', '指定AI控制的玩家（支持多个，如：player1,player2）', val => val.split(','))
+  .option('--debug', '启用调试模式', false)
   .action(async options => {
     try {
       console.log('[🌀] 正在加载游戏数据...')
@@ -102,6 +104,7 @@ program
         allowFaintSwitch: true,
       })
       const battleSystem = new LocalBattleSystem(battle)
+      await initI18n(options.debug)
       const ui = new ConsoleUIV2(battleSystem, ...selfControl)
       battleSystem.init()
     } catch (err) {

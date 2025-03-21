@@ -112,7 +112,7 @@ skill_zhongzinengliang:
 skill_nengliangshifang:
   name: 能量释放
   description: 清空种子能量 每个增加25点威力
-skill_xuoruo:
+skill_xueruo:
   name: 削弱
   description: 【95】弱化对手双攻1级
 skill_feivesushe:
