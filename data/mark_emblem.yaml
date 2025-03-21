@@ -3,8 +3,6 @@
 # @metaType mark
 # @version 1.0.0
 - id: mark_emblem_zhuiji
-  name: 追击
-  description: 使弱点记号复制到对手下一只精灵上
   config: &emblem_config
     persistent: true
     stackable: false
@@ -14,68 +12,28 @@
   effect:
     - effect_emblem_set_ruodianbiaoji_keeponswitchout
 - id: mark_emblem_nuhuo
-  name: 怒火
-  description: 受到伤害时增加的怒气额外提高20%
   config: *emblem_config
   effect:
     - effect_emblem_increase_rage_on_damage
 - id: mark_emblem_zhiyu
-  name: 治愈
-  description: 20%恢复量翻倍
   config: *emblem_config
   effect:
     - effect_emblem_20percent_double_heal
 - id: mark_emblem_meihuo
-  name: 魅惑
-  description: 被对手魅惑时在下一回合会自动解除魅惑
 - id: mark_emblem_kangdu
-  name: 抗毒
-  description: 减少1回合中毒持续时间
 - id: mark_emblem_zhongliang
-  name: 重量
-  description: 增加体重10KG
 - id: mark_emblem_shupi
-  name: 树皮
-  description: 减少1回合流血持续时间
 - id: mark_emblem_shiming
-  name: 失明
-  description: 减少1回合失明持续时间
 - id: mark_emblem_duyao
-  name: 毒药
-  description: 使慢性毒药最大层数增加4层
 - id: mark_emblem_zhixi
-  name: 窒息
-  description: 不会受到窒息效果
 - id: mark_emblem_xingzhi
-  name: 星之
-  description: 使黑喵星之力的持续效果增加5回合
 - id: mark_emblem_zhenji
-  name: 震击
-  description: 水纹震击提升的致命几率再增加5%
 - id: mark_emblem_yiran
-  name: 易燃
-  description: 增加1回合烧伤持续时间
 - id: mark_emblem_xuanyun
-  name: 眩晕
-  description: 增加1回合眩晕持续时间
 - id: mark_emblem_weiyan
-  name: 威严
-  description: 免疫害怕
 - id: mark_emblem_yanhuo
-  name: 焰火
-  description: 增加1回合焰火的效果回合数
 - id: mark_emblem_xuruo
-  name: 虚弱
-  description: 使所有弱化类技能生效率增加5%
 - id: mark_emblem_yinji
-  name: 印记
-  description: 使啾啾心之印记和血红印记的怒气消耗减少5
 - id: mark_emblem_huizhi
-  name: 辉之
-  description: 使技能效果触发率提升5%
 - id: mark_emblem_yinbo
-  name: 音波
-  description: 使多摩可增加音波值的技能额外增加5点音波值
 - id: mark_emblem_xinsuo
-  name: 心锁
-  description: 使心锁技能必中

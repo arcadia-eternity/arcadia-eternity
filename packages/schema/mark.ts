@@ -18,16 +18,12 @@ export const MarkConfigSchema = z
   })
   .catchall(z.any())
 
-export const MarkSchema = z
-  .object({
-    id: z.string().min(1),
-    name: z.string().min(1),
-    description: z.string(),
-    config: MarkConfigSchema.optional(),
-    tags: z.array(z.string()).optional(),
-    effect: z.array(z.string()).optional(),
-  })
-  .passthrough()
+export const MarkSchema = z.object({
+  id: z.string().min(1),
+  config: MarkConfigSchema.optional(),
+  tags: z.array(z.string()).optional(),
+  effect: z.array(z.string()).optional(),
+})
 
 export type MarkSchemaType = z.infer<typeof MarkSchema>
 

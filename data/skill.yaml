@@ -4,718 +4,526 @@
 # @version 1.0.0
 
 - id: skill_paida
-  name: 拍打
   element: Normal
   category: Physical
   power: 40
   rage: 0
   accuracy: 95
-  description: 5%弱化对手物防1级
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_reduce_def_5_percent
-  num: 10001
-  evolved_skill_id: 10018
 - id: skill_shuipao
-  name: 水泡
   element: Water
   category: Special
   power: 60
   rage: 5
   accuracy: 95
-  description: 5%弱化对手特防1级
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_reduce_spd_5_percent
-  num: 10002
-  evolved_skill_id: 10019
 - id: skill_tuoli
-  name: 脱力
   element: Normal
   category: Status
   power: 0
   rage: 10
   accuracy: 95
-  description: 弱化对手物攻1级
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_reduce_foe_atk_1_stage
-  num: 10003
-  evolved_skill_id: 10020
 - id: skill_ruodiangongji
-  name: 弱点攻击
   element: Water
   category: Physical
   power: 70
   rage: 10
   accuracy: 95
-  description: 攻击对手并留下弱点记号 使自身速度值增加50点 最多2个
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_mark_foe_ruodian
-  num: 10004
-  evolved_skill_id: 10021
 - id: skill_jiliuchuanji
-  name: 激流穿击
   element: Water
   category: Special
   power: 75
   rage: 15
   accuracy: 95
-  description: 喷射出激流攻击对手 每1个记号使致命率增加45%
   sureHit: false
   ignoreShield: false
   tags: ['consume_ruodian']
   effect:
     - effect_skill_add_crit_rate_ruodian
-  num: 10005
-  evolved_skill_id: 10022
 - id: skill_sashui
-  name: 洒水
   element: Water
   category: Status
   power: 0
   rage: 10
   accuracy: 100
-  description: 向对手洒水降低对手的特攻
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_reduce_foe_spa_1_stage
-  num: 10006
-  evolved_skill_id: 10023
 - id: skill_yinudanu
-  name: 以怒打怒
   element: Normal
   category: Physical
   power: 10
   rage: 5
   accuracy: 95
-  description: 消除对手20点怒气
   sureHit: false
   ignoreShield: false
   tags: []
-  num: 10007
-  evolved_skill_id: 10024
 - id: skill_haixiaolianji
-  name: 海啸连击
   element: Water
   category: Special
   power: 65
   rage: 15
   accuracy: 95
-  description: 刮起海啸连续冲击对手 每1个记号使连击数加1
   sureHit: false
   ignoreShield: false
   tags: ['consume_ruodian']
   effect:
     - effect_skill_add_hit_result_ruodian
     - effect_skill_consume_ruodian
-  num: 10008
-  evolved_skill_id: 10025
 - id: skill_shuiliuhuti
-  name: 水流护体
   element: Water
   category: Status
   power: 0
   rage: 20
   accuracy: 100
-  description: 召唤水流包围全身增加物防和特防
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_raise_def_1_stages
     - effect_skill_raise_spd_1_stages
-  num: 10009
-  evolved_skill_id: 10026
 - id: skill_ruohuadaji
-  name: 弱化打击
   element: Normal
   category: Physical
   power: 80
   rage: 15
   accuracy: 95
-  description: 5%弱化对手特防1级
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_reduce_spd_5_percent
-  num: 10010
-  evolved_skill_id: 10027
 - id: skill_feiliupubu
-  name: 飞流瀑布
   element: Water
   category: Special
   power: 100
   rage: 15
   accuracy: 95
-  description: 从上倾下瀑布攻击对手 每1个记号使威力增加50
   sureHit: false
   ignoreShield: false
   tags: ['consume_ruodian']
   effect:
     - effect_skill_add_power_50_ruodian
     - effect_skill_consume_ruodian
-  num: 10011
-  evolved_skill_id: 10028
 - id: skill_hailangzhidun
-  name: 海浪之盾
   element: Water
   category: Status
   power: 0
   rage: 15
   accuracy: 100
-  description: 展开海浪之盾抵御特殊攻击
   sureHit: false
   ignoreShield: false
   tags: []
-  num: 10012
-  evolved_skill_id: 10029
 - id: skill_wujindaxuanwo
-  name: 无尽大漩涡
   element: Water
   category: Climax
   power: 170
   rage: 100
   accuracy: 95
-  description: 必杀技 施展无尽大漩涡淹没对手 10%使对手溺水
   sureHit: false
   ignoreShield: false
   tags: []
-  num: 10013
-  evolved_skill_id: 10030
 - id: skill_shuihuajianshe
-  name: 水花溅射
   element: Water
   category: Special
   power: 80
   rage: 15
   accuracy: 95
-  description: 发出水花溅射对手的眼睛使其命中率减少15%
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_mark_foe_mingzhongdixia
-  num: 10014
-  evolved_skill_id: 10031
 - id: skill_yanmo
-  name: 淹没
   element: Water
   category: Status
   power: 0
   rage: 20
   accuracy: 85
-  description: 向对手施放大量潮水淹没对手 使其溺水
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_mark_foe_nishui
-  num: 10015
-  evolved_skill_id: 10032
 - id: skill_ruodianbiaoji
-  name: 弱点标记
   element: Water
   category: Special
   power: 65
   rage: 15
   accuracy: 95
-  description: 在对手身上同时标记2个弱点记号 使自身速度值增加50点
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_mark_foe_ruodian_2
-  num: 10016
-  evolved_skill_id: 10033
 - id: skill_lizhua
-  name: 利爪
   element: Normal
   category: Physical
   power: 45
   rage: 0
   accuracy: 95
-  description: 5%弱化对手物攻1级
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_reduce_atk_5_percent
-  num: 10018
-  evolved_skill_id: 10001
 - id: skill_huoyan
-  name: 火焰
   element: Fire
   category: Special
   power: 60
   rage: 5
   accuracy: 95
-  description: 5%弱化对手特攻1级
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_reduce_spa_5_percent
-  num: 10019
-  evolved_skill_id: 10002
 - id: skill_qili
-  name: 气力
   element: Normal
   category: Status
   power: 0
   rage: 10
   accuracy: 100
-  description: 集合气力增加自身的物攻
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_raise_atk_1_stages
-  num: 10020
-  evolved_skill_id: 10003
 - id: skill_fenlitupo
-  name: 奋力突破
   element: Normal
   category: Physical
   power: 75
   rage: 10
   accuracy: 95
-  description: 奋力的突破对手的防御 使对手易伤
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_mark_foe_yishang
-  num: 10021
-  evolved_skill_id: 10004
 - id: skill_tahuochongzhuang
-  name: 踏火冲撞
   element: Fire
   category: Physical
   power: 80
   rage: 15
   accuracy: 95
-  description: 5%使对手烧伤
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_mark_foe_shaoshang_5_percent
-  num: 10022
-  evolved_skill_id: 10005
 - id: skill_jiasu
-  name: 加速
   element: Normal
   category: Status
   power: 0
   rage: 10
   accuracy: 100
-  description: 脚下生风 提升自身的速度
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_raise_spe_1_stages
-  num: 10023
-  evolved_skill_id: 10006
 - id: skill_yanggong
-  name: 佯攻
   element: Normal
   category: Physical
   power: 75
   rage: 15
   accuracy: 95
-  description: 超速的佯装攻击 并使下一个除佯攻外技能威力增加50 先制+2
   priority: 2
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_mark_yanggong
-  num: 10024
-  evolved_skill_id: 10007
 - id: skill_jizhong
-  name: 集中
   element: Normal
   category: Status
   power: 0
   rage: 10
   accuracy: 100
-  description: 集中精力 使技能必中
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_mark_jizhong
-  num: 10025
-  evolved_skill_id: 10008
 - id: skill_huohai
-  name: 火海
   element: Fire
   category: Special
   power: 70
   rage: 15
   accuracy: 90
-  description: 放出大片火海包围对手 50%几率烧伤对手
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_mark_foe_shaoshang_50_percent
-  num: 10026
-  evolved_skill_id: 10009
 - id: skill_nuhuomenggong
-  name: 怒火猛攻
   element: Fire
   category: Physical
   power: 100
   rage: 20
   accuracy: 95
-  description: 怒火集中猛攻对手 造成的伤害不低于100
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_min_damage_100
-  num: 10027
-  evolved_skill_id: 10010
 - id: skill_shixue
-  name: 嗜血
   element: Normal
   category: Status
   power: 0
   rage: 0
   accuracy: 100
-  description: 蒸发血液获得怒气 减少自身1/6体力增加35点怒气
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_reduce_self_hp_1_6
     - effect_skill_add_rage_35
-  num: 10028
-  evolved_skill_id: 10011
 - id: skill_lieyanjuexiji
-  name: 烈焰绝袭击
   element: Fire
   category: Physical
   power: 125
   rage: 30
   accuracy: 95
-  description: 5%弱化对手物防1级
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_reduce_def_5_percent
-  num: 10029
-  evolved_skill_id: 10012
 - id: skill_liehuofentianshao
-  name: 烈火焚天烧
   element: Fire
   category: Climax
   power: 175
   rage: 100
   accuracy: 95
-  description: 必杀技 召唤巨大火焰焚烧一切 10%使对手烧伤
   sureHit: false
   ignoreShield: false
   tags: []
-  num: 10030
-  evolved_skill_id: 10013
 - id: skill_yanzhiyizhi
-  name: 炎之意志
   element: Fire
   category: Status
   power: 0
   rage: 15
   accuracy: 100
-  description: 燃起火焰斗气 使下一个技能伤害增加100%
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_mark_yanzhiyizhi
-  num: 10031
-  evolved_skill_id: 10014
 - id: skill_juechufengsheng
-  name: 绝处逢生
   element: Normal
   category: Physical
   power: 50
   rage: 10
   accuracy: 95
-  description: 背水一战 自身体力低于1/6时威力4倍
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_power_4x_below_1_6_hp
-  num: 10032
-  evolved_skill_id: 10015
 - id: skill_bumiezhixin
-  name: 不灭之心
   element: Normal
   category: Status
   power: 0
   rage: 25
   accuracy: 100
-  description: 获得不灭的意志 下一次受到致死攻击会剩下1点体力
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_mark_busi
-  num: 10033
-  evolved_skill_id: 10016
 - id: skill_zhongzibaodan
-  name: 种子爆弹
   element: Grass
   category: Special
   power: 25
   rage: 5
   accuracy: 95
-  description: 连击2~3次
   sureHit: false
   ignoreShield: false
   multihit: [2, 3]
   tags: []
-  num: 10035
-  evolved_skill_id: -1
 - id: skill_zhiyu
-  name: 治愈
   element: Grass
   category: Status
   power: 0
   rage: 20
   accuracy: 100
-  description: 用叶子滋润 恢复自身1/4的体力
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_heal_self_quarter
-  num: 10036
-  evolved_skill_id: -1
 - id: skill_zhongzinengliang
-  name: 种子能量
   element: Grass
   category: Special
   power: 60
   rage: 10
   accuracy: 95
-  description: 攻击对手同时给自身增加4个种子 减少20%受到的伤害
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_mark_zhongzinengliang
-  num: 10037
-  evolved_skill_id: -1
 - id: skill_nengliangshifang
-  name: 能量释放
   element: Grass
   category: Special
   power: 50
   rage: 15
   accuracy: 95
-  description: 释放所有种子能量攻击对手 每1个种子使威力增加25
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_power_25_zhongzinengliang
     - effect_skill_consume_all_zhongzinengliang
-  num: 10038
-  evolved_skill_id: -1
 - id: skill_xueruo
-  name: 削弱
   element: Normal
   category: Status
   power: 0
   rage: 20
   accuracy: 95
-  description: 削弱对手的物攻和特攻
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_reduce_foe_atk_1_stage
     - effect_skill_reduce_foe_spa_1_stage
-  num: 10039
-  evolved_skill_id: -1
 - id: skill_feiyesushe
-  name: 飞叶速射
   element: Grass
   category: Special
   power: 25
   rage: 15
   accuracy: 95
-  description: 连续射出3~5片飞叶攻击对手
   sureHit: false
   ignoreShield: false
   tags: []
   multihit: [3, 5]
-  num: 10040
-  evolved_skill_id: -1
 - id: skill_jishengzhongzi
-  name: 寄生种子
   element: Grass
   category: Status
   power: 0
   rage: 15
   accuracy: 95
-  description: 放出寄生种子吸收对手体力补充自身
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_mark_foe_jisheng
-  num: 10041
-  evolved_skill_id: -1
 - id: skill_nengliangzhaqu
-  name: 能量榨取
   element: Grass
   category: Physical
   power: 80
   rage: 15
   accuracy: 95
-  description: 榨取对手的体力 每1个种子可恢复伤害量1/4的体力
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_heal_by_damage_25_zhongzinengliang
     - effect_skill_consume_all_zhongzinengliang
-  num: 10042
-  evolved_skill_id: -1
 - id: skill_jinghuazhiye
-  name: 净化汁液
   element: Grass
   category: Status
   power: 0
   rage: 20
   accuracy: 100
-  description: 放出一滴净化汁液来清除对手能力强化
   sureHit: false
   ignoreShield: false
   effect:
     - effect_skill_foe_clear_stage
   tags: []
-  num: 10043
-  evolved_skill_id: -1
 - id: skill_lirendaoye
-  name: 利刃刀叶
   element: Grass
   category: Special
   power: 10
   rage: 15
   accuracy: 95
-  description: 利用锋利的叶子割伤对手 每1个种子增加1回合持续时间
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_mark_foe_liuxie_with_zhongzinengliang
     - effect_skill_consume_all_zhongzinengliang
-  num: 10044
-  evolved_skill_id: -1
 - id: skill_ganrao
-  name: 干扰
   element: Normal
   category: Status
   power: 0
   rage: 10
   accuracy: 95
-  description: 干扰对手 使其命中率减少15%
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_mark_foe_mingzhongdixia
-  num: 10045
-  evolved_skill_id: -1
 - id: skill_laaodehuhuan
-  name: 拉奥的呼唤
   element: Grass
   category: Climax
   power: 165
   rage: 100
   accuracy: 95
-  description: 必杀技 呼唤拉奥一族协助攻击并回复自身 使自身获得5回合的1/8的回复
   sureHit: false
   ignoreShield: false
   tags: []
-  num: 10046
-  evolved_skill_id: -1
 - id: skill_qianyesha
-  name: 千叶杀
   element: Grass
   category: Special
   power: 100
   rage: 10
   accuracy: 95
-  description: 发射出千片叶子击杀对手 对手体力低于1/4时威力2倍
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_power_2x_foe_below_quarter_hp
-  num: 10047
-  evolved_skill_id: -1
 - id: skill_jishengzhadan
-  name: 寄生炸弹
   element: Grass
   category: Status
   power: 0
   rage: 15
   accuracy: 95
-  description: 给对手身上注入一个3回合爆炸的寄生炸弹 爆炸伤害为300
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_add_mark_foe_jishengzhadan
-  num: 10048
-  evolved_skill_id: -1
 - id: skill_yinbaozhongzi
-  name: 引爆种子
   element: Normal
   category: Status
   power: 0
   rage: 20
   accuracy: 100
-  description: 利用种子能量瞬间引爆寄生炸弹
   sureHit: false
   ignoreShield: false
   tags: []
   effect:
     - effect_skill_ignite_foe_mark_jishengzhadan
-  num: 10049
-  evolved_skill_id: -1
 - id: skill_dixiulazhinu
-  name: 迪休拉之怒
   element: Normal
   category: Climax
   power: 90
   rage: 100
   accuracy: 95
-  description: 合体必杀 迪兰特 休罗斯 拉奥叶 合力攻击
   sureHit: false
   ignoreShield: false
   tags: []
   multihit: 3
-  num: 10017
-  evolved_skill_id: -1

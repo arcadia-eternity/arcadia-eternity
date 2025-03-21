@@ -11,10 +11,6 @@
             "type": "string",
             "minLength": 1
           },
-          "name": {
-            "type": "string",
-            "minLength": 1
-          },
           "element": {
             "type": "string",
             "enum": [
@@ -64,9 +60,6 @@
             "type": "number",
             "minimum": 0,
             "maximum": 100
-          },
-          "description": {
-            "type": "string"
           },
           "priority": {
             "type": "integer"
@@ -136,15 +129,13 @@
         },
         "required": [
           "id",
-          "name",
           "element",
           "category",
           "power",
           "rage",
-          "accuracy",
-          "description"
+          "accuracy"
         ],
-        "additionalProperties": true
+        "additionalProperties": false
       }
     }
   }

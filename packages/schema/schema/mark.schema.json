@@ -11,13 +11,6 @@
             "type": "string",
             "minLength": 1
           },
-          "name": {
-            "type": "string",
-            "minLength": 1
-          },
-          "description": {
-            "type": "string"
-          },
           "config": {
             "type": "object",
             "properties": {
@@ -85,11 +78,9 @@
           }
         },
         "required": [
-          "id",
-          "name",
-          "description"
+          "id"
         ],
-        "additionalProperties": true
+        "additionalProperties": false
       }
     }
   }

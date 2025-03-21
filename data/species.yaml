@@ -6,7 +6,6 @@
 - id: pet_dilan
   num: 1
   element: Water
-  star: 2
   baseStats:
     hp: 85
     atk: 116
@@ -43,7 +42,6 @@
 - id: pet_didilan
   num: 2
   element: Water
-  star: 2
   baseStats:
     hp: 125
     atk: 141
@@ -92,7 +90,6 @@
 - id: pet_dilante
   num: 3
   element: Water
-  star: 2
   baseStats:
     hp: 185
     atk: 166
@@ -168,7 +165,6 @@
 - id: pet_xiuxiu
   num: 4
   element: Fire
-  star: 2
   baseStats:
     hp: 79
     atk: 130
@@ -205,7 +201,6 @@
 - id: pet_xiuyier
   num: 5
   element: Fire
-  star: 2
   baseStats:
     hp: 119
     atk: 160
@@ -254,7 +249,6 @@
 - id: pet_xiuluosi
   num: 6
   element: Fire
-  star: 2
   baseStats:
     hp: 179
     atk: 190
@@ -330,7 +324,6 @@
 - id: pet_laao
   num: 7
   element: Grass
-  star: 2
   baseStats:
     hp: 91
     atk: 104
@@ -367,7 +360,6 @@
 - id: pet_laaomiao
   num: 8
   element: Grass
-  star: 2
   baseStats:
     hp: 131
     atk: 129
@@ -416,7 +408,6 @@
 - id: pet_laaoye
   num: 9
   element: Grass
-  star: 2
   baseStats:
     hp: 191
     atk: 154

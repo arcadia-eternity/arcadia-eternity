@@ -168,7 +168,7 @@
           "ability",
           "emblem"
         ],
-        "additionalProperties": true
+        "additionalProperties": false
       }
     }
   }
