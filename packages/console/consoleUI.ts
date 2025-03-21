@@ -116,7 +116,7 @@ export class ConsoleUIV2 {
   ${elementEmoji} ${pet.name} [Lv.${pet.level}]
   HP: ${hpBar} ${pet.currentHp}/${pet.maxHp}
   属性：${this.getElementName(pet.element)}
-  状态：${pet.marks.map(m => `\n    ${this.getMarkNameById(m.id)}×${m.stack} ${this.getMarkDescriptionById(m.id)}`).join(' ') || '无'}
+  状态：${pet.marks.map(m => `\n    ${this.getMarkNameById(m.id)}×${m.stack} ${this.getMarkDescriptionById(m.id)} `).join(' ') || '无'}
     `.trim(),
     )
   }
@@ -261,7 +261,9 @@ export class ConsoleUIV2 {
         break
 
       case BattleMessageType.BattleEnd:
-        console.log(`\n🎉 对战结束！胜利者：${message.data.winner}`)
+        console.log(
+          `\n🎉 对战结束！胜利者：${message.data.winner ? this.getPlayerNameById(message.data.winner) : '无'}`,
+        )
         console.log(`➤ 结束原因：${this.translateEndReason(message.data.reason)}`)
         exit(0)
 
