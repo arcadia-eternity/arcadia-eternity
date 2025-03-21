@@ -373,24 +373,13 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       // 记录被清理的状态类型
       const clearedStats = new Set<StatTypeWithoutHp>()
 
-      if (!statTypes || statTypes.length === 0) {
-        // 收集需要清理的状态类型
-        Object.entries(this.statStage).forEach(([stat, stage]) => {
-          const statType = stat as StatTypeWithoutHp
-          if (shouldClearStage(stage)) {
-            clearedStats.add(statType)
-            this.statStage[statType] = 1
-          }
-        })
-      } else {
-        statTypes.forEach(statType => {
-          const stage = this.statStage[statType]
-          if (shouldClearStage(stage)) {
-            clearedStats.add(statType)
-            this.statStage[statType] = 1
-          }
-        })
-      }
+      Object.entries(this.statStage).forEach(([stat, stage]) => {
+        const statType = stat as StatTypeWithoutHp
+        if (shouldClearStage(stage)) {
+          clearedStats.add(statType)
+          this.statStage[statType] = 1
+        }
+      })
 
       // 根据记录的statType清理标记
       this.marks = this.marks.filter(mark => {

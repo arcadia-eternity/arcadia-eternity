@@ -103,10 +103,12 @@ export class BaseSkill implements Prototype {
 
     withMultihit(hit: [number, number] | number) {
       this.#multihit = hit
+      return this
     }
 
     withTag(...arg: string[]) {
       this.#tags.push(...arg)
+      return this
     }
 
     build() {

@@ -71,6 +71,10 @@ export class Battle extends Context implements MarkOwner {
     this.messageCallbacks.push(callback)
   }
 
+  public unregisterListener(callback: (message: BattleMessage) => void) {
+    this.messageCallbacks = this.messageCallbacks.filter(cb => cb !== callback)
+  }
+
   clearListeners() {
     this.messageCallbacks = []
   }
