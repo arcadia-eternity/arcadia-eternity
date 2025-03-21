@@ -123,7 +123,9 @@ export const useBattleStore = defineStore('battle', {
           break
 
         case BattleMessageType.TurnAction:
-          this.availableActions = await this.fetchAvailableSelection()
+          if (msg.data.player.includes(this.playerId as playerId)) {
+            this.availableActions = await this.fetchAvailableSelection()
+          }
           break
 
         case BattleMessageType.ForcedSwitch:
@@ -177,7 +179,7 @@ export const useBattleStore = defineStore('battle', {
             p =>
               p?.skills?.map(s => ({
                 id: s?.id,
-                name: s?.name || '未知技能',
+                name: s?.id || '未知技能', //TODO:get name
                 cost: s?.rage || 0,
               })) || [],
           )

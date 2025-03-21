@@ -1,0 +1,9 @@
+mark_emblem_zhuiji:
+  name: 追击
+  description: 使弱点记号换场继承
+mark_emblem_nuhuo:
+  name: 怒火
+  description: 受击怒气增加20%
+mark_emblem_zhiyu:
+  name: 治愈
+  description: 20%恢复量翻倍

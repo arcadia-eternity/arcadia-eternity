@@ -1,5 +1,5 @@
 export * from './condition'
-export * from './conditionAction'
+export * from './conditionStep'
 export * from './effectBuilder'
 export * from './evaluator'
 export * from './extractor'

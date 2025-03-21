@@ -1,0 +1,312 @@
+mark_meihuo:
+  name: 魅惑
+  description: 无法行动
+mark_hapa:
+  name: 害怕
+  description: 无法行动
+mark_tanhuan:
+  name: 瘫痪
+  description: 无法行动 被攻击会消失
+mark_mabi:
+  name: 麻痹
+  description: 40%无法行动
+mark_hunmi:
+  name: 昏迷
+  description: 无法行动
+mark_shuimian:
+  name: 睡眠
+  description: 无法行动 被攻击会消失
+mark_shihua:
+  name: 石化
+  description: 无法行动 受到暴击率提升10% 被暴击会消失
+mark_zhixi:
+  name: 窒息
+  description: 无法行动
+mark_bingdong:
+  name: 冰冻
+  description: 无法行动 受到暴击伤害提升20% 被暴击会消失
+mark_kongju:
+  name: 恐惧
+  description: 随机出招 受到伤害＞100点会消失
+mark_zuzhou:
+  name: 诅咒
+  description: 结束后随机获得1种异常
+mark_taobi:
+  name: 逃避
+  description: 无法行动且不受伤害
+mark_hunluan:
+  name: 混乱
+  description: 对自身造成伤害
+mark_chenmo:
+  name: 沉默
+  description: 属性技能Miss
+mark_jingu:
+  name: 禁锢
+  description: 物攻技能Miss
+mark_xuankong:
+  name: 悬空
+  description: ''
+mark_lijie:
+  name: 力竭
+  description: 无法行动
+mark_meimeng:
+  name: 美梦
+  description: 无法行动 被攻击会消失
+mark_tingzhi:
+  name: 停滞
+  description: 无法行动
+mark_tiaobo:
+  name: 挑拨
+  description: 攻击技能无法造成伤害 被攻击会消失
+mark_fengbi:
+  name: 封闭
+  description: 无法使用属性技能
+mark_jingu2:
+  name: 禁锢
+  description: 物攻技能Miss
+mark_shixiao:
+  name: 失效
+  description: 特攻技能Miss
+mark_pibei:
+  name: 疲惫
+  description: ''
+mark_tuisuo:
+  name: 退缩
+  description: 无法行动
+mark_tingdun:
+  name: 停顿
+  description: 无法行动
+mark_jinbi:
+  name: 禁闭
+  description: 无法行动
+mark_nishui:
+  name: 溺水
+  description: 每回合失去最大体力的1/8 命中率降低10% 对水系无效
+mark_shaoshang:
+  name: 烧伤
+  description: 每回合失去最大体力的1/8 物攻伤害降低25% 对火系无效
+mark_dongshang:
+  name: 冻伤
+  description: 每回合失去最大体力的1/8 特攻伤害降低25% 对冰系无效
+mark_zhongdu:
+  name: 中毒
+  description: 每回合失去最大体力的1/8 恢复量降低15%
+mark_liuxue:
+  name: 流血
+  description: 每回合体力y点
+mark_exin:
+  name: 恶心
+  description: 命中率降低50%
+mark_shiming:
+  name: 失明
+  description: 命中率降低50%
+mark_jisheng:
+  name: 寄生
+  description: 每回合吸收对手当前体力的1/8 恢复量不超过自身最大体力的1/8 对草系无效
+mark_manxingduyao:
+  name: 慢性毒药
+  description: 每层每回合失去10点体力 最多10层
+mark_diaoling:
+  name: 凋零
+  description: 每回合失去35点体力 体力＜1/2时无效
+mark_jibing:
+  name: 疾病
+  description: 每回合失去15点体力 受到物攻伤害增加25% 换场继承
+mark_tangshang:
+  name: 烫伤
+  description: 受到特攻失去自身最大体力的13%
+mark_chanrao:
+  name: 缠绕
+  description: 每回合失去35点体力 体力＞1/2时无效
+mark_ranshao:
+  name: 燃烧
+  description: 每回合失去20点体力
+mark_ganlie:
+  name: 干裂
+  description: 每回合失去最大体力的13% 命中率降低10% 对风系无效
+mark_shashi:
+  name: 沙蚀
+  description: 受到伤害增加50%
+mark_xingshi:
+  name: 星噬
+  description: 每层每回合失去8点体力 最多5层
+mark_shixue2:
+  name: 失血
+  description: 每回合失去300点体力
+mark_zhongshang:
+  name: 重伤
+  description: 结束时失去200点体力 换场保留
+mark_shixuechong:
+  name: 嗜血虫
+  description: 每层每回合被对手吸收10点体力 最多10层
+mark_hunya_chanrao:
+  name: 魂压缠绕
+  description: 每回合失去最大体力的1/8 物防值降低25% 对上古系无效
+mark_xuedu:
+  name: 血毒
+  description: 每回合失去最大体力的13% 体力＜1/2时无效
+mark_liuyan:
+  name: 流言
+  description: 每回合失去15点体力 受到特攻伤害增加25% 换场继承
+mark_cishang:
+  name: 刺伤
+  description: 受到物攻失去自身最大体力的13%
+mark_ruodianjihao:
+  name: 弱点记号
+  description: 每个增加对手25点速度值 最多2个
+mark_yishang:
+  name: 易伤
+  description: 受到伤害增加y%
+mark_jishengzhadan:
+  name: 寄生炸弹
+  description: 结束时失去y点体力 换场消失
+mark_mihuo:
+  name: 迷惑
+  description: 造成伤害由双方平分
+mark_kuihuazhongzi:
+  name: 葵花种子
+  description: 造成伤害y%
+mark_zengzhong:
+  name: 增重
+  description: 每层增加自身体重50KG 最多2层
+mark_fantan:
+  name: 反弹
+  description: 反弹受到伤害的y%
+mark_tezengshang:
+  name: 特伤增加
+  description: 特攻伤害增加y%
+mark_wuzengshang:
+  name: 物伤增加
+  description: 物攻伤害增加y%
+mark_shuiwenzhenji:
+  name: 水纹震击
+  description: 暴击率提升y%
+mark_xuanyun:
+  name: 眩晕
+  description: 速度值减少50点
+mark_yinghua:
+  name: 硬化
+  description: 受到物攻伤害y%
+mark_rouhua:
+  name: 柔化
+  description: 受到特攻伤害y%
+mark_mingzhongxiajiang:
+  name: 命中下降
+  description: 命中率降低y%
+mark_yanggongqianghua:
+  name: 佯攻强化
+  description: 增加非佯攻的攻击技能y点威力
+mark_bizhong:
+  name: 必中
+  description: 所有技能必中
+mark_shanghaizengjia:
+  name: 伤害增加
+  description: 伤害增加y%
+mark_busi:
+  name: 不死
+  description: 受到致死打击时保留1点体力
+mark_huifu:
+  name: 恢复
+  description: 每回合恢复y点体力
+mark_zhongzinengliang:
+  name: 种子能量
+  description: 受到伤害减少20% 被攻击会减少1层
+mark_shoushangfanbei:
+  name: 受伤翻倍
+  description: ''
+mark_mingzhongtisheng:
+  name: 命中提升
+  description: 命中率提升y%
+mark_weilibianhua:
+  name: 威力变化
+  description: 攻击技能威力增加y点
+mark_shanbi:
+  name: 闪避
+  description: 闪避攻击
+mark_shuxingbizhong:
+  name: 属性必中
+  description: 属性技能必中
+mark_wulicao:
+  name: 无力草
+  description: 造成特攻伤害减半
+mark_xishoucao:
+  name: 吸收草
+  description: 抵挡伤害并转化伤害的1/4为体力 对手具有葵花种子时效果2倍
+mark_jinzhenfenmo:
+  name: 金针粉末
+  description: 造成伤害增加y%
+mark_tanxingzhifang:
+  name: 弹性脂肪
+  description: 抵挡自身体重的物攻伤害 生效使自身获得体重降低
+mark_tizhongjiangdi:
+  name: 体重降低
+  description: 基础体重值降低y%
+mark_fanshe:
+  name: 反射
+  description: 反弹受到伤害的1.5倍
+mark_mianyiruohua:
+  name: 免疫弱化
+  description: 免疫弱化
+mark_hunzhuoshuiyu:
+  name: 浑浊水域
+  description: 使弱化类技能效果2倍
+mark_judushenti:
+  name: 剧毒身体
+  description: 受到攻击时50%使对手中毒
+mark_yuansuzhufu:
+  name: 元素祝福
+  description: 受到伤害增加y%
+mark_3035:
+  name: 3035
+  description: ''
+mark_xingzhili:
+  name: 星之力
+  description: 免疫自身技能【💀负作用】
+mark_mianyibuliang:
+  name: 免疫不良
+  description: 免疫不良 沉默
+mark_judushenti2:
+  name: 剧毒身体
+  description: 受到攻击时50%使对手中毒
+mark_yanhuo:
+  name: 焰火
+  description: 火系伤害增加y%
+mark_huoxing:
+  name: 火星
+  description: 使焰火的回合数翻倍
+mark_xuruoshuipao:
+  name: 虚弱水泡
+  description: 每层减少30点造成伤害 最多2层
+mark_xuruoshuipao2:
+  name: 削弱水泡
+  description: 每层增加30点受到伤害 最多2层
+mark_suijixianzhi:
+  name: 随机先制
+  description: 20%先制+1 必定生效y次
+mark_mianyiyichang:
+  name: 免疫异常
+  description: 免疫异常
+mark_xinzhiyinji:
+  name: 心之印记
+  description: ''
+mark_xuehongyinji:
+  name: 血红印记
+  description: 效果=心之印记且不消耗
+mark_houkongfan:
+  name: 后空翻
+  description: 闪避物攻 受到特攻伤害2倍
+mark_xingzhihui:
+  name: 星之辉
+  description: 技能触发率提升y%
+mark_kongqichuliang:
+  name: 空气储量
+  description: 剩余y点空气值
+mark_yinbozhi:
+  name: 音波值
+  description: 达到100点时受到伤害变为100点
+mark_zaoyin:
+  name: 噪音
+  description: 命中率y%
+mark_yinzhizhiwang:
+  name: 音之网
+  description: ''

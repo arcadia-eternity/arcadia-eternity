@@ -1,0 +1,147 @@
+skill_paida:
+  name: 拍打
+  description: 5%弱化对手物防1级
+skill_shuipao:
+  name: 水泡
+  description: 5%弱化对手特防1级
+skill_tuoli:
+  name: 脱力
+  description: 【95】弱化对手物攻1级
+skill_ruodiangongji:
+  name: 弱点攻击
+  description: 暴击率增加5% 使对手获得1个<font color=#4CE8F7>弱点记号</font>
+skill_jiliuchuanji:
+  name: 激流穿击
+  description: 【💠】清空弱点记号 每个增加45%暴击率
+skill_sashui:
+  name: 洒水
+  description: 弱化对手特攻1级
+skill_yinudanu:
+  name: 以怒打怒
+  description: 减少对手20点怒气
+skill_haixiaolianji:
+  name: 海啸连击
+  description: 【💠】清空弱点记号 每个使连击数+1
+skill_shuiliuhuti:
+  name: 水流护体
+  description: 强化自身双防1级
+skill_ruohuadaji:
+  name: 弱化打击
+  description: 20%弱化对手物防1级 20%弱化对手特防1级
+skill_feiliupubu:
+  name: 飞流瀑布
+  description: 【💠】清空弱点记号 每个增加50点威力
+skill_hailangzhidun:
+  name: 海浪之盾
+  description: 使自身获得50点<font color=#C702EC>柔化</font>
+skill_wujindaxuanwo:
+  name: 无尽大漩涡
+  description: <font color=#93E312>必中</font> 10%使对手<font color=#EC6002>溺水</font>
+skill_shuihuajianshe:
+  name: 水花溅射
+  description: 使对手获得15点<font color=#C702EC>命中下降</font>
+skill_yanmo:
+  name: 淹没
+  description: 【85】使对手溺水
+skill_ruodianbiaoji:
+  name: 弱点标记
+  description: 使对手获得2个<font color=#4CE8F7>弱点记号</font>
+skill_dixiulazhinu:
+  name: 迪休拉之怒
+  description: <font color=#93E312>必中</font> 连击3次
+skill_lizhao:
+  name: 利爪
+  description: 5%弱化对手物攻1级
+skill_huoyan:
+  name: 火焰
+  description: 5%弱化对手特攻1级
+skill_qili:
+  name: 气力
+  description: 强化自身物攻1级
+skill_fenlitupo:
+  name: 奋力突破
+  description: 使对手获得50点<font color=#4CE8F7>易伤</font>
+skill_tahuochongzhuang:
+  name: 踏火冲撞
+  description: 10%使对手<font color=#EC6002>烧伤</font>
+skill_jiasu:
+  name: 加速
+  description: 强化自身速度1级
+skill_yanggong:
+  name: 佯攻
+  description: 先制+2 使自身获得<font color=#4CE8F7>佯攻强化</font>
+skill_jizhong:
+  name: 集中
+  description: 使自身获得<font color=#4CE8F7>必中</font>
+skill_huohai:
+  name: 火海
+  description: 【90】50%使对手烧伤
+skill_nuhuomenggong:
+  name: 怒火猛攻
+  description: 造成伤害不低于100点
+skill_shixue:
+  name: 嗜血
+  description: 消耗自身最大体力的1/6并恢复<font color=#F4C402>35点怒气</font>
+skill_lieyanjuexiji:
+  name: 烈焰绝袭击
+  description: 10%弱化对手物防1级
+skill_liehuofentianshao:
+  name: 烈火焚天烧
+  description: <font color=#93E312>必中</font> 10%使对手<font color=#EC6002>烧伤</font>
+skill_yanzhiyizhi:
+  name: 炎之意志
+  description: 使自身获得100点<font color=#C702EC>伤害增加</font>
+skill_juechufengsheng:
+  name: 绝处逢生
+  description: 体力＜1/6时威力4倍
+skill_bumiezhixin:
+  name: 不灭之心
+  description: 使自身获得<font color=#4CE8F7>不死</font>
+skill_chongzhuang:
+  name: 冲撞
+  description: 5%弱化对手速度1级
+skill_zhongzibaodan:
+  name: 种子爆弹
+  description: 连击2~3次
+skill_zhiyu:
+  name: 治愈
+  description: 恢复<font color=#70CB4E>自身最大体力的1/4</font>
+skill_zhongzinengliang:
+  name: 种子能量
+  description: 无视Miss使自身获得4个<font color=#4CE8F7>种子能量</font>
+skill_nengliangshifang:
+  name: 能量释放
+  description: 清空种子能量 每个增加25点威力
+skill_xuoruo:
+  name: 削弱
+  description: 【95】弱化对手双攻1级
+skill_feivesushe:
+  name: 飞叶速射
+  description: 连击3~5次
+skill_jishengzhongzi:
+  name: 寄生种子
+  description: 【95】使对手寄生
+skill_nengliangzhaxu:
+  name: 能量榨取
+  description: 清空种子能量 每个恢复<font color=#70CB4E>造成伤害1/4的体力</font>
+skill_jinghuazhiye:
+  name: 净化汁液
+  description: 清除对手强化
+skill_lirendaoye:
+  name: 利刃刀叶
+  description: 使对手获得50点<font color=#CB2C1B>流血</font> 清空种子能量 每个增加1回合
+skill_ganrao:
+  name: 干扰
+  description: 【95】使对手获得15点命中下降
+skill_laaodehuhuan:
+  name: 拉奥的呼唤
+  description: <font color=#93E312>必中</font> 使自身获得<font color=#70CB4E>13%</font>的<font color=#C702EC>恢复</font>
+skill_qianyesha:
+  name: 千叶杀
+  description: 对手体力＜1/4时威力2倍
+skill_jishengzhadan:
+  name: 寄生炸弹
+  description: 【95】使对手获得寄生炸弹
+skill_yinbaozhongzi:
+  name: 引爆种子
+  description: 清空种子能量 成功时引爆寄生炸弹

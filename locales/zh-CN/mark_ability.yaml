@@ -1,0 +1,9 @@
+mark_ability_zhongjie:
+  name: 终结
+  description: 体力低于1/4以下时消耗弱点记号的技能造成的伤害增加25%
+mark_ability_yanhuo:
+  name: 炎火
+  description: 体力低于1/4以下时火系技能造成的伤害增加25%
+mark_ability_jianren:
+  name: 坚韧
+  description: 体力低于1/4以下时受到伤害减少25%
