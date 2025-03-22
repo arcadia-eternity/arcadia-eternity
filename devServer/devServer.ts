@@ -23,7 +23,7 @@ class DevServer {
   private app: express.Application
   private port: number | string
 
-  constructor(app = express(), port: number | string = 7891) {
+  constructor(app: express.Application = express(), port: number | string = 7891) {
     this.app = app
     this.port = port || process.env.PORT || 7891
 
