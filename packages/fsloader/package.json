@@ -8,14 +8,8 @@
   "scripts": {
     "build": "pnpm run build:code && pnpm run build:types",
     "clean": "rm -rf dist",
-    "build:code": "esbuild index.ts --bundle --format=esm --platform=node --outdir=dist --external:./node_modules/*",
+    "build:code": "esbuild index.ts --bundle --format=esm --platform=node --outdir=dist --external:./node_modules/* --external:yaml",
     "build:types": "tsc --emitDeclarationOnly"
-  },
-  "exports": {
-    ".": {
-      "import": "./index.ts",
-      "default": "./dist/index.js"
-    }
   },
   "keywords": [],
   "author": "yuuinih",

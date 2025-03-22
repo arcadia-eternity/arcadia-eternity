@@ -11,12 +11,6 @@
     "build:code": "esbuild index.ts --bundle --format=esm --outdir=dist --external:./node_modules/*",
     "build:types": "tsc --emitDeclarationOnly --preserveSymlinks --skipLibCheck"
   },
-  "exports": {
-    ".": {
-      "import": "./index.ts",
-      "default": "./dist/index.js"
-    }
-  },
   "author": "yuuinih",
   "license": "MIT",
   "type": "module"
