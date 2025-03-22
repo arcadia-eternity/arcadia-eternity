@@ -18,6 +18,7 @@
     "@test-battle/console": "workspace:^",
     "@test-battle/const": "workspace:^",
     "@test-battle/data-repository": "workspace:^",
+    "@test-battle/fsloader": "workspace:^",
     "@test-battle/interface": "workspace:^",
     "@test-battle/local-adapter": "workspace:^",
     "@test-battle/parser": "workspace:^",

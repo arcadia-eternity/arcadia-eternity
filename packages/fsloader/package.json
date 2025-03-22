@@ -1,0 +1,25 @@
+{
+  "name": "@test-battle/fsloader",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "pnpm run build:code && pnpm run build:types",
+    "clean": "rm -rf dist",
+    "build:code": "esbuild index.ts --bundle --format=esm --platform=node --outdir=dist --external:./node_modules/*",
+    "build:types": "tsc --emitDeclarationOnly"
+  },
+  "keywords": [],
+  "author": "yuuinih",
+  "license": "MIT",
+  "dependencies": {
+    "@test-battle/data-repository": "workspace:^",
+    "@test-battle/schema": "workspace:^",
+    "@test-battle/parser": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/node": "^22.12.0"
+  }
+}

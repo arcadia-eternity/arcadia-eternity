@@ -23,6 +23,9 @@ importers:
       '@test-battle/data-repository':
         specifier: workspace:^
         version: link:packages/dataRepository
+      '@test-battle/fsloader':
+        specifier: workspace:^
+        version: link:packages/fsloader
       '@test-battle/interface':
         specifier: workspace:^
         version: link:packages/interface
@@ -244,6 +247,22 @@ importers:
       '@jest/transform':
         specifier: ^29.7.0
         version: 29.7.0
+
+  packages/fsloader:
+    dependencies:
+      '@test-battle/data-repository':
+        specifier: workspace:^
+        version: link:../dataRepository
+      '@test-battle/parser':
+        specifier: workspace:^
+        version: link:../parser
+      '@test-battle/schema':
+        specifier: workspace:^
+        version: link:../schema
+    devDependencies:
+      '@types/node':
+        specifier: ^22.12.0
+        version: 22.13.4
 
   packages/interface:
     dependencies:
