@@ -29,8 +29,10 @@ export class EffectScheduler {
       const { effect, context } = this.globalEffectQueue.shift()!
       context.battle.applyEffects(context, EffectTrigger.BeforeEffect)
       if (!context.available) {
-        context.battle!.emitMessage(BattleMessageType.Info, {
-          message: `${context.source.id}的效果${effect.id}被阻止了！`,
+        context.battle!.emitMessage(BattleMessageType.EffectApplyFail, {
+          source: context.source.id,
+          effect: effect.id,
+          reason: 'disabled',
         })
       }
       context.battle!.emitMessage(BattleMessageType.EffectApply, {

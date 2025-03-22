@@ -107,12 +107,6 @@ namespace QuickType
         [JsonProperty("user", NullValueHandling = NullValueHandling.Ignore)]
         public string User { get; set; }
 
-        [JsonProperty("description", NullValueHandling = NullValueHandling.Ignore)]
-        public string Description { get; set; }
-
-        [JsonProperty("effect", NullValueHandling = NullValueHandling.Ignore)]
-        public string Effect { get; set; }
-
         [JsonProperty("damage", NullValueHandling = NullValueHandling.Ignore)]
         public double? Damage { get; set; }
 
@@ -134,29 +128,14 @@ namespace QuickType
         [JsonProperty("healer", NullValueHandling = NullValueHandling.Ignore)]
         public string Healer { get; set; }
 
-        [JsonProperty("attacker", NullValueHandling = NullValueHandling.Ignore)]
-        public string Attacker { get; set; }
+        [JsonProperty("baseMarkId", NullValueHandling = NullValueHandling.Ignore)]
+        public string BaseMarkId { get; set; }
 
-        [JsonProperty("attackerType", NullValueHandling = NullValueHandling.Ignore)]
-        public Element? AttackerType { get; set; }
+        [JsonProperty("mark", NullValueHandling = NullValueHandling.Ignore)]
+        public Mark? Mark { get; set; }
 
-        [JsonProperty("defenderType", NullValueHandling = NullValueHandling.Ignore)]
-        public Element? DefenderType { get; set; }
-
-        [JsonProperty("multiplier", NullValueHandling = NullValueHandling.Ignore)]
-        public double? Multiplier { get; set; }
-
-        [JsonProperty("applier", NullValueHandling = NullValueHandling.Ignore)]
-        public string Applier { get; set; }
-
-        [JsonProperty("duration", NullValueHandling = NullValueHandling.Ignore)]
-        public double? Duration { get; set; }
-
-        [JsonProperty("markType", NullValueHandling = NullValueHandling.Ignore)]
-        public string MarkType { get; set; }
-
-        [JsonProperty("trigger", NullValueHandling = NullValueHandling.Ignore)]
-        public string Trigger { get; set; }
+        [JsonProperty("effect", NullValueHandling = NullValueHandling.Ignore)]
+        public string Effect { get; set; }
 
         [JsonProperty("action", NullValueHandling = NullValueHandling.Ignore)]
         public string Action { get; set; }
@@ -178,9 +157,6 @@ namespace QuickType
 
         [JsonProperty("isActive", NullValueHandling = NullValueHandling.Ignore)]
         public bool? IsActive { get; set; }
-
-        [JsonProperty("name", NullValueHandling = NullValueHandling.Ignore)]
-        public string Name { get; set; }
 
         [JsonProperty("stack", NullValueHandling = NullValueHandling.Ignore)]
         public double? Stack { get; set; }
@@ -260,9 +236,6 @@ namespace QuickType
         [JsonProperty("multihit", NullValueHandling = NullValueHandling.Ignore)]
         public Multihit? Multihit { get; set; }
 
-        [JsonProperty("name", NullValueHandling = NullValueHandling.Ignore)]
-        public string Name { get; set; }
-
         [JsonProperty("power", NullValueHandling = NullValueHandling.Ignore)]
         public double? Power { get; set; }
 
@@ -312,11 +285,11 @@ namespace QuickType
         public double? Spe { get; set; }
     }
 
-    public enum Element { Ancient, Bug, Desert, Divine, Dragon, Electric, ElfKing, Fighting, Fire, Flying, Grass, Ground, Holy, Ice, Light, Miracle, Mystery, Normal, Psychic, Shadow, Trait, Water, Wind };
-
     public enum BattlePhase { Ended, ExecutionPhase, SelectionPhase, SwitchPhase };
 
     public enum DamageType { Effect, Physical, Special };
+
+    public enum Element { Ancient, Bug, Desert, Divine, Dragon, Electric, ElfKing, Fighting, Fire, Flying, Grass, Ground, Holy, Ice, Light, Miracle, Mystery, Normal, Psychic, Shadow, Trait, Water, Wind };
 
     public enum Category { Climax, Physical, Special, Status };
 
@@ -326,7 +299,16 @@ namespace QuickType
 
     public enum BattleStatus { Ended, On, Unstarted };
 
-    public enum TypeEnum { BattleEnd, BattleStart, BattleState, Crit, Damage, Error, FaintSwitch, ForcedSwitch, Heal, HpChange, Info, InvalidAction, MarkApply, MarkExpire, MarkTrigger, PetDefeated, PetRevive, PetSwitch, RageChange, RoundStart, SkillEffect, SkillMiss, SkillUse, StatChange, TurnAction, TypeEffectiveness };
+    public enum TypeEnum { BattleEnd, BattleStart, BattleState, Damage, DamageFail, EffectApply, Error, FaintSwitch, ForcedSwitch, Heal, HealFail, HpChange, Info, InvalidAction, MarkApply, MarkDestory, MarkExpire, MarkUpdate, PetDefeated, PetRevive, PetSwitch, RageChange, SkillMiss, SkillUse, SkillUseFail, StatChange, TurnAction, TurnStart };
+
+    public partial struct Mark
+    {
+        public MarkMessage MarkMessage;
+        public string String;
+
+        public static implicit operator Mark(MarkMessage MarkMessage) => new Mark { MarkMessage = MarkMessage };
+        public static implicit operator Mark(string String) => new Mark { String = String };
+    }
 
     public partial struct Player
     {
@@ -364,10 +346,11 @@ namespace QuickType
             DateParseHandling = DateParseHandling.None,
             Converters =
             {
-                ElementConverter.Singleton,
                 BattlePhaseConverter.Singleton,
                 DamageTypeConverter.Singleton,
+                MarkConverter.Singleton,
                 PlayerConverter.Singleton,
+                ElementConverter.Singleton,
                 CategoryConverter.Singleton,
                 MultihitConverter.Singleton,
                 AttackTargetOpinionConverter.Singleton,
@@ -377,6 +360,179 @@ namespace QuickType
                 new IsoDateTimeConverter { DateTimeStyles = DateTimeStyles.AssumeUniversal }
             },
         };
+    }
+
+    internal class BattlePhaseConverter : JsonConverter
+    {
+        public override bool CanConvert(Type t) => t == typeof(BattlePhase) || t == typeof(BattlePhase?);
+
+        public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.Null) return null;
+            var value = serializer.Deserialize<string>(reader);
+            switch (value)
+            {
+                case "ENDED":
+                    return BattlePhase.Ended;
+                case "EXECUTION_PHASE":
+                    return BattlePhase.ExecutionPhase;
+                case "SELECTION_PHASE":
+                    return BattlePhase.SelectionPhase;
+                case "SWITCH_PHASE":
+                    return BattlePhase.SwitchPhase;
+            }
+            throw new Exception("Cannot unmarshal type BattlePhase");
+        }
+
+        public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
+        {
+            if (untypedValue == null)
+            {
+                serializer.Serialize(writer, null);
+                return;
+            }
+            var value = (BattlePhase)untypedValue;
+            switch (value)
+            {
+                case BattlePhase.Ended:
+                    serializer.Serialize(writer, "ENDED");
+                    return;
+                case BattlePhase.ExecutionPhase:
+                    serializer.Serialize(writer, "EXECUTION_PHASE");
+                    return;
+                case BattlePhase.SelectionPhase:
+                    serializer.Serialize(writer, "SELECTION_PHASE");
+                    return;
+                case BattlePhase.SwitchPhase:
+                    serializer.Serialize(writer, "SWITCH_PHASE");
+                    return;
+            }
+            throw new Exception("Cannot marshal type BattlePhase");
+        }
+
+        public static readonly BattlePhaseConverter Singleton = new BattlePhaseConverter();
+    }
+
+    internal class DamageTypeConverter : JsonConverter
+    {
+        public override bool CanConvert(Type t) => t == typeof(DamageType) || t == typeof(DamageType?);
+
+        public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.Null) return null;
+            var value = serializer.Deserialize<string>(reader);
+            switch (value)
+            {
+                case "effect":
+                    return DamageType.Effect;
+                case "physical":
+                    return DamageType.Physical;
+                case "special":
+                    return DamageType.Special;
+            }
+            throw new Exception("Cannot unmarshal type DamageType");
+        }
+
+        public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
+        {
+            if (untypedValue == null)
+            {
+                serializer.Serialize(writer, null);
+                return;
+            }
+            var value = (DamageType)untypedValue;
+            switch (value)
+            {
+                case DamageType.Effect:
+                    serializer.Serialize(writer, "effect");
+                    return;
+                case DamageType.Physical:
+                    serializer.Serialize(writer, "physical");
+                    return;
+                case DamageType.Special:
+                    serializer.Serialize(writer, "special");
+                    return;
+            }
+            throw new Exception("Cannot marshal type DamageType");
+        }
+
+        public static readonly DamageTypeConverter Singleton = new DamageTypeConverter();
+    }
+
+    internal class MarkConverter : JsonConverter
+    {
+        public override bool CanConvert(Type t) => t == typeof(Mark) || t == typeof(Mark?);
+
+        public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
+        {
+            switch (reader.TokenType)
+            {
+                case JsonToken.String:
+                case JsonToken.Date:
+                    var stringValue = serializer.Deserialize<string>(reader);
+                    return new Mark { String = stringValue };
+                case JsonToken.StartObject:
+                    var objectValue = serializer.Deserialize<MarkMessage>(reader);
+                    return new Mark { MarkMessage = objectValue };
+            }
+            throw new Exception("Cannot unmarshal type Mark");
+        }
+
+        public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
+        {
+            var value = (Mark)untypedValue;
+            if (value.String != null)
+            {
+                serializer.Serialize(writer, value.String);
+                return;
+            }
+            if (value.MarkMessage != null)
+            {
+                serializer.Serialize(writer, value.MarkMessage);
+                return;
+            }
+            throw new Exception("Cannot marshal type Mark");
+        }
+
+        public static readonly MarkConverter Singleton = new MarkConverter();
+    }
+
+    internal class PlayerConverter : JsonConverter
+    {
+        public override bool CanConvert(Type t) => t == typeof(Player) || t == typeof(Player?);
+
+        public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
+        {
+            switch (reader.TokenType)
+            {
+                case JsonToken.String:
+                case JsonToken.Date:
+                    var stringValue = serializer.Deserialize<string>(reader);
+                    return new Player { String = stringValue };
+                case JsonToken.StartArray:
+                    var arrayValue = serializer.Deserialize<string[]>(reader);
+                    return new Player { StringArray = arrayValue };
+            }
+            throw new Exception("Cannot unmarshal type Player");
+        }
+
+        public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
+        {
+            var value = (Player)untypedValue;
+            if (value.String != null)
+            {
+                serializer.Serialize(writer, value.String);
+                return;
+            }
+            if (value.StringArray != null)
+            {
+                serializer.Serialize(writer, value.StringArray);
+                return;
+            }
+            throw new Exception("Cannot marshal type Player");
+        }
+
+        public static readonly PlayerConverter Singleton = new PlayerConverter();
     }
 
     internal class ElementConverter : JsonConverter
@@ -523,141 +679,6 @@ namespace QuickType
         }
 
         public static readonly ElementConverter Singleton = new ElementConverter();
-    }
-
-    internal class BattlePhaseConverter : JsonConverter
-    {
-        public override bool CanConvert(Type t) => t == typeof(BattlePhase) || t == typeof(BattlePhase?);
-
-        public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
-        {
-            if (reader.TokenType == JsonToken.Null) return null;
-            var value = serializer.Deserialize<string>(reader);
-            switch (value)
-            {
-                case "ENDED":
-                    return BattlePhase.Ended;
-                case "EXECUTION_PHASE":
-                    return BattlePhase.ExecutionPhase;
-                case "SELECTION_PHASE":
-                    return BattlePhase.SelectionPhase;
-                case "SWITCH_PHASE":
-                    return BattlePhase.SwitchPhase;
-            }
-            throw new Exception("Cannot unmarshal type BattlePhase");
-        }
-
-        public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
-        {
-            if (untypedValue == null)
-            {
-                serializer.Serialize(writer, null);
-                return;
-            }
-            var value = (BattlePhase)untypedValue;
-            switch (value)
-            {
-                case BattlePhase.Ended:
-                    serializer.Serialize(writer, "ENDED");
-                    return;
-                case BattlePhase.ExecutionPhase:
-                    serializer.Serialize(writer, "EXECUTION_PHASE");
-                    return;
-                case BattlePhase.SelectionPhase:
-                    serializer.Serialize(writer, "SELECTION_PHASE");
-                    return;
-                case BattlePhase.SwitchPhase:
-                    serializer.Serialize(writer, "SWITCH_PHASE");
-                    return;
-            }
-            throw new Exception("Cannot marshal type BattlePhase");
-        }
-
-        public static readonly BattlePhaseConverter Singleton = new BattlePhaseConverter();
-    }
-
-    internal class DamageTypeConverter : JsonConverter
-    {
-        public override bool CanConvert(Type t) => t == typeof(DamageType) || t == typeof(DamageType?);
-
-        public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
-        {
-            if (reader.TokenType == JsonToken.Null) return null;
-            var value = serializer.Deserialize<string>(reader);
-            switch (value)
-            {
-                case "effect":
-                    return DamageType.Effect;
-                case "physical":
-                    return DamageType.Physical;
-                case "special":
-                    return DamageType.Special;
-            }
-            throw new Exception("Cannot unmarshal type DamageType");
-        }
-
-        public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
-        {
-            if (untypedValue == null)
-            {
-                serializer.Serialize(writer, null);
-                return;
-            }
-            var value = (DamageType)untypedValue;
-            switch (value)
-            {
-                case DamageType.Effect:
-                    serializer.Serialize(writer, "effect");
-                    return;
-                case DamageType.Physical:
-                    serializer.Serialize(writer, "physical");
-                    return;
-                case DamageType.Special:
-                    serializer.Serialize(writer, "special");
-                    return;
-            }
-            throw new Exception("Cannot marshal type DamageType");
-        }
-
-        public static readonly DamageTypeConverter Singleton = new DamageTypeConverter();
-    }
-
-    internal class PlayerConverter : JsonConverter
-    {
-        public override bool CanConvert(Type t) => t == typeof(Player) || t == typeof(Player?);
-
-        public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
-        {
-            switch (reader.TokenType)
-            {
-                case JsonToken.String:
-                case JsonToken.Date:
-                    var stringValue = serializer.Deserialize<string>(reader);
-                    return new Player { String = stringValue };
-                case JsonToken.StartArray:
-                    var arrayValue = serializer.Deserialize<string[]>(reader);
-                    return new Player { StringArray = arrayValue };
-            }
-            throw new Exception("Cannot unmarshal type Player");
-        }
-
-        public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
-        {
-            var value = (Player)untypedValue;
-            if (value.String != null)
-            {
-                serializer.Serialize(writer, value.String);
-                return;
-            }
-            if (value.StringArray != null)
-            {
-                serializer.Serialize(writer, value.StringArray);
-                return;
-            }
-            throw new Exception("Cannot marshal type Player");
-        }
-
-        public static readonly PlayerConverter Singleton = new PlayerConverter();
     }
 
     internal class CategoryConverter : JsonConverter
@@ -928,10 +949,12 @@ namespace QuickType
                     return TypeEnum.BattleStart;
                 case "BATTLE_STATE":
                     return TypeEnum.BattleState;
-                case "CRIT":
-                    return TypeEnum.Crit;
                 case "DAMAGE":
                     return TypeEnum.Damage;
+                case "DAMAGE_FAIL":
+                    return TypeEnum.DamageFail;
+                case "EFFECT_APPLY":
+                    return TypeEnum.EffectApply;
                 case "ERROR":
                     return TypeEnum.Error;
                 case "FAINT_SWITCH":
@@ -940,6 +963,8 @@ namespace QuickType
                     return TypeEnum.ForcedSwitch;
                 case "HEAL":
                     return TypeEnum.Heal;
+                case "HEAL_FAIL":
+                    return TypeEnum.HealFail;
                 case "HP_CHANGE":
                     return TypeEnum.HpChange;
                 case "INFO":
@@ -948,10 +973,12 @@ namespace QuickType
                     return TypeEnum.InvalidAction;
                 case "MARK_APPLY":
                     return TypeEnum.MarkApply;
+                case "MARK_DESTORY":
+                    return TypeEnum.MarkDestory;
                 case "MARK_EXPIRE":
                     return TypeEnum.MarkExpire;
-                case "MARK_TRIGGER":
-                    return TypeEnum.MarkTrigger;
+                case "MARK_UPDATE":
+                    return TypeEnum.MarkUpdate;
                 case "PET_DEFEATED":
                     return TypeEnum.PetDefeated;
                 case "PET_REVIVE":
@@ -960,20 +987,18 @@ namespace QuickType
                     return TypeEnum.PetSwitch;
                 case "RAGE_CHANGE":
                     return TypeEnum.RageChange;
-                case "ROUND_START":
-                    return TypeEnum.RoundStart;
-                case "SKILL_EFFECT":
-                    return TypeEnum.SkillEffect;
                 case "SKILL_MISS":
                     return TypeEnum.SkillMiss;
                 case "SKILL_USE":
                     return TypeEnum.SkillUse;
+                case "SKILL_USE_FAIL":
+                    return TypeEnum.SkillUseFail;
                 case "STAT_CHANGE":
                     return TypeEnum.StatChange;
                 case "TURN_ACTION":
                     return TypeEnum.TurnAction;
-                case "TYPE_EFFECTIVENESS":
-                    return TypeEnum.TypeEffectiveness;
+                case "TURN_START":
+                    return TypeEnum.TurnStart;
             }
             throw new Exception("Cannot unmarshal type TypeEnum");
         }
@@ -997,11 +1022,14 @@ namespace QuickType
                 case TypeEnum.BattleState:
                     serializer.Serialize(writer, "BATTLE_STATE");
                     return;
-                case TypeEnum.Crit:
-                    serializer.Serialize(writer, "CRIT");
-                    return;
                 case TypeEnum.Damage:
                     serializer.Serialize(writer, "DAMAGE");
+                    return;
+                case TypeEnum.DamageFail:
+                    serializer.Serialize(writer, "DAMAGE_FAIL");
+                    return;
+                case TypeEnum.EffectApply:
+                    serializer.Serialize(writer, "EFFECT_APPLY");
                     return;
                 case TypeEnum.Error:
                     serializer.Serialize(writer, "ERROR");
@@ -1015,6 +1043,9 @@ namespace QuickType
                 case TypeEnum.Heal:
                     serializer.Serialize(writer, "HEAL");
                     return;
+                case TypeEnum.HealFail:
+                    serializer.Serialize(writer, "HEAL_FAIL");
+                    return;
                 case TypeEnum.HpChange:
                     serializer.Serialize(writer, "HP_CHANGE");
                     return;
@@ -1027,11 +1058,14 @@ namespace QuickType
                 case TypeEnum.MarkApply:
                     serializer.Serialize(writer, "MARK_APPLY");
                     return;
+                case TypeEnum.MarkDestory:
+                    serializer.Serialize(writer, "MARK_DESTORY");
+                    return;
                 case TypeEnum.MarkExpire:
                     serializer.Serialize(writer, "MARK_EXPIRE");
                     return;
-                case TypeEnum.MarkTrigger:
-                    serializer.Serialize(writer, "MARK_TRIGGER");
+                case TypeEnum.MarkUpdate:
+                    serializer.Serialize(writer, "MARK_UPDATE");
                     return;
                 case TypeEnum.PetDefeated:
                     serializer.Serialize(writer, "PET_DEFEATED");
@@ -1045,17 +1079,14 @@ namespace QuickType
                 case TypeEnum.RageChange:
                     serializer.Serialize(writer, "RAGE_CHANGE");
                     return;
-                case TypeEnum.RoundStart:
-                    serializer.Serialize(writer, "ROUND_START");
-                    return;
-                case TypeEnum.SkillEffect:
-                    serializer.Serialize(writer, "SKILL_EFFECT");
-                    return;
                 case TypeEnum.SkillMiss:
                     serializer.Serialize(writer, "SKILL_MISS");
                     return;
                 case TypeEnum.SkillUse:
                     serializer.Serialize(writer, "SKILL_USE");
+                    return;
+                case TypeEnum.SkillUseFail:
+                    serializer.Serialize(writer, "SKILL_USE_FAIL");
                     return;
                 case TypeEnum.StatChange:
                     serializer.Serialize(writer, "STAT_CHANGE");
@@ -1063,8 +1094,8 @@ namespace QuickType
                 case TypeEnum.TurnAction:
                     serializer.Serialize(writer, "TURN_ACTION");
                     return;
-                case TypeEnum.TypeEffectiveness:
-                    serializer.Serialize(writer, "TYPE_EFFECTIVENESS");
+                case TypeEnum.TurnStart:
+                    serializer.Serialize(writer, "TURN_START");
                     return;
             }
             throw new Exception("Cannot marshal type TypeEnum");

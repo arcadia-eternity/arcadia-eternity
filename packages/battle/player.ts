@@ -180,11 +180,6 @@ export class Player {
 
   public performAttack(context: UseSkillContext): boolean {
     this.battle!.applyEffects(context, EffectTrigger.BeforeUseSkillCheck)
-    if (!context.skill) {
-      this.battle!.emitMessage(BattleMessageType.Error, { message: `${context.pet.name} 没有可用技能!` })
-      return false
-    }
-
     context.updateActualTarget()
 
     /*几个无法使用技能的情况：
@@ -193,15 +188,19 @@ export class Player {
     3.当前的目标不存在
      */
     if (context.pet.currentHp <= 0 || !context.pet.isAlive || !context.available || !context.actualTarget) {
-      this.battle!.emitMessage(BattleMessageType.Error, {
-        message: `${context.pet.id} 无法使用 ${context.skill.id}!`,
+      this.battle!.emitMessage(BattleMessageType.SkillUseFail, {
+        user: context.pet.id,
+        skill: context.skill.id,
+        reason: !context.pet.isAlive ? 'faint' : !context.actualTarget ? 'invalid_target' : 'disabled',
       })
       return false
     }
     if (context.origin.currentRage < context.rage) {
       // 怒气检查
-      this.battle!.emitMessage(BattleMessageType.Error, {
-        message: `${context.pet.id} 怒气不足无法使用 ${context.skill.id}!`,
+      this.battle!.emitMessage(BattleMessageType.SkillUseFail, {
+        user: context.pet.id,
+        skill: context.skill.id,
+        reason: 'no_rage',
       })
       return false
     }

@@ -91,19 +91,23 @@ export enum BattleMessageType {
 
   // 技能相关
   SkillUse = 'SKILL_USE',
+  SkillUseFail = 'SKILL_USE_FAIL',
   SkillMiss = 'SKILL_MISS',
 
   // 战斗事件
   Damage = 'DAMAGE',
+  DamageFail = 'DAMAGE_FAIL',
   Heal = 'HEAL',
+  HealFail = 'HEAL_FAIL',
 
   // 印记相关
-  MarkApply = 'MARK_APPLY', //UnUsed
-  MarkDestory = 'MARK_DESTORY', //UnUsed
-  MarkExpire = 'MARK_EXPIRE', //UnUsed
+  MarkApply = 'MARK_APPLY',
+  MarkDestory = 'MARK_DESTORY',
+  MarkExpire = 'MARK_EXPIRE',
   MarkUpdate = 'MARK_UPDATE', //UnUsed
 
   EffectApply = 'EFFECT_APPLY',
+  EffectApplyFail = 'EFFECT_APPLY_FAIL', //UnUsed
 
   // 需要等待回应的信息
   TurnAction = 'TURN_ACTION',
@@ -127,13 +131,16 @@ export type BattleMessage =
   | RageChangeMessage
   | HpChangeMessage
   | SkillUseMessage
+  | SkillUseFailMessage
   | SkillMissMessage
   | DamageMessage
+  | DamageFailMessage
   | HealMessage
+  | HealFailMessage
   | MarkApplyMessage
-  | MarkTriggerMessage
   | MarkExpireMessage
   | MarkUpdateMessage
+  | MarkDestoryMessage
   | EffectApplyMessage
   | TurnActionMessage
   | ForcedSwitchMessage
@@ -200,12 +207,16 @@ export interface BattleMessageData {
     maxHp: number
     reason: 'damage' | 'heal' | 'drain' | 'revive'
   }
-
   [BattleMessageType.SkillUse]: {
     user: petId
     target: AttackTargetOpinion
     skill: skillId
     rageCost: number
+  }
+  [BattleMessageType.SkillUseFail]: {
+    user: petId
+    skill: skillId
+    reason: 'no_rage' | 'invalid_target' | 'faint' | 'disabled'
   }
   [BattleMessageType.SkillMiss]: {
     user: petId
@@ -223,33 +234,46 @@ export interface BattleMessageData {
     effectiveness: number
     damageType: 'physical' | 'special' | 'effect'
   }
+  [BattleMessageType.DamageFail]: {
+    source: petId | markId | skillId
+    target: petId
+    reason: 'disabled'
+  }
   [BattleMessageType.Heal]: {
     target: petId
     amount: number
-    source: 'skill' | 'item' | 'effect'
+    source: 'item' | 'effect'
     healer?: string
   }
-  [BattleMessageType.MarkApply]: {
-    markType: baseMarkId
-    applier: petId
+  [BattleMessageType.HealFail]: {
     target: petId
-    markId: markId
-    duration: number
+    reason: 'disabled'
+  }
+  [BattleMessageType.MarkApply]: {
+    baseMarkId: baseMarkId
+    target: petId | 'battle'
+    mark: MarkMessage
   }
   [BattleMessageType.MarkDestory]: {
     mark: markId
-    target: petId
+    target: petId | 'battle'
   }
   [BattleMessageType.MarkExpire]: {
     mark: markId
-    target: petId
+    target: petId | 'battle'
   }
   [BattleMessageType.MarkUpdate]: {
     mark: MarkMessage
+    target: petId | 'battle'
   }
   [BattleMessageType.EffectApply]: {
     source: markId | skillId
     effect: effectId
+  }
+  [BattleMessageType.EffectApplyFail]: {
+    source: markId | skillId
+    effect: effectId
+    reason: 'disabled'
   }
   [BattleMessageType.TurnAction]: {
     player: playerId[]
@@ -285,11 +309,14 @@ type StatChangeMessage = BaseBattleMessage<BattleMessageType.StatChange>
 type RageChangeMessage = BaseBattleMessage<BattleMessageType.RageChange>
 type HpChangeMessage = BaseBattleMessage<BattleMessageType.HpChange>
 type SkillUseMessage = BaseBattleMessage<BattleMessageType.SkillUse>
+type SkillUseFailMessage = BaseBattleMessage<BattleMessageType.SkillUseFail>
 type SkillMissMessage = BaseBattleMessage<BattleMessageType.SkillMiss>
 type DamageMessage = BaseBattleMessage<BattleMessageType.Damage>
+type DamageFailMessage = BaseBattleMessage<BattleMessageType.DamageFail>
 type HealMessage = BaseBattleMessage<BattleMessageType.Heal>
+type HealFailMessage = BaseBattleMessage<BattleMessageType.HealFail>
 type MarkApplyMessage = BaseBattleMessage<BattleMessageType.MarkApply>
-type MarkTriggerMessage = BaseBattleMessage<BattleMessageType.EffectApply>
+type MarkDestoryMessage = BaseBattleMessage<BattleMessageType.MarkDestory>
 type MarkExpireMessage = BaseBattleMessage<BattleMessageType.MarkExpire>
 type MarkUpdateMessage = BaseBattleMessage<BattleMessageType.MarkUpdate>
 type EffectApplyMessage = BaseBattleMessage<BattleMessageType.EffectApply>

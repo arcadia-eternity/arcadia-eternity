@@ -29,17 +29,21 @@ import { ChainableSelector, type PrimitiveOpinion, type PropertyRef, type Select
 import { type ValueSource } from './effectBuilder'
 
 export const Operators = {
-  dealDamage: (value: ValueSource<number>) => (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
-    const _value = GetValueFromSource(context, value)
-    if (_value.length === 0) return
-    targets.forEach(p => p.damage(new DamageContext(context, context.source, p, _value[0])))
-  },
+  dealDamage:
+    (value: ValueSource<number>): Operator<Pet> =>
+    (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
+      const _value = GetValueFromSource(context, value)
+      if (_value.length === 0) return
+      targets.forEach(p => p.damage(new DamageContext(context, context.source, p, _value[0])))
+    },
 
-  heal: (value: ValueSource<number>) => (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
-    const _value = GetValueFromSource(context, value)
-    if (_value.length === 0) return
-    targets.forEach(p => p.heal(new HealContext(context, context.source, p, _value[0])))
-  },
+  heal:
+    (value: ValueSource<number>): Operator<Pet> =>
+    (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
+      const _value = GetValueFromSource(context, value)
+      if (_value.length === 0) return
+      targets.forEach(p => p.heal(new HealContext(context, context.source, p, _value[0])))
+    },
 
   addMark:
     <T extends MarkOwner>(
@@ -47,7 +51,7 @@ export const Operators = {
       stack?: ValueSource<number>,
       duration?: ValueSource<number>,
       config?: Partial<MarkInstance['config']>,
-    ) =>
+    ): Operator<T> =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       const marks = GetValueFromSource(context, mark)
       if (marks.length === 0) return
@@ -60,7 +64,7 @@ export const Operators = {
     },
 
   transferMark:
-    <T extends Battle | Pet, U extends MarkInstance>(mark: ValueSource<U>) =>
+    <T extends Battle | Pet, U extends MarkInstance>(mark: ValueSource<U>): Operator<T> =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       if (targets.length === 0) return
       const _mark = GetValueFromSource(context, mark)
@@ -70,7 +74,7 @@ export const Operators = {
     },
 
   destroyMark:
-    <T extends MarkInstance>() =>
+    <T extends MarkInstance>(): Operator<T> =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.forEach(m => {
         m.destroy(context)
@@ -78,7 +82,7 @@ export const Operators = {
     },
 
   addStack:
-    <T extends MarkInstance>(value: ValueSource<number>) =>
+    <T extends MarkInstance>(value: ValueSource<number>): Operator<T> =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       const _value = GetValueFromSource(context, value)
       if (_value.length === 0) return
@@ -86,25 +90,31 @@ export const Operators = {
     },
 
   consumeStacks:
-    <T extends MarkInstance>(value: ValueSource<number>) =>
+    <T extends MarkInstance>(value: ValueSource<number>): Operator<T> =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       const _value = GetValueFromSource(context, value)
       if (_value.length === 0) return
       targets.forEach(mark => mark.consumeStack(context, _value[0]))
     },
 
-  addRage: (value: ValueSource<number>) => (context: EffectContext<EffectTrigger>, targets: (Player | Pet)[]) => {
-    const _value = GetValueFromSource(context, value)
-    if (_value.length === 0) return
-    targets.forEach(player =>
-      player.addRage(
-        new RageContext(context, player instanceof Player ? player : player.owner!, 'effect', 'add', _value[0]),
-      ),
-    )
-  },
+  addRage:
+    (value: ValueSource<number>): Operator<Pet | Player> =>
+    (context: EffectContext<EffectTrigger>, targets: (Player | Pet)[]) => {
+      const _value = GetValueFromSource(context, value)
+      if (_value.length === 0) return
+      targets.forEach(player =>
+        player.addRage(
+          new RageContext(context, player instanceof Player ? player : player.owner!, 'effect', 'add', _value[0]),
+        ),
+      )
+    },
 
   modifyStat:
-    (stat: ValueSource<StatTypeOnBattle>, percent: ValueSource<number>, value: ValueSource<number>) =>
+    (
+      stat: ValueSource<StatTypeOnBattle>,
+      percent: ValueSource<number>,
+      value: ValueSource<number>,
+    ): Operator<UpdateStatContext> =>
     (context: EffectContext<EffectTrigger>, targets: UpdateStatContext[]) => {
       targets.forEach(contexts => {
         const _stat = GetValueFromSource(context, stat)[0]
@@ -124,22 +134,27 @@ export const Operators = {
       })
     },
 
-  addPower: (value: ValueSource<number>) => (context: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
-    contexts.forEach(skillCtx => {
-      const _value = GetValueFromSource(context, value)
-      _value.forEach(v => skillCtx.addPower(v))
-    })
-  },
+  addPower:
+    (value: ValueSource<number>): Operator<UseSkillContext> =>
+    (context: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
+      contexts.forEach(skillCtx => {
+        const _value = GetValueFromSource(context, value)
+        _value.forEach(v => skillCtx.addPower(v))
+      })
+    },
 
-  addCritRate: (value: ValueSource<number>) => (context: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
-    contexts.forEach(skillCtx => {
-      const _value = GetValueFromSource(context, value)
-      _value.forEach(v => skillCtx.addCritRate(v))
-    })
-  },
+  addCritRate:
+    (value: ValueSource<number>): Operator<UseSkillContext> =>
+    (context: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
+      contexts.forEach(skillCtx => {
+        const _value = GetValueFromSource(context, value)
+        _value.forEach(v => skillCtx.addCritRate(v))
+      })
+    },
 
   addMultihitResult:
-    (value: ValueSource<number>) => (context: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
+    (value: ValueSource<number>): Operator<UseSkillContext> =>
+    (context: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
       contexts.forEach(skillCtx => {
         const _value = GetValueFromSource(context, value)
         _value.forEach(v => skillCtx.addMultihitResult(v))
@@ -147,7 +162,7 @@ export const Operators = {
     },
 
   statStageBuff:
-    (statType: ValueSource<StatTypeWithoutHp>, value: ValueSource<number>) =>
+    (statType: ValueSource<StatTypeWithoutHp>, value: ValueSource<number>): Operator<Pet> =>
     (context: EffectContext<EffectTrigger>, target: Pet[]) => {
       const _value = GetValueFromSource(context, value)[0] ?? 0
       const _statType = GetValueFromSource(context, statType)[0] ?? null
@@ -155,7 +170,10 @@ export const Operators = {
     },
 
   clearStatStage:
-    (statType?: ValueSource<StatTypeWithoutHp>, cleanStageStrategy: CleanStageStrategy = CleanStageStrategy.positive) =>
+    (
+      statType?: ValueSource<StatTypeWithoutHp>,
+      cleanStageStrategy: CleanStageStrategy = CleanStageStrategy.positive,
+    ): Operator<Pet> =>
     (context: EffectContext<EffectTrigger>, target: Pet[]) => {
       const _statTypes = statType ? GetValueFromSource(context, statType) : undefined
       if (!_statTypes) target.forEach(v => v.clearStatStage(context))

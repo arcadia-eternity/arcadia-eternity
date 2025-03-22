@@ -252,7 +252,14 @@ export class ConsoleUIV2 {
       case BattleMessageType.MarkApply: {
         const d = message.data
         const targetName = this.getPetNameById(d.target)
-        console.log(`🔖 ${targetName} 被施加【${message.data.markType}】印记`)
+        console.log(`🔖 ${targetName} 被施加【${message.data.baseMarkId}】印记`)
+        break
+      }
+
+      case BattleMessageType.MarkDestory: {
+        const d = message.data
+        const targetName = this.getPetNameById(d.target)
+        console.log(`🔖 ${targetName} 的【${message.data.mark}】印记消失`)
         break
       }
 
@@ -268,11 +275,11 @@ export class ConsoleUIV2 {
         exit(0)
 
       case BattleMessageType.ForcedSwitch:
-        console.log(`${message.data.player.join(',')} 必须更换倒下的精灵！`)
+        console.log(`${message.data.player.map(this.getPlayerNameById).join(',')} 必须更换倒下的精灵！`)
         break
 
       case BattleMessageType.FaintSwitch: {
-        console.log(`🎁 ${message.data.player} 击倒对手，获得换宠机会！`)
+        console.log(`🎁 ${this.getPlayerNameById(message.data.player)} 击倒对手，获得换宠机会！`)
         break
       }
 
@@ -285,6 +292,74 @@ export class ConsoleUIV2 {
         console.log(`===========选择============`)
         break
       }
+
+      case BattleMessageType.InvalidAction: {
+        console.log(
+          `⚠️ ${this.getPlayerNameById(message.data.player)} 操作无效：${message.data.action} (${message.data.reason})`,
+        )
+        break
+      }
+
+      case BattleMessageType.PetRevive: {
+        const d = message.data
+        const petName = this.getPetById(d.pet)?.name || d.pet
+        console.log(`💖 ${petName} 复活！`)
+        break
+      }
+
+      case BattleMessageType.HpChange: {
+        // const d = message.data
+        // const petName = this.getPetById(d.pet)
+        // const arrow = d.change > 0 ? '↑' : '↓'
+        // console.log(`🩸 ${petName} HP ${arrow} ${Math.abs(d.change)} (${d.reason})`)
+        break
+      }
+
+      case BattleMessageType.SkillUseFail: {
+        const d = message.data
+        const userName = this.getPetNameById(d.user)
+        console.log(`❌ ${userName} 的 ${d.skill} 使用失败！原因：${this.translateFailReason(d.reason)}`)
+        break
+      }
+
+      case BattleMessageType.DamageFail: {
+        const d = message.data
+        const targetName = this.getPetNameById(d.target)
+        console.log(`🛡 ${targetName} 免疫了 ${d.source} 的伤害`)
+        break
+      }
+
+      case BattleMessageType.HealFail: {
+        const d = message.data
+        const targetName = this.getPetNameById(d.target)
+        console.log(`🚫 ${targetName} 治疗失败：${this.translateHealFailReason(d.reason)}`)
+        break
+      }
+
+      case BattleMessageType.MarkExpire: {
+        const d = message.data
+        const targetName = this.getPetNameById(d.target)
+        console.log(`⌛ ${targetName} 的【${d.mark}】印记已过期`)
+        break
+      }
+
+      case BattleMessageType.MarkUpdate: {
+        const d = message.data
+        const targetName = this.getPetNameById(d.target)
+        console.log(`🔄 ${targetName} 的【${d.mark.id}】印记更新：层数 ${d.mark.stack}，剩余 ${d.mark.duration} 回合`)
+        break
+      }
+
+      case BattleMessageType.Error: {
+        console.log(`❗️ 错误：${message.data.message}`)
+        break
+      }
+
+      default:
+        // @ts-expect-error
+        console.log(`未知消息类型: ${message.type}`)
+        // @ts-expect-error
+        console.log(message.data)
     }
   }
 
@@ -294,16 +369,19 @@ export class ConsoleUIV2 {
     return player?.name || playerId
   }
 
+  private getPetById(petId: string): PetMessage | undefined {
+    if (!this.battleState) return undefined
+    return this.battleState.players
+      .map(p => p.team)
+      .flat()
+      .filter(p => p != undefined)
+      .find(p => p.id === petId)
+  }
+
   private getPetNameById(petId: string): string {
     if (!this.battleState) return petId
-    for (const player of this.battleState.players) {
-      // 检查当前出战精灵
-      if (player.activePet.id === petId) return player.activePet.name
-      // 检查队伍中的精灵
-      const teamPet = player.team?.find(p => p.id === petId)
-      if (teamPet) return teamPet.name
-    }
-    return petId
+    const pet = this.getPetById(petId)
+    return pet ? `${ELEMENT_MAP[pet.element].emoji}${pet.name}` : petId
   }
 
   private getSkillById(skillId: string): SkillMessage | undefined {
@@ -409,6 +487,26 @@ export class ConsoleUIV2 {
       switch: '切换精灵',
     }
     return reasons[reason] || reason
+  }
+
+  private translateFailReason(reason: string): string {
+    return (
+      {
+        'pet-fainted': '精灵已倒下',
+        'invalid-target': '无效目标',
+        'rage-not-enough': '怒气不足',
+      }[reason] || reason
+    )
+  }
+
+  private translateHealFailReason(reason: string): string {
+    return (
+      {
+        'full-hp': 'HP已满',
+        'heal-block': '治疗被封锁',
+        'invalid-target': '无效目标',
+      }[reason] || reason
+    )
   }
 
   private getSpeciesNameById(speciesId: string): string {

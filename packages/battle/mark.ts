@@ -6,7 +6,7 @@ import {
   type effectStateId,
 } from '@test-battle/const/const'
 import { EffectTrigger } from '@test-battle/const/effectTrigger'
-import type { MarkMessage } from '@test-battle/const/message'
+import { BattleMessageType, type MarkMessage } from '@test-battle/const/message'
 import { StackStrategy } from '@test-battle/const/stackStrategy'
 import { Battle } from './battle'
 import {
@@ -190,8 +190,18 @@ export class MarkInstanceImpl implements MarkInstance {
 
     if (expired) {
       context.battle.applyEffects(context, EffectTrigger.OnMarkDurationEnd, this)
+      context.battle.emitMessage(BattleMessageType.MarkExpire, {
+        mark: this.id,
+        target: this.owner instanceof Pet ? this.owner.id : 'battle',
+      })
       this.destroy(new RemoveMarkContext(context, this))
+      return expired
     }
+
+    context.battle.emitMessage(BattleMessageType.MarkUpdate, {
+      target: this.owner instanceof Pet ? this.owner.id : 'battle',
+      mark: this.toMessage(),
+    })
 
     return expired
   }
@@ -246,6 +256,10 @@ export class MarkInstanceImpl implements MarkInstance {
     this.stack = newStacks
     this.duration = newDuration
     this.isActive = true
+    context.battle.emitMessage(BattleMessageType.MarkUpdate, {
+      target: this.owner instanceof Pet ? this.owner.id : 'battle',
+      mark: this.toMessage(),
+    })
 
     return changed
   }
@@ -296,6 +310,10 @@ export class MarkInstanceImpl implements MarkInstance {
     if (this.owner instanceof Pet) {
       this.owner.updateStat()
     }
+    context.battle.emitMessage(BattleMessageType.MarkDestory, {
+      mark: this.id,
+      target: this.owner instanceof Pet ? this.owner.id : 'battle',
+    })
   }
 
   public transfer(context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet) {
@@ -474,6 +492,12 @@ export class MarkSystem {
       }
     } else {
       newMark.onAddMark(target, context)
+      context.battle.emitMessage(BattleMessageType.MarkApply, {
+        baseMarkId: context.baseMark.id,
+        target: context.target instanceof Pet ? context.target.id : 'battle',
+        mark: newMark.toMessage(),
+      })
+      return
     }
   }
 

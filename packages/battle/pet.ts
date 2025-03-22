@@ -132,8 +132,10 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     if (context.source instanceof Pet) {
       context.battle.applyEffects(context, EffectTrigger.OnDamage)
       if (!context.available) {
-        context.battle.emitMessage(BattleMessageType.Info, {
-          message: `${this.name}受到的伤害被防止了！!`,
+        context.battle.emitMessage(BattleMessageType.DamageFail, {
+          source: context.source.id,
+          target: this.id,
+          reason: 'disabled',
         })
         return this.isAlive
       }
@@ -178,8 +180,9 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public heal(context: HealContext): boolean {
     context.battle.applyEffects(context, EffectTrigger.OnHeal)
     if (!context.available) {
-      context.battle.emitMessage(BattleMessageType.Info, {
-        message: `${this.name}受到的治疗被阻止了！!`,
+      context.battle.emitMessage(BattleMessageType.HealFail, {
+        target: this.id,
+        reason: 'disabled',
       })
       return this.isAlive
     }
