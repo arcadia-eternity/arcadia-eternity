@@ -77,7 +77,7 @@ async function loadDataFile(filePath: string, category: FileCategory) {
   }
 }
 
-export async function loadGameData(dataDir = path.join(__dirname, '/../data')) {
+export async function loadGameData(dataDir = path.join(__dirname, '../../data')) {
   try {
     const files = await fs.readdir(dataDir)
 

@@ -6,7 +6,7 @@
   "scripts": {
     "build": "pnpm --filter \"./packages/**\" --filter=!@test-battle/web-ui run build&&pnpm run build:cli",
     "clean": "pnpm --filter \"./packages/**\" --filter=!@test-battle/web-ui run clean&&rm -rf dist",
-    "build:cli": "esbuild ./bin/cli.ts --bundle --format=esm --platform=node --outdir=dist --external:./node_modules/*",
+    "build:cli": "esbuild ./bin/cli.ts --bundle --format=esm --platform=node --outdir=dist/bin --external:./node_modules/*",
     "generate": "pnpm --filter @test-battle/schema run generate",
     "generate:csbind": "tsx packages/csbind/script/generate.ts",
     "cli": "tsx ./bin/cli.ts",
