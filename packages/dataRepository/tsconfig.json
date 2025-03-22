@@ -6,7 +6,7 @@
     "module": "ESNext",
     "target": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "../../dist/daraRespository",
+    "outDir": "./dist/",
     "verbatimModuleSyntax": true,
     "declaration": true,
     "declarationMap": true,
@@ -14,6 +14,6 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["./*", "loader.ts"],
-  "exclude": ["./node_modules"]
+  "include": ["./dataRepository.ts", "./index.ts"],
+  "exclude": ["./node_modules", "./dist"]
 }

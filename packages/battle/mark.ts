@@ -459,7 +459,7 @@ export function CreateStatStageMark(statType: StatTypeWithoutHp, level: number):
 }
 
 export class MarkSystem {
-  public marks: Map<markId, MarkInstance>
+  // public marks: Map<markId, MarkInstance>
   constructor(private readonly battle: Battle) {}
 
   addMark(target: Battle | Pet, context: AddMarkContext) {

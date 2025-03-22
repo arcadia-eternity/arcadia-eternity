@@ -7,7 +7,7 @@
     "target": "ESNext",
     "moduleResolution": "bundler",
     "verbatimModuleSyntax": true,
-    "outDir": "../../dist/battle",
+    "outDir": "./dist/",
     "declaration": true,
     "declarationMap": true,
     "strictPropertyInitialization": false,
@@ -15,5 +15,5 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": ["./*"],
-  "exclude": ["./node_modules"]
+  "exclude": ["./node_modules", "./dist"]
 }

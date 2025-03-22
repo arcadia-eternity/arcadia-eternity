@@ -9,5 +9,16 @@
     "schema/skill.schema.json": ["./data/skill.yaml", "./data/skill_*.yaml"],
     "schema/species.schema.json": ["./data/species.yaml", "./data/species_*.yaml"]
   },
-  "typescript.tsdk": "node_modules/typescript/lib"
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "exportall.config.relExclusion": [
+    "/packages/battle",
+    "/packages/client",
+    "/packages/dataRepository",
+    "/packages/devServer",
+    "/packages/parser",
+    "/packages/protocol",
+    "/packages/schema",
+    "/packages/server",
+    "/packages/web-ui"
+  ]
 }

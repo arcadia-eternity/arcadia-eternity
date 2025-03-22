@@ -29,6 +29,7 @@ export type ConfigValue =
   | speciesId
   | null
 
+//TODO: 与对象生命周期绑定的setConfig
 export class ConfigSystem {
   private static instance: ConfigSystem
   public configMap: Map<string, ConfigValue> = new Map()

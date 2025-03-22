@@ -14,7 +14,7 @@ export class MarkParser {
           return DataRepository.getInstance().getEffect(effectId as effectId)
         } catch (e) {
           throw new Error(
-            `[MarkParser] Failed to load effect '${effectId}' for mark '${validated.name}': ${(e as Error).message}`,
+            `[MarkParser] Failed to load effect '${effectId}' for mark '${validated.id}': ${(e as Error).message}`,
           )
         }
       })

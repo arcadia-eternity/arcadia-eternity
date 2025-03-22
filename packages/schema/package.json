@@ -3,8 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "generate": "tsx script/schema.ts"
+    "build": "pnpm run build:code && pnpm run build:types",
+    "build:code": "esbuild index.ts --bundle --format=esm --outdir=dist --external:./node_modules/*",
+    "build:types": "tsc --emitDeclarationOnly"
   },
   "keywords": [],
   "author": "yuuinih",

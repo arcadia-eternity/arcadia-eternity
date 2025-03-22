@@ -13,7 +13,7 @@ export class SpeciesParser {
         return DataRepository.getInstance().getMark(abilityID as baseMarkId)
       } catch (e) {
         throw new Error(
-          `[SpeciesParser] Failed to load effect '${abilityID}' for Species '${validated.name}': ${(e as Error).message}`,
+          `[SpeciesParser] Failed to load effect '${abilityID}' for Species '${validated.id}': ${(e as Error).message}`,
         )
       }
     })
@@ -23,7 +23,7 @@ export class SpeciesParser {
         return DataRepository.getInstance().getMark(emblemsID as baseMarkId)
       } catch (e) {
         throw new Error(
-          `[SpeciesParser] Failed to load effect '${emblemsID}' for Species '${validated.name}': ${(e as Error).message}`,
+          `[SpeciesParser] Failed to load effect '${emblemsID}' for Species '${validated.id}': ${(e as Error).message}`,
         )
       }
     })

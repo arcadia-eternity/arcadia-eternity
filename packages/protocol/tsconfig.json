@@ -6,7 +6,7 @@
     "module": "ESNext",
     "target": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "../../dist/protocol",
+    "outDir": "./dist/",
     "verbatimModuleSyntax": true,
     "declaration": true,
     "declarationMap": true,
@@ -15,5 +15,5 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": ["./*"],
-  "exclude": ["./node_modules"]
+  "exclude": ["./node_modules", "./dist"]
 }

@@ -16,7 +16,7 @@ export class SkillParser {
           return DataRepository.getInstance().getEffect(effectId as effectId)
         } catch (e) {
           throw new Error(
-            `[SkillParser] Failed to load effect '${effectId}' for skill '${validated.name}': ${(e as Error).message}`,
+            `[SkillParser] Failed to load effect '${effectId}' for skill '${validated.id}': ${(e as Error).message}`,
           )
         }
       })

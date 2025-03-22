@@ -3,6 +3,13 @@
   "version": "1.0.0",
   "description": "",
   "keywords": [],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "pnpm run build:code && pnpm run build:types",
+    "build:code": "esbuild index.ts --bundle --format=esm --outdir=dist --external:./node_modules/*",
+    "build:types": "tsc --emitDeclarationOnly --preserveSymlinks --skipLibCheck"
+  },
   "author": "yuuinih",
   "license": "MIT",
   "type": "module"

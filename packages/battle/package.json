@@ -3,8 +3,12 @@
   "version": "1.0.0",
   "type": "module",
   "description": "",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "pnpm run build:code && pnpm run build:types",
+    "build:code": "esbuild index.ts --bundle --format=esm --outdir=dist --external:./node_modules/*",
+    "build:types": "tsc --emitDeclarationOnly"
   },
   "keywords": [],
   "author": "yuuinih",

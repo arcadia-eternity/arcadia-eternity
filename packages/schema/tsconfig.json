@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
     "composite": true,
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "ES2022"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "../../dist/schema",
+    "outDir": "./dist/",
     "verbatimModuleSyntax": true,
     "declaration": true,
     "declarationMap": true,
@@ -13,5 +13,5 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": ["./*"],
-  "exclude": ["./node_modules"]
+  "exclude": ["./node_modules", "./dist"]
 }

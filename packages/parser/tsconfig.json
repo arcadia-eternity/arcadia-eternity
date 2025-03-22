@@ -6,7 +6,7 @@
     "module": "ESNext",
     "target": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "../../dist/parser",
+    "outDir": "./dist/",
     "verbatimModuleSyntax": true,
     "declaration": true,
     "declarationMap": true,
@@ -14,6 +14,6 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["./*", "../web-ui/src/graph/evaluator.ts"],
-  "exclude": ["./node_modules"]
+  "include": ["./*"],
+  "exclude": ["./node_modules", "./dist"]
 }
