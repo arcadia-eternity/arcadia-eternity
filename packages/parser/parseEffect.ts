@@ -44,7 +44,7 @@ import {
   registerLiteralValue,
   type ConfigValueSource,
 } from '@test-battle/effect-builder'
-import { RuntimeTypeChecker } from '@test-battle/effect-builder/runtime-type-checker'
+import { RuntimeTypeChecker } from '@test-battle/effect-builder'
 import type {
   OperatorDSL,
   ConditionDSL,

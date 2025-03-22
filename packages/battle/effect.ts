@@ -1,8 +1,8 @@
-import { EffectTrigger } from '@test-battle/const/effectTrigger'
+import { EffectTrigger } from '@test-battle/const'
 import { BattleMessageType } from '@test-battle/const'
 import { Context, EffectContext } from './context'
 import { type Prototype } from './entity'
-import type { effectId, effectStateId } from '@test-battle/const'
+import type { effectId } from '@test-battle/const'
 import { MarkInstanceImpl } from './mark'
 
 export class EffectScheduler {
