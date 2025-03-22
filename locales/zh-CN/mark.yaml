@@ -1,3 +1,33 @@
+stat-stage-atk-down:
+  name: 攻击力下降
+  description: 攻击等级{{mark.stack}}
+stat-stage-def-down:
+  name: 防御力下降
+  description: 防御等级{{mark.stack}}
+stat-stage-spa-down:
+  name: 特攻下降
+  description: 特攻等级{{mark.stack}}
+stat-stage-spd-down:
+  name: 特防下降
+  description: 特防等级{{mark.stack}}
+stat-stage-spe-down:
+  name: 速度下降
+  description: 速度等级{{mark.stack}}
+stat-stage-atk-up:
+  name: 攻击力提升
+  description: 攻击等级{{mark.stack}}
+stat-stage-def-up:
+  name: 防御力提升
+  description: 防御等级{{mark.stack}}
+stat-stage-spa-up:
+  name: 特攻提升
+  description: 特攻等级{{mark.stack}}
+stat-stage-spd-up:
+  name: 特防提升
+  description: 特防等级{{mark.stack}}
+stat-stage-spe-up:
+  name: 速度提升
+  description: 速度等级{{mark.stack}}
 mark_meihuo:
   name: 魅惑
   description: 无法行动

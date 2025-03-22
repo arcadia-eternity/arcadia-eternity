@@ -76,7 +76,7 @@ export enum BattleMessageType {
 
   // 战斗流程
   BattleStart = 'BATTLE_START',
-  RoundStart = 'ROUND_START',
+  TurnStart = 'TURN_START',
   BattleEnd = 'BATTLE_END',
 
   // 精灵相关
@@ -92,18 +92,18 @@ export enum BattleMessageType {
   // 技能相关
   SkillUse = 'SKILL_USE',
   SkillMiss = 'SKILL_MISS',
-  SkillEffect = 'SKILL_EFFECT', //UnUsed
 
   // 战斗事件
   Damage = 'DAMAGE',
   Heal = 'HEAL',
-  Crit = 'CRIT',
-  TypeEffectiveness = 'TYPE_EFFECTIVENESS', //UnUsed
 
   // 印记相关
   MarkApply = 'MARK_APPLY', //UnUsed
-  MarkTrigger = 'MARK_TRIGGER', //UnUsed
+  MarkDestory = 'MARK_DESTORY', //UnUsed
   MarkExpire = 'MARK_EXPIRE', //UnUsed
+  MarkUpdate = 'MARK_UPDATE', //UnUsed
+
+  EffectApply = 'EFFECT_APPLY',
 
   // 需要等待回应的信息
   TurnAction = 'TURN_ACTION',
@@ -128,14 +128,13 @@ export type BattleMessage =
   | HpChangeMessage
   | SkillUseMessage
   | SkillMissMessage
-  | SkillEffectMessage
   | DamageMessage
   | HealMessage
-  | CritMessage
-  | TypeEffectivenessMessage
   | MarkApplyMessage
   | MarkTriggerMessage
   | MarkExpireMessage
+  | MarkUpdateMessage
+  | EffectApplyMessage
   | TurnActionMessage
   | ForcedSwitchMessage
   | FaintSwitchMessage
@@ -158,7 +157,7 @@ export interface BattleMessageData {
     playerA: PlayerMessage
     playerB: PlayerMessage
   }
-  [BattleMessageType.RoundStart]: {
+  [BattleMessageType.TurnStart]: {
     round: number
   }
   [BattleMessageType.BattleEnd]: {
@@ -214,13 +213,6 @@ export interface BattleMessageData {
     skill: skillId
     reason: 'accuracy' | 'dodge' | 'immune'
   }
-  [BattleMessageType.SkillEffect]: {
-    user?: petId
-    target: petId
-    effect: effectId
-    description: string
-  }
-
   [BattleMessageType.Damage]: {
     maxHp: number
     currentHp: number
@@ -237,30 +229,27 @@ export interface BattleMessageData {
     source: 'skill' | 'item' | 'effect'
     healer?: string
   }
-  [BattleMessageType.Crit]: {
-    attacker: petId
-    target: petId
-  }
-  [BattleMessageType.TypeEffectiveness]: {
-    attackerType: Element
-    defenderType: Element
-    multiplier: number
-  }
-
   [BattleMessageType.MarkApply]: {
     markType: baseMarkId
     applier: petId
     target: petId
+    markId: markId
     duration: number
   }
-  [BattleMessageType.MarkTrigger]: {
-    markType: markId
-    trigger: petId
-    effect: effectId
+  [BattleMessageType.MarkDestory]: {
+    mark: markId
+    target: petId
   }
   [BattleMessageType.MarkExpire]: {
-    markType: markId
+    mark: markId
     target: petId
+  }
+  [BattleMessageType.MarkUpdate]: {
+    mark: MarkMessage
+  }
+  [BattleMessageType.EffectApply]: {
+    source: markId | skillId
+    effect: effectId
   }
   [BattleMessageType.TurnAction]: {
     player: playerId[]
@@ -287,7 +276,7 @@ export interface BattleMessageData {
 // 具体消息类型定义
 type BattleStateMessage = BaseBattleMessage<BattleMessageType.BattleState>
 type BattleStartMessage = BaseBattleMessage<BattleMessageType.BattleStart>
-type RoundStartMessage = BaseBattleMessage<BattleMessageType.RoundStart>
+type RoundStartMessage = BaseBattleMessage<BattleMessageType.TurnStart>
 type BattleEndMessage = BaseBattleMessage<BattleMessageType.BattleEnd>
 type PetSwitchMessage = BaseBattleMessage<BattleMessageType.PetSwitch>
 type PetDefeatedMessage = BaseBattleMessage<BattleMessageType.PetDefeated>
@@ -297,14 +286,13 @@ type RageChangeMessage = BaseBattleMessage<BattleMessageType.RageChange>
 type HpChangeMessage = BaseBattleMessage<BattleMessageType.HpChange>
 type SkillUseMessage = BaseBattleMessage<BattleMessageType.SkillUse>
 type SkillMissMessage = BaseBattleMessage<BattleMessageType.SkillMiss>
-type SkillEffectMessage = BaseBattleMessage<BattleMessageType.SkillEffect>
 type DamageMessage = BaseBattleMessage<BattleMessageType.Damage>
 type HealMessage = BaseBattleMessage<BattleMessageType.Heal>
-type CritMessage = BaseBattleMessage<BattleMessageType.Crit>
-type TypeEffectivenessMessage = BaseBattleMessage<BattleMessageType.TypeEffectiveness>
 type MarkApplyMessage = BaseBattleMessage<BattleMessageType.MarkApply>
-type MarkTriggerMessage = BaseBattleMessage<BattleMessageType.MarkTrigger>
+type MarkTriggerMessage = BaseBattleMessage<BattleMessageType.EffectApply>
 type MarkExpireMessage = BaseBattleMessage<BattleMessageType.MarkExpire>
+type MarkUpdateMessage = BaseBattleMessage<BattleMessageType.MarkUpdate>
+type EffectApplyMessage = BaseBattleMessage<BattleMessageType.EffectApply>
 type TurnActionMessage = BaseBattleMessage<BattleMessageType.TurnAction>
 type ForcedSwitchMessage = BaseBattleMessage<BattleMessageType.ForcedSwitch>
 type FaintSwitchMessage = BaseBattleMessage<BattleMessageType.FaintSwitch>

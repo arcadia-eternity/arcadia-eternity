@@ -257,12 +257,6 @@ export class Player {
           // 应用伤害
           context.actualTarget.damage(damageContext)
 
-          if (context.crit)
-            this.battle!.emitMessage(BattleMessageType.Crit, {
-              attacker: context.pet.id,
-              target: context.actualTarget.id,
-            })
-
           // 受伤者获得怒气
           const gainedRage = Math.floor((damageContext.damageResult * 49) / context.actualTarget.maxHp)
           context.actualTarget.owner!.addRage(

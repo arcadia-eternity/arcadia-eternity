@@ -302,7 +302,7 @@ export class DamageContext extends Context {
     public readonly target: Pet,
     public baseDamage: number,
     public damageType: DamageType = DamageType.effect,
-    public crit: boolean = false,
+    public crit: boolean = false, //显示这个伤害是不是一个暴击伤害，尝试修改他是不会修改实际的伤害数值的
     public effectiveness: number = 1,
     public ignoreShield: boolean = false,
     public randomFactor: number = 1,

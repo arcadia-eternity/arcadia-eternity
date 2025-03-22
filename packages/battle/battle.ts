@@ -230,7 +230,7 @@ export class Battle extends Context implements MarkOwner {
 
     this.currentTurn++
 
-    this.emitMessage(BattleMessageType.RoundStart, {
+    this.emitMessage(BattleMessageType.TurnStart, {
       round: this.currentTurn,
     })
 

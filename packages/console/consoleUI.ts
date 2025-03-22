@@ -175,7 +175,7 @@ export class ConsoleUIV2 {
         console.log(`⚔️ 对战开始！`)
         break
 
-      case BattleMessageType.RoundStart:
+      case BattleMessageType.TurnStart:
         console.log(`\n=== 第 ${message.data.round} 回合 ===`)
         break
 
@@ -206,7 +206,7 @@ export class ConsoleUIV2 {
       case BattleMessageType.Damage: {
         const d = message.data
         const targetName = this.getPetNameById(d.target)
-        const sourceName = this.getPetNameById(d.source)
+        const sourceName = this.getNameById(d.source)
         let log = `💥 ${targetName} 受到 ${d.damage}点 来自<${sourceName}>的${this.getDamageType(d.damageType)}伤害`
         if (d.isCrit) log += ' (暴击)'
         if (d.effectiveness > 1) log += ' 效果拔群！'
@@ -256,8 +256,8 @@ export class ConsoleUIV2 {
         break
       }
 
-      case BattleMessageType.MarkTrigger:
-        console.log(`✨ ${message.data.markType} 印记触发：${message.data.effect}`)
+      case BattleMessageType.EffectApply:
+        console.log(`✨ ${this.getNameById(message.data.source)} 效果触发：${message.data.effect}`)
         break
 
       case BattleMessageType.BattleEnd:
@@ -271,13 +271,6 @@ export class ConsoleUIV2 {
         console.log(`${message.data.player.join(',')} 必须更换倒下的精灵！`)
         break
 
-      case BattleMessageType.Crit: {
-        const d = message.data
-        const targetName = this.getPetNameById(d.target)
-        const attackerName = this.getPetNameById(d.attacker)
-        console.log(`🔥 ${attackerName} 对 ${targetName} 造成了暴击伤害！`)
-        break
-      }
       case BattleMessageType.FaintSwitch: {
         console.log(`🎁 ${message.data.player} 击倒对手，获得换宠机会！`)
         break
@@ -436,6 +429,19 @@ export class ConsoleUIV2 {
 
   private getMarkStatus = (mark: MarkMessage) =>
     `{<${this.getMarkNameById(mark.id)}> ${mark.duration < 0 ? '' : `[剩余${mark.duration}回合]`} ${mark.stack}层}`
+
+  private getNameById(anyId: string) {
+    if (anyId.length === 0) return ''
+    const playerName = this.getPlayerNameById(anyId)
+    if (playerName !== anyId) return playerName
+    const petName = this.getPetNameById(anyId)
+    if (petName !== anyId) return petName
+    const markName = this.getMarkNameById(anyId)
+    if (markName !== anyId) return markName
+    const skillName = this.getSkillNameById(anyId)
+    if (skillName !== anyId) return skillName
+    return anyId
+  }
 
   private translateMissReason(reason: string): string {
     return (

@@ -364,7 +364,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
   }
 
   get stack() {
-    return this.level
+    return Math.abs(this.level)
   }
 
   override onAddMark(target: Battle | Pet, context: AddMarkContext): void {
@@ -445,9 +445,10 @@ export class MarkSystem {
   constructor(private readonly battle: Battle) {}
 
   addMark(target: Battle | Pet, context: AddMarkContext) {
-    if (!context.available) return
-
     context.battle.applyEffects(context, EffectTrigger.OnBeforeAddMark)
+    if (!context.available) {
+      return
+    }
     const config = {
       config: context.config,
       duration: context.duration ?? context.config?.duration,
