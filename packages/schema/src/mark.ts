@@ -15,6 +15,7 @@ export const MarkConfigSchema = z
     keepOnSwitchOut: z.boolean().optional().default(false),
     transferOnSwitch: z.boolean().optional().default(false),
     inheritOnFaint: z.boolean().optional().default(false),
+    mutexGroup: z.string().optional(),
   })
   .catchall(z.any())
 

@@ -34,6 +34,7 @@ export type MarkConfig = {
   keepOnSwitchOut: boolean
   transferOnSwitch: boolean
   inheritOnFaint: boolean
+  mutexGroup?: string
   [id: string]: any
 }
 
@@ -56,6 +57,7 @@ export class BaseMark implements Prototype, IBaseMark {
       keepOnSwitchOut: false,
       transferOnSwitch: false,
       inheritOnFaint: false,
+      mutexGroup: undefined,
     },
     public readonly tags: string[] = [],
   ) {}
@@ -467,6 +469,15 @@ export class MarkSystem {
     if (!context.available) {
       return
     }
+
+    if (context.baseMark.config.mutexGroup) {
+      // 获取同owner下同互斥组的现有印记
+      const existingMarks = context.target.marks.filter(m => m.config.mutexGroup === context.baseMark.config.mutexGroup)
+
+      // 移除所有冲突印记
+      existingMarks.forEach(mark => mark.destroy(context))
+    }
+
     const config = {
       config: context.config,
       duration: context.duration ?? context.config?.duration,

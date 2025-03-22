@@ -4,25 +4,39 @@
 # @version 1.0.0
 
 - id: mark_global_qingtian
-  config:
+  config: &global_config
     persistent: true
     stackable: false
     stackStrategy: extend
     destroyable: true
+    mutexGroup: weather
 - id: mark_global_yutian
+  config: *global_config
 - id: mark_global_yanre
+  config: *global_config
 - id: mark_global_baofengxue
+  config: *global_config
 - id: mark_global_shachenbao
+  config: *global_config
 - id: mark_global_dizhen
+  config: *global_config
 - id: mark_global_leibaotian
+  config: *global_config
 - id: mark_global_jufeng
+  config: *global_config
 - id: mark_global_yemu
+  config: *global_config
 - id: mark_global_yikongjian
+  config: *global_config
 - id: mark_global_guzhanchang
+  config: *global_config
 - id: mark_global_chongqun
+  config: *global_config
 - id: mark_global_xingyi
 - id: mark_global_3jixingyi
 - id: mark_global_2jixingyi
 - id: mark_global_maxxingyi
 - id: mark_global_lieri
+  config: *global_config
 - id: mark_global_xingyu
+  config: *global_config
