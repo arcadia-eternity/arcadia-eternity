@@ -174,6 +174,10 @@ importers:
       zod:
         specifier: ^3.24.1
         version: 3.24.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.11
+        version: 22.13.11
 
   packages/console:
     dependencies:
@@ -1926,6 +1930,9 @@ packages:
 
   '@types/node@22.12.0':
     resolution: {integrity: sha512-Fll2FZ1riMjNmlmJOdAyY5pUbkftXslB5DgEzlIuNaiWhXd00FhWxVC/r4yV/4wBb9JfImTu+jiSvXTkJ7F/gA==}
+
+  '@types/node@22.13.11':
+    resolution: {integrity: sha512-iEUCUJoU0i3VnrCmgoWCXttklWcvoCIx4jzcP22fioIVSdTmjgoEvmAO/QPw6TcS9k5FrNgn4w7q5lGOd1CT5g==}
 
   '@types/node@22.13.4':
     resolution: {integrity: sha512-ywP2X0DYtX3y08eFVx5fNIw7/uIv8hYUKgXoK8oayJlLnKcRfEYCxWMVE1XagUdVtCJlZT1AU4LXEABW+L1Peg==}
@@ -6337,6 +6344,10 @@ snapshots:
       undici-types: 5.26.5
 
   '@types/node@22.12.0':
+    dependencies:
+      undici-types: 6.20.0
+
+  '@types/node@22.13.11':
     dependencies:
       undici-types: 6.20.0
 

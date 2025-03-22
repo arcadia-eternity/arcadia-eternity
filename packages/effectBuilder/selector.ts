@@ -17,7 +17,7 @@ import {
   type ScopeObject,
   UpdateStatContext,
 } from '@test-battle/battle'
-import type { CanOwnedEntity, Instance, OwnedEntity, Prototype } from '@test-battle/battle/entity'
+import type { CanOwnedEntity, Instance, OwnedEntity, Prototype } from '@test-battle/battle'
 import {
   AttackTargetOpinion,
   Category,
