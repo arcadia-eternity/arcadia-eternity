@@ -3,6 +3,7 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
+    "composite": true,
     "lib": ["ESNext"],
     "module": "ESNext",
     "moduleResolution": "bundler",

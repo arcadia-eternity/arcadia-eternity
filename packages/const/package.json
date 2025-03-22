@@ -4,7 +4,7 @@
   "description": "",
   "keywords": [],
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/src/index.d.ts",
   "scripts": {
     "build": "pnpm run build:code && pnpm run build:types",
     "clean": "rm -rf dist",
