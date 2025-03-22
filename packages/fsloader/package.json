@@ -8,7 +8,7 @@
   "scripts": {
     "build": "pnpm run build:code && pnpm run build:types",
     "clean": "rm -rf dist",
-    "build:code": "esbuild index.ts --bundle --format=esm --platform=node --outdir=dist --external:./node_modules/* --external:yaml",
+    "build:code": "esbuild index.ts --bundle --format=esm --platform=node --outdir=dist --external:./node_modules/*",
     "build:types": "tsc --emitDeclarationOnly"
   },
   "keywords": [],
@@ -16,8 +16,9 @@
   "license": "MIT",
   "dependencies": {
     "@test-battle/data-repository": "workspace:^",
+    "@test-battle/parser": "workspace:^",
     "@test-battle/schema": "workspace:^",
-    "@test-battle/parser": "workspace:^"
+    "yaml": "^2.7.0"
   },
   "devDependencies": {
     "@types/node": "^22.12.0"

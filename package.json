@@ -58,6 +58,7 @@
     "typescript-json-schema": "^0.65.1",
     "undici-types": "^7.5.0"
   },
+  "bin": "./dist/bin/cli.js",
   "workspaces": [
     "packages/*"
   ]
