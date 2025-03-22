@@ -1,15 +1,20 @@
-import { BattlePhase } from '@test-battle/const/battlePhase'
-import { BattleStatus } from '@test-battle/const/battleStatus'
-import { RAGE_PER_TURN, type petId, type playerId, type skillId } from '@test-battle/const/const'
-import { EffectTrigger } from '@test-battle/const/effectTrigger'
 import {
   type BattleMessage,
   type BattleMessageData,
   BattleMessageType,
+  BattlePhase,
   type BattleState,
-} from '@test-battle/const/message'
-import { type PlayerSelection, type SwitchPetSelection } from '@test-battle/const/selection'
+  BattleStatus,
+  EffectTrigger,
+  type PlayerSelection,
+  RAGE_PER_TURN,
+  type SwitchPetSelection,
+  type petId,
+  type playerId,
+  type skillId,
+} from '@test-battle/const'
 import Prando from 'prando'
+import { ConfigSystem } from './config'
 import {
   AddMarkContext,
   Context,
@@ -22,11 +27,10 @@ import {
 } from './context'
 import { type EffectContainer, EffectScheduler } from './effect'
 import { type MarkOwner } from './entity'
-import { MarkSystem, type MarkInstance } from './mark'
+import { type MarkInstance, MarkSystem } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
 import { SkillInstance } from './skill'
-import { ConfigSystem } from './config'
 
 export class Battle extends Context implements MarkOwner {
   public readonly parent: null = null

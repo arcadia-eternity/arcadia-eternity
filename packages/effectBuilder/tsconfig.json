@@ -6,6 +6,7 @@
     "module": "ESNext",
     "target": "ESNext",
     "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "outDir": "./dist/",
     "verbatimModuleSyntax": true,
     "declaration": true,

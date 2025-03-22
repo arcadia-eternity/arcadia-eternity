@@ -9,7 +9,7 @@
     "target": "ESNext",
     "outDir": "./dist/",
     "verbatimModuleSyntax": true,
-    "types": ["bun-types", "node"],
+    "types": ["node"],
     "composite": true
   },
   "include": ["./*"],

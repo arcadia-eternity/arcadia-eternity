@@ -1,7 +1,7 @@
 import fs from 'fs/promises'
 import path, { dirname } from 'path'
 import YAML from 'yaml'
-import { DataRepository } from '@test-battle/data-repository/dataRepository'
+import { DataRepository } from '@test-battle/data-repository'
 import { extractMetadata } from '@test-battle/schema'
 import { EffectParser, MarkParser, SkillParser, SpeciesParser } from '@test-battle/parser'
 import { fileURLToPath } from 'url'
@@ -77,7 +77,7 @@ async function loadDataFile(filePath: string, category: FileCategory) {
   }
 }
 
-export async function loadGameData(dataDir = path.join(__dirname, '../../data')) {
+export async function loadGameData(dataDir = path.join(__dirname, '/../data')) {
   try {
     const files = await fs.readdir(dataDir)
 

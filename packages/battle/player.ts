@@ -1,15 +1,17 @@
-import { BattlePhase } from '@test-battle/const/battlePhase'
-import { Category } from '@test-battle/const/category'
-import { AttackTargetOpinion, DamageType, RAGE_PER_DAMAGE, type playerId } from '@test-battle/const/const'
-import { EffectTrigger } from '@test-battle/const/effectTrigger'
-import { ELEMENT_CHART } from '@test-battle/const/element'
-import { type BattleMessage, BattleMessageType, type BattleState, type PlayerMessage } from '@test-battle/const/message'
 import {
+  type BattleMessage,
+  BattleMessageType,
+  BattlePhase,
+  type BattleState,
+  Category,
   type DoNothingSelection,
+  EffectTrigger,
+  type PlayerMessage,
   type PlayerSelection,
   type SwitchPetSelection,
   type UseSkillSelection,
-} from '@test-battle/const/selection'
+  type playerId,
+} from '@test-battle/const'
 import { Battle } from './battle'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { Pet } from './pet'

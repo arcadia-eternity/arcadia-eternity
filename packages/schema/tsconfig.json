@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
     "composite": true,
-    "lib": ["ESNext", "ES2022"],
+    "lib": ["ESNext"],
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "target": "ESNext",
     "outDir": "./dist/",
     "verbatimModuleSyntax": true,
     "declaration": true,

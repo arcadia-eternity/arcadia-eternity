@@ -9,6 +9,8 @@
     "moduleResolution": "bundler",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
+    "declaration": true,
+    "declarationMap": true,
     "types": ["node"]
   },
   "include": ["./*"],

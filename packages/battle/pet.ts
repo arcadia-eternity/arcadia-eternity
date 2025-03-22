@@ -1,20 +1,24 @@
 import {
+  BattleMessageType,
+  CleanStageStrategy,
+  EffectTrigger,
+  Element,
+  Gender,
+  IgnoreStageStrategy,
+  Nature,
+  NatureMap,
   type petId,
+  type PetMessage,
   RAGE_PER_TURN,
   type speciesId,
   STAT_STAGE_MULTIPLIER,
-  type StatBuffOnBattle,
   type StatOnBattle,
   type StatOutBattle,
   type StatStage,
   type StatTypeOnBattle,
   StatTypeOnlyBattle,
   StatTypeWithoutHp,
-} from '@test-battle/const/const'
-import { EffectTrigger } from '@test-battle/const/effectTrigger'
-import { Element } from '@test-battle/const/element'
-import { BattleMessageType, type PetMessage } from '@test-battle/const/message'
-import { Nature, NatureMap } from '@test-battle/const/nature'
+} from '@test-battle/const'
 import {
   AddMarkContext,
   DamageContext,
@@ -29,7 +33,6 @@ import type { Instance, MarkOwner, OwnedEntity, Prototype } from './entity'
 import { BaseMark, CreateStatStageMark, type MarkInstance, StatLevelMarkInstanceImpl } from './mark'
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
-import { CleanStageStrategy, Gender, IgnoreStageStrategy } from '@test-battle/const'
 
 export interface Species extends Prototype {
   id: speciesId //约定:id为原中文名的拼音拼写

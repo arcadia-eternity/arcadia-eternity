@@ -8,8 +8,9 @@
     "verbatimModuleSyntax": true,
     "moduleResolution": "bundler",
     "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "types": ["node"]
+    "declaration": true,
+    "declarationMap": true,
+    "strict": true
   },
   "include": ["./*"],
   "exclude": ["./node_modules", "./dist"]

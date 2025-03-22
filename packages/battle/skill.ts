@@ -1,15 +1,19 @@
 // skill.ts
-import { Category } from '@test-battle/const/category'
-import { AttackTargetOpinion, type baseSkillId, type skillId } from '@test-battle/const/const'
-import { EffectTrigger } from '@test-battle/const/effectTrigger'
-import { Element } from '@test-battle/const/element'
-import { type SkillMessage } from '@test-battle/const/message'
+import {
+  AttackTargetOpinion,
+  Category,
+  EffectTrigger,
+  Element,
+  IgnoreStageStrategy,
+  type baseSkillId,
+  type skillId,
+  type SkillMessage,
+} from '@test-battle/const'
+import { nanoid } from 'nanoid'
 import { EffectContext, UseSkillContext } from './context'
 import { Effect, type EffectContainer } from './effect'
 import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
-import { nanoid } from 'nanoid'
-import { IgnoreStageStrategy } from '@test-battle/const'
 
 export class BaseSkill implements Prototype {
   public readonly effects: Effect<EffectTrigger>[] = []

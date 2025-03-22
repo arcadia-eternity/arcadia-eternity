@@ -1,4 +1,4 @@
-import typeMetadata from './type-metadata.json'
+import typeMetadata from './type-metadata.json' assert { type: 'json' }
 
 type TypeMetadata = Record<
   string,

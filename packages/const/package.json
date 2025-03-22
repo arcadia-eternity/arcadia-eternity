@@ -7,6 +7,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "pnpm run build:code && pnpm run build:types",
+    "clean": "rm -rf dist",
     "build:code": "esbuild index.ts --bundle --format=esm --outdir=dist --external:./node_modules/*",
     "build:types": "tsc --emitDeclarationOnly --preserveSymlinks --skipLibCheck"
   },

@@ -1,5 +1,5 @@
 import { EffectTrigger } from '@test-battle/const/effectTrigger'
-import { BattleMessageType } from '@test-battle/const/message'
+import { BattleMessageType } from '@test-battle/const'
 import { Context, EffectContext } from './context'
 import { type Prototype } from './entity'
 import type { effectId, effectStateId } from '@test-battle/const'
