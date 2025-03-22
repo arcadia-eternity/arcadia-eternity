@@ -1,2 +1,1 @@
-export * from './battleInterface'
-export * from './client'
+export * from './src'

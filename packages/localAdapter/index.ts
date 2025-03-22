@@ -1,1 +1,1 @@
-export * from './localBattle'
+export * from './src'

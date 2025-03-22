@@ -13,7 +13,6 @@ import {
   AddMarkContext,
   RageContext,
   MarkInstanceImpl,
-  ConfigSystem,
   type ScopeObject,
   UpdateStatContext,
 } from '@test-battle/battle'

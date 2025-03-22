@@ -14,6 +14,6 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["./*"],
+  "include": ["./*", "src/index.ts", "src/protocol.ts"],
   "exclude": ["./node_modules", "./dist"]
 }

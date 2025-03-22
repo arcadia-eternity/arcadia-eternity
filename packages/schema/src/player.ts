@@ -1,4 +1,4 @@
-import { PetSchema } from './pet'
+import { PetSchema } from '../pet'
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
 

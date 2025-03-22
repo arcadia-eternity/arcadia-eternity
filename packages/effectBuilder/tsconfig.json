@@ -15,6 +15,6 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["./*", "./type-metadata.json"],
+  "include": ["./src/**/*", "./type-metadata.json"],
   "exclude": ["./node_modules", "./dist", "./test"]
 }

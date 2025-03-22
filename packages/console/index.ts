@@ -1,2 +1,1 @@
-export * from './consoleUI'
-export * from './i18n'
+export * from './src'
