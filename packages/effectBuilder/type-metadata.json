@@ -29,6 +29,13 @@
       "a": false
     },
     {
+      "n": "markSystem",
+      "t": "MarkSystem",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "rng",
       "t": "default",
       "iu": false,
@@ -228,7 +235,7 @@
     },
     {
       "n": "parent",
-      "t": "null | Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | EffectContext<EffectTrigger>",
+      "t": "null | Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | UpdateStatContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "null",
@@ -241,6 +248,7 @@
         "RemoveMarkContext",
         "SwitchPetContext",
         "RageContext",
+        "UpdateStatContext",
         "EffectContext<EffectTrigger>"
       ],
       "a": false
@@ -384,6 +392,16 @@
       "a": false
     },
     {
+      "n": "ignoreShield",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
       "n": "hitOverrides",
       "t": "{ willHit: boolean; priority: number; }",
       "iu": false,
@@ -398,16 +416,6 @@
       "u": [],
       "a": true,
       "nt": "{ willCrit: boolean; priority: number; }"
-    },
-    {
-      "n": "ignoreShield",
-      "t": "false | true",
-      "iu": true,
-      "u": [
-        "false",
-        "true"
-      ],
-      "a": false
     },
     {
       "n": "multihit",
@@ -1024,21 +1032,66 @@
     },
     {
       "n": "parent",
-      "t": "EffectContext<EffectTrigger>",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "target",
-      "t": "Pet",
-      "iu": false,
-      "u": [],
+      "t": "TurnContext | DamageContext | AddMarkContext | EffectContext<EffectTrigger>",
+      "iu": true,
+      "u": [
+        "TurnContext",
+        "DamageContext",
+        "AddMarkContext",
+        "EffectContext<EffectTrigger>"
+      ],
       "a": false
     },
     {
       "n": "mark",
       "t": "MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "UpdateStatContext": [
+    {
+      "n": "type",
+      "t": "\"update-stat\"",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "battle",
+      "t": "Battle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "available",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "parent",
+      "t": "Battle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stat",
+      "t": "StatOnBattle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "pet",
+      "t": "Pet",
       "iu": false,
       "u": [],
       "a": false
@@ -1108,7 +1161,7 @@
   "AllContext": [
     {
       "n": "type",
-      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | EffectContext<EffectTrigger>",
+      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | UpdateStatContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "Battle",
@@ -1120,6 +1173,7 @@
         "RemoveMarkContext",
         "SwitchPetContext",
         "RageContext",
+        "UpdateStatContext",
         "EffectContext<EffectTrigger>"
       ],
       "a": false
@@ -1289,14 +1343,14 @@
     },
     {
       "n": "OnStack",
-      "t": "EffectContext<EffectTrigger>",
+      "t": "AddMarkContext",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "OnHeal",
-      "t": "EffectContext<EffectTrigger>",
+      "t": "HealContext",
       "iu": false,
       "u": [],
       "a": false
@@ -1345,7 +1399,7 @@
     },
     {
       "n": "BeforeEffect",
-      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | EffectContext<EffectTrigger>",
+      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | UpdateStatContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "Battle",
@@ -1357,13 +1411,14 @@
         "RemoveMarkContext",
         "SwitchPetContext",
         "RageContext",
+        "UpdateStatContext",
         "EffectContext<EffectTrigger>"
       ],
       "a": false
     },
     {
       "n": "AfterEffect",
-      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | EffectContext<EffectTrigger>",
+      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | UpdateStatContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "Battle",
@@ -1375,8 +1430,16 @@
         "RemoveMarkContext",
         "SwitchPetContext",
         "RageContext",
+        "UpdateStatContext",
         "EffectContext<EffectTrigger>"
       ],
+      "a": false
+    },
+    {
+      "n": "OnUpdateStat",
+      "t": "UpdateStatContext",
+      "iu": false,
+      "u": [],
       "a": false
     }
   ],
@@ -1444,57 +1507,6 @@
     }
   ],
   "EffectContainer": [],
-  "EffectConfig": [
-    {
-      "n": "id",
-      "t": "string",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "trigger",
-      "t": "T",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "apply",
-      "t": "(context: EffectContext<T>) => void | ((context: EffectContext<T>) => void)",
-      "iu": false,
-      "u": [],
-      "a": true,
-      "nt": "(context: EffectContext<T>) => void | ((context: EffectContext<T>) => void)"
-    },
-    {
-      "n": "priority",
-      "t": "number",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "condition",
-      "t": "undefined | (context: EffectContext<T>) => boolean",
-      "iu": true,
-      "u": [
-        "undefined",
-        "(context: EffectContext<T>) => boolean"
-      ],
-      "a": false
-    },
-    {
-      "n": "consumesStacks",
-      "t": "undefined | number",
-      "iu": true,
-      "u": [
-        "undefined",
-        "number"
-      ],
-      "a": false
-    }
-  ],
   "CanOwnedEntity": [
     {
       "n": "type",
@@ -1573,13 +1585,6 @@
       "a": false
     },
     {
-      "n": "name",
-      "t": "string",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
       "n": "effects",
       "t": "Effect<EffectTrigger>",
       "iu": false,
@@ -1642,13 +1647,6 @@
     {
       "n": "id",
       "t": "markId",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "name",
-      "t": "string",
       "iu": false,
       "u": [],
       "a": false
@@ -1739,6 +1737,16 @@
       "a": false
     },
     {
+      "n": "owner",
+      "t": "null | Pet",
+      "iu": true,
+      "u": [
+        "null",
+        "Pet"
+      ],
+      "a": false
+    },
+    {
       "n": "base",
       "t": "BaseStatLevelMark",
       "iu": false,
@@ -1761,6 +1769,15 @@
     {
       "n": "stack",
       "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "MarkSystem": [
+    {
+      "n": "battle",
+      "t": "Battle",
       "iu": false,
       "u": [],
       "a": false
@@ -1865,6 +1882,7 @@
       "a": false
     }
   ],
+  "IBaseMark": [],
   "MarkInstance": [
     {
       "n": "_stack",
@@ -1904,13 +1922,6 @@
     {
       "n": "id",
       "t": "markId",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "name",
-      "t": "string",
       "iu": false,
       "u": [],
       "a": false
@@ -1995,13 +2006,6 @@
     {
       "n": "statStage",
       "t": "StatStage",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "statModifiers",
-      "t": "StatBuffOnBattle",
       "iu": false,
       "u": [],
       "a": false
@@ -2130,6 +2134,13 @@
       "a": false
     },
     {
+      "n": "stat",
+      "t": "StatOnBattle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "name",
       "t": "string",
       "iu": false,
@@ -2212,13 +2223,6 @@
       "a": false
     },
     {
-      "n": "stat",
-      "t": "StatOnBattle",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
       "n": "actualStat",
       "t": "StatOnBattle",
       "iu": false,
@@ -2244,13 +2248,6 @@
     {
       "n": "num",
       "t": "number",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "name",
-      "t": "string",
       "iu": false,
       "u": [],
       "a": false
@@ -2417,6 +2414,28 @@
       "nt": "Pet"
     }
   ],
+  "AIPlayer": [
+    {
+      "n": "decisionPending",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "phaseChangeRegistered",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    }
+  ],
   "BaseSkill": [
     {
       "n": "effects",
@@ -2436,13 +2455,6 @@
     {
       "n": "id",
       "t": "baseSkillId",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "name",
-      "t": "string",
       "iu": false,
       "u": [],
       "a": false
@@ -2565,6 +2577,18 @@
       "u": [
         "false",
         "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "ignoreFoeStageStrategy",
+      "t": "IgnoreStageStrategy.none | IgnoreStageStrategy.all | IgnoreStageStrategy.positive | IgnoreStageStrategy.negative",
+      "iu": true,
+      "u": [
+        "IgnoreStageStrategy.none",
+        "IgnoreStageStrategy.all",
+        "IgnoreStageStrategy.positive",
+        "IgnoreStageStrategy.negative"
       ],
       "a": false
     },
@@ -2735,13 +2759,6 @@
     {
       "n": "base",
       "t": "BaseSkill",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "name",
-      "t": "string",
       "iu": false,
       "u": [],
       "a": false
@@ -3336,14 +3353,14 @@
       "nt": "(index: number, value: number) => number"
     },
     {
-      "n": "__@iterator@152",
+      "n": "__@iterator@157",
       "t": "() => ArrayIterator<number>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
-      "n": "__@unscopables@749",
+      "n": "__@unscopables@758",
       "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
       "iu": false,
       "u": [],
@@ -3353,7 +3370,7 @@
   "BattleMessage": [
     {
       "n": "type",
-      "t": "BattleStateMessage | BattleStartMessage | RoundStartMessage | BattleEndMessage | PetSwitchMessage | PetDefeatedMessage | PetReviveMessage | StatChangeMessage | RageChangeMessage | HpChangeMessage | SkillUseMessage | SkillMissMessage | SkillEffectMessage | DamageMessage | HealMessage | CritMessage | TypeEffectivenessMessage | MarkApplyMessage | MarkTriggerMessage | MarkExpireMessage | TurnActionMessage | ForcedSwitchMessage | FaintSwitchMessage | InvalidActionMessage | InfoMessage | ErrorMessage",
+      "t": "BattleStateMessage | BattleStartMessage | RoundStartMessage | BattleEndMessage | PetSwitchMessage | PetDefeatedMessage | PetReviveMessage | StatChangeMessage | RageChangeMessage | HpChangeMessage | SkillUseMessage | SkillUseFailMessage | SkillMissMessage | DamageMessage | DamageFailMessage | HealMessage | HealFailMessage | MarkApplyMessage | MarkExpireMessage | MarkUpdateMessage | MarkDestoryMessage | EffectApplyMessage | TurnActionMessage | ForcedSwitchMessage | FaintSwitchMessage | InvalidActionMessage | InfoMessage | ErrorMessage",
       "iu": true,
       "u": [
         "BattleStateMessage",
@@ -3367,15 +3384,17 @@
         "RageChangeMessage",
         "HpChangeMessage",
         "SkillUseMessage",
+        "SkillUseFailMessage",
         "SkillMissMessage",
-        "SkillEffectMessage",
         "DamageMessage",
+        "DamageFailMessage",
         "HealMessage",
-        "CritMessage",
-        "TypeEffectivenessMessage",
+        "HealFailMessage",
         "MarkApplyMessage",
-        "MarkTriggerMessage",
         "MarkExpireMessage",
+        "MarkUpdateMessage",
+        "MarkDestoryMessage",
+        "EffectApplyMessage",
         "TurnActionMessage",
         "ForcedSwitchMessage",
         "FaintSwitchMessage",
@@ -3443,7 +3462,7 @@
   "RoundStartMessage": [
     {
       "n": "type",
-      "t": "BattleMessageType.RoundStart",
+      "t": "BattleMessageType.TurnStart",
       "iu": false,
       "u": [],
       "a": false
@@ -3677,7 +3696,34 @@
     },
     {
       "n": "data",
-      "t": "{ user: petId, target: AttackTargetOpinion, skill: string, rageCost: number }",
+      "t": "{ user: petId, target: AttackTargetOpinion, skill: skillId, rageCost: number }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "SkillUseFailMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.SkillUseFail",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ user: petId, skill: skillId, reason: \"no_rage\" | \"invalid_target\" | \"faint\" | \"disabled\" }",
       "iu": false,
       "u": [],
       "a": false
@@ -3704,34 +3750,7 @@
     },
     {
       "n": "data",
-      "t": "{ user: petId, target: petId, skill: string, reason: \"accuracy\" | \"dodge\" | \"immune\" }",
-      "iu": false,
-      "u": [],
-      "a": false
-    }
-  ],
-  "SkillEffectMessage": [
-    {
-      "n": "type",
-      "t": "BattleMessageType.SkillEffect",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "sequenceId",
-      "t": "undefined | number | undefined",
-      "iu": true,
-      "u": [
-        "undefined",
-        "number",
-        "undefined"
-      ],
-      "a": false
-    },
-    {
-      "n": "data",
-      "t": "{ user?: petId | undefined, target: petId, effect: string, description: string }",
+      "t": "{ user: petId, target: petId, skill: skillId, reason: \"accuracy\" | \"dodge\" | \"immune\" }",
       "iu": false,
       "u": [],
       "a": false
@@ -3764,6 +3783,33 @@
       "a": false
     }
   ],
+  "DamageFailMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.DamageFail",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ source: markId | skillId | petId, target: petId, reason: \"disabled\" }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
   "HealMessage": [
     {
       "n": "type",
@@ -3785,16 +3831,16 @@
     },
     {
       "n": "data",
-      "t": "{ target: petId, amount: number, source: \"skill\" | \"effect\" | \"item\", healer?: string | undefined }",
+      "t": "{ target: petId, amount: number, source: \"effect\" | \"item\", healer?: string | undefined }",
       "iu": false,
       "u": [],
       "a": false
     }
   ],
-  "CritMessage": [
+  "HealFailMessage": [
     {
       "n": "type",
-      "t": "BattleMessageType.Crit",
+      "t": "BattleMessageType.HealFail",
       "iu": false,
       "u": [],
       "a": false
@@ -3812,34 +3858,7 @@
     },
     {
       "n": "data",
-      "t": "{ attacker: petId, target: petId }",
-      "iu": false,
-      "u": [],
-      "a": false
-    }
-  ],
-  "TypeEffectivenessMessage": [
-    {
-      "n": "type",
-      "t": "BattleMessageType.TypeEffectiveness",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "sequenceId",
-      "t": "undefined | number | undefined",
-      "iu": true,
-      "u": [
-        "undefined",
-        "number",
-        "undefined"
-      ],
-      "a": false
-    },
-    {
-      "n": "data",
-      "t": "{ attackerType: Element, defenderType: Element, multiplier: number }",
+      "t": "{ target: petId, reason: \"disabled\" }",
       "iu": false,
       "u": [],
       "a": false
@@ -3866,16 +3885,16 @@
     },
     {
       "n": "data",
-      "t": "{ markType: baseMarkId, applier: petId, target: petId, duration: number }",
+      "t": "{ baseMarkId: baseMarkId, target: petId | \"battle\", mark: MarkMessage }",
       "iu": false,
       "u": [],
       "a": false
     }
   ],
-  "MarkTriggerMessage": [
+  "MarkDestoryMessage": [
     {
       "n": "type",
-      "t": "BattleMessageType.MarkTrigger",
+      "t": "BattleMessageType.MarkDestory",
       "iu": false,
       "u": [],
       "a": false
@@ -3893,7 +3912,7 @@
     },
     {
       "n": "data",
-      "t": "{ markType: markId, trigger: petId, effect: effectId }",
+      "t": "{ mark: markId, target: petId | \"battle\" }",
       "iu": false,
       "u": [],
       "a": false
@@ -3920,7 +3939,61 @@
     },
     {
       "n": "data",
-      "t": "{ markType: markId, target: petId }",
+      "t": "{ mark: markId, target: petId | \"battle\" }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "MarkUpdateMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.MarkUpdate",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ mark: MarkMessage, target: petId | \"battle\" }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "EffectApplyMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.EffectApply",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ source: markId | skillId, effect: effectId }",
       "iu": false,
       "u": [],
       "a": false
@@ -3947,7 +4020,7 @@
     },
     {
       "n": "data",
-      "t": "{  }",
+      "t": "player",
       "iu": false,
       "u": [],
       "a": false
@@ -4028,7 +4101,7 @@
     },
     {
       "n": "data",
-      "t": "{ player: playerId, action: string, reason: \"no_rage\" | \"cooldown\" | \"invalid_target\" | \"dead_pet\" | \"invalid_action\" }",
+      "t": "{ player: playerId, action: string, reason: \"no_rage\" | \"invalid_target\" | \"cooldown\" | \"dead_pet\" | \"invalid_action\" }",
       "iu": false,
       "u": [],
       "a": false
@@ -4099,13 +4172,6 @@
     {
       "n": "baseId",
       "t": "baseSkillId",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "name",
-      "t": "string",
       "iu": false,
       "u": [],
       "a": false
@@ -4325,13 +4391,6 @@
   ],
   "MarkMessage": [
     {
-      "n": "name",
-      "t": "string",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
       "n": "id",
       "t": "markId",
       "iu": false,
@@ -4507,7 +4566,7 @@
       "a": false
     },
     {
-      "n": "[BattleMessageType.RoundStart]",
+      "n": "[BattleMessageType.TurnStart]",
       "t": "round",
       "iu": false,
       "u": [],
@@ -4564,21 +4623,21 @@
     },
     {
       "n": "[BattleMessageType.SkillUse]",
-      "t": "{ user: petId, target: AttackTargetOpinion, skill: string, rageCost: number }",
+      "t": "{ user: petId, target: AttackTargetOpinion, skill: skillId, rageCost: number }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "[BattleMessageType.SkillUseFail]",
+      "t": "{ user: petId, skill: skillId, reason: \"no_rage\" | \"invalid_target\" | \"faint\" | \"disabled\" }",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "[BattleMessageType.SkillMiss]",
-      "t": "{ user: petId, target: petId, skill: string, reason: \"accuracy\" | \"dodge\" | \"immune\" }",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "[BattleMessageType.SkillEffect]",
-      "t": "{ user?: petId | undefined, target: petId, effect: string, description: string }",
+      "t": "{ user: petId, target: petId, skill: skillId, reason: \"accuracy\" | \"dodge\" | \"immune\" }",
       "iu": false,
       "u": [],
       "a": false
@@ -4591,50 +4650,71 @@
       "a": false
     },
     {
+      "n": "[BattleMessageType.DamageFail]",
+      "t": "{ source: markId | skillId | petId, target: petId, reason: \"disabled\" }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "[BattleMessageType.Heal]",
-      "t": "{ target: petId, amount: number, source: \"skill\" | \"effect\" | \"item\", healer?: string | undefined }",
+      "t": "{ target: petId, amount: number, source: \"effect\" | \"item\", healer?: string | undefined }",
       "iu": false,
       "u": [],
       "a": false
     },
     {
-      "n": "[BattleMessageType.Crit]",
-      "t": "{ attacker: petId, target: petId }",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "[BattleMessageType.TypeEffectiveness]",
-      "t": "{ attackerType: Element, defenderType: Element, multiplier: number }",
+      "n": "[BattleMessageType.HealFail]",
+      "t": "{ target: petId, reason: \"disabled\" }",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "[BattleMessageType.MarkApply]",
-      "t": "{ markType: baseMarkId, applier: petId, target: petId, duration: number }",
+      "t": "{ baseMarkId: baseMarkId, target: petId | \"battle\", mark: MarkMessage }",
       "iu": false,
       "u": [],
       "a": false
     },
     {
-      "n": "[BattleMessageType.MarkTrigger]",
-      "t": "{ markType: markId, trigger: petId, effect: effectId }",
+      "n": "[BattleMessageType.MarkDestory]",
+      "t": "{ mark: markId, target: petId | \"battle\" }",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "[BattleMessageType.MarkExpire]",
-      "t": "{ markType: markId, target: petId }",
+      "t": "{ mark: markId, target: petId | \"battle\" }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "[BattleMessageType.MarkUpdate]",
+      "t": "{ mark: MarkMessage, target: petId | \"battle\" }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "[BattleMessageType.EffectApply]",
+      "t": "{ source: markId | skillId, effect: effectId }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "[BattleMessageType.EffectApplyFail]",
+      "t": "{ source: markId | skillId, effect: effectId, reason: \"disabled\" }",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "[BattleMessageType.TurnAction]",
-      "t": "{  }",
+      "t": "player",
       "iu": false,
       "u": [],
       "a": false
@@ -4655,7 +4735,7 @@
     },
     {
       "n": "[BattleMessageType.InvalidAction]",
-      "t": "{ player: playerId, action: string, reason: \"no_rage\" | \"cooldown\" | \"invalid_target\" | \"dead_pet\" | \"invalid_action\" }",
+      "t": "{ player: playerId, action: string, reason: \"no_rage\" | \"invalid_target\" | \"cooldown\" | \"dead_pet\" | \"invalid_action\" }",
       "iu": false,
       "u": [],
       "a": false
