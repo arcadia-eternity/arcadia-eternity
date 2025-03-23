@@ -9,9 +9,11 @@ WORKDIR /app
 RUN apk add --no-cache git && \
     npm install -g pnpm
 
-COPY . .
+COPY pnpm-lock.yaml* package.json pnpm-workspace.yaml .npmrc ./
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --force
+
+COPY . .
 
 RUN pnpm build
 
