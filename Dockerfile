@@ -1,7 +1,7 @@
 FROM node:20-alpine AS builder
 
 RUN apk add --no-cache git && \
-    npm install -g pnpm@8
+    npm install -g pnpm
 
 WORKDIR /app
 
