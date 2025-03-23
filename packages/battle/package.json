@@ -2,6 +2,10 @@
   "name": "@test-battle/battle",
   "version": "1.0.0",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YuuinIH/test_battle.git"
+  },
   "description": "",
   "main": "./dist/index.js",
   "types": "./dist/src/index.d.ts",

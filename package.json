@@ -3,6 +3,10 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YuuinIH/test_battle.git"
+  },
   "scripts": {
     "build": "pnpm --filter \"./packages/**\" --filter=!@test-battle/web-ui run build&&pnpm run build:cli",
     "clean": "pnpm --filter \"./packages/**\" --filter=!@test-battle/web-ui run clean&&rm -rf dist",
