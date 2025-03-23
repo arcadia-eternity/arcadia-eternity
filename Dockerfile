@@ -22,18 +22,8 @@ ENV NODE_PATH=/app/node_modules:/app/packages
 WORKDIR /app
 
 COPY --from=builder \
-    /app/node_modules ./node_modules
-
-COPY --from=builder \
-    /app/packages/*/dist ./packages/
-
-COPY --from=builder \
-    /app/bin/cli.js ./bin/
-
-COPY --from=builder \
-    /app/data ./data
-COPY --from=builder \
-    /app/locales ./locales
+    /app/* \
+    /app/
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD wget -qO- http://localhost:8102/health | grep -q '"status":"OK"'
