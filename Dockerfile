@@ -6,6 +6,9 @@ ENV NODE_PATH=/app/node_modules:/app/packages
 
 WORKDIR /app
 
+RUN apk add --no-cache git && \
+    npm install -g pnpm
+
 RUN pnpm install --frozen-lockfile
 
 RUN pnpm build
