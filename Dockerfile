@@ -9,6 +9,8 @@ WORKDIR /app
 RUN apk add --no-cache git && \
     npm install -g pnpm
 
+COPY . .
+
 RUN pnpm install --frozen-lockfile
 
 RUN pnpm build
