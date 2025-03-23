@@ -38,6 +38,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 23
+          registry-url: 'https://npm.pkg.github.com'
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -45,6 +46,11 @@ jobs:
 
       - name: Build project
         run: pnpm build
+
+      - name: Publish to GitHub Packages
+        run: pnpm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Docker 镜像构建和推送
       - name: Log into GitHub Container Registry
