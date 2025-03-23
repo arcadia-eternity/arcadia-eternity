@@ -68,8 +68,5 @@ jobs:
           push: true
           tags: |
             ${{ steps.meta.outputs.tags }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           labels: |
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.created=${{ steps.prep.outputs.date }}
-            org.opencontainers.image.revision=${{ github.sha }}
+            ${{ steps.meta.outputs.labels }}
