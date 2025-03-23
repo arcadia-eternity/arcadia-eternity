@@ -11,7 +11,7 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-RUN pnpm -r build
+RUN pnpm build
 
 FROM node:20-alpine
 
