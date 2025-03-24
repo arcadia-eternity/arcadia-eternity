@@ -16,7 +16,26 @@ interface PetStorageState {
 export const usePetStorageStore = defineStore('petStorage', {
   state: (): PetStorageState => ({
     storage: [],
-    teams: [{ name: '默认队伍', pets: [] }],
+    teams: [
+      {
+        name: '默认队伍',
+        pets: [
+          {
+            id: () => nanoid()(),
+            name: '迪兰特',
+            species: 'pet_dilante',
+            level: 100,
+            evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+            ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+            skills: [],
+            gender: Gender.Male,
+            nature: Nature.Adamant,
+            ability: 'mark_ability_zhongjie',
+            emblem: 'mark_emblem_zhuiji',
+          },
+        ],
+      },
+    ],
     currentTeamIndex: 0,
   }),
 

@@ -9,19 +9,13 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     ArrayTagCell: typeof import('./src/components/ArrayTagCell.vue')['default']
-    BattleLog: typeof import('./src/components/BattleLog.vue')['default']
-    BattlelogEntry: typeof import('./src/components/BattlelogEntry.vue')['default']
     BattleLogEntry: typeof import('./src/components/BattleLogEntry.vue')['default']
     ElAffix: typeof import('element-plus/es')['ElAffix']
-    ElAlert: typeof import('element-plus/es')['ElAlert']
     ElAside: typeof import('element-plus/es')['ElAside']
     ElButton: typeof import('element-plus/es')['ElButton']
-    ElButtonGroup: typeof import('element-plus/es')['ElButtonGroup']
     ElCard: typeof import('element-plus/es')['ElCard']
     ElCol: typeof import('element-plus/es')['ElCol']
     ElContainer: typeof import('element-plus/es')['ElContainer']
-    ElDescriptions: typeof import('element-plus/es')['ElDescriptions']
-    ElDescriptionsItem: typeof import('element-plus/es')['ElDescriptionsItem']
     ElDialog: typeof import('element-plus/es')['ElDialog']
     ElDivider: typeof import('element-plus/es')['ElDivider']
     ElEmpty: typeof import('element-plus/es')['ElEmpty']
@@ -42,7 +36,6 @@ declare module 'vue' {
     ElSelect: typeof import('element-plus/es')['ElSelect']
     ElSelectV2: typeof import('element-plus/es')['ElSelectV2']
     ElSlider: typeof import('element-plus/es')['ElSlider']
-    ElSpace: typeof import('element-plus/es')['ElSpace']
     ElSubMenu: typeof import('element-plus/es')['ElSubMenu']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     ElTable: typeof import('element-plus/es')['ElTable']
@@ -52,7 +45,6 @@ declare module 'vue' {
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     EnhancedArrayEditor: typeof import('./src/components/EnhancedArrayEditor.vue')['default']
-    NestedObjectCell: typeof import('./src/components/NestedObjectCell.vue')['default']
     OptionalFieldEditor: typeof import('./src/components/OptionalFieldEditor.vue')['default']
     PetCard: typeof import('./src/components/petCard.vue')['default']
     PetStatus: typeof import('./src/components/PetStatus.vue')['default']
@@ -60,7 +52,6 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SpeciesSkillEditor: typeof import('./src/components/SpeciesSkillEditor.vue')['default']
     StorageManager: typeof import('./src/components/StorageManager.vue')['default']
-    StorgeManager: typeof import('./src/components/StorgeManager.vue')['default']
   }
   export interface ComponentCustomProperties {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']
