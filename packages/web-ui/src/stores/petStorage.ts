@@ -1,6 +1,8 @@
 // src/stores/petStorage.ts
 import { defineStore } from 'pinia'
 import type { PetSchemaType } from '@test-battle/schema'
+import { Gender, NatureMap, Nature } from '@test-battle/const'
+import { nanoid } from 'nanoid'
 
 interface Team {
   name: string
@@ -21,7 +23,7 @@ export const usePetStorageStore = defineStore('petStorage', {
         name: '默认队伍',
         pets: [
           {
-            id: () => nanoid()(),
+            id: (() => nanoid())(),
             name: '迪兰特',
             species: 'pet_dilante',
             level: 100,
