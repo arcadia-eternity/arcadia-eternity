@@ -25,12 +25,12 @@
     "@test-battle/parser": "workspace:^",
     "@test-battle/protocol": "workspace:^",
     "@test-battle/schema": "workspace:^",
-    "nanoid": "^5.0.9",
+    "nanoid": "^5.1.5",
     "pino": "^9.6.0",
     "socket.io": "^4.8.1",
-    "zod": "^3.24.1"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@types/node": "^22.12.0"
+    "@types/node": "^22.13.13"
   }
 }

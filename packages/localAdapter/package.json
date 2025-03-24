@@ -24,6 +24,6 @@
     "@test-battle/interface": "workspace:^"
   },
   "devDependencies": {
-    "@types/node": "^22.12.0"
+    "@types/node": "^22.13.13"
   }
 }
