@@ -39,36 +39,18 @@ export default defineConfig({
     }),
     viteStaticCopy({
       targets: [
-        {
-          src: '../../data/**/*.yaml',
-          dest: 'data',
-          rename: (name, extension, fullPath) => {
-            const relativePath = path.relative(path.resolve(__dirname, '../../locales'), fullPath)
-
-            const newPath = relativePath.replace(/\.yaml$/, '.json').replace(/\\/g, '/')
-
-            return newPath
-          },
-          transform: content => {
-            const data = yaml.parse(content)
-            return JSON.stringify(data, null, 2)
-          },
-        },
-        {
-          src: '../../locales/**/*.yaml',
-          dest: 'locales',
-          rename: (name, extension, fullPath) => {
-            const relativePath = path.relative(path.resolve(__dirname, '../../locales'), fullPath)
-
-            const newPath = relativePath.replace(/\.yaml$/, '.json').replace(/\\/g, '/')
-
-            return newPath
-          },
-          transform: content => {
-            const data = yaml.parse(content)
-            return JSON.stringify(data, null, 2)
-          },
-        },
+        ...['data', 'locales'].map(dir => {
+          const baseDir = `../../${dir}`
+          return {
+            src: `${baseDir}/**/*.yaml`,
+            dest: dir,
+            rename: (name: any, extension: any, fullPath: string) => {
+              const relativePath = path.relative(path.resolve(__dirname, baseDir), fullPath)
+              return relativePath.replace(/\.yaml$/, '.json').replace(/\\/g, '/')
+            },
+            transform: (content: string) => JSON.stringify(yaml.parse(content), null, 2),
+          }
+        }),
       ],
       watch: {
         // 开发模式监听文件变化
