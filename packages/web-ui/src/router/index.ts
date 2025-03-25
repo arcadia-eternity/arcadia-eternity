@@ -8,6 +8,23 @@ import EffectGraphEditor from '@/views/EffectGraphEditor.vue'
 import { battleGuard } from './guards'
 import TeamBuilder from '@/views/teamBuilder.vue'
 
+const devOnlyRoutes: RouteRecordRaw[] = [
+  {
+    path: '/data-editor',
+    name: 'DataEditor',
+    component: DataEditor,
+    meta: {
+      title: '数据编辑器',
+    },
+  },
+  {
+    path: '/effect-editor',
+    name: 'EffectGraphEditor',
+    component: EffectGraphEditor,
+    props: true, // 直接接收DSL数据
+  },
+]
+
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
@@ -39,24 +56,14 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: '/data-editor',
-    name: 'DataEditor',
-    component: DataEditor,
-    meta: {
-      title: '数据编辑器',
-    },
-  },
-  {
-    path: '/effect-editor',
-    name: 'EffectGraphEditor',
-    component: EffectGraphEditor,
-    props: true, // 直接接收DSL数据
-  },
-  {
     path: '/:pathMatch(.*)*',
     redirect: '/',
   },
 ]
+
+if (import.meta.env.DEV) {
+  routes.push(...devOnlyRoutes)
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
