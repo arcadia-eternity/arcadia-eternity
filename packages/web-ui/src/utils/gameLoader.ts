@@ -1,14 +1,11 @@
-import { parse } from 'yaml'
-import type { Schema } from 'yaml'
+import axios from 'axios'
 
 interface LoaderConfig {
   devBasePath: string
   prodBaseUrl: string
 }
-
 export class GameDataLoader {
   private config: LoaderConfig
-  private schema?: Schema
 
   constructor(config: LoaderConfig) {
     this.config = config
@@ -16,37 +13,28 @@ export class GameDataLoader {
 
   async load<T>(dataType: string): Promise<T[]> {
     try {
-      // 使用 Vite 的 glob 导入功能
-      const modules = import.meta.env.DEV
-        ? import.meta.glob('@data/**/*.yaml', {
-            import: 'default',
-            eager: false, // 开发环境使用动态导入
-          })
-        : import.meta.glob('@data/**/*.yaml', {
-            import: 'default',
-            eager: true, // 生产环境使用静态导入
-          })
+      const basePath = import.meta.env.DEV ? this.config.devBasePath : this.config.prodBaseUrl
 
-      // 过滤目标文件
-      const matchedPaths = Object.keys(modules).filter(
-        path => path.includes(`/${dataType}.yaml`) || path.includes(`/${dataType}/`),
-      )
+      // 构建 JSON 文件路径
+      const targetUrl = `${basePath}/${dataType}.json`
 
-      // 加载模块内容
-      const results = await Promise.all(
-        matchedPaths.map(async path => {
-          const module = modules[path]
-          return import.meta.env.DEV
-            ? await (module as () => Promise<any>)() // 开发环境异步加载
-            : module // 生产环境直接获取
-        }),
-      )
+      // 获取并解析 JSON
+      const response = await axios.get<T[]>(targetUrl, {
+        validateStatus: status => status >= 200 && status < 300,
+        responseType: 'json',
+      })
 
-      // 合并数据
-      return results.flatMap(r => (Array.isArray(r) ? r : [r])) as T[]
+      // 确保返回数组格式
+      return Array.isArray(response.data) ? response.data : [response.data]
     } catch (error) {
-      console.error(`加载 ${dataType} 数据失败:`, error)
-      throw error
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status
+        const url = error.config?.url
+        console.error(`[${status}] 加载 JSON 文件失败: ${url}`, error.message)
+      } else {
+        console.error(`加载 ${dataType} 数据失败:`, error)
+      }
+      return [] // 确保始终返回数组
     }
   }
 }
