@@ -60,7 +60,7 @@ export const useGameDataStore = defineStore('gameData', {
       if (this.loaded) return
       const loader = new GameDataLoader({
         devBasePath: '/data',
-        prodBaseUrl: import.meta.env.VITE_API_BASE || '',
+        prodBaseUrl: import.meta.env.VITE_API_BASE + '/data' || '',
       })
 
       try {
