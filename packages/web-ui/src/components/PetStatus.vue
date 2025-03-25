@@ -16,7 +16,12 @@
 
       <div class="effects">
         <div v-for="mark in pet.marks" :key="mark.id" class="field-effect" :title="`剩余${mark.duration}回合`">
-          {{ mark.baseId }} × {{ mark.stack }} / {{ mark.duration }}
+          {{
+            i18next.t(`${mark.baseId}.name`, {
+              ns: ['mark', 'mark_ability', 'mark_emblem'],
+            })
+          }}
+          × {{ mark.stack }} / {{ mark.duration }}
         </div>
       </div>
     </template>
@@ -33,6 +38,7 @@
 import { computed, ref } from 'vue'
 import { QuestionFilled } from '@element-plus/icons-vue'
 import type { PetMessage } from '@test-battle/const'
+import i18next from 'i18next'
 
 const props = defineProps<{
   pet?: PetMessage
