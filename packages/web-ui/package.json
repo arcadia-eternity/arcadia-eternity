@@ -11,7 +11,7 @@
     "dev": "vite",
     "build": "run-p \"build-only {@}\" --",
     "preview": "vite preview",
-    "build-only": "vite build -m prod",
+    "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
     "lint:eslint": "eslint . --fix",
