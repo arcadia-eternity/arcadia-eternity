@@ -49,7 +49,7 @@ skill_ruodianbiaoji:
 skill_dixiulazhinu:
   name: 迪休拉之怒
   description: <font color=#93E312>必中</font> 连击3次
-skill_lizhao:
+skill_lizhua:
   name: 利爪
   description: 5%弱化对手物攻1级
 skill_huoyan:
@@ -115,13 +115,13 @@ skill_nengliangshifang:
 skill_xueruo:
   name: 削弱
   description: 【95】弱化对手双攻1级
-skill_feivesushe:
+skill_feiyesushe:
   name: 飞叶速射
   description: 连击3~5次
 skill_jishengzhongzi:
   name: 寄生种子
   description: 【95】使对手寄生
-skill_nengliangzhaxu:
+skill_nengliangzhaqu:
   name: 能量榨取
   description: 清空种子能量 每个恢复<font color=#70CB4E>造成伤害1/4的体力</font>
 skill_jinghuazhiye:

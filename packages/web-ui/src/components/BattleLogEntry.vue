@@ -27,7 +27,7 @@ const getSkillName = (skillId: string) => {
     store.state?.players
       .flatMap(p => p.team)
       .flatMap(p => p!.skills)
-      .find(s => s!.id === skillId)?.name || skillId
+      .find(s => s!.id === skillId)?.baseId || skillId
   )
 }
 
@@ -67,10 +67,8 @@ const messageIcons = computed(() => ({
   [BattleMessageType.Damage]: '💥',
   [BattleMessageType.Heal]: '💚',
   [BattleMessageType.SkillUse]: '🎯',
-  [BattleMessageType.Crit]: '🔥',
   [BattleMessageType.PetDefeated]: '💀',
   [BattleMessageType.MarkApply]: '🔖',
-  [BattleMessageType.MarkTrigger]: '✨',
   [BattleMessageType.PetSwitch]: '🔄',
   [BattleMessageType.RageChange]: '⚡',
   [BattleMessageType.StatChange]: '📈',
@@ -94,7 +92,7 @@ const translateEndReason = (reason: string): string => {
       <div v-if="message.type === BattleMessageType.BattleStart" class="battle-start">对战开始！</div>
 
       <!-- 回合开始 -->
-      <div v-if="message.type === BattleMessageType.RoundStart" class="round-start">
+      <div v-if="message.type === BattleMessageType.TurnStart" class="round-start">
         第 {{ message.data.round }} 回合
       </div>
 
@@ -172,15 +170,8 @@ const translateEndReason = (reason: string): string => {
       <div v-if="message.type === BattleMessageType.MarkApply" class="mark-apply">
         <span class="target">{{ getPetName(message.data.target) }}</span>
         被施加
-        <span class="mark-type">【{{ message.data.markType }}】</span>
+        <span class="mark-type">【{{ message.data.mark.baseId }}】</span>
         印记
-      </div>
-
-      <!-- 印记触发 -->
-      <div v-if="message.type === BattleMessageType.MarkTrigger" class="mark-trigger">
-        <span class="mark-type">{{ message.data.markType }}</span>
-        印记触发：
-        <span class="effect">{{ message.data.effect }}</span>
       </div>
 
       <!-- 对战结束 -->

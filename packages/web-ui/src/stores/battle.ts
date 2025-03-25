@@ -172,19 +172,10 @@ export const useBattleStore = defineStore('battle', {
     },
 
     getSkillInfo(skillId: string) {
-      return (
-        this.state?.players
-          .flatMap(p => p.team)
-          .flatMap(
-            p =>
-              p?.skills?.map(s => ({
-                id: s?.id,
-                name: s?.id || '未知技能', //TODO:get name
-                cost: s?.rage || 0,
-              })) || [],
-          )
-          .find(s => s?.id === skillId) || { name: skillId, cost: 0 }
-      )
+      return this.state?.players
+        .flatMap(p => p.team)
+        .flatMap(p => p?.skills)
+        .find(s => s?.id === skillId)
     },
 
     async fetchAvailableSelection() {

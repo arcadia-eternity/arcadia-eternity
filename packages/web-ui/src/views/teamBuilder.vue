@@ -51,7 +51,11 @@
 
                   <div class="pet-info">
                     <el-tag type="info">#{{ pet.id.slice(-6) }}</el-tag>
-                    <el-tag type="success">{{ gameDataStore.getSpecies(pet.species)?.name }}</el-tag>
+                    <el-tag type="success">{{
+                      i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, {
+                        ns: 'species',
+                      })
+                    }}</el-tag>
                     <el-tag class="level-tag">Lv.{{ pet.level }}</el-tag>
                   </div>
                 </el-card>
@@ -89,11 +93,19 @@
                   <el-option
                     v-for="species in gameDataStore.speciesList"
                     :key="species.id"
-                    :label="species.name"
+                    :label="
+                      i18next.t(`${species.id}.name`, {
+                        ns: 'species',
+                      })
+                    "
                     :value="species.id"
                   >
                     <span class="species-option">
-                      {{ species.name }}
+                      {{
+                        i18next.t(`${species.id}.name`, {
+                          ns: 'species',
+                        })
+                      }}
                       <el-tag size="small">{{ species.id }}</el-tag>
                     </span>
                   </el-option>
@@ -135,7 +147,11 @@
                   <el-option
                     v-for="ability in abilityOptions"
                     :key="ability.id"
-                    :label="ability.name"
+                    :label="
+                      i18next.t(`${ability.id}.name`, {
+                        ns: ['mark', 'mark_ability', 'mark_emblem'],
+                      })
+                    "
                     :value="ability.id"
                   />
                 </el-select>
@@ -144,7 +160,16 @@
               <el-divider content-position="left">纹章配置</el-divider>
               <el-form-item label="纹章" prop="emblem">
                 <el-select v-model="selectedPet.emblem" placeholder="选择纹章" clearable>
-                  <el-option v-for="emblem in elblemOptions" :key="emblem.id" :label="emblem.name" :value="emblem.id" />
+                  <el-option
+                    v-for="emblem in elblemOptions"
+                    :key="emblem.id"
+                    :label="
+                      i18next.t(`${emblem.id}.name`, {
+                        ns: ['mark', 'mark_ability', 'mark_emblem'],
+                      })
+                    "
+                    :value="emblem.id"
+                  />
                 </el-select>
               </el-form-item>
 
@@ -247,7 +272,11 @@
                       <el-option
                         v-for="skill in skillOptions"
                         :key="skill?.id"
-                        :label="skill?.name"
+                        :label="
+                          i18next.t(`${skill.id}.name`, {
+                            ns: 'skill',
+                          })
+                        "
                         :value="skill?.id ?? ''"
                         :disabled="skill?.disabled"
                       />
@@ -290,12 +319,15 @@ import { usePlayerStore } from '@/stores/player'
 import { useGameDataStore } from '@/stores/gameData'
 import { usePetStorageStore } from '@/stores/petStorage'
 import StorageManager from '@/components/StorageManager.vue'
-import { type Player, type Pet, type Skill, PetSetSchema } from '@test-battle/schema'
+import { type PetSchemaType, PetSetSchema } from '@test-battle/schema'
+import { useTranslation } from 'i18next-vue'
 import { Gender, NatureMap } from '@test-battle/const'
 import { Nature } from '@test-battle/const'
 import { VueDraggable } from 'vue-draggable-plus'
 import { parse, stringify } from 'yaml'
 import { z } from 'zod'
+
+const { t, i18next } = useTranslation()
 
 const playerStore = usePlayerStore()
 const gameDataStore = useGameDataStore()
@@ -386,14 +418,14 @@ const formRules: FormRules = {
 }
 
 // 计算属性
-const currentTeam = computed<Pet[]>({
+const currentTeam = computed<PetSchemaType[]>({
   get: () => petStorage.getCurrentTeam(),
   set: newOrder => {
     petStorage.updateTeamOrder(petStorage.currentTeamIndex, newOrder)
   },
 })
 
-const selectedPet = computed<Pet | null>(() => {
+const selectedPet = computed<PetSchemaType | null>(() => {
   return currentTeam.value.find(p => p.id === selectedPetId.value) || null
 })
 
@@ -425,7 +457,7 @@ const filteredSkills = computed(() => {
 })
 
 // 从仓库选择精灵
-const handleSelectFromStorage = (pet: Pet) => {
+const handleSelectFromStorage = (pet: PetSchemaType) => {
   // 检查队伍容量
   if (currentTeam.value.length >= 6) {
     ElMessage.warning('队伍已满，无法添加更多精灵')
@@ -528,7 +560,7 @@ const addNewPet = () => {
     return
   }
 
-  const newPet: Pet = {
+  const newPet: PetSchemaType = {
     id: nanoid(),
     name: '迪兰特',
     species: 'pet_dilante',
@@ -583,7 +615,9 @@ const handleSpeciesChange = (newSpeciesId: string) => {
     const pet = state.teams[state.currentTeamIndex].pets.find(p => p.id === selectedPetId.value)
     if (pet) {
       pet.skills = [] // 直接置空数组，displayedSkills会自动处理显示
-      pet.name = species.name
+      pet.name = i18next.t(`${species.id}.name`, {
+        ns: 'species',
+      })
       pet.evs = {
         hp: 0,
         atk: 0,

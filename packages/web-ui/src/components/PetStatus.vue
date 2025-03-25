@@ -16,7 +16,7 @@
 
       <div class="effects">
         <div v-for="mark in pet.marks" :key="mark.id" class="field-effect" :title="`剩余${mark.duration}回合`">
-          {{ mark.name }} × {{ mark.stack }} / {{ mark.duration }}
+          {{ mark.baseId }} × {{ mark.stack }} / {{ mark.duration }}
         </div>
       </div>
     </template>

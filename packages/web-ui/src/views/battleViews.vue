@@ -81,7 +81,7 @@ onMounted(scrollToBottom)
       <div class="round-number">{{ store.state?.currentTurn || 0 }}</div>
       <div v-if="store.state?.marks?.length" class="field-effects">
         <div v-for="mark in store.state.marks" :key="mark.id" class="field-effect" :title="`剩余${mark.duration}回合`">
-          {{ '⭕' }} {{ mark.name }} ×{{ mark.stack }}
+          {{ '⭕' }} {{ mark.id }} ×{{ mark.stack }}
         </div>
       </div>
       <div class="battle-message">
@@ -120,8 +120,8 @@ onMounted(scrollToBottom)
             <template v-if="action.type === 'use-skill'">
               <span class="action-icon">🎯</span>
               <div class="action-info">
-                <div class="action-title">{{ store.getSkillInfo(action.skill).name }}</div>
-                <div class="action-cost">消耗 {{ store.getSkillInfo(action.skill).cost }} 怒气</div>
+                <div class="action-title">{{ store.getSkillInfo(action.skill)?.baseId }}</div>
+                <div class="action-cost">消耗 {{ store.getSkillInfo(action.skill)?.rage }} 怒气</div>
               </div>
             </template>
 
