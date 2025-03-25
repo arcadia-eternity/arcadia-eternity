@@ -5,6 +5,7 @@ import { useBattleStore } from '@/stores/battle'
 import { BattlePhase, BattleStatus, ELEMENT_MAP, type petId, type PetMessage } from '@test-battle/const'
 import PetStatus from '@/components/PetStatus.vue'
 import BattleLogEntry from '@/components/BattleLogEntry.vue'
+import i18next from 'i18next'
 
 const store = useBattleStore()
 
@@ -81,7 +82,13 @@ onMounted(scrollToBottom)
       <div class="round-number">{{ store.state?.currentTurn || 0 }}</div>
       <div v-if="store.state?.marks?.length" class="field-effects">
         <div v-for="mark in store.state.marks" :key="mark.id" class="field-effect" :title="`剩余${mark.duration}回合`">
-          {{ '⭕' }} {{ mark.id }} ×{{ mark.stack }}
+          {{ '⭕' }}
+          {{
+            i18next.t(`${mark.baseId}.name`, {
+              ns: ['mark', 'mark_ability', 'mark_emblem'],
+            })
+          }}
+          ×{{ mark.stack }}
         </div>
       </div>
       <div class="battle-message">
@@ -120,7 +127,13 @@ onMounted(scrollToBottom)
             <template v-if="action.type === 'use-skill'">
               <span class="action-icon">🎯</span>
               <div class="action-info">
-                <div class="action-title">{{ store.getSkillInfo(action.skill)?.baseId }}</div>
+                <div class="action-title">
+                  {{
+                    i18next.t(`${store.getSkillInfo(action.skill)?.baseId}.name`, {
+                      ns: 'skill',
+                    })
+                  }}
+                </div>
                 <div class="action-cost">消耗 {{ store.getSkillInfo(action.skill)?.rage }} 怒气</div>
               </div>
             </template>
