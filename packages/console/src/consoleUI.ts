@@ -235,9 +235,9 @@ export class ConsoleUIV2 {
 
       case BattleMessageType.PetDefeated: {
         const d = message.data
-        const killerName = this.getPetNameById(d.pet)
-        const petId = d.killer ? this.getPlayerNameById(d.killer) : ''
-        console.log(`☠️ ${this.getPetNameById(petId)} 倒下！${message.data.killer ? `(击败者: ${killerName})` : ''}`)
+        const petId = this.getPetNameById(d.pet)
+        const killerId = d.killer ? this.getPlayerNameById(d.killer) : ''
+        console.log(`☠️ ${this.getPetNameById(petId)} 倒下！${message.data.killer ? `(击败者: ${killerId})` : ''}`)
         break
       }
 
