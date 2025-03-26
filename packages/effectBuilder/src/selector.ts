@@ -55,13 +55,14 @@ export type PropertyRef<T, V> = {
   target: T // 保留原对象引用
 }
 
+//TODO:PropertyRef的类型和select时的行为
 export class ChainableSelector<T> {
   private readonly _isNumberType: boolean
   constructor(
     public selector: TargetSelector<T>,
     public type: string,
   ) {
-    this._isNumberType = RuntimeTypeChecker.isNumberType(type)
+    this._isNumberType = RuntimeTypeChecker.isNumberType(type) || type === 'number' || type === 'number[]'
   }
 
   [Symbol.toPrimitive](context: EffectContext<EffectTrigger>): T[] {
