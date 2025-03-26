@@ -114,7 +114,7 @@ export class ChainableSelector<T> {
     }
 
     // 开发环境下的路径验证
-    if (process.env.NODE_ENV !== 'production' && extractorPath) {
+    if (process.env.NODE_ENV !== 'production' && extractorPath !== undefined && this.type !== 'any') {
       const fullPath = `${this.type}.${extractorPath}`
 
       if (!RuntimeTypeChecker.validatePath(this.type, extractorPath)) {
@@ -135,11 +135,6 @@ export class ChainableSelector<T> {
   }
 
   private createExtractedSelector<U>(extractor: PathExtractor<T, U>): ChainableSelector<U> {
-    // 自动构建新类型路径
-    const newTypePath = `${this.type}.${extractor.path}`
-      .replace(/\.\[\]/g, '[]') // 处理数组语法
-      .replace(/\[\]\./g, '[]')
-
     // 开发环境类型校验
     if (process.env.NODE_ENV !== 'production') {
       if (!RuntimeTypeChecker.validatePath(this.type, extractor.path)) {
