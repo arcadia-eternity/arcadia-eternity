@@ -13,7 +13,9 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
 
     "module": "ESNext",
+    "lib": ["ESNext", "DOM"],
     "moduleResolution": "Bundler",
+    "forceConsistentCasingInFileNames": true,
     "types": ["node"]
   }
 }
