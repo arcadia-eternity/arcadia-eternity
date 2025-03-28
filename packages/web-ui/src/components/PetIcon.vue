@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-const props = defineProps<{
-  id: number
-}>()
+const props = withDefaults(
+  defineProps<{
+    id: number
+    reverse?: boolean
+  }>(),
+  {
+    id: 999,
+    reverse: false,
+  },
+)
 
 const petIconUrl = computed(
   () => `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png-4x/petIcon/${props.id}.png`,
@@ -14,14 +21,18 @@ const petIconUrl = computed(
     :src="petIconUrl"
     :alt="`Pet icon ${id}`"
     class="pet-icon"
-    @error="e => (e.target!.src = 'https://placehold.co/100x100?text=No+Image')"
+    :class="{ reverse: reverse }"
+    @error="e => ((e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=No+Image')"
   />
 </template>
 
 <style scoped>
 .pet-icon {
-  width: 100%;
-  height: 100%;
   object-fit: contain;
+  background-color: black;
+}
+
+.pet-icon.reverse {
+  transform: scaleX(-1);
 }
 </style>

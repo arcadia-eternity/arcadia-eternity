@@ -4,7 +4,7 @@ import ElementIcon from './ElementIcon.vue'
 </script>
 
 <template>
-  <Story title="Components/ElementIcon">
+  <Story title="ElementIcon">
     <Variant title="Water">
       <ElementIcon :element="Element.Water" />
     </Variant>

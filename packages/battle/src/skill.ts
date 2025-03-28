@@ -153,6 +153,9 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
   public readonly ignoreShield: boolean = false
   public readonly tags: string[] = []
   effects: Effect<EffectTrigger>[] = []
+
+  public appeared = false
+
   constructor(
     public readonly base: BaseSkill,
     overrides?: {
@@ -208,20 +211,43 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
       })
   }
 
-  toMessage(): SkillMessage {
+  toMessage(viewerId?: string, showHidden = false): SkillMessage {
+    const isSelf = viewerId === this.owner?.owner?.id
+    const shouldShowDetails = this.appeared || isSelf || showHidden
+
+    if (shouldShowDetails) {
+      return {
+        isUnknown: false,
+        id: this.id,
+        baseId: this.baseId,
+        category: this.category,
+        element: this.element,
+        power: this.power,
+        rage: this.rage,
+        accuracy: this.accuracy,
+        priority: this.priority,
+        target: this.target,
+        multihit: this.multihit,
+        sureHit: this.sureHit,
+        tag: this.tags,
+      }
+    }
+
+    // 返回空占位符
     return {
+      isUnknown: true,
       id: this.id,
-      baseId: this.baseId,
-      category: this.category,
-      element: this.element,
-      power: this.power,
-      rage: this.rage,
-      accuracy: this.accuracy,
-      priority: this.priority,
-      target: this.target,
-      multihit: this.multihit,
-      sureHit: this.sureHit,
-      tag: this.tags,
+      baseId: '' as baseSkillId,
+      category: Category.Physical,
+      element: Element.Normal,
+      power: 0,
+      rage: 0,
+      accuracy: 0,
+      priority: 0,
+      target: AttackTargetOpinion.opponent,
+      multihit: 1,
+      sureHit: false,
+      tag: [],
     }
   }
 }

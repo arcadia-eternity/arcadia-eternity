@@ -1,53 +1,52 @@
 <!-- src/views/BattleView.vue -->
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { useBattleStore } from '@/stores/battle'
-import { BattlePhase, BattleStatus, ELEMENT_MAP, type petId, type PetMessage } from '@test-battle/const'
+import { type petId, type PetMessage } from '@test-battle/const'
 import PetStatus from '@/components/PetStatus.vue'
-import BattleLogEntry from '@/components/BattleLogEntry.vue'
+import BattleLogPanel from '@/components/BattleLogPanel.vue'
 import i18next from 'i18next'
+import type { MarkMessage, PlayerMessage, SkillMessage } from '@test-battle/const'
+import type { skillId } from '@test-battle/const'
 
 const store = useBattleStore()
 
 // 安全访问方法
 const safePet = (pet?: PetMessage) => pet ?? ({} as PetMessage)
 
-// 计算属性增强
-const currentPhase = computed(() => {
-  const phaseMap: Record<string, string> = {
-    [BattlePhase.SwitchPhase]: '换宠阶段',
-    [BattlePhase.SelectionPhase]: '指令选择',
-    [BattlePhase.ExecutionPhase]: '回合执行',
-    [BattlePhase.Ended]: '已结束',
-  }
-  return phaseMap[store.state?.currentPhase ?? ''] || '未知阶段'
+const skillMap = computed(() => {
+  const entries =
+    store.state?.players
+      ?.flatMap(p => p.team ?? [])
+      ?.flatMap(pet => pet?.skills?.filter(skill => !skill.isUnknown).map(skill => [skill.id, skill] as const) ?? []) ??
+    []
+  return new Map<skillId, SkillMessage>(entries)
 })
 
-const battleStatus = computed(() => {
-  const statusMap: Record<string, string> = {
-    [BattleStatus.Unstarted]: '未开始',
-    [BattleStatus.OnBattle]: '进行中',
-    [BattleStatus.Ended]: '已结束',
-  }
-  return statusMap[store.state?.status ?? ''] || '未知状态'
+const petMap = computed(() => {
+  const entries =
+    store.state?.players
+      ?.flatMap(p => p.team ?? [])
+      .filter(pet => !pet.isUnknown)
+      ?.map(pet => [pet.id, pet] as const) ?? []
+  return new Map<petId, PetMessage>(entries)
 })
 
-const logContainer = ref<HTMLElement | null>(null)
+const playerMap = computed(() => {
+  const entries = store.state?.players?.map(player => [player.id, player] as const) ?? []
+  return new Map<string, PlayerMessage>(entries)
+})
 
-// 自动滚动到底部
-const scrollToBottom = () => {
-  nextTick(() => {
-    if (logContainer.value) {
-      logContainer.value.scrollTop = logContainer.value.scrollHeight
-    }
-  })
-}
-
-watch(
-  () => store.log.length,
-  () => scrollToBottom(),
-  { flush: 'post' }, // 确保在DOM更新后执行
-)
+const markMap = computed(() => {
+  const entries = [
+    ...(store.state?.marks ?? []),
+    ...(store.state?.players
+      .flatMap(p => p.team ?? [])
+      .filter(pet => !pet.isUnknown)
+      .flatMap(pet => pet?.marks ?? []) ?? []),
+  ].map(mark => [mark.id, mark] as const)
+  return new Map<string, MarkMessage>(entries)
+})
 
 const battleResult = computed(() => {
   if (!store.isBattleEnd) return ''
@@ -55,8 +54,6 @@ const battleResult = computed(() => {
   if (!winner) return '平局'
   return winner.id === store.playerId ? '胜利！🎉' : '失败...💔'
 })
-
-onMounted(scrollToBottom)
 </script>
 
 <template>
@@ -174,17 +171,13 @@ onMounted(scrollToBottom)
       </div>
 
       <!-- 右侧日志面板 -->
-      <div class="log-panel">
-        <div class="log-header">
-          <el-icon><Notebook /></el-icon>
-          <span>战斗日志</span>
-        </div>
-        <div class="log-scroll-container" ref="logContainer">
-          <TransitionGroup name="log-transition">
-            <BattleLogEntry v-for="message in store.log" :key="message.sequenceId" :message="message" />
-          </TransitionGroup>
-        </div>
-      </div>
+      <BattleLogPanel
+        :messages="store.log"
+        :mark-data="markMap"
+        :skill-data="skillMap"
+        :pet-data="petMap"
+        :player-data="playerMap"
+      />
     </div>
 
     <Transition name="fade">

@@ -45,7 +45,7 @@ const iconUrl = computed(() => {
 <style scoped>
 .element-icon {
   /* width: 24px; */
-  height: 24px;
+  min-height: 24px;
   object-fit: contain;
 }
 </style>

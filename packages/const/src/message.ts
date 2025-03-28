@@ -17,6 +17,7 @@ import {
 import { Element } from './element'
 
 export interface SkillMessage {
+  isUnknown: boolean
   id: skillId
   baseId: baseSkillId
   category: Category
@@ -32,6 +33,7 @@ export interface SkillMessage {
 }
 
 export interface PetMessage {
+  isUnknown: boolean
   name: string
   id: petId
   speciesID: speciesId

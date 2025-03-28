@@ -1,23 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps({
-  current: {
-    type: Number,
-    required: true,
-  },
-  max: {
-    type: Number,
-    required: true,
-  },
-  rage: {
-    type: Number,
-    default: 0,
-  },
-  reverse: {
-    type: Boolean,
-    default: false,
-  },
+interface Props {
+  current: number
+  max: number
+  rage?: number
+  reverse?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  rage: 0,
+  reverse: false,
 })
 
 const healthPercentage = computed(() => {
@@ -68,6 +61,7 @@ const ragePercentage = computed(() => {
   position: relative;
   display: block;
   margin: 8px 0;
+  overflow: hidden;
 }
 
 .health-rage-container.reverse {
@@ -75,16 +69,15 @@ const ragePercentage = computed(() => {
 }
 
 .health-bar {
-  height: 16px;
+  height: 32px;
   width: 100%;
   position: relative;
   margin-bottom: 4px;
-  border: 1px solid #000;
   clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0% 100%);
 }
 
 .health-rage-container.reverse .health-bar {
-  clip-path: polygon(8px 0, 100% 0, 100% 100%, 0% 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%);
 }
 
 .health-bg {
@@ -104,7 +97,7 @@ const ragePercentage = computed(() => {
 }
 
 .health-rage-container.reverse .health-value {
-  clip-path: polygon(8px 0, 100% 0, 100% 100%, 0% 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%);
 }
 
 .health-text {
@@ -114,7 +107,7 @@ const ragePercentage = computed(() => {
   transform: translate(-50%, -50%);
   color: white;
   text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
-  font-size: 12px;
+  font-size: 20px;
   font-weight: bold;
   width: 100%;
   text-align: center;
@@ -124,15 +117,14 @@ const ragePercentage = computed(() => {
 
 .rage-bar {
   position: relative;
-  height: 16px;
+  height: 32px;
   width: 100%;
   position: relative;
-  border: 1px solid #000;
   clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0% 100%);
 }
 
 .health-rage-container.reverse .rage-bar {
-  clip-path: polygon(8px 0, 100% 0, 100% 100%, 0% 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%);
 }
 
 .rage-bg {
@@ -150,7 +142,7 @@ const ragePercentage = computed(() => {
 }
 
 .health-rage-container.reverse .rage-value {
-  clip-path: polygon(8px 0, 100% 0, 100% 100%, 0% 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%);
 }
 
 .rage-text {
@@ -160,7 +152,7 @@ const ragePercentage = computed(() => {
   transform: translate(-50%, -50%);
   color: white;
   text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
-  font-size: 12px;
+  font-size: 20px;
   font-weight: bold;
   pointer-events: none;
   z-index: 2;

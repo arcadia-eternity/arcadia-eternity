@@ -64,6 +64,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public readonly weight: number
   public readonly height: number
   public readonly gender: Gender
+  public appeared: boolean = false
 
   constructor(
     public readonly name: string,
@@ -431,22 +432,25 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
 
   switchIn(context: SwitchPetContext) {
     context.battle.applyEffects(context, EffectTrigger.OnOwnerSwitchIn, ...this.marks)
+    this.appeared = true
   }
 
   toMessage(viewerId?: string, showHidden = false): PetMessage {
     const isSelf = viewerId === this.owner?.id
+    const shouldShowDetails = this.appeared || isSelf || showHidden
 
     return {
-      name: this.name,
+      isUnknown: !shouldShowDetails,
+      name: shouldShowDetails ? this.name : '',
       id: this.id,
-      speciesID: this.species.id,
-      element: this.element,
-      level: this.level,
-      currentHp: this.currentHp,
-      maxHp: this.maxHp,
-      marks: this.marks.map(m => m.toMessage()),
-      stats: isSelf || showHidden ? this.stat : undefined,
-      skills: isSelf || showHidden ? this.skills.map(s => s.toMessage()) : undefined,
+      speciesID: shouldShowDetails ? this.species.id : ('' as speciesId),
+      element: shouldShowDetails ? this.element : Element.Normal,
+      level: shouldShowDetails ? this.level : 0,
+      currentHp: shouldShowDetails ? this.currentHp : 0,
+      maxHp: shouldShowDetails ? this.maxHp : 0,
+      marks: shouldShowDetails ? this.marks.map(m => m.toMessage()) : [],
+      stats: shouldShowDetails ? this.stat : undefined,
+      skills: shouldShowDetails ? this.skills.map(s => s.toMessage(viewerId, showHidden)) : undefined,
     }
   }
 

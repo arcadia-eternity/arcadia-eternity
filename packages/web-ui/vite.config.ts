@@ -4,12 +4,12 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import path from 'node:path'
-import yamlplugin from '@rollup/plugin-yaml'
 import yaml from 'yaml'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -26,7 +26,7 @@ export default defineConfig({
   plugins: [
     vue(),
     vueDevTools(),
-    yamlplugin(),
+    tailwindcss(),
     AutoImport({
       eslintrc: {
         enabled: true,

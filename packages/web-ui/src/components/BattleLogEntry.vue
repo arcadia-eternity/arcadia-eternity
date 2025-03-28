@@ -2,32 +2,47 @@
 import { computed } from 'vue'
 import {
   BattleMessageType,
-  BattlePhase,
-  BattleStatus,
-  ELEMENT_MAP,
   type BattleMessage,
-  type petId,
+  type MarkMessage,
+  type PetMessage,
+  type PlayerMessage,
+  type SkillMessage,
 } from '@test-battle/const'
-import { useBattleStore } from '@/stores/battle'
+import i18next from 'i18next'
 
 const props = defineProps<{
   message: BattleMessage
+  petData?: Map<string, PetMessage>
+  skillData?: Map<string, SkillMessage>
+  playerData?: Map<string, PlayerMessage>
+  markData?: Map<string, MarkMessage>
 }>()
 
-const store = useBattleStore()
+// 从props获取静态数据
+const petMap = computed(() => props.petData || new Map<string, PetMessage>())
+const skillMap = computed(() => props.skillData || new Map<string, SkillMessage>())
+const playerMap = computed(() => props.playerData || new Map<string, PlayerMessage>())
+const markMap = computed(() => props.markData || new Map<string, MarkMessage>())
 
-// 获取精灵名称
+// 获取精灵名称（使用静态数据）
 const getPetName = (petId: string) => {
-  return store.getPetById(petId as petId)?.name || petId
+  return petMap.value.get(petId)?.name || petId
 }
 
-// 获取技能名称
+// 获取技能名称（使用静态数据）
 const getSkillName = (skillId: string) => {
   return (
-    store.state?.players
-      .flatMap(p => p.team)
-      .flatMap(p => p!.skills)
-      .find(s => s!.id === skillId)?.baseId || skillId
+    i18next.t(`${skillId}.name`, {
+      ns: 'skill',
+    }) || skillId
+  )
+}
+
+const getMarkName = (markId: string) => {
+  return (
+    i18next.t(`${markId}.name`, {
+      ns: ['mark', 'mark_ability', 'mark_emblem'],
+    }) || markId
   )
 }
 
@@ -64,6 +79,7 @@ const statArrows = (stage: number) => {
 
 // 消息图标映射
 const messageIcons = computed(() => ({
+  [BattleMessageType.BattleState]: '🏁',
   [BattleMessageType.Damage]: '💥',
   [BattleMessageType.Heal]: '💚',
   [BattleMessageType.SkillUse]: '🎯',
@@ -76,6 +92,15 @@ const messageIcons = computed(() => ({
   [BattleMessageType.BattleStart]: '⚔️',
   [BattleMessageType.Info]: 'ℹ️',
   [BattleMessageType.TurnAction]: '📢',
+  [BattleMessageType.TurnStart]: '🔄',
+  [BattleMessageType.PetRevive]: '🔥',
+  [BattleMessageType.SkillMiss]: '❌',
+  [BattleMessageType.ForcedSwitch]: '🔄',
+  [BattleMessageType.FaintSwitch]: '🎁',
+  [BattleMessageType.HpChange]: '❤️',
+  [BattleMessageType.SkillUseFail]: '❌',
+  [BattleMessageType.DamageFail]: '❌',
+  [BattleMessageType.HealFail]: '❌',
 }))
 
 const translateEndReason = (reason: string): string => {
@@ -100,7 +125,7 @@ const translateEndReason = (reason: string): string => {
       <div v-if="message.type === BattleMessageType.SkillUse" class="skill-use">
         <span class="pet-name">{{ getPetName(message.data.user) }}</span>
         使用
-        <span class="skill-name">{{ getSkillName(message.data.skill) }}</span>
+        <span class="skill-name">{{ getSkillName(skillMap.get(message.data.skill)?.baseId || '') }}</span>
         <span class="rage-cost">(消耗{{ message.data.rageCost }}怒气)</span>
         →
         <span class="target-name">{{ getPetName(message.data.target) }}</span>
@@ -130,7 +155,7 @@ const translateEndReason = (reason: string): string => {
 
       <!-- 精灵切换 -->
       <div v-if="message.type === BattleMessageType.PetSwitch" class="pet-switch">
-        <span class="player-name">{{ store.getPlayerById(message.data.player)?.name }}</span>
+        <span class="player-name">{{ playerMap.get(message.data.player)?.id }}</span>
         更换精灵：
         <span class="from-pet">{{ getPetName(message.data.fromPet) }}</span> →
         <span class="to-pet">{{ getPetName(message.data.toPet) }}</span>

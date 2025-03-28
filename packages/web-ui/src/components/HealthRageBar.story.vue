@@ -39,7 +39,7 @@ function reversedState() {
 </script>
 
 <template>
-  <Story title="Components/HealthRageBar">
+  <Story title="HealthRageBar">
     <Variant title="Default" :init-state="initState">
       <template #default="{ state }">
         <HealthRageBar v-bind="state" />

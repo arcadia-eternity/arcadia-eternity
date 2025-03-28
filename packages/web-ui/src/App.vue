@@ -114,6 +114,7 @@ const player = computed(() => playerStore)
 </script>
 
 <style>
+@import 'tailwindcss';
 html,
 body,
 #app {

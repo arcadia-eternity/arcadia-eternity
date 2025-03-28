@@ -471,9 +471,18 @@ export class BattleServer {
 
     battle.registerListener(message => {
       message.sequenceId = Date.now()
-      this.io.to(roomId).emit('battleEvent', message)
-      if (message.type === BattleMessageType.BattleEnd) {
-        this.cleanupRoom(roomId)
+      switch (message.type) {
+        case BattleMessageType.BattleState:
+          p1.emit('battleEvent', { ...message, data: battle.getState(player1.playerData.id, false) })
+          p2.emit('battleEvent', { ...message, data: battle.getState(player2.playerData.id, false) })
+          break
+        case BattleMessageType.BattleEnd:
+          this.cleanupRoom(roomId)
+          this.io.to(roomId).emit('battleEvent', message)
+          break
+        default:
+          this.io.to(roomId).emit('battleEvent', message)
+          break
       }
     })
 

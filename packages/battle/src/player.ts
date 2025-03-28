@@ -30,6 +30,7 @@ export class Player {
   ) {
     team.forEach(pet => pet.setOwner(this))
     this.activePet = team[0]
+    this.activePet.appeared = true
   }
 
   public registerBattle(battle: Battle) {
@@ -182,6 +183,7 @@ export class Player {
 
   public performAttack(context: UseSkillContext): boolean {
     this.battle!.applyEffects(context, EffectTrigger.BeforeUseSkillCheck)
+    context.skill.appeared = true
     context.updateActualTarget()
 
     /*几个无法使用技能的情况：
@@ -321,7 +323,6 @@ export class Player {
   }
 
   public toMessage(viewerId?: string, showHidden = false): PlayerMessage {
-    const isSelf = viewerId === this.id
     const teamAlives = this.team.filter(p => p.isAlive).length
 
     return {
@@ -330,7 +331,7 @@ export class Player {
       activePet: this.activePet.toMessage(viewerId),
       rage: this.currentRage,
       teamAlives,
-      team: isSelf || showHidden ? this.team.map(p => p.toMessage(viewerId, showHidden)) : undefined,
+      team: this.team.map(p => p.toMessage(viewerId, showHidden)),
     }
   }
 
