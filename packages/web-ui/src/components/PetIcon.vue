@@ -12,7 +12,7 @@ const props = withDefaults(
 )
 
 const petIconUrl = computed(
-  () => `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png-4x/petIcon/${props.id}.png`,
+  () => `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/petIcon/${props.id}.png`,
 )
 </script>
 

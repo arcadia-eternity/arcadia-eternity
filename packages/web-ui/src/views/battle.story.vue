@@ -23,7 +23,7 @@ import { Element, Category } from '@test-battle/const'
               stack: 1,
               duration: 3,
               description: '每回合损失5%最大HP',
-              image: 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png-4x/markImage/1001.png',
+              image: 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/markImage/1001.png',
             },
           ],
         },
