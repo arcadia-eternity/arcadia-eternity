@@ -1,7 +1,13 @@
 // src/stores/gameData.ts
 import { defineStore } from 'pinia'
 import { GameDataLoader } from '@/utils/gameLoader'
-import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType, Effect } from '@test-battle/schema'
+import type {
+  SpeciesSchemaType,
+  SkillSchemaType,
+  MarkSchemaType,
+  Effect,
+  MarkImageSchemaType,
+} from '@test-battle/schema'
 
 interface GameDataState {
   species: {
@@ -18,6 +24,10 @@ interface GameDataState {
   }
   effects: {
     byId: Record<string, Effect>
+    allIds: string[]
+  }
+  markImage: {
+    byId: Record<string, string>
     allIds: string[]
   }
   loaded: boolean
@@ -44,6 +54,10 @@ export const useGameDataStore = defineStore('gameData', {
       byId: {},
       allIds: [],
     },
+    markImage: {
+      byId: {},
+      allIds: [],
+    },
   }),
 
   getters: {
@@ -51,8 +65,19 @@ export const useGameDataStore = defineStore('gameData', {
     skillList: state => state.skills.allIds.map(id => state.skills.byId[id]),
     marksList: state => state.marks.allIds.map(id => state.marks.byId[id]),
     effectsList: state => state.effects.allIds.map(id => state.effects.byId[id]),
+    markImageList: state => state.markImage.allIds.map(id => state.markImage.byId[id]),
     getSpecies: state => (id: string) => state.species.byId[id],
     getSkill: state => (id: string) => state.skills.byId[id],
+    getMark: state => (id: string) => state.marks.byId[id],
+    getEffect: state => (id: string) => state.effects.byId[id],
+    getMarkImage: state => (id: string) => {
+      if (state.markImage.byId[id]) {
+        return state.markImage.byId[id]
+      } else {
+        console.warn(`未找到标记图片: ${id}`)
+        return null
+      }
+    },
   },
 
   actions: {
@@ -65,11 +90,12 @@ export const useGameDataStore = defineStore('gameData', {
 
       try {
         // 并行加载所有数据
-        const [rawSpecies, rawSkills, rawMarks, rawEffects] = await Promise.all([
+        const [rawSpecies, rawSkills, rawMarks, rawEffects, rawMarkImage] = await Promise.all([
           this.loadSpecies(loader),
           this.loadSkills(loader),
           this.loadMarks(loader),
           this.loadEffects(loader),
+          this.loadMarkImage(loader),
         ])
 
         // 标准化数据结构
@@ -77,6 +103,7 @@ export const useGameDataStore = defineStore('gameData', {
         this.skills = this.normalizeData(rawSkills)
         this.marks = this.normalizeData(rawMarks)
         this.effects = this.normalizeData(rawEffects)
+        this.markImage = this.normalizeRecordData(rawMarkImage)
 
         // 验证数据完整性
         this.validateDataIntegrity()
@@ -87,6 +114,13 @@ export const useGameDataStore = defineStore('gameData', {
       } catch (error) {
         this.error = error instanceof Error ? error.message : '未知错误'
         throw error
+      }
+    },
+
+    normalizeRecordData<T>(item: Record<string, T>) {
+      return {
+        byId: item,
+        allIds: Object.keys(item),
       }
     },
 
@@ -130,20 +164,22 @@ export const useGameDataStore = defineStore('gameData', {
 
     // 修改后的加载方法（保持返回原始数组）
     async loadSpecies(loader: GameDataLoader): Promise<SpeciesSchemaType[]> {
-      const data = await loader.load<SpeciesSchemaType>('species')
+      const data = await loader.load<SpeciesSchemaType[]>('species')
       return data
     },
 
     async loadSkills(loader: GameDataLoader): Promise<SkillSchemaType[]> {
-      const data = await loader.load<SkillSchemaType>('skill')
+      const data = await loader.load<SkillSchemaType[]>('skill')
       return data
     },
 
     async loadMarks(loader: GameDataLoader): Promise<MarkSchemaType[]> {
-      const data = await loader.load<MarkSchemaType>('mark')
-      const data1 = await loader.load<MarkSchemaType>('mark_ability')
-      const data2 = await loader.load<MarkSchemaType>('mark_emblem')
-      const data3 = await loader.load<MarkSchemaType>('mark_global')
+      const [data, data1, data2, data3] = await Promise.all([
+        loader.load<MarkSchemaType[]>('mark'),
+        loader.load<MarkSchemaType[]>('mark_ability'),
+        loader.load<MarkSchemaType[]>('mark_emblem'),
+        loader.load<MarkSchemaType[]>('mark_global'),
+      ])
 
       // 合并前检查ID冲突
       const allMarks = [...data, ...data1, ...data2, ...data3]
@@ -159,7 +195,27 @@ export const useGameDataStore = defineStore('gameData', {
     },
 
     async loadEffects(loader: GameDataLoader): Promise<Effect[]> {
-      const data = await loader.load<Effect>('effect')
+      const [data1, data2, data3, data4] = await Promise.all([
+        loader.load<Effect[]>('effect_ability'),
+        loader.load<Effect[]>('effect_emblem'),
+        loader.load<Effect[]>('effect_mark'),
+        loader.load<Effect[]>('effect_skill'),
+      ])
+      // 合并前检查ID冲突
+      const allEffects = [...data1, ...data2, ...data3, ...data4]
+      const ids = new Set<string>()
+      allEffects.forEach(effect => {
+        if (ids.has(effect.id)) {
+          throw new Error(`发现重复的Effect ID: ${effect.id}`)
+        }
+        ids.add(effect.id)
+      })
+      return [...data1, ...data2, ...data3, ...data4]
+    },
+
+    async loadMarkImage(loader: GameDataLoader): Promise<MarkImageSchemaType> {
+      const data = await loader.load<MarkImageSchemaType>('mark_image')
+
       return data
     },
   },

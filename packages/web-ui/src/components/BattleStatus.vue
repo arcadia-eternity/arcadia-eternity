@@ -5,18 +5,17 @@ import PetIcon from './PetIcon.vue'
 import Mark from './Mark.vue'
 import type { Element } from '@test-battle/const'
 import ElementIcon from './ElementIcon.vue'
-import { reverse } from 'lodash'
 
 const props = defineProps<{
   player: {
     name: string
+    rage: number
     currentPet: {
       level: number
       name: string
-      num: number
-      health: number
-      maxHealth: number
-      rage: number
+      speciesNum: number
+      currentHp: number
+      maxHp: number
       element: Element
       marks?: Array<{
         id: string
@@ -47,7 +46,7 @@ const markContainerClass = computed(() => [
 
 <template>
   <div :class="containerClass">
-    <PetIcon :id="player.currentPet.num" class="w-32 h-32" :reverse="side == 'right'" />
+    <PetIcon :id="player.currentPet.speciesNum" class="w-32 h-32" :reverse="side == 'right'" />
 
     <div :class="statusBarClass">
       <div class="flex items-center gap-2 mb-1" :class="[side === 'right' ? 'flex-row-reverse' : '']">
@@ -61,9 +60,9 @@ const markContainerClass = computed(() => [
       </div>
 
       <HealthRageBar
-        :current="player.currentPet.health"
-        :max="player.currentPet.maxHealth"
-        :rage="player.currentPet.rage"
+        :current="player.currentPet.currentHp"
+        :max="player.currentPet.maxHp"
+        :rage="player.rage"
         type="health"
         class="w-full"
         :reverse="props.side === 'right'"

@@ -2,6 +2,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useBattleStore } from '@/stores/battle'
+import { useGameDataStore } from '@/stores/gameData'
 import { type petId, type PetMessage } from '@test-battle/const'
 import PetStatus from '@/components/PetStatus.vue'
 import BattleLogPanel from '@/components/BattleLogPanel.vue'
@@ -10,6 +11,7 @@ import type { MarkMessage, PlayerMessage, SkillMessage } from '@test-battle/cons
 import type { skillId } from '@test-battle/const'
 
 const store = useBattleStore()
+const dataStore = useGameDataStore()
 
 // 安全访问方法
 const safePet = (pet?: PetMessage) => pet ?? ({} as PetMessage)
@@ -46,6 +48,50 @@ const markMap = computed(() => {
       .flatMap(pet => pet?.marks ?? []) ?? []),
   ].map(mark => [mark.id, mark] as const)
   return new Map<string, MarkMessage>(entries)
+})
+
+const getPlayerStatus = (player: PlayerMessage) => {
+  return {
+    name: player.name,
+    rage: player.rage,
+    currentPet: {
+      level: player.activePet?.level ?? 0,
+      name: player.activePet?.name ?? '未知精灵',
+      speciesNum: dataStore.getSpecies(player.activePet?.speciesID)?.num ?? 0,
+      currentHp: player.activePet?.currentHp ?? 0,
+      maxHp: player.activePet?.maxHp ?? 0,
+      element: player.activePet?.element ?? 'normal',
+      marks: player.activePet?.marks.map(m => {
+        const image = dataStore.getMarkImage(m.id)
+        const name = i18next.t(`${m.baseId}.name`, {
+          ns: ['mark', 'mark_ability', 'mark_emblem'],
+        })
+        const description = i18next.t(`${m.baseId}.description`, {
+          ns: ['mark', 'mark_ability', 'mark_emblem'],
+        })
+        return {
+          id: m.id,
+          name,
+          stack: m.stack,
+          duration: m.duration,
+          description,
+          image,
+        }
+      }),
+    },
+  }
+}
+
+const selfBattleStatus = computed(() => {
+  const player = store.state?.players.find(p => p.id === store.playerId)
+  if (!player) return null
+  return getPlayerStatus(player)
+})
+
+const opponentBattleStatus = computed(() => {
+  const opponent = store.state?.players.find(p => p.id !== store.playerId)
+  if (!opponent) return null
+  return getPlayerStatus(opponent)
 })
 
 const battleResult = computed(() => {

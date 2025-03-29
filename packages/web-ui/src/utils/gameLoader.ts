@@ -11,7 +11,7 @@ export class GameDataLoader {
     this.config = config
   }
 
-  async load<T>(dataType: string): Promise<T[]> {
+  async load<T>(dataType: string): Promise<T> {
     try {
       const basePath = import.meta.env.DEV ? this.config.devBasePath : this.config.prodBaseUrl
 
@@ -19,13 +19,13 @@ export class GameDataLoader {
       const targetUrl = `${basePath}/${dataType}.json`
 
       // 获取并解析 JSON
-      const response = await axios.get<T[]>(targetUrl, {
+      const response = await axios.get<T>(targetUrl, {
         validateStatus: status => status >= 200 && status < 300,
         responseType: 'json',
       })
 
       // 确保返回数组格式
-      return Array.isArray(response.data) ? response.data : [response.data]
+      return response.data
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const status = error.response?.status
@@ -34,7 +34,7 @@ export class GameDataLoader {
       } else {
         console.error(`加载 ${dataType} 数据失败:`, error)
       }
-      return [] // 确保始终返回数组
+      throw new Error(`加载 ${dataType} 数据失败`)
     }
   }
 }

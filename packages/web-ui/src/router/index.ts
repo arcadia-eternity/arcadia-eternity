@@ -1,12 +1,12 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import LobbyView from '../views/lobbyView.vue'
-import BattleView from '../views/battleViews.vue'
-import DataEditor from '../views/dataEditor.vue'
-import EffectGraphEditor from '@/views/EffectGraphEditor.vue'
+import LobbyView from '../pages/lobbyView.vue'
+import BattleView from '../pages/battleViews.vue'
+import DataEditor from '../pages/dataEditor.vue'
+import EffectGraphEditor from '@/pages/EffectGraphEditor.vue'
 
 // 路由守卫
 import { battleGuard } from './guards'
-import TeamBuilder from '@/views/teamBuilder.vue'
+import TeamBuilder from '@/pages/teamBuilder.vue'
 
 const devOnlyRoutes: RouteRecordRaw[] = [
   {
