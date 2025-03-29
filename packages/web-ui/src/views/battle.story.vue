@@ -6,6 +6,7 @@ import { Element, Category } from '@test-battle/const'
 <template>
   <Story title="Views/BattleView">
     <BattleView
+      background="https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/battleBackground/grass.png"
       :left-player="{
         name: '玩家1',
         rage: 50,

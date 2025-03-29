@@ -65,12 +65,12 @@ const emit = defineEmits<{
 
 <template>
   <div
-    class="relative w-screen h-screen flex flex-col"
-    :style="
-      background
-        ? { backgroundImage: `url(${background})`, backgroundSize: 'cover' }
-        : { backgroundColor: 'rgb(31 41 55)' }
-    "
+    class="relative w-screen h-screen flex flex-col bg-center bg-no-repeat"
+    :class="[background ? `bg-cover` : 'bg-gray-900', 'overflow-hidden', 'transition-all duration-300 ease-in-out']"
+    :style="{
+      backgroundImage: background ? `url(${background})` : 'none',
+      backgroundSize: background ? '100% auto' : 'auto',
+    }"
   >
     <!-- 顶部状态栏 -->
     <div class="flex justify-between p-5">
@@ -80,8 +80,8 @@ const emit = defineEmits<{
 
     <!-- 中部立绘区域 -->
     <div class="flex-grow flex justify-around items-center">
-      <Pet :num="leftPlayer.currentPet.speciesNum" class="w-[300px] h-[300px]" />
-      <Pet :num="rightPlayer.currentPet.speciesNum" :reverse="true" class="w-[300px] h-[300px]" />
+      <Pet :num="leftPlayer.currentPet.speciesNum" class="w-[250px] h-[250px]" />
+      <Pet :num="rightPlayer.currentPet.speciesNum" :reverse="true" class="w-[250px] h-[250px]" />
     </div>
 
     <!-- 底部技能按钮 -->

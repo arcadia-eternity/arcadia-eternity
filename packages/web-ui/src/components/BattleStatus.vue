@@ -46,7 +46,7 @@ const markContainerClass = computed(() => [
 
 <template>
   <div :class="containerClass">
-    <PetIcon :id="player.currentPet.speciesNum" class="w-32 h-32" :reverse="side == 'right'" />
+    <PetIcon :id="player.currentPet.speciesNum" class="w-32 h-32 bg-black rounded-xl" :reverse="side == 'right'" />
 
     <div :class="statusBarClass">
       <div class="flex items-center gap-2 mb-1" :class="[side === 'right' ? 'flex-row-reverse' : '']">
