@@ -4,7 +4,8 @@ import Pet from '@/components/Pet.vue'
 import SkillButton from '@/components/SkillButton.vue'
 import type { Element, Category } from '@test-battle/const'
 
-const props = defineProps<{
+defineProps<{
+  background?: string
   leftPlayer: {
     name: string
     rage: number
@@ -63,7 +64,14 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="relative w-full h-full bg-gray-800 flex flex-col">
+  <div
+    class="relative w-screen h-screen flex flex-col"
+    :style="
+      background
+        ? { backgroundImage: `url(${background})`, backgroundSize: 'cover' }
+        : { backgroundColor: 'rgb(31 41 55)' }
+    "
+  >
     <!-- 顶部状态栏 -->
     <div class="flex justify-between p-5">
       <BattleStatus :player="leftPlayer" side="left" />
@@ -71,9 +79,9 @@ const emit = defineEmits<{
     </div>
 
     <!-- 中部立绘区域 -->
-    <div class="flex-1 flex justify-around items-center">
-      <Pet :num="leftPlayer.currentPet.speciesNum" />
-      <Pet :num="rightPlayer.currentPet.speciesNum" :reverse="true" />
+    <div class="flex-grow flex justify-around items-center">
+      <Pet :num="leftPlayer.currentPet.speciesNum" class="w-[300px] h-[300px]" />
+      <Pet :num="rightPlayer.currentPet.speciesNum" :reverse="true" class="w-[300px] h-[300px]" />
     </div>
 
     <!-- 底部技能按钮 -->

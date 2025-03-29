@@ -64,7 +64,7 @@ const markContainerClass = computed(() => [
         :max="player.currentPet.maxHp"
         :rage="player.rage"
         type="health"
-        class="w-full"
+        class="min-w-[25vw] w-1/4"
         :reverse="props.side === 'right'"
       />
 

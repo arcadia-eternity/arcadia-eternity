@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import LobbyView from '../pages/lobbyView.vue'
-import BattleView from '../pages/battleViews.vue'
+import LobbyView from '../pages/lobbyPage.vue'
+import BattleView from '../pages/battlePage.vue'
 import DataEditor from '../pages/dataEditor.vue'
 import EffectGraphEditor from '@/pages/EffectGraphEditor.vue'
 

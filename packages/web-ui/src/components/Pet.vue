@@ -20,18 +20,14 @@ const petUrl = computed(
   <img
     :src="petUrl"
     :alt="`Pet ${num}`"
-    class="pet"
+    class="object-contain"
     :class="{ reverse: reverse }"
     @error="e => ((e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=No+Image')"
   />
 </template>
 
 <style scoped>
-.pet {
-  object-fit: contain;
-}
-
-.pet.reverse {
+.reverse {
   transform: scaleX(-1);
 }
 </style>
