@@ -767,9 +767,9 @@ const handleSkillChange = (newVal: string, index: number) => {
 }
 
 function debounce(fn: Function, delay: number) {
-  let timer: number
+  let timer: ReturnType<typeof setTimeout> | null = null
   return function (this: any, ...args: any[]) {
-    clearTimeout(timer)
+    if (timer) clearTimeout(timer)
     timer = setTimeout(() => fn.apply(this, args), delay)
   }
 }

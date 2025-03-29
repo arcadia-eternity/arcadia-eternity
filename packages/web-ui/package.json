@@ -36,6 +36,7 @@
     "@vueuse/core": "^12.8.2",
     "axios": "^1.8.4",
     "element-plus": "^2.9.7",
+    "gsap": "^3.12.7",
     "i18next": "^24.2.3",
     "i18next-chained-backend": "^4.6.2",
     "i18next-http-backend": "^3.0.2",
