@@ -44,12 +44,6 @@ function reversedState() {
       <template #default="{ state }">
         <HealthRageBar v-bind="state" />
       </template>
-      <template #controls="{ state }">
-        <HstNumber v-model="state.current" title="Current" :min="0" :max="state.max" />
-        <HstNumber v-model="state.max" title="Max" :min="1" :max="1000" />
-        <HstNumber v-model="state.rage" title="Rage" :min="0" :max="100" />
-        <HstCheckbox v-model="state.reverse" title="Reverse" />
-      </template>
     </Variant>
 
     <Variant title="Low Health" :init-state="lowHealthState">

@@ -57,6 +57,8 @@ declare module 'vue' {
     Mark: typeof import('./src/components/Mark.vue')['default']
     'Mark.story': typeof import('./src/components/Mark.story.vue')['default']
     OptionalFieldEditor: typeof import('./src/components/OptionalFieldEditor.vue')['default']
+    PetButton: typeof import('./src/components/PetButton.vue')['default']
+    'PetButton.story': typeof import('./src/components/PetButton.story.vue')['default']
     PetCard: typeof import('./src/components/petCard.vue')['default']
     PetIcon: typeof import('./src/components/PetIcon.vue')['default']
     'PetIcon.story': typeof import('./src/components/PetIcon.story.vue')['default']
@@ -67,6 +69,7 @@ declare module 'vue' {
     'SkillButton.story': typeof import('./src/components/SkillButton.story.vue')['default']
     SpeciesSkillEditor: typeof import('./src/components/SpeciesSkillEditor.vue')['default']
     StorageManager: typeof import('./src/components/StorageManager.vue')['default']
+    Tooltip: typeof import('./src/components/Tooltip.vue')['default']
   }
   export interface ComponentCustomProperties {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

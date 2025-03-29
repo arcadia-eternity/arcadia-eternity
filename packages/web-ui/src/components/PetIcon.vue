@@ -29,7 +29,6 @@ const petIconUrl = computed(
 <style scoped>
 .pet-icon {
   object-fit: contain;
-  background-color: black;
 }
 
 .pet-icon.reverse {

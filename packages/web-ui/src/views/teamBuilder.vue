@@ -38,6 +38,7 @@
                 >
                   <template #header>
                     <div class="card-header">
+                      <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="size-16" />
                       <span class="pet-name">{{ pet.name }}</span>
                       <el-button
                         type="danger"
@@ -326,6 +327,7 @@ import { Nature } from '@test-battle/const'
 import { VueDraggable } from 'vue-draggable-plus'
 import { parse, stringify } from 'yaml'
 import { z } from 'zod'
+import PetIcon from '@/components/PetIcon.vue'
 
 const { t, i18next } = useTranslation()
 
