@@ -4,13 +4,13 @@ import { Element } from '@test-battle/const'
 
 const mockPlayer = {
   name: '训练师小明',
+  rage: 80,
   currentPet: {
-    num: 25,
+    speciesNum: 25,
     name: '杰尼龟',
     level: 42,
-    health: 320,
-    maxHealth: 450,
-    rage: 80,
+    currentHp: 320,
+    maxHp: 450,
     maxRage: 100,
     element: Element.Water,
     marks: [
@@ -28,13 +28,13 @@ const mockPlayer = {
 
 const mockEnemy = {
   name: '训练师小红',
+  rage: 60,
   currentPet: {
-    num: 94,
+    speciesNum: 94,
     name: '小火龙',
     level: 38,
-    health: 210,
-    maxHealth: 280,
-    rage: 60,
+    currentHp: 210,
+    maxHp: 280,
     maxRage: 100,
     element: Element.Water,
     marks: [

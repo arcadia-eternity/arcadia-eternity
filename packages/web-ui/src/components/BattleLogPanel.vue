@@ -1,114 +1,35 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, computed } from 'vue'
+import { ref } from 'vue'
 import BattleLogEntry from './BattleLogEntry.vue'
-import type { BattleMessage, MarkMessage, PetMessage, PlayerMessage, SkillMessage } from '@test-battle/const'
+import type { FormattedBattleMessage } from './BattleLogEntry.vue'
 
 const props = defineProps<{
-  messages: BattleMessage[]
-  petData?: Map<string, PetMessage>
-  skillData?: Map<string, SkillMessage>
-  playerData?: Map<string, PlayerMessage>
-  markData?: Map<string, MarkMessage>
+  formattedMessages: FormattedBattleMessage[]
+  clearMessages: () => void
 }>()
 
-const logContainer = ref<HTMLElement | null>(null)
-
-// 自动滚动到底部
-watch(
-  () => props.messages.length,
-  async () => {
-    await nextTick()
-    if (logContainer.value) {
-      logContainer.value.scrollTop = logContainer.value.scrollHeight
-    }
-  },
-)
+const logContainerRef = ref<HTMLDivElement>()
 </script>
 
 <template>
-  <div class="log-panel">
-    <div class="panel-header">
-      <h3>战斗日志</h3>
-      <div class="controls">
-        <button class="clear-btn">清空</button>
+  <div class="bg-black/80 rounded-lg p-4 flex flex-col">
+    <div class="flex justify-between items-center mb-3 px-2">
+      <h3 class="text-gray-50 m-0 text-xl">战斗日志</h3>
+      <div class="flex gap-2">
+        <button
+          class="bg-white/10 border border-white/20 text-gray-50 px-3 py-1 rounded transition-all duration-200 hover:bg-red-500/30"
+          @click="clearMessages"
+        >
+          清空
+        </button>
       </div>
     </div>
 
-    <div ref="logContainer" class="log-list">
-      <BattleLogEntry
-        v-for="(msg, index) in messages"
-        :key="index"
-        :message="msg"
-        :skill-data="skillData"
-        :mark-data="markData"
-        :pet-data="petData"
-        :player-data="playerData"
-      />
+    <div
+      ref="logContainerRef"
+      class="flex-1 overflow-y-auto pr-2 scroll-smooth scrollbar-thin scrollbar-track-white/5 scrollbar-thumb-white/20 scrollbar-thumb-rounded"
+    >
+      <BattleLogEntry v-for="(msg, index) in formattedMessages" :key="index" :message="msg" />
     </div>
   </div>
 </template>
-
-<style scoped>
-.log-panel {
-  background: rgba(0, 0, 0, 0.8);
-  border-radius: 8px;
-  padding: 16px;
-  height: 60vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding: 0 8px;
-}
-
-.panel-header h3 {
-  color: #f8f9fa;
-  margin: 0;
-  font-size: 1.2em;
-}
-
-.controls {
-  display: flex;
-  gap: 8px;
-}
-
-.clear-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #f8f9fa;
-  padding: 4px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.clear-btn:hover {
-  background: rgba(255, 75, 75, 0.3);
-}
-
-.log-list {
-  flex: 1;
-  overflow-y: auto;
-  padding-right: 8px;
-  scroll-behavior: smooth;
-}
-
-/* 滚动条样式 */
-.log-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.log-list::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.log-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-}
-</style>

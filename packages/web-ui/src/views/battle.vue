@@ -1,9 +1,27 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import BattleStatus from '@/components/BattleStatus.vue'
 import Pet from '@/components/Pet.vue'
 import SkillButton from '@/components/SkillButton.vue'
 import Mark from '@/components/Mark.vue'
+import BattleLogPanel from '@/components/BattleLogPanel.vue'
+import { useBattleLogViewModel } from '@/viewModels/battleLogViewModel'
 import type { Element, Category } from '@test-battle/const'
+import type { BattleMessage, MarkMessage, PetMessage, PlayerMessage, SkillMessage } from '@test-battle/const'
+
+const messages = ref<BattleMessage[]>([])
+const petData = ref<Map<string, PetMessage>>(new Map())
+const skillData = ref<Map<string, SkillMessage>>(new Map())
+const playerData = ref<Map<string, PlayerMessage>>(new Map())
+const markData = ref<Map<string, MarkMessage>>(new Map())
+
+const { formattedMessages, clearMessages, logContainerRef } = useBattleLogViewModel(
+  messages.value,
+  petData.value,
+  skillData.value,
+  playerData.value,
+  markData.value,
+)
 
 defineProps<{
   background?: string
@@ -121,21 +139,33 @@ const emit = defineEmits<{
         </div>
       </div>
 
-      <!-- 底部技能按钮 -->
-      <div class="flex justify-around p-5 bg-black bg-opacity-50">
-        <SkillButton
-          v-for="(skill, index) in skills"
-          :key="index"
-          :element="skill.element"
-          :category="skill.category"
-          :power="skill.power"
-          :rage="skill.rage"
-          :accuracy="skill.accuracy"
-          :name="skill.name"
-          :description="skill.description"
-          :id="skill.id"
-          @click="emit('skill-click', skill.id)"
-        />
+      <!-- 底部区域 -->
+      <div class="flex">
+        <!-- 战斗日志 -->
+        <div class="w-1/3 p-2">
+          <BattleLogPanel
+            :formattedMessages="formattedMessages"
+            :clearMessages="clearMessages"
+            :logContainerRef="logContainerRef"
+          />
+        </div>
+
+        <!-- 技能按钮 -->
+        <div class="flex-1 flex justify-around p-5 bg-black/50">
+          <SkillButton
+            v-for="(skill, index) in skills"
+            :key="index"
+            :element="skill.element"
+            :category="skill.category"
+            :power="skill.power"
+            :rage="skill.rage"
+            :accuracy="skill.accuracy"
+            :name="skill.name"
+            :description="skill.description"
+            :id="skill.id"
+            @click="emit('skill-click', skill.id)"
+          />
+        </div>
       </div>
     </div>
   </div>

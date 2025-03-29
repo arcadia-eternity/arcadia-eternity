@@ -4,5 +4,19 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [HstVue()],
+  vite: {
+    plugins: [tailwindcss()],
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8102',
+          changeOrigin: true,
+          ws: true,
+          secure: false,
+        },
+      },
+    },
+  },
+  viteNodeInlineDeps: [/i18next/],
   setupFile: '/src/histoire-setup.ts',
 })
