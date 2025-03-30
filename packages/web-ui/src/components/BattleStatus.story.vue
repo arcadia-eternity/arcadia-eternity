@@ -1,52 +1,107 @@
 <script setup lang="ts">
 import BattleStatus from './BattleStatus.vue'
-import { Element } from '@test-battle/const'
+import { Element, type baseMarkId, type markId, type petId, type playerId, type speciesId } from '@test-battle/const'
 
 const mockPlayer = {
-  name: '训练师小明',
-  rage: 80,
-  currentPet: {
-    speciesNum: 25,
-    name: '杰尼龟',
-    level: 42,
-    currentHp: 320,
-    maxHp: 450,
-    maxRage: 100,
-    element: Element.Water,
+  id: 'player1' as playerId,
+  name: '玩家1',
+  rage: 50,
+  teamAlives: 3,
+  activePet: {
+    id: 'pet1' as petId,
+    level: 50,
+    name: '小火龙',
+    speciesID: 'pet_dilante' as speciesId,
+    currentHp: 120,
+    maxHp: 150,
+    element: Element.Fire,
+    isUnknown: false,
     marks: [
       {
-        id: 'mark1',
-        name: '灼烧',
-        stack: 2,
+        id: 'mark1' as markId,
+        baseId: '1001' as baseMarkId,
+        stack: 1,
         duration: 3,
-        description: '每回合损失10%最大生命值',
-        image: 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/markImage/1.png',
+        isActive: true,
       },
     ],
   },
+  team: [
+    {
+      id: 'pet1' as petId,
+      level: 50,
+      name: '小火龙',
+      speciesID: '1' as speciesId,
+      currentHp: 120,
+      maxHp: 150,
+      element: Element.Fire,
+      isUnknown: false,
+      marks: [
+        {
+          id: 'mark1' as markId,
+          baseId: '1001' as baseMarkId,
+          stack: 1,
+          duration: 3,
+          isActive: true,
+        },
+      ],
+    },
+    {
+      id: 'pet1' as petId,
+      level: 50,
+      name: '小火龙',
+      speciesID: '1' as speciesId,
+      currentHp: 120,
+      maxHp: 150,
+      element: Element.Fire,
+      isUnknown: false,
+      marks: [
+        {
+          id: 'mark1' as markId,
+          baseId: '1001' as baseMarkId,
+          stack: 1,
+          duration: 3,
+          isActive: true,
+        },
+      ],
+    },
+    {
+      id: 'pet1' as petId,
+      level: 50,
+      name: '小火龙',
+      speciesID: '1' as speciesId,
+      currentHp: 120,
+      maxHp: 150,
+      element: Element.Fire,
+      isUnknown: false,
+      marks: [
+        {
+          id: 'mark1' as markId,
+          baseId: '1001' as baseMarkId,
+          stack: 1,
+          duration: 3,
+          isActive: true,
+        },
+      ],
+    },
+  ],
 }
 
 const mockEnemy = {
-  name: '训练师小红',
-  rage: 60,
-  currentPet: {
-    speciesNum: 94,
-    name: '小火龙',
-    level: 38,
-    currentHp: 210,
-    maxHp: 280,
-    maxRage: 100,
+  id: 'player2' as playerId,
+  name: '玩家2',
+  rage: 30,
+  teamAlives: 3,
+  activePet: {
+    id: 'pet2' as petId,
+    level: 48,
+    name: '杰尼龟',
+    speciesID: '2' as speciesId,
+    currentHp: 110,
+    maxHp: 130,
     element: Element.Water,
-    marks: [
-      {
-        id: 'mark1',
-        name: '灼烧',
-        stack: 2,
-        duration: 3,
-        description: '每回合损失10%最大生命值',
-        image: 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/markImage/1.png',
-      },
-    ],
+    isUnknown: false,
+    marks: [],
   },
 }
 </script>

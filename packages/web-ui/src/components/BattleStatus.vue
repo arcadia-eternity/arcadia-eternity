@@ -20,7 +20,7 @@ const containerClass = computed(() => [
   props.side === 'left' ? 'flex-row' : 'flex-row-reverse',
 ])
 
-const statusBarClass = computed(() => ['flex flex-col gap-2 min-w-[200px]'])
+const statusBarClass = computed(() => ['flex flex-col gap-2 min-w-[200px] flex-1'])
 
 const markContainerClass = computed(() => [
   'flex flex-wrap gap-1 w-full mt-1',
@@ -31,7 +31,7 @@ const markContainerClass = computed(() => [
 <template>
   <div :class="containerClass">
     <PetIcon
-      :id="gameDataStore.getSpecies(player.activePet.speciesID)?.num ?? 0"
+      :id="gameDataStore.getSpecies(player.activePet.speciesID)?.num ?? 1"
       class="w-32 h-32 bg-black rounded-xl"
       :reverse="side == 'right'"
     />
@@ -52,7 +52,6 @@ const markContainerClass = computed(() => [
         :max="player.activePet.maxHp"
         :rage="player.rage"
         type="health"
-        class="min-w-[25vw] w-1/4"
         :reverse="props.side === 'right'"
       />
 

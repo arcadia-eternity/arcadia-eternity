@@ -89,8 +89,8 @@ const emit = defineEmits<{
       }"
     >
       <div class="flex justify-between p-5">
-        <BattleStatus :player="props.leftPlayer" side="left" />
-        <BattleStatus :player="props.rightPlayer" side="right" />
+        <BattleStatus class="w-1/3" :player="props.leftPlayer" side="left" />
+        <BattleStatus class="w-1/3" :player="props.rightPlayer" side="right" />
       </div>
 
       <div class="flex flex-col items-center gap-2 py-2">
