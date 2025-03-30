@@ -39,7 +39,7 @@ export default defineConfig({
     }),
     viteStaticCopy({
       targets: [
-        ...['data', 'locales'].map(dir => {
+        ...['data', 'resource', 'locales'].map(dir => {
           const baseDir = `../../${dir}`
           return {
             src: `${baseDir}/**/*.yaml`,

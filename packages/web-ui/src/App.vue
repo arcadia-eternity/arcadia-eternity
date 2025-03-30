@@ -75,9 +75,11 @@ import { battleClient } from './utils/battleClient'
 import { useGameDataStore } from './stores/gameData'
 import { usePlayerStore } from './stores/player'
 import { usePetStorageStore } from './stores/petStorage'
+import { useResourceStore } from './stores/resource'
 
 const router = useRouter()
 const dataStore = useGameDataStore()
+const resourceStore = useResourceStore()
 const playerStore = usePlayerStore()
 const petStorage = usePetStorageStore()
 
@@ -87,6 +89,7 @@ const connectionState = ref<'connected' | 'disconnected'>('disconnected')
 // 初始化连接
 onMounted(async () => {
   dataStore.initialize()
+  resourceStore.initialize()
   petStorage.loadFromLocal()
   try {
     await battleClient.connect()

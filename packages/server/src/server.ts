@@ -477,8 +477,8 @@ export class BattleServer {
           p2.emit('battleEvent', { ...message, data: battle.getState(player2.playerData.id, false) })
           break
         case BattleMessageType.BattleEnd:
-          this.cleanupRoom(roomId)
           this.io.to(roomId).emit('battleEvent', message)
+          this.cleanupRoom(roomId)
           break
         default:
           this.io.to(roomId).emit('battleEvent', message)

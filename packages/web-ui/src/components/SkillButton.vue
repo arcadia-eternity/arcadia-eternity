@@ -10,7 +10,9 @@ import { computed } from 'vue'
 
 const gameDataStore = useGameDataStore()
 
-const md = new MarkdownIt()
+const md = new MarkdownIt({
+  html: true,
+})
 
 const props = defineProps<{
   skill: SkillMessage
@@ -23,12 +25,12 @@ const emit = defineEmits<{
 
 const category = computed(() => i18next.t(`category.${props.skill.category}`))
 const name = computed(() =>
-  i18next.t(`${props.skill.id}.name`, {
+  i18next.t(`${props.skill.baseId}.name`, {
     ns: 'skill',
   }),
 )
 const description = computed(() =>
-  i18next.t(`${props.skill.id}.description`, {
+  i18next.t(`${props.skill.baseId}.description`, {
     skill: props.skill,
     ns: 'skill',
   }),

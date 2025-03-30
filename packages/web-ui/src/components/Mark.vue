@@ -3,11 +3,13 @@ import { computed, ref } from 'vue'
 import MarkdownIt from 'markdown-it'
 import Tooltip from './Tooltip.vue'
 import type { MarkMessage } from '@test-battle/const'
-import { useGameDataStore } from '@/stores/gameData'
+import { useResourceStore } from '@/stores/resource'
 import i18next from 'i18next'
 
-const md = new MarkdownIt()
-const dataStore = useGameDataStore()
+const md = new MarkdownIt({
+  html: true,
+})
+const resourceStore = useResourceStore()
 
 const props = withDefaults(
   defineProps<{
@@ -19,14 +21,14 @@ const props = withDefaults(
 const rootEl = ref<HTMLElement | null>(null)
 const showTooltip = ref(false)
 const stackText = computed(() => (props.mark.stack > 1 ? `${props.mark.stack}` : ''))
-const image = computed(() => dataStore.getMarkImage(props.mark.id) ?? '')
+const image = computed(() => resourceStore.getMarkImage(props.mark.baseId) ?? '')
 const name = computed(() =>
-  i18next.t(`mark.${props.mark.id}.name`, {
+  i18next.t(`${props.mark.baseId}.name`, {
     ns: ['mark', 'mark_ability', 'mark_emblem'],
   }),
 )
 const description = computed(() =>
-  i18next.t(`mark.${props.mark.id}.description`, {
+  i18next.t(`${props.mark.baseId}.description`, {
     mark: props.mark,
     ns: ['mark', 'mark_ability', 'mark_emblem'],
   }),
@@ -47,7 +49,7 @@ const stack = computed(() => props.mark.stack ?? 1)
           <img
             :src="image"
             class="w-12 h-12 object-contain transition-opacity duration-200 ease-in-out"
-            :class="{ 'opacity-50': duration <= 1 }"
+            :class="{ 'opacity-50': duration == 1 }"
           />
           <div
             v-if="stack > 1"

@@ -232,7 +232,7 @@ watch(
 </script>
 
 <template>
-  <div class="bg-black/80 rounded-lg p-4 h-lvh flex flex-col">
+  <div class="bg-black/80 rounded-lg p-4 h-full flex flex-col">
     <div
       ref="logContainerRef"
       class="h-full flex-1 overflow-y-auto pr-2 scroll-smooth scrollbar-thin scrollbar-track-white/5 scrollbar-thumb-white/20 scrollbar-thumb-rounded"

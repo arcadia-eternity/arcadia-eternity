@@ -52,6 +52,44 @@ import type { markId, speciesId, baseMarkId, baseSkillId, petId, skillId, player
               },
             ],
           },
+          {
+            id: 'pet1' as unknown as petId,
+            level: 50,
+            name: '小火龙',
+            speciesID: '1' as unknown as speciesId,
+            currentHp: 120,
+            maxHp: 150,
+            element: Element.Fire,
+            isUnknown: false,
+            marks: [
+              {
+                id: 'mark1' as unknown as markId,
+                baseId: '1001' as unknown as baseMarkId,
+                stack: 1,
+                duration: 3,
+                isActive: true,
+              },
+            ],
+          },
+          {
+            id: 'pet1' as unknown as petId,
+            level: 50,
+            name: '小火龙',
+            speciesID: '1' as unknown as speciesId,
+            currentHp: 120,
+            maxHp: 150,
+            element: Element.Fire,
+            isUnknown: false,
+            marks: [
+              {
+                id: 'mark1' as unknown as markId,
+                baseId: '1001' as unknown as baseMarkId,
+                stack: 1,
+                duration: 3,
+                isActive: true,
+              },
+            ],
+          },
         ],
       }"
       :right-player="{
@@ -74,21 +112,6 @@ import type { markId, speciesId, baseMarkId, baseSkillId, petId, skillId, player
       :global-marks="[]"
       :turns="1"
       :skills="[
-        {
-          id: 'skill1' as unknown as skillId,
-          element: Element.Fire,
-          category: Category.Special,
-          power: 90,
-          rage: 20,
-          accuracy: 100,
-          isUnknown: false,
-          baseId: '1001' as unknown as baseSkillId,
-          priority: 0,
-          target: AttackTargetOpinion.opponent,
-          multihit: 1,
-          sureHit: false,
-          tag: [],
-        },
         {
           id: 'skill2' as unknown as skillId,
           element: Element.Normal,

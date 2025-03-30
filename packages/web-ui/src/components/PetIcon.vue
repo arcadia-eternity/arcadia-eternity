@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+
 const props = withDefaults(
   defineProps<{
     id: number
@@ -14,21 +15,39 @@ const props = withDefaults(
 const petIconUrl = computed(
   () => `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/petIcon/${props.id}.png`,
 )
+
+const effectiveUrl = ref(petIconUrl.value)
+
+function checkImage() {
+  const img = new Image()
+  img.src = petIconUrl.value
+  img.onload = () => {
+    effectiveUrl.value = petIconUrl.value
+  }
+  img.onerror = () => {
+    effectiveUrl.value = 'https://placehold.co/100x100?text=No+Image'
+  }
+}
+
+onMounted(checkImage)
+watch(petIconUrl, checkImage)
 </script>
 
 <template>
-  <img
-    :src="petIconUrl"
-    :alt="`Pet icon ${id}`"
+  <div
+    :style="{ backgroundImage: `url(${effectiveUrl})` }"
+    :aria-label="`Pet icon ${id}`"
+    role="img"
     class="pet-icon"
     :class="{ reverse: reverse }"
-    @error="e => ((e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=No+Image')"
   />
 </template>
 
 <style scoped>
 .pet-icon {
-  object-fit: contain;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .pet-icon.reverse {

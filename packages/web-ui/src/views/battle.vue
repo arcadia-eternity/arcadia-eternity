@@ -5,7 +5,14 @@ import Pet from '@/components/Pet.vue'
 import SkillButton from '@/components/SkillButton.vue'
 import Mark from '@/components/Mark.vue'
 import BattleLogPanel from '@/components/BattleLogPanel.vue'
-import type { MarkMessage, PlayerMessage, SkillMessage } from '@test-battle/const'
+import {
+  Category,
+  type MarkMessage,
+  type petId,
+  type PlayerMessage,
+  type skillId,
+  type SkillMessage,
+} from '@test-battle/const'
 import { useGameDataStore } from '@/stores/gameData'
 
 enum PanelState {
@@ -28,34 +35,30 @@ const props = defineProps<BattleProps>()
 
 const gameDataStore = useGameDataStore()
 
-// 技能点击处理
-const handleSkillClick = (skillId: string) => {
+const handleSkillClick = (skillId: skillId) => {
   console.log('Skill clicked:', skillId)
-  // 实际业务逻辑处理
+  emit('skillClick', skillId)
 }
 
-// 逃跑处理
 const handleEscape = () => {
   console.log('逃跑按钮点击')
-  // TODO: 实现逃跑逻辑
+  emit('escape')
 }
 
-// 宠物选择处理
-const handlePetSelect = (petId: string) => {
+const handlePetSelect = (petId: petId) => {
   console.log('宠物选择:', petId)
+  emit('petSelect', petId as petId)
   panelState.value = PanelState.SKILLS
-  // TODO: 实现换宠逻辑
 }
 
 const leftPetSpeciesNum = computed(() => gameDataStore.getSpecies(props.leftPlayer.activePet.speciesID)?.num ?? 0)
 const rightPetSpeciesNum = computed(() => gameDataStore.getSpecies(props.rightPlayer.activePet.speciesID)?.num ?? 0)
 
-// 暴露给模板的数据和方法
-defineExpose({
-  handleSkillClick,
-  handleEscape,
-  handlePetSelect,
-})
+const emit = defineEmits<{
+  skillClick: [id: skillId]
+  petSelect: [petId: petId]
+  escape: []
+}>()
 </script>
 
 <template>
@@ -72,13 +75,11 @@ defineExpose({
         backgroundSize: props.background ? 'auto 100%' : 'auto',
       }"
     >
-      <!-- 顶部状态栏 -->
       <div class="flex justify-between p-5">
         <BattleStatus :player="props.leftPlayer" side="left" />
         <BattleStatus :player="props.rightPlayer" side="right" />
       </div>
 
-      <!-- 回合信息和全局印记 -->
       <div class="flex flex-col items-center gap-2 py-2">
         <div class="text-white text-xl font-bold">回合 {{ props.turns || 1 }}</div>
         <div class="flex gap-2">
@@ -86,7 +87,6 @@ defineExpose({
         </div>
       </div>
 
-      <!-- 中部立绘区域 -->
       <div class="flex-grow flex justify-around items-center">
         <div class="relative">
           <div
@@ -102,25 +102,46 @@ defineExpose({
         </div>
       </div>
 
-      <!-- 底部区域 -->
       <div class="flex h-1/5">
-        <!-- 战斗日志 -->
-        <div class="w-1/6 p-2">
+        <div class="w-1/6 h-full p-2">
           <BattleLogPanel />
         </div>
 
-        <!-- 主操作区域 -->
-        <div class="flex flex-col w-2/3">
-          <!-- 技能按钮 -->
-          <div class="flex-1 flex justify-around p-3" v-if="panelState === PanelState.SKILLS">
-            <SkillButton v-for="(skill, index) in props.skills" :skill="skill" @click="handleSkillClick(skill.id)" />
+        <div class="flex flex-col w-2/3 h-full">
+          <div class="flex flex-col p-3 h-full" v-if="panelState === PanelState.SKILLS">
+            <div class="grid grid-cols-5 gap-2">
+              <!-- 普通技能 -->
+              <template
+                v-for="(skill, index) in props.skills.filter(s => s.category !== Category.Climax)"
+                :key="'normal-' + skill.id"
+              >
+                <SkillButton
+                  :skill="skill"
+                  @click="handleSkillClick(skill.id)"
+                  :style="{ 'grid-column-start': index + 1 }"
+                />
+              </template>
+
+              <!-- Climax技能 -->
+              <template
+                v-for="(skill, index) in props.skills.filter(s => s.category === Category.Climax)"
+                :key="'climax-' + skill.id"
+              >
+                <SkillButton
+                  :skill="skill"
+                  @click="handleSkillClick(skill.id)"
+                  :style="{ 'grid-column-start': 5 - index }"
+                  class="justify-self-end"
+                />
+              </template>
+            </div>
           </div>
 
-          <!-- 宠物选择面板 -->
-          <div class="flex-1 grid grid-cols-6 gap-2" v-else>
+          <div class="flex-1 grid grid-cols-6 gap-2 h-full" v-else>
             <PetButton
               v-for="pet in props.leftPlayer.team"
               :key="pet.id"
+              class="h-full aspect-square"
               :id="pet.id"
               :name="pet.name"
               :level="pet.level"
@@ -135,8 +156,7 @@ defineExpose({
           </div>
         </div>
 
-        <!-- 操作按钮栏 -->
-        <div class="grid grid-cols-2 gap-2 p-2 w-1/6">
+        <div class="grid grid-cols-2 gap-2 p-2 w-1/6 h-full">
           <button
             class="px-4 py-2 bg-gray-500 hover:bg-gray-600 border-2 border-sky-400 rounded-lg text-sky-400 font-bold"
             @click="handleEscape"
@@ -161,8 +181,4 @@ defineExpose({
   </div>
 </template>
 
-<style scoped>
-.clip-diamond {
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-}
-</style>
+<style scoped></style>
