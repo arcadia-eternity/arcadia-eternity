@@ -3,28 +3,18 @@ import { computed, ref } from 'vue'
 import PetIcon from './PetIcon.vue'
 import ElementIcon from './ElementIcon.vue'
 import Tooltip from './Tooltip.vue'
-import type { Element } from '@test-battle/const'
+import type { Element, PetMessage } from '@test-battle/const'
+import { useGameDataStore } from '@/stores/gameData'
+import i18next from 'i18next'
 
-interface Skill {
-  name: string
-  description: string
-  rage: number
-  power: number
-  element: Element
-}
+const gameDataStore = useGameDataStore()
 
 interface Props {
-  id: string
-  name: string
-  level: number
-  health: number
-  maxHealth: number
-  element: Element
-  skills: Skill[]
-  position: 'left' | 'right' | 'bottom'
+  pet: PetMessage
+
+  position: 'left' | 'bottom' | 'right'
   disabled?: boolean
   isActive?: boolean
-  num: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -53,7 +43,7 @@ const canClick = computed(() => {
 
 const handleClick = () => {
   if (canClick.value) {
-    emit('click', props.id)
+    emit('click', props.pet.id)
   }
 }
 </script>
@@ -79,24 +69,29 @@ const handleClick = () => {
           <div class="pet-icon relative flex flex-col">
             <!-- 图标容器 -->
             <div class="relative">
-              <PetIcon :id="num" :name="name" class="size-40" :reverse="position === 'right'" />
+              <PetIcon
+                :id="gameDataStore.getSpecies(pet.speciesID)?.num ?? 0"
+                :name="pet.name"
+                class="size-40"
+                :reverse="position === 'right'"
+              />
 
               <!-- 元素图标 -->
               <div class="absolute -top-3 -left-3" v-if="position === 'bottom'">
-                <ElementIcon :element="element" class="size-20" />
+                <ElementIcon :element="pet.element" class="size-20" />
               </div>
               <!-- 血条和等级容器 (绝对定位在底部) -->
               <div class="absolute bottom-0 left-0 right-0 px-1 pb-1">
                 <!-- 等级 -->
                 <div v-if="position === 'bottom'" class="text-center mb-[-4px] z-10 relative">
-                  <span class="text-yellow-200 text-sm font-bold [text-shadow:_0_0_2px_black]">Lv.{{ level }}</span>
+                  <span class="text-yellow-200 text-sm font-bold [text-shadow:_0_0_2px_black]">Lv.{{ pet.level }}</span>
                 </div>
 
                 <!-- 血条 -->
                 <div class="h-2 bg-gray-300/80 rounded-sm overflow-hidden backdrop-blur-sm">
                   <div
                     class="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-300"
-                    :style="{ width: `${(health / maxHealth) * 100}%` }"
+                    :style="{ width: `${(pet.currentHp / pet.maxHp) * 100}%` }"
                   ></div>
                 </div>
               </div>
@@ -107,16 +102,25 @@ const handleClick = () => {
               v-if="position === 'bottom'"
               class="mt-2 bg-black/80 rounded-full px-2 py-0.5 text-xs font-medium text-white text-center"
             >
-              {{ name }}
+              {{ pet.name }}
             </div>
           </div>
         </div>
       </template>
 
       <div class="mt-2 space-y-1">
-        <div v-for="skill in skills" :key="skill.name" class="skill">
-          <span class="font-medium">{{ skill.name }}</span>
-          <span class="text-sm text-gray-200">{{ skill.description }}</span>
+        <div v-for="skill in pet.skills" :key="skill.id" class="skill">
+          <span class="font-medium">{{
+            i18next.t(`${skill.baseId}.name`, {
+              ns: 'skill',
+            })
+          }}</span>
+          <span class="text-sm text-gray-200">{{
+            i18next.t(`${skill.baseId}.description`, {
+              skill: skill,
+              ns: 'skill',
+            })
+          }}</span>
           <div class="flex gap-2 text-xs mt-1">
             <span>怒气: {{ skill.rage }}</span>
             <span>威力: {{ skill.power }}</span>

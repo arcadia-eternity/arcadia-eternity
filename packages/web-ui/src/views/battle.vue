@@ -10,10 +10,12 @@ import {
   type MarkMessage,
   type petId,
   type PlayerMessage,
+  type PlayerSelection,
   type skillId,
   type SkillMessage,
 } from '@test-battle/const'
 import { useGameDataStore } from '@/stores/gameData'
+import type { PlayerSelectionSchemaType } from '@test-battle/schema'
 
 enum PanelState {
   SKILLS = 'skills',
@@ -28,7 +30,9 @@ interface BattleProps {
   rightPlayer: PlayerMessage
   skills: SkillMessage[]
   globalMarks: MarkMessage[]
+  availableActions?: PlayerSelectionSchemaType[]
   turns?: number
+  isPending?: boolean
 }
 
 const props = defineProps<BattleProps>()
@@ -53,6 +57,15 @@ const handlePetSelect = (petId: petId) => {
 
 const leftPetSpeciesNum = computed(() => gameDataStore.getSpecies(props.leftPlayer.activePet.speciesID)?.num ?? 0)
 const rightPetSpeciesNum = computed(() => gameDataStore.getSpecies(props.rightPlayer.activePet.speciesID)?.num ?? 0)
+
+const isSkillAvailable = (skillId: skillId) => {
+  return props.availableActions?.some(a => a.type === 'use-skill' && a.skill === skillId) ?? false
+}
+
+// 检查宠物是否可切换
+const isPetSwitchable = (petId: petId) => {
+  return props.availableActions?.some(a => a.type === 'switch-pet' && a.pet === petId) ?? false
+}
 
 const emit = defineEmits<{
   skillClick: [id: skillId]
@@ -118,6 +131,7 @@ const emit = defineEmits<{
                 <SkillButton
                   :skill="skill"
                   @click="handleSkillClick(skill.id)"
+                  :disabled="!isSkillAvailable(skill.id) || props.isPending"
                   :style="{ 'grid-column-start': index + 1 }"
                 />
               </template>
@@ -130,6 +144,7 @@ const emit = defineEmits<{
                 <SkillButton
                   :skill="skill"
                   @click="handleSkillClick(skill.id)"
+                  :disabled="!isSkillAvailable(skill.id) || props.isPending"
                   :style="{ 'grid-column-start': 5 - index }"
                   class="justify-self-end"
                 />
@@ -141,17 +156,10 @@ const emit = defineEmits<{
             <PetButton
               v-for="pet in props.leftPlayer.team"
               :key="pet.id"
-              class="h-full aspect-square"
-              :id="pet.id"
-              :name="pet.name"
-              :level="pet.level"
-              :health="pet.currentHp"
-              :max-health="pet.maxHp"
-              :element="pet.element"
-              :skills="pet.skills"
-              position="bottom"
-              :is-active="pet.id === props.leftPlayer.activePet.id"
+              :pet="pet"
+              :disabled="!isPetSwitchable(pet.id) || props.isPending"
               @click="handlePetSelect"
+              position="bottom"
             />
           </div>
         </div>

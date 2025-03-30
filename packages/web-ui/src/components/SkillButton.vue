@@ -16,7 +16,7 @@ const md = new MarkdownIt({
 
 const props = defineProps<{
   skill: SkillMessage
-  disable?: boolean
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -43,7 +43,7 @@ const description = computed(() =>
       <template #trigger>
         <button
           class="group relative w-50 h-30 p-4 cursor-pointer overflow-visible disabled:opacity-75 disabled:cursor-not-allowed"
-          :disabled="disable"
+          :disabled="disabled"
           @click="emit('click', skill.id)"
         >
           <div

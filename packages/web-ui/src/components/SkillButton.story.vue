@@ -30,7 +30,7 @@ import { logEvent } from 'histoire/client'
         name="水疗术"
         description="恢复生命值"
         id="skill2"
-        :disable="true"
+        :disabled="true"
         @click="logEvent('click', $event)"
       />
     </Variant>

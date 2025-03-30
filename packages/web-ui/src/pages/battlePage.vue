@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useBattleStore } from '@/stores/battle'
 import { useGameDataStore } from '@/stores/gameData'
 import Battle from '@/views/battle.vue'
@@ -9,7 +9,7 @@ import i18next from 'i18next'
 import type { MarkMessage, PlayerMessage, SkillMessage } from '@test-battle/const'
 
 const store = useBattleStore()
-const dataStore = useGameDataStore()
+const isPending = ref(false)
 
 // 战斗数据计算属性
 const currentPlayer = computed(() => store.currentPlayer)
@@ -31,18 +31,21 @@ const availableSkills = computed<SkillMessage[]>(() => {
 
 // 处理技能点击
 const handleSkillClick = (skillId: string) => {
+  if (isPending.value) return
   const action = store.availableActions.find(a => a.type === 'use-skill' && a.skill === skillId)
   if (action) store.sendplayerSelection(action)
 }
 
 // 处理换宠
 const handlePetSelect = (petId: string) => {
+  if (isPending.value) return
   const action = store.availableActions.find(a => a.type === 'switch-pet' && a.pet === petId)
   if (action) store.sendplayerSelection(action)
 }
 
 // 处理投降
 const handleEscape = () => {
+  if (isPending.value) return
   const action = store.availableActions.find(a => a.type === 'surrender')
   if (action) store.sendplayerSelection(action)
 }
@@ -65,6 +68,8 @@ const battleResult = computed(() => {
       :skills="availableSkills"
       :global-marks="globalMarks"
       :turns="currentTurn"
+      :available-actions="store.availableActions"
+      :is-pending="isPending"
       @skill-click="handleSkillClick"
       @pet-select="handlePetSelect"
       @escape="handleEscape"
