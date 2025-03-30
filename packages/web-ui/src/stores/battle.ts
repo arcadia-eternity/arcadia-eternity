@@ -187,5 +187,40 @@ export const useBattleStore = defineStore('battle', {
   getters: {
     currentPlayer: state => state.state?.players.find(p => p.id === state.playerId),
     opponent: state => state.state?.players.find(p => p.id !== state.playerId),
+    petMap: state => {
+      const pets = state.state?.players
+        .map(p => p.team ?? [])
+        .flat()
+        .filter(p => !p.isUnknown)
+        .map(p => [p.id, p] as [petId, typeof p])
+      return new Map(pets)
+    },
+    skillMap: state => {
+      const skills = state.state?.players
+        .map(p => p.team ?? [])
+        .flat()
+        .filter((p): p is NonNullable<typeof p> => !!p && !p.isUnknown)
+        .flatMap(p => p.skills ?? [])
+        .filter((s): s is NonNullable<typeof s> => !!s && !s.isUnknown)
+        .map(s => [s.id, s] as [string, typeof s])
+      return new Map(skills ?? [])
+    },
+    playerMap: state => {
+      const players = state.state?.players.map(p => [p.id, p] as [playerId, typeof p])
+      return new Map(players ?? [])
+    },
+    markMap: state => {
+      const marks = [
+        ...(state.state?.players
+          .map(p => p.team ?? [])
+          .flat()
+          .filter(p => !p.isUnknown)
+          .map(p => p.marks ?? [])
+          .flat()
+          .map(m => [m.id, m] as [string, typeof m]) || []),
+        ...(state.state?.marks.map(m => [m.id, m] as [string, typeof m]) ?? []),
+      ]
+      return new Map(marks)
+    },
   },
 })

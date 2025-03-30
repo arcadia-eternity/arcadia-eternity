@@ -1,62 +1,40 @@
 <script setup lang="ts">
 import BattleLogEntry from './BattleLogEntry.vue'
 import { ref } from 'vue'
-import { formatBattleMessage } from '../viewModels/battleLogViewModel'
-import type { BattleMessage, petId, playerId, skillId, StatTypeOnBattle } from '@test-battle/const'
-import { BattleMessageType, AttackTargetOpinion } from '@test-battle/const'
+import { BattleMessageType } from '@test-battle/const'
 
 // 技能使用消息
-const skillMessage = ref(
-  formatBattleMessage({
-    sequenceId: 1,
-    type: BattleMessageType.SkillUse,
-    data: {
-      user: 'pet-123' as petId,
-      target: AttackTargetOpinion.opponent,
-      skill: 'skill-456' as skillId,
-      rageCost: 30,
-    },
-  }),
-)
+const skillMessage = ref({
+  type: BattleMessageType.SkillUse,
+  icon: '⚡',
+  content: '<span class="pet-name">皮卡丘</span> 使用了 <span class="skill-name">十万伏特</span>',
+  timestamp: '11:11:11',
+})
 
 // 状态变化消息
-const statusMessage = ref(
-  formatBattleMessage({
-    sequenceId: 2,
-    type: BattleMessageType.StatChange,
-    data: {
-      pet: 'pet-123' as petId,
-      stat: 'ATK' as StatTypeOnBattle,
-      stage: 2,
-      reason: '技能效果',
-    },
-  }),
-)
+const statusMessage = ref({
+  type: BattleMessageType.StatChange,
+  icon: '📈',
+  content: '<span class="pet-name">皮卡丘</span> 的攻击 <span class="effective">上升了2级</span>',
+  timestamp: '11:11:12',
+})
 
 // 换宠消息
-const switchMessage = ref(
-  formatBattleMessage({
-    sequenceId: 3,
-    type: BattleMessageType.PetSwitch,
-    data: {
-      player: 'player-1' as playerId,
-      fromPet: 'pet-123' as petId,
-      toPet: 'pet-456' as petId,
-      currentHp: 80,
-    },
-  }),
-)
+const switchMessage = ref({
+  type: BattleMessageType.PetSwitch,
+  icon: '🔄',
+  content:
+    '<span class="pet-name">小智</span> 收回了 <span class="pet-name">皮卡丘</span>，放出了 <span class="pet-name">喷火龙</span>',
+  timestamp: '11:11:13',
+})
 
 // 普通信息消息
-const infoMessage = ref(
-  formatBattleMessage({
-    sequenceId: 4,
-    type: BattleMessageType.Info,
-    data: {
-      message: '[战斗] 皮卡丘使用了十万伏特！',
-    },
-  }),
-)
+const infoMessage = ref({
+  type: BattleMessageType.Info,
+  icon: 'ℹ️',
+  content: '[战斗] 皮卡丘使用了十万伏特！',
+  timestamp: '11:11:14',
+})
 </script>
 
 <template>

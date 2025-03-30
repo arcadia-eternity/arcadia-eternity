@@ -2,24 +2,37 @@
 import { computed, ref } from 'vue'
 import MarkdownIt from 'markdown-it'
 import Tooltip from './Tooltip.vue'
+import type { MarkMessage } from '@test-battle/const'
+import { useGameDataStore } from '@/stores/gameData'
+import i18next from 'i18next'
 
 const md = new MarkdownIt()
+const dataStore = useGameDataStore()
 
-interface Props {
-  image: string
-  stack?: number
-  duration: number
-  name: string
-  description: string
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  stack: 1,
-})
+const props = withDefaults(
+  defineProps<{
+    mark: MarkMessage
+  }>(),
+  {},
+)
 
 const rootEl = ref<HTMLElement | null>(null)
 const showTooltip = ref(false)
-const stackText = computed(() => (props.stack > 1 ? `${props.stack}` : ''))
+const stackText = computed(() => (props.mark.stack > 1 ? `${props.mark.stack}` : ''))
+const image = computed(() => dataStore.getMarkImage(props.mark.id) ?? '')
+const name = computed(() =>
+  i18next.t(`mark.${props.mark.id}.name`, {
+    ns: ['mark', 'mark_ability', 'mark_emblem'],
+  }),
+)
+const description = computed(() =>
+  i18next.t(`mark.${props.mark.id}.description`, {
+    mark: props.mark,
+    ns: ['mark', 'mark_ability', 'mark_emblem'],
+  }),
+)
+const duration = computed(() => props.mark.duration ?? -1)
+const stack = computed(() => props.mark.stack ?? 1)
 </script>
 
 <template>

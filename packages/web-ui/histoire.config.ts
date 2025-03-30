@@ -17,6 +17,6 @@ export default defineConfig({
       },
     },
   },
-  viteNodeInlineDeps: [/i18next/],
+  viteNodeInlineDeps: [/i18next/, /helpers/, /ocket.io-client/, /@socket.io/],
   setupFile: '/src/histoire-setup.ts',
 })
