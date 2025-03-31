@@ -26,7 +26,6 @@ const emit = defineEmits<{
   (e: 'click', id: string): void
 }>()
 
-const rootEl = ref<HTMLElement | null>(null)
 const showTooltip = ref(false)
 
 function handleMouseEnter() {
@@ -49,12 +48,11 @@ const handleClick = () => {
 </script>
 
 <template>
-  <div class="flex items-center">
+  <div class="flex flex-wrap content-center justify-center">
     <Tooltip :show="showTooltip" :position="position === 'left' ? 'right' : position === 'right' ? 'left' : 'top'">
       <template #trigger>
         <div
-          ref="rootEl"
-          class="relative flex flex-col items-center transition-all duration-200"
+          class="flex flex-col items-center transition-all duration-200"
           :class="[
             position === 'left' ? 'mr-auto' : '',
             position === 'right' ? 'ml-auto opacity-70' : '',
@@ -66,22 +64,22 @@ const handleClick = () => {
           @mouseenter="handleMouseEnter"
           @mouseleave="handleMouseLeave"
         >
-          <div class="pet-icon relative flex flex-col">
+          <div class="pet-icon flex flex-col">
             <!-- 图标容器 -->
             <div class="relative">
               <PetIcon
                 :id="gameDataStore.getSpecies(pet.speciesID)?.num ?? 0"
                 :name="pet.name"
-                class="size-40"
+                class="size-35"
                 :reverse="position === 'right'"
               />
 
               <!-- 元素图标 -->
               <div class="absolute -top-3 -left-3" v-if="position === 'bottom'">
-                <ElementIcon :element="pet.element" class="size-20" />
+                <ElementIcon :element="pet.element" class="size-15" />
               </div>
               <!-- 血条和等级容器 (绝对定位在底部) -->
-              <div class="absolute bottom-0 left-0 right-0 px-1 pb-1">
+              <div class="absolute bottom-0 left-0 right-0">
                 <!-- 等级 -->
                 <div v-if="position === 'bottom'" class="text-center mb-[-4px] z-10 relative">
                   <span class="text-yellow-200 text-sm font-bold [text-shadow:_0_0_2px_black]">Lv.{{ pet.level }}</span>

@@ -77,7 +77,7 @@ const emit = defineEmits<{
 <template>
   <div class="relative w-screen h-screen flex justify-center items-center bg-gray-900">
     <div
-      class="relative w-full max-w-[1600px] h-full max-h-[900px] flex flex-col bg-center bg-no-repeat aspect-video"
+      class="relative w-full h-full flex flex-col bg-center bg-no-repeat aspect-video"
       :class="[
         props.background ? `bg-cover` : 'bg-gray-900',
         'overflow-hidden',
@@ -115,44 +115,42 @@ const emit = defineEmits<{
         </div>
       </div>
 
-      <div class="flex h-1/5">
-        <div class="w-1/6 h-full p-2">
+      <div class="flex h-1/5 flex-none">
+        <div class="w-1/5 h-full p-2">
           <BattleLogPanel />
         </div>
 
-        <div class="flex flex-col w-2/3 h-full">
-          <div class="flex flex-col p-3 h-full" v-if="panelState === PanelState.SKILLS">
-            <div class="grid grid-cols-5 gap-2">
-              <!-- 普通技能 -->
-              <template
-                v-for="(skill, index) in props.skills.filter(s => s.category !== Category.Climax)"
-                :key="'normal-' + skill.id"
-              >
-                <SkillButton
-                  :skill="skill"
-                  @click="handleSkillClick(skill.id)"
-                  :disabled="!isSkillAvailable(skill.id) || props.isPending"
-                  :style="{ 'grid-column-start': index + 1 }"
-                />
-              </template>
+        <div class="flex-1 h-full">
+          <div class="h-full grid grid-cols-5 gap-2" v-if="panelState === PanelState.SKILLS">
+            <!-- 普通技能 -->
+            <template
+              v-for="(skill, index) in props.skills.filter(s => s.category !== Category.Climax)"
+              :key="'normal-' + skill.id"
+            >
+              <SkillButton
+                :skill="skill"
+                @click="handleSkillClick(skill.id)"
+                :disabled="!isSkillAvailable(skill.id) || props.isPending"
+                :style="{ 'grid-column-start': index + 1 }"
+              />
+            </template>
 
-              <!-- Climax技能 -->
-              <template
-                v-for="(skill, index) in props.skills.filter(s => s.category === Category.Climax)"
-                :key="'climax-' + skill.id"
-              >
-                <SkillButton
-                  :skill="skill"
-                  @click="handleSkillClick(skill.id)"
-                  :disabled="!isSkillAvailable(skill.id) || props.isPending"
-                  :style="{ 'grid-column-start': 5 - index }"
-                  class="justify-self-end"
-                />
-              </template>
-            </div>
+            <!-- Climax技能 -->
+            <template
+              v-for="(skill, index) in props.skills.filter(s => s.category === Category.Climax)"
+              :key="'climax-' + skill.id"
+            >
+              <SkillButton
+                :skill="skill"
+                @click="handleSkillClick(skill.id)"
+                :disabled="!isSkillAvailable(skill.id) || props.isPending"
+                :style="{ 'grid-column-start': 5 - index }"
+                class="justify-self-end"
+              />
+            </template>
           </div>
 
-          <div class="flex-1 grid grid-cols-6 gap-2 h-full" v-else>
+          <div class="grid grid-cols-6 gap-2 h-full" v-else>
             <PetButton
               v-for="pet in props.leftPlayer.team"
               :key="pet.id"
@@ -164,12 +162,12 @@ const emit = defineEmits<{
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-2 p-2 w-1/6 h-full">
+        <div class="grid grid-cols-2 gap-2 p-2 w-1/5 flex-none h-full">
           <button
             class="px-4 py-2 bg-gray-500 hover:bg-gray-600 border-2 border-sky-400 rounded-lg text-sky-400 font-bold"
-            @click="handleEscape"
+            @click="panelState = PanelState.SKILLS"
           >
-            逃跑
+            战斗
           </button>
           <button
             class="px-4 py-2 bg-gray-500 hover:bg-gray-600 border-2 border-sky-400 rounded-lg text-sky-400 font-bold"
@@ -179,9 +177,9 @@ const emit = defineEmits<{
           </button>
           <button
             class="px-4 py-2 bg-gray-500 hover:bg-gray-600 border-2 border-sky-400 rounded-lg text-sky-400 font-bold"
-            @click="panelState = PanelState.SKILLS"
+            @click="handleEscape"
           >
-            战斗
+            逃跑
           </button>
         </div>
       </div>

@@ -38,7 +38,7 @@ const description = computed(() =>
 </script>
 
 <template>
-  <div class="flex items-center">
+  <div class="flex flex-wrap content-center justify-center">
     <Tooltip position="top">
       <template #trigger>
         <button

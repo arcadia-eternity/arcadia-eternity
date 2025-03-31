@@ -31,8 +31,8 @@ const markContainerClass = computed(() => [
 <template>
   <div :class="containerClass">
     <PetIcon
-      :id="gameDataStore.getSpecies(player.activePet.speciesID)?.num ?? 1"
-      class="w-32 h-32 bg-black rounded-xl"
+      :id="gameDataStore.getSpecies(player.activePet.speciesID)?.num ?? 0"
+      class="w-32 h-32 bg-black flex-none rounded-xl"
       :reverse="side == 'right'"
     />
 
