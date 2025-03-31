@@ -1,14 +1,20 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, provide } from 'vue'
 import { useBattleStore } from '@/stores/battle'
-import { useGameDataStore } from '@/stores/gameData'
+import { logMessagesKey, petMapKey, skillMapKey, playerMapKey, markMapKey } from '@/symbol/battlelog'
 import Battle from '@/views/battle.vue'
 import BattleLogPanel from '@/components/BattleLogPanel.vue'
-import { Category } from '@test-battle/const'
 import i18next from 'i18next'
-import type { MarkMessage, PlayerMessage, SkillMessage } from '@test-battle/const'
+import type { SkillMessage } from '@test-battle/const'
 
 const store = useBattleStore()
+
+// 提供战斗日志相关数据给子组件
+provide(logMessagesKey, store.log)
+provide(markMapKey, store.markMap)
+provide(skillMapKey, store.skillMap)
+provide(petMapKey, store.petMap)
+provide(playerMapKey, store.playerMap)
 const isPending = ref(false)
 
 // 战斗数据计算属性
@@ -76,14 +82,7 @@ const battleResult = computed(() => {
     >
       <!-- 插入自定义日志面板 -->
       <template #log-panel>
-        <BattleLogPanel
-          :messages="store.log"
-          :mark-data="store.markMap"
-          :skill-data="store.skillMap"
-          :pet-data="store.petMap"
-          :player-data="store.playerMap"
-          class="h-[300px] bg-black/90 rounded-lg p-3"
-        />
+        <BattleLogPanel class="h-[300px] bg-black/90 rounded-lg p-3" />
       </template>
     </Battle>
 

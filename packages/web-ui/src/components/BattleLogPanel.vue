@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, inject, nextTick, ref, watch } from 'vue'
 import BattleLogEntry from './BattleLogEntry.vue'
 import {
   BattleMessageType,
@@ -10,16 +10,13 @@ import {
   type SkillMessage,
 } from '@test-battle/const'
 import i18next from 'i18next'
-import { useBattleStore } from '@/stores/battle'
+import { logMessagesKey, petMapKey, skillMapKey, playerMapKey, markMapKey } from '@/symbol/battlelog'
 
-const battleStore = useBattleStore()
-
-const messages = computed(() => battleStore.log)
-
-const petMap = battleStore.petMap
-const skillMap = battleStore.skillMap
-const playerMap = battleStore.playerMap
-const markMap = battleStore.markMap
+const messages = inject(logMessagesKey, [])
+const petMap = inject(petMapKey, new Map())
+const skillMap = inject(skillMapKey, new Map())
+const playerMap = inject(playerMapKey, new Map())
+const markMap = inject(markMapKey, new Map())
 
 const MESSAGE_ICONS: Record<BattleMessageType, string> = {
   [BattleMessageType.BattleState]: '🏁',
@@ -207,7 +204,7 @@ function formatBattleMessage(
 
 // 格式化消息数据 - 直接复用 formatBattleMessage 函数
 const formattedMessages = computed(() => {
-  return messages.value.map(msg => formatBattleMessage(msg, petMap, skillMap, playerMap, markMap))
+  return messages.map(msg => formatBattleMessage(msg, petMap, skillMap, playerMap, markMap))
 })
 
 // 获取格式化后的单个消息 - 直接复用 formatBattleMessage
@@ -218,16 +215,17 @@ const getFormattedMessage = (msg: BattleMessage) => {
 const logContainerRef = ref<HTMLElement | null>(null)
 
 const clearMessages = () => {
-  messages.value.splice(0, messages.value.length)
+  // 由父组件提供清理方法
 }
 watch(
-  () => formattedMessages.value.length,
+  formattedMessages,
   async () => {
     await nextTick()
     if (logContainerRef.value) {
       logContainerRef.value.scrollTop = logContainerRef.value.scrollHeight
     }
   },
+  { deep: true },
 )
 </script>
 
