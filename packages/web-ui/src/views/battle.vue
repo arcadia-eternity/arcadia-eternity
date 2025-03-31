@@ -10,12 +10,12 @@ import {
   type MarkMessage,
   type petId,
   type PlayerMessage,
-  type PlayerSelection,
   type skillId,
   type SkillMessage,
 } from '@test-battle/const'
 import { useGameDataStore } from '@/stores/gameData'
 import type { PlayerSelectionSchemaType } from '@test-battle/schema'
+import i18next from 'i18next'
 
 enum PanelState {
   SKILLS = 'skills',
@@ -72,10 +72,12 @@ const emit = defineEmits<{
   petSelect: [petId: petId]
   escape: []
 }>()
+
+// const expose = defineExpose<{}>()
 </script>
 
 <template>
-  <div class="relative w-screen h-screen flex justify-center items-center bg-gray-900">
+  <div class="relative w-full h-full flex justify-center items-center bg-gray-900">
     <div
       class="relative w-full h-full flex flex-col bg-center bg-no-repeat aspect-video"
       :class="[
@@ -94,7 +96,14 @@ const emit = defineEmits<{
       </div>
 
       <div class="flex flex-col items-center gap-2 py-2">
-        <div class="text-white text-xl font-bold">回合 {{ props.turns || 1 }}</div>
+        <div class="text-white text-xl font-bold">
+          {{
+            i18next.t('turn', {
+              ns: 'battle',
+            })
+          }}
+          {{ props.turns || 1 }}
+        </div>
         <div class="flex gap-2">
           <Mark v-for="mark in props.globalMarks" :key="mark.id" :mark="mark" />
         </div>
@@ -167,19 +176,31 @@ const emit = defineEmits<{
             class="px-4 py-2 bg-gray-500 hover:bg-gray-600 border-2 border-sky-400 rounded-lg text-sky-400 font-bold"
             @click="panelState = PanelState.SKILLS"
           >
-            战斗
+            {{
+              i18next.t('fight', {
+                ns: 'battle',
+              })
+            }}
           </button>
           <button
             class="px-4 py-2 bg-gray-500 hover:bg-gray-600 border-2 border-sky-400 rounded-lg text-sky-400 font-bold"
             @click="panelState = PanelState.PETS"
           >
-            换宠
+            {{
+              i18next.t('switch', {
+                ns: 'battle',
+              })
+            }}
           </button>
           <button
             class="px-4 py-2 bg-gray-500 hover:bg-gray-600 border-2 border-sky-400 rounded-lg text-sky-400 font-bold"
             @click="handleEscape"
           >
-            逃跑
+            {{
+              i18next.t('surrunder', {
+                ns: 'battle',
+              })
+            }}
           </button>
         </div>
       </div>

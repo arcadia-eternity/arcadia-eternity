@@ -23,7 +23,11 @@ const emit = defineEmits<{
   (e: 'click', id: string): void
 }>()
 
-const category = computed(() => i18next.t(`category.${props.skill.category}`))
+const category = computed(() =>
+  i18next.t(`category.${props.skill.category}`, {
+    ns: 'battle',
+  }),
+)
 const name = computed(() =>
   i18next.t(`${props.skill.baseId}.name`, {
     ns: 'skill',
@@ -73,13 +77,28 @@ const description = computed(() =>
             <div class="flex flex-col w-2/3">
               <div class="text-cyan-300 text-base font-bold [text-shadow:_1px_1px_0_black]">{{ name }}</div>
               <div class="text-orange-500 text-sm font-semibold [text-shadow:_1px_1px_0_black]">
-                威力 {{ skill.power }}
+                {{
+                  i18next.t('power', {
+                    ns: 'battle',
+                  })
+                }}
+                {{ skill.power }}
               </div>
               <div class="text-yellow-300 text-sm font-semibold [text-shadow:_1px_1px_0_black]">
-                怒气 {{ skill.rage }}
+                {{
+                  i18next.t('rage', {
+                    ns: 'battle',
+                  })
+                }}
+                {{ skill.rage }}
               </div>
               <div class="text-green-300 text-sm font-semibold [text-shadow:_1px_1px_0_black]">
-                命中 {{ skill.accuracy }}
+                {{
+                  i18next.t('accurancy', {
+                    ns: 'battle',
+                  })
+                }}
+                {{ skill.accuracy }}
               </div>
             </div>
           </div>

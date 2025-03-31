@@ -125,7 +125,6 @@ const battleResult = computed(() => {
   opacity: 0;
 }
 
-/* 自定义渐变背景 (Tailwind 无法直接表达复杂渐变时使用) */
 .bg-battle-gradient {
   background: linear-gradient(145deg, #2a2a4a 0%, #1a1a2e 100%);
 }

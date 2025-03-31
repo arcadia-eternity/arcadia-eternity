@@ -14,7 +14,7 @@ export async function initI18n(debug = false): Promise<void> {
   await i18next.init({
     debug: debug,
     lng: 'zh-CN',
-    ns: ['webui', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'species'],
+    ns: ['webui', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'species', 'battle'],
     backend: {
       backends: [httpBackend],
       backendOptions: [
