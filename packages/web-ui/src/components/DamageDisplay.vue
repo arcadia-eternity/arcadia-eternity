@@ -36,7 +36,7 @@ const digits = computed(() => {
 // 动态计算长数字的缩放比例 - 增加基础比例为2倍
 const contentStyle = computed(() => {
   const length = digits.value.length
-  let scale = 1 // 基础缩放比例从1增加到2
+  let scale = 1
 
   if (length >= 6) scale = 0.7
   else if (length >= 5) scale = 0.75
@@ -45,8 +45,8 @@ const contentStyle = computed(() => {
   return {
     transform: `scale(${scale})`,
     transformOrigin: 'center center',
-    display: 'inline-block', // 确保元素尺寸由内容决定
-    width: 'auto', // 确保宽度由内容决定
+    display: 'inline-block',
+    width: 'auto',
   }
 })
 
@@ -125,7 +125,7 @@ onMounted(() => {
             :key="index"
             :src="`https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/damageNumber/${digit}.png`"
             :alt="`digit ${digit}`"
-            class="h-18 object-contain"
+            class="h-16 object-contain"
             :class="index > 0 ? '-ml-2' : ''"
           />
         </div>

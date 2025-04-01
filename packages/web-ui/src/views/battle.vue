@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, h, ref, render, useTemplateRef } from 'vue'
 import BattleStatus from '@/components/BattleStatus.vue'
 import Pet from '@/components/Pet.vue'
 import SkillButton from '@/components/SkillButton.vue'
@@ -15,12 +15,17 @@ import {
 } from '@test-battle/const'
 import { useGameDataStore } from '@/stores/gameData'
 import type { PlayerSelectionSchemaType } from '@test-battle/schema'
+import DamageDisplay from '@/components/DamageDisplay.vue'
+import gsap from 'gsap'
 import i18next from 'i18next'
 
 enum PanelState {
   SKILLS = 'skills',
   PETS = 'pets',
 }
+
+const leftPetRef = useTemplateRef('leftPetRef')
+const rightPetRef = useTemplateRef('rightPetRef')
 
 const panelState = ref<PanelState>(PanelState.SKILLS)
 
@@ -73,13 +78,250 @@ const emit = defineEmits<{
   escape: []
 }>()
 
-// const expose = defineExpose<{}>()
+const battleViewRef = ref<HTMLElement | null>(null)
+
+const showMissMessage = (side: 'left' | 'right') => {
+  // 获取目标Pet的DOM元素
+  const petElement = side === 'left' ? leftPetRef.value : rightPetRef.value
+  if (!petElement) return
+
+  // 计算起始位置（宠物正上方）
+  const rect = (petElement.$el as HTMLElement).getBoundingClientRect()
+  const startX = rect.left + rect.width / 2
+  const startY = rect.top - 50 // 显示在宠物上方50px处
+
+  // 创建动画容器
+  const container = document.createElement('div')
+  container.style.position = 'fixed'
+  container.style.left = `${startX}px`
+  container.style.top = `${startY}px`
+  container.style.transformOrigin = 'center center'
+  container.style.pointerEvents = 'none'
+  document.body.appendChild(container)
+
+  // 创建miss图片元素
+  const missImg = document.createElement('img')
+  missImg.src = 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/damage/miss.png'
+  missImg.className = 'h-20'
+  container.appendChild(missImg)
+
+  // 初始状态
+  gsap.set(container, {
+    scale: 1,
+    opacity: 0,
+  })
+
+  // 创建时间轴动画
+  const tl = gsap.timeline({
+    onComplete: () => {
+      document.body.removeChild(container)
+    },
+  })
+
+  // 第一阶段：淡入 (0.3秒)
+  tl.to(container, {
+    y: -125,
+    opacity: 1,
+    duration: 0.3,
+    ease: 'power2.out',
+  })
+
+  // 第二阶段：停留1秒
+  tl.to({}, { duration: 0.5 })
+
+  // 第三阶段：淡出 (0.5秒)
+  tl.to(container, {
+    opacity: 0,
+    duration: 0.5,
+    ease: 'power2.out',
+  })
+}
+
+const showAbsorbMessage = (side: 'left' | 'right') => {
+  // 获取目标Pet的DOM元素
+  const petElement = side === 'left' ? leftPetRef.value : rightPetRef.value
+  if (!petElement) return
+
+  // 计算起始位置（宠物正上方）
+  const rect = (petElement.$el as HTMLElement).getBoundingClientRect()
+  const startX = rect.left + rect.width / 2
+  const startY = rect.top - 50 // 显示在宠物上方50px处
+
+  // 创建动画容器
+  const container = document.createElement('div')
+  container.style.position = 'fixed'
+  container.style.left = `${startX}px`
+  container.style.top = `${startY}px`
+  container.style.transformOrigin = 'center center'
+  container.style.pointerEvents = 'none'
+  document.body.appendChild(container)
+
+  // 创建absorb图片元素
+  const absorbImg = document.createElement('img')
+  absorbImg.src = 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/damage/absorb.png'
+  absorbImg.className = 'h-20'
+  container.appendChild(absorbImg)
+
+  // 初始状态
+  gsap.set(container, {
+    scale: 1,
+    opacity: 0,
+  })
+
+  // 创建时间轴动画
+  const tl = gsap.timeline({
+    onComplete: () => {
+      document.body.removeChild(container)
+    },
+  })
+
+  // 第一阶段：淡入 (0.3秒)
+  tl.to(container, {
+    y: -125,
+    opacity: 1,
+    duration: 0.3,
+    ease: 'power2.out',
+  })
+
+  // 第二阶段：停留1秒
+  tl.to({}, { duration: 0.5 })
+
+  // 第三阶段：淡出 (0.5秒)
+  tl.to(container, {
+    opacity: 0,
+    duration: 0.5,
+    ease: 'power2.out',
+  })
+}
+
+const showDamageMessage = (
+  side: 'left' | 'right',
+  value: number,
+  effectiveness: 'up' | 'normal' | 'down' = 'normal',
+  crit: boolean = false,
+) => {
+  // 获取目标Pet的DOM元素
+  const petElement = side === 'left' ? leftPetRef.value : rightPetRef.value
+  if (!petElement) return
+
+  // 获取当前侧Pet的最大血量
+  const currentPet = side === 'left' ? props.leftPlayer.activePet : props.rightPlayer.activePet
+  const hpRatio = value / currentPet.maxHp
+
+  if ((hpRatio > 0.25 || crit) && battleViewRef.value) {
+    const shakeIntensity = 5 + Math.random() * 10 // 5-15之间的随机强度
+    const shakeAngle = Math.random() * Math.PI * 2 // 随机角度
+    const shakeX = Math.cos(shakeAngle) * shakeIntensity
+    const shakeY = Math.sin(shakeAngle) * shakeIntensity
+
+    gsap.to(battleViewRef.value, {
+      x: shakeX,
+      y: shakeY,
+      duration: 0.05,
+      repeat: 5,
+      yoyo: true,
+      ease: 'power1.inOut',
+    })
+  }
+
+  // 如果伤害超过最大血量1/2，添加白屏闪屏效果
+  if (hpRatio > 0.5 && battleViewRef.value) {
+    const flash = document.createElement('div')
+    flash.style.position = 'absolute'
+    flash.style.top = '0'
+    flash.style.left = '0'
+    flash.style.width = '100%'
+    flash.style.height = '100%'
+    flash.style.backgroundColor = 'white'
+    flash.style.opacity = '0'
+    flash.style.pointerEvents = 'none'
+    flash.style.zIndex = '100'
+    battleViewRef.value.appendChild(flash)
+
+    gsap.to(flash, {
+      opacity: 0.7,
+      duration: 0.1,
+      ease: 'power2.out',
+      onComplete: () => {
+        gsap.to(flash, {
+          opacity: 0,
+          duration: 0.3,
+          ease: 'power2.in',
+          onComplete: () => {
+            battleViewRef.value?.removeChild(flash)
+          },
+        })
+      },
+    })
+  }
+
+  // 计算起始位置（中心点）
+  const rect = (petElement.$el as HTMLElement).getBoundingClientRect()
+  const startX = rect.left + rect.width / 2
+  const startY = rect.top + rect.height / 2
+
+  // 创建动画容器
+  const container = document.createElement('div')
+  container.style.position = 'fixed'
+  container.style.left = `${startX}px`
+  container.style.top = `${startY}px`
+  container.style.transformOrigin = 'center center'
+  container.style.pointerEvents = 'none'
+  document.body.appendChild(container)
+
+  // 渲染DamageDisplay组件
+  const damageVNode = h(DamageDisplay, {
+    value,
+    type: effectiveness === 'up' ? 'red' : effectiveness === 'down' ? 'blue' : '',
+  })
+  render(damageVNode, container)
+
+  // 动画参数
+  const moveX = side === 'left' ? 300 : -300 // 水平偏移量
+  const baseScale = crit ? 1.5 : 1
+  const targetScale = crit ? 2.5 : 1.8
+
+  // 初始状态
+  gsap.set(container, {
+    scale: baseScale,
+    opacity: 1,
+  })
+
+  // 创建时间轴动画
+  const tl = gsap.timeline({
+    onComplete: () => {
+      document.body.removeChild(container)
+      render(null, container) // 清理VNode
+    },
+  })
+
+  // 第一阶段：移动并放大 (0.5秒)
+  tl.to(container, {
+    x: moveX,
+    y: -150,
+    scale: targetScale,
+    duration: 0.25,
+    ease: 'power2.out',
+  })
+
+  // 第二阶段：停留1秒
+  tl.to({}, { duration: 0.5 })
+
+  // 第三阶段：淡出 (0.5秒)
+  tl.to(container, {
+    opacity: 0,
+    duration: 0.5,
+    ease: 'power2.out',
+  })
+}
+
+defineExpose({ showDamageMessage, showMissMessage, showAbsorbMessage })
 </script>
 
 <template>
-  <div class="relative w-full h-full flex justify-center items-center bg-gray-900">
+  <div ref="battleViewRef" class="relative w-full h-full flex justify-center items-center overflow-hidden bg-gray-900">
     <div
-      class="relative w-full h-full flex flex-col bg-center bg-no-repeat aspect-video"
+      class="relative w-full h-full flex flex-col bg-center bg-no-repeat aspect-video overflow-hidden"
       :class="[
         props.background ? `bg-cover` : 'bg-gray-900',
         'overflow-hidden',
@@ -114,13 +356,13 @@ const emit = defineEmits<{
           <div
             class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-[120px] h-[20px] rounded-full bg-black bg-opacity-30 blur-md"
           ></div>
-          <Pet :num="leftPetSpeciesNum" class="w-[200px] h-[200px]" />
+          <Pet ref="leftPetRef" :num="leftPetSpeciesNum" class="w-[200px] h-[200px]" />
         </div>
         <div class="relative">
           <div
             class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-[120px] h-[20px] rounded-full bg-black bg-opacity-30 blur-md"
           ></div>
-          <Pet :num="rightPetSpeciesNum" :reverse="true" class="w-[200px] h-[200px]" />
+          <Pet ref="rightPetRef" :num="rightPetSpeciesNum" :reverse="true" class="w-[200px] h-[200px]" />
         </div>
       </div>
 
