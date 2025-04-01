@@ -1,4 +1,4 @@
-<script setup lang="ts">
+import type { Meta, StoryObj } from '@storybook/vue3'
 import BattleStatus from './BattleStatus.vue'
 import { Element, type baseMarkId, type markId, type petId, type playerId, type speciesId } from '@test-battle/const'
 
@@ -104,18 +104,27 @@ const mockEnemy = {
     marks: [],
   },
 }
-</script>
 
-<template>
-  <Story title="BattleStatus">
-    <Variant title="己方状态（左侧布局）">
-      <BattleStatus :player="mockPlayer" side="left" />
-    </Variant>
+const meta: Meta<typeof BattleStatus> = {
+  component: BattleStatus,
+  title: 'Components/BattleStatus',
+  tags: ['autodocs'],
+}
 
-    <Variant title="敌方状态（右侧布局）">
-      <BattleStatus :player="mockEnemy" side="right" />
-    </Variant>
-  </Story>
-</template>
+export default meta
 
-<style scoped></style>
+type Story = StoryObj<typeof BattleStatus>
+
+export const LeftSide: Story = {
+  args: {
+    player: mockPlayer,
+    side: 'left',
+  },
+}
+
+export const RightSide: Story = {
+  args: {
+    player: mockEnemy,
+    side: 'right',
+  },
+}

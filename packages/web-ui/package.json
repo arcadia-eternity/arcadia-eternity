@@ -17,9 +17,8 @@
     "lint:eslint": "eslint . --fix",
     "lint": "run-s lint:*",
     "format": "prettier --write src/",
-    "story:dev": "histoire dev",
-    "story:build": "histoire build",
-    "story:preview": "histoire preview"
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@anatine/zod-mock": "^3.13.5",
@@ -54,29 +53,46 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@histoire/plugin-vue": "1.0.0-alpha.2",
+    "@chromatic-com/storybook": "^3",
     "@rollup/plugin-yaml": "^4.1.2",
+    "@storybook/addon-essentials": "^8.6.11",
+    "@storybook/addon-onboarding": "^8.6.11",
+    "@storybook/blocks": "^8.6.11",
+    "@storybook/experimental-addon-test": "^8.6.11",
+    "@storybook/test": "^8.6.11",
+    "@storybook/vue3": "^8.6.11",
+    "@storybook/vue3-vite": "^8.6.11",
     "@tsconfig/node22": "^22.0.1",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^22.13.13",
     "@vitejs/plugin-vue": "^5.2.3",
+    "@vitest/browser": "^3.1.1",
+    "@vitest/coverage-v8": "^3.1.1",
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.5.0",
     "@vue/tsconfig": "^0.7.0",
     "eslint": "^9.23.0",
     "eslint-plugin-oxlint": "^0.15.15",
+    "eslint-plugin-storybook": "^0.12.0",
     "eslint-plugin-vue": "^9.33.0",
-    "histoire": "1.0.0-alpha.2",
     "jiti": "^2.4.2",
     "npm-run-all2": "^7.0.2",
     "oxlint": "^0.15.15",
+    "playwright": "^1.51.1",
     "prettier": "^3.5.3",
+    "storybook": "^8.6.11",
     "typescript": "~5.7.3",
     "unplugin-auto-import": "^19.1.1",
     "unplugin-vue-components": "^28.4.1",
     "vite": "^6.2.3",
     "vite-plugin-static-copy": "^2.3.0",
     "vite-plugin-vue-devtools": "^7.7.2",
+    "vitest": "^3.1.1",
     "vue-tsc": "^2.2.8"
+  },
+  "eslintConfig": {
+    "extends": [
+      "plugin:storybook/recommended"
+    ]
   }
 }
