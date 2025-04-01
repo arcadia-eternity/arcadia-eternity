@@ -22,9 +22,9 @@
     "@test-battle/data-repository": "workspace:^",
     "@test-battle/parser": "workspace:^",
     "@test-battle/schema": "workspace:^",
-    "yaml": "^2.7.0"
+    "yaml": "^2.7.1"
   },
   "devDependencies": {
-    "@types/node": "^22.13.13"
+    "@types/node": "^22.13.16"
   }
 }

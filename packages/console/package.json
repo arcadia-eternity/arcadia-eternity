@@ -30,6 +30,6 @@
   },
   "devDependencies": {
     "@types/marked-terminal": "^6.1.1",
-    "@types/node": "^22.13.13"
+    "@types/node": "^22.13.16"
   }
 }
