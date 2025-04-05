@@ -107,7 +107,7 @@ const mockEnemy = {
 
 const meta: Meta<typeof BattleStatus> = {
   component: BattleStatus,
-  title: 'Components/BattleStatus',
+  title: 'Components/Battle/BattleStatus',
   tags: ['autodocs'],
 }
 

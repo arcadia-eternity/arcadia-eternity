@@ -3,7 +3,7 @@ import { computed, ref, provide } from 'vue'
 import { useBattleStore } from '@/stores/battle'
 import { logMessagesKey, petMapKey, skillMapKey, playerMapKey, markMapKey } from '@/symbol/battlelog'
 import Battle from '@/views/battle.vue'
-import BattleLogPanel from '@/components/BattleLogPanel.vue'
+import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
 import i18next from 'i18next'
 import type { SkillMessage } from '@test-battle/const'
 

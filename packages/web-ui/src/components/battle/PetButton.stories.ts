@@ -4,7 +4,7 @@ import { Element } from '@test-battle/const'
 import i18next from 'i18next'
 
 const meta: Meta<typeof PetButton> = {
-  title: 'Components/PetButton',
+  title: 'Components/Battle/PetButton',
   component: PetButton,
 }
 

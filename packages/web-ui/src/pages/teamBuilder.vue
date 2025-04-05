@@ -327,7 +327,7 @@ import { Nature } from '@test-battle/const'
 import { VueDraggable } from 'vue-draggable-plus'
 import { parse, stringify } from 'yaml'
 import { z } from 'zod'
-import PetIcon from '@/components/PetIcon.vue'
+import PetIcon from '@/components/battle/PetIcon.vue'
 
 const { t, i18next } = useTranslation()
 

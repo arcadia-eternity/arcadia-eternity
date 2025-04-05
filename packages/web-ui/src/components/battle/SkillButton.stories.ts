@@ -4,7 +4,7 @@ import { Element, Category, AttackTargetOpinion } from '@test-battle/const'
 import type { SkillMessage, baseSkillId, skillId } from '@test-battle/const'
 
 const meta: Meta<typeof SkillButton> = {
-  title: 'Components/SkillButton',
+  title: 'Components/Battle/SkillButton',
   component: SkillButton,
 }
 

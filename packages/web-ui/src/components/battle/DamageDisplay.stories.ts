@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3'
 import DamageDisplay from './DamageDisplay.vue'
 
 const meta: Meta<typeof DamageDisplay> = {
-  title: 'Components/DamageDisplay',
+  title: 'Components/Battle/DamageDisplay',
   component: DamageDisplay,
   argTypes: {
     value: {

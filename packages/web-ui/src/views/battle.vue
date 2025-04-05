@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, h, ref, render, useTemplateRef } from 'vue'
-import BattleStatus from '@/components/BattleStatus.vue'
-import Pet from '@/components/Pet.vue'
-import SkillButton from '@/components/SkillButton.vue'
-import Mark from '@/components/Mark.vue'
-import BattleLogPanel from '@/components/BattleLogPanel.vue'
+import BattleStatus from '@/components/battle/BattleStatus.vue'
+import Pet from '@/components/battle/Pet.vue'
+import SkillButton from '@/components/battle/SkillButton.vue'
+import Mark from '@/components/battle/Mark.vue'
+import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
 import {
   Category,
   type MarkMessage,
@@ -15,7 +15,7 @@ import {
 } from '@test-battle/const'
 import { useGameDataStore } from '@/stores/gameData'
 import type { PlayerSelectionSchemaType } from '@test-battle/schema'
-import DamageDisplay from '@/components/DamageDisplay.vue'
+import DamageDisplay from '@/components/battle/DamageDisplay.vue'
 import gsap from 'gsap'
 import i18next from 'i18next'
 

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3'
 import PetIcon from './PetIcon.vue'
 
 const meta: Meta<typeof PetIcon> = {
-  title: 'Components/PetIcon',
+  title: 'Components/Battle/PetIcon',
   component: PetIcon,
 }
 

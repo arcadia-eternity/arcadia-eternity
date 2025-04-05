@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3'
 import HealthRageBar from './HealthRageBar.vue'
 
 const meta: Meta<typeof HealthRageBar> = {
-  title: 'Components/HealthRageBar',
+  title: 'Components/Battle/HealthRageBar',
   component: HealthRageBar,
 }
 

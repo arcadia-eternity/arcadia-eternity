@@ -4,7 +4,7 @@ import type { baseMarkId, MarkMessage } from '@test-battle/const'
 import { nanoid } from 'nanoid'
 
 const meta: Meta<typeof Mark> = {
-  title: 'Components/Mark',
+  title: 'Components/Battle/Mark',
   component: Mark,
 }
 

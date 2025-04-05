@@ -16,7 +16,7 @@ interface StoryProps {
 }
 
 const meta: Meta<StoryProps> = {
-  title: 'Components/BattleLogPanel',
+  title: 'Components/Battle/BattleLogPanel',
   component: BattleLogPanel,
   tags: ['autodocs'],
   argTypes: {

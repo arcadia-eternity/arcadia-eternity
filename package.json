@@ -14,7 +14,8 @@
     "generate": "pnpm --filter @test-battle/schema run generate",
     "generate:csbind": "tsx packages/csbind/script/generate.ts",
     "cli": "tsx ./bin/cli.ts",
-    "web:dev": "pnpm --filter @test-battle/web-ui run dev"
+    "web:dev": "pnpm --filter @test-battle/web-ui run dev",
+    "storybook": "pnpm --filter @test-battle/web-ui run storybook"
   },
   "dependencies": {
     "@test-battle/battle": "workspace:^",

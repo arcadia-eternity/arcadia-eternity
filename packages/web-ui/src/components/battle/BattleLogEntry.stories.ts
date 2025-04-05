@@ -3,7 +3,7 @@ import BattleLogEntry from './BattleLogEntry.vue'
 import { BattleMessageType } from '@test-battle/const'
 
 const meta: Meta<typeof BattleLogEntry> = {
-  title: 'Components/BattleLogEntry',
+  title: 'Components/Battle/BattleLogEntry',
   component: BattleLogEntry,
   tags: ['autodocs'],
   argTypes: {

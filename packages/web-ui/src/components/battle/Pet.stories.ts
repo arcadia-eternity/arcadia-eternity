@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3'
 import Pet from './Pet.vue'
 
 const meta: Meta<typeof Pet> = {
-  title: 'Components/Pet',
+  title: 'Components/Battle/Pet',
   component: Pet,
 }
 

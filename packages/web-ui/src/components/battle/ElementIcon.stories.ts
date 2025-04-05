@@ -3,7 +3,7 @@ import { Element } from '@test-battle/const'
 import ElementIcon from './ElementIcon.vue'
 
 const meta: Meta<typeof ElementIcon> = {
-  title: 'Components/ElementIcon',
+  title: 'Components/Battle/ElementIcon',
   component: ElementIcon,
 }
 
