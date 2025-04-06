@@ -269,7 +269,7 @@ export class Player {
         this.battle!.applyEffects(context, EffectTrigger.OnHit) // 触发命中特效
       }
 
-      if (context.category !== Category.Status) {
+      if (context.category !== Category.Status && context.hitResult) {
         context.origin.addRage(new RageContext(context, context.origin, 'skillHit', 'add', 15)) //命中奖励
       }
 

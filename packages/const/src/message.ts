@@ -289,7 +289,7 @@ export interface BattleMessageData {
   [BattleMessageType.InvalidAction]: {
     player: playerId
     action: string
-    reason: 'no_rage' | 'cooldown' | 'invalid_target' | 'dead_pet' | 'invalid_action'
+    reason: 'no_rage' | 'invalid_target' | 'dead_pet' | 'invalid_action'
   }
   [BattleMessageType.Info]: {
     message: string

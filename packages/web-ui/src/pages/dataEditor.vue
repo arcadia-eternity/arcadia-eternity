@@ -42,7 +42,7 @@ import { ref, reactive, onMounted, computed, h, watch, nextTick } from 'vue'
 import axios, { type AxiosResponse, type AxiosError } from 'axios'
 import EffectGraphEditor from './EffectGraphEditor.vue'
 import GenericTableEditor from './GenericTableEditor.vue'
-import { DATA_SCHEMA_MAP, SCHEMA_MAP } from '@test-battle/schema'
+import { DATA_SCHEMA_MAP } from '@test-battle/schema'
 import type { FileData, ErrorDetail } from './fileData'
 
 const editorComponent = computed(() => {
