@@ -65,7 +65,6 @@ const battleResult = computed(() => {
 
 <template>
   <div class="h-screen bg-[#1a1a2e]">
-    <!-- 使用 Battle 组件 -->
     <Battle
       v-if="currentPlayer && opponentPlayer"
       background="https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/battleBackground/grass.png"
@@ -80,13 +79,7 @@ const battleResult = computed(() => {
       @pet-select="handlePetSelect"
       @escape="handleEscape"
     >
-      <!-- 插入自定义日志面板 -->
-      <template #log-panel>
-        <BattleLogPanel class="h-[300px] bg-black/90 rounded-lg p-3" />
-      </template>
     </Battle>
-
-    <!-- 战斗结束覆盖层 -->
     <Transition name="fade">
       <div v-if="store.isBattleEnd" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[1000]">
         <div
