@@ -84,7 +84,9 @@ const playerStore = usePlayerStore()
 const petStorage = usePetStorageStore()
 
 // 连接状态
-const connectionState = ref<'connected' | 'disconnected'>('disconnected')
+const connectionState = computed(() => {
+  return battleClient.currentState.status
+})
 
 // 初始化连接
 onMounted(async () => {
@@ -93,7 +95,6 @@ onMounted(async () => {
   petStorage.loadFromLocal()
   try {
     await battleClient.connect()
-    connectionState.value = 'connected'
   } catch (err) {
     ElMessage.error('连接服务器失败')
   }
