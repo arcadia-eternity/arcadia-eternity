@@ -1,112 +1,42 @@
 import { defineStore } from 'pinia'
-import { battleClient } from '../utils/battleClient'
-import { type BattleState, type BattleMessage, BattleMessageType, type petId, type playerId } from '@test-battle/const'
-import type { PlayerSchemaType, PlayerSelectionSchemaType } from '@test-battle/schema'
-import type { ErrorResponse, SuccessResponse } from '@test-battle/protocol'
+import {
+  type BattleState,
+  type BattleMessage,
+  BattleMessageType,
+  type petId,
+  type playerId,
+  type PlayerSelection,
+} from '@test-battle/const'
+import type { IBattleSystem } from '@test-battle/interface'
 
 export const useBattleStore = defineStore('battle', {
   state: () => ({
-    battleSessionId: null as string | null,
+    battleInterface: null as IBattleSystem | null,
     state: null as BattleState | null,
     log: [] as BattleMessage[],
-    availableActions: [] as PlayerSelectionSchemaType[],
-    isMatching: false,
+    availableActions: [] as PlayerSelection[],
     errorMessage: null as string | null,
     isBattleEnd: false,
     victor: '' as string | null,
     playerId: '',
-    reconnectAttempts: 0, // 新增重连尝试次数
-    lastRoomId: localStorage.getItem('lastBattleRoom') || null, // 持久化存储
   }),
 
   actions: {
-    async joinMatchmaking(playerData: PlayerSchemaType) {
-      try {
-        this.resetBattle()
-        this.isMatching = true
-        this.errorMessage = null
-        this.playerId = playerData.id
-
-        // 先注册匹配成功监听
-        const matchPromise = new Promise<string>((resolve, reject) => {
-          const successHandler = (res: SuccessResponse<{ roomId: string; opponent: { id: string; name: string } }>) => {
-            if (res.status === 'SUCCESS') {
-              resolve(res.data.roomId)
-              this.handleMatchFound(res.data.roomId)
-            }
-          }
-
-          const errorHandler = (err: ErrorResponse) => {
-            reject(new Error(err.details || '匹配失败'))
-          }
-
-          // 使用once避免重复监听
-          battleClient.once('matchSuccess', successHandler)
-          battleClient.once('matchmakingError', errorHandler)
-
-          // 设置超时
-          setTimeout(() => {
-            battleClient.off('matchSuccess', successHandler)
-            battleClient.off('matchmakingError', errorHandler)
-            reject(new Error('匹配超时'))
-          }, 30000)
-        })
-
-        // 发起匹配请求（不等待立即返回的ACK）
-        await battleClient.joinMatchmaking(playerData)
-        const roomId = await matchPromise
-        return this.initSession(roomId) // 返回 roomId
-      } catch (err) {
-        this.errorMessage = (err as Error).message || '匹配失败'
-        this.isMatching = false
-        throw err // 抛出错误供上层处理
-      }
-    },
-
-    async cancelMatchmaking() {
-      if (!this.battleSessionId) {
-        await battleClient.cancelMatchmaking()
-        this.isMatching = false
-        this.resetBattle()
-      }
-    },
-
-    async initSession(roomId: string) {
-      this.battleSessionId = roomId
-      this.state = null
-      battleClient.on('battleEvent', (msg: BattleMessage) => {
-        if (msg.type === 'BATTLE_STATE') this.state = msg.data
-        this.handleBattleMessage(msg)
-      })
-      return roomId
-    },
-
-    handleMatchFound(roomId: string) {
-      this.battleSessionId = roomId
-      this.isMatching = false
-    },
-
-    resetBattle() {
-      if (this.battleSessionId) {
-        this.sendplayerSelection({
-          player: this.playerId,
-          type: 'surrender',
-        })
-      }
-
-      this.battleSessionId = null
-      this.state = null
-      this.log = []
-      this.availableActions = []
-      this.isMatching = false
+    async initBattle(battleInterface: IBattleSystem, playerId: string) {
+      this.battleInterface = battleInterface
+      this.playerId = playerId
+      this.state = await this.battleInterface.getState(playerId as playerId)
       this.isBattleEnd = false
-      this.victor = ''
-      this.clearPersistedSession()
+      this.victor = null
+      this.errorMessage = null
+      this.battleInterface.BattleEvent(this.handleBattleMessage)
+      this.availableActions = await this.fetchAvailableSelection()
+      this.log = []
     },
 
-    async sendplayerSelection(selection: PlayerSelectionSchemaType) {
+    async sendplayerSelection(selection: PlayerSelection) {
       try {
-        await battleClient.sendplayerSelection(selection)
+        await this.battleInterface?.submitAction(selection)
         this.availableActions = []
       } catch (err) {
         this.errorMessage = (err as Error).message
@@ -145,19 +75,21 @@ export const useBattleStore = defineStore('battle', {
       }
     },
 
-    // 新增持久化方法
-    persistSession() {
-      if (this.battleSessionId && this.playerId) {
-        localStorage.setItem('lastBattleRoom', this.battleSessionId)
-        localStorage.setItem('lastPlayerId', this.playerId)
+    resetBattle() {
+      if (!this.isBattleEnd) {
+        this.sendplayerSelection({
+          player: this.playerId as playerId,
+          type: 'surrender',
+        })
       }
-    },
-
-    clearPersistedSession() {
-      localStorage.removeItem('lastBattleRoom')
-      localStorage.removeItem('lastPlayerId')
-      this.lastRoomId = null
-      this.reconnectAttempts = 0
+      this.battleInterface = null
+      this.playerId = ''
+      this.isBattleEnd = false
+      this.victor = null
+      this.errorMessage = null
+      this.state = null
+      this.log = []
+      this.availableActions = []
     },
 
     getPetById(petId: petId) {
@@ -179,8 +111,8 @@ export const useBattleStore = defineStore('battle', {
     },
 
     async fetchAvailableSelection() {
-      const res = await battleClient.getAvailableSelection()
-      return res
+      const res = await this.battleInterface?.getAvailableSelection(this.playerId as playerId)
+      return res as PlayerSelection[]
     },
   },
 

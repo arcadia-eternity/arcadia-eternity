@@ -416,6 +416,9 @@ importers:
       '@test-battle/const':
         specifier: workspace:^
         version: link:../const
+      '@test-battle/interface':
+        specifier: workspace:^
+        version: link:../interface
       '@test-battle/parser':
         specifier: workspace:^
         version: link:../parser

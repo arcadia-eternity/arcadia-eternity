@@ -1,13 +1,14 @@
 import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useBattleStore } from '@/stores/battle'
+import { battleClient } from '@/utils/battleClient'
 
 export const battleGuard = (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
   const store = useBattleStore()
 
   // 需要有效对战的页面
   if (to.meta.requiresBattle) {
-    if (!store.battleSessionId) {
+    if (battleClient.currentState.matchmaking !== 'matched') {
       ElMessage.warning('请先进入匹配队列')
       return next('/')
     }

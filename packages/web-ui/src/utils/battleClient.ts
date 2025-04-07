@@ -1,4 +1,5 @@
 import { BattleClient } from '@test-battle/client' // 调整路径到你的client.ts位置
+import { reactive } from 'vue'
 
 // 单例模式封装
 class BattleClientSingleton {
@@ -15,4 +16,4 @@ class BattleClientSingleton {
   }
 }
 
-export const battleClient = BattleClientSingleton.getInstance()
+export const battleClient = reactive(BattleClientSingleton.getInstance())

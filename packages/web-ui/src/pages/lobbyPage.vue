@@ -23,10 +23,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount, onMounted, nextTick } from 'vue'
+import { ref, computed, onBeforeUnmount, onMounted, nextTick, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
+import { battleClient } from '@/utils/battleClient'
+import { BattleClient, RemoteBattleSystem } from '@test-battle/client'
 
 const router = useRouter()
 const route = useRoute()
@@ -34,18 +36,21 @@ const battleStore = useBattleStore()
 const playerStore = usePlayerStore()
 
 // 响应式状态
-const isMatching = computed(() => battleStore.isMatching)
+const isMatching = computed(() => battleClient.currentState.matchmaking === 'searching')
 const errorMessage = ref<string | null>(null)
 
 const handleMatchmaking = async () => {
   try {
     if (isMatching.value) {
-      await battleStore.cancelMatchmaking()
+      await battleClient.cancelMatchmaking()
     } else {
-      const roomId = await battleStore.joinMatchmaking(playerStore.player)
-      router.push({
-        path: '/battle',
-        query: { roomId },
+      await battleClient.joinMatchmaking(playerStore.player)
+      battleClient.once('matchSuccess', async () => {
+        battleStore.initBattle(new RemoteBattleSystem(battleClient as BattleClient), playerStore.player.id)
+        router.push({
+          path: '/battle',
+          query: { roomId: battleClient.currentState.roomId },
+        })
       })
     }
   } catch (error) {
@@ -62,7 +67,8 @@ onMounted(() => {
 // 组件卸载时取消匹配
 onBeforeUnmount(async () => {
   if (isMatching.value) {
-    await battleStore.cancelMatchmaking()
+    await battleClient.cancelMatchmaking()
+    errorMessage.value = null
   }
 })
 </script>
