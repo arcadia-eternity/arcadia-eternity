@@ -85,14 +85,14 @@ const emit = defineEmits<{
 const battleViewRef = ref<HTMLElement | null>(null)
 
 const showMissMessage = (side: 'left' | 'right') => {
-  // 获取目标Pet的DOM元素
-  const petElement = side === 'left' ? leftPetRef.value : rightPetRef.value
-  if (!petElement) return
+  // 获取状态面板元素
+  const statusElement = side === 'left' ? leftStatusRef.value : rightStatusRef.value
+  if (!statusElement) return
 
-  // 计算起始位置（宠物正上方）
-  const { top, left, width } = useElementBounding(petElement)
+  // 计算起始位置（状态面板下方居中）
+  const { bottom, left, width } = useElementBounding(statusElement)
   const startX = left.value + width.value / 2
-  const startY = top.value - 50
+  const startY = bottom.value + 120
 
   // 创建动画容器
   const container = document.createElement('div')
@@ -142,14 +142,14 @@ const showMissMessage = (side: 'left' | 'right') => {
 }
 
 const showAbsorbMessage = (side: 'left' | 'right') => {
-  // 获取目标Pet的DOM元素
-  const petElement = side === 'left' ? leftPetRef.value : rightPetRef.value
-  if (!petElement) return
+  // 获取状态面板元素
+  const statusElement = side === 'left' ? leftStatusRef.value : rightStatusRef.value
+  if (!statusElement) return
 
-  // 计算起始位置（宠物正上方）
-  const { top, left, width } = useElementBounding(petElement)
+  // 计算起始位置（状态面板下方居中）
+  const { bottom, left, width } = useElementBounding(statusElement)
   const startX = left.value + width.value / 2
-  const startY = top.value - 50 // 显示在宠物上方50px处
+  const startY = bottom.value + 120
 
   // 创建动画容器
   const container = document.createElement('div')
@@ -198,18 +198,53 @@ const showAbsorbMessage = (side: 'left' | 'right') => {
   })
 }
 
+const flashAndShake = () => {
+  const flash = document.createElement('div')
+  flash.style.position = 'absolute'
+  flash.style.top = '0'
+  flash.style.left = '0'
+  flash.style.width = '100%'
+  flash.style.height = '100%'
+  flash.style.backgroundColor = 'white'
+  flash.style.opacity = '0'
+  flash.style.pointerEvents = 'none'
+  flash.style.zIndex = '100'
+  battleViewRef.value?.appendChild(flash)
+
+  gsap.to(flash, {
+    opacity: 0.7,
+    duration: 0.1,
+    ease: 'power2.out',
+    onComplete: () => {
+      gsap.to(flash, {
+        opacity: 0,
+        duration: 0.3,
+        ease: 'power2.in',
+        onComplete: () => {
+          battleViewRef.value?.removeChild(flash)
+        },
+      })
+    },
+  })
+}
+
 const showDamageMessage = (
   side: 'left' | 'right',
   value: number,
   effectiveness: 'up' | 'normal' | 'down' = 'normal',
   crit: boolean = false,
 ) => {
-  // 获取目标Pet的DOM元素
-  const petElement = side === 'left' ? leftPetRef.value : rightPetRef.value
-  if (!petElement) return
+  // 获取状态面板元素
+  const statusElement = side === 'left' ? leftStatusRef.value : rightStatusRef.value
+  if (!statusElement) return
 
   // 获取当前侧Pet的最大血量
   const currentPet = side === 'left' ? props.leftPlayer.activePet : props.rightPlayer.activePet
+
+  const { bottom, left, width } = useElementBounding(statusElement)
+  const startX = left.value + width.value / 2
+  const startY = bottom.value + 120 // 状态面板下方20px
+
   const hpRatio = value / currentPet.maxHp
 
   if ((hpRatio > 0.25 || crit) && battleViewRef.value) {
@@ -230,39 +265,10 @@ const showDamageMessage = (
 
   // 如果伤害超过最大血量1/2，添加白屏闪屏效果
   if (hpRatio > 0.5 && battleViewRef.value) {
-    const flash = document.createElement('div')
-    flash.style.position = 'absolute'
-    flash.style.top = '0'
-    flash.style.left = '0'
-    flash.style.width = '100%'
-    flash.style.height = '100%'
-    flash.style.backgroundColor = 'white'
-    flash.style.opacity = '0'
-    flash.style.pointerEvents = 'none'
-    flash.style.zIndex = '100'
-    battleViewRef.value.appendChild(flash)
-
-    gsap.to(flash, {
-      opacity: 0.7,
-      duration: 0.1,
-      ease: 'power2.out',
-      onComplete: () => {
-        gsap.to(flash, {
-          opacity: 0,
-          duration: 0.3,
-          ease: 'power2.in',
-          onComplete: () => {
-            battleViewRef.value?.removeChild(flash)
-          },
-        })
-      },
-    })
+    flashAndShake()
   }
 
-  const { top, left, width } = useElementBounding(petElement)
-  const startX = left.value + width.value / 2
-  const startY = top.value + width.value / 2
-
+  // 使用已计算的状态面板下方位置
   // 创建动画容器
   const container = document.createElement('div')
   container.style.position = 'fixed'
