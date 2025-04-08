@@ -6,6 +6,9 @@ import type { SkillMessage, baseSkillId, skillId } from '@test-battle/const'
 const meta: Meta<typeof SkillButton> = {
   title: 'Components/Battle/SkillButton',
   component: SkillButton,
+  parameters: {
+    layout: 'centered',
+  },
 }
 
 export default meta

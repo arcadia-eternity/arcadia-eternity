@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import HealthRageBar from './HealthRageBar.vue'
-import PetIcon from './PetIcon.vue'
+import PetIcon from '../PetIcon.vue'
 import Mark from './Mark.vue'
 import type { Element, PlayerMessage } from '@test-battle/const'
 import ElementIcon from './ElementIcon.vue'

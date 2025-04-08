@@ -6,6 +6,9 @@ import { nanoid } from 'nanoid'
 const meta: Meta<typeof Mark> = {
   title: 'Components/Battle/Mark',
   component: Mark,
+  parameters: {
+    layout: 'centered',
+  },
 }
 
 export default meta

@@ -5,6 +5,7 @@ import Pet from '@/components/battle/Pet.vue'
 import SkillButton from '@/components/battle/SkillButton.vue'
 import Mark from '@/components/battle/Mark.vue'
 import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
+import { useElementBounding } from '@vueuse/core'
 import {
   Category,
   type MarkMessage,
@@ -18,6 +19,7 @@ import type { PlayerSelectionSchemaType } from '@test-battle/schema'
 import DamageDisplay from '@/components/battle/DamageDisplay.vue'
 import gsap from 'gsap'
 import i18next from 'i18next'
+import PetSprite from '@/components/battle/PetSprite.vue'
 
 enum PanelState {
   SKILLS = 'skills',
@@ -26,6 +28,8 @@ enum PanelState {
 
 const leftPetRef = useTemplateRef('leftPetRef')
 const rightPetRef = useTemplateRef('rightPetRef')
+const leftStatusRef = useTemplateRef('leftStatusRef')
+const rightStatusRef = useTemplateRef('rightStatusRef')
 
 const panelState = ref<PanelState>(PanelState.SKILLS)
 
@@ -86,9 +90,9 @@ const showMissMessage = (side: 'left' | 'right') => {
   if (!petElement) return
 
   // 计算起始位置（宠物正上方）
-  const rect = (petElement.$el as HTMLElement).getBoundingClientRect()
-  const startX = rect.left + rect.width / 2
-  const startY = rect.top - 50 // 显示在宠物上方50px处
+  const { top, left, width } = useElementBounding(petElement)
+  const startX = left.value + width.value / 2
+  const startY = top.value - 50
 
   // 创建动画容器
   const container = document.createElement('div')
@@ -143,9 +147,9 @@ const showAbsorbMessage = (side: 'left' | 'right') => {
   if (!petElement) return
 
   // 计算起始位置（宠物正上方）
-  const rect = (petElement.$el as HTMLElement).getBoundingClientRect()
-  const startX = rect.left + rect.width / 2
-  const startY = rect.top - 50 // 显示在宠物上方50px处
+  const { top, left, width } = useElementBounding(petElement)
+  const startX = left.value + width.value / 2
+  const startY = top.value - 50 // 显示在宠物上方50px处
 
   // 创建动画容器
   const container = document.createElement('div')
@@ -255,10 +259,9 @@ const showDamageMessage = (
     })
   }
 
-  // 计算起始位置（中心点）
-  const rect = (petElement.$el as HTMLElement).getBoundingClientRect()
-  const startX = rect.left + rect.width / 2
-  const startY = rect.top + rect.height / 2
+  const { top, left, width } = useElementBounding(petElement)
+  const startX = left.value + width.value / 2
+  const startY = top.value + width.value / 2
 
   // 创建动画容器
   const container = document.createElement('div')
@@ -315,13 +318,91 @@ const showDamageMessage = (
   })
 }
 
-defineExpose({ showDamageMessage, showMissMessage, showAbsorbMessage })
+const showUseSkillMessage = (side: 'left' | 'right', skillId: string) => {
+  // 获取BattleStatus的DOM元素
+  const statusElement = side === 'left' ? leftStatusRef.value : rightStatusRef.value
+  if (!statusElement) return
+
+  // 计算目标位置（BattleStatus下方）
+  const { width, bottom } = useElementBounding(statusElement)
+  const { left: viewLeft, right: viewRight } = useElementBounding(battleViewRef)
+  if (!viewLeft || !viewRight) return
+  const targetX = side === 'left' ? viewLeft.value : viewRight.value - width.value * 0.75
+  const targetY = bottom.value + 20
+
+  // 创建动画容器
+  const container = document.createElement('div')
+  container.className = 'fixed pointer-events-none'
+  container.style.left = `${targetX}px`
+  container.style.top = `${targetY}px`
+  container.style.transformOrigin = 'center center'
+  document.body.appendChild(container)
+
+  const box = document.createElement('div')
+  box.className = 'h-[60px] flex justify-center items-center font-bold text-lg text-white'
+  box.style.backgroundImage =
+    side === 'left'
+      ? 'linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.3))'
+      : 'linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0.3))'
+  box.style.padding = '15px 0'
+  box.style.left = '0'
+  box.style.width = `${width.value * 0.75}px` // petStatus的3/4宽
+  const skillName = i18next.t(`${skillId}`, { ns: 'skill' })
+  box.textContent = skillName
+
+  container.appendChild(box)
+
+  // 初始状态 - 从侧边开始
+  const startX = side === 'left' ? -200 : 200
+  gsap.set(container, {
+    x: startX,
+    opacity: 0,
+    scale: 0.8,
+  })
+
+  // 创建时间轴动画
+  const tl = gsap.timeline({
+    onComplete: () => {
+      document.body.removeChild(container)
+    },
+  })
+
+  // 第一阶段：从侧边弹入
+  tl.to(container, {
+    x: 0,
+    opacity: 1,
+    scale: 1,
+    duration: 0.3,
+    ease: 'back.out(1.7)',
+  })
+
+  // 第二阶段：停留1秒
+  tl.to({}, { duration: 1 })
+
+  // 第三阶段：向同侧弹出
+  tl.to(container, {
+    x: startX,
+    opacity: 0,
+    duration: 0.5,
+    ease: 'power2.in',
+  })
+}
+
+const useSkillAnimation = (skill: skillId, side: 'left' | 'right', category: Category) => {
+  const petElement = side === 'left' ? leftPetRef.value : rightPetRef.value
+  if (!petElement) return
+}
+
+defineExpose({ showDamageMessage, showMissMessage, showAbsorbMessage, showUseSkillMessage })
 </script>
 
 <template>
-  <div ref="battleViewRef" class="relative w-full h-full flex justify-center items-center overflow-hidden bg-gray-900">
+  <div
+    ref="battleViewRef"
+    class="relative h-dvh flex justify-center aspect-video items-center object-contain bg-gray-900"
+  >
     <div
-      class="relative w-full h-full flex flex-col bg-center bg-no-repeat aspect-video overflow-hidden"
+      class="relative h-full flex flex-col bg-center bg-no-repeat aspect-video overflow-hidden"
       :class="[
         props.background ? `bg-cover` : 'bg-gray-900',
         'overflow-hidden',
@@ -333,8 +414,8 @@ defineExpose({ showDamageMessage, showMissMessage, showAbsorbMessage })
       }"
     >
       <div class="flex justify-between p-5">
-        <BattleStatus class="w-1/3" :player="props.leftPlayer" side="left" />
-        <BattleStatus class="w-1/3" :player="props.rightPlayer" side="right" />
+        <BattleStatus ref="leftStatusRef" class="w-1/3" :player="props.leftPlayer" side="left" />
+        <BattleStatus ref="rightStatusRef" class="w-1/3" :player="props.rightPlayer" side="right" />
       </div>
 
       <div class="flex flex-col items-center gap-2 py-2">
@@ -351,18 +432,12 @@ defineExpose({ showDamageMessage, showMissMessage, showAbsorbMessage })
         </div>
       </div>
 
-      <div class="flex-grow flex justify-around items-center">
-        <div class="relative">
-          <div
-            class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-[120px] h-[20px] rounded-full bg-black bg-opacity-30 blur-md"
-          ></div>
-          <Pet ref="leftPetRef" :num="leftPetSpeciesNum" class="w-[200px] h-[200px]" />
+      <div class="flex-grow flex justify-around items-center relative">
+        <div class="absolute h-full w-full">
+          <PetSprite ref="leftPetRef" :num="leftPetSpeciesNum" class="absolute" />
         </div>
-        <div class="relative">
-          <div
-            class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-[120px] h-[20px] rounded-full bg-black bg-opacity-30 blur-md"
-          ></div>
-          <Pet ref="rightPetRef" :num="rightPetSpeciesNum" :reverse="true" class="w-[200px] h-[200px]" />
+        <div class="absolute h-full w-full">
+          <PetSprite ref="rightPetRef" :num="rightPetSpeciesNum" :reverse="true" class="absolute" />
         </div>
       </div>
 

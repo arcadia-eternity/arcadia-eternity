@@ -1,14 +1,10 @@
 <script setup lang="ts">
-import type { Category, SkillMessage } from '@test-battle/const'
+import type { SkillMessage } from '@test-battle/const'
 import ElementIcon from './ElementIcon.vue'
-import type { Element } from '@test-battle/const'
 import Tooltip from './Tooltip.vue'
 import MarkdownIt from 'markdown-it'
-import { useGameDataStore } from '@/stores/gameData'
 import i18next from 'i18next'
 import { computed } from 'vue'
-
-const gameDataStore = useGameDataStore()
 
 const md = new MarkdownIt({
   html: true,

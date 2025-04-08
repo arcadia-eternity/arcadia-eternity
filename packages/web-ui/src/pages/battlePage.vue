@@ -3,8 +3,6 @@ import { computed, ref, provide } from 'vue'
 import { useBattleStore } from '@/stores/battle'
 import { logMessagesKey, petMapKey, skillMapKey, playerMapKey, markMapKey } from '@/symbol/battlelog'
 import Battle from '@/views/battle.vue'
-import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
-import i18next from 'i18next'
 import type { SkillMessage } from '@test-battle/const'
 
 const store = useBattleStore()
@@ -25,14 +23,7 @@ const currentTurn = computed(() => store.state?.currentTurn ?? 0)
 
 // 当前玩家可用技能
 const availableSkills = computed<SkillMessage[]>(() => {
-  return (
-    store.currentPlayer?.activePet?.skills
-      ?.filter(skill => !skill.isUnknown)
-      .map(skill => ({
-        ...skill,
-        name: i18next.t(`${skill.baseId}.name`, { ns: 'skill' }),
-      })) ?? []
-  )
+  return store.currentPlayer?.activePet?.skills?.filter(skill => !skill.isUnknown) ?? []
 })
 
 // 处理技能点击

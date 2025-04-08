@@ -6,6 +6,9 @@ import i18next from 'i18next'
 const meta: Meta<typeof PetButton> = {
   title: 'Components/Battle/PetButton',
   component: PetButton,
+  parameters: {
+    layout: 'centered',
+  },
 }
 
 export default meta

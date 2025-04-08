@@ -29,8 +29,8 @@ const basePlayer = (side: 'left' | 'right') => ({
 const basePet = (element: Element) => ({
   id: 'pet1' as unknown as petId,
   level: 50,
-  name: element === Element.Fire ? '小火龙' : '杰尼龟',
-  speciesID: '1' as unknown as speciesId,
+  name: element === Element.Fire ? '休罗斯' : '迪兰特',
+  speciesID: 'pet_dilante' as unknown as speciesId,
   currentHp: element === Element.Fire ? 120 : 110,
   maxHp: element === Element.Fire ? 150 : 130,
   element,
@@ -108,6 +108,9 @@ const defaultArgs = {
 }
 
 export const Default: Story = {
+  parameters: {
+    layout: 'fullscreen', // 关键参数
+  },
   args: {
     ...defaultArgs,
     leftPlayer: {
@@ -201,6 +204,56 @@ export const DamageMessages: Story = {
             @click="showMessage(btn.type, btn.side, btn.value)"
           >
             {{ btn.label }}
+          </button>
+        </div>
+      </div>
+    `,
+  }),
+}
+
+export const SkillMessages: Story = {
+  args: {
+    ...defaultArgs,
+    leftPlayer: {
+      ...basePlayer('left'),
+      activePet: basePet(Element.Fire),
+    },
+    rightPlayer: {
+      ...basePlayer('right'),
+      activePet: basePet(Element.Water),
+    },
+    skills: [],
+  },
+  render: args => ({
+    components: { BattleView },
+    setup() {
+      const battleView = ref<ComponentPublicInstance>()
+
+      const showSkillMessage = (side: 'left' | 'right') => {
+        const skillId = side === 'left' ? 'skill2' : 'skill3'
+        ;(battleView.value as any)?.showUseSkillMessage(side, skillId as unknown as skillId)
+      }
+
+      return { args, showSkillMessage, battleView }
+    },
+    template: `
+      <div class="relative">
+        <BattleView
+          ref="battleView"
+          v-bind="args"
+        />
+        <div class="fixed bottom-4 left-4 flex gap-2">
+          <button
+            class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
+            @click="showSkillMessage('left')"
+          >
+            左侧技能消息
+          </button>
+          <button
+            class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
+            @click="showSkillMessage('right')"
+          >
+            右侧技能消息
           </button>
         </div>
       </div>

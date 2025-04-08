@@ -8,12 +8,14 @@ import {
   type PlayerSelection,
 } from '@test-battle/const'
 import type { IBattleSystem } from '@test-battle/interface'
+import { number } from 'zod'
 
 export const useBattleStore = defineStore('battle', {
   state: () => ({
     battleInterface: null as IBattleSystem | null,
     state: null as BattleState | null,
     log: [] as BattleMessage[],
+    renderIndex: -1 as number,
     availableActions: [] as PlayerSelection[],
     errorMessage: null as string | null,
     isBattleEnd: false,
@@ -31,7 +33,7 @@ export const useBattleStore = defineStore('battle', {
       this.errorMessage = null
       this.battleInterface.BattleEvent(this.handleBattleMessage)
       this.availableActions = await this.fetchAvailableSelection()
-      this.log = []
+      this.log = [] as BattleMessage[]
     },
 
     async sendplayerSelection(selection: PlayerSelection) {

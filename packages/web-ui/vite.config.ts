@@ -23,8 +23,17 @@ export default defineConfig({
       },
     },
   },
+  optimizeDeps: {
+    exclude: ['seer2-pet-animator'],
+  },
   plugins: [
-    vue(),
+    vue({
+      template: {
+        compilerOptions: {
+          isCustomElement: tag => tag.includes('-'),
+        },
+      },
+    }),
     vueDevTools(),
     tailwindcss(),
     AutoImport({

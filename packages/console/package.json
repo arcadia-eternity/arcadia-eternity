@@ -25,11 +25,11 @@
     "i18next": "^24.2.3",
     "i18next-chained-backend": "^4.6.2",
     "i18next-fs-backend": "^2.6.0",
-    "marked": "^15.0.7",
+    "marked": "^15.0.8",
     "marked-terminal": "^7.3.0"
   },
   "devDependencies": {
     "@types/marked-terminal": "^6.1.1",
-    "@types/node": "^22.13.16"
+    "@types/node": "^22.14.0"
   }
 }

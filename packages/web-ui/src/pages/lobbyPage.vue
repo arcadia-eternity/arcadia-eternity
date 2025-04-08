@@ -64,12 +64,13 @@ onMounted(() => {
   })
 })
 
-// 组件卸载时取消匹配
 onBeforeUnmount(async () => {
-  if (isMatching.value) {
-    await battleClient.cancelMatchmaking()
+  nextTick(() => {
+    if (isMatching.value) {
+      battleClient.cancelMatchmaking()
+    }
     errorMessage.value = null
-  }
+  })
 })
 </script>
 
