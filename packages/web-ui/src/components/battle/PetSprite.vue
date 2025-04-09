@@ -30,6 +30,27 @@ const scale = computed(() => {
   const scaleY = containerHeidht.value / baseHeight
   return Math.min(scaleX, scaleY)
 })
+
+const availableState = computed(() => {
+  return petRenderRef.value?.getAvailableStates() as ActionState[]
+})
+
+const setState = (state: ActionState) => {
+  petRenderRef.value?.setState(state)
+}
+
+const handleHitEvent = (event: { detail: any }) => {
+  console.log('受击:', event.detail)
+}
+
+const handleAnimationComplete = (event: { detail: any }) => {
+  console.log('播放完毕:', event.detail)
+}
+
+defineExpose({
+  setState,
+  availableState,
+})
 </script>
 <template>
   <div ref="petSpriteRef" class="w-full h-full overflow-visible">
@@ -42,6 +63,8 @@ const scale = computed(() => {
       :scaleY="scale"
       salign="TL"
       :offsetX="300"
+      @hit="handleHitEvent"
+      @animationComplete="handleAnimationComplete"
     />
   </div>
 </template>

@@ -57,7 +57,7 @@ export class Effect<T extends EffectTrigger> implements Prototype {
     public readonly apply: ((context: EffectContext<T>) => void) | ((context: EffectContext<T>) => void)[],
     public readonly priority: number,
     public readonly condition?: (context: EffectContext<T>) => boolean,
-    public readonly consumesStacks?: number, // 新增可选消耗层数配置
+    public readonly consumesStacks?: number,
   ) {}
 
   public innerApply(context: EffectContext<T>) {
