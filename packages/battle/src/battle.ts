@@ -197,8 +197,6 @@ export class Battle extends Context implements MarkOwner {
   private performTurn(context: TurnContext): boolean {
     if (!this.playerA.selection || !this.playerB.selection) throw '有人还未选择好！'
 
-    const contexts: Context[] = []
-
     for (const selection of [this.playerA.selection, this.playerB.selection]) {
       const player = this.getPlayerByID(selection.player)
       switch (selection.type) {
@@ -206,13 +204,13 @@ export class Battle extends Context implements MarkOwner {
           const skill = this.getSkillByID(selection.skill)
           const skillContext = new UseSkillContext(context, player, player.activePet, skill.target, skill)
           this.battle.applyEffects(skillContext, EffectTrigger.BeforeSort)
-          contexts.push(skillContext)
+          context.contexts.push(skillContext)
           break
         }
         case 'switch-pet': {
           const pet = this.getPetByID(selection.pet)
           const switchContext = new SwitchPetContext(context, player, pet)
-          contexts.push(switchContext)
+          context.contexts.push(switchContext)
           break
         }
         case 'do-nothing':
@@ -230,7 +228,7 @@ export class Battle extends Context implements MarkOwner {
           throw '未知的context'
       }
     }
-    contexts.sort(this.contextSort)
+    context.contexts.sort(this.contextSort)
 
     this.currentTurn++
 
@@ -240,8 +238,8 @@ export class Battle extends Context implements MarkOwner {
 
     this.applyEffects(context, EffectTrigger.TurnStart)
 
-    while (contexts.length > 0) {
-      const nowContext = contexts.pop()
+    while (context.contexts.length > 0) {
+      const nowContext = context.contexts.pop()
       if (!nowContext) break
       switch (nowContext.type) {
         case 'use-skill': {

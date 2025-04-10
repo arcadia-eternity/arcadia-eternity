@@ -39,6 +39,7 @@ export type AllContext =
 export class TurnContext extends Context {
   readonly type = 'turn'
   public readonly battle: Battle
+  public readonly contexts: Context[] = []
   constructor(public readonly parent: Battle) {
     super(parent)
     this.battle = parent.battle
