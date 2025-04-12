@@ -59,7 +59,7 @@ export class UseSkillContext extends Context {
   petAccurancy: number = 100
   targetAccurancy: number = 100
   rage: number = 0
-  evasion: number = 100
+  evasion: number = 0
   critRate: number = 0.07
   ignoreShield = false
 
@@ -138,7 +138,9 @@ export class UseSkillContext extends Context {
   updateHitResult() {
     if (this.hitOverrides.length > 0)
       this.hitResult = this.hitOverrides.reduce((a, b) => (a.priority > b.priority ? a : b)).willHit
-    else this.hitResult = this.battle!.random() > (this.accuracy * this.petAccurancy) / this.evasion / 100
+    else
+      this.hitResult =
+        this.battle!.random() > (this.accuracy / 100) * (this.petAccurancy / 100) * (1 - this.evasion / 100)
   }
 
   updateCritResult() {

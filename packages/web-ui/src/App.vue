@@ -18,6 +18,15 @@
         >
           队伍编辑
         </el-button>
+        <el-button
+          v-if="isDev"
+          type="success"
+          icon="MagicStick"
+          @click="router.push('/local-battle')"
+          :disabled="$route.path === '/local-battle'"
+        >
+          本地测试
+        </el-button>
         <el-button type="info" @click="showEditDialog = true">
           <el-icon><User /></el-icon>
           {{ player.name }}
@@ -82,6 +91,7 @@ const dataStore = useGameDataStore()
 const resourceStore = useResourceStore()
 const playerStore = usePlayerStore()
 const petStorage = usePetStorageStore()
+const isDev = import.meta.env.DEV
 
 // 连接状态
 const connectionState = computed(() => {

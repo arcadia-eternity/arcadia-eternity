@@ -226,7 +226,7 @@ export class Player {
 
       for (; context.multihitResult > 0; context.multihitResult--) {
         // 命中判定
-        if (context.hitResult) {
+        if (!context.hitResult) {
           this.battle!.emitMessage(BattleMessageType.SkillMiss, {
             user: context.pet.id,
             target: context.actualTarget.id,

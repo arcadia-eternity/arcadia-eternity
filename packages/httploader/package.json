@@ -1,0 +1,31 @@
+{
+  "name": "@test-battle/httploader",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YuuinIH/test_battle.git"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/src/index.d.ts",
+  "scripts": {
+    "build": "pnpm run build:code && pnpm run build:types",
+    "clean": "rm -rf dist",
+    "build:code": "esbuild index.ts --bundle --format=esm --outdir=dist --allow-overwrite --external:./node_modules/*",
+    "build:types": "tsc --emitDeclarationOnly"
+  },
+  "keywords": [],
+  "author": "yuuinih",
+  "license": "MIT",
+  "dependencies": {
+    "@test-battle/data-repository": "workspace:^",
+    "@test-battle/parser": "workspace:^",
+    "@test-battle/schema": "workspace:^",
+    "axios": "^1.8.4",
+    "yaml": "^2.7.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0"
+  }
+}

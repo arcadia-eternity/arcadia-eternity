@@ -267,6 +267,28 @@ importers:
         specifier: ^22.14.0
         version: 22.14.0
 
+  packages/httploader:
+    dependencies:
+      '@test-battle/data-repository':
+        specifier: workspace:^
+        version: link:../dataRepository
+      '@test-battle/parser':
+        specifier: workspace:^
+        version: link:../parser
+      '@test-battle/schema':
+        specifier: workspace:^
+        version: link:../schema
+      axios:
+        specifier: ^1.8.4
+        version: 1.8.4
+      yaml:
+        specifier: ^2.7.1
+        version: 2.7.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22.14.0
+        version: 22.14.0
+
   packages/interface:
     dependencies:
       '@test-battle/const':
@@ -416,6 +438,9 @@ importers:
       '@test-battle/const':
         specifier: workspace:^
         version: link:../const
+      '@test-battle/httploader':
+        specifier: workspace:^
+        version: link:../httploader
       '@test-battle/interface':
         specifier: workspace:^
         version: link:../interface

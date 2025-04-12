@@ -46,7 +46,7 @@ const handleMatchmaking = async () => {
     } else {
       await battleClient.joinMatchmaking(playerStore.player)
       battleClient.once('matchSuccess', async () => {
-        battleStore.initBattle(new RemoteBattleSystem(battleClient as BattleClient), playerStore.player.id)
+        await battleStore.initBattle(new RemoteBattleSystem(battleClient as BattleClient), playerStore.player.id)
         router.push({
           path: '/battle',
           query: { roomId: battleClient.currentState.roomId },

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import LobbyView from '../pages/lobbyPage.vue'
 import BattleView from '../pages/battlePage.vue'
+import LocalBattlePage from '../pages/localBattlePage.vue'
 import DataEditor from '../pages/dataEditor.vue'
 import EffectGraphEditor from '@/pages/EffectGraphEditor.vue'
 
@@ -21,7 +22,16 @@ const devOnlyRoutes: RouteRecordRaw[] = [
     path: '/effect-editor',
     name: 'EffectGraphEditor',
     component: EffectGraphEditor,
-    props: true, // 直接接收DSL数据
+    props: true,
+  },
+  {
+    path: '/local-battle',
+    name: 'LocalBattle',
+    component: LocalBattlePage,
+    meta: {
+      title: '本地对战测试',
+      devOnly: true,
+    },
   },
 ]
 

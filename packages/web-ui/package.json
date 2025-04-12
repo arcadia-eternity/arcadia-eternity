@@ -28,6 +28,7 @@
     "@tailwindcss/vite": "^4.1.3",
     "@test-battle/client": "workspace:^",
     "@test-battle/const": "workspace:^",
+    "@test-battle/httploader": "workspace:^",
     "@test-battle/interface": "workspace:^",
     "@test-battle/parser": "workspace:^",
     "@test-battle/protocol": "workspace:^",

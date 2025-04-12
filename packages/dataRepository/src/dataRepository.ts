@@ -3,10 +3,10 @@ import { EffectTrigger, type baseMarkId, type baseSkillId, type effectId, type s
 
 export class DataRepository {
   private static instance: DataRepository
-  private species = new Map<string, Species>()
-  private skills = new Map<string, BaseSkill>()
-  private marks = new Map<string, BaseMark>()
-  private effects = new Map<string, Effect<EffectTrigger>>()
+  public species = new Map<string, Species>()
+  public skills = new Map<string, BaseSkill>()
+  public marks = new Map<string, BaseMark>()
+  public effects = new Map<string, Effect<EffectTrigger>>()
 
   static getInstance() {
     if (!DataRepository.instance) {

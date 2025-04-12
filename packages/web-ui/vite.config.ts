@@ -30,7 +30,7 @@ export default defineConfig({
     vue({
       template: {
         compilerOptions: {
-          isCustomElement: tag => ["pet-render"].includes(tag),
+          isCustomElement: tag => ['pet-render'].includes(tag),
         },
       },
     }),
@@ -57,7 +57,14 @@ export default defineConfig({
               const relativePath = path.relative(path.resolve(__dirname, baseDir), fullPath)
               return relativePath.replace(/\.yaml$/, '.json').replace(/\\/g, '/')
             },
-            transform: (content: string) => JSON.stringify(yaml.parse(content), null, 2),
+            transform: (content: string) =>
+              JSON.stringify(
+                yaml.parse(content, {
+                  merge: true,
+                }),
+                null,
+                2,
+              ),
           }
         }),
       ],
