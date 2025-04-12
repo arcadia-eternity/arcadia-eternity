@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { Subject, Observable } from 'rxjs'
 import {
   type BattleState,
   type BattleMessage,
@@ -8,7 +9,6 @@ import {
   type PlayerSelection,
 } from '@test-battle/const'
 import type { IBattleSystem } from '@test-battle/interface'
-import { number } from 'zod'
 
 export const useBattleStore = defineStore('battle', {
   state: () => ({
@@ -21,6 +21,9 @@ export const useBattleStore = defineStore('battle', {
     isBattleEnd: false,
     victor: '' as string | null,
     playerId: '',
+    // RxJS相关状态
+    _messageSubject: new Subject<BattleMessage>(),
+    message$: null as unknown as Observable<BattleMessage>,
   }),
 
   actions: {
@@ -31,7 +34,13 @@ export const useBattleStore = defineStore('battle', {
       this.isBattleEnd = false
       this.victor = null
       this.errorMessage = null
-      this.battleInterface.BattleEvent(this.handleBattleMessage)
+      // 初始化RxJS流
+      this._messageSubject = new Subject<BattleMessage>()
+      this.message$ = this._messageSubject.asObservable()
+      this.battleInterface.BattleEvent(msg => {
+        this.handleBattleMessage(msg)
+        this._messageSubject.next(msg)
+      })
       this.availableActions = await this.fetchAvailableSelection()
       this.log = [] as BattleMessage[]
     },
@@ -92,6 +101,8 @@ export const useBattleStore = defineStore('battle', {
       this.state = null
       this.log = []
       this.availableActions = []
+      // 清理RxJS资源
+      this._messageSubject.complete()
     },
 
     getPetById(petId: petId) {

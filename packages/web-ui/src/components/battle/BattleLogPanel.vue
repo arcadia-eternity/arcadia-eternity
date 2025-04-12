@@ -118,7 +118,7 @@ function formatBattleMessage(
     case BattleMessageType.SkillUse:
       content = `${getPetName(msg.data.user, petMap || new Map())} 使用 ${
         skillMap ? getSkillName(skillMap.get(msg.data.skill)?.baseId || '') : msg.data.skill
-      } (消耗${msg.data.rageCost}怒气) → ${getPetName(msg.data.target, petMap || new Map())}`
+      } (消耗${msg.data.rage}怒气) → ${getPetName(msg.data.target, petMap || new Map())}`
       break
     case BattleMessageType.Damage: {
       const data = msg.data as {

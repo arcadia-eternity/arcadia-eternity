@@ -109,7 +109,7 @@ export const MultipleMessages: Story = {
               user: 'pet_001' as petId,
               target: AttackTargetOpinion.opponent,
               skill: 'skill_001' as skillId,
-              rageCost: 30,
+              rage: 30,
             },
           },
           {

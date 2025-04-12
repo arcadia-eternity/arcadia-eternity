@@ -176,7 +176,11 @@ export class ConsoleUIV2 {
         break
 
       case BattleMessageType.TurnStart:
-        console.log(`\n=== 第 ${message.data.round} 回合 ===`)
+        console.log(`\n=== 第 ${message.data.turn} 回合 ===`)
+        break
+
+      case BattleMessageType.TurnEnd:
+        console.log(`=== 第 ${message.data.turn} 回合结束 ===`)
         break
 
       case BattleMessageType.RageChange: {
@@ -190,7 +194,7 @@ export class ConsoleUIV2 {
         const d = message.data
         const userName = this.getPetNameById(d.user)
         const targetName = this.getPetNameById(d.target)
-        console.log(`🎯 ${userName} 使用 ${this.getSkillNameById(d.skill)}（消耗${d.rageCost}怒气） → ${targetName}`)
+        console.log(`🎯 ${userName} 使用 ${this.getSkillNameById(d.skill)}（消耗${d.rage}怒气） → ${targetName}`)
         break
       }
 
@@ -200,6 +204,13 @@ export class ConsoleUIV2 {
         console.log(
           `❌ ${userName} 的 ${this.getSkillNameById(d.skill)} 未命中！ (${this.translateMissReason(d.reason)})`,
         )
+        break
+      }
+
+      case BattleMessageType.SkillUseEnd: {
+        const d = message.data
+        const userName = this.getPetNameById(d.user)
+        console.log(`✅ ${userName} 使用技能结束`)
         break
       }
 

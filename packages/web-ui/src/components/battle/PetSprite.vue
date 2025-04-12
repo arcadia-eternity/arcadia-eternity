@@ -36,15 +36,22 @@ const availableState = computed(() => {
 })
 
 const setState = (state: ActionState) => {
+  console.log(props.reverse, state)
   petRenderRef.value?.setState(state)
 }
 
+const emit = defineEmits<{
+  hit: [detail: any]
+  animateComplete: [detail: any]
+}>()
+
 const handleHitEvent = (event: { detail: any }) => {
-  console.log('受击:', event.detail)
+  emit('hit', event.detail)
 }
 
 const handleAnimationComplete = (event: { detail: any }) => {
   console.log('播放完毕:', event.detail)
+  emit('animateComplete', event.detail)
 }
 
 defineExpose({

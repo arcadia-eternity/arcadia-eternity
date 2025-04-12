@@ -79,6 +79,7 @@ export enum BattleMessageType {
   // 战斗流程
   BattleStart = 'BATTLE_START',
   TurnStart = 'TURN_START',
+  TurnEnd = 'TURN_END',
   BattleEnd = 'BATTLE_END',
 
   // 精灵相关
@@ -95,6 +96,7 @@ export enum BattleMessageType {
   SkillUse = 'SKILL_USE',
   SkillUseFail = 'SKILL_USE_FAIL',
   SkillMiss = 'SKILL_MISS',
+  SkillUseEnd = 'SKILL_USE_END',
 
   // 战斗事件
   Damage = 'DAMAGE',
@@ -124,7 +126,8 @@ export enum BattleMessageType {
 export type BattleMessage =
   | BattleStateMessage
   | BattleStartMessage
-  | RoundStartMessage
+  | TurnStartMessage
+  | TurnEndMessage
   | BattleEndMessage
   | PetSwitchMessage
   | PetDefeatedMessage
@@ -135,6 +138,7 @@ export type BattleMessage =
   | SkillUseMessage
   | SkillUseFailMessage
   | SkillMissMessage
+  | SkillUseEndMessage
   | DamageMessage
   | DamageFailMessage
   | HealMessage
@@ -167,7 +171,10 @@ export interface BattleMessageData {
     playerB: PlayerMessage
   }
   [BattleMessageType.TurnStart]: {
-    round: number
+    turn: number
+  }
+  [BattleMessageType.TurnEnd]: {
+    turn: number
   }
   [BattleMessageType.BattleEnd]: {
     winner: playerId | null
@@ -213,7 +220,7 @@ export interface BattleMessageData {
     user: petId
     target: AttackTargetOpinion
     skill: skillId
-    rageCost: number
+    rage: number
   }
   [BattleMessageType.SkillUseFail]: {
     user: petId
@@ -226,6 +233,7 @@ export interface BattleMessageData {
     skill: skillId
     reason: 'accuracy' | 'dodge' | 'immune'
   }
+  [BattleMessageType.SkillUseEnd]: { user: petId }
   [BattleMessageType.Damage]: {
     maxHp: number
     currentHp: number
@@ -302,7 +310,8 @@ export interface BattleMessageData {
 // 具体消息类型定义
 export type BattleStateMessage = BaseBattleMessage<BattleMessageType.BattleState>
 export type BattleStartMessage = BaseBattleMessage<BattleMessageType.BattleStart>
-export type RoundStartMessage = BaseBattleMessage<BattleMessageType.TurnStart>
+export type TurnStartMessage = BaseBattleMessage<BattleMessageType.TurnStart>
+export type TurnEndMessage = BaseBattleMessage<BattleMessageType.TurnEnd>
 export type BattleEndMessage = BaseBattleMessage<BattleMessageType.BattleEnd>
 export type PetSwitchMessage = BaseBattleMessage<BattleMessageType.PetSwitch>
 export type PetDefeatedMessage = BaseBattleMessage<BattleMessageType.PetDefeated>
@@ -313,6 +322,7 @@ export type HpChangeMessage = BaseBattleMessage<BattleMessageType.HpChange>
 export type SkillUseMessage = BaseBattleMessage<BattleMessageType.SkillUse>
 export type SkillUseFailMessage = BaseBattleMessage<BattleMessageType.SkillUseFail>
 export type SkillMissMessage = BaseBattleMessage<BattleMessageType.SkillMiss>
+export type SkillUseEndMessage = BaseBattleMessage<BattleMessageType.SkillUseEnd>
 export type DamageMessage = BaseBattleMessage<BattleMessageType.Damage>
 export type DamageFailMessage = BaseBattleMessage<BattleMessageType.DamageFail>
 export type HealMessage = BaseBattleMessage<BattleMessageType.Heal>

@@ -90,6 +90,8 @@ export class UseSkillContext extends Context {
   baseDamage: number = 0
   randomFactor: number = 1
 
+  defeated: boolean = false
+
   constructor(
     public readonly parent: TurnContext,
     public origin: Player,

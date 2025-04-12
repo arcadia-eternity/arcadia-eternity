@@ -20,6 +20,7 @@ export class EffectScheduler {
 
     // 按优先级降序排序（数值越大优先级越高）
     // TODO:应该还有一些不稳定的边界情况
+    // TODO:在处理嵌套的effect效果的时候似乎有一些问题
     this.globalEffectQueue.sort((a, b) => b.effect.priority - a.effect.priority)
   }
 

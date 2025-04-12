@@ -233,43 +233,48 @@ export class Battle extends Context implements MarkOwner {
     this.currentTurn++
 
     this.emitMessage(BattleMessageType.TurnStart, {
-      round: this.currentTurn,
+      turn: this.currentTurn,
     })
+    try {
+      this.applyEffects(context, EffectTrigger.TurnStart)
 
-    this.applyEffects(context, EffectTrigger.TurnStart)
-
-    while (context.contexts.length > 0) {
-      const nowContext = context.contexts.pop()
-      if (!nowContext) break
-      switch (nowContext.type) {
-        case 'use-skill': {
-          const _context = nowContext as UseSkillContext
-          _context.origin.performAttack(_context)
-          break
+      while (context.contexts.length > 0) {
+        const nowContext = context.contexts.pop()
+        if (!nowContext) break
+        switch (nowContext.type) {
+          case 'use-skill': {
+            const _context = nowContext as UseSkillContext
+            _context.origin.performAttack(_context)
+            break
+          }
+          case 'switch-pet': {
+            const _context = nowContext as SwitchPetContext
+            _context.origin.performSwitchPet(_context)
+            break
+          }
         }
-        case 'switch-pet': {
-          const _context = nowContext as SwitchPetContext
-          _context.origin.performSwitchPet(_context)
-          break
-        }
+        this.cleanupMarks()
+        this.emitMessage(BattleMessageType.BattleState, this.toMessage())
       }
+
+      this.applyEffects(context, EffectTrigger.TurnEnd)
+      this.addTurnRage(context) // 每回合结束获得怒气
+      this.updateTurnMark(context)
       this.cleanupMarks()
+
       this.emitMessage(BattleMessageType.BattleState, this.toMessage())
+
+      // 战斗结束后重置状态
+      if (this.isBattleEnded()) {
+        return true
+      }
+
+      return false
+    } finally {
+      this.emitMessage(BattleMessageType.TurnEnd, {
+        turn: this.currentTurn,
+      })
     }
-
-    this.applyEffects(context, EffectTrigger.TurnEnd)
-    this.addTurnRage(context) // 每回合结束获得怒气
-    this.updateTurnMark(context)
-    this.cleanupMarks()
-
-    this.emitMessage(BattleMessageType.BattleState, this.toMessage())
-
-    // 战斗结束后重置状态
-    if (this.isBattleEnded()) {
-      return true
-    }
-
-    return false
   }
 
   private isBattleEnded(): boolean {

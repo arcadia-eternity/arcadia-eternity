@@ -109,7 +109,7 @@ export class Player {
       }))
   }
 
-  //TODO: 对于印记禁用的限制
+  //TODO: 某个印记效果导致的禁用限制
   private checkSkillsActionAvailable(selection: UseSkillSelection) {
     if (selection.type !== 'use-skill') {
       throw new Error("Invalid action type. Expected 'use-skill'.")
@@ -197,7 +197,7 @@ export class Player {
         skill: context.skill.id,
         reason: !context.pet.isAlive ? 'faint' : !context.actualTarget ? 'invalid_target' : 'disabled',
       })
-      return false
+      return context.defeated
     }
     if (context.origin.currentRage < context.rage) {
       // 怒气检查
@@ -206,67 +206,68 @@ export class Player {
         skill: context.skill.id,
         reason: 'no_rage',
       })
-      return false
+      return context.defeated
     }
 
     this.battle!.emitMessage(BattleMessageType.SkillUse, {
       user: context.pet.id,
       target: context.selectTarget,
       skill: context.skill.id,
-      rageCost: context.rage,
+      rage: context.rage,
     })
+    try {
+      context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.skill.rage))
 
-    context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.skill.rage))
+      context.updateHitResult()
+      context.updateMultihitResult()
+      context.updateCritResult()
 
-    context.updateHitResult()
-    context.updateMultihitResult()
-    context.updateCritResult()
+      this.battle!.applyEffects(context, EffectTrigger.AfterUseSkillCheck)
 
-    this.battle!.applyEffects(context, EffectTrigger.AfterUseSkillCheck)
+      for (; context.multihitResult > 0; context.multihitResult--) {
+        // 命中判定
+        if (context.hitResult) {
+          this.battle!.emitMessage(BattleMessageType.SkillMiss, {
+            user: context.pet.id,
+            target: context.actualTarget.id,
+            skill: context.skill.id,
+            reason: 'accuracy',
+          })
+          this.battle!.applyEffects(context, EffectTrigger.OnMiss)
+          // 后面都会Miss，没必要继续检定了
+          break
+        } else {
+          this.battle!.applyEffects(context, EffectTrigger.BeforeHit)
 
-    for (; context.multihitResult > 0; context.multihitResult--) {
-      // 命中判定
-      if (context.hitResult) {
-        this.battle!.emitMessage(BattleMessageType.SkillMiss, {
-          user: context.pet.id,
-          target: context.actualTarget.id,
-          skill: context.skill.id,
-          reason: 'accuracy',
-        })
-        this.battle!.applyEffects(context, EffectTrigger.OnMiss)
-        // 后面都会Miss，没必要继续检定了
-        break
-      } else {
-        this.battle!.applyEffects(context, EffectTrigger.BeforeHit)
+          //开始计算伤害
+          if (context.category !== Category.Status) {
+            context.updateDamageResult()
 
-        //开始计算伤害
-        if (context.category !== Category.Status) {
-          context.updateDamageResult()
+            if (context.crit) this.battle!.applyEffects(context, EffectTrigger.OnCritPreDamage)
+            this.battle!.applyEffects(context, EffectTrigger.PreDamage)
 
-          if (context.crit) this.battle!.applyEffects(context, EffectTrigger.OnCritPreDamage)
-          this.battle!.applyEffects(context, EffectTrigger.PreDamage)
+            const damageContext = new DamageContext(
+              context,
+              context.pet,
+              context.actualTarget,
+              context.baseDamage,
+              context.damageType,
+              context.crit,
+              context.typeMultiplier,
+              context.ignoreShield,
+              context.randomFactor,
+            )
+            // 应用伤害
+            context.actualTarget.damage(damageContext)
 
-          const damageContext = new DamageContext(
-            context,
-            context.pet,
-            context.actualTarget,
-            context.baseDamage,
-            context.damageType,
-            context.crit,
-            context.typeMultiplier,
-            context.ignoreShield,
-            context.randomFactor,
-          )
-          // 应用伤害
-          context.actualTarget.damage(damageContext)
-
-          // 受伤者获得怒气
-          const gainedRage = Math.floor((damageContext.damageResult * 49) / context.actualTarget.maxHp)
-          context.actualTarget.owner!.addRage(
-            new RageContext(context, context.actualTarget.owner!, 'damage', 'add', gainedRage),
-          )
+            // 受伤者获得怒气
+            const gainedRage = Math.floor((damageContext.damageResult * 49) / context.actualTarget.maxHp)
+            context.actualTarget.owner!.addRage(
+              new RageContext(context, context.actualTarget.owner!, 'damage', 'add', gainedRage),
+            )
+          }
+          this.battle!.applyEffects(context, EffectTrigger.OnHit) // 触发命中特效
         }
-        this.battle!.applyEffects(context, EffectTrigger.OnHit) // 触发命中特效
       }
 
       if (context.category !== Category.Status && context.hitResult) {
@@ -282,11 +283,14 @@ export class Player {
         this.battle!.applyEffects(context, EffectTrigger.OnDefeat) // 触发击败特效
 
         this.battle!.lastKiller = context.origin
-        return true
+        context.defeated = true
       }
+      return context.defeated
+    } finally {
+      this.battle!.emitMessage(BattleMessageType.SkillUseEnd, {
+        user: context.pet.id,
+      })
     }
-
-    return false
   }
 
   public settingRage(value: number) {

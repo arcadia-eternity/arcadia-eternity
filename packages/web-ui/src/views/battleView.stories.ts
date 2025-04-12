@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3'
 import BattleView from './battle.vue'
 import { Element, Category, AttackTargetOpinion } from '@test-battle/const'
 import type { markId, speciesId, baseMarkId, baseSkillId, petId, skillId, playerId } from '@test-battle/const'
-import { ref, type ComponentPublicInstance } from 'vue'
+import { ref, useTemplateRef, type ComponentPublicInstance } from 'vue'
 
 const meta: Meta<typeof BattleView> = {
   title: 'Views/BattleView',
@@ -145,6 +145,142 @@ export const Default: Story = {
       activePet: basePet(Element.Water),
     },
   },
+}
+
+export const SkillAnimations: Story = {
+  args: {
+    ...defaultArgs,
+    leftPlayer: {
+      ...basePlayer('left'),
+      activePet: basePet(Element.Fire),
+    },
+    rightPlayer: {
+      ...basePlayer('right'),
+      activePet: basePet(Element.Water),
+    },
+  },
+  render: args => ({
+    components: { BattleView },
+    setup() {
+      const battleView = useTemplateRef('battleView')
+      const skillType = ref<Category>(Category.Physical)
+      const damageValue = ref(50)
+      const isCritical = ref(false)
+      const effectiveness = ref<'up' | 'normal' | 'down'>('normal')
+      const targetSide = ref<'left' | 'right'>('right')
+
+      const triggerAnimation = async () => {
+        try {
+          await (battleView.value as any)?.useSkillAnimate(
+            'skill_demo',
+            skillType.value,
+            [
+              {
+                type: 'damage',
+                targetSide: targetSide.value,
+                value: damageValue.value,
+                effectiveness: effectiveness.value,
+                crit: isCritical.value,
+              },
+            ],
+            'left',
+          )
+        } catch (err) {
+          console.error('动画错误:', err)
+        }
+      }
+
+      const triggerErrorState = async () => {
+        try {
+          // 故意传入无效的state参数
+          await (battleView.value as any)?.useSkillAnimate(
+            'invalid_skill',
+            Category.Physical,
+            [],
+            'left',
+            'INVALID_STATE' as any,
+          )
+        } catch (err) {
+          alert(`错误捕获: ${err instanceof Error ? err.message : '未知错误类型'}`)
+        }
+      }
+
+      return {
+        args,
+        battleView,
+        skillType,
+        damageValue,
+        isCritical,
+        effectiveness,
+        targetSide,
+        triggerAnimation,
+        triggerErrorState,
+      }
+    },
+    template: `
+      <div class="relative">
+        <BattleView
+          ref="battleView"
+          v-bind="args"
+        />
+        <div class="fixed bottom-4 left-4 flex flex-col gap-2 p-4 bg-gray-800/80 rounded-lg">
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <label class="text-white">技能类型:</label>
+              <select v-model="skillType" class="p-2 rounded">
+                <option value="Physical">物理攻击</option>
+                <option value="Special">特殊攻击</option>
+                <option value="Status">状态技能</option>
+                <option value="Climax">必杀技</option>
+              </select>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-white">目标方向:</label>
+              <select v-model="targetSide" class="p-2 rounded">
+                <option value="left">左侧</option>
+                <option value="right">右侧</option>
+              </select>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-white">伤害值:</label>
+              <input type="number" v-model.number="damageValue" class="p-2 rounded w-full">
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-white">效果强度:</label>
+              <select v-model="effectiveness" class="p-2 rounded">
+                <option value="up">强效</option>
+                <option value="normal">普通</option>
+                <option value="down">弱效</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input type="checkbox" v-model="isCritical" id="criticalCheck">
+              <label for="criticalCheck" class="text-white">暴击</label>
+            </div>
+          </div>
+
+          <div class="flex gap-2">
+            <button
+              @click="triggerAnimation"
+              class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            >
+              触发技能动画
+            </button>
+            <button
+              @click="triggerErrorState"
+              class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            >
+              测试错误状态
+            </button>
+          </div>
+        </div>
+      </div>
+    `,
+  }),
 }
 
 export const DamageMessages: Story = {

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, h, ref, render, useTemplateRef } from 'vue'
-import BattleStatus from '@/components/battle/BattleStatus.vue'
-import Pet from '@/components/battle/Pet.vue'
-import SkillButton from '@/components/battle/SkillButton.vue'
-import Mark from '@/components/battle/Mark.vue'
 import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
-import { useElementBounding } from '@vueuse/core'
+import BattleStatus from '@/components/battle/BattleStatus.vue'
+import DamageDisplay from '@/components/battle/DamageDisplay.vue'
+import Mark from '@/components/battle/Mark.vue'
+import PetSprite from '@/components/battle/PetSprite.vue'
+import SkillButton from '@/components/battle/SkillButton.vue'
+import { useGameDataStore } from '@/stores/gameData'
 import {
   Category,
   type MarkMessage,
@@ -14,12 +14,12 @@ import {
   type skillId,
   type SkillMessage,
 } from '@test-battle/const'
-import { useGameDataStore } from '@/stores/gameData'
 import type { PlayerSelectionSchemaType } from '@test-battle/schema'
-import DamageDisplay from '@/components/battle/DamageDisplay.vue'
+import { useElementBounding } from '@vueuse/core'
 import gsap from 'gsap'
 import i18next from 'i18next'
-import PetSprite from '@/components/battle/PetSprite.vue'
+import { ActionState } from 'seer2-pet-animator'
+import { computed, h, ref, render, useTemplateRef } from 'vue'
 
 enum PanelState {
   SKILLS = 'skills',
@@ -86,6 +86,7 @@ const battleViewRef = ref<HTMLElement | null>(null)
 
 const showMissMessage = (side: 'left' | 'right') => {
   // 获取状态面板元素
+  console.log(side)
   const statusElement = side === 'left' ? leftStatusRef.value : rightStatusRef.value
   if (!statusElement) return
 
@@ -324,7 +325,7 @@ const showDamageMessage = (
   })
 }
 
-const showUseSkillMessage = (side: 'left' | 'right', skillId: string) => {
+const showUseSkillMessage = (side: 'left' | 'right', baseSkillId: string) => {
   // 获取BattleStatus的DOM元素
   const statusElement = side === 'left' ? leftStatusRef.value : rightStatusRef.value
   if (!statusElement) return
@@ -353,7 +354,7 @@ const showUseSkillMessage = (side: 'left' | 'right', skillId: string) => {
   box.style.padding = '15px 0'
   box.style.left = '0'
   box.style.width = `${width.value * 0.75}px` // petStatus的3/4宽
-  const skillName = i18next.t(`${skillId}`, { ns: 'skill' })
+  const skillName = i18next.t(`${baseSkillId}`, { ns: 'skill' })
   box.textContent = skillName
 
   container.appendChild(box)
@@ -394,12 +395,116 @@ const showUseSkillMessage = (side: 'left' | 'right', skillId: string) => {
   })
 }
 
-const useSkillAnimation = (skill: skillId, side: 'left' | 'right', category: Category) => {
-  const petElement = side === 'left' ? leftPetRef.value : rightPetRef.value
-  if (!petElement) return
+async function useSkillAnimate(
+  baseSkillId: string,
+  category: Category,
+  results: Array<{
+    type: 'damage' | 'miss' | 'heal'
+    targetSide: 'left' | 'right'
+    value?: number
+    effectiveness?: 'up' | 'normal' | 'down'
+    crit?: boolean
+  }>,
+  side: 'left' | 'right',
+  specialState?: ActionState,
+): Promise<void> {
+  const petSprites = {
+    left: leftPetRef.value!,
+    right: rightPetRef.value!,
+  }
+  // 参数校验
+  const stateMap = new Map<Category, ActionState>([
+    [Category.Physical, ActionState.ATK_PHY],
+    [Category.Special, ActionState.ATK_SPE],
+    [Category.Status, ActionState.ATK_BUF],
+    [
+      Category.Climax,
+      petSprites[side].availableState.includes(ActionState.ATK_POW) ? ActionState.ATK_POW : ActionState.ATK_PHY,
+    ],
+  ])
+
+  const state = specialState || stateMap.get(category) || ActionState.ATK_PHY
+
+  const source = petSprites[side]
+
+  if (!source) {
+    throw new Error('找不到精灵组件')
+  }
+
+  if (!source.availableState.includes(state)) {
+    throw new Error(`无效的动画状态: ${state}`)
+  }
+
+  showUseSkillMessage(side, baseSkillId)
+  source.$el.style.zIndex = 100
+
+  source.setState(state)
+  await new Promise<void>(resolve => {
+    const handler = () => {
+      resolve()
+    }
+    pendingHandle.value = handler
+  })
+  for (const result of results) {
+    const target = petSprites[result.targetSide]
+    switch (result.type) {
+      case 'miss':
+        target.setState(ActionState.MISS)
+        showMissMessage(result.targetSide)
+        break
+      case 'damage':
+        if (result.value === 0) {
+          target.setState(ActionState.MISS)
+          showAbsorbMessage(result.targetSide)
+          break
+        } else {
+          target.setState(result.crit ? ActionState.UNDER_ULTRA : ActionState.UNDER_ATK)
+          showDamageMessage(
+            result.targetSide,
+            result.value || 0,
+            result.effectiveness || 'normal',
+            result.crit || false,
+          )
+          break
+        }
+      case 'heal':
+        //TODO: heal
+        break
+    }
+  }
+  // 恢复默认z-index
+  await new Promise<void>(resolve => {
+    const handler = () => {
+      resolve()
+    }
+    pendingHandle.value = handler
+  })
+  source.$el.style.zIndex = ''
 }
 
-defineExpose({ showDamageMessage, showMissMessage, showAbsorbMessage, showUseSkillMessage })
+const pendingHandle = ref<Function | null>(null)
+
+const hitHandle = () => {
+  if (pendingHandle.value !== null) {
+    pendingHandle.value()
+    pendingHandle.value = null
+  }
+}
+
+const animationCompleteHandle = () => {
+  if (pendingHandle.value !== null) {
+    pendingHandle.value()
+    pendingHandle.value = null
+  }
+}
+
+defineExpose({
+  showDamageMessage,
+  showMissMessage,
+  showAbsorbMessage,
+  showUseSkillMessage,
+  useSkillAnimate,
+})
 </script>
 
 <template>
@@ -440,10 +545,23 @@ defineExpose({ showDamageMessage, showMissMessage, showAbsorbMessage, showUseSki
 
       <div class="flex-grow flex justify-around items-center relative">
         <div class="absolute h-full w-full">
-          <PetSprite ref="leftPetRef" :num="leftPetSpeciesNum" class="absolute" />
+          <PetSprite
+            ref="leftPetRef"
+            :num="leftPetSpeciesNum"
+            class="absolute"
+            @hit="hitHandle"
+            @animate-complete="animationCompleteHandle"
+          />
         </div>
         <div class="absolute h-full w-full">
-          <PetSprite ref="rightPetRef" :num="rightPetSpeciesNum" :reverse="true" class="absolute" />
+          <PetSprite
+            ref="rightPetRef"
+            :num="rightPetSpeciesNum"
+            :reverse="true"
+            class="absolute"
+            @hit="hitHandle"
+            @animate-complete="animationCompleteHandle"
+          />
         </div>
       </div>
 

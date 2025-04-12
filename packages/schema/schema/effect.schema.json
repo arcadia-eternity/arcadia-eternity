@@ -1359,6 +1359,9 @@
                           "inheritOnFaint": {
                             "type": "boolean",
                             "default": false
+                          },
+                          "mutexGroup": {
+                            "type": "string"
                           }
                         },
                         "additionalProperties": {}
