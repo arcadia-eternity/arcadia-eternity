@@ -105,7 +105,7 @@ export class Battle extends Context implements MarkOwner {
     const message: BattleMessage = {
       type,
       data,
-      timestamp: Date.now(),
+      sequenceId: Date.now(),
     } as BattleMessage
     this.messageCallbacks.forEach(cb => cb(message))
   }
