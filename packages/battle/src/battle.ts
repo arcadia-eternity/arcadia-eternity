@@ -190,7 +190,7 @@ export class Battle extends Context implements MarkOwner {
     effectContainers.forEach(container => container.collectEffects(trigger, context))
 
     // 阶段2：按全局优先级执行
-    this.effectScheduler.flushEffects()
+    this.effectScheduler.flushEffects(context)
   }
 
   // 执行对战回合

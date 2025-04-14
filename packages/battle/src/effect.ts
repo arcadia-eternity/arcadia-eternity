@@ -1,6 +1,6 @@
 import { EffectTrigger } from '@test-battle/const'
 import { BattleMessageType } from '@test-battle/const'
-import { Context, EffectContext } from './context'
+import { Context, EffectContext, type TriggerContextMap } from './context'
 import { type Prototype } from './entity'
 import type { effectId } from '@test-battle/const'
 import { MarkInstanceImpl } from './mark'
@@ -8,45 +8,62 @@ import { MarkInstanceImpl } from './mark'
 export class EffectScheduler {
   constructor() {}
 
-  // 全局效果队列（按优先级排序）
-  private globalEffectQueue: Array<{
-    effect: Effect<EffectTrigger>
-    context: EffectContext<EffectTrigger>
-  }> = []
+  private effectQueuesMap: WeakMap<
+    Context,
+    Array<{
+      effect: Effect<EffectTrigger>
+      context: EffectContext<EffectTrigger>
+    }>
+  > = new WeakMap()
+
+  // // 全局效果队列（按优先级排序）
+  // private globalEffectQueue: Array<{
+  //   effect: Effect<EffectTrigger>
+  //   context: EffectContext<EffectTrigger>
+  // }> = []
 
   // 添加效果到队列
   public addEffect(effect: Effect<EffectTrigger>, context: EffectContext<EffectTrigger>) {
-    this.globalEffectQueue.push({ effect, context })
+    if (!this.effectQueuesMap.has(context.parent)) this.effectQueuesMap.set(context.parent, [])
+    this.effectQueuesMap.get(context.parent)?.push({
+      effect,
+      context,
+    })
 
     // 按优先级降序排序（数值越大优先级越高）
     // TODO:应该还有一些不稳定的边界情况
-    // TODO:在处理嵌套的effect效果的时候似乎有一些问题
-    this.globalEffectQueue.sort((a, b) => b.effect.priority - a.effect.priority)
+    this.effectQueuesMap.get(context.parent)?.sort((a, b) => b.effect.priority - a.effect.priority)
   }
 
   // 执行所有已排序效果
-  public flushEffects() {
-    while (this.globalEffectQueue.length > 0) {
-      const { effect, context } = this.globalEffectQueue.shift()!
-      context.battle.applyEffects(context, EffectTrigger.BeforeEffect)
-      if (!context.available) {
-        context.battle!.emitMessage(BattleMessageType.EffectApplyFail, {
+  public flushEffects<T extends EffectTrigger>(parentContext: TriggerContextMap[T]) {
+    if (!this.effectQueuesMap.has(parentContext)) return
+    try {
+      const queue = this.effectQueuesMap.get(parentContext)!
+      while (queue.length > 0) {
+        const { effect, context } = queue.shift()!
+        context.battle.applyEffects(context, EffectTrigger.BeforeEffect)
+        if (!context.available) {
+          context.battle!.emitMessage(BattleMessageType.EffectApplyFail, {
+            source: context.source.id,
+            effect: effect.id,
+            reason: 'disabled',
+          })
+        }
+        context.battle!.emitMessage(BattleMessageType.EffectApply, {
           source: context.source.id,
           effect: effect.id,
-          reason: 'disabled',
         })
+        try {
+          effect.innerApply(context)
+        } catch (error) {
+          console.error(`[Effect Error] ${effect.id}:`, error)
+        } finally {
+          context.battle.applyEffects(context, EffectTrigger.AfterEffect)
+        }
       }
-      context.battle!.emitMessage(BattleMessageType.EffectApply, {
-        source: context.source.id,
-        effect: effect.id,
-      })
-      try {
-        effect.innerApply(context)
-      } catch (error) {
-        console.error(`[Effect Error] ${effect.id}:`, error)
-      } finally {
-        context.battle.applyEffects(context, EffectTrigger.AfterEffect)
-      }
+    } finally {
+      if (this.effectQueuesMap.has(parentContext)) this.effectQueuesMap.delete(parentContext)
     }
   }
 }
