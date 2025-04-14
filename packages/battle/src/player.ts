@@ -213,6 +213,7 @@ export class Player {
       user: context.pet.id,
       target: context.selectTarget,
       skill: context.skill.id,
+      baseSkill: context.skill.baseId,
       rage: context.rage,
     })
     try {

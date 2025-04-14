@@ -588,7 +588,7 @@ onMounted(() => {
 
               // 执行动画并等待
               await useSkillAnimate(
-                store.skillMap.get(skillUseMsg.data.skill)?.baseId || '',
+                skillUseMsg.data.baseSkill || '',
                 store.skillMap.get(skillUseMsg.data.skill)?.category || Category.Physical,
                 damages.map(dmg => ({
                   type: 'damage',

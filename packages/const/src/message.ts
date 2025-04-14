@@ -220,6 +220,7 @@ export interface BattleMessageData {
     user: petId
     target: AttackTargetOpinion
     skill: skillId
+    baseSkill: baseSkillId
     rage: number
   }
   [BattleMessageType.SkillUseFail]: {
