@@ -16,12 +16,6 @@ export class EffectScheduler {
     }>
   > = new WeakMap()
 
-  // // 全局效果队列（按优先级排序）
-  // private globalEffectQueue: Array<{
-  //   effect: Effect<EffectTrigger>
-  //   context: EffectContext<EffectTrigger>
-  // }> = []
-
   // 添加效果到队列
   public addEffect(effect: Effect<EffectTrigger>, context: EffectContext<EffectTrigger>) {
     if (!this.effectQueuesMap.has(context.parent)) this.effectQueuesMap.set(context.parent, [])
