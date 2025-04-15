@@ -1,4 +1,5 @@
 import {
+  type BaseBattleMessage,
   type BattleMessage,
   type BattleMessageData,
   BattleMessageType,
@@ -31,8 +32,14 @@ import { type MarkInstance, MarkSystem } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
 import { SkillInstance } from './skill'
+import * as jsondiffpatch from 'jsondiffpatch'
 
 export class Battle extends Context implements MarkOwner {
+  private lastStateMessage: BattleState = {} as BattleState
+
+  public allowFaintSwitch: boolean
+  public showHidden: boolean
+
   public readonly parent: null = null
   public readonly battle: Battle = this
   public readonly effectScheduler: EffectScheduler = new EffectScheduler()
@@ -45,7 +52,6 @@ export class Battle extends Context implements MarkOwner {
   public currentTurn = 0
   private messageCallbacks: Array<(message: BattleMessage) => void> = []
   public pendingDefeatedPlayers: Player[] = [] // 新增：需要在下回合换宠的玩家
-  public allowFaintSwitch: boolean
   public lastKiller?: Player
   public marks: MarkInstance[] = [] //用于存放天气一类的效果
   public victor?: Player
@@ -56,13 +62,14 @@ export class Battle extends Context implements MarkOwner {
   constructor(
     public readonly playerA: Player,
     public readonly playerB: Player,
-    options?: { allowFaintSwitch?: boolean; rngSeed?: number },
+    options?: { allowFaintSwitch?: boolean; rngSeed?: number; showHidden?: boolean },
     configSystem?: ConfigSystem,
   ) {
     super(null)
     if (options?.rngSeed) this.rng = new Prando(options.rngSeed)
     if (configSystem) this.configSystem = configSystem
     this.allowFaintSwitch = options?.allowFaintSwitch ?? true
+    this.showHidden = options?.showHidden ?? false
 
     this.playerA.registerBattle(this)
     this.playerB.registerBattle(this)
@@ -102,12 +109,14 @@ export class Battle extends Context implements MarkOwner {
 
   // 发送消息给所有回调
   public emitMessage<T extends BattleMessageType>(type: T, data: BattleMessageData[T]) {
-    const message: BattleMessage = {
+    const message: BaseBattleMessage<T> = {
       type,
       data,
       sequenceId: Date.now(),
-    } as BattleMessage
-    this.messageCallbacks.forEach(cb => cb(message))
+      stateDelta: jsondiffpatch.diff(this.lastStateMessage, this.toMessage()),
+    }
+    this.lastStateMessage = this.toMessage()
+    this.messageCallbacks.forEach(cb => cb(jsondiffpatch.clone(message) as BattleMessage))
   }
 
   public addMark(context: AddMarkContext) {
@@ -254,15 +263,12 @@ export class Battle extends Context implements MarkOwner {
           }
         }
         this.cleanupMarks()
-        this.emitMessage(BattleMessageType.BattleState, this.toMessage())
       }
 
       this.applyEffects(context, EffectTrigger.TurnEnd)
       this.addTurnRage(context) // 每回合结束获得怒气
       this.updateTurnMark(context)
       this.cleanupMarks()
-
-      this.emitMessage(BattleMessageType.BattleState, this.toMessage())
 
       // 战斗结束后重置状态
       if (this.isBattleEnded()) {
@@ -359,7 +365,6 @@ export class Battle extends Context implements MarkOwner {
       playerA: this.playerA.toMessage(),
       playerB: this.playerB.toMessage(),
     })
-    this.emitMessage(BattleMessageType.BattleState, this.toMessage())
 
     turnLoop: while (true) {
       // 阶段1：处理强制换宠
@@ -402,7 +407,6 @@ export class Battle extends Context implements MarkOwner {
           const switchContext = new SwitchPetContext(this, this.lastKiller, selectionPet)
           // 执行换宠并触发相关效果
           this.lastKiller.performSwitchPet(switchContext)
-          this.emitMessage(BattleMessageType.BattleState, this.toMessage())
 
           // 立即检查新宠物状态
           if (!this.lastKiller.activePet.isAlive) {
@@ -491,6 +495,7 @@ export class Battle extends Context implements MarkOwner {
   }
 
   toMessage(viewerId?: playerId, showHidden = false): BattleState {
+    showHidden = showHidden || this.showHidden
     return {
       status: this.status,
       currentPhase: this.currentPhase,

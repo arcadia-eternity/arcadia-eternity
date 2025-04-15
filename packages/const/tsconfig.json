@@ -4,6 +4,7 @@
     "composite": true,
     "lib": ["ESNext"],
     "module": "ESNext",
+    "moduleResolution": "bundler",
     "outDir": "./dist/",
     "verbatimModuleSyntax": true,
     "declaration": true,

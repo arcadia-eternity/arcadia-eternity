@@ -15,7 +15,6 @@ export const useBattleStore = defineStore('battle', {
     battleInterface: null as IBattleSystem | null,
     state: null as BattleState | null,
     log: [] as BattleMessage[],
-    renderIndex: -1 as number,
     availableActions: [] as PlayerSelection[],
     errorMessage: null as string | null,
     isBattleEnd: false,
@@ -57,12 +56,10 @@ export const useBattleStore = defineStore('battle', {
     // 新增战斗事件处理器
     async handleBattleMessage(msg: BattleMessage) {
       this.log.push(msg)
+      if (!this.state) this.state = {} as BattleState
+      jsondiffpatch.patch(this.state, msg.stateDelta)
 
       switch (msg.type) {
-        case BattleMessageType.BattleState:
-          this.state = msg.data
-          break
-
         case BattleMessageType.TurnAction:
           if (msg.data.player.includes(this.playerId as playerId)) {
             this.availableActions = await this.fetchAvailableSelection()

@@ -469,21 +469,18 @@ export class BattleServer {
     const player2 = this.initializePlayer(p2)
     const battle = new Battle(player1.playerData, player2.playerData)
 
-    battle.registerListener(message => {
-      message.sequenceId = Date.now()
-      switch (message.type) {
-        case BattleMessageType.BattleState:
-          p1.emit('battleEvent', { ...message, data: battle.getState(player1.playerData.id, false) })
-          p2.emit('battleEvent', { ...message, data: battle.getState(player2.playerData.id, false) })
-          break
-        case BattleMessageType.BattleEnd:
-          this.io.to(roomId).emit('battleEvent', message)
-          this.cleanupRoom(roomId)
-          break
-        default:
-          this.io.to(roomId).emit('battleEvent', message)
-          break
-      }
+    ;[player1, player2].forEach(p => {
+      p.playerData.registerListener(message => {
+        switch (message.type) {
+          case BattleMessageType.BattleEnd:
+            this.io.to(roomId).emit('battleEvent', message)
+            this.cleanupRoom(roomId)
+            break
+          default:
+            this.io.to(roomId).emit('battleEvent', message)
+            break
+        }
+      })
     })
 
     this.rooms.set(roomId, {

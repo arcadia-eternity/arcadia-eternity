@@ -15,8 +15,11 @@ import {
 import { Battle } from './battle'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { Pet } from './pet'
+import * as jsondiffpatch from 'jsondiffpatch'
 
 export class Player {
+  private lastState: BattleState = {} as BattleState
+  private lastStateMessage: BattleState = {} as BattleState
   public currentRage: number = 20
   public battle?: Battle
   public owner?: Battle
@@ -48,9 +51,11 @@ export class Player {
   }
 
   public handleMessage(message: BattleMessage) {
-    if (message.type === BattleMessageType.BattleState) {
-      message.data.players[message.data.players.findIndex(p => p.id === this.id)] = this.toMessage(this.id)
-    }
+    jsondiffpatch.patch(this.lastState, message.stateDelta)
+    const newMessage = (this.lastState!.players[this.lastState!.players.findIndex(p => p.id === this.id)] =
+      this.toMessage(this.id))
+    message.stateDelta = jsondiffpatch.diff(this.lastStateMessage, newMessage)
+    this.lastStateMessage = this.lastState
     this.emitMessage(message)
   }
 
@@ -288,6 +293,7 @@ export class Player {
       }
       return context.defeated
     } finally {
+      this.battle?.cleanupMarks()
       this.battle!.emitMessage(BattleMessageType.SkillUseEnd, {
         user: context.pet.id,
       })

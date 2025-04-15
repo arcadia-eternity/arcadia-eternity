@@ -18,11 +18,11 @@ import readline from 'readline'
 import type { IBattleSystem } from '@test-battle/interface'
 import i18next from 'i18next'
 import { marked } from 'marked'
-import TerminalRenderer, { markedTerminal, type TerminalRendererOptions } from 'marked-terminal'
-
+import TerminalRenderer from 'marked-terminal'
+import * as jsondiffpatch from 'jsondiffpatch'
 export class ConsoleUIV2 {
   private messages: BattleMessage[] = []
-  public battleState?: BattleState
+  public battleState: BattleState = {} as BattleState
   public currentPlayer: playerId[]
 
   constructor(
@@ -47,6 +47,7 @@ export class ConsoleUIV2 {
 
   private async handleBattleMessage(message: BattleMessage) {
     this.messages.push(message)
+    jsondiffpatch.patch(this.battleState, message.stateDelta)
     this.renderMessage(message)
 
     // 只在需要当前玩家操作时触发输入
@@ -167,10 +168,6 @@ export class ConsoleUIV2 {
 
   private renderMessage(message: BattleMessage) {
     switch (message.type) {
-      case BattleMessageType.BattleState:
-        this.battleState = message.data
-        break
-
       case BattleMessageType.BattleStart:
         console.log(`⚔️ 对战开始！`)
         break

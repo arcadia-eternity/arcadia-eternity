@@ -15,6 +15,7 @@ import {
   type StatTypeOnBattle,
 } from './const'
 import { Element } from './element'
+import type { Delta } from 'jsondiffpatch'
 
 export interface SkillMessage {
   isUnknown: boolean
@@ -74,8 +75,6 @@ export interface BattleState {
 
 // battleSystem.ts
 export enum BattleMessageType {
-  BattleState = 'BATTLE_STATE',
-
   // 战斗流程
   BattleStart = 'BATTLE_START',
   TurnStart = 'TURN_START',
@@ -124,7 +123,6 @@ export enum BattleMessageType {
 }
 
 export type BattleMessage =
-  | BattleStateMessage
   | BattleStartMessage
   | TurnStartMessage
   | TurnEndMessage
@@ -156,16 +154,15 @@ export type BattleMessage =
   | ErrorMessage
 
 // 基础消息结构
-interface BaseBattleMessage<T extends BattleMessageType> {
+export interface BaseBattleMessage<T extends BattleMessageType> {
   type: T
   sequenceId?: number
   data: BattleMessageData[T]
+  stateDelta: Delta //battleStateDelta
 }
 
 // 各消息类型数据结构
 export interface BattleMessageData {
-  [BattleMessageType.BattleState]: BattleState
-
   [BattleMessageType.BattleStart]: {
     playerA: PlayerMessage
     playerB: PlayerMessage
@@ -309,7 +306,6 @@ export interface BattleMessageData {
 }
 
 // 具体消息类型定义
-export type BattleStateMessage = BaseBattleMessage<BattleMessageType.BattleState>
 export type BattleStartMessage = BaseBattleMessage<BattleMessageType.BattleStart>
 export type TurnStartMessage = BaseBattleMessage<BattleMessageType.TurnStart>
 export type TurnEndMessage = BaseBattleMessage<BattleMessageType.TurnEnd>
