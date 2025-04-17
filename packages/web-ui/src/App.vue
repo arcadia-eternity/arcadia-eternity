@@ -19,7 +19,6 @@
           队伍编辑
         </el-button>
         <el-button
-          v-if="isDev"
           type="success"
           icon="MagicStick"
           @click="router.push('/local-battle')"
@@ -91,7 +90,6 @@ const dataStore = useGameDataStore()
 const resourceStore = useResourceStore()
 const playerStore = usePlayerStore()
 const petStorage = usePetStorageStore()
-const isDev = import.meta.env.DEV
 
 // 连接状态
 const connectionState = computed(() => {

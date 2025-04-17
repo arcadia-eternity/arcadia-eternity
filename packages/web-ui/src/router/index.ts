@@ -24,15 +24,6 @@ const devOnlyRoutes: RouteRecordRaw[] = [
     component: EffectGraphEditor,
     props: true,
   },
-  {
-    path: '/local-battle',
-    name: 'LocalBattle',
-    component: LocalBattlePage,
-    meta: {
-      title: '本地对战测试',
-      devOnly: true,
-    },
-  },
 ]
 
 const routes: RouteRecordRaw[] = [
@@ -63,6 +54,14 @@ const routes: RouteRecordRaw[] = [
     component: TeamBuilder,
     meta: {
       title: '队伍编辑器',
+    },
+  },
+  {
+    path: '/local-battle',
+    name: 'LocalBattle',
+    component: LocalBattlePage,
+    meta: {
+      title: '本地对战测试',
     },
   },
   {
