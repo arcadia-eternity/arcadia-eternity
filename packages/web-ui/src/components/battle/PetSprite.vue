@@ -32,12 +32,12 @@ const scale = computed(() => {
   return Math.min(scaleX, scaleY)
 })
 
-const availableState = computed(() => {
-  return petRenderRef.value?.getAvailableStates() as ActionState[]
+const availableState = computed(async () => {
+  return (await petRenderRef.value?.getAvailableStates()) as ActionState[]
 })
 
-const setState = (state: ActionState) => {
-  petRenderRef.value?.setState(state)
+const setState = async (state: ActionState) => {
+  await petRenderRef.value?.setState(state)
 }
 
 const handleHitEvent = (event: { detail: any }) => {

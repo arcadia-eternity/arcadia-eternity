@@ -55,7 +55,8 @@ export const useBattleStore = defineStore('battle', {
     async applyStateDelta(msg: BattleMessage) {
       if (!this.state) this.state = {} as BattleState
       jsondiffpatch.patch(this.state, msg.stateDelta)
-      console.log(msg.stateDelta)
+      this.log.push(msg)
+      console.debug(msg.stateDelta)
 
       switch (msg.type) {
         case BattleMessageType.TurnAction:
@@ -82,7 +83,6 @@ export const useBattleStore = defineStore('battle', {
     },
 
     async handleBattleMessage(msg: BattleMessage) {
-      this.log.push(msg)
       this._messageSubject.next(msg)
     },
 

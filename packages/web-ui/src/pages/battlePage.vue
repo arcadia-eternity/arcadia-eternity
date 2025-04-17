@@ -132,7 +132,6 @@ const battleViewRef = ref<HTMLElement | null>(null)
 
 const showMissMessage = (side: 'left' | 'right') => {
   // 获取状态面板元素
-  console.log(side)
   const statusElement = side === 'left' ? leftStatusRef.value : rightStatusRef.value
   if (!statusElement) return
 
@@ -470,7 +469,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
     [Category.Status, ActionState.ATK_BUF],
     [
       Category.Climax,
-      petSprites[side].availableState.includes(ActionState.ATK_POW) ? ActionState.ATK_POW : ActionState.ATK_PHY,
+      (await petSprites[side].availableState).includes(ActionState.ATK_POW) ? ActionState.ATK_POW : ActionState.ATK_PHY,
     ],
   ])
 
@@ -482,7 +481,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
     throw new Error('找不到精灵组件')
   }
 
-  if (!source.availableState.includes(state)) {
+  if (!(await source.availableState).includes(state)) {
     throw new Error(`无效的动画状态: ${state}`)
   }
 
@@ -497,7 +496,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
         resolve()
       }
     }
-    setTimeout(() => resolve(), 30000)
+    setTimeout(() => resolve(), 20000)
     emitter.on('attack-hit', handler)
   })
 
@@ -542,7 +541,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
         resolve()
       }
     }
-    setTimeout(() => resolve(), 30000)
+    setTimeout(() => resolve(), 20000)
     emitter.on('animation-complete', handler)
   })
 
