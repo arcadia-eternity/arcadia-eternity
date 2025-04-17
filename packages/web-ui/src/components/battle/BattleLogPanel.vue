@@ -19,7 +19,6 @@ const playerMap = inject(playerMapKey, new Map())
 const markMap = inject(markMapKey, new Map())
 
 const MESSAGE_ICONS: Record<BattleMessageType, string> = {
-  [BattleMessageType.BattleState]: '🏁',
   [BattleMessageType.Damage]: '💥',
   [BattleMessageType.Heal]: '💚',
   [BattleMessageType.SkillUse]: '🎯',
@@ -113,7 +112,7 @@ function formatBattleMessage(
       content = '对战开始！'
       break
     case BattleMessageType.TurnStart:
-      content = `第 ${msg.data.round} 回合`
+      content = `第 ${msg.data.turn} 回合`
       break
     case BattleMessageType.SkillUse:
       content = `${getPetName(msg.data.user, petMap || new Map())} 使用 ${
