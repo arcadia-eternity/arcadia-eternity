@@ -345,8 +345,8 @@ export class Battle extends Context implements MarkOwner {
         }
 
         // 同优先级比较速度
-        if (aSkill.pet.actualStat.spd !== bSkill.pet.actualStat.spd) {
-          return aSkill.pet.actualStat.spd - bSkill.pet.actualStat.spd
+        if (aSkill.pet.actualStat.spe !== bSkill.pet.actualStat.spe) {
+          return aSkill.pet.actualStat.spe - bSkill.pet.actualStat.spe
         }
 
         // 速度相同,始终是a先手
