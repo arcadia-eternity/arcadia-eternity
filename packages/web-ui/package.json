@@ -30,6 +30,7 @@
     "@test-battle/const": "workspace:^",
     "@test-battle/httploader": "workspace:^",
     "@test-battle/interface": "workspace:^",
+    "@test-battle/local-adapter": "workspace:^",
     "@test-battle/parser": "workspace:^",
     "@test-battle/protocol": "workspace:^",
     "@test-battle/schema": "workspace:^",

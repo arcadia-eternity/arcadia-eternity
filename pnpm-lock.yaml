@@ -457,6 +457,9 @@ importers:
       '@test-battle/interface':
         specifier: workspace:^
         version: link:../interface
+      '@test-battle/local-adapter':
+        specifier: workspace:^
+        version: link:../localAdapter
       '@test-battle/parser':
         specifier: workspace:^
         version: link:../parser
