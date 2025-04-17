@@ -19,7 +19,8 @@ const petSpriteRef = useTemplateRef('petSpriteRef')
 const petRenderRef = markRaw(useTemplateRef('pet-render'))
 
 const swfUrl = computed(() => {
-  return `https://seer2.61.com/res/pet/fight/${props.num}.swf`
+  // return `https://seer2.61.com/res/pet/fight/${props.num}.swf`
+  return `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-pet-preview@master/public/fight/${props.num}.swf`
 })
 
 const scale = computed(() => {
