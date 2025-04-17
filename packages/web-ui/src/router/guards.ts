@@ -14,7 +14,7 @@ export const battleGuard = (to: RouteLocationNormalized, from: RouteLocationNorm
         return next('/')
       }
       return next()
-    } else if (import.meta.env.DEV && from.name === 'LocalBattle') {
+    } else if (from.name === 'LocalBattle') {
       return next()
     } else {
       return next('/')
