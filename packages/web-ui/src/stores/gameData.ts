@@ -21,6 +21,7 @@ interface GameDataState {
     allIds: string[]
   }
   loaded: boolean
+  gameDataLoaded: boolean
   error: string | null
 }
 
@@ -44,6 +45,7 @@ export const useGameDataStore = defineStore('gameData', {
       byId: {},
       allIds: [],
     },
+    gameDataLoaded: false,
   }),
 
   getters: {

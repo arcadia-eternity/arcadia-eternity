@@ -210,7 +210,7 @@
     value: 2
   condition: *condition_self_use_skill_template
 - id: effect_skill_add_crit_rate_ruodian
-  trigger: BeforeUseSkillCheck
+  trigger: AfterUseSkillCheck
   priority: 1
   apply:
     type: addCritRate

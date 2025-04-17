@@ -26,10 +26,12 @@ import { HttpLoader } from '@test-battle/httploader'
 import { AIPlayer, Battle, Player } from '@test-battle/battle'
 import { PlayerParser } from '@test-battle/parser'
 import { nanoid } from 'nanoid'
+import { useGameDataStore } from '@/stores/gameData'
 
 const router = useRouter()
 const battleStore = useBattleStore()
 const playerStore = usePlayerStore()
+const dataStore = useGameDataStore()
 const errorMessage = ref<string | null>(null)
 const isLoading = ref(true)
 
@@ -50,11 +52,16 @@ const createMirrorTeam = () => {
 
 // 初始化HTTP加载器
 onMounted(async () => {
+  if (dataStore.gameDataLoaded) {
+    isLoading.value = false
+    return
+  }
   try {
     const loader = new HttpLoader({
       baseUrl: import.meta.env.VITE_DATA_API_URL || '/data',
     })
     await loader.loadGameData()
+    dataStore.gameDataLoaded = true
   } catch (error) {
     errorMessage.value = `资源加载失败: ${(error as Error).message}`
   } finally {

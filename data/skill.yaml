@@ -58,6 +58,7 @@
   tags: ['consume_ruodian']
   effect:
     - effect_skill_add_crit_rate_ruodian
+    - effect_skill_consume_ruodian
 - id: skill_sashui
   element: Water
   category: Status

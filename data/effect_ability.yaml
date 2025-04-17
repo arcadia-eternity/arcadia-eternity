@@ -54,7 +54,7 @@
           type: contain
           tag: consume_ruodian
 - id: effect_ability_fire_power_boost
-  trigger: BeforeUseSkillCheck
+  trigger: AfterUseSkillCheck
   priority: 0
   condition:
     type: every
