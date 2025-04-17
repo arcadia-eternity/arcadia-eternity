@@ -8,10 +8,15 @@ export const battleGuard = (to: RouteLocationNormalized, from: RouteLocationNorm
 
   // 需要有效对战的页面
   if (to.meta.requiresBattle) {
-    if (from.name === 'Battle' && battleClient.currentState.matchmaking !== 'matched') {
-      ElMessage.warning('请先进入匹配队列')
-      return next('/')
+    console.log(from.name)
+    if (from.name === 'Lobby') {
+      if (battleClient.currentState.matchmaking === 'idle') {
+        ElMessage.warning('请先进入匹配队列')
+        return next('/')
+      }
+      return next()
     } else if (import.meta.env.DEV && from.name === 'LocalBattle') {
+      return next()
     } else {
       return next('/')
     }

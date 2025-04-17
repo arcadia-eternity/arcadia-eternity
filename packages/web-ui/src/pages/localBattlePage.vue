@@ -70,6 +70,7 @@ const startLocalBattle = async () => {
 
     const battle = new Battle(player1, player2, {
       allowFaintSwitch: true,
+      showHidden: true,
     })
     const localSystem = new LocalBattleSystem(battle)
     localSystem.init()

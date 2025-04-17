@@ -97,7 +97,7 @@ export class ConsoleUIV2 {
     this.battleState.players.forEach(player => {
       console.log(`\n=== ${player.name} ===`)
       console.log(`怒气值：${player.rage}/100`)
-      this.renderActivePet(player.activePet)
+      this.renderActivePet(this.getPetById(player.activePet)!)
       console.log(`剩余可战斗精灵：${player.teamAlives}`)
     })
 
@@ -648,8 +648,6 @@ export class ConsoleUIV2 {
   private findPet(petId: string): PetMessage | undefined {
     if (this.battleState) {
       // 检查所有玩家的当前出战精灵
-      const activePet = this.battleState.players.map(p => p.activePet).find(p => p.id === petId)
-      if (activePet) return activePet
       const teamPet = this.battleState.players.flatMap(p => p.team || []).find(p => p.id === petId)
       if (teamPet) return teamPet
     }

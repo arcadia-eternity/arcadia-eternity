@@ -58,6 +58,7 @@ export class Battle extends Context implements MarkOwner {
 
   public readonly petMap: Map<string, Pet> = new Map() // ID -> Pet 实例
   public readonly skillMap: Map<string, SkillInstance> = new Map() // ID -> Skill 实例
+  private sequenceId = 0
 
   constructor(
     public readonly playerA: Player,
@@ -112,10 +113,10 @@ export class Battle extends Context implements MarkOwner {
     const message: BaseBattleMessage<T> = {
       type,
       data,
-      sequenceId: Date.now(),
-      stateDelta: jsondiffpatch.diff(this.lastStateMessage, this.toMessage()),
+      sequenceId: this.sequenceId++,
+      stateDelta: jsondiffpatch.diff(this.lastStateMessage, this.toMessage('' as playerId, this.showHidden)),
     }
-    this.lastStateMessage = this.toMessage()
+    this.lastStateMessage = this.toMessage('' as playerId, this.showHidden)
     this.messageCallbacks.forEach(cb => cb(jsondiffpatch.clone(message) as BattleMessage))
   }
 

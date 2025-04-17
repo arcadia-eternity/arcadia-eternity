@@ -1,4 +1,5 @@
 import {
+  type BaseBattleMessage,
   type BattleMessage,
   BattleMessageType,
   BattlePhase,
@@ -18,7 +19,6 @@ import { Pet } from './pet'
 import * as jsondiffpatch from 'jsondiffpatch'
 
 export class Player {
-  private lastState: BattleState = {} as BattleState
   private lastStateMessage: BattleState = {} as BattleState
   public currentRage: number = 20
   public battle?: Battle
@@ -51,12 +51,14 @@ export class Player {
   }
 
   public handleMessage(message: BattleMessage) {
-    jsondiffpatch.patch(this.lastState, message.stateDelta)
-    const newMessage = (this.lastState!.players[this.lastState!.players.findIndex(p => p.id === this.id)] =
-      this.toMessage(this.id))
-    message.stateDelta = jsondiffpatch.diff(this.lastStateMessage, newMessage)
-    this.lastStateMessage = this.lastState
-    this.emitMessage(message)
+    const newMessage = {
+      type: message.type,
+      data: message.data,
+      sequenceId: message.sequenceId,
+      stateDelta: jsondiffpatch.diff(this.lastStateMessage, this.battle!.toMessage(this.id)),
+    }
+    this.lastStateMessage = this.battle!.toMessage(this.id)
+    this.emitMessage(newMessage as BattleMessage)
   }
 
   public getAvailableSelection(): PlayerSelection[] {
@@ -339,7 +341,7 @@ export class Player {
     return {
       name: this.name,
       id: this.id,
-      activePet: this.activePet.toMessage(viewerId),
+      activePet: this.activePet.id,
       rage: this.currentRage,
       teamAlives,
       team: this.team.map(p => p.toMessage(viewerId, showHidden)),

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { Subject, Observable } from 'rxjs'
+import { Subject, ReplaySubject } from 'rxjs'
 import {
   type BattleState,
   type BattleMessage,
@@ -9,6 +9,7 @@ import {
   type PlayerSelection,
 } from '@test-battle/const'
 import type { IBattleSystem } from '@test-battle/interface'
+import * as jsondiffpatch from 'jsondiffpatch'
 
 export const useBattleStore = defineStore('battle', {
   state: () => ({
@@ -22,7 +23,7 @@ export const useBattleStore = defineStore('battle', {
     playerId: '',
     // RxJS相关状态
     _messageSubject: new Subject<BattleMessage>(),
-    message$: null as unknown as Observable<BattleMessage>,
+    animateQueue: new Subject<() => Promise<void>>(),
   }),
 
   actions: {
@@ -34,14 +35,12 @@ export const useBattleStore = defineStore('battle', {
       this.victor = null
       this.errorMessage = null
       // 初始化RxJS流
+      this.log = [] as BattleMessage[]
       this._messageSubject = new Subject<BattleMessage>()
-      this.message$ = this._messageSubject.asObservable()
       this.battleInterface.BattleEvent(msg => {
         this.handleBattleMessage(msg)
-        this._messageSubject.next(msg)
       })
       this.availableActions = await this.fetchAvailableSelection()
-      this.log = [] as BattleMessage[]
     },
 
     async sendplayerSelection(selection: PlayerSelection) {
@@ -53,11 +52,10 @@ export const useBattleStore = defineStore('battle', {
       }
     },
 
-    // 新增战斗事件处理器
-    async handleBattleMessage(msg: BattleMessage) {
-      this.log.push(msg)
+    async applyStateDelta(msg: BattleMessage) {
       if (!this.state) this.state = {} as BattleState
       jsondiffpatch.patch(this.state, msg.stateDelta)
+      console.log(msg.stateDelta)
 
       switch (msg.type) {
         case BattleMessageType.TurnAction:
@@ -81,6 +79,11 @@ export const useBattleStore = defineStore('battle', {
           this.victor = msg.data.winner
           break
       }
+    },
+
+    async handleBattleMessage(msg: BattleMessage) {
+      this.log.push(msg)
+      this._messageSubject.next(msg)
     },
 
     resetBattle() {

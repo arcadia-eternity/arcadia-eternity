@@ -466,9 +466,6 @@ importers:
       '@test-battle/schema':
         specifier: workspace:^
         version: link:../schema
-      '@types/lodash':
-        specifier: ^4.17.16
-        version: 4.17.16
       '@vueuse/core':
         specifier: ^13.0.0
         version: 13.0.0(vue@3.5.13(typescript@5.8.3))
@@ -496,9 +493,6 @@ importers:
       jsondiffpatch:
         specifier: ^0.7.3
         version: 0.7.3
-      lodash:
-        specifier: ^4.17.21
-        version: 4.17.21
       markdown-it:
         specifier: ^14.1.0
         version: 14.1.0

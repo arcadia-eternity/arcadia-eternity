@@ -8,13 +8,34 @@ import SkillButton from '@/components/battle/SkillButton.vue'
 import { useBattleStore } from '@/stores/battle'
 import { useGameDataStore } from '@/stores/gameData'
 import { logMessagesKey, markMapKey, petMapKey, playerMapKey, skillMapKey } from '@/symbol/battlelog'
-import type { DamageMessage, SkillUseEndMessage, SkillUseMessage } from '@test-battle/const'
-import { BattleMessageType, Category, type petId, type skillId, type SkillMessage } from '@test-battle/const'
+import {
+  BattleMessageType,
+  Category,
+  type BattleMessage,
+  type petId,
+  type skillId,
+  type SkillMessage,
+  type SkillUseEndMessage,
+} from '@test-battle/const'
 import { useElementBounding } from '@vueuse/core'
 import gsap from 'gsap'
 import i18next from 'i18next'
 import mitt from 'mitt'
-import { catchError, concatMap, filter, finalize, from, of, Subject, take, tap, toArray, windowToggle } from 'rxjs'
+import {
+  catchError,
+  concatMap,
+  EMPTY,
+  filter,
+  finalize,
+  from,
+  mergeMap,
+  of,
+  startWith,
+  take,
+  takeUntil,
+  tap,
+  toArray,
+} from 'rxjs'
 import { ActionState } from 'seer2-pet-animator'
 import { computed, h, onMounted, onUnmounted, provide, ref, render, useTemplateRef } from 'vue'
 
@@ -34,7 +55,6 @@ const emitter = mitt<AnimationEvents>()
 const store = useBattleStore()
 const gameDataStore = useGameDataStore()
 
-// 提供战斗日志相关数据给子组件
 provide(logMessagesKey, store.log)
 provide(markMapKey, store.markMap)
 provide(skillMapKey, store.skillMap)
@@ -51,13 +71,23 @@ const currentPlayer = computed(() => store.currentPlayer)
 const opponentPlayer = computed(() => store.opponent)
 const globalMarks = computed(() => store.state?.marks ?? [])
 const currentTurn = computed(() => store.state?.currentTurn ?? 0)
-const leftPetSpeciesNum = computed(() => gameDataStore.getSpecies(currentPlayer.value!.activePet.speciesID)?.num ?? 0)
-const rightPetSpeciesNum = computed(() => gameDataStore.getSpecies(opponentPlayer.value!.activePet.speciesID)?.num ?? 0)
+const leftPetSpeciesNum = computed(
+  () =>
+    gameDataStore.getSpecies(
+      currentPlayer.value?.team?.filter(p => p.id === currentPlayer.value!.activePet)[0]?.speciesID ?? '',
+    )?.num ?? 0,
+)
+const rightPetSpeciesNum = computed(
+  () =>
+    gameDataStore.getSpecies(
+      opponentPlayer.value?.team?.filter(p => p.id === opponentPlayer.value!.activePet)[0]?.speciesID ?? '',
+    )?.num ?? 0,
+)
 const background = 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/battleBackground/grass.png'
 
 // 当前玩家可用技能
 const availableSkills = computed<SkillMessage[]>(() => {
-  return store.currentPlayer?.activePet?.skills?.filter(skill => !skill.isUnknown) ?? []
+  return store.getPetById(currentPlayer.value!.activePet)?.skills?.filter(skill => !skill.isUnknown) ?? []
 })
 
 // 处理技能点击
@@ -73,6 +103,7 @@ const handlePetSelect = (petId: string) => {
   if (isPending.value) return
   const action = store.availableActions.find(a => a.type === 'switch-pet' && a.pet === petId)
   if (action) store.sendplayerSelection(action)
+  panelState.value = PanelState.SKILLS
 }
 
 // 处理投降
@@ -255,7 +286,10 @@ const showDamageMessage = (
   if (!statusElement) return
 
   // 获取当前侧Pet的最大血量
-  const currentPet = side === 'left' ? currentPlayer.value!.activePet : opponentPlayer.value!.activePet
+  const currentPet =
+    side === 'left'
+      ? store.getPetById(currentPlayer.value!.activePet)!
+      : store.getPetById(opponentPlayer.value!.activePet)!
 
   const { bottom, left, width } = useElementBounding(statusElement)
   const startX = left.value + width.value / 2
@@ -411,23 +445,24 @@ const showUseSkillMessage = (side: 'left' | 'right', baseSkillId: string) => {
   })
 }
 
-async function useSkillAnimate(
-  baseSkillId: string,
-  category: Category,
-  results: Array<{
-    type: 'damage' | 'miss' | 'heal'
-    targetSide: 'left' | 'right'
-    value?: number
-    effectiveness?: 'up' | 'normal' | 'down'
-    crit?: boolean
-  }>,
-  side: 'left' | 'right',
-  specialState?: ActionState,
-): Promise<void> {
+async function switchPetAnimate(to: petId, side: 'left' | 'right') {
+  //TODO: switchout and switchin animate
+}
+
+async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   const petSprites = {
     left: leftPetRef.value!,
     right: rightPetRef.value!,
   }
+
+  const useSkill = messages.filter(m => m.type === BattleMessageType.SkillUse)[0]
+  if (!useSkill) return
+  store.applyStateDelta(useSkill)
+
+  const baseSkillId = useSkill.data.baseSkill
+  const category = store.skillMap.get(useSkill.data.skill)?.category || Category.Physical
+  const side = getTargetSide(useSkill.data.user)
+  const specialState = undefined //TODO: specialState
   // 参数校验
   const stateMap = new Map<Category, ActionState>([
     [Category.Physical, ActionState.ATK_PHY],
@@ -462,34 +497,43 @@ async function useSkillAnimate(
         resolve()
       }
     }
+    setTimeout(() => resolve(), 30000)
     emitter.on('attack-hit', handler)
   })
-  for (const result of results) {
-    const target = petSprites[result.targetSide]
-    switch (result.type) {
-      case 'miss':
-        target.setState(ActionState.MISS)
-        showMissMessage(result.targetSide)
+
+  for (const msg of messages) {
+    switch (msg.type) {
+      case BattleMessageType.SkillMiss: {
+        petSprites[getTargetSide(msg.data.target)].setState(ActionState.MISS)
         break
-      case 'damage':
-        if (result.value === 0) {
+      }
+      case BattleMessageType.Damage: {
+        const targetSide = getTargetSide(msg.data.target)
+        const target = petSprites[targetSide]
+        const damage = msg.data.damage
+        const crit = msg.data.isCrit
+        const effectiveness = msg.data.effectiveness
+        if (damage === 0) {
           target.setState(ActionState.MISS)
-          showAbsorbMessage(result.targetSide)
+          showAbsorbMessage(targetSide)
           break
         } else {
-          target.setState(result.crit ? ActionState.UNDER_ULTRA : ActionState.UNDER_ATK)
-          showDamageMessage(
-            result.targetSide,
-            result.value || 0,
-            result.effectiveness || 'normal',
-            result.crit || false,
-          )
+          target.setState(crit ? ActionState.UNDER_ULTRA : ActionState.UNDER_ATK)
+          showDamageMessage(targetSide, damage, effectiveness > 1 ? 'up' : effectiveness < 1 ? 'down' : 'normal', crit)
           break
         }
-      case 'heal':
-        //TODO: heal
+      }
+      case BattleMessageType.DamageFail: {
+        const targetSide = getTargetSide(msg.data.target)
+        const target = petSprites[targetSide]
+        target.setState(ActionState.MISS)
+        showAbsorbMessage(targetSide)
         break
+      }
+      default:
+      //DoNothing
     }
+    await store.applyStateDelta(msg)
   }
   await new Promise<void>(resolve => {
     const handler = (completeSide: 'left' | 'right') => {
@@ -498,8 +542,10 @@ async function useSkillAnimate(
         resolve()
       }
     }
+    setTimeout(() => resolve(), 30000)
     emitter.on('animation-complete', handler)
   })
+
   source.$el.style.zIndex = ''
 }
 
@@ -525,26 +571,27 @@ defineExpose({
 
 // 获取目标方位置
 const getTargetSide = (targetPetId: string): 'left' | 'right' => {
-  const [firstPlayer, secondPlayer] = store.state?.players || []
-  const isFirstPlayerPet = firstPlayer?.team?.some(p => p.id === targetPetId)
-  const isSecondPlayerPet = secondPlayer?.team?.some(p => p.id === targetPetId)
-  return isSecondPlayerPet ? 'right' : 'left'
+  const isCurrentPlayerPet = currentPlayer.value?.team?.some(p => p.id === targetPetId)
+  return isCurrentPlayerPet ? 'left' : 'right'
 }
 
 // 消息订阅逻辑
 let messageSubscription: { unsubscribe: () => void } | null = null
 
-const animationQueue = new Subject<() => Promise<void>>()
-animationQueue
+const animationQueue = store.animateQueue
+const animating = ref(false)
+const sequenceId = ref(-1)
+const animatesubscribe = animationQueue
   .pipe(
     // 使用 concatMap 强制顺序执行异步任务
     concatMap(task =>
       from(task()).pipe(
-        // 将 Promise 转为 Observable
         tap(() => {
+          animating.value = true
           console.log('任务开始')
         }),
         finalize(() => {
+          animating.value = false
           console.log('任务结束')
         }),
         catchError(err => {
@@ -559,80 +606,63 @@ animationQueue
 onMounted(() => {
   messageSubscription = store._messageSubject
     .pipe(
-      // 主消息处理流程
-      windowToggle(
-        store._messageSubject.pipe(filter((msg): msg is SkillUseMessage => msg.type === BattleMessageType.SkillUse)),
-        (openMsg: SkillUseMessage) =>
-          store._messageSubject.pipe(
-            filter(
-              (msg): msg is SkillUseEndMessage =>
-                msg.type === BattleMessageType.SkillUseEnd && msg.data.user === openMsg.data.user,
+      concatMap(msg => {
+        // 处理SkillUse消息组
+        if (msg.type === BattleMessageType.SkillUse) {
+          return store._messageSubject.pipe(
+            // 立即包含当前消息
+            startWith(msg),
+            // 捕获直到对应SkillUseEnd的消息
+            takeUntil(
+              store._messageSubject.pipe(
+                filter(
+                  (endMsg): endMsg is SkillUseEndMessage =>
+                    endMsg.type === BattleMessageType.SkillUseEnd && endMsg.data.user === msg.data.user,
+                ),
+                take(1),
+              ),
             ),
-            take(1),
-          ),
-      ),
-      concatMap(win =>
-        win.pipe(
-          toArray(),
-          filter(messages => {
-            const hasUse = messages.some(m => m.type === BattleMessageType.SkillUse)
-            const hasEnd = messages.some(m => m.type === BattleMessageType.SkillUseEnd)
-            return hasUse && hasEnd
-          }),
-          // 将动画任务推入队列
-          tap(messages => {
-            animationQueue.next(async () => {
-              const skillUseMsg = messages.find(m => m.type === BattleMessageType.SkillUse)! as SkillUseMessage
+            // 收集窗口内所有消息
+            toArray(),
+            // 生成动画任务
+            mergeMap(messages => {
+              const task = async () => {
+                if (sequenceId.value >= (msg.sequenceId ?? -1)) return
+                await useSkillAnimate(messages)
+                sequenceId.value = Math.max(sequenceId.value, messages[messages.length - 1].sequenceId ?? -1)
+              }
+              return of(task)
+            }),
+          )
+        }
+        // 处理独立消息（非SkillUse且非SkillUseEnd）
+        if (msg.type !== BattleMessageType.SkillUseEnd) {
+          const task = async () => {
+            if (sequenceId.value >= (msg.sequenceId ?? -1)) return
+            await store.applyStateDelta(msg)
+            sequenceId.value = Math.max(sequenceId.value, msg.sequenceId ?? -1)
+          }
+          return of(task)
+        }
 
-              const damages = messages.filter((m): m is DamageMessage => m.type === BattleMessageType.Damage)
-
-              // 执行动画并等待
-              await useSkillAnimate(
-                skillUseMsg.data.baseSkill || '',
-                store.skillMap.get(skillUseMsg.data.skill)?.category || Category.Physical,
-                damages.map(dmg => ({
-                  type: 'damage',
-                  targetSide: getTargetSide(dmg.data.target),
-                  value: dmg.data.damage,
-                  effectiveness: dmg.data.effectiveness > 1 ? 'up' : dmg.data.effectiveness < 1 ? 'down' : 'normal',
-                  crit: dmg.data.isCrit,
-                })),
-                getTargetSide(skillUseMsg.data.user),
-              )
-            })
-          }),
-        ),
-      ),
+        return EMPTY
+      }),
     )
-    .subscribe()
+    .subscribe(task => animationQueue.next(task))
 })
 
 onUnmounted(() => {
   messageSubscription?.unsubscribe()
+  animatesubscribe.unsubscribe()
   emitter.all.clear()
 })
 </script>
 
 <template>
-  <div class="h-screen bg-[#1a1a2e]">
-    <!-- <Battle
-      v-if="currentPlayer && opponentPlayer"
-      background="https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/battleBackground/grass.png"
-      :left-player="currentPlayer"
-      :right-player="opponentPlayer"
-      :skills="availableSkills"
-      :global-marks="globalMarks"
-      :turns="currentTurn"
-      :available-actions="store.availableActions"
-      :is-pending="isPending"
-      @skill-click="handleSkillClick"
-      @pet-select="handlePetSelect"
-      @escape="handleEscape"
-    >
-    </Battle> -->
+  <div class="h-screen bg-[#1a1a2e] flex justify-center items-center">
     <div
       ref="battleViewRef"
-      class="relative h-dvh flex justify-center aspect-video items-center object-contain bg-gray-900"
+      class="w-[1600px] relative flex justify-center aspect-video items-center object-contain bg-gray-900"
     >
       <div
         class="relative h-full flex flex-col bg-center bg-no-repeat aspect-video overflow-hidden"
@@ -760,6 +790,13 @@ onUnmounted(() => {
                   ns: 'battle',
                 })
               }}
+            </button>
+            <button
+              class="px-4 py-2 bg-gray-500 hover:bg-gray-600 border-2 border-sky-400 rounded-lg text-sky-400 font-bold"
+              :disabled="!store.availableActions.find(a => a.type === 'do-nothing')"
+              @click="store.sendplayerSelection(store.availableActions.find(a => a.type === 'do-nothing')!)"
+            >
+              {{ i18next.t('do-nothing', { ns: 'battle' }) }}
             </button>
           </div>
         </div>

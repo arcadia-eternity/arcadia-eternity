@@ -102,6 +102,7 @@ program
 
       const battle = new Battle(player1, player2, {
         allowFaintSwitch: true,
+        showHidden: true,
       })
       const battleSystem = new LocalBattleSystem(battle)
       await initI18n(options.debug)

@@ -59,7 +59,7 @@ export interface PlayerMessage {
   name: string
   id: playerId
   rage: number
-  activePet: PetMessage
+  activePet: petId
   team?: PetMessage[]
   teamAlives: number
 }

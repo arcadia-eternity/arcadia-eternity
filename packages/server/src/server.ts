@@ -473,11 +473,11 @@ export class BattleServer {
       p.playerData.registerListener(message => {
         switch (message.type) {
           case BattleMessageType.BattleEnd:
-            this.io.to(roomId).emit('battleEvent', message)
+            p.socket.emit('battleEvent', message)
             this.cleanupRoom(roomId)
             break
           default:
-            this.io.to(roomId).emit('battleEvent', message)
+            p.socket.emit('battleEvent', message)
             break
         }
       })
