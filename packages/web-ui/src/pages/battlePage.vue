@@ -37,7 +37,17 @@ import {
   toArray,
 } from 'rxjs'
 import { ActionState } from 'seer2-pet-animator'
-import { computed, h, onMounted, onUnmounted, provide, ref, render, useTemplateRef } from 'vue'
+import {
+  computed,
+  h,
+  onMounted,
+  onUnmounted,
+  provide,
+  ref,
+  render,
+  useTemplateRef,
+  type ComponentPublicInstance,
+} from 'vue'
 
 enum PanelState {
   SKILLS = 'skills',
@@ -571,6 +581,28 @@ defineExpose({
   showUseSkillMessage,
   useSkillAnimate,
 })
+
+// 添加组件实例类型声明
+export interface BattlePageExposed {
+  useSkillAnimate: (messages: BattleMessage[]) => Promise<void>
+  showDamageMessage: (
+    side: 'left' | 'right',
+    value: number,
+    effectiveness?: 'up' | 'normal' | 'down',
+    crit?: boolean,
+  ) => void
+  showMissMessage: (side: 'left' | 'right') => void
+  showAbsorbMessage: (side: 'left' | 'right') => void
+  showUseSkillMessage: (side: 'left' | 'right', baseSkillId: string) => void
+}
+
+declare module 'vue' {
+  interface ComponentCustomProperties {
+    $refs: {
+      battlePageRef: ComponentPublicInstance<BattlePageExposed>
+    }
+  }
+}
 
 // 获取目标方位置
 const getTargetSide = (targetPetId: string): 'left' | 'right' => {

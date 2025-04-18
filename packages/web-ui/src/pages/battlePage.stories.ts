@@ -1,7 +1,15 @@
 // battlePage.stories.ts
 import type { Meta, StoryObj } from '@storybook/vue3'
 import BattlePage from './battlePage.vue'
-import { Element, Category } from '@test-battle/const'
+import {
+  Element,
+  Category,
+  type BattleMessage,
+  BattleMessageType,
+  type baseSkillId,
+  type petId,
+  type skillId,
+} from '@test-battle/const'
 import { createTestingPinia } from '@pinia/testing'
 import { useBattleStore } from '@/stores/battle'
 import { ref, type ComponentPublicInstance } from 'vue'
@@ -109,7 +117,12 @@ export const SkillAnimations: Story = {
         ],
       })
 
-      const battlePageRef = ref<ComponentPublicInstance>()
+      // 添加本地类型声明解决TS错误
+      interface BattlePageExposed {
+        useSkillAnimate: (messages: BattleMessage[]) => Promise<void>
+      }
+
+      const battlePageRef = ref<ComponentPublicInstance<BattlePageExposed>>()
       const skillType = ref<Category>(Category.Physical)
       const damageValue = ref(50)
       const isCritical = ref(false)
@@ -118,21 +131,27 @@ export const SkillAnimations: Story = {
 
       const triggerAnimation = async () => {
         await nextTick()
-        const instance = battlePageRef.value?.$ as any
-        await instance.exposed.useSkillAnimate(
-          'skill_demo',
-          skillType.value,
-          [
-            {
-              type: 'damage',
-              targetSide: targetSide.value,
-              value: damageValue.value,
-              effectiveness: effectiveness.value,
-              crit: isCritical.value,
+        await battlePageRef.value?.useSkillAnimate([
+          {
+            type: BattleMessageType.SkillUse,
+            data: {
+              user: 'playerleft' as petId,
+              skill: 'skill_demo' as skillId,
+              baseSkill: '1005' as baseSkillId,
+              target: 'playerright' as petId,
+              effects: [],
             },
-          ],
-          'left',
-        )
+          },
+          {
+            type: BattleMessageType.Damage,
+            data: {
+              target: 'playerright' as petId,
+              damage: damageValue.value,
+              effectiveness: effectiveness.value,
+              isCrit: isCritical.value,
+            },
+          },
+        ])
       }
 
       return {

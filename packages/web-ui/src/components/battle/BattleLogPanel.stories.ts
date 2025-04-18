@@ -8,6 +8,7 @@ import {
   type skillId,
   AttackTargetOpinion,
   type StatTypeOnBattle,
+  type baseSkillId,
 } from '@test-battle/const'
 import { logMessagesKey, petMapKey, skillMapKey, playerMapKey, markMapKey } from '@/symbol/battlelog'
 
@@ -75,6 +76,7 @@ export const SingleMessage: Story = {
             data: {
               message: '[战斗] 战斗开始！',
             },
+            stateDelta: {},
           },
         ])
         provide(petMapKey, new Map())
@@ -101,6 +103,7 @@ export const MultipleMessages: Story = {
             data: {
               message: '[战斗] 战斗开始！',
             },
+            stateDelta: {},
           },
           {
             sequenceId: 2,
@@ -109,8 +112,10 @@ export const MultipleMessages: Story = {
               user: 'pet_001' as petId,
               target: AttackTargetOpinion.opponent,
               skill: 'skill_001' as skillId,
+              baseSkill: 'skill_001' as baseSkillId,
               rage: 30,
             },
+            stateDelta: {},
           },
           {
             sequenceId: 3,
@@ -121,6 +126,7 @@ export const MultipleMessages: Story = {
               stage: 2,
               reason: '技能效果',
             },
+            stateDelta: {},
           },
         ])
         provide(petMapKey, new Map())

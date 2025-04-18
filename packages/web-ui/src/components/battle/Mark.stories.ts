@@ -21,6 +21,7 @@ const baseMark: MarkMessage = {
   stack: 1,
   duration: 3,
   isActive: true,
+  config: {},
 }
 
 export const Default: Story = {
