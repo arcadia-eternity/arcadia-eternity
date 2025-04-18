@@ -4,12 +4,15 @@ import type { BattleMessage, BattleState, playerId, PlayerSelection } from '@arc
 
 export class LocalBattleSystem implements IBattleSystem {
   private generator: Generator<void, void, void>
+  private inited: boolean = false
   constructor(private battle: Battle) {
     this.generator = battle.startBattle()
   }
 
   init() {
+    if (this.inited) return
     this.generator.next()
+    this.inited = true
   }
 
   async getAvailableSelection(playerId: playerId) {

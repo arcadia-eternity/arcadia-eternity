@@ -3,7 +3,7 @@
     <!-- 全局导航栏 -->
     <el-header class="main-header" height="60px">
       <div class="logo">
-        <img src="@/assets/logo.svg" alt="Arcadia Eternity" class="logo-img" />
+        <img src="@/assets/logo.png" alt="Arcadia Eternity" class="logo-img" />
         <span class="title">Arcadia Eternity</span>
       </div>
       <div class="nav-buttons">

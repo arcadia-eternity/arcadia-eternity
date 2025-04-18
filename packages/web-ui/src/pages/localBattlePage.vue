@@ -80,8 +80,8 @@ const startLocalBattle = async () => {
       showHidden: true,
     })
     const localSystem = new LocalBattleSystem(battle)
-    localSystem.init()
     await battleStore.initBattle(localSystem, player1.id)
+    localSystem.init()
     router.push('/battle')
   } catch (error) {
     errorMessage.value = (error as Error).message
