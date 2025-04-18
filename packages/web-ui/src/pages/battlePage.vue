@@ -69,8 +69,8 @@ const isPending = ref(false)
 // 战斗数据计算属性
 const currentPlayer = computed(() => store.currentPlayer)
 const opponentPlayer = computed(() => store.opponent)
-const globalMarks = computed(() => store.state?.marks ?? [])
-const currentTurn = computed(() => store.state?.currentTurn ?? 0)
+const globalMarks = computed(() => store.battleState?.marks ?? [])
+const currentTurn = computed(() => store.battleState?.currentTurn ?? 0)
 const leftPetSpeciesNum = computed(
   () =>
     gameDataStore.getSpecies(
@@ -490,7 +490,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   }
 
   showUseSkillMessage(side, baseSkillId)
-  source.$el.style.zIndex = 100
+  source.$el.style.zIndex = 1
 
   source.setState(state)
   await new Promise<void>(resolve => {
@@ -591,11 +591,9 @@ const animatesubscribe = animationQueue
       from(task()).pipe(
         tap(() => {
           animating.value = true
-          console.log('任务开始')
         }),
         finalize(() => {
           animating.value = false
-          console.log('任务结束')
         }),
         catchError(err => {
           console.error('动画执行失败:', err)
@@ -638,85 +636,80 @@ onMounted(() => {
             }),
           )
         }
-        // 处理独立消息（非SkillUse且非SkillUseEnd）
-        if (msg.type !== BattleMessageType.SkillUseEnd) {
-          const task = async () => {
-            if (sequenceId.value >= (msg.sequenceId ?? -1)) return
-            switch (msg.type) {
-              case BattleMessageType.SkillMiss: {
-                petSprites.value[getTargetSide(msg.data.target)].setState(ActionState.MISS)
-                break
-              }
-              case BattleMessageType.Damage: {
-                const targetSide = getTargetSide(msg.data.target)
-                const target = petSprites.value[targetSide]
-                const damage = msg.data.damage
-                const crit = msg.data.isCrit
-                const effectiveness = msg.data.effectiveness
-                if (damage === 0) {
-                  target.setState(ActionState.MISS)
-                  showAbsorbMessage(targetSide)
-                  break
-                } else {
-                  target.setState(crit ? ActionState.UNDER_ULTRA : ActionState.UNDER_ATK)
-                  showDamageMessage(
-                    targetSide,
-                    damage,
-                    effectiveness > 1 ? 'up' : effectiveness < 1 ? 'down' : 'normal',
-                    crit,
-                  )
-                  break
-                }
-              }
-              case BattleMessageType.DamageFail: {
-                const targetSide = getTargetSide(msg.data.target)
-                const target = petSprites.value[targetSide]
+        const task = async () => {
+          if (sequenceId.value >= (msg.sequenceId ?? -1)) return
+          switch (msg.type) {
+            case BattleMessageType.SkillMiss: {
+              petSprites.value[getTargetSide(msg.data.target)].setState(ActionState.MISS)
+              break
+            }
+            case BattleMessageType.Damage: {
+              const targetSide = getTargetSide(msg.data.target)
+              const target = petSprites.value[targetSide]
+              const damage = msg.data.damage
+              const crit = msg.data.isCrit
+              const effectiveness = msg.data.effectiveness
+              if (damage === 0) {
                 target.setState(ActionState.MISS)
                 showAbsorbMessage(targetSide)
                 break
+              } else {
+                target.setState(crit ? ActionState.UNDER_ULTRA : ActionState.UNDER_ATK)
+                showDamageMessage(
+                  targetSide,
+                  damage,
+                  effectiveness > 1 ? 'up' : effectiveness < 1 ? 'down' : 'normal',
+                  crit,
+                )
+                break
               }
-              case BattleMessageType.TurnAction:
-                panelState.value = PanelState.SKILLS
-                break
-              case BattleMessageType.ForcedSwitch:
-                if (!msg.data.player.some(p => p === currentPlayer.value?.id)) break
-                panelState.value = PanelState.PETS
-                break
-              case BattleMessageType.FaintSwitch:
-                if (!(msg.data.player === currentPlayer.value?.id)) break
-                panelState.value = PanelState.PETS
-                break
-              case BattleMessageType.PetSwitch:
-              case BattleMessageType.PetDefeated:
-              case BattleMessageType.BattleStart:
-              case BattleMessageType.TurnStart:
-              case BattleMessageType.TurnEnd:
-              case BattleMessageType.BattleEnd:
-              case BattleMessageType.PetRevive:
-              case BattleMessageType.StatChange:
-              case BattleMessageType.RageChange:
-              case BattleMessageType.HpChange:
-              case BattleMessageType.SkillUseFail:
-              case BattleMessageType.Heal:
-              case BattleMessageType.HealFail:
-              case BattleMessageType.MarkApply:
-              case BattleMessageType.MarkDestory:
-              case BattleMessageType.MarkExpire:
-              case BattleMessageType.MarkUpdate:
-              case BattleMessageType.EffectApply:
-              case BattleMessageType.InvalidAction:
-              case BattleMessageType.Info:
-              case BattleMessageType.Error:
-              default:
-                break
             }
-            await store.applyStateDelta(msg)
-            sequenceId.value = Math.max(sequenceId.value, msg.sequenceId ?? -1)
+            case BattleMessageType.DamageFail: {
+              const targetSide = getTargetSide(msg.data.target)
+              const target = petSprites.value[targetSide]
+              target.setState(ActionState.MISS)
+              showAbsorbMessage(targetSide)
+              break
+            }
+            case BattleMessageType.TurnAction:
+              panelState.value = PanelState.SKILLS
+              break
+            case BattleMessageType.ForcedSwitch:
+              if (!msg.data.player.some(p => p === currentPlayer.value?.id)) break
+              panelState.value = PanelState.PETS
+              break
+            case BattleMessageType.FaintSwitch:
+              if (!(msg.data.player === currentPlayer.value?.id)) break
+              panelState.value = PanelState.PETS
+              break
+            case BattleMessageType.PetSwitch:
+            case BattleMessageType.PetDefeated:
+            case BattleMessageType.BattleStart:
+            case BattleMessageType.TurnStart:
+            case BattleMessageType.TurnEnd:
+            case BattleMessageType.BattleEnd:
+            case BattleMessageType.PetRevive:
+            case BattleMessageType.StatChange:
+            case BattleMessageType.RageChange:
+            case BattleMessageType.HpChange:
+            case BattleMessageType.SkillUseFail:
+            case BattleMessageType.Heal:
+            case BattleMessageType.HealFail:
+            case BattleMessageType.MarkApply:
+            case BattleMessageType.MarkDestory:
+            case BattleMessageType.MarkExpire:
+            case BattleMessageType.MarkUpdate:
+            case BattleMessageType.EffectApply:
+            case BattleMessageType.InvalidAction:
+            case BattleMessageType.Info:
+            case BattleMessageType.Error:
+            default:
+              break
           }
-          return of(task)
+          await store.applyStateDelta(msg)
+          sequenceId.value = Math.max(sequenceId.value, msg.sequenceId ?? -1)
         }
-
-        return EMPTY
+        return of(task)
       }),
     )
     .subscribe(task => animationQueue.next(task))

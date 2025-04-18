@@ -16,6 +16,7 @@ import {
 } from './const'
 import { Element } from './element'
 import type { Delta } from 'jsondiffpatch'
+import type { MarkConfig } from './mark'
 
 export interface SkillMessage {
   isUnknown: boolean
@@ -53,6 +54,7 @@ export interface MarkMessage {
   stack: number
   duration: number
   isActive: boolean
+  config: Partial<MarkConfig>
 }
 
 export interface PlayerMessage {

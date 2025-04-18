@@ -283,7 +283,9 @@ export class ConsoleUIV2 {
         exit(0)
 
       case BattleMessageType.ForcedSwitch:
-        console.log(`${message.data.player.map(this.getPlayerNameById).join(',')} 必须更换倒下的精灵！`)
+        console.log(
+          `${message.data.player.map(p => this.getPlayerNameById.call(this, p)).join(',')} 必须更换倒下的精灵！`,
+        )
         break
 
       case BattleMessageType.FaintSwitch: {

@@ -14,7 +14,7 @@ import * as jsondiffpatch from 'jsondiffpatch'
 export const useBattleStore = defineStore('battle', {
   state: () => ({
     battleInterface: null as IBattleSystem | null,
-    state: null as BattleState | null,
+    battleState: null as BattleState | null,
     log: [] as BattleMessage[],
     availableActions: [] as PlayerSelection[],
     errorMessage: null as string | null,
@@ -30,7 +30,7 @@ export const useBattleStore = defineStore('battle', {
     async initBattle(battleInterface: IBattleSystem, playerId: string) {
       this.battleInterface = battleInterface
       this.playerId = playerId
-      this.state = await this.battleInterface.getState(playerId as playerId)
+      this.battleState = await this.battleInterface.getState(playerId as playerId)
       this.isBattleEnd = false
       this.victor = null
       this.errorMessage = null
@@ -53,8 +53,8 @@ export const useBattleStore = defineStore('battle', {
     },
 
     async applyStateDelta(msg: BattleMessage) {
-      if (!this.state) this.state = {} as BattleState
-      jsondiffpatch.patch(this.state, msg.stateDelta)
+      if (!this.battleState) this.battleState = {} as BattleState
+      jsondiffpatch.patch(this.battleState, msg.stateDelta)
       this.log.push(msg)
       console.debug(msg.stateDelta)
 
@@ -98,7 +98,7 @@ export const useBattleStore = defineStore('battle', {
       this.isBattleEnd = false
       this.victor = null
       this.errorMessage = null
-      this.state = null
+      this.battleState = null
       this.log = []
       this.availableActions = []
       // 清理RxJS资源
@@ -106,18 +106,18 @@ export const useBattleStore = defineStore('battle', {
     },
 
     getPetById(petId: petId) {
-      return this.state?.players
+      return this.battleState?.players
         .map(p => p.team)
         .flat()
         .find(p => p?.id === petId)
     },
 
     getPlayerById(playerId: playerId) {
-      return this.state?.players.find(p => p.id === playerId)
+      return this.battleState?.players.find(p => p.id === playerId)
     },
 
     getSkillInfo(skillId: string) {
-      return this.state?.players
+      return this.battleState?.players
         .flatMap(p => p.team)
         .flatMap(p => p?.skills)
         .find(s => s?.id === skillId)
@@ -130,10 +130,10 @@ export const useBattleStore = defineStore('battle', {
   },
 
   getters: {
-    currentPlayer: state => state.state?.players.find(p => p.id === state.playerId),
-    opponent: state => state.state?.players.find(p => p.id !== state.playerId),
+    currentPlayer: state => state.battleState?.players.find(p => p.id === state.playerId),
+    opponent: state => state.battleState?.players.find(p => p.id !== state.playerId),
     petMap: state => {
-      const pets = state.state?.players
+      const pets = state.battleState?.players
         .map(p => p.team ?? [])
         .flat()
         .filter(p => !p.isUnknown)
@@ -141,7 +141,7 @@ export const useBattleStore = defineStore('battle', {
       return new Map(pets)
     },
     skillMap: state => {
-      const skills = state.state?.players
+      const skills = state.battleState?.players
         .map(p => p.team ?? [])
         .flat()
         .filter((p): p is NonNullable<typeof p> => !!p && !p.isUnknown)
@@ -151,19 +151,19 @@ export const useBattleStore = defineStore('battle', {
       return new Map(skills ?? [])
     },
     playerMap: state => {
-      const players = state.state?.players.map(p => [p.id, p] as [playerId, typeof p])
+      const players = state.battleState?.players.map(p => [p.id, p] as [playerId, typeof p])
       return new Map(players ?? [])
     },
     markMap: state => {
       const marks = [
-        ...(state.state?.players
+        ...(state.battleState?.players
           .map(p => p.team ?? [])
           .flat()
           .filter(p => !p.isUnknown)
           .map(p => p.marks ?? [])
           .flat()
           .map(m => [m.id, m] as [string, typeof m]) || []),
-        ...(state.state?.marks.map(m => [m.id, m] as [string, typeof m]) ?? []),
+        ...(state.battleState?.marks.map(m => [m.id, m] as [string, typeof m]) ?? []),
       ]
       return new Map(marks)
     },

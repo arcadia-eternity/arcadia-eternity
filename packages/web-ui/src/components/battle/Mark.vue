@@ -20,8 +20,12 @@ const props = withDefaults(
 
 const rootEl = ref<HTMLElement | null>(null)
 const showTooltip = ref(false)
-const stackText = computed(() => (props.mark.stack > 1 ? `${props.mark.stack}` : ''))
-const image = computed(() => resourceStore.getMarkImage(props.mark.baseId) ?? '')
+const stackText = computed(() => `${props.mark.stack}`)
+const image = computed(
+  () =>
+    resourceStore.getMarkImage(props.mark.baseId) ??
+    'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/traitMark/inc.png',
+)
 const name = computed(() =>
   i18next.t(`${props.mark.baseId}.name`, {
     ns: ['mark', 'mark_ability', 'mark_emblem'],
@@ -40,7 +44,7 @@ const stack = computed(() => props.mark.stack ?? 1)
 <template>
   <div
     ref="rootEl"
-    class="relative inline-block overflow-visible transition-transform duration-200 ease-in-out hover:-translate-y-0.5 z-[1] isolate group"
+    class="relative inline-block overflow-visible transition-transform duration-200 ease-in-out hover:-translate-y-0.5 z-[100] isolate group"
     data-tooltip-parent
   >
     <Tooltip :show="showTooltip" position="bottom" v-if="rootEl">
@@ -49,10 +53,10 @@ const stack = computed(() => props.mark.stack ?? 1)
           <img
             :src="image"
             class="w-12 h-12 object-contain transition-opacity duration-200 ease-in-out"
-            :class="{ 'opacity-50': duration == 1 }"
+            :class="{ 'opacity-50': !mark.config.persistent && duration == 1 }"
           />
           <div
-            v-if="stack > 1"
+            v-if="mark.config.stackable"
             class="absolute -bottom-1 -right-1 text-white text-sm px-1.5 py-0.5 rounded-full leading-none [text-shadow:_0_0_2px_black]"
           >
             {{ stackText }}
@@ -65,7 +69,7 @@ const stack = computed(() => props.mark.stack ?? 1)
         class="text-sm text-gray-200 leading-relaxed mb-3 prose prose-invert max-w-none"
         v-html="md.render(description)"
       ></div>
-      <div class="text-xs text-gray-400 mt-2">剩余回合: {{ duration }}</div>
+      <div class="text-xs text-gray-400 mt-2" v-if="!mark.config.persistent">剩余回合: {{ duration }}</div>
     </Tooltip>
   </div>
 </template>

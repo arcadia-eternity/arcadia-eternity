@@ -1,3 +1,13 @@
+stat_stage_atk_down: https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/traitMark/atk_dec.png
+stat_stage_def_down: https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/traitMark/defense_dec.png
+stat_stage_spa_down: https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/traitMark/specialAtk_dec.png
+stat_stage_spd_down: https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/traitMark/specialDefense_dec.png
+stat_stage_spe_down: https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/traitMark/speed_dec.png
+stat_stage_atk_up: https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/traitMark/atk.png
+stat_stage_def_up: https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/traitMark/defense.png
+stat_stage_spa_up: https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/traitMark/specialAtk.png
+stat_stage_spd_up: https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/traitMark/specialDefense.png
+stat_stage_spe_up: https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/traitMark/speed.png
 mark_meihuo: 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/markImage/1.png'
 mark_haipa: 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/markImage/2.png'
 mark_tanhuan: 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/markImage/3.png'

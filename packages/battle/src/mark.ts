@@ -5,6 +5,7 @@ import {
   STAT_STAGE_MULTIPLIER,
   StackStrategy,
   StatTypeWithoutHp,
+  type MarkConfig,
   type baseMarkId,
   type markId,
 } from '@test-battle/const'
@@ -22,21 +23,6 @@ import {
 import { Effect, type EffectContainer } from './effect'
 import { type Instance, type MarkOwner, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
-
-export type MarkConfig = {
-  duration: number
-  persistent: boolean
-  maxStacks: number
-  stackable: boolean
-  stackStrategy: StackStrategy
-  destroyable: boolean
-  isShield: boolean
-  keepOnSwitchOut: boolean
-  transferOnSwitch: boolean
-  inheritOnFaint: boolean
-  mutexGroup?: string
-  [id: string]: any
-}
 
 export interface IBaseMark extends Prototype {
   createInstance(...arg: any[]): MarkInstance
@@ -335,6 +321,7 @@ export class MarkInstanceImpl implements MarkInstance {
       stack: this.stack,
       duration: this.duration,
       isActive: this.isActive,
+      config: this.config,
     }
   }
 }
@@ -458,7 +445,7 @@ export function CreateStatStageMark(statType: StatTypeWithoutHp, level: number):
   return new BaseStatLevelMark(
     statType,
     level,
-    `stat-stage-${statType}-${level > 0 ? 'up' : 'down'}` as baseMarkId,
+    `stat_stage_${statType}_${level > 0 ? 'up' : 'down'}` as baseMarkId,
     `${statType.toUpperCase()} ${level > 0 ? '+' : ''}${level}`,
     [],
   )

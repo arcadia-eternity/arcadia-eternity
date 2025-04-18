@@ -1,31 +1,31 @@
-stat-stage-atk-down:
+stat_stage_atk_down:
   name: 攻击力下降
   description: 攻击等级{{mark.stack}}
-stat-stage-def-down:
+stat_stage_def_down:
   name: 防御力下降
   description: 防御等级{{mark.stack}}
-stat-stage-spa-down:
+stat_stage_spa_down:
   name: 特攻下降
   description: 特攻等级{{mark.stack}}
-stat-stage-spd-down:
+stat_stage_spd_down:
   name: 特防下降
   description: 特防等级{{mark.stack}}
-stat-stage-spe-down:
+stat_stage_spe_down:
   name: 速度下降
   description: 速度等级{{mark.stack}}
-stat-stage-atk-up:
+stat_stage_atk_up:
   name: 攻击力提升
   description: 攻击等级{{mark.stack}}
-stat-stage-def-up:
+stat_stage_def_up:
   name: 防御力提升
   description: 防御等级{{mark.stack}}
-stat-stage-spa-up:
+stat_stage_spa_up:
   name: 特攻提升
   description: 特攻等级{{mark.stack}}
-stat-stage-spd-up:
+stat_stage_spd_up:
   name: 特防提升
   description: 特防等级{{mark.stack}}
-stat-stage-spe-up:
+stat_stage_spe_up:
   name: 速度提升
   description: 速度等级{{mark.stack}}
 mark_meihuo:

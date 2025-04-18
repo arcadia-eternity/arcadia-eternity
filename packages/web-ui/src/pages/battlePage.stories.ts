@@ -47,7 +47,7 @@ const setupStore = (options?: { players?: any[]; skills?: any[]; marks?: any[]; 
   const store = useBattleStore()
 
   // 通过mock state设置数据
-  store.state = {
+  store.battleState = {
     players: options?.players || [basePlayer('left'), basePlayer('right')],
     marks: options?.marks || [],
     currentTurn: 1,
