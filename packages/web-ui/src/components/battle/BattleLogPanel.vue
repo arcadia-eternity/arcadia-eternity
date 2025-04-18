@@ -197,7 +197,7 @@ function formatBattleMessage(
     ...msg,
     icon,
     content,
-    timestamp: new Date(msg.sequenceId ?? 0).toLocaleTimeString(),
+    timestamp: new Date(Date.now()).toLocaleTimeString(),
   }
 }
 

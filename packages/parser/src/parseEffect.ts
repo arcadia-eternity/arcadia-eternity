@@ -38,7 +38,6 @@ import {
   type ValueSource,
   createPathExtractor,
   Conditions,
-  type Action,
   type PropertyRef,
   type PrimitiveOpinion,
   registerLiteralValue,
