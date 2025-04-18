@@ -9,8 +9,8 @@ import {
   SkillInstance,
   UseSkillContext,
   MarkInstanceImpl,
-} from '@test-battle/battle'
-import type { Element, InstanceId, PrototypeId, StatOnBattle } from '@test-battle/const'
+} from '@arcadia-eternity/battle'
+import type { Element, InstanceId, PrototypeId, StatOnBattle } from '@arcadia-eternity/const'
 import type { SelectorOpinion } from './selector'
 import type { ValueExtractor } from './effectBuilder'
 import { RuntimeTypeChecker } from './runtime-type-checker'

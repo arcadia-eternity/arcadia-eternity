@@ -1,5 +1,5 @@
 import { LGraphNode } from '@comfyorg/litegraph'
-import type { Value, SelectorDSL, DynamicValue } from '@test-battle/schema'
+import type { Value, SelectorDSL, DynamicValue } from '@arcadia-eternity/schema'
 
 export abstract class BaseGetVariableNode extends LGraphNode {
   abstract title: string

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { ElementSchema } from './element'
-import { Category, IgnoreStageStrategy } from '@test-battle/const'
-import { AttackTargetOpinion } from '@test-battle/const'
+import { Category, IgnoreStageStrategy } from '@arcadia-eternity/const'
+import { AttackTargetOpinion } from '@arcadia-eternity/const'
 
 export const CategorySchema = z.nativeEnum(Category)
 

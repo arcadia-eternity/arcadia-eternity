@@ -1,8 +1,8 @@
-import { Player } from '@test-battle/battle'
-import { PlayerSchema } from '@test-battle/schema'
+import { Player } from '@arcadia-eternity/battle'
+import { PlayerSchema } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 import { PetParser } from './pet'
-import type { playerId } from '@test-battle/const'
+import type { playerId } from '@arcadia-eternity/const'
 
 export class PlayerParser {
   static parse(rawData: unknown): Player {

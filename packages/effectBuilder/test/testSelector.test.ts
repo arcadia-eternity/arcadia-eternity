@@ -12,7 +12,7 @@ import {
   SkillInstance,
   TurnContext,
   BaseSkill,
-} from '@test-battle/battle'
+} from '@arcadia-eternity/battle'
 import {
   type speciesId,
   type baseMarkId,
@@ -26,7 +26,7 @@ import {
   type playerId,
   type baseSkillId,
   Category,
-} from '@test-battle/const'
+} from '@arcadia-eternity/const'
 
 describe('ChainableSelector 类型安全测试', () => {
   const mockBaseSkill = new BaseSkill.Builder()

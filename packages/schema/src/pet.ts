@@ -1,4 +1,4 @@
-import { Gender, Nature } from '@test-battle/const'
+import { Gender, Nature } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
 

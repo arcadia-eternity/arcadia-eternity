@@ -14,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Pet } from '@test-battle/schema'
+import type { Pet } from '@arcadia-eternity/schema'
 import { useGameDataStore } from '../stores/gameData'
 import { computed } from 'vue'
 

@@ -1,5 +1,11 @@
-import { type Prototype, type Species, Effect, BaseMark, BaseSkill } from '@test-battle/battle'
-import { EffectTrigger, type baseMarkId, type baseSkillId, type effectId, type speciesId } from '@test-battle/const'
+import { type Prototype, type Species, Effect, BaseMark, BaseSkill } from '@arcadia-eternity/battle'
+import {
+  EffectTrigger,
+  type baseMarkId,
+  type baseSkillId,
+  type effectId,
+  type speciesId,
+} from '@arcadia-eternity/const'
 
 export class DataRepository {
   private static instance: DataRepository

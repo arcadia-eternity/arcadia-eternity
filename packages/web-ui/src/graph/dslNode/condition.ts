@@ -1,6 +1,6 @@
 // conditionNodes.ts
 import { LGraphNode, LiteGraph } from '@comfyorg/litegraph'
-import type { ConditionDSL, EvaluatorDSL, SelectorDSL } from '@test-battle/schema'
+import type { ConditionDSL, EvaluatorDSL, SelectorDSL } from '@arcadia-eternity/schema'
 import { SelectStepNode } from './selectorChain'
 import { CompareEvaluatorNode } from './evaluator'
 

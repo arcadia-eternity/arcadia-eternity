@@ -8,7 +8,7 @@ import {
   type MarkConfig,
   type baseMarkId,
   type markId,
-} from '@test-battle/const'
+} from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 import { Battle } from './battle'
 import {

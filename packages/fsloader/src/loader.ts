@@ -1,9 +1,9 @@
 import fs from 'fs/promises'
 import path, { dirname } from 'path'
 import YAML from 'yaml'
-import { DataRepository } from '@test-battle/data-repository'
-import { extractMetadata } from '@test-battle/schema'
-import { EffectParser, MarkParser, SkillParser, SpeciesParser } from '@test-battle/parser'
+import { DataRepository } from '@arcadia-eternity/data-repository'
+import { extractMetadata } from '@arcadia-eternity/schema'
+import { EffectParser, MarkParser, SkillParser, SpeciesParser } from '@arcadia-eternity/parser'
 import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)

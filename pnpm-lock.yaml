@@ -8,37 +8,37 @@ importers:
 
   .:
     dependencies:
-      '@test-battle/battle':
+      '@arcadia-eternity/battle':
         specifier: workspace:^
         version: link:packages/battle
-      '@test-battle/client':
+      '@arcadia-eternity/client':
         specifier: workspace:^
         version: link:packages/client
-      '@test-battle/console':
+      '@arcadia-eternity/console':
         specifier: workspace:^
         version: link:packages/console
-      '@test-battle/const':
+      '@arcadia-eternity/const':
         specifier: workspace:^
         version: link:packages/const
-      '@test-battle/data-repository':
+      '@arcadia-eternity/data-repository':
         specifier: workspace:^
         version: link:packages/dataRepository
-      '@test-battle/fsloader':
+      '@arcadia-eternity/fsloader':
         specifier: workspace:^
         version: link:packages/fsloader
-      '@test-battle/interface':
+      '@arcadia-eternity/interface':
         specifier: workspace:^
         version: link:packages/interface
-      '@test-battle/local-adapter':
+      '@arcadia-eternity/local-adapter':
         specifier: workspace:^
         version: link:packages/localAdapter
-      '@test-battle/parser':
+      '@arcadia-eternity/parser':
         specifier: workspace:^
         version: link:packages/parser
-      '@test-battle/schema':
+      '@arcadia-eternity/schema':
         specifier: workspace:^
         version: link:packages/schema
-      '@test-battle/server':
+      '@arcadia-eternity/server':
         specifier: workspace:^
         version: link:packages/server
       commander:
@@ -141,7 +141,7 @@ importers:
 
   packages/battle:
     dependencies:
-      '@test-battle/const':
+      '@arcadia-eternity/const':
         specifier: workspace:*
         version: link:../const
       jsondiffpatch:
@@ -156,19 +156,19 @@ importers:
 
   packages/client:
     dependencies:
-      '@test-battle/const':
+      '@arcadia-eternity/const':
         specifier: workspace:^
         version: link:../const
-      '@test-battle/interface':
+      '@arcadia-eternity/interface':
         specifier: workspace:^
         version: link:../interface
-      '@test-battle/parser':
+      '@arcadia-eternity/parser':
         specifier: workspace:^
         version: link:../parser
-      '@test-battle/protocol':
+      '@arcadia-eternity/protocol':
         specifier: workspace:^
         version: link:../protocol
-      '@test-battle/schema':
+      '@arcadia-eternity/schema':
         specifier: workspace:^
         version: link:../schema
       nanoid:
@@ -183,13 +183,13 @@ importers:
 
   packages/console:
     dependencies:
-      '@test-battle/battle':
+      '@arcadia-eternity/battle':
         specifier: workspace:^
         version: link:../battle
-      '@test-battle/const':
+      '@arcadia-eternity/const':
         specifier: workspace:^
         version: link:../const
-      '@test-battle/interface':
+      '@arcadia-eternity/interface':
         specifier: workspace:^
         version: link:../interface
       i18next:
@@ -226,22 +226,22 @@ importers:
 
   packages/dataRepository:
     dependencies:
-      '@test-battle/battle':
+      '@arcadia-eternity/battle':
         specifier: workspace:^
         version: link:../battle
-      '@test-battle/const':
+      '@arcadia-eternity/const':
         specifier: workspace:^
         version: link:../const
 
   packages/effectBuilder:
     dependencies:
-      '@test-battle/battle':
+      '@arcadia-eternity/battle':
         specifier: workspace:^
         version: link:../battle
-      '@test-battle/const':
+      '@arcadia-eternity/const':
         specifier: workspace:^
         version: link:../const
-      '@test-battle/data-repository':
+      '@arcadia-eternity/data-repository':
         specifier: workspace:^
         version: link:../dataRepository
       nanoid:
@@ -263,13 +263,13 @@ importers:
 
   packages/fsloader:
     dependencies:
-      '@test-battle/data-repository':
+      '@arcadia-eternity/data-repository':
         specifier: workspace:^
         version: link:../dataRepository
-      '@test-battle/parser':
+      '@arcadia-eternity/parser':
         specifier: workspace:^
         version: link:../parser
-      '@test-battle/schema':
+      '@arcadia-eternity/schema':
         specifier: workspace:^
         version: link:../schema
       yaml:
@@ -282,13 +282,13 @@ importers:
 
   packages/httploader:
     dependencies:
-      '@test-battle/data-repository':
+      '@arcadia-eternity/data-repository':
         specifier: workspace:^
         version: link:../dataRepository
-      '@test-battle/parser':
+      '@arcadia-eternity/parser':
         specifier: workspace:^
         version: link:../parser
-      '@test-battle/schema':
+      '@arcadia-eternity/schema':
         specifier: workspace:^
         version: link:../schema
       axios:
@@ -304,13 +304,13 @@ importers:
 
   packages/interface:
     dependencies:
-      '@test-battle/const':
+      '@arcadia-eternity/const':
         specifier: workspace:^
         version: link:../const
-      '@test-battle/protocol':
+      '@arcadia-eternity/protocol':
         specifier: workspace:^
         version: link:../protocol
-      '@test-battle/schema':
+      '@arcadia-eternity/schema':
         specifier: workspace:^
         version: link:../schema
       nanoid:
@@ -325,13 +325,13 @@ importers:
 
   packages/localAdapter:
     dependencies:
-      '@test-battle/battle':
+      '@arcadia-eternity/battle':
         specifier: workspace:^
         version: link:../battle
-      '@test-battle/const':
+      '@arcadia-eternity/const':
         specifier: workspace:^
         version: link:../const
-      '@test-battle/interface':
+      '@arcadia-eternity/interface':
         specifier: workspace:^
         version: link:../interface
     devDependencies:
@@ -341,19 +341,19 @@ importers:
 
   packages/parser:
     dependencies:
-      '@test-battle/battle':
+      '@arcadia-eternity/battle':
         specifier: workspace:^
         version: link:../battle
-      '@test-battle/const':
+      '@arcadia-eternity/const':
         specifier: workspace:^
         version: link:../const
-      '@test-battle/data-repository':
+      '@arcadia-eternity/data-repository':
         specifier: workspace:^
         version: link:../dataRepository
-      '@test-battle/effect-builder':
+      '@arcadia-eternity/effect-builder':
         specifier: workspace:^
         version: link:../effectBuilder
-      '@test-battle/schema':
+      '@arcadia-eternity/schema':
         specifier: workspace:^
         version: link:../schema
       nanoid:
@@ -365,19 +365,19 @@ importers:
 
   packages/protocol:
     dependencies:
-      '@test-battle/const':
+      '@arcadia-eternity/const':
         specifier: workspace:^
         version: link:../const
-      '@test-battle/schema':
+      '@arcadia-eternity/schema':
         specifier: workspace:^
         version: link:../schema
 
   packages/schema:
     dependencies:
-      '@test-battle/const':
+      '@arcadia-eternity/const':
         specifier: workspace:^
         version: link:../const
-      '@test-battle/effect-builder':
+      '@arcadia-eternity/effect-builder':
         specifier: workspace:^
         version: link:../effectBuilder
       nanoid:
@@ -396,19 +396,19 @@ importers:
 
   packages/server:
     dependencies:
-      '@test-battle/battle':
+      '@arcadia-eternity/battle':
         specifier: workspace:^
         version: link:../battle
-      '@test-battle/const':
+      '@arcadia-eternity/const':
         specifier: workspace:^
         version: link:../const
-      '@test-battle/parser':
+      '@arcadia-eternity/parser':
         specifier: workspace:^
         version: link:../parser
-      '@test-battle/protocol':
+      '@arcadia-eternity/protocol':
         specifier: workspace:^
         version: link:../protocol
-      '@test-battle/schema':
+      '@arcadia-eternity/schema':
         specifier: workspace:^
         version: link:../schema
       nanoid:
@@ -433,6 +433,30 @@ importers:
       '@anatine/zod-mock':
         specifier: ^3.14.0
         version: 3.14.0(@faker-js/faker@9.6.0)(zod@3.24.2)
+      '@arcadia-eternity/client':
+        specifier: workspace:^
+        version: link:../client
+      '@arcadia-eternity/const':
+        specifier: workspace:^
+        version: link:../const
+      '@arcadia-eternity/httploader':
+        specifier: workspace:^
+        version: link:../httploader
+      '@arcadia-eternity/interface':
+        specifier: workspace:^
+        version: link:../interface
+      '@arcadia-eternity/local-adapter':
+        specifier: workspace:^
+        version: link:../localAdapter
+      '@arcadia-eternity/parser':
+        specifier: workspace:^
+        version: link:../parser
+      '@arcadia-eternity/protocol':
+        specifier: workspace:^
+        version: link:../protocol
+      '@arcadia-eternity/schema':
+        specifier: workspace:^
+        version: link:../schema
       '@comfyorg/litegraph':
         specifier: ^0.11.10
         version: 0.11.10
@@ -445,30 +469,6 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.1.3
         version: 4.1.3(vite@6.2.5(@types/node@22.14.0)(jiti@2.4.2)(lightningcss@1.29.2)(tsx@4.19.3)(yaml@2.7.1))
-      '@test-battle/client':
-        specifier: workspace:^
-        version: link:../client
-      '@test-battle/const':
-        specifier: workspace:^
-        version: link:../const
-      '@test-battle/httploader':
-        specifier: workspace:^
-        version: link:../httploader
-      '@test-battle/interface':
-        specifier: workspace:^
-        version: link:../interface
-      '@test-battle/local-adapter':
-        specifier: workspace:^
-        version: link:../localAdapter
-      '@test-battle/parser':
-        specifier: workspace:^
-        version: link:../parser
-      '@test-battle/protocol':
-        specifier: workspace:^
-        version: link:../protocol
-      '@test-battle/schema':
-        specifier: workspace:^
-        version: link:../schema
       '@vueuse/core':
         specifier: ^13.0.0
         version: 13.0.0(vue@3.5.13(typescript@5.8.3))

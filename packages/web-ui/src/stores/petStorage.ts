@@ -1,7 +1,7 @@
 // src/stores/petStorage.ts
 import { defineStore } from 'pinia'
-import type { PetSchemaType } from '@test-battle/schema'
-import { Gender, NatureMap, Nature } from '@test-battle/const'
+import type { PetSchemaType } from '@arcadia-eternity/schema'
+import { Gender, NatureMap, Nature } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 
 interface Team {

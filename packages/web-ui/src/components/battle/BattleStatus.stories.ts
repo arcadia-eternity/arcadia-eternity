@@ -1,6 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/vue3'
 import BattleStatus from './BattleStatus.vue'
-import { Element, type baseMarkId, type markId, type petId, type playerId, type speciesId } from '@test-battle/const'
+import {
+  Element,
+  type baseMarkId,
+  type markId,
+  type petId,
+  type playerId,
+  type speciesId,
+} from '@arcadia-eternity/const'
 
 const mockPlayer = {
   id: 'player1' as playerId,

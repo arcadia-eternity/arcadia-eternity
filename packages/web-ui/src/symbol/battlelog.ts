@@ -1,4 +1,4 @@
-import type { BattleMessage, PetMessage, SkillMessage, PlayerMessage, MarkMessage } from '@test-battle/const'
+import type { BattleMessage, PetMessage, SkillMessage, PlayerMessage, MarkMessage } from '@arcadia-eternity/const'
 import type { InjectionKey } from 'vue'
 
 export const logMessagesKey: InjectionKey<BattleMessage[]> = Symbol('logMessages')

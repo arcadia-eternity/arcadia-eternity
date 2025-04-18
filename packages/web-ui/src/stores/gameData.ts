@@ -1,7 +1,7 @@
 // src/stores/gameData.ts
 import { defineStore } from 'pinia'
 import { GameDataLoader } from '@/utils/gameLoader'
-import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType, Effect } from '@test-battle/schema'
+import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType, Effect } from '@arcadia-eternity/schema'
 
 interface GameDataState {
   species: {

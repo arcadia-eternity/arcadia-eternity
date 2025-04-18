@@ -1,5 +1,8 @@
-import type { petId, playerId, PlayerSelection, skillId } from '@test-battle/const'
-import { PlayerSelectionSchema, type PlayerSelectionSchemaType as PlayerSelectionSchemaType } from '@test-battle/schema'
+import type { petId, playerId, PlayerSelection, skillId } from '@arcadia-eternity/const'
+import {
+  PlayerSelectionSchema,
+  type PlayerSelectionSchemaType as PlayerSelectionSchemaType,
+} from '@arcadia-eternity/schema'
 
 export class SelectionParser {
   static parse(rawData: unknown): PlayerSelection {

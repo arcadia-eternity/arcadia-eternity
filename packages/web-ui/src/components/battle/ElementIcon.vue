@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Element } from '@test-battle/const'
+import { Element } from '@arcadia-eternity/const'
 import { computed } from 'vue'
 
 const props = defineProps<{

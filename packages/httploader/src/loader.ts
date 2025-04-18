@@ -1,9 +1,9 @@
 import axios from 'axios'
 import YAML from 'yaml'
-import { DataRepository } from '@test-battle/data-repository'
-import { extractMetadata } from '@test-battle/schema'
-import type { Effect, MarkSchemaType } from '@test-battle/schema'
-import { MarkParser, EffectParser, SkillParser, SpeciesParser } from '@test-battle/parser'
+import { DataRepository } from '@arcadia-eternity/data-repository'
+import { extractMetadata } from '@arcadia-eternity/schema'
+import type { Effect, MarkSchemaType } from '@arcadia-eternity/schema'
+import { MarkParser, EffectParser, SkillParser, SpeciesParser } from '@arcadia-eternity/parser'
 
 type FileCategory =
   | 'effect'

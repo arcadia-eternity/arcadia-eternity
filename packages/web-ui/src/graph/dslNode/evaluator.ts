@@ -1,7 +1,7 @@
 // evaluator.ts
 import { LGraphNode, LiteGraph } from '@comfyorg/litegraph'
 import { BaseGetVariableNode } from './BaseGetVariableNode'
-import type { EvaluatorDSL, Value, CompareOperator } from '@test-battle/schema'
+import type { EvaluatorDSL, Value, CompareOperator } from '@arcadia-eternity/schema'
 
 /* ---------- Evaluator 基类 ---------- */
 abstract class BaseEvaluatorNode extends BaseGetVariableNode {

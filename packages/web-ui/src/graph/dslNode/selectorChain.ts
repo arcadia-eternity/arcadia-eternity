@@ -9,7 +9,7 @@ import type {
   SelectStepDSL,
   SelectorDSL,
   ChainSelector,
-} from '@test-battle/schema'
+} from '@arcadia-eternity/schema'
 import { BaseGetVariableNode } from './BaseGetVariableNode'
 import { CompareEvaluatorNode } from './evaluator'
 

@@ -51,7 +51,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, h, watch, nextTick } from 'vue'
 import { Upload, Delete, Plus, InfoFilled } from '@element-plus/icons-vue'
-import { DATA_SCHEMA_MAP, SCHEMA_MAP } from '@test-battle/schema'
+import { DATA_SCHEMA_MAP, SCHEMA_MAP } from '@arcadia-eternity/schema'
 import SpeciesSkillEditor from '@/components/SpeciesSkillEditor.vue'
 import EnhancedArrayEditor from '@/components/EnhancedArrayEditor.vue'
 import OptionalFieldEditor from '@/components/OptionalFieldEditor.vue'

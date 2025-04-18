@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type BattleMessageType } from '@test-battle/const'
+import { type BattleMessageType } from '@arcadia-eternity/const'
 
 export interface FormattedBattleMessage {
   type: BattleMessageType

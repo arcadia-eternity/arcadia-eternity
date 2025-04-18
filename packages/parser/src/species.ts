@@ -1,7 +1,7 @@
-import { type Species } from '@test-battle/battle'
-import type { baseMarkId, speciesId } from '@test-battle/const'
-import { DataRepository } from '@test-battle/data-repository'
-import { SpeciesSchema } from '@test-battle/schema'
+import { type Species } from '@arcadia-eternity/battle'
+import type { baseMarkId, speciesId } from '@arcadia-eternity/const'
+import { DataRepository } from '@arcadia-eternity/data-repository'
+import { SpeciesSchema } from '@arcadia-eternity/schema'
 
 export class SpeciesParser {
   static parse(rawData: unknown): Species {

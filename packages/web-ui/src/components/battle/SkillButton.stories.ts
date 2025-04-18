@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/vue3'
 import SkillButton from './SkillButton.vue'
-import { Element, Category, AttackTargetOpinion } from '@test-battle/const'
-import type { SkillMessage, baseSkillId, skillId } from '@test-battle/const'
+import { Element, Category, AttackTargetOpinion } from '@arcadia-eternity/const'
+import type { SkillMessage, baseSkillId, skillId } from '@arcadia-eternity/const'
 
 const meta: Meta<typeof SkillButton> = {
   title: 'Components/Battle/SkillButton',

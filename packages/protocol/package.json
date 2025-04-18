@@ -1,11 +1,11 @@
 {
-  "name": "@test-battle/protocol",
+  "name": "@arcadia-eternity/protocol",
   "version": "1.0.0",
   "description": "",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YuuinIH/test_battle.git"
+    "url": "https://github.com/arcadia-eternity/arcadia-eternity.git"
   },
   "main": "./dist/index.js",
   "types": "./dist/src/index.d.ts",
@@ -19,7 +19,7 @@
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
-    "@test-battle/const": "workspace:^",
-    "@test-battle/schema": "workspace:^"
+    "@arcadia-eternity/const": "workspace:^",
+    "@arcadia-eternity/schema": "workspace:^"
   }
 }

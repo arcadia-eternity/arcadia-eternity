@@ -12,7 +12,7 @@ import {
   type SwitchPetSelection,
   type UseSkillSelection,
   type playerId,
-} from '@test-battle/const'
+} from '@arcadia-eternity/const'
 import { Battle } from './battle'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { Pet } from './pet'

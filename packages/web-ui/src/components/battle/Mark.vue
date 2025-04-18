@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import MarkdownIt from 'markdown-it'
 import Tooltip from './Tooltip.vue'
-import type { MarkMessage } from '@test-battle/const'
+import type { MarkMessage } from '@arcadia-eternity/const'
 import { useResourceStore } from '@/stores/resource'
 import i18next from 'i18next'
 

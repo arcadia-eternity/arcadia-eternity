@@ -18,7 +18,7 @@ import {
   type StatTypeOnBattle,
   StatTypeOnlyBattle,
   StatTypeWithoutHp,
-} from '@test-battle/const'
+} from '@arcadia-eternity/const'
 import {
   AddMarkContext,
   DamageContext,

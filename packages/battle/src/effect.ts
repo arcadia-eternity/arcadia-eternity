@@ -1,8 +1,8 @@
-import { EffectTrigger } from '@test-battle/const'
-import { BattleMessageType } from '@test-battle/const'
+import { EffectTrigger } from '@arcadia-eternity/const'
+import { BattleMessageType } from '@arcadia-eternity/const'
 import { Context, EffectContext, type TriggerContextMap } from './context'
 import { type Prototype } from './entity'
-import type { effectId } from '@test-battle/const'
+import type { effectId } from '@arcadia-eternity/const'
 import { MarkInstanceImpl } from './mark'
 
 export class EffectScheduler {

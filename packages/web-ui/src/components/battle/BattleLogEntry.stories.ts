@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/vue3'
 import BattleLogEntry from './BattleLogEntry.vue'
-import { BattleMessageType } from '@test-battle/const'
+import { BattleMessageType } from '@arcadia-eternity/const'
 
 const meta: Meta<typeof BattleLogEntry> = {
   title: 'Components/Battle/BattleLogEntry',

@@ -1,11 +1,11 @@
 {
-  "name": "@test-battle/parser",
+  "name": "@arcadia-eternity/parser",
   "version": "1.0.0",
   "description": "",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YuuinIH/test_battle.git"
+    "url": "https://github.com/arcadia-eternity/arcadia-eternity.git"
   },
   "main": "./dist/index.js",
   "types": "./dist/src/index.d.ts",
@@ -19,11 +19,11 @@
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
-    "@test-battle/battle": "workspace:^",
-    "@test-battle/const": "workspace:^",
-    "@test-battle/data-repository": "workspace:^",
-    "@test-battle/effect-builder": "workspace:^",
-    "@test-battle/schema": "workspace:^",
+    "@arcadia-eternity/battle": "workspace:^",
+    "@arcadia-eternity/const": "workspace:^",
+    "@arcadia-eternity/data-repository": "workspace:^",
+    "@arcadia-eternity/effect-builder": "workspace:^",
+    "@arcadia-eternity/schema": "workspace:^",
     "nanoid": "^5.1.5",
     "zod": "^3.24.2"
   }

@@ -16,7 +16,7 @@ import {
   type skillId,
   type SkillMessage,
   type SkillUseEndMessage,
-} from '@test-battle/const'
+} from '@arcadia-eternity/const'
 import { useElementBounding } from '@vueuse/core'
 import gsap from 'gsap'
 import i18next from 'i18next'

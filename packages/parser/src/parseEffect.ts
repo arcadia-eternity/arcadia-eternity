@@ -14,7 +14,7 @@ import {
   SkillInstance,
   UpdateStatContext,
   UseSkillContext,
-} from '@test-battle/battle'
+} from '@arcadia-eternity/battle'
 import {
   type baseMarkId,
   type baseSkillId,
@@ -23,8 +23,8 @@ import {
   StackStrategy,
   type StatTypeOnBattle,
   StatTypeWithoutHp,
-} from '@test-battle/const'
-import { DataRepository } from '@test-battle/data-repository'
+} from '@arcadia-eternity/const'
+import { DataRepository } from '@arcadia-eternity/data-repository'
 import {
   BaseSelector,
   type PathExtractor,
@@ -42,8 +42,8 @@ import {
   type PrimitiveOpinion,
   registerLiteralValue,
   type ConfigValueSource,
-} from '@test-battle/effect-builder'
-import { RuntimeTypeChecker } from '@test-battle/effect-builder'
+} from '@arcadia-eternity/effect-builder'
+import { RuntimeTypeChecker } from '@arcadia-eternity/effect-builder'
 import type {
   OperatorDSL,
   ConditionDSL,
@@ -53,7 +53,7 @@ import type {
   SelectorChain,
   SelectorDSL,
   Value,
-} from '@test-battle/schema'
+} from '@arcadia-eternity/schema'
 
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   try {

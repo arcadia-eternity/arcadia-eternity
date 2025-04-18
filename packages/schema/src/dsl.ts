@@ -1,6 +1,6 @@
-import type { MarkInstance } from '@test-battle/battle'
-import { EffectTrigger } from '@test-battle/const'
-import { BaseSelector, Extractor, type CompareOperator } from '@test-battle/effect-builder'
+import type { MarkInstance } from '@arcadia-eternity/battle'
+import { EffectTrigger } from '@arcadia-eternity/const'
+import { BaseSelector, Extractor, type CompareOperator } from '@arcadia-eternity/effect-builder'
 
 export { EffectTrigger }
 export type { CompareOperator }

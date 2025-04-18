@@ -11,11 +11,11 @@ import {
   type playerId,
   type PlayerSelection,
   type SkillMessage,
-} from '@test-battle/const'
-import type { PlayerSelectionSchemaType } from '@test-battle/schema'
+} from '@arcadia-eternity/const'
+import type { PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
 import { exit } from 'process'
 import readline from 'readline'
-import type { IBattleSystem } from '@test-battle/interface'
+import type { IBattleSystem } from '@arcadia-eternity/interface'
 import i18next from 'i18next'
 import { marked } from 'marked'
 import TerminalRenderer from 'marked-terminal'

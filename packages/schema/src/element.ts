@@ -1,4 +1,4 @@
-import { Element, ELEMENT_MAP, ELEMENT_CHART } from '@test-battle/const'
+import { Element, ELEMENT_MAP, ELEMENT_CHART } from '@arcadia-eternity/const'
 import { z } from 'zod'
 
 export { Element, ELEMENT_MAP, ELEMENT_CHART }

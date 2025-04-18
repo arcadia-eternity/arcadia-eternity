@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SkillMessage } from '@test-battle/const'
+import type { SkillMessage } from '@arcadia-eternity/const'
 import ElementIcon from './ElementIcon.vue'
 import Tooltip from './Tooltip.vue'
 import MarkdownIt from 'markdown-it'

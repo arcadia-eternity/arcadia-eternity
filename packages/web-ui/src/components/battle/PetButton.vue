@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import PetIcon from '../PetIcon.vue'
 import ElementIcon from './ElementIcon.vue'
 import Tooltip from './Tooltip.vue'
-import type { Element, PetMessage } from '@test-battle/const'
+import type { Element, PetMessage } from '@arcadia-eternity/const'
 import { useGameDataStore } from '@/stores/gameData'
 import i18next from 'i18next'
 

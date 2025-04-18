@@ -1,6 +1,6 @@
-import { Effect } from '@test-battle/battle'
-import { EffectTrigger } from '@test-battle/const'
-import { effectDSLSchema } from '@test-battle/schema'
+import { Effect } from '@arcadia-eternity/battle'
+import { EffectTrigger } from '@arcadia-eternity/const'
+import { effectDSLSchema } from '@arcadia-eternity/schema'
 
 import { parseEffect } from './parseEffect'
 

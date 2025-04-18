@@ -8,7 +8,7 @@ import type {
   playerId,
   skillId,
   speciesId,
-} from '@test-battle/const'
+} from '@arcadia-eternity/const'
 import { Battle } from './battle'
 import type { MarkInstance } from './mark'
 import type { Pet } from './pet'

@@ -1,7 +1,7 @@
-import { BaseMark, Effect } from '@test-battle/battle'
-import { EffectTrigger, type baseMarkId, type effectId } from '@test-battle/const'
-import { DataRepository } from '@test-battle/data-repository'
-import { MarkSchema } from '@test-battle/schema'
+import { BaseMark, Effect } from '@arcadia-eternity/battle'
+import { EffectTrigger, type baseMarkId, type effectId } from '@arcadia-eternity/const'
+import { DataRepository } from '@arcadia-eternity/data-repository'
+import { MarkSchema } from '@arcadia-eternity/schema'
 
 export class MarkParser {
   static parse(rawData: unknown): BaseMark {

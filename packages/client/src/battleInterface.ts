@@ -1,6 +1,6 @@
-import type { BattleState, PlayerSelection, BattleMessage } from '@test-battle/const'
-import { SelectionParser } from '@test-battle/parser'
-import type { IBattleSystem } from '@test-battle/interface'
+import type { BattleState, PlayerSelection, BattleMessage } from '@arcadia-eternity/const'
+import { SelectionParser } from '@arcadia-eternity/parser'
+import type { IBattleSystem } from '@arcadia-eternity/interface'
 import type { BattleClient } from './client'
 
 export class RemoteBattleSystem implements IBattleSystem {

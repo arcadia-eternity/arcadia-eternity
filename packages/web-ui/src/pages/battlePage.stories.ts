@@ -9,7 +9,7 @@ import {
   type baseSkillId,
   type petId,
   type skillId,
-} from '@test-battle/const'
+} from '@arcadia-eternity/const'
 import { createTestingPinia } from '@pinia/testing'
 import { useBattleStore } from '@/stores/battle'
 import { ref, type ComponentPublicInstance } from 'vue'

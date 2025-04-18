@@ -1,4 +1,4 @@
-import { DATA_SCHEMA_MAP, SCHEMA_MAP } from '@test-battle/schema'
+import { DATA_SCHEMA_MAP, SCHEMA_MAP } from '@arcadia-eternity/schema'
 export type FileData<T> = {
   metadata: {
     metaType: keyof typeof DATA_SCHEMA_MAP

@@ -1,6 +1,6 @@
 import { LGraphNode, type INodeOutputSlot, type INodeInputSlot, LiteGraph } from '@comfyorg/litegraph'
-import type { OperatorDSL, SelectorDSL } from '@test-battle/schema'
-import { StatTypeWithoutHp, StatTypeOnlyBattle } from '@test-battle/const'
+import type { OperatorDSL, SelectorDSL } from '@arcadia-eternity/schema'
+import { StatTypeWithoutHp, StatTypeOnlyBattle } from '@arcadia-eternity/const'
 import { BaseGetVariableNode } from './BaseGetVariableNode'
 
 abstract class BaseOperatorNode extends BaseGetVariableNode {

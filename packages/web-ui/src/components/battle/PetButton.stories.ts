@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/vue3'
 import PetButton from './PetButton.vue'
-import { Element } from '@test-battle/const'
+import { Element } from '@arcadia-eternity/const'
 import i18next from 'i18next'
 
 const meta: Meta<typeof PetButton> = {

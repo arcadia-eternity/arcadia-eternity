@@ -1,4 +1,4 @@
-import { Pet } from '@test-battle/battle'
+import { Pet } from '@arcadia-eternity/battle'
 import type { Path } from '../extractor'
 
 type checkOwner = Path<Pet, 'owner'> //expect player

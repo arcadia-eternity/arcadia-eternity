@@ -15,8 +15,8 @@ import {
   MarkInstanceImpl,
   type ScopeObject,
   UpdateStatContext,
-} from '@test-battle/battle'
-import type { CanOwnedEntity, Instance, OwnedEntity, Prototype } from '@test-battle/battle'
+} from '@arcadia-eternity/battle'
+import type { CanOwnedEntity, Instance, OwnedEntity, Prototype } from '@arcadia-eternity/battle'
 import {
   AttackTargetOpinion,
   Category,
@@ -34,7 +34,7 @@ import {
   type speciesId,
   type StatOnBattle,
   type StatTypeOnBattle,
-} from '@test-battle/const'
+} from '@arcadia-eternity/const'
 import type {
   Action,
   Condition,
@@ -47,7 +47,7 @@ import type {
 import { createExtractor, type PathExtractor } from './extractor'
 import { RuntimeTypeChecker } from './runtime-type-checker'
 import { GetValueFromSource } from './operator'
-import { DataRepository } from '@test-battle/data-repository'
+import { DataRepository } from '@arcadia-eternity/data-repository'
 
 export type PropertyRef<T, V> = {
   get: () => V

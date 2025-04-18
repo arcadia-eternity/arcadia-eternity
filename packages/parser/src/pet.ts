@@ -1,7 +1,7 @@
-import { BaseMark, Pet, type Species } from '@test-battle/battle'
-import { Gender, type baseMarkId, type baseSkillId, type petId, type speciesId } from '@test-battle/const'
-import { DataRepository } from '@test-battle/data-repository'
-import { PetSchema } from '@test-battle/schema'
+import { BaseMark, Pet, type Species } from '@arcadia-eternity/battle'
+import { Gender, type baseMarkId, type baseSkillId, type petId, type speciesId } from '@arcadia-eternity/const'
+import { DataRepository } from '@arcadia-eternity/data-repository'
+import { PetSchema } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 
 export class PetParser {

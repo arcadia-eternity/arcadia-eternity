@@ -16,14 +16,14 @@ import {
   SkillInstance,
   UpdateStatContext,
   UseSkillContext,
-} from '@test-battle/battle'
+} from '@arcadia-eternity/battle'
 import {
   CleanStageStrategy,
   EffectTrigger,
   StackStrategy,
   type StatTypeOnBattle,
   StatTypeWithoutHp,
-} from '@test-battle/const'
+} from '@arcadia-eternity/const'
 import type { ConfigValueSource, Operator } from './effectBuilder'
 import { ChainableSelector, type PrimitiveOpinion, type PropertyRef, type SelectorOpinion } from './selector'
 import { type ValueSource } from './effectBuilder'

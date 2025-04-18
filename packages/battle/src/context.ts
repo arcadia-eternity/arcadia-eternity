@@ -7,7 +7,7 @@ import {
   StackStrategy,
   type Element,
   type StatOnBattle,
-} from '@test-battle/const'
+} from '@arcadia-eternity/const'
 import { Battle } from './battle'
 import { type MarkOwner } from './entity'
 import { BaseMark, type MarkInstance } from './mark'

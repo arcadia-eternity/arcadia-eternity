@@ -7,8 +7,8 @@ import {
   type petId,
   type playerId,
   type PlayerSelection,
-} from '@test-battle/const'
-import type { IBattleSystem } from '@test-battle/interface'
+} from '@arcadia-eternity/const'
+import type { IBattleSystem } from '@arcadia-eternity/interface'
 import * as jsondiffpatch from 'jsondiffpatch'
 
 export const useBattleStore = defineStore('battle', {

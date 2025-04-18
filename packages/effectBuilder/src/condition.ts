@@ -6,7 +6,7 @@ import {
   RageContext,
   SkillInstance,
   UseSkillContext,
-} from '@test-battle/battle'
+} from '@arcadia-eternity/battle'
 import type { Condition } from './effectBuilder'
 
 export const Conditions = {

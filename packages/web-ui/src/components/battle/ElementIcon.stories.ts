@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/vue3'
-import { Element } from '@test-battle/const'
+import { Element } from '@arcadia-eternity/const'
 import ElementIcon from './ElementIcon.vue'
 
 const meta: Meta<typeof ElementIcon> = {

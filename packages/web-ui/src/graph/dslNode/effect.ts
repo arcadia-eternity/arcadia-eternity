@@ -1,11 +1,11 @@
 import { LGraphNode, type INodeOutputSlot, type INodeInputSlot, LiteGraph } from '@comfyorg/litegraph'
-import { EffectTrigger } from '@test-battle/const'
+import { EffectTrigger } from '@arcadia-eternity/const'
 import {
   effectDSLSchema as EffectSchema,
   type EffectDSL as Effect,
   type OperatorDSL,
   type ConditionDSL,
-} from '@test-battle/schema'
+} from '@arcadia-eternity/schema'
 
 const TRIGGER_OPTIONS = Object.values(EffectTrigger).map(value => ({
   value,

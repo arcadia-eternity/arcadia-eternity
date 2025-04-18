@@ -1,11 +1,11 @@
-import { type BattleState, type playerId } from '@test-battle/const'
+import { type BattleState, type playerId } from '@arcadia-eternity/const'
 import {
   type ClientToServerEvents,
   type ServerToClientEvents,
   type SuccessResponse,
   type ErrorResponse,
-} from '@test-battle/protocol'
-import { type PlayerSchemaType, type PlayerSelectionSchemaType } from '@test-battle/schema'
+} from '@arcadia-eternity/protocol'
+import { type PlayerSchemaType, type PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
 import { io, type Socket } from 'socket.io-client'
 
 type BattleClientOptions = {

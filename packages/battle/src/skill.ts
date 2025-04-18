@@ -8,7 +8,7 @@ import {
   type baseSkillId,
   type skillId,
   type SkillMessage,
-} from '@test-battle/const'
+} from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 import { EffectContext, UseSkillContext } from './context'
 import { Effect, type EffectContainer } from './effect'

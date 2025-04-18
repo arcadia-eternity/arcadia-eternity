@@ -1,4 +1,4 @@
-import { DATA_SCHEMA_MAP, type FileMetadata, MetadataSchema, type SchemaType } from '@test-battle/schema'
+import { DATA_SCHEMA_MAP, type FileMetadata, MetadataSchema, type SchemaType } from '@arcadia-eternity/schema'
 import cors from 'cors'
 import express from 'express'
 import fs from 'fs/promises'

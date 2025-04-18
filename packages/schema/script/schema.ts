@@ -3,7 +3,7 @@ import path from 'path'
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 import { MarkDataSetSchema, SkillDataSetSchema, SpeciesDataSetSchema } from '..'
-import { EffectDSLSetSchema } from '@test-battle/schema'
+import { EffectDSLSetSchema } from '@arcadia-eternity/schema'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 

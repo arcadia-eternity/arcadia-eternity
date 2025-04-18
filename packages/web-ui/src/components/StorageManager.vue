@@ -50,7 +50,7 @@ import { type Action, type TabPaneName } from 'element-plus'
 import { VueDraggable } from 'vue-draggable-plus'
 import { usePetStorageStore } from '../stores/petStorage'
 import petCard from './petCard.vue'
-import type { Pet } from '@test-battle/schema'
+import type { Pet } from '@arcadia-eternity/schema'
 
 const emit = defineEmits(['select-pet', 'update'])
 

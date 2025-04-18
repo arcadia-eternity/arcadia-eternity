@@ -129,7 +129,7 @@
 import { ref, computed, watchEffect } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import { useGameDataStore } from '@/stores/gameData'
-import type { LearnableSkill, Skill } from '@test-battle/schema'
+import type { LearnableSkill, Skill } from '@arcadia-eternity/schema'
 
 const props = defineProps<{
   modelValue: LearnableSkill[]

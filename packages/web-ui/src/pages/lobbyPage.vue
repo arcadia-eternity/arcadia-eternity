@@ -28,7 +28,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
 import { battleClient } from '@/utils/battleClient'
-import { BattleClient, RemoteBattleSystem } from '@test-battle/client'
+import { BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
 
 const router = useRouter()
 const route = useRoute()

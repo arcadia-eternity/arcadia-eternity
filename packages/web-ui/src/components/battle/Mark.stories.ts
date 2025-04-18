@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/vue3'
 import Mark from './Mark.vue'
-import type { baseMarkId, MarkMessage } from '@test-battle/const'
+import type { baseMarkId, MarkMessage } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 
 const meta: Meta<typeof Mark> = {

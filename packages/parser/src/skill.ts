@@ -1,7 +1,7 @@
-import { BaseSkill, Effect } from '@test-battle/battle'
-import { EffectTrigger, type baseSkillId, type effectId } from '@test-battle/const'
-import { DataRepository } from '@test-battle/data-repository'
-import { SkillSchema } from '@test-battle/schema'
+import { BaseSkill, Effect } from '@arcadia-eternity/battle'
+import { EffectTrigger, type baseSkillId, type effectId } from '@arcadia-eternity/const'
+import { DataRepository } from '@arcadia-eternity/data-repository'
+import { SkillSchema } from '@arcadia-eternity/schema'
 import {} from 'zod'
 
 export class SkillParser {

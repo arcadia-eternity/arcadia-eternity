@@ -9,7 +9,7 @@ import {
   type PetMessage,
   type PlayerMessage,
   type SkillMessage,
-} from '@test-battle/const'
+} from '@arcadia-eternity/const'
 import i18next from 'i18next'
 import { logMessagesKey, petMapKey, skillMapKey, playerMapKey, markMapKey } from '@/symbol/battlelog'
 

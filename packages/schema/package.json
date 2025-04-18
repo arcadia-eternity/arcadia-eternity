@@ -1,11 +1,11 @@
 {
-  "name": "@test-battle/schema",
+  "name": "@arcadia-eternity/schema",
   "version": "1.0.0",
   "description": "",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YuuinIH/test_battle.git"
+    "url": "https://github.com/arcadia-eternity/arcadia-eternity.git"
   },
   "main": "./dist/index.js",
   "types": "./dist/src/index.d.ts",
@@ -20,8 +20,8 @@
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
-    "@test-battle/const": "workspace:^",
-    "@test-battle/effect-builder": "workspace:^",
+    "@arcadia-eternity/const": "workspace:^",
+    "@arcadia-eternity/effect-builder": "workspace:^",
     "nanoid": "^5.1.5",
     "zod": "^3.24.2"
   },

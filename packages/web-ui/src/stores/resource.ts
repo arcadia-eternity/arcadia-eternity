@@ -1,7 +1,7 @@
 // src/stores/Resource.ts
 import { defineStore } from 'pinia'
 import { GameDataLoader } from '@/utils/gameLoader'
-import type { MarkImageSchemaType } from '@test-battle/schema'
+import type { MarkImageSchemaType } from '@arcadia-eternity/schema'
 
 interface ResourceState {
   markImage: {

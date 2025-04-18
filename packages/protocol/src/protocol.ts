@@ -1,7 +1,7 @@
 // src/protocol.ts
 // src/protocol.ts
-import type { BattleMessage, BattleState } from '@test-battle/const'
-import type { PlayerSchemaType, PlayerSelectionSchemaType } from '@test-battle/schema'
+import type { BattleMessage, BattleState } from '@arcadia-eternity/const'
+import type { PlayerSchemaType, PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
 
 // 统一响应类型
 export type SuccessResponse<T = undefined> = {

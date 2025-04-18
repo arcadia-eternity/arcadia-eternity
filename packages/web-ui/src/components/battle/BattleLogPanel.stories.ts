@@ -9,7 +9,7 @@ import {
   AttackTargetOpinion,
   type StatTypeOnBattle,
   type baseSkillId,
-} from '@test-battle/const'
+} from '@arcadia-eternity/const'
 import { logMessagesKey, petMapKey, skillMapKey, playerMapKey, markMapKey } from '@/symbol/battlelog'
 
 interface StoryProps {

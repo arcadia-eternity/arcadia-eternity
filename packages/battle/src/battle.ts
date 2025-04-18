@@ -13,7 +13,7 @@ import {
   type petId,
   type playerId,
   type skillId,
-} from '@test-battle/const'
+} from '@arcadia-eternity/const'
 import Prando from 'prando'
 import { ConfigSystem } from './config'
 import {
