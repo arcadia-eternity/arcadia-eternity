@@ -87,8 +87,8 @@ router.beforeEach(battleGuard)
 
 // 动态设置页面标题
 router.afterEach(to => {
-  const title = (to.meta.title as string) || '赛尔号对战'
-  document.title = `${title} | Seer2Battle`
+  const title = (to.meta.title as string) || '阿卡迪亚:永恒之门'
+  document.title = `${title} | Arcadia Eternity`
 })
 
 export default router
