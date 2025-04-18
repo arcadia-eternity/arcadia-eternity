@@ -515,6 +515,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   })
 
   for (const msg of messages) {
+    await store.applyStateDelta(msg)
     switch (msg.type) {
       case BattleMessageType.SkillMiss: {
         petSprites.value[getTargetSide(msg.data.target)].setState(ActionState.MISS)
@@ -531,7 +532,29 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
           showAbsorbMessage(targetSide)
           break
         } else {
-          target.setState(crit ? ActionState.UNDER_ULTRA : ActionState.UNDER_ATK)
+          // 获取目标宠物最新状态
+          const targetPet = store.getPetById(msg.data.target)!
+          const currentHp = targetPet.currentHp
+          const maxHp = targetPet.maxHp
+
+          // 检查可用状态
+          const availableStates = await petSprites.value[targetSide].availableState
+          const isDead = currentHp <= 0
+          const isCriticalHealth = currentHp < maxHp * 0.25
+
+          // 优先判断死亡状态
+          if (isDead && availableStates.includes(ActionState.DEAD)) {
+            target.setState(ActionState.DEAD)
+          }
+          // 其次判断濒死状态
+          else if (isCriticalHealth && availableStates.includes(ActionState.ABOUT_TO_DIE)) {
+            target.setState(ActionState.ABOUT_TO_DIE)
+          }
+          // 最后处理普通受伤状态
+          else {
+            target.setState(crit ? ActionState.UNDER_ULTRA : ActionState.UNDER_ATK)
+          }
+
           showDamageMessage(targetSide, damage, effectiveness > 1 ? 'up' : effectiveness < 1 ? 'down' : 'normal', crit)
           break
         }
@@ -546,7 +569,6 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
       default:
       //DoNothing
     }
-    await store.applyStateDelta(msg)
   }
   await new Promise<void>(resolve => {
     const handler = (completeSide: 'left' | 'right') => {
@@ -686,7 +708,29 @@ onMounted(() => {
                 showAbsorbMessage(targetSide)
                 break
               } else {
-                target.setState(crit ? ActionState.UNDER_ULTRA : ActionState.UNDER_ATK)
+                // 获取目标宠物最新状态
+                const targetPet = store.getPetById(msg.data.target)!
+                const currentHp = targetPet.currentHp
+                const maxHp = targetPet.maxHp
+
+                // 检查可用状态
+                const availableStates = await petSprites.value[targetSide].availableState
+                const isDead = currentHp <= 0
+                const isCriticalHealth = currentHp < maxHp * 0.25
+
+                // 优先判断死亡状态
+                if (isDead && availableStates.includes(ActionState.DEAD)) {
+                  target.setState(ActionState.DEAD)
+                }
+                // 其次判断濒死状态
+                else if (isCriticalHealth && availableStates.includes(ActionState.ABOUT_TO_DIE)) {
+                  target.setState(ActionState.ABOUT_TO_DIE)
+                }
+                // 最后处理普通受伤状态
+                else {
+                  target.setState(crit ? ActionState.UNDER_ULTRA : ActionState.UNDER_ATK)
+                }
+
                 showDamageMessage(
                   targetSide,
                   damage,

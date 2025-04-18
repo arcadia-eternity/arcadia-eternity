@@ -4,6 +4,7 @@ import BattleLogEntry from './BattleLogEntry.vue'
 import {
   BattleMessageType,
   type BattleMessage,
+  type BattleMessageData,
   type MarkMessage,
   type PetMessage,
   type PlayerMessage,
@@ -28,14 +29,14 @@ const MESSAGE_ICONS: Record<BattleMessageType, string> = {
   [BattleMessageType.MarkExpire]: '⌛',
   [BattleMessageType.MarkUpdate]: '🔄',
   [BattleMessageType.PetSwitch]: '🔄',
-  [BattleMessageType.RageChange]: '⚡',
+  [BattleMessageType.RageChange]: '🔥',
   [BattleMessageType.StatChange]: '📈',
   [BattleMessageType.BattleEnd]: '🏆',
   [BattleMessageType.BattleStart]: '⚔️',
   [BattleMessageType.Info]: 'ℹ️',
   [BattleMessageType.TurnAction]: '📢',
   [BattleMessageType.TurnStart]: '🔄',
-  [BattleMessageType.PetRevive]: '🔥',
+  [BattleMessageType.PetRevive]: '💚',
   [BattleMessageType.SkillMiss]: '❌',
   [BattleMessageType.ForcedSwitch]: '🔄',
   [BattleMessageType.FaintSwitch]: '🎁',
@@ -47,6 +48,8 @@ const MESSAGE_ICONS: Record<BattleMessageType, string> = {
   [BattleMessageType.EffectApplyFail]: '❌',
   [BattleMessageType.InvalidAction]: '🚫',
   [BattleMessageType.Error]: '❌',
+  [BattleMessageType.TurnEnd]: '',
+  [BattleMessageType.SkillUseEnd]: '',
 }
 
 // 伤害类型映射
@@ -147,7 +150,7 @@ function formatBattleMessage(
     }
     case BattleMessageType.PetSwitch: {
       const data = msg.data as { player: string; fromPet: string; toPet: string; currentHp: number }
-      content = `${playerMap?.get(data.player)?.id || data.player} 更换精灵：${getPetName(
+      content = `${playerMap?.get(data.player)?.name || data.player} 更换精灵：${getPetName(
         data.fromPet,
         petMap || new Map(),
       )} → ${getPetName(data.toPet, petMap || new Map())} (剩余HP: ${data.currentHp})`
@@ -184,13 +187,80 @@ function formatBattleMessage(
       content = `🎉 对战结束！胜利者：${msg.data.winner}`
       break
     case BattleMessageType.ForcedSwitch:
-      content = `${msg.data.player.join(',')} 必须更换倒下的精灵！`
+      content = `${msg.data.player.map(p => playerMap?.get(p)?.name).join(',')} 必须更换倒下的精灵！`
       break
     case BattleMessageType.FaintSwitch:
-      content = `🎁 ${msg.data.player} 击倒对手，获得换宠机会！`
+      content = `🎁 ${playerMap?.get(msg.data.player)?.name} 击倒对手，获得换宠机会！`
+      break
+    case BattleMessageType.PetRevive: {
+      const data = msg.data as BattleMessageData[typeof BattleMessageType.PetRevive]
+      const revivedPet = petMap?.get(data.pet)
+      content = `${getPetName(data.pet, petMap || new Map())} 被 ${getPetName(data.revivedBy, petMap || new Map())} 复活 (当前HP: ${revivedPet?.currentHp})`
+      break
+    }
+    case BattleMessageType.HpChange: {
+      const data = msg.data as BattleMessageData[typeof BattleMessageType.HpChange]
+      const change = data.after - data.before
+      content = `${getPetName(data.pet, petMap || new Map())} HP ${change > 0 ? '+' : ''}${change} (当前: ${data.after}/${data.maxHp}) [${i18next.t(`battle:hpChangeReason.${data.reason}`, { defaultValue: data.reason })}]`
+      break
+    }
+    case BattleMessageType.SkillUseFail: {
+      const data = msg.data as BattleMessageData[typeof BattleMessageType.SkillUseFail]
+      content = `${getPetName(data.user, petMap || new Map())} 无法使用技能：${i18next.t(`battle:skillFailReason.${data.reason}`, { defaultValue: data.reason })}`
+      break
+    }
+    case BattleMessageType.SkillUseEnd: {
+      const data = msg.data as BattleMessageData[typeof BattleMessageType.SkillUseEnd]
+      content = `${getPetName(data.user, petMap || new Map())} 结束技能使用`
+      break
+    }
+    case BattleMessageType.Heal: {
+      const data = msg.data as BattleMessageData[typeof BattleMessageType.Heal]
+      const targetPet = petMap?.get(data.target)
+      content = `${getPetName(data.target, petMap || new Map())} 恢复 ${data.amount} HP (当前: ${targetPet?.currentHp})`
+      break
+    }
+    case BattleMessageType.HealFail: {
+      const data = msg.data as BattleMessageData[typeof BattleMessageType.HealFail]
+      content = `${getPetName(data.target, petMap || new Map())} 治疗失败：${i18next.t(`battle:healFailReason.${data.reason}`, { defaultValue: data.reason })}`
+      break
+    }
+    case BattleMessageType.MarkDestory: {
+      const data = msg.data as BattleMessageData[typeof BattleMessageType.MarkDestory]
+      content = `${getPetName(data.target, petMap || new Map())} 的【${getMarkName(data.mark)}】印记被销毁`
+      break
+    }
+    case BattleMessageType.MarkUpdate: {
+      const data = msg.data as BattleMessageData[typeof BattleMessageType.MarkUpdate]
+      content = `${getPetName(data.target, petMap || new Map())} 的【${getMarkName(data.mark.baseId)}】更新为 ${data.mark.stack} 层`
+      break
+    }
+    case BattleMessageType.EffectApply: {
+      const data = msg.data as BattleMessageData[typeof BattleMessageType.EffectApply]
+      const sourceName = data.source.startsWith('skill-') ? getSkillName(data.source) : getMarkName(data.source)
+      content = `${sourceName} 触发效果：${i18next.t(`effect:${data.effect}`, { defaultValue: data.effect })}`
+      break
+    }
+    case BattleMessageType.TurnEnd:
+      content = '回合结束'
+      break
+    case BattleMessageType.TurnAction: {
+      content = '等待玩家选择行动'
+      break
+    }
+    case BattleMessageType.InvalidAction: {
+      const data = msg.data as BattleMessageData[typeof BattleMessageType.InvalidAction]
+      content = `无效操作：${i18next.t(`battle:invalidActionReason.${data.reason}`, { defaultValue: data.reason })}`
+      break
+    }
+    case BattleMessageType.Info:
+      content = 'ℹ️ ' + (msg.data.message || '')
+      break
+    case BattleMessageType.Error:
+      content = '❌ 错误：' + (msg.data.message || '')
       break
     default:
-      content = 'message' in msg.data ? msg.data.message || '' : ''
+      content = ''
   }
 
   return {
