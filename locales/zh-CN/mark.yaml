@@ -223,9 +223,9 @@ mark_rouhua:
 mark_mingzhongxiajiang:
   name: 命中下降
   description: 命中率降低{{mark.stack}}%
-mark_yanggongqianghua:
+mark_yanggong:
   name: 佯攻强化
-  description: 增加非佯攻的攻击技能{{mark.stack}}点威力
+  description: 增加非佯攻的攻击技能50点威力
 mark_bizhong:
   name: 必中
   description: 所有技能必中
