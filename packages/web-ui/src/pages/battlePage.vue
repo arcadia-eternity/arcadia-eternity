@@ -24,16 +24,19 @@ import mitt from 'mitt'
 import {
   catchError,
   concatMap,
-  EMPTY,
+  delay,
   filter,
   finalize,
   from,
   mergeMap,
   of,
+  scan,
   startWith,
+  Subject,
   take,
   takeUntil,
   tap,
+  timestamp,
   toArray,
 } from 'rxjs'
 import { ActionState } from 'seer2-pet-animator'
@@ -290,99 +293,135 @@ const showDamageMessage = (
   effectiveness: 'up' | 'normal' | 'down' = 'normal',
   crit: boolean = false,
 ) => {
-  // 获取状态面板元素
-  const statusElement = side === 'left' ? leftStatusRef.value : rightStatusRef.value
-  if (!statusElement) return
-
-  // 获取当前侧Pet的最大血量
-  const currentPet =
-    side === 'left'
-      ? store.getPetById(currentPlayer.value!.activePet)!
-      : store.getPetById(opponentPlayer.value!.activePet)!
-
-  const { bottom, left, width } = useElementBounding(statusElement)
-  const startX = left.value + width.value / 2
-  const startY = bottom.value + 120 // 状态面板下方20px
-
-  const hpRatio = value / currentPet.maxHp
-
-  if ((hpRatio > 0.25 || crit) && battleViewRef.value) {
-    const shakeIntensity = 5 + Math.random() * 10 // 5-15之间的随机强度
-    const shakeAngle = Math.random() * Math.PI * 2 // 随机角度
-    const shakeX = Math.cos(shakeAngle) * shakeIntensity
-    const shakeY = Math.sin(shakeAngle) * shakeIntensity
-
-    gsap.to(battleViewRef.value, {
-      x: shakeX,
-      y: shakeY,
-      duration: 0.05,
-      repeat: 5,
-      yoyo: true,
-      ease: 'power1.inOut',
-    })
-  }
-
-  // 如果伤害超过最大血量1/2，添加白屏闪屏效果
-  if (hpRatio > 0.5 && battleViewRef.value) {
-    flashAndShake()
-  }
-
-  // 使用已计算的状态面板下方位置
-  // 创建动画容器
-  const container = document.createElement('div')
-  container.style.position = 'fixed'
-  container.style.left = `${startX}px`
-  container.style.top = `${startY}px`
-  container.style.transformOrigin = 'center center'
-  container.style.pointerEvents = 'none'
-  document.body.appendChild(container)
-
-  // 渲染DamageDisplay组件
-  const damageVNode = h(DamageDisplay, {
-    value,
-    type: effectiveness === 'up' ? 'red' : effectiveness === 'down' ? 'blue' : '',
-    class: 'overflow-visible',
-  })
-  render(damageVNode, container)
-
-  // 动画参数
-  const moveX = side === 'left' ? 300 : -300 // 水平偏移量
-  const baseScale = crit ? 1.5 : 1
-  const targetScale = crit ? 2.5 : 1.8
-
-  // 初始状态
-  gsap.set(container, {
-    scale: baseScale,
-    opacity: 1,
-  })
-
-  // 创建时间轴动画
-  const tl = gsap.timeline({
-    onComplete: () => {
-      document.body.removeChild(container)
-      render(null, container) // 清理VNode
-    },
-  })
-
-  // 第一阶段：移动并放大 (0.5秒)
-  tl.to(container, {
-    x: moveX,
-    y: -150,
-    scale: targetScale,
-    duration: 0.25,
-    ease: 'power2.out',
-  })
-
-  // 第二阶段：停留1秒
-  tl.to({}, { duration: 0.5 })
-
-  // 第三阶段：淡出 (0.5秒)
-  tl.to(container, {
-    opacity: 0,
-    duration: 0.5,
-    ease: 'power2.out',
-  })
+  // 将伤害消息加入队列
+  damageSubject.next({ side, value, effectiveness, crit })
 }
+
+// 创建伤害消息Subject
+const damageSubject = new Subject<{
+  side: 'left' | 'right'
+  value: number
+  effectiveness: 'up' | 'normal' | 'down'
+  crit: boolean
+}>()
+
+// 伤害消息队列处理
+const damageSubscription = damageSubject
+  .pipe(
+    timestamp(),
+    scan(
+      (acc, { value }) => {
+        const lastTimestamp = acc.timestamp || 0
+        const now = Date.now()
+        const delayTime = lastTimestamp === 0 ? 0 : Math.max(0, 150 - (now - lastTimestamp))
+        return { timestamp: now + delayTime, value }
+      },
+      { timestamp: 0, value: null } as { timestamp: number; value: any },
+    ),
+    concatMap(({ value, timestamp }) =>
+      of(value).pipe(
+        delay(timestamp - Date.now()),
+        tap(({ side, value, effectiveness, crit }) => {
+          // 获取状态面板元素
+          const statusElement = side === 'left' ? leftStatusRef.value : rightStatusRef.value
+          if (!statusElement) return
+
+          // 获取当前侧Pet的最大血量
+          const currentPet =
+            side === 'left'
+              ? store.getPetById(currentPlayer.value!.activePet)!
+              : store.getPetById(opponentPlayer.value!.activePet)!
+
+          const { bottom, left, width } = useElementBounding(statusElement)
+          // 添加随机偏移 (±20px)
+          const randomOffsetX = (Math.random() - 0.5) * 200
+          const randomOffsetY = (Math.random() - 0.5) * 200
+          const startX = left.value + width.value / 2 + randomOffsetX
+          const startY = bottom.value + 120 + randomOffsetY
+
+          const hpRatio = value / currentPet.maxHp
+
+          if ((hpRatio > 0.25 || crit) && battleViewRef.value) {
+            const shakeIntensity = 5 + Math.random() * 10 // 5-15之间的随机强度
+            const shakeAngle = Math.random() * Math.PI * 2 // 随机角度
+            const shakeX = Math.cos(shakeAngle) * shakeIntensity
+            const shakeY = Math.sin(shakeAngle) * shakeIntensity
+
+            gsap.to(battleViewRef.value, {
+              x: shakeX,
+              y: shakeY,
+              duration: 0.05,
+              repeat: 5,
+              yoyo: true,
+              ease: 'power1.inOut',
+            })
+          }
+
+          // 如果伤害超过最大血量1/2，添加白屏闪屏效果
+          if (hpRatio > 0.5 && battleViewRef.value) {
+            flashAndShake()
+          }
+
+          // 使用已计算的状态面板下方位置
+          // 创建动画容器
+          const container = document.createElement('div')
+          container.style.position = 'fixed'
+          container.style.left = `${startX}px`
+          container.style.top = `${startY}px`
+          container.style.transformOrigin = 'center center'
+          container.style.pointerEvents = 'none'
+          document.body.appendChild(container)
+
+          // 渲染DamageDisplay组件
+          const damageVNode = h(DamageDisplay, {
+            value,
+            type: effectiveness === 'up' ? 'red' : effectiveness === 'down' ? 'blue' : '',
+            class: 'overflow-visible',
+          })
+          render(damageVNode, container)
+
+          // 动画参数
+          const moveX = side === 'left' ? 300 : -300 // 水平偏移量
+          const baseScale = crit ? 1.5 : 1
+          const targetScale = crit ? 2.5 : 1.8
+
+          // 初始状态
+          gsap.set(container, {
+            scale: baseScale,
+            opacity: 1,
+          })
+
+          // 创建时间轴动画
+          const tl = gsap.timeline({
+            onComplete: () => {
+              document.body.removeChild(container)
+              render(null, container) // 清理VNode
+            },
+          })
+
+          // 第一阶段：移动并放大 (0.5秒)
+          tl.to(container, {
+            x: moveX,
+            y: -150,
+            scale: targetScale,
+            duration: 0.25,
+            ease: 'power2.out',
+          })
+
+          // 第二阶段：停留1秒
+          tl.to({}, { duration: 0.5 })
+
+          // 第三阶段：淡出 (0.5秒)
+          tl.to(container, {
+            opacity: 0,
+            duration: 0.5,
+            ease: 'power2.out',
+          })
+        }),
+      ),
+    ),
+  )
+  .subscribe()
 
 const showUseSkillMessage = (side: 'left' | 'right', baseSkillId: string) => {
   // 获取BattleStatus的DOM元素
@@ -794,6 +833,7 @@ onMounted(() => {
 onUnmounted(() => {
   messageSubscription?.unsubscribe()
   animatesubscribe.unsubscribe()
+  damageSubscription.unsubscribe()
   emitter.all.clear()
 })
 </script>
