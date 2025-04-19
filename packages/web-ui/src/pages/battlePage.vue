@@ -73,10 +73,14 @@ provide(markMapKey, store.markMap)
 provide(skillMapKey, store.skillMap)
 provide(petMapKey, store.petMap)
 provide(playerMapKey, store.playerMap)
+const battleViewRef = useTemplateRef('battleViewRef')
 const leftPetRef = useTemplateRef('leftPetRef')
 const rightPetRef = useTemplateRef('rightPetRef')
 const leftStatusRef = useTemplateRef('leftStatusRef')
 const rightStatusRef = useTemplateRef('rightStatusRef')
+const leftStatusRefBounding = useElementBounding(leftStatusRef)
+const rightStatusRefBounding = useElementBounding(rightStatusRef)
+const battleRefBounding = useElementBounding(battleViewRef)
 const isPending = ref(false)
 
 // 战斗数据计算属性
@@ -141,15 +145,13 @@ const isPetSwitchable = (petId: petId) => {
   return store.availableActions?.some(a => a.type === 'switch-pet' && a.pet === petId) ?? false
 }
 
-const battleViewRef = ref<HTMLElement | null>(null)
-
 const showMissMessage = (side: 'left' | 'right') => {
   // 获取状态面板元素
   const statusElement = side === 'left' ? leftStatusRef.value : rightStatusRef.value
   if (!statusElement) return
 
   // 计算起始位置（状态面板下方居中）
-  const { bottom, left, width } = useElementBounding(statusElement)
+  const { bottom, left, width } = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
   const startX = left.value + width.value / 2
   const startY = bottom.value + 120
 
@@ -201,12 +203,8 @@ const showMissMessage = (side: 'left' | 'right') => {
 }
 
 const showAbsorbMessage = (side: 'left' | 'right') => {
-  // 获取状态面板元素
-  const statusElement = side === 'left' ? leftStatusRef.value : rightStatusRef.value
-  if (!statusElement) return
-
   // 计算起始位置（状态面板下方居中）
-  const { bottom, left, width } = useElementBounding(statusElement)
+  const { bottom, left, width } = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
   const startX = left.value + width.value / 2
   const startY = bottom.value + 120
 
@@ -322,17 +320,13 @@ const damageSubscription = damageSubject
       of(value).pipe(
         delay(timestamp - Date.now()),
         tap(({ side, value, effectiveness, crit }) => {
-          // 获取状态面板元素
-          const statusElement = side === 'left' ? leftStatusRef.value : rightStatusRef.value
-          if (!statusElement) return
-
           // 获取当前侧Pet的最大血量
           const currentPet =
             side === 'left'
               ? store.getPetById(currentPlayer.value!.activePet)!
               : store.getPetById(opponentPlayer.value!.activePet)!
 
-          const { bottom, left, width } = useElementBounding(statusElement)
+          const { bottom, left, width } = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
           // 添加随机偏移 (±20px)
           const randomOffsetX = (Math.random() - 0.5) * 200
           const randomOffsetY = (Math.random() - 0.5) * 200
@@ -424,13 +418,9 @@ const damageSubscription = damageSubject
   .subscribe()
 
 const showUseSkillMessage = (side: 'left' | 'right', baseSkillId: string) => {
-  // 获取BattleStatus的DOM元素
-  const statusElement = side === 'left' ? leftStatusRef.value : rightStatusRef.value
-  if (!statusElement) return
-
   // 计算目标位置（BattleStatus下方）
-  const { width, bottom } = useElementBounding(statusElement)
-  const { left: viewLeft, right: viewRight } = useElementBounding(battleViewRef)
+  const { width, bottom } = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
+  const { left: viewLeft, right: viewRight } = battleRefBounding
   if (!viewLeft || !viewRight) return
   const targetX = side === 'left' ? viewLeft.value : viewRight.value - width.value * 0.75
   const targetY = bottom.value + 20
@@ -697,7 +687,15 @@ const animatesubscribe = animationQueue
   )
   .subscribe()
 
+const preloadPetSprites = () => {
+  teamMemberSprites.value.forEach(num => {
+    const img = new Image()
+    img.src = `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-pet-preview@master/public/fight/${num}.swf`
+  })
+}
+
 onMounted(() => {
+  preloadPetSprites()
   messageSubscription = store._messageSubject
     .pipe(
       concatMap(msg => {
@@ -835,6 +833,11 @@ onUnmounted(() => {
   animatesubscribe.unsubscribe()
   damageSubscription.unsubscribe()
   emitter.all.clear()
+})
+
+const teamMemberSprites = computed<number[]>(() => {
+  const allMembers = [...(currentPlayer.value?.team || []), ...(opponentPlayer.value?.team || [])]
+  return allMembers.map(pet => gameDataStore.getSpecies(pet.speciesID)?.num || 0)
 })
 </script>
 
