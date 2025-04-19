@@ -57,7 +57,6 @@ export class UseSkillContext extends Context {
   power: number = 0
   accuracy: number = 100
   petAccurancy: number = 100
-  targetAccurancy: number = 100
   rage: number = 0
   evasion: number = 0
   critRate: number = 0.07
@@ -122,7 +121,7 @@ export class UseSkillContext extends Context {
   updateActualTarget() {
     this.actualTarget =
       this.skill.target === AttackTargetOpinion.opponent ? this.battle!.getOpponent(this.origin).activePet : this.pet // 动态获取当前目标
-    this.evasion = this.actualTarget?.stat.evasion || 100
+    this.evasion = this.actualTarget?.stat.evasion || 0
   }
 
   updateMultihitResult() {
@@ -140,7 +139,7 @@ export class UseSkillContext extends Context {
       this.hitResult = this.hitOverrides.reduce((a, b) => (a.priority > b.priority ? a : b)).willHit
     else
       this.hitResult =
-        this.battle!.random() > (this.accuracy / 100) * (this.petAccurancy / 100) * (1 - this.evasion / 100)
+        this.battle!.random() <= (this.accuracy / 100) * (this.petAccurancy / 100) * ((100 - this.evasion) / 100)
   }
 
   updateCritResult() {
