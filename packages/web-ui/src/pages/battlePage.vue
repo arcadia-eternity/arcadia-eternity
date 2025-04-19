@@ -532,16 +532,35 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   source.$el.style.zIndex = 1
 
   source.setState(state)
-  await new Promise<void>(resolve => {
+  const hitPromise = new Promise<void>(resolve => {
     const handler = (hitSide: 'left' | 'right') => {
       if (hitSide === side) {
         emitter.off('attack-hit', handler)
         resolve()
       }
     }
-    setTimeout(() => resolve(), 20000)
+    setTimeout(async () => {
+      if ((await source.getState()) !== ActionState.IDLE) return
+      resolve()
+    }, 5000)
     emitter.on('attack-hit', handler)
   })
+
+  const animateCompletePromise = new Promise<void>(resolve => {
+    const handler = (completeSide: 'left' | 'right') => {
+      if (completeSide === side) {
+        emitter.off('animation-complete', handler)
+        resolve()
+      }
+    }
+    setTimeout(async () => {
+      if ((await source.getState()) !== ActionState.IDLE) return
+      resolve()
+    }, 5000)
+    emitter.on('animation-complete', handler)
+  })
+
+  await hitPromise
 
   for (const msg of messages) {
     await store.applyStateDelta(msg)
@@ -601,16 +620,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
       //DoNothing
     }
   }
-  await new Promise<void>(resolve => {
-    const handler = (completeSide: 'left' | 'right') => {
-      if (completeSide === side) {
-        emitter.off('animation-complete', handler)
-        resolve()
-      }
-    }
-    setTimeout(() => resolve(), 20000)
-    emitter.on('animation-complete', handler)
-  })
+  await animateCompletePromise
 
   source.$el.style.zIndex = ''
 }

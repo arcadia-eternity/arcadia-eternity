@@ -40,6 +40,10 @@ const setState = async (state: ActionState) => {
   await petRenderRef.value?.setState(state)
 }
 
+const getState = async () => {
+  return petRenderRef.value?.getState()
+}
+
 const handleHitEvent = (event: { detail: any }) => {
   console.debug('hit', event.detail)
   emit('hit', event.detail)
@@ -56,6 +60,7 @@ const emit = defineEmits<{
 }>()
 defineExpose({
   setState,
+  getState,
   availableState,
 })
 </script>
