@@ -547,7 +547,9 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
     await store.applyStateDelta(msg)
     switch (msg.type) {
       case BattleMessageType.SkillMiss: {
-        petSprites.value[getTargetSide(msg.data.target)].setState(ActionState.MISS)
+        const targetSide = getTargetSide(msg.data.target)
+        petSprites.value[targetSide].setState(ActionState.MISS)
+        showMissMessage(targetSide)
         break
       }
       case BattleMessageType.Damage: {
