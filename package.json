@@ -8,10 +8,10 @@
     "url": "https://github.com/arcadia-eternity/arcadia-eternity.git"
   },
   "scripts": {
-    "build": "run-p build:package build:cli",
+    "build": "run-s build:package build:cli",
     "watch": "run-p watch:package watch:cli",
     "clean": "run-p clean:package clean:cli",
-    "build:package": "pnpm --filter \"./packages/**\" --filter=!@arcadia-eternity/web-ui run build&&pnpm run build:cli",
+    "build:package": "pnpm --filter \"./packages/**\" --filter=!@arcadia-eternity/web-ui run build",
     "watch:package": "pnpm --filter \"./packages/**\" --filter=!@arcadia-eternity/web-ui --parallel run watch",
     "clean:package": "pnpm --filter \"./packages/**\" --filter=!@arcadia-eternity/web-ui run clean",
     "build:cli": "rollup -c",
