@@ -1,6 +1,6 @@
 import nodeExternals from 'rollup-plugin-node-externals'
 import { nodeResolve } from '@rollup/plugin-node-resolve'
-import typescript from '@rollup/plugin-typescript'
+import { swc } from 'rollup-plugin-swc3'
 
 export default {
   input: 'index.ts',
@@ -12,8 +12,7 @@ export default {
   plugins: [
     nodeExternals(),
     nodeResolve(),
-    typescript({
-      module: 'ESNext',
+    swc({
       tsconfig: 'tsconfig.json',
     }),
   ],
