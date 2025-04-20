@@ -21,4 +21,4 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD wget -qO- http://localhost:8102/health | grep -q '"status":"OK"'
 
 EXPOSE 8102
-CMD ["node", "dist/bin/cli.js", "server", "--port", "8102"]
+CMD ["node", "dist/cli.js", "server", "--port", "8102"]
