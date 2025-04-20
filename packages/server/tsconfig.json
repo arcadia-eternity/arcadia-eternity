@@ -10,7 +10,9 @@
     "target": "ESNext",
     "outDir": "./dist/",
     "verbatimModuleSyntax": true,
-    "types": ["node"]
+    "types": ["node"],
+    "declaration": true,
+    "declarationMap": true
   },
   "include": ["./src/**/*"],
   "exclude": ["./node_modules", "./dist"]
