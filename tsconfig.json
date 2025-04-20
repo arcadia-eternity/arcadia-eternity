@@ -17,6 +17,6 @@
     "declarationMap": true,
     "types": ["node"]
   },
-  "include": ["bin", "devServer"],
+  "include": ["./bin/**/*", "./devServer/**/*"],
   "exclude": ["./node_modules", "./dist"]
 }
