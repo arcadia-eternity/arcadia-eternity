@@ -10,11 +10,11 @@ export default {
     preserveModules: false,
   },
   plugins: [
-    nodeResolve(),
-    nodeExternals(),
     typescript({
       module: 'ESNext',
       tsconfig: './tsconfig.json',
     }),
+    nodeResolve(),
+    nodeExternals(),
   ],
 }
