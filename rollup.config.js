@@ -14,7 +14,7 @@ export default {
     nodeResolve(),
     typescript({
       module: 'ESNext',
-      tsconfig: 'tsconfig.json',
+      tsconfig: './tsconfig.json',
     }),
   ],
 }
