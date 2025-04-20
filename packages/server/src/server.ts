@@ -5,7 +5,7 @@ import type { AckResponse, ClientToServerEvents, ErrorResponse, ServerToClientEv
 import { type PlayerSelectionSchemaType, PlayerSelectionSchema } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 import pino from 'pino'
-import { Server, Socket } from 'socket.io'
+import type { Server, Socket } from 'socket.io'
 import { ZodError } from 'zod'
 
 const logger = pino({

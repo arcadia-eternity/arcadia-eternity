@@ -13,8 +13,8 @@
   "scripts": {
     "build": "pnpm run build:code && pnpm run build:types",
     "clean": "rm -rf dist",
-    "build:code": "esbuild index.ts --bundle --format=esm --outdir=dist --allow-overwrite --external:./node_modules/*",
-    "watch": "esbuild index.ts --bundle --format=esm --outdir=dist --watch --external:./node_modules/*",
+    "build:code": "rollup -c",
+    "watch": "rollup -c --watch",
     "build:types": "tsc --emitDeclarationOnly"
   },
   "keywords": [],
