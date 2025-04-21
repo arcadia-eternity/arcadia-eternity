@@ -127,6 +127,7 @@ export class MarkInstanceImpl implements MarkInstance {
     }
 
     this.duration = overrides?.duration ?? mergedConfig.duration ?? base.config.duration ?? 3
+    if (mergedConfig.persistent) this.duration = -1
     this._stack = overrides?.stack ?? base.config.maxStacks ?? 1
     this.config = mergedConfig
     this.tags = [...base.tags, ...(overrides?.tags || [])]
@@ -236,6 +237,11 @@ export class MarkInstanceImpl implements MarkInstance {
         newStacks = Math.min(newMark.stack, maxStacks)
         newDuration = newMark.duration
         break
+
+      case StackStrategy.remove:
+        this.destroy(new RemoveMarkContext(context, this))
+        return true
+
       default:
         return false
     }

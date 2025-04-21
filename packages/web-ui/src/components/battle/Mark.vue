@@ -56,7 +56,7 @@ const stack = computed(() => props.mark.stack ?? 1)
             :class="{ 'opacity-50': !mark.config.persistent && duration == 1 }"
           />
           <div
-            v-if="mark.config.stackable"
+            v-if="mark.config.stackable && (mark.config.maxStacks ?? 1) > 1"
             class="absolute -bottom-1 -right-1 text-white text-sm px-1.5 py-0.5 rounded-full leading-none [text-shadow:_0_0_2px_black]"
           >
             {{ stackText }}

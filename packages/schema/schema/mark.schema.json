@@ -37,7 +37,9 @@
                   "refresh",
                   "extend",
                   "max",
-                  "replace"
+                  "replace",
+                  "none",
+                  "remove"
                 ],
                 "default": "extend"
               },

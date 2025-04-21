@@ -304,16 +304,49 @@
     mark:
       type: entity:baseMark
       value: mark_shaoshang
-  condition: *condition_probability_5_percent_template
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_5_percent_template
+      - &condition_foe_not_fire_element
+        type: evaluate
+        target:
+          base: foe
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: element
+        evaluator:
+          type: notSame
+          value: Fire
+- id: effect_skill_add_mark_foe_shaoshang_10_percent
+  trigger: OnHit
+  priority: 0
+  apply: *apply_foe_add_mark_shaoshang_template
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_probability_10_percent_template
+        type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 10
+      - *condition_foe_not_fire_element
 - id: effect_skill_add_mark_foe_shaoshang_50_percent
   trigger: OnHit
   priority: 0
   apply: *apply_foe_add_mark_shaoshang_template
   condition:
     type: every
-    conditions: &condition_probability_50_percent_template
+    conditions:
       - type: selfUseSkill
-      - type: evaluate
+      - *condition_foe_not_fire_element
+      - &condition_probability_50_percent_template
+        type: evaluate
         target: self
         evaluator:
           type: probability
@@ -712,4 +745,40 @@
     mark:
       type: entity:baseMark
       value: mark_nishui
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_foe_nishui_10_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_nishui
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_10_percent_template
+      - &condition_foe_not_water_element
+        type: evaluate
+        target:
+          base: foe
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: element
+        evaluator:
+          type: notSame
+          value: Water
+- id: effect_skill_add_mark_huifu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_huifu
   condition: *condition_self_use_skill_template
