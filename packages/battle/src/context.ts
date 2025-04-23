@@ -145,6 +145,7 @@ export class UseSkillContext extends Context {
   updateCritResult() {
     if (this.critOverrides.length > 0) this.critOverrides.reduce((a, b) => (a.priority > b.priority ? a : b)).willCrit
     else this.crit = this.battle.random() * 100 < this.critRate
+    console.debug('critrate', this.critRate)
   }
 
   updateDamageResult() {
@@ -251,7 +252,7 @@ export class UseSkillContext extends Context {
   }
 
   addCritRate(delta: number) {
-    this.critRate = Math.max(0, Math.min(this.critRate + delta, 1))
+    this.critRate = Math.max(0, Math.min(this.critRate + delta, 100))
   }
 
   addMultihitResult(delta: number) {
