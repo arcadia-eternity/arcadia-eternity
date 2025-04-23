@@ -562,6 +562,7 @@
           chain:
             - type: selectPath
               arg: damageResult
+  consumesStacks: 1
 - id: effect_mark_reduce_accuracy_stack
   trigger: OnUpdateStat
   priority: 0

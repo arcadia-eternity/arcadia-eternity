@@ -2,6 +2,7 @@ import {
   AddMarkContext,
   DamageContext,
   HealContext,
+  MarkInstanceImpl,
   Pet,
   RageContext,
   SkillInstance,
@@ -41,8 +42,21 @@ export const Conditions = {
       if (context.parent instanceof UseSkillContext && context.source instanceof SkillInstance) {
         return context.source === context.parent.skill
       }
-      if (context.parent instanceof DamageContext && context.parent.parent instanceof UseSkillContext) {
+      if (
+        context.parent instanceof DamageContext &&
+        context.parent.parent instanceof UseSkillContext &&
+        context.source instanceof SkillInstance
+      ) {
+        //该效果的拥有者技能的拥有者(精灵/全局)是使用技能造成伤害的宠物 并且 当前使用的技能是该技能
         return context.source.owner === context.parent.source && context.source === context.parent.parent.skill
+      }
+      if (
+        context.parent instanceof DamageContext &&
+        context.parent.parent instanceof UseSkillContext &&
+        context.source instanceof MarkInstanceImpl
+      ) {
+        //该效果的拥有者技能的拥有者(精灵/全局)是使用技能造成伤害的宠物
+        return context.source.owner === context.parent.source
       }
       return false
     }
