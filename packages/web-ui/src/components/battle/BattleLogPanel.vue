@@ -92,7 +92,7 @@ function getSkillName(skillId: string): string {
 
 // 获取印记名称
 function getMarkName(markId: string): string {
-  return i18next.t(`${markId}.name`, { ns: ['mark', 'mark_ability', 'mark_emblem'] }) || markId
+  return i18next.t(`${markId}.name`, { ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'] }) || markId
 }
 
 // 状态变化箭头
@@ -237,7 +237,10 @@ function formatBattleMessage(
     }
     case BattleMessageType.EffectApply: {
       const data = msg.data as BattleMessageData[typeof BattleMessageType.EffectApply]
-      const sourceName = data.source.startsWith('skill-') ? getSkillName(data.source) : getMarkName(data.source)
+      const sourceName =
+        getSkillName(skillMap?.get(data.source)?.baseId || data.source) !== data.source
+          ? getSkillName(skillMap?.get(data.source)?.baseId || data.source)
+          : getMarkName(markMap?.get(data.source)?.baseId || data.source)
       content = `${sourceName} 触发效果：${i18next.t(`effect:${data.effect}`, { defaultValue: data.effect })}`
       break
     }

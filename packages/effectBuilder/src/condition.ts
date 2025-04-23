@@ -42,6 +42,9 @@ export const Conditions = {
       if (context.parent instanceof UseSkillContext && context.source instanceof SkillInstance) {
         return context.source === context.parent.skill
       }
+      if (context.parent instanceof UseSkillContext && context.source instanceof MarkInstanceImpl) {
+        return context.source.owner === context.parent.pet
+      }
       if (
         context.parent instanceof DamageContext &&
         context.parent.parent instanceof UseSkillContext &&

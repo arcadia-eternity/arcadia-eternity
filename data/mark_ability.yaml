@@ -23,6 +23,9 @@
 - id: mark_ability_rumeng
   config: *ablitity_config
 - id: mark_ability_yangguang
+  config: *ablitity_config
+  effect:
+    - effect_ability_heal_1_16_when_qingtian
 - id: mark_ability_zhongya
 - id: mark_ability_jianqiang
 - id: mark_ability_liushui

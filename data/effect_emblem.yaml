@@ -80,3 +80,25 @@
           arg:
             type: same
             value: mark_meihuo
+- id: effect_emblem_set_zhongdu_duration_2
+  trigger: OnBeforeAddMark
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark.id
+        evaluator:
+          type: same
+          value: mark_zhongdu
+  apply:
+    type: setMarkDuration
+    target: addMarkContext
+    value: 2

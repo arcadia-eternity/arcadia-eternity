@@ -10,3 +10,6 @@ mark_emblem_zhiyu:
 mark_emblem_meihuo:
   name: 魅惑
   description: 被对手魅惑时，在下一回合会自动解除魅惑
+mark_emblem_kangdu:
+  name: 抗毒
+  description: 减少1回合中毒持续时间

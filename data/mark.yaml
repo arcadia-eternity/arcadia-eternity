@@ -18,6 +18,8 @@
     - effect_mark_cant_evasion
 - id: mark_haipa
   config: *status_config
+  tags:
+    - status
   effect:
     - effect_mark_stun
     - effect_mark_cant_evasion
@@ -33,6 +35,8 @@
     stackStrategy: refresh
     destroyable: true
     duration: 5
+  tags:
+    - status
   effect:
     - effect_mark_40probability_stun
 - id: mark_hunmi
@@ -42,25 +46,35 @@
     - effect_mark_cant_evasion
 - id: mark_shuimian
   config: *status_config
+  tags:
+    - status
   effect:
     - effect_mark_stun
     - effect_mark_onDamage_recovery
 - id: mark_shihua
   config: *status_config
+  tags:
+    - status
   effect:
     - effect_mark_stun
     - effect_mark_onCritDamage_recovery
 - id: mark_zhixi
   config: *status_config
+  tags:
+    - status
   effect:
     - effect_mark_stun
 - id: mark_bingdong
   config: *status_config
+  tags:
+    - status
   effect:
     - effect_mark_stun
     - effect_mark_onCritDamage_recovery
 - id: mark_kongju
   config: *status_config
+  tags:
+    - status
   effect:
     - effect_mark_randomUseSkill
     - effect_mark_onDamage_over100_recovery
@@ -72,10 +86,14 @@
     destroyable: true
     duration: 3
     keepOnSwitchOut: false
+  tags:
+    - status
   effect:
     - effect_mark_curse_add_random_status
 - id: mark_taobi
   config: *status_config
+  tags:
+    - status
   effect:
     - effect_mark_stun
     - effect_mark_prevent_damage
@@ -87,18 +105,26 @@
     stackable: true
     stackStrategy: extend
     destroyable: true
+  tags:
+    - status
   effect:
     - effect_mark_confuse
 - id: mark_chenmo
   config: *status_config
+  tags:
+    - status
   effect:
     - effect_mark_taunt
 - id: mark_jingu
   config: *status_config
+  tags:
+    - status
   effect:
     - effect_mark_cant_evasion
     - effect_mark_physical_stun
 - id: mark_xuankong
+  tags:
+    - status
   config:
     duration: 1
     persistent: false
@@ -117,6 +143,8 @@
     stackable: true
     stackStrategy: extend
     destroyable: true
+  tags:
+    - status
   effect:
     - effect_mark_stun
 - id: mark_meimeng
@@ -128,37 +156,53 @@
   config: &status_config_turn_3
     <<: *status_config
     duration: 3
+  tags:
+    - status
   effect:
     - effect_mark_turn_damage
     - effect_mark_reduce_accuracy_10
 - id: mark_shaoshang
   config: *status_config_turn_3
+  tags:
+    - status
   effect:
     - effect_mark_turn_damage
     - effect_mark_decrease_atk
 - id: mark_dongshang
   config: *status_config_turn_3
+  tags:
+    - status
   effect:
     - effect_mark_turn_damage
     - effect_mark_decrease_spa
 - id: mark_zhongdu
   config: *status_config_turn_3
+  tags:
+    - status
   effect:
     - effect_mark_turn_damage
     - effect_mark_decrease_heal
 - id: mark_liuxie
+  tags:
+    - status
   config: *status_config_turn_3
   effect:
     - effect_mark_damage_with_stack
 - id: mark_exin
+  tags:
+    - status
   config: *status_config
   effect:
     - effect_mark_reduce_accuracy_50
 - id: mark_shiming
+  tags:
+    - status
   config: *status_config
   effect:
     - effect_mark_reduce_accuracy_50
 - id: mark_jisheng
+  tags:
+    - status
   config:
     duration: 1
     persistent: true
@@ -226,6 +270,19 @@
     - effect_mark_mihuo_reduce_damage
     - effect_mark_mihuo_damage_self
 - id: mark_kuihuazhongzi
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_reduce_damage_15
 - id: mark_zengzhong
 - id: mark_fandan
 - id: mark_teshushanghaizengjia
@@ -326,7 +383,7 @@
 - id: mark_weilibianhua
   config:
     duration: 5
-    persistent: true
+    persistent: false
     maxStacks: 114514
     stackable: true
     stackStrategy: extend
@@ -350,6 +407,33 @@
     - effect_mark_evade
 - id: mark_shiquweijue
 - id: mark_wulicao
+  config:
+    duration: 3
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_reduce_power_special
+- id: mark_xishoucao
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_absorb_damage_to_heal
 - id: mark_shanghaizhuanhua
 - id: mark_jinzhenfenmo
 - id: mark_dixiaowulishanghai

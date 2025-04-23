@@ -34,3 +34,12 @@ pet_fana:
 pet_fayina:
   name: 法伊娜
   description: 在寂静的星空里 似乎有法伊娜信奉的力量
+pet_xiaoxiaokui:
+  name: 小小葵
+  description: 小小葵是草系精灵中 与自然界融合得很好的精灵
+pet_daidaokui:
+  name: 呆呆葵
+  description: 呆呆葵能从周围的草木呼吸中 获得不断成长的能量
+pet_xiaoxiaokui_2:
+  name: 笑笑葵
+  description: 笑笑葵能用爽朗的笑声改变天气 将周围变成明媚的晴天

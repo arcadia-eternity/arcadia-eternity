@@ -20,6 +20,7 @@ import {
 import {
   CleanStageStrategy,
   EffectTrigger,
+  IgnoreStageStrategy,
   StackStrategy,
   type StatTypeOnBattle,
   StatTypeWithoutHp,
@@ -442,6 +443,16 @@ export const Operators = {
       const _key = GetValueFromSource(context, key)
       if (_value.length === 0 || _key.length === 0) return
       targets.forEach(t => context.battle.configSystem.set(_key[0], _value[0], t))
+    }
+  },
+
+  setIgnoreStageStrategy: (strategy: ValueSource<IgnoreStageStrategy>): Operator<UseSkillContext> => {
+    return (context, contexts) => {
+      const strategies = GetValueFromSource(context, strategy)
+      contexts.forEach((ctx, index) => {
+        const strat = strategies[index % strategies.length]
+        if (strat) ctx.setIgnoreStageStrategy(strat)
+      })
     }
   },
 }

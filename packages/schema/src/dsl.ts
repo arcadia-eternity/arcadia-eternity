@@ -14,6 +14,10 @@ export interface EffectDSL {
   consumesStacks?: number
 }
 
+export type TODOOpreator = {
+  type: 'TODO'
+}
+
 export type DealDamageOpreator = {
   type: 'dealDamage'
   target: SelectorDSL
@@ -263,7 +267,14 @@ export type SetConfigOpreator = {
   value: Value
 }
 
+export type SetIgnoreStageStrategyOpreator = {
+  type: 'setIgnoreStageStrategy'
+  target: SelectorDSL
+  value: Value
+}
+
 export type OperatorDSL =
+  | TODOOpreator
   | DealDamageOpreator
   | HealOpreator
   | AddMarkOpreator
@@ -305,6 +316,7 @@ export type OperatorDSL =
   | SetValueOpreator
   | ToggleOpreator
   | SetConfigOpreator
+  | SetIgnoreStageStrategyOpreator
 
 export type RawNumberValue = {
   type: 'raw:number'

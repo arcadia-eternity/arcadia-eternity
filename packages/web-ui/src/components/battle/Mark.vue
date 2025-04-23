@@ -28,13 +28,13 @@ const image = computed(
 )
 const name = computed(() =>
   i18next.t(`${props.mark.baseId}.name`, {
-    ns: ['mark', 'mark_ability', 'mark_emblem'],
+    ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
   }),
 )
 const description = computed(() =>
   i18next.t(`${props.mark.baseId}.description`, {
     mark: props.mark,
-    ns: ['mark', 'mark_ability', 'mark_emblem'],
+    ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
   }),
 )
 const duration = computed(() => props.mark.duration ?? -1)

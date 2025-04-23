@@ -24,6 +24,9 @@
   effect:
     - effect_emblem_destory_meihuo_onturnend
 - id: mark_emblem_kangdu
+  config: *emblem_config
+  effect:
+    - effect_emblem_set_zhongdu_duration_2
 - id: mark_emblem_zhongliang
 - id: mark_emblem_shupi
 - id: mark_emblem_shiming

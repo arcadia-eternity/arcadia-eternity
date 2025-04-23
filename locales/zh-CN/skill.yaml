@@ -195,4 +195,54 @@ skill_mihuo:
   description: 【35】使对手获得迷惑
 skill_tongshenggongsi:
   name: 同生共死
-  description: 对手满体力时附加对手最大体力的1/4 最多180点
+skill_chongding:
+  name: 冲顶
+  description: 5%弱化对手物防1级
+skill_sanyecao:
+  name: 三叶草
+  description: 连击3次
+skill_yepianbaohu:
+  name: 叶片保护
+  description: 强化自身物防1级
+skill_kuihuazhongzi:
+  name: 葵花种子
+  description: 使对手获得葵花种子
+skill_gundongzhuiji:
+  name: 滚动追击
+  description: 连击3次 对手具有葵花种子时连击4次
+skill_yuhe:
+  name: 愈合
+  description: 恢复自身最大体力的1/4
+skill_gundongtupo:
+  name: 滚动突破
+  description: 对手具有葵花种子时无视对手双防强化
+skill_xuruo:
+  name: 虚弱
+  description: 【95】弱化对手双防1级
+skill_wulicao:
+  name: 无力草
+  description: 使对手获得无力草
+skill_xishoucao:
+  name: 吸收草
+  description: 使自身获得吸收草 连续使用无效
+skill_gundongzhenci:
+  name: 滚动针刺
+  description: 【80】对手具有葵花种子时<font color=#93E312>必中</font>
+skill_jieducao:
+  name: 解毒草
+  description: 解除自身不良
+skill_qiyeduoming:
+  name: 七叶夺命
+  description: <font color=#93E312>必中</font> 10%使对手中毒
+skill_ducao:
+  name: 毒草
+  description: 【85】使对手中毒
+skill_fangqing:
+  name: 放晴
+  description: 使环境变为<font color=#6699CC>晴天</font>
+skill_duhua:
+  name: 毒化
+  description: 使对手中毒回合数+2
+skill_qianghuachongji:
+  name: 强化冲击
+  description: 【70】连续使用命中率增加25%

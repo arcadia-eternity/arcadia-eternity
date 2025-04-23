@@ -230,6 +230,9 @@ export const evaluatorDSLSchema: z.ZodSchema<EvaluatorDSL> = z.lazy(() =>
 export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
   z.union([
     z.object({
+      type: z.literal('TODO'),
+    }),
+    z.object({
       type: z.literal('dealDamage'),
       target: selectorDSLSchema,
       value: valueSchema,
@@ -436,6 +439,11 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       type: z.literal('setConfig'),
       target: selectorDSLSchema,
       key: valueSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('setIgnoreStageStrategy'),
+      target: selectorDSLSchema,
       value: valueSchema,
     }),
   ]),

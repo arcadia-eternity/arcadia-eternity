@@ -195,7 +195,7 @@ mark_mihuo:
   description: 造成伤害由双方平分
 mark_kuihuazhongzi:
   name: 葵花种子
-  description: 造成伤害{{mark.stack}}%
+  description: 造成伤害减少15%
 mark_zengzhong:
   name: 增重
   description: 每层增加自身体重50KG 最多2层

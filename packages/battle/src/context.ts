@@ -4,6 +4,7 @@ import {
   DamageType,
   EffectTrigger,
   ELEMENT_CHART,
+  IgnoreStageStrategy,
   StackStrategy,
   type Element,
   type StatOnBattle,
@@ -61,6 +62,7 @@ export class UseSkillContext extends Context {
   evasion: number = 0
   critRate: number = 7
   ignoreShield = false
+  ignoreStageStrategy: IgnoreStageStrategy = IgnoreStageStrategy.none
 
   hitOverrides: {
     willHit: boolean
@@ -133,7 +135,6 @@ export class UseSkillContext extends Context {
     }
   }
 
-  //以下都是取最大优先级的结果
   updateHitResult() {
     if (this.hitOverrides.length > 0)
       this.hitResult = this.hitOverrides.reduce((a, b) => (a.priority > b.priority ? a : b)).willHit
@@ -155,22 +156,22 @@ export class UseSkillContext extends Context {
     switch (this.category) {
       case Category.Physical:
         atk = this.pet.actualStat.atk
-        def = this.actualTarget.actualStat.def
+        def = this.actualTarget.getEffectiveStat(false, this.ignoreStageStrategy).def
         this.damageType = DamageType.physical
         break
       case Category.Special:
         atk = this.pet.actualStat.spa
-        def = this.actualTarget.actualStat.spd
+        def = this.actualTarget.getEffectiveStat(false, this.ignoreStageStrategy).def
         this.damageType = DamageType.special
         break
       case Category.Climax:
         if (this.pet.actualStat.atk > this.pet.actualStat.spa) {
           atk = this.pet.actualStat.atk
-          def = this.actualTarget.actualStat.def
+          def = this.actualTarget.getEffectiveStat(false, this.ignoreStageStrategy).def
           this.damageType = DamageType.physical
         } else {
           atk = this.pet.actualStat.spa
-          def = this.actualTarget.actualStat.spd
+          def = this.actualTarget.getEffectiveStat(false, this.ignoreStageStrategy).spd
           this.damageType = DamageType.special
         }
     }
@@ -257,6 +258,10 @@ export class UseSkillContext extends Context {
 
   addMultihitResult(delta: number) {
     this.multihitResult += delta
+  }
+
+  setIgnoreStageStrategy(strategy: IgnoreStageStrategy) {
+    this.ignoreStageStrategy = strategy
   }
 }
 
@@ -494,12 +499,14 @@ export type TriggerContextMap = {
   [EffectTrigger.AfterUseSkillCheck]: UseSkillContext
   [EffectTrigger.PreDamage]: UseSkillContext
   [EffectTrigger.OnCritPreDamage]: UseSkillContext
+  [EffectTrigger.BeforeMultiHit]: UseSkillContext
   [EffectTrigger.BeforeHit]: UseSkillContext
   [EffectTrigger.OnHit]: UseSkillContext
   [EffectTrigger.OnMiss]: UseSkillContext
   [EffectTrigger.AfterAttacked]: UseSkillContext
   [EffectTrigger.OnDefeat]: UseSkillContext
 
+  [EffectTrigger.OnBeforeCalculateDamage]: DamageContext
   [EffectTrigger.OnDamage]: DamageContext
   [EffectTrigger.Shield]: DamageContext
   [EffectTrigger.PostDamage]: DamageContext

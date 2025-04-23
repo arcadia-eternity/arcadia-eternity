@@ -150,7 +150,7 @@
                     :key="ability.id"
                     :label="
                       i18next.t(`${ability.id}.name`, {
-                        ns: ['mark', 'mark_ability', 'mark_emblem'],
+                        ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
                       })
                     "
                     :value="ability.id"
@@ -166,7 +166,7 @@
                     :key="emblem.id"
                     :label="
                       i18next.t(`${emblem.id}.name`, {
-                        ns: ['mark', 'mark_ability', 'mark_emblem'],
+                        ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
                       })
                     "
                     :value="emblem.id"

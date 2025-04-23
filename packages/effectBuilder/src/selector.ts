@@ -23,6 +23,7 @@ import {
   EffectTrigger,
   Element,
   Gender,
+  IgnoreStageStrategy,
   Nature,
   StackStrategy,
   type baseMarkId,
@@ -369,7 +370,14 @@ export type PrimitiveOpinion = number | string | boolean
 
 export type IdOpinion = skillId | baseSkillId | markId | baseMarkId | speciesId | petId | playerId
 
-export type EnumOpinion = Element | Gender | Nature | Category | AttackTargetOpinion | StackStrategy
+export type EnumOpinion =
+  | Element
+  | Gender
+  | Nature
+  | Category
+  | AttackTargetOpinion
+  | StackStrategy
+  | IgnoreStageStrategy
 
 export type ObjectOpinion =
   | null

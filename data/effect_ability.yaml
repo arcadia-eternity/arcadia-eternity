@@ -88,3 +88,40 @@
       base: damageContext
     delta: 0
     percent: -25
+- id: effect_ability_heal_1_16_when_qingtian
+  trigger: TurnEnd
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: evaluate
+        target:
+          base: battle
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: marks
+            - type: flat
+            - type: whereAttr
+              extractor: baseId
+              evaluator:
+                type: same
+                value: mark_global_qingtian
+        evaluator:
+          type: exist
+  apply:
+    type: heal
+    target:
+      base: self
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: maxHp
+          - type: divide
+            arg: 16

@@ -7,6 +7,7 @@ export enum EffectTrigger {
   BeforeSort = 'BeforeSort',
   BeforeUseSkillCheck = 'BeforeUseSkillCheck',
   AfterUseSkillCheck = 'AfterUseSkillCheck',
+  BeforeMultiHit = 'BeforeMultiHit',
   BeforeHit = 'BeforeHit',
   OnCritPreDamage = 'OnCritPreDamage',
   PreDamage = 'PreDamage',
@@ -16,6 +17,7 @@ export enum EffectTrigger {
   OnDefeat = 'OnDefeat',
 
   //以下context的parent一定是DamageContext
+  OnBeforeCalculateDamage = 'OnBeforeCalculateDamage',
   OnDamage = 'OnDamage',
   Shield = 'Shield', //专门用于处理护盾效果的Trigger,可以被“无视护盾类效果”给无视
   PostDamage = 'PostDamage',

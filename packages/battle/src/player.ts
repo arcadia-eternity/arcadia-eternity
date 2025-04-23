@@ -232,6 +232,8 @@ export class Player {
       context.updateMultihitResult()
       context.updateCritResult()
 
+      this.battle!.applyEffects(context, EffectTrigger.BeforeMultiHit)
+
       for (; context.multihitResult > 0; context.multihitResult--) {
         // 命中判定
         if (!context.hitResult) {

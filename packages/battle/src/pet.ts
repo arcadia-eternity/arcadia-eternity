@@ -134,6 +134,8 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public damage(context: DamageContext): boolean {
     //通过技能威力造成伤害的事件
     if (context.source instanceof Pet) {
+      context.battle.applyEffects(context, EffectTrigger.OnBeforeCalculateDamage)
+      context.updateDamageResult()
       context.battle.applyEffects(context, EffectTrigger.OnDamage)
       if (!context.available) {
         context.battle.emitMessage(BattleMessageType.DamageFail, {
@@ -143,7 +145,6 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
         })
         return this.isAlive
       }
-      context.updateDamageResult()
       if (!context.ignoreShield) {
         context.battle.applyEffects(context, EffectTrigger.Shield)
         const shields = this.getShieldMark()

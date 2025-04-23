@@ -444,7 +444,7 @@ export class ConsoleUIV2 {
   private getMarkNameByBaseId(baseMarkId: string): string {
     try {
       return i18next.t(`${baseMarkId}.name`, {
-        ns: ['mark', 'mark_ability', 'mark_emblem'],
+        ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
       })
     } catch {
       return baseMarkId
@@ -455,7 +455,7 @@ export class ConsoleUIV2 {
     try {
       return i18next
         .t(`${baseMarkId}.description`, {
-          ns: ['mark', 'mark_ability', 'mark_emblem'],
+          ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
           mark: markMessage,
         })
         .replace(/\n{2,}/g, '')

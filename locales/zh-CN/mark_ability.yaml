@@ -10,3 +10,6 @@ mark_ability_jianren:
 mark_ability_rumeng:
   name: 入梦
   description: 跟随时可以进入精灵梦境
+mark_ability_yangguang:
+  name: 阳光
+  description: 晴天时每回合恢复自身最大体力的1/16

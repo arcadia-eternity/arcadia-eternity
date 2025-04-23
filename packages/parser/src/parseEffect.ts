@@ -20,6 +20,7 @@ import {
   type baseSkillId,
   type effectId,
   EffectTrigger,
+  IgnoreStageStrategy,
   StackStrategy,
   type StatTypeOnBattle,
   StatTypeWithoutHp,
@@ -259,6 +260,8 @@ function parseEvaluator(effectId: string, dsl: EvaluatorDSL): Evaluator<Selector
 
 export function createAction(effectId: string, dsl: OperatorDSL) {
   switch (dsl.type) {
+    case 'TODO':
+      return () => {}
     case 'dealDamage':
       return parseDamageAction(effectId, dsl)
     case 'heal':
@@ -341,6 +344,8 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseToggle(effectId, dsl)
     case 'setConfig':
       return parseSetconfig(effectId, dsl)
+    case 'setIgnoreStageStrategy':
+      return parseSetIgnoreStageStrategy(effectId, dsl)
   }
 }
 
@@ -630,6 +635,12 @@ function parseSetconfig(effectId: string, dsl: Extract<OperatorDSL, { type: 'set
       parseValue(effectId, dsl.key) as ValueSource<string>,
       parseValue(effectId, dsl.value) as ValueSource<ConfigValue>,
     ),
+  )
+}
+
+function parseSetIgnoreStageStrategy(effectId: string, dsl: Extract<OperatorDSL, { type: 'setIgnoreStageStrategy' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(
+    Operators.setIgnoreStageStrategy(parseValue(effectId, dsl.value) as ValueSource<IgnoreStageStrategy>),
   )
 }
 

@@ -510,6 +510,8 @@
             arg:
               type: base
               arg: stack
+  condition:
+    type: selfUseSkill
 - id: effect_mark_increase_accuracy_stack
   trigger: OnUpdateStat
   priority: 0
@@ -591,4 +593,54 @@
     type: setSureHit
     target: usingSkillContext
     priority: 99
+  consumesStacks: 1
+- id: effect_mark_reduce_damage_15
+  trigger: OnDamage
+  condition:
+    type: selfUseSkill
+  priority: 0
+  apply:
+    - type: addModified
+      target: damageContext
+      percent: -15
+      delta: 0
+- id: effect_mark_reduce_power_special
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 0.5
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Special
+- id: effect_mark_absorb_damage_to_heal
+  trigger: OnDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    - type: preventDamage
+      target: damageContext
+    - type: heal
+      target: self
+      value:
+        type: dynamic
+        selector:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageResult
+            - type: divide
+              arg: 4 #TODO: 有葵花种子时，除以2
   consumesStacks: 1

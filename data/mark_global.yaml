@@ -10,6 +10,8 @@
     stackStrategy: extend
     destroyable: true
     mutexGroup: weather
+  effect:
+    - effect_global_power_35_percent_grass_light
 - id: mark_global_yutian
   config: *global_config
 - id: mark_global_yanre

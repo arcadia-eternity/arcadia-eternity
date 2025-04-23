@@ -639,3 +639,162 @@
     - mark_ability_rumeng
   emblem:
     - mark_emblem_meihuo
+- id: pet_xiaoxiaokui
+  num: 13
+  element: Grass
+  baseStats:
+    hp: 88
+    atk: 65
+    spa: 55
+    def: 71
+    spd: 70
+    spe: 50
+  genderRatio:
+    - 2
+    - 8
+  heightRange:
+    - 33
+    - 38
+  weightRange:
+    - 6
+    - 11
+  learnable_skills:
+    - skill_id: skill_chongding
+      level: 1
+      hidden: false
+    - skill_id: skill_sanyecao
+      level: 6
+      hidden: false
+    - skill_id: skill_yepianbaohu
+      level: 11
+      hidden: false
+    - skill_id: skill_kuihuazhongzi
+      level: 16
+      hidden: false
+  ability:
+    - mark_ability_yangguang
+  emblem:
+    - mark_emblem_kangdu
+- id: pet_daidaokui
+  num: 14
+  element: Grass
+  baseStats:
+    hp: 128
+    atk: 90
+    spa: 80
+    def: 101
+    spd: 100
+    spe: 70
+  genderRatio:
+    - 2
+    - 8
+  heightRange:
+    - 55
+    - 60
+  weightRange:
+    - 12
+    - 17
+  learnable_skills:
+    - skill_id: skill_chongding
+      level: 1
+      hidden: false
+    - skill_id: skill_sanyecao
+      level: 6
+      hidden: false
+    - skill_id: skill_yepianbaohu
+      level: 11
+      hidden: false
+    - skill_id: skill_kuihuazhongzi
+      level: 16
+      hidden: false
+    - skill_id: skill_gundongzhuiji
+      level: 21
+      hidden: false
+    - skill_id: skill_gundongtupo
+      level: 26
+      hidden: false
+    - skill_id: skill_xuruo
+      level: 31
+      hidden: false
+    - skill_id: skill_wulicao
+      level: 36
+      hidden: false
+  ability:
+    - mark_ability_yangguang
+  emblem:
+    - mark_emblem_kangdu
+- id: pet_xiaoxiaokui_2
+  num: 15
+  element: Grass
+  baseStats:
+    hp: 188
+    atk: 115
+    spa: 105
+    def: 131
+    spd: 130
+    spe: 90
+  genderRatio:
+    - 2
+    - 8
+  heightRange:
+    - 94
+    - 99
+  weightRange:
+    - 22
+    - 27
+  learnable_skills:
+    - skill_id: skill_chongding
+      level: 1
+      hidden: false
+    - skill_id: skill_sanyecao
+      level: 6
+      hidden: false
+    - skill_id: skill_yepianbaohu
+      level: 11
+      hidden: false
+    - skill_id: skill_kuihuazhongzi
+      level: 16
+      hidden: false
+    - skill_id: skill_gundongzhuiji
+      level: 21
+      hidden: false
+    - skill_id: skill_yuhe
+      level: 26
+      hidden: false
+    - skill_id: skill_gundongtupo
+      level: 31
+      hidden: false
+    - skill_id: skill_xuruo
+      level: 36
+      hidden: false
+    - skill_id: skill_wulicao
+      level: 41
+      hidden: false
+    - skill_id: skill_xishoucao
+      level: 46
+      hidden: false
+    - skill_id: skill_gundongzhenci
+      level: 51
+      hidden: false
+    - skill_id: skill_jieducao
+      level: 56
+      hidden: false
+    - skill_id: skill_qiyeduoming
+      level: 60
+      hidden: false
+    - skill_id: skill_ducao
+      level: 65
+      hidden: true
+    - skill_id: skill_fangqing
+      level: 70
+      hidden: true
+    - skill_id: skill_duhua
+      level: 75
+      hidden: true
+    - skill_id: skill_qianghuachongji
+      level: 80
+      hidden: true
+  ability:
+    - mark_ability_yangguang
+  emblem:
+    - mark_emblem_kangdu

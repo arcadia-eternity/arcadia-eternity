@@ -11,6 +11,7 @@ type FileCategory =
   | 'effect_emblem'
   | 'effect_mark'
   | 'effect_skill'
+  | 'effect_global'
   | 'skill'
   | 'species'
   | 'mark'
@@ -66,6 +67,7 @@ export class HttpLoader {
         this.loadSingle<Effect>('effect_emblem'),
         this.loadSingle<Effect>('effect_mark'),
         this.loadSingle<Effect>('effect_skill'),
+        this.loadSingle<Effect>('effect_global'),
       ])
       const allEffects = [...abilityEffects, ...emblemEffects, ...markEffects, ...skillEffects]
       this.checkDuplicateIds(allEffects, 'Effect')
@@ -114,6 +116,7 @@ export class HttpLoader {
       case 'effect_emblem':
       case 'effect_mark':
       case 'effect_skill':
+      case 'effect_global':
         data.forEach(item => {
           const effect = EffectParser.parse(item)
           dataRepo.registerEffect(effect.id, effect)

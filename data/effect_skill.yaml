@@ -517,6 +517,8 @@
 - id: effect_heal_self_quarter
   trigger: OnHit
   priority: 0
+  condition:
+    type: selfUseSkill
   apply:
     type: heal
     target:
@@ -1029,3 +1031,202 @@
                   arg:
                     type: base
                     arg: maxHp
+- id: effect_skill_add_multihit_foe_has_mark_kuihuazhongzi
+  trigger: BeforeMultiHit
+  priority: 0
+  apply:
+    type: addMultihitResult
+    target:
+      base: usingSkillContext
+    value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_kuihuazhongzi
+        evaluator:
+          type: exist
+- id: effect_skill_ignore_stat_foe_has_mark_kuihuazhongzi
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: setIgnoreStageStrategy
+    target: usingSkillContext
+    value: positive
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_kuihuazhongzi
+        evaluator:
+          type: exist
+- id: effect_skill_add_mark_foe_kuihuazhongzi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_kuihuazhongzi
+  condition:
+    type: selfUseSkill
+- id: effect_skill_add_mark_foe_wulicao
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_wulicao
+  condition:
+    type: selfUseSkill
+- id: effect_skill_add_mark_xishoucao
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_xishoucao
+  condition:
+    type: selfUseSkill
+- id: effect_skill_clear_status
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: destroyMark
+    target:
+      base: self
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: tags
+          evaluator:
+            type: contain
+            tag: status
+  condition:
+    type: selfUseSkill
+- id: effect_skill_add_mark_foe_zhongdu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_zhongdu
+  condition:
+    type: selfUseSkill
+- id: effect_skill_set_weather_qingtian
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: battle
+    mark:
+      type: entity:baseMark
+      value: mark_global_qingtian
+  condition:
+    type: selfUseSkill
+- id: effect_skill_setsurehit_foe_has_mark_kuihuazhongzi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: setSureHit
+    target:
+      base: usingSkillContext
+    priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_kuihuazhongzi
+        evaluator:
+          type: exist
+- id: effect_skill_add_mark_foe_zhongdu_duration_2
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_zhongdu
+    duration:
+      type: dynamic
+      selector:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_zhongdu
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: add
+            arg: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_zhongdu
+        evaluator:
+          type: exist
+- id: effect_skill_add_accuracy_when_reused
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: TODO
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill

@@ -1,0 +1,32 @@
+# data/effect_global.yaml
+# yaml-language-server: $schema=../packages/schema/schema/effect.schema.json
+# @metaType effect
+# @version 1.0.0
+- id: effect_global_power_35_percent_grass_light
+  trigger: AfterUseSkillCheck
+  priority: 0
+  condition:
+    type: some
+    conditions:
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg: element
+        evaluator:
+          type: same
+          value: Grass
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg: element
+        evaluator:
+          type: same
+          value: Light
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 1.35

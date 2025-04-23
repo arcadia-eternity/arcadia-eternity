@@ -721,3 +721,189 @@
   tags: []
   effect:
     - effect_skill_add_damage_maxhp_1_4_maxhp_max_180
+- id: skill_chongding
+  element: Normal
+  category: Physical
+  power: 35
+  rage: 0
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_def_5_percent
+- id: skill_sanyecao
+  element: Grass
+  category: Special
+  power: 20
+  rage: 5
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  multihit: 3
+- id: skill_yepianbaohu
+  element: Grass
+  category: Status
+  power: 0
+  rage: 10
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_def_1_stages
+- id: skill_kuihuazhongzi
+  element: Grass
+  category: Special
+  power: 65
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_kuihuazhongzi
+- id: skill_gundongzhuiji
+  element: Grass
+  category: Physical
+  power: 30
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  multihit: 3
+  tags: []
+  effect:
+    - effect_skill_add_multihit_foe_has_mark_kuihuazhongzi
+- id: skill_yuhe
+  element: Grass
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_heal_self_quarter
+- id: skill_gundongtupo
+  element: Normal
+  category: Physical
+  power: 90
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_ignore_stat_foe_has_mark_kuihuazhongzi
+- id: skill_xuruo
+  element: Normal
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_def_1_stage
+    - effect_skill_reduce_foe_spd_1_stage
+- id: skill_wulicao
+  element: Grass
+  category: Special
+  power: 70
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_wulicao
+- id: skill_xishoucao
+  element: Grass
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_xishoucao
+- id: skill_gundongzhenci
+  element: Grass
+  category: Physical
+  power: 100
+  rage: 15
+  accuracy: 80
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_setsurehit_foe_has_mark_kuihuazhongzi
+- id: skill_jieducao
+  element: Grass
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_clear_status
+- id: skill_qiyeduoming
+  element: Grass
+  category: Climax
+  power: 160
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+- id: skill_ducao
+  element: Grass
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 85
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_zhongdu
+- id: skill_fangqing
+  element: Grass
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_set_weather_qingtian
+- id: skill_duhua
+  element: Grass
+  category: Status
+  power: 0
+  rage: 10
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_zhongdu_duration_2
+- id: skill_qianghuachongji
+  element: Grass
+  category: Physical
+  power: 110
+  rage: 15
+  accuracy: 70
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_accuracy_when_reused #TODO

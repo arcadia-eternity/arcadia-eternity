@@ -881,7 +881,7 @@ const teamMemberSprites = computed<number[]>(() => {
             }}
             {{ currentTurn || 1 }}
           </div>
-          <div class="flex gap-2">
+          <div class="absolute flex gap-2">
             <Mark v-for="mark in globalMarks" :key="mark.id" :mark="mark" />
           </div>
         </div>
