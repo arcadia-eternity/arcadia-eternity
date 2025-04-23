@@ -54,9 +54,9 @@ const MESSAGE_ICONS: Record<BattleMessageType, string> = {
 
 // 伤害类型映射
 const DAMAGE_TYPE_MAP: Record<string, string> = {
-  physical: '物理',
-  special: '特殊',
-  effect: '效果',
+  Physical: '物理',
+  Special: '特殊',
+  Effect: '效果',
 }
 
 // 怒气变化原因

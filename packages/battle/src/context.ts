@@ -83,7 +83,7 @@ export class UseSkillContext extends Context {
   crit: boolean = false
   multihitResult = 1
 
-  damageType: DamageType = DamageType.physical
+  damageType: DamageType = DamageType.Physical
   typeMultiplier = 1
   stabMultiplier = 1.5
   critMultiplier = 2
@@ -157,22 +157,22 @@ export class UseSkillContext extends Context {
       case Category.Physical:
         atk = this.pet.actualStat.atk
         def = this.actualTarget.getEffectiveStat(false, this.ignoreStageStrategy).def
-        this.damageType = DamageType.physical
+        this.damageType = DamageType.Physical
         break
       case Category.Special:
         atk = this.pet.actualStat.spa
         def = this.actualTarget.getEffectiveStat(false, this.ignoreStageStrategy).def
-        this.damageType = DamageType.special
+        this.damageType = DamageType.Special
         break
       case Category.Climax:
         if (this.pet.actualStat.atk > this.pet.actualStat.spa) {
           atk = this.pet.actualStat.atk
           def = this.actualTarget.getEffectiveStat(false, this.ignoreStageStrategy).def
-          this.damageType = DamageType.physical
+          this.damageType = DamageType.Physical
         } else {
           atk = this.pet.actualStat.spa
           def = this.actualTarget.getEffectiveStat(false, this.ignoreStageStrategy).spd
-          this.damageType = DamageType.special
+          this.damageType = DamageType.Special
         }
     }
 
@@ -318,7 +318,7 @@ export class DamageContext extends Context {
     public readonly source: Pet | MarkInstance | SkillInstance, //来自技能伤害，还是印记和技能的效果获得的伤害
     public readonly target: Pet,
     public baseDamage: number,
-    public damageType: DamageType = DamageType.effect,
+    public damageType: DamageType = DamageType.Effect,
     public crit: boolean = false, //显示这个伤害是不是一个暴击伤害，尝试修改他是不会修改实际的伤害数值的
     public effectiveness: number = 1,
     public ignoreShield: boolean = false,

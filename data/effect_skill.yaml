@@ -1230,3 +1230,17 @@
     type: every
     conditions:
       - type: selfUseSkill
+- id: effect_skill_add_mark_rouhua_50
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_rouhua
+    stack: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill

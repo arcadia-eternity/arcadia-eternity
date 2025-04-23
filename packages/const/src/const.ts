@@ -47,9 +47,9 @@ export enum StatTypeOnlyBattle {
 }
 
 export enum DamageType {
-  physical = 'physical',
-  special = 'special',
-  effect = 'effect',
+  Physical = 'Physical',
+  Special = 'Special',
+  Effect = 'Effect',
 }
 
 export type StatOutBattle = Record<StatType, number>

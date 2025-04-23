@@ -3,6 +3,7 @@ import { BattleStatus } from './battleStatus'
 import { Category } from './category'
 import {
   AttackTargetOpinion,
+  DamageType,
   type baseMarkId,
   type baseSkillId,
   type effectId,
@@ -242,7 +243,7 @@ export interface BattleMessageData {
     damage: number
     isCrit: boolean
     effectiveness: number
-    damageType: 'physical' | 'special' | 'effect'
+    damageType: DamageType
   }
   [BattleMessageType.DamageFail]: {
     source: petId | markId | skillId

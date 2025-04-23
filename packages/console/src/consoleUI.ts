@@ -564,9 +564,9 @@ export class ConsoleUIV2 {
   private getDamageType(type: string): string {
     return (
       {
-        physical: '物理',
-        special: '特殊',
-        effect: '效果',
+        Physical: '物理',
+        Special: '特殊',
+        Effect: '效果',
       }[type] || type
     )
   }

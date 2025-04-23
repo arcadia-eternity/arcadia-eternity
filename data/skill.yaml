@@ -134,7 +134,8 @@
   sureHit: false
   ignoreShield: false
   tags: []
-  #TODO: effect
+  effect:
+    - effect_skill_add_mark_rouhua_50
 - id: skill_wujindaxuanwo
   element: Water
   category: Climax
