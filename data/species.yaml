@@ -480,3 +480,162 @@
     - mark_ability_jianren
   emblem:
     - mark_emblem_zhiyu
+- id: pet_fala
+  num: 10
+  element: Normal
+  baseStats:
+    hp: 77
+    atk: 64
+    spa: 65
+    def: 61
+    spd: 62
+    spe: 58
+  genderRatio:
+    - 1
+    - 0
+  heightRange:
+    - 32
+    - 37
+  weightRange:
+    - 5
+    - 10
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_shouxialiuqing
+      level: 5
+      hidden: false
+    - skill_id: skill_baihuaguangxian
+      level: 9
+      hidden: false
+    - skill_id: skill_miaozhun
+      level: 13
+      hidden: false
+  ability:
+    - mark_ability_rumeng
+  emblem:
+    - mark_emblem_meihuo
+- id: pet_fana
+  num: 11
+  element: Normal
+  baseStats:
+    hp: 117
+    atk: 94
+    spa: 95
+    def: 68
+    spd: 87
+    spe: 78
+  genderRatio:
+    - 1
+    - 0
+  heightRange:
+    - 49
+    - 54
+  weightRange:
+    - 13
+    - 18
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_shouxialiuqing
+      level: 5
+      hidden: false
+    - skill_id: skill_baihuaguangxian
+      level: 9
+      hidden: false
+    - skill_id: skill_miaozhun
+      level: 13
+      hidden: false
+    - skill_id: skill_qianghuazhuangtai
+      level: 18
+      hidden: false
+    - skill_id: skill_xianfazhiren
+      level: 22
+      hidden: false
+    - skill_id: skill_shouxiawuqing
+      level: 26
+      hidden: false
+    - skill_id: skill_meihuo
+      level: 30
+      hidden: false
+  ability:
+    - mark_ability_rumeng
+  emblem:
+    - mark_emblem_meihuo
+- id: pet_fayina
+  num: 12
+  element: Normal
+  baseStats:
+    hp: 177
+    atk: 124
+    spa: 125
+    def: 111
+    spd: 112
+    spe: 98
+  genderRatio:
+    - 1
+    - 0
+  heightRange:
+    - 99
+    - 104
+  weightRange:
+    - 40
+    - 45
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_shouxialiuqing
+      level: 5
+      hidden: false
+    - skill_id: skill_baihuaguangxian
+      level: 9
+      hidden: false
+    - skill_id: skill_miaozhun
+      level: 13
+      hidden: false
+    - skill_id: skill_qianghuazhuangtai
+      level: 18
+      hidden: false
+    - skill_id: skill_xianfazhiren
+      level: 22
+      hidden: false
+    - skill_id: skill_shouxiawuqing
+      level: 26
+      hidden: false
+    - skill_id: skill_meihuo
+      level: 30
+      hidden: false
+    - skill_id: skill_ruilishuxian
+      level: 36
+      hidden: false
+    - skill_id: skill_chianguangbo
+      level: 40
+      hidden: false
+    - skill_id: skill_houfazhiren
+      level: 44
+      hidden: false
+    - skill_id: skill_shanbi
+      level: 50
+      hidden: false
+    - skill_id: skill_huanjinglieshanguang
+      level: 60
+      hidden: false
+    - skill_id: skill_lingcaiguangxian
+      level: 65
+      hidden: true
+    - skill_id: skill_huanjuezhuangtai
+      level: 70
+      hidden: true
+    - skill_id: skill_mihuo
+      level: 75
+      hidden: true
+    - skill_id: skill_tongshenggongsi
+      level: 80
+      hidden: true
+  ability:
+    - mark_ability_rumeng
+  emblem:
+    - mark_emblem_meihuo

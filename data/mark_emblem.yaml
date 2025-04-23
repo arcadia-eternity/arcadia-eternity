@@ -20,6 +20,9 @@
   effect:
     - effect_emblem_20percent_double_heal
 - id: mark_emblem_meihuo
+  config: *emblem_config
+  effect:
+    - effect_emblem_destory_meihuo_onturnend
 - id: mark_emblem_kangdu
 - id: mark_emblem_zhongliang
 - id: mark_emblem_shupi

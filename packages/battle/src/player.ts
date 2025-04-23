@@ -226,11 +226,11 @@ export class Player {
     try {
       context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.skill.rage))
 
+      this.battle!.applyEffects(context, EffectTrigger.AfterUseSkillCheck)
+
       context.updateHitResult()
       context.updateMultihitResult()
       context.updateCritResult()
-
-      this.battle!.applyEffects(context, EffectTrigger.AfterUseSkillCheck)
 
       for (; context.multihitResult > 0; context.multihitResult--) {
         // 命中判定
@@ -439,7 +439,7 @@ export class AIPlayer extends Player {
     }
 
     // Filter out surrender and do-nothing for priority selection
-    const combatActions = availableActions.filter(a => a.type === 'use-skill' || a.type === 'switch-pet')
+    const combatActions = availableActions.filter(a => a.type === 'use-skill')
 
     return combatActions.length > 0 ? this.selectRandom(combatActions) : this.selectRandom(availableActions) // Fallback to any remaining action
   }

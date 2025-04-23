@@ -14,216 +14,297 @@ export interface EffectDSL {
   consumesStacks?: number
 }
 
+export type DealDamageOpreator = {
+  type: 'dealDamage'
+  target: SelectorDSL
+  value: Value
+}
+
+export type HealOpreator = {
+  type: 'heal'
+  target: SelectorDSL
+  value: Value
+}
+
+export type AddMarkOpreator = {
+  type: 'addMark'
+  target: SelectorDSL
+  mark: Value
+  stack?: Value
+  duration?: Value
+}
+
+export type AddStacksOpreator = {
+  type: 'addStacks'
+  target: SelectorDSL
+  value: Value
+}
+
+export type ConsumeStacksOpreator = {
+  type: 'consumeStacks'
+  target: SelectorDSL
+  value: Value
+}
+
+export type ModifyStatOpreator = {
+  type: 'modifyStat'
+  target: SelectorDSL
+  statType: Value
+  delta?: Value
+  percent?: Value
+}
+
+export type StatStageBuffOpreator = {
+  type: 'statStageBuff'
+  target: SelectorDSL
+  statType: Value
+  value: Value
+}
+export type ClearStatStageOpreator = {
+  type: 'clearStatStage'
+  target: SelectorDSL
+  statType?: Value
+}
+
+export type AddRageOpreator = {
+  type: 'addRage'
+  target: SelectorDSL
+  value: Value
+}
+
+export type AmplifyPowerOpreator = {
+  type: 'amplifyPower'
+  target: SelectorDSL
+  value: Value
+}
+
+export type AddPowerOpreator = {
+  type: 'addPower'
+  target: SelectorDSL
+  value: Value
+}
+
+export type AddCritRateOpreator = {
+  type: 'addCritRate'
+  target: SelectorDSL
+  value: Value
+}
+
+export type AddMultihitResultOpreator = {
+  type: 'addMultihitResult'
+  target: SelectorDSL
+  value: Value
+}
+
+export type TransferMarkOpreator = {
+  type: 'transferMark'
+  target: SelectorDSL
+  mark: DynamicValue
+}
+
+export type DestroyMarkOpreator = {
+  type: 'destroyMark'
+  target: SelectorDSL
+}
+
+export type StunOpreator = {
+  type: 'stun'
+  target: SelectorDSL
+}
+
+export type SetSureHitOpreator = {
+  type: 'setSureHit'
+  target: SelectorDSL
+  priority: number
+}
+
+export type SetSureCritOpreator = {
+  type: 'setSureCrit'
+  target: SelectorDSL
+  priority: number
+}
+
+export type SetSureMissOpreator = {
+  type: 'setSureMiss'
+  target: SelectorDSL
+  priority: number
+}
+
+export type SetSureNoCritOpreator = {
+  type: 'setSureNoCrit'
+  target: SelectorDSL
+  priority: number
+}
+
+export type SetSkillOpreator = {
+  type: 'setSkill'
+  target: SelectorDSL
+  value: Value
+}
+
+export type PreventDamageOpreator = {
+  type: 'preventDamage'
+  target: SelectorDSL
+}
+
+export type SetActualTargetOpreator = {
+  type: 'setActualTarget'
+  target: SelectorDSL
+  newTarget: DynamicValue
+}
+
+export type AddModifiedOpreator = {
+  type: 'addModified'
+  target: SelectorDSL
+  delta: Value
+  percent: Value
+}
+
+export type AddThresholdOpreator = {
+  type: 'addThreshold'
+  target: SelectorDSL
+  min?: Value
+  max?: Value
+}
+
+export type OverrideMarkConfigOpreator = {
+  type: 'overrideMarkConfig'
+  target: SelectorDSL
+  config: Partial<MarkInstance['config']>
+}
+
+export type SetMarkDurationOpreator = {
+  type: 'setMarkDuration'
+  target: SelectorDSL
+  value: Value
+}
+
+export type SetMarkStackOpreator = {
+  type: 'setMarkStack'
+  target: SelectorDSL
+  value: Value
+}
+
+export type SetMarkMaxStackOpreator = {
+  type: 'setMarkMaxStack'
+  target: SelectorDSL
+  value: Value
+}
+
+export type SetMarkPersistentOpreator = {
+  type: 'setMarkPersistent'
+  target: SelectorDSL
+  value: Value
+}
+
+export type SetMarkStackableOpreator = {
+  type: 'setMarkStackable'
+  target: SelectorDSL
+  value: Value
+}
+
+export type SetMarkStackStrategyOpreator = {
+  type: 'setMarkStackStrategy'
+  target: SelectorDSL
+  value: Value
+}
+
+export type SetMarkDestroyableOpreator = {
+  type: 'setMarkDestroyable'
+  target: SelectorDSL
+  value: Value
+}
+
+export type SetMarkIsShieldOpreator = {
+  type: 'setMarkIsShield'
+  target: SelectorDSL
+  value: Value
+}
+
+export type SetMarkKeepOnSwitchOutOpreator = {
+  type: 'setMarkKeepOnSwitchOut'
+  target: SelectorDSL
+  value: Value
+}
+
+export type SetMarkTransferOnSwitchOpreator = {
+  type: 'setMarkTransferOnSwitch'
+  target: SelectorDSL
+  value: Value
+}
+
+export type SetMarkInheritOnFaintOpreator = {
+  type: 'setMarkInheritOnFaint'
+  target: SelectorDSL
+  value: Value
+}
+
+export type AddValueOpreator = {
+  type: 'addValue'
+  target: SelectorDSL
+  value: Value
+}
+
+export type SetValueOpreator = {
+  type: 'setValue'
+  target: SelectorDSL
+  value: Value
+}
+
+export type ToggleOpreator = {
+  type: 'toggle'
+  target: SelectorDSL
+}
+
+export type SetConfigOpreator = {
+  type: 'setConfig'
+  target: SelectorDSL
+  key: Value
+  value: Value
+}
+
 export type OperatorDSL =
-  | {
-      type: 'dealDamage'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'heal'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'addMark'
-      target: SelectorDSL
-      mark: Value
-      stack?: Value
-      duration?: Value
-    }
-  | {
-      type: 'addStacks'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'consumeStacks'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'modifyStat'
-      target: SelectorDSL
-      statType: Value
-      delta?: Value
-      percent?: Value
-    }
-  | {
-      type: 'statStageBuff'
-      target: SelectorDSL
-      statType: Value
-      value: Value
-    }
-  | {
-      type: 'clearStatStage'
-      target: SelectorDSL
-      statType?: Value
-    }
-  | {
-      type: 'addRage'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'amplifyPower'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'addPower'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'addCritRate'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'addMultihitResult'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'transferMark'
-      target: SelectorDSL
-      mark: DynamicValue
-    }
-  | {
-      type: 'destroyMark'
-      target: SelectorDSL
-    }
-  | {
-      type: 'stun'
-      target: SelectorDSL
-    }
-  | {
-      type: 'setSureHit'
-      target: SelectorDSL
-      priority: number
-    }
-  | {
-      type: 'setSureCrit'
-      target: SelectorDSL
-      priority: number
-    }
-  | {
-      type: 'setSureMiss'
-      target: SelectorDSL
-      priority: number
-    }
-  | {
-      type: 'setSureNoCrit'
-      target: SelectorDSL
-      priority: number
-    }
-  | {
-      type: 'setSkill'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'preventDamage'
-      target: SelectorDSL
-    }
-  | {
-      type: 'setActualTarget'
-      target: SelectorDSL
-      newTarget: DynamicValue
-    }
-  | {
-      type: 'addModified'
-      target: SelectorDSL
-      delta: Value
-      percent: Value
-    }
-  | {
-      type: 'addThreshold'
-      target: SelectorDSL
-      min?: Value
-      max?: Value
-    }
-  | {
-      type: 'overrideMarkConfig'
-      target: SelectorDSL
-      config: Partial<MarkInstance['config']>
-    }
-  | {
-      type: 'setMarkDuration'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'setMarkStack'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'setMarkMaxStack'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'setMarkPersistent'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'setMarkStackable'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'setMarkStackStrategy'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'setMarkDestroyable'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'setMarkIsShield'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'setMarkKeepOnSwitchOut'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'setMarkTransferOnSwitch'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'setMarkInheritOnFaint'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'addValue'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'setValue'
-      target: SelectorDSL
-      value: Value
-    }
-  | {
-      type: 'toggle'
-      target: SelectorDSL
-    }
-  | {
-      type: 'setConfig'
-      target: SelectorDSL
-      key: Value
-      value: Value
-    }
+  | DealDamageOpreator
+  | HealOpreator
+  | AddMarkOpreator
+  | AddStacksOpreator
+  | ConsumeStacksOpreator
+  | ModifyStatOpreator
+  | StatStageBuffOpreator
+  | ClearStatStageOpreator
+  | AddRageOpreator
+  | AmplifyPowerOpreator
+  | AddPowerOpreator
+  | AddCritRateOpreator
+  | AddMultihitResultOpreator
+  | TransferMarkOpreator
+  | DestroyMarkOpreator
+  | StunOpreator
+  | SetSureHitOpreator
+  | SetSureCritOpreator
+  | SetSureMissOpreator
+  | SetSureNoCritOpreator
+  | SetSkillOpreator
+  | PreventDamageOpreator
+  | SetActualTargetOpreator
+  | AddModifiedOpreator
+  | AddThresholdOpreator
+  | OverrideMarkConfigOpreator
+  | SetMarkDurationOpreator
+  | SetMarkStackOpreator
+  | SetMarkMaxStackOpreator
+  | SetMarkPersistentOpreator
+  | SetMarkStackableOpreator
+  | SetMarkStackStrategyOpreator
+  | SetMarkDestroyableOpreator
+  | SetMarkIsShieldOpreator
+  | SetMarkKeepOnSwitchOutOpreator
+  | SetMarkTransferOnSwitchOpreator
+  | SetMarkInheritOnFaintOpreator
+  | AddValueOpreator
+  | SetValueOpreator
+  | ToggleOpreator
+  | SetConfigOpreator
 
 export type RawNumberValue = {
   type: 'raw:number'

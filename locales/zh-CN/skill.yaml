@@ -145,3 +145,54 @@ skill_jishengzhadan:
 skill_yinbaozhongzi:
   name: 引爆种子
   description: 清空种子能量 成功时引爆寄生炸弹
+skill_zhuangji:
+  name: 撞击
+  description: 5%弱化对手物防1级
+skill_shouxialiuqing:
+  name: 手下留情
+  description: 使对手体力不低于1
+skill_baihuaguangxian:
+  name: 白化光线
+  description: 5%弱化对手特防1级
+skill_miaozhun:
+  name: 瞄准
+  description: 使自身获得10点命中提升
+skill_qianghuazhuangtai:
+  name: 强化状态
+  description: 使自身获得威力变化
+skill_xianfazhiren:
+  name: 先发制人
+  description: 先制+1 对手满血时威力2倍
+skill_shouxiawuqing:
+  name: 手下无情
+  description: 对手体力＜1/4时威力4倍
+skill_meihuo:
+  name: 魅惑
+  description: 【35】使对手魅惑
+skill_ruilishuxian:
+  name: 锐利射线
+  description: 10%弱化对手特防1级
+skill_chianguangbo:
+  name: 迟缓光波
+  description: 【95】弱化对手速度1级
+skill_houfazhiren:
+  name: 后发制人
+  description: 后制-1 体力＜1/4时必定暴击
+skill_shanbi:
+  name: 闪避
+  description: 【35】使自身获得闪避
+skill_huanjinglieshanguang:
+  name: 幻境裂闪光
+  description: <font color=#93E312>必中</font> 使对手获得15点命中下降
+skill_lingcaiguangxian:
+  name: 绫彩光线
+  description: <font color=#93E312>必中</font>
+skill_huanjuezhuangtai:
+  name: 幻觉状态
+  description: 使自身获得属性必中
+skill_mihuo:
+  name: 迷惑
+  description: 【35】使对手获得迷惑
+skill_tongshenggongsi:
+  name: 同生共死
+  description: 对手满体力时附加对手最大体力的1/4 最多180点

@@ -333,12 +333,12 @@ export class DamageContext extends Context {
 
     // 应用伤害阈值（先处理最小值再处理最大值）
     // 最小值阈值处理
-    if (this.minThreshold) {
+    if (typeof this.minThreshold === 'number') {
       intermediateDamage = Math.max(intermediateDamage, this.minThreshold)
     }
 
     // 最大值阈值处理
-    if (this.maxThreshold) {
+    if (typeof this.maxThreshold === 'number') {
       intermediateDamage = Math.min(intermediateDamage, this.maxThreshold)
     }
 
@@ -352,8 +352,8 @@ export class DamageContext extends Context {
   }
 
   addThreshold(min?: number, max?: number) {
-    if (min) this.minThreshold = min
-    if (max) this.maxThreshold = max
+    if (typeof min === 'number') this.minThreshold = min
+    if (typeof max === 'number') this.maxThreshold = max
   }
 }
 

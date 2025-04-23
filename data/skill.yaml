@@ -2,7 +2,6 @@
 # yaml-language-server: $schema=../packages/schema/schema/skill.schema.json
 # @metaType skill
 # @version 1.0.0
-
 - id: skill_paida
   element: Normal
   category: Physical
@@ -13,7 +12,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_def_5_percent
+    - effect_skill_reduce_foe_def_5_percent
 - id: skill_shuipao
   element: Water
   category: Special
@@ -24,7 +23,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_spd_5_percent
+    - effect_skill_reduce_foe_spd_5_percent
 - id: skill_tuoli
   element: Normal
   category: Status
@@ -113,7 +112,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_spd_5_percent
+    - effect_skill_reduce_foe_spd_5_percent
 - id: skill_feiliupubu
   element: Water
   category: Special
@@ -157,7 +156,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_mingzhongdixia
+    - effect_skill_add_mark_foe_mingzhongxiajiang_15
 - id: skill_yanmo
   element: Water
   category: Status
@@ -190,7 +189,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_atk_5_percent
+    - effect_skill_reduce_foe_atk_5_percent
 - id: skill_huoyan
   element: Fire
   category: Special
@@ -201,7 +200,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_spa_5_percent
+    - effect_skill_reduce_foe_spa_5_percent
 - id: skill_qili
   element: Normal
   category: Status
@@ -313,7 +312,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_def_5_percent
+    - effect_skill_reduce_foe_def_5_percent
 - id: skill_liehuofentianshao
   element: Fire
   category: Climax
@@ -480,7 +479,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_mingzhongdixia
+    - effect_skill_add_mark_foe_mingzhongxiajiang_15
 - id: skill_laaodehuhuan
   element: Grass
   category: Climax
@@ -535,3 +534,190 @@
   ignoreShield: false
   tags: []
   multihit: 3
+- id: skill_zhuangji
+  element: Normal
+  category: Physical
+  power: 35
+  rage: 0
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_def_5_percent
+- id: skill_shouxialiuqing
+  element: Normal
+  category: Physical
+  power: 55
+  rage: 5
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_save_hp_to_1
+- id: skill_baihuaguangxian
+  element: Normal
+  category: Special
+  power: 60
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_spd_5_percent
+- id: skill_miaozhun
+  element: Normal
+  category: Status
+  power: 0
+  rage: 10
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_mingzhongtisheng_10
+- id: skill_qianghuazhuangtai
+  element: Normal
+  category: Status
+  power: 0
+  rage: 10
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_weilibianhua_50
+- id: skill_xianfazhiren
+  element: Normal
+  category: Physical
+  power: 45
+  rage: 10
+  accuracy: 95
+  priority: 1
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_power_2x_foe_maxhp
+- id: skill_shouxiawuqing
+  element: Normal
+  category: Physical
+  power: 50
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_power_4x_foe_below_quarter_hp
+- id: skill_meihuo
+  element: Normal
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 35
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_meihuo
+- id: skill_ruilizhexian
+  element: Normal
+  category: Special
+  power: 75
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_spd_10_percent
+- id: skill_chihuanguangbo
+  element: Normal
+  category: Status
+  power: 0
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_spe_1_stage
+- id: skill_houfazhiren
+  element: Normal
+  category: Physical
+  power: 90
+  rage: 10
+  accuracy: 95
+  priority: -1
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_sure_crit_below_1_4
+- id: skill_shanbi
+  element: Normal
+  category: Status
+  power: 0
+  rage: 15
+  accuracy: 35
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_shanbi
+- id: skill_huanjinglieshanguang
+  element: Normal
+  category: Climax
+  power: 160
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_mingzhongxiajiang_15
+- id: skill_lingcaiguangxian
+  element: Normal
+  category: Special
+  power: 100
+  rage: 20
+  accuracy: 95
+  sureHit: true
+  ignoreShield: false
+  tags: []
+- id: skill_huanjuezhuangtai
+  element: Normal
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_bizhong
+- id: skill_mihuo
+  element: Normal
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 35
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_mihuo
+- id: skill_tongshenggongsi
+  element: Normal
+  category: Physical
+  power: 80
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_damage_maxhp_1_4_maxhp_max_180

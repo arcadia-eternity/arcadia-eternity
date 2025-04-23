@@ -294,7 +294,7 @@ export const Operators = {
     return (context: EffectContext<EffectTrigger>, contexts: DamageContext[]) => {
       const _min = min ? GetValueFromSource(context, min)[0] : undefined
       const _max = max ? GetValueFromSource(context, max)[0] : undefined
-      if (!_min && !_max) return
+      if (!(typeof _min === 'number') && !(typeof _max === 'number')) return
       contexts.forEach(ctx => {
         ctx.addThreshold(_min, _max)
       })

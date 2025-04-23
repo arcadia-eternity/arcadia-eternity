@@ -383,7 +383,7 @@
       base: self
     value: 300
 - id: effect_mark_amplify_non_yanggong
-  trigger: BeforeUseSkillCheck
+  trigger: AfterUseSkillCheck
   priority: 0
   apply:
     type: addPower
@@ -413,9 +413,9 @@
     target:
       base: updateStatContext
     statType: accuracy
-    percent: -10
+    percent: -15
 - id: effect_mark_amplify_next_damage_skill_power
-  trigger: BeforeUseSkillCheck
+  trigger: AfterUseSkillCheck
   priority: 0
   condition:
     type: every
@@ -495,3 +495,99 @@
                 arg: maxHp
             - type: divide
               arg: 8
+- id: effect_mark_add_power_stack
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: mark
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: stack
+- id: effect_mark_increase_accuracy_stack
+  trigger: OnUpdateStat
+  priority: 0
+  apply:
+    type: modifyStat
+    target:
+      base: updateStatContext
+    statType: accuracy
+    percent:
+      type: dynamic
+      selector:
+        base: mark
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: stack
+- id: effect_mark_evade
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  condition:
+    type: foeUseSkill
+  apply:
+    type: setSureMiss
+    target: usingSkillContext
+    priority: 1
+  consumesStacks: 1
+- id: effect_mark_mihuo_reduce_damage
+  trigger: OnDamage
+  condition:
+    type: selfUseSkill
+  priority: 0
+  apply:
+    - type: addModified
+      target: damageContext
+      percent: -50
+      delta: 0
+- id: effect_mark_mihuo_damage_self
+  trigger: PostDamage
+  condition:
+    type: selfUseSkill
+  priority: 0
+  apply:
+    - type: dealDamage
+      target: self
+      value:
+        type: dynamic
+        selector:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageResult
+- id: effect_mark_reduce_accuracy_stack
+  trigger: OnUpdateStat
+  priority: 0
+  apply:
+    type: modifyStat
+    target:
+      base: updateStatContext
+    statType: accuracy
+    percent:
+      type: dynamic
+      selector:
+        base: mark
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: stack
+- id: effect_mark_bizhong
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+  apply:
+    type: setSureHit
+    target: usingSkillContext
+    priority: 99
+  consumesStacks: 1

@@ -11,7 +11,7 @@
     stackable: true
     stackStrategy: refresh
     destroyable: true
-    duration: 2
+    duration: 3
     keepOnSwitchOut: true
   effect:
     - effect_mark_stun
@@ -214,16 +214,6 @@
   effect:
     - effect_mark_self_damage_on_expire
 - id: mark_mihuo
-- id: mark_kuihuazhongzi
-- id: mark_zengzhong
-- id: mark_fandan
-- id: mark_teshushanghaizengjia
-- id: mark_wulishanghaizengjia
-- id: mark_shuiwenzhenji
-- id: mark_xuanyun
-- id: mark_shoudaowulishanghaijianshao
-- id: mark_shoudaoteshushanghaijianban
-- id: mark_mingzhongdixia
   config:
     duration: 1
     persistent: true
@@ -233,7 +223,28 @@
     destroyable: true
     keepOnSwitchOut: true
   effect:
-    - effect_mark_reduce_accuracy_15
+    - effect_mark_mihuo_reduce_damage
+    - effect_mark_mihuo_damage_self
+- id: mark_kuihuazhongzi
+- id: mark_zengzhong
+- id: mark_fandan
+- id: mark_teshushanghaizengjia
+- id: mark_wulishanghaizengjia
+- id: mark_shuiwenzhenji
+- id: mark_xuanyun
+- id: mark_shoudaowulishanghaijianshao
+- id: mark_shoudaoteshushanghaijianban
+- id: mark_mingzhongxiajiang
+  config:
+    duration: 1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_reduce_accuracy_stack
 - id: mark_yanggong
   config:
     duration: 1
@@ -246,6 +257,16 @@
   effect:
     - effect_mark_amplify_non_yanggong
 - id: mark_bizhong
+  config:
+    duration: 1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_bizhong
 - id: mark_weilifanbei
   config:
     duration: 3
@@ -292,8 +313,41 @@
     - effect_zhongzinengliang_damage_reduction
 - id: mark_shoushangfanbei
 - id: mark_mingzhongtisheng
+  config:
+    duration: 1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_increase_accuracy_stack
 - id: mark_weilibianhua
+  config:
+    duration: 5
+    persistent: true
+    maxStacks: 114514
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_add_power_stack
 - id: mark_shanbi
+  config:
+    duration: 1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_evade
 - id: mark_shiquweijue
 - id: mark_wulicao
 - id: mark_shanghaizhuanhua

@@ -20,41 +20,56 @@
         evaluator:
           type: probability
           percent: 5
-- id: effect_skill_reduce_def_5_percent
+- id: effect_skill_reduce_foe_def_5_percent
   trigger: OnDamage
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: def
   condition: *condition_probability_5_percent_template
-- id: effect_skill_reduce_spe_5_percent
+- id: effect_skill_reduce_foe_spe_5_percent
   trigger: OnDamage
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: spe
   condition: *condition_probability_5_percent_template
-- id: effect_skill_reduce_atk_5_percent
+- id: effect_skill_reduce_foe_atk_5_percent
   trigger: OnDamage
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: atk
   condition: *condition_probability_5_percent_template
-- id: effect_skill_reduce_spa_5_percent
+- id: effect_skill_reduce_foe_spa_5_percent
   trigger: OnDamage
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: spa
   condition: *condition_probability_5_percent_template
-- id: effect_skill_reduce_spd_5_percent
+- id: effect_skill_reduce_foe_spd_5_percent
   trigger: OnDamage
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: spd
   condition: *condition_probability_5_percent_template
+- id: effect_skill_reduce_foe_spd_10_percent
+  trigger: OnDamage
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType: spd
+  condition: &condition_probability_10_percent_template
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 10
 - id: effect_skill_raise_atk_1_stages
   trigger: BeforeHit
   priority: 0
@@ -428,7 +443,7 @@
     value: 35
   condition: *condition_self_use_skill_template
 - id: effect_skill_power_4x_below_1_6_hp
-  trigger: BeforeUseSkillCheck
+  trigger: AfterUseSkillCheck
   priority: 0
   apply:
     type: amplifyPower
@@ -605,7 +620,7 @@
                       type: base
                       arg: stack
   condition: *condition_self_use_skill_template
-- id: effect_skill_add_mark_foe_mingzhongdixia
+- id: effect_skill_add_mark_foe_mingzhongxiajiang_15
   trigger: OnHit
   priority: 0
   apply:
@@ -613,7 +628,8 @@
     target: foe
     mark:
       type: entity:baseMark
-      value: mark_mingzhongdixia
+      value: mark_mingzhongxiajiang
+    stack: 15
   condition: *condition_self_use_skill_template
 - id: effect_skill_foe_clear_stage
   trigger: OnHit
@@ -623,7 +639,7 @@
     target: foe
   condition: *condition_self_use_skill_template
 - id: effect_skill_power_2x_foe_below_quarter_hp
-  trigger: BeforeUseSkillCheck
+  trigger: AfterUseSkillCheck
   priority: 0
   apply:
     type: amplifyPower
@@ -786,3 +802,230 @@
       type: entity:baseMark
       value: mark_huifu
   condition: *condition_self_use_skill_template
+- id: effect_skill_save_hp_to_1
+  trigger: OnDamage
+  priority: 0
+  apply:
+    type: addThreshold
+    target: damageContext
+    max:
+      type: dynamic
+      selector:
+        base: foe
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: currentHp
+          - type: add
+            arg: -1
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_mingzhongtisheng_10
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_mingzhongtisheng
+    stack: 10
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_weilibianhua_50
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_weilibianhua
+    stack: 50
+  condition: *condition_self_use_skill_template
+- id: effect_skill_power_2x_foe_maxhp
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foe
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: maxHp
+        evaluator:
+          type: compare
+          operator: ==
+          value:
+            type: dynamic
+            selector:
+              base: foe
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: currentHp
+- id: effect_skill_power_4x_foe_below_quarter_hp
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 4
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foe
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: <=
+          value:
+            type: dynamic
+            selector:
+              base: foe
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp
+                - type: divide
+                  arg: 4
+- id: effect_skill_add_mark_foe_meihuo
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: addMark
+      target: foe
+      mark:
+        type: entity:baseMark
+        value: mark_meihuo
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_sure_crit_below_1_4
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureCrit
+    target:
+      base: usingSkillContext
+    priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: <=
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp
+                - type: divide
+                  arg: 4
+- id: effect_skill_add_mark_shanbi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shanbi
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_bizhong
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_bizhong
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_foe_mihuo
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_mihuo
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_damage_maxhp_1_4_maxhp_max_180
+  trigger: OnDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    delta:
+      type: dynamic
+      selector:
+        base: foe
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: maxHp
+          - type: divide
+            arg: 4
+          - type: clampMax
+            arg: 180
+    percent: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foe
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: ==
+          value:
+            type: dynamic
+            selector:
+              base: foe
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp

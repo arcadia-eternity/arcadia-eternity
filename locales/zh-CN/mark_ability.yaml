@@ -7,3 +7,6 @@ mark_ability_yanhuo:
 mark_ability_jianren:
   name: 坚韧
   description: 体力低于1/4以下时受到伤害减少25%
+mark_ability_rumeng:
+  name: 入梦
+  description: 跟随时可以进入精灵梦境

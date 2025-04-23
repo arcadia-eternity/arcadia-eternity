@@ -51,3 +51,32 @@
     target: healContext
     percent: 100
     delta: 0
+- id: effect_emblem_destory_meihuo_onturnend
+  trigger: TurnEnd
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: selectPath
+              arg: baseId
+            - type: where
+              arg:
+                type: same
+                value: mark_meihuo
+        evaluator:
+          type: exist
+  apply:
+    type: destroyMark
+    target:
+      base: selfMarks
+      chain:
+        - type: selectPath
+          arg: baseId
+        - type: where
+          arg:
+            type: same
+            value: mark_meihuo

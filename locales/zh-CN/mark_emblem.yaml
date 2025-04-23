@@ -7,3 +7,6 @@ mark_emblem_nuhuo:
 mark_emblem_zhiyu:
   name: 治愈
   description: 20%恢复量翻倍
+mark_emblem_meihuo:
+  name: 魅惑
+  description: 被对手魅惑时，在下一回合会自动解除魅惑
