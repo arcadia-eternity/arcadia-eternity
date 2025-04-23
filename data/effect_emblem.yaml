@@ -86,7 +86,7 @@
   condition:
     type: every
     conditions:
-      - type: selfAddMark
+      - type: selfBeAddMark
       - type: evaluate
         target:
           base: addMarkContext
