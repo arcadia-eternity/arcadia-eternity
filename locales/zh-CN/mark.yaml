@@ -183,7 +183,7 @@ mark_cishang:
   description: 受到物攻失去自身最大体力的13%
 mark_ruodianjihao:
   name: 弱点记号
-  description: 每个增加对手25点速度值 最多2个
+  description: 每个减少自身25点速度值 最多2个
 mark_yishang:
   name: 易伤
   description: 受到伤害增加{{mark.stack}}%

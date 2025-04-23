@@ -153,6 +153,9 @@ export class MarkInstanceImpl implements MarkInstance {
     context.battle.applyEffects(context, EffectTrigger.OnMarkCreate, this)
     this.attachTo(target)
     target.marks.push(this)
+    if (target instanceof Pet) {
+      target.updateStat()
+    }
   }
 
   setOwner(owner: Battle | Pet): void {
@@ -197,6 +200,10 @@ export class MarkInstanceImpl implements MarkInstance {
 
   addStack(value: number) {
     this.stack = Math.min(this.config.maxStacks ?? Infinity, this.stack + value)
+
+    if (this.owner instanceof Pet) {
+      this.owner.updateStat()
+    }
   }
 
   tryStack(context: AddMarkContext): boolean {
@@ -250,6 +257,11 @@ export class MarkInstanceImpl implements MarkInstance {
     this.stack = newStacks
     this.duration = newDuration
     this.isActive = true
+
+    if (this.owner instanceof Pet) {
+      this.owner.updateStat()
+    }
+
     context.battle.emitMessage(BattleMessageType.MarkUpdate, {
       target: this.owner instanceof Pet ? this.owner.id : 'battle',
       mark: this.toMessage(),
@@ -388,7 +400,6 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
     super.onAddMark(target, context)
     if (!(target instanceof Pet)) return
     target.statStage[this.statType] = this.level
-    target.updateStat()
   }
 
   tryStack(context: AddMarkContext): boolean {

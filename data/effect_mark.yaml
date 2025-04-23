@@ -353,7 +353,7 @@
               type: base
               arg: stack
           - type: multiply
-            arg: -50
+            arg: -25
     percent: 0
 - id: effect_mark_increase_damage_taken
   trigger: OnDamage
