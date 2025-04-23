@@ -49,7 +49,7 @@ export interface Species extends Prototype {
 // 精灵类
 export class Pet implements OwnedEntity, MarkOwner, Instance {
   public currentHp: number
-  public baseCritRate: number = 0.07 // 暴击率默认为7%
+  public baseCritRate: number = 7 // 暴击率默认为7%
   public baseAccuracy: number = 100 // 命中率默认为100%
   public statStage: StatStage = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 } //能力等级
   public element: Element
@@ -269,7 +269,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     spd: 0,
     spe: 0,
     accuracy: 100,
-    critRate: 0.07,
+    critRate: 7,
     evasion: 0,
     ragePerTurn: 15,
   }
