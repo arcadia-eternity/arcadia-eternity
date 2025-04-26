@@ -13,6 +13,9 @@
         {{ errorMessage }}
       </div>
     </div>
+
+    <p>挑战的是队伍的镜像</p>
+    <p>未来可能会扩展更多玩法……大概吧</p>
   </div>
 </template>
 
