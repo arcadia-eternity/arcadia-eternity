@@ -273,6 +273,18 @@ export type SetIgnoreStageStrategyOpreator = {
   value: Value
 }
 
+export type AddAccuracyOpreator = {
+  type: 'addAccuracy'
+  target: SelectorDSL
+  value: Value
+}
+
+export type SetAccuracyOpreator = {
+  type: 'setAccuracy'
+  target: SelectorDSL
+  value: Value
+}
+
 export type OperatorDSL =
   | TODOOpreator
   | DealDamageOpreator
@@ -317,6 +329,8 @@ export type OperatorDSL =
   | ToggleOpreator
   | SetConfigOpreator
   | SetIgnoreStageStrategyOpreator
+  | AddAccuracyOpreator
+  | SetAccuracyOpreator
 
 export type RawNumberValue = {
   type: 'raw:number'

@@ -213,7 +213,12 @@ export class MarkInstanceImpl implements MarkInstance {
     this.config = context.config || context.baseMark.config
     const maxStacks = this.config.maxStacks ?? Infinity
     const strategy = this.config.stackStrategy!
-    const newMark = new MarkInstanceImpl(context.baseMark)
+    const config = {
+      config: context.config,
+      duration: context.duration ?? context.config?.duration,
+      stack: context.stack ?? context.config?.maxStacks,
+    }
+    const newMark = context.baseMark.createInstance(config)
 
     let newStacks = this.stack
     let newDuration = this.duration

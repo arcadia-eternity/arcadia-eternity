@@ -226,6 +226,7 @@ export class Player {
     try {
       context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.skill.rage))
 
+      this.activePet.lastSkill = context.skill
       this.battle!.applyEffects(context, EffectTrigger.AfterUseSkillCheck)
 
       context.updateHitResult()

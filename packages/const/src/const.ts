@@ -44,6 +44,8 @@ export enum StatTypeOnlyBattle {
   evasion = 'evasion',
   critRate = 'critRate',
   ragePerTurn = 'ragePerTurn',
+  weight = 'weight',
+  height = 'height',
 }
 
 export enum DamageType {

@@ -1,4 +1,4 @@
-import type { Action, Condition } from './effectBuilder'
+import type { Action, Condition, ValueSource } from './effectBuilder'
 
 export function createConditionAction(action: Action, condition: Condition, elseAction?: Action): Action {
   return ctx => {

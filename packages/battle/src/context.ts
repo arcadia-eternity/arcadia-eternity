@@ -216,6 +216,14 @@ export class UseSkillContext extends Context {
     this.power += value
   }
 
+  addAccuracy(value: number) {
+    this.accuracy = Math.max(0, Math.min(this.accuracy + value, 100))
+  }
+
+  setAccuracy(accuracy: number) {
+    this.accuracy = Math.max(0, Math.min(accuracy, 100))
+  }
+
   setCrit(crit: boolean) {
     this.crit = crit
   }

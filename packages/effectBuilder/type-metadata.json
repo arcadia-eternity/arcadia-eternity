@@ -1,6 +1,33 @@
 {
   "Battle": [
     {
+      "n": "lastStateMessage",
+      "t": "BattleState",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "allowFaintSwitch",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "showHidden",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
       "n": "parent",
       "t": "null",
       "iu": false,
@@ -46,14 +73,23 @@
       "n": "status",
       "t": "BattleStatus.Unstarted | BattleStatus.OnBattle | BattleStatus.Ended",
       "iu": true,
-      "u": ["BattleStatus.Unstarted", "BattleStatus.OnBattle", "BattleStatus.Ended"],
+      "u": [
+        "BattleStatus.Unstarted",
+        "BattleStatus.OnBattle",
+        "BattleStatus.Ended"
+      ],
       "a": false
     },
     {
       "n": "currentPhase",
       "t": "BattlePhase.SwitchPhase | BattlePhase.SelectionPhase | BattlePhase.ExecutionPhase | BattlePhase.Ended",
       "iu": true,
-      "u": ["BattlePhase.SwitchPhase", "BattlePhase.SelectionPhase", "BattlePhase.ExecutionPhase", "BattlePhase.Ended"],
+      "u": [
+        "BattlePhase.SwitchPhase",
+        "BattlePhase.SelectionPhase",
+        "BattlePhase.ExecutionPhase",
+        "BattlePhase.Ended"
+      ],
       "a": false
     },
     {
@@ -80,17 +116,13 @@
       "nt": "Player"
     },
     {
-      "n": "allowFaintSwitch",
-      "t": "false | true",
-      "iu": true,
-      "u": ["false", "true"],
-      "a": false
-    },
-    {
       "n": "lastKiller",
       "t": "undefined | Player",
       "iu": true,
-      "u": ["undefined", "Player"],
+      "u": [
+        "undefined",
+        "Player"
+      ],
       "a": false
     },
     {
@@ -105,7 +137,10 @@
       "n": "victor",
       "t": "undefined | Player",
       "iu": true,
-      "u": ["undefined", "Player"],
+      "u": [
+        "undefined",
+        "Player"
+      ],
       "a": false
     },
     {
@@ -118,6 +153,13 @@
     {
       "n": "skillMap",
       "t": "Map<string, SkillInstance>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "number",
       "iu": false,
       "u": [],
       "a": false
@@ -165,7 +207,13 @@
       "n": "type",
       "t": "Battle | Player | MarkInstance | Pet | SkillInstance",
       "iu": true,
-      "u": ["Battle", "Player", "MarkInstance", "Pet", "SkillInstance"],
+      "u": [
+        "Battle",
+        "Player",
+        "MarkInstance",
+        "Pet",
+        "SkillInstance"
+      ],
       "a": false
     }
   ],
@@ -203,7 +251,10 @@
       "n": "battle",
       "t": "undefined | Battle",
       "iu": true,
-      "u": ["undefined", "Battle"],
+      "u": [
+        "undefined",
+        "Battle"
+      ],
       "a": false
     },
     {
@@ -284,7 +335,12 @@
       "n": "category",
       "t": "Category.Physical | Category.Special | Category.Status | Category.Climax",
       "iu": true,
-      "u": ["Category.Physical", "Category.Special", "Category.Status", "Category.Climax"],
+      "u": [
+        "Category.Physical",
+        "Category.Special",
+        "Category.Status",
+        "Category.Climax"
+      ],
       "a": false
     },
     {
@@ -340,13 +396,6 @@
       "a": false
     },
     {
-      "n": "targetAccurancy",
-      "t": "number",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
       "n": "rage",
       "t": "number",
       "iu": false,
@@ -371,7 +420,22 @@
       "n": "ignoreShield",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "ignoreStageStrategy",
+      "t": "IgnoreStageStrategy.none | IgnoreStageStrategy.all | IgnoreStageStrategy.positive | IgnoreStageStrategy.negative",
+      "iu": true,
+      "u": [
+        "IgnoreStageStrategy.none",
+        "IgnoreStageStrategy.all",
+        "IgnoreStageStrategy.positive",
+        "IgnoreStageStrategy.negative"
+      ],
       "a": false
     },
     {
@@ -394,35 +458,50 @@
       "n": "multihit",
       "t": "number | [number, number]",
       "iu": true,
-      "u": ["number", "[number, number]"],
+      "u": [
+        "number",
+        "[number, number]"
+      ],
       "a": false
     },
     {
       "n": "available",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "actualTarget",
       "t": "undefined | Pet",
       "iu": true,
-      "u": ["undefined", "Pet"],
+      "u": [
+        "undefined",
+        "Pet"
+      ],
       "a": false
     },
     {
       "n": "hitResult",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "crit",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -434,9 +513,13 @@
     },
     {
       "n": "damageType",
-      "t": "DamageType.physical | DamageType.special | DamageType.effect",
+      "t": "DamageType.Physical | DamageType.Special | DamageType.Effect",
       "iu": true,
-      "u": ["DamageType.physical", "DamageType.special", "DamageType.effect"],
+      "u": [
+        "DamageType.Physical",
+        "DamageType.Special",
+        "DamageType.Effect"
+      ],
       "a": false
     },
     {
@@ -475,6 +558,16 @@
       "a": false
     },
     {
+      "n": "defeated",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
       "n": "parent",
       "t": "TurnContext",
       "iu": false,
@@ -499,7 +592,10 @@
       "n": "selectTarget",
       "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
       "iu": true,
-      "u": ["AttackTargetOpinion.self", "AttackTargetOpinion.opponent"],
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
       "a": false
     },
     {
@@ -529,7 +625,10 @@
       "n": "parent",
       "t": "Battle | TurnContext",
       "iu": true,
-      "u": ["Battle", "TurnContext"],
+      "u": [
+        "Battle",
+        "TurnContext"
+      ],
       "a": false
     },
     {
@@ -566,7 +665,10 @@
       "n": "available",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -587,7 +689,11 @@
       "n": "parent",
       "t": "TurnContext | UseSkillContext | EffectContext<EffectTrigger>",
       "iu": true,
-      "u": ["TurnContext", "UseSkillContext", "EffectContext<EffectTrigger>"],
+      "u": [
+        "TurnContext",
+        "UseSkillContext",
+        "EffectContext<EffectTrigger>"
+      ],
       "a": false
     },
     {
@@ -601,14 +707,25 @@
       "n": "reason",
       "t": "\"turn\" | \"damage\" | \"skill\" | \"skillHit\" | \"switch\" | \"effect\"",
       "iu": true,
-      "u": ["\"turn\"", "\"damage\"", "\"skill\"", "\"skillHit\"", "\"switch\"", "\"effect\""],
+      "u": [
+        "\"turn\"",
+        "\"damage\"",
+        "\"skill\"",
+        "\"skillHit\"",
+        "\"switch\"",
+        "\"effect\""
+      ],
       "a": false
     },
     {
       "n": "modifiedType",
       "t": "\"setting\" | \"add\" | \"reduce\"",
       "iu": true,
-      "u": ["\"setting\"", "\"add\"", "\"reduce\""],
+      "u": [
+        "\"setting\"",
+        "\"add\"",
+        "\"reduce\""
+      ],
       "a": false
     },
     {
@@ -622,7 +739,10 @@
       "n": "ignoreRageObtainEfficiency",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -652,7 +772,10 @@
       "n": "available",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -673,14 +796,21 @@
       "n": "parent",
       "t": "UseSkillContext | EffectContext<EffectTrigger>",
       "iu": true,
-      "u": ["UseSkillContext", "EffectContext<EffectTrigger>"],
+      "u": [
+        "UseSkillContext",
+        "EffectContext<EffectTrigger>"
+      ],
       "a": false
     },
     {
       "n": "source",
       "t": "MarkInstance | Pet | SkillInstance",
       "iu": true,
-      "u": ["MarkInstance", "Pet", "SkillInstance"],
+      "u": [
+        "MarkInstance",
+        "Pet",
+        "SkillInstance"
+      ],
       "a": false
     },
     {
@@ -699,16 +829,23 @@
     },
     {
       "n": "damageType",
-      "t": "DamageType.physical | DamageType.special | DamageType.effect",
+      "t": "DamageType.Physical | DamageType.Special | DamageType.Effect",
       "iu": true,
-      "u": ["DamageType.physical", "DamageType.special", "DamageType.effect"],
+      "u": [
+        "DamageType.Physical",
+        "DamageType.Special",
+        "DamageType.Effect"
+      ],
       "a": false
     },
     {
       "n": "crit",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -722,7 +859,10 @@
       "n": "ignoreShield",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -773,7 +913,10 @@
       "n": "available",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -794,7 +937,10 @@
       "n": "source",
       "t": "MarkInstance | SkillInstance",
       "iu": true,
-      "u": ["MarkInstance", "SkillInstance"],
+      "u": [
+        "MarkInstance",
+        "SkillInstance"
+      ],
       "a": false
     },
     {
@@ -815,7 +961,10 @@
       "n": "ingoreEffect",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -845,7 +994,10 @@
       "n": "available",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -873,21 +1025,30 @@
       "n": "stack",
       "t": "undefined | number",
       "iu": true,
-      "u": ["undefined", "number"],
+      "u": [
+        "undefined",
+        "number"
+      ],
       "a": false
     },
     {
       "n": "duration",
       "t": "undefined | number",
       "iu": true,
-      "u": ["undefined", "number"],
+      "u": [
+        "undefined",
+        "number"
+      ],
       "a": false
     },
     {
       "n": "config",
       "t": "undefined | Partial<MarkConfig>",
       "iu": true,
-      "u": ["undefined", "Partial<MarkConfig>"],
+      "u": [
+        "undefined",
+        "Partial<MarkConfig>"
+      ],
       "a": false
     }
   ],
@@ -910,14 +1071,22 @@
       "n": "available",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "parent",
       "t": "TurnContext | DamageContext | AddMarkContext | EffectContext<EffectTrigger>",
       "iu": true,
-      "u": ["TurnContext", "DamageContext", "AddMarkContext", "EffectContext<EffectTrigger>"],
+      "u": [
+        "TurnContext",
+        "DamageContext",
+        "AddMarkContext",
+        "EffectContext<EffectTrigger>"
+      ],
       "a": false
     },
     {
@@ -947,7 +1116,10 @@
       "n": "available",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -991,14 +1163,21 @@
       "n": "available",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "success",
       "t": "undefined | false | true",
       "iu": true,
-      "u": ["undefined", "false", "true"],
+      "u": [
+        "undefined",
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -1019,7 +1198,10 @@
       "n": "source",
       "t": "MarkInstance | SkillInstance",
       "iu": true,
-      "u": ["MarkInstance", "SkillInstance"],
+      "u": [
+        "MarkInstance",
+        "SkillInstance"
+      ],
       "a": false
     }
   ],
@@ -1088,6 +1270,13 @@
       "a": false
     },
     {
+      "n": "BeforeMultiHit",
+      "t": "UseSkillContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "BeforeHit",
       "t": "UseSkillContext",
       "iu": false,
@@ -1118,6 +1307,13 @@
     {
       "n": "OnDefeat",
       "t": "UseSkillContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnBeforeCalculateDamage",
+      "t": "DamageContext",
       "iu": false,
       "u": [],
       "a": false
@@ -1310,12 +1506,11 @@
   ],
   "EffectScheduler": [
     {
-      "n": "globalEffectQueue",
-      "t": "{ effect: Effect<EffectTrigger>; context: EffectContext<EffectTrigger>; }",
+      "n": "effectQueuesMap",
+      "t": "WeakMap<Context, { effect: Effect<EffectTrigger>; context: EffectContext<EffectTrigger>; }[]>",
       "iu": false,
       "u": [],
-      "a": true,
-      "nt": "{ effect: Effect<EffectTrigger>; context: EffectContext<EffectTrigger>; }"
+      "a": false
     }
   ],
   "Effect": [
@@ -1337,7 +1532,10 @@
       "n": "apply",
       "t": "(context: EffectContext<T>) => void | ((context: EffectContext<T>) => void)",
       "iu": true,
-      "u": ["(context: EffectContext<T>) => void", "((context: EffectContext<T>) => void)"],
+      "u": [
+        "(context: EffectContext<T>) => void",
+        "((context: EffectContext<T>) => void)"
+      ],
       "a": false
     },
     {
@@ -1351,14 +1549,20 @@
       "n": "condition",
       "t": "undefined | (context: EffectContext<T>) => boolean",
       "iu": true,
-      "u": ["undefined", "(context: EffectContext<T>) => boolean"],
+      "u": [
+        "undefined",
+        "(context: EffectContext<T>) => boolean"
+      ],
       "a": false
     },
     {
       "n": "consumesStacks",
       "t": "undefined | number",
       "iu": true,
-      "u": ["undefined", "number"],
+      "u": [
+        "undefined",
+        "number"
+      ],
       "a": false
     }
   ],
@@ -1368,7 +1572,14 @@
       "n": "type",
       "t": "null | Battle | Player | MarkInstance | Pet | SkillInstance",
       "iu": true,
-      "u": ["null", "Battle", "Player", "MarkInstance", "Pet", "SkillInstance"],
+      "u": [
+        "null",
+        "Battle",
+        "Player",
+        "MarkInstance",
+        "Pet",
+        "SkillInstance"
+      ],
       "a": false
     }
   ],
@@ -1377,7 +1588,12 @@
       "n": "id",
       "t": "baseMarkId | baseSkillId | speciesId | effectId",
       "iu": true,
-      "u": ["baseMarkId", "baseSkillId", "speciesId", "effectId"],
+      "u": [
+        "baseMarkId",
+        "baseSkillId",
+        "speciesId",
+        "effectId"
+      ],
       "a": false
     }
   ],
@@ -1386,7 +1602,11 @@
       "n": "id",
       "t": "markId | skillId | petId",
       "iu": true,
-      "u": ["markId", "skillId", "petId"],
+      "u": [
+        "markId",
+        "skillId",
+        "petId"
+      ],
       "a": false
     },
     {
@@ -1467,14 +1687,21 @@
       "n": "owner",
       "t": "null | Battle | Pet",
       "iu": true,
-      "u": ["null", "Battle", "Pet"],
+      "u": [
+        "null",
+        "Battle",
+        "Pet"
+      ],
       "a": false
     },
     {
       "n": "isActive",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -1532,7 +1759,10 @@
       "n": "isStackable",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     }
   ],
@@ -1570,7 +1800,10 @@
       "n": "owner",
       "t": "null | Pet",
       "iu": true,
-      "u": ["null", "Pet"],
+      "u": [
+        "null",
+        "Pet"
+      ],
       "a": false
     },
     {
@@ -1610,91 +1843,6 @@
       "a": false
     }
   ],
-  "MarkConfig": [
-    {
-      "n": "duration",
-      "t": "number",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "persistent",
-      "t": "false | true",
-      "iu": true,
-      "u": ["false", "true"],
-      "a": false
-    },
-    {
-      "n": "maxStacks",
-      "t": "number",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "stackable",
-      "t": "false | true",
-      "iu": true,
-      "u": ["false", "true"],
-      "a": false
-    },
-    {
-      "n": "stackStrategy",
-      "t": "StackStrategy.stack | StackStrategy.refresh | StackStrategy.extend | StackStrategy.max | StackStrategy.replace",
-      "iu": true,
-      "u": [
-        "StackStrategy.stack",
-        "StackStrategy.refresh",
-        "StackStrategy.extend",
-        "StackStrategy.max",
-        "StackStrategy.replace"
-      ],
-      "a": false
-    },
-    {
-      "n": "destroyable",
-      "t": "false | true",
-      "iu": true,
-      "u": ["false", "true"],
-      "a": false
-    },
-    {
-      "n": "isShield",
-      "t": "false | true",
-      "iu": true,
-      "u": ["false", "true"],
-      "a": false
-    },
-    {
-      "n": "keepOnSwitchOut",
-      "t": "false | true",
-      "iu": true,
-      "u": ["false", "true"],
-      "a": false
-    },
-    {
-      "n": "transferOnSwitch",
-      "t": "false | true",
-      "iu": true,
-      "u": ["false", "true"],
-      "a": false
-    },
-    {
-      "n": "inheritOnFaint",
-      "t": "false | true",
-      "iu": true,
-      "u": ["false", "true"],
-      "a": false
-    },
-    {
-      "n": "mutexGroup",
-      "t": "undefined | string | undefined",
-      "iu": true,
-      "u": ["undefined", "string", "undefined"],
-      "a": false
-    }
-  ],
   "IBaseMark": [],
   "MarkInstance": [
     {
@@ -1715,14 +1863,21 @@
       "n": "owner",
       "t": "null | Battle | Pet",
       "iu": true,
-      "u": ["null", "Battle", "Pet"],
+      "u": [
+        "null",
+        "Battle",
+        "Pet"
+      ],
       "a": false
     },
     {
       "n": "isActive",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -1780,7 +1935,10 @@
       "n": "isStackable",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     }
   ],
@@ -1801,6 +1959,13 @@
     },
     {
       "n": "baseAccuracy",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "baseRageObtainEfficiency",
       "t": "number",
       "iu": false,
       "u": [],
@@ -1848,28 +2013,30 @@
       "n": "isAlive",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
-      "n": "lastUseSkill",
-      "t": "null | SkillInstance",
+      "n": "lastSkill",
+      "t": "undefined | SkillInstance",
       "iu": true,
-      "u": ["null", "SkillInstance"],
-      "a": false
-    },
-    {
-      "n": "baseRageObtainEfficiency",
-      "t": "number",
-      "iu": false,
-      "u": [],
+      "u": [
+        "undefined",
+        "SkillInstance"
+      ],
       "a": false
     },
     {
       "n": "owner",
       "t": "null | Player",
       "iu": true,
-      "u": ["null", "Player"],
+      "u": [
+        "null",
+        "Player"
+      ],
       "a": false
     },
     {
@@ -1920,14 +2087,21 @@
       "n": "gender",
       "t": "Gender.NoGender | Gender.Male | Gender.Female",
       "iu": true,
-      "u": ["Gender.NoGender", "Gender.Male", "Gender.Female"],
+      "u": [
+        "Gender.NoGender",
+        "Gender.Male",
+        "Gender.Female"
+      ],
       "a": false
     },
     {
       "n": "appeared",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -2091,7 +2265,10 @@
       "n": "genderRatio",
       "t": "null | [number, number]",
       "iu": true,
-      "u": ["null", "[number, number]"],
+      "u": [
+        "null",
+        "[number, number]"
+      ],
       "a": false
     },
     {
@@ -2112,18 +2289,31 @@
       "n": "ability",
       "t": "undefined | BaseMark",
       "iu": true,
-      "u": ["undefined", "BaseMark"],
+      "u": [
+        "undefined",
+        "BaseMark"
+      ],
       "a": false
     },
     {
       "n": "emblem",
       "t": "undefined | BaseMark",
       "iu": true,
-      "u": ["undefined", "BaseMark"],
+      "u": [
+        "undefined",
+        "BaseMark"
+      ],
       "a": false
     }
   ],
   "Player": [
+    {
+      "n": "lastStateMessage",
+      "t": "BattleState",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
     {
       "n": "currentRage",
       "t": "number",
@@ -2135,21 +2325,33 @@
       "n": "battle",
       "t": "undefined | Battle",
       "iu": true,
-      "u": ["undefined", "Battle"],
+      "u": [
+        "undefined",
+        "Battle"
+      ],
       "a": false
     },
     {
       "n": "owner",
       "t": "undefined | Battle",
       "iu": true,
-      "u": ["undefined", "Battle"],
+      "u": [
+        "undefined",
+        "Battle"
+      ],
       "a": false
     },
     {
       "n": "selection",
       "t": "null | UseSkillSelection | SwitchPetSelection | DoNothingSelection | SurrenderSelection",
       "iu": true,
-      "u": ["null", "UseSkillSelection", "SwitchPetSelection", "DoNothingSelection", "SurrenderSelection"],
+      "u": [
+        "null",
+        "UseSkillSelection",
+        "SwitchPetSelection",
+        "DoNothingSelection",
+        "SurrenderSelection"
+      ],
       "a": false
     },
     {
@@ -2195,14 +2397,20 @@
       "n": "decisionPending",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "phaseChangeRegistered",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     }
   ],
@@ -2233,7 +2441,12 @@
       "n": "category",
       "t": "Category.Physical | Category.Special | Category.Status | Category.Climax",
       "iu": true,
-      "u": ["Category.Physical", "Category.Special", "Category.Status", "Category.Climax"],
+      "u": [
+        "Category.Physical",
+        "Category.Special",
+        "Category.Status",
+        "Category.Climax"
+      ],
       "a": false
     },
     {
@@ -2299,35 +2512,50 @@
       "n": "target",
       "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
       "iu": true,
-      "u": ["AttackTargetOpinion.self", "AttackTargetOpinion.opponent"],
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
       "a": false
     },
     {
       "n": "multihit",
       "t": "number | [number, number]",
       "iu": true,
-      "u": ["number", "[number, number]"],
+      "u": [
+        "number",
+        "[number, number]"
+      ],
       "a": false
     },
     {
       "n": "sureHit",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "sureCrit",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "ignoreShield",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -2356,7 +2584,10 @@
       "n": "owner",
       "t": "null | Pet",
       "iu": true,
-      "u": ["null", "Pet"],
+      "u": [
+        "null",
+        "Pet"
+      ],
       "a": false
     },
     {
@@ -2370,7 +2601,12 @@
       "n": "category",
       "t": "Category.Physical | Category.Special | Category.Status | Category.Climax",
       "iu": true,
-      "u": ["Category.Physical", "Category.Special", "Category.Status", "Category.Climax"],
+      "u": [
+        "Category.Physical",
+        "Category.Special",
+        "Category.Status",
+        "Category.Climax"
+      ],
       "a": false
     },
     {
@@ -2436,35 +2672,50 @@
       "n": "target",
       "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
       "iu": true,
-      "u": ["AttackTargetOpinion.self", "AttackTargetOpinion.opponent"],
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
       "a": false
     },
     {
       "n": "multihit",
       "t": "number | [number, number]",
       "iu": true,
-      "u": ["number", "[number, number]"],
+      "u": [
+        "number",
+        "[number, number]"
+      ],
       "a": false
     },
     {
       "n": "sureHit",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "sureCrit",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "ignoreShield",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -2487,7 +2738,10 @@
       "n": "appeared",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -2521,7 +2775,15 @@
       "n": "type",
       "t": "markId | skillId | petId | baseMarkId | baseSkillId | speciesId | effectId",
       "iu": true,
-      "u": ["markId", "skillId", "petId", "baseMarkId", "baseSkillId", "speciesId", "effectId"],
+      "u": [
+        "markId",
+        "skillId",
+        "petId",
+        "baseMarkId",
+        "baseSkillId",
+        "speciesId",
+        "effectId"
+      ],
       "a": false
     }
   ],
@@ -2530,7 +2792,12 @@
       "n": "type",
       "t": "baseMarkId | baseSkillId | speciesId | effectId",
       "iu": true,
-      "u": ["baseMarkId", "baseSkillId", "speciesId", "effectId"],
+      "u": [
+        "baseMarkId",
+        "baseSkillId",
+        "speciesId",
+        "effectId"
+      ],
       "a": false
     }
   ],
@@ -2539,7 +2806,11 @@
       "n": "type",
       "t": "markId | skillId | petId",
       "iu": true,
-      "u": ["markId", "skillId", "petId"],
+      "u": [
+        "markId",
+        "skillId",
+        "petId"
+      ],
       "a": false
     }
   ],
@@ -2590,7 +2861,7 @@
   "StatTypeOnBattle": [
     {
       "n": "type",
-      "t": "StatTypeWithoutHp.atk | StatTypeWithoutHp.def | StatTypeWithoutHp.spa | StatTypeWithoutHp.spd | StatTypeWithoutHp.spe | StatTypeOnlyBattle.accuracy | StatTypeOnlyBattle.evasion | StatTypeOnlyBattle.critRate | StatTypeOnlyBattle.ragePerTurn",
+      "t": "StatTypeWithoutHp.atk | StatTypeWithoutHp.def | StatTypeWithoutHp.spa | StatTypeWithoutHp.spd | StatTypeWithoutHp.spe | StatTypeOnlyBattle.accuracy | StatTypeOnlyBattle.evasion | StatTypeOnlyBattle.critRate | StatTypeOnlyBattle.ragePerTurn | StatTypeOnlyBattle.weight | StatTypeOnlyBattle.height",
       "iu": true,
       "u": [
         "StatTypeWithoutHp.atk",
@@ -2601,7 +2872,9 @@
         "StatTypeOnlyBattle.accuracy",
         "StatTypeOnlyBattle.evasion",
         "StatTypeOnlyBattle.critRate",
-        "StatTypeOnlyBattle.ragePerTurn"
+        "StatTypeOnlyBattle.ragePerTurn",
+        "StatTypeOnlyBattle.weight",
+        "StatTypeOnlyBattle.height"
       ],
       "a": false
     }
@@ -2706,6 +2979,20 @@
       "iu": false,
       "u": [],
       "a": false
+    },
+    {
+      "n": "weight",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "height",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
     }
   ],
   "StatBuffOnBattle": [
@@ -2767,6 +3054,20 @@
     },
     {
       "n": "ragePerTurn",
+      "t": "BuffNumber",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "weight",
+      "t": "BuffNumber",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "height",
       "t": "BuffNumber",
       "iu": false,
       "u": [],
@@ -3070,29 +3371,141 @@
       "nt": "(index: number, value: number) => number"
     },
     {
-      "n": "__@iterator@157",
+      "n": "__@iterator@163",
       "t": "() => ArrayIterator<number>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
-      "n": "__@unscopables@763",
+      "n": "__@unscopables@774",
       "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
       "iu": false,
       "u": [],
       "a": false
     }
   ],
+  "MarkConfig": [
+    {
+      "n": "duration",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "persistent",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "maxStacks",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stackable",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "stackStrategy",
+      "t": "StackStrategy.stack | StackStrategy.refresh | StackStrategy.extend | StackStrategy.max | StackStrategy.replace | StackStrategy.none | StackStrategy.remove",
+      "iu": true,
+      "u": [
+        "StackStrategy.stack",
+        "StackStrategy.refresh",
+        "StackStrategy.extend",
+        "StackStrategy.max",
+        "StackStrategy.replace",
+        "StackStrategy.none",
+        "StackStrategy.remove"
+      ],
+      "a": false
+    },
+    {
+      "n": "destroyable",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "isShield",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "keepOnSwitchOut",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "transferOnSwitch",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "inheritOnFaint",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "mutexGroup",
+      "t": "undefined | string | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "string",
+        "undefined"
+      ],
+      "a": false
+    }
+  ],
   "BattleMessage": [
     {
       "n": "type",
-      "t": "BattleStateMessage | BattleStartMessage | TurnStartMessage | BattleEndMessage | PetSwitchMessage | PetDefeatedMessage | PetReviveMessage | StatChangeMessage | RageChangeMessage | HpChangeMessage | SkillUseMessage | SkillUseFailMessage | SkillMissMessage | DamageMessage | DamageFailMessage | HealMessage | HealFailMessage | MarkApplyMessage | MarkExpireMessage | MarkUpdateMessage | MarkDestoryMessage | EffectApplyMessage | TurnActionMessage | ForcedSwitchMessage | FaintSwitchMessage | InvalidActionMessage | InfoMessage | ErrorMessage",
+      "t": "BattleStartMessage | TurnStartMessage | TurnEndMessage | BattleEndMessage | PetSwitchMessage | PetDefeatedMessage | PetReviveMessage | StatChangeMessage | RageChangeMessage | HpChangeMessage | SkillUseMessage | SkillUseFailMessage | SkillMissMessage | SkillUseEndMessage | DamageMessage | DamageFailMessage | HealMessage | HealFailMessage | MarkApplyMessage | MarkExpireMessage | MarkUpdateMessage | MarkDestoryMessage | EffectApplyMessage | TurnActionMessage | ForcedSwitchMessage | FaintSwitchMessage | InvalidActionMessage | InfoMessage | ErrorMessage",
       "iu": true,
       "u": [
-        "BattleStateMessage",
         "BattleStartMessage",
         "TurnStartMessage",
+        "TurnEndMessage",
         "BattleEndMessage",
         "PetSwitchMessage",
         "PetDefeatedMessage",
@@ -3103,6 +3516,7 @@
         "SkillUseMessage",
         "SkillUseFailMessage",
         "SkillMissMessage",
+        "SkillUseEndMessage",
         "DamageMessage",
         "DamageFailMessage",
         "HealMessage",
@@ -3122,29 +3536,6 @@
       "a": false
     }
   ],
-  "BattleStateMessage": [
-    {
-      "n": "type",
-      "t": "BattleMessageType.BattleState",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "sequenceId",
-      "t": "undefined | number | undefined",
-      "iu": true,
-      "u": ["undefined", "number", "undefined"],
-      "a": false
-    },
-    {
-      "n": "data",
-      "t": "BattleState",
-      "iu": false,
-      "u": [],
-      "a": false
-    }
-  ],
   "BattleStartMessage": [
     {
       "n": "type",
@@ -3157,7 +3548,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3165,6 +3560,22 @@
       "t": "{ playerA: PlayerMessage, playerB: PlayerMessage }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3180,14 +3591,77 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
       "n": "data",
-      "t": "round",
+      "t": "turn",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
+      "a": false
+    }
+  ],
+  "TurnEndMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.TurnEnd",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "turn",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3203,7 +3677,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3211,6 +3689,22 @@
       "t": "{ winner: playerId | null, reason: \"all_pet_fainted\" | \"surrender\" }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3226,7 +3720,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3234,6 +3732,22 @@
       "t": "{ player: playerId, fromPet: petId, toPet: petId, currentHp: number }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3249,7 +3763,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3257,6 +3775,22 @@
       "t": "{ pet: petId, killer?: petId | undefined }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3272,7 +3806,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3280,6 +3818,22 @@
       "t": "{ pet: petId, revivedBy: petId }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3295,7 +3849,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3303,6 +3861,22 @@
       "t": "{ pet: petId, stat: StatTypeOnBattle, stage: number, reason: string }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3318,7 +3892,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3326,6 +3904,22 @@
       "t": "{ player: playerId, pet: petId, before: number, after: number, reason: \"turn\" | \"damage\" | \"skill\" | \"skillHit\" | \"switch\" | \"effect\" }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3341,7 +3935,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3349,6 +3947,22 @@
       "t": "{ pet: petId, before: number, after: number, maxHp: number, reason: \"damage\" | \"heal\" | \"drain\" | \"revive\" }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3364,14 +3978,34 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
       "n": "data",
-      "t": "{ user: petId, target: AttackTargetOpinion, skill: skillId, rage: number }",
+      "t": "{ user: petId, target: AttackTargetOpinion, skill: skillId, baseSkill: baseSkillId, rage: number }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3387,7 +4021,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3395,6 +4033,22 @@
       "t": "{ user: petId, skill: skillId, reason: \"no_rage\" | \"invalid_target\" | \"faint\" | \"disabled\" }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3410,7 +4064,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3418,6 +4076,65 @@
       "t": "{ user: petId, target: petId, skill: skillId, reason: \"accuracy\" | \"dodge\" | \"immune\" }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
+      "a": false
+    }
+  ],
+  "SkillUseEndMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.SkillUseEnd",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "user",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3433,14 +4150,34 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
       "n": "data",
-      "t": "{ maxHp: number, currentHp: number, source: markId | skillId | petId, target: petId, damage: number, isCrit: boolean, effectiveness: number, damageType: \"effect\" | \"physical\" | \"special\" }",
+      "t": "{ maxHp: number, currentHp: number, source: markId | skillId | petId, target: petId, damage: number, isCrit: boolean, effectiveness: number, damageType: DamageType }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3456,7 +4193,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3464,6 +4205,22 @@
       "t": "{ source: markId | skillId | petId, target: petId, reason: \"disabled\" }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3479,7 +4236,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3487,6 +4248,22 @@
       "t": "{ target: petId, amount: number, source: \"effect\" | \"item\", healer?: string | undefined }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3502,7 +4279,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3510,6 +4291,22 @@
       "t": "{ target: petId, reason: \"disabled\" }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3525,7 +4322,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3533,6 +4334,22 @@
       "t": "{ baseMarkId: baseMarkId, target: petId | \"battle\", mark: MarkMessage }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3548,7 +4365,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3556,6 +4377,22 @@
       "t": "{ mark: markId, target: petId | \"battle\" }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3571,7 +4408,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3579,6 +4420,22 @@
       "t": "{ mark: markId, target: petId | \"battle\" }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3594,7 +4451,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3602,6 +4463,22 @@
       "t": "{ mark: MarkMessage, target: petId | \"battle\" }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3617,7 +4494,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3625,6 +4506,22 @@
       "t": "{ source: markId | skillId, effect: effectId }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3640,7 +4537,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3648,6 +4549,22 @@
       "t": "player",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3663,7 +4580,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3671,6 +4592,22 @@
       "t": "player",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3686,7 +4623,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3694,6 +4635,22 @@
       "t": "player",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3709,7 +4666,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3717,6 +4678,22 @@
       "t": "{ player: playerId, action: string, reason: \"no_rage\" | \"invalid_target\" | \"dead_pet\" | \"invalid_action\" }",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3732,7 +4709,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3740,6 +4721,22 @@
       "t": "message",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
       "a": false
     }
   ],
@@ -3755,7 +4752,11 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
       "a": false
     },
     {
@@ -3764,6 +4765,22 @@
       "iu": false,
       "u": [],
       "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
+      "a": false
     }
   ],
   "SkillMessage": [
@@ -3771,7 +4788,10 @@
       "n": "isUnknown",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -3792,7 +4812,12 @@
       "n": "category",
       "t": "Category.Physical | Category.Special | Category.Status | Category.Climax",
       "iu": true,
-      "u": ["Category.Physical", "Category.Special", "Category.Status", "Category.Climax"],
+      "u": [
+        "Category.Physical",
+        "Category.Special",
+        "Category.Status",
+        "Category.Climax"
+      ],
       "a": false
     },
     {
@@ -3858,21 +4883,30 @@
       "n": "target",
       "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
       "iu": true,
-      "u": ["AttackTargetOpinion.self", "AttackTargetOpinion.opponent"],
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
       "a": false
     },
     {
       "n": "multihit",
       "t": "number | [number, number]",
       "iu": true,
-      "u": ["number", "[number, number]"],
+      "u": [
+        "number",
+        "[number, number]"
+      ],
       "a": false
     },
     {
       "n": "sureHit",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -3889,7 +4923,10 @@
       "n": "isUnknown",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -3969,14 +5006,20 @@
       "n": "skills",
       "t": "undefined | SkillMessage",
       "iu": true,
-      "u": ["undefined", "SkillMessage"],
+      "u": [
+        "undefined",
+        "SkillMessage"
+      ],
       "a": false
     },
     {
       "n": "stats",
       "t": "undefined | StatOnBattle",
       "iu": true,
-      "u": ["undefined", "StatOnBattle"],
+      "u": [
+        "undefined",
+        "StatOnBattle"
+      ],
       "a": false
     },
     {
@@ -4021,7 +5064,17 @@
       "n": "isActive",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "config",
+      "t": "MarkConfig",
+      "iu": false,
+      "u": [],
       "a": false
     }
   ],
@@ -4049,7 +5102,7 @@
     },
     {
       "n": "activePet",
-      "t": "PetMessage",
+      "t": "petId",
       "iu": false,
       "u": [],
       "a": false
@@ -4058,7 +5111,10 @@
       "n": "team",
       "t": "undefined | PetMessage",
       "iu": true,
-      "u": ["undefined", "PetMessage"],
+      "u": [
+        "undefined",
+        "PetMessage"
+      ],
       "a": false
     },
     {
@@ -4074,14 +5130,23 @@
       "n": "status",
       "t": "BattleStatus.Unstarted | BattleStatus.OnBattle | BattleStatus.Ended",
       "iu": true,
-      "u": ["BattleStatus.Unstarted", "BattleStatus.OnBattle", "BattleStatus.Ended"],
+      "u": [
+        "BattleStatus.Unstarted",
+        "BattleStatus.OnBattle",
+        "BattleStatus.Ended"
+      ],
       "a": false
     },
     {
       "n": "currentPhase",
       "t": "BattlePhase.SwitchPhase | BattlePhase.SelectionPhase | BattlePhase.ExecutionPhase | BattlePhase.Ended",
       "iu": true,
-      "u": ["BattlePhase.SwitchPhase", "BattlePhase.SelectionPhase", "BattlePhase.ExecutionPhase", "BattlePhase.Ended"],
+      "u": [
+        "BattlePhase.SwitchPhase",
+        "BattlePhase.SelectionPhase",
+        "BattlePhase.ExecutionPhase",
+        "BattlePhase.Ended"
+      ],
       "a": false
     },
     {
@@ -4120,7 +5185,10 @@
       "n": "sequenceId",
       "t": "undefined | number",
       "iu": true,
-      "u": ["undefined", "number"],
+      "u": [
+        "undefined",
+        "number"
+      ],
       "a": false
     },
     {
@@ -4129,16 +5197,25 @@
       "iu": false,
       "u": [],
       "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
+      "a": false
     }
   ],
   "BattleMessageData": [
-    {
-      "n": "[BattleMessageType.BattleState]",
-      "t": "BattleState",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
     {
       "n": "[BattleMessageType.BattleStart]",
       "t": "{ playerA: PlayerMessage, playerB: PlayerMessage }",
@@ -4148,7 +5225,14 @@
     },
     {
       "n": "[BattleMessageType.TurnStart]",
-      "t": "round",
+      "t": "turn",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "[BattleMessageType.TurnEnd]",
+      "t": "turn",
       "iu": false,
       "u": [],
       "a": false
@@ -4204,7 +5288,7 @@
     },
     {
       "n": "[BattleMessageType.SkillUse]",
-      "t": "{ user: petId, target: AttackTargetOpinion, skill: skillId, rage: number }",
+      "t": "{ user: petId, target: AttackTargetOpinion, skill: skillId, baseSkill: baseSkillId, rage: number }",
       "iu": false,
       "u": [],
       "a": false
@@ -4225,14 +5309,14 @@
     },
     {
       "n": "[BattleMessageType.SkillUseEnd]",
-      "t": "{  }",
+      "t": "user",
       "iu": false,
       "u": [],
       "a": false
     },
     {
       "n": "[BattleMessageType.Damage]",
-      "t": "{ maxHp: number, currentHp: number, source: markId | skillId | petId, target: petId, damage: number, isCrit: boolean, effectiveness: number, damageType: \"effect\" | \"physical\" | \"special\" }",
+      "t": "{ maxHp: number, currentHp: number, source: markId | skillId | petId, target: petId, damage: number, isCrit: boolean, effectiveness: number, damageType: DamageType }",
       "iu": false,
       "u": [],
       "a": false
@@ -4348,7 +5432,12 @@
       "n": "type",
       "t": "UseSkillSelection | SwitchPetSelection | DoNothingSelection | SurrenderSelection",
       "iu": true,
-      "u": ["UseSkillSelection", "SwitchPetSelection", "DoNothingSelection", "SurrenderSelection"],
+      "u": [
+        "UseSkillSelection",
+        "SwitchPetSelection",
+        "DoNothingSelection",
+        "SurrenderSelection"
+      ],
       "a": false
     }
   ],
@@ -4395,7 +5484,10 @@
       "n": "target",
       "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
       "iu": true,
-      "u": ["AttackTargetOpinion.self", "AttackTargetOpinion.opponent"],
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
       "a": false
     }
   ],

@@ -1727,6 +1727,48 @@
                       "value"
                     ],
                     "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "addAccuracy"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "setAccuracy"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
+                    "additionalProperties": false
                   }
                 ]
               },

@@ -446,6 +446,16 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       target: selectorDSLSchema,
       value: valueSchema,
     }),
+    z.object({
+      type: z.literal('addAccuracy'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('setAccuracy'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
   ]),
 )
 

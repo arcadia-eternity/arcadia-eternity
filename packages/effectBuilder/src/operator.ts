@@ -455,6 +455,26 @@ export const Operators = {
       })
     }
   },
+
+  addAccuracy: (value: ValueSource<number>): Operator<UseSkillContext> => {
+    return (context, contexts) => {
+      const _value = GetValueFromSource(context, value)
+      if (_value.length === 0) return
+      contexts.forEach(ctx => {
+        ctx.addAccuracy(_value[0])
+      })
+    }
+  },
+
+  setAccuracy: (value: ValueSource<number>): Operator<UseSkillContext> => {
+    return (context, contexts) => {
+      const _value = GetValueFromSource(context, value)
+      if (_value.length === 0) return
+      contexts.forEach(ctx => {
+        ctx.setAccuracy(_value[0])
+      })
+    }
+  },
 }
 
 export function GetValueFromSource<T extends SelectorOpinion>(

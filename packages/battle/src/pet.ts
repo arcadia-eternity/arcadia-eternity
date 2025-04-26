@@ -49,13 +49,13 @@ export interface Species extends Prototype {
 // 精灵类
 export class Pet implements OwnedEntity, MarkOwner, Instance {
   public currentHp: number
-  public baseCritRate: number = 7 // 暴击率默认为7%
-  public baseAccuracy: number = 100 // 命中率默认为100%
+  public readonly baseCritRate: number = 7 // 暴击率默认为7%
+  public readonly baseAccuracy: number = 100 // 命中率默认为100%
+  public readonly baseRageObtainEfficiency: number = 1
   public statStage: StatStage = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 } //能力等级
   public element: Element
   public isAlive: boolean = true
-  public lastUseSkill: SkillInstance | null = null
-  public baseRageObtainEfficiency: number = 1
+  public lastSkill?: SkillInstance
   public owner: Player | null
   public marks: MarkInstance[] = []
   public readonly skills: SkillInstance[]
@@ -236,16 +236,32 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
 
   private calculateStatOnlyBattle(type: StatTypeOnBattle): number {
     let base: number
-    if (type === 'accuracy') {
-      base = this.baseAccuracy
-    } else if (type === 'critRate') {
-      base = this.baseCritRate
-    } else if (type === 'evasion') {
-      base = 0
-    } else if (type === 'ragePerTurn') {
-      base = RAGE_PER_TURN
-    } else {
-      return this.calculateStatWithoutHp(type)
+    switch (type) {
+      case 'accuracy':
+        base = this.baseAccuracy
+        break
+      case 'critRate':
+        base = this.baseCritRate
+        break
+      case 'evasion':
+        base = 0
+        break
+      case 'ragePerTurn':
+        base = RAGE_PER_TURN
+        break
+      case StatTypeWithoutHp.atk:
+      case StatTypeWithoutHp.def:
+      case StatTypeWithoutHp.spa:
+      case StatTypeWithoutHp.spd:
+      case StatTypeWithoutHp.spe:
+        base = this.calculateStatWithoutHp(type)
+        break
+      case StatTypeOnlyBattle.weight:
+      case StatTypeOnlyBattle.height:
+        base = this[type]
+        break
+      default:
+        throw new Error(`Invalid StatType: ${type}`)
     }
     return base
   }
@@ -273,6 +289,8 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     critRate: 7,
     evasion: 0,
     ragePerTurn: 15,
+    weight: 0,
+    height: 0,
   }
 
   updateStat() {
@@ -286,6 +304,8 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       critRate: this.calculateStat(StatTypeOnlyBattle.critRate),
       evasion: this.calculateStat(StatTypeOnlyBattle.evasion),
       ragePerTurn: this.calculateStat(StatTypeOnlyBattle.ragePerTurn),
+      weight: this.calculateStat(StatTypeOnlyBattle.weight),
+      height: this.calculateStat(StatTypeOnlyBattle.height),
     }
     this.owner?.battle?.applyEffects(
       new UpdateStatContext(this.owner.battle, stat, this),

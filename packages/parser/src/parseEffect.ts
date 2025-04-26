@@ -346,6 +346,10 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseSetconfig(effectId, dsl)
     case 'setIgnoreStageStrategy':
       return parseSetIgnoreStageStrategy(effectId, dsl)
+    case 'addAccuracy':
+      return parseAddAccuracy(effectId, dsl)
+    case 'setAccuracy':
+      return parseSetAccuracy(effectId, dsl)
   }
 }
 
@@ -641,6 +645,18 @@ function parseSetconfig(effectId: string, dsl: Extract<OperatorDSL, { type: 'set
 function parseSetIgnoreStageStrategy(effectId: string, dsl: Extract<OperatorDSL, { type: 'setIgnoreStageStrategy' }>) {
   return parseSelector<UseSkillContext>(effectId, dsl.target).apply(
     Operators.setIgnoreStageStrategy(parseValue(effectId, dsl.value) as ValueSource<IgnoreStageStrategy>),
+  )
+}
+
+function parseAddAccuracy(effectId: string, dsl: Extract<OperatorDSL, { type: 'addAccuracy' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(
+    Operators.addAccuracy(parseValue(effectId, dsl.value) as ValueSource<number>),
+  )
+}
+
+function parseSetAccuracy(effectId: string, dsl: Extract<OperatorDSL, { type: 'setAccuracy' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(
+    Operators.setAccuracy(parseValue(effectId, dsl.value) as ValueSource<number>),
   )
 }
 
