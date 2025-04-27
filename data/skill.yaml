@@ -1085,7 +1085,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_exin_50
+    - effect_skill_add_mark_exin_foe_50
 - id: skill_tanxingzhifang
   element: Normal
   category: Status
