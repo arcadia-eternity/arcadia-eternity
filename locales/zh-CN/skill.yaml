@@ -246,3 +246,54 @@ skill_duhua:
 skill_qianghuachongji:
   name: 强化冲击
   description: 【70】连续使用命中率增加25%
+skill_chongfeng:
+  name: 冲锋
+  description: 5%弱化对手物攻1级
+skill_zhongji:
+  name: 重击
+  description: 5%弱化对手物防1级
+skill_bianfei:
+  name: 变肥
+  description: 使自身获得1层<font color=#4CE8F7>增重</font>
+skill_tizhongyapo:
+  name: 体重压迫
+  description: 体重＞对手时威力2倍
+skill_yinghuazhifang:
+  name: 硬化脂肪
+  description: 强化自身物防1级
+skill_zhifanghudun:
+  name: 脂肪护盾
+  description: 使自身获得<font color=#4CE8F7>脂肪护盾</font>
+skill_qilingruoxiao:
+  name: 欺凌弱小
+  description: 等级＞对手时威力2倍
+skill_konghe:
+  name: 恐吓
+  description: 【25】使对手<font color=#EC6002>害怕</font> 等级＞对手时命中率增加50%
+skill_weixiaguangbo:
+  name: 威吓光波
+  description: 10%使对手<font color=#EC6002>害怕</font> 等级＞对手时效果4倍
+skill_tuidao:
+  name: 推倒
+  description: 附加自身总体重值的固伤
+skill_quanliyiji:
+  name: 全力一击
+  description: 【85】10%强化自身物攻1级
+skill_tizhongbaozhang:
+  name: 体重暴涨
+  description: 使自身获得2层<font color=#4CE8F7>增重</font>
+skill_chaozhongliangongji:
+  name: 超重量攻击
+  description: <font color=#93E312>必中</font> 10%使对手<font color=#EC6002>瘫痪</font>
+skill_tizhongzhishang:
+  name: 体重至上
+  description: 体重＞99时威力2倍
+skill_zhifangranshao:
+  name: 脂肪燃烧
+  description: 使每层增重转化成1回合75点<font color=#C702EC>伤害增加</font>
+skill_zhifangzhengqi:
+  name: 脂肪蒸汽
+  description: 【85】50%使对手<font color=#EC6002>恶心</font>
+skill_tanxingzhifang:
+  name: 弹性脂肪
+  description: 使自身获得<font color=#4CE8F7>弹性脂肪</font>

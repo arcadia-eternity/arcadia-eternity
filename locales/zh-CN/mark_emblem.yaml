@@ -13,3 +13,6 @@ mark_emblem_meihuo:
 mark_emblem_kangdu:
   name: 抗毒
   description: 减少1回合中毒持续时间
+mark_emblem_zhongliang:
+  name: 重量
+  description: 体重增加10KG

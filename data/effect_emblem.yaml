@@ -102,3 +102,12 @@
     type: setMarkDuration
     target: addMarkContext
     value: 2
+- id: effect_emblem_increase_weight_10kg
+  trigger: OnUpdateStat
+  priority: 1
+  apply:
+    type: modifyStat
+    target: self
+    statType: weight
+    delta: 10
+    percent: 0

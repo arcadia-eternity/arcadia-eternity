@@ -20,7 +20,13 @@ export type ConfigValueSource<T> = {
   defaultValue: T
 }
 
-export type ValueSource<T> = T | TargetSelector<T> | ChainableSelector<T> | Array<ValueSource<T>> | ConfigValueSource<T>
+export type ValueSource<T> =
+  | T
+  | TargetSelector<T>
+  | ChainableSelector<T>
+  | Array<ValueSource<T>>
+  | ConfigValueSource<T>
+  | ConditionalValueSource<T>
 
 export type WidenLiteral<T> = T extends string
   ? string
@@ -90,4 +96,10 @@ export class EffectBuilder<T extends EffectTrigger> {
   build(): Effect<T> {
     return new Effect(this.id, this.trigger, this.apply, this.priority, this.condition, this.consumesStacks)
   }
+}
+
+export type ConditionalValueSource<T> = {
+  condition: Condition
+  trueValue: ValueSource<T>
+  falseValue?: ValueSource<T>
 }

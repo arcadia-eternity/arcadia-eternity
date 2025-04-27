@@ -70,6 +70,15 @@ export const dynamicValueSchema: z.ZodSchema<DynamicValue> = z.lazy(() =>
   }),
 )
 
+const conditionalValueSchema = z.lazy(() =>
+  z.object({
+    type: z.literal('conditional'),
+    condition: conditionDSLSchema,
+    trueValue: valueSchema,
+    falseValue: valueSchema.optional(),
+  }),
+)
+
 export const valueSchema: z.ZodSchema<Value> = z.union([
   rawNumberValueSchema,
   z.number(),
@@ -80,6 +89,7 @@ export const valueSchema: z.ZodSchema<Value> = z.union([
   rawBaseMarkIdValueSchema,
   rawBaseSkillIdValueSchema,
   dynamicValueSchema,
+  conditionalValueSchema,
 ])
 
 export const extractorSchema: z.ZodSchema<ExtractorDSL> = z.lazy(() =>
@@ -173,6 +183,7 @@ export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
       type: z.literal('configGet'),
       key: valueSchema,
     }),
+    whenSelectorStepSchema,
   ]),
 )
 
@@ -183,7 +194,17 @@ export const selectorDSLSchema: z.ZodSchema<SelectorDSL> = z.lazy(() =>
       base: baseSelectorSchema,
       chain: z.array(selectorChainSchema).optional(),
     }),
+    conditionalSelectorSchema,
   ]),
+)
+
+const whenSelectorStepSchema = z.lazy(() =>
+  z.object({
+    type: z.literal('when'),
+    condition: conditionDSLSchema,
+    trueValue: z.lazy(() => valueSchema),
+    falseValue: z.lazy(() => valueSchema).optional(),
+  }),
 )
 
 export const evaluatorDSLSchema: z.ZodSchema<EvaluatorDSL> = z.lazy(() =>
@@ -232,6 +253,7 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
     z.object({
       type: z.literal('TODO'),
     }),
+    conditionalOperatorSchema,
     z.object({
       type: z.literal('dealDamage'),
       target: selectorDSLSchema,
@@ -457,6 +479,23 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       value: valueSchema,
     }),
   ]),
+)
+
+const conditionalSelectorSchema = z.lazy(() =>
+  z.object({
+    condition: conditionDSLSchema,
+    trueSelector: z.lazy(() => selectorDSLSchema),
+    falseSelector: z.lazy(() => selectorDSLSchema).optional(),
+  }),
+)
+
+const conditionalOperatorSchema = z.lazy(() =>
+  z.object({
+    type: z.literal('conditional'),
+    condition: conditionDSLSchema,
+    trueOperator: z.lazy(() => operatorDSLSchema),
+    falseOperator: z.lazy(() => operatorDSLSchema).optional(),
+  }),
 )
 
 export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>

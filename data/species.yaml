@@ -2,7 +2,6 @@
 # yaml-language-server: $schema=../packages/schema/schema/species.schema.json
 # @metaType species
 # @version 1.0.0
-
 - id: pet_dilan
   num: 1
   element: Water
@@ -798,3 +797,120 @@
     - mark_ability_yangguang
   emblem:
     - mark_emblem_kangdu
+- id: pet_buer
+  num: 16
+  element: Normal
+  baseStats:
+    hp: 90
+    atk: 81
+    spa: 67
+    def: 76
+    spd: 60
+    spe: 56
+  genderRatio:
+    - 0
+    - 10
+  heightRange:
+    - 65
+    - 70
+  weightRange:
+    - 33
+    - 38
+  learnable_skills:
+    - skill_id: skill_chongfeng
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 4
+      hidden: false
+    - skill_id: skill_bianfei
+      level: 8
+      hidden: false
+    - skill_id: skill_tizhongyapo
+      level: 11
+      hidden: false
+    - skill_id: skill_yinghuazhifang
+      level: 14
+      hidden: false
+    - skill_id: skill_zhifanghudun
+      level: 17
+      hidden: false
+  ability:
+    - mark_ability_zhongya
+  emblem:
+    - mark_emblem_zhongliang
+- id: pet_bulutuo
+  num: 17
+  element: Normal
+  baseStats:
+    hp: 180
+    atk: 131
+    spa: 112
+    def: 126
+    spd: 105
+    spe: 96
+  genderRatio:
+    - 0
+    - 10
+  heightRange:
+    - 134
+    - 139
+  weightRange:
+    - 95
+    - 100
+  learnable_skills:
+    - skill_id: skill_chongfeng
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 4
+      hidden: false
+    - skill_id: skill_bianfei
+      level: 8
+      hidden: false
+    - skill_id: skill_tizhongyapo
+      level: 11
+      hidden: false
+    - skill_id: skill_yinghuazhifang
+      level: 14
+      hidden: false
+    - skill_id: skill_zhifanghudun
+      level: 17
+      hidden: false
+    - skill_id: skill_qilingruoxiao
+      level: 20
+      hidden: false
+    - skill_id: skill_konghe
+      level: 25
+      hidden: false
+    - skill_id: skill_weixiaoguangbo
+      level: 30
+      hidden: false
+    - skill_id: skill_tuidao
+      level: 35
+      hidden: false
+    - skill_id: skill_quanliyiji
+      level: 40
+      hidden: false
+    - skill_id: skill_tizhongbaozhang
+      level: 46
+      hidden: false
+    - skill_id: skill_chaozhongliangongji
+      level: 60
+      hidden: false
+    - skill_id: skill_tizhongzhishang
+      level: 65
+      hidden: true
+    - skill_id: skill_zhifangranshao
+      level: 70
+      hidden: true
+    - skill_id: skill_zhifangzhengqi
+      level: 75
+      hidden: true
+    - skill_id: skill_tanxingzhifang
+      level: 80
+      hidden: true
+  ability:
+    - mark_ability_zhongya
+  emblem:
+    - mark_emblem_zhongliang

@@ -343,7 +343,7 @@ export class DamageContext extends Context {
     // 应用百分比修正（叠加计算）
     const percentModifier = 1 + this.modified[0] / 100
     const deltaModifier = this.modified[1]
-    let intermediateDamage = (this.baseDamage * percentModifier + deltaModifier) * this.randomFactor
+    let intermediateDamage = this.baseDamage * this.randomFactor * percentModifier + deltaModifier
 
     // 应用伤害阈值（先处理最小值再处理最大值）
     // 最小值阈值处理

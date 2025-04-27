@@ -108,7 +108,6 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       emblemMark.setOwner(this)
       this.marks.push(emblemMark)
     }
-    this.updateStat()
   }
 
   get currentRage() {
@@ -257,8 +256,10 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
         base = this.calculateStatWithoutHp(type)
         break
       case StatTypeOnlyBattle.weight:
+        base = this.weight
+        break
       case StatTypeOnlyBattle.height:
-        base = this[type]
+        base = this.height
         break
       default:
         throw new Error(`Invalid StatType: ${type}`)
@@ -307,12 +308,11 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       weight: this.calculateStat(StatTypeOnlyBattle.weight),
       height: this.calculateStat(StatTypeOnlyBattle.height),
     }
-    this.owner?.battle?.applyEffects(
-      new UpdateStatContext(this.owner.battle, stat, this),
-      EffectTrigger.OnUpdateStat,
-      ...this.marks,
-    )
     this.stat = stat
+
+    const context = new UpdateStatContext(this.owner?.battle!, this.stat, this)
+
+    this.owner?.battle?.applyEffects(context, EffectTrigger.OnUpdateStat, ...this.marks)
   }
 
   get actualStat(): StatOnBattle {

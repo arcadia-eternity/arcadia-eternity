@@ -28,6 +28,9 @@
   effect:
     - effect_emblem_set_zhongdu_duration_2
 - id: mark_emblem_zhongliang
+  config: *emblem_config
+  effect:
+    - effect_emblem_increase_weight_10kg
 - id: mark_emblem_shupi
 - id: mark_emblem_shiming
 - id: mark_emblem_duyao

@@ -43,3 +43,9 @@ pet_daidaokui:
 pet_xiaoxiaokui_2:
   name: 笑笑葵
   description: 笑笑葵能用爽朗的笑声改变天气 将周围变成明媚的晴天
+pet_buer:
+  name: 布尔
+  description: 布尔的脂肪是它最有利的攻击武器
+pet_bulutuo:
+  name: 布鲁托
+  description: 布鲁托最喜欢坐在小树根的脑袋上 享受小精灵们的进贡

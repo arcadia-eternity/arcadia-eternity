@@ -13,3 +13,6 @@ mark_ability_rumeng:
 mark_ability_yangguang:
   name: 阳光
   description: 晴天时每回合恢复自身最大体力的1/16
+mark_ability_zhongya:
+  name: 重压
+  description: 体重≥100KG时,技能的威力提升10%

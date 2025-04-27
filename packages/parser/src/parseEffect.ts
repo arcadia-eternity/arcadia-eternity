@@ -43,6 +43,7 @@ import {
   type PrimitiveOpinion,
   registerLiteralValue,
   type ConfigValueSource,
+  type ConditionalValueSource,
 } from '@arcadia-eternity/effect-builder'
 import { RuntimeTypeChecker } from '@arcadia-eternity/effect-builder'
 import type {
@@ -54,6 +55,7 @@ import type {
   SelectorChain,
   SelectorDSL,
   Value,
+  ChainSelector,
 } from '@arcadia-eternity/schema'
 
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
@@ -73,8 +75,15 @@ export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
 }
 
 export function parseSelector<T extends SelectorOpinion>(effectId: string, dsl: SelectorDSL): ChainableSelector<T> {
+  if (typeof dsl === 'object' && 'condition' in dsl) {
+    const condition = parseCondition(effectId, dsl.condition)
+    const trueSelector = parseSelector(effectId, dsl.trueSelector)
+    const falseSelector = dsl.falseSelector ? parseSelector(effectId, dsl.falseSelector) : undefined
+    return trueSelector.when(condition, trueSelector.build(), falseSelector?.build()) as ChainableSelector<T>
+  }
+
   // 解析基础选择器
-  const baseSelector = typeof dsl === 'string' ? getBaseSelector(dsl) : getBaseSelector(dsl.base)
+  const baseSelector = typeof dsl === 'string' ? getBaseSelector(dsl) : getBaseSelector((dsl as ChainSelector).base)
 
   // 处理链式操作
   if (typeof dsl !== 'string' && dsl.chain) {
@@ -187,6 +196,18 @@ function applySelectorStep(
         return selector.clampMax(parseValue(effectId, step.arg) as ValueSource<number>)
       }
 
+      case 'configGet':
+        return (selector as ChainableSelector<ScopeObject>).configGet(
+          parseValue(effectId, step.key) as ValueSource<string>,
+        ) as ChainableSelector<SelectorOpinion>
+
+      case 'when':
+        return selector.when(
+          parseCondition(effectId, step.condition),
+          parseValue(effectId, step.trueValue),
+          step.falseValue ? parseValue(effectId, step.falseValue) : undefined,
+        )
+
       default:
         throw new Error(`未知的操作类型: ${(step as any).type}`)
     }
@@ -262,6 +283,14 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
   switch (dsl.type) {
     case 'TODO':
       return () => {}
+    case 'conditional':
+      const condition = parseCondition(effectId, dsl.condition)
+      const trueAction = createAction(effectId, dsl.trueOperator)
+      const falseAction = dsl.falseOperator ? createAction(effectId, dsl.falseOperator) : undefined
+      return (ctx: EffectContext<EffectTrigger>) => {
+        if (condition(ctx)) trueAction(ctx)
+        else if (falseAction) falseAction(ctx)
+      }
     case 'dealDamage':
       return parseDamageAction(effectId, dsl)
     case 'heal':
@@ -359,6 +388,16 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
   if (typeof v === 'string') return v
   if (typeof v === 'number') return v
   if (typeof v === 'boolean') return v
+  if (typeof v === 'object' && 'type' in v && v.type === 'conditional') {
+    const condition = parseCondition(effectId, v.condition)
+    const trueValue = parseValue(effectId, v.trueValue)
+    const falseValue = v.falseValue ? parseValue(effectId, v.falseValue) : undefined
+    return {
+      condition,
+      trueValue,
+      falseValue,
+    } as ConditionalValueSource<SelectorOpinion>
+  }
   if (v.type === 'raw:number') {
     const fullKey = registerLiteralValue(effectId, v.value, v.configId)
     return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<number>
@@ -420,8 +459,8 @@ export function parseModifyStatAction(effectId: string, dsl: Extract<OperatorDSL
   return parseSelector<UpdateStatContext>(effectId, dsl.target).apply(
     Operators.modifyStat(
       parseValue(effectId, dsl.statType) as ValueSource<StatTypeOnBattle>,
-      parseValue(effectId, dsl.delta ?? 0) as ValueSource<number>,
       parseValue(effectId, dsl.percent ?? 0) as ValueSource<number>,
+      parseValue(effectId, dsl.delta ?? 0) as ValueSource<number>,
     ),
   )
 }

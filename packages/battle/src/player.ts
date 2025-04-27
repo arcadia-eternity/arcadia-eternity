@@ -40,6 +40,9 @@ export class Player {
     this.battle = battle
     this.owner = battle
     battle.registerListener(this.handleMessage.bind(this))
+    this.team.forEach(pet => {
+      pet.updateStat()
+    })
   }
 
   public registerListener(callback: (message: BattleMessage) => void) {

@@ -25,11 +25,21 @@ import {
   type StatTypeOnBattle,
   StatTypeWithoutHp,
 } from '@arcadia-eternity/const'
-import type { ConfigValueSource, Operator } from './effectBuilder'
+import type { Condition, ConditionalValueSource, ConfigValueSource, Operator } from './effectBuilder'
 import { ChainableSelector, type PrimitiveOpinion, type PropertyRef, type SelectorOpinion } from './selector'
 import { type ValueSource } from './effectBuilder'
 
 export const Operators = {
+  conditional: <T>(condition: Condition, trueOperator: Operator<T>, falseOperator?: Operator<T>): Operator<T> => {
+    return (context, targets) => {
+      if (condition(context)) {
+        trueOperator(context, targets)
+      } else if (falseOperator) {
+        falseOperator(context, targets)
+      }
+    }
+  },
+
   dealDamage:
     (value: ValueSource<number>): Operator<Pet> =>
     (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
@@ -114,15 +124,16 @@ export const Operators = {
     (
       stat: ValueSource<StatTypeOnBattle>,
       percent: ValueSource<number>,
-      value: ValueSource<number>,
+      delta: ValueSource<number>,
     ): Operator<UpdateStatContext> =>
     (context: EffectContext<EffectTrigger>, targets: UpdateStatContext[]) => {
       targets.forEach(contexts => {
         const _stat = GetValueFromSource(context, stat)[0]
         const _percent = GetValueFromSource(context, percent)[0] ?? 0
-        const _value = GetValueFromSource(context, value)[0] ?? 0
+        const _value = GetValueFromSource(context, delta)[0] ?? 0
         contexts.stat[_stat] += _value
         contexts.stat[_stat] *= (100 + _percent) / 100
+        contexts.stat[_stat] = Math.floor(contexts.stat[_stat])
       })
     },
 
@@ -484,6 +495,14 @@ export function GetValueFromSource<T extends SelectorOpinion>(
   if (source instanceof ChainableSelector) {
     const result = source.build()(context)
     return result
+  }
+  if (source && typeof source === 'object' && 'condition' in source) {
+    const condSource = source as ConditionalValueSource<T>
+    return condSource.condition(context)
+      ? GetValueFromSource(context, condSource.trueValue)
+      : condSource.falseValue
+        ? GetValueFromSource(context, condSource.falseValue)
+        : []
   }
   if (typeof source == 'function') return source(context) //TargetSelector
   if (Array.isArray(source)) return source.map(v => GetValueFromSource(context, v)[0]) as T[]

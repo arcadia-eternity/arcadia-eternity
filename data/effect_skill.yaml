@@ -81,6 +81,13 @@
     value: 1
   condition: &condition_self_use_skill_template
     type: selfUseSkill
+- id: effect_skill_raise_atk_1_stage_5_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: atk
+  condition: *condition_probability_5_percent_template
 - id: effect_skill_raise_def_1_stages
   trigger: BeforeHit
   priority: 0
@@ -1221,15 +1228,6 @@
                 value: mark_zhongdu
         evaluator:
           type: exist
-- id: effect_skill_add_accuracy_when_reused
-  trigger: OnHit
-  priority: 0
-  apply:
-    type: TODO
-  condition:
-    type: every
-    conditions:
-      - type: selfUseSkill
 - id: effect_skill_add_mark_rouhua_50
   trigger: OnHit
   priority: 0
@@ -1240,6 +1238,339 @@
       type: entity:baseMark
       value: mark_rouhua
     stack: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_add_accuracy_when_reused
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  apply:
+    type: addAccuracy
+    target:
+      base: usingSkillContext
+    value: 25
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill
+            - type: select
+              arg:
+                type: base
+                arg: baseId
+        evaluator:
+          type: same
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: dynamic
+                    arg: lastSkill
+                - type: select
+                  arg:
+                    type: base
+                    arg: baseId
+- id: effect_skill_add_mark_zengzhong_1
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_zengzhong
+    stack: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_power2x_if_heavier
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_heavier_template
+        type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: stat.weight
+        evaluator:
+          type: compare
+          operator: '>'
+          value:
+            type: dynamic
+            selector:
+              base: foe
+              chain:
+                - type: select
+                  arg:
+                    type: dynamic
+                    arg: stat.weight
+- id: effect_skill_add_mark_zhifanghudun_stack_with_weight
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_zhifanghudun
+    stack:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: stat.weight
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_power2x_if_higher_level
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_level_higher_template
+        type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: level
+        evaluator:
+          type: compare
+          operator: '>'
+          value:
+            type: dynamic
+            selector:
+              base: foe
+              chain:
+                - type: select
+                  arg:
+                    type: dynamic
+                    arg: level
+- id: effect_skill_increase_accuracy_50_if_higher_level
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  apply:
+    type: addAccuracy
+    target:
+      base: usingSkillContext
+    value: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_level_higher_template
+- id: effect_skill_add_mark_foe_haipa
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_haipa
+  condition:
+    type: selfUseSkill
+- id: effect_skill_add_mark_foe_haipa_10_if_heavier_40
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_haipa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent:
+            type: conditional
+            trueValue: 40
+            falseValue: 10
+            condition: *condition_heavier_template
+- id: effect_skill_fixed_damage_by_weight
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: stat.weight
+  condition:
+    type: selfUseSkill
+- id: effect_skill_add_mark_zengzhong_2
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_zengzhong
+    stack: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_add_mark_tanhuan_10
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_tanhuan
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_10_percent_template
+- id: effect_skill_power2x_if_weight_above_99
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: stat.weight
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 99
+- id: effect_skill_add_mark_shanghaizengjia_stack_with_zengzhong_stack_x75
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shanghaizengjia
+    stack:
+      type: dynamic
+      selector:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_zengzhong
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 75
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_consume_all_zengzhong
+  trigger: OnHit
+  priority: -50
+  apply:
+    type: consumeStacks
+    target:
+      base: selfMarks
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value: mark_zengzhong
+    value: 2
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_exin_50
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_exin
+    stack: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_50_percent_template
+- id: effect_skill_add_mark_tanxingzhifang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_tanxingzhifang
   condition:
     type: every
     conditions:

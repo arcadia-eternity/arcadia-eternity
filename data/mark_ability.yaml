@@ -27,6 +27,9 @@
   effect:
     - effect_ability_heal_1_16_when_qingtian
 - id: mark_ability_zhongya
+  config: *ablitity_config
+  effect:
+    - effect_ability_damage_amplify_10_percent_weight_100kg
 - id: mark_ability_jianqiang
 - id: mark_ability_liushui
 - id: mark_ability_duyao

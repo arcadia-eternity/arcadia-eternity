@@ -76,295 +76,97 @@
                     "properties": {
                       "type": {
                         "type": "string",
-                        "const": "dealDamage"
+                        "const": "conditional"
                       },
-                      "target": {
+                      "condition": {
                         "anyOf": [
-                          {
-                            "type": "string",
-                            "enum": [
-                              "target",
-                              "self",
-                              "foe",
-                              "petOwners",
-                              "foeOwners",
-                              "usingSkillContext",
-                              "damageContext",
-                              "mark",
-                              "selfMarks",
-                              "foeMarks",
-                              "selfSkills",
-                              "foeSkills",
-                              "selfAvailableSkills",
-                              "foeAvailableSkills",
-                              "dataMarks",
-                              "healContext",
-                              "addMarkContext",
-                              "rageContext",
-                              "battle",
-                              "updateStatContext"
-                            ]
-                          },
                           {
                             "type": "object",
                             "properties": {
-                              "base": {
-                                "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/0"
+                              "type": {
+                                "type": "string",
+                                "const": "evaluate"
                               },
-                              "chain": {
-                                "type": "array",
-                                "items": {
-                                  "anyOf": [
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "select"
-                                        },
-                                        "arg": {
+                              "target": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "target",
+                                      "self",
+                                      "foe",
+                                      "petOwners",
+                                      "foeOwners",
+                                      "usingSkillContext",
+                                      "damageContext",
+                                      "mark",
+                                      "selfMarks",
+                                      "foeMarks",
+                                      "selfSkills",
+                                      "foeSkills",
+                                      "selfAvailableSkills",
+                                      "foeAvailableSkills",
+                                      "dataMarks",
+                                      "healContext",
+                                      "addMarkContext",
+                                      "rageContext",
+                                      "battle",
+                                      "updateStatContext"
+                                    ]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "base": {
+                                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/0"
+                                      },
+                                      "chain": {
+                                        "type": "array",
+                                        "items": {
                                           "anyOf": [
                                             {
                                               "type": "object",
                                               "properties": {
                                                 "type": {
                                                   "type": "string",
-                                                  "const": "base"
+                                                  "const": "select"
                                                 },
                                                 "arg": {
-                                                  "type": "string",
-                                                  "enum": [
-                                                    "currentHp",
-                                                    "maxHp",
-                                                    "rage",
-                                                    "owner",
-                                                    "type",
-                                                    "marks",
-                                                    "stats",
-                                                    "stack",
-                                                    "duration",
-                                                    "power",
-                                                    "priority",
-                                                    "activePet",
-                                                    "skills",
-                                                    "id",
-                                                    "baseId",
-                                                    "tags",
-                                                    "rageCost",
-                                                    "element"
-                                                  ]
-                                                }
-                                              },
-                                              "required": [
-                                                "type",
-                                                "arg"
-                                              ],
-                                              "additionalProperties": false
-                                            },
-                                            {
-                                              "type": "object",
-                                              "properties": {
-                                                "type": {
-                                                  "type": "string",
-                                                  "const": "dynamic"
-                                                },
-                                                "arg": {
-                                                  "type": "string"
-                                                }
-                                              },
-                                              "required": [
-                                                "type",
-                                                "arg"
-                                              ],
-                                              "additionalProperties": false
-                                            },
-                                            {
-                                              "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/0/properties/arg/anyOf/0/properties/arg"
-                                            }
-                                          ]
-                                        }
-                                      },
-                                      "required": [
-                                        "type",
-                                        "arg"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "selectPath"
-                                        },
-                                        "arg": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "required": [
-                                        "type",
-                                        "arg"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "selectProp"
-                                        },
-                                        "arg": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "required": [
-                                        "type",
-                                        "arg"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "flat"
-                                        }
-                                      },
-                                      "required": [
-                                        "type"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "where"
-                                        },
-                                        "arg": {
-                                          "anyOf": [
-                                            {
-                                              "type": "object",
-                                              "properties": {
-                                                "type": {
-                                                  "type": "string",
-                                                  "const": "compare"
-                                                },
-                                                "operator": {
-                                                  "type": "string",
-                                                  "enum": [
-                                                    ">",
-                                                    "<",
-                                                    ">=",
-                                                    "<=",
-                                                    "=="
-                                                  ]
-                                                },
-                                                "value": {
                                                   "anyOf": [
                                                     {
                                                       "type": "object",
                                                       "properties": {
                                                         "type": {
                                                           "type": "string",
-                                                          "const": "raw:number"
+                                                          "const": "base"
                                                         },
-                                                        "value": {
-                                                          "type": "number"
-                                                        },
-                                                        "configId": {
-                                                          "type": "string"
-                                                        }
-                                                      },
-                                                      "required": [
-                                                        "type",
-                                                        "value"
-                                                      ],
-                                                      "additionalProperties": false
-                                                    },
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "object",
-                                                      "properties": {
-                                                        "type": {
+                                                        "arg": {
                                                           "type": "string",
-                                                          "const": "raw:string"
-                                                        },
-                                                        "value": {
-                                                          "type": "string"
-                                                        },
-                                                        "configId": {
-                                                          "type": "string"
+                                                          "enum": [
+                                                            "currentHp",
+                                                            "maxHp",
+                                                            "rage",
+                                                            "owner",
+                                                            "type",
+                                                            "marks",
+                                                            "stats",
+                                                            "stack",
+                                                            "duration",
+                                                            "power",
+                                                            "priority",
+                                                            "activePet",
+                                                            "skills",
+                                                            "id",
+                                                            "baseId",
+                                                            "tags",
+                                                            "rageCost",
+                                                            "element"
+                                                          ]
                                                         }
                                                       },
                                                       "required": [
                                                         "type",
-                                                        "value"
-                                                      ],
-                                                      "additionalProperties": false
-                                                    },
-                                                    {
-                                                      "type": "string"
-                                                    },
-                                                    {
-                                                      "type": "object",
-                                                      "properties": {
-                                                        "type": {
-                                                          "type": "string",
-                                                          "const": "raw:boolean"
-                                                        },
-                                                        "value": {
-                                                          "type": "boolean"
-                                                        },
-                                                        "configId": {
-                                                          "type": "string"
-                                                        }
-                                                      },
-                                                      "required": [
-                                                        "type",
-                                                        "value"
-                                                      ],
-                                                      "additionalProperties": false
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    },
-                                                    {
-                                                      "type": "object",
-                                                      "properties": {
-                                                        "type": {
-                                                          "type": "string",
-                                                          "const": "entity:baseMark"
-                                                        },
-                                                        "value": {
-                                                          "type": "string"
-                                                        }
-                                                      },
-                                                      "required": [
-                                                        "type",
-                                                        "value"
-                                                      ],
-                                                      "additionalProperties": false
-                                                    },
-                                                    {
-                                                      "type": "object",
-                                                      "properties": {
-                                                        "type": {
-                                                          "type": "string",
-                                                          "const": "entity:baseSkill"
-                                                        },
-                                                        "value": {
-                                                          "type": "string"
-                                                        }
-                                                      },
-                                                      "required": [
-                                                        "type",
-                                                        "value"
+                                                        "arg"
                                                       ],
                                                       "additionalProperties": false
                                                     },
@@ -375,13 +177,392 @@
                                                           "type": "string",
                                                           "const": "dynamic"
                                                         },
-                                                        "selector": {
-                                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                                                        "arg": {
+                                                          "type": "string"
                                                         }
                                                       },
                                                       "required": [
                                                         "type",
-                                                        "selector"
+                                                        "arg"
+                                                      ],
+                                                      "additionalProperties": false
+                                                    },
+                                                    {
+                                                      "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/0/properties/arg/anyOf/0/properties/arg"
+                                                    }
+                                                  ]
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
+                                              "additionalProperties": false
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "const": "selectPath"
+                                                },
+                                                "arg": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
+                                              "additionalProperties": false
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "const": "selectProp"
+                                                },
+                                                "arg": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
+                                              "additionalProperties": false
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "const": "flat"
+                                                }
+                                              },
+                                              "required": [
+                                                "type"
+                                              ],
+                                              "additionalProperties": false
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "const": "where"
+                                                },
+                                                "arg": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "type": {
+                                                          "type": "string",
+                                                          "const": "compare"
+                                                        },
+                                                        "operator": {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            ">",
+                                                            "<",
+                                                            ">=",
+                                                            "<=",
+                                                            "=="
+                                                          ]
+                                                        },
+                                                        "value": {
+                                                          "anyOf": [
+                                                            {
+                                                              "type": "object",
+                                                              "properties": {
+                                                                "type": {
+                                                                  "type": "string",
+                                                                  "const": "raw:number"
+                                                                },
+                                                                "value": {
+                                                                  "type": "number"
+                                                                },
+                                                                "configId": {
+                                                                  "type": "string"
+                                                                }
+                                                              },
+                                                              "required": [
+                                                                "type",
+                                                                "value"
+                                                              ],
+                                                              "additionalProperties": false
+                                                            },
+                                                            {
+                                                              "type": "number"
+                                                            },
+                                                            {
+                                                              "type": "object",
+                                                              "properties": {
+                                                                "type": {
+                                                                  "type": "string",
+                                                                  "const": "raw:string"
+                                                                },
+                                                                "value": {
+                                                                  "type": "string"
+                                                                },
+                                                                "configId": {
+                                                                  "type": "string"
+                                                                }
+                                                              },
+                                                              "required": [
+                                                                "type",
+                                                                "value"
+                                                              ],
+                                                              "additionalProperties": false
+                                                            },
+                                                            {
+                                                              "type": "string"
+                                                            },
+                                                            {
+                                                              "type": "object",
+                                                              "properties": {
+                                                                "type": {
+                                                                  "type": "string",
+                                                                  "const": "raw:boolean"
+                                                                },
+                                                                "value": {
+                                                                  "type": "boolean"
+                                                                },
+                                                                "configId": {
+                                                                  "type": "string"
+                                                                }
+                                                              },
+                                                              "required": [
+                                                                "type",
+                                                                "value"
+                                                              ],
+                                                              "additionalProperties": false
+                                                            },
+                                                            {
+                                                              "type": "boolean"
+                                                            },
+                                                            {
+                                                              "type": "object",
+                                                              "properties": {
+                                                                "type": {
+                                                                  "type": "string",
+                                                                  "const": "entity:baseMark"
+                                                                },
+                                                                "value": {
+                                                                  "type": "string"
+                                                                }
+                                                              },
+                                                              "required": [
+                                                                "type",
+                                                                "value"
+                                                              ],
+                                                              "additionalProperties": false
+                                                            },
+                                                            {
+                                                              "type": "object",
+                                                              "properties": {
+                                                                "type": {
+                                                                  "type": "string",
+                                                                  "const": "entity:baseSkill"
+                                                                },
+                                                                "value": {
+                                                                  "type": "string"
+                                                                }
+                                                              },
+                                                              "required": [
+                                                                "type",
+                                                                "value"
+                                                              ],
+                                                              "additionalProperties": false
+                                                            },
+                                                            {
+                                                              "type": "object",
+                                                              "properties": {
+                                                                "type": {
+                                                                  "type": "string",
+                                                                  "const": "dynamic"
+                                                                },
+                                                                "selector": {
+                                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                                                                }
+                                                              },
+                                                              "required": [
+                                                                "type",
+                                                                "selector"
+                                                              ],
+                                                              "additionalProperties": false
+                                                            },
+                                                            {
+                                                              "type": "object",
+                                                              "properties": {
+                                                                "type": {
+                                                                  "type": "string",
+                                                                  "const": "conditional"
+                                                                },
+                                                                "condition": {
+                                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition"
+                                                                },
+                                                                "trueValue": {
+                                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                                },
+                                                                "falseValue": {
+                                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                                }
+                                                              },
+                                                              "required": [
+                                                                "type",
+                                                                "condition",
+                                                                "trueValue"
+                                                              ],
+                                                              "additionalProperties": false
+                                                            }
+                                                          ]
+                                                        }
+                                                      },
+                                                      "required": [
+                                                        "type",
+                                                        "operator",
+                                                        "value"
+                                                      ],
+                                                      "additionalProperties": false
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "type": {
+                                                          "type": "string",
+                                                          "const": "same"
+                                                        },
+                                                        "value": {
+                                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                        }
+                                                      },
+                                                      "required": [
+                                                        "type",
+                                                        "value"
+                                                      ],
+                                                      "additionalProperties": false
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "type": {
+                                                          "type": "string",
+                                                          "const": "notSame"
+                                                        },
+                                                        "value": {
+                                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                        }
+                                                      },
+                                                      "required": [
+                                                        "type",
+                                                        "value"
+                                                      ],
+                                                      "additionalProperties": false
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "type": {
+                                                          "type": "string",
+                                                          "const": "any"
+                                                        },
+                                                        "conditions": {
+                                                          "type": "array",
+                                                          "items": {
+                                                            "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
+                                                          }
+                                                        }
+                                                      },
+                                                      "required": [
+                                                        "type",
+                                                        "conditions"
+                                                      ],
+                                                      "additionalProperties": false
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "type": {
+                                                          "type": "string",
+                                                          "const": "all"
+                                                        },
+                                                        "conditions": {
+                                                          "type": "array",
+                                                          "items": {
+                                                            "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
+                                                          }
+                                                        }
+                                                      },
+                                                      "required": [
+                                                        "type",
+                                                        "conditions"
+                                                      ],
+                                                      "additionalProperties": false
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "type": {
+                                                          "type": "string",
+                                                          "const": "not"
+                                                        },
+                                                        "condition": {
+                                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
+                                                        }
+                                                      },
+                                                      "required": [
+                                                        "type",
+                                                        "condition"
+                                                      ],
+                                                      "additionalProperties": false
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "type": {
+                                                          "type": "string",
+                                                          "const": "probability"
+                                                        },
+                                                        "percent": {
+                                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                        }
+                                                      },
+                                                      "required": [
+                                                        "type",
+                                                        "percent"
+                                                      ],
+                                                      "additionalProperties": false
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "type": {
+                                                          "type": "string",
+                                                          "const": "contain"
+                                                        },
+                                                        "tag": {
+                                                          "type": "string"
+                                                        }
+                                                      },
+                                                      "required": [
+                                                        "type",
+                                                        "tag"
+                                                      ],
+                                                      "additionalProperties": false
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "type": {
+                                                          "type": "string",
+                                                          "const": "exist"
+                                                        }
+                                                      },
+                                                      "required": [
+                                                        "type"
                                                       ],
                                                       "additionalProperties": false
                                                     }
@@ -390,8 +571,7 @@
                                               },
                                               "required": [
                                                 "type",
-                                                "operator",
-                                                "value"
+                                                "arg"
                                               ],
                                               "additionalProperties": false
                                             },
@@ -400,15 +580,19 @@
                                               "properties": {
                                                 "type": {
                                                   "type": "string",
-                                                  "const": "same"
+                                                  "const": "whereAttr"
                                                 },
-                                                "value": {
-                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                "extractor": {
+                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/0/properties/arg"
+                                                },
+                                                "evaluator": {
+                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
                                                 }
                                               },
                                               "required": [
                                                 "type",
-                                                "value"
+                                                "extractor",
+                                                "evaluator"
                                               ],
                                               "additionalProperties": false
                                             },
@@ -417,15 +601,15 @@
                                               "properties": {
                                                 "type": {
                                                   "type": "string",
-                                                  "const": "notSame"
+                                                  "const": "and"
                                                 },
-                                                "value": {
-                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                "arg": {
+                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                                                 }
                                               },
                                               "required": [
                                                 "type",
-                                                "value"
+                                                "arg"
                                               ],
                                               "additionalProperties": false
                                             },
@@ -434,18 +618,18 @@
                                               "properties": {
                                                 "type": {
                                                   "type": "string",
-                                                  "const": "any"
+                                                  "const": "or"
                                                 },
-                                                "conditions": {
-                                                  "type": "array",
-                                                  "items": {
-                                                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
-                                                  }
+                                                "arg": {
+                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                                                },
+                                                "duplicate": {
+                                                  "type": "boolean"
                                                 }
                                               },
                                               "required": [
                                                 "type",
-                                                "conditions"
+                                                "arg"
                                               ],
                                               "additionalProperties": false
                                             },
@@ -454,18 +638,15 @@
                                               "properties": {
                                                 "type": {
                                                   "type": "string",
-                                                  "const": "all"
+                                                  "const": "randomPick"
                                                 },
-                                                "conditions": {
-                                                  "type": "array",
-                                                  "items": {
-                                                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
-                                                  }
+                                                "arg": {
+                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                                 }
                                               },
                                               "required": [
                                                 "type",
-                                                "conditions"
+                                                "arg"
                                               ],
                                               "additionalProperties": false
                                             },
@@ -474,15 +655,15 @@
                                               "properties": {
                                                 "type": {
                                                   "type": "string",
-                                                  "const": "not"
+                                                  "const": "randomSample"
                                                 },
-                                                "condition": {
-                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
+                                                "arg": {
+                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                                 }
                                               },
                                               "required": [
                                                 "type",
-                                                "condition"
+                                                "arg"
                                               ],
                                               "additionalProperties": false
                                             },
@@ -491,307 +672,426 @@
                                               "properties": {
                                                 "type": {
                                                   "type": "string",
-                                                  "const": "probability"
-                                                },
-                                                "percent": {
-                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
-                                                }
-                                              },
-                                              "required": [
-                                                "type",
-                                                "percent"
-                                              ],
-                                              "additionalProperties": false
-                                            },
-                                            {
-                                              "type": "object",
-                                              "properties": {
-                                                "type": {
-                                                  "type": "string",
-                                                  "const": "contain"
-                                                },
-                                                "tag": {
-                                                  "type": "string"
-                                                }
-                                              },
-                                              "required": [
-                                                "type",
-                                                "tag"
-                                              ],
-                                              "additionalProperties": false
-                                            },
-                                            {
-                                              "type": "object",
-                                              "properties": {
-                                                "type": {
-                                                  "type": "string",
-                                                  "const": "exist"
+                                                  "const": "sum"
                                                 }
                                               },
                                               "required": [
                                                 "type"
                                               ],
                                               "additionalProperties": false
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "const": "add"
+                                                },
+                                                "arg": {
+                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
+                                              "additionalProperties": false
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "const": "multiply"
+                                                },
+                                                "arg": {
+                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
+                                              "additionalProperties": false
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "const": "divide"
+                                                },
+                                                "arg": {
+                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
+                                              "additionalProperties": false
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "const": "shuffled"
+                                                }
+                                              },
+                                              "required": [
+                                                "type"
+                                              ],
+                                              "additionalProperties": false
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "const": "limit"
+                                                },
+                                                "arg": {
+                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
+                                              "additionalProperties": false
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "const": "clampMax"
+                                                },
+                                                "arg": {
+                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
+                                              "additionalProperties": false
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "const": "clampMin"
+                                                },
+                                                "arg": {
+                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
+                                              "additionalProperties": false
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "const": "configGet"
+                                                },
+                                                "key": {
+                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "key"
+                                              ],
+                                              "additionalProperties": false
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "const": "when"
+                                                },
+                                                "condition": {
+                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition"
+                                                },
+                                                "trueValue": {
+                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                },
+                                                "falseValue": {
+                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "condition",
+                                                "trueValue"
+                                              ],
+                                              "additionalProperties": false
                                             }
                                           ]
                                         }
-                                      },
-                                      "required": [
-                                        "type",
-                                        "arg"
-                                      ],
-                                      "additionalProperties": false
+                                      }
                                     },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "whereAttr"
-                                        },
-                                        "extractor": {
-                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/0/properties/arg"
-                                        },
-                                        "evaluator": {
-                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
-                                        }
+                                    "required": [
+                                      "base"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "condition": {
+                                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition"
                                       },
-                                      "required": [
-                                        "type",
-                                        "extractor",
-                                        "evaluator"
-                                      ],
-                                      "additionalProperties": false
+                                      "trueSelector": {
+                                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                                      },
+                                      "falseSelector": {
+                                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                                      }
                                     },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "and"
-                                        },
-                                        "arg": {
-                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
-                                        }
-                                      },
-                                      "required": [
-                                        "type",
-                                        "arg"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "or"
-                                        },
-                                        "arg": {
-                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
-                                        },
-                                        "duplicate": {
-                                          "type": "boolean"
-                                        }
-                                      },
-                                      "required": [
-                                        "type",
-                                        "arg"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "randomPick"
-                                        },
-                                        "arg": {
-                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
-                                        }
-                                      },
-                                      "required": [
-                                        "type",
-                                        "arg"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "randomSample"
-                                        },
-                                        "arg": {
-                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
-                                        }
-                                      },
-                                      "required": [
-                                        "type",
-                                        "arg"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "sum"
-                                        }
-                                      },
-                                      "required": [
-                                        "type"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "add"
-                                        },
-                                        "arg": {
-                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
-                                        }
-                                      },
-                                      "required": [
-                                        "type",
-                                        "arg"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "multiply"
-                                        },
-                                        "arg": {
-                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
-                                        }
-                                      },
-                                      "required": [
-                                        "type",
-                                        "arg"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "divide"
-                                        },
-                                        "arg": {
-                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
-                                        }
-                                      },
-                                      "required": [
-                                        "type",
-                                        "arg"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "shuffled"
-                                        }
-                                      },
-                                      "required": [
-                                        "type"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "limit"
-                                        },
-                                        "arg": {
-                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
-                                        }
-                                      },
-                                      "required": [
-                                        "type",
-                                        "arg"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "clampMax"
-                                        },
-                                        "arg": {
-                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
-                                        }
-                                      },
-                                      "required": [
-                                        "type",
-                                        "arg"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "clampMin"
-                                        },
-                                        "arg": {
-                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
-                                        }
-                                      },
-                                      "required": [
-                                        "type",
-                                        "arg"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "const": "configGet"
-                                        },
-                                        "key": {
-                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
-                                        }
-                                      },
-                                      "required": [
-                                        "type",
-                                        "key"
-                                      ],
-                                      "additionalProperties": false
-                                    }
-                                  ]
+                                    "required": [
+                                      "condition",
+                                      "trueSelector"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              },
+                              "evaluator": {
+                                "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "target",
+                              "evaluator"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "some"
+                              },
+                              "conditions": {
+                                "type": "array",
+                                "items": {
+                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition"
                                 }
                               }
                             },
                             "required": [
-                              "base"
+                              "type",
+                              "conditions"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "every"
+                              },
+                              "conditions": {
+                                "type": "array",
+                                "items": {
+                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition"
+                                }
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "conditions"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "not"
+                              },
+                              "condition": {
+                                "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "condition"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "petIsActive"
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "selfUseSkill"
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "checkSelf"
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "foeUseSkill"
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "selfBeDamaged"
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "selfAddMark"
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "foeAddMark"
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "selfBeAddMark"
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "foeBeAddMark"
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "selfBeHeal"
+                              }
+                            },
+                            "required": [
+                              "type"
                             ],
                             "additionalProperties": false
                           }
                         ]
                       },
+                      "trueOperator": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0"
+                      },
+                      "falseOperator": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "condition",
+                      "trueOperator"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "dealDamage"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -809,10 +1109,10 @@
                         "const": "heal"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -830,16 +1130,16 @@
                         "const": "addMark"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "mark": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       },
                       "duration": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       },
                       "stack": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -857,10 +1157,10 @@
                         "const": "addStacks"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -878,10 +1178,10 @@
                         "const": "consumeStacks"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -899,17 +1199,17 @@
                         "const": "modifyStat"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "statType": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       },
                       "delta": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value",
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value",
                         "default": 0
                       },
                       "percent": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value",
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value",
                         "default": 0
                       }
                     },
@@ -928,13 +1228,13 @@
                         "const": "statStageBuff"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "statType": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -953,10 +1253,10 @@
                         "const": "clearStatStage"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "statType": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -973,10 +1273,10 @@
                         "const": "addRage"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -994,10 +1294,10 @@
                         "const": "amplifyPower"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1015,10 +1315,10 @@
                         "const": "addPower"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1036,10 +1336,10 @@
                         "const": "addCritRate"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1057,10 +1357,10 @@
                         "const": "addMultihitResult"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1078,10 +1378,10 @@
                         "const": "transferMark"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "mark": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/8"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/8"
                       }
                     },
                     "required": [
@@ -1099,7 +1399,7 @@
                         "const": "stun"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       }
                     },
                     "required": [
@@ -1116,7 +1416,7 @@
                         "const": "setSureHit"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "priority": {
                         "type": "number"
@@ -1137,7 +1437,7 @@
                         "const": "setSureCrit"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "priority": {
                         "type": "number"
@@ -1158,7 +1458,7 @@
                         "const": "setSureMiss"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "priority": {
                         "type": "number"
@@ -1179,7 +1479,7 @@
                         "const": "setSureNoCrit"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "priority": {
                         "type": "number"
@@ -1200,7 +1500,7 @@
                         "const": "destroyMark"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       }
                     },
                     "required": [
@@ -1217,10 +1517,10 @@
                         "const": "setSkill"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/8"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/8"
                       }
                     },
                     "required": [
@@ -1238,7 +1538,7 @@
                         "const": "preventDamage"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       }
                     },
                     "required": [
@@ -1255,10 +1555,10 @@
                         "const": "setActualTarget"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "newTarget": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/8"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/8"
                       }
                     },
                     "required": [
@@ -1276,13 +1576,13 @@
                         "const": "addModified"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "delta": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       },
                       "percent": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1301,13 +1601,13 @@
                         "const": "addThreshold"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "min": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       },
                       "max": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1324,7 +1624,7 @@
                         "const": "overrideMarkConfig"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "config": {
                         "type": "object",
@@ -1400,10 +1700,10 @@
                         "const": "setMarkDuration"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1421,10 +1721,10 @@
                         "const": "setMarkStack"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1442,10 +1742,10 @@
                         "const": "setMarkMaxStack"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1463,10 +1763,10 @@
                         "const": "setMarkPersistent"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1484,10 +1784,10 @@
                         "const": "setMarkStackable"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1505,10 +1805,10 @@
                         "const": "setMarkStackStrategy"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1526,10 +1826,10 @@
                         "const": "setMarkDestroyable"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1547,10 +1847,10 @@
                         "const": "setMarkIsShield"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1568,10 +1868,10 @@
                         "const": "setMarkKeepOnSwitchOut"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1589,10 +1889,10 @@
                         "const": "setMarkTransferOnSwitch"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1610,10 +1910,10 @@
                         "const": "setMarkInheritOnFaint"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1631,10 +1931,10 @@
                         "const": "setValue"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1652,10 +1952,10 @@
                         "const": "addValue"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1673,7 +1973,7 @@
                         "const": "toggle"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       }
                     },
                     "required": [
@@ -1690,13 +1990,13 @@
                         "const": "setConfig"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "key": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1715,10 +2015,10 @@
                         "const": "setIgnoreStageStrategy"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1736,10 +2036,10 @@
                         "const": "addAccuracy"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1757,10 +2057,10 @@
                         "const": "setAccuracy"
                       },
                       "target": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1781,216 +2081,7 @@
             ]
           },
           "condition": {
-            "anyOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "evaluate"
-                  },
-                  "target": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target"
-                  },
-                  "evaluator": {
-                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
-                  }
-                },
-                "required": [
-                  "type",
-                  "target",
-                  "evaluator"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "some"
-                  },
-                  "conditions": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/definitions/effect/items/properties/condition"
-                    }
-                  }
-                },
-                "required": [
-                  "type",
-                  "conditions"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "every"
-                  },
-                  "conditions": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/definitions/effect/items/properties/condition"
-                    }
-                  }
-                },
-                "required": [
-                  "type",
-                  "conditions"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "not"
-                  },
-                  "condition": {
-                    "$ref": "#/definitions/effect/items/properties/condition"
-                  }
-                },
-                "required": [
-                  "type",
-                  "condition"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "petIsActive"
-                  }
-                },
-                "required": [
-                  "type"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "selfUseSkill"
-                  }
-                },
-                "required": [
-                  "type"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "checkSelf"
-                  }
-                },
-                "required": [
-                  "type"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "foeUseSkill"
-                  }
-                },
-                "required": [
-                  "type"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "selfBeDamaged"
-                  }
-                },
-                "required": [
-                  "type"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "selfAddMark"
-                  }
-                },
-                "required": [
-                  "type"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "foeAddMark"
-                  }
-                },
-                "required": [
-                  "type"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "selfBeAddMark"
-                  }
-                },
-                "required": [
-                  "type"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "foeBeAddMark"
-                  }
-                },
-                "required": [
-                  "type"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "selfBeHeal"
-                  }
-                },
-                "required": [
-                  "type"
-                ],
-                "additionalProperties": false
-              }
-            ]
+            "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition"
           },
           "consumesStacks": {
             "type": "number"

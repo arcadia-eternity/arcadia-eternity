@@ -308,6 +308,21 @@ export class ChainableSelector<T> {
     }, this.type)
   }
 
+  when<U extends SelectorOpinion>(
+    condition: Condition,
+    valueTrue: ValueSource<U>,
+    valueFalse?: ValueSource<U>,
+    type?: string,
+  ): ChainableSelector<U> {
+    return new ChainableSelector(context => {
+      const _condition = this.condition(condition)(context)
+      const _valueTrue = GetValueFromSource(context, valueTrue)
+      const _valueFalse = valueFalse ? GetValueFromSource(context, valueFalse) : undefined
+      if (_valueTrue.length === 0) return []
+      return _condition ? _valueTrue : (_valueFalse ?? [])
+    }, type ?? 'any')
+  }
+
   // 公共数值处理方法
   private mapNumber(
     numberSource: ValueSource<number>,

@@ -94,6 +94,7 @@
   condition:
     type: every
     conditions:
+      - type: petIsActive
       - type: evaluate
         target:
           base: battle
@@ -125,3 +126,27 @@
               arg: maxHp
           - type: divide
             arg: 16
+- id: effect_ability_damage_amplify_10_percent_weight_100kg
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: stat.weight
+        evaluator:
+          type: compare
+          operator: '>='
+          value: 100
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 1.1

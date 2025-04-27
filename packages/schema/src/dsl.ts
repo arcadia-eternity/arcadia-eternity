@@ -287,6 +287,7 @@ export type SetAccuracyOpreator = {
 
 export type OperatorDSL =
   | TODOOpreator
+  | ConditionalOperator
   | DealDamageOpreator
   | HealOpreator
   | AddMarkOpreator
@@ -376,6 +377,7 @@ export type Value =
   | number
   | string
   | boolean
+  | ConditionalValue
 
 export type BaseSelector = keyof typeof BaseSelector
 
@@ -384,7 +386,13 @@ export type ChainSelector = {
   chain?: Array<SelectorChain>
 }
 
-export type SelectorDSL = BaseSelector | ChainSelector
+export type SelectorDSL = BaseSelector | ChainSelector | ConditionalSelector
+
+export type ConditionalSelector = {
+  condition: ConditionDSL
+  trueSelector: SelectorDSL
+  falseSelector?: SelectorDSL
+}
 
 export type SelectStepDSL = {
   type: 'select'
@@ -479,6 +487,7 @@ export type SelectorChain =
       type: 'configGet'
       key: Value
     }
+  | WhenSelectorStep
 
 export type EvaluatorDSL =
   | {
@@ -543,3 +552,24 @@ export type ConditionDSL =
   | {
       type: 'selfBeHeal'
     }
+
+export type WhenSelectorStep = {
+  type: 'when'
+  condition: ConditionDSL
+  trueValue: Value
+  falseValue?: Value
+}
+
+export type ConditionalOperator = {
+  type: 'conditional'
+  condition: ConditionDSL
+  trueOperator: OperatorDSL
+  falseOperator?: OperatorDSL
+}
+
+export type ConditionalValue = {
+  type: 'conditional'
+  condition: ConditionDSL
+  trueValue: Value
+  falseValue?: Value
+}

@@ -284,6 +284,19 @@
   effect:
     - effect_mark_reduce_damage_15
 - id: mark_zengzhong
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 2
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_add_weight_stack_x50
 - id: mark_fandan
 - id: mark_teshushanghaizengjia
 - id: mark_wulishanghaizengjia
@@ -456,6 +469,7 @@
 - id: mark_yuansuzhufu
 - id: mark_xingzhili
 - id: mark_mianyibuliang
+- id: mark_shanghaizengjia
 - id: mark_huoxishanghaizengjia
 - id: mark_zaochengshanghaijianshao
 - id: mark_shoudaoshanghaizengjia
@@ -468,3 +482,30 @@
 - id: mark_yinbozhi
 - id: mark_zaoyin
 - id: mark_yinzhiwang
+- id: mark_zhifanghudun
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 114514
+    stackable: true
+    stackStrategy: replace
+    destroyable: true
+    isShield: true
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+- id: mark_tanxingzhifang
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect: #TODO
+    - effect_mark_reduce_damage_with_weight
+    - effect_mark_onDestory_add_mark_tizhongjiangdi

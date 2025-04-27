@@ -642,7 +642,24 @@
             - type: selectPath
               arg: damageResult
             - type: divide
-              arg: 4 #TODO: 有葵花种子时，除以2
+              arg:
+                type: conditional
+                trueValue: 2
+                falseValue: 4
+                condition:
+                  type: evaluate
+                  target:
+                    base: foeMarks
+                    chain:
+                      - type: whereAttr
+                        extractor:
+                          type: base
+                          arg: baseId
+                        evaluator:
+                          type: same
+                          value: mark_kuihuazhongzi
+                  evaluator:
+                    type: exist
   consumesStacks: 1
 - id: effect_mark_reduce_special_damage_with_stack
   trigger: OnBeforeCalculateDamage
@@ -675,3 +692,51 @@
           - type: multiply
             arg: -1
     delta: 0
+- id: effect_mark_add_weight_stack_x50
+  trigger: OnUpdateStat
+  priority: 0
+  apply:
+    type: modifyStat
+    target:
+      base: updateStatContext
+    statType: weight
+    percent: 0
+    delta:
+      type: dynamic
+      selector:
+        base: mark
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 50
+- id: effect_mark_reduce_damage_with_weight
+  trigger: OnDamage
+  consumesStacks: 1
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    delta:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: stat.weight
+    percent: 0
+- id: effect_mark_onDestory_add_mark_tizhongjiangdi
+  trigger: OnMarkDestroy
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_tizhongjiangdi
