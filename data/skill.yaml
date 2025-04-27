@@ -940,7 +940,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_zengzhong_1 #TODO
+    - effect_skill_add_mark_zengzhong_1
 - id: skill_tizhongyapo
   element: Normal
   category: Physical
@@ -1018,7 +1018,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_fixed_damage_by_weight #TODO
+    - effect_skill_fixed_damage_by_weight
 - id: skill_quanliyiji
   element: Normal
   category: Physical
@@ -1062,7 +1062,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_power2x_if_weight_above_99 #TODO
+    - effect_skill_power2x_if_weight_above_99
 - id: skill_zhifangranshao
   element: Normal
   category: Status
