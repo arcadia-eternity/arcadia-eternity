@@ -17,8 +17,18 @@ export type ErrorResponse = {
 
 export type AckResponse<T = unknown> = (response: SuccessResponse<T> | ErrorResponse) => void
 
+export type ServerState = {
+  onlinePlayers: number
+  matchmakingQueue: number
+  rooms: number
+  playersInRooms: number
+}
+
 export interface ServerToClientEvents {
   ping: () => void
+
+  // 获取服务器状态
+  updateState: (state: ServerState) => void
   // 战斗事件（保持原始格式）
   battleEvent: (message: BattleMessage) => void
   // 房间关闭通知
@@ -37,6 +47,10 @@ export interface ServerToClientEvents {
 export interface ClientToServerEvents {
   // 心跳
   pong: () => void
+
+  // 获取服务器状态
+  getServerState: (ack: AckResponse<ServerState>) => void
+
   // 加入匹配队列
   joinMatchmaking: (playerSchema: PlayerSchemaType, callback: AckResponse<{ status: 'QUEUED' }>) => void
   //取消匹配

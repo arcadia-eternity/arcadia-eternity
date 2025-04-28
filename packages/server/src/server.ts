@@ -1,7 +1,13 @@
 import { Battle } from '@arcadia-eternity/battle'
 import { BattleMessageType, type BattleState } from '@arcadia-eternity/const'
 import { PlayerParser, SelectionParser } from '@arcadia-eternity/parser'
-import type { AckResponse, ClientToServerEvents, ErrorResponse, ServerToClientEvents } from '@arcadia-eternity/protocol'
+import type {
+  AckResponse,
+  ClientToServerEvents,
+  ErrorResponse,
+  ServerState,
+  ServerToClientEvents,
+} from '@arcadia-eternity/protocol'
 import { type PlayerSelectionSchemaType, PlayerSelectionSchema } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 import pino from 'pino'
@@ -60,6 +66,7 @@ export class BattleServer {
     this.initializeMiddleware()
     this.setupConnectionHandlers()
     this.setupHeartbeatSystem()
+    this.setupAutoUpdateState()
     this.setupAutoCleanup()
   }
 
@@ -67,6 +74,13 @@ export class BattleServer {
     this.io.use((socket, next) => {
       next()
     })
+  }
+
+  private setupAutoUpdateState() {
+    setInterval(() => {
+      const state: ServerState = this.getCurrentState()
+      this.io.emit('updateState', state)
+    }, 10000)
   }
 
   private setupConnectionHandlers() {
@@ -108,6 +122,7 @@ export class BattleServer {
     socket.on('submitPlayerSelection', (data, ack) => this.handleplayerSelection(socket, data, ack))
     socket.on('getState', ack => this.handleGetState(socket, ack))
     socket.on('getAvailableSelection', ack => this.handleGetSelection(socket, ack))
+    socket.on('getServerState', ack => this.handleGetServerState(socket, ack))
   }
 
   private setupAutoCleanup() {
@@ -145,6 +160,26 @@ export class BattleServer {
     }, this.CLEANUP_INTERVAL)
 
     this.io.engine.on('close', () => clearInterval(cleaner))
+  }
+
+  private getCurrentState() {
+    return {
+      onlinePlayers: this.io.engine.clientsCount,
+      matchmakingQueue: this.matchQueue.size,
+      rooms: this.rooms.size,
+      playersInRooms: Array.from(this.rooms.values()).reduce((acc, room) => acc + room.players.size, 0),
+    }
+  }
+
+  private handleGetServerState(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    ack?: AckResponse<ServerState>,
+  ) {
+    const state: ServerState = this.getCurrentState()
+    ack?.({
+      status: 'SUCCESS',
+      data: state,
+    })
   }
 
   private handleJoinMatchmaking(

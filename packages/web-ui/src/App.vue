@@ -26,6 +26,10 @@
         >
           本地测试
         </el-button>
+        <el-tag type="info" effect="dark" class="online-count">
+          <el-icon><User /></el-icon>
+          在线人数：{{ serverState.serverState.onlinePlayers }}
+        </el-tag>
         <el-button type="info" @click="showEditDialog = true">
           <el-icon><User /></el-icon>
           {{ player.name }}
@@ -84,12 +88,14 @@ import { useGameDataStore } from './stores/gameData'
 import { usePlayerStore } from './stores/player'
 import { usePetStorageStore } from './stores/petStorage'
 import { useResourceStore } from './stores/resource'
+import { useServerStateStore } from './stores/serverState'
 
 const router = useRouter()
 const dataStore = useGameDataStore()
 const resourceStore = useResourceStore()
 const playerStore = usePlayerStore()
 const petStorage = usePetStorageStore()
+const serverState = useServerStateStore()
 
 // 连接状态
 const connectionState = computed(() => {

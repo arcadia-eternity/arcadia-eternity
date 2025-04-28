@@ -68,6 +68,12 @@ export class BattleClient {
       this.socket.once('connect', () => {
         clearTimeout(connectTimeout)
         this.updateState({ status: 'connected' })
+        // 连接成功后立即获取服务器状态
+        this.socket.emit('getServerState', response => {
+          if (response.status === 'SUCCESS') {
+            this.eventHandlers.get('updateState')?.forEach(handler => handler(response.data))
+          }
+        })
         resolve()
       })
 
