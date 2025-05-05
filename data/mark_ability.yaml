@@ -33,7 +33,7 @@
 - id: mark_ability_jianqiang
   config: *ablitity_config
   effect:
-    - effect_ability_physical_damage_reduction_below_25_percent #TODO
+    - effect_ability_physical_damage_reduction_below_25_percent
 - id: mark_ability_liushui
 - id: mark_ability_duyao
 - id: mark_ability_kongqi

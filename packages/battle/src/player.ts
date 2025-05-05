@@ -192,8 +192,15 @@ export class Player {
   }
 
   public performAttack(context: UseSkillContext): boolean {
-    this.battle!.applyEffects(context, EffectTrigger.BeforeUseSkillCheck)
+    if (this.activePet.lastSkill && this.activePet.lastSkill.id === context.skill.id) {
+      this.activePet.lastSkillUsedTimes += 1
+    } else {
+      this.activePet.lastSkill = context.skill
+      this.activePet.lastSkillUsedTimes = 1
+    }
     context.skill.appeared = true
+
+    this.battle!.applyEffects(context, EffectTrigger.BeforeUseSkillCheck)
     context.updateActualTarget()
 
     /*几个无法使用技能的情况：
@@ -229,7 +236,6 @@ export class Player {
     try {
       context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.skill.rage))
 
-      this.activePet.lastSkill = context.skill
       this.battle!.applyEffects(context, EffectTrigger.AfterUseSkillCheck)
 
       context.updateHitResult()

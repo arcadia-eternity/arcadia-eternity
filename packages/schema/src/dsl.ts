@@ -1,6 +1,6 @@
 import type { MarkInstance } from '@arcadia-eternity/battle'
-import { EffectTrigger } from '@arcadia-eternity/const'
-import { BaseSelector, Extractor, type CompareOperator } from '@arcadia-eternity/effect-builder'
+import { ContinuousUseSkillStrategy, EffectTrigger } from '@arcadia-eternity/const'
+import { BaseSelector, Extractor, type CompareOperator, type ValueSource } from '@arcadia-eternity/effect-builder'
 
 export { EffectTrigger }
 export type { CompareOperator }
@@ -551,6 +551,11 @@ export type ConditionDSL =
     }
   | {
       type: 'selfBeHeal'
+    }
+  | {
+      type: 'continuousUseSkill'
+      times?: Value
+      strategy?: ContinuousUseSkillStrategy
     }
 
 export type WhenSelectorStep = {

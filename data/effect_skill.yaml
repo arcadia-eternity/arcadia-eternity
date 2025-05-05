@@ -1254,33 +1254,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: usingSkillContext
-          chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: skill
-            - type: select
-              arg:
-                type: base
-                arg: baseId
-        evaluator:
-          type: same
-          value:
-            type: dynamic
-            selector:
-              base: self
-              chain:
-                - type: select
-                  arg:
-                    type: dynamic
-                    arg: lastSkill
-                - type: select
-                  arg:
-                    type: base
-                    arg: baseId
+      - type: continuousUseSkill
 - id: effect_skill_add_mark_zengzhong_1
   trigger: OnHit
   priority: 0

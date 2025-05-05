@@ -274,7 +274,7 @@ function parseEvaluator(effectId: string, dsl: EvaluatorDSL): Evaluator<Selector
       return Evaluators.exist()
     default: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      throw new Error(`Unknown condition type: ${(dsl as any).type}`)
+      throw new Error(`Unknown evaluator type: ${(dsl as any).type}`)
     }
   }
 }
@@ -729,6 +729,16 @@ export function parseCondition(effectId: string, dsl: ConditionDSL): Condition {
       return Conditions.foeBeAddMark()
     case 'selfBeHeal':
       return Conditions.selfBeHeal()
+    case 'continuousUseSkill':
+      return Conditions.continuousUseSkill(
+        dsl.times ? (parseValue(effectId, dsl.times) as ValueSource<number>) : 2,
+        dsl.strategy,
+      )
+
+    default: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      throw new Error(`Unknown condition type: ${(dsl as any).type}`)
+    }
   }
 }
 

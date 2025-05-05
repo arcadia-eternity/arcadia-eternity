@@ -1,4 +1,4 @@
-import { EffectTrigger } from '@arcadia-eternity/const'
+import { ContinuousUseSkillStrategy, EffectTrigger } from '@arcadia-eternity/const'
 import { BaseSelector, Extractor } from '@arcadia-eternity/effect-builder'
 import { z } from 'zod'
 import type {
@@ -546,6 +546,11 @@ export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
     }),
     z.object({
       type: z.literal('selfBeHeal'),
+    }),
+    z.object({
+      type: z.literal('continuousUseSkill'),
+      times: valueSchema.default(2),
+      strategy: z.nativeEnum(ContinuousUseSkillStrategy).default(ContinuousUseSkillStrategy.Continuous),
     }),
   ]),
 )

@@ -48,22 +48,26 @@ export interface Species extends Prototype {
 
 // 精灵类
 export class Pet implements OwnedEntity, MarkOwner, Instance {
+  public readonly gender: Gender
   public currentHp: number
+
   public readonly baseCritRate: number = 7 // 暴击率默认为7%
   public readonly baseAccuracy: number = 100 // 命中率默认为100%
   public readonly baseRageObtainEfficiency: number = 1
   public statStage: StatStage = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 } //能力等级
   public element: Element
   public isAlive: boolean = true
-  public lastSkill?: SkillInstance
   public owner: Player | null
   public marks: MarkInstance[] = []
   public readonly skills: SkillInstance[]
 
   public dirty: boolean = true
   public base: Species
-  public readonly gender: Gender
+
   public appeared: boolean = false
+
+  public lastSkill?: SkillInstance
+  public lastSkillUsedTimes: number = 0
 
   public readonly baseStat: StatOnBattle = {
     maxHp: 0,

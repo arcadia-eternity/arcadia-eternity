@@ -8,7 +8,10 @@ import {
   SkillInstance,
   UseSkillContext,
 } from '@arcadia-eternity/battle'
-import type { Condition } from './effectBuilder'
+import type { Condition, ValueSource } from './effectBuilder'
+import { ContinuousUseSkillStrategy } from '@arcadia-eternity/const'
+import { GetValueFromSource } from './operator'
+import { time } from 'console'
 
 export const Conditions = {
   some: (...conditions: Condition[]): Condition => {
@@ -166,6 +169,50 @@ export const Conditions = {
         return context.source.owner === context.parent.target
       }
       return false
+    }
+  },
+
+  continuousUseSkill: (
+    times: ValueSource<number>,
+    strategy: ContinuousUseSkillStrategy = ContinuousUseSkillStrategy.Continuous,
+  ): Condition => {
+    switch (strategy) {
+      case ContinuousUseSkillStrategy.Periodic:
+        return context => {
+          const _times = GetValueFromSource(context, times)
+          if (_times.length === 0) return false
+          if (context.parent instanceof UseSkillContext) {
+            return (
+              context.source.owner === context.parent.pet &&
+              (context.parent.skill.owner?.lastSkillUsedTimes ?? 0) % _times[0] === 0
+            )
+          }
+          return false
+        }
+      case ContinuousUseSkillStrategy.Once:
+        return context => {
+          const _times = GetValueFromSource(context, times)
+          if (_times.length === 0) return false
+          if (context.parent instanceof UseSkillContext) {
+            return (
+              context.source.owner === context.parent.pet &&
+              (context.parent.skill.owner?.lastSkillUsedTimes ?? 0) === _times[0]
+            )
+          }
+          return false
+        }
+      case ContinuousUseSkillStrategy.Continuous:
+        return context => {
+          const _times = GetValueFromSource(context, times)
+          if (_times.length === 0) return false
+          if (context.parent instanceof UseSkillContext) {
+            return (
+              context.source.owner === context.parent.pet &&
+              (context.parent.skill.owner?.lastSkillUsedTimes ?? 0) >= _times[0]
+            )
+          }
+          return false
+        }
     }
   },
 }
