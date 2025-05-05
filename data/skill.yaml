@@ -1261,7 +1261,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_double_mark_liuxue_stack #TODO
+    - effect_skill_double_mark_liuxue_stack
 - id: skill_suixinci
   element: Grass
   category: Physical

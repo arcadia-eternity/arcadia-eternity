@@ -1729,6 +1729,19 @@
     type: every
     conditions:
       - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_liuxie
+        evaluator:
+          type: exist
 - id: effect_skill_sure_hit_if_has_mark_yinghua
   trigger: OnHit
   priority: 0

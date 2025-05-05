@@ -341,7 +341,7 @@ skill_caomujiebing:
   description: <font color=#93E312>必中</font>
 skill_ehuashangkou:
   name: 恶化伤口
-  description: 【95】使对手流血层数翻倍
+  description: 【95】使对手流血层数翻倍并刷新持续时间
 skill_suixinci:
   name: 碎心刺
   description: 具有硬化时清除对手双防强化

@@ -146,16 +146,16 @@
       level: 60
       hidden: false
     - skill_id: skill_shuihuajianshe
-      level: 65
+      level: 60
       hidden: true
     - skill_id: skill_yanmo
-      level: 70
+      level: 60
       hidden: true
     - skill_id: skill_ruodianbiaoji
-      level: 75
+      level: 60
       hidden: true
     - skill_id: skill_dixiulazhinu
-      level: 80
+      level: 60
       hidden: true
   ability:
     - mark_ability_zhongjie
@@ -305,16 +305,16 @@
       level: 60
       hidden: false
     - skill_id: skill_yanzhiyizhi
-      level: 65
+      level: 60
       hidden: true
     - skill_id: skill_juechufengsheng
-      level: 70
+      level: 60
       hidden: true
     - skill_id: skill_bumiezhixin
-      level: 75
+      level: 60
       hidden: true
     - skill_id: skill_dixiulazhinu
-      level: 80
+      level: 60
       hidden: true
   ability:
     - mark_ability_yanhuo
@@ -464,16 +464,16 @@
       level: 60
       hidden: false
     - skill_id: skill_qianyesha
-      level: 65
+      level: 60
       hidden: true
     - skill_id: skill_jishengzhadan
-      level: 70
+      level: 60
       hidden: true
     - skill_id: skill_yinbaozhongzi
-      level: 75
+      level: 60
       hidden: true
     - skill_id: skill_dixiulazhinu
-      level: 80
+      level: 60
       hidden: true
   ability:
     - mark_ability_jianren
@@ -623,16 +623,16 @@
       level: 60
       hidden: false
     - skill_id: skill_lingcaiguangxian
-      level: 65
+      level: 60
       hidden: true
     - skill_id: skill_huanjuezhuangtai
-      level: 70
+      level: 60
       hidden: true
     - skill_id: skill_mihuo
-      level: 75
+      level: 60
       hidden: true
     - skill_id: skill_tongshenggongsi
-      level: 80
+      level: 60
       hidden: true
   ability:
     - mark_ability_rumeng
@@ -782,16 +782,16 @@
       level: 60
       hidden: false
     - skill_id: skill_ducao
-      level: 65
+      level: 60
       hidden: true
     - skill_id: skill_fangqing
-      level: 70
+      level: 60
       hidden: true
     - skill_id: skill_duhua
-      level: 75
+      level: 60
       hidden: true
     - skill_id: skill_qianghuachongji
-      level: 80
+      level: 60
       hidden: true
   ability:
     - mark_ability_yangguang
@@ -899,16 +899,16 @@
       level: 60
       hidden: false
     - skill_id: skill_tizhongzhishang
-      level: 65
+      level: 60
       hidden: true
     - skill_id: skill_zhifangranshao
-      level: 70
+      level: 60
       hidden: true
     - skill_id: skill_zhifangzhengqi
-      level: 75
+      level: 60
       hidden: true
     - skill_id: skill_tanxingzhifang
-      level: 80
+      level: 60
       hidden: true
   ability:
     - mark_ability_zhongya
@@ -1016,16 +1016,16 @@
       level: 60
       hidden: false
     - skill_id: skill_caomujiebing
-      level: 2017
+      level: 60
       hidden: true
     - skill_id: skill_ehuashangkou
-      level: 2018
+      level: 60
       hidden: true
     - skill_id: skill_suixinci
-      level: 2001
+      level: 60
       hidden: true
     - skill_id: skill_muyexuanfeng
-      level: 2019
+      level: 60
       hidden: true
   ability:
     - mark_ability_jianqiang

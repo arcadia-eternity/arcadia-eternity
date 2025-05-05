@@ -185,7 +185,10 @@
 - id: mark_liuxie
   tags:
     - status
-  config: *status_config_turn_3
+  config:
+    <<: *status_config_turn_3
+    stackStrategy: max
+    maxStacks: 114514
   effect:
     - effect_mark_damage_with_stack
 - id: mark_exin
