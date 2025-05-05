@@ -154,7 +154,7 @@ export class MarkInstanceImpl implements MarkInstance {
     this.attachTo(target)
     target.marks.push(this)
     if (target instanceof Pet) {
-      target.updateStat()
+      target.dirty = true
     }
   }
 
@@ -202,7 +202,7 @@ export class MarkInstanceImpl implements MarkInstance {
     this.stack = Math.min(this.config.maxStacks ?? Infinity, this.stack + value)
 
     if (this.owner instanceof Pet) {
-      this.owner.updateStat()
+      this.owner.dirty = true
     }
   }
 
@@ -264,7 +264,7 @@ export class MarkInstanceImpl implements MarkInstance {
     this.isActive = true
 
     if (this.owner instanceof Pet) {
-      this.owner.updateStat()
+      this.owner.dirty = true
     }
 
     context.battle.emitMessage(BattleMessageType.MarkUpdate, {
@@ -284,7 +284,7 @@ export class MarkInstanceImpl implements MarkInstance {
     }
 
     if (this.owner instanceof Pet) {
-      this.owner.updateStat()
+      this.owner.dirty = true
     }
 
     return actual
@@ -323,7 +323,7 @@ export class MarkInstanceImpl implements MarkInstance {
 
     // 触发移除效果
     if (this.owner instanceof Pet) {
-      this.owner.updateStat()
+      this.owner.dirty = true
     }
     context.battle.emitMessage(BattleMessageType.MarkDestory, {
       mark: this.id,
@@ -424,7 +424,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
 
       if (this.owner instanceof Pet) {
         this.owner.statStage[this.base.statType] = this.level
-        this.owner.updateStat()
+        this.owner.dirty = true
       }
       return true
     }
@@ -445,7 +445,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
 
     if (this.owner instanceof Pet) {
       this.owner.statStage[this.base.statType] = this.level
-      this.owner.updateStat()
+      this.owner.dirty = true
     }
 
     return true
@@ -531,6 +531,6 @@ export class MarkSystem {
       if (filltered) mark.destroy(context)
       return false
     })
-    if (target instanceof Pet) target.updateStat()
+    if (target instanceof Pet) target.dirty = true
   }
 }

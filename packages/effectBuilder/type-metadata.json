@@ -8,6 +8,13 @@
       "a": false
     },
     {
+      "n": "id",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "allowFaintSwitch",
       "t": "false | true",
       "iu": true,
@@ -2056,29 +2063,18 @@
       "nt": "SkillInstance"
     },
     {
-      "n": "maxHp",
-      "t": "number",
-      "iu": false,
-      "u": [],
+      "n": "dirty",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "base",
       "t": "Species",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "weight",
-      "t": "number",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "height",
-      "t": "number",
       "iu": false,
       "u": [],
       "a": false
@@ -2102,6 +2098,13 @@
         "false",
         "true"
       ],
+      "a": false
+    },
+    {
+      "n": "baseStat",
+      "t": "StatOnBattle",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -2861,7 +2864,7 @@
   "StatTypeOnBattle": [
     {
       "n": "type",
-      "t": "StatTypeWithoutHp.atk | StatTypeWithoutHp.def | StatTypeWithoutHp.spa | StatTypeWithoutHp.spd | StatTypeWithoutHp.spe | StatTypeOnlyBattle.accuracy | StatTypeOnlyBattle.evasion | StatTypeOnlyBattle.critRate | StatTypeOnlyBattle.ragePerTurn | StatTypeOnlyBattle.weight | StatTypeOnlyBattle.height",
+      "t": "StatTypeWithoutHp.atk | StatTypeWithoutHp.def | StatTypeWithoutHp.spa | StatTypeWithoutHp.spd | StatTypeWithoutHp.spe | StatTypeOnlyBattle.maxHp | StatTypeOnlyBattle.accuracy | StatTypeOnlyBattle.evasion | StatTypeOnlyBattle.critRate | StatTypeOnlyBattle.ragePerTurn | StatTypeOnlyBattle.weight | StatTypeOnlyBattle.height",
       "iu": true,
       "u": [
         "StatTypeWithoutHp.atk",
@@ -2869,6 +2872,7 @@
         "StatTypeWithoutHp.spa",
         "StatTypeWithoutHp.spd",
         "StatTypeWithoutHp.spe",
+        "StatTypeOnlyBattle.maxHp",
         "StatTypeOnlyBattle.accuracy",
         "StatTypeOnlyBattle.evasion",
         "StatTypeOnlyBattle.critRate",
@@ -2953,6 +2957,13 @@
       "a": false
     },
     {
+      "n": "maxHp",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "accuracy",
       "t": "number",
       "iu": false,
@@ -3026,6 +3037,13 @@
     },
     {
       "n": "spe",
+      "t": "BuffNumber",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "maxHp",
       "t": "BuffNumber",
       "iu": false,
       "u": [],
@@ -3371,14 +3389,14 @@
       "nt": "(index: number, value: number) => number"
     },
     {
-      "n": "__@iterator@163",
+      "n": "__@iterator@164",
       "t": "() => ArrayIterator<number>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
-      "n": "__@unscopables@774",
+      "n": "__@unscopables@775",
       "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
       "iu": false,
       "u": [],

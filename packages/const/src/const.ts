@@ -40,6 +40,7 @@ export enum StatTypeWithoutHp {
 }
 
 export enum StatTypeOnlyBattle {
+  maxHp = 'maxHp',
   accuracy = 'accuracy',
   evasion = 'evasion',
   critRate = 'critRate',

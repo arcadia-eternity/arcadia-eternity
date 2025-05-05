@@ -49,9 +49,9 @@ export const Extractor: ExtractorMap = {
     extract: (target: Pet) => target.currentHp,
   },
   maxHp: {
-    path: 'maxHp',
+    path: 'stat.maxHp',
     type: 'number',
-    extract: (target: Pet) => target.maxHp!,
+    extract: (target: Pet) => target.stat.maxHp!,
   },
   rage: {
     path: 'currentRage',

@@ -59,12 +59,41 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public owner: Player | null
   public marks: MarkInstance[] = []
   public readonly skills: SkillInstance[]
-  public maxHp: number
+
+  public dirty: boolean = true
   public base: Species
-  public readonly weight: number
-  public readonly height: number
   public readonly gender: Gender
   public appeared: boolean = false
+
+  public readonly baseStat: StatOnBattle = {
+    maxHp: 0,
+    atk: 0,
+    def: 0,
+    spa: 0,
+    spd: 0,
+    spe: 0,
+    accuracy: 100,
+    critRate: 7,
+    evasion: 0,
+    ragePerTurn: 15,
+    weight: 0,
+    height: 0,
+  }
+
+  public stat: StatOnBattle = {
+    maxHp: 0,
+    atk: 0,
+    def: 0,
+    spa: 0,
+    spd: 0,
+    spe: 0,
+    accuracy: 100,
+    critRate: 7,
+    evasion: 0,
+    ragePerTurn: 15,
+    weight: 0,
+    height: 0,
+  }
 
   constructor(
     public readonly name: string,
@@ -82,17 +111,24 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     gender?: Gender,
     maxHp?: number, //可以额外手动设置hp
   ) {
-    this.maxHp = maxHp ? maxHp : this.calculateMaxHp()
     this.base = species
-    this.currentHp = this.maxHp
+
     this.element = species.element
     this.owner = null
+
     this.skills = skills.map(s => new SkillInstance(s))
     this.skills.forEach(skill => skill.setOwner(this))
-    if (!weight) this.weight = species.weightRange[1]
-    else this.weight = weight
-    if (!height) this.height = species.heightRange[1]
-    else this.height = height
+
+    if (!weight) this.baseStat.weight = species.weightRange[1]
+    else this.baseStat.weight = weight
+    if (!height) this.baseStat.height = species.heightRange[1]
+    else this.baseStat.height = height
+
+    this.baseStat = this.calculateStats()
+    this.stat = { ...this.baseStat }
+
+    this.currentHp = this.baseStat.maxHp
+
     if (!gender) {
       if (!this.species.genderRatio) this.gender = Gender.NoGender
       else if (this.species.genderRatio[0] != 0) this.gender = Gender.Female
@@ -158,7 +194,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
 
     context.battle!.emitMessage(BattleMessageType.Damage, {
       currentHp: this.currentHp,
-      maxHp: this.maxHp!,
+      maxHp: this.stat.maxHp!,
       source: context.source.id,
       target: this.id,
       damage: context.damageResult,
@@ -190,7 +226,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       })
       return this.isAlive
     }
-    this.currentHp = Math.floor(Math.min(this.maxHp!, this.currentHp + context.value))
+    this.currentHp = Math.floor(Math.min(this.stat.maxHp!, this.currentHp + context.value))
 
     context.battle.emitMessage(BattleMessageType.Heal, {
       target: this.id,
@@ -256,10 +292,13 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
         base = this.calculateStatWithoutHp(type)
         break
       case StatTypeOnlyBattle.weight:
-        base = this.weight
+        base = this.baseStat.weight
         break
       case StatTypeOnlyBattle.height:
-        base = this.height
+        base = this.baseStat.height
+        break
+      case StatTypeOnlyBattle.maxHp:
+        base = this.calculateMaxHp()
         break
       default:
         throw new Error(`Invalid StatType: ${type}`)
@@ -280,22 +319,9 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     this.owner = player
   }
 
-  public stat: StatOnBattle = {
-    atk: 0,
-    def: 0,
-    spa: 0,
-    spd: 0,
-    spe: 0,
-    accuracy: 100,
-    critRate: 7,
-    evasion: 0,
-    ragePerTurn: 15,
-    weight: 0,
-    height: 0,
-  }
-
-  updateStat() {
+  calculateStats() {
     const stat = {
+      maxHp: this.calculateStat(StatTypeOnlyBattle.maxHp),
       atk: this.calculateStat(StatTypeWithoutHp.atk),
       def: this.calculateStat(StatTypeWithoutHp.def),
       spa: this.calculateStat(StatTypeWithoutHp.spa),
@@ -308,19 +334,26 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       weight: this.calculateStat(StatTypeOnlyBattle.weight),
       height: this.calculateStat(StatTypeOnlyBattle.height),
     }
-    this.stat = stat
-
-    const context = new UpdateStatContext(this.owner?.battle!, this.stat, this)
-
-    this.owner?.battle?.applyEffects(context, EffectTrigger.OnUpdateStat, ...this.marks)
+    return stat
   }
 
   get actualStat(): StatOnBattle {
     return this.getEffectiveStat()
   }
 
+  recalculate() {
+    const newStat = this.calculateStats()
+    const context = new UpdateStatContext(this.owner?.battle!, newStat, this)
+
+    this.owner?.battle?.applyEffects(context, EffectTrigger.OnUpdateStat, ...this.marks)
+    this.stat = { ...this.stat, ...newStat }
+    console.log(this.stat)
+    this.dirty = false
+  }
+
   public getEffectiveStat(ignoreMark = false, ignoreStageStrategy = IgnoreStageStrategy.none): StatOnBattle {
     // Start with base stats
+    if (this.dirty) this.recalculate()
     const baseStats = { ...this.stat }
 
     // If we're ignoring marks, return base stats
@@ -468,7 +501,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       element: shouldShowDetails ? this.element : Element.Normal,
       level: shouldShowDetails ? this.level : 0,
       currentHp: shouldShowDetails ? this.currentHp : 0,
-      maxHp: shouldShowDetails ? this.maxHp : 0,
+      maxHp: shouldShowDetails ? this.stat.maxHp : 0,
       marks: shouldShowDetails ? this.marks.map(m => m.toMessage.call(m)) : [],
       stats: shouldShowDetails ? this.stat : undefined,
       skills: shouldShowDetails ? this.skills.map(s => s.toMessage.call(s, viewerId, showHidden)) : undefined,
@@ -476,6 +509,6 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   get status(): string {
-    return [`NAME:${this.name} HP: ${this.currentHp}/${this.maxHp}`].join(' | ')
+    return [`NAME:${this.name} HP: ${this.currentHp}/${this.stat.maxHp}`].join(' | ')
   }
 }

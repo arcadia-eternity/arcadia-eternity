@@ -33,9 +33,11 @@ import { Pet } from './pet'
 import { Player } from './player'
 import { SkillInstance } from './skill'
 import * as jsondiffpatch from 'jsondiffpatch'
+import { nanoid } from 'nanoid'
 
 export class Battle extends Context implements MarkOwner {
   private lastStateMessage: BattleState = {} as BattleState
+  public id: string = nanoid()
 
   public allowFaintSwitch: boolean
   public showHidden: boolean

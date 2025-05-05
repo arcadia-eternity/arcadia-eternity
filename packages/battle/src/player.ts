@@ -41,7 +41,7 @@ export class Player {
     this.owner = battle
     battle.registerListener(this.handleMessage.bind(this))
     this.team.forEach(pet => {
-      pet.updateStat()
+      pet.dirty = true
     })
   }
 
@@ -275,7 +275,7 @@ export class Player {
             context.actualTarget.damage(damageContext)
 
             // 受伤者获得怒气
-            const gainedRage = Math.floor((damageContext.damageResult * 49) / context.actualTarget.maxHp)
+            const gainedRage = Math.floor((damageContext.damageResult * 49) / context.actualTarget.stat.maxHp)
             context.actualTarget.owner!.addRage(
               new RageContext(context, context.actualTarget.owner!, 'damage', 'add', gainedRage),
             )
@@ -451,7 +451,7 @@ export class AIPlayer extends Player {
   }
 
   private shouldEmergencySwitch(): boolean {
-    return this.activePet.currentHp / this.activePet.maxHp < 0.3
+    return this.activePet.currentHp / this.activePet.stat.maxHp < 0.3
   }
 
   private selectRandom<T extends PlayerSelection>(actions: T[]): T {
