@@ -49,3 +49,9 @@ pet_buer:
 pet_bulutuo:
   name: 布鲁托
   description: 布鲁托最喜欢坐在小树根的脑袋上 享受小精灵们的进贡
+pet_xiaoshugen:
+  name: 小树根
+  description: 小树根是非常胆小的精灵 一直被布鲁托欺负 垫在屁股下
+pet_shugenshizhe:
+  name: 树根使者
+  description: 勇敢的力量让小树根成长为树根使者 长出尖尖的木椎

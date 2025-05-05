@@ -297,3 +297,54 @@ skill_zhifangzhengqi:
 skill_tanxingzhifang:
   name: 弹性脂肪
   description: 使自身获得<font color=#4CE8F7>弹性脂肪</font>
+skill_qiaoda:
+  name: 敲打
+  description: 5%弱化对手特攻1级
+skill_genzhici:
+  name: 根之刺
+  description: 连击2~4次
+skill_jianqiang:
+  name: 坚强
+  description: 强化自身物防1级
+skill_shugenyinghua:
+  name: 树根硬化
+  description: 使自身获得25点硬化
+skill_shutichongzhuang:
+  name: 树体冲撞
+  description: 具有硬化时增加30点威力
+skill_shuairuo:
+  name: 衰弱
+  description: 【95】弱化对手物攻特防1级
+skill_jianruiciji:
+  name: 尖锐刺击
+  description: 【90】具有硬化时增加30点威力
+skill_juxinggenci:
+  name: 巨型根刺
+  description: 【90】具有硬化时清除对手特防强化
+skill_shupibaozha:
+  name: 树皮包扎
+  description: 恢复自身90体力并每回合恢复1/8的体力
+skill_shuangzhuichuanci:
+  name: 双锥穿刺
+  description: 【90】连击2次 具有硬化时增加30点威力
+skill_jiancifangyu:
+  name: 尖刺防御
+  description: 使自身获得反射
+skill_fenglizuantou:
+  name: 锋利钻头
+  description: 使对手获得30点流血
+skill_qianchuangbaikong:
+  name: 千疮百孔
+  description: <font color=#93E312>必中</font> 使对手获得30点流血
+skill_caomujiebing:
+  name: 草木皆兵
+  description: <font color=#93E312>必中</font>
+skill_ehuashangkou:
+  name: 恶化伤口
+  description: 【95】使对手流血层数翻倍
+skill_suixinci:
+  name: 碎心刺
+  description: 具有硬化时清除对手双防强化
+skill_muyexuanfeng:
+  name: 木叶旋风
+  description: 【65】对手流血时<font color=#93E312>必中</font>

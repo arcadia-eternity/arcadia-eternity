@@ -150,3 +150,26 @@
     target:
       base: usingSkillContext
     value: 1.1
+- id: effect_ability_physical_damage_reduction_below_25_percent
+  trigger: OnDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - *hp_below_1_4
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageType
+        evaluator:
+          type: same
+          value: Physical
+  apply:
+    type: addModified
+    target:
+      base: damageContext
+    delta: 0
+    percent: -30

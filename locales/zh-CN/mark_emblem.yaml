@@ -16,3 +16,6 @@ mark_emblem_kangdu:
 mark_emblem_zhongliang:
   name: 重量
   description: 体重增加10KG
+mark_emblem_shupi:
+  name: 树皮
+  description: 减少1回合流血持续时间

@@ -32,6 +32,9 @@
   effect:
     - effect_emblem_increase_weight_10kg
 - id: mark_emblem_shupi
+  config: *emblem_config
+  effect:
+    - effect_emblem_decrease_liuxue_duration_1 #TODO
 - id: mark_emblem_shiming
 - id: mark_emblem_duyao
 - id: mark_emblem_zhixi

@@ -1097,3 +1097,191 @@
   tags: []
   effect:
     - effect_skill_add_mark_tanxingzhifang
+- id: skill_qiaoda
+  element: Normal
+  category: Physical
+  power: 35
+  rage: 0
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_spa_5_percent
+- id: skill_genzhici
+  element: Grass
+  category: Special
+  power: 20
+  rage: 5
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  multihit: [2, 4]
+- id: skill_jianqiang
+  element: Normal
+  category: Status
+  power: 0
+  rage: 10
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_def_1_stages
+- id: skill_shugenyinghua
+  element: Grass
+  category: Status
+  power: 0
+  rage: 10
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_yinghua_25
+- id: skill_shutichongzhuang
+  element: Grass
+  category: Physical
+  power: 65
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_power_30_has_mark_yinghua
+- id: skill_shuairuo
+  element: Normal
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_atk_1_stage
+    - effect_skill_reduce_foe_spd_1_stage
+- id: skill_jianruiciji
+  element: Grass
+  category: Physical
+  power: 80
+  rage: 15
+  accuracy: 90
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_power_30_has_mark_yinghua
+- id: skill_juxinggenci
+  element: Grass
+  category: Special
+  power: 80
+  rage: 15
+  accuracy: 90
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_clear_foe_spd_stage_if_has_mark_yinghua
+- id: skill_shupibaozha
+  element: Grass
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_heal_self_90_hp
+    - effect_skill_add_mark_huifu
+- id: skill_shuangzhuichuanci
+  element: Grass
+  category: Physical
+  power: 30
+  rage: 20
+  accuracy: 90
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  multihit: 2
+  effect:
+    - effect_skill_add_power_30_has_mark_yinghua
+- id: skill_jiancifangyu
+  element: Grass
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_fanshe
+- id: skill_fenglizuantou
+  element: Grass
+  category: Physical
+  power: 55
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_liuxie
+- id: skill_qianchuangbaikong
+  element: Grass
+  category: Climax
+  power: 160
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_liuxie
+- id: skill_caomujiebing
+  element: Grass
+  category: Special
+  power: 100
+  rage: 20
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+- id: skill_ehuashangkou
+  element: Grass
+  category: Status
+  power: 0
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_double_mark_liuxue_stack #TODO
+- id: skill_suixinci
+  element: Grass
+  category: Physical
+  power: 90
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_clear_foe_def_stage_if_has_mark_yinghua
+    - effect_skill_clear_foe_spd_stage_if_has_mark_yinghua
+- id: skill_muyexuanfeng
+  element: Grass
+  category: Physical
+  power: 105
+  rage: 15
+  accuracy: 65
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_sure_hit_if_has_mark_yinghua

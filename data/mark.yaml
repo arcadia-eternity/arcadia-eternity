@@ -451,7 +451,7 @@
   config:
     duration: 5
     persistent: false
-    maxStacks: 1
+    maxStacks: 1000
     stackable: true
     stackStrategy: refresh
     destroyable: true
@@ -463,6 +463,16 @@
 - id: mark_dixiaowulishanghai
 - id: mark_tizhongjiangdi
 - id: mark_fanshe
+  config:
+    duration: 1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_reflect_damage
 - id: mark_mianyiruohua
 - id: mark_hunzhuoshuiyu
 - id: mark_judushenti
@@ -509,3 +519,17 @@
   effect: #TODO
     - effect_mark_reduce_damage_with_weight
     - effect_mark_onDestory_add_mark_tizhongjiangdi
+- id: mark_yinghua
+  config:
+    duration: 5
+    persistent: false
+    maxStacks: 1000
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_reduce_physical_damage_with_stack

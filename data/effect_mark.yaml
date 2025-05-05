@@ -692,6 +692,37 @@
           - type: multiply
             arg: -1
     delta: 0
+- id: effect_mark_reduce_physical_damage_with_stack
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageType
+        evaluator:
+          type: same
+          value: Physical
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent:
+      type: dynamic
+      selector:
+        base: mark
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: -1
+    delta: 0
 - id: effect_mark_add_weight_stack_x50
   trigger: OnUpdateStat
   priority: 0
@@ -740,3 +771,23 @@
     mark:
       type: entity:baseMark
       value: mark_tizhongjiangdi
+- id: effect_mark_reflect_damage
+  trigger: OnDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    - type: preventDamage
+      target: damageContext
+    - type: dealDamage
+      target: foe
+      value:
+        type: dynamic
+        selector:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageResult
+            - type: multiply
+              arg: 1.5
+  consumesStacks: 1

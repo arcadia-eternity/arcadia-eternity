@@ -569,7 +569,13 @@ const addNewPet = () => {
     level: 100,
     evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-    skills: [],
+    skills: [
+      gameDataStore.skillList.find(
+        s =>
+          s.category === 'Climax' &&
+          currentSpecies.value?.learnable_skills?.some((ls: { skill_id: string }) => ls.skill_id === s.id),
+      )?.id || 'skill_paida',
+    ],
     gender: Gender.Male,
     nature: Nature.Adamant,
     ability: 'mark_ability_zhongjie',
@@ -616,7 +622,22 @@ const handleSpeciesChange = (newSpeciesId: string) => {
   petStorage.$patch(state => {
     const pet = state.teams[state.currentTeamIndex].pets.find(p => p.id === selectedPetId.value)
     if (pet) {
-      pet.skills = [] // 直接置空数组，displayedSkills会自动处理显示
+      pet.skills = []
+      // 只有当该种族有climax技能时才优先选择
+      const hasClimax = species.learnable_skills?.some(
+        (ls: { skill_id: string }) =>
+          gameDataStore.skillList.find((s: { id: string }) => s.id === ls.skill_id)?.category === 'Climax',
+      )
+
+      if (hasClimax) {
+        const climaxSkill = species.learnable_skills.find(
+          (ls: { skill_id: string }) =>
+            gameDataStore.skillList.find((s: { id: string }) => s.id === ls.skill_id)?.category === 'Climax',
+        )
+        pet.skills.push(climaxSkill?.skill_id || species.learnable_skills[0]?.skill_id)
+      } else {
+        pet.skills.push(species.learnable_skills[0]?.skill_id)
+      }
       pet.name = i18next.t(`${species.id}.name`, {
         ns: 'species',
       })
@@ -758,6 +779,57 @@ const handleSkillChange = (newVal: string, index: number) => {
     newSkills[index] = ''
     displayedSkills.value = newSkills
     return
+  }
+
+  // 检查climax技能限制
+  const currentClimaxCount = newSkills.filter(skillId => {
+    const skill = gameDataStore.skillList.find(s => s.id === skillId)
+    return skill?.category === 'Climax'
+  }).length
+
+  // 只有当当前种族有climax技能时才应用限制
+  const hasClimax = currentSpecies.value?.learnable_skills?.some(
+    ls => gameDataStore.skillList.find(s => s.id === ls.skill_id)?.category === 'Climax',
+  )
+
+  if (hasClimax) {
+    // 当尝试移除最后一个Climax技能时阻止
+    if (value === '' && currentClimaxCount === 1) {
+      const currentSkill = gameDataStore.skillList.find(s => s.id === displayedSkills.value[index])
+      if (currentSkill?.category === 'Climax') {
+        ElMessage.warning('必须保留一个必杀技')
+        newSkills[index] = displayedSkills.value[index]
+        displayedSkills.value = newSkills
+        return
+      }
+    }
+
+    // 当选择新技能时检查Climax限制
+    if (value) {
+      const newSkill = gameDataStore.skillList.find(s => s.id === value)
+      if (newSkill?.category === 'Climax' && currentClimaxCount >= 1) {
+        ElMessage.warning('队伍中只能携带一个必杀技')
+        newSkills[index] = ''
+        displayedSkills.value = newSkills
+        return
+      }
+    }
+
+    // 自动设置第一个可用Climax技能（仅当没有时）
+    if (currentClimaxCount === 0) {
+      const firstClimax = currentSpecies.value?.learnable_skills
+        ?.map((ls: { skill_id: string }) => gameDataStore.skillList.find((s: { id: string }) => s.id === ls.skill_id))
+        ?.find((s?: { category: string }) => s?.category === 'Climax')
+
+      if (firstClimax) {
+        const emptyIndex = newSkills.findIndex(s => !s)
+        if (emptyIndex > -1) {
+          newSkills[emptyIndex] = firstClimax.id
+        } else {
+          newSkills[0] = firstClimax.id
+        }
+      }
+    }
   }
 
   // 更新指定位置的值

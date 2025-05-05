@@ -914,3 +914,120 @@
     - mark_ability_zhongya
   emblem:
     - mark_emblem_zhongliang
+- id: pet_xiaoshugen
+  num: 18
+  element: Grass
+  baseStats:
+    hp: 96
+    atk: 77
+    spa: 70
+    def: 75
+    spd: 59
+    spe: 40
+  genderRatio:
+    - 0
+    - 0
+  heightRange:
+    - 35
+    - 40
+  weightRange:
+    - 15
+    - 20
+  learnable_skills:
+    - skill_id: skill_qiaoda
+      level: 1
+      hidden: false
+    - skill_id: skill_genzhici
+      level: 5
+      hidden: false
+    - skill_id: skill_jianqiang
+      level: 10
+      hidden: false
+    - skill_id: skill_shugenyinghua
+      level: 14
+      hidden: false
+    - skill_id: skill_shutichongzhuang
+      level: 18
+      hidden: false
+    - skill_id: skill_shuairuo
+      level: 22
+      hidden: false
+  ability:
+    - mark_ability_jianqiang
+  emblem:
+    - mark_emblem_shupi
+- id: pet_shugenshizhe
+  num: 19
+  element: Grass
+  baseStats:
+    hp: 186
+    atk: 127
+    spa: 115
+    def: 125
+    spd: 104
+    spe: 89
+  genderRatio:
+    - 0
+    - 0
+  heightRange:
+    - 82
+    - 87
+  weightRange:
+    - 50
+    - 55
+  learnable_skills:
+    - skill_id: skill_qiaoda
+      level: 1
+      hidden: false
+    - skill_id: skill_genzhici
+      level: 5
+      hidden: false
+    - skill_id: skill_jianqiang
+      level: 10
+      hidden: false
+    - skill_id: skill_shugenyinghua
+      level: 14
+      hidden: false
+    - skill_id: skill_shutichongzhuang
+      level: 18
+      hidden: false
+    - skill_id: skill_shuairuo
+      level: 22
+      hidden: false
+    - skill_id: skill_jianruiciji
+      level: 26
+      hidden: false
+    - skill_id: skill_juxinggenci
+      level: 30
+      hidden: false
+    - skill_id: skill_shupibaozha
+      level: 34
+      hidden: false
+    - skill_id: skill_shuangzhuichuanci
+      level: 39
+      hidden: false
+    - skill_id: skill_jiancifangyu
+      level: 44
+      hidden: false
+    - skill_id: skill_fenglizuantou
+      level: 50
+      hidden: false
+    - skill_id: skill_qianchuangbaikong
+      level: 60
+      hidden: false
+    - skill_id: skill_caomujiebing
+      level: 2017
+      hidden: true
+    - skill_id: skill_ehuashangkou
+      level: 2018
+      hidden: true
+    - skill_id: skill_suixinci
+      level: 2001
+      hidden: true
+    - skill_id: skill_muyexuanfeng
+      level: 2019
+      hidden: true
+  ability:
+    - mark_ability_jianqiang
+  emblem:
+    - mark_emblem_shupi

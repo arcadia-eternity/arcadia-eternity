@@ -16,3 +16,6 @@ mark_ability_yangguang:
 mark_ability_zhongya:
   name: 重压
   description: 体重≥100KG时,技能的威力提升10%
+mark_ability_jianqiang:
+  name: 坚强
+  description: 体力低于1/4以下时受到物理伤害减少30%

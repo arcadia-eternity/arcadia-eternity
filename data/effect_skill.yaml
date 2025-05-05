@@ -1575,3 +1575,182 @@
     type: every
     conditions:
       - type: selfUseSkill
+- id: effect_skill_add_mark_yinghua_25
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_yinghua
+    stack: 25
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_add_power_30_has_mark_yinghua
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target:
+      base: usingSkillContext
+    value: 30
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_yinghua
+        evaluator:
+          type: exist
+- id: effect_skill_heal_self_90_hp
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: heal
+    target:
+      base: self
+    value: 90
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_fanshe
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_fanshe
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_clear_foe_def_stage_if_has_mark_yinghua
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: clearStatStage
+    target: foe
+    statType: def
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_yinghua
+        evaluator:
+          type: exist
+- id: effect_skill_clear_foe_spd_stage_if_has_mark_yinghua
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: clearStatStage
+    target: foe
+    statType: spd
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_yinghua
+        evaluator:
+          type: exist
+- id: effect_skill_add_mark_foe_liuxie
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_liuxie
+    stack: 30
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_double_mark_liuxue_stack
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_liuxie
+    stack:
+      type: dynamic
+      selector:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_liuxie
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_sure_hit_if_has_mark_yinghua
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: setSureHit
+    target:
+      base: usingSkillContext
+    priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_yinghua
+        evaluator:
+          type: exist
