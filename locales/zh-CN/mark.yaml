@@ -295,9 +295,6 @@ mark_xingzhili:
 mark_mianyibuliang:
   name: 免疫不良
   description: 免疫不良 沉默
-mark_judushenti2:
-  name: 剧毒身体
-  description: 受到攻击时50%使对手中毒
 mark_yanhuo:
   name: 焰火
   description: 火系伤害增加{{mark.stack}}%

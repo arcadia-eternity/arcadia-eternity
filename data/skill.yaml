@@ -378,7 +378,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_heal_self_quarter
+    - effect_skill_heal_self_quarter
 - id: skill_zhongzinengliang
   element: Grass
   category: Special
@@ -787,7 +787,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_heal_self_quarter
+    - effect_skill_heal_self_quarter
 - id: skill_gundongtupo
   element: Normal
   category: Physical
@@ -1475,3 +1475,171 @@
   effect:
     - effect_skill_reduce_foe_spa_1_stage
     - effect_skill_reduce_foe_spd_1_stage
+- id: skill_duci
+  element: Grass
+  category: Physical
+  power: 55
+  rage: 5
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_zhongdu_5_percent
+- id: skill_tuihuaye
+  element: Grass
+  category: Status
+  power: 0
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_atk_1_stage
+- id: skill_manxingduyao
+  element: Grass
+  category: Special
+  power: 65
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_manxingduyao_1_stack
+- id: skill_guluoheji
+  element: Normal
+  category: Physical
+  power: 45
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  multihit: 2
+  tags: []
+- id: skill_duye
+  element: Grass
+  category: Special
+  power: 80
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_manxingduyao_70_percent
+- id: skill_duliao
+  element: Grass
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_heal_self_120_hp
+- id: skill_duzhibian
+  element: Grass
+  category: Physical
+  power: 90
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_manxingduyao_70_percent
+- id: skill_fengkuanghuida
+  element: Normal
+  category: Physical
+  power: 100
+  rage: 20
+  accuracy: 90
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_def_1_stage_50_percent
+    - effect_skill_reduce_foe_spd_1_stage_50_percent
+- id: skill_duzhenrugu
+  element: Grass
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_def_1_stage
+    - effect_skill_reduce_foe_spd_1_stage
+- id: skill_juduyeti
+  element: Grass
+  category: Special
+  power: 100
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_manxingduyao_70_percent
+- id: skill_duqigongxin
+  element: Grass
+  category: Climax
+  power: 155
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_manxingduyao_5_stack
+- id: skill_yidugongdu
+  element: Grass
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_destroy_mark_zhongdu
+    - effect_skill_heal_self_quarter
+- id: skill_suxiaoduyao
+  element: Grass
+  category: Special
+  power: 100
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_power_10_per_foe_manxingduyao
+    - effect_skill_consume_all_foe_manxingduyao
+- id: skill_chuisizhenzha
+  element: Normal
+  category: Physical
+  power: 75
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_power_2x_below_quarter_hp
+- id: skill_judushenti
+  element: Grass
+  category: Status
+  power: 0
+  rage: 15
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_judushenti

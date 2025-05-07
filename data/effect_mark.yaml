@@ -265,6 +265,26 @@
             arg:
               type: base
               arg: stack
+- id: effect_mark_damage_with_stack_mutilipy_10
+  trigger: TurnEnd
+  condition:
+    type: petIsActive
+  priority: 0
+  apply:
+    type: dealDamage
+    target:
+      base: self
+    value:
+      type: dynamic
+      selector:
+        base: mark
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 10
 - id: effect_mark_reduce_accuracy_50
   trigger: OnMarkCreate
   priority: 0
@@ -762,7 +782,7 @@
               type: dynamic
               arg: stat.weight
     percent: 0
-- id: effect_mark_onDestory_add_mark_tizhongjiangdi
+- id: effect_mark_onDestroy_add_mark_tizhongjiangdi
   trigger: OnMarkDestroy
   priority: 0
   apply:
@@ -827,3 +847,22 @@
       - type: selfBeAddMark
       - type: statStageChange
         check: down
+- id: effect_mark_when_attacked_add_foe_mark_zhongdu_50_percent
+  trigger: PostDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - &condition_probability_50_percent_template
+        type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 50
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_zhongdu

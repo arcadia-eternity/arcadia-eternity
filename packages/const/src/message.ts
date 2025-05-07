@@ -108,7 +108,7 @@ export enum BattleMessageType {
 
   // 印记相关
   MarkApply = 'MARK_APPLY',
-  MarkDestory = 'MARK_DESTORY',
+  MarkDestroy = 'MARK_DESTROY',
   MarkExpire = 'MARK_EXPIRE',
   MarkUpdate = 'MARK_UPDATE', //UnUsed
 
@@ -147,7 +147,7 @@ export type BattleMessage =
   | MarkApplyMessage
   | MarkExpireMessage
   | MarkUpdateMessage
-  | MarkDestoryMessage
+  | MarkDestroyMessage
   | EffectApplyMessage
   | TurnActionMessage
   | ForcedSwitchMessage
@@ -265,7 +265,7 @@ export interface BattleMessageData {
     target: petId | 'battle'
     mark: MarkMessage
   }
-  [BattleMessageType.MarkDestory]: {
+  [BattleMessageType.MarkDestroy]: {
     mark: markId
     target: petId | 'battle'
   }
@@ -328,7 +328,7 @@ export type DamageFailMessage = BaseBattleMessage<BattleMessageType.DamageFail>
 export type HealMessage = BaseBattleMessage<BattleMessageType.Heal>
 export type HealFailMessage = BaseBattleMessage<BattleMessageType.HealFail>
 export type MarkApplyMessage = BaseBattleMessage<BattleMessageType.MarkApply>
-export type MarkDestoryMessage = BaseBattleMessage<BattleMessageType.MarkDestory>
+export type MarkDestroyMessage = BaseBattleMessage<BattleMessageType.MarkDestroy>
 export type MarkExpireMessage = BaseBattleMessage<BattleMessageType.MarkExpire>
 export type MarkUpdateMessage = BaseBattleMessage<BattleMessageType.MarkUpdate>
 export type EffectApplyMessage = BaseBattleMessage<BattleMessageType.EffectApply>

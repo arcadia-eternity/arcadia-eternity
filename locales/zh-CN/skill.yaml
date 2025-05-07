@@ -399,3 +399,48 @@ skill_linweiyichui:
 skill_xuruoshuixian:
   name: 虚弱水线
   description: 【95】弱化对手特攻特防1级
+skill_duci:
+  name: 毒刺
+  description: 5%使对手中毒
+skill_tuihuaye:
+  name: 退化液
+  description: 【95】弱化对手物攻1级
+skill_manxingduyao:
+  name: 慢性毒药
+  description: 使对手获得1层慢性毒药
+skill_guluoheji:
+  name: 古罗合击
+  description: 连击2次
+skill_duye:
+  name: 毒叶
+  description: 70%使对手获得1层慢性毒药
+skill_duliao:
+  name: 毒疗
+  description: 恢复自身120点体力
+skill_duzhibian:
+  name: 毒之鞭
+  description: 70%使对手获得1层慢性毒药
+skill_fengkuanghuida:
+  name: 疯狂挥打
+  description: 【90】50%弱化对手物防1级 50%弱化对手特防1级
+skill_duzhenrugu:
+  name: 毒针入骨
+  description: 【95】弱化对手双防1级
+skill_juduyeti:
+  name: 剧毒液体
+  description: 70%使对手获得1层慢性毒药
+skill_duqigongxin:
+  name: 毒气攻心
+  description: <font color=#93E312>必中</font> 使对手获得5层慢性毒药
+skill_yidugongdu:
+  name: 以毒攻毒
+  description: 解除自身中毒并恢复最大体力的1/4
+skill_suxiaoduyao:
+  name: 速效毒药
+  description: 清空慢性毒药 每层增加10点威力
+skill_chuishengzhenzha:
+  name: 垂死针扎
+  description: 体力＜1/4时威力2倍
+skill_judushenti:
+  name: 剧毒身体
+  description: 使自身获得剧毒身体

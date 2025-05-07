@@ -25,7 +25,7 @@ const MESSAGE_ICONS: Record<BattleMessageType, string> = {
   [BattleMessageType.SkillUse]: '🎯',
   [BattleMessageType.PetDefeated]: '💀',
   [BattleMessageType.MarkApply]: '🔖',
-  [BattleMessageType.MarkDestory]: '❌',
+  [BattleMessageType.MarkDestroy]: '❌',
   [BattleMessageType.MarkExpire]: '⌛',
   [BattleMessageType.MarkUpdate]: '🔄',
   [BattleMessageType.PetSwitch]: '🔄',
@@ -225,8 +225,8 @@ function formatBattleMessage(
       content = `${getPetName(data.target, petMap || new Map())} 治疗失败：${i18next.t(`battle:healFailReason.${data.reason}`, { defaultValue: data.reason })}`
       break
     }
-    case BattleMessageType.MarkDestory: {
-      const data = msg.data as BattleMessageData[typeof BattleMessageType.MarkDestory]
+    case BattleMessageType.MarkDestroy: {
+      const data = msg.data as BattleMessageData[typeof BattleMessageType.MarkDestroy]
       content = `${getPetName(data.target, petMap || new Map())} 的【${getMarkName(data.mark)}】印记被销毁`
       break
     }

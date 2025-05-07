@@ -217,6 +217,18 @@
   effect:
     - effect_mark_absorb_hp_to_foe
 - id: mark_manxingduyao
+  tags:
+    - status
+  config:
+    duration: 3
+    persistent: false
+    maxStacks: 10
+    stackable: true
+    stackStrategy: stack
+    destroyable: true
+    keepOnSwitchOut: false
+  effect:
+    - effect_mark_damage_with_stack_mutilipy_10
 - id: mark_diaoling
 - id: mark_jibing
 - id: mark_tangshang
@@ -499,6 +511,16 @@
   # effect:
   #    - effect_mark_double_stage_debuff
 - id: mark_judushenti
+  config:
+    duration: 5
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_when_attacked_add_foe_mark_zhongdu_50_percent
 - id: mark_yuansuzhufu
 - id: mark_xingzhili
 - id: mark_mianyibuliang
@@ -541,7 +563,7 @@
     inheritOnFaint: false
   effect: #TODO
     - effect_mark_reduce_damage_with_weight
-    - effect_mark_onDestory_add_mark_tizhongjiangdi
+    - effect_mark_onDestroy_add_mark_tizhongjiangdi
 - id: mark_yinghua
   config:
     duration: 5

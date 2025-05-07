@@ -194,3 +194,28 @@
     type: amplifyPower
     target: usingSkillContext
     value: 1.25
+- id: effect_ability_damage_amplify_10_percent_foe_has_manxingduyao
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_manxingduyao
+        evaluator:
+          type: exist
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 10
+    delta: 0

@@ -61,3 +61,12 @@ pet_qilu:
 pet_kuqilu:
   name: 库奇鲁
   description: 库奇鲁深信河流是精灵王的血液 它的职责是清除血液的障碍
+pet_gusi:
+  name: 古斯
+  description: 古斯是非常胆小的精灵 隐藏在很深很深的荆棘里
+pet_gujialuo:
+  name: 古加罗
+  description: 胆小的古斯成长到一定阶段 会找到共生精灵 合体成古加罗
+pet_gujialuosi:
+  name: 古加罗斯
+  description: 它们的能量共生 互补 进化为古加罗斯 这时古斯不再胆小

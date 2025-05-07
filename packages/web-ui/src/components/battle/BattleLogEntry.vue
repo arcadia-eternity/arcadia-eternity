@@ -28,7 +28,7 @@ const props = defineProps<{
       'text-pink-300!': message.type === 'HP_CHANGE',
       'text-orange-400!': message.type === 'SKILL_USE_FAIL',
       'text-blue-400!': message.type === 'EFFECT_APPLY',
-      'text-red-300!': message.type === 'MARK_DESTORY',
+      'text-red-300!': message.type === 'MARK_DESTROY',
       'text-purple-400!': message.type === 'MARK_UPDATE',
       'text-gray-300!': message.type === 'INFO',
     }"

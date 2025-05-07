@@ -51,7 +51,7 @@
     target: healContext
     percent: 100
     delta: 0
-- id: effect_emblem_destory_meihuo_onturnend
+- id: effect_emblem_destroy_meihuo_onturnend
   trigger: TurnEnd
   priority: 0
   condition:
@@ -155,3 +155,25 @@
     type: setMarkDuration
     target: addMarkContext
     value: 2
+- id: effect_emblem_add_manxingduyao_maxstack_4
+  trigger: OnBeforeAddMark
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark.id
+        evaluator:
+          type: same
+          value: mark_manxingduyao
+  apply:
+    type: setMarkMaxStack
+    target: addMarkContext
+    value: 14

@@ -264,7 +264,7 @@ export class ConsoleUIV2 {
         break
       }
 
-      case BattleMessageType.MarkDestory: {
+      case BattleMessageType.MarkDestroy: {
         const d = message.data
         const targetName = this.getPetNameById(d.target)
         console.log(`🔖 ${targetName} 的【${message.data.mark}】印记消失`)

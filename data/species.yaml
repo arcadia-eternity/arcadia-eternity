@@ -1148,3 +1148,162 @@
     - mark_ability_liushui
   emblem:
     - mark_emblem_shiming
+- id: pet_gusi
+  num: 22
+  element: Grass
+  baseStats:
+    hp: 84
+    atk: 63
+    spa: 67
+    def: 64
+    spd: 65
+    spe: 42
+  genderRatio:
+    - 0
+    - 0
+  heightRange:
+    - 32
+    - 37
+  weightRange:
+    - 7
+    - 12
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_duci
+      level: 5
+      hidden: false
+    - skill_id: skill_tuihuaye
+      level: 10
+      hidden: false
+    - skill_id: skill_manxingduyao
+      level: 14
+      hidden: false
+  ability:
+    - mark_ability_duyao
+  emblem:
+    - mark_emblem_duyao
+- id: pet_gujialuo
+  num: 23
+  element: Grass
+  baseStats:
+    hp: 124
+    atk: 88
+    spa: 92
+    def: 94
+    spd: 95
+    spe: 62
+  genderRatio:
+    - 0
+    - 0
+  heightRange:
+    - 59
+    - 64
+  weightRange:
+    - 23
+    - 28
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_duci
+      level: 5
+      hidden: false
+    - skill_id: skill_tuihuaye
+      level: 10
+      hidden: false
+    - skill_id: skill_manxingduyao
+      level: 14
+      hidden: false
+    - skill_id: skill_guluoheji
+      level: 19
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 24
+      hidden: false
+    - skill_id: skill_duye
+      level: 29
+      hidden: false
+    - skill_id: skill_duliao
+      level: 34
+      hidden: false
+  ability:
+    - mark_ability_duyao
+  emblem:
+    - mark_emblem_duyao
+- id: pet_gujialuosi
+  num: 24
+  element: Grass
+  baseStats:
+    hp: 184
+    atk: 113
+    spa: 117
+    def: 124
+    spd: 125
+    spe: 82
+  genderRatio:
+    - 0
+    - 0
+  heightRange:
+    - 103
+    - 108
+  weightRange:
+    - 56
+    - 61
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_duci
+      level: 5
+      hidden: false
+    - skill_id: skill_tuihuaye
+      level: 10
+      hidden: false
+    - skill_id: skill_manxingduyao
+      level: 14
+      hidden: false
+    - skill_id: skill_guluoheji
+      level: 19
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 24
+      hidden: false
+    - skill_id: skill_duye
+      level: 29
+      hidden: false
+    - skill_id: skill_duliao
+      level: 34
+      hidden: false
+    - skill_id: skill_duzhibian
+      level: 39
+      hidden: false
+    - skill_id: skill_fengkuanghuida
+      level: 44
+      hidden: false
+    - skill_id: skill_ducirugu
+      level: 49
+      hidden: false
+    - skill_id: skill_juduyeti
+      level: 54
+      hidden: false
+    - skill_id: skill_duqigongxin
+      level: 60
+      hidden: false
+    - skill_id: skill_yidugongdu
+      level: 60
+      hidden: true
+    - skill_id: skill_suxiaoduyao
+      level: 60
+      hidden: true
+    - skill_id: skill_chuizizhenza
+      level: 60
+      hidden: true
+    - skill_id: skill_judushenti
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_duyao
+  emblem:
+    - mark_emblem_duyao

@@ -39,6 +39,9 @@
   effect:
     - effect_ability_water_power_boost_below_25_percent
 - id: mark_ability_duyao
+  config: *ablitity_config
+  effect:
+    - effect_ability_damage_amplify_10_percent_foe_has_manxingduyao
 - id: mark_ability_kongqi
 - id: mark_ability_fengli
 - id: mark_ability_chaoshi

@@ -325,7 +325,7 @@ export class MarkInstanceImpl implements MarkInstance {
     if (this.owner instanceof Pet) {
       this.owner.dirty = true
     }
-    context.battle.emitMessage(BattleMessageType.MarkDestory, {
+    context.battle.emitMessage(BattleMessageType.MarkDestroy, {
       mark: this.id,
       target: this.owner instanceof Pet ? this.owner.id : 'battle',
     })

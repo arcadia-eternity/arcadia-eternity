@@ -358,12 +358,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - &condition_probability_10_percent_template
-        type: evaluate
-        target: self
-        evaluator:
-          type: probability
-          percent: 10
+      - *condition_probability_10_percent_template
       - *condition_foe_not_fire_element
 - id: effect_skill_add_mark_foe_shaoshang_50_percent
   trigger: OnHit
@@ -528,7 +523,7 @@
           - type: divide
             arg: 3
   condition: *condition_self_use_skill_template
-- id: effect_heal_self_quarter
+- id: effect_skill_heal_self_quarter
   trigger: OnHit
   priority: 0
   condition:
@@ -654,6 +649,40 @@
     type: clearStatStage
     target: foe
   condition: *condition_self_use_skill_template
+- id: effect_skill_power_2x_below_quarter_hp
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: <=
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp
+                - type: divide
+                  arg: 4
 - id: effect_skill_power_2x_foe_below_quarter_hp
   trigger: AfterUseSkillCheck
   priority: 0
@@ -1166,7 +1195,7 @@
       value: mark_zhongdu
   condition:
     type: selfUseSkill
-- id: effect_skill_add_mark_foe_zhongdu_10_percent
+- id: effect_skill_add_mark_foe_zhongdu_5_percent
   trigger: OnHit
   priority: 0
   apply:
@@ -1179,7 +1208,17 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - *condition_probability_10_percent_template
+      - *condition_probability_5_percent_template
+- id: effect_skill_add_mark_foe_zhongdu_10_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_zhongdu
+  condition: *condition_probability_10_percent_template
 - id: effect_skill_set_weather_qingtian
   trigger: OnHit
   priority: 0
@@ -1476,11 +1515,7 @@
     mark:
       type: entity:baseMark
       value: mark_tanhuan
-  condition:
-    type: every
-    conditions:
-      - type: selfUseSkill
-      - *condition_probability_10_percent_template
+  condition: *condition_probability_10_percent_template
 - id: effect_skill_power2x_if_weight_above_99
   trigger: AfterUseSkillCheck
   priority: 0
@@ -1876,11 +1911,7 @@
     mark:
       type: entity:baseMark
       value: mark_shiming
-  condition:
-    type: every
-    conditions:
-      - type: selfUseSkill
-      - *condition_probability_10_percent_template
+  condition: *condition_probability_10_percent_template
 - id: effect_skill_add_damage_50_per_usetime
   trigger: OnBeforeCalculateDamage
   priority: 0
@@ -1950,6 +1981,156 @@
     mark:
       type: entity:baseMark
       value: mark_hunzhuoshuiyu
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_add_mark_foe_manxingduyao_1_stack
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_manxingduyao
+    stack: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_add_mark_foe_manxingduyao_70_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_manxingduyao
+    stack: 1
+  condition:
+    type: every
+    conditions: &condition_probability_70_percent_template
+      - type: selfUseSkill
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 70
+- id: effect_skill_heal_self_120_hp
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: heal
+    target:
+      base: self
+    value: 120
+- id: effect_skill_reduce_foe_def_1_stage_50_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType: def
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_50_percent_template
+- id: effect_skill_reduce_foe_spd_1_stage_50_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType: spd
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_50_percent_template
+- id: effect_skill_add_mark_foe_manxingduyao_5_stack
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_manxingduyao
+    stack: 5
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_destroy_mark_zhongdu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: destroyMark
+    target:
+      base: selfMarks
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value: mark_zhongdu
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_add_power_10_per_foe_manxingduyao
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target:
+      base: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_manxingduyao
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 10
+- id: effect_skill_consume_all_foe_manxingduyao
+  trigger: OnHit
+  priority: -50
+  apply:
+    type: consumeStacks
+    target:
+      base: foeMarks
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value: mark_manxingduyao
+    value: 10
+- id: effect_skill_add_mark_judushenti
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_judushenti
   condition:
     type: every
     conditions:

@@ -22,7 +22,7 @@
 - id: mark_emblem_meihuo
   config: *emblem_config
   effect:
-    - effect_emblem_destory_meihuo_onturnend
+    - effect_emblem_destroy_meihuo_onturnend
 - id: mark_emblem_kangdu
   config: *emblem_config
   effect:
@@ -40,6 +40,9 @@
   effect:
     - effect_emblem_decrease_shiming_duration_1
 - id: mark_emblem_duyao
+  config: *emblem_config
+  effect:
+    - effect_emblem_add_manxingduyao_maxstack_4
 - id: mark_emblem_zhixi
 - id: mark_emblem_xingzhi
 - id: mark_emblem_zhenji

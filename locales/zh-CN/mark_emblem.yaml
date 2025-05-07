@@ -22,3 +22,6 @@ mark_emblem_shupi:
 mark_emblem_shiming:
   name: 失明
   description: 减少1回合失明持续时间
+mark_emblem_duyao:
+  name: 毒药
+  description: 使慢性毒药最大层数增加4层

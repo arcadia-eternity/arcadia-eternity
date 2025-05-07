@@ -821,7 +821,7 @@ onMounted(() => {
             case BattleMessageType.Heal:
             case BattleMessageType.HealFail:
             case BattleMessageType.MarkApply:
-            case BattleMessageType.MarkDestory:
+            case BattleMessageType.MarkDestroy:
             case BattleMessageType.MarkExpire:
             case BattleMessageType.MarkUpdate:
             case BattleMessageType.EffectApply:

@@ -22,3 +22,6 @@ mark_ability_jianqiang:
 mark_ability_liushui:
   name: 流水
   description: 体力低于1/4以下时水系技能造成的伤害增加25%
+mark_ability_duyao:
+  name: 毒药
+  description: 对手慢性毒药时自身伤害增加10%
