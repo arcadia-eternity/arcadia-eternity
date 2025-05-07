@@ -212,7 +212,7 @@
           - type: divide
             arg: 8
 - id: effect_mark_reduce_accuracy_10
-  trigger: OnMarkCreate
+  trigger: OnUpdateStat
   priority: 0
   apply:
     type: modifyStat
@@ -221,7 +221,7 @@
     statType: accuracy
     percent: -10
 - id: effect_mark_decrease_atk
-  trigger: OnMarkCreate
+  trigger: OnUpdateStat
   priority: 0
   apply:
     type: modifyStat
@@ -230,7 +230,7 @@
     statType: atk
     percent: -25
 - id: effect_mark_decrease_spa
-  trigger: OnMarkCreate
+  trigger: OnUpdateStat
   priority: 0
   apply:
     type: modifyStat
@@ -286,7 +286,7 @@
           - type: multiply
             arg: 10
 - id: effect_mark_reduce_accuracy_50
-  trigger: OnMarkCreate
+  trigger: OnUpdateStat
   priority: 0
   apply:
     type: modifyStat
@@ -426,7 +426,7 @@
           value: skill_yanggong
   consumesStacks: 1
 - id: effect_mark_reduce_accuracy_15
-  trigger: OnMarkCreate
+  trigger: OnUpdateStat
   priority: 0
   apply:
     type: modifyStat
