@@ -70,3 +70,12 @@ pet_gujialuo:
 pet_gujialuosi:
   name: 古加罗斯
   description: 它们的能量共生 互补 进化为古加罗斯 这时古斯不再胆小
+pet_anke:
+  name: 安可
+  description: 安可是谜一样的精灵 身为水系精灵的它无法在水下呼吸
+pet_anya:
+  name: 安亚
+  description: 安亚能将头上的水泡渐渐转变为保护自己的呼吸罩
+pet_anmiya:
+  name: 安迷亚
+  description: 强大的安迷亚让呼吸罩成为了它最强的防护和能量来源

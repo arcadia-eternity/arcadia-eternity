@@ -1307,3 +1307,162 @@
     - mark_ability_duyao
   emblem:
     - mark_emblem_duyao
+- id: pet_anke
+  num: 25
+  element: Water
+  baseStats:
+    hp: 80
+    atk: 116
+    spa: 119
+    def: 115
+    spd: 113
+    spe: 106
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 34
+    - 39
+  weightRange:
+    - 9
+    - 14
+  learnable_skills:
+    - skill_id: skill_chouda
+      level: 1
+      hidden: false
+    - skill_id: skill_penshui
+      level: 5
+      hidden: false
+    - skill_id: skill_mozhipao
+      level: 9
+      hidden: false
+    - skill_id: skill_kongqitianchong
+      level: 13
+      hidden: false
+  ability:
+    - mark_ability_kongqi
+  emblem:
+    - mark_emblem_zhixi
+- id: pet_anya
+  num: 26
+  element: Water
+  baseStats:
+    hp: 120
+    atk: 141
+    spa: 149
+    def: 140
+    spd: 138
+    spe: 126
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 56
+    - 61
+  weightRange:
+    - 18
+    - 23
+  learnable_skills:
+    - skill_id: skill_chouda
+      level: 1
+      hidden: false
+    - skill_id: skill_penshui
+      level: 5
+      hidden: false
+    - skill_id: skill_mozhipao
+      level: 9
+      hidden: false
+    - skill_id: skill_kongqitianchong
+      level: 13
+      hidden: false
+    - skill_id: skill_kongqipao
+      level: 18
+      hidden: false
+    - skill_id: skill_ningju
+      level: 23
+      hidden: false
+    - skill_id: skill_mozhipenshe
+      level: 28
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 33
+      hidden: false
+  ability:
+    - mark_ability_kongqi
+  emblem:
+    - mark_emblem_zhixi
+- id: pet_anmiya
+  num: 27
+  element: Water
+  baseStats:
+    hp: 180
+    atk: 166
+    spa: 179
+    def: 165
+    spd: 163
+    spe: 146
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 96
+    - 101
+  weightRange:
+    - 43
+    - 48
+  learnable_skills:
+    - skill_id: skill_chouda
+      level: 1
+      hidden: false
+    - skill_id: skill_penshui
+      level: 5
+      hidden: false
+    - skill_id: skill_mozhipao
+      level: 9
+      hidden: false
+    - skill_id: skill_kongqitianchong
+      level: 13
+      hidden: false
+    - skill_id: skill_kongqipao
+      level: 18
+      hidden: false
+    - skill_id: skill_ningju
+      level: 23
+      hidden: false
+    - skill_id: skill_mozhipenshe
+      level: 28
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 33
+      hidden: false
+    - skill_id: skill_gaoyashuipao
+      level: 38
+      hidden: false
+    - skill_id: skill_mozhishuiyu
+      level: 43
+      hidden: false
+    - skill_id: skill_lianxuchouda
+      level: 48
+      hidden: false
+    - skill_id: skill_kongqihudun
+      level: 53
+      hidden: false
+    - skill_id: skill_yasuoningjupao
+      level: 60
+      hidden: false
+    - skill_id: skill_gaoyakongqi
+      level: 60
+      hidden: true
+    - skill_id: skill_zhishi
+      level: 60
+      hidden: true
+    - skill_id: skill_luoxuanshuiqiang
+      level: 60
+      hidden: true
+    - skill_id: skill_kongqizhiyu
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_kongqi
+  emblem:
+    - mark_emblem_zhixi

@@ -534,6 +534,14 @@
 - id: mark_xuehongyinji
 - id: mark_texiaochufalvshangsheng
 - id: mark_kongqichuliang
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 100
+    stackable: true
+    stackStrategy: stack
+    destroyable: true
+    keepOnSwitchOut: true
 - id: mark_yinbozhi
 - id: mark_zaoyin
 - id: mark_yinzhiwang
@@ -578,3 +586,15 @@
     inheritOnFaint: false
   effect:
     - effect_mark_reduce_physical_damage_with_stack
+- id: mark_kongqihudun
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 114514
+    stackable: true
+    stackStrategy: replace
+    destroyable: true
+    isShield: true
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false

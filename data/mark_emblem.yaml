@@ -44,6 +44,9 @@
   effect:
     - effect_emblem_add_manxingduyao_maxstack_4
 - id: mark_emblem_zhixi
+  config: *emblem_config
+  effect:
+    - effect_emblem_immune_mark_zhixi
 - id: mark_emblem_xingzhi
 - id: mark_emblem_zhenji
 - id: mark_emblem_yiran

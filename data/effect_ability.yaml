@@ -219,3 +219,61 @@
     target: damageContext
     percent: 10
     delta: 0
+- id: effect_ability_damage_amplify_10_percent_has_kongqichuliang
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_kongqichuliang
+        evaluator:
+          type: exist
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 10
+    delta: 0
+- id: effect_ability_add_water_skill_accuracy_5_percent_has_kongqichuliang
+  trigger: AfterUseSkillCheck
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_kongqichuliang
+        evaluator:
+          type: exist
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg: element
+        evaluator:
+          type: same
+          value: Water
+  apply:
+    type: addAccuracy
+    target: usingSkillContext
+    value: 5

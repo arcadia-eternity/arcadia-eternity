@@ -177,3 +177,24 @@
     type: setMarkMaxStack
     target: addMarkContext
     value: 14
+- id: effect_emblem_immune_mark_zhixi
+  trigger: OnBeforeAddMark
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark.id
+        evaluator:
+          type: same
+          value: mark_zhixi
+  apply:
+    type: disableContext
+    target: addMarkContext

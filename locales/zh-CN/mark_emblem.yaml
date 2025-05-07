@@ -25,3 +25,6 @@ mark_emblem_shiming:
 mark_emblem_duyao:
   name: 毒药
   description: 使慢性毒药最大层数增加4层
+mark_emblem_zhixi:
+  name: 窒息
+  description: 免疫窒息状态

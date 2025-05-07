@@ -43,6 +43,10 @@
   effect:
     - effect_ability_damage_amplify_10_percent_foe_has_manxingduyao
 - id: mark_ability_kongqi
+  config: *ablitity_config
+  effect:
+    - effect_ability_damage_amplify_10_percent_has_kongqichuliang
+    - effect_ability_add_water_skill_accuracy_5_percent_has_kongqichuliang
 - id: mark_ability_fengli
 - id: mark_ability_chaoshi
 - id: mark_ability_ranshao

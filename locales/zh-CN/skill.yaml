@@ -444,3 +444,48 @@ skill_chuishengzhenzha:
 skill_judushenti:
   name: 剧毒身体
   description: 使自身获得剧毒身体
+skill_chouda:
+  name: 抽打
+  description: 5%弱化对手速度1级
+skill_penshui:
+  name: 喷水
+  description: 5%弱化对手特防1级
+skill_mozhipao:
+  name: 墨汁泡
+  description: 20%弱化对手速度1级
+skill_kongqitianchong:
+  name: 空气填充
+  description: 使自身获得100点空气值 70%强化自身速度1级
+skill_kongqipao:
+  name: 空气泡
+  description: 消耗10点空气值 失败时造成伤害减少25%
+skill_mozhipenshe:
+  name: 墨汁喷射
+  description: 消耗15点空气值 失败时造成伤害减少25%
+skill_gaoyashuipao:
+  name: 高压水泡
+  description: 消耗20点空气值 失败时造成伤害减少25%
+skill_mozhishuiyu:
+  name: 墨汁水域
+  description: 使对手获得15点命中下降
+skill_lianxuchouda:
+  name: 连续抽打
+  description: 连击3次
+skill_kongqihudun:
+  name: 空气护盾
+  description: 清空空气值使自身获得等值的空气护盾
+skill_yasuoningjupao:
+  name: 压缩凝聚炮
+  description: <font color=#93E312>必中</font> 10%弱化对手特防1级
+skill_gaoyakongqi:
+  name: 高压空气
+  description: 清空空气值 附加空气值点数的伤害
+skill_zhishi:
+  name: 窒息
+  description: 【50】使对手窒息
+skill_luoxuanshuiqiang:
+  name: 螺旋水枪
+  description: 【90】消耗25点空气值 失败时造成伤害减少25%
+skill_kongqizhiyu:
+  name: 空气治愈
+  description: 恢复自身最大体力的1/8 额外恢复空气值的体力

@@ -340,3 +340,6 @@ mark_yinzhizhiwang:
 mark_zhifanghudun:
   name: 脂肪护盾【🛡️】
   description: 抵挡{{mark.stack}}点伤害
+mark_kongqihudun:
+  name: 空气护盾【🛡️】
+  description: 抵挡{{mark.stack}}点伤害

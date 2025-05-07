@@ -44,6 +44,8 @@ import {
   registerLiteralValue,
   type ConfigValueSource,
   type ConditionalValueSource,
+  createConditionAction,
+  type Action,
 } from '@arcadia-eternity/effect-builder'
 import { RuntimeTypeChecker } from '@arcadia-eternity/effect-builder'
 import type {
@@ -283,14 +285,20 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
   switch (dsl.type) {
     case 'TODO':
       return () => {}
-    case 'conditional':
+    case 'conditional': {
       const condition = parseCondition(effectId, dsl.condition)
       const trueAction = createAction(effectId, dsl.trueOperator)
       const falseAction = dsl.falseOperator ? createAction(effectId, dsl.falseOperator) : undefined
       return (ctx: EffectContext<EffectTrigger>) => {
-        if (condition(ctx)) trueAction(ctx)
-        else if (falseAction) falseAction(ctx)
+        if (condition(ctx)) {
+          console.log('true')
+          trueAction(ctx)
+        } else if (falseAction) {
+          console.log('false')
+          falseAction(ctx)
+        }
       }
+    }
     case 'dealDamage':
       return parseDamageAction(effectId, dsl)
     case 'heal':
