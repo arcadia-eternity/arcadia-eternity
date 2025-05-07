@@ -154,7 +154,22 @@
                       })
                     "
                     :value="ability.id"
-                  />
+                  >
+                    <span class="float-left">
+                      {{
+                        i18next.t(`${ability.id}.name`, {
+                          ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
+                        })
+                      }}
+                    </span>
+                    <span class="float-right font-light">
+                      {{
+                        i18next.t(`${ability.id}.description`, {
+                          ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
+                        })
+                      }}
+                    </span>
+                  </el-option>
                 </el-select>
               </el-form-item>
 
@@ -170,7 +185,20 @@
                       })
                     "
                     :value="emblem.id"
-                  />
+                  >
+                    <span class="float-left">{{
+                      i18next.t(`${emblem.id}.name`, {
+                        ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
+                      })
+                    }}</span>
+                    <span class="float-right font-light">
+                      {{
+                        i18next.t(`${emblem.id}.description`, {
+                          ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
+                        })
+                      }}
+                    </span>
+                  </el-option>
                 </el-select>
               </el-form-item>
 
@@ -280,7 +308,18 @@
                         "
                         :value="skill?.id ?? ''"
                         :disabled="skill?.disabled"
-                      />
+                      >
+                        <span class="float-left">{{
+                          i18next.t(`${skill.id}.name`, {
+                            ns: 'skill',
+                          })
+                        }}</span>
+                        <span class="float-right font-light">{{
+                          i18next.t(`${skill.id}.description`, {
+                            ns: 'skill',
+                          })
+                        }}</span>
+                      </el-option>
                     </el-select>
                   </el-form-item>
                 </el-col>
