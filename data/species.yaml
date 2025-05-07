@@ -1114,7 +1114,7 @@
     - skill_id: skill_jingzhun
       level: 25
       hidden: false
-    - skill_id: skill_fenlitouzhui
+    - skill_id: skill_fenlitouchui
       level: 29
       hidden: false
     - skill_id: skill_shuiqianglianbo
@@ -1123,7 +1123,7 @@
     - skill_id: skill_chunjingshuiyu
       level: 38
       hidden: false
-    - skill_id: skill_pinmingtouzhui
+    - skill_id: skill_pinmingtouchui
       level: 43
       hidden: false
     - skill_id: skill_shuaitui

@@ -593,16 +593,18 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
           const isCriticalHealth = currentHp < maxHp * 0.25
 
           // 优先判断死亡状态
-          if (isDead && availableStates.includes(ActionState.DEAD)) {
-            target.setState(ActionState.DEAD)
-          }
-          // 其次判断濒死状态
-          else if (isCriticalHealth && availableStates.includes(ActionState.ABOUT_TO_DIE)) {
-            target.setState(ActionState.ABOUT_TO_DIE)
-          }
-          // 最后处理普通受伤状态
-          else {
-            target.setState(crit ? ActionState.UNDER_ULTRA : ActionState.UNDER_ATK)
+          if (msg.data.damageType !== 'Effect') {
+            if (isDead && availableStates.includes(ActionState.DEAD)) {
+              target.setState(ActionState.DEAD)
+            }
+            // 其次判断濒死状态
+            else if (isCriticalHealth && availableStates.includes(ActionState.ABOUT_TO_DIE)) {
+              target.setState(ActionState.ABOUT_TO_DIE)
+            }
+            // 最后处理普通受伤状态
+            else {
+              target.setState(crit ? ActionState.UNDER_ULTRA : ActionState.UNDER_ATK)
+            }
           }
 
           showDamageMessage(targetSide, damage, effectiveness > 1 ? 'up' : effectiveness < 1 ? 'down' : 'normal', crit)

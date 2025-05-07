@@ -1884,7 +1884,7 @@
     conditions:
       - type: selfUseSkill
 - id: effect_skill_self_damage_25_percent
-  trigger: OnDamage
+  trigger: PostDamage
   priority: 0
   apply:
     type: dealDamage
