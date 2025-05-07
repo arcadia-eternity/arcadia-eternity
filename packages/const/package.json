@@ -15,7 +15,7 @@
   "author": "yuuinih",
   "license": "MIT",
   "type": "module",
-  "devDependencies": {
+  "dependencies": {
     "jsondiffpatch": "^0.7.3"
   }
 }
