@@ -314,6 +314,8 @@
                             ns: 'skill',
                           })
                         }}</span>
+                        <span>属性:{{ skill.element }}</span>
+                        <span>威力:{{ skill.power }}</span>
                         <span class="float-right font-light">{{
                           i18next.t(`${skill.id}.description`, {
                             ns: 'skill',
