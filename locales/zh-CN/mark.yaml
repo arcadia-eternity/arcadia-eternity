@@ -337,3 +337,6 @@ mark_zaoyin:
 mark_yinzhizhiwang:
   name: 音之网
   description: ''
+mark_zhifanghudun:
+  name: 脂肪护盾【🛡️】
+  description: 抵挡{{mark.stack}}点伤害
