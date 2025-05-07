@@ -55,3 +55,9 @@ pet_xiaoshugen:
 pet_shugenshizhe:
   name: 树根使者
   description: 勇敢的力量让小树根成长为树根使者 长出尖尖的木椎
+pet_qilu:
+  name: 奇鲁
+  description: 奇鲁在石头下出生 需要依靠自己的力量 将身上的大石顶开
+pet_kuqilu:
+  name: 库奇鲁
+  description: 库奇鲁深信河流是精灵王的血液 它的职责是清除血液的障碍

@@ -484,11 +484,11 @@
   element: Normal
   baseStats:
     hp: 77
-    atk: 64
-    spa: 65
-    def: 61
-    spd: 62
-    spe: 58
+    atk: 114
+    spa: 115
+    def: 111
+    spd: 112
+    spe: 108
   genderRatio:
     - 1
     - 0
@@ -520,11 +520,11 @@
   element: Normal
   baseStats:
     hp: 117
-    atk: 94
-    spa: 95
-    def: 68
-    spd: 87
-    spe: 78
+    atk: 144
+    spa: 145
+    def: 118
+    spd: 137
+    spe: 128
   genderRatio:
     - 1
     - 0
@@ -568,11 +568,11 @@
   element: Normal
   baseStats:
     hp: 177
-    atk: 124
-    spa: 125
-    def: 111
-    spd: 112
-    spe: 98
+    atk: 174
+    spa: 175
+    def: 161
+    spd: 162
+    spe: 148
   genderRatio:
     - 1
     - 0
@@ -643,11 +643,11 @@
   element: Grass
   baseStats:
     hp: 88
-    atk: 65
-    spa: 55
-    def: 71
-    spd: 70
-    spe: 50
+    atk: 115
+    spa: 105
+    def: 121
+    spd: 120
+    spe: 100
   genderRatio:
     - 2
     - 8
@@ -679,11 +679,11 @@
   element: Grass
   baseStats:
     hp: 128
-    atk: 90
-    spa: 80
-    def: 101
-    spd: 100
-    spe: 70
+    atk: 140
+    spa: 130
+    def: 151
+    spd: 150
+    spe: 120
   genderRatio:
     - 2
     - 8
@@ -727,11 +727,11 @@
   element: Grass
   baseStats:
     hp: 188
-    atk: 115
-    spa: 105
-    def: 131
-    spd: 130
-    spe: 90
+    atk: 165
+    spa: 155
+    def: 181
+    spd: 180
+    spe: 140
   genderRatio:
     - 2
     - 8
@@ -802,11 +802,11 @@
   element: Normal
   baseStats:
     hp: 90
-    atk: 81
-    spa: 67
-    def: 76
-    spd: 60
-    spe: 56
+    atk: 131
+    spa: 117
+    def: 126
+    spd: 110
+    spe: 106
   genderRatio:
     - 0
     - 10
@@ -844,11 +844,11 @@
   element: Normal
   baseStats:
     hp: 180
-    atk: 131
-    spa: 112
-    def: 126
-    spd: 105
-    spe: 96
+    atk: 181
+    spa: 162
+    def: 176
+    spd: 155
+    spe: 146
   genderRatio:
     - 0
     - 10
@@ -919,11 +919,11 @@
   element: Grass
   baseStats:
     hp: 96
-    atk: 77
-    spa: 70
-    def: 75
-    spd: 59
-    spe: 40
+    atk: 127
+    spa: 120
+    def: 125
+    spd: 109
+    spe: 90
   genderRatio:
     - 0
     - 0
@@ -961,11 +961,11 @@
   element: Grass
   baseStats:
     hp: 186
-    atk: 127
-    spa: 115
-    def: 125
-    spd: 104
-    spe: 89
+    atk: 177
+    spa: 165
+    def: 175
+    spd: 154
+    spe: 139
   genderRatio:
     - 0
     - 0
@@ -1031,3 +1031,120 @@
     - mark_ability_jianqiang
   emblem:
     - mark_emblem_shupi
+- id: pet_qilu
+  num: 20
+  element: Grass
+  baseStats:
+    hp: 91
+    atk: 119
+    spa: 127
+    def: 116
+    spd: 123
+    spe: 107
+  genderRatio:
+    - 8
+    - 2
+  heightRange:
+    - 31
+    - 36
+  weightRange:
+    - 9
+    - 14
+  learnable_skills:
+    - skill_id: skill_touchui
+      level: 1
+      hidden: false
+    - skill_id: skill_shuiqiang
+      level: 5
+      hidden: false
+    - skill_id: skill_ningju
+      level: 9
+      hidden: false
+    - skill_id: skill_chuanjibo
+      level: 13
+      hidden: false
+    - skill_id: skill_niliu
+      level: 17
+      hidden: false
+    - skill_id: skill_zhimingshuiqiang
+      level: 21
+      hidden: false
+  ability:
+    - mark_ability_liushui
+  emblem:
+    - mark_emblem_shiming
+- id: pet_kuqilu
+  num: 21
+  element: Grass
+  baseStats:
+    hp: 181
+    atk: 164
+    spa: 177
+    def: 161
+    spd: 168
+    spe: 147
+  genderRatio:
+    - 8
+    - 2
+  heightRange:
+    - 71
+    - 76
+  weightRange:
+    - 35
+    - 40
+  learnable_skills:
+    - skill_id: skill_touchui
+      level: 1
+      hidden: false
+    - skill_id: skill_shuiqiang
+      level: 5
+      hidden: false
+    - skill_id: skill_ningju
+      level: 9
+      hidden: false
+    - skill_id: skill_chuanjibo
+      level: 13
+      hidden: false
+    - skill_id: skill_niliu
+      level: 17
+      hidden: false
+    - skill_id: skill_zhimingshuiqiang
+      level: 21
+      hidden: false
+    - skill_id: skill_jingzhun
+      level: 25
+      hidden: false
+    - skill_id: skill_fenlitouzhui
+      level: 29
+      hidden: false
+    - skill_id: skill_shuiqianglianbo
+      level: 33
+      hidden: false
+    - skill_id: skill_chunjingshuiyu
+      level: 38
+      hidden: false
+    - skill_id: skill_pinmingtouzhui
+      level: 43
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 49
+      hidden: false
+    - skill_id: skill_junengshuiguangpao
+      level: 60
+      hidden: false
+    - skill_id: skill_chuantoushuipao
+      level: 60
+      hidden: true
+    - skill_id: skill_hunzhuoshuiyu
+      level: 60
+      hidden: true
+    - skill_id: skill_linweiyichui
+      level: 60
+      hidden: true
+    - skill_id: skill_xuruoshuixian
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_liushui
+  emblem:
+    - mark_emblem_shiming

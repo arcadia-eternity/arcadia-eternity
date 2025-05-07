@@ -15,7 +15,7 @@
 - id: mark_ability_yanhuo
   config: *ablitity_config
   effect:
-    - effect_ability_fire_power_boost
+    - effect_ability_fire_power_boost_below_25_percent
 - id: mark_ability_jianren
   config: *ablitity_config
   effect:
@@ -35,6 +35,9 @@
   effect:
     - effect_ability_physical_damage_reduction_below_25_percent
 - id: mark_ability_liushui
+  config: *ablitity_config
+  effect:
+    - effect_ability_water_power_boost_below_25_percent
 - id: mark_ability_duyao
 - id: mark_ability_kongqi
 - id: mark_ability_fengli

@@ -379,6 +379,11 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseAddAccuracy(effectId, dsl)
     case 'setAccuracy':
       return parseSetAccuracy(effectId, dsl)
+    case 'disableContext':
+      return parseDisableContext(effectId, dsl)
+    default:
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      throw new Error(`未知的操作类型: ${(dsl as any).type}`)
   }
 }
 
@@ -699,6 +704,10 @@ function parseSetAccuracy(effectId: string, dsl: Extract<OperatorDSL, { type: 's
   )
 }
 
+function parseDisableContext(effectId: string, dsl: Extract<OperatorDSL, { type: 'disableContext' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(Operators.disableContext())
+}
+
 export function parseCondition(effectId: string, dsl: ConditionDSL): Condition {
   switch (dsl.type) {
     case 'evaluate':
@@ -733,6 +742,11 @@ export function parseCondition(effectId: string, dsl: ConditionDSL): Condition {
       return Conditions.continuousUseSkill(
         dsl.times ? (parseValue(effectId, dsl.times) as ValueSource<number>) : 2,
         dsl.strategy,
+      )
+    case 'statStageChange':
+      return Conditions.statStageChange(
+        dsl.stat ? (parseValue(effectId, dsl.stat) as ValueSource<StatTypeWithoutHp>) : undefined,
+        dsl.check,
       )
 
     default: {

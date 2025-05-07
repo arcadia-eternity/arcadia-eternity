@@ -285,6 +285,11 @@ export type SetAccuracyOpreator = {
   value: Value
 }
 
+export type DisableContextOpreator = {
+  type: 'disableContext'
+  target: SelectorDSL
+}
+
 export type OperatorDSL =
   | TODOOpreator
   | ConditionalOperator
@@ -332,6 +337,7 @@ export type OperatorDSL =
   | SetIgnoreStageStrategyOpreator
   | AddAccuracyOpreator
   | SetAccuracyOpreator
+  | DisableContextOpreator
 
 export type RawNumberValue = {
   type: 'raw:number'
@@ -556,6 +562,11 @@ export type ConditionDSL =
       type: 'continuousUseSkill'
       times?: Value
       strategy?: ContinuousUseSkillStrategy
+    }
+  | {
+      type: 'statStageChange'
+      stat?: Value
+      check?: 'up' | 'down' | 'all'
     }
 
 export type WhenSelectorStep = {

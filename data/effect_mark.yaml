@@ -356,7 +356,7 @@
             arg: -25
     percent: 0
 - id: effect_mark_increase_damage_taken
-  trigger: OnDamage
+  trigger: OnBeforeCalculateDamage
   condition:
     type: selfBeDamaged
   priority: 0
@@ -464,7 +464,7 @@
     value: 1
   consumesStacks: 1
 - id: effect_zhongzinengliang_damage_reduction
-  trigger: OnDamage
+  trigger: OnBeforeCalculateDamage
   priority: 0
   apply:
     type: addModified
@@ -540,7 +540,7 @@
     priority: 1
   consumesStacks: 1
 - id: effect_mark_mihuo_reduce_damage
-  trigger: OnDamage
+  trigger: OnBeforeCalculateDamage
   condition:
     type: selfUseSkill
   priority: 0
@@ -595,7 +595,7 @@
     priority: 99
   consumesStacks: 1
 - id: effect_mark_reduce_damage_15
-  trigger: OnDamage
+  trigger: OnBeforeCalculateDamage
   condition:
     type: selfUseSkill
   priority: 0
@@ -744,7 +744,7 @@
           - type: multiply
             arg: 50
 - id: effect_mark_reduce_damage_with_weight
-  trigger: OnDamage
+  trigger: OnBeforeCalculateDamage
   consumesStacks: 1
   condition:
     type: selfBeDamaged
@@ -791,3 +791,39 @@
             - type: multiply
               arg: 1.5
   consumesStacks: 1
+- id: effect_mark_immune_stage_debuff
+  trigger: OnBeforeAddMark
+  priority: 0
+  apply:
+    type: disableContext
+    target: addMarkContext
+  condition:
+    type: every
+    conditions:
+      - type: selfBeAddMark
+      - type: statStageChange
+        check: down
+- id: effect_mark_double_stage_debuff
+  trigger: OnBeforeAddMark
+  priority: 0
+  apply:
+    [] #TODO
+    # type: setMarkStack
+    # target: addMarkContext
+    # value:
+    #   type: dynamic
+    #   selector:
+    #     base: addMarkContext
+    #     chain:
+    #       - type: select
+    #         arg:
+    #           type: dynamic
+    #           arg: stack
+    #       - type: multiply
+    #         arg: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfBeAddMark
+      - type: statStageChange
+        check: down

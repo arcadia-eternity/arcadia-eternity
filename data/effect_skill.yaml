@@ -70,6 +70,13 @@
         evaluator:
           type: probability
           percent: 10
+- id: effect_skill_reduce_foe_def_10_percent
+  trigger: OnDamage
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType: def
+  condition: *condition_probability_10_percent_template
 - id: effect_skill_raise_atk_1_stages
   trigger: BeforeHit
   priority: 0
@@ -374,7 +381,7 @@
           type: probability
           percent: 50
 - id: effect_skill_min_damage_100
-  trigger: OnDamage
+  trigger: OnBeforeCalculateDamage
   priority: 0
   apply:
     type: addThreshold
@@ -840,6 +847,17 @@
       value: mark_mingzhongtisheng
     stack: 10
   condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_mingzhongtisheng_15
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_mingzhongtisheng
+    stack: 15
+  condition: *condition_self_use_skill_template
 - id: effect_skill_add_mark_weilibianhua_50
   trigger: OnHit
   priority: 0
@@ -995,7 +1013,7 @@
       value: mark_mihuo
   condition: *condition_self_use_skill_template
 - id: effect_skill_add_damage_maxhp_1_4_maxhp_max_180
-  trigger: OnDamage
+  trigger: OnBeforeCalculateDamage
   priority: 0
   apply:
     type: addModified
@@ -1160,7 +1178,7 @@
   condition:
     type: selfUseSkill
 - id: effect_skill_setsurehit_foe_has_mark_kuihuazhongzi
-  trigger: OnHit
+  trigger: AfterUseSkillCheck
   priority: 0
   apply:
     type: setSureHit
@@ -1717,7 +1735,7 @@
         evaluator:
           type: exist
 - id: effect_skill_sure_hit_if_has_mark_yinghua
-  trigger: OnHit
+  trigger: AfterUseSkillCheck
   priority: 0
   apply:
     type: setSureHit
@@ -1741,3 +1759,184 @@
                 value: mark_yinghua
         evaluator:
           type: exist
+- id: effect_skill_add_power_30_per_usetime
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target:
+      base: usingSkillContext
+    value: &value_skill_add_30_per_usetime
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: lastSkillUsedTimes
+          - type: add
+            arg: -1
+          - type: clampMax
+            arg: 3
+          - type: multiply
+            arg: 30
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_add_crit_rate_30_per_usetime
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addCritRate
+    target:
+      base: usingSkillContext
+    value: *value_skill_add_30_per_usetime
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_add_multihit_per_usetime
+  trigger: BeforeMultiHit
+  priority: 0
+  apply:
+    type: addMultihitResult
+    target:
+      base: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: lastSkillUsedTimes
+          - type: add
+            arg: -1
+          - type: clampMax
+            arg: 3
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_add_mark_mianyiruohua
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_mianyiruohua
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_self_damage_25_percent
+  trigger: OnDamage
+  priority: 0
+  apply:
+    type: dealDamage
+    target: self
+    value:
+      type: dynamic
+      selector:
+        base: damageContext
+        chain:
+          - type: selectPath
+            arg: damageResult
+          - type: multiply
+            arg: 0.25
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_add_mark_shiming_10_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shiming
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_10_percent_template
+- id: effect_skill_add_damage_50_per_usetime
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: lastSkillUsedTimes
+          - type: add
+            arg: -1
+          - type: clampMax
+            arg: 3
+          - type: multiply
+            arg: 50
+    delta: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_sure_hit_below_1_4_hp
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target:
+      base: usingSkillContext
+    priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: <=
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp
+                - type: divide
+                  arg: 4
+- id: effect_skill_add_mark_hunzhuoshuiyu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_hunzhuoshuiyu
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill

@@ -1,4 +1,4 @@
-import { ContinuousUseSkillStrategy, EffectTrigger } from '@arcadia-eternity/const'
+import { ContinuousUseSkillStrategy, EffectTrigger, StatTypeWithoutHp } from '@arcadia-eternity/const'
 import { BaseSelector, Extractor } from '@arcadia-eternity/effect-builder'
 import { z } from 'zod'
 import type {
@@ -478,6 +478,10 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       target: selectorDSLSchema,
       value: valueSchema,
     }),
+    z.object({
+      type: z.literal('disableContext'),
+      target: selectorDSLSchema,
+    }),
   ]),
 )
 
@@ -551,6 +555,19 @@ export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
       type: z.literal('continuousUseSkill'),
       times: valueSchema.default(2),
       strategy: z.nativeEnum(ContinuousUseSkillStrategy).default(ContinuousUseSkillStrategy.Continuous),
+    }),
+    z.object({
+      type: z.literal('statStageChange'),
+      stat: valueSchema
+        .default([
+          StatTypeWithoutHp.atk,
+          StatTypeWithoutHp.def,
+          StatTypeWithoutHp.spa,
+          StatTypeWithoutHp.spd,
+          StatTypeWithoutHp.spe,
+        ])
+        .optional(),
+      check: z.enum(['up', 'down', 'all']).default('all').optional(),
     }),
   ]),
 )

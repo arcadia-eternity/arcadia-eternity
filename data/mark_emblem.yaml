@@ -36,6 +36,9 @@
   effect:
     - effect_emblem_decrease_liuxue_duration_1
 - id: mark_emblem_shiming
+  config: *emblem_config
+  effect:
+    - effect_emblem_decrease_shiming_duration_1
 - id: mark_emblem_duyao
 - id: mark_emblem_zhixi
 - id: mark_emblem_xingzhi

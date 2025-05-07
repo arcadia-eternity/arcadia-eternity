@@ -348,3 +348,54 @@ skill_suixinci:
 skill_muyexuanfeng:
   name: 木叶旋风
   description: 【65】对手流血时<font color=#93E312>必中</font>
+skill_touchui:
+  name: 头槌
+  description: 5%弱化对手物防1级
+skill_shuiqiang:
+  name: 水枪
+  description: 5%弱化对手特攻1级
+skill_ningju:
+  name: 凝聚
+  description: 强化自身特攻1级
+skill_chuanjibo:
+  name: 穿击波
+  description: 连续命中增加30点威力 最多3次
+skill_niliu:
+  name: 逆流
+  description: 【95】弱化对手速度1级
+skill_zhimingshuiqiang:
+  name: 致命水枪
+  description: 连续命中暴击率增加30% 最多3次
+skill_jingzhun:
+  name: 精准
+  description: 使自身获得15点命中提升
+skill_fenlitouchui:
+  name: 奋力头槌
+  description: 10%弱化对手物防1级
+skill_shuiqianglianbo:
+  name: 水枪连波
+  description: 连续命中连击数+1 最多3次
+skill_chunjingshuiyu:
+  name: 纯净水域
+  description: 使自身获得免疫弱化
+skill_pinmingtouchui:
+  name: 拼命头槌
+  description: 自身承受25%的自损伤害
+skill_shuaitui:
+  name: 衰退
+  description: 【95】弱化对手特攻1级
+skill_junengshuiguangpao:
+  name: 聚能水光炮
+  description: <font color=#93E312>必中</font> 10%使对手失明
+skill_chuantoushuipao:
+  name: 穿透水炮
+  description: 连续命中伤害增加50% 最多3次
+skill_hunzhuoshuiyu:
+  name: 浑浊水域
+  description: 使自身获得浑浊水域
+skill_linweiyichui:
+  name: 临危一锤
+  description: 【25】体力＜1/4时<font color=#93E312>必中</font>
+skill_xuruoshuixian:
+  name: 虚弱水线
+  description: 【95】弱化对手特攻特防1级

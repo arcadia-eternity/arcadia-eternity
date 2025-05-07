@@ -19,3 +19,6 @@ mark_emblem_zhongliang:
 mark_emblem_shupi:
   name: 树皮
   description: 减少1回合流血持续时间
+mark_emblem_shiming:
+  name: 失明
+  description: 减少1回合失明持续时间

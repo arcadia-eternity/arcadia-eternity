@@ -1285,3 +1285,191 @@
   tags: []
   effect:
     - effect_skill_sure_hit_if_has_mark_yinghua
+- id: skill_touchui
+  element: Normal
+  category: Physical
+  power: 40
+  rage: 0
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_def_5_percent
+- id: skill_shuiqiang
+  element: Water
+  category: Special
+  power: 60
+  rage: 5
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_spa_5_percent
+- id: skill_ningju
+  element: Normal
+  category: Status
+  power: 0
+  rage: 10
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_spa_1_stages
+- id: skill_chuanjibo
+  element: Water
+  category: Special
+  power: 65
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_power_30_per_usetime
+- id: skill_niliu
+  element: Water
+  category: Status
+  power: 0
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_spd_1_stage
+- id: skill_zhimingshuiqiang
+  element: Water
+  category: Special
+  power: 70
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_crit_rate_30_per_usetime
+- id: skill_jingzhun
+  element: Normal
+  category: Status
+  power: 0
+  rage: 10
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_mingzhongtisheng_15
+- id: skill_fenlitouchui
+  element: Normal
+  category: Physical
+  power: 80
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_def_10_percent
+- id: skill_shuiqianglianbo
+  element: Water
+  category: Special
+  power: 50
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_multihit_per_usetime
+- id: skill_chunjingshuiyu
+  element: Water
+  category: Status
+  power: 0
+  rage: 15
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_mianyiruohua
+- id: skill_pinmingtouchui
+  element: Normal
+  category: Physical
+  power: 110
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_self_damage_25_percent
+- id: skill_shuaitui
+  element: Normal
+  category: Status
+  power: 0
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_spa_1_stage
+- id: skill_junengshuiguangpao
+  element: Water
+  category: Climax
+  power: 160
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_shiming_10_percent
+- id: skill_chuantoushuipao
+  element: Water
+  category: Special
+  power: 85
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_damage_50_per_usetime
+- id: skill_hunzhuoshuiyu
+  element: Water
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_hunzhuoshuiyu #TODO
+- id: skill_linweiyichui
+  element: Normal
+  category: Physical
+  power: 120
+  rage: 10
+  accuracy: 25
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_sure_hit_below_1_4_hp
+- id: skill_xuruoshuixian
+  element: Water
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_spa_1_stage
+    - effect_skill_reduce_foe_spd_1_stage

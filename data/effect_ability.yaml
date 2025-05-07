@@ -53,7 +53,7 @@
         evaluator:
           type: contain
           tag: consume_ruodian
-- id: effect_ability_fire_power_boost
+- id: effect_ability_fire_power_boost_below_25_percent
   trigger: AfterUseSkillCheck
   priority: 0
   condition:
@@ -173,3 +173,24 @@
       base: damageContext
     delta: 0
     percent: -30
+- id: effect_ability_water_power_boost_below_25_percent
+  trigger: AfterUseSkillCheck
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - *hp_below_1_4
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Water
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 1.25

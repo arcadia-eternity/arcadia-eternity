@@ -486,6 +486,14 @@ export const Operators = {
       })
     }
   },
+
+  disableContext: <T extends { available: boolean }>(): Operator<T> => {
+    return (context, contexts) => {
+      contexts.forEach(ctx => {
+        ctx.available = false
+      })
+    }
+  },
 }
 
 export function GetValueFromSource<T extends SelectorOpinion>(

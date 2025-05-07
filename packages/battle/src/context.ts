@@ -289,7 +289,7 @@ export class SwitchPetContext extends Context {
 export class RageContext extends Context {
   readonly type = 'rage-cost'
   public readonly battle: Battle
-  public readonly available: boolean = true
+  public available: boolean = true
   public rageChangeResult = 0
   constructor(
     public readonly parent: UseSkillContext | EffectContext<EffectTrigger> | TurnContext,
@@ -374,7 +374,7 @@ export class DamageContext extends Context {
 export class HealContext extends Context {
   readonly type = 'heal'
   public readonly battle: Battle
-  public readonly available: boolean = true
+  public available: boolean = true
   constructor(
     public readonly parent: EffectContext<EffectTrigger>,
     public readonly source: MarkInstance | SkillInstance,
@@ -396,7 +396,7 @@ export class HealContext extends Context {
 export class AddMarkContext extends Context {
   readonly type = 'add-mark'
   public readonly battle: Battle
-  public readonly available: boolean = true
+  public available: boolean = true
   constructor(
     public readonly parent: EffectContext<EffectTrigger>,
     public target: MarkOwner,
@@ -475,7 +475,7 @@ export class AddMarkContext extends Context {
 export class RemoveMarkContext extends Context {
   readonly type = 'remove-mark'
   public readonly battle: Battle
-  public readonly available: boolean = true
+  public available: boolean = true
   constructor(
     public readonly parent: EffectContext<EffectTrigger> | DamageContext | AddMarkContext | TurnContext,
     public mark: MarkInstance,
@@ -488,7 +488,7 @@ export class RemoveMarkContext extends Context {
 export class UpdateStatContext extends Context {
   readonly type = 'update-stat'
   public readonly battle: Battle
-  public readonly available: boolean = true
+  public available: boolean = true
   constructor(
     public readonly parent: Battle,
     public readonly stat: StatOnBattle,
@@ -549,7 +549,7 @@ export type TriggerContextMap = {
 export class EffectContext<T extends EffectTrigger> extends Context {
   readonly type = 'effect'
   public readonly battle: Battle
-  public readonly available: boolean = true
+  public available: boolean = true
 
   public success?: boolean
   constructor(

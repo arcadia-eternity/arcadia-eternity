@@ -1,5 +1,6 @@
 import {
   AddMarkContext,
+  BaseStatLevelMark,
   DamageContext,
   HealContext,
   MarkInstanceImpl,
@@ -9,9 +10,8 @@ import {
   UseSkillContext,
 } from '@arcadia-eternity/battle'
 import type { Condition, ValueSource } from './effectBuilder'
-import { ContinuousUseSkillStrategy } from '@arcadia-eternity/const'
+import { ContinuousUseSkillStrategy, StatTypeWithoutHp } from '@arcadia-eternity/const'
 import { GetValueFromSource } from './operator'
-import { time } from 'console'
 
 export const Conditions = {
   some: (...conditions: Condition[]): Condition => {
@@ -213,6 +213,38 @@ export const Conditions = {
           }
           return false
         }
+    }
+  },
+
+  statStageChange: (
+    stat: ValueSource<StatTypeWithoutHp> = [
+      StatTypeWithoutHp.atk,
+      StatTypeWithoutHp.def,
+      StatTypeWithoutHp.spa,
+      StatTypeWithoutHp.spd,
+      StatTypeWithoutHp.spe,
+    ],
+    check: 'up' | 'down' | 'all' = 'all',
+  ): Condition => {
+    return context => {
+      if (context.parent instanceof AddMarkContext) {
+        const mark = context.parent.baseMark
+        const _stat = GetValueFromSource(context, stat)
+        if (_stat.length === 0) return false
+        if (mark instanceof BaseStatLevelMark && _stat.includes(mark.statType) && mark.initialLevel !== 0) {
+          switch (check) {
+            case 'up':
+              return mark.initialLevel > 0
+            case 'down':
+              return mark.initialLevel < 0
+            case 'all':
+              return true
+            default:
+              return false
+          }
+        }
+      }
+      return false
     }
   },
 }
