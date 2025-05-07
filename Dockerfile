@@ -11,9 +11,9 @@ RUN apk add --no-cache git && \
 
 COPY pnpm-lock.yaml* package.json pnpm-workspace.yaml .npmrc ./
 
-RUN pnpm install --frozen-lockfile --force
-
 COPY . .
+
+RUN pnpm install --frozen-lockfile --force
 
 RUN pnpm build
 
