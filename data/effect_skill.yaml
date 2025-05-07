@@ -1166,6 +1166,20 @@
       value: mark_zhongdu
   condition:
     type: selfUseSkill
+- id: effect_skill_add_mark_foe_zhongdu_10_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_zhongdu
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_10_percent_template
 - id: effect_skill_set_weather_qingtian
   trigger: OnHit
   priority: 0
