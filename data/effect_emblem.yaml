@@ -107,7 +107,7 @@
   priority: 1
   apply:
     type: modifyStat
-    target: self
+    target: updateStatContext
     statType: weight
     delta: 10
     percent: 0

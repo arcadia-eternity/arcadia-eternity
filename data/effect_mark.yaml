@@ -748,8 +748,7 @@
   priority: 0
   apply:
     type: modifyStat
-    target:
-      base: updateStatContext
+    target: updateStatContext
     statType: weight
     percent: 0
     delta:
