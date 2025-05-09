@@ -277,7 +277,7 @@
     type: addAccuracy
     target: usingSkillContext
     value: 5
-- id: effect_ability_add_power_35_percent_normal
+- id: effect_ability_add_power_50_percent_normal
   trigger: AfterUseSkillCheck
   priority: 0
   apply:

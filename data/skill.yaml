@@ -1962,4 +1962,4 @@
   tags: []
   effect:
     - effect_skill_heal_self_quarter
-    - effect_skill_clear_status
+    - effect_skill_clear_stage
