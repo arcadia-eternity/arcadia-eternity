@@ -18,6 +18,7 @@ import {
 import {
   type baseMarkId,
   type baseSkillId,
+  CleanStageStrategy,
   type effectId,
   EffectTrigger,
   IgnoreStageStrategy,
@@ -68,7 +69,7 @@ export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
       return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition, dsl.consumesStacks)
     } else {
       const actions = createAction(dsl.id, dsl.apply)
-      return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition, dsl.consumesStacks)
+      return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition, dsl.consumesStacks, dsl.tags)
     }
   } catch (error) {
     console.log(`解析${dsl.id}时出现问题,`, error)
@@ -491,6 +492,7 @@ export function parseClearStatStage(effectId: string, dsl: Extract<OperatorDSL, 
   return parseSelector<Pet>(effectId, dsl.target).apply(
     Operators.clearStatStage(
       dsl.statType ? (parseValue(effectId, dsl.statType) as ValueSource<StatTypeWithoutHp>) : undefined,
+      dsl.cleanStageStrategy,
     ),
   )
 }

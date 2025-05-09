@@ -28,3 +28,6 @@ mark_emblem_duyao:
 mark_emblem_zhixi:
   name: 窒息
   description: 免疫窒息状态
+mark_emblem_xingzhi:
+  name: 星之
+  description: 星之力的持续时间额外增加5回合

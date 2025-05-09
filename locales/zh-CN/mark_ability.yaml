@@ -28,3 +28,6 @@ mark_ability_duyao:
 mark_ability_kongqi:
   name: 空气
   description: 具有空气值时伤害提升10%且水系技能命中率提高5%
+mark_ability_fengli:
+  name: 锋利
+  description: 普通系技能的威力增加50%

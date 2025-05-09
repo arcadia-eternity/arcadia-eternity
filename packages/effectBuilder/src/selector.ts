@@ -401,6 +401,7 @@ export type ObjectOpinion =
   | Player
   | StatOnBattle
   | UseSkillContext
+  | EffectContext<EffectTrigger>
   | DamageContext
   | HealContext
   | AddMarkContext
@@ -428,6 +429,7 @@ export const BaseSelector: {
   foeOwners: ChainableSelector<Player>
   usingSkillContext: ChainableSelector<UseSkillContext>
   damageContext: ChainableSelector<DamageContext>
+  effectContext: ChainableSelector<EffectContext<EffectTrigger>>
   mark: ChainableSelector<MarkInstance>
   selfMarks: ChainableSelector<MarkInstance>
   foeMarks: ChainableSelector<MarkInstance>
@@ -486,6 +488,13 @@ export const BaseSelector: {
     //TODO: error with use get context with non-Damage context
     return []
   }),
+  effectContext: createChainable<EffectContext<EffectTrigger>>(
+    'EffectContext',
+    (context: EffectContext<EffectTrigger>) => {
+      if (context.parent instanceof EffectContext) return [context.parent]
+      return []
+    },
+  ),
   mark: createChainable<MarkInstance>('MarkInstance', (context: EffectContext<EffectTrigger>) => {
     if (context.source instanceof MarkInstanceImpl) return [context.source]
     //TODO: error with use get context with non-MarkEffect context

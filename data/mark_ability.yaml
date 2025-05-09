@@ -48,6 +48,9 @@
     - effect_ability_damage_amplify_10_percent_has_kongqichuliang
     - effect_ability_add_water_skill_accuracy_5_percent_has_kongqichuliang
 - id: mark_ability_fengli
+  config: *ablitity_config
+  effect:
+    - effect_ability_add_power_35_percent_normal
 - id: mark_ability_chaoshi
 - id: mark_ability_ranshao
 - id: mark_ability_xuanyun

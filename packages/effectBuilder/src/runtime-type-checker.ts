@@ -93,18 +93,19 @@ export class RuntimeTypeChecker {
       result.add(currentType)
       return
     }
+    const baseType = currentType.replace(/<.*>/, '') // 新增
 
     const [currentPart, ...restParts] = remainingParts
     const [prop, isArray] = currentPart.endsWith('[]') ? [currentPart.slice(0, -2), true] : [currentPart, false]
 
     // 处理基础类型
-    if (['string', 'number', 'boolean'].includes(currentType)) {
-      if (restParts.length === 0) result.add(currentType)
+    if (['string', 'number', 'boolean'].includes(baseType)) {
+      if (restParts.length === 0) result.add(baseType)
       return
     }
 
     // 获取类型元数据
-    const typeInfo = this.metadata[currentType]
+    const typeInfo = this.metadata[baseType]
     if (!typeInfo) {
       result.add('undefined')
       return
@@ -138,7 +139,7 @@ export class RuntimeTypeChecker {
   private static splitUnionTypes(typeString: string): string[] {
     return typeString
       .split('|')
-      .map(t => t.trim())
+      .map(t => t.trim().replace(/<.*>/, ''))
       .filter(Boolean)
   }
 

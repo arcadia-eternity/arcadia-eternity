@@ -99,6 +99,7 @@
                                       "foeOwners",
                                       "usingSkillContext",
                                       "damageContext",
+                                      "effectContext",
                                       "mark",
                                       "selfMarks",
                                       "foeMarks",
@@ -1315,6 +1316,15 @@
                       },
                       "statType": {
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "cleanStageStrategy": {
+                        "type": "string",
+                        "enum": [
+                          "all",
+                          "positive",
+                          "negative"
+                        ],
+                        "default": "positive"
                       }
                     },
                     "required": [
@@ -2160,6 +2170,13 @@
           },
           "consumesStacks": {
             "type": "number"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
           }
         },
         "required": [

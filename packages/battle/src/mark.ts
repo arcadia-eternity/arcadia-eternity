@@ -301,7 +301,7 @@ export class MarkInstanceImpl implements MarkInstance {
     this.effects
       .filter(effect => effect.trigger === trigger)
       .forEach(effect => {
-        const effectContext = new EffectContext(baseContext, trigger, this)
+        const effectContext = new EffectContext(baseContext, trigger, this, effect)
         try {
           if (!effect.condition || effect.condition(effectContext)) {
             baseContext.battle.effectScheduler.addEffect(effect, effectContext)
@@ -354,12 +354,10 @@ export class BaseStatLevelMark extends BaseMark {
     public readonly statType: StatTypeWithoutHp,
     public initialLevel: number,
     id: baseMarkId,
-    name: string,
-    effects: Effect<EffectTrigger>[] = [],
   ) {
     super(
       id,
-      effects,
+      [],
       {
         duration: -1,
         persistent: true,
@@ -464,13 +462,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
 }
 
 export function CreateStatStageMark(statType: StatTypeWithoutHp, level: number): BaseStatLevelMark {
-  return new BaseStatLevelMark(
-    statType,
-    level,
-    `stat_stage_${statType}_${level > 0 ? 'up' : 'down'}` as baseMarkId,
-    `${statType.toUpperCase()} ${level > 0 ? '+' : ''}${level}`,
-    [],
-  )
+  return new BaseStatLevelMark(statType, level, `stat_stage_${statType}_${level > 0 ? 'up' : 'down'}` as baseMarkId)
 }
 
 export class MarkSystem {

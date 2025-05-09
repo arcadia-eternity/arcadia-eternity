@@ -1,5 +1,5 @@
 import type { MarkInstance } from '@arcadia-eternity/battle'
-import { ContinuousUseSkillStrategy, EffectTrigger } from '@arcadia-eternity/const'
+import { CleanStageStrategy, ContinuousUseSkillStrategy, EffectTrigger } from '@arcadia-eternity/const'
 import { BaseSelector, Extractor, type CompareOperator, type ValueSource } from '@arcadia-eternity/effect-builder'
 
 export { EffectTrigger }
@@ -12,6 +12,7 @@ export interface EffectDSL {
   apply: OperatorDSL | Array<OperatorDSL>
   condition?: ConditionDSL
   consumesStacks?: number
+  tags?: string[]
 }
 
 export type TODOOpreator = {
@@ -68,6 +69,7 @@ export type ClearStatStageOpreator = {
   type: 'clearStatStage'
   target: SelectorDSL
   statType?: Value
+  cleanStageStrategy?: CleanStageStrategy
 }
 
 export type AddRageOpreator = {

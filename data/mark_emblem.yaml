@@ -48,6 +48,9 @@
   effect:
     - effect_emblem_immune_mark_zhixi
 - id: mark_emblem_xingzhi
+  config: *emblem_config
+  effect:
+    - effect_emblem_add_xingzhili_duration
 - id: mark_emblem_zhenji
 - id: mark_emblem_yiran
 - id: mark_emblem_xuanyun

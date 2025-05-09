@@ -1,4 +1,9 @@
-import { ContinuousUseSkillStrategy, EffectTrigger, StatTypeWithoutHp } from '@arcadia-eternity/const'
+import {
+  CleanStageStrategy,
+  ContinuousUseSkillStrategy,
+  EffectTrigger,
+  StatTypeWithoutHp,
+} from '@arcadia-eternity/const'
 import { BaseSelector, Extractor } from '@arcadia-eternity/effect-builder'
 import { z } from 'zod'
 import type {
@@ -298,6 +303,7 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       type: z.literal('clearStatStage'),
       target: selectorDSLSchema,
       statType: valueSchema.optional(),
+      cleanStageStrategy: z.nativeEnum(CleanStageStrategy).optional().default(CleanStageStrategy.positive),
     }),
     z.object({
       type: z.literal('addRage'),
@@ -580,6 +586,7 @@ export const effectDSLSchema: z.ZodSchema<EffectDSL> = z.lazy(() =>
     apply: z.union([operatorDSLSchema, z.array(operatorDSLSchema)]),
     condition: conditionDSLSchema.optional(),
     consumesStacks: z.number().optional(),
+    tags: z.array(z.string()).optional().default([]),
   }),
 )
 

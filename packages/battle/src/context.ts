@@ -15,6 +15,7 @@ import { BaseMark, type MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
 import { SkillInstance } from './skill'
+import type { Effect } from './effect'
 
 export abstract class Context {
   readonly type: string = 'base'
@@ -556,6 +557,7 @@ export class EffectContext<T extends EffectTrigger> extends Context {
     public readonly parent: TriggerContextMap[T],
     public readonly trigger: T,
     public readonly source: SkillInstance | MarkInstance,
+    public readonly effect?: Effect<EffectTrigger>,
   ) {
     super(parent)
     this.battle = parent.battle

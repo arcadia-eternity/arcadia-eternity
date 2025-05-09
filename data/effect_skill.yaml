@@ -655,6 +655,15 @@
   apply:
     type: clearStatStage
     target: foe
+    cleanStageStrategy: positive
+  condition: *condition_self_use_skill_template
+- id: effect_skill_clear_stage
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: clearStatStage
+    target: self
+    cleanStageStrategy: negative
   condition: *condition_self_use_skill_template
 - id: effect_skill_power_2x_below_quarter_hp
   trigger: AfterUseSkillCheck
@@ -2400,5 +2409,161 @@
     value:
       type: dynamic
       selector: *mark_kongqichuliang_stack_template
+  condition:
+    type: selfUseSkill
+- id: effect_skill_reduce_power_on_consecutive_hits_10_max_20
+  tags: ['xingzhili']
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: lastSkillUsedTimes
+          - type: add
+            arg: -1
+          - type: clampMax
+            arg: 2
+          - type: multiply
+            arg: -10
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_add_self_yuansuzhufu_increase_on_consecutive_hits_10_max_20
+  tags: ['xingzhili']
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_yuansuzhufu
+    stack:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: lastSkillUsedTimes
+          - type: add
+            arg: -1
+          - type: clampMax
+            arg: 2
+          - type: multiply
+            arg: 10
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: lastSkillUsedTimes
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 1
+- id: effect_skill_reduce_multihit_on_consecutive_hits_1_max_2
+  tags: ['xingzhili']
+  trigger: BeforeMultiHit
+  priority: 0
+  apply:
+    type: addMultihitResult
+    target:
+      base: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: lastSkillUsedTimes
+          - type: add
+            arg: -1
+          - type: clampMax
+            arg: 2
+          - type: multiply
+            arg: -1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: lastSkillUsedTimes
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 1
+- id: effect_skill_reduce_damage_on_consecutive_hits_10_percent_max_2
+  tags: ['xingzhili']
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: lastSkillUsedTimes
+          - type: add
+            arg: -1
+          - type: clampMax
+            arg: 2
+          - type: multiply
+            arg: -10
+    delta: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: lastSkillUsedTimes
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 1
+- id: effect_skill_add_mark_xingzhili
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_xingzhili
   condition:
     type: selfUseSkill

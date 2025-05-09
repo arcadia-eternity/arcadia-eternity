@@ -204,7 +204,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     this.base.effects
       .filter(effect => effect.trigger === trigger)
       .forEach(effect => {
-        const effectContext = new EffectContext(baseContext, trigger, this)
+        const effectContext = new EffectContext(baseContext, trigger, this, effect)
         try {
           if (!effect.condition || effect.condition(effectContext)) {
             baseContext.battle.effectScheduler.addEffect(effect, effectContext)

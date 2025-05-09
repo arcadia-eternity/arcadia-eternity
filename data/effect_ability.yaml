@@ -277,3 +277,23 @@
     type: addAccuracy
     target: usingSkillContext
     value: 5
+- id: effect_ability_add_power_35_percent_normal
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 1.5
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg: element
+        evaluator:
+          type: same
+          value: Normal

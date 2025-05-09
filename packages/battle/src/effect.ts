@@ -43,6 +43,7 @@ export class EffectScheduler {
             effect: effect.id,
             reason: 'disabled',
           })
+          continue
         }
         context.battle!.emitMessage(BattleMessageType.EffectApply, {
           source: context.source.id,
@@ -70,6 +71,7 @@ export class Effect<T extends EffectTrigger> implements Prototype {
     public readonly priority: number,
     public readonly condition?: (context: EffectContext<T>) => boolean,
     public readonly consumesStacks?: number,
+    public readonly tags: string[] = [],
   ) {}
 
   public innerApply(context: EffectContext<T>) {

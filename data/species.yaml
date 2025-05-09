@@ -1466,3 +1466,120 @@
     - mark_ability_kongqi
   emblem:
     - mark_emblem_zhixi
+- id: pet_lanmiao
+  num: 28
+  element: Water
+  baseStats:
+    hp: 94
+    atk: 130
+    spa: 110
+    def: 118
+    spd: 117
+    spe: 110
+  genderRatio:
+    - 3
+    - 7
+  heightRange:
+    - 40
+    - 45
+  weightRange:
+    - 27
+    - 34
+  learnable_skills:
+    - skill_id: skill_paida
+      level: 1
+      hidden: false
+    - skill_id: skill_penshui
+      level: 5
+      hidden: false
+    - skill_id: skill_fengli
+      level: 10
+      hidden: false
+    - skill_id: skill_quanlichongzhuang
+      level: 15
+      hidden: false
+    - skill_id: skill_jianqiang
+      level: 20
+      hidden: false
+    - skill_id: skill_xingzhiwei
+      level: 25
+      hidden: false
+  ability:
+    - mark_ability_fengli
+  emblem:
+    - mark_emblem_xingzhi
+- id: pet_lanhujing
+  num: 29
+  element: Water
+  baseStats:
+    hp: 184
+    atk: 180
+    spa: 155
+    def: 168
+    spd: 162
+    spe: 150
+  genderRatio:
+    - 3
+    - 7
+  heightRange:
+    - 100
+    - 105
+  weightRange:
+    - 130
+    - 135
+  learnable_skills:
+    - skill_id: skill_paida
+      level: 1
+      hidden: false
+    - skill_id: skill_penshui
+      level: 5
+      hidden: false
+    - skill_id: skill_fengli
+      level: 10
+      hidden: false
+    - skill_id: skill_quanlichongzhuang
+      level: 15
+      hidden: false
+    - skill_id: skill_jianqiang
+      level: 20
+      hidden: false
+    - skill_id: skill_xingzhiwei
+      level: 25
+      hidden: false
+    - skill_id: skill_yingjiachongding
+      level: 31
+      hidden: false
+    - skill_id: skill_penyeshuizhu
+      level: 36
+      hidden: false
+    - skill_id: skill_weishe
+      level: 41
+      hidden: false
+    - skill_id: skill_shuangxingzhiwei
+      level: 46
+      hidden: false
+    - skill_id: skill_fengkuanglianchong
+      level: 50
+      hidden: false
+    - skill_id: skill_bomingyiji
+      level: 54
+      hidden: false
+    - skill_id: skill_nuhailiantao
+      level: 60
+      hidden: false
+    - skill_id: skill_talangchongji
+      level: 60
+      hidden: true
+    - skill_id: skill_xingzhili
+      level: 60
+      hidden: true
+    - skill_id: skill_sisui
+      level: 60
+      hidden: true
+    - skill_id: skill_yongbuyanbai
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_fengli
+  emblem:
+    - mark_emblem_xingzhi

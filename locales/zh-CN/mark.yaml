@@ -286,12 +286,9 @@ mark_judushenti:
 mark_yuansuzhufu:
   name: 元素祝福
   description: 受到伤害增加{{mark.stack}}%
-mark_3035:
-  name: 3035
-  description: ''
 mark_xingzhili:
   name: 星之力
-  description: 免疫自身技能【💀负作用】
+  description: 免疫自身技能的副作用
 mark_mianyibuliang:
   name: 免疫不良
   description: 免疫不良 沉默

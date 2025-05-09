@@ -453,7 +453,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       const existingMark = this.marks.find(m => m.base.id === mark.base.id)
       if (existingMark) {
         // 创建 AddMarkContext，使用当前 SwitchPetContext 作为父上下文，这个被视为隐式的effect
-        const effectContext = new EffectContext(context, EffectTrigger.OnOwnerSwitchOut, mark)
+        const effectContext = new EffectContext(context, EffectTrigger.OnOwnerSwitchOut, mark, undefined)
         // 印记覆盖的config替代原来的config
         const addMarkContext = new AddMarkContext(
           effectContext,
