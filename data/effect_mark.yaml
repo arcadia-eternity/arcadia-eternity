@@ -892,6 +892,7 @@
   condition:
     type: every
     conditions:
+      - type: checkSelf
       - type: evaluate
         target:
           base: effectContext

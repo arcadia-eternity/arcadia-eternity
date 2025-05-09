@@ -8,6 +8,7 @@ import {
   type MarkConfig,
   type baseMarkId,
   type markId,
+  type Events,
 } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 import { Battle } from './battle'
@@ -23,6 +24,7 @@ import {
 import { Effect, type EffectContainer } from './effect'
 import { type Instance, type MarkOwner, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
+import type { Emitter } from 'mitt'
 
 export interface IBaseMark extends Prototype {
   createInstance(...arg: any[]): MarkInstance
@@ -108,6 +110,8 @@ export class MarkInstanceImpl implements MarkInstance {
   public config: Partial<MarkConfig> = { destroyable: true }
   public readonly tags: string[] = []
 
+  public emitter?: Emitter<Events>
+
   constructor(
     public readonly base: BaseMark,
     overrides?: {
@@ -160,6 +164,7 @@ export class MarkInstanceImpl implements MarkInstance {
 
   setOwner(owner: Battle | Pet): void {
     this.owner = owner
+    this.emitter = owner.emitter
   }
 
   attachTo(target: Battle | Pet) {

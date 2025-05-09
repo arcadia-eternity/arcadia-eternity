@@ -7,6 +7,7 @@ import {
   Category,
   type DoNothingSelection,
   EffectTrigger,
+  type Events,
   type PlayerMessage,
   type PlayerSelection,
   type SwitchPetSelection,
@@ -17,8 +18,11 @@ import { Battle } from './battle'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { Pet } from './pet'
 import * as jsondiffpatch from 'jsondiffpatch'
+import type { Emitter } from 'mitt'
 
 export class Player {
+  public emitter?: Emitter<Events>
+
   private lastStateMessage: BattleState = {} as BattleState
   public currentRage: number = 20
   public battle?: Battle
@@ -31,16 +35,17 @@ export class Player {
     public readonly id: playerId,
     public readonly team: Pet[],
   ) {
-    team.forEach(pet => pet.setOwner(this))
     this.activePet = team[0]
     this.activePet.appeared = true
   }
 
-  public registerBattle(battle: Battle) {
+  public registerBattle(battle: Battle, emitter: Emitter<Events>) {
     this.battle = battle
     this.owner = battle
     battle.registerListener(this.handleMessage.bind(this))
+    this.emitter = emitter
     this.team.forEach(pet => {
+      pet.setOwner(this, emitter)
       pet.dirty = true
     })
   }

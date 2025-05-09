@@ -497,7 +497,7 @@ skill_quanlichongzhuang:
   description: 连续命中时减少10点威力 最多20点
 skill_xingzhiwei:
   name: 星之尾
-  description: 无视对手[02CAC9]护盾[-]
+  description: 无视对手<font color=#02CAC9>护盾</font>
 skill_yingjiachongding:
   name: 硬甲冲顶
   description: 连续命中时使自身获得10点受伤增加 最多20点
@@ -509,16 +509,16 @@ skill_weishe:
   description: 【50】使对手害怕
 skill_shuangxingzhiwei:
   name: 双星之尾
-  description: 连击2次 无视对手[02CAC9]护盾[-]
+  description: 连击2次 无视对手<font color=#02CAC9>护盾</font>
 skill_fengkuanglianchong:
   name: 疯狂连冲
   description: 【90】连击3次 连续命中时连击数-1 最多2次
 skill_bomingyiji:
   name: 搏命一击
-  description: 【💀自身承受25%的自损伤害】
+  description: 自身承受25%的自损伤害
 skill_nuhailiantao:
   name: 怒海连涛
-  description: '[93E312]必中[-] 连击5次'
+  description: '<font color=#93E312>必中</font> 连击5次'
 skill_talangchongji:
   name: 踏浪冲击
   description: 连续命中时造成伤害减少10% 最多2次

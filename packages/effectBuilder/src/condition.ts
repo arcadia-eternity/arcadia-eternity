@@ -2,6 +2,7 @@ import {
   AddMarkContext,
   BaseStatLevelMark,
   DamageContext,
+  EffectContext,
   HealContext,
   MarkInstanceImpl,
   Pet,
@@ -86,6 +87,9 @@ export const Conditions = {
       }
       if (context.parent instanceof HealContext) {
         return context.source.owner === context.parent.target
+      }
+      if (context.parent instanceof EffectContext) {
+        return context.source.owner === context.parent.source.owner
       }
       return false
     }

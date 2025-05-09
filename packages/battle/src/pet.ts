@@ -3,6 +3,7 @@ import {
   CleanStageStrategy,
   EffectTrigger,
   Element,
+  type Events,
   Gender,
   IgnoreStageStrategy,
   Nature,
@@ -33,6 +34,7 @@ import type { Instance, MarkOwner, OwnedEntity, Prototype } from './entity'
 import { BaseMark, CreateStatStageMark, type MarkInstance, StatLevelMarkInstanceImpl } from './mark'
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
+import type { Emitter } from 'mitt'
 
 export interface Species extends Prototype {
   id: speciesId //约定:id为原中文名的拼音拼写
@@ -48,8 +50,10 @@ export interface Species extends Prototype {
 
 // 精灵类
 export class Pet implements OwnedEntity, MarkOwner, Instance {
-  public readonly gender: Gender
-  public currentHp: number
+  public emitter?: Emitter<Events>
+
+  public gender: Gender = Gender.NoGender
+  public currentHp: number = 0
 
   public readonly baseCritRate: number = 7 // 暴击率默认为7%
   public readonly baseAccuracy: number = 100 // 命中率默认为100%
@@ -59,7 +63,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public isAlive: boolean = true
   public owner: Player | null
   public marks: MarkInstance[] = []
-  public readonly skills: SkillInstance[]
+  public skills: SkillInstance[] = []
 
   public dirty: boolean = true
   public base: Species
@@ -69,7 +73,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public lastSkill?: SkillInstance
   public lastSkillUsedTimes: number = 0
 
-  public readonly baseStat: StatOnBattle = {
+  public baseStat: StatOnBattle = {
     maxHp: 0,
     atk: 0,
     def: 0,
@@ -107,47 +111,18 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     public readonly evs: StatOutBattle,
     public readonly ivs: StatOutBattle,
     public readonly nature: Nature,
-    skills: BaseSkill[],
-    ability?: BaseMark,
-    emblem?: BaseMark,
-    weight?: number,
-    height?: number,
+    public readonly baseSkills: BaseSkill[],
+    public readonly ability?: BaseMark,
+    public readonly emblem?: BaseMark,
+    public readonly weight?: number,
+    public readonly height?: number,
     gender?: Gender,
-    maxHp?: number, //可以额外手动设置hp
+    public readonly maxHp?: number, //可以额外手动设置hp
   ) {
     this.base = species
 
     this.element = species.element
     this.owner = null
-
-    this.skills = skills.map(s => new SkillInstance(s))
-    this.skills.forEach(skill => skill.setOwner(this))
-
-    if (!weight) this.baseStat.weight = species.weightRange[1]
-    else this.baseStat.weight = weight
-    if (!height) this.baseStat.height = species.heightRange[1]
-    else this.baseStat.height = height
-
-    this.baseStat = this.calculateStats()
-    this.stat = { ...this.baseStat }
-
-    this.currentHp = this.baseStat.maxHp
-
-    if (!gender) {
-      if (!this.species.genderRatio) this.gender = Gender.NoGender
-      else if (this.species.genderRatio[0] != 0) this.gender = Gender.Female
-      else this.gender = Gender.Male
-    } else this.gender = gender
-    if (ability) {
-      const abilityMark = ability.createInstance()
-      abilityMark.setOwner(this)
-      this.marks.push(abilityMark)
-    }
-    if (emblem) {
-      const emblemMark = emblem.createInstance()
-      emblemMark.setOwner(this)
-      this.marks.push(emblemMark)
-    }
   }
 
   get currentRage() {
@@ -319,8 +294,38 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     return base
   }
 
-  public setOwner(player: Player) {
+  public setOwner(player: Player, emitter: Emitter<Events>) {
     this.owner = player
+    this.emitter = emitter
+
+    this.skills = this.baseSkills.map(s => new SkillInstance(s))
+    this.skills.forEach(skill => skill.setOwner(this))
+
+    if (!this.weight) this.baseStat.weight = this.species.weightRange[1]
+    else this.baseStat.weight = this.weight
+    if (!this.height) this.baseStat.height = this.species.heightRange[1]
+    else this.baseStat.height = this.height
+
+    this.baseStat = this.calculateStats()
+    this.stat = { ...this.baseStat }
+
+    this.currentHp = this.baseStat.maxHp
+
+    if (!this.gender) {
+      if (!this.species.genderRatio) this.gender = Gender.NoGender
+      else if (this.species.genderRatio[0] != 0) this.gender = Gender.Female
+      else this.gender = Gender.Male
+    } else this.gender = this.gender
+    if (this.ability) {
+      const abilityMark = this.ability.createInstance()
+      abilityMark.setOwner(this)
+      this.marks.push(abilityMark)
+    }
+    if (this.emblem) {
+      const emblemMark = this.emblem.createInstance()
+      emblemMark.setOwner(this)
+      this.marks.push(emblemMark)
+    }
   }
 
   calculateStats() {

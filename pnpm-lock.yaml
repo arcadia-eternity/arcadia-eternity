@@ -171,6 +171,9 @@ importers:
       jsondiffpatch:
         specifier: ^0.7.3
         version: 0.7.3
+      mitt:
+        specifier: ^3.0.1
+        version: 3.0.1
       nanoid:
         specifier: ^5.1.5
         version: 5.1.5

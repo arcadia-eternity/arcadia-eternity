@@ -22,6 +22,7 @@
   "dependencies": {
     "@arcadia-eternity/const": "workspace:*",
     "jsondiffpatch": "^0.7.3",
+    "mitt": "^3.0.1",
     "nanoid": "^5.1.5",
     "prando": "^6.0.1"
   }

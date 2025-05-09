@@ -7,6 +7,7 @@ import {
   type BattleState,
   BattleStatus,
   EffectTrigger,
+  type Events,
   type PlayerSelection,
   RAGE_PER_TURN,
   type SwitchPetSelection,
@@ -34,6 +35,7 @@ import { Player } from './player'
 import { SkillInstance } from './skill'
 import * as jsondiffpatch from 'jsondiffpatch'
 import { nanoid } from 'nanoid'
+import mitt from 'mitt'
 
 export class Battle extends Context implements MarkOwner {
   private lastStateMessage: BattleState = {} as BattleState
@@ -47,6 +49,7 @@ export class Battle extends Context implements MarkOwner {
   public readonly effectScheduler: EffectScheduler = new EffectScheduler()
   public readonly configSystem: ConfigSystem = ConfigSystem.getInstance()
   public readonly markSystem: MarkSystem = new MarkSystem(this)
+  public readonly emitter = mitt<Events>()
   private readonly rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
 
   public status: BattleStatus = BattleStatus.Unstarted
@@ -74,8 +77,8 @@ export class Battle extends Context implements MarkOwner {
     this.allowFaintSwitch = options?.allowFaintSwitch ?? true
     this.showHidden = options?.showHidden ?? false
 
-    this.playerA.registerBattle(this)
-    this.playerB.registerBattle(this)
+    this.playerA.registerBattle(this, this.emitter)
+    this.playerB.registerBattle(this, this.emitter)
     ;[...this.playerA.team, ...this.playerB.team].forEach(p => this.petMap.set(p.id, p))
     this.petMap.forEach(p => p.skills.forEach(s => this.skillMap.set(s.id, s)))
   }
