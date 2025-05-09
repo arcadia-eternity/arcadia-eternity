@@ -50,7 +50,7 @@
 - id: mark_ability_fengli
   config: *ablitity_config
   effect:
-    - effect_ability_add_power_35_percent_normal
+    - effect_ability_add_power_50_percent_normal
 - id: mark_ability_chaoshi
 - id: mark_ability_ranshao
 - id: mark_ability_xuanyun
