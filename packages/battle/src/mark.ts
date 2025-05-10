@@ -78,7 +78,7 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   get stack(): number
   set stack(value: number)
   get baseId(): baseMarkId
-  setOwner(owner: MarkOwner): void
+  setOwner(owner: MarkOwner, emitter: Emitter<Events>): void
   attachTo(target: MarkOwner): void
   update(context: TurnContext): boolean
   addStack(value: number): void
@@ -157,14 +157,15 @@ export class MarkInstanceImpl implements MarkInstance {
     context.battle.applyEffects(context, EffectTrigger.OnMarkCreate, this)
     this.attachTo(target)
     target.marks.push(this)
+    this.setOwner(target, target.emitter!)
     if (target instanceof Pet) {
       target.dirty = true
     }
   }
 
-  setOwner(owner: Battle | Pet): void {
+  setOwner(owner: Battle | Pet, emitter: Emitter<Events>): void {
     this.owner = owner
-    this.emitter = owner.emitter
+    this.emitter = emitter
   }
 
   attachTo(target: Battle | Pet) {

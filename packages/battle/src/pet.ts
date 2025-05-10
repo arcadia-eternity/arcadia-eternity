@@ -318,12 +318,12 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     } else this.gender = this.gender
     if (this.ability) {
       const abilityMark = this.ability.createInstance()
-      abilityMark.setOwner(this)
+      abilityMark.setOwner(this, emitter)
       this.marks.push(abilityMark)
     }
     if (this.emblem) {
       const emblemMark = this.emblem.createInstance()
-      emblemMark.setOwner(this)
+      emblemMark.setOwner(this, emitter)
       this.marks.push(emblemMark)
     }
   }
