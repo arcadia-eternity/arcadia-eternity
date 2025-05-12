@@ -8,6 +8,7 @@ import {
   Pet,
   RageContext,
   SkillInstance,
+  TurnContext,
   UseSkillContext,
 } from '@arcadia-eternity/battle'
 import type { Condition, ValueSource } from './effectBuilder'
@@ -35,6 +36,19 @@ export const Conditions = {
     return context => {
       if (context.source.owner instanceof Pet) {
         return context.source.owner.isActive()
+      }
+      return false
+    }
+  },
+
+  //当当前回合使用了该技能时，返回True
+  currentRoundUseSkill: (): Condition => {
+    return context => {
+      if (context.parent instanceof TurnContext) {
+        return context.parent.contexts.some(ctx => {
+          if (!(ctx instanceof UseSkillContext)) return false
+          return ctx.skill === context.source
+        })
       }
       return false
     }
