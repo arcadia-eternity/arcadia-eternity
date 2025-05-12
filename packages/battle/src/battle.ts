@@ -219,13 +219,13 @@ export class Battle extends Context implements MarkOwner {
           const skill = this.getSkillByID(selection.skill)
           const skillContext = new UseSkillContext(context, player, player.activePet, skill.target, skill)
           this.battle.applyEffects(skillContext, EffectTrigger.BeforeSort)
-          context.contexts.push(skillContext)
+          context.pushContext(skillContext)
           break
         }
         case 'switch-pet': {
           const pet = this.getPetByID(selection.pet)
           const switchContext = new SwitchPetContext(context, player, pet)
-          context.contexts.push(switchContext)
+          context.pushContext(switchContext)
           break
         }
         case 'do-nothing':
@@ -243,7 +243,6 @@ export class Battle extends Context implements MarkOwner {
           throw '未知的context'
       }
     }
-    context.contexts.sort(this.contextSort)
 
     this.currentTurn++
 
@@ -315,51 +314,6 @@ export class Battle extends Context implements MarkOwner {
     }
 
     return isBattleEnded
-  }
-
-  private contextSort(a: Context, b: Context): number {
-    // 类型优先级：换宠 > 印记效果 > 使用技能
-    // 等下，真的有印记效果会在这个时候触发吗？
-    const typeOrder: Record<Context['type'], number> = {
-      'switch-pet': 1,
-      'use-skill': 0,
-    }
-
-    // 获取类型顺序值
-    const aType = a.type
-    const bType = b.type
-
-    // 类型不同时按优先级排序
-    if (aType !== bType) {
-      return typeOrder[aType] - typeOrder[bType]
-    }
-
-    // 同类型时比较优先级
-    switch (aType) {
-      case 'switch-pet':
-        // 换宠始终优先
-        return 1
-
-      case 'use-skill': {
-        const aSkill = a as UseSkillContext
-        const bSkill = b as UseSkillContext
-
-        // 先比较技能优先级
-        if (aSkill.priority !== bSkill.priority) {
-          return aSkill.priority - bSkill.priority
-        }
-
-        // 同优先级比较速度
-        if (aSkill.pet.actualStat.spe !== bSkill.pet.actualStat.spe) {
-          return aSkill.pet.actualStat.spe - bSkill.pet.actualStat.spe
-        }
-
-        // 速度相同,始终是a先手
-        return 1
-      }
-      default:
-        return 1
-    }
   }
 
   // 开始对战

@@ -38,13 +38,65 @@ export type AllContext =
   | UpdateStatContext
   | EffectContext<EffectTrigger>
 
+export type PetTurnData = {}
 export class TurnContext extends Context {
   readonly type = 'turn'
   public readonly battle: Battle
   public readonly contexts: Context[] = []
+  public readonly petTurnDataMap: WeakMap<Pet, PetTurnData> = new WeakMap()
   constructor(public readonly parent: Battle) {
     super(parent)
     this.battle = parent.battle
+  }
+
+  private contextSort(a: Context, b: Context): number {
+    // 类型优先级：换宠 > 印记效果 > 使用技能
+    // 等下，真的有印记效果会在这个时候触发吗？
+    const typeOrder: Record<Context['type'], number> = {
+      'switch-pet': 1,
+      'use-skill': 0,
+    }
+
+    // 获取类型顺序值
+    const aType = a.type
+    const bType = b.type
+
+    // 类型不同时按优先级排序
+    if (aType !== bType) {
+      return typeOrder[aType] - typeOrder[bType]
+    }
+
+    // 同类型时比较优先级
+    switch (aType) {
+      case 'switch-pet':
+        // 换宠始终优先
+        return 1
+
+      case 'use-skill': {
+        const aSkill = a as UseSkillContext
+        const bSkill = b as UseSkillContext
+
+        // 先比较技能优先级
+        if (aSkill.priority !== bSkill.priority) {
+          return aSkill.priority - bSkill.priority
+        }
+
+        // 同优先级比较速度
+        if (aSkill.pet.actualStat.spe !== bSkill.pet.actualStat.spe) {
+          return aSkill.pet.actualStat.spe - bSkill.pet.actualStat.spe
+        }
+
+        // 速度相同,始终是a先手
+        return 1
+      }
+      default:
+        return 1
+    }
+  }
+
+  pushContext(context: Context) {
+    this.contexts.push(context)
+    this.contexts.sort(this.contextSort)
   }
 }
 

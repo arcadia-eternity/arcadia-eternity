@@ -15,8 +15,15 @@ import {
   MarkInstanceImpl,
   type ScopeObject,
   UpdateStatContext,
+  Context,
 } from '@arcadia-eternity/battle'
-import type { CanOwnedEntity, Instance, OwnedEntity, Prototype } from '@arcadia-eternity/battle'
+import {
+  TurnContext,
+  type CanOwnedEntity,
+  type Instance,
+  type OwnedEntity,
+  type Prototype,
+} from '@arcadia-eternity/battle'
 import {
   AttackTargetOpinion,
   Category,
@@ -401,6 +408,7 @@ export type ObjectOpinion =
   | Player
   | StatOnBattle
   | UseSkillContext
+  | TurnContext
   | EffectContext<EffectTrigger>
   | DamageContext
   | HealContext
@@ -443,6 +451,7 @@ export const BaseSelector: {
   rageContext: ChainableSelector<RageContext>
   battle: ChainableSelector<Battle>
   updateStatContext: ChainableSelector<UpdateStatContext>
+  turnContext: ChainableSelector<TurnContext>
 } = {
   //选择目标，在使用技能的场景下，为技能实际指向的目标，在印记的场景下指向印记的所有者。
   target: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
@@ -570,4 +579,13 @@ export const BaseSelector: {
       return []
     },
   ),
+  turnContext: createChainable<TurnContext>('TurnContext', (context: EffectContext<EffectTrigger>) => {
+    let currentctx: Context = context
+    while (!(currentctx instanceof Battle)) {
+      if (currentctx instanceof TurnContext) return [currentctx]
+      if (!currentctx.parent) break
+      currentctx = currentctx.parent
+    }
+    return []
+  }),
 }
