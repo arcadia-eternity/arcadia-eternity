@@ -531,3 +531,45 @@ skill_sisui:
 skill_yongbuyanbai:
   name: 永不言败
   description: 恢复自身最大体力的1/4并解除自身弱化
+skill_hailang:
+  name: 海浪
+  description: 5%弱化对手特防1级
+skill_shuiwenzhenji:
+  name: 水纹震击
+  description: 使自身获得水纹震击
+skill_jiangu:
+  name: 坚固
+  description: 强化自身物防1级
+skill_hailangzhenji:
+  name: 海浪震击
+  description: 消耗水纹震击使暴击率增加50%
+skill_shuiwenpingzhang:
+  name: 水纹屏障
+  description: 使自身获得自身最大体力25%点数的水纹屏障
+skill_shentouzhenji:
+  name: 渗透震击
+  description: 消耗水纹震击使暴击率增加70%
+skill_xushuipao:
+  name: 蓄水炮
+  description: 20%使对手溺水
+skill_pubuzhenji:
+  name: 瀑布震击
+  description: 【90】消耗水纹震击必定暴击
+skill_fansheshuidun:
+  name: 反射水盾
+  description: 先制+1 使自身获得反弹
+skill_chongnengjizhuangbo:
+  name: 充能激撞波
+  description: <font color=#93E312>必中</font> 30%弱化对手物攻1级
+skill_yazhi:
+  name: 压制
+  description: 后制-3 使自身获得反射
+skill_yapo:
+  name: 压迫
+  description: 【95】弱化对手双攻1级
+skill_huanyu:
+  name: 唤雨
+  description: 使环境变为<font color=#6699CC>雨天</font>
+skill_jishuichuanliu:
+  name: 急水川流
+  description: 30%使对手溺水

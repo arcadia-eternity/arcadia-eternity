@@ -85,3 +85,9 @@ pet_lanmiao:
 pet_lanhujing:
   name: 蓝虎鲸
   description: 蓝虎鲸最大的目标就是撞破阿卡纳斯的水纹护盾
+pet_aka:
+  name: 阿卡
+  description: 阿卡从小就是水上霸主 这是所有水系精灵都不会否认的事实
+pet_akanasi:
+  name: 阿卡纳斯
+  description: 蓝虎鲸的冲撞 激发了阿卡纳斯真正的防护能量 撑开了水盾

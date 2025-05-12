@@ -1583,3 +1583,120 @@
     - mark_ability_fengli
   emblem:
     - mark_emblem_xingzhi
+- id: pet_aka
+  num: 30
+  element: Water
+  baseStats:
+    hp: 95
+    atk: 126
+    spa: 114
+    def: 120
+    spd: 120
+    spe: 108
+  genderRatio:
+    - 0
+    - 10
+  heightRange:
+    - 53
+    - 58
+  weightRange:
+    - 29
+    - 34
+  learnable_skills:
+    - skill_id: skill_paida
+      level: 1
+      hidden: false
+    - skill_id: skill_hailang
+      level: 5
+      hidden: false
+    - skill_id: skill_tuoli
+      level: 10
+      hidden: false
+    - skill_id: skill_shuiwenzhenji
+      level: 15
+      hidden: false
+    - skill_id: skill_jiangu
+      level: 20
+      hidden: false
+    - skill_id: skill_hailangzhenji
+      level: 25
+      hidden: false
+  ability:
+    - mark_ability_chaoshi
+  emblem:
+    - mark_emblem_zhenji
+- id: pet_akanasi
+  num: 31
+  element: Water
+  baseStats:
+    hp: 185
+    atk: 176
+    spa: 159
+    def: 170
+    spd: 170
+    spe: 148
+  genderRatio:
+    - 0
+    - 10
+  heightRange:
+    - 139
+    - 144
+  weightRange:
+    - 135
+    - 140
+  learnable_skills:
+    - skill_id: skill_paida
+      level: 1
+      hidden: false
+    - skill_id: skill_hailang
+      level: 5
+      hidden: false
+    - skill_id: skill_tuoli
+      level: 10
+      hidden: false
+    - skill_id: skill_shuiwenzhenji
+      level: 15
+      hidden: false
+    - skill_id: skill_jiangu
+      level: 20
+      hidden: false
+    - skill_id: skill_hailangzhenji
+      level: 25
+      hidden: false
+    - skill_id: skill_shuiwenpingzhang
+      level: 30
+      hidden: false
+    - skill_id: skill_shentouzhenji
+      level: 34
+      hidden: false
+    - skill_id: skill_weishe
+      level: 39
+      hidden: false
+    - skill_id: skill_xushuipao
+      level: 44
+      hidden: false
+    - skill_id: skill_pubuzhenji
+      level: 49
+      hidden: false
+    - skill_id: skill_fansheshuidun
+      level: 53
+      hidden: false
+    - skill_id: skill_chongnengjizhuangbo
+      level: 60
+      hidden: true
+    - skill_id: skill_yazhi
+      level: 60
+      hidden: true
+    - skill_id: skill_yapo
+      level: 60
+      hidden: true
+    - skill_id: skill_huanyu
+      level: 60
+      hidden: true
+    - skill_id: skill_jishuichuanliu
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_chaoshi
+  emblem:
+    - mark_emblem_zhenji

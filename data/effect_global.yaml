@@ -30,3 +30,22 @@
     type: amplifyPower
     target: usingSkillContext
     value: 1.35
+- id: effect_global_power_35_percent_water
+  trigger: AfterUseSkillCheck
+  priority: 0
+  condition:
+    type: some
+    conditions:
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg: element
+        evaluator:
+          type: same
+          value: Water
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 1.35

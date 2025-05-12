@@ -31,3 +31,6 @@ mark_ability_kongqi:
 mark_ability_fengli:
   name: 锋利
   description: 普通系技能的威力增加50%
+mark_ability_chaoshi:
+  name: 潮湿
+  description: 雨天时水纹屏障吸收量增加50%

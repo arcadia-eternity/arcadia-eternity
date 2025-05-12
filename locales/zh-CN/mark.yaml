@@ -201,7 +201,7 @@ mark_zengzhong:
   description: 每层增加自身体重50KG 最多2层
 mark_fantan:
   name: 反弹
-  description: 反弹受到伤害的{{mark.stack}}%
+  description: 反弹受到伤害的25%
 mark_tezengshang:
   name: 特伤增加
   description: 特攻伤害增加{{mark.stack}}%
@@ -210,7 +210,7 @@ mark_wuzengshang:
   description: 物攻伤害增加{{mark.stack}}%
 mark_shuiwenzhenji:
   name: 水纹震击
-  description: 暴击率提升{{mark.stack}}%
+  description: 暴击率提升5%
 mark_xuanyun:
   name: 眩晕
   description: 速度值减少50点
@@ -340,3 +340,6 @@ mark_zhifanghudun:
 mark_kongqihudun:
   name: 空气护盾【🛡️】
   description: 抵挡{{mark.stack}}点伤害
+mark_shuiwenpingzhang:
+  name: 水纹屏障【🛡️】
+  description: 抵挡{{mark.stack}}点伤害 护盾破裂后下一个技能的威力翻倍

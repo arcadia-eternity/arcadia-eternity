@@ -31,3 +31,6 @@ mark_emblem_zhixi:
 mark_emblem_xingzhi:
   name: 星之
   description: 星之力的持续时间额外增加5回合
+mark_emblem_zhenji:
+  name: 震击
+  description: 水纹震击提升的致命几率再增加5%
