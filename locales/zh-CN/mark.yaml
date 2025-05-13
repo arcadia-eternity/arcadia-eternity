@@ -343,3 +343,6 @@ mark_kongqihudun:
 mark_shuiwenpingzhang:
   name: 水纹屏障【🛡️】
   description: 抵挡{{mark.stack}}点伤害 护盾破裂后下一个技能的威力翻倍
+mark_shoudaoshanghaijianshao:
+  name: 受到伤害减少
+  description: 受到伤害减少{{mark.stack}}%

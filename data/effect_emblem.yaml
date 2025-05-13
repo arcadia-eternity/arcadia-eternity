@@ -244,3 +244,47 @@
               evaluator:
                 type: same
                 value: mark_shuiwenzhenji
+- id: effect_emblem_add_shaoshang_duration
+  trigger: OnBeforeAddMark
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark.id
+        evaluator:
+          type: same
+          value: mark_shaoshang
+  apply:
+    type: setMarkDuration
+    target: addMarkContext
+    value: 4
+- id: effect_emblem_add_xuanyun_duration
+  trigger: OnBeforeAddMark
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark.id
+        evaluator:
+          type: same
+          value: mark_xuanyun
+  apply:
+    type: setMarkDuration
+    target: addMarkContext
+    value: 6

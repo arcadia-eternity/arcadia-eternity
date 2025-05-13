@@ -56,7 +56,13 @@
   effect:
     - effect_ability_add_shuiwenpingzhang_value_if_yutian
 - id: mark_ability_ranshao
+  config: *ablitity_config
+  effect:
+    - effect_ability_damage_amplify_15_percent_foe_has_shaoshang
 - id: mark_ability_xuanyun
+  config: *ablitity_config
+  effect:
+    - effect_ability_damage_amplify_15_percent_foe_has_xuanyun
 - id: mark_ability_yangyan
 - id: mark_ability_qianggong
 - id: mark_ability_guanghua

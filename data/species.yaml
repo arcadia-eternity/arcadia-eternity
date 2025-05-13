@@ -1700,3 +1700,279 @@
     - mark_ability_chaoshi
   emblem:
     - mark_emblem_zhenji
+- id: pet_youni
+  num: 32
+  element: Fire
+  baseStats:
+    hp: 85
+    atk: 116
+    spa: 133
+    def: 113
+    spd: 114
+    spe: 117
+  genderRatio:
+    - 2
+    - 8
+  heightRange:
+    - 43
+    - 48
+  weightRange:
+    - 19
+    - 24
+  learnable_skills:
+    - skill_id: skill_chongfeng
+      level: 1
+      hidden: false
+    - skill_id: skill_penhuo
+      level: 6
+      hidden: false
+    - skill_id: skill_jiare
+      level: 11
+      hidden: false
+    - skill_id: skill_zhuoshao
+      level: 16
+      hidden: false
+    - skill_id: skill_rongjiezhiyan
+      level: 21
+      hidden: false
+    - skill_id: skill_jiangu
+      level: 26
+      hidden: false
+  ability:
+    - mark_ability_ranshao
+  emblem:
+    - mark_emblem_yiran
+- id: pet_qiaoni
+  num: 33
+  element: Fire
+  baseStats:
+    hp: 175
+    atk: 161
+    spa: 183
+    def: 158
+    spd: 159
+    spe: 162
+  genderRatio:
+    - 2
+    - 8
+  heightRange:
+    - 82
+    - 87
+  weightRange:
+    - 46
+    - 51
+  learnable_skills:
+    - skill_id: skill_chongfeng
+      level: 1
+      hidden: false
+    - skill_id: skill_penhuo
+      level: 6
+      hidden: false
+    - skill_id: skill_jiare
+      level: 11
+      hidden: false
+    - skill_id: skill_zhuoshao
+      level: 16
+      hidden: false
+    - skill_id: skill_rongjiezhiyan
+      level: 21
+      hidden: false
+    - skill_id: skill_jiangu
+      level: 26
+      hidden: false
+    - skill_id: skill_huoyanchongzhuang
+      level: 31
+      hidden: false
+    - skill_id: skill_shuangguihuopao
+      level: 36
+      hidden: false
+    - skill_id: skill_lieyanzhiju
+      level: 41
+      hidden: false
+    - skill_id: skill_huoyanxuanfeng
+      level: 46
+      hidden: false
+    - skill_id: skill_mijisaoshe
+      level: 50
+      hidden: false
+    - skill_id: skill_chaodahuoqiu
+      level: 54
+      hidden: false
+    - skill_id: skill_rongyanbaolie
+      level: 60
+      hidden: false
+    - skill_id: skill_jisuhuodan
+      level: 60
+      hidden: true
+    - skill_id: skill_dianran
+      level: 60
+      hidden: true
+    - skill_id: skill_chuantouhuoyan
+      level: 60
+      hidden: true
+    - skill_id: skill_fennuzhihuo
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_ranshao
+  emblem:
+    - mark_emblem_yiran
+- id: pet_xiaoyanfu
+  num: 34
+  element: Fire
+  baseStats:
+    hp: 74
+    atk: 120
+    spa: 115
+    def: 109
+    spd: 111
+    spe: 110
+  genderRatio:
+    - 8
+    - 2
+  heightRange:
+    - 44
+    - 49
+  weightRange:
+    - 20
+    - 25
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_huoqiu
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 9
+      hidden: false
+    - skill_id: skill_zhuangyun
+      level: 13
+      hidden: false
+  ability:
+    - mark_ability_xuanyun
+  emblem:
+    - mark_emblem_xuanyun
+- id: pet_dajiaoyanfu
+  num: 35
+  element: Fire
+  baseStats:
+    hp: 114
+    atk: 150
+    spa: 145
+    def: 134
+    spd: 136
+    spe: 130
+  genderRatio:
+    - 8
+    - 2
+  heightRange:
+    - 61
+    - 66
+  weightRange:
+    - 36
+    - 41
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_huoqiu
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 9
+      hidden: false
+    - skill_id: skill_zhuangyun
+      level: 13
+      hidden: false
+    - skill_id: skill_daliqian
+      level: 17
+      hidden: false
+    - skill_id: skill_reliqian
+      level: 22
+      hidden: false
+    - skill_id: skill_fengli
+      level: 27
+      hidden: false
+    - skill_id: skill_huoqiuilianshe
+      level: 32
+      hidden: false
+  ability:
+    - mark_ability_xuanyun
+  emblem:
+    - mark_emblem_xuanyun
+- id: pet_dajiangyanfu
+  num: 36
+  element: Fire
+  baseStats:
+    hp: 174
+    atk: 180
+    spa: 175
+    def: 159
+    spd: 161
+    spe: 150
+  genderRatio:
+    - 8
+    - 2
+  heightRange:
+    - 95
+    - 100
+  weightRange:
+    - 57
+    - 62
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_huoqiu
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 9
+      hidden: false
+    - skill_id: skill_zhuangyun
+      level: 13
+      hidden: false
+    - skill_id: skill_daliqian
+      level: 17
+      hidden: false
+    - skill_id: skill_reliqian
+      level: 22
+      hidden: false
+    - skill_id: skill_fengli
+      level: 27
+      hidden: false
+    - skill_id: skill_huoqiuilianshe
+      level: 32
+      hidden: false
+    - skill_id: skill_guailiqian
+      level: 37
+      hidden: false
+    - skill_id: skill_huoyanqian
+      level: 42
+      hidden: false
+    - skill_id: skill_juansuo
+      level: 47
+      hidden: false
+    - skill_id: skill_huoyantuxi
+      level: 52
+      hidden: false
+    - skill_id: skill_huoyanshazhen
+      level: 60
+      hidden: false
+    - skill_id: skill_xuli
+      level: 60
+      hidden: true
+    - skill_id: skill_fensuiqian
+      level: 60
+      hidden: true
+    - skill_id: skill_rongyanqian
+      level: 60
+      hidden: true
+    - skill_id: skill_xuanyunhuoqiu
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_xuanyun
+  emblem:
+    - mark_emblem_xuanyun

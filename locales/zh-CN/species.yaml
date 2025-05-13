@@ -91,3 +91,18 @@ pet_aka:
 pet_akanasi:
   name: 阿卡纳斯
   description: 蓝虎鲸的冲撞 激发了阿卡纳斯真正的防护能量 撑开了水盾
+pet_youni:
+  name: 尤尼
+  description: 尤尼生活在火山周围 非常好动 喜欢自己蜷成球到处冲撞
+pet_qiaoni:
+  name: 乔尼
+  description: 有传言乔尼身后的火焰促使它需要不断冲撞 消耗多余能量
+pet_xiaoyanfu:
+  name: 小岩浮
+  description: 小岩浮喜欢成群结队的出现 用大钳子在火山口不停的翻找
+pet_dajiaoyanfu:
+  name: 大角岩浮
+  description: 它似乎在火山口 不停的寻找遗失的某个重要东西
+pet_dajiangyanfu:
+  name: 大将岩浮
+  description: 它最担心的就是遇上乔尼 这个顽皮的家伙总喜欢把它撞倒

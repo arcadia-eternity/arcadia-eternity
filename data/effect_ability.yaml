@@ -342,3 +342,53 @@
         evaluator:
           type: same
           value: skill_shuiwenpingzhang
+- id: effect_ability_damage_amplify_15_percent_foe_has_shaoshang
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_shaoshang
+        evaluator:
+          type: exist
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 15
+    delta: 0
+- id: effect_ability_damage_amplify_15_percent_foe_has_xuanyun
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_xuanyun
+        evaluator:
+          type: exist
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 15
+    delta: 0

@@ -34,3 +34,9 @@ mark_ability_fengli:
 mark_ability_chaoshi:
   name: 潮湿
   description: 雨天时水纹屏障吸收量增加50%
+mark_ability_ranshao:
+  name: 燃烧
+  description: 对手烧伤时自身伤害增加15%
+mark_ability_xuanyun:
+  name: 眩晕
+  description: 对手眩晕时自身伤害增加15%

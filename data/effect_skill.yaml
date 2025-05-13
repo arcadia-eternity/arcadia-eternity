@@ -331,7 +331,7 @@
       type: entity:baseMark
       value: mark_yishang
   condition: *condition_self_use_skill_template
-- id: effect_skill_add_mark_foe_shaoshang_5_percent
+- id: effect_skill_add_mark_foe_shaoshang
   trigger: OnHit
   priority: 0
   apply: &apply_foe_add_mark_shaoshang_template
@@ -344,7 +344,6 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - *condition_probability_5_percent_template
       - &condition_foe_not_fire_element
         type: evaluate
         target:
@@ -357,6 +356,16 @@
         evaluator:
           type: notSame
           value: Fire
+- id: effect_skill_add_mark_foe_shaoshang_5_percent
+  trigger: OnHit
+  priority: 0
+  apply: *apply_foe_add_mark_shaoshang_template
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_5_percent_template
+      - *condition_foe_not_fire_element
 - id: effect_skill_add_mark_foe_shaoshang_10_percent
   trigger: OnHit
   priority: 0
@@ -366,6 +375,36 @@
     conditions:
       - type: selfUseSkill
       - *condition_probability_10_percent_template
+      - *condition_foe_not_fire_element
+- id: effect_skill_add_mark_foe_shaoshang_15_percent
+  trigger: OnHit
+  priority: 0
+  apply: *apply_foe_add_mark_shaoshang_template
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_probability_15_percent_template
+        type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 15
+      - *condition_foe_not_fire_element
+- id: effect_skill_add_mark_foe_shaoshang_20_percent
+  trigger: OnHit
+  priority: 0
+  apply: *apply_foe_add_mark_shaoshang_template
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_probability_20_percent_template
+        type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 20
       - *condition_foe_not_fire_element
 - id: effect_skill_add_mark_foe_shaoshang_50_percent
   trigger: OnHit
@@ -382,6 +421,29 @@
         evaluator:
           type: probability
           percent: 50
+- id: effect_skill_add_mark_foe_shaoshang_60_percent
+  trigger: OnHit
+  priority: 0
+  apply: *apply_foe_add_mark_shaoshang_template
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_foe_not_fire_element
+      - &condition_probability_60_percent_template
+        type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 60
+- id: effect_skill_min_damage_95
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addThreshold
+    target: damageContext
+    min: 95
+  condition: *condition_self_use_skill_template
 - id: effect_skill_min_damage_100
   trigger: OnBeforeCalculateDamage
   priority: 0
@@ -711,7 +773,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
+      - &condition_foe_below_quarter_hp
+        type: evaluate
         target:
           base: foe
           chain:
@@ -958,28 +1021,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: foe
-          chain:
-            - type: select
-              arg:
-                type: base
-                arg: currentHp
-        evaluator:
-          type: compare
-          operator: <=
-          value:
-            type: dynamic
-            selector:
-              base: foe
-              chain:
-                - type: select
-                  arg:
-                    type: base
-                    arg: maxHp
-                - type: divide
-                  arg: 4
+      - *condition_foe_below_quarter_hp
 - id: effect_skill_add_mark_foe_meihuo
   trigger: OnHit
   priority: 0
@@ -2161,12 +2203,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - &condition_probability_20_percent_template
-        type: evaluate
-        target: self
-        evaluator:
-          type: probability
-          percent: 20
+      - *condition_probability_20_percent_template
 - id: effect_skill_raise_spe_70_percent
   trigger: BeforeHit
   priority: 0
@@ -2771,3 +2808,125 @@
       value: mark_fantan
   condition:
     type: selfUseSkill
+- id: effect_skill_power_2x_foe_shaoshang
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_foe_shaoshang_exist
+        type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor: baseId
+              evaluator:
+                type: same
+                value: mark_shaoshang
+        evaluator:
+          type: exist
+- id: effect_skill_add_mark_mianyibuliang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_mianyibuliang
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_sure_hit_foe_shaoshang
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target:
+      base: usingSkillContext
+    priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_foe_shaoshang_exist
+- id: effect_skill_sure_hit_foe_below_quarter_hp
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target:
+      base: usingSkillContext
+    priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_foe_below_quarter_hp
+- id: effect_skill_add_mark_foe_xuanyun
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_xuanyun
+  condition:
+    type: selfUseSkill
+- id: effect_skill_sure_hit_foe_xuanyun
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target:
+      base: usingSkillContext
+    priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor: baseId
+              evaluator:
+                type: same
+                value: mark_xuanyun
+        evaluator:
+          type: exist
+- id: effect_skill_add_mark_shoudaoshanghaijianshao_50
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shoudaoshanghaijianshao
+    stack: 50
+  condition:
+    type: selfUseSkill
+- id: effect_skill_add_mark_shanghaizengjia_75
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shanghaizengjia
+    stack: 75
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill

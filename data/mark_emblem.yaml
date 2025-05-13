@@ -56,7 +56,13 @@
   effect:
     - effect_emblem_add_crit_rate_5_percent_if_has_shuiwenzhenji
 - id: mark_emblem_yiran
+  config: *emblem_config
+  effect:
+    - effect_emblem_add_shaoshang_duration
 - id: mark_emblem_xuanyun
+  config: *emblem_config
+  effect:
+    - effect_emblem_add_xuanyun_duration
 - id: mark_emblem_weiyan
 - id: mark_emblem_yanhuo
 - id: mark_emblem_xuruo

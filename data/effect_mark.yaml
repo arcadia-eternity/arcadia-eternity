@@ -394,6 +394,29 @@
             arg:
               type: base
               arg: stack
+- id: effect_mark_reduce_damage_taken_once
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    - type: addModified
+      target:
+        base: damageContext
+      delta: 0
+      percent:
+        type: dynamic
+        selector:
+          base: mark
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: stack
+            - type: multiply
+              arg: -1
+    - type: destroyMark
+      target: mark
 - id: effect_mark_increase_damage_taken_once
   trigger: OnBeforeCalculateDamage
   condition:
@@ -947,3 +970,39 @@
     - type: addCritRate
       target: usingSkillContext
       value: 5
+- id: effect_mark_immune_status
+  trigger: OnBeforeAddMark
+  priority: 0
+  apply:
+    type: disableContext
+    target: addMarkContext
+  condition:
+    type: every
+    conditions:
+      - type: selfBeAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark
+            - type: select
+              arg:
+                type: base
+                arg: tags
+            - type: flat
+        evaluator:
+          type: contain
+          tag: status
+- id: effect_mark_reduce_speed_50
+  trigger: OnUpdateStat
+  priority: 0
+  apply:
+    type: modifyStat
+    target:
+      base: updateStatContext
+    statType: spe
+    delta: 50
+    percent: 0

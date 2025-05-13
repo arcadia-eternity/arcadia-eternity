@@ -573,3 +573,93 @@ skill_huanyu:
 skill_jishuichuanliu:
   name: 急水川流
   description: 30%使对手溺水
+skill_penhuo:
+  name: 喷火
+  description: 5%弱化对手特防1级
+skill_jiare:
+  name: 加热
+  description: 强化自身特攻1级
+skill_zhuoshao:
+  name: 灼烧
+  description: 60%使对手烧伤
+skill_rongjiezhiyan:
+  name: 溶解之炎
+  description: 对手烧伤时威力2倍
+skill_huoyanchongzhuang:
+  name: 火焰冲撞
+  description: 20%使对手烧伤
+skill_shuangguihuopao:
+  name: 双轨火炮
+  description: 连击2次 对手烧伤时威力2倍
+skill_lieyanzhiju:
+  name: 烈焰之躯
+  description: 使自身获得免疫不良
+skill_huoyanxuanfeng:
+  name: 火焰旋风
+  description: 【75】对手烧伤时<font color=#93E312>必中</font>
+skill_mijisaoshe:
+  name: 密集扫射
+  description: 连击3~5次
+skill_chadaohuoqiu:
+  name: 超大火球
+  description: 【90】15%使对手烧伤
+skill_rongyanbaolie:
+  name: 熔岩爆裂
+  description: <font color=#93E312>必中</font> 10%使对手烧伤
+skill_jisuhuodan:
+  name: 急速火弹
+  description: 先制+1
+skill_dianran:
+  name: 点燃
+  description: 【85】使对手烧伤
+skill_chuantouhuoyan:
+  name: 穿透火焰
+  description: 造成伤害不低于95点
+skill_fennuzhihuo:
+  name: 愤怒之火
+  description: 【35】对手体力＜1/4时<font color=#93E312>必中</font>
+skill_huoqiu:
+  name: 火球
+  description: 5%弱化对手特防1级
+skill_jianying:
+  name: 坚硬
+  description: 强化自身物防1级
+skill_zhuangyun:
+  name: 撞晕
+  description: 使对手获得眩晕
+skill_daliqian:
+  name: 大力钳
+  description: 【60】对手具有眩晕时<font color=#93E312>必中</font>
+skill_reliqian:
+  name: 热力钳
+  description: 【60】对手具有眩晕时<font color=#93E312>必中</font>
+skill_huoqiulianshe:
+  name: 火球连射
+  description: 连击2~3次
+skill_guailiqian:
+  name: 怪力钳
+  description: 【55】对手具有眩晕时<font color=#93E312>必中</font>
+skill_huoyanqian:
+  name: 火焰钳
+  description: 【55】对手具有眩晕时<font color=#93E312>必中</font>
+skill_juansuo:
+  name: 卷缩
+  description: 使自身获得50点受伤减少
+skill_huoyantuxi:
+  name: 火焰吐息
+  description: 10%使对手烧伤
+skill_huoyanshazhen:
+  name: 火焰杀阵
+  description: <font color=#93E312>必中</font> 连击4次
+skill_xuli:
+  name: 蓄力
+  description: 使自身获得75点伤害增加
+skill_fensuiqian:
+  name: 粉碎钳
+  description: 【50】对手具有眩晕时<font color=#93E312>必中</font>
+skill_rongyanqian:
+  name: 熔岩钳
+  description: 【50】对手具有眩晕时<font color=#93E312>必中</font>
+skill_xuanyunhuoqiu:
+  name: 眩晕火球
+  description: 使对手获得眩晕
