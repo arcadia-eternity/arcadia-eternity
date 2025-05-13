@@ -40,3 +40,6 @@ mark_ability_ranshao:
 mark_ability_xuanyun:
   name: 眩晕
   description: 对手眩晕时自身伤害增加15%
+mark_ability_yangyan:
+  name: 阳炎
+  description: 炎热时命中率增加10%

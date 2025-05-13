@@ -4,3 +4,6 @@ mark_global_qingtian:
 mark_global_yutian:
   name: 雨天
   description: 水系技能的威力提高35%
+mark_global_yanre:
+  name: 炎热
+  description: 火系技能的威力提高35%

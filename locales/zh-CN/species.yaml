@@ -106,3 +106,9 @@ pet_dajiaoyanfu:
 pet_dajiangyanfu:
   name: 大将岩浮
   description: 它最担心的就是遇上乔尼 这个顽皮的家伙总喜欢把它撞倒
+pet_huoke:
+  name: 霍克
+  description: 霍克是自卑而孤独的精灵 经常受欺负也趴着一动不动
+pet_huokenuer:
+  name: 霍克努尔
+  description: 当霍克的怒火如火山般的喷发 它成长为了强大的霍克努尔

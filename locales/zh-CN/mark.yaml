@@ -346,3 +346,9 @@ mark_shuiwenpingzhang:
 mark_shoudaoshanghaijianshao:
   name: 受到伤害减少
   description: 受到伤害减少{{mark.stack}}%
+mark_wulishanghaizengjia:
+  name: 物理伤害增加
+  description: 造成物理伤害增加{{mark.stack}}%
+mark_teshushanghaizengjia:
+  name: 特殊伤害增加
+  description: 造成特殊伤害增加{{mark.stack}}%

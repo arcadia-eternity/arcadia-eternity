@@ -324,7 +324,27 @@
   effect:
     - effect_mark_reflect_damage_1_4
 - id: mark_teshushanghaizengjia
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 100
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_amplify_next_special_damage_with_stack
 - id: mark_wulishanghaizengjia
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 100
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_amplify_next_physical_damage_with_stack
 - id: mark_shuiwenzhenji
   config:
     duration: -1

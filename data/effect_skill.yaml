@@ -2930,3 +2930,109 @@
     type: every
     conditions:
       - type: selfUseSkill
+- id: effect_skill_add_mark_teshushanghaizengjia_50
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_teshushanghaizengjia
+    stack: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_add_mark_wulishanghaizengjia_50
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_wulishanghaizengjia
+    stack: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_add_mark_teshushanghaizengjia_35
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_teshushanghaizengjia
+    stack: 35
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_add_mark_wulishanghaizengjia_35
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_wulishanghaizengjia
+    stack: 35
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_add_mark_teshushanghaizengjia_100
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_teshushanghaizengjia
+    stack: 100
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_add_mark_wulishanghaizengjia_100
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_wulishanghaizengjia
+    stack: 100
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+- id: effect_skill_raise_spa_20_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_20_percent_template
+- id: effect_skill_set_weather_yanre
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: battle
+    mark:
+      type: entity:baseMark
+      value: mark_global_yanre
+  condition:
+    type: selfUseSkill

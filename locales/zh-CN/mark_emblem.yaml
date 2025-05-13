@@ -40,3 +40,6 @@ mark_emblem_yiran:
 mark_emblem_xuanyun:
   name: 眩晕
   description: 增加1回合眩晕持续时间
+mark_emblem_weiyan:
+  name: 威严
+  description: 免疫害怕状态

@@ -663,3 +663,42 @@ skill_rongyanqian:
 skill_xuanyunhuoqiu:
   name: 眩晕火球
   description: 使对手获得眩晕
+skill_guntangchongji:
+  name: 滚烫冲击
+  description: 使自身获得50点特攻增加
+skill_gaowenhuohuan:
+  name: 高温火环
+  description: 使自身获得50点物攻增加
+skill_julizhizhua:
+  name: 巨力之爪
+  description: 使自身获得35点特攻增加
+skill_zhenfa:
+  name: 蒸发
+  description: 使自身获得35点物攻增加
+skill_nuhou:
+  name: 怒吼
+  description: 【50】使对手害怕
+skill_rongyanchuanci:
+  name: 熔岩穿刺
+  description: 【90】10%弱化对手物防1级
+skill_huoshanpenfa:
+  name: 火山喷发
+  description: 【90】10%弱化对手特防1级
+skill_huoshanhujia:
+  name: 火山护甲
+  description: 使自身获得免疫不良
+skill_huoshanbaoliequan:
+  name: 火山爆裂拳
+  description: '<font color=#93E312>必中</font> 20%强化自身特攻1级'
+skill_yanzhizhua:
+  name: 炎之爪
+  description: 先制+1 使自身获得100点特攻增加
+skill_yanbao:
+  name: 炎爆
+  description: 先制+1 使自身获得100点物攻增加
+skill_yangyan:
+  name: 阳炎
+  description: 使环境变为<font color=#6699CC>炎热</font>
+skill_huoshanzhili:
+  name: 火山之力
+  description: 强化自身双攻1级

@@ -64,6 +64,9 @@
   effect:
     - effect_ability_damage_amplify_15_percent_foe_has_xuanyun
 - id: mark_ability_yangyan
+  config: *ablitity_config
+  effect:
+    - effect_ability_add_skill_accuracy_10_percent_when_yanre
 - id: mark_ability_qianggong
 - id: mark_ability_guanghua
 - id: mark_ability_hongxin

@@ -64,6 +64,9 @@
   effect:
     - effect_emblem_add_xuanyun_duration
 - id: mark_emblem_weiyan
+  config: *emblem_config
+  effect:
+    - effect_emblem_immune_mark_haipa
 - id: mark_emblem_yanhuo
 - id: mark_emblem_xuruo
 - id: mark_emblem_yinji

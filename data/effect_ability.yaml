@@ -392,3 +392,30 @@
     target: damageContext
     percent: 15
     delta: 0
+- id: effect_ability_add_skill_accuracy_10_percent_when_yanre
+  trigger: AfterUseSkillCheck
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: battle
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: marks
+            - type: flat
+            - type: whereAttr
+              extractor: baseId
+              evaluator:
+                type: same
+                value: mark_global_yanre
+        evaluator:
+          type: exist
+  apply:
+    type: addAccuracy
+    target: usingSkillContext
+    value: 10

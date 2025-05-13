@@ -1976,3 +1976,120 @@
     - mark_ability_xuanyun
   emblem:
     - mark_emblem_xuanyun
+- id: pet_huoke
+  num: 37
+  element: Fire
+  baseStats:
+    hp: 86
+    atk: 130
+    spa: 130
+    def: 110
+    spd: 110
+    spe: 118
+  genderRatio:
+    - 0
+    - 10
+  heightRange:
+    - 45
+    - 50
+  weightRange:
+    - 21
+    - 26
+  learnable_skills:
+    - skill_id: skill_lizhua
+      level: 1
+      hidden: false
+    - skill_id: skill_huoqiu
+      level: 5
+      hidden: false
+    - skill_id: skill_fengli
+      level: 10
+      hidden: false
+    - skill_id: skill_guntangchongji
+      level: 14
+      hidden: false
+    - skill_id: skill_gaowenhuohuan
+      level: 19
+      hidden: false
+    - skill_id: skill_jiare
+      level: 24
+      hidden: false
+  ability:
+    - mark_ability_yangyan
+  emblem:
+    - mark_emblem_weiyan
+- id: pet_huokenuer
+  num: 38
+  element: Fire
+  baseStats:
+    hp: 176
+    atk: 180
+    spa: 180
+    def: 155
+    spd: 155
+    spe: 163
+  genderRatio:
+    - 0
+    - 10
+  heightRange:
+    - 85
+    - 90
+  weightRange:
+    - 58
+    - 63
+  learnable_skills:
+    - skill_id: skill_lizhua
+      level: 1
+      hidden: false
+    - skill_id: skill_huoqiu
+      level: 5
+      hidden: false
+    - skill_id: skill_fengli
+      level: 10
+      hidden: false
+    - skill_id: skill_guntangchongji
+      level: 14
+      hidden: false
+    - skill_id: skill_gaowenhuohuan
+      level: 19
+      hidden: false
+    - skill_id: skill_jiare
+      level: 24
+      hidden: false
+    - skill_id: skill_julizhizhua
+      level: 29
+      hidden: false
+    - skill_id: skill_zhenfa
+      level: 34
+      hidden: false
+    - skill_id: skill_nuhou
+      level: 39
+      hidden: false
+    - skill_id: skill_rongyanchuanci
+      level: 44
+      hidden: false
+    - skill_id: skill_huoshanpenfa
+      level: 49
+      hidden: false
+    - skill_id: skill_huoshanhujia
+      level: 54
+      hidden: false
+    - skill_id: skill_huoshanbaoliequan
+      level: 60
+      hidden: false
+    - skill_id: skill_yanzhizhua
+      level: 60
+      hidden: true
+    - skill_id: skill_yanbao
+      level: 60
+      hidden: true
+    - skill_id: skill_yangyan
+      level: 60
+      hidden: true
+    - skill_id: skill_huoshanzhili
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_yangyan
+  emblem:
+    - mark_emblem_weiyan

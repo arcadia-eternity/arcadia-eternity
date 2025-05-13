@@ -2450,3 +2450,149 @@
   tags: []
   effect:
     - effect_skill_add_mark_foe_xuanyun
+- id: skill_guntangchongji
+  element: Fire
+  category: Physical
+  power: 65
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_teshushanghaizengjia_50
+- id: skill_gaowenhuohuan
+  element: Fire
+  category: Special
+  power: 65
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_wulishanghaizengjia_50
+- id: skill_julizhizhua
+  element: Normal
+  category: Physical
+  power: 80
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_teshushanghaizengjia_35
+- id: skill_zhenfa
+  element: Normal
+  category: Special
+  power: 80
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_wulishanghaizengjia_35
+- id: skill_nuhou
+  element: Normal
+  category: Status
+  power: 0
+  rage: 25
+  accuracy: 50
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_haipa
+- id: skill_rongyanchuanci
+  element: Fire
+  category: Physical
+  power: 105
+  rage: 20
+  accuracy: 90
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_def_10_percent
+- id: skill_huoshanpenfa
+  element: Fire
+  category: Special
+  power: 105
+  rage: 20
+  accuracy: 90
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_spa_10_percent
+- id: skill_huoshanhujia
+  element: Fire
+  category: Status
+  power: 0
+  rage: 15
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_mianyibuliang
+- id: skill_huoshanbaoliequan
+  element: Fire
+  category: Climax
+  power: 170
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_spa_20_percent
+- id: skill_yanzhizhua
+  element: Fire
+  category: Physical
+  power: 55
+  rage: 15
+  accuracy: 95
+  priority: 1
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_teshushanghaizengjia_100
+- id: skill_yanbao
+  element: Fire
+  category: Special
+  power: 55
+  rage: 15
+  accuracy: 95
+  priority: 1
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_wulishanghaizengjia_100
+- id: skill_yangyan
+  element: Fire
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_set_weather_yanre
+- id: skill_huoshanzhili
+  element: Fire
+  category: Status
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_atk_1_stages
+    - effect_skill_raise_spa_1_stages
