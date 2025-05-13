@@ -600,7 +600,7 @@ skill_huoyanxuanfeng:
 skill_mijisaoshe:
   name: 密集扫射
   description: 连击3~5次
-skill_chadaohuoqiu:
+skill_chaodahuoqiu:
   name: 超大火球
   description: 【90】15%使对手烧伤
 skill_rongyanbaolie:
