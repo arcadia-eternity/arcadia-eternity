@@ -53,6 +53,8 @@
     - effect_emblem_add_xingzhili_duration
 - id: mark_emblem_zhenji
   config: *emblem_config
+  effect:
+    - effect_emblem_add_crit_rate_5_percent_if_has_shuiwenzhenji
 - id: mark_emblem_yiran
 - id: mark_emblem_xuanyun
 - id: mark_emblem_weiyan

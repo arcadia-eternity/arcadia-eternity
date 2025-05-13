@@ -337,6 +337,8 @@
     keepOnSwitchOut: true
     transferOnSwitch: false
     inheritOnFaint: false
+  effect:
+    - effect_mark_add_crit_rate_5_percent
 - id: mark_xuanyun
 - id: mark_shoudaowulishanghaijianshao
 - id: mark_shoudaoteshushanghaijianban

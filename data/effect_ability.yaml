@@ -297,3 +297,48 @@
         evaluator:
           type: same
           value: Normal
+- id: effect_ability_add_shuiwenpingzhang_value_if_yutian
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setConfig
+    target: self
+    key: effect_skill_add_mark_shuiwenpingzhang.multiply_value
+    value:
+      type: conditional
+      trueValue: 1.5
+      falseValue: 1
+      condition:
+        type: evaluate
+        target:
+          base: battle
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: marks
+            - type: flat
+            - type: whereAttr
+              extractor: baseId
+              evaluator:
+                type: same
+                value: mark_global_yutian
+        evaluator:
+          type: exist
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill
+            - type: select
+              arg: baseId
+        evaluator:
+          type: same
+          value: skill_shuiwenpingzhang

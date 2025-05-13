@@ -41,7 +41,7 @@ export type WidenLiteral<T> = T extends string
 export function registerLiteralValue(effectId: string, value: any, configId?: string): string {
   const configSystem = ConfigSystem.getInstance()
   const finalConfigId = configId || nanoid() // 自动生成唯一ID如果未提供
-  const fullKey = `effect.${effectId}.${finalConfigId}`
+  const fullKey = `${effectId}.${finalConfigId}`
 
   configSystem.set(fullKey, value)
   return fullKey

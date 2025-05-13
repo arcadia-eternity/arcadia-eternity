@@ -53,6 +53,8 @@
     - effect_ability_add_power_50_percent_normal
 - id: mark_ability_chaoshi
   config: *ablitity_config
+  effect:
+    - effect_ability_add_shuiwenpingzhang_value_if_yutian
 - id: mark_ability_ranshao
 - id: mark_ability_xuanyun
 - id: mark_ability_yangyan

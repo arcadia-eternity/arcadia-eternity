@@ -938,3 +938,12 @@
               arg: damageResult
             - type: divide
               arg: 4
+- id: effect_mark_add_crit_rate_5_percent
+  trigger: AfterUseSkillCheck
+  condition:
+    type: checkSelf
+  priority: 0
+  apply:
+    - type: addCritRate
+      target: usingSkillContext
+      value: 5

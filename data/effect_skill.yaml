@@ -2722,6 +2722,11 @@
               arg: maxHp
           - type: divide
             arg: 4
+          - type: multiply
+            arg:
+              type: raw:number
+              value: 1
+              configId: multiply_value
   condition:
     type: selfUseSkill
 - id: effect_skill_add_mark_foe_nishui_30_percent

@@ -254,7 +254,7 @@ export class ChainableSelector<T> {
 
   // 乘一个固定数，或者乘一个来源的数。如果来源选择了多个数，则会乘上来源的每一个数。
   multiply(this: ChainableSelector<number>, valueSource: ValueSource<number>): ChainableSelector<number> {
-    return this.combine(valueSource, (a, b) => a * b)
+    return this.combine(valueSource, (a, b) => Math.floor(a * b))
   }
 
   // 除以一个固定数，或者除以一个来源的数。如果来源选择了多个数，则会除以上来源的每一个数。
