@@ -531,7 +531,7 @@
   power: 90
   rage: 100
   accuracy: 95
-  sureHit: false
+  sureHit: true
   ignoreShield: false
   tags: ['combination']
   multihit: 3
