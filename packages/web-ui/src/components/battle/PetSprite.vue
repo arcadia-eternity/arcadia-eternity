@@ -22,11 +22,12 @@ const swfUrl = computed(() => {
   // return `https://seer2.61.com/res/pet/fight/${props.num}.swf`
   return `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-pet-preview@master/public/fight/${props.num}.swf`
 })
+const { width: containerWidth, height: containerHeidht } = useElementBounding(petSpriteRef)
 
 const scale = computed(() => {
   const baseWidth = 960
   const baseHeight = 560
-  const { width: containerWidth, height: containerHeidht } = useElementBounding(petSpriteRef)
+
   const scaleX = containerWidth.value / baseWidth
   const scaleY = containerHeidht.value / baseHeight
   return Math.min(scaleX, scaleY)
