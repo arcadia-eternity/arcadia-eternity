@@ -8,6 +8,18 @@ interface ResourceState {
     byId: Record<string, string>
     allIds: string[]
   }
+  background: {
+    byId: Record<string, string>
+    allIds: string[]
+  }
+  music: {
+    byId: Record<string, string>
+    allIds: string[]
+  }
+  skillSound: {
+    byId: Record<string, string>
+    allIds: string[]
+  }
   loaded: boolean
   error: string | null
 }
@@ -17,6 +29,15 @@ export const useResourceStore = defineStore('Resource', {
     loaded: false,
     error: null,
     markImage: {
+      byId: {},
+      allIds: [],
+    },
+    background: { byId: {}, allIds: [] },
+    music: {
+      byId: {},
+      allIds: [],
+    },
+    skillSound: {
       byId: {},
       allIds: [],
     },
@@ -32,6 +53,30 @@ export const useResourceStore = defineStore('Resource', {
         return null
       }
     },
+    getBackGround: state => (id: string) => {
+      if (state.background.byId[id]) {
+        return state.background.byId[id]
+      } else {
+        console.warn(`未找到背景图片: ${id}`)
+        return null
+      }
+    },
+    getMusic: state => (id: string) => {
+      if (state.music.byId[id]) {
+        return state.music.byId[id]
+      } else {
+        console.warn(`未找到音乐: ${id}`)
+        return null
+      }
+    },
+    getSkillSound: state => (id: string) => {
+      if (state.skillSound.byId[id]) {
+        return state.skillSound.byId[id]
+      } else {
+        console.warn(`未找到技能音效: ${id}`)
+        return null
+      }
+    },
   },
 
   actions: {
@@ -44,8 +89,16 @@ export const useResourceStore = defineStore('Resource', {
 
       try {
         // 并行加载所有数据
-        const [rawMarkImage] = await Promise.all([this.loadMarkImage(loader)])
+        const [rawMarkImage, rawBackGround, rawMusic, rawSkillSound] = await Promise.all([
+          this.loadMarkImage(loader),
+          this.loadBackGround(loader),
+          this.loadMusic(loader),
+          this.loadSkillSound(loader),
+        ])
         this.markImage = this.normalizeRecordData(rawMarkImage)
+        this.background = this.normalizeRecordData(rawBackGround)
+        this.music = this.normalizeRecordData(rawMusic)
+        this.skillSound = this.normalizeRecordData(rawSkillSound)
 
         // 验证数据完整性
         this.validateDataIntegrity()
@@ -101,6 +154,21 @@ export const useResourceStore = defineStore('Resource', {
 
     async loadMarkImage(loader: GameDataLoader): Promise<MarkImageSchemaType> {
       const data = await loader.load<MarkImageSchemaType>('mark_image')
+      return data
+    },
+
+    async loadBackGround(loader: GameDataLoader): Promise<any> {
+      const data = await loader.load<any>('background')
+      return data
+    },
+
+    async loadMusic(loader: GameDataLoader): Promise<any> {
+      const data = await loader.load<any>('music')
+      return data
+    },
+
+    async loadSkillSound(loader: GameDataLoader): Promise<any> {
+      const data = await loader.load<any>('skill_sound')
       return data
     },
   },

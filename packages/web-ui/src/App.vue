@@ -49,6 +49,52 @@
             <el-button type="warning" plain @click="handleGenerateNewId"> 生成新ID </el-button>
           </div>
         </el-form-item>
+
+        <el-divider content-position="center">游戏设置</el-divider>
+
+        <el-form-item label="背景图片">
+          <el-select v-model="gameSettingStore.background" placeholder="请选择背景图片" style="width: 100%">
+            <el-option label="随机" value="random" />
+            <el-option v-for="item in backgroundOptions" :key="item" :label="item" :value="item" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="战斗音乐">
+          <el-select v-model="gameSettingStore.battleMusic" placeholder="请选择战斗音乐" style="width: 100%">
+            <el-option label="随机" value="random" />
+            <el-option v-for="item in musicOptions" :key="item" :label="item" :value="item" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="音乐音量">
+          <div style="display: flex; align-items: center; width: 100%">
+            <el-slider
+              v-model="gameSettingStore.musicVolume"
+              :min="0"
+              :max="100"
+              show-input
+              style="flex-grow: 1; margin-right: 20px"
+            />
+            <el-switch v-model="gameSettingStore.musicMute" active-text="静音" />
+          </div>
+        </el-form-item>
+
+        <el-form-item label="音效音量">
+          <div style="display: flex; align-items: center; width: 100%">
+            <el-slider
+              v-model="gameSettingStore.soundVolume"
+              :min="0"
+              :max="100"
+              show-input
+              style="flex-grow: 1; margin-right: 20px"
+            />
+            <el-switch v-model="gameSettingStore.soundMute" active-text="静音" />
+          </div>
+        </el-form-item>
+
+        <el-form-item label="全局静音">
+          <el-switch v-model="gameSettingStore.mute" />
+        </el-form-item>
       </el-form>
 
       <template #footer>
@@ -89,6 +135,7 @@ import { usePlayerStore } from './stores/player'
 import { usePetStorageStore } from './stores/petStorage'
 import { useResourceStore } from './stores/resource'
 import { useServerStateStore } from './stores/serverState'
+import { useGameSettingStore } from './stores/gameSetting'
 
 const router = useRouter()
 const dataStore = useGameDataStore()
@@ -96,6 +143,7 @@ const resourceStore = useResourceStore()
 const playerStore = usePlayerStore()
 const petStorage = usePetStorageStore()
 const serverState = useServerStateStore()
+const gameSettingStore = useGameSettingStore()
 
 // 连接状态
 const connectionState = computed(() => {
@@ -114,6 +162,14 @@ onMounted(async () => {
   }
 })
 
+const backgroundOptions = computed(() => {
+  return resourceStore.loaded ? resourceStore.background.allIds.filter(id => id !== 'random') : []
+})
+
+const musicOptions = computed(() => {
+  return resourceStore.loaded ? resourceStore.music.allIds.filter(id => id !== 'random') : []
+})
+
 const showEditDialog = ref(false)
 
 // 处理生成新ID
@@ -124,6 +180,7 @@ const handleGenerateNewId = () => {
 // 处理保存
 const handleSave = () => {
   playerStore.saveToLocal()
+  // gameSettingStore.saveToLocal() // 如果有保存到本地的逻辑
   showEditDialog.value = false
   ElMessage.success('玩家信息已保存')
 }

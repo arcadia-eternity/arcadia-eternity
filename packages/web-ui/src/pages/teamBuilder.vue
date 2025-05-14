@@ -810,11 +810,9 @@ watch(
 
 const handleSkillChange = (newVal: string, index: number) => {
   const newSkills = [...displayedSkills.value]
+  let value = newVal ?? ''
 
-  // 处理清空操作（newVal为null）
-  const value = newVal ?? ''
-
-  // 检查重复
+  // 检查重复技能
   if (value && newSkills.filter(s => s === value).length > 1) {
     ElMessage.warning('该技能已存在于其他槽位')
     newSkills[index] = ''
@@ -822,53 +820,46 @@ const handleSkillChange = (newVal: string, index: number) => {
     return
   }
 
-  // 检查climax技能限制
-  const currentClimaxCount = newSkills.filter(skillId => {
+  // 检查当前队伍中Climax技能的数量
+  let currentClimaxCount = newSkills.filter(skillId => {
     const skill = gameDataStore.skillList.find(s => s.id === skillId)
     return skill?.category === 'Climax'
   }).length
 
-  // 只有当当前种族有climax技能时才应用限制
+  // 如果当前修改的技能槽位是Climax技能，在计算总数时先减去
+  const currentSkill = gameDataStore.skillList.find(s => s.id === displayedSkills.value[index])
+  if (currentSkill?.category === 'Climax') {
+    currentClimaxCount--
+  }
+
+  // 种族是否拥有Climax技能
   const hasClimax = currentSpecies.value?.learnable_skills?.some(
     ls => gameDataStore.skillList.find(s => s.id === ls.skill_id)?.category === 'Climax',
   )
 
   if (hasClimax) {
-    // 当尝试移除最后一个Climax技能时阻止
-    if (value === '' && currentClimaxCount === 1) {
-      const currentSkill = gameDataStore.skillList.find(s => s.id === displayedSkills.value[index])
-      if (currentSkill?.category === 'Climax') {
-        ElMessage.warning('必须保留一个必杀技')
-        newSkills[index] = displayedSkills.value[index]
-        displayedSkills.value = newSkills
-        return
-      }
+    // 尝试移除最后一个Climax技能
+    if (value === '' && currentClimaxCount === 0 && currentSkill?.category === 'Climax') {
+      ElMessage.warning('必须保留一个必杀技')
+      return
     }
 
-    // 当选择新技能时检查Climax限制
-    if (value) {
-      const newSkill = gameDataStore.skillList.find(s => s.id === value)
-      if (newSkill?.category === 'Climax' && currentClimaxCount >= 1) {
-        ElMessage.warning('队伍中只能携带一个必杀技')
-        newSkills[index] = ''
-        displayedSkills.value = newSkills
-        return
-      }
+    // 尝试添加新的Climax技能，但队伍中已经存在一个
+    const newSkill = gameDataStore.skillList.find(s => s.id === value)
+    if (newSkill?.category === 'Climax' && currentClimaxCount >= 1) {
+      ElMessage.warning('队伍中只能存在一个必杀技')
+      return
     }
 
-    // 自动设置第一个可用Climax技能（仅当没有时）
-    if (currentClimaxCount === 0) {
+    // 自动设置第一个可用的Climax技能（仅当没有时）
+    if (currentClimaxCount === 0 && value === '') {
       const firstClimax = currentSpecies.value?.learnable_skills
         ?.map((ls: { skill_id: string }) => gameDataStore.skillList.find((s: { id: string }) => s.id === ls.skill_id))
         ?.find((s?: { category: string }) => s?.category === 'Climax')
 
       if (firstClimax) {
-        const emptyIndex = newSkills.findIndex(s => !s)
-        if (emptyIndex > -1) {
-          newSkills[emptyIndex] = firstClimax.id
-        } else {
-          newSkills[0] = firstClimax.id
-        }
+        newSkills[index] = firstClimax.id
+        value = firstClimax.id
       }
     }
   }

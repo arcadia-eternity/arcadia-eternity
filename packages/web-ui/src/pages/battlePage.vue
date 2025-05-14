@@ -5,8 +5,12 @@ import DamageDisplay from '@/components/battle/DamageDisplay.vue'
 import Mark from '@/components/battle/Mark.vue'
 import PetSprite from '@/components/battle/PetSprite.vue'
 import SkillButton from '@/components/battle/SkillButton.vue'
+import { useMusic } from '@/composition/music'
+import { useSound } from '@/composition/sound'
 import { useBattleStore } from '@/stores/battle'
 import { useGameDataStore } from '@/stores/gameData'
+import { useGameSettingStore } from '@/stores/gameSetting'
+import { useResourceStore } from '@/stores/resource'
 import { logMessagesKey, markMapKey, petMapKey, playerMapKey, skillMapKey } from '@/symbol/battlelog'
 import {
   BattleMessageType,
@@ -67,6 +71,10 @@ const emitter = mitt<AnimationEvents>()
 
 const store = useBattleStore()
 const gameDataStore = useGameDataStore()
+const resourceStore = useResourceStore()
+const gameSettingStore = useGameSettingStore()
+
+useMusic()
 
 provide(logMessagesKey, store.log)
 provide(markMapKey, store.markMap)
@@ -100,7 +108,32 @@ const rightPetSpeciesNum = computed(
       opponentPlayer.value?.team?.filter(p => p.id === opponentPlayer.value!.activePet)[0]?.speciesID ?? '',
     )?.num ?? 0,
 )
-const background = 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/battleBackground/grass.png'
+const teamMemberSprites = computed<number[]>(() => {
+  const allMembers = [...(currentPlayer.value?.team || []), ...(opponentPlayer.value?.team || [])]
+  return allMembers.map(pet => gameDataStore.getSpecies(pet.speciesID)?.num || 0)
+})
+const allSkillId = computed(() =>
+  store.battleState?.players
+    .map(p => p.team)
+    .flat()
+    .filter(p => p !== undefined)
+    .map(p => p.skills ?? [])
+    .flat()
+    .map(s => s.baseId),
+)
+const { playSkillSound } = useSound(allSkillId)
+
+const background = computed(() => {
+  if (gameSettingStore.background === 'random') {
+    return Object.values(resourceStore.background.byId)[
+      Math.floor(Math.random() * resourceStore.background.allIds.length)
+    ]
+  }
+  return (
+    resourceStore.getBackGround(gameSettingStore.background) ??
+    'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/battleBackground/grass.png'
+  )
+})
 
 // 当前玩家可用技能
 const availableSkills = computed<SkillMessage[]>(() => {
@@ -500,29 +533,33 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   store.applyStateDelta(useSkill)
 
   const baseSkillId = useSkill.data.baseSkill
+  const baseSkillData = gameDataStore.getSkill(baseSkillId)
   const category = store.skillMap.get(useSkill.data.skill)?.category || Category.Physical
   const side = getTargetSide(useSkill.data.user)
-  const specialState = undefined //TODO: specialState
+
   // 参数校验
+  const source = petSprites.value[side]
+
+  if (!source) {
+    throw new Error('找不到精灵组件')
+  }
+
+  const availableState = await source.availableState
   const stateMap = new Map<Category, ActionState>([
     [Category.Physical, ActionState.ATK_PHY],
     [Category.Special, ActionState.ATK_SPE],
     [Category.Status, ActionState.ATK_BUF],
     [
       Category.Climax,
-      (await petSprites.value[side].availableState).includes(ActionState.ATK_POW)
-        ? ActionState.ATK_POW
-        : ActionState.ATK_PHY,
+      availableState.includes(ActionState.INTERCOURSE) && baseSkillData.tags.includes('combination')
+        ? ActionState.INTERCOURSE
+        : availableState.includes(ActionState.ATK_POW)
+          ? ActionState.ATK_POW
+          : ActionState.ATK_PHY,
     ],
   ])
 
-  const state = specialState || stateMap.get(category) || ActionState.ATK_PHY
-
-  const source = petSprites.value[side]
-
-  if (!source) {
-    throw new Error('找不到精灵组件')
-  }
+  const state = stateMap.get(category) || ActionState.ATK_PHY
 
   if (!(await source.availableState).includes(state)) {
     throw new Error(`无效的动画状态: ${state}`)
@@ -532,6 +569,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   source.$el.style.zIndex = 1
 
   source.setState(state)
+  if (category === 'Climax') playSkillSound(baseSkillId)
   const hitPromise = new Promise<void>(resolve => {
     const handler = (hitSide: 'left' | 'right') => {
       if (hitSide === side) {
@@ -561,6 +599,9 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   })
 
   await hitPromise
+
+  if (category !== 'Climax' && !messages.some(msg => msg.type === BattleMessageType.SkillMiss))
+    playSkillSound(baseSkillId)
 
   for (const msg of messages) {
     await store.applyStateDelta(msg)
@@ -622,6 +663,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
       //DoNothing
     }
   }
+
   await animateCompletePromise
 
   source.$el.style.zIndex = ''
@@ -848,11 +890,6 @@ onUnmounted(() => {
   damageSubscription.unsubscribe()
   emitter.all.clear()
 })
-
-const teamMemberSprites = computed<number[]>(() => {
-  const allMembers = [...(currentPlayer.value?.team || []), ...(opponentPlayer.value?.team || [])]
-  return allMembers.map(pet => gameDataStore.getSpecies(pet.speciesID)?.num || 0)
-})
 </script>
 
 <template>
@@ -891,6 +928,7 @@ const teamMemberSprites = computed<number[]>(() => {
         <div class="flex-grow flex justify-around items-center relative">
           <div class="absolute h-full w-full">
             <PetSprite
+              v-if="leftPetSpeciesNum !== 0"
               ref="leftPetRef"
               :num="leftPetSpeciesNum"
               class="absolute"
@@ -900,6 +938,7 @@ const teamMemberSprites = computed<number[]>(() => {
           </div>
           <div class="absolute h-full w-full">
             <PetSprite
+              v-if="rightPetSpeciesNum !== 0"
               ref="rightPetRef"
               :num="rightPetSpeciesNum"
               :reverse="true"

@@ -258,7 +258,7 @@ export interface BattleMessageData {
   }
   [BattleMessageType.HealFail]: {
     target: petId
-    reason: 'disabled'
+    reason: 'disabled' | 'disactivated'
   }
   [BattleMessageType.MarkApply]: {
     baseMarkId: baseMarkId

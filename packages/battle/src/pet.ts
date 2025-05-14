@@ -205,6 +205,13 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       })
       return this.isAlive
     }
+    if (!context.target.isActive) {
+      context.battle.emitMessage(BattleMessageType.HealFail, {
+        target: this.id,
+        reason: 'disactivated',
+      })
+      return this.isAlive
+    }
     this.currentHp = Math.floor(Math.min(this.stat.maxHp!, this.currentHp + context.value))
 
     context.battle.emitMessage(BattleMessageType.Heal, {

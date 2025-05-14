@@ -533,7 +533,7 @@
   accuracy: 95
   sureHit: false
   ignoreShield: false
-  tags: []
+  tags: ['combination']
   multihit: 3
 - id: skill_zhuangji
   element: Normal
