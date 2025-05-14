@@ -2,7 +2,7 @@
 import 'seer2-pet-animator'
 import { ActionState } from 'seer2-pet-animator'
 import type {} from 'seer2-pet-animator' //Vue Declare
-import { computed, markRaw, onMounted, useTemplateRef } from 'vue'
+import { computed, markRaw, onMounted, ref, useTemplateRef, watchEffect } from 'vue'
 import { useElementBounding } from '@vueuse/core'
 const props = withDefaults(
   defineProps<{
@@ -16,7 +16,7 @@ const props = withDefaults(
 )
 
 const petSpriteRef = useTemplateRef('petSpriteRef')
-const petRenderRef = markRaw(useTemplateRef('pet-render'))
+const petRenderRef = useTemplateRef('pet-render')
 
 const swfUrl = computed(() => {
   // return `https://seer2.61.com/res/pet/fight/${props.num}.swf`
@@ -33,8 +33,12 @@ const scale = computed(() => {
   return Math.min(scaleX, scaleY)
 })
 
-const availableState = computed(async () => {
-  return (await petRenderRef.value?.getAvailableStates()) as ActionState[]
+const availableState = ref<ActionState[]>([])
+
+watchEffect(async () => {
+  if (props.num && petRenderRef.value) {
+    availableState.value = (await petRenderRef.value.getAvailableStates()) as ActionState[]
+  }
 })
 
 const setState = async (state: ActionState) => {
@@ -68,6 +72,7 @@ defineExpose({
 <template>
   <div ref="petSpriteRef" class="w-full h-full overflow-visible">
     <pet-render
+      :key="num"
       class="overflow-visible pet-render"
       ref="pet-render"
       :url="swfUrl"
