@@ -1094,7 +1094,7 @@ watch(
       class="w-[1600px] relative flex justify-center aspect-video items-center object-contain bg-gray-900"
     >
       <img
-        v-if="showKoBanner"
+        v-show="showKoBanner"
         ref="koBannerRef"
         src="/ko.png"
         alt="KO Banner"

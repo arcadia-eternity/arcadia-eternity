@@ -16,21 +16,10 @@ export function useSound(
   const selfMute = computed(() => mute.value || soundMute.value)
 
   const skillHowlerMap = new Map<baseSkillId, Howl>()
-  const soundSrcHowlerMap = new Map<string, Howl>() // 新增 Map 用于存储 src -> Howl
+  const soundSrcHowlerMap = new Map<string, Howl>()
 
-  function registerSkillSound(id: baseSkillId) {
-    // 确保即使技能ID已存在于skillHowlerMap，但如果其src对应的Howl实例尚未创建或需要更新，也进行处理
-
-    const src =
-      resourceStore.getSkillSound(id) ??
-      'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/sound/skill/01_1_003.mp3'
-
-    if (soundSrcHowlerMap.has(src)) {
-      // 如果该声音文件已存在 Howl 实例，则共享它
-      const existingHowler = soundSrcHowlerMap.get(src)!
-      skillHowlerMap.set(id, existingHowler)
-    } else {
-      // 否则，创建新的 Howl 实例
+  const ensureHowlInstance = (src: string): Howl => {
+    if (!soundSrcHowlerMap.has(src)) {
       const newHowler = new Howl({
         src: [src],
         loop: false,
@@ -38,28 +27,62 @@ export function useSound(
         mute: selfMute.value,
       })
       soundSrcHowlerMap.set(src, newHowler)
-      skillHowlerMap.set(id, newHowler)
+    }
+    return soundSrcHowlerMap.get(src)!
+  }
+
+  function registerSkillSound(id: baseSkillId) {
+    const src =
+      resourceStore.getSkillSound(id) ??
+      'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/sound/skill/01_1_003.mp3'
+    const howlerInstance = ensureHowlInstance(src)
+    skillHowlerMap.set(id, howlerInstance)
+  }
+
+  if (allSkillId.value) {
+    for (const id of allSkillId.value) {
+      registerSkillSound(id)
     }
   }
 
-  for (const id of allSkillId.value ?? []) {
-    registerSkillSound(id)
+  const victorySoundSrc = `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/sound/battle/ko.mp3`
+  ensureHowlInstance(victorySoundSrc)
+
+  const registerPetSounds = (spriteNums: number[] | undefined) => {
+    if (spriteNums) {
+      for (const num of spriteNums) {
+        const src = `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/sound/pet/${num}.mp3`
+        ensureHowlInstance(src)
+      }
+    }
   }
+
+  registerPetSounds(allTeamMemberSpritesNum.value)
 
   watch(allSkillId, newVal => {
     if (newVal) {
       for (const id of newVal) {
-        registerSkillSound(id)
+        if (!skillHowlerMap.has(id)) {
+          registerSkillSound(id)
+        }
       }
     }
   })
 
+  watch(
+    allTeamMemberSpritesNum,
+    newVal => {
+      registerPetSounds(newVal)
+    },
+    { deep: true },
+  )
+
   watch(selfMute, val => {
-    soundSrcHowlerMap.forEach(v => v.mute(val)) // 改为遍历 soundSrcHowlerMap
+    soundSrcHowlerMap.forEach(v => v.mute(val))
   })
 
   watch(volume, val => {
-    soundSrcHowlerMap.forEach(v => v.volume(val)) // 改为遍历 soundSrcHowlerMap
+    soundSrcHowlerMap.forEach(v => v.volume(val))
   })
 
   const playSkillSound = (id: baseSkillId) => {
@@ -68,16 +91,7 @@ export function useSound(
 
   const playPetSound = (petSpriteNum: number) => {
     const src = `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/sound/pet/${petSpriteNum}.mp3`
-    let howler = soundSrcHowlerMap.get(src)
-    if (!howler) {
-      howler = new Howl({
-        src: [src],
-        loop: false,
-        volume: volume.value,
-        mute: selfMute.value,
-      })
-      soundSrcHowlerMap.set(src, howler)
-    }
+    const howler = ensureHowlInstance(src)
     howler.play()
   }
 
@@ -91,17 +105,7 @@ export function useSound(
   })
 
   const playVictorySound = () => {
-    const src = `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/sound/battle/ko.mp3`
-    let howler = soundSrcHowlerMap.get(src)
-    if (!howler) {
-      howler = new Howl({
-        src: [src],
-        loop: false,
-        volume: volume.value,
-        mute: selfMute.value,
-      })
-      soundSrcHowlerMap.set(src, howler)
-    }
+    const howler = ensureHowlInstance(victorySoundSrc)
     howler.play()
   }
 
