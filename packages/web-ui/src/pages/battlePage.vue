@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
 import BattleStatus from '@/components/battle/BattleStatus.vue'
-import DamageDisplay from '@/components/battle/DamageDisplay.vue'
-import HealDisplay from '@/components/battle/HealDisplay.vue' // 新增：导入HealDisplay
 import Mark from '@/components/battle/Mark.vue'
 import PetSprite from '@/components/battle/PetSprite.vue'
 import SkillButton from '@/components/battle/SkillButton.vue'
+import { useBattleAnimations } from '@/composition/useBattleAnimations'
 import { useMusic } from '@/composition/music'
 import { useSound } from '@/composition/sound'
 import { useBattleStore } from '@/stores/battle'
@@ -30,41 +29,34 @@ import mitt from 'mitt'
 import {
   catchError,
   concatMap,
-  delay,
   filter,
   finalize,
   from,
   mergeMap,
   of,
-  scan,
   startWith,
-  Subject,
   take,
   takeUntil,
   tap,
-  timestamp,
   toArray,
 } from 'rxjs'
 import { ActionState } from 'seer2-pet-animator'
-import {
-  computed,
-  h,
-  onMounted,
-  onUnmounted,
-  provide,
-  ref,
-  render,
-  useTemplateRef,
-  type ComponentPublicInstance,
-  nextTick,
-  watch,
-} from 'vue'
+import { computed, onMounted, onUnmounted, provide, ref, useTemplateRef, nextTick, watch, type Ref } from 'vue'
 
 enum PanelState {
   SKILLS = 'skills',
   PETS = 'pets',
 }
 const panelState = ref<PanelState>(PanelState.SKILLS)
+
+// 定义一个更精确的类型，用于 handleCombatEventMessage，确保消息有 target
+type CombatEventMessageWithTarget = Extract<
+  BattleMessage,
+  | { type: BattleMessageType.SkillMiss; data: { target: petId; [key: string]: any } }
+  | { type: BattleMessageType.Damage; data: { target: petId; [key: string]: any } }
+  | { type: BattleMessageType.DamageFail; data: { target: petId; [key: string]: any } }
+  | { type: BattleMessageType.Heal; data: { target: petId; [key: string]: any } }
+>
 
 type AnimationEvents = {
   'attack-hit': 'left' | 'right'
@@ -103,6 +95,24 @@ const currentPlayer = computed(() => store.currentPlayer)
 const opponentPlayer = computed(() => store.opponent)
 const globalMarks = computed(() => store.battleState?.marks ?? [])
 const currentTurn = computed(() => store.battleState?.currentTurn ?? 0)
+
+const {
+  showMissMessage,
+  showAbsorbMessage,
+  showDamageMessage,
+  showHealMessage,
+  showUseSkillMessage,
+  cleanup: cleanupBattleAnimations,
+} = useBattleAnimations(
+  leftStatusRefBounding,
+  rightStatusRefBounding,
+  battleRefBounding,
+  battleViewRef as Ref<HTMLElement | null>,
+  store,
+  currentPlayer,
+  opponentPlayer,
+)
+
 const leftPetSpeciesNum = computed(
   () =>
     gameDataStore.getSpecies(
@@ -144,12 +154,10 @@ const background = computed(() => {
   )
 })
 
-// 当前玩家可用技能
 const availableSkills = computed<SkillMessage[]>(() => {
   return store.getPetById(currentPlayer.value!.activePet)?.skills?.filter(skill => !skill.isUnknown) ?? []
 })
 
-// 处理技能点击
 const handleSkillClick = (skillId: string) => {
   if (isPending.value) return
   const action = store.availableActions.find(a => a.type === 'use-skill' && a.skill === skillId)
@@ -157,7 +165,6 @@ const handleSkillClick = (skillId: string) => {
   panelState.value = PanelState.SKILLS
 }
 
-// 处理换宠
 const handlePetSelect = (petId: string) => {
   if (isPending.value) return
   const action = store.availableActions.find(a => a.type === 'switch-pet' && a.pet === petId)
@@ -165,14 +172,12 @@ const handlePetSelect = (petId: string) => {
   panelState.value = PanelState.SKILLS
 }
 
-// 处理投降
 const handleEscape = () => {
   if (isPending.value) return
   const action = store.availableActions.find(a => a.type === 'surrender')
   if (action) store.sendplayerSelection(action)
 }
 
-// 战斗结果计算
 const battleResult = computed(() => {
   if (!store.isBattleEnd) return ''
   return store.victor === store.playerId ? '胜利！🎉' : store.victor ? '失败...💔' : '平局'
@@ -182,503 +187,10 @@ const isSkillAvailable = (skillId: skillId) => {
   return store.availableActions?.some(a => a.type === 'use-skill' && a.skill === skillId) ?? false
 }
 
-// 检查宠物是否可切换
 const isPetSwitchable = (petId: petId) => {
   return store.availableActions?.some(a => a.type === 'switch-pet' && a.pet === petId) ?? false
 }
 
-const showMissMessage = (side: 'left' | 'right') => {
-  // 获取状态面板元素
-  const statusElement = side === 'left' ? leftStatusRef.value : rightStatusRef.value
-  if (!statusElement) return
-
-  // 计算起始位置（状态面板下方居中）
-  const { bottom, left, width } = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
-  const startX = left.value + width.value / 2
-  const startY = bottom.value + 120
-
-  // 创建动画容器的 VNode
-  const containerVNode = h(
-    'div',
-    {
-      style: {
-        position: 'fixed',
-        left: `${startX}px`,
-        top: `${startY}px`,
-        transformOrigin: 'center center',
-        pointerEvents: 'none',
-        opacity: 0, // 初始透明度为0
-        scale: 1, // 初始缩放为1
-      },
-    },
-    [
-      h('img', {
-        src: 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/damage/miss.png',
-        class: 'h-20',
-      }),
-    ],
-  )
-
-  // 创建一个临时的 div 来挂载 VNode
-  const tempHost = document.createElement('div')
-  document.body.appendChild(tempHost)
-  render(containerVNode, tempHost)
-
-  const containerElement = tempHost.firstChild as HTMLElement
-  if (!containerElement) return
-
-  // 创建时间轴动画
-  const tl = gsap.timeline({
-    onComplete: () => {
-      render(null, tempHost) // 卸载 VNode
-      document.body.removeChild(tempHost) // 移除临时 div
-    },
-  })
-
-  // 第一阶段：淡入 (0.3秒)
-  tl.to(containerElement, {
-    y: -125,
-    opacity: 1,
-    duration: 0.3,
-    ease: 'power2.out',
-  })
-
-  // 第二阶段：停留0.5秒
-  tl.to({}, { duration: 0.5 })
-
-  // 第三阶段：淡出 (0.5秒)
-  tl.to(containerElement, {
-    opacity: 0,
-    duration: 0.5,
-    ease: 'power2.out',
-  })
-}
-
-const showAbsorbMessage = (side: 'left' | 'right') => {
-  // 计算起始位置（状态面板下方居中）
-  const { bottom, left, width } = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
-  const startX = left.value + width.value / 2
-  const startY = bottom.value + 120
-
-  // 创建动画容器的 VNode
-  const containerVNode = h(
-    'div',
-    {
-      style: {
-        position: 'fixed',
-        left: `${startX}px`,
-        top: `${startY}px`,
-        transformOrigin: 'center center',
-        pointerEvents: 'none',
-        opacity: 0,
-        scale: 1,
-      },
-    },
-    [
-      h('img', {
-        src: 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/damage/absorb.png',
-        class: 'h-20',
-      }),
-    ],
-  )
-
-  // 创建一个临时的 div 来挂载 VNode
-  const tempHost = document.createElement('div')
-  document.body.appendChild(tempHost)
-  render(containerVNode, tempHost)
-
-  const containerElement = tempHost.firstChild as HTMLElement
-  if (!containerElement) return
-
-  // 创建时间轴动画
-  const tl = gsap.timeline({
-    onComplete: () => {
-      render(null, tempHost)
-      document.body.removeChild(tempHost)
-    },
-  })
-
-  // 第一阶段：淡入 (0.3秒)
-  tl.to(containerElement, {
-    y: -125,
-    opacity: 1,
-    duration: 0.3,
-    ease: 'power2.out',
-  })
-
-  // 第二阶段：停留0.5秒
-  tl.to({}, { duration: 0.5 })
-
-  // 第三阶段：淡出 (0.5秒)
-  tl.to(containerElement, {
-    opacity: 0,
-    duration: 0.5,
-    ease: 'power2.out',
-  })
-}
-
-const flashAndShake = () => {
-  if (!battleViewRef.value) return
-
-  const flashVNode = h('div', {
-    style: {
-      position: 'absolute',
-      top: '0',
-      left: '0',
-      width: '100%',
-      height: '100%',
-      backgroundColor: 'white',
-      opacity: '0',
-      pointerEvents: 'none',
-      zIndex: '100',
-    },
-  })
-
-  const tempHost = document.createElement('div')
-  // 将 tempHost 添加到 battleViewRef.value 而不是 document.body
-  // 确保 flashVNode 的 position: absolute 相对于 battleViewRef.value
-  battleViewRef.value.appendChild(tempHost)
-  render(flashVNode, tempHost)
-
-  const flashElement = tempHost.firstChild as HTMLElement
-  if (!flashElement) return
-
-  gsap.to(flashElement, {
-    opacity: 0.7,
-    duration: 0.1,
-    ease: 'power2.out',
-    onComplete: () => {
-      gsap.to(flashElement, {
-        opacity: 0,
-        duration: 0.3,
-        ease: 'power2.in',
-        onComplete: () => {
-          render(null, tempHost)
-          if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
-            battleViewRef.value.removeChild(tempHost)
-          }
-        },
-      })
-    },
-  })
-}
-
-const showDamageMessage = (
-  side: 'left' | 'right',
-  value: number,
-  effectiveness: 'up' | 'normal' | 'down' = 'normal',
-  crit: boolean = false,
-) => {
-  // 将伤害消息加入队列
-  damageSubject.next({ side, value, effectiveness, crit })
-}
-
-const showHealMessage = (side: 'left' | 'right', value: number) => {
-  // 将治疗消息加入队列
-  healSubject.next({ side, value })
-}
-
-// 创建治疗消息Subject
-const healSubject = new Subject<{
-  side: 'left' | 'right'
-  value: number
-}>()
-
-// 治疗消息队列处理
-const healSubscription = healSubject
-  .pipe(
-    timestamp(),
-    scan(
-      (acc, { value }) => {
-        const lastTimestamp = acc.timestamp || 0
-        const now = Date.now()
-        // 确保动画之间至少有150ms的间隔
-        const delayTime = lastTimestamp === 0 ? 0 : Math.max(0, 150 - (now - lastTimestamp))
-        return { timestamp: now + delayTime, value }
-      },
-      { timestamp: 0, value: null } as { timestamp: number; value: any },
-    ),
-    concatMap(({ value, timestamp }) =>
-      of(value).pipe(
-        delay(timestamp - Date.now()),
-        tap(({ side, value }) => {
-          const { bottom, left, width } = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
-          // 添加随机偏移
-          const randomOffsetX = (Math.random() - 0.5) * 100 // 治疗的随机偏移小一些
-          const randomOffsetY = (Math.random() - 0.5) * 50
-          const startX = left.value + width.value / 2 + randomOffsetX
-          const startY = bottom.value + 80 + randomOffsetY // 初始Y位置比伤害高一些
-
-          const tempHost = document.createElement('div') // 创建临时挂载点
-          document.body.appendChild(tempHost)
-
-          const healVNode = h(HealDisplay, { value })
-          const containerVNode = h(
-            'div',
-            {
-              style: {
-                position: 'fixed',
-                left: `${startX}px`,
-                top: `${startY}px`,
-                transformOrigin: 'center center',
-                pointerEvents: 'none',
-                zIndex: '1001', // 确保在伤害数字之上
-                opacity: 1,
-                scale: 1,
-              },
-            },
-            [healVNode],
-          )
-          render(containerVNode, tempHost)
-          const containerElement = tempHost.firstChild as HTMLElement
-          if (!containerElement) {
-            document.body.removeChild(tempHost)
-            return
-          }
-
-          const tl = gsap.timeline({
-            onComplete: () => {
-              render(null, tempHost) // 卸载 VNode
-              document.body.removeChild(tempHost) // 移除临时 div
-            },
-          })
-
-          // 第一阶段：向上漂浮并稍微放大
-          tl.to(containerElement, {
-            y: -125, // 向上漂浮
-            scale: 1.2, // 稍微放大
-            duration: 0.5, // 动画持续时间调整为1秒
-            ease: 'power1.out',
-          })
-            // 第二阶段：停留0.5秒
-            .to({}, { duration: 0.5 })
-            // 第三阶段：淡出
-            .to(containerElement, {
-              opacity: 0,
-              duration: 0.5, // 淡出持续0.5秒
-              ease: 'power1.in', // 淡出使用power1.in
-            })
-        }),
-      ),
-    ),
-  )
-  .subscribe()
-
-// 创建伤害消息Subject
-const damageSubject = new Subject<{
-  side: 'left' | 'right'
-  value: number
-  effectiveness: 'up' | 'normal' | 'down'
-  crit: boolean
-}>()
-
-// 伤害消息队列处理
-const damageSubscription = damageSubject
-  .pipe(
-    timestamp(),
-    scan(
-      (acc, { value }) => {
-        const lastTimestamp = acc.timestamp || 0
-        const now = Date.now()
-        const delayTime = lastTimestamp === 0 ? 0 : Math.max(0, 150 - (now - lastTimestamp))
-        return { timestamp: now + delayTime, value }
-      },
-      { timestamp: 0, value: null } as { timestamp: number; value: any },
-    ),
-    concatMap(({ value, timestamp }) =>
-      of(value).pipe(
-        delay(timestamp - Date.now()),
-        tap(({ side, value, effectiveness, crit }) => {
-          // 获取当前侧Pet的最大血量
-          const currentPet =
-            side === 'left'
-              ? store.getPetById(currentPlayer.value!.activePet)!
-              : store.getPetById(opponentPlayer.value!.activePet)!
-
-          const { bottom, left, width } = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
-          // 添加随机偏移 (±20px)
-          const randomOffsetX = (Math.random() - 0.5) * 200
-          const randomOffsetY = (Math.random() - 0.5) * 200
-          const startX = left.value + width.value / 2 + randomOffsetX
-          const startY = bottom.value + 120 + randomOffsetY
-
-          const hpRatio = value / currentPet.maxHp
-
-          if ((hpRatio > 0.25 || crit) && battleViewRef.value) {
-            const shakeIntensity = 5 + Math.random() * 10 // 5-15之间的随机强度
-            const shakeAngle = Math.random() * Math.PI * 2 // 随机角度
-            const shakeX = Math.cos(shakeAngle) * shakeIntensity
-            const shakeY = Math.sin(shakeAngle) * shakeIntensity
-
-            gsap.to(battleViewRef.value, {
-              x: shakeX,
-              y: shakeY,
-              duration: 0.05,
-              repeat: 5,
-              yoyo: true,
-              ease: 'power1.inOut',
-            })
-          }
-
-          // 如果伤害超过最大血量1/2，添加白屏闪屏效果
-          if (hpRatio > 0.5 && battleViewRef.value) {
-            flashAndShake()
-          }
-
-          // 使用已计算的状态面板下方位置
-          const tempHost = document.createElement('div') // 创建临时挂载点
-          document.body.appendChild(tempHost)
-
-          // 渲染DamageDisplay组件
-          const damageVNode = h(DamageDisplay, {
-            value,
-            type: effectiveness === 'up' ? 'red' : effectiveness === 'down' ? 'blue' : '',
-            class: 'overflow-visible',
-          })
-
-          // 动画参数
-          const moveX = side === 'left' ? 300 : -300 // 水平偏移量
-          const baseScale = crit ? 1.5 : 1
-          const targetScale = crit ? 2.5 : 1.8
-
-          const containerVNode = h(
-            'div',
-            {
-              style: {
-                position: 'fixed',
-                left: `${startX}px`,
-                top: `${startY}px`,
-                transformOrigin: 'center center',
-                pointerEvents: 'none',
-                opacity: 1,
-                scale: baseScale,
-              },
-            },
-            [damageVNode],
-          )
-          render(containerVNode, tempHost)
-          const containerElement = tempHost.firstChild as HTMLElement
-          if (!containerElement) {
-            document.body.removeChild(tempHost)
-            return
-          }
-
-          // 创建时间轴动画
-          const tl = gsap.timeline({
-            onComplete: () => {
-              render(null, tempHost) // 卸载 VNode
-              document.body.removeChild(tempHost) // 移除临时 div
-            },
-          })
-
-          // 第一阶段：移动并放大 (0.5秒)
-          tl.to(containerElement, {
-            x: moveX,
-            y: -150,
-            scale: targetScale,
-            duration: 0.25,
-            ease: 'power2.out',
-          })
-
-          // 第二阶段：停留0.5秒
-          tl.to({}, { duration: 0.5 })
-
-          // 第三阶段：淡出 (0.5秒)
-          tl.to(containerElement, {
-            opacity: 0,
-            duration: 0.5,
-            ease: 'power2.out',
-          })
-        }),
-      ),
-    ),
-  )
-  .subscribe()
-
-const showUseSkillMessage = (side: 'left' | 'right', baseSkillId: string) => {
-  // 计算目标位置（BattleStatus下方）
-  const { width, bottom } = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
-  const { left: viewLeft, right: viewRight } = battleRefBounding
-  if (!viewLeft || !viewRight) return
-  const targetX = side === 'left' ? viewLeft.value : viewRight.value - width.value * 0.75
-  const targetY = bottom.value + 20
-  const skillName = i18next.t(`${baseSkillId}.name`, { ns: 'skill' })
-
-  const boxVNode = h(
-    'div',
-    {
-      class: 'h-[60px] flex justify-center items-center font-bold text-lg text-white',
-      style: {
-        backgroundImage:
-          side === 'left'
-            ? 'linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.3))'
-            : 'linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0.3))',
-        padding: '15px 0',
-        left: '0',
-        width: `${width.value * 0.75}px`, // petStatus的3/4宽
-      },
-    },
-    skillName,
-  )
-
-  const containerVNode = h(
-    'div',
-    {
-      class: 'fixed pointer-events-none',
-      style: {
-        left: `${targetX}px`,
-        top: `${targetY}px`,
-        transformOrigin: 'center center',
-        opacity: 0,
-        scale: 0.8,
-      },
-    },
-    [boxVNode],
-  )
-
-  const tempHost = document.createElement('div')
-  document.body.appendChild(tempHost)
-  render(containerVNode, tempHost)
-
-  const containerElement = tempHost.firstChild as HTMLElement
-  if (!containerElement) return
-
-  // 初始状态 - 从侧边开始
-  const startXPosition = side === 'left' ? -200 : 200
-  gsap.set(containerElement, {
-    x: startXPosition,
-  })
-
-  // 创建时间轴动画
-  const tl = gsap.timeline({
-    onComplete: () => {
-      render(null, tempHost)
-      document.body.removeChild(tempHost)
-    },
-  })
-
-  // 第一阶段：从侧边弹入
-  tl.to(containerElement, {
-    x: 0,
-    opacity: 1,
-    scale: 1,
-    duration: 0.3,
-    ease: 'back.out(1.7)',
-  })
-
-  // 第二阶段：停留1秒
-  tl.to({}, { duration: 1 })
-
-  // 第三阶段：向同侧弹出
-  tl.to(containerElement, {
-    x: startXPosition,
-    opacity: 0,
-    duration: 0.5,
-    ease: 'power2.in',
-  })
-}
-
-// 辅助函数：宠物入场/出场动画
 async function animatePetTransition(
   petSprite: InstanceType<typeof PetSprite> | null,
   targetX: number,
@@ -704,15 +216,10 @@ async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitc
   const battleViewWidth = battleRefBounding.width.value
   const isLeft = side === 'left'
   const offScreenX = isLeft ? -battleViewWidth / 2 - 100 : battleViewWidth / 2 + 100
-  const animationDuration = 1 // 动画时间
+  const animationDuration = 1
 
-  // 1. 切出旧精灵
   await animatePetTransition(oldPetSprite, offScreenX, 0, animationDuration, 'power2.in')
-
-  // 2. 应用状态变更
   await store.applyStateDelta(petSwitchMessage)
-
-  // 3. 等待DOM更新
   await nextTick()
 
   const newPetSprite = petSprites.value[side]
@@ -726,14 +233,13 @@ async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitc
     await newPetReadyPromise
   }
 
-  // 4. 初始化新精灵位置并执行切入动画
   gsap.set(newPetSprite.$el, { x: offScreenX, opacity: 0 })
-  const newPetInfo = store.getPetById(toPetId) // Get info for sound
+  const newPetInfo = store.getPetById(toPetId)
   const newPetSpeciesNum = gameDataStore.getSpecies(newPetInfo?.speciesID ?? '')?.num ?? 0
   if (newPetSpeciesNum !== 0) {
-    playPetSound(newPetSpeciesNum) // Play sound before animation starts
+    playPetSound(newPetSpeciesNum)
   }
-  await animatePetTransition(newPetSprite, 0, 1, animationDuration, 'power2.out') // Removed onComplete callback
+  await animatePetTransition(newPetSprite, 0, 1, animationDuration, 'power2.out')
 }
 
 const petSprites = computed(() => {
@@ -752,8 +258,6 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   const baseSkillData = gameDataStore.getSkill(baseSkillId)
   const category = store.skillMap.get(useSkill.data.skill)?.category || Category.Physical
   const side = getTargetSide(useSkill.data.user)
-
-  // 参数校验
   const source = petSprites.value[side]
 
   if (!source) {
@@ -774,7 +278,6 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
           : ActionState.ATK_PHY,
     ],
   ])
-
   const state = stateMap.get(category) || ActionState.ATK_PHY
 
   if (!source.availableState.includes(state)) {
@@ -783,9 +286,9 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
 
   showUseSkillMessage(side, baseSkillId)
   source.$el.style.zIndex = 1
-
   source.setState(state)
   if (category === 'Climax') playSkillSound(baseSkillId)
+
   const hitPromise = new Promise<void>(resolve => {
     const handler = (hitSide: 'left' | 'right') => {
       if (hitSide === side) {
@@ -815,80 +318,90 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   })
 
   await hitPromise
-
   if (category !== 'Climax' && !messages.some(msg => msg.type === BattleMessageType.SkillMiss))
     playSkillSound(baseSkillId)
 
   for (const msg of messages) {
     await store.applyStateDelta(msg)
-    switch (msg.type) {
-      case BattleMessageType.SkillMiss: {
-        const targetSide = getTargetSide(msg.data.target)
-        petSprites.value[targetSide].setState(ActionState.MISS)
-        showMissMessage(targetSide)
-        break
-      }
-      case BattleMessageType.Damage: {
-        const targetSide = getTargetSide(msg.data.target)
-        const target = petSprites.value[targetSide]
-        const damage = msg.data.damage
-        const crit = msg.data.isCrit
-        const effectiveness = msg.data.effectiveness
-        if (damage === 0) {
-          target.setState(ActionState.MISS)
-          showAbsorbMessage(targetSide)
-          break
-        } else {
-          // 获取目标宠物最新状态
-          const targetPet = store.getPetById(msg.data.target)!
-          const currentHp = targetPet.currentHp
-          const maxHp = targetPet.maxHp
-
-          // 检查可用状态
-          const availableStates = petSprites.value[targetSide].availableState
-          const isDead = currentHp <= 0
-          const isCriticalHealth = currentHp < maxHp * 0.25
-
-          // 优先判断死亡状态
-          if (msg.data.damageType !== 'Effect') {
-            if (isDead && availableStates.includes(ActionState.DEAD)) {
-              target.setState(ActionState.DEAD)
-            }
-            // 其次判断濒死状态
-            else if (isCriticalHealth && availableStates.includes(ActionState.ABOUT_TO_DIE)) {
-              target.setState(ActionState.ABOUT_TO_DIE)
-            }
-            // 最后处理普通受伤状态
-            else {
-              target.setState(crit ? ActionState.UNDER_ULTRA : ActionState.UNDER_ATK)
-            }
-          }
-
-          showDamageMessage(targetSide, damage, effectiveness > 1 ? 'up' : effectiveness < 1 ? 'down' : 'normal', crit)
-          break
-        }
-      }
-      case BattleMessageType.DamageFail: {
-        const targetSide = getTargetSide(msg.data.target)
-        const target = petSprites.value[targetSide]
-        target.setState(ActionState.MISS)
-        showAbsorbMessage(targetSide)
-        break
-      }
-      case BattleMessageType.Heal:
-        if (msg.type === BattleMessageType.Heal) {
-          const targetSide = getTargetSide(msg.data.target)
-          showHealMessage(targetSide, msg.data.amount)
-        }
-        break
-      default:
-      //DoNothing
+    const combatEventTypes: BattleMessageType[] = [
+      BattleMessageType.SkillMiss,
+      BattleMessageType.Damage,
+      BattleMessageType.DamageFail,
+      BattleMessageType.Heal,
+    ]
+    if (combatEventTypes.includes(msg.type as BattleMessageType)) {
+      handleCombatEventMessage(msg as CombatEventMessageWithTarget, true)
     }
   }
 
   await animateCompletePromise
-
   source.$el.style.zIndex = ''
+}
+
+function handleCombatEventMessage(message: CombatEventMessageWithTarget, isFromSkillSequenceContext: boolean) {
+  const targetPetId = message.data.target
+  const targetSide = getTargetSide(targetPetId)
+  const targetPetSprite = petSprites.value[targetSide]
+
+  if (!targetPetSprite) {
+    console.warn(`Target pet sprite not found for side: ${targetSide}`, message)
+    return
+  }
+
+  switch (message.type) {
+    case BattleMessageType.SkillMiss:
+      targetPetSprite.setState(ActionState.MISS)
+      showMissMessage(targetSide)
+      break
+    case BattleMessageType.Damage: {
+      const damageData = message.data
+      if (damageData.damage === 0) {
+        targetPetSprite.setState(ActionState.MISS)
+        showAbsorbMessage(targetSide)
+      } else {
+        const targetPetInfo = store.getPetById(damageData.target)
+        if (!targetPetInfo) {
+          console.warn(`Target pet info not found for ID: ${damageData.target}`, message)
+          return
+        }
+        const { currentHp, maxHp } = targetPetInfo
+        const { availableState } = targetPetSprite
+        const isDead = currentHp <= 0
+        const isCriticalHealth = currentHp < maxHp * 0.25
+        const shouldSetPetAnimationState =
+          !isFromSkillSequenceContext || (isFromSkillSequenceContext && damageData.damageType !== 'Effect')
+
+        if (shouldSetPetAnimationState) {
+          if (isDead && availableState.includes(ActionState.DEAD)) {
+            targetPetSprite.setState(ActionState.DEAD)
+          } else if (isCriticalHealth && availableState.includes(ActionState.ABOUT_TO_DIE)) {
+            targetPetSprite.setState(ActionState.ABOUT_TO_DIE)
+          } else {
+            targetPetSprite.setState(damageData.isCrit ? ActionState.UNDER_ULTRA : ActionState.UNDER_ATK)
+          }
+        }
+        showDamageMessage(
+          targetSide,
+          damageData.damage,
+          damageData.effectiveness > 1 ? 'up' : damageData.effectiveness < 1 ? 'down' : 'normal',
+          damageData.isCrit,
+        )
+      }
+      break
+    }
+    case BattleMessageType.DamageFail:
+      targetPetSprite.setState(ActionState.MISS)
+      showAbsorbMessage(targetSide)
+      break
+    case BattleMessageType.Heal:
+      showHealMessage(targetSide, message.data.amount)
+      break
+    default:
+      console.warn(
+        'Unhandled message type in handleCombatEventMessage (should not happen with CombatEventMessageWithTarget):',
+        message,
+      )
+  }
 }
 
 const handleAttackHit = (side: 'left' | 'right') => {
@@ -903,53 +416,18 @@ onUnmounted(() => {
   emitter.all.clear()
 })
 
-defineExpose({
-  showDamageMessage,
-  showMissMessage,
-  showAbsorbMessage,
-  showUseSkillMessage,
-  useSkillAnimate,
-  showHealMessage, // 新增：暴露showHealMessage
-})
-
-// 添加组件实例类型声明
-export interface BattlePageExposed {
-  useSkillAnimate: (messages: BattleMessage[]) => Promise<void>
-  showDamageMessage: (
-    side: 'left' | 'right',
-    value: number,
-    effectiveness?: 'up' | 'normal' | 'down',
-    crit?: boolean,
-  ) => void
-  showMissMessage: (side: 'left' | 'right') => void
-  showAbsorbMessage: (side: 'left' | 'right') => void
-  showUseSkillMessage: (side: 'left' | 'right', baseSkillId: string) => void
-  showHealMessage: (side: 'left' | 'right', value: number) => void // 新增：showHealMessage类型
-}
-
-declare module 'vue' {
-  interface ComponentCustomProperties {
-    $refs: {
-      battlePageRef: ComponentPublicInstance<BattlePageExposed>
-    }
-  }
-}
-
-// 获取目标方位置
 const getTargetSide = (targetPetId: string): 'left' | 'right' => {
   const isCurrentPlayerPet = currentPlayer.value?.team?.some(p => p.id === targetPetId)
   return isCurrentPlayerPet ? 'left' : 'right'
 }
 
-// 消息订阅逻辑
 let messageSubscription: { unsubscribe: () => void } | null = null
-
 const animationQueue = store.animateQueue
 const animating = ref(false)
 const sequenceId = ref(-1)
+
 const animatesubscribe = animationQueue
   .pipe(
-    // 使用 concatMap 强制顺序执行异步任务
     concatMap(task =>
       from(task()).pipe(
         tap(() => {
@@ -960,7 +438,7 @@ const animatesubscribe = animationQueue
         }),
         catchError(err => {
           console.error('动画执行失败:', err)
-          return of(null) // 捕获错误后继续后续任务
+          return of(null)
         }),
       ),
     ),
@@ -974,7 +452,6 @@ const preloadPetSprites = () => {
   })
 }
 
-// 辅助函数：宠物入场动画 (复用 animatePetTransition)
 async function animatePetEntry(
   petSprite: InstanceType<typeof PetSprite> | null,
   initialX: number,
@@ -983,7 +460,7 @@ async function animatePetEntry(
   onCompleteCallback?: () => void,
 ) {
   if (petSprite && petSprite.$el) {
-    gsap.set(petSprite.$el, { x: initialX, opacity: 0 }) // 确保初始状态设置正确
+    gsap.set(petSprite.$el, { x: initialX, opacity: 0 })
     return animatePetTransition(petSprite, targetX, 1, duration, 'power2.out', onCompleteCallback)
   }
   return Promise.resolve()
@@ -993,28 +470,21 @@ async function initialPetEntryAnimation() {
   const leftPet = petSprites.value.left
   const rightPet = petSprites.value.right
   const battleViewWidth = battleRefBounding.width.value
-  const animationDuration = 1 // 增加动画时间
-
+  const animationDuration = 1
   const animations = []
 
   if (leftPet && leftPet.$el) {
     if (leftPetSpeciesNum.value !== 0) {
-      playPetSound(leftPetSpeciesNum.value) // Play sound before animation starts
+      playPetSound(leftPetSpeciesNum.value)
     }
-    animations.push(
-      animatePetEntry(leftPet, -battleViewWidth / 2 - 100, 0, animationDuration), // Removed onComplete callback
-    )
+    animations.push(animatePetEntry(leftPet, -battleViewWidth / 2 - 100, 0, animationDuration))
   }
-
   if (rightPet && rightPet.$el) {
     if (rightPetSpeciesNum.value !== 0) {
-      playPetSound(rightPetSpeciesNum.value) // Play sound before animation starts
+      playPetSound(rightPetSpeciesNum.value)
     }
-    animations.push(
-      animatePetEntry(rightPet, battleViewWidth / 2 + 100, 0, animationDuration), // Removed onComplete callback
-    )
+    animations.push(animatePetEntry(rightPet, battleViewWidth / 2 + 100, 0, animationDuration))
   }
-
   await Promise.all(animations)
 }
 
@@ -1023,12 +493,9 @@ onMounted(async () => {
   messageSubscription = store._messageSubject
     .pipe(
       concatMap(msg => {
-        // 处理SkillUse消息组
         if (msg.type === BattleMessageType.SkillUse) {
           return store._messageSubject.pipe(
-            // 立即包含当前消息
             startWith(msg),
-            // 捕获直到对应SkillUseEnd的消息
             takeUntil(
               store._messageSubject.pipe(
                 filter(
@@ -1038,9 +505,7 @@ onMounted(async () => {
                 take(1),
               ),
             ),
-            // 收集窗口内所有消息
             toArray(),
-            // 生成动画任务
             mergeMap(messages => {
               const task = async () => {
                 if (sequenceId.value >= (msg.sequenceId ?? -1)) return
@@ -1053,106 +518,51 @@ onMounted(async () => {
         }
         const task = async () => {
           if (sequenceId.value >= (msg.sequenceId ?? -1)) return
-          switch (msg.type) {
-            case BattleMessageType.SkillMiss: {
-              petSprites.value[getTargetSide(msg.data.target)].setState(ActionState.MISS)
-              break
-            }
-            case BattleMessageType.Damage: {
-              const targetSide = getTargetSide(msg.data.target)
-              const target = petSprites.value[targetSide]
-              const damage = msg.data.damage
-              const crit = msg.data.isCrit
-              const effectiveness = msg.data.effectiveness
-              if (damage === 0) {
-                target.setState(ActionState.MISS)
-                showAbsorbMessage(targetSide)
-                break
-              } else {
-                // 获取目标宠物最新状态
-                const targetPet = store.getPetById(msg.data.target)!
-                const currentHp = targetPet.currentHp
-                const maxHp = targetPet.maxHp
 
-                // 检查可用状态
-                const availableStates = petSprites.value[targetSide].availableState
-                const isDead = currentHp <= 0
-                const isCriticalHealth = currentHp < maxHp * 0.25
+          if (msg.type === BattleMessageType.PetSwitch) {
+            // 对于 PetSwitch，状态更新由 switchPetAnimate 内部精确控制时机
+            await switchPetAnimate(msg.data.toPet, getTargetSide(msg.data.toPet), msg as PetSwitchMessage)
+          } else {
+            // 对于其他所有消息，先应用状态变更
+            await store.applyStateDelta(msg)
 
-                // 优先判断死亡状态
-                if (isDead && availableStates.includes(ActionState.DEAD)) {
-                  target.setState(ActionState.DEAD)
-                }
-                // 其次判断濒死状态
-                else if (isCriticalHealth && availableStates.includes(ActionState.ABOUT_TO_DIE)) {
-                  target.setState(ActionState.ABOUT_TO_DIE)
-                }
-                // 最后处理普通受伤状态
-                else {
-                  target.setState(crit ? ActionState.UNDER_ULTRA : ActionState.UNDER_ATK)
-                }
-
-                showDamageMessage(
-                  targetSide,
-                  damage,
-                  effectiveness > 1 ? 'up' : effectiveness < 1 ? 'down' : 'normal',
-                  crit,
-                )
-                break
+            const combatEventTypes: BattleMessageType[] = [
+              BattleMessageType.SkillMiss,
+              BattleMessageType.Damage,
+              BattleMessageType.DamageFail,
+              BattleMessageType.Heal,
+            ]
+            if (combatEventTypes.includes(msg.type as BattleMessageType)) {
+              handleCombatEventMessage(msg as CombatEventMessageWithTarget, false)
+            } else {
+              // 处理其他非战斗事件相关的消息 (PetSwitch 已在上面单独处理)
+              switch (msg.type) {
+                case BattleMessageType.TurnAction:
+                  panelState.value = PanelState.SKILLS
+                  break
+                case BattleMessageType.ForcedSwitch:
+                  // 确保 msg.data 和 msg.data.player 存在
+                  if (
+                    msg.data &&
+                    'player' in msg.data &&
+                    Array.isArray(msg.data.player) &&
+                    !msg.data.player.some(p => p === currentPlayer.value?.id)
+                  )
+                    break
+                  panelState.value = PanelState.PETS
+                  break
+                case BattleMessageType.FaintSwitch:
+                  // 确保 msg.data 和 msg.data.player 存在
+                  if (msg.data && 'player' in msg.data && !(msg.data.player === currentPlayer.value?.id)) break
+                  panelState.value = PanelState.PETS
+                  break
+                // PetSwitch 类型的消息已在外部 if 条件中处理
+                default:
+                  // 其他消息类型，如果它们不直接触发战斗动画或UI，则仅应用状态（已在上方完成）
+                  break
               }
             }
-            case BattleMessageType.DamageFail: {
-              const targetSide = getTargetSide(msg.data.target)
-              const target = petSprites.value[targetSide]
-              target.setState(ActionState.MISS)
-              showAbsorbMessage(targetSide)
-              break
-            }
-            case BattleMessageType.TurnAction:
-              panelState.value = PanelState.SKILLS
-              break
-            case BattleMessageType.ForcedSwitch:
-              if (!msg.data.player.some(p => p === currentPlayer.value?.id)) break
-              panelState.value = PanelState.PETS
-              break
-            case BattleMessageType.FaintSwitch:
-              if (!(msg.data.player === currentPlayer.value?.id)) break
-              panelState.value = PanelState.PETS
-              break
-            case BattleMessageType.PetSwitch:
-              // 将整个 msg 对象传递给 switchPetAnimate
-              await switchPetAnimate(msg.data.toPet, getTargetSide(msg.data.toPet), msg as PetSwitchMessage)
-              sequenceId.value = Math.max(sequenceId.value, msg.sequenceId ?? -1)
-              return // 已在 switchPetAnimate 内部处理状态，故返回
-            case BattleMessageType.PetDefeated:
-            case BattleMessageType.BattleStart:
-            case BattleMessageType.TurnStart:
-            case BattleMessageType.TurnEnd:
-            case BattleMessageType.BattleEnd:
-            case BattleMessageType.PetRevive:
-            case BattleMessageType.StatChange:
-            case BattleMessageType.RageChange:
-            case BattleMessageType.HpChange:
-            case BattleMessageType.SkillUseFail:
-            case BattleMessageType.Heal:
-              if (msg.type === BattleMessageType.Heal) {
-                const targetSide = getTargetSide(msg.data.target)
-                showHealMessage(targetSide, msg.data.amount) // 修正：使用 msg.data.amount
-              }
-              break
-            case BattleMessageType.HealFail:
-            case BattleMessageType.MarkApply:
-            case BattleMessageType.MarkDestroy:
-            case BattleMessageType.MarkExpire:
-            case BattleMessageType.MarkUpdate:
-            case BattleMessageType.EffectApply:
-            case BattleMessageType.InvalidAction:
-            case BattleMessageType.Info:
-            case BattleMessageType.Error:
-            default:
-              break
           }
-          await store.applyStateDelta(msg)
           sequenceId.value = Math.max(sequenceId.value, msg.sequenceId ?? -1)
         }
         return of(task)
@@ -1174,14 +584,13 @@ onMounted(async () => {
   }
 
   await store.ready()
-  await initialPetEntryAnimation() // 战斗开始时执行入场动画
+  await initialPetEntryAnimation()
 })
 
 onUnmounted(() => {
   messageSubscription?.unsubscribe()
   animatesubscribe.unsubscribe()
-  damageSubscription.unsubscribe()
-  healSubscription.unsubscribe() // 新增：取消订阅healSubscription
+  cleanupBattleAnimations()
   emitter.all.clear()
 })
 
@@ -1189,43 +598,35 @@ watch(
   () => store.isBattleEnd,
   async (newVal, oldVal) => {
     if (newVal && !oldVal) {
-      // 战斗刚刚结束
       const victor = store.victor
       const leftPet = petSprites.value.left
       const rightPet = petSprites.value.right
       const isVictor = store.victor === store.playerId
 
-      // 1. 设置宠物最终状态 (WIN/DEAD)
       if (victor === null) {
-        // 平局
         if (leftPet && leftPet.availableState.includes(ActionState.DEAD)) leftPet.setState(ActionState.DEAD)
         if (rightPet && rightPet.availableState.includes(ActionState.DEAD)) rightPet.setState(ActionState.DEAD)
       } else if (isVictor) {
-        // 当前玩家胜利
         if (leftPet && leftPet.availableState.includes(ActionState.WIN)) leftPet.setState(ActionState.WIN)
         if (rightPet && rightPet.availableState.includes(ActionState.DEAD)) rightPet.setState(ActionState.DEAD)
       } else {
-        // 对手胜利
         if (leftPet && leftPet.availableState.includes(ActionState.DEAD)) leftPet.setState(ActionState.DEAD)
         if (rightPet && rightPet.availableState.includes(ActionState.WIN)) rightPet.setState(ActionState.WIN)
       }
 
-      // 2. 无论胜负，都播放KO横幅动画
       showKoBanner.value = true
-      playVictorySound() // 播放胜利音效
-      await nextTick() // 等待DOM更新
+      playVictorySound()
+      await nextTick()
 
       if (koBannerRef.value) {
         const tl = gsap.timeline({
           onComplete: () => {
-            showKoBanner.value = false // 隐藏横幅
-            // KO动画完成后再显示胜利/失败选项
+            showKoBanner.value = false
             setTimeout(() => {
               showBattleEndUI.value = true
-            }, 500) // 在KO横幅消失后再稍作停留
+            }, 500)
           },
         })
-        // 初始化状态
         gsap.set(koBannerRef.value, { opacity: 0, scale: 0.8, xPercent: -50, yPercent: -50 })
         tl.to(koBannerRef.value, {
           opacity: 1,
@@ -1234,8 +635,8 @@ watch(
           yPercent: -50,
           duration: 0.3,
           ease: 'power2.out',
-        }) // 淡入并放大
-          .to(koBannerRef.value, { duration: 1.5 }) // 停留1.5秒
+        })
+          .to(koBannerRef.value, { duration: 1.5 })
           .to(koBannerRef.value, {
             opacity: 0,
             scale: 0.8,
@@ -1243,12 +644,11 @@ watch(
             yPercent: -50,
             duration: 0.3,
             ease: 'power2.in',
-          }) // 淡出并缩小
+          })
       } else {
-        // Fallback: 如果 koBannerRef 不可用，则直接显示战斗结束UI
         setTimeout(() => {
           showBattleEndUI.value = true
-        }, 2000) // 使用原有的2秒延迟作为后备
+        }, 2000)
       }
     }
   },
@@ -1326,7 +726,6 @@ watch(
 
           <div class="flex-1 h-full">
             <div class="h-full grid grid-cols-5 gap-2" v-show="panelState === PanelState.SKILLS">
-              <!-- 普通技能 -->
               <template
                 v-for="(skill, index) in availableSkills.filter(s => s.category !== Category.Climax)"
                 :key="'normal-' + skill.id"
@@ -1338,8 +737,6 @@ watch(
                   :style="{ 'grid-column-start': index + 1 }"
                 />
               </template>
-
-              <!-- Climax技能 -->
               <template
                 v-for="(skill, index) in availableSkills.filter(s => s.category === Category.Climax)"
                 :key="'climax-' + skill.id"
