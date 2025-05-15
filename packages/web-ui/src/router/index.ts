@@ -1,30 +1,14 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import LobbyView from '../pages/lobbyPage.vue'
-import BattleView from '../pages/battlePage.vue'
+// import BattleView from '../pages/battlePage.vue'
+const BattleView = () => import('../pages/battlePage.vue')
 import LocalBattlePage from '../pages/localBattlePage.vue'
-import DataEditor from '../pages/dataEditor.vue'
-import EffectGraphEditor from '@/pages/EffectGraphEditor.vue'
+// import DataEditor from '../pages/dataEditor.vue'
+// import EffectGraphEditor from '@/pages/EffectGraphEditor.vue'
 
 // 路由守卫
 import { battleGuard } from './guards'
 import TeamBuilder from '@/pages/teamBuilder.vue'
-
-const devOnlyRoutes: RouteRecordRaw[] = [
-  {
-    path: '/data-editor',
-    name: 'DataEditor',
-    component: DataEditor,
-    meta: {
-      title: '数据编辑器',
-    },
-  },
-  {
-    path: '/effect-editor',
-    name: 'EffectGraphEditor',
-    component: EffectGraphEditor,
-    props: true,
-  },
-]
 
 const routes: RouteRecordRaw[] = [
   {
@@ -70,9 +54,26 @@ const routes: RouteRecordRaw[] = [
   },
 ]
 
-if (import.meta.env.DEV) {
-  routes.push(...devOnlyRoutes)
-}
+// const devOnlyRoutes: RouteRecordRaw[] = [
+//   {
+//     path: '/data-editor',
+//     name: 'DataEditor',
+//     component: DataEditor,
+//     meta: {
+//       title: '数据编辑器',
+//     },
+//   },
+//   {
+//     path: '/effect-editor',
+//     name: 'EffectGraphEditor',
+//     component: EffectGraphEditor,
+//     props: true,
+//   },
+// ]
+
+// if (import.meta.env.DEV) {
+//   routes.push(...devOnlyRoutes)
+// }
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),

@@ -363,7 +363,6 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
 
     this.owner?.battle?.applyEffects(context, EffectTrigger.OnUpdateStat, ...this.marks)
     this.stat = { ...this.stat, ...newStat }
-    console.log(this.stat)
     this.dirty = false
   }
 
