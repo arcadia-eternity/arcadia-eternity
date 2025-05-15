@@ -629,7 +629,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
           const maxHp = targetPet.maxHp
 
           // 检查可用状态
-          const availableStates = await petSprites.value[targetSide].availableState
+          const availableStates = petSprites.value[targetSide].availableState
           const isDead = currentHp <= 0
           const isCriticalHealth = currentHp < maxHp * 0.25
 
@@ -750,7 +750,7 @@ const preloadPetSprites = () => {
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
   preloadPetSprites()
   messageSubscription = store._messageSubject
     .pipe(
@@ -882,6 +882,9 @@ onMounted(() => {
       }),
     )
     .subscribe(task => animationQueue.next(task))
+
+  await Promise.all([leftPetRef.value?.ready, rightPetRef.value?.ready])
+  await store.ready()
 })
 
 onUnmounted(() => {

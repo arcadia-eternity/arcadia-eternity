@@ -107,7 +107,7 @@ program
       const battleSystem = new LocalBattleSystem(battle)
       await initI18n(options.debug)
       const ui = new ConsoleUIV2(battleSystem, ...selfControl)
-      battleSystem.init()
+      battleSystem.ready()
     } catch (err) {
       console.error('[💥] 致命错误:', err instanceof Error ? err.message : err)
       process.exit(1)

@@ -55,6 +55,9 @@ export interface ClientToServerEvents {
   joinMatchmaking: (playerSchema: PlayerSchemaType, callback: AckResponse<{ status: 'QUEUED' }>) => void
   //取消匹配
   cancelMatchmaking: (ack: AckResponse<{ status: 'CANCELED' }>) => void
+  // 准备开始对战
+  ready: () => void
+
   // 玩家动作
   submitPlayerSelection: (
     selection: PlayerSelectionSchemaType,

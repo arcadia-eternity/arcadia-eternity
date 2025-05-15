@@ -2,7 +2,7 @@
 import 'seer2-pet-animator'
 import { ActionState } from 'seer2-pet-animator'
 import type {} from 'seer2-pet-animator' //Vue Declare
-import { computed, markRaw, onMounted, ref, useTemplateRef, watchEffect } from 'vue'
+import { computed, markRaw, onMounted, reactive, ref, useTemplateRef, watchEffect } from 'vue'
 import { useElementBounding } from '@vueuse/core'
 const props = withDefaults(
   defineProps<{
@@ -34,10 +34,15 @@ const scale = computed(() => {
 })
 
 const availableState = ref<ActionState[]>([])
+let readyResolve: (() => void) | undefined = undefined
+const ready = new Promise<void>(resolve => {
+  readyResolve = resolve
+})
 
 watchEffect(async () => {
   if (props.num && petRenderRef.value) {
     availableState.value = (await petRenderRef.value.getAvailableStates()) as ActionState[]
+    if (readyResolve) readyResolve()
   }
 })
 
@@ -67,6 +72,7 @@ defineExpose({
   setState,
   getState,
   availableState,
+  ready,
 })
 </script>
 <template>

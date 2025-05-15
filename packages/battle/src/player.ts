@@ -4,6 +4,7 @@ import {
   BattleMessageType,
   BattlePhase,
   type BattleState,
+  BattleStatus,
   Category,
   type DoNothingSelection,
   EffectTrigger,
@@ -70,6 +71,7 @@ export class Player {
   }
 
   public getAvailableSelection(): PlayerSelection[] {
+    if (this.battle!.status === BattleStatus.Unstarted) return []
     if (this.battle!.pendingDefeatedPlayers.includes(this)) return this.getAvailableSwitch()
     if (this.battle?.lastKiller === this)
       return [

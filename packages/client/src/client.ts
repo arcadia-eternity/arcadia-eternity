@@ -192,6 +192,13 @@ export class BattleClient {
     })
   }
 
+  async ready(): Promise<void> {
+    return new Promise(resolve => {
+      this.socket.emit('ready')
+      resolve()
+    })
+  }
+
   once<T extends keyof ServerToClientEvents>(event: T, listener: ServerToClientEvents[T]): this {
     this.socket.once(event, listener as any)
     return this

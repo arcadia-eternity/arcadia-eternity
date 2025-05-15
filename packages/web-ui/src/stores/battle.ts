@@ -43,6 +43,10 @@ export const useBattleStore = defineStore('battle', {
       this.availableActions = await this.fetchAvailableSelection()
     },
 
+    async ready() {
+      await this.battleInterface?.ready()
+    },
+
     async sendplayerSelection(selection: PlayerSelection) {
       try {
         await this.battleInterface?.submitAction(selection)

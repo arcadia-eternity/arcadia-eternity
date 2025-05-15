@@ -22,4 +22,8 @@ export class RemoteBattleSystem implements IBattleSystem {
     const unsubscribe = this.client.on('battleEvent', callback)
     return () => unsubscribe()
   }
+
+  async ready(): Promise<void> {
+    await this.client.ready()
+  }
 }

@@ -9,7 +9,7 @@ export class LocalBattleSystem implements IBattleSystem {
     this.generator = battle.startBattle()
   }
 
-  init() {
+  async ready(): Promise<void> {
     if (this.inited) return
     this.generator.next()
     this.inited = true

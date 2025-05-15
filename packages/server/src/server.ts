@@ -27,6 +27,7 @@ type BattleRoom = {
   battle: Battle
   battleGenerator: Generator<void, void, void>
   players: Map<string, GamePlayer>
+  playersReady: WeakMap<GamePlayer, boolean>
   status: 'waiting' | 'active' | 'ended'
   lastActive: number
 }
@@ -123,6 +124,7 @@ export class BattleServer {
     socket.on('getState', ack => this.handleGetState(socket, ack))
     socket.on('getAvailableSelection', ack => this.handleGetSelection(socket, ack))
     socket.on('getServerState', ack => this.handleGetServerState(socket, ack))
+    socket.on('ready', () => this.handleReady(socket))
   }
 
   private setupAutoCleanup() {
@@ -526,6 +528,7 @@ export class BattleServer {
         [p1.id, player1],
         [p2.id, player2],
       ]),
+      playersReady: new WeakMap([player1, player2].map(p => [p, false])),
       status: 'waiting',
       lastActive: Date.now(),
     })
@@ -737,7 +740,44 @@ export class BattleServer {
 
     p1.emit('matchSuccess', p1Data)
     p2.emit('matchSuccess', p2Data)
-    this.rooms.get(roomId)?.battleGenerator.next()
+    // this.rooms.get(roomId)?.battleGenerator.next()
     logger.info(`Matched: room:${roomId} ${p1.id} vs ${p2.id}`)
+  }
+
+  private handleReady(socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>): void {
+    const roomId = socket.data.roomId
+    if (!roomId) {
+      logger.warn({ socketId: socket.id }, '玩家不在任何房间中，无法准备')
+      return
+    }
+
+    const room = this.rooms.get(roomId)
+    if (!room) {
+      logger.warn({ socketId: socket.id, roomId }, '找不到房间，无法准备')
+      return
+    }
+
+    const player = room.players.get(socket.id)
+    if (!player) {
+      logger.warn({ socketId: socket.id, roomId }, '找不到玩家，无法准备')
+      return
+    }
+
+    room.playersReady.set(player, true)
+    logger.info({ socketId: socket.id, roomId }, '玩家已准备')
+
+    // 检查是否所有玩家都已准备
+    let allPlayersReady = true
+    for (const p of room.players.values()) {
+      if (!room.playersReady.get(p)) {
+        allPlayersReady = false
+        break
+      }
+    }
+
+    if (allPlayersReady) {
+      logger.info({ roomId }, '所有玩家已准备，开始战斗')
+      room.battleGenerator.next()
+    }
   }
 }
