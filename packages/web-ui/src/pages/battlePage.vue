@@ -56,6 +56,7 @@ import {
   useTemplateRef,
   type ComponentPublicInstance,
   nextTick,
+  watch,
 } from 'vue'
 
 enum PanelState {
@@ -92,6 +93,9 @@ const leftStatusRefBounding = useElementBounding(leftStatusRef)
 const rightStatusRefBounding = useElementBounding(rightStatusRef)
 const battleRefBounding = useElementBounding(battleViewRef)
 const isPending = ref(false)
+const showBattleEndUI = ref(false)
+const showKoBanner = ref(false) // 新增：控制KO横幅显示
+const koBannerRef = useTemplateRef('koBannerRef') // 新增：KO横幅的模板引用
 
 // 战斗数据计算属性
 const currentPlayer = computed(() => store.currentPlayer)
@@ -125,7 +129,7 @@ const allSkillId = computed(() =>
     .flat()
     .map(s => s.baseId),
 )
-const { playSkillSound, playPetSound } = useSound(allSkillId, allTeamMemberSpritesNum)
+const { playSkillSound, playPetSound, playVictorySound } = useSound(allSkillId, allTeamMemberSpritesNum)
 
 const background = computed(() => {
   if (gameSettingStore.background === 'random') {
@@ -563,7 +567,10 @@ async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitc
     return
   }
 
-  await newPetSprite.ready
+  const newPetReadyPromise = newPetSprite.ready
+  if (newPetReadyPromise) {
+    await newPetReadyPromise
+  }
 
   // 4. 初始化新精灵位置并执行切入动画
   gsap.set(newPetSprite.$el, { x: offScreenX, opacity: 0 })
@@ -986,10 +993,19 @@ onMounted(async () => {
     )
     .subscribe(task => animationQueue.next(task))
 
-  await Promise.all([
-    leftPetRef.value?.ready.catch(() => {}), // 添加catch防止Promise.all因单个精灵未加载而失败
-    rightPetRef.value?.ready.catch(() => {}),
-  ])
+  const leftReadyPromise = leftPetRef.value?.ready
+  const rightReadyPromise = rightPetRef.value?.ready
+  const promisesToWaitFor: Promise<void>[] = []
+  if (leftReadyPromise) {
+    promisesToWaitFor.push(leftReadyPromise.catch(() => {}))
+  }
+  if (rightReadyPromise) {
+    promisesToWaitFor.push(rightReadyPromise.catch(() => {}))
+  }
+  if (promisesToWaitFor.length > 0) {
+    await Promise.all(promisesToWaitFor)
+  }
+
   await store.ready()
   await initialPetEntryAnimation() // 战斗开始时执行入场动画
 })
@@ -1000,6 +1016,75 @@ onUnmounted(() => {
   damageSubscription.unsubscribe()
   emitter.all.clear()
 })
+
+watch(
+  () => store.isBattleEnd,
+  async (newVal, oldVal) => {
+    if (newVal && !oldVal) {
+      // 战斗刚刚结束
+      const victor = store.victor
+      const leftPet = petSprites.value.left
+      const rightPet = petSprites.value.right
+      const isVictor = store.victor === store.playerId
+
+      // 1. 设置宠物最终状态 (WIN/DEAD)
+      if (victor === null) {
+        // 平局
+        if (leftPet && leftPet.availableState.includes(ActionState.DEAD)) leftPet.setState(ActionState.DEAD)
+        if (rightPet && rightPet.availableState.includes(ActionState.DEAD)) rightPet.setState(ActionState.DEAD)
+      } else if (isVictor) {
+        // 当前玩家胜利
+        if (leftPet && leftPet.availableState.includes(ActionState.WIN)) leftPet.setState(ActionState.WIN)
+        if (rightPet && rightPet.availableState.includes(ActionState.DEAD)) rightPet.setState(ActionState.DEAD)
+      } else {
+        // 对手胜利
+        if (leftPet && leftPet.availableState.includes(ActionState.DEAD)) leftPet.setState(ActionState.DEAD)
+        if (rightPet && rightPet.availableState.includes(ActionState.WIN)) rightPet.setState(ActionState.WIN)
+      }
+
+      // 2. 无论胜负，都播放KO横幅动画
+      showKoBanner.value = true
+      playVictorySound() // 播放胜利音效
+      await nextTick() // 等待DOM更新
+
+      if (koBannerRef.value) {
+        const tl = gsap.timeline({
+          onComplete: () => {
+            showKoBanner.value = false // 隐藏横幅
+            // KO动画完成后再显示胜利/失败选项
+            setTimeout(() => {
+              showBattleEndUI.value = true
+            }, 500) // 在KO横幅消失后再稍作停留
+          },
+        })
+        // 初始化状态
+        gsap.set(koBannerRef.value, { opacity: 0, scale: 0.8, xPercent: -50, yPercent: -50 })
+        tl.to(koBannerRef.value, {
+          opacity: 1,
+          scale: 1,
+          xPercent: -50,
+          yPercent: -50,
+          duration: 0.3,
+          ease: 'power2.out',
+        }) // 淡入并放大
+          .to(koBannerRef.value, { duration: 1.5 }) // 停留1.5秒
+          .to(koBannerRef.value, {
+            opacity: 0,
+            scale: 0.8,
+            xPercent: -50,
+            yPercent: -50,
+            duration: 0.3,
+            ease: 'power2.in',
+          }) // 淡出并缩小
+      } else {
+        // Fallback: 如果 koBannerRef 不可用，则直接显示战斗结束UI
+        setTimeout(() => {
+          showBattleEndUI.value = true
+        }, 2000) // 使用原有的2秒延迟作为后备
+      }
+    }
+  },
+)
 </script>
 
 <template>
@@ -1008,6 +1093,13 @@ onUnmounted(() => {
       ref="battleViewRef"
       class="w-[1600px] relative flex justify-center aspect-video items-center object-contain bg-gray-900"
     >
+      <img
+        v-if="showKoBanner"
+        ref="koBannerRef"
+        src="/ko.png"
+        alt="KO Banner"
+        class="absolute left-1/2 top-1/2 z-[1000] max-w-[80%] max-h-[80%] object-contain"
+      />
       <div
         class="relative h-full flex flex-col bg-center bg-no-repeat aspect-video overflow-hidden"
         :class="[background ? `bg-cover` : 'bg-gray-900', 'overflow-hidden', 'transition-all duration-300 ease-in-out']"
@@ -1149,7 +1241,7 @@ onUnmounted(() => {
       </div>
     </div>
     <Transition name="fade">
-      <div v-if="store.isBattleEnd" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[1000]">
+      <div v-if="showBattleEndUI" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[1000]">
         <div
           class="bg-gradient-to-br from-[#2a2a4a] to-[#1a1a2e] p-8 rounded-2xl shadow-[0_0_30px_rgba(81,65,173,0.4)] text-center"
         >

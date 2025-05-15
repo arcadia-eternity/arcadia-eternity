@@ -90,8 +90,24 @@ export function useSound(
     soundSrcHowlerMap.clear()
   })
 
+  const playVictorySound = () => {
+    const src = `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/sound/battle/ko.mp3`
+    let howler = soundSrcHowlerMap.get(src)
+    if (!howler) {
+      howler = new Howl({
+        src: [src],
+        loop: false,
+        volume: volume.value,
+        mute: selfMute.value,
+      })
+      soundSrcHowlerMap.set(src, howler)
+    }
+    howler.play()
+  }
+
   return {
     playSkillSound,
     playPetSound,
+    playVictorySound,
   }
 }
