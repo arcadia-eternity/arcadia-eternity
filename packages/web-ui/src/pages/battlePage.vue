@@ -17,6 +17,7 @@ import {
   Category,
   type BattleMessage,
   type petId,
+  type PetSwitchMessage,
   type skillId,
   type SkillMessage,
   type SkillUseEndMessage,
@@ -54,6 +55,7 @@ import {
   render,
   useTemplateRef,
   type ComponentPublicInstance,
+  nextTick,
 } from 'vue'
 
 enum PanelState {
@@ -108,10 +110,12 @@ const rightPetSpeciesNum = computed(
       opponentPlayer.value?.team?.filter(p => p.id === opponentPlayer.value!.activePet)[0]?.speciesID ?? '',
     )?.num ?? 0,
 )
-const teamMemberSprites = computed<number[]>(() => {
+
+const allTeamMemberSpritesNum = computed<number[]>(() => {
   const allMembers = [...(currentPlayer.value?.team || []), ...(opponentPlayer.value?.team || [])]
   return allMembers.map(pet => gameDataStore.getSpecies(pet.speciesID)?.num || 0)
 })
+
 const allSkillId = computed(() =>
   store.battleState?.players
     .map(p => p.team)
@@ -121,7 +125,7 @@ const allSkillId = computed(() =>
     .flat()
     .map(s => s.baseId),
 )
-const { playSkillSound } = useSound(allSkillId)
+const { playSkillSound, playPetSound } = useSound(allSkillId, allTeamMemberSpritesNum)
 
 const background = computed(() => {
   if (gameSettingStore.background === 'random') {
@@ -516,8 +520,59 @@ const showUseSkillMessage = (side: 'left' | 'right', baseSkillId: string) => {
   })
 }
 
-async function switchPetAnimate(to: petId, side: 'left' | 'right') {
-  //TODO: switchout and switchin animate
+// 辅助函数：宠物入场/出场动画
+async function animatePetTransition(
+  petSprite: InstanceType<typeof PetSprite> | null,
+  targetX: number,
+  targetOpacity: number,
+  duration: number,
+  ease: string,
+  onCompleteCallback?: () => void,
+) {
+  if (petSprite && petSprite.$el && (targetOpacity === 0 ? petSprite.$el.offsetParent !== null : true)) {
+    return gsap.to(petSprite.$el, {
+      x: targetX,
+      opacity: targetOpacity,
+      duration,
+      ease,
+      onComplete: onCompleteCallback,
+    })
+  }
+  return Promise.resolve()
+}
+
+async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitchMessage: PetSwitchMessage) {
+  const oldPetSprite = petSprites.value[side]
+  const battleViewWidth = battleRefBounding.width.value
+  const isLeft = side === 'left'
+  const offScreenX = isLeft ? -battleViewWidth / 2 - 100 : battleViewWidth / 2 + 100
+  const animationDuration = 1 // 动画时间
+
+  // 1. 切出旧精灵
+  await animatePetTransition(oldPetSprite, offScreenX, 0, animationDuration, 'power2.in')
+
+  // 2. 应用状态变更
+  await store.applyStateDelta(petSwitchMessage)
+
+  // 3. 等待DOM更新
+  await nextTick()
+
+  const newPetSprite = petSprites.value[side]
+  if (!newPetSprite || !newPetSprite.$el) {
+    console.warn(`New PetSprite on side ${side} not found after state update for pet ${toPetId}`)
+    return
+  }
+
+  await newPetSprite.ready
+
+  // 4. 初始化新精灵位置并执行切入动画
+  gsap.set(newPetSprite.$el, { x: offScreenX, opacity: 0 })
+  const newPetInfo = store.getPetById(toPetId) // Get info for sound
+  const newPetSpeciesNum = gameDataStore.getSpecies(newPetInfo?.speciesID ?? '')?.num ?? 0
+  if (newPetSpeciesNum !== 0) {
+    playPetSound(newPetSpeciesNum) // Play sound before animation starts
+  }
+  await animatePetTransition(newPetSprite, 0, 1, animationDuration, 'power2.out') // Removed onComplete callback
 }
 
 const petSprites = computed(() => {
@@ -561,7 +616,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
 
   const state = stateMap.get(category) || ActionState.ATK_PHY
 
-  if (!(await source.availableState).includes(state)) {
+  if (!source.availableState.includes(state)) {
     throw new Error(`无效的动画状态: ${state}`)
   }
 
@@ -744,10 +799,54 @@ const animatesubscribe = animationQueue
   .subscribe()
 
 const preloadPetSprites = () => {
-  teamMemberSprites.value.forEach(num => {
+  allTeamMemberSpritesNum.value.forEach(num => {
     const img = new Image()
     img.src = `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-pet-preview@master/public/fight/${num}.swf`
   })
+}
+
+// 辅助函数：宠物入场动画 (复用 animatePetTransition)
+async function animatePetEntry(
+  petSprite: InstanceType<typeof PetSprite> | null,
+  initialX: number,
+  targetX: number,
+  duration: number,
+  onCompleteCallback?: () => void,
+) {
+  if (petSprite && petSprite.$el) {
+    gsap.set(petSprite.$el, { x: initialX, opacity: 0 }) // 确保初始状态设置正确
+    return animatePetTransition(petSprite, targetX, 1, duration, 'power2.out', onCompleteCallback)
+  }
+  return Promise.resolve()
+}
+
+async function initialPetEntryAnimation() {
+  const leftPet = petSprites.value.left
+  const rightPet = petSprites.value.right
+  const battleViewWidth = battleRefBounding.width.value
+  const animationDuration = 1 // 增加动画时间
+
+  const animations = []
+
+  if (leftPet && leftPet.$el) {
+    if (leftPetSpeciesNum.value !== 0) {
+      playPetSound(leftPetSpeciesNum.value) // Play sound before animation starts
+    }
+    animations.push(
+      animatePetEntry(leftPet, -battleViewWidth / 2 - 100, 0, animationDuration), // Removed onComplete callback
+    )
+  }
+
+  if (rightPet && rightPet.$el) {
+    if (rightPetSpeciesNum.value !== 0) {
+      playPetSound(rightPetSpeciesNum.value) // Play sound before animation starts
+    }
+    animations.push(
+      animatePetEntry(rightPet, battleViewWidth / 2 + 100, 0, animationDuration), // Removed onComplete callback
+    )
+  }
+
+  await Promise.all(animations)
 }
 
 onMounted(async () => {
@@ -807,7 +906,7 @@ onMounted(async () => {
                 const maxHp = targetPet.maxHp
 
                 // 检查可用状态
-                const availableStates = await petSprites.value[targetSide].availableState
+                const availableStates = petSprites.value[targetSide].availableState
                 const isDead = currentHp <= 0
                 const isCriticalHealth = currentHp < maxHp * 0.25
 
@@ -852,6 +951,10 @@ onMounted(async () => {
               panelState.value = PanelState.PETS
               break
             case BattleMessageType.PetSwitch:
+              // 将整个 msg 对象传递给 switchPetAnimate
+              await switchPetAnimate(msg.data.toPet, getTargetSide(msg.data.toPet), msg as PetSwitchMessage)
+              sequenceId.value = Math.max(sequenceId.value, msg.sequenceId ?? -1)
+              return // 已在 switchPetAnimate 内部处理状态，故返回
             case BattleMessageType.PetDefeated:
             case BattleMessageType.BattleStart:
             case BattleMessageType.TurnStart:
@@ -883,8 +986,12 @@ onMounted(async () => {
     )
     .subscribe(task => animationQueue.next(task))
 
-  await Promise.all([leftPetRef.value?.ready, rightPetRef.value?.ready])
+  await Promise.all([
+    leftPetRef.value?.ready.catch(() => {}), // 添加catch防止Promise.all因单个精灵未加载而失败
+    rightPetRef.value?.ready.catch(() => {}),
+  ])
   await store.ready()
+  await initialPetEntryAnimation() // 战斗开始时执行入场动画
 })
 
 onUnmounted(() => {

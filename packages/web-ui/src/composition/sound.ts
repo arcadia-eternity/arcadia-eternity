@@ -5,7 +5,10 @@ import { computed, onMounted, onUnmounted, watch, type ComputedRef } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { baseSkillId } from '@arcadia-eternity/const'
 
-export function useSound(allSkillId: ComputedRef<baseSkillId[] | undefined>) {
+export function useSound(
+  allSkillId: ComputedRef<baseSkillId[] | undefined>,
+  allTeamMemberSpritesNum: ComputedRef<number[] | undefined>, // 添加 allTeamMemberSpritesNum 参数
+) {
   const gameSettingStore = useGameSettingStore()
   const resourceStore = useResourceStore()
   const volume = computed(() => gameSettingStore.soundVolume / 100)
@@ -63,9 +66,23 @@ export function useSound(allSkillId: ComputedRef<baseSkillId[] | undefined>) {
     skillHowlerMap.get(id)?.play()
   }
 
+  const playPetSound = (petSpriteNum: number) => {
+    const src = `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/sound/pet/${petSpriteNum}.mp3`
+    let howler = soundSrcHowlerMap.get(src)
+    if (!howler) {
+      howler = new Howl({
+        src: [src],
+        loop: false,
+        volume: volume.value,
+        mute: selfMute.value,
+      })
+      soundSrcHowlerMap.set(src, howler)
+    }
+    howler.play()
+  }
+
   onUnmounted(() => {
     soundSrcHowlerMap.forEach(v => {
-      // 改为遍历 soundSrcHowlerMap
       v.stop()
       v.unload()
     })
@@ -75,5 +92,6 @@ export function useSound(allSkillId: ComputedRef<baseSkillId[] | undefined>) {
 
   return {
     playSkillSound,
+    playPetSound,
   }
 }

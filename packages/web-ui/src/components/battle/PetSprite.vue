@@ -17,6 +17,7 @@ const props = withDefaults(
 
 const petSpriteRef = useTemplateRef('petSpriteRef')
 const petRenderRef = useTemplateRef('pet-render')
+const inited = ref(false)
 
 const swfUrl = computed(() => {
   // return `https://seer2.61.com/res/pet/fight/${props.num}.swf`
@@ -42,7 +43,10 @@ const ready = new Promise<void>(resolve => {
 watchEffect(async () => {
   if (props.num && petRenderRef.value) {
     availableState.value = (await petRenderRef.value.getAvailableStates()) as ActionState[]
-    if (readyResolve) readyResolve()
+    if (readyResolve) {
+      inited.value = true
+      readyResolve()
+    }
   }
 })
 
@@ -79,6 +83,7 @@ defineExpose({
   <div ref="petSpriteRef" class="w-full h-full overflow-visible">
     <pet-render
       :key="num"
+      v-show="inited"
       class="overflow-visible pet-render"
       ref="pet-render"
       :url="swfUrl"
