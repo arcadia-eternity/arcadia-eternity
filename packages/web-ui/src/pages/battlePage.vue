@@ -197,47 +197,57 @@ const showMissMessage = (side: 'left' | 'right') => {
   const startX = left.value + width.value / 2
   const startY = bottom.value + 120
 
-  // 创建动画容器
-  const container = document.createElement('div')
-  container.style.position = 'fixed'
-  container.style.left = `${startX}px`
-  container.style.top = `${startY}px`
-  container.style.transformOrigin = 'center center'
-  container.style.pointerEvents = 'none'
-  document.body.appendChild(container)
+  // 创建动画容器的 VNode
+  const containerVNode = h(
+    'div',
+    {
+      style: {
+        position: 'fixed',
+        left: `${startX}px`,
+        top: `${startY}px`,
+        transformOrigin: 'center center',
+        pointerEvents: 'none',
+        opacity: 0, // 初始透明度为0
+        scale: 1, // 初始缩放为1
+      },
+    },
+    [
+      h('img', {
+        src: 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/damage/miss.png',
+        class: 'h-20',
+      }),
+    ],
+  )
 
-  // 创建miss图片元素
-  const missImg = document.createElement('img')
-  missImg.src = 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/damage/miss.png'
-  missImg.className = 'h-20'
-  container.appendChild(missImg)
+  // 创建一个临时的 div 来挂载 VNode
+  const tempHost = document.createElement('div')
+  document.body.appendChild(tempHost)
+  render(containerVNode, tempHost)
 
-  // 初始状态
-  gsap.set(container, {
-    scale: 1,
-    opacity: 0,
-  })
+  const containerElement = tempHost.firstChild as HTMLElement
+  if (!containerElement) return
 
   // 创建时间轴动画
   const tl = gsap.timeline({
     onComplete: () => {
-      document.body.removeChild(container)
+      render(null, tempHost) // 卸载 VNode
+      document.body.removeChild(tempHost) // 移除临时 div
     },
   })
 
   // 第一阶段：淡入 (0.3秒)
-  tl.to(container, {
+  tl.to(containerElement, {
     y: -125,
     opacity: 1,
     duration: 0.3,
     ease: 'power2.out',
   })
 
-  // 第二阶段：停留1秒
+  // 第二阶段：停留0.5秒
   tl.to({}, { duration: 0.5 })
 
   // 第三阶段：淡出 (0.5秒)
-  tl.to(container, {
+  tl.to(containerElement, {
     opacity: 0,
     duration: 0.5,
     ease: 'power2.out',
@@ -250,47 +260,57 @@ const showAbsorbMessage = (side: 'left' | 'right') => {
   const startX = left.value + width.value / 2
   const startY = bottom.value + 120
 
-  // 创建动画容器
-  const container = document.createElement('div')
-  container.style.position = 'fixed'
-  container.style.left = `${startX}px`
-  container.style.top = `${startY}px`
-  container.style.transformOrigin = 'center center'
-  container.style.pointerEvents = 'none'
-  document.body.appendChild(container)
+  // 创建动画容器的 VNode
+  const containerVNode = h(
+    'div',
+    {
+      style: {
+        position: 'fixed',
+        left: `${startX}px`,
+        top: `${startY}px`,
+        transformOrigin: 'center center',
+        pointerEvents: 'none',
+        opacity: 0,
+        scale: 1,
+      },
+    },
+    [
+      h('img', {
+        src: 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/damage/absorb.png',
+        class: 'h-20',
+      }),
+    ],
+  )
 
-  // 创建absorb图片元素
-  const absorbImg = document.createElement('img')
-  absorbImg.src = 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/damage/absorb.png'
-  absorbImg.className = 'h-20'
-  container.appendChild(absorbImg)
+  // 创建一个临时的 div 来挂载 VNode
+  const tempHost = document.createElement('div')
+  document.body.appendChild(tempHost)
+  render(containerVNode, tempHost)
 
-  // 初始状态
-  gsap.set(container, {
-    scale: 1,
-    opacity: 0,
-  })
+  const containerElement = tempHost.firstChild as HTMLElement
+  if (!containerElement) return
 
   // 创建时间轴动画
   const tl = gsap.timeline({
     onComplete: () => {
-      document.body.removeChild(container)
+      render(null, tempHost)
+      document.body.removeChild(tempHost)
     },
   })
 
   // 第一阶段：淡入 (0.3秒)
-  tl.to(container, {
+  tl.to(containerElement, {
     y: -125,
     opacity: 1,
     duration: 0.3,
     ease: 'power2.out',
   })
 
-  // 第二阶段：停留1秒
+  // 第二阶段：停留0.5秒
   tl.to({}, { duration: 0.5 })
 
   // 第三阶段：淡出 (0.5秒)
-  tl.to(container, {
+  tl.to(containerElement, {
     opacity: 0,
     duration: 0.5,
     ease: 'power2.out',
@@ -298,29 +318,45 @@ const showAbsorbMessage = (side: 'left' | 'right') => {
 }
 
 const flashAndShake = () => {
-  const flash = document.createElement('div')
-  flash.style.position = 'absolute'
-  flash.style.top = '0'
-  flash.style.left = '0'
-  flash.style.width = '100%'
-  flash.style.height = '100%'
-  flash.style.backgroundColor = 'white'
-  flash.style.opacity = '0'
-  flash.style.pointerEvents = 'none'
-  flash.style.zIndex = '100'
-  battleViewRef.value?.appendChild(flash)
+  if (!battleViewRef.value) return
 
-  gsap.to(flash, {
+  const flashVNode = h('div', {
+    style: {
+      position: 'absolute',
+      top: '0',
+      left: '0',
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'white',
+      opacity: '0',
+      pointerEvents: 'none',
+      zIndex: '100',
+    },
+  })
+
+  const tempHost = document.createElement('div')
+  // 将 tempHost 添加到 battleViewRef.value 而不是 document.body
+  // 确保 flashVNode 的 position: absolute 相对于 battleViewRef.value
+  battleViewRef.value.appendChild(tempHost)
+  render(flashVNode, tempHost)
+
+  const flashElement = tempHost.firstChild as HTMLElement
+  if (!flashElement) return
+
+  gsap.to(flashElement, {
     opacity: 0.7,
     duration: 0.1,
     ease: 'power2.out',
     onComplete: () => {
-      gsap.to(flash, {
+      gsap.to(flashElement, {
         opacity: 0,
         duration: 0.3,
         ease: 'power2.in',
         onComplete: () => {
-          battleViewRef.value?.removeChild(flash)
+          render(null, tempHost)
+          if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
+            battleViewRef.value.removeChild(tempHost)
+          }
         },
       })
     },
@@ -373,32 +409,42 @@ const healSubscription = healSubject
           const startX = left.value + width.value / 2 + randomOffsetX
           const startY = bottom.value + 80 + randomOffsetY // 初始Y位置比伤害高一些
 
-          const container = document.createElement('div')
-          container.style.position = 'fixed'
-          container.style.left = `${startX}px`
-          container.style.top = `${startY}px`
-          container.style.transformOrigin = 'center center'
-          container.style.pointerEvents = 'none'
-          container.style.zIndex = '1001' // 确保在伤害数字之上
-          document.body.appendChild(container)
+          const tempHost = document.createElement('div') // 创建临时挂载点
+          document.body.appendChild(tempHost)
 
           const healVNode = h(HealDisplay, { value })
-          render(healVNode, container)
-
-          gsap.set(container, {
-            opacity: 1,
-            scale: 1,
-          })
+          const containerVNode = h(
+            'div',
+            {
+              style: {
+                position: 'fixed',
+                left: `${startX}px`,
+                top: `${startY}px`,
+                transformOrigin: 'center center',
+                pointerEvents: 'none',
+                zIndex: '1001', // 确保在伤害数字之上
+                opacity: 1,
+                scale: 1,
+              },
+            },
+            [healVNode],
+          )
+          render(containerVNode, tempHost)
+          const containerElement = tempHost.firstChild as HTMLElement
+          if (!containerElement) {
+            document.body.removeChild(tempHost)
+            return
+          }
 
           const tl = gsap.timeline({
             onComplete: () => {
-              document.body.removeChild(container)
-              render(null, container)
+              render(null, tempHost) // 卸载 VNode
+              document.body.removeChild(tempHost) // 移除临时 div
             },
           })
 
           // 第一阶段：向上漂浮并稍微放大
-          tl.to(container, {
+          tl.to(containerElement, {
             y: -125, // 向上漂浮
             scale: 1.2, // 稍微放大
             duration: 0.5, // 动画持续时间调整为1秒
@@ -407,7 +453,7 @@ const healSubscription = healSubject
             // 第二阶段：停留0.5秒
             .to({}, { duration: 0.5 })
             // 第三阶段：淡出
-            .to(container, {
+            .to(containerElement, {
               opacity: 0,
               duration: 0.5, // 淡出持续0.5秒
               ease: 'power1.in', // 淡出使用power1.in
@@ -480,14 +526,8 @@ const damageSubscription = damageSubject
           }
 
           // 使用已计算的状态面板下方位置
-          // 创建动画容器
-          const container = document.createElement('div')
-          container.style.position = 'fixed'
-          container.style.left = `${startX}px`
-          container.style.top = `${startY}px`
-          container.style.transformOrigin = 'center center'
-          container.style.pointerEvents = 'none'
-          document.body.appendChild(container)
+          const tempHost = document.createElement('div') // 创建临时挂载点
+          document.body.appendChild(tempHost)
 
           // 渲染DamageDisplay组件
           const damageVNode = h(DamageDisplay, {
@@ -495,29 +535,44 @@ const damageSubscription = damageSubject
             type: effectiveness === 'up' ? 'red' : effectiveness === 'down' ? 'blue' : '',
             class: 'overflow-visible',
           })
-          render(damageVNode, container)
 
           // 动画参数
           const moveX = side === 'left' ? 300 : -300 // 水平偏移量
           const baseScale = crit ? 1.5 : 1
           const targetScale = crit ? 2.5 : 1.8
 
-          // 初始状态
-          gsap.set(container, {
-            scale: baseScale,
-            opacity: 1,
-          })
+          const containerVNode = h(
+            'div',
+            {
+              style: {
+                position: 'fixed',
+                left: `${startX}px`,
+                top: `${startY}px`,
+                transformOrigin: 'center center',
+                pointerEvents: 'none',
+                opacity: 1,
+                scale: baseScale,
+              },
+            },
+            [damageVNode],
+          )
+          render(containerVNode, tempHost)
+          const containerElement = tempHost.firstChild as HTMLElement
+          if (!containerElement) {
+            document.body.removeChild(tempHost)
+            return
+          }
 
           // 创建时间轴动画
           const tl = gsap.timeline({
             onComplete: () => {
-              document.body.removeChild(container)
-              render(null, container) // 清理VNode
+              render(null, tempHost) // 卸载 VNode
+              document.body.removeChild(tempHost) // 移除临时 div
             },
           })
 
           // 第一阶段：移动并放大 (0.5秒)
-          tl.to(container, {
+          tl.to(containerElement, {
             x: moveX,
             y: -150,
             scale: targetScale,
@@ -529,7 +584,7 @@ const damageSubscription = damageSubject
           tl.to({}, { duration: 0.5 })
 
           // 第三阶段：淡出 (0.5秒)
-          tl.to(container, {
+          tl.to(containerElement, {
             opacity: 0,
             duration: 0.5,
             ease: 'power2.out',
@@ -547,46 +602,63 @@ const showUseSkillMessage = (side: 'left' | 'right', baseSkillId: string) => {
   if (!viewLeft || !viewRight) return
   const targetX = side === 'left' ? viewLeft.value : viewRight.value - width.value * 0.75
   const targetY = bottom.value + 20
-
-  // 创建动画容器
-  const container = document.createElement('div')
-  container.className = 'fixed pointer-events-none'
-  container.style.left = `${targetX}px`
-  container.style.top = `${targetY}px`
-  container.style.transformOrigin = 'center center'
-  document.body.appendChild(container)
-
-  const box = document.createElement('div')
-  box.className = 'h-[60px] flex justify-center items-center font-bold text-lg text-white'
-  box.style.backgroundImage =
-    side === 'left'
-      ? 'linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.3))'
-      : 'linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0.3))'
-  box.style.padding = '15px 0'
-  box.style.left = '0'
-  box.style.width = `${width.value * 0.75}px` // petStatus的3/4宽
   const skillName = i18next.t(`${baseSkillId}.name`, { ns: 'skill' })
-  box.textContent = skillName
 
-  container.appendChild(box)
+  const boxVNode = h(
+    'div',
+    {
+      class: 'h-[60px] flex justify-center items-center font-bold text-lg text-white',
+      style: {
+        backgroundImage:
+          side === 'left'
+            ? 'linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.3))'
+            : 'linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0.3))',
+        padding: '15px 0',
+        left: '0',
+        width: `${width.value * 0.75}px`, // petStatus的3/4宽
+      },
+    },
+    skillName,
+  )
+
+  const containerVNode = h(
+    'div',
+    {
+      class: 'fixed pointer-events-none',
+      style: {
+        left: `${targetX}px`,
+        top: `${targetY}px`,
+        transformOrigin: 'center center',
+        opacity: 0,
+        scale: 0.8,
+      },
+    },
+    [boxVNode],
+  )
+
+  const tempHost = document.createElement('div')
+  document.body.appendChild(tempHost)
+  render(containerVNode, tempHost)
+
+  const containerElement = tempHost.firstChild as HTMLElement
+  if (!containerElement) return
 
   // 初始状态 - 从侧边开始
-  const startX = side === 'left' ? -200 : 200
-  gsap.set(container, {
-    x: startX,
-    opacity: 0,
-    scale: 0.8,
+  const startXPosition = side === 'left' ? -200 : 200
+  gsap.set(containerElement, {
+    x: startXPosition,
   })
 
   // 创建时间轴动画
   const tl = gsap.timeline({
     onComplete: () => {
-      document.body.removeChild(container)
+      render(null, tempHost)
+      document.body.removeChild(tempHost)
     },
   })
 
   // 第一阶段：从侧边弹入
-  tl.to(container, {
+  tl.to(containerElement, {
     x: 0,
     opacity: 1,
     scale: 1,
@@ -598,8 +670,8 @@ const showUseSkillMessage = (side: 'left' | 'right', baseSkillId: string) => {
   tl.to({}, { duration: 1 })
 
   // 第三阶段：向同侧弹出
-  tl.to(container, {
-    x: startX,
+  tl.to(containerElement, {
+    x: startXPosition,
     opacity: 0,
     duration: 0.5,
     ease: 'power2.in',
