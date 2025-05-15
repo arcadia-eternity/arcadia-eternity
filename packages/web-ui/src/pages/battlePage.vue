@@ -1220,6 +1220,13 @@ watch(
               }}
             </button>
             <button
+              class="px-4 py-2 bg-gray-500 hover:bg-gray-600 border-2 border-sky-400 rounded-lg text-sky-400 font-bold disabled:bg-gray-700 disabled:text-gray-400 disabled:border-gray-500 disabled:cursor-not-allowed"
+              :disabled="!store.availableActions.find(a => a.type === 'do-nothing')"
+              @click="store.sendplayerSelection(store.availableActions.find(a => a.type === 'do-nothing')!)"
+            >
+              {{ i18next.t('do-nothing', { ns: 'battle' }) }}
+            </button>
+            <button
               class="px-4 py-2 bg-gray-500 hover:bg-gray-600 border-2 border-sky-400 rounded-lg text-sky-400 font-bold"
               @click="handleEscape"
             >
@@ -1228,13 +1235,6 @@ watch(
                   ns: 'battle',
                 })
               }}
-            </button>
-            <button
-              class="px-4 py-2 bg-gray-500 hover:bg-gray-600 border-2 border-sky-400 rounded-lg text-sky-400 font-bold disabled:bg-gray-700 disabled:text-gray-400 disabled:border-gray-500 disabled:cursor-not-allowed"
-              :disabled="!store.availableActions.find(a => a.type === 'do-nothing')"
-              @click="store.sendplayerSelection(store.availableActions.find(a => a.type === 'do-nothing')!)"
-            >
-              {{ i18next.t('do-nothing', { ns: 'battle' }) }}
             </button>
           </div>
         </div>
