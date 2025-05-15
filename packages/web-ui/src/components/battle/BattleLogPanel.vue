@@ -7,6 +7,7 @@ import {
   type BattleMessageData,
   type MarkMessage,
   type PetMessage,
+  type playerId,
   type PlayerMessage,
   type SkillMessage,
 } from '@arcadia-eternity/const'
@@ -184,7 +185,7 @@ function formatBattleMessage(
       break
     }
     case BattleMessageType.BattleEnd:
-      content = `🎉 对战结束！胜利者：${msg.data.winner}`
+      content = `🎉 对战结束！胜利者：${msg.data.winner ? playerMap?.get(msg.data.winner)?.name : '无'}`
       break
     case BattleMessageType.ForcedSwitch:
       content = `${msg.data.player.map(p => playerMap?.get(p)?.name).join(',')} 必须更换倒下的精灵！`
