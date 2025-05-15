@@ -2,6 +2,7 @@
 import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
 import BattleStatus from '@/components/battle/BattleStatus.vue'
 import DamageDisplay from '@/components/battle/DamageDisplay.vue'
+import HealDisplay from '@/components/battle/HealDisplay.vue' // 新增：导入HealDisplay
 import Mark from '@/components/battle/Mark.vue'
 import PetSprite from '@/components/battle/PetSprite.vue'
 import SkillButton from '@/components/battle/SkillButton.vue'
@@ -336,6 +337,87 @@ const showDamageMessage = (
   damageSubject.next({ side, value, effectiveness, crit })
 }
 
+const showHealMessage = (side: 'left' | 'right', value: number) => {
+  // 将治疗消息加入队列
+  healSubject.next({ side, value })
+}
+
+// 创建治疗消息Subject
+const healSubject = new Subject<{
+  side: 'left' | 'right'
+  value: number
+}>()
+
+// 治疗消息队列处理
+const healSubscription = healSubject
+  .pipe(
+    timestamp(),
+    scan(
+      (acc, { value }) => {
+        const lastTimestamp = acc.timestamp || 0
+        const now = Date.now()
+        // 确保动画之间至少有150ms的间隔
+        const delayTime = lastTimestamp === 0 ? 0 : Math.max(0, 150 - (now - lastTimestamp))
+        return { timestamp: now + delayTime, value }
+      },
+      { timestamp: 0, value: null } as { timestamp: number; value: any },
+    ),
+    concatMap(({ value, timestamp }) =>
+      of(value).pipe(
+        delay(timestamp - Date.now()),
+        tap(({ side, value }) => {
+          const { bottom, left, width } = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
+          // 添加随机偏移
+          const randomOffsetX = (Math.random() - 0.5) * 100 // 治疗的随机偏移小一些
+          const randomOffsetY = (Math.random() - 0.5) * 50
+          const startX = left.value + width.value / 2 + randomOffsetX
+          const startY = bottom.value + 80 + randomOffsetY // 初始Y位置比伤害高一些
+
+          const container = document.createElement('div')
+          container.style.position = 'fixed'
+          container.style.left = `${startX}px`
+          container.style.top = `${startY}px`
+          container.style.transformOrigin = 'center center'
+          container.style.pointerEvents = 'none'
+          container.style.zIndex = '1001' // 确保在伤害数字之上
+          document.body.appendChild(container)
+
+          const healVNode = h(HealDisplay, { value })
+          render(healVNode, container)
+
+          gsap.set(container, {
+            opacity: 1,
+            scale: 1,
+          })
+
+          const tl = gsap.timeline({
+            onComplete: () => {
+              document.body.removeChild(container)
+              render(null, container)
+            },
+          })
+
+          // 第一阶段：向上漂浮并稍微放大
+          tl.to(container, {
+            y: -125, // 向上漂浮
+            scale: 1.2, // 稍微放大
+            duration: 0.5, // 动画持续时间调整为1秒
+            ease: 'power1.out',
+          })
+            // 第二阶段：停留0.5秒
+            .to({}, { duration: 0.5 })
+            // 第三阶段：淡出
+            .to(container, {
+              opacity: 0,
+              duration: 0.5, // 淡出持续0.5秒
+              ease: 'power1.in', // 淡出使用power1.in
+            })
+        }),
+      ),
+    ),
+  )
+  .subscribe()
+
 // 创建伤害消息Subject
 const damageSubject = new Subject<{
   side: 'left' | 'right'
@@ -443,7 +525,7 @@ const damageSubscription = damageSubject
             ease: 'power2.out',
           })
 
-          // 第二阶段：停留1秒
+          // 第二阶段：停留0.5秒
           tl.to({}, { duration: 0.5 })
 
           // 第三阶段：淡出 (0.5秒)
@@ -606,7 +688,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
     throw new Error('找不到精灵组件')
   }
 
-  const availableState = await source.availableState
+  const availableState = source.availableState
   const stateMap = new Map<Category, ActionState>([
     [Category.Physical, ActionState.ATK_PHY],
     [Category.Special, ActionState.ATK_SPE],
@@ -721,6 +803,12 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
         showAbsorbMessage(targetSide)
         break
       }
+      case BattleMessageType.Heal:
+        if (msg.type === BattleMessageType.Heal) {
+          const targetSide = getTargetSide(msg.data.target)
+          showHealMessage(targetSide, msg.data.amount)
+        }
+        break
       default:
       //DoNothing
     }
@@ -749,6 +837,7 @@ defineExpose({
   showAbsorbMessage,
   showUseSkillMessage,
   useSkillAnimate,
+  showHealMessage, // 新增：暴露showHealMessage
 })
 
 // 添加组件实例类型声明
@@ -763,6 +852,7 @@ export interface BattlePageExposed {
   showMissMessage: (side: 'left' | 'right') => void
   showAbsorbMessage: (side: 'left' | 'right') => void
   showUseSkillMessage: (side: 'left' | 'right', baseSkillId: string) => void
+  showHealMessage: (side: 'left' | 'right', value: number) => void // 新增：showHealMessage类型
 }
 
 declare module 'vue' {
@@ -973,6 +1063,11 @@ onMounted(async () => {
             case BattleMessageType.HpChange:
             case BattleMessageType.SkillUseFail:
             case BattleMessageType.Heal:
+              if (msg.type === BattleMessageType.Heal) {
+                const targetSide = getTargetSide(msg.data.target)
+                showHealMessage(targetSide, msg.data.amount) // 修正：使用 msg.data.amount
+              }
+              break
             case BattleMessageType.HealFail:
             case BattleMessageType.MarkApply:
             case BattleMessageType.MarkDestroy:
@@ -1014,6 +1109,7 @@ onUnmounted(() => {
   messageSubscription?.unsubscribe()
   animatesubscribe.unsubscribe()
   damageSubscription.unsubscribe()
+  healSubscription.unsubscribe() // 新增：取消订阅healSubscription
   emitter.all.clear()
 })
 

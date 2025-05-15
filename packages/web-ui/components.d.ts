@@ -48,6 +48,7 @@ declare module 'vue' {
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     EnhancedArrayEditor: typeof import('./src/components/EnhancedArrayEditor.vue')['default']
+    HealDisplay: typeof import('./src/components/battle/HealDisplay.vue')['default']
     HealthRageBar: typeof import('./src/components/battle/HealthRageBar.vue')['default']
     Mark: typeof import('./src/components/battle/Mark.vue')['default']
     OptionalFieldEditor: typeof import('./src/components/OptionalFieldEditor.vue')['default']

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { Subject, ReplaySubject } from 'rxjs'
+import { Subject } from 'rxjs'
 import {
   type BattleState,
   type BattleMessage,

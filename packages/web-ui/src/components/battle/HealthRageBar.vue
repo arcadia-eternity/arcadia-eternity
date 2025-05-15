@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch, useTemplateRef, onMounted } from 'vue'
+import gsap from 'gsap'
+import { Flip } from 'gsap/Flip'
+
+gsap.registerPlugin(Flip)
 
 interface Props {
   current: number
@@ -13,6 +17,9 @@ const props = withDefaults(defineProps<Props>(), {
   reverse: false,
 })
 
+const healthValueRef = useTemplateRef('healthValueRef')
+const rageValueRef = useTemplateRef('rageValueRef')
+
 const healthPercentage = computed(() => {
   return Math.min(100, Math.max(0, (props.current / props.max) * 100))
 })
@@ -25,136 +32,116 @@ const healthColor = computed(() => {
 const ragePercentage = computed(() => {
   return Math.min(100, Math.max(0, props.rage))
 })
+
+onMounted(() => {
+  if (healthValueRef.value) {
+    gsap.set(healthValueRef.value, {
+      width: `${healthPercentage.value}%`,
+      backgroundColor: healthColor.value,
+    })
+  }
+  if (rageValueRef.value) {
+    gsap.set(rageValueRef.value, {
+      width: `${ragePercentage.value}%`,
+    })
+  }
+})
+
+watch(healthPercentage, newPercentage => {
+  if (healthValueRef.value) {
+    // 告诉 Flip 捕获 backgroundColor 以及默认的 transform/layout 属性
+    const state = Flip.getState(healthValueRef.value, { props: 'backgroundColor' })
+
+    // 设置最终状态
+    healthValueRef.value.style.width = `${newPercentage}%`
+    healthValueRef.value.style.backgroundColor = healthColor.value
+
+    // Flip 从捕获的状态动画到当前（最终）状态
+    Flip.from(state, {
+      duration: 0.3,
+      ease: 'power1.out',
+      props: 'backgroundColor', // 明确告诉 Flip 也动画 backgroundColor
+      // absolute: true, // 根据需要取消注释，如果布局复杂
+    })
+  }
+})
+
+watch(ragePercentage, (newPercentage, oldPercentage) => {
+  if (rageValueRef.value) {
+    const state = Flip.getState(rageValueRef.value)
+    rageValueRef.value.style.width = `${newPercentage}%`
+
+    Flip.from(state, {
+      duration: 0.3,
+      ease: 'power1.out',
+      // targets: rageValueRef.value,
+      // absolute: true,
+    })
+  }
+})
 </script>
 
 <template>
-  <div class="health-rage-container" :class="{ reverse: reverse }">
-    <div class="health-bar">
-      <div class="health-bg"></div>
+  <div class="relative block w-full my-2 overflow-hidden" :class="{ 'direction-rtl': reverse }">
+    <div
+      class="relative w-full h-8 mb-1"
+      :class="[
+        reverse
+          ? '[clip-path:polygon(0_0,100%_0,100%_100%,8px_100%)]'
+          : '[clip-path:polygon(0_0,100%_0,calc(100%-8px)_100%,0%_100%)]',
+      ]"
+    >
+      <div class="absolute w-full h-full bg-black"></div>
       <div
-        class="health-value"
-        :style="{
-          width: `${healthPercentage}%`,
-          'background-color': healthColor,
-        }"
+        ref="healthValueRef"
+        class="relative h-full"
+        :class="[
+          reverse
+            ? '[clip-path:polygon(0_0,100%_0,100%_100%,8px_100%)]'
+            : '[clip-path:polygon(0_0,100%_0,calc(100%-8px)_100%,0%_100%)]',
+        ]"
       ></div>
-      <span class="health-text"> {{ current }}/{{ max }} </span>
+      <span
+        class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white [text-shadow:1px_1px_1px_rgba(0,0,0,0.5)] text-xl font-bold w-full text-center pointer-events-none z-20"
+      >
+        {{ current }}/{{ max }}
+      </span>
     </div>
 
-    <div class="rage-bar">
-      <div class="rage-bg"></div>
+    <div
+      class="relative w-full h-8"
+      :class="[
+        reverse
+          ? '[clip-path:polygon(0_0,100%_0,100%_100%,8px_100%)]'
+          : '[clip-path:polygon(0_0,100%_0,calc(100%-8px)_100%,0%_100%)]',
+      ]"
+    >
+      <div class="absolute w-full h-full bg-black"></div>
       <div
-        class="rage-value"
+        ref="rageValueRef"
+        class="relative h-full"
+        :class="[
+          reverse
+            ? '[clip-path:polygon(0_0,100%_0,100%_100%,8px_100%)]'
+            : '[clip-path:polygon(0_0,100%_0,calc(100%-8px)_100%,0%_100%)]',
+        ]"
         :style="{
-          width: `${ragePercentage}%`,
           background: `linear-gradient(to right, #ff6b00, #ffcc00)`,
         }"
       ></div>
-      <span class="rage-text"> {{ rage }}/100 </span>
+      <span
+        class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white [text-shadow:1px_1px_1px_rgba(0,0,0,0.5)] text-xl font-bold pointer-events-none z-20"
+      >
+        {{ rage }}/100
+      </span>
     </div>
   </div>
 </template>
 
 <style scoped>
-.health-rage-container {
-  width: 100%;
-  position: relative;
-  display: block;
-  margin: 8px 0;
-  overflow: hidden;
-}
-
-.health-rage-container.reverse {
+/* Tailwind's JIT mode allows for arbitrary values which is used for clip-path */
+/* We also use a custom class 'direction-rtl' for the reverse state as Tailwind doesn't have a direct 'direction' utility */
+.direction-rtl {
   direction: rtl;
-}
-
-.health-bar {
-  height: 32px;
-  width: 100%;
-  position: relative;
-  margin-bottom: 4px;
-  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0% 100%);
-}
-
-.health-rage-container.reverse .health-bar {
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%);
-}
-
-.health-bg {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background-color: #000;
-}
-
-.health-value {
-  height: 100%;
-  transition:
-    width 0.3s ease,
-    background-color 0.3s ease;
-  position: relative;
-  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0% 100%);
-}
-
-.health-rage-container.reverse .health-value {
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%);
-}
-
-.health-text {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
-  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
-  font-size: 20px;
-  font-weight: bold;
-  width: 100%;
-  text-align: center;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.rage-bar {
-  position: relative;
-  height: 32px;
-  width: 100%;
-  position: relative;
-  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0% 100%);
-}
-
-.health-rage-container.reverse .rage-bar {
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%);
-}
-
-.rage-bg {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background-color: #000;
-}
-
-.rage-value {
-  height: 100%;
-  transition: width 0.3s ease;
-  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0% 100%);
-  position: relative;
-}
-
-.health-rage-container.reverse .rage-value {
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%);
-}
-
-.rage-text {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
-  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
-  font-size: 20px;
-  font-weight: bold;
-  pointer-events: none;
-  z-index: 2;
 }
 </style>
