@@ -10,10 +10,12 @@
   "main": "./dist/index.js",
   "types": "./dist/src/index.d.ts",
   "scripts": {
-    "build": "pnpm run build:code && pnpm run build:types",
-    "clean": "rm -rf dist",
+    "build": "run-p build:code build:types",
+    "clear": "rm -rf dist",
     "build:code": "rollup -c",
-    "watch": "rollup -c --watch",
+    "watch:code": "rollup -c --watch",
+    "watch:types": "tsc --emitDeclarationOnly --watch --preserveWatchOutput",
+    "watch": "run-p watch:code watch:types",
     "build:types": "tsc --emitDeclarationOnly"
   },
   "keywords": [],
