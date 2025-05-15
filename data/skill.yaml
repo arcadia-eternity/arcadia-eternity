@@ -5,6 +5,7 @@
 - id: skill_paida
   element: Normal
   category: Physical
+  target: opponent
   power: 40
   rage: 0
   accuracy: 95
@@ -16,6 +17,7 @@
 - id: skill_shuipao
   element: Water
   category: Special
+  target: opponent
   power: 60
   rage: 5
   accuracy: 95
@@ -27,6 +29,7 @@
 - id: skill_tuoli
   element: Normal
   category: Status
+  target: opponent
   power: 0
   rage: 10
   accuracy: 95
@@ -38,6 +41,7 @@
 - id: skill_ruodiangongji
   element: Water
   category: Physical
+  target: opponent
   power: 70
   rage: 10
   accuracy: 95
@@ -49,6 +53,7 @@
 - id: skill_jiliuchuanji
   element: Water
   category: Special
+  target: opponent
   power: 75
   rage: 15
   accuracy: 95
@@ -61,6 +66,7 @@
 - id: skill_sashui
   element: Water
   category: Status
+  target: opponent
   power: 0
   rage: 10
   accuracy: 100
@@ -72,6 +78,7 @@
 - id: skill_yinudanu
   element: Normal
   category: Physical
+  target: opponent
   power: 10
   rage: 5
   accuracy: 95
@@ -81,6 +88,7 @@
 - id: skill_haixiaolianji
   element: Water
   category: Special
+  target: opponent
   power: 65
   rage: 15
   accuracy: 95
@@ -93,6 +101,7 @@
 - id: skill_shuiliuhuti
   element: Water
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -105,6 +114,7 @@
 - id: skill_ruohuadaji
   element: Normal
   category: Physical
+  target: opponent
   power: 80
   rage: 15
   accuracy: 95
@@ -116,6 +126,7 @@
 - id: skill_feiliupubu
   element: Water
   category: Special
+  target: opponent
   power: 100
   rage: 15
   accuracy: 95
@@ -128,6 +139,7 @@
 - id: skill_hailangzhidun
   element: Water
   category: Status
+  target: self
   power: 0
   rage: 15
   accuracy: 100
@@ -139,6 +151,7 @@
 - id: skill_wujindaxuanwo
   element: Water
   category: Climax
+  target: opponent
   power: 170
   rage: 100
   accuracy: 95
@@ -150,6 +163,7 @@
 - id: skill_shuihuajianshe
   element: Water
   category: Special
+  target: opponent
   power: 80
   rage: 15
   accuracy: 95
@@ -161,6 +175,7 @@
 - id: skill_yanmo
   element: Water
   category: Status
+  target: opponent
   power: 0
   rage: 20
   accuracy: 85
@@ -172,6 +187,7 @@
 - id: skill_ruodianbiaoji
   element: Water
   category: Special
+  target: opponent
   power: 65
   rage: 15
   accuracy: 95
@@ -183,6 +199,7 @@
 - id: skill_lizhua
   element: Normal
   category: Physical
+  target: opponent
   power: 45
   rage: 0
   accuracy: 95
@@ -194,6 +211,7 @@
 - id: skill_huoyan
   element: Fire
   category: Special
+  target: opponent
   power: 60
   rage: 5
   accuracy: 95
@@ -205,6 +223,7 @@
 - id: skill_qili
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 10
   accuracy: 100
@@ -216,6 +235,7 @@
 - id: skill_fenlitupo
   element: Normal
   category: Physical
+  target: opponent
   power: 75
   rage: 10
   accuracy: 95
@@ -227,6 +247,7 @@
 - id: skill_tahuochongzhuang
   element: Fire
   category: Physical
+  target: opponent
   power: 80
   rage: 15
   accuracy: 95
@@ -238,6 +259,7 @@
 - id: skill_jiasu
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 10
   accuracy: 100
@@ -249,6 +271,7 @@
 - id: skill_yanggong
   element: Normal
   category: Physical
+  target: opponent
   power: 75
   rage: 15
   accuracy: 95
@@ -261,6 +284,7 @@
 - id: skill_jizhong
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 10
   accuracy: 100
@@ -272,6 +296,7 @@
 - id: skill_huohai
   element: Fire
   category: Special
+  target: opponent
   power: 70
   rage: 15
   accuracy: 90
@@ -283,6 +308,7 @@
 - id: skill_nuhuomenggong
   element: Fire
   category: Physical
+  target: opponent
   power: 100
   rage: 20
   accuracy: 95
@@ -294,6 +320,7 @@
 - id: skill_shixue
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 0
   accuracy: 100
@@ -306,6 +333,7 @@
 - id: skill_lieyanjuexiji
   element: Fire
   category: Physical
+  target: opponent
   power: 125
   rage: 30
   accuracy: 95
@@ -317,6 +345,7 @@
 - id: skill_liehuofentianshao
   element: Fire
   category: Climax
+  target: opponent
   power: 175
   rage: 100
   accuracy: 95
@@ -328,6 +357,7 @@
 - id: skill_yanzhiyizhi
   element: Fire
   category: Status
+  target: opponent
   power: 0
   rage: 15
   accuracy: 100
@@ -339,6 +369,7 @@
 - id: skill_juechufengsheng
   element: Normal
   category: Physical
+  target: opponent
   power: 50
   rage: 10
   accuracy: 95
@@ -350,6 +381,7 @@
 - id: skill_bumiezhixin
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 25
   accuracy: 100
@@ -361,6 +393,7 @@
 - id: skill_zhongzibaodan
   element: Grass
   category: Special
+  target: opponent
   power: 25
   rage: 5
   accuracy: 95
@@ -371,6 +404,7 @@
 - id: skill_zhiyu
   element: Grass
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -382,6 +416,7 @@
 - id: skill_zhongzinengliang
   element: Grass
   category: Special
+  target: opponent
   power: 60
   rage: 10
   accuracy: 95
@@ -393,6 +428,7 @@
 - id: skill_nengliangshifang
   element: Grass
   category: Special
+  target: opponent
   power: 50
   rage: 15
   accuracy: 95
@@ -405,6 +441,7 @@
 - id: skill_xueruo
   element: Normal
   category: Status
+  target: opponent
   power: 0
   rage: 20
   accuracy: 95
@@ -417,6 +454,7 @@
 - id: skill_feiyesushe
   element: Grass
   category: Special
+  target: opponent
   power: 25
   rage: 15
   accuracy: 95
@@ -427,6 +465,7 @@
 - id: skill_jishengzhongzi
   element: Grass
   category: Status
+  target: opponent
   power: 0
   rage: 15
   accuracy: 95
@@ -438,6 +477,7 @@
 - id: skill_nengliangzhaqu
   element: Grass
   category: Physical
+  target: opponent
   power: 80
   rage: 15
   accuracy: 95
@@ -450,6 +490,7 @@
 - id: skill_jinghuazhiye
   element: Grass
   category: Status
+  target: opponent
   power: 0
   rage: 20
   accuracy: 100
@@ -461,6 +502,7 @@
 - id: skill_lirendaoye
   element: Grass
   category: Special
+  target: opponent
   power: 10
   rage: 15
   accuracy: 95
@@ -473,6 +515,7 @@
 - id: skill_ganrao
   element: Normal
   category: Status
+  target: opponent
   power: 0
   rage: 10
   accuracy: 95
@@ -484,6 +527,7 @@
 - id: skill_laaodehuhuan
   element: Grass
   category: Climax
+  target: opponent
   power: 165
   rage: 100
   accuracy: 95
@@ -495,6 +539,7 @@
 - id: skill_qianyesha
   element: Grass
   category: Special
+  target: opponent
   power: 100
   rage: 10
   accuracy: 95
@@ -506,6 +551,7 @@
 - id: skill_jishengzhadan
   element: Grass
   category: Status
+  target: opponent
   power: 0
   rage: 15
   accuracy: 95
@@ -517,6 +563,7 @@
 - id: skill_yinbaozhongzi
   element: Normal
   category: Status
+  target: opponent
   power: 0
   rage: 20
   accuracy: 100
@@ -528,6 +575,7 @@
 - id: skill_dixiulazhinu
   element: Normal
   category: Climax
+  target: opponent
   power: 90
   rage: 100
   accuracy: 95
@@ -538,6 +586,7 @@
 - id: skill_zhuangji
   element: Normal
   category: Physical
+  target: opponent
   power: 35
   rage: 0
   accuracy: 100
@@ -549,6 +598,7 @@
 - id: skill_shouxialiuqing
   element: Normal
   category: Physical
+  target: opponent
   power: 55
   rage: 5
   accuracy: 100
@@ -560,6 +610,7 @@
 - id: skill_baihuaguangxian
   element: Normal
   category: Special
+  target: opponent
   power: 60
   rage: 10
   accuracy: 95
@@ -571,6 +622,7 @@
 - id: skill_miaozhun
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 10
   accuracy: 100
@@ -582,6 +634,7 @@
 - id: skill_qianghuazhuangtai
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 10
   accuracy: 100
@@ -593,6 +646,7 @@
 - id: skill_xianfazhiren
   element: Normal
   category: Physical
+  target: opponent
   power: 45
   rage: 10
   accuracy: 95
@@ -605,6 +659,7 @@
 - id: skill_shouxiawuqing
   element: Normal
   category: Physical
+  target: opponent
   power: 50
   rage: 15
   accuracy: 95
@@ -616,6 +671,7 @@
 - id: skill_meihuo
   element: Normal
   category: Status
+  target: opponent
   power: 0
   rage: 20
   accuracy: 35
@@ -627,6 +683,7 @@
 - id: skill_ruilizhexian
   element: Normal
   category: Special
+  target: opponent
   power: 75
   rage: 15
   accuracy: 95
@@ -638,6 +695,7 @@
 - id: skill_chihuanguangbo
   element: Normal
   category: Status
+  target: opponent
   power: 0
   rage: 10
   accuracy: 95
@@ -649,6 +707,7 @@
 - id: skill_houfazhiren
   element: Normal
   category: Physical
+  target: opponent
   power: 90
   rage: 10
   accuracy: 95
@@ -661,6 +720,7 @@
 - id: skill_shanbi
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 15
   accuracy: 35
@@ -672,6 +732,7 @@
 - id: skill_huanjinglieshanguang
   element: Normal
   category: Climax
+  target: opponent
   power: 160
   rage: 100
   accuracy: 100
@@ -683,6 +744,7 @@
 - id: skill_lingcaiguangxian
   element: Normal
   category: Special
+  target: opponent
   power: 100
   rage: 20
   accuracy: 95
@@ -692,6 +754,7 @@
 - id: skill_huanjuezhuangtai
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -703,6 +766,7 @@
 - id: skill_mihuo
   element: Normal
   category: Status
+  target: opponent
   power: 0
   rage: 20
   accuracy: 35
@@ -714,6 +778,7 @@
 - id: skill_tongshenggongsi
   element: Normal
   category: Physical
+  target: opponent
   power: 80
   rage: 10
   accuracy: 95
@@ -725,6 +790,7 @@
 - id: skill_chongding
   element: Normal
   category: Physical
+  target: opponent
   power: 35
   rage: 0
   accuracy: 100
@@ -736,6 +802,7 @@
 - id: skill_sanyecao
   element: Grass
   category: Special
+  target: opponent
   power: 20
   rage: 5
   accuracy: 95
@@ -746,6 +813,7 @@
 - id: skill_yepianbaohu
   element: Grass
   category: Status
+  target: self
   power: 0
   rage: 10
   accuracy: 100
@@ -757,6 +825,7 @@
 - id: skill_kuihuazhongzi
   element: Grass
   category: Special
+  target: opponent
   power: 65
   rage: 10
   accuracy: 95
@@ -768,6 +837,7 @@
 - id: skill_gundongzhuiji
   element: Grass
   category: Physical
+  target: opponent
   power: 30
   rage: 15
   accuracy: 95
@@ -780,6 +850,7 @@
 - id: skill_yuhe
   element: Grass
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -791,6 +862,7 @@
 - id: skill_gundongtupo
   element: Normal
   category: Physical
+  target: opponent
   power: 90
   rage: 15
   accuracy: 95
@@ -802,6 +874,7 @@
 - id: skill_xuruo
   element: Normal
   category: Status
+  target: opponent
   power: 0
   rage: 20
   accuracy: 95
@@ -814,6 +887,7 @@
 - id: skill_wulicao
   element: Grass
   category: Special
+  target: opponent
   power: 70
   rage: 15
   accuracy: 95
@@ -825,6 +899,7 @@
 - id: skill_xishoucao
   element: Grass
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -836,6 +911,7 @@
 - id: skill_gundongzhenci
   element: Grass
   category: Physical
+  target: opponent
   power: 100
   rage: 15
   accuracy: 80
@@ -847,6 +923,7 @@
 - id: skill_jieducao
   element: Grass
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -858,6 +935,7 @@
 - id: skill_qiyeduoming
   element: Grass
   category: Climax
+  target: opponent
   power: 160
   rage: 100
   accuracy: 100
@@ -869,6 +947,7 @@
 - id: skill_ducao
   element: Grass
   category: Status
+  target: opponent
   power: 0
   rage: 20
   accuracy: 85
@@ -880,6 +959,7 @@
 - id: skill_fangqing
   element: Grass
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -891,6 +971,7 @@
 - id: skill_duhua
   element: Grass
   category: Status
+  target: opponent
   power: 0
   rage: 10
   accuracy: 100
@@ -902,6 +983,7 @@
 - id: skill_qianghuachongji
   element: Grass
   category: Physical
+  target: opponent
   power: 110
   rage: 15
   accuracy: 70
@@ -913,6 +995,7 @@
 - id: skill_chongfeng
   element: Normal
   category: Physical
+  target: opponent
   power: 40
   rage: 0
   accuracy: 95
@@ -924,6 +1007,7 @@
 - id: skill_zhongji
   element: Normal
   category: Physical
+  target: opponent
   power: 60
   rage: 5
   accuracy: 95
@@ -935,6 +1019,7 @@
 - id: skill_bianfei
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 10
   accuracy: 100
@@ -946,6 +1031,7 @@
 - id: skill_tizhongyapo
   element: Normal
   category: Physical
+  target: opponent
   power: 55
   rage: 15
   accuracy: 95
@@ -957,6 +1043,7 @@
 - id: skill_yinghuazhifang
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 10
   accuracy: 100
@@ -968,6 +1055,7 @@
 - id: skill_zhifanghudun
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -979,6 +1067,7 @@
 - id: skill_qilingruoxiao
   element: Normal
   category: Physical
+  target: opponent
   power: 50
   rage: 10
   accuracy: 95
@@ -990,6 +1079,7 @@
 - id: skill_konghe
   element: Normal
   category: Status
+  target: opponent
   power: 0
   rage: 10
   accuracy: 25
@@ -1002,6 +1092,7 @@
 - id: skill_weixiaguangbo
   element: Normal
   category: Special
+  target: opponent
   power: 70
   rage: 10
   accuracy: 95
@@ -1013,6 +1104,7 @@
 - id: skill_tuidao
   element: Normal
   category: Physical
+  target: opponent
   power: 10
   rage: 15
   accuracy: 95
@@ -1024,6 +1116,7 @@
 - id: skill_quanliyiji
   element: Normal
   category: Physical
+  target: opponent
   power: 100
   rage: 20
   accuracy: 85
@@ -1035,6 +1128,7 @@
 - id: skill_tizhongbaozhang
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -1046,6 +1140,7 @@
 - id: skill_chaozhongliangongji
   element: Normal
   category: Climax
+  target: opponent
   power: 160
   rage: 100
   accuracy: 95
@@ -1057,6 +1152,7 @@
 - id: skill_tizhongzhishang
   element: Normal
   category: Physical
+  target: opponent
   power: 60
   rage: 15
   accuracy: 95
@@ -1068,6 +1164,7 @@
 - id: skill_zhifangranshao
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -1080,6 +1177,7 @@
 - id: skill_zhifangzhengqi
   element: Normal
   category: Special
+  target: opponent
   power: 80
   rage: 20
   accuracy: 85
@@ -1091,6 +1189,7 @@
 - id: skill_tanxingzhifang
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -1102,6 +1201,7 @@
 - id: skill_qiaoda
   element: Normal
   category: Physical
+  target: opponent
   power: 35
   rage: 0
   accuracy: 100
@@ -1113,6 +1213,7 @@
 - id: skill_genzhici
   element: Grass
   category: Special
+  target: opponent
   power: 20
   rage: 5
   accuracy: 95
@@ -1123,6 +1224,7 @@
 - id: skill_jianqiang
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 10
   accuracy: 100
@@ -1134,6 +1236,7 @@
 - id: skill_shugenyinghua
   element: Grass
   category: Status
+  target: self
   power: 0
   rage: 10
   accuracy: 100
@@ -1145,6 +1248,7 @@
 - id: skill_shutichongzhuang
   element: Grass
   category: Physical
+  target: opponent
   power: 65
   rage: 15
   accuracy: 95
@@ -1156,6 +1260,7 @@
 - id: skill_shuairuo
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 95
@@ -1168,6 +1273,7 @@
 - id: skill_jianruiciji
   element: Grass
   category: Physical
+  target: opponent
   power: 80
   rage: 15
   accuracy: 90
@@ -1179,6 +1285,7 @@
 - id: skill_juxinggenci
   element: Grass
   category: Special
+  target: opponent
   power: 80
   rage: 15
   accuracy: 90
@@ -1190,6 +1297,7 @@
 - id: skill_shupibaozha
   element: Grass
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -1202,6 +1310,7 @@
 - id: skill_shuangzhuichuanci
   element: Grass
   category: Physical
+  target: opponent
   power: 30
   rage: 20
   accuracy: 90
@@ -1214,6 +1323,7 @@
 - id: skill_jiancifangyu
   element: Grass
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -1225,6 +1335,7 @@
 - id: skill_fenglizuantou
   element: Grass
   category: Physical
+  target: opponent
   power: 55
   rage: 15
   accuracy: 95
@@ -1236,6 +1347,7 @@
 - id: skill_qianchuangbaikong
   element: Grass
   category: Climax
+  target: opponent
   power: 160
   rage: 100
   accuracy: 100
@@ -1247,6 +1359,7 @@
 - id: skill_caomujiebing
   element: Grass
   category: Special
+  target: opponent
   power: 100
   rage: 20
   accuracy: 100
@@ -1256,6 +1369,7 @@
 - id: skill_ehuashangkou
   element: Grass
   category: Status
+  target: opponent
   power: 0
   rage: 15
   accuracy: 95
@@ -1267,6 +1381,7 @@
 - id: skill_suixinci
   element: Grass
   category: Physical
+  target: opponent
   power: 90
   rage: 15
   accuracy: 95
@@ -1279,6 +1394,7 @@
 - id: skill_muyexuanfeng
   element: Grass
   category: Physical
+  target: opponent
   power: 105
   rage: 15
   accuracy: 65
@@ -1290,6 +1406,7 @@
 - id: skill_touchui
   element: Normal
   category: Physical
+  target: opponent
   power: 40
   rage: 0
   accuracy: 100
@@ -1301,6 +1418,7 @@
 - id: skill_shuiqiang
   element: Water
   category: Special
+  target: opponent
   power: 60
   rage: 5
   accuracy: 95
@@ -1312,6 +1430,7 @@
 - id: skill_ningju
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 10
   accuracy: 100
@@ -1323,6 +1442,7 @@
 - id: skill_chuanjibo
   element: Water
   category: Special
+  target: opponent
   power: 65
   rage: 10
   accuracy: 95
@@ -1334,6 +1454,7 @@
 - id: skill_niliu
   element: Water
   category: Status
+  target: opponent
   power: 0
   rage: 10
   accuracy: 95
@@ -1345,6 +1466,7 @@
 - id: skill_zhimingshuiqiang
   element: Water
   category: Special
+  target: opponent
   power: 70
   rage: 10
   accuracy: 95
@@ -1356,6 +1478,7 @@
 - id: skill_jingzhun
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 10
   accuracy: 100
@@ -1367,6 +1490,7 @@
 - id: skill_fenlitouchui
   element: Normal
   category: Physical
+  target: opponent
   power: 80
   rage: 15
   accuracy: 95
@@ -1378,6 +1502,7 @@
 - id: skill_shuiqianglianbo
   element: Water
   category: Special
+  target: opponent
   power: 50
   rage: 10
   accuracy: 95
@@ -1389,6 +1514,7 @@
 - id: skill_chunjingshuiyu
   element: Water
   category: Status
+  target: self
   power: 0
   rage: 15
   accuracy: 100
@@ -1400,6 +1526,7 @@
 - id: skill_pinmingtouchui
   element: Normal
   category: Physical
+  target: opponent
   power: 110
   rage: 20
   accuracy: 95
@@ -1411,6 +1538,7 @@
 - id: skill_shuaitui
   element: Normal
   category: Status
+  target: opponent
   power: 0
   rage: 10
   accuracy: 95
@@ -1422,6 +1550,7 @@
 - id: skill_junengshuiguangpao
   element: Water
   category: Climax
+  target: opponent
   power: 160
   rage: 100
   accuracy: 100
@@ -1433,6 +1562,7 @@
 - id: skill_chuantoushuipao
   element: Water
   category: Special
+  target: opponent
   power: 85
   rage: 15
   accuracy: 95
@@ -1444,6 +1574,7 @@
 - id: skill_hunzhuoshuiyu
   element: Water
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -1455,6 +1586,7 @@
 - id: skill_linweiyichui
   element: Normal
   category: Physical
+  target: opponent
   power: 120
   rage: 10
   accuracy: 25
@@ -1466,6 +1598,7 @@
 - id: skill_xuruoshuixian
   element: Water
   category: Status
+  target: opponent
   power: 0
   rage: 20
   accuracy: 95
@@ -1478,6 +1611,7 @@
 - id: skill_duci
   element: Grass
   category: Physical
+  target: opponent
   power: 55
   rage: 5
   accuracy: 95
@@ -1489,6 +1623,7 @@
 - id: skill_tuihuaye
   element: Grass
   category: Status
+  target: opponent
   power: 0
   rage: 10
   accuracy: 95
@@ -1500,6 +1635,7 @@
 - id: skill_manxingduyao
   element: Grass
   category: Special
+  target: opponent
   power: 65
   rage: 10
   accuracy: 95
@@ -1511,6 +1647,7 @@
 - id: skill_guluoheji
   element: Normal
   category: Physical
+  target: opponent
   power: 45
   rage: 15
   accuracy: 95
@@ -1521,6 +1658,7 @@
 - id: skill_duye
   element: Grass
   category: Special
+  target: opponent
   power: 80
   rage: 15
   accuracy: 95
@@ -1532,6 +1670,7 @@
 - id: skill_duliao
   element: Grass
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -1543,6 +1682,7 @@
 - id: skill_duzhibian
   element: Grass
   category: Physical
+  target: opponent
   power: 90
   rage: 15
   accuracy: 95
@@ -1554,6 +1694,7 @@
 - id: skill_fengkuanghuida
   element: Normal
   category: Physical
+  target: opponent
   power: 100
   rage: 20
   accuracy: 90
@@ -1566,6 +1707,7 @@
 - id: skill_duzhenrugu
   element: Grass
   category: Status
+  target: opponent
   power: 0
   rage: 20
   accuracy: 95
@@ -1578,6 +1720,7 @@
 - id: skill_juduyeti
   element: Grass
   category: Special
+  target: opponent
   power: 100
   rage: 20
   accuracy: 95
@@ -1589,6 +1732,7 @@
 - id: skill_duqigongxin
   element: Grass
   category: Climax
+  target: opponent
   power: 155
   rage: 100
   accuracy: 100
@@ -1600,6 +1744,7 @@
 - id: skill_yidugongdu
   element: Grass
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -1612,6 +1757,7 @@
 - id: skill_suxiaoduyao
   element: Grass
   category: Special
+  target: opponent
   power: 100
   rage: 20
   accuracy: 95
@@ -1624,6 +1770,7 @@
 - id: skill_chuisizhenzha
   element: Normal
   category: Physical
+  target: opponent
   power: 75
   rage: 10
   accuracy: 95
@@ -1635,6 +1782,7 @@
 - id: skill_judushenti
   element: Grass
   category: Status
+  target: self
   power: 0
   rage: 15
   accuracy: 100
@@ -1646,6 +1794,7 @@
 - id: skill_chouda
   element: Normal
   category: Physical
+  target: opponent
   power: 40
   rage: 0
   accuracy: 100
@@ -1657,6 +1806,7 @@
 - id: skill_penshui
   element: Water
   category: Special
+  target: opponent
   power: 60
   rage: 5
   accuracy: 95
@@ -1668,6 +1818,7 @@
 - id: skill_mozhipao
   element: Water
   category: Special
+  target: opponent
   power: 65
   rage: 10
   accuracy: 95
@@ -1679,6 +1830,7 @@
 - id: skill_kongqitianchong
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 15
   accuracy: 100
@@ -1691,6 +1843,7 @@
 - id: skill_kongqipao
   element: Normal
   category: Special
+  target: opponent
   power: 100
   rage: 10
   accuracy: 95
@@ -1702,6 +1855,7 @@
 - id: skill_mozhipenshe
   element: Water
   category: Special
+  target: opponent
   power: 110
   rage: 15
   accuracy: 95
@@ -1713,6 +1867,7 @@
 - id: skill_gaoyashuipao
   element: Water
   category: Special
+  target: opponent
   power: 130
   rage: 20
   accuracy: 95
@@ -1724,6 +1879,7 @@
 - id: skill_mozhishuiyu
   element: Water
   category: Status
+  target: opponent
   power: 0
   rage: 15
   accuracy: 100
@@ -1735,6 +1891,7 @@
 - id: skill_lianxuchouda
   element: Normal
   category: Physical
+  target: opponent
   power: 40
   rage: 20
   accuracy: 95
@@ -1745,6 +1902,7 @@
 - id: skill_kongqihudun
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 10
   accuracy: 100
@@ -1757,6 +1915,7 @@
 - id: skill_yasuoningjupao
   element: Water
   category: Climax
+  target: opponent
   power: 165
   rage: 100
   accuracy: 100
@@ -1768,6 +1927,7 @@
 - id: skill_gaoyakongqi
   element: Normal
   category: Special
+  target: opponent
   power: 85
   rage: 15
   accuracy: 95
@@ -1780,6 +1940,7 @@
 - id: skill_zhixi
   element: Normal
   category: Status
+  target: opponent
   power: 0
   rage: 25
   accuracy: 50
@@ -1791,6 +1952,7 @@
 - id: skill_luoxuanshuiqiang
   element: Water
   category: Special
+  target: opponent
   power: 140
   rage: 20
   accuracy: 90
@@ -1802,6 +1964,7 @@
 - id: skill_kongqizhiyu
   element: Normal
   category: Status
+  target: opponent
   power: 0
   rage: 20
   accuracy: 100
@@ -1814,6 +1977,7 @@
 - id: skill_fengli
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 10
   accuracy: 100
@@ -1825,6 +1989,7 @@
 - id: skill_quanlichongzhuang
   element: Normal
   category: Physical
+  target: opponent
   power: 90
   rage: 10
   accuracy: 95
@@ -1836,6 +2001,7 @@
 - id: skill_xingzhiwei
   element: Normal
   category: Physical
+  target: opponent
   power: 70
   rage: 15
   accuracy: 95
@@ -1845,6 +2011,7 @@
 - id: skill_yingjiachongding
   element: Normal
   category: Physical
+  target: opponent
   power: 95
   rage: 15
   accuracy: 95
@@ -1856,6 +2023,7 @@
 - id: skill_pensheshuizhu
   element: Water
   category: Special
+  target: opponent
   power: 60
   rage: 15
   accuracy: 95
@@ -1866,6 +2034,7 @@
 - id: skill_weishe
   element: Normal
   category: Status
+  target: opponent
   power: 0
   rage: 25
   accuracy: 50
@@ -1877,6 +2046,7 @@
 - id: skill_shuangxingzhiwei
   element: Normal
   category: Physical
+  target: opponent
   power: 50
   rage: 20
   accuracy: 95
@@ -1887,6 +2057,7 @@
 - id: skill_fengkuanglianchong
   element: Normal
   category: Physical
+  target: opponent
   power: 40
   rage: 20
   accuracy: 90
@@ -1899,6 +2070,7 @@
 - id: skill_bomingyiji
   element: Normal
   category: Physical
+  target: opponent
   power: 120
   rage: 25
   accuracy: 95
@@ -1910,6 +2082,7 @@
 - id: skill_nuhailiantao
   element: Water
   category: Climax
+  target: opponent
   power: 30
   rage: 100
   accuracy: 100
@@ -1920,6 +2093,7 @@
 - id: skill_talangchongji
   element: Water
   category: Physical
+  target: opponent
   power: 120
   rage: 20
   accuracy: 95
@@ -1931,6 +2105,7 @@
 - id: skill_xingzhili
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 15
   accuracy: 100
@@ -1942,6 +2117,7 @@
 - id: skill_sisui
   element: Normal
   category: Status
+  target: opponent
   power: 0
   rage: 20
   accuracy: 95
@@ -1954,6 +2130,7 @@
 - id: skill_yongbuyanbai
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 25
   accuracy: 100
@@ -1966,6 +2143,7 @@
 - id: skill_hailang
   element: Water
   category: Special
+  target: opponent
   power: 60
   accuracy: 95
   rage: 5
@@ -1977,6 +2155,7 @@
 - id: skill_shuiwenzhenji
   element: Water
   category: Physical
+  target: opponent
   power: 60
   accuracy: 95
   rage: 10
@@ -1988,6 +2167,7 @@
 - id: skill_jiangu
   element: Normal
   category: Status
+  target: self
   power: 0
   accuracy: 100
   rage: 10
@@ -1999,6 +2179,7 @@
 - id: skill_hailangzhenji
   element: Water
   category: Physical
+  target: opponent
   power: 70
   accuracy: 95
   rage: 10
@@ -2011,6 +2192,7 @@
 - id: skill_shuiwenpingzhang
   element: Water
   category: Status
+  target: self
   power: 0
   accuracy: 100
   rage: 15
@@ -2022,6 +2204,7 @@
 - id: skill_shentouzhenji
   element: Water
   category: Physical
+  target: opponent
   power: 80
   accuracy: 95
   rage: 15
@@ -2034,6 +2217,7 @@
 - id: skill_xushuipao
   element: Water
   category: Special
+  target: opponent
   power: 90
   accuracy: 95
   rage: 15
@@ -2045,6 +2229,7 @@
 - id: skill_pubuzhenji
   element: Water
   category: Physical
+  target: opponent
   power: 90
   accuracy: 90
   rage: 15
@@ -2057,6 +2242,7 @@
 - id: skill_fansheshuidun
   element: Water
   category: Status
+  target: self
   power: 0
   accuracy: 100
   rage: 15
@@ -2069,6 +2255,7 @@
 - id: skill_chongnengjizhuangbo
   element: Water
   category: Climax
+  target: opponent
   power: 165
   accuracy: 100
   rage: 100
@@ -2080,6 +2267,7 @@
 - id: skill_yazhi
   element: Normal
   category: Physical
+  target: opponent
   power: 10
   accuracy: 100
   rage: 20
@@ -2092,6 +2280,7 @@
 - id: skill_yapo
   element: Normal
   category: Status
+  target: opponent
   power: 0
   accuracy: 95
   rage: 20
@@ -2104,6 +2293,7 @@
 - id: skill_huanyu
   element: Water
   category: Status
+  target: self
   power: 0
   accuracy: 100
   rage: 20
@@ -2115,6 +2305,7 @@
 - id: skill_jishuichuanliu
   element: Water
   category: Special
+  target: opponent
   power: 110
   accuracy: 95
   rage: 20
@@ -2126,6 +2317,7 @@
 - id: skill_penhuo
   element: Fire
   category: Special
+  target: opponent
   power: 55
   rage: 5
   accuracy: 95
@@ -2137,6 +2329,7 @@
 - id: skill_jiare
   element: Fire
   category: Status
+  target: self
   power: 0
   rage: 10
   accuracy: 100
@@ -2148,6 +2341,7 @@
 - id: skill_zhuoshao
   element: Fire
   category: Special
+  target: opponent
   power: 60
   rage: 10
   accuracy: 95
@@ -2159,6 +2353,7 @@
 - id: skill_rongjiezhiyan
   element: Fire
   category: Special
+  target: opponent
   power: 60
   rage: 10
   accuracy: 95
@@ -2170,6 +2365,7 @@
 - id: skill_huoyanchongzhuang
   element: Fire
   category: Physical
+  target: opponent
   power: 95
   rage: 15
   accuracy: 95
@@ -2181,6 +2377,7 @@
 - id: skill_shuangguihuopao
   element: Fire
   category: Special
+  target: opponent
   power: 35
   rage: 15
   accuracy: 95
@@ -2193,6 +2390,7 @@
 - id: skill_lieyanzhiju
   element: Fire
   category: Status
+  target: self
   power: 0
   rage: 15
   accuracy: 100
@@ -2204,6 +2402,7 @@
 - id: skill_huoyanxuanfeng
   element: Fire
   category: Special
+  target: opponent
   power: 100
   rage: 20
   accuracy: 75
@@ -2215,6 +2414,7 @@
 - id: skill_mijisaoshe
   element: Fire
   category: Special
+  target: opponent
   power: 30
   rage: 20
   accuracy: 95
@@ -2225,6 +2425,7 @@
 - id: skill_chaodahuoqiu
   element: Fire
   category: Special
+  target: opponent
   power: 110
   rage: 25
   accuracy: 90
@@ -2236,6 +2437,7 @@
 - id: skill_rongyanbaolie
   element: Fire
   category: Climax
+  target: opponent
   power: 165
   rage: 100
   accuracy: 100
@@ -2247,6 +2449,7 @@
 - id: skill_jisuhuodan
   element: Fire
   category: Special
+  target: opponent
   power: 50
   rage: 15
   accuracy: 95
@@ -2257,6 +2460,7 @@
 - id: skill_dianran
   element: Fire
   category: Status
+  target: opponent
   power: 0
   rage: 20
   accuracy: 85
@@ -2268,6 +2472,7 @@
 - id: skill_chuantouhuoyan
   element: Fire
   category: Special
+  target: opponent
   power: 95
   rage: 15
   accuracy: 95
@@ -2279,6 +2484,7 @@
 - id: skill_fennuzhihuo
   element: Fire
   category: Special
+  target: opponent
   power: 120
   rage: 15
   accuracy: 35
@@ -2290,6 +2496,7 @@
 - id: skill_huoqiu
   element: Fire
   category: Special
+  target: opponent
   power: 55
   rage: 5
   accuracy: 95
@@ -2301,6 +2508,7 @@
 - id: skill_jianying
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 10
   accuracy: 100
@@ -2312,6 +2520,7 @@
 - id: skill_zhuangyun
   element: Normal
   category: Physical
+  target: opponent
   power: 65
   rage: 10
   accuracy: 95
@@ -2323,6 +2532,7 @@
 - id: skill_daliqian
   element: Normal
   category: Physical
+  target: opponent
   power: 90
   rage: 15
   accuracy: 60
@@ -2334,6 +2544,7 @@
 - id: skill_reliqian
   element: Fire
   category: Physical
+  target: opponent
   power: 80
   rage: 15
   accuracy: 60
@@ -2345,6 +2556,7 @@
 - id: skill_huoqulianshe
   element: Fire
   category: Special
+  target: opponent
   power: 40
   rage: 15
   accuracy: 95
@@ -2355,6 +2567,7 @@
 - id: skill_guailiqian
   element: Normal
   category: Physical
+  target: opponent
   power: 110
   rage: 15
   accuracy: 55
@@ -2366,6 +2579,7 @@
 - id: skill_huoyanqian
   element: Fire
   category: Physical
+  target: opponent
   power: 100
   rage: 15
   accuracy: 55
@@ -2377,6 +2591,7 @@
 - id: skill_juansuo
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 15
   accuracy: 100
@@ -2388,6 +2603,7 @@
 - id: skill_huoyantuxi
   element: Fire
   category: Special
+  target: opponent
   power: 100
   rage: 15
   accuracy: 95
@@ -2399,6 +2615,7 @@
 - id: skill_huoyanshazhen
   element: Fire
   category: Climax
+  target: opponent
   power: 40
   rage: 100
   accuracy: 100
@@ -2409,6 +2626,7 @@
 - id: skill_xuli
   element: Normal
   category: Status
+  target: self
   power: 0
   rage: 15
   accuracy: 100
@@ -2420,6 +2638,7 @@
 - id: skill_fensuiqian
   element: Normal
   category: Physical
+  target: opponent
   power: 120
   rage: 20
   accuracy: 50
@@ -2431,6 +2650,7 @@
 - id: skill_rongyanqian
   element: Fire
   category: Physical
+  target: opponent
   power: 110
   rage: 20
   accuracy: 50
@@ -2442,6 +2662,7 @@
 - id: skill_xuanyunhuoqiu
   element: Fire
   category: Special
+  target: opponent
   power: 75
   rage: 15
   accuracy: 95
@@ -2453,6 +2674,7 @@
 - id: skill_guntangchongji
   element: Fire
   category: Physical
+  target: opponent
   power: 65
   rage: 10
   accuracy: 95
@@ -2464,6 +2686,7 @@
 - id: skill_gaowenhuohuan
   element: Fire
   category: Special
+  target: opponent
   power: 65
   rage: 10
   accuracy: 95
@@ -2475,6 +2698,7 @@
 - id: skill_julizhizhua
   element: Normal
   category: Physical
+  target: opponent
   power: 80
   rage: 15
   accuracy: 95
@@ -2486,6 +2710,7 @@
 - id: skill_zhenfa
   element: Normal
   category: Special
+  target: opponent
   power: 80
   rage: 15
   accuracy: 95
@@ -2497,6 +2722,7 @@
 - id: skill_nuhou
   element: Normal
   category: Status
+  target: opponent
   power: 0
   rage: 25
   accuracy: 50
@@ -2508,6 +2734,7 @@
 - id: skill_rongyanchuanci
   element: Fire
   category: Physical
+  target: opponent
   power: 105
   rage: 20
   accuracy: 90
@@ -2519,6 +2746,7 @@
 - id: skill_huoshanpenfa
   element: Fire
   category: Special
+  target: opponent
   power: 105
   rage: 20
   accuracy: 90
@@ -2530,6 +2758,7 @@
 - id: skill_huoshanhujia
   element: Fire
   category: Status
+  target: self
   power: 0
   rage: 15
   accuracy: 100
@@ -2541,6 +2770,7 @@
 - id: skill_huoshanbaoliequan
   element: Fire
   category: Climax
+  target: opponent
   power: 170
   rage: 100
   accuracy: 100
@@ -2552,6 +2782,7 @@
 - id: skill_yanzhizhua
   element: Fire
   category: Physical
+  target: opponent
   power: 55
   rage: 15
   accuracy: 95
@@ -2564,6 +2795,7 @@
 - id: skill_yanbao
   element: Fire
   category: Special
+  target: opponent
   power: 55
   rage: 15
   accuracy: 95
@@ -2576,6 +2808,7 @@
 - id: skill_yangyan
   element: Fire
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
@@ -2587,6 +2820,7 @@
 - id: skill_huoshanzhili
   element: Fire
   category: Status
+  target: self
   power: 0
   rage: 20
   accuracy: 100
