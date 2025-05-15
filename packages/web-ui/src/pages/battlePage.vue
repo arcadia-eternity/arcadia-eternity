@@ -958,7 +958,7 @@ onUnmounted(() => {
           </div>
 
           <div class="flex-1 h-full">
-            <div class="h-full grid grid-cols-5 gap-2" v-if="panelState === PanelState.SKILLS">
+            <div class="h-full grid grid-cols-5 gap-2" v-show="panelState === PanelState.SKILLS">
               <!-- 普通技能 -->
               <template
                 v-for="(skill, index) in availableSkills.filter(s => s.category !== Category.Climax)"
@@ -987,7 +987,7 @@ onUnmounted(() => {
               </template>
             </div>
 
-            <div class="grid grid-cols-6 gap-2 h-full" v-else>
+            <div class="grid grid-cols-6 gap-2 h-full" v-show="panelState === PanelState.PETS">
               <PetButton
                 v-for="pet in currentPlayer!.team"
                 :key="pet.id"

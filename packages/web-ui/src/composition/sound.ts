@@ -13,19 +13,29 @@ export function useSound(allSkillId: ComputedRef<baseSkillId[] | undefined>) {
   const selfMute = computed(() => mute.value || soundMute.value)
 
   const skillHowlerMap = new Map<baseSkillId, Howl>()
+  const soundSrcHowlerMap = new Map<string, Howl>() // 新增 Map 用于存储 src -> Howl
 
   function registerSkillSound(id: baseSkillId) {
-    if (!skillHowlerMap.has(id)) {
-      const src =
-        resourceStore.getSkillSound(id) ??
-        'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/sound/skill/01_1_003.mp3'
-      const howler = new Howl({
+    // 确保即使技能ID已存在于skillHowlerMap，但如果其src对应的Howl实例尚未创建或需要更新，也进行处理
+
+    const src =
+      resourceStore.getSkillSound(id) ??
+      'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/sound/skill/01_1_003.mp3'
+
+    if (soundSrcHowlerMap.has(src)) {
+      // 如果该声音文件已存在 Howl 实例，则共享它
+      const existingHowler = soundSrcHowlerMap.get(src)!
+      skillHowlerMap.set(id, existingHowler)
+    } else {
+      // 否则，创建新的 Howl 实例
+      const newHowler = new Howl({
         src: [src],
         loop: false,
         volume: volume.value,
         mute: selfMute.value,
       })
-      skillHowlerMap.set(id, howler)
+      soundSrcHowlerMap.set(src, newHowler)
+      skillHowlerMap.set(id, newHowler)
     }
   }
 
@@ -42,11 +52,11 @@ export function useSound(allSkillId: ComputedRef<baseSkillId[] | undefined>) {
   })
 
   watch(selfMute, val => {
-    skillHowlerMap.forEach(v => v.mute(val))
+    soundSrcHowlerMap.forEach(v => v.mute(val)) // 改为遍历 soundSrcHowlerMap
   })
 
   watch(volume, val => {
-    skillHowlerMap.forEach(v => v.volume(val))
+    soundSrcHowlerMap.forEach(v => v.volume(val)) // 改为遍历 soundSrcHowlerMap
   })
 
   const playSkillSound = (id: baseSkillId) => {
@@ -54,8 +64,13 @@ export function useSound(allSkillId: ComputedRef<baseSkillId[] | undefined>) {
   }
 
   onUnmounted(() => {
-    skillHowlerMap.forEach(v => v.stop())
-    skillHowlerMap.forEach(v => v.unload())
+    soundSrcHowlerMap.forEach(v => {
+      // 改为遍历 soundSrcHowlerMap
+      v.stop()
+      v.unload()
+    })
+    skillHowlerMap.clear()
+    soundSrcHowlerMap.clear()
   })
 
   return {
