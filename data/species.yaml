@@ -2093,3 +2093,120 @@
     - mark_ability_yangyan
   emblem:
     - mark_emblem_weiyan
+- id: pet_xiaochitun
+  num: 39
+  element: Fire
+  baseStats:
+    hp: 83
+    atk: 131
+    def: 114
+    spa: 119
+    spd: 113
+    spe: 118
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 38
+    - 43
+  weightRange:
+    - 20
+    - 25
+  ability:
+    - mark_ability_qianggong
+  emblem:
+    - mark_emblem_yanhuo
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_penhuo
+      level: 6
+      hidden: false
+    - skill_id: skill_moya
+      level: 10
+      hidden: false
+    - skill_id: skill_yanhuo
+      level: 14
+      hidden: false
+    - skill_id: skill_huozhiya
+      level: 17
+      hidden: false
+    - skill_id: skill_huoqiulianshe
+      level: 22
+      hidden: false
+- id: pet_chiyanshou
+  num: 40
+  element: Fire
+  baseStats:
+    hp: 173
+    atk: 181
+    def: 159
+    spa: 169
+    spd: 158
+    spe: 163
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 63
+    - 68
+  weightRange:
+    - 48
+    - 53
+  ability:
+    - mark_ability_qianggong
+  emblem:
+    - mark_emblem_yanhuo
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_penhuo
+      level: 6
+      hidden: false
+    - skill_id: skill_moya
+      level: 10
+      hidden: false
+    - skill_id: skill_yanhuo
+      level: 14
+      hidden: false
+    - skill_id: skill_huozhiya
+      level: 17
+      hidden: false
+    - skill_id: skill_huoqiulianshe
+      level: 22
+      hidden: false
+    - skill_id: skill_lieyanzhuangji
+      level: 27
+      hidden: false
+    - skill_id: skill_yezhuzhisu
+      level: 32
+      hidden: false
+    - skill_id: skill_baoya
+      level: 37
+      hidden: false
+    - skill_id: skill_huoyufeidan
+      level: 42
+      hidden: false
+    - skill_id: skill_tongyonggongjisi
+      level: 47
+      hidden: false
+    - skill_id: skill_zouhuo
+      level: 52
+      hidden: false
+    - skill_id: skill_lieyanyachongpo
+      level: 60
+      hidden: true
+    - skill_id: skill_yanwu
+      level: 60
+      hidden: true
+    - skill_id: skill_badetouchou
+      level: 60
+      hidden: true
+    - skill_id: skill_huoxing
+      level: 60
+      hidden: true
+    - skill_id: skill_huozhong
+      level: 60
+      hidden: true

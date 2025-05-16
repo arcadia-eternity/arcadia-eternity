@@ -570,6 +570,12 @@ export type ConditionDSL =
       stat?: Value
       check?: 'up' | 'down' | 'all'
     }
+  | {
+      type: 'isFirstSkillUsedThisTurn'
+    }
+  | {
+      type: 'isLastSkillUsedThisTurn'
+    }
 
 export type WhenSelectorStep = {
   type: 'when'

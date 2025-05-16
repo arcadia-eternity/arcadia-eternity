@@ -406,6 +406,21 @@
           type: probability
           percent: 20
       - *condition_foe_not_fire_element
+- id: effect_skill_add_mark_foe_shaoshang_30_percent
+  trigger: OnHit
+  priority: 0
+  apply: *apply_foe_add_mark_shaoshang_template
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_probability_30_percent_template
+        type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 30
+      - *condition_foe_not_fire_element
 - id: effect_skill_add_mark_foe_shaoshang_50_percent
   trigger: OnHit
   priority: 0
@@ -2084,6 +2099,17 @@
     target:
       base: self
     value: 120
+- id: effect_skill_reduce_foe_def_1_stage_15_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType: def
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_15_percent_template
 - id: effect_skill_reduce_foe_def_1_stage_50_percent
   trigger: BeforeHit
   priority: 0
@@ -3025,6 +3051,7 @@
     conditions:
       - type: selfUseSkill
       - *condition_probability_20_percent_template
+# 将当前的天气设为“炎热”
 - id: effect_skill_set_weather_yanre
   trigger: OnHit
   priority: 0
@@ -3036,3 +3063,86 @@
       value: mark_global_yanre
   condition:
     type: selfUseSkill
+# 技能命中时，给自己添加一个名为“焰火”的标记。
+- id: effect_skill_add_mark_yanhuo
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_yanhuo
+  condition:
+    type: selfUseSkill
+# 如果该效果的技能是本回合使用的第一个技能，则威力变为2倍。
+- id: effect_skill_power_2x_if_first
+  trigger: AfterUseSkillCheck
+  priority: 1
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isFirstSkillUsedThisTurn
+  # 如果该效果的技能是第一回合使用的技能，则威力变为2倍。
+- id: effect_skill_power_2x_if_first_round
+  trigger: AfterUseSkillCheck
+  priority: 1
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        evaluator:
+          type: compare
+          operator: '=='
+          value: 1
+        target:
+          base: battle
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: currentTurn
+# 如果目标身上有“烧伤”标记，则移除该标记，并对目标造成150点伤害。
+- id: effect_skill_ignite_foe_mark_shaoshang
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: destroyMark
+      target:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor: baseId
+            evaluator:
+              type: same
+              value: mark_shaoshang
+    - type: dealDamage
+      target: foe
+      value: 150
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor: baseId
+              evaluator:
+                type: same
+                value: mark_shaoshang
+        evaluator:
+          type: exist

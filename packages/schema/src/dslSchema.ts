@@ -575,6 +575,12 @@ export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
         .optional(),
       check: z.enum(['up', 'down', 'all']).default('all').optional(),
     }),
+    z.object({
+      type: z.literal('isFirstSkillUsedThisTurn'),
+    }),
+    z.object({
+      type: z.literal('isLastSkillUsedThisTurn'),
+    }),
   ]),
 )
 

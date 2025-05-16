@@ -43,3 +43,6 @@ mark_ability_xuanyun:
 mark_ability_yangyan:
   name: 阳炎
   description: 炎热时命中率增加10%
+mark_ability_qianggong:
+  name: 抢攻
+  description: 首发时造成的伤害增加10%

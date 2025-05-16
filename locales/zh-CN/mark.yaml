@@ -294,7 +294,7 @@ mark_mianyibuliang:
   description: 免疫不良 沉默
 mark_yanhuo:
   name: 焰火
-  description: 火系伤害增加{{mark.stack}}%
+  description: 火系伤害增加70%
 mark_huoxing:
   name: 火星
   description: 使焰火的回合数翻倍

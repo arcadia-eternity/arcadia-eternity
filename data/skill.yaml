@@ -2830,3 +2830,159 @@
   effect:
     - effect_skill_raise_atk_1_stages
     - effect_skill_raise_spa_1_stages
+- id: skill_moya
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_raise_atk_1_stages
+  tags: []
+- id: skill_yanhuo
+  element: Fire
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_yanhuo
+  tags: []
+- id: skill_huozhiya
+  element: Fire
+  category: Physical
+  target: opponent
+  power: 75
+  accuracy: 95
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_foe_shaoshang_10_percent
+  tags: []
+- id: skill_lieyanzhuangji
+  element: Fire
+  category: Physical
+  target: opponent
+  power: 90
+  accuracy: 90
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_reduce_foe_def_1_stage_15_percent
+  tags: []
+- id: skill_yezhuzhisu
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_raise_spe_1_stages
+  tags: []
+- id: skill_baoya
+  element: Fire
+  category: Physical
+  target: opponent
+  power: 70
+  accuracy: 95
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_power_2x_if_first
+  tags: []
+- id: skill_huoyufeidan
+  element: Fire
+  category: Special
+  target: opponent
+  power: 30
+  accuracy: 90
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  multihit: [3, 5]
+  tags: []
+- id: skill_zouhuo
+  element: Fire
+  category: Physical
+  target: opponent
+  power: 30
+  accuracy: 95
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_foe_shaoshang_50_percent
+  tags: []
+- id: skill_lieyanyachongpo
+  element: Fire
+  category: Climax
+  target: opponent
+  power: 165
+  accuracy: 100
+  rage: 100
+  sureHit: true
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_foe_shaoshang_15_percent
+  tags: []
+- id: skill_yanwu
+  element: Fire
+  category: Physical
+  target: opponent
+  power: 100
+  accuracy: 95
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_foe_shaoshang_30_percent
+  tags: []
+- id: skill_badedetouchou
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 70
+  accuracy: 95
+  rage: 10
+  priority: 1
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_power_2x_if_first_round
+  tags: []
+- id: skill_huoxing
+  element: Fire
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_yanhuo #TODO
+  tags: []
+- id: skill_huozhong
+  element: Fire
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_ignite_foe_mark_shaoshang
+  tags: []

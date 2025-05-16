@@ -112,3 +112,9 @@ pet_huoke:
 pet_huokenuer:
   name: 霍克努尔
   description: 当霍克的怒火如火山般的喷发 它成长为了强大的霍克努尔
+pet_xiaochitun:
+  name: 小赤豚
+  description: 传说 小赤豚是神手在勾画强大精灵时 遗落的星火化身出的
+pet_chiyanshou:
+  name: 赤焰兽
+  description: 赤焰兽坚硬如铁石的大嘴 能吸收火山熔浆的神奇力量

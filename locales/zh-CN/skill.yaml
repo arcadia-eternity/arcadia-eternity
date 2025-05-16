@@ -702,3 +702,84 @@ skill_yangyan:
 skill_huoshanzhili:
   name: 火山之力
   description: 强化自身双攻1级
+skill_moya:
+  name: 磨牙
+  description: 强化自身物攻1级
+skill_yanhuo:
+  name: 焰火
+  description: 使自身获得焰火
+skill_huozhiya:
+  name: 火之牙
+  description: '【95】10%使对手烧伤'
+skill_lieyanzhuangji:
+  name: 烈焰撞击
+  description: '【90】15%弱化对手物防1级'
+skill_yezhuzhisu:
+  name: 野猪之速
+  description: 强化自身速度1级
+skill_baoya:
+  name: 爆牙
+  description: 先出手时威力2倍
+skill_huoyufeidan:
+  name: 火雨飞弹
+  description: '【90】连击3~5次'
+skill_zouhuo:
+  name: 走火
+  description: '【95】50%使对手烧伤'
+skill_lieyanyachongpo:
+  name: 烈焰牙冲破
+  description: '<font color=#93E312>必中</font> 15%使对手烧伤'
+skill_yanwu:
+  name: 焰舞
+  description: '【95】30%使对手烧伤'
+skill_badedetouchou:
+  name: 拔得头筹
+  description: 先制+1 战斗首回合威力2倍
+skill_huoxing:
+  name: 火星
+  description: 使自身获得火星
+skill_huozhong:
+  name: 火种
+  description: 对手烧伤时附加150点伤害
+skill_xueruoshuipao:
+  name: 削弱水泡
+  description: '【95】使对手获得1层削弱水泡'
+skill_xuruoshuipao2:
+  name: 虚弱水泡
+  description: '【95】使对手获得1层虚弱水泡'
+skill_guanghuapifu:
+  name: 光滑皮肤
+  description: 使自身获得闪避及50点受伤增加
+skill_talangchongfeng:
+  name: 踏浪冲锋
+  description: '【95】10%弱化对手物防1级'
+skill_shuimo:
+  name: 水墨
+  description: 弱化对手特防1级
+skill_shuihuasijian:
+  name: 水花四溅
+  description: '【95】10%弱化对手特防1级'
+skill_wuyi:
+  name: 舞翼
+  description: 使自身获得随机先制
+skill_xuanzhuanshuiqiang:
+  name: 旋转水枪
+  description: '【95】15%弱化对手特防1级'
+skill_xuanzhuanchongfeng:
+  name: 旋转冲锋
+  description: '【95】15%弱化对手物防1级'
+skill_chaoliupo:
+  name: 超流破
+  description: '<font color=#93E312>必中</font> 使自身获得<font color=#93E312>必中</font>'
+skill_junengchongfeng:
+  name: 聚能冲锋
+  description: '【50】20%弱化对手物防1级'
+skill_jushuipao:
+  name: 聚水炮
+  description: '【50】20%弱化对手特防1级'
+skill_nongsuoshuimo:
+  name: 浓缩水墨
+  description: '【95】弱化对手双防1级'
+skill_chunjingzhixin:
+  name: 纯净之心
+  description: 使自身获得免疫异常

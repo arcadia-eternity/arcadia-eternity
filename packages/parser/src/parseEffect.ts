@@ -758,7 +758,10 @@ export function parseCondition(effectId: string, dsl: ConditionDSL): Condition {
         dsl.stat ? (parseValue(effectId, dsl.stat) as ValueSource<StatTypeWithoutHp>) : undefined,
         dsl.check,
       )
-
+    case 'isFirstSkillUsedThisTurn':
+      return Conditions.isFirstSkillUsedThisTurn()
+    case 'isLastSkillUsedThisTurn':
+      return Conditions.isLastSkillUsedThisTurn()
     default: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`Unknown condition type: ${(dsl as any).type}`)

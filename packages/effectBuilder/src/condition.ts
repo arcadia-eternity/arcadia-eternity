@@ -265,4 +265,57 @@ export const Conditions = {
       return false
     }
   },
+
+  // 精灵当回合使用技能且该技能为本回合最先使用的技能时
+  isFirstSkillUsedThisTurn: (): Condition => {
+    return context => {
+      console.debug('emm1')
+      if (!(context.parent instanceof UseSkillContext)) {
+        return false
+      }
+      const currentUseSkillContext = context.parent
+      if (!(currentUseSkillContext.parent instanceof TurnContext)) {
+        return false
+      }
+      const turnContext = currentUseSkillContext.parent
+
+      const executedSkillContextsInOrder = turnContext.appledContexts.filter(
+        (ctx): ctx is UseSkillContext => ctx instanceof UseSkillContext,
+      )
+
+      console.debug(executedSkillContextsInOrder)
+      if (executedSkillContextsInOrder.length === 0) {
+        return false // 理论上不应发生，因为当前就在一个UseSkillContext中
+      }
+
+      console.debug(executedSkillContextsInOrder[0], currentUseSkillContext)
+      console.debug(executedSkillContextsInOrder[0] === currentUseSkillContext)
+      return executedSkillContextsInOrder[0] === currentUseSkillContext
+    }
+  },
+
+  // 精灵当回合使用技能且该技能为本回合（到目前为止）最后使用的技能时
+  isLastSkillUsedThisTurn: (): Condition => {
+    return context => {
+      if (!(context.parent instanceof UseSkillContext)) {
+        return false
+      }
+      const currentUseSkillContext = context.parent
+      if (!(currentUseSkillContext.parent instanceof TurnContext)) {
+        return false
+      }
+      const turnContext = currentUseSkillContext.parent
+
+      const plannedSkillContextsThisTurn = turnContext.contexts.filter(
+        (ctx): ctx is UseSkillContext => ctx instanceof UseSkillContext,
+      )
+
+      if (plannedSkillContextsThisTurn.length === 0) {
+        return false // 没有计划的技能
+      }
+
+      // 由于 contextQueue.pop() 从尾部取，turnContext.contexts[0] 是计划中最后执行的技能
+      return plannedSkillContextsThisTurn[0] === currentUseSkillContext
+    }
+  },
 }

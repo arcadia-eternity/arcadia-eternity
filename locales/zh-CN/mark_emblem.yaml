@@ -43,3 +43,6 @@ mark_emblem_xuanyun:
 mark_emblem_weiyan:
   name: 威严
   description: 免疫害怕状态
+mark_emblem_yanhuo:
+  name: 焰火
+  description: 增加1回合焰火的效果回合数

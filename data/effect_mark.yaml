@@ -461,6 +461,15 @@
         target:
           base: usingSkillContext
           chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: notSame
+          value: Status
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
             - type: select
               arg:
                 type: dynamic
@@ -1038,6 +1047,7 @@
     - type: destroyMark
       target:
         base: mark
+# 印记的拥有者使用下一个特攻技能时，造成的伤害增加基于印记层数的百分比
 - id: effect_mark_amplify_next_special_damage_with_stack
   trigger: OnBeforeCalculateDamage
   condition:
@@ -1070,3 +1080,24 @@
     - type: destroyMark
       target:
         base: mark
+# 印记的拥有者使用火系技能时，技能的威力增幅70%
+- id: effect_mark_amplify_fire_skill_70
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 1.7
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg: element
+        evaluator:
+          type: same
+          value: Fire

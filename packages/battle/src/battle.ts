@@ -255,6 +255,7 @@ export class Battle extends Context implements MarkOwner {
       while (context.contextQueue.length > 0) {
         const nowContext = context.contextQueue.pop()
         if (!nowContext) break
+        context.appledContexts.push(nowContext)
         switch (nowContext.type) {
           case 'use-skill': {
             const _context = nowContext as UseSkillContext
@@ -268,7 +269,6 @@ export class Battle extends Context implements MarkOwner {
           }
         }
         this.cleanupMarks()
-        context.appledContexts.push(nowContext)
       }
 
       this.applyEffects(context, EffectTrigger.TurnEnd)

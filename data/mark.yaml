@@ -742,3 +742,17 @@
     inheritOnFaint: false
   effect:
     - effect_mark_reduce_damage_taken_once
+- id: mark_yanhuo
+  config:
+    duration: 2
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_amplify_fire_skill_70
