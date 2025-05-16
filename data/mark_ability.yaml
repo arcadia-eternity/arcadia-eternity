@@ -68,6 +68,9 @@
   effect:
     - effect_ability_add_skill_accuracy_10_percent_when_yanre
 - id: mark_ability_qianggong
+  config: *ablitity_config
+  effect:
+    - effect_ability_add_shoufashanghaizengjia_on_lead
 - id: mark_ability_guanghua
 - id: mark_ability_hongxin
 - id: mark_ability_pianxie

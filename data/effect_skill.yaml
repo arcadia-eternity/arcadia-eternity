@@ -3114,6 +3114,18 @@
               arg:
                 type: dynamic
                 arg: currentTurn
+# 技能命中时，给自己添加一个名为“火星”的标记。
+- id: effect_skill_add_mark_huoxing
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_huoxing
+  condition:
+    type: selfUseSkill
 # 如果目标身上有“烧伤”标记，则移除该标记，并对目标造成150点伤害。
 - id: effect_skill_ignite_foe_mark_shaoshang
   trigger: OnHit

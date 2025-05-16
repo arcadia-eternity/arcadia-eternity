@@ -419,3 +419,14 @@
     type: addAccuracy
     target: usingSkillContext
     value: 10
+- id: effect_ability_add_shoufashanghaizengjia_on_lead
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shoufashanghaizengjia
+  condition:
+    type: petIsActive

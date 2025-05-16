@@ -1101,3 +1101,49 @@
         evaluator:
           type: same
           value: Fire
+# 使得下一个“焰火”印记施加时，他的持续时间翻倍
+- id: effect_mark_double_mark_yanhuo_duration
+  trigger: OnBeforeAddMark
+  priority: 0
+  consumesStacks: 1
+  apply:
+    type: setMarkDuration
+    target: addMarkContext
+    value:
+      type: dynamic
+      selector:
+        base: addMarkContext
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: duration
+          - type: multiply
+            arg: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfBeAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark.id
+        evaluator:
+          type: same
+          value: mark_yanhuo
+# 印记的拥有者的技能的威力增幅10%
+- id: effect_mark_amplify_skill_10
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 1.1
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf

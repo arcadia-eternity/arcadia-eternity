@@ -70,7 +70,8 @@ export class ChainableSelector<T> {
     public selector: TargetSelector<T>,
     public type: string,
   ) {
-    this._isNumberType = RuntimeTypeChecker.isNumberType(type) || type === 'number' || type === 'number[]'
+    this._isNumberType =
+      RuntimeTypeChecker.isNumberType(type) || type === 'number' || type === 'number[]' || type.includes('number')
   }
 
   [Symbol.toPrimitive](context: EffectContext<EffectTrigger>): T[] {

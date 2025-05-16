@@ -2972,7 +2972,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_yanhuo #TODO
+    - effect_skill_add_mark_huoxing
   tags: []
 - id: skill_huozhong
   element: Fire

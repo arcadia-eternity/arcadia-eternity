@@ -352,3 +352,6 @@ mark_wulishanghaizengjia:
 mark_teshushanghaizengjia:
   name: 特殊伤害增加
   description: 造成特殊伤害增加{{mark.stack}}%
+mark_shoufashanghaizengjia:
+  name: 伤害增加
+  description: 造成伤害增加10%

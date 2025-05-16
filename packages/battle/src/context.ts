@@ -453,18 +453,22 @@ export class AddMarkContext extends Context {
   readonly type = 'add-mark'
   public readonly battle: Battle
   public available: boolean = true
+  public stack: number
+  public duration: number
   constructor(
     public readonly parent: EffectContext<EffectTrigger>,
     public target: MarkOwner,
     public baseMark: BaseMark,
-    public stack?: number,
-    public duration?: number,
+    stack?: number,
+    duration?: number,
     public config?: Partial<MarkInstance['config']>,
   ) {
     super(parent)
     this.battle = parent.battle
     //拷贝，因为原值是只读的
     if (!config) this.config = JSON.parse(JSON.stringify(baseMark.config))
+    this.duration = duration ?? config?.duration ?? baseMark.config.duration
+    this.stack = stack ?? config?.maxStacks ?? baseMark.config.maxStacks
   }
 
   overrideConfig(overrideConfig: Partial<MarkInstance['config']>) {
