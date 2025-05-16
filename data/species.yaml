@@ -2210,3 +2210,120 @@
     - skill_id: skill_huozhong
       level: 60
       hidden: true
+- id: pet_shuimodian
+  num: 41
+  element: Water
+  baseStats:
+    hp: 88
+    atk: 124
+    spa: 131
+    def: 113
+    spd: 114
+    spe: 110
+  genderRatio:
+    - 8
+    - 2
+  heightRange:
+    - 33
+    - 38
+  weightRange:
+    - 6
+    - 11
+  learnable_skills:
+    - skill_id: skill_chongfeng
+      level: 1
+      hidden: false
+    - skill_id: skill_shuipao
+      level: 5
+      hidden: false
+    - skill_id: skill_niliu
+      level: 9
+      hidden: false
+    - skill_id: skill_xueruoshuipao
+      level: 13
+      hidden: false
+    - skill_id: skill_xuruoshuipao
+      level: 18
+      hidden: false
+    - skill_id: skill_guanghuapifu
+      level: 23
+      hidden: false
+  ability:
+    - mark_ability_guanghua
+  emblem:
+    - mark_emblem_xuruo
+- id: pet_shuimofeima
+  num: 42
+  element: Water
+  baseStats:
+    hp: 178
+    atk: 174
+    spa: 181
+    def: 159
+    spd: 159
+    spe: 155
+  genderRatio:
+    - 8
+    - 2
+  heightRange:
+    - 88
+    - 93
+  weightRange:
+    - 24
+    - 29
+  learnable_skills:
+    - skill_id: skill_chongfeng
+      level: 1
+      hidden: false
+    - skill_id: skill_shuipao
+      level: 5
+      hidden: false
+    - skill_id: skill_niliu
+      level: 9
+      hidden: false
+    - skill_id: skill_xueruoshuipao
+      level: 13
+      hidden: false
+    - skill_id: skill_xuruoshuipao
+      level: 18
+      hidden: false
+    - skill_id: skill_guanghuapifu
+      level: 23
+      hidden: false
+    - skill_id: skill_talangchongji
+      level: 28
+      hidden: false
+    - skill_id: skill_shuimo
+      level: 33
+      hidden: false
+    - skill_id: skill_shuihuasijian
+      level: 38
+      hidden: false
+    - skill_id: skill_wuyi
+      level: 43
+      hidden: false
+    - skill_id: skill_xuanzhuanshuiqiang
+      level: 48
+      hidden: false
+    - skill_id: skill_xuanzhuanchongji
+      level: 53
+      hidden: false
+    - skill_id: skill_chaoliupo
+      level: 60
+      hidden: false
+    - skill_id: skill_junengchongji
+      level: 60
+      hidden: true
+    - skill_id: skill_jushuipao
+      level: 60
+      hidden: true
+    - skill_id: skill_nongshui_mo
+      level: 60
+      hidden: true
+    - skill_id: skill_chunjingzhixin
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_guanghua
+  emblem:
+    - mark_emblem_xuruo

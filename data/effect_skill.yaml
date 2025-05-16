@@ -77,6 +77,22 @@
     <<: *apply_foe_statstage_-1_template
     statType: def
   condition: *condition_probability_10_percent_template
+- id: effect_skill_reduce_foe_def_15_percent
+  trigger: OnDamage
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType: def
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_probability_15_percent_template
+        type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 15
 - id: effect_skill_reduce_foe_spa_10_percent
   trigger: OnDamage
   priority: 0
@@ -84,6 +100,17 @@
     <<: *apply_foe_statstage_-1_template
     statType: spa
   condition: *condition_probability_10_percent_template
+- id: effect_skill_reduce_foe_spa_15_percent
+  trigger: OnDamage
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType: spa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_15_percent_template
 - id: effect_skill_raise_atk_1_stages
   trigger: BeforeHit
   priority: 0
@@ -384,12 +411,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - &condition_probability_15_percent_template
-        type: evaluate
-        target: self
-        evaluator:
-          type: probability
-          percent: 15
+      - *condition_probability_15_percent_template
       - *condition_foe_not_fire_element
 - id: effect_skill_add_mark_foe_shaoshang_20_percent
   trigger: OnHit
@@ -1093,6 +1115,18 @@
     mark:
       type: entity:baseMark
       value: mark_shanbi
+    stack: 1
+  condition: *condition_self_use_skill_template
+- id: effect_skill_add_mark_shanbi_2
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shanbi
+    stack: 2
   condition: *condition_self_use_skill_template
 - id: effect_skill_add_mark_bizhong
   trigger: OnHit
@@ -2219,6 +2253,28 @@
     type: every
     conditions:
       - type: selfUseSkill
+- id: effect_skill_reduce_foe_def_20_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType: def
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_20_percent_template
+- id: effect_skill_reduce_foe_spa_20_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType: spa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_20_percent_template
 - id: effect_skill_reduce_foe_spe_20_percent
   trigger: BeforeHit
   priority: 0
@@ -3158,3 +3214,51 @@
                 value: mark_shaoshang
         evaluator:
           type: exist
+# 给目标添加一层“削弱水泡”
+- id: effect_skill_add_mark_foe_xueruoshuipao
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_xueruoshuipao
+    stack: 1
+  condition:
+    type: selfUseSkill
+# 给目标添加一层“虚弱水泡”
+- id: effect_skill_add_mark_foe_xuruoshuipao
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_xuruoshuipao
+    stack: 1
+  condition:
+    type: selfUseSkill
+- id: effect_skill_add_mark_guanghua
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_guanghua
+  condition:
+    type: selfUseSkill
+- id: effect_skill_add_mark_suijixianzhi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_suijixianzhi
+  condition:
+    type: selfUseSkill

@@ -89,10 +89,10 @@ export class TurnContext extends Context {
         }
 
         // 速度相同,始终是a先手
-        return 1
+        return -1
       }
       default:
-        return 1
+        return -1
     }
   }
 
@@ -193,6 +193,8 @@ export class UseSkillContext extends Context {
   updateHitResult() {
     if (this.hitOverrides.length > 0)
       this.hitResult = this.hitOverrides.reduce((a, b) => (a.priority > b.priority ? a : b)).willHit
+    else if (this.actualTarget === this.skill.owner)
+      this.hitResult = this.battle!.random() <= (this.accuracy / 100) * (this.petAccurancy / 100)
     else
       this.hitResult =
         this.battle!.random() <= (this.accuracy / 100) * (this.petAccurancy / 100) * ((100 - this.evasion) / 100)

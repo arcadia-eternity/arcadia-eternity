@@ -301,7 +301,7 @@ mark_huoxing:
 mark_xuruoshuipao:
   name: 虚弱水泡
   description: 每层减少30点造成伤害 最多2层
-mark_xuruoshuipao2:
+mark_xueruoshuipao:
   name: 削弱水泡
   description: 每层增加30点受到伤害 最多2层
 mark_suijixianzhi:
@@ -355,3 +355,6 @@ mark_teshushanghaizengjia:
 mark_shoufashanghaizengjia:
   name: 伤害增加
   description: 造成伤害增加10%
+mark_guanghua:
+  name: 光滑
+  description: 闪避所有技能，受到的伤害增加50%

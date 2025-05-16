@@ -189,7 +189,7 @@
             value: Status
   apply:
     type: setSureMiss
-    priority: 1
+    priority: -1
     target: usingSkillContext
 - id: effect_mark_turn_damage
   trigger: TurnEnd
@@ -384,8 +384,7 @@
     type: addModified
     target:
       base: damageContext
-    delta: 0
-    percent:
+    delta:
       type: dynamic
       selector:
         base: mark
@@ -394,6 +393,18 @@
             arg:
               type: base
               arg: stack
+    percent: 0
+- id: effect_mark_increase_damage_taken_50
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: addModified
+    target:
+      base: damageContext
+    delta: 50
+    percent: 0
 - id: effect_mark_reduce_damage_taken_once
   trigger: OnBeforeCalculateDamage
   condition:
@@ -403,8 +414,7 @@
     - type: addModified
       target:
         base: damageContext
-      delta: 0
-      percent:
+      delta:
         type: dynamic
         selector:
           base: mark
@@ -415,6 +425,7 @@
                 arg: stack
             - type: multiply
               arg: -1
+      percent: 0
     - type: destroyMark
       target: mark
 - id: effect_mark_increase_damage_taken_once
@@ -426,8 +437,7 @@
     - type: addModified
       target:
         base: damageContext
-      delta: 0
-      percent:
+      delta:
         type: dynamic
         selector:
           base: mark
@@ -436,6 +446,7 @@
               arg:
                 type: base
                 arg: stack
+      percent: 0
     - type: destroyMark
       target: mark
 - id: effect_mark_self_damage_on_expire
@@ -610,7 +621,16 @@
   apply:
     type: setSureMiss
     target: usingSkillContext
-    priority: 1
+    priority: -1
+- id: effect_mark_evade_with_stack
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  condition:
+    type: foeUseSkill
+  apply:
+    type: setSureMiss
+    target: usingSkillContext
+    priority: -1
   consumesStacks: 1
 - id: effect_mark_mihuo_reduce_damage
   trigger: OnBeforeCalculateDamage
@@ -620,8 +640,8 @@
   apply:
     - type: addModified
       target: damageContext
-      percent: -50
-      delta: 0
+      percent: 0
+      delta: -50
 - id: effect_mark_mihuo_damage_self
   trigger: PostDamage
   condition:
@@ -667,7 +687,7 @@
     target: usingSkillContext
     priority: 99
   consumesStacks: 1
-- id: effect_mark_reduce_damage_15
+- id: effect_mark_reduce_damage_15_percent
   trigger: OnBeforeCalculateDamage
   condition:
     type: selfUseSkill
@@ -1147,3 +1167,45 @@
     type: every
     conditions:
       - type: checkSelf
+# 印记的持有者造成伤害时，伤害减少30*层数
+- id: effect_mark_reduce_damage_30_percent_xstack
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfUseSkill
+  priority: 0
+  apply:
+    - type: addModified
+      target: damageContext
+      delta:
+        type: dynamic
+        selector:
+          base: mark
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: stack
+            - type: multiply
+              arg: -30
+      percent: 0
+# 印记的持有者受到伤害时，伤害增加30*层数
+- id: effect_mark_increase_taken_damage_30_xstack
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    - type: addModified
+      target: damageContext
+      delta:
+        type: dynamic
+        selector:
+          base: mark
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: stack
+            - type: multiply
+              arg: 30
+      percent: 0

@@ -72,6 +72,8 @@
   effect:
     - effect_emblem_add_mark_yanhuo_duration_1
 - id: mark_emblem_xuruo
+  config: *emblem_config
+  effect: [] #TODO
 - id: mark_emblem_yinji
 - id: mark_emblem_huizhi
 - id: mark_emblem_yinbo

@@ -46,3 +46,6 @@ mark_ability_yangyan:
 mark_ability_qianggong:
   name: 抢攻
   description: 首发时造成的伤害增加10%
+mark_ability_guanghua:
+  name: 光滑
+  description: 自身闪避率增加10%

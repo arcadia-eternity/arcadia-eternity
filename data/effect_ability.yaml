@@ -430,3 +430,13 @@
       value: mark_shoufashanghaizengjia
   condition:
     type: petIsActive
+# 增加自己10%闪避率
+- id: effect_ability_add_self_evasion_10
+  trigger: OnUpdateStat
+  priority: 0
+  apply:
+    type: modifyStat
+    target:
+      base: updateStatContext
+    statType: evasion
+    delta: 10

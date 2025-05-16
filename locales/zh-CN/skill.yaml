@@ -744,12 +744,12 @@ skill_huozhong:
 skill_xueruoshuipao:
   name: 削弱水泡
   description: '【95】使对手获得1层削弱水泡'
-skill_xuruoshuipao2:
+skill_xuruoshuipao:
   name: 虚弱水泡
   description: '【95】使对手获得1层虚弱水泡'
 skill_guanghuapifu:
   name: 光滑皮肤
-  description: 使自身获得闪避及50点受伤增加
+  description: 使自身获得光滑
 skill_talangchongfeng:
   name: 踏浪冲锋
   description: '【95】10%弱化对手物防1级'

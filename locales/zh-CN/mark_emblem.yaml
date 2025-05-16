@@ -46,3 +46,6 @@ mark_emblem_weiyan:
 mark_emblem_yanhuo:
   name: 焰火
   description: 增加1回合焰火的效果回合数
+mark_emblem_xuruo:
+  name: 虚弱
+  description: TODO

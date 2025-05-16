@@ -72,6 +72,9 @@
   effect:
     - effect_ability_add_shoufashanghaizengjia_on_lead
 - id: mark_ability_guanghua
+  config: *ablitity_config
+  effect:
+    - effect_ability_add_self_evasion_10
 - id: mark_ability_hongxin
 - id: mark_ability_pianxie
 - id: mark_ability_yinwang

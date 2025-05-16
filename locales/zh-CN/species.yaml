@@ -118,3 +118,9 @@ pet_xiaochitun:
 pet_chiyanshou:
   name: 赤焰兽
   description: 赤焰兽坚硬如铁石的大嘴 能吸收火山熔浆的神奇力量
+pet_shuimodian:
+  name: 水墨点点
+  description: 水墨点点从小就被嘲笑 只能在水中行走 而不能畅游
+pet_shuimofeima:
+  name: 水墨飞马
+  description: 经过艰难的成长 强韧的双翼让水墨飞马游得像箭一样快
