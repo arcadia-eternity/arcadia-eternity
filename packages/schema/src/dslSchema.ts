@@ -188,6 +188,14 @@ export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
       type: z.literal('configGet'),
       key: valueSchema,
     }),
+    z.object({
+      type: z.literal('selectObservable'),
+      arg: z.string(),
+    }),
+    z.object({
+      type: z.literal('selectAttribute$'),
+      arg: z.string(),
+    }),
     whenSelectorStepSchema,
   ]),
 )
@@ -299,6 +307,14 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       stat: valueSchema,
       modifierType: valueSchema,
       value: valueSchema,
+      priority: valueSchema.optional(),
+    }),
+    z.object({
+      type: z.literal('addDynamicAttributeModifier'),
+      target: selectorDSLSchema,
+      stat: valueSchema,
+      modifierType: valueSchema,
+      observableValue: selectorDSLSchema,
       priority: valueSchema.optional(),
     }),
     z.object({

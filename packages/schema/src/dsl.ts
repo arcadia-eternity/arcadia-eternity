@@ -68,6 +68,40 @@ export type AddAttributeModifierOpreator = {
   priority?: Value
 }
 
+export type AddDynamicAttributeModifierOpreator = {
+  type: 'addDynamicAttributeModifier'
+  target: SelectorDSL
+  stat: Value
+  modifierType: Value
+  observableValue: SelectorDSL
+  priority?: Value
+}
+
+export type AddClampMaxModifierOpreator = {
+  type: 'addClampMaxModifier'
+  target: SelectorDSL
+  stat: Value
+  maxValue: Value
+  priority?: Value
+}
+
+export type AddClampMinModifierOpreator = {
+  type: 'addClampMinModifier'
+  target: SelectorDSL
+  stat: Value
+  minValue: Value
+  priority?: Value
+}
+
+export type AddClampModifierOpreator = {
+  type: 'addClampModifier'
+  target: SelectorDSL
+  stat: Value
+  minValue: Value
+  maxValue: Value
+  priority?: Value
+}
+
 export type StatStageBuffOpreator = {
   type: 'statStageBuff'
   target: SelectorDSL
@@ -311,6 +345,10 @@ export type OperatorDSL =
   | ConsumeStacksOpreator
   | ModifyStatOpreator
   | AddAttributeModifierOpreator
+  | AddDynamicAttributeModifierOpreator
+  | AddClampMaxModifierOpreator
+  | AddClampMinModifierOpreator
+  | AddClampModifierOpreator
   | StatStageBuffOpreator
   | ClearStatStageOpreator
   | AddRageOpreator
@@ -504,6 +542,14 @@ export type SelectorChain =
   | {
       type: 'configGet'
       key: Value
+    }
+  | {
+      type: 'selectObservable'
+      arg: string
+    }
+  | {
+      type: 'selectAttribute$'
+      arg: string
     }
   | WhenSelectorStep
 

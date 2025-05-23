@@ -819,6 +819,40 @@
                                               "properties": {
                                                 "type": {
                                                   "type": "string",
+                                                  "const": "selectObservable"
+                                                },
+                                                "arg": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
+                                              "additionalProperties": false
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "const": "selectAttribute$"
+                                                },
+                                                "arg": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
+                                              "additionalProperties": false
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
                                                   "const": "when"
                                                 },
                                                 "condition": {
@@ -1335,6 +1369,38 @@
                       "stat",
                       "modifierType",
                       "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "addDynamicAttributeModifier"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "stat": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "modifierType": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "observableValue": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "priority": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "stat",
+                      "modifierType",
+                      "observableValue"
                     ],
                     "additionalProperties": false
                   },
