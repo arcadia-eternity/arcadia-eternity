@@ -7,12 +7,20 @@ import {
   type speciesId,
 } from '@arcadia-eternity/const'
 
+// 脚本声明类型
+export interface ScriptDeclaration {
+  id: string
+  type: 'effect' | 'species' | 'skill' | 'mark'
+  instance: Prototype
+}
+
 export class DataRepository {
   private static instance: DataRepository
   public species = new Map<string, Species>()
   public skills = new Map<string, BaseSkill>()
   public marks = new Map<string, BaseMark>()
   public effects = new Map<string, Effect<EffectTrigger>>()
+  private scriptDeclarations = new Map<string, ScriptDeclaration>()
 
   static getInstance() {
     if (!DataRepository.instance) {
@@ -84,6 +92,38 @@ export class DataRepository {
     }
     this.effects.set(id, effect)
   }
+
+  // 脚本声明管理方法
+  registerScriptDeclaration(declaration: ScriptDeclaration) {
+    if (this.scriptDeclarations.has(declaration.id)) {
+      throw new Error(`Script declaration with id "${declaration.id}" already exists`)
+    }
+    this.scriptDeclarations.set(declaration.id, declaration)
+
+    // 根据类型注册到对应的Map
+    switch (declaration.type) {
+      case 'effect':
+        this.registerEffect(declaration.id, declaration.instance as Effect<EffectTrigger>)
+        break
+      case 'species':
+        this.registerSpecies(declaration.id, declaration.instance as Species)
+        break
+      case 'skill':
+        this.registerSkill(declaration.id, declaration.instance as BaseSkill)
+        break
+      case 'mark':
+        this.registerMark(declaration.id, declaration.instance as BaseMark)
+        break
+    }
+  }
+
+  getScriptDeclarations(): ScriptDeclaration[] {
+    return Array.from(this.scriptDeclarations.values())
+  }
+
+  clearScriptDeclarations() {
+    this.scriptDeclarations.clear()
+  }
 }
 
 function createRegisterDecorator<T extends Prototype>(registerFn: (instance: T) => void) {
@@ -117,3 +157,36 @@ export const RegisterSkill = createRegisterDecorator<BaseSkill>(skill =>
 export const RegisterMark = createRegisterDecorator<BaseMark>(mark =>
   DataRepository.getInstance().registerMark(mark.id, mark),
 )
+
+// 函数式API - 作为装饰器的替代方案
+export function declareEffect(effect: Effect<EffectTrigger>) {
+  DataRepository.getInstance().registerScriptDeclaration({
+    id: effect.id,
+    type: 'effect',
+    instance: effect,
+  })
+}
+
+export function declareSpecies(species: Species) {
+  DataRepository.getInstance().registerScriptDeclaration({
+    id: species.id,
+    type: 'species',
+    instance: species,
+  })
+}
+
+export function declareSkill(skill: BaseSkill) {
+  DataRepository.getInstance().registerScriptDeclaration({
+    id: skill.id,
+    type: 'skill',
+    instance: skill,
+  })
+}
+
+export function declareMark(mark: BaseMark) {
+  DataRepository.getInstance().registerScriptDeclaration({
+    id: mark.id,
+    type: 'mark',
+    instance: mark,
+  })
+}

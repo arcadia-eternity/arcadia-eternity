@@ -64,6 +64,13 @@ onMounted(async () => {
       baseUrl: import.meta.env.VITE_DATA_API_URL || '/data',
     })
     await loader.loadGameData()
+    try {
+      console.log('📝 Web端脚本加载功能开发中...')
+      console.log('� 当前使用YAML数据，脚本声明功能在服务器端可用')
+    } catch (scriptError) {
+      console.warn('⚠️ 脚本加载失败，继续使用YAML数据:', scriptError)
+    }
+
     dataStore.gameDataLoaded = true
   } catch (error) {
     errorMessage.value = `资源加载失败: ${(error as Error).message}`

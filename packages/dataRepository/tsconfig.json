@@ -2,7 +2,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "composite": true,
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM"],
     "module": "ESNext",
     "target": "ESNext",
     "moduleResolution": "bundler",
@@ -10,6 +10,8 @@
     "verbatimModuleSyntax": true,
     "declaration": true,
     "declarationMap": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
 
     "strict": true,
     "forceConsistentCasingInFileNames": true
