@@ -67,6 +67,15 @@ export default defineConfig({
               ),
           }
         }),
+        // 复制脚本文件（优先复制JavaScript文件）
+        {
+          src: '../../scripts/**/*.{js,mjs}',
+          dest: 'scripts',
+          rename: (name: any, extension: any, fullPath: string) => {
+            const relativePath = path.relative(path.resolve(__dirname, '../../scripts'), fullPath)
+            return relativePath.replace(/\\/g, '/')
+          },
+        },
       ],
       watch: {
         // 开发模式监听文件变化

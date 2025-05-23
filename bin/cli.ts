@@ -4,6 +4,7 @@ import fs from 'fs/promises'
 import yaml from 'yaml'
 import { loadGameData } from '@arcadia-eternity/fsloader'
 import { PlayerParser } from '@arcadia-eternity/parser'
+import { ScriptLoader } from '@arcadia-eternity/data-repository'
 import { AIPlayer, Battle } from '@arcadia-eternity/battle'
 import { ConsoleUIV2, initI18n } from '@arcadia-eternity/console'
 import type { Player } from '@arcadia-eternity/battle'
@@ -33,6 +34,24 @@ async function parsePlayerFile(filePath: string): Promise<Player> {
   }
 }
 
+// 加载脚本声明
+async function loadScripts(scriptPaths: string[] = ['./scripts']) {
+  try {
+    console.log('[🔄] 正在加载脚本声明...')
+    const loader = new ScriptLoader({ scriptPaths, recursive: true })
+
+    for (const scriptPath of scriptPaths) {
+      await loader.loadScriptsFromFileSystem(scriptPath)
+    }
+
+    const stats = loader.getLoadedScriptsStats()
+    console.log('[📊] 脚本加载统计:', stats)
+    console.log('[✅] 脚本声明加载完成')
+  } catch (error) {
+    console.warn('[⚠️] 脚本加载失败，继续使用YAML数据:', error instanceof Error ? error.message : error)
+  }
+}
+
 program
   .command('online')
   .description('启动在线对战')
@@ -42,6 +61,7 @@ program
     try {
       console.log('[🌀] 正在加载游戏数据...')
       await loadGameData()
+      await loadScripts()
 
       console.log('[🌀] 正在解析玩家数据...')
       const content = await fs.readFile(path.resolve(options.data), 'utf-8')
@@ -77,6 +97,7 @@ program
     try {
       console.log('[🌀] 正在加载游戏数据...')
       await loadGameData()
+      await loadScripts()
 
       console.log('[🌀] 正在解析玩家数据...')
       let player1 = await parsePlayerFile(options.player1)
@@ -122,6 +143,7 @@ program
     try {
       console.log('[🌀] 正在加载游戏数据...')
       await loadGameData()
+      await loadScripts()
 
       const app = express()
       new DevServer(app)

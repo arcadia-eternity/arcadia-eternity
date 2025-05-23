@@ -24,6 +24,7 @@
     "@anatine/zod-mock": "^3.14.0",
     "@arcadia-eternity/client": "workspace:^",
     "@arcadia-eternity/const": "workspace:^",
+    "@arcadia-eternity/data-repository": "workspace:^",
     "@arcadia-eternity/httploader": "workspace:^",
     "@arcadia-eternity/interface": "workspace:^",
     "@arcadia-eternity/local-adapter": "workspace:^",

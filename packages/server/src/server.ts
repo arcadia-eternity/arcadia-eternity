@@ -1,6 +1,7 @@
 import { Battle } from '@arcadia-eternity/battle'
 import { BattleMessageType, type BattleState } from '@arcadia-eternity/const'
 import { PlayerParser, SelectionParser } from '@arcadia-eternity/parser'
+import { ScriptLoader } from '@arcadia-eternity/data-repository'
 import type {
   AckResponse,
   ClientToServerEvents,
@@ -62,6 +63,7 @@ export class BattleServer {
   private readonly matchQueue = new Set<string>()
   private readonly HEARTBEAT_INTERVAL = 5000
   private readonly players = new Map<string, PlayerMeta>()
+  private scriptLoader?: ScriptLoader
 
   constructor(private readonly io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>) {
     this.initializeMiddleware()
