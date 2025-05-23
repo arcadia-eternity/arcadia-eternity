@@ -229,7 +229,7 @@
     - skill_id: skill_fenlitupo
       level: 15
       hidden: false
-    - skill_id: skill_tahuochongzhuang
+    - skill_id: skill_chongzhuang
       level: 20
       hidden: false
     - skill_id: skill_jiasu
@@ -277,7 +277,7 @@
     - skill_id: skill_fenlitupo
       level: 15
       hidden: false
-    - skill_id: skill_tahuochongzhuang
+    - skill_id: skill_chongzhuang
       level: 20
       hidden: false
     - skill_id: skill_jiasu
@@ -607,10 +607,10 @@
     - skill_id: skill_meihuo
       level: 30
       hidden: false
-    - skill_id: skill_ruilishuxian
+    - skill_id: skill_ruilizhexian
       level: 36
       hidden: false
-    - skill_id: skill_chianguangbo
+    - skill_id: skill_chihuanguangbo
       level: 40
       hidden: false
     - skill_id: skill_houfazhiren
@@ -883,7 +883,7 @@
     - skill_id: skill_konghe
       level: 25
       hidden: false
-    - skill_id: skill_weixiaoguangbo
+    - skill_id: skill_weixiaguangbo
       level: 30
       hidden: false
     - skill_id: skill_tuidao
@@ -1282,7 +1282,7 @@
     - skill_id: skill_fengkuanghuida
       level: 44
       hidden: false
-    - skill_id: skill_ducirugu
+    - skill_id: skill_duzhenrugu
       level: 49
       hidden: false
     - skill_id: skill_juduyeti
@@ -1297,7 +1297,7 @@
     - skill_id: skill_suxiaoduyao
       level: 60
       hidden: true
-    - skill_id: skill_chuizizhenza
+    - skill_id: skill_chuisizhenzha
       level: 60
       hidden: true
     - skill_id: skill_judushenti
@@ -1453,7 +1453,7 @@
     - skill_id: skill_gaoyakongqi
       level: 60
       hidden: true
-    - skill_id: skill_zhishi
+    - skill_id: skill_zhixi
       level: 60
       hidden: true
     - skill_id: skill_luoxuanshuiqiang
@@ -1549,7 +1549,7 @@
     - skill_id: skill_yingjiachongding
       level: 31
       hidden: false
-    - skill_id: skill_penyeshuizhu
+    - skill_id: skill_pensheshuizhu
       level: 36
       hidden: false
     - skill_id: skill_weishe
@@ -1894,7 +1894,7 @@
     - skill_id: skill_fengli
       level: 27
       hidden: false
-    - skill_id: skill_huoqiuilianshe
+    - skill_id: skill_huoqulianshe
       level: 32
       hidden: false
   ability:
@@ -1942,7 +1942,7 @@
     - skill_id: skill_fengli
       level: 27
       hidden: false
-    - skill_id: skill_huoqiuilianshe
+    - skill_id: skill_huoqulianshe
       level: 32
       hidden: false
     - skill_id: skill_guailiqian
@@ -2132,7 +2132,7 @@
     - skill_id: skill_huozhiya
       level: 17
       hidden: false
-    - skill_id: skill_huoqiulianshe
+    - skill_id: skill_huoqulianshe
       level: 22
       hidden: false
 - id: pet_chiyanshou
@@ -2174,7 +2174,7 @@
     - skill_id: skill_huozhiya
       level: 17
       hidden: false
-    - skill_id: skill_huoqiulianshe
+    - skill_id: skill_huoqulianshe
       level: 22
       hidden: false
     - skill_id: skill_lieyanzhuangji
@@ -2189,7 +2189,7 @@
     - skill_id: skill_huoyufeidan
       level: 42
       hidden: false
-    - skill_id: skill_tongyonggongjisi
+    - skill_id: skill_jiare
       level: 47
       hidden: false
     - skill_id: skill_zouhuo
@@ -2305,19 +2305,19 @@
     - skill_id: skill_xuanzhuanshuiqiang
       level: 48
       hidden: false
-    - skill_id: skill_xuanzhuanchongji
+    - skill_id: skill_xuanzhuanchongfeng
       level: 53
       hidden: false
     - skill_id: skill_chaoliupo
       level: 60
       hidden: false
-    - skill_id: skill_junengchongji
+    - skill_id: skill_junengchongfeng
       level: 60
       hidden: true
     - skill_id: skill_jushuipao
       level: 60
       hidden: true
-    - skill_id: skill_nongshui_mo
+    - skill_id: skill_nongsuoshuimo
       level: 60
       hidden: true
     - skill_id: skill_chunjingzhixin

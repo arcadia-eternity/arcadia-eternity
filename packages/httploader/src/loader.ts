@@ -29,15 +29,73 @@ export class HttpLoader {
   }
 
   // 新增游戏数据加载入口
-  async loadGameData() {
+  async loadGameData(
+    options: {
+      validateCrossReferences?: boolean
+      continueOnError?: boolean
+    } = {},
+  ) {
     try {
+      const { validateCrossReferences = true, continueOnError = false } = options
+
       // 按依赖顺序加载数据
       const loadOrder: FileCategory[] = ['effect', 'mark', 'skill', 'species']
+      const errors: string[] = []
+
+      console.log(`📋 数据加载顺序: ${loadOrder.join(' → ')}`)
 
       for (const category of loadOrder) {
         console.log(`⏳ 开始加载 ${category} 数据...`)
-        await this.load(category)
-        console.log(`✅ 完成加载 ${category} 数据`)
+
+        try {
+          await this.load(category)
+          console.log(`✅ 完成加载 ${category} 数据`)
+        } catch (error) {
+          const errorMessage = `加载 ${category} 数据失败: ${error instanceof Error ? error.message : error}`
+          errors.push(errorMessage)
+          console.error(`❌ ${errorMessage}`)
+
+          if (!continueOnError) {
+            throw error
+          }
+        }
+      }
+
+      // 验证交叉引用
+      if (validateCrossReferences) {
+        console.log('🔍 执行交叉引用验证...')
+        const validationResult = this.validateCrossReferences()
+
+        if (!validationResult.isValid) {
+          console.error('❌ 发现交叉引用错误:')
+          validationResult.errors.forEach(error => {
+            console.error(`  - ${error.message}`)
+            errors.push(error.message)
+          })
+
+          if (!continueOnError) {
+            throw new Error(`发现 ${validationResult.errors.length} 个交叉引用错误`)
+          }
+        }
+
+        if (validationResult.warnings.length > 0) {
+          console.warn('⚠️ 发现警告:')
+          validationResult.warnings.forEach(warning => {
+            console.warn(`  - ${warning.message}`)
+          })
+        }
+      }
+
+      // 输出加载统计
+      const dataRepo = DataRepository.getInstance()
+      console.log('📊 数据加载统计:')
+      console.log(`  - 效果: ${dataRepo.effects.size} 个`)
+      console.log(`  - 标记: ${dataRepo.marks.size} 个`)
+      console.log(`  - 技能: ${dataRepo.skills.size} 个`)
+      console.log(`  - 物种: ${dataRepo.species.size} 个`)
+
+      if (errors.length > 0) {
+        console.warn(`⚠️ 加载过程中发现 ${errors.length} 个问题`)
       }
 
       console.log('🎉 所有数据加载完成')
@@ -134,6 +192,96 @@ export class HttpLoader {
           dataRepo.registerSpecies(species.id, species)
         })
         break
+    }
+  }
+
+  // 验证交叉引用
+  private validateCrossReferences() {
+    const errors: Array<{
+      type: string
+      category: string
+      itemId: string
+      referencedId: string
+      referencedType: string
+      message: string
+    }> = []
+    const warnings: Array<{ type: string; category: string; itemId: string; message: string }> = []
+
+    // 验证技能引用的效果
+    for (const skill of dataRepo.skills.values()) {
+      if (skill.effects && skill.effects.length > 0) {
+        for (const effect of skill.effects) {
+          if (!dataRepo.effects.has(effect.id)) {
+            errors.push({
+              type: 'missing_reference',
+              category: 'skill',
+              itemId: skill.id,
+              referencedId: effect.id,
+              referencedType: 'effect',
+              message: `技能 ${skill.id} 引用了不存在的效果 ${effect.id}`,
+            })
+          }
+        }
+      }
+    }
+
+    // 验证标记引用的效果
+    for (const mark of dataRepo.marks.values()) {
+      if (mark.effects && mark.effects.length > 0) {
+        for (const effect of mark.effects) {
+          if (!dataRepo.effects.has(effect.id)) {
+            errors.push({
+              type: 'missing_reference',
+              category: 'mark',
+              itemId: mark.id,
+              referencedId: effect.id,
+              referencedType: 'effect',
+              message: `标记 ${mark.id} 引用了不存在的效果 ${effect.id}`,
+            })
+          }
+        }
+      }
+    }
+
+    // 验证物种引用的标记
+    for (const species of dataRepo.species.values()) {
+      // 验证能力标记
+      if (species.ability) {
+        for (const abilityMark of species.ability) {
+          if (!dataRepo.marks.has(abilityMark.id)) {
+            errors.push({
+              type: 'missing_reference',
+              category: 'species',
+              itemId: species.id,
+              referencedId: abilityMark.id,
+              referencedType: 'mark',
+              message: `物种 ${species.id} 引用了不存在的能力标记 ${abilityMark.id}`,
+            })
+          }
+        }
+      }
+
+      // 验证徽章标记
+      if (species.emblem) {
+        for (const emblemMark of species.emblem) {
+          if (!dataRepo.marks.has(emblemMark.id)) {
+            errors.push({
+              type: 'missing_reference',
+              category: 'species',
+              itemId: species.id,
+              referencedId: emblemMark.id,
+              referencedType: 'mark',
+              message: `物种 ${species.id} 引用了不存在的徽章标记 ${emblemMark.id}`,
+            })
+          }
+        }
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
     }
   }
 

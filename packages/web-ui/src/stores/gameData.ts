@@ -123,12 +123,15 @@ export const useGameDataStore = defineStore('gameData', {
       }
     },
 
-    // 新增数据完整性检查
+    // 增强的数据完整性检查
     validateDataIntegrity() {
+      const errors: string[] = []
+
+      // 基本数据完整性检查
       const validate = (data: { allIds: string[]; byId: Record<string, unknown> }, type: string) => {
         data.allIds.forEach(id => {
           if (!data.byId[id]) {
-            throw new Error(`${type}数据不完整，缺失ID: ${id}`)
+            errors.push(`${type}数据不完整，缺失ID: ${id}`)
           }
         })
       }
@@ -137,6 +140,74 @@ export const useGameDataStore = defineStore('gameData', {
       validate(this.skills, '技能')
       validate(this.marks, '标记')
       validate(this.effects, '效果')
+
+      // 交叉引用验证
+      this.validateCrossReferences(errors)
+
+      if (errors.length > 0) {
+        console.error('❌ 数据验证失败:')
+        errors.forEach(error => console.error(`  - ${error}`))
+        throw new Error(`发现 ${errors.length} 个数据问题`)
+      }
+    },
+
+    // 交叉引用验证
+    validateCrossReferences(errors: string[]) {
+      // 验证技能引用的效果
+      this.skills.allIds.forEach(skillId => {
+        const skill = this.skills.byId[skillId] as any
+        if (skill?.effect && Array.isArray(skill.effect)) {
+          skill.effect.forEach((effectId: string) => {
+            if (!this.effects.byId[effectId]) {
+              errors.push(`技能 ${skillId} 引用了不存在的效果 ${effectId}`)
+            }
+          })
+        }
+      })
+
+      // 验证标记引用的效果
+      this.marks.allIds.forEach(markId => {
+        const mark = this.marks.byId[markId] as any
+        if (mark?.effect && Array.isArray(mark.effect)) {
+          mark.effect.forEach((effectId: string) => {
+            if (!this.effects.byId[effectId]) {
+              errors.push(`标记 ${markId} 引用了不存在的效果 ${effectId}`)
+            }
+          })
+        }
+      })
+
+      // 验证物种引用的技能和标记
+      this.species.allIds.forEach(speciesId => {
+        const species = this.species.byId[speciesId] as any
+
+        // 验证可学习技能
+        if (species?.learnable_skills && Array.isArray(species.learnable_skills)) {
+          species.learnable_skills.forEach((learnableSkill: any) => {
+            if (!this.skills.byId[learnableSkill.skill_id]) {
+              errors.push(`物种 ${speciesId} 引用了不存在的技能 ${learnableSkill.skill_id}`)
+            }
+          })
+        }
+
+        // 验证能力标记
+        if (species?.ability && Array.isArray(species.ability)) {
+          species.ability.forEach((abilityId: string) => {
+            if (!this.marks.byId[abilityId]) {
+              errors.push(`物种 ${speciesId} 引用了不存在的能力标记 ${abilityId}`)
+            }
+          })
+        }
+
+        // 验证徽章标记
+        if (species?.emblem && Array.isArray(species.emblem)) {
+          species.emblem.forEach((emblemId: string) => {
+            if (!this.marks.byId[emblemId]) {
+              errors.push(`物种 ${speciesId} 引用了不存在的徽章标记 ${emblemId}`)
+            }
+          })
+        }
+      })
     },
 
     // 修改后的加载方法（保持返回原始数组）
