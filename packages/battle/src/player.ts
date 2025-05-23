@@ -1,5 +1,4 @@
 import {
-  type BaseBattleMessage,
   type BattleMessage,
   BattleMessageType,
   BattlePhase,
