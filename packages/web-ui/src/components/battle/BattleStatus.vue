@@ -57,6 +57,7 @@ const activePet = computed(() => {
         :current="activePet!.currentHp"
         :max="activePet!.maxHp"
         :rage="player.rage"
+        :maxRage="player.maxRage"
         type="health"
         :reverse="props.side === 'right'"
       />

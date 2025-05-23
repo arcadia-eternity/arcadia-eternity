@@ -13,6 +13,7 @@ const mockPlayer = {
   id: 'player1' as playerId,
   name: '玩家1',
   rage: 50,
+  maxRage: 100,
   teamAlives: 3,
   activePet: 'pet1' as petId,
   team: [
@@ -83,6 +84,7 @@ const mockEnemy = {
   id: 'player2' as playerId,
   name: '玩家2',
   rage: 30,
+  maxRage: 100,
   teamAlives: 3,
   activePet: 'pet2' as petId,
   team: [

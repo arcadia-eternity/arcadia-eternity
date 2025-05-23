@@ -241,6 +241,12 @@ export interface PetAttributeSet extends StatOnBattle, AttributeData {
   currentHp: number
 }
 
+// Strongly typed AttributeSet for Player rage
+export interface PlayerAttributeSet extends AttributeData {
+  currentRage: number
+  maxRage: number
+}
+
 export class AttributeSystem<T extends AttributeData> {
   private baseAttributes = new Map<keyof T, BehaviorSubject<number | boolean | string>>()
   private modifiers = new Map<keyof T, BehaviorSubject<Modifier[]>>()
@@ -423,10 +429,16 @@ export interface SkillAttributes extends AttributeData {
   appeared: boolean
 }
 
+export interface RageAttributes extends AttributeData {
+  currentRage: number
+  maxRage: number
+}
+
 // Composed AttributeSets using intersection types
 export type MarkAttributeSet = BaseMarkAttributes
 export type StatLevelMarkAttributeSet = BaseMarkAttributes & LevelAttributes
 export type SkillAttributeSet = SkillAttributes
+export type RageAttributeSet = RageAttributes
 
 // Legacy aliases for backward compatibility
 export interface BaseMarkAttributeSet extends BaseMarkAttributes {}
@@ -459,6 +471,12 @@ export const AttributeInitializers = {
     system.registerBaseAttribute('rage', rage)
     system.registerBaseAttribute('priority', priority)
     system.registerBaseAttribute('appeared', appeared)
+  },
+
+  // Rage attributes
+  rageAttributes: (system: AttributeSystem<any>, currentRage: number, maxRage: number) => {
+    system.registerBaseAttribute('currentRage', currentRage)
+    system.registerBaseAttribute('maxRage', maxRage)
   },
 }
 
@@ -493,6 +511,14 @@ export const AttributeAccessors = {
     getAppeared: () => system.getCurrentValue('appeared') as boolean,
     setAppeared: (value: boolean) => system.updateBaseValue('appeared', value),
   }),
+
+  // Rage accessors
+  rageAccessors: <T extends RageAttributes>(system: AttributeSystem<T>) => ({
+    getCurrentRage: () => system.getCurrentValue('currentRage') as number,
+    setCurrentRage: (value: number) => system.updateBaseValue('currentRage', value),
+    getMaxRage: () => system.getCurrentValue('maxRage') as number,
+    setMaxRage: (value: number) => system.updateBaseValue('maxRage', value),
+  }),
 }
 
 // Type definitions for accessor objects
@@ -523,9 +549,16 @@ export interface SkillAccessors {
   setAppeared: (value: boolean) => void
 }
 
+export interface RageAccessors {
+  getCurrentRage: () => number
+  setCurrentRage: (value: number) => void
+  getMaxRage: () => number
+  setMaxRage: (value: number) => void
+}
+
 // Composable AttributeSystem class that can be configured with different attribute sets
 export class ComposableAttributeSystem<T extends AttributeData> extends AttributeSystem<T> {
-  private accessors: Partial<BaseMarkAccessors & LevelAccessors & SkillAccessors> = {}
+  private accessors: Partial<BaseMarkAccessors & LevelAccessors & SkillAccessors & RageAccessors> = {}
 
   constructor() {
     super()
@@ -567,8 +600,19 @@ export class ComposableAttributeSystem<T extends AttributeData> extends Attribut
     return this as any
   }
 
+  // Add rage attributes and accessors
+  withRageAttributes<U extends T & RageAttributes>(
+    this: ComposableAttributeSystem<U>,
+    currentRage: number,
+    maxRage: number,
+  ): ComposableAttributeSystem<U> & { getAccessors(): RageAccessors } {
+    AttributeInitializers.rageAttributes(this, currentRage, maxRage)
+    Object.assign(this.accessors, AttributeAccessors.rageAccessors(this))
+    return this as any
+  }
+
   // Get all accessors with proper typing
-  getAccessors(): Partial<BaseMarkAccessors & LevelAccessors & SkillAccessors> {
+  getAccessors(): Partial<BaseMarkAccessors & LevelAccessors & SkillAccessors & RageAccessors> {
     return this.accessors
   }
 }
@@ -613,6 +657,15 @@ export const createSkillAttributeSystem = (
     priority,
     appeared,
   ) as any
+}
+
+export const createRageAttributeSystem = (
+  currentRage: number,
+  maxRage: number,
+): ComposableAttributeSystem<RageAttributeSet> & {
+  getAccessors(): RageAccessors
+} => {
+  return new ComposableAttributeSystem<RageAttributeSet>().withRageAttributes(currentRage, maxRage) as any
 }
 
 // Pet-specific AttributeSystem with strongly typed interface
@@ -752,5 +805,45 @@ export class SkillAttributeSystem extends ComposableAttributeSystem<SkillAttribu
 
   setAppeared(value: boolean) {
     this.skillAccessors.setAppeared(value)
+  }
+}
+
+// Player-specific AttributeSystem with strongly typed interface
+export class PlayerAttributeSystem extends AttributeSystem<PlayerAttributeSet> {
+  constructor() {
+    super()
+  }
+
+  // Initialize player rage attributes
+  initializePlayerAttributes(currentRage: number, maxRage: number) {
+    this.registerBaseAttribute('currentRage', currentRage)
+    this.registerBaseAttribute('maxRage', maxRage)
+  }
+
+  // Get current rage value
+  getCurrentRage(): number {
+    return this.getCurrentValue('currentRage') as number
+  }
+
+  // Set current rage value with clamping
+  setCurrentRage(value: number) {
+    const maxRage = this.getMaxRage()
+    const clampedValue = Math.max(0, Math.min(value, maxRage))
+    this.updateBaseValue('currentRage', clampedValue)
+  }
+
+  // Get max rage value
+  getMaxRage(): number {
+    return this.getCurrentValue('maxRage') as number
+  }
+
+  // Set max rage value
+  setMaxRage(value: number) {
+    this.updateBaseValue('maxRage', value)
+  }
+
+  // Get all current rage values
+  getRageValues(): PlayerAttributeSet {
+    return this.getAllCurrentValues() as PlayerAttributeSet
   }
 }
