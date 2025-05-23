@@ -18,7 +18,6 @@
     "watch:cli": "rollup -c --watch",
     "clear:cli": "rm -rf dist",
     "generate": "pnpm --filter @arcadia-eternity/schema run generate",
-    "generate:csbind": "tsx packages/csbind/script/generate.ts",
     "cli": "tsx ./bin/cli.ts",
     "web:dev": "pnpm --filter @arcadia-eternity/web-ui run dev",
     "storybook": "pnpm --filter @arcadia-eternity/web-ui run storybook"
