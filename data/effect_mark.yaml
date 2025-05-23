@@ -356,29 +356,25 @@
   trigger: OnMarkCreated
   priority: 0
   apply:
-    type: addAttributeModifier
+    type: addDynamicAttributeModifier
     target:
       base: self
     stat: spe
     modifierType: delta
-    value:
-      type: dynamic
-      selector:
-        base: selfMarks
-        chain:
-          - type: whereAttr
-            extractor:
-              type: base
-              arg: baseId
-            evaluator:
-              type: same
-              value: mark_ruodianjihao
-          - type: select
-            arg:
-              type: base
-              arg: stack
-          - type: multiply
-            arg: -25
+    observableValue:
+      base: selfMarks
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value: mark_ruodianjihao
+        - type: selectAttribute$
+          arg: stack
+        - type: multiply
+          arg: -25
 - id: effect_mark_increase_damage_taken
   trigger: OnBeforeCalculateDamage
   condition:
@@ -605,20 +601,16 @@
   trigger: OnMarkCreated
   priority: 0
   apply:
-    type: addAttributeModifier
+    type: addDynamicAttributeModifier
     target:
       base: self
     stat: accuracy
     modifierType: delta
-    value:
-      type: dynamic
-      selector:
-        base: mark
-        chain:
-          - type: select
-            arg:
-              type: base
-              arg: stack
+    observableValue:
+      base: mark
+      chain:
+        - type: selectAttribute$
+          arg: stack
 - id: effect_mark_evade
   trigger: BeforeUseSkillCheck
   priority: 0
@@ -668,22 +660,18 @@
   trigger: OnMarkCreated
   priority: 0
   apply:
-    type: addAttributeModifier
+    type: addDynamicAttributeModifier
     target:
       base: self
     stat: accuracy
     modifierType: delta
-    value:
-      type: dynamic
-      selector:
-        base: mark
-        chain:
-          - type: select
-            arg:
-              type: base
-              arg: stack
-          - type: multiply
-            arg: -1
+    observableValue:
+      base: mark
+      chain:
+        - type: selectAttribute$
+          arg: stack
+        - type: multiply
+          arg: -1
 - id: effect_mark_bizhong
   trigger: BeforeUseSkillCheck
   priority: 0
@@ -829,22 +817,18 @@
   trigger: OnMarkCreated
   priority: 0
   apply:
-    type: addAttributeModifier
+    type: addDynamicAttributeModifier
     target:
       base: self
     stat: weight
     modifierType: delta
-    value:
-      type: dynamic
-      selector:
-        base: mark
-        chain:
-          - type: select
-            arg:
-              type: base
-              arg: stack
-          - type: multiply
-            arg: 50
+    observableValue:
+      base: mark
+      chain:
+        - type: selectAttribute$
+          arg: stack
+        - type: multiply
+          arg: 50
 - id: effect_mark_reduce_damage_with_weight
   trigger: OnBeforeCalculateDamage
   consumesStacks: 1
