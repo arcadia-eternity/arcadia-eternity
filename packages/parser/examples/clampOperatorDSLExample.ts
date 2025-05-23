@@ -170,21 +170,7 @@ export const teamWideClampEffect: EffectDSL = {
   priority: 100,
   apply: {
     type: 'addClampMaxModifier',
-    target: {
-      base: 'allPets',
-      chain: [
-        {
-          type: 'where',
-          arg: {
-            type: 'same',
-            value: {
-              type: 'dynamic',
-              selector: { base: 'self' },
-            },
-          },
-        },
-      ],
-    },
+    target: { base: 'self' }, // Simplified to target self
     stat: { type: 'raw:string', value: 'atk' },
     maxValue: { type: 'raw:number', value: 500 },
     priority: { type: 'raw:number', value: 100 },
