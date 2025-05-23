@@ -312,6 +312,8 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseConsumeStacksAction(effectId, dsl)
     case 'modifyStat':
       return parseModifyStatAction(effectId, dsl)
+    case 'addAttributeModifier':
+      return parseAddAttributeModifierAction(effectId, dsl)
     case 'statStageBuff':
       return parseStatStageBuffAction(effectId, dsl)
     case 'clearStatStage':
@@ -470,11 +472,26 @@ export function parseConsumeStacksAction(effectId: string, dsl: Extract<Operator
 
 // Stat modification pattern [source_id: parse.ts]
 export function parseModifyStatAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'modifyStat' }>) {
-  return parseSelector<UpdateStatContext>(effectId, dsl.target).apply(
+  return parseSelector<Pet>(effectId, dsl.target).apply(
     Operators.modifyStat(
       parseValue(effectId, dsl.statType) as ValueSource<StatTypeOnBattle>,
       parseValue(effectId, dsl.percent ?? 0) as ValueSource<number>,
       parseValue(effectId, dsl.delta ?? 0) as ValueSource<number>,
+    ),
+  )
+}
+
+// New attribute modifier pattern
+export function parseAddAttributeModifierAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addAttributeModifier' }>,
+) {
+  return parseSelector<Pet>(effectId, dsl.target).apply(
+    Operators.addAttributeModifier(
+      parseValue(effectId, dsl.stat) as ValueSource<StatTypeOnBattle>,
+      parseValue(effectId, dsl.modifierType) as ValueSource<'percent' | 'delta' | 'override'>,
+      parseValue(effectId, dsl.value) as ValueSource<number>,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
     ),
   )
 }

@@ -12,10 +12,8 @@ import {
   type PetMessage,
   RAGE_PER_TURN,
   type speciesId,
-  STAT_STAGE_MULTIPLIER,
   type StatOnBattle,
   type StatOutBattle,
-  type StatStage,
   type StatTypeOnBattle,
   StatTypeOnlyBattle,
   StatTypeWithoutHp,
@@ -28,12 +26,12 @@ import {
   RageContext,
   RemoveMarkContext,
   SwitchPetContext,
-  UpdateStatContext,
 } from './context'
 import type { Instance, MarkOwner, OwnedEntity, Prototype } from './entity'
 import { BaseMark, CreateStatStageMark, type MarkInstance, StatLevelMarkInstanceImpl } from './mark'
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
+import { PetAttributeSystem } from './attributeSystem'
 import type { Emitter } from 'mitt'
 
 export interface Species extends Prototype {
@@ -53,55 +51,24 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public emitter?: Emitter<Events>
 
   public gender: Gender = Gender.NoGender
-  public currentHp: number = 0
 
   public readonly baseCritRate: number = 7 // 暴击率默认为7%
   public readonly baseAccuracy: number = 100 // 命中率默认为100%
   public readonly baseRageObtainEfficiency: number = 1
-  public statStage: StatStage = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 } //能力等级
   public element: Element
   public isAlive: boolean = true
   public owner: Player | null
   public marks: MarkInstance[] = []
   public skills: SkillInstance[] = []
 
-  public dirty: boolean = true
   public base: Species
-
   public appeared: boolean = false
 
   public lastSkill?: SkillInstance
   public lastSkillUsedTimes: number = 0
 
-  public baseStat: StatOnBattle = {
-    maxHp: 0,
-    atk: 0,
-    def: 0,
-    spa: 0,
-    spd: 0,
-    spe: 0,
-    accuracy: 100,
-    critRate: 7,
-    evasion: 0,
-    ragePerTurn: 15,
-    weight: 0,
-    height: 0,
-  }
-
-  public stat: StatOnBattle = {
-    maxHp: 0,
-    atk: 0,
-    def: 0,
-    spa: 0,
-    spd: 0,
-    spe: 0,
-    accuracy: 100,
-    critRate: 7,
-    evasion: 0,
-    ragePerTurn: 15,
-    weight: 0,
-    height: 0,
-  }
+  // Attribute system for managing stats and currentHp
+  public readonly attributeSystem: PetAttributeSystem = new PetAttributeSystem()
 
   constructor(
     public readonly name: string,
@@ -123,6 +90,27 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
 
     this.element = species.element
     this.owner = null
+
+    // Set gender
+    if (gender !== undefined) {
+      this.gender = gender
+    }
+  }
+
+  // Convenience getters for accessing attributes through the system
+  get currentHp(): number {
+    return this.attributeSystem.getCurrentHp()
+  }
+
+  set currentHp(value: number) {
+    this.attributeSystem.setCurrentHp(value)
+    if (value === 0) {
+      this.isAlive = false
+    }
+  }
+
+  get stat(): StatOnBattle {
+    return this.attributeSystem.getEffectiveStats()
   }
 
   get currentRage() {
@@ -278,10 +266,10 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
         base = this.calculateStatWithoutHp(type)
         break
       case StatTypeOnlyBattle.weight:
-        base = this.baseStat.weight
+        base = this.weight ?? this.species.weightRange[1]
         break
       case StatTypeOnlyBattle.height:
-        base = this.baseStat.height
+        base = this.height ?? this.species.heightRange[1]
         break
       case StatTypeOnlyBattle.maxHp:
         base = this.calculateMaxHp()
@@ -308,21 +296,24 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     this.skills = this.baseSkills.map(s => new SkillInstance(s))
     this.skills.forEach(skill => skill.setOwner(this))
 
-    if (!this.weight) this.baseStat.weight = this.species.weightRange[1]
-    else this.baseStat.weight = this.weight
-    if (!this.height) this.baseStat.height = this.species.heightRange[1]
-    else this.baseStat.height = this.height
+    // Calculate base stats and initialize attribute system
+    const baseStats = this.calculateStats()
 
-    this.baseStat = this.calculateStats()
-    this.stat = { ...this.baseStat }
+    // Set weight and height in base stats
+    if (!this.weight) baseStats.weight = this.species.weightRange[1]
+    else baseStats.weight = this.weight
+    if (!this.height) baseStats.height = this.species.heightRange[1]
+    else baseStats.height = this.height
 
-    this.currentHp = this.baseStat.maxHp
+    // Initialize attribute system with calculated stats
+    this.attributeSystem.initializePetAttributes(baseStats, baseStats.maxHp)
 
     if (!this.gender) {
       if (!this.species.genderRatio) this.gender = Gender.NoGender
       else if (this.species.genderRatio[0] != 0) this.gender = Gender.Female
       else this.gender = Gender.Male
-    } else this.gender = this.gender
+    }
+
     if (this.ability) {
       const abilityMark = this.ability.createInstance()
       abilityMark.setOwner(this, emitter)
@@ -357,73 +348,91 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     return this.getEffectiveStat()
   }
 
+  // Recalculate base stats and update attribute system
   recalculate() {
     const newStat = this.calculateStats()
-    const context = new UpdateStatContext(this.owner?.battle!, newStat, this)
 
-    this.owner?.battle?.applyEffects(context, EffectTrigger.OnUpdateStat, ...this.marks)
-    this.stat = { ...this.stat, ...newStat }
-    this.dirty = false
+    // Update base values in attribute system
+    Object.entries(newStat).forEach(([key, value]) => {
+      this.attributeSystem.updateBaseValue(key, value)
+    })
+
+    // Note: Effects that previously used OnUpdateStat trigger should now
+    // use the modifyStat operator which works directly with the Pet's attribute system
   }
 
   public getEffectiveStat(ignoreMark = false, ignoreStageStrategy = IgnoreStageStrategy.none): StatOnBattle {
-    // Start with base stats
-    if (this.dirty) this.recalculate()
-    const baseStats = { ...this.stat }
-
-    // If we're ignoring marks, return base stats
+    // If we're ignoring marks, get base stats without any modifiers
     if (ignoreMark) {
+      const baseStats: StatOnBattle = {
+        maxHp: this.calculateStat(StatTypeOnlyBattle.maxHp),
+        atk: this.calculateStat(StatTypeWithoutHp.atk),
+        def: this.calculateStat(StatTypeWithoutHp.def),
+        spa: this.calculateStat(StatTypeWithoutHp.spa),
+        spd: this.calculateStat(StatTypeWithoutHp.spd),
+        spe: this.calculateStat(StatTypeWithoutHp.spe),
+        accuracy: this.calculateStat(StatTypeOnlyBattle.accuracy),
+        critRate: this.calculateStat(StatTypeOnlyBattle.critRate),
+        evasion: this.calculateStat(StatTypeOnlyBattle.evasion),
+        ragePerTurn: this.calculateStat(StatTypeOnlyBattle.ragePerTurn),
+        weight: this.calculateStat(StatTypeOnlyBattle.weight),
+        height: this.calculateStat(StatTypeOnlyBattle.height),
+      }
       return baseStats
     }
 
-    // Get stage modifiers
-    const modifiers = this.calculateStageModifiers()
+    // Get current stats from attribute system (includes all modifiers)
+    const effectiveStats = this.attributeSystem.getEffectiveStats()
 
-    // Apply modifiers based on strategy
-    return Object.entries(baseStats).reduce((result, [statKey, baseValue]) => {
+    // Apply ignore stage strategy if needed
+    if (ignoreStageStrategy !== IgnoreStageStrategy.none) {
+      return this.applyIgnoreStageStrategy(effectiveStats, ignoreStageStrategy)
+    }
+
+    return effectiveStats
+  }
+
+  private applyIgnoreStageStrategy(
+    effectiveStats: StatOnBattle,
+    ignoreStageStrategy: IgnoreStageStrategy,
+  ): StatOnBattle {
+    // Get base stats without any modifiers for comparison
+    const baseStats: StatOnBattle = {
+      maxHp: this.calculateStat(StatTypeOnlyBattle.maxHp),
+      atk: this.calculateStat(StatTypeWithoutHp.atk),
+      def: this.calculateStat(StatTypeWithoutHp.def),
+      spa: this.calculateStat(StatTypeWithoutHp.spa),
+      spd: this.calculateStat(StatTypeWithoutHp.spd),
+      spe: this.calculateStat(StatTypeWithoutHp.spe),
+      accuracy: this.calculateStat(StatTypeOnlyBattle.accuracy),
+      critRate: this.calculateStat(StatTypeOnlyBattle.critRate),
+      evasion: this.calculateStat(StatTypeOnlyBattle.evasion),
+      ragePerTurn: this.calculateStat(StatTypeOnlyBattle.ragePerTurn),
+      weight: this.calculateStat(StatTypeOnlyBattle.weight),
+      height: this.calculateStat(StatTypeOnlyBattle.height),
+    }
+
+    return Object.entries(effectiveStats).reduce((result, [statKey, effectiveValue]) => {
       const statType = statKey as keyof StatOnBattle
-      const modifier = modifiers[statType]
+      const baseValue = baseStats[statType]
 
-      // If no modifier exists, keep base value
-      if (!modifier) {
-        result[statType] = baseValue
-        return result
-      }
-
-      // Determine if we should apply the modifier based on strategy
-      const shouldApplyModifier = (() => {
+      // Determine if we should apply the effective value based on strategy
+      const shouldApplyEffectiveValue = (() => {
         switch (ignoreStageStrategy) {
           case IgnoreStageStrategy.all:
             return false
           case IgnoreStageStrategy.positive:
-            return modifier <= baseValue
+            return effectiveValue <= baseValue
           case IgnoreStageStrategy.negative:
-            return modifier >= baseValue
+            return effectiveValue >= baseValue
           default:
             return true
         }
       })()
 
-      result[statType] = shouldApplyModifier ? modifier : baseValue
+      result[statType] = shouldApplyEffectiveValue ? effectiveValue : baseValue
       return result
     }, {} as StatOnBattle)
-  }
-
-  private calculateStageModifiers(): Partial<Record<StatTypeOnBattle, number>> {
-    const modifiers: Partial<Record<StatTypeOnBattle, number>> = {}
-    Object.entries(this.statStage).forEach(([stat, stage]) => {
-      const statType = stat as StatTypeOnBattle
-      const baseValue = this.stat[statType] // 直接使用 stat 中的基础值
-      modifiers[statType] = this.applyStageModifier(baseValue, stage)
-    })
-    return modifiers
-  }
-
-  // 增强安全性的修正计算
-  private applyStageModifier(base: number, stage: number): number {
-    const validStage = Math.max(-6, Math.min(6, stage)) // 强制等级范围
-    const index = validStage + 6
-    return Math.floor(base * STAT_STAGE_MULTIPLIER[index])
   }
 
   public addStatStage(context: EffectContext<EffectTrigger>, statType: StatTypeWithoutHp, value: number) {
@@ -438,24 +447,31 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     ...statTypes: StatTypeWithoutHp[]
   ) {
     if (!statTypes || statTypes.length === 0) {
-      statTypes = Object.keys(this.statStage) as StatTypeWithoutHp[]
+      statTypes = [
+        StatTypeWithoutHp.atk,
+        StatTypeWithoutHp.def,
+        StatTypeWithoutHp.spa,
+        StatTypeWithoutHp.spd,
+        StatTypeWithoutHp.spe,
+      ]
     }
     statTypes.forEach(statType => {
-      const stage = this.statStage[statType]
-      const shouldClear =
-        cleanStageStrategy === CleanStageStrategy.all ||
-        (cleanStageStrategy === CleanStageStrategy.positive && stage > 1) ||
-        (cleanStageStrategy === CleanStageStrategy.negative && stage < 1)
-      if (shouldClear) {
-        this.statStage[statType] = 1
-        this.marks = this.marks.filter(mark => {
-          if (mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType) {
-            mark.destroy(new RemoveMarkContext(context, mark))
-            return false
-          }
-          return true
-        })
-      }
+      // Find all stat stage marks for this stat type
+      const statStageMarks = this.marks.filter(
+        mark => mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType,
+      ) as StatLevelMarkInstanceImpl[]
+
+      statStageMarks.forEach(mark => {
+        const stage = mark.level
+        const shouldClear =
+          cleanStageStrategy === CleanStageStrategy.all ||
+          (cleanStageStrategy === CleanStageStrategy.positive && stage > 0) ||
+          (cleanStageStrategy === CleanStageStrategy.negative && stage < 0)
+
+        if (shouldClear) {
+          mark.destroy(new RemoveMarkContext(context, mark))
+        }
+      })
     })
   }
 

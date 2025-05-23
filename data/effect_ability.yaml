@@ -432,11 +432,12 @@
     type: petIsActive
 # 增加自己10%闪避率
 - id: effect_ability_add_self_evasion_10
-  trigger: OnUpdateStat
+  trigger: OnBattleStart
   priority: 0
   apply:
-    type: modifyStat
+    type: addAttributeModifier
     target:
-      base: updateStatContext
-    statType: evasion
-    delta: 10
+      base: self
+    stat: evasion
+    modifierType: delta
+    value: 10

@@ -586,9 +586,9 @@ export type TriggerContextMap = {
   [EffectTrigger.TurnEnd]: TurnContext
 
   [EffectTrigger.OnBeforeAddMark]: AddMarkContext
-  [EffectTrigger.OnAddMark]: AddMarkContext
+  [EffectTrigger.OnAnyMarkAdded]: AddMarkContext
   [EffectTrigger.OnRemoveMark]: RemoveMarkContext
-  [EffectTrigger.OnMarkCreate]: AddMarkContext
+  [EffectTrigger.OnMarkCreated]: AddMarkContext
   [EffectTrigger.OnMarkDestroy]: RemoveMarkContext
   [EffectTrigger.OnMarkDurationEnd]: TurnContext
 

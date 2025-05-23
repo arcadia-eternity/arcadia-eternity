@@ -8,14 +8,16 @@ import {
   EffectContext,
   HealContext,
   type MarkInstance,
+  MarkInstanceImpl,
   type MarkOwner,
   Pet,
   Player,
   RageContext,
   type ScopeObject,
   SkillInstance,
-  UpdateStatContext,
   UseSkillContext,
+  Modifier,
+  DurationType,
 } from '@arcadia-eternity/battle'
 import {
   CleanStageStrategy,
@@ -121,19 +123,63 @@ export const Operators = {
     },
 
   modifyStat:
-    (
-      stat: ValueSource<StatTypeOnBattle>,
-      percent: ValueSource<number>,
-      delta: ValueSource<number>,
-    ): Operator<UpdateStatContext> =>
-    (context: EffectContext<EffectTrigger>, targets: UpdateStatContext[]) => {
-      targets.forEach(contexts => {
+    (stat: ValueSource<StatTypeOnBattle>, percent: ValueSource<number>, delta: ValueSource<number>): Operator<Pet> =>
+    (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
+      targets.forEach(pet => {
         const _stat = GetValueFromSource(context, stat)[0]
         const _percent = GetValueFromSource(context, percent)[0] ?? 0
         const _value = GetValueFromSource(context, delta)[0] ?? 0
-        contexts.stat[_stat] += _value
-        contexts.stat[_stat] *= (100 + _percent) / 100
-        contexts.stat[_stat] = Math.floor(contexts.stat[_stat])
+
+        // Get current base value from attribute system
+        const currentValue = pet.attributeSystem.getStat(_stat)
+
+        // Apply modifications
+        let newValue = currentValue + _value
+        newValue *= (100 + _percent) / 100
+        newValue = Math.floor(newValue)
+
+        // Update the attribute system
+        pet.attributeSystem.updateBaseValue(_stat, newValue)
+      })
+    },
+
+  // New operator: Add attribute modifier bound to mark lifecycle
+  addAttributeModifier:
+    (
+      stat: ValueSource<StatTypeOnBattle>,
+      modifierType: ValueSource<'percent' | 'delta' | 'override'>,
+      value: ValueSource<number>,
+      priority: ValueSource<number> = 0,
+    ): Operator<Pet> =>
+    (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
+      targets.forEach((pet, targetIndex) => {
+        const _stat = GetValueFromSource(context, stat)[0]
+        const _modifierType = GetValueFromSource(context, modifierType)[0]
+        const _value = GetValueFromSource(context, value)[0]
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
+
+        // Create a unique modifier ID with better uniqueness guarantees
+        const timestamp = Date.now()
+        const random = Math.random().toString(36).substring(2, 11)
+        const modifierId = `${context.source.id}_${_stat}_${_modifierType}_${timestamp}_${targetIndex}_${random}`
+
+        // Create the modifier
+        const modifier = new Modifier(
+          DurationType.binding,
+          modifierId,
+          _value,
+          _modifierType,
+          _priority,
+          context.source instanceof MarkInstanceImpl ? context.source : undefined,
+        )
+
+        // Add the modifier to the pet's attribute system
+        const cleanup = pet.attributeSystem.addModifier(_stat, modifier)
+
+        // If the effect source is a mark, bind the modifier lifecycle to the mark
+        if (context.source instanceof MarkInstanceImpl) {
+          context.source.addAttributeModifierCleanup(cleanup)
+        }
       })
     },
 
