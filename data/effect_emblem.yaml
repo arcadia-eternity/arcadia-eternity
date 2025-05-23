@@ -103,14 +103,15 @@
     target: addMarkContext
     value: 2
 - id: effect_emblem_increase_weight_10kg
-  trigger: OnUpdateStat
+  trigger: OnBattleStart
   priority: 1
   apply:
-    type: modifyStat
-    target: updateStatContext
-    statType: weight
-    delta: 10
-    percent: 0
+    type: addAttributeModifier
+    target:
+      base: self
+    stat: weight
+    modifierType: delta
+    value: 10
 - id: effect_emblem_decrease_liuxue_duration_1
   trigger: OnBeforeAddMark
   priority: 0

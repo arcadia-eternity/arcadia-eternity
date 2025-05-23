@@ -14,6 +14,7 @@ import { EffectContext, UseSkillContext } from './context'
 import { Effect, type EffectContainer } from './effect'
 import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
+import { SkillAttributeSystem } from './attributeSystem'
 
 export class BaseSkill implements Prototype {
   public readonly effects: Effect<EffectTrigger>[] = []
@@ -142,10 +143,6 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
   public readonly id: skillId
   public readonly category: Category
   public readonly element: Element
-  public readonly power: number
-  public readonly accuracy: number
-  public readonly rage: number
-  public readonly priority: number = 0
   public readonly target: AttackTargetOpinion = AttackTargetOpinion.opponent
   public readonly multihit: [number, number] | number = 1
   public readonly sureHit: boolean = false
@@ -154,7 +151,8 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
   public readonly tags: string[] = []
   effects: Effect<EffectTrigger>[] = []
 
-  public appeared = false
+  // Attribute system for managing skill parameters
+  public readonly attributeSystem: SkillAttributeSystem = new SkillAttributeSystem()
 
   constructor(
     public readonly base: BaseSkill,
@@ -175,10 +173,6 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     this.id = nanoid() as skillId
     this.category = base.category
     this.element = base.element
-    this.power = overrides?.power ?? base.power
-    this.accuracy = overrides?.accuracy ?? base.accuracy
-    this.rage = overrides?.rage ?? base.rage
-    this.priority = overrides?.priority ?? base.priority
     this.target = overrides?.target ?? base.target
     this.multihit = overrides?.multihit ?? base.multihit
     this.sureHit = overrides?.sureHit ?? base.sureHit
@@ -186,6 +180,55 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     this.ignoreShield = overrides?.ignoreShield ?? base.ignoreShield
     this.tags = overrides?.tag ? [...base.tags, ...overrides.tag] : [...base.tags]
     this.effects = [...base.effects, ...(overrides?.effects ? overrides.effects : [])]
+
+    // Initialize attribute system with skill parameters
+    const power = overrides?.power ?? base.power
+    const accuracy = overrides?.accuracy ?? base.accuracy
+    const rage = overrides?.rage ?? base.rage
+    const priority = overrides?.priority ?? base.priority
+
+    this.attributeSystem.initializeSkillAttributes(power, accuracy, rage, priority, false)
+  }
+
+  // Compatibility properties using AttributeSystem
+  get power(): number {
+    return this.attributeSystem.getPower()
+  }
+
+  set power(value: number) {
+    this.attributeSystem.setPower(value)
+  }
+
+  get accuracy(): number {
+    return this.attributeSystem.getAccuracy()
+  }
+
+  set accuracy(value: number) {
+    this.attributeSystem.setAccuracy(value)
+  }
+
+  get rage(): number {
+    return this.attributeSystem.getRage()
+  }
+
+  set rage(value: number) {
+    this.attributeSystem.setRage(value)
+  }
+
+  get priority(): number {
+    return this.attributeSystem.getPriority()
+  }
+
+  set priority(value: number) {
+    this.attributeSystem.setPriority(value)
+  }
+
+  get appeared(): boolean {
+    return this.attributeSystem.getAppeared()
+  }
+
+  set appeared(value: boolean) {
+    this.attributeSystem.setAppeared(value)
   }
 
   get baseId() {

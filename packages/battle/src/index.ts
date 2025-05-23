@@ -1,3 +1,4 @@
+export * from './attributeSystem'
 export * from './battle'
 export * from './config'
 export * from './context'

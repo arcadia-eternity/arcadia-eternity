@@ -294,6 +294,14 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       percent: valueSchema.default(0),
     }),
     z.object({
+      type: z.literal('addAttributeModifier'),
+      target: selectorDSLSchema,
+      stat: valueSchema,
+      modifierType: valueSchema,
+      value: valueSchema,
+      priority: valueSchema.optional(),
+    }),
+    z.object({
       type: z.literal('statStageBuff'),
       target: selectorDSLSchema,
       statType: valueSchema,

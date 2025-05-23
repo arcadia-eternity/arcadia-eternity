@@ -59,6 +59,15 @@ export type ModifyStatOpreator = {
   percent?: Value
 }
 
+export type AddAttributeModifierOpreator = {
+  type: 'addAttributeModifier'
+  target: SelectorDSL
+  stat: Value
+  modifierType: Value
+  value: Value
+  priority?: Value
+}
+
 export type StatStageBuffOpreator = {
   type: 'statStageBuff'
   target: SelectorDSL
@@ -301,6 +310,7 @@ export type OperatorDSL =
   | AddStacksOpreator
   | ConsumeStacksOpreator
   | ModifyStatOpreator
+  | AddAttributeModifierOpreator
   | StatStageBuffOpreator
   | ClearStatStageOpreator
   | AddRageOpreator

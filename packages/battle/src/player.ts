@@ -47,7 +47,7 @@ export class Player {
     this.emitter = emitter
     this.team.forEach(pet => {
       pet.setOwner(this, emitter)
-      pet.dirty = true
+      // Note: dirty flag removed, attribute system handles recalculation automatically
     })
   }
 

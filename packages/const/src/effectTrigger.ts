@@ -29,10 +29,10 @@ export enum EffectTrigger {
 
   //仅作用于自身触发
   OnBeforeAddMark = 'OnBeforeAddMark',
-  OnAddMark = 'OnAddMark',
+  OnAnyMarkAdded = 'OnAnyMarkAdded', // 所有实体都会响应印记添加事件
   OnRemoveMark = 'OnRemoveMark',
 
-  OnMarkCreate = 'OnMarkCreate',
+  OnMarkCreated = 'OnMarkCreated', // 只有被创建的印记才会响应
   OnMarkDestroy = 'OnMarkDestroy',
 
   OnMarkDurationEnd = 'OnMarkDurationEnd',

@@ -33,9 +33,9 @@
               "TurnStart",
               "TurnEnd",
               "OnBeforeAddMark",
-              "OnAddMark",
+              "OnAnyMarkAdded",
               "OnRemoveMark",
-              "OnMarkCreate",
+              "OnMarkCreated",
               "OnMarkDestroy",
               "OnMarkDurationEnd",
               "OnStack",
@@ -66,7 +66,9 @@
                         "const": "TODO"
                       }
                     },
-                    "required": ["type"],
+                    "required": [
+                      "type"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -164,7 +166,10 @@
                                                           ]
                                                         }
                                                       },
-                                                      "required": ["type", "arg"],
+                                                      "required": [
+                                                        "type",
+                                                        "arg"
+                                                      ],
                                                       "additionalProperties": false
                                                     },
                                                     {
@@ -178,7 +183,10 @@
                                                           "type": "string"
                                                         }
                                                       },
-                                                      "required": ["type", "arg"],
+                                                      "required": [
+                                                        "type",
+                                                        "arg"
+                                                      ],
                                                       "additionalProperties": false
                                                     },
                                                     {
@@ -187,7 +195,10 @@
                                                   ]
                                                 }
                                               },
-                                              "required": ["type", "arg"],
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -201,7 +212,10 @@
                                                   "type": "string"
                                                 }
                                               },
-                                              "required": ["type", "arg"],
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -215,7 +229,10 @@
                                                   "type": "string"
                                                 }
                                               },
-                                              "required": ["type", "arg"],
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -226,7 +243,9 @@
                                                   "const": "flat"
                                                 }
                                               },
-                                              "required": ["type"],
+                                              "required": [
+                                                "type"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -247,7 +266,13 @@
                                                         },
                                                         "operator": {
                                                           "type": "string",
-                                                          "enum": [">", "<", ">=", "<=", "=="]
+                                                          "enum": [
+                                                            ">",
+                                                            "<",
+                                                            ">=",
+                                                            "<=",
+                                                            "=="
+                                                          ]
                                                         },
                                                         "value": {
                                                           "anyOf": [
@@ -265,7 +290,10 @@
                                                                   "type": "string"
                                                                 }
                                                               },
-                                                              "required": ["type", "value"],
+                                                              "required": [
+                                                                "type",
+                                                                "value"
+                                                              ],
                                                               "additionalProperties": false
                                                             },
                                                             {
@@ -285,7 +313,10 @@
                                                                   "type": "string"
                                                                 }
                                                               },
-                                                              "required": ["type", "value"],
+                                                              "required": [
+                                                                "type",
+                                                                "value"
+                                                              ],
                                                               "additionalProperties": false
                                                             },
                                                             {
@@ -305,7 +336,10 @@
                                                                   "type": "string"
                                                                 }
                                                               },
-                                                              "required": ["type", "value"],
+                                                              "required": [
+                                                                "type",
+                                                                "value"
+                                                              ],
                                                               "additionalProperties": false
                                                             },
                                                             {
@@ -322,7 +356,10 @@
                                                                   "type": "string"
                                                                 }
                                                               },
-                                                              "required": ["type", "value"],
+                                                              "required": [
+                                                                "type",
+                                                                "value"
+                                                              ],
                                                               "additionalProperties": false
                                                             },
                                                             {
@@ -336,7 +373,10 @@
                                                                   "type": "string"
                                                                 }
                                                               },
-                                                              "required": ["type", "value"],
+                                                              "required": [
+                                                                "type",
+                                                                "value"
+                                                              ],
                                                               "additionalProperties": false
                                                             },
                                                             {
@@ -350,7 +390,10 @@
                                                                   "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                                                                 }
                                                               },
-                                                              "required": ["type", "selector"],
+                                                              "required": [
+                                                                "type",
+                                                                "selector"
+                                                              ],
                                                               "additionalProperties": false
                                                             },
                                                             {
@@ -370,13 +413,21 @@
                                                                   "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                                                 }
                                                               },
-                                                              "required": ["type", "condition", "trueValue"],
+                                                              "required": [
+                                                                "type",
+                                                                "condition",
+                                                                "trueValue"
+                                                              ],
                                                               "additionalProperties": false
                                                             }
                                                           ]
                                                         }
                                                       },
-                                                      "required": ["type", "operator", "value"],
+                                                      "required": [
+                                                        "type",
+                                                        "operator",
+                                                        "value"
+                                                      ],
                                                       "additionalProperties": false
                                                     },
                                                     {
@@ -390,7 +441,10 @@
                                                           "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                                         }
                                                       },
-                                                      "required": ["type", "value"],
+                                                      "required": [
+                                                        "type",
+                                                        "value"
+                                                      ],
                                                       "additionalProperties": false
                                                     },
                                                     {
@@ -404,7 +458,10 @@
                                                           "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                                         }
                                                       },
-                                                      "required": ["type", "value"],
+                                                      "required": [
+                                                        "type",
+                                                        "value"
+                                                      ],
                                                       "additionalProperties": false
                                                     },
                                                     {
@@ -421,7 +478,10 @@
                                                           }
                                                         }
                                                       },
-                                                      "required": ["type", "conditions"],
+                                                      "required": [
+                                                        "type",
+                                                        "conditions"
+                                                      ],
                                                       "additionalProperties": false
                                                     },
                                                     {
@@ -438,7 +498,10 @@
                                                           }
                                                         }
                                                       },
-                                                      "required": ["type", "conditions"],
+                                                      "required": [
+                                                        "type",
+                                                        "conditions"
+                                                      ],
                                                       "additionalProperties": false
                                                     },
                                                     {
@@ -452,7 +515,10 @@
                                                           "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
                                                         }
                                                       },
-                                                      "required": ["type", "condition"],
+                                                      "required": [
+                                                        "type",
+                                                        "condition"
+                                                      ],
                                                       "additionalProperties": false
                                                     },
                                                     {
@@ -466,7 +532,10 @@
                                                           "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                                         }
                                                       },
-                                                      "required": ["type", "percent"],
+                                                      "required": [
+                                                        "type",
+                                                        "percent"
+                                                      ],
                                                       "additionalProperties": false
                                                     },
                                                     {
@@ -480,7 +549,10 @@
                                                           "type": "string"
                                                         }
                                                       },
-                                                      "required": ["type", "tag"],
+                                                      "required": [
+                                                        "type",
+                                                        "tag"
+                                                      ],
                                                       "additionalProperties": false
                                                     },
                                                     {
@@ -491,13 +563,18 @@
                                                           "const": "exist"
                                                         }
                                                       },
-                                                      "required": ["type"],
+                                                      "required": [
+                                                        "type"
+                                                      ],
                                                       "additionalProperties": false
                                                     }
                                                   ]
                                                 }
                                               },
-                                              "required": ["type", "arg"],
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -514,7 +591,11 @@
                                                   "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
                                                 }
                                               },
-                                              "required": ["type", "extractor", "evaluator"],
+                                              "required": [
+                                                "type",
+                                                "extractor",
+                                                "evaluator"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -528,7 +609,10 @@
                                                   "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                                                 }
                                               },
-                                              "required": ["type", "arg"],
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -545,7 +629,10 @@
                                                   "type": "boolean"
                                                 }
                                               },
-                                              "required": ["type", "arg"],
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -559,7 +646,10 @@
                                                   "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                                 }
                                               },
-                                              "required": ["type", "arg"],
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -573,7 +663,10 @@
                                                   "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                                 }
                                               },
-                                              "required": ["type", "arg"],
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -584,7 +677,9 @@
                                                   "const": "sum"
                                                 }
                                               },
-                                              "required": ["type"],
+                                              "required": [
+                                                "type"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -598,7 +693,10 @@
                                                   "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                                 }
                                               },
-                                              "required": ["type", "arg"],
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -612,7 +710,10 @@
                                                   "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                                 }
                                               },
-                                              "required": ["type", "arg"],
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -626,7 +727,10 @@
                                                   "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                                 }
                                               },
-                                              "required": ["type", "arg"],
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -637,7 +741,9 @@
                                                   "const": "shuffled"
                                                 }
                                               },
-                                              "required": ["type"],
+                                              "required": [
+                                                "type"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -651,7 +757,10 @@
                                                   "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                                 }
                                               },
-                                              "required": ["type", "arg"],
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -665,7 +774,10 @@
                                                   "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                                 }
                                               },
-                                              "required": ["type", "arg"],
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -679,7 +791,10 @@
                                                   "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                                 }
                                               },
-                                              "required": ["type", "arg"],
+                                              "required": [
+                                                "type",
+                                                "arg"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -693,7 +808,10 @@
                                                   "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                                 }
                                               },
-                                              "required": ["type", "key"],
+                                              "required": [
+                                                "type",
+                                                "key"
+                                              ],
                                               "additionalProperties": false
                                             },
                                             {
@@ -713,14 +831,20 @@
                                                   "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                                                 }
                                               },
-                                              "required": ["type", "condition", "trueValue"],
+                                              "required": [
+                                                "type",
+                                                "condition",
+                                                "trueValue"
+                                              ],
                                               "additionalProperties": false
                                             }
                                           ]
                                         }
                                       }
                                     },
-                                    "required": ["base"],
+                                    "required": [
+                                      "base"
+                                    ],
                                     "additionalProperties": false
                                   },
                                   {
@@ -736,7 +860,10 @@
                                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                                       }
                                     },
-                                    "required": ["condition", "trueSelector"],
+                                    "required": [
+                                      "condition",
+                                      "trueSelector"
+                                    ],
                                     "additionalProperties": false
                                   }
                                 ]
@@ -745,7 +872,11 @@
                                 "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg"
                               }
                             },
-                            "required": ["type", "target", "evaluator"],
+                            "required": [
+                              "type",
+                              "target",
+                              "evaluator"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -762,7 +893,10 @@
                                 }
                               }
                             },
-                            "required": ["type", "conditions"],
+                            "required": [
+                              "type",
+                              "conditions"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -779,7 +913,10 @@
                                 }
                               }
                             },
-                            "required": ["type", "conditions"],
+                            "required": [
+                              "type",
+                              "conditions"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -793,7 +930,10 @@
                                 "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition"
                               }
                             },
-                            "required": ["type", "condition"],
+                            "required": [
+                              "type",
+                              "condition"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -804,7 +944,9 @@
                                 "const": "petIsActive"
                               }
                             },
-                            "required": ["type"],
+                            "required": [
+                              "type"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -815,7 +957,9 @@
                                 "const": "selfUseSkill"
                               }
                             },
-                            "required": ["type"],
+                            "required": [
+                              "type"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -826,7 +970,9 @@
                                 "const": "checkSelf"
                               }
                             },
-                            "required": ["type"],
+                            "required": [
+                              "type"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -837,7 +983,9 @@
                                 "const": "foeUseSkill"
                               }
                             },
-                            "required": ["type"],
+                            "required": [
+                              "type"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -848,7 +996,9 @@
                                 "const": "selfBeDamaged"
                               }
                             },
-                            "required": ["type"],
+                            "required": [
+                              "type"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -859,7 +1009,9 @@
                                 "const": "selfAddMark"
                               }
                             },
-                            "required": ["type"],
+                            "required": [
+                              "type"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -870,7 +1022,9 @@
                                 "const": "foeAddMark"
                               }
                             },
-                            "required": ["type"],
+                            "required": [
+                              "type"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -881,7 +1035,9 @@
                                 "const": "selfBeAddMark"
                               }
                             },
-                            "required": ["type"],
+                            "required": [
+                              "type"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -892,7 +1048,9 @@
                                 "const": "foeBeAddMark"
                               }
                             },
-                            "required": ["type"],
+                            "required": [
+                              "type"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -903,7 +1061,9 @@
                                 "const": "selfBeHeal"
                               }
                             },
-                            "required": ["type"],
+                            "required": [
+                              "type"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -919,11 +1079,17 @@
                               },
                               "strategy": {
                                 "type": "string",
-                                "enum": ["Periodic", "Once", "Continuous"],
+                                "enum": [
+                                  "Periodic",
+                                  "Once",
+                                  "Continuous"
+                                ],
                                 "default": "Continuous"
                               }
                             },
-                            "required": ["type"],
+                            "required": [
+                              "type"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -935,15 +1101,27 @@
                               },
                               "stat": {
                                 "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value",
-                                "default": ["atk", "def", "spa", "spd", "spe"]
+                                "default": [
+                                  "atk",
+                                  "def",
+                                  "spa",
+                                  "spd",
+                                  "spe"
+                                ]
                               },
                               "check": {
                                 "type": "string",
-                                "enum": ["up", "down", "all"],
+                                "enum": [
+                                  "up",
+                                  "down",
+                                  "all"
+                                ],
                                 "default": "all"
                               }
                             },
-                            "required": ["type"],
+                            "required": [
+                              "type"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -954,7 +1132,9 @@
                                 "const": "isFirstSkillUsedThisTurn"
                               }
                             },
-                            "required": ["type"],
+                            "required": [
+                              "type"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -965,7 +1145,9 @@
                                 "const": "isLastSkillUsedThisTurn"
                               }
                             },
-                            "required": ["type"],
+                            "required": [
+                              "type"
+                            ],
                             "additionalProperties": false
                           }
                         ]
@@ -977,7 +1159,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0"
                       }
                     },
-                    "required": ["type", "condition", "trueOperator"],
+                    "required": [
+                      "type",
+                      "condition",
+                      "trueOperator"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -994,7 +1180,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1011,7 +1201,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1034,7 +1228,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "mark"],
+                    "required": [
+                      "type",
+                      "target",
+                      "mark"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1051,7 +1249,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1068,7 +1270,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1093,7 +1299,43 @@
                         "default": 0
                       }
                     },
-                    "required": ["type", "target", "statType"],
+                    "required": [
+                      "type",
+                      "target",
+                      "statType"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "addAttributeModifier"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "stat": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "modifierType": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "priority": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "stat",
+                      "modifierType",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1113,7 +1355,12 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "statType", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "statType",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1131,11 +1378,18 @@
                       },
                       "cleanStageStrategy": {
                         "type": "string",
-                        "enum": ["all", "positive", "negative"],
+                        "enum": [
+                          "all",
+                          "positive",
+                          "negative"
+                        ],
                         "default": "positive"
                       }
                     },
-                    "required": ["type", "target"],
+                    "required": [
+                      "type",
+                      "target"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1152,7 +1406,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1169,7 +1427,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1186,7 +1448,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1203,7 +1469,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1220,7 +1490,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1237,7 +1511,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/8"
                       }
                     },
-                    "required": ["type", "target", "mark"],
+                    "required": [
+                      "type",
+                      "target",
+                      "mark"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1251,7 +1529,10 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       }
                     },
-                    "required": ["type", "target"],
+                    "required": [
+                      "type",
+                      "target"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1268,7 +1549,11 @@
                         "type": "number"
                       }
                     },
-                    "required": ["type", "target", "priority"],
+                    "required": [
+                      "type",
+                      "target",
+                      "priority"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1285,7 +1570,11 @@
                         "type": "number"
                       }
                     },
-                    "required": ["type", "target", "priority"],
+                    "required": [
+                      "type",
+                      "target",
+                      "priority"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1302,7 +1591,11 @@
                         "type": "number"
                       }
                     },
-                    "required": ["type", "target", "priority"],
+                    "required": [
+                      "type",
+                      "target",
+                      "priority"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1319,7 +1612,11 @@
                         "type": "number"
                       }
                     },
-                    "required": ["type", "target", "priority"],
+                    "required": [
+                      "type",
+                      "target",
+                      "priority"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1333,7 +1630,10 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       }
                     },
-                    "required": ["type", "target"],
+                    "required": [
+                      "type",
+                      "target"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1350,7 +1650,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/8"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1364,7 +1668,10 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       }
                     },
-                    "required": ["type", "target"],
+                    "required": [
+                      "type",
+                      "target"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1381,7 +1688,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/8"
                       }
                     },
-                    "required": ["type", "target", "newTarget"],
+                    "required": [
+                      "type",
+                      "target",
+                      "newTarget"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1401,7 +1712,12 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "delta", "percent"],
+                    "required": [
+                      "type",
+                      "target",
+                      "delta",
+                      "percent"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1421,7 +1737,10 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target"],
+                    "required": [
+                      "type",
+                      "target"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1455,7 +1774,15 @@
                           },
                           "stackStrategy": {
                             "type": "string",
-                            "enum": ["stack", "refresh", "extend", "max", "replace", "none", "remove"],
+                            "enum": [
+                              "stack",
+                              "refresh",
+                              "extend",
+                              "max",
+                              "replace",
+                              "none",
+                              "remove"
+                            ],
                             "default": "extend"
                           },
                           "destroyable": {
@@ -1485,7 +1812,11 @@
                         "additionalProperties": {}
                       }
                     },
-                    "required": ["type", "target", "config"],
+                    "required": [
+                      "type",
+                      "target",
+                      "config"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1502,7 +1833,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1519,7 +1854,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1536,7 +1875,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1553,7 +1896,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1570,7 +1917,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1587,7 +1938,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1604,7 +1959,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1621,7 +1980,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1638,7 +2001,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1655,7 +2022,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1672,7 +2043,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1689,7 +2064,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1706,7 +2085,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1720,7 +2103,10 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       }
                     },
-                    "required": ["type", "target"],
+                    "required": [
+                      "type",
+                      "target"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1740,7 +2126,12 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "key", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "key",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1757,7 +2148,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1774,7 +2169,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1791,7 +2190,11 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
-                    "required": ["type", "target", "value"],
+                    "required": [
+                      "type",
+                      "target",
+                      "value"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -1805,7 +2208,10 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       }
                     },
-                    "required": ["type", "target"],
+                    "required": [
+                      "type",
+                      "target"
+                    ],
                     "additionalProperties": false
                   }
                 ]
@@ -1832,7 +2238,12 @@
             "default": []
           }
         },
-        "required": ["id", "trigger", "priority", "apply"],
+        "required": [
+          "id",
+          "trigger",
+          "priority",
+          "apply"
+        ],
         "additionalProperties": false
       }
     }

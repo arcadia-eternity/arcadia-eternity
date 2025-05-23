@@ -9,7 +9,8 @@ type checkStat = Path<Pet, 'stat'> //expect StatOnBattle
 
 type checkStatAtk = Path<Pet, 'stat.atk'> //expect number
 
-type checkStatModifiers = Path<Pet, 'statStage.atk'> //number
+// StatStage has been migrated to attributeSystem, no longer directly accessible
+// type checkStatModifiers = Path<Pet, 'statStage.atk'> //number
 
 type checkMark = Path<Pet, 'marks'> //expect markInstance[]
 

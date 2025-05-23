@@ -2,7 +2,6 @@ import {
   BattleMessageType,
   EffectTrigger,
   type MarkMessage,
-  STAT_STAGE_MULTIPLIER,
   StackStrategy,
   StatTypeWithoutHp,
   type MarkConfig,
@@ -11,6 +10,7 @@ import {
   type Events,
 } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
+import { Subject } from 'rxjs'
 import { Battle } from './battle'
 import {
   AddMarkContext,
@@ -25,6 +25,16 @@ import { Effect, type EffectContainer } from './effect'
 import { type Instance, type MarkOwner, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 import type { Emitter } from 'mitt'
+import {
+  Modifier,
+  DurationType,
+  MarkAttributeSystem,
+  createStatLevelMarkAttributeSystem,
+  computed,
+  type BaseMarkAccessors,
+  type LevelAccessors,
+} from './attributeSystem'
+import { Observable } from 'rxjs'
 
 export interface IBaseMark extends Prototype {
   createInstance(...arg: any[]): MarkInstance
@@ -63,10 +73,7 @@ export class BaseMark implements Prototype, IBaseMark {
 }
 
 export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle | null>, Instance {
-  _stack: number
-  duration: number
   owner: Pet | Battle | null
-  isActive: boolean
 
   readonly id: markId
   readonly effects: Effect<EffectTrigger>[]
@@ -74,6 +81,12 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   readonly tags: string[]
 
   readonly base: BaseMark
+  readonly attributeSystem: MarkAttributeSystem
+
+  // Compatibility properties
+  _stack: number
+  duration: number
+  isActive: boolean
 
   get stack(): number
   set stack(value: number)
@@ -100,10 +113,7 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
 }
 
 export class MarkInstanceImpl implements MarkInstance {
-  public _stack: number = 1
-  public duration: number
   public owner: Battle | Pet | null = null
-  public isActive: boolean = true
 
   public readonly id: markId
   public readonly effects: Effect<EffectTrigger>[]
@@ -111,6 +121,12 @@ export class MarkInstanceImpl implements MarkInstance {
   public readonly tags: string[] = []
 
   public emitter?: Emitter<Events>
+
+  // Attribute system for managing mark parameters
+  public readonly attributeSystem: MarkAttributeSystem = new MarkAttributeSystem()
+
+  // Store cleanup functions for attribute modifiers
+  private attributeModifierCleanups: (() => void)[] = []
 
   constructor(
     public readonly base: BaseMark,
@@ -130,9 +146,13 @@ export class MarkInstanceImpl implements MarkInstance {
       stackStrategy: overrides?.config?.stackStrategy ?? base.config.stackStrategy ?? StackStrategy.stack,
     }
 
-    this.duration = overrides?.duration ?? mergedConfig.duration ?? base.config.duration ?? 3
-    if (mergedConfig.persistent) this.duration = -1
-    this._stack = overrides?.stack ?? base.config.maxStacks ?? 1
+    // Initialize attribute system with mark parameters
+    const duration = overrides?.duration ?? mergedConfig.duration ?? base.config.duration ?? 3
+    const finalDuration = mergedConfig.persistent ? -1 : duration
+    const stack = overrides?.stack ?? base.config.maxStacks ?? 1
+
+    this.attributeSystem.initializeMarkAttributes(finalDuration, stack, true)
+
     this.config = mergedConfig
     this.tags = [...base.tags, ...(overrides?.tags || [])]
     this.effects = [...base.effects, ...(overrides?.effects || [])]
@@ -140,27 +160,51 @@ export class MarkInstanceImpl implements MarkInstance {
     this.config.isShield = mergedConfig.isShield ?? false
   }
 
+  // Compatibility properties using AttributeSystem
+  get _stack(): number {
+    return this.attributeSystem.getStack()
+  }
+
+  set _stack(value: number) {
+    this.attributeSystem.setStack(value)
+  }
+
   get stack(): number {
-    return this._stack
+    return this.attributeSystem.getStack()
   }
 
   set stack(value: number) {
-    this._stack = value
+    this.attributeSystem.setStack(value)
+  }
+
+  get duration(): number {
+    return this.attributeSystem.getDuration()
+  }
+
+  set duration(value: number) {
+    this.attributeSystem.setDuration(value)
+  }
+
+  get isActive(): boolean {
+    return this.attributeSystem.getIsActive()
+  }
+
+  set isActive(value: boolean) {
+    this.attributeSystem.setIsActive(value)
   }
 
   get baseId(): baseMarkId {
     return this.base.id
   }
 
-  onAddMark(target: Battle | Pet, context: AddMarkContext) {
-    context.battle.applyEffects(context, EffectTrigger.OnAddMark)
-    context.battle.applyEffects(context, EffectTrigger.OnMarkCreate, this)
+  OnMarkCreated(target: Battle | Pet, context: AddMarkContext) {
+    this.setOwner(target, target.emitter!)
+    context.battle.applyEffects(context, EffectTrigger.OnMarkCreated, this)
+    context.battle.applyEffects(context, EffectTrigger.OnAnyMarkAdded)
+
     this.attachTo(target)
     target.marks.push(this)
-    this.setOwner(target, target.emitter!)
-    if (target instanceof Pet) {
-      target.dirty = true
-    }
+    // Note: dirty flag removed, attribute system handles recalculation automatically
   }
 
   setOwner(owner: Battle | Pet, emitter: Emitter<Events>): void {
@@ -207,9 +251,7 @@ export class MarkInstanceImpl implements MarkInstance {
   addStack(value: number) {
     this.stack = Math.min(this.config.maxStacks ?? Infinity, this.stack + value)
 
-    if (this.owner instanceof Pet) {
-      this.owner.dirty = true
-    }
+    // Note: dirty flag removed, attribute system handles recalculation automatically
   }
 
   tryStack(context: AddMarkContext): boolean {
@@ -269,9 +311,7 @@ export class MarkInstanceImpl implements MarkInstance {
     this.duration = newDuration
     this.isActive = true
 
-    if (this.owner instanceof Pet) {
-      this.owner.dirty = true
-    }
+    // Note: dirty flag removed, attribute system handles recalculation automatically
 
     context.battle.emitMessage(BattleMessageType.MarkUpdate, {
       target: this.owner instanceof Pet ? this.owner.id : 'battle',
@@ -289,9 +329,7 @@ export class MarkInstanceImpl implements MarkInstance {
       this.destroy(new RemoveMarkContext(context, this))
     }
 
-    if (this.owner instanceof Pet) {
-      this.owner.dirty = true
-    }
+    // Note: dirty flag removed, attribute system handles recalculation automatically
 
     return actual
   }
@@ -318,19 +356,36 @@ export class MarkInstanceImpl implements MarkInstance {
       })
   }
 
+  // Add an attribute modifier cleanup function
+  addAttributeModifierCleanup(cleanup: () => void) {
+    this.attributeModifierCleanups.push(cleanup)
+  }
+
+  // Clean up all attribute modifiers
+  private cleanupAttributeModifiers() {
+    // Use individual cleanup functions first
+    this.attributeModifierCleanups.forEach(cleanup => cleanup())
+    this.attributeModifierCleanups = []
+
+    // Also use the bulk removal method as a safety net
+    if (this.owner instanceof Pet) {
+      this.owner.attributeSystem.removeModifiersFromSource(this.id)
+    }
+  }
+
   destroy(context: RemoveMarkContext) {
     if (!this.isActive || !this.config.destroyable) return
     this.isActive = false
+
+    // Clean up attribute modifiers before destroying the mark
+    this.cleanupAttributeModifiers()
 
     //TODO:这俩的语义感觉能分一下
     context.battle.applyEffects(context, EffectTrigger.OnMarkDestroy, this)
     context.battle.applyEffects(context, EffectTrigger.OnRemoveMark)
     context.battle.cleanupMarks()
 
-    // 触发移除效果
-    if (this.owner instanceof Pet) {
-      this.owner.dirty = true
-    }
+    // Note: dirty flag removed, attribute system handles recalculation automatically
     context.battle.emitMessage(BattleMessageType.MarkDestroy, {
       mark: this.id,
       target: this.owner instanceof Pet ? this.owner.id : 'battle',
@@ -388,13 +443,46 @@ export class BaseStatLevelMark extends BaseMark {
 }
 
 export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkInstance {
-  public level: number
   //一般是Pet，我知道你们可能会尝试加到奇怪的地方。
   declare public owner: Pet | null
+  private modifierCleanupFn?: () => void
+
+  // 使用组合的方式管理attributeSystem，专门用于StatLevel相关的属性
+  private statLevelAttributeSystem: ReturnType<typeof createStatLevelMarkAttributeSystem>
+  private levelAccessors: BaseMarkAccessors & LevelAccessors
+
+  // 使用computed创建自动计算的stage multiplier，基于attributeSystem的level
+  private stageMultiplier$: Observable<number>
 
   constructor(public readonly base: BaseStatLevelMark) {
     super(base)
-    this.level = base.initialLevel
+
+    // 创建专门的attributeSystem实例用于管理StatLevel属性
+    // 使用父类的属性值，避免循环依赖
+    this.statLevelAttributeSystem = createStatLevelMarkAttributeSystem(
+      super.duration, // 使用父类的duration
+      super.stack, // 使用父类的stack
+      super.isActive, // 使用父类的isActive
+      base.initialLevel,
+    )
+
+    // Cache the accessors for type safety
+    this.levelAccessors = this.statLevelAttributeSystem.getAccessors() as BaseMarkAccessors & LevelAccessors
+
+    // 创建基于attributeSystem level的computed Observable
+    this.stageMultiplier$ = computed(
+      () => this.getStageMultiplier(this.levelAccessors.getLevel()),
+      [this.statLevelAttributeSystem.getAttribute$('level')],
+    )
+  }
+
+  // level的getter和setter，操作attributeSystem
+  get level(): number {
+    return this.levelAccessors.getLevel()
+  }
+
+  set level(value: number) {
+    this.levelAccessors.setLevel(value)
   }
 
   get statType() {
@@ -405,10 +493,37 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
     return Math.abs(this.level)
   }
 
-  override onAddMark(target: Battle | Pet, context: AddMarkContext): void {
-    super.onAddMark(target, context)
+  override OnMarkCreated(target: Battle | Pet, context: AddMarkContext): void {
+    super.OnMarkCreated(target, context)
     if (!(target instanceof Pet)) return
-    target.statStage[this.statType] = this.level
+    this.addStatStageModifier(target)
+  }
+
+  private addStatStageModifier(pet: Pet) {
+    // Remove existing modifier if any
+    if (this.modifierCleanupFn) {
+      this.modifierCleanupFn()
+    }
+
+    // Create stage modifier using the computed Observable for automatic updates
+    const modifier = new Modifier(
+      DurationType.binding,
+      `stat_stage_${this.statType}_${this.id}`,
+      this.stageMultiplier$, // 传入computed Observable，会自动响应level变化
+      'percent',
+      1000, // High priority for stage modifiers
+      this,
+    )
+
+    // Add modifier to attribute system
+    this.modifierCleanupFn = pet.attributeSystem.addModifier(this.statType, modifier)
+  }
+
+  private getStageMultiplier(stage: number): number {
+    const validStage = Math.max(-6, Math.min(6, stage)) // 强制等级范围
+    const index = validStage + 6
+    const STAT_STAGE_MULTIPLIER = [0.25, 0.28, 0.33, 0.4, 0.5, 0.66, 1, 1.5, 2, 2.5, 3, 3.5, 4] as const
+    return STAT_STAGE_MULTIPLIER[index]
   }
 
   tryStack(context: AddMarkContext): boolean {
@@ -420,16 +535,11 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
       if (remainingLevel === 0) {
         this.destroy(new RemoveMarkContext(context, this))
         return true
-      } else if (Math.sign(remainingLevel) === Math.sign(this.level)) {
-        this.level = remainingLevel
       } else {
+        // 直接设置level，computed会自动重新计算
         this.level = remainingLevel
       }
 
-      if (this.owner instanceof Pet) {
-        this.owner.statStage[this.base.statType] = this.level
-        this.owner.dirty = true
-      }
       return true
     }
 
@@ -437,6 +547,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
 
     if (!isSameType) return super.tryStack(context)
 
+    const STAT_STAGE_MULTIPLIER = [0.25, 0.28, 0.33, 0.4, 0.5, 0.66, 1, 1.5, 2, 2.5, 3, 3.5, 4] as const
     const maxLevel = (STAT_STAGE_MULTIPLIER.length - 1) / 2
     const newLevel = Math.max(-maxLevel, Math.min(maxLevel, this.level + otherMark.initialLevel))
 
@@ -445,12 +556,8 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
       return true
     }
 
+    // 直接设置level，computed会自动重新计算
     this.level = newLevel
-
-    if (this.owner instanceof Pet) {
-      this.owner.statStage[this.base.statType] = this.level
-      this.owner.dirty = true
-    }
 
     return true
   }
@@ -458,8 +565,20 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
   attachTo(target: Pet | Battle) {
     super.attachTo(target)
     if (target instanceof Pet) {
-      target.statStage[this.base.statType] = this.level
+      this.addStatStageModifier(target)
     }
+  }
+
+  override destroy(context: RemoveMarkContext): void {
+    // Clean up the modifier when the mark is destroyed
+    if (this.modifierCleanupFn) {
+      this.modifierCleanupFn()
+      this.modifierCleanupFn = undefined
+    }
+    // Clean up the statLevelAttributeSystem
+    // Note: AttributeSystem doesn't need explicit cleanup as it uses BehaviorSubjects
+    // which will be garbage collected when no longer referenced
+    super.destroy(context)
   }
 
   public isOppositeMark(other: StatLevelMarkInstanceImpl): boolean {
@@ -513,7 +632,7 @@ export class MarkSystem {
         return
       }
     } else {
-      newMark.onAddMark(target, context)
+      newMark.OnMarkCreated(target, context)
       context.battle.emitMessage(BattleMessageType.MarkApply, {
         baseMarkId: context.baseMark.id,
         target: context.target instanceof Pet ? context.target.id : 'battle',
@@ -529,6 +648,6 @@ export class MarkSystem {
       if (filltered) mark.destroy(context)
       return false
     })
-    if (target instanceof Pet) target.dirty = true
+    // Note: dirty flag removed, attribute system handles recalculation automatically
   }
 }
