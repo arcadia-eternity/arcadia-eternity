@@ -305,6 +305,9 @@ importers:
       '@arcadia-eternity/schema':
         specifier: workspace:^
         version: link:../schema
+      chokidar:
+        specifier: ^4.0.1
+        version: 4.0.3
       yaml:
         specifier: ^2.7.1
         version: 2.7.1

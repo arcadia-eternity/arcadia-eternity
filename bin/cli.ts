@@ -2,7 +2,7 @@ import { program } from 'commander'
 import path from 'path'
 import fs from 'fs/promises'
 import yaml from 'yaml'
-import { loadGameData } from '@arcadia-eternity/fsloader'
+import { loadGameData, LOADING_STRATEGIES } from '@arcadia-eternity/fsloader'
 import { PlayerParser } from '@arcadia-eternity/parser'
 import { ScriptLoader } from '@arcadia-eternity/data-repository'
 import { AIPlayer, Battle } from '@arcadia-eternity/battle'
@@ -60,7 +60,7 @@ program
   .action(async options => {
     try {
       console.log('[🌀] 正在加载游戏数据...')
-      await loadGameData()
+      await loadGameData(undefined, LOADING_STRATEGIES.LENIENT)
       await loadScripts()
 
       console.log('[🌀] 正在解析玩家数据...')
@@ -93,11 +93,31 @@ program
   .requiredOption('-2, --player2 <path>', '玩家2数据文件路径')
   .option('--ai <players>', '指定AI控制的玩家（支持多个，如：player1,player2）', val => val.split(','))
   .option('--debug', '启用调试模式', false)
+  .option('--strict', '使用严格模式加载数据（检测缺失引用）', false)
+  .option('--load-scripts', '加载脚本定义', false)
   .action(async options => {
     try {
       console.log('[🌀] 正在加载游戏数据...')
-      await loadGameData()
-      await loadScripts()
+
+      // 根据选项选择加载策略
+      let strategy = LOADING_STRATEGIES.LENIENT
+      if (options.strict && options.loadScripts) {
+        strategy = LOADING_STRATEGIES.FULL
+      } else if (options.strict) {
+        strategy = LOADING_STRATEGIES.STRICT
+      } else if (options.loadScripts) {
+        strategy = LOADING_STRATEGIES.DEVELOPMENT
+      }
+
+      console.log(
+        `[📋] 使用加载策略: ${options.strict ? '严格' : '宽松'}模式${options.loadScripts ? ' + 脚本加载' : ''}`,
+      )
+      await loadGameData(undefined, strategy)
+
+      // 如果没有通过策略加载脚本，则单独加载
+      if (!options.loadScripts) {
+        await loadScripts()
+      }
 
       console.log('[🌀] 正在解析玩家数据...')
       let player1 = await parsePlayerFile(options.player1)
@@ -142,7 +162,7 @@ program
   .action(async options => {
     try {
       console.log('[🌀] 正在加载游戏数据...')
-      await loadGameData()
+      await loadGameData(undefined, LOADING_STRATEGIES.LENIENT)
       await loadScripts()
 
       const app = express()

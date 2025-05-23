@@ -583,6 +583,18 @@
   ignoreShield: false
   tags: ['combination']
   multihit: 3
+- id: skill_chongzhuang
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 35
+  rage: 0
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_spe_5_percent
 - id: skill_zhuangji
   element: Normal
   category: Physical
@@ -2949,7 +2961,7 @@
   effect:
     - effect_skill_add_mark_foe_shaoshang_30_percent
   tags: []
-- id: skill_badedetouchou
+- id: skill_badetouchou
   element: Normal
   category: Physical
   target: opponent

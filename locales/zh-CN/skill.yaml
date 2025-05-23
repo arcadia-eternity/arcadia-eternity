@@ -732,7 +732,7 @@ skill_lieyanyachongpo:
 skill_yanwu:
   name: 焰舞
   description: '【95】30%使对手烧伤'
-skill_badedetouchou:
+skill_badetouchou:
   name: 拔得头筹
   description: 先制+1 战斗首回合威力2倍
 skill_huoxing:

@@ -25,6 +25,7 @@
     "@arcadia-eternity/data-repository": "workspace:^",
     "@arcadia-eternity/parser": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
+    "chokidar": "^4.0.1",
     "yaml": "^2.7.1"
   },
   "devDependencies": {
