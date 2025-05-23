@@ -9,6 +9,7 @@ import {
   type DoNothingSelection,
   EffectTrigger,
   type Events,
+  MAX_RAGE,
   type PlayerMessage,
   type PlayerSelection,
   type SwitchPetSelection,
@@ -18,6 +19,7 @@ import {
 import { Battle } from './battle'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { Pet } from './pet'
+import { PlayerAttributeSystem } from './attributeSystem'
 import * as jsondiffpatch from 'jsondiffpatch'
 import type { Emitter } from 'mitt'
 
@@ -25,12 +27,14 @@ export class Player {
   public emitter?: Emitter<Events>
 
   private lastStateMessage: BattleState = {} as BattleState
-  public currentRage: number = 20
   public battle?: Battle
   public owner?: Battle
   public selection: PlayerSelection | null = null
   public activePet: Pet
   private messageCallbacks: Array<(message: BattleMessage) => void> = []
+
+  // Attribute system for managing rage
+  public readonly attributeSystem: PlayerAttributeSystem = new PlayerAttributeSystem()
   constructor(
     public readonly name: string,
     public readonly id: playerId,
@@ -38,6 +42,26 @@ export class Player {
   ) {
     this.activePet = team[0]
     this.activePet.appeared = true
+
+    // Initialize attribute system with default rage values
+    this.attributeSystem.initializePlayerAttributes(20, MAX_RAGE)
+  }
+
+  // Convenience getters and setters for accessing rage through the attribute system
+  get currentRage(): number {
+    return this.attributeSystem.getCurrentRage()
+  }
+
+  set currentRage(value: number) {
+    this.attributeSystem.setCurrentRage(value)
+  }
+
+  get maxRage(): number {
+    return this.attributeSystem.getMaxRage()
+  }
+
+  set maxRage(value: number) {
+    this.attributeSystem.setMaxRage(value)
   }
 
   public registerBattle(battle: Battle, emitter: Emitter<Events>) {
@@ -323,7 +347,7 @@ export class Player {
 
   public settingRage(value: number) {
     //TODO:触发设定怒气相关事件
-    this.currentRage = Math.max(Math.min(value, 100), 0)
+    this.currentRage = Math.max(Math.min(value, this.maxRage), 0)
   }
 
   public addRage(context: RageContext) {
@@ -362,6 +386,7 @@ export class Player {
       id: this.id,
       activePet: this.activePet.id,
       rage: this.currentRage,
+      maxRage: this.maxRage,
       teamAlives,
       team: this.team.map(p => p.toMessage(viewerId, showHidden)),
     }

@@ -9,11 +9,13 @@ interface Props {
   current: number
   max: number
   rage?: number
+  maxRage?: number
   reverse?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   rage: 0,
+  maxRage: 100,
   reverse: false,
 })
 
@@ -30,7 +32,7 @@ const healthColor = computed(() => {
 })
 
 const ragePercentage = computed(() => {
-  return Math.min(100, Math.max(0, props.rage))
+  return Math.min(100, Math.max(0, (props.rage / props.maxRage) * 100))
 })
 
 onMounted(() => {
@@ -132,7 +134,7 @@ watch(ragePercentage, (newPercentage, oldPercentage) => {
       <span
         class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white [text-shadow:1px_1px_1px_rgba(0,0,0,0.5)] text-xl font-bold pointer-events-none z-20"
       >
-        {{ rage }}/100
+        {{ rage }}/{{ maxRage }}
       </span>
     </div>
   </div>
