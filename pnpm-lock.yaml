@@ -277,6 +277,9 @@ importers:
       nanoid:
         specifier: ^5.1.5
         version: 5.1.5
+      rxjs:
+        specifier: ^7.8.2
+        version: 7.8.2
     devDependencies:
       '@babel/core':
         specifier: ^7.27.1
@@ -389,6 +392,9 @@ importers:
       nanoid:
         specifier: ^5.1.5
         version: 5.1.5
+      rxjs:
+        specifier: ^7.8.2
+        version: 7.8.2
       zod:
         specifier: ^3.24.4
         version: 3.24.4

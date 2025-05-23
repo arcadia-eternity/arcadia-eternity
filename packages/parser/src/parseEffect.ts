@@ -15,6 +15,7 @@ import {
   UpdateStatContext,
   UseSkillContext,
 } from '@arcadia-eternity/battle'
+import { Observable } from 'rxjs'
 import {
   type baseMarkId,
   type baseSkillId,
@@ -196,13 +197,19 @@ function applySelectorStep(
 
       case 'clampMin': {
         assertNumberSelector(selector)
-        return selector.clampMax(parseValue(effectId, step.arg) as ValueSource<number>)
+        return selector.clampMin(parseValue(effectId, step.arg) as ValueSource<number>)
       }
 
       case 'configGet':
         return (selector as ChainableSelector<ScopeObject>).configGet(
           parseValue(effectId, step.key) as ValueSource<string>,
         ) as ChainableSelector<SelectorOpinion>
+
+      case 'selectObservable':
+        return (selector as any).selectObservable(step.arg) as ChainableSelector<SelectorOpinion>
+
+      case 'selectAttribute$':
+        return selector.selectAttribute$(step.arg) as ChainableSelector<SelectorOpinion>
 
       case 'when':
         return selector.when(
@@ -314,6 +321,14 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseModifyStatAction(effectId, dsl)
     case 'addAttributeModifier':
       return parseAddAttributeModifierAction(effectId, dsl)
+    case 'addDynamicAttributeModifier':
+      return parseAddDynamicAttributeModifierAction(effectId, dsl)
+    case 'addClampMaxModifier':
+      return parseAddClampMaxModifierAction(effectId, dsl)
+    case 'addClampMinModifier':
+      return parseAddClampMinModifierAction(effectId, dsl)
+    case 'addClampModifier':
+      return parseAddClampModifierAction(effectId, dsl)
     case 'statStageBuff':
       return parseStatStageBuffAction(effectId, dsl)
     case 'clearStatStage':
@@ -491,6 +506,21 @@ export function parseAddAttributeModifierAction(
       parseValue(effectId, dsl.stat) as ValueSource<StatTypeOnBattle>,
       parseValue(effectId, dsl.modifierType) as ValueSource<'percent' | 'delta' | 'override'>,
       parseValue(effectId, dsl.value) as ValueSource<number>,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+    ),
+  )
+}
+
+// New dynamic attribute modifier pattern
+export function parseAddDynamicAttributeModifierAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addDynamicAttributeModifier' }>,
+) {
+  return parseSelector<Pet>(effectId, dsl.target).apply(
+    Operators.addDynamicAttributeModifier(
+      parseValue(effectId, dsl.stat) as ValueSource<StatTypeOnBattle>,
+      parseValue(effectId, dsl.modifierType) as ValueSource<'percent' | 'delta' | 'override'>,
+      parseSelector(effectId, dsl.observableValue) as ValueSource<Observable<number>>,
       dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
     ),
   )
@@ -733,6 +763,44 @@ function parseSetAccuracy(effectId: string, dsl: Extract<OperatorDSL, { type: 's
 
 function parseDisableContext(effectId: string, dsl: Extract<OperatorDSL, { type: 'disableContext' }>) {
   return parseSelector<UseSkillContext>(effectId, dsl.target).apply(Operators.disableContext())
+}
+
+// New clamp modifier action parsers
+export function parseAddClampMaxModifierAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addClampMaxModifier' }>,
+) {
+  return parseSelector<Pet>(effectId, dsl.target).apply(
+    Operators.addClampMaxModifier(
+      parseValue(effectId, dsl.stat) as ValueSource<StatTypeOnBattle>,
+      parseValue(effectId, dsl.maxValue) as ValueSource<number>,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+    ),
+  )
+}
+
+export function parseAddClampMinModifierAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addClampMinModifier' }>,
+) {
+  return parseSelector<Pet>(effectId, dsl.target).apply(
+    Operators.addClampMinModifier(
+      parseValue(effectId, dsl.stat) as ValueSource<StatTypeOnBattle>,
+      parseValue(effectId, dsl.minValue) as ValueSource<number>,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+    ),
+  )
+}
+
+export function parseAddClampModifierAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'addClampModifier' }>) {
+  return parseSelector<Pet>(effectId, dsl.target).apply(
+    Operators.addClampModifier(
+      parseValue(effectId, dsl.stat) as ValueSource<StatTypeOnBattle>,
+      parseValue(effectId, dsl.minValue) as ValueSource<number>,
+      parseValue(effectId, dsl.maxValue) as ValueSource<number>,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+    ),
+  )
 }
 
 export function parseCondition(effectId: string, dsl: ConditionDSL): Condition {

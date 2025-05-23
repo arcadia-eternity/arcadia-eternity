@@ -34,9 +34,11 @@ export class Modifier<T extends number | boolean | string = any> {
     public durationType: DurationType,
     public id: string,
     initialValue: T | Subject<T> | Observable<T>,
-    public type: 'percent' | 'delta' | 'override',
+    public type: 'percent' | 'delta' | 'override' | 'clampMax' | 'clampMin' | 'clamp',
     public priority: number,
     public source?: MarkInstance | SkillInstance,
+    public minValue?: number,
+    public maxValue?: number,
   ) {
     if (initialValue instanceof BehaviorSubject) {
       // 如果传入的是BehaviorSubject，直接使用它
@@ -107,10 +109,127 @@ export class Modifier<T extends number | boolean | string = any> {
         return ((current as number) + (currentValue as number)) as T
       case 'override':
         return currentValue
+      case 'clampMax':
+        if (typeof current !== 'number' || typeof currentValue !== 'number') return current
+        return Math.min(current as number, currentValue as number) as T
+      case 'clampMin':
+        if (typeof current !== 'number' || typeof currentValue !== 'number') return current
+        return Math.max(current as number, currentValue as number) as T
+      case 'clamp':
+        if (typeof current !== 'number') return current
+        const numCurrent = current as number
+        let result = numCurrent
+        // Apply min clamp if minValue is provided
+        if (this.minValue !== undefined) {
+          result = Math.max(result, this.minValue)
+        }
+        // Apply max clamp if maxValue is provided
+        if (this.maxValue !== undefined) {
+          result = Math.min(result, this.maxValue)
+        }
+        return result as T
       default:
         return current
     }
   }
+}
+
+// Helper functions for creating clamp modifiers
+export const ModifierHelpers = {
+  /**
+   * Create a clampMax modifier that limits the maximum value
+   * @param id Unique identifier for the modifier
+   * @param maxValue Maximum allowed value
+   * @param priority Priority for modifier application (higher = applied first)
+   * @param source Optional source (mark or skill instance)
+   * @param durationType Duration type (instant or binding)
+   */
+  createClampMax: (
+    id: string,
+    maxValue: number | Subject<number> | Observable<number>,
+    priority: number = 0,
+    source?: MarkInstance | SkillInstance,
+    durationType: DurationType = DurationType.binding,
+  ): Modifier<number> => {
+    return new Modifier(durationType, id, maxValue, 'clampMax', priority, source)
+  },
+
+  /**
+   * Create a clampMin modifier that limits the minimum value
+   * @param id Unique identifier for the modifier
+   * @param minValue Minimum allowed value
+   * @param priority Priority for modifier application (higher = applied first)
+   * @param source Optional source (mark or skill instance)
+   * @param durationType Duration type (instant or binding)
+   */
+  createClampMin: (
+    id: string,
+    minValue: number | Subject<number> | Observable<number>,
+    priority: number = 0,
+    source?: MarkInstance | SkillInstance,
+    durationType: DurationType = DurationType.binding,
+  ): Modifier<number> => {
+    return new Modifier(durationType, id, minValue, 'clampMin', priority, source)
+  },
+
+  /**
+   * Create a clamp modifier that limits both minimum and maximum values
+   * @param id Unique identifier for the modifier
+   * @param minValue Minimum allowed value
+   * @param maxValue Maximum allowed value
+   * @param priority Priority for modifier application (higher = applied first)
+   * @param source Optional source (mark or skill instance)
+   * @param durationType Duration type (instant or binding)
+   */
+  createClamp: (
+    id: string,
+    minValue: number,
+    maxValue: number,
+    priority: number = 0,
+    source?: MarkInstance | SkillInstance,
+    durationType: DurationType = DurationType.binding,
+  ): Modifier<number> => {
+    // For clamp modifier, we use 0 as the initialValue since it's not used in the clamp operation
+    const modifier = new Modifier<number>(durationType, id, 0 as number, 'clamp', priority, source, minValue, maxValue)
+    return modifier
+  },
+
+  /**
+   * Create a reactive clamp modifier with observable min/max values
+   * @param id Unique identifier for the modifier
+   * @param minValue$ Observable minimum value
+   * @param maxValue$ Observable maximum value
+   * @param priority Priority for modifier application (higher = applied first)
+   * @param source Optional source (mark or skill instance)
+   * @param durationType Duration type (instant or binding)
+   */
+  createReactiveClamp: (
+    id: string,
+    minValue$: Observable<number>,
+    maxValue$: Observable<number>,
+    priority: number = 0,
+    source?: MarkInstance | SkillInstance,
+    durationType: DurationType = DurationType.binding,
+  ): { modifier: Modifier<number>; cleanup: () => void } => {
+    // Create a custom modifier that applies both min and max clamping
+    const modifier = new Modifier<number>(durationType, id, 0 as number, 'clamp', priority, source)
+
+    // Set up reactive min/max values
+    const minSub = minValue$.subscribe(val => {
+      modifier.minValue = val
+    })
+
+    const maxSub = maxValue$.subscribe(val => {
+      modifier.maxValue = val
+    })
+
+    const cleanup = () => {
+      minSub.unsubscribe()
+      maxSub.unsubscribe()
+    }
+
+    return { modifier, cleanup }
+  },
 }
 
 interface AttributeData {

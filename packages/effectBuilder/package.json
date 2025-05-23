@@ -26,7 +26,8 @@
     "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/data-repository": "workspace:^",
-    "nanoid": "^5.1.5"
+    "nanoid": "^5.1.5",
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@babel/core": "^7.27.1",

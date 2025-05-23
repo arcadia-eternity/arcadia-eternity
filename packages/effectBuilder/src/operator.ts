@@ -19,6 +19,7 @@ import {
   Modifier,
   DurationType,
 } from '@arcadia-eternity/battle'
+import { Observable } from 'rxjs'
 import {
   CleanStageStrategy,
   EffectTrigger,
@@ -171,6 +172,164 @@ export const Operators = {
           _modifierType,
           _priority,
           context.source instanceof MarkInstanceImpl ? context.source : undefined,
+        )
+
+        // Add the modifier to the pet's attribute system
+        const cleanup = pet.attributeSystem.addModifier(_stat, modifier)
+
+        // If the effect source is a mark, bind the modifier lifecycle to the mark
+        if (context.source instanceof MarkInstanceImpl) {
+          context.source.addAttributeModifierCleanup(cleanup)
+        }
+      })
+    },
+
+  // New operator: Add dynamic attribute modifier using Observable value source
+  addDynamicAttributeModifier:
+    (
+      stat: ValueSource<StatTypeOnBattle>,
+      modifierType: ValueSource<'percent' | 'delta' | 'override'>,
+      observableValue: ValueSource<Observable<number>>,
+      priority: ValueSource<number> = 0,
+    ): Operator<Pet> =>
+    (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
+      targets.forEach((pet, targetIndex) => {
+        const _stat = GetValueFromSource(context, stat)[0]
+        const _modifierType = GetValueFromSource(context, modifierType)[0]
+        const _observableValue = GetValueFromSource(context, observableValue)[0]
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
+
+        // Create a unique modifier ID
+        const timestamp = Date.now()
+        const random = Math.random().toString(36).substring(2, 11)
+        const modifierId = `${context.source.id}_${_stat}_${_modifierType}_dynamic_${timestamp}_${targetIndex}_${random}`
+
+        // Create the modifier with Observable value
+        const modifier = new Modifier(
+          DurationType.binding,
+          modifierId,
+          _observableValue,
+          _modifierType,
+          _priority,
+          context.source instanceof MarkInstanceImpl ? context.source : undefined,
+        )
+
+        // Add the modifier to the pet's attribute system
+        const cleanup = pet.attributeSystem.addModifier(_stat, modifier)
+
+        // If the effect source is a mark, bind the modifier lifecycle to the mark
+        if (context.source instanceof MarkInstanceImpl) {
+          context.source.addAttributeModifierCleanup(cleanup)
+        }
+      })
+    },
+
+  // New operator: Add clampMax modifier to limit maximum attribute value
+  addClampMaxModifier:
+    (
+      stat: ValueSource<StatTypeOnBattle>,
+      maxValue: ValueSource<number>,
+      priority: ValueSource<number> = 0,
+    ): Operator<Pet> =>
+    (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
+      targets.forEach((pet, targetIndex) => {
+        const _stat = GetValueFromSource(context, stat)[0]
+        const _maxValue = GetValueFromSource(context, maxValue)[0]
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
+
+        // Create a unique modifier ID
+        const timestamp = Date.now()
+        const random = Math.random().toString(36).substring(2, 11)
+        const modifierId = `${context.source.id}_${_stat}_clampMax_${timestamp}_${targetIndex}_${random}`
+
+        // Create the clampMax modifier
+        const modifier = new Modifier(
+          DurationType.binding,
+          modifierId,
+          _maxValue,
+          'clampMax',
+          _priority,
+          context.source instanceof MarkInstanceImpl ? context.source : undefined,
+        )
+
+        // Add the modifier to the pet's attribute system
+        const cleanup = pet.attributeSystem.addModifier(_stat, modifier)
+
+        // If the effect source is a mark, bind the modifier lifecycle to the mark
+        if (context.source instanceof MarkInstanceImpl) {
+          context.source.addAttributeModifierCleanup(cleanup)
+        }
+      })
+    },
+
+  // New operator: Add clampMin modifier to limit minimum attribute value
+  addClampMinModifier:
+    (
+      stat: ValueSource<StatTypeOnBattle>,
+      minValue: ValueSource<number>,
+      priority: ValueSource<number> = 0,
+    ): Operator<Pet> =>
+    (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
+      targets.forEach((pet, targetIndex) => {
+        const _stat = GetValueFromSource(context, stat)[0]
+        const _minValue = GetValueFromSource(context, minValue)[0]
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
+
+        // Create a unique modifier ID
+        const timestamp = Date.now()
+        const random = Math.random().toString(36).substring(2, 11)
+        const modifierId = `${context.source.id}_${_stat}_clampMin_${timestamp}_${targetIndex}_${random}`
+
+        // Create the clampMin modifier
+        const modifier = new Modifier(
+          DurationType.binding,
+          modifierId,
+          _minValue,
+          'clampMin',
+          _priority,
+          context.source instanceof MarkInstanceImpl ? context.source : undefined,
+        )
+
+        // Add the modifier to the pet's attribute system
+        const cleanup = pet.attributeSystem.addModifier(_stat, modifier)
+
+        // If the effect source is a mark, bind the modifier lifecycle to the mark
+        if (context.source instanceof MarkInstanceImpl) {
+          context.source.addAttributeModifierCleanup(cleanup)
+        }
+      })
+    },
+
+  // New operator: Add clamp modifier to limit both minimum and maximum attribute values
+  addClampModifier:
+    (
+      stat: ValueSource<StatTypeOnBattle>,
+      minValue: ValueSource<number>,
+      maxValue: ValueSource<number>,
+      priority: ValueSource<number> = 0,
+    ): Operator<Pet> =>
+    (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
+      targets.forEach((pet, targetIndex) => {
+        const _stat = GetValueFromSource(context, stat)[0]
+        const _minValue = GetValueFromSource(context, minValue)[0]
+        const _maxValue = GetValueFromSource(context, maxValue)[0]
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
+
+        // Create a unique modifier ID
+        const timestamp = Date.now()
+        const random = Math.random().toString(36).substring(2, 11)
+        const modifierId = `${context.source.id}_${_stat}_clamp_${timestamp}_${targetIndex}_${random}`
+
+        // Create the clamp modifier
+        const modifier = new Modifier(
+          DurationType.binding,
+          modifierId,
+          0, // Not used for clamp type
+          'clamp',
+          _priority,
+          context.source instanceof MarkInstanceImpl ? context.source : undefined,
+          _minValue, // minValue
+          _maxValue, // maxValue
         )
 
         // Add the modifier to the pet's attribute system
