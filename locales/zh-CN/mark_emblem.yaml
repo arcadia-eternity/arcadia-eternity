@@ -48,4 +48,4 @@ mark_emblem_yanhuo:
   description: 增加1回合焰火的效果回合数
 mark_emblem_xuruo:
   name: 虚弱
-  description: TODO
+  description: 当弱化时，有10%概率使效果层数额外增加1层

@@ -342,3 +342,31 @@
         evaluator:
           type: same
           value: mark_yanhuo
+- id: effect_emblem_xuruo_10percent_extra_debuff_stack
+  trigger: OnBeforeAddMark
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfAddMark
+      - type: statStageChange
+        check: down
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 10
+  apply:
+    type: setMarkStack
+    target: addMarkContext
+    value:
+      type: dynamic
+      selector:
+        base: addMarkContext
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: add
+            arg: 1

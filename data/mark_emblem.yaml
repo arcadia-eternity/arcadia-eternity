@@ -73,7 +73,8 @@
     - effect_emblem_add_mark_yanhuo_duration_1
 - id: mark_emblem_xuruo
   config: *emblem_config
-  effect: [] #TODO
+  effect:
+    - effect_emblem_xuruo_10percent_extra_debuff_stack
 - id: mark_emblem_yinji
 - id: mark_emblem_huizhi
 - id: mark_emblem_yinbo

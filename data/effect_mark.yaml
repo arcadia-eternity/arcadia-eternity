@@ -912,7 +912,7 @@
   condition:
     type: every
     conditions:
-      - type: foeBeAddMark
+      - type: selfAddMark
       - type: statStageChange
         check: down
 - id: effect_mark_when_attacked_add_foe_mark_zhongdu_50_percent
