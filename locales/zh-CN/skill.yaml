@@ -783,3 +783,42 @@ skill_nongsuoshuimo:
 skill_chunjingzhixin:
   name: 纯净之心
   description: 使自身获得免疫异常
+skill_hongxin:
+  name: 红心
+  description: 使对手获得5点命中下降
+skill_rouruan:
+  name: 柔软
+  description: 强化自身特防1级
+skill_xinzhiyinji:
+  name: 心之印记
+  description: 使对手获得<font color=#4CE8F7>心之印记</font>
+skill_xinlianxin:
+  name: 心连心
+  description: 【60】消耗心之印记<font color=#93E312>必中</font>
+skill_jianren:
+  name: 坚韧
+  description: 强化自身双防1级
+skill_hongxinyu:
+  name: 红心雨
+  description: 消耗心之印记连击5~8次
+skill_rourun:
+  name: 柔韧
+  description: 使自身获得<font color=#4CE8F7>反弹</font>
+skill_quanlichongfeng:
+  name: 全力冲锋
+  description: 【80】15%强化自身物攻1级
+skill_mantianhongxin:
+  name: 满天红心
+  description: <font color=#93E312>必中</font> 10%强化自身特攻1级
+skill_xinxinxiangyin:
+  name: 心心相印
+  description: 消耗心之印记威力2倍
+skill_dahongxin:
+  name: 大红心
+  description: 使对手获得15点命中下降
+skill_xuehongyinji:
+  name: 血红印记
+  description: 【95】使对手获得<font color=#CB2C1B>血红印记</font>
+skill_xinyuan:
+  name: 心愿
+  description: 恢复自身最大体力的1/4 连续使用效果减半

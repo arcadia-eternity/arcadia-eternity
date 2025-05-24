@@ -49,3 +49,6 @@ mark_emblem_yanhuo:
 mark_emblem_xuruo:
   name: 虚弱
   description: 当弱化时，有10%概率使效果层数额外增加1层
+mark_emblem_yinji:
+  name: 印记
+  description: 使用心之印记和血红印记技能时怒气消耗减少5

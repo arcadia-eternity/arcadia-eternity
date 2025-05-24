@@ -76,6 +76,9 @@
   effect:
     - effect_emblem_xuruo_10percent_extra_debuff_stack
 - id: mark_emblem_yinji
+  config: *emblem_config
+  effect:
+    - effect_emblem_yinji_reduce_rage_cost_xinzhiyinji
 - id: mark_emblem_huizhi
 - id: mark_emblem_yinbo
 - id: mark_emblem_xinsuo

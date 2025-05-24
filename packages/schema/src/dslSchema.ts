@@ -84,18 +84,21 @@ const conditionalValueSchema = z.lazy(() =>
   }),
 )
 
-export const valueSchema: z.ZodSchema<Value> = z.union([
-  rawNumberValueSchema,
-  z.number(),
-  rawStringValueSchema,
-  z.string(),
-  rawBooleanValueSchema,
-  z.boolean(),
-  rawBaseMarkIdValueSchema,
-  rawBaseSkillIdValueSchema,
-  dynamicValueSchema,
-  conditionalValueSchema,
-])
+export const valueSchema: z.ZodSchema<Value> = z.lazy(() =>
+  z.union([
+    rawNumberValueSchema,
+    z.number(),
+    rawStringValueSchema,
+    z.string(),
+    rawBooleanValueSchema,
+    z.boolean(),
+    rawBaseMarkIdValueSchema,
+    rawBaseSkillIdValueSchema,
+    dynamicValueSchema,
+    conditionalValueSchema,
+    z.array(valueSchema),
+  ]),
+)
 
 export const extractorSchema: z.ZodSchema<ExtractorDSL> = z.lazy(() =>
   z.union([
@@ -354,6 +357,11 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
     }),
     z.object({
       type: z.literal('addMultihitResult'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('setMultihit'),
       target: selectorDSLSchema,
       value: valueSchema,
     }),

@@ -2327,3 +2327,162 @@
     - mark_ability_guanghua
   emblem:
     - mark_emblem_xuruo
+- id: pet_jiujiu
+  num: 43
+  element: Normal
+  baseStats:
+    hp: 79
+    atk: 62
+    spa: 64
+    def: 62
+    spd: 64
+    spe: 52
+  genderRatio:
+    - 6
+    - 4
+  heightRange:
+    - 27
+    - 32
+  weightRange:
+    - 10
+    - 15
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_hongxin
+      level: 5
+      hidden: false
+    - skill_id: skill_rouruan
+      level: 9
+      hidden: false
+    - skill_id: skill_xinzhiyinji
+      level: 13
+      hidden: false
+  ability:
+    - mark_ability_hongxin
+  emblem:
+    - mark_emblem_yinji
+- id: pet_weiniqiujiu
+  num: 44
+  element: Normal
+  baseStats:
+    hp: 119
+    atk: 87
+    spa: 94
+    def: 87
+    spd: 94
+    spe: 72
+  genderRatio:
+    - 6
+    - 4
+  heightRange:
+    - 42
+    - 47
+  weightRange:
+    - 20
+    - 25
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_hongxin
+      level: 5
+      hidden: false
+    - skill_id: skill_rouruan
+      level: 9
+      hidden: false
+    - skill_id: skill_xinzhiyinji
+      level: 13
+      hidden: false
+    - skill_id: skill_xinlianxin
+      level: 18
+      hidden: false
+    - skill_id: skill_jianqiang
+      level: 23
+      hidden: false
+    - skill_id: skill_quanliyiji
+      level: 28
+      hidden: false
+    - skill_id: skill_jianren
+      level: 33
+      hidden: false
+  ability:
+    - mark_ability_hongxin
+  emblem:
+    - mark_emblem_yinji
+- id: pet_kadunqiujiu
+  num: 45
+  element: Normal
+  baseStats:
+    hp: 179
+    atk: 112
+    spa: 124
+    def: 112
+    spd: 124
+    spe: 92
+  genderRatio:
+    - 6
+    - 4
+  heightRange:
+    - 79
+    - 84
+  weightRange:
+    - 94
+    - 99
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_hongxin
+      level: 5
+      hidden: false
+    - skill_id: skill_rouruan
+      level: 9
+      hidden: false
+    - skill_id: skill_xinzhiyinji
+      level: 13
+      hidden: false
+    - skill_id: skill_xinlianxin
+      level: 18
+      hidden: false
+    - skill_id: skill_jianqiang
+      level: 23
+      hidden: false
+    - skill_id: skill_quanliyiji
+      level: 28
+      hidden: false
+    - skill_id: skill_jianren
+      level: 33
+      hidden: false
+    - skill_id: skill_hongxinyu
+      level: 38
+      hidden: false
+    - skill_id: skill_rourun
+      level: 43
+      hidden: false
+    - skill_id: skill_zhifanghudun
+      level: 48
+      hidden: false
+    - skill_id: skill_quanlichongfeng
+      level: 53
+      hidden: false
+    - skill_id: skill_mantianhongxin
+      level: 60
+      hidden: false
+    - skill_id: skill_xinxinxiangyin
+      level: 60
+      hidden: true
+    - skill_id: skill_dahongxin
+      level: 60
+      hidden: true
+    - skill_id: skill_xuehongyinji
+      level: 60
+      hidden: true
+    - skill_id: skill_xinyuan
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_hongxin
+  emblem:
+    - mark_emblem_yinji

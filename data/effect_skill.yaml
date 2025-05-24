@@ -129,6 +129,17 @@
     <<: *apply_self_statstage_+1_template
     statType: atk
   condition: *condition_probability_5_percent_template
+- id: effect_skill_raise_atk_1_stage_15_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: atk
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_15_percent_template
 - id: effect_skill_raise_def_1_stages
   trigger: BeforeHit
   priority: 0
@@ -143,6 +154,28 @@
     <<: *apply_self_statstage_+1_template
     statType: spa
   condition: *condition_self_use_skill_template
+- id: effect_skill_raise_spa_1_stage_10_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_10_percent_template
+- id: effect_skill_raise_spa_1_stage_15_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_15_percent_template
 - id: effect_skill_raise_spd_1_stages
   trigger: BeforeHit
   priority: 0
@@ -3260,5 +3293,239 @@
     mark:
       type: entity:baseMark
       value: mark_suijixianzhi
+  condition:
+    type: selfUseSkill
+# 啾啾进化链技能效果
+- id: effect_skill_add_mark_foe_xinzhiyinji
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_xinzhiyinji
+  condition:
+    type: selfUseSkill
+- id: effect_skill_consume_xinzhiyinji_sure_hit
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target:
+      base: usingSkillContext
+    priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: some
+        conditions:
+          - type: evaluate
+            target:
+              base: foeMarks
+              chain:
+                - type: whereAttr
+                  extractor: baseId
+                  evaluator:
+                    type: same
+                    value: mark_xinzhiyinji
+            evaluator:
+              type: exist
+          - type: evaluate
+            target:
+              base: foeMarks
+              chain:
+                - type: whereAttr
+                  extractor: baseId
+                  evaluator:
+                    type: same
+                    value: mark_xuehongyinji
+            evaluator:
+              type: exist
+- id: effect_skill_consume_xinzhiyinji_multihit
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: conditional
+    condition:
+      type: some
+      conditions:
+        - type: evaluate
+          target:
+            base: foeMarks
+            chain:
+              - type: whereAttr
+                extractor:
+                  type: base
+                  arg: baseId
+                evaluator:
+                  type: same
+                  value: mark_xinzhiyinji
+          evaluator:
+            type: exist
+        - type: evaluate
+          target:
+            base: foeMarks
+            chain:
+              - type: whereAttr
+                extractor:
+                  type: base
+                  arg: baseId
+                evaluator:
+                  type: same
+                  value: mark_xuehongyinji
+          evaluator:
+            type: exist
+    trueOperator:
+      type: setMultihit
+      target:
+        base: usingSkillContext
+      value: [5, 8]
+    falseOperator:
+      type: setMultihit
+      target:
+        base: usingSkillContext
+      value: 1
+  condition:
+    type: selfUseSkill
+- id: effect_skill_consume_xinzhiyinji_multihit_consume
+  trigger: OnHit
+  priority: -50
+  apply:
+    type: consumeStacks
+    target:
+      base: foeMarks
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value: mark_xinzhiyinji
+    value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_xinzhiyinji
+        evaluator:
+          type: exist
+- id: effect_skill_consume_xinzhiyinji_power_2x
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target:
+      base: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: usingSkillContext
+        chain:
+          - type: selectPath
+            arg: power
+          - type: multiply
+            arg: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: some
+        conditions:
+          - type: evaluate
+            target:
+              base: foeMarks
+              chain:
+                - type: whereAttr
+                  extractor: baseId
+                  evaluator:
+                    type: same
+                    value: mark_xinzhiyinji
+            evaluator:
+              type: exist
+          - type: evaluate
+            target:
+              base: foeMarks
+              chain:
+                - type: whereAttr
+                  extractor: baseId
+                  evaluator:
+                    type: same
+                    value: mark_xuehongyinji
+            evaluator:
+              type: exist
+- id: effect_skill_add_mark_foe_mingzhongxiajiang_5
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_mingzhongxiajiang
+    stack: 5
+  condition:
+    type: selfUseSkill
+- id: effect_skill_add_mark_foe_xuehongyinji
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_xuehongyinji
+  condition:
+    type: selfUseSkill
+- id: effect_skill_heal_self_quarter_diminishing
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: heal
+      target:
+        base: self
+      value:
+        type: dynamic
+        selector:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: maxHp
+            - type: divide
+              arg:
+                type: conditional
+                trueValue: 8
+                falseValue: 4
+                condition:
+                  type: evaluate
+                  target:
+                    base: selfMarks
+                    chain:
+                      - type: whereAttr
+                        extractor: baseId
+                        evaluator:
+                          type: same
+                          value: mark_xinyuan_used
+                  evaluator:
+                    type: exist
+    - type: addMark
+      target: self
+      mark:
+        type: entity:baseMark
+        value: mark_xinyuan_used
   condition:
     type: selfUseSkill

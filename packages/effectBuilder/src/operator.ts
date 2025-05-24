@@ -379,6 +379,17 @@ export const Operators = {
       })
     },
 
+  setMultihit:
+    (value: ValueSource<number | [number, number]>): Operator<UseSkillContext> =>
+    (context: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
+      contexts.forEach(skillCtx => {
+        const finalValue = GetValueFromSource(context, value)
+        if (finalValue.length > 0) {
+          skillCtx.multihit = finalValue[0]
+        }
+      })
+    },
+
   statStageBuff:
     (statType: ValueSource<StatTypeWithoutHp>, value: ValueSource<number>): Operator<Pet> =>
     (context: EffectContext<EffectTrigger>, target: Pet[]) => {

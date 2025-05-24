@@ -346,6 +346,8 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseAddCritRate(effectId, dsl)
     case 'addMultihitResult':
       return parseAddMultihitResult(effectId, dsl)
+    case 'setMultihit':
+      return parseSetMultihit(effectId, dsl)
     case 'transferMark':
       return parseTransferMark(effectId, dsl)
     case 'stun':
@@ -577,6 +579,12 @@ export function parseAddCritRate(effectId: string, dsl: Extract<OperatorDSL, { t
 export function parseAddMultihitResult(effectId: string, dsl: Extract<OperatorDSL, { type: 'addMultihitResult' }>) {
   return parseSelector<UseSkillContext>(effectId, dsl.target).apply(
     Operators.addMultihitResult(parseValue(effectId, dsl.value) as ValueSource<number>),
+  )
+}
+
+export function parseSetMultihit(effectId: string, dsl: Extract<OperatorDSL, { type: 'setMultihit' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(
+    Operators.setMultihit(parseValue(effectId, dsl.value) as ValueSource<number | [number, number]>),
   )
 }
 
