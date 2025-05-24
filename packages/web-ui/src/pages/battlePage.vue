@@ -477,13 +477,25 @@ async function initialPetEntryAnimation() {
     if (leftPetSpeciesNum.value !== 0) {
       playPetSound(leftPetSpeciesNum.value)
     }
-    animations.push(animatePetEntry(leftPet, -battleViewWidth / 2 - 100, 0, animationDuration))
+
+    // Check if PRESENT state is available, use setState animation instead of translation
+    if (leftPet.availableState.includes(ActionState.PRESENT)) {
+      animations.push(leftPet.setState(ActionState.PRESENT))
+    } else {
+      animations.push(animatePetEntry(leftPet, -battleViewWidth / 2 - 100, 0, animationDuration))
+    }
   }
   if (rightPet && rightPet.$el) {
     if (rightPetSpeciesNum.value !== 0) {
       playPetSound(rightPetSpeciesNum.value)
     }
-    animations.push(animatePetEntry(rightPet, battleViewWidth / 2 + 100, 0, animationDuration))
+
+    // Check if PRESENT state is available, use setState animation instead of translation
+    if (rightPet.availableState.includes(ActionState.PRESENT)) {
+      animations.push(rightPet.setState(ActionState.PRESENT))
+    } else {
+      animations.push(animatePetEntry(rightPet, battleViewWidth / 2 + 100, 0, animationDuration))
+    }
   }
   await Promise.all(animations)
 }
