@@ -52,3 +52,6 @@ mark_emblem_xuruo:
 mark_emblem_yinji:
   name: 印记
   description: 使用心之印记和血红印记技能时怒气消耗减少5
+mark_emblem_aide:
+  name: 爱的
+  description: 使自身获得爱的名义

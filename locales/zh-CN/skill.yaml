@@ -822,3 +822,54 @@ skill_xuehongyinji:
 skill_xinyuan:
   name: 心愿
   description: 恢复自身最大体力的1/4 连续使用效果减半
+skill_ruantang:
+  name: 软糖
+  description: 清除对手双攻强化
+skill_bingqilin:
+  name: 冰激凌
+  description: 清除对手速度强化
+skill_qiaokeli:
+  name: 巧克力
+  description: 清除对手双防强化
+skill_aideminyi:
+  name: 爱的名义
+  description: <font color=#93E312>必中</font> 使自身获得爱的名义
+skill_yongqi:
+  name: 勇气
+  description: 强化自身特攻1级 具有爱的名义时额外强化物防1级
+skill_xinxinxianxi:
+  name: 心心相惜
+  description: 【80】具有爱的名义时增加50点威力
+skill_shiyanzhiyue:
+  name: 誓言之约
+  description: 使自身获得誓言之约 具有爱的名义时恢复125点体力
+skill_xiaoyuezhishi:
+  name: 晓月之时
+  description: 【90】具有爱的名义时造成伤害不低于100点
+skill_jingyangshengxi:
+  name: 静养生息
+  description: 使自身获得静养生息及1/16的恢复
+skill_zhankaixinfei:
+  name: 绽放心扉
+  description: 【80】具有爱的名义时先制+1
+skill_yongbufenli:
+  name: 永不分离
+  description: 使自身获得免疫异常
+skill_yonghengzhiguang:
+  name: 永恒之光
+  description: 【85】具有爱的名义时使自身获得1/16的恢复
+skill_fuxiaozhike:
+  name: 拂晓之刻
+  description: <font color=#93E312>必中</font> 恢复自身最大体力的1/4
+skill_xinlingxiangtong:
+  name: 心灵相通
+  description: 先出手时使自身获得闪避
+skill_xinlingzhiyue:
+  name: 心灵制约
+  description: 【95】使对手获得心灵制约
+skill_xinlingzhuanhuan:
+  name: 心灵转换
+  description: 转移自身弱化
+skill_xinlingjinghua:
+  name: 心灵净化
+  description: 解除自身不良

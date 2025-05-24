@@ -82,3 +82,7 @@
 - id: mark_ability_pianxie
 - id: mark_ability_yinwang
 - id: mark_ability_qingying
+- id: mark_ability_youai
+  config: *ablitity_config
+  effect:
+    - effect_ability_damage_amplify_10_percent_has_aideminyi

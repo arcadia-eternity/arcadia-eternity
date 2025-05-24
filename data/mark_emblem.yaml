@@ -82,3 +82,7 @@
 - id: mark_emblem_huizhi
 - id: mark_emblem_yinbo
 - id: mark_emblem_xinsuo
+- id: mark_emblem_aide
+  config: *emblem_config
+  effect:
+    - effect_emblem_add_mark_aideminyi

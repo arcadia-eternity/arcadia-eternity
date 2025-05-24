@@ -34,6 +34,16 @@
     target: rageContext
     percent: 20
     delta: 0
+# 战斗开始时给自己添加爱的名义标记
+- id: effect_emblem_add_mark_aideminyi
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_aideminyi
 - id: effect_emblem_20percent_double_heal
   trigger: OnHeal
   priority: 0

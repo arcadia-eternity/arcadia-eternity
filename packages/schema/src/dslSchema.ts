@@ -336,6 +336,13 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       cleanStageStrategy: z.nativeEnum(CleanStageStrategy).optional().default(CleanStageStrategy.positive),
     }),
     z.object({
+      type: z.literal('transferStatStage'),
+      source: selectorDSLSchema,
+      target: selectorDSLSchema,
+      statType: valueSchema.optional(),
+      cleanStageStrategy: z.nativeEnum(CleanStageStrategy).optional().default(CleanStageStrategy.negative),
+    }),
+    z.object({
       type: z.literal('addRage'),
       target: selectorDSLSchema,
       value: valueSchema,
