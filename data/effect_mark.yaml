@@ -1225,26 +1225,6 @@
                 arg: maxHp
             - type: divide
               arg: 16
-# 血红印记：回合结束时对持有者造成最大体力1/8的伤害
-- id: effect_mark_xuehongyinji_damage_on_turn_end
-  trigger: TurnEnd
-  priority: 0
-  apply:
-    type: dealDamage
-    target: self
-    value:
-      type: dynamic
-      selector:
-        base: self
-        chain:
-          - type: select
-            arg:
-              type: base
-              arg: maxHp
-          - type: divide
-            arg: 8
-  condition:
-    type: checkSelf
 # 爱的名义：使自身所有技能必中
 - id: effect_mark_skill_sure_hit
   trigger: BeforeUseSkillCheck
