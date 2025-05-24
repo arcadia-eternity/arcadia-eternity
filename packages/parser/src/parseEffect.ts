@@ -73,7 +73,7 @@ export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
       return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition, dsl.consumesStacks, dsl.tags)
     }
   } catch (error) {
-    console.log(`解析${dsl.id}时出现问题,`, error)
+    console.error(`解析${dsl.id}时出现问题,`, error)
     throw error
   }
 }

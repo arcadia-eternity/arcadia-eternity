@@ -375,3 +375,9 @@ mark_shoufashanghaizengjia:
 mark_guanghua:
   name: 光滑
   description: 闪避所有技能，受到的伤害增加50%
+mark_zhunbeidongzuo:
+  name: 准备动作
+  description: 下一次攻击技能造成伤害增加50%且必中
+mark_lingqiao:
+  name: 灵巧
+  description: 闪避特攻 受到物攻伤害2倍

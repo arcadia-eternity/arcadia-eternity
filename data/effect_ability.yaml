@@ -479,3 +479,35 @@
     stat: accuracy
     modifierType: delta
     value: 5
+# 拳击系列特性效果
+# 高瞻：身高超过100CM时命中率增加5%
+- id: effect_ability_increase_accuracy_5_percent_if_height_above_100
+  trigger: OnBattleStart
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: stat
+            - type: select
+              arg:
+                type: dynamic
+                arg: height
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 100
+  apply:
+    type: addAttributeModifier
+    target:
+      base: self
+    stat: accuracy
+    modifierType: delta
+    value: 5

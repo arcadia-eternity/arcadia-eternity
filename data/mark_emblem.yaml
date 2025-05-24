@@ -86,3 +86,8 @@
   config: *emblem_config
   effect:
     - effect_emblem_add_mark_aideminyi
+# 拳击系列徽章
+- id: mark_emblem_quanzhi
+  config: *emblem_config
+  effect:
+    - effect_emblem_increase_quan_skill_damage_5_percent
