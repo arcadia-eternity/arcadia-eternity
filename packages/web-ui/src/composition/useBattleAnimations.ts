@@ -218,7 +218,7 @@ export function useBattleAnimations(
       ),
       concatMap(({ value, timestamp }) =>
         of(value).pipe(
-          delay(timestamp - Date.now()),
+          delay(Math.max(0, timestamp - Date.now())),
           tap(({ side, value }) => {
             const statusBounding = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
             if (!statusBounding) return
@@ -302,7 +302,7 @@ export function useBattleAnimations(
       ),
       concatMap(({ value, timestamp }) =>
         of(value).pipe(
-          delay(timestamp - Date.now()),
+          delay(Math.max(0, timestamp - Date.now())),
           tap(({ side, value, effectiveness, crit }) => {
             const activePetId = side === 'left' ? currentPlayer.value?.activePet : opponentPlayer.value?.activePet
             if (typeof activePetId !== 'string') return

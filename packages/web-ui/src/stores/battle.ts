@@ -10,6 +10,7 @@ import {
 } from '@arcadia-eternity/const'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import * as jsondiffpatch from 'jsondiffpatch'
+import { markRaw, toRaw } from 'vue'
 
 export const useBattleStore = defineStore('battle', {
   state: () => ({
@@ -28,7 +29,7 @@ export const useBattleStore = defineStore('battle', {
 
   actions: {
     async initBattle(battleInterface: IBattleSystem, playerId: string) {
-      this.battleInterface = battleInterface
+      this.battleInterface = markRaw(battleInterface)
       this.playerId = playerId
       this.battleState = await this.battleInterface.getState(playerId as playerId)
       this.isBattleEnd = false

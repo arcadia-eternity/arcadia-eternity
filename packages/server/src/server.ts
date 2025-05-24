@@ -1,5 +1,5 @@
 import { Battle } from '@arcadia-eternity/battle'
-import { BattleMessageType, type BattleState } from '@arcadia-eternity/const'
+import { BattleMessageType, BattleStatus, type BattleState } from '@arcadia-eternity/const'
 import { PlayerParser, SelectionParser } from '@arcadia-eternity/parser'
 import { ScriptLoader } from '@arcadia-eternity/data-repository'
 import type {
@@ -26,7 +26,7 @@ const logger = pino({
 type BattleRoom = {
   id: string
   battle: Battle
-  battleGenerator: Generator<void, void, void>
+  battlePromise?: Promise<void>
   players: Map<string, GamePlayer>
   playersReady: WeakMap<GamePlayer, boolean>
   status: 'waiting' | 'active' | 'ended'
@@ -525,7 +525,6 @@ export class BattleServer {
     this.rooms.set(roomId, {
       id: roomId,
       battle,
-      battleGenerator: battle.startBattle(),
       players: new Map([
         [p1.id, player1],
         [p2.id, player2],
@@ -552,19 +551,23 @@ export class BattleServer {
     }
   }
 
-  private cleanupRoom(roomId: string) {
+  private async cleanupRoom(roomId: string) {
     const room = this.rooms.get(roomId)
     if (!room) {
       logger.warn({ roomId }, '尝试清理不存在的房间')
       return
     }
-    if (room?.battleGenerator) {
+
+    // Clean up battle promise if it exists
+    if (room.battlePromise) {
       try {
-        room.battleGenerator.return() // 强制终止生成器
+        // The battle will naturally end when the promise resolves/rejects
+        await room.battle.cleanup()
       } catch (e) {
-        logger.error(e, '终止生成器失败')
+        logger.error(e, '清理战斗失败')
       }
     }
+
     room.battle.clearListeners()
     room.status = 'ended'
 
@@ -687,18 +690,16 @@ export class BattleServer {
   }
 
   private checkBattleProgress(room: BattleRoom) {
-    try {
-      const result = room.battleGenerator.next()
-      room.lastActive = Date.now()
-      if (result.done) {
-        room.status = 'ended'
-        this.cleanupRoom(room.id)
-      } else {
-        room.status = 'active'
-      }
-    } catch (error) {
+    // In the new phase-based system, battle progression is automatic
+    // We just need to update the last active time
+    room.lastActive = Date.now()
+
+    // Check if battle has ended
+    if (room.battle.status === BattleStatus.Ended) {
       room.status = 'ended'
-      logger.error({ error, roomId: room.id }, 'Battle progression error')
+      this.cleanupRoom(room.id)
+    } else if (room.status === 'waiting') {
+      room.status = 'active'
     }
   }
 
@@ -779,7 +780,13 @@ export class BattleServer {
 
     if (allPlayersReady) {
       logger.info({ roomId }, '所有玩家已准备，开始战斗')
-      room.battleGenerator.next()
+
+      // Start the phase-based battle
+      room.battlePromise = room.battle.startBattle().catch(error => {
+        logger.error({ error, roomId }, '战斗执行错误')
+        room.status = 'ended'
+        this.cleanupRoom(roomId)
+      })
     }
   }
 }

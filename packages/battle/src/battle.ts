@@ -9,7 +9,6 @@ import {
   EffectTrigger,
   type Events,
   type PlayerSelection,
-  RAGE_PER_TURN,
   type SwitchPetSelection,
   type petId,
   type playerId,
@@ -17,16 +16,7 @@ import {
 } from '@arcadia-eternity/const'
 import Prando from 'prando'
 import { ConfigSystem } from './config'
-import {
-  AddMarkContext,
-  Context,
-  RageContext,
-  RemoveMarkContext,
-  SwitchPetContext,
-  type TriggerContextMap,
-  TurnContext,
-  UseSkillContext,
-} from './context'
+import { AddMarkContext, Context, RemoveMarkContext, type TriggerContextMap } from './context'
 import { type EffectContainer, EffectScheduler } from './effect'
 import { type MarkOwner } from './entity'
 import { type MarkInstance, MarkSystem } from './mark'
@@ -36,6 +26,7 @@ import { SkillInstance } from './skill'
 import * as jsondiffpatch from 'jsondiffpatch'
 import { nanoid } from 'nanoid'
 import mitt from 'mitt'
+import { PhaseManager, SwitchPetPhase, TurnPhase } from './phase'
 
 export class Battle extends Context implements MarkOwner {
   private lastStateMessage: BattleState = {} as BattleState
@@ -49,6 +40,7 @@ export class Battle extends Context implements MarkOwner {
   public readonly effectScheduler: EffectScheduler = new EffectScheduler()
   public readonly configSystem: ConfigSystem = ConfigSystem.getInstance()
   public readonly markSystem: MarkSystem = new MarkSystem(this)
+  public readonly phaseManager: PhaseManager = new PhaseManager(this)
   public readonly emitter = mitt<Events>()
   private readonly rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
 
@@ -138,18 +130,7 @@ export class Battle extends Context implements MarkOwner {
     return this.playerA
   }
 
-  private addTurnRage(context: TurnContext) {
-    ;[this.playerA, this.playerB].forEach(player => {
-      player.addRage(new RageContext(context, player, 'turn', 'add', RAGE_PER_TURN))
-    })
-  }
-
-  private updateTurnMark(context: TurnContext) {
-    ;[this.playerA, this.playerB].forEach(player => {
-      player.activePet.marks.forEach(mark => mark.update(context))
-      player.activePet.marks = player.activePet.marks.filter(mark => mark.isActive)
-    })
-  }
+  // Turn rage and mark update logic moved to TurnPhase
 
   public cleanupMarks() {
     // 清理战场标记
@@ -208,86 +189,7 @@ export class Battle extends Context implements MarkOwner {
     this.effectScheduler.flushEffects(context)
   }
 
-  // 执行对战回合
-  private performTurn(context: TurnContext): boolean {
-    if (!this.playerA.selection || !this.playerB.selection) throw '有人还未选择好！'
-
-    for (const selection of [this.playerA.selection, this.playerB.selection]) {
-      const player = this.getPlayerByID(selection.player)
-      switch (selection.type) {
-        case 'use-skill': {
-          const skill = this.getSkillByID(selection.skill)
-          const skillContext = new UseSkillContext(context, player, player.activePet, skill.target, skill)
-          this.battle.applyEffects(skillContext, EffectTrigger.BeforeSort)
-          context.pushContext(skillContext)
-          break
-        }
-        case 'switch-pet': {
-          const pet = this.getPetByID(selection.pet)
-          const switchContext = new SwitchPetContext(context, player, pet)
-          context.pushContext(switchContext)
-          break
-        }
-        case 'do-nothing':
-          //确实啥都没干
-          break
-        case 'surrender': {
-          const player = this.getPlayerByID(selection.player)
-          this.victor = this.getOpponent(player)
-
-          this.status = BattleStatus.Ended
-          this.getVictor(true)
-          return true
-        }
-        default:
-          throw '未知的context'
-      }
-    }
-
-    this.currentTurn++
-
-    this.emitMessage(BattleMessageType.TurnStart, {
-      turn: this.currentTurn,
-    })
-    try {
-      this.applyEffects(context, EffectTrigger.TurnStart)
-      context.contextQueue = context.contexts.slice()
-      while (context.contextQueue.length > 0) {
-        const nowContext = context.contextQueue.pop()
-        if (!nowContext) break
-        context.appledContexts.push(nowContext)
-        switch (nowContext.type) {
-          case 'use-skill': {
-            const _context = nowContext as UseSkillContext
-            _context.origin.performAttack(_context)
-            break
-          }
-          case 'switch-pet': {
-            const _context = nowContext as SwitchPetContext
-            _context.origin.performSwitchPet(_context)
-            break
-          }
-        }
-        this.cleanupMarks()
-      }
-
-      this.applyEffects(context, EffectTrigger.TurnEnd)
-      this.addTurnRage(context) // 每回合结束获得怒气
-      this.updateTurnMark(context)
-      this.cleanupMarks()
-
-      // 战斗结束后重置状态
-      if (this.isBattleEnded()) {
-        return true
-      }
-
-      return false
-    } finally {
-      this.emitMessage(BattleMessageType.TurnEnd, {
-        turn: this.currentTurn,
-      })
-    }
-  }
+  // Turn execution logic has been moved to TurnPhase
 
   private isBattleEnded(): boolean {
     if (this.status === BattleStatus.Ended) return true
@@ -317,8 +219,8 @@ export class Battle extends Context implements MarkOwner {
     return isBattleEnded
   }
 
-  // 开始对战
-  public *startBattle(): Generator<void, void, void> {
+  // Phase-based battle start (main implementation)
+  public async startBattle(): Promise<void> {
     if (this.status != BattleStatus.Unstarted) throw '战斗已经开始过了！'
     this.status = BattleStatus.OnBattle
     this.applyEffects(this, EffectTrigger.OnBattleStart)
@@ -327,76 +229,34 @@ export class Battle extends Context implements MarkOwner {
       playerB: this.playerB.toMessage(),
     })
 
-    turnLoop: while (true) {
-      // 阶段1：处理强制换宠
+    // Main battle loop using phases
+    while (true) {
+      // Phase 1: Handle forced switches
       this.currentPhase = BattlePhase.SwitchPhase
-      while (!(this.playerA.activePet.isAlive && this.playerB.activePet.isAlive)) {
-        this.pendingDefeatedPlayers = [this.playerA, this.playerB].filter(player => !player.activePet.isAlive)
-        if (this.isBattleEnded()) {
-          break turnLoop
-        }
+      const forcedSwitchResult = await this.handleForcedSwitchPhase()
+      if (forcedSwitchResult.battleEnded) break
 
-        if (this.pendingDefeatedPlayers.length > 0) {
-          this.emitMessage(BattleMessageType.ForcedSwitch, {
-            player: this.pendingDefeatedPlayers.map(player => player.id),
-          })
-          while (
-            ![...this.pendingDefeatedPlayers].every(player => player.selection && player.selection.type == 'switch-pet')
-          ) {
-            yield
-          }
-          ;[...this.pendingDefeatedPlayers].forEach(player => {
-            const selectionPet = this.getPetByID((player.selection as SwitchPetSelection).pet)
-            player.performSwitchPet(new SwitchPetContext(this.battle!, player, selectionPet))
-            player.selection = null
-          })
-        }
-      }
-      this.pendingDefeatedPlayers = []
-
-      // 阶段2：击败方换宠
+      // Phase 2: Handle faint switch
       if (this.allowFaintSwitch && this.lastKiller) {
-        this.battle!.emitMessage(BattleMessageType.FaintSwitch, {
-          player: this.lastKiller.id,
-        })
-        while (!this.lastKiller.selection) {
-          yield // 等待玩家选择换宠
-        }
-
-        if (this.lastKiller.selection?.type === 'switch-pet') {
-          const selectionPet = this.getPetByID((this.lastKiller.selection as SwitchPetSelection).pet)
-          const switchContext = new SwitchPetContext(this, this.lastKiller, selectionPet)
-          // 执行换宠并触发相关效果
-          this.lastKiller.performSwitchPet(switchContext)
-
-          // 立即检查新宠物状态
-          if (!this.lastKiller.activePet.isAlive) {
-            this.pendingDefeatedPlayers.push(this.lastKiller)
-            this.lastKiller = undefined
-            continue // 直接跳回阶段1处理
-          }
-        }
-        this.lastKiller = undefined
+        const faintSwitchResult = await this.handleFaintSwitchPhase()
+        if (faintSwitchResult.battleEnded) break
+        if (faintSwitchResult.continueToForcedSwitch) continue
       }
 
-      // 阶段3：收集玩家指令
+      // Phase 3: Collect player actions
       this.currentPhase = BattlePhase.SelectionPhase
-      this.clearSelections()
-      this.emitMessage(BattleMessageType.TurnAction, {
-        player: [this.playerA.id, this.playerB.id],
-      })
-      while (!this.bothPlayersReady()) {
-        yield
-      }
+      await this.handleSelectionPhase()
 
-      // 阶段4：执行回合
+      // Phase 4: Execute turn
       this.currentPhase = BattlePhase.ExecutionPhase
-      const turnContext: TurnContext = new TurnContext(this)
-      if (this.performTurn(turnContext)) break turnLoop
+      const turnResult = await this.handleExecutionPhase()
+      if (turnResult.battleEnded) break
+
       this.clearSelections()
     }
-    return
   }
+
+  // Legacy generator method removed - use startBattlePhased() instead
 
   public getPendingSwitchPlayer(): Player | undefined {
     return this.pendingDefeatedPlayers.find(player => !player.selection)
@@ -410,7 +270,11 @@ export class Battle extends Context implements MarkOwner {
   public setSelection(selection: PlayerSelection): boolean {
     const player = [this.playerA, this.playerB].find(p => p.id === selection.player)
     if (!player) return false
-    return player.setSelection(selection)
+    const result = player.setSelection(selection)
+    if (result) {
+      this.checkWaitingResolvers()
+    }
+    return result
   }
 
   public getAvailableSelection(playerId: playerId): PlayerSelection[] {
@@ -470,7 +334,152 @@ export class Battle extends Context implements MarkOwner {
     return this.toMessage(viewerId, showHidden)
   }
 
-  public cleanup() {
+  // Phase handler methods for the new phase-based battle system
+
+  private async handleForcedSwitchPhase(): Promise<{ battleEnded: boolean }> {
+    while (!(this.playerA.activePet.isAlive && this.playerB.activePet.isAlive)) {
+      this.pendingDefeatedPlayers = [this.playerA, this.playerB].filter(player => !player.activePet.isAlive)
+      if (this.isBattleEnded()) {
+        return { battleEnded: true }
+      }
+
+      if (this.pendingDefeatedPlayers.length > 0) {
+        this.emitMessage(BattleMessageType.ForcedSwitch, {
+          player: this.pendingDefeatedPlayers.map(player => player.id),
+        })
+
+        // Wait for all players to make switch selections
+        await this.waitForSwitchSelections(this.pendingDefeatedPlayers)
+
+        // Execute switches using phase system
+        for (const player of this.pendingDefeatedPlayers) {
+          const selectionPet = this.getPetByID((player.selection as SwitchPetSelection).pet)
+          const switchPhase = new SwitchPetPhase(this, player, selectionPet, this)
+          await switchPhase.initialize()
+          await switchPhase.execute()
+          player.selection = null
+        }
+      }
+    }
+    this.pendingDefeatedPlayers = []
+    return { battleEnded: false }
+  }
+
+  private async handleFaintSwitchPhase(): Promise<{ battleEnded: boolean; continueToForcedSwitch: boolean }> {
+    this.emitMessage(BattleMessageType.FaintSwitch, {
+      player: this.lastKiller!.id,
+    })
+
+    // Wait for killer to make switch selection
+    await this.waitForSwitchSelection(this.lastKiller!)
+
+    if (this.lastKiller!.selection?.type === 'switch-pet') {
+      const selectionPet = this.getPetByID((this.lastKiller!.selection as SwitchPetSelection).pet)
+      const switchPhase = new SwitchPetPhase(this, this.lastKiller!, selectionPet, this)
+      await switchPhase.initialize()
+      await switchPhase.execute()
+
+      // Check if new pet is alive
+      if (!this.lastKiller!.activePet.isAlive) {
+        this.pendingDefeatedPlayers.push(this.lastKiller!)
+        this.lastKiller = undefined
+        return { battleEnded: false, continueToForcedSwitch: true }
+      }
+    }
+    this.lastKiller = undefined
+    return { battleEnded: false, continueToForcedSwitch: false }
+  }
+
+  private async handleSelectionPhase(): Promise<void> {
+    this.clearSelections()
+    this.emitMessage(BattleMessageType.TurnAction, {
+      player: [this.playerA.id, this.playerB.id],
+    })
+
+    // Wait for both players to make selections
+    await this.waitForBothPlayersReady()
+  }
+
+  private async handleExecutionPhase(): Promise<{ battleEnded: boolean }> {
+    const turnPhase = new TurnPhase(this)
+    await turnPhase.initialize()
+    await turnPhase.execute()
+
+    return { battleEnded: this.isBattleEnded() }
+  }
+
+  // Event-driven waiting methods (no timers)
+  private waitingResolvers: {
+    switchSelections?: { players: Player[]; resolve: () => void }
+    singleSelection?: { player: Player; resolve: () => void }
+    bothPlayersReady?: { resolve: () => void }
+  } = {}
+
+  private async waitForSwitchSelections(players: Player[]): Promise<void> {
+    // Check if already ready
+    if (players.every(player => player.selection && player.selection.type === 'switch-pet')) {
+      return
+    }
+
+    return new Promise<void>(resolve => {
+      this.waitingResolvers.switchSelections = { players, resolve }
+    })
+  }
+
+  private async waitForSwitchSelection(player: Player): Promise<void> {
+    // Check if already ready
+    if (player.selection) {
+      return
+    }
+
+    return new Promise<void>(resolve => {
+      this.waitingResolvers.singleSelection = { player, resolve }
+    })
+  }
+
+  private async waitForBothPlayersReady(): Promise<void> {
+    // Check if already ready
+    if (this.bothPlayersReady()) {
+      return
+    }
+
+    return new Promise<void>(resolve => {
+      this.waitingResolvers.bothPlayersReady = { resolve }
+    })
+  }
+
+  // Called when a player makes a selection to check if any waiting promises should resolve
+  private checkWaitingResolvers(): void {
+    // Check switch selections
+    if (this.waitingResolvers.switchSelections) {
+      const { players, resolve } = this.waitingResolvers.switchSelections
+      if (players.every(player => player.selection && player.selection.type === 'switch-pet')) {
+        this.waitingResolvers.switchSelections = undefined
+        resolve()
+      }
+    }
+
+    // Check single selection
+    if (this.waitingResolvers.singleSelection) {
+      const { player, resolve } = this.waitingResolvers.singleSelection
+      if (player.selection) {
+        this.waitingResolvers.singleSelection = undefined
+        resolve()
+      }
+    }
+
+    // Check both players ready
+    if (this.waitingResolvers.bothPlayersReady) {
+      const { resolve } = this.waitingResolvers.bothPlayersReady
+      if (this.bothPlayersReady()) {
+        this.waitingResolvers.bothPlayersReady = undefined
+        resolve()
+      }
+    }
+  }
+
+  public async cleanup() {
     this.clearListeners()
+    await this.phaseManager.cleanup()
   }
 }
