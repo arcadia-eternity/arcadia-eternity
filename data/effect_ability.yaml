@@ -441,6 +441,7 @@
     stat: evasion
     modifierType: delta
     value: 10
+
 # 红心：增加自身5%命中率
 - id: effect_ability_hongxin_increase_accuracy_5_percent
   trigger: OnBattleStart
@@ -451,4 +452,3 @@
       base: self
     stat: accuracy
     modifierType: delta
-    value: 5

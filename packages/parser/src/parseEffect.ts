@@ -210,7 +210,6 @@ function applySelectorStep(
 
       case 'selectAttribute$':
         return selector.selectAttribute$(step.arg) as ChainableSelector<SelectorOpinion>
-
       case 'asStatLevelMark':
         return selector.asStatLevelMark() as ChainableSelector<SelectorOpinion>
 
