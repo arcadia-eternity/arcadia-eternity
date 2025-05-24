@@ -452,3 +452,4 @@
       base: self
     stat: accuracy
     modifierType: delta
+    value: 5
