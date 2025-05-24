@@ -2603,3 +2603,162 @@
     - mark_ability_youai
   emblem:
     - mark_emblem_aide
+- id: pet_daerhou
+  num: 58
+  element: Normal
+  baseStats:
+    hp: 75
+    atk: 117
+    spa: 117
+    def: 110
+    spd: 110
+    spe: 111
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 35
+    - 40
+  weightRange:
+    - 13
+    - 18
+  learnable_skills:
+    - skill_id: skill_quanji
+      level: 1
+      hidden: false
+    - skill_id: skill_yili
+      level: 5
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 9
+      hidden: false
+    - skill_id: skill_zhunbeidongzuo
+      level: 14
+      hidden: false
+  ability:
+    - mark_ability_gaozhan
+  emblem:
+    - mark_emblem_quanzhi
+- id: pet_quantaohou
+  num: 59
+  element: Normal
+  baseStats:
+    hp: 115
+    atk: 147
+    spa: 147
+    def: 135
+    spd: 135
+    spe: 131
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 56
+    - 61
+  weightRange:
+    - 30
+    - 35
+  learnable_skills:
+    - skill_id: skill_quanji
+      level: 1
+      hidden: false
+    - skill_id: skill_yili
+      level: 5
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 9
+      hidden: false
+    - skill_id: skill_zhunbeidongzuo
+      level: 14
+      hidden: false
+    - skill_id: skill_xiagouquan
+      level: 19
+      hidden: false
+    - skill_id: skill_zuobaiquan
+      level: 24
+      hidden: false
+    - skill_id: skill_jiasu
+      level: 29
+      hidden: false
+    - skill_id: skill_lingqiao
+      level: 34
+      hidden: false
+  ability:
+    - mark_ability_gaozhan
+  emblem:
+    - mark_emblem_quanzhi
+- id: pet_changbihou
+  num: 60
+  element: Normal
+  baseStats:
+    hp: 175
+    atk: 177
+    spa: 177
+    def: 160
+    spd: 160
+    spe: 151
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 100
+    - 105
+  weightRange:
+    - 70
+    - 75
+  learnable_skills:
+    - skill_id: skill_quanji
+      level: 1
+      hidden: false
+    - skill_id: skill_yili
+      level: 5
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 9
+      hidden: false
+    - skill_id: skill_zhunbeidongzuo
+      level: 14
+      hidden: false
+    - skill_id: skill_xiagouquan
+      level: 19
+      hidden: false
+    - skill_id: skill_zuobaiquan
+      level: 24
+      hidden: false
+    - skill_id: skill_jiasu
+      level: 29
+      hidden: false
+    - skill_id: skill_lingqiao
+      level: 34
+      hidden: false
+    - skill_id: skill_shanggouquan
+      level: 39
+      hidden: false
+    - skill_id: skill_youbaiquan
+      level: 44
+      hidden: false
+    - skill_id: skill_xuruo
+      level: 49
+      hidden: false
+    - skill_id: skill_fanjidongzuo
+      level: 54
+      hidden: false
+    - skill_id: skill_shangxiazuoyouquan
+      level: 60
+      hidden: false
+    - skill_id: skill_xiaxiaxiagouquan
+      level: 60
+      hidden: true
+    - skill_id: skill_zuozuozuobaiquan
+      level: 60
+      hidden: true
+    - skill_id: skill_shangshangshanggouquan
+      level: 60
+      hidden: true
+    - skill_id: skill_youyouyoubaiquan
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_gaozhan
+  emblem:
+    - mark_emblem_quanzhi

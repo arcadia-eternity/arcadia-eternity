@@ -3844,3 +3844,316 @@
         value: mark_xinyuan_used
   condition:
     type: selfUseSkill
+# 拳击系列技能效果
+# 5%弱化对手物防1级
+- id: effect_skill_reduce_foe_def_1_stage_5_percent
+  trigger: OnDamage
+  priority: 0
+  apply:
+    type: statStageBuff
+    target:
+      base: foe
+    statType: def
+    value: -1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 5
+# 添加准备动作状态
+- id: effect_skill_add_mark_zhunbeidongzuo
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_zhunbeidongzuo
+  condition:
+    type: selfUseSkill
+# 自身身高＞对手时威力2倍
+- id: effect_skill_power_2x_if_height_greater_than_foe
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: stat
+            - type: select
+              arg:
+                type: dynamic
+                arg: height
+        evaluator:
+          type: compare
+          operator: '>'
+          value:
+            type: dynamic
+            selector:
+              base: foe
+              chain:
+                - type: select
+                  arg:
+                    type: dynamic
+                    arg: stat
+                - type: select
+                  arg:
+                    type: dynamic
+                    arg: height
+# 自身身高＞100时威力2倍
+- id: effect_skill_power_2x_if_height_above_100
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: stat
+            - type: select
+              arg:
+                type: dynamic
+                arg: height
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 100
+# 添加灵巧状态
+- id: effect_skill_add_mark_lingqiao
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_lingqiao
+  condition:
+    type: selfUseSkill
+# 自身身高＜对手时威力2倍
+- id: effect_skill_power_2x_if_height_less_than_foe
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: stat
+            - type: select
+              arg:
+                type: dynamic
+                arg: height
+        evaluator:
+          type: compare
+          operator: '<'
+          value:
+            type: dynamic
+            selector:
+              base: foe
+              chain:
+                - type: select
+                  arg:
+                    type: dynamic
+                    arg: stat
+                - type: select
+                  arg:
+                    type: dynamic
+                    arg: height
+# 自身身高＞100时必中
+- id: effect_skill_sure_hit_if_height_above_100
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target:
+      base: usingSkillContext
+    priority: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: stat
+            - type: select
+              arg:
+                type: dynamic
+                arg: height
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 100
+# 自身身高＞对手时连击3次
+- id: effect_skill_multihit_if_height_greater_than_foe
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: conditional
+    condition:
+      type: evaluate
+      target:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: stat
+          - type: select
+            arg:
+              type: dynamic
+              arg: height
+      evaluator:
+        type: compare
+        operator: '>'
+        value:
+          type: dynamic
+          selector:
+            base: foe
+            chain:
+              - type: select
+                arg:
+                  type: dynamic
+                  arg: stat
+              - type: select
+                arg:
+                  type: dynamic
+                  arg: height
+    trueOperator:
+      type: setMultihit
+      target:
+        base: usingSkillContext
+      value: 3
+    falseOperator:
+      type: setMultihit
+      target:
+        base: usingSkillContext
+      value: 1
+  condition:
+    type: selfUseSkill
+# 自身身高＞100时连击3次
+- id: effect_skill_multihit_if_height_above_100
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: conditional
+    condition:
+      type: evaluate
+      target:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: stat
+          - type: select
+            arg:
+              type: dynamic
+              arg: height
+      evaluator:
+        type: compare
+        operator: '>'
+        value: 100
+    trueOperator:
+      type: setMultihit
+      target:
+        base: usingSkillContext
+      value: 3
+    falseOperator:
+      type: setMultihit
+      target:
+        base: usingSkillContext
+      value: 1
+  condition:
+    type: selfUseSkill
+# 自身身高＜对手时连击3次
+- id: effect_skill_multihit_if_height_less_than_foe
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: conditional
+    condition:
+      type: evaluate
+      target:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: stat
+          - type: select
+            arg:
+              type: dynamic
+              arg: height
+      evaluator:
+        type: compare
+        operator: '<'
+        value:
+          type: dynamic
+          selector:
+            base: foe
+            chain:
+              - type: select
+                arg:
+                  type: dynamic
+                  arg: stat
+              - type: select
+                arg:
+                  type: dynamic
+                  arg: height
+    trueOperator:
+      type: setMultihit
+      target:
+        base: usingSkillContext
+      value: 3
+    falseOperator:
+      type: setMultihit
+      target:
+        base: usingSkillContext
+      value: 1
+  condition:
+    type: selfUseSkill

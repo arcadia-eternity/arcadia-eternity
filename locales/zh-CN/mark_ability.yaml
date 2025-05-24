@@ -55,3 +55,6 @@ mark_ability_hongxin:
 mark_ability_youai:
   name: 有爱
   description: 具有爱的名义时造成伤害增加10%
+mark_ability_gaozhan:
+  name: 高瞻
+  description: 身高超过100CM时命中率增加5%

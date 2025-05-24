@@ -86,3 +86,8 @@
   config: *ablitity_config
   effect:
     - effect_ability_damage_amplify_10_percent_has_aideminyi
+# 拳击系列特性
+- id: mark_ability_gaozhan
+  config: *ablitity_config
+  effect:
+    - effect_ability_increase_accuracy_5_percent_if_height_above_100

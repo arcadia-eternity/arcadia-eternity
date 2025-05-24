@@ -1329,3 +1329,72 @@
             arg: damageResult
           - type: multiply
             arg: 0.25
+# 拳击系列状态效果
+# 准备动作：下一次攻击技能造成伤害增加50%且必中
+- id: effect_mark_next_attack_damage_increase_50_percent_sure_hit
+  trigger: AfterUseSkillCheck
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: notSame
+          value: Status
+  apply:
+    - type: amplifyPower
+      target: usingSkillContext
+      value: 1.5
+    - type: setSureHit
+      target: usingSkillContext
+      priority: 1
+  consumesStacks: 1
+# 灵巧：闪避特攻，受到物攻伤害2倍
+- id: effect_mark_evasion_special_attacks
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: foeUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Special
+  apply:
+    type: setSureMiss
+    target: usingSkillContext
+    priority: -1
+- id: effect_mark_double_physical_damage_taken
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Physical
+  priority: 0
+  apply:
+    type: addModified
+    target:
+      base: damageContext
+    delta: 0
+    percent: 100

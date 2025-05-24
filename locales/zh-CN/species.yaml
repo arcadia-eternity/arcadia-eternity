@@ -139,3 +139,12 @@ pet_xiaoyuetu:
 pet_fuxiaotu:
   name: 拂晓兔
   description: 感受着来自心灵的交流 它在朦胧、静谧的佛晓之刻领悟到了最强的必杀
+pet_daerhou:
+  name: 大耳猴
+  description: 拳击系精灵的初始形态，拥有敏锐的听觉和强壮的拳头。
+pet_quantaohou:
+  name: 拳套猴
+  description: 进化后的拳击精灵，拳头更加有力，战斗技巧更加娴熟。
+pet_changbihou:
+  name: 长臂猴
+  description: 拳击系精灵的最终形态，拥有超长的手臂和无与伦比的拳击技巧。

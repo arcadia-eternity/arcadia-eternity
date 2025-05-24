@@ -666,6 +666,7 @@ export const BaseSelector: {
   }),
   usingSkillContext: createChainable<UseSkillContext>('UseSkillContext', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent]
+    if (context.parent.parent instanceof UseSkillContext) return [context.parent.parent]
     //TODO: error with use get context with non-Useskill context
     return []
   }),

@@ -873,3 +873,45 @@ skill_xinlingzhuanhuan:
 skill_xinlingjinghua:
   name: 心灵净化
   description: 解除自身不良
+skill_quanji:
+  name: 拳击
+  description: 5%弱化对手物防1级
+skill_zhunbeidongzuo:
+  name: 准备动作
+  description: 使自身获得准备动作
+skill_xiagouquan:
+  name: 下勾拳
+  description: 自身身高＞对手时威力2倍
+skill_zuobaiquan:
+  name: 左摆拳
+  description: 自身身高＞100时威力2倍
+skill_lingqiao:
+  name: 灵巧
+  description: 使自身获得灵巧
+skill_shanggouquan:
+  name: 上勾拳
+  description: 自身身高＜对手时威力2倍
+skill_youbaiquan:
+  name: 右摆拳
+  description: 自身身高＞100时<font color=#93E312>必中</font>
+skill_fanjidongzuo:
+  name: 反击动作
+  description: 使自身获得反弹
+skill_shangxiazuoyouquan:
+  name: 上下左右拳
+  description: <font color=#93E312>必中</font>
+skill_xiaxiaxiagouquan:
+  name: 下下下勾拳
+  description: 自身身高＞对手时连击3次
+skill_zuozuozuobaiquan:
+  name: 左左左摆拳
+  description: 自身身高＞100时连击3次
+skill_shangshangshanggouquan:
+  name: 上上上勾拳
+  description: 自身身高＜对手时连击3次
+skill_youyouyoubaiquan:
+  name: 右右右摆拳
+  description: 自身身高＞100时<font color=#93E312>必中</font>
+skill_yili:
+  name: 毅力
+  description: 强化自身物攻1级

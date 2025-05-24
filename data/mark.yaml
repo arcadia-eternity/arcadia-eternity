@@ -923,3 +923,27 @@
   effect:
     - effect_mark_evade
     - effect_mark_increase_damage_taken_50
+# 拳击系列状态
+- id: mark_zhunbeidongzuo
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: false
+  effect:
+    - effect_mark_next_attack_damage_increase_50_percent_sure_hit
+- id: mark_lingqiao
+  config:
+    duration: 2
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: false
+  effect:
+    - effect_mark_evasion_special_attacks
+    - effect_mark_double_physical_damage_taken

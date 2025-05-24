@@ -430,3 +430,33 @@
             evaluator:
               type: same
               value: skill_xuehongyinji
+# 拳击系列徽章效果
+# 拳之：技能名中带有拳的技能伤害增加5%
+- id: effect_emblem_increase_quan_skill_damage_5_percent
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill
+            - type: select
+              arg:
+                type: base
+                arg: tags
+            - type: flat
+        evaluator:
+          type: contain
+          tag: quan
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 5
+    delta: 0

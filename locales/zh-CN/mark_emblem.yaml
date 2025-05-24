@@ -55,3 +55,6 @@ mark_emblem_yinji:
 mark_emblem_aide:
   name: 爱的
   description: 使自身获得爱的名义
+mark_emblem_quanzhi:
+  name: 拳之
+  description: 技能名中带有拳的技能伤害增加5%
