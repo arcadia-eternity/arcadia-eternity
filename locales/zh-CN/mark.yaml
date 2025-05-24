@@ -316,6 +316,9 @@ mark_xinzhiyinji:
 mark_xuehongyinji:
   name: 血红印记
   description: 效果=心之印记且不消耗
+mark_xinyuan_used:
+  name: 心愿使用
+  description: 心愿技能效果减半
 mark_houkongfan:
   name: 后空翻
   description: 闪避物攻 受到特攻伤害2倍

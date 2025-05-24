@@ -145,6 +145,12 @@ export type AddMultihitResultOpreator = {
   value: Value
 }
 
+export type SetMultihitOpreator = {
+  type: 'setMultihit'
+  target: SelectorDSL
+  value: Value
+}
+
 export type TransferMarkOpreator = {
   type: 'transferMark'
   target: SelectorDSL
@@ -288,6 +294,12 @@ export type SetMarkInheritOnFaintOpreator = {
   value: Value
 }
 
+export type SetStatLevelMarkLevelOpreator = {
+  type: 'setStatLevelMarkLevel'
+  target: SelectorDSL
+  value: Value
+}
+
 export type AddValueOpreator = {
   type: 'addValue'
   target: SelectorDSL
@@ -356,6 +368,7 @@ export type OperatorDSL =
   | AddPowerOpreator
   | AddCritRateOpreator
   | AddMultihitResultOpreator
+  | SetMultihitOpreator
   | TransferMarkOpreator
   | DestroyMarkOpreator
   | StunOpreator
@@ -380,6 +393,7 @@ export type OperatorDSL =
   | SetMarkKeepOnSwitchOutOpreator
   | SetMarkTransferOnSwitchOpreator
   | SetMarkInheritOnFaintOpreator
+  | SetStatLevelMarkLevelOpreator
   | AddValueOpreator
   | SetValueOpreator
   | ToggleOpreator
@@ -550,6 +564,9 @@ export type SelectorChain =
   | {
       type: 'selectAttribute$'
       arg: string
+    }
+  | {
+      type: 'asStatLevelMark'
     }
   | WhenSelectorStep
 

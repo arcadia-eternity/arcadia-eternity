@@ -1594,7 +1594,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_hunzhuoshuiyu #TODO
+    - effect_skill_add_mark_hunzhuoshuiyu
 - id: skill_linweiyichui
   element: Normal
   category: Physical
@@ -3166,4 +3166,163 @@
   ignoreShield: false
   effect:
     - effect_skill_add_mark_mianyibuliang
+  tags: []
+- id: skill_hongxin
+  element: Normal
+  category: Special
+  target: opponent
+  power: 55
+  accuracy: 95
+  rage: 5
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_foe_mingzhongxiajiang_5
+  tags: []
+- id: skill_rouruan
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_raise_spd_1_stages
+  tags: []
+- id: skill_xinzhiyinji
+  element: Normal
+  category: Special
+  target: opponent
+  power: 65
+  accuracy: 95
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_foe_xinzhiyinji
+  tags: []
+- id: skill_xinlianxin
+  element: Normal
+  category: Special
+  target: opponent
+  power: 95
+  accuracy: 60
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_consume_xinzhiyinji_sure_hit
+  tags: ['consume_xinzhiyinji']
+- id: skill_jianren
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_raise_def_1_stages
+    - effect_skill_raise_spd_1_stages
+  tags: []
+- id: skill_hongxinyu
+  element: Normal
+  category: Special
+  target: opponent
+  power: 25
+  accuracy: 95
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  multihit: 1
+  effect:
+    - effect_skill_consume_xinzhiyinji_multihit
+    - effect_skill_consume_xinzhiyinji_multihit_consume
+  tags: ['consume_xinzhiyinji']
+- id: skill_rourun
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_fantan
+  tags: []
+- id: skill_quanlichongfeng
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 110
+  accuracy: 80
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_raise_atk_1_stage_15_percent
+  tags: []
+- id: skill_mantianhongxin
+  element: Normal
+  category: Climax
+  target: opponent
+  power: 160
+  accuracy: 100
+  rage: 100
+  sureHit: true
+  ignoreShield: false
+  effect:
+    - effect_skill_raise_spa_1_stage_10_percent
+  tags: []
+- id: skill_xinxinxiangyin
+  element: Normal
+  category: Special
+  target: opponent
+  power: 80
+  accuracy: 95
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_consume_xinzhiyinji_power_2x
+  tags: ['consume_xinzhiyinji']
+- id: skill_dahongxin
+  element: Normal
+  category: Status
+  target: opponent
+  power: 0
+  accuracy: 100
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_foe_mingzhongxiajiang_15
+  tags: []
+- id: skill_xuehongyinji
+  element: Normal
+  category: Status
+  target: opponent
+  power: 0
+  accuracy: 95
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_foe_xuehongyinji
+  tags: []
+- id: skill_xinyuan
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_heal_self_quarter_diminishing
   tags: []

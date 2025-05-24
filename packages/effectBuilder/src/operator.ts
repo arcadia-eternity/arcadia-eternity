@@ -1,6 +1,7 @@
 import {
   AddMarkContext,
   BaseMark,
+  BaseStatLevelMark,
   Battle,
   ConfigSystem,
   type ConfigValue,
@@ -378,6 +379,17 @@ export const Operators = {
       })
     },
 
+  setMultihit:
+    (value: ValueSource<number | [number, number]>): Operator<UseSkillContext> =>
+    (context: EffectContext<EffectTrigger>, contexts: UseSkillContext[]) => {
+      contexts.forEach(skillCtx => {
+        const finalValue = GetValueFromSource(context, value)
+        if (finalValue.length > 0) {
+          skillCtx.multihit = finalValue[0]
+        }
+      })
+    },
+
   statStageBuff:
     (statType: ValueSource<StatTypeWithoutHp>, value: ValueSource<number>): Operator<Pet> =>
     (context: EffectContext<EffectTrigger>, target: Pet[]) => {
@@ -590,6 +602,23 @@ export const Operators = {
       targets.forEach((target, index) => {
         const strat = strategies[index % strategies.length]
         if (strat) target.setStackStrategy(strat)
+      })
+    }
+  },
+
+  /** 设置StatLevelMark的等级 */
+  setStatLevelMarkLevel: (level: ValueSource<number>): Operator<AddMarkContext> => {
+    return (context, targets) => {
+      const levels = GetValueFromSource(context, level)
+      targets.forEach((target, index) => {
+        const lvl = levels[index % levels.length]
+        if (lvl !== undefined && target.baseMark instanceof BaseStatLevelMark) {
+          // 创建一个新的BaseStatLevelMark实例，使用修改后的level
+          const newBaseMark = new BaseStatLevelMark(target.baseMark.statType, lvl, target.baseMark.id)
+          target.baseMark = newBaseMark
+          // 同时更新stack值以保持一致性
+          target.stack = Math.abs(lvl)
+        }
       })
     }
   },

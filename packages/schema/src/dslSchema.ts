@@ -84,18 +84,21 @@ const conditionalValueSchema = z.lazy(() =>
   }),
 )
 
-export const valueSchema: z.ZodSchema<Value> = z.union([
-  rawNumberValueSchema,
-  z.number(),
-  rawStringValueSchema,
-  z.string(),
-  rawBooleanValueSchema,
-  z.boolean(),
-  rawBaseMarkIdValueSchema,
-  rawBaseSkillIdValueSchema,
-  dynamicValueSchema,
-  conditionalValueSchema,
-])
+export const valueSchema: z.ZodSchema<Value> = z.lazy(() =>
+  z.union([
+    rawNumberValueSchema,
+    z.number(),
+    rawStringValueSchema,
+    z.string(),
+    rawBooleanValueSchema,
+    z.boolean(),
+    rawBaseMarkIdValueSchema,
+    rawBaseSkillIdValueSchema,
+    dynamicValueSchema,
+    conditionalValueSchema,
+    z.array(valueSchema),
+  ]),
+)
 
 export const extractorSchema: z.ZodSchema<ExtractorDSL> = z.lazy(() =>
   z.union([
@@ -195,6 +198,9 @@ export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
     z.object({
       type: z.literal('selectAttribute$'),
       arg: z.string(),
+    }),
+    z.object({
+      type: z.literal('asStatLevelMark'),
     }),
     whenSelectorStepSchema,
   ]),
@@ -355,6 +361,11 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       value: valueSchema,
     }),
     z.object({
+      type: z.literal('setMultihit'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
       type: z.literal('transferMark'),
       target: selectorDSLSchema,
       mark: dynamicValueSchema,
@@ -470,6 +481,11 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
     }),
     z.object({
       type: z.literal('setMarkInheritOnFaint'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('setStatLevelMarkLevel'),
       target: selectorDSLSchema,
       value: valueSchema,
     }),

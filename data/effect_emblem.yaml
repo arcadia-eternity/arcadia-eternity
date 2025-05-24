@@ -342,3 +342,81 @@
         evaluator:
           type: same
           value: mark_yanhuo
+- id: effect_emblem_xuruo_10percent_extra_debuff_stack
+  trigger: OnBeforeAddMark
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfAddMark
+      - type: statStageChange
+        check: down
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 10
+  apply:
+    type: setMarkStack
+    target: addMarkContext
+    value:
+      type: dynamic
+      selector:
+        base: addMarkContext
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: add
+            arg: 1
+# 印记徽章：使啾啾心之印记和血红印记技能的怒气消耗减少5
+- id: effect_emblem_yinji_reduce_rage_cost_xinzhiyinji
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  apply:
+    type: setValue
+    target:
+      base: usingSkillContext
+      chain:
+        - type: selectProp
+          arg: rage
+    value:
+      type: dynamic
+      selector:
+        base: usingSkillContext
+        chain:
+          - type: selectPath
+            arg: rage
+          - type: add
+            arg: -5
+          - type: clampMin
+            arg: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: some
+        conditions:
+          - type: evaluate
+            target:
+              base: usingSkillContext
+              chain:
+                - type: selectPath
+                  arg: skill
+                - type: select
+                  arg: baseId
+            evaluator:
+              type: same
+              value: skill_xinzhiyinji
+          - type: evaluate
+            target:
+              base: usingSkillContext
+              chain:
+                - type: selectPath
+                  arg: skill
+                - type: select
+                  arg: baseId
+            evaluator:
+              type: same
+              value: skill_xuehongyinji

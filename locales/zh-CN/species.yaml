@@ -124,3 +124,12 @@ pet_shuimodian:
 pet_shuimofeima:
   name: 水墨飞马
   description: 经过艰难的成长 强韧的双翼让水墨飞马游得像箭一样快
+pet_jiujiu:
+  name: 啾啾
+  description: 可爱的小精灵 总是发出啾啾的叫声 喜欢用红心印记来表达友好
+pet_weiniqiujiu:
+  name: 维尼啾啾
+  description: 进化后的啾啾变得更加温和 擅长用心之印记与其他精灵建立联系
+pet_kadunqiujiu:
+  name: 卡顿啾啾
+  description: 最终进化形态 拥有强大的力量和温柔的内心 能够释放满天红心的绚烂技能

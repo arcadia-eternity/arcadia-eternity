@@ -76,6 +76,9 @@
   effect:
     - effect_ability_add_self_evasion_10
 - id: mark_ability_hongxin
+  config: *ablitity_config
+  effect:
+    - effect_ability_hongxin_increase_accuracy_5_percent
 - id: mark_ability_pianxie
 - id: mark_ability_yinwang
 - id: mark_ability_qingying

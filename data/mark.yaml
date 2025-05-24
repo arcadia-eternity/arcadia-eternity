@@ -320,9 +320,9 @@
     stackable: true
     stackStrategy: refresh
     destroyable: true
-    keepOnSwitchOut: true
+    keepOnSwitchOut: false
   effect:
-    - effect_mark_reflect_damage_1_4
+    - effect_mark_fantan_reflect_damage
 - id: mark_teshushanghaizengjia
   config:
     duration: -1
@@ -558,11 +558,11 @@
     persistent: false
     maxStacks: 1
     stackable: true
-    stackStrategy: extend
+    stackStrategy: refresh
     destroyable: true
     keepOnSwitchOut: true
-  # effect:
-  #    - effect_mark_double_stage_debuff
+  effect:
+    - effect_mark_double_stage_debuff
 - id: mark_judushenti
   config:
     duration: 5
@@ -645,7 +645,36 @@
   effect: [] #TODO
 - id: mark_mianyiyichang
 - id: mark_xinzhiyinji
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: false
+  effect: []
 - id: mark_xuehongyinji
+  config:
+    duration: 5
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: false
+  effect:
+    - effect_mark_xuehongyinji_damage_on_turn_end
+- id: mark_xinyuan_used
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect: []
 - id: mark_texiaochufalvshangsheng
 - id: mark_kongqichuliang
   config:
