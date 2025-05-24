@@ -19,33 +19,26 @@ export class HealPhase extends BattlePhaseBase<HealContext> {
     private readonly value: number,
     private readonly ignoreEffect: boolean = false,
     private readonly modified: [number, number] = [0, 0],
-    id?: string
+    id?: string,
   ) {
     super(battle, id)
   }
 
   protected createContext(): HealContext {
-    return new HealContext(
-      this.parentContext,
-      this.source,
-      this.target,
-      this.value,
-      this.ignoreEffect,
-      this.modified
-    )
+    return new HealContext(this.parentContext, this.source, this.target, this.value, this.ignoreEffect, this.modified)
   }
 
   protected getEffectTriggers() {
     return {
       before: [],
       during: [EffectTrigger.OnHeal],
-      after: []
+      after: [],
     }
   }
 
   protected async executeOperation(): Promise<void> {
     const context = this._context!
-    
+
     // Execute the heal operation logic (extracted from Pet.heal)
     await executeHealOperation(context, this.battle)
   }
@@ -57,7 +50,7 @@ export class HealPhase extends BattlePhaseBase<HealContext> {
  */
 export async function executeHealOperation(context: HealContext, battle: Battle): Promise<void> {
   battle.applyEffects(context, EffectTrigger.OnHeal)
-  
+
   if (!context.available) {
     battle.emitMessage(BattleMessageType.HealFail, {
       target: context.target.id,
@@ -65,15 +58,15 @@ export async function executeHealOperation(context: HealContext, battle: Battle)
     })
     return
   }
-  
-  if (!context.target.isActive) {
+
+  if (!context.target.isActive || context.target.currentHp <= 0) {
     battle.emitMessage(BattleMessageType.HealFail, {
       target: context.target.id,
       reason: 'disactivated',
     })
     return
   }
-  
+
   // Apply healing
   const newHp = Math.floor(Math.min(context.target.stat.maxHp!, context.target.currentHp + context.value))
   context.target.currentHp = newHp

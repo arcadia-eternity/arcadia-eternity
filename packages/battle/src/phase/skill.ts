@@ -19,19 +19,13 @@ export class SkillPhase extends BattlePhaseBase<UseSkillContext> {
     private readonly selectTarget: AttackTargetOpinion,
     private readonly skill: SkillInstance,
     private readonly parentContext: any, // TurnContext or other parent
-    id?: string
+    id?: string,
   ) {
     super(battle, id)
   }
 
   protected createContext(): UseSkillContext {
-    return new UseSkillContext(
-      this.parentContext,
-      this.origin,
-      this.pet,
-      this.selectTarget,
-      this.skill
-    )
+    return new UseSkillContext(this.parentContext, this.origin, this.pet, this.selectTarget, this.skill)
   }
 
   protected getEffectTriggers() {
@@ -45,15 +39,15 @@ export class SkillPhase extends BattlePhaseBase<UseSkillContext> {
         EffectTrigger.OnMiss,
         EffectTrigger.PreDamage,
         EffectTrigger.OnCritPreDamage,
-        EffectTrigger.OnDefeat
+        EffectTrigger.OnDefeat,
       ],
-      after: []
+      after: [],
     }
   }
 
   protected async executeOperation(): Promise<void> {
     const context = this._context!
-    
+
     // Execute the skill operation logic (extracted from performAttack)
     await executeSkillOperation(context, this.battle)
   }
@@ -155,7 +149,7 @@ export async function executeSkillOperation(context: UseSkillContext, battle: Ba
             context.ignoreShield,
             context.randomFactor,
           )
-          
+
           // Apply damage
           context.actualTarget.damage(damageContext)
 
@@ -165,7 +159,7 @@ export async function executeSkillOperation(context: UseSkillContext, battle: Ba
             new RageContext(context, context.actualTarget.owner!, 'damage', 'add', gainedRage),
           )
         }
-        
+
         battle.applyEffects(context, EffectTrigger.OnHit) // Trigger hit effects
       }
     }

@@ -18,7 +18,7 @@ export class RagePhase extends BattlePhaseBase<RageContext> {
     private readonly value: number,
     private readonly ignoreRageObtainEfficiency: boolean = false,
     private readonly modified: [number, number] = [0, 0],
-    id?: string
+    id?: string,
   ) {
     super(battle, id)
   }
@@ -31,7 +31,7 @@ export class RagePhase extends BattlePhaseBase<RageContext> {
       this.modifiedType,
       this.value,
       this.ignoreRageObtainEfficiency,
-      this.modified
+      this.modified,
     )
   }
 
@@ -39,13 +39,13 @@ export class RagePhase extends BattlePhaseBase<RageContext> {
     return {
       before: [],
       during: [EffectTrigger.OnRageGain, EffectTrigger.OnRageLoss],
-      after: []
+      after: [],
     }
   }
 
   protected async executeOperation(): Promise<void> {
     const context = this._context!
-    
+
     // Execute the rage operation logic (extracted from Player.addRage)
     await executeRageOperation(context, this.battle)
   }

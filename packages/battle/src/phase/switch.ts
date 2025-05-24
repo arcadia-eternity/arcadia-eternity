@@ -15,7 +15,7 @@ export class SwitchPetPhase extends BattlePhaseBase<SwitchPetContext> {
     private readonly origin: Player,
     private readonly target: Pet,
     private readonly parentContext: any, // TurnContext or other parent
-    id?: string
+    id?: string,
   ) {
     super(battle, id)
   }
@@ -28,13 +28,13 @@ export class SwitchPetPhase extends BattlePhaseBase<SwitchPetContext> {
     return {
       before: [],
       during: [EffectTrigger.OnSwitchOut, EffectTrigger.OnSwitchIn],
-      after: []
+      after: [],
     }
   }
 
   protected async executeOperation(): Promise<void> {
     const context = this._context!
-    
+
     // Execute the switch operation logic (extracted from performSwitchPet)
     await executeSwitchPetOperation(context, this.battle)
   }
@@ -49,8 +49,8 @@ export async function executeSwitchPetOperation(context: SwitchPetContext, battl
 
   // Check if new pet is available
   if (!player.team.includes(context.target) || !context.target.isAlive) {
-    battle.emitMessage(BattleMessageType.Error, { 
-      message: `${context.target.name} 无法出战！` 
+    battle.emitMessage(BattleMessageType.Error, {
+      message: `${context.target.name} 无法出战！`,
     })
     return
   }
@@ -62,18 +62,18 @@ export async function executeSwitchPetOperation(context: SwitchPetContext, battl
 
   // Execute switch
   const oldPet = player.activePet
-  
+
   // Apply switch out effects
   battle.applyEffects(context, EffectTrigger.OnSwitchOut)
   oldPet.switchOut(context)
-  
+
   // Switch the active pet
   player.activePet = context.target
-  
+
   // Apply switch in effects
   battle.applyEffects(context, EffectTrigger.OnSwitchIn)
   player.activePet.switchIn(context)
-  
+
   // Emit switch message
   battle.emitMessage(BattleMessageType.PetSwitch, {
     player: player.id,
