@@ -219,7 +219,7 @@ export class UseSkillContext extends Context {
         break
       case Category.Special:
         atk = this.pet.actualStat.spa
-        def = this.actualTarget.getEffectiveStat(false, this.ignoreStageStrategy).def
+        def = this.actualTarget.getEffectiveStat(false, this.ignoreStageStrategy).spd
         this.damageType = DamageType.Special
         break
       case Category.Climax:
