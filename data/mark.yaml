@@ -558,11 +558,11 @@
     persistent: false
     maxStacks: 1
     stackable: true
-    stackStrategy: extend
+    stackStrategy: refresh
     destroyable: true
     keepOnSwitchOut: true
-  # effect:
-  #    - effect_mark_double_stage_debuff
+  effect:
+    - effect_mark_double_stage_debuff
 - id: mark_judushenti
   config:
     duration: 5

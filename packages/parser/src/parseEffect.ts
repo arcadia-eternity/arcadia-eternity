@@ -211,6 +211,9 @@ function applySelectorStep(
       case 'selectAttribute$':
         return selector.selectAttribute$(step.arg) as ChainableSelector<SelectorOpinion>
 
+      case 'asStatLevelMark':
+        return selector.asStatLevelMark() as ChainableSelector<SelectorOpinion>
+
       case 'when':
         return selector.when(
           parseCondition(effectId, step.condition),
@@ -391,6 +394,8 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseSetMarkTransferOnSwitch(effectId, dsl)
     case 'setMarkInheritOnFaint':
       return parseSetMarkInheritOnFaint(effectId, dsl)
+    case 'setStatLevelMarkLevel':
+      return parseSetStatLevelMarkLevel(effectId, dsl)
     case 'addValue':
       return parseAddValue(effectId, dsl)
     case 'setValue':
@@ -715,6 +720,15 @@ export function parseSetMarkInheritOnFaint(
 ) {
   return parseSelector<AddMarkContext>(effectId, dsl.target).apply(
     Operators.setMarkInheritOnFaint(parseValue(effectId, dsl.value) as ValueSource<boolean>),
+  )
+}
+
+export function parseSetStatLevelMarkLevel(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'setStatLevelMarkLevel' }>,
+) {
+  return parseSelector<AddMarkContext>(effectId, dsl.target).apply(
+    Operators.setStatLevelMarkLevel(parseValue(effectId, dsl.value) as ValueSource<number>),
   )
 }
 

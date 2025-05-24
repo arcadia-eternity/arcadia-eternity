@@ -196,6 +196,9 @@ export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
       type: z.literal('selectAttribute$'),
       arg: z.string(),
     }),
+    z.object({
+      type: z.literal('asStatLevelMark'),
+    }),
     whenSelectorStepSchema,
   ]),
 )
@@ -470,6 +473,11 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
     }),
     z.object({
       type: z.literal('setMarkInheritOnFaint'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
+      type: z.literal('setStatLevelMarkLevel'),
       target: selectorDSLSchema,
       value: valueSchema,
     }),

@@ -288,6 +288,12 @@ export type SetMarkInheritOnFaintOpreator = {
   value: Value
 }
 
+export type SetStatLevelMarkLevelOpreator = {
+  type: 'setStatLevelMarkLevel'
+  target: SelectorDSL
+  value: Value
+}
+
 export type AddValueOpreator = {
   type: 'addValue'
   target: SelectorDSL
@@ -380,6 +386,7 @@ export type OperatorDSL =
   | SetMarkKeepOnSwitchOutOpreator
   | SetMarkTransferOnSwitchOpreator
   | SetMarkInheritOnFaintOpreator
+  | SetStatLevelMarkLevelOpreator
   | AddValueOpreator
   | SetValueOpreator
   | ToggleOpreator
@@ -550,6 +557,9 @@ export type SelectorChain =
   | {
       type: 'selectAttribute$'
       arg: string
+    }
+  | {
+      type: 'asStatLevelMark'
     }
   | WhenSelectorStep
 

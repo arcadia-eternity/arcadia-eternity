@@ -8,6 +8,7 @@ import {
   UseSkillContext,
   SkillInstance,
   BaseMark,
+  BaseStatLevelMark,
   BaseSkill,
   HealContext,
   AddMarkContext,
@@ -546,6 +547,15 @@ export class ChainableSelector<T> {
       if (_key.length === 0) return []
       return this.selector(context).map(target => context.battle.configSystem.get(_key[0], target))
     }, 'any') //TODO: 这里的类型
+  }
+
+  // 类型转换方法：将BaseMark转换为BaseStatLevelMark
+  asStatLevelMark(): ChainableSelector<BaseStatLevelMark> {
+    return new ChainableSelector<BaseStatLevelMark>(context => {
+      return this.selector(context).filter(
+        (item: any): item is BaseStatLevelMark => item instanceof BaseStatLevelMark,
+      ) as BaseStatLevelMark[]
+    }, 'BaseStatLevelMark')
   }
 }
 // 类型增强装饰器

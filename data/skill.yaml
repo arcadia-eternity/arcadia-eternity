@@ -1594,7 +1594,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_hunzhuoshuiyu #TODO
+    - effect_skill_add_mark_hunzhuoshuiyu
 - id: skill_linweiyichui
   element: Normal
   category: Physical

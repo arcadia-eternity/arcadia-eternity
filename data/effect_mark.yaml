@@ -893,24 +893,26 @@
   trigger: OnBeforeAddMark
   priority: 0
   apply:
-    [] #TODO
-    # type: setMarkStack
-    # target: addMarkContext
-    # value:
-    #   type: dynamic
-    #   selector:
-    #     base: addMarkContext
-    #     chain:
-    #       - type: select
-    #         arg:
-    #           type: dynamic
-    #           arg: stack
-    #       - type: multiply
-    #         arg: 2
+    type: setStatLevelMarkLevel
+    target: addMarkContext
+    value:
+      type: dynamic
+      selector:
+        base: addMarkContext
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: baseMark
+          - type: asStatLevelMark
+          - type: selectPath
+            arg: initialLevel
+          - type: multiply
+            arg: 2
   condition:
     type: every
     conditions:
-      - type: selfBeAddMark
+      - type: foeBeAddMark
       - type: statStageChange
         check: down
 - id: effect_mark_when_attacked_add_foe_mark_zhongdu_50_percent
