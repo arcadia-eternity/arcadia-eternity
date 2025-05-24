@@ -663,8 +663,6 @@
     stackStrategy: refresh
     destroyable: true
     keepOnSwitchOut: false
-  effect:
-    - effect_mark_xuehongyinji_damage_on_turn_end
 - id: mark_xinyuan_used
   config:
     duration: -1
@@ -695,7 +693,7 @@
     stackable: false
     stackStrategy: extend
     destroyable: true
-    keepOnSwitchOut: false
+    keepOnSwitchOut: true
   effect:
     - effect_mark_skill_sure_hit
 - id: mark_shiyanzhiyue
@@ -706,7 +704,7 @@
     stackable: false
     stackStrategy: refresh
     destroyable: true
-    keepOnSwitchOut: false
+    keepOnSwitchOut: true
   effect:
     - effect_mark_heal_all_hp_on_expire
 - id: mark_xinlingzhiyue
@@ -717,7 +715,7 @@
     stackable: true
     stackStrategy: stack
     destroyable: true
-    keepOnSwitchOut: false
+    keepOnSwitchOut: true
   effect:
     - effect_mark_limit_rage_gain
 - id: mark_jingyangshengxi

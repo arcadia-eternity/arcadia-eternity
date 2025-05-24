@@ -315,7 +315,7 @@ mark_xinzhiyinji:
   description: ''
 mark_xuehongyinji:
   name: 血红印记
-  description: 效果=心之印记且不消耗
+  description: 视为心之印记且不消耗
 mark_xinyuan_used:
   name: 心愿使用
   description: 心愿技能效果减半
