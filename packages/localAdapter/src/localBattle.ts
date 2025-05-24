@@ -3,16 +3,20 @@ import { Battle } from '@arcadia-eternity/battle'
 import type { BattleMessage, BattleState, playerId, PlayerSelection } from '@arcadia-eternity/const'
 
 export class LocalBattleSystem implements IBattleSystem {
-  private generator: Generator<void, void, void>
-  private inited: boolean = false
-  constructor(private battle: Battle) {
-    this.generator = battle.startBattle()
-  }
+  private battleStarted: boolean = false
+  private battlePromise?: Promise<void>
+
+  constructor(private battle: Battle) {}
 
   async ready(): Promise<void> {
-    if (this.inited) return
-    this.generator.next()
-    this.inited = true
+    if (this.battleStarted) return
+    this.battleStarted = true
+
+    // Start the battle asynchronously
+    this.battlePromise = this.battle.startBattle().catch(error => {
+      console.error('Battle error:', error)
+      throw error
+    })
   }
 
   async getAvailableSelection(playerId: playerId) {
@@ -21,7 +25,6 @@ export class LocalBattleSystem implements IBattleSystem {
 
   async submitAction(selection: PlayerSelection) {
     this.battle.setSelection(selection)
-    this.generator.next()
   }
 
   async getState(playerId?: playerId, showHidden = false): Promise<BattleState> {
@@ -31,5 +34,10 @@ export class LocalBattleSystem implements IBattleSystem {
   BattleEvent(callback: (message: BattleMessage) => void): () => void {
     this.battle.registerListener(callback)
     return () => {}
+  }
+
+  // Get the battle promise for external handling if needed
+  getBattlePromise(): Promise<void> | undefined {
+    return this.battlePromise
   }
 }

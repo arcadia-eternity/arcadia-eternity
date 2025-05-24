@@ -19,6 +19,8 @@ import { Battle } from './battle'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { Pet } from './pet'
 import { PlayerAttributeSystem } from './attributeSystem'
+import { executeSkillOperation } from './phase/skill'
+import { executeSwitchPetOperation } from './phase/switch'
 import * as jsondiffpatch from 'jsondiffpatch'
 import type { Emitter } from 'mitt'
 
@@ -191,157 +193,16 @@ export class Player {
   }
 
   public performSwitchPet(context: SwitchPetContext) {
-    const player = context.origin
-
-    // 检查新宠物是否可用
-    if (!player.team.includes(context.target) || !context.target.isAlive) {
-      this.battle!.emitMessage(BattleMessageType.Error, { message: `${context.target.name} 无法出战！` })
-      return
-    }
-    if (player.activePet === context.target) {
-      //如果所换上的就是首发的精灵，则不做任何操作
-      return
-    }
-
-    // 执行换宠
-    const oldPet = player.activePet
-    context.battle.applyEffects(context, EffectTrigger.OnSwitchOut)
-    oldPet.switchOut(context)
-    player.activePet = context.target
-    context.battle.applyEffects(context, EffectTrigger.OnSwitchIn)
-    player.activePet.switchIn(context)
-    this.battle!.emitMessage(BattleMessageType.PetSwitch, {
-      player: this.id,
-      fromPet: oldPet.id,
-      toPet: context.target.id,
-      currentHp: context.target.currentHp,
-    })
-
-    // 换宠后怒气为原怒气的80%
-    player.settingRage(Math.floor(player.currentRage * 0.8))
+    // Switch logic has been moved to SwitchPetPhase
+    // This method now delegates to the phase system
+    executeSwitchPetOperation(context, this.battle!)
   }
 
   public performAttack(context: UseSkillContext): boolean {
-    if (this.activePet.lastSkill && this.activePet.lastSkill.id === context.skill.id) {
-      this.activePet.lastSkillUsedTimes += 1
-    } else {
-      this.activePet.lastSkill = context.skill
-      this.activePet.lastSkillUsedTimes = 1
-    }
-    context.skill.appeared = true
-
-    this.battle!.applyEffects(context, EffectTrigger.BeforeUseSkillCheck)
-    context.updateActualTarget()
-
-    /*几个无法使用技能的情况：
-    1.当前使用技能的精灵倒下了（生命值低于0或标明了isAlive=false）
-    2.当前的释放技能被打断（通过context.available=false）
-    3.当前的目标不存在
-     */
-    if (context.pet.currentHp <= 0 || !context.pet.isAlive || !context.available || !context.actualTarget) {
-      this.battle!.emitMessage(BattleMessageType.SkillUseFail, {
-        user: context.pet.id,
-        skill: context.skill.id,
-        reason: !context.pet.isAlive ? 'faint' : !context.actualTarget ? 'invalid_target' : 'disabled',
-      })
-      return context.defeated
-    }
-    if (context.origin.currentRage < context.rage) {
-      // 怒气检查
-      this.battle!.emitMessage(BattleMessageType.SkillUseFail, {
-        user: context.pet.id,
-        skill: context.skill.id,
-        reason: 'no_rage',
-      })
-      return context.defeated
-    }
-
-    this.battle!.emitMessage(BattleMessageType.SkillUse, {
-      user: context.pet.id,
-      target: context.selectTarget,
-      skill: context.skill.id,
-      baseSkill: context.skill.baseId,
-      rage: context.rage,
-    })
-    try {
-      context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.skill.rage))
-
-      this.battle!.applyEffects(context, EffectTrigger.AfterUseSkillCheck)
-
-      context.updateHitResult()
-      context.updateMultihitResult()
-      context.updateCritResult()
-
-      this.battle!.applyEffects(context, EffectTrigger.BeforeMultiHit)
-
-      for (; context.multihitResult > 0; context.multihitResult--) {
-        // 命中判定
-        if (!context.hitResult) {
-          this.battle!.emitMessage(BattleMessageType.SkillMiss, {
-            user: context.pet.id,
-            target: context.actualTarget.id,
-            skill: context.skill.id,
-            reason: 'accuracy',
-          })
-          this.battle!.applyEffects(context, EffectTrigger.OnMiss)
-          // 后面都会Miss，没必要继续检定了
-          break
-        } else {
-          this.battle!.applyEffects(context, EffectTrigger.BeforeHit)
-
-          //开始计算伤害
-          if (context.category !== Category.Status) {
-            context.updateDamageResult()
-
-            if (context.crit) this.battle!.applyEffects(context, EffectTrigger.OnCritPreDamage)
-            this.battle!.applyEffects(context, EffectTrigger.PreDamage)
-
-            const damageContext = new DamageContext(
-              context,
-              context.pet,
-              context.actualTarget,
-              context.baseDamage,
-              context.damageType,
-              context.crit,
-              context.typeMultiplier,
-              context.ignoreShield,
-              context.randomFactor,
-            )
-            // 应用伤害
-            context.actualTarget.damage(damageContext)
-
-            // 受伤者获得怒气
-            const gainedRage = Math.floor((damageContext.damageResult * 49) / context.actualTarget.stat.maxHp)
-            context.actualTarget.owner!.addRage(
-              new RageContext(context, context.actualTarget.owner!, 'damage', 'add', gainedRage),
-            )
-          }
-          this.battle!.applyEffects(context, EffectTrigger.OnHit) // 触发命中特效
-        }
-      }
-
-      if (context.category !== Category.Status && context.hitResult) {
-        context.origin.addRage(new RageContext(context, context.origin, 'skillHit', 'add', 15)) //命中奖励
-      }
-
-      if (context.actualTarget.currentHp <= 0) {
-        this.battle!.emitMessage(BattleMessageType.PetDefeated, {
-          pet: context.actualTarget.id,
-          killer: context.pet.id,
-        })
-        context.actualTarget.isAlive = false
-        this.battle!.applyEffects(context, EffectTrigger.OnDefeat) // 触发击败特效
-
-        this.battle!.lastKiller = context.origin
-        context.defeated = true
-      }
-      return context.defeated
-    } finally {
-      this.battle?.cleanupMarks()
-      this.battle!.emitMessage(BattleMessageType.SkillUseEnd, {
-        user: context.pet.id,
-      })
-    }
+    // Attack logic has been moved to SkillPhase
+    // This method now delegates to the phase system
+    executeSkillOperation(context, this.battle!)
+    return context.defeated
   }
 
   public settingRage(value: number) {

@@ -32,6 +32,8 @@ import { BaseMark, CreateStatStageMark, type MarkInstance, StatLevelMarkInstance
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
 import { PetAttributeSystem } from './attributeSystem'
+import { executeDamageOperation } from './phase/damage'
+import { executeHealOperation } from './phase/heal'
 import type { Emitter } from 'mitt'
 
 export interface Species extends Prototype {
@@ -134,80 +136,16 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   public damage(context: DamageContext): boolean {
-    //通过技能威力造成伤害的事件
-    if (context.source instanceof Pet) {
-      context.battle.applyEffects(context, EffectTrigger.OnBeforeCalculateDamage)
-      context.updateDamageResult()
-      context.battle.applyEffects(context, EffectTrigger.OnDamage)
-      if (!context.available) {
-        context.battle.emitMessage(BattleMessageType.DamageFail, {
-          source: context.source.id,
-          target: this.id,
-          reason: 'disabled',
-        })
-        return this.isAlive
-      }
-      if (!context.ignoreShield) {
-        context.battle.applyEffects(context, EffectTrigger.Shield)
-        const shields = this.getShieldMark()
-        shields.forEach(s => {
-          context.damageResult -= s.consumeStack(context, context.damageResult)
-        })
-      }
-    } else {
-      context.updateDamageResult()
-    }
-    this.currentHp = Math.max(0, this.currentHp - context.damageResult)
-
-    context.battle!.emitMessage(BattleMessageType.Damage, {
-      currentHp: this.currentHp,
-      maxHp: this.stat.maxHp!,
-      source: context.source.id,
-      target: this.id,
-      damage: context.damageResult,
-      isCrit: context.crit,
-      effectiveness: context.effectiveness,
-      damageType: context.damageType,
-    })
-
-    if (context.source instanceof Pet) {
-      context.battle.applyEffects(context, EffectTrigger.PostDamage)
-      if (context.crit) {
-        context.battle.applyEffects(context, EffectTrigger.OnCritPostDamage) // 触发暴击后特效
-      }
-    }
-
-    if (this.currentHp === 0) {
-      this.isAlive = false
-    }
-
+    // Damage logic has been moved to DamagePhase
+    // This method now delegates to the phase system
+    executeDamageOperation(context, context.battle)
     return this.isAlive
   }
 
   public heal(context: HealContext): boolean {
-    context.battle.applyEffects(context, EffectTrigger.OnHeal)
-    if (!context.available) {
-      context.battle.emitMessage(BattleMessageType.HealFail, {
-        target: this.id,
-        reason: 'disabled',
-      })
-      return this.isAlive
-    }
-    if (!context.target.isActive) {
-      context.battle.emitMessage(BattleMessageType.HealFail, {
-        target: this.id,
-        reason: 'disactivated',
-      })
-      return this.isAlive
-    }
-    this.currentHp = Math.floor(Math.min(this.stat.maxHp!, this.currentHp + context.value))
-
-    context.battle.emitMessage(BattleMessageType.Heal, {
-      target: this.id,
-      amount: context.value,
-      source: 'effect',
-    })
-
+    // Heal logic has been moved to HealPhase
+    // This method now delegates to the phase system
+    executeHealOperation(context, context.battle)
     return this.isAlive
   }
 
@@ -219,7 +157,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     context.battle.markSystem.removeMark(this, context)
   }
 
-  private getShieldMark() {
+  public getShieldMark() {
     return this.marks.filter(m => m.config.isShield)
   }
 
