@@ -2486,3 +2486,120 @@
     - mark_ability_hongxin
   emblem:
     - mark_emblem_yinji
+- id: pet_xiaoyuetu
+  num: 61
+  element: Psychic
+  baseStats:
+    hp: 90
+    atk: 120
+    def: 120
+    spa: 135
+    spd: 115
+    spe: 115
+  genderRatio:
+    - 10
+    - 10
+  heightRange:
+    - 37
+    - 42
+  weightRange:
+    - 15
+    - 20
+  learnable_skills:
+    - skill_id: skill_ruantang
+      level: 1
+      hidden: false
+    - skill_id: skill_bingqilin
+      level: 4
+      hidden: false
+    - skill_id: skill_qiaokeli
+      level: 7
+      hidden: false
+    - skill_id: skill_aideminyi
+      level: 12
+      hidden: false
+    - skill_id: skill_yongqi
+      level: 18
+      hidden: false
+    - skill_id: skill_xinxinxianxi
+      level: 24
+      hidden: false
+  ability:
+    - mark_ability_youai
+  emblem:
+    - mark_emblem_aide
+- id: pet_fuxiaotu
+  num: 62
+  element: Psychic
+  baseStats:
+    hp: 180
+    atk: 165
+    def: 165
+    spa: 185
+    spd: 160
+    spe: 165
+  genderRatio:
+    - 10
+    - 10
+  heightRange:
+    - 65
+    - 70
+  weightRange:
+    - 30
+    - 35
+  learnable_skills:
+    - skill_id: skill_ruantang
+      level: 1
+      hidden: false
+    - skill_id: skill_bingqilin
+      level: 4
+      hidden: false
+    - skill_id: skill_qiaokeli
+      level: 7
+      hidden: false
+    - skill_id: skill_aideminyi
+      level: 12
+      hidden: false
+    - skill_id: skill_yongqi
+      level: 18
+      hidden: false
+    - skill_id: skill_xinxinxianxi
+      level: 24
+      hidden: false
+    - skill_id: skill_shiyanzhiyue
+      level: 26
+      hidden: false
+    - skill_id: skill_xiaoyuezhishi
+      level: 31
+      hidden: false
+    - skill_id: skill_jingyangshengxi
+      level: 36
+      hidden: false
+    - skill_id: skill_zhankaixinfei
+      level: 41
+      hidden: false
+    - skill_id: skill_yongbufenli
+      level: 46
+      hidden: false
+    - skill_id: skill_yonghengzhiguang
+      level: 52
+      hidden: false
+    - skill_id: skill_fuxiaozhike
+      level: 60
+      hidden: true
+    - skill_id: skill_xinlingxiangtong
+      level: 60
+      hidden: true
+    - skill_id: skill_xinlingzhiyue
+      level: 60
+      hidden: true
+    - skill_id: skill_xinlingzhuanhuan
+      level: 60
+      hidden: true
+    - skill_id: skill_xinlingjinghua
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_youai
+  emblem:
+    - mark_emblem_aide

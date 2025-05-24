@@ -3080,7 +3080,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_suijixianzhi #TODO
+    - effect_skill_add_mark_suijixianzhi
   tags: []
 - id: skill_xuanzhuanshuiqiang
   element: Water
@@ -3325,4 +3325,211 @@
   ignoreShield: false
   effect:
     - effect_skill_heal_self_quarter_diminishing
+  tags: []
+- id: skill_ruantang
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 55
+  accuracy: 100
+  rage: 0
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_clear_foe_atk_spa_buff
+  tags: []
+- id: skill_bingqilin
+  element: Normal
+  category: Special
+  target: opponent
+  power: 55
+  accuracy: 100
+  rage: 0
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_clear_foe_spe_buff
+  tags: []
+- id: skill_qiaokeli
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 55
+  accuracy: 100
+  rage: 0
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_clear_foe_def_spd_buff
+  tags: []
+- id: skill_aideminyi
+  element: Psychic
+  category: Special
+  target: opponent
+  power: 65
+  accuracy: 100
+  rage: 10
+  sureHit: true
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_self_aideminyi
+  tags: []
+- id: skill_yongqi
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_raise_spa_1_stages
+    - effect_skill_raise_def_1_stages_if_aideminyi
+  tags: []
+- id: skill_xinxinxianxi
+  element: Psychic
+  category: Special
+  target: opponent
+  power: 75
+  accuracy: 80
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_power_50_if_aideminyi
+  tags: []
+- id: skill_shiyanzhiyue
+  element: Psychic
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_self_shiyanzhiyue
+    - effect_skill_heal_125_if_aideminyi
+  tags: []
+- id: skill_xiaoyuezhishi
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 105
+  accuracy: 90
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_minimum_damage_100_if_aideminyi
+  tags: []
+- id: skill_jingyangshengxi
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 0
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_jingyangshengxi
+    - effect_skill_add_mark_huifu_1_16
+  tags: []
+- id: skill_zhankaixinfei
+  element: Psychic
+  category: Physical
+  target: opponent
+  power: 65
+  accuracy: 80
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_priority_plus_1_if_aideminyi
+  tags: []
+- id: skill_yongbufenli
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_mianyibuliang
+  tags: []
+- id: skill_yonghengzhiguang
+  element: Psychic
+  category: Special
+  target: opponent
+  power: 115
+  accuracy: 85
+  rage: 25
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_self_huifu_1_16_if_aideminyi
+  tags: []
+- id: skill_fuxiaozhike
+  element: Psychic
+  category: Climax
+  target: opponent
+  power: 165
+  accuracy: 100
+  rage: 100
+  sureHit: true
+  ignoreShield: false
+  effect:
+    - effect_skill_heal_self_quarter
+  tags: []
+- id: skill_xinlingxiangtong
+  element: Psychic
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 25
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_shanbi_if_first
+  tags: []
+- id: skill_xinlingzhiyue
+  element: Psychic
+  category: Status
+  target: opponent
+  power: 0
+  accuracy: 95
+  rage: 0
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_add_mark_foe_xinlingzhiyue
+  tags: []
+- id: skill_xinlingzhuanhuan
+  element: Psychic
+  category: Status
+  target: opponent
+  power: 0
+  accuracy: 100
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_transfer_debuff_stage_to_foe
+  tags: []
+- id: skill_xinlingjinghua
+  element: Psychic
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_clear_status
   tags: []

@@ -3215,6 +3215,322 @@
       value: mark_huoxing
   condition:
     type: selfUseSkill
+# 清除对手攻击和特攻的正面能力等级变化
+- id: effect_skill_clear_foe_atk_spa_buff
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: clearStatStage
+    target: foe
+    statType:
+      - atk
+      - spa
+    cleanStageStrategy: positive
+  condition:
+    type: selfUseSkill
+# 清除对手速度的正面能力等级变化
+- id: effect_skill_clear_foe_spe_buff
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: clearStatStage
+    target: foe
+    statType:
+      - spe
+    cleanStageStrategy: positive
+  condition:
+    type: selfUseSkill
+# 清除对手防御和特防的正面能力等级变化
+- id: effect_skill_clear_foe_def_spd_buff
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: clearStatStage
+    target: foe
+    statType:
+      - def
+      - spd
+    cleanStageStrategy: positive
+  condition:
+    type: selfUseSkill
+# 给自己添加爱的名义标记
+- id: effect_skill_add_mark_self_aideminyi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_aideminyi
+  condition:
+    type: selfUseSkill
+# 如果有爱的名义标记，防御提升1级
+- id: effect_skill_raise_def_1_stages_if_aideminyi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: self
+    statType: def
+    value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_aideminyi
+        evaluator:
+          type: exist
+# 如果有爱的名义标记，技能威力增加50
+- id: effect_skill_add_power_50_if_aideminyi
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: usingSkillContext
+    value: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_aideminyi
+        evaluator:
+          type: exist
+# 给自己添加誓言之约标记
+- id: effect_skill_add_mark_self_shiyanzhiyue
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shiyanzhiyue
+  condition:
+    type: selfUseSkill
+# 如果有爱的名义标记，恢复125点体力
+- id: effect_skill_heal_125_if_aideminyi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value: 125
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_aideminyi
+        evaluator:
+          type: exist
+# 如果有爱的名义标记，最小伤害100
+- id: effect_skill_minimum_damage_100_if_aideminyi
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addThreshold
+    target: damageContext
+    min: 100
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_aideminyi
+        evaluator:
+          type: exist
+# 如果有爱的名义标记，先制+1
+- id: effect_skill_priority_plus_1_if_aideminyi
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addValue
+    target:
+      base: usingSkillContext
+      chain:
+        - type: selectProp
+          arg: priority
+    value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_aideminyi
+        evaluator:
+          type: exist
+# 如果有爱的名义标记，恢复自身最大体力的1/16
+- id: effect_skill_heal_self_1_16_if_aideminyi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: maxHp
+          - type: divide
+            arg: 16
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_aideminyi
+        evaluator:
+          type: exist
+# 如果是本回合第一个技能，给自己添加闪避标记
+- id: effect_skill_add_mark_shanbi_if_first
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shanbi
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isFirstSkillUsedThisTurn
+# 给对手添加心灵制约标记
+- id: effect_skill_add_mark_foe_xinlingzhiyue
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_xinlingzhiyue
+  condition:
+    type: selfUseSkill
+# 转移自身负面能力等级变化给对手
+- id: effect_skill_transfer_debuff_stage_to_foe
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: transferStatStage
+    source: self
+    target: foe
+    cleanStageStrategy: negative
+  condition:
+    type: selfUseSkill
+# 给自己添加静养生息标记
+- id: effect_skill_add_mark_jingyangshengxi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_jingyangshengxi
+  condition:
+    type: selfUseSkill
+# 给自己添加1/16恢复标记
+- id: effect_skill_add_mark_huifu_1_16
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_huifu_1_16
+  condition:
+    type: selfUseSkill
+# 如果有爱的名义标记，给自己添加1/16恢复标记
+- id: effect_skill_add_mark_self_huifu_1_16_if_aideminyi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_huifu_1_16
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_aideminyi
+        evaluator:
+          type: exist
 # 如果目标身上有“烧伤”标记，则移除该标记，并对目标造成150点伤害。
 - id: effect_skill_ignite_foe_mark_shaoshang
   trigger: OnHit
@@ -3295,7 +3611,6 @@
       value: mark_suijixianzhi
   condition:
     type: selfUseSkill
-# 啾啾进化链技能效果
 - id: effect_skill_add_mark_foe_xinzhiyinji
   trigger: OnHit
   priority: 0

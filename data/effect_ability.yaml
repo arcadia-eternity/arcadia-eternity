@@ -244,6 +244,32 @@
     target: damageContext
     percent: 10
     delta: 0
+# 如果有爱的名义标记，伤害增幅10%
+- id: effect_ability_damage_amplify_10_percent_has_aideminyi
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_aideminyi
+        evaluator:
+          type: exist
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 10
+    delta: 0
 - id: effect_ability_add_water_skill_accuracy_5_percent_has_kongqichuliang
   trigger: AfterUseSkillCheck
   priority: 0

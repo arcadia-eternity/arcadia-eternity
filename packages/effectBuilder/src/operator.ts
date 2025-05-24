@@ -14,11 +14,13 @@ import {
   Pet,
   Player,
   RageContext,
+  RemoveMarkContext,
   type ScopeObject,
   SkillInstance,
   UseSkillContext,
   Modifier,
   DurationType,
+  StatLevelMarkInstanceImpl,
 } from '@arcadia-eternity/battle'
 import { Observable } from 'rxjs'
 import {
@@ -407,6 +409,56 @@ export const Operators = {
       const _statTypes = statType ? GetValueFromSource(context, statType) : undefined
       if (!_statTypes) target.forEach(v => v.clearStatStage(context))
       else target.forEach(v => v.clearStatStage(context, cleanStageStrategy, ..._statTypes))
+    },
+
+  transferStatStage:
+    (
+      source: ValueSource<Pet>,
+      target: ValueSource<Pet>,
+      cleanStageStrategy: CleanStageStrategy = CleanStageStrategy.negative,
+      statType?: ValueSource<StatTypeWithoutHp>,
+    ): Operator<Pet> =>
+    (context: EffectContext<EffectTrigger>, _: Pet[]) => {
+      const _sources = GetValueFromSource(context, source)
+      const _targets = GetValueFromSource(context, target)
+      const _statTypes = statType ? GetValueFromSource(context, statType) : undefined
+
+      if (_sources.length === 0 || _targets.length === 0) return
+
+      const sourcePet = _sources[0]
+      const targetPet = _targets[0]
+
+      // Determine which stat types to transfer
+      const statTypesToTransfer = _statTypes || [
+        StatTypeWithoutHp.atk,
+        StatTypeWithoutHp.def,
+        StatTypeWithoutHp.spa,
+        StatTypeWithoutHp.spd,
+        StatTypeWithoutHp.spe,
+      ]
+
+      statTypesToTransfer.forEach(statType => {
+        // Find all stat stage marks for this stat type on source pet
+        const statStageMarks = sourcePet.marks.filter(
+          mark => mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType,
+        ) as StatLevelMarkInstanceImpl[]
+
+        statStageMarks.forEach(mark => {
+          const stage = mark.level
+          const shouldTransfer =
+            cleanStageStrategy === CleanStageStrategy.all ||
+            (cleanStageStrategy === CleanStageStrategy.positive && stage > 0) ||
+            (cleanStageStrategy === CleanStageStrategy.negative && stage < 0)
+
+          if (shouldTransfer) {
+            // Add the same stage to target pet
+            targetPet.addStatStage(context, statType, stage)
+
+            // Remove the mark from source pet
+            mark.destroy(new RemoveMarkContext(context, mark))
+          }
+        })
+      })
     },
 
   setValue: <U extends SelectorOpinion, V extends PrimitiveOpinion>(

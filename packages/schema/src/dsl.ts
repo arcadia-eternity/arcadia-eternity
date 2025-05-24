@@ -115,6 +115,14 @@ export type ClearStatStageOpreator = {
   cleanStageStrategy?: CleanStageStrategy
 }
 
+export type TransferStatStageOpreator = {
+  type: 'transferStatStage'
+  source: SelectorDSL
+  target: SelectorDSL
+  statType?: Value
+  cleanStageStrategy?: CleanStageStrategy
+}
+
 export type AddRageOpreator = {
   type: 'addRage'
   target: SelectorDSL
@@ -363,6 +371,7 @@ export type OperatorDSL =
   | AddClampModifierOpreator
   | StatStageBuffOpreator
   | ClearStatStageOpreator
+  | TransferStatStageOpreator
   | AddRageOpreator
   | AmplifyPowerOpreator
   | AddPowerOpreator

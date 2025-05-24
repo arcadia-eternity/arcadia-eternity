@@ -335,6 +335,8 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseStatStageBuffAction(effectId, dsl)
     case 'clearStatStage':
       return parseClearStatStage(effectId, dsl)
+    case 'transferStatStage':
+      return parseTransferStatStage(effectId, dsl)
     case 'addRage':
       return parseAddRageAction(effectId, dsl)
     case 'amplifyPower':
@@ -546,6 +548,17 @@ export function parseClearStatStage(effectId: string, dsl: Extract<OperatorDSL, 
     Operators.clearStatStage(
       dsl.statType ? (parseValue(effectId, dsl.statType) as ValueSource<StatTypeWithoutHp>) : undefined,
       dsl.cleanStageStrategy,
+    ),
+  )
+}
+
+export function parseTransferStatStage(effectId: string, dsl: Extract<OperatorDSL, { type: 'transferStatStage' }>) {
+  return parseSelector<Pet>(effectId, 'self').apply(
+    Operators.transferStatStage(
+      parseSelector<Pet>(effectId, dsl.source) as ValueSource<Pet>,
+      parseSelector<Pet>(effectId, dsl.target) as ValueSource<Pet>,
+      dsl.cleanStageStrategy,
+      dsl.statType ? (parseValue(effectId, dsl.statType) as ValueSource<StatTypeWithoutHp>) : undefined,
     ),
   )
 }

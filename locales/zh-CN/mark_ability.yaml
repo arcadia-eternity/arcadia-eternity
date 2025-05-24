@@ -52,3 +52,6 @@ mark_ability_guanghua:
 mark_ability_hongxin:
   name: 红心
   description: 增加自身5%命中率
+mark_ability_youai:
+  name: 有爱
+  description: 具有爱的名义时造成伤害增加10%

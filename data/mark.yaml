@@ -687,6 +687,61 @@
     keepOnSwitchOut: true
 - id: mark_yinbozhi
 - id: mark_zaoyin
+- id: mark_aideminyi
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: false
+  effect:
+    - effect_mark_skill_sure_hit
+- id: mark_shiyanzhiyue
+  config:
+    duration: 5
+    persistent: false
+    maxStacks: 1
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: false
+  effect:
+    - effect_mark_heal_all_hp_on_expire
+- id: mark_xinlingzhiyue
+  config:
+    duration: 3
+    persistent: false
+    maxStacks: 10
+    stackable: true
+    stackStrategy: stack
+    destroyable: true
+    keepOnSwitchOut: false
+  effect:
+    - effect_mark_limit_rage_gain
+- id: mark_jingyangshengxi
+  config:
+    duration: 10
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_add_rage_10_turnEnd
+- id: mark_huifu_1_16
+  config:
+    duration: 5
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_heal_self_1_16_turnEnd
 - id: mark_yinzhiwang
 - id: mark_zhifanghudun
   config:

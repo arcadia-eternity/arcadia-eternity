@@ -4,7 +4,6 @@ import { TurnContext, RageContext, UseSkillContext, SwitchPetContext } from '../
 import { SkillPhase } from './skill'
 import { SwitchPetPhase } from './switch'
 import type { Battle } from '../battle'
-import type { PlayerSelection } from '@arcadia-eternity/const'
 
 /**
  * TurnPhase handles turn execution operations
@@ -21,9 +20,9 @@ export class TurnPhase extends InteractivePhase<TurnContext> {
 
   protected getEffectTriggers() {
     return {
-      before: [EffectTrigger.TurnStart],
+      before: [],
       during: [], // Individual actions handle their own effects
-      after: [EffectTrigger.TurnEnd],
+      after: [], // TurnEnd is handled manually in executeTurnOperation for correct timing
     }
   }
 
@@ -122,6 +121,7 @@ export async function executeTurnOperation(context: TurnContext, battle: Battle)
       battle.cleanupMarks()
     }
 
+    // Apply TurnEnd effects before adding rage (correct timing)
     battle.applyEffects(context, EffectTrigger.TurnEnd)
     addTurnRage(context, battle) // Add rage at turn end
     updateTurnMark(context, battle)

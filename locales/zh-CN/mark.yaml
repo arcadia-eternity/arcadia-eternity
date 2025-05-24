@@ -333,7 +333,21 @@ mark_yinbozhi:
   description: 达到100点时受到伤害变为100点
 mark_zaoyin:
   name: 噪音
-  description: 命中率{{mark.stack}}%
+mark_aideminyi:
+  name: 爱的名义
+  description: 使自身所有技能必中
+mark_shiyanzhiyue:
+  name: 誓言之约
+  description: 结束时恢复自身所有体力
+mark_huifu_1_16:
+  name: 微量恢复
+  description: 每回合恢复最大体力的1/16
+mark_xinlingzhiyue:
+  name: 心灵制约
+  description: 每次获得怒气不超过{{mark.stack}}点
+mark_jingyangshengxi:
+  name: 静养生息
+  description: 每回合增加10点怒气
 mark_yinzhizhiwang:
   name: 音之网
   description: ''
