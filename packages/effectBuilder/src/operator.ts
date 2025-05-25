@@ -780,6 +780,204 @@ export const Operators = {
       })
     }
   },
+
+  // New operator: Add attribute modifier to skills
+  addSkillAttributeModifier:
+    (
+      attribute: ValueSource<'power' | 'accuracy' | 'rage' | 'priority'>,
+      modifierType: ValueSource<'percent' | 'delta' | 'override'>,
+      value: ValueSource<number>,
+      priority: ValueSource<number> = 0,
+    ): Operator<SkillInstance> =>
+    (context: EffectContext<EffectTrigger>, targets: SkillInstance[]) => {
+      targets.forEach((skill, targetIndex) => {
+        const _attribute = GetValueFromSource(context, attribute)[0]
+        const _modifierType = GetValueFromSource(context, modifierType)[0]
+        const _value = GetValueFromSource(context, value)[0]
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
+
+        // Create a unique modifier ID with better uniqueness guarantees
+        const timestamp = Date.now()
+        const random = Math.random().toString(36).substring(2, 11)
+        const modifierId = `${context.source.id}_skill_${_attribute}_${_modifierType}_${timestamp}_${targetIndex}_${random}`
+
+        // Create the modifier
+        const modifier = new Modifier(
+          DurationType.binding,
+          modifierId,
+          _value,
+          _modifierType,
+          _priority,
+          context.source instanceof MarkInstanceImpl ? context.source : skill,
+        )
+
+        // Add the modifier to the skill's attribute system
+        const cleanup = skill.attributeSystem.addModifier(_attribute, modifier)
+
+        // If the effect source is a mark, bind the modifier lifecycle to the mark
+        if (context.source instanceof MarkInstanceImpl) {
+          context.source.addAttributeModifierCleanup(cleanup)
+        }
+      })
+    },
+
+  // New operator: Add dynamic attribute modifier to skills using Observable value source
+  addDynamicSkillAttributeModifier:
+    (
+      attribute: ValueSource<'power' | 'accuracy' | 'rage' | 'priority'>,
+      modifierType: ValueSource<'percent' | 'delta' | 'override'>,
+      observableValue: ValueSource<Observable<number>>,
+      priority: ValueSource<number> = 0,
+    ): Operator<SkillInstance> =>
+    (context: EffectContext<EffectTrigger>, targets: SkillInstance[]) => {
+      targets.forEach((skill, targetIndex) => {
+        const _attribute = GetValueFromSource(context, attribute)[0]
+        const _modifierType = GetValueFromSource(context, modifierType)[0]
+        const _observableValue = GetValueFromSource(context, observableValue)[0]
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
+
+        // Create a unique modifier ID
+        const timestamp = Date.now()
+        const random = Math.random().toString(36).substring(2, 11)
+        const modifierId = `${context.source.id}_skill_${_attribute}_${_modifierType}_dynamic_${timestamp}_${targetIndex}_${random}`
+
+        // Create the modifier with Observable value
+        const modifier = new Modifier(
+          DurationType.binding,
+          modifierId,
+          _observableValue,
+          _modifierType,
+          _priority,
+          context.source instanceof MarkInstanceImpl ? context.source : skill,
+        )
+
+        // Add the modifier to the skill's attribute system
+        const cleanup = skill.attributeSystem.addModifier(_attribute, modifier)
+
+        // If the effect source is a mark, bind the modifier lifecycle to the mark
+        if (context.source instanceof MarkInstanceImpl) {
+          context.source.addAttributeModifierCleanup(cleanup)
+        }
+      })
+    },
+
+  // New operator: Add clampMax modifier to limit maximum skill attribute value
+  addSkillClampMaxModifier:
+    (
+      attribute: ValueSource<'power' | 'accuracy' | 'rage' | 'priority'>,
+      maxValue: ValueSource<number>,
+      priority: ValueSource<number> = 0,
+    ): Operator<SkillInstance> =>
+    (context: EffectContext<EffectTrigger>, targets: SkillInstance[]) => {
+      targets.forEach((skill, targetIndex) => {
+        const _attribute = GetValueFromSource(context, attribute)[0]
+        const _maxValue = GetValueFromSource(context, maxValue)[0]
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
+
+        // Create a unique modifier ID
+        const timestamp = Date.now()
+        const random = Math.random().toString(36).substring(2, 11)
+        const modifierId = `${context.source.id}_skill_${_attribute}_clampMax_${timestamp}_${targetIndex}_${random}`
+
+        // Create the clampMax modifier
+        const modifier = new Modifier(
+          DurationType.binding,
+          modifierId,
+          _maxValue,
+          'clampMax',
+          _priority,
+          context.source instanceof MarkInstanceImpl ? context.source : skill,
+        )
+
+        // Add the modifier to the skill's attribute system
+        const cleanup = skill.attributeSystem.addModifier(_attribute, modifier)
+
+        // If the effect source is a mark, bind the modifier lifecycle to the mark
+        if (context.source instanceof MarkInstanceImpl) {
+          context.source.addAttributeModifierCleanup(cleanup)
+        }
+      })
+    },
+
+  // New operator: Add clampMin modifier to limit minimum skill attribute value
+  addSkillClampMinModifier:
+    (
+      attribute: ValueSource<'power' | 'accuracy' | 'rage' | 'priority'>,
+      minValue: ValueSource<number>,
+      priority: ValueSource<number> = 0,
+    ): Operator<SkillInstance> =>
+    (context: EffectContext<EffectTrigger>, targets: SkillInstance[]) => {
+      targets.forEach((skill, targetIndex) => {
+        const _attribute = GetValueFromSource(context, attribute)[0]
+        const _minValue = GetValueFromSource(context, minValue)[0]
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
+
+        // Create a unique modifier ID
+        const timestamp = Date.now()
+        const random = Math.random().toString(36).substring(2, 11)
+        const modifierId = `${context.source.id}_skill_${_attribute}_clampMin_${timestamp}_${targetIndex}_${random}`
+
+        // Create the clampMin modifier
+        const modifier = new Modifier(
+          DurationType.binding,
+          modifierId,
+          _minValue,
+          'clampMin',
+          _priority,
+          context.source instanceof MarkInstanceImpl ? context.source : skill,
+        )
+
+        // Add the modifier to the skill's attribute system
+        const cleanup = skill.attributeSystem.addModifier(_attribute, modifier)
+
+        // If the effect source is a mark, bind the modifier lifecycle to the mark
+        if (context.source instanceof MarkInstanceImpl) {
+          context.source.addAttributeModifierCleanup(cleanup)
+        }
+      })
+    },
+
+  // New operator: Add clamp modifier to limit both minimum and maximum skill attribute values
+  addSkillClampModifier:
+    (
+      attribute: ValueSource<'power' | 'accuracy' | 'rage' | 'priority'>,
+      minValue: ValueSource<number>,
+      maxValue: ValueSource<number>,
+      priority: ValueSource<number> = 0,
+    ): Operator<SkillInstance> =>
+    (context: EffectContext<EffectTrigger>, targets: SkillInstance[]) => {
+      targets.forEach((skill, targetIndex) => {
+        const _attribute = GetValueFromSource(context, attribute)[0]
+        const _minValue = GetValueFromSource(context, minValue)[0]
+        const _maxValue = GetValueFromSource(context, maxValue)[0]
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
+
+        // Create a unique modifier ID
+        const timestamp = Date.now()
+        const random = Math.random().toString(36).substring(2, 11)
+        const modifierId = `${context.source.id}_skill_${_attribute}_clamp_${timestamp}_${targetIndex}_${random}`
+
+        // Create the clamp modifier
+        const modifier = new Modifier(
+          DurationType.binding,
+          modifierId,
+          0, // Not used for clamp type
+          'clamp',
+          _priority,
+          context.source instanceof MarkInstanceImpl ? context.source : skill,
+          _minValue, // minValue
+          _maxValue, // maxValue
+        )
+
+        // Add the modifier to the skill's attribute system
+        const cleanup = skill.attributeSystem.addModifier(_attribute, modifier)
+
+        // If the effect source is a mark, bind the modifier lifecycle to the mark
+        if (context.source instanceof MarkInstanceImpl) {
+          context.source.addAttributeModifierCleanup(cleanup)
+        }
+      })
+    },
 }
 
 export function GetValueFromSource<T extends SelectorOpinion>(

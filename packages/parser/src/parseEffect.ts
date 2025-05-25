@@ -327,6 +327,16 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseAddClampMinModifierAction(effectId, dsl)
     case 'addClampModifier':
       return parseAddClampModifierAction(effectId, dsl)
+    case 'addSkillAttributeModifier':
+      return parseAddSkillAttributeModifierAction(effectId, dsl)
+    case 'addDynamicSkillAttributeModifier':
+      return parseAddDynamicSkillAttributeModifierAction(effectId, dsl)
+    case 'addSkillClampMaxModifier':
+      return parseAddSkillClampMaxModifierAction(effectId, dsl)
+    case 'addSkillClampMinModifier':
+      return parseAddSkillClampMinModifierAction(effectId, dsl)
+    case 'addSkillClampModifier':
+      return parseAddSkillClampModifierAction(effectId, dsl)
     case 'statStageBuff':
       return parseStatStageBuffAction(effectId, dsl)
     case 'clearStatStage':
@@ -913,4 +923,73 @@ function validatePath(selector: ChainableSelector<SelectorOpinion>, path: string
     const expected = RuntimeTypeChecker.getExpectedType(selector.type, path)
     throw new Error(`[路径校验失败] 路径 '${path}' 在类型 ${selector.type} 中不存在\n预期类型: ${expected}`)
   }
+}
+
+// New skill attribute modifier action parsers
+export function parseAddSkillAttributeModifierAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addSkillAttributeModifier' }>,
+) {
+  return parseSelector<SkillInstance>(effectId, dsl.target).apply(
+    Operators.addSkillAttributeModifier(
+      parseValue(effectId, dsl.attribute) as ValueSource<'power' | 'accuracy' | 'rage' | 'priority'>,
+      parseValue(effectId, dsl.modifierType) as ValueSource<'percent' | 'delta' | 'override'>,
+      parseValue(effectId, dsl.value) as ValueSource<number>,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+    ),
+  )
+}
+
+export function parseAddDynamicSkillAttributeModifierAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addDynamicSkillAttributeModifier' }>,
+) {
+  return parseSelector<SkillInstance>(effectId, dsl.target).apply(
+    Operators.addDynamicSkillAttributeModifier(
+      parseValue(effectId, dsl.attribute) as ValueSource<'power' | 'accuracy' | 'rage' | 'priority'>,
+      parseValue(effectId, dsl.modifierType) as ValueSource<'percent' | 'delta' | 'override'>,
+      parseSelector(effectId, dsl.observableValue) as ValueSource<Observable<number>>,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+    ),
+  )
+}
+
+export function parseAddSkillClampMaxModifierAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addSkillClampMaxModifier' }>,
+) {
+  return parseSelector<SkillInstance>(effectId, dsl.target).apply(
+    Operators.addSkillClampMaxModifier(
+      parseValue(effectId, dsl.attribute) as ValueSource<'power' | 'accuracy' | 'rage' | 'priority'>,
+      parseValue(effectId, dsl.maxValue) as ValueSource<number>,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+    ),
+  )
+}
+
+export function parseAddSkillClampMinModifierAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addSkillClampMinModifier' }>,
+) {
+  return parseSelector<SkillInstance>(effectId, dsl.target).apply(
+    Operators.addSkillClampMinModifier(
+      parseValue(effectId, dsl.attribute) as ValueSource<'power' | 'accuracy' | 'rage' | 'priority'>,
+      parseValue(effectId, dsl.minValue) as ValueSource<number>,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+    ),
+  )
+}
+
+export function parseAddSkillClampModifierAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addSkillClampModifier' }>,
+) {
+  return parseSelector<SkillInstance>(effectId, dsl.target).apply(
+    Operators.addSkillClampModifier(
+      parseValue(effectId, dsl.attribute) as ValueSource<'power' | 'accuracy' | 'rage' | 'priority'>,
+      parseValue(effectId, dsl.minValue) as ValueSource<number>,
+      parseValue(effectId, dsl.maxValue) as ValueSource<number>,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+    ),
+  )
 }

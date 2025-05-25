@@ -102,6 +102,49 @@ export type AddClampModifierOpreator = {
   priority?: Value
 }
 
+export type AddSkillAttributeModifierOpreator = {
+  type: 'addSkillAttributeModifier'
+  target: SelectorDSL
+  attribute: Value
+  modifierType: Value
+  value: Value
+  priority?: Value
+}
+
+export type AddDynamicSkillAttributeModifierOpreator = {
+  type: 'addDynamicSkillAttributeModifier'
+  target: SelectorDSL
+  attribute: Value
+  modifierType: Value
+  observableValue: SelectorDSL
+  priority?: Value
+}
+
+export type AddSkillClampMaxModifierOpreator = {
+  type: 'addSkillClampMaxModifier'
+  target: SelectorDSL
+  attribute: Value
+  maxValue: Value
+  priority?: Value
+}
+
+export type AddSkillClampMinModifierOpreator = {
+  type: 'addSkillClampMinModifier'
+  target: SelectorDSL
+  attribute: Value
+  minValue: Value
+  priority?: Value
+}
+
+export type AddSkillClampModifierOpreator = {
+  type: 'addSkillClampModifier'
+  target: SelectorDSL
+  attribute: Value
+  minValue: Value
+  maxValue: Value
+  priority?: Value
+}
+
 export type StatStageBuffOpreator = {
   type: 'statStageBuff'
   target: SelectorDSL
@@ -369,6 +412,11 @@ export type OperatorDSL =
   | AddClampMaxModifierOpreator
   | AddClampMinModifierOpreator
   | AddClampModifierOpreator
+  | AddSkillAttributeModifierOpreator
+  | AddDynamicSkillAttributeModifierOpreator
+  | AddSkillClampMaxModifierOpreator
+  | AddSkillClampMinModifierOpreator
+  | AddSkillClampModifierOpreator
   | StatStageBuffOpreator
   | ClearStatStageOpreator
   | TransferStatStageOpreator
