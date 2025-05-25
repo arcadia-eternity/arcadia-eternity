@@ -1466,6 +1466,7 @@
     target: damageContext
     percent: -50
     delta: 0
+# 虚空体质相关效果
 
 # 金针恢复：每回合恢复50点体力
 - id: effect_mark_heal_self_50_turn_end
@@ -1484,16 +1485,51 @@
   apply:
     type: destroyMark
     target:
-      base: selfMarks
-      chain:
-        - type: whereAttr
-          extractor:
-            type: base
-            arg: baseId
-          evaluator:
-            type: same
-            value: mark_first_turn_after_switch
-        - type: limit
-          arg: 1
+      base: mark
   condition:
     type: selfUseSkill
+- id: effect_mark_xukongtizhi_evasion
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addDynamicAttributeModifier
+    target:
+      base: self
+    stat: evasion
+    modifierType: delta
+    observableValue:
+      base: mark
+      chain:
+        - type: selectAttribute$
+          arg: stack
+        - type: clampMax
+          arg: 100
+# 虚空体质：成功闪避则消耗所有虚空体质并使自身获得虚空感应
+- id: effect_mark_xukongtizhi_consume_on_evasion
+  trigger: OnMiss
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeSkillTarget
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_xukongtizhi
+        evaluator:
+          type: exist
+  apply:
+    - type: destroyMark
+      target: mark
+    - type: addMark
+      target: self
+      mark:
+        type: entity:baseMark
+        value: mark_xukongganying

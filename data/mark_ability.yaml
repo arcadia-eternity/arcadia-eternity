@@ -95,3 +95,7 @@
   config: *ablitity_config
   effect:
     - effect_ability_add_shoufashanghaizengjia_on_switch_in
+- id: mark_ability_xukong
+  config: *ablitity_config
+  effect:
+    - effect_ability_add_xukongtizhi_on_skill_hit

@@ -2921,3 +2921,120 @@
     - mark_ability_liangong
   emblem:
     - mark_emblem_zhenjiu
+- id: pet_xijie
+  num: 140
+  element: Water
+  baseStats:
+    hp: 84
+    atk: 123
+    def: 113
+    spa: 131
+    spd: 116
+    spe: 107
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 17
+    - 22
+  weightRange:
+    - 8
+    - 13
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_shanshuo
+      level: 10
+      hidden: false
+    - skill_id: skill_chuantoutuji
+      level: 14
+      hidden: false
+    - skill_id: skill_xukongxiji
+      level: 19
+      hidden: false
+    - skill_id: skill_chuantounchongji
+      level: 24
+      hidden: false
+  ability:
+    - mark_ability_xukong
+  emblem:
+    - mark_emblem_ganying
+- id: pet_xijietie
+  num: 141
+  element: Water
+  baseStats:
+    hp: 174
+    atk: 168
+    def: 158
+    spa: 181
+    spd: 161
+    spe: 157
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 53
+    - 58
+  weightRange:
+    - 30
+    - 35
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_shanshuo
+      level: 10
+      hidden: false
+    - skill_id: skill_chuantoutuji
+      level: 14
+      hidden: false
+    - skill_id: skill_xukongxiji
+      level: 19
+      hidden: false
+    - skill_id: skill_chuantounchongji
+      level: 24
+      hidden: false
+    - skill_id: skill_xukongzhuanhuan
+      level: 29
+      hidden: false
+    - skill_id: skill_xukongchongneng
+      level: 34
+      hidden: false
+    - skill_id: skill_zhixichongfeng
+      level: 39
+      hidden: false
+    - skill_id: skill_xukongzhadan
+      level: 44
+      hidden: false
+    - skill_id: skill_chuantounchongfeng
+      level: 49
+      hidden: false
+    - skill_id: skill_xukongshanshen
+      level: 54
+      hidden: false
+    - skill_id: skill_xukongdabaozha
+      level: 60
+      hidden: false
+    - skill_id: skill_xuanwotuxi
+      level: 60
+      hidden: true
+    - skill_id: skill_xuanwochuantou
+      level: 60
+      hidden: true
+    - skill_id: skill_xuanwozhadan
+      level: 60
+      hidden: true
+    - skill_id: skill_xukongtizhi
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_xukong
+  emblem:
+    - mark_emblem_ganying

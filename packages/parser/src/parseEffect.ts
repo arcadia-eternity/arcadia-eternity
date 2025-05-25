@@ -12,14 +12,12 @@ import {
   Player,
   type ScopeObject,
   SkillInstance,
-  UpdateStatContext,
   UseSkillContext,
 } from '@arcadia-eternity/battle'
 import { Observable } from 'rxjs'
 import {
   type baseMarkId,
   type baseSkillId,
-  CleanStageStrategy,
   type effectId,
   EffectTrigger,
   IgnoreStageStrategy,
@@ -46,8 +44,6 @@ import {
   registerLiteralValue,
   type ConfigValueSource,
   type ConditionalValueSource,
-  createConditionAction,
-  type Action,
 } from '@arcadia-eternity/effect-builder'
 import { RuntimeTypeChecker } from '@arcadia-eternity/effect-builder'
 import type {
@@ -885,6 +881,8 @@ export function parseCondition(effectId: string, dsl: ConditionDSL): Condition {
       return Conditions.selfSwitchIn()
     case 'selfSwitchOut':
       return Conditions.selfSwitchOut()
+    case 'selfBeSkillTarget':
+      return Conditions.selfBeSkillTarget()
     default: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`Unknown condition type: ${(dsl as any).type}`)

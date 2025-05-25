@@ -288,7 +288,7 @@ mark_xingzhili:
   description: 免疫自身技能的副作用
 mark_mianyibuliang:
   name: 免疫不良
-  description: 免疫不良 沉默
+  description: 免疫不良状态
 mark_yanhuo:
   name: 焰火
   description: 火系伤害增加70%
@@ -399,3 +399,9 @@ mark_huifu_50_per_turn:
 mark_first_turn_after_switch:
   name: 替换上场
   description: 替换上场后的第一个回合 使特定技能触发额外的效果
+mark_xukongtizhi:
+  name: 虚空体质
+  description: 增加{{mark.stack}}%闪避率 成功闪避则消耗所有虚空体质并使自身获得虚空感应
+mark_xukongganying:
+  name: 虚空感应
+  description: ''

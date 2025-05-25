@@ -340,4 +340,14 @@ export const Conditions = {
       return plannedSkillContextsThisTurn[0] === currentUseSkillContext
     }
   },
+
+  // 当自己被选为当前UseSkillContext的目标时返回true
+  selfBeSkillTarget: (): Condition => {
+    return context => {
+      if (context.parent instanceof UseSkillContext) {
+        return context.source.owner === context.parent.actualTarget
+      }
+      return false
+    }
+  },
 }

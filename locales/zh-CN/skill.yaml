@@ -957,3 +957,49 @@ skill_maidijinzhen:
 skill_jinzhenfenmo:
   name: 金针粉末
   description: 【95】消耗麦迪金针使对手获得金针粉末
+# 希捷和希捷特的技能
+skill_shanshuo:
+  name: 闪烁
+  description: 强化自身速度1级
+skill_chuantoutuji:
+  name: 穿透突击
+  description: 无视对手双防强化
+skill_xukongxiji:
+  name: 虚空袭击
+  description: 具有虚空感应时威力2倍
+skill_chuantounchongji:
+  name: 穿透冲击
+  description: 【90】连击2~3次 无视对手双防强化
+skill_xukongzhuanhuan:
+  name: 虚空转换
+  description: 解除自身弱化
+skill_xukongchongneng:
+  name: 虚空充能
+  description: 恢复自身最大体力的1/4
+skill_zhixichongfeng:
+  name: 窒息冲锋
+  description: 10%使对手窒息 具有虚空感应时效果4倍
+skill_xukongzhadan:
+  name: 虚空炸弹
+  description: 附加40点固伤 具有虚空感应时效果2倍
+skill_chuantounchongfeng:
+  name: 穿透冲锋
+  description: 无视对手双防强化
+skill_xukongshanshen:
+  name: 虚空闪现
+  description: 先制+1 具有虚空感应时<font color=#93E312>必中</font>
+skill_xukongdabaozha:
+  name: 虚空大爆炸
+  description: <font color=#93E312>必中</font> 15%弱化对手特防1级
+skill_xuanwotuxi:
+  name: 漩涡突袭
+  description: <font color=#93E312>必中</font> 具有虚空感应时增加50点威力
+skill_xuanwochuantou:
+  name: 漩涡穿透
+  description: <font color=#93E312>必中</font> 无视对手双防强化
+skill_xuanwozhadan:
+  name: 漩涡炸弹
+  description: 【90】附加50点固伤 具有虚空感应时效果2倍
+skill_xukongtizhi:
+  name: 虚空体质
+  description: 先制+1 使自身获得75点受伤减少

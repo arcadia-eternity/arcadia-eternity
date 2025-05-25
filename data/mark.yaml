@@ -807,6 +807,28 @@
     inheritOnFaint: false
   # effect:
   #   - effect_mark_count_self_damage_this_turn
+- id: mark_xukongtizhi
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 100
+    stackable: true
+    stackStrategy: stack
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_xukongtizhi_evasion
+    - effect_mark_xukongtizhi_consume_on_evasion
+- id: mark_xukongganying
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect: []
 - id: mark_shuiwenpingzhang
   config:
     duration: -1

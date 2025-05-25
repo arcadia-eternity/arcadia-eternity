@@ -493,3 +493,16 @@
         evaluator:
           type: same
           value: mark_mianyibuliang
+# 感应：使希捷对手每次技能命中自身时也可以为自身增加5层虚空体质
+- id: effect_emblem_add_xukongtizhi_when_foe_hit_self
+  trigger: PostDamage
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_xukongtizhi
+    stack: 5
+  condition:
+    type: selfBeDamaged

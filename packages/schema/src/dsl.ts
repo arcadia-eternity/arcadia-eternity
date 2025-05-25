@@ -664,6 +664,9 @@ export type ConditionDSL =
   | {
       type: 'selfSwitchOut'
     }
+  | {
+      type: 'selfBeSkillTarget'
+    }
 
 export type WhenSelectorStep = {
   type: 'when'

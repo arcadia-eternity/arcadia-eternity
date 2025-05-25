@@ -61,3 +61,6 @@ mark_ability_gaozhan:
 mark_ability_liangong:
   name: 连攻
   description: 替换上场时整局战斗造成伤害增加10%
+mark_ability_xukong:
+  name: 虚空
+  description: 每次技能命中后会增加10层虚空体质

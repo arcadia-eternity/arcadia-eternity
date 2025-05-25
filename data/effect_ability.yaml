@@ -522,3 +522,16 @@
       value: mark_shoufashanghaizengjia
   condition:
     type: selfSwitchIn
+# 虚空：每次技能命中后会增加10层虚空体质
+- id: effect_ability_add_xukongtizhi_on_skill_hit
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_xukongtizhi
+    stack: 10
+  condition:
+    type: selfUseSkill

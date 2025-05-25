@@ -61,3 +61,6 @@ mark_emblem_quanzhi:
 mark_emblem_zhenjiu:
   name: 针灸
   description: 增加1回合针灸的持续时间
+mark_emblem_ganying:
+  name: 感应
+  description: 使希捷对手每次技能命中自身时也可以为自身增加5层虚空体质

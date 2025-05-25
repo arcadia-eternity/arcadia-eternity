@@ -95,3 +95,7 @@
   config: *emblem_config
   effect:
     - effect_emblem_add_zhenjiu_duration_1
+- id: mark_emblem_ganying
+  config: *emblem_config
+  effect:
+    - effect_emblem_add_xukongtizhi_when_foe_hit_self

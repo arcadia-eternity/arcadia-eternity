@@ -654,16 +654,14 @@ export const BaseSelector: {
     //TODO: error with use owners with global marks
     return []
   }),
-  //在使用技能的场景和印记的场景都指向拥有者自身。
+  //始终指向效果的拥有者自身。
   self: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
-    if (context.parent instanceof UseSkillContext) return [context.parent.pet]
     if (context.source.owner instanceof Pet) return [context.source.owner]
     //TODO: error with use owners with global marks
     return []
   }),
-  //在使用技能的场景，指向技能拥有者的敌方玩家的当前首发，在印记的场景指向印记所有者的敌方玩家的当前首发。
+  //始终指向效果的拥有者的当前对手。
   foe: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
-    if (context.parent instanceof UseSkillContext) return [context.parent.actualTarget!]
     if (context.source.owner instanceof Pet) return [context.battle.getOpponent(context.source.owner.owner!).activePet]
     //TODO: error with use owners with global marks
     return []

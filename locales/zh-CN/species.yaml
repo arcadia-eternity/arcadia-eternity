@@ -157,3 +157,9 @@ pet_maimaitou:
 pet_maimaidi:
   name: 麦麦迪
   description: 麦麦迪从其它地方又回到了这片小时候的土地 它和呆呆葵又见面了
+pet_xijie:
+  name: 希捷
+  description: 对于希捷来说 空间的概念是不存在的
+pet_xijietie:
+  name: 希捷特
+  description: 希捷特可以自由穿梭在各种空间之间 而在常人看来 它实现了一次瞬间转移
