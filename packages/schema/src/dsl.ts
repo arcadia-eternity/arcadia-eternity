@@ -658,6 +658,12 @@ export type ConditionDSL =
   | {
       type: 'isLastSkillUsedThisTurn'
     }
+  | {
+      type: 'selfSwitchIn'
+    }
+  | {
+      type: 'selfSwitchOut'
+    }
 
 export type WhenSelectorStep = {
   type: 'when'

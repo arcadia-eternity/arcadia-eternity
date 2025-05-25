@@ -605,6 +605,22 @@ export type ObjectOpinion =
 
 export type SelectorOpinion = PrimitiveOpinion | ObjectOpinion | EnumOpinion | Array<SelectorOpinion>
 
+// 递归查找context的通用函数
+function findContextRecursively<T extends Context>(
+  context: EffectContext<EffectTrigger>,
+  contextType: new (...args: any[]) => T,
+): T | null {
+  let currentCtx: Context = context
+  while (!(currentCtx instanceof Battle)) {
+    if (currentCtx instanceof contextType) {
+      return currentCtx
+    }
+    if (!currentCtx.parent) break
+    currentCtx = currentCtx.parent
+  }
+  return null
+}
+
 // 基础选择器
 export const BaseSelector: {
   target: ChainableSelector<Pet>
@@ -665,21 +681,18 @@ export const BaseSelector: {
     return []
   }),
   usingSkillContext: createChainable<UseSkillContext>('UseSkillContext', (context: EffectContext<EffectTrigger>) => {
-    if (context.parent instanceof UseSkillContext) return [context.parent]
-    if (context.parent.parent instanceof UseSkillContext) return [context.parent.parent]
-    //TODO: error with use get context with non-Useskill context
-    return []
+    const foundContext = findContextRecursively(context, UseSkillContext)
+    return foundContext ? [foundContext] : []
   }),
   damageContext: createChainable<DamageContext>('DamageContext', (context: EffectContext<EffectTrigger>) => {
-    if (context.parent instanceof DamageContext) return [context.parent]
-    //TODO: error with use get context with non-Damage context
-    return []
+    const foundContext = findContextRecursively(context, DamageContext)
+    return foundContext ? [foundContext] : []
   }),
   effectContext: createChainable<EffectContext<EffectTrigger>>(
     'EffectContext',
     (context: EffectContext<EffectTrigger>) => {
-      if (context.parent instanceof EffectContext) return [context.parent]
-      return []
+      const foundContext = findContextRecursively(context, EffectContext)
+      return foundContext ? [foundContext] : []
     },
   ),
   mark: createChainable<MarkInstance>('MarkInstance', (context: EffectContext<EffectTrigger>) => {
@@ -731,21 +744,20 @@ export const BaseSelector: {
 
     return [...pet.skills].filter(skill => skill.rage <= pet.currentRage)
   }),
-  dataMarks: createChainable<BaseMark>('BaseMark', (context: EffectContext<EffectTrigger>) => {
+  dataMarks: createChainable<BaseMark>('BaseMark', (_context: EffectContext<EffectTrigger>) => {
     return DataRepository.getInstance().getAllMarks()
   }),
   healContext: createChainable<HealContext>('HealContext', (context: EffectContext<EffectTrigger>) => {
-    if (context.parent instanceof HealContext) return [context.parent]
-    //TODO: error with use get context with non-Damage context
-    return []
+    const foundContext = findContextRecursively(context, HealContext)
+    return foundContext ? [foundContext] : []
   }),
   addMarkContext: createChainable<AddMarkContext>('AddMarkContext', (context: EffectContext<EffectTrigger>) => {
-    if (context.parent instanceof AddMarkContext) return [context.parent]
-    return []
+    const foundContext = findContextRecursively(context, AddMarkContext)
+    return foundContext ? [foundContext] : []
   }),
   rageContext: createChainable<RageContext>('RageContext', (context: EffectContext<EffectTrigger>) => {
-    if (context.parent instanceof RageContext) return [context.parent]
-    return []
+    const foundContext = findContextRecursively(context, RageContext)
+    return foundContext ? [foundContext] : []
   }),
   battle: createChainable<Battle>('Battle', (context: EffectContext<EffectTrigger>) => {
     return [context.battle]
@@ -753,17 +765,12 @@ export const BaseSelector: {
   updateStatContext: createChainable<UpdateStatContext>(
     'UpdateStatContext',
     (context: EffectContext<EffectTrigger>) => {
-      if (context.parent instanceof UpdateStatContext) return [context.parent]
-      return []
+      const foundContext = findContextRecursively(context, UpdateStatContext)
+      return foundContext ? [foundContext] : []
     },
   ),
   turnContext: createChainable<TurnContext>('TurnContext', (context: EffectContext<EffectTrigger>) => {
-    let currentctx: Context = context
-    while (!(currentctx instanceof Battle)) {
-      if (currentctx instanceof TurnContext) return [currentctx]
-      if (!currentctx.parent) break
-      currentctx = currentctx.parent
-    }
-    return []
+    const foundContext = findContextRecursively(context, TurnContext)
+    return foundContext ? [foundContext] : []
   }),
 }

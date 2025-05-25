@@ -1378,3 +1378,122 @@
       base: damageContext
     delta: 0
     percent: 100
+# 麦麦迪系列状态效果
+# 麦麦金针：造成特攻伤害降低20%
+- id: effect_mark_reduce_spa_damage_20_percent
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageType
+        evaluator:
+          type: same
+          value: Special
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: -20
+    delta: 0
+# 金针外衣：受到物攻时反弹30点伤害
+- id: effect_mark_reflect_physical_damage_30
+  trigger: OnDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageType
+        evaluator:
+          type: same
+          value: Physical
+  priority: 0
+  apply:
+    type: dealDamage
+    target: foe
+    value: 30
+# 冲撞刺针：造成物攻伤害降低25%
+- id: effect_mark_reduce_atk_damage_25_percent
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageType
+        evaluator:
+          type: same
+          value: Physical
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: -25
+    delta: 0
+# 麦迪金针：受到伤害增加75%
+- id: effect_mark_increase_damage_taken_75_percent
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 75
+    delta: 0
+# 金针粉末：造成伤害降低50%
+- id: effect_mark_reduce_damage_50_percent
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfUseSkill
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: -50
+    delta: 0
+
+# 金针恢复：每回合恢复50点体力
+- id: effect_mark_heal_self_50_turn_end
+  trigger: TurnEnd
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value: 50
+  condition:
+    type: petIsActive
+# 替换上场标记：使用技能后自动移除
+- id: effect_mark_remove_after_use_skill
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: destroyMark
+    target:
+      base: selfMarks
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value: mark_first_turn_after_switch
+        - type: limit
+          arg: 1
+  condition:
+    type: selfUseSkill

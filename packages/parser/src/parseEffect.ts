@@ -881,6 +881,10 @@ export function parseCondition(effectId: string, dsl: ConditionDSL): Condition {
       return Conditions.isFirstSkillUsedThisTurn()
     case 'isLastSkillUsedThisTurn':
       return Conditions.isLastSkillUsedThisTurn()
+    case 'selfSwitchIn':
+      return Conditions.selfSwitchIn()
+    case 'selfSwitchOut':
+      return Conditions.selfSwitchOut()
     default: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`Unknown condition type: ${(dsl as any).type}`)

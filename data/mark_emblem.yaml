@@ -91,3 +91,7 @@
   config: *emblem_config
   effect:
     - effect_emblem_increase_quan_skill_damage_5_percent
+- id: mark_emblem_zhenjiu
+  config: *emblem_config
+  effect:
+    - effect_emblem_add_zhenjiu_duration_1

@@ -8,6 +8,7 @@ import {
   Pet,
   RageContext,
   SkillInstance,
+  SwitchPetContext,
   TurnContext,
   UseSkillContext,
 } from '@arcadia-eternity/battle'
@@ -105,6 +106,9 @@ export const Conditions = {
       if (context.parent instanceof EffectContext) {
         return context.source.owner === context.parent.source.owner
       }
+      if (context.parent instanceof SwitchPetContext) {
+        return context.source.owner === context.parent.target
+      }
       return false
     }
   },
@@ -139,6 +143,24 @@ export const Conditions = {
     return context => {
       if (context.parent instanceof AddMarkContext) {
         return context.source.owner === context.parent.parent.source.owner
+      }
+      return false
+    }
+  },
+
+  selfSwitchIn: (): Condition => {
+    return context => {
+      if (context.parent instanceof SwitchPetContext) {
+        return context.source.owner === context.parent.target
+      }
+      return false
+    }
+  },
+
+  selfSwitchOut: (): Condition => {
+    return context => {
+      if (context.parent instanceof SwitchPetContext) {
+        return context.source.owner === context.parent.origin.activePet
       }
       return false
     }

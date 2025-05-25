@@ -148,3 +148,12 @@ pet_quantaohou:
 pet_changbihou:
   name: 长臂猴
   description: 拳击系精灵的最终形态，拥有超长的手臂和无与伦比的拳击技巧。
+pet_maimaizi:
+  name: 麦麦籽
+  description: 麦麦籽是小小葵一起长大的好伙伴 但是它经常欺负小小葵哦！
+pet_maimaitou:
+  name: 麦麦头
+  description: 麦麦头曾和小小葵一起经历了可怕的事 它们见到了长相可怕的古斯
+pet_maimaidi:
+  name: 麦麦迪
+  description: 麦麦迪从其它地方又回到了这片小时候的土地 它和呆呆葵又见面了

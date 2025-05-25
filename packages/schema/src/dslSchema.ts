@@ -628,6 +628,12 @@ export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
     z.object({
       type: z.literal('isLastSkillUsedThisTurn'),
     }),
+    z.object({
+      type: z.literal('selfSwitchIn'),
+    }),
+    z.object({
+      type: z.literal('selfSwitchOut'),
+    }),
   ]),
 )
 

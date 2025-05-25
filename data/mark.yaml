@@ -527,7 +527,6 @@
   effect:
     - effect_mark_reduce_special_damage_with_stack
 - id: mark_shanghaizhuanhua
-- id: mark_jinzhenfenmo
 - id: mark_dixiaowulishanghai
 - id: mark_tizhongjiangdi
 - id: mark_fanshe
@@ -945,3 +944,102 @@
   effect:
     - effect_mark_evasion_special_attacks
     - effect_mark_double_physical_damage_taken
+- id: mark_maimaijinzhen
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_reduce_spa_damage_20_percent
+- id: mark_jinzhenwayi
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_reflect_physical_damage_30
+- id: mark_chongzhuangzhenci
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_reduce_atk_damage_25_percent
+- id: mark_maidijinzhen
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_increase_damage_taken_75_percent
+- id: mark_jinzhenfenmo
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_reduce_damage_50_percent
+
+- id: mark_huifu_50_per_turn
+  config:
+    duration: 5
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_heal_self_50_turn_end
+- id: mark_first_turn_after_switch
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: none
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: false
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_remove_after_use_skill

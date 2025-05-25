@@ -460,3 +460,36 @@
     target: damageContext
     percent: 5
     delta: 0
+# 针灸：增加1回合针灸的持续时间
+- id: effect_emblem_add_zhenjiu_duration_1
+  trigger: OnBeforeAddMark
+  priority: 1
+  apply:
+    type: setMarkDuration
+    target: addMarkContext
+    value:
+      type: dynamic
+      selector:
+        base: addMarkContext
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: duration
+          - type: add
+            arg: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfBeAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark.id
+        evaluator:
+          type: same
+          value: mark_mianyibuliang

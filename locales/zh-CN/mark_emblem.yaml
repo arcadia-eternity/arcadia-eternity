@@ -58,3 +58,6 @@ mark_emblem_aide:
 mark_emblem_quanzhi:
   name: 拳之
   description: 技能名中带有拳的技能伤害增加5%
+mark_emblem_zhenjiu:
+  name: 针灸
+  description: 增加1回合针灸的持续时间

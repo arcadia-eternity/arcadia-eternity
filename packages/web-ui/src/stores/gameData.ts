@@ -243,14 +243,15 @@ export const useGameDataStore = defineStore('gameData', {
     },
 
     async loadEffects(loader: GameDataLoader): Promise<Effect[]> {
-      const [data1, data2, data3, data4] = await Promise.all([
+      const [data1, data2, data3, data4, data5] = await Promise.all([
         loader.load<Effect[]>('effect_ability'),
         loader.load<Effect[]>('effect_emblem'),
         loader.load<Effect[]>('effect_mark'),
         loader.load<Effect[]>('effect_skill'),
+        loader.load<Effect[]>('effect_global'),
       ])
       // 合并前检查ID冲突
-      const allEffects = [...data1, ...data2, ...data3, ...data4]
+      const allEffects = [...data1, ...data2, ...data3, ...data4, ...data5]
       const ids = new Set<string>()
       allEffects.forEach(effect => {
         if (ids.has(effect.id)) {
@@ -258,7 +259,7 @@ export const useGameDataStore = defineStore('gameData', {
         }
         ids.add(effect.id)
       })
-      return [...data1, ...data2, ...data3, ...data4]
+      return allEffects
     },
   },
 })

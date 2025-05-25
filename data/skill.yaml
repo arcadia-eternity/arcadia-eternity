@@ -3373,7 +3373,7 @@
   sureHit: true
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_self_aideminyi
+    - effect_skill_add_mark_aideminyi
   tags: []
 - id: skill_yongqi
   element: Normal
@@ -3410,7 +3410,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_self_shiyanzhiyue
+    - effect_skill_add_mark_shiyanzhiyue
     - effect_skill_heal_125_if_aideminyi
   tags: []
 - id: skill_xiaoyuezhishi
@@ -3472,7 +3472,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_self_huifu_1_16_if_aideminyi
+    - effect_skill_add_mark_huifu_1_16_if_aideminyi
   tags: []
 - id: skill_fuxiaozhike
   element: Psychic
@@ -3700,3 +3700,171 @@
   tags: []
   effect:
     - effect_skill_raise_atk_1_stages
+- id: skill_zhenci
+  element: Grass
+  category: Special
+  target: opponent
+  power: 55
+  rage: 5
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_spd_5_percent
+- id: skill_maimaijinzhen
+  element: Grass
+  category: Special
+  target: opponent
+  power: 65
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_maimaijinzhen
+- id: skill_bachujinzhen
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 75
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_consume_maimaijinzhen_add_liuxue_50
+- id: skill_qianyinjinzhen
+  element: Grass
+  category: Special
+  target: opponent
+  power: 95
+  rage: 15
+  accuracy: 60
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_sure_hit_if_foe_has_maimaijinzhen
+- id: skill_jinzhenwayi
+  element: Grass
+  category: Status
+  target: self
+  power: 0
+  rage: 15
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_jinzhenwayi
+- id: skill_jinzhenlianfa
+  element: Grass
+  category: Special
+  target: opponent
+  power: 35
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  multihit: 3
+- id: skill_zhenjiu
+  element: Grass
+  category: Status
+  target: self
+  power: 0
+  rage: 15
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_mianyibuliang
+- id: skill_zhencichongzhuang
+  element: Grass
+  category: Physical
+  target: opponent
+  power: 95
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_chongzhuangzhenci
+- id: skill_juxingjinzhen
+  element: Grass
+  category: Special
+  target: opponent
+  power: 105
+  rage: 20
+  accuracy: 60
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_sure_hit_if_foe_has_maimaijinzhen
+- id: skill_jinzhenluanwu
+  element: Grass
+  category: Climax
+  target: opponent
+  power: 160
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_liuxue_50_foe
+- id: skill_zuijiazhugong
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 75
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_first_turn_mark_on_switch_in
+    - effect_skill_power_2x_if_first_switch_in_zuijiazhuogong
+- id: skill_shouhuijinzhen
+  element: Grass
+  category: Physical
+  target: opponent
+  power: 65
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_consume_maimaijinzhen_heal_self_50
+- id: skill_maidijinzhen
+  element: Grass
+  category: Special
+  target: opponent
+  power: 75
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_consume_maimaijinzhen_add_maidijinzhen
+- id: skill_jinzhenfenmo
+  element: Grass
+  category: Status
+  target: opponent
+  power: 0
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_consume_maidijinzhen_add_jinzhenfenmo

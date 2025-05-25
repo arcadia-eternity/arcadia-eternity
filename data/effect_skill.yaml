@@ -34,6 +34,13 @@
     <<: *apply_foe_statstage_-1_template
     statType: spe
   condition: *condition_probability_5_percent_template
+- id: effect_skill_reduce_foe_spd_5_percent
+  trigger: OnDamage
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType: spd
+  condition: *condition_probability_5_percent_template
 - id: effect_skill_reduce_foe_atk_5_percent
   trigger: OnDamage
   priority: 0
@@ -47,13 +54,6 @@
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: spa
-  condition: *condition_probability_5_percent_template
-- id: effect_skill_reduce_foe_spd_5_percent
-  trigger: OnDamage
-  priority: 0
-  apply:
-    <<: *apply_foe_statstage_-1_template
-    statType: spd
   condition: *condition_probability_5_percent_template
 - id: effect_skill_reduce_foe_spd_10_percent
   trigger: OnDamage
@@ -3254,7 +3254,7 @@
   condition:
     type: selfUseSkill
 # 给自己添加爱的名义标记
-- id: effect_skill_add_mark_self_aideminyi
+- id: effect_skill_add_mark_aideminyi
   trigger: OnHit
   priority: 0
   apply:
@@ -3317,7 +3317,7 @@
         evaluator:
           type: exist
 # 给自己添加誓言之约标记
-- id: effect_skill_add_mark_self_shiyanzhiyue
+- id: effect_skill_add_mark_shiyanzhiyue
   trigger: OnHit
   priority: 0
   apply:
@@ -3505,7 +3505,7 @@
   condition:
     type: selfUseSkill
 # 如果有爱的名义标记，给自己添加1/16恢复标记
-- id: effect_skill_add_mark_self_huifu_1_16_if_aideminyi
+- id: effect_skill_add_mark_huifu_1_16_if_aideminyi
   trigger: OnHit
   priority: 0
   apply:
@@ -4157,3 +4157,276 @@
       value: 1
   condition:
     type: selfUseSkill
+# 麦麦迪系列技能效果
+# 添加麦麦金针状态
+- id: effect_skill_add_mark_foe_maimaijinzhen
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_maimaijinzhen
+  condition:
+    type: selfUseSkill
+# 消耗麦麦金针并添加50点流血
+- id: effect_skill_consume_maimaijinzhen_add_liuxue_50
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: consumeStacks
+      target:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_maimaijinzhen
+      value: 1
+    - type: addMark
+      target: foe
+      mark:
+        type: entity:baseMark
+        value: mark_liuxie
+      stack: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_maimaijinzhen
+        evaluator:
+          type: exist
+# 对手有麦麦金针时必中
+- id: effect_skill_sure_hit_if_foe_has_maimaijinzhen
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target:
+      base: usingSkillContext
+    priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_maimaijinzhen
+        evaluator:
+          type: exist
+# 添加金针外衣状态
+- id: effect_skill_add_mark_jinzhenwayi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_jinzhenwayi
+  condition:
+    type: selfUseSkill
+# 添加冲撞刺针状态
+- id: effect_skill_add_mark_foe_chongzhuangzhenci
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_chongzhuangzhenci
+  condition:
+    type: selfUseSkill
+# 添加50点流血给对手
+- id: effect_skill_add_liuxue_50_foe
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_liuxie
+    stack: 50
+  condition:
+    type: selfUseSkill
+
+# 消耗麦麦金针并在5回合内每回合恢复50点体力
+- id: effect_skill_consume_maimaijinzhen_heal_self_50
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: consumeStacks
+      target:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_maimaijinzhen
+      value: 1
+    - type: addMark
+      target: self
+      mark:
+        type: entity:baseMark
+        value: mark_huifu_50_per_turn
+      duration: 5
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_maimaijinzhen
+        evaluator:
+          type: exist
+# 消耗麦麦金针并添加麦迪金针
+- id: effect_skill_consume_maimaijinzhen_add_maidijinzhen
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: consumeStacks
+      target:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_maimaijinzhen
+      value: 1
+    - type: addMark
+      target: foe
+      mark:
+        type: entity:baseMark
+        value: mark_maidijinzhen
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_maimaijinzhen
+        evaluator:
+          type: exist
+# 消耗麦迪金针并添加金针粉末
+- id: effect_skill_consume_maidijinzhen_add_jinzhenfenmo
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: consumeStacks
+      target:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_maidijinzhen
+      value: 1
+    - type: addMark
+      target: foe
+      mark:
+        type: entity:baseMark
+        value: mark_jinzhenfenmo
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_maidijinzhen
+        evaluator:
+          type: exist
+# 最佳助攻被动效果：替换上场时添加临时标记
+- id: effect_skill_add_first_turn_mark_on_switch_in
+  trigger: OnSwitchIn
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_first_turn_after_switch
+  condition:
+    type: selfSwitchIn
+# 最佳助攻主动效果：有临时标记时威力2倍
+- id: effect_skill_power_2x_if_first_switch_in_zuijiazhuogong
+  trigger: AfterUseSkillCheck
+  priority: 1
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_first_turn_after_switch
+        evaluator:
+          type: exist

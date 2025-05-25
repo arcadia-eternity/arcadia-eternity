@@ -58,3 +58,6 @@ mark_ability_youai:
 mark_ability_gaozhan:
   name: 高瞻
   description: 身高超过100CM时命中率增加5%
+mark_ability_liangong:
+  name: 连攻
+  description: 替换上场时整局战斗造成伤害增加10%

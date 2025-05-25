@@ -262,9 +262,6 @@ mark_wulicao:
 mark_xishoucao:
   name: 吸收草
   description: 抵挡伤害并转化伤害的1/4为体力 对手具有葵花种子时效果2倍
-mark_jinzhenfenmo:
-  name: 金针粉末
-  description: 造成伤害增加{{mark.stack}}%
 mark_tanxingzhifang:
   name: 弹性脂肪
   description: 抵挡自身体重的物攻伤害 生效使自身获得体重降低
@@ -381,3 +378,24 @@ mark_zhunbeidongzuo:
 mark_lingqiao:
   name: 灵巧
   description: 闪避特攻 受到物攻伤害2倍
+mark_maimaijinzhen:
+  name: 麦麦金针
+  description: 造成特攻伤害降低20%
+mark_jinzhenwayi:
+  name: 金针外衣
+  description: 受到物攻时反弹30点伤害
+mark_chongzhuangzhenci:
+  name: 冲撞刺针
+  description: 造成物攻伤害降低25%
+mark_maidijinzhen:
+  name: 麦迪金针
+  description: 受到伤害增加75%
+mark_jinzhenfenmo:
+  name: 金针粉末
+  description: 造成伤害降低50%
+mark_huifu_50_per_turn:
+  name: 金针恢复
+  description: 每回合恢复50点体力
+mark_first_turn_after_switch:
+  name: 替换上场
+  description: 替换上场后的第一个回合 使特定技能触发额外的效果

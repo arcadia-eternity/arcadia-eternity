@@ -510,3 +510,15 @@
     stat: accuracy
     modifierType: delta
     value: 5
+# 连攻：替换上场时整局战斗造成伤害增加10%
+- id: effect_ability_add_shoufashanghaizengjia_on_switch_in
+  trigger: OnSwitchIn
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shoufashanghaizengjia
+  condition:
+    type: selfSwitchIn

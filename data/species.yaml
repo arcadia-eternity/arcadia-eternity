@@ -2762,3 +2762,162 @@
     - mark_ability_gaozhan
   emblem:
     - mark_emblem_quanzhi
+- id: pet_maimaizi
+  num: 55
+  element: Grass
+  baseStats:
+    hp: 87
+    atk: 110
+    def: 119
+    spa: 119
+    spd: 110
+    spe: 101
+  genderRatio:
+    - 10
+    - 0
+  heightRange:
+    - 27
+    - 32
+  weightRange:
+    - 10
+    - 15
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhenci
+      level: 5
+      hidden: false
+    - skill_id: skill_yuhe
+      level: 9
+      hidden: false
+    - skill_id: skill_maimaijinzhen
+      level: 14
+      hidden: false
+  ability:
+    - mark_ability_liangong
+  emblem:
+    - mark_emblem_zhenjiu
+- id: pet_maimaitou
+  num: 56
+  element: Grass
+  baseStats:
+    hp: 127
+    atk: 135
+    def: 149
+    spa: 149
+    spd: 135
+    spe: 121
+  genderRatio:
+    - 10
+    - 0
+  heightRange:
+    - 41
+    - 46
+  weightRange:
+    - 22
+    - 27
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhenci
+      level: 5
+      hidden: false
+    - skill_id: skill_yuhe
+      level: 9
+      hidden: false
+    - skill_id: skill_maimaijinzhen
+      level: 14
+      hidden: false
+    - skill_id: skill_bachujinzhen
+      level: 20
+      hidden: false
+    - skill_id: skill_shuairuo
+      level: 25
+      hidden: false
+    - skill_id: skill_qianyinjinzhen
+      level: 30
+      hidden: false
+    - skill_id: skill_jinzhenwayi
+      level: 35
+      hidden: false
+  ability:
+    - mark_ability_liangong
+  emblem:
+    - mark_emblem_zhenjiu
+- id: pet_maimaidi
+  num: 57
+  element: Grass
+  baseStats:
+    hp: 187
+    atk: 160
+    def: 179
+    spa: 179
+    spd: 160
+    spe: 141
+  genderRatio:
+    - 10
+    - 0
+  heightRange:
+    - 82
+    - 87
+  weightRange:
+    - 64
+    - 69
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhenci
+      level: 5
+      hidden: false
+    - skill_id: skill_yuhe
+      level: 9
+      hidden: false
+    - skill_id: skill_maimaijinzhen
+      level: 14
+      hidden: false
+    - skill_id: skill_bachujinzhen
+      level: 20
+      hidden: false
+    - skill_id: skill_shuairuo
+      level: 25
+      hidden: false
+    - skill_id: skill_qianyinjinzhen
+      level: 30
+      hidden: false
+    - skill_id: skill_jinzhenwayi
+      level: 35
+      hidden: false
+    - skill_id: skill_jinzhenlianfa
+      level: 40
+      hidden: false
+    - skill_id: skill_zhenjiu
+      level: 45
+      hidden: false
+    - skill_id: skill_zhencichongzhuang
+      level: 50
+      hidden: false
+    - skill_id: skill_juxingjinzhen
+      level: 55
+      hidden: false
+    - skill_id: skill_jinzhenluanwu
+      level: 60
+      hidden: false
+    - skill_id: skill_zuijiazhugong
+      level: 60
+      hidden: true
+    - skill_id: skill_shouhuijinzhen
+      level: 60
+      hidden: true
+    - skill_id: skill_maidijinzhen
+      level: 60
+      hidden: true
+    - skill_id: skill_jinzhenfenmo
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_liangong
+  emblem:
+    - mark_emblem_zhenjiu

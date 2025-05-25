@@ -915,3 +915,45 @@ skill_youyouyoubaiquan:
 skill_yili:
   name: 毅力
   description: 强化自身物攻1级
+skill_zhenci:
+  name: 针刺
+  description: 5%弱化对手特防1级
+skill_maimaijinzhen:
+  name: 麦麦金针
+  description: 使对手获得麦麦金针
+skill_bachujinzhen:
+  name: 拔出金针
+  description: 消耗麦麦金针使对手获得50点流血
+skill_qianyinjinzhen:
+  name: 牵引金针
+  description: 【60】对手具有麦麦金针时<font color=#93E312>必中</font>
+skill_jinzhenwayi:
+  name: 金针外衣
+  description: 使自身获得金针外衣
+skill_jinzhenlianfa:
+  name: 金针连发
+  description: 连击3次
+skill_zhenjiu:
+  name: 针灸
+  description: 使自身获得免疫不良
+skill_zhencichongzhuang:
+  name: 针刺冲撞
+  description: 使对手获得冲撞刺针
+skill_juxingjinzhen:
+  name: 巨型金针
+  description: 【60】对手具有麦麦金针时<font color=#93E312>必中</font>
+skill_jinzhenluanwu:
+  name: 金针乱舞
+  description: <font color=#93E312>必中</font> 使对手获得50点流血
+skill_zuijiazhugong:
+  name: 最佳助攻
+  description: 替换上场首次使用威力2倍
+skill_shouhuijinzhen:
+  name: 收回金针
+  description: 消耗麦麦金针 在5回合内每回合恢复50点体力
+skill_maidijinzhen:
+  name: 麦迪金针
+  description: 消耗麦麦金针使对手获得麦迪金针
+skill_jinzhenfenmo:
+  name: 金针粉末
+  description: 【95】消耗麦迪金针使对手获得金针粉末
