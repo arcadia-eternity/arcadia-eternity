@@ -35,7 +35,6 @@ export type AllContext =
   | RemoveMarkContext
   | SwitchPetContext
   | RageContext
-  | UpdateStatContext
   | EffectContext<EffectTrigger>
 
 export type PetTurnData = {}
@@ -547,20 +546,6 @@ export class RemoveMarkContext extends Context {
   }
 }
 
-export class UpdateStatContext extends Context {
-  readonly type = 'update-stat'
-  public readonly battle: Battle
-  public available: boolean = true
-  constructor(
-    public readonly parent: Battle,
-    public readonly stat: StatOnBattle,
-    public readonly pet: Pet,
-  ) {
-    super(parent)
-    this.battle = parent.battle
-  }
-}
-
 export type TriggerContextMap = {
   [EffectTrigger.OnBattleStart]: Battle
 
@@ -604,8 +589,6 @@ export type TriggerContextMap = {
 
   [EffectTrigger.BeforeEffect]: AllContext
   [EffectTrigger.AfterEffect]: AllContext
-
-  [EffectTrigger.OnUpdateStat]: UpdateStatContext
 }
 
 export class EffectContext<T extends EffectTrigger> extends Context {

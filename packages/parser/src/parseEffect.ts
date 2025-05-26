@@ -510,7 +510,7 @@ export function parseModifyStatAction(effectId: string, dsl: Extract<OperatorDSL
   )
 }
 
-// New attribute modifier pattern
+// Enhanced attribute modifier pattern with phase-aware support
 export function parseAddAttributeModifierAction(
   effectId: string,
   dsl: Extract<OperatorDSL, { type: 'addAttributeModifier' }>,
@@ -521,11 +521,19 @@ export function parseAddAttributeModifierAction(
       parseValue(effectId, dsl.modifierType) as ValueSource<'percent' | 'delta' | 'override'>,
       parseValue(effectId, dsl.value) as ValueSource<number>,
       dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+      // 🆕 Phase-aware parameters
+      dsl.phaseType
+        ? (parseValue(effectId, dsl.phaseType) as ValueSource<
+            'turn' | 'skill' | 'damage' | 'heal' | 'effect' | 'switch' | 'mark' | 'rage' | 'battle'
+          >)
+        : undefined,
+      dsl.scope ? (parseValue(effectId, dsl.scope) as ValueSource<'current' | 'any' | 'next'>) : undefined,
+      dsl.phaseId ? (parseValue(effectId, dsl.phaseId) as ValueSource<string>) : undefined,
     ),
   )
 }
 
-// New dynamic attribute modifier pattern
+// Enhanced dynamic attribute modifier pattern with phase-aware support
 export function parseAddDynamicAttributeModifierAction(
   effectId: string,
   dsl: Extract<OperatorDSL, { type: 'addDynamicAttributeModifier' }>,
@@ -536,6 +544,14 @@ export function parseAddDynamicAttributeModifierAction(
       parseValue(effectId, dsl.modifierType) as ValueSource<'percent' | 'delta' | 'override'>,
       parseSelector(effectId, dsl.observableValue) as ValueSource<Observable<number>>,
       dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+      // 🆕 Phase-aware parameters
+      dsl.phaseType
+        ? (parseValue(effectId, dsl.phaseType) as ValueSource<
+            'turn' | 'skill' | 'damage' | 'heal' | 'effect' | 'switch' | 'mark' | 'rage' | 'battle'
+          >)
+        : undefined,
+      dsl.scope ? (parseValue(effectId, dsl.scope) as ValueSource<'current' | 'any' | 'next'>) : undefined,
+      dsl.phaseId ? (parseValue(effectId, dsl.phaseId) as ValueSource<string>) : undefined,
     ),
   )
 }
@@ -832,13 +848,22 @@ export function parseAddClampMinModifierAction(
   )
 }
 
+// Enhanced clamp modifier action parser with phase-aware support
 export function parseAddClampModifierAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'addClampModifier' }>) {
   return parseSelector<Pet>(effectId, dsl.target).apply(
     Operators.addClampModifier(
       parseValue(effectId, dsl.stat) as ValueSource<StatTypeOnBattle>,
-      parseValue(effectId, dsl.minValue) as ValueSource<number>,
-      parseValue(effectId, dsl.maxValue) as ValueSource<number>,
+      dsl.minValue ? (parseValue(effectId, dsl.minValue) as ValueSource<number>) : undefined, // 🆕 Optional
+      dsl.maxValue ? (parseValue(effectId, dsl.maxValue) as ValueSource<number>) : undefined, // 🆕 Optional
       dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+      // 🆕 Phase-aware parameters
+      dsl.phaseType
+        ? (parseValue(effectId, dsl.phaseType) as ValueSource<
+            'turn' | 'skill' | 'damage' | 'heal' | 'effect' | 'switch' | 'mark' | 'rage' | 'battle'
+          >)
+        : undefined,
+      dsl.scope ? (parseValue(effectId, dsl.scope) as ValueSource<'current' | 'any' | 'next'>) : undefined,
+      dsl.phaseId ? (parseValue(effectId, dsl.phaseId) as ValueSource<string>) : undefined,
     ),
   )
 }
@@ -925,7 +950,7 @@ function validatePath(selector: ChainableSelector<SelectorOpinion>, path: string
   }
 }
 
-// New skill attribute modifier action parsers
+// Enhanced skill attribute modifier action parsers with phase-aware support
 export function parseAddSkillAttributeModifierAction(
   effectId: string,
   dsl: Extract<OperatorDSL, { type: 'addSkillAttributeModifier' }>,
@@ -936,6 +961,14 @@ export function parseAddSkillAttributeModifierAction(
       parseValue(effectId, dsl.modifierType) as ValueSource<'percent' | 'delta' | 'override'>,
       parseValue(effectId, dsl.value) as ValueSource<number>,
       dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+      // 🆕 Phase-aware parameters
+      dsl.phaseType
+        ? (parseValue(effectId, dsl.phaseType) as ValueSource<
+            'turn' | 'skill' | 'damage' | 'heal' | 'effect' | 'switch' | 'mark' | 'rage' | 'battle'
+          >)
+        : undefined,
+      dsl.scope ? (parseValue(effectId, dsl.scope) as ValueSource<'current' | 'any' | 'next'>) : undefined,
+      dsl.phaseId ? (parseValue(effectId, dsl.phaseId) as ValueSource<string>) : undefined,
     ),
   )
 }

@@ -1,9 +1,10 @@
 // attribute-system.ts
 import { BehaviorSubject, Observable, combineLatest, Subject } from 'rxjs'
-import { map, distinctUntilChanged, shareReplay } from 'rxjs/operators'
+import { map, distinctUntilChanged, shareReplay, startWith } from 'rxjs/operators'
 import type { StatOnBattle, StatTypeOnBattle } from '@arcadia-eternity/const'
 import type { MarkInstance } from './mark'
 import type { SkillInstance } from './skill'
+import type { PhaseTypeSpec } from './config'
 
 // Computed function similar to Vue's computed
 export function computed<T>(computeFn: () => T, dependencies: Observable<any>[]): Observable<T> {
@@ -24,6 +25,7 @@ type AttributeKey = string
 export enum DurationType {
   instant = 'instant',
   binding = 'binding',
+  phaseType = 'phaseType', // Bound to specific phase type completion
 }
 
 export class Modifier<T extends number | boolean | string = any> {
@@ -39,6 +41,7 @@ export class Modifier<T extends number | boolean | string = any> {
     public source?: MarkInstance | SkillInstance,
     public minValue?: number,
     public maxValue?: number,
+    public phaseTypeSpec?: PhaseTypeSpec, // For phaseType duration type
   ) {
     if (initialValue instanceof BehaviorSubject) {
       // 如果传入的是BehaviorSubject，直接使用它
@@ -230,6 +233,82 @@ export const ModifierHelpers = {
 
     return { modifier, cleanup }
   },
+
+  /**
+   * Create a phase-type bound modifier
+   * @param id Unique identifier for the modifier
+   * @param value Modifier value
+   * @param type Modifier type
+   * @param phaseTypeSpec Phase type specification
+   * @param priority Priority for modifier application (higher = applied first)
+   * @param source Optional source (mark or skill instance)
+   */
+  createPhaseTypeModifier: <T extends number | boolean | string>(
+    id: string,
+    value: T | Subject<T> | Observable<T>,
+    type: 'percent' | 'delta' | 'override' | 'clampMax' | 'clampMin' | 'clamp',
+    phaseTypeSpec: PhaseTypeSpec,
+    priority: number = 0,
+    source?: MarkInstance | SkillInstance,
+  ): Modifier<T> => {
+    return new Modifier(DurationType.phaseType, id, value, type, priority, source, undefined, undefined, phaseTypeSpec)
+  },
+
+  /**
+   * Create a phase-type bound delta modifier (most common case)
+   * @param id Unique identifier for the modifier
+   * @param value Delta value to add
+   * @param phaseTypeSpec Phase type specification
+   * @param priority Priority for modifier application (higher = applied first)
+   * @param source Optional source (mark or skill instance)
+   */
+  createPhaseTypeDelta: (
+    id: string,
+    value: number | Subject<number> | Observable<number>,
+    phaseTypeSpec: PhaseTypeSpec,
+    priority: number = 0,
+    source?: MarkInstance | SkillInstance,
+  ): Modifier<number> => {
+    return new Modifier(
+      DurationType.phaseType,
+      id,
+      value,
+      'delta',
+      priority,
+      source,
+      undefined,
+      undefined,
+      phaseTypeSpec,
+    )
+  },
+
+  /**
+   * Create a phase-type bound percent modifier
+   * @param id Unique identifier for the modifier
+   * @param multiplier Multiplier value (1.5 = 150%)
+   * @param phaseTypeSpec Phase type specification
+   * @param priority Priority for modifier application (higher = applied first)
+   * @param source Optional source (mark or skill instance)
+   */
+  createPhaseTypePercent: (
+    id: string,
+    multiplier: number | Subject<number> | Observable<number>,
+    phaseTypeSpec: PhaseTypeSpec,
+    priority: number = 0,
+    source?: MarkInstance | SkillInstance,
+  ): Modifier<number> => {
+    return new Modifier(
+      DurationType.phaseType,
+      id,
+      multiplier,
+      'percent',
+      priority,
+      source,
+      undefined,
+      undefined,
+      phaseTypeSpec,
+    )
+  },
 }
 
 interface AttributeData {
@@ -255,16 +334,51 @@ export class AttributeSystem<T extends AttributeData> {
   // Track modifiers by source to prevent duplicates
   private modifiersBySource = new Map<string, Map<keyof T, Modifier[]>>()
 
+  // Track phase type modifiers for automatic cleanup
+  private phaseTypeModifiers = new Map<string, Modifier[]>()
+
+  // Static reference to ConfigSystem to avoid circular dependency
+  private static configSystemGetter: (() => any) | null = null
+
+  // Phase change notification subject
+  private static phaseChangeSubject = new Subject<void>()
+
+  /**
+   * Set the ConfigSystem getter to avoid circular dependency
+   */
+  static setConfigSystemGetter(getter: () => any): void {
+    AttributeSystem.configSystemGetter = getter
+  }
+
+  /**
+   * Notify all AttributeSystem instances that phase state has changed
+   */
+  static notifyPhaseChange(): void {
+    AttributeSystem.phaseChangeSubject.next()
+  }
+
   // 注册基础属性
   registerBaseAttribute(key: AttributeKey, initialValue: number | boolean | string) {
     this.baseAttributes.set(key, new BehaviorSubject(initialValue))
     this.modifiers.set(key, new BehaviorSubject<Modifier[]>([]))
 
-    // 创建计算流 - 添加优先级排序
-    const computed$ = combineLatest([this.baseAttributes.get(key)!, this.modifiers.get(key)!]).pipe(
-      map(([base, modifiers]) => {
+    // 创建计算流 - 添加优先级排序和phase-aware过滤
+    // Include phase change notifications to trigger recalculation
+    const computed$ = combineLatest([
+      this.baseAttributes.get(key)!,
+      this.modifiers.get(key)!,
+      AttributeSystem.phaseChangeSubject.pipe(
+        startWith(Date.now()), // Start with initial value
+        map(() => Date.now()), // Use timestamp to ensure emission
+        distinctUntilChanged(),
+      ),
+    ]).pipe(
+      map(([base, modifiers, _timestamp]) => {
+        // Filter modifiers based on phase context
+        const applicableModifiers = this.filterModifiersByPhaseContext(modifiers)
+
         // Sort modifiers by priority (higher priority first)
-        const sortedModifiers = [...modifiers].sort((a, b) => b.priority - a.priority)
+        const sortedModifiers = [...applicableModifiers].sort((a, b) => b.priority - a.priority)
         return sortedModifiers.reduce((acc, modifier) => modifier.apply(acc), base)
       }),
       distinctUntilChanged(),
@@ -290,6 +404,75 @@ export class AttributeSystem<T extends AttributeData> {
       return currentValue
     }
     return 0
+  }
+
+  /**
+   * Filter modifiers based on current phase context
+   */
+  private filterModifiersByPhaseContext(modifiers: Modifier[]): Modifier[] {
+    return modifiers.filter(modifier => this.isModifierApplicableInCurrentPhase(modifier))
+  }
+
+  /**
+   * Check if a modifier should be applied in the current phase context
+   */
+  private isModifierApplicableInCurrentPhase(modifier: Modifier): boolean {
+    // Always apply non-phase-type modifiers
+    if (modifier.durationType !== DurationType.phaseType) {
+      return true
+    }
+
+    const spec = modifier.phaseTypeSpec
+    if (!spec) {
+      return true
+    }
+
+    // Get ConfigSystem instance to check current phase state
+    if (!AttributeSystem.configSystemGetter) {
+      // If ConfigSystem is not available, apply all modifiers
+      return true
+    }
+
+    try {
+      const configSystem = AttributeSystem.configSystemGetter()
+
+      // Check if we're currently in the right phase type
+      const isInTargetPhaseType = configSystem.hasActivePhaseOfType(spec.phaseType)
+
+      if (!isInTargetPhaseType) {
+        return false
+      }
+
+      // If specific phase ID is required, check if current phase matches
+      if (spec.phaseId) {
+        const currentPhase = configSystem.getCurrentPhaseOfType(spec.phaseType)
+        if (!currentPhase || currentPhase.id !== spec.phaseId) {
+          return false
+        }
+      }
+
+      // Check scope-specific logic
+      switch (spec.scope) {
+        case 'current':
+          // Only apply if we're currently in this phase type
+          return isInTargetPhaseType
+
+        case 'any':
+          // Apply if we're in this phase type (same as Current for now)
+          return isInTargetPhaseType
+
+        case 'next':
+          // TODO: Implement proper "next" logic
+          // For now, treat as Current
+          return isInTargetPhaseType
+
+        default:
+          return true
+      }
+    } catch (error) {
+      // If ConfigSystem is not available, apply all modifiers
+      return true
+    }
   }
 
   // 添加临时修改器（返回清理函数）
@@ -332,6 +515,15 @@ export class AttributeSystem<T extends AttributeData> {
     const currentModifiers = [...this.modifiers.get(key)!.value, modifier]
     this.modifiers.get(key)!.next(currentModifiers)
 
+    // Track phase type modifiers for automatic cleanup
+    if (modifier.durationType === DurationType.phaseType && modifier.phaseTypeSpec) {
+      const phaseKey = `${modifier.phaseTypeSpec.phaseType}:${modifier.phaseTypeSpec.scope}:${modifier.phaseTypeSpec.phaseId || 'any'}`
+      if (!this.phaseTypeModifiers.has(phaseKey)) {
+        this.phaseTypeModifiers.set(phaseKey, [])
+      }
+      this.phaseTypeModifiers.get(phaseKey)!.push(modifier)
+    }
+
     return () => {
       // Remove from main modifiers list
       const newModifiers = this.modifiers.get(key)!.value.filter(m => m !== modifier)
@@ -357,7 +549,38 @@ export class AttributeSystem<T extends AttributeData> {
           }
         }
       }
+
+      // Remove from phase type tracking
+      if (modifier.durationType === DurationType.phaseType && modifier.phaseTypeSpec) {
+        const phaseKey = `${modifier.phaseTypeSpec.phaseType}:${modifier.phaseTypeSpec.scope}:${modifier.phaseTypeSpec.phaseId || 'any'}`
+        const phaseModifiers = this.phaseTypeModifiers.get(phaseKey)
+        if (phaseModifiers) {
+          const index = phaseModifiers.indexOf(modifier)
+          if (index > -1) {
+            phaseModifiers.splice(index, 1)
+          }
+          if (phaseModifiers.length === 0) {
+            this.phaseTypeModifiers.delete(phaseKey)
+          }
+        }
+      }
     }
+  }
+
+  /**
+   * Add a phase-type bound attribute modifier
+   */
+  addPhaseTypeModifier(key: AttributeKey, modifier: Modifier, phaseTypeSpec: PhaseTypeSpec): () => void {
+    // Validate that this is a phaseType modifier
+    if (modifier.durationType !== DurationType.phaseType) {
+      throw new Error('Modifier must have phaseType duration type for phase type binding')
+    }
+
+    // Set the phase type spec
+    modifier.phaseTypeSpec = phaseTypeSpec
+
+    // Add to regular modifiers
+    return this.addModifier(key, modifier)
   }
 
   // 更新基础值（如等级变化）

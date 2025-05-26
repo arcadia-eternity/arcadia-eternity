@@ -21,7 +21,7 @@ import type {
   SelectorDSL,
   Value,
   RawBaseSkillIdValue,
-} from './dsl'
+} from './effectDsl'
 import { MarkConfigSchema } from './mark'
 
 const selectorKeys = Object.keys(BaseSelector)
@@ -314,6 +314,10 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       modifierType: valueSchema,
       value: valueSchema,
       priority: valueSchema.optional(),
+      // 🆕 Phase-aware parameters
+      phaseType: valueSchema.optional(),
+      scope: valueSchema.optional(),
+      phaseId: valueSchema.optional(),
     }),
     z.object({
       type: z.literal('addDynamicAttributeModifier'),
@@ -322,6 +326,10 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       modifierType: valueSchema,
       observableValue: selectorDSLSchema,
       priority: valueSchema.optional(),
+      // 🆕 Phase-aware parameters
+      phaseType: valueSchema.optional(),
+      scope: valueSchema.optional(),
+      phaseId: valueSchema.optional(),
     }),
     z.object({
       type: z.literal('addClampMaxModifier'),
@@ -341,9 +349,13 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       type: z.literal('addClampModifier'),
       target: selectorDSLSchema,
       stat: valueSchema,
-      minValue: valueSchema,
-      maxValue: valueSchema,
+      minValue: valueSchema.optional(), // 🆕 Made optional
+      maxValue: valueSchema.optional(), // 🆕 Made optional
       priority: valueSchema.optional(),
+      // 🆕 Phase-aware parameters
+      phaseType: valueSchema.optional(),
+      scope: valueSchema.optional(),
+      phaseId: valueSchema.optional(),
     }),
     z.object({
       type: z.literal('addSkillAttributeModifier'),
@@ -352,6 +364,10 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       modifierType: valueSchema,
       value: valueSchema,
       priority: valueSchema.optional(),
+      // 🆕 Phase-aware parameters
+      phaseType: valueSchema.optional(),
+      scope: valueSchema.optional(),
+      phaseId: valueSchema.optional(),
     }),
     z.object({
       type: z.literal('addDynamicSkillAttributeModifier'),

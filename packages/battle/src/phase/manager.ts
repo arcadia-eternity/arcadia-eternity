@@ -1,5 +1,6 @@
 import { BattlePhaseBase, PhaseState, type PhaseResult, InteractivePhase } from './base'
 import type { Battle } from '../battle'
+import { ConfigSystem } from '../config'
 
 /**
  * Phase execution options
@@ -103,6 +104,10 @@ export class PhaseManager {
 
     this.currentPhase = phase
 
+    // Push phase to config system stack for level tracking
+    const configSystem = ConfigSystem.getInstance()
+    configSystem.pushPhase(phase)
+
     try {
       // Initialize phase if needed
       if (phase.state === PhaseState.Pending && !phase.context) {
@@ -133,6 +138,9 @@ export class PhaseManager {
       }
 
       return errorResult
+    } finally {
+      // Always pop phase from stack when execution completes (success or failure)
+      configSystem.popPhase(phase)
     }
   }
 

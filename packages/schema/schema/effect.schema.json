@@ -47,8 +47,7 @@
               "OnOwnerSwitchIn",
               "OnOwnerSwitchOut",
               "BeforeEffect",
-              "AfterEffect",
-              "OnUpdateStat"
+              "AfterEffect"
             ]
           },
           "priority": {
@@ -112,7 +111,6 @@
                                       "addMarkContext",
                                       "rageContext",
                                       "battle",
-                                      "updateStatContext",
                                       "turnContext"
                                     ]
                                   },

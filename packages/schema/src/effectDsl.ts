@@ -66,6 +66,10 @@ export type AddAttributeModifierOpreator = {
   modifierType: Value
   value: Value
   priority?: Value
+  // 🆕 Phase-aware parameters
+  phaseType?: Value
+  scope?: Value
+  phaseId?: Value
 }
 
 export type AddDynamicAttributeModifierOpreator = {
@@ -75,6 +79,10 @@ export type AddDynamicAttributeModifierOpreator = {
   modifierType: Value
   observableValue: SelectorDSL
   priority?: Value
+  // 🆕 Phase-aware parameters
+  phaseType?: Value
+  scope?: Value
+  phaseId?: Value
 }
 
 export type AddClampMaxModifierOpreator = {
@@ -97,9 +105,13 @@ export type AddClampModifierOpreator = {
   type: 'addClampModifier'
   target: SelectorDSL
   stat: Value
-  minValue: Value
-  maxValue: Value
+  minValue?: Value // 🆕 Made optional to support min-only or max-only
+  maxValue?: Value // 🆕 Made optional to support min-only or max-only
   priority?: Value
+  // 🆕 Phase-aware parameters
+  phaseType?: Value
+  scope?: Value
+  phaseId?: Value
 }
 
 export type AddSkillAttributeModifierOpreator = {
@@ -109,6 +121,10 @@ export type AddSkillAttributeModifierOpreator = {
   modifierType: Value
   value: Value
   priority?: Value
+  // 🆕 Phase-aware parameters
+  phaseType?: Value
+  scope?: Value
+  phaseId?: Value
 }
 
 export type AddDynamicSkillAttributeModifierOpreator = {
@@ -736,3 +752,7 @@ export type ConditionalValue = {
   trueValue: Value
   falseValue?: Value
 }
+
+export type { EffectDSL as Effect }
+import { effectDSLSchema, EffectDSLSetSchema } from './effectSchema'
+export { effectDSLSchema as EffectSchema, EffectDSLSetSchema as EffectSetSchema }

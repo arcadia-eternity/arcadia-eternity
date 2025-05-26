@@ -1,6 +1,7 @@
 import { EffectTrigger } from '@arcadia-eternity/const'
 import { Context, type TriggerContextMap } from '../context'
 import type { Battle } from '../battle'
+import { ConfigSystem, ConfigModifier, ConfigDurationType, ConfigModifierType, type ConfigValue } from '../config'
 
 /**
  * Phase execution state
@@ -40,6 +41,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
   public state: PhaseState = PhaseState.Pending
   public result?: PhaseResult
   protected _context?: TContext
+  private configModifierCleanups: (() => void)[] = []
 
   constructor(
     public readonly battle: Battle,
@@ -164,8 +166,74 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
    * Cleanup phase resources
    */
   public async cleanup(): Promise<void> {
+    // Cleanup all config modifiers
+    this.cleanupConfigModifiers()
+
     await this.onCleanup()
     this._context = undefined
+  }
+
+  /**
+   * Add a config modifier that will be automatically cleaned up when the phase ends
+   */
+  public addConfigModifier(
+    configKey: string,
+    modifierType: ConfigModifierType,
+    value: ConfigValue,
+    priority: number = 0,
+  ): void {
+    const configSystem = ConfigSystem.getInstance()
+
+    // Create a unique modifier ID
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(2, 11)
+    const modifierId = `${this.id}_config_${configKey}_${modifierType}_${timestamp}_${random}`
+
+    // Create the config modifier
+    const modifier = new ConfigModifier(ConfigDurationType.phase, modifierId, value, modifierType, priority, this)
+
+    // Add the modifier to the config system
+    const cleanup = configSystem.addConfigModifier(configKey, modifier)
+    this.configModifierCleanups.push(cleanup)
+  }
+
+  /**
+   * Add a dynamic config modifier with Observable value
+   */
+  public addDynamicConfigModifier(
+    configKey: string,
+    modifierType: ConfigModifierType,
+    observableValue: any, // Observable<ConfigValue>
+    priority: number = 0,
+  ): void {
+    const configSystem = ConfigSystem.getInstance()
+
+    // Create a unique modifier ID
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(2, 11)
+    const modifierId = `${this.id}_config_${configKey}_${modifierType}_dynamic_${timestamp}_${random}`
+
+    // Create the config modifier with Observable value
+    const modifier = new ConfigModifier(
+      ConfigDurationType.phase,
+      modifierId,
+      observableValue,
+      modifierType,
+      priority,
+      this,
+    )
+
+    // Add the modifier to the config system
+    const cleanup = configSystem.addConfigModifier(configKey, modifier)
+    this.configModifierCleanups.push(cleanup)
+  }
+
+  /**
+   * Cleanup all config modifiers associated with this phase
+   */
+  private cleanupConfigModifiers(): void {
+    this.configModifierCleanups.forEach(cleanup => cleanup())
+    this.configModifierCleanups.length = 0
   }
 
   /**

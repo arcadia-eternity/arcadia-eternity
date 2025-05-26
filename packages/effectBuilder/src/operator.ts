@@ -5,6 +5,18 @@ import {
   Battle,
   ConfigSystem,
   type ConfigValue,
+  ConfigModifier,
+  ConfigModifierType,
+  ConfigDurationType,
+  type PhaseTypeSpec,
+  PhaseType,
+  PhaseScope,
+} from '@arcadia-eternity/battle'
+import {
+  AttributeSystem,
+  Modifier as AttributeModifier,
+  DurationType as AttributeDurationType,
+  ModifierHelpers,
   DamageContext,
   EffectContext,
   HealContext,
@@ -21,6 +33,7 @@ import {
   Modifier,
   DurationType,
   StatLevelMarkInstanceImpl,
+  type BattlePhaseBase,
 } from '@arcadia-eternity/battle'
 import { Observable } from 'rxjs'
 import {
@@ -147,13 +160,16 @@ export const Operators = {
       })
     },
 
-  // New operator: Add attribute modifier bound to mark lifecycle
+  // Enhanced operator: Add attribute modifier with optional phase-aware support
   addAttributeModifier:
     (
       stat: ValueSource<StatTypeOnBattle>,
       modifierType: ValueSource<'percent' | 'delta' | 'override'>,
       value: ValueSource<number>,
       priority: ValueSource<number> = 0,
+      phaseType?: ValueSource<'turn' | 'skill' | 'damage' | 'heal' | 'effect' | 'switch' | 'mark' | 'rage' | 'battle'>,
+      scope?: ValueSource<'current' | 'any' | 'next'>,
+      phaseId?: ValueSource<string>,
     ): Operator<Pet> =>
     (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
       targets.forEach((pet, targetIndex) => {
@@ -161,39 +177,75 @@ export const Operators = {
         const _modifierType = GetValueFromSource(context, modifierType)[0]
         const _value = GetValueFromSource(context, value)[0]
         const _priority = GetValueFromSource(context, priority)[0] ?? 0
+        const _phaseType = phaseType ? GetValueFromSource(context, phaseType)[0] : undefined
+        const _scope = scope ? GetValueFromSource(context, scope)[0] : undefined
+        const _phaseId = phaseId ? GetValueFromSource(context, phaseId)[0] : undefined
 
         // Create a unique modifier ID with better uniqueness guarantees
         const timestamp = Date.now()
         const random = Math.random().toString(36).substring(2, 11)
         const modifierId = `${context.source.id}_${_stat}_${_modifierType}_${timestamp}_${targetIndex}_${random}`
 
-        // Create the modifier
-        const modifier = new Modifier(
-          DurationType.binding,
-          modifierId,
-          _value,
-          _modifierType,
-          _priority,
-          context.source instanceof MarkInstanceImpl ? context.source : undefined,
-        )
+        // Determine duration type and create appropriate modifier
+        if (_phaseType) {
+          // Create phase-aware modifier
+          const phaseTypeSpec = {
+            phaseType: _phaseType as PhaseType,
+            scope: (_scope as PhaseScope) || PhaseScope.Current,
+            phaseId: _phaseId,
+          }
 
-        // Add the modifier to the pet's attribute system
-        const cleanup = pet.attributeSystem.addModifier(_stat, modifier)
+          const phaseModifier = new Modifier(
+            AttributeDurationType.phaseType,
+            modifierId,
+            _value,
+            _modifierType,
+            _priority,
+            context.source instanceof MarkInstanceImpl ? context.source : undefined,
+            undefined, // minValue
+            undefined, // maxValue
+            phaseTypeSpec,
+          )
 
-        // If the effect source is a mark, bind the modifier lifecycle to the mark
-        if (context.source instanceof MarkInstanceImpl) {
-          context.source.addAttributeModifierCleanup(cleanup)
+          // Add the phase-aware modifier to the pet's attribute system
+          const cleanup = pet.attributeSystem.addPhaseTypeModifier(_stat, phaseModifier, phaseTypeSpec)
+
+          // If the effect source is a mark, bind the modifier lifecycle to the mark
+          if (context.source instanceof MarkInstanceImpl) {
+            context.source.addAttributeModifierCleanup(cleanup)
+          }
+        } else {
+          // Create regular binding modifier
+          const modifier = new Modifier(
+            DurationType.binding,
+            modifierId,
+            _value,
+            _modifierType,
+            _priority,
+            context.source instanceof MarkInstanceImpl ? context.source : undefined,
+          )
+
+          // Add the modifier to the pet's attribute system
+          const cleanup = pet.attributeSystem.addModifier(_stat, modifier)
+
+          // If the effect source is a mark, bind the modifier lifecycle to the mark
+          if (context.source instanceof MarkInstanceImpl) {
+            context.source.addAttributeModifierCleanup(cleanup)
+          }
         }
       })
     },
 
-  // New operator: Add dynamic attribute modifier using Observable value source
+  // Enhanced operator: Add dynamic attribute modifier with optional phase-aware support
   addDynamicAttributeModifier:
     (
       stat: ValueSource<StatTypeOnBattle>,
       modifierType: ValueSource<'percent' | 'delta' | 'override'>,
       observableValue: ValueSource<Observable<number>>,
       priority: ValueSource<number> = 0,
+      phaseType?: ValueSource<'turn' | 'skill' | 'damage' | 'heal' | 'effect' | 'switch' | 'mark' | 'rage' | 'battle'>,
+      scope?: ValueSource<'current' | 'any' | 'next'>,
+      phaseId?: ValueSource<string>,
     ): Operator<Pet> =>
     (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
       targets.forEach((pet, targetIndex) => {
@@ -201,28 +253,61 @@ export const Operators = {
         const _modifierType = GetValueFromSource(context, modifierType)[0]
         const _observableValue = GetValueFromSource(context, observableValue)[0]
         const _priority = GetValueFromSource(context, priority)[0] ?? 0
+        const _phaseType = phaseType ? GetValueFromSource(context, phaseType)[0] : undefined
+        const _scope = scope ? GetValueFromSource(context, scope)[0] : undefined
+        const _phaseId = phaseId ? GetValueFromSource(context, phaseId)[0] : undefined
 
         // Create a unique modifier ID
         const timestamp = Date.now()
         const random = Math.random().toString(36).substring(2, 11)
         const modifierId = `${context.source.id}_${_stat}_${_modifierType}_dynamic_${timestamp}_${targetIndex}_${random}`
 
-        // Create the modifier with Observable value
-        const modifier = new Modifier(
-          DurationType.binding,
-          modifierId,
-          _observableValue,
-          _modifierType,
-          _priority,
-          context.source instanceof MarkInstanceImpl ? context.source : undefined,
-        )
+        // Determine duration type and create appropriate modifier
+        if (_phaseType) {
+          // Create phase-aware dynamic modifier
+          const phaseTypeSpec = {
+            phaseType: _phaseType as PhaseType,
+            scope: (_scope as PhaseScope) || PhaseScope.Current,
+            phaseId: _phaseId,
+          }
 
-        // Add the modifier to the pet's attribute system
-        const cleanup = pet.attributeSystem.addModifier(_stat, modifier)
+          const phaseModifier = new Modifier(
+            AttributeDurationType.phaseType,
+            modifierId,
+            _observableValue,
+            _modifierType,
+            _priority,
+            context.source instanceof MarkInstanceImpl ? context.source : undefined,
+            undefined, // minValue
+            undefined, // maxValue
+            phaseTypeSpec,
+          )
 
-        // If the effect source is a mark, bind the modifier lifecycle to the mark
-        if (context.source instanceof MarkInstanceImpl) {
-          context.source.addAttributeModifierCleanup(cleanup)
+          // Add the phase-aware modifier to the pet's attribute system
+          const cleanup = pet.attributeSystem.addPhaseTypeModifier(_stat, phaseModifier, phaseTypeSpec)
+
+          // If the effect source is a mark, bind the modifier lifecycle to the mark
+          if (context.source instanceof MarkInstanceImpl) {
+            context.source.addAttributeModifierCleanup(cleanup)
+          }
+        } else {
+          // Create regular binding modifier with Observable value
+          const modifier = new Modifier(
+            DurationType.binding,
+            modifierId,
+            _observableValue,
+            _modifierType,
+            _priority,
+            context.source instanceof MarkInstanceImpl ? context.source : undefined,
+          )
+
+          // Add the modifier to the pet's attribute system
+          const cleanup = pet.attributeSystem.addModifier(_stat, modifier)
+
+          // If the effect source is a mark, bind the modifier lifecycle to the mark
+          if (context.source instanceof MarkInstanceImpl) {
+            context.source.addAttributeModifierCleanup(cleanup)
+          }
         }
       })
     },
@@ -303,44 +388,106 @@ export const Operators = {
       })
     },
 
-  // New operator: Add clamp modifier to limit both minimum and maximum attribute values
+  // Enhanced operator: Add clamp modifier with optional phase-aware support
   addClampModifier:
     (
       stat: ValueSource<StatTypeOnBattle>,
-      minValue: ValueSource<number>,
-      maxValue: ValueSource<number>,
+      minValue?: ValueSource<number>,
+      maxValue?: ValueSource<number>,
       priority: ValueSource<number> = 0,
+      phaseType?: ValueSource<'turn' | 'skill' | 'damage' | 'heal' | 'effect' | 'switch' | 'mark' | 'rage' | 'battle'>,
+      scope?: ValueSource<'current' | 'any' | 'next'>,
+      phaseId?: ValueSource<string>,
     ): Operator<Pet> =>
     (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
       targets.forEach((pet, targetIndex) => {
         const _stat = GetValueFromSource(context, stat)[0]
-        const _minValue = GetValueFromSource(context, minValue)[0]
-        const _maxValue = GetValueFromSource(context, maxValue)[0]
+        const _minValue = minValue ? GetValueFromSource(context, minValue)[0] : undefined
+        const _maxValue = maxValue ? GetValueFromSource(context, maxValue)[0] : undefined
         const _priority = GetValueFromSource(context, priority)[0] ?? 0
+        const _phaseType = phaseType ? GetValueFromSource(context, phaseType)[0] : undefined
+        const _scope = scope ? GetValueFromSource(context, scope)[0] : undefined
+        const _phaseId = phaseId ? GetValueFromSource(context, phaseId)[0] : undefined
+
+        // Determine clamp type and value
+        let clampType: 'clampMin' | 'clampMax' | 'clamp'
+        let clampValue: number
+        let minValueForModifier: number | undefined
+        let maxValueForModifier: number | undefined
+
+        if (_minValue !== undefined && _maxValue !== undefined) {
+          clampType = 'clamp'
+          clampValue = 0 // Not used for clamp type
+          minValueForModifier = _minValue
+          maxValueForModifier = _maxValue
+        } else if (_minValue !== undefined) {
+          clampType = 'clampMin'
+          clampValue = _minValue
+          minValueForModifier = _minValue
+          maxValueForModifier = undefined
+        } else if (_maxValue !== undefined) {
+          clampType = 'clampMax'
+          clampValue = _maxValue
+          minValueForModifier = undefined
+          maxValueForModifier = _maxValue
+        } else {
+          // No clamp values provided, skip
+          return
+        }
 
         // Create a unique modifier ID
         const timestamp = Date.now()
         const random = Math.random().toString(36).substring(2, 11)
-        const modifierId = `${context.source.id}_${_stat}_clamp_${timestamp}_${targetIndex}_${random}`
+        const modifierId = `${context.source.id}_${_stat}_${clampType}_${timestamp}_${targetIndex}_${random}`
 
-        // Create the clamp modifier
-        const modifier = new Modifier(
-          DurationType.binding,
-          modifierId,
-          0, // Not used for clamp type
-          'clamp',
-          _priority,
-          context.source instanceof MarkInstanceImpl ? context.source : undefined,
-          _minValue, // minValue
-          _maxValue, // maxValue
-        )
+        // Determine duration type and create appropriate modifier
+        if (_phaseType) {
+          // Create phase-aware clamp modifier
+          const phaseTypeSpec = {
+            phaseType: _phaseType as PhaseType,
+            scope: (_scope as PhaseScope) || PhaseScope.Current,
+            phaseId: _phaseId,
+          }
 
-        // Add the modifier to the pet's attribute system
-        const cleanup = pet.attributeSystem.addModifier(_stat, modifier)
+          const phaseModifier = new Modifier(
+            AttributeDurationType.phaseType,
+            modifierId,
+            clampValue,
+            clampType,
+            _priority,
+            context.source instanceof MarkInstanceImpl ? context.source : undefined,
+            minValueForModifier, // minValue
+            maxValueForModifier, // maxValue
+            phaseTypeSpec,
+          )
 
-        // If the effect source is a mark, bind the modifier lifecycle to the mark
-        if (context.source instanceof MarkInstanceImpl) {
-          context.source.addAttributeModifierCleanup(cleanup)
+          // Add the phase-aware modifier to the pet's attribute system
+          const cleanup = pet.attributeSystem.addPhaseTypeModifier(_stat, phaseModifier, phaseTypeSpec)
+
+          // If the effect source is a mark, bind the modifier lifecycle to the mark
+          if (context.source instanceof MarkInstanceImpl) {
+            context.source.addAttributeModifierCleanup(cleanup)
+          }
+        } else {
+          // Create regular binding clamp modifier
+          const modifier = new Modifier(
+            DurationType.binding,
+            modifierId,
+            clampValue,
+            clampType,
+            _priority,
+            context.source instanceof MarkInstanceImpl ? context.source : undefined,
+            minValueForModifier, // minValue
+            maxValueForModifier, // maxValue
+          )
+
+          // Add the modifier to the pet's attribute system
+          const cleanup = pet.attributeSystem.addModifier(_stat, modifier)
+
+          // If the effect source is a mark, bind the modifier lifecycle to the mark
+          if (context.source instanceof MarkInstanceImpl) {
+            context.source.addAttributeModifierCleanup(cleanup)
+          }
         }
       })
     },
@@ -781,13 +928,16 @@ export const Operators = {
     }
   },
 
-  // New operator: Add attribute modifier to skills
+  // Enhanced operator: Add attribute modifier to skills with optional phase-aware support
   addSkillAttributeModifier:
     (
       attribute: ValueSource<'power' | 'accuracy' | 'rage' | 'priority'>,
       modifierType: ValueSource<'percent' | 'delta' | 'override'>,
       value: ValueSource<number>,
       priority: ValueSource<number> = 0,
+      phaseType?: ValueSource<'turn' | 'skill' | 'damage' | 'heal' | 'effect' | 'switch' | 'mark' | 'rage' | 'battle'>,
+      scope?: ValueSource<'current' | 'any' | 'next'>,
+      phaseId?: ValueSource<string>,
     ): Operator<SkillInstance> =>
     (context: EffectContext<EffectTrigger>, targets: SkillInstance[]) => {
       targets.forEach((skill, targetIndex) => {
@@ -795,28 +945,61 @@ export const Operators = {
         const _modifierType = GetValueFromSource(context, modifierType)[0]
         const _value = GetValueFromSource(context, value)[0]
         const _priority = GetValueFromSource(context, priority)[0] ?? 0
+        const _phaseType = phaseType ? GetValueFromSource(context, phaseType)[0] : undefined
+        const _scope = scope ? GetValueFromSource(context, scope)[0] : undefined
+        const _phaseId = phaseId ? GetValueFromSource(context, phaseId)[0] : undefined
 
         // Create a unique modifier ID with better uniqueness guarantees
         const timestamp = Date.now()
         const random = Math.random().toString(36).substring(2, 11)
         const modifierId = `${context.source.id}_skill_${_attribute}_${_modifierType}_${timestamp}_${targetIndex}_${random}`
 
-        // Create the modifier
-        const modifier = new Modifier(
-          DurationType.binding,
-          modifierId,
-          _value,
-          _modifierType,
-          _priority,
-          context.source instanceof MarkInstanceImpl ? context.source : skill,
-        )
+        // Determine duration type and create appropriate modifier
+        if (_phaseType) {
+          // Create phase-aware modifier
+          const phaseTypeSpec = {
+            phaseType: _phaseType as PhaseType,
+            scope: (_scope as PhaseScope) || PhaseScope.Current,
+            phaseId: _phaseId,
+          }
 
-        // Add the modifier to the skill's attribute system
-        const cleanup = skill.attributeSystem.addModifier(_attribute, modifier)
+          const phaseModifier = new Modifier(
+            AttributeDurationType.phaseType,
+            modifierId,
+            _value,
+            _modifierType,
+            _priority,
+            context.source instanceof MarkInstanceImpl ? context.source : skill,
+            undefined, // minValue
+            undefined, // maxValue
+            phaseTypeSpec,
+          )
 
-        // If the effect source is a mark, bind the modifier lifecycle to the mark
-        if (context.source instanceof MarkInstanceImpl) {
-          context.source.addAttributeModifierCleanup(cleanup)
+          // Add the phase-aware modifier to the skill's attribute system
+          const cleanup = skill.attributeSystem.addPhaseTypeModifier(_attribute, phaseModifier, phaseTypeSpec)
+
+          // If the effect source is a mark, bind the modifier lifecycle to the mark
+          if (context.source instanceof MarkInstanceImpl) {
+            context.source.addAttributeModifierCleanup(cleanup)
+          }
+        } else {
+          // Create regular binding modifier
+          const modifier = new Modifier(
+            DurationType.binding,
+            modifierId,
+            _value,
+            _modifierType,
+            _priority,
+            context.source instanceof MarkInstanceImpl ? context.source : skill,
+          )
+
+          // Add the modifier to the skill's attribute system
+          const cleanup = skill.attributeSystem.addModifier(_attribute, modifier)
+
+          // If the effect source is a mark, bind the modifier lifecycle to the mark
+          if (context.source instanceof MarkInstanceImpl) {
+            context.source.addAttributeModifierCleanup(cleanup)
+          }
         }
       })
     },
@@ -977,6 +1160,233 @@ export const Operators = {
           context.source.addAttributeModifierCleanup(cleanup)
         }
       })
+    },
+
+  // Config modifier operators
+  addConfigModifier:
+    (
+      configKey: ValueSource<string>,
+      modifierType: ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
+      value: ValueSource<ConfigValue>,
+      priority: ValueSource<number> = 0,
+    ): Operator<any> =>
+    (context: EffectContext<EffectTrigger>, targets: any[]) => {
+      const _configKey = GetValueFromSource(context, configKey)[0]
+      const _modifierType = GetValueFromSource(context, modifierType)[0] as ConfigModifierType
+      const _value = GetValueFromSource(context, value)[0]
+      const _priority = GetValueFromSource(context, priority)[0] ?? 0
+
+      const configSystem = ConfigSystem.getInstance()
+
+      // Create a unique modifier ID
+      const timestamp = Date.now()
+      const random = Math.random().toString(36).substring(2, 11)
+      const modifierId = `${context.source.id}_config_${_configKey}_${_modifierType}_${timestamp}_${random}`
+
+      // Create the config modifier
+      const modifier = new ConfigModifier(
+        ConfigDurationType.binding,
+        modifierId,
+        _value,
+        _modifierType,
+        _priority,
+        context.source instanceof MarkInstanceImpl ? context.source : undefined,
+      )
+
+      // Add the modifier to the config system
+      const cleanup = configSystem.addConfigModifier(_configKey, modifier)
+
+      // If the effect source is a mark, bind the modifier lifecycle to the mark
+      if (context.source instanceof MarkInstanceImpl) {
+        context.source.addAttributeModifierCleanup(cleanup)
+      }
+    },
+
+  addDynamicConfigModifier:
+    (
+      configKey: ValueSource<string>,
+      modifierType: ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
+      observableValue: ValueSource<Observable<ConfigValue>>,
+      priority: ValueSource<number> = 0,
+    ): Operator<any> =>
+    (context: EffectContext<EffectTrigger>, targets: any[]) => {
+      const _configKey = GetValueFromSource(context, configKey)[0]
+      const _modifierType = GetValueFromSource(context, modifierType)[0] as ConfigModifierType
+      const _observableValue = GetValueFromSource(context, observableValue)[0]
+      const _priority = GetValueFromSource(context, priority)[0] ?? 0
+
+      const configSystem = ConfigSystem.getInstance()
+
+      // Create a unique modifier ID
+      const timestamp = Date.now()
+      const random = Math.random().toString(36).substring(2, 11)
+      const modifierId = `${context.source.id}_config_${_configKey}_${_modifierType}_dynamic_${timestamp}_${random}`
+
+      // Create the config modifier with Observable value
+      const modifier = new ConfigModifier(
+        ConfigDurationType.binding,
+        modifierId,
+        _observableValue,
+        _modifierType,
+        _priority,
+        context.source instanceof MarkInstanceImpl ? context.source : undefined,
+      )
+
+      // Add the modifier to the config system
+      const cleanup = configSystem.addConfigModifier(_configKey, modifier)
+
+      // If the effect source is a mark, bind the modifier lifecycle to the mark
+      if (context.source instanceof MarkInstanceImpl) {
+        context.source.addAttributeModifierCleanup(cleanup)
+      }
+    },
+
+  registerConfig:
+    (configKey: ValueSource<string>, initialValue: ValueSource<ConfigValue>): Operator<any> =>
+    (context: EffectContext<EffectTrigger>, targets: any[]) => {
+      const _configKey = GetValueFromSource(context, configKey)[0]
+      const _initialValue = GetValueFromSource(context, initialValue)[0]
+
+      const configSystem = ConfigSystem.getInstance()
+      if (!configSystem.isRegistered(_configKey)) {
+        configSystem.registerConfig(_configKey, _initialValue)
+      }
+    },
+
+  // Phase-specific config modifier operators
+  addPhaseConfigModifier:
+    (
+      configKey: ValueSource<string>,
+      modifierType: ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
+      value: ValueSource<ConfigValue>,
+      priority: ValueSource<number> = 0,
+    ): Operator<BattlePhaseBase> =>
+    (context: EffectContext<EffectTrigger>, targets: BattlePhaseBase[]) => {
+      targets.forEach(phase => {
+        const _configKey = GetValueFromSource(context, configKey)[0]
+        const _modifierType = GetValueFromSource(context, modifierType)[0] as ConfigModifierType
+        const _value = GetValueFromSource(context, value)[0]
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
+
+        phase.addConfigModifier(_configKey, _modifierType, _value, _priority)
+      })
+    },
+
+  addPhaseDynamicConfigModifier:
+    (
+      configKey: ValueSource<string>,
+      modifierType: ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
+      observableValue: ValueSource<Observable<ConfigValue>>,
+      priority: ValueSource<number> = 0,
+    ): Operator<BattlePhaseBase> =>
+    (context: EffectContext<EffectTrigger>, targets: BattlePhaseBase[]) => {
+      targets.forEach(phase => {
+        const _configKey = GetValueFromSource(context, configKey)[0]
+        const _modifierType = GetValueFromSource(context, modifierType)[0] as ConfigModifierType
+        const _observableValue = GetValueFromSource(context, observableValue)[0]
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
+
+        phase.addDynamicConfigModifier(_configKey, _modifierType, _observableValue, _priority)
+      })
+    },
+
+  // Phase type config modifier operators
+  addPhaseTypeConfigModifier:
+    (
+      configKey: ValueSource<string>,
+      modifierType: ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
+      value: ValueSource<ConfigValue>,
+      phaseType: ValueSource<'turn' | 'skill' | 'damage' | 'heal' | 'effect' | 'switch' | 'mark' | 'rage' | 'battle'>,
+      scope: ValueSource<'current' | 'any' | 'next'> = 'current',
+      priority: ValueSource<number> = 0,
+      phaseId?: ValueSource<string>,
+    ): Operator<any> =>
+    (context: EffectContext<EffectTrigger>, _targets: any[]) => {
+      const _configKey = GetValueFromSource(context, configKey)[0]
+      const _modifierType = GetValueFromSource(context, modifierType)[0] as ConfigModifierType
+      const _value = GetValueFromSource(context, value)[0]
+      const _phaseType = GetValueFromSource(context, phaseType)[0] as PhaseType
+      const scopeValue = GetValueFromSource(context, scope)[0] ?? 'current'
+      const _scope = scopeValue as PhaseScope
+      const _priority = GetValueFromSource(context, priority)[0] ?? 0
+      const _phaseId = phaseId ? GetValueFromSource(context, phaseId)[0] : undefined
+
+      const configSystem = ConfigSystem.getInstance()
+
+      // Create phase type spec
+      const phaseTypeSpec: PhaseTypeSpec = {
+        phaseType: _phaseType,
+        scope: _scope,
+        phaseId: _phaseId,
+      }
+
+      // Create a unique modifier ID
+      const timestamp = Date.now()
+      const random = Math.random().toString(36).substring(2, 11)
+      const modifierId = `${context.source.id}_phaseType_${_configKey}_${_modifierType}_${_phaseType}_${_scope}_${timestamp}_${random}`
+
+      // Create the config modifier
+      const modifier = new ConfigModifier(
+        ConfigDurationType.phaseType,
+        modifierId,
+        _value,
+        _modifierType,
+        _priority,
+        context.source instanceof MarkInstanceImpl ? context.source : undefined,
+        phaseTypeSpec,
+      )
+
+      // Add the modifier to the config system with phase type binding
+      configSystem.addPhaseTypeConfigModifier(_configKey, modifier, phaseTypeSpec)
+    },
+
+  addDynamicPhaseTypeConfigModifier:
+    (
+      configKey: ValueSource<string>,
+      modifierType: ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
+      observableValue: ValueSource<Observable<ConfigValue>>,
+      phaseType: ValueSource<'turn' | 'skill' | 'damage' | 'heal' | 'effect' | 'switch' | 'mark' | 'rage' | 'battle'>,
+      scope: ValueSource<'current' | 'any' | 'next'> = 'current',
+      priority: ValueSource<number> = 0,
+      phaseId?: ValueSource<string>,
+    ): Operator<any> =>
+    (context: EffectContext<EffectTrigger>, _targets: any[]) => {
+      const _configKey = GetValueFromSource(context, configKey)[0]
+      const _modifierType = GetValueFromSource(context, modifierType)[0] as ConfigModifierType
+      const _observableValue = GetValueFromSource(context, observableValue)[0]
+      const _phaseType = GetValueFromSource(context, phaseType)[0] as PhaseType
+      const scopeValue = GetValueFromSource(context, scope)[0] ?? 'current'
+      const _scope = scopeValue as PhaseScope
+      const _priority = GetValueFromSource(context, priority)[0] ?? 0
+      const _phaseId = phaseId ? GetValueFromSource(context, phaseId)[0] : undefined
+
+      const configSystem = ConfigSystem.getInstance()
+
+      // Create phase type spec
+      const phaseTypeSpec: PhaseTypeSpec = {
+        phaseType: _phaseType,
+        scope: _scope,
+        phaseId: _phaseId,
+      }
+
+      // Create a unique modifier ID
+      const timestamp = Date.now()
+      const random = Math.random().toString(36).substring(2, 11)
+      const modifierId = `${context.source.id}_phaseTypeDynamic_${_configKey}_${_modifierType}_${_phaseType}_${_scope}_${timestamp}_${random}`
+
+      // Create the config modifier with Observable value
+      const modifier = new ConfigModifier(
+        ConfigDurationType.phaseType,
+        modifierId,
+        _observableValue,
+        _modifierType,
+        _priority,
+        context.source instanceof MarkInstanceImpl ? context.source : undefined,
+        phaseTypeSpec,
+      )
+
+      // Add the modifier to the config system with phase type binding
+      configSystem.addPhaseTypeConfigModifier(_configKey, modifier, phaseTypeSpec)
     },
 }
 

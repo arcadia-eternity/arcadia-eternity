@@ -51,6 +51,4 @@ export enum EffectTrigger {
 
   BeforeEffect = 'BeforeEffect',
   AfterEffect = 'AfterEffect',
-
-  OnUpdateStat = 'OnUpdateStat',
 }

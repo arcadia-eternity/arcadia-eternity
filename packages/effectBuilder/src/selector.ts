@@ -15,8 +15,8 @@ import {
   RageContext,
   MarkInstanceImpl,
   type ScopeObject,
-  UpdateStatContext,
   Context,
+  type BattlePhaseBase,
 } from '@arcadia-eternity/battle'
 import { Observable, combineLatest, map } from 'rxjs'
 import {
@@ -589,7 +589,6 @@ export type ObjectOpinion =
   | HealContext
   | AddMarkContext
   | RageContext
-  | UpdateStatContext
   | StatTypeOnBattle
   | Instance
   | BaseMark
@@ -602,6 +601,7 @@ export type ObjectOpinion =
   | PropertyRef<any, any>
   | ObservableRef<any, any>
   | Observable<any>
+  | BattlePhaseBase
 
 export type SelectorOpinion = PrimitiveOpinion | ObjectOpinion | EnumOpinion | Array<SelectorOpinion>
 
@@ -643,8 +643,9 @@ export const BaseSelector: {
   addMarkContext: ChainableSelector<AddMarkContext>
   rageContext: ChainableSelector<RageContext>
   battle: ChainableSelector<Battle>
-  updateStatContext: ChainableSelector<UpdateStatContext>
   turnContext: ChainableSelector<TurnContext>
+  currentPhase: ChainableSelector<BattlePhaseBase>
+  allPhases: ChainableSelector<BattlePhaseBase>
 } = {
   //选择目标，在使用技能的场景下，为技能实际指向的目标，在印记的场景下指向印记的所有者。
   target: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
@@ -760,15 +761,19 @@ export const BaseSelector: {
   battle: createChainable<Battle>('Battle', (context: EffectContext<EffectTrigger>) => {
     return [context.battle]
   }),
-  updateStatContext: createChainable<UpdateStatContext>(
-    'UpdateStatContext',
-    (context: EffectContext<EffectTrigger>) => {
-      const foundContext = findContextRecursively(context, UpdateStatContext)
-      return foundContext ? [foundContext] : []
-    },
-  ),
   turnContext: createChainable<TurnContext>('TurnContext', (context: EffectContext<EffectTrigger>) => {
     const foundContext = findContextRecursively(context, TurnContext)
     return foundContext ? [foundContext] : []
+  }),
+
+  // 选择当前正在执行的phase
+  currentPhase: createChainable<BattlePhaseBase>('BattlePhaseBase', (context: EffectContext<EffectTrigger>) => {
+    const currentPhase = context.battle.phaseManager.getCurrentPhase()
+    return currentPhase ? [currentPhase] : []
+  }),
+
+  // 选择所有已注册的phases
+  allPhases: createChainable<BattlePhaseBase>('BattlePhaseBase', (context: EffectContext<EffectTrigger>) => {
+    return context.battle.phaseManager.getAllPhases()
   }),
 }
