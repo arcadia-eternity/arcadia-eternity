@@ -307,3 +307,81 @@ Circular dependency detected in getCurrentValue for 'speed', using fallback valu
 5. **性能友好**：轻量级实现，不影响正常使用
 
 该系统确保了即使在复杂的modifier组合下，AttributeSystem也能保持稳定运行，同时为开发者提供了充分的调试信息来识别和解决循环依赖问题。
+
+## 🌐 跨对象循环依赖支持
+
+### 扩展功能
+
+除了单对象内的循环依赖检测，系统还支持**跨对象循环依赖检测**：
+
+#### 1. **全局跟踪系统**
+
+- 每个AttributeSystem实例都有唯一ID（使用nanoid生成）
+- 全局计算栈跟踪所有对象的计算状态
+- 全局依赖图分析跨对象依赖关系
+
+#### 2. **跨对象场景支持**
+
+- **宠物间相互影响**：Pet1.attack ↔ Pet2.defense
+- **宠物-玩家依赖**：Pet.attack → Player.rage → Pet.currentHp
+- **复杂依赖链**：Pet1 → Pet2 → Player → Battle → Pet1
+- **印记系统跨对象影响**：Mark1 → Pet1 → Mark2 → Pet2
+
+#### 3. **实际游戏测试结果**
+
+```console
+=== Real Game Scenario Test ===
+
+=== Scenario 1: Team Synergy System ===
+After team synergy (full HP): 170
+After Pet2 takes damage (team synergy recalculates): 163
+
+=== Scenario 2: Player Rage System ===
+Pet1 attack with rage bonus: 172
+After Pet1 takes heavy damage:
+Player1 rage (should increase): 40
+Pet1 attack (higher due to increased rage): 162
+
+=== Scenario 3: Potential Circular Dependency ===
+Complex dependency chain established
+Has global circular dependencies: false
+After complex cross-dependencies:
+Pet1 attack: 173, Pet2 defense: 118, Player1 rage: 40
+
+✅ All cross-object dependencies handled safely
+✅ No system crashes or infinite loops
+✅ Fallback values used when needed
+✅ Performance remained stable throughout
+```
+
+### 使用方法
+
+```typescript
+// 创建具有唯一ID的AttributeSystem
+const pet1 = new PetAttributeSystem('fire_dragon')
+const pet2 = new PetAttributeSystem('water_turtle')
+const player = new PlayerAttributeSystem('player1')
+
+// 跨对象依赖示例
+const teamSynergy = new Modifier(
+  DurationType.binding,
+  'team_synergy',
+  combineLatest([
+    pet1.getAttribute$('currentHp'),
+    pet2.getAttribute$('currentHp')
+  ]).pipe(
+    map(([hp1, hp2]) => Math.floor((hp1 + hp2) * 0.1))
+  ),
+  'delta',
+  100
+)
+
+pet1.addModifier('attack', teamSynergy)
+
+// 检查跨对象循环依赖
+if (AttributeSystem.hasGlobalCircularDependencies()) {
+  console.warn('Cross-object circular dependencies detected!')
+}
+```
+
+详细信息请参考：[跨对象循环依赖文档](./CrossObjectCircularDependency.md)

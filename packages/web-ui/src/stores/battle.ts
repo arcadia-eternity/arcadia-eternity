@@ -105,13 +105,23 @@ export const useBattleStore = defineStore('battle', {
       this._messageSubject.next(msg)
     },
 
-    resetBattle() {
+    async resetBattle() {
       if (!this.isBattleEnd) {
         this.sendplayerSelection({
           player: this.playerId as playerId,
           type: 'surrender',
         })
       }
+
+      // Clean up battle interface resources
+      if (this.battleInterface) {
+        try {
+          await this.battleInterface.cleanup()
+        } catch (error) {
+          console.warn('Error during battle interface cleanup:', error)
+        }
+      }
+
       this.battleInterface = null
       this.playerId = ''
       this.isBattleEnd = false

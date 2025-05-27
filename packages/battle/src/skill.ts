@@ -152,7 +152,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
   effects: Effect<EffectTrigger>[] = []
 
   // Attribute system for managing skill parameters
-  public readonly attributeSystem: SkillAttributeSystem = new SkillAttributeSystem()
+  public readonly attributeSystem: SkillAttributeSystem
 
   constructor(
     public readonly base: BaseSkill,
@@ -180,6 +180,9 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     this.ignoreShield = overrides?.ignoreShield ?? base.ignoreShield
     this.tags = overrides?.tag ? [...base.tags, ...overrides.tag] : [...base.tags]
     this.effects = [...base.effects, ...(overrides?.effects ? overrides.effects : [])]
+
+    // Initialize attribute system with skill ID (battleId will be set later in setOwner)
+    this.attributeSystem = new SkillAttributeSystem()
 
     // Initialize attribute system with skill parameters
     const power = overrides?.power ?? base.power

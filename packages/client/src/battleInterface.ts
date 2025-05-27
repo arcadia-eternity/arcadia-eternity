@@ -26,4 +26,14 @@ export class RemoteBattleSystem implements IBattleSystem {
   async ready(): Promise<void> {
     await this.client.ready()
   }
+
+  /**
+   * Clean up all resources and subscriptions associated with this battle system
+   */
+  async cleanup(): Promise<void> {
+    // For remote battle system, we typically don't need to clean up much
+    // as the server handles the battle lifecycle
+    // But we can clean up any client-side resources if needed
+    console.log('RemoteBattleSystem cleanup completed')
+  }
 }

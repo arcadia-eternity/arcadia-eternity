@@ -23,6 +23,7 @@ import { type MarkInstance, MarkSystem } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
 import { SkillInstance } from './skill'
+import { AttributeSystem } from './attributeSystem'
 import * as jsondiffpatch from 'jsondiffpatch'
 import { nanoid } from 'nanoid'
 import mitt from 'mitt'
@@ -71,7 +72,7 @@ export class Battle extends Context implements MarkOwner {
     super(null)
     if (options?.rngSeed) this.rng = new Prando(options.rngSeed)
     // Use provided configSystem or create a new instance for this battle
-    this.configSystem = configSystem || ConfigSystem.createInstance()
+    this.configSystem = configSystem || ConfigSystem.createInstance(this.id)
 
     // Sync registered config keys from global singleton to battle instance
     const globalConfigSystem = ConfigSystem.getInstance()
@@ -543,5 +544,17 @@ export class Battle extends Context implements MarkOwner {
   public async cleanup() {
     this.clearListeners()
     await this.phaseManager.cleanup()
+
+    // Clean up all AttributeSystem instances associated with this battle
+    const attributeCleanedCount = AttributeSystem.cleanupBattle(this.id)
+    if (attributeCleanedCount > 0) {
+      console.log(`Battle ${this.id} cleanup: removed ${attributeCleanedCount} AttributeSystem instances`)
+    }
+
+    // Clean up all ConfigSystem instances associated with this battle
+    const configCleanedCount = ConfigSystem.cleanupBattle(this.id)
+    if (configCleanedCount > 0) {
+      console.log(`Battle ${this.id} cleanup: removed ${configCleanedCount} ConfigSystem instances`)
+    }
   }
 }

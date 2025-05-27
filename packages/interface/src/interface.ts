@@ -8,4 +8,9 @@ export interface IBattleSystem {
   submitAction(selection: PlayerSelection): Promise<void>
 
   BattleEvent(callback: (message: BattleMessage) => void): () => void
+
+  /**
+   * Clean up all resources and subscriptions associated with this battle system
+   */
+  cleanup(): Promise<void>
 }

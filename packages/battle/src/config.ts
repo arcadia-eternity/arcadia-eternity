@@ -172,6 +172,7 @@ export class ConfigModifier {
  */
 export class ConfigSystem {
   private static instance: ConfigSystem | null = null
+  private static battleRegistry: Map<string, Set<ConfigSystem>> = new Map()
 
   // Base config storage
   public configMap: Map<string, ConfigValue> = new Map()
@@ -191,7 +192,19 @@ export class ConfigSystem {
   private phaseTypeModifiers: Map<string, ConfigModifier[]> = new Map() // Modifiers by phase type
   private phaseTypeInstances: Map<PhaseType, BattlePhaseBase[]> = new Map() // Track instances by type
 
-  constructor() {}
+  // Lifecycle management
+  private isDestroyed: boolean = false
+  private battleId?: string
+  private allSubscriptions: { unsubscribe(): void }[] = []
+
+  constructor(battleId?: string) {
+    this.battleId = battleId
+
+    // Register this instance with the battle if battleId is provided
+    if (battleId) {
+      this.registerWithBattle(battleId)
+    }
+  }
 
   /**
    * Get the global singleton instance (for backward compatibility)
@@ -218,14 +231,65 @@ export class ConfigSystem {
    * Create a new ConfigSystem instance for a battle
    * This ensures battle instances don't interfere with each other
    */
-  static createInstance(): ConfigSystem {
-    return new ConfigSystem()
+  static createInstance(battleId?: string): ConfigSystem {
+    return new ConfigSystem(battleId)
+  }
+
+  /**
+   * Register this instance with a battle for lifecycle management
+   */
+  private registerWithBattle(battleId: string): void {
+    if (!ConfigSystem.battleRegistry.has(battleId)) {
+      ConfigSystem.battleRegistry.set(battleId, new Set())
+    }
+    ConfigSystem.battleRegistry.get(battleId)!.add(this)
+  }
+
+  /**
+   * Get all ConfigSystem instances associated with a battle
+   */
+  static getBattleInstances(battleId: string): Set<ConfigSystem> | undefined {
+    return ConfigSystem.battleRegistry.get(battleId)
+  }
+
+  /**
+   * Clean up all ConfigSystem instances associated with a specific battle
+   */
+  static cleanupBattle(battleId: string): number {
+    const battleInstances = ConfigSystem.battleRegistry.get(battleId)
+    if (!battleInstances) {
+      return 0
+    }
+
+    let cleanedCount = 0
+    for (const instance of battleInstances) {
+      if (!instance.getIsDestroyed()) {
+        instance.destroy()
+        cleanedCount++
+      }
+    }
+
+    // Remove the battle from registry
+    ConfigSystem.battleRegistry.delete(battleId)
+    return cleanedCount
+  }
+
+  /**
+   * Get battle registry for debugging
+   */
+  static getBattleRegistry(): Map<string, Set<ConfigSystem>> {
+    return ConfigSystem.battleRegistry
   }
 
   /**
    * Register a config key for modifier support
    */
   registerConfig(key: string, initialValue: ConfigValue): void {
+    if (this.isDestroyed) {
+      console.warn(`Attempted to register config '${key}' on destroyed ConfigSystem`)
+      return
+    }
+
     this.baseConfigs.set(key, new BehaviorSubject(initialValue))
     this.modifiers.set(key, new BehaviorSubject<ConfigModifier[]>([]))
 
@@ -246,6 +310,11 @@ export class ConfigSystem {
    * Get config value with modifier support
    */
   get(key: string, scope?: ScopeObject): ConfigValue | undefined {
+    if (this.isDestroyed) {
+      console.warn(`Attempted to get config '${key}' from destroyed ConfigSystem`)
+      return undefined
+    }
+
     // Check if this config has modifier support
     if (this.subscriptions.has(key)) {
       return this.getScopeAwareModifiedValue(key, scope)
@@ -515,54 +584,6 @@ export class ConfigSystem {
     }
 
     return false
-  }
-
-  /**
-   * Legacy method - kept for compatibility
-   */
-  private isModifierApplicableInScope(modifier: ConfigModifier, scope?: ScopeObject): boolean {
-    // Always apply non-phase-type modifiers
-    if (modifier.durationType !== ConfigDurationType.phaseType) {
-      return true
-    }
-
-    const spec = modifier.phaseTypeSpec
-    if (!spec) {
-      return true
-    }
-
-    // Check if we're currently in the right phase type
-    const isInTargetPhaseType = this.hasActivePhaseOfType(spec.phaseType)
-    if (!isInTargetPhaseType) {
-      return false
-    }
-
-    // If specific phase ID is required, check if current phase matches
-    if (spec.phaseId) {
-      const currentPhase = this.getCurrentPhaseOfType(spec.phaseType)
-      if (!currentPhase || currentPhase.id !== spec.phaseId) {
-        return false
-      }
-    }
-
-    // Check scope-specific logic
-    switch (spec.scope) {
-      case PhaseScope.Current:
-        // Only apply if we're currently in this phase type
-        return isInTargetPhaseType
-
-      case PhaseScope.Any:
-        // Apply if we're in this phase type (same as Current for now)
-        return isInTargetPhaseType
-
-      case PhaseScope.Next:
-        // TODO: Implement proper "next" logic
-        // For now, treat as Current
-        return isInTargetPhaseType
-
-      default:
-        return true
-    }
   }
 
   /**
@@ -923,7 +944,7 @@ export class ConfigSystem {
     const modifiersToCleanup: ConfigModifier[] = []
 
     for (const [typeKey, modifiers] of this.phaseTypeModifiers.entries()) {
-      const [configKey, keyPhaseType, scope, phaseId] = typeKey.split(':')
+      const [_configKey, keyPhaseType, scope, phaseId] = typeKey.split(':')
 
       // Only process modifiers for the completed phase type
       if (keyPhaseType !== phaseType) continue
@@ -946,7 +967,7 @@ export class ConfigSystem {
    */
   private shouldCleanupPhaseTypeModifier(
     modifier: ConfigModifier,
-    phaseType: PhaseType,
+    _phaseType: PhaseType,
     scope: string,
     phaseId: string,
     completedPhase: BattlePhaseBase,
@@ -1033,5 +1054,132 @@ export class ConfigSystem {
         break
       }
     }
+  }
+
+  /**
+   * Cleanup all resources and subscriptions
+   */
+  public cleanup(): void {
+    if (this.isDestroyed) {
+      return
+    }
+
+    // Cleanup all modifiers
+    for (const [_key, modifierSubject] of this.modifiers.entries()) {
+      const modifiers = modifierSubject.value
+      for (const modifier of modifiers) {
+        modifier.cleanup()
+      }
+      modifierSubject.complete()
+    }
+
+    // Cleanup all base config subjects
+    for (const [_key, subject] of this.baseConfigs.entries()) {
+      subject.complete()
+    }
+
+    // Cleanup all tracked subscriptions
+    for (const subscription of this.allSubscriptions) {
+      subscription.unsubscribe()
+    }
+
+    // Clear all maps and arrays
+    this.configMap.clear()
+    this.baseConfigs.clear()
+    this.modifiers.clear()
+    this.subscriptions.clear()
+    this.modifiersBySource.clear()
+    this.phaseStack.length = 0
+    this.phaseTypeModifiers.clear()
+    this.phaseTypeInstances.clear()
+    this.allSubscriptions.length = 0
+
+    console.log(`ConfigSystem cleanup completed for battle ${this.battleId || 'unknown'}`)
+  }
+
+  /**
+   * Destroy this ConfigSystem instance
+   */
+  public destroy(): void {
+    if (this.isDestroyed) {
+      return
+    }
+
+    this.cleanup()
+    this.isDestroyed = true
+
+    // Remove from battle registry if registered
+    if (this.battleId) {
+      const battleInstances = ConfigSystem.battleRegistry.get(this.battleId)
+      if (battleInstances) {
+        battleInstances.delete(this)
+        if (battleInstances.size === 0) {
+          ConfigSystem.battleRegistry.delete(this.battleId)
+        }
+      }
+    }
+
+    console.log(`ConfigSystem destroyed for battle ${this.battleId || 'unknown'}`)
+  }
+
+  /**
+   * Check if this instance is destroyed
+   */
+  public getIsDestroyed(): boolean {
+    return this.isDestroyed
+  }
+
+  /**
+   * Get the battle ID associated with this instance
+   */
+  public getBattleId(): string | undefined {
+    return this.battleId
+  }
+
+  /**
+   * Get global memory statistics for debugging
+   */
+  static getGlobalMemoryStats(): {
+    totalBattles: number
+    totalInstances: number
+    activeInstances: number
+  } {
+    let totalInstances = 0
+    let activeInstances = 0
+
+    for (const [_battleId, instances] of ConfigSystem.battleRegistry) {
+      totalInstances += instances.size
+      for (const instance of instances) {
+        if (!instance.getIsDestroyed()) {
+          activeInstances++
+        }
+      }
+    }
+
+    return {
+      totalBattles: ConfigSystem.battleRegistry.size,
+      totalInstances,
+      activeInstances,
+    }
+  }
+
+  /**
+   * Clean up all battles and their associated instances
+   */
+  static cleanupAllBattles(): number {
+    let totalCleaned = 0
+
+    for (const [_battleId, instances] of ConfigSystem.battleRegistry) {
+      for (const instance of instances) {
+        if (!instance.getIsDestroyed()) {
+          instance.destroy()
+          totalCleaned++
+        }
+      }
+    }
+
+    ConfigSystem.battleRegistry.clear()
+    console.log(`Cleaned up ${totalCleaned} ConfigSystem instances from all battles`)
+    return totalCleaned
   }
 }

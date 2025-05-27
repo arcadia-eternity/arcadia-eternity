@@ -1,6 +1,7 @@
 // attribute-system.ts
 import { BehaviorSubject, Observable, combineLatest, Subject } from 'rxjs'
 import { map, distinctUntilChanged, shareReplay, startWith } from 'rxjs/operators'
+import { nanoid } from 'nanoid'
 import type { StatOnBattle, StatTypeOnBattle } from '@arcadia-eternity/const'
 import type { MarkInstance } from './mark'
 import type { SkillInstance } from './skill'
@@ -352,6 +353,40 @@ export class AttributeSystem<T extends AttributeData> {
   private maxCalculationDepth = 10
   private calculationDepthCounter = new Map<keyof T, number>()
 
+  // Cross-object dependency tracking
+  private static globalCalculationStack = new Map<string, Set<string>>()
+  private static globalDependencyGraph = new Map<string, Set<string>>()
+  private objectId: string
+
+  // Memory management
+  private isDestroyed = false
+  private subscriptionCleanups = new Map<keyof T, () => void>()
+  private static instanceRegistry = new Set<AttributeSystem<any>>()
+  private static battleRegistry = new Map<string, Set<AttributeSystem<any>>>() // battleId -> instances
+  private static cleanupInterval: ReturnType<typeof setInterval> | null = null
+  private static readonly CLEANUP_INTERVAL = 60000 // 1 minute
+  private static readonly MAX_INACTIVE_TIME = 300000 // 5 minutes
+  private lastAccessTime = Date.now()
+  private battleId?: string // Associated battle ID
+
+  constructor(objectName?: string) {
+    // Generate unique object ID for cross-object dependency tracking
+    this.objectId = objectName || `AttributeSystem_${nanoid(8)}`
+
+    // Initialize global tracking for this object
+    if (!AttributeSystem.globalCalculationStack.has(this.objectId)) {
+      AttributeSystem.globalCalculationStack.set(this.objectId, new Set())
+    }
+
+    // Register this instance for memory management
+    AttributeSystem.instanceRegistry.add(this)
+
+    // Start global cleanup if not already running
+    if (!AttributeSystem.cleanupInterval) {
+      AttributeSystem.startGlobalCleanup()
+    }
+  }
+
   /**
    * Set the ConfigSystem getter to avoid circular dependency
    */
@@ -370,7 +405,45 @@ export class AttributeSystem<T extends AttributeData> {
    * Check if calculating a specific attribute would create a circular dependency
    */
   private wouldCreateCircularDependency(key: keyof T): boolean {
-    return this.calculationStack.has(key)
+    return this.calculationStack.has(key) || this.wouldCreateCrossObjectCircularDependency(key)
+  }
+
+  /**
+   * Check if calculating a specific attribute would create a cross-object circular dependency
+   */
+  private wouldCreateCrossObjectCircularDependency(key: keyof T): boolean {
+    const globalKey = `${this.objectId}.${String(key)}`
+
+    // Check if this attribute is already being calculated in any object
+    for (const [objectId, stack] of AttributeSystem.globalCalculationStack) {
+      if (stack.has(globalKey)) {
+        return true
+      }
+    }
+
+    return false
+  }
+
+  /**
+   * Add attribute to global calculation stack for cross-object tracking
+   */
+  private addToGlobalCalculationStack(key: keyof T): void {
+    const globalKey = `${this.objectId}.${String(key)}`
+    const stack = AttributeSystem.globalCalculationStack.get(this.objectId)
+    if (stack) {
+      stack.add(globalKey)
+    }
+  }
+
+  /**
+   * Remove attribute from global calculation stack
+   */
+  private removeFromGlobalCalculationStack(key: keyof T): void {
+    const globalKey = `${this.objectId}.${String(key)}`
+    const stack = AttributeSystem.globalCalculationStack.get(this.objectId)
+    if (stack) {
+      stack.delete(globalKey)
+    }
   }
 
   /**
@@ -461,6 +534,10 @@ export class AttributeSystem<T extends AttributeData> {
 
   // 注册基础属性
   registerBaseAttribute(key: AttributeKey, initialValue: number | boolean | string) {
+    if (this.isDestroyed) {
+      throw new Error(`Cannot register attribute on destroyed AttributeSystem ${this.objectId}`)
+    }
+
     this.baseAttributes.set(key, new BehaviorSubject(initialValue))
     this.modifiers.set(key, new BehaviorSubject<Modifier[]>([]))
 
@@ -482,9 +559,36 @@ export class AttributeSystem<T extends AttributeData> {
         return this.calculateAttributeValueSafely(key, base, modifiers)
       }),
       distinctUntilChanged(),
+      shareReplay(1), // Cache the latest value
     )
 
     this.subscriptions.set(key, computed$)
+
+    // Store cleanup function for this subscription
+    this.subscriptionCleanups.set(key, () => {
+      // Clean up base attribute
+      const baseSubject = this.baseAttributes.get(key)
+      if (baseSubject) {
+        baseSubject.complete()
+        this.baseAttributes.delete(key)
+      }
+
+      // Clean up modifiers
+      const modifierSubject = this.modifiers.get(key)
+      if (modifierSubject) {
+        // Clean up all modifiers for this attribute
+        const currentModifiers = modifierSubject.value
+        currentModifiers.forEach(modifier => modifier.destroy())
+        modifierSubject.complete()
+        this.modifiers.delete(key)
+      }
+
+      // Clean up subscription
+      this.subscriptions.delete(key)
+
+      // Clean up fallback value
+      this.fallbackValues.delete(key)
+    })
   }
 
   /**
@@ -508,8 +612,9 @@ export class AttributeSystem<T extends AttributeData> {
       return this.getFallbackValue(key)
     }
 
-    // Add to calculation stack
+    // Add to calculation stack (both local and global)
     this.calculationStack.add(key)
+    this.addToGlobalCalculationStack(key)
 
     try {
       // Filter modifiers based on phase context
@@ -529,8 +634,9 @@ export class AttributeSystem<T extends AttributeData> {
       console.warn(`Error calculating attribute '${String(key)}':`, error)
       return this.getFallbackValue(key)
     } finally {
-      // Remove from calculation stack
+      // Remove from calculation stack (both local and global)
       this.calculationStack.delete(key)
+      this.removeFromGlobalCalculationStack(key)
       // Reset calculation depth on successful completion
       this.resetCalculationDepth(key)
     }
@@ -611,6 +717,14 @@ export class AttributeSystem<T extends AttributeData> {
 
   // 获取当前属性值（同步）
   getCurrentValue(key: AttributeKey): number | boolean | string {
+    if (this.isDestroyed) {
+      console.warn(`Attempting to access destroyed AttributeSystem ${this.objectId}`)
+      return this.getFallbackValue(key)
+    }
+
+    // Update last access time for memory management
+    this.updateLastAccessTime()
+
     // Check for circular dependency in synchronous access
     if (this.wouldCreateCircularDependency(key)) {
       console.warn(`Circular dependency detected in getCurrentValue for '${String(key)}', using fallback value`)
@@ -874,6 +988,430 @@ export class AttributeSystem<T extends AttributeData> {
    */
   getCurrentFallbackValue(key: keyof T): number | boolean | string | undefined {
     return this.fallbackValues.get(key)
+  }
+
+  /**
+   * Track cross-object dependency for debugging
+   */
+  trackCrossObjectDependency(fromObjectId: string, fromKey: string, toObjectId: string, toKey: string): void {
+    const fromGlobalKey = `${fromObjectId}.${fromKey}`
+    const toGlobalKey = `${toObjectId}.${toKey}`
+
+    if (!AttributeSystem.globalDependencyGraph.has(fromGlobalKey)) {
+      AttributeSystem.globalDependencyGraph.set(fromGlobalKey, new Set())
+    }
+    AttributeSystem.globalDependencyGraph.get(fromGlobalKey)!.add(toGlobalKey)
+  }
+
+  /**
+   * Check if there are cross-object circular dependencies
+   */
+  static hasGlobalCircularDependencies(): boolean {
+    const visited = new Set<string>()
+    const recursionStack = new Set<string>()
+
+    const dfs = (node: string): boolean => {
+      if (recursionStack.has(node)) return true
+      if (visited.has(node)) return false
+
+      visited.add(node)
+      recursionStack.add(node)
+
+      const dependencies = AttributeSystem.globalDependencyGraph.get(node)
+      if (dependencies) {
+        for (const dep of dependencies) {
+          if (dfs(dep)) return true
+        }
+      }
+
+      recursionStack.delete(node)
+      return false
+    }
+
+    for (const node of AttributeSystem.globalDependencyGraph.keys()) {
+      if (!visited.has(node)) {
+        if (dfs(node)) return true
+      }
+    }
+
+    return false
+  }
+
+  /**
+   * Get global calculation stack for debugging
+   */
+  static getGlobalCalculationStack(): Map<string, Set<string>> {
+    return new Map(AttributeSystem.globalCalculationStack)
+  }
+
+  /**
+   * Get global dependency graph for debugging
+   */
+  static getGlobalDependencyGraph(): Map<string, Set<string>> {
+    return new Map(AttributeSystem.globalDependencyGraph)
+  }
+
+  /**
+   * Clear all global tracking data
+   */
+  static clearGlobalTracking(): void {
+    AttributeSystem.globalCalculationStack.clear()
+    AttributeSystem.globalDependencyGraph.clear()
+  }
+
+  /**
+   * Get this object's ID
+   */
+  getObjectId(): string {
+    return this.objectId
+  }
+
+  /**
+   * Associate this AttributeSystem with a battle
+   */
+  setBattleId(battleId: string): void {
+    this.battleId = battleId
+
+    // Register this instance with the battle
+    if (!AttributeSystem.battleRegistry.has(battleId)) {
+      AttributeSystem.battleRegistry.set(battleId, new Set())
+    }
+    AttributeSystem.battleRegistry.get(battleId)!.add(this)
+  }
+
+  /**
+   * Get the associated battle ID
+   */
+  getBattleId(): string | undefined {
+    return this.battleId
+  }
+
+  /**
+   * Start global cleanup process
+   */
+  private static startGlobalCleanup(): void {
+    AttributeSystem.cleanupInterval = setInterval(() => {
+      AttributeSystem.performGlobalCleanup()
+    }, AttributeSystem.CLEANUP_INTERVAL)
+  }
+
+  /**
+   * Stop global cleanup process
+   */
+  static stopGlobalCleanup(): void {
+    if (AttributeSystem.cleanupInterval !== null) {
+      clearInterval(AttributeSystem.cleanupInterval)
+      AttributeSystem.cleanupInterval = null
+    }
+  }
+
+  /**
+   * Perform global cleanup of inactive instances
+   */
+  private static performGlobalCleanup(): void {
+    const now = Date.now()
+    const instancesToCleanup: AttributeSystem<any>[] = []
+
+    for (const instance of AttributeSystem.instanceRegistry) {
+      if (instance.isDestroyed) {
+        instancesToCleanup.push(instance)
+      } else if (now - instance.lastAccessTime > AttributeSystem.MAX_INACTIVE_TIME) {
+        console.warn(
+          `AttributeSystem ${instance.objectId} has been inactive for ${Math.floor((now - instance.lastAccessTime) / 60000)} minutes, cleaning up...`,
+        )
+        instancesToCleanup.push(instance)
+      }
+    }
+
+    // Clean up inactive instances
+    for (const instance of instancesToCleanup) {
+      instance.destroy()
+    }
+
+    // Clean up empty global tracking data
+    AttributeSystem.cleanupEmptyGlobalData()
+  }
+
+  /**
+   * Clean up empty global tracking data
+   */
+  private static cleanupEmptyGlobalData(): void {
+    // Clean up empty calculation stacks
+    for (const [objectId, stack] of AttributeSystem.globalCalculationStack) {
+      if (stack.size === 0) {
+        AttributeSystem.globalCalculationStack.delete(objectId)
+      }
+    }
+
+    // Clean up orphaned dependency graph entries
+    const activeObjectIds = new Set(AttributeSystem.globalCalculationStack.keys())
+    for (const [key, _] of AttributeSystem.globalDependencyGraph) {
+      const objectId = key.split('.')[0]
+      if (!activeObjectIds.has(objectId)) {
+        AttributeSystem.globalDependencyGraph.delete(key)
+      }
+    }
+  }
+
+  /**
+   * Update last access time (called on attribute access)
+   */
+  private updateLastAccessTime(): void {
+    this.lastAccessTime = Date.now()
+  }
+
+  /**
+   * Check if this instance is destroyed
+   */
+  isInstanceDestroyed(): boolean {
+    return this.isDestroyed
+  }
+
+  /**
+   * Destroy this AttributeSystem instance and clean up all resources
+   */
+  destroy(): void {
+    if (this.isDestroyed) {
+      return // Already destroyed
+    }
+
+    console.debug(`Destroying AttributeSystem ${this.objectId}`)
+
+    // Mark as destroyed
+    this.isDestroyed = true
+
+    // Clean up all subscriptions
+    for (const [key, cleanup] of this.subscriptionCleanups) {
+      try {
+        cleanup()
+      } catch (error) {
+        console.warn(`Error cleaning up attribute ${String(key)} in ${this.objectId}:`, error)
+      }
+    }
+    this.subscriptionCleanups.clear()
+
+    // Clean up all remaining modifiers
+    for (const [_, modifierSubject] of this.modifiers) {
+      const modifiers = modifierSubject.value
+      modifiers.forEach(modifier => {
+        try {
+          modifier.destroy()
+        } catch (error) {
+          console.warn(`Error destroying modifier ${modifier.id}:`, error)
+        }
+      })
+      modifierSubject.complete()
+    }
+
+    // Clean up all base attributes
+    for (const [_, baseSubject] of this.baseAttributes) {
+      baseSubject.complete()
+    }
+
+    // Clear all maps
+    this.baseAttributes.clear()
+    this.modifiers.clear()
+    this.subscriptions.clear()
+    this.modifiersBySource.clear()
+    this.phaseTypeModifiers.clear()
+    this.calculationStack.clear()
+    this.dependencyGraph.clear()
+    this.fallbackValues.clear()
+    this.calculationDepthCounter.clear()
+
+    // Remove from global tracking
+    AttributeSystem.globalCalculationStack.delete(this.objectId)
+
+    // Remove from instance registry
+    AttributeSystem.instanceRegistry.delete(this)
+
+    // Remove from battle registry if associated with a battle
+    if (this.battleId) {
+      const battleInstances = AttributeSystem.battleRegistry.get(this.battleId)
+      if (battleInstances) {
+        battleInstances.delete(this)
+        // If no more instances for this battle, remove the battle entry
+        if (battleInstances.size === 0) {
+          AttributeSystem.battleRegistry.delete(this.battleId)
+        }
+      }
+    }
+
+    // Clean up global dependency graph entries for this object
+    const keysToDelete: string[] = []
+    for (const [key, _] of AttributeSystem.globalDependencyGraph) {
+      if (key.startsWith(`${this.objectId}.`)) {
+        keysToDelete.push(key)
+      }
+    }
+    keysToDelete.forEach(key => AttributeSystem.globalDependencyGraph.delete(key))
+
+    console.debug(`AttributeSystem ${this.objectId} destroyed successfully`)
+  }
+
+  /**
+   * Get memory usage statistics
+   */
+  getMemoryStats(): {
+    objectId: string
+    isDestroyed: boolean
+    lastAccessTime: number
+    inactiveTime: number
+    attributeCount: number
+    modifierCount: number
+    subscriptionCount: number
+  } {
+    const now = Date.now()
+    let totalModifiers = 0
+    for (const [_, modifierSubject] of this.modifiers) {
+      totalModifiers += modifierSubject.value.length
+    }
+
+    return {
+      objectId: this.objectId,
+      isDestroyed: this.isDestroyed,
+      lastAccessTime: this.lastAccessTime,
+      inactiveTime: now - this.lastAccessTime,
+      attributeCount: this.baseAttributes.size,
+      modifierCount: totalModifiers,
+      subscriptionCount: this.subscriptions.size,
+    }
+  }
+
+  /**
+   * Get global memory statistics
+   */
+  static getGlobalMemoryStats(): {
+    totalInstances: number
+    activeInstances: number
+    destroyedInstances: number
+    globalCalculationStackSize: number
+    globalDependencyGraphSize: number
+    oldestInactiveTime: number
+    memoryUsageByInstance: ReturnType<AttributeSystem<any>['getMemoryStats']>[]
+  } {
+    const now = Date.now()
+    let activeCount = 0
+    let destroyedCount = 0
+    let oldestInactiveTime = 0
+    const instanceStats: ReturnType<AttributeSystem<any>['getMemoryStats']>[] = []
+
+    for (const instance of AttributeSystem.instanceRegistry) {
+      const stats = instance.getMemoryStats()
+      instanceStats.push(stats)
+
+      if (stats.isDestroyed) {
+        destroyedCount++
+      } else {
+        activeCount++
+        oldestInactiveTime = Math.max(oldestInactiveTime, stats.inactiveTime)
+      }
+    }
+
+    return {
+      totalInstances: AttributeSystem.instanceRegistry.size,
+      activeInstances: activeCount,
+      destroyedInstances: destroyedCount,
+      globalCalculationStackSize: AttributeSystem.globalCalculationStack.size,
+      globalDependencyGraphSize: AttributeSystem.globalDependencyGraph.size,
+      oldestInactiveTime,
+      memoryUsageByInstance: instanceStats,
+    }
+  }
+
+  /**
+   * Force cleanup of all destroyed instances
+   */
+  static forceCleanupDestroyedInstances(): number {
+    const instancesToRemove: AttributeSystem<any>[] = []
+
+    for (const instance of AttributeSystem.instanceRegistry) {
+      if (instance.isDestroyed) {
+        instancesToRemove.push(instance)
+      }
+    }
+
+    instancesToRemove.forEach(instance => {
+      AttributeSystem.instanceRegistry.delete(instance)
+    })
+
+    return instancesToRemove.length
+  }
+
+  /**
+   * Force cleanup of inactive instances
+   */
+  static forceCleanupInactiveInstances(maxInactiveTime: number = AttributeSystem.MAX_INACTIVE_TIME): number {
+    const now = Date.now()
+    const instancesToCleanup: AttributeSystem<any>[] = []
+
+    for (const instance of AttributeSystem.instanceRegistry) {
+      if (!instance.isDestroyed && now - instance.lastAccessTime > maxInactiveTime) {
+        instancesToCleanup.push(instance)
+      }
+    }
+
+    instancesToCleanup.forEach(instance => instance.destroy())
+
+    return instancesToCleanup.length
+  }
+
+  /**
+   * Clean up all AttributeSystem instances associated with a specific battle
+   */
+  static cleanupBattle(battleId: string): number {
+    const battleInstances = AttributeSystem.battleRegistry.get(battleId)
+    if (!battleInstances) {
+      return 0
+    }
+
+    let cleanedCount = 0
+    for (const instance of battleInstances) {
+      if (!instance.isDestroyed) {
+        instance.destroy()
+        cleanedCount++
+      }
+    }
+
+    // Remove the battle from registry
+    AttributeSystem.battleRegistry.delete(battleId)
+
+    console.log(`Cleaned up ${cleanedCount} AttributeSystem instances for battle ${battleId}`)
+    return cleanedCount
+  }
+
+  /**
+   * Get all AttributeSystem instances associated with a battle
+   */
+  static getBattleInstances(battleId: string): Set<AttributeSystem<any>> | undefined {
+    return AttributeSystem.battleRegistry.get(battleId)
+  }
+
+  /**
+   * Get battle registry for debugging
+   */
+  static getBattleRegistry(): Map<string, Set<AttributeSystem<any>>> {
+    return new Map(AttributeSystem.battleRegistry)
+  }
+
+  /**
+   * Clean up all battles and their associated instances
+   */
+  static cleanupAllBattles(): number {
+    let totalCleaned = 0
+
+    for (const [battleId, instances] of AttributeSystem.battleRegistry) {
+      for (const instance of instances) {
+        if (!instance.isDestroyed) {
+          instance.destroy()
+          totalCleaned++
+        }
+      }
+    }
+
+    AttributeSystem.battleRegistry.clear()
+    console.log(`Cleaned up ${totalCleaned} AttributeSystem instances from all battles`)
+    return totalCleaned
   }
 
   // 移除来自特定源的所有修改器
@@ -1181,8 +1719,11 @@ export const createRageAttributeSystem = (
 
 // Pet-specific AttributeSystem with strongly typed interface
 export class PetAttributeSystem extends AttributeSystem<PetAttributeSet> {
-  constructor() {
-    super()
+  constructor(petId?: string, battleId?: string) {
+    super(petId ? `Pet_${petId}` : undefined)
+    if (battleId) {
+      this.setBattleId(battleId)
+    }
   }
 
   // Initialize all pet attributes
@@ -1321,8 +1862,11 @@ export class SkillAttributeSystem extends ComposableAttributeSystem<SkillAttribu
 
 // Player-specific AttributeSystem with strongly typed interface
 export class PlayerAttributeSystem extends AttributeSystem<PlayerAttributeSet> {
-  constructor() {
-    super()
+  constructor(playerId?: string, battleId?: string) {
+    super(playerId ? `Player_${playerId}` : undefined)
+    if (battleId) {
+      this.setBattleId(battleId)
+    }
   }
 
   // Initialize player rage attributes

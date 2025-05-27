@@ -35,7 +35,7 @@ export class Player {
   private messageCallbacks: Array<(message: BattleMessage) => void> = []
 
   // Attribute system for managing rage
-  public readonly attributeSystem: PlayerAttributeSystem = new PlayerAttributeSystem()
+  public readonly attributeSystem: PlayerAttributeSystem
   constructor(
     public readonly name: string,
     public readonly id: playerId,
@@ -43,6 +43,9 @@ export class Player {
   ) {
     this.activePet = team[0]
     this.activePet.appeared = true
+
+    // Initialize attribute system with player ID (battleId will be set later in registerBattle)
+    this.attributeSystem = new PlayerAttributeSystem(this.id)
 
     // Initialize attribute system with default rage values
     this.attributeSystem.initializePlayerAttributes(20, MAX_RAGE)
@@ -70,6 +73,10 @@ export class Player {
     this.owner = battle
     battle.registerListener(this.handleMessage.bind(this))
     this.emitter = emitter
+
+    // Set battleId for player attribute system
+    this.attributeSystem.setBattleId(battle.id)
+
     this.team.forEach(pet => {
       pet.setOwner(this, emitter)
       // Note: dirty flag removed, attribute system handles recalculation automatically

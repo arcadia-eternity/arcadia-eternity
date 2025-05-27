@@ -70,7 +70,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public lastSkillUsedTimes: number = 0
 
   // Attribute system for managing stats and currentHp
-  public readonly attributeSystem: PetAttributeSystem = new PetAttributeSystem()
+  public readonly attributeSystem: PetAttributeSystem
 
   constructor(
     public readonly name: string,
@@ -92,6 +92,9 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
 
     this.element = species.element
     this.owner = null
+
+    // Initialize attribute system with pet ID (battleId will be set later in setOwner)
+    this.attributeSystem = new PetAttributeSystem(this.id)
 
     // Set gender
     if (gender !== undefined) {
@@ -231,8 +234,19 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     this.owner = player
     this.emitter = emitter
 
+    // Set battleId for attribute system if player has a battle
+    if (player.battle) {
+      this.attributeSystem.setBattleId(player.battle.id)
+    }
+
     this.skills = this.baseSkills.map(s => new SkillInstance(s))
-    this.skills.forEach(skill => skill.setOwner(this))
+    this.skills.forEach(skill => {
+      skill.setOwner(this)
+      // Set battleId for skill attribute systems
+      if (player.battle) {
+        skill.attributeSystem.setBattleId(player.battle.id)
+      }
+    })
 
     // Calculate base stats and initialize attribute system
     const baseStats = this.calculateStats()

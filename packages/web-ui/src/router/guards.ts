@@ -37,5 +37,6 @@ export const battleGuard = (to: RouteLocationNormalized, from: RouteLocationNorm
       })
   } else {
     next()
+    store.resetBattle()
   }
 }

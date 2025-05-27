@@ -124,7 +124,7 @@ export class MarkInstanceImpl implements MarkInstance {
   public emitter?: Emitter<Events>
 
   // Attribute system for managing mark parameters
-  public readonly attributeSystem: MarkAttributeSystem = new MarkAttributeSystem()
+  public readonly attributeSystem: MarkAttributeSystem
 
   // Store cleanup functions for attribute modifiers
   private attributeModifierCleanups: (() => void)[] = []
@@ -146,6 +146,9 @@ export class MarkInstanceImpl implements MarkInstance {
       // 确保枚举类型有默认值
       stackStrategy: overrides?.config?.stackStrategy ?? base.config.stackStrategy ?? StackStrategy.stack,
     }
+
+    // Initialize attribute system with mark ID (battleId will be set later in setOwner)
+    this.attributeSystem = new MarkAttributeSystem()
 
     // Initialize attribute system with mark parameters
     const duration = overrides?.duration ?? mergedConfig.duration ?? base.config.duration ?? 3
@@ -211,6 +214,13 @@ export class MarkInstanceImpl implements MarkInstance {
   setOwner(owner: Battle | Pet, emitter: Emitter<Events>): void {
     this.owner = owner
     this.emitter = emitter
+
+    // Set battleId for attribute system
+    if (owner instanceof Pet && owner.owner?.battle) {
+      this.attributeSystem.setBattleId(owner.owner.battle.id)
+    } else if (owner instanceof Battle) {
+      this.attributeSystem.setBattleId(owner.id)
+    }
   }
 
   attachTo(target: Battle | Pet) {
