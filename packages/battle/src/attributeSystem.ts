@@ -345,6 +345,13 @@ export class AttributeSystem<T extends AttributeData> {
   // Phase change notification subject
   private static phaseChangeSubject = new Subject<void>()
 
+  // Circular dependency detection and prevention
+  private calculationStack = new Set<keyof T>()
+  private dependencyGraph = new Map<keyof T, Set<keyof T>>()
+  private fallbackValues = new Map<keyof T, number | boolean | string>()
+  private maxCalculationDepth = 10
+  private calculationDepthCounter = new Map<keyof T, number>()
+
   /**
    * Set the ConfigSystem getter to avoid circular dependency
    */
@@ -359,12 +366,108 @@ export class AttributeSystem<T extends AttributeData> {
     AttributeSystem.phaseChangeSubject.next()
   }
 
+  /**
+   * Check if calculating a specific attribute would create a circular dependency
+   */
+  private wouldCreateCircularDependency(key: keyof T): boolean {
+    return this.calculationStack.has(key)
+  }
+
+  /**
+   * Get fallback value for an attribute in case of circular dependency
+   */
+  private getFallbackValue(key: keyof T): number | boolean | string {
+    // Use cached fallback value if available
+    if (this.fallbackValues.has(key)) {
+      return this.fallbackValues.get(key)!
+    }
+
+    // Use base value as fallback
+    const baseSubject = this.baseAttributes.get(key)
+    if (baseSubject) {
+      const fallback = baseSubject.value
+      this.fallbackValues.set(key, fallback)
+      return fallback
+    }
+
+    // Default fallback values by type
+    const baseValue = this.baseAttributes.get(key)?.value
+    if (typeof baseValue === 'number') return 0
+    if (typeof baseValue === 'boolean') return false
+    return ''
+  }
+
+  /**
+   * Track dependency between attributes for cycle detection
+   */
+  private trackDependency(from: keyof T, to: keyof T): void {
+    if (!this.dependencyGraph.has(from)) {
+      this.dependencyGraph.set(from, new Set())
+    }
+    this.dependencyGraph.get(from)!.add(to)
+  }
+
+  /**
+   * Check if there's a cycle in the dependency graph using DFS
+   */
+  private hasCycleInDependencyGraph(): boolean {
+    const visited = new Set<keyof T>()
+    const recursionStack = new Set<keyof T>()
+
+    const dfs = (node: keyof T): boolean => {
+      if (recursionStack.has(node)) return true
+      if (visited.has(node)) return false
+
+      visited.add(node)
+      recursionStack.add(node)
+
+      const dependencies = this.dependencyGraph.get(node)
+      if (dependencies) {
+        for (const dep of dependencies) {
+          if (dfs(dep)) return true
+        }
+      }
+
+      recursionStack.delete(node)
+      return false
+    }
+
+    for (const node of this.dependencyGraph.keys()) {
+      if (!visited.has(node)) {
+        if (dfs(node)) return true
+      }
+    }
+
+    return false
+  }
+
+  /**
+   * Reset calculation depth counter for an attribute
+   */
+  private resetCalculationDepth(key: keyof T): void {
+    this.calculationDepthCounter.set(key, 0)
+  }
+
+  /**
+   * Increment and check calculation depth to prevent infinite recursion
+   */
+  private checkCalculationDepth(key: keyof T): boolean {
+    const current = this.calculationDepthCounter.get(key) || 0
+    const newDepth = current + 1
+    this.calculationDepthCounter.set(key, newDepth)
+
+    return newDepth <= this.maxCalculationDepth
+  }
+
   // 注册基础属性
   registerBaseAttribute(key: AttributeKey, initialValue: number | boolean | string) {
     this.baseAttributes.set(key, new BehaviorSubject(initialValue))
     this.modifiers.set(key, new BehaviorSubject<Modifier[]>([]))
 
-    // 创建计算流 - 添加优先级排序和phase-aware过滤
+    // Initialize fallback value
+    this.fallbackValues.set(key, initialValue)
+
+    // 创建计算流 - 添加优先级排序和phase-aware过滤以及循环依赖检测
     // Include phase change notifications to trigger recalculation
     const computed$ = combineLatest([
       this.baseAttributes.get(key)!,
@@ -376,17 +479,129 @@ export class AttributeSystem<T extends AttributeData> {
       ),
     ]).pipe(
       map(([base, modifiers, _timestamp]) => {
-        // Filter modifiers based on phase context
-        const applicableModifiers = this.filterModifiersByPhaseContext(modifiers)
-
-        // Sort modifiers by priority (higher priority first)
-        const sortedModifiers = [...applicableModifiers].sort((a, b) => b.priority - a.priority)
-        return sortedModifiers.reduce((acc, modifier) => modifier.apply(acc), base)
+        return this.calculateAttributeValueSafely(key, base, modifiers)
       }),
       distinctUntilChanged(),
     )
 
     this.subscriptions.set(key, computed$)
+  }
+
+  /**
+   * Safely calculate attribute value with circular dependency protection
+   */
+  private calculateAttributeValueSafely(
+    key: keyof T,
+    base: number | boolean | string,
+    modifiers: Modifier[],
+  ): number | boolean | string {
+    // Check for circular dependency
+    if (this.wouldCreateCircularDependency(key)) {
+      console.warn(`Circular dependency detected for attribute '${String(key)}', using fallback value`)
+      return this.getFallbackValue(key)
+    }
+
+    // Check calculation depth to prevent infinite recursion
+    if (!this.checkCalculationDepth(key)) {
+      console.warn(`Maximum calculation depth exceeded for attribute '${String(key)}', using fallback value`)
+      this.resetCalculationDepth(key)
+      return this.getFallbackValue(key)
+    }
+
+    // Add to calculation stack
+    this.calculationStack.add(key)
+
+    try {
+      // Filter modifiers based on phase context
+      const applicableModifiers = this.filterModifiersByPhaseContext(modifiers)
+
+      // Sort modifiers by priority (higher priority first)
+      const sortedModifiers = [...applicableModifiers].sort((a, b) => b.priority - a.priority)
+
+      // Apply modifiers with circular dependency protection
+      const result = this.applyModifiersSafely(key, base, sortedModifiers)
+
+      // Update fallback value with successful calculation
+      this.fallbackValues.set(key, result)
+
+      return result
+    } catch (error) {
+      console.warn(`Error calculating attribute '${String(key)}':`, error)
+      return this.getFallbackValue(key)
+    } finally {
+      // Remove from calculation stack
+      this.calculationStack.delete(key)
+      // Reset calculation depth on successful completion
+      this.resetCalculationDepth(key)
+    }
+  }
+
+  /**
+   * Apply modifiers safely with dependency tracking
+   */
+  private applyModifiersSafely(
+    key: keyof T,
+    base: number | boolean | string,
+    modifiers: Modifier[],
+  ): number | boolean | string {
+    let result = base
+
+    for (const modifier of modifiers) {
+      try {
+        // Track dependencies for Observable-based modifiers
+        if (modifier.value instanceof BehaviorSubject) {
+          // For reactive modifiers, we need to track potential dependencies
+          // This is a simplified approach - in practice, you might want more sophisticated tracking
+          const modifierValue = modifier.getCurrentValue()
+
+          // Apply the modifier with the current value
+          result = this.applyModifierValue(result, modifier, modifierValue)
+        } else {
+          // For static modifiers, apply directly
+          result = modifier.apply(result)
+        }
+      } catch (error) {
+        console.warn(`Error applying modifier '${modifier.id}' to attribute '${String(key)}':`, error)
+        // Continue with other modifiers instead of failing completely
+        continue
+      }
+    }
+
+    return result
+  }
+
+  /**
+   * Apply a single modifier value safely
+   */
+  private applyModifierValue(
+    current: number | boolean | string,
+    modifier: Modifier,
+    modifierValue: any,
+  ): number | boolean | string {
+    switch (modifier.type) {
+      case 'percent':
+        if (typeof modifierValue !== 'number' || typeof current !== 'number') return current
+        const multiplier = 1 + (modifierValue as number) / 100
+        return (current as number) * multiplier
+      case 'delta':
+        if (typeof modifierValue !== 'number' || typeof current !== 'number') return current
+        return (current as number) + (modifierValue as number)
+      case 'override':
+        return modifierValue
+      case 'clampMax':
+        if (typeof current !== 'number' || typeof modifierValue !== 'number') return current
+        return Math.min(current as number, modifierValue as number)
+      case 'clampMin':
+        if (typeof current !== 'number' || typeof modifierValue !== 'number') return current
+        return Math.max(current as number, modifierValue as number)
+      case 'clamp':
+        if (typeof current !== 'number') return current
+        const min = modifier.minValue ?? Number.NEGATIVE_INFINITY
+        const max = modifier.maxValue ?? Number.POSITIVE_INFINITY
+        return Math.max(min, Math.min(max, current as number))
+      default:
+        return current
+    }
   }
 
   // 获取属性流
@@ -396,16 +611,27 @@ export class AttributeSystem<T extends AttributeData> {
 
   // 获取当前属性值（同步）
   getCurrentValue(key: AttributeKey): number | boolean | string {
+    // Check for circular dependency in synchronous access
+    if (this.wouldCreateCircularDependency(key)) {
+      console.warn(`Circular dependency detected in getCurrentValue for '${String(key)}', using fallback value`)
+      return this.getFallbackValue(key)
+    }
+
     const subject = this.subscriptions.get(key)
     if (subject) {
-      let currentValue: number | boolean | string = 0
-      subject
-        .pipe(map(val => val))
-        .subscribe(val => (currentValue = val))
-        .unsubscribe()
-      return currentValue
+      try {
+        let currentValue: number | boolean | string = 0
+        subject
+          .pipe(map(val => val))
+          .subscribe(val => (currentValue = val))
+          .unsubscribe()
+        return currentValue
+      } catch (error) {
+        console.warn(`Error getting current value for '${String(key)}':`, error)
+        return this.getFallbackValue(key)
+      }
     }
-    return 0
+    return this.getFallbackValue(key)
   }
 
   /**
@@ -588,6 +814,66 @@ export class AttributeSystem<T extends AttributeData> {
   // 更新基础值（如等级变化）
   updateBaseValue(key: AttributeKey, value: number | boolean | string) {
     this.baseAttributes.get(key)!.next(value)
+    // Update fallback value when base value changes
+    this.fallbackValues.set(key, value)
+  }
+
+  /**
+   * Set maximum calculation depth to prevent infinite recursion
+   */
+  setMaxCalculationDepth(depth: number): void {
+    this.maxCalculationDepth = Math.max(1, depth)
+  }
+
+  /**
+   * Get current maximum calculation depth
+   */
+  getMaxCalculationDepth(): number {
+    return this.maxCalculationDepth
+  }
+
+  /**
+   * Clear all circular dependency tracking data
+   */
+  clearCircularDependencyTracking(): void {
+    this.calculationStack.clear()
+    this.dependencyGraph.clear()
+    this.calculationDepthCounter.clear()
+  }
+
+  /**
+   * Get current dependency graph for debugging
+   */
+  getDependencyGraph(): Map<keyof T, Set<keyof T>> {
+    return new Map(this.dependencyGraph)
+  }
+
+  /**
+   * Check if there are any circular dependencies in the current graph
+   */
+  hasCircularDependencies(): boolean {
+    return this.hasCycleInDependencyGraph()
+  }
+
+  /**
+   * Get attributes currently in calculation stack (for debugging)
+   */
+  getCalculationStack(): Set<keyof T> {
+    return new Set(this.calculationStack)
+  }
+
+  /**
+   * Manually set fallback value for an attribute
+   */
+  setFallbackValue(key: keyof T, value: number | boolean | string): void {
+    this.fallbackValues.set(key, value)
+  }
+
+  /**
+   * Get current fallback value for an attribute
+   */
+  getCurrentFallbackValue(key: keyof T): number | boolean | string | undefined {
+    return this.fallbackValues.get(key)
   }
 
   // 移除来自特定源的所有修改器
