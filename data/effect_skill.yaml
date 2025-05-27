@@ -3633,64 +3633,38 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: some
-        conditions:
-          - type: evaluate
-            target:
-              base: foeMarks
-              chain:
-                - type: whereAttr
-                  extractor: baseId
-                  evaluator:
-                    type: same
-                    value: mark_xinzhiyinji
-            evaluator:
-              type: exist
-          - type: evaluate
-            target:
-              base: foeMarks
-              chain:
-                - type: whereAttr
-                  extractor: baseId
-                  evaluator:
-                    type: same
-                    value: mark_xuehongyinji
-            evaluator:
-              type: exist
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: tags
+              evaluator:
+                type: contain
+                tag: xinzhiyinji_tag
+        evaluator:
+          type: exist
 - id: effect_skill_consume_xinzhiyinji_multihit
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
     type: conditional
     condition:
-      type: some
-      conditions:
-        - type: evaluate
-          target:
-            base: foeMarks
-            chain:
-              - type: whereAttr
-                extractor:
-                  type: base
-                  arg: baseId
-                evaluator:
-                  type: same
-                  value: mark_xinzhiyinji
-          evaluator:
-            type: exist
-        - type: evaluate
-          target:
-            base: foeMarks
-            chain:
-              - type: whereAttr
-                extractor:
-                  type: base
-                  arg: baseId
-                evaluator:
-                  type: same
-                  value: mark_xuehongyinji
-          evaluator:
-            type: exist
+      type: evaluate
+      target:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: tags
+            evaluator:
+              type: contain
+              tag: xinzhiyinji_tag
+      evaluator:
+        type: exist
     trueOperator:
       type: setMultihit
       target:
@@ -3756,30 +3730,19 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: some
-        conditions:
-          - type: evaluate
-            target:
-              base: foeMarks
-              chain:
-                - type: whereAttr
-                  extractor: baseId
-                  evaluator:
-                    type: same
-                    value: mark_xinzhiyinji
-            evaluator:
-              type: exist
-          - type: evaluate
-            target:
-              base: foeMarks
-              chain:
-                - type: whereAttr
-                  extractor: baseId
-                  evaluator:
-                    type: same
-                    value: mark_xuehongyinji
-            evaluator:
-              type: exist
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: tags
+              evaluator:
+                type: contain
+                tag: xinzhiyinji_tag
+        evaluator:
+          type: exist
 - id: effect_skill_add_mark_foe_mingzhongxiajiang_5
   trigger: OnHit
   priority: 0

@@ -652,6 +652,8 @@
     stackStrategy: extend
     destroyable: true
     keepOnSwitchOut: false
+  tags:
+    - xinzhiyinji_tag
   effect: []
 - id: mark_xuehongyinji
   config:
@@ -662,6 +664,8 @@
     stackStrategy: refresh
     destroyable: true
     keepOnSwitchOut: false
+  tags:
+    - xinzhiyinji_tag
 - id: mark_xinyuan_used
   config:
     duration: -1
