@@ -3038,3 +3038,273 @@
     - mark_ability_xukong
   emblem:
     - mark_emblem_ganying
+- id: pet_yite
+  num: 91
+  element: Normal
+  baseStats:
+    hp: 83
+    atk: 131
+    spa: 119
+    def: 114
+    spd: 113
+    spe: 118
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 34
+    - 39
+  weightRange:
+    - 7
+    - 12
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_tisusu
+      level: 10
+      hidden: false
+    - skill_id: skill_yitelingyu
+      level: 15
+      hidden: false
+    - skill_id: skill_yiteguanghuan
+      level: 20
+      hidden: false
+    - skill_id: skill_yitejieji
+      level: 25
+      hidden: false
+  ability:
+    - mark_ability_sucheng
+  emblem:
+    - mark_emblem_zhongji
+- id: pet_fengyite
+  num: 92
+  element: Wind
+  baseStats:
+    hp: 179
+    atk: 166
+    spa: 181
+    def: 157
+    spd: 165
+    spe: 164
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 63
+    - 68
+  weightRange:
+    - 27
+    - 32
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_tisusu
+      level: 10
+      hidden: false
+    - skill_id: skill_yitelingyu
+      level: 15
+      hidden: false
+    - skill_id: skill_yiteguanghuan
+      level: 20
+      hidden: false
+    - skill_id: skill_yitejieji
+      level: 25
+      hidden: false
+    - skill_id: skill_qiliuyongdong
+      level: 30
+      hidden: false
+    - skill_id: skill_fengjuancanyun
+      level: 35
+      hidden: false
+    - skill_id: skill_jiyun
+      level: 40
+      hidden: false
+    - skill_id: skill_jisufeiyu
+      level: 45
+      hidden: false
+    - skill_id: skill_fengbaozhixing
+      level: 50
+      hidden: false
+    - skill_id: skill_zhenkongxi
+      level: 55
+      hidden: false
+    - skill_id: skill_shenfengliepoxi
+      level: 60
+      hidden: false
+    - skill_id: skill_fengzhilingyu
+      level: 60
+      hidden: true
+    - skill_id: skill_longjuankuangfeng
+      level: 60
+      hidden: true
+    - skill_id: skill_daqiliu
+      level: 60
+      hidden: true
+    - skill_id: skill_yitesanlianxing
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_qiliu
+  emblem:
+    - mark_emblem_zhongji
+    - mark_emblem_fengbao
+- id: pet_dianyite
+  num: 93
+  element: Electric
+  baseStats:
+    hp: 180
+    atk: 183
+    spa: 164
+    def: 163
+    spd: 159
+    spe: 165
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 64
+    - 69
+  weightRange:
+    - 28
+    - 33
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_tisusu
+      level: 10
+      hidden: false
+    - skill_id: skill_yitelingyu
+      level: 15
+      hidden: false
+    - skill_id: skill_yiteguanghuan
+      level: 20
+      hidden: false
+    - skill_id: skill_yitejieji
+      level: 25
+      hidden: false
+    - skill_id: skill_jingdianmaichong
+      level: 30
+      hidden: false
+    - skill_id: skill_xunleiqie
+      level: 35
+      hidden: false
+    - skill_id: skill_jidiantushan
+      level: 40
+      hidden: false
+    - skill_id: skill_bairen
+      level: 45
+      hidden: false
+    - skill_id: skill_diancizhixing
+      level: 50
+      hidden: false
+    - skill_id: skill_shandianwaiyi
+      level: 55
+      hidden: false
+    - skill_id: skill_shandianxingguangzhan
+      level: 60
+      hidden: false
+    - skill_id: skill_dianzhilingyu
+      level: 60
+      hidden: true
+    - skill_id: skill_tianleishan
+      level: 60
+      hidden: true
+    - skill_id: skill_shanyue
+      level: 60
+      hidden: true
+    - skill_id: skill_yitesanlianxing
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_zhiming
+  emblem:
+    - mark_emblem_zhongji
+    - mark_emblem_dianhe
+- id: pet_bingyite
+  num: 94
+  element: Ice
+  baseStats:
+    hp: 181
+    atk: 168
+    spa: 170
+    def: 169
+    spd: 167
+    spe: 158
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 62
+    - 67
+  weightRange:
+    - 29
+    - 34
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_tisusu
+      level: 10
+      hidden: false
+    - skill_id: skill_yitelingyu
+      level: 15
+      hidden: false
+    - skill_id: skill_yiteguanghuan
+      level: 20
+      hidden: false
+    - skill_id: skill_yitejieji
+      level: 25
+      hidden: false
+    - skill_id: skill_shenjie
+      level: 30
+      hidden: false
+    - skill_id: skill_pobing
+      level: 35
+      hidden: false
+    - skill_id: skill_dongqi
+      level: 40
+      hidden: false
+    - skill_id: skill_bingningzhiqi
+      level: 45
+      hidden: false
+    - skill_id: skill_bingshuangzhixing
+      level: 50
+      hidden: false
+    - skill_id: skill_bingguzhishen
+      level: 55
+      hidden: false
+    - skill_id: skill_jibingqianliepuo
+      level: 60
+      hidden: false
+    - skill_id: skill_bingzhilingyu
+      level: 60
+      hidden: true
+    - skill_id: skill_bingtiandixue
+      level: 60
+      hidden: true
+    - skill_id: skill_hanbingjia
+      level: 60
+      hidden: true
+    - skill_id: skill_yitesanlianxing
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_pobing
+  emblem:
+    - mark_emblem_zhongji
+    - mark_emblem_shenjie

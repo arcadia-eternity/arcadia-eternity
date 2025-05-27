@@ -116,8 +116,7 @@
   priority: 0
   apply: &apply_self_statstage_+1_template
     type: statStageBuff
-    target:
-      base: self
+    target: self
     statType: atk
     value: 1
   condition: &condition_self_use_skill_template
@@ -195,8 +194,7 @@
   priority: 0
   apply: &apply_self_statstage_+2_template
     type: statStageBuff
-    target:
-      base: self
+    target: self
     statType: atk
     value: 2
   condition: *condition_self_use_skill_template
@@ -567,8 +565,7 @@
   priority: 0
   apply:
     type: dealDamage
-    target:
-      base: self
+    target: self
     value:
       type: dynamic
       selector:
@@ -586,8 +583,7 @@
   priority: 0
   apply:
     type: addRage
-    target:
-      base: self
+    target: self
     value: 35
   condition: *condition_self_use_skill_template
 - id: effect_skill_power_4x_below_1_6_hp
@@ -629,8 +625,7 @@
   priority: 0
   apply:
     type: heal
-    target:
-      base: self
+    target: self
     value:
       type: dynamic
       selector:
@@ -648,8 +643,7 @@
   priority: 0
   apply:
     type: heal
-    target:
-      base: self
+    target: self
     value:
       type: dynamic
       selector:
@@ -669,8 +663,7 @@
     type: selfUseSkill
   apply:
     type: heal
-    target:
-      base: self
+    target: self
     value:
       type: dynamic
       selector:
@@ -741,8 +734,7 @@
   priority: 0
   apply:
     type: heal
-    target:
-      base: self
+    target: self
     value:
       type: dynamic
       selector:
@@ -1800,8 +1792,7 @@
   priority: 0
   apply:
     type: heal
-    target:
-      base: self
+    target: self
     value: 90
   condition: *condition_self_use_skill_template
 - id: effect_skill_add_mark_fanshe
@@ -2163,8 +2154,7 @@
   priority: 0
   apply:
     type: heal
-    target:
-      base: self
+    target: self
     value: 120
 - id: effect_skill_reduce_foe_def_1_stage_15_percent
   trigger: BeforeHit
@@ -2303,6 +2293,17 @@
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: spa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_20_percent_template
+- id: effect_skill_reduce_foe_spd_20_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType: spd
   condition:
     type: every
     conditions:
@@ -2536,8 +2537,7 @@
   priority: 0
   apply:
     type: heal
-    target:
-      base: self
+    target: self
     value:
       type: dynamic
       selector:
@@ -2556,8 +2556,7 @@
   priority: 0
   apply:
     type: heal
-    target:
-      base: self
+    target: self
     value:
       type: dynamic
       selector: *mark_kongqichuliang_stack_template
@@ -4658,5 +4657,596 @@
       type: entity:baseMark
       value: mark_shoudaoshanghaijianshao
     stack: 75
+  condition:
+    type: selfUseSkill
+
+# 伊特系列技能效果
+# 添加伊特领域标记
+- id: effect_skill_add_mark_yitelingyu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_yitelingyu
+  condition:
+    type: selfUseSkill
+
+# 有伊特领域时必定暴击
+- id: effect_skill_sure_crit_if_has_yitelingyu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureCrit
+    target: usingSkillContext
+    priority: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_yitelingyu
+        evaluator:
+          type: exist
+
+# 添加气流涌动标记 (2层)
+- id: effect_skill_add_mark_qiliuyongdong
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_qiliuyongdong
+    stack: 2
+  condition:
+    type: selfUseSkill
+
+# 恢复怒气15点
+- id: effect_skill_add_rage_15
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 15
+  condition:
+    type: selfUseSkill
+
+# 暴击时强化自身物攻1级
+- id: effect_skill_raise_atk_1_stage_on_crit
+  trigger: OnCritPostDamage
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: self
+    statType: atk
+    value: 1
+  condition:
+    type: selfUseSkill
+
+# 添加闪电外衣标记
+- id: effect_skill_add_mark_shandianwaiyi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shandianwaiyi
+  condition:
+    type: selfUseSkill
+
+# 20%强化自身物攻1级
+- id: effect_skill_raise_atk_20_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: self
+    statType: atk
+    value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 20
+
+# 添加电之领域或电磁领域
+- id: effect_skill_add_mark_dianzhilingyu_or_diancilingyu
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: addMark
+      target: self
+      mark:
+        type: conditional
+        trueValue:
+          type: entity:baseMark
+          value: mark_diancilingyu
+        falseValue:
+          type: entity:baseMark
+          value: mark_dianzhilingyu
+        condition:
+          type: evaluate
+          target:
+            base: selfMarks
+            chain:
+              - type: whereAttr
+                extractor:
+                  type: base
+                  arg: baseId
+                evaluator:
+                  type: same
+                  value: mark_yitelingyu
+          evaluator:
+            type: exist
+  condition:
+    type: selfUseSkill
+
+# 根据电之领域威力变化
+- id: effect_skill_power_100_if_dianzhilingyu_200_if_diancilingyu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: usingSkillContext
+    value:
+      type: conditional
+      trueValue: 150
+      falseValue:
+        type: conditional
+        trueValue: 50
+        falseValue: 0
+        condition:
+          type: evaluate
+          target:
+            base: selfMarks
+            chain:
+              - type: whereAttr
+                extractor:
+                  type: base
+                  arg: baseId
+                evaluator:
+                  type: same
+                  value: mark_dianzhilingyu
+          evaluator:
+            type: exist
+      condition:
+        type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_diancilingyu
+        evaluator:
+          type: exist
+  condition:
+    type: selfUseSkill
+
+# 40%使对手冰冻
+- id: effect_skill_add_mark_foe_bingdong_40_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_bingdong
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent:
+            type: raw:number
+            configId: bingdong_probability
+            value: 40
+
+# 对手冰冻时必定暴击
+- id: effect_skill_sure_crit_if_foe_bingdong
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureCrit
+    target: usingSkillContext
+    priority: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_bingdong
+        evaluator:
+          type: exist
+
+# 对手冰冻时额外弱化特攻1级
+- id: effect_skill_reduce_foe_spa_1_stage_if_bingdong
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: foe
+    statType: spa
+    value: -1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_bingdong
+        evaluator:
+          type: exist
+
+# 使对手获得冰凝之气
+- id: effect_skill_add_mark_foe_bingningzhiqi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_bingningzhiqi
+    stack: 1
+  condition:
+    type: selfUseSkill
+
+# 使对手获得冰霜之星
+- id: effect_skill_add_mark_foe_bingshuangzhixing
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_bingshuangzhixing
+    stack: 60
+  condition:
+    type: selfUseSkill
+
+# 使自身获得免疫异常
+- id: effect_skill_add_mark_mianyiyichang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_mianyiyichang
+  condition:
+    type: selfUseSkill
+
+# 添加冰之领域或冰霜领域
+- id: effect_skill_add_mark_bingzhilingyu_or_bingshuanglingyu
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: addMark
+      target: self
+      mark:
+        type: conditional
+        trueValue:
+          type: entity:baseMark
+          value: mark_bingshuanglingyu
+        falseValue:
+          type: entity:baseMark
+          value: mark_bingzhilingyu
+        condition:
+          type: evaluate
+          target:
+            base: selfMarks
+            chain:
+              - type: whereAttr
+                extractor:
+                  type: base
+                  arg: baseId
+                evaluator:
+                  type: same
+                  value: mark_yitelingyu
+          evaluator:
+            type: exist
+  condition:
+    type: selfUseSkill
+
+# 根据冰之领域威力变化
+- id: effect_skill_power_100_if_bingzhilingyu_200_if_bingshuanglingyu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: usingSkillContext
+    value:
+      type: conditional
+      trueValue: 150
+      falseValue:
+        type: conditional
+        trueValue: 50
+        falseValue: 0
+        condition:
+          type: evaluate
+          target:
+            base: selfMarks
+            chain:
+              - type: whereAttr
+                extractor:
+                  type: base
+                  arg: baseId
+                evaluator:
+                  type: same
+                  value: mark_bingzhilingyu
+          evaluator:
+            type: exist
+      condition:
+        type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_bingshuanglingyu
+        evaluator:
+          type: exist
+  condition:
+    type: selfUseSkill
+
+# 添加寒冰甲标记
+- id: effect_skill_add_mark_hanbingjia
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_hanbingjia
+  condition:
+    type: selfUseSkill
+
+# 当怒气低于40时，立即获得20点怒气
+- id: effect_skill_add_rage_20_if_rage_below_40
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value:
+      type: 'raw:number'
+      value: 20
+      configId: add_rage_value
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: rage
+        evaluator:
+          type: compare
+          operator: '<'
+          value: 40
+
+# 添加风之领域或风暴领域
+- id: effect_skill_add_mark_fengzhilingyu_or_fengbaolingyu
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: addMark
+      target: self
+      mark:
+        type: conditional
+        trueValue:
+          type: entity:baseMark
+          value: mark_fengbaolingyu
+        falseValue:
+          type: entity:baseMark
+          value: mark_fengzhilingyu
+        condition:
+          type: evaluate
+          target:
+            base: selfMarks
+            chain:
+              - type: whereAttr
+                extractor:
+                  type: base
+                  arg: baseId
+                evaluator:
+                  type: same
+                  value: mark_yitelingyu
+          evaluator:
+            type: exist
+  condition:
+    type: selfUseSkill
+
+- id: effect_skill_power_100_if_fengzhilingyu_200_if_fengbaolingyu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: usingSkillContext
+    value:
+      type: conditional
+      trueValue: 150
+      falseValue:
+        type: conditional
+        trueValue: 50
+        falseValue: 0
+        condition:
+          type: evaluate
+          target:
+            base: selfMarks
+            chain:
+              - type: whereAttr
+                extractor:
+                  type: base
+                  arg: baseId
+                evaluator:
+                  type: same
+                  value: mark_fengzhilingyu
+          evaluator:
+            type: exist
+      condition:
+        type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_fengbaolingyu
+        evaluator:
+          type: exist
+  condition:
+    type: selfUseSkill
+
+# 添加25点怒气
+- id: effect_skill_add_rage_25
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 25
+
+# 70%麻痹对手
+- id: effect_skill_add_mark_foe_mabi_70_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_mabi
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 70
+
+# 如果对方麻痹，威力翻倍
+- id: effect_skill_power_2x_if_foe_mabi
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_mabi
+        evaluator:
+          type: exist
+
+# 增加一层电荷
+- id: effect_skill_add_mark_dianhe_1
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_dianhe
+    stack: 1
+  condition:
+    type: selfUseSkill
+
+# 如果后手，威力翻倍
+- id: effect_skill_power_2x_if_last
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isLastSkillUsedThisTurn
+
+# 技能本身获得15%的额外暴击率
+- id: effect_skill_add_crit_rate_15_percent
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addCritRate
+    target: usingSkillContext
+    value: 15
   condition:
     type: selfUseSkill

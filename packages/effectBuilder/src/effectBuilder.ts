@@ -43,7 +43,13 @@ export function registerLiteralValue(effectId: string, value: any, configId?: st
   const finalConfigId = configId || nanoid() // 自动生成唯一ID如果未提供
   const fullKey = `${effectId}.${finalConfigId}`
 
-  configSystem.set(fullKey, value)
+  // 首先注册配置键以支持modifier系统
+  if (!configSystem.isRegistered(fullKey)) {
+    configSystem.registerConfig(fullKey, value)
+  } else {
+    // 如果已经注册，只更新值
+    configSystem.set(fullKey, value)
+  }
   return fullKey
 }
 

@@ -25,6 +25,8 @@ export const useBattleStore = defineStore('battle', {
     // RxJS相关状态
     _messageSubject: new Subject<BattleMessage>(),
     animateQueue: new Subject<() => Promise<void>>(),
+    // 用于跟踪已处理的消息序号
+    lastProcessedSequenceId: -1,
   }),
 
   actions: {
@@ -38,6 +40,7 @@ export const useBattleStore = defineStore('battle', {
       // 初始化RxJS流
       this.log = [] as BattleMessage[]
       this._messageSubject = new Subject<BattleMessage>()
+      this.lastProcessedSequenceId = -1
       this.battleInterface.BattleEvent(msg => {
         this.handleBattleMessage(msg)
       })
@@ -58,10 +61,21 @@ export const useBattleStore = defineStore('battle', {
     },
 
     async applyStateDelta(msg: BattleMessage) {
+      // 检查消息序号，避免重复处理
+      if (msg.sequenceId !== undefined && msg.sequenceId <= this.lastProcessedSequenceId) {
+        console.debug(`Skipping already processed message with sequenceId: ${msg.sequenceId}`)
+        return
+      }
+
       if (!this.battleState) this.battleState = {} as BattleState
       jsondiffpatch.patch(this.battleState, msg.stateDelta)
       this.log.push(msg)
       console.debug(msg.stateDelta)
+
+      // 更新已处理的序号
+      if (msg.sequenceId !== undefined) {
+        this.lastProcessedSequenceId = Math.max(this.lastProcessedSequenceId, msg.sequenceId)
+      }
 
       switch (msg.type) {
         case BattleMessageType.TurnAction:
@@ -106,6 +120,7 @@ export const useBattleStore = defineStore('battle', {
       this.battleState = null
       this.log = []
       this.availableActions = []
+      this.lastProcessedSequenceId = -1
       // 清理RxJS资源
       this._messageSubject.complete()
     },

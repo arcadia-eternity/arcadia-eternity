@@ -64,3 +64,16 @@ mark_ability_liangong:
 mark_ability_xukong:
   name: 虚空
   description: 每次技能命中后会增加10层虚空体质
+# 伊特系列特性
+mark_ability_sucheng:
+  name: 速成
+  description: 获得的经验值提高50%
+mark_ability_qiliu:
+  name: 气流
+  description: 每回合获得的怒气增加5
+mark_ability_zhiming:
+  name: 致命
+  description: 电系技能的致命率增加10%
+mark_ability_pobing:
+  name: 破冰
+  description: 冰系技能造成伤害增加15%

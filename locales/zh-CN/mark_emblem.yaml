@@ -64,3 +64,16 @@ mark_emblem_zhenjiu:
 mark_emblem_ganying:
   name: 感应
   description: 使希捷对手每次技能命中自身时也可以为自身增加5层虚空体质
+# 伊特系列徽章
+mark_emblem_zhongji:
+  name: 重击
+  description: 使重击技能造成的伤害增加35%
+mark_emblem_fengbao:
+  name: 风暴
+  description: 使风暴之星恢复的怒气增加5
+mark_emblem_dianhe:
+  name: 电荷
+  description: 使每个电荷增加的致命几率提高5%
+mark_emblem_shenjie:
+  name: 深结
+  description: 使深结冰冻对手的几率提高5%

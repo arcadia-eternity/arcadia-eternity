@@ -163,3 +163,15 @@ pet_xijie:
 pet_xijietie:
   name: 希捷特
   description: 希捷特可以自由穿梭在各种空间之间 而在常人看来 它实现了一次瞬间转移
+pet_yite:
+  name: 伊特
+  description: 捣蛋鬼伊特 体内拥有三种不稳定的力量 最讨厌别人叫自己怪胎
+pet_fengyite:
+  name: 风伊特
+  description: 继承了风元素的力量 变得勇敢和强大 它呼唤的飓风另所有敌人无法逃脱
+pet_dianyite:
+  name: 电伊特
+  description: 继承了电元素的果断 变得真诚和热情 它呼唤的雷电令邪恶力量动弹不得
+pet_bingyite:
+  name: 冰伊特
+  description: 继承了冰元素的冷静 变得聪明和坚毅 它呼唤的冰雪另世间万物回归平和

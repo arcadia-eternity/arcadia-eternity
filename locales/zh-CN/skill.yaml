@@ -1003,3 +1003,112 @@ skill_xuanwozhadan:
 skill_xukongtizhi:
   name: 虚空体质
   description: 先制+1 使自身获得75点受伤减少
+# 伊特系列技能
+skill_tisusu:
+  name: 提速
+  description: 强化自身速度1级
+skill_yitelingyu:
+  name: 伊特领域
+  description: 使自身获得伊特领域
+skill_yiteguanghuan:
+  name: 伊特光环
+  description: 具有伊特领域时必定暴击
+skill_yitejieji:
+  name: 伊特截击
+  description: 具有伊特领域时必定暴击
+# 风伊特技能
+skill_qiliuyongdong:
+  name: 气流涌动
+  description: 使自身获得气流涌动
+skill_fengjuancanyun:
+  name: 风卷残云
+  description: 15%弱化对手特防1级
+skill_jiyun:
+  name: 积云
+  description: 强化自身特攻1级
+skill_jisufeiyu:
+  name: 急速飞云
+  description: 先制+1
+skill_fengbaozhixing:
+  name: 风暴之星
+  description: <font color=#93E312>必中</font> 怒气＜40时恢复20点怒气
+skill_zhenkongxi:
+  name: 真空袭
+  description: 先出手时威力2倍
+skill_shenfengliepoxi:
+  name: 神风烈破袭
+  description: <font color=#93E312>必中</font> 20%弱化对手物防1级 20%弱化对手特防1级
+skill_fengzhilingyu:
+  name: 风之领域
+  description: 使双方获得风之领域 具有伊特领域时变为风暴领域
+skill_longjuankuangfeng:
+  name: 龙卷狂风
+  description: 具有风之领域时变为100点威力 具有风暴领域时变为200点威力
+skill_daqiliu:
+  name: 大气流
+  description: 恢复自身25点怒气
+skill_yitesanlianxing:
+  name: 伊特三连星
+  description: <font color=#93E312>必中</font> 连击3次
+# 电伊特技能
+skill_jingdianmaichong:
+  name: 静电脉冲
+  description: 70%使对手麻痹
+skill_xunleiqie:
+  name: 迅雷切
+  description: 先制+1 对手麻痹时威力2倍
+skill_jidiantushan:
+  name: 极电突闪
+  description: 使自身获得1个电荷
+skill_bairen:
+  name: 白刃
+  description: 后制-1 后出手时威力2倍
+skill_diancizhixing:
+  name: 电磁之星
+  description: <font color=#93E312>必中</font> 暴击率增加15% 暴击时强化自身物攻1级
+skill_shandianwaiyi:
+  name: 闪电外衣
+  description: 使自身获得闪电外衣
+skill_shandianxingguangzhan:
+  name: 闪电星光斩
+  description: <font color=#93E312>必中</font> 20%强化自身物攻1级 20%强化自身特攻1级
+skill_dianzhilingyu:
+  name: 电之领域
+  description: 使双方获得电之领域 具有伊特领域时变为电磁领域
+skill_tianleishan:
+  name: 天雷闪
+  description: 具有电之领域时威力2倍 具有电磁领域时威力4倍
+skill_shanyue:
+  name: 闪跃
+  description: 使自身获得闪避
+# 冰伊特技能
+skill_shenjie:
+  name: 深结
+  description: 40%使对手冰冻
+skill_pobing:
+  name: 破冰
+  description: 对手冰冻时必定暴击
+skill_dongqi:
+  name: 冻气
+  description: 【95】弱化对手物攻1级 对手冰冻时额外弱化对手特攻1级
+skill_bingningzhiqi:
+  name: 冰凝之气
+  description: 使对手获得冰凝之气
+skill_bingshuangzhixing:
+  name: 冰霜之星
+  description: <font color=#93E312>必中</font> 使对手获得冰霜之星
+skill_bingguzhishen:
+  name: 冰固之躯
+  description: 使自身获得免疫异常
+skill_jibingqianliepuo:
+  name: 极冰千裂破
+  description: <font color=#93E312>必中</font> 20%弱化对手速度1级
+skill_bingzhilingyu:
+  name: 冰之领域
+  description: 使双方获得冰之领域 具有伊特领域时变为冰霜领域
+skill_bingtiandixue:
+  name: 冰天雪地
+  description: 具有冰之领域时威力2倍 具有冰霜领域时威力4倍
+skill_hanbingjia:
+  name: 寒冰甲
+  description: 使自身获得寒冰甲

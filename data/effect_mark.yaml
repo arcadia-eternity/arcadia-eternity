@@ -220,7 +220,7 @@
       base: self
     stat: accuracy
     modifierType: percent
-    value: 0.9
+    value: -10
 - id: effect_mark_decrease_atk
   trigger: OnMarkCreated
   priority: 0
@@ -230,7 +230,7 @@
       base: self
     stat: atk
     modifierType: percent
-    value: 0.75
+    value: -25
 - id: effect_mark_decrease_spa
   trigger: OnMarkCreated
   priority: 0
@@ -240,7 +240,7 @@
       base: self
     stat: spa
     modifierType: percent
-    value: 0.75
+    value: -25
 - id: effect_mark_decrease_heal
   trigger: OnHeal
   priority: 0
@@ -296,8 +296,8 @@
     target:
       base: self
     stat: accuracy
-    modifierType: percent
-    value: 0.5
+    modifierType: delta
+    value: -50
 - id: effect_mark_absorb_hp_to_foe
   trigger: TurnEnd
   condition:
@@ -497,8 +497,8 @@
     target:
       base: self
     stat: accuracy
-    modifierType: percent
-    value: 0.85
+    modifierType: delta
+    value: -15
 - id: effect_mark_amplify_next_damage_skill_power
   trigger: AfterUseSkillCheck
   priority: 0
@@ -1533,3 +1533,373 @@
       mark:
         type: entity:baseMark
         value: mark_xukongganying
+# 伊特系列状态效果
+# 伊特领域：提高自身队伍10%暴击率
+- id: effect_mark_increase_self_crit_rate
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addAttributeModifier
+    target: selfTeam
+    stat: critRate
+    modifierType: delta
+    value: 10
+
+# 气流涌动：非必杀的攻击技能怒气消耗2倍 伤害2倍
+- id: effect_mark_double_rage_cost_double_damage_non_climax
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    - type: addSkillAttributeModifier
+      target:
+        base: selfSkills
+        chain:
+          - type: whereAttr
+            extractor:
+              type: dynamic
+              arg: category
+            evaluator:
+              type: notSame
+              value: Climax
+          - type: whereAttr
+            extractor:
+              type: dynamic
+              arg: category
+            evaluator:
+              type: notSame
+              value: Status
+      attribute: rage
+      modifierType: percent
+      value: 100
+    - type: addSkillAttributeModifier
+      target:
+        base: selfSkills
+        chain:
+          - type: whereAttr
+            extractor:
+              type: dynamic
+              arg: category
+            evaluator:
+              type: notSame
+              value: Climax
+          - type: whereAttr
+            extractor:
+              type: dynamic
+              arg: category
+            evaluator:
+              type: notSame
+              value: Status
+      attribute: power
+      modifierType: percent
+      value: 100
+
+# 气流涌动：每次使用非必杀非状态技能命中时消耗一层
+- id: effect_mark_qiliuyongdong_consume_stack_on_skill_use
+  trigger: OnHit
+  priority: 0
+  consumesStacks: 1
+  apply:
+    type: TODO
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: notSame
+          value: Climax
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: notSame
+          value: Status
+
+# 风之领域：增加自身本系技能伤害10%
+- id: effect_mark_increase_self_element_damage_10_percent
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: element
+        evaluator:
+          type: same
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: selectPath
+                  arg: element
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 10
+    delta: 0
+
+# 风暴领域/电磁领域：增加自身本系技能伤害20%
+- id: effect_mark_increase_self_element_damage_20_percent
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: element
+        evaluator:
+          type: same
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: selectPath
+                  arg: element
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 20
+    delta: 0
+
+# 电荷：每个暴击率增加20%
+- id: effect_mark_increase_crit_rate_20_percent_per_stack
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addAttributeModifier
+    target: self
+    stat: critRate
+    modifierType: delta
+    value:
+      type: dynamic
+      selector:
+        base: mark
+        chain:
+          - type: selectAttribute$
+            arg: stack
+          - type: multiply
+            arg:
+              type: raw:number
+              configId: crit_rate_increase_per_stack
+              value: 20
+
+# 电之领域：使自身暴击率和闪避率增加10%
+- id: effect_mark_increase_crit_rate_10_percent
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addAttributeModifier
+    target: self
+    stat: critRate
+    modifierType: delta
+    value: 10
+
+- id: effect_mark_increase_evasion_10_percent
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addAttributeModifier
+    target: self
+    stat: evasion
+    modifierType: delta
+    value: 10
+
+# 冰之领域：受到伤害降低10% 造成伤害增加10%
+- id: effect_mark_reduce_damage_taken_10_percent
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: -10
+    delta: 0
+
+- id: effect_mark_increase_damage_dealt_10_percent
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfUseSkill
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 10
+    delta: 0
+
+# 冰霜领域：受到伤害降低20% 造成伤害增加20%
+- id: effect_mark_reduce_damage_taken_20_percent
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: -20
+    delta: 0
+
+- id: effect_mark_increase_damage_dealt_20_percent
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfUseSkill
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 20
+    delta: 0
+
+# 闪电外衣: 受到特攻伤害降低30点 受到物攻50%使对手麻痹
+- id: effect_mark_reduce_special_damage_30
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageType
+        evaluator:
+          type: same
+          value: Special
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: -30
+
+- id: effect_mark_paralyze_on_physical_50_percent
+  trigger: OnDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageType
+        evaluator:
+          type: same
+          value: Physical
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 50
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_mabi
+
+# 冰凝之气：受到伤害增加50%，如果冰冻则效果翻倍（100%）
+- id: effect_increase_damage_taken_once_50_percent_double_effect_if_frozen
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: conditional
+    condition:
+      type: evaluate
+      target:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_bingdong
+      evaluator:
+        type: exist
+    trueOperator:
+      # 如果冰冻，伤害增加100%
+      type: addModified
+      target:
+        base: damageContext
+      percent: 100
+      delta: 0
+    falseOperator:
+      # 如果未冰冻，伤害增加50%
+      type: addModified
+      target:
+        base: damageContext
+      percent: 50
+      delta: 0
+  consumesStacks: 1
+
+# 冰霜之星：造成伤害时减少等于层数的伤害
+- id: effect_mark_reduce_deal_damage_once_per_stack
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfUseSkill
+  priority: 0
+  apply:
+    - type: addModified
+      target: damageContext
+      delta:
+        type: dynamic
+        selector:
+          base: mark
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: stack
+            - type: multiply
+              arg: -1
+      percent: 0
+    - type: destroyMark
+      target: mark
+# 伤害阻挡：当伤害值低于等于60时，把实际的伤害值置0
+- id: effect_block_damage_under_60
+  trigger: OnDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageResult
+        evaluator:
+          type: compare
+          operator: '<='
+          value: 60
+  priority: 0
+  apply:
+    type: preventDamage
+    target: damageContext

@@ -93,6 +93,7 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   get baseId(): baseMarkId
   setOwner(owner: MarkOwner, emitter: Emitter<Events>): void
   attachTo(target: MarkOwner): void
+  detach(): void
   update(context: TurnContext): boolean
   addStack(value: number): void
   tryStack(context: AddMarkContext): boolean
@@ -216,7 +217,7 @@ export class MarkInstanceImpl implements MarkInstance {
     this.owner = target
   }
 
-  private detach() {
+  detach() {
     if (this.owner) {
       this.owner.marks = this.owner.marks.filter(m => m !== this)
     }
@@ -569,6 +570,14 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
     }
   }
 
+  detach(): void {
+    super.detach()
+    if (this.modifierCleanupFn) {
+      this.modifierCleanupFn()
+      this.modifierCleanupFn = undefined
+    }
+  }
+
   override destroy(context: RemoveMarkContext): void {
     // Clean up the modifier when the mark is destroyed
     if (this.modifierCleanupFn) {
@@ -649,5 +658,54 @@ export class MarkSystem {
       return false
     })
     // Note: dirty flag removed, attribute system handles recalculation automatically
+  }
+
+  /**
+   * Transfer marks from one pet to another during pet switching
+   * Moved from Pet.transferMarks method
+   */
+  public transferMarks(context: SwitchPetContext, targetPet: Pet, ...marks: MarkInstance[]) {
+    marks.forEach(mark => {
+      mark.detach()
+      const existingMark = targetPet.marks.find(m => m.base.id === mark.base.id)
+      if (existingMark) {
+        // 创建 AddMarkContext，使用当前 SwitchPetContext 作为父上下文，这个被视为隐式的effect
+        const effectContext = new EffectContext(context, EffectTrigger.OnOwnerSwitchOut, mark, undefined)
+        // 印记覆盖的config替代原来的config
+        const addMarkContext = new AddMarkContext(
+          effectContext,
+          targetPet,
+          mark.base,
+          mark.stack,
+          mark.duration,
+          mark.config,
+        )
+        existingMark.tryStack(addMarkContext)
+      } else {
+        // 添加新印记
+        mark.transfer(context, targetPet)
+      }
+    })
+  }
+
+  /**
+   * Handle mark cleanup and transfer during pet switch out
+   * Moved from Pet.switchOut method
+   */
+  public handleSwitchOut(context: SwitchPetContext, pet: Pet) {
+    context.battle.applyEffects(context, EffectTrigger.OnOwnerSwitchOut, ...pet.marks)
+    pet.marks = pet.marks.filter(mark => {
+      const shouldKeep = mark.config.keepOnSwitchOut ?? false
+      const shouldTransfer = mark.config.transferOnSwitch && context.target
+
+      // 需要转移的印记
+      if (mark.config.transferOnSwitch && context.target) {
+        this.transferMarks(context, context.target, mark)
+      } else if (!shouldKeep) {
+        mark.destroy(context)
+      }
+
+      return shouldKeep || shouldTransfer
+    })
   }
 }

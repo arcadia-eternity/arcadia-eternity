@@ -506,3 +506,66 @@
     stack: 5
   condition:
     type: selfBeDamaged
+
+# 伊特系列徽章效果
+# 重击：使重击技能造成的伤害增加35%
+- id: effect_emblem_zhongji_damage_boost_35_percent
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill
+            - type: select
+              arg:
+                type: base
+                arg: baseId
+        evaluator:
+          type: same
+          value: skill_zhongji
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 35
+    delta: 0
+
+# 风暴：使风暴之星恢复的怒气增加5
+- id: effect_emblem_fengbaozhixing_rage_boost_5
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addConfigModifier
+    target: self
+    configKey: effect_skill_add_rage_20_if_rage_below_40.add_rage_value
+    modifierType: delta
+    value: 5
+
+# 电荷：使每个电荷增加的致命几率提高5%
+- id: effect_emblem_dianhe_crit_rate_boost_5_percent
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addConfigModifier
+    target: self
+    configKey: effect_mark_increase_crit_rate_20_percent_per_stack.crit_rate_increase_per_stack
+    modifierType: delta
+    value: 5
+
+# 深结：使深结冰冻对手的几率提高5%
+- id: effect_emblem_shenjie_freeze_rate_boost_5_percent
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addConfigModifier
+    target: self
+    configKey: effect_skill_add_mark_foe_bingdong_40_percent.bingdong_probability
+    modifierType: delta
+    value: 5

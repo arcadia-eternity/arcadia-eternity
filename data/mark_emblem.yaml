@@ -99,3 +99,20 @@
   config: *emblem_config
   effect:
     - effect_emblem_add_xukongtizhi_when_foe_hit_self
+# 伊特系列徽章
+- id: mark_emblem_zhongji
+  config: *emblem_config
+  effect:
+    - effect_emblem_zhongji_damage_boost_35_percent
+- id: mark_emblem_fengbao
+  config: *emblem_config
+  effect:
+    - effect_emblem_fengbaozhixing_rage_boost_5
+- id: mark_emblem_dianhe
+  config: *emblem_config
+  effect:
+    - effect_emblem_dianhe_crit_rate_boost_5_percent
+- id: mark_emblem_shenjie
+  config: *emblem_config
+  effect:
+    - effect_emblem_shenjie_freeze_rate_boost_5_percent

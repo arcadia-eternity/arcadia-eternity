@@ -106,7 +106,9 @@ export class Modifier<T extends number | boolean | string = any> {
     switch (this.type) {
       case 'percent':
         if (typeof currentValue !== 'number') return current
-        return ((current as number) * (currentValue as number)) as number as T
+        // Convert percentage to multiplier: 50 -> 1.5, -25 -> 0.75, 0 -> 1.0
+        const multiplier = 1 + (currentValue as number) / 100
+        return ((current as number) * multiplier) as number as T
       case 'delta':
         if (typeof currentValue !== 'number') return current
         return ((current as number) + (currentValue as number)) as T
@@ -285,14 +287,14 @@ export const ModifierHelpers = {
   /**
    * Create a phase-type bound percent modifier
    * @param id Unique identifier for the modifier
-   * @param multiplier Multiplier value (1.5 = 150%)
+   * @param percentage Percentage value (50 = +50%, -25 = -25%, 0 = no change)
    * @param phaseTypeSpec Phase type specification
    * @param priority Priority for modifier application (higher = applied first)
    * @param source Optional source (mark or skill instance)
    */
   createPhaseTypePercent: (
     id: string,
-    multiplier: number | Subject<number> | Observable<number>,
+    percentage: number | Subject<number> | Observable<number>,
     phaseTypeSpec: PhaseTypeSpec,
     priority: number = 0,
     source?: MarkInstance | SkillInstance,
@@ -300,7 +302,7 @@ export const ModifierHelpers = {
     return new Modifier(
       DurationType.phaseType,
       id,
-      multiplier,
+      percentage,
       'percent',
       priority,
       source,
@@ -311,7 +313,7 @@ export const ModifierHelpers = {
   },
 }
 
-interface AttributeData {
+export interface AttributeData {
   [key: string]: number | boolean | string
 }
 

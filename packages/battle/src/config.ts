@@ -168,9 +168,10 @@ export class ConfigModifier {
 /**
  * Enhanced ConfigSystem with modifier support
  * Supports dynamic config value modification through modifiers
+ * Now supports non-singleton mode for battle instance isolation
  */
 export class ConfigSystem {
-  private static instance: ConfigSystem
+  private static instance: ConfigSystem | null = null
 
   // Base config storage
   public configMap: Map<string, ConfigValue> = new Map()
@@ -182,6 +183,9 @@ export class ConfigSystem {
   private subscriptions: Map<string, Observable<ConfigValue>> = new Map()
   private modifiersBySource: Map<string, Map<string, ConfigModifier[]>> = new Map()
 
+  // Scope-specific modifier storage
+  private scopedModifiers: WeakMap<ScopeObject, Map<string, ConfigModifier[]>> = new WeakMap()
+
   // Phase type tracking
   private phaseStack: BattlePhaseBase[] = [] // Current phase execution stack
   private phaseTypeModifiers: Map<string, ConfigModifier[]> = new Map() // Modifiers by phase type
@@ -189,6 +193,10 @@ export class ConfigSystem {
 
   constructor() {}
 
+  /**
+   * Get the global singleton instance (for backward compatibility)
+   * @deprecated Use createInstance() for new battle instances
+   */
   static getInstance() {
     if (!ConfigSystem.instance) {
       ConfigSystem.instance = new ConfigSystem()
@@ -204,6 +212,14 @@ export class ConfigSystem {
         })
     }
     return ConfigSystem.instance
+  }
+
+  /**
+   * Create a new ConfigSystem instance for a battle
+   * This ensures battle instances don't interfere with each other
+   */
+  static createInstance(): ConfigSystem {
+    return new ConfigSystem()
   }
 
   /**
@@ -269,8 +285,18 @@ export class ConfigSystem {
       return undefined
     }
 
-    // Get all modifiers for this config key
-    const allModifiers = this.modifiers.get(key)?.value || []
+    // Get all applicable modifiers
+    const allModifiers: ConfigModifier[] = []
+
+    // 1. Get global modifiers
+    const globalModifiers = this.modifiers.get(key)?.value || []
+    allModifiers.push(...globalModifiers)
+
+    // 2. Get scope-specific modifiers
+    if (scope) {
+      const scopeModifiers = this.getScopeSpecificModifiers(key, scope)
+      allModifiers.push(...scopeModifiers)
+    }
 
     // Filter modifiers based on current scope context and scope hierarchy
     const applicableModifiers = this.filterModifiersByScopeHierarchy(allModifiers, scope)
@@ -280,6 +306,47 @@ export class ConfigSystem {
 
     // Apply modifiers to base value
     return sortedModifiers.reduce((acc: ConfigValue, modifier: ConfigModifier) => modifier.apply(acc), baseValue)
+  }
+
+  /**
+   * Get scope-specific modifiers for a config key
+   */
+  private getScopeSpecificModifiers(key: string, scope: ScopeObject): ConfigModifier[] {
+    const modifiers: ConfigModifier[] = []
+    const visited = new Set<ScopeObject>() // Prevent infinite loops
+
+    // Walk up the scope hierarchy to collect all applicable modifiers
+    let currentScope: ScopeObject | undefined = scope
+    while (currentScope) {
+      // Prevent infinite loops by tracking visited scopes
+      if (visited.has(currentScope)) {
+        console.warn('Circular scope hierarchy detected in getScopeSpecificModifiers, breaking loop')
+        break
+      }
+      visited.add(currentScope)
+
+      const scopeModifiers = this.scopedModifiers.get(currentScope)
+      if (scopeModifiers && scopeModifiers.has(key)) {
+        modifiers.push(...scopeModifiers.get(key)!)
+      }
+
+      // Move to parent scope
+      currentScope = this.getParentScope(currentScope)
+    }
+
+    return modifiers
+  }
+
+  /**
+   * Get parent scope of a scope object
+   */
+  private getParentScope(scope: ScopeObject): ScopeObject | undefined {
+    if ('owner' in scope && scope.owner) {
+      return scope.owner as ScopeObject
+    } else if ('battle' in scope && scope.battle) {
+      return scope.battle as ScopeObject
+    }
+    return undefined
   }
 
   /**
@@ -411,11 +478,24 @@ export class ConfigSystem {
     }
 
     let scope: ScopeObject | undefined = currentScope
+    const visited = new Set<ScopeObject>() // Prevent infinite loops
 
     // Walk up the scope hierarchy
     while (scope) {
+      // Prevent infinite loops by tracking visited scopes
+      if (visited.has(scope)) {
+        console.warn('Circular scope hierarchy detected, breaking loop')
+        break
+      }
+      visited.add(scope)
+
       if (scope === ancestorScope) {
         return true
+      }
+
+      // If we reach Battle level and haven't found ancestor, stop
+      if (scope.constructor.name === 'Battle') {
+        break
       }
 
       // Get parent scope
@@ -426,8 +506,8 @@ export class ConfigSystem {
         parentScope = scope.battle as ScopeObject
       }
 
-      // If we reach Battle level and haven't found ancestor, stop
-      if (scope.constructor.name === 'Battle') {
+      // If no parent scope found, stop
+      if (!parentScope) {
         break
       }
 
@@ -507,14 +587,59 @@ export class ConfigSystem {
   }
 
   /**
-   * Add a config modifier
+   * Add a config modifier (legacy method - global scope)
    */
   addConfigModifier(key: string, modifier: ConfigModifier): () => void {
+    return this.addScopedConfigModifier(key, modifier, undefined)
+  }
+
+  /**
+   * Add a config modifier with specific scope
+   */
+  addScopedConfigModifier(key: string, modifier: ConfigModifier, scope?: ScopeObject): () => void {
     // Ensure the config is registered
     if (!this.modifiers.has(key)) {
       throw new Error(`Config key '${key}' is not registered for modifier support. Call registerConfig() first.`)
     }
 
+    if (scope) {
+      // Add to scope-specific storage
+      if (!this.scopedModifiers.has(scope)) {
+        this.scopedModifiers.set(scope, new Map())
+      }
+
+      const scopeModifiers = this.scopedModifiers.get(scope)!
+      if (!scopeModifiers.has(key)) {
+        scopeModifiers.set(key, [])
+      }
+
+      scopeModifiers.get(key)!.push(modifier)
+
+      // Return cleanup function for scoped modifier
+      return () => {
+        const scopeModifiers = this.scopedModifiers.get(scope)
+        if (scopeModifiers && scopeModifiers.has(key)) {
+          const modifierList = scopeModifiers.get(key)!
+          const index = modifierList.indexOf(modifier)
+          if (index > -1) {
+            modifierList.splice(index, 1)
+            if (modifierList.length === 0) {
+              scopeModifiers.delete(key)
+            }
+          }
+        }
+        modifier.cleanup()
+      }
+    } else {
+      // Fall back to global modifier storage (original implementation)
+      return this.addGlobalConfigModifier(key, modifier)
+    }
+  }
+
+  /**
+   * Add a global config modifier (original implementation)
+   */
+  private addGlobalConfigModifier(key: string, modifier: ConfigModifier): () => void {
     // Check for duplicate modifiers from the same source
     if (modifier.source) {
       const sourceId = this.getSourceId(modifier.source)
@@ -742,9 +867,21 @@ export class ConfigSystem {
   }
 
   /**
-   * Add a phase-type bound config modifier
+   * Add a phase-type bound config modifier (legacy method - global scope)
    */
   addPhaseTypeConfigModifier(configKey: string, modifier: ConfigModifier, phaseTypeSpec: PhaseTypeSpec): () => void {
+    return this.addScopedPhaseTypeConfigModifier(configKey, modifier, phaseTypeSpec, undefined)
+  }
+
+  /**
+   * Add a phase-type bound config modifier with specific scope
+   */
+  addScopedPhaseTypeConfigModifier(
+    configKey: string,
+    modifier: ConfigModifier,
+    phaseTypeSpec: PhaseTypeSpec,
+    scope?: ScopeObject,
+  ): () => void {
     // Validate that this is a phaseType modifier
     if (modifier.durationType !== ConfigDurationType.phaseType) {
       throw new Error('Modifier must have phaseType duration type for phase type binding')
@@ -753,8 +890,8 @@ export class ConfigSystem {
     // Set the phase type spec
     modifier.phaseTypeSpec = phaseTypeSpec
 
-    // Add to regular modifiers
-    const cleanup = this.addConfigModifier(configKey, modifier)
+    // Add to scoped modifiers
+    const cleanup = this.addScopedConfigModifier(configKey, modifier, scope)
 
     // Track for type-based cleanup
     const typeKey = `${configKey}:${phaseTypeSpec.phaseType}:${phaseTypeSpec.scope}:${phaseTypeSpec.phaseId || 'any'}`

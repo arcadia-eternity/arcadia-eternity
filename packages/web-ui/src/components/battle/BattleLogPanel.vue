@@ -178,10 +178,8 @@ function formatBattleMessage(
       break
     }
     case BattleMessageType.MarkApply: {
-      const data = msg.data as { target: string; mark: { baseId: string } }
-      content = `${getPetName(data.target, petMap || new Map())} 被施加 【${
-        markMap ? getMarkName(markMap.get(data.mark.baseId)?.baseId || '') : data.mark.baseId
-      }】 印记`
+      const data = msg.data as BattleMessageData[typeof BattleMessageType.MarkApply]
+      content = `${getPetName(data.target, petMap || new Map())} 被施加 【${getMarkName(data.mark.baseId)}】 印记`
       break
     }
     case BattleMessageType.BattleEnd:
@@ -228,7 +226,9 @@ function formatBattleMessage(
     }
     case BattleMessageType.MarkDestroy: {
       const data = msg.data as BattleMessageData[typeof BattleMessageType.MarkDestroy]
-      content = `${getPetName(data.target, petMap || new Map())} 的【${getMarkName(data.mark)}】印记被销毁`
+      const mark = markMap?.get(data.mark)
+      const markName = mark ? getMarkName(mark.baseId) : getMarkName(data.mark)
+      content = `${getPetName(data.target, petMap || new Map())} 的【${markName}】印记被销毁`
       break
     }
     case BattleMessageType.MarkUpdate: {
@@ -238,10 +238,30 @@ function formatBattleMessage(
     }
     case BattleMessageType.EffectApply: {
       const data = msg.data as BattleMessageData[typeof BattleMessageType.EffectApply]
-      const sourceName =
-        getSkillName(skillMap?.get(data.source)?.baseId || data.source) !== data.source
-          ? getSkillName(skillMap?.get(data.source)?.baseId || data.source)
-          : getMarkName(markMap?.get(data.source)?.baseId || data.source)
+      let sourceName: string = data.source
+
+      // First check if it's a skill
+      const skill = skillMap?.get(data.source)
+      if (skill) {
+        sourceName = getSkillName(skill.baseId)
+      } else {
+        // Then check if it's a mark
+        const mark = markMap?.get(data.source)
+        if (mark) {
+          sourceName = getMarkName(mark.baseId)
+        } else {
+          // Fallback: try to get name directly using the source as baseId
+          const skillName = getSkillName(data.source)
+          const markName = getMarkName(data.source)
+          // Use the translated name if it's different from the source ID
+          if (skillName !== data.source) {
+            sourceName = skillName
+          } else if (markName !== data.source) {
+            sourceName = markName
+          }
+        }
+      }
+
       content = `${sourceName} 触发效果：${i18next.t(`effect:${data.effect}`, { defaultValue: data.effect })}`
       break
     }

@@ -535,3 +535,70 @@
     stack: 10
   condition:
     type: selfUseSkill
+
+# 伊特系列特性效果
+# 速成：获得经验值提高50% (暂时使用占位符效果)
+- id: effect_ability_exp_boost_50_percent
+  trigger: OnBattleStart
+  priority: 0
+  condition:
+    type: checkSelf
+  apply:
+    type: TODO
+
+# 气流：每回合获得怒气增加5
+- id: effect_ability_rage_boost_5_per_turn
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addAttributeModifier
+    target:
+      base: self
+    stat: ragePerTurn
+    modifierType: delta
+    value: 5
+
+# 致命：电系技能致命率增加10%
+- id: effect_ability_electric_crit_rate_boost_10_percent
+  trigger: AfterUseSkillCheck
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: element
+        evaluator:
+          type: same
+          value: Electric
+  priority: 0
+  apply:
+    type: addCritRate
+    target: usingSkillContext
+    value: 10
+
+# 破冰：冰系技能造成伤害增加15%
+- id: effect_ability_ice_damage_boost_15_percent
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: element
+        evaluator:
+          type: same
+          value: Ice
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 15
+    delta: 0

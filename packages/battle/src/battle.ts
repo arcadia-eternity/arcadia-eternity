@@ -38,7 +38,7 @@ export class Battle extends Context implements MarkOwner {
   public readonly parent: null = null
   public readonly battle: Battle = this
   public readonly effectScheduler: EffectScheduler = new EffectScheduler()
-  public readonly configSystem: ConfigSystem = ConfigSystem.getInstance()
+  public readonly configSystem: ConfigSystem
   public readonly markSystem: MarkSystem = new MarkSystem(this)
   public readonly phaseManager: PhaseManager = new PhaseManager(this)
   public readonly emitter = mitt<Events>()
@@ -65,7 +65,23 @@ export class Battle extends Context implements MarkOwner {
   ) {
     super(null)
     if (options?.rngSeed) this.rng = new Prando(options.rngSeed)
-    if (configSystem) this.configSystem = configSystem
+    // Use provided configSystem or create a new instance for this battle
+    this.configSystem = configSystem || ConfigSystem.createInstance()
+
+    // Sync registered config keys from global singleton to battle instance
+    const globalConfigSystem = ConfigSystem.getInstance()
+    const globalKeys = globalConfigSystem.getRegisteredKeys()
+
+    for (const key of globalKeys) {
+      if (!this.configSystem.isRegistered(key)) {
+        // Get the current value from global system
+        const value = globalConfigSystem.get(key)
+        if (value !== undefined) {
+          this.configSystem.registerConfig(key, value)
+        }
+      }
+    }
+
     this.allowFaintSwitch = options?.allowFaintSwitch ?? true
     this.showHidden = options?.showHidden ?? false
 

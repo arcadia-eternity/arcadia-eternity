@@ -2,7 +2,9 @@ import {
   AddMarkContext,
   BaseMark,
   BaseSkill,
+  type BattlePhaseBase,
   type ConfigValue,
+  ConfigSystem,
   DamageContext,
   Effect,
   EffectContext,
@@ -58,15 +60,60 @@ import type {
   ChainSelector,
 } from '@arcadia-eternity/schema'
 
+// Global config registrations collector
+const configRegistrations = new Map<string, { configKey: string; initialValue: any }>()
+
+// Global registry to track all configs that need to be registered
+const globalConfigRegistry = new Map<string, { configKey: string; initialValue: any }>()
+
+/**
+ * Pre-register all configs from effects to avoid runtime registration order issues
+ */
+export function preRegisterAllConfigs(): void {
+  const configSystem = ConfigSystem.getInstance()
+
+  Array.from(globalConfigRegistry.values()).forEach(({ configKey, initialValue }) => {
+    if (!configSystem.isRegistered(configKey)) {
+      configSystem.registerConfig(configKey, initialValue)
+    }
+  })
+}
+
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   try {
+    // Clear config registrations for this effect
+    configRegistrations.clear()
+
     const condition = dsl.condition ? parseCondition(dsl.id, dsl.condition) : undefined
+
+    let actions: any[]
     if (Array.isArray(dsl.apply)) {
-      const actions = dsl.apply.map(a => createAction(dsl.id, a))
+      actions = dsl.apply.map(a => createAction(dsl.id, a))
+    } else {
+      actions = [createAction(dsl.id, dsl.apply)]
+    }
+
+    // Add config registration actions at the beginning if there are any configs to register
+    if (configRegistrations.size > 0) {
+      const configRegActions = Array.from(configRegistrations.values()).map(({ configKey, initialValue }) =>
+        parseSelector<ScopeObject>(dsl.id, 'battle').apply(Operators.registerConfig(configKey, initialValue)),
+      )
+      actions = [...configRegActions, ...actions]
+    }
+
+    // Return effect with all actions (including registerConfig actions if needed)
+    if (Array.isArray(dsl.apply)) {
       return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition, dsl.consumesStacks)
     } else {
-      const actions = createAction(dsl.id, dsl.apply)
-      return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition, dsl.consumesStacks, dsl.tags)
+      return new Effect(
+        dsl.id as effectId,
+        dsl.trigger,
+        actions.length === 1 ? actions[0] : actions,
+        dsl.priority,
+        condition,
+        dsl.consumesStacks,
+        dsl.tags,
+      )
     }
   } catch (error) {
     console.error(`解析${dsl.id}时出现问题,`, error)
@@ -421,6 +468,20 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseSetAccuracy(effectId, dsl)
     case 'disableContext':
       return parseDisableContext(effectId, dsl)
+    case 'addConfigModifier':
+      return parseAddConfigModifierAction(effectId, dsl)
+    case 'addDynamicConfigModifier':
+      return parseAddDynamicConfigModifierAction(effectId, dsl)
+    case 'registerConfig':
+      return parseRegisterConfigAction(effectId, dsl)
+    case 'addPhaseConfigModifier':
+      return parseAddPhaseConfigModifierAction(effectId, dsl)
+    case 'addPhaseDynamicConfigModifier':
+      return parseAddPhaseDynamicConfigModifierAction(effectId, dsl)
+    case 'addPhaseTypeConfigModifier':
+      return parseAddPhaseTypeConfigModifierAction(effectId, dsl)
+    case 'addDynamicPhaseTypeConfigModifier':
+      return parseAddDynamicPhaseTypeConfigModifierAction(effectId, dsl)
     default:
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`未知的操作类型: ${(dsl as any).type}`)
@@ -444,16 +505,46 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
     } as ConditionalValueSource<SelectorOpinion>
   }
   if (v.type === 'raw:number') {
-    const fullKey = registerLiteralValue(effectId, v.value, v.configId)
-    return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<number>
+    if (v.configId) {
+      // Use proper config registration for user-defined config values
+      const fullKey = `${effectId}.${v.configId}`
+      configRegistrations.set(fullKey, { configKey: fullKey, initialValue: v.value })
+      // Also add to global registry for pre-registration
+      globalConfigRegistry.set(fullKey, { configKey: fullKey, initialValue: v.value })
+      return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<number>
+    } else {
+      // Use registerLiteralValue for internal temporary values
+      const fullKey = registerLiteralValue(effectId, v.value)
+      return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<number>
+    }
   }
   if (v.type === 'raw:string') {
-    const fullKey = registerLiteralValue(effectId, v.value, v.configId)
-    return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<string>
+    if (v.configId) {
+      // Use proper config registration for user-defined config values
+      const fullKey = `${effectId}.${v.configId}`
+      configRegistrations.set(fullKey, { configKey: fullKey, initialValue: v.value })
+      // Also add to global registry for pre-registration
+      globalConfigRegistry.set(fullKey, { configKey: fullKey, initialValue: v.value })
+      return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<string>
+    } else {
+      // Use registerLiteralValue for internal temporary values
+      const fullKey = registerLiteralValue(effectId, v.value)
+      return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<string>
+    }
   }
   if (v.type === 'raw:boolean') {
-    const fullKey = registerLiteralValue(effectId, v.value, v.configId)
-    return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<boolean>
+    if (v.configId) {
+      // Use proper config registration for user-defined config values
+      const fullKey = `${effectId}.${v.configId}`
+      configRegistrations.set(fullKey, { configKey: fullKey, initialValue: v.value })
+      // Also add to global registry for pre-registration
+      globalConfigRegistry.set(fullKey, { configKey: fullKey, initialValue: v.value })
+      return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<boolean>
+    } else {
+      // Use registerLiteralValue for internal temporary values
+      const fullKey = registerLiteralValue(effectId, v.value)
+      return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<boolean>
+    }
   }
   if (v.type === 'entity:baseMark')
     return (() => [DataRepository.getInstance().getMark(v.value as baseMarkId)]) as ValueSource<BaseMark>
@@ -1023,6 +1114,110 @@ export function parseAddSkillClampModifierAction(
       parseValue(effectId, dsl.minValue) as ValueSource<number>,
       parseValue(effectId, dsl.maxValue) as ValueSource<number>,
       dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+    ),
+  )
+}
+
+// Config modifier action parsers
+export function parseAddConfigModifierAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addConfigModifier' }>,
+) {
+  return parseSelector<ScopeObject>(effectId, dsl.target).apply(
+    Operators.addConfigModifier(
+      parseValue(effectId, dsl.configKey) as ValueSource<string>,
+      parseValue(effectId, dsl.modifierType) as ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
+      parseValue(effectId, dsl.value) as ValueSource<ConfigValue>,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+    ),
+  )
+}
+
+export function parseAddDynamicConfigModifierAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addDynamicConfigModifier' }>,
+) {
+  return parseSelector<ScopeObject>(effectId, dsl.target).apply(
+    Operators.addDynamicConfigModifier(
+      parseValue(effectId, dsl.configKey) as ValueSource<string>,
+      parseValue(effectId, dsl.modifierType) as ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
+      parseSelector(effectId, dsl.observableValue) as ValueSource<Observable<ConfigValue>>,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+    ),
+  )
+}
+
+export function parseRegisterConfigAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'registerConfig' }>) {
+  return parseSelector<ScopeObject>(effectId, dsl.target).apply(
+    Operators.registerConfig(
+      parseValue(effectId, dsl.configKey) as ValueSource<string>,
+      parseValue(effectId, dsl.initialValue) as ValueSource<ConfigValue>,
+    ),
+  )
+}
+
+export function parseAddPhaseConfigModifierAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addPhaseConfigModifier' }>,
+) {
+  return parseSelector<BattlePhaseBase>(effectId, dsl.target).apply(
+    Operators.addPhaseConfigModifier(
+      parseValue(effectId, dsl.configKey) as ValueSource<string>,
+      parseValue(effectId, dsl.modifierType) as ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
+      parseValue(effectId, dsl.value) as ValueSource<ConfigValue>,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+    ),
+  )
+}
+
+export function parseAddPhaseDynamicConfigModifierAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addPhaseDynamicConfigModifier' }>,
+) {
+  return parseSelector<BattlePhaseBase>(effectId, dsl.target).apply(
+    Operators.addPhaseDynamicConfigModifier(
+      parseValue(effectId, dsl.configKey) as ValueSource<string>,
+      parseValue(effectId, dsl.modifierType) as ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
+      parseSelector(effectId, dsl.observableValue) as ValueSource<Observable<ConfigValue>>,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+    ),
+  )
+}
+
+export function parseAddPhaseTypeConfigModifierAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addPhaseTypeConfigModifier' }>,
+) {
+  return parseSelector<ScopeObject>(effectId, dsl.target).apply(
+    Operators.addPhaseTypeConfigModifier(
+      parseValue(effectId, dsl.configKey) as ValueSource<string>,
+      parseValue(effectId, dsl.modifierType) as ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
+      parseValue(effectId, dsl.value) as ValueSource<ConfigValue>,
+      parseValue(effectId, dsl.phaseType) as ValueSource<
+        'turn' | 'skill' | 'damage' | 'heal' | 'effect' | 'switch' | 'mark' | 'rage' | 'battle'
+      >,
+      dsl.scope ? (parseValue(effectId, dsl.scope) as ValueSource<'current' | 'any' | 'next'>) : undefined,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+      dsl.phaseId ? (parseValue(effectId, dsl.phaseId) as ValueSource<string>) : undefined,
+    ),
+  )
+}
+
+export function parseAddDynamicPhaseTypeConfigModifierAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addDynamicPhaseTypeConfigModifier' }>,
+) {
+  return parseSelector<ScopeObject>(effectId, dsl.target).apply(
+    Operators.addDynamicPhaseTypeConfigModifier(
+      parseValue(effectId, dsl.configKey) as ValueSource<string>,
+      parseValue(effectId, dsl.modifierType) as ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
+      parseSelector(effectId, dsl.observableValue) as ValueSource<Observable<ConfigValue>>,
+      parseValue(effectId, dsl.phaseType) as ValueSource<
+        'turn' | 'skill' | 'damage' | 'heal' | 'effect' | 'switch' | 'mark' | 'rage' | 'battle'
+      >,
+      dsl.scope ? (parseValue(effectId, dsl.scope) as ValueSource<'current' | 'any' | 'next'>) : undefined,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+      dsl.phaseId ? (parseValue(effectId, dsl.phaseId) as ValueSource<string>) : undefined,
     ),
   )
 }

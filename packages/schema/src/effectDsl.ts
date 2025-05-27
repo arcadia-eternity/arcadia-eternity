@@ -414,6 +414,73 @@ export type DisableContextOpreator = {
   target: SelectorDSL
 }
 
+export type AddConfigModifierOpreator = {
+  type: 'addConfigModifier'
+  target: SelectorDSL
+  configKey: Value
+  modifierType: Value
+  value: Value
+  priority?: Value
+}
+
+export type AddDynamicConfigModifierOpreator = {
+  type: 'addDynamicConfigModifier'
+  target: SelectorDSL
+  configKey: Value
+  modifierType: Value
+  observableValue: SelectorDSL
+  priority?: Value
+}
+
+export type RegisterConfigOpreator = {
+  type: 'registerConfig'
+  target: SelectorDSL
+  configKey: Value
+  initialValue: Value
+}
+
+export type AddPhaseConfigModifierOpreator = {
+  type: 'addPhaseConfigModifier'
+  target: SelectorDSL
+  configKey: Value
+  modifierType: Value
+  value: Value
+  priority?: Value
+}
+
+export type AddPhaseDynamicConfigModifierOpreator = {
+  type: 'addPhaseDynamicConfigModifier'
+  target: SelectorDSL
+  configKey: Value
+  modifierType: Value
+  observableValue: SelectorDSL
+  priority?: Value
+}
+
+export type AddPhaseTypeConfigModifierOpreator = {
+  type: 'addPhaseTypeConfigModifier'
+  target: SelectorDSL
+  configKey: Value
+  modifierType: Value
+  value: Value
+  phaseType: Value
+  scope?: Value
+  priority?: Value
+  phaseId?: Value
+}
+
+export type AddDynamicPhaseTypeConfigModifierOpreator = {
+  type: 'addDynamicPhaseTypeConfigModifier'
+  target: SelectorDSL
+  configKey: Value
+  modifierType: Value
+  observableValue: SelectorDSL
+  phaseType: Value
+  scope?: Value
+  priority?: Value
+  phaseId?: Value
+}
+
 export type OperatorDSL =
   | TODOOpreator
   | ConditionalOperator
@@ -475,6 +542,13 @@ export type OperatorDSL =
   | AddAccuracyOpreator
   | SetAccuracyOpreator
   | DisableContextOpreator
+  | AddConfigModifierOpreator
+  | AddDynamicConfigModifierOpreator
+  | RegisterConfigOpreator
+  | AddPhaseConfigModifierOpreator
+  | AddPhaseDynamicConfigModifierOpreator
+  | AddPhaseTypeConfigModifierOpreator
+  | AddDynamicPhaseTypeConfigModifierOpreator
 
 export type RawNumberValue = {
   type: 'raw:number'
@@ -522,14 +596,14 @@ export type Value =
   | boolean
   | ConditionalValue
 
-export type BaseSelector = keyof typeof BaseSelector
+export type BaseSelectorKey = keyof typeof BaseSelector
 
 export type ChainSelector = {
-  base: BaseSelector
+  base: BaseSelectorKey
   chain?: Array<SelectorChain>
 }
 
-export type SelectorDSL = BaseSelector | ChainSelector | ConditionalSelector
+export type SelectorDSL = BaseSelectorKey | ChainSelector | ConditionalSelector
 
 export type ConditionalSelector = {
   condition: ConditionDSL

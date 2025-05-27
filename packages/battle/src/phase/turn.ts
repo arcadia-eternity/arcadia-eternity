@@ -57,8 +57,8 @@ export async function executeTurnOperation(context: TurnContext, battle: Battle)
         battle.applyEffects(skillPhase.context!, EffectTrigger.BeforeSort)
         context.pushContext(skillPhase.context!)
 
-        // Store phase for execution
-        context.contextQueue.push(skillPhase.context!)
+        // Note: No need to push to contextQueue separately,
+        // it will be copied from contexts array later
         break
       }
       case 'switch-pet': {
@@ -69,8 +69,8 @@ export async function executeTurnOperation(context: TurnContext, battle: Battle)
         await switchPhase.initialize()
         context.pushContext(switchPhase.context!)
 
-        // Store phase for execution
-        context.contextQueue.push(switchPhase.context!)
+        // Note: No need to push to contextQueue separately,
+        // it will be copied from contexts array later
         break
       }
       case 'do-nothing':
@@ -138,7 +138,7 @@ export async function executeTurnOperation(context: TurnContext, battle: Battle)
  */
 function addTurnRage(context: TurnContext, battle: Battle): void {
   ;[battle.playerA, battle.playerB].forEach(player => {
-    player.addRage(new RageContext(context, player, 'turn', 'add', RAGE_PER_TURN))
+    player.addRage(new RageContext(context, player, 'turn', 'add', player.activePet.stat.ragePerTurn))
   })
 }
 

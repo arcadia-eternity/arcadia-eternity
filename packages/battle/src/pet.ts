@@ -414,43 +414,13 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   public transferMarks(context: SwitchPetContext, ...marks: MarkInstance[]) {
-    marks.forEach(mark => {
-      const existingMark = this.marks.find(m => m.base.id === mark.base.id)
-      if (existingMark) {
-        // 创建 AddMarkContext，使用当前 SwitchPetContext 作为父上下文，这个被视为隐式的effect
-        const effectContext = new EffectContext(context, EffectTrigger.OnOwnerSwitchOut, mark, undefined)
-        // 印记覆盖的config替代原来的config
-        const addMarkContext = new AddMarkContext(
-          effectContext,
-          this,
-          mark.base,
-          mark.stack,
-          mark.duration,
-          mark.config,
-        )
-        existingMark.tryStack(addMarkContext)
-      } else {
-        // 添加新印记
-        mark.transfer(context, this)
-      }
-    })
+    // Delegate to MarkSystem
+    context.battle.markSystem.transferMarks(context, this, ...marks)
   }
 
   public switchOut(context: SwitchPetContext) {
-    context.battle.applyEffects(context, EffectTrigger.OnOwnerSwitchOut, ...this.marks)
-    this.marks = this.marks.filter(mark => {
-      const shouldKeep = mark.config.keepOnSwitchOut ?? false
-      const shouldTransfer = mark.config.transferOnSwitch && context.target
-
-      // 需要转移的印记
-      if (mark.config.transferOnSwitch && context.target) {
-        context.target.transferMarks(context, mark)
-      } else if (!shouldKeep) {
-        mark.destroy(context)
-      }
-
-      return shouldKeep || shouldTransfer
-    })
+    // Delegate to MarkSystem
+    context.battle.markSystem.handleSwitchOut(context, this)
   }
 
   switchIn(context: SwitchPetContext) {

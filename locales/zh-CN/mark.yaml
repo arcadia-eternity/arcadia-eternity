@@ -405,3 +405,44 @@ mark_xukongtizhi:
 mark_xukongganying:
   name: 虚空感应
   description: ''
+# 伊特系列状态/Buff
+mark_yitelingyu:
+  name: 伊特领域
+  description: 提高自身暴击率并降低对手暴击率
+mark_qiliuyongdong:
+  name: 气流涌动
+  description: 非必杀的攻击技能怒气消耗2倍 伤害2倍
+mark_fengzhilingyu:
+  name: 风之领域
+  description: 增加自身本系技能伤害10% 减少对手本系技能伤害10%
+mark_fengbaolingyu:
+  name: 风暴领域
+  description: 增加自身本系技能伤害20% 减少对手本系技能伤害20%
+mark_dianhe:
+  name: 电荷
+  description: 每个暴击率增加20% 最多3个
+mark_dianzhilingyu:
+  name: 电之领域
+  description: 使自身暴击率和闪避率增加10%
+mark_diancilingyu:
+  name: 电磁领域
+  description: 使自身本系技能伤害增加20% 使对手本系技能伤害减少20%
+mark_bingzhilingyu:
+  name: 冰之领域
+  description: 受到伤害降低10% 造成伤害增加10%
+mark_bingshuanglingyu:
+  name: 冰霜领域
+  description: 受到伤害降低20% 造成伤害增加20%
+# 其他相关状态
+mark_shandianwaiyi:
+  name: 闪电外衣【🛡️】
+  description: 受到特攻伤害降低30点 受到物攻50%使对手麻痹
+mark_bingningzhiqi:
+  name: 冰凝之气
+  description: 受到伤害增加50% 具有冰冻时效果2倍 剩余{{mark.stack}}次
+mark_bingshuangzhixing:
+  name: 冰霜之星
+  description: 下一次造成伤害减少{{mark.stack}}点
+mark_hanbingjia:
+  name: 寒冰甲
+  description: 抵挡＜60点的伤害

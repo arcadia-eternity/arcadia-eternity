@@ -94,6 +94,8 @@
                                       "target",
                                       "self",
                                       "foe",
+                                      "selfTeam",
+                                      "foeTeam",
                                       "petOwners",
                                       "foeOwners",
                                       "usingSkillContext",
@@ -111,7 +113,9 @@
                                       "addMarkContext",
                                       "rageContext",
                                       "battle",
-                                      "turnContext"
+                                      "turnContext",
+                                      "currentPhase",
+                                      "allPhases"
                                     ]
                                   },
                                   {
@@ -1417,6 +1421,15 @@
                       },
                       "priority": {
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "phaseType": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "scope": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "phaseId": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
@@ -1448,6 +1461,15 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "priority": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "phaseType": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "scope": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "phaseId": {
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
@@ -1537,14 +1559,21 @@
                       },
                       "priority": {
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "phaseType": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "scope": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "phaseId": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
                     "required": [
                       "type",
                       "target",
-                      "stat",
-                      "minValue",
-                      "maxValue"
+                      "stat"
                     ],
                     "additionalProperties": false
                   },
@@ -1568,6 +1597,15 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       },
                       "priority": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "phaseType": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "scope": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "phaseId": {
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },
@@ -2648,6 +2686,243 @@
                     "required": [
                       "type",
                       "target"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "addConfigModifier"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "configKey": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "modifierType": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "priority": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "configKey",
+                      "modifierType",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "addDynamicConfigModifier"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "configKey": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "modifierType": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "observableValue": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "priority": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "configKey",
+                      "modifierType",
+                      "observableValue"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "registerConfig"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "configKey": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "initialValue": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "configKey",
+                      "initialValue"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "addPhaseConfigModifier"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "configKey": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "modifierType": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "priority": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "configKey",
+                      "modifierType",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "addPhaseDynamicConfigModifier"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "configKey": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "modifierType": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "observableValue": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "priority": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "configKey",
+                      "modifierType",
+                      "observableValue"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "addPhaseTypeConfigModifier"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "configKey": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "modifierType": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "phaseType": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "scope": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "priority": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "phaseId": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "configKey",
+                      "modifierType",
+                      "value",
+                      "phaseType"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "addDynamicPhaseTypeConfigModifier"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "configKey": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "modifierType": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "observableValue": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "phaseType": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "scope": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "priority": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "phaseId": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "configKey",
+                      "modifierType",
+                      "observableValue",
+                      "phaseType"
                     ],
                     "additionalProperties": false
                   }

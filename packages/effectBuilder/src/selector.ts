@@ -626,6 +626,8 @@ export const BaseSelector: {
   target: ChainableSelector<Pet>
   self: ChainableSelector<Pet>
   foe: ChainableSelector<Pet>
+  selfTeam: ChainableSelector<Pet>
+  foeTeam: ChainableSelector<Pet>
   petOwners: ChainableSelector<Player>
   foeOwners: ChainableSelector<Player>
   usingSkillContext: ChainableSelector<UseSkillContext>
@@ -664,6 +666,20 @@ export const BaseSelector: {
   //始终指向效果的拥有者的当前对手。
   foe: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
     if (context.source.owner instanceof Pet) return [context.battle.getOpponent(context.source.owner.owner!).activePet]
+    //TODO: error with use owners with global marks
+    return []
+  }),
+  //选择效果拥有者的全队精灵。
+  selfTeam: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
+    if (context.parent instanceof UseSkillContext) return [...context.parent.pet.owner!.team]
+    if (context.source.owner instanceof Pet) return [...context.source.owner.owner!.team]
+    //TODO: error with use owners with global marks
+    return []
+  }),
+  //选择效果拥有者对手的全队精灵。
+  foeTeam: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
+    if (context.parent instanceof UseSkillContext) return [...context.parent.actualTarget!.owner!.team]
+    if (context.source.owner instanceof Pet) return [...context.battle.getOpponent(context.source.owner.owner!).team]
     //TODO: error with use owners with global marks
     return []
   }),

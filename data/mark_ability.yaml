@@ -99,3 +99,19 @@
   config: *ablitity_config
   effect:
     - effect_ability_add_xukongtizhi_on_skill_hit
+- id: mark_ability_sucheng
+  config: *ablitity_config
+  effect:
+    - effect_ability_exp_boost_50_percent
+- id: mark_ability_qiliu
+  config: *ablitity_config
+  effect:
+    - effect_ability_rage_boost_5_per_turn
+- id: mark_ability_zhiming
+  config: *ablitity_config
+  effect:
+    - effect_ability_electric_crit_rate_boost_10_percent
+- id: mark_ability_pobing
+  config: *ablitity_config
+  effect:
+    - effect_ability_ice_damage_boost_15_percent

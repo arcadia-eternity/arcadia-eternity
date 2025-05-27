@@ -534,6 +534,9 @@ onMounted(async () => {
           if (msg.type === BattleMessageType.PetSwitch) {
             // 对于 PetSwitch，状态更新由 switchPetAnimate 内部精确控制时机
             await switchPetAnimate(msg.data.toPet, getTargetSide(msg.data.toPet), msg as PetSwitchMessage)
+          } else if (msg.type === BattleMessageType.SkillUse) {
+            // SkillUse 消息已经在上面的特殊处理中被处理了，这里跳过
+            return
           } else {
             // 对于其他所有消息，先应用状态变更
             await store.applyStateDelta(msg)

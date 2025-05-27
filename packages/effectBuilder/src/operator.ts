@@ -1169,37 +1169,74 @@ export const Operators = {
       modifierType: ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
       value: ValueSource<ConfigValue>,
       priority: ValueSource<number> = 0,
-    ): Operator<any> =>
-    (context: EffectContext<EffectTrigger>, targets: any[]) => {
-      const _configKey = GetValueFromSource(context, configKey)[0]
-      const _modifierType = GetValueFromSource(context, modifierType)[0] as ConfigModifierType
-      const _value = GetValueFromSource(context, value)[0]
-      const _priority = GetValueFromSource(context, priority)[0] ?? 0
+    ): Operator<ScopeObject> =>
+    (context: EffectContext<EffectTrigger>, targets: ScopeObject[]) => {
+      targets.forEach((target, targetIndex) => {
+        const _configKey = GetValueFromSource(context, configKey)[0]
+        const _modifierType = GetValueFromSource(context, modifierType)[0] as ConfigModifierType
+        const _value = GetValueFromSource(context, value)[0]
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
 
-      const configSystem = ConfigSystem.getInstance()
+        // Use the battle's ConfigSystem instance instead of the global singleton
+        const configSystem = context.battle.configSystem
 
-      // Create a unique modifier ID
-      const timestamp = Date.now()
-      const random = Math.random().toString(36).substring(2, 11)
-      const modifierId = `${context.source.id}_config_${_configKey}_${_modifierType}_${timestamp}_${random}`
+        // Create a unique modifier ID
+        const timestamp = Date.now()
+        const random = Math.random().toString(36).substring(2, 11)
+        const modifierId = `${context.source.id}_config_${_configKey}_${_modifierType}_${timestamp}_${targetIndex}_${random}`
 
-      // Create the config modifier
-      const modifier = new ConfigModifier(
-        ConfigDurationType.binding,
-        modifierId,
-        _value,
-        _modifierType,
-        _priority,
-        context.source instanceof MarkInstanceImpl ? context.source : undefined,
-      )
+        // Determine the modifier source for scope binding
+        // The modifier's scope is determined by its source
+        let modifierSource: MarkInstanceImpl | SkillInstance | BattlePhaseBase | undefined
+        if (context.source instanceof MarkInstanceImpl) {
+          modifierSource = context.source
+        } else if (context.source instanceof SkillInstance) {
+          modifierSource = context.source
+        } else if ('battle' in context.source && context.source.battle) {
+          // For other sources, we can't directly use them as modifier source
+          // The scope will be determined by the target when getting config values
+          modifierSource = undefined
+        }
 
-      // Add the modifier to the config system
-      const cleanup = configSystem.addConfigModifier(_configKey, modifier)
+        // Create the config modifier
+        const modifier = new ConfigModifier(
+          ConfigDurationType.binding,
+          modifierId,
+          _value,
+          _modifierType,
+          _priority,
+          modifierSource,
+        )
 
-      // If the effect source is a mark, bind the modifier lifecycle to the mark
-      if (context.source instanceof MarkInstanceImpl) {
-        context.source.addAttributeModifierCleanup(cleanup)
-      }
+        // Ensure the config key is registered before adding modifier
+        if (!configSystem.isRegistered(_configKey)) {
+          // Try to get the value from global singleton first
+          const globalConfigSystem = ConfigSystem.getInstance()
+          if (globalConfigSystem.isRegistered(_configKey)) {
+            const globalValue = globalConfigSystem.get(_configKey)
+            if (globalValue !== undefined) {
+              configSystem.registerConfig(_configKey, globalValue)
+            }
+          } else {
+            // If not found in global, this might be a timing issue where the effect
+            // that registers this config key hasn't been parsed yet.
+            // We'll register a temporary placeholder that can be overridden later.
+            console.warn(`Config key '${_configKey}' not found in global registry. Registering temporary placeholder.`)
+
+            // Register a temporary placeholder value
+            // This will be overridden when the actual effect with ConfigValueSource is processed
+            configSystem.registerConfig(_configKey, 0)
+          }
+        }
+
+        // Add the modifier to the config system with scope
+        const cleanup = configSystem.addScopedConfigModifier(_configKey, modifier, target)
+
+        // If the effect source is a mark, bind the modifier lifecycle to the mark
+        if (context.source instanceof MarkInstanceImpl) {
+          context.source.addAttributeModifierCleanup(cleanup)
+        }
+      })
     },
 
   addDynamicConfigModifier:
@@ -1208,46 +1245,82 @@ export const Operators = {
       modifierType: ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
       observableValue: ValueSource<Observable<ConfigValue>>,
       priority: ValueSource<number> = 0,
-    ): Operator<any> =>
-    (context: EffectContext<EffectTrigger>, targets: any[]) => {
-      const _configKey = GetValueFromSource(context, configKey)[0]
-      const _modifierType = GetValueFromSource(context, modifierType)[0] as ConfigModifierType
-      const _observableValue = GetValueFromSource(context, observableValue)[0]
-      const _priority = GetValueFromSource(context, priority)[0] ?? 0
+    ): Operator<ScopeObject> =>
+    (context: EffectContext<EffectTrigger>, targets: ScopeObject[]) => {
+      targets.forEach((target, targetIndex) => {
+        const _configKey = GetValueFromSource(context, configKey)[0]
+        const _modifierType = GetValueFromSource(context, modifierType)[0] as ConfigModifierType
+        const _observableValue = GetValueFromSource(context, observableValue)[0]
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
 
-      const configSystem = ConfigSystem.getInstance()
+        // Use the battle's ConfigSystem instance instead of the global singleton
+        const configSystem = context.battle.configSystem
 
-      // Create a unique modifier ID
-      const timestamp = Date.now()
-      const random = Math.random().toString(36).substring(2, 11)
-      const modifierId = `${context.source.id}_config_${_configKey}_${_modifierType}_dynamic_${timestamp}_${random}`
+        // Create a unique modifier ID
+        const timestamp = Date.now()
+        const random = Math.random().toString(36).substring(2, 11)
+        const modifierId = `${context.source.id}_config_${_configKey}_${_modifierType}_dynamic_${timestamp}_${targetIndex}_${random}`
 
-      // Create the config modifier with Observable value
-      const modifier = new ConfigModifier(
-        ConfigDurationType.binding,
-        modifierId,
-        _observableValue,
-        _modifierType,
-        _priority,
-        context.source instanceof MarkInstanceImpl ? context.source : undefined,
-      )
+        // Determine the modifier source for scope binding
+        let modifierSource: MarkInstanceImpl | SkillInstance | BattlePhaseBase | undefined
+        if (context.source instanceof MarkInstanceImpl) {
+          modifierSource = context.source
+        } else if (context.source instanceof SkillInstance) {
+          modifierSource = context.source
+        } else {
+          modifierSource = undefined
+        }
 
-      // Add the modifier to the config system
-      const cleanup = configSystem.addConfigModifier(_configKey, modifier)
+        // Create the config modifier with Observable value
+        const modifier = new ConfigModifier(
+          ConfigDurationType.binding,
+          modifierId,
+          _observableValue,
+          _modifierType,
+          _priority,
+          modifierSource,
+        )
 
-      // If the effect source is a mark, bind the modifier lifecycle to the mark
-      if (context.source instanceof MarkInstanceImpl) {
-        context.source.addAttributeModifierCleanup(cleanup)
-      }
+        // Ensure the config key is registered before adding modifier
+        if (!configSystem.isRegistered(_configKey)) {
+          // Try to get the value from global singleton first
+          const globalConfigSystem = ConfigSystem.getInstance()
+          if (globalConfigSystem.isRegistered(_configKey)) {
+            const globalValue = globalConfigSystem.get(_configKey)
+            if (globalValue !== undefined) {
+              configSystem.registerConfig(_configKey, globalValue)
+            }
+          } else {
+            // If not found in global, this might be a timing issue where the effect
+            // that registers this config key hasn't been parsed yet.
+            // We'll register a temporary placeholder that can be overridden later.
+            console.warn(`Config key '${_configKey}' not found in global registry. Registering temporary placeholder.`)
+
+            // Register a temporary placeholder value
+            // This will be overridden when the actual effect with ConfigValueSource is processed
+            configSystem.registerConfig(_configKey, 0)
+          }
+        }
+
+        // Add the modifier to the config system with scope
+        const cleanup = configSystem.addScopedConfigModifier(_configKey, modifier, target)
+
+        // If the effect source is a mark, bind the modifier lifecycle to the mark
+        if (context.source instanceof MarkInstanceImpl) {
+          context.source.addAttributeModifierCleanup(cleanup)
+        }
+      })
     },
 
   registerConfig:
-    (configKey: ValueSource<string>, initialValue: ValueSource<ConfigValue>): Operator<any> =>
-    (context: EffectContext<EffectTrigger>, targets: any[]) => {
+    (configKey: ValueSource<string>, initialValue: ValueSource<ConfigValue>): Operator<ScopeObject> =>
+    (context: EffectContext<EffectTrigger>, targets: ScopeObject[]) => {
+      // registerConfig is a battle-specific operation
       const _configKey = GetValueFromSource(context, configKey)[0]
       const _initialValue = GetValueFromSource(context, initialValue)[0]
 
-      const configSystem = ConfigSystem.getInstance()
+      // Use the battle's ConfigSystem instance instead of the global singleton
+      const configSystem = context.battle.configSystem
       if (!configSystem.isRegistered(_configKey)) {
         configSystem.registerConfig(_configKey, _initialValue)
       }
@@ -1300,44 +1373,83 @@ export const Operators = {
       scope: ValueSource<'current' | 'any' | 'next'> = 'current',
       priority: ValueSource<number> = 0,
       phaseId?: ValueSource<string>,
-    ): Operator<any> =>
-    (context: EffectContext<EffectTrigger>, _targets: any[]) => {
-      const _configKey = GetValueFromSource(context, configKey)[0]
-      const _modifierType = GetValueFromSource(context, modifierType)[0] as ConfigModifierType
-      const _value = GetValueFromSource(context, value)[0]
-      const _phaseType = GetValueFromSource(context, phaseType)[0] as PhaseType
-      const scopeValue = GetValueFromSource(context, scope)[0] ?? 'current'
-      const _scope = scopeValue as PhaseScope
-      const _priority = GetValueFromSource(context, priority)[0] ?? 0
-      const _phaseId = phaseId ? GetValueFromSource(context, phaseId)[0] : undefined
+    ): Operator<ScopeObject> =>
+    (context: EffectContext<EffectTrigger>, targets: ScopeObject[]) => {
+      targets.forEach((target, targetIndex) => {
+        const _configKey = GetValueFromSource(context, configKey)[0]
+        const _modifierType = GetValueFromSource(context, modifierType)[0] as ConfigModifierType
+        const _value = GetValueFromSource(context, value)[0]
+        const _phaseType = GetValueFromSource(context, phaseType)[0] as PhaseType
+        const scopeValue = GetValueFromSource(context, scope)[0] ?? 'current'
+        const _scope = scopeValue as PhaseScope
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
+        const _phaseId = phaseId ? GetValueFromSource(context, phaseId)[0] : undefined
 
-      const configSystem = ConfigSystem.getInstance()
+        // Use the battle's ConfigSystem instance instead of the global singleton
+        const configSystem = context.battle.configSystem
 
-      // Create phase type spec
-      const phaseTypeSpec: PhaseTypeSpec = {
-        phaseType: _phaseType,
-        scope: _scope,
-        phaseId: _phaseId,
-      }
+        // Create phase type spec
+        const phaseTypeSpec: PhaseTypeSpec = {
+          phaseType: _phaseType,
+          scope: _scope,
+          phaseId: _phaseId,
+        }
 
-      // Create a unique modifier ID
-      const timestamp = Date.now()
-      const random = Math.random().toString(36).substring(2, 11)
-      const modifierId = `${context.source.id}_phaseType_${_configKey}_${_modifierType}_${_phaseType}_${_scope}_${timestamp}_${random}`
+        // Create a unique modifier ID
+        const timestamp = Date.now()
+        const random = Math.random().toString(36).substring(2, 11)
+        const modifierId = `${context.source.id}_phaseType_${_configKey}_${_modifierType}_${_phaseType}_${_scope}_${timestamp}_${targetIndex}_${random}`
 
-      // Create the config modifier
-      const modifier = new ConfigModifier(
-        ConfigDurationType.phaseType,
-        modifierId,
-        _value,
-        _modifierType,
-        _priority,
-        context.source instanceof MarkInstanceImpl ? context.source : undefined,
-        phaseTypeSpec,
-      )
+        // Determine the modifier source for scope binding
+        let modifierSource: MarkInstanceImpl | SkillInstance | BattlePhaseBase | undefined
+        if (context.source instanceof MarkInstanceImpl) {
+          modifierSource = context.source
+        } else if (context.source instanceof SkillInstance) {
+          modifierSource = context.source
+        } else {
+          modifierSource = undefined
+        }
 
-      // Add the modifier to the config system with phase type binding
-      configSystem.addPhaseTypeConfigModifier(_configKey, modifier, phaseTypeSpec)
+        // Create the config modifier
+        const modifier = new ConfigModifier(
+          ConfigDurationType.phaseType,
+          modifierId,
+          _value,
+          _modifierType,
+          _priority,
+          modifierSource,
+          phaseTypeSpec,
+        )
+
+        // Ensure the config key is registered before adding modifier
+        if (!configSystem.isRegistered(_configKey)) {
+          // Try to get the value from global singleton first
+          const globalConfigSystem = ConfigSystem.getInstance()
+          if (globalConfigSystem.isRegistered(_configKey)) {
+            const globalValue = globalConfigSystem.get(_configKey)
+            if (globalValue !== undefined) {
+              configSystem.registerConfig(_configKey, globalValue)
+            }
+          } else {
+            // If not found in global, this might be a timing issue where the effect
+            // that registers this config key hasn't been parsed yet.
+            // We'll register a temporary placeholder that can be overridden later.
+            console.warn(`Config key '${_configKey}' not found in global registry. Registering temporary placeholder.`)
+
+            // Register a temporary placeholder value
+            // This will be overridden when the actual effect with ConfigValueSource is processed
+            configSystem.registerConfig(_configKey, 0)
+          }
+        }
+
+        // Add the modifier to the config system with phase type binding and scope
+        const cleanup = configSystem.addScopedPhaseTypeConfigModifier(_configKey, modifier, phaseTypeSpec, target)
+
+        // If the effect source is a mark, bind the modifier lifecycle to the mark
+        if (context.source instanceof MarkInstanceImpl) {
+          context.source.addAttributeModifierCleanup(cleanup)
+        }
+      })
     },
 
   addDynamicPhaseTypeConfigModifier:
@@ -1349,44 +1461,83 @@ export const Operators = {
       scope: ValueSource<'current' | 'any' | 'next'> = 'current',
       priority: ValueSource<number> = 0,
       phaseId?: ValueSource<string>,
-    ): Operator<any> =>
-    (context: EffectContext<EffectTrigger>, _targets: any[]) => {
-      const _configKey = GetValueFromSource(context, configKey)[0]
-      const _modifierType = GetValueFromSource(context, modifierType)[0] as ConfigModifierType
-      const _observableValue = GetValueFromSource(context, observableValue)[0]
-      const _phaseType = GetValueFromSource(context, phaseType)[0] as PhaseType
-      const scopeValue = GetValueFromSource(context, scope)[0] ?? 'current'
-      const _scope = scopeValue as PhaseScope
-      const _priority = GetValueFromSource(context, priority)[0] ?? 0
-      const _phaseId = phaseId ? GetValueFromSource(context, phaseId)[0] : undefined
+    ): Operator<ScopeObject> =>
+    (context: EffectContext<EffectTrigger>, targets: ScopeObject[]) => {
+      targets.forEach((target, targetIndex) => {
+        const _configKey = GetValueFromSource(context, configKey)[0]
+        const _modifierType = GetValueFromSource(context, modifierType)[0] as ConfigModifierType
+        const _observableValue = GetValueFromSource(context, observableValue)[0]
+        const _phaseType = GetValueFromSource(context, phaseType)[0] as PhaseType
+        const scopeValue = GetValueFromSource(context, scope)[0] ?? 'current'
+        const _scope = scopeValue as PhaseScope
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
+        const _phaseId = phaseId ? GetValueFromSource(context, phaseId)[0] : undefined
 
-      const configSystem = ConfigSystem.getInstance()
+        // Use the battle's ConfigSystem instance instead of the global singleton
+        const configSystem = context.battle.configSystem
 
-      // Create phase type spec
-      const phaseTypeSpec: PhaseTypeSpec = {
-        phaseType: _phaseType,
-        scope: _scope,
-        phaseId: _phaseId,
-      }
+        // Create phase type spec
+        const phaseTypeSpec: PhaseTypeSpec = {
+          phaseType: _phaseType,
+          scope: _scope,
+          phaseId: _phaseId,
+        }
 
-      // Create a unique modifier ID
-      const timestamp = Date.now()
-      const random = Math.random().toString(36).substring(2, 11)
-      const modifierId = `${context.source.id}_phaseTypeDynamic_${_configKey}_${_modifierType}_${_phaseType}_${_scope}_${timestamp}_${random}`
+        // Create a unique modifier ID
+        const timestamp = Date.now()
+        const random = Math.random().toString(36).substring(2, 11)
+        const modifierId = `${context.source.id}_phaseTypeDynamic_${_configKey}_${_modifierType}_${_phaseType}_${_scope}_${timestamp}_${targetIndex}_${random}`
 
-      // Create the config modifier with Observable value
-      const modifier = new ConfigModifier(
-        ConfigDurationType.phaseType,
-        modifierId,
-        _observableValue,
-        _modifierType,
-        _priority,
-        context.source instanceof MarkInstanceImpl ? context.source : undefined,
-        phaseTypeSpec,
-      )
+        // Determine the modifier source for scope binding
+        let modifierSource: MarkInstanceImpl | SkillInstance | BattlePhaseBase | undefined
+        if (context.source instanceof MarkInstanceImpl) {
+          modifierSource = context.source
+        } else if (context.source instanceof SkillInstance) {
+          modifierSource = context.source
+        } else {
+          modifierSource = undefined
+        }
 
-      // Add the modifier to the config system with phase type binding
-      configSystem.addPhaseTypeConfigModifier(_configKey, modifier, phaseTypeSpec)
+        // Create the config modifier with Observable value
+        const modifier = new ConfigModifier(
+          ConfigDurationType.phaseType,
+          modifierId,
+          _observableValue,
+          _modifierType,
+          _priority,
+          modifierSource,
+          phaseTypeSpec,
+        )
+
+        // Ensure the config key is registered before adding modifier
+        if (!configSystem.isRegistered(_configKey)) {
+          // Try to get the value from global singleton first
+          const globalConfigSystem = ConfigSystem.getInstance()
+          if (globalConfigSystem.isRegistered(_configKey)) {
+            const globalValue = globalConfigSystem.get(_configKey)
+            if (globalValue !== undefined) {
+              configSystem.registerConfig(_configKey, globalValue)
+            }
+          } else {
+            // If not found in global, this might be a timing issue where the effect
+            // that registers this config key hasn't been parsed yet.
+            // We'll register a temporary placeholder that can be overridden later.
+            console.warn(`Config key '${_configKey}' not found in global registry. Registering temporary placeholder.`)
+
+            // Register a temporary placeholder value
+            // This will be overridden when the actual effect with ConfigValueSource is processed
+            configSystem.registerConfig(_configKey, 0)
+          }
+        }
+
+        // Add the modifier to the config system with phase type binding and scope
+        const cleanup = configSystem.addScopedPhaseTypeConfigModifier(_configKey, modifier, phaseTypeSpec, target)
+
+        // If the effect source is a mark, bind the modifier lifecycle to the mark
+        if (context.source instanceof MarkInstanceImpl) {
+          context.source.addAttributeModifierCleanup(cleanup)
+        }
+      })
     },
 }
 
@@ -1410,7 +1561,35 @@ export function GetValueFromSource<T extends SelectorOpinion>(
   if (Array.isArray(source)) return source.map(v => GetValueFromSource(context, v)[0]) as T[]
   if (source && typeof source === 'object' && 'configId' in source) {
     const _source = source as ConfigValueSource<T>
-    return [ConfigSystem.getInstance().get(_source.configId, context.source) ?? _source.defaultValue] as T[]
+    // Use the battle's ConfigSystem instance instead of the global singleton
+    const configSystem = context.battle.configSystem
+
+    // Ensure the config is registered in the battle's ConfigSystem
+    if (!configSystem.isRegistered(_source.configId)) {
+      // Only register if the default value is a valid ConfigValue
+      const defaultValue = _source.defaultValue
+      if (
+        typeof defaultValue === 'string' ||
+        typeof defaultValue === 'number' ||
+        typeof defaultValue === 'boolean' ||
+        defaultValue === null
+      ) {
+        configSystem.registerConfig(_source.configId, defaultValue as ConfigValue)
+      }
+    } else {
+      // Config is already registered, but check if we need to update the base value
+      // This handles the case where a temporary placeholder was registered earlier
+      const currentValue = configSystem.get(_source.configId)
+      const expectedValue = _source.defaultValue
+
+      // If current value is 0 and expected value is different, update the base value
+      // This suggests the config was registered with a temporary placeholder
+      if (currentValue === 0 && expectedValue !== 0 && typeof expectedValue === 'number') {
+        configSystem.set(_source.configId, expectedValue)
+      }
+    }
+
+    return [configSystem.get(_source.configId, context.source) ?? _source.defaultValue] as T[]
   }
   return [source]
 }
