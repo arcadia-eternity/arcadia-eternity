@@ -53,6 +53,11 @@ export class Battle extends Context implements MarkOwner {
   public marks: MarkInstance[] = [] //用于存放天气一类的效果
   public victor?: Player
 
+  // 新增：用于处理同时更换的状态
+  public pendingForcedSwitches: Player[] = [] // 待处理的强制更换
+  public pendingFaintSwitch?: Player // 待处理的击破奖励更换
+  public isInitialSwitchPhase: boolean = false // 标记是否为初始更换阶段（需要同时执行）
+
   public readonly petMap: Map<string, Pet> = new Map() // ID -> Pet 实例
   public readonly skillMap: Map<string, SkillInstance> = new Map() // ID -> Skill 实例
   private sequenceId = 0
@@ -247,23 +252,16 @@ export class Battle extends Context implements MarkOwner {
 
     // Main battle loop using phases
     while (true) {
-      // Phase 1: Handle forced switches
+      // Phase 1: Handle switches (forced and faint switches)
       this.currentPhase = BattlePhase.SwitchPhase
-      const forcedSwitchResult = await this.handleForcedSwitchPhase()
-      if (forcedSwitchResult.battleEnded) break
+      const switchResult = await this.handleSwitchPhase()
+      if (switchResult.battleEnded) break
 
-      // Phase 2: Handle faint switch
-      if (this.allowFaintSwitch && this.lastKiller) {
-        const faintSwitchResult = await this.handleFaintSwitchPhase()
-        if (faintSwitchResult.battleEnded) break
-        if (faintSwitchResult.continueToForcedSwitch) continue
-      }
-
-      // Phase 3: Collect player actions
+      // Phase 2: Collect player actions
       this.currentPhase = BattlePhase.SelectionPhase
       await this.handleSelectionPhase()
 
-      // Phase 4: Execute turn
+      // Phase 3: Execute turn
       this.currentPhase = BattlePhase.ExecutionPhase
       const turnResult = await this.handleExecutionPhase()
       if (turnResult.battleEnded) break
@@ -352,58 +350,91 @@ export class Battle extends Context implements MarkOwner {
 
   // Phase handler methods for the new phase-based battle system
 
-  private async handleForcedSwitchPhase(): Promise<{ battleEnded: boolean }> {
-    while (!(this.playerA.activePet.isAlive && this.playerB.activePet.isAlive)) {
-      this.pendingDefeatedPlayers = [this.playerA, this.playerB].filter(player => !player.activePet.isAlive)
+  private async handleSwitchPhase(): Promise<{ battleEnded: boolean }> {
+    // 持续处理更换，直到没有更多需要更换的精灵
+    while (true) {
+      // 收集需要强制更换的玩家
+      this.pendingForcedSwitches = [this.playerA, this.playerB].filter(player => !player.activePet.isAlive)
+
+      // 检查是否有击破奖励更换
+      // 重要：如果双方都需要强制更换，则不应该有击破奖励更换
+      if (this.allowFaintSwitch && this.lastKiller && this.pendingForcedSwitches.length < 2) {
+        this.pendingFaintSwitch = this.lastKiller
+      } else {
+        this.pendingFaintSwitch = undefined
+      }
+
+      // 如果没有任何需要更换的情况，退出循环
+      if (this.pendingForcedSwitches.length === 0 && !this.pendingFaintSwitch) {
+        break
+      }
+
+      // 检查战斗是否结束
       if (this.isBattleEnded()) {
         return { battleEnded: true }
       }
 
-      if (this.pendingDefeatedPlayers.length > 0) {
-        this.emitMessage(BattleMessageType.ForcedSwitch, {
-          player: this.pendingDefeatedPlayers.map(player => player.id),
-        })
+      // 判断是否为初始更换阶段（需要同时执行）
+      this.isInitialSwitchPhase = this.pendingForcedSwitches.length > 0 || this.pendingFaintSwitch !== undefined
 
-        // Wait for all players to make switch selections
-        await this.waitForSwitchSelections(this.pendingDefeatedPlayers)
-
-        // Execute switches using phase system
-        for (const player of this.pendingDefeatedPlayers) {
-          const selectionPet = this.getPetByID((player.selection as SwitchPetSelection).pet)
-          const switchPhase = new SwitchPetPhase(this, player, selectionPet, this)
-          await switchPhase.initialize()
-          await switchPhase.execute()
-          player.selection = null
+      // 处理初始更换阶段（强制更换和击破奖励更换同时进行）
+      if (this.isInitialSwitchPhase) {
+        const initialSwitchResult = await this.handleInitialSwitchPhase()
+        if (initialSwitchResult.battleEnded) {
+          return { battleEnded: true }
         }
       }
+
+      // 重置状态，准备下一轮检查
+      this.isInitialSwitchPhase = false
+      this.pendingForcedSwitches = []
+      this.pendingFaintSwitch = undefined
+      this.lastKiller = undefined
     }
-    this.pendingDefeatedPlayers = []
+
     return { battleEnded: false }
   }
 
-  private async handleFaintSwitchPhase(): Promise<{ battleEnded: boolean; continueToForcedSwitch: boolean }> {
-    this.emitMessage(BattleMessageType.FaintSwitch, {
-      player: this.lastKiller!.id,
-    })
+  private async handleInitialSwitchPhase(): Promise<{ battleEnded: boolean }> {
+    // 收集所有需要做选择的玩家
+    const playersNeedingSelection: Player[] = []
 
-    // Wait for killer to make switch selection
-    await this.waitForSwitchSelection(this.lastKiller!)
+    // 添加强制更换的玩家
+    playersNeedingSelection.push(...this.pendingForcedSwitches)
 
-    if (this.lastKiller!.selection?.type === 'switch-pet') {
-      const selectionPet = this.getPetByID((this.lastKiller!.selection as SwitchPetSelection).pet)
-      const switchPhase = new SwitchPetPhase(this, this.lastKiller!, selectionPet, this)
-      await switchPhase.initialize()
-      await switchPhase.execute()
-
-      // Check if new pet is alive
-      if (!this.lastKiller!.activePet.isAlive) {
-        this.pendingDefeatedPlayers.push(this.lastKiller!)
-        this.lastKiller = undefined
-        return { battleEnded: false, continueToForcedSwitch: true }
-      }
+    // 添加击破奖励更换的玩家
+    if (this.pendingFaintSwitch) {
+      playersNeedingSelection.push(this.pendingFaintSwitch)
     }
-    this.lastKiller = undefined
-    return { battleEnded: false, continueToForcedSwitch: false }
+
+    // 发送消息通知需要更换
+    if (this.pendingForcedSwitches.length > 0) {
+      this.emitMessage(BattleMessageType.ForcedSwitch, {
+        player: this.pendingForcedSwitches.map(player => player.id),
+      })
+    }
+
+    if (this.pendingFaintSwitch) {
+      this.emitMessage(BattleMessageType.FaintSwitch, {
+        player: this.pendingFaintSwitch.id,
+      })
+    }
+
+    // 等待所有玩家做出选择
+    await this.waitForSwitchSelections(playersNeedingSelection)
+
+    // 同时执行所有更换
+    for (const player of playersNeedingSelection) {
+      if (player.selection?.type === 'switch-pet') {
+        const selectionPet = this.getPetByID((player.selection as SwitchPetSelection).pet)
+        const switchPhase = new SwitchPetPhase(this, player, selectionPet, this)
+        await switchPhase.initialize()
+        await switchPhase.execute()
+      }
+      player.selection = null
+    }
+
+    return { battleEnded: false }
   }
 
   private async handleSelectionPhase(): Promise<void> {
@@ -427,29 +458,35 @@ export class Battle extends Context implements MarkOwner {
   // Event-driven waiting methods (no timers)
   private waitingResolvers: {
     switchSelections?: { players: Player[]; resolve: () => void }
-    singleSelection?: { player: Player; resolve: () => void }
     bothPlayersReady?: { resolve: () => void }
   } = {}
 
   private async waitForSwitchSelections(players: Player[]): Promise<void> {
     // Check if already ready
-    if (players.every(player => player.selection && player.selection.type === 'switch-pet')) {
+    // 对于强制更换，必须选择switch-pet
+    // 对于击破奖励更换，可以选择switch-pet或do-nothing
+    const allReady = players.every(player => {
+      if (!player.selection) return false
+
+      // 如果是强制更换的玩家，必须选择switch-pet
+      if (this.pendingForcedSwitches.includes(player)) {
+        return player.selection.type === 'switch-pet'
+      }
+
+      // 如果是击破奖励更换的玩家，可以选择switch-pet或do-nothing
+      if (this.pendingFaintSwitch === player) {
+        return player.selection.type === 'switch-pet' || player.selection.type === 'do-nothing'
+      }
+
+      return false
+    })
+
+    if (allReady) {
       return
     }
 
     return new Promise<void>(resolve => {
       this.waitingResolvers.switchSelections = { players, resolve }
-    })
-  }
-
-  private async waitForSwitchSelection(player: Player): Promise<void> {
-    // Check if already ready
-    if (player.selection) {
-      return
-    }
-
-    return new Promise<void>(resolve => {
-      this.waitingResolvers.singleSelection = { player, resolve }
     })
   }
 
@@ -469,17 +506,26 @@ export class Battle extends Context implements MarkOwner {
     // Check switch selections
     if (this.waitingResolvers.switchSelections) {
       const { players, resolve } = this.waitingResolvers.switchSelections
-      if (players.every(player => player.selection && player.selection.type === 'switch-pet')) {
-        this.waitingResolvers.switchSelections = undefined
-        resolve()
-      }
-    }
 
-    // Check single selection
-    if (this.waitingResolvers.singleSelection) {
-      const { player, resolve } = this.waitingResolvers.singleSelection
-      if (player.selection) {
-        this.waitingResolvers.singleSelection = undefined
+      // 使用与waitForSwitchSelections相同的逻辑检查是否所有玩家都准备好了
+      const allReady = players.every(player => {
+        if (!player.selection) return false
+
+        // 如果是强制更换的玩家，必须选择switch-pet
+        if (this.pendingForcedSwitches.includes(player)) {
+          return player.selection.type === 'switch-pet'
+        }
+
+        // 如果是击破奖励更换的玩家，可以选择switch-pet或do-nothing
+        if (this.pendingFaintSwitch === player) {
+          return player.selection.type === 'switch-pet' || player.selection.type === 'do-nothing'
+        }
+
+        return false
+      })
+
+      if (allReady) {
+        this.waitingResolvers.switchSelections = undefined
         resolve()
       }
     }
