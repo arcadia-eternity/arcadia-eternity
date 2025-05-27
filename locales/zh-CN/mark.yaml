@@ -408,16 +408,16 @@ mark_xukongganying:
 # 伊特系列状态/Buff
 mark_yitelingyu:
   name: 伊特领域
-  description: 提高自身暴击率并降低对手暴击率
+  description: 提高自身10%暴击率
 mark_qiliuyongdong:
   name: 气流涌动
   description: 非必杀的攻击技能怒气消耗2倍 伤害2倍
 mark_fengzhilingyu:
   name: 风之领域
-  description: 增加自身本系技能伤害10% 减少对手本系技能伤害10%
+  description: 增加自身本系技能伤害10%
 mark_fengbaolingyu:
   name: 风暴领域
-  description: 增加自身本系技能伤害20% 减少对手本系技能伤害20%
+  description: 增加自身本系技能伤害20%
 mark_dianhe:
   name: 电荷
   description: 每个暴击率增加20% 最多3个
@@ -426,7 +426,7 @@ mark_dianzhilingyu:
   description: 使自身暴击率和闪避率增加10%
 mark_diancilingyu:
   name: 电磁领域
-  description: 使自身本系技能伤害增加20% 使对手本系技能伤害减少20%
+  description: 使自身本系技能伤害增加20%
 mark_bingzhilingyu:
   name: 冰之领域
   description: 受到伤害降低10% 造成伤害增加10%
