@@ -229,7 +229,7 @@
     - skill_id: skill_fenlitupo
       level: 15
       hidden: false
-    - skill_id: skill_chongzhuang
+    - skill_id: skill_tahuochongzhuang
       level: 20
       hidden: false
     - skill_id: skill_jiasu
@@ -277,7 +277,7 @@
     - skill_id: skill_fenlitupo
       level: 15
       hidden: false
-    - skill_id: skill_chongzhuang
+    - skill_id: skill_tahuochongzhuang
       level: 20
       hidden: false
     - skill_id: skill_jiasu
