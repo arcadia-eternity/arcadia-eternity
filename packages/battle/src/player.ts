@@ -104,7 +104,30 @@ export class Player {
 
   public getAvailableSelection(): PlayerSelection[] {
     if (this.battle!.status === BattleStatus.Unstarted) return []
-    if (this.battle!.pendingDefeatedPlayers.includes(this)) return this.getAvailableSwitch()
+
+    // 检查是否在强制更换阶段
+    if (this.battle!.currentPhase === BattlePhase.SwitchPhase) {
+      // 如果是强制更换的玩家，只能选择换宠
+      if (this.battle!.pendingForcedSwitches.includes(this)) {
+        return this.getAvailableSwitch()
+      }
+
+      // 如果是击破奖励更换的玩家，可以选择换宠或什么都不做
+      if (this.battle!.pendingFaintSwitch === this) {
+        return [
+          {
+            player: this.id,
+            type: 'do-nothing',
+          },
+          ...this.getAvailableSwitch(),
+        ]
+      }
+
+      // 如果在更换阶段但不需要更换，返回空数组（等待其他玩家完成更换）
+      return []
+    }
+
+    // 击破奖励更换逻辑（非SwitchPhase时）
     if (this.battle?.lastKiller === this)
       return [
         {
@@ -113,6 +136,8 @@ export class Player {
         },
         ...this.getAvailableSwitch(),
       ]
+
+    // 正常选择阶段：技能、换宠、投降
     const skillSelection = this.getAvailableSkills()
     const switchSelection = this.getAvailableSwitch()
     const actions: PlayerSelection[] = [...skillSelection, ...switchSelection]
@@ -171,6 +196,12 @@ export class Player {
   }
 
   private checkDoNothingActionAvailable() {
+    // 在强制更换阶段，只有击破奖励更换的玩家可以选择do-nothing
+    if (this.battle?.currentPhase === BattlePhase.SwitchPhase) {
+      return this.battle.pendingFaintSwitch === this
+    }
+
+    // 正常情况下的do-nothing检查
     return this.battle?.lastKiller === this || this.getAvailableSkills().length === 0
   }
 

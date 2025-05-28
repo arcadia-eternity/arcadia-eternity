@@ -49,12 +49,11 @@ export class Battle extends Context implements MarkOwner {
   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
   public currentTurn = 0
   private messageCallbacks: Array<(message: BattleMessage) => void> = []
-  public pendingDefeatedPlayers: Player[] = [] // 新增：需要在下回合换宠的玩家
   public lastKiller?: Player
   public marks: MarkInstance[] = [] //用于存放天气一类的效果
   public victor?: Player
 
-  // 新增：用于处理同时更换的状态
+  // 用于处理同时更换的状态
   public pendingForcedSwitches: Player[] = [] // 待处理的强制更换
   public pendingFaintSwitch?: Player // 待处理的击破奖励更换
   public isInitialSwitchPhase: boolean = false // 标记是否为初始更换阶段（需要同时执行）
@@ -218,7 +217,9 @@ export class Battle extends Context implements MarkOwner {
     if (this.victor) return true
     // 检查强制换宠失败
     let isBattleEnded = false
-    for (const player of this.pendingDefeatedPlayers) {
+    // 检查当前需要强制更换的玩家是否有可用的更换选项
+    const currentForcedSwitches = [this.playerA, this.playerB].filter(player => !player.activePet.isAlive)
+    for (const player of currentForcedSwitches) {
       const available = player.getAvailableSwitch()
       if (available.length === 0) {
         isBattleEnded = true
@@ -274,7 +275,11 @@ export class Battle extends Context implements MarkOwner {
   // Legacy generator method removed - use startBattlePhased() instead
 
   public getPendingSwitchPlayer(): Player | undefined {
-    return this.pendingDefeatedPlayers.find(player => !player.selection)
+    // 查找需要强制更换但还没有做出选择的玩家
+    return (
+      this.pendingForcedSwitches.find(player => !player.selection) ||
+      (this.pendingFaintSwitch && !this.pendingFaintSwitch.selection ? this.pendingFaintSwitch : undefined)
+    )
   }
 
   private clearSelections() {
