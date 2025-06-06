@@ -48,7 +48,16 @@ export class Battle extends Context implements MarkOwner {
   public status: BattleStatus = BattleStatus.Unstarted
   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
   public currentTurn = 0
-  private messageCallbacks: Array<(message: BattleMessage) => void> = []
+  private messageCallbacks: Array<{
+    original: (message: BattleMessage) => void
+    wrapped: (message: BattleMessage) => void
+    options?: {
+      viewerId?: playerId
+      showHidden?: boolean
+      showAll?: boolean
+    }
+    lastState?: BattleState // 每个监听器维护自己的状态
+  }> = []
   public lastKiller?: Player
   public marks: MarkInstance[] = [] //用于存放天气一类的效果
   public victor?: Player
@@ -97,12 +106,77 @@ export class Battle extends Context implements MarkOwner {
   }
 
   // 注册消息回调
-  public registerListener(callback: (message: BattleMessage) => void) {
-    this.messageCallbacks.push(callback)
+  public registerListener(
+    callback: (message: BattleMessage) => void,
+    options?: {
+      viewerId?: playerId // 显示某一个player的视角
+      showHidden?: boolean // 显示所有隐藏信息
+      showAll?: boolean // 显示所有信息（等同于showHidden: true且不限制viewerId）
+    },
+  ) {
+    // 为新监听器创建回调对象
+    const callbackObj = {
+      original: callback,
+      wrapped: null as any, // 稍后设置
+      options,
+      lastState: undefined as BattleState | undefined,
+    }
+
+    const wrappedCallback: (message: BattleMessage) => void = (message: BattleMessage) => {
+      if (!options) {
+        // 默认行为：使用battle的showHidden设置
+        callback(message)
+        return
+      }
+
+      // 使用监听器自己的 lastState 作为基准状态
+      const baseState = callbackObj.lastState || {}
+
+      // 根据选项创建定制的消息
+      let customMessage: BattleMessage
+      let newState: BattleState
+
+      if (options.showAll) {
+        // 显示所有信息：使用完整的battle状态
+        newState = this.toMessage(undefined, true)
+        customMessage = {
+          ...message,
+          stateDelta: jsondiffpatch.diff(baseState, newState),
+        }
+      } else if (options.viewerId) {
+        // 显示特定玩家视角
+        newState = this.toMessage(options.viewerId, options.showHidden ?? false)
+        customMessage = {
+          ...message,
+          stateDelta: jsondiffpatch.diff(baseState, newState),
+        }
+      } else if (options.showHidden !== undefined) {
+        // 仅控制隐藏信息显示
+        newState = this.toMessage(undefined, options.showHidden)
+        customMessage = {
+          ...message,
+          stateDelta: jsondiffpatch.diff(baseState, newState),
+        }
+      } else {
+        // 默认行为
+        customMessage = message
+        newState = this.toMessage('' as playerId, this.showHidden)
+      }
+
+      // 更新监听器的状态
+      callbackObj.lastState = newState
+
+      callback(customMessage)
+    }
+
+    // 设置包装后的回调
+    callbackObj.wrapped = wrappedCallback
+
+    this.messageCallbacks.push(callbackObj)
   }
 
   public unregisterListener(callback: (message: BattleMessage) => void) {
-    this.messageCallbacks = this.messageCallbacks.filter(cb => cb !== callback)
+    this.messageCallbacks = this.messageCallbacks.filter(cb => cb.original !== callback)
   }
 
   clearListeners() {
@@ -128,14 +202,21 @@ export class Battle extends Context implements MarkOwner {
 
   // 发送消息给所有回调
   public emitMessage<T extends BattleMessageType>(type: T, data: BattleMessageData[T]) {
+    const currentState = this.toMessage('' as playerId, this.showHidden)
+    const stateDelta = jsondiffpatch.diff(this.lastStateMessage, currentState)
+
     const message: BaseBattleMessage<T> = {
       type,
       data,
       sequenceId: this.sequenceId++,
-      stateDelta: jsondiffpatch.diff(this.lastStateMessage, this.toMessage('' as playerId, this.showHidden)),
+      stateDelta: stateDelta,
     }
-    this.lastStateMessage = this.toMessage('' as playerId, this.showHidden)
-    this.messageCallbacks.forEach(cb => cb(jsondiffpatch.clone(message) as BattleMessage))
+
+    // 更新 lastStateMessage 为当前状态
+    this.lastStateMessage = currentState
+
+    // 调用所有包装器（每个包装器会使用自己的 lastState）
+    this.messageCallbacks.forEach(cb => cb.wrapped(jsondiffpatch.clone(message) as BattleMessage))
   }
 
   public addMark(context: AddMarkContext) {
@@ -246,6 +327,15 @@ export class Battle extends Context implements MarkOwner {
   public async startBattle(): Promise<void> {
     if (this.status != BattleStatus.Unstarted) throw '战斗已经开始过了！'
     this.status = BattleStatus.OnBattle
+
+    // 初始化 lastStateMessage 为空状态，确保第一个消息包含完整的状态差异
+    this.lastStateMessage = {} as BattleState
+
+    // 初始化所有监听器的 lastState 为空状态
+    this.messageCallbacks.forEach(cb => {
+      cb.lastState = {} as BattleState
+    })
+
     this.applyEffects(this, EffectTrigger.OnBattleStart)
     this.emitMessage(BattleMessageType.BattleStart, {
       playerA: this.playerA.toMessage(),

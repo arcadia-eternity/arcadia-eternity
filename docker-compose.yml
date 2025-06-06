@@ -7,11 +7,17 @@ services:
       dockerfile: Dockerfile
       target: production
     ports:
-      - "8102:8102"
+      - '8102:8102'
     environment:
       - NODE_ENV=production
+      - PORT=8102
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+      # Supabase configuration (uncomment and set values to enable battle reports)
+      # - SUPABASE_URL=https://your-project.supabase.co
+      # - SUPABASE_ANON_KEY=your-anon-key
+      # - SUPABASE_SERVICE_KEY=your-service-key
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8102/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:8102/health']
       interval: 30s
       timeout: 10s
       retries: 3

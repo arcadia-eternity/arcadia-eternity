@@ -219,6 +219,7 @@ export class BattleClient {
     this.eventHandlers.get(event)?.add(wrapper)
     return () => this.off(event, wrapper)
   }
+
   off<T extends keyof ServerToClientEvents>(
     event: T,
     handler: (...args: Parameters<ServerToClientEvents[T]>) => void,

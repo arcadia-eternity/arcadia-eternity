@@ -25,6 +25,7 @@
     "@arcadia-eternity/client": "workspace:^",
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/data-repository": "workspace:^",
+    "@arcadia-eternity/database": "workspace:^",
     "@arcadia-eternity/httploader": "workspace:^",
     "@arcadia-eternity/interface": "workspace:^",
     "@arcadia-eternity/local-adapter": "workspace:^",

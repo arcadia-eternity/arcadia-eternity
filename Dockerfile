@@ -79,9 +79,20 @@ ENV NODE_ENV=production
 ENV PATH=/app/node_modules/.bin:$PATH
 ENV NODE_PATH=/app/node_modules:/app/packages
 
+# Server configuration environment variables
+ENV PORT=8102
+ENV CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+
+ENV SUPABASE_URL=""
+ENV SUPABASE_ANON_KEY=""
+ENV SUPABASE_SERVICE_KEY=""
+
 # Health check using curl instead of wget
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD curl -f http://localhost:8102/health || exit 1
 
 EXPOSE 8102
-CMD ["node", "dist/cli.js", "server", "--port", "8102"]
+
+# Use a shell script to conditionally enable battle reports based on environment variables
+# This allows the container to automatically enable battle reports if Supabase config is provided
+CMD ["sh", "-c", "if [ -n \"$SUPABASE_URL\" ] && [ -n \"$SUPABASE_ANON_KEY\" ]; then node dist/cli.js server --port $PORT --enable-battle-reports; else node dist/cli.js server --port $PORT; fi"]

@@ -2,12 +2,14 @@
 import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
 import BattleStatus from '@/components/battle/BattleStatus.vue'
 import Mark from '@/components/battle/Mark.vue'
+import PetButton from '@/components/battle/PetButton.vue'
 import PetSprite from '@/components/battle/PetSprite.vue'
 import SkillButton from '@/components/battle/SkillButton.vue'
 import { useBattleAnimations } from '@/composition/useBattleAnimations'
 import { useMusic } from '@/composition/music'
 import { useSound } from '@/composition/sound'
 import { useBattleStore } from '@/stores/battle'
+import { useBattleReportStore } from '@/stores/battleReport'
 import { useGameDataStore } from '@/stores/gameData'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import { useResourceStore } from '@/stores/resource'
@@ -41,7 +43,33 @@ import {
   toArray,
 } from 'rxjs'
 import { ActionState } from 'seer2-pet-animator'
-import { computed, onMounted, onUnmounted, provide, ref, useTemplateRef, nextTick, watch, type Ref } from 'vue'
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  provide,
+  ref,
+  useTemplateRef,
+  nextTick,
+  watch,
+  withDefaults,
+  toRef,
+  unref,
+  type Ref,
+} from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { DArrowLeft, DArrowRight, VideoPause, VideoPlay, Film } from '@element-plus/icons-vue'
+
+// Props 定义
+interface Props {
+  replayMode?: boolean
+  battleRecordId?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  replayMode: false,
+  battleRecordId: undefined,
+})
 
 enum PanelState {
   SKILLS = 'skills',
@@ -65,7 +93,10 @@ type AnimationEvents = {
 
 const emitter = mitt<AnimationEvents>()
 
+const route = useRoute()
+const router = useRouter()
 const store = useBattleStore()
+const battleReportStore = useBattleReportStore()
 const gameDataStore = useGameDataStore()
 const resourceStore = useResourceStore()
 const gameSettingStore = useGameSettingStore()
@@ -131,15 +162,16 @@ const allTeamMemberSpritesNum = computed<number[]>(() => {
   return allMembers.map(pet => gameDataStore.getSpecies(pet.speciesID)?.num || 0)
 })
 
-const allSkillId = computed(() =>
-  store.battleState?.players
+const allSkillId = computed(() => {
+  if (!store.battleState?.players) return []
+  return store.battleState.players
     .map(p => p.team)
     .flat()
     .filter(p => p !== undefined)
     .map(p => p.skills ?? [])
     .flat()
-    .map(s => s.baseId),
-)
+    .map(s => s.baseId)
+})
 const { playSkillSound, playPetSound, playVictorySound } = useSound(allSkillId, allTeamMemberSpritesNum)
 
 const background = computed(() => {
@@ -155,7 +187,8 @@ const background = computed(() => {
 })
 
 const availableSkills = computed<SkillMessage[]>(() => {
-  return store.getPetById(currentPlayer.value!.activePet)?.skills?.filter(skill => !skill.isUnknown) ?? []
+  if (!currentPlayer.value?.activePet) return []
+  return store.getPetById(currentPlayer.value.activePet)?.skills?.filter(skill => !skill.isUnknown) ?? []
 })
 
 const handleSkillClick = (skillId: string) => {
@@ -180,7 +213,7 @@ const handleEscape = () => {
 
 const battleResult = computed(() => {
   if (!store.isBattleEnd) return ''
-  return store.victor === store.playerId ? '胜利！🎉' : store.victor ? '失败...💔' : '平局'
+  return store.victor === store.playerId ? '胜利！' : store.victor ? '失败...' : '平局'
 })
 
 const isSkillAvailable = (skillId: skillId) => {
@@ -189,6 +222,219 @@ const isSkillAvailable = (skillId: skillId) => {
 
 const isPetSwitchable = (petId: petId) => {
   return store.availableActions?.some(a => a.type === 'switch-pet' && a.pet === petId) ?? false
+}
+
+// 回放模式相关
+const isReplayMode = computed(() => props.replayMode)
+const currentReplayTurn = computed(() => store.currentReplayTurn)
+const totalReplayTurns = computed(() => store.totalReplayTurns)
+// 用于显示的回合数（从1开始）
+const currentReplayTurnNumber = computed(() => store.currentReplayTurnNumber)
+const totalReplayTurnNumber = computed(() => store.totalReplayTurnNumber)
+
+// 自动播放相关
+const isPlaying = ref(false)
+let playbackTimer: ReturnType<typeof setTimeout> | null = null
+const isPlayingAnimations = ref(false) // 是否正在播放动画
+const pendingPause = ref(false) // 是否有待执行的暂停
+
+// 综合加载状态管理
+const isReplayDataLoaded = computed(() => {
+  if (!isReplayMode.value) return true
+  return !battleReportStore.loading.battleRecord && battleReportStore.currentBattleRecord !== null
+})
+
+// 检查petSprite是否准备完毕的Promise函数
+const checkPetSpritesReady = async (): Promise<boolean> => {
+  if (!isReplayMode.value) return true
+
+  const leftPet = petSprites.value.left
+  const rightPet = petSprites.value.right
+
+  if (!leftPet || !rightPet) {
+    return false
+  }
+
+  try {
+    // 等待两个petSprite的ready promise完成
+    const promises = []
+    if (leftPet.ready) {
+      promises.push(leftPet.ready)
+    }
+    if (rightPet.ready) {
+      promises.push(rightPet.ready)
+    }
+
+    if (promises.length === 0) {
+      return false
+    }
+
+    await Promise.all(promises)
+    return true
+  } catch (error) {
+    console.error('Error waiting for pet sprites to be ready:', error)
+    return false
+  }
+}
+
+const isReplayFullyLoaded = ref(false)
+
+// 检查回放是否完全加载完毕
+const checkReplayLoadingStatus = async () => {
+  if (!isReplayMode.value) {
+    isReplayFullyLoaded.value = true
+    return
+  }
+
+  try {
+    // 等待数据加载完成
+    if (!isReplayDataLoaded.value) {
+      isReplayFullyLoaded.value = false
+      return
+    }
+
+    // 等待petSprite准备完成
+    const spritesReady = await checkPetSpritesReady()
+    if (!spritesReady) {
+      isReplayFullyLoaded.value = false
+      return
+    }
+
+    // 等待store初始化完成
+    if (store.replaySnapshots.length === 0) {
+      isReplayFullyLoaded.value = false
+      return
+    }
+
+    isReplayFullyLoaded.value = true
+    console.debug('Replay fully loaded!')
+  } catch (error) {
+    console.error('Error checking replay loading statusb:', error)
+    isReplayFullyLoaded.value = false
+  }
+}
+
+const goBackFromReplay = () => {
+  stopPlayback()
+  store.exitReplayMode()
+  router.push(`/battle-reports/${route.params.id}`)
+}
+
+const nextTurn = () => {
+  store.nextReplayTurn()
+}
+
+const previousTurn = () => {
+  store.previousReplayTurn()
+}
+
+// 时间轴点击处理
+const handleTimelineClick = (event: MouseEvent) => {
+  if (isPlaying.value || !isReplayFullyLoaded.value) return
+
+  const target = event.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+  const clickX = event.clientX - rect.left
+  const width = rect.width
+
+  // 计算点击位置对应的快照索引（从左到右，0到totalReplayTurns）
+  // totalReplayTurns 实际上是 totalSnapshots，索引范围是 0 到 totalReplayTurns
+  const percentage = Math.max(0, Math.min(1, clickX / width)) // 确保在0-1范围内
+  const targetSnapshotIndex = Math.round(percentage * totalReplayTurns.value)
+  const clampedIndex = Math.max(0, Math.min(totalReplayTurns.value, targetSnapshotIndex))
+
+  console.debug(
+    `Timeline click: percentage=${percentage.toFixed(3)}, targetIndex=${targetSnapshotIndex}, clampedIndex=${clampedIndex}, totalSnapshots=${totalReplayTurns.value}`,
+  )
+  store.setReplayTurn(clampedIndex)
+}
+
+// 播放控制
+const togglePlayback = async () => {
+  // 如果还未完全加载，不允许播放
+  if (!isReplayFullyLoaded.value) {
+    return
+  }
+
+  if (isPlaying.value) {
+    // 如果正在播放动画，设置待暂停标志，否则立即暂停
+    if (isPlayingAnimations.value) {
+      pendingPause.value = true
+    } else {
+      stopPlayback()
+    }
+  } else {
+    await startPlayback()
+  }
+}
+
+const startPlayback = async () => {
+  if (currentReplayTurn.value >= totalReplayTurns.value) {
+    // 如果已经在最后一回合，从头开始
+    store.setReplayTurn(0)
+    // 等待一个tick确保状态更新完成
+    await nextTick()
+  }
+
+  isPlaying.value = true
+  scheduleNextTurn()
+}
+
+const stopPlayback = () => {
+  isPlaying.value = false
+  pendingPause.value = false // 清除待暂停标志
+  if (playbackTimer) {
+    clearTimeout(playbackTimer)
+    playbackTimer = null
+  }
+}
+
+const scheduleNextTurn = async () => {
+  if (!isPlaying.value) return
+
+  // 播放当前回合的动画（自动播放模式，不自动推进）
+  await playCurrentTurnAnimations(false)
+
+  // 检查是否在动画播放期间被停止
+  if (!isPlaying.value) return
+
+  playbackTimer = setTimeout(() => {
+    if (currentReplayTurn.value < totalReplayTurns.value) {
+      store.nextReplayTurn()
+
+      // 检查是否有待暂停标志，如果有则在推进状态后暂停
+      if (pendingPause.value) {
+        stopPlayback() // 执行待暂停操作
+        return
+      }
+
+      scheduleNextTurn() // 继续下一回合
+    } else {
+      // 播放完毕，停止播放
+      stopPlayback()
+    }
+  }, 1000)
+}
+
+// 播放当前回合的动画（通过消息订阅系统）
+const playCurrentTurnAnimations = async (autoAdvance = false) => {
+  if (!isReplayMode.value || isPlayingAnimations.value) return
+
+  isPlayingAnimations.value = true
+
+  try {
+    // 开始播放当前回合的动画
+    await store.playReplayTurnAnimations(currentReplayTurn.value)
+
+    // 只有在手动播放（非自动播放）时才自动推进到下一个快照
+    if (autoAdvance && currentReplayTurn.value < totalReplayTurns.value) {
+      store.nextReplayTurn()
+    }
+  } catch (error) {
+    console.error('Error playing turn animations:', error)
+  } finally {
+    isPlayingAnimations.value = false
+  }
 }
 
 async function animatePetTransition(
@@ -219,6 +465,8 @@ async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitc
   const animationDuration = 1
 
   await animatePetTransition(oldPetSprite, offScreenX, 0, animationDuration, 'power2.in')
+
+  // 统一使用 applyStateDelta，回放模式下跳过重复检查
   await store.applyStateDelta(petSwitchMessage)
   await nextTick()
 
@@ -252,26 +500,75 @@ const petSprites = computed(() => {
 async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   const useSkill = messages.filter(m => m.type === BattleMessageType.SkillUse)[0]
   if (!useSkill) return
-  store.applyStateDelta(useSkill)
+
+  // 统一使用 applyStateDelta，回放模式下跳过重复检查
+  await store.applyStateDelta(useSkill)
 
   const baseSkillId = useSkill.data.baseSkill
   const baseSkillData = gameDataStore.getSkill(baseSkillId)
-  const category = store.skillMap.get(useSkill.data.skill)?.category || Category.Physical
+  // 优先从 gameDataStore 获取技能类别，回退到 store.skillMap
+  const category = baseSkillData?.category || store.skillMap.get(useSkill.data.skill)?.category || Category.Physical
   const side = getTargetSide(useSkill.data.user)
-  const source = petSprites.value[side]
+  let source = petSprites.value[side]
 
   if (!source) {
     throw new Error('找不到精灵组件')
   }
 
-  const availableState = source.availableState
+  // 等待PetSprite完全初始化 - 使用nextTick确保获取到最新的组件实例
+  let availableState = unref(source.availableState)
+
+  if (!availableState || availableState.length === 0) {
+    let retryCount = 0
+    const maxRetries = 20
+
+    while ((!availableState || availableState.length === 0) && retryCount < maxRetries) {
+      await nextTick()
+      source = petSprites.value[side]
+
+      if (!source) {
+        retryCount++
+        continue
+      }
+
+      // 等待ready Promise，确保组件完全初始化
+      if (source.ready) {
+        try {
+          await source.ready
+        } catch (error) {
+          console.warn('Error waiting for ready promise:', error)
+        }
+      }
+
+      // 重新获取最新实例和availableState
+      source = petSprites.value[side]
+      if (source) {
+        availableState = unref(source.availableState)
+      }
+
+      retryCount++
+    }
+
+    if (!availableState || availableState.length === 0) {
+      console.error('PetSprite availableState still not ready after waiting, skipping animation')
+      return
+    }
+  }
+
+  // 最后一次确保我们使用的是最新的source和availableState
+  source = petSprites.value[side]
+  if (!source) {
+    throw new Error('找不到精灵组件')
+  }
+  availableState = unref(source.availableState)
+
   const stateMap = new Map<Category, ActionState>([
     [Category.Physical, ActionState.ATK_PHY],
     [Category.Special, ActionState.ATK_SPE],
     [Category.Status, ActionState.ATK_BUF],
     [
       Category.Climax,
-      availableState.includes(ActionState.INTERCOURSE) && baseSkillData.tags.includes('combination')
+      availableState.includes(ActionState.INTERCOURSE) && baseSkillData?.tags?.includes('combination')
         ? ActionState.INTERCOURSE
         : availableState.includes(ActionState.ATK_POW)
           ? ActionState.ATK_POW
@@ -280,7 +577,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   ])
   const state = stateMap.get(category) || ActionState.ATK_PHY
 
-  if (!source.availableState.includes(state)) {
+  if (!availableState.includes(state)) {
     throw new Error(`无效的动画状态: ${state}`)
   }
 
@@ -362,7 +659,15 @@ function handleCombatEventMessage(message: CombatEventMessageWithTarget, isFromS
         const targetPetInfo = store.getPetById(damageData.target)
         if (!targetPetInfo) {
           console.warn(`Target pet info not found for ID: ${damageData.target}`, message)
-          return
+          // 即使找不到宠物信息，也要显示伤害动画
+          targetPetSprite.setState(damageData.isCrit ? ActionState.UNDER_ULTRA : ActionState.UNDER_ATK)
+          showDamageMessage(
+            targetSide,
+            damageData.damage,
+            damageData.effectiveness > 1 ? 'up' : damageData.effectiveness < 1 ? 'down' : 'normal',
+            damageData.isCrit,
+          )
+          break
         }
         const { currentHp, maxHp } = targetPetInfo
         const { availableState } = targetPetSprite
@@ -424,7 +729,6 @@ const getTargetSide = (targetPetId: string): 'left' | 'right' => {
 let messageSubscription: { unsubscribe: () => void } | null = null
 const animationQueue = store.animateQueue
 const animating = ref(false)
-const sequenceId = ref(-1)
 
 const animatesubscribe = animationQueue
   .pipe(
@@ -446,9 +750,16 @@ const animatesubscribe = animationQueue
   .subscribe()
 
 const preloadPetSprites = () => {
-  allTeamMemberSpritesNum.value.forEach(num => {
-    const img = new Image()
-    img.src = `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-pet-preview@master/public/fight/${num}.swf`
+  const spriteNums = allTeamMemberSpritesNum.value
+  if (!spriteNums || !Array.isArray(spriteNums)) {
+    console.debug('Skipping sprite preload: sprite numbers not available yet')
+    return
+  }
+  spriteNums.forEach(num => {
+    if (num && num > 0) {
+      const img = new Image()
+      img.src = `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-pet-preview@master/public/fight/${num}.swf`
+    }
   })
 }
 
@@ -501,7 +812,49 @@ async function initialPetEntryAnimation() {
 }
 
 onMounted(async () => {
+  // 检查是否是回放模式
+  if (props.replayMode) {
+    // 回放模式：加载战报数据并初始化回放
+    const battleId = props.battleRecordId || (route.params.id as string)
+
+    if (battleId) {
+      await battleReportStore.fetchBattleRecord(battleId)
+
+      if (battleReportStore.currentBattleRecord) {
+        const record = battleReportStore.currentBattleRecord
+
+        store.initReplayMode(
+          record.battle_messages,
+          record.final_state as any,
+          record.player_a_id, // 默认从玩家A视角观看
+        )
+      }
+    }
+
+    // 回放模式也需要消息订阅来处理动画
+    await setupMessageSubscription()
+
+    // 等待一小段时间确保订阅完全设置好
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    // 在battleState初始化完成后再预加载精灵
+    preloadPetSprites()
+
+    // 检查加载状态
+    await checkReplayLoadingStatus()
+
+    // 在回放模式下，不自动播放第0回合动画，保持初始状态
+    // 用户可以手动点击播放按钮来开始回放
+    return
+  }
+
+  // 正常战斗模式
   preloadPetSprites()
+  await setupMessageSubscription()
+})
+
+// 设置消息订阅
+const setupMessageSubscription = async () => {
   messageSubscription = store._messageSubject
     .pipe(
       concatMap(msg => {
@@ -520,40 +873,51 @@ onMounted(async () => {
             toArray(),
             mergeMap(messages => {
               const task = async () => {
-                if (sequenceId.value >= (msg.sequenceId ?? -1)) return
+                // 检查是否已经处理过这个技能序列
+                if (store.lastProcessedSequenceId >= (msg.sequenceId ?? -1)) return
                 await useSkillAnimate(messages)
-                sequenceId.value = Math.max(sequenceId.value, messages[messages.length - 1].sequenceId ?? -1)
+                // 更新 store 的 lastProcessedSequenceId
+                const lastMessage = messages[messages.length - 1]
+                if (lastMessage.sequenceId !== undefined) {
+                  store.lastProcessedSequenceId = Math.max(store.lastProcessedSequenceId, lastMessage.sequenceId)
+                }
               }
               return of(task)
             }),
           )
         }
         const task = async () => {
-          if (sequenceId.value >= (msg.sequenceId ?? -1)) return
+          // 检查是否已经处理过这个消息（包括回放模式）
+          if (store.lastProcessedSequenceId >= (msg.sequenceId ?? -1)) {
+            return
+          }
 
           if (msg.type === BattleMessageType.PetSwitch) {
             // 对于 PetSwitch，状态更新由 switchPetAnimate 内部精确控制时机
             await switchPetAnimate(msg.data.toPet, getTargetSide(msg.data.toPet), msg as PetSwitchMessage)
-          } else if (msg.type === BattleMessageType.SkillUse) {
-            // SkillUse 消息已经在上面的特殊处理中被处理了，这里跳过
-            return
           } else {
-            // 对于其他所有消息，先应用状态变更
-            await store.applyStateDelta(msg)
-
             const combatEventTypes: BattleMessageType[] = [
               BattleMessageType.SkillMiss,
               BattleMessageType.Damage,
               BattleMessageType.DamageFail,
               BattleMessageType.Heal,
             ]
+
+            // 回放模式和正常模式使用相同的消息处理逻辑
+
+            // 对于其他所有消息，先应用状态变更
+            await store.applyStateDelta(msg)
+
+            // 等待一个 tick 确保状态更新完成
+            await nextTick()
+
             if (combatEventTypes.includes(msg.type as BattleMessageType)) {
               handleCombatEventMessage(msg as CombatEventMessageWithTarget, false)
             } else {
               // 处理其他非战斗事件相关的消息 (PetSwitch 已在上面单独处理)
               switch (msg.type) {
                 case BattleMessageType.TurnAction:
-                  panelState.value = PanelState.SKILLS
+                  if (!props.replayMode) panelState.value = PanelState.SKILLS
                   break
                 case BattleMessageType.ForcedSwitch:
                   // 确保 msg.data 和 msg.data.player 存在
@@ -564,12 +928,12 @@ onMounted(async () => {
                     !msg.data.player.some(p => p === currentPlayer.value?.id)
                   )
                     break
-                  panelState.value = PanelState.PETS
+                  if (!props.replayMode) panelState.value = PanelState.PETS
                   break
                 case BattleMessageType.FaintSwitch:
                   // 确保 msg.data 和 msg.data.player 存在
                   if (msg.data && 'player' in msg.data && !(msg.data.player === currentPlayer.value?.id)) break
-                  panelState.value = PanelState.PETS
+                  if (!props.replayMode) panelState.value = PanelState.PETS
                   break
                 // PetSwitch 类型的消息已在外部 if 条件中处理
                 default:
@@ -578,7 +942,6 @@ onMounted(async () => {
               }
             }
           }
-          sequenceId.value = Math.max(sequenceId.value, msg.sequenceId ?? -1)
         }
         return of(task)
       }),
@@ -600,14 +963,45 @@ onMounted(async () => {
 
   await store.ready()
   await initialPetEntryAnimation()
-})
+}
 
 onUnmounted(() => {
+  // 清理播放定时器
+  stopPlayback()
+
+  // 清理订阅和动画
   messageSubscription?.unsubscribe()
   animatesubscribe.unsubscribe()
   cleanupBattleAnimations()
   emitter.all.clear()
+
+  // 清理战斗和回放状态
+  store.resetBattle()
 })
+
+// 监听加载状态变化
+watch(
+  [() => battleReportStore.loading.battleRecord, () => store.replaySnapshots.length],
+  async () => {
+    if (isReplayMode.value) {
+      await checkReplayLoadingStatus()
+    }
+  },
+  { immediate: true },
+)
+
+// 监听petSprite的变化
+watch(
+  () => [petSprites.value.left, petSprites.value.right],
+  async () => {
+    if (isReplayMode.value) {
+      // 延迟一点时间等待petSprite完全初始化
+      await new Promise(resolve => setTimeout(resolve, 200))
+      await checkReplayLoadingStatus()
+    }
+  },
+  { deep: true },
+)
 
 watch(
   () => store.isBattleEnd,
@@ -637,9 +1031,12 @@ watch(
         const tl = gsap.timeline({
           onComplete: () => {
             showKoBanner.value = false
-            setTimeout(() => {
-              showBattleEndUI.value = true
-            }, 500)
+            // 回放模式下不显示战斗结束UI
+            if (!isReplayMode.value) {
+              setTimeout(() => {
+                showBattleEndUI.value = true
+              }, 500)
+            }
           },
         })
         gsap.set(koBannerRef.value, { opacity: 0, scale: 0.8, xPercent: -50, yPercent: -50 })
@@ -661,9 +1058,12 @@ watch(
             ease: 'power2.in',
           })
       } else {
-        setTimeout(() => {
-          showBattleEndUI.value = true
-        }, 2000)
+        // 回放模式下不显示战斗结束UI
+        if (!isReplayMode.value) {
+          setTimeout(() => {
+            showBattleEndUI.value = true
+          }, 2000)
+        }
       }
     }
   },
@@ -692,8 +1092,14 @@ watch(
         }"
       >
         <div class="flex justify-between p-5">
-          <BattleStatus ref="leftStatusRef" class="w-1/3" :player="currentPlayer!" side="left" />
-          <BattleStatus ref="rightStatusRef" class="w-1/3" :player="opponentPlayer!" side="right" />
+          <BattleStatus v-if="currentPlayer" ref="leftStatusRef" class="w-1/3" :player="currentPlayer" side="left" />
+          <BattleStatus
+            v-if="opponentPlayer"
+            ref="rightStatusRef"
+            class="w-1/3"
+            :player="opponentPlayer"
+            side="right"
+          />
         </div>
 
         <div class="flex flex-col items-center gap-2 py-2">
@@ -734,7 +1140,106 @@ watch(
           </div>
         </div>
 
-        <div class="flex h-1/5 flex-none">
+        <!-- 回放模式控制界面 -->
+        <div v-if="isReplayMode" class="flex h-1/5 flex-none bg-black/80">
+          <div class="w-1/5 h-full p-2">
+            <BattleLogPanel />
+          </div>
+
+          <div class="flex-1 h-full flex flex-col justify-center p-4">
+            <!-- 回放控制按钮 -->
+            <div class="flex items-center justify-center space-x-4 mb-4">
+              <button
+                @click="goBackFromReplay"
+                class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-white font-bold"
+              >
+                返回详情
+              </button>
+
+              <!-- 播放控制 -->
+              <button
+                @click="previousTurn"
+                :disabled="currentReplayTurn <= 0 || isPlaying || !isReplayFullyLoaded"
+                class="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center justify-center"
+              >
+                <el-icon><DArrowLeft /></el-icon>
+              </button>
+
+              <button
+                @click="togglePlayback"
+                :disabled="!isReplayFullyLoaded"
+                class="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center space-x-2"
+              >
+                <el-icon>
+                  <VideoPause v-if="isPlaying" />
+                  <VideoPlay v-else />
+                </el-icon>
+                <span>
+                  {{ !isReplayFullyLoaded ? '加载中...' : isPlaying ? (pendingPause ? '暂停中...' : '暂停') : '播放' }}
+                </span>
+              </button>
+
+              <button
+                @click="() => playCurrentTurnAnimations(true)"
+                :disabled="isPlaying || isPlayingAnimations || !isReplayFullyLoaded"
+                class="px-3 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center justify-center"
+                title="播放当前回合动画并推进到下一个快照"
+              >
+                <el-icon><Film /></el-icon>
+              </button>
+
+              <button
+                @click="nextTurn"
+                :disabled="currentReplayTurn >= totalReplayTurns || isPlaying || !isReplayFullyLoaded"
+                class="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center justify-center"
+              >
+                <el-icon><DArrowRight /></el-icon>
+              </button>
+
+              <span class="text-white font-bold">
+                回合 {{ currentReplayTurnNumber }} / {{ totalReplayTurnNumber }}
+              </span>
+            </div>
+
+            <!-- 回合进度条 -->
+            <div class="flex items-center space-x-4">
+              <span class="text-white text-sm">进度:</span>
+              <!-- 时间轴样式进度条 -->
+              <div class="flex-1 relative">
+                <div class="timeline-container">
+                  <!-- 时间轴背景轨道 -->
+                  <div class="timeline-track">
+                    <!-- 已完成部分 -->
+                    <div
+                      class="timeline-fill"
+                      :style="{ width: `${totalReplayTurns > 0 ? (currentReplayTurn / totalReplayTurns) * 100 : 0}%` }"
+                    ></div>
+                    <!-- 刻度点 -->
+                    <div
+                      v-for="i in Math.min(totalReplayTurns + 1, 11)"
+                      :key="i"
+                      class="timeline-tick"
+                      :class="{ active: i - 1 <= currentReplayTurn }"
+                      :style="{ left: `${totalReplayTurns > 0 ? ((i - 1) / totalReplayTurns) * 100 : 0}%` }"
+                    ></div>
+                  </div>
+                  <!-- 可点击区域 -->
+                  <div
+                    class="timeline-clickable"
+                    :class="{ 'pointer-events-none': isPlaying || !isReplayFullyLoaded }"
+                    @click="handleTimelineClick"
+                  ></div>
+                </div>
+              </div>
+              <span class="text-white text-sm font-mono"
+                >{{ currentReplayTurnNumber }} / {{ totalReplayTurnNumber }}</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- 正常战斗模式控制界面 -->
+        <div v-else class="flex h-1/5 flex-none">
           <div class="w-1/5 h-full p-2">
             <BattleLogPanel />
           </div>
@@ -768,7 +1273,7 @@ watch(
 
             <div class="grid grid-cols-6 gap-2 h-full" v-show="panelState === PanelState.PETS">
               <PetButton
-                v-for="pet in currentPlayer!.team"
+                v-for="pet in currentPlayer?.team || []"
                 :key="pet.id"
                 :pet="pet"
                 :disabled="!isPetSwitchable(pet.id) || isPending"
@@ -876,5 +1381,68 @@ watch(
 
 .float-animation {
   animation: float 2s ease-in-out infinite;
+}
+
+/* 时间轴样式 */
+.timeline-container {
+  position: relative;
+  width: 100%;
+  height: 20px;
+  padding: 8px 0;
+}
+
+.timeline-track {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.timeline-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(to right, #3b82f6 0%, #1d4ed8 50%, #1e40af 100%);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.timeline-tick {
+  position: absolute;
+  top: -2px;
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  transition: all 0.3s ease;
+}
+
+.timeline-tick.active {
+  background: #3b82f6;
+  border-color: #1d4ed8;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+}
+
+.timeline-clickable {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.timeline-clickable:hover .timeline-track {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.timeline-clickable.pointer-events-none {
+  pointer-events: none;
 }
 </style>

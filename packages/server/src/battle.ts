@@ -1,5 +1,5 @@
 import { Battle } from '@arcadia-eternity/battle'
-import { BattleMessageType, BattleStatus, type BattleState } from '@arcadia-eternity/const'
+import { BattleMessageType, BattleStatus, type BattleState, type BattleMessage } from '@arcadia-eternity/const'
 import { PlayerParser, SelectionParser } from '@arcadia-eternity/parser'
 import { ScriptLoader } from '@arcadia-eternity/data-repository'
 import type {
@@ -14,6 +14,7 @@ import { nanoid } from 'nanoid'
 import pino from 'pino'
 import type { Server, Socket } from 'socket.io'
 import { ZodError } from 'zod'
+import { BattleReportService, type BattleReportConfig } from './battleReportService'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -31,6 +32,7 @@ type BattleRoom = {
   playersReady: WeakMap<GamePlayer, boolean>
   status: 'waiting' | 'active' | 'ended'
   lastActive: number
+  battleRecordId?: string // 战报记录ID
 }
 
 type GamePlayer = {
@@ -64,13 +66,22 @@ export class BattleServer {
   private readonly HEARTBEAT_INTERVAL = 5000
   private readonly players = new Map<string, PlayerMeta>()
   private scriptLoader?: ScriptLoader
+  private battleReportService?: BattleReportService
 
-  constructor(private readonly io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>) {
+  constructor(
+    private readonly io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    private readonly battleReportConfig?: BattleReportConfig,
+  ) {
     this.initializeMiddleware()
     this.setupConnectionHandlers()
     this.setupHeartbeatSystem()
     this.setupAutoUpdateState()
     this.setupAutoCleanup()
+
+    // 初始化战报服务
+    if (battleReportConfig) {
+      this.battleReportService = new BattleReportService(battleReportConfig, logger)
+    }
   }
 
   private initializeMiddleware() {
@@ -194,6 +205,7 @@ export class BattleServer {
     try {
       const playerData = this.validatePlayerData(rawPlayerData)
       socket.data.data = playerData
+
       logger.info(
         {
           socketId: socket.id,
@@ -470,23 +482,76 @@ export class BattleServer {
   private attemptMatchmaking(maxRetries = 3) {
     let retryCount = 0
 
-    const tryMatch = () => {
+    const tryMatch = async () => {
       if (this.matchQueue.size < 2 || retryCount >= maxRetries) return
 
-      const [p1Id, p2Id] = Array.from(this.matchQueue).slice(0, 2)
-      const p1 = this.io.sockets.sockets.get(p1Id)
-      const p2 = this.io.sockets.sockets.get(p2Id)
+      // 寻找两个不同 playerId 的玩家进行匹配
+      const queueArray = Array.from(this.matchQueue)
+      let p1: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData> | undefined
+      let p2: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData> | undefined
+      let p1Id: string | undefined
+      let p2Id: string | undefined
 
-      if (!p1 || !p2) {
-        this.matchQueue.delete(p1Id)
-        this.matchQueue.delete(p2Id)
-        retryCount++
-        setTimeout(tryMatch, 1000)
+      // 选择第一个有效玩家
+      for (const socketId of queueArray) {
+        const socket = this.io.sockets.sockets.get(socketId)
+        if (socket?.data.data) {
+          p1 = socket
+          p1Id = socketId
+          break
+        }
+      }
+
+      if (!p1 || !p1Id) {
+        // 清理无效的队列项
+        queueArray.forEach(id => {
+          const socket = this.io.sockets.sockets.get(id)
+          if (!socket?.data.data) {
+            this.matchQueue.delete(id)
+          }
+        })
+        return
+      }
+
+      // 选择第二个有效且 playerId 不同的玩家（防止自己匹配自己）
+      for (const socketId of queueArray) {
+        if (socketId === p1Id) continue // 跳过第一个玩家
+
+        const socket = this.io.sockets.sockets.get(socketId)
+        if (socket?.data.data && socket.data.data.id !== p1.data.data.id) {
+          p2 = socket
+          p2Id = socketId
+          break
+        }
+      }
+
+      if (!p2 || !p2Id) {
+        // 如果找不到合适的第二个玩家，等待更多玩家加入
+        if (queueArray.length >= 2) {
+          logger.debug(
+            {
+              queueSize: this.matchQueue.size,
+              p1PlayerId: p1.data.data.id,
+              p1PlayerName: p1.data.data.name,
+              reason: '队列中其他玩家都是相同playerId，等待不同playerId的玩家加入',
+            },
+            '暂时无法匹配，等待更多玩家',
+          )
+        }
         return
       }
 
       try {
-        const roomId = this.createBattleRoom(p1, p2)
+        logger.info(
+          {
+            p1: { socketId: p1Id, playerId: p1.data.data.id, playerName: p1.data.data.name },
+            p2: { socketId: p2Id, playerId: p2.data.data.id, playerName: p2.data.data.name },
+            queueSize: this.matchQueue.size,
+          },
+          '成功匹配两个不同 playerId 的玩家',
+        )
+
+        const roomId = await this.createBattleRoom(p1, p2)
         this.finalizeMatchmaking(roomId, p1, p2)
       } catch (error) {
         this.handleMatchmakingError(error, p1, p2)
@@ -496,7 +561,7 @@ export class BattleServer {
     tryMatch()
   }
 
-  private createBattleRoom(
+  private async createBattleRoom(
     p1: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
     p2: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
   ) {
@@ -506,20 +571,70 @@ export class BattleServer {
 
     const player1 = this.initializePlayer(p1)
     const player2 = this.initializePlayer(p2)
-    const battle = new Battle(player1.playerData, player2.playerData)
+    // 创建 Battle 时不启用 showHidden，让每个监听器自己控制可见性
+    const battle = new Battle(player1.playerData, player2.playerData, { showHidden: false })
 
+    // 开始战报记录（同步等待）
+    let battleRecordId: string | undefined
+    if (this.battleReportService) {
+      try {
+        logger.info(
+          { roomId, playerAId: player1.playerData.id, playerBId: player2.playerData.id },
+          'Starting battle record...',
+        )
+
+        battleRecordId =
+          (await this.battleReportService.startBattleRecord(
+            roomId,
+            player1.playerData.id,
+            player1.playerData.name,
+            player2.playerData.id,
+            player2.playerData.name,
+          )) || undefined
+
+        if (battleRecordId) {
+          logger.info({ roomId, battleRecordId }, 'Battle record started successfully')
+        } else {
+          logger.warn({ roomId }, 'Battle record creation returned null - battle messages will not be recorded')
+        }
+      } catch (error) {
+        logger.error({ error, roomId }, 'Failed to start battle record')
+      }
+    } else {
+      logger.debug({ roomId }, 'Battle report service not available')
+    }
+
+    // 监听 Battle 对象的消息用于战报记录（包含完整信息）
+    battle.registerListener(
+      (message: BattleMessage) => {
+        // 记录战斗消息到战报（包含所有隐藏信息）
+        if (this.battleReportService && battleRecordId) {
+          this.battleReportService.recordBattleMessage(roomId, message)
+        } else if (this.battleReportService && !battleRecordId) {
+          logger.debug({ roomId, messageType: message.type }, 'Skipping message recording - no battle record')
+        }
+
+        // 处理战斗结束
+        if (message.type === BattleMessageType.BattleEnd) {
+          this.cleanupRoom(roomId)
+        }
+      },
+      { showAll: true },
+    ) // 显示所有信息用于战报记录
+
+    // 分别监听每个玩家的消息用于发送给客户端（各自视角）
     ;[player1, player2].forEach(p => {
-      p.playerData.registerListener(message => {
+      p.playerData.registerListener((message: BattleMessage) => {
+        // 向该玩家发送他们视角的战斗事件
         switch (message.type) {
           case BattleMessageType.BattleEnd:
             p.socket.emit('battleEvent', message)
-            this.cleanupRoom(roomId)
             break
           default:
             p.socket.emit('battleEvent', message)
             break
         }
-      })
+      }) // 使用默认选项，显示该玩家自己可见的信息
     })
 
     this.rooms.set(roomId, {
@@ -532,6 +647,7 @@ export class BattleServer {
       playersReady: new WeakMap([player1, player2].map(p => [p, false])),
       status: 'waiting',
       lastActive: Date.now(),
+      battleRecordId,
     })
 
     return roomId
@@ -556,6 +672,11 @@ export class BattleServer {
     if (!room) {
       logger.warn({ roomId }, '尝试清理不存在的房间')
       return
+    }
+
+    // 强制完成战报（如果战斗未正常结束）
+    if (this.battleReportService && room.battle.status !== BattleStatus.Ended) {
+      await this.battleReportService.forceBattleComplete(roomId, 'disconnect')
     }
 
     // Clean up battle promise if it exists
@@ -787,6 +908,90 @@ export class BattleServer {
         room.status = 'ended'
         this.cleanupRoom(roomId)
       })
+    }
+  }
+
+  /**
+   * 清理服务器资源（服务器关闭时调用）
+   */
+  async cleanup(): Promise<void> {
+    logger.info('开始清理 BattleServer 资源')
+
+    // 主动断开所有socket连接
+    await this.disconnectAllSockets()
+
+    // 清理所有活跃房间
+    const roomIds = Array.from(this.rooms.keys())
+    await Promise.all(roomIds.map(roomId => this.cleanupRoom(roomId)))
+
+    // 清理战报服务
+    if (this.battleReportService) {
+      await this.battleReportService.cleanup()
+    }
+
+    logger.info('BattleServer 资源清理完成')
+  }
+
+  /**
+   * 主动断开所有socket连接
+   */
+  private async disconnectAllSockets(): Promise<void> {
+    const connectedSockets = await this.io.fetchSockets()
+    const socketCount = connectedSockets.length
+
+    if (socketCount === 0) {
+      logger.info('没有活跃的socket连接需要断开')
+      return
+    }
+
+    logger.info({ socketCount }, '开始主动断开所有socket连接')
+
+    // 主动断开所有socket连接
+    const disconnectPromises = connectedSockets.map(async socket => {
+      try {
+        // 清理该socket的心跳定时器
+        const player = this.players.get(socket.id)
+        if (player?.heartbeatTimer) {
+          clearInterval(player.heartbeatTimer)
+        }
+
+        // 使用Socket.IO原生方法断开连接，true表示强制断开
+        socket.disconnect(true)
+        logger.debug({ socketId: socket.id }, 'Socket已断开')
+      } catch (error) {
+        logger.error(
+          {
+            socketId: socket.id,
+            error: error instanceof Error ? error.message : error,
+          },
+          '断开socket时发生错误',
+        )
+      }
+    })
+
+    await Promise.all(disconnectPromises)
+
+    // 清理玩家池
+    this.players.clear()
+    this.matchQueue.clear()
+
+    logger.info({ disconnectedCount: socketCount }, '所有socket连接已断开')
+  }
+
+  /**
+   * 获取服务器统计信息（包括战报统计）
+   */
+  getServerStats() {
+    const baseStats = this.getCurrentState()
+    const battleReportStats = this.battleReportService
+      ? {
+          activeBattleRecords: this.battleReportService.getActiveBattleCount(),
+        }
+      : {}
+
+    return {
+      ...baseStats,
+      ...battleReportStats,
     }
   }
 }

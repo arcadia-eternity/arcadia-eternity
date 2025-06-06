@@ -83,7 +83,14 @@ export class Player {
     })
   }
 
-  public registerListener(callback: (message: BattleMessage) => void) {
+  public registerListener(
+    callback: (message: BattleMessage) => void,
+    options?: {
+      // 对于player来说，回调中的信息始终默认显示自己可见的
+      // 这里保留options参数是为了API一致性，但实际上player总是使用自己的视角
+    },
+  ) {
+    // Player的回调始终使用自己的视角，忽略options参数
     this.messageCallbacks.push(callback)
   }
 
@@ -92,13 +99,18 @@ export class Player {
   }
 
   public handleMessage(message: BattleMessage) {
+    // Player应该始终从自己的视角获取battle状态
+    const currentState = this.battle!.toMessage(this.id, false) // 不显示隐藏信息，只显示自己视角
+
     const newMessage = {
       type: message.type,
-      data: message.data,
+      data: message.data, // 保持原始消息数据不变
       sequenceId: message.sequenceId,
-      stateDelta: jsondiffpatch.diff(this.lastStateMessage, this.battle!.toMessage(this.id)),
+      stateDelta: jsondiffpatch.diff(this.lastStateMessage, currentState),
     }
-    this.lastStateMessage = this.battle!.toMessage(this.id)
+
+    // 更新lastStateMessage为当前玩家视角的状态
+    this.lastStateMessage = currentState
     this.emitMessage(newMessage as BattleMessage)
   }
 

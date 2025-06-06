@@ -1376,7 +1376,7 @@ export class AttributeSystem<T extends AttributeData> {
     // Remove the battle from registry
     AttributeSystem.battleRegistry.delete(battleId)
 
-    console.log(`Cleaned up ${cleanedCount} AttributeSystem instances for battle ${battleId}`)
+    console.debug(`Cleaned up ${cleanedCount} AttributeSystem instances for battle ${battleId}`)
     return cleanedCount
   }
 
@@ -1410,7 +1410,7 @@ export class AttributeSystem<T extends AttributeData> {
     }
 
     AttributeSystem.battleRegistry.clear()
-    console.log(`Cleaned up ${totalCleaned} AttributeSystem instances from all battles`)
+    console.debug(`Cleaned up ${totalCleaned} AttributeSystem instances from all battles`)
     return totalCleaned
   }
 

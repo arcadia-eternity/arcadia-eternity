@@ -10,6 +10,13 @@ import LocalBattlePage from '../pages/localBattlePage.vue'
 import { battleGuard } from './guards'
 import TeamBuilder from '@/pages/teamBuilder.vue'
 
+// 战报相关组件
+const BattleRecordList = () => import('@/components/battleReport/BattleRecordList.vue')
+const BattleRecordDetail = () => import('@/components/battleReport/BattleRecordDetail.vue')
+// 排行榜功能暂时禁用
+// const Leaderboard = () => import('@/components/battleReport/Leaderboard.vue')
+const PlayerBattleRecords = () => import('@/components/battleReport/PlayerBattleRecords.vue')
+
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
@@ -46,6 +53,52 @@ const routes: RouteRecordRaw[] = [
     component: LocalBattlePage,
     meta: {
       title: '本地对战测试',
+    },
+  },
+  // 战报相关路由
+  {
+    path: '/battle-reports',
+    name: 'BattleReports',
+    component: BattleRecordList,
+    meta: {
+      title: '战报记录',
+    },
+  },
+  {
+    path: '/battle-reports/:id',
+    name: 'BattleReportDetail',
+    component: BattleRecordDetail,
+    meta: {
+      title: '战报详情',
+    },
+  },
+  {
+    path: '/battle-reports/:id/preview',
+    name: 'BattleReportPreview',
+    component: BattleView,
+    props: route => ({
+      replayMode: true,
+      battleRecordId: route.params.id,
+    }),
+    meta: {
+      title: '战报预览',
+    },
+  },
+  // 排行榜功能暂时禁用
+  // {
+  //   path: '/leaderboard',
+  //   name: 'Leaderboard',
+  //   component: Leaderboard,
+  //   meta: {
+  //     title: '排行榜',
+  //   },
+  // },
+  {
+    path: '/players/:playerId/battles',
+    name: 'PlayerBattleRecords',
+    component: PlayerBattleRecords,
+    meta: {
+      title: '玩家战报',
     },
   },
   {

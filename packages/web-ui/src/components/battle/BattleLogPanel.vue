@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, nextTick, ref, watch } from 'vue'
+import { computed, inject, nextTick, ref, watch, unref } from 'vue'
 import BattleLogEntry from './BattleLogEntry.vue'
 import {
   BattleMessageType,
@@ -7,7 +7,6 @@ import {
   type BattleMessageData,
   type MarkMessage,
   type PetMessage,
-  type playerId,
   type PlayerMessage,
   type SkillMessage,
 } from '@arcadia-eternity/const'
@@ -297,19 +296,11 @@ function formatBattleMessage(
 
 // 格式化消息数据 - 直接复用 formatBattleMessage 函数
 const formattedMessages = computed(() => {
-  return messages.map(msg => formatBattleMessage(msg, petMap, skillMap, playerMap, markMap))
+  const messageArray = messages // 处理可能的Ref类型
+  return messageArray.map(msg => formatBattleMessage(msg, petMap, skillMap, playerMap, markMap))
 })
 
-// 获取格式化后的单个消息 - 直接复用 formatBattleMessage
-const getFormattedMessage = (msg: BattleMessage) => {
-  return formatBattleMessage(msg, petMap, skillMap, playerMap, markMap)
-}
-
 const logContainerRef = ref<HTMLElement | null>(null)
-
-const clearMessages = () => {
-  // 由父组件提供清理方法
-}
 watch(
   formattedMessages,
   async () => {

@@ -146,6 +146,7 @@ export class ScriptLoader {
       console.log(`🌐 加载脚本: ${url}`)
 
       // 在浏览器中动态导入
+      /* @vite-ignore */
       const module = await import(url)
 
       console.log(`✅ 脚本加载成功: ${url}`)
