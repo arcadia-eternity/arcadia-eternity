@@ -15,8 +15,6 @@ export default {
     nodeResolve(),
     swc({
       tsconfig: './tsconfig.json',
-      declaration: false, // 由 tsc 单独处理
-      declarationMap: false,
     }),
   ],
 }
