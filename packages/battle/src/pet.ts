@@ -456,7 +456,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       currentHp: shouldShowDetails ? this.currentHp : 0,
       maxHp: shouldShowDetails ? this.stat.maxHp : 0,
       marks: shouldShowDetails ? this.marks.map(m => m.toMessage.call(m)) : [],
-      stats: shouldShowDetails ? this.stat : undefined,
+      stats: isSelf || showHidden ? this.stat : undefined,
       skills: shouldShowDetails ? this.skills.map(s => s.toMessage.call(s, viewerId, showHidden)) : undefined,
     }
   }
