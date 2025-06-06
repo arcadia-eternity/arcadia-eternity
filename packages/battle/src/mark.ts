@@ -534,7 +534,11 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
     const validStage = Math.max(-6, Math.min(6, stage)) // 强制等级范围
     const index = validStage + 6
     const STAT_STAGE_MULTIPLIER = [0.25, 0.28, 0.33, 0.4, 0.5, 0.66, 1, 1.5, 2, 2.5, 3, 3.5, 4] as const
-    return STAT_STAGE_MULTIPLIER[index]
+    const multiplier = STAT_STAGE_MULTIPLIER[index]
+
+    // Convert multiplier to percentage for percent modifier system
+    // multiplier 0.25 -> -75%, multiplier 1.5 -> 50%, multiplier 2.0 -> 100%
+    return (multiplier - 1) * 100
   }
 
   tryStack(context: AddMarkContext): boolean {

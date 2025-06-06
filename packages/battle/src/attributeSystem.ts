@@ -1,6 +1,6 @@
 // attribute-system.ts
-import { BehaviorSubject, Observable, combineLatest, Subject } from 'rxjs'
-import { map, distinctUntilChanged, shareReplay, startWith } from 'rxjs/operators'
+import { BehaviorSubject, Observable, combineLatest, Subject, of } from 'rxjs'
+import { map, distinctUntilChanged, shareReplay, startWith, switchMap } from 'rxjs/operators'
 import { nanoid } from 'nanoid'
 import type { StatOnBattle, StatTypeOnBattle } from '@arcadia-eternity/const'
 import type { MarkInstance } from './mark'
@@ -555,8 +555,24 @@ export class AttributeSystem<T extends AttributeData> {
         distinctUntilChanged(),
       ),
     ]).pipe(
-      map(([base, modifiers, _timestamp]) => {
-        return this.calculateAttributeValueSafely(key, base, modifiers)
+      // Switch to a new observable whenever modifiers change to include modifier value changes
+      switchMap(([base, modifiers, _timestamp]) => {
+        // Create observables for all modifier values
+        const modifierValueObservables = modifiers.map(modifier =>
+          modifier.value instanceof BehaviorSubject ? modifier.value.asObservable() : of(modifier.getCurrentValue()),
+        )
+
+        // If no modifiers, just return the base value
+        if (modifierValueObservables.length === 0) {
+          return of(this.calculateAttributeValueSafely(key, base, modifiers))
+        }
+
+        // Combine base value with all modifier values
+        return combineLatest([of(base), of(modifiers), ...modifierValueObservables]).pipe(
+          map(([baseValue, modifierList, ...modifierValues]) => {
+            return this.calculateAttributeValueSafely(key, baseValue, modifierList)
+          }),
+        )
       }),
       distinctUntilChanged(),
       shareReplay(1), // Cache the latest value
