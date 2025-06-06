@@ -44,7 +44,7 @@ const stack = computed(() => props.mark.stack ?? 1)
 <template>
   <div
     ref="rootEl"
-    class="relative inline-block overflow-visible transition-transform duration-200 ease-in-out hover:-translate-y-0.5 z-[100] isolate group"
+    class="relative inline-block overflow-visible transition-transform duration-200 ease-in-out hover:-translate-y-0.5 z-[100] group"
     data-tooltip-parent
   >
     <Tooltip :show="showTooltip" position="bottom" v-if="rootEl">

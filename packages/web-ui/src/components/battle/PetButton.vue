@@ -37,7 +37,15 @@ function handleMouseLeave() {
 }
 
 const canClick = computed(() => {
-  return !props.disabled && (props.position === 'left' || props.position === 'bottom')
+  // 侧边模式：己方（left）可以点击，敌方（right）不可点击
+  // 底部模式：根据disabled状态决定
+  if (props.position === 'left') {
+    return !props.disabled && props.pet.currentHp > 0 // 己方侧栏：存活且不被禁用时可点击
+  } else if (props.position === 'right') {
+    return false // 敌方侧栏：永远不可点击
+  } else {
+    return !props.disabled // 底部模式：根据disabled状态
+  }
 })
 
 const handleClick = () => {
@@ -55,10 +63,21 @@ const handleClick = () => {
           class="flex flex-col items-center transition-all duration-200"
           :class="[
             position === 'left' ? 'mr-auto' : '',
-            position === 'right' ? 'ml-auto opacity-70' : '',
+            position === 'right' ? 'ml-auto' : '',
             position === 'bottom' ? 'flex-row gap-2' : '',
             isActive ? 'ring-2 ring-yellow-400' : '',
-            disabled ? 'opacity-50 grayscale' : '',
+            // 侧边模式：只有倒下时才变暗，底部模式：disabled时变暗
+            position === 'left' || position === 'right'
+              ? pet.currentHp <= 0
+                ? 'opacity-50 grayscale'
+                : ''
+              : disabled
+                ? 'opacity-50 grayscale'
+                : '',
+            // 侧边模式的己方按钮：可点击时添加hover效果和cursor
+            position === 'left' && canClick ? 'hover:scale-110 cursor-pointer' : '',
+            // 敌方侧栏和不可点击的按钮：默认cursor
+            position === 'right' || !canClick ? 'cursor-default' : '',
           ]"
           @click="handleClick"
           @mouseenter="handleMouseEnter"
@@ -70,7 +89,7 @@ const handleClick = () => {
               <PetIcon
                 :id="gameDataStore.getSpecies(pet.speciesID)?.num ?? 0"
                 :name="pet.name"
-                class="size-35"
+                :class="position === 'left' || position === 'right' ? 'size-16' : 'size-35'"
                 :reverse="position === 'right'"
               />
 
@@ -86,7 +105,10 @@ const handleClick = () => {
                 </div>
 
                 <!-- 血条 -->
-                <div class="h-2 bg-gray-300/80 rounded-sm overflow-hidden backdrop-blur-sm">
+                <div
+                  :class="position === 'left' || position === 'right' ? 'h-1' : 'h-2'"
+                  class="bg-gray-300/80 rounded-sm overflow-hidden backdrop-blur-sm"
+                >
                   <div
                     class="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-300"
                     :style="{ width: `${(pet.currentHp / pet.maxHp) * 100}%` }"

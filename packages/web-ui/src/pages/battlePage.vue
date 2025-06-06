@@ -162,6 +162,10 @@ const allTeamMemberSpritesNum = computed<number[]>(() => {
   return allMembers.map(pet => gameDataStore.getSpecies(pet.speciesID)?.num || 0)
 })
 
+// 侧栏精灵列表
+const leftPlayerPets = computed(() => currentPlayer.value?.team || [])
+const rightPlayerPets = computed(() => opponentPlayer.value?.team || [])
+
 const allSkillId = computed(() => {
   if (!store.battleState?.players) return []
   return store.battleState.players
@@ -1122,12 +1126,37 @@ watch(
 
         <!-- 精灵容器 - 基于整个对战画面进行绝对定位 -->
         <div class="flex-grow relative">
+          <!-- 左侧精灵侧栏 - 绝对定位 -->
+          <div class="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 z-[10]">
+            <PetButton
+              v-for="pet in leftPlayerPets"
+              :key="pet.id"
+              :pet="pet"
+              :disabled="!isPetSwitchable(pet.id) || isPending"
+              :is-active="pet.id === currentPlayer?.activePet"
+              position="left"
+              @click="handlePetSelect"
+            />
+          </div>
+
+          <!-- 右侧精灵侧栏 - 绝对定位 -->
+          <div class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 z-[10]">
+            <PetButton
+              v-for="pet in rightPlayerPets"
+              :key="pet.id"
+              :pet="pet"
+              :disabled="true"
+              :is-active="pet.id === opponentPlayer?.activePet"
+              position="right"
+            />
+          </div>
+
           <!-- 左侧精灵 - 绝对定位在画面左侧 -->
           <PetSprite
             v-if="leftPetSpeciesNum !== 0"
             ref="leftPetRef"
             :num="leftPetSpeciesNum"
-            class="absolute left-0 top-1/2 -translate-y-1/2 w-[350px] h-[350px] z-[5]"
+            class="absolute left-0 top-1/2 -translate-y-1/2 w-[350px] h-[350px] z-[5] pointer-events-none"
             @hit="handleAttackHit('left')"
             @animate-complete="handleAnimationComplete('left')"
           />
@@ -1137,7 +1166,7 @@ watch(
             ref="rightPetRef"
             :num="rightPetSpeciesNum"
             :reverse="true"
-            class="absolute right-0 top-1/2 -translate-y-1/2 w-[350px] h-[350px] z-[5]"
+            class="absolute right-0 top-1/2 -translate-y-1/2 w-[350px] h-[350px] z-[5] pointer-events-none"
             @hit="handleAttackHit('right')"
             @animate-complete="handleAnimationComplete('right')"
           />
