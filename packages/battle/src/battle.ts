@@ -337,10 +337,7 @@ export class Battle extends Context implements MarkOwner {
     })
 
     this.applyEffects(this, EffectTrigger.OnBattleStart)
-    this.emitMessage(BattleMessageType.BattleStart, {
-      playerA: this.playerA.toMessage(),
-      playerB: this.playerB.toMessage(),
-    })
+    this.emitMessage(BattleMessageType.BattleStart, {})
 
     // Main battle loop using phases
     while (true) {

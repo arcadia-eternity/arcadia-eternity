@@ -3,11 +3,16 @@ import { computed, ref } from 'vue'
 import PetIcon from '../PetIcon.vue'
 import ElementIcon from './ElementIcon.vue'
 import Tooltip from './Tooltip.vue'
-import type { Element, PetMessage } from '@arcadia-eternity/const'
+import type { PetMessage } from '@arcadia-eternity/const'
 import { useGameDataStore } from '@/stores/gameData'
 import i18next from 'i18next'
+import MarkdownIt from 'markdown-it'
 
 const gameDataStore = useGameDataStore()
+
+const md = new MarkdownIt({
+  html: true,
+})
 
 interface Props {
   pet: PetMessage
@@ -53,6 +58,95 @@ const handleClick = () => {
     emit('click', props.pet.id)
   }
 }
+
+// 计算pet是否未知
+const isPetUnknown = computed(() => props.pet.isUnknown)
+
+// 计算species信息，处理未知情况
+const speciesInfo = computed(() => {
+  if (isPetUnknown.value) {
+    return null
+  }
+  try {
+    return gameDataStore.getSpecies(props.pet.speciesID)
+  } catch {
+    return null
+  }
+})
+
+// 计算pet图标ID，未知时使用占位符
+const petIconId = computed(() => {
+  if (isPetUnknown.value || !speciesInfo.value) {
+    return 0 // 使用任意ID，因为会通过isUnknown控制显示
+  }
+  return speciesInfo.value.num ?? 0
+})
+
+// 计算pet名称
+const petDisplayName = computed(() => {
+  if (isPetUnknown.value) {
+    return i18next.t('unknown_pet', { ns: 'webui' }) || '未知精灵'
+  }
+  return props.pet.name || i18next.t('unknown_pet', { ns: 'webui' }) || '未知精灵'
+})
+
+// 计算species名称
+const speciesDisplayName = computed(() => {
+  if (isPetUnknown.value || !speciesInfo.value) {
+    return i18next.t('unknown_species', { ns: 'webui' }) || '未知种族'
+  }
+  try {
+    return (
+      i18next.t(`${props.pet.speciesID}.name`, { ns: 'species' }) ||
+      i18next.t('unknown_species', { ns: 'webui' }) ||
+      '未知种族'
+    )
+  } catch {
+    return i18next.t('unknown_species', { ns: 'webui' }) || '未知种族'
+  }
+})
+
+// 处理技能信息，包括未知技能
+const processedSkills = computed(() => {
+  if (isPetUnknown.value || !props.pet.skills) {
+    return []
+  }
+
+  return props.pet.skills.map(skill => {
+    const isSkillUnknown = skill.isUnknown
+
+    let skillName = i18next.t('unknown_skill', { ns: 'webui' }) || '未知技能'
+    let skillDescription = i18next.t('unknown_skill', { ns: 'webui' }) || '未知技能'
+
+    if (!isSkillUnknown && skill.baseId) {
+      try {
+        skillName = i18next.t(`${skill.baseId}.name`, { ns: 'skill' }) || skill.baseId
+      } catch {
+        skillName = skill.baseId || i18next.t('unknown_skill', { ns: 'webui' }) || '未知技能'
+      }
+
+      try {
+        const rawDescription =
+          i18next.t(`${skill.baseId}.description`, {
+            skill: skill,
+            ns: 'skill',
+          }) ||
+          i18next.t('unknown_skill', { ns: 'webui' }) ||
+          '未知技能'
+        skillDescription = md.render(rawDescription)
+      } catch {
+        skillDescription = i18next.t('unknown_skill', { ns: 'webui' }) || '未知技能'
+      }
+    }
+
+    return {
+      ...skill,
+      displayName: skillName,
+      displayDescription: skillDescription,
+      isUnknown: isSkillUnknown,
+    }
+  })
+})
 </script>
 
 <template>
@@ -87,8 +181,9 @@ const handleClick = () => {
             <!-- 图标容器 -->
             <div class="relative">
               <PetIcon
-                :id="gameDataStore.getSpecies(pet.speciesID)?.num ?? 0"
-                :name="pet.name"
+                :id="petIconId"
+                :name="petDisplayName"
+                :is-unknown="isPetUnknown || !speciesInfo"
                 :class="position === 'left' || position === 'right' ? 'size-16' : 'size-35'"
                 :reverse="position === 'right'"
               />
@@ -122,30 +217,63 @@ const handleClick = () => {
               v-if="position === 'bottom'"
               class="mt-2 bg-black/80 rounded-full px-2 py-0.5 text-xs font-medium text-white text-center"
             >
-              {{ pet.name }}
+              {{ petDisplayName }}
             </div>
           </div>
         </div>
       </template>
 
-      <div class="mt-2 space-y-1">
-        <div v-for="skill in pet.skills" :key="skill.id" class="skill">
-          <span class="font-medium">{{
-            i18next.t(`${skill.baseId}.name`, {
-              ns: 'skill',
-            })
-          }}</span>
-          <span class="text-sm text-gray-200">{{
-            i18next.t(`${skill.baseId}.description`, {
-              skill: skill,
-              ns: 'skill',
-            })
-          }}</span>
-          <div class="flex gap-2 text-xs mt-1">
-            <span>怒气: {{ skill.rage }}</span>
-            <span>威力: {{ skill.power }}</span>
-            <span>属性: {{ skill.element }}</span>
+      <div class="space-y-3">
+        <!-- Pet基本信息 -->
+        <div class="border-b border-white/20 pb-2">
+          <!-- 精灵名称和属性图标 -->
+          <div class="flex items-center gap-2 mb-2">
+            <ElementIcon v-if="!isPetUnknown" :element="pet.element" class="size-5 flex-shrink-0" />
+            <h3 class="text-cyan-300 font-bold">{{ petDisplayName }}</h3>
           </div>
+
+          <div class="text-sm text-gray-300">
+            <div>{{ i18next.t('species', { ns: 'webui' }) || '种族' }}: {{ speciesDisplayName }}</div>
+            <div v-if="!isPetUnknown">{{ i18next.t('level', { ns: 'webui' }) || '等级' }}: {{ pet.level }}</div>
+            <div v-if="!isPetUnknown">HP: {{ pet.currentHp }}/{{ pet.maxHp }}</div>
+          </div>
+        </div>
+
+        <!-- 技能信息 -->
+        <div v-if="processedSkills.length > 0" class="space-y-2">
+          <h4 class="text-yellow-300 font-medium">{{ i18next.t('skills', { ns: 'webui' }) || '技能' }}</h4>
+          <div v-for="skill in processedSkills" :key="skill.id" class="space-y-1">
+            <!-- 技能名称、属性图标和类别 -->
+            <div class="flex items-center gap-2">
+              <ElementIcon v-if="!skill.isUnknown" :element="skill.element" class="size-4 flex-shrink-0" />
+              <div class="font-medium text-white">{{ skill.displayName }}</div>
+              <span v-if="!skill.isUnknown" class="text-xs text-gray-400 ml-1">
+                ({{ i18next.t(`category.${skill.category}`, { ns: 'battle' }) || skill.category }})
+              </span>
+            </div>
+
+            <!-- 技能描述 -->
+            <div
+              v-if="!skill.isUnknown"
+              class="text-sm text-gray-200 prose prose-invert prose-sm max-w-none"
+              v-html="skill.displayDescription"
+            />
+            <div v-else class="text-sm text-gray-400">
+              {{ i18next.t('unknown_skill', { ns: 'webui' }) || '未知技能' }}
+            </div>
+
+            <!-- 技能属性 -->
+            <div v-if="!skill.isUnknown" class="flex gap-3 text-xs text-gray-300">
+              <span>{{ i18next.t('rage', { ns: 'battle' }) || '怒气' }}: {{ skill.rage }}</span>
+              <span>{{ i18next.t('power', { ns: 'battle' }) || '威力' }}: {{ skill.power }}</span>
+              <span>{{ i18next.t('accuracy', { ns: 'battle' }) || '命中' }}: {{ skill.accuracy }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 未知精灵提示 -->
+        <div v-if="isPetUnknown" class="text-center text-gray-400 italic">
+          {{ i18next.t('unknown_pet_hint', { ns: 'webui' }) || '该精灵尚未出现过，信息未知' }}
         </div>
       </div>
     </Tooltip>

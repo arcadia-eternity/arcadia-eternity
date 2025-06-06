@@ -49,3 +49,13 @@ export const InvalidID: Story = {
     template: '<PetIcon :id="id" />',
   }),
 }
+
+export const UnknownPet: Story = {
+  render: () => ({
+    components: { PetIcon },
+    setup() {
+      return { id: 1, isUnknown: true }
+    },
+    template: '<PetIcon :id="id" :is-unknown="isUnknown" />',
+  }),
+}

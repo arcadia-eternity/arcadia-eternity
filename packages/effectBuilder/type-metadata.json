@@ -361,7 +361,7 @@
       "a": false
     },
     {
-      "n": "petAccurancy",
+      "n": "petAccuracy",
       "t": "number",
       "iu": false,
       "u": [],

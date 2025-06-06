@@ -1,0 +1,22 @@
+# Web UI 界面翻译
+unknown_pet: 未知精灵
+unknown_species: 未知种族
+unknown_skill: 未知技能
+unknown_pet_hint: 该精灵尚未出现过，信息未知
+
+# 基本属性
+species: 种族
+level: 等级
+element: 属性
+skills: 技能
+
+# 战斗相关
+hp: 体力
+rage: 怒气
+power: 威力
+accuracy: 命中
+
+# 状态
+alive: 存活
+fainted: 倒下
+active: 出战中

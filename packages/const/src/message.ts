@@ -167,10 +167,7 @@ export interface BaseBattleMessage<T extends BattleMessageType> {
 
 // 各消息类型数据结构
 export interface BattleMessageData {
-  [BattleMessageType.BattleStart]: {
-    playerA: PlayerMessage
-    playerB: PlayerMessage
-  }
+  [BattleMessageType.BattleStart]: {}
   [BattleMessageType.TurnStart]: {
     turn: number
   }

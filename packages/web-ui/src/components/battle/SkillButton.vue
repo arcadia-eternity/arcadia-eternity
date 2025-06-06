@@ -94,7 +94,7 @@ const description = computed(() =>
               </div>
               <div class="text-green-300 text-sm font-semibold [text-shadow:_1px_1px_0_black] leading-tight">
                 {{
-                  i18next.t('accurancy', {
+                  i18next.t('accuracy', {
                     ns: 'battle',
                   })
                 }}
