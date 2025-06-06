@@ -1,5 +1,5 @@
 import { nodeResolve } from '@rollup/plugin-node-resolve'
-import typescript from '@rollup/plugin-typescript'
+import { swc } from 'rollup-plugin-swc3'
 import nodeExternals from 'rollup-plugin-node-externals'
 
 export default {
@@ -13,7 +13,7 @@ export default {
   plugins: [
     nodeExternals(),
     nodeResolve(),
-    typescript({
+    swc({
       tsconfig: './tsconfig.json',
       declaration: false, // 由 tsc 单独处理
       declarationMap: false,
