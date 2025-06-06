@@ -1,4 +1,4 @@
-name: Build and Publish
+name: Publish Packages
 
 on:
   workflow_dispatch:
@@ -10,19 +10,13 @@ on:
       - 'bin/**'
       - 'pnpm-lock.yaml'
       - 'package.json'
-      - 'Dockerfile'
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-publish:
+  publish-packages:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-      actions: write
 
     steps:
       - name: Checkout repository
@@ -33,7 +27,6 @@ jobs:
         with:
           version: 10
 
-      # Node.js 环境设置
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -52,28 +45,3 @@ jobs:
         run: pnpm -r publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Docker 镜像构建和推送
-      - name: Log into GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: |
-            ${{ steps.meta.outputs.tags }}
-          labels: |
-            ${{ steps.meta.outputs.labels }}
