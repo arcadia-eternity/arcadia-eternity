@@ -206,6 +206,7 @@ export class Battle extends Context implements MarkOwner {
     const stateDelta = jsondiffpatch.diff(this.lastStateMessage, currentState)
 
     const message: BaseBattleMessage<T> = {
+      battleId: this.id,
       type,
       data,
       sequenceId: this.sequenceId++,

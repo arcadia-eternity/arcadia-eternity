@@ -161,6 +161,7 @@ export type BattleMessage =
 export interface BaseBattleMessage<T extends BattleMessageType> {
   type: T
   sequenceId?: number
+  battleId: string
   data: BattleMessageData[T]
   stateDelta: Delta //battleStateDelta
 }
