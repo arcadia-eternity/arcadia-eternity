@@ -8,6 +8,7 @@ import type { PlayerMessage } from '@arcadia-eternity/const'
 import ElementIcon from './ElementIcon.vue'
 import { useGameDataStore } from '@/stores/gameData'
 import { useBattleStore } from '@/stores/battle'
+import i18next from 'i18next'
 
 const gameDataStore = useGameDataStore()
 const battleStore = useBattleStore()
@@ -34,20 +35,9 @@ const activePet = computed(() => {
   return battleStore.getPetById(props.player.activePet)
 })
 
-// 属性名称的中文映射
-const statNameMap: Record<string, string> = {
-  maxHp: '最大体力',
-  atk: '攻击',
-  def: '防御',
-  spa: '特攻',
-  spd: '特防',
-  spe: '速度',
-  accuracy: '命中',
-  evasion: '闪避',
-  critRate: '暴击率',
-  ragePerTurn: '每回合怒气',
-  weight: '体重',
-  height: '身高',
+// 获取属性名称的i18n翻译
+const getStatName = (statKey: string): string => {
+  return i18next.t(`stats.${statKey}`, { ns: 'webui' }) || statKey
 }
 
 // 格式化精灵属性信息
@@ -57,7 +47,7 @@ const petStatsTooltip = computed(() => {
 
   // 检查是否为己方精灵（有stats数据）
   if (!pet.stats) {
-    return '属性未知'
+    return i18next.t('stats.unknown', { ns: 'webui' }) || '属性未知'
   }
 
   const stats = pet.stats
@@ -67,7 +57,7 @@ const petStatsTooltip = computed(() => {
   const mainStats = ['atk', 'def', 'spa', 'spd', 'spe']
   mainStats.forEach(statKey => {
     const value = stats[statKey as keyof typeof stats]
-    const name = statNameMap[statKey]
+    const name = getStatName(statKey)
     if (typeof value === 'number' && name) {
       statLines.push(`${name}: ${Math.floor(value)}`)
     }
@@ -77,7 +67,7 @@ const petStatsTooltip = computed(() => {
   const otherStats = ['accuracy', 'evasion', 'critRate']
   otherStats.forEach(statKey => {
     const value = stats[statKey as keyof typeof stats]
-    const name = statNameMap[statKey]
+    const name = getStatName(statKey)
     if (typeof value === 'number' && name) {
       const displayValue =
         statKey === 'critRate'
@@ -104,7 +94,7 @@ const petStatsTooltip = computed(() => {
         />
       </template>
       <div class="text-sm">
-        <div class="font-semibold mb-2">{{ activePet!.name }} 属性</div>
+        <div class="font-semibold mb-2">{{ activePet!.name }} {{ i18next.t('stats.title', { ns: 'webui' }) }}</div>
         <div class="whitespace-pre-line">{{ petStatsTooltip }}</div>
       </div>
     </Tooltip>

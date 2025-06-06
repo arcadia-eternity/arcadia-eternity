@@ -16,6 +16,23 @@ rage: 怒气
 power: 威力
 accuracy: 命中
 
+# 精灵属性
+stats:
+  maxHp: 最大体力
+  atk: 攻击
+  def: 防御
+  spa: 特攻
+  spd: 特防
+  spe: 速度
+  accuracy: 命中
+  evasion: 闪避
+  critRate: 暴击率
+  ragePerTurn: 每回合怒气
+  weight: 体重
+  height: 身高
+  unknown: 属性未知
+  title: 属性
+
 # 状态
 alive: 存活
 fainted: 倒下
