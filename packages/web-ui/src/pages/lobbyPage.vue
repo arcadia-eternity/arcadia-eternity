@@ -57,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount, onMounted, nextTick, reactive } from 'vue'
+import { ref, computed, onBeforeUnmount, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
@@ -115,19 +115,23 @@ onBeforeUnmount(async () => {
 <style scoped>
 .lobby-container {
   max-width: 800px;
-  margin: 2rem auto;
+  width: 100%;
+  margin: 0 auto;
   padding: 20px;
   text-align: center;
+  min-height: calc(100vh - 60px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .navigation-menu {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 16px;
-  margin: 2rem 0;
+  margin: 2rem auto;
   max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .nav-button {

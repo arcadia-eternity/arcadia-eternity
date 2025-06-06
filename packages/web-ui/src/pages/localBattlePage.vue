@@ -102,9 +102,15 @@ const startLocalBattle = async () => {
 <style scoped>
 .local-battle-container {
   max-width: 800px;
-  margin: 2rem auto;
+  width: 100%;
+  margin: 0 auto;
   padding: 20px;
   text-align: center;
+  min-height: calc(100vh - 60px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .start-button {

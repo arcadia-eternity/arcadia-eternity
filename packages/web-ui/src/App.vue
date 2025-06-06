@@ -194,6 +194,13 @@ html,
 body,
 #app {
   margin: 0px;
+  padding: 0px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+* {
+  box-sizing: border-box;
 }
 </style>
 
@@ -209,13 +216,15 @@ body,
   padding: 0;
   position: relative;
   overflow: hidden;
+  width: 100%;
 }
 
 .router-content {
   height: 100%;
   width: 100%;
-  position: absolute;
+  position: static;
   overflow: auto;
+  min-height: calc(100vh - 60px);
 }
 
 .main-header {
@@ -224,11 +233,6 @@ body,
   align-items: center;
   background: rgba(0, 0, 0, 0.8);
   border-bottom: 1px solid #304156;
-}
-
-.router-content {
-  height: 100%;
-  min-height: calc(100vh - 60px);
 }
 
 .connection-status {
