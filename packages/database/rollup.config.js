@@ -3,18 +3,17 @@ import { swc } from 'rollup-plugin-swc3'
 import nodeExternals from 'rollup-plugin-node-externals'
 
 export default {
-  input: 'src/index.ts',
+  input: 'index.ts',
   output: {
     dir: 'dist',
-    format: 'es',
-    preserveModules: true,
-    preserveModulesRoot: 'src',
+    format: 'esm',
+    preserveModules: false,
   },
   plugins: [
     nodeExternals(),
     nodeResolve(),
     swc({
-      tsconfig: './tsconfig.json',
+      tsconfig: 'tsconfig.json',
     }),
   ],
 }
