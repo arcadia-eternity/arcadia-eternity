@@ -582,7 +582,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   }
 
   showUseSkillMessage(side, baseSkillId)
-  source.$el.style.zIndex = 1
+  source.$el.style.zIndex = '50'
   source.setState(state)
   if (category === 'Climax') playSkillSound(baseSkillId)
 
@@ -1071,10 +1071,10 @@ watch(
 </script>
 
 <template>
-  <div class="h-screen bg-[#1a1a2e] flex justify-center items-center">
+  <div class="h-screen bg-[#1a1a2e] flex justify-center items-center overflow-auto">
     <div
       ref="battleViewRef"
-      class="w-[1600px] relative flex justify-center aspect-video items-center object-contain bg-gray-900"
+      class="w-[1600px] h-[900px] min-w-[1600px] min-h-[900px] flex-shrink-0 relative flex justify-center items-center object-contain bg-gray-900"
     >
       <img
         v-show="showKoBanner"
@@ -1084,7 +1084,7 @@ watch(
         class="absolute left-1/2 top-1/2 z-[1000] max-w-[80%] max-h-[80%] object-contain"
       />
       <div
-        class="relative h-full flex flex-col bg-center bg-no-repeat aspect-video overflow-hidden"
+        class="relative h-full flex flex-col bg-center bg-no-repeat overflow-hidden"
         :class="[background ? `bg-cover` : 'bg-gray-900', 'overflow-hidden', 'transition-all duration-300 ease-in-out']"
         :style="{
           backgroundImage: background ? `url(${background})` : 'none',
@@ -1102,8 +1102,10 @@ watch(
           />
         </div>
 
-        <div class="flex flex-col items-center gap-2 py-2">
-          <div class="text-white text-xl font-bold">
+        <!-- 回合数和公共印记区域 -->
+        <div class="flex flex-col items-center py-2 min-h-[80px]">
+          <!-- 回合数显示 -->
+          <div class="text-white text-xl font-bold mb-2">
             {{
               i18next.t('turn', {
                 ns: 'battle',
@@ -1111,33 +1113,34 @@ watch(
             }}
             {{ currentTurn || 1 }}
           </div>
-          <div class="absolute flex gap-2">
+
+          <!-- 公共印记（天气）显示 -->
+          <div v-if="globalMarks.length > 0" class="flex flex-wrap justify-center gap-2 max-w-md">
             <Mark v-for="mark in globalMarks" :key="mark.id" :mark="mark" />
           </div>
         </div>
 
-        <div class="flex-grow flex justify-around items-center relative">
-          <div class="absolute h-full w-full">
-            <PetSprite
-              v-if="leftPetSpeciesNum !== 0"
-              ref="leftPetRef"
-              :num="leftPetSpeciesNum"
-              class="absolute"
-              @hit="handleAttackHit('left')"
-              @animate-complete="handleAnimationComplete('left')"
-            />
-          </div>
-          <div class="absolute h-full w-full">
-            <PetSprite
-              v-if="rightPetSpeciesNum !== 0"
-              ref="rightPetRef"
-              :num="rightPetSpeciesNum"
-              :reverse="true"
-              class="absolute"
-              @hit="handleAttackHit('right')"
-              @animate-complete="handleAnimationComplete('right')"
-            />
-          </div>
+        <!-- 精灵容器 - 基于整个对战画面进行绝对定位 -->
+        <div class="flex-grow relative">
+          <!-- 左侧精灵 - 绝对定位在画面左侧 -->
+          <PetSprite
+            v-if="leftPetSpeciesNum !== 0"
+            ref="leftPetRef"
+            :num="leftPetSpeciesNum"
+            class="absolute left-0 top-1/2 -translate-y-1/2 w-[350px] h-[350px] z-[5]"
+            @hit="handleAttackHit('left')"
+            @animate-complete="handleAnimationComplete('left')"
+          />
+          <!-- 右侧精灵 - 绝对定位在画面右侧 -->
+          <PetSprite
+            v-if="rightPetSpeciesNum !== 0"
+            ref="rightPetRef"
+            :num="rightPetSpeciesNum"
+            :reverse="true"
+            class="absolute right-0 top-1/2 -translate-y-1/2 w-[350px] h-[350px] z-[5]"
+            @hit="handleAttackHit('right')"
+            @animate-complete="handleAnimationComplete('right')"
+          />
         </div>
 
         <!-- 回放模式控制界面 -->
@@ -1245,7 +1248,7 @@ watch(
           </div>
 
           <div class="flex-1 h-full">
-            <div class="h-full grid grid-cols-5 gap-2" v-show="panelState === PanelState.SKILLS">
+            <div class="h-full grid grid-cols-5 gap-4 p-2" v-show="panelState === PanelState.SKILLS">
               <template
                 v-for="(skill, index) in availableSkills.filter(s => s.category !== Category.Climax)"
                 :key="'normal-' + skill.id"
@@ -1284,43 +1287,138 @@ watch(
           </div>
 
           <div class="grid grid-cols-2 gap-2 p-2 w-1/5 flex-none h-full">
+            <!-- 战斗按钮 -->
             <button
-              class="px-4 py-2 bg-gray-500 hover:bg-gray-600 border-2 border-sky-400 rounded-lg text-sky-400 font-bold"
+              class="group relative h-16 p-2 cursor-pointer overflow-visible"
               @click="panelState = PanelState.SKILLS"
             >
-              {{
-                i18next.t('fight', {
-                  ns: 'battle',
-                })
-              }}
+              <div
+                class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border border-sky-400/50 group-hover:shadow-[0_0_8px_2px_rgba(56,189,248,0.6)]"
+              >
+                <div class="bg-gray-900 w-full h-3"></div>
+                <div class="absolute bottom-1 right-1">
+                  <div class="flex">
+                    <div class="bg-sky-400 w-3 h-0.5 mt-3"></div>
+                    <div class="bg-sky-400 w-0.5 h-3.5"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="relative flex items-center justify-center h-full pointer-events-none">
+                <div class="text-sky-400 text-base font-bold [text-shadow:_1px_1px_0_black]">
+                  {{
+                    i18next.t('fight', {
+                      ns: 'battle',
+                    })
+                  }}
+                </div>
+              </div>
             </button>
+
+            <!-- 切换按钮 -->
             <button
-              class="px-4 py-2 bg-gray-500 hover:bg-gray-600 border-2 border-sky-400 rounded-lg text-sky-400 font-bold"
+              class="group relative h-16 p-2 cursor-pointer overflow-visible"
               @click="panelState = PanelState.PETS"
             >
-              {{
-                i18next.t('switch', {
-                  ns: 'battle',
-                })
-              }}
+              <div
+                class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border border-sky-400/50 group-hover:shadow-[0_0_8px_2px_rgba(56,189,248,0.6)]"
+              >
+                <div class="bg-gray-900 w-full h-3"></div>
+                <div class="absolute bottom-1 right-1">
+                  <div class="flex">
+                    <div class="bg-sky-400 w-3 h-0.5 mt-3"></div>
+                    <div class="bg-sky-400 w-0.5 h-3.5"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="relative flex items-center justify-center h-full pointer-events-none">
+                <div class="text-sky-400 text-base font-bold [text-shadow:_1px_1px_0_black]">
+                  {{
+                    i18next.t('switch', {
+                      ns: 'battle',
+                    })
+                  }}
+                </div>
+              </div>
             </button>
+
+            <!-- 什么都不做按钮 -->
             <button
-              class="px-4 py-2 bg-gray-500 hover:bg-gray-600 border-2 border-sky-400 rounded-lg text-sky-400 font-bold disabled:bg-gray-700 disabled:text-gray-400 disabled:border-gray-500 disabled:cursor-not-allowed"
+              class="group relative h-16 p-2 cursor-pointer overflow-visible disabled:opacity-60 disabled:cursor-not-allowed"
               :disabled="!store.availableActions.find(a => a.type === 'do-nothing')"
               @click="store.sendplayerSelection(store.availableActions.find(a => a.type === 'do-nothing')!)"
             >
-              {{ i18next.t('do-nothing', { ns: 'battle' }) }}
+              <div
+                class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border group-disabled:border-gray-500/50 group-disabled:hover:shadow-none"
+                :class="
+                  store.availableActions.find(a => a.type === 'do-nothing')
+                    ? 'border-sky-400/50 group-hover:shadow-[0_0_8px_2px_rgba(56,189,248,0.6)]'
+                    : 'border-gray-500/50'
+                "
+              >
+                <div class="bg-gray-900 w-full h-3"></div>
+                <div class="absolute bottom-1 right-1">
+                  <div class="flex">
+                    <div
+                      class="w-3 h-0.5 mt-3"
+                      :class="store.availableActions.find(a => a.type === 'do-nothing') ? 'bg-sky-400' : 'bg-gray-500'"
+                    ></div>
+                    <div
+                      class="w-0.5 h-3.5"
+                      :class="store.availableActions.find(a => a.type === 'do-nothing') ? 'bg-sky-400' : 'bg-gray-500'"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              <div class="relative flex items-center justify-center h-full pointer-events-none">
+                <div
+                  class="text-base font-bold [text-shadow:_1px_1px_0_black]"
+                  :class="store.availableActions.find(a => a.type === 'do-nothing') ? 'text-sky-400' : 'text-gray-400'"
+                >
+                  {{ i18next.t('do-nothing', { ns: 'battle' }) }}
+                </div>
+              </div>
             </button>
+
+            <!-- 投降按钮 -->
             <button
-              class="px-4 py-2 bg-gray-500 hover:bg-gray-600 border-2 border-sky-400 rounded-lg text-sky-400 font-bold disabled:bg-gray-700 disabled:text-gray-400 disabled:border-gray-500 disabled:cursor-not-allowed"
+              class="group relative h-16 p-2 cursor-pointer overflow-visible disabled:opacity-60 disabled:cursor-not-allowed"
               :disabled="!store.availableActions.find(a => a.type === 'surrender')"
               @click="handleEscape"
             >
-              {{
-                i18next.t('surrunder', {
-                  ns: 'battle',
-                })
-              }}
+              <div
+                class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border group-disabled:border-gray-500/50 group-disabled:hover:shadow-none"
+                :class="
+                  store.availableActions.find(a => a.type === 'surrender')
+                    ? 'border-red-400/50 group-hover:shadow-[0_0_8px_2px_rgba(248,113,113,0.6)]'
+                    : 'border-gray-500/50'
+                "
+              >
+                <div class="bg-gray-900 w-full h-3"></div>
+                <div class="absolute bottom-1 right-1">
+                  <div class="flex">
+                    <div
+                      class="w-3 h-0.5 mt-3"
+                      :class="store.availableActions.find(a => a.type === 'surrender') ? 'bg-red-400' : 'bg-gray-500'"
+                    ></div>
+                    <div
+                      class="w-0.5 h-3.5"
+                      :class="store.availableActions.find(a => a.type === 'surrender') ? 'bg-red-400' : 'bg-gray-500'"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              <div class="relative flex items-center justify-center h-full pointer-events-none">
+                <div
+                  class="text-base font-bold [text-shadow:_1px_1px_0_black]"
+                  :class="store.availableActions.find(a => a.type === 'surrender') ? 'text-red-400' : 'text-gray-400'"
+                >
+                  {{
+                    i18next.t('surrunder', {
+                      ns: 'battle',
+                    })
+                  }}
+                </div>
+              </div>
             </button>
           </div>
         </div>

@@ -90,6 +90,7 @@
     "playwright": "^1.52.0",
     "prettier": "^3.5.3",
     "storybook": "^8.6.12",
+    "tailwind-scrollbar": "^4.0.2",
     "typescript": "~5.8.3",
     "unplugin-auto-import": "^19.2.0",
     "unplugin-vue-components": "^28.5.0",

@@ -26,7 +26,7 @@ const statusBarClass = computed(() => ['flex flex-col gap-2 min-w-[200px] flex-1
 
 const markContainerClass = computed(() => [
   'flex flex-wrap gap-1 w-full mt-1',
-  props.side === 'right' ? 'justify-end' : 'justify-start',
+  props.side === 'right' ? 'flex-row-reverse' : '',
 ])
 
 const activePet = computed(() => {
@@ -46,11 +46,8 @@ const activePet = computed(() => {
       <div class="flex items-center gap-2 mb-1" :class="[side === 'right' ? 'flex-row-reverse' : '']">
         <span class="font-semibold text-base">{{ activePet!.name }}</span>
         <span class="text-sm opacity-80">Lv.{{ activePet!.level }}</span>
-        <ElementIcon
-          :element="activePet!.element"
-          class="w-5 h-5 ml-auto"
-          :class="[side === 'right' ? 'ml-0 mr-auto' : '']"
-        ></ElementIcon>
+        <div class="flex-1"></div>
+        <ElementIcon :element="activePet!.element" class="w-5 h-5"></ElementIcon>
       </div>
 
       <HealthRageBar

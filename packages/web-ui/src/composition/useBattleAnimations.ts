@@ -49,6 +49,7 @@ export function useBattleAnimations(
           pointerEvents: 'none',
           opacity: 0,
           scale: 1,
+          zIndex: '1002',
         },
       },
       [
@@ -109,6 +110,7 @@ export function useBattleAnimations(
           pointerEvents: 'none',
           opacity: 0,
           scale: 1,
+          zIndex: '1002',
         },
       },
       [
@@ -364,6 +366,7 @@ export function useBattleAnimations(
                   pointerEvents: 'none',
                   opacity: 1,
                   scale: baseScale,
+                  zIndex: '1002',
                 },
               },
               [damageVNode],

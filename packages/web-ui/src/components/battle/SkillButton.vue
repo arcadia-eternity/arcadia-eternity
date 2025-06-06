@@ -42,7 +42,7 @@ const description = computed(() =>
     <Tooltip position="top">
       <template #trigger>
         <button
-          class="group relative w-50 h-30 p-4 cursor-pointer overflow-visible disabled:opacity-75 disabled:cursor-not-allowed"
+          class="group relative w-44 h-26 p-2 cursor-pointer overflow-visible disabled:opacity-75 disabled:cursor-not-allowed"
           :disabled="disabled"
           @click="emit('click', skill.id)"
         >
@@ -64,15 +64,19 @@ const description = computed(() =>
             </div>
           </div>
 
-          <div class="relative flex h-full pointer-events-none">
-            <div class="flex flex-col items-center w-1/3">
-              <ElementIcon :element="skill.element" class="w-20 h-20 mb-4" />
-              <div class="text-white text-base font-bold [text-shadow:_1px_1px_0_black]">{{ category }}</div>
+          <div class="relative flex h-full pointer-events-none gap-2 px-1">
+            <div class="flex flex-col items-center w-1/4 justify-center pl-2">
+              <ElementIcon :element="skill.element" class="w-14 h-14 mb-1" />
+              <div class="text-white text-sm font-bold [text-shadow:_1px_1px_0_black] text-center leading-tight">
+                {{ category }}
+              </div>
             </div>
 
-            <div class="flex flex-col w-2/3">
-              <div class="text-cyan-300 text-base font-bold [text-shadow:_1px_1px_0_black]">{{ name }}</div>
-              <div class="text-orange-500 text-sm font-semibold [text-shadow:_1px_1px_0_black]">
+            <div class="flex flex-col w-3/4 justify-center space-y-0.5 pl-1">
+              <div class="text-cyan-300 text-base font-bold [text-shadow:_1px_1px_0_black] truncate leading-tight">
+                {{ name }}
+              </div>
+              <div class="text-orange-500 text-sm font-semibold [text-shadow:_1px_1px_0_black] leading-tight">
                 {{
                   i18next.t('power', {
                     ns: 'battle',
@@ -80,7 +84,7 @@ const description = computed(() =>
                 }}
                 {{ skill.power }}
               </div>
-              <div class="text-yellow-300 text-sm font-semibold [text-shadow:_1px_1px_0_black]">
+              <div class="text-yellow-300 text-sm font-semibold [text-shadow:_1px_1px_0_black] leading-tight">
                 {{
                   i18next.t('rage', {
                     ns: 'battle',
@@ -88,7 +92,7 @@ const description = computed(() =>
                 }}
                 {{ skill.rage }}
               </div>
-              <div class="text-green-300 text-sm font-semibold [text-shadow:_1px_1px_0_black]">
+              <div class="text-green-300 text-sm font-semibold [text-shadow:_1px_1px_0_black] leading-tight">
                 {{
                   i18next.t('accurancy', {
                     ns: 'battle',
