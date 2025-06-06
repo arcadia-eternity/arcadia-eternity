@@ -1084,7 +1084,7 @@ watch(
         class="absolute left-1/2 top-1/2 z-[1000] max-w-[80%] max-h-[80%] object-contain"
       />
       <div
-        class="relative h-full flex flex-col bg-center bg-no-repeat overflow-hidden"
+        class="relative h-full w-full flex flex-col bg-center bg-no-repeat overflow-hidden"
         :class="[background ? `bg-cover` : 'bg-gray-900', 'overflow-hidden', 'transition-all duration-300 ease-in-out']"
         :style="{
           backgroundImage: background ? `url(${background})` : 'none',
