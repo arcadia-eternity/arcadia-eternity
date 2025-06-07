@@ -544,44 +544,27 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
   tryStack(context: AddMarkContext): boolean {
     const otherMark = context.baseMark
 
-    if (otherMark instanceof StatLevelMarkInstanceImpl && this.isOppositeMark(otherMark)) {
-      const remainingLevel = this.level + otherMark.level
+    // 检查是否为同类型的StatLevel印记
+    const isSameStatType = otherMark instanceof BaseStatLevelMark && otherMark.statType === this.base.statType
+    if (!isSameStatType) return super.tryStack(context)
 
-      if (remainingLevel === 0) {
-        this.destroy(new RemoveMarkContext(context, this))
-        return true
-      } else {
-        // 检查是否需要更换baseId（符号是否发生变化）
-        if (Math.sign(this.level) !== Math.sign(remainingLevel)) {
-          // 符号变化，需要创建新印记以确保正确的baseId
-          this.replaceWithNewMark(context, remainingLevel)
-        } else {
-          // 符号未变化，直接设置level
-          this.level = remainingLevel
-        }
-      }
-
-      return true
-    }
-
-    const isSameType = otherMark instanceof BaseStatLevelMark && otherMark.statType === this.base.statType
-
-    if (!isSameType) return super.tryStack(context)
-
+    // 计算新的level值，应用等级限制
     const STAT_STAGE_MULTIPLIER = [0.25, 0.28, 0.33, 0.4, 0.5, 0.66, 1, 1.5, 2, 2.5, 3, 3.5, 4] as const
     const maxLevel = (STAT_STAGE_MULTIPLIER.length - 1) / 2
     const newLevel = Math.max(-maxLevel, Math.min(maxLevel, this.level + otherMark.initialLevel))
 
+    // 如果新level为0，销毁印记
     if (newLevel === 0) {
       this.destroy(new RemoveMarkContext(context, this))
       return true
     }
 
-    // 检查是否需要更换baseId（从正变负或从负变正）
+    // 检查是否需要更换baseId（符号是否发生变化）
     if (Math.sign(this.level) !== Math.sign(newLevel)) {
+      // 符号变化，需要创建新印记以确保正确的baseId
       this.replaceWithNewMark(context, newLevel)
     } else {
-      // 同符号的叠加，直接设置level
+      // 符号未变化，直接设置level
       this.level = newLevel
     }
 
