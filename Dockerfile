@@ -1,5 +1,5 @@
 # Build stage
-FROM node:23-alpine AS builder
+FROM node:24-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git && \
@@ -22,7 +22,7 @@ COPY . .
 RUN pnpm build
 
 # Dependencies stage - install production dependencies
-FROM node:23-alpine AS deps
+FROM node:24-alpine AS deps
 
 RUN apk add --no-cache git && \
     npm install -g pnpm
@@ -38,7 +38,7 @@ RUN pnpm install --frozen-lockfile --prod && \
     pnpm store prune
 
 # Production stage
-FROM node:23-alpine AS production
+FROM node:24-alpine AS production
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
