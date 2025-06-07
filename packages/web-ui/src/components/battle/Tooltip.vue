@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
+import { useBattleViewStore } from '@/stores/battleView'
 
 interface Props {
   position?: 'top' | 'bottom' | 'left' | 'right'
@@ -7,6 +8,7 @@ interface Props {
   show?: boolean
   contentClass?: string
   zIndex?: number
+  scale?: number // 新增：缩放比例
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -14,12 +16,17 @@ const props = withDefaults(defineProps<Props>(), {
   trigger: 'hover',
   contentClass: '',
   zIndex: 2147483647, // 最大的32位整数
+  scale: 1, // 默认不缩放
 })
 
 const showTooltip = ref(props.show || false)
 const triggerRef = ref<HTMLElement | null>(null)
 const tooltipRef = ref<HTMLElement | null>(null)
 const tooltipPosition = ref({ top: 0, left: 0 })
+
+// 使用store获取缩放比例
+const battleViewStore = useBattleViewStore()
+const effectiveScale = computed(() => (props.scale !== 1 ? props.scale : battleViewStore.scale))
 
 const arrowClasses = computed(() => {
   return {
@@ -120,7 +127,8 @@ function getTransform() {
             top: tooltipPosition.top + 'px',
             left: tooltipPosition.left + 'px',
             zIndex: props.zIndex,
-            transform: getTransform(),
+            transform: `${getTransform()} scale(${effectiveScale})`,
+            transformOrigin: 'center center',
           }"
         >
           <div

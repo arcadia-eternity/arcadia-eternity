@@ -29,6 +29,7 @@ export function useBattleAnimations(
   store: ReturnType<typeof useBattleStore>,
   currentPlayer: ComputedRef<MinimalPlayerForAnimations | null | undefined>,
   opponentPlayer: ComputedRef<MinimalPlayerForAnimations | null | undefined>,
+  battleViewScale: ComputedRef<number>,
 ) {
   const showMissMessage = (side: 'left' | 'right') => {
     const statusBounding = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
@@ -457,7 +458,7 @@ export function useBattleAnimations(
           top: `${targetY}px`,
           transformOrigin: 'center center',
           opacity: 0,
-          scale: 0.8,
+          scale: 0.8 * battleViewScale.value,
         },
       },
       [boxVNode],
@@ -488,7 +489,7 @@ export function useBattleAnimations(
     tl.to(containerElement, {
       x: 0,
       opacity: 1,
-      scale: 1,
+      scale: battleViewScale.value,
       duration: 0.3,
       ease: 'back.out(1.7)',
     })

@@ -58,6 +58,7 @@ import {
   type Ref,
 } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useBattleViewStore } from '@/stores/battleView'
 import { DArrowLeft, DArrowRight, VideoPause, VideoPlay, Film } from '@element-plus/icons-vue'
 
 // Props 定义
@@ -100,6 +101,7 @@ const battleReportStore = useBattleReportStore()
 const gameDataStore = useGameDataStore()
 const resourceStore = useResourceStore()
 const gameSettingStore = useGameSettingStore()
+const battleViewStore = useBattleViewStore()
 
 useMusic()
 
@@ -120,6 +122,9 @@ const isPending = ref(false)
 const showBattleEndUI = ref(false)
 const showKoBanner = ref(false) // 新增：控制KO横幅显示
 const koBannerRef = useTemplateRef('koBannerRef') // 新增：KO横幅的模板引用
+
+// 使用battleView store中的缩放
+const battleViewScale = computed(() => battleViewStore.scale)
 
 // 战斗数据计算属性
 const currentPlayer = computed(() => store.currentPlayer)
@@ -142,6 +147,7 @@ const {
   store,
   currentPlayer,
   opponentPlayer,
+  battleViewScale,
 )
 
 const leftPetSpeciesNum = computed(
@@ -1126,15 +1132,31 @@ watch(
 </script>
 
 <template>
-  <div class="h-screen bg-[#1a1a2e] flex justify-center items-center overflow-auto relative">
-    <!-- 计时器组件 - 放在战斗容器的右侧 -->
-    <div v-if="!isReplayMode" class="absolute left-4 top-4 z-[30]">
+  <div
+    class="h-screen bg-[#1a1a2e] flex justify-center items-center overflow-auto relative"
+    :style="{
+      '--battle-view-scale': battleViewScale,
+    }"
+  >
+    <!-- 计时器组件 - 根据缩放调整位置 -->
+    <div
+      v-if="!isReplayMode"
+      class="absolute z-[30]"
+      :style="{
+        left: battleViewScale < 1 ? '16px' : '16px',
+        top: '16px',
+      }"
+    >
       <BattleTimer :player-id="currentPlayer?.id" />
     </div>
 
     <div
       ref="battleViewRef"
       class="w-[1600px] h-[900px] min-w-[1600px] min-h-[900px] flex-shrink-0 relative flex justify-center items-center object-contain bg-gray-900"
+      :style="{
+        transform: `scale(${battleViewScale})`,
+        transformOrigin: 'center center',
+      }"
     >
       <img
         v-show="showKoBanner"

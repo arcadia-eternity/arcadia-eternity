@@ -3,7 +3,6 @@ import 'seer2-pet-animator'
 import { ActionState } from 'seer2-pet-animator'
 import type {} from 'seer2-pet-animator' //Vue Declare
 import { computed, ref, useTemplateRef, watchEffect, watch } from 'vue'
-import { useElementBounding } from '@vueuse/core'
 const props = withDefaults(
   defineProps<{
     num: number
@@ -22,16 +21,6 @@ const inited = ref(false)
 const swfUrl = computed(() => {
   // return `https://seer2.61.com/res/pet/fight/${props.num}.swf`
   return `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-pet-preview@master/public/fight/${props.num}.swf`
-})
-const { width: containerWidth, height: containerHeidht } = useElementBounding(petSpriteRef)
-
-const scale = computed(() => {
-  const baseWidth = 960
-  const baseHeight = 560
-
-  const scaleX = containerWidth.value / baseWidth
-  const scaleY = containerHeidht.value / baseHeight
-  return Math.min(scaleX, scaleY)
 })
 
 const availableState = ref<ActionState[]>([])
@@ -154,8 +143,6 @@ defineExpose({
       ref="pet-render"
       :url="swfUrl"
       :reverse="reverse"
-      :scaleX="scale"
-      :scaleY="scale"
       salign="TL"
       :offsetX="300"
       @hit="handleHitEvent"
