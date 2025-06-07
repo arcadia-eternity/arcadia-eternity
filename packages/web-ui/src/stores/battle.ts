@@ -117,6 +117,9 @@ export const useBattleStore = defineStore('battle', {
               this.availableActions = await this.fetchAvailableSelection()
             }
             break
+          default:
+            this.availableActions = []
+            break
         }
       }
 

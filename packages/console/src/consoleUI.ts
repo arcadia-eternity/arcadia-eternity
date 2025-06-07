@@ -11,6 +11,7 @@ import {
   type playerId,
   type PlayerSelection,
   type SkillMessage,
+  type Events,
 } from '@arcadia-eternity/const'
 import type { PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
 import { exit } from 'process'
@@ -24,12 +25,14 @@ export class ConsoleUIV2 {
   private messages: BattleMessage[] = []
   public battleState: BattleState = {} as BattleState
   public currentPlayer: playerId[]
+  private timerEventUnsubscribers: (() => void)[] = []
 
   constructor(
     private readonly battleInterface: IBattleSystem,
     ...currentPlayer: playerId[]
   ) {
     this.setupEventHandlers()
+    this.setupTimerEventListeners()
 
     const renderer = new TerminalRenderer({
       reflowText: false,
@@ -43,6 +46,70 @@ export class ConsoleUIV2 {
 
   private setupEventHandlers() {
     this.battleInterface.BattleEvent(m => this.handleBattleMessage.call(this, m))
+  }
+
+  private setupTimerEventListeners() {
+    // 清理之前的监听器
+    this.timerEventUnsubscribers.forEach(unsubscribe => unsubscribe())
+    this.timerEventUnsubscribers = []
+
+    // 监听计时器开始事件
+    const unsubscribeStart = this.battleInterface.onTimerEvent('timerStart', data => {
+      if (data.turnTimeLimit) {
+        console.log(`⏰ 计时器开始 - 回合时间限制: ${data.turnTimeLimit}秒`)
+      }
+    })
+    this.timerEventUnsubscribers.push(unsubscribeStart)
+
+    // 监听计时器更新事件 - 只在时间紧急时提醒
+    const unsubscribeUpdate = this.battleInterface.onTimerEvent('timerUpdate', data => {
+      // 只在剩余时间少于10秒时显示警告
+      if (data.remainingTurnTime <= 10 && data.remainingTurnTime > 0) {
+        const playerName = this.getPlayerNameById(data.player)
+        console.log(`⚠️ ${playerName} 回合时间紧急！剩余 ${data.remainingTurnTime.toFixed(1)}秒`)
+      }
+    })
+    this.timerEventUnsubscribers.push(unsubscribeUpdate)
+
+    // 监听计时器暂停事件 - 只记录非动画暂停
+    const unsubscribePause = this.battleInterface.onTimerEvent('timerPause', data => {
+      if (data.reason !== 'animation') {
+        console.log(`⏸️ 计时器暂停 (${data.reason === 'system' ? '系统暂停' : data.reason})`)
+      }
+    })
+    this.timerEventUnsubscribers.push(unsubscribePause)
+
+    // 监听计时器恢复事件 - 简化输出
+    const unsubscribeResume = this.battleInterface.onTimerEvent('timerResume', () => {
+      // 静默处理恢复事件，避免过多日志
+    })
+    this.timerEventUnsubscribers.push(unsubscribeResume)
+
+    // 监听计时器超时事件
+    const unsubscribeTimeout = this.battleInterface.onTimerEvent('timerTimeout', data => {
+      const playerName = this.getPlayerNameById(data.player)
+      const timeoutType = data.type === 'turn' ? '回合时间' : '总时间'
+      console.log(`⏰ ${playerName} ${timeoutType}超时！`)
+      if (data.autoAction) {
+        console.log(`🤖 ${data.autoAction}`)
+      }
+    })
+    this.timerEventUnsubscribers.push(unsubscribeTimeout)
+
+    // 监听动画开始事件 - 简化输出
+    const unsubscribeAnimStart = this.battleInterface.onTimerEvent('animationStart', data => {
+      // 只在动画时长较长时输出日志
+      if (data.duration > 3000) {
+        console.log(`🎬 长动画开始: ${data.source} (${(data.duration / 1000).toFixed(1)}秒)`)
+      }
+    })
+    this.timerEventUnsubscribers.push(unsubscribeAnimStart)
+
+    // 监听动画结束事件 - 静默处理
+    const unsubscribeAnimEnd = this.battleInterface.onTimerEvent('animationEnd', () => {
+      // 静默处理动画结束事件，避免过多日志
+    })
+    this.timerEventUnsubscribers.push(unsubscribeAnimEnd)
   }
 
   private async handleBattleMessage(message: BattleMessage) {
@@ -587,6 +654,10 @@ export class ConsoleUIV2 {
 
   private async handlePlayerInput(playerId: playerId) {
     this.renderBattleState()
+
+    // 显示计时器信息
+    await this.renderTimerInfo(playerId)
+
     const selections = await this.battleInterface.getAvailableSelection(playerId)
     this.showSelectionMenu(selections)
 
@@ -599,6 +670,36 @@ export class ConsoleUIV2 {
       console.log('无效选择！')
       await this.handlePlayerInput(playerId)
     }
+  }
+
+  private async renderTimerInfo(playerId: playerId) {
+    try {
+      // 检查是否启用计时器
+      const isTimerEnabled = await this.battleInterface.isTimerEnabled()
+      if (!isTimerEnabled) return
+
+      // 获取计时器状态
+      const timerState = await this.battleInterface.getPlayerTimerState(playerId)
+      if (!timerState) return
+
+      const playerName = this.getPlayerNameById(playerId)
+      console.log(`\n⏰ ${playerName} 计时器状态:`)
+      console.log(`   回合剩余时间: ${timerState.remainingTurnTime.toFixed(1)}秒`)
+      console.log(`   总剩余时间: ${timerState.remainingTotalTime.toFixed(1)}秒`)
+      console.log(`   状态: ${this.translateTimerState(timerState.state)}`)
+    } catch (error) {
+      // 如果获取计时器信息失败，静默忽略
+    }
+  }
+
+  private translateTimerState(state: string): string {
+    const states: Record<string, string> = {
+      stopped: '已停止',
+      running: '运行中',
+      paused: '已暂停',
+      timeout: '已超时',
+    }
+    return states[state] || state
   }
 
   private showSelectionMenu(selections: PlayerSelectionSchemaType[]) {
@@ -668,5 +769,14 @@ export class ConsoleUIV2 {
         resolve(answer)
       }),
     )
+  }
+
+  /**
+   * 清理资源
+   */
+  public cleanup(): void {
+    // 清理计时器事件监听器
+    this.timerEventUnsubscribers.forEach(unsubscribe => unsubscribe())
+    this.timerEventUnsubscribers = []
   }
 }

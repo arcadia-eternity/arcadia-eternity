@@ -1,4 +1,4 @@
-import { EffectTrigger, BattleMessageType, RAGE_PER_TURN, BattleStatus } from '@arcadia-eternity/const'
+import { EffectTrigger, BattleMessageType, RAGE_PER_TURN, BattleStatus, BattlePhase } from '@arcadia-eternity/const'
 import { InteractivePhase } from './base'
 import { TurnContext, RageContext, UseSkillContext, SwitchPetContext } from '../context'
 import { SkillPhase } from './skill'
@@ -80,6 +80,9 @@ export async function executeTurnOperation(context: TurnContext, battle: Battle)
         const player = battle.getPlayerByID(selection.player)
         battle.victor = battle.getOpponent(player)
         battle.status = BattleStatus.Ended
+        battle.currentPhase = BattlePhase.Ended
+        // 停止所有计时器
+        battle.timerManager.stopAllTimers()
         battle.getVictor(true)
         return
       }

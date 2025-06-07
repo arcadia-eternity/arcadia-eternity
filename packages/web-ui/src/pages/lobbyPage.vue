@@ -1,48 +1,65 @@
 <template>
-  <div class="lobby-container">
-    <h1>对战匹配大厅</h1>
+  <div
+    class="max-w-4xl w-full mx-auto p-5 text-center min-h-[calc(100vh-60px)] box-border flex flex-col justify-center"
+  >
+    <h1 class="text-3xl font-bold mb-8 text-gray-800">对战匹配大厅</h1>
 
     <!-- 导航菜单 -->
-    <div class="navigation-menu">
-      <router-link to="/team-builder" class="nav-button">
+    <div class="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4 my-8 mx-auto max-w-2xl">
+      <router-link
+        to="/team-builder"
+        class="flex flex-col items-center gap-2 p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500"
+      >
         <el-icon><User /></el-icon>
         队伍编辑
       </router-link>
-      <router-link to="/battle-reports" class="nav-button">
+      <router-link
+        to="/battle-reports"
+        class="flex flex-col items-center gap-2 p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500"
+      >
         <el-icon><Document /></el-icon>
         战报记录
       </router-link>
       <!-- 排行榜功能暂时禁用 -->
-      <!-- <router-link to="/leaderboard" class="nav-button">
+      <!-- <router-link
+        to="/leaderboard"
+        class="flex flex-col items-center gap-2 p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500"
+      >
         <el-icon><Trophy /></el-icon>
         排行榜
       </router-link> -->
-      <router-link to="/local-battle" class="nav-button">
+      <router-link
+        to="/local-battle"
+        class="flex flex-col items-center gap-2 p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500"
+      >
         <el-icon><Monitor /></el-icon>
         本地测试
       </router-link>
     </div>
 
     <!-- 匹配控制区域 -->
-    <div class="match-control">
-      <button @click="handleMatchmaking" class="match-button">
+    <div class="mb-8">
+      <button
+        @click="handleMatchmaking"
+        class="px-6 py-3 text-lg bg-green-500 text-white border-none rounded cursor-pointer transition-colors duration-300 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+      >
         {{ isMatching ? '取消匹配' : '开始匹配' }}
       </button>
 
       <!-- 加载状态 -->
-      <div v-if="isMatching" class="matching-status">
-        <div class="loading-spinner"></div>
-        <p>正在寻找对手...</p>
+      <div v-if="isMatching" class="mt-5 flex flex-col items-center gap-2.5">
+        <div class="w-8 h-8 border-[3px] border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
+        <p class="text-gray-600">正在寻找对手...</p>
       </div>
 
       <!-- 错误提示 -->
-      <div v-if="errorMessage" class="error-message">
+      <div v-if="errorMessage" class="text-red-500 mt-4 p-2.5 border border-red-500 rounded bg-red-50">
         {{ errorMessage }}
       </div>
     </div>
 
     <!-- 提示信息 -->
-    <div class="info-section">
+    <div class="mt-8 text-left">
       <el-alert title="使用提示" type="info" :closable="false" class="mb-4">
         <ul class="text-left">
           <li>不要忘了先在队伍编辑里面编辑队伍</li>
@@ -111,115 +128,3 @@ onBeforeUnmount(async () => {
   })
 })
 </script>
-
-<style scoped>
-.lobby-container {
-  max-width: 800px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 20px;
-  text-align: center;
-  min-height: calc(100vh - 60px);
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.navigation-menu {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 16px;
-  margin: 2rem auto;
-  max-width: 600px;
-}
-
-.nav-button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 16px;
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  text-decoration: none;
-  color: #374151;
-  transition: all 0.3s ease;
-  font-weight: 500;
-}
-
-.nav-button:hover {
-  border-color: #3b82f6;
-  background: #f8fafc;
-  color: #3b82f6;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-}
-
-.nav-button.router-link-active {
-  border-color: #3b82f6;
-  background: #eff6ff;
-  color: #3b82f6;
-}
-
-.info-section {
-  margin-top: 2rem;
-  text-align: left;
-}
-
-.match-button {
-  padding: 12px 24px;
-  font-size: 1.1rem;
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.match-button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
-
-.match-button:not(:disabled):hover {
-  background-color: #45a049;
-}
-
-.matching-status {
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.loading-spinner {
-  width: 30px;
-  height: 30px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #3498db;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.error-message {
-  color: #ff4444;
-  margin-top: 15px;
-  padding: 10px;
-  border: 1px solid #ff4444;
-  border-radius: 4px;
-  background-color: #ffe6e6;
-}
-</style>

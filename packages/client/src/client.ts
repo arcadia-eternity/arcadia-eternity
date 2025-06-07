@@ -1,4 +1,10 @@
-import { type BattleState, type playerId } from '@arcadia-eternity/const'
+import {
+  type BattleState,
+  type playerId,
+  type PlayerTimerState,
+  type TimerConfig,
+  type Events,
+} from '@arcadia-eternity/const'
 import {
   type ClientToServerEvents,
   type ServerToClientEvents,
@@ -26,6 +32,7 @@ type ClientState = {
 export class BattleClient {
   private socket: Socket<ServerToClientEvents, ClientToServerEvents>
   private eventHandlers = new Map<string, Set<(...args: any[]) => void>>()
+  private timerEventHandlers = new Map<string, Set<(data: any) => void>>()
   private state: ClientState = {
     status: 'disconnected',
     matchmaking: 'idle',
@@ -199,6 +206,86 @@ export class BattleClient {
     })
   }
 
+  // 计时器相关方法
+  async isTimerEnabled(): Promise<boolean> {
+    this.verifyBattleActive()
+
+    return new Promise((resolve, reject) => {
+      this.socket.emit('isTimerEnabled', response => {
+        if (response.status === 'SUCCESS') {
+          resolve(response.data)
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async getPlayerTimerState(playerId: playerId): Promise<PlayerTimerState | null> {
+    this.verifyBattleActive()
+
+    return new Promise((resolve, reject) => {
+      this.socket.emit('getPlayerTimerState', { playerId }, response => {
+        if (response.status === 'SUCCESS') {
+          resolve(response.data)
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async getAllPlayerTimerStates(): Promise<PlayerTimerState[]> {
+    this.verifyBattleActive()
+
+    return new Promise((resolve, reject) => {
+      this.socket.emit('getAllPlayerTimerStates', response => {
+        if (response.status === 'SUCCESS') {
+          resolve(response.data)
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async getTimerConfig(): Promise<TimerConfig> {
+    this.verifyBattleActive()
+
+    return new Promise((resolve, reject) => {
+      this.socket.emit('getTimerConfig', response => {
+        if (response.status === 'SUCCESS') {
+          resolve(response.data)
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async startAnimation(source: string, expectedDuration: number, ownerId: playerId): Promise<string> {
+    this.verifyBattleActive()
+
+    return new Promise((resolve, reject) => {
+      this.socket.emit('startAnimation', { source, expectedDuration, ownerId }, response => {
+        if (response.status === 'SUCCESS') {
+          resolve(response.data)
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async endAnimation(animationId: string, actualDuration?: number): Promise<void> {
+    this.verifyBattleActive()
+
+    return new Promise(resolve => {
+      this.socket.emit('endAnimation', { animationId, actualDuration })
+      resolve()
+    })
+  }
+
   once<T extends keyof ServerToClientEvents>(event: T, listener: ServerToClientEvents[T]): this {
     this.socket.once(event, listener as any)
     return this
@@ -235,6 +322,27 @@ export class BattleClient {
     }
   }
 
+  // 计时器事件订阅方法
+  onTimerEvent<K extends keyof Events>(eventType: K, handler: (data: Events[K]) => void): () => void {
+    if (!this.timerEventHandlers.has(eventType)) {
+      this.timerEventHandlers.set(eventType, new Set())
+    }
+
+    this.timerEventHandlers.get(eventType)?.add(handler)
+
+    return () => this.offTimerEvent(eventType, handler)
+  }
+
+  offTimerEvent<K extends keyof Events>(eventType: K, handler: (data: Events[K]) => void): void {
+    const handlers = this.timerEventHandlers.get(eventType)
+    if (handlers) {
+      handlers.delete(handler)
+      if (handlers.size === 0) {
+        this.timerEventHandlers.delete(eventType)
+      }
+    }
+  }
+
   private setupEventListeners() {
     // 连接状态事件
     this.socket.on('connect', () => {
@@ -264,6 +372,14 @@ export class BattleClient {
     this.socket.on('battleEvent', message => {
       if (message.type === 'BATTLE_END') {
         this.updateState({ battle: 'ended' })
+      }
+    })
+
+    // 计时器事件处理
+    this.socket.on('timerEvent', event => {
+      const handlers = this.timerEventHandlers.get(event.type)
+      if (handlers) {
+        handlers.forEach(handler => handler(event.data))
       }
     })
 

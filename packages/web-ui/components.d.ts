@@ -14,6 +14,7 @@ declare module 'vue' {
     BattleRecordDetail: typeof import('./src/components/battleReport/BattleRecordDetail.vue')['default']
     BattleRecordList: typeof import('./src/components/battleReport/BattleRecordList.vue')['default']
     BattleStatus: typeof import('./src/components/battle/BattleStatus.vue')['default']
+    BattleTimer: typeof import('./src/components/BattleTimer.vue')['default']
     DamageDisplay: typeof import('./src/components/battle/DamageDisplay.vue')['default']
     ElAffix: typeof import('element-plus/es')['ElAffix']
     ElAlert: typeof import('element-plus/es')['ElAlert']
@@ -33,13 +34,10 @@ declare module 'vue' {
     ElInputNumber: typeof import('element-plus/es')['ElInputNumber']
     ElMain: typeof import('element-plus/es')['ElMain']
     ElOption: typeof import('element-plus/es')['ElOption']
-    ElProgress: typeof import('element-plus/es')['ElProgress']
     ElRow: typeof import('element-plus/es')['ElRow']
     ElSelect: typeof import('element-plus/es')['ElSelect']
     ElSlider: typeof import('element-plus/es')['ElSlider']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
-    ElTable: typeof import('element-plus/es')['ElTable']
-    ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
     ElTabPane: typeof import('element-plus/es')['ElTabPane']
     ElTabs: typeof import('element-plus/es')['ElTabs']
     ElTag: typeof import('element-plus/es')['ElTag']
@@ -61,8 +59,5 @@ declare module 'vue' {
     SpeciesSkillEditor: typeof import('./src/components/SpeciesSkillEditor.vue')['default']
     StorageManager: typeof import('./src/components/StorageManager.vue')['default']
     Tooltip: typeof import('./src/components/battle/Tooltip.vue')['default']
-  }
-  export interface ComponentCustomProperties {
-    vLoading: typeof import('element-plus/es')['ElLoadingDirective']
   }
 }

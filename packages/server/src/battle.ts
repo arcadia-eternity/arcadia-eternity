@@ -1,5 +1,13 @@
 import { Battle } from '@arcadia-eternity/battle'
-import { BattleMessageType, BattleStatus, type BattleState, type BattleMessage } from '@arcadia-eternity/const'
+import {
+  BattleMessageType,
+  BattleStatus,
+  type BattleState,
+  type BattleMessage,
+  type PlayerTimerState,
+  type TimerConfig,
+  type playerId,
+} from '@arcadia-eternity/const'
 import { PlayerParser, SelectionParser } from '@arcadia-eternity/parser'
 import { ScriptLoader } from '@arcadia-eternity/data-repository'
 import type {
@@ -138,6 +146,15 @@ export class BattleServer {
     socket.on('getAvailableSelection', ack => this.handleGetSelection(socket, ack))
     socket.on('getServerState', ack => this.handleGetServerState(socket, ack))
     socket.on('ready', () => this.handleReady(socket))
+    socket.on('reportAnimationEnd', data => this.handleReportAnimationEnd(socket, data))
+
+    // 计时器相关事件处理
+    socket.on('isTimerEnabled', ack => this.handleIsTimerEnabled(socket, ack))
+    socket.on('getPlayerTimerState', (data, ack) => this.handleGetPlayerTimerState(socket, data, ack))
+    socket.on('getAllPlayerTimerStates', ack => this.handleGetAllPlayerTimerStates(socket, ack))
+    socket.on('getTimerConfig', ack => this.handleGetTimerConfig(socket, ack))
+    socket.on('startAnimation', (data, ack) => this.handleStartAnimation(socket, data, ack))
+    socket.on('endAnimation', data => this.handleEndAnimation(socket, data))
   }
 
   private setupAutoCleanup() {
@@ -572,7 +589,17 @@ export class BattleServer {
     const player1 = this.initializePlayer(p1)
     const player2 = this.initializePlayer(p2)
     // 创建 Battle 时不启用 showHidden，让每个监听器自己控制可见性
-    const battle = new Battle(player1.playerData, player2.playerData, { showHidden: false })
+    // 默认启用计时器系统
+    const battle = new Battle(player1.playerData, player2.playerData, {
+      showHidden: false,
+      timerConfig: {
+        enabled: true,
+        turnTimeLimit: 30, // 30秒每回合
+        totalTimeLimit: 1500, // 25分钟总思考时间
+        animationPauseEnabled: true,
+        maxAnimationDuration: 20000, // 最大20秒动画时长，支持更长的技能动画
+      },
+    })
 
     // 开始战报记录（同步等待）
     let battleRecordId: string | undefined
@@ -636,6 +663,9 @@ export class BattleServer {
         }
       }) // 使用默认选项，显示该玩家自己可见的信息
     })
+
+    // 监听计时器事件并转发给客户端
+    this.setupTimerEventListeners(battle, [player1, player2])
 
     this.rooms.set(roomId, {
       id: roomId,
@@ -866,6 +896,261 @@ export class BattleServer {
     p2.emit('matchSuccess', p2Data)
     // this.rooms.get(roomId)?.battleGenerator.next()
     logger.info(`Matched: room:${roomId} ${p1.id} vs ${p2.id}`)
+  }
+
+  private handleReportAnimationEnd(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    data: { animationId: string; actualDuration: number },
+  ): void {
+    try {
+      const room = this.getPlayerRoom(socket.id)
+      if (!room) {
+        logger.warn({ socketId: socket.id }, '玩家不在任何房间中，无法报告动画结束')
+        return
+      }
+
+      // 更新房间活跃时间
+      room.lastActive = Date.now()
+
+      // 将动画结束报告传递给战斗系统的计时器管理器
+      room.battle.timerManager.endAnimation(data.animationId, data.actualDuration)
+
+      logger.debug(
+        {
+          socketId: socket.id,
+          roomId: room.id,
+          animationId: data.animationId,
+          duration: data.actualDuration,
+        },
+        '收到动画结束报告',
+      )
+    } catch (error) {
+      logger.error(
+        {
+          socketId: socket.id,
+          error: error instanceof Error ? error.stack : error,
+          data,
+        },
+        '处理动画结束报告时发生错误',
+      )
+    }
+  }
+
+  // 计时器相关处理方法
+  private handleIsTimerEnabled(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    ack: AckResponse<boolean>,
+  ): void {
+    try {
+      const room = this.getPlayerRoom(socket.id)
+      if (!room) {
+        ack({ status: 'ERROR', code: 'NOT_IN_ROOM', details: '玩家不在任何房间中' })
+        return
+      }
+
+      const isEnabled = room.battle.isTimerEnabled()
+      ack({ status: 'SUCCESS', data: isEnabled })
+    } catch (error) {
+      logger.error({ socketId: socket.id, error }, '获取计时器状态时发生错误')
+      ack({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '服务器内部错误' })
+    }
+  }
+
+  private handleGetPlayerTimerState(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    data: { playerId: string },
+    ack: AckResponse<PlayerTimerState | null>,
+  ): void {
+    try {
+      const room = this.getPlayerRoom(socket.id)
+      if (!room) {
+        ack({ status: 'ERROR', code: 'NOT_IN_ROOM', details: '玩家不在任何房间中' })
+        return
+      }
+
+      const timerState = room.battle.getPlayerTimerState(data.playerId as any)
+      ack({ status: 'SUCCESS', data: timerState })
+    } catch (error) {
+      logger.error({ socketId: socket.id, error }, '获取玩家计时器状态时发生错误')
+      ack({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '服务器内部错误' })
+    }
+  }
+
+  private handleGetAllPlayerTimerStates(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    ack: AckResponse<PlayerTimerState[]>,
+  ): void {
+    try {
+      const room = this.getPlayerRoom(socket.id)
+      if (!room) {
+        ack({ status: 'ERROR', code: 'NOT_IN_ROOM', details: '玩家不在任何房间中' })
+        return
+      }
+
+      const timerStates = room.battle.getAllPlayerTimerStates()
+      ack({ status: 'SUCCESS', data: timerStates })
+    } catch (error) {
+      logger.error({ socketId: socket.id, error }, '获取所有玩家计时器状态时发生错误')
+      ack({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '服务器内部错误' })
+    }
+  }
+
+  private handleGetTimerConfig(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    ack: AckResponse<TimerConfig>,
+  ): void {
+    try {
+      const room = this.getPlayerRoom(socket.id)
+      if (!room) {
+        ack({ status: 'ERROR', code: 'NOT_IN_ROOM', details: '玩家不在任何房间中' })
+        return
+      }
+
+      const config = room.battle.getTimerConfig()
+      ack({ status: 'SUCCESS', data: config })
+    } catch (error) {
+      logger.error({ socketId: socket.id, error }, '获取计时器配置时发生错误')
+      ack({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '服务器内部错误' })
+    }
+  }
+
+  private handleStartAnimation(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    data: { source: string; expectedDuration: number; ownerId: string },
+    ack: AckResponse<string>,
+  ): void {
+    try {
+      const room = this.getPlayerRoom(socket.id)
+      if (!room) {
+        ack({ status: 'ERROR', code: 'NOT_IN_ROOM', details: '玩家不在任何房间中' })
+        return
+      }
+
+      // 验证提供的 ownerId 是否与调用者匹配
+      const player = room.players.get(socket.id)
+      const callerPlayerId = player?.playerData.id
+
+      if (!callerPlayerId) {
+        ack({ status: 'ERROR', code: 'INVALID_PLAYER', details: '无法获取玩家ID' })
+        return
+      }
+
+      // 确保只能为自己开始动画
+      if (data.ownerId !== callerPlayerId) {
+        ack({ status: 'ERROR', code: 'INVALID_OWNER', details: '只能为自己开始动画' })
+        return
+      }
+
+      const animationId = room.battle.startAnimation(data.source, data.expectedDuration, data.ownerId as playerId)
+      ack({ status: 'SUCCESS', data: animationId })
+
+      logger.debug(
+        {
+          socketId: socket.id,
+          roomId: room.id,
+          ownerId: data.ownerId,
+          source: data.source,
+          expectedDuration: data.expectedDuration,
+          animationId,
+        },
+        '开始动画追踪',
+      )
+    } catch (error) {
+      logger.error({ socketId: socket.id, error }, '开始动画追踪时发生错误')
+      ack({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '服务器内部错误' })
+    }
+  }
+
+  private handleEndAnimation(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    data: { animationId: string; actualDuration?: number },
+  ): void {
+    try {
+      const room = this.getPlayerRoom(socket.id)
+      if (!room) {
+        logger.warn({ socketId: socket.id }, '玩家不在任何房间中，无法结束动画')
+        return
+      }
+
+      // 更新房间活跃时间
+      room.lastActive = Date.now()
+
+      // 结束动画追踪
+      room.battle.endAnimation(data.animationId, data.actualDuration)
+
+      logger.debug(
+        {
+          socketId: socket.id,
+          roomId: room.id,
+          animationId: data.animationId,
+          actualDuration: data.actualDuration,
+        },
+        '处理动画结束请求',
+      )
+    } catch (error) {
+      logger.error(
+        {
+          socketId: socket.id,
+          error: error instanceof Error ? error.stack : error,
+          data,
+        },
+        '结束动画追踪时发生错误',
+      )
+    }
+  }
+
+  /**
+   * 设置计时器事件监听器
+   */
+  private setupTimerEventListeners(battle: Battle, players: GamePlayer[]): void {
+    // 监听计时器开始事件
+    battle.onTimerEvent('timerStart', data => {
+      players.forEach(player => {
+        player.socket.emit('timerEvent', { type: 'timerStart', data })
+      })
+    })
+
+    // 监听计时器更新事件
+    battle.onTimerEvent('timerUpdate', data => {
+      players.forEach(player => {
+        player.socket.emit('timerEvent', { type: 'timerUpdate', data })
+      })
+    })
+
+    // 监听计时器暂停事件
+    battle.onTimerEvent('timerPause', data => {
+      players.forEach(player => {
+        player.socket.emit('timerEvent', { type: 'timerPause', data })
+      })
+    })
+
+    // 监听计时器恢复事件
+    battle.onTimerEvent('timerResume', data => {
+      players.forEach(player => {
+        player.socket.emit('timerEvent', { type: 'timerResume', data })
+      })
+    })
+
+    // 监听计时器超时事件
+    battle.onTimerEvent('timerTimeout', data => {
+      players.forEach(player => {
+        player.socket.emit('timerEvent', { type: 'timerTimeout', data })
+      })
+    })
+
+    // 监听动画开始事件
+    battle.onTimerEvent('animationStart', data => {
+      players.forEach(player => {
+        player.socket.emit('timerEvent', { type: 'animationStart', data })
+      })
+    })
+
+    // 监听动画结束事件
+    battle.onTimerEvent('animationEnd', data => {
+      players.forEach(player => {
+        player.socket.emit('timerEvent', { type: 'animationEnd', data })
+      })
+    })
   }
 
   private handleReady(socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>): void {

@@ -129,6 +129,7 @@ const getEndReasonText = (reason: string) => {
   const reasonMap: Record<string, string> = {
     all_pet_fainted: '所有宠物倒下',
     surrender: '投降',
+    total_time_timeout: '总思考时间超时',
     timeout: '超时',
     disconnect: '断线',
   }

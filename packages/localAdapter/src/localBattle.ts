@@ -1,6 +1,14 @@
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import { Battle } from '@arcadia-eternity/battle'
-import type { BattleMessage, BattleState, playerId, PlayerSelection } from '@arcadia-eternity/const'
+import type {
+  BattleMessage,
+  BattleState,
+  playerId,
+  PlayerSelection,
+  PlayerTimerState,
+  TimerConfig,
+  Events,
+} from '@arcadia-eternity/const'
 
 export class LocalBattleSystem implements IBattleSystem {
   private battleStarted: boolean = false
@@ -50,6 +58,64 @@ export class LocalBattleSystem implements IBattleSystem {
     }
     this.battle.registerListener(callback)
     return () => {}
+  }
+
+  // 计时器相关方法实现
+  async isTimerEnabled(): Promise<boolean> {
+    if (this.isCleanedUp) {
+      throw new Error('Cannot call isTimerEnabled() on cleaned up LocalBattleSystem')
+    }
+    return this.battle.isTimerEnabled()
+  }
+
+  async getPlayerTimerState(playerId: playerId): Promise<PlayerTimerState | null> {
+    if (this.isCleanedUp) {
+      throw new Error('Cannot call getPlayerTimerState() on cleaned up LocalBattleSystem')
+    }
+    return this.battle.getPlayerTimerState(playerId)
+  }
+
+  async getAllPlayerTimerStates(): Promise<PlayerTimerState[]> {
+    if (this.isCleanedUp) {
+      throw new Error('Cannot call getAllPlayerTimerStates() on cleaned up LocalBattleSystem')
+    }
+    return this.battle.getAllPlayerTimerStates()
+  }
+
+  async getTimerConfig(): Promise<TimerConfig> {
+    if (this.isCleanedUp) {
+      throw new Error('Cannot call getTimerConfig() on cleaned up LocalBattleSystem')
+    }
+    return this.battle.getTimerConfig()
+  }
+
+  async startAnimation(source: string, expectedDuration: number, ownerId: playerId): Promise<string> {
+    if (this.isCleanedUp) {
+      throw new Error('Cannot call startAnimation() on cleaned up LocalBattleSystem')
+    }
+    return this.battle.startAnimation(source, expectedDuration, ownerId)
+  }
+
+  async endAnimation(animationId: string, actualDuration?: number): Promise<void> {
+    if (this.isCleanedUp) {
+      throw new Error('Cannot call endAnimation() on cleaned up LocalBattleSystem')
+    }
+    this.battle.endAnimation(animationId, actualDuration)
+  }
+
+  // 计时器事件监听方法
+  onTimerEvent<K extends keyof Events>(eventType: K, handler: (data: Events[K]) => void): () => void {
+    if (this.isCleanedUp) {
+      throw new Error('Cannot call onTimerEvent() on cleaned up LocalBattleSystem')
+    }
+    return this.battle.onTimerEvent(eventType, handler)
+  }
+
+  offTimerEvent<K extends keyof Events>(eventType: K, handler: (data: Events[K]) => void): void {
+    if (this.isCleanedUp) {
+      throw new Error('Cannot call offTimerEvent() on cleaned up LocalBattleSystem')
+    }
+    this.battle.offTimerEvent(eventType, handler)
   }
 
   // Get the battle promise for external handling if needed

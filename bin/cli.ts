@@ -80,6 +80,14 @@ program
       await initI18n()
       const consoleUI = new ConsoleUIV2(remote, player.id as playerId)
       await client.connect()
+
+      // 监听匹配成功事件，自动准备
+      client.once('matchSuccess', async () => {
+        console.log('🎯 匹配成功！正在准备战斗...')
+        await remote.ready()
+        console.log('✅ 已准备就绪，等待对手准备...')
+      })
+
       console.log('等待匹配对手...')
       await client.joinMatchmaking(player)
     } catch (err) {

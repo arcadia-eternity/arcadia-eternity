@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
 import BattleStatus from '@/components/battle/BattleStatus.vue'
+import BattleTimer from '@/components/BattleTimer.vue'
 import Mark from '@/components/battle/Mark.vue'
 import PetButton from '@/components/battle/PetButton.vue'
 import PetSprite from '@/components/battle/PetSprite.vue'
@@ -53,7 +54,6 @@ import {
   nextTick,
   watch,
   withDefaults,
-  toRef,
   unref,
   type Ref,
 } from 'vue'
@@ -468,6 +468,21 @@ async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitc
   const offScreenX = isLeft ? -battleViewWidth / 2 - 100 : battleViewWidth / 2 + 100
   const animationDuration = 1
 
+  // 开始动画追踪（仅在非回放模式下）
+  let animationId: string | null = null
+  if (!props.replayMode && store.battleInterface) {
+    try {
+      const ownerId = currentPlayer.value?.id
+      if (!ownerId) {
+        console.warn('No current player ID available for animation tracking')
+        return
+      }
+      animationId = await store.battleInterface.startAnimation(toPetId, animationDuration * 1000 * 2, ownerId) // 切换动画预期时长
+    } catch (error) {
+      console.warn('Failed to start switch animation tracking:', error)
+    }
+  }
+
   await animatePetTransition(oldPetSprite, offScreenX, 0, animationDuration, 'power2.in')
 
   // 统一使用 applyStateDelta，回放模式下跳过重复检查
@@ -492,6 +507,15 @@ async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitc
     playPetSound(newPetSpeciesNum)
   }
   await animatePetTransition(newPetSprite, 0, 1, animationDuration, 'power2.out')
+
+  // 结束动画追踪（仅在非回放模式下）
+  if (!props.replayMode && store.battleInterface && animationId) {
+    try {
+      await store.battleInterface.endAnimation(animationId)
+    } catch (error) {
+      console.warn('Failed to end switch animation tracking:', error)
+    }
+  }
 }
 
 const petSprites = computed(() => {
@@ -517,6 +541,24 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
 
   if (!source) {
     throw new Error('找不到精灵组件')
+  }
+
+  // 根据技能类别设置预期动画时长：climax技能20秒，其他技能5秒
+  const expectedDuration = category === Category.Climax ? 20000 : 5000
+
+  // 开始动画追踪（仅在非回放模式下）
+  let animationId: string | null = null
+  if (!props.replayMode && store.battleInterface) {
+    try {
+      const ownerId = currentPlayer.value?.id
+      if (!ownerId) {
+        console.warn('No current player ID available for animation tracking')
+        return
+      }
+      animationId = await store.battleInterface.startAnimation(baseSkillId, expectedDuration, ownerId)
+    } catch (error) {
+      console.warn('Failed to start animation tracking:', error)
+    }
   }
 
   // 等待PetSprite完全初始化 - 使用nextTick确保获取到最新的组件实例
@@ -600,7 +642,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
     setTimeout(async () => {
       if ((await source.getState()) !== ActionState.IDLE) return
       resolve()
-    }, 5000)
+    }, expectedDuration)
     emitter.on('attack-hit', handler)
   })
 
@@ -614,7 +656,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
     setTimeout(async () => {
       if ((await source.getState()) !== ActionState.IDLE) return
       resolve()
-    }, 5000)
+    }, expectedDuration)
     emitter.on('animation-complete', handler)
   })
 
@@ -637,6 +679,15 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
 
   await animateCompletePromise
   source.$el.style.zIndex = ''
+
+  // 结束动画追踪（仅在非回放模式下）
+  if (!props.replayMode && store.battleInterface && animationId) {
+    try {
+      await store.battleInterface.endAnimation(animationId)
+    } catch (error) {
+      console.warn('Failed to end animation tracking:', error)
+    }
+  }
 }
 
 function handleCombatEventMessage(message: CombatEventMessageWithTarget, isFromSkillSequenceContext: boolean) {
@@ -1075,7 +1126,12 @@ watch(
 </script>
 
 <template>
-  <div class="h-screen bg-[#1a1a2e] flex justify-center items-center overflow-auto">
+  <div class="h-screen bg-[#1a1a2e] flex justify-center items-center overflow-auto relative">
+    <!-- 计时器组件 - 放在战斗容器的右侧 -->
+    <div v-if="!isReplayMode" class="absolute left-4 top-4 z-[30]">
+      <BattleTimer :player-id="currentPlayer?.id" />
+    </div>
+
     <div
       ref="battleViewRef"
       class="w-[1600px] h-[900px] min-w-[1600px] min-h-[900px] flex-shrink-0 relative flex justify-center items-center object-contain bg-gray-900"
@@ -1097,6 +1153,7 @@ watch(
       >
         <div class="flex justify-between p-5">
           <BattleStatus v-if="currentPlayer" ref="leftStatusRef" class="w-1/3" :player="currentPlayer" side="left" />
+
           <BattleStatus
             v-if="opponentPlayer"
             ref="rightStatusRef"

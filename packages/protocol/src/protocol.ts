@@ -1,6 +1,5 @@
 // src/protocol.ts
-// src/protocol.ts
-import type { BattleMessage, BattleState } from '@arcadia-eternity/const'
+import type { BattleMessage, BattleState, TimerConfig, PlayerTimerState } from '@arcadia-eternity/const'
 import type { PlayerSchemaType, PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
 
 // 统一响应类型
@@ -31,6 +30,8 @@ export interface ServerToClientEvents {
   updateState: (state: ServerState) => void
   // 战斗事件（保持原始格式）
   battleEvent: (message: BattleMessage) => void
+  // 计时器事件
+  timerEvent: (event: { type: string; data: any }) => void
   // 房间关闭通知
   roomClosed: (message: { roomId: string }) => void
   // 匹配成功事件
@@ -67,4 +68,16 @@ export interface ClientToServerEvents {
   getState: (ack: AckResponse<BattleState>) => void
   // 获取可用选项
   getAvailableSelection: (ack: AckResponse<PlayerSelectionSchemaType[]>) => void
+
+  // 计时器相关事件
+  reportAnimationEnd: (data: { animationId: string; actualDuration: number }) => void
+  getTimerConfig: (ack: AckResponse<TimerConfig>) => void
+  getPlayerTimerState: (data: { playerId: string }, ack: AckResponse<PlayerTimerState | null>) => void
+  getAllPlayerTimerStates: (ack: AckResponse<PlayerTimerState[]>) => void
+  isTimerEnabled: (ack: AckResponse<boolean>) => void
+  startAnimation: (
+    data: { source: string; expectedDuration: number; ownerId: string },
+    ack: AckResponse<string>,
+  ) => void
+  endAnimation: (data: { animationId: string; actualDuration?: number }) => void
 }

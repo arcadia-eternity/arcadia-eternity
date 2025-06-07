@@ -13,6 +13,7 @@ import {
   type petId,
   type playerId,
   type skillId,
+  type TimerConfig,
 } from '@arcadia-eternity/const'
 import Prando from 'prando'
 import { ConfigSystem } from './config'
@@ -28,6 +29,7 @@ import * as jsondiffpatch from 'jsondiffpatch'
 import { nanoid } from 'nanoid'
 import mitt from 'mitt'
 import { PhaseManager, SwitchPetPhase, TurnPhase } from './phase'
+import { TimerManager } from './timer'
 
 export class Battle extends Context implements MarkOwner {
   private lastStateMessage: BattleState = {} as BattleState
@@ -42,6 +44,7 @@ export class Battle extends Context implements MarkOwner {
   public readonly configSystem: ConfigSystem
   public readonly markSystem: MarkSystem = new MarkSystem(this)
   public readonly phaseManager: PhaseManager = new PhaseManager(this)
+  public readonly timerManager: TimerManager
   public readonly emitter = mitt<Events>()
   private readonly rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
 
@@ -74,7 +77,12 @@ export class Battle extends Context implements MarkOwner {
   constructor(
     public readonly playerA: Player,
     public readonly playerB: Player,
-    options?: { allowFaintSwitch?: boolean; rngSeed?: number; showHidden?: boolean },
+    options?: {
+      allowFaintSwitch?: boolean
+      rngSeed?: number
+      showHidden?: boolean
+      timerConfig?: Partial<TimerConfig>
+    },
     configSystem?: ConfigSystem,
   ) {
     super(null)
@@ -99,10 +107,16 @@ export class Battle extends Context implements MarkOwner {
     this.allowFaintSwitch = options?.allowFaintSwitch ?? true
     this.showHidden = options?.showHidden ?? false
 
+    // 初始化计时器管理器
+    this.timerManager = new TimerManager(this, options?.timerConfig)
+
     this.playerA.registerBattle(this, this.emitter)
     this.playerB.registerBattle(this, this.emitter)
     ;[...this.playerA.team, ...this.playerB.team].forEach(p => this.petMap.set(p.id, p))
     this.petMap.forEach(p => p.skills.forEach(s => this.skillMap.set(s.id, s)))
+
+    // 初始化玩家计时器
+    this.timerManager.initializePlayerTimers([this.playerA.id, this.playerB.id])
   }
 
   // 注册消息回调
@@ -318,6 +332,8 @@ export class Battle extends Context implements MarkOwner {
     if (isBattleEnded) {
       this.status = BattleStatus.Ended
       this.currentPhase = BattlePhase.Ended
+      // 停止所有计时器
+      this.timerManager.stopAllTimers()
       this.getVictor()
     }
 
@@ -373,6 +389,10 @@ export class Battle extends Context implements MarkOwner {
   private clearSelections() {
     this.playerA.selection = null
     this.playerB.selection = null
+
+    // 通知TimerManager选择状态已清理
+    this.timerManager.handlePlayerSelectionChange(this.playerA.id, false)
+    this.timerManager.handlePlayerSelectionChange(this.playerB.id, false)
   }
 
   public setSelection(selection: PlayerSelection): boolean {
@@ -381,6 +401,9 @@ export class Battle extends Context implements MarkOwner {
     const result = player.setSelection(selection)
     if (result) {
       this.checkWaitingResolvers()
+
+      // 通知TimerManager玩家选择状态变化
+      this.timerManager.handlePlayerSelectionChange(selection.player, true)
     }
     return result
   }
@@ -391,13 +414,71 @@ export class Battle extends Context implements MarkOwner {
     return player.getAvailableSelection()
   }
 
+  /**
+   * 获取玩家计时器状态
+   */
+  public getPlayerTimerState(playerId: playerId) {
+    return this.timerManager.getPlayerState(playerId)
+  }
+
+  /**
+   * 获取所有玩家计时器状态
+   */
+  public getAllPlayerTimerStates() {
+    return this.timerManager.getAllPlayerStates()
+  }
+
+  /**
+   * 检查计时器是否启用
+   */
+  public isTimerEnabled(): boolean {
+    return this.timerManager.isEnabled()
+  }
+
+  /**
+   * 获取计时器配置
+   */
+  public getTimerConfig() {
+    return this.timerManager.getConfig()
+  }
+
+  /**
+   * 开始动画追踪
+   */
+  public startAnimation(source: string, expectedDuration: number, ownerId: playerId): string {
+    return this.timerManager.startAnimation(source, expectedDuration, ownerId)
+  }
+
+  /**
+   * 结束动画追踪
+   */
+  public endAnimation(animationId: string, actualDuration?: number): void {
+    this.timerManager.endAnimation(animationId, actualDuration)
+  }
+
+  /**
+   * 监听计时器事件
+   */
+  public onTimerEvent<K extends keyof Events>(eventType: K, handler: (data: Events[K]) => void): () => void {
+    this.emitter.on(eventType, handler)
+    return () => this.emitter.off(eventType, handler)
+  }
+
+  /**
+   * 移除计时器事件监听器
+   */
+  public offTimerEvent<K extends keyof Events>(eventType: K, handler: (data: Events[K]) => void): void {
+    this.emitter.off(eventType, handler)
+  }
+
   private bothPlayersReady(): boolean {
     return !!this.playerA.selection && !!this.playerB.selection
   }
 
-  public getVictor(surrender = false) {
+  public getVictor(surrender = false, reason?: 'surrender' | 'total_time_timeout') {
     if (surrender && this.victor) {
-      this.emitMessage(BattleMessageType.BattleEnd, { winner: this.victor.id, reason: 'surrender' })
+      const battleEndReason = reason || 'surrender'
+      this.emitMessage(BattleMessageType.BattleEnd, { winner: this.victor.id, reason: battleEndReason })
       return this.victor
     }
     if (this.status != BattleStatus.Ended && this.isBattleEnded()) throw '战斗未结束'
@@ -424,6 +505,9 @@ export class Battle extends Context implements MarkOwner {
     if (!abandonPlayer) return
     this.victor = this.getOpponent(abandonPlayer)
     this.status = BattleStatus.Ended
+    this.currentPhase = BattlePhase.Ended
+    // 停止所有计时器
+    this.timerManager.stopAllTimers()
     this.getVictor(true)
   }
 
@@ -514,6 +598,9 @@ export class Battle extends Context implements MarkOwner {
       })
     }
 
+    // 启动切换阶段计时器
+    this.timerManager.startSwitchPhase(playersNeedingSelection.map(player => player.id))
+
     // 等待所有玩家做出选择
     await this.waitForSwitchSelections(playersNeedingSelection)
 
@@ -526,6 +613,8 @@ export class Battle extends Context implements MarkOwner {
         await switchPhase.execute()
       }
       player.selection = null
+      // 通知TimerManager选择状态已清理
+      this.timerManager.handlePlayerSelectionChange(player.id, false)
     }
 
     return { battleEnded: false }
@@ -536,6 +625,9 @@ export class Battle extends Context implements MarkOwner {
     this.emitMessage(BattleMessageType.TurnAction, {
       player: [this.playerA.id, this.playerB.id],
     })
+
+    // 启动新回合计时器（重置但不启动，等待前端报告动画开始）
+    this.timerManager.startNewTurn([this.playerA.id, this.playerB.id])
 
     // Wait for both players to make selections
     await this.waitForBothPlayersReady()
@@ -637,6 +729,9 @@ export class Battle extends Context implements MarkOwner {
   public async cleanup() {
     this.clearListeners()
     await this.phaseManager.cleanup()
+
+    // Clean up timer manager
+    this.timerManager.cleanup()
 
     // Clean up all AttributeSystem instances associated with this battle
     const attributeCleanedCount = AttributeSystem.cleanupBattle(this.id)

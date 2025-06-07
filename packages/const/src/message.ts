@@ -177,9 +177,8 @@ export interface BattleMessageData {
   }
   [BattleMessageType.BattleEnd]: {
     winner: playerId | null
-    reason: 'all_pet_fainted' | 'surrender'
+    reason: 'all_pet_fainted' | 'surrender' | 'total_time_timeout'
   }
-
   [BattleMessageType.PetSwitch]: {
     player: playerId
     fromPet: petId
@@ -294,6 +293,7 @@ export interface BattleMessageData {
   [BattleMessageType.FaintSwitch]: {
     player: playerId
   }
+
   [BattleMessageType.InvalidAction]: {
     player: playerId
     action: string
