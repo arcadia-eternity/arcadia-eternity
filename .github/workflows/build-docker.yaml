@@ -6,6 +6,7 @@ on:
     branches: [main, master]
     paths:
       - 'packages/**'
+      - '!packages/web-ui/**'
       - 'data/**'
       - 'bin/**'
       - 'pnpm-lock.yaml'
