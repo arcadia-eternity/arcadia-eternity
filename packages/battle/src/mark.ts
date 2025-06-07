@@ -551,8 +551,14 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
         this.destroy(new RemoveMarkContext(context, this))
         return true
       } else {
-        // 直接设置level，computed会自动重新计算
-        this.level = remainingLevel
+        // 检查是否需要更换baseId（符号是否发生变化）
+        if (Math.sign(this.level) !== Math.sign(remainingLevel)) {
+          // 符号变化，需要创建新印记以确保正确的baseId
+          this.replaceWithNewMark(context, remainingLevel)
+        } else {
+          // 符号未变化，直接设置level
+          this.level = remainingLevel
+        }
       }
 
       return true
@@ -571,8 +577,13 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
       return true
     }
 
-    // 直接设置level，computed会自动重新计算
-    this.level = newLevel
+    // 检查是否需要更换baseId（从正变负或从负变正）
+    if (Math.sign(this.level) !== Math.sign(newLevel)) {
+      this.replaceWithNewMark(context, newLevel)
+    } else {
+      // 同符号的叠加，直接设置level
+      this.level = newLevel
+    }
 
     return true
   }
@@ -606,6 +617,62 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
 
   public isOppositeMark(other: StatLevelMarkInstanceImpl): boolean {
     return this.base.statType === other.base.statType && Math.sign(this.level) !== Math.sign(other.level)
+  }
+
+  /**
+   * 替换当前印记为具有正确baseId的新印记
+   * 用于处理相反印记叠加或符号变化的情况
+   */
+  private replaceWithNewMark(context: AddMarkContext, newLevel: number): void {
+    if (!this.owner) return
+
+    // 创建具有正确baseId的新BaseMark
+    const newBaseMark = CreateStatStageMark(this.base.statType, newLevel)
+
+    // 保存当前印记的属性
+    const currentDuration = this.duration
+    const currentConfig = { ...this.config }
+
+    // 创建新印记实例
+    const newMarkInstance = newBaseMark.createInstance()
+
+    // 设置正确的level
+    newMarkInstance.level = newLevel
+
+    // 设置其他属性
+    newMarkInstance.duration = currentDuration
+    newMarkInstance.config = currentConfig
+
+    // 设置新印记的owner和emitter
+    if (this.emitter) {
+      newMarkInstance.setOwner(this.owner, this.emitter)
+    }
+
+    // 在marks数组中替换当前印记
+    const markIndex = this.owner.marks.indexOf(this)
+    if (markIndex !== -1) {
+      this.owner.marks[markIndex] = newMarkInstance
+    }
+
+    // 清理当前印记的modifier
+    if (this.modifierCleanupFn) {
+      this.modifierCleanupFn()
+      this.modifierCleanupFn = undefined
+    }
+
+    // 为新印记添加modifier
+    if (this.owner instanceof Pet) {
+      newMarkInstance.addStatStageModifier(this.owner)
+    }
+
+    // 设置当前印记为非活跃状态，但不调用destroy以避免触发额外的清理逻辑
+    this.isActive = false
+
+    // 发送印记更新消息
+    context.battle.emitMessage(BattleMessageType.MarkUpdate, {
+      target: this.owner instanceof Pet ? this.owner.id : 'battle',
+      mark: newMarkInstance.toMessage(),
+    })
   }
 }
 
