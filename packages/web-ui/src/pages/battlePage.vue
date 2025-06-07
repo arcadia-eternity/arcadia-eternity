@@ -1133,7 +1133,7 @@ watch(
 
 <template>
   <div
-    class="h-screen bg-[#1a1a2e] flex justify-center items-center overflow-auto relative"
+    class="h-screen bg-[#1a1a2e] flex justify-center items-center overflow-hidden relative"
     :style="{
       '--battle-view-scale': battleViewScale,
     }"
