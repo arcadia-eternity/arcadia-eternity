@@ -10,6 +10,7 @@ const LocalBattlePage = () => import('../pages/localBattlePage.vue')
 // 路由守卫
 import { battleGuard } from './guards'
 import TeamBuilder from '@/pages/teamBuilder.vue'
+import StorageManager from '@/pages/storageManager.vue'
 
 // 战报相关组件
 const BattleRecordList = () => import('@/components/battleReport/BattleRecordList.vue')
@@ -46,6 +47,14 @@ const routes: RouteRecordRaw[] = [
     component: TeamBuilder,
     meta: {
       title: '队伍编辑器',
+    },
+  },
+  {
+    path: '/storage',
+    name: 'StorageManager',
+    component: StorageManager,
+    meta: {
+      title: '精灵仓库',
     },
   },
   {

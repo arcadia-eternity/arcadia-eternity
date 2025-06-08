@@ -1,385 +1,679 @@
 <template>
-  <el-container class="team-builder" direction="vertical">
-    <!-- 玩家信息栏 -->
-    <el-header class="player-header" height="auto">
-      <div class="header-content">
-        <el-tag type="info" size="large"> 当前玩家：{{ playerStore.name || '未命名训练师' }} </el-tag>
-        <div class="header-actions">
-          <el-button @click="showStorage = true">
-            <el-icon><Box /></el-icon>
-            打开仓库
-          </el-button>
+  <div class="min-h-screen bg-gray-50">
+    <!-- 头部信息栏 -->
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center space-x-4">
+            <h1 class="text-xl font-semibold text-gray-900">队伍编辑器</h1>
+            <div class="hidden sm:block">
+              <span
+                class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+              >
+                {{ playerStore.name || '未命名训练师' }}
+              </span>
+            </div>
+          </div>
+          <router-link
+            to="/storage"
+            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+              />
+            </svg>
+            仓库管理
+          </router-link>
         </div>
       </div>
-    </el-header>
+    </header>
 
-    <el-main class="main-content">
-      <el-row :gutter="16">
-        <!-- 队伍列表 -->
-        <el-col :span="7">
-          <div class="team-list">
-            <VueDraggable
-              v-model="currentTeam"
-              :animation="150"
-              handle=".drag-handle"
-              @start="onStart"
-              @end="handleDragEnd"
-              :disabled="currentTeam.length <= 1"
-            >
-              <!-- 每个拖拽项 -->
-              <TransitionGroup type="transition" :name="!drag ? 'pet-list' : undefined">
-                <el-card
-                  v-for="pet in currentTeam"
-                  :key="pet.id"
-                  class="pet-card drag-item drag-handle"
-                  :class="{ selected: selectedPetId === pet.id }"
-                  @click="selectedPetId = pet.id"
-                  size="small"
-                >
-                  <template #header>
-                    <div class="card-header">
-                      <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="size-16" />
-                      <span class="pet-name">{{ pet.name }}</span>
-                      <el-button
-                        type="danger"
-                        icon="Delete"
-                        circle
-                        @click.stop="removePet(pet.id)"
-                        :disabled="currentTeam.length === 1"
-                      />
-                    </div>
-                  </template>
+    <!-- 主要内容区域 -->
+    <main class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-3">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+        <!-- 队伍列表 - 移动端全宽，桌面端占3列 -->
+        <div class="lg:col-span-3">
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="p-3 border-b border-gray-200">
+              <h2 class="text-base font-medium text-gray-900">当前队伍</h2>
+              <p class="text-xs text-gray-500 mt-1">{{ currentTeam.length }}/6 只精灵</p>
+            </div>
 
-                  <div class="pet-info">
-                    <el-tag type="info">#{{ pet.id.slice(-6) }}</el-tag>
-                    <el-tag type="success">{{
-                      i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, {
-                        ns: 'species',
-                      })
-                    }}</el-tag>
-                    <el-tag class="level-tag">Lv.{{ pet.level }}</el-tag>
-                  </div>
-                </el-card>
-              </TransitionGroup>
-            </VueDraggable>
-
-            <el-button type="primary" class="add-button" @click="addNewPet" :disabled="currentTeam.length >= 6">
-              <el-icon><Plus /></el-icon>
-              添加精灵
-            </el-button>
-          </div>
-        </el-col>
-
-        <!-- 详细配置 -->
-        <el-col :span="16" v-if="selectedPet">
-          <el-form :model="selectedPet" label-width="100px" label-position="left" :rules="formRules" ref="formRef">
-            <el-card shadow="never">
-              <!-- ID显示 -->
-              <el-form-item label="唯一ID">
-                <el-input v-model="selectedPet.id" disabled />
-              </el-form-item>
-
-              <!-- 基础信息 -->
-              <el-form-item label="名称" prop="name">
-                <el-input v-model="selectedPet.name" size="small" />
-              </el-form-item>
-
-              <el-form-item label="种族" prop="species">
-                <el-select
-                  v-model="selectedPet.species"
-                  placeholder="选择种族"
-                  filterable
-                  @change="handleSpeciesChange"
-                >
-                  <el-option
-                    v-for="species in gameDataStore.speciesList"
-                    :key="species.id"
-                    :label="
-                      i18next.t(`${species.id}.name`, {
-                        ns: 'species',
-                      })
-                    "
-                    :value="species.id"
+            <div class="p-3 space-y-2">
+              <Sortable
+                :list="currentTeam"
+                item-key="id"
+                :options="{
+                  animation: 150,
+                  handle: '.drag-handle',
+                  disabled: currentTeam.length <= 1,
+                  group: 'pets',
+                  ghostClass: 'sortable-ghost',
+                  chosenClass: 'sortable-chosen',
+                  dragClass: 'sortable-drag',
+                }"
+                @start="onStart"
+                @end="handleDragEnd"
+                class="space-y-3"
+              >
+                <template #item="{ element: pet }">
+                  <div
+                    :key="pet.id"
+                    class="group relative bg-gray-50 rounded-md p-2 cursor-pointer transition-all duration-200 hover:bg-gray-100 drag-handle"
+                    :class="{
+                      'ring-2 ring-blue-500 bg-blue-50': selectedPetId === pet.id,
+                      'hover:shadow-md': selectedPetId !== pet.id,
+                    }"
+                    @click="selectedPetId = pet.id"
                   >
-                    <span class="species-option">
-                      {{
-                        i18next.t(`${species.id}.name`, {
-                          ns: 'species',
-                        })
-                      }}
-                      <el-tag size="small">{{ species.id }}</el-tag>
-                    </span>
-                  </el-option>
-                </el-select>
-              </el-form-item>
-              <el-form-item label="等级" prop="level">
-                <el-input-number v-model="selectedPet.level" :min="1" :max="100" controls-position="right" />
-              </el-form-item>
-              <el-form-item label="体重" prop="weight">
-                <el-input-number
-                  v-model="selectedPet.weight"
-                  :min="currentSpecies?.weightRange[0]"
-                  :max="currentSpecies?.weightRange[1]"
-                  controls-position="right"
-                />
-              </el-form-item>
-              <el-form-item label="身高" prop="height">
-                <el-input-number
-                  v-model="selectedPet.height"
-                  :min="currentSpecies?.heightRange[0]"
-                  :max="currentSpecies?.heightRange[1]"
-                  controls-position="right"
-                />
-              </el-form-item>
-              <el-form-item label="性别" prop="gender">
-                <el-select v-model="selectedPet.gender" placeholder="选择性别" :disabled="!currentSpecies?.genderRatio">
-                  <el-option
-                    v-for="gender in Object.values(Gender)"
-                    :key="gender"
-                    :label="genderChineseMap[gender as Gender]"
-                    :value="gender"
-                  />
-                </el-select>
-              </el-form-item>
-
-              <el-divider content-position="left">特性配置</el-divider>
-              <el-form-item label="特性" prop="ability">
-                <el-select v-model="selectedPet.ability" placeholder="选择特性" :disabled="!currentSpecies">
-                  <el-option
-                    v-for="ability in abilityOptions"
-                    :key="ability.id"
-                    :label="
-                      i18next.t(`${ability.id}.name`, {
-                        ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
-                      })
-                    "
-                    :value="ability.id"
-                  >
-                    <span class="float-left">
-                      {{
-                        i18next.t(`${ability.id}.name`, {
-                          ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
-                        })
-                      }}
-                    </span>
-                    <span class="float-right font-light">
-                      {{
-                        i18next.t(`${ability.id}.description`, {
-                          ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
-                        })
-                      }}
-                    </span>
-                  </el-option>
-                </el-select>
-              </el-form-item>
-
-              <el-divider content-position="left">纹章配置</el-divider>
-              <el-form-item label="纹章" prop="emblem">
-                <el-select v-model="selectedPet.emblem" placeholder="选择纹章" clearable>
-                  <el-option
-                    v-for="emblem in elblemOptions"
-                    :key="emblem.id"
-                    :label="
-                      i18next.t(`${emblem.id}.name`, {
-                        ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
-                      })
-                    "
-                    :value="emblem.id"
-                  >
-                    <span class="float-left">{{
-                      i18next.t(`${emblem.id}.name`, {
-                        ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
-                      })
-                    }}</span>
-                    <span class="float-right font-light">
-                      {{
-                        i18next.t(`${emblem.id}.description`, {
-                          ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
-                        })
-                      }}
-                    </span>
-                  </el-option>
-                </el-select>
-              </el-form-item>
-
-              <el-divider content-position="left">性格配置</el-divider>
-              <el-form-item label="性格" prop="nature">
-                <el-select v-model="selectedPet.nature" placeholder="选择性格" style="width: 200px">
-                  <el-option
-                    v-for="nature in Object.values(Nature)"
-                    :key="nature"
-                    :label="natureChineseMap[nature]"
-                    :value="nature"
-                  >
-                    <span class="nature-option">
-                      {{ natureChineseMap[nature] }}
-                      <el-tag
-                        v-for="(value, stat) in NatureMap[nature as Nature]"
-                        :key="stat"
-                        :type="value > 1 ? 'success' : value < 1 ? 'danger' : 'info'"
-                        size="small"
-                      >
-                        {{ stat.toUpperCase() }} {{ value }}x
-                      </el-tag>
-                    </span>
-                  </el-option>
-                </el-select>
-              </el-form-item>
-
-              <el-divider content-position="left">能力值配置</el-divider>
-              <div class="ev-total">
-                <el-tag type="warning">当前学习力总和: {{ currentEVTotal }}/510</el-tag>
-              </div>
-              <el-row :gutter="20">
-                <el-col v-for="stat in statList" :key="stat" :xs="24" :sm="12" :md="8">
-                  <el-card shadow="never" class="stat-card">
-                    <div class="stat-header">
-                      <span class="stat-name">{{ statChineseMap[stat] }}</span>
-                      <div class="stat-values">
-                        <span class="final-value">{{ computedStats[stat] }}</span>
-                        <el-tag type="info" size="small">EV: {{ selectedPet?.evs[stat] || 0 }}</el-tag>
+                    <div class="flex items-center space-x-2">
+                      <div class="flex-shrink-0">
+                        <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-10 h-10" />
                       </div>
-                    </div>
-
-                    <el-form-item :label="`学习力`" :prop="`evs.${stat}`">
-                      <el-slider
-                        v-model="selectedPet.evs[stat]"
-                        :class="sliderStyle"
-                        @update:model-value="val => handleEVUpdate(stat, val as number)"
-                        :min="0"
-                        :max="255"
-                        :step="4"
-                        show-input
-                        :format-tooltip="(val: number) => `${val} EV`"
-                      />
-                    </el-form-item>
-
-                    <div class="stat-details">
-                      <div class="detail-group">
-                        <div class="detail-item">
-                          <span class="label">种族</span>
-                          <span class="value">{{ currentSpecies?.baseStats[stat] || 0 }}</span>
-                        </div>
-                        <div class="detail-item">
-                          <span class="label">个体</span>
-                          <el-input-number
-                            v-model="selectedPet.ivs[stat]"
-                            :min="0"
-                            :max="31"
-                            :step="1"
-                            controls-position="right"
-                            size="small"
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-1">
+                          <ElementIcon
+                            v-if="gameDataStore.getSpecies(pet.species)?.element"
+                            :element="gameDataStore.getSpecies(pet.species)?.element"
+                            class="w-3 h-3 flex-shrink-0"
                           />
+                          <p class="text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                         </div>
-                        <div class="detail-item" v-if="stat !== 'hp'">
-                          <span class="label">性格</span>
+                        <p class="text-xs text-gray-500 truncate">
+                          {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                        </p>
+                        <div class="flex items-center space-x-1 mt-0.5">
                           <span
-                            class="value"
-                            :data-positive="getNatureMultiplier(selectedPet.nature, stat) > 1"
-                            :data-negative="getNatureMultiplier(selectedPet.nature, stat) < 1"
+                            class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-800"
                           >
-                            {{ getNatureMultiplier(selectedPet.nature, stat) }}x
+                            Lv.{{ pet.level }}
+                          </span>
+                          <span
+                            class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+                          >
+                            #{{ pet.id.slice(-4) }}
                           </span>
                         </div>
                       </div>
-                    </div>
-                  </el-card>
-                </el-col>
-              </el-row>
-
-              <!-- 技能配置 -->
-              <el-divider content-position="left">技能配置</el-divider>
-              <el-row :gutter="20">
-                <el-col v-for="(_, index) in 5" :key="index">
-                  <el-form-item :label="`技能 ${index + 1}`">
-                    <el-select
-                      v-model="displayedSkills[index]"
-                      :disabled="!currentSpecies"
-                      @change="val => handleSkillChange(val, index)"
-                      clearable
-                    >
-                      <el-option
-                        v-for="skill in skillOptions"
-                        :key="skill?.id"
-                        :label="
-                          i18next.t(`${skill.id}.name`, {
-                            ns: 'skill',
-                          })
-                        "
-                        :value="skill?.id ?? ''"
-                        :disabled="skill?.disabled"
+                      <button
+                        @click.stop="removePet(pet.id)"
+                        :disabled="currentTeam.length === 1"
+                        class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <span class="float-left">{{
-                          i18next.t(`${skill.id}.name`, {
-                            ns: 'skill',
-                          })
-                        }}</span>
-                        <span>属性:{{ skill.element }}</span>
-                        <span>威力:{{ skill.power }}</span>
-                        <span class="float-right font-light">{{
-                          i18next.t(`${skill.id}.description`, {
-                            ns: 'skill',
-                          })
-                        }}</span>
-                      </el-option>
-                    </el-select>
-                  </el-form-item>
-                </el-col>
-              </el-row>
-            </el-card>
-          </el-form>
-        </el-col>
-      </el-row>
-    </el-main>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </template>
+              </Sortable>
+
+              <button
+                @click="addNewPet"
+                :disabled="currentTeam.length >= 6"
+                class="w-full flex items-center justify-center px-3 py-2 border-2 border-dashed border-gray-300 rounded-md text-xs font-medium text-gray-600 hover:border-gray-400 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              >
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
+                </svg>
+                添加精灵
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 配置区域 - 移动端全宽，桌面端占9列 -->
+        <div class="lg:col-span-9" v-if="selectedPet">
+          <div class="space-y-3">
+            <!-- 基础信息卡片 -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div class="px-4 py-3 border-b border-gray-200">
+                <h3 class="text-base font-medium text-gray-900">基础信息</h3>
+              </div>
+              <div class="p-4">
+                <form class="space-y-4">
+                  <!-- 第一行：精灵名称和种族 -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 mb-1">精灵名称</label>
+                      <input
+                        v-model="selectedPet.name"
+                        type="text"
+                        class="block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        placeholder="输入精灵名称"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 mb-1">种族</label>
+                      <el-select-v2
+                        v-model="selectedPet.species"
+                        :options="speciesOptions"
+                        @change="handleSpeciesChange"
+                        placeholder="选择种族"
+                        filterable
+                        clearable
+                        class="w-full"
+                        style="width: 100%"
+                      >
+                        <template #default="{ item }">
+                          <div class="flex items-center space-x-2">
+                            <PetIcon :id="item.num" class="w-6 h-6 flex-shrink-0" />
+                            <div class="flex-1 min-w-0">
+                              <div class="flex items-center space-x-1 text-xs font-medium text-gray-900 truncate">
+                                <ElementIcon
+                                  v-if="item.element"
+                                  :element="item.element"
+                                  class="w-3 h-3 flex-shrink-0"
+                                />
+                                <span class="truncate">{{ item.label }}</span>
+                              </div>
+                              <div class="flex items-center space-x-1 text-xs text-gray-500 truncate">
+                                <span>#{{ item.num }}</span>
+                                <span>{{ item.element || '未知' }}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+                      </el-select-v2>
+                    </div>
+                  </div>
+
+                  <!-- 第二行：基础属性 -->
+                  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 mb-1">等级</label>
+                      <input
+                        v-model.number="selectedPet.level"
+                        type="number"
+                        min="1"
+                        max="100"
+                        class="block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 mb-1">性别</label>
+                      <el-select-v2
+                        v-model="selectedPet.gender"
+                        :options="genderOptions"
+                        :disabled="!currentSpecies?.genderRatio"
+                        placeholder="选择性别"
+                        filterable
+                        class="w-full"
+                        style="width: 100%"
+                      >
+                        <template #default="{ item }">
+                          <div class="flex items-center space-x-1">
+                            <span class="text-sm">{{ item.icon }}</span>
+                            <span class="text-xs font-medium">{{ item.label }}</span>
+                          </div>
+                        </template>
+                      </el-select-v2>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 mb-1">身高</label>
+                      <input
+                        v-model.number="selectedPet.height"
+                        type="number"
+                        :min="currentSpecies?.heightRange[0]"
+                        :max="currentSpecies?.heightRange[1]"
+                        class="block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 mb-1">体重</label>
+                      <input
+                        v-model.number="selectedPet.weight"
+                        type="number"
+                        :min="currentSpecies?.weightRange[0]"
+                        :max="currentSpecies?.weightRange[1]"
+                        class="block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- 第三行：特性、纹章与性格 -->
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <!-- 特性选择 -->
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 mb-1">特性</label>
+                      <el-select-v2
+                        v-model="selectedPet.ability"
+                        :options="abilitySelectOptions"
+                        :disabled="!currentSpecies"
+                        placeholder="选择特性"
+                        filterable
+                        clearable
+                        class="w-full"
+                        style="width: 100%"
+                        :height="300"
+                        :item-height="80"
+                      >
+                        <template #default="{ item }">
+                          <div class="flex flex-col space-y-1 p-3 min-w-0">
+                            <div class="text-sm font-medium text-gray-900 truncate">{{ item.label }}</div>
+                            <div class="text-xs text-gray-500 leading-relaxed break-words whitespace-normal">
+                              {{ item.description }}
+                            </div>
+                          </div>
+                        </template>
+                      </el-select-v2>
+                    </div>
+
+                    <!-- 纹章选择 -->
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 mb-1">纹章</label>
+                      <el-select-v2
+                        v-model="selectedPet.emblem"
+                        :options="emblemSelectOptions"
+                        placeholder="选择纹章"
+                        filterable
+                        clearable
+                        class="w-full"
+                        style="width: 100%"
+                        :height="300"
+                        :item-height="80"
+                      >
+                        <template #default="{ item }">
+                          <div class="flex flex-col space-y-1 p-3 min-w-0">
+                            <div class="text-sm font-medium text-gray-900 truncate">{{ item.label }}</div>
+                            <div class="text-xs text-gray-500 leading-relaxed break-words whitespace-normal">
+                              {{ item.description }}
+                            </div>
+                          </div>
+                        </template>
+                      </el-select-v2>
+                    </div>
+
+                    <!-- 性格选择 -->
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 mb-1">性格</label>
+                      <el-select-v2
+                        v-model="selectedPet.nature"
+                        :options="natureSelectOptions"
+                        placeholder="选择性格"
+                        filterable
+                        class="w-full"
+                        style="width: 100%"
+                        :height="300"
+                        :item-height="100"
+                      >
+                        <template #default="{ item }">
+                          <div class="flex flex-col space-y-2 p-3 min-w-0">
+                            <div class="text-sm font-medium text-gray-900 truncate">{{ item.label }}</div>
+                            <div class="flex flex-wrap gap-1">
+                              <span
+                                v-for="(value, stat) in item.effects"
+                                :key="stat"
+                                class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium flex-shrink-0"
+                                :class="{
+                                  'bg-green-100 text-green-800': value > 1,
+                                  'bg-red-100 text-red-800': value < 1,
+                                  'bg-gray-100 text-gray-800': value === 1,
+                                }"
+                              >
+                                {{ String(stat).toUpperCase() }} {{ value }}x
+                              </span>
+                            </div>
+                          </div>
+                        </template>
+                      </el-select-v2>
+                    </div>
+                  </div>
+
+                  <!-- 性格效果显示 -->
+                  <div v-if="selectedPet.nature" class="p-3 bg-gray-50 rounded-md">
+                    <p class="text-sm font-medium text-gray-700 mb-2">性格效果：</p>
+                    <div class="flex flex-wrap gap-1">
+                      <span
+                        v-for="(value, stat) in NatureMap[selectedPet.nature as Nature]"
+                        :key="stat"
+                        class="inline-flex items-center px-2 py-1 rounded text-sm font-medium"
+                        :class="{
+                          'bg-green-100 text-green-800': value > 1,
+                          'bg-red-100 text-red-800': value < 1,
+                          'bg-gray-100 text-gray-800': value === 1,
+                        }"
+                      >
+                        {{ stat.toUpperCase() }} {{ value }}x
+                      </span>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- 能力值配置 -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-base font-medium text-gray-900">能力值配置</h3>
+                <span
+                  class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                  :class="currentEVTotal > 510 ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'"
+                >
+                  学习力总和: {{ currentEVTotal }}/510
+                </span>
+              </div>
+              <div class="p-4">
+                <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+                  <div v-for="stat in statList" :key="stat" class="bg-gray-50 rounded-md p-3">
+                    <!-- 能力值头部 -->
+                    <div class="flex items-center justify-between mb-2">
+                      <h4 class="text-xs font-medium text-gray-900">{{ statChineseMap[stat] }}</h4>
+                      <div class="text-right">
+                        <div class="text-sm font-bold text-gray-900">{{ computedStats[stat] }}</div>
+                        <div class="text-xs text-gray-500">最终值</div>
+                      </div>
+                    </div>
+
+                    <!-- 学习力滑块 -->
+                    <div class="mb-3">
+                      <label class="block text-xs font-medium text-gray-700 mb-1">
+                        学习力: {{ selectedPet?.evs[stat] || 0 }}
+                      </label>
+                      <input
+                        type="range"
+                        :value="selectedPet.evs[stat]"
+                        @input="handleEVUpdate(stat, Number(($event.target as HTMLInputElement).value))"
+                        min="0"
+                        max="255"
+                        step="4"
+                        class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                      />
+                      <div class="flex justify-between text-xs text-gray-500 mt-0.5">
+                        <span>0</span>
+                        <span>255</span>
+                      </div>
+                    </div>
+
+                    <!-- 详细数值 -->
+                    <div class="space-y-1">
+                      <div class="flex justify-between text-xs">
+                        <span class="text-gray-600">种族值</span>
+                        <span class="font-medium">{{ currentSpecies?.baseStats[stat] || 0 }}</span>
+                      </div>
+                      <div class="flex justify-between text-xs">
+                        <span class="text-gray-600">个体值</span>
+                        <input
+                          v-model.number="selectedPet.ivs[stat]"
+                          type="number"
+                          min="0"
+                          max="31"
+                          class="w-12 px-1 py-0.5 text-xs border border-gray-300 rounded text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div v-if="stat !== 'hp'" class="flex justify-between text-xs">
+                        <span class="text-gray-600">性格修正</span>
+                        <span
+                          class="font-medium"
+                          :class="{
+                            'text-green-600': getNatureMultiplier(selectedPet.nature, stat) > 1,
+                            'text-red-600': getNatureMultiplier(selectedPet.nature, stat) < 1,
+                            'text-gray-600': getNatureMultiplier(selectedPet.nature, stat) === 1,
+                          }"
+                        >
+                          {{ getNatureMultiplier(selectedPet.nature, stat) }}x
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 技能配置 -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div class="px-4 py-3 border-b border-gray-200">
+                <h3 class="text-base font-medium text-gray-900">技能配置</h3>
+                <p class="text-xs text-gray-500 mt-1">最多可配置5个技能</p>
+              </div>
+              <div class="p-4">
+                <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <div v-for="(_, index) in 5" :key="index" class="space-y-2">
+                    <label class="block text-xs font-medium text-gray-700">
+                      技能 {{ index + 1 }}
+                      <span v-if="index === 0" class="text-red-500">*</span>
+                    </label>
+                    <el-select-v2
+                      :model-value="displayedSkills[index]"
+                      @update:model-value="value => handleSkillChange(value, index)"
+                      :options="skillSelectOptions"
+                      :disabled="!currentSpecies"
+                      placeholder="选择技能"
+                      filterable
+                      clearable
+                      class="w-full"
+                      style="width: 100%"
+                      :height="400"
+                      :item-height="140"
+                    >
+                      <template #default="{ item }">
+                        <div class="flex flex-col space-y-2 p-3 min-w-0 max-w-full">
+                          <!-- 技能名称 -->
+                          <div class="flex items-center space-x-1 text-sm font-medium text-gray-900">
+                            <ElementIcon v-if="item.element" :element="item.element" class="w-4 h-4 flex-shrink-0" />
+                            <span class="font-medium">{{ item.label }}</span>
+                          </div>
+                          <!-- 技能标签 -->
+                          <div class="flex flex-wrap gap-1">
+                            <span
+                              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
+                            >
+                              威力: {{ item.power }}
+                            </span>
+                            <span
+                              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
+                            >
+                              {{ item.category }}
+                            </span>
+                            <span
+                              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800"
+                            >
+                              怒气: {{ item.rage }}
+                            </span>
+                            <span
+                              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800"
+                            >
+                              命中: {{ item.accuracy }}%
+                            </span>
+                          </div>
+                          <!-- 技能描述 -->
+                          <div
+                            class="text-xs text-gray-600 leading-relaxed break-words whitespace-normal prose prose-xs max-w-none overflow-hidden"
+                            v-html="md.render(item.description)"
+                          ></div>
+                        </div>
+                      </template>
+                    </el-select-v2>
+
+                    <!-- 技能详情显示 -->
+                    <div v-if="displayedSkills[index]" class="p-2 bg-gray-50 rounded-md">
+                      <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center space-x-1">
+                          <ElementIcon
+                            v-if="gameDataStore.skillList.find(s => s.id === displayedSkills[index])?.element"
+                            :element="gameDataStore.skillList.find(s => s.id === displayedSkills[index])?.element!"
+                            class="w-3 h-3 flex-shrink-0"
+                          />
+                          <h4 class="text-xs font-medium text-gray-900">
+                            {{ i18next.t(`${displayedSkills[index]}.name`, { ns: 'skill' }) }}
+                          </h4>
+                        </div>
+                        <div class="flex flex-wrap gap-1">
+                          <span
+                            class="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
+                          >
+                            威力: {{ gameDataStore.skillList.find(s => s.id === displayedSkills[index])?.power }}
+                          </span>
+                          <span
+                            class="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
+                          >
+                            {{ gameDataStore.skillList.find(s => s.id === displayedSkills[index])?.category }}
+                          </span>
+                          <span
+                            class="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800"
+                          >
+                            怒气: {{ gameDataStore.skillList.find(s => s.id === displayedSkills[index])?.rage }}
+                          </span>
+                          <span
+                            class="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800"
+                          >
+                            命中: {{ gameDataStore.skillList.find(s => s.id === displayedSkills[index])?.accuracy }}%
+                          </span>
+                        </div>
+                      </div>
+                      <div
+                        class="text-xs text-gray-600 leading-relaxed break-words whitespace-normal prose prose-xs max-w-none"
+                        v-html="md.render(i18next.t(`${displayedSkills[index]}.description`, { ns: 'skill' }))"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
 
     <!-- 全局操作栏 -->
-    <div class="global-actions">
-      <el-button type="primary" @click="saveCurrentTeam">
-        <el-icon><Check /></el-icon>
-        保存队伍
-      </el-button>
-      <el-button @click="exportTeamConfig">
-        <el-icon><Download /></el-icon>
-        导出配置
-      </el-button>
-      <el-button @click="importTeamConfig">
-        <el-icon><Upload /></el-icon>
-        导入配置
-      </el-button>
+    <div class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+      <div class="flex items-center space-x-2 bg-white rounded-full shadow-lg border border-gray-200 px-4 py-2">
+        <button
+          @click="saveCurrentTeam"
+          class="inline-flex items-center px-3 py-1.5 bg-blue-600 border border-transparent rounded-md font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 text-sm"
+        >
+          <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          保存队伍
+        </button>
+        <button
+          @click="exportTeamConfig"
+          class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 text-sm"
+        >
+          <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          导出
+        </button>
+        <button
+          @click="importTeamConfig"
+          class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 text-sm"
+        >
+          <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
+            />
+          </svg>
+          导入
+        </button>
+      </div>
     </div>
-    <el-dialog v-model="showStorage" title="精灵仓库" width="80%">
-      <storage-manager @select-pet="handleSelectFromStorage" />
-    </el-dialog>
-  </el-container>
+  </div>
 </template>
+
+<style scoped>
+/* 技能下拉框样式优化 */
+:deep(.el-select-dropdown__item) {
+  height: auto !important;
+  min-height: 140px !important;
+  padding: 0 !important;
+}
+
+/* Markdown渲染样式 */
+:deep(.prose) {
+  color: inherit;
+}
+
+:deep(.prose p) {
+  margin: 0;
+  line-height: 1.4;
+}
+
+:deep(.prose strong) {
+  font-weight: 600;
+  color: #374151;
+}
+
+:deep(.prose em) {
+  font-style: italic;
+  color: #6b7280;
+}
+
+:deep(.prose ul) {
+  margin: 0.25rem 0;
+  padding-left: 1rem;
+}
+
+:deep(.prose li) {
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* 确保HTML内容不会溢出 */
+:deep(.prose *) {
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+</style>
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
-import { type FormInstance, type FormRules } from 'element-plus'
 import { nanoid } from 'nanoid'
 import { usePlayerStore } from '@/stores/player'
 import { useGameDataStore } from '@/stores/gameData'
 import { usePetStorageStore } from '@/stores/petStorage'
-import StorageManager from '@/components/StorageManager.vue'
+
 import { type PetSchemaType, PetSetSchema } from '@arcadia-eternity/schema'
 import { useTranslation } from 'i18next-vue'
 import { Gender, NatureMap } from '@arcadia-eternity/const'
 import { Nature } from '@arcadia-eternity/const'
-import { VueDraggable } from 'vue-draggable-plus'
+import { Sortable } from 'sortablejs-vue3'
 import { parse, stringify } from 'yaml'
 import { z } from 'zod'
 import PetIcon from '@/components/PetIcon.vue'
+import ElementIcon from '@/components/battle/ElementIcon.vue'
+import MarkdownIt from 'markdown-it'
 
-const { t, i18next } = useTranslation()
+const { i18next } = useTranslation()
 
 const playerStore = usePlayerStore()
 const gameDataStore = useGameDataStore()
 const petStorage = usePetStorageStore()
 
+// 创建markdown-it实例
+const md = new MarkdownIt({
+  html: true,
+  linkify: false,
+  typographer: false,
+})
+
 // 响应式状态
 const selectedPetId = ref<string | null>(null)
-const formRef = ref<FormInstance>()
-const showStorage = ref(false)
 
 type StatKey = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe'
 
@@ -391,73 +685,52 @@ const onStart = () => {
   drag.value = true
 }
 
-const handleDragEnd = () => {
+const handleDragEnd = (event: any) => {
   nextTick(() => {
     drag.value = false
   })
-  try {
-    // 更新 Pinia 存储
-    petStorage.updateTeamOrder(
-      petStorage.currentTeamIndex,
-      // 创建新数组引用确保响应性
-      [...currentTeam.value],
-    )
 
-    // 自动保存机制
-    petStorage.saveToLocal()
+  // sortablejs-vue3 使用 oldIndex 和 newIndex 来处理重排序
+  if (event.oldIndex !== undefined && event.newIndex !== undefined && event.oldIndex !== event.newIndex) {
+    try {
+      const newOrder = [...currentTeam.value]
+      const movedPet = newOrder.splice(event.oldIndex, 1)[0]
+      newOrder.splice(event.newIndex, 0, movedPet)
 
-    // 视觉反馈
-    ElMessage.success('队伍顺序已自动保存')
-  } catch (error) {
-    console.error('拖拽操作保存失败:', error)
-    ElMessage.error('队伍顺序保存失败，请手动保存')
+      // 更新 Pinia 存储
+      petStorage.updateTeamOrder(petStorage.currentTeamIndex, newOrder)
+
+      // 自动保存机制
+      petStorage.saveToLocal()
+
+      // 视觉反馈
+      console.log('队伍顺序已自动保存')
+    } catch (error) {
+      console.error('拖拽操作保存失败:', error)
+      console.error('队伍顺序保存失败，请手动保存')
+    }
   }
 }
 
-// 表单验证规则
-const formRules: FormRules = {
-  name: [
-    { required: true, message: '请输入精灵名称', trigger: 'blur' },
-    { max: 20, message: '名称不能超过20个字符', trigger: 'blur' },
-  ],
-  species: [
-    {
-      required: true,
-      message: '请选择精灵种族',
-      trigger: 'change',
-    },
-    {
-      validator: (_, value, callback) => {
-        if (!gameDataStore.speciesList.find(v => v.id === selectedPet.value?.species || '')) {
-          callback(new Error('无效的种族ID'))
-        } else {
-          callback()
-        }
-      },
-      trigger: 'change',
-    },
-  ],
-  evs: [
-    {
-      validator: () => currentEVTotal.value <= 510,
-      message: '学习力总和不能超过510',
-      trigger: 'change',
-    },
-  ],
-  gender: [
-    {
-      required: true,
-      message: '请选择性别',
-      trigger: 'change',
-      validator: (_, value, callback) => {
-        if (!currentSpecies.value?.genderRatio && value !== Gender.NoGender) {
-          callback(new Error('该物种无性别'))
-        } else {
-          callback()
-        }
-      },
-    },
-  ],
+// 简单的验证函数
+const validateTeam = () => {
+  if (currentTeam.value.length < 1 || currentTeam.value.length > 6) {
+    return '队伍数量必须在1到6之间'
+  }
+
+  for (const pet of currentTeam.value) {
+    if (!pet.name || pet.name.length > 20) {
+      return '精灵名称不能为空且不能超过20个字符'
+    }
+    if (!pet.species) {
+      return '请为所有精灵选择种族'
+    }
+    if (currentEVTotal.value > 510) {
+      return '学习力总和不能超过510'
+    }
+  }
+
+  return null
 }
 
 // 计算属性
@@ -499,15 +772,19 @@ const filteredSkills = computed(() => {
     .filter(Boolean)
 })
 
-// 从仓库选择精灵
-const handleSelectFromStorage = (pet: PetSchemaType) => {
-  // 检查队伍容量
-  if (currentTeam.value.length >= 6) {
-    ElMessage.warning('队伍已满，无法添加更多精灵')
-    return
-  }
-  // 移动精灵到队伍
-  petStorage.moveToTeam(pet.id, petStorage.currentTeamIndex)
+const statChineseMap: Record<StatKey, string> = {
+  hp: '体力',
+  atk: '攻击',
+  def: '防御',
+  spa: '特攻',
+  spd: '特防',
+  spe: '速度',
+}
+
+const genderChineseMap: Record<Gender, string> = {
+  [Gender.Male]: '雄性',
+  [Gender.Female]: '雌性',
+  [Gender.NoGender]: '无性别',
 }
 
 const natureChineseMap: Record<Nature, string> = {
@@ -538,21 +815,6 @@ const natureChineseMap: Record<Nature, string> = {
   [Nature.Timid]: '胆小',
 }
 
-const statChineseMap: Record<StatKey, string> = {
-  hp: '体力',
-  atk: '攻击',
-  def: '防御',
-  spa: '特攻',
-  spd: '特防',
-  spe: '速度',
-}
-
-const genderChineseMap: Record<Gender, string> = {
-  [Gender.Male]: '雄性',
-  [Gender.Female]: '雌性',
-  [Gender.NoGender]: '无性别',
-}
-
 const displayedSkills = computed({
   get: () => {
     return Array.from({ length: 5 }, (_, i) => selectedPet.value?.skills[i] || '')
@@ -565,34 +827,77 @@ const displayedSkills = computed({
   },
 })
 
-const abilityOptions = computed(() => {
+// 新的下拉框选项计算属性
+const speciesOptions = computed(() => {
+  return gameDataStore.speciesList.map(species => ({
+    value: species.id,
+    label: i18next.t(`${species.id}.name`, { ns: 'species' }),
+    num: species.num,
+    element: species.element,
+  }))
+})
+
+const genderOptions = computed(() => {
+  return Object.values(Gender).map(gender => ({
+    value: gender,
+    label: genderChineseMap[gender as Gender],
+    icon: gender === Gender.Male ? '♂' : gender === Gender.Female ? '♀' : '⚲',
+  }))
+})
+
+const abilitySelectOptions = computed(() => {
   if (!selectedPet.value) return []
   const currentAblity = selectedPet.value.ability
   return filteredAbility.value
     .filter(ability => !!ability)
     .map(ability => ({
-      ...ability,
+      value: ability.id,
+      label: i18next.t(`${ability.id}.name`, {
+        ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
+      }),
+      description: i18next.t(`${ability.id}.description`, {
+        ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
+      }),
       disabled: currentAblity === ability.id,
     }))
 })
 
-const elblemOptions = computed(() => {
+const emblemSelectOptions = computed(() => {
   if (!selectedPet.value) return []
   const currentElblem = selectedPet.value.emblem
   return filteredElblem.value
     .filter(elblem => !!elblem)
     .map(elblem => ({
-      ...elblem,
+      value: elblem.id,
+      label: i18next.t(`${elblem.id}.name`, { ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'] }),
+      description: i18next.t(`${elblem.id}.description`, {
+        ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
+      }),
       disabled: currentElblem === elblem.id,
     }))
 })
 
-const skillOptions = computed(() => {
+const natureSelectOptions = computed(() => {
+  return Object.values(Nature).map(nature => ({
+    value: nature,
+    label: natureChineseMap[nature],
+    effects: NatureMap[nature],
+  }))
+})
+
+const skillSelectOptions = computed(() => {
   const currentSkills = displayedSkills.value.filter(s => s)
   return filteredSkills.value
     .filter(skill => !!skill)
     .map(skill => ({
-      ...skill,
+      value: skill.id,
+      label: i18next.t(`${skill.id}.name`, { ns: 'skill' }),
+      description: i18next.t(`${skill.id}.description`, { ns: 'skill' }),
+      element: skill.element,
+      power: skill.power,
+      category: skill.category,
+      rage: skill.rage,
+      accuracy: skill.accuracy,
       disabled: currentSkills.includes(skill.id),
     }))
 })
@@ -638,18 +943,18 @@ const removePet = (petId: string) => {
   petStorage.moveToPC(petId)
 }
 
-const saveCurrentTeam = async () => {
-  try {
-    if (currentTeam.value.length < 1 || currentTeam.value.length > 6) {
-      ElMessage.error('队伍数量必须在1到6之间')
-      return
-    }
+const saveCurrentTeam = () => {
+  const error = validateTeam()
+  if (error) {
+    ElMessage.error(error)
+    return
+  }
 
-    await formRef.value?.validate()
+  try {
     petStorage.saveToLocal()
     ElMessage.success('队伍保存成功')
   } catch (err) {
-    ElMessage.error('保存失败，请检查表单')
+    ElMessage.error('保存失败，请检查数据')
   }
 }
 
@@ -724,19 +1029,6 @@ const handleEVUpdate = (stat: StatKey, value: number) => {
 
   selectedPet.value.evs[stat] = clampedValue
 }
-
-// 添加视觉提示
-const sliderStyle = computed(() => (stat: StatKey) => {
-  if (!selectedPet.value) return {}
-  const percent = (selectedPet.value.evs[stat] / 255) * 100
-  const otherSum = currentEVTotal.value - selectedPet.value.evs[stat]
-  const available = 510 - otherSum
-  const effectiveMax = Math.min(255, available)
-
-  return {
-    '--el-slider-runway-bg-color': effectiveMax < 255 ? '#ffd6d6' : 'var(--el-border-color-light)',
-  }
-})
 
 const computedStats = computed(() => {
   if (!selectedPet.value || !currentSpecies.value) return {} as Record<StatKey, number>
@@ -982,184 +1274,132 @@ function getDefaultGender(speciesId: string): Gender {
 </script>
 
 <style scoped>
-/* 基础布局 */
-.team-builder {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* 头部区域优化 */
-.player-header {
-  padding: 12px 16px;
-  .header-content {
-    gap: 8px;
-
-    .el-tag {
-      font-size: 14px;
-      padding: 8px 12px;
-    }
-  }
-
-  .header-actions {
-    gap: 12px;
-  }
-}
-
-.drag-item {
+/* 拖拽相关样式 */
+.drag-handle {
   cursor: grab;
-  user-select: none; /* 防止文字被选中 */
-  transition: transform 0.2s ease;
+  user-select: none;
+  touch-action: none;
+}
 
-  /* 移动端优化 */
-  touch-action: none; /* 禁用默认触摸行为 */
+.drag-handle:active {
+  cursor: grabbing;
+}
 
-  &:active {
-    cursor: grabbing;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+/* sortablejs 拖拽样式 */
+.sortable-ghost {
+  opacity: 0.4;
+  background: #c8ebfb;
+}
+
+.sortable-chosen {
+  cursor: grabbing;
+}
+
+.sortable-drag {
+  opacity: 0.8;
+  transform: rotate(2deg);
+}
+
+/* 学习力滑块样式 */
+.slider {
+  background: linear-gradient(to right, #3b82f6 0%, #3b82f6 var(--value, 0%), #e5e7eb var(--value, 0%), #e5e7eb 100%);
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 过渡动画 */
+.pet-list-move,
+.pet-list-enter-active,
+.pet-list-leave-active {
+  transition: all 0.3s ease;
+}
+
+.pet-list-enter-from,
+.pet-list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.pet-list-leave-active {
+  position: absolute;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .fixed.bottom-4 {
+    bottom: 0.5rem;
+    left: 0.5rem;
+    right: 0.5rem;
+    transform: none;
+  }
+
+  .fixed.bottom-4 > div {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .fixed.bottom-4 button {
+    width: 100%;
+    justify-content: center;
   }
 }
 
-/* 调整删除按钮位置 */
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
+/* 响应式网格调整 */
+@media (max-width: 1024px) {
+  .lg\:col-span-3 {
+    grid-column: span 12 / span 12;
+  }
 
-/* 防止表单元素触发拖拽 */
-.el-input,
-.el-select,
-.el-slider {
-  cursor: auto; /* 恢复默认光标 */
-
-  &:active {
-    cursor: auto;
+  .lg\:col-span-9 {
+    grid-column: span 12 / span 12;
   }
 }
 
-.team-list {
-  gap: 8px;
-
-  .pet-card {
-    transition: all 0.2s ease;
-    cursor: pointer;
-
-    &:hover {
-      border-color: var(--el-color-primary-light-5);
-    }
-
-    &.selected {
-      /* 边框强调 */
-      border: 2px solid var(--el-color-primary);
-      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.15);
-
-      /* 背景色强调 */
-      background-color: rgba(var(--el-color-primary-rgb), 0.05);
-
-      /* 左侧标记线 */
-      position: relative;
-      &::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 3px;
-        background: var(--el-color-primary);
-      }
-
-      /* 缩放效果 */
-      transform: scale(1.02);
-    }
-  }
-
-  /* 选中卡片内部元素样式 */
-  .pet-card.selected {
-    .pet-name {
-      color: var(--el-color-primary);
-      font-weight: bold;
-    }
-
-    .el-tag:not(.level-tag) {
-      border-color: var(--el-color-primary-light-5);
-    }
-  }
+/* Element Plus 虚拟下拉框样式优化 */
+:deep(.el-select-v2__wrapper) {
+  width: 100% !important;
 }
 
-/* 通用颜色定义 */
-.value[data-positive='true'] {
-  color: var(--el-color-success);
-}
-.value[data-positive='false'] {
-  color: var(--el-color-danger);
+:deep(.el-select-dropdown__item) {
+  height: auto !important;
+  min-height: 34px;
+  padding: 0 !important;
 }
 
-.global-actions {
-  /* 基础定位 */
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2000;
+:deep(.el-select-dropdown__item.is-hovering) {
+  background-color: #f5f7fa;
+}
 
-  /* 布局样式 */
-  display: flex;
-  gap: 16px;
-  padding: 12px 24px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 28px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--el-border-color-lighter);
+:deep(.el-select-dropdown__item.is-selected) {
+  background-color: #ecf5ff;
+  color: #409eff;
+}
 
-  /* 按钮统一样式 */
-  .el-button {
-    padding: 12px 24px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    transition: all 0.3s var(--el-transition-function-fast-bezier);
-
-    /* 带图标按钮样式 */
-    .el-icon {
-      margin-right: 8px;
-      font-size: 1.1em;
-      vertical-align: -0.15em;
-    }
-
-    /* 主按钮强化 */
-    &--primary {
-      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.4);
-      }
-    }
-
-    /* 默认按钮悬停效果 */
-    &:not(.el-button--primary):hover {
-      background-color: var(--el-color-info-light-9);
-      border-color: var(--el-color-info-light-5);
-    }
-  }
-
-  /* 移动端适配 */
-  @media (max-width: 768px) {
-    bottom: 10px;
-    padding: 8px 16px;
-    gap: 12px;
-
-    .el-button {
-      padding: 10px 16px;
-      font-size: 0.9em;
-
-      .el-icon {
-        margin-right: 6px;
-        font-size: 1em;
-      }
-    }
-  }
+/* 确保文本不会被截断 */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>
