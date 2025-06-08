@@ -697,6 +697,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
+import { nanoid } from 'nanoid'
 import { usePetStorageStore } from '../stores/petStorage'
 import { usePlayerStore } from '../stores/player'
 import { useGameDataStore } from '../stores/gameData'
@@ -1204,8 +1205,10 @@ const importTeam = () => {
         const newTeamIndex = petStorage.teams.length - 1
 
         teamData.pets.forEach((pet: PetSchemaType) => {
-          petStorage.storage.push(pet)
-          petStorage.moveToTeam(pet.id, newTeamIndex)
+          // 为导入的精灵生成新的ID，避免冲突
+          const petCopy = { ...pet, id: nanoid() }
+          petStorage.storage.push(petCopy)
+          petStorage.moveToTeam(petCopy.id, newTeamIndex)
         })
 
         // moveToTeam 已经包含了 saveToLocal，但这里需要额外保存storage的变化
@@ -1384,7 +1387,7 @@ const showPetDetails = (pet: PetSchemaType) => {
 const copyPet = (pet: PetSchemaType) => {
   try {
     const petCopy = JSON.parse(JSON.stringify(pet))
-    petCopy.id = `pet_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+    petCopy.id = nanoid()
     petCopy.name = `${pet.name} (副本)`
 
     petStorage.storage.push(petCopy)
@@ -1413,7 +1416,7 @@ const copyTeam = (index: number) => {
     // 复制队伍中的所有精灵
     originalTeam.pets.forEach(pet => {
       const petCopy = JSON.parse(JSON.stringify(pet))
-      petCopy.id = `pet_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+      petCopy.id = nanoid()
       petCopy.name = `${pet.name} (副本)`
 
       // 先添加到仓库，再移动到新队伍
