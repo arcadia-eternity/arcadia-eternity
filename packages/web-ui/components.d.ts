@@ -46,7 +46,6 @@ declare module 'vue' {
     OptionalFieldEditor: typeof import('./src/components/OptionalFieldEditor.vue')['default']
     Pet: typeof import('./src/components/battle/Pet.vue')['default']
     PetButton: typeof import('./src/components/battle/PetButton.vue')['default']
-    PetCard: typeof import('./src/components/petCard.vue')['default']
     PetIcon: typeof import('./src/components/PetIcon.vue')['default']
     PetSprite: typeof import('./src/components/battle/PetSprite.vue')['default']
     PlayerBattleRecords: typeof import('./src/components/battleReport/PlayerBattleRecords.vue')['default']
