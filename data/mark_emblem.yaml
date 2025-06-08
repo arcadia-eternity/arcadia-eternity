@@ -116,3 +116,11 @@
   config: *emblem_config
   effect:
     - effect_emblem_shenjie_freeze_rate_boost_5_percent
+- id: mark_emblem_anying
+  config: *emblem_config
+  effect:
+    - effect_emblem_anying_immune_fear_early_wake
+- id: mark_emblem_guangming
+  config: *emblem_config
+  effect:
+    - effect_emblem_guangming_heal_20_per_turn

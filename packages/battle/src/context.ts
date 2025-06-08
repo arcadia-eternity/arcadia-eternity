@@ -35,6 +35,7 @@ export type AllContext =
   | RemoveMarkContext
   | SwitchPetContext
   | RageContext
+  | StackContext
   | EffectContext<EffectTrigger>
 
 export type PetTurnData = {}
@@ -256,6 +257,9 @@ export class UseSkillContext extends Context {
     if (updateConfig) {
       this.power = skill.power
       this.rage = skill.rage
+      this.category = skill.category
+      this.element = skill.element
+      this.accuracy = skill.accuracy
       if (skill.sureHit)
         this.hitOverrides.push({
           willHit: true,
@@ -433,21 +437,42 @@ export class HealContext extends Context {
   readonly type = 'heal'
   public readonly battle: Battle
   public available: boolean = true
+  public healResult: number = 0
   constructor(
     public readonly parent: EffectContext<EffectTrigger>,
     public readonly source: MarkInstance | SkillInstance,
     public readonly target: Pet,
-    public value: number,
+    public baseHeal: number,
     public ingoreEffect: boolean = false,
     public modified: [number, number] = [0, 0], // 百分比修正, 固定值修正
   ) {
     super(parent)
     this.battle = parent.battle
+    this.healResult = baseHeal
+  }
+
+  updateHealResult() {
+    // 应用百分比修正（叠加计算）
+    const percentModifier = 1 + this.modified[0] / 100
+    const deltaModifier = this.modified[1]
+    let intermediateHeal = this.baseHeal * percentModifier + deltaModifier
+
+    // 记录最终治疗值
+    this.healResult = Math.floor(Math.max(0, intermediateHeal))
   }
 
   addModified: (percent: number, delta: number) => void = (percent, delta) => {
     this.modified[0] += percent
     this.modified[1] += delta
+  }
+
+  // For backward compatibility
+  get value(): number {
+    return this.healResult
+  }
+
+  set value(val: number) {
+    this.healResult = val
   }
 }
 
@@ -547,6 +572,44 @@ export class RemoveMarkContext extends Context {
   }
 }
 
+export class StackContext extends Context {
+  readonly type = 'stack'
+  public readonly battle: Battle
+  public available: boolean = true
+
+  constructor(
+    public readonly parent: AddMarkContext,
+    public readonly existingMark: MarkInstance,
+    public readonly incomingMark: MarkInstance,
+    public readonly stacksBefore: number,
+    public readonly durationBefore: number,
+    public stacksAfter: number,
+    public durationAfter: number,
+    public readonly stackStrategy: StackStrategy,
+  ) {
+    super(parent)
+    this.battle = parent.battle
+  }
+
+  // 获取叠层变化量
+  get stackChange(): number {
+    return this.stacksAfter - this.stacksBefore
+  }
+
+  get durationChange(): number {
+    return this.durationAfter - this.durationBefore
+  }
+
+  // 更新叠层后的值（允许effect修改）
+  updateStacksAfter(newStacks: number): void {
+    this.stacksAfter = newStacks
+  }
+
+  updateDurationAfter(newDuration: number): void {
+    this.durationAfter = newDuration
+  }
+}
+
 export type TriggerContextMap = {
   [EffectTrigger.OnBattleStart]: Battle
 
@@ -578,7 +641,9 @@ export type TriggerContextMap = {
   [EffectTrigger.OnMarkDestroy]: RemoveMarkContext
   [EffectTrigger.OnMarkDurationEnd]: TurnContext
 
-  [EffectTrigger.OnStack]: AddMarkContext
+  [EffectTrigger.OnStackBefore]: StackContext
+  [EffectTrigger.OnStack]: StackContext
+  [EffectTrigger.OnBeforeHeal]: HealContext
   [EffectTrigger.OnHeal]: HealContext
   [EffectTrigger.OnRageGain]: RageContext
   [EffectTrigger.OnRageLoss]: RageContext

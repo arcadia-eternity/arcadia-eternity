@@ -7,3 +7,6 @@ mark_global_yutian:
 mark_global_yanre:
   name: 炎热
   description: 火系技能的威力提高35%
+mark_global_yemu:
+  name: 夜幕
+  description: 暗影系 特质系技能伤害提高35%

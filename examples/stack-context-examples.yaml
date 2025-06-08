@@ -1,0 +1,239 @@
+# 叠层上下文示例 - 展示如何使用OnStackBefore和OnStack触发器
+
+# 示例1：当印记叠层达到特定阈值时触发副作用
+- id: effect_stack_threshold_trigger
+  trigger: OnStack
+  priority: 0
+  apply:
+    - type: addMark
+      target: foe
+      mark:
+        type: entity:baseMark
+        value: mark_zhongdu
+    - type: heal
+      target: self
+      value: 50
+  condition:
+    type: every
+    conditions:
+      # 检查叠层后是否达到3层
+      - type: evaluate
+        target:
+          base: stackContext
+          chain:
+            - type: selectPath
+              arg: stacksAfter
+        evaluator:
+          type: greaterThanOrEqual
+          value: 3
+      # 检查叠层前是否小于3层（确保是刚达到阈值）
+      - type: evaluate
+        target:
+          base: stackContext
+          chain:
+            - type: selectPath
+              arg: stacksBefore
+        evaluator:
+          type: lessThan
+          value: 3
+
+# 示例2：根据叠层变化量获得不同效果
+- id: effect_stack_change_bonus
+  trigger: OnStack
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shanghaizengjia
+    stack:
+      type: dynamic
+      selector:
+        base: stackContext
+        chain:
+          - type: selectPath
+            arg: stackChange
+  condition:
+    # 只有当叠层增加时才触发
+    type: evaluate
+    target:
+      base: stackContext
+      chain:
+        - type: selectPath
+          arg: stackChange
+    evaluator:
+      type: greaterThan
+      value: 0
+
+# 示例3：使用OnStackBefore修改最终叠层结果
+- id: effect_modify_final_stack_count
+  trigger: OnStackBefore
+  priority: 0
+  apply:
+    type: modifyStackResult
+    target: stackContext
+    newStacks:
+      type: dynamic
+      selector:
+        base: stackContext
+        chain:
+          - type: selectPath
+            arg: stacksAfter
+          - type: multiply
+            arg: 2
+          - type: min
+            arg: 10 # 最大不超过10层
+  condition:
+    type: every
+    conditions:
+      # 只有当使用特定叠层策略时才触发
+      - type: evaluate
+        target:
+          base: stackContext
+          chain:
+            - type: selectPath
+              arg: stackStrategy
+        evaluator:
+          type: same
+          value: stack
+      # 只有当叠层数小于等于5时才翻倍
+      - type: evaluate
+        target:
+          base: stackContext
+          chain:
+            - type: selectPath
+              arg: stacksAfter
+        evaluator:
+          type: lessThanOrEqual
+          value: 5
+
+# 示例4：根据现有印记信息调整叠层
+- id: effect_adjust_stack_based_on_existing_mark
+  trigger: OnStackBefore
+  priority: 0
+  apply:
+    type: modifyStackResult
+    target: stackContext
+    newStacks:
+      type: dynamic
+      selector:
+        base: stackContext
+        chain:
+          - type: selectPath
+            arg: existingMark
+          - type: selectPath
+            arg: stack
+          - type: add
+            arg:
+              type: dynamic
+              selector:
+                base: stackContext
+                chain:
+                  - type: selectPath
+                    arg: incomingMark
+                  - type: selectPath
+                    arg: stack
+                  - type: multiply
+                    arg: 3 # 新印记的叠层数乘以3
+  condition:
+    # 只有当现有印记已经有一定叠层时才触发
+    type: evaluate
+    target:
+      base: stackContext
+      chain:
+        - type: selectPath
+          arg: existingMark
+        - type: selectPath
+          arg: stack
+    evaluator:
+      type: greaterThanOrEqual
+      value: 2
+
+# 示例5：基于叠层持续时间变化的效果
+- id: effect_duration_change_bonus
+  trigger: OnStack
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_jiasudu
+    duration:
+      type: dynamic
+      selector:
+        base: stackContext
+        chain:
+          - type: selectPath
+            arg: durationChange
+          - type: divide
+            arg: 2
+  condition:
+    # 只有当持续时间增加时才触发
+    type: evaluate
+    target:
+      base: stackContext
+      chain:
+        - type: selectPath
+          arg: durationChange
+    evaluator:
+      type: greaterThan
+      value: 0
+
+# 示例6：防止叠层超过特定数量
+- id: effect_prevent_over_stacking
+  trigger: OnStackBefore
+  priority: 100 # 高优先级，确保最后执行
+  apply:
+    type: modifyStackResult
+    target: stackContext
+    newStacks: 5 # 强制设置为5层
+  condition:
+    # 当叠层超过5层时触发
+    type: evaluate
+    target:
+      base: stackContext
+      chain:
+        - type: selectPath
+          arg: stacksAfter
+    evaluator:
+      type: greaterThan
+      value: 5
+
+# 示例7：叠层时消耗其他印记
+- id: effect_consume_other_mark_on_stack
+  trigger: OnStack
+  priority: 0
+  apply:
+    type: consumeMarkStacks
+    target: self
+    markBaseId: mark_nengliang
+    amount: 1
+  condition:
+    type: every
+    conditions:
+      # 只有当叠层增加时才消耗
+      - type: evaluate
+        target:
+          base: stackContext
+          chain:
+            - type: selectPath
+              arg: stackChange
+        evaluator:
+          type: greaterThan
+          value: 0
+      # 确保有足够的能量印记可以消耗
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: selectMarks
+              filter:
+                baseId: mark_nengliang
+            - type: first
+            - type: selectPath
+              arg: stack
+        evaluator:
+          type: greaterThan
+          value: 0

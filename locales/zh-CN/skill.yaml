@@ -1112,3 +1112,72 @@ skill_bingtiandixue:
 skill_hanbingjia:
   name: 寒冰甲
   description: 使自身获得寒冰甲
+skill_kongjuzhinian:
+  name: 恐惧之念
+  description: 使对手获得1层恐惧之念
+skill_yingren:
+  name: 影刃
+  description: 对手具有恐惧之念时增加50点威力
+skill_anying:
+  name: 暗影
+  description: 先出手时使对手失明
+skill_anyingqie:
+  name: 暗影切
+  description: 先出手时威力2倍
+skill_heian:
+  name: 黑暗
+  description: 【95】使对手获得15点命中下降
+skill_ezuoju:
+  name: 恶作剧
+  description: 【95】弱化对手特防1级
+skill_anyingzhiguang:
+  name: 暗影之光
+  description: <font color=#93E312>必中</font> 使自身获得暗影之光
+skill_pojian:
+  name: 破刃
+  description: 对手具有2层恐惧之念时必定暴击
+skill_huianxiezouqu:
+  name: 灰暗协奏曲
+  description: <font color=#93E312>必中</font> 附加对手最大体力6%的固伤
+skill_anyingzhiwu:
+  name: 暗影之舞
+  description: 具有暗之领域时威力2倍 具有暗影领域时额外强化自身物攻1级
+skill_anyinglingyu:
+  name: 暗之领域
+  description: 获得暗之领域 具有伊特领域时变为暗影领域
+skill_xieniu:
+  name: 邪念
+  description: 【95】弱化对手双防1级
+skill_shanguangqiu:
+  name: 闪光球
+  description: 先出手时使对手失明
+skill_shanguangqie:
+  name: 闪光切
+  description: 先出手时威力2倍
+skill_juguang:
+  name: 聚光
+  description: 强化自身物攻1级
+skill_jinghuazhiguang:
+  name: 净化之光
+  description: 清除对手强化
+skill_guanghuizhiying:
+  name: 光辉之影
+  description: <font color=#93E312>必中</font> 使对手获得光辉之影
+skill_guangsuqie:
+  name: 光速切
+  description: 先制+1
+skill_zhongjishanguangpao:
+  name: 终极闪光炮
+  description: <font color=#93E312>必中</font> 恢复自身最大体力的1/6
+skill_guangzhilingyu:
+  name: 光之领域
+  description: 获得光之领域 具有伊特领域时变为光辉领域
+skill_guanghuiluanwu:
+  name: 光辉乱舞
+  description: 具有光之领域时威力2倍 具有光辉领域时额外恢复自身最大体力的1/4
+skill_baiguangqie:
+  name: 白光切
+  description: 先出手时必定暴击
+skill_guangyinghuanxiang:
+  name: 光影幻象
+  description: <font color=#93E312>必中</font> 连击2次 使环境变为<font color=#6699CC>晴天</font>或<font color=#6699CC>夜幕</font>

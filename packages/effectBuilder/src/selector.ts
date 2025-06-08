@@ -13,6 +13,7 @@ import {
   HealContext,
   AddMarkContext,
   RageContext,
+  StackContext,
   MarkInstanceImpl,
   type ScopeObject,
   Context,
@@ -589,6 +590,7 @@ export type ObjectOpinion =
   | HealContext
   | AddMarkContext
   | RageContext
+  | StackContext
   | StatTypeOnBattle
   | Instance
   | BaseMark
@@ -644,6 +646,7 @@ export const BaseSelector: {
   healContext: ChainableSelector<HealContext>
   addMarkContext: ChainableSelector<AddMarkContext>
   rageContext: ChainableSelector<RageContext>
+  stackContext: ChainableSelector<StackContext>
   battle: ChainableSelector<Battle>
   turnContext: ChainableSelector<TurnContext>
   currentPhase: ChainableSelector<BattlePhaseBase>
@@ -706,8 +709,15 @@ export const BaseSelector: {
   effectContext: createChainable<EffectContext<EffectTrigger>>(
     'EffectContext',
     (context: EffectContext<EffectTrigger>) => {
-      const foundContext = findContextRecursively(context, EffectContext)
-      return foundContext ? [foundContext] : []
+      // 从父context开始查找，避免返回自身
+      let currentCtx: Context | null = context.parent
+      while (currentCtx && !(currentCtx instanceof Battle)) {
+        if (currentCtx instanceof EffectContext) {
+          return [currentCtx]
+        }
+        currentCtx = currentCtx.parent
+      }
+      return []
     },
   ),
   mark: createChainable<MarkInstance>('MarkInstance', (context: EffectContext<EffectTrigger>) => {
@@ -772,6 +782,10 @@ export const BaseSelector: {
   }),
   rageContext: createChainable<RageContext>('RageContext', (context: EffectContext<EffectTrigger>) => {
     const foundContext = findContextRecursively(context, RageContext)
+    return foundContext ? [foundContext] : []
+  }),
+  stackContext: createChainable<StackContext>('StackContext', (context: EffectContext<EffectTrigger>) => {
+    const foundContext = findContextRecursively(context, StackContext)
     return foundContext ? [foundContext] : []
   }),
   battle: createChainable<Battle>('Battle', (context: EffectContext<EffectTrigger>) => {

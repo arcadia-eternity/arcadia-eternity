@@ -446,3 +446,25 @@ mark_bingshuangzhixing:
 mark_hanbingjia:
   name: 寒冰甲
   description: 抵挡＜60点的伤害
+# 伊特系列新状态
+mark_kongjuzhinian:
+  name: 恐惧之念
+  description: 3层时消耗所有恐惧之念 使自身恐惧
+mark_anyingzhiguang:
+  name: 暗影之光
+  description: 下一个攻击技能威力不低于100点
+mark_anzhilingyu:
+  name: 暗之领域
+  description: 使自身受击怒气增加10%
+mark_anyinglingyu:
+  name: 暗影领域
+  description: 使自身受击怒气增加20%
+mark_guanghuizhiying:
+  name: 光辉之影
+  description: 下一次使用技能先制-1
+mark_guangzhilingyu:
+  name: 光之领域
+  description: 增加自身恢复量20%
+mark_guanghuilingyu:
+  name: 光辉领域
+  description: 增加自身恢复量40%

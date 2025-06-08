@@ -602,3 +602,90 @@
     target: damageContext
     percent: 15
     delta: 0
+
+# 暗影：当怒气低于对手时，回复造成伤害1/2的体力
+- id: effect_ability_heal_half_damage_when_rage_less_than_opponent
+  trigger: OnDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: rage
+        evaluator:
+          type: compare
+          operator: '<'
+          value:
+            type: dynamic
+            selector:
+              base: foe
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: rage
+  apply:
+    type: heal
+    target:
+      base: self
+    value:
+      type: dynamic
+      selector:
+        base: damageContext
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: damageResult
+          - type: divide
+            arg: 2
+# 光明：当怒气高于对手且技能命中时,回复自身最大体力的1/8
+- id: effect_ability_heal_1_8_max_hp_when_rage_greater_than_opponent
+  trigger: OnHit
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: rage
+        evaluator:
+          type: compare
+          operator: '>'
+          value:
+            type: dynamic
+            selector:
+              base: foe
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: rage
+  apply:
+    type: heal
+    target:
+      base: self
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: maxHp
+          - type: divide
+            arg: 8

@@ -24,7 +24,7 @@ export interface PathExtractor<T, U> {
 type ExtractorMap = {
   currentHp: PathExtractor<Pet, number>
   maxHp: PathExtractor<Pet, number>
-  rage: PathExtractor<Player, number>
+  rage: PathExtractor<Player | Pet, number>
   owner: PathExtractor<OwnedEntity, Battle | Player | Pet | MarkInstance | SkillInstance | null>
   type: PathExtractor<Pet, Element>
   marks: PathExtractor<Pet, MarkInstance[]>

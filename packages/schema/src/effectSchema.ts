@@ -482,9 +482,16 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       target: selectorDSLSchema,
     }),
     z.object({
+      type: z.literal('modifyStackResult'),
+      target: selectorDSLSchema,
+      newStacks: valueSchema.optional(),
+      newDuration: valueSchema.optional(),
+    }),
+    z.object({
       type: z.literal('setSkill'),
       target: selectorDSLSchema,
       value: dynamicValueSchema,
+      updateConfig: z.boolean().optional(),
     }),
     z.object({
       type: z.literal('preventDamage'),
@@ -724,6 +731,9 @@ export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
     }),
     z.object({
       type: z.literal('selfBeDamaged'),
+    }),
+    z.object({
+      type: z.literal('foeBeDamaged'),
     }),
     z.object({
       type: z.literal('selfAddMark'),

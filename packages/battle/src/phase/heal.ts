@@ -30,7 +30,7 @@ export class HealPhase extends BattlePhaseBase<HealContext> {
 
   protected getEffectTriggers() {
     return {
-      before: [],
+      before: [EffectTrigger.OnBeforeHeal],
       during: [EffectTrigger.OnHeal],
       after: [],
     }
@@ -49,7 +49,9 @@ export class HealPhase extends BattlePhaseBase<HealContext> {
  * This function contains the core healing logic
  */
 export async function executeHealOperation(context: HealContext, battle: Battle): Promise<void> {
-  battle.applyEffects(context, EffectTrigger.OnHeal)
+  // Apply OnBeforeHeal effects to modify healing value
+  battle.applyEffects(context, EffectTrigger.OnBeforeHeal)
+  context.updateHealResult()
 
   if (!context.available) {
     battle.emitMessage(BattleMessageType.HealFail, {
@@ -68,12 +70,15 @@ export async function executeHealOperation(context: HealContext, battle: Battle)
   }
 
   // Apply healing
-  const newHp = Math.floor(Math.min(context.target.stat.maxHp!, context.target.currentHp + context.value))
+  const newHp = Math.floor(Math.min(context.target.stat.maxHp!, context.target.currentHp + context.healResult))
   context.target.currentHp = newHp
 
   battle.emitMessage(BattleMessageType.Heal, {
     target: context.target.id,
-    amount: context.value,
+    amount: context.healResult,
     source: 'effect',
   })
+
+  // Apply OnHeal effects after healing is applied
+  battle.applyEffects(context, EffectTrigger.OnHeal)
 }

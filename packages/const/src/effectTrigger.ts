@@ -38,7 +38,9 @@ export enum EffectTrigger {
   OnMarkDurationEnd = 'OnMarkDurationEnd',
 
   //以下一定是EffectContext
+  OnStackBefore = 'OnStackBefore',
   OnStack = 'OnStack',
+  OnBeforeHeal = 'OnBeforeHeal',
   OnHeal = 'OnHeal',
 
   OnRageGain = 'OnRageGain',

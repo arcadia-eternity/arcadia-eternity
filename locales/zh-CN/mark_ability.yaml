@@ -64,7 +64,6 @@ mark_ability_liangong:
 mark_ability_xukong:
   name: 虚空
   description: 每次技能命中后会增加10层虚空体质
-# 伊特系列特性
 mark_ability_sucheng:
   name: 速成
   description: 获得的经验值提高50%
@@ -77,3 +76,9 @@ mark_ability_zhiming:
 mark_ability_pobing:
   name: 破冰
   description: 冰系技能造成伤害增加15%
+mark_ability_anying:
+  name: 暗影
+  description: 怒气＜对手时恢复造成伤害1/2的体力
+mark_ability_guangming:
+  name: 光明
+  description: 怒气＞对手且技能命中时时恢复自身最大体力的1/8

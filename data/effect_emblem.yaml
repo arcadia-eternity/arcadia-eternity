@@ -45,7 +45,7 @@
       type: entity:baseMark
       value: mark_aideminyi
 - id: effect_emblem_20percent_double_heal
-  trigger: OnHeal
+  trigger: OnBeforeHeal
   priority: 0
   condition:
     type: every
@@ -569,3 +569,35 @@
     configKey: effect_skill_add_mark_foe_bingdong_40_percent.bingdong_probability
     modifierType: delta
     value: 5
+
+# 恐惧：当对方因为受伤而解除恐惧时，使"effect_mark_onDamage_over100_recovery"效果无效
+- id: effect_emblem_anying_immune_fear_early_wake
+  trigger: BeforeEffect
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: foeBeDamaged
+      - type: evaluate
+        target:
+          base: effectContext
+          chain:
+            - type: selectPath
+              arg: effect.id
+        evaluator:
+          type: same
+          value: effect_mark_onDamage_over100_recovery
+  apply:
+    type: disableContext
+    target: effectContext
+
+# 光辉：每回合结束时恢复20点HP
+- id: effect_emblem_guangming_heal_20_per_turn
+  trigger: TurnEnd
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value: 20
+  condition:
+    type: petIsActive

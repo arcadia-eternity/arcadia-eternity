@@ -68,3 +68,31 @@
     type: amplifyPower
     target: usingSkillContext
     value: 1.35
+- id: effect_global_power_35_percent_shadow_trait
+  trigger: AfterUseSkillCheck
+  priority: 0
+  condition:
+    type: some
+    conditions:
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg: element
+        evaluator:
+          type: same
+          value: Shadow
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg: element
+        evaluator:
+          type: same
+          value: Trait
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 1.35

@@ -14,6 +14,7 @@ import {
   Player,
   type ScopeObject,
   SkillInstance,
+  StackContext,
   UseSkillContext,
 } from '@arcadia-eternity/battle'
 import { Observable } from 'rxjs'
@@ -416,6 +417,8 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseSetSureNoCritAction(effectId, dsl)
     case 'destroyMark':
       return parseDestroyMarkAction(effectId, dsl)
+    case 'modifyStackResult':
+      return parseModifyStackResultAction(effectId, dsl)
     case 'setSkill':
       return parseSetSkill(effectId, dsl)
     case 'preventDamage':
@@ -743,9 +746,18 @@ export function parseDestroyMarkAction(effectId: string, dsl: Extract<OperatorDS
   return parseSelector<MarkInstance>(effectId, dsl.target).apply(Operators.destroyMark())
 }
 
+export function parseModifyStackResultAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'modifyStackResult' }>,
+) {
+  const newStacks = dsl.newStacks ? (parseValue(effectId, dsl.newStacks) as ValueSource<number>) : undefined
+  const newDuration = dsl.newDuration ? (parseValue(effectId, dsl.newDuration) as ValueSource<number>) : undefined
+  return parseSelector<StackContext>(effectId, dsl.target).apply(Operators.modifyStackResult(newStacks, newDuration))
+}
+
 export function parseSetSkill(effectId: string, dsl: Extract<OperatorDSL, { type: 'setSkill' }>) {
   return parseSelector<UseSkillContext>(effectId, dsl.target).apply(
-    Operators.setSkill(parseValue(effectId, dsl.value) as ValueSource<SkillInstance>),
+    Operators.setSkill(parseValue(effectId, dsl.value) as ValueSource<SkillInstance>, dsl.updateConfig),
   )
 }
 
@@ -979,6 +991,8 @@ export function parseCondition(effectId: string, dsl: ConditionDSL): Condition {
       return Conditions.foeUseSkill()
     case 'selfBeDamaged':
       return Conditions.selfBeDamaged()
+    case 'foeBeDamaged':
+      return Conditions.foeBeDamaged()
     case 'selfAddMark':
       return Conditions.selfAddMark()
     case 'foeAddMark':

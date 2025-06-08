@@ -175,3 +175,9 @@ pet_dianyite:
 pet_bingyite:
   name: 冰伊特
   description: 继承了冰元素的冷静 变得聪明和坚毅 它呼唤的冰雪另世间万物回归平和
+pet_anyite:
+  name: 暗伊特
+  description: 继承了暗元素的神秘 变得狡捷和机敏 它演绎的暗舞另光明世界暗淡失色
+pet_guangyite:
+  name: 光伊特
+  description: 如果说黑暗能够让人迷茫 那么光明就能让人盲目比起暗伊特的狡诘调皮 光伊特则更纯粹极端

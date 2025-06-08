@@ -3308,3 +3308,153 @@
   emblem:
     - mark_emblem_zhongji
     - mark_emblem_shenjie
+- id: pet_anyite
+  num: 95
+  element: Shadow
+  baseStats:
+    hp: 179
+    atk: 178
+    spa: 178
+    def: 158
+    spd: 158
+    spe: 161
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 65
+    - 70
+  weightRange:
+    - 25
+    - 30
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_tisusu
+      level: 10
+      hidden: false
+    - skill_id: skill_yitelingyu
+      level: 15
+      hidden: false
+    - skill_id: skill_yiteguanghuan
+      level: 20
+      hidden: false
+    - skill_id: skill_yitejieji
+      level: 25
+      hidden: false
+    - skill_id: skill_kongjuzhinian
+      level: 24
+      hidden: false
+    - skill_id: skill_yingren
+      level: 29
+      hidden: false
+    - skill_id: skill_heian
+      level: 34
+      hidden: false
+    - skill_id: skill_ezuoju
+      level: 40
+      hidden: false
+    - skill_id: skill_anyingzhiguang
+      level: 46
+      hidden: false
+    - skill_id: skill_pojian
+      level: 52
+      hidden: false
+    - skill_id: skill_huianxiezouqu
+      level: 60
+      hidden: false
+    - skill_id: skill_anyingzhiwu
+      level: 60
+      hidden: true
+    - skill_id: skill_anyinglingyu
+      level: 60
+      hidden: true
+    - skill_id: skill_xieniu
+      level: 60
+      hidden: true
+    - skill_id: skill_guangyinghuanxiang
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_anying
+  emblem:
+    - mark_emblem_anying
+- id: pet_guangyite
+  num: 96
+  element: Light
+  baseStats:
+    hp: 180
+    atk: 180
+    spa: 169
+    def: 160
+    spd: 162
+    spe: 162
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 66
+    - 71
+  weightRange:
+    - 24
+    - 29
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_tisusu
+      level: 10
+      hidden: false
+    - skill_id: skill_yitelingyu
+      level: 15
+      hidden: false
+    - skill_id: skill_yiteguanghuan
+      level: 20
+      hidden: false
+    - skill_id: skill_yitejieji
+      level: 25
+      hidden: false
+    - skill_id: skill_shanguangqiu
+      level: 24
+      hidden: false
+    - skill_id: skill_shanguangqie
+      level: 29
+      hidden: false
+    - skill_id: skill_juguang
+      level: 34
+      hidden: false
+    - skill_id: skill_jinghuazhiguang
+      level: 40
+      hidden: false
+    - skill_id: skill_guanghuizhiying
+      level: 46
+      hidden: false
+    - skill_id: skill_guangsuqie
+      level: 52
+      hidden: false
+    - skill_id: skill_zhongjishanguangpao
+      level: 60
+      hidden: false
+    - skill_id: skill_guangzhilingyu
+      level: 60
+      hidden: true
+    - skill_id: skill_guanghuiluanwu
+      level: 60
+      hidden: true
+    - skill_id: skill_baiguangqie
+      level: 60
+      hidden: true
+    - skill_id: skill_guangyinghuanxiang
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_guangming
+  emblem:
+    - mark_emblem_guangming

@@ -29,6 +29,7 @@ import {
   RemoveMarkContext,
   type ScopeObject,
   SkillInstance,
+  StackContext,
   UseSkillContext,
   Modifier,
   DurationType,
@@ -117,6 +118,25 @@ export const Operators = {
       const _value = GetValueFromSource(context, value)
       if (_value.length === 0) return
       targets.forEach(mark => mark.addStack(_value[0]))
+    },
+
+  modifyStackResult:
+    <T extends StackContext>(newStacks?: ValueSource<number>, newDuration?: ValueSource<number>): Operator<T> =>
+    (context: EffectContext<EffectTrigger>, targets: T[]) => {
+      targets.forEach(stackContext => {
+        if (newStacks !== undefined) {
+          const _newStacks = GetValueFromSource(context, newStacks)
+          if (_newStacks.length > 0) {
+            stackContext.updateStacksAfter(_newStacks[0])
+          }
+        }
+        if (newDuration !== undefined) {
+          const _newDuration = GetValueFromSource(context, newDuration)
+          if (_newDuration.length > 0) {
+            stackContext.updateDurationAfter(_newDuration[0])
+          }
+        }
+      })
     },
 
   consumeStacks:
@@ -676,12 +696,12 @@ export const Operators = {
     }
   },
 
-  setSkill: (skill: ValueSource<SkillInstance>): Operator<UseSkillContext> => {
+  setSkill: (skill: ValueSource<SkillInstance>, updateConfig?: boolean): Operator<UseSkillContext> => {
     return (context, contexts) => {
       const _skill = GetValueFromSource(context, skill)
       if (_skill.length === 0) return
       contexts.forEach(ctx => {
-        ctx.setSkill(_skill[0])
+        ctx.setSkill(_skill[0], updateConfig)
       })
     }
   },

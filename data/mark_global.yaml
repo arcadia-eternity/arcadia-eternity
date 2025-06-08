@@ -32,6 +32,8 @@
   config: *global_config
 - id: mark_global_yemu
   config: *global_config
+  effect:
+    - effect_global_power_35_percent_shadow_trait
 - id: mark_global_yikongjian
   config: *global_config
 - id: mark_global_guzhanchang

@@ -18,6 +18,7 @@ import {
   DamageContext,
   EffectContext,
   RemoveMarkContext,
+  StackContext,
   SwitchPetContext,
   TurnContext,
 } from './context'
@@ -279,11 +280,14 @@ export class MarkInstanceImpl implements MarkInstance {
     }
     const newMark = context.baseMark.createInstance(config)
 
+    // 保存叠层前的状态
+    const stacksBefore = this.stack
+    const durationBefore = this.duration
+
     let newStacks = this.stack
     let newDuration = this.duration
 
-    context.battle.applyEffects(context, EffectTrigger.OnStack)
-
+    // 根据策略计算新的值
     switch (strategy) {
       case StackStrategy.stack:
         newStacks = Math.min(newStacks + newMark.stack, maxStacks)
@@ -316,11 +320,40 @@ export class MarkInstanceImpl implements MarkInstance {
       default:
         return false
     }
-    // 只有当数值发生变化时才更新
+
+    // 创建StackContext
+    const stackContext = new StackContext(
+      context,
+      this,
+      newMark,
+      stacksBefore,
+      durationBefore,
+      newStacks,
+      newDuration,
+      strategy,
+    )
+
+    // 触发OnStackBefore效果，允许在应用结果前修改叠层数值
+    context.battle.applyEffects(stackContext, EffectTrigger.OnStackBefore)
+
+    // 使用OnStackBefore effect可能修改过的值
+    newStacks = stackContext.stacksAfter
+    newDuration = stackContext.durationAfter
+
+    // 应用最终结果
     const changed = newStacks !== this.stack || newDuration !== this.duration
     this.stack = newStacks
     this.duration = newDuration
     this.isActive = true
+
+    // 触发OnStack效果，用于基于最终结果的副作用
+    context.battle.applyEffects(stackContext, EffectTrigger.OnStack)
+
+    // 检查是否需要销毁印记（当层数为0时）
+    if (this.stack <= 0) {
+      this.destroy(new RemoveMarkContext(context, this))
+      return true
+    }
 
     // Note: dirty flag removed, attribute system handles recalculation automatically
 

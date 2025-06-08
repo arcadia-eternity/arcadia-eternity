@@ -77,3 +77,9 @@ mark_emblem_dianhe:
 mark_emblem_shenjie:
   name: 深结
   description: 使深结冰冻对手的几率提高5%
+mark_emblem_anying:
+  name: 恐惧
+  description: 使对手恐惧时不会提前清醒
+mark_emblem_guangming:
+  name: 光辉
+  description: 每回合结束时恢复20点体力

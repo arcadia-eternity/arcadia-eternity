@@ -60,6 +60,7 @@
   apply:
     type: setSkill
     target: usingSkillContext
+    updateConfig: true
     value:
       type: dynamic
       selector:
@@ -242,7 +243,7 @@
     modifierType: percent
     value: -25
 - id: effect_mark_decrease_heal
-  trigger: OnHeal
+  trigger: OnBeforeHeal
   priority: 0
   apply:
     type: addModified
@@ -1882,6 +1883,7 @@
       percent: 0
     - type: destroyMark
       target: mark
+
 # 伤害阻挡：当伤害值低于等于60时，把实际的伤害值置0
 - id: effect_block_damage_under_60
   trigger: OnDamage
@@ -1903,3 +1905,159 @@
   apply:
     type: preventDamage
     target: damageContext
+
+# 暗影之光：威力低于100的攻击技能威力变为100
+- id: effect_mark_anyingzhiguang_power_min_100
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addSkillAttributeModifier
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: dynamic
+            arg: category
+          evaluator:
+            type: notSame
+            value: Status
+        - type: whereAttr
+          extractor:
+            type: dynamic
+            arg: power
+          evaluator:
+            type: compare
+            operator: '<'
+            value: 100
+    attribute: power
+    modifierType: override
+    value: 100
+
+# 暗影之光：每次使用攻击技能命中时消耗一层
+- id: effect_mark_anyingzhiguang_consume_stack_on_skill_use
+  trigger: OnHit
+  priority: 0
+  consumesStacks: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: notSame
+          value: Status
+  apply:
+    type: TODO
+
+# 光辉之影：为所有技能添加优先度-1的modifier
+- id: effect_mark_guanghuizhiying_priority_minus_1
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addSkillAttributeModifier
+    target:
+      base: selfSkills
+    attribute: priority
+    modifierType: delta
+    value: -1
+
+# 使自身受击怒气增加10%
+- id: effect_mark_increase_rage_on_damage_10_percent
+  trigger: OnRageGain
+  priority: 0
+  condition:
+    type: selfBeDamaged
+  apply:
+    type: addModified
+    target: rageContext
+    percent: 10
+    delta: 0
+
+# 使自身受击怒气增加20%
+- id: effect_mark_increase_rage_on_damage_20_percent
+  trigger: OnRageGain
+  priority: 0
+  condition:
+    type: selfBeDamaged
+  apply:
+    type: addModified
+    target: rageContext
+    percent: 20
+    delta: 0
+
+# 使自身治疗效果增加20%
+- id: effect_mark_increase_heal_20_percent
+  trigger: OnBeforeHeal
+  priority: 0
+  condition:
+    type: checkSelf
+  apply:
+    type: addModified
+    target: healContext
+    percent: 20
+    delta: 0
+
+# 使自身治疗效果增加40%
+- id: effect_mark_increase_heal_40_percent
+  trigger: OnBeforeHeal
+  priority: 0
+  condition:
+    type: checkSelf
+  apply:
+    type: addModified
+    target: healContext
+    percent: 40
+    delta: 0
+
+# 恐惧之念：当层数达到3层时，消耗所有恐惧之念并给自己附加恐惧
+- id: effect_mark_fear_consume_stacks_at_3
+  trigger: OnStack
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      # 检查叠层后是否达到3层
+      - type: evaluate
+        target:
+          base: stackContext
+          chain:
+            - type: selectPath
+              arg: stacksAfter
+        evaluator:
+          type: compare
+          operator: '>='
+          value: 3
+      # 检查叠层前是否小于3层（确保是刚达到阈值）
+      - type: evaluate
+        target:
+          base: stackContext
+          chain:
+            - type: selectPath
+              arg: stacksBefore
+        evaluator:
+          type: compare
+          operator: '<'
+          value: 3
+  apply:
+    - type: consumeStacks
+      target: mark
+      value:
+        type: dynamic
+        selector:
+          base: mark
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: stack
+    - type: addMark
+      target: self
+      mark:
+        type: entity:baseMark
+        value: mark_kongju

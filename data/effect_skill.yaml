@@ -5213,3 +5213,415 @@
     value: 15
   condition:
     type: selfUseSkill
+
+# 给对手添加恐惧之念
+- id: effect_skill_add_mark_foe_kongjuzhinian
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_kongjuzhinian
+    stack: 1
+  condition:
+    type: selfUseSkill
+
+# 如果对手有恐惧之念，威力增加50点
+- id: effect_skill_power_plus_50_if_foe_has_kongjuzhinian
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: usingSkillContext
+    value: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_kongjuzhinian
+        evaluator:
+          type: exist
+
+# 使自己获得暗影之光
+- id: effect_skill_add_mark_anyingzhiguang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_anyingzhiguang
+  condition:
+    type: selfUseSkill
+
+# 对手具有2层恐惧之念时必定暴击
+- id: effect_skill_sure_crit_if_foe_has_2_kongjuzhinian
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureCrit
+    target: usingSkillContext
+    priority: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_ruodianjihao
+            - type: select
+              arg:
+                type: base
+                arg: stack
+        evaluator:
+          type: compare
+          operator: '>='
+          value: 2
+
+# 附加对手最大体力6%的固伤
+- id: effect_skill_add_fixed_damage_6_percent_max_hp
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta:
+      type: dynamic
+      selector:
+        base: foe
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: maxHp
+          - type: multiply
+            arg:
+              type: raw:number
+              value: 0.06
+              configId: fixed_damage_percent
+  condition:
+    type: selfUseSkill
+
+# 具有暗之领域或暗影领域时威力2倍
+- id: effect_skill_power_2x_if_anzhilingyu_or_anyinglingyu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: some
+        conditions:
+          - type: evaluate
+            target:
+              base: selfMarks
+              chain:
+                - type: whereAttr
+                  extractor:
+                    type: base
+                    arg: baseId
+                  evaluator:
+                    type: same
+                    value: mark_anzhilingyu
+            evaluator:
+              type: exist
+          - type: evaluate
+            target:
+              base: selfMarks
+              chain:
+                - type: whereAttr
+                  extractor:
+                    type: base
+                    arg: baseId
+                  evaluator:
+                    type: same
+                    value: mark_anyinglingyu
+            evaluator:
+              type: exist
+
+# 具有暗影领域时，该技能命中后获得一级攻击强化
+- id: effect_skill_raise_atk_1_stage_if_anyinglingyu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: self
+    statType: atk
+    value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_anyinglingyu
+        evaluator:
+          type: exist
+
+# 为自己添加暗之领域或暗影领域
+- id: effect_skill_add_mark_anzhilingyu_or_anyinglingyu
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: addMark
+      target: self
+      mark:
+        type: conditional
+        trueValue:
+          type: entity:baseMark
+          value: mark_anyinglingyu
+        falseValue:
+          type: entity:baseMark
+          value: mark_anzhilingyu
+        condition:
+          type: evaluate
+          target:
+            base: selfMarks
+            chain:
+              - type: whereAttr
+                extractor:
+                  type: base
+                  arg: baseId
+                evaluator:
+                  type: same
+                  value: mark_yitelingyu
+          evaluator:
+            type: exist
+  condition:
+    type: selfUseSkill
+
+# 如果先手，使对方获得失明
+- id: effect_skill_add_mark_foe_shiming_if_first
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_shiming
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isFirstSkillUsedThisTurn
+
+# 使对手获得光辉之影
+- id: effect_skill_add_mark_foe_guanghuizhiying
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_guanghuizhiying
+  condition:
+    type: selfUseSkill
+
+# 恢复自身最大体力的1/6
+- id: effect_skill_heal_self_1_6_max_hp
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: maxHp
+          - type: divide
+            arg:
+              type: raw:number
+              value: 6
+  condition:
+    type: selfUseSkill
+
+# 为自己添加光之领域或光辉领域
+- id: effect_skill_add_mark_guangzhilingyu_or_guanghuilingyu
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: addMark
+      target: self
+      mark:
+        type: conditional
+        trueValue:
+          type: entity:baseMark
+          value: mark_guanghuilingyu
+        falseValue:
+          type: entity:baseMark
+          value: mark_guangzhilingyu
+        condition:
+          type: evaluate
+          target:
+            base: selfMarks
+            chain:
+              - type: whereAttr
+                extractor:
+                  type: base
+                  arg: baseId
+                evaluator:
+                  type: same
+                  value: mark_yitelingyu
+          evaluator:
+            type: exist
+  condition:
+    type: selfUseSkill
+
+# 当有光之领域或光辉领域时，威力翻倍
+- id: effect_skill_power_2x_if_guangzhilingyu_or_guanghuilingyu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: some
+        conditions:
+          - type: evaluate
+            target:
+              base: selfMarks
+              chain:
+                - type: whereAttr
+                  extractor:
+                    type: base
+                    arg: baseId
+                  evaluator:
+                    type: same
+                    value: mark_guangzhilingyu
+            evaluator:
+              type: exist
+          - type: evaluate
+            target:
+              base: selfMarks
+              chain:
+                - type: whereAttr
+                  extractor:
+                    type: base
+                    arg: baseId
+                  evaluator:
+                    type: same
+                    value: mark_guanghuilingyu
+            evaluator:
+              type: exist
+
+# 当有光辉领域时，恢复自身最大体力的1/4
+- id: effect_skill_heal_quarter_if_guanghuilingyu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: maxHp
+          - type: divide
+            arg:
+              type: raw:number
+              value: 4
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_guanghuilingyu
+        evaluator:
+          type: exist
+
+# 先出手时必定暴击
+- id: effect_skill_crit_if_first
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureCrit
+    target: usingSkillContext
+    priority: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isFirstSkillUsedThisTurn
+
+# 使环境随机变为晴天或夜幕
+- id: effect_skill_set_weather_qingtian_or_yemu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: battle
+    mark:
+      type: conditional
+      trueValue:
+        type: entity:baseMark
+        value: mark_global_qingtian
+      falseValue:
+        type: entity:baseMark
+        value: mark_global_yemu
+      condition:
+        type: evaluate
+        target:
+          base: self
+        evaluator:
+          type: probability
+          percent: 50
+  condition:
+    type: selfUseSkill

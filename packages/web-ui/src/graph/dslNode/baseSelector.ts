@@ -127,6 +127,16 @@ export class FoeMarksNode extends BaseSelectorNode {
   }
 }
 
+// 叠层上下文节点
+export class StackContextNode extends BaseSelectorNode {
+  static selectorType = 'stackContext' as const
+  constructor() {
+    super()
+    this.title = '叠层上下文'
+    this.size[0] = 140 // 标题较长时调整宽度
+  }
+}
+
 /* ---------- 注册到 LiteGraph ---------- */
 const BASE_SELECTOR_NODES = [
   SelfNode,
@@ -139,6 +149,7 @@ const BASE_SELECTOR_NODES = [
   MarkNode,
   SelfMarksNode,
   FoeMarksNode,
+  StackContextNode,
 ]
 
 export function IsBaseSelectorNode(node: LGraphNode): node is BaseSelectorNode {

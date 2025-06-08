@@ -229,6 +229,13 @@ export type DestroyMarkOpreator = {
   target: SelectorDSL
 }
 
+export type ModifyStackResultOpreator = {
+  type: 'modifyStackResult'
+  target: SelectorDSL
+  newStacks?: Value
+  newDuration?: Value
+}
+
 export type StunOpreator = {
   type: 'stun'
   target: SelectorDSL
@@ -262,6 +269,7 @@ export type SetSkillOpreator = {
   type: 'setSkill'
   target: SelectorDSL
   value: Value
+  updateConfig?: boolean
 }
 
 export type PreventDamageOpreator = {
@@ -511,6 +519,7 @@ export type OperatorDSL =
   | SetMultihitOpreator
   | TransferMarkOpreator
   | DestroyMarkOpreator
+  | ModifyStackResultOpreator
   | StunOpreator
   | SetSureHitOpreator
   | SetSureCritOpreator
@@ -764,6 +773,9 @@ export type ConditionDSL =
     }
   | {
       type: 'selfBeDamaged'
+    }
+  | {
+      type: 'foeBeDamaged'
     }
   | {
       type: 'selfAddMark'

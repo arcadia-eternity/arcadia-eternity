@@ -1,4 +1,678 @@
 {
+  "Modifier": [
+    {
+      "n": "value",
+      "t": "BehaviorSubject<T>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sourceSubscription",
+      "t": "undefined | { unsubscribe(): void }",
+      "iu": true,
+      "u": [
+        "undefined",
+        "{ unsubscribe(): void }"
+      ],
+      "a": false
+    },
+    {
+      "n": "durationType",
+      "t": "DurationType.instant | DurationType.binding | DurationType.phaseType",
+      "iu": true,
+      "u": [
+        "DurationType.instant",
+        "DurationType.binding",
+        "DurationType.phaseType"
+      ],
+      "a": false
+    },
+    {
+      "n": "id",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "type",
+      "t": "\"percent\" | \"delta\" | \"override\" | \"clampMax\" | \"clampMin\" | \"clamp\"",
+      "iu": true,
+      "u": [
+        "\"percent\"",
+        "\"delta\"",
+        "\"override\"",
+        "\"clampMax\"",
+        "\"clampMin\"",
+        "\"clamp\""
+      ],
+      "a": false
+    },
+    {
+      "n": "priority",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "source",
+      "t": "undefined | MarkInstance | SkillInstance",
+      "iu": true,
+      "u": [
+        "undefined",
+        "MarkInstance",
+        "SkillInstance"
+      ],
+      "a": false
+    },
+    {
+      "n": "minValue",
+      "t": "undefined | number",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    },
+    {
+      "n": "maxValue",
+      "t": "undefined | number",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    },
+    {
+      "n": "phaseTypeSpec",
+      "t": "undefined | PhaseTypeSpec",
+      "iu": true,
+      "u": [
+        "undefined",
+        "PhaseTypeSpec"
+      ],
+      "a": false
+    }
+  ],
+  "AttributeSystem": [
+    {
+      "n": "baseAttributes",
+      "t": "Map<keyof T, BehaviorSubject<string | number | boolean>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "modifiers",
+      "t": "Map<keyof T, BehaviorSubject<Modifier<any>[]>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "subscriptions",
+      "t": "Map<keyof T, Observable<string | number | boolean>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "modifiersBySource",
+      "t": "Map<string, Map<keyof T, Modifier<any>[]>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "phaseTypeModifiers",
+      "t": "Map<string, Modifier<any>[]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "configSystemGetter",
+      "t": "null | () => any",
+      "iu": true,
+      "u": [
+        "null",
+        "() => any"
+      ],
+      "a": false
+    },
+    {
+      "n": "phaseChangeSubject",
+      "t": "Subject<void>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "calculationStack",
+      "t": "Set<keyof T>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "dependencyGraph",
+      "t": "Map<keyof T, Set<keyof T>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "fallbackValues",
+      "t": "Map<keyof T, string | number | boolean>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "maxCalculationDepth",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "calculationDepthCounter",
+      "t": "Map<keyof T, number>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "globalCalculationStack",
+      "t": "Map<string, Set<string>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "globalDependencyGraph",
+      "t": "Map<string, Set<string>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "objectId",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "isDestroyed",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "subscriptionCleanups",
+      "t": "Map<keyof T, () => void>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "instanceRegistry",
+      "t": "Set<AttributeSystem<any>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "battleRegistry",
+      "t": "Map<string, Set<AttributeSystem<any>>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "cleanupInterval",
+      "t": "null | NodeJS.Timeout",
+      "iu": true,
+      "u": [
+        "null",
+        "NodeJS.Timeout"
+      ],
+      "a": false
+    },
+    {
+      "n": "CLEANUP_INTERVAL",
+      "t": "60000",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "MAX_INACTIVE_TIME",
+      "t": "300000",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "lastAccessTime",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "undefined | string",
+      "iu": true,
+      "u": [
+        "undefined",
+        "string"
+      ],
+      "a": false
+    }
+  ],
+  "ComposableAttributeSystem": [
+    {
+      "n": "accessors",
+      "t": "BaseMarkAccessors & LevelAccessors & SkillAccessors & RageAccessors",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "PetAttributeSystem": [],
+  "MarkAttributeSystem": [
+    {
+      "n": "markAccessors",
+      "t": "BaseMarkAccessors",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "SkillAttributeSystem": [
+    {
+      "n": "skillAccessors",
+      "t": "SkillAccessors",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "PlayerAttributeSystem": [],
+  "AttributeKey": [],
+  "MarkAttributeSet": [
+    {
+      "n": "duration",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stack",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "isActive",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    }
+  ],
+  "StatLevelMarkAttributeSet": [],
+  "SkillAttributeSet": [
+    {
+      "n": "power",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "accuracy",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "rage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "priority",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "appeared",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    }
+  ],
+  "RageAttributeSet": [
+    {
+      "n": "currentRage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "maxRage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "AttributeData": [],
+  "PetAttributeSet": [
+    {
+      "n": "currentHp",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "PlayerAttributeSet": [
+    {
+      "n": "currentRage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "maxRage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "BaseMarkAttributes": [
+    {
+      "n": "duration",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stack",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "isActive",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    }
+  ],
+  "LevelAttributes": [
+    {
+      "n": "level",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "SkillAttributes": [
+    {
+      "n": "power",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "accuracy",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "rage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "priority",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "appeared",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    }
+  ],
+  "RageAttributes": [
+    {
+      "n": "currentRage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "maxRage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "BaseMarkAttributeSet": [],
+  "BaseMarkAccessors": [
+    {
+      "n": "getDuration",
+      "t": "() => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "setDuration",
+      "t": "(value: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "getStack",
+      "t": "() => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "setStack",
+      "t": "(value: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "getIsActive",
+      "t": "() => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "setIsActive",
+      "t": "(value: boolean) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "LevelAccessors": [
+    {
+      "n": "getLevel",
+      "t": "() => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "setLevel",
+      "t": "(value: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "SkillAccessors": [
+    {
+      "n": "getPower",
+      "t": "() => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "setPower",
+      "t": "(value: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "getAccuracy",
+      "t": "() => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "setAccuracy",
+      "t": "(value: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "getRage",
+      "t": "() => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "setRage",
+      "t": "(value: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "getPriority",
+      "t": "() => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "setPriority",
+      "t": "(value: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "getAppeared",
+      "t": "() => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "setAppeared",
+      "t": "(value: boolean) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "RageAccessors": [
+    {
+      "n": "getCurrentRage",
+      "t": "() => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "setCurrentRage",
+      "t": "(value: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "getMaxRage",
+      "t": "() => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "setMaxRage",
+      "t": "(value: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
   "Battle": [
     {
       "n": "lastStateMessage",
@@ -18,14 +692,20 @@
       "n": "allowFaintSwitch",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "showHidden",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -64,6 +744,27 @@
       "a": false
     },
     {
+      "n": "phaseManager",
+      "t": "PhaseManager",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "timerManager",
+      "t": "TimerManager",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "emitter",
+      "t": "Emitter<Events>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "rng",
       "t": "default",
       "iu": false,
@@ -74,14 +775,23 @@
       "n": "status",
       "t": "BattleStatus.Unstarted | BattleStatus.OnBattle | BattleStatus.Ended",
       "iu": true,
-      "u": ["BattleStatus.Unstarted", "BattleStatus.OnBattle", "BattleStatus.Ended"],
+      "u": [
+        "BattleStatus.Unstarted",
+        "BattleStatus.OnBattle",
+        "BattleStatus.Ended"
+      ],
       "a": false
     },
     {
       "n": "currentPhase",
       "t": "BattlePhase.SwitchPhase | BattlePhase.SelectionPhase | BattlePhase.ExecutionPhase | BattlePhase.Ended",
       "iu": true,
-      "u": ["BattlePhase.SwitchPhase", "BattlePhase.SelectionPhase", "BattlePhase.ExecutionPhase", "BattlePhase.Ended"],
+      "u": [
+        "BattlePhase.SwitchPhase",
+        "BattlePhase.SelectionPhase",
+        "BattlePhase.ExecutionPhase",
+        "BattlePhase.Ended"
+      ],
       "a": false
     },
     {
@@ -93,25 +803,20 @@
     },
     {
       "n": "messageCallbacks",
-      "t": "((message: BattleMessage) => void)",
+      "t": "{ original: (message: BattleMessage) => void; wrapped: (message: BattleMessage) => void; options?: { viewerId?: playerId | undefined; showHidden?: boolean | undefined; showAll?: boolean | undefined; } | undefined; lastState?: BattleState | undefined; }",
       "iu": false,
       "u": [],
       "a": true,
-      "nt": "((message: BattleMessage) => void)"
-    },
-    {
-      "n": "pendingDefeatedPlayers",
-      "t": "Player",
-      "iu": false,
-      "u": [],
-      "a": true,
-      "nt": "Player"
+      "nt": "{ original: (message: BattleMessage) => void; wrapped: (message: BattleMessage) => void; options?: { viewerId?: playerId | undefined; showHidden?: boolean | undefined; showAll?: boolean | undefined; } | undefined; lastState?: BattleState | undefined; }"
     },
     {
       "n": "lastKiller",
       "t": "undefined | Player",
       "iu": true,
-      "u": ["undefined", "Player"],
+      "u": [
+        "undefined",
+        "Player"
+      ],
       "a": false
     },
     {
@@ -126,7 +831,38 @@
       "n": "victor",
       "t": "undefined | Player",
       "iu": true,
-      "u": ["undefined", "Player"],
+      "u": [
+        "undefined",
+        "Player"
+      ],
+      "a": false
+    },
+    {
+      "n": "pendingForcedSwitches",
+      "t": "Player",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "Player"
+    },
+    {
+      "n": "pendingFaintSwitch",
+      "t": "undefined | Player",
+      "iu": true,
+      "u": [
+        "undefined",
+        "Player"
+      ],
+      "a": false
+    },
+    {
+      "n": "isInitialSwitchPhase",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -151,6 +887,13 @@
       "a": false
     },
     {
+      "n": "waitingResolvers",
+      "t": "{ switchSelections?: players, resolve: () => void, bothPlayersReady?: resolve | undefined }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "playerA",
       "t": "Player",
       "iu": false,
@@ -165,10 +908,99 @@
       "a": false
     }
   ],
+  "ConfigModifier": [
+    {
+      "n": "value",
+      "t": "BehaviorSubject<ConfigValue>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sourceSubscription",
+      "t": "undefined | { unsubscribe(): void }",
+      "iu": true,
+      "u": [
+        "undefined",
+        "{ unsubscribe(): void }"
+      ],
+      "a": false
+    },
+    {
+      "n": "durationType",
+      "t": "ConfigDurationType.instant | ConfigDurationType.binding | ConfigDurationType.phase | ConfigDurationType.phaseType",
+      "iu": true,
+      "u": [
+        "ConfigDurationType.instant",
+        "ConfigDurationType.binding",
+        "ConfigDurationType.phase",
+        "ConfigDurationType.phaseType"
+      ],
+      "a": false
+    },
+    {
+      "n": "id",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "type",
+      "t": "ConfigModifierType.override | ConfigModifierType.delta | ConfigModifierType.append | ConfigModifierType.prepend",
+      "iu": true,
+      "u": [
+        "ConfigModifierType.override",
+        "ConfigModifierType.delta",
+        "ConfigModifierType.append",
+        "ConfigModifierType.prepend"
+      ],
+      "a": false
+    },
+    {
+      "n": "priority",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "source",
+      "t": "undefined | MarkInstance | SkillInstance | BattlePhaseBase<Context>",
+      "iu": true,
+      "u": [
+        "undefined",
+        "MarkInstance",
+        "SkillInstance",
+        "BattlePhaseBase<Context>"
+      ],
+      "a": false
+    },
+    {
+      "n": "phaseTypeSpec",
+      "t": "undefined | PhaseTypeSpec",
+      "iu": true,
+      "u": [
+        "undefined",
+        "PhaseTypeSpec"
+      ],
+      "a": false
+    }
+  ],
   "ConfigSystem": [
     {
       "n": "instance",
-      "t": "ConfigSystem",
+      "t": "null | ConfigSystem",
+      "iu": true,
+      "u": [
+        "null",
+        "ConfigSystem"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleRegistry",
+      "t": "Map<string, Set<ConfigSystem>>",
       "iu": false,
       "u": [],
       "a": false
@@ -186,21 +1018,113 @@
       "iu": false,
       "u": [],
       "a": false
+    },
+    {
+      "n": "baseConfigs",
+      "t": "Map<string, BehaviorSubject<ConfigValue>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "modifiers",
+      "t": "Map<string, BehaviorSubject<ConfigModifier[]>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "subscriptions",
+      "t": "Map<string, Observable<ConfigValue>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "modifiersBySource",
+      "t": "Map<string, Map<string, ConfigModifier[]>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "scopedModifiers",
+      "t": "WeakMap<ScopeObject, Map<string, ConfigModifier[]>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "phaseStack",
+      "t": "BattlePhaseBase<Context>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "BattlePhaseBase<Context>"
+    },
+    {
+      "n": "phaseTypeModifiers",
+      "t": "Map<string, ConfigModifier[]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "phaseTypeInstances",
+      "t": "Map<PhaseType, BattlePhaseBase<Context>[]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "isDestroyed",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "undefined | string",
+      "iu": true,
+      "u": [
+        "undefined",
+        "string"
+      ],
+      "a": false
+    },
+    {
+      "n": "allSubscriptions",
+      "t": "{ unsubscribe(): void; }",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "{ unsubscribe(): void; }"
     }
   ],
   "ScopeObject": [
     {
       "n": "type",
-      "t": "Battle | Player | MarkInstance | Pet | SkillInstance",
+      "t": "MarkInstance | SkillInstance | Battle | Player | Pet | BattlePhaseBase<Context>",
       "iu": true,
-      "u": ["Battle", "Player", "MarkInstance", "Pet", "SkillInstance"],
+      "u": [
+        "MarkInstance",
+        "SkillInstance",
+        "Battle",
+        "Player",
+        "Pet",
+        "BattlePhaseBase<Context>"
+      ],
       "a": false
     }
   ],
   "ConfigValue": [
     {
       "n": "type",
-      "t": "null | string | number | false | true | markId | skillId | petId | playerId | baseMarkId | baseSkillId | speciesId",
+      "t": "null | string | number | false | true | playerId | markId | skillId | petId | baseMarkId | baseSkillId | speciesId",
       "iu": true,
       "u": [
         "null",
@@ -208,13 +1132,53 @@
         "number",
         "false",
         "true",
+        "playerId",
         "markId",
         "skillId",
         "petId",
-        "playerId",
         "baseMarkId",
         "baseSkillId",
         "speciesId"
+      ],
+      "a": false
+    }
+  ],
+  "PhaseTypeSpec": [
+    {
+      "n": "phaseType",
+      "t": "PhaseType.Turn | PhaseType.Skill | PhaseType.Damage | PhaseType.Heal | PhaseType.Effect | PhaseType.Switch | PhaseType.Mark | PhaseType.Rage | PhaseType.Battle",
+      "iu": true,
+      "u": [
+        "PhaseType.Turn",
+        "PhaseType.Skill",
+        "PhaseType.Damage",
+        "PhaseType.Heal",
+        "PhaseType.Effect",
+        "PhaseType.Switch",
+        "PhaseType.Mark",
+        "PhaseType.Rage",
+        "PhaseType.Battle"
+      ],
+      "a": false
+    },
+    {
+      "n": "phaseId",
+      "t": "undefined | string",
+      "iu": true,
+      "u": [
+        "undefined",
+        "string"
+      ],
+      "a": false
+    },
+    {
+      "n": "scope",
+      "t": "PhaseScope.Current | PhaseScope.Any | PhaseScope.Next",
+      "iu": true,
+      "u": [
+        "PhaseScope.Current",
+        "PhaseScope.Any",
+        "PhaseScope.Next"
       ],
       "a": false
     }
@@ -231,12 +1195,15 @@
       "n": "battle",
       "t": "undefined | Battle",
       "iu": true,
-      "u": ["undefined", "Battle"],
+      "u": [
+        "undefined",
+        "Battle"
+      ],
       "a": false
     },
     {
       "n": "parent",
-      "t": "null | Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | UpdateStatContext | EffectContext<EffectTrigger>",
+      "t": "null | Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "null",
@@ -249,7 +1216,7 @@
         "RemoveMarkContext",
         "SwitchPetContext",
         "RageContext",
-        "UpdateStatContext",
+        "StackContext",
         "EffectContext<EffectTrigger>"
       ],
       "a": false
@@ -277,6 +1244,29 @@
       "u": [],
       "a": true,
       "nt": "Context"
+    },
+    {
+      "n": "contextQueue",
+      "t": "Context",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "Context"
+    },
+    {
+      "n": "appledContexts",
+      "t": "Context",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "Context"
+    },
+    {
+      "n": "petTurnDataMap",
+      "t": "WeakMap<Pet, PetTurnData>",
+      "iu": false,
+      "u": [],
+      "a": false
     },
     {
       "n": "parent",
@@ -312,7 +1302,12 @@
       "n": "category",
       "t": "Category.Physical | Category.Special | Category.Status | Category.Climax",
       "iu": true,
-      "u": ["Category.Physical", "Category.Special", "Category.Status", "Category.Climax"],
+      "u": [
+        "Category.Physical",
+        "Category.Special",
+        "Category.Status",
+        "Category.Climax"
+      ],
       "a": false
     },
     {
@@ -392,7 +1387,10 @@
       "n": "ignoreShield",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -427,35 +1425,50 @@
       "n": "multihit",
       "t": "number | [number, number]",
       "iu": true,
-      "u": ["number", "[number, number]"],
+      "u": [
+        "number",
+        "[number, number]"
+      ],
       "a": false
     },
     {
       "n": "available",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "actualTarget",
       "t": "undefined | Pet",
       "iu": true,
-      "u": ["undefined", "Pet"],
+      "u": [
+        "undefined",
+        "Pet"
+      ],
       "a": false
     },
     {
       "n": "hitResult",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "crit",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -469,7 +1482,11 @@
       "n": "damageType",
       "t": "DamageType.Physical | DamageType.Special | DamageType.Effect",
       "iu": true,
-      "u": ["DamageType.Physical", "DamageType.Special", "DamageType.Effect"],
+      "u": [
+        "DamageType.Physical",
+        "DamageType.Special",
+        "DamageType.Effect"
+      ],
       "a": false
     },
     {
@@ -511,7 +1528,10 @@
       "n": "defeated",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -539,7 +1559,10 @@
       "n": "selectTarget",
       "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
       "iu": true,
-      "u": ["AttackTargetOpinion.self", "AttackTargetOpinion.opponent"],
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
       "a": false
     },
     {
@@ -569,7 +1592,10 @@
       "n": "parent",
       "t": "Battle | TurnContext",
       "iu": true,
-      "u": ["Battle", "TurnContext"],
+      "u": [
+        "Battle",
+        "TurnContext"
+      ],
       "a": false
     },
     {
@@ -606,7 +1632,10 @@
       "n": "available",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -627,7 +1656,11 @@
       "n": "parent",
       "t": "TurnContext | UseSkillContext | EffectContext<EffectTrigger>",
       "iu": true,
-      "u": ["TurnContext", "UseSkillContext", "EffectContext<EffectTrigger>"],
+      "u": [
+        "TurnContext",
+        "UseSkillContext",
+        "EffectContext<EffectTrigger>"
+      ],
       "a": false
     },
     {
@@ -641,14 +1674,25 @@
       "n": "reason",
       "t": "\"turn\" | \"damage\" | \"skill\" | \"skillHit\" | \"switch\" | \"effect\"",
       "iu": true,
-      "u": ["\"turn\"", "\"damage\"", "\"skill\"", "\"skillHit\"", "\"switch\"", "\"effect\""],
+      "u": [
+        "\"turn\"",
+        "\"damage\"",
+        "\"skill\"",
+        "\"skillHit\"",
+        "\"switch\"",
+        "\"effect\""
+      ],
       "a": false
     },
     {
       "n": "modifiedType",
       "t": "\"setting\" | \"add\" | \"reduce\"",
       "iu": true,
-      "u": ["\"setting\"", "\"add\"", "\"reduce\""],
+      "u": [
+        "\"setting\"",
+        "\"add\"",
+        "\"reduce\""
+      ],
       "a": false
     },
     {
@@ -662,7 +1706,10 @@
       "n": "ignoreRageObtainEfficiency",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -692,7 +1739,10 @@
       "n": "available",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -713,14 +1763,21 @@
       "n": "parent",
       "t": "UseSkillContext | EffectContext<EffectTrigger>",
       "iu": true,
-      "u": ["UseSkillContext", "EffectContext<EffectTrigger>"],
+      "u": [
+        "UseSkillContext",
+        "EffectContext<EffectTrigger>"
+      ],
       "a": false
     },
     {
       "n": "source",
-      "t": "MarkInstance | Pet | SkillInstance",
+      "t": "MarkInstance | SkillInstance | Pet",
       "iu": true,
-      "u": ["MarkInstance", "Pet", "SkillInstance"],
+      "u": [
+        "MarkInstance",
+        "SkillInstance",
+        "Pet"
+      ],
       "a": false
     },
     {
@@ -741,14 +1798,21 @@
       "n": "damageType",
       "t": "DamageType.Physical | DamageType.Special | DamageType.Effect",
       "iu": true,
-      "u": ["DamageType.Physical", "DamageType.Special", "DamageType.Effect"],
+      "u": [
+        "DamageType.Physical",
+        "DamageType.Special",
+        "DamageType.Effect"
+      ],
       "a": false
     },
     {
       "n": "crit",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -762,7 +1826,10 @@
       "n": "ignoreShield",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -813,7 +1880,10 @@
       "n": "available",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -834,7 +1904,10 @@
       "n": "source",
       "t": "MarkInstance | SkillInstance",
       "iu": true,
-      "u": ["MarkInstance", "SkillInstance"],
+      "u": [
+        "MarkInstance",
+        "SkillInstance"
+      ],
       "a": false
     },
     {
@@ -855,7 +1928,10 @@
       "n": "ingoreEffect",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -885,7 +1961,24 @@
       "n": "available",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "stack",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "duration",
+      "t": "number",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -910,24 +2003,13 @@
       "a": false
     },
     {
-      "n": "stack",
-      "t": "undefined | number",
-      "iu": true,
-      "u": ["undefined", "number"],
-      "a": false
-    },
-    {
-      "n": "duration",
-      "t": "undefined | number",
-      "iu": true,
-      "u": ["undefined", "number"],
-      "a": false
-    },
-    {
       "n": "config",
       "t": "undefined | Partial<MarkConfig>",
       "iu": true,
-      "u": ["undefined", "Partial<MarkConfig>"],
+      "u": [
+        "undefined",
+        "Partial<MarkConfig>"
+      ],
       "a": false
     }
   ],
@@ -950,14 +2032,22 @@
       "n": "available",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "parent",
       "t": "TurnContext | DamageContext | AddMarkContext | EffectContext<EffectTrigger>",
       "iu": true,
-      "u": ["TurnContext", "DamageContext", "AddMarkContext", "EffectContext<EffectTrigger>"],
+      "u": [
+        "TurnContext",
+        "DamageContext",
+        "AddMarkContext",
+        "EffectContext<EffectTrigger>"
+      ],
       "a": false
     },
     {
@@ -968,10 +2058,10 @@
       "a": false
     }
   ],
-  "UpdateStatContext": [
+  "StackContext": [
     {
       "n": "type",
-      "t": "\"update-stat\"",
+      "t": "\"stack\"",
       "iu": false,
       "u": [],
       "a": false
@@ -987,26 +2077,86 @@
       "n": "available",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "parent",
-      "t": "Battle",
+      "t": "AddMarkContext",
       "iu": false,
       "u": [],
       "a": false
     },
     {
-      "n": "stat",
-      "t": "StatOnBattle",
+      "n": "existingMark",
+      "t": "MarkInstance",
       "iu": false,
       "u": [],
       "a": false
     },
     {
-      "n": "pet",
-      "t": "Pet",
+      "n": "incomingMark",
+      "t": "MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stacksBefore",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "durationBefore",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stacksAfter",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "durationAfter",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stackStrategy",
+      "t": "StackStrategy.stack | StackStrategy.refresh | StackStrategy.extend | StackStrategy.max | StackStrategy.replace | StackStrategy.none | StackStrategy.remove",
+      "iu": true,
+      "u": [
+        "StackStrategy.stack",
+        "StackStrategy.refresh",
+        "StackStrategy.extend",
+        "StackStrategy.max",
+        "StackStrategy.replace",
+        "StackStrategy.none",
+        "StackStrategy.remove"
+      ],
+      "a": false
+    },
+    {
+      "n": "stackChange",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "durationChange",
+      "t": "number",
       "iu": false,
       "u": [],
       "a": false
@@ -1031,14 +2181,21 @@
       "n": "available",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "success",
       "t": "undefined | false | true",
       "iu": true,
-      "u": ["undefined", "false", "true"],
+      "u": [
+        "undefined",
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -1059,21 +2216,27 @@
       "n": "source",
       "t": "MarkInstance | SkillInstance",
       "iu": true,
-      "u": ["MarkInstance", "SkillInstance"],
+      "u": [
+        "MarkInstance",
+        "SkillInstance"
+      ],
       "a": false
     },
     {
       "n": "effect",
       "t": "undefined | Effect<EffectTrigger>",
       "iu": true,
-      "u": ["undefined", "Effect<EffectTrigger>"],
+      "u": [
+        "undefined",
+        "Effect<EffectTrigger>"
+      ],
       "a": false
     }
   ],
   "AllContext": [
     {
       "n": "type",
-      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | UpdateStatContext | EffectContext<EffectTrigger>",
+      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "Battle",
@@ -1085,12 +2248,13 @@
         "RemoveMarkContext",
         "SwitchPetContext",
         "RageContext",
-        "UpdateStatContext",
+        "StackContext",
         "EffectContext<EffectTrigger>"
       ],
       "a": false
     }
   ],
+  "PetTurnData": [],
   "TriggerContextMap": [
     {
       "n": "OnBattleStart",
@@ -1268,8 +2432,15 @@
       "a": false
     },
     {
+      "n": "OnStackBefore",
+      "t": "StackContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "OnStack",
-      "t": "AddMarkContext",
+      "t": "StackContext",
       "iu": false,
       "u": [],
       "a": false
@@ -1325,7 +2496,7 @@
     },
     {
       "n": "BeforeEffect",
-      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | UpdateStatContext | EffectContext<EffectTrigger>",
+      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "Battle",
@@ -1337,14 +2508,14 @@
         "RemoveMarkContext",
         "SwitchPetContext",
         "RageContext",
-        "UpdateStatContext",
+        "StackContext",
         "EffectContext<EffectTrigger>"
       ],
       "a": false
     },
     {
       "n": "AfterEffect",
-      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | UpdateStatContext | EffectContext<EffectTrigger>",
+      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "Battle",
@@ -1356,16 +2527,9 @@
         "RemoveMarkContext",
         "SwitchPetContext",
         "RageContext",
-        "UpdateStatContext",
+        "StackContext",
         "EffectContext<EffectTrigger>"
       ],
-      "a": false
-    },
-    {
-      "n": "OnUpdateStat",
-      "t": "UpdateStatContext",
-      "iu": false,
-      "u": [],
       "a": false
     }
   ],
@@ -1397,7 +2561,10 @@
       "n": "apply",
       "t": "(context: EffectContext<T>) => void | ((context: EffectContext<T>) => void)",
       "iu": true,
-      "u": ["(context: EffectContext<T>) => void", "((context: EffectContext<T>) => void)"],
+      "u": [
+        "(context: EffectContext<T>) => void",
+        "((context: EffectContext<T>) => void)"
+      ],
       "a": false
     },
     {
@@ -1411,14 +2578,20 @@
       "n": "condition",
       "t": "undefined | (context: EffectContext<T>) => boolean",
       "iu": true,
-      "u": ["undefined", "(context: EffectContext<T>) => boolean"],
+      "u": [
+        "undefined",
+        "(context: EffectContext<T>) => boolean"
+      ],
       "a": false
     },
     {
       "n": "consumesStacks",
       "t": "undefined | number",
       "iu": true,
-      "u": ["undefined", "number"],
+      "u": [
+        "undefined",
+        "number"
+      ],
       "a": false
     },
     {
@@ -1434,9 +2607,16 @@
   "CanOwnedEntity": [
     {
       "n": "type",
-      "t": "null | Battle | Player | MarkInstance | Pet | SkillInstance",
+      "t": "null | MarkInstance | SkillInstance | Battle | Player | Pet",
       "iu": true,
-      "u": ["null", "Battle", "Player", "MarkInstance", "Pet", "SkillInstance"],
+      "u": [
+        "null",
+        "MarkInstance",
+        "SkillInstance",
+        "Battle",
+        "Player",
+        "Pet"
+      ],
       "a": false
     }
   ],
@@ -1445,7 +2625,12 @@
       "n": "id",
       "t": "baseMarkId | baseSkillId | speciesId | effectId",
       "iu": true,
-      "u": ["baseMarkId", "baseSkillId", "speciesId", "effectId"],
+      "u": [
+        "baseMarkId",
+        "baseSkillId",
+        "speciesId",
+        "effectId"
+      ],
       "a": false
     }
   ],
@@ -1454,7 +2639,11 @@
       "n": "id",
       "t": "markId | skillId | petId",
       "iu": true,
-      "u": ["markId", "skillId", "petId"],
+      "u": [
+        "markId",
+        "skillId",
+        "petId"
+      ],
       "a": false
     },
     {
@@ -1518,31 +2707,14 @@
   ],
   "MarkInstanceImpl": [
     {
-      "n": "_stack",
-      "t": "number",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "duration",
-      "t": "number",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
       "n": "owner",
       "t": "null | Battle | Pet",
       "iu": true,
-      "u": ["null", "Battle", "Pet"],
-      "a": false
-    },
-    {
-      "n": "isActive",
-      "t": "false | true",
-      "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "null",
+        "Battle",
+        "Pet"
+      ],
       "a": false
     },
     {
@@ -1576,8 +2748,40 @@
       "nt": "string"
     },
     {
+      "n": "emitter",
+      "t": "undefined | Emitter<Events>",
+      "iu": true,
+      "u": [
+        "undefined",
+        "Emitter<Events>"
+      ],
+      "a": false
+    },
+    {
+      "n": "attributeSystem",
+      "t": "MarkAttributeSystem",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "attributeModifierCleanups",
+      "t": "(() => void)",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(() => void)"
+    },
+    {
       "n": "base",
       "t": "BaseMark",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "_stack",
+      "t": "number",
       "iu": false,
       "u": [],
       "a": false
@@ -1587,6 +2791,23 @@
       "t": "number",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "duration",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "isActive",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -1600,7 +2821,10 @@
       "n": "isStackable",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     }
   ],
@@ -1628,22 +2852,56 @@
   ],
   "StatLevelMarkInstanceImpl": [
     {
-      "n": "level",
-      "t": "number",
+      "n": "owner",
+      "t": "null | Pet",
+      "iu": true,
+      "u": [
+        "null",
+        "Pet"
+      ],
+      "a": false
+    },
+    {
+      "n": "modifierCleanupFn",
+      "t": "undefined | () => void",
+      "iu": true,
+      "u": [
+        "undefined",
+        "() => void"
+      ],
+      "a": false
+    },
+    {
+      "n": "statLevelAttributeSystem",
+      "t": "ComposableAttributeSystem<StatLevelMarkAttributeSet> & { getAccessors(): BaseMarkAccessors & LevelAccessors; }",
       "iu": false,
       "u": [],
       "a": false
     },
     {
-      "n": "owner",
-      "t": "null | Pet",
-      "iu": true,
-      "u": ["null", "Pet"],
+      "n": "levelAccessors",
+      "t": "BaseMarkAccessors & LevelAccessors",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stageMultiplier$",
+      "t": "Observable<number>",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
       "n": "base",
       "t": "BaseStatLevelMark",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "level",
+      "t": "number",
       "iu": false,
       "u": [],
       "a": false
@@ -1681,31 +2939,14 @@
   "IBaseMark": [],
   "MarkInstance": [
     {
-      "n": "_stack",
-      "t": "number",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "duration",
-      "t": "number",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
       "n": "owner",
       "t": "null | Battle | Pet",
       "iu": true,
-      "u": ["null", "Battle", "Pet"],
-      "a": false
-    },
-    {
-      "n": "isActive",
-      "t": "false | true",
-      "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "null",
+        "Battle",
+        "Pet"
+      ],
       "a": false
     },
     {
@@ -1746,6 +2987,37 @@
       "a": false
     },
     {
+      "n": "attributeSystem",
+      "t": "MarkAttributeSystem",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "_stack",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "duration",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "isActive",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
       "n": "stack",
       "t": "number",
       "iu": false,
@@ -1763,23 +3035,33 @@
       "n": "isStackable",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     }
   ],
   "Pet": [
     {
-      "n": "gender",
-      "t": "Gender.NoGender | Gender.Male | Gender.Female",
+      "n": "emitter",
+      "t": "undefined | Emitter<Events>",
       "iu": true,
-      "u": ["Gender.NoGender", "Gender.Male", "Gender.Female"],
+      "u": [
+        "undefined",
+        "Emitter<Events>"
+      ],
       "a": false
     },
     {
-      "n": "currentHp",
-      "t": "number",
-      "iu": false,
-      "u": [],
+      "n": "gender",
+      "t": "Gender.NoGender | Gender.Male | Gender.Female",
+      "iu": true,
+      "u": [
+        "Gender.NoGender",
+        "Gender.Male",
+        "Gender.Female"
+      ],
       "a": false
     },
     {
@@ -1799,13 +3081,6 @@
     {
       "n": "baseRageObtainEfficiency",
       "t": "number",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "statStage",
-      "t": "StatStage",
       "iu": false,
       "u": [],
       "a": false
@@ -1845,14 +3120,20 @@
       "n": "isAlive",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "owner",
       "t": "null | Player",
       "iu": true,
-      "u": ["null", "Player"],
+      "u": [
+        "null",
+        "Player"
+      ],
       "a": false
     },
     {
@@ -1872,13 +3153,6 @@
       "nt": "SkillInstance"
     },
     {
-      "n": "dirty",
-      "t": "false | true",
-      "iu": true,
-      "u": ["false", "true"],
-      "a": false
-    },
-    {
       "n": "base",
       "t": "Species",
       "iu": false,
@@ -1889,14 +3163,20 @@
       "n": "appeared",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "lastSkill",
       "t": "undefined | SkillInstance",
       "iu": true,
-      "u": ["undefined", "SkillInstance"],
+      "u": [
+        "undefined",
+        "SkillInstance"
+      ],
       "a": false
     },
     {
@@ -1907,15 +3187,8 @@
       "a": false
     },
     {
-      "n": "baseStat",
-      "t": "StatOnBattle",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "stat",
-      "t": "StatOnBattle",
+      "n": "attributeSystem",
+      "t": "PetAttributeSystem",
       "iu": false,
       "u": [],
       "a": false
@@ -1993,6 +3266,78 @@
         "Nature.Careful",
         "Nature.Quirky"
       ],
+      "a": false
+    },
+    {
+      "n": "baseSkills",
+      "t": "BaseSkill",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "BaseSkill"
+    },
+    {
+      "n": "ability",
+      "t": "undefined | BaseMark",
+      "iu": true,
+      "u": [
+        "undefined",
+        "BaseMark"
+      ],
+      "a": false
+    },
+    {
+      "n": "emblem",
+      "t": "undefined | BaseMark",
+      "iu": true,
+      "u": [
+        "undefined",
+        "BaseMark"
+      ],
+      "a": false
+    },
+    {
+      "n": "weight",
+      "t": "undefined | number",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    },
+    {
+      "n": "height",
+      "t": "undefined | number",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    },
+    {
+      "n": "maxHp",
+      "t": "undefined | number",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    },
+    {
+      "n": "currentHp",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stat",
+      "t": "StatOnBattle",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -2074,7 +3419,10 @@
       "n": "genderRatio",
       "t": "null | [number, number]",
       "iu": true,
-      "u": ["null", "[number, number]"],
+      "u": [
+        "null",
+        "[number, number]"
+      ],
       "a": false
     },
     {
@@ -2095,18 +3443,34 @@
       "n": "ability",
       "t": "undefined | BaseMark",
       "iu": true,
-      "u": ["undefined", "BaseMark"],
+      "u": [
+        "undefined",
+        "BaseMark"
+      ],
       "a": false
     },
     {
       "n": "emblem",
       "t": "undefined | BaseMark",
       "iu": true,
-      "u": ["undefined", "BaseMark"],
+      "u": [
+        "undefined",
+        "BaseMark"
+      ],
       "a": false
     }
   ],
   "Player": [
+    {
+      "n": "emitter",
+      "t": "undefined | Emitter<Events>",
+      "iu": true,
+      "u": [
+        "undefined",
+        "Emitter<Events>"
+      ],
+      "a": false
+    },
     {
       "n": "lastStateMessage",
       "t": "BattleState",
@@ -2115,31 +3479,36 @@
       "a": false
     },
     {
-      "n": "currentRage",
-      "t": "number",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
       "n": "battle",
       "t": "undefined | Battle",
       "iu": true,
-      "u": ["undefined", "Battle"],
+      "u": [
+        "undefined",
+        "Battle"
+      ],
       "a": false
     },
     {
       "n": "owner",
       "t": "undefined | Battle",
       "iu": true,
-      "u": ["undefined", "Battle"],
+      "u": [
+        "undefined",
+        "Battle"
+      ],
       "a": false
     },
     {
       "n": "selection",
       "t": "null | UseSkillSelection | SwitchPetSelection | DoNothingSelection | SurrenderSelection",
       "iu": true,
-      "u": ["null", "UseSkillSelection", "SwitchPetSelection", "DoNothingSelection", "SurrenderSelection"],
+      "u": [
+        "null",
+        "UseSkillSelection",
+        "SwitchPetSelection",
+        "DoNothingSelection",
+        "SurrenderSelection"
+      ],
       "a": false
     },
     {
@@ -2156,6 +3525,13 @@
       "u": [],
       "a": true,
       "nt": "((message: BattleMessage) => void)"
+    },
+    {
+      "n": "attributeSystem",
+      "t": "PlayerAttributeSystem",
+      "iu": false,
+      "u": [],
+      "a": false
     },
     {
       "n": "name",
@@ -2178,6 +3554,20 @@
       "u": [],
       "a": true,
       "nt": "Pet"
+    },
+    {
+      "n": "currentRage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "maxRage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
     }
   ],
   "AIPlayer": [
@@ -2185,14 +3575,20 @@
       "n": "decisionPending",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "phaseChangeRegistered",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     }
   ],
@@ -2223,7 +3619,12 @@
       "n": "category",
       "t": "Category.Physical | Category.Special | Category.Status | Category.Climax",
       "iu": true,
-      "u": ["Category.Physical", "Category.Special", "Category.Status", "Category.Climax"],
+      "u": [
+        "Category.Physical",
+        "Category.Special",
+        "Category.Status",
+        "Category.Climax"
+      ],
       "a": false
     },
     {
@@ -2289,35 +3690,50 @@
       "n": "target",
       "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
       "iu": true,
-      "u": ["AttackTargetOpinion.self", "AttackTargetOpinion.opponent"],
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
       "a": false
     },
     {
       "n": "multihit",
       "t": "number | [number, number]",
       "iu": true,
-      "u": ["number", "[number, number]"],
+      "u": [
+        "number",
+        "[number, number]"
+      ],
       "a": false
     },
     {
       "n": "sureHit",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "sureCrit",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "ignoreShield",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -2346,7 +3762,10 @@
       "n": "owner",
       "t": "null | Pet",
       "iu": true,
-      "u": ["null", "Pet"],
+      "u": [
+        "null",
+        "Pet"
+      ],
       "a": false
     },
     {
@@ -2360,7 +3779,12 @@
       "n": "category",
       "t": "Category.Physical | Category.Special | Category.Status | Category.Climax",
       "iu": true,
-      "u": ["Category.Physical", "Category.Special", "Category.Status", "Category.Climax"],
+      "u": [
+        "Category.Physical",
+        "Category.Special",
+        "Category.Status",
+        "Category.Climax"
+      ],
       "a": false
     },
     {
@@ -2395,6 +3819,86 @@
       "a": false
     },
     {
+      "n": "target",
+      "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
+      "iu": true,
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
+      "a": false
+    },
+    {
+      "n": "multihit",
+      "t": "number | [number, number]",
+      "iu": true,
+      "u": [
+        "number",
+        "[number, number]"
+      ],
+      "a": false
+    },
+    {
+      "n": "sureHit",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "sureCrit",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "ignoreShield",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "tags",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "string"
+    },
+    {
+      "n": "effects",
+      "t": "Effect<EffectTrigger>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "Effect<EffectTrigger>"
+    },
+    {
+      "n": "attributeSystem",
+      "t": "SkillAttributeSystem",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "base",
+      "t": "BaseSkill",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "power",
       "t": "number",
       "iu": false,
@@ -2423,68 +3927,13 @@
       "a": false
     },
     {
-      "n": "target",
-      "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
-      "iu": true,
-      "u": ["AttackTargetOpinion.self", "AttackTargetOpinion.opponent"],
-      "a": false
-    },
-    {
-      "n": "multihit",
-      "t": "number | [number, number]",
-      "iu": true,
-      "u": ["number", "[number, number]"],
-      "a": false
-    },
-    {
-      "n": "sureHit",
-      "t": "false | true",
-      "iu": true,
-      "u": ["false", "true"],
-      "a": false
-    },
-    {
-      "n": "sureCrit",
-      "t": "false | true",
-      "iu": true,
-      "u": ["false", "true"],
-      "a": false
-    },
-    {
-      "n": "ignoreShield",
-      "t": "false | true",
-      "iu": true,
-      "u": ["false", "true"],
-      "a": false
-    },
-    {
-      "n": "tags",
-      "t": "string",
-      "iu": false,
-      "u": [],
-      "a": true,
-      "nt": "string"
-    },
-    {
-      "n": "effects",
-      "t": "Effect<EffectTrigger>",
-      "iu": false,
-      "u": [],
-      "a": true,
-      "nt": "Effect<EffectTrigger>"
-    },
-    {
       "n": "appeared",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
-      "a": false
-    },
-    {
-      "n": "base",
-      "t": "BaseSkill",
-      "iu": false,
-      "u": [],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -2511,7 +3960,15 @@
       "n": "type",
       "t": "markId | skillId | petId | baseMarkId | baseSkillId | speciesId | effectId",
       "iu": true,
-      "u": ["markId", "skillId", "petId", "baseMarkId", "baseSkillId", "speciesId", "effectId"],
+      "u": [
+        "markId",
+        "skillId",
+        "petId",
+        "baseMarkId",
+        "baseSkillId",
+        "speciesId",
+        "effectId"
+      ],
       "a": false
     }
   ],
@@ -2520,7 +3977,12 @@
       "n": "type",
       "t": "baseMarkId | baseSkillId | speciesId | effectId",
       "iu": true,
-      "u": ["baseMarkId", "baseSkillId", "speciesId", "effectId"],
+      "u": [
+        "baseMarkId",
+        "baseSkillId",
+        "speciesId",
+        "effectId"
+      ],
       "a": false
     }
   ],
@@ -2529,7 +3991,11 @@
       "n": "type",
       "t": "markId | skillId | petId",
       "iu": true,
-      "u": ["markId", "skillId", "petId"],
+      "u": [
+        "markId",
+        "skillId",
+        "petId"
+      ],
       "a": false
     }
   ],
@@ -3105,15 +4571,66 @@
       "nt": "(index: number, value: number) => number"
     },
     {
-      "n": "__@iterator@164",
+      "n": "__@iterator@373",
       "t": "() => ArrayIterator<number>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
-      "n": "__@unscopables@779",
+      "n": "__@unscopables@1195",
       "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "Events": [
+    {
+      "n": "timerStart",
+      "t": "{ player: playerId[], turnTimeLimit: number | null, remainingTotalTime: [key }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "timerUpdate",
+      "t": "{ player: playerId, remainingTurnTime: number, remainingTotalTime: number }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "timerPause",
+      "t": "{ player: playerId[], reason: \"animation\" | \"system\" }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "timerResume",
+      "t": "player",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "timerTimeout",
+      "t": "{ player: playerId, type: \"turn\" | \"total\", autoAction?: string | undefined }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "animationStart",
+      "t": "{ animationId: string, duration: number, source: skillId | petId }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "animationEnd",
+      "t": "{ animationId: string, actualDuration: number }",
       "iu": false,
       "u": [],
       "a": false
@@ -3131,7 +4648,10 @@
       "n": "persistent",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -3145,7 +4665,10 @@
       "n": "stackable",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -3167,42 +4690,61 @@
       "n": "destroyable",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "isShield",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "keepOnSwitchOut",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "transferOnSwitch",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "inheritOnFaint",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
       "n": "mutexGroup",
       "t": "undefined | string | undefined",
       "iu": true,
-      "u": ["undefined", "string", "undefined"],
+      "u": [
+        "undefined",
+        "string",
+        "undefined"
+      ],
       "a": false
     }
   ],
@@ -3257,12 +4799,23 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
       "n": "data",
-      "t": "{ playerA: PlayerMessage, playerB: PlayerMessage }",
+      "t": "{  }",
       "iu": false,
       "u": [],
       "a": false
@@ -3296,7 +4849,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3335,7 +4899,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3374,12 +4949,23 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
       "n": "data",
-      "t": "{ winner: playerId | null, reason: \"all_pet_fainted\" | \"surrender\" }",
+      "t": "{ winner: playerId | null, reason: \"all_pet_fainted\" | \"surrender\" | \"total_time_timeout\" }",
       "iu": false,
       "u": [],
       "a": false
@@ -3413,7 +4999,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3452,7 +5049,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3491,7 +5099,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3530,7 +5149,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3569,7 +5199,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3608,7 +5249,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3647,7 +5299,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3686,7 +5349,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3725,7 +5399,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3764,7 +5449,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3803,7 +5499,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3842,7 +5549,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3881,7 +5599,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3920,12 +5649,23 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
       "n": "data",
-      "t": "{ target: petId, reason: \"disabled\" }",
+      "t": "{ target: petId, reason: \"disabled\" | \"disactivated\" }",
       "iu": false,
       "u": [],
       "a": false
@@ -3959,7 +5699,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3998,7 +5749,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -4037,7 +5799,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -4076,7 +5849,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -4115,7 +5899,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -4154,7 +5949,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -4193,7 +5999,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -4232,7 +6049,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -4271,7 +6099,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -4310,7 +6149,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -4349,7 +6199,18 @@
       "n": "sequenceId",
       "t": "undefined | number | undefined",
       "iu": true,
-      "u": ["undefined", "number", "undefined"],
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -4381,7 +6242,10 @@
       "n": "isUnknown",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -4402,7 +6266,12 @@
       "n": "category",
       "t": "Category.Physical | Category.Special | Category.Status | Category.Climax",
       "iu": true,
-      "u": ["Category.Physical", "Category.Special", "Category.Status", "Category.Climax"],
+      "u": [
+        "Category.Physical",
+        "Category.Special",
+        "Category.Status",
+        "Category.Climax"
+      ],
       "a": false
     },
     {
@@ -4468,21 +6337,30 @@
       "n": "target",
       "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
       "iu": true,
-      "u": ["AttackTargetOpinion.self", "AttackTargetOpinion.opponent"],
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
       "a": false
     },
     {
       "n": "multihit",
       "t": "number | [number, number]",
       "iu": true,
-      "u": ["number", "[number, number]"],
+      "u": [
+        "number",
+        "[number, number]"
+      ],
       "a": false
     },
     {
       "n": "sureHit",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -4499,7 +6377,10 @@
       "n": "isUnknown",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -4579,14 +6460,20 @@
       "n": "skills",
       "t": "undefined | SkillMessage",
       "iu": true,
-      "u": ["undefined", "SkillMessage"],
+      "u": [
+        "undefined",
+        "SkillMessage"
+      ],
       "a": false
     },
     {
       "n": "stats",
       "t": "undefined | StatOnBattle",
       "iu": true,
-      "u": ["undefined", "StatOnBattle"],
+      "u": [
+        "undefined",
+        "StatOnBattle"
+      ],
       "a": false
     },
     {
@@ -4631,7 +6518,10 @@
       "n": "isActive",
       "t": "false | true",
       "iu": true,
-      "u": ["false", "true"],
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     },
     {
@@ -4665,6 +6555,13 @@
       "a": false
     },
     {
+      "n": "maxRage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "activePet",
       "t": "petId",
       "iu": false,
@@ -4675,7 +6572,10 @@
       "n": "team",
       "t": "undefined | PetMessage",
       "iu": true,
-      "u": ["undefined", "PetMessage"],
+      "u": [
+        "undefined",
+        "PetMessage"
+      ],
       "a": false
     },
     {
@@ -4691,14 +6591,23 @@
       "n": "status",
       "t": "BattleStatus.Unstarted | BattleStatus.OnBattle | BattleStatus.Ended",
       "iu": true,
-      "u": ["BattleStatus.Unstarted", "BattleStatus.OnBattle", "BattleStatus.Ended"],
+      "u": [
+        "BattleStatus.Unstarted",
+        "BattleStatus.OnBattle",
+        "BattleStatus.Ended"
+      ],
       "a": false
     },
     {
       "n": "currentPhase",
       "t": "BattlePhase.SwitchPhase | BattlePhase.SelectionPhase | BattlePhase.ExecutionPhase | BattlePhase.Ended",
       "iu": true,
-      "u": ["BattlePhase.SwitchPhase", "BattlePhase.SelectionPhase", "BattlePhase.ExecutionPhase", "BattlePhase.Ended"],
+      "u": [
+        "BattlePhase.SwitchPhase",
+        "BattlePhase.SelectionPhase",
+        "BattlePhase.ExecutionPhase",
+        "BattlePhase.Ended"
+      ],
       "a": false
     },
     {
@@ -4737,7 +6646,17 @@
       "n": "sequenceId",
       "t": "undefined | number",
       "iu": true,
-      "u": ["undefined", "number"],
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -4767,7 +6686,7 @@
   "BattleMessageData": [
     {
       "n": "[BattleMessageType.BattleStart]",
-      "t": "{ playerA: PlayerMessage, playerB: PlayerMessage }",
+      "t": "{  }",
       "iu": false,
       "u": [],
       "a": false
@@ -4788,7 +6707,7 @@
     },
     {
       "n": "[BattleMessageType.BattleEnd]",
-      "t": "{ winner: playerId | null, reason: \"all_pet_fainted\" | \"surrender\" }",
+      "t": "{ winner: playerId | null, reason: \"all_pet_fainted\" | \"surrender\" | \"total_time_timeout\" }",
       "iu": false,
       "u": [],
       "a": false
@@ -4886,7 +6805,7 @@
     },
     {
       "n": "[BattleMessageType.HealFail]",
-      "t": "{ target: petId, reason: \"disabled\" }",
+      "t": "{ target: petId, reason: \"disabled\" | \"disactivated\" }",
       "iu": false,
       "u": [],
       "a": false
@@ -4981,7 +6900,12 @@
       "n": "type",
       "t": "UseSkillSelection | SwitchPetSelection | DoNothingSelection | SurrenderSelection",
       "iu": true,
-      "u": ["UseSkillSelection", "SwitchPetSelection", "DoNothingSelection", "SurrenderSelection"],
+      "u": [
+        "UseSkillSelection",
+        "SwitchPetSelection",
+        "DoNothingSelection",
+        "SurrenderSelection"
+      ],
       "a": false
     }
   ],
@@ -5028,7 +6952,10 @@
       "n": "target",
       "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
       "iu": true,
-      "u": ["AttackTargetOpinion.self", "AttackTargetOpinion.opponent"],
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
       "a": false
     }
   ],
@@ -5082,6 +7009,1080 @@
     {
       "n": "type",
       "t": "\"surrender\"",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "TimerConfig": [
+    {
+      "n": "enabled",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "turnTimeLimit",
+      "t": "undefined | number",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    },
+    {
+      "n": "totalTimeLimit",
+      "t": "undefined | number",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    },
+    {
+      "n": "animationPauseEnabled",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "maxAnimationDuration",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "PlayerTimerState": [
+    {
+      "n": "playerId",
+      "t": "playerId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "state",
+      "t": "TimerState.Stopped | TimerState.Running | TimerState.Paused | TimerState.Timeout",
+      "iu": true,
+      "u": [
+        "TimerState.Stopped",
+        "TimerState.Running",
+        "TimerState.Paused",
+        "TimerState.Timeout"
+      ],
+      "a": false
+    },
+    {
+      "n": "remainingTurnTime",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "remainingTotalTime",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "lastUpdateTime",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "AnimationInfo": [
+    {
+      "n": "id",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "startTime",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "expectedDuration",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "actualDuration",
+      "t": "undefined | number",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    },
+    {
+      "n": "source",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "TimerEvent": [
+    {
+      "n": "type",
+      "t": "TimerEventType.Start | TimerEventType.Update | TimerEventType.Pause | TimerEventType.Resume | TimerEventType.Timeout | TimerEventType.Stop",
+      "iu": true,
+      "u": [
+        "TimerEventType.Start",
+        "TimerEventType.Update",
+        "TimerEventType.Pause",
+        "TimerEventType.Resume",
+        "TimerEventType.Timeout",
+        "TimerEventType.Stop"
+      ],
+      "a": false
+    },
+    {
+      "n": "playerId",
+      "t": "undefined | playerId",
+      "iu": true,
+      "u": [
+        "undefined",
+        "playerId"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "timestamp",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "BattlePhaseBase": [
+    {
+      "n": "state",
+      "t": "PhaseState.Pending | PhaseState.Initializing | PhaseState.Executing | PhaseState.Completed | PhaseState.Failed | PhaseState.Cancelled",
+      "iu": true,
+      "u": [
+        "PhaseState.Pending",
+        "PhaseState.Initializing",
+        "PhaseState.Executing",
+        "PhaseState.Completed",
+        "PhaseState.Failed",
+        "PhaseState.Cancelled"
+      ],
+      "a": false
+    },
+    {
+      "n": "result",
+      "t": "undefined | PhaseResult",
+      "iu": true,
+      "u": [
+        "undefined",
+        "PhaseResult"
+      ],
+      "a": false
+    },
+    {
+      "n": "_context",
+      "t": "undefined | TContext",
+      "iu": true,
+      "u": [
+        "undefined",
+        "TContext"
+      ],
+      "a": false
+    },
+    {
+      "n": "configModifierCleanups",
+      "t": "(() => void)",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(() => void)"
+    },
+    {
+      "n": "battle",
+      "t": "Battle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "id",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "context",
+      "t": "undefined | TContext",
+      "iu": true,
+      "u": [
+        "undefined",
+        "TContext"
+      ],
+      "a": false
+    }
+  ],
+  "InteractivePhase": [
+    {
+      "n": "waitingForInput",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "inputResolver",
+      "t": "undefined | (value: any) => void",
+      "iu": true,
+      "u": [
+        "undefined",
+        "(value: any) => void"
+      ],
+      "a": false
+    },
+    {
+      "n": "inputRejecter",
+      "t": "undefined | (reason: any) => void",
+      "iu": true,
+      "u": [
+        "undefined",
+        "(reason: any) => void"
+      ],
+      "a": false
+    }
+  ],
+  "PhaseResult": [
+    {
+      "n": "success",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "state",
+      "t": "PhaseState.Pending | PhaseState.Initializing | PhaseState.Executing | PhaseState.Completed | PhaseState.Failed | PhaseState.Cancelled",
+      "iu": true,
+      "u": [
+        "PhaseState.Pending",
+        "PhaseState.Initializing",
+        "PhaseState.Executing",
+        "PhaseState.Completed",
+        "PhaseState.Failed",
+        "PhaseState.Cancelled"
+      ],
+      "a": false
+    },
+    {
+      "n": "error",
+      "t": "undefined | Error",
+      "iu": true,
+      "u": [
+        "undefined",
+        "Error"
+      ],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "PhaseContext": [
+    {
+      "n": "context",
+      "t": "TContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "phase",
+      "t": "BattlePhaseBase<TContext>",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "DamagePhase": [
+    {
+      "n": "parentContext",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "source",
+      "t": "MarkInstance | SkillInstance | Pet",
+      "iu": true,
+      "u": [
+        "MarkInstance",
+        "SkillInstance",
+        "Pet"
+      ],
+      "a": false
+    },
+    {
+      "n": "target",
+      "t": "Pet",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "baseDamage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "damageType",
+      "t": "DamageType.Physical | DamageType.Special | DamageType.Effect",
+      "iu": true,
+      "u": [
+        "DamageType.Physical",
+        "DamageType.Special",
+        "DamageType.Effect"
+      ],
+      "a": false
+    },
+    {
+      "n": "crit",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "effectiveness",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "ignoreShield",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "randomFactor",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "modified",
+      "t": "[number, number]",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "minThreshold",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "maxThreshold",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "HealPhase": [
+    {
+      "n": "parentContext",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "source",
+      "t": "MarkInstance | SkillInstance",
+      "iu": true,
+      "u": [
+        "MarkInstance",
+        "SkillInstance"
+      ],
+      "a": false
+    },
+    {
+      "n": "target",
+      "t": "Pet",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "value",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "ignoreEffect",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "modified",
+      "t": "[number, number]",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "PhaseManager": [
+    {
+      "n": "phases",
+      "t": "Map<string, BattlePhaseBase<Context>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "executionQueue",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "string"
+    },
+    {
+      "n": "dependencies",
+      "t": "Map<string, PhaseDependency[]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "executionHistory",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "string"
+    },
+    {
+      "n": "currentPhase",
+      "t": "undefined | BattlePhaseBase<Context>",
+      "iu": true,
+      "u": [
+        "undefined",
+        "BattlePhaseBase<Context>"
+      ],
+      "a": false
+    },
+    {
+      "n": "isExecuting",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "battle",
+      "t": "Battle",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "PhaseExecutionOptions": [
+    {
+      "n": "timeout",
+      "t": "undefined | number",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    },
+    {
+      "n": "retryCount",
+      "t": "undefined | number",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    },
+    {
+      "n": "skipOnError",
+      "t": "undefined | false | true",
+      "iu": true,
+      "u": [
+        "undefined",
+        "false",
+        "true"
+      ],
+      "a": false
+    }
+  ],
+  "PhaseDependency": [
+    {
+      "n": "phaseId",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "required",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    }
+  ],
+  "AddMarkPhase": [
+    {
+      "n": "parentContext",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "target",
+      "t": "MarkOwner",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "baseMark",
+      "t": "BaseMark",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stack",
+      "t": "undefined | number",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    },
+    {
+      "n": "duration",
+      "t": "undefined | number",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    },
+    {
+      "n": "config",
+      "t": "undefined | Partial<MarkConfig>",
+      "iu": true,
+      "u": [
+        "undefined",
+        "Partial<MarkConfig>"
+      ],
+      "a": false
+    }
+  ],
+  "RemoveMarkPhase": [
+    {
+      "n": "parentContext",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "mark",
+      "t": "MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "RagePhase": [
+    {
+      "n": "parentContext",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "target",
+      "t": "Player",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "reason",
+      "t": "\"turn\" | \"damage\" | \"skill\" | \"skillHit\" | \"switch\" | \"effect\"",
+      "iu": true,
+      "u": [
+        "\"turn\"",
+        "\"damage\"",
+        "\"skill\"",
+        "\"skillHit\"",
+        "\"switch\"",
+        "\"effect\""
+      ],
+      "a": false
+    },
+    {
+      "n": "modifiedType",
+      "t": "\"setting\" | \"add\" | \"reduce\"",
+      "iu": true,
+      "u": [
+        "\"setting\"",
+        "\"add\"",
+        "\"reduce\""
+      ],
+      "a": false
+    },
+    {
+      "n": "value",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "ignoreRageObtainEfficiency",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "modified",
+      "t": "[number, number]",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "SkillPhase": [
+    {
+      "n": "origin",
+      "t": "Player",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "pet",
+      "t": "Pet",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "selectTarget",
+      "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
+      "iu": true,
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
+      "a": false
+    },
+    {
+      "n": "skill",
+      "t": "SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "parentContext",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "SwitchPetPhase": [
+    {
+      "n": "origin",
+      "t": "Player",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "target",
+      "t": "Pet",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "parentContext",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "TurnPhase": [],
+  "AnimationTracker": [
+    {
+      "n": "activeAnimations",
+      "t": "Map<string, AnimationInfo>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "animationTimeouts",
+      "t": "Map<string, NodeJS.Timeout>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "animationOwners",
+      "t": "Map<string, playerId>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "normallyEndedAnimations",
+      "t": "Set<string>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "emitter",
+      "t": "Emitter<AnimationTrackerEvents>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "timeoutCallback",
+      "t": "undefined | (animationId: string, ownerId: playerId) => void",
+      "iu": true,
+      "u": [
+        "undefined",
+        "(animationId: string, ownerId: playerId) => void"
+      ],
+      "a": false
+    },
+    {
+      "n": "config",
+      "t": "TimerConfig",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "AnimationTrackerEvents": [
+    {
+      "n": "animationStart",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "animationEnd",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "animationForceEnd",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "BattleTimer": [
+    {
+      "n": "state",
+      "t": "TimerState.Stopped | TimerState.Running | TimerState.Paused | TimerState.Timeout",
+      "iu": true,
+      "u": [
+        "TimerState.Stopped",
+        "TimerState.Running",
+        "TimerState.Paused",
+        "TimerState.Timeout"
+      ],
+      "a": false
+    },
+    {
+      "n": "remainingTurnTime",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "remainingTotalTime",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "lastUpdateTime",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "updateTimer",
+      "t": "undefined | NodeJS.Timeout",
+      "iu": true,
+      "u": [
+        "undefined",
+        "NodeJS.Timeout"
+      ],
+      "a": false
+    },
+    {
+      "n": "pauseStartTime",
+      "t": "undefined | number",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    },
+    {
+      "n": "totalPausedTime",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "emitter",
+      "t": "Emitter<BattleTimerEvents>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "hasActiveAnimationsCallback",
+      "t": "undefined | () => boolean",
+      "iu": true,
+      "u": [
+        "undefined",
+        "() => boolean"
+      ],
+      "a": false
+    },
+    {
+      "n": "playerId",
+      "t": "playerId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "config",
+      "t": "TimerConfig",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "BattleTimerEvents": [
+    {
+      "n": "timerEvent",
+      "t": "TimerEvent",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "TimerManager": [
+    {
+      "n": "playerTimers",
+      "t": "Map<playerId, BattleTimer>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "animationTracker",
+      "t": "AnimationTracker",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "config",
+      "t": "TimerConfig",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "isActive",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "currentPhase",
+      "t": "null | \"switch\" | \"selection\" | \"execution\"",
+      "iu": true,
+      "u": [
+        "null",
+        "\"switch\"",
+        "\"selection\"",
+        "\"execution\""
+      ],
+      "a": false
+    },
+    {
+      "n": "pendingTurnReset",
+      "t": "null | playerIds",
+      "iu": true,
+      "u": [
+        "null",
+        "playerIds"
+      ],
+      "a": false
+    },
+    {
+      "n": "emitter",
+      "t": "Emitter<TimerManagerEvents>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "playerSelectionStatus",
+      "t": "Map<playerId, boolean>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "battle",
+      "t": "Battle",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "TimerManagerEvents": [
+    {
+      "n": "animationStart",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "animationEnd",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "animationForceEnd",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "timerEvent",
+      "t": "TimerEvent",
       "iu": false,
       "u": [],
       "a": false

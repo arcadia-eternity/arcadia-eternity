@@ -1257,3 +1257,94 @@
     inheritOnFaint: false
   effect:
     - effect_block_damage_under_60
+- id: mark_kongjuzhinian
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 3
+    stackable: true
+    stackStrategy: stack
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_fear_consume_stacks_at_3
+- id: mark_anyingzhiguang
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_anyingzhiguang_power_min_100
+    - effect_mark_anyingzhiguang_consume_stack_on_skill_use
+- id: mark_anzhilingyu
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - field
+  effect:
+    - effect_mark_increase_rage_on_damage_10_percent
+- id: mark_anyinglingyu
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - field
+  effect:
+    - effect_mark_increase_rage_on_damage_20_percent
+- id: mark_guanghuizhiying
+  config:
+    duration: 2
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - status
+  effect:
+    - effect_mark_guanghuizhiying_priority_minus_1
+- id: mark_guangzhilingyu
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - field
+  effect:
+    - effect_mark_increase_heal_20_percent
+- id: mark_guanghuilingyu
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - field
+  effect:
+    - effect_mark_increase_heal_40_percent

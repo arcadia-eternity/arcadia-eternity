@@ -38,7 +38,9 @@
               "OnMarkCreated",
               "OnMarkDestroy",
               "OnMarkDurationEnd",
+              "OnStackBefore",
               "OnStack",
+              "OnBeforeHeal",
               "OnHeal",
               "OnRageGain",
               "OnRageLoss",
@@ -112,6 +114,7 @@
                                       "healContext",
                                       "addMarkContext",
                                       "rageContext",
+                                      "stackContext",
                                       "battle",
                                       "turnContext",
                                       "currentPhase",
@@ -1049,6 +1052,19 @@
                               "type": {
                                 "type": "string",
                                 "const": "selfBeDamaged"
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "foeBeDamaged"
                               }
                             },
                             "required": [
@@ -2095,6 +2111,29 @@
                     "properties": {
                       "type": {
                         "type": "string",
+                        "const": "modifyStackResult"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "newStacks": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "newDuration": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
                         "const": "setSkill"
                       },
                       "target": {
@@ -2102,6 +2141,9 @@
                       },
                       "value": {
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/8"
+                      },
+                      "updateConfig": {
+                        "type": "boolean"
                       }
                     },
                     "required": [
