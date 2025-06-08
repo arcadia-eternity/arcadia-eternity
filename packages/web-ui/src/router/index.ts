@@ -2,7 +2,8 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import LobbyView from '../pages/lobbyPage.vue'
 // import BattleView from '../pages/battlePage.vue'
 const BattleView = () => import('../pages/battlePage.vue')
-import LocalBattlePage from '../pages/localBattlePage.vue'
+// import LocalBattlePage from '../pages/localBattlePage.vue'
+const LocalBattlePage = () => import('../pages/localBattlePage.vue')
 // import DataEditor from '../pages/dataEditor.vue'
 // import EffectGraphEditor from '@/pages/EffectGraphEditor.vue'
 
