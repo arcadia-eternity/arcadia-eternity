@@ -314,10 +314,10 @@ watch(
 </script>
 
 <template>
-  <div class="bg-black/80 rounded-lg p-4 h-full flex flex-col min-w-0">
+  <div class="bg-black/80 rounded-lg p-4 h-full flex flex-col min-w-0 max-h-full overflow-hidden">
     <div
       ref="logContainerRef"
-      class="h-full flex-1 overflow-y-auto overflow-x-hidden pr-2 scroll-smooth scrollbar-thin scrollbar-track-white/5 scrollbar-thumb-white/20 scrollbar-thumb-rounded min-w-0"
+      class="h-full flex-1 overflow-y-auto overflow-x-hidden pr-2 scroll-smooth scrollbar-thin scrollbar-track-white/5 scrollbar-thumb-white/20 scrollbar-thumb-rounded min-w-0 min-h-0"
     >
       <BattleLogEntry v-for="(msg, index) in formattedMessages" :key="index" :message="msg" />
     </div>

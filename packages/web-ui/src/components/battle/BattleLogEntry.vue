@@ -15,7 +15,7 @@ const props = defineProps<{
 
 <template>
   <div
-    class="flex gap-3 p-2 my-1 transition-all duration-300 text-sm text-amber-50 min-w-0"
+    class="flex gap-3 p-2 my-1 transition-all duration-300 text-sm text-amber-50 min-w-0 flex-shrink-0"
     :class="{
       'text-red-400!': message.type === 'DAMAGE',
       'text-green-500!': message.type === 'HEAL',

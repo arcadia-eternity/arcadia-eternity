@@ -329,13 +329,25 @@ export function useBattleAnimations(
               const shakeX = Math.cos(shakeAngle) * shakeIntensity
               const shakeY = Math.sin(shakeAngle) * shakeIntensity
 
+              // 捕获当前的缩放值，避免在动画过程中发生变化
+              const currentScale = battleViewScale.value
+
               gsap.to(battleViewRef.value, {
                 x: shakeX,
                 y: shakeY,
+                scale: currentScale, // 保持当前的缩放比例
                 duration: 0.05,
                 repeat: 5,
                 yoyo: true,
                 ease: 'power1.inOut',
+                onComplete: () => {
+                  // 动画结束后确保恢复到正确的状态
+                  gsap.set(battleViewRef.value, {
+                    x: 0,
+                    y: 0,
+                    scale: currentScale,
+                  })
+                },
               })
             }
 

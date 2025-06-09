@@ -8,6 +8,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AdaptiveScalingTest: typeof import('./src/components/test/AdaptiveScalingTest.vue')['default']
     ArrayTagCell: typeof import('./src/components/ArrayTagCell.vue')['default']
     BattleLogEntry: typeof import('./src/components/battle/BattleLogEntry.vue')['default']
     BattleLogPanel: typeof import('./src/components/battle/BattleLogPanel.vue')['default']
@@ -44,7 +45,10 @@ declare module 'vue' {
     HealthRageBar: typeof import('./src/components/battle/HealthRageBar.vue')['default']
     Leaderboard: typeof import('./src/components/battleReport/Leaderboard.vue')['default']
     Mark: typeof import('./src/components/battle/Mark.vue')['default']
+    MobileBattleTest: typeof import('./src/components/battle/MobileBattleTest.vue')['default']
+    MobileControlPanel: typeof import('./src/components/battle/MobileControlPanel.vue')['default']
     OptionalFieldEditor: typeof import('./src/components/OptionalFieldEditor.vue')['default']
+    OrientationHint: typeof import('./src/components/battle/OrientationHint.vue')['default']
     Pet: typeof import('./src/components/battle/Pet.vue')['default']
     PetButton: typeof import('./src/components/battle/PetButton.vue')['default']
     PetIcon: typeof import('./src/components/PetIcon.vue')['default']

@@ -103,6 +103,10 @@ const resourceStore = useResourceStore()
 const gameSettingStore = useGameSettingStore()
 const battleViewStore = useBattleViewStore()
 
+// 自适应缩放相关
+const battleContainerRef = useTemplateRef('battleContainerRef')
+let resizeObserver: ResizeObserver | null = null
+
 useMusic()
 
 provide(logMessagesKey, store.log)
@@ -872,7 +876,48 @@ async function initialPetEntryAnimation() {
   await Promise.all(animations)
 }
 
+// 初始化自适应缩放
+const initAdaptiveScaling = () => {
+  if (!battleContainerRef.value) return
+
+  // 设置ResizeObserver监听父容器大小变化
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect
+        // 更新battleViewStore中的容器尺寸
+        battleViewStore.setContainerSize(width, height)
+      }
+    })
+
+    // 开始观察父容器
+    resizeObserver.observe(battleContainerRef.value)
+
+    // 启用自适应缩放模式
+    battleViewStore.setAdaptiveScaling(true)
+
+    // 初始设置容器尺寸
+    const rect = battleContainerRef.value.getBoundingClientRect()
+    battleViewStore.setContainerSize(rect.width, rect.height)
+  }
+}
+
+// 清理自适应缩放
+const cleanupAdaptiveScaling = () => {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
+
+  // 禁用自适应缩放模式
+  battleViewStore.setAdaptiveScaling(false)
+}
+
 onMounted(async () => {
+  // 初始化自适应缩放
+  await nextTick() // 确保DOM已渲染
+  initAdaptiveScaling()
+
   // 检查是否是回放模式
   if (props.replayMode) {
     // 回放模式：加载战报数据并初始化回放
@@ -1036,6 +1081,9 @@ onUnmounted(() => {
   cleanupBattleAnimations()
   emitter.all.clear()
 
+  // 清理自适应缩放
+  cleanupAdaptiveScaling()
+
   // 清理战斗和回放状态
   store.resetBattle()
 })
@@ -1132,429 +1180,495 @@ watch(
 </script>
 
 <template>
-  <div
-    class="h-screen bg-[#1a1a2e] flex justify-center items-center overflow-hidden relative"
-    :style="{
-      '--battle-view-scale': battleViewScale,
-    }"
-  >
-    <!-- 计时器组件 - 根据缩放调整位置 -->
+  <div class="h-full w-full relative">
     <div
-      v-if="!isReplayMode"
-      class="absolute z-[30]"
+      ref="battleContainerRef"
+      class="h-full w-full bg-[#1a1a2e] overflow-hidden relative flex justify-center items-center"
       :style="{
-        left: battleViewScale < 1 ? '16px' : '16px',
-        top: '16px',
+        '--battle-view-scale': battleViewScale,
       }"
     >
-      <BattleTimer :player-id="currentPlayer?.id" />
-    </div>
+      <!-- 计时器组件 -->
+      <div v-if="!isReplayMode" class="absolute z-[30] top-2 left-2">
+        <BattleTimer :player-id="currentPlayer?.id" />
+      </div>
 
-    <div
-      ref="battleViewRef"
-      class="w-[1600px] h-[900px] min-w-[1600px] min-h-[900px] flex-shrink-0 relative flex justify-center items-center object-contain bg-gray-900"
-      :style="{
-        transform: `scale(${battleViewScale})`,
-        transformOrigin: 'center center',
-      }"
-    >
-      <img
-        v-show="showKoBanner"
-        ref="koBannerRef"
-        src="/ko.png"
-        alt="KO Banner"
-        class="absolute left-1/2 top-1/2 z-[1000] max-w-[80%] max-h-[80%] object-contain"
-      />
       <div
-        class="relative h-full w-full flex flex-col bg-center bg-no-repeat overflow-hidden"
-        :class="[background ? `bg-cover` : 'bg-gray-900', 'overflow-hidden', 'transition-all duration-300 ease-in-out']"
+        ref="battleViewRef"
+        class="w-[1600px] h-[900px] min-w-[1600px] min-h-[900px] flex-shrink-0 relative flex justify-center items-center object-contain bg-gray-900 transition-transform duration-300 ease-out"
         :style="{
-          backgroundImage: background ? `url(${background})` : 'none',
-          backgroundSize: background ? 'auto 100%' : 'auto',
+          transform: `scale(${battleViewScale})`,
+          transformOrigin: 'center center',
         }"
       >
-        <div class="flex justify-between p-5">
-          <BattleStatus v-if="currentPlayer" ref="leftStatusRef" class="w-1/3" :player="currentPlayer" side="left" />
+        <img
+          v-show="showKoBanner"
+          ref="koBannerRef"
+          src="/ko.png"
+          alt="KO Banner"
+          class="absolute left-1/2 top-1/2 z-[1000] max-w-[80%] max-h-[80%] object-contain"
+        />
+        <div
+          class="relative h-full w-full flex flex-col bg-center bg-no-repeat overflow-hidden"
+          :class="[
+            background ? `bg-cover` : 'bg-gray-900',
+            'overflow-hidden',
+            'transition-all duration-300 ease-in-out',
+          ]"
+          :style="{
+            backgroundImage: background ? `url(${background})` : 'none',
+            backgroundSize: background ? 'auto 100%' : 'auto',
+          }"
+        >
+          <div class="flex justify-between p-5">
+            <BattleStatus v-if="currentPlayer" ref="leftStatusRef" class="w-1/3" :player="currentPlayer" side="left" />
 
-          <BattleStatus
-            v-if="opponentPlayer"
-            ref="rightStatusRef"
-            class="w-1/3"
-            :player="opponentPlayer"
-            side="right"
-          />
-        </div>
-
-        <!-- 回合数和公共印记区域 -->
-        <div class="flex flex-col items-center py-2 min-h-[80px]">
-          <!-- 回合数显示 -->
-          <div class="text-white text-xl font-bold mb-2">
-            {{
-              i18next.t('turn', {
-                ns: 'battle',
-              })
-            }}
-            {{ currentTurn || 1 }}
-          </div>
-
-          <!-- 公共印记（天气）显示 -->
-          <div v-if="globalMarks.length > 0" class="flex flex-wrap justify-center gap-2 max-w-md">
-            <Mark v-for="mark in globalMarks" :key="mark.id" :mark="mark" />
-          </div>
-        </div>
-
-        <!-- 精灵容器 - 基于整个对战画面进行绝对定位 -->
-        <div class="flex-grow relative">
-          <!-- 左侧精灵侧栏 - 绝对定位 -->
-          <div class="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 z-[10]">
-            <PetButton
-              v-for="pet in leftPlayerPets"
-              :key="pet.id"
-              :pet="pet"
-              :disabled="!isPetSwitchable(pet.id) || isPending"
-              :is-active="pet.id === currentPlayer?.activePet"
-              position="left"
-              @click="handlePetSelect"
+            <BattleStatus
+              v-if="opponentPlayer"
+              ref="rightStatusRef"
+              class="w-1/3"
+              :player="opponentPlayer"
+              side="right"
             />
           </div>
 
-          <!-- 右侧精灵侧栏 - 绝对定位 -->
-          <div class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 z-[10]">
-            <PetButton
-              v-for="pet in rightPlayerPets"
-              :key="pet.id"
-              :pet="pet"
-              :disabled="true"
-              :is-active="pet.id === opponentPlayer?.activePet"
-              position="right"
-            />
-          </div>
-
-          <!-- 左侧精灵 - 绝对定位在画面左侧 -->
-          <PetSprite
-            v-if="leftPetSpeciesNum !== 0"
-            ref="leftPetRef"
-            :num="leftPetSpeciesNum"
-            class="absolute left-0 top-1/2 -translate-y-1/2 w-[350px] h-[350px] z-[5] pointer-events-none"
-            @hit="handleAttackHit('left')"
-            @animate-complete="handleAnimationComplete('left')"
-          />
-          <!-- 右侧精灵 - 绝对定位在画面右侧 -->
-          <PetSprite
-            v-if="rightPetSpeciesNum !== 0"
-            ref="rightPetRef"
-            :num="rightPetSpeciesNum"
-            :reverse="true"
-            class="absolute right-0 top-1/2 -translate-y-1/2 w-[350px] h-[350px] z-[5] pointer-events-none"
-            @hit="handleAttackHit('right')"
-            @animate-complete="handleAnimationComplete('right')"
-          />
-        </div>
-
-        <!-- 回放模式控制界面 -->
-        <div v-if="isReplayMode" class="flex h-1/5 flex-none bg-black/80">
-          <div class="w-1/5 h-full p-2">
-            <BattleLogPanel />
-          </div>
-
-          <div class="flex-1 h-full flex flex-col justify-center p-4">
-            <!-- 回放控制按钮 -->
-            <div class="flex items-center justify-center space-x-4 mb-4">
-              <button
-                @click="goBackFromReplay"
-                class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-white font-bold"
-              >
-                返回详情
-              </button>
-
-              <!-- 播放控制 -->
-              <button
-                @click="previousTurn"
-                :disabled="currentReplayTurn <= 0 || isPlaying || !isReplayFullyLoaded"
-                class="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center justify-center"
-              >
-                <el-icon><DArrowLeft /></el-icon>
-              </button>
-
-              <button
-                @click="togglePlayback"
-                :disabled="!isReplayFullyLoaded"
-                class="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center space-x-2"
-              >
-                <el-icon>
-                  <VideoPause v-if="isPlaying" />
-                  <VideoPlay v-else />
-                </el-icon>
-                <span>
-                  {{ !isReplayFullyLoaded ? '加载中...' : isPlaying ? (pendingPause ? '暂停中...' : '暂停') : '播放' }}
-                </span>
-              </button>
-
-              <button
-                @click="() => playCurrentTurnAnimations(true)"
-                :disabled="isPlaying || isPlayingAnimations || !isReplayFullyLoaded"
-                class="px-3 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center justify-center"
-                title="播放当前回合动画并推进到下一个快照"
-              >
-                <el-icon><Film /></el-icon>
-              </button>
-
-              <button
-                @click="nextTurn"
-                :disabled="currentReplayTurn >= totalReplayTurns || isPlaying || !isReplayFullyLoaded"
-                class="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center justify-center"
-              >
-                <el-icon><DArrowRight /></el-icon>
-              </button>
-
-              <span class="text-white font-bold">
-                回合 {{ currentReplayTurnNumber }} / {{ totalReplayTurnNumber }}
-              </span>
+          <!-- 回合数和公共印记区域 -->
+          <div class="flex flex-col items-center py-2 min-h-[80px]">
+            <!-- 回合数显示 -->
+            <div class="text-white text-xl font-bold mb-2">
+              {{
+                i18next.t('turn', {
+                  ns: 'battle',
+                })
+              }}
+              {{ currentTurn || 1 }}
             </div>
 
-            <!-- 回合进度条 -->
-            <div class="flex items-center space-x-4">
-              <span class="text-white text-sm">进度:</span>
-              <!-- 时间轴样式进度条 -->
-              <div class="flex-1 relative">
-                <div class="timeline-container">
-                  <!-- 时间轴背景轨道 -->
-                  <div class="timeline-track">
-                    <!-- 已完成部分 -->
-                    <div
-                      class="timeline-fill"
-                      :style="{ width: `${totalReplayTurns > 0 ? (currentReplayTurn / totalReplayTurns) * 100 : 0}%` }"
-                    ></div>
-                    <!-- 刻度点 -->
-                    <div
-                      v-for="i in Math.min(totalReplayTurns + 1, 11)"
-                      :key="i"
-                      class="timeline-tick"
-                      :class="{ active: i - 1 <= currentReplayTurn }"
-                      :style="{ left: `${totalReplayTurns > 0 ? ((i - 1) / totalReplayTurns) * 100 : 0}%` }"
-                    ></div>
-                  </div>
-                  <!-- 可点击区域 -->
-                  <div
-                    class="timeline-clickable"
-                    :class="{ 'pointer-events-none': isPlaying || !isReplayFullyLoaded }"
-                    @click="handleTimelineClick"
-                  ></div>
-                </div>
-              </div>
-              <span class="text-white text-sm font-mono"
-                >{{ currentReplayTurnNumber }} / {{ totalReplayTurnNumber }}</span
-              >
+            <!-- 公共印记（天气）显示 -->
+            <div v-if="globalMarks.length > 0" class="flex flex-wrap justify-center gap-2 max-w-md">
+              <Mark v-for="mark in globalMarks" :key="mark.id" :mark="mark" />
             </div>
           </div>
-        </div>
 
-        <!-- 正常战斗模式控制界面 -->
-        <div v-else class="flex h-1/5 flex-none">
-          <div class="w-1/5 h-full p-2">
-            <BattleLogPanel />
-          </div>
-
-          <div class="flex-1 h-full">
-            <div class="h-full grid grid-cols-5 gap-4 p-2" v-show="panelState === PanelState.SKILLS">
-              <template
-                v-for="(skill, index) in availableSkills.filter(s => s.category !== Category.Climax)"
-                :key="'normal-' + skill.id"
-              >
-                <SkillButton
-                  :skill="skill"
-                  @click="handleSkillClick(skill.id)"
-                  :disabled="!isSkillAvailable(skill.id) || isPending"
-                  :style="{ 'grid-column-start': index + 1 }"
-                />
-              </template>
-              <template
-                v-for="(skill, index) in availableSkills.filter(s => s.category === Category.Climax)"
-                :key="'climax-' + skill.id"
-              >
-                <SkillButton
-                  :skill="skill"
-                  @click="handleSkillClick(skill.id)"
-                  :disabled="!isSkillAvailable(skill.id) || isPending"
-                  :style="{ 'grid-column-start': 5 - index }"
-                  class="justify-self-end"
-                />
-              </template>
-            </div>
-
-            <div class="grid grid-cols-6 gap-2 h-full" v-show="panelState === PanelState.PETS">
+          <!-- 精灵容器 - 基于整个对战画面进行绝对定位 -->
+          <div class="flex-grow relative">
+            <!-- 左侧精灵侧栏 - 绝对定位 -->
+            <div class="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 z-[10]">
               <PetButton
-                v-for="pet in currentPlayer?.team || []"
+                v-for="pet in leftPlayerPets"
                 :key="pet.id"
                 :pet="pet"
                 :disabled="!isPetSwitchable(pet.id) || isPending"
+                :is-active="pet.id === currentPlayer?.activePet"
+                position="left"
                 @click="handlePetSelect"
-                position="bottom"
               />
+            </div>
+
+            <!-- 右侧精灵侧栏 - 绝对定位 -->
+            <div class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 z-[10]">
+              <PetButton
+                v-for="pet in rightPlayerPets"
+                :key="pet.id"
+                :pet="pet"
+                :disabled="true"
+                :is-active="pet.id === opponentPlayer?.activePet"
+                position="right"
+              />
+            </div>
+
+            <!-- 左侧精灵 - 绝对定位在画面左侧 -->
+            <PetSprite
+              v-if="leftPetSpeciesNum !== 0"
+              ref="leftPetRef"
+              :num="leftPetSpeciesNum"
+              class="absolute left-0 top-1/2 -translate-y-1/2 w-[350px] h-[350px] z-[5] pointer-events-none"
+              @hit="handleAttackHit('left')"
+              @animate-complete="handleAnimationComplete('left')"
+            />
+            <!-- 右侧精灵 - 绝对定位在画面右侧 -->
+            <PetSprite
+              v-if="rightPetSpeciesNum !== 0"
+              ref="rightPetRef"
+              :num="rightPetSpeciesNum"
+              :reverse="true"
+              class="absolute right-0 top-1/2 -translate-y-1/2 w-[350px] h-[350px] z-[5] pointer-events-none"
+              @hit="handleAttackHit('right')"
+              @animate-complete="handleAnimationComplete('right')"
+            />
+          </div>
+
+          <!-- 回放模式控制界面 -->
+          <div v-if="isReplayMode" class="flex flex-none bg-black/80 h-1/5">
+            <div v-if="battleViewStore.showLogPanel" class="w-1/5 h-full p-2">
+              <BattleLogPanel />
+            </div>
+
+            <div class="flex-1 h-full flex flex-col justify-center p-4">
+              <!-- 回放控制按钮 -->
+              <div class="flex items-center justify-center space-x-4 mb-4">
+                <button
+                  @click="goBackFromReplay"
+                  class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-white font-bold"
+                >
+                  返回详情
+                </button>
+
+                <!-- 播放控制 -->
+                <button
+                  @click="previousTurn"
+                  :disabled="currentReplayTurn <= 0 || isPlaying || !isReplayFullyLoaded"
+                  class="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center justify-center"
+                >
+                  <el-icon><DArrowLeft /></el-icon>
+                </button>
+
+                <button
+                  @click="togglePlayback"
+                  :disabled="!isReplayFullyLoaded"
+                  class="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center space-x-2"
+                >
+                  <el-icon>
+                    <VideoPause v-if="isPlaying" />
+                    <VideoPlay v-else />
+                  </el-icon>
+                  <span>
+                    {{
+                      !isReplayFullyLoaded ? '加载中...' : isPlaying ? (pendingPause ? '暂停中...' : '暂停') : '播放'
+                    }}
+                  </span>
+                </button>
+
+                <button
+                  @click="() => playCurrentTurnAnimations(true)"
+                  :disabled="isPlaying || isPlayingAnimations || !isReplayFullyLoaded"
+                  class="px-3 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center justify-center"
+                  title="播放当前回合动画并推进到下一个快照"
+                >
+                  <el-icon><Film /></el-icon>
+                </button>
+
+                <button
+                  @click="nextTurn"
+                  :disabled="currentReplayTurn >= totalReplayTurns || isPlaying || !isReplayFullyLoaded"
+                  class="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center justify-center"
+                >
+                  <el-icon><DArrowRight /></el-icon>
+                </button>
+
+                <span class="text-white font-bold">
+                  回合 {{ currentReplayTurnNumber }} / {{ totalReplayTurnNumber }}
+                </span>
+              </div>
+
+              <!-- 回合进度条 -->
+              <div class="flex items-center space-x-4">
+                <span class="text-white text-sm">进度:</span>
+                <!-- 时间轴样式进度条 -->
+                <div class="flex-1 relative">
+                  <div class="timeline-container">
+                    <!-- 时间轴背景轨道 -->
+                    <div class="timeline-track">
+                      <!-- 已完成部分 -->
+                      <div
+                        class="timeline-fill"
+                        :style="{
+                          width: `${totalReplayTurns > 0 ? (currentReplayTurn / totalReplayTurns) * 100 : 0}%`,
+                        }"
+                      ></div>
+                      <!-- 刻度点 -->
+                      <div
+                        v-for="i in Math.min(totalReplayTurns + 1, 11)"
+                        :key="i"
+                        class="timeline-tick"
+                        :class="{ active: i - 1 <= currentReplayTurn }"
+                        :style="{ left: `${totalReplayTurns > 0 ? ((i - 1) / totalReplayTurns) * 100 : 0}%` }"
+                      ></div>
+                    </div>
+                    <!-- 可点击区域 -->
+                    <div
+                      class="timeline-clickable"
+                      :class="{ 'pointer-events-none': isPlaying || !isReplayFullyLoaded }"
+                      @click="handleTimelineClick"
+                    ></div>
+                  </div>
+                </div>
+                <span class="text-white text-sm font-mono"
+                  >{{ currentReplayTurnNumber }} / {{ totalReplayTurnNumber }}</span
+                >
+              </div>
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 p-2 w-1/5 flex-none h-full">
-            <!-- 战斗按钮 -->
-            <button
-              class="group relative h-16 p-2 cursor-pointer overflow-visible"
-              @click="panelState = PanelState.SKILLS"
-            >
-              <div
-                class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border border-sky-400/50 group-hover:shadow-[0_0_8px_2px_rgba(56,189,248,0.6)]"
-              >
-                <div class="bg-gray-900 w-full h-3"></div>
-                <div class="absolute bottom-1 right-1">
-                  <div class="flex">
-                    <div class="bg-sky-400 w-3 h-0.5 mt-3"></div>
-                    <div class="bg-sky-400 w-0.5 h-3.5"></div>
-                  </div>
-                </div>
-              </div>
-              <div class="relative flex items-center justify-center h-full pointer-events-none">
-                <div class="text-sky-400 text-base font-bold [text-shadow:_1px_1px_0_black]">
-                  {{
-                    i18next.t('fight', {
-                      ns: 'battle',
-                    })
-                  }}
-                </div>
-              </div>
-            </button>
+          <!-- 控制面板（移动端和桌面端完全一样） -->
+          <div v-if="!isReplayMode" class="flex h-1/5 flex-none overflow-hidden">
+            <div v-if="battleViewStore.showLogPanel" class="w-1/5 h-full p-2 max-h-full overflow-hidden">
+              <BattleLogPanel />
+            </div>
 
-            <!-- 切换按钮 -->
-            <button
-              class="group relative h-16 p-2 cursor-pointer overflow-visible"
-              @click="panelState = PanelState.PETS"
+            <div
+              class="h-full max-h-full overflow-hidden"
+              :class="battleViewStore.showLogPanel ? 'flex-1' : 'flex-[4]'"
             >
               <div
-                class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border border-sky-400/50 group-hover:shadow-[0_0_8px_2px_rgba(56,189,248,0.6)]"
+                class="h-full max-h-full grid grid-cols-5 gap-4 p-2 overflow-hidden"
+                v-show="panelState === PanelState.SKILLS"
               >
-                <div class="bg-gray-900 w-full h-3"></div>
-                <div class="absolute bottom-1 right-1">
-                  <div class="flex">
-                    <div class="bg-sky-400 w-3 h-0.5 mt-3"></div>
-                    <div class="bg-sky-400 w-0.5 h-3.5"></div>
-                  </div>
-                </div>
-              </div>
-              <div class="relative flex items-center justify-center h-full pointer-events-none">
-                <div class="text-sky-400 text-base font-bold [text-shadow:_1px_1px_0_black]">
-                  {{
-                    i18next.t('switch', {
-                      ns: 'battle',
-                    })
-                  }}
-                </div>
-              </div>
-            </button>
-
-            <!-- 什么都不做按钮 -->
-            <button
-              class="group relative h-16 p-2 cursor-pointer overflow-visible disabled:opacity-60 disabled:cursor-not-allowed"
-              :disabled="!store.availableActions.find(a => a.type === 'do-nothing')"
-              @click="store.sendplayerSelection(store.availableActions.find(a => a.type === 'do-nothing')!)"
-            >
-              <div
-                class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border group-disabled:border-gray-500/50 group-disabled:hover:shadow-none"
-                :class="
-                  store.availableActions.find(a => a.type === 'do-nothing')
-                    ? 'border-sky-400/50 group-hover:shadow-[0_0_8px_2px_rgba(56,189,248,0.6)]'
-                    : 'border-gray-500/50'
-                "
-              >
-                <div class="bg-gray-900 w-full h-3"></div>
-                <div class="absolute bottom-1 right-1">
-                  <div class="flex">
-                    <div
-                      class="w-3 h-0.5 mt-3"
-                      :class="store.availableActions.find(a => a.type === 'do-nothing') ? 'bg-sky-400' : 'bg-gray-500'"
-                    ></div>
-                    <div
-                      class="w-0.5 h-3.5"
-                      :class="store.availableActions.find(a => a.type === 'do-nothing') ? 'bg-sky-400' : 'bg-gray-500'"
-                    ></div>
-                  </div>
-                </div>
-              </div>
-              <div class="relative flex items-center justify-center h-full pointer-events-none">
-                <div
-                  class="text-base font-bold [text-shadow:_1px_1px_0_black]"
-                  :class="store.availableActions.find(a => a.type === 'do-nothing') ? 'text-sky-400' : 'text-gray-400'"
+                <template
+                  v-for="(skill, index) in availableSkills.filter(s => s.category !== Category.Climax)"
+                  :key="'normal-' + skill.id"
                 >
-                  {{ i18next.t('do-nothing', { ns: 'battle' }) }}
-                </div>
+                  <SkillButton
+                    :skill="skill"
+                    @click="handleSkillClick(skill.id)"
+                    :disabled="!isSkillAvailable(skill.id) || isPending"
+                    :style="{ 'grid-column-start': index + 1 }"
+                  />
+                </template>
+                <template
+                  v-for="(skill, index) in availableSkills.filter(s => s.category === Category.Climax)"
+                  :key="'climax-' + skill.id"
+                >
+                  <SkillButton
+                    :skill="skill"
+                    @click="handleSkillClick(skill.id)"
+                    :disabled="!isSkillAvailable(skill.id) || isPending"
+                    :style="{ 'grid-column-start': 5 - index }"
+                    class="justify-self-end"
+                  />
+                </template>
               </div>
-            </button>
 
-            <!-- 投降按钮 -->
-            <button
-              class="group relative h-16 p-2 cursor-pointer overflow-visible disabled:opacity-60 disabled:cursor-not-allowed"
-              :disabled="!store.availableActions.find(a => a.type === 'surrender')"
-              @click="handleEscape"
-            >
               <div
-                class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border group-disabled:border-gray-500/50 group-disabled:hover:shadow-none"
-                :class="
-                  store.availableActions.find(a => a.type === 'surrender')
-                    ? 'border-red-400/50 group-hover:shadow-[0_0_8px_2px_rgba(248,113,113,0.6)]'
-                    : 'border-gray-500/50'
-                "
+                class="grid grid-cols-6 gap-2 h-full max-h-full overflow-hidden"
+                v-show="panelState === PanelState.PETS"
               >
-                <div class="bg-gray-900 w-full h-3"></div>
-                <div class="absolute bottom-1 right-1">
-                  <div class="flex">
-                    <div
-                      class="w-3 h-0.5 mt-3"
-                      :class="store.availableActions.find(a => a.type === 'surrender') ? 'bg-red-400' : 'bg-gray-500'"
-                    ></div>
-                    <div
-                      class="w-0.5 h-3.5"
-                      :class="store.availableActions.find(a => a.type === 'surrender') ? 'bg-red-400' : 'bg-gray-500'"
-                    ></div>
+                <PetButton
+                  v-for="pet in currentPlayer?.team || []"
+                  :key="pet.id"
+                  :pet="pet"
+                  :disabled="!isPetSwitchable(pet.id) || isPending"
+                  @click="handlePetSelect"
+                  position="bottom"
+                />
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-2 p-2 w-1/5 flex-none h-full">
+              <!-- 日志切换按钮 -->
+              <button
+                class="group relative h-10 p-2 cursor-pointer overflow-visible flex-none"
+                @click="battleViewStore.toggleLogPanel()"
+              >
+                <div
+                  class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border border-gray-400/50 group-hover:shadow-[0_0_8px_2px_rgba(156,163,175,0.6)]"
+                  :class="
+                    battleViewStore.showLogPanel
+                      ? 'border-green-400/50 group-hover:shadow-[0_0_8px_2px_rgba(34,197,94,0.6)]'
+                      : 'border-gray-400/50'
+                  "
+                >
+                  <div class="bg-gray-900 w-full h-2"></div>
+                  <div class="absolute bottom-1 right-1">
+                    <div class="flex">
+                      <div
+                        class="w-2 h-0.5 mt-1"
+                        :class="battleViewStore.showLogPanel ? 'bg-green-400' : 'bg-gray-400'"
+                      ></div>
+                      <div
+                        class="w-0.5 h-2"
+                        :class="battleViewStore.showLogPanel ? 'bg-green-400' : 'bg-gray-400'"
+                      ></div>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div class="relative flex items-center justify-center h-full pointer-events-none">
-                <div
-                  class="text-base font-bold [text-shadow:_1px_1px_0_black]"
-                  :class="store.availableActions.find(a => a.type === 'surrender') ? 'text-red-400' : 'text-gray-400'"
-                >
-                  {{
-                    i18next.t('surrunder', {
-                      ns: 'battle',
-                    })
-                  }}
+                <div class="relative flex items-center justify-center h-full pointer-events-none">
+                  <div
+                    class="text-xs font-bold [text-shadow:_1px_1px_0_black]"
+                    :class="battleViewStore.showLogPanel ? 'text-green-400' : 'text-gray-400'"
+                  >
+                    {{ battleViewStore.showLogPanel ? '隐藏日志' : '显示日志' }}
+                  </div>
                 </div>
+              </button>
+
+              <!-- 主要操作按钮区域 -->
+              <div class="grid grid-cols-2 gap-2 flex-1">
+                <!-- 战斗按钮 -->
+                <!-- 战斗按钮 -->
+                <button
+                  class="group relative p-2 cursor-pointer overflow-visible"
+                  @click="panelState = PanelState.SKILLS"
+                >
+                  <div
+                    class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border border-sky-400/50 group-hover:shadow-[0_0_8px_2px_rgba(56,189,248,0.6)]"
+                  >
+                    <div class="bg-gray-900 w-full h-3"></div>
+                    <div class="absolute bottom-1 right-1">
+                      <div class="flex">
+                        <div class="bg-sky-400 w-3 h-0.5 mt-3"></div>
+                        <div class="bg-sky-400 w-0.5 h-3.5"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="relative flex items-center justify-center h-full pointer-events-none">
+                    <div class="text-sky-400 text-sm font-bold [text-shadow:_1px_1px_0_black]">
+                      {{
+                        i18next.t('fight', {
+                          ns: 'battle',
+                        })
+                      }}
+                    </div>
+                  </div>
+                </button>
+
+                <!-- 切换按钮 -->
+                <button
+                  class="group relative p-2 cursor-pointer overflow-visible"
+                  @click="panelState = PanelState.PETS"
+                >
+                  <div
+                    class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border border-sky-400/50 group-hover:shadow-[0_0_8px_2px_rgba(56,189,248,0.6)]"
+                  >
+                    <div class="bg-gray-900 w-full h-3"></div>
+                    <div class="absolute bottom-1 right-1">
+                      <div class="flex">
+                        <div class="bg-sky-400 w-3 h-0.5 mt-3"></div>
+                        <div class="bg-sky-400 w-0.5 h-3.5"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="relative flex items-center justify-center h-full pointer-events-none">
+                    <div class="text-sky-400 text-sm font-bold [text-shadow:_1px_1px_0_black]">
+                      {{
+                        i18next.t('switch', {
+                          ns: 'battle',
+                        })
+                      }}
+                    </div>
+                  </div>
+                </button>
+
+                <!-- 什么都不做按钮 -->
+                <button
+                  class="group relative p-2 cursor-pointer overflow-visible disabled:opacity-60 disabled:cursor-not-allowed"
+                  :disabled="!store.availableActions.find(a => a.type === 'do-nothing')"
+                  @click="store.sendplayerSelection(store.availableActions.find(a => a.type === 'do-nothing')!)"
+                >
+                  <div
+                    class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border group-disabled:border-gray-500/50 group-disabled:hover:shadow-none"
+                    :class="
+                      store.availableActions.find(a => a.type === 'do-nothing')
+                        ? 'border-sky-400/50 group-hover:shadow-[0_0_8px_2px_rgba(56,189,248,0.6)]'
+                        : 'border-gray-500/50'
+                    "
+                  >
+                    <div class="bg-gray-900 w-full h-3"></div>
+                    <div class="absolute bottom-1 right-1">
+                      <div class="flex">
+                        <div
+                          class="w-3 h-0.5 mt-3"
+                          :class="
+                            store.availableActions.find(a => a.type === 'do-nothing') ? 'bg-sky-400' : 'bg-gray-500'
+                          "
+                        ></div>
+                        <div
+                          class="w-0.5 h-3.5"
+                          :class="
+                            store.availableActions.find(a => a.type === 'do-nothing') ? 'bg-sky-400' : 'bg-gray-500'
+                          "
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="relative flex items-center justify-center h-full pointer-events-none">
+                    <div
+                      class="text-sm font-bold [text-shadow:_1px_1px_0_black]"
+                      :class="
+                        store.availableActions.find(a => a.type === 'do-nothing') ? 'text-sky-400' : 'text-gray-400'
+                      "
+                    >
+                      {{ i18next.t('do-nothing', { ns: 'battle' }) }}
+                    </div>
+                  </div>
+                </button>
+
+                <!-- 投降按钮 -->
+                <button
+                  class="group relative p-2 cursor-pointer overflow-visible disabled:opacity-60 disabled:cursor-not-allowed"
+                  :disabled="!store.availableActions.find(a => a.type === 'surrender')"
+                  @click="handleEscape"
+                >
+                  <div
+                    class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border group-disabled:border-gray-500/50 group-disabled:hover:shadow-none"
+                    :class="
+                      store.availableActions.find(a => a.type === 'surrender')
+                        ? 'border-red-400/50 group-hover:shadow-[0_0_8px_2px_rgba(248,113,113,0.6)]'
+                        : 'border-gray-500/50'
+                    "
+                  >
+                    <div class="bg-gray-900 w-full h-3"></div>
+                    <div class="absolute bottom-1 right-1">
+                      <div class="flex">
+                        <div
+                          class="w-3 h-0.5 mt-3"
+                          :class="
+                            store.availableActions.find(a => a.type === 'surrender') ? 'bg-red-400' : 'bg-gray-500'
+                          "
+                        ></div>
+                        <div
+                          class="w-0.5 h-3.5"
+                          :class="
+                            store.availableActions.find(a => a.type === 'surrender') ? 'bg-red-400' : 'bg-gray-500'
+                          "
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="relative flex items-center justify-center h-full pointer-events-none">
+                    <div
+                      class="text-sm font-bold [text-shadow:_1px_1px_0_black]"
+                      :class="
+                        store.availableActions.find(a => a.type === 'surrender') ? 'text-red-400' : 'text-gray-400'
+                      "
+                    >
+                      {{
+                        i18next.t('surrunder', {
+                          ns: 'battle',
+                        })
+                      }}
+                    </div>
+                  </div>
+                </button>
               </div>
-            </button>
+            </div>
           </div>
         </div>
       </div>
+      <Transition name="fade">
+        <div v-if="showBattleEndUI" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[1000]">
+          <div
+            class="bg-gradient-to-br from-[#2a2a4a] to-[#1a1a2e] p-8 rounded-2xl shadow-[0_0_30px_rgba(81,65,173,0.4)] text-center"
+          >
+            <h2 class="text-5xl mb-4 text-white [text-shadow:_0_0_20px_#fff]">{{ battleResult }}</h2>
+            <div class="flex gap-4 mt-8">
+              <button
+                class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
+                @click="$router.push({ name: 'Lobby', query: { startMatching: 'true' } })"
+              >
+                重新匹配
+              </button>
+              <button
+                class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
+                @click="$router.push('/')"
+              >
+                返回大厅
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </div>
-    <Transition name="fade">
-      <div v-if="showBattleEndUI" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[1000]">
-        <div
-          class="bg-gradient-to-br from-[#2a2a4a] to-[#1a1a2e] p-8 rounded-2xl shadow-[0_0_30px_rgba(81,65,173,0.4)] text-center"
-        >
-          <h2 class="text-5xl mb-4 text-white [text-shadow:_0_0_20px_#fff]">{{ battleResult }}</h2>
-          <div class="flex gap-4 mt-8">
-            <button
-              class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
-              @click="$router.push({ name: 'Lobby', query: { startMatching: 'true' } })"
-            >
-              重新匹配
-            </button>
-            <button
-              class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
-              @click="$router.push('/')"
-            >
-              返回大厅
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
   </div>
 </template>
 
