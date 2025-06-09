@@ -2565,7 +2565,7 @@
   tags: ['require_xuanyun']
   effect:
     - effect_skill_sure_hit_foe_xuanyun
-- id: skill_huoqulianshe
+- id: skill_huoqiulianshe
   element: Fire
   category: Special
   target: opponent
