@@ -52,7 +52,7 @@ const stack = computed(() => props.mark.stack ?? 1)
         <div class="relative">
           <img
             :src="image"
-            class="w-12 h-12 object-contain transition-opacity duration-200 ease-in-out"
+            class="w-12 h-12 object-contain transition-opacity duration-200 ease-in-out pointer-events-none"
             :class="{ 'opacity-50': !mark.config.persistent && duration == 1 }"
           />
           <div

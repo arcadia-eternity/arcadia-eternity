@@ -122,7 +122,7 @@ function getTransform() {
         <div
           v-show="showTooltip"
           ref="tooltipRef"
-          class="fixed w-max"
+          class="fixed w-max pointer-events-none"
           :style="{
             top: tooltipPosition.top + 'px',
             left: tooltipPosition.left + 'px',
