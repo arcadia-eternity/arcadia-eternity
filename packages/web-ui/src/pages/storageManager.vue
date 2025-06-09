@@ -159,6 +159,33 @@
                   </button>
                 </div>
               </div>
+
+              <!-- 移动端操作提示 -->
+              <div class="mt-3 sm:hidden">
+                <div class="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <div class="flex">
+                    <svg
+                      class="w-5 h-5 text-blue-400 mr-2 flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <div class="text-sm text-blue-700">
+                      <p class="font-medium">移动端操作提示：</p>
+                      <p>• 单击精灵查看操作菜单</p>
+                      <p>• 双击精灵快速移动</p>
+                      <p>• 长按精灵显示详细菜单</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="p-6">
@@ -237,28 +264,57 @@
 
                   <!-- 队伍精灵 -->
                   <div
-                    class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 min-h-[100px] p-3 border-2 border-dashed border-gray-200 rounded-lg"
+                    class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3 min-h-[100px] p-2 sm:p-3 border-2 border-dashed border-gray-200 rounded-lg"
                   >
                     <!-- 队伍精灵列表 -->
                     <div
                       v-for="pet in team.pets"
                       :key="pet.id"
-                      @dblclick.stop="moveToStorage(pet.id)"
-                      @contextmenu.prevent="showTeamPetContextMenu($event, pet, petStorage.teams.indexOf(team))"
-                      class="relative bg-white rounded-lg border border-gray-200 p-2 hover:shadow-md transition-all duration-200 group cursor-pointer"
+                      @click="
+                        event =>
+                          handlePetInteraction(event, pet.id, 'click', () =>
+                            createTeamPetHandler(pet.id, petStorage.teams.indexOf(team)),
+                          )
+                      "
+                      @dblclick.stop="
+                        event =>
+                          handlePetInteraction(event, pet.id, 'dblclick', () =>
+                            createTeamPetHandler(pet.id, petStorage.teams.indexOf(team)),
+                          )
+                      "
+                      @contextmenu.prevent="
+                        event =>
+                          handlePetInteraction(event, pet.id, 'contextmenu', () =>
+                            createTeamPetHandler(pet.id, petStorage.teams.indexOf(team)),
+                          )
+                      "
+                      @touchstart="
+                        event =>
+                          handlePetInteraction(event, pet.id, 'touchstart', () =>
+                            createTeamPetHandler(pet.id, petStorage.teams.indexOf(team)),
+                          )
+                      "
+                      @touchend="
+                        event =>
+                          handlePetInteraction(event, pet.id, 'touchend', () =>
+                            createTeamPetHandler(pet.id, petStorage.teams.indexOf(team)),
+                          )
+                      "
+                      class="relative bg-white rounded-lg border border-gray-200 p-1 sm:p-2 hover:shadow-md transition-all duration-200 group cursor-pointer active:bg-gray-50 touch-manipulation"
                     >
                       <div class="flex flex-col items-center space-y-1">
-                        <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-10 h-10" />
+                        <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-8 h-8 sm:w-10 sm:h-10" />
                         <div class="text-center w-full">
-                          <p class="text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
-                          <p class="text-xs text-gray-500">Lv.{{ pet.level }}</p>
-                          <p class="text-xs text-gray-400 truncate">
+                          <p class="text-xs sm:text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
+                          <p class="text-xs sm:text-xs text-gray-500">Lv.{{ pet.level }}</p>
+                          <p class="text-xs sm:text-xs text-gray-400 truncate hidden sm:block">
                             {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
                           </p>
                         </div>
+                        <!-- 移动端显示操作按钮，桌面端悬停显示 -->
                         <button
                           @click.stop="showTeamPetContextMenu($event, pet, petStorage.teams.indexOf(team))"
-                          class="absolute top-1 right-1 p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors duration-200 opacity-0 group-hover:opacity-100"
+                          class="absolute top-1 right-1 p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors duration-200 sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
                           title="更多操作"
                         >
                           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -313,7 +369,14 @@
             <div class="px-6 py-4 border-b border-gray-200">
               <div class="flex items-center justify-between">
                 <h2 class="text-lg font-medium text-gray-900">精灵仓库</h2>
-                <span class="text-sm text-gray-500">
+                <span class="text-sm text-gray-500 hidden sm:inline">
+                  显示 {{ paginatedPets.length }} 只 (共 {{ filteredPets.length }}/{{ petStorage.storage.length }} 只)
+                </span>
+              </div>
+
+              <!-- 移动端精灵数量显示 -->
+              <div class="mt-2 sm:hidden">
+                <span class="text-xs text-gray-500">
                   显示 {{ paginatedPets.length }} 只 (共 {{ filteredPets.length }}/{{ petStorage.storage.length }} 只)
                 </span>
               </div>
@@ -480,28 +543,39 @@
               </div>
 
               <!-- 仓库精灵列表 -->
-              <div v-else class="grid grid-cols-2 gap-3">
+              <div v-else class="grid grid-cols-2 sm:grid-cols-2 gap-2 sm:gap-3">
                 <div
                   v-for="pet in paginatedPets"
                   :key="pet.id"
-                  @dblclick.stop="addToCurrentTeam(pet)"
-                  @contextmenu.prevent="showContextMenu($event, pet)"
-                  class="relative bg-white rounded-lg border border-gray-200 p-2 hover:shadow-md transition-all duration-200 group cursor-pointer"
+                  @click="event => handlePetInteraction(event, pet.id, 'click', () => createStoragePetHandler(pet.id))"
+                  @dblclick.stop="
+                    event => handlePetInteraction(event, pet.id, 'dblclick', () => createStoragePetHandler(pet.id))
+                  "
+                  @contextmenu.prevent="
+                    event => handlePetInteraction(event, pet.id, 'contextmenu', () => createStoragePetHandler(pet.id))
+                  "
+                  @touchstart="
+                    event => handlePetInteraction(event, pet.id, 'touchstart', () => createStoragePetHandler(pet.id))
+                  "
+                  @touchend="
+                    event => handlePetInteraction(event, pet.id, 'touchend', () => createStoragePetHandler(pet.id))
+                  "
+                  class="relative bg-white rounded-lg border border-gray-200 p-1 sm:p-2 hover:shadow-md transition-all duration-200 group cursor-pointer active:bg-gray-50 touch-manipulation"
                 >
                   <div class="flex flex-col items-center space-y-1">
-                    <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-10 h-10" />
+                    <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-8 h-8 sm:w-10 sm:h-10" />
                     <div class="text-center w-full">
-                      <p class="text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
-                      <p class="text-xs text-gray-500">Lv.{{ pet.level }}</p>
-                      <p class="text-xs text-gray-400 truncate">
+                      <p class="text-xs sm:text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
+                      <p class="text-xs sm:text-xs text-gray-500">Lv.{{ pet.level }}</p>
+                      <p class="text-xs sm:text-xs text-gray-400 truncate hidden sm:block">
                         {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
                       </p>
                     </div>
 
-                    <!-- 快捷操作按钮 -->
+                    <!-- 移动端显示操作按钮，桌面端悬停显示 -->
                     <button
                       @click.stop="showContextMenu($event, pet)"
-                      class="absolute top-1 right-1 p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors duration-200 opacity-0 group-hover:opacity-100"
+                      class="absolute top-1 right-1 p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors duration-200 sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
                       title="更多操作"
                     >
                       <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -695,6 +769,51 @@
   </div>
 </template>
 
+<style scoped>
+/* 移动端触摸优化 */
+@media (max-width: 768px) {
+  /* 防止移动端选择文本 */
+  .cursor-pointer {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* 优化触摸反馈 */
+  .touch-manipulation {
+    touch-action: manipulation;
+    /* 防止双击缩放 */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    /* 防止双击事件 */
+    pointer-events: auto;
+  }
+
+  /* 移动端按钮样式优化 */
+  button {
+    min-height: 44px; /* iOS 推荐的最小触摸目标 */
+  }
+
+  /* 精灵卡片触摸优化 */
+  .group {
+    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1);
+    /* 防止双击选择和缩放 */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+}
+</style>
+
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { nanoid } from 'nanoid'
@@ -753,6 +872,130 @@ const contextMenu = ref({
 // 精灵详情状态
 const showPetDetail = ref(false)
 const selectedPetForDetail = ref<PetSchemaType | null>(null)
+
+// 统一的交互处理系统
+interface InteractionConfig {
+  onSingleTap?: () => void
+  onDoubleTap?: () => void
+  onLongPress?: () => void
+  onContextMenu?: (event: MouseEvent) => void
+  cooldownMs?: number
+}
+
+// 创建交互处理器
+const createInteractionHandler = (config: InteractionConfig) => {
+  let tapCount = 0
+  let lastTapTime = 0
+  let lastTapTarget: string | null = null
+  let longPressTimer: NodeJS.Timeout | null = null
+  let singleTapTimer: NodeJS.Timeout | null = null
+  let isProcessing = false
+
+  const DOUBLE_TAP_DELAY = 300
+  const LONG_PRESS_DELAY = 500
+  const DEFAULT_COOLDOWN = 300
+
+  const cooldown = config.cooldownMs || DEFAULT_COOLDOWN
+
+  const reset = () => {
+    tapCount = 0
+    lastTapTime = 0
+    lastTapTarget = null
+    isProcessing = false
+    if (longPressTimer) {
+      clearTimeout(longPressTimer)
+      longPressTimer = null
+    }
+    if (singleTapTimer) {
+      clearTimeout(singleTapTimer)
+      singleTapTimer = null
+    }
+  }
+
+  const handleStart = (_event: TouchEvent | MouseEvent, targetId: string) => {
+    const now = Date.now()
+    const isSameTarget = lastTapTarget === targetId
+    const isWithinDelay = now - lastTapTime < DOUBLE_TAP_DELAY
+
+    // 清除之前的定时器
+    if (longPressTimer) {
+      clearTimeout(longPressTimer)
+      longPressTimer = null
+    }
+    if (singleTapTimer) {
+      clearTimeout(singleTapTimer)
+      singleTapTimer = null
+    }
+
+    // 检测双击
+    if (isSameTarget && isWithinDelay && tapCount === 1 && !isProcessing) {
+      // 这是第二次点击，触发双击
+      tapCount = 2
+      if (config.onDoubleTap) {
+        isProcessing = true
+        config.onDoubleTap()
+        setTimeout(reset, cooldown)
+        return
+      }
+    } else if (!isProcessing) {
+      // 这是第一次点击或不同目标
+      tapCount = 1
+      lastTapTarget = targetId
+      lastTapTime = now
+
+      // 设置长按定时器
+      if (config.onLongPress) {
+        longPressTimer = setTimeout(() => {
+          if (tapCount === 1 && !isProcessing && lastTapTarget === targetId) {
+            isProcessing = true
+            config.onLongPress!()
+            setTimeout(reset, cooldown)
+          }
+        }, LONG_PRESS_DELAY)
+      }
+
+      // 设置单击延迟检测
+      if (config.onSingleTap) {
+        singleTapTimer = setTimeout(() => {
+          if (tapCount === 1 && !isProcessing && lastTapTarget === targetId) {
+            config.onSingleTap!()
+            reset()
+          }
+        }, DOUBLE_TAP_DELAY + 50)
+      }
+    }
+  }
+
+  const handleEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer)
+      longPressTimer = null
+    }
+  }
+
+  const handleDoubleClick = (_targetId: string) => {
+    // 桌面端双击处理 - 强制重置状态后执行
+    if (!isMobile() && config.onDoubleTap) {
+      reset() // 先重置状态
+      config.onDoubleTap()
+    }
+  }
+
+  const handleContextMenu = (event: MouseEvent) => {
+    if (config.onContextMenu) {
+      event.preventDefault()
+      config.onContextMenu(event)
+    }
+  }
+
+  return {
+    handleStart,
+    handleEnd,
+    handleDoubleClick,
+    handleContextMenu,
+    reset,
+  }
+}
 
 // 映射对象
 const genderMap = {
@@ -1076,6 +1319,9 @@ onUnmounted(() => {
 
   // 移除窗口事件监听
   window.removeEventListener('resize', debouncedCalculatePageSizes)
+
+  // 清理所有交互处理器缓存
+  resetAllHandlerCaches()
 })
 
 // 队伍名称编辑
@@ -1225,17 +1471,271 @@ const importTeam = () => {
   input.click()
 }
 
+// 检测是否为移动设备
+const isMobile = () => {
+  return (
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    window.innerWidth <= 768
+  )
+}
+
+// 统一的精灵查找函数
+const findPetById = (petId: string) => {
+  // 先在仓库中查找
+  let pet = petStorage.storage.find(p => p.id === petId)
+  if (pet) {
+    return { pet, location: 'storage' as const }
+  }
+
+  // 再在队伍中查找
+  for (let i = 0; i < petStorage.teams.length; i++) {
+    pet = petStorage.teams[i].pets.find(p => p.id === petId)
+    if (pet) {
+      return { pet, location: 'team' as const, teamIndex: i }
+    }
+  }
+
+  return null
+}
+
+// 创建队伍精灵交互处理器 - 使用petId动态获取最新精灵对象
+const createTeamPetHandler = (petId: string, _teamIndex: number) => {
+  return createInteractionHandler({
+    onSingleTap: () => {
+      // 使用统一的精灵查找函数
+      const result = findPetById(petId)
+      if (!result) return
+
+      const { pet, location, teamIndex: foundTeamIndex } = result
+
+      if (isMobile()) {
+        const syntheticEvent = {
+          preventDefault: () => {},
+          clientX: window.innerWidth / 2,
+          clientY: window.innerHeight / 2,
+        } as MouseEvent
+
+        if (location === 'team' && foundTeamIndex !== undefined) {
+          showTeamPetContextMenu(syntheticEvent, pet, foundTeamIndex)
+        } else {
+          showContextMenu(syntheticEvent, pet)
+        }
+      }
+    },
+    onDoubleTap: () => {
+      // 使用统一的精灵查找函数
+      const result = findPetById(petId)
+      if (!result) return
+
+      const { pet, location } = result
+
+      if (location === 'team') {
+        moveToStorage(petId)
+      } else {
+        addToCurrentTeam(pet)
+      }
+    },
+    onLongPress: () => {
+      // 使用统一的精灵查找函数
+      const result = findPetById(petId)
+      if (!result) return
+
+      const { pet, location, teamIndex: foundTeamIndex } = result
+      const syntheticEvent = {
+        preventDefault: () => {},
+        clientX: window.innerWidth / 2,
+        clientY: window.innerHeight / 2,
+      } as MouseEvent
+
+      if (location === 'team' && foundTeamIndex !== undefined) {
+        showTeamPetContextMenu(syntheticEvent, pet, foundTeamIndex)
+      } else {
+        showContextMenu(syntheticEvent, pet)
+      }
+
+      // 添加触觉反馈
+      if (navigator.vibrate) {
+        navigator.vibrate(50)
+      }
+    },
+    onContextMenu: (event: MouseEvent) => {
+      // 使用统一的精灵查找函数
+      const result = findPetById(petId)
+      if (!result) return
+
+      const { pet, location, teamIndex: foundTeamIndex } = result
+
+      if (location === 'team' && foundTeamIndex !== undefined) {
+        showTeamPetContextMenu(event, pet, foundTeamIndex)
+      } else {
+        showContextMenu(event, pet)
+      }
+    },
+  })
+}
+
+// 创建仓库精灵交互处理器 - 使用petId动态获取最新精灵对象
+const createStoragePetHandler = (petId: string) => {
+  return createInteractionHandler({
+    onSingleTap: () => {
+      // 使用统一的精灵查找函数
+      const result = findPetById(petId)
+      if (!result) return
+
+      const { pet, location, teamIndex: foundTeamIndex } = result
+
+      if (isMobile()) {
+        const syntheticEvent = {
+          preventDefault: () => {},
+          clientX: window.innerWidth / 2,
+          clientY: window.innerHeight / 2,
+        } as MouseEvent
+
+        if (location === 'team' && foundTeamIndex !== undefined) {
+          showTeamPetContextMenu(syntheticEvent, pet, foundTeamIndex)
+        } else {
+          showContextMenu(syntheticEvent, pet)
+        }
+      }
+    },
+    onDoubleTap: () => {
+      // 使用统一的精灵查找函数
+      const result = findPetById(petId)
+      if (!result) return
+
+      const { pet, location } = result
+
+      if (location === 'storage') {
+        addToCurrentTeam(pet)
+      } else {
+        moveToStorage(petId)
+      }
+    },
+    onLongPress: () => {
+      // 使用统一的精灵查找函数
+      const result = findPetById(petId)
+      if (!result) return
+
+      const { pet, location, teamIndex: foundTeamIndex } = result
+      const syntheticEvent = {
+        preventDefault: () => {},
+        clientX: window.innerWidth / 2,
+        clientY: window.innerHeight / 2,
+      } as MouseEvent
+
+      if (location === 'team' && foundTeamIndex !== undefined) {
+        showTeamPetContextMenu(syntheticEvent, pet, foundTeamIndex)
+      } else {
+        showContextMenu(syntheticEvent, pet)
+      }
+
+      // 添加触觉反馈
+      if (navigator.vibrate) {
+        navigator.vibrate(50)
+      }
+    },
+    onContextMenu: (event: MouseEvent) => {
+      // 使用统一的精灵查找函数
+      const result = findPetById(petId)
+      if (!result) return
+
+      const { pet, location, teamIndex: foundTeamIndex } = result
+
+      if (location === 'team' && foundTeamIndex !== undefined) {
+        showTeamPetContextMenu(event, pet, foundTeamIndex)
+      } else {
+        showContextMenu(event, pet)
+      }
+    },
+  })
+}
+
+// 全局交互处理器缓存 - 使用更智能的缓存策略
+const interactionHandlers = new Map<string, ReturnType<typeof createInteractionHandler>>()
+
+// 获取或创建交互处理器，但允许更新精灵引用
+const getOrCreateHandler = (petId: string, handlerFactory: () => ReturnType<typeof createInteractionHandler>) => {
+  let handler = interactionHandlers.get(petId)
+  if (!handler) {
+    handler = handlerFactory()
+    interactionHandlers.set(petId, handler)
+  }
+  return handler
+}
+
+// 清除特定精灵的交互处理器缓存
+const clearPetHandlerCache = (petId: string) => {
+  if (interactionHandlers.has(petId)) {
+    // 先重置处理器状态，再删除缓存
+    const handler = interactionHandlers.get(petId)
+    if (handler) {
+      handler.reset()
+    }
+    interactionHandlers.delete(petId)
+  }
+}
+
+// 强制重置所有交互处理器缓存
+const resetAllHandlerCaches = () => {
+  interactionHandlers.forEach(handler => {
+    handler.reset()
+  })
+  interactionHandlers.clear()
+}
+
+// 统一的事件处理函数
+const handlePetInteraction = (
+  event: Event,
+  petId: string,
+  eventType: 'click' | 'dblclick' | 'contextmenu' | 'touchstart' | 'touchend',
+  handlerFactory: () => ReturnType<typeof createInteractionHandler>,
+) => {
+  // 获取或创建处理器，保持状态连续性
+  const handler = getOrCreateHandler(petId, handlerFactory)
+
+  // 根据事件类型调用相应的处理方法
+  switch (eventType) {
+    case 'click':
+      // 桌面端单击不做处理，移动端在touchstart中处理
+      break
+    case 'dblclick':
+      handler.handleDoubleClick(petId)
+      break
+    case 'contextmenu':
+      handler.handleContextMenu(event as MouseEvent)
+      break
+    case 'touchstart':
+      if (isMobile()) {
+        event.preventDefault() // 防止触发原生双击
+        handler.handleStart(event as TouchEvent, petId)
+      }
+      break
+    case 'touchend':
+      if (isMobile()) {
+        handler.handleEnd()
+      }
+      break
+  }
+}
+
 // 精灵操作
 const moveToStorage = (petId: string) => {
-  // moveToPC 已经包含了 saveToLocal()
-  petStorage.moveToPC(petId)
+  // moveToPC 现在返回 boolean 表示是否成功
+  const success = petStorage.moveToPC(petId)
 
-  // 检查并修正分页状态
-  nextTick(() => {
-    checkAndFixPagination()
-  })
+  if (success) {
+    // 清除交互处理器缓存，确保下次使用最新的精灵对象
+    clearPetHandlerCache(petId)
 
-  ElMessage.success('精灵已移入仓库')
+    // 检查并修正分页状态
+    nextTick(() => {
+      checkAndFixPagination()
+    })
+
+    ElMessage.success('精灵已移入仓库')
+  } else {
+    ElMessage.error('移动精灵失败，请重试')
+  }
 }
 
 const addToCurrentTeam = (pet: PetSchemaType) => {
@@ -1244,15 +1744,36 @@ const addToCurrentTeam = (pet: PetSchemaType) => {
     ElMessage.warning('当前队伍已满')
     return
   }
-  // moveToTeam 已经包含了 saveToLocal()
-  petStorage.moveToTeam(pet.id, petStorage.currentTeamIndex)
 
-  // 检查并修正分页状态
-  nextTick(() => {
-    checkAndFixPagination()
-  })
+  // 检查精灵是否存在（在仓库或其他队伍中）
+  const petInStorage = petStorage.storage.find(p => p.id === pet.id)
+  const petInTeams = petStorage.teams.some(team => team.pets.some(p => p.id === pet.id))
 
-  ElMessage.success('精灵已加入队伍')
+  if (!petInStorage && !petInTeams) {
+    ElMessage.error('精灵不存在')
+    return
+  }
+
+  try {
+    // moveToTeam 现在返回 boolean 表示是否成功
+    const success = petStorage.moveToTeam(pet.id, petStorage.currentTeamIndex)
+
+    if (success) {
+      // 清除交互处理器缓存，确保下次使用最新的精灵对象
+      clearPetHandlerCache(pet.id)
+
+      // 检查并修正分页状态
+      nextTick(() => {
+        checkAndFixPagination()
+      })
+
+      ElMessage.success(`精灵 ${pet.name} 已加入队伍`)
+    } else {
+      ElMessage.error('移动精灵失败，请重试')
+    }
+  } catch (error) {
+    ElMessage.error('移动精灵失败，请重试')
+  }
 }
 
 const deletePet = async (petId: string) => {
@@ -1368,6 +1889,9 @@ const closeContextMenu = () => {
 const moveToTeam = (petId: string, teamIndex: number) => {
   // moveToTeam 已经包含了 saveToLocal()
   petStorage.moveToTeam(petId, teamIndex)
+
+  // 清除交互处理器缓存，确保下次使用最新的精灵对象
+  clearPetHandlerCache(petId)
 
   // 检查并修正分页状态
   nextTick(() => {

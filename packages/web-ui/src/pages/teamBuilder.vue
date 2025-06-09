@@ -551,22 +551,29 @@
     </main>
 
     <!-- 全局操作栏 -->
-    <div class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
-      <div class="flex items-center space-x-2 bg-white rounded-full shadow-lg border border-gray-200 px-4 py-2">
+    <div
+      class="fixed bottom-0 left-0 right-0 z-50 md:bottom-4 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2"
+    >
+      <div
+        class="flex items-center justify-center space-x-2 bg-white shadow-lg border-t border-gray-200 px-4 py-3 md:rounded-full md:border md:border-gray-200 md:border-t-gray-200"
+      >
+        <!-- 保存按钮 - 在移动端更突出 -->
         <button
           @click="saveCurrentTeam"
-          class="inline-flex items-center px-3 py-1.5 bg-blue-600 border border-transparent rounded-md font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 text-sm"
+          class="flex-1 md:flex-none inline-flex items-center justify-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 text-sm md:px-3 md:py-1.5 md:rounded-md"
         >
-          <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 md:w-3 md:h-3 md:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
-          保存队伍
+          <span class="ml-1 md:ml-0">保存</span>
         </button>
+
+        <!-- 导出按钮 -->
         <button
           @click="exportTeamConfig"
-          class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 text-sm"
+          class="flex-1 md:flex-none inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 text-sm md:px-3 md:py-1.5 md:rounded-md"
         >
-          <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 md:w-3 md:h-3 md:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -574,13 +581,15 @@
               d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          导出
+          <span class="ml-1 md:ml-0">导出</span>
         </button>
+
+        <!-- 导入按钮 -->
         <button
           @click="importTeamConfig"
-          class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 text-sm"
+          class="flex-1 md:flex-none inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 text-sm md:px-3 md:py-1.5 md:rounded-md"
         >
-          <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 md:w-3 md:h-3 md:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -588,7 +597,7 @@
               d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
             />
           </svg>
-          导入
+          <span class="ml-1 md:ml-0">导入</span>
         </button>
       </div>
     </div>
@@ -1345,21 +1354,16 @@ function getDefaultGender(speciesId: string): Gender {
 
 /* 移动端优化 */
 @media (max-width: 768px) {
-  .fixed.bottom-4 {
-    bottom: 0.5rem;
-    left: 0.5rem;
-    right: 0.5rem;
-    transform: none;
+  /* 为底部操作栏预留空间 */
+  main {
+    padding-bottom: 5rem;
   }
 
-  .fixed.bottom-4 > div {
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .fixed.bottom-4 button {
-    width: 100%;
-    justify-content: center;
+  /* 确保操作栏在移动端全宽显示 */
+  .fixed.bottom-0 {
+    box-shadow:
+      0 -4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 -2px 4px -1px rgba(0, 0, 0, 0.06);
   }
 }
 

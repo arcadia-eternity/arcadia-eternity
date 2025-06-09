@@ -99,7 +99,15 @@ export const usePetStorageStore = defineStore('petStorage', {
     },
 
     moveToTeam(petId: string, targetTeamIndex: number) {
-      let pet = undefined
+      // 检查目标队伍是否存在且未满
+      if (!this.teams[targetTeamIndex] || this.teams[targetTeamIndex].pets.length >= 6) {
+        console.error('Target team does not exist or is full:', targetTeamIndex)
+        return false
+      }
+
+      let pet: PetSchemaType | undefined = undefined
+
+      // 首先从其他队伍中查找并移除精灵
       this.teams.forEach(team => {
         const index = team.pets.findIndex(p => p.id === petId)
         if (index > -1) {
@@ -108,18 +116,29 @@ export const usePetStorageStore = defineStore('petStorage', {
         }
       })
 
-      // 添加到目标队伍
-      if (this.teams[targetTeamIndex].pets.length < 6) {
-        pet = pet ? pet : this.storage.find(p => p.id === petId)
-        if (pet) {
-          this.teams[targetTeamIndex].pets.push(pet)
+      // 如果在队伍中没找到，从仓库中查找
+      if (!pet) {
+        const storageIndex = this.storage.findIndex(p => p.id === petId)
+        if (storageIndex > -1) {
+          pet = this.storage[storageIndex]
+          this.storage.splice(storageIndex, 1)
+        }
+      } else {
+        // 如果从队伍中找到了，也要从仓库中移除（如果存在）
+        const storageIndex = this.storage.findIndex(p => p.id === petId)
+        if (storageIndex > -1) {
+          this.storage.splice(storageIndex, 1)
         }
       }
 
-      const index = this.storage.findIndex(p => p.id === petId)
-      if (index > -1) this.storage.splice(index, 1)
-
-      this.saveToLocal()
+      // 添加到目标队伍
+      if (pet) {
+        this.teams[targetTeamIndex].pets.push(pet)
+        this.saveToLocal()
+        return true
+      } else {
+        return false
+      }
     },
 
     getCurrentTeam(): PetSchemaType[] {
@@ -127,6 +146,7 @@ export const usePetStorageStore = defineStore('petStorage', {
     },
 
     moveToPC(petId: string) {
+      let moved = false
       this.teams.forEach(team => {
         const index = team.pets.findIndex(p => p.id === petId)
         if (index > -1) {
@@ -134,10 +154,14 @@ export const usePetStorageStore = defineStore('petStorage', {
           // 添加到仓库（如果不存在）
           if (!this.storage.some(p => p.id === petId)) {
             this.storage.push(removedPet)
+            moved = true
           }
         }
       })
-      this.saveToLocal()
+      if (moved) {
+        this.saveToLocal()
+      }
+      return moved
     },
 
     updateTeam(index: number, newTeam: PetSchemaType[]) {
