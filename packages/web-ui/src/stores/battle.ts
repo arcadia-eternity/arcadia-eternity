@@ -547,6 +547,18 @@ export const useBattleStore = defineStore('battle', {
         return []
       }
     },
+
+    async refreshCurrentPlayerActions() {
+      if (!this.battleInterface || this.isReplayMode) return
+
+      try {
+        console.debug('刷新当前玩家可用操作...')
+        this.availableActions = await this.fetchAvailableSelection()
+        console.debug(`刷新完成，当前可用操作数量: ${this.availableActions.length}`)
+      } catch (error) {
+        console.error('刷新玩家可用操作失败:', error)
+      }
+    },
   },
 
   getters: {

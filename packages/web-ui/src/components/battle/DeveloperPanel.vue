@@ -32,7 +32,13 @@
             >
               满怒气
             </button>
-
+            <button
+              @click="refreshPlayerActions"
+              class="px-3 py-1.5 bg-purple-500 text-white text-sm rounded hover:bg-purple-600 transition-colors border-none cursor-pointer"
+              title="刷新当前玩家的可用操作"
+            >
+              刷新己方可选项
+            </button>
             <button
               @click="forceAIAction"
               class="px-3 py-1.5 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors border-none cursor-pointer"
@@ -327,6 +333,10 @@ const fullRageCurrentPlayer = () => {
     battleStore.setDevPlayerRage(currentPlayer.value.id, 150)
     currentPlayerRage.value = 150
   }
+}
+
+const refreshPlayerActions = async () => {
+  await battleStore.refreshCurrentPlayerActions()
 }
 
 const forceAIAction = () => {
