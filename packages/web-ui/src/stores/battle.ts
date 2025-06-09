@@ -8,9 +8,21 @@ import {
   type playerId,
   type PlayerSelection,
 } from '@arcadia-eternity/const'
-import type { IBattleSystem } from '@arcadia-eternity/interface'
+import type { IBattleSystem, IDeveloperBattleSystem } from '@arcadia-eternity/interface'
 import * as jsondiffpatch from 'jsondiffpatch'
 import { markRaw } from 'vue'
+
+// 类型守卫函数：检查battleInterface是否支持开发者功能
+function isDeveloperBattleSystem(
+  battleInterface: IBattleSystem,
+): battleInterface is IBattleSystem & IDeveloperBattleSystem {
+  return (
+    'setDevPetHp' in battleInterface &&
+    'setDevPlayerRage' in battleInterface &&
+    'forceAISelection' in battleInterface &&
+    'getAvailableActionsForPlayer' in battleInterface
+  )
+}
 
 export const useBattleStore = defineStore('battle', {
   state: () => ({
@@ -117,8 +129,11 @@ export const useBattleStore = defineStore('battle', {
               this.availableActions = await this.fetchAvailableSelection()
             }
             break
-          default:
+          case BattleMessageType.PetSwitch:
+          case BattleMessageType.TurnStart:
             this.availableActions = []
+            break
+          default:
             break
         }
       }
@@ -471,6 +486,66 @@ export const useBattleStore = defineStore('battle', {
 
     async playReplayTurnAnimations(turnIndex: number) {
       return this.playSnapshotAnimations(turnIndex)
+    },
+
+    // 开发者功能方法
+    setDevPetHp(petId: string, hp: number) {
+      if (!this.battleInterface || this.isReplayMode) return
+
+      try {
+        // 使用类型守卫检查开发者功能
+        if (isDeveloperBattleSystem(this.battleInterface)) {
+          this.battleInterface.setDevPetHp(petId, hp)
+        } else {
+          console.warn('开发者功能不可用：setDevPetHp')
+        }
+      } catch (error) {
+        console.error('设置宠物血量失败:', error)
+      }
+    },
+
+    setDevPlayerRage(playerId: string, rage: number) {
+      if (!this.battleInterface || this.isReplayMode) return
+
+      try {
+        if (isDeveloperBattleSystem(this.battleInterface)) {
+          this.battleInterface.setDevPlayerRage(playerId, rage)
+        } else {
+          console.warn('开发者功能不可用：setDevPlayerRage')
+        }
+      } catch (error) {
+        console.error('设置玩家怒气失败:', error)
+      }
+    },
+
+    forceAISelection(selection: PlayerSelection) {
+      if (!this.battleInterface || this.isReplayMode) return
+
+      try {
+        if (isDeveloperBattleSystem(this.battleInterface)) {
+          this.battleInterface.forceAISelection(selection)
+        } else {
+          console.warn('开发者功能不可用：forceAISelection')
+        }
+      } catch (error) {
+        console.error('强制AI选择失败:', error)
+      }
+    },
+
+    getAvailableActionsForPlayer(playerId: string) {
+      if (!this.battleInterface || this.isReplayMode) return []
+
+      try {
+        if (isDeveloperBattleSystem(this.battleInterface)) {
+          return this.battleInterface.getAvailableActionsForPlayer(playerId) || []
+        } else {
+          console.warn('开发者功能不可用：getAvailableActionsForPlayer')
+          return []
+        }
+      } catch (error) {
+        console.error('获取玩家可用操作失败:', error)
+        return []
+      }
     },
   },
 

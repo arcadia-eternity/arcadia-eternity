@@ -36,6 +36,9 @@ const routes: RouteRecordRaw[] = [
     path: '/battle',
     name: 'Battle',
     component: BattleView,
+    props: route => ({
+      enableDeveloperMode: route.query.dev === 'true',
+    }),
     meta: {
       title: '对战界面',
       requiresBattle: true, // 需要有效对战会话

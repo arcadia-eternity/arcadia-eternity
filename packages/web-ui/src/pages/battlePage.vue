@@ -2,6 +2,7 @@
 import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
 import BattleStatus from '@/components/battle/BattleStatus.vue'
 import BattleTimer from '@/components/BattleTimer.vue'
+import DeveloperPanel from '@/components/battle/DeveloperPanel.vue'
 import Mark from '@/components/battle/Mark.vue'
 import PetButton from '@/components/battle/PetButton.vue'
 import PetSprite from '@/components/battle/PetSprite.vue'
@@ -65,11 +66,13 @@ import { DArrowLeft, DArrowRight, VideoPause, VideoPlay, Film } from '@element-p
 interface Props {
   replayMode?: boolean
   battleRecordId?: string
+  enableDeveloperMode?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   replayMode: false,
   battleRecordId: undefined,
+  enableDeveloperMode: false,
 })
 
 enum PanelState {
@@ -129,6 +132,56 @@ const koBannerRef = useTemplateRef('koBannerRef') // 新增：KO横幅的模板�
 
 // 使用battleView store中的缩放
 const battleViewScale = computed(() => battleViewStore.scale)
+
+// 开发者模式配置
+const developerModeConfig = computed(() => {
+  return {
+    // 基础条件检查
+    isExplicitlyEnabled: props.enableDeveloperMode === true,
+    isDevelopmentEnv: import.meta.env.DEV,
+
+    // 模式排除检查
+    isNotReplayMode: !isReplayMode.value && !props.replayMode,
+    isNotBattleReport: !props.battleRecordId,
+
+    // 获取当前模式描述
+    get currentMode() {
+      if (props.replayMode || isReplayMode.value) return 'replay'
+      if (props.battleRecordId) return 'battle-report'
+      if (props.enableDeveloperMode) return 'local-battle'
+      return 'normal-battle'
+    },
+
+    // 检查是否应该启用开发者模式
+    get shouldEnable() {
+      return this.isExplicitlyEnabled && this.isNotReplayMode && this.isDevelopmentEnv && this.isNotBattleReport
+    },
+  }
+})
+
+// 开发者模式检测
+const isDeveloperMode = computed(() => {
+  const config = developerModeConfig.value
+
+  // 在开发环境下提供调试信息
+  if (import.meta.env.DEV && props.enableDeveloperMode) {
+    console.debug('Developer mode check:', {
+      mode: config.currentMode,
+      enabled: config.shouldEnable,
+      conditions: {
+        isExplicitlyEnabled: config.isExplicitlyEnabled,
+        isNotReplayMode: config.isNotReplayMode,
+        isDevelopmentEnv: config.isDevelopmentEnv,
+        isNotBattleReport: config.isNotBattleReport,
+      },
+    })
+  }
+
+  return config.shouldEnable
+})
+
+// 开发者面板状态
+const isDeveloperPanelOpen = ref(false)
 
 // 战斗数据计算属性
 const currentPlayer = computed(() => store.currentPlayer)
@@ -1492,6 +1545,41 @@ watch(
                 </div>
               </button>
 
+              <!-- 开发者面板按钮 -->
+              <button
+                v-if="isDeveloperMode"
+                class="group relative h-10 p-2 cursor-pointer overflow-visible flex-none"
+                @click="isDeveloperPanelOpen = !isDeveloperPanelOpen"
+              >
+                <div
+                  class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border border-orange-400/50 group-hover:shadow-[0_0_8px_2px_rgba(251,146,60,0.6)]"
+                  :class="
+                    isDeveloperPanelOpen
+                      ? 'border-orange-400/50 group-hover:shadow-[0_0_8px_2px_rgba(251,146,60,0.6)]'
+                      : 'border-orange-400/50'
+                  "
+                >
+                  <div class="bg-gray-900 w-full h-2"></div>
+                  <div class="absolute bottom-1 right-1">
+                    <div class="flex">
+                      <div
+                        class="w-2 h-0.5 mt-1"
+                        :class="isDeveloperPanelOpen ? 'bg-orange-400' : 'bg-orange-400'"
+                      ></div>
+                      <div class="w-0.5 h-2" :class="isDeveloperPanelOpen ? 'bg-orange-400' : 'bg-orange-400'"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="relative flex items-center justify-center h-full pointer-events-none">
+                  <div
+                    class="text-xs font-bold [text-shadow:_1px_1px_0_black]"
+                    :class="isDeveloperPanelOpen ? 'text-orange-400' : 'text-orange-400'"
+                  >
+                    🛠️ 调试
+                  </div>
+                </div>
+              </button>
+
               <!-- 主要操作按钮区域 -->
               <div class="grid grid-cols-2 gap-2 flex-1">
                 <!-- 战斗按钮 -->
@@ -1668,6 +1756,9 @@ watch(
           </div>
         </div>
       </Transition>
+
+      <!-- 开发者面板 -->
+      <DeveloperPanel :is-developer-mode="isDeveloperMode" v-model:is-open="isDeveloperPanelOpen" />
     </div>
   </div>
 </template>

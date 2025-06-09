@@ -18,6 +18,7 @@ declare module 'vue' {
     BattleTimer: typeof import('./src/components/BattleTimer.vue')['default']
     ContextMenu: typeof import('./src/components/ContextMenu.vue')['default']
     DamageDisplay: typeof import('./src/components/battle/DamageDisplay.vue')['default']
+    DeveloperPanel: typeof import('./src/components/battle/DeveloperPanel.vue')['default']
     ElAffix: typeof import('element-plus/es')['ElAffix']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElButton: typeof import('element-plus/es')['ElButton']

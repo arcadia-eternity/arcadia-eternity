@@ -361,7 +361,7 @@ const startLocalBattle = async () => {
     const battle = new Battle(player1, player2, battleOptions)
     const localSystem = new LocalBattleSystem(battle)
     await battleStore.initBattle(localSystem, player1.id)
-    router.push('/battle')
+    router.push('/battle?dev=true')
   } catch (error) {
     errorMessage.value = (error as Error).message
     setTimeout(() => (errorMessage.value = null), 3000)
