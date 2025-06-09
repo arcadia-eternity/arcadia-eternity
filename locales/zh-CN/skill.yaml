@@ -169,10 +169,10 @@ skill_shouxiawuqing:
 skill_meihuo:
   name: 魅惑
   description: 【35】使对手魅惑
-skill_ruilishuxian:
+skill_ruilishexian:
   name: 锐利射线
   description: 10%弱化对手特防1级
-skill_chianguangbo:
+skill_chihuanguangbo:
   name: 迟缓光波
   description: 【95】弱化对手速度1级
 skill_houfazhiren:
@@ -438,8 +438,8 @@ skill_yidugongdu:
 skill_suxiaoduyao:
   name: 速效毒药
   description: 清空慢性毒药 每层增加10点威力
-skill_chuishengzhenzha:
-  name: 垂死针扎
+skill_chuisizhenzha:
+  name: 垂死挣扎
   description: 体力＜1/4时威力2倍
 skill_judushenti:
   name: 剧毒身体
@@ -480,7 +480,7 @@ skill_yasuoningjupao:
 skill_gaoyakongqi:
   name: 高压空气
   description: 清空空气值 附加空气值点数的伤害
-skill_zhishi:
+skill_zhixi:
   name: 窒息
   description: 【50】使对手窒息
 skill_luoxuanshuiqiang:
@@ -501,7 +501,7 @@ skill_xingzhiwei:
 skill_yingjiachongding:
   name: 硬甲冲顶
   description: 连续命中时使自身获得10点受伤增加 最多20点
-skill_pen sheshuizhu:
+skill_pensheshuizhu:
   name: 喷射水柱
   description: 先制+1
 skill_weishe:

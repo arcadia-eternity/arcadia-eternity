@@ -607,7 +607,7 @@
     - skill_id: skill_meihuo
       level: 30
       hidden: false
-    - skill_id: skill_ruilizhexian
+    - skill_id: skill_ruilishexian
       level: 36
       hidden: false
     - skill_id: skill_chihuanguangbo

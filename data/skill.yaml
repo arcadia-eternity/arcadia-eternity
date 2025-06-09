@@ -692,7 +692,7 @@
   tags: []
   effect:
     - effect_skill_add_mark_foe_meihuo
-- id: skill_ruilizhexian
+- id: skill_ruilishexian
   element: Normal
   category: Special
   target: opponent

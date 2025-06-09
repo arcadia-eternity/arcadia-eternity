@@ -1583,7 +1583,6 @@ watch(
               <!-- 主要操作按钮区域 -->
               <div class="grid grid-cols-2 gap-2 flex-1">
                 <!-- 战斗按钮 -->
-                <!-- 战斗按钮 -->
                 <button
                   class="group relative p-2 cursor-pointer overflow-visible"
                   @click="panelState = PanelState.SKILLS"

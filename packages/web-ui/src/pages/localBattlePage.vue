@@ -175,6 +175,7 @@ import { ref, onMounted, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
+import { usePetStorageStore } from '@/stores/petStorage'
 import { LocalBattleSystem } from '@arcadia-eternity/local-adapter'
 import { HttpLoader } from '@arcadia-eternity/httploader'
 import { AIPlayer, Battle, Player } from '@arcadia-eternity/battle'
@@ -294,12 +295,13 @@ const loadPreset = (presetName: keyof typeof presets) => {
 
 // 生成镜像队伍
 const createMirrorTeam = () => {
-  const originalPlayer = playerStore.player
+  const petStorage = usePetStorageStore()
+  const originalTeam = petStorage.getCurrentTeam()
+
   return {
-    ...originalPlayer,
     name: '镜像对手',
     id: nanoid(),
-    team: originalPlayer.team.map(pet => ({
+    team: originalTeam.map(pet => ({
       ...pet,
       name: `${pet.name}-镜像`,
       id: nanoid(),
@@ -334,10 +336,61 @@ onMounted(async () => {
 })
 
 const startLocalBattle = async () => {
+  // 防止重复点击
+  if (isLoading.value) {
+    return
+  }
+
+  isLoading.value = true
+  errorMessage.value = null
+
   try {
-    const createAIPlayer = (basePlayer: Player) => new AIPlayer(basePlayer.name, basePlayer.id, basePlayer.team)
-    const player1 = PlayerParser.parse(playerStore.player)
-    const player2 = createAIPlayer(PlayerParser.parse(createMirrorTeam()))
+    // 验证游戏数据是否已加载
+    if (!dataStore.gameDataLoaded) {
+      throw new Error('游戏数据尚未加载完成，请稍后再试')
+    }
+
+    // 获取原始玩家数据（避免触发getter中的解析逻辑）
+    const petStorage = usePetStorageStore()
+    const rawPlayerData = {
+      name: playerStore.name,
+      id: playerStore.id,
+      team: petStorage.getCurrentTeam(),
+    }
+
+    // 预先验证玩家数据
+    if (!rawPlayerData || !rawPlayerData.team || rawPlayerData.team.length === 0) {
+      throw new Error('玩家队伍为空，请先在队伍编辑器中配置队伍')
+    }
+
+    // 验证队伍中的精灵数据
+    for (const pet of rawPlayerData.team) {
+      if (!pet.name || !pet.species) {
+        throw new Error(`精灵 "${pet.name || '未命名'}" 的数据不完整，请检查种族配置`)
+      }
+      if (!pet.skills || pet.skills.length === 0) {
+        throw new Error(`精灵 "${pet.name}" 没有配置技能，请至少配置一个技能`)
+      }
+    }
+
+    let player1: Player
+    let player2: Player
+
+    try {
+      // 解析玩家1数据
+      player1 = PlayerParser.parse(rawPlayerData)
+    } catch (parseError) {
+      throw new Error(`玩家数据解析失败: ${(parseError as Error).message}`)
+    }
+
+    try {
+      // 创建镜像队伍并解析玩家2数据
+      const mirrorTeamData = createMirrorTeam()
+      const createAIPlayer = (basePlayer: Player) => new AIPlayer(basePlayer.name, basePlayer.id, basePlayer.team)
+      player2 = createAIPlayer(PlayerParser.parse(mirrorTeamData))
+    } catch (parseError) {
+      throw new Error(`镜像队伍数据解析失败: ${(parseError as Error).message}`)
+    }
 
     // 构建战斗选项
     const battleOptions: {
@@ -358,13 +411,37 @@ const startLocalBattle = async () => {
     // 添加计时器配置
     battleOptions.timerConfig = { ...timerConfig }
 
-    const battle = new Battle(player1, player2, battleOptions)
+    // 创建战斗实例
+    let battle: Battle
+    try {
+      battle = new Battle(player1, player2, battleOptions)
+    } catch (battleError) {
+      throw new Error(`战斗创建失败: ${(battleError as Error).message}`)
+    }
+
+    // 创建本地战斗系统
     const localSystem = new LocalBattleSystem(battle)
-    await battleStore.initBattle(localSystem, player1.id)
+
+    try {
+      await battleStore.initBattle(localSystem, player1.id)
+    } catch (initError) {
+      throw new Error(`战斗初始化失败: ${(initError as Error).message}`)
+    }
+
+    // 跳转到战斗页面
     router.push('/battle?dev=true')
   } catch (error) {
+    console.error('本地对战启动失败:', error)
     errorMessage.value = (error as Error).message
-    setTimeout(() => (errorMessage.value = null), 3000)
+
+    // 5秒后清除错误信息
+    setTimeout(() => {
+      if (errorMessage.value === (error as Error).message) {
+        errorMessage.value = null
+      }
+    }, 5000)
+  } finally {
+    isLoading.value = false
   }
 }
 </script>
