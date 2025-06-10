@@ -19,7 +19,8 @@
             允许击破奖励切换
           </label>
         </div>
-        <div class="mb-3 flex items-center">
+        <!-- 暂时隐藏显示隐藏信息选项 -->
+        <!-- <div class="mb-3 flex items-center">
           <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
             <input
               type="checkbox"
@@ -28,7 +29,7 @@
             />
             显示隐藏信息
           </label>
-        </div>
+        </div> -->
         <div class="mb-3 flex items-center">
           <label class="flex items-center gap-2 text-sm text-gray-600">
             随机数种子 (可选):
