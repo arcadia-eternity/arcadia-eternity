@@ -1,5 +1,4 @@
 import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
 import { useBattleStore } from '@/stores/battle'
 import { battleClient } from '@/utils/battleClient'
 

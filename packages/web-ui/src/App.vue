@@ -299,7 +299,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import { battleClient } from './utils/battleClient'
 import { useGameDataStore } from './stores/gameData'
 import { usePlayerStore } from './stores/player'
