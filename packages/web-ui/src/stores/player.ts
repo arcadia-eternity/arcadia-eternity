@@ -3,7 +3,6 @@ import { z } from 'zod'
 import { PlayerSchema, type PlayerSchemaType } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 import { usePetStorageStore } from './petStorage'
-import { ElMessage } from 'element-plus'
 
 // 定义状态类型
 interface PlayerState {

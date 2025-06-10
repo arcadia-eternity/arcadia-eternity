@@ -272,10 +272,39 @@ const handlePetSelect = (petId: string) => {
   panelState.value = PanelState.SKILLS
 }
 
-const handleEscape = () => {
+const handleEscape = async () => {
   if (isPending.value) return
   const action = store.availableActions.find(a => a.type === 'surrender')
-  if (action) store.sendplayerSelection(action)
+  if (!action) return
+
+  try {
+    await ElMessageBox.confirm(
+      i18next.t('surrender-confirm-message', {
+        ns: 'battle',
+        defaultValue: '确定要投降吗？投降后将直接结束战斗。',
+      }),
+      i18next.t('surrender-confirm-title', {
+        ns: 'battle',
+        defaultValue: '确认投降',
+      }),
+      {
+        confirmButtonText: i18next.t('surrender-confirm-button', {
+          ns: 'battle',
+          defaultValue: '投降',
+        }),
+        cancelButtonText: i18next.t('cancel', {
+          ns: 'battle',
+          defaultValue: '取消',
+        }),
+        type: 'warning',
+      },
+    )
+
+    // 用户确认投降，执行投降操作
+    store.sendplayerSelection(action)
+  } catch {
+    // 用户取消投降，不执行任何操作
+  }
 }
 
 const battleResult = computed(() => {

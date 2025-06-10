@@ -11,3 +11,7 @@ fight: 战斗
 switch: 换宠
 surrunder: 逃跑
 do-nothing: 空过
+surrender-confirm-title: 确认投降
+surrender-confirm-message: 确定要投降吗？投降后将直接结束战斗。
+surrender-confirm-button: 投降
+cancel: 取消
