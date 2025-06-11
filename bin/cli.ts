@@ -1,3 +1,4 @@
+import dotenv from 'dotenv'
 import { program } from 'commander'
 import path from 'path'
 import fs from 'fs/promises'
@@ -22,6 +23,9 @@ import { dirname } from 'node:path'
 import { LocalBattleSystem } from '@arcadia-eternity/local-adapter'
 import type { playerId } from '@arcadia-eternity/const'
 import pino from 'pino'
+
+// 加载环境变量
+dotenv.config()
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -59,7 +63,7 @@ program
   .command('online')
   .description('启动在线对战')
   .requiredOption('-d, --data <path>', '玩家数据文件路径')
-  .option('-s, --server <url>', '服务器地址', 'ws://localhost:8102')
+  .option('-s, --server <url>', '服务器地址', process.env.BATTLE_SERVER_URL || 'ws://localhost:8102')
   .action(async options => {
     try {
       console.log('[🌀] 正在加载游戏数据...')
@@ -169,12 +173,16 @@ program
 program
   .command('server')
   .description('启动对战服务器')
-  .option('-p, --port <number>', '服务器端口', '8102')
+  .option('-p, --port <number>', '服务器端口', process.env.PORT || '8102')
   .option('--enable-battle-reports', '启用战报功能和API', false)
-  .option('--supabase-url <url>', 'Supabase项目URL')
-  .option('--supabase-anon-key <key>', 'Supabase匿名密钥')
-  .option('--supabase-service-key <key>', 'Supabase服务密钥')
-  .option('--cors-origin <origins>', 'CORS允许的源（逗号分隔）', 'http://localhost:3000,http://localhost:5173')
+  .option('--supabase-url <url>', 'Supabase项目URL（可通过 SUPABASE_URL 环境变量设置）')
+  .option('--supabase-anon-key <key>', 'Supabase匿名密钥（可通过 SUPABASE_ANON_KEY 环境变量设置）')
+  .option('--supabase-service-key <key>', 'Supabase服务密钥（可通过 SUPABASE_SERVICE_KEY 环境变量设置）')
+  .option(
+    '--cors-origin <origins>',
+    'CORS允许的源（逗号分隔）',
+    process.env.CORS_ORIGIN || 'http://localhost:3000,http://localhost:5173',
+  )
   .action(async options => {
     try {
       console.log('[🌀] 正在加载游戏数据...')
