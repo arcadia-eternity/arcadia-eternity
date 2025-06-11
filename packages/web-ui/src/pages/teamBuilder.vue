@@ -32,6 +32,42 @@
       </div>
     </header>
 
+    <!-- 队伍管理指引 -->
+    <div v-if="showGuide" class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 pt-3">
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
+        <div class="flex items-start space-x-3">
+          <div class="flex-shrink-0">
+            <el-icon class="text-blue-600" :size="20"><InfoFilled /></el-icon>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-sm font-medium text-blue-800 mb-1">队伍管理提示</h3>
+            <p class="text-sm text-blue-700 mb-2">
+              当前正在编辑：<span class="font-medium">{{ currentTeamName }}</span>
+            </p>
+            <p class="text-sm text-blue-700 mb-3">
+              您可以在
+              <router-link to="/storage" class="font-medium text-blue-800 hover:text-blue-900 underline"
+                >精灵仓库</router-link
+              >
+              中管理多个队伍，包括创建新队伍、复制队伍、导入导出队伍等功能。
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <router-link
+                to="/storage"
+                class="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
+              >
+                <el-icon class="mr-1" :size="14"><FolderOpened /></el-icon>
+                管理所有队伍
+              </router-link>
+            </div>
+          </div>
+          <button @click="hideGuide" class="flex-shrink-0 text-blue-400 hover:text-blue-600 transition-colors">
+            <el-icon :size="16"><Close /></el-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 主要内容区域 -->
     <main class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-3">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
@@ -39,8 +75,20 @@
         <div class="lg:col-span-3">
           <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             <div class="p-3 border-b border-gray-200">
-              <h2 class="text-base font-medium text-gray-900">当前队伍</h2>
-              <p class="text-xs text-gray-500 mt-1">{{ currentTeam.length }}/6 只精灵</p>
+              <div class="flex items-center justify-between">
+                <div>
+                  <h2 class="text-base font-medium text-gray-900">当前队伍</h2>
+                  <p class="text-xs text-gray-500 mt-1">{{ currentTeam.length }}/6 只精灵</p>
+                </div>
+                <el-tooltip content="在精灵仓库中可以管理多个队伍" placement="left" :show-after="500" class="md:hidden">
+                  <router-link
+                    to="/storage"
+                    class="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-blue-600 transition-colors"
+                  >
+                    <el-icon :size="16"><QuestionFilled /></el-icon>
+                  </router-link>
+                </el-tooltip>
+              </div>
             </div>
 
             <div class="p-3 space-y-2">
@@ -599,6 +647,19 @@
           </svg>
           <span class="ml-1 md:ml-0">导入</span>
         </button>
+
+        <!-- 仓库管理提示 -->
+        <div class="hidden md:flex items-center ml-3 pl-3 border-l border-gray-300">
+          <el-tooltip content="在精灵仓库中可以管理多个队伍、复制队伍等更多功能" placement="top" :show-after="500">
+            <router-link
+              to="/storage"
+              class="inline-flex items-center text-xs text-gray-500 hover:text-blue-600 transition-colors"
+            >
+              <el-icon class="mr-1" :size="12"><QuestionFilled /></el-icon>
+              更多队伍管理功能
+            </router-link>
+          </el-tooltip>
+        </div>
       </div>
     </div>
   </div>
@@ -667,6 +728,7 @@ import { z } from 'zod'
 import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 import MarkdownIt from 'markdown-it'
+import { InfoFilled, FolderOpened, Close, QuestionFilled } from '@element-plus/icons-vue'
 
 const { i18next } = useTranslation()
 
@@ -683,12 +745,19 @@ const md = new MarkdownIt({
 
 // 响应式状态
 const selectedPetId = ref<string | null>(null)
+const showGuide = ref(localStorage.getItem('teamBuilderGuideHidden') !== 'true') // 控制指引显示
 
 type StatKey = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe'
 
 const statList: StatKey[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe']
 
 const drag = ref(false)
+
+// 关闭指引
+const hideGuide = () => {
+  showGuide.value = false
+  localStorage.setItem('teamBuilderGuideHidden', 'true')
+}
 
 const onStart = () => {
   drag.value = true
@@ -748,6 +817,10 @@ const currentTeam = computed<PetSchemaType[]>({
   set: newOrder => {
     petStorage.updateTeamOrder(petStorage.currentTeamIndex, newOrder)
   },
+})
+
+const currentTeamName = computed(() => {
+  return petStorage.teams[petStorage.currentTeamIndex]?.name || '未知队伍'
 })
 
 const selectedPet = computed<PetSchemaType | null>(() => {
