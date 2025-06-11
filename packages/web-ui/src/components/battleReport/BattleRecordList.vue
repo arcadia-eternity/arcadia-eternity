@@ -74,6 +74,20 @@
           <div class="flex items-center space-x-2">
             <el-button size="small" @click.stop="viewRecord(record.id)"> 查看详情 </el-button>
             <el-button size="small" type="primary" @click.stop="previewRecord(record.id)"> 预览战报 </el-button>
+            <el-dropdown @command="command => handleShareCommand(command, record)" trigger="click" @click.stop>
+              <el-button size="small" type="success" icon="Share">
+                分享
+                <el-icon class="el-icon--right">
+                  <ArrowDown />
+                </el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="share-detail" icon="Link">分享详情</el-dropdown-item>
+                  <el-dropdown-item command="share-preview" icon="VideoPlay">分享回放</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </div>
       </div>
@@ -105,7 +119,9 @@ import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBattleReportStore } from '@/stores/battleReport'
 import { storeToRefs } from 'pinia'
-import { Loading } from '@element-plus/icons-vue'
+import { Loading, ArrowDown } from '@element-plus/icons-vue'
+import { ShareUtils } from '@/utils/share'
+import type { BattleRecord } from '@/services/battleReportService'
 
 const router = useRouter()
 const battleReportStore = useBattleReportStore()
@@ -144,6 +160,22 @@ const viewRecord = (id: string) => {
 // 预览战报
 const previewRecord = (id: string) => {
   router.push(`/battle-reports/${id}/preview`)
+}
+
+// 处理分享命令
+const handleShareCommand = (command: string, record: BattleRecord) => {
+  const battleId = record.id
+  const playerAName = record.player_a_name
+  const playerBName = record.player_b_name
+
+  switch (command) {
+    case 'share-detail':
+      ShareUtils.shareBattleReport(battleId, playerAName, playerBName)
+      break
+    case 'share-preview':
+      ShareUtils.shareBattleReportPreview(battleId, playerAName, playerBName)
+      break
+  }
 }
 
 // 刷新数据

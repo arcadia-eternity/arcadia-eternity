@@ -3,9 +3,23 @@
     <!-- 返回按钮 -->
     <div class="mb-6 flex justify-between items-center">
       <el-button @click="goBack" icon="ArrowLeft">返回列表</el-button>
-      <el-button v-if="currentBattleRecord" @click="previewBattle" type="primary" icon="VideoPlay">
-        预览战报
-      </el-button>
+      <div v-if="currentBattleRecord" class="flex space-x-2">
+        <el-button @click="previewBattle" type="primary" icon="VideoPlay"> 预览战报 </el-button>
+        <el-dropdown @command="handleShareCommand">
+          <el-button type="success" icon="Share">
+            分享战报
+            <el-icon class="el-icon--right">
+              <ArrowDown />
+            </el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="share-detail" icon="Link">分享战报详情</el-dropdown-item>
+              <el-dropdown-item command="share-preview" icon="VideoPlay">分享战报回放</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
     </div>
 
     <!-- 加载状态 -->
@@ -139,7 +153,8 @@ import { onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBattleReportStore } from '@/stores/battleReport'
 import { storeToRefs } from 'pinia'
-import { Loading } from '@element-plus/icons-vue'
+import { Loading, ArrowDown } from '@element-plus/icons-vue'
+import { ShareUtils } from '@/utils/share'
 
 const route = useRoute()
 const router = useRouter()
@@ -216,6 +231,24 @@ const previewBattle = () => {
   const id = route.params.id as string
   if (id) {
     router.push(`/battle-reports/${id}/preview`)
+  }
+}
+
+// 处理分享命令
+const handleShareCommand = (command: string) => {
+  if (!currentBattleRecord.value) return
+
+  const battleId = currentBattleRecord.value.id
+  const playerAName = currentBattleRecord.value.player_a_name
+  const playerBName = currentBattleRecord.value.player_b_name
+
+  switch (command) {
+    case 'share-detail':
+      ShareUtils.shareBattleReport(battleId, playerAName, playerBName)
+      break
+    case 'share-preview':
+      ShareUtils.shareBattleReportPreview(battleId, playerAName, playerBName)
+      break
   }
 }
 
