@@ -6,6 +6,37 @@
     <div class="bg-gray-50 rounded-lg p-6 shadow-lg border border-gray-200">
       <h2 class="text-xl font-semibold text-center text-gray-700 mb-6">战斗配置</h2>
 
+      <!-- 队伍选择配置 -->
+      <div class="mb-6 p-4 bg-white rounded-md border border-gray-200">
+        <h3 class="text-lg font-medium text-gray-600 mb-4 pb-2 border-b-2 border-green-500">队伍选择</h3>
+
+        <!-- 玩家1队伍选择 -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-600 mb-2">玩家1队伍:</label>
+          <select
+            v-model="selectedPlayer1TeamIndex"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option v-for="(team, index) in availableTeams" :key="index" :value="petStorage.teams.indexOf(team)">
+              {{ team.name }} ({{ team.pets.length }}只精灵)
+            </option>
+          </select>
+        </div>
+
+        <!-- 玩家2队伍选择 -->
+        <div class="mb-3">
+          <label class="block text-sm font-medium text-gray-600 mb-2">玩家2队伍:</label>
+          <select
+            v-model="selectedPlayer2TeamIndex"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option v-for="(team, index) in availableTeams" :key="index" :value="petStorage.teams.indexOf(team)">
+              {{ team.name }} ({{ team.pets.length }}只精灵)
+            </option>
+          </select>
+        </div>
+      </div>
+
       <!-- 基础配置 -->
       <div class="mb-6 p-4 bg-white rounded-md border border-gray-200">
         <h3 class="text-lg font-medium text-gray-600 mb-4 pb-2 border-b-2 border-blue-500">基础设置</h3>
@@ -165,14 +196,11 @@
         {{ errorMessage }}
       </div>
     </div>
-
-    <p class="text-gray-600">挑战的是队伍的镜像</p>
-    <p class="text-gray-600">未来可能会扩展更多玩法……大概吧</p>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, watch } from 'vue'
+import { ref, onMounted, reactive, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
@@ -188,9 +216,37 @@ import { DEFAULT_TIMER_CONFIG, type TimerConfig } from '@arcadia-eternity/const'
 const router = useRouter()
 const battleStore = useBattleStore()
 const playerStore = usePlayerStore()
+const petStorage = usePetStorageStore()
 const dataStore = useGameDataStore()
 const errorMessage = ref<string | null>(null)
 const isLoading = ref(true)
+
+// 队伍选择
+const selectedPlayer1TeamIndex = ref(0)
+const selectedPlayer2TeamIndex = ref(0)
+
+// 可用队伍列表（过滤掉空队伍）
+const availableTeams = computed(() => {
+  return petStorage.teams.filter(team => team.pets.length > 0)
+})
+
+// 初始化队伍选择的函数
+const initializeTeamSelection = () => {
+  // 设置玩家1为当前队伍
+  selectedPlayer1TeamIndex.value = petStorage.currentTeamIndex
+
+  // 设置玩家2为不同的队伍（如果有的话）
+  const validTeams = availableTeams.value
+  if (validTeams.length > 1) {
+    // 找到第一个不同于玩家1的队伍
+    const differentTeamIndex = petStorage.teams.findIndex(
+      (team, index) => index !== selectedPlayer1TeamIndex.value && team.pets.length > 0,
+    )
+    selectedPlayer2TeamIndex.value = differentTeamIndex >= 0 ? differentTeamIndex : 0
+  } else {
+    selectedPlayer2TeamIndex.value = selectedPlayer1TeamIndex.value
+  }
+}
 
 // 战斗配置
 interface BattleConfig {
@@ -294,17 +350,19 @@ const loadPreset = (presetName: keyof typeof presets) => {
   enableTotalTimeLimit.value = preset.enableTotalTimeLimit
 }
 
-// 生成镜像队伍
-const createMirrorTeam = () => {
-  const petStorage = usePetStorageStore()
-  const originalTeam = petStorage.getCurrentTeam()
+// 创建对手队伍数据
+const createOpponentTeam = (teamIndex: number) => {
+  const selectedTeam = petStorage.teams[teamIndex]
+  if (!selectedTeam) {
+    throw new Error('选择的队伍不存在')
+  }
 
   return {
-    name: '镜像对手',
+    name: `${selectedTeam.name} (AI)`,
     id: nanoid(),
-    team: originalTeam.map(pet => ({
+    team: selectedTeam.pets.map(pet => ({
       ...pet,
-      name: `${pet.name}-镜像`,
+      name: `${pet.name} (AI)`,
       id: nanoid(),
     })),
   }
@@ -312,6 +370,9 @@ const createMirrorTeam = () => {
 
 // 初始化HTTP加载器
 onMounted(async () => {
+  // 初始化队伍选择
+  initializeTeamSelection()
+
   if (dataStore.gameDataLoaded) {
     isLoading.value = false
     return
@@ -351,26 +412,46 @@ const startLocalBattle = async () => {
       throw new Error('游戏数据尚未加载完成，请稍后再试')
     }
 
-    // 获取原始玩家数据（避免触发getter中的解析逻辑）
-    const petStorage = usePetStorageStore()
-    const rawPlayerData = {
+    // 验证队伍选择
+    if (availableTeams.value.length === 0) {
+      throw new Error('没有可用的队伍，请先在队伍编辑器中创建队伍')
+    }
+
+    const player1Team = petStorage.teams[selectedPlayer1TeamIndex.value]
+    const player2Team = petStorage.teams[selectedPlayer2TeamIndex.value]
+
+    if (!player1Team || player1Team.pets.length === 0) {
+      throw new Error('玩家1队伍为空或不存在，请选择有效的队伍')
+    }
+
+    if (!player2Team || player2Team.pets.length === 0) {
+      throw new Error('玩家2队伍为空或不存在，请选择有效的队伍')
+    }
+
+    // 获取玩家1数据
+    const rawPlayer1Data = {
       name: playerStore.name,
       id: playerStore.id,
-      team: petStorage.getCurrentTeam(),
+      team: player1Team.pets,
     }
 
-    // 预先验证玩家数据
-    if (!rawPlayerData || !rawPlayerData.team || rawPlayerData.team.length === 0) {
-      throw new Error('玩家队伍为空，请先在队伍编辑器中配置队伍')
-    }
-
-    // 验证队伍中的精灵数据
-    for (const pet of rawPlayerData.team) {
+    // 验证玩家1队伍中的精灵数据
+    for (const pet of rawPlayer1Data.team) {
       if (!pet.name || !pet.species) {
-        throw new Error(`精灵 "${pet.name || '未命名'}" 的数据不完整，请检查种族配置`)
+        throw new Error(`玩家1精灵 "${pet.name || '未命名'}" 的数据不完整，请检查种族配置`)
       }
       if (!pet.skills || pet.skills.length === 0) {
-        throw new Error(`精灵 "${pet.name}" 没有配置技能，请至少配置一个技能`)
+        throw new Error(`玩家1精灵 "${pet.name}" 没有配置技能，请至少配置一个技能`)
+      }
+    }
+
+    // 验证玩家2队伍中的精灵数据
+    for (const pet of player2Team.pets) {
+      if (!pet.name || !pet.species) {
+        throw new Error(`玩家2精灵 "${pet.name || '未命名'}" 的数据不完整，请检查种族配置`)
+      }
+      if (!pet.skills || pet.skills.length === 0) {
+        throw new Error(`玩家2精灵 "${pet.name}" 没有配置技能，请至少配置一个技能`)
       }
     }
 
@@ -379,18 +460,18 @@ const startLocalBattle = async () => {
 
     try {
       // 解析玩家1数据
-      player1 = PlayerParser.parse(rawPlayerData)
+      player1 = PlayerParser.parse(rawPlayer1Data)
     } catch (parseError) {
-      throw new Error(`玩家数据解析失败: ${(parseError as Error).message}`)
+      throw new Error(`玩家1数据解析失败: ${(parseError as Error).message}`)
     }
 
     try {
-      // 创建镜像队伍并解析玩家2数据
-      const mirrorTeamData = createMirrorTeam()
+      // 创建玩家2队伍数据并解析
+      const player2TeamData = createOpponentTeam(selectedPlayer2TeamIndex.value)
       const createAIPlayer = (basePlayer: Player) => new AIPlayer(basePlayer.name, basePlayer.id, basePlayer.team)
-      player2 = createAIPlayer(PlayerParser.parse(mirrorTeamData))
+      player2 = createAIPlayer(PlayerParser.parse(player2TeamData))
     } catch (parseError) {
-      throw new Error(`镜像队伍数据解析失败: ${(parseError as Error).message}`)
+      throw new Error(`玩家2队伍数据解析失败: ${(parseError as Error).message}`)
     }
 
     // 构建战斗选项
