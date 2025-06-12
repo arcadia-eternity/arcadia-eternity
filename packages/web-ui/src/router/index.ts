@@ -16,6 +16,7 @@ import AccountPage from '@/pages/accountPage.vue'
 // 战报相关组件
 const BattleRecordList = () => import('@/components/battleReport/BattleRecordList.vue')
 const BattleRecordDetail = () => import('@/components/battleReport/BattleRecordDetail.vue')
+const LocalBattleReports = () => import('@/components/battleReport/LocalBattleReports.vue')
 // 排行榜功能暂时禁用
 // const Leaderboard = () => import('@/components/battleReport/Leaderboard.vue')
 const PlayerBattleRecords = () => import('@/components/battleReport/PlayerBattleRecords.vue')
@@ -121,6 +122,27 @@ const routes: RouteRecordRaw[] = [
     component: PlayerBattleRecords,
     meta: {
       title: '玩家战报',
+    },
+  },
+  // 本地战报相关路由
+  {
+    path: '/local-battle-reports',
+    name: 'LocalBattleReports',
+    component: LocalBattleReports,
+    meta: {
+      title: '本地战报管理',
+    },
+  },
+  {
+    path: '/local-battle-reports/:id/play',
+    name: 'LocalBattleReportPlay',
+    component: BattleView,
+    props: route => ({
+      replayMode: true,
+      localReportId: route.params.id,
+    }),
+    meta: {
+      title: '本地战报回放',
     },
   },
   {

@@ -66,12 +66,14 @@ import { DArrowLeft, DArrowRight, VideoPause, VideoPlay, Film } from '@element-p
 interface Props {
   replayMode?: boolean
   battleRecordId?: string
+  localReportId?: string
   enableDeveloperMode?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   replayMode: false,
   battleRecordId: undefined,
+  localReportId: undefined,
   enableDeveloperMode: false,
 })
 
@@ -142,12 +144,13 @@ const developerModeConfig = computed(() => {
 
     // 模式排除检查
     isNotReplayMode: !isReplayMode.value && !props.replayMode,
-    isNotBattleReport: !props.battleRecordId,
+    isNotBattleReport: !props.battleRecordId && !props.localReportId,
 
     // 获取当前模式描述
     get currentMode() {
       if (props.replayMode || isReplayMode.value) return 'replay'
       if (props.battleRecordId) return 'battle-report'
+      if (props.localReportId) return 'local-battle-report'
       if (props.enableDeveloperMode) return 'local-battle'
       return 'normal-battle'
     },
@@ -413,7 +416,19 @@ const checkReplayLoadingStatus = async () => {
 const goBackFromReplay = () => {
   stopPlayback()
   store.exitReplayMode()
-  router.push(`/battle-reports/${route.params.id}`)
+
+  // 根据当前路由判断返回到哪里
+  if (props.localReportId) {
+    // 本地战报回放，返回到本地战报管理页面
+    router.push('/local-battle-reports')
+  } else if (props.battleRecordId || route.params.id) {
+    // 在线战报回放，返回到战报详情页面
+    const battleId = props.battleRecordId || route.params.id
+    router.push(`/battle-reports/${battleId}`)
+  } else {
+    // 其他情况，返回到战报列表
+    router.push('/battle-reports')
+  }
 }
 
 const nextTurn = () => {
@@ -1002,21 +1017,29 @@ onMounted(async () => {
 
   // 检查是否是回放模式
   if (props.replayMode) {
-    // 回放模式：加载战报数据并初始化回放
-    const battleId = props.battleRecordId || (route.params.id as string)
+    let battleRecord = null
 
-    if (battleId) {
-      await battleReportStore.fetchBattleRecord(battleId)
-
-      if (battleReportStore.currentBattleRecord) {
-        const record = battleReportStore.currentBattleRecord
-
-        store.initReplayMode(
-          record.battle_messages,
-          record.final_state as any,
-          record.player_a_id, // 默认从玩家A视角观看
-        )
+    if (props.localReportId) {
+      // 本地战报回放模式
+      const localReport = battleReportStore.loadLocalBattleReport(props.localReportId)
+      if (localReport) {
+        battleRecord = localReport.battleRecord
       }
+    } else {
+      // 在线战报回放模式
+      const battleId = props.battleRecordId || (route.params.id as string)
+      if (battleId) {
+        await battleReportStore.fetchBattleRecord(battleId)
+        battleRecord = battleReportStore.currentBattleRecord
+      }
+    }
+
+    if (battleRecord) {
+      store.initReplayMode(
+        battleRecord.battle_messages,
+        battleRecord.final_state as any,
+        battleRecord.player_a_id, // 默认从玩家A视角观看
+      )
     }
 
     // 回放模式也需要消息订阅来处理动画
@@ -1393,7 +1416,7 @@ watch(
                   @click="goBackFromReplay"
                   class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-white font-bold"
                 >
-                  返回详情
+                  {{ props.localReportId ? '返回本地战报' : '返回详情' }}
                 </button>
 
                 <!-- 播放控制 -->

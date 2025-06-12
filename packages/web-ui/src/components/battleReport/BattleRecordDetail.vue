@@ -5,6 +5,7 @@
       <el-button @click="goBack" icon="ArrowLeft">返回列表</el-button>
       <div v-if="currentBattleRecord" class="flex space-x-2">
         <el-button @click="previewBattle" type="primary" icon="VideoPlay"> 预览战报 </el-button>
+        <el-button @click="showSaveToLocalDialog" type="warning" icon="Download"> 保存到本地 </el-button>
         <el-dropdown @command="handleShareCommand">
           <el-button type="success" icon="Share">
             分享战报
@@ -145,11 +146,37 @@
         </div>
       </div>
     </div>
+
+    <!-- 保存到本地对话框 -->
+    <el-dialog v-model="saveToLocalDialogVisible" title="保存战报到本地" width="500px" :close-on-click-modal="false">
+      <el-form :model="saveForm" label-width="80px">
+        <el-form-item label="战报名称">
+          <el-input v-model="saveForm.name" placeholder="请输入战报名称" maxlength="50" show-word-limit />
+        </el-form-item>
+        <el-form-item label="描述">
+          <el-input
+            v-model="saveForm.description"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入战报描述（可选）"
+            maxlength="200"
+            show-word-limit
+          />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="saveToLocalDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleSaveToLocal">保存</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted, watch, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBattleReportStore } from '@/stores/battleReport'
 import { storeToRefs } from 'pinia'
@@ -161,6 +188,13 @@ const router = useRouter()
 const battleReportStore = useBattleReportStore()
 
 const { currentBattleRecord, loading, errors } = storeToRefs(battleReportStore)
+
+// 保存到本地相关状态
+const saveToLocalDialogVisible = ref(false)
+const saveForm = ref({
+  name: '',
+  description: '',
+})
 
 // 格式化日期
 const formatDate = (dateString: string) => {
@@ -223,7 +257,13 @@ const formatMessageData = (message: any) => {
 
 // 返回列表
 const goBack = () => {
-  router.push('/battle-reports')
+  // 检查是否有历史记录可以返回
+  if (window.history.length > 1) {
+    router.go(-1)
+  } else {
+    // 如果没有历史记录，默认返回在线战报列表
+    router.push('/battle-reports')
+  }
 }
 
 // 预览战报
@@ -249,6 +289,28 @@ const handleShareCommand = (command: string) => {
     case 'share-preview':
       ShareUtils.shareBattleReportPreview(battleId, playerAName, playerBName)
       break
+  }
+}
+
+// 显示保存到本地对话框
+const showSaveToLocalDialog = () => {
+  if (!currentBattleRecord.value) return
+
+  // 设置默认名称
+  saveForm.value.name = `${currentBattleRecord.value.player_a_name} vs ${currentBattleRecord.value.player_b_name}`
+  saveForm.value.description = ''
+  saveToLocalDialogVisible.value = true
+}
+
+// 处理保存到本地
+const handleSaveToLocal = () => {
+  const success = battleReportStore.saveCurrentBattleReportToLocal(
+    saveForm.value.name.trim() || undefined,
+    saveForm.value.description.trim() || undefined,
+  )
+
+  if (success) {
+    saveToLocalDialogVisible.value = false
   }
 }
 

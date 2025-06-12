@@ -55,6 +55,20 @@
           >
             本地测试
           </el-button>
+          <el-dropdown @command="handleBattleReportCommand">
+            <el-button type="info" icon="Document">
+              战报
+              <el-icon class="el-icon--right">
+                <ArrowDown />
+              </el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="online-reports" icon="Document">在线战报</el-dropdown-item>
+                <el-dropdown-item command="local-reports" icon="FolderOpened">本地战报</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <el-tag type="info" effect="dark">
             <el-icon><User /></el-icon>
             在线人数：{{ serverState.serverState.onlinePlayers }}
@@ -131,6 +145,15 @@
           >
             <el-icon><Document /></el-icon>
             <span>战报记录</span>
+          </router-link>
+          <router-link
+            to="/local-battle-reports"
+            @click="showMobileMenu = false"
+            class="flex items-center gap-4 px-6 py-4 text-gray-600 no-underline text-base font-medium transition-all border-l-4 border-transparent hover:bg-gray-100 hover:text-gray-800"
+            :class="{ 'bg-blue-50 text-blue-600 border-l-blue-600': $route.path === '/local-battle-reports' }"
+          >
+            <el-icon><FolderOpened /></el-icon>
+            <span>本地战报</span>
           </router-link>
         </nav>
 
@@ -295,7 +318,20 @@ import { usePetStorageStore } from './stores/petStorage'
 import { useResourceStore } from './stores/resource'
 import { useServerStateStore } from './stores/serverState'
 import { useGameSettingStore } from './stores/gameSetting'
-import { Menu, Close, House, Edit, MagicStick, Box, Document, User, Connection, Setting } from '@element-plus/icons-vue'
+import {
+  Menu,
+  Close,
+  House,
+  Edit,
+  MagicStick,
+  Box,
+  Document,
+  User,
+  Connection,
+  Setting,
+  ArrowDown,
+  FolderOpened,
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
 const dataStore = useGameDataStore()
@@ -426,6 +462,18 @@ const handleSave = () => {
 const navigateToAccount = () => {
   showEditDialog.value = false
   router.push('/account')
+}
+
+// 处理战报下拉菜单命令
+const handleBattleReportCommand = (command: string) => {
+  switch (command) {
+    case 'online-reports':
+      router.push('/battle-reports')
+      break
+    case 'local-reports':
+      router.push('/local-battle-reports')
+      break
+  }
 }
 </script>
 
