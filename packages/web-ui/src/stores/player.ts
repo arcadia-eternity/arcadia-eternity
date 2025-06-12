@@ -178,10 +178,58 @@ export const usePlayerStore = defineStore('player', {
       }
 
       try {
-        // 如果是本地生成的ID且未注册，先尝试在服务器创建游客
-        if (!this.is_registered && !this.isInitialized) {
+        // 首先检查当前玩家是否在服务器上存在
+        let playerExists = false
+        let status: any = null
+
+        try {
+          console.log('Checking if player exists on server:', this.id)
+          status = await authService.checkPlayerStatus(this.id)
+          playerExists = true
+          console.log('Player exists on server:', status)
+        } catch (error) {
+          console.log('Player does not exist on server or server error:', error)
+          playerExists = false
+        }
+
+        if (playerExists && status) {
+          // 玩家在服务器上存在，使用服务器数据
+          // 只有当服务器返回有效数据时才更新名称
+          if (status.playerName) {
+            this.name = status.playerName
+          }
+          this.is_registered = status.isRegistered || false
+          this.requiresAuth = status.requiresAuth || false
+          this.email = status.email || null
+
+          // 如果是注册用户，检查是否已认证
+          if (this.is_registered) {
+            this.isAuthenticated = authService.isAuthenticated()
+
+            // 如果没有认证，尝试验证现有token
+            if (!this.isAuthenticated) {
+              const tokenResult = await authService.verifyToken()
+              this.isAuthenticated = tokenResult.valid
+
+              // 如果token验证失败，回退到游客模式
+              if (!this.isAuthenticated) {
+                console.log('Token验证失败，回退到游客模式')
+                this.handleAuthFallbackToGuest()
+                ElMessage.warning('认证已过期，已切换到游客模式。如需恢复注册用户身份，请通过邮箱恢复玩家ID')
+              }
+            }
+          } else {
+            // 游客用户不需要认证
+            this.isAuthenticated = true
+          }
+
+          this.isInitialized = true
+          this.saveToLocal()
+          ElMessage.success(`欢迎${this.is_registered ? '注册用户' : '游客'}: ${this.name}`)
+        } else {
+          // 玩家在服务器上不存在，需要创建新的游客
           try {
-            console.log('Attempting to create guest on server...')
+            console.log('Creating new guest on server...')
             const guestPlayer = await authService.createGuest()
             console.log('Server returned guest player:', guestPlayer)
 
@@ -194,50 +242,18 @@ export const usePlayerStore = defineStore('player', {
             this.isAuthenticated = true
             this.isInitialized = true
             this.saveToLocal()
-            ElMessage.success(`欢迎游客: ${this.name}`)
-            return
+            ElMessage.success(`欢迎新游客: ${this.name}`)
           } catch (error) {
             console.warn('Failed to create guest on server, using local ID:', error)
-            // 继续使用本地ID
+            // 如果创建游客失败，使用本地数据作为离线模式
+            this.is_registered = false
+            this.requiresAuth = false
+            this.isAuthenticated = true
+            this.isInitialized = true
+            this.saveToLocal()
+            ElMessage.warning('无法连接服务器，使用离线模式')
           }
         }
-
-        // 检查现有玩家状态
-        const status = await authService.checkPlayerStatus(this.id)
-
-        console.log('Server returned status:', status)
-
-        // 只有当服务器返回有效数据时才更新
-        if (status.playerName) {
-          this.name = status.playerName
-        }
-        this.is_registered = status.isRegistered || false
-        this.requiresAuth = status.requiresAuth || false
-        this.email = status.email || null
-
-        // 如果是注册用户，检查是否已认证
-        if (this.is_registered) {
-          this.isAuthenticated = authService.isAuthenticated()
-
-          // 如果没有认证，尝试验证现有token
-          if (!this.isAuthenticated) {
-            const tokenResult = await authService.verifyToken()
-            this.isAuthenticated = tokenResult.valid
-
-            // 如果token验证失败，回退到游客模式
-            if (!this.isAuthenticated) {
-              console.log('Token验证失败，回退到游客模式')
-              this.handleAuthFallbackToGuest()
-              ElMessage.warning('认证已过期，已切换到游客模式。如需恢复注册用户身份，请通过邮箱恢复玩家ID')
-            }
-          }
-        } else {
-          // 游客用户不需要认证
-          this.isAuthenticated = true
-        }
-
-        this.isInitialized = true
-        ElMessage.success(`欢迎${this.is_registered ? '注册用户' : '游客'}: ${this.name}`)
       } catch (error) {
         console.error('Failed to initialize player:', error)
 
