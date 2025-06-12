@@ -23,8 +23,8 @@
             <el-icon :size="12"><User /></el-icon>
             {{ serverState.serverState.onlinePlayers }}
           </el-tag>
-          <el-button type="info" size="small" @click="showEditDialog = true" class="min-w-0 p-2">
-            <el-icon><User /></el-icon>
+          <el-button type="default" size="small" @click="showEditDialog = true" class="min-w-0 p-2">
+            <el-icon><Setting /></el-icon>
           </el-button>
         </div>
       </div>
@@ -35,7 +35,7 @@
           <img src="@/assets/logo.png" alt="Arcadia Eternity" class="h-10" />
           <span class="text-white text-2xl font-bold" style="text-shadow: 0 0 8px #409eff">Arcadia Eternity</span>
         </div>
-        <div class="flex gap-3">
+        <div class="flex gap-3 items-center">
           <el-button type="primary" icon="House" @click="router.push('/')" :disabled="$route.path === '/'">
             匹配大厅
           </el-button>
@@ -59,9 +59,10 @@
             <el-icon><User /></el-icon>
             在线人数：{{ serverState.serverState.onlinePlayers }}
           </el-tag>
-          <el-button type="info" @click="showEditDialog = true">
-            <el-icon><User /></el-icon>
-            {{ player.name }}
+
+          <el-button type="default" @click="showEditDialog = true" size="small">
+            <el-icon><Setting /></el-icon>
+            设置
           </el-button>
         </div>
       </div>
@@ -136,7 +137,7 @@
         <div class="p-5 border-t border-gray-200 bg-gray-50">
           <div>
             <el-button
-              type="primary"
+              type="default"
               @click="
                 () => {
                   showEditDialog = true
@@ -144,9 +145,10 @@
                 }
               "
               class="w-full"
+              size="small"
             >
-              <el-icon><User /></el-icon>
-              <span class="ml-2">{{ player.name || '设置用户信息' }}</span>
+              <el-icon><Setting /></el-icon>
+              <span class="ml-2">游戏设置</span>
             </el-button>
           </div>
         </div>
@@ -156,34 +158,21 @@
     <!-- 移动端优化的设置对话框 -->
     <el-dialog
       v-model="showEditDialog"
-      title="玩家信息设置"
+      title="游戏设置"
       :width="isMobile ? '95%' : '500px'"
       :fullscreen="isMobile"
       destroy-on-close
       :class="isMobile ? 'mobile-dialog' : ''"
     >
       <el-form :label-width="isMobile ? '70px' : '80px'" :class="isMobile ? 'mobile-form' : ''">
-        <el-form-item label="玩家名称">
-          <el-input
-            v-model="playerStore.name"
-            placeholder="请输入玩家名称"
-            maxlength="30"
-            show-word-limit
-            :size="isMobile ? 'large' : 'default'"
-          />
-        </el-form-item>
-
-        <el-form-item label="玩家ID">
-          <div class="flex items-center gap-2 flex-wrap md:flex-nowrap">
-            <span class="flex-1 text-gray-600 font-mono text-sm min-w-0 md:min-w-48">{{ playerStore.id }}</span>
-            <el-button type="warning" plain @click="handleGenerateNewId" :size="isMobile ? 'large' : 'default'">
-              生成新ID
-            </el-button>
-          </div>
+        <el-form-item label="账户管理">
+          <el-button type="primary" :size="isMobile ? 'large' : 'default'" @click="navigateToAccount" class="w-full">
+            <el-icon class="mr-2"><User /></el-icon>
+            管理账户信息
+          </el-button>
         </el-form-item>
 
         <el-divider content-position="center">游戏设置</el-divider>
-
         <el-form-item label="背景图片">
           <el-select
             v-model="gameSettingStore.background"
@@ -297,16 +286,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { battleClient } from './utils/battleClient'
+import { battleClient, initBattleClient } from './utils/battleClient'
 import { useGameDataStore } from './stores/gameData'
 import { usePlayerStore } from './stores/player'
 import { usePetStorageStore } from './stores/petStorage'
 import { useResourceStore } from './stores/resource'
 import { useServerStateStore } from './stores/serverState'
 import { useGameSettingStore } from './stores/gameSetting'
-import { Menu, Close, House, Edit, MagicStick, Box, Document, User, Connection } from '@element-plus/icons-vue'
+import { Menu, Close, House, Edit, MagicStick, Box, Document, User, Connection, Setting } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const dataStore = useGameDataStore()
@@ -344,13 +333,68 @@ const connectionState = computed(() => {
 
 // 初始化连接
 onMounted(async () => {
-  dataStore.initialize()
-  resourceStore.initialize()
-  petStorage.loadFromLocal()
   try {
-    await battleClient.connect()
+    // 首先初始化基础数据
+    dataStore.initialize()
+    resourceStore.initialize()
+    petStorage.loadFromLocal()
+
+    // 初始化玩家状态（这会确保Pinia store准备就绪）
+    await playerStore.initializePlayer()
+
+    // 确保玩家ID存在
+    if (!playerStore.id) {
+      console.error('Player ID is missing after initialization')
+      ElMessage.error('玩家ID初始化失败，请刷新页面重试')
+      return
+    }
+
+    // 等待一个tick确保所有store都已初始化
+    await nextTick()
+
+    // 现在初始化battleClient（此时Pinia已经完全准备好）
+    initBattleClient()
+
+    // 等待玩家认证完成后再连接战斗客户端
+    // 对于注册用户，需要等待自动登录完成
+    if (playerStore.is_registered) {
+      // 等待认证完成
+      let authCheckCount = 0
+      const maxAuthChecks = 50 // 最多等待5秒
+
+      const waitForAuth = () => {
+        if (playerStore.isAuthenticated || authCheckCount >= maxAuthChecks) {
+          // 认证完成或超时，连接战斗客户端
+          setTimeout(async () => {
+            try {
+              console.log('连接战斗客户端，认证状态:', playerStore.isAuthenticated)
+              await battleClient.connect()
+            } catch (err) {
+              console.error('Battle client connection failed:', err)
+              ElMessage.error('连接服务器失败')
+            }
+          }, 100)
+        } else {
+          authCheckCount++
+          setTimeout(waitForAuth, 100)
+        }
+      }
+
+      waitForAuth()
+    } else {
+      // 游客用户，直接连接
+      setTimeout(async () => {
+        try {
+          await battleClient.connect()
+        } catch (err) {
+          console.error('Battle client connection failed:', err)
+          ElMessage.error('连接服务器失败')
+        }
+      }, 100)
+    }
   } catch (err) {
-    ElMessage.error('连接服务器失败')
+    console.error('Initialization error:', err)
+    ElMessage.error('初始化失败，请刷新页面重试')
   }
 })
 
@@ -371,20 +415,18 @@ const musicOptions = computed(() => {
 
 const showEditDialog = ref(false)
 
-// 处理生成新ID
-const handleGenerateNewId = () => {
-  playerStore.generateNewId()
-}
-
 // 处理保存
 const handleSave = () => {
-  playerStore.saveToLocal()
   // gameSettingStore.saveToLocal() // 如果有保存到本地的逻辑
   showEditDialog.value = false
-  ElMessage.success('玩家信息已保存')
+  ElMessage.success('游戏设置已保存')
 }
 
-const player = computed(() => playerStore)
+// 导航到账户页面
+const navigateToAccount = () => {
+  showEditDialog.value = false
+  router.push('/account')
+}
 </script>
 
 <style>

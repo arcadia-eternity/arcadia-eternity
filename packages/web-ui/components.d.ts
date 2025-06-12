@@ -10,6 +10,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     AdaptiveScalingTest: typeof import('./src/components/test/AdaptiveScalingTest.vue')['default']
     ArrayTagCell: typeof import('./src/components/ArrayTagCell.vue')['default']
+    AuthStatus: typeof import('./src/components/auth/AuthStatus.vue')['default']
     BattleLogEntry: typeof import('./src/components/battle/BattleLogEntry.vue')['default']
     BattleLogPanel: typeof import('./src/components/battle/BattleLogPanel.vue')['default']
     BattleRecordDetail: typeof import('./src/components/battleReport/BattleRecordDetail.vue')['default']
@@ -22,6 +23,7 @@ declare module 'vue' {
     ElAffix: typeof import('element-plus/es')['ElAffix']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElButton: typeof import('element-plus/es')['ElButton']
+    ElCard: typeof import('element-plus/es')['ElCard']
     ElContainer: typeof import('element-plus/es')['ElContainer']
     ElDialog: typeof import('element-plus/es')['ElDialog']
     ElDivider: typeof import('element-plus/es')['ElDivider']
@@ -45,6 +47,7 @@ declare module 'vue' {
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
+    EmailInheritance: typeof import('./src/components/EmailInheritance.vue')['default']
     EnhancedArrayEditor: typeof import('./src/components/EnhancedArrayEditor.vue')['default']
     HealDisplay: typeof import('./src/components/battle/HealDisplay.vue')['default']
     HealthRageBar: typeof import('./src/components/battle/HealthRageBar.vue')['default']

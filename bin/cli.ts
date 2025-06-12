@@ -11,18 +11,17 @@ import { ConsoleUIV2, initI18n } from '@arcadia-eternity/console'
 import type { Player } from '@arcadia-eternity/battle'
 import { BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
 import { PlayerSchema } from '@arcadia-eternity/schema'
-import { BattleServer } from '@arcadia-eternity/server'
-import { createBattleReportRoutes, type BattleReportConfig } from '@arcadia-eternity/server'
+import {
+  type BattleReportConfig,
+  createEmailConfigFromCli,
+  type EmailCliOptions,
+  createApp,
+} from '@arcadia-eternity/server'
 import DevServer from '../devServer'
-import { Server } from 'socket.io'
-import express from 'express'
-import cors from 'cors'
-import { createServer } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
 import { LocalBattleSystem } from '@arcadia-eternity/local-adapter'
 import type { playerId } from '@arcadia-eternity/const'
-import pino from 'pino'
 
 // 加载环境变量
 dotenv.config()
@@ -183,23 +182,30 @@ program
     'CORS允许的源（逗号分隔）',
     process.env.CORS_ORIGIN || 'http://localhost:3000,http://localhost:5173',
   )
+  // 邮件服务配置选项
+  .option('--email-provider <provider>', '邮件服务提供商 (console|smtp|sendgrid|ses)')
+  .option('--email-from <email>', '发件人邮箱地址')
+  .option('--email-from-name <name>', '发件人名称')
+  // SMTP 配置选项
+  .option('--smtp-host <host>', 'SMTP服务器地址')
+  .option('--smtp-port <port>', 'SMTP服务器端口')
+  .option('--smtp-secure', 'SMTP是否使用SSL/TLS', false)
+  .option('--smtp-user <user>', 'SMTP用户名')
+  .option('--smtp-pass <pass>', 'SMTP密码')
+  // SendGrid 配置选项
+  .option('--sendgrid-api-key <key>', 'SendGrid API密钥')
+  // AWS SES 配置选项
+  .option('--aws-ses-region <region>', 'AWS SES区域')
+  .option('--aws-access-key-id <id>', 'AWS访问密钥ID')
+  .option('--aws-secret-access-key <key>', 'AWS访问密钥')
   .action(async options => {
     try {
       console.log('[🌀] 正在加载游戏数据...')
       await loadGameData(undefined, LOADING_STRATEGIES.LENIENT)
       await loadScripts()
 
-      // 创建日志记录器
-      const logger = pino({
-        level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-        formatters: {
-          level: label => ({ level: label }),
-        },
-        timestamp: () => `,"time":"${new Date().toISOString()}"`,
-      })
-
       // 配置战报服务
-      let battleReportConfig: BattleReportConfig | undefined
+      let battleReportConfig: (BattleReportConfig & { enableApi: boolean }) | undefined
 
       // 从环境变量或命令行参数获取配置
       const supabaseUrl = options.supabaseUrl || process.env.SUPABASE_URL
@@ -209,6 +215,7 @@ program
       if (options.enableBattleReports && supabaseUrl && supabaseAnonKey) {
         battleReportConfig = {
           enableReporting: true,
+          enableApi: true,
           database: {
             supabaseUrl,
             supabaseAnonKey,
@@ -222,123 +229,49 @@ program
         console.warn('    或设置 SUPABASE_URL 和 SUPABASE_ANON_KEY 环境变量')
       }
 
-      const app = express()
+      // 创建邮件配置
+      const emailCliOptions: EmailCliOptions = {
+        emailProvider: options.emailProvider,
+        emailFrom: options.emailFrom,
+        emailFromName: options.emailFromName,
+        smtpHost: options.smtpHost,
+        smtpPort: options.smtpPort,
+        smtpSecure: options.smtpSecure,
+        smtpUser: options.smtpUser,
+        smtpPass: options.smtpPass,
+        sendgridApiKey: options.sendgridApiKey,
+        awsSesRegion: options.awsSesRegion,
+        awsAccessKeyId: options.awsAccessKeyId,
+        awsSecretAccessKey: options.awsSecretAccessKey,
+      }
+      const emailConfig = createEmailConfigFromCli(emailCliOptions)
 
       // 配置CORS
       const corsOrigins = options.corsOrigin.split(',').map((origin: string) => origin.trim())
-      app.use(
-        cors({
+
+      // 使用createApp函数创建应用
+      const { app, start, stop } = createApp({
+        port: parseInt(options.port),
+        cors: {
           origin: corsOrigins,
           credentials: true,
-        }),
-      )
-
-      app.use(express.json({ limit: '10mb' }))
-      app.use(express.urlencoded({ extended: true }))
+        },
+        battleReport: battleReportConfig,
+        email: emailConfig,
+      })
 
       // 开发服务器（静态文件等）
       new DevServer(app)
 
-      const httpServer = createServer(app)
-
-      // 添加基础健康检查端点
-      app.get('/health', (_, res) => {
-        res.status(200).json({
-          status: 'OK',
-          uptime: process.uptime(),
-          timestamp: Date.now(),
-          battleReports: {
-            enabled: !!battleReportConfig?.enableReporting,
-            apiEnabled: !!battleReportConfig?.enableReporting,
-          },
-        })
-      })
-
-      // 配置Socket.IO
-      const io = new Server(httpServer, {
-        cors: {
-          origin: corsOrigins,
-          methods: ['GET', 'POST'],
-          credentials: true,
-        },
-        pingTimeout: 60000,
-        pingInterval: 25000,
-      })
-
-      // 初始化战斗服务器（带战报支持）
-      const battleServer = new BattleServer(io, battleReportConfig)
-
-      // 设置战报API路由
-      if (battleReportConfig?.enableReporting) {
-        const apiRouter = express.Router()
-        createBattleReportRoutes(apiRouter, { enableApi: true }, logger)
-        app.use('/api/v1', apiRouter)
-        console.log('[🔗] 战报API已启用: /api/v1')
-      }
-
-      // 服务器统计端点
-      app.get('/api/stats', (_req, res) => {
-        try {
-          const stats = battleServer.getServerStats()
-          res.json(stats)
-        } catch (error) {
-          logger.error({ error }, 'Failed to get server stats')
-          res.status(500).json({ error: 'Failed to get server stats' })
-        }
-      })
-
-      // 错误处理中间件
-      app.use((error: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
-        logger.error({ error, url: req.url, method: req.method }, 'Express error')
-        res.status(500).json({
-          error: 'Internal server error',
-          message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong',
-        })
-      })
-
-      // 404处理
-      app.use((req, res) => {
-        res.status(404).json({
-          error: 'Not found',
-          message: `Route ${req.method} ${req.url} not found`,
-        })
-      })
-
       // 优雅关闭处理
       const gracefulShutdown = async (signal: string) => {
         console.log(`\n[📡] 收到 ${signal} 信号，开始优雅关闭...`)
-
-        // 设置强制关闭超时时间（10秒）
-        const SHUTDOWN_TIMEOUT = 10000
-        let shutdownCompleted = false
-
-        // 设置强制关闭定时器
-        const forceShutdownTimer = setTimeout(() => {
-          if (!shutdownCompleted) {
-            console.log('[⚠️] 优雅关闭超时，强制退出进程')
-            process.exit(1)
-          }
-        }, SHUTDOWN_TIMEOUT)
-
         try {
-          // 清理战斗服务器资源（包括主动断开所有socket）
-          await battleServer.cleanup()
-
-          // 关闭HTTP服务器
-          await new Promise<void>(resolve => {
-            httpServer.close(() => {
-              console.log('[✅] 服务器已安全关闭')
-              resolve()
-            })
-          })
-
-          shutdownCompleted = true
-          clearTimeout(forceShutdownTimer)
+          await stop()
+          console.log('[✅] 服务器已安全关闭')
           process.exit(0)
         } catch (error) {
           console.error('[❌] 关闭服务器时出错:', error)
-          shutdownCompleted = true
-          clearTimeout(forceShutdownTimer)
           process.exit(1)
         }
       }
@@ -347,25 +280,26 @@ program
       process.on('SIGINT', () => gracefulShutdown('SIGINT'))
 
       // 启动服务器
-      httpServer.listen(parseInt(options.port), () => {
-        console.log(`🖥  Express服务器已启动`)
-        console.log(`📡 监听端口: ${options.port}`)
-        console.log(`🌐 CORS允许源: ${corsOrigins.join(', ')}`)
-        console.log(`⚔  等待玩家连接...`)
-        console.log(`🏥 健康检查端点: http://localhost:${options.port}/health`)
+      await start()
 
-        if (battleReportConfig?.enableReporting) {
-          console.log(`📊 战报功能: 已启用`)
-          console.log(`🔗 战报API: http://localhost:${options.port}/api/v1`)
-          console.log(`   - GET /api/v1/battles - 获取战报列表`)
-          console.log(`   - GET /api/v1/leaderboard - 获取排行榜`)
-          console.log(`   - GET /api/v1/statistics - 获取统计信息`)
-        } else {
-          console.log(`📊 战报功能: 已禁用`)
-        }
+      console.log(`🖥  Express服务器已启动`)
+      console.log(`📡 监听端口: ${options.port}`)
+      console.log(`🌐 CORS允许源: ${corsOrigins.join(', ')}`)
+      console.log(`⚔  等待玩家连接...`)
+      console.log(`🏥 健康检查端点: http://localhost:${options.port}/health`)
 
-        console.log(`📈 服务器统计: http://localhost:${options.port}/api/stats`)
-      })
+      if (battleReportConfig?.enableReporting) {
+        console.log(`📊 战报功能: 已启用`)
+        console.log(`🔗 战报API: http://localhost:${options.port}/api/v1`)
+        console.log(`   - GET /api/v1/battles - 获取战报列表`)
+        console.log(`   - GET /api/v1/leaderboard - 获取排行榜`)
+        console.log(`   - GET /api/v1/statistics - 获取统计信息`)
+      } else {
+        console.log(`📊 战报功能: 已禁用`)
+      }
+
+      console.log(`📈 服务器统计: http://localhost:${options.port}/api/stats`)
+      console.log(`📧 邮件服务: ${emailConfig.provider} (${emailConfig.from})`)
     } catch (err) {
       console.error('[💥] 服务器启动失败:', err instanceof Error ? err.message : err)
       process.exit(1)

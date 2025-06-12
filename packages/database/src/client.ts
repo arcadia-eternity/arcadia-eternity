@@ -12,6 +12,10 @@ export interface Database {
           created_at: string
           last_login_at: string
           metadata: Record<string, any>
+          email: string | null
+          email_verified: boolean
+          email_bound_at: string | null
+          is_registered: boolean
         }
         Insert: {
           id: string
@@ -19,6 +23,10 @@ export interface Database {
           created_at?: string
           last_login_at?: string
           metadata?: Record<string, any>
+          email?: string | null
+          email_verified?: boolean
+          email_bound_at?: string | null
+          is_registered?: boolean
         }
         Update: {
           id?: string
@@ -26,6 +34,10 @@ export interface Database {
           created_at?: string
           last_login_at?: string
           metadata?: Record<string, any>
+          email?: string | null
+          email_verified?: boolean
+          email_bound_at?: string | null
+          is_registered?: boolean
         }
       }
       player_stats: {
@@ -107,6 +119,38 @@ export interface Database {
           created_at?: string
         }
       }
+      email_verification_codes: {
+        Row: {
+          id: string
+          email: string
+          code: string
+          player_id: string
+          purpose: 'bind' | 'recover'
+          created_at: string
+          expires_at: string
+          used_at: string | null
+        }
+        Insert: {
+          id?: string
+          email: string
+          code: string
+          player_id: string
+          purpose: 'bind' | 'recover'
+          created_at?: string
+          expires_at?: string
+          used_at?: string | null
+        }
+        Update: {
+          id?: string
+          email?: string
+          code?: string
+          player_id?: string
+          purpose?: 'bind' | 'recover'
+          created_at?: string
+          expires_at?: string
+          used_at?: string | null
+        }
+      }
     }
     Functions: {
       get_player_battle_records: {
@@ -178,7 +222,7 @@ let supabaseServiceClient: SupabaseClientType | null = null
  */
 export function initializeSupabase(config: DatabaseConfig): void {
   supabaseClient = createClient<Database>(config.supabaseUrl, config.supabaseAnonKey)
-  
+
   if (config.supabaseServiceKey) {
     supabaseServiceClient = createClient<Database>(config.supabaseUrl, config.supabaseServiceKey)
   }

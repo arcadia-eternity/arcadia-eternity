@@ -208,4 +208,78 @@ export class PlayerRepository {
 
     return data || []
   }
+
+  /**
+   * 绑定邮箱到玩家账户（将匿名用户转为注册用户）
+   */
+  async bindEmail(playerId: string, email: string): Promise<Player> {
+    const supabase = getSupabaseClient()
+
+    const { data, error } = await supabase
+      .from('players')
+      .update({
+        email,
+        email_verified: true,
+        email_bound_at: new Date().toISOString(),
+        is_registered: true, // 标记为注册用户
+      })
+      .eq('id', playerId)
+      .select()
+      .single()
+
+    if (error) {
+      throw new DatabaseError(`Failed to bind email: ${error.message}`, error.code, error)
+    }
+
+    return data
+  }
+
+  /**
+   * 解绑邮箱（将注册用户转回匿名用户）
+   */
+  async unbindEmail(playerId: string): Promise<Player> {
+    const supabase = getSupabaseClient()
+
+    const { data, error } = await supabase
+      .from('players')
+      .update({
+        email: null,
+        email_verified: false,
+        email_bound_at: null,
+        is_registered: false, // 转回匿名用户
+      })
+      .eq('id', playerId)
+      .select()
+      .single()
+
+    if (error) {
+      throw new DatabaseError(`Failed to unbind email: ${error.message}`, error.code, error)
+    }
+
+    return data
+  }
+
+  /**
+   * 根据邮箱查找玩家
+   */
+  async getPlayerByEmail(email: string): Promise<Player | null> {
+    const supabase = getSupabaseClient()
+
+    const { data, error } = await supabase
+      .from('players')
+      .select('*')
+      .eq('email', email)
+      .eq('email_verified', true)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows returned
+        return null
+      }
+      throw new DatabaseError(`Failed to get player by email: ${error.message}`, error.code, error)
+    }
+
+    return data
+  }
 }

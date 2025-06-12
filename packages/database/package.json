@@ -29,7 +29,9 @@
   "dependencies": {
     "@arcadia-eternity/const": "workspace:^",
     "@supabase/supabase-js": "^2.49.10",
+    "inversify": "^6.0.2",
     "nanoid": "^5.1.5",
+    "reflect-metadata": "^0.2.2",
     "zod": "^3.24.4"
   },
   "devDependencies": {

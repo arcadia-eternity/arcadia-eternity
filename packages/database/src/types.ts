@@ -7,6 +7,10 @@ export interface Player {
   created_at: string
   last_login_at: string
   metadata: Record<string, any>
+  email: string | null
+  email_verified: boolean
+  email_bound_at: string | null
+  is_registered: boolean
 }
 
 export interface PlayerStats {
@@ -36,9 +40,21 @@ export interface BattleRecord {
   created_at: string
 }
 
+export interface EmailVerificationCode {
+  id: string
+  email: string
+  code: string
+  player_id: string
+  purpose: 'bind' | 'recover'
+  created_at: string
+  expires_at: string
+  used_at: string | null
+}
+
 // 枚举类型
 export type BattleResult = 'player_a_wins' | 'player_b_wins' | 'draw' | 'abandoned'
 export type EndReason = 'all_pet_fainted' | 'surrender' | 'timeout' | 'disconnect'
+export type VerificationPurpose = 'bind' | 'recover'
 
 // 创建和更新类型
 export interface CreatePlayerInput {
@@ -51,6 +67,10 @@ export interface UpdatePlayerInput {
   name?: string
   last_login_at?: string
   metadata?: Record<string, any>
+  email?: string | null
+  email_verified?: boolean
+  email_bound_at?: string | null
+  is_registered?: boolean
 }
 
 export interface CreateBattleRecordInput {
@@ -72,6 +92,18 @@ export interface UpdateBattleRecordInput {
   battle_messages?: BattleMessage[]
   final_state?: BattleState | Record<string, any>
   metadata?: Record<string, any>
+}
+
+export interface CreateEmailVerificationCodeInput {
+  email: string
+  code: string
+  player_id: string
+  purpose: VerificationPurpose
+  expires_at?: string
+}
+
+export interface UpdateEmailVerificationCodeInput {
+  used_at?: string | null
 }
 
 // 查询结果类型

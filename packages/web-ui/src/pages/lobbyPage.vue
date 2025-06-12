@@ -5,13 +5,20 @@
     <h1 class="text-2xl md:text-3xl font-bold mb-6 md:mb-8 text-gray-800">对战匹配大厅</h1>
 
     <!-- 导航菜单 -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 my-6 md:my-8 mx-auto max-w-4xl">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 my-6 md:my-8 mx-auto max-w-5xl">
       <router-link
         to="/team-builder"
         class="flex flex-col items-center gap-2 p-4 md:p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500 min-h-[80px] md:min-h-[auto] touch-manipulation"
       >
         <el-icon :size="20"><User /></el-icon>
         <span class="text-sm md:text-base">队伍编辑</span>
+      </router-link>
+      <router-link
+        to="/account"
+        class="flex flex-col items-center gap-2 p-4 md:p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500 min-h-[80px] md:min-h-[auto] touch-manipulation"
+      >
+        <el-icon :size="20"><Setting /></el-icon>
+        <span class="text-sm md:text-base">账户管理</span>
       </router-link>
       <router-link
         to="/battle-reports"
@@ -96,8 +103,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
 import { battleClient } from '@/utils/battleClient'
-import { BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
-import { User, Document, Monitor } from '@element-plus/icons-vue'
+import { type BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
+import { User, Document, Monitor, Setting } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -118,7 +125,13 @@ const handleMatchmaking = async () => {
     } else {
       await battleClient.joinMatchmaking(playerStore.player)
       battleClient.once('matchSuccess', async () => {
-        await battleStore.initBattle(new RemoteBattleSystem(battleClient as BattleClient), playerStore.player.id)
+        if (!battleClient._instance) {
+          throw new Error('BattleClient instance not available')
+        }
+        await battleStore.initBattle(
+          new RemoteBattleSystem(battleClient._instance as BattleClient),
+          playerStore.player.id,
+        )
         router.push({
           path: '/battle',
           query: { roomId: battleClient.currentState.roomId },

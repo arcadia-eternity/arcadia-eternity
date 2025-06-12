@@ -11,6 +11,7 @@ const LocalBattlePage = () => import('../pages/localBattlePage.vue')
 import { battleGuard } from './guards'
 import TeamBuilder from '@/pages/teamBuilder.vue'
 import StorageManager from '@/pages/storageManager.vue'
+import AccountPage from '@/pages/accountPage.vue'
 
 // 战报相关组件
 const BattleRecordList = () => import('@/components/battleReport/BattleRecordList.vue')
@@ -66,6 +67,14 @@ const routes: RouteRecordRaw[] = [
     component: LocalBattlePage,
     meta: {
       title: '本地对战测试',
+    },
+  },
+  {
+    path: '/account',
+    name: 'Account',
+    component: AccountPage,
+    meta: {
+      title: '账户管理',
     },
   },
   // 战报相关路由

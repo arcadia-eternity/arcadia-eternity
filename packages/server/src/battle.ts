@@ -23,6 +23,9 @@ import pino from 'pino'
 import type { Server, Socket } from 'socket.io'
 import { ZodError } from 'zod'
 import { BattleReportService, type BattleReportConfig } from './battleReportService'
+import { getContainer, TYPES } from './container'
+import type { IAuthService, JWTPayload } from './authService'
+import { PlayerRepository } from '@arcadia-eternity/database'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -63,6 +66,8 @@ interface InterServerEvents {}
 interface SocketData {
   data: ReturnType<typeof PlayerParser.parse>
   roomId: string
+  user?: JWTPayload // 认证用户信息
+  playerId?: string // 认证的玩家ID
 }
 
 export class BattleServer {
@@ -93,8 +98,88 @@ export class BattleServer {
   }
 
   private initializeMiddleware() {
-    this.io.use((socket, next) => {
-      next()
+    this.io.use(async (socket, next) => {
+      try {
+        // 从查询参数中获取玩家ID
+        const playerId = socket.handshake.query?.playerId as string
+
+        if (!playerId) {
+          logger.debug('No playerId provided for socket connection')
+          return next(new Error('PLAYER_ID_REQUIRED'))
+        }
+
+        const container = getContainer()
+        const playerRepo = container.get<PlayerRepository>(TYPES.PlayerRepository)
+        const authService = container.get<IAuthService>(TYPES.AuthService)
+
+        // 检查玩家是否存在
+        const player = await playerRepo.getPlayerById(playerId)
+        if (!player) {
+          logger.debug(`Player not found: ${playerId}`)
+          return next(new Error('PLAYER_NOT_FOUND'))
+        }
+
+        const isRegistered = player.is_registered || false
+        socket.data.playerId = playerId
+
+        if (!isRegistered) {
+          // 游客用户，直接放行
+          logger.debug(`Guest user socket connection: ${playerId}`)
+          socket.data.user = undefined
+          next()
+          return
+        }
+
+        // 注册用户，需要JWT认证
+        const token = socket.handshake.auth?.token || (socket.handshake.query?.token as string)
+
+        logger.debug(`Socket auth debug for ${playerId}:`)
+        logger.debug(`- hasAuth: ${!!socket.handshake.auth}`)
+        logger.debug(`- authKeys: ${socket.handshake.auth ? Object.keys(socket.handshake.auth).join(',') : 'none'}`)
+        logger.debug(`- hasQuery: ${!!socket.handshake.query}`)
+        logger.debug(`- queryKeys: ${socket.handshake.query ? Object.keys(socket.handshake.query).join(',') : 'none'}`)
+        logger.debug(`- hasToken: ${!!token}`)
+        if (token) {
+          logger.debug(`- tokenPreview: ${token.substring(0, 50)}...`)
+        }
+
+        if (!token) {
+          logger.debug(`Registered user missing token: ${playerId}`)
+          return next(new Error('TOKEN_REQUIRED_FOR_REGISTERED_USER'))
+        }
+
+        // 验证token
+        let payload: any
+        try {
+          payload = authService.verifyAccessToken(token)
+          if (!payload) {
+            logger.debug(`Token verification returned null for user: ${playerId}`)
+            logger.debug(`Token length: ${token.length}`)
+            logger.debug(`Token start: ${token.substring(0, 100)}`)
+            return next(new Error('INVALID_TOKEN'))
+          }
+          logger.debug(`Token verification successful for user: ${playerId}`)
+        } catch (error) {
+          logger.debug(`Token verification error for user: ${playerId}`)
+          logger.debug(`Error: ${error}`)
+          logger.debug(`Token: ${token.substring(0, 100)}`)
+          return next(new Error('INVALID_TOKEN'))
+        }
+
+        // 验证token中的玩家ID是否匹配
+        if (payload.playerId !== playerId) {
+          logger.warn(`Socket player ID mismatch: token=${payload.playerId}, request=${playerId}`)
+          return next(new Error('PLAYER_ID_TOKEN_MISMATCH'))
+        }
+
+        // 将认证信息添加到socket数据
+        socket.data.user = payload
+        logger.debug(`Registered user socket authenticated: ${playerId}`)
+        next()
+      } catch (error) {
+        logger.error('Socket authentication error:', error)
+        next(new Error('AUTHENTICATION_ERROR'))
+      }
     })
   }
 
@@ -221,6 +306,20 @@ export class BattleServer {
   ) {
     try {
       const playerData = this.validatePlayerData(rawPlayerData)
+
+      // 验证玩家ID是否与连接时验证的ID一致
+      if (socket.data.playerId && playerData.id !== socket.data.playerId) {
+        logger.warn(
+          {
+            socketId: socket.id,
+            connectedPlayerId: socket.data.playerId,
+            requestedPlayerId: playerData.id,
+          },
+          '玩家ID不匹配，拒绝加入匹配',
+        )
+        throw new Error('PLAYER_ID_MISMATCH')
+      }
+
       socket.data.data = playerData
 
       logger.info(

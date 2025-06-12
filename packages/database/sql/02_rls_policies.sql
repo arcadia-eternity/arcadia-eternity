@@ -36,6 +36,7 @@ DROP POLICY IF EXISTS "Only service can update battle records" ON battle_records
 ALTER TABLE players ENABLE ROW LEVEL SECURITY;
 ALTER TABLE player_stats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE battle_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_verification_codes ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
 -- 玩家表 (players) 策略
@@ -137,7 +138,42 @@ BEGIN
     
     SELECT COUNT(*) INTO policy_count FROM pg_policies WHERE tablename = 'battle_records';
     RAISE NOTICE 'Battle_records table policies: %', policy_count;
+
+    SELECT COUNT(*) INTO policy_count FROM pg_policies WHERE tablename = 'email_verification_codes';
+    RAISE NOTICE 'Email_verification_codes table policies: %', policy_count;
 END $$;
+
+-- ============================================================================
+-- 邮箱验证码表 (email_verification_codes) 策略
+-- ============================================================================
+
+-- 插入策略：只有服务端可以创建验证码
+CREATE POLICY "Only service can create verification codes" ON email_verification_codes
+    FOR INSERT WITH CHECK (
+        auth.role() = 'service_role' OR
+        auth.uid() IS NULL  -- 允许无认证的服务端操作
+    );
+
+-- 查看策略：只有服务端可以查看验证码（安全考虑）
+CREATE POLICY "Only service can view verification codes" ON email_verification_codes
+    FOR SELECT USING (
+        auth.role() = 'service_role' OR
+        auth.uid() IS NULL  -- 允许无认证的服务端操作
+    );
+
+-- 更新策略：只有服务端可以更新验证码状态
+CREATE POLICY "Only service can update verification codes" ON email_verification_codes
+    FOR UPDATE USING (
+        auth.role() = 'service_role' OR
+        auth.uid() IS NULL  -- 允许无认证的服务端操作
+    );
+
+-- 删除策略：只有服务端可以删除验证码
+CREATE POLICY "Only service can delete verification codes" ON email_verification_codes
+    FOR DELETE USING (
+        auth.role() = 'service_role' OR
+        auth.uid() IS NULL  -- 允许无认证的服务端操作
+    );
 
 -- ============================================================================
 -- 使用说明

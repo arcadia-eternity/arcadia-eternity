@@ -19,6 +19,11 @@ type BattleClientOptions = {
   autoReconnect?: boolean
   reconnectAttempts?: number
   actionTimeout?: number
+  auth?: {
+    getToken?: () => string | null
+    getPlayerId?: () => string
+    refreshAuth?: () => Promise<void>
+  }
 }
 
 type ClientState = {
@@ -38,7 +43,7 @@ export class BattleClient {
     matchmaking: 'idle',
     battle: 'idle',
   }
-  private options: Required<BattleClientOptions>
+  private options: Required<Omit<BattleClientOptions, 'auth'>> & { auth?: BattleClientOptions['auth'] }
 
   constructor(options: BattleClientOptions) {
     this.options = {
@@ -48,15 +53,8 @@ export class BattleClient {
       ...options,
     }
 
-    this.socket = io(this.options.serverUrl, {
-      autoConnect: false,
-      transports: ['websocket'],
-      reconnection: this.options.autoReconnect,
-      reconnectionAttempts: this.options.reconnectAttempts,
-      reconnectionDelay: 1000,
-    })
-
-    this.setupEventListeners()
+    // 初始化时不创建socket，在connect时创建
+    this.socket = null as any
   }
 
   // 公开的状态获取方法
@@ -64,9 +62,78 @@ export class BattleClient {
     return { ...this.state }
   }
 
-  connect(): Promise<void> {
+  async connect(): Promise<void> {
+    return this.connectWithRetry()
+  }
+
+  private async connectWithRetry(retryCount = 0): Promise<void> {
+    const maxRetries = 2 // 最多重试2次
+
+    try {
+      await this.attemptConnection()
+    } catch (error) {
+      // 检查是否是认证错误且还有重试次数
+      if (this.isAuthError(error) && retryCount < maxRetries) {
+        console.log(`认证失败，尝试重新获取token并重试 (${retryCount + 1}/${maxRetries})`)
+
+        // 尝试重新获取token
+        if (this.options.auth?.refreshAuth) {
+          try {
+            await this.options.auth.refreshAuth()
+            console.log('Token刷新成功，重试连接')
+            return this.connectWithRetry(retryCount + 1)
+          } catch (refreshError) {
+            console.error('Token刷新失败:', refreshError)
+          }
+        }
+      }
+
+      throw error
+    }
+  }
+
+  private attemptConnection(): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (this.socket.connected) return resolve()
+      if (this.socket?.connected) return resolve()
+
+      // 如果socket已存在，先断开
+      if (this.socket) {
+        this.socket.disconnect()
+      }
+
+      // 准备Socket.IO连接配置，包含最新的认证信息
+      const socketConfig: any = {
+        autoConnect: false,
+        transports: ['websocket'],
+        reconnection: this.options.autoReconnect,
+        reconnectionAttempts: this.options.reconnectAttempts,
+        reconnectionDelay: 1000,
+      }
+
+      // 在连接时获取最新的认证信息
+      if (this.options.auth) {
+        try {
+          const playerId = this.options.auth.getPlayerId?.()
+          const token = this.options.auth.getToken?.()
+
+          if (playerId) {
+            socketConfig.query = { playerId }
+          }
+
+          if (token) {
+            socketConfig.auth = { token }
+            console.log('Socket.IO auth configured with token:', token.substring(0, 20) + '...')
+          } else {
+            console.log('Socket.IO: No token available for registered user')
+          }
+        } catch (error) {
+          console.warn('Failed to set auth info:', error)
+        }
+      }
+
+      // 创建新的socket实例
+      this.socket = io(this.options.serverUrl, socketConfig)
+      this.setupEventListeners()
 
       const connectTimeout = setTimeout(() => {
         reject(new Error('Connection timeout'))
@@ -94,8 +161,19 @@ export class BattleClient {
     })
   }
 
+  private isAuthError(error: any): boolean {
+    const errorMessage = error?.message || error?.toString() || ''
+    return (
+      errorMessage.includes('INVALID_TOKEN') ||
+      errorMessage.includes('TOKEN_REQUIRED_FOR_REGISTERED_USER') ||
+      errorMessage.includes('AUTHENTICATION_ERROR')
+    )
+  }
+
   disconnect() {
-    this.socket.disconnect()
+    if (this.socket) {
+      this.socket.disconnect()
+    }
     this.updateState({
       status: 'disconnected',
       matchmaking: 'idle',
@@ -349,7 +427,7 @@ export class BattleClient {
       this.updateState({ status: 'connected' })
     })
 
-    this.socket.on('disconnect', reason => {
+    this.socket.on('disconnect', () => {
       this.updateState({
         status: 'disconnected',
         matchmaking: 'idle',
@@ -392,7 +470,7 @@ export class BattleClient {
   }
 
   private verifyConnection() {
-    if (!this.socket.connected) {
+    if (!this.socket?.connected) {
       throw new Error('Not connected to server')
     }
   }

@@ -11,9 +11,19 @@ CREATE TABLE IF NOT EXISTS players (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     last_login_at TIMESTAMPTZ DEFAULT NOW(),
     metadata JSONB DEFAULT '{}'::jsonb,
-    
-    -- 索引
-    CONSTRAINT players_name_length CHECK (char_length(name) >= 1 AND char_length(name) <= 50)
+    email TEXT UNIQUE, -- 邮箱绑定字段，用于跨设备继承（可选）
+    email_verified BOOLEAN DEFAULT FALSE, -- 邮箱验证状态
+    email_bound_at TIMESTAMPTZ, -- 邮箱绑定时间
+    is_registered BOOLEAN DEFAULT FALSE, -- 是否为注册用户（绑定邮箱的用户）
+
+    -- 索引和约束
+    CONSTRAINT players_name_length CHECK (char_length(name) >= 1 AND char_length(name) <= 50),
+    CONSTRAINT players_email_format CHECK (email IS NULL OR email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+    -- 注册用户必须有邮箱，匿名用户不能有邮箱
+    CONSTRAINT players_registration_consistency CHECK (
+        (is_registered = FALSE AND email IS NULL AND email_verified = FALSE AND email_bound_at IS NULL) OR
+        (is_registered = TRUE AND email IS NOT NULL AND email_verified = TRUE AND email_bound_at IS NOT NULL)
+    )
 );
 
 -- 玩家统计表
@@ -81,10 +91,34 @@ CREATE INDEX IF NOT EXISTS idx_battle_records_result ON battle_records(battle_re
 CREATE INDEX IF NOT EXISTS idx_battle_records_player_time ON battle_records(player_a_id, started_at DESC);
 CREATE INDEX IF NOT EXISTS idx_battle_records_player_b_time ON battle_records(player_b_id, started_at DESC);
 
+-- 邮箱验证码表（用于跨设备ID继承）
+CREATE TABLE IF NOT EXISTS email_verification_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL,
+    code TEXT NOT NULL,
+    player_id TEXT NOT NULL, -- 必需，每个验证码都对应一个玩家ID
+    purpose TEXT NOT NULL CHECK (purpose IN ('bind', 'recover')), -- 验证码用途：绑定或恢复
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '10 minutes'),
+    used_at TIMESTAMPTZ,
+
+    -- 索引和约束
+    CONSTRAINT email_verification_codes_email_format CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+    CONSTRAINT email_verification_codes_code_length CHECK (char_length(code) = 6),
+    -- 确保同一邮箱同一时间只能有一个有效的验证码（通过唯一索引实现）
+    CONSTRAINT unique_active_code UNIQUE (email, purpose) DEFERRABLE INITIALLY DEFERRED
+);
+
 -- 玩家表索引
 CREATE INDEX IF NOT EXISTS idx_players_name ON players(name);
+CREATE INDEX IF NOT EXISTS idx_players_email ON players(email);
 CREATE INDEX IF NOT EXISTS idx_players_created_at ON players(created_at DESC);
 
 -- 统计表索引
 CREATE INDEX IF NOT EXISTS idx_player_stats_wins ON player_stats(wins DESC);
 CREATE INDEX IF NOT EXISTS idx_player_stats_total ON player_stats(total_battles DESC);
+
+-- 邮箱验证码表索引
+CREATE INDEX IF NOT EXISTS idx_email_verification_codes_email ON email_verification_codes(email);
+CREATE INDEX IF NOT EXISTS idx_email_verification_codes_expires ON email_verification_codes(expires_at);
+CREATE INDEX IF NOT EXISTS idx_email_verification_codes_player ON email_verification_codes(player_id);

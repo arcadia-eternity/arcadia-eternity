@@ -5,7 +5,12 @@ import { Server } from 'socket.io'
 import pino from 'pino'
 import { BattleServer } from './battle'
 import { createBattleReportRoutes } from './battleReportRoutes'
+import { createEmailInheritanceRoutes } from './emailInheritanceRoutes'
+import { createAuthRoutes } from './authRoutes'
 import type { BattleReportConfig } from './battleReportService'
+import type { EmailConfig } from './emailService'
+import { createEmailConfigFromEnv } from './emailService'
+import { createContainer, resetContainer } from './container'
 import type { ClientToServerEvents, ServerToClientEvents } from '@arcadia-eternity/protocol'
 
 const logger = pino({
@@ -26,6 +31,7 @@ export interface ServerConfig {
   battleReport?: BattleReportConfig & {
     enableApi: boolean
   }
+  email?: EmailConfig
 }
 
 // 默认配置
@@ -47,6 +53,8 @@ const defaultConfig: ServerConfig = {
           },
         }
       : undefined,
+  // 邮件配置默认为undefined，将在createApp中处理
+  email: undefined,
 }
 
 /**
@@ -60,6 +68,15 @@ export function createApp(config: Partial<ServerConfig> = {}): {
   stop: () => Promise<void>
 } {
   const finalConfig = { ...defaultConfig, ...config }
+
+  // 处理邮件配置：如果没有提供邮件配置，则从环境变量创建
+  if (!finalConfig.email) {
+    finalConfig.email = createEmailConfigFromEnv()
+  }
+
+  // 重置并创建新的DI容器，传入邮件配置
+  resetContainer()
+  const container = createContainer(finalConfig.email)
 
   // 创建 Express 应用
   const app = express()
@@ -91,13 +108,24 @@ export function createApp(config: Partial<ServerConfig> = {}): {
   // 创建战斗服务器
   const battleServer = new BattleServer(io, finalConfig.battleReport)
 
-  // 设置战报 API 路由
+  // 设置 API 路由
+  const apiRouter = express.Router()
+
+  // 战报 API 路由
   if (finalConfig.battleReport?.enableApi) {
-    const apiRouter = express.Router()
     createBattleReportRoutes(apiRouter, { enableApi: true }, logger)
-    app.use('/api/v1', apiRouter)
     logger.info('Battle report API enabled at /api/v1')
   }
+
+  // 认证 API 路由
+  apiRouter.use('/auth', createAuthRoutes())
+  logger.info('Authentication API enabled at /api/v1/auth')
+
+  // 邮箱继承 API 路由
+  apiRouter.use('/email', createEmailInheritanceRoutes())
+  logger.info('Email inheritance API enabled at /api/v1/email')
+
+  app.use('/api/v1', apiRouter)
 
   // 服务器统计端点
   app.get('/api/stats', (req, res) => {
@@ -224,7 +252,7 @@ export function createApp(config: Partial<ServerConfig> = {}): {
 }
 
 // 如果直接运行此文件，启动服务器
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   const { start } = createApp()
   start().catch(error => {
     logger.error({ error }, 'Failed to start server')
