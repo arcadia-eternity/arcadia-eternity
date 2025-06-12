@@ -33,8 +33,44 @@ export function createAuthRoutes(): Router {
   router.use(playerRateLimit(50, 60000)) // 每分钟最多50次请求
 
   /**
-   * POST /auth/create-guest
-   * 创建游客玩家 - 不需要认证，返回玩家ID
+   * @swagger
+   * /api/v1/auth/create-guest:
+   *   post:
+   *     tags: [Authentication]
+   *     summary: 创建游客玩家
+   *     description: 创建一个新的游客玩家账户，无需认证
+   *     responses:
+   *       200:
+   *         description: 游客创建成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               allOf:
+   *                 - $ref: '#/components/schemas/SuccessResponse'
+   *                 - type: object
+   *                   properties:
+   *                     data:
+   *                       type: object
+   *                       properties:
+   *                         playerId:
+   *                           type: string
+   *                           description: 游客玩家ID
+   *                         playerName:
+   *                           type: string
+   *                           description: 游客玩家名称
+   *                         isGuest:
+   *                           type: boolean
+   *                           example: true
+   *                           description: 是否为游客
+   *                         message:
+   *                           type: string
+   *                           description: 提示信息
+   *       500:
+   *         description: 服务器内部错误
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    */
   router.post('/create-guest', async (_req, res) => {
     try {
@@ -70,8 +106,54 @@ export function createAuthRoutes(): Router {
   })
 
   /**
-   * POST /auth/refresh
-   * 刷新访问令牌
+   * @swagger
+   * /api/v1/auth/refresh:
+   *   post:
+   *     tags: [Authentication]
+   *     summary: 刷新访问令牌
+   *     description: 使用刷新令牌获取新的访问令牌
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               refreshToken:
+   *                 type: string
+   *                 description: 刷新令牌
+   *             required:
+   *               - refreshToken
+   *     responses:
+   *       200:
+   *         description: 令牌刷新成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               allOf:
+   *                 - $ref: '#/components/schemas/SuccessResponse'
+   *                 - type: object
+   *                   properties:
+   *                     data:
+   *                       $ref: '#/components/schemas/AuthResult'
+   *       400:
+   *         description: 请求参数错误
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       401:
+   *         description: 刷新令牌无效或已过期
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       500:
+   *         description: 服务器内部错误
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    */
   router.post('/refresh', async (req, res) => {
     try {
@@ -116,8 +198,59 @@ export function createAuthRoutes(): Router {
   })
 
   /**
-   * GET /auth/check-player
-   * 检查玩家状态（游客 vs 注册用户）
+   * @swagger
+   * /api/v1/auth/check-player/{playerId}:
+   *   get:
+   *     tags: [Authentication]
+   *     summary: 检查玩家状态
+   *     description: 检查玩家是否为游客或注册用户
+   *     parameters:
+   *       - in: path
+   *         name: playerId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: 玩家ID
+   *     responses:
+   *       200:
+   *         description: 玩家状态信息
+   *         content:
+   *           application/json:
+   *             schema:
+   *               allOf:
+   *                 - $ref: '#/components/schemas/SuccessResponse'
+   *                 - type: object
+   *                   properties:
+   *                     data:
+   *                       type: object
+   *                       properties:
+   *                         playerId:
+   *                           type: string
+   *                         playerName:
+   *                           type: string
+   *                         isRegistered:
+   *                           type: boolean
+   *                         requiresAuth:
+   *                           type: boolean
+   *                         email:
+   *                           type: string
+   *                           format: email
+   *                           nullable: true
+   *                         createdAt:
+   *                           type: string
+   *                           format: date-time
+   *       404:
+   *         description: 玩家不存在
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       500:
+   *         description: 服务器内部错误
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    */
   router.get('/check-player/:playerId', async (req, res) => {
     try {
@@ -235,8 +368,49 @@ export function createAuthRoutes(): Router {
   })
 
   /**
-   * GET /auth/verify
-   * 验证当前访问令牌的有效性
+   * @swagger
+   * /api/v1/auth/verify:
+   *   get:
+   *     tags: [Authentication]
+   *     summary: 验证访问令牌
+   *     description: 验证当前访问令牌的有效性
+   *     security:
+   *       - BearerAuth: []
+   *     responses:
+   *       200:
+   *         description: 令牌有效
+   *         content:
+   *           application/json:
+   *             schema:
+   *               allOf:
+   *                 - $ref: '#/components/schemas/SuccessResponse'
+   *                 - type: object
+   *                   properties:
+   *                     valid:
+   *                       type: boolean
+   *                       example: true
+   *                     data:
+   *                       type: object
+   *                       properties:
+   *                         playerId:
+   *                           type: string
+   *                         isRegistered:
+   *                           type: boolean
+   *                         email:
+   *                           type: string
+   *                           format: email
+   *       401:
+   *         description: 令牌无效或已过期
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       500:
+   *         description: 服务器内部错误
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    */
   router.get('/verify', authenticateToken, async (req, res) => {
     try {

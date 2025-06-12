@@ -157,7 +157,61 @@ export function createEmailInheritanceRoutes(): Router {
   router.use(playerRateLimit(20, 60000)) // 每分钟最多20次请求
 
   /**
-   * 发送邮箱验证码（根据用途进行不同的认证处理）
+   * @swagger
+   * /api/v1/email/send-verification-code:
+   *   post:
+   *     tags: [Email]
+   *     summary: 发送邮箱验证码
+   *     description: 根据用途（绑定或恢复）发送邮箱验证码
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/SendVerificationRequest'
+   *     responses:
+   *       200:
+   *         description: 验证码发送成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *       400:
+   *         description: 请求参数错误或邮箱已被绑定
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       401:
+   *         description: 认证失败（绑定操作需要认证）
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       404:
+   *         description: 邮箱未绑定任何账户（恢复操作）
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       429:
+   *         description: 发送过于频繁
+   *         content:
+   *           application/json:
+   *             schema:
+   *               allOf:
+   *                 - $ref: '#/components/schemas/ErrorResponse'
+   *                 - type: object
+   *                   properties:
+   *                     rateLimitSeconds:
+   *                       type: integer
+   *                       example: 60
+   *       500:
+   *         description: 服务器内部错误
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    */
   router.post('/send-verification-code', async (req: any, res: any) => {
     try {
@@ -322,7 +376,56 @@ export function createEmailInheritanceRoutes(): Router {
   })
 
   /**
-   * 绑定邮箱到玩家账户（智能认证）
+   * @swagger
+   * /api/v1/email/bind:
+   *   post:
+   *     tags: [Email]
+   *     summary: 绑定邮箱到玩家账户
+   *     description: 使用验证码将邮箱绑定到玩家账户
+   *     security:
+   *       - BearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/VerifyAndBindRequest'
+   *     responses:
+   *       200:
+   *         description: 邮箱绑定成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               allOf:
+   *                 - $ref: '#/components/schemas/SuccessResponse'
+   *                 - type: object
+   *                   properties:
+   *                     player:
+   *                       $ref: '#/components/schemas/Player'
+   *       400:
+   *         description: 验证码无效或邮箱已被绑定
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       401:
+   *         description: 认证失败
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       404:
+   *         description: 玩家不存在
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       500:
+   *         description: 服务器内部错误
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    */
   router.post('/bind', smartAuth, async (req: any, res: any) => {
     try {
@@ -383,7 +486,50 @@ export function createEmailInheritanceRoutes(): Router {
   })
 
   /**
-   * 通过邮箱恢复玩家ID
+   * @swagger
+   * /api/v1/email/recover:
+   *   post:
+   *     tags: [Email]
+   *     summary: 通过邮箱恢复玩家ID
+   *     description: 使用验证码恢复绑定到邮箱的玩家账户
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/VerifyAndRecoverRequest'
+   *     responses:
+   *       200:
+   *         description: 玩家ID恢复成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               allOf:
+   *                 - $ref: '#/components/schemas/SuccessResponse'
+   *                 - type: object
+   *                   properties:
+   *                     player:
+   *                       $ref: '#/components/schemas/Player'
+   *                     auth:
+   *                       $ref: '#/components/schemas/AuthResult'
+   *       400:
+   *         description: 验证码无效或已过期
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       404:
+   *         description: 邮箱未绑定任何玩家账户
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       500:
+   *         description: 服务器内部错误
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    */
   router.post('/recover', async (req: any, res: any) => {
     try {

@@ -3,6 +3,7 @@ import cors from 'cors'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 import pino from 'pino'
+import swaggerUi from 'swagger-ui-express'
 import { BattleServer } from './battle'
 import { createBattleReportRoutes } from './battleReportRoutes'
 import { createEmailInheritanceRoutes } from './emailInheritanceRoutes'
@@ -12,6 +13,7 @@ import type { EmailConfig } from './emailService'
 import { createEmailConfigFromEnv } from './emailService'
 import { createContainer, resetContainer } from './container'
 import type { ClientToServerEvents, ServerToClientEvents } from '@arcadia-eternity/protocol'
+import { swaggerSpec, swaggerUiOptions } from './swagger'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -86,7 +88,31 @@ export function createApp(config: Partial<ServerConfig> = {}): {
   app.use(express.json({ limit: '10mb' }))
   app.use(express.urlencoded({ extended: true }))
 
+  // Swagger API 文档
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions))
+
+  // 提供 OpenAPI JSON 规范
+  app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json')
+    res.send(swaggerSpec)
+  })
+
   // 健康检查端点
+  /**
+   * @swagger
+   * /health:
+   *   get:
+   *     tags: [Health]
+   *     summary: 健康检查
+   *     description: 检查服务器运行状态
+   *     responses:
+   *       200:
+   *         description: 服务器运行正常
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/HealthResponse'
+   */
   app.get('/health', (req, res) => {
     res.json({
       status: 'ok',
@@ -128,6 +154,27 @@ export function createApp(config: Partial<ServerConfig> = {}): {
   app.use('/api/v1', apiRouter)
 
   // 服务器统计端点
+  /**
+   * @swagger
+   * /api/stats:
+   *   get:
+   *     tags: [Health]
+   *     summary: 获取服务器统计信息
+   *     description: 获取服务器运行统计数据，包括连接数、战斗数等
+   *     responses:
+   *       200:
+   *         description: 服务器统计信息
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ServerStats'
+   *       500:
+   *         description: 服务器内部错误
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   */
   app.get('/api/stats', (req, res) => {
     try {
       const stats = battleServer.getServerStats()
