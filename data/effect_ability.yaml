@@ -251,7 +251,7 @@
   condition:
     type: every
     conditions:
-      - type: checkSelf
+      - type: selfUseSkill
       - type: evaluate
         target:
           base: selfMarks
