@@ -286,8 +286,8 @@ function getOrCreateJwtSecret(): string {
 export function createAuthConfigFromEnv(): AuthConfig {
   return {
     jwtSecret: getOrCreateJwtSecret(),
-    jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
-    refreshTokenExpiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || '7d',
+    jwtExpiresIn: process.env.JWT_EXPIRES_IN || '180d', // 默认6个月
+    refreshTokenExpiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || '365d', // 默认1年
   }
 }
 
