@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { getContainer, TYPES } from './container'
 import type { IAuthService } from './authService'
 import { PlayerRepository } from '@arcadia-eternity/database'
-import { playerRateLimit } from './smartAuthMiddleware'
+import { playerRateLimit, smartAuth } from './smartAuthMiddleware'
 import { authenticateToken } from './authMiddleware'
 import { nanoid } from 'nanoid'
 import pino from 'pino'
@@ -150,6 +150,60 @@ export function createAuthRoutes(): Router {
         success: false,
         message: '检查玩家状态失败',
         code: 'CHECK_PLAYER_ERROR',
+      })
+    }
+  })
+
+  /**
+   * PUT /auth/update-player-name
+   * 更新玩家名字 - 支持游客和注册用户
+   */
+  router.put('/update-player-name', smartAuth, async (req: any, res: any) => {
+    try {
+      const { playerId, name } = z
+        .object({
+          playerId: z.string().min(1, '玩家ID不能为空'),
+          name: z.string().min(1, '玩家名称不能为空').max(30, '名称长度不能超过30个字符'),
+        })
+        .parse(req.body)
+
+      // 检查玩家是否存在
+      const existingPlayer = await playerRepo.getPlayerById(playerId)
+      if (!existingPlayer) {
+        return res.status(404).json({
+          success: false,
+          message: '玩家不存在',
+          code: 'PLAYER_NOT_FOUND',
+        })
+      }
+
+      // 更新玩家名字
+      const updatedPlayer = await playerRepo.updatePlayer(playerId, { name })
+
+      logger.info(`Player name updated: ${playerId} -> ${name}`)
+
+      res.json({
+        success: true,
+        message: '玩家名称更新成功',
+        data: {
+          playerId: updatedPlayer.id,
+          playerName: updatedPlayer.name,
+        },
+      })
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          success: false,
+          message: error.errors[0].message,
+          code: 'VALIDATION_ERROR',
+        })
+      }
+
+      logger.error('Update player name error:', error)
+      res.status(500).json({
+        success: false,
+        message: '更新玩家名称失败',
+        code: 'UPDATE_NAME_ERROR',
       })
     }
   })

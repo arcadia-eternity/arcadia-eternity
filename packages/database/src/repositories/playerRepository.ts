@@ -163,33 +163,48 @@ export class PlayerRepository {
   }
 
   /**
-   * 确保玩家存在（如果不存在则创建）
+   * 确保玩家存在（如果不存在则创建，如果存在则只更新登录时间）
    */
   async ensurePlayer(id: string, name: string): Promise<Player> {
     const supabase = getSupabaseClient()
 
-    // 使用 upsert 操作避免竞态条件
-    const { data, error } = await supabase
-      .from('players')
-      .upsert(
-        {
+    // 先检查玩家是否存在
+    const existingPlayer = await this.getPlayerById(id)
+
+    if (existingPlayer) {
+      // 如果玩家已存在，只更新登录时间，不更新名字
+      const { data, error } = await supabase
+        .from('players')
+        .update({
+          last_login_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) {
+        throw new DatabaseError(`Failed to update player login time: ${error.message}`, error.code, error)
+      }
+
+      return data
+    } else {
+      // 如果玩家不存在，创建新玩家
+      const { data, error } = await supabase
+        .from('players')
+        .insert({
           id,
           name,
           last_login_at: new Date().toISOString(),
-        },
-        {
-          onConflict: 'id',
-          ignoreDuplicates: false, // 总是更新
-        },
-      )
-      .select()
-      .single()
+        })
+        .select()
+        .single()
 
-    if (error) {
-      throw new DatabaseError(`Failed to ensure player: ${error.message}`, error.code, error)
+      if (error) {
+        throw new DatabaseError(`Failed to create player: ${error.message}`, error.code, error)
+      }
+
+      return data
     }
-
-    return data
   }
 
   /**

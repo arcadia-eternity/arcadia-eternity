@@ -8,7 +8,6 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    AdaptiveScalingTest: typeof import('./src/components/test/AdaptiveScalingTest.vue')['default']
     ArrayTagCell: typeof import('./src/components/ArrayTagCell.vue')['default']
     AuthStatus: typeof import('./src/components/auth/AuthStatus.vue')['default']
     BattleLogEntry: typeof import('./src/components/battle/BattleLogEntry.vue')['default']
@@ -24,7 +23,6 @@ declare module 'vue' {
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCard: typeof import('element-plus/es')['ElCard']
-    ElContainer: typeof import('element-plus/es')['ElContainer']
     ElDialog: typeof import('element-plus/es')['ElDialog']
     ElDivider: typeof import('element-plus/es')['ElDivider']
     ElDrawer: typeof import('element-plus/es')['ElDrawer']
@@ -34,11 +32,9 @@ declare module 'vue' {
     ElementIcon: typeof import('./src/components/battle/ElementIcon.vue')['default']
     ElForm: typeof import('element-plus/es')['ElForm']
     ElFormItem: typeof import('element-plus/es')['ElFormItem']
-    ElHeader: typeof import('element-plus/es')['ElHeader']
     ElIcon: typeof import('element-plus/es')['ElIcon']
     ElInput: typeof import('element-plus/es')['ElInput']
     ElInputNumber: typeof import('element-plus/es')['ElInputNumber']
-    ElMain: typeof import('element-plus/es')['ElMain']
     ElOption: typeof import('element-plus/es')['ElOption']
     ElPagination: typeof import('element-plus/es')['ElPagination']
     ElSelect: typeof import('element-plus/es')['ElSelect']
@@ -53,10 +49,7 @@ declare module 'vue' {
     HealthRageBar: typeof import('./src/components/battle/HealthRageBar.vue')['default']
     Leaderboard: typeof import('./src/components/battleReport/Leaderboard.vue')['default']
     Mark: typeof import('./src/components/battle/Mark.vue')['default']
-    MobileBattleTest: typeof import('./src/components/battle/MobileBattleTest.vue')['default']
-    MobileControlPanel: typeof import('./src/components/battle/MobileControlPanel.vue')['default']
     OptionalFieldEditor: typeof import('./src/components/OptionalFieldEditor.vue')['default']
-    OrientationHint: typeof import('./src/components/battle/OrientationHint.vue')['default']
     Pet: typeof import('./src/components/battle/Pet.vue')['default']
     PetButton: typeof import('./src/components/battle/PetButton.vue')['default']
     PetIcon: typeof import('./src/components/PetIcon.vue')['default']

@@ -128,17 +128,49 @@ export const usePlayerStore = defineStore('player', {
       }
     },
 
-    setName(newName: string) {
+    async setName(newName: string) {
       if (!newName.trim()) {
         ElMessage.warning('玩家名称不能为空')
         return
       }
       if (newName.length > 30) {
-        ElMessage.warning('名称长度不能超过20个字符')
+        ElMessage.warning('名称长度不能超过30个字符')
         return
       }
+
+      // 先保存到本地
       this.name = newName
       this.saveToLocal()
+
+      // 尝试同步到服务器
+      try {
+        const response = await fetch('/api/v1/auth/update-player-name', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(this.isAuthenticated && authService.getToken()
+              ? {
+                  Authorization: `Bearer ${authService.getToken()}`,
+                }
+              : {}),
+          },
+          body: JSON.stringify({
+            playerId: this.id,
+            name: newName,
+          }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          console.warn('Failed to sync name to server:', errorData.message)
+          // 不显示错误消息给用户，因为本地已经保存成功
+        } else {
+          console.log('Name synced to server successfully')
+        }
+      } catch (error) {
+        console.warn('Failed to sync name to server:', error)
+        // 不显示错误消息给用户，因为本地已经保存成功
+      }
     },
 
     generateNewId() {
@@ -194,8 +226,8 @@ export const usePlayerStore = defineStore('player', {
 
         if (playerExists && status) {
           // 玩家在服务器上存在，使用服务器数据
-          // 只有当服务器返回有效数据时才更新名称
-          if (status.playerName) {
+          // 优先使用本地名字，只有在本地没有名字时才使用服务器的名字
+          if (!this.name && status.playerName) {
             this.name = status.playerName
           }
           this.is_registered = status.isRegistered || false
