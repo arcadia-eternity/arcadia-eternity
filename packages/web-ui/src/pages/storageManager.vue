@@ -313,7 +313,7 @@
                         </div>
                         <!-- 移动端显示操作按钮，桌面端悬停显示 -->
                         <button
-                          @click.stop="showTeamPetContextMenu($event, pet, petStorage.teams.indexOf(team))"
+                          @click.stop="handleShowTeamPetContextMenu($event, pet, petStorage.teams.indexOf(team))"
                           class="absolute top-1 right-1 p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors duration-200 sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
                           title="更多操作"
                         >
@@ -574,7 +574,7 @@
 
                     <!-- 移动端显示操作按钮，桌面端悬停显示 -->
                     <button
-                      @click.stop="showContextMenu($event, pet)"
+                      @click.stop="handleShowContextMenu($event, pet)"
                       class="absolute top-1 right-1 p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors duration-200 sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
                       title="更多操作"
                     >
@@ -825,11 +825,32 @@ import type { PetSchemaType } from '@arcadia-eternity/schema'
 import { Gender, Nature, NatureMap, ELEMENT_MAP } from '@arcadia-eternity/const'
 import PetIcon from '../components/PetIcon.vue'
 import ContextMenu from '../components/ContextMenu.vue'
+import { usePetManagement } from '@/composables/usePetManagement'
+import { useTeamExport } from '@/composables/useTeamExport'
 
 const petStorage = usePetStorageStore()
 const playerStore = usePlayerStore()
 const gameDataStore = useGameDataStore()
 const { i18next } = useTranslation()
+
+// 使用组合式函数
+const {
+  contextMenu,
+  showPetDetail,
+  selectedPetForDetail,
+  importTeam,
+  moveToStorage,
+  addToCurrentTeam,
+  moveToTeam,
+  deletePet,
+  copyPet,
+  showPetDetails,
+  showContextMenu,
+  showTeamPetContextMenu,
+  closeContextMenu,
+} = usePetManagement()
+
+const { exportTeam } = useTeamExport()
 
 // 响应式状态
 const showHelp = ref(false)
@@ -862,16 +883,9 @@ const storagePagination = ref({
   pageSize: 6, // 初始值，会被自动计算覆盖
 })
 
-// 右键菜单状态
-const contextMenu = ref({
-  visible: false,
-  position: { x: 0, y: 0 },
-  items: [] as any[],
-})
+// 右键菜单状态已移动到组合式函数中
 
-// 精灵详情状态
-const showPetDetail = ref(false)
-const selectedPetForDetail = ref<PetSchemaType | null>(null)
+// 精灵详情状态已移动到组合式函数中
 
 // 统一的交互处理系统
 interface InteractionConfig {
@@ -1395,81 +1409,9 @@ const handleTeamDoubleClick = (index: number) => {
   ElMessage.success(`已切换到队伍：${petStorage.teams[index].name}`)
 }
 
-// 导出队伍
-const exportTeam = (index: number) => {
-  try {
-    const team = petStorage.teams[index]
-    if (!team || team.pets.length === 0) {
-      ElMessage.warning('队伍为空，无法导出')
-      return
-    }
+// 导出队伍函数已移动到组合式函数中
 
-    const teamData = {
-      name: team.name,
-      pets: team.pets,
-    }
-
-    const dataStr = JSON.stringify(teamData, null, 2)
-    const dataBlob = new Blob([dataStr], { type: 'application/json' })
-    const url = URL.createObjectURL(dataBlob)
-
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${team.name}.json`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-
-    ElMessage.success('队伍导出成功！')
-  } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败，请重试')
-  }
-}
-
-// 导入队伍
-const importTeam = () => {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = '.json'
-
-  input.onchange = event => {
-    const file = (event.target as HTMLInputElement).files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = e => {
-      try {
-        const teamData = JSON.parse(e.target?.result as string)
-
-        if (!teamData.name || !Array.isArray(teamData.pets)) {
-          throw new Error('无效的队伍文件格式')
-        }
-
-        petStorage.createNewTeam(teamData.name)
-        const newTeamIndex = petStorage.teams.length - 1
-
-        teamData.pets.forEach((pet: PetSchemaType) => {
-          // 为导入的精灵生成新的ID，避免冲突
-          const petCopy = { ...pet, id: nanoid() }
-          petStorage.storage.push(petCopy)
-          petStorage.moveToTeam(petCopy.id, newTeamIndex)
-        })
-
-        // moveToTeam 已经包含了 saveToLocal，但这里需要额外保存storage的变化
-        petStorage.saveToLocal()
-        ElMessage.success(`成功导入队伍 "${teamData.name}"！`)
-      } catch (error) {
-        console.error('导入失败:', error)
-        ElMessage.error('导入失败：文件格式错误或数据无效')
-      }
-    }
-    reader.readAsText(file)
-  }
-
-  input.click()
-}
+// 导入队伍函数已移动到组合式函数中
 
 // 检测是否为移动设备
 const isMobile = () => {
@@ -1516,9 +1458,9 @@ const createTeamPetHandler = (petId: string, _teamIndex: number) => {
         } as MouseEvent
 
         if (location === 'team' && foundTeamIndex !== undefined) {
-          showTeamPetContextMenu(syntheticEvent, pet, foundTeamIndex)
+          handleShowTeamPetContextMenu(syntheticEvent, pet, foundTeamIndex)
         } else {
-          showContextMenu(syntheticEvent, pet)
+          handleShowContextMenu(syntheticEvent, pet)
         }
       }
     },
@@ -1530,9 +1472,9 @@ const createTeamPetHandler = (petId: string, _teamIndex: number) => {
       const { pet, location } = result
 
       if (location === 'team') {
-        moveToStorage(petId)
+        handleMoveToStorage(petId)
       } else {
-        addToCurrentTeam(pet)
+        handleAddToCurrentTeam(pet)
       }
     },
     onLongPress: () => {
@@ -1548,9 +1490,9 @@ const createTeamPetHandler = (petId: string, _teamIndex: number) => {
       } as MouseEvent
 
       if (location === 'team' && foundTeamIndex !== undefined) {
-        showTeamPetContextMenu(syntheticEvent, pet, foundTeamIndex)
+        handleShowTeamPetContextMenu(syntheticEvent, pet, foundTeamIndex)
       } else {
-        showContextMenu(syntheticEvent, pet)
+        handleShowContextMenu(syntheticEvent, pet)
       }
 
       // 添加触觉反馈
@@ -1566,9 +1508,9 @@ const createTeamPetHandler = (petId: string, _teamIndex: number) => {
       const { pet, location, teamIndex: foundTeamIndex } = result
 
       if (location === 'team' && foundTeamIndex !== undefined) {
-        showTeamPetContextMenu(event, pet, foundTeamIndex)
+        handleShowTeamPetContextMenu(event, pet, foundTeamIndex)
       } else {
-        showContextMenu(event, pet)
+        handleShowContextMenu(event, pet)
       }
     },
   })
@@ -1592,9 +1534,9 @@ const createStoragePetHandler = (petId: string) => {
         } as MouseEvent
 
         if (location === 'team' && foundTeamIndex !== undefined) {
-          showTeamPetContextMenu(syntheticEvent, pet, foundTeamIndex)
+          handleShowTeamPetContextMenu(syntheticEvent, pet, foundTeamIndex)
         } else {
-          showContextMenu(syntheticEvent, pet)
+          handleShowContextMenu(syntheticEvent, pet)
         }
       }
     },
@@ -1606,9 +1548,9 @@ const createStoragePetHandler = (petId: string) => {
       const { pet, location } = result
 
       if (location === 'storage') {
-        addToCurrentTeam(pet)
+        handleAddToCurrentTeam(pet)
       } else {
-        moveToStorage(petId)
+        handleMoveToStorage(petId)
       }
     },
     onLongPress: () => {
@@ -1624,9 +1566,9 @@ const createStoragePetHandler = (petId: string) => {
       } as MouseEvent
 
       if (location === 'team' && foundTeamIndex !== undefined) {
-        showTeamPetContextMenu(syntheticEvent, pet, foundTeamIndex)
+        handleShowTeamPetContextMenu(syntheticEvent, pet, foundTeamIndex)
       } else {
-        showContextMenu(syntheticEvent, pet)
+        handleShowContextMenu(syntheticEvent, pet)
       }
 
       // 添加触觉反馈
@@ -1642,9 +1584,9 @@ const createStoragePetHandler = (petId: string) => {
       const { pet, location, teamIndex: foundTeamIndex } = result
 
       if (location === 'team' && foundTeamIndex !== undefined) {
-        showTeamPetContextMenu(event, pet, foundTeamIndex)
+        handleShowTeamPetContextMenu(event, pet, foundTeamIndex)
       } else {
-        showContextMenu(event, pet)
+        handleShowContextMenu(event, pet)
       }
     },
   })
@@ -1718,209 +1660,57 @@ const handlePetInteraction = (
   }
 }
 
-// 精灵操作
-const moveToStorage = (petId: string) => {
-  // moveToPC 现在返回 boolean 表示是否成功
-  const success = petStorage.moveToPC(petId)
-
-  if (success) {
-    // 清除交互处理器缓存，确保下次使用最新的精灵对象
+// 精灵操作函数已移动到组合式函数中，但需要包装以处理缓存清理
+const handleMoveToStorage = (petId: string) => {
+  moveToStorage(petId, () => {
     clearPetHandlerCache(petId)
-
-    // 检查并修正分页状态
     nextTick(() => {
       checkAndFixPagination()
-    })
-
-    ElMessage.success('精灵已移入仓库')
-  } else {
-    ElMessage.error('移动精灵失败，请重试')
-  }
-}
-
-const addToCurrentTeam = (pet: PetSchemaType) => {
-  const currentTeam = petStorage.teams[petStorage.currentTeamIndex]
-  if (currentTeam.pets.length >= 6) {
-    ElMessage.warning('当前队伍已满')
-    return
-  }
-
-  // 检查精灵是否存在（在仓库或其他队伍中）
-  const petInStorage = petStorage.storage.find(p => p.id === pet.id)
-  const petInTeams = petStorage.teams.some(team => team.pets.some(p => p.id === pet.id))
-
-  if (!petInStorage && !petInTeams) {
-    ElMessage.error('精灵不存在')
-    return
-  }
-
-  try {
-    // moveToTeam 现在返回 boolean 表示是否成功
-    const success = petStorage.moveToTeam(pet.id, petStorage.currentTeamIndex)
-
-    if (success) {
-      // 清除交互处理器缓存，确保下次使用最新的精灵对象
-      clearPetHandlerCache(pet.id)
-
-      // 检查并修正分页状态
-      nextTick(() => {
-        checkAndFixPagination()
-      })
-
-      ElMessage.success(`精灵 ${pet.name} 已加入队伍`)
-    } else {
-      ElMessage.error('移动精灵失败，请重试')
-    }
-  } catch (error) {
-    ElMessage.error('移动精灵失败，请重试')
-  }
-}
-
-const deletePet = async (petId: string) => {
-  try {
-    await ElMessageBox.confirm('确定要永久删除此精灵吗？此操作无法撤销！', '删除精灵', {
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-      type: 'warning',
-    })
-
-    petStorage.removeFromStorage(petId)
-    petStorage.saveToLocal()
-
-    // 检查并修正分页状态
-    nextTick(() => {
-      checkAndFixPagination()
-    })
-
-    ElMessage.success('精灵删除成功')
-  } catch {
-    // 用户取消
-  }
-}
-
-// 右键菜单相关函数
-const showContextMenu = (event: MouseEvent, pet: PetSchemaType) => {
-  event.preventDefault()
-
-  const currentTeam = petStorage.teams[petStorage.currentTeamIndex]
-  const canAddToTeam = currentTeam.pets.length < 6
-
-  contextMenu.value = {
-    visible: true,
-    position: { x: event.clientX, y: event.clientY },
-    items: [
-      {
-        label: '快速移动到当前队伍',
-        iconPath: 'M17 8l4 4m0 0l-4 4m4-4H3',
-        action: () => addToCurrentTeam(pet),
-        disabled: !canAddToTeam,
-      },
-      {
-        label: '查看详情',
-        iconPath:
-          'M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z',
-        action: () => showPetDetails(pet),
-      },
-      {
-        label: '复制精灵',
-        iconPath:
-          'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
-        action: () => copyPet(pet),
-      },
-      {
-        label: '永久删除',
-        iconPath:
-          'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16',
-        action: () => deletePet(pet.id),
-        danger: true,
-      },
-    ],
-  }
-}
-
-// 队伍精灵右键菜单
-const showTeamPetContextMenu = (event: MouseEvent, pet: PetSchemaType, teamIndex: number) => {
-  event.preventDefault()
-
-  const otherTeams = petStorage.teams.filter((_, index) => index !== teamIndex && _.pets.length < 6)
-
-  const menuItems = [
-    {
-      label: '查看详情',
-      iconPath:
-        'M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z',
-      action: () => showPetDetails(pet),
-    },
-    {
-      label: '复制精灵',
-      iconPath:
-        'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
-      action: () => copyPet(pet),
-    },
-    {
-      label: '移回仓库',
-      iconPath: 'M7 16l-4-4m0 0l4-4m-4 4h18',
-      action: () => moveToStorage(pet.id),
-    },
-  ]
-
-  // 添加移动到其他队伍的选项
-  otherTeams.forEach(team => {
-    const realIndex = petStorage.teams.findIndex(t => t === team)
-    menuItems.splice(-1, 0, {
-      label: `移动到 ${team.name}`,
-      iconPath: 'M17 8l4 4m0 0l-4 4m4-4H3',
-      action: () => moveToTeam(pet.id, realIndex),
     })
   })
-
-  contextMenu.value = {
-    visible: true,
-    position: { x: event.clientX, y: event.clientY },
-    items: menuItems,
-  }
 }
 
-const closeContextMenu = () => {
-  contextMenu.value.visible = false
+const handleAddToCurrentTeam = (pet: PetSchemaType) => {
+  addToCurrentTeam(pet, () => {
+    clearPetHandlerCache(pet.id)
+    nextTick(() => {
+      checkAndFixPagination()
+    })
+  })
 }
 
-// 移动精灵到指定队伍
-const moveToTeam = (petId: string, teamIndex: number) => {
-  // moveToTeam 已经包含了 saveToLocal()
-  petStorage.moveToTeam(petId, teamIndex)
+const handleDeletePet = (petId: string) => {
+  deletePet(petId, () => {
+    clearPetHandlerCache(petId)
+    nextTick(() => {
+      checkAndFixPagination()
+    })
+  })
+}
 
-  // 清除交互处理器缓存，确保下次使用最新的精灵对象
+const handleMoveToTeam = (petId: string, teamIndex: number) => {
+  moveToTeam(petId, teamIndex, () => {
+    clearPetHandlerCache(petId)
+    nextTick(() => {
+      checkAndFixPagination()
+    })
+  })
+}
+
+// 右键菜单相关函数已移动到组合式函数中，但需要包装以处理缓存清理
+const createCacheCleanupCallback = (petId: string) => () => {
   clearPetHandlerCache(petId)
-
-  // 检查并修正分页状态
   nextTick(() => {
     checkAndFixPagination()
   })
-
-  ElMessage.success(`精灵已移动到 ${petStorage.teams[teamIndex].name}`)
 }
 
-// 精灵详情
-const showPetDetails = (pet: PetSchemaType) => {
-  selectedPetForDetail.value = pet
-  showPetDetail.value = true
+const handleShowContextMenu = (event: MouseEvent, pet: PetSchemaType) => {
+  showContextMenu(event, pet, createCacheCleanupCallback(pet.id))
 }
 
-// 复制精灵
-const copyPet = (pet: PetSchemaType) => {
-  try {
-    const petCopy = JSON.parse(JSON.stringify(pet))
-    petCopy.id = nanoid()
-    petCopy.name = `${pet.name} (副本)`
-
-    petStorage.storage.push(petCopy)
-    petStorage.saveToLocal()
-    ElMessage.success('精灵复制成功！')
-  } catch (error) {
-    console.error('复制失败:', error)
-    ElMessage.error('复制失败，请重试')
-  }
+const handleShowTeamPetContextMenu = (event: MouseEvent, pet: PetSchemaType, teamIndex: number) => {
+  showTeamPetContextMenu(event, pet, teamIndex, createCacheCleanupCallback(pet.id))
 }
 
 // 复制队伍

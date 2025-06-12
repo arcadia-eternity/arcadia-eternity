@@ -618,7 +618,7 @@
 
         <!-- 导出按钮 -->
         <button
-          @click="exportTeamConfig"
+          @click="handleExportTeamConfig"
           class="flex-1 md:flex-none inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 text-sm md:px-3 md:py-1.5 md:rounded-md"
         >
           <svg class="w-4 h-4 md:w-3 md:h-3 md:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -718,23 +718,27 @@ import { usePlayerStore } from '@/stores/player'
 import { useGameDataStore } from '@/stores/gameData'
 import { usePetStorageStore } from '@/stores/petStorage'
 
-import { type PetSchemaType, PetSetSchema } from '@arcadia-eternity/schema'
+import { type PetSchemaType } from '@arcadia-eternity/schema'
 import { useTranslation } from 'i18next-vue'
 import { Gender, NatureMap } from '@arcadia-eternity/const'
 import { Nature } from '@arcadia-eternity/const'
 import { Sortable } from 'sortablejs-vue3'
-import { parse, stringify } from 'yaml'
-import { z } from 'zod'
 import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 import MarkdownIt from 'markdown-it'
 import { InfoFilled, FolderOpened, Close, QuestionFilled } from '@element-plus/icons-vue'
+import { usePetManagement } from '@/composables/usePetManagement'
+import { useTeamExport } from '@/composables/useTeamExport'
 
 const { i18next } = useTranslation()
 
 const playerStore = usePlayerStore()
 const gameDataStore = useGameDataStore()
 const petStorage = usePetStorageStore()
+
+// 使用组合式函数
+const { importTeamConfig } = usePetManagement()
+const { exportTeamConfig } = useTeamExport()
 
 // 创建markdown-it实例
 const md = new MarkdownIt({
@@ -1252,107 +1256,12 @@ function debounce(fn: Function, delay: number) {
   }
 }
 
-const exportTeamConfig = () => {
-  try {
-    // 直接使用YAML格式，不再询问
-    const filename = `team-${new Date().toISOString().slice(0, 10)}.yaml`
-
-    // 创建数据副本
-    const exportData = currentTeam.value.map(pet => ({
-      ...pet,
-      id: undefined,
-      maxHp: undefined,
-    }))
-
-    // 使用YAML序列化
-    const content = stringify(exportData, {
-      indent: 2,
-      aliasDuplicateObjects: false,
-    })
-
-    // 创建下载链接
-    const blob = new Blob([content], {
-      type: 'application/yaml',
-    })
-
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = filename
-    link.click()
-
-    URL.revokeObjectURL(link.href)
-
-    ElMessage.success('队伍配置已导出为YAML格式')
-  } catch (err) {
-    console.error('导出失败:', err)
-    ElMessage.error('导出失败，请检查队伍数据')
-  }
+// 导出队伍配置的包装函数
+const handleExportTeamConfig = () => {
+  exportTeamConfig(currentTeam.value)
 }
 
-const importTeamConfig = async () => {
-  try {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = '.json,.yaml,.yml' // 仍然允许JSON文件
-
-    input.onchange = async e => {
-      const file = (e.target as HTMLInputElement).files?.[0]
-      if (!file) return
-
-      const reader = new FileReader()
-      reader.onload = async e => {
-        try {
-          const content = e.target?.result?.toString() || ''
-          // 统一使用YAML解析（兼容JSON）
-          const parsedData = parse(content, {
-            strict: true,
-            maxAliasCount: 100,
-          })
-
-          // 统一验证逻辑
-          const importedTeam = PetSetSchema.parse(parsedData)
-
-          if (importedTeam.length < 1 || importedTeam.length > 6) {
-            throw new Error('队伍数量必须在1-6之间')
-          }
-
-          const newTeam = importedTeam.map(pet => ({
-            ...pet,
-            id: nanoid(),
-            skills: pet.skills.slice(0, 5),
-            gender: pet.gender ?? getDefaultGender(pet.species),
-            height: pet.height ?? gameDataStore.getSpecies(pet.species)?.heightRange[1] ?? 0,
-            weight: pet.weight ?? gameDataStore.getSpecies(pet.species)?.weightRange[1] ?? 0,
-          }))
-
-          petStorage.$patch(state => {
-            state.teams[state.currentTeamIndex].pets = newTeam
-          })
-
-          petStorage.saveToLocal()
-          ElMessage.success(`成功导入 ${newTeam.length} 只精灵（${file.name}）`)
-        } catch (err) {
-          console.error('导入失败:', err)
-          const errorMsg =
-            err instanceof z.ZodError ? `YAML/JSON格式校验失败: ${err.errors[0].message}` : (err as Error).message
-
-          ElMessage.error(`导入失败: ${errorMsg}`)
-        }
-      }
-      reader.readAsText(file)
-    }
-
-    input.click()
-  } catch (err) {
-    ElMessage.error('导入过程中发生错误')
-  }
-}
-
-function getDefaultGender(speciesId: string): Gender {
-  const species = gameDataStore.getSpecies(speciesId)
-  if (!species?.genderRatio) return Gender.NoGender
-  return species.genderRatio[0] > 0 ? Gender.Female : Gender.Male
-}
+// 导入和导出函数已移动到组合式函数中
 </script>
 
 <style scoped>
