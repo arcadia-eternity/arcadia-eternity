@@ -19,6 +19,18 @@ interface PlayerState {
   isInitialized: boolean
 }
 
+// 辅助函数：检测是否为网络错误
+function isNetworkError(error: any): boolean {
+  return (
+    error.message?.includes('网络') ||
+    error.message?.includes('连接') ||
+    error.message?.includes('timeout') ||
+    error.code === 'NETWORK_ERROR' ||
+    error.code === 'ECONNABORTED' ||
+    error.name === 'AxiosError'
+  )
+}
+
 export const usePlayerStore = defineStore('player', {
   state: (): PlayerState => ({
     id: '',
@@ -148,9 +160,9 @@ export const usePlayerStore = defineStore('player', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            ...(this.isAuthenticated && authService.getToken()
+            ...(this.isAuthenticated && authService.getAccessToken()
               ? {
-                  Authorization: `Bearer ${authService.getToken()}`,
+                  Authorization: `Bearer ${authService.getAccessToken()}`,
                 }
               : {}),
           },
@@ -219,9 +231,19 @@ export const usePlayerStore = defineStore('player', {
           status = await authService.checkPlayerStatus(this.id)
           playerExists = true
           console.log('Player exists on server:', status)
-        } catch (error) {
+        } catch (error: any) {
           console.log('Player does not exist on server or server error:', error)
           playerExists = false
+
+          // 如果是网络错误且本地有注册用户信息，保留本地状态
+          if (this.is_registered && isNetworkError(error)) {
+            console.log('Network error detected, preserving local registered user state')
+            this.isAuthenticated = authService.isAuthenticated()
+            this.isInitialized = true
+            this.saveToLocal()
+            ElMessage.warning('网络连接异常，使用本地缓存数据')
+            return
+          }
         }
 
         if (playerExists && status) {
@@ -265,28 +287,41 @@ export const usePlayerStore = defineStore('player', {
             const guestPlayer = await authService.createGuest()
             console.log('Server returned guest player:', guestPlayer)
 
-            // 使用服务器返回的玩家信息
-            // 服务器返回的格式可能是 {playerId, playerName} 或 {id, name}
-            this.id = (guestPlayer as any).playerId || guestPlayer.id || this.id
-            this.name = (guestPlayer as any).playerName || guestPlayer.name || this.name
+            // 使用服务器返回的玩家信息，但保留本地数据作为备份
+            const newId = (guestPlayer as any).playerId || guestPlayer.id
+            const newName = (guestPlayer as any).playerName || guestPlayer.name
+
+            // 只有在服务器返回有效数据时才更新
+            if (newId && newName) {
+              this.id = newId
+              this.name = newName
+            }
+
             this.is_registered = false
             this.requiresAuth = false
             this.isAuthenticated = true
             this.isInitialized = true
             this.saveToLocal()
             ElMessage.success(`欢迎新游客: ${this.name}`)
-          } catch (error) {
+          } catch (error: any) {
             console.warn('Failed to create guest on server, using local ID:', error)
             // 如果创建游客失败，使用本地数据作为离线模式
+            // 保留现有的ID和name，不要覆盖
             this.is_registered = false
             this.requiresAuth = false
             this.isAuthenticated = true
             this.isInitialized = true
             this.saveToLocal()
-            ElMessage.warning('无法连接服务器，使用离线模式')
+
+            // 根据错误类型显示不同的消息
+            if (isNetworkError(error)) {
+              ElMessage.warning('网络连接异常，使用离线模式')
+            } else {
+              ElMessage.warning('无法连接服务器，使用离线模式')
+            }
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to initialize player:', error)
 
         // 确保总是有一个有效的ID和name（保留现有值）
@@ -299,13 +334,22 @@ export const usePlayerStore = defineStore('player', {
 
         console.log('After error handling:', { id: this.id, name: this.name })
 
-        // 如果服务器检查失败，就当作游客处理
-        this.is_registered = false
-        this.requiresAuth = false
-        this.isAuthenticated = true
-        this.isInitialized = true
-        this.saveToLocal()
-        ElMessage.warning('无法连接服务器，使用离线模式')
+        // 如果是注册用户且是网络错误，保留注册状态
+        if (this.is_registered && isNetworkError(error)) {
+          console.log('Network error for registered user, preserving registration status')
+          this.isAuthenticated = authService.isAuthenticated()
+          this.isInitialized = true
+          this.saveToLocal()
+          ElMessage.warning('网络连接异常，已保留本地用户状态')
+        } else {
+          // 如果服务器检查失败，就当作游客处理
+          this.is_registered = false
+          this.requiresAuth = false
+          this.isAuthenticated = true
+          this.isInitialized = true
+          this.saveToLocal()
+          ElMessage.warning('无法连接服务器，使用离线模式')
+        }
       }
     },
 
@@ -358,6 +402,8 @@ export const usePlayerStore = defineStore('player', {
     async createNewGuest() {
       try {
         const guestPlayer = await authService.createGuest()
+
+        // 使用服务器返回的数据
         this.id = guestPlayer.id
         this.name = guestPlayer.name
         this.email = null
@@ -371,7 +417,25 @@ export const usePlayerStore = defineStore('player', {
         ElMessage.success('已创建新的游客账户')
       } catch (error: any) {
         console.error('Failed to create guest:', error)
-        ElMessage.error(error.message || '创建游客账户失败')
+
+        // 如果是网络错误，创建本地游客账户
+        if (isNetworkError(error)) {
+          console.log('Network error, creating local guest account')
+          const newId = nanoid()
+          this.id = newId
+          this.name = `游客-${newId.slice(-4)}`
+          this.email = null
+          this.email_verified = false
+          this.email_bound_at = null
+          this.is_registered = false
+          this.requiresAuth = false
+          this.isAuthenticated = true
+          this.isInitialized = true
+          this.saveToLocal()
+          ElMessage.warning('网络连接异常，已创建本地游客账户')
+        } else {
+          ElMessage.error(error.message || '创建游客账户失败')
+        }
       }
     },
   },
