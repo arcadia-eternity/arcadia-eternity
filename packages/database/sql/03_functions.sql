@@ -148,15 +148,33 @@ AS $$
 DECLARE
     affected_rows INTEGER;
 BEGIN
-    UPDATE battle_records 
-    SET 
+    UPDATE battle_records
+    SET
         ended_at = NOW(),
         battle_result = 'abandoned',
         end_reason = 'timeout'
-    WHERE 
-        ended_at IS NULL 
+    WHERE
+        ended_at IS NULL
         AND started_at < NOW() - INTERVAL '1 hour' * p_hours_threshold;
-    
+
+    GET DIAGNOSTICS affected_rows = ROW_COUNT;
+    RETURN affected_rows;
+END;
+$$;
+
+-- 清理超过指定天数的战报记录
+CREATE OR REPLACE FUNCTION cleanup_old_battle_records(
+    p_days_threshold INTEGER DEFAULT 7
+)
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    affected_rows INTEGER;
+BEGIN
+    DELETE FROM battle_records
+    WHERE started_at < NOW() - INTERVAL '1 day' * p_days_threshold;
+
     GET DIAGNOSTICS affected_rows = ROW_COUNT;
     RETURN affected_rows;
 END;

@@ -50,6 +50,15 @@
       class="mb-4"
     />
 
+    <!-- 七天有效期提示 -->
+    <el-alert
+      :title="$t('battleReport.expirationNotice', { ns: 'webui' })"
+      type="info"
+      :closable="false"
+      show-icon
+      class="mb-4"
+    />
+
     <!-- 战报列表 -->
     <div class="bg-white border border-gray-200 rounded-lg">
       <div class="p-4 border-b border-gray-200">

@@ -2,9 +2,9 @@
   <div class="battle-record-list">
     <!-- 头部 -->
     <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold text-gray-800">战报记录</h2>
+      <h2 class="text-2xl font-bold text-gray-800">{{ $t('battleReport.title', { ns: 'webui' }) }}</h2>
       <el-button @click="refresh" :loading="loading.battleRecords && battleRecords.length > 0" type="primary">
-        刷新
+        {{ $t('battleReport.refresh', { ns: 'webui', defaultValue: '刷新' }) }}
       </el-button>
     </div>
 
@@ -12,21 +12,30 @@
     <div v-if="battleStatistics" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       <div class="bg-blue-50 p-4 rounded-lg">
         <div class="text-2xl font-bold text-blue-600">{{ battleStatistics.total_battles }}</div>
-        <div class="text-sm text-gray-600">总战斗数</div>
+        <div class="text-sm text-gray-600">{{ $t('battleReport.totalBattles', { ns: 'webui' }) }}</div>
       </div>
       <div class="bg-green-50 p-4 rounded-lg">
         <div class="text-2xl font-bold text-green-600">{{ battleStatistics.total_players }}</div>
-        <div class="text-sm text-gray-600">参与玩家</div>
+        <div class="text-sm text-gray-600">{{ $t('battleReport.totalPlayers', { ns: 'webui' }) }}</div>
       </div>
       <div class="bg-yellow-50 p-4 rounded-lg">
         <div class="text-2xl font-bold text-yellow-600">{{ battleStatistics.battles_today }}</div>
-        <div class="text-sm text-gray-600">今日战斗</div>
+        <div class="text-sm text-gray-600">{{ $t('battleReport.battlesToday', { ns: 'webui' }) }}</div>
       </div>
       <div class="bg-purple-50 p-4 rounded-lg">
         <div class="text-2xl font-bold text-purple-600">{{ Math.round(battleStatistics.avg_battle_duration) }}s</div>
-        <div class="text-sm text-gray-600">平均时长</div>
+        <div class="text-sm text-gray-600">{{ $t('battleReport.avgDuration', { ns: 'webui' }) }}</div>
       </div>
     </div>
+
+    <!-- 七天有效期提示 -->
+    <el-alert
+      :title="$t('battleReport.expirationNotice', { ns: 'webui' })"
+      type="info"
+      :closable="false"
+      show-icon
+      class="mb-4"
+    />
 
     <!-- 错误提示 -->
     <el-alert v-if="errors.battleRecords" :title="errors.battleRecords" type="error" :closable="false" class="mb-4" />
@@ -52,39 +61,55 @@
               <!-- 胜负标识 -->
               <div class="flex items-center">
                 <el-tag v-if="record.battle_result === 'player_a_wins'" type="success" size="small">
-                  {{ record.player_a_name }} 胜利
+                  {{ record.player_a_name }} {{ $t('battleReport.playerResult.win', { ns: 'webui' }) }}
                 </el-tag>
                 <el-tag v-else-if="record.battle_result === 'player_b_wins'" type="success" size="small">
-                  {{ record.player_b_name }} 胜利
+                  {{ record.player_b_name }} {{ $t('battleReport.playerResult.win', { ns: 'webui' }) }}
                 </el-tag>
-                <el-tag v-else-if="record.battle_result === 'draw'" type="info" size="small"> 平局 </el-tag>
-                <el-tag v-else type="warning" size="small"> 未完成 </el-tag>
+                <el-tag v-else-if="record.battle_result === 'draw'" type="info" size="small">
+                  {{ $t('battleReport.playerResult.draw', { ns: 'webui' }) }}
+                </el-tag>
+                <el-tag v-else type="warning" size="small">
+                  {{ $t('battleReport.battleResult.abandoned', { ns: 'webui' }) }}
+                </el-tag>
               </div>
             </div>
 
             <!-- 战斗信息 -->
             <div class="flex items-center space-x-4 text-sm text-gray-600">
-              <span>开始时间: {{ formatDate(record.started_at) }}</span>
-              <span v-if="record.duration_seconds"> 持续时间: {{ formatDuration(record.duration_seconds) }} </span>
-              <span>结束原因: {{ getEndReasonText(record.end_reason) }}</span>
+              <span>{{ $t('battleReport.startTime', { ns: 'webui' }) }}: {{ formatDate(record.started_at) }}</span>
+              <span v-if="record.duration_seconds">
+                {{ $t('battleReport.duration', { ns: 'webui' }) }}: {{ formatDuration(record.duration_seconds) }}
+              </span>
+              <span
+                >{{ $t('battleReport.endReason', { ns: 'webui' }) }}: {{ getEndReasonText(record.end_reason) }}</span
+              >
             </div>
           </div>
 
           <!-- 操作按钮 -->
           <div class="flex items-center space-x-2">
-            <el-button size="small" @click.stop="viewRecord(record.id)"> 查看详情 </el-button>
-            <el-button size="small" type="primary" @click.stop="previewRecord(record.id)"> 预览战报 </el-button>
+            <el-button size="small" @click.stop="viewRecord(record.id)">
+              {{ $t('battleReport.viewDetail', { ns: 'webui' }) }}
+            </el-button>
+            <el-button size="small" type="primary" @click.stop="previewRecord(record.id)">
+              {{ $t('battleReport.preview', { ns: 'webui' }) }}
+            </el-button>
             <el-dropdown @command="command => handleShareCommand(command, record)" trigger="click" @click.stop>
               <el-button size="small" type="success" icon="Share">
-                分享
+                {{ $t('battleReport.share', { ns: 'webui' }) }}
                 <el-icon class="el-icon--right">
                   <ArrowDown />
                 </el-icon>
               </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item command="share-detail" icon="Link">分享详情</el-dropdown-item>
-                  <el-dropdown-item command="share-preview" icon="VideoPlay">分享回放</el-dropdown-item>
+                  <el-dropdown-item command="share-detail" icon="Link">
+                    {{ $t('battleReport.shareDetail', { ns: 'webui', defaultValue: '分享详情' }) }}
+                  </el-dropdown-item>
+                  <el-dropdown-item command="share-preview" icon="VideoPlay">
+                    {{ $t('battleReport.sharePreview', { ns: 'webui', defaultValue: '分享回放' }) }}
+                  </el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -95,13 +120,17 @@
 
     <!-- 加载更多 -->
     <div v-if="battleRecordsPagination.hasMore" class="text-center mt-6">
-      <el-button @click="loadMore" :loading="loading.battleRecords" type="primary" plain> 加载更多 </el-button>
+      <el-button @click="loadMore" :loading="loading.battleRecords" type="primary" plain>
+        {{ $t('battleReport.loadMore', { ns: 'webui' }) }}
+      </el-button>
     </div>
 
     <!-- 空状态 -->
     <div v-if="!loading.battleRecords && battleRecords.length === 0" class="text-center py-12">
-      <div class="text-gray-400 text-lg mb-2">暂无战报记录</div>
-      <div class="text-gray-500 text-sm">开始一场战斗来创建第一个战报吧！</div>
+      <div class="text-gray-400 text-lg mb-2">{{ $t('battleReport.noRecords', { ns: 'webui' }) }}</div>
+      <div class="text-gray-500 text-sm">
+        {{ $t('battleReport.noRecordsHint', { ns: 'webui', defaultValue: '开始一场战斗来创建第一个战报吧！' }) }}
+      </div>
     </div>
 
     <!-- 加载状态 -->
@@ -109,7 +138,7 @@
       <el-icon class="text-2xl text-blue-500 mb-2">
         <Loading />
       </el-icon>
-      <div class="text-gray-600">加载中...</div>
+      <div class="text-gray-600">{{ $t('battleReport.loading', { ns: 'webui', defaultValue: '加载中...' }) }}</div>
     </div>
   </div>
 </template>
@@ -122,6 +151,7 @@ import { storeToRefs } from 'pinia'
 import { Loading, ArrowDown } from '@element-plus/icons-vue'
 import { ShareUtils } from '@/utils/share'
 import type { BattleRecord } from '@/services/battleReportService'
+import i18next from 'i18next'
 
 const router = useRouter()
 const battleReportStore = useBattleReportStore()
@@ -142,14 +172,10 @@ const formatDuration = (seconds: number) => {
 
 // 获取结束原因文本
 const getEndReasonText = (reason: string) => {
-  const reasonMap: Record<string, string> = {
-    all_pet_fainted: '所有宠物倒下',
-    surrender: '投降',
-    total_time_timeout: '总思考时间超时',
-    timeout: '超时',
-    disconnect: '断线',
-  }
-  return reasonMap[reason] || reason
+  return i18next.t(`battleReport.endReasons.${reason}`, {
+    ns: 'webui',
+    defaultValue: reason,
+  })
 }
 
 // 查看战报详情

@@ -244,4 +244,21 @@ export class BattleRepository {
 
     return data || 0
   }
+
+  /**
+   * 清理超过指定天数的战报记录
+   */
+  async cleanupOldBattleRecords(daysThreshold: number = 7): Promise<number> {
+    const supabase = getSupabaseServiceClient()
+
+    const { data, error } = await supabase.rpc('cleanup_old_battle_records', {
+      p_days_threshold: daysThreshold,
+    })
+
+    if (error) {
+      throw new DatabaseError(`Failed to cleanup old battle records: ${error.message}`, error.code, error)
+    }
+
+    return data || 0
+  }
 }

@@ -37,3 +37,49 @@ stats:
 alive: 存活
 fainted: 倒下
 active: 出战中
+
+# 战报相关
+battleReport:
+  title: 战报记录
+  expirationNotice: 战报记录将在7天后自动清理，请及时查看或保存重要的战斗记录。
+  list: 战报列表
+  detail: 战报详情
+  noRecords: 暂无战报记录
+  loadMore: 加载更多
+  viewDetail: 查看详情
+  preview: 预览
+  share: 分享
+  statistics: 统计信息
+  totalBattles: 总战斗数
+  totalPlayers: 参与玩家
+  battlesToday: 今日战斗
+  battlesThisWeek: 本周战斗
+  avgDuration: 平均时长
+  playerStats: 玩家统计
+  winRate: 胜率
+  opponent: 对手
+  result: 结果
+  duration: 持续时间
+  startTime: 开始时间
+  endTime: 结束时间
+  endReason: 结束原因
+  battleResult:
+    player_a_wins: 玩家A胜利
+    player_b_wins: 玩家B胜利
+    draw: 平局
+    abandoned: 未完成
+  endReasons:
+    all_pet_fainted: 所有宠物倒下
+    surrender: 投降
+    timeout: 超时
+    total_time_timeout: 总思考时间超时
+    disconnect: 断线
+  playerResult:
+    win: 胜利
+    lose: 失败
+    draw: 平局
+  refresh: 刷新
+  loading: 加载中...
+  noRecordsHint: 开始一场战斗来创建第一个战报吧！
+  shareDetail: 分享详情
+  sharePreview: 分享回放
