@@ -95,7 +95,7 @@
 
               <el-divider />
 
-              <router-link to="/storage-manager">
+              <router-link to="/storage">
                 <el-button type="primary" class="w-full">
                   <el-icon class="mr-2"><FolderOpened /></el-icon>
                   管理精灵和队伍
