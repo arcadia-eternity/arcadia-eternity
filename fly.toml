@@ -1,0 +1,32 @@
+# fly.toml app configuration file generated for test-battle on 2025-05-07T21:09:04+08:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'test-battle'
+primary_region = 'hkg'
+
+[build]
+# Image will be specified dynamically during deployment via --image flag
+# This ensures we always use the latest built image
+# image = 'ghcr.io/arcadia-eternity/arcadia-eternity:main'
+
+[http_service]
+internal_port = 8102
+force_https = true
+auto_stop_machines = 'stop'
+auto_start_machines = true
+min_machines_running = 0
+processes = ['app']
+
+[[vm]]
+memory = '1gb'
+cpu_kind = 'shared'
+cpus = 1
+
+[env]
+EMAIL_PROVIDER = "ses"
+AWS_SES_REGION = "ap-southeast-1"
+EMAIL_FROM = "noreply@yuuinih.com"
+EMAIL_FROM_NAME = "阿卡迪亚永恒"
+CORS_ORIGIN = "https://battle.yuuinih.com,https://test-battle.netlify.app"

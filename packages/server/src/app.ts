@@ -38,7 +38,7 @@ export interface ServerConfig {
 const defaultConfig: ServerConfig = {
   port: parseInt(process.env.PORT || '3001'),
   cors: {
-    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
+    origin: process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim()) || ['http://localhost:3000'],
     credentials: true,
   },
   battleReport:

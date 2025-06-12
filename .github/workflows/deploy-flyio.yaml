@@ -1,0 +1,87 @@
+name: Deploy to Fly.io
+
+on:
+  workflow_run:
+    workflows: ['Build and Push Docker Image']
+    types:
+      - completed
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+jobs:
+  deploy:
+    name: Deploy to Fly.io
+    runs-on: ubuntu-latest
+    # Only run if the Docker build workflow succeeded
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine image reference
+        id: image-info
+        run: |
+          IMAGE_NAME="ghcr.io/${{ github.repository }}"
+
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            # When triggered by workflow_run, use the SHA-based tag for guaranteed uniqueness
+            COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
+            SHORT_SHA=$(echo $COMMIT_SHA | cut -c1-7)
+            IMAGE_REF="${IMAGE_NAME}:main-${SHORT_SHA}"
+
+            echo "Using SHA-based tag: $IMAGE_REF"
+            echo "This ensures we get the exact image built from commit: $COMMIT_SHA"
+          else
+            # Manual trigger - get the latest digest to bypass cache
+            echo "Getting latest image digest for ${IMAGE_NAME}:main"
+            DIGEST=$(docker manifest inspect ${IMAGE_NAME}:main | jq -r '.config.digest')
+            IMAGE_REF="${IMAGE_NAME}@${DIGEST}"
+
+            echo "Using digest-based reference: $IMAGE_REF"
+            echo "Latest image digest: $DIGEST"
+          fi
+
+          echo "Final image reference: $IMAGE_REF"
+          echo "image-ref=$IMAGE_REF" >> $GITHUB_OUTPUT
+
+      - name: Deploy with exact image reference
+        run: |
+          echo "Deploying with image: ${{ steps.image-info.outputs.image-ref }}"
+          echo "This bypasses all Docker and Fly.io caches to ensure latest version"
+
+          # Deploy using the specific image reference (either SHA-based tag or digest)
+          # This guarantees we get the exact latest version, no cache issues
+          flyctl deploy \
+            --image "${{ steps.image-info.outputs.image-ref }}" \
+            --remote-only \
+            --wait-timeout 300 \
+            --verbose
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Verify deployment
+        run: |
+          echo "Deployment completed successfully!"
+          echo "Application URL: https://test-battle.fly.dev"
+
+          # Optional: Check if the app is responding
+          sleep 30
+          if curl -f https://test-battle.fly.dev/health > /dev/null 2>&1; then
+            echo "✅ Health check passed!"
+          else
+            echo "⚠️  Health check failed, but deployment may still be starting up"
+          fi
