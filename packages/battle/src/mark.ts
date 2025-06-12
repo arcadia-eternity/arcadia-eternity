@@ -793,16 +793,18 @@ export class MarkSystem {
     context.battle.applyEffects(context, EffectTrigger.OnOwnerSwitchOut, ...pet.marks)
     pet.marks = pet.marks.filter(mark => {
       const shouldKeep = mark.config.keepOnSwitchOut ?? false
-      const shouldTransfer = mark.config.transferOnSwitch && context.target
 
       // 需要转移的印记
       if (mark.config.transferOnSwitch && context.target) {
         this.transferMarks(context, context.target, mark)
+        // 印记在换场继承后应该在原精灵上解除
+        return false
       } else if (!shouldKeep) {
         mark.destroy(context)
+        return false
       }
 
-      return shouldKeep || shouldTransfer
+      return shouldKeep
     })
   }
 }

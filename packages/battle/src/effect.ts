@@ -16,9 +16,31 @@ export class EffectScheduler {
     }>
   > = new WeakMap()
 
+  // 跟踪已添加的效果，防止同一个源对象的同一个效果重复触发
+  private addedEffectsMap: WeakMap<Context, Set<string>> = new WeakMap()
+
   // 添加效果到队列
   public addEffect(effect: Effect<EffectTrigger>, context: EffectContext<EffectTrigger>) {
     if (!this.effectQueuesMap.has(context.parent)) this.effectQueuesMap.set(context.parent, [])
+    if (!this.addedEffectsMap.has(context.parent)) this.addedEffectsMap.set(context.parent, new Set())
+
+    const addedEffects = this.addedEffectsMap.get(context.parent)!
+
+    // 创建一个唯一标识符，基于源对象和效果ID的组合
+    // 使用源对象的引用和效果ID来确保同一个源对象的同一个效果不会重复添加
+    const effectKey = `${(context.source as any).id || 'unknown'}_${effect.id}_${context.source.constructor.name}`
+
+    // 检查是否已经添加过这个效果
+    if (addedEffects.has(effectKey)) {
+      console.warn(
+        `[Effect Scheduler] 检测到重复的效果被跳过: 源对象=${(context.source as any).id || 'unknown'} (${context.source.constructor.name}), 效果=${effect.id}, 触发器=${context.trigger}`,
+      )
+      return // 跳过重复的效果
+    }
+
+    // 标记该效果已被添加
+    addedEffects.add(effectKey)
+
     this.effectQueuesMap.get(context.parent)?.push({
       effect,
       context,
@@ -58,7 +80,9 @@ export class EffectScheduler {
         }
       }
     } finally {
+      // 清理队列和效果跟踪
       if (this.effectQueuesMap.has(parentContext)) this.effectQueuesMap.delete(parentContext)
+      if (this.addedEffectsMap.has(parentContext)) this.addedEffectsMap.delete(parentContext)
     }
   }
 }
