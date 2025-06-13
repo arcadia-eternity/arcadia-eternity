@@ -1,0 +1,64 @@
+# 标签化配置系统测试示例
+
+# 测试1：使用带标签的配置值自动注册
+- id: test_freeze_effect
+  trigger: OnDamage
+  priority: 100
+  apply:
+    type: addMark
+    target: { base: target }
+    mark: { type: 'entity:baseMark', value: 'freeze_mark' }
+    probability:
+      type: 'raw:number'
+      value: 0.3
+      configId: 'freeze_probability'
+      tags: ['freeze', 'probability']
+
+# 测试2：使用带标签的伤害配置
+- id: test_ice_damage
+  trigger: OnSkillUse
+  priority: 100
+  apply:
+    type: dealDamage
+    target: { base: target }
+    damage:
+      type: 'raw:number'
+      value: 50
+      configId: 'ice_damage'
+      tags: ['ice', 'damage']
+
+# 测试3：创建概率增强印记
+- id: test_probability_boost
+  trigger: OnMarkAdded
+  priority: 100
+  apply:
+    type: addTaggedConfigModifier
+    target: { base: self }
+    tag: { type: 'raw:string', value: 'probability' }
+    modifierType: { type: 'raw:string', value: 'delta' }
+    value: { type: 'raw:number', value: 0.1 }
+    priority: { type: 'raw:number', value: 100 }
+
+# 测试4：创建冰系增强印记
+- id: test_ice_mastery
+  trigger: OnMarkAdded
+  priority: 100
+  apply:
+    type: addTaggedConfigModifier
+    target: { base: self }
+    tag: { type: 'raw:string', value: 'ice' }
+    modifierType: { type: 'raw:string', value: 'delta' }
+    value: { type: 'raw:number', value: 0.2 }
+    priority: { type: 'raw:number', value: 150 }
+
+# 测试5：创建伤害增强印记
+- id: test_damage_boost
+  trigger: OnMarkAdded
+  priority: 100
+  apply:
+    type: addTaggedConfigModifier
+    target: { base: self }
+    tag: { type: 'raw:string', value: 'damage' }
+    modifierType: { type: 'raw:string', value: 'delta' }
+    value: { type: 'raw:number', value: 10 }
+    priority: { type: 'raw:number', value: 200 }

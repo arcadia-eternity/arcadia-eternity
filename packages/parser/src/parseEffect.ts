@@ -67,15 +67,32 @@ const configRegistrations = new Map<string, { configKey: string; initialValue: a
 // Global registry to track all configs that need to be registered
 const globalConfigRegistry = new Map<string, { configKey: string; initialValue: any }>()
 
+// Tagged config registrations collector
+const taggedConfigRegistrations = new Map<string, { configKey: string; initialValue: any; tags: string[] }>()
+
+// Global registry to track all tagged configs that need to be registered
+const globalTaggedConfigRegistry = new Map<string, { configKey: string; initialValue: any; tags: string[] }>()
+
 /**
  * Pre-register all configs from effects to avoid runtime registration order issues
  */
 export function preRegisterAllConfigs(): void {
   const configSystem = ConfigSystem.getInstance()
 
+  // Register normal configs
   Array.from(globalConfigRegistry.values()).forEach(({ configKey, initialValue }) => {
     if (!configSystem.isRegistered(configKey)) {
       configSystem.registerConfig(configKey, initialValue)
+    }
+  })
+
+  // Register tagged configs
+  Array.from(globalTaggedConfigRegistry.values()).forEach(({ configKey, initialValue, tags }) => {
+    if (!configSystem.isRegistered(configKey)) {
+      configSystem.registerTaggedConfig(configKey, initialValue, tags)
+    } else {
+      // If already registered, just add the tags
+      configSystem.addConfigTags(configKey, tags)
     }
   })
 }
@@ -84,6 +101,7 @@ export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   try {
     // Clear config registrations for this effect
     configRegistrations.clear()
+    taggedConfigRegistrations.clear()
 
     const condition = dsl.condition ? parseCondition(dsl.id, dsl.condition) : undefined
 
@@ -95,11 +113,29 @@ export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
     }
 
     // Add config registration actions at the beginning if there are any configs to register
+    const registrationActions: any[] = []
+
+    // Register normal configs
     if (configRegistrations.size > 0) {
       const configRegActions = Array.from(configRegistrations.values()).map(({ configKey, initialValue }) =>
         parseSelector<ScopeObject>(dsl.id, 'battle').apply(Operators.registerConfig(configKey, initialValue)),
       )
-      actions = [...configRegActions, ...actions]
+      registrationActions.push(...configRegActions)
+    }
+
+    // Register tagged configs
+    if (taggedConfigRegistrations.size > 0) {
+      const taggedConfigRegActions = Array.from(taggedConfigRegistrations.values()).map(
+        ({ configKey, initialValue, tags }) =>
+          parseSelector<ScopeObject>(dsl.id, 'battle').apply(
+            Operators.registerTaggedConfig(configKey, initialValue, tags),
+          ),
+      )
+      registrationActions.push(...taggedConfigRegActions)
+    }
+
+    if (registrationActions.length > 0) {
+      actions = [...registrationActions, ...actions]
     }
 
     // Return effect with all actions (including registerConfig actions if needed)
@@ -477,6 +513,10 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseAddDynamicConfigModifierAction(effectId, dsl)
     case 'registerConfig':
       return parseRegisterConfigAction(effectId, dsl)
+    case 'registerTaggedConfig':
+      return parseRegisterTaggedConfigAction(effectId, dsl)
+    case 'addTaggedConfigModifier':
+      return parseAddTaggedConfigModifierAction(effectId, dsl)
     case 'addPhaseConfigModifier':
       return parseAddPhaseConfigModifierAction(effectId, dsl)
     case 'addPhaseDynamicConfigModifier':
@@ -511,9 +551,15 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
     if (v.configId) {
       // Use proper config registration for user-defined config values
       const fullKey = `${effectId}.${v.configId}`
-      configRegistrations.set(fullKey, { configKey: fullKey, initialValue: v.value })
-      // Also add to global registry for pre-registration
-      globalConfigRegistry.set(fullKey, { configKey: fullKey, initialValue: v.value })
+      if (v.tags && v.tags.length > 0) {
+        // Register as tagged config
+        taggedConfigRegistrations.set(fullKey, { configKey: fullKey, initialValue: v.value, tags: v.tags })
+        globalTaggedConfigRegistry.set(fullKey, { configKey: fullKey, initialValue: v.value, tags: v.tags })
+      } else {
+        // Register as normal config
+        configRegistrations.set(fullKey, { configKey: fullKey, initialValue: v.value })
+        globalConfigRegistry.set(fullKey, { configKey: fullKey, initialValue: v.value })
+      }
       return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<number>
     } else {
       // Use registerLiteralValue for internal temporary values
@@ -525,9 +571,15 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
     if (v.configId) {
       // Use proper config registration for user-defined config values
       const fullKey = `${effectId}.${v.configId}`
-      configRegistrations.set(fullKey, { configKey: fullKey, initialValue: v.value })
-      // Also add to global registry for pre-registration
-      globalConfigRegistry.set(fullKey, { configKey: fullKey, initialValue: v.value })
+      if (v.tags && v.tags.length > 0) {
+        // Register as tagged config
+        taggedConfigRegistrations.set(fullKey, { configKey: fullKey, initialValue: v.value, tags: v.tags })
+        globalTaggedConfigRegistry.set(fullKey, { configKey: fullKey, initialValue: v.value, tags: v.tags })
+      } else {
+        // Register as normal config
+        configRegistrations.set(fullKey, { configKey: fullKey, initialValue: v.value })
+        globalConfigRegistry.set(fullKey, { configKey: fullKey, initialValue: v.value })
+      }
       return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<string>
     } else {
       // Use registerLiteralValue for internal temporary values
@@ -1166,6 +1218,33 @@ export function parseRegisterConfigAction(effectId: string, dsl: Extract<Operato
     Operators.registerConfig(
       parseValue(effectId, dsl.configKey) as ValueSource<string>,
       parseValue(effectId, dsl.initialValue) as ValueSource<ConfigValue>,
+    ),
+  )
+}
+
+export function parseRegisterTaggedConfigAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'registerTaggedConfig' }>,
+) {
+  return parseSelector<ScopeObject>(effectId, dsl.target).apply(
+    Operators.registerTaggedConfig(
+      parseValue(effectId, dsl.configKey) as ValueSource<string>,
+      parseValue(effectId, dsl.initialValue) as ValueSource<ConfigValue>,
+      parseValue(effectId, dsl.tags) as ValueSource<string[]>,
+    ),
+  )
+}
+
+export function parseAddTaggedConfigModifierAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addTaggedConfigModifier' }>,
+) {
+  return parseSelector<ScopeObject>(effectId, dsl.target).apply(
+    Operators.addTaggedConfigModifier(
+      parseValue(effectId, dsl.tag) as ValueSource<string>,
+      parseValue(effectId, dsl.modifierType) as ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
+      parseValue(effectId, dsl.value) as ValueSource<ConfigValue>,
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
     ),
   )
 }

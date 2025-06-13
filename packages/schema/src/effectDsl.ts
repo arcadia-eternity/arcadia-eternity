@@ -447,6 +447,23 @@ export type RegisterConfigOpreator = {
   initialValue: Value
 }
 
+export type RegisterTaggedConfigOpreator = {
+  type: 'registerTaggedConfig'
+  target: SelectorDSL
+  configKey: Value
+  initialValue: Value
+  tags: Value
+}
+
+export type AddTaggedConfigModifierOpreator = {
+  type: 'addTaggedConfigModifier'
+  target: SelectorDSL
+  tag: Value
+  modifierType: Value
+  value: Value
+  priority?: Value
+}
+
 export type AddPhaseConfigModifierOpreator = {
   type: 'addPhaseConfigModifier'
   target: SelectorDSL
@@ -554,6 +571,8 @@ export type OperatorDSL =
   | AddConfigModifierOpreator
   | AddDynamicConfigModifierOpreator
   | RegisterConfigOpreator
+  | RegisterTaggedConfigOpreator
+  | AddTaggedConfigModifierOpreator
   | AddPhaseConfigModifierOpreator
   | AddPhaseDynamicConfigModifierOpreator
   | AddPhaseTypeConfigModifierOpreator
@@ -563,18 +582,21 @@ export type RawNumberValue = {
   type: 'raw:number'
   value: number
   configId?: string
+  tags?: string[]
 }
 
 export type RawStringValue = {
   type: 'raw:string'
   value: string
   configId?: string
+  tags?: string[]
 }
 
 export type RawBooleanValue = {
   type: 'raw:boolean'
   value: boolean
   configId?: string
+  tags?: string[]
 }
 
 export type RawBaseMarkIdValue = {

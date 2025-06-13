@@ -1346,6 +1346,71 @@ export const Operators = {
       }
     },
 
+  // Tagged config operators
+  registerTaggedConfig:
+    (
+      configKey: ValueSource<string>,
+      initialValue: ValueSource<ConfigValue>,
+      tags: ValueSource<string[]>,
+    ): Operator<ScopeObject> =>
+    (context: EffectContext<EffectTrigger>, targets: ScopeObject[]) => {
+      const _configKey = GetValueFromSource(context, configKey)[0]
+      const _initialValue = GetValueFromSource(context, initialValue)[0]
+      const _tags = GetValueFromSource(context, tags)[0]
+
+      // Use the battle's ConfigSystem instance
+      const configSystem = context.battle.configSystem
+      if (!configSystem.isRegistered(_configKey)) {
+        configSystem.registerTaggedConfig(_configKey, _initialValue, _tags)
+      } else {
+        // If already registered, just add the tags
+        configSystem.addConfigTags(_configKey, _tags)
+      }
+    },
+
+  addTaggedConfigModifier:
+    (
+      tag: ValueSource<string>,
+      modifierType: ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
+      value: ValueSource<ConfigValue>,
+      priority: ValueSource<number> = 0,
+    ): Operator<ScopeObject> =>
+    (context: EffectContext<EffectTrigger>, targets: ScopeObject[]) => {
+      targets.forEach((target, targetIndex) => {
+        const _tag = GetValueFromSource(context, tag)[0]
+        const _modifierType = GetValueFromSource(context, modifierType)[0] as ConfigModifierType
+        const _value = GetValueFromSource(context, value)[0]
+        const _priority = GetValueFromSource(context, priority)[0] ?? 0
+
+        // Use the battle's ConfigSystem instance
+        const configSystem = context.battle.configSystem
+
+        // Determine the source for lifecycle binding
+        let modifierSource: MarkInstance | SkillInstance | BattlePhaseBase | undefined
+        if (context.source instanceof MarkInstanceImpl) {
+          modifierSource = context.source
+        } else if (context.source instanceof SkillInstance) {
+          modifierSource = context.source
+        }
+
+        // Create and add the tagged modifier
+        const cleanup = configSystem.addTaggedConfigModifierSingle(
+          _tag,
+          _modifierType,
+          _value,
+          _priority,
+          ConfigDurationType.binding,
+          modifierSource,
+          target,
+        )
+
+        // If the effect source is a mark, bind the modifier lifecycle to the mark
+        if (context.source instanceof MarkInstanceImpl) {
+          context.source.addAttributeModifierCleanup(cleanup)
+        }
+      })
+    },
+
   // Phase-specific config modifier operators
   addPhaseConfigModifier:
     (

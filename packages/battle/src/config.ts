@@ -192,6 +192,10 @@ export class ConfigSystem {
   private phaseTypeModifiers: Map<string, ConfigModifier[]> = new Map() // Modifiers by phase type
   private phaseTypeInstances: Map<PhaseType, BattlePhaseBase[]> = new Map() // Track instances by type
 
+  // Tagged configuration system
+  private tagToConfigKeys: Map<string, Set<string>> = new Map()
+  private configKeyToTags: Map<string, Set<string>> = new Map()
+
   // Lifecycle management
   private isDestroyed: boolean = false
   private battleId?: string
@@ -304,6 +308,100 @@ export class ConfigSystem {
     )
 
     this.subscriptions.set(key, computed$)
+  }
+
+  /**
+   * Register a config key with tags for modifier support
+   */
+  registerTaggedConfig(key: string, initialValue: ConfigValue, tags: string[]): void {
+    // First register the config normally
+    this.registerConfig(key, initialValue)
+
+    // Then add tag associations
+    this.addConfigTags(key, tags)
+  }
+
+  /**
+   * Add tags to an existing config key
+   */
+  addConfigTags(key: string, tags: string[]): void {
+    if (this.isDestroyed) {
+      console.warn(`Attempted to add tags to config '${key}' on destroyed ConfigSystem`)
+      return
+    }
+
+    // Initialize config tags if not exists
+    if (!this.configKeyToTags.has(key)) {
+      this.configKeyToTags.set(key, new Set())
+    }
+
+    const configTags = this.configKeyToTags.get(key)!
+
+    // Add each tag
+    for (const tag of tags) {
+      configTags.add(tag)
+
+      // Update reverse mapping
+      if (!this.tagToConfigKeys.has(tag)) {
+        this.tagToConfigKeys.set(tag, new Set())
+      }
+      this.tagToConfigKeys.get(tag)!.add(key)
+    }
+  }
+
+  /**
+   * Remove tags from a config key
+   */
+  removeConfigTags(key: string, tags: string[]): void {
+    if (this.isDestroyed) {
+      console.warn(`Attempted to remove tags from config '${key}' on destroyed ConfigSystem`)
+      return
+    }
+
+    const configTags = this.configKeyToTags.get(key)
+    if (!configTags) return
+
+    for (const tag of tags) {
+      configTags.delete(tag)
+
+      // Update reverse mapping
+      const tagConfigs = this.tagToConfigKeys.get(tag)
+      if (tagConfigs) {
+        tagConfigs.delete(key)
+        if (tagConfigs.size === 0) {
+          this.tagToConfigKeys.delete(tag)
+        }
+      }
+    }
+
+    // Clean up empty config tags
+    if (configTags.size === 0) {
+      this.configKeyToTags.delete(key)
+    }
+  }
+
+  /**
+   * Get all config keys that have a specific tag
+   */
+  getConfigKeysByTag(tag: string): string[] {
+    const configKeys = this.tagToConfigKeys.get(tag)
+    return configKeys ? Array.from(configKeys) : []
+  }
+
+  /**
+   * Get all tags for a specific config key
+   */
+  getConfigTags(key: string): string[] {
+    const tags = this.configKeyToTags.get(key)
+    return tags ? Array.from(tags) : []
+  }
+
+  /**
+   * Check if a config key has a specific tag
+   */
+  hasConfigTag(key: string, tag: string): boolean {
+    const tags = this.configKeyToTags.get(key)
+    return tags ? tags.has(tag) : false
   }
 
   /**
@@ -612,6 +710,63 @@ export class ConfigSystem {
    */
   addConfigModifier(key: string, modifier: ConfigModifier): () => void {
     return this.addScopedConfigModifier(key, modifier, undefined)
+  }
+
+  /**
+   * Add a config modifier to all configs with a specific tag
+   */
+  addTaggedConfigModifier(
+    tag: string,
+    modifierType: ConfigModifierType,
+    value: ConfigValue | Subject<ConfigValue> | Observable<ConfigValue>,
+    priority: number = 0,
+    durationType: ConfigDurationType = ConfigDurationType.instant,
+    source?: MarkInstance | SkillInstance | BattlePhaseBase,
+    scope?: ScopeObject,
+  ): (() => void)[] {
+    const configKeys = this.getConfigKeysByTag(tag)
+    const cleanupFunctions: (() => void)[] = []
+
+    for (const configKey of configKeys) {
+      // Create a unique modifier ID for each config key
+      const modifierId = `tagged_${tag}_${configKey}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+      const modifier = new ConfigModifier(durationType, modifierId, value, modifierType, priority, source)
+
+      const cleanup = this.addScopedConfigModifier(configKey, modifier, scope)
+      cleanupFunctions.push(cleanup)
+    }
+
+    // Return a combined cleanup function
+    return cleanupFunctions
+  }
+
+  /**
+   * Add a config modifier to all configs with a specific tag (convenience method that returns single cleanup)
+   */
+  addTaggedConfigModifierSingle(
+    tag: string,
+    modifierType: ConfigModifierType,
+    value: ConfigValue | Subject<ConfigValue> | Observable<ConfigValue>,
+    priority: number = 0,
+    durationType: ConfigDurationType = ConfigDurationType.instant,
+    source?: MarkInstance | SkillInstance | BattlePhaseBase,
+    scope?: ScopeObject,
+  ): () => void {
+    const cleanupFunctions = this.addTaggedConfigModifier(
+      tag,
+      modifierType,
+      value,
+      priority,
+      durationType,
+      source,
+      scope,
+    )
+
+    // Return a single cleanup function that calls all individual cleanups
+    return () => {
+      cleanupFunctions.forEach(cleanup => cleanup())
+    }
   }
 
   /**
@@ -1093,6 +1248,10 @@ export class ConfigSystem {
     this.phaseTypeModifiers.clear()
     this.phaseTypeInstances.clear()
     this.allSubscriptions.length = 0
+
+    // Clear tagged configuration data
+    this.tagToConfigKeys.clear()
+    this.configKeyToTags.clear()
 
     console.log(`ConfigSystem cleanup completed for battle ${this.battleId || 'unknown'}`)
   }

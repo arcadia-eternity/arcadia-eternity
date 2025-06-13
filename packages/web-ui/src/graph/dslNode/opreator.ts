@@ -335,6 +335,119 @@ export class TransferMarkNode extends BaseOperatorNode {
     }
   }
 }
+
+// 标签化配置节点
+
+export class RegisterTaggedConfigNode extends BaseOperatorNode {
+  static operatorType = 'registerTaggedConfig' as const
+  title = '注册标签配置'
+  color = '#66ff66'
+
+  constructor() {
+    super('注册标签配置')
+    this.addInput('configKey', 'selector')
+    this.addInput('initialValue', 'selector')
+    this.addInput('tags', 'selector')
+
+    this.addWidget('text', '配置键', 'my.config', v => (this.properties.configKey = v), {
+      property: 'configKey',
+      associatedInput: 'configKey',
+    })
+    this.addWidget('text', '初始值', '0', v => (this.properties.initialValue = v), {
+      property: 'initialValue',
+      associatedInput: 'initialValue',
+    })
+    this.addWidget('text', '标签(逗号分隔)', 'tag1,tag2', v => (this.properties.tags = v), {
+      property: 'tags',
+      associatedInput: 'tags',
+    })
+
+    this.properties = {
+      configKey: 'my.config',
+      initialValue: '0',
+      tags: 'tag1,tag2',
+    }
+  }
+
+  protected getSpecificProperties() {
+    return {
+      type: RegisterTaggedConfigNode.operatorType,
+      configKey: this.getStringValue(1, 'my.config'),
+      initialValue: this.getStringValue(2, '0'),
+      tags: this.getArrayValue(3, ['tag1', 'tag2']),
+    }
+  }
+
+  private getArrayValue(inputIndex: number, defaultValue: string[]): any {
+    const input = this.inputs[inputIndex]
+    if (input && input.link !== null) {
+      return this.getDynamicValue(inputIndex)
+    }
+
+    // Parse comma-separated string into array
+    const tagsString = this.properties.tags as string
+    const tagsArray = tagsString
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0)
+
+    return {
+      type: 'raw:array',
+      value: tagsArray.length > 0 ? tagsArray : defaultValue,
+    }
+  }
+}
+
+export class AddTaggedConfigModifierNode extends BaseOperatorNode {
+  static operatorType = 'addTaggedConfigModifier' as const
+  title = '标签配置修改器'
+  color = '#ff9966'
+
+  constructor() {
+    super('标签配置修改器')
+    this.addInput('tag', 'selector')
+    this.addInput('value', 'selector')
+    this.addInput('priority', 'selector')
+
+    this.addWidget('text', '标签', 'probability', v => (this.properties.tag = v), {
+      property: 'tag',
+      associatedInput: 'tag',
+    })
+    this.addWidget('combo', '修改类型', 'delta', v => (this.properties.modifierType = v), {
+      values: ['override', 'delta', 'append', 'prepend'],
+      property: 'modifierType',
+    })
+    this.addWidget('number', '修改值', 0.05, v => (this.properties.value = v), {
+      property: 'value',
+      associatedInput: 'value',
+    })
+    this.addWidget('number', '优先级', 100, v => (this.properties.priority = v), {
+      property: 'priority',
+      associatedInput: 'priority',
+    })
+
+    this.properties = {
+      tag: 'probability',
+      modifierType: 'delta',
+      value: 0.05,
+      priority: 100,
+    }
+  }
+
+  protected getSpecificProperties() {
+    return {
+      type: AddTaggedConfigModifierNode.operatorType,
+      tag: this.getStringValue(1, 'probability'),
+      modifierType: {
+        type: 'raw:string',
+        value: this.properties.modifierType as string,
+      },
+      value: this.getNumberValue(2, 0.05),
+      priority: this.getNumberValue(3, 100),
+    }
+  }
+}
+
 // 注册所有节点类型
 const NODE_CLASSES = [
   DealDamageNode,
@@ -348,6 +461,8 @@ const NODE_CLASSES = [
   AmplifyPowerNode,
   AddPowerNode,
   TransferMarkNode,
+  RegisterTaggedConfigNode,
+  AddTaggedConfigModifierNode,
 ]
 
 export function registerOperatorNodes() {
@@ -368,6 +483,8 @@ export const NODE_TYPE_MAP = {
   amplifyPower: AmplifyPowerNode,
   addPower: AddPowerNode,
   transferMark: TransferMarkNode,
+  registerTaggedConfig: RegisterTaggedConfigNode,
+  addTaggedConfigModifier: AddTaggedConfigModifierNode,
 }
 
 export function createOperatorNode(type: OperatorDSL['type']) {

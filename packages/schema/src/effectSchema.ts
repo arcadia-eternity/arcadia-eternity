@@ -641,6 +641,21 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       initialValue: valueSchema,
     }),
     z.object({
+      type: z.literal('registerTaggedConfig'),
+      target: selectorDSLSchema,
+      configKey: valueSchema,
+      initialValue: valueSchema,
+      tags: valueSchema,
+    }),
+    z.object({
+      type: z.literal('addTaggedConfigModifier'),
+      target: selectorDSLSchema,
+      tag: valueSchema,
+      modifierType: valueSchema,
+      value: valueSchema,
+      priority: valueSchema.optional(),
+    }),
+    z.object({
       type: z.literal('addPhaseConfigModifier'),
       target: selectorDSLSchema,
       configKey: valueSchema,
