@@ -419,14 +419,14 @@ export class MarkInstanceImpl implements MarkInstance {
 
   destroy(context: RemoveMarkContext) {
     if (!this.isActive || !this.config.destroyable) return
+    //TODO:这俩的语义感觉能分一下
+    context.battle.applyEffects(context, EffectTrigger.OnMarkDestroy, this)
+    context.battle.applyEffects(context, EffectTrigger.OnRemoveMark)
     this.isActive = false
 
     // Clean up attribute modifiers before destroying the mark
     this.cleanupAttributeModifiers()
 
-    //TODO:这俩的语义感觉能分一下
-    context.battle.applyEffects(context, EffectTrigger.OnMarkDestroy, this)
-    context.battle.applyEffects(context, EffectTrigger.OnRemoveMark)
     context.battle.cleanupMarks()
 
     // Note: dirty flag removed, attribute system handles recalculation automatically
