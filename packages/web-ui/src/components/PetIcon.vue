@@ -14,11 +14,9 @@ const props = withDefaults(
   },
 )
 
-const unknownPetUrl = 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/battle/unknownPet.png'
+const unknownPetUrl = 'https://seer2-resource.yuuinih.com/png/battle/unknownPet.png'
 
-const petIconUrl = computed(
-  () => `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/petIcon/${props.id}.png`,
-)
+const petIconUrl = computed(() => `https://seer2-resource.yuuinih.com/png/petIcon/${props.id}.png`)
 
 const effectiveUrl = ref(props.isUnknown ? unknownPetUrl : petIconUrl.value)
 

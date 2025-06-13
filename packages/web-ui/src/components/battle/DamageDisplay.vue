@@ -22,7 +22,7 @@ const battleViewStore = useBattleViewStore()
 
 // 计算背景图片路径
 const backgroundImage = computed(() => {
-  const baseUrl = 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/damage/'
+  const baseUrl = 'https://seer2-resource.yuuinih.com/png/damage/'
   if (props.type === 'blue') {
     return `${baseUrl}damage_blue.png`
   } else if (props.type === 'red') {
@@ -60,7 +60,7 @@ const imagesLoaded = ref(false)
 // 预加载所有数字图片和背景图片
 const preloadImages = () => {
   const promises = []
-  const baseUrl = 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/'
+  const baseUrl = 'https://seer2-resource.yuuinih.com/png/'
 
   // 预加载背景图片
   const backgroundTypes = ['damage.png', 'damage_blue.png', 'damage_red.png']
@@ -124,7 +124,7 @@ onMounted(() => {
         <!-- 将所有内容置于单一容器内，使用行内显示模式确保尺寸由内容决定 -->
         <div class="flex items-center justify-center whitespace-nowrap">
           <img
-            src="https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/damageNumber/minus.png"
+            src="https://seer2-resource.yuuinih.com/png/damageNumber/minus.png"
             alt="minus"
             class="h-10 object-contain"
           />
@@ -133,7 +133,7 @@ onMounted(() => {
           <img
             v-for="(digit, index) in digits"
             :key="index"
-            :src="`https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/damageNumber/${digit}.png`"
+            :src="`https://seer2-resource.yuuinih.com/png/damageNumber/${digit}.png`"
             :alt="`digit ${digit}`"
             class="h-16 object-contain"
             :class="index > 0 ? '-ml-2' : ''"

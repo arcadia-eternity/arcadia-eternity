@@ -32,9 +32,7 @@ export function useSound(
   }
 
   function registerSkillSound(id: baseSkillId) {
-    const src =
-      resourceStore.getSkillSound(id) ??
-      'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/sound/skill/01_1_003.mp3'
+    const src = resourceStore.getSkillSound(id) ?? 'https://seer2-resource.yuuinih.com/sound/skill/01_1_003.mp3'
     const howlerInstance = ensureHowlInstance(src)
     skillHowlerMap.set(id, howlerInstance)
   }
@@ -45,13 +43,13 @@ export function useSound(
     }
   }
 
-  const victorySoundSrc = `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/sound/battle/ko.mp3`
+  const victorySoundSrc = `https://seer2-resource.yuuinih.com/sound/battle/ko.mp3`
   ensureHowlInstance(victorySoundSrc)
 
   const registerPetSounds = (spriteNums: number[] | undefined) => {
     if (spriteNums) {
       for (const num of spriteNums) {
-        const src = `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/sound/pet/${num}.mp3`
+        const src = `https://seer2-resource.yuuinih.com/sound/pet/${num}.mp3`
         ensureHowlInstance(src)
       }
     }
@@ -90,7 +88,7 @@ export function useSound(
   }
 
   const playPetSound = (petSpriteNum: number) => {
-    const src = `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/sound/pet/${petSpriteNum}.mp3`
+    const src = `https://seer2-resource.yuuinih.com/sound/pet/${petSpriteNum}.mp3`
     const howler = ensureHowlInstance(src)
     howler.play()
   }

@@ -34,7 +34,7 @@ const elementIndexMap: Record<Element, number> = {
 
 const iconUrl = computed(() => {
   const index = elementIndexMap[props.element]
-  return `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/petElementIcon/${index}.png`
+  return `https://seer2-resource.yuuinih.com/png/petElementIcon/${index}.png`
 })
 </script>
 

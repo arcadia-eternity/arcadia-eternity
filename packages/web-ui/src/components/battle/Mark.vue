@@ -22,9 +22,7 @@ const rootEl = ref<HTMLElement | null>(null)
 const showTooltip = ref(false)
 const stackText = computed(() => `${props.mark.stack}`)
 const image = computed(
-  () =>
-    resourceStore.getMarkImage(props.mark.baseId) ??
-    'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/traitMark/inc.png',
+  () => resourceStore.getMarkImage(props.mark.baseId) ?? 'https://seer2-resource.yuuinih.com/png/traitMark/inc.png',
 )
 const name = computed(() =>
   i18next.t(`${props.mark.baseId}.name`, {

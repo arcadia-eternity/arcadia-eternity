@@ -11,7 +11,7 @@ const props = withDefaults(
   },
 )
 
-const petUrl = computed(() => `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/pet/${props.num}.png`)
+const petUrl = computed(() => `https://seer2-resource.yuuinih.com/png/pet/${props.num}.png`)
 </script>
 
 <template>

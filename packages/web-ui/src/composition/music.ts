@@ -12,17 +12,17 @@ export function useMusic() {
   const musicSrc = computed(() => {
     if (gameSettingStore.battleMusic === 'random') {
       if (resourceStore.music.allIds.length === 0) {
-        return 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/music/battle/BGM_1002.mp3'
+        return 'https://seer2-resource.yuuinih.com/music/battle/BGM_1002.mp3'
       }
       return (
         resourceStore.getMusic(
           resourceStore.music.allIds[Math.floor(Math.random() * resourceStore.music.allIds.length)],
-        ) ?? 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/music/battle/BGM_1002.mp3'
+        ) ?? 'https://seer2-resource.yuuinih.com/music/battle/BGM_1002.mp3'
       )
     }
     return (
       resourceStore.getMusic(gameSettingStore.battleMusic) ??
-      'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/music/battle/BGM_1002.mp3'
+      'https://seer2-resource.yuuinih.com/music/battle/BGM_1002.mp3'
     )
   })
 

@@ -252,7 +252,7 @@ const background = computed(() => {
   }
   return (
     resourceStore.getBackGround(gameSettingStore.background) ??
-    'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/battleBackground/grass.png'
+    'https://seer2-resource.yuuinih.com/png/battleBackground/grass.png'
   )
 })
 

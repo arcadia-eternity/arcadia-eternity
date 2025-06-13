@@ -55,7 +55,7 @@ export function useBattleAnimations(
       },
       [
         h('img', {
-          src: 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/damage/miss.png',
+          src: 'https://seer2-resource.yuuinih.com/png/damage/miss.png',
           class: 'h-20',
         }),
       ],
@@ -116,7 +116,7 @@ export function useBattleAnimations(
       },
       [
         h('img', {
-          src: 'https://cdn.jsdelivr.net/gh/arcadia-star/seer2-resource@main/png/damage/absorb.png',
+          src: 'https://seer2-resource.yuuinih.com/png/damage/absorb.png',
           class: 'h-20',
         }),
       ],
