@@ -4864,7 +4864,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_multihit_30_percent_4_times # TODO: 30%连击4次
+    - effect_skill_multihit_30_percent_4_times
 - id: skill_xingzhihui
   element: Normal
   category: Status
@@ -4876,4 +4876,4 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_xingzhihui_20 # TODO: 使自身获得20点星之辉
+    - effect_skill_add_mark_xingzhihui_20
