@@ -1109,7 +1109,7 @@
     destroyable: true
     isShield: false
     keepOnSwitchOut: true
-    transferOnSwitch: true
+    transferOnSwitch: false
     inheritOnFaint: false
   effect:
     - effect_mark_increase_self_element_damage_10_percent
@@ -1123,7 +1123,7 @@
     destroyable: true
     isShield: false
     keepOnSwitchOut: true
-    transferOnSwitch: true
+    transferOnSwitch: false
     inheritOnFaint: false
   effect:
     - effect_mark_increase_self_element_damage_20_percent
@@ -1151,7 +1151,7 @@
     destroyable: true
     isShield: false
     keepOnSwitchOut: true
-    transferOnSwitch: true
+    transferOnSwitch: false
     inheritOnFaint: false
   effect:
     - effect_mark_increase_crit_rate_10_percent
@@ -1166,7 +1166,7 @@
     destroyable: true
     isShield: false
     keepOnSwitchOut: true
-    transferOnSwitch: true
+    transferOnSwitch: false
     inheritOnFaint: false
   effect:
     - effect_mark_increase_self_element_damage_20_percent
@@ -1180,7 +1180,7 @@
     destroyable: true
     isShield: false
     keepOnSwitchOut: true
-    transferOnSwitch: true
+    transferOnSwitch: false
     inheritOnFaint: false
   effect:
     - effect_mark_reduce_damage_taken_10_percent
@@ -1195,7 +1195,7 @@
     destroyable: true
     isShield: false
     keepOnSwitchOut: true
-    transferOnSwitch: true
+    transferOnSwitch: false
     inheritOnFaint: false
   effect:
     - effect_mark_reduce_damage_taken_20_percent
