@@ -915,12 +915,14 @@ const displayedSkills = computed({
 
 // 新的下拉框选项计算属性
 const speciesOptions = computed(() => {
-  return gameDataStore.speciesList.map(species => ({
+  const options = gameDataStore.speciesList.map(species => ({
     value: species.id,
     label: i18next.t(`${species.id}.name`, { ns: 'species' }),
     num: species.num,
     element: species.element,
   }))
+  options.sort((a, b) => a.num - b.num)
+  return options
 })
 
 const genderOptions = computed(() => {
