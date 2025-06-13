@@ -34,25 +34,25 @@
     "@aws-sdk/client-sesv2": "^3.828.0",
     "@types/handlebars": "^4.1.0",
     "cors": "^2.8.5",
-    "express": "^4.21.2",
+    "express": "^5.1.0",
     "handlebars": "^4.7.8",
-    "inversify": "^6.0.2",
+    "inversify": "^7.5.2",
     "jsonwebtoken": "^9.0.2",
     "nanoid": "^5.1.5",
     "nodemailer": "^7.0.3",
-    "pino": "^9.6.0",
+    "pino": "^9.7.0",
     "reflect-metadata": "^0.2.2",
     "socket.io": "^4.8.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "zod": "^3.24.4"
+    "zod": "^3.25.64"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.5",
-    "@types/node": "^22.15.17",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "^24.0.1",
     "@types/nodemailer": "^6.4.17",
     "@types/swagger-jsdoc": "^6.0.4",
-    "@types/swagger-ui-express": "^4.1.6",
+    "@types/swagger-ui-express": "^4.1.8",
     "rollup-plugin-copy": "^3.5.0"
   }
 }

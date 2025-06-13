@@ -27,6 +27,6 @@
     "@arcadia-eternity/interface": "workspace:^"
   },
   "devDependencies": {
-    "@types/node": "^22.15.17"
+    "@types/node": "^24.0.1"
   }
 }

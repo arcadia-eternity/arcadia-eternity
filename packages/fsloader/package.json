@@ -25,10 +25,10 @@
     "@arcadia-eternity/data-repository": "workspace:^",
     "@arcadia-eternity/parser": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
-    "chokidar": "^4.0.1",
-    "yaml": "^2.7.1"
+    "chokidar": "^4.0.3",
+    "yaml": "^2.8.0"
   },
   "devDependencies": {
-    "@types/node": "^22.15.17"
+    "@types/node": "^24.0.1"
   }
 }
