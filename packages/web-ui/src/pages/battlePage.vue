@@ -920,7 +920,7 @@ const preloadPetSprites = () => {
   spriteNums.forEach(num => {
     if (num && num > 0) {
       const img = new Image()
-      img.src = `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-pet-preview@master/public/fight/${num}.swf`
+      img.src = `https://seer2-pet-resource.yuuinih.com/public/fight/${num}.swf`
     }
   })
 }

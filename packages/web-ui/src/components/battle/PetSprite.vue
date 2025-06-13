@@ -20,7 +20,7 @@ const inited = ref(false)
 
 const swfUrl = computed(() => {
   // return `https://seer2.61.com/res/pet/fight/${props.num}.swf`
-  return `https://cdn.jsdelivr.net/gh/arcadia-star/seer2-pet-preview@master/public/fight/${props.num}.swf`
+  return `https://seer2-pet-resource.yuuinih.com/public/fight/${props.num}.swf`
 })
 
 const availableState = ref<ActionState[]>([])
