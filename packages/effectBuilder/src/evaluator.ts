@@ -109,7 +109,6 @@ export const Evaluators = {
     <T>(dynamicPercent: ValueSource<number>): Evaluator<T> =>
     (context: EffectContext<EffectTrigger>) => {
       const percent = GetValueFromSource(context, dynamicPercent)[0]
-      console.debug('testpercent', percent)
       return context.battle.random() < percent / 100
     },
 
