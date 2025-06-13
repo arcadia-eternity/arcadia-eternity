@@ -108,6 +108,36 @@
                   创建新队伍
                 </el-button>
               </router-link>
+
+              <el-divider />
+
+              <el-button
+                type="info"
+                @click="startPrecache"
+                :loading="precaching"
+                class="w-full"
+                :disabled="!gameDataStore.loaded"
+              >
+                <el-icon class="mr-2"><Download /></el-icon>
+                预缓存精灵资源
+              </el-button>
+
+              <p class="text-xs text-gray-500">
+                预先下载所有精灵的动画资源，提升对战体验
+                <span v-if="cacheStats.total > 0"> (已缓存: {{ cacheStats.cached }}/{{ cacheStats.total }}) </span>
+              </p>
+
+              <el-button
+                v-if="cacheStats.cached > 0"
+                type="warning"
+                size="small"
+                @click="resetCacheStatus"
+                class="w-full"
+                plain
+              >
+                <el-icon class="mr-2"><Refresh /></el-icon>
+                重置状态
+              </el-button>
             </div>
           </el-card>
         </div>
@@ -122,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   User,
@@ -134,18 +164,26 @@ import {
   FolderOpened,
   Plus,
   CircleCheck,
+  Download,
 } from '@element-plus/icons-vue'
 import { usePlayerStore } from '@/stores/player'
+import { useGameDataStore } from '@/stores/gameData'
 import EmailInheritance from '@/components/EmailInheritance.vue'
 import { resetBattleClient, initBattleClient, battleClient } from '@/utils/battleClient'
+import { petResourceCache } from '@/services/petResourceCache'
 
 const playerStore = usePlayerStore()
+const gameDataStore = useGameDataStore()
 
 // 编辑名称相关
 const editingName = ref(false)
 const newName = ref('')
 const generatingId = ref(false)
 const nameInput = ref()
+
+// 预缓存相关
+const precaching = ref(false)
+const cacheStats = computed(() => petResourceCache.getStats())
 
 // 开始编辑名称
 const startEditName = async () => {
@@ -240,6 +278,61 @@ const generateNewId = async () => {
     generatingId.value = false
   }
 }
+
+// 开始预缓存
+const startPrecache = async () => {
+  try {
+    precaching.value = true
+
+    // 获取所有宠物编号
+    const allSpecies = gameDataStore.speciesList
+    const petNums = allSpecies.map(species => species.num).filter(num => num && num > 0)
+
+    if (petNums.length === 0) {
+      ElMessage.warning('没有找到可缓存的精灵资源')
+      return
+    }
+
+    ElMessage.info(`开始预缓存 ${petNums.length} 个精灵资源...`)
+
+    // 开始预缓存
+    await petResourceCache.precacheAll(petNums, (_progress: { current: number; total: number; percent: number }) => {
+      // 可以在这里更新进度，但目前我们只在完成时显示消息
+    })
+
+    ElMessage.success(`成功预缓存 ${petNums.length} 个精灵资源！`)
+  } catch (error) {
+    console.error('预缓存失败:', error)
+    ElMessage.error(`预缓存失败: ${(error as Error).message}`)
+  } finally {
+    precaching.value = false
+  }
+}
+
+// 重置缓存状态
+const resetCacheStatus = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要重置缓存状态记录吗？这只会清除我们的缓存状态记录，不会影响浏览器实际缓存的资源。',
+      '确认重置状态',
+      {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'warning',
+      },
+    )
+
+    petResourceCache.resetCacheStatus()
+    ElMessage.success('缓存状态已重置')
+  } catch {
+    // 用户取消操作
+  }
+}
+
+// 组件挂载时初始化缓存统计
+onMounted(() => {
+  petResourceCache.initStats()
+})
 </script>
 
 <style scoped>
