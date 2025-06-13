@@ -1,0 +1,99 @@
+# 标签化配置系统示例 - 无需configId也能使用标签
+
+# 示例1：冰锥术 - 没有configId但有标签
+- id: ice_shard_attack
+  trigger: OnSkillUse
+  priority: 100
+  apply:
+    type: dealDamage
+    target: { base: target }
+    value:
+      type: 'raw:number'
+      value: 45
+      # 没有configId，但有标签 - 系统会自动生成配置键并注册
+      tags: ['ice', 'damage', 'skill']
+
+# 示例2：冰冻效果 - 没有configId但有标签
+- id: freeze_chance_effect
+  trigger: OnDamage
+  priority: 100
+  apply:
+    type: addMark
+    target: { base: target }
+    mark: { type: 'entity:baseMark', value: 'freeze_mark' }
+    probability:
+      type: 'raw:number'
+      value: 0.25
+      # 没有configId，但有标签
+      tags: ['ice', 'probability', 'status']
+
+# 示例3：治疗效果 - 没有configId但有标签
+- id: healing_potion_effect
+  trigger: OnItemUse
+  priority: 100
+  apply:
+    type: heal
+    target: { base: self }
+    value:
+      type: 'raw:number'
+      value: 80
+      # 没有configId，但有标签
+      tags: ['heal', 'item', 'recovery']
+
+# 示例4：冰系掌控印记 - 增强所有冰系效果
+- id: ice_mastery_mark
+  trigger: OnMarkAdded
+  priority: 100
+  apply:
+    type: addTaggedConfigModifier
+    target: { base: self }
+    tag: { type: 'raw:string', value: 'ice' }
+    modifierType: { type: 'raw:string', value: 'delta' }
+    value: { type: 'raw:number', value: 0.15 }  # 增加15%
+    priority: { type: 'raw:number', value: 100 }
+
+# 示例5：概率增强印记 - 增强所有概率类效果
+- id: probability_boost_mark
+  trigger: OnMarkAdded
+  priority: 100
+  apply:
+    type: addTaggedConfigModifier
+    target: { base: self }
+    tag: { type: 'raw:string', value: 'probability' }
+    modifierType: { type: 'raw:string', value: 'delta' }
+    value: { type: 'raw:number', value: 0.1 }   # 增加10%
+    priority: { type: 'raw:number', value: 150 }
+
+# 示例6：伤害增强印记 - 增强所有伤害类效果
+- id: damage_amplifier_mark
+  trigger: OnMarkAdded
+  priority: 100
+  apply:
+    type: addTaggedConfigModifier
+    target: { base: self }
+    tag: { type: 'raw:string', value: 'damage' }
+    modifierType: { type: 'raw:string', value: 'delta' }
+    value: { type: 'raw:number', value: 10 }    # 增加10点伤害
+    priority: { type: 'raw:number', value: 200 }
+
+# 示例7：技能增强印记 - 增强所有技能类效果
+- id: skill_enhancement_mark
+  trigger: OnMarkAdded
+  priority: 100
+  apply:
+    type: addTaggedConfigModifier
+    target: { base: self }
+    tag: { type: 'raw:string', value: 'skill' }
+    modifierType: { type: 'raw:string', value: 'delta' }
+    value: { type: 'raw:number', value: 0.05 }  # 增加5%
+    priority: { type: 'raw:number', value: 50 }
+
+# 使用效果：
+# 1. ice_shard_attack 基础伤害45
+# 2. 如果有ice_mastery_mark，伤害变为 45 * 1.15 = 51.75
+# 3. 如果有damage_amplifier_mark，伤害变为 51.75 + 10 = 61.75
+# 4. 如果有skill_enhancement_mark，伤害变为 61.75 * 1.05 = 64.84
+# 
+# freeze_chance_effect 基础概率0.25
+# 1. 如果有ice_mastery_mark，概率变为 0.25 * 1.15 = 0.2875
+# 2. 如果有probability_boost_mark，概率变为 0.2875 + 0.1 = 0.3875

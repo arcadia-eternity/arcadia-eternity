@@ -1181,3 +1181,39 @@ skill_baiguangqie:
 skill_guangyinghuanxiang:
   name: 光影幻象
   description: <font color=#93E312>必中</font> 连击2次 使环境变为<font color=#6699CC>晴天</font>或<font color=#6699CC>夜幕</font>
+skill_liuxingquan:
+  name: 流星拳
+  description: 50%连击2次
+skill_bandao:
+  name: 绊倒
+  description: 造成对手总体重的伤害
+skill_houkongfan:
+  name: 后空翻
+  description: 使自身获得后空翻
+skill_huixingquan:
+  name: 彗星拳
+  description: 40%连击3次
+skill_baiguangpao:
+  name: 白光炮
+  description: 【90】5%使对手害怕
+skill_ziguangpao:
+  name: 紫光炮
+  description: 【90】10%使对手害怕
+skill_suixingquan:
+  name: 碎星拳
+  description: 35%连击4次
+skill_xingchensuiquan:
+  name: 星辰粉碎拳
+  description: <font color=#93E312>必中</font> 使自身获得50点星之辉
+skill_luoxuanguangpao:
+  name: 螺旋光炮
+  description: 【90】15%使对手害怕
+skill_qiangxingbandao:
+  name: 强行绊倒
+  description: 【90】附加对手总体重的伤害
+skill_zhuixingquan:
+  name: 坠星拳
+  description: 30%连击4次
+skill_xingzhihui:
+  name: 星之辉
+  description: 使自身获得20点星之辉

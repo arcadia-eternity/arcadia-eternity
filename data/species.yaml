@@ -3458,3 +3458,159 @@
     - mark_ability_guangming
   emblem:
     - mark_emblem_guangming
+- id: pet_tangni
+  num: 46
+  element: Normal
+  baseStats:
+    hp: 76
+    atk: 120
+    def: 113
+    spa: 112
+    spd: 110
+    spe: 109
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 30
+    - 35
+  weightRange:
+    - 11
+    - 16
+  learnable_skills:
+    - skill_id: skill_paida
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 4
+      hidden: false
+    - skill_id: skill_yili
+      level: 8
+      hidden: false
+    - skill_id: skill_liuxingquan
+      level: 12
+      hidden: false
+  ability:
+    - mark_ability_pianxie
+  emblem:
+    - mark_emblem_huizhi
+- id: pet_taini
+  num: 47
+  element: Normal
+  baseStats:
+    hp: 116
+    atk: 150
+    def: 138
+    spa: 142
+    spd: 135
+    spe: 129
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 46
+    - 51
+  weightRange:
+    - 27
+    - 32
+  learnable_skills:
+    - skill_id: skill_paida
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 4
+      hidden: false
+    - skill_id: skill_yili
+      level: 8
+      hidden: false
+    - skill_id: skill_liuxingquan
+      level: 12
+      hidden: false
+    - skill_id: skill_bandao
+      level: 17
+      hidden: false
+    - skill_id: skill_houkongfan
+      level: 22
+      hidden: false
+    - skill_id: skill_huixingquan
+      level: 27
+      hidden: false
+    - skill_id: skill_baiguangpao
+      level: 32
+      hidden: false
+  ability:
+    - mark_ability_pianxie
+  emblem:
+    - mark_emblem_huizhi
+- id: pet_luni
+  num: 48
+  element: Normal
+  baseStats:
+    hp: 176
+    atk: 180
+    def: 163
+    spa: 172
+    spd: 160
+    spe: 149
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 89
+    - 94
+  weightRange:
+    - 79
+    - 84
+  learnable_skills:
+    - skill_id: skill_paida
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 4
+      hidden: false
+    - skill_id: skill_yili
+      level: 8
+      hidden: false
+    - skill_id: skill_liuxingquan
+      level: 12
+      hidden: false
+    - skill_id: skill_bandao
+      level: 17
+      hidden: false
+    - skill_id: skill_houkongfan
+      level: 22
+      hidden: false
+    - skill_id: skill_huixingquan
+      level: 27
+      hidden: false
+    - skill_id: skill_baiguangpao
+      level: 32
+      hidden: false
+    - skill_id: skill_ziguangpao
+      level: 37
+      hidden: false
+    - skill_id: skill_xuruo
+      level: 42
+      hidden: false
+    - skill_id: skill_suixingquan
+      level: 47
+      hidden: false
+    - skill_id: skill_luoxuanguangpao
+      level: 52
+      hidden: false
+    - skill_id: skill_xingchensuiquan
+      level: 60
+      hidden: true
+    - skill_id: skill_qiangxingbandao
+      level: 60
+      hidden: true
+    - skill_id: skill_zhuixingquan
+      level: 60
+      hidden: true
+    - skill_id: skill_xingzhihui
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_pianxie
+  emblem:
+    - mark_emblem_huizhi

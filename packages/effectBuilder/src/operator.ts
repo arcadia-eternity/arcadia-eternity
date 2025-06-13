@@ -1649,31 +1649,6 @@ export function GetValueFromSource<T extends SelectorOpinion>(
     // Use the battle's ConfigSystem instance instead of the global singleton
     const configSystem = context.battle.configSystem
 
-    // Ensure the config is registered in the battle's ConfigSystem
-    if (!configSystem.isRegistered(_source.configId)) {
-      // Only register if the default value is a valid ConfigValue
-      const defaultValue = _source.defaultValue
-      if (
-        typeof defaultValue === 'string' ||
-        typeof defaultValue === 'number' ||
-        typeof defaultValue === 'boolean' ||
-        defaultValue === null
-      ) {
-        configSystem.registerConfig(_source.configId, defaultValue as ConfigValue)
-      }
-    } else {
-      // Config is already registered, but check if we need to update the base value
-      // This handles the case where a temporary placeholder was registered earlier
-      const currentValue = configSystem.get(_source.configId)
-      const expectedValue = _source.defaultValue
-
-      // If current value is 0 and expected value is different, update the base value
-      // This suggests the config was registered with a temporary placeholder
-      if (currentValue === 0 && expectedValue !== 0 && typeof expectedValue === 'number') {
-        configSystem.set(_source.configId, expectedValue)
-      }
-    }
-
     return [configSystem.get(_source.configId, context.source) ?? _source.defaultValue] as T[]
   }
   return [source]

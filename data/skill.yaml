@@ -4733,3 +4733,147 @@
   multihit: 2
   effect:
     - effect_skill_set_weather_qingtian_or_yemu
+- id: skill_liuxingquan
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 65
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_multihit_50_percent_2_times
+- id: skill_bandao
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 10
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_damage_by_foe_weight
+- id: skill_houkongfan
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  rage: 25
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_houkongfan # TODO: 使自身获得后空翻
+- id: skill_huixingquan
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 60
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_multihit_40_percent_3_times
+- id: skill_baiguangpao
+  element: Normal
+  category: Special
+  target: opponent
+  power: 100
+  rage: 15
+  accuracy: 90
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_haipa_5_percent
+- id: skill_ziguangpao
+  element: Normal
+  category: Special
+  target: opponent
+  power: 110
+  rage: 20
+  accuracy: 90
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_haipa_10_percent
+- id: skill_suixingquan
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 55
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_multihit_35_percent_4_times
+- id: skill_xingchensuiquan
+  element: Normal
+  category: Climax
+  target: opponent
+  power: 160
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_xingzhihui_50
+- id: skill_luoxuanguangpao
+  element: Normal
+  category: Special
+  target: opponent
+  power: 120
+  rage: 25
+  accuracy: 90
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_haipa_15_percent
+- id: skill_qiangxingbandao
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 75
+  rage: 15
+  accuracy: 90
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_damage_by_foe_weight
+- id: skill_zhuixingquan
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 50
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_multihit_30_percent_4_times # TODO: 30%连击4次
+- id: skill_xingzhihui
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  rage: 15
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_xingzhihui_20 # TODO: 使自身获得20点星之辉

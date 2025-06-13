@@ -601,3 +601,14 @@
     value: 20
   condition:
     type: petIsActive
+
+# 辉之：使技能效果触发率提高5%
+- id: effect_emblem_increase_skill_trigger_rate_5_percent
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addTaggedConfigModifier
+    target: self
+    tag: skill_effect_probability
+    modifierType: delta
+    value: 5

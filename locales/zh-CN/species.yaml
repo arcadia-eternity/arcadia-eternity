@@ -181,3 +181,12 @@ pet_anyite:
 pet_guangyite:
   name: 光伊特
   description: 如果说黑暗能够让人迷茫 那么光明就能让人盲目比起暗伊特的狡诘调皮 光伊特则更纯粹极端
+pet_tangni:
+  name: 汤尼
+  description: 汤尼来自一个彩虹山谷 拥有像石头一般坚硬的双拳
+pet_taini:
+  name: 泰尼
+  description: 被守护师收服后 泰尼跟随他来到了赛尔号的竞技场
+pet_luni:
+  name: 鲁尼
+  description: 不停的锻炼 让鲁尼成为了竞技场上最震撼的拳手

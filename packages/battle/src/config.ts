@@ -174,17 +174,13 @@ export class ConfigSystem {
   private static instance: ConfigSystem | null = null
   private static battleRegistry: Map<string, Set<ConfigSystem>> = new Map()
 
-  // Base config storage
-  public configMap: Map<string, ConfigValue> = new Map()
-  public instanceMap: WeakMap<ScopeObject, Map<string, ConfigValue>> = new WeakMap()
-
   // Modifier support
   private baseConfigs: Map<string, BehaviorSubject<ConfigValue>> = new Map()
   private modifiers: Map<string, BehaviorSubject<ConfigModifier[]>> = new Map()
   private subscriptions: Map<string, Observable<ConfigValue>> = new Map()
   private modifiersBySource: Map<string, Map<string, ConfigModifier[]>> = new Map()
 
-  // Scope-specific modifier storage
+  private scopedBaseConfigs: WeakMap<ScopeObject, Map<string, BehaviorSubject<ConfigValue>>> = new WeakMap()
   private scopedModifiers: WeakMap<ScopeObject, Map<string, ConfigModifier[]>> = new WeakMap()
 
   // Phase type tracking
@@ -230,13 +226,29 @@ export class ConfigSystem {
     }
     return ConfigSystem.instance
   }
-
   /**
    * Create a new ConfigSystem instance for a battle
    * This ensures battle instances don't interfere with each other
+   * The new instance will inherit global instance keys, values, and tags
    */
   static createInstance(battleId?: string): ConfigSystem {
-    return new ConfigSystem(battleId)
+    const newInstance = new ConfigSystem(battleId)
+
+    // Copy global instance keys and values
+    if (ConfigSystem.instance) {
+      for (const [key, subject] of ConfigSystem.instance.baseConfigs.entries()) {
+        if (!newInstance.baseConfigs.has(key)) {
+          if (ConfigSystem.instance.configKeyToTags.has(key)) {
+            const tags = Array.from(ConfigSystem.instance.configKeyToTags.get(key)!)
+            newInstance.registerTaggedConfig(key, subject.value, tags)
+          } else {
+            newInstance.registerConfig(key, subject.value)
+          }
+        }
+      }
+    }
+
+    return newInstance
   }
 
   /**
@@ -414,65 +426,68 @@ export class ConfigSystem {
     }
 
     // Check if this config has modifier support
-    if (this.subscriptions.has(key)) {
-      return this.getScopeAwareModifiedValue(key, scope)
+    if (this.baseConfigs.has(key)) {
+      const value = this.getScopeAwareModifiedValue(key, scope)
+      console.debug('value', value)
+      return value
     }
 
-    // Fallback to original logic for non-modifier configs
-    if (!scope) return this.configMap.get(key)
-
-    let _scope: ScopeObject = scope
-    while (true) {
-      if (this.instanceMap.has(_scope) && this.instanceMap.get(_scope)!.has(key)) {
-        return this.instanceMap.get(_scope)!.get(key)
-      }
-
-      // Handle different scope types
-      if (_scope instanceof Battle) break
-
-      let nextScope: ScopeObject | undefined
-      if ('owner' in _scope && _scope.owner) {
-        nextScope = _scope.owner as ScopeObject
-      } else if ('battle' in _scope && _scope.battle) {
-        nextScope = _scope.battle
-      }
-
-      if (!nextScope) break
-      _scope = nextScope
-    }
-    return this.configMap.get(key)
+    return undefined
   }
 
   /**
    * Get scope-aware modified value for a registered config
    */
   private getScopeAwareModifiedValue(key: string, scope?: ScopeObject): ConfigValue | undefined {
-    const baseValue = this.baseConfigs.get(key)?.value
+    let baseValue: ConfigValue | undefined
+    const visited = new Set<ScopeObject>()
+
+    // 1. Find the most specific base value by walking up the scope hierarchy.
+    let currentScopeForBase: ScopeObject | undefined = scope
+    while (currentScopeForBase) {
+      if (visited.has(currentScopeForBase)) {
+        console.warn(`Circular scope hierarchy detected while getting base value for key '${key}', breaking loop`)
+        break
+      }
+      visited.add(currentScopeForBase)
+
+      const scopeConfigs = this.scopedBaseConfigs.get(currentScopeForBase)
+      if (scopeConfigs && scopeConfigs.has(key)) {
+        baseValue = scopeConfigs.get(key)!.value
+        break // Found the most specific value, so we can stop searching.
+      }
+      currentScopeForBase = this.getParentScope(currentScopeForBase)
+    }
+
+    // 2. If no scoped value was found, fall back to the global base value.
+    if (baseValue === undefined) {
+      baseValue = this.baseConfigs.get(key)?.value
+    }
+
+    // 3. If no base value exists anywhere, the config is not set.
     if (baseValue === undefined) {
       return undefined
     }
 
-    // Get all applicable modifiers
+    // 4. Get all applicable modifiers (existing logic).
     const allModifiers: ConfigModifier[] = []
 
-    // 1. Get global modifiers
+    // Get global modifiers.
     const globalModifiers = this.modifiers.get(key)?.value || []
     allModifiers.push(...globalModifiers)
 
-    // 2. Get scope-specific modifiers
+    // Get scope-specific modifiers by walking up the hierarchy.
     if (scope) {
       const scopeModifiers = this.getScopeSpecificModifiers(key, scope)
       allModifiers.push(...scopeModifiers)
     }
 
-    // Filter modifiers based on current scope context and scope hierarchy
+    // 5. Filter modifiers based on current scope context.
     const applicableModifiers = this.filterModifiersByScopeHierarchy(allModifiers, scope)
 
-    // Sort by priority (higher priority first)
-    const sortedModifiers = applicableModifiers.sort((a: ConfigModifier, b: ConfigModifier) => b.priority - a.priority)
-
-    // Apply modifiers to base value
-    return sortedModifiers.reduce((acc: ConfigValue, modifier: ConfigModifier) => modifier.apply(acc), baseValue)
+    // 6. Sort modifiers by priority and apply them to the determined base value.
+    const sortedModifiers = applicableModifiers.sort((a, b) => b.priority - a.priority)
+    return sortedModifiers.reduce((acc, modifier) => modifier.apply(acc), baseValue)
   }
 
   /**
@@ -688,23 +703,36 @@ export class ConfigSystem {
    * Set config value (updates base value for modifier-enabled configs)
    */
   set(key: string, value: ConfigValue, scope?: ScopeObject): void {
-    // If this is a modifier-enabled config, update the base value
-    if (this.baseConfigs.has(key)) {
-      this.baseConfigs.get(key)!.next(value)
+    if (this.isDestroyed) {
+      console.warn(`Attempted to set config '${key}' on destroyed ConfigSystem`)
       return
     }
 
-    // Fallback to original logic
-    if (!scope) {
-      this.configMap.set(key, value)
-    } else {
-      if (!this.instanceMap.has(scope)) {
-        this.instanceMap.set(scope, new Map())
+    // A config must be registered globally before a scoped or global value can be set.
+    if (!this.baseConfigs.has(key)) {
+      console.warn(`Config key '${key}' is not registered. Please call registerConfig() first.`)
+      return
+    }
+
+    if (scope) {
+      // Setting a scope-specific base value.
+      if (!this.scopedBaseConfigs.has(scope)) {
+        this.scopedBaseConfigs.set(scope, new Map())
       }
-      this.instanceMap.get(scope)!.set(key, value)
+      const scopeConfigs = this.scopedBaseConfigs.get(scope)!
+
+      if (scopeConfigs.has(key)) {
+        // Update the existing BehaviorSubject for this scope.
+        scopeConfigs.get(key)!.next(value)
+      } else {
+        // Create a new BehaviorSubject for this key within this scope.
+        scopeConfigs.set(key, new BehaviorSubject(value))
+      }
+    } else {
+      // Setting the global base value.
+      this.baseConfigs.get(key)!.next(value)
     }
   }
-
   /**
    * Add a config modifier (legacy method - global scope)
    */
@@ -1239,7 +1267,6 @@ export class ConfigSystem {
     }
 
     // Clear all maps and arrays
-    this.configMap.clear()
     this.baseConfigs.clear()
     this.modifiers.clear()
     this.subscriptions.clear()

@@ -38,14 +38,18 @@ export type WidenLiteral<T> = T extends string
         ? null
         : T
 
-export function registerLiteralValue(effectId: string, value: any, configId?: string): string {
+export function registerLiteralValue(effectId: string, value: any, configId?: string, tags?: string[]): string {
   const configSystem = ConfigSystem.getInstance()
   const finalConfigId = configId || nanoid() // 自动生成唯一ID如果未提供
   const fullKey = `${effectId}.${finalConfigId}`
 
   // 首先注册配置键以支持modifier系统
   if (!configSystem.isRegistered(fullKey)) {
-    configSystem.registerConfig(fullKey, value)
+    if (tags === undefined) {
+      configSystem.registerConfig(fullKey, value)
+    } else {
+      configSystem.registerTaggedConfig(fullKey, value, tags)
+    }
   } else {
     // 如果已经注册，只更新值
     configSystem.set(fullKey, value)

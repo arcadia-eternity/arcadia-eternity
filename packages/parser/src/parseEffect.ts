@@ -16,6 +16,7 @@ import {
   SkillInstance,
   StackContext,
   UseSkillContext,
+  Battle,
 } from '@arcadia-eternity/battle'
 import { Observable } from 'rxjs'
 import {
@@ -61,48 +62,8 @@ import type {
   ChainSelector,
 } from '@arcadia-eternity/schema'
 
-// Global config registrations collector
-const configRegistrations = new Map<string, { configKey: string; initialValue: any }>()
-
-// Global registry to track all configs that need to be registered
-const globalConfigRegistry = new Map<string, { configKey: string; initialValue: any }>()
-
-// Tagged config registrations collector
-const taggedConfigRegistrations = new Map<string, { configKey: string; initialValue: any; tags: string[] }>()
-
-// Global registry to track all tagged configs that need to be registered
-const globalTaggedConfigRegistry = new Map<string, { configKey: string; initialValue: any; tags: string[] }>()
-
-/**
- * Pre-register all configs from effects to avoid runtime registration order issues
- */
-export function preRegisterAllConfigs(): void {
-  const configSystem = ConfigSystem.getInstance()
-
-  // Register normal configs
-  Array.from(globalConfigRegistry.values()).forEach(({ configKey, initialValue }) => {
-    if (!configSystem.isRegistered(configKey)) {
-      configSystem.registerConfig(configKey, initialValue)
-    }
-  })
-
-  // Register tagged configs
-  Array.from(globalTaggedConfigRegistry.values()).forEach(({ configKey, initialValue, tags }) => {
-    if (!configSystem.isRegistered(configKey)) {
-      configSystem.registerTaggedConfig(configKey, initialValue, tags)
-    } else {
-      // If already registered, just add the tags
-      configSystem.addConfigTags(configKey, tags)
-    }
-  })
-}
-
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   try {
-    // Clear config registrations for this effect
-    configRegistrations.clear()
-    taggedConfigRegistrations.clear()
-
     const condition = dsl.condition ? parseCondition(dsl.id, dsl.condition) : undefined
 
     let actions: any[]
@@ -110,32 +71,6 @@ export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
       actions = dsl.apply.map(a => createAction(dsl.id, a))
     } else {
       actions = [createAction(dsl.id, dsl.apply)]
-    }
-
-    // Add config registration actions at the beginning if there are any configs to register
-    const registrationActions: any[] = []
-
-    // Register normal configs
-    if (configRegistrations.size > 0) {
-      const configRegActions = Array.from(configRegistrations.values()).map(({ configKey, initialValue }) =>
-        parseSelector<ScopeObject>(dsl.id, 'battle').apply(Operators.registerConfig(configKey, initialValue)),
-      )
-      registrationActions.push(...configRegActions)
-    }
-
-    // Register tagged configs
-    if (taggedConfigRegistrations.size > 0) {
-      const taggedConfigRegActions = Array.from(taggedConfigRegistrations.values()).map(
-        ({ configKey, initialValue, tags }) =>
-          parseSelector<ScopeObject>(dsl.id, 'battle').apply(
-            Operators.registerTaggedConfig(configKey, initialValue, tags),
-          ),
-      )
-      registrationActions.push(...taggedConfigRegActions)
-    }
-
-    if (registrationActions.length > 0) {
-      actions = [...registrationActions, ...actions]
     }
 
     // Return effect with all actions (including registerConfig actions if needed)
@@ -547,58 +482,14 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
       falseValue,
     } as ConditionalValueSource<SelectorOpinion>
   }
-  if (v.type === 'raw:number') {
+  if (v.type === 'raw:number' || v.type === 'raw:string' || v.type === 'raw:boolean') {
     if (v.configId) {
-      // Use proper config registration for user-defined config values
-      const fullKey = `${effectId}.${v.configId}`
-      if (v.tags && v.tags.length > 0) {
-        // Register as tagged config
-        taggedConfigRegistrations.set(fullKey, { configKey: fullKey, initialValue: v.value, tags: v.tags })
-        globalTaggedConfigRegistry.set(fullKey, { configKey: fullKey, initialValue: v.value, tags: v.tags })
-      } else {
-        // Register as normal config
-        configRegistrations.set(fullKey, { configKey: fullKey, initialValue: v.value })
-        globalConfigRegistry.set(fullKey, { configKey: fullKey, initialValue: v.value })
-      }
+      const fullKey = registerLiteralValue(effectId, v.value, v.configId, v.tags)
       return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<number>
     } else {
       // Use registerLiteralValue for internal temporary values
-      const fullKey = registerLiteralValue(effectId, v.value)
+      const fullKey = registerLiteralValue(effectId, v.value, undefined, v.tags)
       return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<number>
-    }
-  }
-  if (v.type === 'raw:string') {
-    if (v.configId) {
-      // Use proper config registration for user-defined config values
-      const fullKey = `${effectId}.${v.configId}`
-      if (v.tags && v.tags.length > 0) {
-        // Register as tagged config
-        taggedConfigRegistrations.set(fullKey, { configKey: fullKey, initialValue: v.value, tags: v.tags })
-        globalTaggedConfigRegistry.set(fullKey, { configKey: fullKey, initialValue: v.value, tags: v.tags })
-      } else {
-        // Register as normal config
-        configRegistrations.set(fullKey, { configKey: fullKey, initialValue: v.value })
-        globalConfigRegistry.set(fullKey, { configKey: fullKey, initialValue: v.value })
-      }
-      return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<string>
-    } else {
-      // Use registerLiteralValue for internal temporary values
-      const fullKey = registerLiteralValue(effectId, v.value)
-      return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<string>
-    }
-  }
-  if (v.type === 'raw:boolean') {
-    if (v.configId) {
-      // Use proper config registration for user-defined config values
-      const fullKey = `${effectId}.${v.configId}`
-      configRegistrations.set(fullKey, { configKey: fullKey, initialValue: v.value })
-      // Also add to global registry for pre-registration
-      globalConfigRegistry.set(fullKey, { configKey: fullKey, initialValue: v.value })
-      return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<boolean>
-    } else {
-      // Use registerLiteralValue for internal temporary values
-      const fullKey = registerLiteralValue(effectId, v.value)
-      return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<boolean>
     }
   }
   if (v.type === 'entity:baseMark')
@@ -946,7 +837,7 @@ function parseToggle(effectId: string, dsl: Extract<OperatorDSL, { type: 'toggle
 }
 
 function parseSetconfig(effectId: string, dsl: Extract<OperatorDSL, { type: 'setConfig' }>) {
-  return parseSelector<ScopeObject>(effectId, dsl.target).apply(
+  return parseSelector<Battle>(effectId, dsl.target).apply(
     Operators.setConfig(
       parseValue(effectId, dsl.key) as ValueSource<string>,
       parseValue(effectId, dsl.value) as ValueSource<ConfigValue>,

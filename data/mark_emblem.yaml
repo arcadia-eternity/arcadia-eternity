@@ -80,6 +80,9 @@
   effect:
     - effect_emblem_yinji_reduce_rage_cost_xinzhiyinji
 - id: mark_emblem_huizhi
+  config: *emblem_config
+  effect:
+    - effect_emblem_increase_skill_trigger_rate_5_percent
 - id: mark_emblem_yinbo
 - id: mark_emblem_xinsuo
 - id: mark_emblem_aide

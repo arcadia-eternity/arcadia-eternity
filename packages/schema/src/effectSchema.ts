@@ -42,18 +42,21 @@ export const rawNumberValueSchema: z.ZodSchema<RawNumberValue> = z.object({
   type: z.literal('raw:number'),
   value: z.number(),
   configId: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 })
 
 export const rawStringValueSchema: z.ZodSchema<RawStringValue> = z.object({
   type: z.literal('raw:string'),
   value: z.string(),
   configId: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 })
 
 export const rawBooleanValueSchema: z.ZodSchema<RawBooleanValue> = z.object({
   type: z.literal('raw:boolean'),
   value: z.boolean(),
   configId: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 })
 
 export const rawBaseMarkIdValueSchema: z.ZodSchema<RawBaseMarkIdValue> = z.object({
@@ -61,7 +64,7 @@ export const rawBaseMarkIdValueSchema: z.ZodSchema<RawBaseMarkIdValue> = z.objec
   value: z.string().refine(v => v.startsWith('mark_')),
 })
 
-const rawBaseSkillIdValueSchema: z.ZodSchema<RawBaseSkillIdValue> = z.object({
+export const rawBaseSkillIdValueSchema: z.ZodSchema<RawBaseSkillIdValue> = z.object({
   type: z.literal('entity:baseSkill'),
   value: z.string().refine(v => v.startsWith('skill_'), {
     message: "Skill ID must start with 'skill_'",

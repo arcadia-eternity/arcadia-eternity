@@ -293,6 +293,12 @@
                                                                 },
                                                                 "configId": {
                                                                   "type": "string"
+                                                                },
+                                                                "tags": {
+                                                                  "type": "array",
+                                                                  "items": {
+                                                                    "type": "string"
+                                                                  }
                                                                 }
                                                               },
                                                               "required": [
@@ -316,6 +322,12 @@
                                                                 },
                                                                 "configId": {
                                                                   "type": "string"
+                                                                },
+                                                                "tags": {
+                                                                  "type": "array",
+                                                                  "items": {
+                                                                    "type": "string"
+                                                                  }
                                                                 }
                                                               },
                                                               "required": [
@@ -339,6 +351,12 @@
                                                                 },
                                                                 "configId": {
                                                                   "type": "string"
+                                                                },
+                                                                "tags": {
+                                                                  "type": "array",
+                                                                  "items": {
+                                                                    "type": "string"
+                                                                  }
                                                                 }
                                                               },
                                                               "required": [

@@ -80,6 +80,10 @@
   effect:
     - effect_ability_hongxin_increase_accuracy_5_percent
 - id: mark_ability_pianxie
+  config: *ablitity_config
+  effect:
+    - effect_ability_reduce_physical_damage_30_percent
+    - effect_ability_increase_special_damage_taken_15_percent
 - id: mark_ability_yinwang
 - id: mark_ability_qingying
 - id: mark_ability_youai

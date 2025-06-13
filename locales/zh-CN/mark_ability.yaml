@@ -82,3 +82,6 @@ mark_ability_anying:
 mark_ability_guangming:
   name: 光明
   description: 怒气＞对手且技能命中时时恢复自身最大体力的1/8
+mark_ability_pianxie:
+  name: 偏斜
+  description: 受到物攻伤害减少30% 受到特攻伤害增加15%

@@ -324,7 +324,7 @@
           type: same
           value: Normal
 - id: effect_ability_add_shuiwenpingzhang_value_if_yutian
-  trigger: AfterUseSkillCheck
+  trigger: BeforeHit
   priority: 0
   apply:
     type: setConfig
@@ -354,7 +354,7 @@
   condition:
     type: every
     conditions:
-      - type: checkSelf
+      - type: selfUseSkill
       - type: evaluate
         target:
           base: usingSkillContext
@@ -689,3 +689,47 @@
               arg: maxHp
           - type: divide
             arg: 8
+- id: effect_ability_reduce_physical_damage_30_percent
+  trigger: OnDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageType
+        evaluator:
+          type: same
+          value: Physical
+  apply:
+    type: addModified
+    target:
+      base: damageContext
+    delta: 0
+    percent: -30
+- id: effect_ability_increase_special_damage_taken_15_percent
+  trigger: OnDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageType
+        evaluator:
+          type: same
+          value: Special
+  apply:
+    type: addModified
+    target:
+      base: damageContext
+    delta: 0
+    percent: 15

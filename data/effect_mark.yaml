@@ -2061,3 +2061,66 @@
       mark:
         type: entity:baseMark
         value: mark_kongju
+
+# 后空翻：闪避物理攻击
+- id: effect_mark_evade_physical_attacks
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: foeUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Physical
+  apply:
+    type: setSureMiss
+    target: usingSkillContext
+    priority: -1
+
+# 后空翻： 受到的特殊伤害翻倍
+- id: effect_mark_double_special_damage_taken
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageType
+        evaluator:
+          type: same
+          value: Special
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 100
+    delta: 0
+
+# 星之辉: 技能特效的触发概率提高印记的层数
+- id: effect_mark_increase_skill_trigger_rate_with_stack
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addTaggedConfigModifier
+    target:
+      base: self
+    tag: skill_effect_probability
+    modifierType: delta
+    value:
+      type: dynamic
+      selector:
+        base: mark
+        chain:
+          - type: selectAttribute$
+            arg: stack

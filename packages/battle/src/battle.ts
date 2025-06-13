@@ -89,20 +89,7 @@ export class Battle extends Context implements MarkOwner {
     if (options?.rngSeed) this.rng = new Prando(options.rngSeed)
     // Use provided configSystem or create a new instance for this battle
     this.configSystem = configSystem || ConfigSystem.createInstance(this.id)
-
-    // Sync registered config keys from global singleton to battle instance
-    const globalConfigSystem = ConfigSystem.getInstance()
-    const globalKeys = globalConfigSystem.getRegisteredKeys()
-
-    for (const key of globalKeys) {
-      if (!this.configSystem.isRegistered(key)) {
-        // Get the current value from global system
-        const value = globalConfigSystem.get(key)
-        if (value !== undefined) {
-          this.configSystem.registerConfig(key, value)
-        }
-      }
-    }
+    console.log(this.configSystem)
 
     this.allowFaintSwitch = options?.allowFaintSwitch ?? true
     this.showHidden = options?.showHidden ?? false

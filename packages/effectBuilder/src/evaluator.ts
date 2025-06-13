@@ -109,14 +109,16 @@ export const Evaluators = {
     <T>(dynamicPercent: ValueSource<number>): Evaluator<T> =>
     (context: EffectContext<EffectTrigger>) => {
       const percent = GetValueFromSource(context, dynamicPercent)[0]
+      console.debug('testpercent', percent)
       return context.battle.random() < percent / 100
     },
 
   //如果至少存在一个元素，返回真
   exist:
     <T>(): Evaluator<T> =>
-    (context: EffectContext<EffectTrigger>, values: T[]) =>
-      values.length > 0,
+    (context: EffectContext<EffectTrigger>, values: T[]) => {
+      return values.length > 0
+    },
 }
 
 export const ConditionUtils = {

@@ -83,3 +83,6 @@ mark_emblem_anying:
 mark_emblem_guangming:
   name: 光辉
   description: 每回合结束时恢复20点体力
+mark_emblem_huizhi:
+  name: 辉之
+  description: 使技能效果触发率提升5%
