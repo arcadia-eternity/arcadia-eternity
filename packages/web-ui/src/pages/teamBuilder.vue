@@ -69,7 +69,7 @@
     </div>
 
     <!-- 主要内容区域 -->
-    <main class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-3">
+    <main class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-3 pb-20">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <!-- 队伍列表 - 移动端全宽，桌面端占3列 -->
         <div class="lg:col-span-3">
@@ -600,10 +600,10 @@
 
     <!-- 全局操作栏 -->
     <div
-      class="fixed bottom-0 left-0 right-0 z-50 md:bottom-4 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2"
+      class="fixed bottom-0 left-4 right-4 z-50 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 md:max-w-fit"
     >
       <div
-        class="flex items-center justify-center space-x-2 bg-white shadow-lg border-t border-gray-200 px-4 py-3 md:rounded-full md:border md:border-gray-200 md:border-t-gray-200"
+        class="flex items-center justify-center space-x-2 bg-white shadow-lg border border-gray-200 rounded-t-lg px-4 py-3 md:rounded-lg"
       >
         <!-- 保存按钮 - 在移动端更突出 -->
         <button
@@ -1336,19 +1336,11 @@ const handleExportTeamConfig = () => {
   position: absolute;
 }
 
-/* 移动端优化 */
-@media (max-width: 768px) {
-  /* 为底部操作栏预留空间 */
-  main {
-    padding-bottom: 5rem;
-  }
-
-  /* 确保操作栏在移动端全宽显示 */
-  .fixed.bottom-0 {
-    box-shadow:
-      0 -4px 6px -1px rgba(0, 0, 0, 0.1),
-      0 -2px 4px -1px rgba(0, 0, 0, 0.06);
-  }
+/* 操作栏样式优化 */
+.fixed.bottom-0 {
+  box-shadow:
+    0 -4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 -2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 /* 响应式网格调整 */

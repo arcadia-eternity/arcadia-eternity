@@ -1,6 +1,6 @@
 <template>
   <div
-    class="w-full mx-auto text-center min-h-[calc(100vh-56px)] md:min-h-[calc(100vh-60px)] box-border flex flex-col justify-center px-4 py-6 md:px-5 md:py-8 max-w-4xl"
+    class="lobby-container w-full mx-auto text-center min-h-screen box-border flex flex-col px-4 py-6 md:px-5 md:py-8 max-w-4xl"
   >
     <h1 class="text-2xl md:text-3xl font-bold mb-6 md:mb-8 text-gray-800">对战匹配大厅</h1>
 
@@ -167,6 +167,22 @@ onBeforeUnmount(async () => {
 </script>
 
 <style scoped>
+/* 确保页面内容可以正常滚动 */
+.lobby-container {
+  /* 当内容较少时居中显示，内容较多时允许滚动 */
+  justify-content: center;
+  /* 在移动端确保有足够的空间 */
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+/* 当内容超出视口时，移除居中对齐 */
+@media (max-height: 800px) {
+  .lobby-container {
+    justify-content: flex-start;
+    padding-top: 2rem;
+  }
+}
+
 /* 移动端触摸优化 */
 @media (hover: none) and (pointer: coarse) {
   .touch-manipulation {
@@ -248,5 +264,27 @@ button:focus {
   .animate-spin {
     animation-duration: 1s;
   }
+
+  /* 移动端滚动优化 */
+  .lobby-container {
+    /* 确保在小屏幕上内容不会被挤压 */
+    min-height: auto;
+    justify-content: flex-start;
+    padding-top: 1rem;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 2rem);
+  }
+}
+
+/* 修复可能的iOS滚动问题 */
+@supports (-webkit-touch-callout: none) {
+  .lobby-container {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* 确保内容不会被固定元素遮挡 */
+.lobby-container {
+  position: relative;
+  z-index: 1;
 }
 </style>

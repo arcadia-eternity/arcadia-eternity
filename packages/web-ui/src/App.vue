@@ -1,7 +1,10 @@
 <template>
   <div class="h-screen flex flex-col">
-    <!-- 移动端优先的导航栏 -->
-    <header class="bg-black/90 border-b border-gray-600 backdrop-blur-md" :class="isMobile ? 'h-14' : 'h-15'">
+    <!-- 移动端优先的导航栏 - 固定置顶 -->
+    <header
+      class="sticky top-0 z-40 bg-black/90 border-b border-gray-600 backdrop-blur-md"
+      :class="isMobile ? 'h-14' : 'h-15'"
+    >
       <!-- 移动端导航 -->
       <div v-if="isMobile" class="flex justify-between items-center px-4 h-full">
         <div class="flex items-center gap-3">
@@ -282,35 +285,35 @@
       </template>
     </el-dialog>
 
-    <main class="flex-1 p-0 relative overflow-hidden w-full">
+    <main class="flex-1 overflow-auto">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
-          <component
-            :is="Component"
-            class="h-full w-full static overflow-auto"
-            :style="{ minHeight: isMobile ? 'calc(100vh - 56px)' : 'calc(100vh - 60px)' }"
-          />
+          <component :is="Component" class="w-full" />
         </transition>
       </router-view>
     </main>
 
-    <!-- 全局状态提示 -->
-    <el-affix position="bottom" :offset="20">
-      <div class="absolute right-4 bottom-4 z-50 md:right-5 md:bottom-5">
-        <el-tag :type="connectionState === 'connected' ? 'success' : 'danger'" effect="dark" round>
-          <el-icon :size="14">
-            <Connection />
-          </el-icon>
-          {{ connectionState === 'connected' ? '已连接' : '未连接' }}
-        </el-tag>
-      </div>
-    </el-affix>
+    <!-- 全局状态提示 - 移除 el-affix，使用固定定位 -->
+    <div class="fixed right-4 bottom-4 z-50 md:right-5 md:bottom-5 pointer-events-none">
+      <el-tag
+        :type="connectionState === 'connected' ? 'success' : 'danger'"
+        effect="dark"
+        round
+        class="pointer-events-auto"
+      >
+        <el-icon :size="14">
+          <Connection />
+        </el-icon>
+        {{ connectionState === 'connected' ? '已连接' : '未连接' }}
+      </el-tag>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { ref, onMounted, computed, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
 import { battleClient, initBattleClient } from './utils/battleClient'
 import { useGameDataStore } from './stores/gameData'
 import { usePlayerStore } from './stores/player'
@@ -341,26 +344,19 @@ const petStorage = usePetStorageStore()
 const serverState = useServerStateStore()
 const gameSettingStore = useGameSettingStore()
 
-// 移动端检测 - 响应式窗口大小
-const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
-const isMobile = computed(() => windowWidth.value < 768)
+// 使用 VueUse 的响应式断点检测
+const breakpoints = useBreakpoints(breakpointsTailwind)
+const isMobile = breakpoints.smaller('md') // md 断点是 768px
 
 // 移动端菜单状态
 const showMobileMenu = ref(false)
 
-// 监听窗口大小变化
-const handleResize = () => {
-  windowWidth.value = window.innerWidth
-  // 当切换到桌面端时自动关闭移动端菜单
-  if (!isMobile.value) {
+// 监听移动端状态变化，当切换到桌面端时自动关闭移动端菜单
+watch(isMobile, newIsMobile => {
+  if (!newIsMobile) {
     showMobileMenu.value = false
   }
-}
-
-// 添加窗口大小监听器
-if (typeof window !== 'undefined') {
-  window.addEventListener('resize', handleResize)
-}
+})
 
 // 连接状态
 const connectionState = computed(() => {
@@ -434,13 +430,6 @@ onMounted(async () => {
   }
 })
 
-// 清理事件监听器
-onUnmounted(() => {
-  if (typeof window !== 'undefined') {
-    window.removeEventListener('resize', handleResize)
-  }
-})
-
 const backgroundOptions = computed(() => {
   return resourceStore.loaded ? resourceStore.background.allIds.filter(id => id !== 'random') : []
 })
@@ -486,20 +475,94 @@ body,
   padding: 0px;
   width: 100%;
   box-sizing: border-box;
-  /* 禁用双击缩放和触摸手势 */
-  touch-action: manipulation;
+  /* 完全禁用双指缩放和双击缩放，只允许垂直滚动 */
+  touch-action: pan-y;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -khtml-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  /* 禁用iOS Safari的双击缩放和自动缩放 */
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  /* 额外的缩放控制 */
+  zoom: 1;
 }
 
 * {
   box-sizing: border-box;
-  /* 禁用双击缩放 */
+  /* 确保所有元素都禁用缩放 */
+  touch-action: inherit;
+}
+
+/* 全局禁用双指缩放和双击缩放 */
+*,
+*::before,
+*::after {
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 对于交互元素，禁用双击缩放但保留点击功能 */
+button,
+input,
+select,
+textarea,
+a,
+.el-button,
+.el-input,
+.el-select,
+.touch-manipulation {
   touch-action: manipulation;
+}
+
+/* 对于可滚动区域，只允许垂直滚动 */
+.overflow-auto,
+.el-scrollbar,
+.el-dialog__body,
+.el-drawer__body {
+  touch-action: pan-y;
+}
+
+/* 确保页面内容可以正常滚动 */
+html {
+  height: 100%;
+  overflow: auto;
+}
+
+body {
+  height: 100%;
+  overflow: auto;
+}
+
+#app {
+  height: 100%;
+  overflow: visible;
+}
+
+/* 修复可能的滚动问题 */
+.overflow-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 确保主容器不会阻止滚动 */
+main {
+  overflow: auto !important;
+  position: relative !important;
+}
+
+/* 确保顶栏始终置顶 */
+header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 40 !important;
+}
+
+/* 确保页面布局正确 */
+.h-screen {
+  height: 100vh !important;
+  height: 100dvh !important; /* 动态视口高度，更适合移动端 */
 }
 
 /* 动画效果 */

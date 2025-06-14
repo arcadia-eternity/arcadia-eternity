@@ -59,8 +59,9 @@ import {
 } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBattleViewStore } from '@/stores/battleView'
-import { Z_INDEX } from '@/constants/zIndex'
-import { DArrowLeft, DArrowRight, VideoPause, VideoPlay, Film } from '@element-plus/icons-vue'
+import { useMobile } from '@/composition/useMobile'
+import { Z_INDEX, Z_INDEX_CLASS } from '@/constants/zIndex'
+import { DArrowLeft, DArrowRight, VideoPause, VideoPlay, Film, FullScreen, Aim, Warning } from '@element-plus/icons-vue'
 
 // Props 定义
 interface Props {
@@ -111,6 +112,113 @@ const battleViewStore = useBattleViewStore()
 // 自适应缩放相关
 const battleContainerRef = useTemplateRef('battleContainerRef')
 let resizeObserver: ResizeObserver | null = null
+
+// 移动端检测
+const { isMobile, isPortrait } = useMobile()
+
+// 全屏相关
+const isFullscreen = ref(false)
+const showOrientationHint = computed(() => isMobile.value && isPortrait.value && !isFullscreen.value)
+
+// 自定义确认对话框（用于全屏模式）
+const showCustomConfirm = ref(false)
+const customConfirmTitle = ref('')
+const customConfirmMessage = ref('')
+const customConfirmResolve = ref<((value: boolean) => void) | null>(null)
+
+// 自定义确认对话框方法
+const showCustomConfirmDialog = (title: string, message: string): Promise<boolean> => {
+  return new Promise(resolve => {
+    customConfirmTitle.value = title
+    customConfirmMessage.value = message
+    customConfirmResolve.value = resolve
+    showCustomConfirm.value = true
+  })
+}
+
+// 处理自定义确认对话框的确认
+const handleCustomConfirm = (confirmed: boolean) => {
+  showCustomConfirm.value = false
+  if (customConfirmResolve.value) {
+    customConfirmResolve.value(confirmed)
+    customConfirmResolve.value = null
+  }
+}
+
+// 进入全屏模式
+const enterFullscreen = async () => {
+  try {
+    const element = battleContainerRef.value
+    if (!element) return
+
+    // 请求全屏
+    if (element.requestFullscreen) {
+      await element.requestFullscreen()
+    } else if ((element as any).webkitRequestFullscreen) {
+      await (element as any).webkitRequestFullscreen()
+    } else if ((element as any).msRequestFullscreen) {
+      await (element as any).msRequestFullscreen()
+    }
+
+    isFullscreen.value = true
+
+    // 尝试锁定屏幕方向为横屏
+    if (screen.orientation && (screen.orientation as any).lock) {
+      try {
+        await (screen.orientation as any).lock('landscape')
+      } catch (error) {
+        console.warn('无法锁定屏幕方向:', error)
+      }
+    }
+  } catch (error) {
+    console.error('进入全屏失败:', error)
+  }
+}
+
+// 退出全屏模式
+const exitFullscreen = async () => {
+  try {
+    if (document.exitFullscreen) {
+      await document.exitFullscreen()
+    } else if ((document as any).webkitExitFullscreen) {
+      await (document as any).webkitExitFullscreen()
+    } else if ((document as any).msExitFullscreen) {
+      await (document as any).msExitFullscreen()
+    }
+
+    isFullscreen.value = false
+
+    // 解锁屏幕方向
+    if (screen.orientation && (screen.orientation as any).unlock) {
+      try {
+        ;(screen.orientation as any).unlock()
+      } catch (error) {
+        console.warn('无法解锁屏幕方向:', error)
+      }
+    }
+  } catch (error) {
+    console.error('退出全屏失败:', error)
+  }
+}
+
+// 切换全屏模式
+const toggleFullscreen = () => {
+  if (isFullscreen.value) {
+    exitFullscreen()
+  } else {
+    enterFullscreen()
+  }
+}
+
+// 监听全屏状态变化
+const handleFullscreenChange = () => {
+  const isCurrentlyFullscreen = !!(
+    document.fullscreenElement ||
+    (document as any).webkitFullscreenElement ||
+    (document as any).msFullscreenElement
+  )
+  isFullscreen.value = isCurrentlyFullscreen
+}
 
 useMusic()
 
@@ -270,30 +378,22 @@ const handleEscape = async () => {
   if (!action) return
 
   try {
-    await ElMessageBox.confirm(
-      i18next.t('surrender-confirm-message', {
-        ns: 'battle',
-        defaultValue: '确定要投降吗？投降后将直接结束战斗。',
-      }),
+    // 统一使用自定义确认对话框
+    const confirmed = await showCustomConfirmDialog(
       i18next.t('surrender-confirm-title', {
         ns: 'battle',
         defaultValue: '确认投降',
       }),
-      {
-        confirmButtonText: i18next.t('surrender-confirm-button', {
-          ns: 'battle',
-          defaultValue: '投降',
-        }),
-        cancelButtonText: i18next.t('cancel', {
-          ns: 'battle',
-          defaultValue: '取消',
-        }),
-        type: 'warning',
-      },
+      i18next.t('surrender-confirm-message', {
+        ns: 'battle',
+        defaultValue: '确定要投降吗？投降后将直接结束战斗。',
+      }),
     )
 
     // 用户确认投降，执行投降操作
-    store.sendplayerSelection(action)
+    if (confirmed) {
+      store.sendplayerSelection(action)
+    }
   } catch {
     // 用户取消投降，不执行任何操作
   }
@@ -1004,6 +1104,11 @@ onMounted(async () => {
   await nextTick() // 确保DOM已渲染
   initAdaptiveScaling()
 
+  // 添加全屏状态监听器
+  document.addEventListener('fullscreenchange', handleFullscreenChange)
+  document.addEventListener('webkitfullscreenchange', handleFullscreenChange)
+  document.addEventListener('msfullscreenchange', handleFullscreenChange)
+
   // 检查是否是回放模式
   if (props.replayMode) {
     let battleRecord = null
@@ -1178,6 +1283,11 @@ onUnmounted(() => {
   // 清理自适应缩放
   cleanupAdaptiveScaling()
 
+  // 清理全屏事件监听器
+  document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
+  document.removeEventListener('msfullscreenchange', handleFullscreenChange)
+
   // 清理战斗和回放状态
   store.resetBattle()
 })
@@ -1282,10 +1392,83 @@ watch(
         '--battle-view-scale': battleViewScale,
       }"
     >
+      <!-- 自定义确认对话框（覆盖整个战斗容器） -->
+      <Transition name="fade">
+        <div
+          v-if="showCustomConfirm"
+          class="absolute inset-0 bg-black/80 flex items-center justify-center"
+          :class="Z_INDEX_CLASS.CUSTOM_CONFIRM_DIALOG"
+        >
+          <div
+            class="bg-gradient-to-br from-[#2a2a4a] to-[#1a1a2e] p-8 rounded-2xl shadow-[0_0_30px_rgba(255,165,0,0.4)] text-center max-w-md mx-4"
+          >
+            <!-- 警告图标 -->
+            <div class="mb-6">
+              <el-icon class="text-orange-400 text-6xl" :size="64">
+                <Warning />
+              </el-icon>
+            </div>
+
+            <!-- 对话框标题 -->
+            <h2 class="text-3xl mb-4 text-white [text-shadow:_0_0_20px_#fff] font-bold">
+              {{ customConfirmTitle }}
+            </h2>
+
+            <!-- 对话框内容 -->
+            <p class="text-gray-300 text-lg leading-relaxed mb-8">
+              {{ customConfirmMessage }}
+            </p>
+
+            <!-- 对话框按钮 -->
+            <div class="flex gap-4 justify-center">
+              <button
+                @click="handleCustomConfirm(false)"
+                class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
+              >
+                {{ i18next.t('cancel', { ns: 'battle', defaultValue: '取消' }) }}
+              </button>
+              <button
+                @click="handleCustomConfirm(true)"
+                class="px-6 py-3 bg-orange-600 hover:bg-orange-500 rounded-lg text-white font-bold transition-colors shadow-[0_0_15px_rgba(255,165,0,0.3)]"
+              >
+                {{ i18next.t('surrender-confirm-button', { ns: 'battle', defaultValue: '投降' }) }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
       <!-- 计时器组件 -->
-      <div v-if="!isReplayMode" class="absolute top-2 left-2" :class="`z-[${Z_INDEX.TIMER}]`">
+      <div v-if="!isReplayMode" class="absolute top-2 left-2" :class="Z_INDEX_CLASS.TIMER">
         <BattleTimer :player-id="currentPlayer?.id" />
       </div>
+
+      <!-- 移动端横屏提示 -->
+      <div
+        v-if="showOrientationHint"
+        class="absolute inset-0 bg-black/60 flex items-center justify-center"
+        :class="Z_INDEX_CLASS.MOBILE_ORIENTATION_HINT"
+      >
+        <div class="bg-white/90 backdrop-blur-sm rounded-lg p-6 mx-4 text-center max-w-sm">
+          <div class="text-2xl mb-4">📱 ➡️ 📱</div>
+          <h3 class="text-lg font-bold text-gray-800 mb-2">建议横屏游戏</h3>
+          <p class="text-gray-600 text-sm mb-4">为了获得最佳游戏体验，建议将设备旋转至横屏模式</p>
+          <p class="text-gray-500 text-xs">或点击右上角的全屏按钮进入全屏模式</p>
+        </div>
+      </div>
+
+      <!-- 移动端全屏按钮 -->
+      <button
+        v-if="isMobile && !isReplayMode"
+        @click="toggleFullscreen"
+        class="absolute top-4 right-4 w-12 h-12 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all duration-200 active:scale-95"
+        :class="Z_INDEX_CLASS.MOBILE_FULLSCREEN_BUTTON"
+        :title="isFullscreen ? '退出全屏' : '进入全屏'"
+      >
+        <el-icon :size="20">
+          <FullScreen v-if="!isFullscreen" />
+          <Aim v-else />
+        </el-icon>
+      </button>
 
       <div
         ref="battleViewRef"
@@ -1301,7 +1484,7 @@ watch(
           src="/ko.png"
           alt="KO Banner"
           class="absolute left-1/2 top-1/2 max-w-[80%] max-h-[80%] object-contain"
-          :class="`z-[${Z_INDEX.KO_BANNER}]`"
+          :class="Z_INDEX_CLASS.KO_BANNER"
         />
         <div
           class="relative h-full w-full flex flex-col bg-center bg-no-repeat overflow-visible"
@@ -1350,7 +1533,7 @@ watch(
             <!-- 左侧精灵侧栏 - 绝对定位 -->
             <div
               class="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5"
-              :class="`z-[${Z_INDEX.PET_BUTTON_CONTAINER}]`"
+              :class="Z_INDEX_CLASS.PET_BUTTON_CONTAINER"
             >
               <PetButton
                 v-for="pet in leftPlayerPets"
@@ -1366,7 +1549,7 @@ watch(
             <!-- 右侧精灵侧栏 - 绝对定位 -->
             <div
               class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5"
-              :class="`z-[${Z_INDEX.PET_BUTTON_CONTAINER}]`"
+              :class="Z_INDEX_CLASS.PET_BUTTON_CONTAINER"
             >
               <PetButton
                 v-for="pet in rightPlayerPets"
@@ -1384,7 +1567,7 @@ watch(
               ref="leftPetRef"
               :num="leftPetSpeciesNum"
               class="absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none"
-              :class="`z-[${Z_INDEX.PET_SPRITE}]`"
+              :class="Z_INDEX_CLASS.PET_SPRITE"
               @hit="handleAttackHit('left')"
               @animate-complete="handleAnimationComplete('left')"
             />
@@ -1395,7 +1578,7 @@ watch(
               :num="rightPetSpeciesNum"
               :reverse="true"
               class="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none"
-              :class="`z-[${Z_INDEX.PET_SPRITE}]`"
+              :class="Z_INDEX_CLASS.PET_SPRITE"
               @hit="handleAttackHit('right')"
               @animate-complete="handleAnimationComplete('right')"
             />
@@ -1491,8 +1674,10 @@ watch(
                     <!-- 可点击区域 -->
                     <div
                       class="timeline-clickable"
-                      :class="{ 'pointer-events-none': isPlaying || !isReplayFullyLoaded }"
-                      :style="{ zIndex: Z_INDEX.TIMELINE_CLICKABLE }"
+                      :class="[
+                        Z_INDEX_CLASS.TIMELINE_CLICKABLE,
+                        { 'pointer-events-none': isPlaying || !isReplayFullyLoaded },
+                      ]"
                       @click="handleTimelineClick"
                     ></div>
                   </div>
@@ -1787,7 +1972,7 @@ watch(
         <div
           v-if="showBattleEndUI"
           class="fixed inset-0 bg-black/80 flex items-center justify-center"
-          :class="`z-[${Z_INDEX.BATTLE_END_UI}]`"
+          :class="Z_INDEX_CLASS.BATTLE_END_UI"
         >
           <div
             class="bg-gradient-to-br from-[#2a2a4a] to-[#1a1a2e] p-8 rounded-2xl shadow-[0_0_30px_rgba(81,65,173,0.4)] text-center"
