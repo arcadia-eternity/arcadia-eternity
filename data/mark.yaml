@@ -378,7 +378,7 @@
     persistent: true
     maxStacks: 100
     stackable: true
-    stackStrategy: extend
+    stackStrategy: max
     destroyable: true
     keepOnSwitchOut: true
   effect:
