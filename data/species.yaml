@@ -1033,7 +1033,7 @@
     - mark_emblem_shupi
 - id: pet_qilu
   num: 20
-  element: Grass
+  element: Water
   baseStats:
     hp: 91
     atk: 119
@@ -1075,7 +1075,7 @@
     - mark_emblem_shiming
 - id: pet_kuqilu
   num: 21
-  element: Grass
+  element: Water
   baseStats:
     hp: 181
     atk: 164
