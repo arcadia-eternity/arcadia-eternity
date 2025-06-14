@@ -6,6 +6,10 @@ on:
     types:
       - completed
     branches: [main, master]
+  push:
+    branches: [main, master]
+    paths:
+      - 'fly.toml'
   workflow_dispatch:
 
 env:

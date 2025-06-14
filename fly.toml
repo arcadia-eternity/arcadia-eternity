@@ -25,9 +25,9 @@ cpu_kind = 'shared'
 cpus = 1
 
 [env]
-EMAIL_PROVIDER = "stmp"
-STMP_HOST = "smtp.qcloudmail.com"
-STMP_PROT = "465"
+EMAIL_PROVIDER = "smtp"
+SMTP_HOST = "smtp.qcloudmail.com"
+SMTP_PROT = "465"
 SMTP_SECURE = "true"
 EMAIL_FROM = "noreply@auth.yuuinih.com"
 EMAIL_FROM_NAME = "阿卡迪亚永恒"
