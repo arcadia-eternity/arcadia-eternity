@@ -22,6 +22,16 @@ export interface BindEmailResponse {
   success: boolean
   player: Player
   message: string
+  auth?: {
+    accessToken: string
+    refreshToken: string
+    expiresIn: number
+    player: {
+      id: string
+      isRegistered: boolean
+      email?: string
+    }
+  }
 }
 
 export interface RecoverPlayerResponse {

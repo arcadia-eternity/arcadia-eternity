@@ -308,6 +308,22 @@ const confirmBind = async () => {
     if (response.success) {
       ElMessage.success(response.message)
 
+      // 如果返回了认证信息，设置到认证服务中
+      if (response.auth) {
+        const { authService } = await import('../services/authService')
+        // 构造完整的AuthResult对象
+        const authResult = {
+          ...response.auth,
+          player: {
+            ...response.auth.player,
+            name: response.player.name, // 从player对象中获取name
+            isRegistered: response.auth.player.isRegistered,
+            email: response.auth.player.email,
+          },
+        }
+        authService.setTokens(authResult)
+      }
+
       // 创建PlayerInfo对象
       const playerInfo: PlayerInfo = {
         id: response.player.id,
@@ -328,7 +344,7 @@ const confirmBind = async () => {
         email_bound_at: response.player.email_bound_at,
         is_registered: response.player.is_registered, // 更新注册状态
         requiresAuth: true, // 注册用户需要认证
-        isAuthenticated: false, // 需要重新登录
+        isAuthenticated: response.auth ? true : false, // 如果有认证信息则已认证
         isInitialized: false, // 标记为未初始化，以便重新初始化
       })
 

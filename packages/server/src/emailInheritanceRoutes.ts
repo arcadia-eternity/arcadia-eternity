@@ -464,10 +464,20 @@ export function createEmailInheritanceRoutes(): Router {
       // 标记验证码为已使用
       await emailVerificationRepo.markCodeAsUsed(verificationCode.id)
 
+      // 为新注册的用户生成认证信息
+      const authResult = authService.generateAuthForPlayer(
+        updatedPlayer.id,
+        updatedPlayer.is_registered || false,
+        updatedPlayer.email || undefined,
+      )
+
+      logger.info(`Player email bound successfully: ${playerId} -> ${email}`)
+
       res.json({
         success: true,
         message: '邮箱绑定成功',
         player: updatedPlayer,
+        auth: authResult, // 返回新的认证信息
       })
     } catch (error) {
       if (error instanceof z.ZodError) {
