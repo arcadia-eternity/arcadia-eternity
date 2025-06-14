@@ -5,7 +5,7 @@ import Tooltip from './Tooltip.vue'
 import { Z_INDEX } from '@/constants/zIndex'
 import MarkdownIt from 'markdown-it'
 import i18next from 'i18next'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const md = new MarkdownIt({
   html: true,
@@ -36,6 +36,120 @@ const description = computed(() =>
     ns: 'skill',
   }),
 )
+
+// 粒子效果配置
+const particlesId = ref(`particles-${Math.random().toString(36).substring(2, 11)}`)
+const isHovered = ref(false)
+
+// 基础粒子配置
+const baseParticlesOptions = {
+  background: {
+    color: {
+      value: 'transparent',
+    },
+  },
+  fpsLimit: 60,
+  fullScreen: {
+    enable: false,
+  },
+  particles: {
+    color: {
+      value: ['#fbbf24', '#f59e0b', '#d97706', '#92400e'],
+    },
+    move: {
+      direction: 'none',
+      enable: true,
+      outModes: {
+        default: 'out',
+        top: 'out',
+        bottom: 'out',
+        left: 'out',
+        right: 'out',
+      },
+      random: true,
+      speed: { min: 0.5, max: 1.5 },
+      straight: false,
+    },
+    number: {
+      density: {
+        enable: false,
+      },
+      value: 12,
+    },
+    opacity: {
+      value: { min: 0.4, max: 0.8 },
+      animation: {
+        enable: true,
+        speed: 1.2,
+        minimumValue: 0.2,
+      },
+    },
+    shape: {
+      type: 'circle',
+    },
+    size: {
+      value: { min: 1, max: 2.5 },
+      animation: {
+        enable: true,
+        speed: 1.5,
+        minimumValue: 0.5,
+      },
+    },
+  },
+  detectRetina: true,
+}
+
+// hover状态的粒子配置 - 更多、更亮、更躁动
+const hoverParticlesOptions = {
+  ...baseParticlesOptions,
+  particles: {
+    ...baseParticlesOptions.particles,
+    number: {
+      density: { enable: false },
+      value: 20,
+    },
+    opacity: {
+      value: { min: 0.7, max: 1.0 },
+      animation: {
+        enable: true,
+        speed: 2.5,
+        minimumValue: 0.4,
+      },
+    },
+    size: {
+      value: { min: 1.5, max: 3.5 },
+      animation: {
+        enable: true,
+        speed: 3,
+        minimumValue: 0.8,
+      },
+    },
+    move: {
+      ...baseParticlesOptions.particles.move,
+      speed: { min: 1.2, max: 2.8 },
+      random: true,
+      outModes: {
+        default: 'out',
+        top: 'out',
+        bottom: 'out',
+        left: 'out',
+        right: 'out',
+      },
+    },
+    color: {
+      value: ['#fbbf24', '#f59e0b', '#d97706', '#eab308', '#facc15'],
+    },
+  },
+}
+
+// 响应式粒子配置
+const particlesOptions = computed(() => {
+  return isHovered.value ? hoverParticlesOptions : baseParticlesOptions
+})
+
+const particlesLoaded = async () => {
+  // 粒子系统加载完成
+}
 </script>
 
 <template>
@@ -47,14 +161,30 @@ const description = computed(() =>
           :class="`z-[${Z_INDEX.SKILL_BUTTON}]`"
           :disabled="disabled"
           @click="emit('click', skill.id)"
+          @mouseenter="isHovered = true"
+          @mouseleave="isHovered = false"
         >
+          <!-- 粒子效果容器 - 围绕光效区域 -->
+          <div
+            v-if="skill.category === 'Climax' && !disabled"
+            class="absolute pointer-events-none overflow-visible"
+            style="top: -8px; left: -8px; right: -8px; bottom: -8px"
+          >
+            <vue-particles
+              :id="particlesId"
+              :options="particlesOptions"
+              @particles-loaded="particlesLoaded"
+              class="w-full h-full"
+            />
+          </div>
+
           <div
             class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-8 transition-all duration-300 border"
             :class="{
               'border-blue-500/30 group-hover:shadow-[0_0_10px_2px_rgba(100,200,255,0.7)] group-disabled:hover:shadow-none':
                 skill.category !== 'Climax',
-              'border-yellow-300 border-3 group-hover:shadow-[0_0_10px_2px_rgba(245,158,11,0.7)] group-disabled:hover:shadow-none':
-                skill.category === 'Climax',
+              'border-yellow-300 border-3 climax-glow-available': skill.category === 'Climax' && !disabled,
+              'border-yellow-300 border-3': skill.category === 'Climax' && disabled,
             }"
           >
             <div class="bg-gray-900 w-full h-10"></div>
@@ -113,3 +243,37 @@ const description = computed(() =>
     </Tooltip>
   </div>
 </template>
+
+<style scoped>
+/* Climax技能呼吸光效动画 */
+@keyframes climax-breathing {
+  0%,
+  100% {
+    box-shadow: 0 0 10px 2px rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px 4px rgba(245, 158, 11, 0.8);
+  }
+}
+
+/* 可用状态的climax技能 - 持续呼吸光效 */
+.climax-glow-available {
+  animation: climax-breathing 2s ease-in-out infinite;
+}
+
+/* hover状态的呼吸动画 - 更快更亮 */
+@keyframes climax-breathing-hover {
+  0%,
+  100% {
+    box-shadow: 0 0 15px 3px rgba(245, 158, 11, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 25px 5px rgba(245, 158, 11, 1);
+  }
+}
+
+/* hover状态 - 保持呼吸并增强高亮 */
+.group:hover .background.climax-glow-available {
+  animation: climax-breathing-hover 1.5s ease-in-out infinite !important;
+}
+</style>

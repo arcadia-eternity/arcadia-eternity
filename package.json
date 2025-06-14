@@ -38,6 +38,7 @@
     "@arcadia-eternity/parser": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
     "@arcadia-eternity/server": "workspace:^",
+    "@tsparticles/vue3": "^3.0.1",
     "commander": "^14.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
@@ -47,6 +48,7 @@
     "reflect-metadata": "^0.2.2",
     "socket.io": "^4.8.1",
     "ts-morph": "^26.0.0",
+    "tsparticles": "^3.8.1",
     "yaml": "^2.8.0",
     "zod": "^3.25.64"
   },
