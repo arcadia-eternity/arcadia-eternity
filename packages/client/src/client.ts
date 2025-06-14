@@ -435,6 +435,14 @@ export class BattleClient {
       })
     })
 
+    // 服务器状态更新事件
+    this.socket.on('updateState', serverState => {
+      const handlers = this.eventHandlers.get('updateState')
+      if (handlers) {
+        handlers.forEach(handler => handler(serverState))
+      }
+    })
+
     // 游戏事件
     this.socket.on('matchSuccess', response => {
       if (response.status === 'SUCCESS') {
