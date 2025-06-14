@@ -85,6 +85,9 @@
     - effect_ability_reduce_physical_damage_30_percent
     - effect_ability_increase_special_damage_taken_15_percent
 - id: mark_ability_yinwang
+  config: *ablitity_config
+  effect:
+    - effect_ability_add_self_skill_accuracy_5
 - id: mark_ability_qingying
 - id: mark_ability_youai
   config: *ablitity_config

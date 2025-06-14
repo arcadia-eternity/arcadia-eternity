@@ -733,3 +733,13 @@
       base: damageContext
     delta: 0
     percent: 15
+- id: effect_ability_add_self_skill_accuracy_5
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addSkillAttributeModifier
+    target:
+      base: selfSkills
+    attribute: accuracy
+    modifierType: delta
+    value: 5

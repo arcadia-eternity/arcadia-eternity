@@ -1217,3 +1217,51 @@ skill_zhuixingquan:
 skill_xingzhihui:
   name: 星之辉
   description: 使自身获得20点星之辉
+skill_shengbo:
+  name: 声波
+  description: 5%弱化对手特防1级
+skill_shenhuxi:
+  name: 深呼吸
+  description: 强化自身特攻1级
+skill_yinbohuan:
+  name: 音波环
+  description: 使对手获得45点音波值
+skill_yinbopao:
+  name: 音波炮
+  description: 【75】使对手获得40点音波值
+skill_siyao:
+  name: 撕咬
+  description: 30%使对手获得30点流血
+skill_jinyin:
+  name: 禁音
+  description: 【95】消耗对手的音波值并2倍恢复自身体力
+skill_zaoyin:
+  name: 噪音
+  description: 【95】消耗对手的音波值使对手获得等值的噪音
+skill_yinbozhadan:
+  name: 音波炸弹
+  description: 使对手获得35点音波值
+skill_dafengche:
+  name: 大风车
+  description: 连击3~4次 每次命中都有15%弱化对手物防1级
+skill_yinbopingzhang:
+  name: 音波屏障
+  description: 【95】消耗对手的音波值使自身获得等值的音波屏障
+skill_xuanzhuansiyao:
+  name: 旋转撕咬
+  description: 30%使对手获得30点流血
+skill_chaojiyinbopao:
+  name: 超级音波炮
+  description: 【必中】使对手获得40点音波值
+skill_paoxiaodan:
+  name: 咆哮弹
+  description: 使对手获得30点音波值
+skill_yinbao:
+  name: 音爆
+  description: 【95】消耗对手的音波值并使对手失去音波值2倍的体力
+skill_yinbofeidan:
+  name: 音波飞弹
+  description: 连击4次 每次命中都能使对手获得10点音波值
+skill_yinzhiwang:
+  name: 音之网
+  description: 【95】使对手获得音之网

@@ -3614,3 +3614,120 @@
     - mark_ability_pianxie
   emblem:
     - mark_emblem_huizhi
+- id: pet_duomo
+  num: 49
+  element: Normal
+  baseStats:
+    hp: 90
+    atk: 114
+    def: 121
+    spa: 128
+    spd: 121
+    spe: 103
+  genderRatio:
+    - 7
+    - 3
+  heightRange:
+    - 32
+    - 37
+  weightRange:
+    - 10
+    - 15
+  learnable_skills:
+    - skill_id: skill_chongfeng
+      level: 1
+      hidden: false
+    - skill_id: skill_shengbo
+      level: 5
+      hidden: false
+    - skill_id: skill_shenhuxi
+      level: 9
+      hidden: false
+    - skill_id: skill_yinbohuan
+      level: 13
+      hidden: false
+    - skill_id: skill_yinbopao
+      level: 18
+      hidden: false
+    - skill_id: skill_siyao
+      level: 23
+      hidden: false
+  ability:
+    - mark_ability_yinwang
+  emblem:
+    - mark_emblem_yinbo
+- id: pet_duomosang
+  num: 50
+  element: Normal
+  baseStats:
+    hp: 180
+    atk: 159
+    def: 166
+    spa: 178
+    spd: 166
+    spe: 148
+  genderRatio:
+    - 7
+    - 3
+  heightRange:
+    - 87
+    - 92
+  weightRange:
+    - 77
+    - 82
+  learnable_skills:
+    - skill_id: skill_chongfeng
+      level: 1
+      hidden: false
+    - skill_id: skill_shengbo
+      level: 5
+      hidden: false
+    - skill_id: skill_shenhuxi
+      level: 9
+      hidden: false
+    - skill_id: skill_yinbohuan
+      level: 13
+      hidden: false
+    - skill_id: skill_yinbopao
+      level: 18
+      hidden: false
+    - skill_id: skill_siyao
+      level: 23
+      hidden: false
+    - skill_id: skill_jinyin
+      level: 28
+      hidden: false
+    - skill_id: skill_zaoyin
+      level: 33
+      hidden: false
+    - skill_id: skill_yinbozhadan
+      level: 38
+      hidden: false
+    - skill_id: skill_dafengche
+      level: 43
+      hidden: false
+    - skill_id: skill_yinbopingzhang
+      level: 48
+      hidden: false
+    - skill_id: skill_xuanzhuansiyao
+      level: 53
+      hidden: false
+    - skill_id: skill_chaojiyinbopao
+      level: 60
+      hidden: false
+    - skill_id: skill_paoxiaodan
+      level: 60
+      hidden: true
+    - skill_id: skill_yinbao
+      level: 60
+      hidden: true
+    - skill_id: skill_yinbofeidan
+      level: 60
+      hidden: true
+    - skill_id: skill_yinzhiwang
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_yinwang
+  emblem:
+    - mark_emblem_yinbo

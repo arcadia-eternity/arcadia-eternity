@@ -380,7 +380,7 @@
               arg: stack
           - type: add
             arg: 1
-# 印记徽章：使啾啾心之印记和血红印记技能的怒气消耗减少5
+# 印记徽章: 使啾啾心之印记和血红印记技能的怒气消耗减少5
 - id: effect_emblem_yinji_reduce_rage_cost_xinzhiyinji
   trigger: BeforeUseSkillCheck
   priority: 0
@@ -431,7 +431,7 @@
               type: same
               value: skill_xuehongyinji
 # 拳击系列徽章效果
-# 拳之：技能名中带有拳的技能伤害增加5%
+# 拳之: 技能名中带有拳的技能伤害增加5%
 - id: effect_emblem_increase_quan_skill_damage_5_percent
   trigger: OnBeforeCalculateDamage
   priority: 0
@@ -460,7 +460,7 @@
     target: damageContext
     percent: 5
     delta: 0
-# 针灸：增加1回合针灸的持续时间
+# 针灸: 增加1回合针灸的持续时间
 - id: effect_emblem_add_zhenjiu_duration_1
   trigger: OnBeforeAddMark
   priority: 1
@@ -493,7 +493,7 @@
         evaluator:
           type: same
           value: mark_mianyibuliang
-# 感应：使希捷对手每次技能命中自身时也可以为自身增加5层虚空体质
+# 感应: 使希捷对手每次技能命中自身时也可以为自身增加5层虚空体质
 - id: effect_emblem_add_xukongtizhi_when_foe_hit_self
   trigger: PostDamage
   priority: 0
@@ -508,7 +508,7 @@
     type: selfBeDamaged
 
 # 伊特系列徽章效果
-# 重击：使重击技能造成的伤害增加35%
+# 重击: 使重击技能造成的伤害增加35%
 - id: effect_emblem_zhongji_damage_boost_35_percent
   trigger: OnBeforeCalculateDamage
   priority: 0
@@ -537,7 +537,7 @@
     percent: 35
     delta: 0
 
-# 风暴：使风暴之星恢复的怒气增加5
+# 风暴: 使风暴之星恢复的怒气增加5
 - id: effect_emblem_fengbaozhixing_rage_boost_5
   trigger: OnBattleStart
   priority: 0
@@ -548,7 +548,7 @@
     modifierType: delta
     value: 5
 
-# 电荷：使每个电荷增加的致命几率提高5%
+# 电荷: 使每个电荷增加的致命几率提高5%
 - id: effect_emblem_dianhe_crit_rate_boost_5_percent
   trigger: OnBattleStart
   priority: 0
@@ -559,7 +559,7 @@
     modifierType: delta
     value: 5
 
-# 深结：使深结冰冻对手的几率提高5%
+# 深结: 使深结冰冻对手的几率提高5%
 - id: effect_emblem_shenjie_freeze_rate_boost_5_percent
   trigger: OnBattleStart
   priority: 0
@@ -570,7 +570,7 @@
     modifierType: delta
     value: 5
 
-# 恐惧：当对方因为受伤而解除恐惧时，使"effect_mark_onDamage_over100_recovery"效果无效
+# 恐惧: 当对方因为受伤而解除恐惧时，使"effect_mark_onDamage_over100_recovery"效果无效
 - id: effect_emblem_anying_immune_fear_early_wake
   trigger: BeforeEffect
   priority: 0
@@ -591,7 +591,7 @@
     type: disableContext
     target: effectContext
 
-# 光辉：每回合结束时恢复20点HP
+# 光辉: 每回合结束时恢复20点HP
 - id: effect_emblem_guangming_heal_20_per_turn
   trigger: TurnEnd
   priority: 0
@@ -602,7 +602,7 @@
   condition:
     type: petIsActive
 
-# 辉之：使技能效果触发率提高5%
+# 辉之: 使技能效果触发率提高5%
 - id: effect_emblem_increase_skill_trigger_rate_5_percent
   trigger: OnBattleStart
   priority: 0
@@ -610,5 +610,16 @@
     type: addTaggedConfigModifier
     target: self
     tag: skill_effect_probability
+    modifierType: delta
+    value: 5
+
+# 音波: 使叠加音波标记的效果的叠加值增加5
+- id: effect_emblem_add_yinbo_stack_config_5
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addTaggedConfigModifier
+    target: self
+    tag: skill_effect_yinbo_stack
     modifierType: delta
     value: 5

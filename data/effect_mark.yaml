@@ -2124,3 +2124,59 @@
         chain:
           - type: selectAttribute$
             arg: stack
+
+# 音波：当叠层后层数大于100层时，消耗100层印记并对自身造成100点伤害
+- id: effect_mark_explode_on_stack_over_100
+  trigger: OnStack
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: stackContext
+          chain:
+            - type: selectPath
+              arg: stacksAfter
+        evaluator:
+          type: compare
+          operator: '>='
+          value: 100
+  apply:
+    - type: consumeStacks
+      target: mark
+      value:
+        type: raw:number
+        configId: yinbo_consume_stacks_value
+        value: 100
+    - type: dealDamage
+      target: self
+      value:
+        type: raw:number
+        configId: yinbo_damage_value
+        value: 100
+
+# 噪音：下一次使用技能的命中率减少该印记的层数
+- id: effect_mark_reduce_accuracy_next_skill_with_stack
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  condition:
+    type: checkSelf
+  apply:
+    - type: addAccuracy
+      target: usingSkillContext
+      value:
+        type: dynamic
+        selector:
+          base: mark
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: stack
+            - type: multiply
+              arg: -1
+    - type: destroyMark
+      target:
+        base: mark

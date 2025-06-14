@@ -84,6 +84,9 @@
   effect:
     - effect_emblem_increase_skill_trigger_rate_5_percent
 - id: mark_emblem_yinbo
+  config: *emblem_config
+  effect:
+    - effect_emblem_add_yinbo_stack_config_5
 - id: mark_emblem_xinsuo
 - id: mark_emblem_aide
   config: *emblem_config

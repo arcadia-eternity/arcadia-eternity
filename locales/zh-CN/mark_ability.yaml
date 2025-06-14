@@ -85,3 +85,6 @@ mark_ability_guangming:
 mark_ability_pianxie:
   name: 偏斜
   description: 受到物攻伤害减少30% 受到特攻伤害增加15%
+mark_ability_yinwang:
+  name: 音网
+  description: 自身所有技能的命中率增加5%

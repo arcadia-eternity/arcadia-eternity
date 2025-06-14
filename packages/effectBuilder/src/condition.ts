@@ -10,6 +10,7 @@ import {
   Pet,
   RageContext,
   SkillInstance,
+  StackContext,
   SwitchPetContext,
   TurnContext,
   UseSkillContext,
@@ -110,6 +111,9 @@ export const Conditions = {
       }
       if (context.parent instanceof SwitchPetContext) {
         return context.source.owner === context.parent.target
+      }
+      if (context.parent instanceof StackContext) {
+        return context.source.owner === context.parent.existingMark.owner
       }
       return false
     }

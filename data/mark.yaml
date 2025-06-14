@@ -686,8 +686,34 @@
     stackStrategy: stack
     destroyable: true
     keepOnSwitchOut: true
-- id: mark_yinbozhi
+- id: mark_yinbo
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 300
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_explode_on_stack_over_100
 - id: mark_zaoyin
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 100
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_reduce_accuracy_next_skill_with_stack
 - id: mark_aideminyi
   config:
     duration: -1
@@ -744,6 +770,16 @@
   effect:
     - effect_mark_heal_self_1_16_turnEnd
 - id: mark_yinzhiwang
+  config:
+    duration: 5
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_cant_evasion
 - id: mark_zhifanghudun
   config:
     duration: -1
@@ -1373,3 +1409,15 @@
     keepOnSwitchOut: true
   effect:
     - effect_mark_increase_skill_trigger_rate_with_stack
+- id: mark_yinbopingzhang
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 114514
+    stackable: true
+    stackStrategy: replace
+    destroyable: true
+    isShield: true
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false

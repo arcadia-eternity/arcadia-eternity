@@ -325,11 +325,12 @@ mark_xingzhihui:
 mark_kongqichuliang:
   name: 空气储量
   description: 剩余{{mark.stack}}点空气值
-mark_yinbozhi:
+mark_yinbo:
   name: 音波值
-  description: 达到100点时受到伤害变为100点
+  description: 达到100点时发生爆炸 造成额外的100点伤害
 mark_zaoyin:
   name: 噪音
+  description: 下一次使用技能减少{{mark.stack}}点命中率
 mark_aideminyi:
   name: 爱的名义
   description: 使自身所有技能必中
@@ -345,9 +346,9 @@ mark_xinlingzhiyue:
 mark_jingyangshengxi:
   name: 静养生息
   description: 每回合增加10点怒气
-mark_yinzhizhiwang:
+mark_yinzhiwang:
   name: 音之网
-  description: ''
+  description: 无法闪避
 mark_zhifanghudun:
   name: 脂肪护盾【🛡️】
   description: 抵挡{{mark.stack}}点伤害
@@ -357,6 +358,9 @@ mark_kongqihudun:
 mark_shuiwenpingzhang:
   name: 水纹屏障【🛡️】
   description: 抵挡{{mark.stack}}点伤害 护盾破裂后下一个技能的威力翻倍
+mark_yinbopingzhang:
+  name: 音波屏障【🛡️】
+  description: 抵挡{{mark.stack}}点伤害
 mark_shoudaoshanghaijianshao:
   name: 受到伤害减少
   description: 受到伤害减少{{mark.stack}}%

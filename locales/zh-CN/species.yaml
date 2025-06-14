@@ -190,3 +190,9 @@ pet_taini:
 pet_luni:
   name: 鲁尼
   description: 不停的锻炼 让鲁尼成为了竞技场上最震撼的拳手
+pet_duomo:
+  name: 多摩
+  description: 多摩是很古怪的精灵 平日昏昏沉沉 爱打呵欠做白日梦
+pet_duomosang:
+  name: 多摩桑
+  description: 声波攻击是多摩桑最强的必杀 传闻X字是能量未释放的刻印

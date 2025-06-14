@@ -86,3 +86,6 @@ mark_emblem_guangming:
 mark_emblem_huizhi:
   name: 辉之
   description: 使技能效果触发率提升5%
+mark_emblem_yinbo:
+  name: 音波
+  description: 叠加音波的效果额外增加5层

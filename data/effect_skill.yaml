@@ -5866,3 +5866,297 @@
     stack: 20
   condition:
     type: selfUseSkill
+# 5%弱化对手特防1级
+- id: effect_skill_reduce_foe_spd_1_stage_5_percent
+  trigger: OnDamage
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: foe
+    statType: spd
+    value: -1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent:
+            type: 'raw:number'
+            value: 5
+            tags: ['skill_effect_probability']
+# 对方添加45层音波标记
+- id: effect_skill_add_mark_foe_yinbo_45
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_yinbo
+    stack:
+      type: 'raw:number'
+      value: 45
+      tags: ['skill_effect_stack', 'skill_effect_yinbo_stack']
+  condition:
+    type: selfUseSkill
+# 对方添加40层音波标记
+- id: effect_skill_add_mark_foe_yinbo_40
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_yinbo
+    stack:
+      type: 'raw:number'
+      value: 40
+      tags: ['skill_effect_stack', 'skill_effect_yinbo_stack']
+  condition:
+    type: selfUseSkill
+# 对方添加35层音波标记
+- id: effect_skill_add_mark_foe_yinbo_35
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_yinbo
+    stack:
+      type: 'raw:number'
+      value: 35
+      tags: ['skill_effect_stack', 'skill_effect_yinbo_stack']
+  condition:
+    type: selfUseSkill
+# 对方添加30层音波标记
+- id: effect_skill_add_mark_foe_yinbo_30
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_yinbo
+    stack:
+      type: 'raw:number'
+      value: 30
+      tags: ['skill_effect_stack', 'skill_effect_yinbo_stack']
+  condition:
+    type: selfUseSkill
+# 对方添加10层音波标记
+- id: effect_skill_add_mark_foe_yinbo_10
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_yinbo
+    stack:
+      type: 'raw:number'
+      value: 10
+      tags: ['skill_effect_stack', 'skill_effect_yinbo_stack']
+  condition:
+    type: selfUseSkill
+# 30%给对方添加30层流血
+- id: effect_skill_add_mark_foe_liuxie_30_30_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_liuxie
+    stack: 30
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent:
+            type: 'raw:number'
+            value: 30
+            tags: ['skill_effect_probability']
+# 消耗对方的音波标记，恢复自身音波印记x2的HP
+- id: effect_skill_consume_foe_yinbo_heal_self_2x
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: heal
+      target: self
+      value:
+        type: dynamic
+        selector:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_yinbo
+            - type: select
+              arg:
+                type: base
+                arg: stack
+            - type: multiply
+              arg:
+                type: raw:number
+                value: 2
+    - type: destroyMark
+      target:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_yinbo
+  condition:
+    type: selfUseSkill
+# 消耗对方的音波标记，为对方添加等同于音波标记层数的噪音
+- id: effect_skill_consume_foe_yinbo_add_zaoyin
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: addMark
+      target: foe
+      mark:
+        type: entity:baseMark
+        value: mark_zaoyin
+      stack:
+        type: dynamic
+        selector:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_yinbo
+            - type: select
+              arg:
+                type: base
+                arg: stack
+    - type: destroyMark
+      target:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_yinbo
+  condition:
+    type: selfUseSkill
+# 消耗对方的音波标记，为己方添加等同于音波标记层数的音波屏障
+- id: effect_skill_consume_foe_yinbo_add_yinbopingzhang
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: addMark
+      target: self
+      mark:
+        type: entity:baseMark
+        value: mark_yinbopingzhang
+      stack:
+        type: dynamic
+        selector:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_yinbo
+            - type: select
+              arg:
+                type: base
+                arg: stack
+    - type: destroyMark
+      target:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_yinbo
+  condition:
+    type: selfUseSkill
+# 消耗对方的音波标记，给对方造成音波标记层数*2的伤害
+- id: effect_skill_consume_foe_yinbo_damage_2x
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: dealDamage
+      target: foe
+      value:
+        type: dynamic
+        selector:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_yinbo
+            - type: select
+              arg:
+                type: base
+                arg: stack
+            - type: multiply
+              arg:
+                type: raw:number
+                value: 2
+    - type: destroyMark
+      target:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_yinbo
+  condition:
+    type: selfUseSkill
+# 给对方添加音之网
+- id: effect_skill_add_mark_foe_yinzhiwang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_yinzhiwang
+  condition:
+    type: selfUseSkill
