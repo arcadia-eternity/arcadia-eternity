@@ -8,6 +8,7 @@ import type { PlayerMessage } from '@arcadia-eternity/const'
 import ElementIcon from './ElementIcon.vue'
 import { useGameDataStore } from '@/stores/gameData'
 import { useBattleStore } from '@/stores/battle'
+import { Z_INDEX } from '@/constants/zIndex'
 import i18next from 'i18next'
 
 const gameDataStore = useGameDataStore()
@@ -85,11 +86,12 @@ const petStatsTooltip = computed(() => {
 
 <template>
   <div :class="containerClass">
-    <Tooltip position="bottom" :z-index="2147483647">
+    <Tooltip position="bottom">
       <template #trigger>
         <PetIcon
           :id="gameDataStore.getSpecies(activePet!.speciesID)?.num ?? 0"
-          class="w-32 h-32 bg-black flex-none rounded-xl"
+          class="relative w-32 h-32 bg-black flex-none rounded-xl"
+          :class="`z-[${Z_INDEX.BATTLE_STATUS_ICON}]`"
           :reverse="side == 'right'"
         />
       </template>

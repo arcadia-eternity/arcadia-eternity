@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useBattleViewStore } from '@/stores/battleView'
 
 // 定义属性
 interface Props {
@@ -16,9 +15,6 @@ const props = withDefaults(defineProps<Props>(), {
 if (props.value <= 0) {
   console.warn('DamageDisplay: value must be greater than 0')
 }
-
-// 使用store获取缩放比例
-const battleViewStore = useBattleViewStore()
 
 // 计算背景图片路径
 const backgroundImage = computed(() => {
@@ -107,13 +103,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div
-    class="relative inline-block"
-    :style="{
-      transform: `scale(${battleViewStore.scale})`,
-      transformOrigin: 'center center',
-    }"
-  >
+  <div class="relative inline-block">
     <!-- 背景图片 - 高度从h-20(5rem)增加到h-40(10rem) -->
     <img :src="backgroundImage" alt="damage background" class="h-40 w-auto" />
 

@@ -2,6 +2,7 @@
 import type { SkillMessage } from '@arcadia-eternity/const'
 import ElementIcon from './ElementIcon.vue'
 import Tooltip from './Tooltip.vue'
+import { Z_INDEX } from '@/constants/zIndex'
 import MarkdownIt from 'markdown-it'
 import i18next from 'i18next'
 import { computed } from 'vue'
@@ -43,6 +44,7 @@ const description = computed(() =>
       <template #trigger>
         <button
           class="group relative w-44 h-26 p-2 cursor-pointer overflow-visible disabled:opacity-75 disabled:cursor-not-allowed"
+          :class="`z-[${Z_INDEX.SKILL_BUTTON}]`"
           :disabled="disabled"
           @click="emit('click', skill.id)"
         >

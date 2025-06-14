@@ -5,6 +5,7 @@ import ElementIcon from './ElementIcon.vue'
 import Tooltip from './Tooltip.vue'
 import type { PetMessage } from '@arcadia-eternity/const'
 import { useGameDataStore } from '@/stores/gameData'
+import { Z_INDEX } from '@/constants/zIndex'
 import i18next from 'i18next'
 import MarkdownIt from 'markdown-it'
 
@@ -154,8 +155,9 @@ const processedSkills = computed(() => {
     <Tooltip :show="showTooltip" :position="position === 'left' ? 'right' : position === 'right' ? 'left' : 'top'">
       <template #trigger>
         <div
-          class="flex flex-col items-center transition-all duration-200"
+          class="relative flex flex-col items-center transition-all duration-200"
           :class="[
+            `z-[${Z_INDEX.PET_BUTTON}]`,
             position === 'left' ? 'mr-auto' : '',
             position === 'right' ? 'ml-auto' : '',
             position === 'bottom' ? 'flex-row gap-2' : '',
@@ -195,7 +197,11 @@ const processedSkills = computed(() => {
               <!-- 血条和等级容器 (绝对定位在底部) -->
               <div class="absolute bottom-0 left-0 right-0">
                 <!-- 等级 -->
-                <div v-if="position === 'bottom'" class="text-center mb-[-4px] z-10 relative">
+                <div
+                  v-if="position === 'bottom'"
+                  class="text-center mb-[-4px] relative"
+                  :class="`z-[${Z_INDEX.PET_BUTTON_LEVEL}]`"
+                >
                   <span class="text-yellow-200 text-sm font-bold [text-shadow:_0_0_2px_black]">Lv.{{ pet.level }}</span>
                 </div>
 

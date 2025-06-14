@@ -1,32 +1,35 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
-import { useBattleViewStore } from '@/stores/battleView'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { Z_INDEX } from '@/constants/zIndex'
 
 interface Props {
   position?: 'top' | 'bottom' | 'left' | 'right'
   trigger?: 'hover' | 'click' | 'focus'
   show?: boolean
   contentClass?: string
-  zIndex?: number
-  scale?: number // 新增：缩放比例
 }
 
 const props = withDefaults(defineProps<Props>(), {
   position: 'bottom',
   trigger: 'hover',
   contentClass: '',
-  zIndex: 2147483647, // 最大的32位整数
-  scale: 1, // 默认不缩放
 })
 
 const showTooltip = ref(props.show || false)
-const triggerRef = ref<HTMLElement | null>(null)
-const tooltipRef = ref<HTMLElement | null>(null)
-const tooltipPosition = ref({ top: 0, left: 0 })
 
-// 使用store获取缩放比例
-const battleViewStore = useBattleViewStore()
-const effectiveScale = computed(() => (props.scale !== 1 ? props.scale : battleViewStore.scale))
+// CSS类名计算
+const tooltipClasses = computed(() => {
+  // 使用常量确保始终在所有战斗组件之上
+  // PetSprite(5) < PetButton(45) < SkillButton(30) < BattleStatus(40) < Mark(50) < Tooltip(200)
+  const baseClasses = `absolute w-max pointer-events-none z-[${Z_INDEX.TOOLTIP}]`
+  const positionClasses = {
+    bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
+    top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
+    right: 'left-full top-1/2 -translate-y-1/2 ml-2',
+    left: 'right-full top-1/2 -translate-y-1/2 mr-2',
+  }
+  return `${baseClasses} ${positionClasses[props.position]}`
+})
 
 const arrowClasses = computed(() => {
   return {
@@ -37,45 +40,9 @@ const arrowClasses = computed(() => {
   }
 })
 
-function updateTooltipPosition() {
-  if (!triggerRef.value || !showTooltip.value) return
-
-  const triggerRect = triggerRef.value.getBoundingClientRect()
-  const offset = 8 // 间距
-
-  let top = 0
-  let left = 0
-
-  switch (props.position) {
-    case 'bottom':
-      top = triggerRect.bottom + offset
-      left = triggerRect.left + triggerRect.width / 2
-      break
-    case 'top':
-      top = triggerRect.top - offset
-      left = triggerRect.left + triggerRect.width / 2
-      break
-    case 'right':
-      top = triggerRect.top + triggerRect.height / 2
-      left = triggerRect.right + offset
-      break
-    case 'left':
-      top = triggerRect.top + triggerRect.height / 2
-      left = triggerRect.left - offset
-      break
-  }
-
-  tooltipPosition.value = { top, left }
-}
-
 function toggleTooltip(show: boolean) {
   if (props.trigger === 'hover') {
     showTooltip.value = show
-    if (show) {
-      nextTick(() => {
-        updateTooltipPosition()
-      })
-    }
   }
 }
 
@@ -85,74 +52,39 @@ watch(
   newShow => {
     if (newShow !== undefined) {
       showTooltip.value = newShow
-      if (newShow) {
-        nextTick(() => {
-          updateTooltipPosition()
-        })
-      }
     }
   },
 )
-
-function getTransform() {
-  switch (props.position) {
-    case 'bottom':
-      return 'translateX(-50%)'
-    case 'top':
-      return 'translateX(-50%) translateY(-100%)'
-    case 'right':
-      return 'translateY(-50%)'
-    case 'left':
-      return 'translateX(-100%) translateY(-50%)'
-    default:
-      return ''
-  }
-}
 </script>
 
 <template>
   <div class="relative inline-block" @mouseenter="toggleTooltip(true)" @mouseleave="toggleTooltip(false)">
-    <div ref="triggerRef" class="inline-block">
-      <slot name="trigger" />
-    </div>
+    <slot name="trigger" />
 
-    <!-- 使用 Teleport 将 tooltip 传送到 body -->
-    <Teleport to="body">
-      <transition name="fade">
+    <!-- 直接使用CSS定位的tooltip -->
+    <transition name="fade">
+      <div v-show="showTooltip" :class="tooltipClasses">
         <div
-          v-show="showTooltip"
-          ref="tooltipRef"
-          class="fixed w-max pointer-events-none"
-          :style="{
-            top: tooltipPosition.top + 'px',
-            left: tooltipPosition.left + 'px',
-            zIndex: props.zIndex,
-            transform: `${getTransform()} scale(${effectiveScale})`,
-            transformOrigin: 'center center',
-          }"
+          class="relative bg-black/90 text-white p-4 rounded-xl min-w-[280px] max-w-[320px] shadow-2xl shadow-black/30 backdrop-blur-sm border border-white/10"
+          :class="contentClass"
         >
-          <div
-            class="relative bg-black/90 text-white p-4 rounded-xl min-w-[280px] max-w-[320px] shadow-2xl shadow-black/30 backdrop-blur-sm border border-white/10"
-            :class="contentClass"
-          >
-            <!-- 对话框箭头 -->
-            <div class="absolute w-3 h-3" :class="arrowClasses">
-              <div
-                class="w-full h-full bg-black/90"
-                :class="{
-                  'clip-path-triangle-bottom': props.position === 'top',
-                  'clip-path-triangle-top': props.position === 'bottom',
-                  'clip-path-triangle-right': props.position === 'left',
-                  'clip-path-triangle-left': props.position === 'right',
-                }"
-              ></div>
-            </div>
-
-            <slot />
+          <!-- 对话框箭头 -->
+          <div class="absolute w-3 h-3" :class="arrowClasses">
+            <div
+              class="w-full h-full bg-black/90"
+              :class="{
+                'clip-path-triangle-bottom': props.position === 'top',
+                'clip-path-triangle-top': props.position === 'bottom',
+                'clip-path-triangle-right': props.position === 'left',
+                'clip-path-triangle-left': props.position === 'right',
+              }"
+            ></div>
           </div>
+
+          <slot />
         </div>
-      </transition>
-    </Teleport>
+      </div>
+    </transition>
   </div>
 </template>
 

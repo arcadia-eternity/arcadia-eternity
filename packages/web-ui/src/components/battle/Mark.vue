@@ -4,6 +4,7 @@ import MarkdownIt from 'markdown-it'
 import Tooltip from './Tooltip.vue'
 import type { MarkMessage } from '@arcadia-eternity/const'
 import { useResourceStore } from '@/stores/resource'
+import { Z_INDEX } from '@/constants/zIndex'
 import i18next from 'i18next'
 
 const md = new MarkdownIt({
@@ -40,14 +41,13 @@ const stack = computed(() => props.mark.stack ?? 1)
 </script>
 
 <template>
-  <div
-    ref="rootEl"
-    class="relative inline-block overflow-visible transition-transform duration-200 ease-in-out hover:-translate-y-0.5 z-[100] group"
-    data-tooltip-parent
-  >
+  <div ref="rootEl" class="relative inline-block overflow-visible group" data-tooltip-parent>
     <Tooltip :show="showTooltip" position="bottom" v-if="rootEl">
       <template #trigger>
-        <div class="relative">
+        <div
+          class="relative transition-transform duration-200 ease-in-out hover:-translate-y-0.5"
+          :class="`z-[${Z_INDEX.MARK}]`"
+        >
           <img
             :src="image"
             class="w-12 h-12 object-contain transition-opacity duration-200 ease-in-out pointer-events-none"

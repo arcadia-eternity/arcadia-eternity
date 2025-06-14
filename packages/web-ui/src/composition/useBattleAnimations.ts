@@ -1,13 +1,5 @@
 import { useBattleStore } from '@/stores/battle'
-import {
-  type BattleMessage,
-  type petId,
-  type PetSwitchMessage,
-  type skillId,
-  type SkillMessage,
-  type SkillUseEndMessage,
-} from '@arcadia-eternity/const'
-import { useElementBounding } from '@vueuse/core'
+import { type petId } from '@arcadia-eternity/const'
 import gsap from 'gsap'
 import i18next from 'i18next'
 import { h, render, type Ref, type ComputedRef } from 'vue'
@@ -22,34 +14,50 @@ interface MinimalPlayerForAnimations {
 }
 
 export function useBattleAnimations(
-  leftStatusRefBounding: ReturnType<typeof useElementBounding>,
-  rightStatusRefBounding: ReturnType<typeof useElementBounding>,
-  battleRefBounding: ReturnType<typeof useElementBounding>,
   battleViewRef: Ref<HTMLElement | null>,
   store: ReturnType<typeof useBattleStore>,
   currentPlayer: ComputedRef<MinimalPlayerForAnimations | null | undefined>,
   opponentPlayer: ComputedRef<MinimalPlayerForAnimations | null | undefined>,
   battleViewScale: ComputedRef<number>,
 ) {
-  const showMissMessage = (side: 'left' | 'right') => {
-    const statusBounding = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
-    if (!statusBounding) return
+  // 战斗视图固定坐标系统 (1600x900)
+  // 基于battlePage.vue中的实际布局结构计算固定位置
+  const getBattleViewPosition = (side: 'left' | 'right', offsetY: number = 120) => {
+    // 分析布局:
+    // - 外层容器: flex justify-between p-5 (左右各20px padding)
+    // - 左侧状态栏: w-1/3 (533px), left-5 (20px from left)
+    // - 右侧状态栏: w-1/3 (533px), right-5 (20px from right)
+    // - 状态栏内容: PetIcon(128px) + 状态条，总高度约150px
 
-    const { bottom, left, width } = statusBounding
-    const startX = left.value + width.value / 2
-    const startY = bottom.value + 120
+    // 左侧状态栏: 从x=20开始，宽度533px，中心在x=20+533/2=286.5
+    // 右侧状态栏: 从x=1600-20-533=1047开始，中心在x=1047+533/2=1313.5
+    // 状态栏底部: y=20(padding) + 150(状态栏高度) = 170
+
+    const leftStatusCenter = { x: 287, y: 170 } // 左侧状态栏中心底部
+    const rightStatusCenter = { x: 1314, y: 170 } // 右侧状态栏中心底部
+
+    const basePosition = side === 'left' ? leftStatusCenter : rightStatusCenter
+
+    return {
+      x: basePosition.x,
+      y: basePosition.y + offsetY,
+    }
+  }
+  const showMissMessage = (side: 'left' | 'right') => {
+    if (!battleViewRef.value) return
+
+    const { x: startX, y: startY } = getBattleViewPosition(side, 120)
 
     const containerVNode = h(
       'div',
       {
         style: {
-          position: 'fixed',
+          position: 'absolute',
           left: `${startX}px`,
           top: `${startY}px`,
           transformOrigin: 'center center',
           pointerEvents: 'none',
           opacity: 0,
-          scale: 1,
           zIndex: '1002',
         },
       },
@@ -62,19 +70,21 @@ export function useBattleAnimations(
     )
 
     const tempHost = document.createElement('div')
-    document.body.appendChild(tempHost)
+    battleViewRef.value.appendChild(tempHost)
     render(containerVNode, tempHost)
 
     const containerElement = tempHost.firstChild as HTMLElement
     if (!containerElement) {
-      document.body.removeChild(tempHost)
+      battleViewRef.value?.removeChild(tempHost)
       return
     }
 
     const tl = gsap.timeline({
       onComplete: () => {
         render(null, tempHost)
-        document.body.removeChild(tempHost)
+        if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
+          battleViewRef.value.removeChild(tempHost)
+        }
       },
     })
 
@@ -93,24 +103,20 @@ export function useBattleAnimations(
   }
 
   const showAbsorbMessage = (side: 'left' | 'right') => {
-    const statusBounding = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
-    if (!statusBounding) return
+    if (!battleViewRef.value) return
 
-    const { bottom, left, width } = statusBounding
-    const startX = left.value + width.value / 2
-    const startY = bottom.value + 120
+    const { x: startX, y: startY } = getBattleViewPosition(side, 120)
 
     const containerVNode = h(
       'div',
       {
         style: {
-          position: 'fixed',
+          position: 'absolute',
           left: `${startX}px`,
           top: `${startY}px`,
           transformOrigin: 'center center',
           pointerEvents: 'none',
           opacity: 0,
-          scale: 1,
           zIndex: '1002',
         },
       },
@@ -123,19 +129,21 @@ export function useBattleAnimations(
     )
 
     const tempHost = document.createElement('div')
-    document.body.appendChild(tempHost)
+    battleViewRef.value.appendChild(tempHost)
     render(containerVNode, tempHost)
 
     const containerElement = tempHost.firstChild as HTMLElement
     if (!containerElement) {
-      document.body.removeChild(tempHost)
+      battleViewRef.value?.removeChild(tempHost)
       return
     }
 
     const tl = gsap.timeline({
       onComplete: () => {
         render(null, tempHost)
-        document.body.removeChild(tempHost)
+        if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
+          battleViewRef.value.removeChild(tempHost)
+        }
       },
     })
 
@@ -223,31 +231,29 @@ export function useBattleAnimations(
         of(value).pipe(
           delay(Math.max(0, timestamp - Date.now())),
           tap(({ side, value }) => {
-            const statusBounding = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
-            if (!statusBounding) return
+            if (!battleViewRef.value) return
 
-            const { bottom, left, width } = statusBounding
+            const { x: baseX, y: baseY } = getBattleViewPosition(side, 80)
             const randomOffsetX = (Math.random() - 0.5) * 100
             const randomOffsetY = (Math.random() - 0.5) * 50
-            const startX = left.value + width.value / 2 + randomOffsetX
-            const startY = bottom.value + 80 + randomOffsetY
+            const startX = baseX + randomOffsetX
+            const startY = baseY + randomOffsetY
 
             const tempHost = document.createElement('div')
-            document.body.appendChild(tempHost)
+            battleViewRef.value.appendChild(tempHost)
 
             const healVNode = h(HealDisplay, { value })
             const containerVNode = h(
               'div',
               {
                 style: {
-                  position: 'fixed',
+                  position: 'absolute',
                   left: `${startX}px`,
                   top: `${startY}px`,
                   transformOrigin: 'center center',
                   pointerEvents: 'none',
                   zIndex: '1001',
                   opacity: 1,
-                  scale: 1,
                 },
               },
               [healVNode],
@@ -255,14 +261,16 @@ export function useBattleAnimations(
             render(containerVNode, tempHost)
             const containerElement = tempHost.firstChild as HTMLElement
             if (!containerElement) {
-              document.body.removeChild(tempHost)
+              battleViewRef.value?.removeChild(tempHost)
               return
             }
 
             const tl = gsap.timeline({
               onComplete: () => {
                 render(null, tempHost)
-                document.body.removeChild(tempHost)
+                if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
+                  battleViewRef.value.removeChild(tempHost)
+                }
               },
             })
 
@@ -312,14 +320,11 @@ export function useBattleAnimations(
             const currentPet = store.getPetById(activePetId)
             if (!currentPet) return
 
-            const statusBounding = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
-            if (!statusBounding) return
-
-            const { bottom, left, width } = statusBounding
+            const { x: baseX, y: baseY } = getBattleViewPosition(side, 120)
             const randomOffsetX = (Math.random() - 0.5) * 200
             const randomOffsetY = (Math.random() - 0.5) * 200
-            const startX = left.value + width.value / 2 + randomOffsetX
-            const startY = bottom.value + 120 + randomOffsetY
+            const startX = baseX + randomOffsetX
+            const startY = baseY + randomOffsetY
 
             const hpRatio = value / currentPet.maxHp
 
@@ -355,8 +360,10 @@ export function useBattleAnimations(
               flashAndShake()
             }
 
+            if (!battleViewRef.value) return
+
             const tempHost = document.createElement('div')
-            document.body.appendChild(tempHost)
+            battleViewRef.value.appendChild(tempHost)
 
             const damageVNode = h(DamageDisplay, {
               value,
@@ -372,7 +379,7 @@ export function useBattleAnimations(
               'div',
               {
                 style: {
-                  position: 'fixed',
+                  position: 'absolute',
                   left: `${startX}px`,
                   top: `${startY}px`,
                   transformOrigin: 'center center',
@@ -387,14 +394,16 @@ export function useBattleAnimations(
             render(containerVNode, tempHost)
             const containerElement = tempHost.firstChild as HTMLElement
             if (!containerElement) {
-              document.body.removeChild(tempHost)
+              battleViewRef.value?.removeChild(tempHost)
               return
             }
 
             const tl = gsap.timeline({
               onComplete: () => {
                 render(null, tempHost)
-                document.body.removeChild(tempHost)
+                if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
+                  battleViewRef.value.removeChild(tempHost)
+                }
               },
             })
 
@@ -431,17 +440,10 @@ export function useBattleAnimations(
   }
 
   const showUseSkillMessage = (side: 'left' | 'right', baseSkillId: string) => {
-    const statusBounding = side === 'left' ? leftStatusRefBounding : rightStatusRefBounding
-    const battleBounding = battleRefBounding
-    if (!statusBounding || !battleBounding) return
+    if (!battleViewRef.value) return
 
-    const { width, bottom } = statusBounding
-    const { left: viewLeft, right: viewRight } = battleBounding
-
-    if (viewLeft.value === undefined || viewRight.value === undefined) return
-
-    const targetX = side === 'left' ? viewLeft.value : viewRight.value - width.value * 0.75
-    const targetY = bottom.value + 20
+    const targetX = side === 'left' ? 0 : 1200 // 左侧从左边缘开始，右侧从右边缘开始
+    const targetY = 200
     const skillName = i18next.t(`${baseSkillId}.name`, { ns: 'skill' }) || baseSkillId
 
     const boxVNode = h(
@@ -455,7 +457,7 @@ export function useBattleAnimations(
               : 'linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0.3))',
           padding: '15px 0',
           left: '0',
-          width: `${width.value * 0.75}px`,
+          width: '400px', // 状态栏宽度533px的75% ≈ 400px
         },
       },
       skillName,
@@ -464,51 +466,56 @@ export function useBattleAnimations(
     const containerVNode = h(
       'div',
       {
-        class: 'fixed pointer-events-none',
+        class: 'absolute pointer-events-none',
         style: {
           left: `${targetX}px`,
           top: `${targetY}px`,
           transformOrigin: 'center center',
           opacity: 0,
-          scale: 0.8 * battleViewScale.value,
+          scale: 0.8,
         },
       },
       [boxVNode],
     )
 
     const tempHost = document.createElement('div')
-    document.body.appendChild(tempHost)
+    battleViewRef.value.appendChild(tempHost)
     render(containerVNode, tempHost)
 
     const containerElement = tempHost.firstChild as HTMLElement
     if (!containerElement) {
-      document.body.removeChild(tempHost)
+      battleViewRef.value?.removeChild(tempHost)
       return
     }
 
     const startXPosition = side === 'left' ? -200 : 200
     gsap.set(containerElement, {
       x: startXPosition,
+      opacity: 0,
+      scale: 0.8,
     })
 
     const tl = gsap.timeline({
       onComplete: () => {
         render(null, tempHost)
-        document.body.removeChild(tempHost)
+        if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
+          battleViewRef.value.removeChild(tempHost)
+        }
       },
     })
 
     tl.to(containerElement, {
       x: 0,
       opacity: 1,
-      scale: battleViewScale.value,
+      scale: 1,
       duration: 0.3,
       ease: 'back.out(1.7)',
     })
-      .to({}, { duration: 1 })
+      .to({}, { duration: 1.5 })
       .to(containerElement, {
         x: startXPosition,
         opacity: 0,
+        scale: 0.8,
         duration: 0.5,
         ease: 'power2.in',
       })

@@ -26,7 +26,6 @@ import {
   type SkillMessage,
   type SkillUseEndMessage,
 } from '@arcadia-eternity/const'
-import { useElementBounding } from '@vueuse/core'
 import gsap from 'gsap'
 import i18next from 'i18next'
 import mitt from 'mitt'
@@ -60,6 +59,7 @@ import {
 } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBattleViewStore } from '@/stores/battleView'
+import { Z_INDEX } from '@/constants/zIndex'
 import { DArrowLeft, DArrowRight, VideoPause, VideoPlay, Film } from '@element-plus/icons-vue'
 
 // Props 定义
@@ -124,9 +124,7 @@ const leftPetRef = useTemplateRef('leftPetRef')
 const rightPetRef = useTemplateRef('rightPetRef')
 const leftStatusRef = useTemplateRef('leftStatusRef')
 const rightStatusRef = useTemplateRef('rightStatusRef')
-const leftStatusRefBounding = useElementBounding(leftStatusRef)
-const rightStatusRefBounding = useElementBounding(rightStatusRef)
-const battleRefBounding = useElementBounding(battleViewRef)
+// 移除了 useElementBounding 相关代码，现在使用固定坐标系统
 const isPending = ref(false)
 const showBattleEndUI = ref(false)
 const showKoBanner = ref(false) // 新增：控制KO横幅显示
@@ -199,16 +197,7 @@ const {
   showHealMessage,
   showUseSkillMessage,
   cleanup: cleanupBattleAnimations,
-} = useBattleAnimations(
-  leftStatusRefBounding,
-  rightStatusRefBounding,
-  battleRefBounding,
-  battleViewRef as Ref<HTMLElement | null>,
-  store,
-  currentPlayer,
-  opponentPlayer,
-  battleViewScale,
-)
+} = useBattleAnimations(battleViewRef as Ref<HTMLElement | null>, store, currentPlayer, opponentPlayer, battleViewScale)
 
 const leftPetSpeciesNum = computed(
   () =>
@@ -570,7 +559,7 @@ async function animatePetTransition(
 
 async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitchMessage: PetSwitchMessage) {
   const oldPetSprite = petSprites.value[side]
-  const battleViewWidth = battleRefBounding.width.value
+  const battleViewWidth = 1600 // 固定的战斗视图宽度
   const isLeft = side === 'left'
   const offScreenX = isLeft ? -battleViewWidth / 2 - 100 : battleViewWidth / 2 + 100
   const animationDuration = 1
@@ -735,7 +724,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   }
 
   showUseSkillMessage(side, baseSkillId)
-  source.$el.style.zIndex = '50'
+  source.$el.style.zIndex = Z_INDEX.DYNAMIC_ANIMATION.toString()
   source.setState(state)
   if (category === 'Climax') playSkillSound(baseSkillId)
 
@@ -942,7 +931,7 @@ async function animatePetEntry(
 async function initialPetEntryAnimation() {
   const leftPet = petSprites.value.left
   const rightPet = petSprites.value.right
-  const battleViewWidth = battleRefBounding.width.value
+  const battleViewWidth = 1600 // 固定的战斗视图宽度
   const animationDuration = 1
   const animations = []
 
@@ -1285,16 +1274,16 @@ watch(
 </script>
 
 <template>
-  <div class="h-full w-full relative">
+  <div class="h-full w-full relative overflow-hidden">
     <div
       ref="battleContainerRef"
-      class="h-full w-full bg-[#1a1a2e] overflow-hidden relative flex justify-center items-center"
+      class="h-full w-full bg-[#1a1a2e] overflow-visible relative flex justify-center items-center"
       :style="{
         '--battle-view-scale': battleViewScale,
       }"
     >
       <!-- 计时器组件 -->
-      <div v-if="!isReplayMode" class="absolute z-[30] top-2 left-2">
+      <div v-if="!isReplayMode" class="absolute top-2 left-2" :class="`z-[${Z_INDEX.TIMER}]`">
         <BattleTimer :player-id="currentPlayer?.id" />
       </div>
 
@@ -1311,10 +1300,11 @@ watch(
           ref="koBannerRef"
           src="/ko.png"
           alt="KO Banner"
-          class="absolute left-1/2 top-1/2 z-[1000] max-w-[80%] max-h-[80%] object-contain"
+          class="absolute left-1/2 top-1/2 max-w-[80%] max-h-[80%] object-contain"
+          :class="`z-[${Z_INDEX.KO_BANNER}]`"
         />
         <div
-          class="relative h-full w-full flex flex-col bg-center bg-no-repeat overflow-hidden"
+          class="relative h-full w-full flex flex-col bg-center bg-no-repeat overflow-visible"
           :class="[
             background ? `bg-cover` : 'bg-gray-900',
             'overflow-hidden',
@@ -1358,7 +1348,10 @@ watch(
           <!-- 精灵容器 - 基于整个对战画面进行绝对定位 -->
           <div class="flex-grow relative">
             <!-- 左侧精灵侧栏 - 绝对定位 -->
-            <div class="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 z-[10]">
+            <div
+              class="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5"
+              :class="`z-[${Z_INDEX.PET_BUTTON_CONTAINER}]`"
+            >
               <PetButton
                 v-for="pet in leftPlayerPets"
                 :key="pet.id"
@@ -1371,7 +1364,10 @@ watch(
             </div>
 
             <!-- 右侧精灵侧栏 - 绝对定位 -->
-            <div class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 z-[10]">
+            <div
+              class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5"
+              :class="`z-[${Z_INDEX.PET_BUTTON_CONTAINER}]`"
+            >
               <PetButton
                 v-for="pet in rightPlayerPets"
                 :key="pet.id"
@@ -1387,7 +1383,8 @@ watch(
               v-if="leftPetSpeciesNum !== 0"
               ref="leftPetRef"
               :num="leftPetSpeciesNum"
-              class="absolute left-0 top-1/2 -translate-y-1/2 w-[350px] h-[350px] z-[5] pointer-events-none"
+              class="absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none"
+              :class="`z-[${Z_INDEX.PET_SPRITE}]`"
               @hit="handleAttackHit('left')"
               @animate-complete="handleAnimationComplete('left')"
             />
@@ -1397,7 +1394,8 @@ watch(
               ref="rightPetRef"
               :num="rightPetSpeciesNum"
               :reverse="true"
-              class="absolute right-0 top-1/2 -translate-y-1/2 w-[350px] h-[350px] z-[5] pointer-events-none"
+              class="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none"
+              :class="`z-[${Z_INDEX.PET_SPRITE}]`"
               @hit="handleAttackHit('right')"
               @animate-complete="handleAnimationComplete('right')"
             />
@@ -1494,6 +1492,7 @@ watch(
                     <div
                       class="timeline-clickable"
                       :class="{ 'pointer-events-none': isPlaying || !isReplayFullyLoaded }"
+                      :style="{ zIndex: Z_INDEX.TIMELINE_CLICKABLE }"
                       @click="handleTimelineClick"
                     ></div>
                   </div>
@@ -1506,17 +1505,17 @@ watch(
           </div>
 
           <!-- 控制面板（移动端和桌面端完全一样） -->
-          <div v-if="!isReplayMode" class="flex h-1/5 flex-none overflow-hidden">
+          <div v-if="!isReplayMode" class="flex h-1/5 flex-none overflow-visible">
             <div v-if="battleViewStore.showLogPanel" class="w-1/5 h-full p-2 max-h-full overflow-hidden">
               <BattleLogPanel />
             </div>
 
             <div
-              class="h-full max-h-full overflow-hidden"
+              class="h-full max-h-full overflow-visible"
               :class="battleViewStore.showLogPanel ? 'flex-1' : 'flex-[4]'"
             >
               <div
-                class="h-full max-h-full grid grid-cols-5 gap-4 p-2 overflow-hidden"
+                class="h-full max-h-full grid grid-cols-5 gap-4 p-2 overflow-visible"
                 v-show="panelState === PanelState.SKILLS"
               >
                 <template
@@ -1545,7 +1544,7 @@ watch(
               </div>
 
               <div
-                class="grid grid-cols-6 gap-2 h-full max-h-full overflow-hidden"
+                class="grid grid-cols-6 gap-2 h-full max-h-full overflow-visible"
                 v-show="panelState === PanelState.PETS"
               >
                 <PetButton
@@ -1785,7 +1784,11 @@ watch(
         </div>
       </div>
       <Transition name="fade">
-        <div v-if="showBattleEndUI" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[1000]">
+        <div
+          v-if="showBattleEndUI"
+          class="fixed inset-0 bg-black/80 flex items-center justify-center"
+          :class="`z-[${Z_INDEX.BATTLE_END_UI}]`"
+        >
           <div
             class="bg-gradient-to-br from-[#2a2a4a] to-[#1a1a2e] p-8 rounded-2xl shadow-[0_0_30px_rgba(81,65,173,0.4)] text-center"
           >
@@ -1897,7 +1900,6 @@ watch(
   width: 100%;
   height: 100%;
   cursor: pointer;
-  z-index: 10;
 }
 
 .timeline-clickable:hover .timeline-track {
