@@ -502,9 +502,14 @@ const checkReplayLoadingStatus = async () => {
   }
 }
 
-const goBackFromReplay = () => {
+const goBackFromReplay = async () => {
   stopPlayback()
   store.exitReplayMode()
+
+  // 先退出全屏再跳转路由
+  if (isFullscreen.value) {
+    await exitFullscreen()
+  }
 
   // 根据当前路由判断返回到哪里
   if (props.localReportId) {
@@ -518,6 +523,21 @@ const goBackFromReplay = () => {
     // 其他情况，返回到战报列表
     router.push('/battle-reports')
   }
+}
+
+// 战斗结束后的导航函数 - 先退出全屏再跳转
+const navigateToLobbyWithMatching = async () => {
+  if (isFullscreen.value) {
+    await exitFullscreen()
+  }
+  router.push({ name: 'Lobby', query: { startMatching: 'true' } })
+}
+
+const navigateToHome = async () => {
+  if (isFullscreen.value) {
+    await exitFullscreen()
+  }
+  router.push('/')
 }
 
 const nextTurn = () => {
@@ -1992,13 +2012,13 @@ watch(
             <div class="flex gap-4 mt-8">
               <button
                 class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
-                @click="$router.push({ name: 'Lobby', query: { startMatching: 'true' } })"
+                @click="navigateToLobbyWithMatching"
               >
                 重新匹配
               </button>
               <button
                 class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
-                @click="$router.push('/')"
+                @click="navigateToHome"
               >
                 返回大厅
               </button>
