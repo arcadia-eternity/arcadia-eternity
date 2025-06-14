@@ -196,3 +196,15 @@ pet_duomo:
 pet_duomosang:
   name: 多摩桑
   description: 声波攻击是多摩桑最强的必杀 传闻X字是能量未释放的刻印
+pet_mogu:
+  name: 莫古
+  description: 莫古小的时候曾被抓到地下黑市 充当苦力
+pet_juchuimogu:
+  name: 巨锤莫古
+  description: 长大后 巨锤莫古被送到了沙漠之鹰的斗鸡场 和沙皇鸟一起捣毁了斗鸡场
+pet_shazhihe:
+  name: 沙之鹤
+  description: 沙之鹤从记事起 就一直生活在沙漠之鹰的斗鸡场
+pet_shahuangniao:
+  name: 沙皇鸟
+  description: 沙皇鸟被誉为沙漠之鹰的不败将军 最后和巨锤莫古一起解放了斗鸡场的精灵

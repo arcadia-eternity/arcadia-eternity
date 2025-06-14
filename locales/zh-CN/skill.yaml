@@ -1265,3 +1265,82 @@ skill_yinbofeidan:
 skill_yinzhiwang:
   name: 音之网
   description: 【95】使对手获得音之网
+skill_feishi:
+  name: 飞石
+  description: 5%弱化对手特防1级
+skill_pofangyiji:
+  name: 破防一击
+  description: 使对手获得50点破防
+skill_suishituji:
+  name: 碎石突击
+  description: 附加对手破防剩余回合数20倍的威力
+skill_liuxingchui:
+  name: 流星锤
+  description: 造成伤害不低于100点
+skill_menglietu ji:
+  name: 猛烈突击
+  description: 附加对手破防剩余回合数20倍的威力
+skill_lieshichuanci:
+  name: 裂石穿刺
+  description: 对手具有破防时使对手获得40点流血
+skill_miaozhuntuji:
+  name: 瞄准突击
+  description: <font color=#93E312>必中</font>
+skill_lanbaoshizhili:
+  name: 蓝宝石之力
+  description: 使对手获得蓝宝石
+skill_juchuidilichong:
+  name: 巨锤地裂冲
+  description: <font color=#93E312>必中</font> 20%弱化对手速度1级
+skill_liuxingdun:
+  name: 流星盾
+  description: 使自身获得流星盾
+skill_jiancizhibi:
+  name: 尖刺之鼻
+  description: 使自身获得金针外衣
+skill_suilietu ji:
+  name: 碎裂突击
+  description: 附加对手破防剩余回合数20倍的威力
+skill_julietuji:
+  name: 剧烈突击
+  description: 附加对手破防剩余回合数20倍的威力
+# 沙鹤系列技能本地化
+skill_shachen:
+  name: 沙尘
+  description: 5%弱化对手速度1级
+skill_shahezhiguang:
+  name: 沙鹤之光
+  description: 使自身获得沙鹤之力
+skill_shachenfengbao:
+  name: 沙尘风暴
+  description: 连击数为沙鹤之力的剩余回合数
+skill_shahuangzhiqu:
+  name: 沙皇之驱
+  description: <font color=#93E312>必中</font> 20%强化自身速度1级
+skill_shazhiquti:
+  name: 沙之躯体
+  description: 使自身获得50点硬化
+skill_zhimingshamo:
+  name: 致命沙漠
+  description: 沙鹤之力每剩余1回合增加25%暴击率
+skill_shazhiwang:
+  name: 沙之网
+  description: 使自身获得沙之网
+skill_hongbaoshizhiguang:
+  name: 红宝石之光
+  description: 使对手获得红宝石
+skill_shahuangxiangyuewu:
+  name: 沙皇翔月舞
+  description: <font color=#93E312>必中</font> 20%强化自身速度1级
+skill_haishishenglou:
+  name: 海市蜃楼
+  description: 使对手获得25点命中下降
+skill_shunxunzhiqu:
+  name: 瞬迅之驱
+  description: 先制+1
+skill_shazhihaixiao:
+  name: 沙之海啸
+  description: 【35】沙鹤之力每剩余1回合增加25%命中率
+skill_shahuangshuangshan:
+  name: 沙皇双闪
+  description: <font color=#93E312>必中</font> 连击2次

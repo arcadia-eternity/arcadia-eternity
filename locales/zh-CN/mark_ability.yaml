@@ -88,3 +88,9 @@ mark_ability_pianxie:
 mark_ability_yinwang:
   name: 音网
   description: 自身所有技能的命中率增加5%
+mark_ability_pofang:
+  name: 破防
+  description: 对手具有破防时自身造成伤害增加10%
+mark_ability_shahe:
+  name: 沙鹤
+  description: 物攻闪避率增加5%

@@ -130,3 +130,12 @@
   config: *emblem_config
   effect:
     - effect_emblem_guangming_heal_20_per_turn
+- id: mark_emblem_bipo
+  config: *emblem_config
+  effect:
+    - effect_emblem_pofangyiji_sure_hit
+# 沙鹤系列徽章
+- id: mark_emblem_shahe
+  config: *emblem_config
+  effect:
+    - effect_emblem_shahezhiguang_power_boost_10_percent

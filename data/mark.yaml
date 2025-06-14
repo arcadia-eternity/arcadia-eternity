@@ -1421,3 +1421,74 @@
     keepOnSwitchOut: true
     transferOnSwitch: false
     inheritOnFaint: false
+- id: mark_pofang
+  config:
+    duration: 6
+    persistent: false
+    maxStacks: 500
+    stackable: true
+    stackStrategy: max
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - status
+  effect:
+    - effect_mark_increase_damage_taken
+- id: mark_lanbaoshi
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_hongbaoshizhiguang_add_200_fixed_damage
+- id: mark_liuxingdun
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+    isShield: true
+  effect:
+    - effect_mark_block_next_special_damage
+- id: mark_hongbaoshi
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_lanbaoshizhiguang_add_200_fixed_damage
+
+- id: mark_shahezhili
+  config:
+    duration: 6
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_damage_boost_35
+
+- id: mark_shazhiwang
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 114514
+    stackable: true
+    stackStrategy: max
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_special_damage_reduction_with_stack

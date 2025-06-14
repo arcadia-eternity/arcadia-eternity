@@ -89,3 +89,9 @@ mark_emblem_huizhi:
 mark_emblem_yinbo:
   name: 音波
   description: 叠加音波的效果额外增加5层
+mark_emblem_bipo:
+  name: 必破
+  description: 使破防一击必中
+mark_emblem_shahe:
+  name: 沙鹤
+  description: 使沙鹤之光的威力增加10%

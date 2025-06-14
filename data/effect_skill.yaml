@@ -6108,6 +6108,7 @@
               value: mark_yinbo
   condition:
     type: selfUseSkill
+
 # 消耗对方的音波标记，给对方造成音波标记层数*2的伤害
 - id: effect_skill_consume_foe_yinbo_damage_2x
   trigger: OnHit
@@ -6160,3 +6161,300 @@
       value: mark_yinzhiwang
   condition:
     type: selfUseSkill
+# 使对方获得50点破防
+- id: effect_skill_add_mark_foe_pofang_50
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_pofang
+    stack: 50
+  condition:
+    type: selfUseSkill
+# 附加对手破防剩余回合数20倍的威力
+- id: effect_skill_add_power_20_per_pofang_turn
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_pofang
+          - type: select
+            arg:
+              type: dynamic
+              arg: duration
+          - type: multiply
+            arg:
+              type: raw:number
+              value: 20
+  condition:
+    type: selfUseSkill
+# 如果对手有破防标记，附加40点流血
+- id: effect_skill_add_mark_foe_liuxie_40_if_pofang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_liuxie
+    stack: 40
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_pofang
+        evaluator:
+          type: exist
+# 使对手获得蓝宝石
+- id: effect_skill_add_mark_foe_lanbaoshi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_lanbaoshi
+  condition:
+    type: selfUseSkill
+# 使对手获得红宝石
+- id: effect_skill_add_mark_foe_hongbaoshi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_hongbaoshi
+  condition:
+    type: selfUseSkill
+# 使自身获得流星盾
+- id: effect_skill_add_mark_liuxingdun
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_liuxingdun
+  condition:
+    type: selfUseSkill
+# 使自身获得沙鹤之力
+- id: effect_skill_add_mark_shahezhili
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shahezhili
+  condition:
+    type: selfUseSkill
+# 设置连击数为沙鹤之力的剩余回合数
+- id: effect_skill_multihit_by_shahezhili_turns
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setMultihit
+    target: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_shahezhili
+          - type: select
+            arg:
+              type: dynamic
+              arg: duration
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_shahezhili
+        evaluator:
+          type: exist
+# 20%强化自身速度1级
+- id: effect_skill_raise_spe_20_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spe
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_20_percent_template
+# 使自身获得50点硬化
+- id: effect_skill_add_mark_yinghua_50
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_yinghua
+    stack: 50
+  condition:
+    type: selfUseSkill
+# 沙鹤之力每剩余1回合增加25%暴击率
+- id: effect_skill_add_crit_rate_25_per_shahezhili_turn
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addCritRate
+    target: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_shahezhili
+          - type: select
+            arg:
+              type: dynamic
+              arg: duration
+          - type: multiply
+            arg:
+              type: raw:number
+              value: 25
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_shahezhili
+        evaluator:
+          type: exist
+# 使自身获得沙之网
+- id: effect_skill_add_mark_shazhiwang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shazhiwang
+    stack: 30
+  condition:
+    type: selfUseSkill
+# 使对手获得25层命中下降
+- id: effect_skill_add_mark_foe_mingzhongxiajiang_25
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_mingzhongxiajiang
+    stack: 25
+  condition:
+    type: selfUseSkill
+#  沙鹤之力每剩余1回合增加25%命中率
+- id: effect_skill_add_accuracy_25_per_shahezhili_turn
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addAccuracy
+    target: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_shahezhili
+          - type: select
+            arg:
+              type: dynamic
+              arg: duration
+          - type: multiply
+            arg:
+              type: raw:number
+              value: 25
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_shahezhili
+        evaluator:
+          type: exist

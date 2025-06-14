@@ -472,3 +472,21 @@ mark_guangzhilingyu:
 mark_guanghuilingyu:
   name: 光辉领域
   description: 增加自身恢复量40%
+mark_pofang:
+  name: 破防
+  description: 受到伤害增加{{mark.stack}}%
+mark_hongbaoshi:
+  name: 红宝石
+  description: 使下一个蓝宝石之力附加200点固伤
+mark_lanbaoshi:
+  name: 蓝宝石
+  description: 使下一个红宝石之光附加200点固伤
+mark_liuxingdun:
+  name: 流星盾【🛡️】
+  description: 完全抵挡下一次特攻伤害
+mark_shahezhili:
+  name: 沙鹤之力
+  description: 造成伤害增加35%
+mark_shazhiwang:
+  name: 沙之网
+  description: 受到特攻伤害减少{{mark.stack}}点

@@ -623,3 +623,43 @@
     tag: skill_effect_yinbo_stack
     modifierType: delta
     value: 5
+
+# 必破: 使破防一击必中
+- id: effect_emblem_pofangyiji_sure_hit
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: setValue
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value: skill_pofangyiji
+        - type: selectProp
+          arg: sureHit
+    value: true
+
+# 沙鹤之光: 使沙鹤之光的威力增加10%
+- id: effect_emblem_shahezhiguang_power_boost_10_percent
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addSkillAttributeModifier
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value: skill_shahezhili
+    attribute: power
+    modifierType: percent
+    value: 10

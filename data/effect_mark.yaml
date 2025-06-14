@@ -2180,3 +2180,123 @@
     - type: destroyMark
       target:
         base: mark
+
+# 蓝宝石: 使下一个红宝石之光附加200点固伤
+- id: effect_mark_hongbaoshizhiguang_add_200_fixed_damage
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  consumesStacks: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill.baseId
+        evaluator:
+          type: same
+          value: skill_hongbaoshizhiguang
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta:
+      type: raw:number
+      configId: hongbaoshi_fixed_damage_value
+      value: 200
+
+# 红宝石: 使下一个蓝宝石之力附加200点固伤
+- id: effect_mark_lanbaoshizhiguang_add_200_fixed_damage
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  consumesStacks: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill.baseId
+        evaluator:
+          type: same
+          value: skill_lanbaoshizhili
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta:
+      type: raw:number
+      configId: lanbaoshi_fixed_damage_value
+      value: 200
+
+# 流星盾: 完全抵挡下一次特攻伤害
+- id: effect_mark_block_next_special_damage
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageType
+        evaluator:
+          type: same
+          value: Special
+  apply:
+    type: preventDamage
+    target: damageContext
+
+# 沙鹤之力: 造成伤害增加35%
+- id: effect_mark_damage_boost_35
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: selfUseSkill
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 35
+    delta: 0
+
+# 沙之网: 受到的特攻伤害减少层数的数值
+- id: effect_mark_special_damage_reduction_with_stack
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageType
+        evaluator:
+          type: same
+          value: Special
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta:
+      type: dynamic
+      selector:
+        base: mark
+        chain:
+          - type: selectAttribute$
+            arg: stack

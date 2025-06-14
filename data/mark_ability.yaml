@@ -130,3 +130,11 @@
   config: *ablitity_config
   effect:
     - effect_ability_heal_1_8_max_hp_when_rage_greater_than_opponent
+- id: mark_ability_pofang
+  config: *ablitity_config
+  effect:
+    - effect_ability_damage_amplify_10_percent_foe_has_pofang
+- id: mark_ability_shahe
+  config: *ablitity_config
+  effect:
+    - effect_ability_physical_evasion_boost_5_percent

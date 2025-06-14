@@ -3731,3 +3731,237 @@
     - mark_ability_yinwang
   emblem:
     - mark_emblem_yinbo
+- id: pet_mogu
+  num: 79
+  element: Ground
+  baseStats:
+    hp: 93
+    atk: 134
+    def: 126
+    spa: 116
+    spd: 111
+    spe: 98
+  genderRatio:
+    - 0
+    - 10
+  heightRange:
+    - 31
+    - 36
+  weightRange:
+    - 12
+    - 16
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_jianying
+      level: 5
+      hidden: false
+    - skill_id: skill_feishi
+      level: 10
+      hidden: false
+    - skill_id: skill_pofangyiji
+      level: 13
+      hidden: false
+    - skill_id: skill_suishituji
+      level: 18
+      hidden: false
+    - skill_id: skill_jianren
+      level: 24
+      hidden: false
+  ability:
+    - mark_ability_pofang
+  emblem:
+    - mark_emblem_bipo
+- id: pet_juchuimogu
+  num: 80
+  element: Ground
+  baseStats:
+    hp: 183
+    atk: 184
+    def: 176
+    spa: 161
+    spd: 156
+    spe: 143
+  genderRatio:
+    - 0
+    - 10
+  heightRange:
+    - 102
+    - 107
+  weightRange:
+    - 125
+    - 130
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_jianying
+      level: 5
+      hidden: false
+    - skill_id: skill_feishi
+      level: 10
+      hidden: false
+    - skill_id: skill_pofangyiji
+      level: 13
+      hidden: false
+    - skill_id: skill_suishituji
+      level: 18
+      hidden: false
+    - skill_id: skill_jianren
+      level: 24
+      hidden: false
+    - skill_id: skill_liuxingchui
+      level: 29
+      hidden: false
+    - skill_id: skill_menglietu ji
+      level: 34
+      hidden: false
+    - skill_id: skill_fengli
+      level: 39
+      hidden: false
+    - skill_id: skill_lieshichuanci
+      level: 44
+      hidden: false
+    - skill_id: skill_miaozhuntuji
+      level: 49
+      hidden: false
+    - skill_id: skill_lanbaoshizhili
+      level: 54
+      hidden: false
+    - skill_id: skill_juchuidilichong
+      level: 60
+      hidden: true
+    - skill_id: skill_liuxingdun
+      level: 60
+      hidden: true
+    - skill_id: skill_jiancizhibi
+      level: 60
+      hidden: true
+    - skill_id: skill_suilietu ji
+      level: 60
+      hidden: true
+    - skill_id: skill_julietuji
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_pofang
+  emblem:
+    - mark_emblem_bipo
+- id: pet_shazhihe
+  num: 81
+  element: Desert
+  baseStats:
+    hp: 92
+    atk: 115
+    def: 110
+    spa: 133
+    spd: 120
+    spe: 113
+  genderRatio:
+    - 10
+    - 0
+  heightRange:
+    - 34
+    - 39
+  weightRange:
+    - 8
+    - 13
+  learnable_skills:
+    - skill_id: skill_lizhua
+      level: 1
+      hidden: false
+    - skill_id: skill_jiasu
+      level: 5
+      hidden: false
+    - skill_id: skill_shachen
+      level: 10
+      hidden: false
+    - skill_id: skill_shahezhiguang
+      level: 15
+      hidden: false
+    - skill_id: skill_shachenfengbao
+      level: 19
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 24
+      hidden: false
+  ability:
+    - mark_ability_shahe
+  emblem:
+    - mark_emblem_shahe
+- id: pet_shahuangniao
+  num: 82
+  element: Desert
+  baseStats:
+    hp: 182
+    atk: 160
+    def: 155
+    spa: 183
+    spd: 165
+    spe: 163
+  genderRatio:
+    - 10
+    - 0
+  heightRange:
+    - 93
+    - 98
+  weightRange:
+    - 45
+    - 50
+  learnable_skills:
+    - skill_id: skill_lizhua
+      level: 1
+      hidden: false
+    - skill_id: skill_jiasu
+      level: 5
+      hidden: false
+    - skill_id: skill_shachen
+      level: 10
+      hidden: false
+    - skill_id: skill_shahezhiguang
+      level: 15
+      hidden: false
+    - skill_id: skill_shachenfengbao
+      level: 19
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 24
+      hidden: false
+    - skill_id: skill_shahuangzhiqu
+      level: 30
+      hidden: false
+    - skill_id: skill_shazhiquti
+      level: 35
+      hidden: false
+    - skill_id: skill_shuairuo
+      level: 40
+      hidden: false
+    - skill_id: skill_zhimingshamo
+      level: 45
+      hidden: false
+    - skill_id: skill_shazhiwang
+      level: 50
+      hidden: false
+    - skill_id: skill_hongbaoshizhiguang
+      level: 56
+      hidden: false
+    - skill_id: skill_shahuangxiangyuewu
+      level: 60
+      hidden: true
+    - skill_id: skill_haishishenglou
+      level: 60
+      hidden: true
+    - skill_id: skill_shunxunzhiqu
+      level: 60
+      hidden: true
+    - skill_id: skill_shazhihaixiao
+      level: 60
+      hidden: true
+    - skill_id: skill_shahuangshuangshan
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_shahe
+  emblem:
+    - mark_emblem_shahe

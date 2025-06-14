@@ -689,6 +689,7 @@
               arg: maxHp
           - type: divide
             arg: 8
+# 偏斜：减少受到的物理伤害30%，增加受到的特攻伤害15%
 - id: effect_ability_reduce_physical_damage_30_percent
   trigger: OnDamage
   priority: 0
@@ -733,6 +734,7 @@
       base: damageContext
     delta: 0
     percent: 15
+# 音网：自身所有技能的命中率增加5%
 - id: effect_ability_add_self_skill_accuracy_5
   trigger: OnBattleStart
   priority: 0
@@ -742,4 +744,55 @@
       base: selfSkills
     attribute: accuracy
     modifierType: delta
+    value: 5
+# 破防: 对手具有破防时自身造成伤害增加10%
+- id: effect_ability_damage_amplify_10_percent_foe_has_pofang
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_pofang
+        evaluator:
+          type: exist
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 10
+    delta: 0
+# 沙鹤: 对于物攻技能的闪避率增加5%
+- id: effect_ability_physical_evasion_boost_5_percent
+  trigger: AfterUseSkillCheck
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Physical
+  apply:
+    type: addValue
+    target:
+      base: usingSkillContext
+      chain:
+        - type: selectProp
+          arg: evasion
     value: 5
