@@ -54,6 +54,7 @@ export function createBattleClient(): BattleClient {
 // reactive包装的battleClient
 export const battleClient = reactive({
   _instance: null as BattleClient | null,
+  _pendingEventHandlers: new Map<string, Set<(...args: any[]) => void>>(),
 
   get currentState() {
     return this._instance?.currentState || { status: 'disconnected', matchmaking: 'idle', battle: 'idle' }
@@ -80,15 +81,70 @@ export const battleClient = reactive({
   },
 
   on(event: any, handler: any) {
-    return this._instance?.on(event, handler)
+    if (this._instance) {
+      return this._instance.on(event, handler)
+    } else {
+      // 如果实例还没准备好，缓存事件监听器
+      if (!this._pendingEventHandlers.has(event)) {
+        this._pendingEventHandlers.set(event, new Set())
+      }
+      this._pendingEventHandlers.get(event)!.add(handler)
+
+      // 返回取消监听的函数
+      return () => {
+        const handlers = this._pendingEventHandlers.get(event)
+        if (handlers) {
+          handlers.delete(handler)
+          if (handlers.size === 0) {
+            this._pendingEventHandlers.delete(event)
+          }
+        }
+      }
+    }
   },
 
   off(event: any, handler?: any) {
-    return this._instance?.off(event, handler)
+    if (this._instance) {
+      return this._instance.off(event, handler)
+    } else {
+      // 从缓存中移除
+      if (handler) {
+        const handlers = this._pendingEventHandlers.get(event)
+        if (handlers) {
+          handlers.delete(handler)
+          if (handlers.size === 0) {
+            this._pendingEventHandlers.delete(event)
+          }
+        }
+      } else {
+        this._pendingEventHandlers.delete(event)
+      }
+    }
   },
 
   once(event: any, handler: any) {
-    return this._instance?.once(event, handler)
+    if (this._instance) {
+      return this._instance.once(event, handler)
+    } else {
+      // 对于once，我们需要包装handler以确保只执行一次
+      const wrappedHandler = (...args: any[]) => {
+        this.off(event, wrappedHandler)
+        handler(...args)
+      }
+      return this.on(event, wrappedHandler)
+    }
+  },
+
+  // 内部方法：注册缓存的事件监听器到实际实例
+  _registerPendingHandlers() {
+    if (this._instance && this._pendingEventHandlers.size > 0) {
+      for (const [event, handlers] of this._pendingEventHandlers.entries()) {
+        for (const handler of handlers) {
+          this._instance.on(event as any, handler)
+        }
+      }
+      this._pendingEventHandlers.clear()
+    }
   },
 })
 
@@ -97,6 +153,8 @@ export function initBattleClient() {
   if (!_battleClient) {
     _battleClient = createBattleClient()
     battleClient._instance = _battleClient
+    // 注册之前缓存的事件监听器
+    battleClient._registerPendingHandlers()
   }
 }
 
