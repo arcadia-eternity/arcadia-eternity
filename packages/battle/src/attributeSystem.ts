@@ -363,10 +363,6 @@ export class AttributeSystem<T extends AttributeData> {
   private subscriptionCleanups = new Map<keyof T, () => void>()
   private static instanceRegistry = new Set<AttributeSystem<any>>()
   private static battleRegistry = new Map<string, Set<AttributeSystem<any>>>() // battleId -> instances
-  private static cleanupInterval: ReturnType<typeof setInterval> | null = null
-  private static readonly CLEANUP_INTERVAL = 60000 // 1 minute
-  private static readonly MAX_INACTIVE_TIME = 300000 // 5 minutes
-  private lastAccessTime = Date.now()
   private battleId?: string // Associated battle ID
 
   constructor(objectName?: string) {
@@ -378,13 +374,8 @@ export class AttributeSystem<T extends AttributeData> {
       AttributeSystem.globalCalculationStack.set(this.objectId, new Set())
     }
 
-    // Register this instance for memory management
+    // Register this instance for battle-based lifecycle management
     AttributeSystem.instanceRegistry.add(this)
-
-    // Start global cleanup if not already running
-    if (!AttributeSystem.cleanupInterval) {
-      AttributeSystem.startGlobalCleanup()
-    }
   }
 
   /**
@@ -737,9 +728,6 @@ export class AttributeSystem<T extends AttributeData> {
       console.warn(`Attempting to access destroyed AttributeSystem ${this.objectId}`)
       return this.getFallbackValue(key)
     }
-
-    // Update last access time for memory management
-    this.updateLastAccessTime()
 
     // Check for circular dependency in synchronous access
     if (this.wouldCreateCircularDependency(key)) {
@@ -1103,80 +1091,6 @@ export class AttributeSystem<T extends AttributeData> {
   }
 
   /**
-   * Start global cleanup process
-   */
-  private static startGlobalCleanup(): void {
-    AttributeSystem.cleanupInterval = setInterval(() => {
-      AttributeSystem.performGlobalCleanup()
-    }, AttributeSystem.CLEANUP_INTERVAL)
-  }
-
-  /**
-   * Stop global cleanup process
-   */
-  static stopGlobalCleanup(): void {
-    if (AttributeSystem.cleanupInterval !== null) {
-      clearInterval(AttributeSystem.cleanupInterval)
-      AttributeSystem.cleanupInterval = null
-    }
-  }
-
-  /**
-   * Perform global cleanup of inactive instances
-   */
-  private static performGlobalCleanup(): void {
-    const now = Date.now()
-    const instancesToCleanup: AttributeSystem<any>[] = []
-
-    for (const instance of AttributeSystem.instanceRegistry) {
-      if (instance.isDestroyed) {
-        instancesToCleanup.push(instance)
-      } else if (now - instance.lastAccessTime > AttributeSystem.MAX_INACTIVE_TIME) {
-        console.warn(
-          `AttributeSystem ${instance.objectId} has been inactive for ${Math.floor((now - instance.lastAccessTime) / 60000)} minutes, cleaning up...`,
-        )
-        instancesToCleanup.push(instance)
-      }
-    }
-
-    // Clean up inactive instances
-    for (const instance of instancesToCleanup) {
-      instance.destroy()
-    }
-
-    // Clean up empty global tracking data
-    AttributeSystem.cleanupEmptyGlobalData()
-  }
-
-  /**
-   * Clean up empty global tracking data
-   */
-  private static cleanupEmptyGlobalData(): void {
-    // Clean up empty calculation stacks
-    for (const [objectId, stack] of AttributeSystem.globalCalculationStack) {
-      if (stack.size === 0) {
-        AttributeSystem.globalCalculationStack.delete(objectId)
-      }
-    }
-
-    // Clean up orphaned dependency graph entries
-    const activeObjectIds = new Set(AttributeSystem.globalCalculationStack.keys())
-    for (const [key, _] of AttributeSystem.globalDependencyGraph) {
-      const objectId = key.split('.')[0]
-      if (!activeObjectIds.has(objectId)) {
-        AttributeSystem.globalDependencyGraph.delete(key)
-      }
-    }
-  }
-
-  /**
-   * Update last access time (called on attribute access)
-   */
-  private updateLastAccessTime(): void {
-    this.lastAccessTime = Date.now()
-  }
-
-  /**
    * Check if this instance is destroyed
    */
   isInstanceDestroyed(): boolean {
@@ -1271,13 +1185,10 @@ export class AttributeSystem<T extends AttributeData> {
   getMemoryStats(): {
     objectId: string
     isDestroyed: boolean
-    lastAccessTime: number
-    inactiveTime: number
     attributeCount: number
     modifierCount: number
     subscriptionCount: number
   } {
-    const now = Date.now()
     let totalModifiers = 0
     for (const [_, modifierSubject] of this.modifiers) {
       totalModifiers += modifierSubject.value.length
@@ -1286,8 +1197,6 @@ export class AttributeSystem<T extends AttributeData> {
     return {
       objectId: this.objectId,
       isDestroyed: this.isDestroyed,
-      lastAccessTime: this.lastAccessTime,
-      inactiveTime: now - this.lastAccessTime,
       attributeCount: this.baseAttributes.size,
       modifierCount: totalModifiers,
       subscriptionCount: this.subscriptions.size,
@@ -1303,13 +1212,10 @@ export class AttributeSystem<T extends AttributeData> {
     destroyedInstances: number
     globalCalculationStackSize: number
     globalDependencyGraphSize: number
-    oldestInactiveTime: number
     memoryUsageByInstance: ReturnType<AttributeSystem<any>['getMemoryStats']>[]
   } {
-    const now = Date.now()
     let activeCount = 0
     let destroyedCount = 0
-    let oldestInactiveTime = 0
     const instanceStats: ReturnType<AttributeSystem<any>['getMemoryStats']>[] = []
 
     for (const instance of AttributeSystem.instanceRegistry) {
@@ -1320,7 +1226,6 @@ export class AttributeSystem<T extends AttributeData> {
         destroyedCount++
       } else {
         activeCount++
-        oldestInactiveTime = Math.max(oldestInactiveTime, stats.inactiveTime)
       }
     }
 
@@ -1330,7 +1235,6 @@ export class AttributeSystem<T extends AttributeData> {
       destroyedInstances: destroyedCount,
       globalCalculationStackSize: AttributeSystem.globalCalculationStack.size,
       globalDependencyGraphSize: AttributeSystem.globalDependencyGraph.size,
-      oldestInactiveTime,
       memoryUsageByInstance: instanceStats,
     }
   }
@@ -1355,14 +1259,15 @@ export class AttributeSystem<T extends AttributeData> {
   }
 
   /**
-   * Force cleanup of inactive instances
+   * Force cleanup of all non-destroyed instances (for manual cleanup)
+   * Note: This method is now primarily for debugging/testing purposes
+   * since lifecycle is managed by battle instances
    */
-  static forceCleanupInactiveInstances(maxInactiveTime: number = AttributeSystem.MAX_INACTIVE_TIME): number {
-    const now = Date.now()
+  static forceCleanupAllInstances(): number {
     const instancesToCleanup: AttributeSystem<any>[] = []
 
     for (const instance of AttributeSystem.instanceRegistry) {
-      if (!instance.isDestroyed && now - instance.lastAccessTime > maxInactiveTime) {
+      if (!instance.isDestroyed) {
         instancesToCleanup.push(instance)
       }
     }
@@ -1416,7 +1321,7 @@ export class AttributeSystem<T extends AttributeData> {
   static cleanupAllBattles(): number {
     let totalCleaned = 0
 
-    for (const [battleId, instances] of AttributeSystem.battleRegistry) {
+    for (const [, instances] of AttributeSystem.battleRegistry) {
       for (const instance of instances) {
         if (!instance.isDestroyed) {
           instance.destroy()
