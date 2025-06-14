@@ -22,6 +22,27 @@
                 {{ playerStore.name || '未命名训练师' }}
               </span>
             </div>
+            <!-- 模式切换按钮 -->
+            <div class="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+              <button
+                @click="viewMode = 'team'"
+                :class="[
+                  'px-3 py-1 text-sm font-medium rounded-md transition-colors duration-200',
+                  viewMode === 'team' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900',
+                ]"
+              >
+                队伍管理
+              </button>
+              <button
+                @click="viewMode = 'storage'"
+                :class="[
+                  'px-3 py-1 text-sm font-medium rounded-md transition-colors duration-200',
+                  viewMode === 'storage' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900',
+                ]"
+              >
+                仓库管理
+              </button>
+            </div>
           </div>
           <div class="flex items-center space-x-3">
             <span class="text-sm text-gray-500"> 总计: {{ petStorage.storage.length + totalTeamPets }} 只精灵 </span>
@@ -121,7 +142,7 @@
       </div>
 
       <!-- 主要内容区域 -->
-      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div v-if="viewMode === 'team'" class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <!-- 队伍管理区域 -->
         <div class="lg:col-span-3">
           <div class="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -267,67 +288,134 @@
                     class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3 min-h-[100px] p-2 sm:p-3 border-2 border-dashed border-gray-200 rounded-lg"
                   >
                     <!-- 队伍精灵列表 -->
-                    <div
+                    <el-tooltip
                       v-for="pet in team.pets"
                       :key="pet.id"
-                      @click="
-                        event =>
-                          handlePetInteraction(event, pet.id, 'click', () =>
-                            createTeamPetHandler(pet.id, petStorage.teams.indexOf(team)),
-                          )
-                      "
-                      @dblclick.stop="
-                        event =>
-                          handlePetInteraction(event, pet.id, 'dblclick', () =>
-                            createTeamPetHandler(pet.id, petStorage.teams.indexOf(team)),
-                          )
-                      "
-                      @contextmenu.prevent="
-                        event =>
-                          handlePetInteraction(event, pet.id, 'contextmenu', () =>
-                            createTeamPetHandler(pet.id, petStorage.teams.indexOf(team)),
-                          )
-                      "
-                      @touchstart="
-                        event =>
-                          handlePetInteraction(event, pet.id, 'touchstart', () =>
-                            createTeamPetHandler(pet.id, petStorage.teams.indexOf(team)),
-                          )
-                      "
-                      @touchend="
-                        event =>
-                          handlePetInteraction(event, pet.id, 'touchend', () =>
-                            createTeamPetHandler(pet.id, petStorage.teams.indexOf(team)),
-                          )
-                      "
-                      class="relative bg-white rounded-lg border border-gray-200 p-1 sm:p-2 hover:shadow-md transition-all duration-200 group cursor-pointer active:bg-gray-50 touch-manipulation"
+                      placement="top"
+                      :show-after="500"
+                      :hide-after="0"
+                      popper-class="pet-tooltip"
                     >
-                      <div class="flex flex-col items-center space-y-1">
-                        <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-8 h-8 sm:w-10 sm:h-10" />
-                        <div class="text-center w-full">
-                          <p class="text-xs sm:text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
-                          <p class="text-xs sm:text-xs text-gray-500">Lv.{{ pet.level }}</p>
-                          <p class="text-xs sm:text-xs text-gray-400 truncate hidden sm:block">
-                            {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
-                          </p>
+                      <template #content>
+                        <div class="pet-tooltip-content">
+                          <div class="flex items-center space-x-3 mb-2">
+                            <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-12 h-12" />
+                            <div>
+                              <div class="font-semibold text-white">{{ pet.name }}</div>
+                              <div class="text-gray-300 text-sm">
+                                {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                              </div>
+                              <div class="text-gray-400 text-xs">等级 {{ pet.level }}</div>
+                            </div>
+                          </div>
+                          <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div class="flex justify-between">
+                              <span class="text-gray-300">体力:</span>
+                              <span class="text-white font-medium">{{ computePetStat(pet, 'hp') }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                              <span class="text-gray-300">攻击:</span>
+                              <span class="text-white font-medium">{{ computePetStat(pet, 'atk') }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                              <span class="text-gray-300">防御:</span>
+                              <span class="text-white font-medium">{{ computePetStat(pet, 'def') }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                              <span class="text-gray-300">特攻:</span>
+                              <span class="text-white font-medium">{{ computePetStat(pet, 'spa') }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                              <span class="text-gray-300">特防:</span>
+                              <span class="text-white font-medium">{{ computePetStat(pet, 'spd') }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                              <span class="text-gray-300">速度:</span>
+                              <span class="text-white font-medium">{{ computePetStat(pet, 'spe') }}</span>
+                            </div>
+                          </div>
+                          <div class="mt-2 pt-2 border-t border-gray-600 flex justify-between text-xs">
+                            <span class="text-gray-300">
+                              性格: <span class="text-white">{{ getNatureText(pet.nature) }}</span>
+                            </span>
+                            <span class="text-gray-300">
+                              性别: <span class="text-white">{{ getGenderText(pet.gender) }}</span>
+                            </span>
+                          </div>
+                          <div v-if="pet.skills && pet.skills.length > 0" class="mt-2 pt-2 border-t border-gray-600">
+                            <div class="text-gray-300 text-xs mb-1">技能配招:</div>
+                            <div class="flex flex-wrap gap-1">
+                              <span
+                                v-for="skillId in pet.skills"
+                                :key="skillId"
+                                class="inline-block px-2 py-1 bg-blue-600 text-white text-xs rounded"
+                              >
+                                {{ getSkillName(skillId) }}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <!-- 移动端显示操作按钮，桌面端悬停显示 -->
-                        <button
-                          @click.stop="handleShowTeamPetContextMenu($event, pet, petStorage.teams.indexOf(team))"
-                          class="absolute top-1 right-1 p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors duration-200 sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
-                          title="更多操作"
-                        >
-                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                            />
-                          </svg>
-                        </button>
+                      </template>
+                      <div
+                        @click="
+                          event =>
+                            handlePetInteraction(event, pet.id, 'click', () =>
+                              createTeamPetHandler(pet.id, petStorage.teams.indexOf(team)),
+                            )
+                        "
+                        @dblclick.stop="
+                          event =>
+                            handlePetInteraction(event, pet.id, 'dblclick', () =>
+                              createTeamPetHandler(pet.id, petStorage.teams.indexOf(team)),
+                            )
+                        "
+                        @contextmenu.prevent="
+                          event =>
+                            handlePetInteraction(event, pet.id, 'contextmenu', () =>
+                              createTeamPetHandler(pet.id, petStorage.teams.indexOf(team)),
+                            )
+                        "
+                        @touchstart="
+                          event =>
+                            handlePetInteraction(event, pet.id, 'touchstart', () =>
+                              createTeamPetHandler(pet.id, petStorage.teams.indexOf(team)),
+                            )
+                        "
+                        @touchend="
+                          event =>
+                            handlePetInteraction(event, pet.id, 'touchend', () =>
+                              createTeamPetHandler(pet.id, petStorage.teams.indexOf(team)),
+                            )
+                        "
+                        class="relative bg-white rounded-lg border border-gray-200 p-1 sm:p-2 hover:shadow-md transition-all duration-200 group cursor-pointer active:bg-gray-50 touch-manipulation"
+                      >
+                        <div class="flex flex-col items-center space-y-1">
+                          <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-8 h-8 sm:w-10 sm:h-10" />
+                          <div class="text-center w-full">
+                            <p class="text-xs sm:text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
+                            <p class="text-xs sm:text-xs text-gray-500">Lv.{{ pet.level }}</p>
+                            <p class="text-xs sm:text-xs text-gray-400 truncate hidden sm:block">
+                              {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                            </p>
+                          </div>
+                          <!-- 移动端显示操作按钮，桌面端悬停显示 -->
+                          <button
+                            @click.stop="handleShowTeamPetContextMenu($event, pet, petStorage.teams.indexOf(team))"
+                            class="absolute top-1 right-1 p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors duration-200 sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
+                            title="更多操作"
+                          >
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                              />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    </el-tooltip>
 
                     <!-- 空槽位 -->
                     <div
@@ -544,51 +632,590 @@
 
               <!-- 仓库精灵列表 -->
               <div v-else class="grid grid-cols-2 sm:grid-cols-2 gap-2 sm:gap-3">
-                <div
+                <el-tooltip
                   v-for="pet in paginatedPets"
                   :key="pet.id"
-                  @click="event => handlePetInteraction(event, pet.id, 'click', () => createStoragePetHandler(pet.id))"
-                  @dblclick.stop="
-                    event => handlePetInteraction(event, pet.id, 'dblclick', () => createStoragePetHandler(pet.id))
-                  "
-                  @contextmenu.prevent="
-                    event => handlePetInteraction(event, pet.id, 'contextmenu', () => createStoragePetHandler(pet.id))
-                  "
-                  @touchstart="
-                    event => handlePetInteraction(event, pet.id, 'touchstart', () => createStoragePetHandler(pet.id))
-                  "
-                  @touchend="
-                    event => handlePetInteraction(event, pet.id, 'touchend', () => createStoragePetHandler(pet.id))
-                  "
-                  class="relative bg-white rounded-lg border border-gray-200 p-1 sm:p-2 hover:shadow-md transition-all duration-200 group cursor-pointer active:bg-gray-50 touch-manipulation"
+                  placement="top"
+                  :show-after="500"
+                  :hide-after="0"
+                  popper-class="pet-tooltip"
                 >
-                  <div class="flex flex-col items-center space-y-1">
-                    <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-8 h-8 sm:w-10 sm:h-10" />
-                    <div class="text-center w-full">
-                      <p class="text-xs sm:text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
-                      <p class="text-xs sm:text-xs text-gray-500">Lv.{{ pet.level }}</p>
-                      <p class="text-xs sm:text-xs text-gray-400 truncate hidden sm:block">
-                        {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
-                      </p>
+                  <template #content>
+                    <div class="pet-tooltip-content">
+                      <div class="flex items-center space-x-3 mb-2">
+                        <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-12 h-12" />
+                        <div>
+                          <div class="font-semibold text-white">{{ pet.name }}</div>
+                          <div class="text-gray-300 text-sm">
+                            {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                          </div>
+                          <div class="text-gray-400 text-xs">等级 {{ pet.level }}</div>
+                        </div>
+                      </div>
+                      <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">体力:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'hp') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">攻击:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'atk') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">防御:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'def') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">特攻:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'spa') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">特防:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'spd') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">速度:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'spe') }}</span>
+                        </div>
+                      </div>
+                      <div class="mt-2 pt-2 border-t border-gray-600 flex justify-between text-xs">
+                        <span class="text-gray-300">
+                          性格:
+                          <span class="text-white">{{ getNatureText(pet.nature) }}</span>
+                        </span>
+                        <span class="text-gray-300">
+                          性别: <span class="text-white">{{ getGenderText(pet.gender) }}</span>
+                        </span>
+                      </div>
+                      <div v-if="pet.skills && pet.skills.length > 0" class="mt-2 pt-2 border-t border-gray-600">
+                        <div class="text-gray-300 text-xs mb-1">技能配招:</div>
+                        <div class="flex flex-wrap gap-1">
+                          <span
+                            v-for="skillId in pet.skills"
+                            :key="skillId"
+                            class="inline-block px-2 py-1 bg-blue-600 text-white text-xs rounded"
+                          >
+                            {{ getSkillName(skillId) }}
+                          </span>
+                        </div>
+                      </div>
                     </div>
+                  </template>
+                  <div
+                    @click="
+                      event => handlePetInteraction(event, pet.id, 'click', () => createStoragePetHandler(pet.id))
+                    "
+                    @dblclick.stop="
+                      event => handlePetInteraction(event, pet.id, 'dblclick', () => createStoragePetHandler(pet.id))
+                    "
+                    @contextmenu.prevent="
+                      event => handlePetInteraction(event, pet.id, 'contextmenu', () => createStoragePetHandler(pet.id))
+                    "
+                    @touchstart="
+                      event => handlePetInteraction(event, pet.id, 'touchstart', () => createStoragePetHandler(pet.id))
+                    "
+                    @touchend="
+                      event => handlePetInteraction(event, pet.id, 'touchend', () => createStoragePetHandler(pet.id))
+                    "
+                    class="relative bg-white rounded-lg border border-gray-200 p-1 sm:p-2 hover:shadow-md transition-all duration-200 group cursor-pointer active:bg-gray-50 touch-manipulation"
+                  >
+                    <div class="flex flex-col items-center space-y-1">
+                      <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-8 h-8 sm:w-10 sm:h-10" />
+                      <div class="text-center w-full">
+                        <p class="text-xs sm:text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
+                        <p class="text-xs sm:text-xs text-gray-500">Lv.{{ pet.level }}</p>
+                        <p class="text-xs sm:text-xs text-gray-400 truncate hidden sm:block">
+                          {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                        </p>
+                      </div>
 
-                    <!-- 移动端显示操作按钮，桌面端悬停显示 -->
-                    <button
-                      @click.stop="handleShowContextMenu($event, pet)"
-                      class="absolute top-1 right-1 p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors duration-200 sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
-                      title="更多操作"
-                    >
-                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <!-- 移动端显示操作按钮，桌面端悬停显示 -->
+                      <button
+                        @click.stop="handleShowContextMenu($event, pet)"
+                        class="absolute top-1 right-1 p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors duration-200 sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
+                        title="更多操作"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </el-tooltip>
+              </div>
+
+              <!-- 仓库分页 -->
+              <div v-if="filteredPets.length > storagePagination.pageSize" class="mt-4 flex justify-center">
+                <el-pagination
+                  v-model:current-page="storagePagination.currentPage"
+                  :page-size="storagePagination.pageSize"
+                  layout="total, prev, pager, next"
+                  :total="filteredPets.length"
+                  @current-change="handleStoragePageChange"
+                  small
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 仓库管理模式 -->
+      <div v-else class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <!-- 当前队伍区域（紧凑显示） -->
+        <div class="lg:col-span-1">
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-4 py-3 border-b border-gray-200">
+              <h2 class="text-lg font-medium text-gray-900">当前队伍</h2>
+              <p class="text-sm text-gray-500 mt-1">{{ petStorage.teams[petStorage.currentTeamIndex]?.name }}</p>
+            </div>
+            <div class="p-4">
+              <!-- 当前队伍精灵 -->
+              <div class="grid grid-cols-2 gap-2 min-h-[200px]">
+                <!-- 队伍精灵列表 -->
+                <el-tooltip
+                  v-for="pet in petStorage.teams[petStorage.currentTeamIndex]?.pets || []"
+                  :key="pet.id"
+                  placement="top"
+                  :show-after="500"
+                  :hide-after="0"
+                  popper-class="pet-tooltip"
+                >
+                  <template #content>
+                    <div class="pet-tooltip-content">
+                      <div class="flex items-center space-x-3 mb-2">
+                        <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-12 h-12" />
+                        <div>
+                          <div class="font-semibold text-white">{{ pet.name }}</div>
+                          <div class="text-gray-300 text-sm">
+                            {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                          </div>
+                          <div class="text-gray-400 text-xs">等级 {{ pet.level }}</div>
+                        </div>
+                      </div>
+                      <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">体力:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'hp') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">攻击:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'atk') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">防御:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'def') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">特攻:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'spa') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">特防:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'spd') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">速度:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'spe') }}</span>
+                        </div>
+                      </div>
+                      <div class="mt-2 pt-2 border-t border-gray-600 flex justify-between text-xs">
+                        <span class="text-gray-300">
+                          性格: <span class="text-white">{{ getNatureText(pet.nature) }}</span>
+                        </span>
+                        <span class="text-gray-300">
+                          性别: <span class="text-white">{{ getGenderText(pet.gender) }}</span>
+                        </span>
+                      </div>
+                      <div v-if="pet.skills && pet.skills.length > 0" class="mt-2 pt-2 border-t border-gray-600">
+                        <div class="text-gray-300 text-xs mb-1">技能配招:</div>
+                        <div class="flex flex-wrap gap-1">
+                          <span
+                            v-for="skillId in pet.skills"
+                            :key="skillId"
+                            class="inline-block px-2 py-1 bg-blue-600 text-white text-xs rounded"
+                          >
+                            {{ getSkillName(skillId) }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                  <div
+                    @click="
+                      event =>
+                        handlePetInteraction(event, pet.id, 'click', () =>
+                          createTeamPetHandler(pet.id, petStorage.currentTeamIndex),
+                        )
+                    "
+                    @dblclick.stop="
+                      event =>
+                        handlePetInteraction(event, pet.id, 'dblclick', () =>
+                          createTeamPetHandler(pet.id, petStorage.currentTeamIndex),
+                        )
+                    "
+                    @contextmenu.prevent="
+                      event =>
+                        handlePetInteraction(event, pet.id, 'contextmenu', () =>
+                          createTeamPetHandler(pet.id, petStorage.currentTeamIndex),
+                        )
+                    "
+                    @touchstart="
+                      event =>
+                        handlePetInteraction(event, pet.id, 'touchstart', () =>
+                          createTeamPetHandler(pet.id, petStorage.currentTeamIndex),
+                        )
+                    "
+                    @touchend="
+                      event =>
+                        handlePetInteraction(event, pet.id, 'touchend', () =>
+                          createTeamPetHandler(pet.id, petStorage.currentTeamIndex),
+                        )
+                    "
+                    class="relative bg-white rounded-lg border border-gray-200 p-2 hover:shadow-md transition-all duration-200 group cursor-pointer active:bg-gray-50 touch-manipulation"
+                  >
+                    <div class="flex flex-col items-center space-y-1">
+                      <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-8 h-8" />
+                      <div class="text-center w-full">
+                        <p class="text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
+                        <p class="text-xs text-gray-500">Lv.{{ pet.level }}</p>
+                      </div>
+                      <!-- 操作按钮 -->
+                      <button
+                        @click.stop="handleShowTeamPetContextMenu($event, pet, petStorage.currentTeamIndex)"
+                        class="absolute top-1 right-1 p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors duration-200 sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
+                        title="更多操作"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </el-tooltip>
+
+                <!-- 空槽位 -->
+                <div
+                  v-for="n in Math.max(0, 6 - (petStorage.teams[petStorage.currentTeamIndex]?.pets.length || 0))"
+                  :key="`empty-${n}`"
+                  class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-2 flex items-center justify-center text-gray-400 hover:border-gray-400 transition-colors duration-200"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 仓库区域（扩展显示） -->
+        <div class="lg:col-span-4">
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+              <div class="flex items-center justify-between">
+                <h2 class="text-lg font-medium text-gray-900">精灵仓库</h2>
+                <span class="text-sm text-gray-500">
+                  显示 {{ paginatedPets.length }} 只 (共 {{ filteredPets.length }}/{{ petStorage.storage.length }} 只)
+                </span>
+              </div>
+            </div>
+
+            <!-- 搜索和筛选区域 -->
+            <div class="px-4 py-3 border-b border-gray-200 bg-gray-50">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- 搜索框 -->
+                <div class="lg:col-span-2">
+                  <el-input
+                    v-model="searchQuery"
+                    placeholder="搜索精灵名称或种族..."
+                    clearable
+                    size="small"
+                    class="w-full"
+                  >
+                    <template #prefix>
+                      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                           stroke-linecap="round"
                           stroke-linejoin="round"
                           stroke-width="2"
-                          d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                         />
                       </svg>
-                    </button>
+                    </template>
+                  </el-input>
+                </div>
+
+                <!-- 元素类型筛选 -->
+                <div>
+                  <el-select v-model="filters.element" placeholder="选择元素" clearable size="small" class="w-full">
+                    <el-option
+                      v-for="element in availableElements"
+                      :key="element.value"
+                      :label="element.label"
+                      :value="element.value"
+                    />
+                  </el-select>
+                </div>
+
+                <!-- 排序选择 -->
+                <div class="flex space-x-2">
+                  <el-select v-model="sortBy" size="small" class="flex-1">
+                    <el-option label="名称" value="name" />
+                    <el-option label="等级" value="level" />
+                    <el-option label="种族编号" value="speciesNum" />
+                    <el-option label="体力" value="hp" />
+                    <el-option label="攻击力" value="atk" />
+                    <el-option label="防御力" value="def" />
+                    <el-option label="特攻" value="spa" />
+                    <el-option label="特防" value="spd" />
+                    <el-option label="速度" value="spe" />
+                  </el-select>
+                  <el-button size="small" @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'" class="px-2">
+                    <svg
+                      v-if="sortOrder === 'asc'"
+                      class="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
+                      />
+                    </svg>
+                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"
+                      />
+                    </svg>
+                  </el-button>
+                </div>
+              </div>
+
+              <!-- 第二行筛选器 -->
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <!-- 等级范围筛选 -->
+                <div class="flex items-center space-x-2">
+                  <label class="text-xs font-medium text-gray-600 w-12 flex-shrink-0">等级:</label>
+                  <div class="flex items-center space-x-1 flex-1">
+                    <el-input-number
+                      v-model="filters.levelMin"
+                      :min="1"
+                      :max="100"
+                      size="small"
+                      controls-position="right"
+                      placeholder="最低"
+                      class="flex-1"
+                    />
+                    <span class="text-gray-400">-</span>
+                    <el-input-number
+                      v-model="filters.levelMax"
+                      :min="1"
+                      :max="100"
+                      size="small"
+                      controls-position="right"
+                      placeholder="最高"
+                      class="flex-1"
+                    />
                   </div>
                 </div>
+
+                <!-- 性别筛选 -->
+                <div class="flex items-center space-x-2">
+                  <label class="text-xs font-medium text-gray-600 w-12 flex-shrink-0">性别:</label>
+                  <el-select v-model="filters.gender" placeholder="全部" clearable size="small" class="flex-1">
+                    <el-option label="雄性" :value="Gender.Male" />
+                    <el-option label="雌性" :value="Gender.Female" />
+                    <el-option label="无性别" :value="Gender.NoGender" />
+                  </el-select>
+                </div>
+
+                <!-- 清除筛选按钮 -->
+                <div class="flex justify-end">
+                  <el-button size="small" type="info" plain @click="clearFilters" class="text-xs"> 清除筛选 </el-button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 仓库区域 -->
+            <div ref="storageContainerRef" class="p-4 min-h-[500px] max-h-[700px] overflow-y-auto">
+              <!-- 空仓库提示 -->
+              <div
+                v-if="petStorage.storage.length === 0"
+                class="flex flex-col items-center justify-center h-64 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg"
+              >
+                <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                  />
+                </svg>
+                <p class="text-lg font-medium">仓库为空</p>
+                <p class="text-sm">双击队伍精灵或使用右键菜单将精灵移动到仓库</p>
+              </div>
+
+              <!-- 无筛选结果提示 -->
+              <div
+                v-else-if="filteredPets.length === 0"
+                class="flex flex-col items-center justify-center h-64 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg"
+              >
+                <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                <p class="text-lg font-medium">没有找到匹配的精灵</p>
+                <p class="text-sm">尝试调整搜索条件或清除筛选</p>
+              </div>
+
+              <!-- 仓库精灵列表 -->
+              <div
+                v-else
+                :class="[
+                  'grid gap-3',
+                  viewMode === 'storage' ? 'grid-cols-4 sm:grid-cols-6 lg:grid-cols-8' : 'grid-cols-2 sm:grid-cols-2',
+                ]"
+              >
+                <el-tooltip
+                  v-for="pet in paginatedPets"
+                  :key="pet.id"
+                  placement="top"
+                  :show-after="500"
+                  :hide-after="0"
+                  popper-class="pet-tooltip"
+                >
+                  <template #content>
+                    <div class="pet-tooltip-content">
+                      <div class="flex items-center space-x-3 mb-2">
+                        <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-12 h-12" />
+                        <div>
+                          <div class="font-semibold text-white">{{ pet.name }}</div>
+                          <div class="text-gray-300 text-sm">
+                            {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                          </div>
+                          <div class="text-gray-400 text-xs">等级 {{ pet.level }}</div>
+                        </div>
+                      </div>
+                      <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">体力:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'hp') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">攻击:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'atk') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">防御:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'def') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">特攻:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'spa') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">特防:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'spd') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-300">速度:</span>
+                          <span class="text-white font-medium">{{ computePetStat(pet, 'spe') }}</span>
+                        </div>
+                      </div>
+                      <div class="mt-2 pt-2 border-t border-gray-600 flex justify-between text-xs">
+                        <span class="text-gray-300">
+                          性格: <span class="text-white">{{ getNatureText(pet.nature) }}</span>
+                        </span>
+                        <span class="text-gray-300">
+                          性别: <span class="text-white">{{ getGenderText(pet.gender) }}</span>
+                        </span>
+                      </div>
+                      <div v-if="pet.skills && pet.skills.length > 0" class="mt-2 pt-2 border-t border-gray-600">
+                        <div class="text-gray-300 text-xs mb-1">技能配招:</div>
+                        <div class="flex flex-wrap gap-1">
+                          <span
+                            v-for="skillId in pet.skills"
+                            :key="skillId"
+                            class="inline-block px-2 py-1 bg-blue-600 text-white text-xs rounded"
+                          >
+                            {{ getSkillName(skillId) }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                  <div
+                    @click="
+                      event => handlePetInteraction(event, pet.id, 'click', () => createStoragePetHandler(pet.id))
+                    "
+                    @dblclick.stop="
+                      event => handlePetInteraction(event, pet.id, 'dblclick', () => createStoragePetHandler(pet.id))
+                    "
+                    @contextmenu.prevent="
+                      event => handlePetInteraction(event, pet.id, 'contextmenu', () => createStoragePetHandler(pet.id))
+                    "
+                    @touchstart="
+                      event => handlePetInteraction(event, pet.id, 'touchstart', () => createStoragePetHandler(pet.id))
+                    "
+                    @touchend="
+                      event => handlePetInteraction(event, pet.id, 'touchend', () => createStoragePetHandler(pet.id))
+                    "
+                    class="relative bg-white rounded-lg border border-gray-200 p-2 hover:shadow-md transition-all duration-200 group cursor-pointer active:bg-gray-50 touch-manipulation"
+                  >
+                    <div class="flex flex-col items-center space-y-1">
+                      <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-10 h-10" />
+                      <div class="text-center w-full">
+                        <p class="text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
+                        <p class="text-xs text-gray-500">Lv.{{ pet.level }}</p>
+                        <p class="text-xs text-gray-400 truncate">
+                          {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                        </p>
+                      </div>
+
+                      <!-- 操作按钮 -->
+                      <button
+                        @click.stop="handleShowContextMenu($event, pet)"
+                        class="absolute top-1 right-1 p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors duration-200 sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
+                        title="更多操作"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </el-tooltip>
               </div>
 
               <!-- 仓库分页 -->
@@ -856,6 +1483,7 @@ const { exportTeam } = useTeamExport()
 const showHelp = ref(false)
 const editingIndex = ref(-1)
 const tempTeamName = ref('')
+const viewMode = ref<'team' | 'storage'>('team') // 视图模式：队伍管理模式或仓库管理模式
 
 // 搜索和筛选状态
 const searchQuery = ref('')
@@ -1204,8 +1832,8 @@ const handleStoragePageChange = (page: number) => {
 
 // 自动计算分页大小
 const calculatePageSizes = () => {
-  // 计算队伍容器能容纳的队伍数量
-  if (teamContainerRef.value) {
+  // 只在队伍管理模式下计算队伍容器分页
+  if (viewMode.value === 'team' && teamContainerRef.value) {
     const container = teamContainerRef.value
     const containerHeight = container.clientHeight
 
@@ -1229,9 +1857,19 @@ const calculatePageSizes = () => {
     const containerWidth = container.clientWidth
     const containerHeight = container.clientHeight - 60 // 减去分页组件高度
 
-    // 精灵项的尺寸：每个精灵卡片约 120px 宽 + 12px 间距，约 100px 高 + 12px 间距
-    const petItemWidth = 132 // 包含间距
-    const petItemHeight = 112 // 包含间距
+    // 根据视图模式调整精灵项尺寸
+    let petItemWidth: number
+    let petItemHeight: number
+
+    if (viewMode.value === 'storage') {
+      // 仓库管理模式：更小的精灵卡片，更多列数
+      petItemWidth = 100 // 包含间距，更紧凑
+      petItemHeight = 100 // 包含间距，更紧凑
+    } else {
+      // 队伍管理模式：原有尺寸
+      petItemWidth = 132 // 包含间距
+      petItemHeight = 112 // 包含间距
+    }
 
     const petsPerRow = Math.max(1, Math.floor(containerWidth / petItemWidth))
     const maxRows = Math.max(1, Math.floor(containerHeight / petItemHeight))
@@ -1284,6 +1922,18 @@ watch(
   },
   { immediate: true },
 )
+
+// 监听视图模式变化，重新计算分页大小
+watch(viewMode, () => {
+  // 重置分页到第一页
+  storagePagination.value.currentPage = 1
+  teamPagination.value.currentPage = 1
+
+  // 重新计算分页大小
+  nextTick(() => {
+    debouncedCalculatePageSizes()
+  })
+})
 
 // 检查并修正分页状态的辅助函数
 const checkAndFixPagination = () => {
@@ -1763,6 +2413,60 @@ const computePetStat = (pet: PetSchemaType, stat: 'hp' | 'atk' | 'def' | 'spa' |
     return Math.floor((Math.floor(((2 * baseStat + iv + Math.floor(ev / 4)) * level) / 100) + 5) * natureMultiplier)
   }
 }
+
+// 获取性别文本
+const getGenderText = (gender?: Gender) => {
+  if (gender === undefined) return '未知'
+  switch (gender) {
+    case Gender.Male:
+      return '雄性'
+    case Gender.Female:
+      return '雌性'
+    case Gender.NoGender:
+      return '无性别'
+    default:
+      return '未知'
+  }
+}
+
+// 性格中文映射
+const natureChineseMap: Record<Nature, string> = {
+  [Nature.Adamant]: '固执',
+  [Nature.Bashful]: '害羞',
+  [Nature.Bold]: '大胆',
+  [Nature.Brave]: '勇敢',
+  [Nature.Calm]: '冷静',
+  [Nature.Careful]: '慎重',
+  [Nature.Docile]: '坦率',
+  [Nature.Gentle]: '温和',
+  [Nature.Hardy]: '勤奋',
+  [Nature.Hasty]: '急躁',
+  [Nature.Impish]: '淘气',
+  [Nature.Jolly]: '爽朗',
+  [Nature.Lax]: '乐天',
+  [Nature.Lonely]: '怕寂寞',
+  [Nature.Mild]: '温和',
+  [Nature.Modest]: '内敛',
+  [Nature.Naive]: '天真',
+  [Nature.Naughty]: '顽皮',
+  [Nature.Quiet]: '冷静',
+  [Nature.Quirky]: '古怪',
+  [Nature.Rash]: '马虎',
+  [Nature.Relaxed]: '悠闲',
+  [Nature.Sassy]: '自大',
+  [Nature.Serious]: '认真',
+  [Nature.Timid]: '胆小',
+}
+
+// 获取性格文本
+const getNatureText = (nature: Nature) => {
+  return natureChineseMap[nature] || nature
+}
+
+// 获取技能名称
+const getSkillName = (skillId: string) => {
+  return i18next.t(`${skillId}.name`, { ns: 'skill' })
+}
 </script>
 
 <style scoped>
@@ -1804,5 +2508,36 @@ const computePetStat = (pet: PetSchemaType, stat: 'hp' | 'atk' | 'def' | 'spa' |
   .md\:grid-cols-6 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
+
+/* 移动端触摸优化 */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* 确保按钮在移动端可见 */
+@media (max-width: 640px) {
+  .sm\:opacity-0 {
+    opacity: 1 !important;
+  }
+}
+
+/* 精灵tooltip样式 */
+:global(.pet-tooltip) {
+  max-width: 320px !important;
+}
+
+:global(.pet-tooltip .el-popper__arrow::before) {
+  background: rgba(0, 0, 0, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.pet-tooltip-content {
+  background: rgba(0, 0, 0, 0.9);
+  border-radius: 8px;
+  padding: 12px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 </style>
