@@ -376,7 +376,7 @@
   config:
     duration: 1
     persistent: true
-    maxStacks: 1
+    maxStacks: 100
     stackable: true
     stackStrategy: extend
     destroyable: true
