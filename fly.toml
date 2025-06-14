@@ -25,8 +25,10 @@ cpu_kind = 'shared'
 cpus = 1
 
 [env]
-EMAIL_PROVIDER = "ses"
-AWS_SES_REGION = "ap-southeast-1"
-EMAIL_FROM = "noreply@yuuinih.com"
+EMAIL_PROVIDER = "stmp"
+STMP_HOST = "smtp.qcloudmail.com"
+STMP_PROT = "465"
+SMTP_SECURE = "true"
+EMAIL_FROM = "noreply@auth.yuuinih.com"
 EMAIL_FROM_NAME = "阿卡迪亚永恒"
 CORS_ORIGIN = "https://battle.yuuinih.com,https://test-battle.netlify.app"
