@@ -1,79 +1,57 @@
 <template>
+  <!-- 回合时间部分 -->
   <div
-    v-if="isEnabled && (shouldShowTurnTime || shouldShowTotalTime)"
-    class="bg-black/80 rounded-lg p-4 text-white font-mono min-w-[200px]"
+    v-if="type === 'turn' && isEnabled && shouldShowTurnTime"
+    class="flex items-center gap-1 text-white font-mono text-sm"
   >
-    <div class="flex flex-col gap-3">
-      <!-- 回合计时器 -->
-      <div v-if="shouldShowTurnTime" class="flex flex-col gap-1">
-        <div class="text-xs text-gray-300 uppercase tracking-wide">回合时间</div>
-        <div
-          class="text-lg font-bold transition-colors duration-300"
-          :class="{
-            'text-green-400': turnTimePercent > 30,
-            'text-yellow-400': turnTimePercent <= 30 && turnTimePercent > 10,
-            'text-red-400 animate-pulse': turnTimePercent <= 10,
-          }"
-        >
-          {{ formatTime(turnTime) }}
-        </div>
-        <div class="h-1 bg-white/20 rounded-full overflow-hidden">
-          <div
-            class="h-full transition-all duration-500 ease-out"
-            :style="{ width: `${turnTimePercent}%` }"
-            :class="{
-              'bg-green-400': turnTimePercent > 30,
-              'bg-yellow-400': turnTimePercent <= 30 && turnTimePercent > 10,
-              'bg-red-400': turnTimePercent <= 10,
-            }"
-          ></div>
-        </div>
-      </div>
+    <span class="text-gray-300">{{ i18next.t('turn-time', { ns: 'battle', defaultValue: '回合:' }) }}</span>
+    <span
+      class="font-bold transition-colors duration-300"
+      :class="{
+        'text-green-400': turnTimePercent > 30,
+        'text-yellow-400': turnTimePercent <= 30 && turnTimePercent > 10,
+        'text-red-400 animate-pulse': turnTimePercent <= 10,
+      }"
+    >
+      {{ formatTime(turnTime) }}
+    </span>
+    <!-- 状态指示器 -->
+    <div
+      class="w-2 h-2 rounded-full transition-colors duration-300"
+      :class="{
+        'bg-green-400': state === TimerState.Running,
+        'bg-yellow-400 animate-pulse': state === TimerState.Paused,
+        'bg-gray-400': state === TimerState.Stopped,
+        'bg-red-400 animate-pulse': state === TimerState.Timeout,
+      }"
+    ></div>
+  </div>
 
-      <!-- 总计时器 -->
-      <div v-if="shouldShowTotalTime" class="flex flex-col gap-1">
-        <div class="text-xs text-gray-300 uppercase tracking-wide">总时间</div>
-        <div
-          class="text-lg font-bold transition-colors duration-300"
-          :class="{
-            'text-green-400': totalTimePercent > 30,
-            'text-yellow-400': totalTimePercent <= 30 && totalTimePercent > 10,
-            'text-red-400 animate-pulse': totalTimePercent <= 10,
-          }"
-        >
-          {{ formatTime(totalTime) }}
-        </div>
-        <div class="h-1 bg-white/20 rounded-full overflow-hidden">
-          <div
-            class="h-full transition-all duration-500 ease-out"
-            :style="{ width: `${totalTimePercent}%` }"
-            :class="{
-              'bg-green-400': totalTimePercent > 30,
-              'bg-yellow-400': totalTimePercent <= 30 && totalTimePercent > 10,
-              'bg-red-400': totalTimePercent <= 10,
-            }"
-          ></div>
-        </div>
-      </div>
-
-      <!-- 计时器状态 -->
-      <div class="flex flex-col gap-1 items-center">
-        <div
-          class="text-xs px-2 py-1 rounded uppercase tracking-wide"
-          :class="{
-            'bg-green-600 text-white': state === TimerState.Running,
-            'bg-yellow-600 text-white': state === TimerState.Paused,
-            'bg-gray-600 text-white': state === TimerState.Stopped,
-            'bg-red-600 text-white': state === TimerState.Timeout,
-          }"
-        >
-          {{ getStateText(state) }}
-        </div>
-        <div v-if="isPaused" class="text-xs text-gray-400 italic">
-          {{ getPauseReasonText(pauseReason) }}
-        </div>
-      </div>
-    </div>
+  <!-- 总时间部分 -->
+  <div
+    v-if="type === 'total' && isEnabled && shouldShowTotalTime"
+    class="flex items-center gap-1 text-white font-mono text-sm"
+  >
+    <div
+      class="w-2 h-2 rounded-full transition-colors duration-300"
+      :class="{
+        'bg-green-400': state === TimerState.Running,
+        'bg-yellow-400 animate-pulse': state === TimerState.Paused,
+        'bg-gray-400': state === TimerState.Stopped,
+        'bg-red-400 animate-pulse': state === TimerState.Timeout,
+      }"
+    ></div>
+    <span class="text-gray-300">{{ i18next.t('total-time', { ns: 'battle', defaultValue: '总计:' }) }}</span>
+    <span
+      class="font-bold transition-colors duration-300"
+      :class="{
+        'text-green-400': totalTimePercent > 30,
+        'text-yellow-400': totalTimePercent <= 30 && totalTimePercent > 10,
+        'text-red-400 animate-pulse': totalTimePercent <= 10,
+      }"
+    >
+      {{ formatTime(totalTime) }}
+    </span>
   </div>
 </template>
 
@@ -82,9 +60,11 @@ import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import type { PlayerTimerState, TimerConfig } from '@arcadia-eternity/const'
 import { TimerState } from '@arcadia-eternity/const'
 import { useBattleStore } from '../stores/battle'
+import i18next from 'i18next'
 
 interface Props {
   playerId?: string
+  type: 'turn' | 'total'
 }
 
 const props = defineProps<Props>()
@@ -94,8 +74,8 @@ const battleStore = useBattleStore()
 const isEnabled = ref(false)
 const timerConfig = ref<TimerConfig | null>(null)
 const timerState = ref<PlayerTimerState | null>(null)
-const pauseReason = ref<string>('')
 const updateInterval = ref<ReturnType<typeof setInterval> | null>(null)
+const timerEventUnsubscribers = ref<(() => void)[]>([])
 
 // 计算属性
 const turnTime = computed(() => timerState.value?.remainingTurnTime || 0)
@@ -111,41 +91,22 @@ const shouldShowTotalTime = computed(() => {
   return timerConfig.value?.totalTimeLimit !== undefined
 })
 
+// 计算时间百分比
 const turnTimePercent = computed(() => {
-  if (!timerConfig.value || !timerState.value || !timerConfig.value.turnTimeLimit) return 100
+  if (!timerConfig.value?.turnTimeLimit) return 100
   return Math.max(0, (turnTime.value / timerConfig.value.turnTimeLimit) * 100)
 })
 
 const totalTimePercent = computed(() => {
-  if (!timerConfig.value || !timerState.value || !timerConfig.value.totalTimeLimit) return 100
+  if (!timerConfig.value?.totalTimeLimit) return 100
   return Math.max(0, (totalTime.value / timerConfig.value.totalTimeLimit) * 100)
 })
-
-const isPaused = computed(() => state.value === TimerState.Paused)
 
 // 方法
 const formatTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60)
   const secs = Math.floor(seconds % 60)
   return `${mins}:${secs.toString().padStart(2, '0')}`
-}
-
-const getStateText = (state: string): string => {
-  const stateTexts: Record<string, string> = {
-    stopped: '已停止',
-    running: '运行中',
-    paused: '已暂停',
-    timeout: '已超时',
-  }
-  return stateTexts[state] || state
-}
-
-const getPauseReasonText = (reason: string): string => {
-  const reasonTexts: Record<string, string> = {
-    animation: '动画播放中',
-    system: '系统暂停',
-  }
-  return reasonTexts[reason] || reason
 }
 
 const updateTimerState = async () => {
@@ -172,7 +133,6 @@ const updateTimerState = async () => {
 
 const startUpdateLoop = () => {
   if (updateInterval.value) return
-
   updateInterval.value = setInterval(updateTimerState, 1000)
 }
 
@@ -182,9 +142,6 @@ const stopUpdateLoop = () => {
     updateInterval.value = null
   }
 }
-
-// 计时器事件处理器
-const timerEventUnsubscribers = ref<(() => void)[]>([])
 
 const setupTimerEventListeners = () => {
   if (!battleStore.battleInterface) return
@@ -211,28 +168,21 @@ const setupTimerEventListeners = () => {
   timerEventUnsubscribers.value.push(unsubscribeUpdate)
 
   // 监听计时器暂停事件
-  const unsubscribePause = battleStore.battleInterface.onTimerEvent('timerPause', data => {
-    pauseReason.value = data.reason
-    if (timerState.value) {
-      timerState.value.state = TimerState.Paused
-    }
+  const unsubscribePause = battleStore.battleInterface.onTimerEvent('timerPause', () => {
+    updateTimerState()
   })
   timerEventUnsubscribers.value.push(unsubscribePause)
 
   // 监听计时器恢复事件
   const unsubscribeResume = battleStore.battleInterface.onTimerEvent('timerResume', () => {
-    if (timerState.value) {
-      timerState.value.state = TimerState.Running
-    }
+    updateTimerState()
   })
   timerEventUnsubscribers.value.push(unsubscribeResume)
 
   // 监听计时器超时事件
   const unsubscribeTimeout = battleStore.battleInterface.onTimerEvent('timerTimeout', data => {
     if (data.player === props.playerId) {
-      if (timerState.value) {
-        timerState.value.state = TimerState.Timeout
-      }
+      updateTimerState()
     }
   })
   timerEventUnsubscribers.value.push(unsubscribeTimeout)
@@ -242,14 +192,11 @@ const setupTimerEventListeners = () => {
 onMounted(() => {
   updateTimerState()
   startUpdateLoop()
-
-  // 设置计时器事件监听器
   setupTimerEventListeners()
 })
 
 onUnmounted(() => {
   stopUpdateLoop()
-
   // 清理计时器事件监听器
   timerEventUnsubscribers.value.forEach(unsubscribe => unsubscribe())
   timerEventUnsubscribers.value = []

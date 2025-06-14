@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
 import BattleStatus from '@/components/battle/BattleStatus.vue'
-import BattleTimer from '@/components/BattleTimer.vue'
+import SimpleBattleTimer from '@/components/SimpleBattleTimer.vue'
 import DeveloperPanel from '@/components/battle/DeveloperPanel.vue'
 import Mark from '@/components/battle/Mark.vue'
 import PetButton from '@/components/battle/PetButton.vue'
@@ -1437,10 +1437,6 @@ watch(
           </div>
         </div>
       </Transition>
-      <!-- 计时器组件 -->
-      <div v-if="!isReplayMode" class="absolute top-2 left-2" :class="Z_INDEX_CLASS.TIMER">
-        <BattleTimer :player-id="currentPlayer?.id" />
-      </div>
 
       <!-- 移动端横屏提示 -->
       <div
@@ -1512,14 +1508,29 @@ watch(
 
           <!-- 回合数和公共印记区域 -->
           <div class="flex flex-col items-center py-2 min-h-[80px]">
-            <!-- 回合数显示 -->
-            <div class="text-white text-xl font-bold mb-2">
-              {{
-                i18next.t('turn', {
-                  ns: 'battle',
-                })
-              }}
-              {{ currentTurn || 1 }}
+            <!-- 回合数和计时器显示 -->
+            <div class="grid grid-cols-3 items-center mb-2 min-h-[24px]">
+              <!-- 回合时间 - 左侧 -->
+              <div class="flex justify-start">
+                <SimpleBattleTimer v-if="!isReplayMode" type="turn" :player-id="currentPlayer?.id" />
+              </div>
+
+              <!-- 回合数居中显示 - 始终在中间 -->
+              <div class="flex justify-center">
+                <div class="text-white text-xl font-bold">
+                  {{
+                    i18next.t('turn', {
+                      ns: 'battle',
+                    })
+                  }}
+                  {{ currentTurn || 1 }}
+                </div>
+              </div>
+
+              <!-- 总时间 - 右侧 -->
+              <div class="flex justify-end">
+                <SimpleBattleTimer v-if="!isReplayMode" type="total" :player-id="currentPlayer?.id" />
+              </div>
             </div>
 
             <!-- 公共印记（天气）显示 -->
