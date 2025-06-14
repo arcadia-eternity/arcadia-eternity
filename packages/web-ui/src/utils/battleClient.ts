@@ -137,14 +137,17 @@ export const battleClient = reactive({
 
   // 内部方法：注册缓存的事件监听器到实际实例
   _registerPendingHandlers() {
-    if (this._instance && this._pendingEventHandlers.size > 0) {
-      for (const [event, handlers] of this._pendingEventHandlers.entries()) {
-        for (const handler of handlers) {
-          this._instance.on(event as any, handler)
-        }
-      }
-      this._pendingEventHandlers.clear()
+    if (!this._instance || this._pendingEventHandlers.size === 0) {
+      return
     }
+
+    const instance = this._instance
+    for (const [event, handlers] of this._pendingEventHandlers.entries()) {
+      for (const handler of handlers) {
+        instance.on(event as any, handler)
+      }
+    }
+    this._pendingEventHandlers.clear()
   },
 })
 
