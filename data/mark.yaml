@@ -619,13 +619,13 @@
   config:
     duration: -1
     persistent: true
-    maxStacks: 1
+    maxStacks: 100
     stackable: true
     stackStrategy: extend
     destroyable: true
     keepOnSwitchOut: true
   effect:
-    - effect_mark_amplify_next_damage_skill_power
+    - effect_mark_amplify_next_damage_skill_power_with_stack
 - id: mark_huoxishanghaizengjia
 - id: mark_zaochengshanghaijianshao
 - id: mark_shoudaoshanghaizengjia

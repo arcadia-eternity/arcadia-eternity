@@ -521,6 +521,40 @@
     target: usingSkillContext
     value: 2
   consumesStacks: 1
+- id: effect_mark_amplify_next_damage_skill_power_with_stack
+  trigger: AfterUseSkillCheck
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: notSame
+          value: Status
+  apply:
+    - type: amplifyPower
+      target: usingSkillContext
+      value:
+        type: dynamic
+        selector:
+          base: mark
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: stack
+            - type: multiply
+              arg: 0.01
+            - type: add
+              arg: 1
+    - type: destroyMark
+      target: mark
 - id: effect_mark_set_health_to_1_on_damage
   trigger: PostDamage
   priority: 0
@@ -970,6 +1004,7 @@
     mark:
       type: entity:baseMark
       value: mark_shanghaizengjia
+    stack: 100
 - id: effect_mark_reflect_damage_1_4
   trigger: OnDamage
   condition:
@@ -1062,8 +1097,8 @@
                 arg: stack
       delta: 0
     - type: destroyMark
-      target:
-        base: mark
+      target: mark
+
 # 印记的拥有者使用下一个特攻技能时，造成的伤害增加基于印记层数的百分比
 - id: effect_mark_amplify_next_special_damage_with_stack
   trigger: OnBeforeCalculateDamage
@@ -1095,8 +1130,8 @@
                 arg: stack
       delta: 0
     - type: destroyMark
-      target:
-        base: mark
+      target: mark
+
 # 印记的拥有者使用火系技能时，技能的威力增幅70%
 - id: effect_mark_amplify_fire_skill_70
   trigger: AfterUseSkillCheck
@@ -2178,8 +2213,7 @@
             - type: multiply
               arg: -1
     - type: destroyMark
-      target:
-        base: mark
+      target: mark
 
 # 蓝宝石: 使下一个红宝石之光附加200点固伤
 - id: effect_mark_hongbaoshizhiguang_add_200_fixed_damage
