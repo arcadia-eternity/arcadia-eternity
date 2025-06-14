@@ -314,7 +314,7 @@
 import { ref, onMounted, computed, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
-import { battleClient, initBattleClient } from './utils/battleClient'
+import { useBattleClientStore } from './stores/battleClient'
 import { useGameDataStore } from './stores/gameData'
 import { usePlayerStore } from './stores/player'
 import { usePetStorageStore } from './stores/petStorage'
@@ -343,6 +343,7 @@ const playerStore = usePlayerStore()
 const petStorage = usePetStorageStore()
 const serverState = useServerStateStore()
 const gameSettingStore = useGameSettingStore()
+const battleClientStore = useBattleClientStore()
 
 // 使用 VueUse 的响应式断点检测
 const breakpoints = useBreakpoints(breakpointsTailwind)
@@ -360,7 +361,7 @@ watch(isMobile, newIsMobile => {
 
 // 连接状态
 const connectionState = computed(() => {
-  return battleClient.currentState.status
+  return battleClientStore.currentState.status
 })
 
 // 初始化连接
@@ -385,7 +386,7 @@ onMounted(async () => {
     await nextTick()
 
     // 现在初始化battleClient（此时Pinia已经完全准备好）
-    initBattleClient()
+    battleClientStore.initialize()
 
     // 等待玩家认证完成后再连接战斗客户端
     // 对于注册用户，需要等待自动登录完成
@@ -400,7 +401,7 @@ onMounted(async () => {
           setTimeout(async () => {
             try {
               console.log('连接战斗客户端，认证状态:', playerStore.isAuthenticated)
-              await battleClient.connect()
+              await battleClientStore.connect()
             } catch (err) {
               console.error('Battle client connection failed:', err)
               ElMessage.error('连接服务器失败')
@@ -417,7 +418,7 @@ onMounted(async () => {
       // 游客用户，直接连接
       setTimeout(async () => {
         try {
-          await battleClient.connect()
+          await battleClientStore.connect()
         } catch (err) {
           console.error('Battle client connection failed:', err)
           ElMessage.error('连接服务器失败')

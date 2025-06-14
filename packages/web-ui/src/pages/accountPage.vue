@@ -169,11 +169,12 @@ import {
 import { usePlayerStore } from '@/stores/player'
 import { useGameDataStore } from '@/stores/gameData'
 import EmailInheritance from '@/components/EmailInheritance.vue'
-import { resetBattleClient, initBattleClient, battleClient } from '@/utils/battleClient'
+import { useBattleClientStore } from '@/stores/battleClient'
 import { petResourceCache } from '@/services/petResourceCache'
 
 const playerStore = usePlayerStore()
 const gameDataStore = useGameDataStore()
+const battleClientStore = useBattleClientStore()
 
 // 编辑名称相关
 const editingName = ref(false)
@@ -264,9 +265,9 @@ const generateNewId = async () => {
 
     // 重新初始化battleClient以使用新的玩家ID
     try {
-      resetBattleClient()
-      initBattleClient()
-      await battleClient.connect()
+      battleClientStore.reset()
+      battleClientStore.initialize()
+      await battleClientStore.connect()
       console.log('BattleClient重新连接成功，使用新的玩家ID')
     } catch (error) {
       console.warn('BattleClient重新连接失败:', error)

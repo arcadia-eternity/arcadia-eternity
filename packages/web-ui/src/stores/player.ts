@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { PlayerSchema, type PlayerSchemaType } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 import { usePetStorageStore } from './petStorage'
-import { authService, type PlayerInfo } from '../services/authService'
+import { useAuthStore, type PlayerInfo } from './auth'
 import { ElMessage } from 'element-plus'
 
 // 定义状态类型
@@ -156,13 +156,14 @@ export const usePlayerStore = defineStore('player', {
 
       // 尝试同步到服务器
       try {
+        const authStore = useAuthStore()
         const response = await fetch('/api/v1/auth/update-player-name', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            ...(this.isAuthenticated && authService.getAccessToken()
+            ...(this.isAuthenticated && authStore.getAccessToken()
               ? {
-                  Authorization: `Bearer ${authService.getAccessToken()}`,
+                  Authorization: `Bearer ${authStore.getAccessToken()}`,
                 }
               : {}),
           },
@@ -228,7 +229,8 @@ export const usePlayerStore = defineStore('player', {
 
         try {
           console.log('Checking if player exists on server:', this.id)
-          status = await authService.checkPlayerStatus(this.id)
+          const authStore = useAuthStore()
+          status = await authStore.checkPlayerStatus(this.id)
           playerExists = true
           console.log('Player exists on server:', status)
         } catch (error: any) {
@@ -238,7 +240,8 @@ export const usePlayerStore = defineStore('player', {
           // 如果是网络错误且本地有注册用户信息，保留本地状态
           if (this.is_registered && isNetworkError(error)) {
             console.log('Network error detected, preserving local registered user state')
-            this.isAuthenticated = authService.isAuthenticated()
+            const authStore = useAuthStore()
+            this.isAuthenticated = authStore.isAuthenticated
             this.isInitialized = true
             this.saveToLocal()
             ElMessage.warning('网络连接异常，使用本地缓存数据')
@@ -258,11 +261,12 @@ export const usePlayerStore = defineStore('player', {
 
           // 如果是注册用户，检查是否已认证
           if (this.is_registered) {
-            this.isAuthenticated = authService.isAuthenticated()
+            const authStore = useAuthStore()
+            this.isAuthenticated = authStore.isAuthenticated
 
             // 如果没有认证，尝试验证现有token
             if (!this.isAuthenticated) {
-              const tokenResult = await authService.verifyToken()
+              const tokenResult = await authStore.verifyToken()
               this.isAuthenticated = tokenResult.valid
 
               // 如果token验证失败，回退到游客模式
@@ -284,7 +288,8 @@ export const usePlayerStore = defineStore('player', {
           // 玩家在服务器上不存在，需要创建新的游客
           try {
             console.log('Creating new guest on server...')
-            const guestPlayer = await authService.createGuest()
+            const authStore = useAuthStore()
+            const guestPlayer = await authStore.createGuest()
             console.log('Server returned guest player:', guestPlayer)
 
             // 使用服务器返回的玩家信息，但保留本地数据作为备份
@@ -337,7 +342,8 @@ export const usePlayerStore = defineStore('player', {
         // 如果是注册用户且是网络错误，保留注册状态
         if (this.is_registered && isNetworkError(error)) {
           console.log('Network error for registered user, preserving registration status')
-          this.isAuthenticated = authService.isAuthenticated()
+          const authStore = useAuthStore()
+          this.isAuthenticated = authStore.isAuthenticated
           this.isInitialized = true
           this.saveToLocal()
           ElMessage.warning('网络连接异常，已保留本地用户状态')
@@ -371,7 +377,8 @@ export const usePlayerStore = defineStore('player', {
      */
     async logout() {
       try {
-        await authService.logout()
+        const authStore = useAuthStore()
+        await authStore.logout()
         this.isAuthenticated = false
         ElMessage.success('已登出')
       } catch (error) {
@@ -391,7 +398,8 @@ export const usePlayerStore = defineStore('player', {
       this.email_bound_at = playerInfo.emailBoundAt || null
       this.is_registered = true
       this.requiresAuth = true
-      this.isAuthenticated = authService.isAuthenticated()
+      const authStore = useAuthStore()
+      this.isAuthenticated = authStore.isAuthenticated
       this.saveToLocal()
       ElMessage.success('已升级为注册用户')
     },
@@ -401,7 +409,8 @@ export const usePlayerStore = defineStore('player', {
      */
     async createNewGuest() {
       try {
-        const guestPlayer = await authService.createGuest()
+        const authStore = useAuthStore()
+        const guestPlayer = await authStore.createGuest()
 
         // 使用服务器返回的数据
         this.id = guestPlayer.id

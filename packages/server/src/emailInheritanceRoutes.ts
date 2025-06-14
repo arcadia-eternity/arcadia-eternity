@@ -133,7 +133,7 @@ async function performSmartAuth(
     logger.debug(`Registered user authenticated: ${playerId}`)
     return { success: true }
   } catch (error) {
-    logger.error('Smart auth handler error:', error)
+    logger.error({ error }, 'Smart auth handler error')
     return {
       success: false,
       status: 500,
@@ -326,7 +326,7 @@ export function createEmailInheritanceRoutes(): Router {
         })
       }
 
-      logger.error('发送验证码失败:', error)
+      logger.error({ error }, '发送验证码失败')
       res.status(500).json({
         success: false,
         message: '服务器内部错误',
@@ -366,7 +366,7 @@ export function createEmailInheritanceRoutes(): Router {
         })
       }
 
-      logger.error('验证码验证失败:', error)
+      logger.error({ error }, '验证码验证失败')
       res.status(500).json({
         success: false,
         message: '服务器内部错误',
@@ -487,7 +487,7 @@ export function createEmailInheritanceRoutes(): Router {
         })
       }
 
-      logger.error('邮箱绑定失败:', error)
+      logger.error({ error }, '邮箱绑定失败')
       res.status(500).json({
         success: false,
         message: '服务器内部错误',
@@ -589,7 +589,7 @@ export function createEmailInheritanceRoutes(): Router {
         })
       }
 
-      logger.error('玩家ID恢复失败:', error)
+      logger.error({ error }, '玩家ID恢复失败')
       res.status(500).json({
         success: false,
         message: '服务器内部错误',
@@ -625,7 +625,7 @@ export function createEmailInheritanceRoutes(): Router {
         })
       }
 
-      logger.error('检查邮箱绑定状态失败:', error)
+      logger.error({ error }, '检查邮箱绑定状态失败')
       res.status(500).json({
         success: false,
         message: '服务器内部错误',
@@ -671,7 +671,7 @@ export function createEmailInheritanceRoutes(): Router {
         })
       }
 
-      logger.error('邮箱解绑失败:', error)
+      logger.error({ error }, '邮箱解绑失败')
       res.status(500).json({
         success: false,
         message: '服务器内部错误',

@@ -8,6 +8,7 @@ import App from './App.vue'
 import router from './router'
 import { initI18n } from './i18n/i18n'
 import i18next from 'i18next'
+import { useAuthStore } from './stores/auth'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -20,5 +21,9 @@ app.use(I18NextVue, { i18next })
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
+
+// 初始化 auth store
+const authStore = useAuthStore()
+authStore.initialize()
 
 app.mount('#app')

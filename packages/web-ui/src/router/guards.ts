@@ -1,14 +1,15 @@
 import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
-import { battleClient } from '@/utils/battleClient'
+import { useBattleClientStore } from '@/stores/battleClient'
 
 export const battleGuard = (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
   const store = useBattleStore()
+  const battleClientStore = useBattleClientStore()
 
   // 需要有效对战的页面
   if (to.meta.requiresBattle) {
     if (from.name === 'Lobby') {
-      if (battleClient.currentState.matchmaking === 'idle') {
+      if (battleClientStore.currentState.matchmaking === 'idle') {
         ElMessage.warning('请先进入匹配队列')
         return next('/')
       }

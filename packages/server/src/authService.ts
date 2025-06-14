@@ -137,7 +137,7 @@ export class AuthService implements IAuthService {
       } else if (error instanceof jwt.TokenExpiredError) {
         logger.debug('Token expired')
       } else {
-        logger.error('Token verification error:', error)
+        logger.error({ error }, 'Token verification error')
       }
       return null
     }
@@ -181,7 +181,7 @@ export class AuthService implements IAuthService {
 
         return this.generateAuthForPlayer(player.id, player.is_registered || false, player.email || undefined)
       } catch (error) {
-        logger.error('Failed to fetch player during token refresh:', error)
+        logger.error({ error }, 'Failed to fetch player during token refresh')
         return null
       }
     }
@@ -227,7 +227,7 @@ export class AuthService implements IAuthService {
       logger.debug('Token revoked successfully')
       return true
     } catch (error) {
-      logger.error('Failed to revoke token:', error)
+      logger.error({ error }, 'Failed to revoke token')
       return false
     }
   }

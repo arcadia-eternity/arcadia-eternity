@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 import type { ServerState } from '@arcadia-eternity/protocol'
-import { battleClient } from '@/utils/battleClient'
+import { useBattleClientStore } from '@/stores/battleClient'
 
 export const useServerStateStore = defineStore('serverState', () => {
   const serverState = ref<ServerState>({
@@ -12,7 +12,9 @@ export const useServerStateStore = defineStore('serverState', () => {
     playersInRooms: 0,
   })
 
-  battleClient.on('updateState', (state: ServerState) => {
+  const battleClientStore = useBattleClientStore()
+
+  battleClientStore.on('updateState', (state: ServerState) => {
     serverState.value = state
   })
 

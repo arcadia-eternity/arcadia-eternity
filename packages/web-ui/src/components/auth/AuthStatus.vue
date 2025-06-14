@@ -57,7 +57,7 @@ import { ElMessage } from 'element-plus'
 import { User, Lock, Unlock } from '@element-plus/icons-vue'
 import { usePlayerStore } from '../../stores/player'
 import EmailInheritance from '../EmailInheritance.vue'
-import type { PlayerInfo } from '../../services/authService'
+import type { PlayerInfo } from '../../stores/auth'
 
 const playerStore = usePlayerStore()
 

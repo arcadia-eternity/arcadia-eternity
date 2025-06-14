@@ -109,7 +109,7 @@ import { ref, computed, onBeforeUnmount, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
-import { battleClient } from '@/utils/battleClient'
+import { useBattleClientStore } from '@/stores/battleClient'
 import { type BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
 import { User, Document, Monitor, Setting, FolderOpened } from '@element-plus/icons-vue'
 
@@ -117,9 +117,10 @@ const router = useRouter()
 const route = useRoute()
 const battleStore = useBattleStore()
 const playerStore = usePlayerStore()
+const battleClientStore = useBattleClientStore()
 
 // 响应式状态
-const isMatching = computed(() => battleClient.currentState.matchmaking === 'searching')
+const isMatching = computed(() => battleClientStore.currentState.matchmaking === 'searching')
 const errorMessage = ref<string | null>(null)
 
 const handleMatchmaking = async () => {
@@ -128,20 +129,21 @@ const handleMatchmaking = async () => {
     errorMessage.value = null
 
     if (isMatching.value) {
-      await battleClient.cancelMatchmaking()
+      await battleClientStore.cancelMatchmaking()
     } else {
-      await battleClient.joinMatchmaking(playerStore.player)
-      battleClient.once('matchSuccess', async () => {
-        if (!battleClient._instance) {
+      await battleClientStore.joinMatchmaking(playerStore.player)
+      battleClientStore.once('matchSuccess', async () => {
+        if (!battleClientStore._instance) {
           throw new Error('BattleClient instance not available')
         }
         await battleStore.initBattle(
-          new RemoteBattleSystem(battleClient._instance as BattleClient),
+          new RemoteBattleSystem(battleClientStore._instance as BattleClient),
           playerStore.player.id,
         )
+        const currentState = battleClientStore.currentState
         router.push({
           path: '/battle',
-          query: { roomId: battleClient.currentState.roomId },
+          query: { roomId: 'roomId' in currentState ? currentState.roomId || '' : '' },
         })
       })
     }
@@ -159,7 +161,7 @@ onMounted(() => {
 onBeforeUnmount(async () => {
   nextTick(() => {
     if (isMatching.value) {
-      battleClient.cancelMatchmaking()
+      battleClientStore.cancelMatchmaking()
     }
     errorMessage.value = null
   })

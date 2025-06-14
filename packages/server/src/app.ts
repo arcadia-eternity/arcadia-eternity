@@ -14,6 +14,7 @@ import { createEmailConfigFromEnv } from './emailService'
 import { createContainer, resetContainer } from './container'
 import type { ClientToServerEvents, ServerToClientEvents } from '@arcadia-eternity/protocol'
 import { swaggerSpec, swaggerUiOptions } from './swagger'
+import { initializeSupabase } from '@arcadia-eternity/database'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -74,6 +75,29 @@ export function createApp(config: Partial<ServerConfig> = {}): {
   // 处理邮件配置：如果没有提供邮件配置，则从环境变量创建
   if (!finalConfig.email) {
     finalConfig.email = createEmailConfigFromEnv()
+  }
+
+  // 初始化数据库连接（如果有配置的话）
+  // 无论是否启用战报功能，认证和邮箱继承API都需要数据库
+  if (finalConfig.battleReport?.database) {
+    initializeSupabase(finalConfig.battleReport.database)
+    logger.info('Database initialized for user services')
+  } else {
+    // 尝试从环境变量初始化数据库
+    const supabaseUrl = process.env.SUPABASE_URL
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY
+
+    if (supabaseUrl && supabaseAnonKey) {
+      initializeSupabase({
+        supabaseUrl,
+        supabaseAnonKey,
+        supabaseServiceKey,
+      })
+      logger.info('Database initialized from environment variables for user services')
+    } else {
+      logger.warn('No database configuration found - user services (auth, email) may not work properly')
+    }
   }
 
   // 重置并创建新的DI容器，传入邮件配置

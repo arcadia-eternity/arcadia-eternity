@@ -1,5 +1,5 @@
 import { BattleMessageType, type BattleMessage } from '@arcadia-eternity/const'
-import { databaseService, initializeSupabase, type DatabaseConfig } from '@arcadia-eternity/database'
+import { databaseService, type DatabaseConfig } from '@arcadia-eternity/database'
 import type { Logger } from 'pino'
 
 export interface BattleReportConfig {
@@ -29,7 +29,7 @@ export class BattleReportService {
     this.logger = logger.child({ service: 'BattleReportService' })
 
     if (config.enableReporting) {
-      initializeSupabase(config.database)
+      // 数据库已在 createApp 中初始化，这里只需要记录日志
       this.logger.info('Battle report service initialized')
     } else {
       this.logger.info('Battle report service disabled')

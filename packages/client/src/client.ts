@@ -53,8 +53,56 @@ export class BattleClient {
       ...options,
     }
 
-    // 初始化时不创建socket，在connect时创建
-    this.socket = null as any
+    // 在构造函数中就创建socket
+    this.socket = this.createSocket()
+    this.setupEventListeners()
+  }
+
+  private createSocket() {
+    const socketConfig: any = {
+      autoConnect: false,
+      transports: ['websocket'],
+      reconnection: this.options.autoReconnect,
+      reconnectionAttempts: this.options.reconnectAttempts,
+      reconnectionDelay: 1000,
+    }
+
+    // 初始化时设置认证信息
+    this.updateSocketAuth(socketConfig)
+
+    return io(this.options.serverUrl, socketConfig)
+  }
+
+  private updateSocketAuth(config?: any) {
+    if (this.options.auth) {
+      try {
+        const playerId = this.options.auth.getPlayerId?.()
+        const token = this.options.auth.getToken?.()
+
+        if (playerId) {
+          if (config) {
+            config.query = { playerId }
+          } else {
+            // 更新现有socket的query参数
+            this.socket.io.opts.query = { playerId }
+          }
+        }
+
+        if (token) {
+          if (config) {
+            config.auth = { token }
+          } else {
+            // 更新现有socket的auth
+            this.socket.auth = { token }
+          }
+          console.log('Socket.IO auth configured with token:', token.substring(0, 20) + '...')
+        } else {
+          console.log('Socket.IO: No token available')
+        }
+      } catch (error) {
+        console.warn('Failed to set auth info:', error)
+      }
+    }
   }
 
   // 公开的状态获取方法
@@ -96,44 +144,8 @@ export class BattleClient {
     return new Promise((resolve, reject) => {
       if (this.socket?.connected) return resolve()
 
-      // 如果socket已存在，先断开
-      if (this.socket) {
-        this.socket.disconnect()
-      }
-
-      // 准备Socket.IO连接配置，包含最新的认证信息
-      const socketConfig: any = {
-        autoConnect: false,
-        transports: ['websocket'],
-        reconnection: this.options.autoReconnect,
-        reconnectionAttempts: this.options.reconnectAttempts,
-        reconnectionDelay: 1000,
-      }
-
-      // 在连接时获取最新的认证信息
-      if (this.options.auth) {
-        try {
-          const playerId = this.options.auth.getPlayerId?.()
-          const token = this.options.auth.getToken?.()
-
-          if (playerId) {
-            socketConfig.query = { playerId }
-          }
-
-          if (token) {
-            socketConfig.auth = { token }
-            console.log('Socket.IO auth configured with token:', token.substring(0, 20) + '...')
-          } else {
-            console.log('Socket.IO: No token available for registered user')
-          }
-        } catch (error) {
-          console.warn('Failed to set auth info:', error)
-        }
-      }
-
-      // 创建新的socket实例
-      this.socket = io(this.options.serverUrl, socketConfig)
-      this.setupEventListeners()
+      // 更新认证信息
+      this.updateSocketAuth()
 
       const connectTimeout = setTimeout(() => {
         reject(new Error('Connection timeout'))

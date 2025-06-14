@@ -42,7 +42,7 @@ export function smartAuth(req: Request, res: Response, next: NextFunction): void
 
   // 异步处理认证检查
   handleSmartAuth(req, res, next, playerId as string).catch(error => {
-    logger.error('Smart auth error:', error)
+    logger.error({ error }, 'Smart auth error')
     res.status(500).json({
       success: false,
       message: '认证检查失败',
@@ -125,7 +125,7 @@ async function handleSmartAuth(req: Request, res: Response, next: NextFunction, 
     logger.debug(`Registered user authenticated: ${playerId}`)
     next()
   } catch (error) {
-    logger.error('Smart auth handler error:', error)
+    logger.error({ error }, 'Smart auth handler error')
     res.status(500).json({
       success: false,
       message: '认证处理失败',

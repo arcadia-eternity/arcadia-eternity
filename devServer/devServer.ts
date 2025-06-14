@@ -78,7 +78,7 @@ class DevServer {
         data: YAML.parse(dataContent),
       }
     } catch (error) {
-      logger.error('Failed to read file %s: %s', filePath, error)
+      logger.error({ error, filePath }, 'Failed to read file')
       throw error
     }
   }
@@ -103,7 +103,7 @@ class DevServer {
       // ...原有逻辑不变
       logger.info('File saved successfully: %s', filePath)
     } catch (error) {
-      logger.error('Failed to write file %s: %s', filePath, error)
+      logger.error({ error, filePath }, 'Failed to write file')
       throw error
     }
   }
@@ -116,7 +116,7 @@ class DevServer {
       logger.info('Found %d YAML files', yamlFiles.length)
       res.json(yamlFiles)
     } catch (error) {
-      logger.error('Failed to list files: %s', error)
+      logger.error({ error }, 'Failed to list files')
       res.status(500).json({ error: '无法读取文件列表', details: error })
     }
   }
@@ -140,7 +140,7 @@ class DevServer {
       if (error instanceof z.ZodError) {
         logger.error('Validation failed for %s: %j', filename, error.errors)
       } else {
-        logger.error('Error processing %s: %s', filename, error)
+        logger.error({ error, filename }, 'Error processing file')
       }
       throw error
     }
@@ -173,7 +173,7 @@ class DevServer {
           })),
         })
       } else {
-        logger.error('Save failed for %s: %s', filename, error)
+        logger.error({ error, filename }, 'Save failed')
         res.status(500).json({ error: '文件保存失败' })
       }
     }
@@ -187,12 +187,12 @@ class DevServer {
   // 服务启动方法
   public start(): void {
     process.on('uncaughtException', error => {
-      logger.error('Uncaught Exception: %s', error)
+      logger.error({ error }, 'Uncaught Exception')
       process.exit(1)
     })
 
     process.on('unhandledRejection', reason => {
-      logger.error('Unhandled Rejection: %s', reason)
+      logger.error({ error: reason }, 'Unhandled Rejection')
       process.exit(1)
     })
 

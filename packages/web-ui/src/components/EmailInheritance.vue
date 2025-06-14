@@ -189,8 +189,8 @@ import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'elem
 import { Message, Key, CircleCheck, Refresh } from '@element-plus/icons-vue'
 import { usePlayerStore } from '@/stores/player'
 import { emailInheritanceService } from '@/services/emailInheritanceService'
-import type { PlayerInfo } from '@/services/authService'
-import { resetBattleClient, initBattleClient, battleClient } from '@/utils/battleClient'
+import type { PlayerInfo } from '@/stores/auth'
+import { useBattleClientStore } from '@/stores/battleClient'
 
 // 定义props和emits
 interface Props {
@@ -207,6 +207,7 @@ const emit = defineEmits<{
 }>()
 
 const playerStore = usePlayerStore()
+const battleClientStore = useBattleClientStore()
 
 // 绑定表单
 const bindForm = reactive({
@@ -310,7 +311,8 @@ const confirmBind = async () => {
 
       // 如果返回了认证信息，设置到认证服务中
       if (response.auth) {
-        const { authService } = await import('../services/authService')
+        const { useAuthStore } = await import('../stores/auth')
+        const authStore = useAuthStore()
         // 构造完整的AuthResult对象
         const authResult = {
           ...response.auth,
@@ -321,7 +323,7 @@ const confirmBind = async () => {
             email: response.auth.player.email,
           },
         }
-        authService.setTokens(authResult)
+        authStore.setTokens(authResult)
       }
 
       // 创建PlayerInfo对象
@@ -356,9 +358,9 @@ const confirmBind = async () => {
 
       // 重新初始化battleClient以使用新的认证信息
       try {
-        resetBattleClient()
-        initBattleClient()
-        await battleClient.connect()
+        battleClientStore.reset()
+        battleClientStore.initialize()
+        await battleClientStore.connect()
         console.log('BattleClient重新连接成功，使用新的认证信息')
       } catch (error) {
         console.warn('BattleClient重新连接失败:', error)
@@ -443,7 +445,8 @@ const confirmRecover = async () => {
 
       // 如果返回了认证信息，设置到认证服务中
       if (response.auth) {
-        const { authService } = await import('../services/authService')
+        const { useAuthStore } = await import('../stores/auth')
+        const authStore = useAuthStore()
         // 构造完整的AuthResult对象
         const authResult = {
           ...response.auth,
@@ -454,7 +457,7 @@ const confirmRecover = async () => {
             email: response.auth.player.email,
           },
         }
-        authService.setTokens(authResult)
+        authStore.setTokens(authResult)
       }
 
       // 更新玩家信息
@@ -478,9 +481,9 @@ const confirmRecover = async () => {
 
       // 重新初始化battleClient以使用新的玩家ID和认证信息
       try {
-        resetBattleClient()
-        initBattleClient()
-        await battleClient.connect()
+        battleClientStore.reset()
+        battleClientStore.initialize()
+        await battleClientStore.connect()
         console.log('BattleClient重新连接成功，使用恢复的玩家ID和认证信息')
       } catch (error) {
         console.warn('BattleClient重新连接失败:', error)
@@ -523,9 +526,9 @@ const confirmUnbind = async () => {
 
       // 重新初始化battleClient以使用游客模式
       try {
-        resetBattleClient()
-        initBattleClient()
-        await battleClient.connect()
+        battleClientStore.reset()
+        battleClientStore.initialize()
+        await battleClientStore.connect()
         console.log('BattleClient重新连接成功，已切换到游客模式')
       } catch (error) {
         console.warn('BattleClient重新连接失败:', error)

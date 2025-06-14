@@ -56,7 +56,7 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
     logger.debug(`Authenticated user: ${payload.playerId}`)
     next()
   } catch (error) {
-    logger.error('Authentication error:', error)
+    logger.error({ error }, 'Authentication error')
     res.status(500).json({
       success: false,
       message: '认证服务错误',
@@ -93,7 +93,7 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction): v
 
     next()
   } catch (error) {
-    logger.error('Optional authentication error:', error)
+    logger.error({ error }, 'Optional authentication error')
     // 即使认证失败也继续处理
     next()
   }

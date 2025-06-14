@@ -96,7 +96,7 @@ export function createAuthRoutes(): Router {
         },
       })
     } catch (error) {
-      logger.error('Create guest error:', error)
+      logger.error({ error }, 'Create guest error')
       res.status(500).json({
         success: false,
         message: '创建游客失败',
@@ -188,7 +188,7 @@ export function createAuthRoutes(): Router {
         return
       }
 
-      logger.error('Token refresh error:', error)
+      logger.error({ error }, 'Token refresh error')
       res.status(500).json({
         success: false,
         message: '令牌刷新失败',
@@ -278,7 +278,7 @@ export function createAuthRoutes(): Router {
         },
       })
     } catch (error) {
-      logger.error('Check player error:', error)
+      logger.error({ error }, 'Check player error')
       res.status(500).json({
         success: false,
         message: '检查玩家状态失败',
@@ -332,7 +332,7 @@ export function createAuthRoutes(): Router {
         })
       }
 
-      logger.error('Update player name error:', error)
+      logger.error({ error }, 'Update player name error')
       res.status(500).json({
         success: false,
         message: '更新玩家名称失败',
@@ -358,7 +358,7 @@ export function createAuthRoutes(): Router {
         message: '登出成功',
       })
     } catch (error) {
-      logger.error('Logout error:', error)
+      logger.error({ error }, 'Logout error')
       res.status(500).json({
         success: false,
         message: '登出失败',
@@ -425,7 +425,7 @@ export function createAuthRoutes(): Router {
         },
       })
     } catch (error) {
-      logger.error('Token verification error:', error)
+      logger.error({ error }, 'Token verification error')
       res.status(500).json({
         success: false,
         valid: false,

@@ -177,7 +177,7 @@ export class BattleServer {
         logger.debug(`Registered user socket authenticated: ${playerId}`)
         next()
       } catch (error) {
-        logger.error('Socket authentication error:', error)
+        logger.error({ error }, 'Socket authentication error')
         next(new Error('AUTHENTICATION_ERROR'))
       }
     })

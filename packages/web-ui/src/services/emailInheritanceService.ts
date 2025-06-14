@@ -1,8 +1,8 @@
 import type { Player } from '@arcadia-eternity/database'
-import { authService } from './authService'
+import { useAuthStore } from '../stores/auth'
 
 // 使用认证服务的API实例
-const api = authService.getApiInstance()
+const getApi = () => useAuthStore().getApiInstance()
 
 // 请求和响应类型
 export interface SendVerificationCodeRequest {
@@ -68,6 +68,7 @@ export class EmailInheritanceService {
    */
   async sendVerificationCode(request: SendVerificationCodeRequest): Promise<SendCodeResponse> {
     try {
+      const api = getApi()
       const response = await api.post('/email/send-verification-code', request)
       return response.data
     } catch (error: any) {
@@ -83,6 +84,7 @@ export class EmailInheritanceService {
    */
   async verifyCode(request: VerifyCodeRequest): Promise<VerifyCodeResponse> {
     try {
+      const api = getApi()
       const response = await api.post('/email/verify-code', request)
       return response.data
     } catch (error: any) {
@@ -98,6 +100,7 @@ export class EmailInheritanceService {
    */
   async bindEmail(email: string, code: string, playerId: string): Promise<BindEmailResponse> {
     try {
+      const api = getApi()
       const response = await api.post('/email/bind', {
         email,
         code,
@@ -117,6 +120,7 @@ export class EmailInheritanceService {
    */
   async recoverPlayer(email: string, code: string): Promise<RecoverPlayerResponse> {
     try {
+      const api = getApi()
       const response = await api.post('/email/recover', {
         email,
         code,
@@ -135,6 +139,7 @@ export class EmailInheritanceService {
    */
   async checkEmailBinding(email: string): Promise<{ bound: boolean; playerId?: string; playerName?: string }> {
     try {
+      const api = getApi()
       const response = await api.get(`/email/check-binding?email=${encodeURIComponent(email)}`)
       return response.data
     } catch (error: any) {
@@ -150,6 +155,7 @@ export class EmailInheritanceService {
    */
   async unbindEmail(playerId: string): Promise<{ success: boolean; message: string }> {
     try {
+      const api = getApi()
       const response = await api.post('/email/unbind', { playerId })
       return response.data
     } catch (error: any) {
