@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
 import BattleStatus from '@/components/battle/BattleStatus.vue'
-import SimpleBattleTimer from '@/components/SimpleBattleTimer.vue'
 import DeveloperPanel from '@/components/battle/DeveloperPanel.vue'
 import Mark from '@/components/battle/Mark.vue'
 import PetButton from '@/components/battle/PetButton.vue'
 import PetSprite from '@/components/battle/PetSprite.vue'
 import SkillButton from '@/components/battle/SkillButton.vue'
-import { useBattleAnimations } from '@/composition/useBattleAnimations'
+import ClimaxEffectAnimation from '@/components/ClimaxEffectAnimation.vue'
+import SimpleBattleTimer from '@/components/SimpleBattleTimer.vue'
+import koImage from '@/assets/images/ko.png'
 import { useMusic } from '@/composition/music'
 import { useSound } from '@/composition/sound'
+import { useBattleAnimations } from '@/composition/useBattleAnimations'
+import { useMobile } from '@/composition/useMobile'
+import { Z_INDEX, Z_INDEX_CLASS } from '@/constants/zIndex'
 import { useBattleStore } from '@/stores/battle'
 import { useBattleReportStore } from '@/stores/battleReport'
+import { useBattleViewStore } from '@/stores/battleView'
 import { useGameDataStore } from '@/stores/gameData'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import { useResourceStore } from '@/stores/resource'
@@ -26,6 +31,7 @@ import {
   type SkillMessage,
   type SkillUseEndMessage,
 } from '@arcadia-eternity/const'
+import { Aim, DArrowLeft, DArrowRight, Film, FullScreen, VideoPause, VideoPlay, Warning } from '@element-plus/icons-vue'
 import gsap from 'gsap'
 import i18next from 'i18next'
 import mitt from 'mitt'
@@ -46,22 +52,20 @@ import {
 import { ActionState } from 'seer2-pet-animator'
 import {
   computed,
+  h,
+  nextTick,
   onMounted,
   onUnmounted,
   provide,
   ref,
+  render,
+  unref,
   useTemplateRef,
-  nextTick,
   watch,
   withDefaults,
-  unref,
   type Ref,
 } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useBattleViewStore } from '@/stores/battleView'
-import { useMobile } from '@/composition/useMobile'
-import { Z_INDEX, Z_INDEX_CLASS } from '@/constants/zIndex'
-import { DArrowLeft, DArrowRight, VideoPause, VideoPlay, Film, FullScreen, Aim, Warning } from '@element-plus/icons-vue'
 
 // Props 定义
 interface Props {
@@ -96,6 +100,7 @@ type CombatEventMessageWithTarget = Extract<
 type AnimationEvents = {
   'attack-hit': 'left' | 'right'
   'animation-complete': 'left' | 'right'
+  'climax-effect-complete': void
 }
 
 const emitter = mitt<AnimationEvents>()
@@ -237,6 +242,11 @@ const isPending = ref(false)
 const showBattleEndUI = ref(false)
 const showKoBanner = ref(false) // 新增：控制KO横幅显示
 const koBannerRef = useTemplateRef('koBannerRef') // 新增：KO横幅的模板引用
+
+// Climax特效相关
+const showClimaxEffect = ref(false) // 控制climax特效显示
+const climaxEffectSide = ref<'left' | 'right' | null>(null) // 特效显示在哪一侧
+const climaxEffectRef = useTemplateRef('climaxEffectRef') // climax特效组件引用
 
 // 使用battleView store中的缩放
 const battleViewScale = computed(() => battleViewStore.scale)
@@ -845,8 +855,37 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
 
   showUseSkillMessage(side, baseSkillId)
   source.$el.style.zIndex = Z_INDEX.DYNAMIC_ANIMATION.toString()
+
+  // 如果是climax技能，触发特效并等待播放完成
+  if (category === Category.Climax) {
+    // 显示climax特效
+    climaxEffectSide.value = side
+    showClimaxEffect.value = true
+
+    // 创建黑屏遮罩和启动全屏震动效果
+    createClimaxBlackScreen()
+    startClimaxScreenShake()
+
+    // 播放特效动画并等待完成
+    if (climaxEffectRef.value) {
+      await new Promise<void>(resolve => {
+        // 创建一个临时的完成处理器
+        const handleClimaxComplete = () => {
+          // 移除事件监听器
+          emitter.off('climax-effect-complete', handleClimaxComplete)
+          resolve()
+        }
+
+        // 监听特效完成事件
+        emitter.on('climax-effect-complete', handleClimaxComplete)
+
+        // 播放特效
+        climaxEffectRef.value!.play()
+      })
+    }
+    playSkillSound(baseSkillId)
+  }
   source.setState(state)
-  if (category === 'Climax') playSkillSound(baseSkillId)
 
   const hitPromise = new Promise<void>(resolve => {
     const handler = (hitSide: 'left' | 'right') => {
@@ -986,6 +1025,128 @@ const handleAttackHit = (side: 'left' | 'right') => {
 
 const handleAnimationComplete = (side: 'left' | 'right') => {
   emitter.emit('animation-complete', side)
+}
+
+// Climax全屏黑屏遮罩
+let climaxBlackScreenElement: HTMLElement | null = null
+
+const createClimaxBlackScreen = () => {
+  if (!battleViewRef.value || climaxBlackScreenElement) return
+
+  // 使用渲染函数创建黑屏遮罩
+  const blackScreenVNode = h('div', {
+    style: {
+      position: 'absolute',
+      top: '0',
+      left: '0',
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'black',
+      pointerEvents: 'none',
+      zIndex: Z_INDEX.CLIMAX_BLACK_SCREEN.toString(),
+    },
+  })
+
+  const tempHost = document.createElement('div')
+  battleViewRef.value.appendChild(tempHost)
+  render(blackScreenVNode, tempHost)
+
+  climaxBlackScreenElement = tempHost.firstChild as HTMLElement
+  if (!climaxBlackScreenElement) {
+    battleViewRef.value?.removeChild(tempHost)
+  }
+}
+
+const removeClimaxBlackScreen = () => {
+  if (!battleViewRef.value || !climaxBlackScreenElement) return
+
+  const tempHost = climaxBlackScreenElement.parentElement
+  if (tempHost) {
+    render(null, tempHost)
+    if (battleViewRef.value.contains(tempHost)) {
+      battleViewRef.value.removeChild(tempHost)
+    }
+  }
+  climaxBlackScreenElement = null
+}
+
+// Climax全屏震动效果
+const startClimaxScreenShake = () => {
+  if (!battleViewRef.value) return
+
+  // 捕获当前的缩放值，避免在动画过程中发生变化
+  const currentScale = battleViewScale.value
+
+  // 创建强烈的震动效果，参考 useBattleAnimations.ts 的实现
+  const shakeIntensity = 20 + Math.random() * 30 // 强震动强度 (20-50px)
+  const shakeAngle = Math.random() * Math.PI * 2
+  const shakeX = Math.cos(shakeAngle) * shakeIntensity
+  const shakeY = Math.sin(shakeAngle) * shakeIntensity
+
+  const shakeAnimation = gsap.to(battleViewRef.value, {
+    x: shakeX,
+    y: shakeY,
+    scale: currentScale, // 保持当前的缩放比例
+    duration: 0.05,
+    repeat: -1, // 无限重复直到手动停止
+    yoyo: true,
+    ease: 'power1.inOut',
+  })
+
+  // 存储动画引用以便后续停止
+  ;(battleViewRef.value as any)._climaxShakeAnimation = shakeAnimation
+}
+
+const stopClimaxScreenShake = () => {
+  if (!battleViewRef.value) return
+
+  // 停止震动动画
+  const shakeAnimation = (battleViewRef.value as any)._climaxShakeAnimation
+  if (shakeAnimation) {
+    shakeAnimation.kill()
+    delete (battleViewRef.value as any)._climaxShakeAnimation
+  }
+
+  // 恢复到正确的状态
+  gsap.set(battleViewRef.value, {
+    x: 0,
+    y: 0,
+    scale: battleViewScale.value,
+  })
+
+  // 移除黑屏遮罩
+  removeClimaxBlackScreen()
+}
+
+// 处理climax特效完成
+const handleClimaxEffectComplete = () => {
+  showClimaxEffect.value = false
+  climaxEffectSide.value = null
+
+  // 停止震动效果和移除黑屏遮罩
+  stopClimaxScreenShake()
+
+  // 发出特效完成事件
+  emitter.emit('climax-effect-complete')
+}
+
+// 计算特效位置
+const getClimaxEffectStyle = () => {
+  if (!climaxEffectSide.value) return {}
+
+  // 根据精灵位置计算特效位置
+  const isLeft = climaxEffectSide.value === 'left'
+
+  return {
+    // 设置特效容器大小 - 大一倍
+    width: '1600px',
+    height: '1600px',
+    // 定位到1/3位置
+    left: isLeft ? '33.33%' : '66.67%',
+    top: '50%',
+    // 居中对齐
+    transform: 'translate(-50%, -50%)',
+  }
 }
 
 onUnmounted(() => {
@@ -1300,6 +1461,9 @@ onUnmounted(() => {
   cleanupBattleAnimations()
   emitter.all.clear()
 
+  // 清理 Climax 震动动画
+  stopClimaxScreenShake()
+
   // 清理自适应缩放
   cleanupAdaptiveScaling()
 
@@ -1497,7 +1661,7 @@ watch(
         <img
           v-show="showKoBanner"
           ref="koBannerRef"
-          src="/ko.png"
+          :src="koImage"
           alt="KO Banner"
           class="absolute left-1/2 top-1/2 max-w-[80%] max-h-[80%] object-contain"
           :class="Z_INDEX_CLASS.KO_BANNER"
@@ -1613,6 +1777,25 @@ watch(
               @hit="handleAttackHit('right')"
               @animate-complete="handleAnimationComplete('right')"
             />
+
+            <!-- Climax特效 - 绝对定位在对应精灵位置 -->
+            <div
+              v-show="showClimaxEffect"
+              class="absolute pointer-events-none"
+              :class="Z_INDEX_CLASS.CLIMAX_EFFECT"
+              :style="getClimaxEffectStyle()"
+            >
+              <div class="relative w-full h-full">
+                <ClimaxEffectAnimation
+                  ref="climaxEffectRef"
+                  :auto-play="false"
+                  :loop="false"
+                  :frame-duration="30"
+                  :flip-horizontal="climaxEffectSide === 'right'"
+                  :on-complete="handleClimaxEffectComplete"
+                />
+              </div>
+            </div>
           </div>
 
           <!-- 回放模式控制界面 -->

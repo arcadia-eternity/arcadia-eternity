@@ -21,6 +21,10 @@ const LocalBattleReports = () => import('@/components/battleReport/LocalBattleRe
 // const Leaderboard = () => import('@/components/battleReport/Leaderboard.vue')
 const PlayerBattleRecords = () => import('@/components/battleReport/PlayerBattleRecords.vue')
 
+// 演示页面
+const ParticleEffectDemo = () => import('@/pages/ParticleEffectDemo.vue')
+const ClimaxEffectDemo = () => import('@/pages/ClimaxEffectDemo.vue')
+
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
@@ -143,6 +147,23 @@ const routes: RouteRecordRaw[] = [
     }),
     meta: {
       title: '本地战报回放',
+    },
+  },
+  // 演示页面路由
+  {
+    path: '/particle-demo',
+    name: 'ParticleEffectDemo',
+    component: ParticleEffectDemo,
+    meta: {
+      title: '星光爆发特效演示',
+    },
+  },
+  {
+    path: '/climax-demo',
+    name: 'ClimaxEffectDemo',
+    component: ClimaxEffectDemo,
+    meta: {
+      title: '九帧特效动画组件演示',
     },
   },
   {

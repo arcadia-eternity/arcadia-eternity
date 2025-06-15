@@ -4618,7 +4618,6 @@
   power: 75
   rage: 15
   accuracy: 95
-  priority: 1
   sureHit: false
   ignoreShield: false
   tags: []

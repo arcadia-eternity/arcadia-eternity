@@ -329,7 +329,7 @@ export function useBattleAnimations(
             const hpRatio = value / currentPet.maxHp
 
             if ((hpRatio > 0.25 || crit) && battleViewRef.value) {
-              const shakeIntensity = 5 + Math.random() * 10
+              const shakeIntensity = 20 + Math.random() * 30
               const shakeAngle = Math.random() * Math.PI * 2
               const shakeX = Math.cos(shakeAngle) * shakeIntensity
               const shakeY = Math.sin(shakeAngle) * shakeIntensity

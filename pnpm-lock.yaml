@@ -620,9 +620,15 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.1.10
         version: 4.1.10(vite@6.3.5(@types/node@24.0.1)(jiti@2.4.2)(lightningcss@1.30.1)(tsx@4.20.3)(yaml@2.8.0))
+      '@tsparticles/engine':
+        specifier: ^3.8.1
+        version: 3.8.1
       '@tsparticles/slim':
         specifier: ^3.8.1
         version: 3.8.1
+      '@tsparticles/vue3':
+        specifier: ^3.0.1
+        version: 3.0.1(typescript@5.8.3)
       '@vueuse/core':
         specifier: ^13.3.0
         version: 13.3.0(vue@3.5.16(typescript@5.8.3))
@@ -686,6 +692,9 @@ importers:
       tailwindcss:
         specifier: ^4.1.10
         version: 4.1.10
+      tsparticles:
+        specifier: ^3.8.1
+        version: 3.8.1
       vue:
         specifier: ^3.5.16
         version: 3.5.16(typescript@5.8.3)

@@ -26,6 +26,10 @@ export const Z_INDEX_VALUES = {
   KO_BANNER: 1000,
   BATTLE_END_UI: 1000,
 
+  // Climax 特效层级 (1050+)
+  CLIMAX_BLACK_SCREEN: 1050, // Climax 黑屏遮罩
+  CLIMAX_EFFECT: 1060, // Climax 特效本身
+
   // 移动端适配 UI (1100+)
   MOBILE_ORIENTATION_HINT: 1100,
   MOBILE_FULLSCREEN_BUTTON: 1200,
@@ -54,6 +58,10 @@ export enum Z_INDEX_CLASS {
   // 顶层 UI
   KO_BANNER = 'z-[1000]',
   BATTLE_END_UI = 'z-[1000]',
+
+  // Climax 特效层级
+  CLIMAX_BLACK_SCREEN = 'z-[1050]',
+  CLIMAX_EFFECT = 'z-[1060]',
 
   // 移动端适配 UI
   MOBILE_ORIENTATION_HINT = 'z-[1100]',

@@ -4,7 +4,7 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import I18NextVue from 'i18next-vue'
 import Particles from '@tsparticles/vue3'
-import { loadSlim } from '@tsparticles/slim'
+import { loadFull } from 'tsparticles'
 
 import App from './App.vue'
 import router from './router'
@@ -22,7 +22,7 @@ app.use(router)
 app.use(I18NextVue, { i18next })
 app.use(Particles, {
   init: async engine => {
-    await loadSlim(engine)
+    await loadFull(engine)
   },
 })
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
