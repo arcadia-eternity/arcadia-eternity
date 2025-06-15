@@ -95,14 +95,18 @@ const handleItemClick = async (item: MenuItem) => {
   }
 }
 
-// 防止长按后立即关闭菜单的标志
-let longPressJustTriggered = false
+// 防止长按后立即关闭菜单的标志和时间戳
+let longPressTriggeredTime = 0
+const LONG_PRESS_PROTECTION_DELAY = 500 // 500ms 保护期
 
 const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-  // 如果刚刚触发了长按，忽略接下来的 touchend 事件
-  if (longPressJustTriggered && event.type === 'touchend') {
-    longPressJustTriggered = false
-    return
+  // 如果是 touchend 事件且在长按保护期内，忽略该事件
+  if (event.type === 'touchend' && longPressTriggeredTime > 0) {
+    const timeSinceLongPress = Date.now() - longPressTriggeredTime
+    if (timeSinceLongPress < LONG_PRESS_PROTECTION_DELAY) {
+      console.log('忽略长按后的 touchend 事件，保护期内:', timeSinceLongPress + 'ms')
+      return
+    }
   }
 
   if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
@@ -157,12 +161,9 @@ watch(
   () => props.visible,
   newVisible => {
     if (newVisible) {
-      // 设置长按刚触发的标志，防止立即关闭
-      longPressJustTriggered = true
-      // 短暂延迟后重置标志
-      setTimeout(() => {
-        longPressJustTriggered = false
-      }, 300)
+      // 记录菜单显示的时间，用于长按保护
+      longPressTriggeredTime = Date.now()
+      console.log('上下文菜单显示，设置长按保护时间:', longPressTriggeredTime)
 
       // 菜单显示时添加事件监听器并调整位置
       nextTick(() => {
@@ -170,7 +171,8 @@ watch(
         adjustPosition()
       })
     } else {
-      // 菜单隐藏时移除事件监听器
+      // 菜单隐藏时重置保护时间并移除事件监听器
+      longPressTriggeredTime = 0
       removeEventListeners()
     }
   },

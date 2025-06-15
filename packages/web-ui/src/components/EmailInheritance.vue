@@ -219,7 +219,7 @@ const bindForm = reactive({
 const bindFormRef = ref<FormInstance>()
 const bindLoading = ref(false)
 const bindCountdown = ref(0)
-let bindCountdownTimer: NodeJS.Timeout | null = null
+let bindCountdownTimer: ReturnType<typeof setTimeout> | null = null
 
 // 恢复表单
 const recoverForm = reactive({
@@ -231,7 +231,7 @@ const recoverForm = reactive({
 const recoverFormRef = ref<FormInstance>()
 const recoverLoading = ref(false)
 const recoverCountdown = ref(0)
-let recoverCountdownTimer: NodeJS.Timeout | null = null
+let recoverCountdownTimer: ReturnType<typeof setTimeout> | null = null
 
 // 解绑相关
 const showUnbindDialog = ref(false)

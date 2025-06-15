@@ -1471,7 +1471,7 @@ const { exportTeam } = useTeamExport()
 
 // 简化的移动端交互处理
 const handleMobileTap = (pet: PetSchemaType, teamIndex?: number) => {
-  console.log('移动端单击', pet.name)
+  console.log('移动端长按处理 - 显示上下文菜单', pet.name, '时间:', Date.now())
   if (!isMobile()) return
 
   const syntheticEvent = {
@@ -1481,8 +1481,10 @@ const handleMobileTap = (pet: PetSchemaType, teamIndex?: number) => {
   } as MouseEvent
 
   if (teamIndex !== undefined) {
+    console.log('显示队伍精灵上下文菜单')
     handleShowTeamPetContextMenu(syntheticEvent, pet, teamIndex)
   } else {
+    console.log('显示仓库精灵上下文菜单')
     handleShowContextMenu(syntheticEvent, pet)
   }
 }
@@ -1528,7 +1530,7 @@ const setupPetInteraction = (
   onLongPress(
     element,
     () => {
-      console.log('长按触发 - 显示上下文菜单', pet.name)
+      console.log('长按触发 - 显示上下文菜单', pet.name, '时间:', Date.now())
       handleMobileTap(pet, teamIndex)
       // 添加触觉反馈
       if (navigator.vibrate) {
@@ -1540,7 +1542,7 @@ const setupPetInteraction = (
 
   // 双击处理 - 移动精灵
   let clickCount = 0
-  let clickTimer: NodeJS.Timeout | null = null
+  let clickTimer: ReturnType<typeof setTimeout> | null = null
 
   useEventListener(element, 'click', () => {
     if (!isMobile()) {
@@ -1623,14 +1625,7 @@ const storagePagination = ref({
 
 // 精灵详情状态已移动到组合式函数中
 
-// 统一的交互处理系统
-interface InteractionConfig {
-  onSingleTap?: () => void
-  onDoubleTap?: () => void
-  onLongPress?: () => void
-  onContextMenu?: (event: MouseEvent) => void
-  cooldownMs?: number
-}
+// 统一的交互处理系统已简化，不再需要复杂的配置接口
 
 // 映射对象
 const genderMap = {
@@ -1880,7 +1875,7 @@ const calculatePageSizes = () => {
 
 // 防抖函数
 const debounce = (func: Function, wait: number) => {
-  let timeout: NodeJS.Timeout
+  let timeout: ReturnType<typeof setTimeout>
   return (...args: any[]) => {
     clearTimeout(timeout)
     timeout = setTimeout(() => func.apply(null, args), wait)
