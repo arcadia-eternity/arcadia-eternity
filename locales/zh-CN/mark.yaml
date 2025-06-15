@@ -189,7 +189,7 @@ mark_yishang:
   description: 受到伤害增加{{mark.stack}}%
 mark_jishengzhadan:
   name: 寄生炸弹
-  description: 结束时失去{{mark.stack}}点体力 换场消失
+  description: 结束时失去300点体力 换场消失
 mark_mihuo:
   name: 迷惑
   description: 造成伤害由双方平分
