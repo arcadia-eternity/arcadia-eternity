@@ -176,7 +176,7 @@ const devOnlyRoutes: RouteRecordRaw[] = [
     name: 'ParticleEffectDemo',
     component: ParticleEffectDemo,
     meta: {
-      title: '星光爆发特效演示',
+      title: '必杀技特效调整页面',
     },
   },
   {
@@ -184,7 +184,7 @@ const devOnlyRoutes: RouteRecordRaw[] = [
     name: 'ClimaxEffectDemo',
     component: ClimaxEffectDemo,
     meta: {
-      title: '九帧特效动画组件演示',
+      title: '必杀技特性动画组件演示',
     },
   },
 ]
