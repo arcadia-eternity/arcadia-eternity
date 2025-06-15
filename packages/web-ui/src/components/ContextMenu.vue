@@ -17,7 +17,7 @@
         'py-4': isMobile, // 移动端增加触摸区域
       }"
       @click="!item.disabled && handleItemClick(item)"
-      @touchend="!item.disabled && handleItemClick(item)"
+      @touchend.prevent="!item.disabled && handleItemClick(item)"
     >
       <svg v-if="item.iconPath" class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="item.iconPath" />
@@ -81,12 +81,30 @@ const menuStyle = computed(() => {
   }
 })
 
-const handleItemClick = (item: MenuItem) => {
-  item.action()
-  emit('close')
+const handleItemClick = async (item: MenuItem) => {
+  // 对于危险操作（如删除），先关闭菜单，然后执行操作
+  if (item.danger) {
+    emit('close')
+    // 等待菜单完全关闭后再执行危险操作
+    await new Promise(resolve => setTimeout(resolve, 100))
+    item.action()
+  } else {
+    // 对于普通操作，先执行操作再关闭菜单
+    item.action()
+    emit('close')
+  }
 }
 
+// 防止长按后立即关闭菜单的标志
+let longPressJustTriggered = false
+
 const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+  // 如果刚刚触发了长按，忽略接下来的 touchend 事件
+  if (longPressJustTriggered && event.type === 'touchend') {
+    longPressJustTriggered = false
+    return
+  }
+
   if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
     emit('close')
   }
@@ -139,6 +157,13 @@ watch(
   () => props.visible,
   newVisible => {
     if (newVisible) {
+      // 设置长按刚触发的标志，防止立即关闭
+      longPressJustTriggered = true
+      // 短暂延迟后重置标志
+      setTimeout(() => {
+        longPressJustTriggered = false
+      }, 300)
+
       // 菜单显示时添加事件监听器并调整位置
       nextTick(() => {
         addEventListeners()

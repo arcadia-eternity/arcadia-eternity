@@ -2013,10 +2013,25 @@ const deleteTeam = async (index: number) => {
   }
 
   try {
+    console.log('开始删除队伍确认流程:', petStorage.teams[index].name)
+
     await ElMessageBox.confirm(`确定要删除队伍 "${petStorage.teams[index].name}" 吗？`, '删除队伍', {
       confirmButtonText: '删除',
       cancelButtonText: '取消',
       type: 'warning',
+      customStyle: {
+        zIndex: '10000', // 确保确认框在最顶层
+      },
+      // 移动端优化
+      center: true,
+      showClose: true,
+      // 防止被其他事件干扰
+      closeOnClickModal: false,
+      closeOnPressEscape: true,
+      beforeClose: (action, _instance, done) => {
+        console.log('队伍删除确认框关闭动作:', action)
+        done()
+      },
     })
 
     petStorage.deleteTeam(index)

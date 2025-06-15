@@ -224,18 +224,36 @@ export function usePetManagement() {
    */
   async function deletePet(petId: string, onSuccess?: () => void): Promise<void> {
     try {
-      await ElMessageBox.confirm('确定要永久删除此精灵吗？此操作无法撤销！', '删除精灵', {
+      // 添加调试日志
+      console.log('开始删除精灵确认流程:', petId)
+
+      const result = await ElMessageBox.confirm('确定要永久删除此精灵吗？此操作无法撤销！', '删除精灵', {
         confirmButtonText: '删除',
         cancelButtonText: '取消',
         type: 'warning',
+        customStyle: {
+          zIndex: '10000', // 确保确认框在最顶层
+        },
+        // 移动端优化
+        center: true,
+        showClose: true,
+        // 防止被其他事件干扰
+        closeOnClickModal: false,
+        closeOnPressEscape: true,
+        beforeClose: (action, _instance, done) => {
+          console.log('确认框关闭动作:', action)
+          done()
+        },
       })
 
+      console.log('用户确认删除:', result)
       petStorage.removeFromStorage(petId)
       petStorage.saveToLocal()
       onSuccess?.()
       ElMessage.success('精灵删除成功')
-    } catch {
-      // 用户取消
+    } catch (error) {
+      console.log('删除操作被取消或出错:', error)
+      // 用户取消或出错
     }
   }
 
