@@ -237,7 +237,7 @@ mark_busi:
   description: 受到致死打击时保留1点体力
 mark_huifu:
   name: 恢复
-  description: 每回合恢复{{mark.stack}}点体力
+  description: 每回合恢复1/8最大体力
 mark_zhongzinengliang:
   name: 种子能量
   description: 受到伤害减少20% 被攻击会减少1层
