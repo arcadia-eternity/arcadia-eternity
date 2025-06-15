@@ -1001,11 +1001,11 @@ const addNewPet = () => {
     name: '迪兰特',
     species: 'pet_dilante',
     level: 100,
-    evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+    evs: { hp: 4, atk: 0, def: 0, spa: 252, spd: 0, spe: 252 },
     ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
     skills: ['skill_wujindaxuanwo', 'skill_ruodianbiaoji', 'skill_feiliupubu', 'skill_yanmo', 'skill_shuihuajianshe'],
     gender: Gender.Male,
-    nature: Nature.Adamant,
+    nature: Nature.Modest,
     ability: 'mark_ability_zhongjie',
     emblem: 'mark_emblem_zhuiji',
   }
@@ -1014,7 +1014,7 @@ const addNewPet = () => {
   petStorage.addToStorage(newPet)
   petStorage.moveToTeam(newPet.id, petStorage.currentTeamIndex)
   selectedPetId.value = newPet.id
-  handleSpeciesChange(newPet.species)
+  // handleSpeciesChange(newPet.species)
 }
 
 const removePet = (petId: string) => {
