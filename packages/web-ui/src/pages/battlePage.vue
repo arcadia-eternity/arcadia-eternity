@@ -233,6 +233,7 @@ provide(skillMapKey, store.skillMap)
 provide(petMapKey, store.petMap)
 provide(playerMapKey, store.playerMap)
 const battleViewRef = useTemplateRef('battleViewRef')
+const backgroundContainerRef = useTemplateRef('backgroundContainerRef')
 const leftPetRef = useTemplateRef('leftPetRef')
 const rightPetRef = useTemplateRef('rightPetRef')
 const leftStatusRef = useTemplateRef('leftStatusRef')
@@ -510,21 +511,59 @@ const checkGameDataStoreLoaded = async () => {
   }
 }
 
-// 检查背景图片是否加载完成
+// 检查背景图片是否加载完成并预设置到DOM
 const checkBackgroundImageLoaded = async () => {
   try {
     loadingStatus.value = '加载背景图片...'
     const bgUrl = background.value
+
     if (bgUrl) {
-      await new Promise<void>((resolve, reject) => {
+      // 预加载背景图片
+      await new Promise<void>(resolve => {
         const img = new Image()
-        img.onload = () => resolve()
-        img.onerror = () => reject(new Error('Background image failed to load'))
+        img.onload = () => {
+          console.debug('Background image preloaded successfully')
+
+          // 直接使用模板引用设置背景
+          const setBgToDOM = () => {
+            if (backgroundContainerRef.value) {
+              const container = backgroundContainerRef.value as HTMLElement
+              container.style.backgroundImage = `url(${bgUrl})`
+              container.style.backgroundSize = 'auto 100%'
+              container.style.backgroundPosition = 'center'
+              container.style.backgroundRepeat = 'no-repeat'
+              console.debug('Background image applied to DOM via template ref')
+            }
+          }
+
+          // 如果DOM已经准备好，立即设置；否则稍后设置
+          if (backgroundContainerRef.value) {
+            setBgToDOM()
+          } else {
+            // 延迟设置，给DOM一些时间渲染
+            setTimeout(setBgToDOM, 100)
+          }
+
+          resolve()
+        }
+        img.onerror = () => {
+          console.warn('Background image failed to preload, but continuing...')
+          resolve() // 即使失败也继续
+        }
         img.src = bgUrl
+
+        // 设置超时，避免永远等待
+        setTimeout(() => {
+          console.warn('Background image loading timeout, continuing...')
+          resolve()
+        }, 5000)
       })
+    } else {
+      console.debug('No background image to load')
     }
+
     loadingProgress.value.backgroundImage = true
-    console.debug('Background image loaded')
+    console.debug('Background image check completed')
   } catch (error) {
     console.error('Failed to load background image:', error)
     loadingProgress.value.backgroundImage = true // 即使失败也继续
@@ -1923,6 +1962,7 @@ watch(
           :class="Z_INDEX_CLASS.KO_BANNER"
         />
         <div
+          ref="backgroundContainerRef"
           class="relative h-full w-full flex flex-col bg-center bg-no-repeat overflow-visible"
           :class="[
             background ? `bg-cover` : 'bg-gray-900',
