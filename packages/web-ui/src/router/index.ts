@@ -149,7 +149,28 @@ const routes: RouteRecordRaw[] = [
       title: '本地战报回放',
     },
   },
-  // 演示页面路由
+
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/',
+  },
+]
+
+const devOnlyRoutes: RouteRecordRaw[] = [
+  // {
+  //   path: '/data-editor',
+  //   name: 'DataEditor',
+  //   component: DataEditor,
+  //   meta: {
+  //     title: '数据编辑器',
+  //   },
+  // },
+  // {
+  //   path: '/effect-editor',
+  //   name: 'EffectGraphEditor',
+  //   component: EffectGraphEditor,
+  //   props: true,
+  // },  // 演示页面路由
   {
     path: '/particle-demo',
     name: 'ParticleEffectDemo',
@@ -166,32 +187,11 @@ const routes: RouteRecordRaw[] = [
       title: '九帧特效动画组件演示',
     },
   },
-  {
-    path: '/:pathMatch(.*)*',
-    redirect: '/',
-  },
 ]
 
-// const devOnlyRoutes: RouteRecordRaw[] = [
-//   {
-//     path: '/data-editor',
-//     name: 'DataEditor',
-//     component: DataEditor,
-//     meta: {
-//       title: '数据编辑器',
-//     },
-//   },
-//   {
-//     path: '/effect-editor',
-//     name: 'EffectGraphEditor',
-//     component: EffectGraphEditor,
-//     props: true,
-//   },
-// ]
-
-// if (import.meta.env.DEV) {
-//   routes.push(...devOnlyRoutes)
-// }
+if (import.meta.env.DEV) {
+  routes.push(...devOnlyRoutes)
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
