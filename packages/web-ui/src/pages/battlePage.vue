@@ -1474,7 +1474,7 @@ watch(
 
       <!-- 移动端全屏按钮 -->
       <button
-        v-if="isMobile && !isReplayMode"
+        v-if="isMobile"
         @click="toggleFullscreen"
         class="absolute top-4 right-4 w-12 h-12 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all duration-200 active:scale-95"
         :class="Z_INDEX_CLASS.MOBILE_FULLSCREEN_BUTTON"
