@@ -1,6 +1,6 @@
 import type { MarkInstance } from '@arcadia-eternity/battle'
 import { CleanStageStrategy, ContinuousUseSkillStrategy, EffectTrigger } from '@arcadia-eternity/const'
-import { BaseSelector, Extractor, type CompareOperator, type ValueSource } from '@arcadia-eternity/effect-builder'
+import { BaseSelector, Extractor, type CompareOperator } from '@arcadia-eternity/effect-builder'
 
 export { EffectTrigger }
 export type { CompareOperator }
@@ -614,6 +614,12 @@ export type DynamicValue = {
   selector: SelectorDSL
 }
 
+export type SelectorValue = {
+  type: 'selector'
+  value: Value
+  chain?: Array<SelectorChain>
+}
+
 export type Value =
   | RawNumberValue
   | RawStringValue
@@ -621,6 +627,7 @@ export type Value =
   | RawBaseMarkIdValue
   | RawBaseSkillIdValue
   | DynamicValue
+  | SelectorValue
   | Array<Value>
   | number
   | string
@@ -634,7 +641,7 @@ export type ChainSelector = {
   chain?: Array<SelectorChain>
 }
 
-export type SelectorDSL = BaseSelectorKey | ChainSelector | ConditionalSelector
+export type SelectorDSL = BaseSelectorKey | ChainSelector | ConditionalSelector | SelectorValue
 
 export type ConditionalSelector = {
   condition: ConditionDSL

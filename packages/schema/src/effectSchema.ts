@@ -21,6 +21,7 @@ import type {
   SelectorDSL,
   Value,
   RawBaseSkillIdValue,
+  SelectorValue,
 } from './effectDsl'
 import { MarkConfigSchema } from './mark'
 
@@ -78,6 +79,14 @@ export const dynamicValueSchema: z.ZodSchema<DynamicValue> = z.lazy(() =>
   }),
 )
 
+export const selectorValueSchema: z.ZodSchema<SelectorValue> = z.lazy(() =>
+  z.object({
+    type: z.literal('selector'),
+    value: valueSchema,
+    chain: z.array(selectorChainSchema).optional(),
+  }),
+)
+
 const conditionalValueSchema = z.lazy(() =>
   z.object({
     type: z.literal('conditional'),
@@ -98,6 +107,7 @@ export const valueSchema: z.ZodSchema<Value> = z.lazy(() =>
     rawBaseMarkIdValueSchema,
     rawBaseSkillIdValueSchema,
     dynamicValueSchema,
+    selectorValueSchema,
     conditionalValueSchema,
     z.array(valueSchema),
   ]),
@@ -217,6 +227,7 @@ export const selectorDSLSchema: z.ZodSchema<SelectorDSL> = z.lazy(() =>
       chain: z.array(selectorChainSchema).optional(),
     }),
     conditionalSelectorSchema,
+    selectorValueSchema,
   ]),
 )
 

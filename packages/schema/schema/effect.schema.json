@@ -424,6 +424,29 @@
                                                               "properties": {
                                                                 "type": {
                                                                   "type": "string",
+                                                                  "const": "selector"
+                                                                },
+                                                                "value": {
+                                                                  "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                                },
+                                                                "chain": {
+                                                                  "type": "array",
+                                                                  "items": {
+                                                                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items"
+                                                                  }
+                                                                }
+                                                              },
+                                                              "required": [
+                                                                "type",
+                                                                "value"
+                                                              ],
+                                                              "additionalProperties": false
+                                                            },
+                                                            {
+                                                              "type": "object",
+                                                              "properties": {
+                                                                "type": {
+                                                                  "type": "string",
                                                                   "const": "conditional"
                                                                 },
                                                                 "condition": {
@@ -941,6 +964,9 @@
                                       "trueSelector"
                                     ],
                                     "additionalProperties": false
+                                  },
+                                  {
+                                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/9"
                                   }
                                 ]
                               },

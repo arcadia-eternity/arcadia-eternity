@@ -4,7 +4,6 @@ import {
   BaseSkill,
   type BattlePhaseBase,
   type ConfigValue,
-  ConfigSystem,
   DamageContext,
   Effect,
   EffectContext,
@@ -60,6 +59,7 @@ import type {
   SelectorDSL,
   Value,
   ChainSelector,
+  SelectorValue,
 } from '@arcadia-eternity/schema'
 
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
@@ -101,6 +101,23 @@ export function parseSelector<T extends SelectorOpinion>(effectId: string, dsl: 
     return trueSelector.when(condition, trueSelector.build(), falseSelector?.build()) as ChainableSelector<T>
   }
 
+  // 处理SelectorValue类型
+  if (typeof dsl === 'object' && 'type' in dsl && dsl.type === 'selector') {
+    const selectorValue = dsl as SelectorValue
+    // 从Value创建selector
+    const valueSelector = createSelectorFromValue(effectId, selectorValue.value)
+
+    // 处理链式操作
+    if (selectorValue.chain) {
+      return selectorValue.chain.reduce(
+        (selector, step) => applySelectorStep(effectId, selector, step),
+        valueSelector as ChainableSelector<SelectorOpinion>,
+      ) as ChainableSelector<T>
+    }
+
+    return valueSelector as ChainableSelector<T>
+  }
+
   // 解析基础选择器
   const baseSelector = typeof dsl === 'string' ? getBaseSelector(dsl) : getBaseSelector((dsl as ChainSelector).base)
 
@@ -120,6 +137,39 @@ function getBaseSelector(selectorKey: string): ChainableSelector<SelectorOpinion
     throw new Error(`未知的基础选择器: ${selectorKey}`)
   }
   return BaseSelector[selectorKey as keyof typeof BaseSelector]
+}
+
+function createSelectorFromValue(effectId: string, value: Value): ChainableSelector<SelectorOpinion> {
+  // 将Value转换为ValueSource
+  const valueSource = parseValue(effectId, value)
+
+  // 创建一个selector，它返回从Value解析出的值
+  return new ChainableSelector<SelectorOpinion>(
+    context => {
+      if (typeof valueSource === 'function') {
+        // 如果是函数（selector），直接调用
+        return (valueSource as any)(context)
+      } else if (valueSource instanceof ChainableSelector) {
+        // 如果是ChainableSelector，调用其build方法
+        return valueSource.build()(context)
+      } else if (Array.isArray(valueSource)) {
+        // 如果是数组，递归处理每个元素
+        return valueSource.flatMap(item => {
+          if (typeof item === 'function') {
+            return (item as any)(context)
+          } else if (item instanceof ChainableSelector) {
+            return item.build()(context)
+          } else {
+            return [item]
+          }
+        })
+      } else {
+        // 原始值，包装成数组
+        return [valueSource]
+      }
+    },
+    'any', // 初始类型为any，后续可以通过链式操作推断
+  )
 }
 
 function applySelectorStep(
@@ -497,6 +547,7 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
   if (v.type === 'entity:baseSkill')
     return (() => [DataRepository.getInstance().getSkill(v.value as baseSkillId)]) as ValueSource<BaseSkill>
   if (v.type === 'dynamic') return parseSelector(effectId, v.selector)
+  if (v.type === 'selector') return parseSelector(effectId, v)
   throw Error('未知的数值类型')
 }
 

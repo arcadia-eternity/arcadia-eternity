@@ -5658,20 +5658,15 @@
     type: addMark
     target: battle
     mark:
-      type: conditional
-      trueValue:
-        type: entity:baseMark
-        value: mark_global_qingtian
-      falseValue:
-        type: entity:baseMark
-        value: mark_global_yemu
-      condition:
-        type: evaluate
-        target:
-          base: self
-        evaluator:
-          type: probability
-          percent: 50
+      type: selector
+      value:
+        - type: entity:baseMark
+          value: mark_global_qingtian
+        - type: entity:baseMark
+          value: mark_global_yemu
+      chain:
+        - type: randomPick
+          arg: 1
   condition:
     type: selfUseSkill
 - id: effect_skill_multihit_50_percent_2_times
