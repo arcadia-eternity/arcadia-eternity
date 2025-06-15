@@ -96,7 +96,6 @@
         <ul class="text-left text-sm md:text-base space-y-1">
           <li>不要忘了先在队伍编辑里面编辑队伍</li>
           <li>目前正在活跃更新中，可能会有一些bug，尽量谅解</li>
-          <li>尽量精灵出现以后再选择技能，不然动画有时候会卡住</li>
           <li>群号：805146068</li>
         </ul>
       </el-alert>
