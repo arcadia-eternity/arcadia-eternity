@@ -147,20 +147,38 @@
                           </span>
                         </div>
                       </div>
-                      <button
-                        @click.stop="removePet(pet.id)"
-                        :disabled="currentTeam.length === 1"
-                        class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
-                      </button>
+                      <div class="flex items-center space-x-1">
+                        <!-- 移入仓库按钮 -->
+                        <button
+                          @click.stop="handleMoveToStorage(pet.id)"
+                          class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 rounded-full text-gray-400 hover:text-blue-500 hover:bg-blue-50"
+                          title="移入仓库"
+                        >
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                            />
+                          </svg>
+                        </button>
+                        <!-- 删除按钮 -->
+                        <button
+                          @click.stop="handleDeletePet(pet.id)"
+                          class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50"
+                          title="永久删除"
+                        >
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </template>
@@ -595,6 +613,72 @@
             </div>
           </div>
         </div>
+
+        <!-- 空队伍提示 -->
+        <div class="lg:col-span-9" v-else-if="currentTeam.length === 0">
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <div class="max-w-md mx-auto">
+              <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
+              </svg>
+              <h3 class="text-lg font-medium text-gray-900 mb-2">队伍为空</h3>
+              <p class="text-gray-500 mb-6">当前队伍中没有精灵。您可以添加新的精灵，或者从仓库中移入精灵来组建队伍。</p>
+              <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  @click="addNewPet"
+                  class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                  添加新精灵
+                </button>
+                <router-link
+                  to="/storage"
+                  class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                    />
+                  </svg>
+                  前往仓库
+                </router-link>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 未选中精灵提示 -->
+        <div class="lg:col-span-9" v-else>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <div class="max-w-md mx-auto">
+              <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M7 4V2a1 1 0 011-1h4a1 1 0 011 1v2h4a1 1 0 011 1v2a1 1 0 01-1 1h-1v9a2 2 0 01-2 2H8a2 2 0 01-2-2V8H5a1 1 0 01-1-1V5a1 1 0 011-1h2z"
+                />
+              </svg>
+              <h3 class="text-lg font-medium text-gray-900 mb-2">请选择精灵</h3>
+              <p class="text-gray-500">请从左侧队伍列表中选择一个精灵来查看和编辑其详细信息。</p>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
 
@@ -737,7 +821,7 @@ const gameDataStore = useGameDataStore()
 const petStorage = usePetStorageStore()
 
 // 使用组合式函数
-const { importTeamConfig } = usePetManagement()
+const { importTeamConfig, moveToStorage, deletePet } = usePetManagement()
 const { exportTeamConfig } = useTeamExport()
 
 // 创建markdown-it实例
@@ -796,8 +880,8 @@ const handleDragEnd = (event: any) => {
 
 // 简单的验证函数
 const validateTeam = () => {
-  if (currentTeam.value.length < 1 || currentTeam.value.length > 6) {
-    return '队伍数量必须在1到6之间'
+  if (currentTeam.value.length > 6) {
+    return '队伍数量不能超过6个'
   }
 
   for (const pet of currentTeam.value) {
@@ -1019,12 +1103,26 @@ const addNewPet = () => {
   // handleSpeciesChange(newPet.species)
 }
 
-const removePet = (petId: string) => {
-  if (currentTeam.value.length <= 1) {
-    ElMessage.warning('队伍中至少需要保留一个精灵')
-    return
-  }
-  petStorage.moveToPC(petId)
+// 移入仓库处理函数
+const handleMoveToStorage = (petId: string) => {
+  moveToStorage(petId, () => {
+    // 如果移动的是当前选中的精灵，选择队伍中的第一个精灵
+    if (selectedPetId.value === petId) {
+      const remainingTeam = currentTeam.value
+      selectedPetId.value = remainingTeam.length > 0 ? remainingTeam[0].id : null
+    }
+  })
+}
+
+// 删除精灵处理函数
+const handleDeletePet = (petId: string) => {
+  deletePet(petId, () => {
+    // 如果删除的是当前选中的精灵，选择队伍中的第一个精灵
+    if (selectedPetId.value === petId) {
+      const remainingTeam = currentTeam.value
+      selectedPetId.value = remainingTeam.length > 0 ? remainingTeam[0].id : null
+    }
+  })
 }
 
 const saveCurrentTeam = () => {
