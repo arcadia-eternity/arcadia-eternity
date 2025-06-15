@@ -4,7 +4,7 @@ import { useResourceStore } from '@/stores/resource'
 import { computed, onMounted, onUnmounted, watch, ref } from 'vue' // Added ref
 import { storeToRefs } from 'pinia'
 
-export function useMusic() {
+export function useMusic(autoPlay: boolean = true) {
   const gameSettingStore = useGameSettingStore()
   const resourceStore = useResourceStore()
 
@@ -30,6 +30,7 @@ export function useMusic() {
   const selfMute = computed(() => mute.value || musicMute.value)
 
   const howlerInstance = ref<Howl | null>(null)
+  const isStarted = ref(false)
 
   const createNewHowl = (src: string) => {
     if (howlerInstance.value) {
@@ -55,7 +56,7 @@ export function useMusic() {
   watch(selfMute, newMuteState => {
     if (howlerInstance.value) {
       howlerInstance.value.mute(newMuteState)
-      if (!newMuteState && !howlerInstance.value.playing()) {
+      if (!newMuteState && !howlerInstance.value.playing() && isStarted.value) {
         howlerInstance.value.play()
       }
     }
@@ -69,7 +70,7 @@ export function useMusic() {
         if (howlerInstance.value) {
           shouldPlayAfterCreation = howlerInstance.value.playing()
         } else {
-          shouldPlayAfterCreation = !selfMute.value
+          shouldPlayAfterCreation = autoPlay && !selfMute.value && isStarted.value
         }
 
         createNewHowl(newSrc)
@@ -82,9 +83,25 @@ export function useMusic() {
     { immediate: true },
   )
 
-  onMounted(() => {
+  // 手动启动音乐的方法
+  const startMusic = () => {
+    isStarted.value = true
     if (howlerInstance.value && !selfMute.value && !howlerInstance.value.playing()) {
       howlerInstance.value.play()
+    }
+  }
+
+  // 停止音乐的方法
+  const stopMusic = () => {
+    isStarted.value = false
+    if (howlerInstance.value && howlerInstance.value.playing()) {
+      howlerInstance.value.stop()
+    }
+  }
+
+  onMounted(() => {
+    if (autoPlay) {
+      startMusic()
     }
   })
 
@@ -94,4 +111,9 @@ export function useMusic() {
       howlerInstance.value.unload()
     }
   })
+
+  return {
+    startMusic,
+    stopMusic,
+  }
 }

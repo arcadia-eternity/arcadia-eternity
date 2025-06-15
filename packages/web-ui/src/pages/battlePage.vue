@@ -225,7 +225,8 @@ const handleFullscreenChange = () => {
   isFullscreen.value = isCurrentlyFullscreen
 }
 
-useMusic()
+// 初始化音乐但不自动播放
+const { startMusic, stopMusic } = useMusic(false)
 
 provide(logMessagesKey, store.log)
 provide(markMapKey, store.markMap)
@@ -680,6 +681,8 @@ const initializeBattleResources = async () => {
     // 检查是否全部加载完成
     checkAllResourcesLoaded()
 
+    // 所有资源加载完成后启动音乐
+    startMusic()
     console.debug('Battle resources initialization completed')
   } catch (error) {
     console.error('Error during battle resources initialization:', error)
@@ -1718,6 +1721,9 @@ onUnmounted(() => {
   document.removeEventListener('fullscreenchange', handleFullscreenChange)
   document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
   document.removeEventListener('msfullscreenchange', handleFullscreenChange)
+
+  // 停止音乐
+  stopMusic()
 
   // 清理战斗和回放状态
   store.resetBattle()
