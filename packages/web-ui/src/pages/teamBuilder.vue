@@ -1003,13 +1003,7 @@ const addNewPet = () => {
     level: 100,
     evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-    skills: [
-      gameDataStore.skillList.find(
-        s =>
-          s.category === 'Climax' &&
-          currentSpecies.value?.learnable_skills?.some((ls: { skill_id: string }) => ls.skill_id === s.id),
-      )?.id || 'skill_paida',
-    ],
+    skills: ['skill_wujindaxuanwo', 'skill_ruodianbiaoji', 'skill_feiliupubu', 'skill_yanmo', 'skill_shuihuajianshe'],
     gender: Gender.Male,
     nature: Nature.Adamant,
     ability: 'mark_ability_zhongjie',
