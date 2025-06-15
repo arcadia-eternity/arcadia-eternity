@@ -2,7 +2,7 @@
 
 ## 🎯 问题解决
 
-您指出的问题：**"目前的configOpreator是不包括scope Object的"**
+您指出的问题：**"目前的configOperator是不包括scope Object的"**
 
 现在已经完全解决！✅
 

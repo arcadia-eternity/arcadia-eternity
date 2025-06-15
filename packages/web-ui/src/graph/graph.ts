@@ -2,7 +2,7 @@
 import { LGraph, LGraphCanvas, LiteGraph } from '@comfyorg/litegraph'
 import { registerBaseSelectorNodes } from './dslNode/baseSelector'
 import { registerEffectNodes } from './dslNode/effect'
-import { registerOperatorNodes } from './dslNode/opreator'
+import { registerOperatorNodes } from './dslNode/operator'
 import { registerSelectorChainNodes } from './dslNode/selectorChain'
 import type { EffectDSL } from '@arcadia-eternity/schema'
 import { EffectSetSchema } from '@arcadia-eternity/schema'

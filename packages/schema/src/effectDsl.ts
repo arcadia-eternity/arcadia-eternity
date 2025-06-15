@@ -15,23 +15,23 @@ export interface EffectDSL {
   tags?: string[]
 }
 
-export type TODOOpreator = {
+export type TODOOperator = {
   type: 'TODO'
 }
 
-export type DealDamageOpreator = {
+export type DealDamageOperator = {
   type: 'dealDamage'
   target: SelectorDSL
   value: Value
 }
 
-export type HealOpreator = {
+export type HealOperator = {
   type: 'heal'
   target: SelectorDSL
   value: Value
 }
 
-export type AddMarkOpreator = {
+export type AddMarkOperator = {
   type: 'addMark'
   target: SelectorDSL
   mark: Value
@@ -39,19 +39,19 @@ export type AddMarkOpreator = {
   duration?: Value
 }
 
-export type AddStacksOpreator = {
+export type AddStacksOperator = {
   type: 'addStacks'
   target: SelectorDSL
   value: Value
 }
 
-export type ConsumeStacksOpreator = {
+export type ConsumeStacksOperator = {
   type: 'consumeStacks'
   target: SelectorDSL
   value: Value
 }
 
-export type ModifyStatOpreator = {
+export type ModifyStatOperator = {
   type: 'modifyStat'
   target: SelectorDSL
   statType: Value
@@ -59,7 +59,7 @@ export type ModifyStatOpreator = {
   percent?: Value
 }
 
-export type AddAttributeModifierOpreator = {
+export type AddAttributeModifierOperator = {
   type: 'addAttributeModifier'
   target: SelectorDSL
   stat: Value
@@ -72,7 +72,7 @@ export type AddAttributeModifierOpreator = {
   phaseId?: Value
 }
 
-export type AddDynamicAttributeModifierOpreator = {
+export type AddDynamicAttributeModifierOperator = {
   type: 'addDynamicAttributeModifier'
   target: SelectorDSL
   stat: Value
@@ -85,7 +85,7 @@ export type AddDynamicAttributeModifierOpreator = {
   phaseId?: Value
 }
 
-export type AddClampMaxModifierOpreator = {
+export type AddClampMaxModifierOperator = {
   type: 'addClampMaxModifier'
   target: SelectorDSL
   stat: Value
@@ -93,7 +93,7 @@ export type AddClampMaxModifierOpreator = {
   priority?: Value
 }
 
-export type AddClampMinModifierOpreator = {
+export type AddClampMinModifierOperator = {
   type: 'addClampMinModifier'
   target: SelectorDSL
   stat: Value
@@ -101,7 +101,7 @@ export type AddClampMinModifierOpreator = {
   priority?: Value
 }
 
-export type AddClampModifierOpreator = {
+export type AddClampModifierOperator = {
   type: 'addClampModifier'
   target: SelectorDSL
   stat: Value
@@ -114,7 +114,7 @@ export type AddClampModifierOpreator = {
   phaseId?: Value
 }
 
-export type AddSkillAttributeModifierOpreator = {
+export type AddSkillAttributeModifierOperator = {
   type: 'addSkillAttributeModifier'
   target: SelectorDSL
   attribute: Value
@@ -127,7 +127,7 @@ export type AddSkillAttributeModifierOpreator = {
   phaseId?: Value
 }
 
-export type AddDynamicSkillAttributeModifierOpreator = {
+export type AddDynamicSkillAttributeModifierOperator = {
   type: 'addDynamicSkillAttributeModifier'
   target: SelectorDSL
   attribute: Value
@@ -136,7 +136,7 @@ export type AddDynamicSkillAttributeModifierOpreator = {
   priority?: Value
 }
 
-export type AddSkillClampMaxModifierOpreator = {
+export type AddSkillClampMaxModifierOperator = {
   type: 'addSkillClampMaxModifier'
   target: SelectorDSL
   attribute: Value
@@ -144,7 +144,7 @@ export type AddSkillClampMaxModifierOpreator = {
   priority?: Value
 }
 
-export type AddSkillClampMinModifierOpreator = {
+export type AddSkillClampMinModifierOperator = {
   type: 'addSkillClampMinModifier'
   target: SelectorDSL
   attribute: Value
@@ -152,7 +152,7 @@ export type AddSkillClampMinModifierOpreator = {
   priority?: Value
 }
 
-export type AddSkillClampModifierOpreator = {
+export type AddSkillClampModifierOperator = {
   type: 'addSkillClampModifier'
   target: SelectorDSL
   attribute: Value
@@ -161,20 +161,20 @@ export type AddSkillClampModifierOpreator = {
   priority?: Value
 }
 
-export type StatStageBuffOpreator = {
+export type StatStageBuffOperator = {
   type: 'statStageBuff'
   target: SelectorDSL
   statType: Value
   value: Value
 }
-export type ClearStatStageOpreator = {
+export type ClearStatStageOperator = {
   type: 'clearStatStage'
   target: SelectorDSL
   statType?: Value
   cleanStageStrategy?: CleanStageStrategy
 }
 
-export type TransferStatStageOpreator = {
+export type TransferStatStageOperator = {
   type: 'transferStatStage'
   source: SelectorDSL
   target: SelectorDSL
@@ -182,247 +182,247 @@ export type TransferStatStageOpreator = {
   cleanStageStrategy?: CleanStageStrategy
 }
 
-export type AddRageOpreator = {
+export type AddRageOperator = {
   type: 'addRage'
   target: SelectorDSL
   value: Value
 }
 
-export type AmplifyPowerOpreator = {
+export type AmplifyPowerOperator = {
   type: 'amplifyPower'
   target: SelectorDSL
   value: Value
 }
 
-export type AddPowerOpreator = {
+export type AddPowerOperator = {
   type: 'addPower'
   target: SelectorDSL
   value: Value
 }
 
-export type AddCritRateOpreator = {
+export type AddCritRateOperator = {
   type: 'addCritRate'
   target: SelectorDSL
   value: Value
 }
 
-export type AddMultihitResultOpreator = {
+export type AddMultihitResultOperator = {
   type: 'addMultihitResult'
   target: SelectorDSL
   value: Value
 }
 
-export type SetMultihitOpreator = {
+export type SetMultihitOperator = {
   type: 'setMultihit'
   target: SelectorDSL
   value: Value
 }
 
-export type TransferMarkOpreator = {
+export type TransferMarkOperator = {
   type: 'transferMark'
   target: SelectorDSL
   mark: DynamicValue
 }
 
-export type DestroyMarkOpreator = {
+export type DestroyMarkOperator = {
   type: 'destroyMark'
   target: SelectorDSL
 }
 
-export type ModifyStackResultOpreator = {
+export type ModifyStackResultOperator = {
   type: 'modifyStackResult'
   target: SelectorDSL
   newStacks?: Value
   newDuration?: Value
 }
 
-export type StunOpreator = {
+export type StunOperator = {
   type: 'stun'
   target: SelectorDSL
 }
 
-export type SetSureHitOpreator = {
+export type SetSureHitOperator = {
   type: 'setSureHit'
   target: SelectorDSL
   priority: number
 }
 
-export type SetSureCritOpreator = {
+export type SetSureCritOperator = {
   type: 'setSureCrit'
   target: SelectorDSL
   priority: number
 }
 
-export type SetSureMissOpreator = {
+export type SetSureMissOperator = {
   type: 'setSureMiss'
   target: SelectorDSL
   priority: number
 }
 
-export type SetSureNoCritOpreator = {
+export type SetSureNoCritOperator = {
   type: 'setSureNoCrit'
   target: SelectorDSL
   priority: number
 }
 
-export type SetSkillOpreator = {
+export type SetSkillOperator = {
   type: 'setSkill'
   target: SelectorDSL
   value: Value
   updateConfig?: boolean
 }
 
-export type PreventDamageOpreator = {
+export type PreventDamageOperator = {
   type: 'preventDamage'
   target: SelectorDSL
 }
 
-export type SetActualTargetOpreator = {
+export type SetActualTargetOperator = {
   type: 'setActualTarget'
   target: SelectorDSL
   newTarget: DynamicValue
 }
 
-export type AddModifiedOpreator = {
+export type AddModifiedOperator = {
   type: 'addModified'
   target: SelectorDSL
   delta: Value
   percent: Value
 }
 
-export type AddThresholdOpreator = {
+export type AddThresholdOperator = {
   type: 'addThreshold'
   target: SelectorDSL
   min?: Value
   max?: Value
 }
 
-export type OverrideMarkConfigOpreator = {
+export type OverrideMarkConfigOperator = {
   type: 'overrideMarkConfig'
   target: SelectorDSL
   config: Partial<MarkInstance['config']>
 }
 
-export type SetMarkDurationOpreator = {
+export type SetMarkDurationOperator = {
   type: 'setMarkDuration'
   target: SelectorDSL
   value: Value
 }
 
-export type SetMarkStackOpreator = {
+export type SetMarkStackOperator = {
   type: 'setMarkStack'
   target: SelectorDSL
   value: Value
 }
 
-export type SetMarkMaxStackOpreator = {
+export type SetMarkMaxStackOperator = {
   type: 'setMarkMaxStack'
   target: SelectorDSL
   value: Value
 }
 
-export type SetMarkPersistentOpreator = {
+export type SetMarkPersistentOperator = {
   type: 'setMarkPersistent'
   target: SelectorDSL
   value: Value
 }
 
-export type SetMarkStackableOpreator = {
+export type SetMarkStackableOperator = {
   type: 'setMarkStackable'
   target: SelectorDSL
   value: Value
 }
 
-export type SetMarkStackStrategyOpreator = {
+export type SetMarkStackStrategyOperator = {
   type: 'setMarkStackStrategy'
   target: SelectorDSL
   value: Value
 }
 
-export type SetMarkDestroyableOpreator = {
+export type SetMarkDestroyableOperator = {
   type: 'setMarkDestroyable'
   target: SelectorDSL
   value: Value
 }
 
-export type SetMarkIsShieldOpreator = {
+export type SetMarkIsShieldOperator = {
   type: 'setMarkIsShield'
   target: SelectorDSL
   value: Value
 }
 
-export type SetMarkKeepOnSwitchOutOpreator = {
+export type SetMarkKeepOnSwitchOutOperator = {
   type: 'setMarkKeepOnSwitchOut'
   target: SelectorDSL
   value: Value
 }
 
-export type SetMarkTransferOnSwitchOpreator = {
+export type SetMarkTransferOnSwitchOperator = {
   type: 'setMarkTransferOnSwitch'
   target: SelectorDSL
   value: Value
 }
 
-export type SetMarkInheritOnFaintOpreator = {
+export type SetMarkInheritOnFaintOperator = {
   type: 'setMarkInheritOnFaint'
   target: SelectorDSL
   value: Value
 }
 
-export type SetStatLevelMarkLevelOpreator = {
+export type SetStatLevelMarkLevelOperator = {
   type: 'setStatLevelMarkLevel'
   target: SelectorDSL
   value: Value
 }
 
-export type AddValueOpreator = {
+export type AddValueOperator = {
   type: 'addValue'
   target: SelectorDSL
   value: Value
 }
 
-export type SetValueOpreator = {
+export type SetValueOperator = {
   type: 'setValue'
   target: SelectorDSL
   value: Value
 }
 
-export type ToggleOpreator = {
+export type ToggleOperator = {
   type: 'toggle'
   target: SelectorDSL
 }
 
-export type SetConfigOpreator = {
+export type SetConfigOperator = {
   type: 'setConfig'
   target: SelectorDSL
   key: Value
   value: Value
 }
 
-export type SetIgnoreStageStrategyOpreator = {
+export type SetIgnoreStageStrategyOperator = {
   type: 'setIgnoreStageStrategy'
   target: SelectorDSL
   value: Value
 }
 
-export type AddAccuracyOpreator = {
+export type AddAccuracyOperator = {
   type: 'addAccuracy'
   target: SelectorDSL
   value: Value
 }
 
-export type SetAccuracyOpreator = {
+export type SetAccuracyOperator = {
   type: 'setAccuracy'
   target: SelectorDSL
   value: Value
 }
 
-export type DisableContextOpreator = {
+export type DisableContextOperator = {
   type: 'disableContext'
   target: SelectorDSL
 }
 
-export type AddConfigModifierOpreator = {
+export type AddConfigModifierOperator = {
   type: 'addConfigModifier'
   target: SelectorDSL
   configKey: Value
@@ -431,7 +431,7 @@ export type AddConfigModifierOpreator = {
   priority?: Value
 }
 
-export type AddDynamicConfigModifierOpreator = {
+export type AddDynamicConfigModifierOperator = {
   type: 'addDynamicConfigModifier'
   target: SelectorDSL
   configKey: Value
@@ -440,14 +440,14 @@ export type AddDynamicConfigModifierOpreator = {
   priority?: Value
 }
 
-export type RegisterConfigOpreator = {
+export type RegisterConfigOperator = {
   type: 'registerConfig'
   target: SelectorDSL
   configKey: Value
   initialValue: Value
 }
 
-export type RegisterTaggedConfigOpreator = {
+export type RegisterTaggedConfigOperator = {
   type: 'registerTaggedConfig'
   target: SelectorDSL
   configKey: Value
@@ -455,7 +455,7 @@ export type RegisterTaggedConfigOpreator = {
   tags: Value
 }
 
-export type AddTaggedConfigModifierOpreator = {
+export type AddTaggedConfigModifierOperator = {
   type: 'addTaggedConfigModifier'
   target: SelectorDSL
   tag: Value
@@ -464,7 +464,7 @@ export type AddTaggedConfigModifierOpreator = {
   priority?: Value
 }
 
-export type AddPhaseConfigModifierOpreator = {
+export type AddPhaseConfigModifierOperator = {
   type: 'addPhaseConfigModifier'
   target: SelectorDSL
   configKey: Value
@@ -473,7 +473,7 @@ export type AddPhaseConfigModifierOpreator = {
   priority?: Value
 }
 
-export type AddPhaseDynamicConfigModifierOpreator = {
+export type AddPhaseDynamicConfigModifierOperator = {
   type: 'addPhaseDynamicConfigModifier'
   target: SelectorDSL
   configKey: Value
@@ -482,7 +482,7 @@ export type AddPhaseDynamicConfigModifierOpreator = {
   priority?: Value
 }
 
-export type AddPhaseTypeConfigModifierOpreator = {
+export type AddPhaseTypeConfigModifierOperator = {
   type: 'addPhaseTypeConfigModifier'
   target: SelectorDSL
   configKey: Value
@@ -494,7 +494,7 @@ export type AddPhaseTypeConfigModifierOpreator = {
   phaseId?: Value
 }
 
-export type AddDynamicPhaseTypeConfigModifierOpreator = {
+export type AddDynamicPhaseTypeConfigModifierOperator = {
   type: 'addDynamicPhaseTypeConfigModifier'
   target: SelectorDSL
   configKey: Value
@@ -507,76 +507,76 @@ export type AddDynamicPhaseTypeConfigModifierOpreator = {
 }
 
 export type OperatorDSL =
-  | TODOOpreator
+  | TODOOperator
   | ConditionalOperator
-  | DealDamageOpreator
-  | HealOpreator
-  | AddMarkOpreator
-  | AddStacksOpreator
-  | ConsumeStacksOpreator
-  | ModifyStatOpreator
-  | AddAttributeModifierOpreator
-  | AddDynamicAttributeModifierOpreator
-  | AddClampMaxModifierOpreator
-  | AddClampMinModifierOpreator
-  | AddClampModifierOpreator
-  | AddSkillAttributeModifierOpreator
-  | AddDynamicSkillAttributeModifierOpreator
-  | AddSkillClampMaxModifierOpreator
-  | AddSkillClampMinModifierOpreator
-  | AddSkillClampModifierOpreator
-  | StatStageBuffOpreator
-  | ClearStatStageOpreator
-  | TransferStatStageOpreator
-  | AddRageOpreator
-  | AmplifyPowerOpreator
-  | AddPowerOpreator
-  | AddCritRateOpreator
-  | AddMultihitResultOpreator
-  | SetMultihitOpreator
-  | TransferMarkOpreator
-  | DestroyMarkOpreator
-  | ModifyStackResultOpreator
-  | StunOpreator
-  | SetSureHitOpreator
-  | SetSureCritOpreator
-  | SetSureMissOpreator
-  | SetSureNoCritOpreator
-  | SetSkillOpreator
-  | PreventDamageOpreator
-  | SetActualTargetOpreator
-  | AddModifiedOpreator
-  | AddThresholdOpreator
-  | OverrideMarkConfigOpreator
-  | SetMarkDurationOpreator
-  | SetMarkStackOpreator
-  | SetMarkMaxStackOpreator
-  | SetMarkPersistentOpreator
-  | SetMarkStackableOpreator
-  | SetMarkStackStrategyOpreator
-  | SetMarkDestroyableOpreator
-  | SetMarkIsShieldOpreator
-  | SetMarkKeepOnSwitchOutOpreator
-  | SetMarkTransferOnSwitchOpreator
-  | SetMarkInheritOnFaintOpreator
-  | SetStatLevelMarkLevelOpreator
-  | AddValueOpreator
-  | SetValueOpreator
-  | ToggleOpreator
-  | SetConfigOpreator
-  | SetIgnoreStageStrategyOpreator
-  | AddAccuracyOpreator
-  | SetAccuracyOpreator
-  | DisableContextOpreator
-  | AddConfigModifierOpreator
-  | AddDynamicConfigModifierOpreator
-  | RegisterConfigOpreator
-  | RegisterTaggedConfigOpreator
-  | AddTaggedConfigModifierOpreator
-  | AddPhaseConfigModifierOpreator
-  | AddPhaseDynamicConfigModifierOpreator
-  | AddPhaseTypeConfigModifierOpreator
-  | AddDynamicPhaseTypeConfigModifierOpreator
+  | DealDamageOperator
+  | HealOperator
+  | AddMarkOperator
+  | AddStacksOperator
+  | ConsumeStacksOperator
+  | ModifyStatOperator
+  | AddAttributeModifierOperator
+  | AddDynamicAttributeModifierOperator
+  | AddClampMaxModifierOperator
+  | AddClampMinModifierOperator
+  | AddClampModifierOperator
+  | AddSkillAttributeModifierOperator
+  | AddDynamicSkillAttributeModifierOperator
+  | AddSkillClampMaxModifierOperator
+  | AddSkillClampMinModifierOperator
+  | AddSkillClampModifierOperator
+  | StatStageBuffOperator
+  | ClearStatStageOperator
+  | TransferStatStageOperator
+  | AddRageOperator
+  | AmplifyPowerOperator
+  | AddPowerOperator
+  | AddCritRateOperator
+  | AddMultihitResultOperator
+  | SetMultihitOperator
+  | TransferMarkOperator
+  | DestroyMarkOperator
+  | ModifyStackResultOperator
+  | StunOperator
+  | SetSureHitOperator
+  | SetSureCritOperator
+  | SetSureMissOperator
+  | SetSureNoCritOperator
+  | SetSkillOperator
+  | PreventDamageOperator
+  | SetActualTargetOperator
+  | AddModifiedOperator
+  | AddThresholdOperator
+  | OverrideMarkConfigOperator
+  | SetMarkDurationOperator
+  | SetMarkStackOperator
+  | SetMarkMaxStackOperator
+  | SetMarkPersistentOperator
+  | SetMarkStackableOperator
+  | SetMarkStackStrategyOperator
+  | SetMarkDestroyableOperator
+  | SetMarkIsShieldOperator
+  | SetMarkKeepOnSwitchOutOperator
+  | SetMarkTransferOnSwitchOperator
+  | SetMarkInheritOnFaintOperator
+  | SetStatLevelMarkLevelOperator
+  | AddValueOperator
+  | SetValueOperator
+  | ToggleOperator
+  | SetConfigOperator
+  | SetIgnoreStageStrategyOperator
+  | AddAccuracyOperator
+  | SetAccuracyOperator
+  | DisableContextOperator
+  | AddConfigModifierOperator
+  | AddDynamicConfigModifierOperator
+  | RegisterConfigOperator
+  | RegisterTaggedConfigOperator
+  | AddTaggedConfigModifierOperator
+  | AddPhaseConfigModifierOperator
+  | AddPhaseDynamicConfigModifierOperator
+  | AddPhaseTypeConfigModifierOperator
+  | AddDynamicPhaseTypeConfigModifierOperator
 
 export type RawNumberValue = {
   type: 'raw:number'

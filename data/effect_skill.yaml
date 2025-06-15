@@ -2403,7 +2403,7 @@
               type: same
               value: mark_kongqichuliang
       value: 10
-    falseOperator: &reduce_damage_25_percent_opreator
+    falseOperator: &reduce_damage_25_percent_operator
       type: addModified
       target: damageContext
       percent: -25
@@ -2428,7 +2428,7 @@
       type: consumeStacks
       target: *mark_kongqichuliang_template
       value: 15
-    falseOperator: *reduce_damage_25_percent_opreator
+    falseOperator: *reduce_damage_25_percent_operator
   condition:
     type: every
     conditions:
@@ -2449,7 +2449,7 @@
       type: consumeStacks
       target: *mark_kongqichuliang_template
       value: 20
-    falseOperator: *reduce_damage_25_percent_opreator
+    falseOperator: *reduce_damage_25_percent_operator
   condition:
     type: every
     conditions:
@@ -2470,7 +2470,7 @@
       type: consumeStacks
       target: *mark_kongqichuliang_template
       value: 25
-    falseOperator: *reduce_damage_25_percent_opreator
+    falseOperator: *reduce_damage_25_percent_operator
   condition:
     type: every
     conditions:
