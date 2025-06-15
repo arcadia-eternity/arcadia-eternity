@@ -1008,6 +1008,8 @@ const addNewPet = () => {
     nature: Nature.Modest,
     ability: 'mark_ability_zhongjie',
     emblem: 'mark_emblem_zhuiji',
+    height: 102,
+    weight: 31,
   }
 
   // 先添加到仓库再移动到队伍
