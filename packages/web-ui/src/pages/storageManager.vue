@@ -491,9 +491,53 @@
             <div class="px-6 py-4 border-b border-gray-200">
               <div class="flex items-center justify-between">
                 <h2 class="text-lg font-medium text-gray-900">精灵仓库</h2>
-                <span class="text-sm text-gray-500 hidden sm:inline">
-                  显示 {{ paginatedPets.length }} 只 (共 {{ filteredPets.length }}/{{ petStorage.storage.length }} 只)
-                </span>
+                <div class="flex items-center space-x-3">
+                  <span class="text-sm text-gray-500 hidden sm:inline">
+                    显示 {{ paginatedPets.length }} 只 (共 {{ filteredPets.length }}/{{ petStorage.storage.length }} 只)
+                  </span>
+                  <!-- 仓库导入导出按钮 -->
+                  <div class="flex items-center space-x-2">
+                    <button
+                      @click="importStorage"
+                      class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
+                        />
+                      </svg>
+                      导入仓库
+                    </button>
+                    <!-- 导出下拉菜单 -->
+                    <el-dropdown @command="handleExportCommand">
+                      <button
+                        class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                          />
+                        </svg>
+                        导出仓库
+                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      <template #dropdown>
+                        <el-dropdown-menu>
+                          <el-dropdown-item command="exportFull">导出完整仓库</el-dropdown-item>
+                          <el-dropdown-item command="exportPetsOnly">仅导出精灵</el-dropdown-item>
+                        </el-dropdown-menu>
+                      </template>
+                    </el-dropdown>
+                  </div>
+                </div>
               </div>
 
               <!-- 移动端精灵数量显示 -->
@@ -929,9 +973,53 @@
             <div class="px-6 py-4 border-b border-gray-200">
               <div class="flex items-center justify-between">
                 <h2 class="text-lg font-medium text-gray-900">精灵仓库</h2>
-                <span class="text-sm text-gray-500">
-                  显示 {{ paginatedPets.length }} 只 (共 {{ filteredPets.length }}/{{ petStorage.storage.length }} 只)
-                </span>
+                <div class="flex items-center space-x-3">
+                  <span class="text-sm text-gray-500">
+                    显示 {{ paginatedPets.length }} 只 (共 {{ filteredPets.length }}/{{ petStorage.storage.length }} 只)
+                  </span>
+                  <!-- 仓库导入导出按钮 -->
+                  <div class="flex items-center space-x-2">
+                    <button
+                      @click="importStorage"
+                      class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
+                        />
+                      </svg>
+                      导入仓库
+                    </button>
+                    <!-- 导出下拉菜单 -->
+                    <el-dropdown @command="handleExportCommand">
+                      <button
+                        class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                          />
+                        </svg>
+                        导出仓库
+                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      <template #dropdown>
+                        <el-dropdown-menu>
+                          <el-dropdown-item command="exportFull">导出完整仓库</el-dropdown-item>
+                          <el-dropdown-item command="exportPetsOnly">仅导出精灵</el-dropdown-item>
+                        </el-dropdown-menu>
+                      </template>
+                    </el-dropdown>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1382,6 +1470,67 @@
         </div>
       </div>
     </div>
+
+    <!-- 仓库导入选项对话框 -->
+    <el-dialog
+      v-model="showImportDialog"
+      title="导入仓库数据"
+      width="500px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="true"
+    >
+      <div class="space-y-4">
+        <div>
+          <h4 class="text-sm font-medium text-gray-900 mb-2">导入模式</h4>
+          <el-radio-group v-model="importOptions.mode">
+            <el-radio value="merge">合并模式</el-radio>
+            <el-radio value="replace">替换模式</el-radio>
+          </el-radio-group>
+          <p class="text-xs text-gray-500 mt-1">
+            合并模式：将导入的数据添加到现有数据中<br />
+            替换模式：清空现有数据，使用导入的数据替换
+          </p>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-medium text-gray-900 mb-2">导入内容</h4>
+          <div class="space-y-2">
+            <el-checkbox v-model="importOptions.importStorage">导入仓库精灵</el-checkbox>
+            <el-checkbox v-model="importOptions.importTeams">导入队伍配置</el-checkbox>
+          </div>
+        </div>
+
+        <div v-if="importOptions.mode === 'replace'" class="bg-red-50 border border-red-200 rounded-md p-3">
+          <div class="flex">
+            <svg class="w-5 h-5 text-red-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
+            </svg>
+            <div class="text-sm text-red-700">
+              <p class="font-medium">警告：替换模式将删除所有现有数据</p>
+              <p>此操作无法撤销，请确保已备份重要数据。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end space-x-3">
+          <el-button @click="cancelImport">取消</el-button>
+          <el-button
+            type="primary"
+            @click="confirmImport"
+            :disabled="!importOptions.importStorage && !importOptions.importTeams"
+          >
+            确认导入
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -1444,6 +1593,7 @@ import PetIcon from '../components/PetIcon.vue'
 import ContextMenu from '../components/ContextMenu.vue'
 import { usePetManagement } from '@/composables/usePetManagement'
 import { useTeamExport } from '@/composables/useTeamExport'
+import { useStorageImportExport } from '@/composables/useStorageImportExport'
 
 const petStorage = usePetStorageStore()
 const playerStore = usePlayerStore()
@@ -1468,6 +1618,29 @@ const {
 } = usePetManagement()
 
 const { exportTeam } = useTeamExport()
+
+// 使用仓库导入导出功能
+const {
+  showImportDialog,
+  importOptions,
+  importStorage,
+  exportFullStorage,
+  exportStorageOnly,
+  confirmImport,
+  cancelImport,
+} = useStorageImportExport()
+
+// 导出命令处理
+const handleExportCommand = (command: string) => {
+  switch (command) {
+    case 'exportFull':
+      exportFullStorage()
+      break
+    case 'exportPetsOnly':
+      exportStorageOnly()
+      break
+  }
+}
 
 // 简化的移动端交互处理
 const handleMobileTap = (pet: PetSchemaType, teamIndex?: number) => {
