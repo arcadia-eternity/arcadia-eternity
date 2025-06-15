@@ -442,6 +442,214 @@ const isReplayDataLoaded = computed(() => {
   return !battleReportStore.loading.battleRecord && battleReportStore.currentBattleRecord !== null
 })
 
+// 加载进度管理
+interface LoadingProgress {
+  resourceStore: boolean
+  gameDataStore: boolean
+  backgroundImage: boolean
+  petSprites: boolean
+  battleData: boolean
+}
+
+const loadingProgress = ref<LoadingProgress>({
+  resourceStore: false,
+  gameDataStore: false,
+  backgroundImage: false,
+  petSprites: false,
+  battleData: false,
+})
+
+const loadingStatus = ref<string>('初始化中...')
+const isFullyLoaded = ref(false)
+
+// 计算总体加载进度
+const overallProgress = computed(() => {
+  const progress = loadingProgress.value
+  const completed = Object.values(progress).filter(Boolean).length
+  const total = Object.keys(progress).length
+  return Math.round((completed / total) * 100)
+})
+
+// 检查所有资源是否加载完成
+const checkAllResourcesLoaded = () => {
+  const progress = loadingProgress.value
+  const allLoaded = Object.values(progress).every(Boolean)
+
+  if (allLoaded && !isFullyLoaded.value) {
+    isFullyLoaded.value = true
+    loadingStatus.value = '加载完成！'
+    console.debug('All battle resources loaded successfully')
+  }
+
+  return allLoaded
+}
+
+// 检查资源存储是否加载完成
+const checkResourceStoreLoaded = async () => {
+  try {
+    loadingStatus.value = '加载游戏资源...'
+    await resourceStore.initialize()
+    loadingProgress.value.resourceStore = true
+    console.debug('Resource store loaded')
+  } catch (error) {
+    console.error('Failed to load resource store:', error)
+    loadingProgress.value.resourceStore = true // 即使失败也继续
+  }
+}
+
+// 检查游戏数据是否加载完成
+const checkGameDataStoreLoaded = async () => {
+  try {
+    loadingStatus.value = '加载游戏数据...'
+    await gameDataStore.initialize()
+    loadingProgress.value.gameDataStore = true
+    console.debug('Game data store loaded')
+  } catch (error) {
+    console.error('Failed to load game data store:', error)
+    loadingProgress.value.gameDataStore = true // 即使失败也继续
+  }
+}
+
+// 检查背景图片是否加载完成
+const checkBackgroundImageLoaded = async () => {
+  try {
+    loadingStatus.value = '加载背景图片...'
+    const bgUrl = background.value
+    if (bgUrl) {
+      await new Promise<void>((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => resolve()
+        img.onerror = () => reject(new Error('Background image failed to load'))
+        img.src = bgUrl
+      })
+    }
+    loadingProgress.value.backgroundImage = true
+    console.debug('Background image loaded')
+  } catch (error) {
+    console.error('Failed to load background image:', error)
+    loadingProgress.value.backgroundImage = true // 即使失败也继续
+  }
+}
+
+// 检查精灵是否加载完成
+const checkPetSpritesLoaded = async () => {
+  try {
+    loadingStatus.value = '加载精灵资源...'
+
+    // 预加载精灵资源
+    preloadPetSprites()
+
+    // 等待PetSprite组件准备完成
+    if (isReplayMode.value) {
+      // 回放模式需要等待petSprite的ready promise
+      const spritesReady = await checkPetSpritesReady()
+      if (!spritesReady) {
+        console.warn('Pet sprites not ready, but continuing...')
+      }
+    } else {
+      // 正常模式也需要等待PetSprite组件的ready状态
+      loadingStatus.value = '等待精灵组件初始化...'
+
+      // 等待组件被创建并获取ready promise
+      let retryCount = 0
+      const maxRetries = 50 // 增加重试次数，给组件更多时间初始化
+
+      while (retryCount < maxRetries) {
+        const leftReadyPromise = leftPetRef.value?.ready
+        const rightReadyPromise = rightPetRef.value?.ready
+
+        if (leftReadyPromise && rightReadyPromise) {
+          // 两个组件都已创建，等待它们的ready状态
+          const promisesToWaitFor: Promise<void>[] = [
+            leftReadyPromise.catch(() => {}),
+            rightReadyPromise.catch(() => {}),
+          ]
+
+          await Promise.all(promisesToWaitFor)
+          console.debug('Pet sprites ready in normal mode')
+          break
+        }
+
+        // 如果组件还没有创建，等待一段时间后重试
+        await new Promise(resolve => setTimeout(resolve, 100))
+        retryCount++
+      }
+
+      if (retryCount >= maxRetries) {
+        console.warn('Pet sprites not ready after maximum retries, but continuing...')
+      }
+    }
+
+    loadingProgress.value.petSprites = true
+    console.debug('Pet sprites loaded')
+  } catch (error) {
+    console.error('Failed to load pet sprites:', error)
+    loadingProgress.value.petSprites = true // 即使失败也继续
+  }
+}
+
+// 检查战斗数据是否加载完成
+const checkBattleDataLoaded = async () => {
+  try {
+    loadingStatus.value = '初始化战斗数据...'
+
+    if (isReplayMode.value) {
+      // 回放模式等待回放数据加载
+      if (!isReplayDataLoaded.value) {
+        await new Promise<void>(resolve => {
+          let unwatch: (() => void) | undefined
+          unwatch = watch(
+            isReplayDataLoaded,
+            loaded => {
+              if (loaded) {
+                unwatch?.()
+                resolve()
+              }
+            },
+            { immediate: true },
+          )
+        })
+      }
+    }
+    // 注意：正常模式下不在这里调用store.ready()，而是在消息订阅设置完成后调用
+
+    loadingProgress.value.battleData = true
+    console.debug('Battle data loaded')
+  } catch (error) {
+    console.error('Failed to load battle data:', error)
+    loadingProgress.value.battleData = true // 即使失败也继续
+  }
+}
+
+// 主要的加载初始化函数
+const initializeBattleResources = async () => {
+  try {
+    console.debug('Starting battle resources initialization...')
+
+    // 并行加载基础资源
+    await Promise.all([checkResourceStoreLoaded(), checkGameDataStoreLoaded()])
+
+    // 加载背景图片（依赖于resourceStore）
+    await checkBackgroundImageLoaded()
+
+    // 加载战斗数据
+    await checkBattleDataLoaded()
+
+    // 最后加载精灵（依赖于战斗数据）
+    await checkPetSpritesLoaded()
+
+    // 检查是否全部加载完成
+    checkAllResourcesLoaded()
+
+    console.debug('Battle resources initialization completed')
+  } catch (error) {
+    console.error('Error during battle resources initialization:', error)
+    // 即使出错也要标记为完成，避免永远卡在加载界面
+    isFullyLoaded.value = true
+    loadingStatus.value = '加载完成（部分资源可能未加载）'
+  }
+}
+
 // 检查petSprite是否准备完毕的Promise函数
 const checkPetSpritesReady = async (): Promise<boolean> => {
   if (!isReplayMode.value) return true
@@ -1290,6 +1498,24 @@ onMounted(async () => {
   document.addEventListener('webkitfullscreenchange', handleFullscreenChange)
   document.addEventListener('msfullscreenchange', handleFullscreenChange)
 
+  // 开始加载所有资源
+  await initializeBattleResources()
+
+  // 等待加载完成后再进行后续初始化
+  await new Promise<void>(resolve => {
+    let unwatch: (() => void) | undefined
+    unwatch = watch(
+      isFullyLoaded,
+      loaded => {
+        if (loaded) {
+          unwatch?.()
+          resolve()
+        }
+      },
+      { immediate: true },
+    )
+  })
+
   // 检查是否是回放模式
   if (props.replayMode) {
     let battleRecord = null
@@ -1323,9 +1549,6 @@ onMounted(async () => {
     // 等待一小段时间确保订阅完全设置好
     await new Promise(resolve => setTimeout(resolve, 100))
 
-    // 在battleState初始化完成后再预加载精灵
-    preloadPetSprites()
-
     // 检查加载状态
     await checkReplayLoadingStatus()
 
@@ -1335,8 +1558,9 @@ onMounted(async () => {
   }
 
   // 正常战斗模式
-  preloadPetSprites()
   await setupMessageSubscription()
+  await store.ready()
+  await initialPetEntryAnimation()
 })
 
 // 设置消息订阅
@@ -1433,22 +1657,6 @@ const setupMessageSubscription = async () => {
       }),
     )
     .subscribe(task => animationQueue.next(task))
-
-  const leftReadyPromise = leftPetRef.value?.ready
-  const rightReadyPromise = rightPetRef.value?.ready
-  const promisesToWaitFor: Promise<void>[] = []
-  if (leftReadyPromise) {
-    promisesToWaitFor.push(leftReadyPromise.catch(() => {}))
-  }
-  if (rightReadyPromise) {
-    promisesToWaitFor.push(rightReadyPromise.catch(() => {}))
-  }
-  if (promisesToWaitFor.length > 0) {
-    await Promise.all(promisesToWaitFor)
-  }
-
-  await store.ready()
-  await initialPetEntryAnimation()
 }
 
 onUnmounted(() => {
@@ -1576,6 +1784,52 @@ watch(
         '--battle-view-scale': battleViewScale,
       }"
     >
+      <!-- 加载遮罩 -->
+      <Transition name="fade">
+        <div
+          v-if="!isFullyLoaded"
+          class="absolute inset-0 bg-gradient-to-br from-[#1a1a2e] via-[#2a2a4a] to-[#1a1a2e] flex items-center justify-center"
+          :class="Z_INDEX_CLASS.LOADING_OVERLAY"
+        >
+          <div class="text-center">
+            <!-- 加载动画 -->
+            <div class="mb-8">
+              <div class="relative w-32 h-32 mx-auto">
+                <!-- 外圈旋转动画 -->
+                <div
+                  class="absolute inset-0 border-4 border-blue-500/30 rounded-full animate-spin border-t-blue-500"
+                ></div>
+                <!-- 内圈反向旋转动画 -->
+                <div
+                  class="absolute inset-4 border-4 border-purple-500/30 rounded-full animate-spin-reverse border-b-purple-500"
+                ></div>
+                <!-- 中心图标 -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <div class="text-4xl">⚔️</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 加载进度 -->
+            <div class="mb-6">
+              <div class="text-2xl font-bold text-white mb-2">{{ overallProgress }}%</div>
+              <div class="w-80 h-2 bg-gray-700 rounded-full overflow-hidden mx-auto">
+                <div
+                  class="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300 ease-out"
+                  :style="{ width: `${overallProgress}%` }"
+                ></div>
+              </div>
+            </div>
+
+            <!-- 加载状态文本 -->
+            <div class="text-gray-300 text-lg">{{ loadingStatus }}</div>
+
+            <!-- 加载提示 -->
+            <div class="mt-4 text-gray-400 text-sm">正在加载...</div>
+          </div>
+        </div>
+      </Transition>
+
       <!-- 自定义确认对话框（覆盖整个战斗容器） -->
       <Transition name="fade">
         <div
@@ -1656,6 +1910,8 @@ watch(
         :style="{
           transform: `scale(${battleViewScale})`,
           transformOrigin: 'center center',
+          opacity: isFullyLoaded ? 1 : 0,
+          transition: 'opacity 0.5s ease-in-out',
         }"
       >
         <img
@@ -2307,5 +2563,19 @@ watch(
 
 .timeline-clickable.pointer-events-none {
   pointer-events: none;
+}
+
+/* 加载动画 */
+@keyframes spin-reverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-spin-reverse {
+  animation: spin-reverse 1s linear infinite;
 }
 </style>

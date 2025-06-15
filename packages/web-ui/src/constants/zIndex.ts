@@ -33,6 +33,10 @@ export const Z_INDEX_VALUES = {
   // 移动端适配 UI (1100+)
   MOBILE_ORIENTATION_HINT: 1100,
   MOBILE_FULLSCREEN_BUTTON: 1200,
+
+  // 加载遮罩 (1500+)
+  LOADING_OVERLAY: 1500, // 加载遮罩，需要覆盖大部分UI但低于确认对话框
+
   CUSTOM_CONFIRM_DIALOG: 2000, // 提高到最高层级，确保在全屏模式下也能显示
 } as const
 
@@ -66,6 +70,10 @@ export enum Z_INDEX_CLASS {
   // 移动端适配 UI
   MOBILE_ORIENTATION_HINT = 'z-[1100]',
   MOBILE_FULLSCREEN_BUTTON = 'z-[1200]',
+
+  // 加载遮罩
+  LOADING_OVERLAY = 'z-[1500]',
+
   CUSTOM_CONFIRM_DIALOG = 'z-[2000]', // 提高到最高层级，确保在全屏模式下也能显示
 }
 
