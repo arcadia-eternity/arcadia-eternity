@@ -72,13 +72,13 @@
                 <div class="flex items-center space-x-2">
                   <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
                   <span class="text-white"
-                    >{{ i18next.t('dex.speciesDetail.male', { ns: 'webui' }) }}: {{ species.genderRatio[0] }}%</span
+                    >{{ i18next.t('dex.speciesDetail.male', { ns: 'webui' }) }}: {{ species.genderRatio[1] }}%</span
                   >
                 </div>
                 <div class="flex items-center space-x-2">
                   <div class="w-3 h-3 bg-pink-500 rounded-full"></div>
                   <span class="text-white"
-                    >{{ i18next.t('dex.speciesDetail.female', { ns: 'webui' }) }}: {{ species.genderRatio[1] }}%</span
+                    >{{ i18next.t('dex.speciesDetail.female', { ns: 'webui' }) }}: {{ species.genderRatio[0] }}%</span
                   >
                 </div>
               </div>
