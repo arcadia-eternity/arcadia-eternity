@@ -23,42 +23,42 @@
             type: 'raw:number'
             value: 5
             tags: ['skill_effect_probability']
-- id: effect_skill_reduce_foe_def_5_percent
+- id: effect_skill_reduce_foe_def_1_stage_5_percent
   trigger: OnDamage
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: def
   condition: *condition_probability_5_percent_template
-- id: effect_skill_reduce_foe_spe_5_percent
+- id: effect_skill_reduce_foe_spe_1_stage_5_percent
   trigger: OnDamage
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: spe
   condition: *condition_probability_5_percent_template
-- id: effect_skill_reduce_foe_spd_5_percent
+- id: effect_skill_reduce_foe_spd_1_stage_5_percent
   trigger: OnDamage
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: spd
   condition: *condition_probability_5_percent_template
-- id: effect_skill_reduce_foe_atk_5_percent
+- id: effect_skill_reduce_foe_atk_1_stage_5_percent
   trigger: OnDamage
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: atk
   condition: *condition_probability_5_percent_template
-- id: effect_skill_reduce_foe_spa_5_percent
+- id: effect_skill_reduce_foe_spa_1_stage_5_percent
   trigger: OnDamage
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: spa
   condition: *condition_probability_5_percent_template
-- id: effect_skill_reduce_foe_spd_10_percent
+- id: effect_skill_reduce_foe_spd_1_stage_10_percent
   trigger: OnDamage
   priority: 0
   apply:
@@ -76,14 +76,14 @@
             type: 'raw:number'
             value: 10
             tags: ['skill_effect_probability']
-- id: effect_skill_reduce_foe_def_10_percent
+- id: effect_skill_reduce_foe_def_1_stage_10_percent
   trigger: OnDamage
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: def
   condition: *condition_probability_10_percent_template
-- id: effect_skill_reduce_foe_def_15_percent
+- id: effect_skill_reduce_foe_def_1_stage_15_percent
   trigger: OnDamage
   priority: 0
   apply:
@@ -102,14 +102,14 @@
             type: 'raw:number'
             value: 15
             tags: ['skill_effect_probability']
-- id: effect_skill_reduce_foe_spa_10_percent
+- id: effect_skill_reduce_foe_spa_1_stage_10_percent
   trigger: OnDamage
   priority: 0
   apply:
     <<: *apply_foe_statstage_-1_template
     statType: spa
   condition: *condition_probability_10_percent_template
-- id: effect_skill_reduce_foe_spa_15_percent
+- id: effect_skill_reduce_foe_spa_1_stage_15_percent
   trigger: OnDamage
   priority: 0
   apply:
@@ -2180,17 +2180,6 @@
     type: heal
     target: self
     value: 120
-- id: effect_skill_reduce_foe_def_1_stage_15_percent
-  trigger: BeforeHit
-  priority: 0
-  apply:
-    <<: *apply_foe_statstage_-1_template
-    statType: def
-  condition:
-    type: every
-    conditions:
-      - type: selfUseSkill
-      - *condition_probability_15_percent_template
 - id: effect_skill_reduce_foe_def_1_stage_50_percent
   trigger: BeforeHit
   priority: 0
@@ -2300,7 +2289,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-- id: effect_skill_reduce_foe_def_20_percent
+- id: effect_skill_reduce_foe_def_1_stage_20_percent
   trigger: BeforeHit
   priority: 0
   apply:
@@ -2311,7 +2300,7 @@
     conditions:
       - type: selfUseSkill
       - *condition_probability_20_percent_template
-- id: effect_skill_reduce_foe_spa_20_percent
+- id: effect_skill_reduce_foe_spa_1_stage_20_percent
   trigger: BeforeHit
   priority: 0
   apply:
@@ -2322,7 +2311,7 @@
     conditions:
       - type: selfUseSkill
       - *condition_probability_20_percent_template
-- id: effect_skill_reduce_foe_spd_20_percent
+- id: effect_skill_reduce_foe_spd_1_stage_20_percent
   trigger: BeforeHit
   priority: 0
   apply:
@@ -2333,7 +2322,7 @@
     conditions:
       - type: selfUseSkill
       - *condition_probability_20_percent_template
-- id: effect_skill_reduce_foe_spe_20_percent
+- id: effect_skill_reduce_foe_spe_1_stage_20_percent
   trigger: BeforeHit
   priority: 0
   apply:
@@ -3245,7 +3234,7 @@
   condition:
     type: selfUseSkill
 # 清除对手攻击和特攻的正面能力等级变化
-- id: effect_skill_clear_foe_atk_spa_buff
+- id: effect_skill_clear_foe_atk_spa_stage
   trigger: OnHit
   priority: 0
   apply:
@@ -3258,7 +3247,7 @@
   condition:
     type: selfUseSkill
 # 清除对手速度的正面能力等级变化
-- id: effect_skill_clear_foe_spe_buff
+- id: effect_skill_clear_foe_spe_stage
   trigger: OnHit
   priority: 0
   apply:
@@ -3270,7 +3259,7 @@
   condition:
     type: selfUseSkill
 # 清除对手防御和特防的正面能力等级变化
-- id: effect_skill_clear_foe_def_spd_buff
+- id: effect_skill_clear_foe_def_spd_stage
   trigger: OnHit
   priority: 0
   apply:
@@ -3836,29 +3825,6 @@
         value: mark_xinyuan_used
   condition:
     type: selfUseSkill
-# 拳击系列技能效果
-# 5%弱化对手物防1级
-- id: effect_skill_reduce_foe_def_1_stage_5_percent
-  trigger: OnDamage
-  priority: 0
-  apply:
-    type: statStageBuff
-    target:
-      base: foe
-    statType: def
-    value: -1
-  condition:
-    type: every
-    conditions:
-      - type: selfUseSkill
-      - type: evaluate
-        target: self
-        evaluator:
-          type: probability
-          percent:
-            type: 'raw:number'
-            value: 5
-            tags: ['skill_effect_probability']
 # 添加准备动作状态
 - id: effect_skill_add_mark_zhunbeidongzuo
   trigger: OnHit
@@ -4152,7 +4118,7 @@
       value: 1
   condition:
     type: selfUseSkill
-# 麦麦迪系列技能效果
+
 # 添加麦麦金针状态
 - id: effect_skill_add_mark_foe_maimaijinzhen
   trigger: OnHit
@@ -4665,7 +4631,6 @@
   condition:
     type: selfUseSkill
 
-# 伊特系列技能效果
 # 添加伊特领域标记
 - id: effect_skill_add_mark_yitelingyu
   trigger: OnHit
@@ -5861,27 +5826,6 @@
     stack: 20
   condition:
     type: selfUseSkill
-# 5%弱化对手特防1级
-- id: effect_skill_reduce_foe_spd_1_stage_5_percent
-  trigger: OnDamage
-  priority: 0
-  apply:
-    type: statStageBuff
-    target: foe
-    statType: spd
-    value: -1
-  condition:
-    type: every
-    conditions:
-      - type: selfUseSkill
-      - type: evaluate
-        target: self
-        evaluator:
-          type: probability
-          percent:
-            type: 'raw:number'
-            value: 5
-            tags: ['skill_effect_probability']
 # 对方添加45层音波标记
 - id: effect_skill_add_mark_foe_yinbo_45
   trigger: OnHit
@@ -6453,3 +6397,29 @@
                 value: mark_shahezhili
         evaluator:
           type: exist
+# 给自己添加一层蓄力
+- id: effect_skill_add_mark_xuli_1
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_xuli
+    stack: 1
+  condition:
+    type: selfUseSkill
+# 给自己添加五层蓄力
+- id: effect_skill_add_mark_xuli_5
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_xuli
+    stack: 5
+  condition:
+    type: selfUseSkill

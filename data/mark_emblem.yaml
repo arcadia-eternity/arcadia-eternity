@@ -92,7 +92,6 @@
   config: *emblem_config
   effect:
     - effect_emblem_add_mark_aideminyi
-# 拳击系列徽章
 - id: mark_emblem_quanzhi
   config: *emblem_config
   effect:
@@ -105,7 +104,6 @@
   config: *emblem_config
   effect:
     - effect_emblem_add_xukongtizhi_when_foe_hit_self
-# 伊特系列徽章
 - id: mark_emblem_zhongji
   config: *emblem_config
   effect:
@@ -134,8 +132,11 @@
   config: *emblem_config
   effect:
     - effect_emblem_pofangyiji_sure_hit
-# 沙鹤系列徽章
 - id: mark_emblem_shahe
   config: *emblem_config
   effect:
     - effect_emblem_shahezhiguang_power_boost_10_percent
+- id: mark_emblem_dadi
+  config: *emblem_config
+  effect:
+    - effect_emblem_dadiqiang_duration_boost_1

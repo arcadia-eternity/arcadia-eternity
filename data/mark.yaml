@@ -1492,3 +1492,14 @@
     keepOnSwitchOut: true
   effect:
     - effect_mark_special_damage_reduction_with_stack
+- id: mark_xuli
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 5
+    stackable: true
+    stackStrategy: stack
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_amplify_power_20x_stack

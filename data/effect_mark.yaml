@@ -1345,7 +1345,6 @@
             arg: damageResult
           - type: multiply
             arg: 0.25
-# 拳击系列状态效果
 # 准备动作：下一次攻击技能造成伤害增加50%且必中
 - id: effect_mark_next_attack_damage_increase_50_percent_sure_hit
   trigger: AfterUseSkillCheck
@@ -1414,7 +1413,6 @@
       base: damageContext
     delta: 0
     percent: 100
-# 麦麦迪系列状态效果
 # 麦麦金针：造成特攻伤害降低20%
 - id: effect_mark_reduce_spa_damage_20_percent
   trigger: OnBeforeCalculateDamage
@@ -1569,7 +1567,7 @@
       mark:
         type: entity:baseMark
         value: mark_xukongganying
-# 伊特系列状态效果
+
 # 伊特领域：提高自身队伍10%暴击率
 - id: effect_mark_increase_self_crit_rate
   trigger: OnMarkCreated
@@ -2334,3 +2332,31 @@
         chain:
           - type: selectAttribute$
             arg: stack
+
+# 蓄力: 为自己所有的攻击技能添加20x层数的威力的增幅
+- id: effect_mark_amplify_power_20x_stack
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addSkillAttributeModifier
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: dynamic
+            arg: category
+          evaluator:
+            type: notSame
+            value: Status
+    attribute: power
+    modifierType: delta
+    value:
+      type: dynamic
+      selector:
+        base: mark
+        chain:
+          - type: selectAttribute$
+            arg: stack
+          - type: multiply
+            arg: 20

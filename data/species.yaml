@@ -3965,3 +3965,120 @@
     - mark_ability_shahe
   emblem:
     - mark_emblem_shahe
+- id: pet_gexike
+  num: 63
+  element: Ground
+  baseStats:
+    hp: 95
+    atk: 127
+    def: 124
+    spa: 116
+    spd: 118
+    spe: 91
+  genderRatio:
+    - 1
+    - 9
+  heightRange:
+    - 34
+    - 39
+  weightRange:
+    - 24
+    - 29
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_rengni
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 10
+      hidden: false
+    - skill_id: skill_xulchongzhuang
+      level: 14
+      hidden: false
+    - skill_id: skill_pofangchongzhuang
+      level: 19
+      hidden: false
+    - skill_id: skill_jianren
+      level: 24
+      hidden: false
+  ability:
+    - mark_ability_jianggu
+  emblem:
+    - mark_emblem_dadi
+- id: pet_geerxike
+  num: 64
+  element: Ground
+  baseStats:
+    hp: 185
+    atk: 177
+    def: 174
+    spa: 161
+    spd: 163
+    spe: 136
+  genderRatio:
+    - 1
+    - 9
+  heightRange:
+    - 75
+    - 80
+  weightRange:
+    - 140
+    - 145
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_rengni
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 10
+      hidden: false
+    - skill_id: skill_xulchongzhuang
+      level: 14
+      hidden: false
+    - skill_id: skill_pofangchongzhuang
+      level: 19
+      hidden: false
+    - skill_id: skill_jianren
+      level: 24
+      hidden: false
+    - skill_id: skill_chentufeiyang
+      level: 29
+      hidden: false
+    - skill_id: skill_ruijian
+      level: 34
+      hidden: false
+    - skill_id: skill_manlichongzhuang
+      level: 39
+      hidden: false
+    - skill_id: skill_dadihuifu
+      level: 44
+      hidden: false
+    - skill_id: skill_tuijiang
+      level: 49
+      hidden: false
+    - skill_id: skill_zhendangdadi
+      level: 54
+      hidden: false
+    - skill_id: skill_kuangyebenteng
+      level: 60
+      hidden: false
+    - skill_id: skill_dadizhiqiang
+      level: 60
+      hidden: true
+    - skill_id: skill_kuangbaoxuli
+      level: 60
+      hidden: true
+    - skill_id: skill_jianguzhishen
+      level: 60
+      hidden: true
+    - skill_id: skill_yexingchongzhuang
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_jianggu
+  emblem:
+    - mark_emblem_dadi

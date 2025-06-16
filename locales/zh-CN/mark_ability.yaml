@@ -94,3 +94,6 @@ mark_ability_pofang:
 mark_ability_shahe:
   name: 沙鹤
   description: 物攻闪避率增加5%
+mark_ability_jianggu:
+  name: 坚固
+  description: 受到伤害减少10%

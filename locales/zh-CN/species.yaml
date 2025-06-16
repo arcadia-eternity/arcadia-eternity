@@ -208,3 +208,9 @@ pet_shazhihe:
 pet_shahuangniao:
   name: 沙皇鸟
   description: 沙皇鸟被誉为沙漠之鹰的不败将军 最后和巨锤莫古一起解放了斗鸡场的精灵
+pet_gexike:
+  name: 格西克
+  description: 格西克胆子很小 经常抢不到吃的 只有实在饿得眼晕了才敢向对手扔泥巴
+pet_geerxike:
+  name: 格尔西克
+  description: 即使它不生气 也是一副生气的样子 格尔西克的胆子变得越来越大了！

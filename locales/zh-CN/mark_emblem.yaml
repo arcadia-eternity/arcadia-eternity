@@ -95,3 +95,6 @@ mark_emblem_bipo:
 mark_emblem_shahe:
   name: 沙鹤
   description: 使沙鹤之光的威力增加10%
+mark_emblem_dadi:
+  name: 大地纹章
+  description: 使大地之墙的持续效果增加1回合

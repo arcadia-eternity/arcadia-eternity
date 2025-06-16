@@ -1003,7 +1003,6 @@ skill_xuanwozhadan:
 skill_xukongtizhi:
   name: 虚空体质
   description: 先制+1 使自身获得75点受伤减少
-# 伊特系列技能
 skill_tisusu:
   name: 提速
   description: 强化自身速度1级
@@ -1016,7 +1015,6 @@ skill_yiteguanghuan:
 skill_yitejieji:
   name: 伊特截击
   description: 具有伊特领域时必定暴击
-# 风伊特技能
 skill_qiliuyongdong:
   name: 气流涌动
   description: 使自身获得气流涌动
@@ -1304,7 +1302,6 @@ skill_suilietu ji:
 skill_julietuji:
   name: 剧烈突击
   description: 附加对手破防剩余回合数20倍的威力
-# 沙鹤系列技能本地化
 skill_shachen:
   name: 沙尘
   description: 5%弱化对手速度1级
@@ -1344,3 +1341,45 @@ skill_shazhihaixiao:
 skill_shahuangshuangshan:
   name: 沙皇双闪
   description: <font color=#93E312>必中</font> 连击2次
+skill_rengni:
+  name: 扔泥
+  description: 5%弱化对手物防1级
+skill_xulchongzhuang:
+  name: 蓄力冲撞
+  description: 使自身获得1层蓄力
+skill_pofangchongzhuang:
+  name: 破防冲撞
+  description: 清除对手双防强化
+skill_chentufeiyang:
+  name: 尘土飞扬
+  description: 无效果
+skill_ruijian:
+  name: 锐减
+  description: 【95】弱化对手物攻1级
+skill_manlichongzhuang:
+  name: 蛮力冲撞
+  description: 【85】10%弱化对手物防1级
+skill_dadihuifu:
+  name: 大地回复
+  description: 恢复自身最大体力的1/4
+skill_tuijiang:
+  name: 退降
+  description: 【95】弱化对手特攻1级
+skill_zhendangdadi:
+  name: 震荡大地
+  description: 【90】10%弱化对手特防1级
+skill_kuangyebenteng:
+  name: 狂野奔腾
+  description: <font color=#93E312>必中</font> 弱化对手物防1级
+skill_dadizhiqiang:
+  name: 大地之墙
+  description: 使自身获得50点硬化
+skill_kuangbaoxuli:
+  name: 狂暴蓄力
+  description: 使自身获得5层蓄力
+skill_jianguzhishen:
+  name: 坚固之躯
+  description: 使自身获得免疫弱化
+skill_yexingchongzhuang:
+  name: 野性冲撞
+  description: 【90】15%弱化对手物防1级

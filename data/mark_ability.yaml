@@ -138,3 +138,7 @@
   config: *ablitity_config
   effect:
     - effect_ability_physical_evasion_boost_5_percent
+- id: mark_ability_jianggu
+  config: *ablitity_config
+  effect:
+    - effect_ability_reduce_damage_10_percent

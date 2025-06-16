@@ -490,3 +490,6 @@ mark_shahezhili:
 mark_shazhiwang:
   name: 沙之网
   description: 受到特攻伤害减少{{mark.stack}}点
+mark_xuli:
+  name: 蓄力
+  description: 每层增加攻击技能20点威力 最多5层
