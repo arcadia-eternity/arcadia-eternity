@@ -5917,7 +5917,7 @@
   accuracy: 100
   sureHit: true
   ignoreShield: false
-  tags: []
+  tags: ['combination']
   multihit: 2
 - id: skill_renzhezhixin
   element: Fighting
