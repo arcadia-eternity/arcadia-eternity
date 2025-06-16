@@ -35,6 +35,7 @@
     "@comfyorg/litegraph": "^0.15.15",
     "@element-plus/icons-vue": "^2.3.1",
     "@faker-js/faker": "^9.8.0",
+    "@heroicons/vue": "^2.2.0",
     "@tailwindcss/vite": "^4.1.10",
     "@tsparticles/engine": "^3.8.1",
     "@tsparticles/slim": "^3.8.1",

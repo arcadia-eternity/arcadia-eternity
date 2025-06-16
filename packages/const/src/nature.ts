@@ -54,4 +54,4 @@ export const NatureMap: Record<Nature, Record<StatType, number>> = {
   Sassy: { hp: 1, atk: 1, def: 1, spa: 1, spd: 1.1, spe: 0.9 },
   Careful: { hp: 1, atk: 1, def: 1, spa: 0.9, spd: 1.1, spe: 1 },
   Quirky: { hp: 1, atk: 1, def: 1, spa: 1, spd: 1, spe: 1 },
-}
+} as const

@@ -5,7 +5,7 @@
     <h1 class="text-2xl md:text-3xl font-bold mb-6 md:mb-8 text-gray-800">对战匹配大厅</h1>
 
     <!-- 导航菜单 -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 my-6 md:my-8 mx-auto max-w-5xl">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4 my-6 md:my-8 mx-auto max-w-6xl">
       <router-link
         to="/team-builder"
         class="flex flex-col items-center gap-2 p-4 md:p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500 min-h-[80px] md:min-h-[auto] touch-manipulation"
@@ -19,6 +19,13 @@
       >
         <el-icon :size="20"><Setting /></el-icon>
         <span class="text-sm md:text-base">账户管理</span>
+      </router-link>
+      <router-link
+        to="/dex"
+        class="flex flex-col items-center gap-2 p-4 md:p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500 min-h-[80px] md:min-h-[auto] touch-manipulation"
+      >
+        <el-icon :size="20"><Collection /></el-icon>
+        <span class="text-sm md:text-base">图鉴</span>
       </router-link>
       <router-link
         to="/battle-reports"
@@ -110,7 +117,7 @@ import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { type BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
-import { User, Document, Monitor, Setting, FolderOpened } from '@element-plus/icons-vue'
+import { User, Document, Monitor, Setting, FolderOpened, Collection } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()

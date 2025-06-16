@@ -38,6 +38,91 @@ alive: 存活
 fainted: 倒下
 active: 出战中
 
+# 图鉴相关
+dex:
+  title: 图鉴
+  species: 精灵图鉴
+  skills: 技能图鉴
+  marks: 印记图鉴
+  typeChart: 属性克制表
+  search: 搜索
+  searchPlaceholder: 输入名称或ID搜索...
+  filter: 筛选
+  all: 全部
+  element: 属性
+  category: 分类
+  noResults: 没有找到匹配的结果
+  total: 共 {{count}} 个
+  viewDetail: 查看详情
+  backToDex: 返回图鉴
+
+  # 属性克制表
+  typeChartDetail:
+    title: 属性克制表
+    attackingType: 攻击属性
+    defendingType: 防御属性
+    effectiveness: 克制效果
+    superEffective: 效果绝佳
+    effective: 效果一般
+    notVeryEffective: 效果不佳
+    noEffect: 没有效果
+    multiplier: 倍率
+    legend: 图例
+    description: 显示各属性间的相互克制关系，数值表示伤害倍率
+
+  # 精灵详情
+  speciesDetail:
+    basicInfo: 基本信息
+    stats: 种族值
+    learnableSkills: 可学习技能
+    abilities: 特性
+    emblems: 纹章
+    genderRatio: 性别比例
+    heightRange: 身高范围
+    weightRange: 体重范围
+    male: 雄性
+    female: 雌性
+    genderless: 无性别
+    cm: 厘米
+    kg: 千克
+
+  # 技能详情
+  skillDetail:
+    basicInfo: 基本信息
+    power: 威力
+    accuracy: 命中率
+    rage: 怒气消耗
+    priority: 优先度
+    target: 目标
+    multihit: 连击次数
+    tags: 标签
+    effects: 效果
+    sureHit: 必中
+    sureCrit: 必定暴击
+    ignoreShield: 无视护盾
+
+  # 印记详情
+  markDetail:
+    basicInfo: 基本信息
+    config: 配置
+    duration: 持续时间
+    persistent: 持久化
+    maxStacks: 最大层数
+    stackable: 可叠加
+    stackStrategy: 叠加策略
+    destroyable: 可销毁
+    isShield: 护盾类型
+    keepOnSwitchOut: 下场保留
+    transferOnSwitch: 切换转移
+    inheritOnFaint: 倒下继承
+    mutexGroup: 互斥组
+    tags: 标签
+    effects: 效果
+    unlimited: 无限制
+    turns: 回合
+    yes: 是
+    no: 否
+
 # 战报相关
 battleReport:
   title: 战报记录

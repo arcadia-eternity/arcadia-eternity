@@ -48,7 +48,7 @@ export const ELEMENT_MAP: { [key: string]: { name: string; emoji: string } } = {
   Miracle: { name: '神迹', emoji: '🌟' },
   Holy: { name: '圣灵', emoji: '👼' },
   ElfKing: { name: '精灵王', emoji: '🧝‍♂️' },
-}
+} as const
 
 export const ELEMENT_CHART: Record<Element, Record<Element, number>> = {
   [Element.Normal]: {
@@ -626,4 +626,4 @@ export const ELEMENT_CHART: Record<Element, Record<Element, number>> = {
     [Element.Holy]: 1,
     [Element.ElfKing]: 0.5,
   },
-}
+} as const

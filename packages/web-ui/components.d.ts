@@ -19,6 +19,9 @@ declare module 'vue' {
     ContextMenu: typeof import('./src/components/ContextMenu.vue')['default']
     DamageDisplay: typeof import('./src/components/battle/DamageDisplay.vue')['default']
     DeveloperPanel: typeof import('./src/components/battle/DeveloperPanel.vue')['default']
+    DexCard: typeof import('./src/components/dex/DexCard.vue')['default']
+    DexNavigation: typeof import('./src/components/dex/DexNavigation.vue')['default']
+    DexSearch: typeof import('./src/components/dex/DexSearch.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCard: typeof import('element-plus/es')['ElCard']
@@ -53,6 +56,7 @@ declare module 'vue' {
     Leaderboard: typeof import('./src/components/battleReport/Leaderboard.vue')['default']
     LocalBattleReports: typeof import('./src/components/battleReport/LocalBattleReports.vue')['default']
     Mark: typeof import('./src/components/battle/Mark.vue')['default']
+    MarkDetail: typeof import('./src/components/dex/MarkDetail.vue')['default']
     OptionalFieldEditor: typeof import('./src/components/OptionalFieldEditor.vue')['default']
     Pet: typeof import('./src/components/battle/Pet.vue')['default']
     PetButton: typeof import('./src/components/battle/PetButton.vue')['default']
@@ -63,7 +67,10 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SimpleBattleTimer: typeof import('./src/components/SimpleBattleTimer.vue')['default']
     SkillButton: typeof import('./src/components/battle/SkillButton.vue')['default']
+    SkillDetail: typeof import('./src/components/dex/SkillDetail.vue')['default']
+    SpeciesDetail: typeof import('./src/components/dex/SpeciesDetail.vue')['default']
     SpeciesSkillEditor: typeof import('./src/components/SpeciesSkillEditor.vue')['default']
     Tooltip: typeof import('./src/components/battle/Tooltip.vue')['default']
+    TypeChart: typeof import('./src/components/dex/TypeChart.vue')['default']
   }
 }

@@ -82,6 +82,47 @@ const routes: RouteRecordRaw[] = [
       title: '账户管理',
     },
   },
+  {
+    path: '/dex',
+    name: 'Dex',
+    component: () => import('@/pages/DexPage.vue'),
+    meta: {
+      title: '图鉴',
+    },
+  },
+  {
+    path: '/dex/species/:id',
+    name: 'SpeciesDetail',
+    component: () => import('@/components/dex/SpeciesDetail.vue'),
+    meta: {
+      title: '精灵详情',
+    },
+  },
+  {
+    path: '/dex/skill/:id',
+    name: 'SkillDetail',
+    component: () => import('@/components/dex/SkillDetail.vue'),
+    meta: {
+      title: '技能详情',
+    },
+  },
+  {
+    path: '/dex/mark/:id',
+    name: 'MarkDetail',
+    component: () => import('@/components/dex/MarkDetail.vue'),
+    meta: {
+      title: '印记详情',
+    },
+  },
+  {
+    path: '/dex/type-chart',
+    name: 'TypeChart',
+    component: () => import('@/components/dex/TypeChart.vue'),
+    meta: {
+      title: '属性克制表',
+    },
+  },
+
   // 战报相关路由
   {
     path: '/battle-reports',
