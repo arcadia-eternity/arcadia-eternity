@@ -504,7 +504,7 @@ mark_jiguang:
   description: 使绝影附加200点伤害
 mark_yingzhidouqi:
   name: 影之斗气
-  description: 暗影系技能伤害增加
+  description: 受到的伤害增加50%
 mark_shuangrenzhuiji:
   name: 双刃追击
   description: 使双刃斩连击数+2
@@ -528,4 +528,4 @@ mark_shuangpozhuiji:
   description: 使双破斩连击数+2
 mark_xulichongji:
   name: 蓄力冲击
-  description: 受到的伤害增加50%
+  description: 造成伤害增加50%
