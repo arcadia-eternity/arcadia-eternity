@@ -145,3 +145,11 @@
   config: *ablitity_config
   effect:
     - effect_ability_reduce_damage_10_percent_has_shazhidanke
+- id: mark_ability_wudou
+  config: *ablitity_config
+  effect:
+    - effect_ability_damage_add_10
+- id: mark_ability_renyi
+  config: *ablitity_config
+  effect:
+    - effect_ability_damage_reduction_10

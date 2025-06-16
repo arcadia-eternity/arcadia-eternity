@@ -1516,3 +1516,139 @@
     - status
   effect:
     - effect_mark_reduce_damage_20_percent
+- id: mark_wuzhezhixin
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 5
+    stackable: true
+    stackStrategy: stack
+    destroyable: true
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+  effect:
+    - effect_mark_increase_damage_taken_15_percent_per_stack
+    - effect_mark_transfer_to_foe_on_hit
+- id: mark_jueying
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: none
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_jiguang_add_200_damage
+- id: mark_jiguang
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: none
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_jueying_add_200_damage
+- id: mark_yingzhidouqi
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: none
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_increase_damage_taken_50_percent
+- id: mark_shuangrenzhuiji
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: none
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_shuangrenzhan_add_2_hits
+- id: mark_baiya
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 800
+    stackable: true
+    stackStrategy: max
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_baiyapo_add_damage_based_on_stack
+- id: mark_heiya
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 800
+    stackable: true
+    stackStrategy: max
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_heiyapao_add_damage_based_on_stack
+- id: mark_gongshoujianbei
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: none
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_reduce_next_skill_damage_50_percent
+- id: mark_renzhezhixin
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 5
+    stackable: true
+    stackStrategy: stack
+    destroyable: true
+    keepOnSwitchOut: true
+    transferOnSwitch: true
+  effect:
+    - effect_mark_reduce_damage_taken_15_percent_per_stack
+    - effect_mark_transfer_to_foe_on_hit
+- id: mark_shanguangboji
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: none
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_increase_damage_taken_50_percent
+- id: mark_shuangpozhuiji
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: none
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_shuangpozhan_add_2_hits
+- id: mark_xulichongji
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: none
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_xulichongji_add_50_percent_damage

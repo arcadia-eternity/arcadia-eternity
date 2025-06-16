@@ -99,9 +99,7 @@ export const Operators = {
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       if (targets.length === 0) return
       const _mark = GetValueFromSource(context, mark)
-      _mark.forEach(m => {
-        m.transfer(context, targets[0])
-      })
+      context.battle.markSystem.transferMarks(context, targets[0], ..._mark)
     },
 
   destroyMark:

@@ -761,17 +761,25 @@ export class MarkSystem {
    * Transfer marks from one pet to another during pet switching
    * Moved from Pet.transferMarks method
    */
-  public transferMarks(context: SwitchPetContext, targetPet: Pet, ...marks: MarkInstance[]) {
+  public transferMarks(
+    context: SwitchPetContext | EffectContext<EffectTrigger>,
+    target: Pet | Battle,
+    ...marks: MarkInstance[]
+  ) {
     marks.forEach(mark => {
       mark.detach()
-      const existingMark = targetPet.marks.find(m => m.base.id === mark.base.id)
+      const existingMark = target.marks.find(m => m.base.id === mark.base.id)
       if (existingMark) {
         // 创建 AddMarkContext，使用当前 SwitchPetContext 作为父上下文，这个被视为隐式的effect
-        const effectContext = new EffectContext(context, EffectTrigger.OnOwnerSwitchOut, mark, undefined)
+        const effectContext =
+          context instanceof EffectContext
+            ? context
+            : new EffectContext(context, EffectTrigger.OnOwnerSwitchOut, mark, undefined)
+
         // 印记覆盖的config替代原来的config
         const addMarkContext = new AddMarkContext(
           effectContext,
-          targetPet,
+          target,
           mark.base,
           mark.stack,
           mark.duration,
@@ -780,7 +788,7 @@ export class MarkSystem {
         existingMark.tryStack(addMarkContext)
       } else {
         // 添加新印记
-        mark.transfer(context, targetPet)
+        mark.transfer(context, target)
       }
     })
   }

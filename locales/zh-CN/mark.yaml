@@ -409,7 +409,6 @@ mark_xukongtizhi:
 mark_xukongganying:
   name: 虚空感应
   description: ''
-# 伊特系列状态/Buff
 mark_yitelingyu:
   name: 伊特领域
   description: 提高自身10%暴击率
@@ -437,7 +436,6 @@ mark_bingzhilingyu:
 mark_bingshuanglingyu:
   name: 冰霜领域
   description: 受到伤害降低20% 造成伤害增加20%
-# 其他相关状态
 mark_shandianwaiyi:
   name: 闪电外衣【🛡️】
   description: 受到特攻伤害降低30点 受到物攻50%使对手麻痹
@@ -450,7 +448,6 @@ mark_bingshuangzhixing:
 mark_hanbingjia:
   name: 寒冰甲
   description: 抵挡＜60点的伤害
-# 伊特系列新状态
 mark_kongjuzhinian:
   name: 恐惧之念
   description: 3层时消耗所有恐惧之念 使自身恐惧
@@ -496,3 +493,39 @@ mark_xuli:
 mark_shazhidanke:
   name: 沙之蛋壳
   description: 受到伤害减少20%
+mark_wuzhezhixin:
+  name: 武者之心
+  description: 被攻击会转移且使层数+1 每层使受到伤害增加15% 最多5层
+mark_jueying:
+  name: 绝影
+  description: 使极光附加200点伤害
+mark_jiguang:
+  name: 极光
+  description: 使绝影附加200点伤害
+mark_yingzhidouqi:
+  name: 影之斗气
+  description: 暗影系技能伤害增加
+mark_shuangrenzhuiji:
+  name: 双刃追击
+  description: 使双刃斩连击数+2
+mark_baiya:
+  name: 白牙
+  description: 使白牙破附加{{mark.stack}}点伤害
+mark_heiya:
+  name: 黑牙
+  description: 使黑牙破附加{{mark.stack}}点伤害
+mark_gongshoujianbei:
+  name: 攻守兼备
+  description: 受到伤害改变百分比
+mark_renzhezhixin:
+  name: 仁者之心
+  description: 被攻击会转移且使层数+1 每层使受到伤害减少15% 最多5层
+mark_shanguangboji:
+  name: 闪光搏击
+  description: 光系技能伤害增加
+mark_shuangpozhuiji:
+  name: 双破追击
+  description: 使双破斩连击数+2
+mark_xulichongji:
+  name: 蓄力冲击
+  description: 特攻技能伤害增加

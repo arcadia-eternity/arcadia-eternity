@@ -608,7 +608,7 @@ export type ObjectOpinion =
 export type SelectorOpinion = PrimitiveOpinion | ObjectOpinion | EnumOpinion | Array<SelectorOpinion>
 
 // 递归查找context的通用函数
-function findContextRecursively<T extends Context>(
+export function findContextRecursively<T extends Context>(
   context: EffectContext<EffectTrigger>,
   contextType: new (...args: any[]) => T,
 ): T | null {

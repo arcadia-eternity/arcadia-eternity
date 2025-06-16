@@ -833,3 +833,25 @@
       base: damageContext
     delta: 0
     percent: -10
+# 武斗: 造成的伤害额外增加10点
+- id: effect_ability_damage_add_10
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: selfUseSkill
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: 10
+# 仁义: 受到的伤害减少10点
+- id: effect_ability_damage_reduction_10
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: selfBeDamaged
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: -10

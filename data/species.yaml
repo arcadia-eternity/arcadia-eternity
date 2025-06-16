@@ -4241,3 +4241,237 @@
     - mark_ability_danke
   emblem:
     - mark_emblem_shamo
+- id: pet_kate
+  num: 174
+  element: Fighting
+  baseStats:
+    hp: 87
+    atk: 134
+    def: 116
+    spa: 124
+    spd: 114
+    spe: 112
+  genderRatio:
+    - 0
+    - 10
+  heightRange:
+    - 29
+    - 34
+  weightRange:
+    - 10
+    - 15
+  learnable_skills:
+    - skill_id: skill_boudou
+      level: 1
+      hidden: false
+    - skill_id: skill_douqi
+      level: 5
+      hidden: false
+    - skill_id: skill_shensu
+      level: 10
+      hidden: false
+    - skill_id: skill_wuzhezhixin
+      level: 15
+      hidden: false
+    - skill_id: skill_qiangxi
+      level: 20
+      hidden: false
+    - skill_id: skill_zhanyigaozhang
+      level: 25
+      hidden: false
+  ability:
+    - mark_ability_wudou
+  emblem:
+    - mark_emblem_wuzhe
+- id: pet_kateluo
+  num: 175
+  element: Fighting
+  baseStats:
+    hp: 177
+    atk: 184
+    def: 161
+    spa: 169
+    spd: 159
+    spe: 162
+  genderRatio:
+    - 0
+    - 10
+  heightRange:
+    - 99
+    - 104
+  weightRange:
+    - 60
+    - 65
+  learnable_skills:
+    - skill_id: skill_boudou
+      level: 1
+      hidden: false
+    - skill_id: skill_douqi
+      level: 5
+      hidden: false
+    - skill_id: skill_shensu
+      level: 10
+      hidden: false
+    - skill_id: skill_wuzhezhixin
+      level: 15
+      hidden: false
+    - skill_id: skill_qiangxi
+      level: 20
+      hidden: false
+    - skill_id: skill_zhanyigaozhang
+      level: 25
+      hidden: false
+    - skill_id: skill_jueying
+      level: 30
+      hidden: false
+    - skill_id: skill_kongyazhan
+      level: 35
+      hidden: false
+    - skill_id: skill_yingzhidouqi
+      level: 40
+      hidden: false
+    - skill_id: skill_shuangpozhan
+      level: 45
+      hidden: false
+    - skill_id: skill_mieyingzhan
+      level: 50
+      hidden: false
+    - skill_id: skill_heiyapo
+      level: 55
+      hidden: false
+    - skill_id: skill_heiyalianbozhan
+      level: 60
+      hidden: true
+    - skill_id: skill_gongshoujianbei
+      level: 60
+      hidden: true
+    - skill_id: skill_shunxunya
+      level: 60
+      hidden: true
+    - skill_id: skill_shunyingya
+      level: 60
+      hidden: true
+    - skill_id: skill_shengmoshizizhan
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_wudou
+  emblem:
+    - mark_emblem_wuzhe
+- id: pet_kaluo
+  num: 176
+  element: Fighting
+  baseStats:
+    hp: 88
+    atk: 122
+    def: 114
+    spa: 131
+    spd: 117
+    spe: 115
+  genderRatio:
+    - 10
+    - 0
+  heightRange:
+    - 29
+    - 34
+  weightRange:
+    - 10
+    - 15
+  learnable_skills:
+    - skill_id: skill_boudou
+      level: 1
+      hidden: false
+    - skill_id: skill_douqi
+      level: 5
+      hidden: false
+    - skill_id: skill_shensu
+      level: 10
+      hidden: false
+    - skill_id: skill_renzhezhixin
+      level: 15
+      hidden: false
+    - skill_id: skill_shenpan
+      level: 20
+      hidden: false
+    - skill_id: skill_zhanyigaoang
+      level: 25
+      hidden: false
+  ability:
+    - mark_ability_renyi
+  emblem:
+    - mark_emblem_renzhe
+- id: pet_kaluote
+  num: 177
+  element: Fighting
+  baseStats:
+    hp: 178
+    atk: 167
+    def: 159
+    spa: 181
+    spd: 162
+    spe: 165
+  genderRatio:
+    - 10
+    - 0
+  heightRange:
+    - 99
+    - 104
+  weightRange:
+    - 60
+    - 65
+  learnable_skills:
+    - skill_id: skill_boudou
+      level: 1
+      hidden: false
+    - skill_id: skill_douqi
+      level: 5
+      hidden: false
+    - skill_id: skill_shensu
+      level: 10
+      hidden: false
+    - skill_id: skill_renzhezhixin
+      level: 15
+      hidden: false
+    - skill_id: skill_shenpan
+      level: 20
+      hidden: false
+    - skill_id: skill_zhanyigaoang
+      level: 25
+      hidden: false
+    - skill_id: skill_jiguang
+      level: 30
+      hidden: false
+    - skill_id: skill_duankongzhan
+      level: 35
+      hidden: false
+    - skill_id: skill_shanguangboji
+      level: 40
+      hidden: false
+    - skill_id: skill_shuangrenzhan
+      level: 45
+      hidden: false
+    - skill_id: skill_juguangzhan
+      level: 50
+      hidden: false
+    - skill_id: skill_baiyapo
+      level: 55
+      hidden: false
+    - skill_id: skill_baiyalianbozhan
+      level: 60
+      hidden: true
+    - skill_id: skill_xulichongji
+      level: 60
+      hidden: true
+    - skill_id: skill_shanxunya
+      level: 60
+      hidden: true
+    - skill_id: skill_shanguangya
+      level: 60
+      hidden: true
+    - skill_id: skill_shengmoshizizhan
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_renyi
+  emblem:
+    - mark_emblem_renzhe

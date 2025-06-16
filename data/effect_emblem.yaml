@@ -721,3 +721,25 @@
     target:
       base: addMarkContext
     value: 4
+
+# 武者: 使得己方的武者之心的增伤效果减少5%
+- id: effect_emblem_wuzhe_reduce_damage_increase_5_percent
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addConfigModifier
+    target: petOwners
+    configKey: effect_mark_increase_damage_taken_15_percent_per_stack.mark_increase_damage_taken_per_stack
+    modifierType: delta
+    value: -5
+
+# 仁者: 使得对方的仁者之心的减伤效果减少5%
+- id: effect_emblem_renzhe_reduce_damage_reduction_5_percent
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addConfigModifier
+    target: foeOwners
+    configKey: effect_mark_reduce_damage_taken_15_percent_per_stack.mark_reduce_damage_taken_per_stack
+    modifierType: delta
+    value: -5

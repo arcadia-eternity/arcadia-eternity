@@ -18,6 +18,7 @@ import {
 import type { Condition, ValueSource } from './effectBuilder'
 import { ContinuousUseSkillStrategy, StatTypeWithoutHp } from '@arcadia-eternity/const'
 import { GetValueFromSource } from './operator'
+import { findContextRecursively } from './selector'
 
 export const Conditions = {
   some: (...conditions: Condition[]): Condition => {
@@ -61,27 +62,16 @@ export const Conditions = {
   //用于技能，检查正在使用的技能是否是自身，仅当使用的技能是自身时生效
   selfUseSkill: (): Condition => {
     return context => {
-      if (context.parent instanceof UseSkillContext && context.source instanceof SkillInstance) {
-        return context.source === context.parent.skill
-      }
-      if (context.parent instanceof UseSkillContext && context.source instanceof MarkInstanceImpl) {
-        return context.source.owner === context.parent.pet
-      }
-      if (
-        context.parent instanceof DamageContext &&
-        context.parent.parent instanceof UseSkillContext &&
-        context.source instanceof SkillInstance
-      ) {
-        //该效果的拥有者技能的拥有者(精灵/全局)是使用技能造成伤害的宠物 并且 当前使用的技能是该技能
-        return context.source.owner === context.parent.source && context.source === context.parent.parent.skill
-      }
-      if (
-        context.parent instanceof DamageContext &&
-        context.parent.parent instanceof UseSkillContext &&
-        context.source instanceof MarkInstanceImpl
-      ) {
-        //该效果的拥有者技能的拥有者(精灵/全局)是使用技能造成伤害的宠物
-        return context.source.owner === context.parent.source
+      const useSkillContext = findContextRecursively(context, UseSkillContext)
+      if (useSkillContext) {
+        // 如果是技能，检查技能的拥有者是自己且技能是否为自身
+        if (context.source instanceof SkillInstance) {
+          return context.source.owner === useSkillContext.pet && context.source === useSkillContext.skill
+        }
+        // 如果是印记，检查印记的拥有者是自己
+        if (context.source instanceof MarkInstanceImpl) {
+          return context.source.owner === useSkillContext.pet
+        }
       }
       return false
     }
@@ -121,8 +111,9 @@ export const Conditions = {
 
   foeUseSkill: (): Condition => {
     return context => {
-      if (context.parent instanceof UseSkillContext) {
-        return context.source.owner !== context.parent.pet
+      const useSkillContext = findContextRecursively(context, UseSkillContext)
+      if (useSkillContext) {
+        return context.source.owner !== useSkillContext.pet
       }
       return false
     }

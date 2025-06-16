@@ -191,6 +191,25 @@
     <<: *apply_self_statstage_+1_template
     statType: spd
   condition: *condition_self_use_skill_template
+- id: effect_skill_raise_spd_1_stage_20_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spd
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_probability_20_percent_template
+        type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent:
+            type: 'raw:number'
+            value: 20
+            tags: ['skill_effect_probability']
 - id: effect_skill_raise_spe_1_stages
   trigger: BeforeHit
   priority: 0
@@ -198,6 +217,17 @@
     <<: *apply_self_statstage_+1_template
     statType: spe
   condition: *condition_self_use_skill_template
+- id: effect_skill_raise_spe_1_stage_5_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spe
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_5_percent_template
 - id: effect_skill_raise_atk_2_stages
   trigger: BeforeHit
   priority: 0
@@ -249,6 +279,17 @@
     <<: *apply_foe_statstage_-1_template
     statType: atk
   condition: *condition_self_use_skill_template
+- id: effect_skill_reduce_foe_atk_1_stage_20_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_foe_statstage_-1_template
+    statType: atk
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_20_percent_template
 - id: effect_skill_reduce_foe_def_1_stage
   trigger: BeforeHit
   priority: 0
@@ -461,15 +502,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - &condition_probability_20_percent_template
-        type: evaluate
-        target: self
-        evaluator:
-          type: probability
-          percent:
-            type: 'raw:number'
-            value: 20
-            tags: ['skill_effect_probability']
+      - *condition_probability_20_percent_template
       - *condition_foe_not_fire_element
 - id: effect_skill_add_mark_foe_shaoshang_30_percent
   trigger: OnHit
@@ -3147,7 +3180,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-- id: effect_skill_raise_spa_20_percent
+- id: effect_skill_raise_spa_1_stage_20_percent
   trigger: BeforeHit
   priority: 0
   apply:
@@ -6620,3 +6653,297 @@
                 value: mark_shazhidanke
         evaluator:
           type: exist
+# 为敌方添加一层武者之心
+- id: effect_skill_add_mark_foe_wuzhezhixin_1
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_wuzhezhixin
+    stack: 1
+  condition:
+    type: selfUseSkill
+# 如果自身有武者之心，降低对方一级防御
+- id: effect_skill_reduce_foe_def_1_stage_if_wuzhezhixin
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: foe
+    statType: def
+    value: -1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_wuzhezhixin
+        evaluator:
+          type: exist
+# 给对方施加绝影
+- id: effect_skill_add_mark_foe_jueying
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_jueying
+  condition:
+    type: selfUseSkill
+# 如果对方有武者之心，威力增加50
+- id: effect_skill_add_power_50_if_foe_wuzhezhixin
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: usingSkillContext
+    value: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_wuzhezhixin
+        evaluator:
+          type: exist
+# 为对方添加影之斗气
+- id: effect_skill_add_mark_foe_yingzhidouqi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_yingzhidouqi
+  condition:
+    type: selfUseSkill
+# 当伤害低于100时，为对方添加双刃追击
+- id: effect_skill_add_mark_foe_shuangrenzhuiji_if_damage_less_100
+  trigger: OnDamage
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_shuangrenzhuiji
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageResult
+        evaluator:
+          type: compare
+          operator: '<'
+          value:
+            type: raw:number
+            value: 100
+# 为对方添加等同于本次伤害层数的白牙
+- id: effect_skill_add_mark_foe_baiya_equal_damage_max_800
+  trigger: OnDamage
+  priority: 0
+  apply:
+    - type: addMark
+      target: foe
+      mark:
+        type: entity:baseMark
+        value: mark_baiya
+      stack:
+        type: dynamic
+        selector:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageResult
+            - type: clampMax
+              arg: 800
+  condition:
+    type: selfUseSkill
+# 为自己添加攻守兼备
+- id: effect_skill_add_mark_gongshoujianbei
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_gongshoujianbei
+  condition:
+    type: selfUseSkill
+# 使自身获得一层仁者之心
+- id: effect_skill_add_mark_renzhezhixin_1
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_renzhezhixin
+    stack: 1
+  condition:
+    type: selfUseSkill
+# 如果对方有仁者之心，降低一级特防
+- id: effect_skill_reduce_foe_spd_1_stage_if_renzhezhixin
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: foe
+    statType: spd
+    value: -1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_renzhezhixin
+        evaluator:
+          type: exist
+# 给对方添加极光
+- id: effect_skill_add_mark_foe_jiguang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_jiguang
+  condition:
+    type: selfUseSkill
+# 如果对方有仁者之心，威力增加50
+- id: effect_skill_add_power_50_if_foe_renzhezhixin
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: usingSkillContext
+    value: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_renzhezhixin
+        evaluator:
+          type: exist
+# 为对方添加闪光搏击
+- id: effect_skill_add_mark_foe_shanguangboji
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_shanguangboji
+  condition:
+    type: selfUseSkill
+# 当伤害低于100时，为对方添加双破追击
+- id: effect_skill_add_mark_foe_shuangpozhuiji_if_damage_less_100
+  trigger: OnDamage
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_shuangpozhuiji
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageResult
+        evaluator:
+          type: compare
+          operator: '<'
+          value:
+            type: raw:number
+            value: 100
+# 为对方添加等同于本次伤害层数的黑牙
+- id: effect_skill_add_mark_foe_heiya_equal_damage_max_800
+  trigger: OnDamage
+  priority: 0
+  apply:
+    - type: addMark
+      target: foe
+      mark:
+        type: entity:baseMark
+        value: mark_heiya
+      stack:
+        type: dynamic
+        selector:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageResult
+            - type: clampMax
+              arg: 800
+  condition:
+    type: selfUseSkill
+# 为自己添加蓄力冲击
+- id: effect_skill_add_mark_xulichongji
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_xulichongji
+  condition:
+    type: selfUseSkill

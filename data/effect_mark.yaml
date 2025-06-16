@@ -2372,3 +2372,283 @@
     target: damageContext
     percent: -20
     delta: 0
+
+# 武者之心: 每层会增加受到的伤害15% 对方技能命中后转移给对方
+- id: effect_mark_increase_damage_taken_15_percent_per_stack
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent:
+      type: dynamic
+      selector:
+        base: mark
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg:
+              type: raw:number
+              configId: mark_increase_damage_taken_per_stack
+              value: 15
+    delta: 0
+
+- id: effect_mark_transfer_to_foe_on_hit
+  trigger: OnHit
+  condition:
+    type: selfBeSkillTarget
+  priority: 0
+  apply:
+    - type: transferMark
+      target: foe
+      mark:
+        type: dynamic
+        selector:
+          base: mark
+    - type: addStacks
+      target: mark
+      value: 1
+
+# 绝影: 使得下一个极光附带200点固伤
+- id: effect_mark_jiguang_add_200_damage
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  consumesStacks: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill.baseId
+        evaluator:
+          type: same
+          value: skill_jiguang
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta:
+      type: raw:number
+      configId: jiguang_fixed_damage_value
+      value: 200
+
+# 极光: 使得下一个绝影附带200点固伤
+- id: effect_mark_jueying_add_200_damage
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  consumesStacks: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill.baseId
+        evaluator:
+          type: same
+          value: skill_jueying
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta:
+      type: raw:number
+      configId: jueying_fixed_damage_value
+      value: 200
+
+# 影之斗气/闪光搏击: 受到的伤害增加50%
+- id: effect_mark_increase_damage_taken_50_percent
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 50
+    delta: 0
+
+# 双刃追击: 使下一个双刃斩额外连击两次
+- id: effect_mark_shuangrenzhan_add_2_hits
+  trigger: BeforeMultiHit
+  priority: 0
+  consumesStacks: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfBeSkillTarget
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill.baseId
+        evaluator:
+          type: same
+          value: skill_shuangrenzhan
+  apply:
+    type: addMultihitResult
+    target: usingSkillContext
+    value: 2
+
+# 白牙: 使得下一个白牙破附带基于层数的伤害
+- id: effect_mark_baiyapo_add_damage_based_on_stack
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill.baseId
+        evaluator:
+          type: same
+          value: skill_baiyapo
+  apply:
+    - type: addModified
+      target: damageContext
+      percent: 0
+      delta:
+        type: dynamic
+        selector:
+          base: mark
+          chain:
+            - type: selectPath
+              arg: stack
+    - type: destroyMark
+      target: mark
+
+# 黑牙: 使得下一个黑牙破附带基于层数的伤害
+- id: effect_mark_heiyapao_add_damage_based_on_stack
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill.baseId
+        evaluator:
+          type: same
+          value: skill_heiyapo
+  apply:
+    - type: addModified
+      target: damageContext
+      percent: 0
+      delta:
+        type: dynamic
+        selector:
+          base: mark
+          chain:
+            - type: selectPath
+              arg: stack
+    - type: destroyMark
+      target: mark
+
+# 攻守兼备: 使得下一个受到的伤害减少50%
+- id: effect_mark_reduce_next_skill_damage_50_percent
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  consumesStacks: 1
+  condition:
+    type: selfBeDamaged
+  apply:
+    type: addModified
+    target: damageContext
+    percent: -50
+    delta: 0
+
+# 仁者之心: 每层减少受到的伤害15%,对方技能命中后转移给对方
+- id: effect_mark_reduce_damage_taken_15_percent_per_stack
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent:
+      type: dynamic
+      selector:
+        base: mark
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg:
+              type: raw:number
+              configId: mark_reduce_damage_taken_per_stack
+              value: 15
+          - type: multiply
+            arg: -1
+    delta: 0
+
+# 双破追击: 使下一个双破斩额外连击两次
+- id: effect_mark_shuangpozhan_add_2_hits
+  trigger: BeforeMultiHit
+  priority: 0
+  consumesStacks: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfBeSkillTarget
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill.baseId
+        evaluator:
+          type: same
+          value: skill_shuangpozhan
+  apply:
+    type: addMultihitResult
+    target: usingSkillContext
+    value: 2
+
+# 蓄力冲击：下一次造成伤害增加50%
+- id: effect_mark_xulichongji_add_50_percent_damage
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  consumesStacks: 1
+  condition:
+    type: selfUseSkill
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 50
+    delta: 0

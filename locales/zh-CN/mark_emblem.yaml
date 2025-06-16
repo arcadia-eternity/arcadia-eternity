@@ -101,3 +101,9 @@ mark_emblem_dadi:
 mark_emblem_shamo:
   name: 沙漠
   description: 沙之蛋壳可附加4层效果
+mark_emblem_wuzhe:
+  name: 武者
+  description: 当武者之心在自身身上时 每层所增加的伤害比率减少5%
+mark_emblem_renzhe:
+  name: 仁者
+  description: 当仁者之心在对手身上时 每层所减少的伤害比率减少5%

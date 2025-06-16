@@ -144,3 +144,11 @@
   config: *emblem_config
   effect:
     - effect_emblem_shazhidanke_max_stack_4
+- id: mark_emblem_wuzhe
+  config: *emblem_config
+  effect:
+    - effect_emblem_wuzhe_reduce_damage_increase_5_percent
+- id: mark_emblem_renzhe
+  config: *emblem_config
+  effect:
+    - effect_emblem_renzhe_reduce_damage_reduction_5_percent

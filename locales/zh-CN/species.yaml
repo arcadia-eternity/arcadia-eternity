@@ -223,3 +223,15 @@ pet_kukejji:
 pet_dankejji:
   name: 蛋壳鸡
   description: 走遍各地的蛋壳鸡 从蛋壳里领悟到了未知的秘密力量
+pet_kate:
+  name: 卡特
+  description: 从胚胎开始培育的双生精灵之一 卡特代表着双生精灵的阴暗面
+pet_kateluo:
+  name: 卡特罗
+  description: 卡特罗在常年的锻炼之下 已经能够很好地驾驭战斗及暗影的双重力量
+pet_kaluo:
+  name: 卡罗
+  description: 从胚胎开始培育的双生精灵之一 卡罗代表着双生精灵的光明面
+pet_kaluote:
+  name: 卡罗特
+  description: 被守护师收服后 卡罗特跟随他来到了赛尔号的竞技场

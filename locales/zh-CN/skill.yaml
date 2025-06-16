@@ -1425,3 +1425,94 @@ skill_shalianjiao:
 skill_kuaisufeisha:
   name: 快速飞沙
   description: 消耗1层沙之蛋壳先制+1
+# 卡特/卡罗系列技能
+skill_boudou:
+  name: 搏斗
+  description: 5%弱化对手速度1级
+skill_douqi:
+  name: 斗气
+  description: 5%强化自身速度1级
+skill_shensu:
+  name: 神速
+  description: 强化自身速度1级
+skill_wuzhezhixin:
+  name: 武者之心
+  description: 使对手获得1层武者之心
+skill_qiangxi:
+  name: 强袭
+  description: 自身具有武者之心时弱化对手物防1级
+skill_zhanyigaozhang:
+  name: 战意高涨
+  description: 强化自身物攻1级
+skill_jueying:
+  name: 绝影
+  description: 使对手获得绝影
+skill_kongyazhan:
+  name: 空牙斩
+  description: 对手具有武者之心时增加50点威力
+skill_yingzhidouqi:
+  name: 影之斗气
+  description: 使对手获得影之斗气
+skill_shuangpozhan:
+  name: 双破斩
+  description: 连击2次 造成伤害＜100点时使对手获得双刃追击
+skill_mieyingzhan:
+  name: 灭影斩
+  description: <font color=#93E312>必中</font>
+skill_heiyapo:
+  name: 黑牙破
+  description: 使对手获得伤害等值的白牙 最多800点
+skill_heiyalianbozhan:
+  name: 黑牙连破斩
+  description: <font color=#93E312>必中</font> 连击2次 20%弱化对手物攻1级 20%弱化对手物防1级
+skill_gongshoujianbei:
+  name: 攻守兼备
+  description: 使自身获得攻守兼备
+skill_shunxunya:
+  name: 瞬迅牙
+  description: 先制+1
+skill_shunyingya:
+  name: 瞬影牙
+  description: 先制+1
+skill_shengmoshizizhan:
+  name: 圣魔十字斩
+  description: <font color=#93E312>必中</font> 连击2次
+skill_renzhezhixin:
+  name: 仁者之心
+  description: 使自身获得1层仁者之心
+skill_shenpan:
+  name: 审判
+  description: 自身具有仁者之心时弱化对手特防1级
+skill_zhanyigaoang:
+  name: 战意高昂
+  description: 强化自身特攻1级
+skill_jiguang:
+  name: 极光
+  description: 使对手获得极光
+skill_duankongzhan:
+  name: 断空斩
+  description: 对手具有仁者之心时增加50点威力
+skill_shanguangboji:
+  name: 闪光搏击
+  description: 使对手获得闪光搏击
+skill_shuangrenzhan:
+  name: 双刃斩
+  description: 连击2次 造成伤害＜100点时使对手获得双破追击
+skill_juguangzhan:
+  name: 聚光斩
+  description: <font color=#93E312>必中</font>
+skill_baiyapo:
+  name: 白牙破
+  description: 使对手获得伤害等值的黑牙 最多800点
+skill_baiyalianbozhan:
+  name: 白牙连破斩
+  description: <font color=#93E312>必中</font> 连击2次 20%强化自身特攻1级 20%强化自身特防1级
+skill_xulichongji:
+  name: 蓄力冲击
+  description: 使自身获得蓄力冲击
+skill_shanxunya:
+  name: 闪迅牙
+  description: 先制+1
+skill_shanguangya:
+  name: 闪光牙
+  description: 先制+1

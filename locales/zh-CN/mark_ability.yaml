@@ -100,3 +100,9 @@ mark_ability_jianggu:
 mark_ability_danke:
   name: 蛋壳
   description: 具有沙之蛋壳时受到伤害减少10%
+mark_ability_wudou:
+  name: 武斗
+  description: 造成伤害增加10点 双精灵战时效果2倍
+mark_ability_renyi:
+  name: 仁义
+  description: 受到伤害减少10点 双精灵战时效果2倍

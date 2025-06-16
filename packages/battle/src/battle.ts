@@ -89,7 +89,6 @@ export class Battle extends Context implements MarkOwner {
     if (options?.rngSeed) this.rng = new Prando(options.rngSeed)
     // Use provided configSystem or create a new instance for this battle
     this.configSystem = configSystem || ConfigSystem.createInstance(this.id)
-    console.log(this.configSystem)
 
     this.allowFaintSwitch = options?.allowFaintSwitch ?? true
     this.showHidden = options?.showHidden ?? false
