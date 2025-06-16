@@ -1197,6 +1197,9 @@ skill_baiguangpao:
 skill_ziguangpao:
   name: 紫光炮
   description: 【90】10%使对手害怕
+skill_xiaoruo:
+  name: 消弱
+  description: 【95】弱化对手双防1级
 skill_suixingquan:
   name: 碎星拳
   description: 35%连击4次

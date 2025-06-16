@@ -2737,7 +2737,7 @@
     - skill_id: skill_youbaiquan
       level: 44
       hidden: false
-    - skill_id: skill_xuruo
+    - skill_id: skill_xiaoruo
       level: 49
       hidden: false
     - skill_id: skill_fanjidongzuo
@@ -3589,7 +3589,7 @@
     - skill_id: skill_ziguangpao
       level: 37
       hidden: false
-    - skill_id: skill_xuruo
+    - skill_id: skill_xiaoruo
       level: 42
       hidden: false
     - skill_id: skill_suixingquan

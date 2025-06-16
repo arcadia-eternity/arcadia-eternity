@@ -4792,6 +4792,19 @@
   tags: []
   effect:
     - effect_skill_add_mark_foe_haipa_5_percent
+- id: skill_xiaoruo
+  element: Normal
+  category: Status
+  target: opponent
+  power: 0
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_def_1_stage
+    - effect_skill_reduce_foe_spd_1_stage
 - id: skill_ziguangpao
   element: Normal
   category: Special
