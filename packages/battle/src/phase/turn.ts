@@ -43,6 +43,12 @@ export async function executeTurnOperation(context: TurnContext, battle: Battle)
     throw new Error('有人还未选择好！')
   }
 
+  battle.currentTurn++
+
+  battle.emitMessage(BattleMessageType.TurnStart, {
+    turn: battle.currentTurn,
+  })
+
   // Process player selections and create action phases
   for (const selection of [battle.playerA.selection, battle.playerB.selection]) {
     const player = battle.getPlayerByID(selection.player)
@@ -90,12 +96,6 @@ export async function executeTurnOperation(context: TurnContext, battle: Battle)
         throw new Error('未知的context')
     }
   }
-
-  battle.currentTurn++
-
-  battle.emitMessage(BattleMessageType.TurnStart, {
-    turn: battle.currentTurn,
-  })
 
   try {
     battle.applyEffects(context, EffectTrigger.TurnStart)
