@@ -522,10 +522,10 @@ mark_renzhezhixin:
   description: 被攻击会转移且使层数+1 每层使受到伤害减少15% 最多5层
 mark_shanguangboji:
   name: 闪光搏击
-  description: 光系技能伤害增加
+  description: 受到的伤害增加50%
 mark_shuangpozhuiji:
   name: 双破追击
   description: 使双破斩连击数+2
 mark_xulichongji:
   name: 蓄力冲击
-  description: 特攻技能伤害增加
+  description: 受到的伤害增加50%
