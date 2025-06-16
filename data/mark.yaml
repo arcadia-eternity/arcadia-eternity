@@ -1615,7 +1615,7 @@
     stackStrategy: stack
     destroyable: true
     keepOnSwitchOut: true
-    transferOnSwitch: true
+    transferOnSwitch: false
   effect:
     - effect_mark_reduce_damage_taken_15_percent_per_stack
     - effect_mark_transfer_to_foe_on_hit
