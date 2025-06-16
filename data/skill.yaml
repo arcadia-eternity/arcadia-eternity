@@ -5560,7 +5560,7 @@
 - id: skill_shazhidanke
   element: Desert
   category: Special
-  target: self
+  target: opponent
   power: 65
   rage: 10
   accuracy: 95
