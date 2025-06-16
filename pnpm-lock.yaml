@@ -456,6 +456,9 @@ importers:
       zod:
         specifier: ^3.25.64
         version: 3.25.64
+      zod-validation-error:
+        specifier: ^3.5.0
+        version: 3.5.0(zod@3.25.64)
 
   packages/protocol:
     dependencies:
@@ -7172,6 +7175,12 @@ packages:
     resolution: {integrity: sha512-/AuWwMP+YqiPbsJx5D6TfgRTc4kTLjsh5SOcd4bLsfUg2RcEXrFMJl1DGgdHy2aCfsIA/cr/1JM0xcB2GZji8g==}
     peerDependencies:
       zod: ^3.24.1
+
+  zod-validation-error@3.5.0:
+    resolution: {integrity: sha512-IWK6O51sRkq0YsnYD2oLDuK2BNsIjYUlR0+1YSd4JyBzm6/892IWroUnLc7oW4FU+b0f6948BHi6H8MDcqpOGw==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      zod: ^3.25.0
 
   zod@3.25.64:
     resolution: {integrity: sha512-hbP9FpSZf7pkS7hRVUrOjhwKJNyampPgtXKc3AN6DsWtoHsg2Sb4SQaS4Tcay380zSwd2VPo9G9180emBACp5g==}
@@ -14740,6 +14749,10 @@ snapshots:
       commander: 9.5.0
 
   zod-to-json-schema@3.24.5(zod@3.25.64):
+    dependencies:
+      zod: 3.25.64
+
+  zod-validation-error@3.5.0(zod@3.25.64):
     dependencies:
       zod: 3.25.64
 

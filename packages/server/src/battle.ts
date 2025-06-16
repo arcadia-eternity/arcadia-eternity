@@ -572,17 +572,8 @@ export class BattleServer {
   }
 
   private validatePlayerData(rawData: unknown) {
-    try {
-      const baseData = PlayerParser.parse(rawData)
-      return baseData
-    } catch (error) {
-      if (error instanceof ZodError) {
-        throw new Error(
-          `玩家数据验证失败:\n${error.errors.map(e => `[字段 ${e.path.join('.')}] ${e.message}`).join('\n')}`,
-        )
-      }
-      throw error
-    }
+    // PlayerParser now handles ZodError formatting internally
+    return PlayerParser.parse(rawData)
   }
 
   private processplayerSelection(socketId: string, rawData: unknown) {

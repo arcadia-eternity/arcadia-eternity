@@ -1503,3 +1503,16 @@
     keepOnSwitchOut: true
   effect:
     - effect_mark_amplify_power_20x_stack
+- id: mark_shazhidanke
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 4
+    stackable: true
+    stackStrategy: max
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - status
+  effect:
+    - effect_mark_reduce_damage_20_percent

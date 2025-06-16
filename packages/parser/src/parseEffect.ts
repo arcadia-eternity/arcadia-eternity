@@ -88,8 +88,8 @@ export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
       )
     }
   } catch (error) {
-    console.error(`解析${dsl.id}时出现问题,`, error)
-    throw error
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    throw new Error(`[parseEffect] 解析效果 '${dsl.id}' 时出现问题: ${errorMessage}`)
   }
 }
 
@@ -134,7 +134,7 @@ export function parseSelector<T extends SelectorOpinion>(effectId: string, dsl: 
 
 function getBaseSelector(selectorKey: string): ChainableSelector<SelectorOpinion> {
   if (!(selectorKey in BaseSelector)) {
-    throw new Error(`未知的基础选择器: ${selectorKey}`)
+    throw new Error(`[parseEffect] 未知的基础选择器: ${selectorKey}`)
   }
   return BaseSelector[selectorKey as keyof typeof BaseSelector]
 }
@@ -286,10 +286,10 @@ function applySelectorStep(
         )
 
       default:
-        throw new Error(`未知的操作类型: ${(step as any).type}`)
+        throw new Error(`[parseEffect] 未知的选择器操作类型: ${(step as any).type}`)
     }
   } catch (e) {
-    throw new Error(`步骤[${step.type}]执行失败: ${e instanceof Error ? e.message : String(e)}`)
+    throw new Error(`[parseEffect] 选择器步骤 '${step.type}' 执行失败: ${e instanceof Error ? e.message : String(e)}`)
   }
 }
 
@@ -308,7 +308,7 @@ export function parseExtractor(
 ): PathExtractor<SelectorOpinion, SelectorOpinion> {
   if (typeof dsl === 'string') {
     if (Object.keys(Extractor).includes(dsl)) return Extractor[dsl] as PathExtractor<SelectorOpinion, SelectorOpinion>
-    else throw Error('未知的提取器')
+    else throw new Error(`[parseEffect] 未知的提取器: ${dsl}`)
   }
   switch (dsl.type) {
     case 'base':
@@ -316,7 +316,7 @@ export function parseExtractor(
     case 'dynamic':
       return createPathExtractor(selector.type, dsl.arg)
     default:
-      throw Error('未知的提取器')
+      throw new Error(`[parseEffect] 未知的提取器类型: ${(dsl as any).type}`)
   }
 }
 
@@ -351,7 +351,7 @@ function parseEvaluator(effectId: string, dsl: EvaluatorDSL): Evaluator<Selector
       return Evaluators.exist()
     default: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      throw new Error(`Unknown evaluator type: ${(dsl as any).type}`)
+      throw new Error(`[parseEffect] 未知的评估器类型: ${(dsl as any).type}`)
     }
   }
 }
@@ -512,7 +512,7 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseAddDynamicPhaseTypeConfigModifierAction(effectId, dsl)
     default:
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      throw new Error(`未知的操作类型: ${(dsl as any).type}`)
+      throw new Error(`[parseEffect] 未知的操作类型: ${(dsl as any).type}`)
   }
 }
 
@@ -548,7 +548,7 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
     return (() => [DataRepository.getInstance().getSkill(v.value as baseSkillId)]) as ValueSource<BaseSkill>
   if (v.type === 'dynamic') return parseSelector(effectId, v.selector)
   if (v.type === 'selector') return parseSelector(effectId, v)
-  throw Error('未知的数值类型')
+  throw new Error(`[parseEffect] 未知的数值类型: ${(v as any).type}`)
 }
 
 export function isNumberValue(value: ValueSource<SelectorOpinion>): value is number {

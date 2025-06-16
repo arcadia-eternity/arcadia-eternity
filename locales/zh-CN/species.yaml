@@ -214,3 +214,12 @@ pet_gexike:
 pet_geerxike:
   name: 格尔西克
   description: 即使它不生气 也是一副生气的样子 格尔西克的胆子变得越来越大了！
+pet_zhikejji:
+  name: 稚壳鸡
+  description: 稚壳鸡 天生慢悠悠的、喜好到处旅行 蛋壳是它最喜爱的遮阳头饰
+pet_kukejji:
+  name: 酷壳鸡
+  description: 成长为酷壳鸡的时候 蛋壳不再是简单的装饰 成了它的力量源泉
+pet_dankejji:
+  name: 蛋壳鸡
+  description: 走遍各地的蛋壳鸡 从蛋壳里领悟到了未知的秘密力量

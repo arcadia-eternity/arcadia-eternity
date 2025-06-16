@@ -3,10 +3,25 @@ import { Gender, type baseMarkId, type baseSkillId, type petId, type speciesId }
 import { DataRepository } from '@arcadia-eternity/data-repository'
 import { PetSchema } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
+import { fromZodError } from 'zod-validation-error'
+import { ZodError } from 'zod'
 
 export class PetParser {
   static parse(rawData: unknown): Pet {
-    const validated = PetSchema.parse(rawData)
+    let validated: ReturnType<typeof PetSchema.parse>
+    try {
+      validated = PetSchema.parse(rawData)
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error, {
+          prefix: '[PetParser] 精灵数据验证失败',
+          prefixSeparator: ': ',
+          issueSeparator: '; ',
+        })
+        throw new Error(validationError.message)
+      }
+      throw error
+    }
     const uid = validated.id ?? nanoid()
 
     let species: Species
@@ -14,16 +29,16 @@ export class PetParser {
       species = DataRepository.getInstance().getSpecies(validated.species as speciesId)
     } catch (e) {
       throw new Error(
-        `[PetParser] Failed to load species '${validated.species}' for pet '${validated.name}': ${(e as Error).message}`,
+        `[PetParser] 精灵 '${validated.name}' 的种族 '${validated.species}' 加载失败: ${(e as Error).message}`,
       )
     }
 
-    const skills = validated.skills.map(skillId => {
+    const skills = validated.skills.map((skillId, index) => {
       try {
         return DataRepository.getInstance().getSkill(skillId as baseSkillId)
       } catch (e) {
         throw new Error(
-          `[PetParser] Failed to load effect '${skillId}' for pet '${validated.name}': ${(e as Error).message}`,
+          `[PetParser] 精灵 '${validated.name}' 的第 ${index + 1} 个技能 '${skillId}' 加载失败: ${(e as Error).message}`,
         )
       }
     })
@@ -34,7 +49,7 @@ export class PetParser {
         ability = DataRepository.getInstance().getMark(validated.ability as baseMarkId)
       } catch (e) {
         throw new Error(
-          `[PetParser] Failed to load ability '${validated.ability}' for pet '${validated.name}': ${(e as Error).message}`,
+          `[PetParser] 精灵 '${validated.name}' 的特性 '${validated.ability}' 加载失败: ${(e as Error).message}`,
         )
       }
     } else if (species.ability && species.ability[0]) ability = species.ability[0]
@@ -45,7 +60,7 @@ export class PetParser {
         emblem = DataRepository.getInstance().getMark(validated.emblem as baseMarkId)
       } catch (e) {
         throw new Error(
-          `[PetParser] Failed to load emblem '${validated.emblem}' for pet '${validated.name}': ${(e as Error).message}`,
+          `[PetParser] 精灵 '${validated.name}' 的纹章 '${validated.emblem}' 加载失败: ${(e as Error).message}`,
         )
       }
     }

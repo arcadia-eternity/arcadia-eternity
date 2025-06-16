@@ -507,7 +507,6 @@
   condition:
     type: selfBeDamaged
 
-# 伊特系列徽章效果
 # 重击: 使重击技能造成的伤害增加35%
 - id: effect_emblem_zhongji_damage_boost_35_percent
   trigger: OnBeforeCalculateDamage
@@ -697,3 +696,28 @@
         evaluator:
           type: same
           value: mark_yinghua
+
+# 沙之：使沙之蛋壳的最大层数设为4
+- id: effect_emblem_shazhidanke_max_stack_4
+  trigger: OnBeforeAddMark
+  condition:
+    type: every
+    conditions:
+      - type: selfAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark.id
+        evaluator:
+          type: same
+          value: mark_shazhidanke
+  priority: 0
+  apply:
+    type: setMarkMaxStack
+    target:
+      base: addMarkContext
+    value: 4

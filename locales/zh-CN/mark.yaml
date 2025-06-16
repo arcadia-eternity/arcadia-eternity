@@ -493,3 +493,6 @@ mark_shazhiwang:
 mark_xuli:
   name: 蓄力
   description: 每层增加攻击技能20点威力 最多5层
+mark_shazhidanke:
+  name: 沙之蛋壳
+  description: 受到伤害减少20%

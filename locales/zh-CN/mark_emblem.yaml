@@ -98,3 +98,6 @@ mark_emblem_shahe:
 mark_emblem_dadi:
   name: 大地纹章
   description: 使大地之墙的持续效果增加1回合
+mark_emblem_shamo:
+  name: 沙漠
+  description: 沙之蛋壳可附加4层效果

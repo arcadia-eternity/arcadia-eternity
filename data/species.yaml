@@ -4082,3 +4082,162 @@
     - mark_ability_jianggu
   emblem:
     - mark_emblem_dadi
+- id: pet_zhikejji
+  num: 67
+  element: Desert
+  baseStats:
+    hp: 81
+    atk: 110
+    spa: 119
+    def: 110
+    spd: 107
+    spe: 112
+  genderRatio:
+    - 4
+    - 6
+  heightRange:
+    - 34
+    - 39
+  weightRange:
+    - 14
+    - 19
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_suike
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 9
+      hidden: false
+    - skill_id: skill_shazhidanke
+      level: 14
+      hidden: false
+  ability:
+    - mark_ability_danke
+  emblem:
+    - mark_emblem_shamo
+- id: pet_kukejji
+  num: 68
+  element: Desert
+  baseStats:
+    hp: 121
+    atk: 135
+    spa: 149
+    def: 135
+    spd: 137
+    spe: 132
+  genderRatio:
+    - 4
+    - 6
+  heightRange:
+    - 55
+    - 60
+  weightRange:
+    - 26
+    - 31
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_suike
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 9
+      hidden: false
+    - skill_id: skill_shazhidanke
+      level: 14
+      hidden: false
+    - skill_id: skill_dankechongji
+      level: 18
+      hidden: false
+    - skill_id: skill_shuairuo
+      level: 23
+      hidden: false
+    - skill_id: skill_shazhisuike
+      level: 28
+      hidden: false
+    - skill_id: skill_yingkezhuangji
+      level: 33
+      hidden: false
+  ability:
+    - mark_ability_danke
+  emblem:
+    - mark_emblem_shamo
+- id: pet_dankejji
+  num: 69
+  element: Desert
+  baseStats:
+    hp: 181
+    atk: 160
+    spa: 179
+    def: 160
+    spd: 167
+    spe: 152
+  genderRatio:
+    - 4
+    - 6
+  heightRange:
+    - 92
+    - 97
+  weightRange:
+    - 66
+    - 71
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_suike
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 9
+      hidden: false
+    - skill_id: skill_shazhidanke
+      level: 14
+      hidden: false
+    - skill_id: skill_dankechongji
+      level: 18
+      hidden: false
+    - skill_id: skill_shuairuo
+      level: 23
+      hidden: false
+    - skill_id: skill_shazhisuike
+      level: 28
+      hidden: false
+    - skill_id: skill_yingkezhuangji
+      level: 33
+      hidden: false
+    - skill_id: skill_feisha
+      level: 38
+      hidden: false
+    - skill_id: skill_shazhijiao
+      level: 43
+      hidden: false
+    - skill_id: skill_shuairuo
+      level: 48
+      hidden: false
+    - skill_id: skill_shachendanke
+      level: 54
+      hidden: false
+    - skill_id: skill_shabaoqixuan
+      level: 60
+      hidden: false
+    - skill_id: skill_dankebaohu
+      level: 60
+      hidden: true
+    - skill_id: skill_tunshidanke
+      level: 60
+      hidden: true
+    - skill_id: skill_shalianjiao
+      level: 60
+      hidden: true
+    - skill_id: skill_kuaisufeisha
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_danke
+  emblem:
+    - mark_emblem_shamo

@@ -1383,3 +1383,42 @@ skill_jianguzhishen:
 skill_yexingchongzhuang:
   name: 野性冲撞
   description: 【90】15%弱化对手物防1级
+skill_suike:
+  name: 碎壳
+  description: 5%弱化对手特防1级
+skill_shazhidanke:
+  name: 沙之蛋壳
+  description: 使自身获得3层沙之蛋壳
+skill_dankechongji:
+  name: 蛋壳冲击
+  description: 消耗1层沙之蛋壳连击2次
+skill_shazhisuike:
+  name: 沙之碎壳
+  description: 连击2~4次 消耗1层沙之蛋壳增加10点威力
+skill_yingkezhuangji:
+  name: 硬壳撞击
+  description: 清除对手双防强化
+skill_feisha:
+  name: 飞沙
+  description: 使对手获得15点命中下降
+skill_shazhijiao:
+  name: 沙之脚
+  description: 清除对手双防强化
+skill_shachendanke:
+  name: 沙尘蛋壳
+  description: 【70】消耗1层沙之蛋壳<font color=#93E312>必中</font>
+skill_shabaoqixuan:
+  name: 沙暴旋风
+  description: <font color=#93E312>必中</font> 10%弱化对手特防1级
+skill_dankebaohu:
+  name: 蛋壳保护
+  description: 使自身获得免疫弱化
+skill_tunshidanke:
+  name: 吞食蛋壳
+  description: 恢复自身120点体力 连续使用效果减半
+skill_shalianjiao:
+  name: 沙连脚
+  description: 连击2次 清除对手双防强化
+skill_kuaisufeisha:
+  name: 快速飞沙
+  description: 消耗1层沙之蛋壳先制+1

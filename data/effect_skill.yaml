@@ -6423,3 +6423,200 @@
     stack: 5
   condition:
     type: selfUseSkill
+# 给自己添加沙之蛋壳
+- id: effect_skill_add_mark_shazhidanke
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shazhidanke
+  condition:
+    type: selfUseSkill
+# 消耗一层沙之蛋壳使连击数+1
+- id: effect_skill_add_multihit_1_consume_shazhidanke
+  trigger: BeforeMultiHit
+  priority: 0
+  apply:
+    - type: addMultihitResult
+      target: usingSkillContext
+      value: 1
+    - type: consumeStacks
+      target:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_shazhidanke
+      value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_shazhidanke
+        evaluator:
+          type: exist
+# 消耗一层沙之蛋壳使威力+10
+- id: effect_skill_add_power_10_consume_shazhidanke
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    - type: addPower
+      target: usingSkillContext
+      value: 10
+    - type: consumeStacks
+      target:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_shazhidanke
+      value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_shazhidanke
+        evaluator:
+          type: exist
+# 消耗一层沙之蛋壳使技能必中
+- id: effect_skill_sure_hit_consume_shazhidanke
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    - type: setSureHit
+      target:
+        base: usingSkillContext
+      priority: 0
+    - type: consumeStacks
+      target:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_shazhidanke
+      value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_shazhidanke
+        evaluator:
+          type: exist
+# 恢复120体力，连续使用则减半
+- id: effect_skill_heal_self_120_hp_if_consecutive_half
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value:
+      type: conditional
+      trueValue:
+        type: raw:number
+        value: 120
+      falseValue:
+        type: raw:number
+        value: 60
+      condition:
+        type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: lastSkillUsedTimes
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+# 消耗一层沙之蛋壳使优先级+1
+- id: effect_skill_add_priority_1_consume_shazhidanke
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    - type: addValue
+      target:
+        base: usingSkillContext
+        chain:
+          - type: selectProp
+            arg: priority
+      value: 1
+    - type: consumeStacks
+      target:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_shazhidanke
+      value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_shazhidanke
+        evaluator:
+          type: exist

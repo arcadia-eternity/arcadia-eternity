@@ -796,10 +796,37 @@
     value: 5
 # 坚固: 受到的伤害减少10%
 - id: effect_ability_reduce_damage_10_percent
-  trigger: OnDamage
+  trigger: OnBeforeCalculateDamage
   priority: 0
   condition:
     type: selfBeDamaged
+  apply:
+    type: addModified
+    target:
+      base: damageContext
+    delta: 0
+    percent: -10
+# 蛋壳：自身具有沙之蛋壳时受到伤害减少10%
+- id: effect_ability_reduce_damage_10_percent_has_shazhidanke
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_shazhidanke
+        evaluator:
+          type: exist
   apply:
     type: addModified
     target:

@@ -2360,3 +2360,15 @@
             arg: stack
           - type: multiply
             arg: 20
+
+# 沙之蛋壳: 降低受到的伤害20%
+- id: effect_mark_reduce_damage_20_percent
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: -20
+    delta: 0

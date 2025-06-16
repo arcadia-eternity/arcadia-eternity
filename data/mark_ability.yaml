@@ -93,7 +93,6 @@
   config: *ablitity_config
   effect:
     - effect_ability_damage_amplify_10_percent_has_aideminyi
-# 拳击系列特性
 - id: mark_ability_gaozhan
   config: *ablitity_config
   effect:
@@ -142,3 +141,7 @@
   config: *ablitity_config
   effect:
     - effect_ability_reduce_damage_10_percent
+- id: mark_ability_danke
+  config: *ablitity_config
+  effect:
+    - effect_ability_reduce_damage_10_percent_has_shazhidanke

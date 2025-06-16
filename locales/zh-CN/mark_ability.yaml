@@ -97,3 +97,6 @@ mark_ability_shahe:
 mark_ability_jianggu:
   name: 坚固
   description: 受到伤害减少10%
+mark_ability_danke:
+  name: 蛋壳
+  description: 具有沙之蛋壳时受到伤害减少10%

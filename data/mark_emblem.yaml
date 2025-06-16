@@ -140,3 +140,7 @@
   config: *emblem_config
   effect:
     - effect_emblem_dadiqiang_duration_boost_1
+- id: mark_emblem_shamo
+  config: *emblem_config
+  effect:
+    - effect_emblem_shazhidanke_max_stack_4
