@@ -3398,7 +3398,7 @@
           type: exist
 # 如果有爱的名义标记，先制+1
 - id: effect_skill_priority_plus_1_if_aideminyi
-  trigger: AfterUseSkillCheck
+  trigger: BeforeSort
   priority: 0
   apply:
     type: addValue
@@ -6581,7 +6581,7 @@
       - type: selfUseSkill
 # 消耗一层沙之蛋壳使优先级+1
 - id: effect_skill_add_priority_1_consume_shazhidanke
-  trigger: AfterUseSkillCheck
+  trigger: BeforeSort
   priority: 0
   apply:
     - type: addValue
