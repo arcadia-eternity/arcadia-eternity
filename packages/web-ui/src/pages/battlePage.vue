@@ -304,6 +304,120 @@ const isDeveloperMode = computed(() => {
 // 开发者面板状态
 const isDeveloperPanelOpen = ref(false)
 
+// 空过按钮粒子效果相关
+const doNothingParticlesId = ref(`do-nothing-particles-${Math.random().toString(36).substring(2, 11)}`)
+const isDoNothingHovered = ref(false)
+
+// 空过按钮基础粒子配置
+const doNothingBaseParticlesOptions = {
+  background: {
+    color: {
+      value: 'transparent',
+    },
+  },
+  fpsLimit: 60,
+  fullScreen: {
+    enable: false,
+  },
+  particles: {
+    color: {
+      value: ['#38bdf8', '#0ea5e9', '#0284c7', '#0369a1'],
+    },
+    move: {
+      direction: 'none',
+      enable: true,
+      outModes: {
+        default: 'out',
+        top: 'out',
+        bottom: 'out',
+        left: 'out',
+        right: 'out',
+      },
+      random: true,
+      speed: { min: 0.8, max: 2.0 },
+      straight: false,
+    },
+    number: {
+      density: {
+        enable: false,
+      },
+      value: 15,
+    },
+    opacity: {
+      value: { min: 0.5, max: 0.9 },
+      animation: {
+        enable: true,
+        speed: 1.5,
+        minimumValue: 0.3,
+      },
+    },
+    shape: {
+      type: 'circle',
+    },
+    size: {
+      value: { min: 1.5, max: 3.0 },
+      animation: {
+        enable: true,
+        speed: 2.0,
+        minimumValue: 0.8,
+      },
+    },
+  },
+  detectRetina: true,
+}
+
+// hover状态的粒子配置 - 更多、更亮、更活跃
+const doNothingHoverParticlesOptions = {
+  ...doNothingBaseParticlesOptions,
+  particles: {
+    ...doNothingBaseParticlesOptions.particles,
+    number: {
+      density: { enable: false },
+      value: 25,
+    },
+    opacity: {
+      value: { min: 0.8, max: 1.0 },
+      animation: {
+        enable: true,
+        speed: 3.0,
+        minimumValue: 0.5,
+      },
+    },
+    size: {
+      value: { min: 2.0, max: 4.0 },
+      animation: {
+        enable: true,
+        speed: 3.5,
+        minimumValue: 1.0,
+      },
+    },
+    move: {
+      ...doNothingBaseParticlesOptions.particles.move,
+      speed: { min: 1.5, max: 3.5 },
+      random: true,
+      outModes: {
+        default: 'out',
+        top: 'out',
+        bottom: 'out',
+        left: 'out',
+        right: 'out',
+      },
+    },
+    color: {
+      value: ['#38bdf8', '#0ea5e9', '#0284c7', '#06b6d4', '#67e8f9'],
+    },
+  },
+}
+
+// 响应式粒子配置
+const doNothingParticlesOptions = computed(() => {
+  return isDoNothingHovered.value ? doNothingHoverParticlesOptions : doNothingBaseParticlesOptions
+})
+
+const doNothingParticlesLoaded = async () => {
+  // 粒子系统加载完成
+}
+
 // 战斗数据计算属性
 const currentPlayer = computed(() => store.currentPlayer)
 const opponentPlayer = computed(() => store.opponent)
@@ -2519,12 +2633,28 @@ watch(
                   class="group relative p-2 cursor-pointer overflow-visible disabled:opacity-60 disabled:cursor-not-allowed"
                   :disabled="!store.availableActions.find(a => a.type === 'do-nothing')"
                   @click="store.sendplayerSelection(store.availableActions.find(a => a.type === 'do-nothing')!)"
+                  @mouseenter="isDoNothingHovered = true"
+                  @mouseleave="isDoNothingHovered = false"
                 >
+                  <!-- 粒子效果容器 - 围绕光效区域 -->
+                  <div
+                    v-if="store.availableActions.find(a => a.type === 'do-nothing')"
+                    class="absolute pointer-events-none overflow-visible"
+                    style="top: -8px; left: -8px; right: -8px; bottom: -8px"
+                  >
+                    <vue-particles
+                      :id="doNothingParticlesId"
+                      :options="doNothingParticlesOptions"
+                      @particles-loaded="doNothingParticlesLoaded"
+                      class="w-full h-full"
+                    />
+                  </div>
+
                   <div
                     class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border group-disabled:border-gray-500/50 group-disabled:hover:shadow-none"
                     :class="
                       store.availableActions.find(a => a.type === 'do-nothing')
-                        ? 'border-sky-400/50 group-hover:shadow-[0_0_8px_2px_rgba(56,189,248,0.6)]'
+                        ? 'border-sky-400/50 do-nothing-glow-available'
                         : 'border-gray-500/50'
                     "
                   >
@@ -2749,5 +2879,37 @@ watch(
 
 .animate-spin-reverse {
   animation: spin-reverse 1s linear infinite;
+}
+
+/* 空过按钮呼吸光效动画 */
+@keyframes do-nothing-breathing {
+  0%,
+  100% {
+    box-shadow: 0 0 8px 2px rgba(56, 189, 248, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 16px 4px rgba(56, 189, 248, 0.8);
+  }
+}
+
+/* 可用状态的空过按钮 - 持续呼吸光效 */
+.do-nothing-glow-available {
+  animation: do-nothing-breathing 2.5s ease-in-out infinite;
+}
+
+/* hover状态的呼吸动画 - 更快更亮 */
+@keyframes do-nothing-breathing-hover {
+  0%,
+  100% {
+    box-shadow: 0 0 12px 3px rgba(56, 189, 248, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 20px 5px rgba(56, 189, 248, 1);
+  }
+}
+
+/* hover状态 - 保持呼吸并增强高亮 */
+.group:hover .background.do-nothing-glow-available {
+  animation: do-nothing-breathing-hover 1.8s ease-in-out infinite !important;
 }
 </style>
