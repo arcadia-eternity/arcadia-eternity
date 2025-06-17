@@ -51,6 +51,13 @@ export const useBattleStore = defineStore('battle', {
     }>,
     currentSnapshotIndex: 0,
     totalSnapshots: 0,
+    // 持久化的Map缓存，避免频繁重新创建
+    _petMapCache: new Map() as Map<petId, any>,
+    _skillMapCache: new Map() as Map<string, any>,
+    _playerMapCache: new Map() as Map<playerId, any>,
+    _markMapCache: new Map() as Map<string, any>,
+    // 用于跟踪Map缓存的版本，当battleState发生变化时递增
+    _mapCacheVersion: 0,
   }),
 
   actions: {
@@ -66,6 +73,9 @@ export const useBattleStore = defineStore('battle', {
       this.log.splice(0, this.log.length)
       this._messageSubject = new Subject<BattleMessage>()
       this.lastProcessedSequenceId = -1
+      // 清空并重新初始化Map缓存
+      this._clearMapCaches()
+      this._updateMapCaches()
       this.battleInterface.BattleEvent(msg => {
         this.handleBattleMessage(msg)
       })
@@ -98,6 +108,9 @@ export const useBattleStore = defineStore('battle', {
 
       try {
         jsondiffpatch.patch(this.battleState, msg.stateDelta)
+        // 在状态更新后，增量更新Map缓存
+        // 新的_updateMapCaches方法已经处理了jsondiffpatch对象复用的问题
+        this._updateMapCaches()
       } catch (error) {
         console.warn(`Failed to apply state delta for ${msg.type} (${msg.sequenceId}):`, error)
         console.warn('StateDelta:', msg.stateDelta)
@@ -185,6 +198,9 @@ export const useBattleStore = defineStore('battle', {
       this.currentSnapshotIndex = 0
       this.totalSnapshots = 0
 
+      // 清理Map缓存
+      this._clearMapCaches()
+
       // 清理RxJS资源
       this._messageSubject.complete()
       this.animateQueue.complete()
@@ -246,6 +262,9 @@ export const useBattleStore = defineStore('battle', {
       // 设置初始空状态，模拟联机战斗的逻辑
       // 联机战斗中，battleState 一开始为空，然后通过消息的 stateDelta 逐步构建
       this.battleState = {} as BattleState
+
+      // 清空并重新初始化Map缓存
+      this._clearMapCaches()
 
       // 生成快照数据（即使消息为空也要生成）
       this.generateReplaySnapshots()
@@ -351,6 +370,9 @@ export const useBattleStore = defineStore('battle', {
       // 直接使用快照的状态
       this.battleState = JSON.parse(JSON.stringify(snapshot.state)) // 深拷贝避免修改原快照
 
+      // 更新Map缓存以反映快照状态
+      this._updateMapCaches()
+
       // 设置对应的消息日志（从快照开始到下一个快照之间的消息）
       const nextSnapshot = this.replaySnapshots[snapshotIndex + 1]
       const startIndex = Math.max(0, snapshot.messageIndex + 1)
@@ -431,6 +453,8 @@ export const useBattleStore = defineStore('battle', {
 
       // 首先恢复到快照状态
       this.battleState = JSON.parse(JSON.stringify(snapshot.state))
+      // 更新Map缓存以反映快照状态
+      this._updateMapCaches()
       // 使用响应式方式清空log数组
       this.log.splice(0, this.log.length)
       this.isBattleEnd = false
@@ -578,6 +602,94 @@ export const useBattleStore = defineStore('battle', {
         console.error('刷新玩家可用操作失败:', error)
       }
     },
+
+    // Map缓存管理方法
+    _clearMapCaches() {
+      this._petMapCache.clear()
+      this._skillMapCache.clear()
+      this._playerMapCache.clear()
+      this._markMapCache.clear()
+      this._mapCacheVersion++
+    },
+
+    _updateMapCaches() {
+      if (!this.battleState) return
+
+      // 获取当前battleState中的所有对象
+      const currentPets =
+        this.battleState.players
+          ?.map(p => p.team ?? [])
+          .flat()
+          .filter(p => p && !p.isUnknown) ?? []
+
+      const currentSkills = currentPets.flatMap(p => p?.skills ?? []).filter(s => s && !s.isUnknown)
+      const currentPlayers = this.battleState.players ?? []
+      const petMarks = currentPets
+        .map(p => p?.marks ?? [])
+        .flat()
+        .filter(m => m)
+      const globalMarks = this.battleState.marks ?? []
+      const allMarks = [...petMarks, ...globalMarks]
+
+      // 检查并移除Map中ID不匹配的条目（对象被jsondiffpatch复用导致内容错乱）
+      // 但保留已删除对象的信息（不检查是否还存在于battleState中）
+      for (const [cachedId, cachedObj] of this._petMapCache.entries()) {
+        if (cachedObj && String(cachedObj.id) !== String(cachedId)) {
+          // ID不匹配，说明对象被复用了，从缓存中移除
+          console.warn(`Pet ${cachedId} object reused detected, removing from cache`)
+          this._petMapCache.delete(cachedId)
+        }
+      }
+
+      for (const [cachedId, cachedObj] of this._skillMapCache.entries()) {
+        if (cachedObj && String(cachedObj.id) !== String(cachedId)) {
+          console.warn(`Skill ${cachedId} object reused detected, removing from cache`)
+          this._skillMapCache.delete(cachedId)
+        }
+      }
+
+      for (const [cachedId, cachedObj] of this._playerMapCache.entries()) {
+        if (cachedObj && String(cachedObj.id) !== String(cachedId)) {
+          console.warn(`Player ${cachedId} object reused detected, removing from cache`)
+          this._playerMapCache.delete(cachedId)
+        }
+      }
+
+      for (const [cachedId, cachedObj] of this._markMapCache.entries()) {
+        if (cachedObj && String(cachedObj.id) !== String(cachedId)) {
+          console.warn(`Mark ${cachedId} object reused detected, removing from cache`)
+          this._markMapCache.delete(cachedId)
+        }
+      }
+
+      // 添加或更新当前存在的对象（使用深拷贝避免引用问题）
+      for (const pet of currentPets) {
+        if (pet) {
+          // 深拷贝对象，避免jsondiffpatch修改原对象时影响缓存
+          this._petMapCache.set(pet.id, JSON.parse(JSON.stringify(pet)))
+        }
+      }
+
+      for (const skill of currentSkills) {
+        if (skill) {
+          this._skillMapCache.set(skill.id, JSON.parse(JSON.stringify(skill)))
+        }
+      }
+
+      for (const player of currentPlayers) {
+        if (player) {
+          this._playerMapCache.set(player.id, JSON.parse(JSON.stringify(player)))
+        }
+      }
+
+      for (const mark of allMarks) {
+        if (mark) {
+          this._markMapCache.set(mark.id, JSON.parse(JSON.stringify(mark)))
+        }
+      }
+
+      this._mapCacheVersion++
+    },
   },
 
   getters: {
@@ -603,41 +715,20 @@ export const useBattleStore = defineStore('battle', {
       return lastTurnSnapshot?.turnNumber || 1
     },
     petMap: state => {
-      const pets =
-        state.battleState?.players
-          ?.map(p => p.team ?? [])
-          .flat()
-          .filter(p => !p.isUnknown)
-          .map(p => [p.id, p] as [petId, typeof p]) ?? []
-      return new Map(pets)
+      // 返回缓存的Map，避免频繁重新创建
+      return state._petMapCache
     },
     skillMap: state => {
-      const skills =
-        state.battleState?.players
-          ?.map(p => p.team ?? [])
-          .flat()
-          .filter((p): p is NonNullable<typeof p> => !!p && !p.isUnknown)
-          .flatMap(p => p.skills ?? [])
-          .filter((s): s is NonNullable<typeof s> => !!s && !s.isUnknown)
-          .map(s => [s.id, s] as [string, typeof s]) ?? []
-      return new Map(skills)
+      // 返回缓存的Map，避免频繁重新创建
+      return state._skillMapCache
     },
     playerMap: state => {
-      const players = state.battleState?.players?.map(p => [p.id, p] as [playerId, typeof p]) ?? []
-      return new Map(players)
+      // 返回缓存的Map，避免频繁重新创建
+      return state._playerMapCache
     },
     markMap: state => {
-      const marks = [
-        ...(state.battleState?.players
-          ?.map(p => p.team ?? [])
-          .flat()
-          .filter(p => !p.isUnknown)
-          .map(p => p.marks ?? [])
-          .flat()
-          .map(m => [m.id, m] as [string, typeof m]) ?? []),
-        ...(state.battleState?.marks?.map(m => [m.id, m] as [string, typeof m]) ?? []),
-      ]
-      return new Map(marks)
+      // 返回缓存的Map，避免频繁重新创建
+      return state._markMapCache
     },
   },
 })
