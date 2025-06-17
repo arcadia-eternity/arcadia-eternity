@@ -321,7 +321,7 @@ const doNothingBaseParticlesOptions = {
   },
   particles: {
     color: {
-      value: ['#38bdf8', '#0ea5e9', '#0284c7', '#0369a1'],
+      value: ['#fbbf24', '#f59e0b', '#d97706', '#92400e'],
     },
     move: {
       direction: 'none',
@@ -404,7 +404,7 @@ const doNothingHoverParticlesOptions = {
       },
     },
     color: {
-      value: ['#38bdf8', '#0ea5e9', '#0284c7', '#06b6d4', '#67e8f9'],
+      value: ['#fbbf24', '#f59e0b', '#d97706', '#eab308', '#facc15'],
     },
   },
 }
@@ -2664,13 +2664,13 @@ watch(
                         <div
                           class="w-3 h-0.5 mt-3"
                           :class="
-                            store.availableActions.find(a => a.type === 'do-nothing') ? 'bg-sky-400' : 'bg-gray-500'
+                            store.availableActions.find(a => a.type === 'do-nothing') ? 'bg-yellow-400' : 'bg-gray-500'
                           "
                         ></div>
                         <div
                           class="w-0.5 h-3.5"
                           :class="
-                            store.availableActions.find(a => a.type === 'do-nothing') ? 'bg-sky-400' : 'bg-gray-500'
+                            store.availableActions.find(a => a.type === 'do-nothing') ? 'bg-yellow-400' : 'bg-gray-500'
                           "
                         ></div>
                       </div>
@@ -2678,9 +2678,11 @@ watch(
                   </div>
                   <div class="relative flex items-center justify-center h-full pointer-events-none">
                     <div
-                      class="text-sm font-bold [text-shadow:_1px_1px_0_black]"
+                      class="text-sm font-bold [text-shadow:_1px_1px_0_black] transition-colors duration-300"
                       :class="
-                        store.availableActions.find(a => a.type === 'do-nothing') ? 'text-sky-400' : 'text-gray-400'
+                        store.availableActions.find(a => a.type === 'do-nothing')
+                          ? 'text-yellow-400 group-hover:text-yellow-300'
+                          : 'text-gray-400'
                       "
                     >
                       {{ i18next.t('do-nothing', { ns: 'battle' }) }}
@@ -2885,26 +2887,31 @@ watch(
 @keyframes do-nothing-breathing {
   0%,
   100% {
-    box-shadow: 0 0 8px 2px rgba(56, 189, 248, 0.4);
+    box-shadow: 0 0 8px 2px rgba(245, 158, 11, 0.4);
+    border-color: rgba(245, 158, 11, 0.5);
   }
   50% {
-    box-shadow: 0 0 16px 4px rgba(56, 189, 248, 0.8);
+    box-shadow: 0 0 16px 4px rgba(245, 158, 11, 0.8);
+    border-color: rgba(245, 158, 11, 0.9);
   }
 }
 
 /* 可用状态的空过按钮 - 持续呼吸光效 */
 .do-nothing-glow-available {
   animation: do-nothing-breathing 2.5s ease-in-out infinite;
+  border-color: rgba(245, 158, 11, 0.8) !important;
 }
 
 /* hover状态的呼吸动画 - 更快更亮 */
 @keyframes do-nothing-breathing-hover {
   0%,
   100% {
-    box-shadow: 0 0 12px 3px rgba(56, 189, 248, 0.7);
+    box-shadow: 0 0 12px 3px rgba(245, 158, 11, 0.7);
+    border-color: rgba(245, 158, 11, 0.9);
   }
   50% {
-    box-shadow: 0 0 20px 5px rgba(56, 189, 248, 1);
+    box-shadow: 0 0 20px 5px rgba(245, 158, 11, 1);
+    border-color: rgba(245, 158, 11, 1);
   }
 }
 
