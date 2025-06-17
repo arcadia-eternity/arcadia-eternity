@@ -12,12 +12,16 @@ import {
 } from '@arcadia-eternity/const'
 import i18next from 'i18next'
 import { logMessagesKey, petMapKey, skillMapKey, playerMapKey, markMapKey } from '@/symbol/battlelog'
+import { useGameSettingStore } from '@/stores/gameSetting'
 
 const messages = inject(logMessagesKey, [])
 const petMap = inject(petMapKey, new Map())
 const skillMap = inject(skillMapKey, new Map())
 const playerMap = inject(playerMapKey, new Map())
 const markMap = inject(markMapKey, new Map())
+
+// 游戏设置store
+const gameSettingStore = useGameSettingStore()
 
 const MESSAGE_ICONS: Record<BattleMessageType, string> = {
   [BattleMessageType.Damage]: '💥',
@@ -297,7 +301,9 @@ function formatBattleMessage(
 // 格式化消息数据 - 直接复用 formatBattleMessage 函数
 const formattedMessages = computed(() => {
   const messageArray = messages // 处理可能的Ref类型
-  return messageArray.map(msg => formatBattleMessage(msg, petMap, skillMap, playerMap, markMap))
+  return messageArray
+    .filter(msg => gameSettingStore.visibleLogTypes.has(msg.type)) // 根据设置过滤消息类型
+    .map(msg => formatBattleMessage(msg, petMap, skillMap, playerMap, markMap))
 })
 
 const logContainerRef = ref<HTMLElement | null>(null)
@@ -315,6 +321,7 @@ watch(
 
 <template>
   <div class="bg-black/80 rounded-lg p-4 h-full flex flex-col min-w-0 max-h-full overflow-hidden">
+    <!-- 日志内容 -->
     <div
       ref="logContainerRef"
       class="h-full flex-1 overflow-y-auto overflow-x-hidden pr-2 scroll-smooth scrollbar-thin scrollbar-track-white/5 scrollbar-thumb-white/20 scrollbar-thumb-rounded min-w-0 min-h-0"

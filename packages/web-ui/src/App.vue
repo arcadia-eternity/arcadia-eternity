@@ -185,84 +185,157 @@
     <el-dialog
       v-model="showEditDialog"
       title="游戏设置"
-      :width="isMobile ? '95%' : '500px'"
+      :width="isMobile ? '95%' : '600px'"
       :fullscreen="isMobile"
       destroy-on-close
       :class="isMobile ? 'mobile-dialog' : ''"
+      class="settings-dialog"
     >
-      <el-form :label-width="isMobile ? '70px' : '80px'" :class="isMobile ? 'mobile-form' : ''">
-        <el-form-item label="账户管理">
-          <el-button type="primary" :size="isMobile ? 'large' : 'default'" @click="navigateToAccount" class="w-full">
-            <el-icon class="mr-2"><User /></el-icon>
-            管理账户信息
-          </el-button>
-        </el-form-item>
+      <!-- 使用标签页组织设置内容 -->
+      <div class="settings-content">
+        <el-tabs v-model="activeSettingTab" :stretch="true">
+          <!-- 账户管理标签页 -->
+          <el-tab-pane label="账户" name="account">
+            <el-form :label-width="isMobile ? '70px' : '80px'" :class="isMobile ? 'mobile-form' : ''">
+              <el-form-item label="账户管理">
+                <el-button
+                  type="primary"
+                  :size="isMobile ? 'large' : 'default'"
+                  @click="navigateToAccount"
+                  class="w-full"
+                >
+                  <el-icon class="mr-2"><User /></el-icon>
+                  管理账户信息
+                </el-button>
+              </el-form-item>
+            </el-form>
+          </el-tab-pane>
 
-        <el-divider content-position="center">游戏设置</el-divider>
-        <el-form-item label="背景图片">
-          <el-select
-            v-model="gameSettingStore.background"
-            placeholder="请选择背景图片"
-            style="width: 100%"
-            :size="isMobile ? 'large' : 'default'"
-          >
-            <el-option label="随机" value="random" />
-            <el-option v-for="item in backgroundOptions" :key="item" :label="item" :value="item" />
-          </el-select>
-        </el-form-item>
+          <!-- 游戏设置标签页 -->
+          <el-tab-pane label="游戏" name="game">
+            <el-form :label-width="isMobile ? '70px' : '80px'" :class="isMobile ? 'mobile-form' : ''">
+              <el-form-item label="背景图片">
+                <el-select
+                  v-model="gameSettingStore.background"
+                  placeholder="请选择背景图片"
+                  style="width: 100%"
+                  :size="isMobile ? 'large' : 'default'"
+                >
+                  <el-option label="随机" value="random" />
+                  <el-option v-for="item in backgroundOptions" :key="item" :label="item" :value="item" />
+                </el-select>
+              </el-form-item>
 
-        <el-form-item label="战斗音乐">
-          <el-select
-            v-model="gameSettingStore.battleMusic"
-            placeholder="请选择战斗音乐"
-            style="width: 100%"
-            :size="isMobile ? 'large' : 'default'"
-          >
-            <el-option label="随机" value="random" />
-            <el-option v-for="item in musicOptions" :key="item" :label="item" :value="item" />
-          </el-select>
-        </el-form-item>
+              <el-form-item label="战斗音乐">
+                <el-select
+                  v-model="gameSettingStore.battleMusic"
+                  placeholder="请选择战斗音乐"
+                  style="width: 100%"
+                  :size="isMobile ? 'large' : 'default'"
+                >
+                  <el-option label="随机" value="random" />
+                  <el-option v-for="item in musicOptions" :key="item" :label="item" :value="item" />
+                </el-select>
+              </el-form-item>
 
-        <el-form-item label="音乐音量">
-          <div
-            class="flex items-center gap-4 w-full md:flex-row"
-            :class="isMobile ? 'flex-col items-stretch gap-3' : ''"
-          >
-            <el-slider
-              v-model="gameSettingStore.musicVolume"
-              :min="0"
-              :max="100"
-              show-input
-              class="flex-1"
-              :class="isMobile ? 'order-2' : ''"
-              :size="isMobile ? 'large' : 'default'"
-            />
-            <el-switch v-model="gameSettingStore.musicMute" active-text="静音" :size="isMobile ? 'large' : 'default'" />
-          </div>
-        </el-form-item>
+              <el-form-item label="音乐音量">
+                <div
+                  class="flex items-center gap-4 w-full md:flex-row"
+                  :class="isMobile ? 'flex-col items-stretch gap-3' : ''"
+                >
+                  <el-slider
+                    v-model="gameSettingStore.musicVolume"
+                    :min="0"
+                    :max="100"
+                    show-input
+                    class="flex-1"
+                    :class="isMobile ? 'order-2' : ''"
+                    :size="isMobile ? 'large' : 'default'"
+                  />
+                  <el-switch
+                    v-model="gameSettingStore.musicMute"
+                    active-text="静音"
+                    :size="isMobile ? 'large' : 'default'"
+                  />
+                </div>
+              </el-form-item>
 
-        <el-form-item label="音效音量">
-          <div
-            class="flex items-center gap-4 w-full md:flex-row"
-            :class="isMobile ? 'flex-col items-stretch gap-3' : ''"
-          >
-            <el-slider
-              v-model="gameSettingStore.soundVolume"
-              :min="0"
-              :max="100"
-              show-input
-              class="flex-1"
-              :class="isMobile ? 'order-2' : ''"
-              :size="isMobile ? 'large' : 'default'"
-            />
-            <el-switch v-model="gameSettingStore.soundMute" active-text="静音" :size="isMobile ? 'large' : 'default'" />
-          </div>
-        </el-form-item>
+              <el-form-item label="音效音量">
+                <div
+                  class="flex items-center gap-4 w-full md:flex-row"
+                  :class="isMobile ? 'flex-col items-stretch gap-3' : ''"
+                >
+                  <el-slider
+                    v-model="gameSettingStore.soundVolume"
+                    :min="0"
+                    :max="100"
+                    show-input
+                    class="flex-1"
+                    :class="isMobile ? 'order-2' : ''"
+                    :size="isMobile ? 'large' : 'default'"
+                  />
+                  <el-switch
+                    v-model="gameSettingStore.soundMute"
+                    active-text="静音"
+                    :size="isMobile ? 'large' : 'default'"
+                  />
+                </div>
+              </el-form-item>
 
-        <el-form-item label="全局静音">
-          <el-switch v-model="gameSettingStore.mute" :size="isMobile ? 'large' : 'default'" />
-        </el-form-item>
-      </el-form>
+              <el-form-item label="全局静音">
+                <el-switch v-model="gameSettingStore.mute" :size="isMobile ? 'large' : 'default'" />
+              </el-form-item>
+            </el-form>
+          </el-tab-pane>
+
+          <!-- 战斗日志设置标签页 -->
+          <el-tab-pane label="日志" name="battlelog">
+            <el-form :label-width="isMobile ? '70px' : '80px'" :class="isMobile ? 'mobile-form' : ''">
+              <el-form-item label="日志过滤">
+                <div class="w-full">
+                  <!-- 快捷操作按钮 -->
+                  <div class="flex gap-2 mb-3">
+                    <el-button @click="gameSettingStore.resetLogTypesToDefault()" size="small" type="primary" plain>
+                      默认设置
+                    </el-button>
+                    <el-button @click="gameSettingStore.showAllLogTypes()" size="small" type="success" plain>
+                      显示全部
+                    </el-button>
+                    <el-button @click="gameSettingStore.hideAllLogTypes()" size="small" type="danger" plain>
+                      隐藏全部
+                    </el-button>
+                  </div>
+
+                  <!-- 日志类型选择 - 使用折叠面板 -->
+                  <el-collapse v-model="activeLogCategories" class="log-categories-collapse">
+                    <el-collapse-item
+                      v-for="category in logTypeCategories"
+                      :key="category.name"
+                      :title="category.name"
+                      :name="category.name"
+                    >
+                      <div class="grid grid-cols-1 gap-2 p-2" :class="isMobile ? 'grid-cols-1' : 'grid-cols-2'">
+                        <el-checkbox
+                          v-for="logType in category.types"
+                          :key="logType"
+                          :model-value="gameSettingStore.visibleLogTypes.has(logType)"
+                          @change="gameSettingStore.toggleLogType(logType)"
+                          :size="isMobile ? 'large' : 'default'"
+                        >
+                          <span class="flex items-center">
+                            <span class="mr-1">{{ MESSAGE_ICONS[logType] }}</span>
+                            <span class="text-sm">{{ LOG_TYPE_NAMES[logType] }}</span>
+                          </span>
+                        </el-checkbox>
+                      </div>
+                    </el-collapse-item>
+                  </el-collapse>
+                </div>
+              </el-form-item>
+            </el-form>
+          </el-tab-pane>
+        </el-tabs>
+      </div>
 
       <template #footer>
         <div class="flex gap-3 justify-end md:flex-row md:gap-4" :class="isMobile ? 'flex-col-reverse gap-2' : ''">
@@ -321,6 +394,7 @@ import { usePetStorageStore } from './stores/petStorage'
 import { useResourceStore } from './stores/resource'
 import { useServerStateStore } from './stores/serverState'
 import { useGameSettingStore } from './stores/gameSetting'
+import { BattleMessageType } from '@arcadia-eternity/const'
 import {
   Menu,
   Close,
@@ -440,6 +514,8 @@ const musicOptions = computed(() => {
 })
 
 const showEditDialog = ref(false)
+const activeSettingTab = ref('game') // 默认显示游戏设置标签页
+const activeLogCategories = ref(['战斗流程', '技能相关']) // 默认展开前两个分类
 
 // 处理保存
 const handleSave = () => {
@@ -465,6 +541,133 @@ const handleBattleReportCommand = (command: string) => {
       break
   }
 }
+
+// 日志类型图标映射
+const MESSAGE_ICONS: Record<BattleMessageType, string> = {
+  [BattleMessageType.Damage]: '💥',
+  [BattleMessageType.Heal]: '💚',
+  [BattleMessageType.SkillUse]: '🎯',
+  [BattleMessageType.PetDefeated]: '💀',
+  [BattleMessageType.MarkApply]: '🔖',
+  [BattleMessageType.MarkDestroy]: '❌',
+  [BattleMessageType.MarkExpire]: '⌛',
+  [BattleMessageType.MarkUpdate]: '🔄',
+  [BattleMessageType.PetSwitch]: '🔄',
+  [BattleMessageType.RageChange]: '🔥',
+  [BattleMessageType.StatChange]: '📈',
+  [BattleMessageType.BattleEnd]: '🏆',
+  [BattleMessageType.BattleStart]: '⚔️',
+  [BattleMessageType.Info]: 'ℹ️',
+  [BattleMessageType.TurnAction]: '📢',
+  [BattleMessageType.TurnStart]: '🔄',
+  [BattleMessageType.PetRevive]: '💚',
+  [BattleMessageType.SkillMiss]: '❌',
+  [BattleMessageType.ForcedSwitch]: '🔄',
+  [BattleMessageType.FaintSwitch]: '🎁',
+  [BattleMessageType.HpChange]: '❤️',
+  [BattleMessageType.SkillUseFail]: '❌',
+  [BattleMessageType.DamageFail]: '❌',
+  [BattleMessageType.HealFail]: '❌',
+  [BattleMessageType.EffectApply]: '✨',
+  [BattleMessageType.EffectApplyFail]: '❌',
+  [BattleMessageType.InvalidAction]: '🚫',
+  [BattleMessageType.Error]: '❌',
+  [BattleMessageType.TurnEnd]: '⏹️',
+  [BattleMessageType.SkillUseEnd]: '⏹️',
+}
+
+// 日志类型中文名称映射
+const LOG_TYPE_NAMES: Record<BattleMessageType, string> = {
+  [BattleMessageType.BattleStart]: '战斗开始',
+  [BattleMessageType.BattleEnd]: '战斗结束',
+  [BattleMessageType.TurnStart]: '回合开始',
+  [BattleMessageType.TurnEnd]: '回合结束',
+  [BattleMessageType.SkillUse]: '技能使用',
+  [BattleMessageType.SkillMiss]: '技能未命中',
+  [BattleMessageType.SkillUseFail]: '技能使用失败',
+  [BattleMessageType.SkillUseEnd]: '技能使用结束',
+  [BattleMessageType.Damage]: '伤害',
+  [BattleMessageType.DamageFail]: '伤害失败',
+  [BattleMessageType.Heal]: '治疗',
+  [BattleMessageType.HealFail]: '治疗失败',
+  [BattleMessageType.PetSwitch]: '精灵切换',
+  [BattleMessageType.PetDefeated]: '精灵倒下',
+  [BattleMessageType.PetRevive]: '精灵复活',
+  [BattleMessageType.ForcedSwitch]: '强制切换',
+  [BattleMessageType.FaintSwitch]: '击倒奖励切换',
+  [BattleMessageType.MarkApply]: '印记施加',
+  [BattleMessageType.MarkDestroy]: '印记销毁',
+  [BattleMessageType.MarkExpire]: '印记过期',
+  [BattleMessageType.MarkUpdate]: '印记更新',
+  [BattleMessageType.RageChange]: '怒气变化',
+  [BattleMessageType.StatChange]: '属性变化',
+  [BattleMessageType.HpChange]: 'HP变化',
+  [BattleMessageType.EffectApply]: '效果触发',
+  [BattleMessageType.EffectApplyFail]: '效果触发失败',
+  [BattleMessageType.TurnAction]: '回合行动',
+  [BattleMessageType.InvalidAction]: '无效操作',
+  [BattleMessageType.Info]: '信息',
+  [BattleMessageType.Error]: '错误',
+}
+
+// 日志类型分类
+const logTypeCategories = computed(() => [
+  {
+    name: '战斗流程',
+    types: [
+      BattleMessageType.BattleStart,
+      BattleMessageType.BattleEnd,
+      BattleMessageType.TurnStart,
+      BattleMessageType.TurnEnd,
+    ],
+  },
+  {
+    name: '技能相关',
+    types: [
+      BattleMessageType.SkillUse,
+      BattleMessageType.SkillMiss,
+      BattleMessageType.SkillUseFail,
+      BattleMessageType.SkillUseEnd,
+    ],
+  },
+  {
+    name: '战斗事件',
+    types: [BattleMessageType.Damage, BattleMessageType.DamageFail, BattleMessageType.Heal, BattleMessageType.HealFail],
+  },
+  {
+    name: '精灵相关',
+    types: [
+      BattleMessageType.PetSwitch,
+      BattleMessageType.PetDefeated,
+      BattleMessageType.PetRevive,
+      BattleMessageType.ForcedSwitch,
+      BattleMessageType.FaintSwitch,
+    ],
+  },
+  {
+    name: '印记相关',
+    types: [
+      BattleMessageType.MarkApply,
+      BattleMessageType.MarkDestroy,
+      BattleMessageType.MarkExpire,
+      BattleMessageType.MarkUpdate,
+    ],
+  },
+  {
+    name: '其他',
+    types: [
+      BattleMessageType.RageChange,
+      BattleMessageType.StatChange,
+      BattleMessageType.HpChange,
+      BattleMessageType.EffectApply,
+      BattleMessageType.EffectApplyFail,
+      BattleMessageType.TurnAction,
+      BattleMessageType.InvalidAction,
+      BattleMessageType.Info,
+      BattleMessageType.Error,
+    ],
+  },
+])
 </script>
 
 <style>
@@ -620,5 +823,146 @@ header {
     min-height: 36px;
     min-width: 36px;
   }
+}
+
+/* 设置对话框样式 - PC端内部滚动优化 */
+.settings-dialog .el-dialog {
+  max-height: 85vh !important;
+  margin: 7.5vh auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.settings-dialog .el-dialog__header {
+  flex-shrink: 0 !important;
+  border-bottom: 1px solid var(--el-border-color-light) !important;
+}
+
+.settings-dialog .el-dialog__body {
+  flex: 1 !important;
+  overflow: hidden !important;
+  padding: 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important; /* 关键：允许flex子元素收缩 */
+}
+
+.settings-dialog .el-dialog__footer {
+  flex-shrink: 0 !important;
+  padding: 20px !important;
+  border-top: 1px solid var(--el-border-color-light) !important;
+}
+
+.settings-content {
+  flex: 1 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important; /* 关键：允许flex子元素收缩 */
+}
+
+.settings-content .el-tabs {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  height: 100% !important;
+}
+
+.settings-content .el-tabs__header {
+  flex-shrink: 0 !important;
+  margin: 0 0 20px 0 !important;
+  order: 0 !important; /* 确保标签栏在上方 */
+}
+
+.settings-content .el-tabs__content {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  min-height: 0 !important;
+  order: 1 !important; /* 确保内容在下方 */
+}
+
+/* 确保标签页面板内容可以正常滚动 */
+.settings-content .el-tab-pane {
+  /* 移除固定高度，让内容自然撑开但在容器内滚动 */
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* 为表单内容添加内边距 */
+.settings-content .el-tab-pane .el-form {
+  padding: 0 !important;
+}
+
+/* 移动端设置对话框优化 */
+@media (max-width: 767px) {
+  .mobile-dialog .el-dialog {
+    max-height: 100vh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .mobile-dialog .el-dialog__body {
+    padding: 16px !important;
+    max-height: calc(100vh - 120px) !important;
+    overflow: hidden !important;
+  }
+
+  .settings-content .el-tabs__header {
+    margin: 0 0 16px 0 !important;
+  }
+}
+
+/* 自定义滚动条样式 - 仅在PC端显示 */
+@media (min-width: 768px) {
+  .settings-content .el-tabs__content::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .settings-content .el-tabs__content::-webkit-scrollbar-track {
+    background: var(--el-fill-color-lighter);
+    border-radius: 3px;
+  }
+
+  .settings-content .el-tabs__content::-webkit-scrollbar-thumb {
+    background: var(--el-border-color-darker);
+    border-radius: 3px;
+  }
+
+  .settings-content .el-tabs__content::-webkit-scrollbar-thumb:hover {
+    background: var(--el-border-color-dark);
+  }
+}
+
+/* 日志分类折叠面板样式 */
+.log-categories-collapse {
+  border: none !important;
+}
+
+.log-categories-collapse .el-collapse-item {
+  margin-bottom: 8px !important;
+  border: 1px solid var(--el-border-color-light) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+.log-categories-collapse .el-collapse-item__header {
+  background-color: var(--el-fill-color-extra-light) !important;
+  border: none !important;
+  padding: 12px 16px !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+}
+
+.log-categories-collapse .el-collapse-item__content {
+  padding: 8px 16px 16px 16px !important;
+  border: none !important;
+  background-color: var(--el-bg-color) !important;
+}
+
+.log-categories-collapse .el-collapse-item__arrow {
+  margin-right: 8px !important;
 }
 </style>

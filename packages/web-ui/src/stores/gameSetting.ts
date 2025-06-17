@@ -1,8 +1,25 @@
 import { defineStore } from 'pinia'
 import { ref, watchEffect } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
+import { BattleMessageType } from '@arcadia-eternity/const'
 
 const STORAGE_PREFIX = 'gameSetting.'
+
+// 默认显示的日志类型
+const DEFAULT_VISIBLE_LOG_TYPES: Set<BattleMessageType> = new Set([
+  BattleMessageType.SkillUse,
+  BattleMessageType.Damage,
+  BattleMessageType.Heal,
+  BattleMessageType.SkillMiss,
+  BattleMessageType.PetSwitch,
+  BattleMessageType.BattleStart,
+  BattleMessageType.BattleEnd,
+  BattleMessageType.ForcedSwitch,
+  BattleMessageType.FaintSwitch,
+  BattleMessageType.PetDefeated,
+  BattleMessageType.MarkApply,
+  BattleMessageType.MarkDestroy,
+])
 
 function loadFromStorage<T>(key: string, defaultValue: T): T {
   try {
@@ -34,6 +51,11 @@ export const useGameSettingStore = defineStore('gameSetting', () => {
   const background = ref<string | 'random'>(loadFromStorage('background', 'random'))
   const battleMusic = ref<string | 'random'>(loadFromStorage('battleMusic', 'random'))
 
+  // 战斗日志过滤设置
+  const visibleLogTypes = ref<Set<BattleMessageType>>(
+    new Set(loadFromStorage('visibleLogTypes', Array.from(DEFAULT_VISIBLE_LOG_TYPES))),
+  )
+
   watchEffect(() => {
     debouncedSaveAllSettings({
       mute: mute.value,
@@ -43,8 +65,32 @@ export const useGameSettingStore = defineStore('gameSetting', () => {
       soundMute: soundMute.value,
       background: background.value,
       battleMusic: battleMusic.value,
+      visibleLogTypes: Array.from(visibleLogTypes.value),
     })
   })
+
+  // 日志类型管理方法
+  const toggleLogType = (logType: BattleMessageType) => {
+    if (visibleLogTypes.value.has(logType)) {
+      visibleLogTypes.value.delete(logType)
+    } else {
+      visibleLogTypes.value.add(logType)
+    }
+    // 触发响应式更新
+    visibleLogTypes.value = new Set(visibleLogTypes.value)
+  }
+
+  const resetLogTypesToDefault = () => {
+    visibleLogTypes.value = new Set(DEFAULT_VISIBLE_LOG_TYPES)
+  }
+
+  const showAllLogTypes = () => {
+    visibleLogTypes.value = new Set(Object.values(BattleMessageType))
+  }
+
+  const hideAllLogTypes = () => {
+    visibleLogTypes.value = new Set()
+  }
 
   return {
     mute,
@@ -54,5 +100,10 @@ export const useGameSettingStore = defineStore('gameSetting', () => {
     soundMute,
     background,
     battleMusic,
+    visibleLogTypes,
+    toggleLogType,
+    resetLogTypesToDefault,
+    showAllLogTypes,
+    hideAllLogTypes,
   }
 })
