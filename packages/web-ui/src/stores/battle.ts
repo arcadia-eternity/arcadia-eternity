@@ -247,7 +247,7 @@ export const useBattleStore = defineStore('battle', {
       // 联机战斗中，battleState 一开始为空，然后通过消息的 stateDelta 逐步构建
       this.battleState = {} as BattleState
 
-      // 生成快照数据
+      // 生成快照数据（即使消息为空也要生成）
       this.generateReplaySnapshots()
 
       // 设置初始快照
@@ -255,6 +255,10 @@ export const useBattleStore = defineStore('battle', {
       if (this.replaySnapshots.length > 0) {
         console.log('Setting initial snapshot for replay mode:', this.replaySnapshots[0].label)
         this.setReplaySnapshot(0)
+      } else {
+        console.warn('No replay snapshots generated, replay mode will have limited functionality')
+        // 即使没有快照，也要设置基本状态
+        this.totalSnapshots = 0
       }
     },
 
@@ -266,6 +270,21 @@ export const useBattleStore = defineStore('battle', {
         state: BattleState
         label: string
       }> = []
+
+      // 如果没有消息，生成一个空的初始快照
+      if (this.replayMessages.length === 0) {
+        snapshots.push({
+          type: 'turnStart',
+          turnNumber: 1,
+          messageIndex: -1,
+          state: {} as BattleState,
+          label: '空回放',
+        })
+        this.replaySnapshots = snapshots
+        this.totalSnapshots = 0
+        console.log('Generated empty replay snapshot for empty message list')
+        return
+      }
 
       // 模拟完整的战斗过程来生成快照
       let simulationState: BattleState = {} as BattleState
@@ -316,7 +335,7 @@ export const useBattleStore = defineStore('battle', {
       }
 
       this.replaySnapshots = snapshots
-      this.totalSnapshots = snapshots.length - 1
+      this.totalSnapshots = Math.max(0, snapshots.length - 1)
       console.log(
         `Generated ${snapshots.length} replay snapshots:`,
         snapshots.map(s => s.label),

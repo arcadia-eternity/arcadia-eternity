@@ -463,6 +463,7 @@ const loadingProgress = ref<LoadingProgress>({
 
 const loadingStatus = ref<string>('初始化中...')
 const isFullyLoaded = ref(false)
+const loadingError = ref<string | null>(null)
 
 // 计算总体加载进度
 const overallProgress = computed(() => {
@@ -635,13 +636,25 @@ const checkBattleDataLoaded = async () => {
 
     if (isReplayMode.value) {
       // 回放模式等待回放数据加载
+      console.debug('Waiting for replay data to load...')
       if (!isReplayDataLoaded.value) {
         await new Promise<void>(resolve => {
           let unwatch: (() => void) | undefined
+          let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+          // 设置超时机制，避免无限等待
+          timeoutId = setTimeout(() => {
+            console.warn('Replay data loading timeout, continuing anyway...')
+            unwatch?.()
+            resolve()
+          }, 10000) // 10秒超时
+
           unwatch = watch(
             isReplayDataLoaded,
             loaded => {
               if (loaded) {
+                console.debug('Replay data loaded successfully')
+                if (timeoutId) clearTimeout(timeoutId)
                 unwatch?.()
                 resolve()
               }
@@ -649,6 +662,8 @@ const checkBattleDataLoaded = async () => {
             { immediate: true },
           )
         })
+      } else {
+        console.debug('Replay data already loaded')
       }
     }
     // 注意：正常模式下不在这里调用store.ready()，而是在消息订阅设置完成后调用
@@ -735,30 +750,70 @@ const checkReplayLoadingStatus = async () => {
   }
 
   try {
+    console.debug('Checking replay loading status...')
+
     // 等待数据加载完成
     if (!isReplayDataLoaded.value) {
+      console.debug('Replay data not loaded yet')
       isReplayFullyLoaded.value = false
       return
     }
 
     // 等待petSprite准备完成
+    console.debug('Checking pet sprites readiness...')
     const spritesReady = await checkPetSpritesReady()
     if (!spritesReady) {
+      console.debug('Pet sprites not ready yet')
       isReplayFullyLoaded.value = false
       return
     }
 
     // 等待store初始化完成
+    console.debug('Checking replay snapshots...', store.replaySnapshots.length)
     if (store.replaySnapshots.length === 0) {
+      console.debug('Replay snapshots not generated yet')
       isReplayFullyLoaded.value = false
       return
     }
 
     isReplayFullyLoaded.value = true
-    console.debug('Replay fully loaded!')
+    console.debug('Replay fully loaded!', {
+      dataLoaded: isReplayDataLoaded.value,
+      spritesReady,
+      snapshotsCount: store.replaySnapshots.length,
+      currentSnapshot: store.currentSnapshotIndex,
+      totalSnapshots: store.totalSnapshots,
+    })
+
+    // 清除加载错误状态
+    if (loadingError.value) {
+      loadingError.value = null
+      loadingStatus.value = '回放加载完成'
+    }
   } catch (error) {
-    console.error('Error checking replay loading statusb:', error)
+    console.error('Error checking replay loading status:', error)
     isReplayFullyLoaded.value = false
+  }
+}
+
+const retryReplayLoading = async () => {
+  console.debug('Retrying replay loading...')
+  loadingError.value = null
+  loadingStatus.value = '重新加载中...'
+  isFullyLoaded.value = false
+
+  // 重置加载进度
+  Object.keys(loadingProgress.value).forEach(key => {
+    loadingProgress.value[key as keyof LoadingProgress] = false
+  })
+
+  // 重新开始加载流程
+  try {
+    await initializeBattleResources()
+  } catch (error) {
+    console.error('Retry failed:', error)
+    loadingError.value = `重试失败: ${error instanceof Error ? error.message : String(error)}`
+    loadingStatus.value = '重试失败'
   }
 }
 
@@ -1561,41 +1616,99 @@ onMounted(async () => {
   // 检查是否是回放模式
   if (props.replayMode) {
     let battleRecord = null
+    let loadError = null
 
-    if (props.localReportId) {
-      // 本地战报回放模式
-      const localReport = battleReportStore.loadLocalBattleReport(props.localReportId)
-      if (localReport) {
-        battleRecord = localReport.battleRecord
+    try {
+      if (props.localReportId) {
+        // 本地战报回放模式
+        console.debug('Loading local battle report:', props.localReportId)
+        const localReport = battleReportStore.loadLocalBattleReport(props.localReportId)
+        if (localReport) {
+          battleRecord = localReport.battleRecord
+          console.debug('Local battle record loaded successfully')
+        } else {
+          loadError = `本地战报未找到: ${props.localReportId}`
+          console.error(loadError)
+        }
+      } else {
+        // 在线战报回放模式
+        const battleId = props.battleRecordId || (route.params.id as string)
+        if (battleId) {
+          console.debug('Fetching online battle record:', battleId)
+          await battleReportStore.fetchBattleRecord(battleId)
+          battleRecord = battleReportStore.currentBattleRecord
+
+          if (battleRecord) {
+            console.debug('Online battle record loaded successfully')
+          } else {
+            loadError = `在线战报加载失败: ${battleId}`
+            console.error(loadError)
+          }
+        } else {
+          loadError = '缺少战报ID参数'
+          console.error(loadError)
+        }
       }
-    } else {
-      // 在线战报回放模式
-      const battleId = props.battleRecordId || (route.params.id as string)
-      if (battleId) {
-        await battleReportStore.fetchBattleRecord(battleId)
-        battleRecord = battleReportStore.currentBattleRecord
-      }
+    } catch (error) {
+      loadError = `战报加载异常: ${error instanceof Error ? error.message : String(error)}`
+      console.error('Battle record loading error:', error)
+    }
+
+    // 如果加载失败，显示错误信息但仍然继续初始化流程
+    if (loadError) {
+      console.warn('Battle record loading failed, but continuing with replay mode setup:', loadError)
+      loadingError.value = loadError
+      loadingStatus.value = `加载失败: ${loadError}`
     }
 
     if (battleRecord) {
-      store.initReplayMode(
-        battleRecord.battle_messages,
-        battleRecord.final_state as any,
-        battleRecord.player_a_id, // 默认从玩家A视角观看
-      )
+      console.debug('Initializing replay mode with battle record')
+      try {
+        store.initReplayMode(
+          battleRecord.battle_messages,
+          battleRecord.final_state as any,
+          battleRecord.player_a_id, // 默认从玩家A视角观看
+        )
+        console.debug('Replay mode initialized successfully')
+      } catch (error) {
+        console.error('Failed to initialize replay mode:', error)
+        loadingError.value = `回放初始化失败: ${error instanceof Error ? error.message : String(error)}`
+        loadingStatus.value = '回放初始化失败，但继续运行'
+      }
+    } else {
+      console.warn('No battle record available for replay mode')
+      // 即使没有战报数据，也要初始化一个空的回放模式，确保UI能正常显示
+      try {
+        store.initReplayMode([], {} as any, '')
+        console.debug('Empty replay mode initialized as fallback')
+      } catch (error) {
+        console.error('Failed to initialize empty replay mode:', error)
+        loadingError.value = `回放模式初始化失败: ${error instanceof Error ? error.message : String(error)}`
+      }
     }
 
     // 回放模式也需要消息订阅来处理动画
-    await setupMessageSubscription()
+    try {
+      await setupMessageSubscription()
+      console.debug('Message subscription setup completed for replay mode')
+    } catch (error) {
+      console.error('Failed to setup message subscription for replay mode:', error)
+    }
 
     // 等待一小段时间确保订阅完全设置好
     await new Promise(resolve => setTimeout(resolve, 100))
 
     // 检查加载状态
-    await checkReplayLoadingStatus()
+    try {
+      await checkReplayLoadingStatus()
+      console.debug('Replay loading status check completed')
+    } catch (error) {
+      console.error('Failed to check replay loading status:', error)
+    }
 
     // 在回放模式下，不自动播放第0回合动画，保持初始状态
     // 用户可以手动点击播放按钮来开始回放
+    console.debug('Replay mode setup completed')
     return
   }
 
@@ -1869,8 +1982,21 @@ watch(
             <!-- 加载状态文本 -->
             <div class="text-gray-300 text-lg">{{ loadingStatus }}</div>
 
+            <!-- 错误信息显示 -->
+            <div v-if="loadingError" class="mt-4 p-4 bg-red-900/50 border border-red-500/50 rounded-lg">
+              <div class="text-red-400 text-sm font-bold mb-2">⚠️ 加载错误</div>
+              <div class="text-red-300 text-sm">{{ loadingError }}</div>
+              <div class="text-red-200 text-xs mt-2">回放模式将以有限功能继续运行</div>
+              <button
+                @click="retryReplayLoading"
+                class="mt-3 px-4 py-2 bg-red-600 hover:bg-red-500 rounded text-white text-sm font-bold transition-colors"
+              >
+                重试加载
+              </button>
+            </div>
+
             <!-- 加载提示 -->
-            <div class="mt-4 text-gray-400 text-sm">正在加载...</div>
+            <div v-if="!loadingError" class="mt-4 text-gray-400 text-sm">正在加载...</div>
           </div>
         </div>
       </Transition>

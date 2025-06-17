@@ -128,8 +128,12 @@ export const useBattleReportStore = defineStore('battleReport', () => {
 
       const result = await battleReportService.getBattleRecord(id)
       currentBattleRecord.value = result
+      console.debug('Battle record fetched successfully:', id)
     } catch (error) {
-      errors.value.battleRecord = error instanceof Error ? error.message : 'Failed to fetch battle record'
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch battle record'
+      errors.value.battleRecord = errorMessage
+      currentBattleRecord.value = null // 清空当前战报数据
+      console.error('Failed to fetch battle record:', id, errorMessage)
     } finally {
       loading.value.battleRecord = false
     }
@@ -287,6 +291,11 @@ export const useBattleReportStore = defineStore('battleReport', () => {
     if (report) {
       currentLocalBattleReport.value = report
       currentBattleRecord.value = report.battleRecord
+      console.debug('Local battle report loaded successfully:', reportId)
+    } else {
+      currentLocalBattleReport.value = null
+      currentBattleRecord.value = null
+      console.warn('Local battle report not found:', reportId)
     }
     return report
   }
