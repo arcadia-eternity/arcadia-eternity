@@ -23,6 +23,12 @@ export enum EffectTrigger {
   PostDamage = 'PostDamage',
   OnCritPostDamage = 'OnCritPostDamage',
 
+  // 变身相关
+  OnTransform = 'OnTransform',
+  OnTransformEnd = 'OnTransformEnd',
+  BeforeTransform = 'BeforeTransform',
+  AfterTransform = 'AfterTransform',
+
   // 印记相关
   TurnStart = 'TurnStart',
   TurnEnd = 'TurnEnd',

@@ -427,6 +427,9 @@ export class MarkInstanceImpl implements MarkInstance {
     // Clean up attribute modifiers before destroying the mark
     this.cleanupAttributeModifiers()
 
+    // Clean up any transformations caused by this mark
+    context.battle.transformationSystem.cleanupMarkTransformations(this)
+
     context.battle.cleanupMarks()
 
     // Note: dirty flag removed, attribute system handles recalculation automatically

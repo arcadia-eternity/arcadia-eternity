@@ -8,6 +8,13 @@ import {
   StackStrategy,
   type Element,
   type StatOnBattle,
+  type petId,
+  type skillId,
+  type markId,
+  type effectId,
+  type speciesId,
+  type baseSkillId,
+  type baseMarkId,
 } from '@arcadia-eternity/const'
 import { Battle } from './battle'
 import { type MarkOwner } from './entity'
@@ -36,6 +43,7 @@ export type AllContext =
   | SwitchPetContext
   | RageContext
   | StackContext
+  | TransformContext
   | EffectContext<EffectTrigger>
 
 export type PetTurnData = {}
@@ -653,6 +661,11 @@ export type TriggerContextMap = {
   [EffectTrigger.OnOwnerSwitchIn]: SwitchPetContext
   [EffectTrigger.OnOwnerSwitchOut]: SwitchPetContext
 
+  [EffectTrigger.BeforeTransform]: TransformContext
+  [EffectTrigger.OnTransform]: TransformContext
+  [EffectTrigger.AfterTransform]: TransformContext
+  [EffectTrigger.OnTransformEnd]: TransformContext
+
   [EffectTrigger.BeforeEffect]: AllContext
   [EffectTrigger.AfterEffect]: AllContext
 }
@@ -668,6 +681,26 @@ export class EffectContext<T extends EffectTrigger> extends Context {
     public readonly trigger: T,
     public readonly source: SkillInstance | MarkInstance,
     public readonly effect?: Effect<EffectTrigger>,
+  ) {
+    super(parent)
+    this.battle = parent.battle
+  }
+}
+
+export class TransformContext extends Context {
+  readonly type = 'transform'
+  public readonly battle: Battle
+  public available: boolean = true
+
+  constructor(
+    public readonly parent: EffectContext<EffectTrigger> | Battle,
+    public readonly target: Pet | SkillInstance | MarkInstance,
+    public readonly targetType: 'pet' | 'skill' | 'mark',
+    public readonly fromBase: any, // Species | BaseSkill | BaseMark
+    public readonly toBase: any, // Species | BaseSkill | BaseMark
+    public readonly transformType: 'temporary' | 'permanent',
+    public readonly priority: number,
+    public readonly causedBy?: MarkInstance | SkillInstance | Effect<EffectTrigger>,
   ) {
     super(parent)
     this.battle = parent.battle

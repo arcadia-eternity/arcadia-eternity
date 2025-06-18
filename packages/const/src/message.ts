@@ -116,6 +116,10 @@ export enum BattleMessageType {
   EffectApply = 'EFFECT_APPLY',
   EffectApplyFail = 'EFFECT_APPLY_FAIL', //UnUsed
 
+  // 变身相关
+  Transform = 'TRANSFORM',
+  TransformEnd = 'TRANSFORM_END',
+
   // 需要等待回应的信息
   TurnAction = 'TURN_ACTION',
   ForcedSwitch = 'FORCED_SWITCH',
@@ -156,6 +160,8 @@ export type BattleMessage =
   | InvalidActionMessage
   | InfoMessage
   | ErrorMessage
+  | TransformMessage
+  | TransformEndMessage
 
 // 基础消息结构
 export interface BaseBattleMessage<T extends BattleMessageType> {
@@ -305,6 +311,22 @@ export interface BattleMessageData {
   [BattleMessageType.Error]: {
     message: string
   }
+  [BattleMessageType.Transform]: {
+    target: petId | skillId | markId
+    targetType: 'pet' | 'skill' | 'mark'
+    fromBase: speciesId | baseSkillId | baseMarkId
+    toBase: speciesId | baseSkillId | baseMarkId
+    transformType: 'temporary' | 'permanent'
+    priority: number
+    causedBy?: markId | skillId | effectId
+  }
+  [BattleMessageType.TransformEnd]: {
+    target: petId | skillId | markId
+    targetType: 'pet' | 'skill' | 'mark'
+    fromBase: speciesId | baseSkillId | baseMarkId
+    toBase: speciesId | baseSkillId | baseMarkId
+    reason: 'mark_destroyed' | 'manual' | 'replaced'
+  }
 }
 
 // 具体消息类型定义
@@ -337,3 +359,5 @@ export type FaintSwitchMessage = BaseBattleMessage<BattleMessageType.FaintSwitch
 export type InvalidActionMessage = BaseBattleMessage<BattleMessageType.InvalidAction>
 export type InfoMessage = BaseBattleMessage<BattleMessageType.Info>
 export type ErrorMessage = BaseBattleMessage<BattleMessageType.Error>
+export type TransformMessage = BaseBattleMessage<BattleMessageType.Transform>
+export type TransformEndMessage = BaseBattleMessage<BattleMessageType.TransformEnd>

@@ -110,6 +110,73 @@ export const Operators = {
       })
     },
 
+  // 变身相关操作符
+  transform:
+    <T extends { id: string; base: any }>(
+      newBase: ValueSource<any>,
+      transformType: 'temporary' | 'permanent' = 'temporary',
+      priority: ValueSource<number> = 0,
+      permanentStrategy: 'preserve_temporary' | 'clear_temporary' = 'clear_temporary',
+    ): Operator<T> =>
+    (context: EffectContext<EffectTrigger>, targets: T[]) => {
+      const _newBase = GetValueFromSource(context, newBase)
+      const _priority = GetValueFromSource(context, priority)
+
+      if (_newBase.length === 0) return
+
+      targets.forEach(async (target, index) => {
+        const base = _newBase[Math.min(index, _newBase.length - 1)]
+        const prio = _priority[Math.min(index, _priority.length - 1)] || 0
+
+        await context.battle.transformationSystem.applyTransformation(
+          target as any,
+          base,
+          transformType,
+          prio,
+          context.source,
+          permanentStrategy,
+        )
+      })
+    },
+
+  removeTransformation:
+    <T extends { id: string }>(): Operator<T> =>
+    (context: EffectContext<EffectTrigger>, targets: T[]) => {
+      targets.forEach(async target => {
+        await context.battle.transformationSystem.removeTransformation(target as any)
+      })
+    },
+
+  // 保留效果的变身操作符
+  transformWithPreservation:
+    <T extends { id: string; base: any }>(
+      newBase: ValueSource<any>,
+      transformType: 'temporary' | 'permanent' = 'temporary',
+      priority: ValueSource<number> = 0,
+      permanentStrategy: 'preserve_temporary' | 'clear_temporary' = 'clear_temporary',
+    ): Operator<T> =>
+    (context: EffectContext<EffectTrigger>, targets: T[]) => {
+      const _newBase = GetValueFromSource(context, newBase)
+      const _priority = GetValueFromSource(context, priority)
+
+      if (_newBase.length === 0) return
+
+      targets.forEach(async (target, index) => {
+        const base = _newBase[Math.min(index, _newBase.length - 1)]
+        const prio = _priority[Math.min(index, _priority.length - 1)] || 0
+
+        // 使用当前效果的源作为causedBy，确保效果被保留
+        await context.battle.transformationSystem.applyTransformation(
+          target as any,
+          base,
+          transformType,
+          prio,
+          context.source, // 这里传入当前效果的源，确保它被保留
+          permanentStrategy,
+        )
+      })
+    },
+
   addStack:
     <T extends MarkInstance>(value: ValueSource<number>): Operator<T> =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
