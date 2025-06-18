@@ -4,7 +4,7 @@ import PetIcon from '../PetIcon.vue'
 import ElementIcon from './ElementIcon.vue'
 import Tooltip from './Tooltip.vue'
 import ModifiedValue from './ModifiedValue.vue'
-import type { PetMessage } from '@arcadia-eternity/const'
+import type { PetMessage, SkillMessage } from '@arcadia-eternity/const'
 import { useGameDataStore } from '@/stores/gameData'
 import { Z_INDEX } from '@/constants/zIndex'
 import i18next from 'i18next'
@@ -197,7 +197,7 @@ const petButtonClasses = computed(() => {
 })
 
 // 获取技能的 modifier 信息
-const getSkillModifierInfo = (skill: any, attributeName: string) => {
+const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
   // 技能的 modifier 信息直接从技能的 modifierState 中获取
   if (!skill.modifierState) return undefined
 

@@ -24,6 +24,7 @@ import {
   type effectId,
   EffectTrigger,
   IgnoreStageStrategy,
+  type speciesId,
   StackStrategy,
   type StatTypeOnBattle,
   StatTypeWithoutHp,
@@ -552,7 +553,8 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
     return (() => [DataRepository.getInstance().getMark(v.value as baseMarkId)]) as ValueSource<BaseMark>
   if (v.type === 'entity:baseSkill')
     return (() => [DataRepository.getInstance().getSkill(v.value as baseSkillId)]) as ValueSource<BaseSkill>
-  if (v.type === 'entity:species') return (() => [DataRepository.getInstance().getSpecies(v.value)]) as ValueSource<any>
+  if (v.type === 'entity:species')
+    return (() => [DataRepository.getInstance().getSpecies(v.value as speciesId)]) as ValueSource<any>
   if (v.type === 'dynamic') return parseSelector(effectId, v.selector)
   if (v.type === 'selector') return parseSelector(effectId, v)
   throw new Error(`[parseEffect] 未知的数值类型: ${(v as any).type}`)

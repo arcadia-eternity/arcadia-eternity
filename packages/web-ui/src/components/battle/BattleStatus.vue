@@ -181,10 +181,10 @@ const petStatsInfo = computed(() => {
         :rage="player.rage"
         :maxRage="player.maxRage"
         :reverse="props.side === 'right'"
-        :current-hp-modifier-info="hpModifierInfo.currentHp"
-        :max-hp-modifier-info="hpModifierInfo.maxHp"
-        :rage-modifier-info="rageModifierInfo.rage"
-        :max-rage-modifier-info="rageModifierInfo.maxRage"
+        :current-hp-modifier-info="hpModifierInfo?.currentHp"
+        :max-hp-modifier-info="hpModifierInfo?.maxHp"
+        :rage-modifier-info="rageModifierInfo?.rage"
+        :max-rage-modifier-info="rageModifierInfo?.maxRage"
       />
 
       <div v-if="activePet!.marks?.length" :class="markContainerClass">
