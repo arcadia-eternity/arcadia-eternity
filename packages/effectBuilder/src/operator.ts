@@ -11,6 +11,7 @@ import {
   type PhaseTypeSpec,
   PhaseType,
   PhaseScope,
+  type Prototype,
 } from '@arcadia-eternity/battle'
 import {
   AttributeSystem,
@@ -38,9 +39,13 @@ import {
 } from '@arcadia-eternity/battle'
 import { Observable } from 'rxjs'
 import {
+  type baseMarkId,
+  type baseSkillId,
   CleanStageStrategy,
   EffectTrigger,
   IgnoreStageStrategy,
+  type PrototypeId,
+  type speciesId,
   StackStrategy,
   type StatTypeOnBattle,
   StatTypeWithoutHp,
@@ -114,27 +119,73 @@ export const Operators = {
   transform:
     <T extends { id: string; base: any }>(
       newBase: ValueSource<any>,
-      transformType: 'temporary' | 'permanent' = 'temporary',
+      transformType: ValueSource<'temporary' | 'permanent'> = 'temporary',
       priority: ValueSource<number> = 0,
-      permanentStrategy: 'preserve_temporary' | 'clear_temporary' = 'clear_temporary',
+      permanentStrategy: ValueSource<'preserve_temporary' | 'clear_temporary'> = 'clear_temporary',
+      effectHandlingStrategy: ValueSource<'override' | 'preserve'> = 'preserve',
     ): Operator<T> =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       const _newBase = GetValueFromSource(context, newBase)
+      const _transformType = GetValueFromSource(context, transformType)
       const _priority = GetValueFromSource(context, priority)
+      const _permanentStrategy = GetValueFromSource(context, permanentStrategy)
+      const _effectHandlingStrategy = GetValueFromSource(context, effectHandlingStrategy)
 
       if (_newBase.length === 0) return
 
       targets.forEach(async (target, index) => {
         const base = _newBase[Math.min(index, _newBase.length - 1)]
+        const type = _transformType[Math.min(index, _transformType.length - 1)] || 'temporary'
         const prio = _priority[Math.min(index, _priority.length - 1)] || 0
+        const strategy = _permanentStrategy[Math.min(index, _permanentStrategy.length - 1)] || 'clear_temporary'
+        const effectStrategy =
+          _effectHandlingStrategy[Math.min(index, _effectHandlingStrategy.length - 1)] || 'preserve'
 
         await context.battle.transformationSystem.applyTransformation(
           target as any,
-          base,
-          transformType,
+          base as any,
+          type,
           prio,
           context.source,
-          permanentStrategy,
+          strategy,
+          effectStrategy as any,
+        )
+      })
+    },
+
+  transformWithPreservation:
+    <T extends { id: string; base: any }>(
+      newBase: ValueSource<any>,
+      transformType: ValueSource<'temporary' | 'permanent'> = 'temporary',
+      priority: ValueSource<number> = 0,
+      permanentStrategy: ValueSource<'preserve_temporary' | 'clear_temporary'> = 'preserve_temporary',
+      effectHandlingStrategy: ValueSource<'override' | 'preserve'> = 'preserve',
+    ): Operator<T> =>
+    (context: EffectContext<EffectTrigger>, targets: T[]) => {
+      const _newBase = GetValueFromSource(context, newBase)
+      const _transformType = GetValueFromSource(context, transformType)
+      const _priority = GetValueFromSource(context, priority)
+      const _permanentStrategy = GetValueFromSource(context, permanentStrategy)
+      const _effectHandlingStrategy = GetValueFromSource(context, effectHandlingStrategy)
+
+      if (_newBase.length === 0) return
+
+      targets.forEach(async (target, index) => {
+        const base = _newBase[Math.min(index, _newBase.length - 1)]
+        const type = _transformType[Math.min(index, _transformType.length - 1)] || 'temporary'
+        const prio = _priority[Math.min(index, _priority.length - 1)] || 0
+        const strategy = _permanentStrategy[Math.min(index, _permanentStrategy.length - 1)] || 'preserve_temporary'
+        const effectStrategy =
+          _effectHandlingStrategy[Math.min(index, _effectHandlingStrategy.length - 1)] || 'preserve'
+
+        await context.battle.transformationSystem.applyTransformation(
+          target as any,
+          base as any,
+          type,
+          prio,
+          context.source,
+          strategy,
+          effectStrategy as any,
         )
       })
     },
@@ -144,36 +195,6 @@ export const Operators = {
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.forEach(async target => {
         await context.battle.transformationSystem.removeTransformation(target as any)
-      })
-    },
-
-  // 保留效果的变身操作符
-  transformWithPreservation:
-    <T extends { id: string; base: any }>(
-      newBase: ValueSource<any>,
-      transformType: 'temporary' | 'permanent' = 'temporary',
-      priority: ValueSource<number> = 0,
-      permanentStrategy: 'preserve_temporary' | 'clear_temporary' = 'clear_temporary',
-    ): Operator<T> =>
-    (context: EffectContext<EffectTrigger>, targets: T[]) => {
-      const _newBase = GetValueFromSource(context, newBase)
-      const _priority = GetValueFromSource(context, priority)
-
-      if (_newBase.length === 0) return
-
-      targets.forEach(async (target, index) => {
-        const base = _newBase[Math.min(index, _newBase.length - 1)]
-        const prio = _priority[Math.min(index, _priority.length - 1)] || 0
-
-        // 使用当前效果的源作为causedBy，确保效果被保留
-        await context.battle.transformationSystem.applyTransformation(
-          target as any,
-          base,
-          transformType,
-          prio,
-          context.source, // 这里传入当前效果的源，确保它被保留
-          permanentStrategy,
-        )
       })
     },
 

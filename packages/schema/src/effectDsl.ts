@@ -506,6 +506,30 @@ export type AddDynamicPhaseTypeConfigModifierOperator = {
   phaseId?: Value
 }
 
+// 变身相关操作符
+export type TransformOperator = {
+  type: 'transform'
+  target: SelectorDSL
+  newBase: Value
+  transformType?: 'temporary' | 'permanent'
+  priority?: Value
+  permanentStrategy?: 'preserve_temporary' | 'clear_temporary'
+}
+
+export type TransformWithPreservationOperator = {
+  type: 'transformWithPreservation'
+  target: SelectorDSL
+  newBase: Value
+  transformType?: 'temporary' | 'permanent'
+  priority?: Value
+  permanentStrategy?: 'preserve_temporary' | 'clear_temporary'
+}
+
+export type RemoveTransformationOperator = {
+  type: 'removeTransformation'
+  target: SelectorDSL
+}
+
 export type OperatorDSL =
   | TODOOperator
   | ConditionalOperator
@@ -577,6 +601,9 @@ export type OperatorDSL =
   | AddPhaseDynamicConfigModifierOperator
   | AddPhaseTypeConfigModifierOperator
   | AddDynamicPhaseTypeConfigModifierOperator
+  | TransformOperator
+  | TransformWithPreservationOperator
+  | RemoveTransformationOperator
 
 export type RawNumberValue = {
   type: 'raw:number'
@@ -606,7 +633,12 @@ export type RawBaseMarkIdValue = {
 
 export type RawBaseSkillIdValue = {
   type: 'entity:baseSkill'
-  value: string // Mark的ID需符合特定格式
+  value: string // Skill的ID需符合特定格式
+}
+
+export type RawSpeciesIdValue = {
+  type: 'entity:species'
+  value: string // Species的ID需符合特定格式
 }
 
 export type DynamicValue = {
@@ -626,6 +658,7 @@ export type Value =
   | RawBooleanValue
   | RawBaseMarkIdValue
   | RawBaseSkillIdValue
+  | RawSpeciesIdValue
   | DynamicValue
   | SelectorValue
   | Array<Value>

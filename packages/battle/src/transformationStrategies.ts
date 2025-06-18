@@ -1,39 +1,58 @@
-import { type TransformationStrategy } from './transformation'
-import { Pet, type Species } from './pet'
-import { SkillInstance, BaseSkill } from './skill'
-import { type MarkInstance, MarkInstanceImpl, BaseMark } from './mark'
+import {
+  type TransformationStrategy,
+  type TransformationState,
+  EntityType,
+  type PetEntity,
+  type PetPrototype,
+  type SkillEntity,
+  type SkillPrototype,
+  type MarkEntity,
+  type MarkPrototype,
+  EffectHandlingStrategy,
+  type AttributeModifiersState,
+  type PassiveEffectsState,
+} from './transformation'
+import { Pet } from './pet'
+import { SkillInstance } from './skill'
+import { type MarkInstance, MarkInstanceImpl } from './mark'
+import type { Battle } from './battle'
 
 /**
  * 精灵变身策略
  */
-export class PetTransformationStrategy implements TransformationStrategy<Pet, Species> {
-  canTransform(entity: any): entity is Pet {
+export class PetTransformationStrategy implements TransformationStrategy<PetEntity, PetPrototype, EntityType.Pet> {
+  canTransform(entity: unknown): entity is PetEntity {
     return entity instanceof Pet
   }
 
-  getEntityType(): 'pet' {
-    return 'pet'
+  getEntityType(): EntityType.Pet {
+    return EntityType.Pet
   }
 
-  preserveState(entity: Pet): any {
+  preserveState(entity: PetEntity): TransformationState<PetEntity> {
     const maxHp = entity.stat.maxHp
     return {
-      currentHpRatio: maxHp > 0 ? entity.currentHp / maxHp : 1,
-      marks: [...entity.marks],
-      appeared: entity.appeared,
-      lastSkill: entity.lastSkill,
-      lastSkillUsedTimes: entity.lastSkillUsedTimes,
-      isAlive: entity.isAlive,
-      // 保存当前的属性修改器状态
-      attributeModifiers: this.preserveAttributeModifiers(entity),
-      // 保存被动效果状态
-      passiveEffects: this.preservePassiveEffects(entity),
+      entityId: entity.id,
+      entityType: EntityType.Pet,
+      timestamp: Date.now(),
+      data: {
+        currentHpRatio: maxHp > 0 ? entity.currentHp / maxHp : 1,
+        marks: [...entity.marks],
+        appeared: entity.appeared,
+        lastSkill: entity.lastSkill,
+        lastSkillUsedTimes: entity.lastSkillUsedTimes,
+        isAlive: entity.isAlive,
+        // 保存当前的属性修改器状态
+        attributeModifiers: this.preserveAttributeModifiers(entity),
+        // 保存被动效果状态
+        passiveEffects: this.preservePassiveEffects(entity),
+      },
     }
   }
 
-  private preservePassiveEffects(entity: Pet): any {
+  private preservePassiveEffects(entity: Pet): PassiveEffectsState {
     // 保存所有来自印记和技能的被动效果
-    const passiveEffects: any = {
+    const passiveEffects: PassiveEffectsState = {
       markEffects: [],
       skillEffects: [],
     }
@@ -68,70 +87,80 @@ export class PetTransformationStrategy implements TransformationStrategy<Pet, Sp
     }
   }
 
-  private preserveAttributeModifiers(entity: Pet): any {
+  private preserveAttributeModifiers(entity: Pet): AttributeModifiersState {
     // 获取当前所有属性的修改器
-    const modifiers: any = {}
-    const attributeSystem = entity.attributeSystem
-
-    // 保存所有当前的修改器
-    // 注意：这里我们需要保存修改器的状态，而不是修改器本身
-    // 因为修改器可能包含对其他对象的引用
     try {
       // 获取所有属性的当前值和基础值的差异
       const currentStats = entity.stat
       const baseStats = entity.calculateStats()
 
-      modifiers.statDifferences = {
-        atk: currentStats.atk - baseStats.atk,
-        def: currentStats.def - baseStats.def,
-        spa: currentStats.spa - baseStats.spa,
-        spd: currentStats.spd - baseStats.spd,
-        spe: currentStats.spe - baseStats.spe,
-        maxHp: currentStats.maxHp - baseStats.maxHp,
-        critRate: currentStats.critRate - entity.baseCritRate,
-        accuracy: currentStats.accuracy - entity.baseAccuracy,
-        evasion: currentStats.evasion - 0,
+      return {
+        statDifferences: {
+          atk: currentStats.atk - baseStats.atk,
+          def: currentStats.def - baseStats.def,
+          spa: currentStats.spa - baseStats.spa,
+          spd: currentStats.spd - baseStats.spd,
+          spe: currentStats.spe - baseStats.spe,
+          maxHp: currentStats.maxHp - baseStats.maxHp,
+          critRate: currentStats.critRate - entity.baseCritRate,
+          accuracy: currentStats.accuracy - entity.baseAccuracy,
+          evasion: currentStats.evasion - 0,
+        },
       }
     } catch (error) {
       console.warn('Failed to preserve attribute modifiers:', error)
-      modifiers.statDifferences = {}
+      return {
+        statDifferences: {
+          atk: 0,
+          def: 0,
+          spa: 0,
+          spd: 0,
+          spe: 0,
+          maxHp: 0,
+          critRate: 0,
+          accuracy: 0,
+          evasion: 0,
+        },
+      }
     }
-
-    return modifiers
   }
 
-  restoreState(entity: Pet, state: any): void {
-    if (!state) return
+  restoreState(entity: PetEntity, state: TransformationState<PetEntity>): void {
+    if (!state?.data) return
 
-    if (state.currentHpRatio !== undefined) {
-      const maxHp = entity.stat.maxHp
-      entity.currentHp = Math.floor(maxHp * state.currentHpRatio)
-    }
-    if (state.marks) {
+    const data = state.data
+
+    // 注意：HP在performTransformation中单独处理，这里不处理HP
+    // if (data.currentHpRatio !== undefined) {
+    //   const maxHp = entity.stat.maxHp
+    //   entity.currentHp = Math.floor(maxHp * (data.currentHpRatio as number))
+    // }
+
+    if (data.marks) {
       // 保留原有的印记（变身不应该清除印记）
-      entity.marks = state.marks
+      entity.marks = data.marks as MarkInstance[]
     }
-    if (state.appeared !== undefined) {
-      entity.appeared = state.appeared
+    if (data.appeared !== undefined) {
+      entity.appeared = data.appeared as boolean
     }
-    if (state.lastSkill !== undefined) {
-      entity.lastSkill = state.lastSkill
+    if (data.lastSkill !== undefined) {
+      entity.lastSkill = data.lastSkill as SkillInstance | undefined
     }
-    if (state.lastSkillUsedTimes !== undefined) {
-      entity.lastSkillUsedTimes = state.lastSkillUsedTimes
+    if (data.lastSkillUsedTimes !== undefined) {
+      entity.lastSkillUsedTimes = data.lastSkillUsedTimes as number
     }
-    if (state.isAlive !== undefined) {
-      entity.isAlive = state.isAlive
+    if (data.isAlive !== undefined) {
+      entity.isAlive = data.isAlive as boolean
     }
 
     // 恢复属性修改器状态
-    if (state.attributeModifiers) {
-      this.restoreAttributeModifiers(entity, state.attributeModifiers)
+    if (data.attributeModifiers) {
+      this.restoreAttributeModifiers(entity, data.attributeModifiers)
     }
 
     // 恢复被动效果状态
-    if (state.passiveEffects) {
-      this.restorePassiveEffects(entity, state.passiveEffects)
+    if (data.passiveEffects) {
+      this.restorePassiveEffects(entity, data.passiveEffects)
     }
 
     // 处理受保护的效果
@@ -140,7 +169,7 @@ export class PetTransformationStrategy implements TransformationStrategy<Pet, Sp
     }
   }
 
-  private restoreAttributeModifiers(entity: Pet, modifiers: any): void {
+  private restoreAttributeModifiers(entity: Pet, modifiers: AttributeModifiersState): void {
     if (!modifiers.statDifferences) return
 
     try {
@@ -166,13 +195,13 @@ export class PetTransformationStrategy implements TransformationStrategy<Pet, Sp
     }
   }
 
-  private restorePassiveEffects(entity: Pet, passiveEffects: any): void {
+  private restorePassiveEffects(entity: Pet, passiveEffects: PassiveEffectsState): void {
     if (!passiveEffects) return
 
     try {
       // 恢复印记的被动效果
       if (passiveEffects.markEffects) {
-        passiveEffects.markEffects.forEach((markEffect: any) => {
+        passiveEffects.markEffects.forEach(markEffect => {
           // 查找对应的印记
           const mark = entity.marks.find(m => m.id === markEffect.markId)
           if (mark && mark.isActive) {
@@ -188,7 +217,7 @@ export class PetTransformationStrategy implements TransformationStrategy<Pet, Sp
 
       // 恢复技能的被动效果
       if (passiveEffects.skillEffects) {
-        passiveEffects.skillEffects.forEach((skillEffect: any) => {
+        passiveEffects.skillEffects.forEach(skillEffect => {
           console.log('Preserving passive effects for skill:', skillEffect)
           // 实现技能被动效果的恢复逻辑
         })
@@ -228,7 +257,12 @@ export class PetTransformationStrategy implements TransformationStrategy<Pet, Sp
     }
   }
 
-  async performTransformation(entity: Pet, newBase: Species, preservedState: any): Promise<void> {
+  async performTransformation(
+    entity: PetEntity,
+    newBase: PetPrototype,
+    preservedState: TransformationState<PetEntity>,
+    effectHandlingStrategy: EffectHandlingStrategy,
+  ): Promise<void> {
     // 更新base引用
     ;(entity as any).base = newBase
 
@@ -244,51 +278,157 @@ export class PetTransformationStrategy implements TransformationStrategy<Pet, Sp
       entity.attributeSystem.updateBaseValue(key, value)
     })
 
-    // 保持当前HP比例
-    const currentHpRatio = preservedState?.currentHpRatio || 1
-    const newCurrentHp = Math.floor(newStats.maxHp * currentHpRatio)
-    entity.attributeSystem.setCurrentHp(newCurrentHp)
-
-    // 恢复保留的状态
+    // 恢复保留的状态（但不包括HP，我们稍后单独处理）
     this.restoreState(entity, preservedState)
+
+    // 在restoreState之后处理特性和徽章的effect策略
+    // 这样可以确保我们的marks修改不会被restoreState覆盖
+    this.handleEffectStrategy(entity, newBase, effectHandlingStrategy)
+
+    // 最后处理HP，确保使用正确的比例和新的maxHp
+    const currentHpRatio = preservedState?.data?.currentHpRatio as number
+    if (currentHpRatio !== undefined) {
+      // 使用保存的HP比例
+      const newCurrentHp = Math.floor(entity.stat.maxHp * currentHpRatio)
+      entity.attributeSystem.setCurrentHp(newCurrentHp)
+    }
+    // 如果没有保存的HP比例，保持当前HP不变（restoreState可能已经处理了）
   }
 
-  getOriginalBase(entity: Pet): Species | undefined {
-    return entity.species
+  /**
+   * 处理变形时的effect策略
+   */
+  private handleEffectStrategy(
+    entity: PetEntity,
+    newBase: PetPrototype,
+    effectHandlingStrategy: EffectHandlingStrategy,
+  ): void {
+    if (effectHandlingStrategy === EffectHandlingStrategy.Override) {
+      // 覆盖策略：移除原有的特性和徽章印记，然后添加新的
+      this.removeAbilityAndEmblemMarks(entity)
+      this.addNewAbilityAndEmblemMarks(entity, newBase)
+    } else if (effectHandlingStrategy === EffectHandlingStrategy.Preserve) {
+      // 保留策略：保持原有的特性和徽章印记，同时添加新的（如果不冲突）
+      this.addNewAbilityAndEmblemMarks(entity, newBase, true)
+    }
+  }
+
+  /**
+   * 移除精灵身上来自特性和徽章的印记
+   */
+  private removeAbilityAndEmblemMarks(entity: PetEntity): void {
+    // 移除来自特性的印记
+    if (entity.ability) {
+      const abilityMarkId = entity.ability.id
+      entity.marks = entity.marks.filter(mark => mark.base.id !== abilityMarkId)
+    }
+
+    // 移除来自徽章的印记
+    if (entity.emblem) {
+      const emblemMarkId = entity.emblem.id
+      entity.marks = entity.marks.filter(mark => mark.base.id !== emblemMarkId)
+    }
+  }
+
+  /**
+   * 添加新base的特性和徽章印记
+   */
+  private addNewAbilityAndEmblemMarks(
+    entity: PetEntity,
+    newBase: PetPrototype,
+    preserveExisting: boolean = false,
+  ): void {
+    // 添加新的特性印记
+    if (newBase.ability && newBase.ability.length > 0) {
+      const newAbility = newBase.ability[0] // 通常取第一个特性
+
+      // 检查是否已经存在相同的特性印记（在preserve模式下）
+      const existingAbilityMark = preserveExisting
+        ? entity.marks.find(mark => mark.base.id === newAbility.id)
+        : undefined
+
+      if (!existingAbilityMark) {
+        const abilityMark = newAbility.createInstance()
+        if (entity.emitter) {
+          abilityMark.setOwner(entity, entity.emitter)
+        }
+        entity.marks.push(abilityMark)
+
+        // 更新Pet的当前特性引用（用于变身期间）
+        ;(entity as any).currentAbility = newAbility
+      }
+    }
+
+    // 添加新的徽章印记
+    if (newBase.emblem && newBase.emblem.length > 0) {
+      const newEmblem = newBase.emblem[0] // 通常取第一个徽章
+
+      // 检查是否已经存在相同的徽章印记（在preserve模式下）
+      const existingEmblemMark = preserveExisting ? entity.marks.find(mark => mark.base.id === newEmblem.id) : undefined
+
+      if (!existingEmblemMark) {
+        const emblemMark = newEmblem.createInstance()
+        if (entity.emitter) {
+          emblemMark.setOwner(entity, entity.emitter)
+        }
+        entity.marks.push(emblemMark)
+
+        // 更新Pet的当前徽章引用（用于变身期间）
+        ;(entity as any).currentEmblem = newEmblem
+      }
+    }
+  }
+
+  getOriginalBase(entity: PetEntity): PetPrototype | undefined {
+    return entity.originalSpecies
   }
 }
 
 /**
  * 技能变身策略
  */
-export class SkillTransformationStrategy implements TransformationStrategy<SkillInstance, BaseSkill> {
-  canTransform(entity: any): entity is SkillInstance {
+export class SkillTransformationStrategy
+  implements TransformationStrategy<SkillEntity, SkillPrototype, EntityType.Skill>
+{
+  canTransform(entity: unknown): entity is SkillEntity {
     return entity instanceof SkillInstance
   }
 
-  getEntityType(): 'skill' {
-    return 'skill'
+  getEntityType(): EntityType.Skill {
+    return EntityType.Skill
   }
 
-  preserveState(entity: SkillInstance): any {
+  preserveState(entity: SkillEntity): TransformationState<SkillEntity> {
     return {
-      appeared: entity.appeared,
-      owner: entity.owner,
+      entityId: entity.id,
+      entityType: EntityType.Skill,
+      timestamp: Date.now(),
+      data: {
+        appeared: entity.appeared,
+        owner: entity.owner,
+      },
     }
   }
 
-  restoreState(entity: SkillInstance, state: any): void {
-    if (!state) return
+  restoreState(entity: SkillEntity, state: TransformationState<SkillEntity>): void {
+    if (!state?.data) return
 
-    if (state.appeared !== undefined) {
-      entity.appeared = state.appeared
+    const data = state.data
+
+    if (data.appeared !== undefined) {
+      entity.appeared = data.appeared as boolean
     }
-    if (state.owner !== undefined) {
-      entity.owner = state.owner
+    if (data.owner !== undefined) {
+      entity.owner = data.owner as Pet | null
     }
   }
 
-  async performTransformation(entity: SkillInstance, newBase: BaseSkill, preservedState: any): Promise<void> {
+  async performTransformation(
+    entity: SkillEntity,
+    newBase: SkillPrototype,
+    preservedState: TransformationState<SkillEntity>,
+    effectHandlingStrategy: EffectHandlingStrategy,
+  ): Promise<void> {
     // 更新base引用
     ;(entity as any).base = newBase
 
@@ -305,7 +445,9 @@ export class SkillTransformationStrategy implements TransformationStrategy<Skill
     ;(entity as any).sureCrit = newBase.sureCrit
     ;(entity as any).ignoreShield = newBase.ignoreShield
     ;(entity as any).tags = [...newBase.tags]
-    ;(entity as any).effects = [...newBase.effects]
+
+    // 处理effects根据策略
+    this.handleSkillEffects(entity, newBase, effectHandlingStrategy)
 
     // 更新属性系统
     entity.attributeSystem.initializeSkillAttributes(entity.power, entity.accuracy, entity.rage, entity.priority, false)
@@ -314,7 +456,39 @@ export class SkillTransformationStrategy implements TransformationStrategy<Skill
     this.restoreState(entity, preservedState)
   }
 
-  getOriginalBase(entity: SkillInstance): BaseSkill | undefined {
+  /**
+   * 处理技能effects的策略
+   */
+  private handleSkillEffects(
+    entity: SkillEntity,
+    newBase: SkillPrototype,
+    effectHandlingStrategy: EffectHandlingStrategy,
+  ): void {
+    if (effectHandlingStrategy === EffectHandlingStrategy.Override) {
+      // 覆盖策略：完全使用新base的effects
+      ;(entity as any).effects = [...newBase.effects]
+    } else if (effectHandlingStrategy === EffectHandlingStrategy.Preserve) {
+      // 保留策略：合并原有effects和新base的effects
+      const originalEffects = entity.effects || []
+      const newEffects = newBase.effects || []
+
+      // 创建一个Map来去重，以effect.id为key
+      const effectMap = new Map()
+
+      // 先添加原有的effects
+      originalEffects.forEach(effect => {
+        effectMap.set(effect.id, effect)
+      })
+
+      // 再添加新的effects，如果id相同则覆盖
+      newEffects.forEach(effect => {
+        effectMap.set(effect.id, effect)
+      })
+      ;(entity as any).effects = Array.from(effectMap.values())
+    }
+  }
+
+  getOriginalBase(entity: SkillEntity): SkillPrototype | undefined {
     return entity.base
   }
 }
@@ -322,55 +496,103 @@ export class SkillTransformationStrategy implements TransformationStrategy<Skill
 /**
  * 印记变身策略
  */
-export class MarkTransformationStrategy implements TransformationStrategy<MarkInstanceImpl, BaseMark> {
-  canTransform(entity: any): entity is MarkInstanceImpl {
+export class MarkTransformationStrategy implements TransformationStrategy<MarkEntity, MarkPrototype, EntityType.Mark> {
+  canTransform(entity: unknown): entity is MarkEntity {
     return entity instanceof MarkInstanceImpl
   }
 
-  getEntityType(): 'mark' {
-    return 'mark'
+  getEntityType(): EntityType.Mark {
+    return EntityType.Mark
   }
 
-  preserveState(entity: MarkInstanceImpl): any {
+  preserveState(entity: MarkEntity): TransformationState<MarkEntity> {
     return {
-      stack: entity.stack,
-      duration: entity.duration,
-      isActive: entity.isActive,
-      owner: entity.owner,
+      entityId: entity.id,
+      entityType: EntityType.Mark,
+      timestamp: Date.now(),
+      data: {
+        stack: (entity as MarkInstanceImpl).stack,
+        duration: entity.duration,
+        isActive: entity.isActive,
+        owner: entity.owner,
+      },
     }
   }
 
-  restoreState(entity: MarkInstanceImpl, state: any): void {
-    if (!state) return
+  restoreState(entity: MarkEntity, state: TransformationState<MarkEntity>): void {
+    if (!state?.data) return
 
-    if (state.stack !== undefined) {
-      entity.stack = state.stack
+    const data = state.data
+    const markEntity = entity as MarkInstanceImpl
+
+    if (data.stack !== undefined) {
+      markEntity.stack = data.stack as number
     }
-    if (state.duration !== undefined) {
-      entity.duration = state.duration
+    if (data.duration !== undefined) {
+      entity.duration = data.duration as number
     }
-    if (state.isActive !== undefined) {
-      entity.isActive = state.isActive
+    if (data.isActive !== undefined) {
+      entity.isActive = data.isActive as boolean
     }
-    if (state.owner !== undefined) {
-      entity.owner = state.owner
+    if (data.owner !== undefined) {
+      entity.owner = data.owner as Pet | Battle | null
     }
   }
 
-  async performTransformation(entity: MarkInstanceImpl, newBase: BaseMark, preservedState: any): Promise<void> {
+  async performTransformation(
+    entity: MarkEntity,
+    newBase: MarkPrototype,
+    preservedState: TransformationState<MarkEntity>,
+    effectHandlingStrategy: EffectHandlingStrategy,
+  ): Promise<void> {
     // 更新base引用
     ;(entity as any).base = newBase
 
     // 更新印记属性
-    entity.config = { ...newBase.config }
+    const markEntity = entity as MarkInstanceImpl
+    markEntity.config = { ...newBase.config }
     ;(entity as any).tags = [...newBase.tags]
-    ;(entity as any).effects = [...newBase.effects]
+
+    // 处理effects根据策略
+    this.handleMarkEffects(entity, newBase, effectHandlingStrategy)
 
     // 恢复保留的状态
     this.restoreState(entity, preservedState)
   }
 
-  getOriginalBase(entity: MarkInstanceImpl): BaseMark | undefined {
+  /**
+   * 处理印记effects的策略
+   */
+  private handleMarkEffects(
+    entity: MarkEntity,
+    newBase: MarkPrototype,
+    effectHandlingStrategy: EffectHandlingStrategy,
+  ): void {
+    if (effectHandlingStrategy === EffectHandlingStrategy.Override) {
+      // 覆盖策略：完全使用新base的effects
+      ;(entity as any).effects = [...newBase.effects]
+    } else if (effectHandlingStrategy === EffectHandlingStrategy.Preserve) {
+      // 保留策略：合并原有effects和新base的effects
+      const originalEffects = entity.effects || []
+      const newEffects = newBase.effects || []
+
+      // 创建一个Map来去重，以effect.id为key
+      const effectMap = new Map()
+
+      // 先添加原有的effects
+      originalEffects.forEach(effect => {
+        effectMap.set(effect.id, effect)
+      })
+
+      // 再添加新的effects，如果id相同则覆盖
+      newEffects.forEach(effect => {
+        effectMap.set(effect.id, effect)
+      })
+      ;(entity as any).effects = Array.from(effectMap.values())
+    }
+  }
+
+  getOriginalBase(entity: MarkEntity): MarkPrototype | undefined {
     return entity.base
   }
 }

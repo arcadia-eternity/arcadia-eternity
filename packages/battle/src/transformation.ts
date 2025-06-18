@@ -2,57 +2,203 @@ import { BattleMessageType, EffectTrigger } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 import { Battle } from './battle'
 import { TransformContext } from './context'
-import { type Prototype } from './entity'
+import { type Prototype, type Instance } from './entity'
 import {
   PetTransformationStrategy,
   SkillTransformationStrategy,
   MarkTransformationStrategy,
 } from './transformationStrategies'
+import { Pet, type Species } from './pet'
+import { SkillInstance, type BaseSkill } from './skill'
+import { type MarkInstance, MarkInstanceImpl, type BaseMark } from './mark'
+import type { Effect } from './effect'
 
-// 抽象变身策略接口
-export interface TransformationStrategy<TEntity = any, TPrototype extends Prototype = Prototype> {
-  canTransform(entity: any): entity is TEntity
-  getEntityType(): 'pet' | 'skill' | 'mark'
-  preserveState(entity: TEntity): any
-  restoreState(entity: TEntity, state: any): void
-  performTransformation(entity: TEntity, newBase: TPrototype, preservedState: any): Promise<void>
+// 实体类型枚举
+export const enum EntityType {
+  Pet = 'pet',
+  Skill = 'skill',
+  Mark = 'mark',
+}
+
+// Effect处理策略枚举
+export const enum EffectHandlingStrategy {
+  Override = 'override', // 覆盖原有effects，使用新base的effects
+  Preserve = 'preserve', // 保留原有effects，与新base的effects合并
+}
+
+// 强类型的变身策略接口
+export interface TransformationStrategy<
+  TEntity extends Transformable,
+  TPrototype extends Prototype,
+  TEntityType extends EntityType,
+> {
+  canTransform(entity: unknown): entity is TEntity
+  getEntityType(): TEntityType
+  preserveState(entity: TEntity): TransformationState<TEntity>
+  restoreState(entity: TEntity, state: TransformationState<TEntity>): void
+  performTransformation(
+    entity: TEntity,
+    newBase: TPrototype,
+    preservedState: TransformationState<TEntity>,
+    effectHandlingStrategy: EffectHandlingStrategy,
+  ): Promise<void>
   getOriginalBase(entity: TEntity): TPrototype | undefined
 }
 
-// 抽象变身接口
-export interface Transformable {
-  readonly id: string
+// 属性修改器状态类型
+export interface AttributeModifiersState {
+  statDifferences: {
+    atk: number
+    def: number
+    spa: number
+    spd: number
+    spe: number
+    maxHp: number
+    critRate: number
+    accuracy: number
+    evasion: number
+  }
+}
+
+// 被动效果状态类型
+export interface PassiveEffectsState {
+  markEffects: Array<{
+    markId: string
+    effects: Array<{
+      trigger: EffectTrigger
+      effectData: {
+        id: string
+        trigger: EffectTrigger
+        metadata: Record<string, unknown>
+      }
+    }>
+  }>
+  skillEffects: any[]
+}
+
+// 变身状态数据类型定义
+export interface PetTransformationData {
+  currentHpRatio: number
+  marks: MarkInstance[]
+  appeared: boolean
+  lastSkill?: SkillInstance
+  lastSkillUsedTimes: number
+  isAlive: boolean
+  attributeModifiers: AttributeModifiersState
+  passiveEffects: PassiveEffectsState
+}
+
+export interface SkillTransformationData {
+  appeared: boolean
+  owner: Pet | null
+}
+
+export interface MarkTransformationData {
+  stack: number
+  duration: number
+  isActive: boolean
+  owner: Pet | Battle | null
+}
+
+// 变身状态类型映射
+export interface TransformationDataMap {
+  [EntityType.Pet]: PetTransformationData
+  [EntityType.Skill]: SkillTransformationData
+  [EntityType.Mark]: MarkTransformationData
+}
+
+// 变身状态类型
+export interface TransformationState<TEntity extends Transformable> {
+  readonly entityId: string
+  readonly entityType: EntityType
+  readonly timestamp: number
+  readonly data: TEntity extends PetEntity
+    ? PetTransformationData
+    : TEntity extends SkillEntity
+      ? SkillTransformationData
+      : TEntity extends MarkEntity
+        ? MarkTransformationData
+        : Record<string, unknown>
+  readonly protectedEffects?: Array<{
+    sourceId: string
+    sourceType: string
+    reason: string
+  }>
+}
+
+// 强类型的变身接口
+export interface Transformable extends Instance {
   base: Prototype
 }
 
-export type TransformableEntity = Transformable
-export type TransformablePrototype = Prototype
+// 具体的实体类型定义
+export type PetEntity = Pet
+export type SkillEntity = SkillInstance
+export type MarkEntity = MarkInstance
 
-// 变身记录
-export interface TransformationRecord {
-  id: string
-  target: TransformableEntity
-  targetType: 'pet' | 'skill' | 'mark'
-  originalBase: TransformablePrototype
-  currentBase: TransformablePrototype
-  transformType: 'temporary' | 'permanent'
-  priority: number
-  causedBy?: any
-  isActive: boolean
-  createdAt: number
-  preservedState?: any
-  permanentStrategy?: 'preserve_temporary' | 'clear_temporary'
+// 具体的原型类型定义
+export type PetPrototype = Species
+export type SkillPrototype = BaseSkill
+export type MarkPrototype = BaseMark
+
+// 联合类型
+export type TransformableEntity = PetEntity | SkillEntity | MarkEntity
+export type TransformablePrototype = PetPrototype | SkillPrototype | MarkPrototype
+
+// 类型映射
+export interface EntityTypeMap {
+  [EntityType.Pet]: {
+    entity: PetEntity
+    prototype: PetPrototype
+    strategy: TransformationStrategy<PetEntity, PetPrototype, EntityType.Pet>
+  }
+  [EntityType.Skill]: {
+    entity: SkillEntity
+    prototype: SkillPrototype
+    strategy: TransformationStrategy<SkillEntity, SkillPrototype, EntityType.Skill>
+  }
+  [EntityType.Mark]: {
+    entity: MarkEntity
+    prototype: MarkPrototype
+    strategy: TransformationStrategy<MarkEntity, MarkPrototype, EntityType.Mark>
+  }
 }
+
+// 变身记录类型
+export interface TransformationRecord<
+  TEntity extends TransformableEntity = TransformableEntity,
+  TPrototype extends TransformablePrototype = TransformablePrototype,
+> {
+  readonly id: string
+  readonly target: TEntity
+  readonly targetType: EntityType
+  readonly originalBase: TPrototype
+  readonly currentBase: TPrototype
+  readonly transformType: 'temporary' | 'permanent'
+  readonly priority: number
+  readonly causedBy?: MarkInstance | SkillInstance | Effect<EffectTrigger>
+  readonly isActive: boolean
+  readonly createdAt: number
+  readonly preservedState: TransformationState<TEntity>
+  readonly permanentStrategy?: 'preserve_temporary' | 'clear_temporary'
+  readonly effectHandlingStrategy: EffectHandlingStrategy
+}
+
+// 策略联合类型
+export type AnyTransformationStrategy =
+  | TransformationStrategy<PetEntity, PetPrototype, EntityType.Pet>
+  | TransformationStrategy<SkillEntity, SkillPrototype, EntityType.Skill>
+  | TransformationStrategy<MarkEntity, MarkPrototype, EntityType.Mark>
 
 // 变身策略注册表
 export class TransformationStrategyRegistry {
-  private strategies = new Map<string, TransformationStrategy>()
+  private strategies = new Map<EntityType, AnyTransformationStrategy>()
 
-  register(entityType: string, strategy: TransformationStrategy): void {
-    this.strategies.set(entityType, strategy)
+  register<T extends EntityType>(entityType: T, strategy: EntityTypeMap[T]['strategy']): void {
+    this.strategies.set(entityType, strategy as AnyTransformationStrategy)
   }
 
-  getStrategy(entity: any): TransformationStrategy | undefined {
+  getStrategy<TEntity extends TransformableEntity>(entity: TEntity): AnyTransformationStrategy | undefined {
     for (const [type, strategy] of this.strategies) {
       if (strategy.canTransform(entity)) {
         return strategy
@@ -61,7 +207,11 @@ export class TransformationStrategyRegistry {
     return undefined
   }
 
-  getAllStrategies(): TransformationStrategy[] {
+  getStrategyByType<T extends EntityType>(entityType: T): EntityTypeMap[T]['strategy'] | undefined {
+    return this.strategies.get(entityType) as EntityTypeMap[T]['strategy'] | undefined
+  }
+
+  getAllStrategies(): AnyTransformationStrategy[] {
     return Array.from(this.strategies.values())
   }
 }
@@ -85,31 +235,35 @@ export class TransformationSystem {
    */
   private initializeDefaultStrategies(): void {
     // 直接注册默认策略
-    this.registerStrategy('pet', new PetTransformationStrategy())
-    this.registerStrategy('skill', new SkillTransformationStrategy())
-    this.registerStrategy('mark', new MarkTransformationStrategy())
+    this.registerStrategy(EntityType.Pet, new PetTransformationStrategy())
+    this.registerStrategy(EntityType.Skill, new SkillTransformationStrategy())
+    this.registerStrategy(EntityType.Mark, new MarkTransformationStrategy())
   }
 
   /**
    * 注册变身策略
    */
-  registerStrategy(entityType: string, strategy: TransformationStrategy): void {
+  registerStrategy<T extends EntityType>(entityType: T, strategy: EntityTypeMap[T]['strategy']): void {
     this.strategyRegistry.register(entityType, strategy)
   }
 
   /**
    * 保留导致变身的效果
    */
-  private preserveCausingEffect(target: TransformableEntity, causedBy: any, preservedState: any): void {
+  private preserveCausingEffect<TEntity extends TransformableEntity>(
+    target: TEntity,
+    causedBy: MarkInstance | SkillInstance | Effect<EffectTrigger>,
+    preservedState: TransformationState<TEntity>,
+  ): void {
     try {
       // 如果变身是由印记引起的，确保该印记在变身后仍然有效
       if (causedBy && typeof causedBy === 'object' && 'id' in causedBy) {
         // 在保留状态中标记这个效果需要特殊保护
         if (!preservedState.protectedEffects) {
-          preservedState.protectedEffects = []
+          ;(preservedState as any).protectedEffects = []
         }
 
-        preservedState.protectedEffects.push({
+        preservedState.protectedEffects!.push({
           sourceId: causedBy.id,
           sourceType: this.getSourceType(causedBy),
           reason: 'transformation_cause',
@@ -133,15 +287,62 @@ export class TransformationSystem {
   }
 
   /**
-   * 应用变身效果
+   * 应用变身效果 - 类型安全的重载方法
+   */
+  async applyTransformation<T extends EntityType>(
+    target: EntityTypeMap[T]['entity'],
+    newBase: EntityTypeMap[T]['prototype'],
+    transformType: 'temporary' | 'permanent',
+    priority?: number,
+    causedBy?: MarkInstance | SkillInstance | Effect<EffectTrigger>,
+    permanentStrategy?: 'preserve_temporary' | 'clear_temporary',
+    effectHandlingStrategy?: EffectHandlingStrategy,
+  ): Promise<boolean>
+
+  /**
+   * 应用变身效果 - 通用方法
    */
   async applyTransformation(
     target: TransformableEntity,
     newBase: TransformablePrototype,
     transformType: 'temporary' | 'permanent',
+    priority?: number,
+    causedBy?: MarkInstance | SkillInstance | Effect<EffectTrigger>,
+    permanentStrategy?: 'preserve_temporary' | 'clear_temporary',
+    effectHandlingStrategy?: EffectHandlingStrategy,
+  ): Promise<boolean>
+
+  async applyTransformation(
+    target: TransformableEntity,
+    newBase: TransformablePrototype,
+    transformType: 'temporary' | 'permanent',
     priority: number = 0,
-    causedBy?: any,
+    causedBy?: MarkInstance | SkillInstance | Effect<EffectTrigger>,
     permanentStrategy: 'preserve_temporary' | 'clear_temporary' = 'clear_temporary',
+    effectHandlingStrategy: EffectHandlingStrategy = EffectHandlingStrategy.Preserve,
+  ): Promise<boolean> {
+    return this.applyTransformationInternal(
+      target,
+      newBase,
+      transformType,
+      priority,
+      causedBy,
+      permanentStrategy,
+      effectHandlingStrategy,
+    )
+  }
+
+  /**
+   * 内部实现方法
+   */
+  private async applyTransformationInternal(
+    target: TransformableEntity,
+    newBase: TransformablePrototype,
+    transformType: 'temporary' | 'permanent',
+    priority: number,
+    causedBy?: MarkInstance | SkillInstance | Effect<EffectTrigger>,
+    permanentStrategy: 'preserve_temporary' | 'clear_temporary' = 'clear_temporary',
+    effectHandlingStrategy: EffectHandlingStrategy = EffectHandlingStrategy.Preserve,
   ): Promise<boolean> {
     // 获取适合的变身策略
     const strategy = this.strategyRegistry.getStrategy(target)
@@ -156,8 +357,8 @@ export class TransformationSystem {
     // 创建变身上下文
     const context = new TransformContext(
       this.battle,
-      target as any, // 临时类型转换，因为TransformContext期望具体类型
-      targetType,
+      target as Pet, // TransformContext 需要具体类型，这里使用类型断言
+      targetType as 'pet',
       originalBase,
       newBase,
       transformType,
@@ -172,8 +373,8 @@ export class TransformationSystem {
       return false
     }
 
-    // 保存当前状态
-    const preservedState = strategy.preserveState(target)
+    // 使用类型安全的方式保存状态
+    const preservedState = this.preserveStateTypeSafe(target, strategy)
 
     // 如果变身是由被动效果引起的，确保该效果在变身后仍然有效
     if (causedBy) {
@@ -194,6 +395,7 @@ export class TransformationSystem {
       createdAt: Date.now(),
       preservedState,
       permanentStrategy: transformType === 'permanent' ? permanentStrategy : undefined,
+      effectHandlingStrategy,
     }
 
     if (transformType === 'temporary') {
@@ -207,16 +409,76 @@ export class TransformationSystem {
 
     // 发送变身消息
     this.battle.emitMessage(BattleMessageType.Transform, {
-      target: target.id as any,
+      target: target.id,
       targetType,
-      fromBase: originalBase.id as any,
-      toBase: newBase.id as any,
+      fromBase: originalBase.id,
+      toBase: newBase.id,
       transformType,
       priority,
-      causedBy: causedBy?.id as any,
+      causedBy: causedBy?.id,
     })
 
     return true
+  }
+
+  /**
+   * 类型安全的状态保存方法
+   */
+  private preserveStateTypeSafe(
+    target: TransformableEntity,
+    strategy: AnyTransformationStrategy,
+  ): TransformationState<TransformableEntity> {
+    if (target instanceof Pet) {
+      const petStrategy = strategy as TransformationStrategy<PetEntity, PetPrototype, EntityType.Pet>
+      return petStrategy.preserveState(target)
+    } else if (target instanceof SkillInstance) {
+      const skillStrategy = strategy as TransformationStrategy<SkillEntity, SkillPrototype, EntityType.Skill>
+      return skillStrategy.preserveState(target)
+    } else if (target instanceof MarkInstanceImpl) {
+      const markStrategy = strategy as TransformationStrategy<MarkEntity, MarkPrototype, EntityType.Mark>
+      return markStrategy.preserveState(target)
+    } else {
+      throw new Error(`Unsupported entity type for transformation: ${target.constructor.name}`)
+    }
+  }
+
+  /**
+   * 类型安全的变身执行方法
+   */
+  private async performTransformationTypeSafe(
+    target: TransformableEntity,
+    newBase: TransformablePrototype,
+    preservedState: TransformationState<TransformableEntity>,
+    strategy: AnyTransformationStrategy,
+    effectHandlingStrategy: EffectHandlingStrategy,
+  ): Promise<void> {
+    if (target instanceof Pet) {
+      const petStrategy = strategy as TransformationStrategy<PetEntity, PetPrototype, EntityType.Pet>
+      await petStrategy.performTransformation(
+        target,
+        newBase as PetPrototype,
+        preservedState as TransformationState<PetEntity>,
+        effectHandlingStrategy,
+      )
+    } else if (target instanceof SkillInstance) {
+      const skillStrategy = strategy as TransformationStrategy<SkillEntity, SkillPrototype, EntityType.Skill>
+      await skillStrategy.performTransformation(
+        target,
+        newBase as SkillPrototype,
+        preservedState as TransformationState<SkillEntity>,
+        effectHandlingStrategy,
+      )
+    } else if (target instanceof MarkInstanceImpl) {
+      const markStrategy = strategy as TransformationStrategy<MarkEntity, MarkPrototype, EntityType.Mark>
+      await markStrategy.performTransformation(
+        target,
+        newBase as MarkPrototype,
+        preservedState as TransformationState<MarkEntity>,
+        effectHandlingStrategy,
+      )
+    } else {
+      throw new Error(`Unsupported entity type for transformation: ${target.constructor.name}`)
+    }
   }
 
   /**
@@ -224,7 +486,7 @@ export class TransformationSystem {
    */
   private async applyTemporaryTransformation(
     record: TransformationRecord,
-    strategy: TransformationStrategy,
+    strategy: AnyTransformationStrategy,
   ): Promise<void> {
     const targetId = record.target.id
 
@@ -255,7 +517,7 @@ export class TransformationSystem {
    */
   private async applyPermanentTransformation(
     record: TransformationRecord,
-    strategy: TransformationStrategy,
+    strategy: AnyTransformationStrategy,
   ): Promise<void> {
     const targetId = record.target.id
 
@@ -272,7 +534,13 @@ export class TransformationSystem {
     // 如果没有临时变身或者清理了临时变身，直接应用永久变身
     const hasTemporaryTransforms = this.temporaryTransformStack.get(targetId)?.length || 0
     if (hasTemporaryTransforms === 0) {
-      await strategy.performTransformation(record.target, record.currentBase, record.preservedState)
+      await this.performTransformationTypeSafe(
+        record.target,
+        record.currentBase,
+        record.preservedState,
+        strategy,
+        record.effectHandlingStrategy,
+      )
     }
     // 如果有临时变身且选择保留，临时变身会覆盖永久变身
 
@@ -352,10 +620,12 @@ export class TransformationSystem {
       if (permanentTransform && target) {
         const strategy = this.strategyRegistry.getStrategy(target)
         if (strategy) {
-          await strategy.performTransformation(
+          await this.performTransformationTypeSafe(
             target,
             permanentTransform.currentBase,
             permanentTransform.preservedState,
+            strategy,
+            permanentTransform.effectHandlingStrategy,
           )
         }
       } else if (target) {
@@ -368,7 +638,13 @@ export class TransformationSystem {
     const topTransform = stack[0]
     const strategy = this.strategyRegistry.getStrategy(target)
     if (strategy) {
-      await strategy.performTransformation(target, topTransform.currentBase, topTransform.preservedState)
+      await this.performTransformationTypeSafe(
+        target,
+        topTransform.currentBase,
+        topTransform.preservedState,
+        strategy,
+        topTransform.effectHandlingStrategy,
+      )
     }
   }
 
@@ -395,7 +671,13 @@ export class TransformationSystem {
     const originalRecord = transformations[0]
     const strategy = this.strategyRegistry.getStrategy(target)
     if (strategy) {
-      await strategy.performTransformation(target, originalRecord.originalBase, originalRecord.preservedState)
+      await this.performTransformationTypeSafe(
+        target,
+        originalRecord.originalBase,
+        originalRecord.preservedState,
+        strategy,
+        originalRecord.effectHandlingStrategy,
+      )
     }
   }
 

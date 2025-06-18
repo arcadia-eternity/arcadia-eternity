@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import type { SkillMessage } from '@arcadia-eternity/const'
+import type { SkillMessage, AttributeModifierInfo } from '@arcadia-eternity/const'
 import ElementIcon from './ElementIcon.vue'
 import Tooltip from './Tooltip.vue'
+import ModifiedValue from './ModifiedValue.vue'
 import { Z_INDEX } from '@/constants/zIndex'
 import MarkdownIt from 'markdown-it'
 import i18next from 'i18next'
 import { computed, ref } from 'vue'
+import { analyzeModifierType } from '@/utils/modifierStyles'
 
 const md = new MarkdownIt({
   html: true,
@@ -14,6 +16,10 @@ const md = new MarkdownIt({
 const props = defineProps<{
   skill: SkillMessage
   disabled?: boolean
+  // Modifier 信息
+  powerModifierInfo?: AttributeModifierInfo
+  accuracyModifierInfo?: AttributeModifierInfo
+  rageModifierInfo?: AttributeModifierInfo
 }>()
 
 const emit = defineEmits<{
@@ -36,6 +42,26 @@ const description = computed(() =>
     ns: 'skill',
   }),
 )
+
+// Modifier 效果类型
+const powerModifierType = computed(() => {
+  return analyzeModifierType(props.powerModifierInfo, 'power')
+})
+
+const accuracyModifierType = computed(() => {
+  return analyzeModifierType(props.accuracyModifierInfo, 'accuracy')
+})
+
+const rageModifierType = computed(() => {
+  return analyzeModifierType(props.rageModifierInfo, 'rage')
+})
+
+// 技能按钮的特殊样式
+const skillButtonClasses = computed(() => {
+  return [
+    'group relative w-44 h-26 p-2 cursor-pointer overflow-visible disabled:opacity-75 disabled:cursor-not-allowed',
+  ]
+})
 
 // 粒子效果配置
 const particlesId = ref(`particles-${Math.random().toString(36).substring(2, 11)}`)
@@ -157,8 +183,7 @@ const particlesLoaded = async () => {
     <Tooltip position="top">
       <template #trigger>
         <button
-          class="group relative w-44 h-26 p-2 cursor-pointer overflow-visible disabled:opacity-75 disabled:cursor-not-allowed"
-          :class="`z-[${Z_INDEX.SKILL_BUTTON}]`"
+          :class="[...skillButtonClasses, `z-[${Z_INDEX.SKILL_BUTTON}]`]"
           :disabled="disabled"
           @click="emit('click', skill.id)"
           @mouseenter="isHovered = true"
@@ -214,7 +239,7 @@ const particlesLoaded = async () => {
                     ns: 'battle',
                   })
                 }}
-                {{ skill.power }}
+                <ModifiedValue :value="skill.power" :attribute-info="powerModifierInfo" size="sm" inline />
               </div>
               <div class="text-yellow-300 text-sm font-semibold [text-shadow:_1px_1px_0_black] leading-tight">
                 {{
@@ -222,7 +247,7 @@ const particlesLoaded = async () => {
                     ns: 'battle',
                   })
                 }}
-                {{ skill.rage }}
+                <ModifiedValue :value="skill.rage" :attribute-info="rageModifierInfo" size="sm" inline />
               </div>
               <div class="text-green-300 text-sm font-semibold [text-shadow:_1px_1px_0_black] leading-tight">
                 {{
@@ -230,7 +255,7 @@ const particlesLoaded = async () => {
                     ns: 'battle',
                   })
                 }}
-                {{ skill.accuracy }}
+                <ModifiedValue :value="skill.accuracy" :attribute-info="accuracyModifierInfo" size="sm" inline />
               </div>
             </div>
           </div>
@@ -239,6 +264,29 @@ const particlesLoaded = async () => {
       <div class="prose prose-invert max-w-none">
         <h3 class="text-cyan-300">{{ name }}</h3>
         <div v-html="md.render(description)" />
+
+        <!-- 技能属性详情 -->
+        <div class="mt-4 border-t border-gray-600 pt-3">
+          <h4 class="text-yellow-300 text-sm font-medium mb-2">技能属性</h4>
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-300">威力:</span>
+              <ModifiedValue :value="skill.power" :attribute-info="powerModifierInfo" size="sm" inline />
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-300">命中:</span>
+              <ModifiedValue :value="skill.accuracy" :attribute-info="accuracyModifierInfo" size="sm" inline />
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-300">怒气:</span>
+              <ModifiedValue :value="skill.rage" :attribute-info="rageModifierInfo" size="sm" inline />
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-300">类别:</span>
+              <span class="text-white">{{ category }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </Tooltip>
   </div>

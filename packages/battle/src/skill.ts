@@ -243,11 +243,11 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
   }
 
   getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[] {
-    return this.base.effects.filter(e => e.trigger === trigger)
+    return this.effects.filter(e => e.trigger === trigger)
   }
 
   collectEffects(trigger: EffectTrigger, baseContext: UseSkillContext) {
-    this.base.effects
+    this.effects
       .filter(effect => effect.trigger === trigger)
       .forEach(effect => {
         const effectContext = new EffectContext(baseContext, trigger, this, effect)
@@ -266,6 +266,10 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     const shouldShowDetails = this.appeared || isSelf || showHidden
 
     if (shouldShowDetails) {
+      // 只有在是自己的技能或显示隐藏信息时才包含 modifier 状态
+      const shouldShowModifiers = isSelf || showHidden
+      const modifierState = shouldShowModifiers ? this.attributeSystem.getDetailedModifierState() : undefined
+
       return {
         isUnknown: false,
         id: this.id,
@@ -280,6 +284,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
         multihit: this.multihit,
         sureHit: this.sureHit,
         tag: this.tags,
+        modifierState,
       }
     }
 

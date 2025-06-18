@@ -30,6 +30,10 @@
               "Shield",
               "PostDamage",
               "OnCritPostDamage",
+              "OnTransform",
+              "OnTransformEnd",
+              "BeforeTransform",
+              "AfterTransform",
               "TurnStart",
               "TurnEnd",
               "OnBeforeAddMark",
@@ -391,6 +395,23 @@
                                                                 "type": {
                                                                   "type": "string",
                                                                   "const": "entity:baseSkill"
+                                                                },
+                                                                "value": {
+                                                                  "type": "string"
+                                                                }
+                                                              },
+                                                              "required": [
+                                                                "type",
+                                                                "value"
+                                                              ],
+                                                              "additionalProperties": false
+                                                            },
+                                                            {
+                                                              "type": "object",
+                                                              "properties": {
+                                                                "type": {
+                                                                  "type": "string",
+                                                                  "const": "entity:species"
                                                                 },
                                                                 "value": {
                                                                   "type": "string"
@@ -966,7 +987,7 @@
                                     "additionalProperties": false
                                   },
                                   {
-                                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/9"
+                                    "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/10"
                                   }
                                 ]
                               },
@@ -2022,7 +2043,7 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "mark": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/8"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/9"
                       }
                     },
                     "required": [
@@ -2184,7 +2205,7 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "value": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/8"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/9"
                       },
                       "updateConfig": {
                         "type": "boolean"
@@ -2225,7 +2246,7 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
                       },
                       "newTarget": {
-                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/8"
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value/anyOf/9"
                       }
                     },
                     "required": [
@@ -3070,6 +3091,99 @@
                       "modifierType",
                       "observableValue",
                       "phaseType"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "transform"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "newBase": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "transformType": {
+                        "type": "string",
+                        "enum": [
+                          "temporary",
+                          "permanent"
+                        ]
+                      },
+                      "priority": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "permanentStrategy": {
+                        "type": "string",
+                        "enum": [
+                          "preserve_temporary",
+                          "clear_temporary"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "newBase"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "transformWithPreservation"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "newBase": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "transformType": {
+                        "type": "string",
+                        "enum": [
+                          "temporary",
+                          "permanent"
+                        ]
+                      },
+                      "priority": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "permanentStrategy": {
+                        "type": "string",
+                        "enum": [
+                          "preserve_temporary",
+                          "clear_temporary"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target",
+                      "newBase"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "removeTransformation"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target"
                     ],
                     "additionalProperties": false
                   }

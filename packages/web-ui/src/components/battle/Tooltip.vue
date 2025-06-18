@@ -63,7 +63,7 @@ watch(
 
     <!-- 直接使用CSS定位的tooltip -->
     <transition name="fade">
-      <div v-show="showTooltip" :class="tooltipClasses">
+      <div v-if="showTooltip" :class="tooltipClasses">
         <div
           class="relative bg-black/90 text-white p-4 rounded-xl min-w-[280px] max-w-[320px] shadow-2xl shadow-black/30 backdrop-blur-sm border border-white/10"
           :class="contentClass"

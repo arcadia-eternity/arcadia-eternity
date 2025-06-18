@@ -33,6 +33,7 @@ export interface SkillMessage {
   multihit: [number, number] | number
   sureHit: boolean
   tag: string[]
+  modifierState?: EntityModifierState // 技能修改器状态信息
 }
 
 export interface PetMessage {
@@ -47,6 +48,7 @@ export interface PetMessage {
   skills?: SkillMessage[] //skillmessage
   stats?: StatOnBattle
   marks: MarkMessage[] //markmessage
+  modifierState?: EntityModifierState // 修改器状态信息
 }
 
 export interface MarkMessage {
@@ -66,6 +68,33 @@ export interface PlayerMessage {
   activePet: petId
   team?: PetMessage[]
   teamAlives: number
+  modifierState?: EntityModifierState // 修改器状态信息
+}
+
+// Modifier 信息接口
+export interface ModifierInfo {
+  id: string
+  type: 'percent' | 'delta' | 'override' | 'clampMax' | 'clampMin' | 'clamp'
+  value: number | boolean | string
+  priority: number
+  sourceType: 'mark' | 'skill' | 'other'
+  sourceId?: string
+  sourceName?: string
+}
+
+// 属性修改信息接口
+export interface AttributeModifierInfo {
+  attributeName: string
+  baseValue: number | boolean | string
+  currentValue: number | boolean | string
+  modifiers: ModifierInfo[]
+  isModified: boolean
+}
+
+// 实体修改器状态接口
+export interface EntityModifierState {
+  attributes: AttributeModifierInfo[]
+  hasModifiers: boolean
 }
 
 export interface BattleState {

@@ -484,6 +484,15 @@ const availableSkills = computed<SkillMessage[]>(() => {
   return store.getPetById(currentPlayer.value.activePet)?.skills?.filter(skill => !skill.isUnknown) ?? []
 })
 
+// 获取技能的 modifier 信息
+const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
+  // 技能的 modifier 信息直接从技能的 modifierState 中获取
+  if (!skill.modifierState) return undefined
+
+  // 在技能的 modifierState 中查找对应的属性
+  return skill.modifierState.attributes.find(attr => attr.attributeName === attributeName)
+}
+
 const handleSkillClick = (skillId: string) => {
   if (isPending.value) return
   const action = store.availableActions.find(a => a.type === 'use-skill' && a.skill === skillId)
@@ -2468,6 +2477,9 @@ watch(
                     @click="handleSkillClick(skill.id)"
                     :disabled="!isSkillAvailable(skill.id) || isPending"
                     :style="{ 'grid-column-start': index + 1 }"
+                    :power-modifier-info="getSkillModifierInfo(skill, 'power')"
+                    :accuracy-modifier-info="getSkillModifierInfo(skill, 'accuracy')"
+                    :rage-modifier-info="getSkillModifierInfo(skill, 'rage')"
                   />
                 </template>
                 <template
@@ -2480,6 +2492,9 @@ watch(
                     :disabled="!isSkillAvailable(skill.id) || isPending"
                     :style="{ 'grid-column-start': 5 - index }"
                     class="justify-self-end"
+                    :power-modifier-info="getSkillModifierInfo(skill, 'power')"
+                    :accuracy-modifier-info="getSkillModifierInfo(skill, 'accuracy')"
+                    :rage-modifier-info="getSkillModifierInfo(skill, 'rage')"
                   />
                 </template>
               </div>

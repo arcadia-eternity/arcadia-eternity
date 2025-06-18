@@ -4,6 +4,7 @@ import HealthRageBar from './HealthRageBar.vue'
 import PetIcon from '../PetIcon.vue'
 import Mark from './Mark.vue'
 import Tooltip from './Tooltip.vue'
+import ModifiedValue from './ModifiedValue.vue'
 import type { PlayerMessage } from '@arcadia-eternity/const'
 import ElementIcon from './ElementIcon.vue'
 import { useGameDataStore } from '@/stores/gameData'
@@ -36,23 +37,60 @@ const activePet = computed(() => {
   return battleStore.getPetById(props.player.activePet)
 })
 
+// 获取等级的 modifier 信息
+const levelModifierInfo = computed(() => {
+  const pet = activePet.value
+  if (!pet?.modifierState) return undefined
+
+  return pet.modifierState.attributes.find(attr => attr.attributeName === 'level')
+})
+
+// 获取 HP 相关的 modifier 信息
+const hpModifierInfo = computed(() => {
+  const pet = activePet.value
+  if (!pet?.modifierState) return undefined
+
+  return {
+    currentHp: pet.modifierState.attributes.find(attr => attr.attributeName === 'currentHp'),
+    maxHp: pet.modifierState.attributes.find(attr => attr.attributeName === 'maxHp'),
+  }
+})
+
+// 获取玩家怒气的 modifier 信息
+const rageModifierInfo = computed(() => {
+  if (!props.player.modifierState) return undefined
+
+  return {
+    rage: props.player.modifierState.attributes.find(attr => attr.attributeName === 'rage'),
+    maxRage: props.player.modifierState.attributes.find(attr => attr.attributeName === 'maxRage'),
+  }
+})
+
 // 获取属性名称的i18n翻译
 const getStatName = (statKey: string): string => {
   return i18next.t(`stats.${statKey}`, { ns: 'webui' }) || statKey
 }
 
-// 格式化精灵属性信息
-const petStatsTooltip = computed(() => {
+// 获取属性的 modifier 信息
+const getStatModifierInfo = (statKey: string) => {
   const pet = activePet.value
-  if (!pet) return ''
+  if (!pet?.modifierState) return undefined
+
+  return pet.modifierState.attributes.find(attr => attr.attributeName === statKey)
+}
+
+// 格式化精灵属性信息（用于显示是否有 modifier）
+const petStatsInfo = computed(() => {
+  const pet = activePet.value
+  if (!pet) return null
 
   // 检查是否为己方精灵（有stats数据）
   if (!pet.stats) {
-    return i18next.t('stats.unknown', { ns: 'webui' }) || '属性未知'
+    return { hasStats: false, message: i18next.t('stats.unknown', { ns: 'webui' }) || '属性未知' }
   }
 
   const stats = pet.stats
-  const statLines: string[] = []
+  const statEntries: Array<{ key: string; name: string; value: number; modifierInfo?: any }> = []
 
   // 主要战斗属性
   const mainStats = ['atk', 'def', 'spa', 'spd', 'spe']
@@ -60,7 +98,12 @@ const petStatsTooltip = computed(() => {
     const value = stats[statKey as keyof typeof stats]
     const name = getStatName(statKey)
     if (typeof value === 'number' && name) {
-      statLines.push(`${name}: ${Math.floor(value)}`)
+      statEntries.push({
+        key: statKey,
+        name,
+        value: Math.floor(value),
+        modifierInfo: getStatModifierInfo(statKey),
+      })
     }
   })
 
@@ -71,16 +114,20 @@ const petStatsTooltip = computed(() => {
     const name = getStatName(statKey)
     if (typeof value === 'number' && name) {
       const displayValue =
-        statKey === 'critRate'
-          ? `${Math.floor(value)}%`
-          : statKey === 'accuracy' || statKey === 'evasion'
-            ? `${Math.floor(value)}%`
-            : Math.floor(value).toString()
-      statLines.push(`${name}: ${displayValue}`)
+        statKey === 'critRate' || statKey === 'accuracy' || statKey === 'evasion'
+          ? Math.floor(value)
+          : Math.floor(value)
+
+      statEntries.push({
+        key: statKey,
+        name,
+        value: displayValue,
+        modifierInfo: getStatModifierInfo(statKey),
+      })
     }
   })
 
-  return statLines.join('\n')
+  return { hasStats: true, statEntries }
 })
 </script>
 
@@ -97,14 +144,33 @@ const petStatsTooltip = computed(() => {
       </template>
       <div class="text-sm">
         <div class="font-semibold mb-2">{{ activePet!.name }} {{ i18next.t('stats.title', { ns: 'webui' }) }}</div>
-        <div class="whitespace-pre-line">{{ petStatsTooltip }}</div>
+        <div v-if="petStatsInfo?.hasStats" class="space-y-1">
+          <div v-for="stat in petStatsInfo.statEntries" :key="stat.key" class="flex justify-between items-center">
+            <span>{{ stat.name }}:</span>
+            <ModifiedValue
+              :value="
+                stat.key === 'critRate' || stat.key === 'accuracy' || stat.key === 'evasion'
+                  ? `${stat.value}%`
+                  : stat.value
+              "
+              :attribute-info="stat.modifierInfo"
+              size="sm"
+              inline
+            />
+          </div>
+        </div>
+        <div v-else class="text-gray-400">
+          {{ petStatsInfo?.message }}
+        </div>
       </div>
     </Tooltip>
 
     <div :class="statusBarClass">
       <div class="flex items-center gap-2 mb-1" :class="[side === 'right' ? 'flex-row-reverse' : '']">
         <span class="font-semibold text-base">{{ activePet!.name }}</span>
-        <span class="text-sm opacity-80">Lv.{{ activePet!.level }}</span>
+        <span class="text-sm opacity-80">
+          Lv.<ModifiedValue :value="activePet!.level" :attribute-info="levelModifierInfo" size="sm" inline />
+        </span>
         <div class="flex-1"></div>
         <ElementIcon :element="activePet!.element" class="w-5 h-5"></ElementIcon>
       </div>
@@ -114,8 +180,11 @@ const petStatsTooltip = computed(() => {
         :max="activePet!.maxHp"
         :rage="player.rage"
         :maxRage="player.maxRage"
-        type="health"
         :reverse="props.side === 'right'"
+        :current-hp-modifier-info="hpModifierInfo.currentHp"
+        :max-hp-modifier-info="hpModifierInfo.maxHp"
+        :rage-modifier-info="rageModifierInfo.rage"
+        :max-rage-modifier-info="rageModifierInfo.maxRage"
       />
 
       <div v-if="activePet!.marks?.length" :class="markContainerClass">

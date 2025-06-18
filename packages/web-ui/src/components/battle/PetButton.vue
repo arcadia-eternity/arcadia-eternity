@@ -3,11 +3,13 @@ import { computed, ref } from 'vue'
 import PetIcon from '../PetIcon.vue'
 import ElementIcon from './ElementIcon.vue'
 import Tooltip from './Tooltip.vue'
+import ModifiedValue from './ModifiedValue.vue'
 import type { PetMessage } from '@arcadia-eternity/const'
 import { useGameDataStore } from '@/stores/gameData'
 import { Z_INDEX } from '@/constants/zIndex'
 import i18next from 'i18next'
 import MarkdownIt from 'markdown-it'
+import { analyzeModifierType } from '@/utils/modifierStyles'
 
 const gameDataStore = useGameDataStore()
 
@@ -17,7 +19,6 @@ const md = new MarkdownIt({
 
 interface Props {
   pet: PetMessage
-
   position: 'left' | 'bottom' | 'right'
   disabled?: boolean
   isActive?: boolean
@@ -148,6 +149,61 @@ const processedSkills = computed(() => {
     }
   })
 })
+
+// Modifier 相关计算属性
+const hasModifiers = computed(() => {
+  return props.pet.modifierState?.hasModifiers ?? false
+})
+
+// 获取等级的 modifier 信息
+const levelModifierInfo = computed(() => {
+  if (!props.pet.modifierState) return undefined
+  return props.pet.modifierState.attributes.find(attr => attr.attributeName === 'level')
+})
+
+// 获取 HP 相关的 modifier 信息
+const hpModifierInfo = computed(() => {
+  if (!props.pet.modifierState) return { currentHp: undefined, maxHp: undefined }
+
+  return {
+    currentHp: props.pet.modifierState.attributes.find(attr => attr.attributeName === 'currentHp'),
+    maxHp: props.pet.modifierState.attributes.find(attr => attr.attributeName === 'maxHp'),
+  }
+})
+
+// 检查是否有重要的 modifier 影响（用于视觉提示）
+const hasImportantModifiers = computed(() => {
+  if (!hasModifiers.value) return false
+
+  // 检查是否有影响战斗能力的重要 modifier
+  const importantAttributes = ['atk', 'def', 'spa', 'spd', 'spe', 'maxHp', 'accuracy', 'evasion']
+
+  return (
+    props.pet.modifierState?.attributes.some(
+      attr => importantAttributes.includes(attr.attributeName) && attr.isModified,
+    ) ?? false
+  )
+})
+
+// Pet 按钮的特殊样式
+const petButtonClasses = computed(() => {
+  const baseClasses = ['relative flex flex-col items-center transition-all duration-200']
+
+  if (hasImportantModifiers.value && !isPetUnknown.value) {
+    baseClasses.push('pet-modified')
+  }
+
+  return baseClasses
+})
+
+// 获取技能的 modifier 信息
+const getSkillModifierInfo = (skill: any, attributeName: string) => {
+  // 技能的 modifier 信息直接从技能的 modifierState 中获取
+  if (!skill.modifierState) return undefined
+
+  // 在技能的 modifierState 中查找对应的属性
+  return skill.modifierState.attributes.find(attr => attr.attributeName === attributeName)
+}
 </script>
 
 <template>
@@ -155,8 +211,8 @@ const processedSkills = computed(() => {
     <Tooltip :show="showTooltip" :position="position === 'left' ? 'right' : position === 'right' ? 'left' : 'top'">
       <template #trigger>
         <div
-          class="relative flex flex-col items-center transition-all duration-200"
           :class="[
+            ...petButtonClasses,
             `z-[${Z_INDEX.PET_BUTTON}]`,
             position === 'left' ? 'mr-auto' : '',
             position === 'right' ? 'ml-auto' : '',
@@ -202,7 +258,9 @@ const processedSkills = computed(() => {
                   class="text-center mb-[-4px] relative"
                   :class="`z-[${Z_INDEX.PET_BUTTON_LEVEL}]`"
                 >
-                  <span class="text-yellow-200 text-sm font-bold [text-shadow:_0_0_2px_black]">Lv.{{ pet.level }}</span>
+                  <span class="text-yellow-200 text-sm font-bold [text-shadow:_0_0_2px_black]">
+                    Lv.<ModifiedValue :value="pet.level" :attribute-info="levelModifierInfo" size="sm" inline />
+                  </span>
                 </div>
 
                 <!-- 血条 -->
@@ -240,8 +298,19 @@ const processedSkills = computed(() => {
 
           <div class="text-sm text-gray-300">
             <div>{{ i18next.t('species', { ns: 'webui' }) || '种族' }}: {{ speciesDisplayName }}</div>
-            <div v-if="!isPetUnknown">{{ i18next.t('level', { ns: 'webui' }) || '等级' }}: {{ pet.level }}</div>
-            <div v-if="!isPetUnknown">HP: {{ pet.currentHp }}/{{ pet.maxHp }}</div>
+            <div v-if="!isPetUnknown">
+              {{ i18next.t('level', { ns: 'webui' }) || '等级' }}:
+              <ModifiedValue :value="pet.level" :attribute-info="levelModifierInfo" size="sm" inline />
+            </div>
+            <div v-if="!isPetUnknown">
+              HP:
+              <ModifiedValue
+                :value="pet.currentHp"
+                :attribute-info="hpModifierInfo.currentHp"
+                size="sm"
+                inline
+              />/<ModifiedValue :value="pet.maxHp" :attribute-info="hpModifierInfo.maxHp" size="sm" inline />
+            </div>
           </div>
         </div>
 
@@ -270,9 +339,33 @@ const processedSkills = computed(() => {
 
             <!-- 技能属性 -->
             <div v-if="!skill.isUnknown" class="flex gap-3 text-xs text-gray-300">
-              <span>{{ i18next.t('rage', { ns: 'battle' }) || '怒气' }}: {{ skill.rage }}</span>
-              <span>{{ i18next.t('power', { ns: 'battle' }) || '威力' }}: {{ skill.power }}</span>
-              <span>{{ i18next.t('accuracy', { ns: 'battle' }) || '命中' }}: {{ skill.accuracy }}</span>
+              <span
+                >{{ i18next.t('rage', { ns: 'battle' }) || '怒气' }}:
+                <ModifiedValue
+                  :value="skill.rage"
+                  :attribute-info="getSkillModifierInfo(skill, 'rage')"
+                  size="sm"
+                  inline
+                />
+              </span>
+              <span
+                >{{ i18next.t('power', { ns: 'battle' }) || '威力' }}:
+                <ModifiedValue
+                  :value="skill.power"
+                  :attribute-info="getSkillModifierInfo(skill, 'power')"
+                  size="sm"
+                  inline
+                />
+              </span>
+              <span
+                >{{ i18next.t('accuracy', { ns: 'battle' }) || '命中' }}:
+                <ModifiedValue
+                  :value="skill.accuracy"
+                  :attribute-info="getSkillModifierInfo(skill, 'accuracy')"
+                  size="sm"
+                  inline
+                />
+              </span>
             </div>
           </div>
         </div>
@@ -285,3 +378,36 @@ const processedSkills = computed(() => {
     </Tooltip>
   </div>
 </template>
+
+<style scoped>
+/* Pet 受到 modifier 影响时的样式 */
+.pet-modified {
+  position: relative;
+}
+
+.pet-modified::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  background: linear-gradient(
+    45deg,
+    rgba(168, 85, 247, 0.4) 0%,
+    rgba(59, 130, 246, 0.4) 25%,
+    rgba(34, 197, 94, 0.4) 50%,
+    rgba(251, 146, 60, 0.4) 75%,
+    rgba(168, 85, 247, 0.4) 100%
+  );
+  border-radius: 8px;
+  z-index: -1;
+  opacity: 0.6;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* 悬停时增强效果 */
+.pet-modified:hover::before {
+  opacity: 0.8;
+}
+</style>

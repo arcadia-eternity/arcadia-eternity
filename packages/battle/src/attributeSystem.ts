@@ -2,7 +2,13 @@
 import { BehaviorSubject, Observable, combineLatest, Subject, of } from 'rxjs'
 import { map, distinctUntilChanged, shareReplay, startWith, switchMap } from 'rxjs/operators'
 import { nanoid } from 'nanoid'
-import type { StatOnBattle, StatTypeOnBattle } from '@arcadia-eternity/const'
+import type {
+  StatOnBattle,
+  StatTypeOnBattle,
+  EntityModifierState,
+  AttributeModifierInfo,
+  ModifierInfo,
+} from '@arcadia-eternity/const'
 import type { MarkInstance } from './mark'
 import type { SkillInstance } from './skill'
 import type { PhaseTypeSpec } from './config'
@@ -1377,6 +1383,66 @@ export class AttributeSystem<T extends AttributeData> {
     }
 
     return info
+  }
+
+  // 获取详细的修改器状态信息，用于客户端显示
+  getDetailedModifierState(): EntityModifierState {
+    const attributes: AttributeModifierInfo[] = []
+    let hasModifiers = false
+
+    for (const [key, modifiersSubject] of this.modifiers.entries()) {
+      const modifiers = modifiersSubject.value
+      const baseValue = this.baseAttributes.get(key)?.value
+      const currentValue = this.getCurrentValue(key as string)
+
+      if (modifiers.length > 0) {
+        hasModifiers = true
+      }
+
+      // 按优先级排序 modifier（与实际应用顺序一致）
+      const sortedModifiers = [...modifiers].sort((a, b) => b.priority - a.priority)
+
+      const modifierInfos: ModifierInfo[] = sortedModifiers.map(modifier => {
+        let sourceType: 'mark' | 'skill' | 'other' = 'other'
+        let sourceName: string | undefined
+
+        if (modifier.source) {
+          // 检查是否是 MarkInstance
+          if ('baseId' in modifier.source) {
+            sourceType = 'mark'
+            sourceName = (modifier.source as any).base?.name || modifier.source.id
+          }
+          // 检查是否是 SkillInstance
+          else if ('baseSkill' in modifier.source) {
+            sourceType = 'skill'
+            sourceName = (modifier.source as any).baseSkill?.name || modifier.source.id
+          }
+        }
+
+        return {
+          id: modifier.id,
+          type: modifier.type,
+          value: modifier.getCurrentValue(),
+          priority: modifier.priority,
+          sourceType,
+          sourceId: modifier.source?.id,
+          sourceName,
+        }
+      })
+
+      attributes.push({
+        attributeName: key as string,
+        baseValue: baseValue ?? 0,
+        currentValue: currentValue ?? 0,
+        modifiers: modifierInfos,
+        isModified: modifiers.length > 0,
+      })
+    }
+
+    return {
+      attributes,
+      hasModifiers,
+    }
   }
 }
 
