@@ -1591,9 +1591,9 @@ import type { PetSchemaType } from '@arcadia-eternity/schema'
 import { Gender, Nature, NatureMap, ELEMENT_MAP } from '@arcadia-eternity/const'
 import PetIcon from '../components/PetIcon.vue'
 import ContextMenu from '../components/ContextMenu.vue'
-import { usePetManagement } from '@/composables/usePetManagement'
-import { useTeamExport } from '@/composables/useTeamExport'
-import { useStorageImportExport } from '@/composables/useStorageImportExport'
+import { usePetManagement } from '@/composition/usePetManagement'
+import { useTeamExport } from '@/composition/useTeamExport'
+import { useStorageImportExport } from '@/composition/useStorageImportExport'
 
 const petStorage = usePetStorageStore()
 const playerStore = usePlayerStore()

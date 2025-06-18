@@ -811,8 +811,8 @@ import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 import MarkdownIt from 'markdown-it'
 import { InfoFilled, FolderOpened, Close, QuestionFilled } from '@element-plus/icons-vue'
-import { usePetManagement } from '@/composables/usePetManagement'
-import { useTeamExport } from '@/composables/useTeamExport'
+import { usePetManagement } from '@/composition/usePetManagement'
+import { useTeamExport } from '@/composition/useTeamExport'
 
 const { i18next } = useTranslation()
 

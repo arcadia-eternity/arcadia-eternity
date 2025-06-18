@@ -1410,12 +1410,12 @@ export class AttributeSystem<T extends AttributeData> {
           // 检查是否是 MarkInstance
           if ('baseId' in modifier.source) {
             sourceType = 'mark'
-            sourceName = (modifier.source as any).base?.name || modifier.source.id
+            sourceName = (modifier.source as any).base?.name || (modifier.source as any).id
           }
           // 检查是否是 SkillInstance
           else if ('baseSkill' in modifier.source) {
             sourceType = 'skill'
-            sourceName = (modifier.source as any).baseSkill?.name || modifier.source.id
+            sourceName = (modifier.source as any).baseSkill?.name || (modifier.source as any).id
           }
         }
 
