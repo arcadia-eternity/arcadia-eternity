@@ -106,3 +106,6 @@ mark_ability_wudou:
 mark_ability_renyi:
   name: 仁义
   description: 受到伤害减少10点 双精灵战时效果2倍
+mark_ability_feixiang:
+  name: 飞翔
+  description: 连续使用飞行系技能恢复自身20点怒气

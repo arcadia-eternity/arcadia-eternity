@@ -1,3 +1,5 @@
+import { test, group } from '@japa/runner'
+import { expect } from '@japa/expect'
 import { ChainableSelector, BaseSelector } from '../selector'
 import {
   EffectContext,
@@ -28,7 +30,7 @@ import {
   Category,
 } from '@arcadia-eternity/const'
 
-describe('ChainableSelector 类型安全测试', () => {
+group('ChainableSelector 类型安全测试', () => {
   const mockBaseSkill = new BaseSkill.Builder()
     .withID('fire_blast' as baseSkillId)
     .withName('火焰冲击')

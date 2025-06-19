@@ -2,6 +2,9 @@
 import { computed, watch, useTemplateRef, onMounted } from 'vue'
 import gsap from 'gsap'
 import { Flip } from 'gsap/Flip'
+import ModifiedValue from './ModifiedValue.vue'
+import type { AttributeModifierInfo } from '@arcadia-eternity/const'
+import { analyzeModifierType } from '@/utils/modifierStyles'
 
 gsap.registerPlugin(Flip)
 
@@ -11,6 +14,11 @@ interface Props {
   rage?: number
   maxRage?: number
   reverse?: boolean
+  // Modifier 信息
+  currentHpModifierInfo?: AttributeModifierInfo
+  maxHpModifierInfo?: AttributeModifierInfo
+  rageModifierInfo?: AttributeModifierInfo
+  maxRageModifierInfo?: AttributeModifierInfo
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -33,6 +41,87 @@ const healthColor = computed(() => {
 
 const ragePercentage = computed(() => {
   return Math.min(100, Math.max(0, (props.rage / props.maxRage) * 100))
+})
+
+// Modifier 效果类型
+const healthModifierType = computed(() => {
+  return analyzeModifierType(props.currentHpModifierInfo, 'currentHp')
+})
+
+const maxHpModifierType = computed(() => {
+  return analyzeModifierType(props.maxHpModifierInfo, 'maxHp')
+})
+
+const rageModifierType = computed(() => {
+  return analyzeModifierType(props.rageModifierInfo, 'currentRage')
+})
+
+const maxRageModifierType = computed(() => {
+  return analyzeModifierType(props.maxRageModifierInfo, 'maxRage')
+})
+
+// 检查是否有任何 modifier 影响
+const hasHealthModifiers = computed(() => {
+  return healthModifierType.value !== 'none' || maxHpModifierType.value !== 'none'
+})
+
+const hasRageModifiers = computed(() => {
+  return rageModifierType.value !== 'none' || maxRageModifierType.value !== 'none'
+})
+
+// 动态样式
+const healthBarStyle = computed(() => {
+  const baseStyle = { backgroundColor: healthColor.value }
+
+  if (hasHealthModifiers.value) {
+    // 根据 modifier 类型添加边框效果
+    const primaryType = healthModifierType.value !== 'none' ? healthModifierType.value : maxHpModifierType.value
+
+    // 根据 modifier 类型选择边框颜色
+    const borderColors = {
+      buffed: 'rgba(34, 197, 94, 0.8)',
+      debuffed: 'rgba(239, 68, 68, 0.8)',
+      clamped: 'rgba(251, 146, 60, 0.8)',
+      mixed: 'rgba(168, 85, 247, 0.8)',
+      neutral: 'rgba(59, 130, 246, 0.8)',
+      none: 'transparent',
+    }
+
+    return {
+      ...baseStyle,
+      boxShadow: `inset 0 0 0 2px ${borderColors[primaryType]}, inset 0 0 10px rgba(255, 255, 255, 0.2)`,
+    }
+  }
+
+  return baseStyle
+})
+
+const rageBarStyle = computed(() => {
+  const baseStyle = {
+    background: `linear-gradient(to right, #ff6b00, #ffcc00)`,
+  }
+
+  if (hasRageModifiers.value) {
+    // 根据 modifier 类型添加边框效果
+    const primaryType = rageModifierType.value !== 'none' ? rageModifierType.value : maxRageModifierType.value
+
+    // 根据 modifier 类型选择边框颜色
+    const borderColors = {
+      buffed: 'rgba(34, 197, 94, 0.8)',
+      debuffed: 'rgba(239, 68, 68, 0.8)',
+      clamped: 'rgba(251, 146, 60, 0.8)',
+      mixed: 'rgba(168, 85, 247, 0.8)',
+      neutral: 'rgba(59, 130, 246, 0.8)',
+      none: 'transparent',
+    }
+
+    return {
+      ...baseStyle,
+      boxShadow: `inset 0 0 0 2px ${borderColors[primaryType]}, inset 0 0 10px rgba(255, 255, 255, 0.2)`,
+    }
+  }
+
+  return baseStyle
 })
 
 onMounted(() => {
@@ -84,7 +173,7 @@ watch(ragePercentage, (newPercentage, oldPercentage) => {
 </script>
 
 <template>
-  <div class="relative block w-full my-2 overflow-hidden" :class="{ 'direction-rtl': reverse }">
+  <div class="relative block w-full my-2 overflow-hidden" :dir="reverse ? 'rtl' : 'ltr'">
     <div
       class="relative w-full h-8 mb-1"
       :class="[
@@ -96,17 +185,24 @@ watch(ragePercentage, (newPercentage, oldPercentage) => {
       <div class="absolute w-full h-full bg-black"></div>
       <div
         ref="healthValueRef"
-        class="relative h-full"
+        class="relative h-full transition-all duration-300"
         :class="[
           reverse
             ? '[clip-path:polygon(0_0,100%_0,100%_100%,8px_100%)]'
             : '[clip-path:polygon(0_0,100%_0,calc(100%-8px)_100%,0%_100%)]',
         ]"
+        :style="healthBarStyle"
       ></div>
       <span
-        class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white [text-shadow:1px_1px_1px_rgba(0,0,0,0.5)] text-xl font-bold w-full text-center pointer-events-none z-20"
+        dir="ltr"
+        class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white [text-shadow:1px_1px_1px_rgba(0,0,0,0.5)] text-xl font-bold w-full text-center pointer-events-none z-20 ltr"
       >
-        {{ current }}/{{ max }}
+        <ModifiedValue :value="current" :attribute-info="currentHpModifierInfo" size="md" inline />/<ModifiedValue
+          :value="max"
+          :attribute-info="maxHpModifierInfo"
+          size="md"
+          inline
+        />
       </span>
     </div>
 
@@ -121,29 +217,27 @@ watch(ragePercentage, (newPercentage, oldPercentage) => {
       <div class="absolute w-full h-full bg-black"></div>
       <div
         ref="rageValueRef"
-        class="relative h-full"
+        class="relative h-full transition-all duration-300"
         :class="[
           reverse
             ? '[clip-path:polygon(0_0,100%_0,100%_100%,8px_100%)]'
             : '[clip-path:polygon(0_0,100%_0,calc(100%-8px)_100%,0%_100%)]',
         ]"
-        :style="{
-          background: `linear-gradient(to right, #ff6b00, #ffcc00)`,
-        }"
+        :style="rageBarStyle"
       ></div>
       <span
+        dir="ltr"
         class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white [text-shadow:1px_1px_1px_rgba(0,0,0,0.5)] text-xl font-bold pointer-events-none z-20"
       >
-        {{ rage }}/{{ maxRage }}
+        <ModifiedValue :value="rage" :attribute-info="rageModifierInfo" size="md" inline />/<ModifiedValue
+          :value="maxRage"
+          :attribute-info="maxRageModifierInfo"
+          size="md"
+          inline
+        />
       </span>
     </div>
   </div>
 </template>
 
-<style scoped>
-/* Tailwind's JIT mode allows for arbitrary values which is used for clip-path */
-/* We also use a custom class 'direction-rtl' for the reverse state as Tailwind doesn't have a direct 'direction' utility */
-.direction-rtl {
-  direction: rtl;
-}
-</style>
+<style scoped></style>

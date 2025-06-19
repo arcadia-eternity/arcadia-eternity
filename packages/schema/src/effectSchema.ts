@@ -21,6 +21,7 @@ import type {
   SelectorDSL,
   Value,
   RawBaseSkillIdValue,
+  RawSpeciesIdValue,
   SelectorValue,
 } from './effectDsl'
 import { MarkConfigSchema } from './mark'
@@ -72,6 +73,13 @@ export const rawBaseSkillIdValueSchema: z.ZodSchema<RawBaseSkillIdValue> = z.obj
   }),
 })
 
+export const rawSpeciesIdValueSchema = z.object({
+  type: z.literal('entity:species'),
+  value: z.string().refine(v => v.startsWith('pet_'), {
+    message: "Species ID must start with 'pet_'",
+  }),
+})
+
 export const dynamicValueSchema: z.ZodSchema<DynamicValue> = z.lazy(() =>
   z.object({
     type: z.literal('dynamic'),
@@ -106,6 +114,7 @@ export const valueSchema: z.ZodSchema<Value> = z.lazy(() =>
     z.boolean(),
     rawBaseMarkIdValueSchema,
     rawBaseSkillIdValueSchema,
+    rawSpeciesIdValueSchema,
     dynamicValueSchema,
     selectorValueSchema,
     conditionalValueSchema,
@@ -706,6 +715,27 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       scope: valueSchema.optional(),
       priority: valueSchema.optional(),
       phaseId: valueSchema.optional(),
+    }),
+    // 变身相关操作符
+    z.object({
+      type: z.literal('transform'),
+      target: selectorDSLSchema,
+      newBase: valueSchema,
+      transformType: z.enum(['temporary', 'permanent']).optional(),
+      priority: valueSchema.optional(),
+      permanentStrategy: z.enum(['preserve_temporary', 'clear_temporary']).optional(),
+    }),
+    z.object({
+      type: z.literal('transformWithPreservation'),
+      target: selectorDSLSchema,
+      newBase: valueSchema,
+      transformType: z.enum(['temporary', 'permanent']).optional(),
+      priority: valueSchema.optional(),
+      permanentStrategy: z.enum(['preserve_temporary', 'clear_temporary']).optional(),
+    }),
+    z.object({
+      type: z.literal('removeTransformation'),
+      target: selectorDSLSchema,
     }),
   ]),
 )

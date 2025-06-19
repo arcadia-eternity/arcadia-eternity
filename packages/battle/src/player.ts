@@ -290,6 +290,11 @@ export class Player {
 
   public toMessage(viewerId?: string, showHidden = false): PlayerMessage {
     const teamAlives = this.team.filter(p => p.isAlive).length
+    const isSelf = viewerId === this.id
+
+    // 只有在是自己或显示隐藏信息时才包含 modifier 状态
+    const shouldShowModifiers = isSelf || showHidden
+    const modifierState = shouldShowModifiers ? this.attributeSystem.getDetailedModifierState() : undefined
 
     return {
       name: this.name,
@@ -299,6 +304,7 @@ export class Player {
       maxRage: this.maxRage,
       teamAlives,
       team: this.team.map(p => p.toMessage(viewerId, showHidden)),
+      modifierState,
     }
   }
 

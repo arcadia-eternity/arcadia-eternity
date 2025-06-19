@@ -1,5 +1,6 @@
 import {
   BattleMessageType,
+  Category,
   CleanStageStrategy,
   EffectTrigger,
   Element,
@@ -63,7 +64,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public marks: MarkInstance[] = []
   public skills: SkillInstance[] = []
 
-  public base: Species
+  private _base: Species
   public appeared: boolean = false
 
   public lastSkill?: SkillInstance
@@ -75,7 +76,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   constructor(
     public readonly name: string,
     public readonly id: petId,
-    public readonly species: Species,
+    public readonly originalSpecies: Species,
     public readonly level: number,
     public readonly evs: StatOutBattle,
     public readonly ivs: StatOutBattle,
@@ -88,9 +89,9 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     gender?: Gender,
     public readonly maxHp?: number, //可以额外手动设置hp
   ) {
-    this.base = species
+    this._base = originalSpecies
 
-    this.element = species.element
+    this.element = originalSpecies.element
     this.owner = null
 
     // Initialize attribute system with pet ID (battleId will be set later in setOwner)
@@ -100,6 +101,19 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     if (gender !== undefined) {
       this.gender = gender
     }
+  }
+
+  // base 和 species 都指向同一个对象，确保变身时两者保持同步
+  get base(): Species {
+    return this._base
+  }
+
+  set base(newBase: Species) {
+    this._base = newBase
+  }
+
+  get species(): Species {
+    return this._base
   }
 
   // Convenience getters for accessing attributes through the system
@@ -174,7 +188,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   private calculateStatWithoutHp(type: StatTypeWithoutHp): number {
-    const baseStat = this.species.baseStats[type]
+    const baseStat = this.base.baseStats[type]
     const natureMultiplier = NatureMap[this.nature][type]
     const level = this.level
     const iv = this.ivs[type]
@@ -207,10 +221,10 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
         base = this.calculateStatWithoutHp(type)
         break
       case StatTypeOnlyBattle.weight:
-        base = this.weight ?? this.species.weightRange[1]
+        base = this.weight ?? this.base.weightRange[1]
         break
       case StatTypeOnlyBattle.height:
-        base = this.height ?? this.species.heightRange[1]
+        base = this.height ?? this.base.heightRange[1]
         break
       case StatTypeOnlyBattle.maxHp:
         base = this.calculateMaxHp()
@@ -222,7 +236,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   private calculateMaxHp(): number {
-    const baseStat = this.species.baseStats.hp
+    const baseStat = this.base.baseStats.hp
     const level = this.level
     const iv = this.ivs.hp
     const ev = this.evs.hp
@@ -252,17 +266,17 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     const baseStats = this.calculateStats()
 
     // Set weight and height in base stats
-    if (!this.weight) baseStats.weight = this.species.weightRange[1]
+    if (!this.weight) baseStats.weight = this.originalSpecies.weightRange[1]
     else baseStats.weight = this.weight
-    if (!this.height) baseStats.height = this.species.heightRange[1]
+    if (!this.height) baseStats.height = this.originalSpecies.heightRange[1]
     else baseStats.height = this.height
 
     // Initialize attribute system with calculated stats
     this.attributeSystem.initializePetAttributes(baseStats, baseStats.maxHp)
 
     if (!this.gender) {
-      if (!this.species.genderRatio) this.gender = Gender.NoGender
-      else if (this.species.genderRatio[0] != 0) this.gender = Gender.Female
+      if (!this.originalSpecies.genderRatio) this.gender = Gender.NoGender
+      else if (this.originalSpecies.genderRatio[0] != 0) this.gender = Gender.Female
       else this.gender = Gender.Male
     }
 
@@ -442,9 +456,60 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     this.appeared = true
   }
 
+  /**
+   * 获取技能的原始类型（考虑变形）
+   */
+  private getSkillOriginalCategory(skill: SkillInstance): Category {
+    if (!this.owner?.battle?.transformationSystem) {
+      return skill.category
+    }
+
+    // 获取变身状态
+    const transformState = this.owner.battle.transformationSystem.getTransformationState(skill)
+    if (!transformState.isTransformed || !transformState.activeTransformation) {
+      return skill.category
+    }
+
+    // 返回原始base的category（只有BaseSkill有category属性）
+    const originalBase = transformState.currentTransformations[0]?.originalBase
+    if (originalBase && 'category' in originalBase) {
+      return (originalBase as BaseSkill).category
+    }
+
+    return skill.category
+  }
+
+  /**
+   * 按原始类型排序技能
+   */
+  private sortSkillsByOriginalCategory(skills: SkillInstance[]): SkillInstance[] {
+    return [...skills].sort((a, b) => {
+      const aOriginalCategory = this.getSkillOriginalCategory(a)
+      const bOriginalCategory = this.getSkillOriginalCategory(b)
+
+      // Climax技能排在最后
+      if (aOriginalCategory === Category.Climax && bOriginalCategory !== Category.Climax) {
+        return 1
+      }
+      if (bOriginalCategory === Category.Climax && aOriginalCategory !== Category.Climax) {
+        return -1
+      }
+
+      // 其他技能保持原有顺序
+      return 0
+    })
+  }
+
   toMessage(viewerId?: string, showHidden = false): PetMessage {
     const isSelf = viewerId === this.owner?.id
     const shouldShowDetails = this.appeared || isSelf || showHidden
+
+    // 只有在显示详细信息且是自己的宠物或显示隐藏信息时才包含 modifier 状态
+    const shouldShowModifiers = shouldShowDetails && (isSelf || showHidden)
+    const modifierState = shouldShowModifiers ? this.attributeSystem.getDetailedModifierState() : undefined
+
+    // 按原始类型排序技能
+    const sortedSkills = shouldShowDetails ? this.sortSkillsByOriginalCategory(this.skills) : undefined
 
     return {
       isUnknown: !shouldShowDetails,
@@ -457,7 +522,8 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       maxHp: shouldShowDetails ? this.stat.maxHp : 0,
       marks: shouldShowDetails ? this.marks.map(m => m.toMessage.call(m)) : [],
       stats: isSelf || showHidden ? this.stat : undefined,
-      skills: shouldShowDetails ? this.skills.map(s => s.toMessage.call(s, viewerId, showHidden)) : undefined,
+      skills: sortedSkills ? sortedSkills.map(s => s.toMessage.call(s, viewerId, showHidden)) : undefined,
+      modifierState,
     }
   }
 

@@ -1,30 +1,31 @@
-import { describe, it, expect } from 'vitest'
+import { test, group } from '@japa/runner'
+import { expect } from '@japa/expect'
 import { effectDSLSchema } from '../src/effectSchema'
 import type { EffectDSL, SelectorValue } from '../src/effectDsl'
 
-describe('SelectorValue Syntax', () => {
-  it('should validate basic SelectorValue', () => {
+group('SelectorValue Syntax', () => {
+  test('should validate basic SelectorValue', () => {
     const selectorValue: SelectorValue = {
       type: 'selector',
       value: 100,
-      chain: [
-        { type: 'add', arg: 50 }
-      ]
+      chain: [{ type: 'add', arg: 50 }],
     }
 
-    expect(() => effectDSLSchema.parse({
-      id: 'test_selector_value',
-      trigger: 'OnTurnStart',
-      priority: 100,
-      apply: {
-        type: 'dealDamage',
-        target: selectorValue,
-        value: 50
-      }
-    })).not.toThrow()
+    expect(() =>
+      effectDSLSchema.parse({
+        id: 'test_selector_value',
+        trigger: 'OnTurnStart',
+        priority: 100,
+        apply: {
+          type: 'dealDamage',
+          target: selectorValue,
+          value: 50,
+        },
+      }),
+    ).not.toThrow()
   })
 
-  it('should validate SelectorValue with array', () => {
+  test('should validate SelectorValue with array', () => {
     const effect: EffectDSL = {
       id: 'array_selector_test',
       trigger: 'OnTurnStart',
@@ -35,17 +36,15 @@ describe('SelectorValue Syntax', () => {
         value: {
           type: 'selector',
           value: [10, 20, 30],
-          chain: [
-            { type: 'randomPick', arg: 1 }
-          ]
-        }
-      }
+          chain: [{ type: 'randomPick', arg: 1 }],
+        },
+      },
     }
 
     expect(() => effectDSLSchema.parse(effect)).not.toThrow()
   })
 
-  it('should validate SelectorValue with dynamic value', () => {
+  test('should validate SelectorValue with dynamic value', () => {
     const effect: EffectDSL = {
       id: 'dynamic_selector_test',
       trigger: 'OnDealDamage',
@@ -59,21 +58,21 @@ describe('SelectorValue Syntax', () => {
             type: 'dynamic',
             selector: {
               base: 'self',
-              chain: [{ type: 'selectPath', arg: 'currentHp' }]
-            }
+              chain: [{ type: 'selectPath', arg: 'currentHp' }],
+            },
           },
           chain: [
             { type: 'divide', arg: 10 },
-            { type: 'clampMax', arg: 100 }
-          ]
-        }
-      }
+            { type: 'clampMax', arg: 100 },
+          ],
+        },
+      },
     }
 
     expect(() => effectDSLSchema.parse(effect)).not.toThrow()
   })
 
-  it('should validate SelectorValue with conditional value', () => {
+  test('should validate SelectorValue with conditional value', () => {
     const effect: EffectDSL = {
       id: 'conditional_selector_test',
       trigger: 'OnTurnStart',
@@ -93,20 +92,20 @@ describe('SelectorValue Syntax', () => {
               evaluator: {
                 type: 'compare',
                 operator: '<',
-                value: 50
-              }
+                value: 50,
+              },
             },
             trueValue: 30,
-            falseValue: 10
-          }
-        }
-      }
+            falseValue: 10,
+          },
+        },
+      },
     }
 
     expect(() => effectDSLSchema.parse(effect)).not.toThrow()
   })
 
-  it('should validate SelectorValue with config value', () => {
+  test('should validate SelectorValue with config value', () => {
     const effect: EffectDSL = {
       id: 'config_selector_test',
       trigger: 'OnTurnStart',
@@ -120,19 +119,17 @@ describe('SelectorValue Syntax', () => {
             type: 'raw:number',
             value: 75,
             configId: 'base_damage',
-            tags: ['damage']
+            tags: ['damage'],
           },
-          chain: [
-            { type: 'multiply', arg: 1.5 }
-          ]
-        }
-      }
+          chain: [{ type: 'multiply', arg: 1.5 }],
+        },
+      },
     }
 
     expect(() => effectDSLSchema.parse(effect)).not.toThrow()
   })
 
-  it('should validate complex SelectorValue with multiple operations', () => {
+  test('should validate complex SelectorValue with multiple operations', () => {
     const effect: EffectDSL = {
       id: 'complex_selector_test',
       trigger: 'OnDealDamage',
@@ -147,19 +144,19 @@ describe('SelectorValue Syntax', () => {
               type: 'dynamic',
               selector: {
                 base: 'self',
-                chain: [{ type: 'selectPath', arg: 'stat.atk' }]
-              }
+                chain: [{ type: 'selectPath', arg: 'stat.atk' }],
+              },
             },
-            50
+            50,
           ],
           chain: [
             { type: 'sum' },
             { type: 'multiply', arg: 1.2 },
             { type: 'clampMin', arg: 10 },
-            { type: 'clampMax', arg: 200 }
-          ]
-        }
-      }
+            { type: 'clampMax', arg: 200 },
+          ],
+        },
+      },
     }
 
     expect(() => effectDSLSchema.parse(effect)).not.toThrow()

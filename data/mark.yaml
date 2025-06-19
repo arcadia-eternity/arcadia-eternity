@@ -1354,8 +1354,6 @@
     stackStrategy: refresh
     destroyable: true
     keepOnSwitchOut: true
-  tags:
-    - status
   effect:
     - effect_mark_guanghuizhiying_priority_minus_1
 - id: mark_guangzhilingyu
@@ -1393,8 +1391,6 @@
     stackStrategy: refresh
     destroyable: true
     keepOnSwitchOut: true
-  tags:
-    - status
   effect:
     - effect_mark_evade_physical_attacks
     - effect_mark_double_special_damage_taken
@@ -1430,8 +1426,6 @@
     stackStrategy: max
     destroyable: true
     keepOnSwitchOut: true
-  tags:
-    - status
   effect:
     - effect_mark_increase_damage_taken
 - id: mark_lanbaoshi
@@ -1512,8 +1506,6 @@
     stackStrategy: max
     destroyable: true
     keepOnSwitchOut: true
-  tags:
-    - status
   effect:
     - effect_mark_reduce_damage_20_percent
 - id: mark_wuzhezhixin
@@ -1652,3 +1644,25 @@
     keepOnSwitchOut: true
   effect:
     - effect_mark_xulichongji_add_50_percent_damage
+- id: mark_fenshen
+  config:
+    duration: 5
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: false
+  effect:
+    - effect_mark_reduce_damage_30_percent
+- id: mark_fenshenhying
+  config:
+    duration: 5
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: false
+  effect:
+    - effect_mark_increase_evasion_10_percent

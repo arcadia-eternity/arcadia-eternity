@@ -33,6 +33,7 @@ export interface SkillMessage {
   multihit: [number, number] | number
   sureHit: boolean
   tag: string[]
+  modifierState?: EntityModifierState // 技能修改器状态信息
 }
 
 export interface PetMessage {
@@ -47,6 +48,7 @@ export interface PetMessage {
   skills?: SkillMessage[] //skillmessage
   stats?: StatOnBattle
   marks: MarkMessage[] //markmessage
+  modifierState?: EntityModifierState // 修改器状态信息
 }
 
 export interface MarkMessage {
@@ -66,6 +68,33 @@ export interface PlayerMessage {
   activePet: petId
   team?: PetMessage[]
   teamAlives: number
+  modifierState?: EntityModifierState // 修改器状态信息
+}
+
+// Modifier 信息接口
+export interface ModifierInfo {
+  id: string
+  type: 'percent' | 'delta' | 'override' | 'clampMax' | 'clampMin' | 'clamp'
+  value: number | boolean | string
+  priority: number
+  sourceType: 'mark' | 'skill' | 'other'
+  sourceId?: string
+  sourceName?: string
+}
+
+// 属性修改信息接口
+export interface AttributeModifierInfo {
+  attributeName: string
+  baseValue: number | boolean | string
+  currentValue: number | boolean | string
+  modifiers: ModifierInfo[]
+  isModified: boolean
+}
+
+// 实体修改器状态接口
+export interface EntityModifierState {
+  attributes: AttributeModifierInfo[]
+  hasModifiers: boolean
 }
 
 export interface BattleState {
@@ -116,6 +145,10 @@ export enum BattleMessageType {
   EffectApply = 'EFFECT_APPLY',
   EffectApplyFail = 'EFFECT_APPLY_FAIL', //UnUsed
 
+  // 变身相关
+  Transform = 'TRANSFORM',
+  TransformEnd = 'TRANSFORM_END',
+
   // 需要等待回应的信息
   TurnAction = 'TURN_ACTION',
   ForcedSwitch = 'FORCED_SWITCH',
@@ -156,6 +189,8 @@ export type BattleMessage =
   | InvalidActionMessage
   | InfoMessage
   | ErrorMessage
+  | TransformMessage
+  | TransformEndMessage
 
 // 基础消息结构
 export interface BaseBattleMessage<T extends BattleMessageType> {
@@ -305,6 +340,22 @@ export interface BattleMessageData {
   [BattleMessageType.Error]: {
     message: string
   }
+  [BattleMessageType.Transform]: {
+    target: petId | skillId | markId
+    targetType: 'pet' | 'skill' | 'mark'
+    fromBase: speciesId | baseSkillId | baseMarkId
+    toBase: speciesId | baseSkillId | baseMarkId
+    transformType: 'temporary' | 'permanent'
+    priority: number
+    causedBy?: markId | skillId | effectId
+  }
+  [BattleMessageType.TransformEnd]: {
+    target: petId | skillId | markId
+    targetType: 'pet' | 'skill' | 'mark'
+    fromBase: speciesId | baseSkillId | baseMarkId
+    toBase: speciesId | baseSkillId | baseMarkId
+    reason: 'mark_destroyed' | 'manual' | 'replaced'
+  }
 }
 
 // 具体消息类型定义
@@ -337,3 +388,5 @@ export type FaintSwitchMessage = BaseBattleMessage<BattleMessageType.FaintSwitch
 export type InvalidActionMessage = BaseBattleMessage<BattleMessageType.InvalidAction>
 export type InfoMessage = BaseBattleMessage<BattleMessageType.Info>
 export type ErrorMessage = BaseBattleMessage<BattleMessageType.Error>
+export type TransformMessage = BaseBattleMessage<BattleMessageType.Transform>
+export type TransformEndMessage = BaseBattleMessage<BattleMessageType.TransformEnd>

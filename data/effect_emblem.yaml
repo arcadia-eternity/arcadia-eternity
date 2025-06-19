@@ -743,3 +743,53 @@
     configKey: effect_mark_reduce_damage_taken_15_percent_per_stack.mark_reduce_damage_taken_per_stack
     modifierType: delta
     value: -5
+
+# 分身: 使分身术必中
+- id: effect_emblem_fenshenshu_set_sure_hit
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: setValue
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value: skill_fenshenshu
+        - type: selectProp
+          arg: sureHit
+    value: true
+
+# 分身: 当使用分身术时，为自身增加分身幻影标记
+- id: effect_emblem_add_mark_fenshenhying_when_use_fenshenshu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_fenshenhying
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill
+            - type: select
+              arg:
+                type: base
+                arg: baseId
+        evaluator:
+          type: same
+          value: skill_fenshenshu

@@ -30,6 +30,7 @@ import { nanoid } from 'nanoid'
 import mitt from 'mitt'
 import { PhaseManager, SwitchPetPhase, TurnPhase } from './phase'
 import { TimerManager } from './timer'
+import { TransformationSystem } from './transformation'
 
 export class Battle extends Context implements MarkOwner {
   private lastStateMessage: BattleState = {} as BattleState
@@ -45,6 +46,7 @@ export class Battle extends Context implements MarkOwner {
   public readonly markSystem: MarkSystem = new MarkSystem(this)
   public readonly phaseManager: PhaseManager = new PhaseManager(this)
   public readonly timerManager: TimerManager
+  public readonly transformationSystem: TransformationSystem = new TransformationSystem(this)
   public readonly emitter = mitt<Events>()
   private readonly rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
 

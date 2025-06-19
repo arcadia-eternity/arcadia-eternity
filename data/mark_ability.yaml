@@ -153,3 +153,7 @@
   config: *ablitity_config
   effect:
     - effect_ability_damage_reduction_10
+- id: mark_ability_feixiang
+  config: *ablitity_config
+  effect:
+    - effect_ability_add_20_rage_when_use_fly_skill_twice

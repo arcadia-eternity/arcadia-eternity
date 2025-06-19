@@ -855,3 +855,35 @@
     target: damageContext
     percent: 0
     delta: -10
+#  飞翔：连续使用飞行系技能恢复自身20点怒气
+- id: effect_ability_add_20_rage_when_use_fly_skill_twice
+  trigger: OnHit
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: selectPath
+              arg: lastSkill
+            - type: selectPath
+              arg: element
+        evaluator:
+          type: same
+          value: Flying
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: element
+        evaluator:
+          type: same
+          value: Flying
+  apply:
+    type: addRage
+    target: self
+    value: 20

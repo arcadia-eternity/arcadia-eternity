@@ -38,6 +38,7 @@ import {
   StackStrategy,
   type baseMarkId,
   type baseSkillId,
+  type effectId,
   type markId,
   type petId,
   type playerId,
@@ -566,7 +567,7 @@ function createChainable<T extends SelectorOpinion>(type: string, selector: Targ
 
 export type PrimitiveOpinion = number | string | boolean
 
-export type IdOpinion = skillId | baseSkillId | markId | baseMarkId | speciesId | petId | playerId
+export type IdOpinion = skillId | baseSkillId | markId | baseMarkId | speciesId | petId | playerId | effectId
 
 export type EnumOpinion =
   | Element
@@ -608,11 +609,11 @@ export type ObjectOpinion =
 export type SelectorOpinion = PrimitiveOpinion | ObjectOpinion | EnumOpinion | Array<SelectorOpinion>
 
 // 递归查找context的通用函数
-export function findContextRecursively<T extends Context>(
-  context: EffectContext<EffectTrigger>,
+export function findContextRecursively<T extends Context, U extends EffectTrigger>(
+  context: EffectContext<U>,
   contextType: new (...args: any[]) => T,
 ): T | null {
-  let currentCtx: Context = context
+  let currentCtx: any = context
   while (!(currentCtx instanceof Battle)) {
     if (currentCtx instanceof contextType) {
       return currentCtx
@@ -638,6 +639,7 @@ export const BaseSelector: {
   mark: ChainableSelector<MarkInstance>
   selfMarks: ChainableSelector<MarkInstance>
   foeMarks: ChainableSelector<MarkInstance>
+  skill: ChainableSelector<SkillInstance>
   selfSkills: ChainableSelector<SkillInstance>
   foeSkills: ChainableSelector<SkillInstance>
   selfAvailableSkills: ChainableSelector<SkillInstance>
@@ -710,7 +712,7 @@ export const BaseSelector: {
     'EffectContext',
     (context: EffectContext<EffectTrigger>) => {
       // 从父context开始查找，避免返回自身
-      let currentCtx: Context | null = context.parent
+      let currentCtx: any = context.parent
       while (currentCtx && !(currentCtx instanceof Battle)) {
         if (currentCtx instanceof EffectContext) {
           return [currentCtx]
@@ -720,6 +722,11 @@ export const BaseSelector: {
       return []
     },
   ),
+  skill: createChainable<SkillInstance>('SkillInstance', (context: EffectContext<EffectTrigger>) => {
+    if (context.source instanceof SkillInstance) return [context.source]
+    //TODO: error with use get context with non-SkillEffect context
+    return []
+  }),
   mark: createChainable<MarkInstance>('MarkInstance', (context: EffectContext<EffectTrigger>) => {
     if (context.source instanceof MarkInstanceImpl) return [context.source]
     //TODO: error with use get context with non-MarkEffect context

@@ -69,10 +69,10 @@ mark_hunluan:
   description: 对自身造成伤害
 mark_chenmo:
   name: 沉默
-  description: 属性技能Miss
+  description: 无法使用属性技能
 mark_jingu:
   name: 禁锢
-  description: 物攻技能Miss
+  description: 无法使用物理技能
 mark_xuankong:
   name: 悬空
   description: ''
@@ -529,3 +529,9 @@ mark_shuangpozhuiji:
 mark_xulichongji:
   name: 蓄力冲击
   description: 造成伤害增加50%
+mark_fenshen:
+  name: 分身术
+  description: 受到伤害减少30%
+mark_fenshenhying:
+  name: 分身幻影
+  description: 闪避率增加10%

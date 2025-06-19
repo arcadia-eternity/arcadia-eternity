@@ -2,6 +2,8 @@
  * Test for phase-aware DSL and parser integration
  */
 
+import { test, group } from '@japa/runner'
+import { expect } from '@japa/expect'
 import { parseEffect } from '../dist/index.js'
 import type { EffectDSL } from '@arcadia-eternity/schema'
 
@@ -141,9 +143,7 @@ export const maxOnlyClampModifierEffect: EffectDSL = {
   },
 }
 
-function testPhaseAwareDSLParsing() {
-  console.log('=== Testing Phase-Aware DSL Parsing ===')
-
+group('Phase-Aware DSL Parsing', () => {
   const testCases = [
     { name: 'Phase-Aware Attribute Modifier', dsl: phaseAwareAttributeModifierEffect },
     { name: 'Phase-Aware Dynamic Attribute Modifier', dsl: phaseAwareDynamicAttributeModifierEffect },
@@ -155,61 +155,36 @@ function testPhaseAwareDSLParsing() {
   ]
 
   testCases.forEach(({ name, dsl }) => {
-    try {
-      console.log(`\n🧪 Testing: ${name}`)
+    test(`should parse ${name}`, () => {
       const effect = parseEffect(dsl)
-      console.log(`✅ Successfully parsed effect: ${effect.id}`)
-      console.log(`   - Trigger: ${effect.trigger}`)
-      console.log(`   - Priority: ${effect.priority}`)
-      console.log(`   - Actions: ${Array.isArray(effect.actions) ? effect.actions.length : 1}`)
-    } catch (error) {
-      console.error(`❌ Failed to parse ${name}:`, error.message)
-    }
+      expect(effect.id).toBe(dsl.id)
+      expect(effect.trigger).toBe(dsl.trigger)
+      expect(effect.priority).toBe(dsl.priority)
+      expect(effect.actions || effect.apply).toBeDefined()
+    })
   })
+})
 
-  console.log('\n🎉 Phase-aware DSL parsing test completed!')
-}
+group('Backward Compatibility', () => {
+  test('should parse regular attribute modifier without phase parameters', () => {
+    const regularAttributeModifierEffect: EffectDSL = {
+      id: 'regular_attack_boost',
+      trigger: 'OnTurnStart',
+      priority: 100,
+      apply: {
+        type: 'addAttributeModifier',
+        target: { base: 'self' },
+        stat: { type: 'raw:string', value: 'attack' },
+        modifierType: { type: 'raw:string', value: 'delta' },
+        value: { type: 'raw:number', value: 30 },
+        priority: { type: 'raw:number', value: 100 },
+        // No phase parameters - should work as before
+      },
+    }
 
-function testBackwardCompatibility() {
-  console.log('\n=== Testing Backward Compatibility ===')
-
-  // Test regular attribute modifier without phase parameters
-  const regularAttributeModifierEffect: EffectDSL = {
-    id: 'regular_attack_boost',
-    trigger: 'OnTurnStart',
-    priority: 100,
-    apply: {
-      type: 'addAttributeModifier',
-      target: { base: 'self' },
-      stat: { type: 'raw:string', value: 'attack' },
-      modifierType: { type: 'raw:string', value: 'delta' },
-      value: { type: 'raw:number', value: 30 },
-      priority: { type: 'raw:number', value: 100 },
-      // No phase parameters - should work as before
-    },
-  }
-
-  try {
-    console.log('🧪 Testing: Regular Attribute Modifier (no phase params)')
     const effect = parseEffect(regularAttributeModifierEffect)
-    console.log(`✅ Successfully parsed regular effect: ${effect.id}`)
-    console.log('✅ Backward compatibility maintained!')
-  } catch (error) {
-    console.error('❌ Backward compatibility broken:', error.message)
-  }
-}
-
-function runAllTests() {
-  console.log('🚀 Starting Phase-Aware DSL and Parser Tests\n')
-
-  testPhaseAwareDSLParsing()
-  testBackwardCompatibility()
-
-  console.log('\n🎉 All DSL and parser tests completed!')
-}
-
-export { runAllTests }
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  runAllTests()
-}
+    expect(effect.id).toBe('regular_attack_boost')
+    expect(effect.trigger).toBe('OnTurnStart')
+    expect(effect.priority).toBe(100)
+  })
+})

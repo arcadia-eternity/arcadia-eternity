@@ -54,6 +54,8 @@ const MESSAGE_ICONS: Record<BattleMessageType, string> = {
   [BattleMessageType.Error]: '❌',
   [BattleMessageType.TurnEnd]: '',
   [BattleMessageType.SkillUseEnd]: '',
+  [BattleMessageType.Transform]: '.Transform',
+  [BattleMessageType.TransformEnd]: '.TransformEnd',
 }
 
 // 伤害类型映射
@@ -286,6 +288,10 @@ function formatBattleMessage(
     case BattleMessageType.Error:
       content = '❌ 错误：' + (msg.data.message || '')
       break
+    case BattleMessageType.DamageFail:
+    case BattleMessageType.MarkExpire:
+    case BattleMessageType.Transform:
+    case BattleMessageType.TransformEnd:
     default:
       content = ''
   }

@@ -24,6 +24,7 @@ import {
   type effectId,
   EffectTrigger,
   IgnoreStageStrategy,
+  type speciesId,
   StackStrategy,
   type StatTypeOnBattle,
   StatTypeWithoutHp,
@@ -510,6 +511,12 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseAddPhaseTypeConfigModifierAction(effectId, dsl)
     case 'addDynamicPhaseTypeConfigModifier':
       return parseAddDynamicPhaseTypeConfigModifierAction(effectId, dsl)
+    case 'transform':
+      return parseTransformAction(effectId, dsl)
+    case 'transformWithPreservation':
+      return parseTransformWithPreservationAction(effectId, dsl)
+    case 'removeTransformation':
+      return parseRemoveTransformationAction(effectId, dsl)
     default:
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`[parseEffect] 未知的操作类型: ${(dsl as any).type}`)
@@ -546,6 +553,8 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
     return (() => [DataRepository.getInstance().getMark(v.value as baseMarkId)]) as ValueSource<BaseMark>
   if (v.type === 'entity:baseSkill')
     return (() => [DataRepository.getInstance().getSkill(v.value as baseSkillId)]) as ValueSource<BaseSkill>
+  if (v.type === 'entity:species')
+    return (() => [DataRepository.getInstance().getSpecies(v.value as speciesId)]) as ValueSource<any>
   if (v.type === 'dynamic') return parseSelector(effectId, v.selector)
   if (v.type === 'selector') return parseSelector(effectId, v)
   throw new Error(`[parseEffect] 未知的数值类型: ${(v as any).type}`)
@@ -1255,4 +1264,45 @@ export function parseAddDynamicPhaseTypeConfigModifierAction(
       dsl.phaseId ? (parseValue(effectId, dsl.phaseId) as ValueSource<string>) : undefined,
     ),
   )
+}
+
+// 变身相关操作符解析函数
+export function parseTransformAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'transform' }>) {
+  return parseSelector<Pet>(effectId, dsl.target).apply(
+    Operators.transform(
+      parseValue(effectId, dsl.newBase) as ValueSource<any>,
+      dsl.transformType
+        ? (parseValue(effectId, dsl.transformType) as ValueSource<'temporary' | 'permanent'>)
+        : 'temporary',
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+      dsl.permanentStrategy
+        ? (parseValue(effectId, dsl.permanentStrategy) as ValueSource<'preserve_temporary' | 'clear_temporary'>)
+        : 'clear_temporary',
+    ),
+  )
+}
+
+export function parseTransformWithPreservationAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'transformWithPreservation' }>,
+) {
+  return parseSelector<Pet>(effectId, dsl.target).apply(
+    Operators.transformWithPreservation(
+      parseValue(effectId, dsl.newBase) as ValueSource<any>,
+      dsl.transformType
+        ? (parseValue(effectId, dsl.transformType) as ValueSource<'temporary' | 'permanent'>)
+        : 'temporary',
+      dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
+      dsl.permanentStrategy
+        ? (parseValue(effectId, dsl.permanentStrategy) as ValueSource<'preserve_temporary' | 'clear_temporary'>)
+        : 'preserve_temporary',
+    ),
+  )
+}
+
+export function parseRemoveTransformationAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'removeTransformation' }>,
+) {
+  return parseSelector<Pet>(effectId, dsl.target).apply(Operators.removeTransformation())
 }

@@ -52,12 +52,16 @@ export const useBattleStore = defineStore('battle', {
     currentSnapshotIndex: 0,
     totalSnapshots: 0,
     // 持久化的Map缓存，避免频繁重新创建
-    _petMapCache: new Map() as Map<petId, any>,
-    _skillMapCache: new Map() as Map<string, any>,
-    _playerMapCache: new Map() as Map<playerId, any>,
-    _markMapCache: new Map() as Map<string, any>,
+    // 使用 markRaw 避免 Vue 响应式跟踪，提升性能
+    _petMapCache: markRaw(new Map()) as Map<petId, any>,
+    _skillMapCache: markRaw(new Map()) as Map<string, any>,
+    _playerMapCache: markRaw(new Map()) as Map<playerId, any>,
+    _markMapCache: markRaw(new Map()) as Map<string, any>,
     // 用于跟踪Map缓存的版本，当battleState发生变化时递增
     _mapCacheVersion: 0,
+    // 缓存更新节流相关
+    _cacheUpdatePending: false,
+    _lastCacheUpdateTime: 0,
   }),
 
   actions: {
@@ -108,9 +112,23 @@ export const useBattleStore = defineStore('battle', {
 
       try {
         jsondiffpatch.patch(this.battleState, msg.stateDelta)
-        // 在状态更新后，增量更新Map缓存
-        // 新的_updateMapCaches方法已经处理了jsondiffpatch对象复用的问题
-        this._updateMapCaches()
+
+        // 调试：检查 modifier 信息
+        if (import.meta.env.DEV && this.battleState.players) {
+          this.battleState.players.forEach((player, playerIndex) => {
+            if (player.modifierState?.hasModifiers) {
+              console.log(`Player ${player.name} has modifiers:`, player.modifierState)
+            }
+
+            player.team?.forEach((pet, petIndex) => {
+              if (pet.modifierState?.hasModifiers) {
+                console.log(`Pet ${pet.name} has modifiers:`, pet.modifierState)
+              }
+            })
+          })
+        }
+        // 在状态更新后，使用节流的方式更新Map缓存
+        this._throttledUpdateMapCaches()
       } catch (error) {
         console.warn(`Failed to apply state delta for ${msg.type} (${msg.sequenceId}):`, error)
         console.warn('StateDelta:', msg.stateDelta)
@@ -605,90 +623,233 @@ export const useBattleStore = defineStore('battle', {
 
     // Map缓存管理方法
     _clearMapCaches() {
-      this._petMapCache.clear()
-      this._skillMapCache.clear()
-      this._playerMapCache.clear()
-      this._markMapCache.clear()
+      // 重新创建 markRaw 的 Map，确保不被 Vue 响应式跟踪
+      this._petMapCache = markRaw(new Map())
+      this._skillMapCache = markRaw(new Map())
+      this._playerMapCache = markRaw(new Map())
+      this._markMapCache = markRaw(new Map())
       this._mapCacheVersion++
+    },
+
+    // 节流版本的缓存更新，避免短时间内频繁更新
+    _throttledUpdateMapCaches() {
+      const now = Date.now()
+      const THROTTLE_INTERVAL = 16 // 约60fps，避免过于频繁的更新
+
+      if (now - this._lastCacheUpdateTime < THROTTLE_INTERVAL) {
+        // 如果还没有待处理的更新，则安排一个
+        if (!this._cacheUpdatePending) {
+          this._cacheUpdatePending = true
+          setTimeout(
+            () => {
+              this._cacheUpdatePending = false
+              this._updateMapCaches()
+            },
+            THROTTLE_INTERVAL - (now - this._lastCacheUpdateTime),
+          )
+        }
+        return
+      }
+
+      this._updateMapCaches()
     },
 
     _updateMapCaches() {
       if (!this.battleState) return
 
-      // 获取当前battleState中的所有对象
-      const currentPets =
-        this.battleState.players
-          ?.map(p => p.team ?? [])
-          .flat()
-          .filter(p => p && !p.isUnknown) ?? []
+      this._lastCacheUpdateTime = Date.now()
 
-      const currentSkills = currentPets.flatMap(p => p?.skills ?? []).filter(s => s && !s.isUnknown)
+      // 一次性收集所有对象，减少数组操作
+      const currentPets: any[] = []
+      const currentSkills: any[] = []
       const currentPlayers = this.battleState.players ?? []
-      const petMarks = currentPets
-        .map(p => p?.marks ?? [])
-        .flat()
-        .filter(m => m)
-      const globalMarks = this.battleState.marks ?? []
-      const allMarks = [...petMarks, ...globalMarks]
+      const allMarks: any[] = []
 
-      // 检查并移除Map中ID不匹配的条目（对象被jsondiffpatch复用导致内容错乱）
-      // 但保留已删除对象的信息（不检查是否还存在于battleState中）
-      for (const [cachedId, cachedObj] of this._petMapCache.entries()) {
-        if (cachedObj && String(cachedObj.id) !== String(cachedId)) {
-          // ID不匹配，说明对象被复用了，从缓存中移除
-          console.warn(`Pet ${cachedId} object reused detected, removing from cache`)
-          this._petMapCache.delete(cachedId)
-        }
-      }
-
-      for (const [cachedId, cachedObj] of this._skillMapCache.entries()) {
-        if (cachedObj && String(cachedObj.id) !== String(cachedId)) {
-          console.warn(`Skill ${cachedId} object reused detected, removing from cache`)
-          this._skillMapCache.delete(cachedId)
-        }
-      }
-
-      for (const [cachedId, cachedObj] of this._playerMapCache.entries()) {
-        if (cachedObj && String(cachedObj.id) !== String(cachedId)) {
-          console.warn(`Player ${cachedId} object reused detected, removing from cache`)
-          this._playerMapCache.delete(cachedId)
-        }
-      }
-
-      for (const [cachedId, cachedObj] of this._markMapCache.entries()) {
-        if (cachedObj && String(cachedObj.id) !== String(cachedId)) {
-          console.warn(`Mark ${cachedId} object reused detected, removing from cache`)
-          this._markMapCache.delete(cachedId)
-        }
-      }
-
-      // 添加或更新当前存在的对象（使用深拷贝避免引用问题）
-      for (const pet of currentPets) {
-        if (pet) {
-          // 深拷贝对象，避免jsondiffpatch修改原对象时影响缓存
-          this._petMapCache.set(pet.id, JSON.parse(JSON.stringify(pet)))
-        }
-      }
-
-      for (const skill of currentSkills) {
-        if (skill) {
-          this._skillMapCache.set(skill.id, JSON.parse(JSON.stringify(skill)))
-        }
-      }
-
+      // 收集玩家数据
       for (const player of currentPlayers) {
         if (player) {
-          this._playerMapCache.set(player.id, JSON.parse(JSON.stringify(player)))
+          // 收集宠物数据
+          if (player.team) {
+            for (const pet of player.team) {
+              if (pet && !pet.isUnknown) {
+                currentPets.push(pet)
+
+                // 收集技能数据
+                if (pet.skills) {
+                  for (const skill of pet.skills) {
+                    if (skill && !skill.isUnknown) {
+                      currentSkills.push(skill)
+                    }
+                  }
+                }
+
+                // 收集宠物标记
+                if (pet.marks) {
+                  for (const mark of pet.marks) {
+                    if (mark) {
+                      allMarks.push(mark)
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
 
-      for (const mark of allMarks) {
-        if (mark) {
-          this._markMapCache.set(mark.id, JSON.parse(JSON.stringify(mark)))
+      // 收集全局标记
+      if (this.battleState.marks) {
+        for (const mark of this.battleState.marks) {
+          if (mark) {
+            allMarks.push(mark)
+          }
         }
       }
+
+      // 优化的缓存清理：只检查和清理有问题的条目
+      this._cleanupInvalidCacheEntries(this._petMapCache, 'Pet')
+      this._cleanupInvalidCacheEntries(this._skillMapCache, 'Skill')
+      this._cleanupInvalidCacheEntries(this._playerMapCache, 'Player')
+      this._cleanupInvalidCacheEntries(this._markMapCache, 'Mark')
+
+      // 批量更新缓存，只更新变化的对象
+      this._batchUpdateCache(this._petMapCache, currentPets)
+      this._batchUpdateCache(this._skillMapCache, currentSkills)
+      this._batchUpdateCache(this._playerMapCache, currentPlayers)
+      this._batchUpdateCache(this._markMapCache, allMarks)
 
       this._mapCacheVersion++
+    },
+
+    // 清理缓存中 ID 不匹配的条目
+    _cleanupInvalidCacheEntries(cache: Map<string, any>, type: string) {
+      const toDelete: string[] = []
+
+      for (const [cachedId, cachedObj] of cache.entries()) {
+        if (cachedObj && String(cachedObj.id) !== String(cachedId)) {
+          toDelete.push(cachedId)
+        }
+      }
+
+      if (toDelete.length > 0) {
+        console.warn(`${type} object reuse detected, removing ${toDelete.length} entries from cache`)
+        for (const id of toDelete) {
+          cache.delete(id)
+        }
+      }
+    },
+
+    // 批量更新缓存，使用浅拷贝优化性能
+    _batchUpdateCache(cache: Map<string, any>, objects: any[]) {
+      // 收集需要更新的对象，减少 Map 操作次数
+      const toUpdate: Array<{ id: string; obj: any }> = []
+
+      // 第一遍：检查哪些对象需要更新
+      for (const obj of objects) {
+        if (obj) {
+          const cached = cache.get(obj.id)
+
+          // 简单的变化检测：比较对象引用或关键属性
+          if (!cached || this._shouldUpdateCacheEntry(cached, obj)) {
+            toUpdate.push({ id: obj.id, obj })
+          }
+        }
+      }
+
+      // 第二遍：批量更新（减少 Map 操作和克隆操作）
+      if (toUpdate.length > 0) {
+        for (const { id, obj } of toUpdate) {
+          // 使用智能克隆策略
+          cache.set(id, this._smartCloneObject(obj))
+        }
+      }
+    },
+
+    // 检查是否需要更新缓存条目
+    _shouldUpdateCacheEntry(cached: any, current: any): boolean {
+      // 快速检查：如果对象引用相同，则不需要更新
+      if (cached === current) return false
+
+      // 检查关键属性是否变化（避免深度比较）
+      // 对于宠物对象
+      if (current.currentHp !== undefined && cached.currentHp !== current.currentHp) return true
+      if (current.currentRage !== undefined && cached.currentRage !== current.currentRage) return true
+      if (current.marks && cached.marks?.length !== current.marks?.length) return true
+
+      // 对于玩家对象
+      if (current.rage !== undefined && cached.rage !== current.rage) return true
+      if (current.team && cached.team?.length !== current.team?.length) return true
+
+      // 对于修饰符状态
+      if (current.modifierState?.hasModifiers !== cached.modifierState?.hasModifiers) return true
+
+      // 对于标记对象
+      if (current.level !== undefined && cached.level !== current.level) return true
+      if (current.stacks !== undefined && cached.stacks !== current.stacks) return true
+
+      return true // 默认更新，确保数据一致性
+    },
+
+    // 优化的对象克隆方法
+    _cloneObject(obj: any): any {
+      // 对于简单对象，使用结构化克隆
+      if (typeof structuredClone !== 'undefined') {
+        try {
+          return structuredClone(obj)
+        } catch {
+          // 降级到 JSON 克隆
+        }
+      }
+
+      // 降级方案：JSON 序列化
+      return JSON.parse(JSON.stringify(obj))
+    },
+
+    // 高性能的浅拷贝方法（用于不需要深拷贝的场景）
+    _shallowCloneObject(obj: any): any {
+      if (obj === null || typeof obj !== 'object') {
+        return obj
+      }
+
+      if (Array.isArray(obj)) {
+        return [...obj]
+      }
+
+      return { ...obj }
+    },
+
+    // 智能克隆策略：根据对象特征选择最优的克隆方法
+    _smartCloneObject(obj: any): any {
+      // 对于简单对象（没有嵌套数组或对象），使用浅拷贝
+      if (this._isSimpleObject(obj)) {
+        return this._shallowCloneObject(obj)
+      }
+
+      // 对于复杂对象，使用深拷贝
+      return this._cloneObject(obj)
+    },
+
+    // 检查是否为简单对象（没有深层嵌套）
+    _isSimpleObject(obj: any): boolean {
+      if (obj === null || typeof obj !== 'object') {
+        return true
+      }
+
+      // 检查对象的第一层属性
+      for (const key in obj) {
+        const value = obj[key]
+        if (value !== null && typeof value === 'object') {
+          // 如果有嵌套的对象或数组，则认为是复杂对象
+          if (Array.isArray(value) && value.length > 0) {
+            return false
+          }
+          if (!Array.isArray(value) && Object.keys(value).length > 0) {
+            return false
+          }
+        }
+      }
+
+      return true
     },
   },
 

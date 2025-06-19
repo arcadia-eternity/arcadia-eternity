@@ -96,7 +96,7 @@ mark_emblem_shahe:
   name: 沙鹤
   description: 使沙鹤之光的威力增加10%
 mark_emblem_dadi:
-  name: 大地纹章
+  name: 大地
   description: 使大地之墙的持续效果增加1回合
 mark_emblem_shamo:
   name: 沙漠
@@ -107,3 +107,6 @@ mark_emblem_wuzhe:
 mark_emblem_renzhe:
   name: 仁者
   description: 当仁者之心在对手身上时 每层所减少的伤害比率减少5%
+mark_emblem_fenshen:
+  name: 分身
+  description: 使分身术无视Miss使自身获得分身幻影

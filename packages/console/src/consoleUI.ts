@@ -432,6 +432,18 @@ export class ConsoleUIV2 {
         break
       }
 
+      case BattleMessageType.Transform: {
+        const d = message.data
+        // TODO
+        break
+      }
+
+      case BattleMessageType.TransformEnd: {
+        const d = message.data
+        // TODO
+        break
+      }
+
       default:
         // @ts-expect-error
         console.log(`未知消息类型: ${message.type}`)
