@@ -107,6 +107,7 @@
                                       "usingSkillContext",
                                       "damageContext",
                                       "effectContext",
+                                      "skill",
                                       "mark",
                                       "selfMarks",
                                       "foeMarks",

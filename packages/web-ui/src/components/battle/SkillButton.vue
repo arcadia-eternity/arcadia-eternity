@@ -31,6 +31,12 @@ const category = computed(() =>
     ns: 'battle',
   }),
 )
+
+// 获取技能的原始类别，用于UI显示逻辑（避免回忆重现技能变身时的显示问题）
+const originalCategory = computed(() => {
+  // 如果技能有_originalCategory属性，使用它；否则使用当前category
+  return (props.skill as any)._originalCategory || props.skill.category
+})
 const name = computed(() =>
   i18next.t(`${props.skill.baseId}.name`, {
     ns: 'skill',
@@ -191,7 +197,7 @@ const particlesLoaded = async () => {
         >
           <!-- 粒子效果容器 - 围绕光效区域 -->
           <div
-            v-if="skill.category === 'Climax' && !disabled"
+            v-if="originalCategory === 'Climax' && !disabled"
             class="absolute pointer-events-none overflow-visible"
             style="top: -8px; left: -8px; right: -8px; bottom: -8px"
           >
@@ -207,9 +213,9 @@ const particlesLoaded = async () => {
             class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-8 transition-all duration-300 border"
             :class="{
               'border-blue-500/30 group-hover:shadow-[0_0_10px_2px_rgba(100,200,255,0.7)] group-disabled:hover:shadow-none':
-                skill.category !== 'Climax',
-              'border-yellow-300 border-3 climax-glow-available': skill.category === 'Climax' && !disabled,
-              'border-yellow-300 border-3': skill.category === 'Climax' && disabled,
+                originalCategory !== 'Climax',
+              'border-yellow-300 border-3 climax-glow-available': originalCategory === 'Climax' && !disabled,
+              'border-yellow-300 border-3': originalCategory === 'Climax' && disabled,
             }"
           >
             <div class="bg-gray-900 w-full h-10"></div>

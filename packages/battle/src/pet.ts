@@ -1,5 +1,6 @@
 import {
   BattleMessageType,
+  Category,
   CleanStageStrategy,
   EffectTrigger,
   Element,
@@ -455,6 +456,50 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     this.appeared = true
   }
 
+  /**
+   * 获取技能的原始类型（考虑变形）
+   */
+  private getSkillOriginalCategory(skill: SkillInstance): Category {
+    if (!this.owner?.battle?.transformationSystem) {
+      return skill.category
+    }
+
+    // 获取变身状态
+    const transformState = this.owner.battle.transformationSystem.getTransformationState(skill)
+    if (!transformState.isTransformed || !transformState.activeTransformation) {
+      return skill.category
+    }
+
+    // 返回原始base的category（只有BaseSkill有category属性）
+    const originalBase = transformState.currentTransformations[0]?.originalBase
+    if (originalBase && 'category' in originalBase) {
+      return (originalBase as BaseSkill).category
+    }
+
+    return skill.category
+  }
+
+  /**
+   * 按原始类型排序技能
+   */
+  private sortSkillsByOriginalCategory(skills: SkillInstance[]): SkillInstance[] {
+    return [...skills].sort((a, b) => {
+      const aOriginalCategory = this.getSkillOriginalCategory(a)
+      const bOriginalCategory = this.getSkillOriginalCategory(b)
+
+      // Climax技能排在最后
+      if (aOriginalCategory === Category.Climax && bOriginalCategory !== Category.Climax) {
+        return 1
+      }
+      if (bOriginalCategory === Category.Climax && aOriginalCategory !== Category.Climax) {
+        return -1
+      }
+
+      // 其他技能保持原有顺序
+      return 0
+    })
+  }
+
   toMessage(viewerId?: string, showHidden = false): PetMessage {
     const isSelf = viewerId === this.owner?.id
     const shouldShowDetails = this.appeared || isSelf || showHidden
@@ -462,6 +507,9 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     // 只有在显示详细信息且是自己的宠物或显示隐藏信息时才包含 modifier 状态
     const shouldShowModifiers = shouldShowDetails && (isSelf || showHidden)
     const modifierState = shouldShowModifiers ? this.attributeSystem.getDetailedModifierState() : undefined
+
+    // 按原始类型排序技能
+    const sortedSkills = shouldShowDetails ? this.sortSkillsByOriginalCategory(this.skills) : undefined
 
     return {
       isUnknown: !shouldShowDetails,
@@ -474,7 +522,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       maxHp: shouldShowDetails ? this.stat.maxHp : 0,
       marks: shouldShowDetails ? this.marks.map(m => m.toMessage.call(m)) : [],
       stats: isSelf || showHidden ? this.stat : undefined,
-      skills: shouldShowDetails ? this.skills.map(s => s.toMessage.call(s, viewerId, showHidden)) : undefined,
+      skills: sortedSkills ? sortedSkills.map(s => s.toMessage.call(s, viewerId, showHidden)) : undefined,
       modifierState,
     }
   }

@@ -152,3 +152,8 @@
   config: *emblem_config
   effect:
     - effect_emblem_renzhe_reduce_damage_reduction_5_percent
+- id: mark_emblem_fenshen
+  config: *emblem_config
+  effect:
+    - effect_emblem_fenshenshu_set_sure_hit
+    - effect_emblem_add_mark_fenshenhying_when_use_fenshenshu

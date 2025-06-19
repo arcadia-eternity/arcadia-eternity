@@ -235,3 +235,9 @@ pet_kaluo:
 pet_kaluote:
   name: 卡罗特
   description: 被守护师收服后 卡罗特跟随他来到了赛尔号的竞技场
+pet_feiya:
+  name: 菲亚
+  description: 菲亚还在地面上就已经难逢敌手 它和最好的伙伴约定 要一起变强
+pet_feiyasi:
+  name: 菲亚斯
+  description: 在沉眠了漫长岁月后 它衍变成了菲亚斯——拥有苍穹般强大羽翼的超强精灵！

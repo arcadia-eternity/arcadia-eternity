@@ -3318,7 +3318,7 @@
     type: selfUseSkill
 # 如果有爱的名义标记，防御提升1级
 - id: effect_skill_raise_def_1_stages_if_aideminyi
-  trigger: OnHit
+  trigger: BeforeHit
   priority: 0
   apply:
     type: statStageBuff
@@ -4730,7 +4730,7 @@
 
 # 暴击时强化自身物攻1级
 - id: effect_skill_raise_atk_1_stage_on_crit
-  trigger: OnCritPostDamage
+  trigger: OnCritPreDamage
   priority: 0
   apply:
     type: statStageBuff
@@ -4755,7 +4755,7 @@
 
 # 20%强化自身物攻1级
 - id: effect_skill_raise_atk_20_percent
-  trigger: OnHit
+  trigger: BeforeHit
   priority: 0
   apply:
     type: statStageBuff
@@ -5414,7 +5414,7 @@
 
 # 具有暗影领域时，该技能命中后获得一级攻击强化
 - id: effect_skill_raise_atk_1_stage_if_anyinglingyu
-  trigger: OnHit
+  trigger: BeforeHit
   priority: 0
   apply:
     type: statStageBuff
@@ -6293,7 +6293,7 @@
           type: exist
 # 20%强化自身速度1级
 - id: effect_skill_raise_spe_20_percent
-  trigger: OnHit
+  trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_self_statstage_+1_template
@@ -6945,5 +6945,201 @@
     mark:
       type: entity:baseMark
       value: mark_xulichongji
+  condition:
+    type: selfUseSkill
+# 附加40点固定伤害
+- id: effect_skill_fixed_damage_40
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: 40
+  condition:
+    type: selfUseSkill
+# 给敌人施加沉默
+- id: effect_skill_add_mark_foe_chenmo
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_chenmo
+  condition:
+    type: selfUseSkill
+# 在连续使用两次后，提升一级速度
+- id: effect_skill_raise_spe_1_stage_after_2_uses
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spe
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: continuousUseSkill
+        times: 2
+        strategy: Periodic
+# 在连续使用两次后，提升一级攻击
+- id: effect_skill_raise_atk_1_stage_after_2_uses
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: atk
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: continuousUseSkill
+        times: 2
+        strategy: Periodic
+# 在连续使用两次后，提升一级特攻
+- id: effect_skill_raise_spa_1_stage_after_2_uses
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: continuousUseSkill
+        times: 2
+        strategy: Periodic
+# 在连续使用两次后，提升一级防御
+- id: effect_skill_raise_def_1_stage_after_2_uses
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: def
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: continuousUseSkill
+        times: 2
+        strategy: Periodic
+# 在连续使用两次后，提升一级特防
+- id: effect_skill_raise_spd_1_stage_after_2_uses
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spd
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: continuousUseSkill
+        times: 2
+        strategy: Periodic
+# 20%几率添加一级物攻
+- id: effect_skill_raise_atk_1_stage_20_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: atk
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_20_percent_template
+# 将所有不良效果的印记转移给对方
+- id: effect_skill_transfer_status_marks_to_foe
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: transferMark
+    target: foe
+    mark:
+      type: dynamic
+      selector:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: tags
+            evaluator:
+              type: contain
+              tag: status
+  condition:
+    type: selfUseSkill
+# 为自己添加分身术
+- id: effect_skill_add_mark_fenshen
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_fenshen
+  condition:
+    type: selfUseSkill
+# 将这个技能本身的怒气消耗锁定为10
+- id: effect_skill_lock_rage_to_10
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addSkillAttributeModifier
+    target: skill
+    attribute: rage
+    modifierType: override
+    value: 10
+# 当你使用非本技能的时候，将这个技能变化成使用的技能
+- id: effect_skill_change_to_used_skill
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: transform
+    target: skill
+    newBase:
+      type: dynamic
+      selector:
+        base: usingSkillContext
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: skill.base
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill.id
+        evaluator:
+          type: notSame
+          value:
+            type: dynamic
+            selector:
+              base: skill
+              chain:
+                - type: select
+                  arg:
+                    type: dynamic
+                    arg: id
+# 使用本技能后，清除本技能的变化状态
+- id: effect_skill_clear_transform_when_use
+  trigger: AfterUseSkillCheck
+  priority: 5
+  apply:
+    type: removeTransformation
+    target: skill
   condition:
     type: selfUseSkill

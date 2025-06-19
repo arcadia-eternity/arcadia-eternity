@@ -2652,3 +2652,15 @@
     target: damageContext
     percent: 50
     delta: 0
+
+# 分身术：减少30%受到的伤害
+- id: effect_mark_reduce_damage_30_percent
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: -30
+    delta: 0

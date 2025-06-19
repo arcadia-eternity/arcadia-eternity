@@ -173,7 +173,7 @@ watch(ragePercentage, (newPercentage, oldPercentage) => {
 </script>
 
 <template>
-  <div class="relative block w-full my-2 overflow-hidden" :class="{ 'direction-rtl': reverse }">
+  <div class="relative block w-full my-2 overflow-hidden" :dir="reverse ? 'rtl' : 'ltr'">
     <div
       class="relative w-full h-8 mb-1"
       :class="[
@@ -194,7 +194,8 @@ watch(ragePercentage, (newPercentage, oldPercentage) => {
         :style="healthBarStyle"
       ></div>
       <span
-        class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white [text-shadow:1px_1px_1px_rgba(0,0,0,0.5)] text-xl font-bold w-full text-center pointer-events-none z-20"
+        dir="ltr"
+        class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white [text-shadow:1px_1px_1px_rgba(0,0,0,0.5)] text-xl font-bold w-full text-center pointer-events-none z-20 ltr"
       >
         <ModifiedValue :value="current" :attribute-info="currentHpModifierInfo" size="md" inline />/<ModifiedValue
           :value="max"
@@ -225,6 +226,7 @@ watch(ragePercentage, (newPercentage, oldPercentage) => {
         :style="rageBarStyle"
       ></div>
       <span
+        dir="ltr"
         class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white [text-shadow:1px_1px_1px_rgba(0,0,0,0.5)] text-xl font-bold pointer-events-none z-20"
       >
         <ModifiedValue :value="rage" :attribute-info="rageModifierInfo" size="md" inline />/<ModifiedValue
@@ -238,10 +240,4 @@ watch(ragePercentage, (newPercentage, oldPercentage) => {
   </div>
 </template>
 
-<style scoped>
-/* Tailwind's JIT mode allows for arbitrary values which is used for clip-path */
-/* We also use a custom class 'direction-rtl' for the reverse state as Tailwind doesn't have a direct 'direction' utility */
-.direction-rtl {
-  direction: rtl;
-}
-</style>
+<style scoped></style>

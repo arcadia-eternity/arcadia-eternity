@@ -231,7 +231,7 @@ export const Conditions = {
   },
 
   continuousUseSkill: (
-    times: ValueSource<number>,
+    times: ValueSource<number> = 2,
     strategy: ContinuousUseSkillStrategy = ContinuousUseSkillStrategy.Continuous,
   ): Condition => {
     switch (strategy) {

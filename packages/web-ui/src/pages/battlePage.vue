@@ -479,9 +479,169 @@ const background = computed(() => {
   )
 })
 
+// 缓存技能的原始顺序，避免在技能变身时位置发生变化
+const skillOrderCache = ref<
+  Map<string, Map<string, { id: string; baseId: any; originalCategory: any; index: number }>>
+>(new Map())
+
+// 全局技能原始状态缓存，用于记录技能的初始状态
+const globalSkillOriginalState = ref<Map<string, { baseId: any; originalCategory: any }>>(new Map())
+
+// 监听战斗状态变化，在战斗开始时建立技能原始状态快照
+watch(
+  () => store.battleState,
+  newBattleState => {
+    if (newBattleState && newBattleState.players) {
+      // 遍历所有玩家的所有宠物的所有技能，建立原始状态快照
+      newBattleState.players.forEach(player => {
+        if (player.team) {
+          player.team.forEach(pet => {
+            if (pet && pet.skills) {
+              pet.skills.forEach(skill => {
+                if (!skill.isUnknown && !globalSkillOriginalState.value.has(skill.id)) {
+                  // 只有在首次遇到技能时才记录其原始状态
+                  const skillData = gameDataStore.getSkill(skill.baseId)
+                  globalSkillOriginalState.value.set(skill.id, {
+                    baseId: skill.baseId,
+                    originalCategory: skillData?.category || skill.category,
+                  })
+                }
+              })
+            }
+          })
+        }
+      })
+    }
+  },
+  { deep: true, immediate: true },
+)
+
+// 监听当前玩家的活跃宠物变化，清理不相关的缓存
+watch(
+  () => currentPlayer.value?.activePet,
+  (newActivePet, oldActivePet) => {
+    if (newActivePet !== oldActivePet) {
+      // 当活跃宠物变化时，清理旧的缓存（保留当前宠物的缓存）
+      const keysToDelete: string[] = []
+      for (const [key] of skillOrderCache.value) {
+        if (key !== newActivePet) {
+          keysToDelete.push(key)
+        }
+      }
+      keysToDelete.forEach(key => skillOrderCache.value.delete(key))
+    }
+  },
+)
+
 const availableSkills = computed<SkillMessage[]>(() => {
   if (!currentPlayer.value?.activePet) return []
-  return store.getPetById(currentPlayer.value.activePet)?.skills?.filter(skill => !skill.isUnknown) ?? []
+
+  const petId = currentPlayer.value.activePet
+  const skills = store.getPetById(petId)?.skills?.filter(skill => !skill.isUnknown) ?? []
+
+  // 初始化或更新技能顺序缓存
+  const cacheKey = petId
+  const existingOrderMap = skillOrderCache.value.get(cacheKey)
+
+  // 检查是否需要重新初始化缓存
+  const needsReinit =
+    !existingOrderMap ||
+    existingOrderMap.size !== skills.length ||
+    skills.some(skill => !existingOrderMap.has(skill.id))
+
+  if (needsReinit) {
+    const orderMap = new Map<string, { id: string; baseId: any; originalCategory: any; index: number }>()
+
+    skills.forEach((skill, index) => {
+      // 泛用化逻辑：获取技能的原始属性
+      let originalBaseId = skill.baseId
+      let originalCategory = skill.category
+
+      // 检查是否已经缓存了这个技能的原始信息
+      const existingCache = existingOrderMap?.get(skill.id)
+      if (existingCache) {
+        // 如果已经缓存，使用缓存的原始信息（这是最可靠的）
+        originalBaseId = existingCache.baseId
+        originalCategory = existingCache.originalCategory
+      } else {
+        // 首次在当前宠物中遇到这个技能，尝试从全局原始状态缓存获取
+        const globalOriginalState = globalSkillOriginalState.value.get(skill.id)
+        if (globalOriginalState) {
+          // 使用全局缓存的原始状态
+          originalBaseId = globalOriginalState.baseId
+          originalCategory = globalOriginalState.originalCategory
+        } else {
+          // 如果全局缓存中也没有，说明这是一个新技能
+          // 记录当前状态作为原始状态
+          const currentSkillData = gameDataStore.getSkill(skill.baseId)
+          if (currentSkillData) {
+            originalBaseId = skill.baseId
+            originalCategory = currentSkillData.category
+            // 同时更新全局缓存
+            globalSkillOriginalState.value.set(skill.id, {
+              baseId: skill.baseId,
+              originalCategory: currentSkillData.category,
+            })
+          } else {
+            // 最后的回退方案
+            originalBaseId = skill.baseId
+            originalCategory = skill.category
+            globalSkillOriginalState.value.set(skill.id, {
+              baseId: skill.baseId,
+              originalCategory: skill.category,
+            })
+          }
+        }
+      }
+
+      orderMap.set(skill.id, {
+        id: skill.id,
+        baseId: originalBaseId,
+        originalCategory: originalCategory,
+        index: index,
+      })
+    })
+
+    skillOrderCache.value.set(cacheKey, orderMap)
+  }
+
+  const orderMap = skillOrderCache.value.get(cacheKey)!
+
+  // 创建稳定的技能数组，按照缓存的顺序排列
+  const stableSkills = skills
+    .map(skill => {
+      const cachedInfo = orderMap.get(skill.id)
+      if (!cachedInfo) return null
+
+      // 创建一个新的技能对象，避免直接引用store中可能变化的对象
+      return {
+        // 复制所有技能属性，但使用稳定的标识符
+        id: skill.id,
+        baseId: skill.baseId,
+        category: skill.category,
+        element: skill.element,
+        target: skill.target,
+        multihit: skill.multihit,
+        sureHit: skill.sureHit,
+        tag: skill.tag || [],
+        power: skill.power,
+        accuracy: skill.accuracy,
+        rage: skill.rage,
+        priority: skill.priority,
+        isUnknown: skill.isUnknown,
+        modifierState: skill.modifierState,
+
+        // 添加稳定的UI标识符
+        _originalBaseId: cachedInfo.baseId,
+        _originalCategory: cachedInfo.originalCategory,
+        _stableIndex: cachedInfo.index,
+        _stableId: `${petId}-skill-${cachedInfo.index}`,
+      }
+    })
+    .filter(skill => skill !== null)
+    .sort((a, b) => a!._stableIndex - b!._stableIndex) // 按照原始顺序排序
+
+  return stableSkills as SkillMessage[]
 })
 
 // 获取技能的 modifier 信息
@@ -2468,30 +2628,11 @@ watch(
                 class="h-full max-h-full grid grid-cols-5 gap-4 p-2 overflow-visible"
                 v-show="panelState === PanelState.SKILLS"
               >
-                <template
-                  v-for="(skill, index) in availableSkills.filter(s => s.category !== Category.Climax)"
-                  :key="'normal-' + skill.id"
-                >
+                <template v-for="skill in availableSkills" :key="skill._stableId">
                   <SkillButton
                     :skill="skill"
                     @click="handleSkillClick(skill.id)"
                     :disabled="!isSkillAvailable(skill.id) || isPending"
-                    :style="{ 'grid-column-start': index + 1 }"
-                    :power-modifier-info="getSkillModifierInfo(skill, 'power')"
-                    :accuracy-modifier-info="getSkillModifierInfo(skill, 'accuracy')"
-                    :rage-modifier-info="getSkillModifierInfo(skill, 'rage')"
-                  />
-                </template>
-                <template
-                  v-for="(skill, index) in availableSkills.filter(s => s.category === Category.Climax)"
-                  :key="'climax-' + skill.id"
-                >
-                  <SkillButton
-                    :skill="skill"
-                    @click="handleSkillClick(skill.id)"
-                    :disabled="!isSkillAvailable(skill.id) || isPending"
-                    :style="{ 'grid-column-start': 5 - index }"
-                    class="justify-self-end"
                     :power-modifier-info="getSkillModifierInfo(skill, 'power')"
                     :accuracy-modifier-info="getSkillModifierInfo(skill, 'accuracy')"
                     :rage-modifier-info="getSkillModifierInfo(skill, 'rage')"

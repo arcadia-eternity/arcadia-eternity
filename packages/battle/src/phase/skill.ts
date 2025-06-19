@@ -59,7 +59,7 @@ export class SkillPhase extends BattlePhaseBase<UseSkillContext> {
  */
 export async function executeSkillOperation(context: UseSkillContext, battle: Battle): Promise<void> {
   // Update skill usage tracking
-  if (context.pet.lastSkill && context.pet.lastSkill.id === context.skill.id) {
+  if (context.pet.lastSkill && context.pet.lastSkill.baseId === context.skill.baseId) {
     context.pet.lastSkillUsedTimes += 1
   } else {
     context.pet.lastSkill = context.skill

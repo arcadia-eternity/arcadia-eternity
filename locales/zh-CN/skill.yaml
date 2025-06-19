@@ -1516,3 +1516,51 @@ skill_shanxunya:
 skill_shanguangya:
   name: 闪光牙
   description: 先制+1
+skill_kuaigong:
+  name: 快攻
+  description: 先制+1
+skill_fuchong:
+  name: 俯冲
+  description: 5%弱化对手物防1级
+skill_xiangyuqie:
+  name: 翔羽切
+  description: 附加40点固伤
+skill_xiangyuren:
+  name: 翔羽刃
+  description: 附加40点固伤
+skill_chenmo:
+  name: 沉默
+  description: 【95】使对手沉默
+skill_kongzhiguiji:
+  name: 空之轨迹
+  description: 使用2次强化自身速度1级
+skill_zhanchi:
+  name: 展翅
+  description: 强化自身速度1级
+skill_xiangtianchong:
+  name: 翔天冲
+  description: 使用2次强化自身物攻1级
+skill_xiangtianzhu:
+  name: 翔天舞
+  description: 使用2次强化自身特攻1级
+skill_yuhuachong:
+  name: 月华冲
+  description: 使用2次强化自身物防1级
+skill_yuhuawu:
+  name: 月华舞
+  description: 使用2次强化自身特防1级
+skill_shankongxiangliebo:
+  name: 闪空翔烈破
+  description: <font color=#93E312>必中</font> 20%强化自身特攻1级 20%强化自身物攻1级
+skill_huiyizhongxian:
+  name: 回忆重现
+  description: 该技能会变为你上一个使用的技能
+skill_fenshenshu:
+  name: 分身术
+  description: 转移自身不良且获得分身术
+skill_tiankongliechong:
+  name: 天空烈冲
+  description: <font color=#93E312>必中</font> 使用2次强化自身物攻1级
+skill_tiankongzhiwu:
+  name: 天空之舞
+  description: <font color=#93E312>必中</font> 使用2次强化自身特攻1级
