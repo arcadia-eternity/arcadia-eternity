@@ -132,12 +132,25 @@ export class ClusterStateManager extends EventEmitter {
 
     try {
       const instanceIds = await client.smembers(REDIS_KEYS.SERVICE_INSTANCES)
+      if (instanceIds.length === 0) {
+        return []
+      }
+
+      // 使用 pipeline 批量获取实例数据，避免 N+1 查询问题
+      const pipeline = client.pipeline()
+      for (const instanceId of instanceIds) {
+        pipeline.hgetall(REDIS_KEYS.SERVICE_INSTANCE(instanceId))
+      }
+
+      const results = await pipeline.exec()
       const instances: ServiceInstance[] = []
 
-      for (const instanceId of instanceIds) {
-        const instanceData = await client.hgetall(REDIS_KEYS.SERVICE_INSTANCE(instanceId))
-        if (Object.keys(instanceData).length > 0) {
-          instances.push(this.deserializeInstance(instanceData))
+      if (results) {
+        for (let i = 0; i < results.length; i++) {
+          const [err, instanceData] = results[i]
+          if (!err && instanceData && Object.keys(instanceData).length > 0) {
+            instances.push(this.deserializeInstance(instanceData as Record<string, string>))
+          }
         }
       }
 
@@ -295,12 +308,25 @@ export class ClusterStateManager extends EventEmitter {
 
     try {
       const sessionIds = await client.smembers(REDIS_KEYS.PLAYER_SESSION_CONNECTIONS(playerId))
+      if (sessionIds.length === 0) {
+        return []
+      }
+
+      // 使用 pipeline 批量获取连接数据
+      const pipeline = client.pipeline()
+      for (const sessionId of sessionIds) {
+        pipeline.hgetall(REDIS_KEYS.PLAYER_SESSION_CONNECTION(playerId, sessionId))
+      }
+
+      const results = await pipeline.exec()
       const connections: any[] = []
 
-      for (const sessionId of sessionIds) {
-        const connectionData = await client.hgetall(REDIS_KEYS.PLAYER_SESSION_CONNECTION(playerId, sessionId))
-        if (Object.keys(connectionData).length > 0) {
-          connections.push(this.deserializeSessionConnection(connectionData))
+      if (results) {
+        for (let i = 0; i < results.length; i++) {
+          const [err, connectionData] = results[i]
+          if (!err && connectionData && Object.keys(connectionData).length > 0) {
+            connections.push(this.deserializeSessionConnection(connectionData as Record<string, string>))
+          }
         }
       }
 
@@ -474,12 +500,25 @@ export class ClusterStateManager extends EventEmitter {
 
     try {
       const sessionKeys = await client.smembers(REDIS_KEYS.MATCHMAKING_QUEUE)
+      if (sessionKeys.length === 0) {
+        return []
+      }
+
+      // 使用 pipeline 批量获取匹配队列数据
+      const pipeline = client.pipeline()
+      for (const sessionKey of sessionKeys) {
+        pipeline.hgetall(REDIS_KEYS.MATCHMAKING_PLAYER(sessionKey))
+      }
+
+      const results = await pipeline.exec()
       const entries: MatchmakingEntry[] = []
 
-      for (const sessionKey of sessionKeys) {
-        const entryData = await client.hgetall(REDIS_KEYS.MATCHMAKING_PLAYER(sessionKey))
-        if (Object.keys(entryData).length > 0) {
-          entries.push(this.deserializeMatchmakingEntry(entryData))
+      if (results) {
+        for (let i = 0; i < results.length; i++) {
+          const [err, entryData] = results[i]
+          if (!err && entryData && Object.keys(entryData).length > 0) {
+            entries.push(this.deserializeMatchmakingEntry(entryData as Record<string, string>))
+          }
         }
       }
 
@@ -550,17 +589,25 @@ export class ClusterStateManager extends EventEmitter {
         return null
       }
 
-      // 获取所有会话并找到最新的
+      // 使用 pipeline 批量获取所有会话数据，然后找到最新的
+      const pipeline = client.pipeline()
+      for (const sid of sessionIds) {
+        pipeline.hgetall(REDIS_KEYS.SESSION(playerId, sid))
+      }
+
+      const results = await pipeline.exec()
       let latestSession: SessionData | null = null
       let latestTime = 0
 
-      for (const sid of sessionIds) {
-        const sessionData = await client.hgetall(REDIS_KEYS.SESSION(playerId, sid))
-        if (Object.keys(sessionData).length > 0) {
-          const session = this.deserializeSession(sessionData)
-          if (session.lastAccessed > latestTime) {
-            latestTime = session.lastAccessed
-            latestSession = session
+      if (results) {
+        for (let i = 0; i < results.length; i++) {
+          const [err, sessionData] = results[i]
+          if (!err && sessionData && Object.keys(sessionData).length > 0) {
+            const session = this.deserializeSession(sessionData as Record<string, string>)
+            if (session.lastAccessed > latestTime) {
+              latestTime = session.lastAccessed
+              latestSession = session
+            }
           }
         }
       }
@@ -577,12 +624,25 @@ export class ClusterStateManager extends EventEmitter {
 
     try {
       const sessionIds = await client.smembers(REDIS_KEYS.PLAYER_SESSIONS(playerId))
+      if (sessionIds.length === 0) {
+        return []
+      }
+
+      // 使用 pipeline 批量获取会话数据
+      const pipeline = client.pipeline()
+      for (const sessionId of sessionIds) {
+        pipeline.hgetall(REDIS_KEYS.SESSION(playerId, sessionId))
+      }
+
+      const results = await pipeline.exec()
       const sessions: SessionData[] = []
 
-      for (const sessionId of sessionIds) {
-        const sessionData = await client.hgetall(REDIS_KEYS.SESSION(playerId, sessionId))
-        if (Object.keys(sessionData).length > 0) {
-          sessions.push(this.deserializeSession(sessionData))
+      if (results) {
+        for (let i = 0; i < results.length; i++) {
+          const [err, sessionData] = results[i]
+          if (!err && sessionData && Object.keys(sessionData).length > 0) {
+            sessions.push(this.deserializeSession(sessionData as Record<string, string>))
+          }
         }
       }
 
@@ -735,24 +795,8 @@ export class ClusterStateManager extends EventEmitter {
       this.currentInstance.status = 'healthy'
     }
 
-    // 清理过期的实例
-    await this.cleanupExpiredInstances()
-  }
-
-  private async cleanupExpiredInstances(): Promise<void> {
-    const instances = await this.getInstances()
-    const now = Date.now()
-    const timeout = this.config.cluster.failoverTimeout || 120000 // 2分钟
-
-    for (const instance of instances) {
-      if (now - instance.lastHeartbeat > timeout) {
-        logger.warn({ instanceId: instance.id }, 'Removing expired instance')
-
-        const client = this.redisManager.getClient()
-        await client.srem(REDIS_KEYS.SERVICE_INSTANCES, instance.id)
-        await client.del(REDIS_KEYS.SERVICE_INSTANCE(instance.id))
-      }
-    }
+    // 使用优化的清理过期实例方法
+    await this.cleanupExpiredInstancesOptimized()
   }
 
   // 序列化/反序列化方法
@@ -897,12 +941,201 @@ export class ClusterStateManager extends EventEmitter {
     }
   }
 
-  private _deserializeAuthBlacklistEntry(data: Record<string, string>): AuthBlacklistEntry {
-    return {
-      jti: data.jti,
-      expiry: parseInt(data.expiry),
-      reason: data.reason || undefined,
-      revokedAt: parseInt(data.revokedAt),
+  // === 缓存优化 ===
+
+  private instanceCache = new Map<string, { instance: ServiceInstance; timestamp: number }>()
+  private readonly CACHE_TTL = 30000 // 30秒缓存
+
+  /**
+   * 带缓存的获取实例信息
+   */
+  async getInstanceCached(instanceId: string): Promise<ServiceInstance | null> {
+    const now = Date.now()
+    const cached = this.instanceCache.get(instanceId)
+
+    // 检查缓存是否有效
+    if (cached && now - cached.timestamp < this.CACHE_TTL) {
+      return cached.instance
+    }
+
+    // 缓存失效或不存在，从 Redis 获取
+    const instance = await this.getInstance(instanceId)
+
+    if (instance) {
+      this.instanceCache.set(instanceId, { instance, timestamp: now })
+    } else {
+      // 如果实例不存在，从缓存中删除
+      this.instanceCache.delete(instanceId)
+    }
+
+    return instance
+  }
+
+  /**
+   * 清理过期的缓存条目
+   */
+  private cleanupCache(): void {
+    const now = Date.now()
+    for (const [instanceId, cached] of this.instanceCache.entries()) {
+      if (now - cached.timestamp >= this.CACHE_TTL) {
+        this.instanceCache.delete(instanceId)
+      }
+    }
+  }
+
+  /**
+   * 优化的清理过期实例方法，使用缓存减少 Redis 查询
+   */
+  private async cleanupExpiredInstancesOptimized(): Promise<void> {
+    try {
+      // 先清理内存缓存
+      this.cleanupCache()
+
+      const instanceIds = await this.redisManager.getClient().smembers(REDIS_KEYS.SERVICE_INSTANCES)
+      if (instanceIds.length === 0) {
+        return
+      }
+
+      // 批量获取实例信息
+      const instances = await this.getInstancesBatch(instanceIds)
+      const now = Date.now()
+      const timeout = this.config.cluster.failoverTimeout || 120000 // 2分钟
+
+      const expiredInstanceIds: string[] = []
+
+      for (let i = 0; i < instances.length; i++) {
+        const instance = instances[i]
+        if (instance && now - instance.lastHeartbeat > timeout) {
+          expiredInstanceIds.push(instance.id)
+          // 从缓存中删除过期实例
+          this.instanceCache.delete(instance.id)
+        }
+      }
+
+      // 批量删除过期实例
+      if (expiredInstanceIds.length > 0) {
+        const client = this.redisManager.getClient()
+        const pipeline = client.pipeline()
+
+        for (const instanceId of expiredInstanceIds) {
+          logger.warn({ instanceId }, 'Removing expired instance')
+          pipeline.srem(REDIS_KEYS.SERVICE_INSTANCES, instanceId)
+          pipeline.del(REDIS_KEYS.SERVICE_INSTANCE(instanceId))
+        }
+
+        await pipeline.exec()
+      }
+    } catch (error) {
+      logger.error({ error }, 'Failed to cleanup expired instances')
+    }
+  }
+
+  // === 批量操作优化方法 ===
+
+  /**
+   * 批量获取多个实例信息
+   */
+  async getInstancesBatch(instanceIds: string[]): Promise<(ServiceInstance | null)[]> {
+    if (instanceIds.length === 0) {
+      return []
+    }
+
+    const client = this.redisManager.getClient()
+
+    try {
+      const pipeline = client.pipeline()
+      for (const instanceId of instanceIds) {
+        pipeline.hgetall(REDIS_KEYS.SERVICE_INSTANCE(instanceId))
+      }
+
+      const results = await pipeline.exec()
+      const instances: (ServiceInstance | null)[] = []
+
+      if (results) {
+        for (let i = 0; i < results.length; i++) {
+          const [err, instanceData] = results[i]
+          if (!err && instanceData && Object.keys(instanceData).length > 0) {
+            instances.push(this.deserializeInstance(instanceData as Record<string, string>))
+          } else {
+            instances.push(null)
+          }
+        }
+      }
+
+      return instances
+    } catch (error) {
+      logger.error({ error, instanceIds }, 'Failed to get instances batch')
+      return instanceIds.map(() => null)
+    }
+  }
+
+  /**
+   * 批量获取多个房间状态
+   */
+  async getRoomStatesBatch(roomIds: string[]): Promise<(RoomState | null)[]> {
+    if (roomIds.length === 0) {
+      return []
+    }
+
+    const client = this.redisManager.getClient()
+
+    try {
+      const pipeline = client.pipeline()
+      for (const roomId of roomIds) {
+        pipeline.hgetall(REDIS_KEYS.ROOM(roomId))
+      }
+
+      const results = await pipeline.exec()
+      const rooms: (RoomState | null)[] = []
+
+      if (results) {
+        for (let i = 0; i < results.length; i++) {
+          const [err, roomData] = results[i]
+          if (!err && roomData && Object.keys(roomData).length > 0) {
+            rooms.push(this.deserializeRoomState(roomData as Record<string, string>))
+          } else {
+            rooms.push(null)
+          }
+        }
+      }
+
+      return rooms
+    } catch (error) {
+      logger.error({ error, roomIds }, 'Failed to get room states batch')
+      return roomIds.map(() => null)
+    }
+  }
+
+  /**
+   * 批量检查多个 token 是否在黑名单中
+   */
+  async areTokensBlacklisted(jtis: string[]): Promise<boolean[]> {
+    if (jtis.length === 0) {
+      return []
+    }
+
+    const client = this.redisManager.getClient()
+
+    try {
+      const pipeline = client.pipeline()
+      for (const jti of jtis) {
+        pipeline.exists(REDIS_KEYS.AUTH_BLACKLIST(jti))
+      }
+
+      const results = await pipeline.exec()
+      const blacklistStatus: boolean[] = []
+
+      if (results) {
+        for (let i = 0; i < results.length; i++) {
+          const [err, exists] = results[i]
+          blacklistStatus.push(!err && exists === 1)
+        }
+      }
+
+      return blacklistStatus
+    } catch (error) {
+      logger.error({ error, jtis }, 'Failed to check tokens blacklist batch')
+      return jtis.map(() => false)
     }
   }
 
@@ -961,14 +1194,23 @@ export class ClusterStateManager extends EventEmitter {
     const client = this.redisManager.getClient()
 
     try {
+      // 避免使用 keys() 命令，改为维护一个玩家连接索引
+      // 这里我们需要重构为使用一个专门的索引集合来跟踪活跃的玩家连接
+      // 暂时保留原逻辑，但添加警告日志
+      logger.warn('getPlayerConnections() uses KEYS command which may impact performance in production')
+
       // 获取所有玩家的session连接
       const allSessionKeys = await client.keys(REDIS_KEYS.PLAYER_SESSION_CONNECTIONS('*'))
       const connections: PlayerConnection[] = []
 
+      // 使用 Set 来避免重复处理同一个 playerId
+      const processedPlayerIds = new Set<string>()
+
       for (const sessionKey of allSessionKeys) {
         // 从key中提取playerId: arcadia:player:sessions:connections:playerId
         const playerId = sessionKey.split(':').pop()
-        if (playerId) {
+        if (playerId && !processedPlayerIds.has(playerId)) {
+          processedPlayerIds.add(playerId)
           const playerConnections = await this.getAllPlayerConnections(playerId)
           connections.push(...playerConnections)
         }
@@ -986,12 +1228,25 @@ export class ClusterStateManager extends EventEmitter {
 
     try {
       const roomIds = await client.smembers(REDIS_KEYS.ROOMS)
+      if (roomIds.length === 0) {
+        return []
+      }
+
+      // 使用 pipeline 批量获取房间数据，避免 N+1 查询问题
+      const pipeline = client.pipeline()
+      for (const roomId of roomIds) {
+        pipeline.hgetall(REDIS_KEYS.ROOM(roomId))
+      }
+
+      const results = await pipeline.exec()
       const rooms: RoomState[] = []
 
-      for (const roomId of roomIds) {
-        const room = await this.getRoomState(roomId)
-        if (room) {
-          rooms.push(room)
+      if (results) {
+        for (let i = 0; i < results.length; i++) {
+          const [err, roomData] = results[i]
+          if (!err && roomData && Object.keys(roomData).length > 0) {
+            rooms.push(this.deserializeRoomState(roomData as Record<string, string>))
+          }
         }
       }
 
@@ -1014,6 +1269,9 @@ export class ClusterStateManager extends EventEmitter {
       if (this.healthCheckTimer) {
         clearInterval(this.healthCheckTimer)
       }
+
+      // 清理内存缓存
+      this.instanceCache.clear()
 
       // 注销实例
       await this.unregisterInstance()

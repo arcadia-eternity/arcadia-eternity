@@ -79,6 +79,14 @@ export class ClusterBattleServer {
   private readonly timerStatusCache = new Map<string, { enabled: boolean; timestamp: number }>()
   private readonly TIMER_CACHE_TTL = 5000 // 5秒缓存
 
+  // 玩家房间映射缓存，减少频繁的集群查询
+  private readonly playerRoomCache = new Map<string, { roomId: string; timestamp: number }>()
+  private readonly PLAYER_ROOM_CACHE_TTL = 10000 // 10秒缓存
+
+  // 连接状态缓存，减少频繁的Redis查询
+  private readonly connectionCache = new Map<string, { connections: any[]; timestamp: number }>()
+  private readonly CONNECTION_CACHE_TTL = 5000 // 5秒缓存
+
   // RPC相关
   private rpcServer?: BattleRpcServer
   private rpcClient: BattleRpcClient
@@ -384,6 +392,10 @@ export class ClusterBattleServer {
 
       // 从集群状态中移除玩家连接
       await this.stateManager.removePlayerConnection(playerId, sessionId)
+
+      // 清理相关缓存
+      this.clearPlayerRoomCache(playerId, sessionId)
+      this.clearConnectionCache(playerId)
 
       // 检查该session是否在战斗中，如果是则立即终止对应的战斗
       const roomState = await this.getPlayerRoomFromCluster(playerId, sessionId)
@@ -1038,6 +1050,11 @@ export class ClusterBattleServer {
         // 先保存临时房间状态到集群，确保setupBattleEventListeners能找到房间状态
         logger.info({ roomId }, 'About to save temp room state to cluster')
         await this.stateManager.setRoomState(tempRoomState)
+
+        // 更新玩家房间缓存
+        this.updatePlayerRoomCache(player1Entry.playerId, session1, roomId)
+        this.updatePlayerRoomCache(player2Entry.playerId, session2, roomId)
+
         logger.info({ roomId }, 'Temp room state saved, about to create local battle')
 
         const battle = await this.createLocalBattle(tempRoomState, player1Data, player2Data)
@@ -1062,6 +1079,10 @@ export class ClusterBattleServer {
         )
         await this.socketAdapter.joinPlayerToRoom(player1Entry.playerId, roomId)
         await this.socketAdapter.joinPlayerToRoom(player2Entry.playerId, roomId)
+
+        // 建立会话到房间的映射索引，优化后续查找
+        await this.createSessionRoomMappings(roomState)
+
         logger.info({ roomId }, 'Players joined Socket.IO room successfully')
 
         logger.info(
@@ -1273,27 +1294,79 @@ export class ClusterBattleServer {
 
   private async getPlayerRoomFromCluster(playerId: string, sessionId: string): Promise<RoomState | null> {
     try {
-      // 从集群状态中查找玩家所在的房间
-      // 支持基于sessionId的精确查找以实现会话隔离
+      // 检查缓存
+      const cacheKey = `${playerId}:${sessionId}`
+      const cached = this.playerRoomCache.get(cacheKey)
+      const now = Date.now()
 
+      if (cached && now - cached.timestamp < this.PLAYER_ROOM_CACHE_TTL) {
+        // 验证缓存的房间是否仍然有效
+        const roomState = await this.stateManager.getRoomState(cached.roomId)
+        if (roomState && roomState.sessions.includes(sessionId) && roomState.sessionPlayers[sessionId] === playerId) {
+          return roomState
+        }
+        // 缓存失效，删除
+        this.playerRoomCache.delete(cacheKey)
+      }
+
+      // 优化查找策略：首先尝试从玩家会话映射中查找
       const client = this.stateManager['redisManager'].getClient()
-      const roomIds = await client.smembers(REDIS_KEYS.ROOMS)
 
+      // 尝试从玩家会话映射中直接获取房间ID
+      const sessionRoomKey = `session:rooms:${playerId}:${sessionId}`
+      const roomIds = await client.smembers(sessionRoomKey)
+
+      // 如果找到映射，直接验证房间状态
       for (const roomId of roomIds) {
         const roomState = await this.stateManager.getRoomState(roomId)
-        if (!roomState) continue
+        if (roomState && roomState.sessions.includes(sessionId) && roomState.sessionPlayers[sessionId] === playerId) {
+          // 更新缓存
+          this.playerRoomCache.set(cacheKey, { roomId, timestamp: now })
+          return roomState
+        }
+        // 清理无效的映射
+        await client.srem(sessionRoomKey, roomId)
+      }
 
-        // 如果指定了sessionId，直接检查该会话是否在房间中
-        if (sessionId) {
-          if (roomState.sessions.includes(sessionId) && roomState.sessionPlayers[sessionId] === playerId) {
-            return roomState
-          }
-        } else {
-          // 如果没有指定sessionId，检查房间中是否有会话对应该playerId（向后兼容）
-          for (const roomSessionId of roomState.sessions) {
-            if (roomState.sessionPlayers[roomSessionId] === playerId) {
-              return roomState
+      // 如果直接映射查找失败，回退到遍历所有房间（但限制数量）
+      const allRoomIds = await client.smembers(REDIS_KEYS.ROOMS)
+
+      // 批量获取房间状态，减少网络往返
+      const pipeline = client.pipeline()
+      for (const roomId of allRoomIds.slice(0, 50)) {
+        // 限制最多检查50个房间
+        pipeline.hgetall(REDIS_KEYS.ROOM(roomId))
+      }
+      const results = await pipeline.exec()
+
+      if (results) {
+        for (let i = 0; i < results.length; i++) {
+          const [err, roomData] = results[i]
+          if (err || !roomData) continue
+
+          try {
+            const roomState = JSON.parse((roomData as any).data || '{}') as RoomState
+            if (!roomState.id) continue
+
+            // 检查会话匹配
+            if (sessionId) {
+              if (roomState.sessions.includes(sessionId) && roomState.sessionPlayers[sessionId] === playerId) {
+                // 更新缓存和映射
+                this.playerRoomCache.set(cacheKey, { roomId: roomState.id, timestamp: now })
+                await client.sadd(sessionRoomKey, roomState.id)
+                return roomState
+              }
+            } else {
+              // 向后兼容：检查是否有任何会话对应该playerId
+              for (const roomSessionId of roomState.sessions) {
+                if (roomState.sessionPlayers[roomSessionId] === playerId) {
+                  this.playerRoomCache.set(cacheKey, { roomId: roomState.id, timestamp: now })
+                  return roomState
+                }
+              }
             }
+          } catch (parseError) {
+            logger.warn({ error: parseError, roomId: allRoomIds[i] }, 'Failed to parse room state')
           }
         }
       }
@@ -1790,15 +1863,22 @@ export class ClusterBattleServer {
       setTimeout(async () => {
         await this.cleanupLocalRoom(roomId)
 
+        // 清理会话到房间的映射
+        if (roomState) {
+          await this.cleanupSessionRoomMappings(roomState)
+        }
+
         // 从集群中移除房间状态
         await this.stateManager.removeRoomState(roomId)
 
-        // 清理相关的计时器缓存
+        // 清理相关的缓存
         if (roomState) {
           for (const sessionId of roomState.sessions) {
             const playerId = roomState.sessionPlayers[sessionId]
             if (playerId) {
               this.timerStatusCache.delete(`${playerId}:timer_enabled`)
+              this.clearPlayerRoomCache(playerId, sessionId)
+              this.clearConnectionCache(playerId)
             }
           }
         }
@@ -2894,40 +2974,94 @@ export class ClusterBattleServer {
       const now = Date.now()
       const timeout = 30 * 60 * 1000 // 30分钟超时
 
-      // 获取所有房间
+      // 获取所有房间并批量检查状态
       const client = this.stateManager['redisManager'].getClient()
       const roomIds = await client.smembers('arcadia:rooms')
 
+      if (roomIds.length === 0) {
+        // 没有房间需要清理，直接进行其他清理
+        await this.performOtherCleanupTasks()
+        return
+      }
+
+      // 批量获取房间状态，减少网络往返
+      const pipeline = client.pipeline()
       for (const roomId of roomIds) {
-        const roomState = await this.stateManager.getRoomState(roomId)
-        if (!roomState) continue
+        pipeline.hgetall(REDIS_KEYS.ROOM(roomId))
+      }
+      const results = await pipeline.exec()
 
-        // 检查房间是否超时
-        if (now - roomState.lastActive > timeout) {
-          logger.warn({ roomId, lastActive: roomState.lastActive }, 'Cleaning up inactive room')
+      const roomsToCleanup: { roomId: string; instanceId: string }[] = []
 
-          // 如果房间在当前实例，进行本地清理
-          if (roomState.instanceId === this.instanceId) {
-            await this.cleanupLocalRoom(roomId)
-            await this.stateManager.removeRoomState(roomId)
-          } else {
-            // 通知其他实例清理
-            await this.notifyInstanceCleanup(roomState.instanceId, roomId)
+      if (results) {
+        for (let i = 0; i < results.length; i++) {
+          const [err, roomData] = results[i]
+          if (err || !roomData) continue
+
+          try {
+            const roomState = JSON.parse((roomData as any).data || '{}') as RoomState
+            if (!roomState.id || !roomState.lastActive) continue
+
+            // 检查房间是否超时
+            if (now - roomState.lastActive > timeout) {
+              logger.warn({ roomId: roomState.id, lastActive: roomState.lastActive }, 'Found inactive room for cleanup')
+              roomsToCleanup.push({ roomId: roomState.id, instanceId: roomState.instanceId })
+            }
+          } catch (parseError) {
+            logger.warn({ error: parseError, roomId: roomIds[i] }, 'Failed to parse room state during cleanup')
           }
         }
       }
 
-      // 清理过期的玩家连接
-      await this.cleanupExpiredConnections()
+      // 批量处理需要清理的房间
+      await this.batchCleanupRooms(roomsToCleanup)
 
-      // 清理过期的分布式锁
-      await this.cleanupExpiredLocks()
-
-      // 清理过期的计时器缓存
-      this.cleanupTimerCache()
+      // 执行其他清理任务
+      await this.performOtherCleanupTasks()
     } catch (error) {
       logger.error({ error }, 'Error performing cluster cleanup')
     }
+  }
+
+  /**
+   * 批量清理房间
+   */
+  private async batchCleanupRooms(roomsToCleanup: { roomId: string; instanceId: string }[]): Promise<void> {
+    if (roomsToCleanup.length === 0) return
+
+    // 按实例分组
+    const roomsByInstance = new Map<string, string[]>()
+    const localRooms: string[] = []
+
+    for (const { roomId, instanceId } of roomsToCleanup) {
+      if (instanceId === this.instanceId) {
+        localRooms.push(roomId)
+      } else {
+        if (!roomsByInstance.has(instanceId)) {
+          roomsByInstance.set(instanceId, [])
+        }
+        roomsByInstance.get(instanceId)!.push(roomId)
+      }
+    }
+
+    // 清理本地房间
+    if (localRooms.length > 0) {
+      await Promise.all(localRooms.map(roomId => this.cleanupLocalRoom(roomId)))
+      await Promise.all(localRooms.map(roomId => this.stateManager.removeRoomState(roomId)))
+      logger.info({ count: localRooms.length }, 'Cleaned up local rooms')
+    }
+
+    // 通知其他实例清理房间
+    for (const [instanceId, roomIds] of roomsByInstance.entries()) {
+      await this.notifyInstanceBatchCleanup(instanceId, roomIds)
+    }
+  }
+
+  /**
+   * 执行其他清理任务
+   */
+  private async performOtherCleanupTasks(): Promise<void> {
+    await Promise.all([this.cleanupExpiredConnections(), this.cleanupExpiredLocks(), this.cleanupAllCaches()])
   }
 
   /**
@@ -2953,6 +3087,148 @@ export class ClusterBattleServer {
   }
 
   /**
+   * 批量通知其他实例进行清理
+   */
+  private async notifyInstanceBatchCleanup(instanceId: string, roomIds: string[]): Promise<void> {
+    try {
+      const publisher = this.stateManager['redisManager'].getPublisher()
+      const channel = `instance:${instanceId}:cleanup`
+
+      await publisher.publish(
+        channel,
+        JSON.stringify({
+          from: this.instanceId,
+          timestamp: Date.now(),
+          action: 'cleanup-rooms-batch',
+          roomIds,
+        }),
+      )
+      logger.info({ instanceId, count: roomIds.length }, 'Notified instance for batch room cleanup')
+    } catch (error) {
+      logger.error({ error, instanceId, roomIds }, 'Error notifying instance batch cleanup')
+    }
+  }
+
+  /**
+   * 清理所有缓存
+   */
+  private cleanupAllCaches(): void {
+    this.cleanupTimerCache()
+    this.cleanupPlayerRoomCache()
+    this.cleanupConnectionCache()
+  }
+
+  /**
+   * 清理玩家房间缓存
+   */
+  private cleanupPlayerRoomCache(): void {
+    try {
+      const now = Date.now()
+      let cleanedCount = 0
+
+      for (const [key, cached] of this.playerRoomCache.entries()) {
+        if (now - cached.timestamp > this.PLAYER_ROOM_CACHE_TTL * 2) {
+          this.playerRoomCache.delete(key)
+          cleanedCount++
+        }
+      }
+
+      if (cleanedCount > 0) {
+        logger.info({ cleanedCount }, 'Cleaned up expired player room cache entries')
+      }
+    } catch (error) {
+      logger.error({ error }, 'Error cleaning up player room cache')
+    }
+  }
+
+  /**
+   * 清理连接缓存
+   */
+  private cleanupConnectionCache(): void {
+    try {
+      const now = Date.now()
+      let cleanedCount = 0
+
+      for (const [key, cached] of this.connectionCache.entries()) {
+        if (now - cached.timestamp > this.CONNECTION_CACHE_TTL * 2) {
+          this.connectionCache.delete(key)
+          cleanedCount++
+        }
+      }
+
+      if (cleanedCount > 0) {
+        logger.info({ cleanedCount }, 'Cleaned up expired connection cache entries')
+      }
+    } catch (error) {
+      logger.error({ error }, 'Error cleaning up connection cache')
+    }
+  }
+
+  /**
+   * 更新玩家房间缓存
+   */
+  private updatePlayerRoomCache(playerId: string, sessionId: string, roomId: string): void {
+    const cacheKey = `${playerId}:${sessionId}`
+    this.playerRoomCache.set(cacheKey, { roomId, timestamp: Date.now() })
+  }
+
+  /**
+   * 清除玩家房间缓存
+   */
+  private clearPlayerRoomCache(playerId: string, sessionId: string): void {
+    const cacheKey = `${playerId}:${sessionId}`
+    this.playerRoomCache.delete(cacheKey)
+  }
+
+  /**
+   * 清除连接缓存
+   */
+  private clearConnectionCache(playerId: string): void {
+    const cacheKey = `connections:${playerId}`
+    this.connectionCache.delete(cacheKey)
+  }
+
+  /**
+   * 创建会话到房间的映射索引
+   */
+  private async createSessionRoomMappings(roomState: RoomState): Promise<void> {
+    try {
+      const client = this.stateManager['redisManager'].getClient()
+
+      for (const sessionId of roomState.sessions) {
+        const playerId = roomState.sessionPlayers[sessionId]
+        if (playerId) {
+          const sessionRoomKey = `session:rooms:${playerId}:${sessionId}`
+          await client.sadd(sessionRoomKey, roomState.id)
+          // 设置过期时间，防止映射泄漏
+          await client.expire(sessionRoomKey, 24 * 60 * 60) // 24小时过期
+        }
+      }
+    } catch (error) {
+      logger.error({ error, roomId: roomState.id }, 'Error creating session room mappings')
+    }
+  }
+
+  /**
+   * 清理会话到房间的映射索引
+   */
+  private async cleanupSessionRoomMappings(roomState: RoomState): Promise<void> {
+    try {
+      const client = this.stateManager['redisManager'].getClient()
+
+      for (const sessionId of roomState.sessions) {
+        const playerId = roomState.sessionPlayers[sessionId]
+        if (playerId) {
+          const sessionRoomKey = `session:rooms:${playerId}:${sessionId}`
+          await client.srem(sessionRoomKey, roomState.id)
+        }
+      }
+    } catch (error) {
+      logger.error({ error, roomId: roomState.id }, 'Error cleaning up session room mappings')
+    }
+  }
+
+  /**
    * 清理过期的玩家连接
    */
   private async cleanupExpiredConnections(): Promise<void> {
@@ -2971,28 +3247,85 @@ export class ClusterBattleServer {
         }
       }
 
-      // 获取所有玩家的session连接
+      // 获取所有玩家的session连接键
       const allSessionKeys = await client.keys(REDIS_KEYS.PLAYER_SESSION_CONNECTIONS('*'))
 
+      if (allSessionKeys.length === 0) {
+        return
+      }
+
+      // 批量获取所有玩家的连接信息
+      const pipeline = client.pipeline()
+      const playerIds: string[] = []
+
       for (const sessionKey of allSessionKeys) {
-        // 从key中提取playerId: arcadia:player:sessions:connections:playerId
+        // 从key中提取playerId: player:sessions:connections:playerId
         const playerId = sessionKey.split(':').pop()
-        if (!playerId) continue
+        if (playerId) {
+          playerIds.push(playerId)
+          pipeline.smembers(sessionKey)
+        }
+      }
 
-        const connections = await this.stateManager.getAllPlayerConnections(playerId)
-        if (connections.length === 0) continue
+      const results = await pipeline.exec()
+      const connectionsToRemove: { playerId: string; sessionId: string }[] = []
 
-        for (const connection of connections) {
-          // 检查该玩家会话是否在匹配队列中
-          const playerSessionKey = `${playerId}:${connection.sessionId}`
-          if (playersInQueue.has(playerSessionKey)) {
-            continue
+      if (results) {
+        for (let i = 0; i < results.length; i++) {
+          const [err, sessionIds] = results[i]
+          if (err || !sessionIds || !Array.isArray(sessionIds)) continue
+
+          const playerId = playerIds[i]
+          if (!playerId) continue
+
+          // 批量获取该玩家所有会话的连接详情
+          const sessionPipeline = client.pipeline()
+          for (const sessionId of sessionIds) {
+            sessionPipeline.hgetall(REDIS_KEYS.PLAYER_SESSION_CONNECTION(playerId, sessionId))
           }
 
-          if (now - connection.lastSeen > timeout) {
-            await this.stateManager.removePlayerConnection(playerId, connection.sessionId)
+          const sessionResults = await sessionPipeline.exec()
+          if (!sessionResults) continue
+
+          for (let j = 0; j < sessionResults.length; j++) {
+            const [sessionErr, connectionData] = sessionResults[j]
+            if (sessionErr || !connectionData) continue
+
+            const sessionId = sessionIds[j]
+            const playerSessionKey = `${playerId}:${sessionId}`
+
+            // 跳过正在匹配队列中的玩家会话
+            if (playersInQueue.has(playerSessionKey)) {
+              continue
+            }
+
+            try {
+              const connection = JSON.parse((connectionData as any).data || '{}')
+              if (connection.lastSeen && now - connection.lastSeen > timeout) {
+                connectionsToRemove.push({ playerId, sessionId })
+              }
+            } catch (parseError) {
+              logger.warn({ error: parseError, playerId, sessionId }, 'Failed to parse connection data during cleanup')
+              // 如果解析失败，也标记为需要清理
+              connectionsToRemove.push({ playerId, sessionId })
+            }
           }
         }
+      }
+
+      // 批量移除过期连接
+      if (connectionsToRemove.length > 0) {
+        await Promise.all(
+          connectionsToRemove.map(({ playerId, sessionId }) =>
+            this.stateManager.removePlayerConnection(playerId, sessionId),
+          ),
+        )
+        logger.info({ count: connectionsToRemove.length }, 'Cleaned up expired player connections')
+      }
+
+      // 清理连接缓存中对应的条目
+      for (const { playerId } of connectionsToRemove) {
+        this.connectionCache.delete(`connections:${playerId}`)
       }
     } catch (error) {
       logger.error({ error }, 'Error cleaning up expired connections')
@@ -3099,7 +3432,7 @@ export class ClusterBattleServer {
     excludeSessionId?: string,
   ): Promise<boolean> {
     try {
-      // 检查本地是否有其他连接
+      // 首先检查本地连接（最快）
       for (const [socketId, playerMeta] of this.players.entries()) {
         if (
           socketId !== excludeSocketId &&
@@ -3110,8 +3443,22 @@ export class ClusterBattleServer {
         }
       }
 
+      // 检查缓存的连接信息
+      const cacheKey = `connections:${playerId}`
+      const cached = this.connectionCache.get(cacheKey)
+      const now = Date.now()
+
+      let sessionConnections: any[]
+      if (cached && now - cached.timestamp < this.CONNECTION_CACHE_TTL) {
+        sessionConnections = cached.connections
+      } else {
+        // 缓存过期或不存在，从集群获取
+        sessionConnections = await this.stateManager.getPlayerSessionConnections(playerId)
+        // 更新缓存
+        this.connectionCache.set(cacheKey, { connections: sessionConnections, timestamp: now })
+      }
+
       // 检查集群中该玩家的所有会话连接
-      const sessionConnections = await this.stateManager.getPlayerSessionConnections(playerId)
       for (const conn of sessionConnections) {
         if (conn.status === 'connected' && conn.socketId !== excludeSocketId && conn.sessionId !== excludeSessionId) {
           return true
