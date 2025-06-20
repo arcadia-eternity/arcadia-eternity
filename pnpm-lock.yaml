@@ -524,7 +524,7 @@ importers:
         specifier: ^3.828.0
         version: 3.828.0
       '@grpc/grpc-js':
-        specifier: ^1.13.4
+        specifier: ^1.12.2
         version: 1.13.4
       '@grpc/proto-loader':
         specifier: ^0.7.15
