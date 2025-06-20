@@ -481,7 +481,9 @@ export class ClusterBattleServer {
     }
 
     // 尝试进行匹配
+    logger.info({ instanceId: this.instanceId }, 'Starting matchmaking attempt as leader')
     await this.attemptClusterMatchmaking()
+    logger.info({ instanceId: this.instanceId }, 'Matchmaking attempt completed')
   }
 
   /**
@@ -644,8 +646,8 @@ export class ClusterBattleServer {
       const playerData = this.validatePlayerData(rawPlayerData)
       socket.data.data = playerData
 
-      // 使用分布式锁确保匹配操作的原子性
-      await this.lockManager.withLock(LOCK_KEYS.MATCHMAKING, async () => {
+      // 使用队列专用锁确保队列操作的原子性
+      await this.lockManager.withLock(LOCK_KEYS.MATCHMAKING_QUEUE, async () => {
         // 添加到集群匹配队列 - 存储原始验证过的数据而不是解析后的实例
         const entry: MatchmakingEntry = {
           playerId,
@@ -722,6 +724,8 @@ export class ClusterBattleServer {
             return
           }
 
+          logger.info({ queueLength: queue.length }, 'Found sufficient players for matching, proceeding')
+
           // 按加入时间排序
           const sortedQueue = queue.sort((a, b) => a.joinTime - b.joinTime)
 
@@ -766,12 +770,25 @@ export class ClusterBattleServer {
 
           // 如果找不到合适的匹配，返回
           if (!player1Entry || !player2Entry) {
-            logger.debug(
-              { player1Entry: !!player1Entry, player2Entry: !!player2Entry, queueLength: queue.length },
+            logger.info(
+              {
+                player1Entry: !!player1Entry,
+                player2Entry: !!player2Entry,
+                queueLength: queue.length,
+                queueDetails: queue.map(e => ({ playerId: e.playerId, sessionId: e.sessionId })),
+              },
               'No suitable match found - all entries may be from same player',
             )
             return
           }
+
+          logger.info(
+            {
+              player1: { playerId: player1Entry.playerId, sessionId: player1Entry.sessionId },
+              player2: { playerId: player2Entry.playerId, sessionId: player2Entry.sessionId },
+            },
+            'Found suitable match pair, proceeding with match creation',
+          )
 
           // 使用分布式锁确保匹配的原子性
           // 基于sessionId生成锁键，确保顺序一致，避免死锁
@@ -820,7 +837,25 @@ export class ClusterBattleServer {
               p1Connection.status !== 'connected' ||
               p2Connection.status !== 'connected'
             ) {
-              logger.debug('Player sessions not connected, skipping match')
+              logger.info(
+                {
+                  player1: {
+                    playerId: player1Entry.playerId,
+                    sessionId: player1Entry.sessionId,
+                    connection: p1Connection
+                      ? { status: p1Connection.status, instanceId: p1Connection.instanceId }
+                      : null,
+                  },
+                  player2: {
+                    playerId: player2Entry.playerId,
+                    sessionId: player2Entry.sessionId,
+                    connection: p2Connection
+                      ? { status: p2Connection.status, instanceId: p2Connection.instanceId }
+                      : null,
+                  },
+                },
+                'Player sessions not connected, skipping match',
+              )
               return
             }
 
