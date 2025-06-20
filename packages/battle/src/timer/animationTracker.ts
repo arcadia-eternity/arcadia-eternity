@@ -1,6 +1,7 @@
 import { type TimerConfig, type AnimationInfo, type playerId } from '@arcadia-eternity/const'
 import mitt, { type Emitter } from 'mitt'
 import { nanoid } from 'nanoid'
+import { createChildLogger } from '../logger'
 
 type AnimationTrackerEvents = {
   animationStart: any
@@ -13,6 +14,7 @@ type AnimationTrackerEvents = {
  * 追踪当前播放的动画，管理动画时间窗口，防止客户端作弊
  */
 export class AnimationTracker {
+  private readonly logger = createChildLogger('AnimationTracker')
   private activeAnimations: Map<string, AnimationInfo> = new Map()
   private animationTimeouts: Map<string, ReturnType<typeof setTimeout>> = new Map()
   private animationOwners: Map<string, playerId> = new Map() // 存储动画所有者
@@ -79,13 +81,13 @@ export class AnimationTracker {
     const animation = this.activeAnimations.get(animationId)
     if (!animation) {
       // 动画可能已经被超时机制清理，这是正常情况，不需要警告
-      console.debug(`Animation ${animationId} not found (may have been cleaned up by timeout)`)
+      this.logger.debug(`Animation ${animationId} not found (may have been cleaned up by timeout)`)
       return false
     }
 
     // 记录这个动画已经正常结束
     this.normallyEndedAnimations.add(animationId)
-    console.debug(`Animation ${animationId} marked as normally ended`)
+    this.logger.debug(`Animation ${animationId} marked as normally ended`)
 
     // 计算实际时长
     const calculatedDuration = actualDuration || Date.now() - animation.startTime
@@ -94,7 +96,7 @@ export class AnimationTracker {
     // 验证动画时长是否合理
     const isValidDuration = this.validateAnimationDuration(animation)
     if (!isValidDuration) {
-      console.debug(
+      this.logger.debug(
         `Animation ${animationId} has invalid duration: ${calculatedDuration}ms (expected: ${animation.expectedDuration}ms)`,
       )
     }
@@ -118,13 +120,13 @@ export class AnimationTracker {
   public forceEndAnimation(animationId: string, reason: string): void {
     const animation = this.activeAnimations.get(animationId)
     if (!animation) {
-      console.debug(`Animation ${animationId} already cleaned up, skipping force end`)
+      this.logger.debug(`Animation ${animationId} already cleaned up, skipping force end`)
       return
     }
 
     // 检查动画是否已经正常结束
     if (this.normallyEndedAnimations.has(animationId)) {
-      console.debug(`Animation ${animationId} was already normally ended, skipping force end (reason: ${reason})`)
+      this.logger.debug(`Animation ${animationId} was already normally ended, skipping force end (reason: ${reason})`)
       // 仍然需要清理，因为正常结束可能没有清理超时器
       this.cleanupAnimation(animationId)
       return
@@ -137,22 +139,22 @@ export class AnimationTracker {
     animation.actualDuration = Date.now() - animation.startTime
 
     if (reason === 'timeout') {
-      console.debug(
+      this.logger.debug(
         `Animation ${animationId} timed out after ${animation.actualDuration}ms, expected: ${animation.expectedDuration}ms (max: ${this.config.maxAnimationDuration}ms)`,
       )
     } else {
-      console.warn(`Force ending animation ${animationId}, reason: ${reason}`)
+      this.logger.warn(`Force ending animation ${animationId}, reason: ${reason}`)
     }
 
     // 如果是超时且有回调函数，直接调用回调
     if (reason === 'timeout' && this.timeoutCallback && animationOwner) {
-      console.debug(`AnimationTracker: calling timeout callback for ${animationId}, owner: ${animationOwner}`)
+      this.logger.debug(`calling timeout callback for ${animationId}, owner: ${animationOwner}`)
       this.timeoutCallback(animationId, animationOwner)
     }
 
     this.cleanupAnimation(animationId)
 
-    console.debug(`AnimationTracker: emitting animationForceEnd event for ${animationId}, owner: ${animationOwner}`)
+    this.logger.debug(`emitting animationForceEnd event for ${animationId}, owner: ${animationOwner}`)
 
     this.emitter.emit('animationForceEnd', {
       animationId,

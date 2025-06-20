@@ -23,6 +23,7 @@ import { Pet } from './pet'
 import { Player } from './player'
 import { SkillInstance } from './skill'
 import type { Effect } from './effect'
+import { createChildLogger } from './logger'
 
 export abstract class Context {
   readonly type: string = 'base'
@@ -113,6 +114,7 @@ export class TurnContext extends Context {
 export class UseSkillContext extends Context {
   readonly type = 'use-skill'
   public readonly battle: Battle
+  private readonly logger = createChildLogger('UseSkillContext')
 
   priority: number
 
@@ -212,7 +214,7 @@ export class UseSkillContext extends Context {
     if (this.critOverrides.length > 0)
       this.crit = this.critOverrides.reduce((a, b) => (a.priority > b.priority ? a : b)).willCrit
     else this.crit = this.battle.random() * 100 < this.critRate
-    console.debug('critrate', this.critRate)
+    this.logger.debug('critrate', this.critRate)
   }
 
   updateDamageResult() {

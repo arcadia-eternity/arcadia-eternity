@@ -14,6 +14,7 @@ import mitt, { type Emitter } from 'mitt'
 import { BattleTimer } from './battleTimer'
 import { AnimationTracker } from './animationTracker'
 import type { Battle } from '../battle'
+import { createChildLogger } from '../logger'
 
 type TimerManagerEvents = {
   animationStart: any
@@ -27,6 +28,7 @@ type TimerManagerEvents = {
  * 管理整个战斗的计时状态，协调多个BattleTimer实例
  */
 export class TimerManager {
+  private readonly logger = createChildLogger('TimerManager')
   private playerTimers: Map<playerId, BattleTimer> = new Map()
   private animationTracker: AnimationTracker
   private config: TimerConfig
@@ -47,7 +49,7 @@ export class TimerManager {
 
     // 设置动画超时回调
     this.animationTracker.setTimeoutCallback((animationId, ownerId) => {
-      console.debug(
+      this.logger.debug(
         `TimerManager: animation ${animationId} timed out, owner: ${ownerId}, timers will automatically resume`,
       )
     })
@@ -87,7 +89,7 @@ export class TimerManager {
   public startNewTurn(playerIds: playerId[]): void {
     if (!this.config.enabled) return
 
-    console.debug(`Timer startNewTurn: starting new turn for players: ${playerIds.join(', ')}`)
+    this.logger.debug(`Timer startNewTurn: starting new turn for players: ${playerIds.join(', ')}`)
 
     this.currentPhase = 'selection'
     this.isActive = true
@@ -100,7 +102,7 @@ export class TimerManager {
 
     // 检查是否有活跃的动画
     if (this.animationTracker.hasActiveAnimations()) {
-      console.debug('Timer startNewTurn: active animations detected, deferring timer reset')
+      this.logger.debug('Timer startNewTurn: active animations detected, deferring timer reset')
       // 如果有活跃动画，先暂停所有计时器，等动画结束后再重置
       this.pauseTimers(playerIds, 'system')
 
@@ -131,7 +133,7 @@ export class TimerManager {
     playerIds.forEach(playerId => {
       const timer = this.playerTimers.get(playerId)
       if (timer) {
-        console.debug(`Timer startNewTurn: resetting and starting timer for player ${playerId}`)
+        this.logger.debug(`Timer startNewTurn: resetting and starting timer for player ${playerId}`)
         timer.resetTurn() // 重置并启动
         const state = timer.getState()
         remainingTotalTime[playerId] = state.remainingTotalTime
@@ -145,7 +147,7 @@ export class TimerManager {
       remainingTotalTime,
     })
 
-    console.debug('Timer startNewTurn: timers reset and started, ready for animation management')
+    this.logger.debug('Timer startNewTurn: timers reset and started, ready for animation management')
   }
 
   /**
@@ -187,12 +189,12 @@ export class TimerManager {
    * 暂停计时器（动画播放期间）
    */
   public pauseTimers(playerIds: playerId[], reason: 'animation' | 'system' = 'animation'): void {
-    console.debug(
+    this.logger.debug(
       `Timer pauseTimers: enabled=${this.config.enabled}, animationPauseEnabled=${this.config.animationPauseEnabled}, reason=${reason}, players=${playerIds.join(', ')}`,
     )
 
     if (!this.config.enabled || !this.config.animationPauseEnabled) {
-      console.debug('Timer pauseTimers: skipping due to config')
+      this.logger.debug('Timer pauseTimers: skipping due to config')
       return
     }
 
@@ -202,7 +204,7 @@ export class TimerManager {
         const stateBefore = timer.getState().state
         timer.pause(reason)
         const stateAfter = timer.getState().state
-        console.debug(`Timer pauseTimers: player ${playerId} state changed from ${stateBefore} to ${stateAfter}`)
+        this.logger.debug(`Timer pauseTimers: player ${playerId} state changed from ${stateBefore} to ${stateAfter}`)
       }
     })
 
@@ -219,7 +221,7 @@ export class TimerManager {
   public resumeTimers(playerIds: playerId[]): void {
     if (!this.config.enabled) return
 
-    console.debug(`Timer resumeTimers: resuming timers for players: ${playerIds.join(', ')}`)
+    this.logger.debug(`Timer resumeTimers: resuming timers for players: ${playerIds.join(', ')}`)
 
     playerIds.forEach(playerId => {
       const timer = this.playerTimers.get(playerId)
@@ -227,7 +229,7 @@ export class TimerManager {
         const stateBefore = timer.getState().state
         timer.resume()
         const stateAfter = timer.getState().state
-        console.debug(`Timer resumeTimers: player ${playerId} state changed from ${stateBefore} to ${stateAfter}`)
+        this.logger.debug(`Timer resumeTimers: player ${playerId} state changed from ${stateBefore} to ${stateAfter}`)
       }
     })
 
@@ -256,7 +258,7 @@ export class TimerManager {
   public handlePlayerSelectionChange(playerId: playerId, hasSelection: boolean): void {
     if (!this.config.enabled || (this.currentPhase !== 'selection' && this.currentPhase !== 'switch')) return
 
-    console.debug(`Timer handlePlayerSelectionChange: player ${playerId} selection status: ${hasSelection}`)
+    this.logger.debug(`Timer handlePlayerSelectionChange: player ${playerId} selection status: ${hasSelection}`)
 
     // 更新选择状态
     this.playerSelectionStatus.set(playerId, hasSelection)
@@ -266,7 +268,7 @@ export class TimerManager {
     const playersWithSelection = allPlayerIds.filter(id => this.playerSelectionStatus.get(id))
     const playersWithoutSelection = allPlayerIds.filter(id => !this.playerSelectionStatus.get(id))
 
-    console.debug(
+    this.logger.debug(
       `Timer handlePlayerSelectionChange: players with selection: [${playersWithSelection.join(', ')}], without selection: [${playersWithoutSelection.join(', ')}]`,
     )
 
@@ -291,25 +293,25 @@ export class TimerManager {
       })
 
       if (playersToPause.length > 0) {
-        console.debug(
+        this.logger.debug(
           `Timer handlePlayerSelectionChange: pausing timers for players who have made selections: [${playersToPause.join(', ')}]`,
         )
         this.pauseTimers(playersToPause, 'system')
       }
 
       if (playersToResume.length > 0) {
-        console.debug(
+        this.logger.debug(
           `Timer handlePlayerSelectionChange: resuming timers for players who haven't made selections: [${playersToResume.join(', ')}]`,
         )
         this.resumeTimers(playersToResume)
       }
     } else if (playersWithSelection.length === allPlayerIds.length) {
       // 所有玩家都已选择，暂停所有timer
-      console.debug('Timer handlePlayerSelectionChange: all players have made selections, pausing all timers')
+      this.logger.debug('Timer handlePlayerSelectionChange: all players have made selections, pausing all timers')
       this.pauseTimers(allPlayerIds, 'system')
     } else if (playersWithSelection.length === 0 && playersWithoutSelection.length === allPlayerIds.length) {
       // 所有玩家都没有选择，恢复所有被系统暂停的timer
-      console.debug(
+      this.logger.debug(
         'Timer handlePlayerSelectionChange: all players have no selections, resuming all system-paused timers',
       )
       const playersToResume: playerId[] = []
@@ -329,14 +331,14 @@ export class TimerManager {
             if (!hasActiveAnimationForPlayer) {
               playersToResume.push(id)
             } else {
-              console.debug(`Timer handlePlayerSelectionChange: keeping timer paused for ${id} due to active animation`)
+              this.logger.debug(`Timer handlePlayerSelectionChange: keeping timer paused for ${id} due to active animation`)
             }
           }
         }
       })
 
       if (playersToResume.length > 0) {
-        console.debug(
+        this.logger.debug(
           `Timer handlePlayerSelectionChange: resuming timers for all deselected players: [${playersToResume.join(', ')}]`,
         )
         this.resumeTimers(playersToResume)
@@ -348,18 +350,18 @@ export class TimerManager {
    * 开始动画追踪
    */
   public startAnimation(source: string, expectedDuration: number, ownerId: playerId): string {
-    console.debug(
+    this.logger.debug(
       `Timer startAnimation: enabled=${this.config.enabled}, isActive=${this.isActive}, source=${source}, ownerId=${ownerId}`,
     )
 
     if (!this.config.enabled) {
-      console.debug('Timer startAnimation: returning disabled due to config')
+      this.logger.debug('Timer startAnimation: returning disabled due to config')
       return 'disabled'
     }
 
     const animationId = this.animationTracker.startAnimation(source, expectedDuration, undefined, ownerId)
 
-    console.debug(
+    this.logger.debug(
       `Timer startAnimation: started animation ${animationId}, timers will automatically pause during animation`,
     )
 
@@ -379,21 +381,21 @@ export class TimerManager {
   public endAnimation(animationId: string, actualDuration?: number): void {
     if (!this.config.enabled || animationId === 'disabled') return
 
-    console.debug(`Timer endAnimation: ending animation ${animationId}, actualDuration=${actualDuration}`)
+    this.logger.debug(`Timer endAnimation: ending animation ${animationId}, actualDuration=${actualDuration}`)
 
     // 尝试结束动画追踪
     const animationEnded = this.animationTracker.endAnimation(animationId, actualDuration)
 
     if (!animationEnded) {
-      console.debug(`Timer endAnimation: animation ${animationId} was already cleaned up (likely due to timeout)`)
+      this.logger.debug(`Timer endAnimation: animation ${animationId} was already cleaned up (likely due to timeout)`)
       return
     }
 
-    console.debug(`Timer endAnimation: animation ${animationId} ended, timers will automatically resume`)
+    this.logger.debug(`Timer endAnimation: animation ${animationId} ended, timers will automatically resume`)
 
     // 检查是否有待重置的回合（只有在没有活跃动画时才处理）
     if (!this.animationTracker.hasActiveAnimations() && this.pendingTurnReset) {
-      console.debug('Timer endAnimation: processing pending turn reset')
+      this.logger.debug('Timer endAnimation: processing pending turn reset')
       const pending = this.pendingTurnReset
       this.pendingTurnReset = null
 
@@ -403,7 +405,7 @@ export class TimerManager {
       pending.playerIds.forEach(playerId => {
         const timer = this.playerTimers.get(playerId)
         if (timer) {
-          console.debug(`Timer endAnimation: resetting timer for player ${playerId}`)
+          this.logger.debug(`Timer endAnimation: resetting timer for player ${playerId}`)
           timer.resetTurn()
           const state = timer.getState()
           remainingTotalTime[playerId] = state.remainingTotalTime
@@ -490,7 +492,7 @@ export class TimerManager {
     })
 
     this.animationTracker.on('animationForceEnd', data => {
-      console.debug(
+      this.logger.debug(
         `Timer setupEventHandlers: animation force ended ${data.animationId}, reason: ${data.reason}, owner: ${data.ownerId}`,
       )
       this.emit('animationForceEnd', data)

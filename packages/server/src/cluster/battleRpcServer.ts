@@ -109,7 +109,6 @@ export class BattleRpcServer {
           return
         }
 
-        this.server.start()
         logger.info(
           {
             port: boundPort,

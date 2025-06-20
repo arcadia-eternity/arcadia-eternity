@@ -1,6 +1,7 @@
 import { BattlePhaseBase, PhaseState, type PhaseResult, InteractivePhase } from './base'
 import type { Battle } from '../battle'
 import { ConfigSystem } from '../config'
+import { createChildLogger } from '../logger'
 
 /**
  * Phase execution options
@@ -24,6 +25,7 @@ export interface PhaseDependency {
  * Manages phase creation, execution, dependencies, and cleanup
  */
 export class PhaseManager {
+  private readonly logger = createChildLogger('PhaseManager')
   private phases: Map<string, BattlePhaseBase> = new Map()
   private executionQueue: string[] = []
   private dependencies: Map<string, PhaseDependency[]> = new Map()
@@ -133,7 +135,7 @@ export class PhaseManager {
 
       // Retry logic
       if (options.retryCount && options.retryCount > 0) {
-        console.warn(`Phase ${phaseId} failed, retrying... (${options.retryCount} attempts left)`)
+        this.logger.warn(`Phase ${phaseId} failed, retrying... (${options.retryCount} attempts left)`)
         return this.executePhase(phaseId, { ...options, retryCount: options.retryCount - 1 })
       }
 

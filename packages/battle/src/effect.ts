@@ -4,8 +4,11 @@ import { Context, EffectContext, type TriggerContextMap } from './context'
 import { type Prototype } from './entity'
 import type { effectId } from '@arcadia-eternity/const'
 import { MarkInstanceImpl } from './mark'
+import { createChildLogger } from './logger'
 
 export class EffectScheduler {
+  private readonly logger = createChildLogger('EffectScheduler')
+
   constructor() {}
 
   private effectQueuesMap: WeakMap<
@@ -32,8 +35,8 @@ export class EffectScheduler {
 
     // 检查是否已经添加过这个效果
     if (addedEffects.has(effectKey)) {
-      console.warn(
-        `[Effect Scheduler] 检测到重复的效果被跳过: 源对象=${(context.source as any).id || 'unknown'} (${context.source.constructor.name}), 效果=${effect.id}, 触发器=${context.trigger}`,
+      this.logger.warn(
+        `检测到重复的效果被跳过: 源对象=${(context.source as any).id || 'unknown'} (${context.source.constructor.name}), 效果=${effect.id}, 触发器=${context.trigger}`,
       )
       return // 跳过重复的效果
     }
@@ -74,7 +77,7 @@ export class EffectScheduler {
         try {
           effect.innerApply(context)
         } catch (error) {
-          console.error(`[Effect Error] ${effect.id}:`, error)
+          this.logger.error(`Effect Error ${effect.id}:`, error)
         } finally {
           context.battle.applyEffects(context, EffectTrigger.AfterEffect)
         }

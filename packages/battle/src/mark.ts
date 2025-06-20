@@ -36,6 +36,7 @@ import {
   type LevelAccessors,
 } from './attributeSystem'
 import { Observable } from 'rxjs'
+import { createChildLogger } from './logger'
 
 export interface IBaseMark extends Prototype {
   createInstance(...arg: any[]): MarkInstance
@@ -116,6 +117,7 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
 
 export class MarkInstanceImpl implements MarkInstance {
   public owner: Battle | Pet | null = null
+  private readonly logger = createChildLogger('MarkInstance')
 
   public readonly id: markId
   public readonly effects: Effect<EffectTrigger>[]
@@ -395,7 +397,7 @@ export class MarkInstanceImpl implements MarkInstance {
             baseContext.battle.effectScheduler.addEffect(effect, effectContext)
           }
         } catch (err) {
-          console.error(err)
+          this.logger.error('Error in mark effect:', err)
         }
       })
   }

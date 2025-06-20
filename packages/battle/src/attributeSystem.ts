@@ -12,6 +12,7 @@ import type {
 import type { MarkInstance } from './mark'
 import type { SkillInstance } from './skill'
 import type { PhaseTypeSpec } from './config'
+import { createChildLogger } from './logger'
 
 // Computed function similar to Vue's computed
 export function computed<T>(computeFn: () => T, dependencies: Observable<any>[]): Observable<T> {
@@ -336,6 +337,7 @@ export interface PlayerAttributeSet extends AttributeData {
 }
 
 export class AttributeSystem<T extends AttributeData> {
+  private readonly logger = createChildLogger('AttributeSystem')
   private baseAttributes = new Map<keyof T, BehaviorSubject<number | boolean | string>>()
   private modifiers = new Map<keyof T, BehaviorSubject<Modifier[]>>()
   private subscriptions = new Map<keyof T, Observable<number | boolean | string>>()
@@ -614,13 +616,13 @@ export class AttributeSystem<T extends AttributeData> {
   ): number | boolean | string {
     // Check for circular dependency
     if (this.wouldCreateCircularDependency(key)) {
-      console.warn(`Circular dependency detected for attribute '${String(key)}', using fallback value`)
+      this.logger.warn(`Circular dependency detected for attribute '${String(key)}', using fallback value`)
       return this.getFallbackValue(key)
     }
 
     // Check calculation depth to prevent infinite recursion
     if (!this.checkCalculationDepth(key)) {
-      console.warn(`Maximum calculation depth exceeded for attribute '${String(key)}', using fallback value`)
+      this.logger.warn(`Maximum calculation depth exceeded for attribute '${String(key)}', using fallback value`)
       this.resetCalculationDepth(key)
       return this.getFallbackValue(key)
     }
@@ -644,7 +646,7 @@ export class AttributeSystem<T extends AttributeData> {
 
       return result
     } catch (error) {
-      console.warn(`Error calculating attribute '${String(key)}':`, error)
+      this.logger.warn(`Error calculating attribute '${String(key)}':`, error)
       return this.getFallbackValue(key)
     } finally {
       // Remove from calculation stack (both local and global)
@@ -680,7 +682,7 @@ export class AttributeSystem<T extends AttributeData> {
           result = modifier.apply(result)
         }
       } catch (error) {
-        console.warn(`Error applying modifier '${modifier.id}' to attribute '${String(key)}':`, error)
+        this.logger.warn(`Error applying modifier '${modifier.id}' to attribute '${String(key)}':`, error)
         // Continue with other modifiers instead of failing completely
         continue
       }
@@ -731,13 +733,13 @@ export class AttributeSystem<T extends AttributeData> {
   // 获取当前属性值（同步）
   getCurrentValue(key: AttributeKey): number | boolean | string {
     if (this.isDestroyed) {
-      console.warn(`Attempting to access destroyed AttributeSystem ${this.objectId}`)
+      this.logger.warn(`Attempting to access destroyed AttributeSystem ${this.objectId}`)
       return this.getFallbackValue(key)
     }
 
     // Check for circular dependency in synchronous access
     if (this.wouldCreateCircularDependency(key)) {
-      console.warn(`Circular dependency detected in getCurrentValue for '${String(key)}', using fallback value`)
+      this.logger.warn(`Circular dependency detected in getCurrentValue for '${String(key)}', using fallback value`)
       return this.getFallbackValue(key)
     }
 
@@ -751,7 +753,7 @@ export class AttributeSystem<T extends AttributeData> {
           .unsubscribe()
         return currentValue
       } catch (error) {
-        console.warn(`Error getting current value for '${String(key)}':`, error)
+        this.logger.warn(`Error getting current value for '${String(key)}':`, error)
         return this.getFallbackValue(key)
       }
     }
@@ -1111,7 +1113,7 @@ export class AttributeSystem<T extends AttributeData> {
       return // Already destroyed
     }
 
-    console.debug(`Destroying AttributeSystem ${this.objectId}`)
+    this.logger.debug(`Destroying AttributeSystem ${this.objectId}`)
 
     // Mark as destroyed
     this.isDestroyed = true
@@ -1121,7 +1123,7 @@ export class AttributeSystem<T extends AttributeData> {
       try {
         cleanup()
       } catch (error) {
-        console.warn(`Error cleaning up attribute ${String(key)} in ${this.objectId}:`, error)
+        this.logger.warn(`Error cleaning up attribute ${String(key)} in ${this.objectId}:`, error)
       }
     }
     this.subscriptionCleanups.clear()
@@ -1133,7 +1135,7 @@ export class AttributeSystem<T extends AttributeData> {
         try {
           modifier.destroy()
         } catch (error) {
-          console.warn(`Error destroying modifier ${modifier.id}:`, error)
+          this.logger.warn(`Error destroying modifier ${modifier.id}:`, error)
         }
       })
       modifierSubject.complete()
@@ -1182,7 +1184,7 @@ export class AttributeSystem<T extends AttributeData> {
     }
     keysToDelete.forEach(key => AttributeSystem.globalDependencyGraph.delete(key))
 
-    console.debug(`AttributeSystem ${this.objectId} destroyed successfully`)
+    this.logger.debug(`AttributeSystem ${this.objectId} destroyed successfully`)
   }
 
   /**
@@ -1303,7 +1305,8 @@ export class AttributeSystem<T extends AttributeData> {
     // Remove the battle from registry
     AttributeSystem.battleRegistry.delete(battleId)
 
-    console.debug(`Cleaned up ${cleanedCount} AttributeSystem instances for battle ${battleId}`)
+    const logger = createChildLogger('AttributeSystem')
+    logger.debug(`Cleaned up ${cleanedCount} AttributeSystem instances for battle ${battleId}`)
     return cleanedCount
   }
 
@@ -1337,7 +1340,8 @@ export class AttributeSystem<T extends AttributeData> {
     }
 
     AttributeSystem.battleRegistry.clear()
-    console.debug(`Cleaned up ${totalCleaned} AttributeSystem instances from all battles`)
+    const logger = createChildLogger('AttributeSystem')
+    logger.debug(`Cleaned up ${totalCleaned} AttributeSystem instances from all battles`)
     return totalCleaned
   }
 

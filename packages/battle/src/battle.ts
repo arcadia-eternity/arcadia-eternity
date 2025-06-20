@@ -31,10 +31,12 @@ import mitt from 'mitt'
 import { PhaseManager, SwitchPetPhase, TurnPhase } from './phase'
 import { TimerManager } from './timer'
 import { TransformationSystem } from './transformation'
+import { createChildLogger } from './logger'
 
 export class Battle extends Context implements MarkOwner {
   private lastStateMessage: BattleState = {} as BattleState
   public id: string = nanoid()
+  private readonly logger = createChildLogger('Battle')
 
   public allowFaintSwitch: boolean
   public showHidden: boolean
@@ -724,13 +726,13 @@ export class Battle extends Context implements MarkOwner {
     // Clean up all AttributeSystem instances associated with this battle
     const attributeCleanedCount = AttributeSystem.cleanupBattle(this.id)
     if (attributeCleanedCount > 0) {
-      console.log(`Battle ${this.id} cleanup: removed ${attributeCleanedCount} AttributeSystem instances`)
+      this.logger.info(`Battle ${this.id} cleanup: removed ${attributeCleanedCount} AttributeSystem instances`)
     }
 
     // Clean up all ConfigSystem instances associated with this battle
     const configCleanedCount = ConfigSystem.cleanupBattle(this.id)
     if (configCleanedCount > 0) {
-      console.log(`Battle ${this.id} cleanup: removed ${configCleanedCount} ConfigSystem instances`)
+      this.logger.info(`Battle ${this.id} cleanup: removed ${configCleanedCount} ConfigSystem instances`)
     }
   }
 }

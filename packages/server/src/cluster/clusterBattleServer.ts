@@ -1,4 +1,4 @@
-import { Battle } from '@arcadia-eternity/battle'
+import { Battle, setGlobalLogger } from '@arcadia-eternity/battle'
 import { type BattleState, BattleMessageType, type playerId } from '@arcadia-eternity/const'
 import { PlayerParser, SelectionParser } from '@arcadia-eternity/parser'
 import type {
@@ -191,6 +191,9 @@ export class ClusterBattleServer {
    */
   async initialize(): Promise<void> {
     logger.info({ instanceId: this.instanceId }, 'Initializing ClusterBattleServer')
+
+    // 设置Battle系统的全局logger
+    setGlobalLogger(logger)
 
     this.initializeMiddleware()
     this.setupConnectionHandlers()

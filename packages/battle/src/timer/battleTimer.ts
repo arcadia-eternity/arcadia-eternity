@@ -9,6 +9,7 @@ import {
   TIMER_CONSTANTS,
 } from '@arcadia-eternity/const'
 import mitt, { type Emitter } from 'mitt'
+import { createChildLogger } from '../logger'
 
 type BattleTimerEvents = {
   timerEvent: TimerEvent
@@ -19,6 +20,7 @@ type BattleTimerEvents = {
  * 管理回合时间和总思考时间
  */
 export class BattleTimer {
+  private readonly logger = createChildLogger('BattleTimer')
   private state: TimerState = TimerState.Stopped
   private remainingTurnTime: number = 0
   private remainingTotalTime: number
@@ -209,7 +211,7 @@ export class BattleTimer {
 
     // 如果有活跃动画，不推进计时器但更新时间戳
     if (this.hasActiveAnimationsCallback && this.hasActiveAnimationsCallback()) {
-      console.debug(`Timer updateTime: player ${this.playerId} - skipping time update due to active animations`)
+      this.logger.debug(`player ${this.playerId} - skipping time update due to active animations`)
       // 更新时间戳以避免动画结束后时间跳跃
       this.lastUpdateTime = now
       return

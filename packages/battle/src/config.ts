@@ -7,6 +7,7 @@ import type { Pet } from './pet'
 import type { Player } from './player'
 import type { SkillInstance } from './skill'
 import type { BattlePhaseBase } from './phase'
+import { createChildLogger, type BattleLogger } from './logger'
 
 export type ScopeObject = MarkInstance | SkillInstance | Pet | Player | Battle | BattlePhaseBase
 export type ConfigValue =
@@ -173,6 +174,7 @@ export class ConfigModifier {
 export class ConfigSystem {
   private static instance: ConfigSystem | null = null
   private static battleRegistry: Map<string, Set<ConfigSystem>> = new Map()
+  private readonly logger: BattleLogger = createChildLogger('ConfigSystem')
 
   // Modifier support
   private baseConfigs: Map<string, BehaviorSubject<ConfigValue>> = new Map()
@@ -302,7 +304,7 @@ export class ConfigSystem {
    */
   registerConfig(key: string, initialValue: ConfigValue): void {
     if (this.isDestroyed) {
-      console.warn(`Attempted to register config '${key}' on destroyed ConfigSystem`)
+      this.logger.warn(`Attempted to register config '${key}' on destroyed ConfigSystem`)
       return
     }
 
@@ -338,7 +340,7 @@ export class ConfigSystem {
    */
   addConfigTags(key: string, tags: string[]): void {
     if (this.isDestroyed) {
-      console.warn(`Attempted to add tags to config '${key}' on destroyed ConfigSystem`)
+      this.logger.warn(`Attempted to add tags to config '${key}' on destroyed ConfigSystem`)
       return
     }
 
@@ -366,7 +368,7 @@ export class ConfigSystem {
    */
   removeConfigTags(key: string, tags: string[]): void {
     if (this.isDestroyed) {
-      console.warn(`Attempted to remove tags from config '${key}' on destroyed ConfigSystem`)
+      this.logger.warn(`Attempted to remove tags from config '${key}' on destroyed ConfigSystem`)
       return
     }
 
@@ -421,14 +423,14 @@ export class ConfigSystem {
    */
   get(key: string, scope?: ScopeObject): ConfigValue | undefined {
     if (this.isDestroyed) {
-      console.warn(`Attempted to get config '${key}' from destroyed ConfigSystem`)
+      this.logger.warn(`Attempted to get config '${key}' from destroyed ConfigSystem`)
       return undefined
     }
 
     // Check if this config has modifier support
     if (this.baseConfigs.has(key)) {
       const value = this.getScopeAwareModifiedValue(key, scope)
-      console.debug('value', value)
+      this.logger.debug('value', value)
       return value
     }
 
@@ -446,7 +448,7 @@ export class ConfigSystem {
     let currentScopeForBase: ScopeObject | undefined = scope
     while (currentScopeForBase) {
       if (visited.has(currentScopeForBase)) {
-        console.warn(`Circular scope hierarchy detected while getting base value for key '${key}', breaking loop`)
+        this.logger.warn(`Circular scope hierarchy detected while getting base value for key '${key}', breaking loop`)
         break
       }
       visited.add(currentScopeForBase)
@@ -502,7 +504,7 @@ export class ConfigSystem {
     while (currentScope) {
       // Prevent infinite loops by tracking visited scopes
       if (visited.has(currentScope)) {
-        console.warn('Circular scope hierarchy detected in getScopeSpecificModifiers, breaking loop')
+        this.logger.warn('Circular scope hierarchy detected in getScopeSpecificModifiers, breaking loop')
         break
       }
       visited.add(currentScope)
@@ -666,7 +668,7 @@ export class ConfigSystem {
     while (scope) {
       // Prevent infinite loops by tracking visited scopes
       if (visited.has(scope)) {
-        console.warn('Circular scope hierarchy detected, breaking loop')
+        this.logger.warn('Circular scope hierarchy detected, breaking loop')
         break
       }
       visited.add(scope)
@@ -704,13 +706,13 @@ export class ConfigSystem {
    */
   set(key: string, value: ConfigValue, scope?: ScopeObject): void {
     if (this.isDestroyed) {
-      console.warn(`Attempted to set config '${key}' on destroyed ConfigSystem`)
+      this.logger.warn(`Attempted to set config '${key}' on destroyed ConfigSystem`)
       return
     }
 
     // A config must be registered globally before a scoped or global value can be set.
     if (!this.baseConfigs.has(key)) {
-      console.warn(`Config key '${key}' is not registered. Please call registerConfig() first.`)
+      this.logger.warn(`Config key '${key}' is not registered. Please call registerConfig() first.`)
       return
     }
 
@@ -1020,7 +1022,7 @@ export class ConfigSystem {
   popPhase(phase: BattlePhaseBase): void {
     const index = this.phaseStack.lastIndexOf(phase)
     if (index === -1) {
-      console.warn(`Phase ${phase.id} not found in phase stack`)
+      this.logger.warn(`Phase ${phase.id} not found in phase stack`)
       return
     }
 
@@ -1280,7 +1282,7 @@ export class ConfigSystem {
     this.tagToConfigKeys.clear()
     this.configKeyToTags.clear()
 
-    console.log(`ConfigSystem cleanup completed for battle ${this.battleId || 'unknown'}`)
+    this.logger.log(`ConfigSystem cleanup completed for battle ${this.battleId || 'unknown'}`)
   }
 
   /**
@@ -1305,7 +1307,7 @@ export class ConfigSystem {
       }
     }
 
-    console.log(`ConfigSystem destroyed for battle ${this.battleId || 'unknown'}`)
+    this.logger.log(`ConfigSystem destroyed for battle ${this.battleId || 'unknown'}`)
   }
 
   /**
@@ -1365,7 +1367,8 @@ export class ConfigSystem {
     }
 
     ConfigSystem.battleRegistry.clear()
-    console.log(`Cleaned up ${totalCleaned} ConfigSystem instances from all battles`)
+    const logger = createChildLogger('ConfigSystem')
+    logger.log(`Cleaned up ${totalCleaned} ConfigSystem instances from all battles`)
     return totalCleaned
   }
 }
