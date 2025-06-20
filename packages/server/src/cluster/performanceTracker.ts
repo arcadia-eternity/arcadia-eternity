@@ -424,16 +424,16 @@ export class PerformanceTracker {
   }
 
   /**
-   * 启动系统指标收集
+   * 启动系统指标收集（优化频率以节约资源）
    */
   private startSystemMetricsCollection(): void {
-    // 每30秒更新一次系统指标
+    // 延长系统指标收集间隔：每5分钟更新一次
     setInterval(() => {
       this.updateMemoryUsage()
       this.updateCpuUsage()
-    }, 30000)
+    }, 300000) // 5分钟
 
-    logger.debug('System metrics collection started')
+    logger.debug('System metrics collection started (optimized for cost reduction)')
   }
 
   /**

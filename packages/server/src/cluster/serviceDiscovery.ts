@@ -216,7 +216,7 @@ export class ServiceDiscoveryManager {
   }
 
   private startHealthCheck(): void {
-    const interval = 30000 // 30秒检查一次
+    const interval = 300000 // 5分钟检查一次（大幅延长以节约成本）
 
     this.healthCheckInterval = setInterval(async () => {
       try {
@@ -226,7 +226,7 @@ export class ServiceDiscoveryManager {
       }
     }, interval)
 
-    logger.debug({ interval }, 'Health check started')
+    logger.debug({ interval }, 'Health check started (optimized for cost reduction)')
   }
 
   private async performHealthCheck(): Promise<void> {
@@ -257,7 +257,7 @@ export class ServiceDiscoveryManager {
   }
 
   private startFailoverCheck(): void {
-    const interval = 60000 // 60秒检查一次
+    const interval = 600000 // 10分钟检查一次（大幅延长以节约成本）
 
     this.failoverCheckInterval = setInterval(async () => {
       try {
@@ -267,7 +267,7 @@ export class ServiceDiscoveryManager {
       }
     }, interval)
 
-    logger.debug({ interval }, 'Failover check started')
+    logger.debug({ interval }, 'Failover check started (optimized for cost reduction)')
   }
 
   private async performFailoverCheck(): Promise<void> {

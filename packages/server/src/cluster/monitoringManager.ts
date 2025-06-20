@@ -1,6 +1,7 @@
 import pino from 'pino'
 import type { ClusterStateManager } from './clusterStateManager'
 import type { RedisClientManager } from './redisClient'
+import { getCostOptimizationConfig, logOptimizationConfig } from './costOptimizationConfig'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -90,12 +91,20 @@ export class MonitoringManager {
   private activeAlerts: Map<string, Alert> = new Map()
   private metricsHistory: Map<string, MetricData[]> = new Map()
 
+  // 本地缓存以减少 Redis 查询
+  private redisStatsCache: { stats: RedisMemoryStats; timestamp: number } | null = null
+  private readonly REDIS_STATS_CACHE_TTL = 120000 // 2分钟缓存
+
   constructor(stateManager: ClusterStateManager, redisManager: RedisClientManager, instanceId: string) {
     this.stateManager = stateManager
     this.redisManager = redisManager
     this.instanceId = instanceId
 
     this.setupDefaultAlertRules()
+
+    // 记录成本优化配置
+    const config = getCostOptimizationConfig()
+    logOptimizationConfig(config)
   }
 
   async initialize(): Promise<void> {
@@ -219,10 +228,17 @@ export class MonitoringManager {
   }
 
   /**
-   * 获取Redis内存统计信息
+   * 获取Redis内存统计信息（带缓存优化）
    */
   private async getRedisMemoryStats(): Promise<RedisMemoryStats> {
     try {
+      const now = Date.now()
+
+      // 检查缓存是否有效
+      if (this.redisStatsCache && now - this.redisStatsCache.timestamp < this.REDIS_STATS_CACHE_TTL) {
+        return this.redisStatsCache.stats
+      }
+
       const client = this.redisManager.getClient()
       const info = await this.redisManager.getInfo()
 
@@ -250,7 +266,7 @@ export class MonitoringManager {
       const expiredKeys = parseInt(info.expired_keys) || 0
       const evictedKeys = parseInt(info.evicted_keys) || 0
 
-      return {
+      const stats: RedisMemoryStats = {
         usedMemoryBytes,
         maxMemoryBytes,
         usagePercent,
@@ -258,6 +274,11 @@ export class MonitoringManager {
         expiredKeys,
         evictedKeys,
       }
+
+      // 更新缓存
+      this.redisStatsCache = { stats, timestamp: now }
+
+      return stats
     } catch (error) {
       logger.error({ error }, 'Failed to get Redis memory stats')
       return {
@@ -509,8 +530,8 @@ export class MonitoringManager {
   }
 
   private startMetricsCollection(): void {
-    // 根据环境调整监控频率：开发环境更频繁，生产环境适中
-    const interval = process.env.NODE_ENV === 'development' ? 30000 : 60000 // 开发30秒，生产60秒
+    const config = getCostOptimizationConfig()
+    const interval = config.monitoring.metricsInterval
 
     this.metricsInterval = setInterval(async () => {
       try {
@@ -521,7 +542,7 @@ export class MonitoringManager {
       }
     }, interval)
 
-    logger.info({ interval: interval / 1000 }, 'Metrics collection started')
+    logger.info({ interval: interval / 1000 }, 'Metrics collection started (cost optimized)')
   }
 
   private startAlertChecking(): void {
@@ -587,8 +608,12 @@ export class MonitoringManager {
     }
   }
 
+  // 键统计缓存
+  private keyStatsCache: { stats: Record<string, number>; totalKeys: number; timestamp: number } | null = null
+  private readonly KEY_STATS_CACHE_TTL = 300000 // 5分钟缓存
+
   /**
-   * 获取Redis清理统计信息
+   * 获取Redis清理统计信息（大幅优化，减少SCAN操作）
    */
   async getRedisCleanupStats(): Promise<{
     totalKeys: number
@@ -598,41 +623,47 @@ export class MonitoringManager {
     keysByPattern: Record<string, number>
   }> {
     try {
-      const client = this.redisManager.getClient()
-      const keyPrefix = this.redisManager.getKeyPrefix()
+      const now = Date.now()
 
-      // 获取各种类型的键数量（已移除 log:* 模式以减少 Redis 操作）
-      const patterns = [
-        'session:*',
-        'auth:blacklist:*',
-        'metrics:*',
-        'alert:*',
-        'lock:*',
-        'room:*',
-        'player:sessions:connections:*',
-        'player:session:connection:*',
-      ]
-
-      const keysByPattern: Record<string, number> = {}
+      // 检查键统计缓存
+      let keysByPattern: Record<string, number> = {}
       let totalKeys = 0
 
-      // 使用 SCAN 代替 KEYS 以避免阻塞 Redis
-      for (const pattern of patterns) {
-        const fullPattern = `${keyPrefix}${pattern}`
-        let count = 0
-        let cursor = '0'
+      if (this.keyStatsCache && now - this.keyStatsCache.timestamp < this.KEY_STATS_CACHE_TTL) {
+        // 使用缓存数据
+        keysByPattern = this.keyStatsCache.stats
+        totalKeys = this.keyStatsCache.totalKeys
+      } else {
+        // 大幅减少扫描的模式，只保留最重要的
+        const patterns = ['session:*', 'room:*', 'player:sessions:connections:*']
 
-        do {
-          const result = await client.scan(cursor, 'MATCH', fullPattern, 'COUNT', 100)
-          cursor = result[0]
-          count += result[1].length
-        } while (cursor !== '0')
+        const client = this.redisManager.getClient()
+        const keyPrefix = this.redisManager.getKeyPrefix()
 
-        keysByPattern[pattern] = count
-        totalKeys += count
+        // 使用更大的 COUNT 值减少网络往返
+        for (const pattern of patterns) {
+          const fullPattern = `${keyPrefix}${pattern}`
+          let count = 0
+          let cursor = '0'
+          let scanCount = 0
+          const maxScans = 10 // 限制最大扫描次数以控制成本
+
+          do {
+            const result = await client.scan(cursor, 'MATCH', fullPattern, 'COUNT', 500) // 增大COUNT
+            cursor = result[0]
+            count += result[1].length
+            scanCount++
+          } while (cursor !== '0' && scanCount < maxScans)
+
+          keysByPattern[pattern] = count
+          totalKeys += count
+        }
+
+        // 更新缓存
+        this.keyStatsCache = { stats: keysByPattern, totalKeys, timestamp: now }
       }
 
-      // 获取Redis内存统计
+      // 获取Redis内存统计（已有缓存）
       const memoryStats = await this.getRedisMemoryStats()
 
       return {

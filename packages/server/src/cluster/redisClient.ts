@@ -19,8 +19,16 @@ export class RedisClientManager {
   private config: ClusterConfig['redis']
   private performanceTracker?: PerformanceTracker
 
+  // 通用本地缓存层以减少 Redis 查询
+  private localCache: Map<string, { value: any; timestamp: number; ttl: number }> = new Map()
+  private readonly DEFAULT_CACHE_TTL = 60000 // 1分钟默认缓存
+  private cacheCleanupTimer?: NodeJS.Timeout
+
   private constructor(config: ClusterConfig['redis']) {
     this.config = config
+
+    // 定期清理过期缓存
+    this.cacheCleanupTimer = setInterval(() => this.cleanupExpiredCache(), 300000) // 每5分钟清理一次
   }
 
   setPerformanceTracker(tracker: PerformanceTracker): void {
@@ -202,6 +210,13 @@ export class RedisClientManager {
     try {
       if (!this.client) throw new Error('Redis client not initialized')
 
+      // 检查缓存
+      const cacheKey = 'redis:info'
+      const cached = this.getFromCache(cacheKey)
+      if (cached) {
+        return cached
+      }
+
       const info = await this.client.info()
       const lines = info.split('\r\n')
       const result: Record<string, any> = {}
@@ -215,6 +230,9 @@ export class RedisClientManager {
         }
       }
 
+      // 缓存结果（30秒TTL，因为Redis info变化不频繁）
+      this.setCache(cacheKey, result, 30000)
+
       return result
     } catch (error) {
       logger.error({ error }, 'Failed to get Redis info')
@@ -222,9 +240,58 @@ export class RedisClientManager {
     }
   }
 
+  /**
+   * 本地缓存操作方法
+   */
+  private setCache(key: string, value: any, ttl: number = this.DEFAULT_CACHE_TTL): void {
+    this.localCache.set(key, {
+      value,
+      timestamp: Date.now(),
+      ttl,
+    })
+  }
+
+  private getFromCache(key: string): any | null {
+    const cached = this.localCache.get(key)
+    if (!cached) return null
+
+    const now = Date.now()
+    if (now - cached.timestamp > cached.ttl) {
+      this.localCache.delete(key)
+      return null
+    }
+
+    return cached.value
+  }
+
+  private cleanupExpiredCache(): void {
+    const now = Date.now()
+    let cleanedCount = 0
+
+    for (const [key, cached] of this.localCache.entries()) {
+      if (now - cached.timestamp > cached.ttl) {
+        this.localCache.delete(key)
+        cleanedCount++
+      }
+    }
+
+    if (cleanedCount > 0) {
+      logger.debug({ cleanedCount, totalCacheSize: this.localCache.size }, 'Cleaned up expired cache entries')
+    }
+  }
+
   async cleanup(): Promise<void> {
     try {
       logger.info('Cleaning up Redis connections')
+
+      // 清理缓存定时器
+      if (this.cacheCleanupTimer) {
+        clearInterval(this.cacheCleanupTimer)
+        this.cacheCleanupTimer = undefined
+      }
+
+      // 清理本地缓存
+      this.localCache.clear()
 
       const promises: Promise<any>[] = []
 

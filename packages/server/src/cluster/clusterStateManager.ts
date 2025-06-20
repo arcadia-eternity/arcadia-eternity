@@ -787,8 +787,8 @@ export class ClusterStateManager extends EventEmitter {
   }
 
   private startHeartbeat(): void {
-    // 根据环境调整心跳频率：开发环境更频繁，生产环境适中
-    const defaultInterval = process.env.NODE_ENV === 'development' ? 30000 : 45000 // 开发30秒，生产45秒
+    // 大幅延长心跳频率以节约 Redis 命令：开发环境2分钟，生产环境5分钟
+    const defaultInterval = process.env.NODE_ENV === 'development' ? 120000 : 300000 // 开发2分钟，生产5分钟
     const interval = this.config.cluster.heartbeatInterval || defaultInterval
 
     this.heartbeatTimer = setInterval(async () => {
@@ -799,11 +799,12 @@ export class ClusterStateManager extends EventEmitter {
       }
     }, interval)
 
-    logger.info({ interval: interval / 1000 }, 'Heartbeat started')
+    logger.info({ interval: interval / 1000 }, 'Heartbeat started (optimized for cost reduction)')
   }
 
   private startHealthCheck(): void {
-    const interval = this.config.cluster.healthCheckInterval || 60000 // 60秒
+    // 延长健康检查间隔以节约 Redis 命令：10分钟检查一次
+    const interval = this.config.cluster.healthCheckInterval || 600000 // 10分钟
 
     this.healthCheckTimer = setInterval(async () => {
       try {
@@ -812,6 +813,8 @@ export class ClusterStateManager extends EventEmitter {
         logger.error({ error }, 'Health check failed')
       }
     }, interval)
+
+    logger.info({ interval: interval / 1000 }, 'Health check started (optimized for cost reduction)')
   }
 
   private async performHealthCheck(): Promise<void> {
