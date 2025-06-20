@@ -335,12 +335,31 @@ export class ClusterBattleServer {
         const player = this.players.get(socket.id)
         if (player) player.lastPing = Date.now()
 
-        // 更新集群中的房间活跃时间
+        // 更新集群中的玩家连接活跃时间
         const playerId = socket.data.playerId
         const sessionId = socket.data.sessionId
 
         if (!playerId || !sessionId) return
 
+        // 更新玩家连接的lastSeen时间戳，防止连接被清理
+        try {
+          const connection: PlayerConnection = {
+            instanceId: this.instanceId,
+            socketId: socket.id,
+            lastSeen: Date.now(),
+            status: 'connected',
+            sessionId: sessionId,
+            metadata: {
+              userAgent: socket.handshake.headers['user-agent'],
+              ip: socket.handshake.address,
+            },
+          }
+          await this.stateManager.setPlayerConnection(playerId, connection)
+        } catch (error) {
+          logger.error({ error, playerId, sessionId }, 'Failed to update player connection lastSeen')
+        }
+
+        // 更新集群中的房间活跃时间
         const roomState = await this.getPlayerRoomFromCluster(playerId, sessionId)
         if (roomState) {
           roomState.lastActive = Date.now()
@@ -822,6 +841,14 @@ export class ClusterBattleServer {
             }
 
             // 检查玩家连接状态（基于session）
+            logger.info(
+              {
+                player1: { playerId: player1Entry.playerId, sessionId: player1Entry.sessionId },
+                player2: { playerId: player2Entry.playerId, sessionId: player2Entry.sessionId },
+              },
+              'About to check player connections by session',
+            )
+
             const p1Connection = await this.stateManager.getPlayerConnectionBySession(
               player1Entry.playerId,
               player1Entry.sessionId!,
@@ -829,6 +856,22 @@ export class ClusterBattleServer {
             const p2Connection = await this.stateManager.getPlayerConnectionBySession(
               player2Entry.playerId,
               player2Entry.sessionId!,
+            )
+
+            logger.info(
+              {
+                player1: {
+                  playerId: player1Entry.playerId,
+                  sessionId: player1Entry.sessionId,
+                  hasConnection: !!p1Connection,
+                },
+                player2: {
+                  playerId: player2Entry.playerId,
+                  sessionId: player2Entry.sessionId,
+                  hasConnection: !!p2Connection,
+                },
+              },
+              'Player connection check results',
             )
 
             if (
@@ -3037,6 +3080,24 @@ export class ClusterBattleServer {
       const timeout = 10 * 60 * 1000 // 10分钟超时
 
       const client = this.stateManager['redisManager'].getClient()
+
+      // 获取当前匹配队列中的所有玩家会话，避免清理正在匹配的玩家连接
+      const matchmakingQueue = await this.stateManager.getMatchmakingQueue()
+      const playersInQueue = new Set<string>()
+      for (const entry of matchmakingQueue) {
+        if (entry.sessionId) {
+          playersInQueue.add(`${entry.playerId}:${entry.sessionId}`)
+        }
+      }
+
+      logger.info(
+        {
+          playersInQueueCount: playersInQueue.size,
+          playersInQueue: Array.from(playersInQueue),
+        },
+        'Players in matchmaking queue - will not clean up their connections',
+      )
+
       // 获取所有玩家的session连接
       const allSessionKeys = await client.keys(REDIS_KEYS.PLAYER_SESSION_CONNECTIONS('*'))
 
@@ -3049,8 +3110,31 @@ export class ClusterBattleServer {
         if (connections.length === 0) continue
 
         for (const connection of connections) {
+          // 检查该玩家会话是否在匹配队列中
+          const playerSessionKey = `${playerId}:${connection.sessionId}`
+          if (playersInQueue.has(playerSessionKey)) {
+            logger.info(
+              {
+                playerId,
+                sessionId: connection.sessionId,
+                lastSeen: connection.lastSeen,
+                age: now - connection.lastSeen,
+              },
+              'Skipping cleanup for player in matchmaking queue',
+            )
+            continue
+          }
+
           if (now - connection.lastSeen > timeout) {
-            logger.debug({ playerId, sessionId: connection.sessionId }, 'Cleaning up expired player session connection')
+            logger.info(
+              {
+                playerId,
+                sessionId: connection.sessionId,
+                lastSeen: connection.lastSeen,
+                age: now - connection.lastSeen,
+              },
+              'Cleaning up expired player session connection',
+            )
             await this.stateManager.removePlayerConnection(playerId, connection.sessionId)
           }
         }

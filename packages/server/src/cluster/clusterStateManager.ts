@@ -238,14 +238,22 @@ export class ClusterStateManager extends EventEmitter {
     const client = this.redisManager.getClient()
 
     try {
-      const connectionData = await client.hgetall(REDIS_KEYS.PLAYER_SESSION_CONNECTION(playerId, sessionId))
+      const redisKey = REDIS_KEYS.PLAYER_SESSION_CONNECTION(playerId, sessionId)
+      logger.debug({ playerId, sessionId, redisKey }, 'Looking up player connection by session')
+
+      const connectionData = await client.hgetall(redisKey)
+      logger.debug(
+        { playerId, sessionId, connectionData, hasData: Object.keys(connectionData).length > 0 },
+        'Redis connection data retrieved',
+      )
 
       if (Object.keys(connectionData).length === 0) {
+        logger.debug({ playerId, sessionId, redisKey }, 'No connection data found for session')
         return null
       }
 
       const sessionConnection = this.deserializeSessionConnection(connectionData)
-      return {
+      const result = {
         instanceId: sessionConnection.instanceId,
         socketId: sessionConnection.socketId,
         lastSeen: sessionConnection.lastSeen,
@@ -253,6 +261,9 @@ export class ClusterStateManager extends EventEmitter {
         sessionId: sessionConnection.sessionId,
         metadata: sessionConnection.metadata,
       }
+
+      logger.debug({ playerId, sessionId, result }, 'Player connection found and deserialized')
+      return result
     } catch (error) {
       logger.error({ error, playerId, sessionId }, 'Failed to get player connection by session')
       return null
