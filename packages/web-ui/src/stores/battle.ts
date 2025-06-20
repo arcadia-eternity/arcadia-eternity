@@ -62,6 +62,7 @@ export const useBattleStore = defineStore('battle', {
     // 缓存更新节流相关
     _cacheUpdatePending: false,
     _lastCacheUpdateTime: 0,
+    waitingForResponse: false,
   }),
 
   actions: {
@@ -81,6 +82,7 @@ export const useBattleStore = defineStore('battle', {
       this._clearMapCaches()
       this._updateMapCaches()
       this.battleInterface.BattleEvent(msg => {
+        this.waitingForResponse = false
         this.handleBattleMessage(msg)
       })
       this.availableActions = await this.fetchAvailableSelection()
@@ -91,11 +93,12 @@ export const useBattleStore = defineStore('battle', {
     },
 
     async sendplayerSelection(selection: PlayerSelection) {
+      this.availableActions = []
+      this.waitingForResponse = true
       try {
         await this.battleInterface?.submitAction(selection)
-        this.availableActions = []
-      } catch (err) {
-        this.errorMessage = (err as Error).message
+      } catch (error) {
+        this.errorMessage = (error as Error).message
       }
     },
 

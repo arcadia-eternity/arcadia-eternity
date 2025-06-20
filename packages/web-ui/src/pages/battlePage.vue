@@ -241,10 +241,12 @@ const rightPetRef = useTemplateRef('rightPetRef')
 const leftStatusRef = useTemplateRef('leftStatusRef')
 const rightStatusRef = useTemplateRef('rightStatusRef')
 // 移除了 useElementBounding 相关代码，现在使用固定坐标系统
-const isPending = ref(false)
 const showBattleEndUI = ref(false)
 const showKoBanner = ref(false) // 新增：控制KO横幅显示
 const koBannerRef = useTemplateRef('koBannerRef') // 新增：KO横幅的模板引用
+
+// 等待对手响应状态 - 使用store中的waitingForResponse
+const isWaitingForOpponent = computed(() => store.waitingForResponse)
 
 // Climax特效相关
 const showClimaxEffect = ref(false) // 控制climax特效显示
@@ -655,21 +657,21 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
 }
 
 const handleSkillClick = (skillId: string) => {
-  if (isPending.value) return
+  if (isWaitingForOpponent.value) return
   const action = store.availableActions.find(a => a.type === 'use-skill' && a.skill === skillId)
   if (action) store.sendplayerSelection(action)
   panelState.value = PanelState.SKILLS
 }
 
 const handlePetSelect = (petId: string) => {
-  if (isPending.value) return
+  if (isWaitingForOpponent.value) return
   const action = store.availableActions.find(a => a.type === 'switch-pet' && a.pet === petId)
   if (action) store.sendplayerSelection(action)
   panelState.value = PanelState.SKILLS
 }
 
 const handleEscape = async () => {
-  if (isPending.value) return
+  if (isWaitingForOpponent.value) return
   const action = store.availableActions.find(a => a.type === 'surrender')
   if (!action) return
 
@@ -2437,6 +2439,25 @@ watch(
               </div>
             </div>
 
+            <!-- 等待对手提示 -->
+            <Transition name="fade">
+              <div
+                v-if="isWaitingForOpponent && !isReplayMode"
+                class="flex items-center justify-center gap-2 text-blue-300 text-lg font-medium"
+              >
+                <!-- 简单的旋转加载图标 -->
+                <div class="w-4 h-4 border-2 border-blue-300/30 border-t-blue-300 rounded-full animate-spin"></div>
+                <span>
+                  {{
+                    i18next.t('waiting-for-opponent-message', {
+                      ns: 'battle',
+                      defaultValue: '等待对手操作中...',
+                    })
+                  }}
+                </span>
+              </div>
+            </Transition>
+
             <!-- 公共印记（天气）显示 -->
             <div v-if="globalMarks.length > 0" class="flex flex-wrap justify-center gap-2 max-w-md">
               <Mark v-for="mark in globalMarks" :key="mark.id" :mark="mark" />
@@ -2454,7 +2475,7 @@ watch(
                 v-for="pet in leftPlayerPets"
                 :key="pet.id"
                 :pet="pet"
-                :disabled="!isPetSwitchable(pet.id) || isPending"
+                :disabled="!isPetSwitchable(pet.id) || isWaitingForOpponent"
                 :is-active="pet.id === currentPlayer?.activePet"
                 position="left"
                 @click="handlePetSelect"
@@ -2641,7 +2662,7 @@ watch(
                   <SkillButton
                     :skill="skill"
                     @click="handleSkillClick(skill.id)"
-                    :disabled="!isSkillAvailable(skill.id) || isPending"
+                    :disabled="!isSkillAvailable(skill.id) || isWaitingForOpponent"
                     :power-modifier-info="getSkillModifierInfo(skill, 'power')"
                     :accuracy-modifier-info="getSkillModifierInfo(skill, 'accuracy')"
                     :rage-modifier-info="getSkillModifierInfo(skill, 'rage')"
@@ -2657,7 +2678,7 @@ watch(
                   v-for="pet in currentPlayer?.team || []"
                   :key="pet.id"
                   :pet="pet"
-                  :disabled="!isPetSwitchable(pet.id) || isPending"
+                  :disabled="!isPetSwitchable(pet.id) || isWaitingForOpponent"
                   @click="handlePetSelect"
                   position="bottom"
                 />
@@ -2907,6 +2928,7 @@ watch(
           </div>
         </div>
       </div>
+
       <Transition name="fade">
         <div
           v-if="showBattleEndUI"
