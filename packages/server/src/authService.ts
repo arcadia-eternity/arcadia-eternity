@@ -73,6 +73,16 @@ export interface IAuthService {
    * 撤销令牌（将来可扩展为黑名单机制）
    */
   revokeToken(token: string): boolean
+
+  /**
+   * 异步验证访问令牌（可选，用于集群环境）
+   */
+  verifyAccessTokenAsync?(token: string): Promise<JWTPayload | null>
+
+  /**
+   * 获取会话（可选，用于集群环境）
+   */
+  getSession?(playerId: string, sessionId?: string): Promise<any>
 }
 
 @injectable()

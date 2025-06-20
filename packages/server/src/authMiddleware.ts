@@ -7,11 +7,16 @@ const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
 })
 
+// 扩展JWTPayload类型以包含isAdmin属性
+interface ExtendedJWTPayload extends JWTPayload {
+  isAdmin?: boolean
+}
+
 // 扩展Express Request接口以包含用户信息
 declare global {
   namespace Express {
     interface Request {
-      user?: JWTPayload
+      user?: ExtendedJWTPayload
       playerId?: string
     }
   }

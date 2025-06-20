@@ -16,8 +16,36 @@ internal_port = 8102
 force_https = true
 auto_stop_machines = 'stop'
 auto_start_machines = true
-min_machines_running = 0
+min_machines_running = 1
+max_machines_running = 5
 processes = ['app']
+
+# gRPC 服务配置
+[[services]]
+internal_port = 50051
+protocol = "tcp"
+processes = ['app']
+
+# 内部 gRPC 端口，不对外暴露
+[[services.ports]]
+port = 50051
+handlers = []
+
+# Health check configuration
+[[services.http_checks]]
+interval = '30s'
+timeout = '10s'
+grace_period = '30s'
+method = 'GET'
+path = '/health'
+
+# Metrics endpoint for monitoring
+[[services.http_checks]]
+interval = '60s'
+timeout = '15s'
+grace_period = '30s'
+method = 'GET'
+path = '/metrics'
 
 [[vm]]
 memory = '1gb'
@@ -25,10 +53,35 @@ cpu_kind = 'shared'
 cpus = 1
 
 [env]
+# Email configuration
 EMAIL_PROVIDER = "smtp"
 SMTP_HOST = "smtp.qcloudmail.com"
 SMTP_PROT = "465"
 SMTP_SECURE = "true"
 EMAIL_FROM = "noreply@auth.yuuinih.com"
 EMAIL_FROM_NAME = "阿卡迪亚永恒"
+
+# CORS configuration
 CORS_ORIGIN = "https://battle.yuuinih.com,https://test-battle.netlify.app"
+
+# Cluster configuration
+CLUSTER_ENABLED = "true"
+CLUSTER_INSTANCE_REGION = "hkg"
+CLUSTER_HEARTBEAT_INTERVAL = "30000"
+CLUSTER_HEALTH_CHECK_INTERVAL = "60000"
+CLUSTER_FAILOVER_TIMEOUT = "120000"
+
+# gRPC configuration for Fly.io
+GRPC_PORT = "50051"
+GRPC_BIND_ADDRESS = "0.0.0.0"
+# Fly.io 内部网络发现
+FLY_APP_NAME = "test-battle"
+FLY_REGION = "hkg"
+
+# Redis configuration (will be set via secrets)
+# REDIS_HOST will be set via fly secrets
+# REDIS_PASSWORD will be set via fly secrets
+REDIS_PORT = "6379"
+REDIS_DB = "0"
+REDIS_KEY_PREFIX = "arcadia:"
+REDIS_TLS = "true"

@@ -9,10 +9,15 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   const _instance = ref<BattleClient | null>(null)
   const _pendingEventHandlers = ref(new Map<string, Set<(...args: any[]) => void>>())
   const isInitialized = ref(false)
+  const _stateUpdateTrigger = ref(0) // 用于强制触发响应式更新
 
   // 计算属性
   const currentState = computed(() => {
-    return _instance.value?.currentState || { status: 'disconnected', matchmaking: 'idle', battle: 'idle' }
+    // 依赖触发器确保响应式更新
+    _stateUpdateTrigger.value
+    const state = _instance.value?.currentState || { status: 'disconnected', matchmaking: 'idle', battle: 'idle' }
+    console.log('🔍 battleClientStore currentState computed:', state, 'trigger:', _stateUpdateTrigger.value)
+    return state
   })
 
   const isConnected = computed(() => {
@@ -73,6 +78,12 @@ export const useBattleClientStore = defineStore('battleClient', () => {
 
     _instance.value = createBattleClient()
     isInitialized.value = true
+
+    // 设置状态变化监听器
+    _instance.value.on('stateChange', () => {
+      console.log('🔄 BattleClient state change detected, triggering Vue reactivity')
+      _stateUpdateTrigger.value++
+    })
 
     // 注册之前缓存的事件监听器
     registerPendingHandlers()

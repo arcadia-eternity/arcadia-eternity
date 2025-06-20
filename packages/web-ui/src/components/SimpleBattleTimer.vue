@@ -128,12 +128,22 @@ const updateTimerState = async () => {
     timerState.value = state
   } catch (error) {
     console.warn('Failed to update timer state:', error)
+    // 在错误情况下，暂时禁用计时器显示，避免过多的失败请求
+    isEnabled.value = false
+    timerState.value = null
+
+    // 减少轮询频率
+    if (updateInterval.value) {
+      clearInterval(updateInterval.value)
+      updateInterval.value = setInterval(updateTimerState, 10000) // 增加到10秒
+    }
   }
 }
 
 const startUpdateLoop = () => {
   if (updateInterval.value) return
-  updateInterval.value = setInterval(updateTimerState, 1000)
+  // 减少轮询频率从1秒到2秒，减少服务器负载
+  updateInterval.value = setInterval(updateTimerState, 2000)
 }
 
 const stopUpdateLoop = () => {

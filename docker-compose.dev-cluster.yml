@@ -1,0 +1,277 @@
+version: '3.8'
+
+# 开发集群模式Docker Compose配置
+# 直接使用现有编译好的代码，无需重新构建Docker镜像
+# 使用方法：
+# 1. 确保代码已编译：pnpm build
+# 2. 启动集群：docker-compose -f docker-compose.dev-cluster.yml up
+
+services:
+  # Redis服务 - 集群状态存储
+  redis:
+    image: redis:7-alpine
+    container_name: arcadia-redis-dev
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly no --save "" --maxmemory 2gb --maxmemory-policy allkeys-lru --tcp-keepalive 60 --timeout 0 --tcp-backlog 511 --databases 16 --stop-writes-on-bgsave-error no
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - arcadia-dev-cluster
+    # 资源限制 - 确保Redis有足够资源
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 3G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # 应用实例1
+  app1:
+    image: node:24-alpine
+    container_name: arcadia-app1-dev
+    ports:
+      - '8102:8102'
+      - '50880:50880' # RPC端口
+    working_dir: /app
+    command: ['node', 'dist/cli.js', 'server', '--port', '8102']
+    environment:
+      # 基础配置
+      NODE_ENV: production
+      PORT: 8102
+      CORS_ORIGIN: 'http://localhost:3000,http://localhost:5173'
+      JWT_SECRET: 'arcadia-eternity-jwt-secret-key-for-development-only-change-in-production'
+
+      # 集群配置
+      CLUSTER_ENABLED: 'true'
+      CLUSTER_INSTANCE_ID: 'app1'
+      CLUSTER_INSTANCE_HOST: 'app1'
+      CLUSTER_INSTANCE_REGION: 'local'
+
+      # Redis配置
+      REDIS_HOST: '${REDIS_HOST:-redis}'
+      REDIS_PORT: '${REDIS_PORT:-6379}'
+      REDIS_DB: '${REDIS_DB:-0}'
+      REDIS_KEY_PREFIX: '${REDIS_KEY_PREFIX:-arcadia:}'
+
+      # 邮件配置（可选）
+      EMAIL_SMTP_HOST: '${EMAIL_SMTP_HOST:-}'
+      EMAIL_SMTP_PORT: '${EMAIL_SMTP_PORT:-587}'
+      EMAIL_SMTP_USER: '${EMAIL_SMTP_USER:-}'
+      EMAIL_SMTP_PASS: '${EMAIL_SMTP_PASS:-}'
+      EMAIL_FROM_ADDRESS: '${EMAIL_FROM_ADDRESS:-noreply@yuuinih.com}'
+
+      # 数据库配置（可选）
+      SUPABASE_URL: '${SUPABASE_URL:-}'
+      SUPABASE_ANON_KEY: '${SUPABASE_ANON_KEY:-}'
+      SUPABASE_SERVICE_KEY: '${SUPABASE_SERVICE_KEY:-}'
+    volumes:
+      # 挂载编译好的代码和资源
+      - ./dist:/app/dist:ro
+      - ./packages:/app/packages:ro
+      - ./data:/app/data:ro
+      - ./locales:/app/locales:ro
+      - ./resource:/app/resource:ro
+      - ./package.json:/app/package.json:ro
+      - ./node_modules:/app/node_modules:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - arcadia-dev-cluster
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:8102/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 应用实例2
+  app2:
+    image: node:24-alpine
+    container_name: arcadia-app2-dev
+    ports:
+      - '8103:8102'
+      - '50881:50881' # RPC端口
+    working_dir: /app
+    command: ['node', 'dist/cli.js', 'server', '--port', '8102']
+    environment:
+      # 基础配置
+      NODE_ENV: production
+      PORT: 8102
+      CORS_ORIGIN: 'http://localhost:3000,http://localhost:5173'
+      JWT_SECRET: 'arcadia-eternity-jwt-secret-key-for-development-only-change-in-production'
+
+      # 集群配置
+      CLUSTER_ENABLED: 'true'
+      CLUSTER_INSTANCE_ID: 'app2'
+      CLUSTER_INSTANCE_HOST: 'app2'
+      CLUSTER_INSTANCE_REGION: 'local'
+
+      # Redis配置
+      REDIS_HOST: '${REDIS_HOST:-redis}'
+      REDIS_PORT: '${REDIS_PORT:-6379}'
+      REDIS_DB: '${REDIS_DB:-0}'
+      REDIS_KEY_PREFIX: '${REDIS_KEY_PREFIX:-arcadia:}'
+
+      # 邮件配置（可选）
+      EMAIL_SMTP_HOST: '${EMAIL_SMTP_HOST:-}'
+      EMAIL_SMTP_PORT: '${EMAIL_SMTP_PORT:-587}'
+      EMAIL_SMTP_USER: '${EMAIL_SMTP_USER:-}'
+      EMAIL_SMTP_PASS: '${EMAIL_SMTP_PASS:-}'
+      EMAIL_FROM_ADDRESS: '${EMAIL_FROM_ADDRESS:-noreply@yuuinih.com}'
+
+      # 数据库配置（可选）
+      SUPABASE_URL: '${SUPABASE_URL:-}'
+      SUPABASE_ANON_KEY: '${SUPABASE_ANON_KEY:-}'
+      SUPABASE_SERVICE_KEY: '${SUPABASE_SERVICE_KEY:-}'
+    volumes:
+      # 挂载编译好的代码和资源
+      - ./dist:/app/dist:ro
+      - ./packages:/app/packages:ro
+      - ./data:/app/data:ro
+      - ./locales:/app/locales:ro
+      - ./resource:/app/resource:ro
+      - ./package.json:/app/package.json:ro
+      - ./node_modules:/app/node_modules:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - arcadia-dev-cluster
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:8102/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 应用实例3
+  app3:
+    image: node:24-alpine
+    container_name: arcadia-app3-dev
+    ports:
+      - '8104:8102'
+      - '50882:50882' # RPC端口
+    working_dir: /app
+    command: ['node', 'dist/cli.js', 'server', '--port', '8102']
+    environment:
+      # 基础配置
+      NODE_ENV: production
+      PORT: 8102
+      CORS_ORIGIN: 'http://localhost:3000,http://localhost:5173'
+      JWT_SECRET: 'arcadia-eternity-jwt-secret-key-for-development-only-change-in-production'
+
+      # 集群配置
+      CLUSTER_ENABLED: 'true'
+      CLUSTER_INSTANCE_ID: 'app3'
+      CLUSTER_INSTANCE_HOST: 'app3'
+      CLUSTER_INSTANCE_REGION: 'local'
+
+      # Redis配置
+      REDIS_HOST: '${REDIS_HOST:-redis}'
+      REDIS_PORT: '${REDIS_PORT:-6379}'
+      REDIS_DB: '${REDIS_DB:-0}'
+      REDIS_KEY_PREFIX: '${REDIS_KEY_PREFIX:-arcadia:}'
+
+      # 邮件配置（可选）
+      EMAIL_SMTP_HOST: '${EMAIL_SMTP_HOST:-}'
+      EMAIL_SMTP_PORT: '${EMAIL_SMTP_PORT:-587}'
+      EMAIL_SMTP_USER: '${EMAIL_SMTP_USER:-}'
+      EMAIL_SMTP_PASS: '${EMAIL_SMTP_PASS:-}'
+      EMAIL_FROM_ADDRESS: '${EMAIL_FROM_ADDRESS:-noreply@yuuinih.com}'
+
+      # 数据库配置（可选）
+      SUPABASE_URL: '${SUPABASE_URL:-}'
+      SUPABASE_ANON_KEY: '${SUPABASE_ANON_KEY:-}'
+      SUPABASE_SERVICE_KEY: '${SUPABASE_SERVICE_KEY:-}'
+    volumes:
+      # 挂载编译好的代码和资源
+      - ./dist:/app/dist:ro
+      - ./packages:/app/packages:ro
+      - ./data:/app/data:ro
+      - ./locales:/app/locales:ro
+      - ./resource:/app/resource:ro
+      - ./package.json:/app/package.json:ro
+      - ./node_modules:/app/node_modules:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - arcadia-dev-cluster
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:8102/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx负载均衡器
+  nginx:
+    image: nginx:alpine
+    container_name: arcadia-nginx-dev
+    ports:
+      - '8080:80' # 改为8080端口避免冲突
+      - '8443:443' # 改为8443端口避免冲突
+    volumes:
+      - ./nginx.cluster.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app1
+      - app2
+      - app3
+    networks:
+      - arcadia-dev-cluster
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus监控（可选）
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: arcadia-prometheus-dev
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_dev_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - arcadia-dev-cluster
+    profiles:
+      - monitoring
+
+  # Grafana仪表板（可选）
+  grafana:
+    image: grafana/grafana:latest
+    container_name: arcadia-grafana-dev
+    ports:
+      - '3001:3000'
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_dev_data:/var/lib/grafana
+    networks:
+      - arcadia-dev-cluster
+    profiles:
+      - monitoring
+
+volumes:
+  redis_dev_data:
+  prometheus_dev_data:
+  grafana_dev_data:
+
+networks:
+  arcadia-dev-cluster:
+    driver: bridge

@@ -1,0 +1,180 @@
+syntax = "proto3";
+
+package battle;
+
+service BattleService {
+  // 玩家选择相关
+  rpc SubmitPlayerSelection(PlayerSelectionRequest) returns (PlayerSelectionResponse);
+  rpc GetAvailableSelection(SelectionRequest) returns (SelectionResponse);
+  
+  // 战斗状态相关
+  rpc GetBattleState(BattleStateRequest) returns (BattleStateResponse);
+  rpc PlayerReady(ReadyRequest) returns (ReadyResponse);
+  rpc PlayerAbandon(AbandonRequest) returns (AbandonResponse);
+  
+  // 动画和计时器相关
+  rpc ReportAnimationEnd(AnimationEndRequest) returns (AnimationEndResponse);
+  rpc IsTimerEnabled(TimerEnabledRequest) returns (TimerEnabledResponse);
+  rpc GetPlayerTimerState(PlayerTimerStateRequest) returns (PlayerTimerStateResponse);
+  rpc GetAllPlayerTimerStates(AllPlayerTimerStatesRequest) returns (AllPlayerTimerStatesResponse);
+  rpc GetTimerConfig(TimerConfigRequest) returns (TimerConfigResponse);
+  rpc StartAnimation(StartAnimationRequest) returns (StartAnimationResponse);
+  rpc EndAnimation(EndAnimationRequest) returns (EndAnimationResponse);
+  
+  // 战斗管理相关
+  rpc TerminateBattle(TerminateBattleRequest) returns (TerminateBattleResponse);
+}
+
+// 玩家选择相关消息
+message PlayerSelectionRequest {
+  string room_id = 1;
+  string player_id = 2;
+  string selection_data = 3; // JSON string of selection data
+}
+
+message PlayerSelectionResponse {
+  bool success = 1;
+  string error = 2;
+  string status = 3; // "ACTION_ACCEPTED" etc.
+}
+
+message SelectionRequest {
+  string room_id = 1;
+  string player_id = 2;
+}
+
+message SelectionResponse {
+  bool success = 1;
+  string error = 2;
+  string selections = 3; // JSON string of available selections array
+}
+
+// 战斗状态相关消息
+message BattleStateRequest {
+  string room_id = 1;
+  string player_id = 2;
+}
+
+message BattleStateResponse {
+  bool success = 1;
+  string error = 2;
+  string battle_state = 3; // JSON string of battle state
+}
+
+message ReadyRequest {
+  string room_id = 1;
+  string player_id = 2;
+}
+
+message ReadyResponse {
+  bool success = 1;
+  string error = 2;
+  string status = 3; // "READY"
+}
+
+message AbandonRequest {
+  string room_id = 1;
+  string player_id = 2;
+}
+
+message AbandonResponse {
+  bool success = 1;
+  string error = 2;
+  string status = 3; // "ABANDONED"
+}
+
+// 动画相关消息
+message AnimationEndRequest {
+  string room_id = 1;
+  string player_id = 2;
+  string animation_data = 3; // JSON string containing animationId, actualDuration etc.
+}
+
+message AnimationEndResponse {
+  bool success = 1;
+  string error = 2;
+  string status = 3; // "SUCCESS"
+}
+
+message StartAnimationRequest {
+  string room_id = 1;
+  string player_id = 2;
+  string animation_data = 3; // JSON string
+}
+
+message StartAnimationResponse {
+  bool success = 1;
+  string error = 2;
+  string result = 3; // JSON string of result
+}
+
+message EndAnimationRequest {
+  string room_id = 1;
+  string player_id = 2;
+  string animation_data = 3; // JSON string
+}
+
+message EndAnimationResponse {
+  bool success = 1;
+  string error = 2;
+  string status = 3; // "SUCCESS"
+}
+
+// 计时器相关消息
+message TimerEnabledRequest {
+  string room_id = 1;
+  string player_id = 2;
+}
+
+message TimerEnabledResponse {
+  bool success = 1;
+  string error = 2;
+  bool enabled = 3;
+}
+
+message PlayerTimerStateRequest {
+  string room_id = 1;
+  string player_id = 2;
+  string timer_data = 3; // JSON string
+}
+
+message PlayerTimerStateResponse {
+  bool success = 1;
+  string error = 2;
+  string timer_state = 3; // JSON string
+}
+
+message AllPlayerTimerStatesRequest {
+  string room_id = 1;
+  string player_id = 2;
+}
+
+message AllPlayerTimerStatesResponse {
+  bool success = 1;
+  string error = 2;
+  string timer_states = 3; // JSON string
+}
+
+message TimerConfigRequest {
+  string room_id = 1;
+  string player_id = 2;
+}
+
+message TimerConfigResponse {
+  bool success = 1;
+  string error = 2;
+  string config = 3; // JSON string
+}
+
+// 战斗管理相关消息
+message TerminateBattleRequest {
+  string room_id = 1;
+  string player_id = 2;
+  string reason = 3; // "abandon", "disconnect" etc.
+}
+
+message TerminateBattleResponse {
+  bool success = 1;
+  string error = 2;
+  string status = 3;
+}

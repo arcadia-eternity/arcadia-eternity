@@ -15,7 +15,9 @@ import {
   type BattleReportConfig,
   createEmailConfigFromCli,
   type EmailCliOptions,
-  createApp,
+  createClusterApp,
+  createClusterConfigFromCli,
+  type ClusterCliOptions,
 } from '@arcadia-eternity/server'
 import DevServer from '../devServer'
 import { fileURLToPath } from 'node:url'
@@ -182,6 +184,7 @@ program
     'CORS允许的源（逗号分隔）',
     process.env.CORS_ORIGIN || 'http://localhost:3000,http://localhost:5173',
   )
+
   // 邮件服务配置选项
   .option('--email-provider <provider>', '邮件服务提供商 (console|smtp|sendgrid|ses)')
   .option('--email-from <email>', '发件人邮箱地址')
@@ -198,6 +201,38 @@ program
   .option('--aws-ses-region <region>', 'AWS SES区域')
   .option('--aws-access-key-id <id>', 'AWS访问密钥ID')
   .option('--aws-secret-access-key <key>', 'AWS访问密钥')
+
+  // Redis 配置选项
+  .option('--redis-host <host>', 'Redis服务器地址', process.env.REDIS_HOST || 'localhost')
+  .option('--redis-port <port>', 'Redis服务器端口', process.env.REDIS_PORT || '6379')
+  .option('--redis-password <password>', 'Redis密码')
+  .option('--redis-db <db>', 'Redis数据库编号', process.env.REDIS_DB || '0')
+  .option('--redis-key-prefix <prefix>', 'Redis键前缀', process.env.REDIS_KEY_PREFIX || 'arcadia:')
+  .option('--redis-max-retries <retries>', 'Redis最大重试次数', process.env.REDIS_MAX_RETRIES || '3')
+  .option('--redis-retry-delay <delay>', 'Redis重试延迟(毫秒)', process.env.REDIS_RETRY_DELAY || '100')
+  .option('--redis-enable-ready-check', 'Redis启用就绪检查', process.env.REDIS_ENABLE_READY_CHECK !== 'false')
+  .option('--redis-lazy-connect', 'Redis延迟连接', process.env.REDIS_LAZY_CONNECT !== 'false')
+
+  // 集群配置选项
+  .option('--cluster-enabled', '启用集群模式', process.env.CLUSTER_ENABLED !== 'false')
+  .option('--cluster-instance-id <id>', '集群实例ID', process.env.CLUSTER_INSTANCE_ID)
+  .option('--cluster-instance-host <host>', '集群实例主机名', process.env.CLUSTER_INSTANCE_HOST)
+  .option('--cluster-instance-region <region>', '集群实例区域', process.env.CLUSTER_INSTANCE_REGION)
+  .option(
+    '--cluster-heartbeat-interval <interval>',
+    '集群心跳间隔(毫秒)',
+    process.env.CLUSTER_HEARTBEAT_INTERVAL || '30000',
+  )
+  .option(
+    '--cluster-health-check-interval <interval>',
+    '集群健康检查间隔(毫秒)',
+    process.env.CLUSTER_HEALTH_CHECK_INTERVAL || '60000',
+  )
+  .option(
+    '--cluster-failover-timeout <timeout>',
+    '集群故障转移超时(毫秒)',
+    process.env.CLUSTER_FAILOVER_TIMEOUT || '120000',
+  )
   .action(async options => {
     try {
       console.log('[🌀] 正在加载游戏数据...')
@@ -246,11 +281,33 @@ program
       }
       const emailConfig = createEmailConfigFromCli(emailCliOptions)
 
+      // 创建集群配置
+      const clusterCliOptions: ClusterCliOptions = {
+        redisHost: options.redisHost,
+        redisPort: options.redisPort,
+        redisPassword: options.redisPassword,
+        redisDb: options.redisDb,
+        redisKeyPrefix: options.redisKeyPrefix,
+        redisMaxRetries: options.redisMaxRetries,
+        redisRetryDelay: options.redisRetryDelay,
+        redisEnableReadyCheck: options.redisEnableReadyCheck,
+        redisLazyConnect: options.redisLazyConnect,
+        clusterEnabled: options.clusterEnabled,
+        clusterInstanceId: options.clusterInstanceId,
+        clusterInstanceHost: options.clusterInstanceHost,
+        clusterInstanceRegion: options.clusterInstanceRegion,
+        clusterHeartbeatInterval: options.clusterHeartbeatInterval,
+        clusterHealthCheckInterval: options.clusterHealthCheckInterval,
+        clusterFailoverTimeout: options.clusterFailoverTimeout,
+        port: options.port,
+      }
+      const clusterConfig = createClusterConfigFromCli(clusterCliOptions)
+
       // 配置CORS
       const corsOrigins = options.corsOrigin.split(',').map((origin: string) => origin.trim())
 
-      // 使用createApp函数创建应用
-      const { app, start, stop } = createApp({
+      // 使用集群模式应用
+      const { app, start, stop } = createClusterApp({
         port: parseInt(options.port),
         cors: {
           origin: corsOrigins,
@@ -258,6 +315,7 @@ program
         },
         battleReport: battleReportConfig,
         email: emailConfig,
+        cluster: clusterConfig,
       })
 
       // 开发服务器（静态文件等）
@@ -285,8 +343,20 @@ program
       console.log(`🖥  Express服务器已启动`)
       console.log(`📡 监听端口: ${options.port}`)
       console.log(`🌐 CORS允许源: ${corsOrigins.join(', ')}`)
+      console.log(`🔧 运行模式: ${clusterConfig.cluster.enabled ? '集群模式' : '单实例模式'}`)
       console.log(`⚔  等待玩家连接...`)
       console.log(`🏥 健康检查端点: http://localhost:${options.port}/health`)
+
+      if (clusterConfig.cluster.enabled) {
+        console.log(`🔗 集群状态端点: http://localhost:${options.port}/cluster/status`)
+        console.log(`📊 Prometheus指标: http://localhost:${options.port}/metrics`)
+        console.log(`🗄️  Redis连接: ${clusterConfig.redis.host}:${clusterConfig.redis.port}`)
+        console.log(`🏷️  Redis键前缀: ${clusterConfig.redis.keyPrefix}`)
+        console.log(`🆔 集群实例ID: ${clusterConfig.instance.id}`)
+        if (clusterConfig.instance.region) {
+          console.log(`🌍 集群区域: ${clusterConfig.instance.region}`)
+        }
+      }
 
       if (battleReportConfig?.enableReporting) {
         console.log(`📊 战报功能: 已启用`)

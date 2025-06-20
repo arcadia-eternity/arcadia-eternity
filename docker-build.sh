@@ -5,13 +5,17 @@
 
 set -e
 
+# Enable Docker BuildKit for cache mount support
+export DOCKER_BUILDKIT=1
+
 IMAGE_NAME="arcadia-eternity"
 TAG=${1:-final}
 FULL_IMAGE_NAME="$IMAGE_NAME:$TAG"
 
 echo "🚀 Building Docker image: $FULL_IMAGE_NAME"
+echo "📦 Using BuildKit with pnpm cache optimization"
 
-# Build the image
+# Build the image with cache mount support
 docker build \
   --target production \
   --tag "$FULL_IMAGE_NAME" \
@@ -44,6 +48,6 @@ if [ "$2" = "test" ]; then
 fi
 
 echo "🎉 All done! You can run the image with:"
-echo "   docker run -p 8102:8102 $FULL_IMAGE_NAME"
+echo "   docker-compose up (single instance cluster mode)"
 echo "   or"
-echo "   docker-compose up"
+echo "   docker-compose -f docker-compose.cluster.yml up (multi-instance cluster)"

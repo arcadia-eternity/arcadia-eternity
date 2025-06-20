@@ -110,6 +110,17 @@ export class BattleClient {
     return { ...this.state }
   }
 
+  // 公开的状态重置方法
+  resetState() {
+    console.log('🔄 Resetting BattleClient state to idle')
+    this.updateState({
+      matchmaking: 'idle',
+      battle: 'idle',
+      roomId: undefined,
+      opponent: undefined,
+    })
+  }
+
   async connect(): Promise<void> {
     return this.connectWithRetry()
   }
@@ -195,15 +206,20 @@ export class BattleClient {
 
   async joinMatchmaking(playerData: PlayerSchemaType): Promise<void> {
     this.verifyConnection()
+    console.log('🔍 Starting matchmaking process for player:', playerData.id)
     this.updateState({ matchmaking: 'searching' })
+    console.log('🔄 State updated to searching, current state:', this.state.matchmaking)
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
+        console.error('⏰ Matchmaking timeout after', this.options.actionTimeout, 'ms')
         reject(new Error('Matchmaking timeout'))
       }, this.options.actionTimeout)
 
+      console.log('📤 Sending joinMatchmaking request to server')
       this.socket.emit('joinMatchmaking', playerData, response => {
         clearTimeout(timeout)
+        console.log('📥 Received joinMatchmaking response:', response)
         this.handleMatchmakingResponse(response, resolve, reject)
       })
     })
@@ -457,13 +473,27 @@ export class BattleClient {
 
     // 游戏事件
     this.socket.on('matchSuccess', response => {
+      console.log('🎯 Received matchSuccess event:', response)
       if (response.status === 'SUCCESS') {
+        console.log('✅ Match success confirmed, updating state:', {
+          roomId: response.data.roomId,
+          opponent: response.data.opponent,
+          previousState: this.state.matchmaking,
+        })
         this.updateState({
           matchmaking: 'matched',
           battle: 'active',
           roomId: response.data.roomId,
           opponent: response.data.opponent,
         })
+        console.log('🔄 State updated, new state:', {
+          matchmaking: this.state.matchmaking,
+          battle: this.state.battle,
+          roomId: this.state.roomId,
+          opponent: this.state.opponent,
+        })
+      } else {
+        console.error('❌ Match success event with error status:', response)
       }
     })
 
@@ -486,7 +516,16 @@ export class BattleClient {
   }
 
   private updateState(partialState: Partial<ClientState>) {
+    const oldState = { ...this.state }
     this.state = { ...this.state, ...partialState }
+    console.log('🔄 BattleClient state updated:', {
+      old: oldState,
+      new: this.state,
+      changes: partialState,
+    })
+
+    // 触发状态变化事件，确保Vue响应式系统能够检测到变化
+    this.eventHandlers.get('stateChange')?.forEach(handler => handler(this.state))
   }
 
   private verifyConnection() {

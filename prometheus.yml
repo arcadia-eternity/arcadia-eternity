@@ -1,0 +1,66 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # Prometheus自身监控
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Arcadia应用实例监控
+  - job_name: 'arcadia-cluster'
+    scrape_interval: 30s
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: 
+          - 'app1:8102'
+          - 'app2:8102'
+          - 'app3:8102'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [__address__]
+        regex: '([^:]+):.*'
+        target_label: instance_name
+        replacement: '${1}'
+
+  # Nginx监控（如果启用了nginx-prometheus-exporter）
+  - job_name: 'nginx'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['nginx:9113']
+    # 如果没有nginx exporter，可以注释掉这个job
+
+  # Redis监控（如果启用了redis-exporter）
+  - job_name: 'redis'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    # 如果没有redis exporter，可以注释掉这个job
+
+  # 健康检查监控
+  - job_name: 'arcadia-health'
+    scrape_interval: 60s
+    metrics_path: '/health'
+    static_configs:
+      - targets:
+          - 'app1:8102'
+          - 'app2:8102'
+          - 'app3:8102'
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'up'
+        target_label: __name__
+        replacement: 'arcadia_instance_up'
+
+# 告警规则（可选）
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           # - alertmanager:9093

@@ -1,32 +1,71 @@
 version: '3.8'
 
+# 单实例集群模式Docker Compose配置
+# 默认启用集群模式，但只运行单个实例
+# 如需多实例集群，请使用 docker-compose.cluster.yml
+
 services:
+  # Redis服务 - 集群状态存储
+  redis:
+    image: redis:7-alpine
+    container_name: arcadia-redis
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - arcadia-cluster
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   arcadia-eternity:
     build:
       context: .
       dockerfile: Dockerfile
       target: production
+      args:
+        - BUILDKIT_INLINE_CACHE=1
     ports:
       - '8102:8102'
     environment:
       - NODE_ENV=production
       - PORT=8102
       - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+
+      # 集群配置（默认启用）
+      - CLUSTER_ENABLED=true
+      - CLUSTER_INSTANCE_ID=app1
+      - CLUSTER_INSTANCE_HOST=arcadia-eternity
+      - CLUSTER_INSTANCE_REGION=local
+
+      # Redis配置
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - REDIS_KEY_PREFIX=arcadia:
+
       # Supabase configuration (uncomment and set values to enable battle reports)
       # - SUPABASE_URL=https://your-project.supabase.co
       # - SUPABASE_ANON_KEY=your-anon-key
       # - SUPABASE_SERVICE_KEY=your-service-key
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - arcadia-cluster
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:8102/health']
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
-    restart: unless-stopped
-    # Optional: limit resources
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
+
+volumes:
+  redis_data:
+
+networks:
+  arcadia-cluster:
+    driver: bridge

@@ -126,34 +126,63 @@ const playerStore = usePlayerStore()
 const battleClientStore = useBattleClientStore()
 
 // 响应式状态
-const isMatching = computed(() => battleClientStore.currentState.matchmaking === 'searching')
+const isMatching = computed(() => {
+  const currentState = battleClientStore.currentState
+  const state = currentState.matchmaking === 'searching'
+  console.log(
+    '🔍 isMatching computed:',
+    state,
+    'current matchmaking state:',
+    currentState.matchmaking,
+    'battle state:',
+    currentState.battle,
+    'full state:',
+    currentState,
+  )
+  return state
+})
 const errorMessage = ref<string | null>(null)
 
 const handleMatchmaking = async () => {
   try {
+    console.log('🎮 handleMatchmaking called, current isMatching:', isMatching.value)
     // 清除之前的错误信息
     errorMessage.value = null
 
     if (isMatching.value) {
-      await battleClientStore.cancelMatchmaking()
+      console.log('❌ Canceling matchmaking')
+      try {
+        await battleClientStore.cancelMatchmaking()
+      } catch (error) {
+        console.warn('⚠️ Cancel matchmaking failed (probably already matched):', error)
+        // 如果取消失败，可能是因为已经匹配成功了，忽略错误
+      }
     } else {
+      console.log('🔍 Starting matchmaking for player:', playerStore.player.id)
       await battleClientStore.joinMatchmaking(playerStore.player)
+      console.log('✅ Matchmaking request sent, setting up matchSuccess listener')
+
       battleClientStore.once('matchSuccess', async () => {
+        console.log('🎯 matchSuccess event received in lobbyPage')
         if (!battleClientStore._instance) {
           throw new Error('BattleClient instance not available')
         }
+        console.log('🏗️ Initializing battle system')
         await battleStore.initBattle(
           new RemoteBattleSystem(battleClientStore._instance as BattleClient),
           playerStore.player.id,
         )
         const currentState = battleClientStore.currentState
+        const roomId = currentState.roomId || ''
+        console.log('🚀 Navigating to battle page with roomId:', roomId, 'full state:', currentState)
         router.push({
           path: '/battle',
-          query: { roomId: 'roomId' in currentState ? currentState.roomId || '' : '' },
+          query: { roomId },
         })
       })
     }
   } catch (error) {
+    console.error('💥 Error in handleMatchmaking:', error)
     errorMessage.value = (error as Error).message
     setTimeout(() => (errorMessage.value = null), 3000)
   }

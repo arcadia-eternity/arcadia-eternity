@@ -8,11 +8,16 @@ const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
 })
 
+// 扩展JWTPayload类型以包含isAdmin属性
+interface ExtendedJWTPayload extends JWTPayload {
+  isAdmin?: boolean
+}
+
 // 扩展Express Request接口以包含用户信息
 declare global {
   namespace Express {
     interface Request {
-      user?: JWTPayload
+      user?: ExtendedJWTPayload
       playerId?: string
       isRegisteredPlayer?: boolean
       requiresAuth?: boolean
@@ -121,7 +126,10 @@ async function handleSmartAuth(req: Request, res: Response, next: NextFunction, 
     }
 
     // 认证成功
-    req.user = payload
+    req.user = {
+      ...payload,
+      isAdmin: Boolean(payload.email && payload.email.includes('admin')),
+    }
     logger.debug(`Registered user authenticated: ${playerId}`)
     next()
   } catch (error) {

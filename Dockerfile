@@ -13,7 +13,9 @@ COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
 COPY packages/ ./packages/
 
 # Install all dependencies (including dev dependencies for building)
-RUN pnpm install --frozen-lockfile
+# Use local store to avoid cache conflicts in parallel builds
+RUN pnpm config set store-dir /tmp/pnpm-store && \
+    pnpm install --frozen-lockfile --prefer-offline
 
 # Copy source code
 COPY . .
@@ -34,7 +36,9 @@ COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
 COPY packages/ ./packages/
 
 # Install only production dependencies
-RUN pnpm install --frozen-lockfile --prod && \
+# Use local store to avoid cache conflicts in parallel builds
+RUN pnpm config set store-dir /tmp/pnpm-store && \
+    pnpm install --frozen-lockfile --prod --prefer-offline && \
     pnpm store prune
 
 # Production stage
@@ -83,9 +87,39 @@ ENV NODE_PATH=/app/node_modules:/app/packages
 ENV PORT=8102
 ENV CORS_ORIGIN=http://localhost:3000,http://localhost:5173
 
+# Database configuration
 ENV SUPABASE_URL=""
 ENV SUPABASE_ANON_KEY=""
 ENV SUPABASE_SERVICE_KEY=""
+
+# Cluster configuration
+ENV CLUSTER_ENABLED=true
+ENV CLUSTER_INSTANCE_ID=""
+ENV CLUSTER_INSTANCE_HOST=""
+ENV CLUSTER_INSTANCE_REGION=""
+ENV CLUSTER_HEARTBEAT_INTERVAL=30000
+ENV CLUSTER_HEALTH_CHECK_INTERVAL=60000
+ENV CLUSTER_FAILOVER_TIMEOUT=120000
+
+# Redis configuration
+ENV REDIS_HOST=localhost
+ENV REDIS_PORT=6379
+ENV REDIS_PASSWORD=""
+ENV REDIS_DB=0
+ENV REDIS_KEY_PREFIX=arcadia:
+ENV REDIS_MAX_RETRIES=3
+ENV REDIS_RETRY_DELAY=100
+ENV REDIS_ENABLE_READY_CHECK=true
+ENV REDIS_LAZY_CONNECT=true
+
+# Email configuration
+ENV EMAIL_SMTP_HOST=""
+ENV EMAIL_SMTP_PORT=587
+ENV EMAIL_SMTP_SECURE=false
+ENV EMAIL_SMTP_USER=""
+ENV EMAIL_SMTP_PASS=""
+ENV EMAIL_FROM_ADDRESS="noreply@yuuinih.com"
+ENV EMAIL_FROM_NAME="Arcadia Eternity"
 
 # Health check using curl instead of wget
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
@@ -93,6 +127,12 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
 
 EXPOSE 8102
 
-# Use a shell script to conditionally enable battle reports based on environment variables
-# This allows the container to automatically enable battle reports if Supabase config is provided
-CMD ["sh", "-c", "if [ -n \"$SUPABASE_URL\" ] && [ -n \"$SUPABASE_ANON_KEY\" ]; then node dist/cli.js server --port $PORT --enable-battle-reports; else node dist/cli.js server --port $PORT; fi"]
+# Use a shell script to conditionally enable features based on environment variables
+# This allows the container to automatically enable features if configuration is provided
+CMD ["sh", "-c", "\
+    ARGS=\"--port $PORT\"; \
+    if [ -n \"$SUPABASE_URL\" ] && [ -n \"$SUPABASE_ANON_KEY\" ]; then \
+    ARGS=\"$ARGS --enable-battle-reports\"; \
+    fi; \
+    node dist/cli.js server $ARGS \
+    "]

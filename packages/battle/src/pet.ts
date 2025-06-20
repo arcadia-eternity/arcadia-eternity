@@ -245,6 +245,11 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   public setOwner(player: Player, emitter: Emitter<Events>) {
+    // 防止重复初始化
+    if (this.owner === player && this.emitter === emitter) {
+      return
+    }
+
     this.owner = player
     this.emitter = emitter
 
@@ -253,14 +258,17 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       this.attributeSystem.setBattleId(player.battle.id)
     }
 
-    this.skills = this.baseSkills.map(s => new SkillInstance(s))
-    this.skills.forEach(skill => {
-      skill.setOwner(this)
-      // Set battleId for skill attribute systems
-      if (player.battle) {
-        skill.attributeSystem.setBattleId(player.battle.id)
-      }
-    })
+    // 只在第一次设置owner时初始化技能
+    if (this.skills.length === 0) {
+      this.skills = this.baseSkills.map(s => new SkillInstance(s))
+      this.skills.forEach(skill => {
+        skill.setOwner(this)
+        // Set battleId for skill attribute systems
+        if (player.battle) {
+          skill.attributeSystem.setBattleId(player.battle.id)
+        }
+      })
+    }
 
     // Calculate base stats and initialize attribute system
     const baseStats = this.calculateStats()
@@ -280,15 +288,24 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       else this.gender = Gender.Male
     }
 
+    // 防止重复添加特性和纹章印记
     if (this.ability) {
-      const abilityMark = this.ability.createInstance()
-      abilityMark.setOwner(this, emitter)
-      this.marks.push(abilityMark)
+      // 检查是否已经存在相同的特性印记
+      const existingAbilityMark = this.marks.find(mark => mark.base.id === this.ability!.id)
+      if (!existingAbilityMark) {
+        const abilityMark = this.ability.createInstance()
+        abilityMark.setOwner(this, emitter)
+        this.marks.push(abilityMark)
+      }
     }
     if (this.emblem) {
-      const emblemMark = this.emblem.createInstance()
-      emblemMark.setOwner(this, emitter)
-      this.marks.push(emblemMark)
+      // 检查是否已经存在相同的纹章印记
+      const existingEmblemMark = this.marks.find(mark => mark.base.id === this.emblem!.id)
+      if (!existingEmblemMark) {
+        const emblemMark = this.emblem.createInstance()
+        emblemMark.setOwner(this, emitter)
+        this.marks.push(emblemMark)
+      }
     }
   }
 

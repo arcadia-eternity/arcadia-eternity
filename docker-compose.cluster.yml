@@ -1,0 +1,233 @@
+version: '3.8'
+
+# 集群模式Docker Compose配置
+# 所有app实例使用同一个预构建镜像，避免并行构建冲突
+# 使用方法：
+# 1. 先构建镜像：./docker-build.sh cluster 或 docker build -t arcadia-eternity:cluster .
+# 2. 启动集群：docker-compose -f docker-compose.cluster.yml up
+
+services:
+  # Redis服务 - 集群状态存储
+  redis:
+    image: redis:7-alpine
+    container_name: arcadia-redis
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - arcadia-cluster
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # 应用实例1
+  app1:
+    image: arcadia-eternity:cluster
+    container_name: arcadia-app1
+    ports:
+      - '8102:8102'
+    environment:
+      # 基础配置
+      NODE_ENV: production
+      PORT: 8102
+      CORS_ORIGIN: 'http://localhost:3000,http://localhost:5173'
+
+      JWT_SECRET: 'arcadia-eternity-jwt-secret-key-for-development-only-change-in-production'
+      # 集群配置
+      CLUSTER_ENABLED: 'true'
+      CLUSTER_INSTANCE_ID: 'app1'
+      CLUSTER_INSTANCE_HOST: 'app1'
+      CLUSTER_INSTANCE_REGION: 'local'
+
+      # Redis配置
+      REDIS_HOST: '${REDIS_HOST:-redis}'
+      REDIS_PORT: '${REDIS_PORT:-6379}'
+      REDIS_DB: '${REDIS_DB:-0}'
+      REDIS_KEY_PREFIX: '${REDIS_KEY_PREFIX:-arcadia:}'
+
+      # 邮件配置（可选）
+      EMAIL_SMTP_HOST: '${EMAIL_SMTP_HOST:-}'
+      EMAIL_SMTP_PORT: '${EMAIL_SMTP_PORT:-587}'
+      EMAIL_SMTP_USER: '${EMAIL_SMTP_USER:-}'
+      EMAIL_SMTP_PASS: '${EMAIL_SMTP_PASS:-}'
+      EMAIL_FROM_ADDRESS: '${EMAIL_FROM_ADDRESS:-noreply@yuuinih.com}'
+
+      # 数据库配置（可选）
+      SUPABASE_URL: '${SUPABASE_URL:-}'
+      SUPABASE_ANON_KEY: '${SUPABASE_ANON_KEY:-}'
+      SUPABASE_SERVICE_KEY: '${SUPABASE_SERVICE_KEY:-}'
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - arcadia-cluster
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8102/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 应用实例2
+  app2:
+    image: arcadia-eternity:cluster
+    container_name: arcadia-app2
+    ports:
+      - '8103:8102'
+    environment:
+      # 基础配置
+      NODE_ENV: production
+      PORT: 8102
+      CORS_ORIGIN: 'http://localhost:3000,http://localhost:5173'
+      JWT_SECRET: 'arcadia-eternity-jwt-secret-key-for-development-only-change-in-production'
+
+      # 集群配置
+      CLUSTER_ENABLED: 'true'
+      CLUSTER_INSTANCE_ID: 'app2'
+      CLUSTER_INSTANCE_HOST: 'app2'
+      CLUSTER_INSTANCE_REGION: 'local'
+
+      # Redis配置
+      REDIS_HOST: '${REDIS_HOST:-redis}'
+      REDIS_PORT: '${REDIS_PORT:-6379}'
+      REDIS_DB: '${REDIS_DB:-0}'
+      REDIS_KEY_PREFIX: '${REDIS_KEY_PREFIX:-arcadia:}'
+
+      # 邮件配置（可选）
+      EMAIL_SMTP_HOST: '${EMAIL_SMTP_HOST:-}'
+      EMAIL_SMTP_PORT: '${EMAIL_SMTP_PORT:-587}'
+      EMAIL_SMTP_USER: '${EMAIL_SMTP_USER:-}'
+      EMAIL_SMTP_PASS: '${EMAIL_SMTP_PASS:-}'
+      EMAIL_FROM_ADDRESS: '${EMAIL_FROM_ADDRESS:-noreply@yuuinih.com}'
+
+      # 数据库配置（可选）
+      SUPABASE_URL: '${SUPABASE_URL:-}'
+      SUPABASE_ANON_KEY: '${SUPABASE_ANON_KEY:-}'
+      SUPABASE_SERVICE_KEY: '${SUPABASE_SERVICE_KEY:-}'
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - arcadia-cluster
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8102/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 应用实例3
+  app3:
+    image: arcadia-eternity:cluster
+    container_name: arcadia-app3
+    ports:
+      - '8104:8102'
+    environment:
+      # 基础配置
+      NODE_ENV: production
+      PORT: 8102
+      CORS_ORIGIN: 'http://localhost:3000,http://localhost:5173'
+
+      JWT_SECRET: 'arcadia-eternity-jwt-secret-key-for-development-only-change-in-production'
+
+      # 集群配置
+      CLUSTER_ENABLED: 'true'
+      CLUSTER_INSTANCE_ID: 'app3'
+      CLUSTER_INSTANCE_HOST: 'app3'
+      CLUSTER_INSTANCE_REGION: 'local'
+
+      # Redis配置
+      REDIS_HOST: '${REDIS_HOST:-redis}'
+      REDIS_PORT: '${REDIS_PORT:-6379}'
+      REDIS_DB: '${REDIS_DB:-0}'
+      REDIS_KEY_PREFIX: '${REDIS_KEY_PREFIX:-arcadia:}'
+
+      # 邮件配置（可选）
+      EMAIL_SMTP_HOST: '${EMAIL_SMTP_HOST:-}'
+      EMAIL_SMTP_PORT: '${EMAIL_SMTP_PORT:-587}'
+      EMAIL_SMTP_USER: '${EMAIL_SMTP_USER:-}'
+      EMAIL_SMTP_PASS: '${EMAIL_SMTP_PASS:-}'
+      EMAIL_FROM_ADDRESS: '${EMAIL_FROM_ADDRESS:-noreply@yuuinih.com}'
+
+      # 数据库配置（可选）
+      SUPABASE_URL: '${SUPABASE_URL:-}'
+      SUPABASE_ANON_KEY: '${SUPABASE_ANON_KEY:-}'
+      SUPABASE_SERVICE_KEY: '${SUPABASE_SERVICE_KEY:-}'
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - arcadia-cluster
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8102/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx负载均衡器
+  nginx:
+    image: nginx:alpine
+    container_name: arcadia-nginx
+    ports:
+      - '8080:80' # 改为8080端口避免冲突
+      - '8443:443' # 改为8443端口避免冲突
+    volumes:
+      - ./nginx.cluster.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app1
+      - app2
+      - app3
+    networks:
+      - arcadia-cluster
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus监控（可选）
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: arcadia-prometheus
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - arcadia-cluster
+    profiles:
+      - monitoring
+
+  # Grafana仪表板（可选）
+  grafana:
+    image: grafana/grafana:latest
+    container_name: arcadia-grafana
+    ports:
+      - '3001:3000'
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - arcadia-cluster
+    profiles:
+      - monitoring
+
+volumes:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  arcadia-cluster:
+    driver: bridge
