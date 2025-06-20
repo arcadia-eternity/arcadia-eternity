@@ -503,6 +503,23 @@ export class BattleClient {
       }
     })
 
+    // 处理批量战斗事件
+    this.socket.on('battleEventBatch', messages => {
+      // 逐个处理批量消息
+      for (const message of messages) {
+        // 触发单个battleEvent处理器
+        const handlers = this.eventHandlers.get('battleEvent')
+        if (handlers) {
+          handlers.forEach(handler => handler(message))
+        }
+
+        // 检查是否有战斗结束消息
+        if (message.type === 'BATTLE_END') {
+          this.updateState({ battle: 'ended' })
+        }
+      }
+    })
+
     // 计时器事件处理
     this.socket.on('timerEvent', event => {
       const handlers = this.timerEventHandlers.get(event.type)

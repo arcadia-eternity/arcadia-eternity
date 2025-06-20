@@ -93,6 +93,11 @@ export class ClusterBattleServer {
   private rpcPort?: number
   private isRpcServerInjected = false
 
+  // 批量消息处理相关
+  private readonly messageBatches = new Map<string, { messages: any[]; timer: ReturnType<typeof setTimeout> }>() // sessionKey -> batch
+  private readonly BATCH_SIZE = 10 // 批量大小
+  private readonly BATCH_TIMEOUT = 50 // 批量超时时间（毫秒）
+
   constructor(
     private readonly io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
     private readonly stateManager: ClusterStateManager,
@@ -1680,15 +1685,97 @@ export class ClusterBattleServer {
 
       battle.registerListener(
         async message => {
-          // 向该玩家的特定会话发送他们视角的战斗事件（跨集群转发）
-          const result = await this.sendToPlayerSession(playerId, sessionId, 'battleEvent', message)
-          if (!result) {
-            logger.error({ roomId, playerId, sessionId, message }, 'Failed to send battle event to player session')
-          }
+          // 使用批量发送机制
+          await this.addToBatch(playerId, sessionId, message)
         },
         { viewerId: playerId as playerId }, // 显示该玩家视角的信息
       )
     }
+  }
+
+  /**
+   * 批量发送消息到玩家会话
+   */
+  private async addToBatch(playerId: string, sessionId: string, message: any): Promise<void> {
+    const sessionKey = `${playerId}:${sessionId}`
+
+    let batch = this.messageBatches.get(sessionKey)
+    if (!batch) {
+      batch = { messages: [], timer: null as any }
+      this.messageBatches.set(sessionKey, batch)
+    }
+
+    // 清除之前的定时器
+    if (batch.timer) {
+      clearTimeout(batch.timer)
+    }
+
+    // 添加消息到批次
+    batch.messages.push(message)
+
+    // 如果达到批量大小或者是重要消息，立即发送
+    const isImportantMessage = message.type === 'BATTLE_END' || message.type === 'BATTLE_START'
+    if (batch.messages.length >= this.BATCH_SIZE || isImportantMessage) {
+      await this.flushBatch(sessionKey)
+    } else {
+      // 设置定时器，在超时后发送
+      batch.timer = setTimeout(() => {
+        this.flushBatch(sessionKey).catch(error => {
+          logger.error({ error, sessionKey }, 'Error flushing batch on timeout')
+        })
+      }, this.BATCH_TIMEOUT)
+    }
+  }
+
+  /**
+   * 立即发送批次中的所有消息
+   */
+  private async flushBatch(sessionKey: string): Promise<void> {
+    const batch = this.messageBatches.get(sessionKey)
+    if (!batch || batch.messages.length === 0) {
+      return
+    }
+
+    const [playerId, sessionId] = sessionKey.split(':')
+    const messages = [...batch.messages]
+
+    // 清理批次
+    if (batch.timer) {
+      clearTimeout(batch.timer)
+    }
+    this.messageBatches.delete(sessionKey)
+
+    try {
+      if (messages.length === 1) {
+        // 单个消息使用原有的battleEvent
+        await this.sendToPlayerSession(playerId, sessionId, 'battleEvent', messages[0])
+      } else {
+        // 多个消息使用新的battleEventBatch
+        await this.sendToPlayerSession(playerId, sessionId, 'battleEventBatch', messages)
+      }
+    } catch (error) {
+      logger.error({ error, sessionKey, messageCount: messages.length }, 'Error sending batch messages')
+    }
+  }
+
+  /**
+   * 清理所有批量消息
+   */
+  private async cleanupAllBatches(): Promise<void> {
+    const sessionKeys = Array.from(this.messageBatches.keys())
+
+    // 发送所有待处理的批次
+    await Promise.all(sessionKeys.map(sessionKey => this.flushBatch(sessionKey)))
+
+    // 清理所有定时器
+    for (const batch of this.messageBatches.values()) {
+      if (batch.timer) {
+        clearTimeout(batch.timer)
+      }
+    }
+
+    this.messageBatches.clear()
+    logger.info({ batchCount: sessionKeys.length }, 'All message batches cleaned up')
   }
 
   /**
@@ -3510,6 +3597,9 @@ export class ClusterBattleServer {
       // 清理所有本地房间
       const localRoomIds = Array.from(this.localRooms.keys())
       await Promise.all(localRoomIds.map(roomId => this.cleanupLocalRoom(roomId)))
+
+      // 清理所有批量消息
+      await this.cleanupAllBatches()
 
       // 清理战报服务
       if (this.battleReportService) {

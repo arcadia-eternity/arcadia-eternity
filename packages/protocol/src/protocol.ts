@@ -30,6 +30,8 @@ export interface ServerToClientEvents {
   updateState: (state: ServerState) => void
   // 战斗事件（保持原始格式）
   battleEvent: (message: BattleMessage) => void
+  // 批量战斗事件（新增）
+  battleEventBatch: (messages: BattleMessage[]) => void
   // 计时器事件
   timerEvent: (event: { type: string; data: any }) => void
   // 房间关闭通知
