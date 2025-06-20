@@ -214,7 +214,6 @@ export class ClusterBattleServer {
         const sessionId = socket.handshake.query?.sessionId as string
 
         if (!playerId) {
-          logger.debug('No playerId provided for socket connection')
           return next(new Error('PLAYER_ID_REQUIRED'))
         }
 
@@ -225,7 +224,6 @@ export class ClusterBattleServer {
         // 检查玩家是否存在
         const player = await playerRepo.getPlayerById(playerId)
         if (!player) {
-          logger.debug(`Player not found: ${playerId}`)
           return next(new Error('PLAYER_NOT_FOUND'))
         }
 
@@ -237,14 +235,12 @@ export class ClusterBattleServer {
           const { generateTimestampedSessionId } = await import('./types')
           const generatedSessionId = generateTimestampedSessionId()
           socket.data.sessionId = generatedSessionId
-          logger.debug({ playerId, generatedSessionId }, 'Auto-generated sessionId for client')
         } else {
           socket.data.sessionId = sessionId
         }
 
         if (!isRegistered) {
           // 游客用户，直接放行
-          logger.debug(`Guest user socket connection: ${playerId}`)
           socket.data.user = undefined
           next()
           return
@@ -254,7 +250,6 @@ export class ClusterBattleServer {
         const token = socket.handshake.auth?.token || (socket.handshake.query?.token as string)
 
         if (!token) {
-          logger.debug(`Registered user missing token: ${playerId}`)
           return next(new Error('TOKEN_REQUIRED_FOR_REGISTERED_USER'))
         }
 
@@ -263,7 +258,6 @@ export class ClusterBattleServer {
           ? await authService.verifyAccessTokenAsync(token)
           : authService.verifyAccessToken(token)
         if (!payload) {
-          logger.debug(`Token verification failed for user: ${playerId}`)
           return next(new Error('INVALID_TOKEN'))
         }
 
@@ -272,13 +266,11 @@ export class ClusterBattleServer {
           try {
             const session = await authService.getSession(playerId, sessionId)
             if (!session) {
-              logger.debug(`Session not found: ${playerId}:${sessionId}`)
               return next(new Error('SESSION_NOT_FOUND'))
             }
 
             // 检查会话是否过期
             if (session.expiry && Date.now() > session.expiry) {
-              logger.debug(`Session expired: ${playerId}:${sessionId}`)
               return next(new Error('SESSION_EXPIRED'))
             }
 
@@ -293,7 +285,6 @@ export class ClusterBattleServer {
         if (payload.jti) {
           const isBlacklisted = await this.stateManager.isTokenBlacklisted(payload.jti)
           if (isBlacklisted) {
-            logger.debug(`Token is blacklisted: ${payload.jti}`)
             return next(new Error('TOKEN_BLACKLISTED'))
           }
         }
@@ -306,7 +297,6 @@ export class ClusterBattleServer {
 
         // 将认证信息添加到socket数据
         socket.data.user = payload
-        logger.debug(`Registered user socket authenticated: ${playerId}`)
         next()
       } catch (error) {
         logger.error({ error }, 'Socket authentication error')
@@ -471,17 +461,17 @@ export class ClusterBattleServer {
   private async handleRoomStateChange(roomState: RoomState) {
     // 如果房间在当前实例，更新本地状态
     if (roomState.instanceId === this.instanceId) {
-      logger.debug({ roomId: roomState.id }, 'Room state updated in cluster')
+      // Room state updated in cluster
     }
   }
 
   private async handleRoomDestroy(roomId: string) {
-    logger.debug({ roomId }, 'Room destroyed in cluster')
+    // Room destroyed in cluster
   }
 
   private async handleClusterPlayerDisconnect(data: { playerId: string; instanceId: string }) {
     if (data.instanceId !== this.instanceId) {
-      logger.debug({ playerId: data.playerId }, 'Player disconnected from another instance')
+      // Player disconnected from another instance
     }
   }
 
@@ -495,7 +485,6 @@ export class ClusterBattleServer {
       'Leadership check for matchmaking',
     )
     if (!isMatchmakingLeader) {
-      logger.debug({ instanceId: this.instanceId }, 'Not matchmaking leader, skipping matchmaking attempt')
       return
     }
 
@@ -515,8 +504,6 @@ export class ClusterBattleServer {
     subscriber.subscribe(channel, err => {
       if (err) {
         logger.error({ error: err }, 'Failed to subscribe to battle actions channel')
-      } else {
-        logger.debug({ channel }, 'Subscribed to battle actions channel')
       }
     })
 
@@ -541,8 +528,6 @@ export class ClusterBattleServer {
 
       // 从data中提取roomId，如果没有则尝试从action中获取
       const roomId = data?.roomId || action.roomId
-
-      logger.debug({ actionType, playerId, roomId, requestId }, 'Handling cross-instance battle action')
 
       let result: any
       let success = true
@@ -704,10 +689,6 @@ export class ClusterBattleServer {
 
         // 不在这里直接尝试匹配，而是依赖集群事件触发
         // 这样避免了双重触发的问题
-        logger.debug(
-          { instanceId: this.instanceId },
-          'Player added to queue, matchmaking will be handled by cluster event',
-        )
       })
     } catch (error) {
       logger.error(
@@ -755,35 +736,15 @@ export class ClusterBattleServer {
           for (let i = 0; i < sortedQueue.length; i++) {
             if (!player1Entry) {
               player1Entry = sortedQueue[i]
-              logger.debug(
-                { player1: { playerId: player1Entry.playerId, sessionId: player1Entry.sessionId } },
-                'Selected player 1',
-              )
               continue
             }
 
             const candidate = sortedQueue[i]
-            logger.debug(
-              {
-                candidate: { playerId: candidate.playerId, sessionId: candidate.sessionId },
-                player1: { playerId: player1Entry.playerId, sessionId: player1Entry.sessionId },
-              },
-              'Checking candidate for player 2',
-            )
 
             // 确保不是同一个玩家的不同session
             if (candidate.playerId !== player1Entry.playerId) {
               player2Entry = candidate
-              logger.debug(
-                { player2: { playerId: player2Entry.playerId, sessionId: player2Entry.sessionId } },
-                'Selected player 2',
-              )
               break
-            } else {
-              logger.debug(
-                { candidatePlayerId: candidate.playerId, player1PlayerId: player1Entry.playerId },
-                'Skipping candidate - same playerId',
-              )
             }
           }
 
@@ -836,7 +797,6 @@ export class ClusterBattleServer {
             )
 
             if (!p1Still || !p2Still) {
-              logger.debug('Sessions no longer in queue, skipping match')
               return
             }
 
@@ -1006,7 +966,6 @@ export class ClusterBattleServer {
         let player1Data, player2Data
         try {
           player1Data = PlayerParser.parse(player1Entry.playerData)
-          logger.debug({ playerId: player1Entry.playerId }, 'Player 1 data parsed successfully')
         } catch (error) {
           logger.error(
             {
@@ -1021,7 +980,6 @@ export class ClusterBattleServer {
 
         try {
           player2Data = PlayerParser.parse(player2Entry.playerData)
-          logger.debug({ playerId: player2Entry.playerId }, 'Player 2 data parsed successfully')
         } catch (error) {
           logger.error(
             {
@@ -1318,8 +1276,6 @@ export class ClusterBattleServer {
       const client = this.stateManager['redisManager'].getClient()
       const roomIds = await client.smembers(REDIS_KEYS.ROOMS)
 
-      logger.debug({ playerId, sessionId, roomCount: roomIds.length }, 'Searching for player room in cluster')
-
       for (const roomId of roomIds) {
         const roomState = await this.stateManager.getRoomState(roomId)
         if (!roomState) continue
@@ -1327,27 +1283,18 @@ export class ClusterBattleServer {
         // 如果指定了sessionId，直接检查该会话是否在房间中
         if (sessionId) {
           if (roomState.sessions.includes(sessionId) && roomState.sessionPlayers[sessionId] === playerId) {
-            logger.debug(
-              { playerId, sessionId, roomId, roomSessions: roomState.sessions },
-              'Found player session in room',
-            )
             return roomState
           }
         } else {
           // 如果没有指定sessionId，检查房间中是否有会话对应该playerId（向后兼容）
           for (const roomSessionId of roomState.sessions) {
             if (roomState.sessionPlayers[roomSessionId] === playerId) {
-              logger.debug(
-                { playerId, roomId, foundSessionId: roomSessionId, roomSessions: roomState.sessions },
-                'Found player in room (no session filter)',
-              )
               return roomState
             }
           }
         }
       }
 
-      logger.debug({ playerId, sessionId }, 'Player session not found in any room')
       return null
     } catch (error) {
       logger.error({ error, playerId, sessionId }, 'Error getting player room from cluster')
@@ -1426,11 +1373,6 @@ export class ClusterBattleServer {
       if (!roomId) {
         throw new Error('Room ID is required for RPC forwarding')
       }
-
-      logger.debug(
-        { targetInstanceId, action, playerId, roomId, rpcAddress: targetInstance.rpcAddress },
-        'Forwarding action via RPC',
-      )
 
       // 根据action类型调用相应的RPC方法
       switch (action) {
@@ -1664,16 +1606,13 @@ export class ClusterBattleServer {
         async message => {
           // 向该玩家的特定会话发送他们视角的战斗事件（跨集群转发）
           const result = await this.sendToPlayerSession(playerId, sessionId, 'battleEvent', message)
-          logger.info(
-            { roomId, playerId, sessionId, messageType: message.type, result },
-            'Battle event sent to player session',
-          )
+          if (!result) {
+            logger.error({ roomId, playerId, sessionId, message }, 'Failed to send battle event to player session')
+          }
         },
         { viewerId: playerId as playerId }, // 显示该玩家视角的信息
       )
     }
-
-    logger.debug({ roomId, sessionCount: roomState.sessions.length }, 'Battle event listeners setup complete')
   }
 
   /**
@@ -1717,8 +1656,6 @@ export class ClusterBattleServer {
    * 本地处理玩家选择
    */
   async handleLocalPlayerSelection(roomId: string, playerId: string, data: any): Promise<{ status: string }> {
-    logger.debug({ roomId, playerId, dataType: typeof data }, 'Starting local player selection processing')
-
     const battle = this.getLocalBattle(roomId)
     if (!battle) {
       logger.error(
@@ -1728,16 +1665,13 @@ export class ClusterBattleServer {
       throw new Error('BATTLE_NOT_FOUND')
     }
 
-    logger.debug({ roomId, playerId }, 'Battle found, processing selection data')
     const selection = this.processPlayerSelection(playerId, data)
 
-    logger.debug({ roomId, playerId, selection }, 'Selection processed, setting in battle')
     if (!battle.setSelection(selection)) {
       logger.error({ roomId, playerId, selection }, 'Failed to set selection in battle')
       throw new Error('INVALID_SELECTION')
     }
 
-    logger.debug({ roomId, playerId }, 'Local player selection processed successfully')
     return { status: 'ACTION_ACCEPTED' }
   }
 
@@ -1752,7 +1686,6 @@ export class ClusterBattleServer {
 
     const battleState = battle.getState(playerId as playerId, false)
 
-    logger.debug({ roomId, playerId }, 'Local battle state retrieved')
     return battleState
   }
 
@@ -1768,7 +1701,6 @@ export class ClusterBattleServer {
     const availableSelections = battle.getAvailableSelection(playerId as playerId)
     const serializedSelections = availableSelections.map(v => SelectionParser.serialize(v))
 
-    logger.debug({ roomId, playerId }, 'Local available selections retrieved')
     return serializedSelections
   }
 
@@ -1800,7 +1732,6 @@ export class ClusterBattleServer {
       logger.info({ roomId }, 'Local battle started')
     }
 
-    logger.debug({ roomId, playerId }, 'Local ready processed')
     return { status: 'READY' }
   }
 
@@ -1920,7 +1851,6 @@ export class ClusterBattleServer {
       battle.endAnimation(data.animationId, data.actualDuration)
     }
 
-    logger.debug({ roomId, playerId }, 'Local animation end processed')
     return { status: 'SUCCESS' }
   }
 
@@ -1934,7 +1864,6 @@ export class ClusterBattleServer {
     }
 
     const timerEnabled = battle.isTimerEnabled()
-    logger.debug({ roomId, playerId, timerEnabled }, 'Local timer enabled check processed')
     return timerEnabled
   }
 
@@ -1950,7 +1879,6 @@ export class ClusterBattleServer {
     const targetPlayerId = data?.playerId || playerId
     const timerState = battle.getAllPlayerTimerStates().find(state => state.playerId === targetPlayerId) ?? null
 
-    logger.debug({ roomId, playerId, targetPlayerId }, 'Local player timer state retrieved')
     return timerState
   }
 
@@ -1964,7 +1892,6 @@ export class ClusterBattleServer {
     }
 
     const allTimerStates = battle.getAllPlayerTimerStates()
-    logger.debug({ roomId, playerId }, 'Local all player timer states retrieved')
     return allTimerStates
   }
 
@@ -1978,7 +1905,6 @@ export class ClusterBattleServer {
     }
 
     const timerConfig = battle.getTimerConfig()
-    logger.debug({ roomId, playerId }, 'Local timer config retrieved')
     return timerConfig
   }
 
@@ -1997,7 +1923,6 @@ export class ClusterBattleServer {
 
     const animationId = battle.startAnimation(data.source, data.expectedDuration, data.ownerId as playerId)
 
-    logger.debug({ roomId, playerId, animationId }, 'Local animation started')
     return animationId
   }
 
@@ -2014,7 +1939,6 @@ export class ClusterBattleServer {
       battle.endAnimation(data.animationId, data.actualDuration)
     }
 
-    logger.debug({ roomId, playerId }, 'Local animation end processed')
     return { status: 'SUCCESS' }
   }
 
@@ -2137,8 +2061,6 @@ export class ClusterBattleServer {
           reason,
         }),
       )
-
-      logger.debug({ instanceId, roomId, playerId, reason }, 'Battle termination notification sent to instance')
     } catch (error) {
       logger.error({ error, instanceId, roomId, playerId, reason }, 'Error notifying instance of battle termination')
     }
@@ -2170,8 +2092,6 @@ export class ClusterBattleServer {
           playerId,
         }),
       )
-
-      logger.debug({ instanceId, roomId, playerId }, 'Player abandon notification sent to instance')
     } catch (error) {
       logger.error({ error, instanceId, roomId, playerId }, 'Error notifying instance of player abandon')
     }
@@ -2322,8 +2242,6 @@ export class ClusterBattleServer {
         throw new Error('PLAYER_ID_MISSING')
       }
 
-      logger.debug({ playerId, socketId: socket.id, instanceId: this.instanceId }, 'Handling player selection request')
-
       // 获取玩家所在的房间
       const sessionId = socket.data.sessionId
       if (!sessionId) {
@@ -2339,44 +2257,13 @@ export class ClusterBattleServer {
         throw new Error('BATTLE_NOT_FOUND')
       }
 
-      logger.debug(
-        {
-          playerId,
-          roomId: roomState.id,
-          roomInstance: roomState.instanceId,
-          currentInstance: this.instanceId,
-          socketId: socket.id,
-        },
-        'Found player room for selection',
-      )
-
       // 检查房间是否在当前实例
       if (!this.isRoomInCurrentInstance(roomState)) {
-        logger.debug(
-          {
-            playerId,
-            roomId: roomState.id,
-            targetInstance: roomState.instanceId,
-            currentInstance: this.instanceId,
-          },
-          'Forwarding player selection to correct instance',
-        )
-
         // 转发到正确的实例并等待响应，传递roomId
         const result = await this.forwardPlayerAction(roomState.instanceId, 'submitPlayerSelection', playerId, {
           roomId: roomState.id,
           selection: rawData,
         })
-
-        logger.debug(
-          {
-            playerId,
-            roomId: roomState.id,
-            targetInstance: roomState.instanceId,
-            result: typeof result,
-          },
-          'Player selection forwarding completed',
-        )
 
         ack?.({
           status: 'SUCCESS',
@@ -2386,15 +2273,12 @@ export class ClusterBattleServer {
       }
 
       // 在当前实例处理
-      logger.debug({ playerId, roomId: roomState.id }, 'Handling player selection locally')
       const result = await this.handleLocalPlayerSelection(roomState.id, playerId, rawData)
 
       ack?.({
         status: 'SUCCESS',
         data: { status: result.status as 'ACTION_ACCEPTED' },
       })
-
-      logger.debug({ playerId, roomId: roomState.id }, 'Player selection processed in cluster mode')
     } catch (error) {
       logger.error({ error, playerId: socket.data.playerId, socketId: socket.id }, 'Error in handlePlayerSelection')
       this.handleBattleActionError(error, socket, ack)
@@ -2410,8 +2294,6 @@ export class ClusterBattleServer {
       if (!playerId) {
         throw new Error('PLAYER_ID_MISSING')
       }
-
-      logger.debug({ playerId, socketId: socket.id, instanceId: this.instanceId }, 'Handling getState request')
 
       // 获取玩家所在的房间
       const sessionId = socket.data.sessionId
@@ -3040,8 +2922,6 @@ export class ClusterBattleServer {
 
       // 清理过期的计时器缓存
       this.cleanupTimerCache()
-
-      logger.debug('Cluster cleanup completed')
     } catch (error) {
       logger.error({ error }, 'Error performing cluster cleanup')
     }
@@ -3064,8 +2944,6 @@ export class ClusterBattleServer {
           roomId,
         }),
       )
-
-      logger.debug({ instanceId, roomId }, 'Cleanup notification sent to instance')
     } catch (error) {
       logger.error({ error, instanceId, roomId }, 'Error notifying instance cleanup')
     }
@@ -3090,14 +2968,6 @@ export class ClusterBattleServer {
         }
       }
 
-      logger.info(
-        {
-          playersInQueueCount: playersInQueue.size,
-          playersInQueue: Array.from(playersInQueue),
-        },
-        'Players in matchmaking queue - will not clean up their connections',
-      )
-
       // 获取所有玩家的session连接
       const allSessionKeys = await client.keys(REDIS_KEYS.PLAYER_SESSION_CONNECTIONS('*'))
 
@@ -3113,28 +2983,10 @@ export class ClusterBattleServer {
           // 检查该玩家会话是否在匹配队列中
           const playerSessionKey = `${playerId}:${connection.sessionId}`
           if (playersInQueue.has(playerSessionKey)) {
-            logger.info(
-              {
-                playerId,
-                sessionId: connection.sessionId,
-                lastSeen: connection.lastSeen,
-                age: now - connection.lastSeen,
-              },
-              'Skipping cleanup for player in matchmaking queue',
-            )
             continue
           }
 
           if (now - connection.lastSeen > timeout) {
-            logger.info(
-              {
-                playerId,
-                sessionId: connection.sessionId,
-                lastSeen: connection.lastSeen,
-                age: now - connection.lastSeen,
-              },
-              'Cleaning up expired player session connection',
-            )
             await this.stateManager.removePlayerConnection(playerId, connection.sessionId)
           }
         }
@@ -3175,7 +3027,7 @@ export class ClusterBattleServer {
       }
 
       if (cleanedCount > 0) {
-        logger.debug({ cleanedCount }, 'Cleaned up expired timer cache entries')
+        logger.info({ cleanedCount }, 'Cleaned up expired timer cache entries')
       }
     } catch (error) {
       logger.error({ error }, 'Error cleaning up timer cache')
@@ -3229,7 +3081,6 @@ export class ClusterBattleServer {
         }
 
         await this.stateManager.setPlayerConnection(playerId, connection)
-        logger.debug({ playerId, sessionId, socketId: socket.id }, 'Player connection registered')
       } catch (error) {
         logger.error({ error, playerId, sessionId }, 'Failed to register player connection')
       }

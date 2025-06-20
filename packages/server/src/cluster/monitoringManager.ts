@@ -518,8 +518,6 @@ export class MonitoringManager {
         logger.error({ error }, 'Metrics collection error')
       }
     }, 30000) // 每30秒收集一次
-
-    logger.debug('Metrics collection started')
   }
 
   private startAlertChecking(): void {
@@ -537,8 +535,6 @@ export class MonitoringManager {
         logger.error({ error }, 'Alert checking error')
       }
     }, 60000) // 每分钟检查一次
-
-    logger.debug('Alert checking started')
   }
 
   /**

@@ -30,7 +30,6 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
   const token = authHeader && authHeader.split(' ')[1] // Bearer TOKEN
 
   if (!token) {
-    logger.debug('No token provided')
     res.status(401).json({
       success: false,
       message: '访问令牌缺失',
@@ -45,7 +44,6 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
 
     const payload = authService.verifyAccessToken(token)
     if (!payload) {
-      logger.debug('Invalid token')
       res.status(401).json({
         success: false,
         message: '访问令牌无效或已过期',
@@ -58,7 +56,6 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
     req.user = payload
     req.playerId = payload.playerId
 
-    logger.debug(`Authenticated user: ${payload.playerId}`)
     next()
   } catch (error) {
     logger.error({ error }, 'Authentication error')
@@ -91,9 +88,6 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction): v
     if (payload) {
       req.user = payload
       req.playerId = payload.playerId
-      logger.debug(`Optional auth success: ${payload.playerId}`)
-    } else {
-      logger.debug('Optional auth failed, continuing without user')
     }
 
     next()

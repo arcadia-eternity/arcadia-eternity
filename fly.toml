@@ -35,8 +35,9 @@ grace_period = '30s'
 method = 'GET'
 path = '/metrics'
 
-# gRPC 服务配置 - 仅内部使用，不暴露端口
-# gRPC 服务在内部网络中运行，不需要外部访问
+[metrics]
+port = 8102
+path = '/metrics'
 
 [[vm]]
 memory = '1gb'

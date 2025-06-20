@@ -47,7 +47,6 @@ export class BattleReportService {
     playerBName: string,
   ): Promise<string | null> {
     if (!this.config.enableReporting) {
-      this.logger.debug({ battleId }, 'Battle reporting disabled')
       return null
     }
 
@@ -64,15 +63,12 @@ export class BattleReportService {
       )
 
       // 确保玩家存在
-      this.logger.debug({ battleId }, 'Ensuring players exist...')
       await Promise.all([
         databaseService.players.ensurePlayer(playerAId, playerAName),
         databaseService.players.ensurePlayer(playerBId, playerBName),
       ])
-      this.logger.debug({ battleId }, 'Players ensured successfully')
 
       // 创建战报记录
-      this.logger.debug({ battleId }, 'Creating battle record in database...')
       const battleRecord = await databaseService.battles.createBattleRecord({
         player_a_id: playerAId,
         player_a_name: playerAName,
@@ -80,7 +76,6 @@ export class BattleReportService {
         player_b_name: playerBName,
         metadata: { battleId },
       })
-      this.logger.debug({ battleId, recordId: battleRecord.id }, 'Battle record created in database')
 
       // 记录活跃战斗
       this.activeBattles.set(battleId, {
@@ -131,27 +126,7 @@ export class BattleReportService {
       return
     }
 
-    // 调试：检查消息是否包含 stateDelta
-    this.logger.debug(
-      {
-        battleId,
-        messageType: message.type,
-        hasStateDelta: !!message.stateDelta,
-        stateDeltaType: typeof message.stateDelta,
-        messageKeys: Object.keys(message),
-      },
-      'Recording battle message with stateDelta info',
-    )
-
     battleData.messages.push(message)
-    this.logger.debug(
-      {
-        battleId,
-        messageType: message.type,
-        messageCount: battleData.messages.length,
-      },
-      'Recorded battle message',
-    )
 
     // 如果是战斗结束消息，完成战报记录
     if (message.type === BattleMessageType.BattleEnd) {
@@ -191,25 +166,6 @@ export class BattleReportService {
 
       // 获取最终状态
       const finalState = endMessage.stateDelta || {}
-
-      // 调试：检查保存前的消息
-      this.logger.debug(
-        {
-          battleId,
-          messageCount: battleData.messages.length,
-          firstMessageHasStateDelta: !!battleData.messages[0]?.stateDelta,
-          sampleMessage: battleData.messages[0]
-            ? {
-                type: battleData.messages[0].type,
-                hasStateDelta: !!battleData.messages[0].stateDelta,
-                stateDeltaKeys: battleData.messages[0].stateDelta
-                  ? Object.keys(battleData.messages[0].stateDelta)
-                  : null,
-              }
-            : null,
-        },
-        'Saving battle messages to database',
-      )
 
       // 更新战报记录
       await databaseService.battles.completeBattleRecord(

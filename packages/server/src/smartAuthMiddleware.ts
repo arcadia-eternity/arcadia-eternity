@@ -36,7 +36,6 @@ export function smartAuth(req: Request, res: Response, next: NextFunction): void
   const playerId = req.body?.playerId || req.query?.playerId || req.params?.playerId
 
   if (!playerId) {
-    logger.debug('No playerId found in request')
     res.status(400).json({
       success: false,
       message: '缺少玩家ID',
@@ -66,7 +65,6 @@ async function handleSmartAuth(req: Request, res: Response, next: NextFunction, 
     const player = await playerRepo.getPlayerById(playerId)
 
     if (!player) {
-      logger.debug(`Player not found: ${playerId}`)
       res.status(404).json({
         success: false,
         message: '玩家不存在',
@@ -81,7 +79,6 @@ async function handleSmartAuth(req: Request, res: Response, next: NextFunction, 
 
     if (!isRegistered) {
       // 游客用户，直接放行
-      logger.debug(`Guest user access granted: ${playerId}`)
       req.requiresAuth = false
       next()
       return
@@ -93,7 +90,6 @@ async function handleSmartAuth(req: Request, res: Response, next: NextFunction, 
     const token = authHeader && authHeader.split(' ')[1]
 
     if (!token) {
-      logger.debug(`Registered user missing token: ${playerId}`)
       res.status(401).json({
         success: false,
         message: '注册用户需要提供访问令牌',
@@ -105,7 +101,6 @@ async function handleSmartAuth(req: Request, res: Response, next: NextFunction, 
     // 验证JWT token
     const payload = authService.verifyAccessToken(token)
     if (!payload) {
-      logger.debug(`Invalid token for registered user: ${playerId}`)
       res.status(401).json({
         success: false,
         message: '访问令牌无效或已过期',
@@ -130,7 +125,6 @@ async function handleSmartAuth(req: Request, res: Response, next: NextFunction, 
       ...payload,
       isAdmin: Boolean(payload.email && payload.email.includes('admin')),
     }
-    logger.debug(`Registered user authenticated: ${playerId}`)
     next()
   } catch (error) {
     logger.error({ error }, 'Smart auth handler error')

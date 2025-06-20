@@ -128,7 +128,6 @@ export class AuthService implements IAuthService {
     try {
       // 检查是否在黑名单中
       if (this.revokedTokens.has(token)) {
-        logger.debug('Token is revoked')
         return null
       }
 
@@ -136,40 +135,35 @@ export class AuthService implements IAuthService {
 
       // 验证必要字段
       if (!decoded.playerId) {
-        logger.debug('Invalid token: missing playerId')
         return null
       }
 
       return decoded
     } catch (error) {
-      if (error instanceof jwt.JsonWebTokenError) {
-        logger.debug('Invalid token:', error.message)
-      } else if (error instanceof jwt.TokenExpiredError) {
-        logger.debug('Token expired')
+      if (error instanceof jwt.JsonWebTokenError || error instanceof jwt.TokenExpiredError) {
+        // 正常的token验证失败，不需要记录debug日志
+        return null
       } else {
         logger.error({ error }, 'Token verification error')
+        return null
       }
-      return null
     }
   }
 
   verifyRefreshToken(token: string): { playerId: string } | null {
     try {
       if (this.revokedTokens.has(token)) {
-        logger.debug('Refresh token is revoked')
         return null
       }
 
       const decoded = jwt.verify(token, this.config.jwtSecret) as any
 
       if (decoded.type !== 'refresh' || !decoded.playerId) {
-        logger.debug('Invalid refresh token')
         return null
       }
 
       return { playerId: decoded.playerId }
     } catch (error) {
-      logger.debug('Refresh token verification failed:', error)
       return null
     }
   }
@@ -185,7 +179,6 @@ export class AuthService implements IAuthService {
       try {
         const player = await playerRepo.getPlayerById(refreshPayload.playerId)
         if (!player) {
-          logger.debug('Player not found during token refresh')
           return null
         }
 
@@ -234,7 +227,6 @@ export class AuthService implements IAuthService {
         this.cleanupRevokedTokens()
       }
 
-      logger.debug('Token revoked successfully')
       return true
     } catch (error) {
       logger.error({ error }, 'Failed to revoke token')
@@ -280,12 +272,7 @@ function getOrCreateJwtSecret(): string {
     globalJwtSecret = process.env.JWT_SECRET || nanoid(64)
     if (!process.env.JWT_SECRET) {
       logger.warn('Using generated JWT secret. Set JWT_SECRET environment variable for production.')
-      logger.debug(`Generated JWT secret: ${globalJwtSecret.substring(0, 20)}...`)
-    } else {
-      logger.debug(`Using JWT_SECRET from environment: ${globalJwtSecret.substring(0, 20)}...`)
     }
-  } else {
-    logger.debug(`Reusing existing JWT secret: ${globalJwtSecret.substring(0, 20)}...`)
   }
   return globalJwtSecret
 }
