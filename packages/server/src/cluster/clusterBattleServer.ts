@@ -83,6 +83,7 @@ export class ClusterBattleServer {
   private rpcServer?: BattleRpcServer
   private rpcClient: BattleRpcClient
   private rpcPort?: number
+  private isRpcServerInjected = false
 
   constructor(
     private readonly io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
@@ -92,10 +93,17 @@ export class ClusterBattleServer {
     private readonly _battleReportConfig?: BattleReportConfig,
     instanceId?: string,
     rpcPort?: number,
+    injectedRpcServer?: BattleRpcServer,
   ) {
     this.instanceId = instanceId || nanoid()
     this.rpcPort = rpcPort
     this.rpcClient = new BattleRpcClient()
+
+    // 如果提供了外部 RPC 服务器实例，使用它
+    if (injectedRpcServer) {
+      this.rpcServer = injectedRpcServer
+      this.isRpcServerInjected = true
+    }
 
     // 初始化战报服务
     if (this._battleReportConfig) {
@@ -111,6 +119,13 @@ export class ClusterBattleServer {
    * 初始化RPC服务器
    */
   private async initializeRpcServer(): Promise<void> {
+    // 如果已经有注入的 RPC 服务器，只需要注册实例信息
+    if (this.rpcServer) {
+      logger.info({ instanceId: this.instanceId }, 'Using injected RPC server')
+      await this.registerInstanceWithRpcAddress()
+      return
+    }
+
     if (!this.rpcPort) {
       // 如果没有指定RPC端口，自动生成一个
       this.rpcPort = this.generateRpcPort()
@@ -3140,10 +3155,12 @@ export class ClusterBattleServer {
     try {
       logger.info('开始清理 ClusterBattleServer 资源')
 
-      // 清理RPC服务器
-      if (this.rpcServer) {
+      // 清理RPC服务器（只有自己创建的才停止）
+      if (this.rpcServer && !this.isRpcServerInjected) {
         await this.rpcServer.stop()
         logger.info('RPC server stopped')
+      } else if (this.rpcServer && this.isRpcServerInjected) {
+        logger.info('Skipping RPC server stop (injected server managed externally)')
       }
 
       // 清理RPC客户端连接

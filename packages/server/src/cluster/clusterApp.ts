@@ -6,6 +6,7 @@ import pino from 'pino'
 import swaggerUi from 'swagger-ui-express'
 import { ClusterBattleServer } from './clusterBattleServer'
 import { SocketClusterAdapter } from './socketClusterAdapter'
+import { BattleRpcServer } from './battleRpcServer'
 import { ServiceDiscoveryManager, WeightedLoadStrategy } from './serviceDiscovery'
 import { FlyIoServiceDiscoveryManager } from './flyIoServiceDiscovery'
 import { ClusterManager, createClusterConfigFromEnv } from './clusterManager'
@@ -45,6 +46,7 @@ export interface ClusterServerConfig {
   }
   email?: EmailConfig
   cluster?: ClusterConfig
+  rpcServer?: BattleRpcServer // 可选的预配置 RPC 服务器
 }
 
 // 默认配置
@@ -64,6 +66,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
   server: ReturnType<typeof createServer>
   clusterManager: ClusterManager
   battleServer: ClusterBattleServer
+  rpcServer: BattleRpcServer
   serviceDiscovery: ServiceDiscoveryManager
   monitoring: MonitoringManager
   performanceTracker: PerformanceTracker
@@ -238,6 +241,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
   let serviceDiscovery: ServiceDiscoveryManager
   let socketAdapter: SocketClusterAdapter
   let battleServer: ClusterBattleServer
+  let rpcServer: BattleRpcServer
   let sessionManager: any // SessionManager实例
 
   // 设置基础 API 路由
@@ -304,8 +308,11 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
         clusterManager.getStateManager(),
         finalConfig.cluster!.instance.id,
       )
-      // 创建 ClusterBattleServer 实例（但不初始化）
-      battleServer = new ClusterBattleServer(
+      // 创建 gRPC 服务器实例（需要先创建，然后注入到 ClusterBattleServer）
+      const grpcPort = finalConfig.cluster!.instance.grpcPort || 50051
+
+      // 先创建一个临时的 ClusterBattleServer 实例用于 gRPC 服务器
+      const tempBattleServer = new ClusterBattleServer(
         io,
         clusterManager.getStateManager(),
         socketAdapter,
@@ -314,6 +321,23 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
         finalConfig.cluster!.instance.id,
         finalConfig.rpcPort,
       )
+
+      // 创建 gRPC 服务器实例
+      rpcServer = new BattleRpcServer(tempBattleServer, grpcPort)
+
+      // 创建最终的 ClusterBattleServer 实例，注入 gRPC 服务器
+      battleServer = new ClusterBattleServer(
+        io,
+        clusterManager.getStateManager(),
+        socketAdapter,
+        clusterManager.getLockManager(),
+        finalConfig.battleReport,
+        finalConfig.cluster!.instance.id,
+        finalConfig.rpcPort,
+        rpcServer,
+      )
+
+      logger.info({ grpcPort }, 'gRPC server created and injected into ClusterBattleServer')
 
       // 初始化性能追踪器
       await performanceTracker.initialize()
@@ -361,6 +385,10 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
 
       // 最后初始化 ClusterBattleServer（确保所有依赖都准备好）
       await battleServer.initialize()
+
+      // 启动 gRPC 服务器
+      await rpcServer.start()
+      logger.info('gRPC server started successfully')
 
       logger.info('Cluster components initialized successfully')
 
@@ -413,6 +441,12 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
     }, SHUTDOWN_TIMEOUT)
 
     try {
+      // 停止 gRPC 服务器
+      if (rpcServer) {
+        await rpcServer.stop()
+        logger.info('gRPC server stopped')
+      }
+
       // 清理战斗服务器资源
       if (battleServer) {
         await battleServer.cleanup()
@@ -477,6 +511,9 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
     clusterManager,
     get battleServer() {
       return battleServer
+    },
+    get rpcServer() {
+      return rpcServer
     },
     get serviceDiscovery() {
       return serviceDiscovery

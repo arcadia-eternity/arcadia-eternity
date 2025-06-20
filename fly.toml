@@ -20,16 +20,8 @@ min_machines_running = 1
 max_machines_running = 5
 processes = ['app']
 
-# gRPC 服务配置
-[[services]]
-internal_port = 50051
-protocol = "tcp"
-processes = ['app']
-
-# 内部 gRPC 端口，不对外暴露
-[[services.ports]]
-port = 50051
-handlers = []
+# gRPC 服务配置 - 仅内部使用，不暴露端口
+# gRPC 服务在内部网络中运行，不需要外部访问
 
 # Health check configuration
 [[services.http_checks]]

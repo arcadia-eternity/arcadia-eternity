@@ -110,16 +110,9 @@ fly scale count 3
 ### fly.toml 配置
 
 ```toml
-# gRPC 服务配置
-[[services]]
-internal_port = 50051
-protocol = "tcp"
-processes = ['app']
-
-# 内部 gRPC 端口，不对外暴露
-[[services.ports]]
-port = 50051
-handlers = []
+# gRPC 服务配置 - 仅内部使用，不暴露端口
+# gRPC 服务在内部网络中运行，不需要外部访问
+# 注意：不要为 gRPC 端口配置健康检查，因为 gRPC 不是 HTTP 服务
 
 [env]
 # gRPC configuration for Fly.io
