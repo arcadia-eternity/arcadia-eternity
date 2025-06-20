@@ -681,17 +681,12 @@ export class ClusterBattleServer {
           data: { status: 'QUEUED' },
         })
 
-        // 只有匹配领导者才尝试匹配，避免多实例竞争
-        const isMatchmakingLeader = await this.isMatchmakingLeader()
-        logger.info(
-          { instanceId: this.instanceId, isMatchmakingLeader, source: 'handleJoinMatchmaking' },
-          'Leadership check for matchmaking',
+        // 不在这里直接尝试匹配，而是依赖集群事件触发
+        // 这样避免了双重触发的问题
+        logger.debug(
+          { instanceId: this.instanceId },
+          'Player added to queue, matchmaking will be handled by cluster event',
         )
-        if (isMatchmakingLeader) {
-          await this.attemptClusterMatchmaking()
-        } else {
-          logger.debug({ instanceId: this.instanceId }, 'Not matchmaking leader, skipping matchmaking attempt')
-        }
       })
     } catch (error) {
       logger.error(
@@ -707,210 +702,217 @@ export class ClusterBattleServer {
   }
 
   private async attemptClusterMatchmaking(): Promise<void> {
-    try {
-      const queue = await this.stateManager.getMatchmakingQueue()
+    // 使用全局匹配锁确保只有一个实例在同一时间进行匹配
+    return await this.lockManager.withLock(
+      LOCK_KEYS.MATCHMAKING,
+      async () => {
+        try {
+          const queue = await this.stateManager.getMatchmakingQueue()
 
-      logger.info(
-        {
-          queueLength: queue.length,
-          queue: queue.map(e => ({ playerId: e.playerId, sessionId: e.sessionId, joinTime: e.joinTime })),
-        },
-        'Attempting cluster matchmaking',
-      )
-
-      if (queue.length < 2) {
-        logger.info('Not enough players in queue for matching')
-        return
-      }
-
-      // 按加入时间排序
-      const sortedQueue = queue.sort((a, b) => a.joinTime - b.joinTime)
-
-      // 寻找可以匹配的两个session（确保不是同一个playerId）
-      let player1Entry: MatchmakingEntry | null = null
-      let player2Entry: MatchmakingEntry | null = null
-
-      for (let i = 0; i < sortedQueue.length; i++) {
-        if (!player1Entry) {
-          player1Entry = sortedQueue[i]
-          logger.debug(
-            { player1: { playerId: player1Entry.playerId, sessionId: player1Entry.sessionId } },
-            'Selected player 1',
+          logger.info(
+            {
+              queueLength: queue.length,
+              queue: queue.map(e => ({ playerId: e.playerId, sessionId: e.sessionId, joinTime: e.joinTime })),
+            },
+            'Attempting cluster matchmaking',
           )
-          continue
-        }
 
-        const candidate = sortedQueue[i]
-        logger.debug(
-          {
-            candidate: { playerId: candidate.playerId, sessionId: candidate.sessionId },
-            player1: { playerId: player1Entry.playerId, sessionId: player1Entry.sessionId },
-          },
-          'Checking candidate for player 2',
-        )
-
-        // 确保不是同一个玩家的不同session
-        if (candidate.playerId !== player1Entry.playerId) {
-          player2Entry = candidate
-          logger.debug(
-            { player2: { playerId: player2Entry.playerId, sessionId: player2Entry.sessionId } },
-            'Selected player 2',
-          )
-          break
-        } else {
-          logger.debug(
-            { candidatePlayerId: candidate.playerId, player1PlayerId: player1Entry.playerId },
-            'Skipping candidate - same playerId',
-          )
-        }
-      }
-
-      // 如果找不到合适的匹配，返回
-      if (!player1Entry || !player2Entry) {
-        logger.debug(
-          { player1Entry: !!player1Entry, player2Entry: !!player2Entry, queueLength: queue.length },
-          'No suitable match found - all entries may be from same player',
-        )
-        return
-      }
-
-      // 使用分布式锁确保匹配的原子性
-      // 基于sessionId生成锁键，确保顺序一致，避免死锁
-      const session1Key = `${player1Entry.playerId}:${player1Entry.sessionId}`
-      const session2Key = `${player2Entry.playerId}:${player2Entry.sessionId}`
-      const sortedSessionKeys = [session1Key, session2Key].sort()
-      const lockKey = `match:${sortedSessionKeys[0]}:${sortedSessionKeys[1]}`
-
-      logger.info(
-        {
-          player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
-          player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
-          lockKey,
-        },
-        'Starting match creation with lock',
-      )
-
-      await this.lockManager.withLock(lockKey, async () => {
-        // 再次检查session是否仍在队列中
-        const currentQueue = await this.stateManager.getMatchmakingQueue()
-        const p1Still = currentQueue.find(
-          e => e.playerId === player1Entry!.playerId && e.sessionId === player1Entry!.sessionId,
-        )
-        const p2Still = currentQueue.find(
-          e => e.playerId === player2Entry!.playerId && e.sessionId === player2Entry!.sessionId,
-        )
-
-        if (!p1Still || !p2Still) {
-          logger.debug('Sessions no longer in queue, skipping match')
-          return
-        }
-
-        // 检查玩家连接状态（基于session）
-        const p1Connection = await this.stateManager.getPlayerConnectionBySession(
-          player1Entry.playerId,
-          player1Entry.sessionId!,
-        )
-        const p2Connection = await this.stateManager.getPlayerConnectionBySession(
-          player2Entry.playerId,
-          player2Entry.sessionId!,
-        )
-
-        if (
-          !p1Connection ||
-          !p2Connection ||
-          p1Connection.status !== 'connected' ||
-          p2Connection.status !== 'connected'
-        ) {
-          logger.debug('Player sessions not connected, skipping match')
-          return
-        }
-
-        // 创建战斗房间
-        logger.info(
-          {
-            player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
-            player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
-          },
-          'About to create cluster battle room',
-        )
-
-        const roomId = await this.createClusterBattleRoom(player1Entry, player2Entry)
-
-        logger.info(
-          {
-            roomId,
-            player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
-            player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
-          },
-          'Battle room creation result',
-        )
-
-        if (roomId) {
-          // 从队列中移除session
-          await this.stateManager.removeFromMatchmakingQueue(player1Entry.playerId, player1Entry.sessionId)
-          await this.stateManager.removeFromMatchmakingQueue(player2Entry.playerId, player2Entry.sessionId)
-
-          // 更新匹配队列大小统计
-          if (this.performanceTracker) {
-            const queueSize = await this.stateManager.getMatchmakingQueueSize()
-            this.performanceTracker.updateMatchmakingQueueSize(queueSize)
+          if (queue.length < 2) {
+            logger.info('Not enough players in queue for matching')
+            return
           }
 
+          // 按加入时间排序
+          const sortedQueue = queue.sort((a, b) => a.joinTime - b.joinTime)
+
+          // 寻找可以匹配的两个session（确保不是同一个playerId）
+          let player1Entry: MatchmakingEntry | null = null
+          let player2Entry: MatchmakingEntry | null = null
+
+          for (let i = 0; i < sortedQueue.length; i++) {
+            if (!player1Entry) {
+              player1Entry = sortedQueue[i]
+              logger.debug(
+                { player1: { playerId: player1Entry.playerId, sessionId: player1Entry.sessionId } },
+                'Selected player 1',
+              )
+              continue
+            }
+
+            const candidate = sortedQueue[i]
+            logger.debug(
+              {
+                candidate: { playerId: candidate.playerId, sessionId: candidate.sessionId },
+                player1: { playerId: player1Entry.playerId, sessionId: player1Entry.sessionId },
+              },
+              'Checking candidate for player 2',
+            )
+
+            // 确保不是同一个玩家的不同session
+            if (candidate.playerId !== player1Entry.playerId) {
+              player2Entry = candidate
+              logger.debug(
+                { player2: { playerId: player2Entry.playerId, sessionId: player2Entry.sessionId } },
+                'Selected player 2',
+              )
+              break
+            } else {
+              logger.debug(
+                { candidatePlayerId: candidate.playerId, player1PlayerId: player1Entry.playerId },
+                'Skipping candidate - same playerId',
+              )
+            }
+          }
+
+          // 如果找不到合适的匹配，返回
+          if (!player1Entry || !player2Entry) {
+            logger.debug(
+              { player1Entry: !!player1Entry, player2Entry: !!player2Entry, queueLength: queue.length },
+              'No suitable match found - all entries may be from same player',
+            )
+            return
+          }
+
+          // 使用分布式锁确保匹配的原子性
+          // 基于sessionId生成锁键，确保顺序一致，避免死锁
+          const session1Key = `${player1Entry.playerId}:${player1Entry.sessionId}`
+          const session2Key = `${player2Entry.playerId}:${player2Entry.sessionId}`
+          const sortedSessionKeys = [session1Key, session2Key].sort()
+          const lockKey = `match:${sortedSessionKeys[0]}:${sortedSessionKeys[1]}`
+
           logger.info(
             {
-              roomId,
               player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
               player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
+              lockKey,
             },
-            'About to notify match success',
+            'Starting match creation with lock',
           )
 
-          // 通知玩家匹配成功
-          await this.notifyMatchSuccess(player1Entry, player2Entry, roomId)
+          await this.lockManager.withLock(lockKey, async () => {
+            // 再次检查session是否仍在队列中
+            const currentQueue = await this.stateManager.getMatchmakingQueue()
+            const p1Still = currentQueue.find(
+              e => e.playerId === player1Entry!.playerId && e.sessionId === player1Entry!.sessionId,
+            )
+            const p2Still = currentQueue.find(
+              e => e.playerId === player2Entry!.playerId && e.sessionId === player2Entry!.sessionId,
+            )
 
-          logger.info(
-            {
-              roomId,
-              player1: { id: player1Entry.playerId, name: player1Entry.playerData.name },
-              player2: { id: player2Entry.playerId, name: player2Entry.playerData.name },
-            },
-            '集群匹配成功',
-          )
-        } else {
+            if (!p1Still || !p2Still) {
+              logger.debug('Sessions no longer in queue, skipping match')
+              return
+            }
+
+            // 检查玩家连接状态（基于session）
+            const p1Connection = await this.stateManager.getPlayerConnectionBySession(
+              player1Entry.playerId,
+              player1Entry.sessionId!,
+            )
+            const p2Connection = await this.stateManager.getPlayerConnectionBySession(
+              player2Entry.playerId,
+              player2Entry.sessionId!,
+            )
+
+            if (
+              !p1Connection ||
+              !p2Connection ||
+              p1Connection.status !== 'connected' ||
+              p2Connection.status !== 'connected'
+            ) {
+              logger.debug('Player sessions not connected, skipping match')
+              return
+            }
+
+            // 创建战斗房间
+            logger.info(
+              {
+                player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
+                player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
+              },
+              'About to create cluster battle room',
+            )
+
+            const roomId = await this.createClusterBattleRoom(player1Entry, player2Entry)
+
+            logger.info(
+              {
+                roomId,
+                player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
+                player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
+              },
+              'Battle room creation result',
+            )
+
+            if (roomId) {
+              // 从队列中移除session
+              await this.stateManager.removeFromMatchmakingQueue(player1Entry.playerId, player1Entry.sessionId)
+              await this.stateManager.removeFromMatchmakingQueue(player2Entry.playerId, player2Entry.sessionId)
+
+              // 更新匹配队列大小统计
+              if (this.performanceTracker) {
+                const queueSize = await this.stateManager.getMatchmakingQueueSize()
+                this.performanceTracker.updateMatchmakingQueueSize(queueSize)
+              }
+
+              logger.info(
+                {
+                  roomId,
+                  player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
+                  player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
+                },
+                'About to notify match success',
+              )
+
+              // 通知玩家匹配成功
+              await this.notifyMatchSuccess(player1Entry, player2Entry, roomId)
+
+              logger.info(
+                {
+                  roomId,
+                  player1: { id: player1Entry.playerId, name: player1Entry.playerData.name },
+                  player2: { id: player2Entry.playerId, name: player2Entry.playerData.name },
+                },
+                '集群匹配成功',
+              )
+            } else {
+              logger.error(
+                {
+                  player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
+                  player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
+                },
+                'Failed to create battle room - roomId is null',
+              )
+            }
+
+            logger.info(
+              {
+                roomId,
+                player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
+                player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
+              },
+              'Exiting withLock callback in attemptClusterMatchmaking',
+            )
+          })
+        } catch (error) {
           logger.error(
             {
-              player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
-              player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
+              error:
+                error instanceof Error
+                  ? {
+                      name: error.name,
+                      message: error.message,
+                      stack: error.stack,
+                      code: (error as any).code,
+                    }
+                  : error,
             },
-            'Failed to create battle room - roomId is null',
+            'Error in cluster matchmaking',
           )
         }
-
-        logger.info(
-          {
-            roomId,
-            player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
-            player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
-          },
-          'Exiting withLock callback in attemptClusterMatchmaking',
-        )
-      })
-    } catch (error) {
-      logger.error(
-        {
-          error:
-            error instanceof Error
-              ? {
-                  name: error.name,
-                  message: error.message,
-                  stack: error.stack,
-                  code: (error as any).code,
-                }
-              : error,
-        },
-        'Error in cluster matchmaking',
-      )
-    }
+      },
+      { ttl: 30000, retryCount: 5, retryDelay: 200 }, // 较长的TTL，适中的重试
+    )
   }
 
   private async createClusterBattleRoom(
@@ -2857,37 +2859,44 @@ export class ClusterBattleServer {
 
   /**
    * 检查当前实例是否为匹配领导者
-   * 使用分布式锁实现简单的领导者选举
+   * 使用分布式锁实现可靠的领导者选举
    */
   private async isMatchmakingLeader(): Promise<boolean> {
     try {
-      // 获取所有健康的实例
-      const instances = await this.stateManager.getInstances()
-      const healthyInstances = instances
-        .filter(instance => instance.status === 'healthy')
-        .map(instance => instance.id)
-        .sort() // 确保顺序一致
+      // 使用分布式锁确保leader选举的原子性
+      return await this.lockManager.withLock(
+        LOCK_KEYS.MATCHMAKING_LEADER_ELECTION,
+        async () => {
+          // 获取所有健康的实例
+          const instances = await this.stateManager.getInstances()
+          const healthyInstances = instances
+            .filter(instance => instance.status === 'healthy')
+            .map(instance => instance.id)
+            .sort() // 确保顺序一致
 
-      if (healthyInstances.length === 0) {
-        logger.warn({ instanceId: this.instanceId }, 'No healthy instances found, assuming leadership')
-        return true
-      }
+          if (healthyInstances.length === 0) {
+            logger.warn({ instanceId: this.instanceId }, 'No healthy instances found, assuming leadership')
+            return true
+          }
 
-      // 使用简单的哈希选举：选择排序后的第一个实例作为领导者
-      const leaderId = healthyInstances[0]
-      const isLeader = leaderId === this.instanceId
+          // 使用简单的哈希选举：选择排序后的第一个实例作为领导者
+          const leaderId = healthyInstances[0]
+          const isLeader = leaderId === this.instanceId
 
-      logger.debug(
-        {
-          instanceId: this.instanceId,
-          leaderId,
-          isLeader,
-          healthyInstances,
+          logger.debug(
+            {
+              instanceId: this.instanceId,
+              leaderId,
+              isLeader,
+              healthyInstances,
+            },
+            'Matchmaking leadership check',
+          )
+
+          return isLeader
         },
-        'Matchmaking leadership check',
+        { ttl: 5000, retryCount: 3, retryDelay: 50 }, // 短TTL，快速重试
       )
-
-      return isLeader
     } catch (error) {
       logger.error(
         {

@@ -238,6 +238,7 @@ export class DistributedLockManager {
 // 常用锁键常量
 export const LOCK_KEYS = {
   MATCHMAKING: 'matchmaking',
+  MATCHMAKING_LEADER_ELECTION: 'matchmaking:leader:election',
   ROOM_CREATE: (roomId: string) => `room:create:${roomId}`,
   PLAYER_ACTION: (playerId: string) => `player:action:${playerId}`,
   SESSION_ACTION: (playerId: string, sessionId: string) => `session:action:${playerId}:${sessionId}`,
