@@ -95,8 +95,19 @@ export class ClusterBattleServer {
 
   // 批量消息处理相关
   private readonly messageBatches = new Map<string, { messages: any[]; timer: ReturnType<typeof setTimeout> }>() // sessionKey -> batch
-  private readonly BATCH_SIZE = 10 // 批量大小
+  private readonly BATCH_SIZE = 25 // 批量大小（增加到25）
   private readonly BATCH_TIMEOUT = 50 // 批量超时时间（毫秒）
+
+  // 需要立即发送的消息类型（重要消息和需要玩家输入的消息）
+  private readonly IMMEDIATE_MESSAGE_TYPES = new Set([
+    'BATTLE_START',
+    'BATTLE_END',
+    'TURN_ACTION', // 需要玩家选择行动
+    'FORCED_SWITCH', // 需要玩家强制切换
+    'FAINT_SWITCH', // 需要玩家击破奖励切换
+    'INVALID_ACTION', // 无效行动提示
+    'ERROR', // 错误消息
+  ])
 
   constructor(
     private readonly io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
@@ -1713,9 +1724,9 @@ export class ClusterBattleServer {
     // 添加消息到批次
     batch.messages.push(message)
 
-    // 如果达到批量大小或者是重要消息，立即发送
-    const isImportantMessage = message.type === 'BATTLE_END' || message.type === 'BATTLE_START'
-    if (batch.messages.length >= this.BATCH_SIZE || isImportantMessage) {
+    // 如果达到批量大小或者是需要立即发送的消息，立即发送
+    const isImmediateMessage = this.IMMEDIATE_MESSAGE_TYPES.has(message.type)
+    if (batch.messages.length >= this.BATCH_SIZE || isImmediateMessage) {
       await this.flushBatch(sessionKey)
     } else {
       // 设置定时器，在超时后发送

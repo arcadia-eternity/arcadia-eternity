@@ -27,18 +27,30 @@ export interface ServerToClientEvents {
 在 `packages/server/src/cluster/clusterBattleServer.ts` 中实现了批量消息处理：
 
 #### 核心配置
-- `BATCH_SIZE`: 10 - 批量大小阈值
+
+- `BATCH_SIZE`: 25 - 批量大小阈值
 - `BATCH_TIMEOUT`: 50ms - 批量超时时间
 
+#### 立即发送的消息类型
+
+- `BATTLE_START` / `BATTLE_END` - 战斗开始/结束
+- `TURN_ACTION` - 需要玩家选择行动
+- `FORCED_SWITCH` - 需要玩家强制切换
+- `FAINT_SWITCH` - 需要玩家击破奖励切换
+- `INVALID_ACTION` - 无效行动提示
+- `ERROR` - 错误消息
+
 #### 主要方法
+
 - `addToBatch()`: 将消息添加到批次中
 - `flushBatch()`: 立即发送批次中的所有消息
 - `cleanupAllBatches()`: 清理所有待处理的批次
 
 #### 批量策略
-1. **大小触发**: 当批次达到10个消息时立即发送
+
+1. **大小触发**: 当批次达到25个消息时立即发送
 2. **时间触发**: 50ms超时后自动发送
-3. **重要消息**: `BATTLE_END`、`BATTLE_START`等重要消息立即发送
+3. **立即消息**: 需要玩家输入或重要状态变更的消息立即发送
 4. **智能选择**: 单个消息使用`battleEvent`，多个消息使用`battleEventBatch`
 
 ### 3. 客户端 (Client)
@@ -67,6 +79,7 @@ this.socket.on('battleEventBatch', messages => {
 ### 4. 前端兼容性
 
 前端代码无需修改，因为：
+
 - 批量消息在客户端被分解为单个消息
 - 现有的`battleEvent`处理器继续正常工作
 - 保持了完全的向后兼容性
@@ -74,11 +87,13 @@ this.socket.on('battleEventBatch', messages => {
 ## 性能优化
 
 ### 传输效率
+
 - **减少网络请求数**: 将多个小消息合并为一个大消息
 - **降低协议开销**: 减少Socket.IO的消息头开销
 - **智能批量**: 根据消息重要性和时间敏感性调整策略
 
 ### 内存管理
+
 - **自动清理**: 服务器关闭时自动清理所有批次
 - **超时保护**: 防止消息长时间积压
 - **内存限制**: 批量大小限制防止内存过度使用
@@ -86,33 +101,49 @@ this.socket.on('battleEventBatch', messages => {
 ## 使用场景
 
 ### 适合批量的消息类型
+
 - 连续的伤害消息
 - 属性变化消息
 - 印记应用/移除消息
 - 状态更新消息
 
 ### 不适合批量的消息类型
+
 - 战斗开始/结束消息
+- 需要玩家输入的消息
 - 关键的同步消息
-- 需要立即响应的消息
+- 错误和无效行动消息
 
 ## 配置参数
 
 可以通过修改以下参数来调整批量行为：
 
 ```typescript
-private readonly BATCH_SIZE = 10 // 批量大小
+private readonly BATCH_SIZE = 25 // 批量大小（增加到25）
 private readonly BATCH_TIMEOUT = 50 // 批量超时时间（毫秒）
+
+// 需要立即发送的消息类型
+private readonly IMMEDIATE_MESSAGE_TYPES = new Set([
+  'BATTLE_START',
+  'BATTLE_END',
+  'TURN_ACTION',      // 需要玩家选择行动
+  'FORCED_SWITCH',    // 需要玩家强制切换
+  'FAINT_SWITCH',     // 需要玩家击破奖励切换
+  'INVALID_ACTION',   // 无效行动提示
+  'ERROR'             // 错误消息
+])
 ```
 
 ## 监控和调试
 
 ### 日志记录
+
 - 批量发送成功/失败日志
 - 批量大小和处理时间统计
 - 清理操作日志
 
 ### 性能指标
+
 - 消息批量化率
 - 平均批量大小
 - 传输延迟改善
