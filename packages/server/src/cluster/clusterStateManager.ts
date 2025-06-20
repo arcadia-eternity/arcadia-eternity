@@ -70,6 +70,9 @@ export class ClusterStateManager extends EventEmitter {
         data: this.currentInstance,
       })
 
+      // 重建活跃玩家索引（确保数据一致性）
+      await this.rebuildActivePlayersIndex()
+
       logger.info({ instanceId: this.currentInstance.id }, 'Cluster state manager initialized')
     } catch (error) {
       logger.error({ error }, 'Failed to initialize cluster state manager')
@@ -231,6 +234,12 @@ export class ClusterStateManager extends EventEmitter {
       // 添加到玩家的会话连接集合
       await client.sadd(REDIS_KEYS.PLAYER_SESSION_CONNECTIONS(playerId), connection.sessionId)
 
+      // 添加到活跃玩家索引
+      await client.sadd(REDIS_KEYS.ACTIVE_PLAYERS, playerId)
+
+      // 清除相关缓存
+      this.invalidatePlayerConnectionsCache()
+
       // 发布玩家连接事件
       await this.publishEvent({
         type: 'player:connect',
@@ -345,7 +354,18 @@ export class ClusterStateManager extends EventEmitter {
       await client.del(REDIS_KEYS.PLAYER_SESSION_CONNECTION(playerId, sessionId))
       await client.srem(REDIS_KEYS.PLAYER_SESSION_CONNECTIONS(playerId), sessionId)
 
-      logger.debug({ playerId, sessionId }, 'Player session connection removed')
+      // 检查玩家是否还有其他连接，如果没有则从活跃玩家索引中移除
+      const remainingConnections = await client.scard(REDIS_KEYS.PLAYER_SESSION_CONNECTIONS(playerId))
+      if (remainingConnections === 0) {
+        await client.srem(REDIS_KEYS.ACTIVE_PLAYERS, playerId)
+        // 清理空的连接集合
+        await client.del(REDIS_KEYS.PLAYER_SESSION_CONNECTIONS(playerId))
+      }
+
+      // 清除相关缓存
+      this.invalidatePlayerConnectionsCache()
+
+      logger.debug({ playerId, sessionId, remainingConnections }, 'Player session connection removed')
 
       // 发布玩家断开事件
       await this.publishEvent({
@@ -374,6 +394,9 @@ export class ClusterStateManager extends EventEmitter {
         type: eventType as 'room:create' | 'room:update',
         data: roomState,
       })
+
+      // 清除集群统计缓存（房间状态变化会影响统计）
+      this.invalidateClusterStatsCache()
 
       logger.debug({ roomId: roomState.id, status: roomState.status }, 'Room state set')
     } catch (error) {
@@ -411,6 +434,9 @@ export class ClusterStateManager extends EventEmitter {
         type: 'room:destroy',
         data: { roomId },
       })
+
+      // 清除集群统计缓存（房间状态变化会影响统计）
+      this.invalidateClusterStatsCache()
 
       logger.debug({ roomId }, 'Room state removed')
     } catch (error) {
@@ -761,7 +787,9 @@ export class ClusterStateManager extends EventEmitter {
   }
 
   private startHeartbeat(): void {
-    const interval = this.config.cluster.heartbeatInterval || 30000 // 30秒
+    // 根据环境调整心跳频率：开发环境更频繁，生产环境适中
+    const defaultInterval = process.env.NODE_ENV === 'development' ? 30000 : 45000 // 开发30秒，生产45秒
+    const interval = this.config.cluster.heartbeatInterval || defaultInterval
 
     this.heartbeatTimer = setInterval(async () => {
       try {
@@ -770,6 +798,8 @@ export class ClusterStateManager extends EventEmitter {
         logger.error({ error }, 'Heartbeat failed')
       }
     }, interval)
+
+    logger.info({ interval: interval / 1000 }, 'Heartbeat started')
   }
 
   private startHealthCheck(): void {
@@ -946,6 +976,14 @@ export class ClusterStateManager extends EventEmitter {
   private instanceCache = new Map<string, { instance: ServiceInstance; timestamp: number }>()
   private readonly CACHE_TTL = 30000 // 30秒缓存
 
+  // 集群统计缓存
+  private clusterStatsCache: { stats: ClusterStats; timestamp: number } | null = null
+  private readonly CLUSTER_STATS_CACHE_TTL = 15000 // 15秒缓存，比实例缓存更短
+
+  // 玩家连接索引缓存
+  private playerConnectionsCache: { connections: PlayerConnection[]; timestamp: number } | null = null
+  private readonly PLAYER_CONNECTIONS_CACHE_TTL = 10000 // 10秒缓存
+
   /**
    * 带缓存的获取实例信息
    */
@@ -980,6 +1018,65 @@ export class ClusterStateManager extends EventEmitter {
       if (now - cached.timestamp >= this.CACHE_TTL) {
         this.instanceCache.delete(instanceId)
       }
+    }
+  }
+
+  /**
+   * 清除玩家连接缓存
+   */
+  private invalidatePlayerConnectionsCache(): void {
+    this.playerConnectionsCache = null
+  }
+
+  /**
+   * 清除集群统计缓存
+   */
+  private invalidateClusterStatsCache(): void {
+    this.clusterStatsCache = null
+  }
+
+  /**
+   * 重建活跃玩家索引（用于初始化或修复）
+   */
+  async rebuildActivePlayersIndex(): Promise<void> {
+    const client = this.redisManager.getClient()
+
+    try {
+      logger.info('Rebuilding active players index...')
+
+      // 清空现有索引
+      await client.del(REDIS_KEYS.ACTIVE_PLAYERS)
+
+      // 使用SCAN命令遍历所有玩家连接键，避免KEYS命令
+      const stream = client.scanStream({
+        match: REDIS_KEYS.PLAYER_SESSION_CONNECTIONS('*'),
+        count: 100,
+      })
+
+      const activePlayerIds = new Set<string>()
+
+      for await (const keys of stream) {
+        for (const key of keys) {
+          // 从key中提取playerId: arcadia:player:sessions:connections:playerId
+          const playerId = key.split(':').pop()
+          if (playerId) {
+            // 检查该玩家是否有活跃连接
+            const connectionCount = await client.scard(key)
+            if (connectionCount > 0) {
+              activePlayerIds.add(playerId)
+            }
+          }
+        }
+      }
+
+      // 批量添加到活跃玩家索引
+      if (activePlayerIds.size > 0) {
+        await client.sadd(REDIS_KEYS.ACTIVE_PLAYERS, ...Array.from(activePlayerIds))
+      }
+
+      logger.info({ activePlayersCount: activePlayerIds.size }, 'Active players index rebuilt')
+    } catch (error) {
+      logger.error({ error }, 'Failed to rebuild active players index')
     }
   }
 
@@ -1143,9 +1240,16 @@ export class ClusterStateManager extends EventEmitter {
 
   async getClusterStats(): Promise<ClusterStats> {
     try {
+      // 检查缓存
+      const now = Date.now()
+      if (this.clusterStatsCache && now - this.clusterStatsCache.timestamp < this.CLUSTER_STATS_CACHE_TTL) {
+        return this.clusterStatsCache.stats
+      }
+
+      // 缓存失效，重新计算
       const [instances, playerConnections, rooms, queueSize] = await Promise.all([
         this.getInstances(),
-        this.getPlayerConnections(),
+        this.getPlayerConnectionsOptimized(),
         this.getRooms(),
         this.getMatchmakingQueueSize(),
       ])
@@ -1158,11 +1262,10 @@ export class ClusterStateManager extends EventEmitter {
 
       // 计算平均等待时间
       const queue = await this.getMatchmakingQueue()
-      const now = Date.now()
       const averageWaitTime =
         queue.length > 0 ? queue.reduce((sum, entry) => sum + (now - entry.joinTime), 0) / queue.length : 0
 
-      return {
+      const stats: ClusterStats = {
         instances: {
           total: instances.length,
           healthy: healthyInstances,
@@ -1184,12 +1287,107 @@ export class ClusterStateManager extends EventEmitter {
           averageWaitTime,
         },
       }
+
+      // 更新缓存
+      this.clusterStatsCache = { stats, timestamp: now }
+      return stats
     } catch (error) {
       logger.error({ error }, 'Failed to get cluster stats')
       throw new ClusterError('Failed to get cluster stats', 'GET_STATS_ERROR', error)
     }
   }
 
+  /**
+   * 优化的获取玩家连接方法，使用缓存和索引避免KEYS命令
+   */
+  private async getPlayerConnectionsOptimized(): Promise<PlayerConnection[]> {
+    try {
+      // 检查缓存
+      const now = Date.now()
+      if (
+        this.playerConnectionsCache &&
+        now - this.playerConnectionsCache.timestamp < this.PLAYER_CONNECTIONS_CACHE_TTL
+      ) {
+        return this.playerConnectionsCache.connections
+      }
+
+      const client = this.redisManager.getClient()
+
+      // 使用全局玩家连接索引，避免KEYS命令
+      const activePlayerIds = await client.smembers(REDIS_KEYS.ACTIVE_PLAYERS)
+
+      if (activePlayerIds.length === 0) {
+        // 缓存空结果
+        this.playerConnectionsCache = { connections: [], timestamp: now }
+        return []
+      }
+
+      const connections: PlayerConnection[] = []
+
+      // 批量获取玩家连接，使用pipeline优化
+      const pipeline = client.pipeline()
+      for (const playerId of activePlayerIds) {
+        pipeline.smembers(REDIS_KEYS.PLAYER_SESSION_CONNECTIONS(playerId))
+      }
+
+      const sessionResults = await pipeline.exec()
+
+      // 收集所有需要获取的连接数据
+      const connectionPipeline = client.pipeline()
+      const playerSessionMap: Array<{ playerId: string; sessionIds: string[] }> = []
+
+      if (sessionResults) {
+        for (let i = 0; i < sessionResults.length; i++) {
+          const [err, sessionIds] = sessionResults[i]
+          if (!err && Array.isArray(sessionIds) && sessionIds.length > 0) {
+            const playerId = activePlayerIds[i]
+            playerSessionMap.push({ playerId, sessionIds })
+
+            // 为每个会话添加获取连接数据的命令
+            for (const sessionId of sessionIds) {
+              connectionPipeline.hgetall(REDIS_KEYS.PLAYER_SESSION_CONNECTION(playerId, sessionId))
+            }
+          }
+        }
+      }
+
+      // 批量获取连接数据
+      const connectionResults = await connectionPipeline.exec()
+
+      if (connectionResults) {
+        let resultIndex = 0
+        for (const { sessionIds } of playerSessionMap) {
+          for (let i = 0; i < sessionIds.length; i++) {
+            const [err, connectionData] = connectionResults[resultIndex++]
+            if (!err && connectionData && Object.keys(connectionData).length > 0) {
+              const connection = this.deserializeSessionConnection(connectionData as Record<string, string>)
+              connections.push({
+                instanceId: connection.instanceId,
+                socketId: connection.socketId,
+                lastSeen: connection.lastSeen,
+                status: connection.status,
+                sessionId: connection.sessionId,
+                metadata: connection.metadata,
+              })
+            }
+          }
+        }
+      }
+
+      // 更新缓存
+      this.playerConnectionsCache = { connections, timestamp: now }
+
+      return connections
+    } catch (error) {
+      logger.error({ error }, 'Failed to get optimized player connections')
+      return []
+    }
+  }
+
+  /**
+   * 原始的获取玩家连接方法（保留作为备用）
+   * @deprecated 使用 getPlayerConnectionsOptimized 替代
+   */
   private async getPlayerConnections(): Promise<PlayerConnection[]> {
     const client = this.redisManager.getClient()
 
@@ -1272,6 +1470,8 @@ export class ClusterStateManager extends EventEmitter {
 
       // 清理内存缓存
       this.instanceCache.clear()
+      this.clusterStatsCache = null
+      this.playerConnectionsCache = null
 
       // 注销实例
       await this.unregisterInstance()

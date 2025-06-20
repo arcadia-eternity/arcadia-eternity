@@ -1,5 +1,4 @@
 import pino from 'pino'
-import { nanoid } from 'nanoid'
 import type { ClusterStateManager } from './clusterStateManager'
 import type { RedisClientManager } from './redisClient'
 
@@ -510,6 +509,9 @@ export class MonitoringManager {
   }
 
   private startMetricsCollection(): void {
+    // 根据环境调整监控频率：开发环境更频繁，生产环境适中
+    const interval = process.env.NODE_ENV === 'development' ? 30000 : 60000 // 开发30秒，生产60秒
+
     this.metricsInterval = setInterval(async () => {
       try {
         const metrics = await this.collectMetrics()
@@ -517,7 +519,9 @@ export class MonitoringManager {
       } catch (error) {
         logger.error({ error }, 'Metrics collection error')
       }
-    }, 30000) // 每30秒收集一次
+    }, interval)
+
+    logger.info({ interval: interval / 1000 }, 'Metrics collection started')
   }
 
   private startAlertChecking(): void {
@@ -597,13 +601,12 @@ export class MonitoringManager {
       const client = this.redisManager.getClient()
       const keyPrefix = this.redisManager.getKeyPrefix()
 
-      // 获取各种类型的键数量
+      // 获取各种类型的键数量（已移除 log:* 模式以减少 Redis 操作）
       const patterns = [
         'session:*',
         'auth:blacklist:*',
         'metrics:*',
         'alert:*',
-        'log:*',
         'lock:*',
         'room:*',
         'player:sessions:connections:*',
@@ -613,11 +616,20 @@ export class MonitoringManager {
       const keysByPattern: Record<string, number> = {}
       let totalKeys = 0
 
+      // 使用 SCAN 代替 KEYS 以避免阻塞 Redis
       for (const pattern of patterns) {
         const fullPattern = `${keyPrefix}${pattern}`
-        const keys = await client.keys(fullPattern)
-        keysByPattern[pattern] = keys.length
-        totalKeys += keys.length
+        let count = 0
+        let cursor = '0'
+
+        do {
+          const result = await client.scan(cursor, 'MATCH', fullPattern, 'COUNT', 100)
+          cursor = result[0]
+          count += result[1].length
+        } while (cursor !== '0')
+
+        keysByPattern[pattern] = count
+        totalKeys += count
       }
 
       // 获取Redis内存统计
@@ -661,194 +673,7 @@ export class MonitoringManager {
   }
 }
 
-/**
- * 日志聚合管理器
- */
-export class LogAggregationManager {
-  private redisManager: RedisClientManager
-  private instanceId: string
-  private logBuffer: LogEntry[] = []
-  private flushInterval?: NodeJS.Timeout
+// LogAggregationManager 已移除以减少 Redis 操作频率
+// 日志现在直接使用 pino 输出到标准输出，由容器日志系统处理
 
-  constructor(redisManager: RedisClientManager, instanceId: string) {
-    this.redisManager = redisManager
-    this.instanceId = instanceId
-  }
-
-  async initialize(): Promise<void> {
-    try {
-      logger.info('Initializing log aggregation manager')
-
-      // 启动日志刷新
-      this.startLogFlushing()
-
-      logger.info('Log aggregation manager initialized successfully')
-    } catch (error) {
-      logger.error({ error }, 'Failed to initialize log aggregation manager')
-      throw error
-    }
-  }
-
-  /**
-   * 添加日志条目
-   */
-  addLogEntry(entry: LogEntry): void {
-    this.logBuffer.push({
-      ...entry,
-      instanceId: this.instanceId,
-      timestamp: entry.timestamp || Date.now(),
-    })
-
-    // 如果缓冲区太大，立即刷新
-    if (this.logBuffer.length >= 100) {
-      this.flushLogs().catch(error => {
-        logger.error({ error }, 'Failed to flush logs immediately')
-      })
-    }
-  }
-
-  /**
-   * 刷新日志到Redis
-   */
-  private async flushLogs(): Promise<void> {
-    if (this.logBuffer.length === 0) return
-
-    try {
-      const client = this.redisManager.getClient()
-      const logs = [...this.logBuffer]
-      this.logBuffer = []
-
-      // 批量存储日志
-      const multi = client.multi()
-
-      for (const log of logs) {
-        const logKey = `log:${Math.floor(log.timestamp / 60000)}:${nanoid()}`
-        multi.hset(logKey, {
-          timestamp: log.timestamp.toString(),
-          level: log.level,
-          message: log.message,
-          instanceId: log.instanceId,
-          component: log.component || '',
-          userId: log.userId || '',
-          requestId: log.requestId || '',
-          metadata: JSON.stringify(log.metadata || {}),
-        })
-
-        // 设置过期时间（7天）
-        multi.expire(logKey, 7 * 24 * 60 * 60)
-      }
-
-      await multi.exec()
-      logger.debug({ count: logs.length }, 'Logs flushed to Redis')
-    } catch (error) {
-      logger.error({ error }, 'Failed to flush logs to Redis')
-    }
-  }
-
-  /**
-   * 查询日志
-   */
-  async queryLogs(query: LogQuery): Promise<LogEntry[]> {
-    try {
-      const client = this.redisManager.getClient()
-      const logs: LogEntry[] = []
-
-      // 根据时间范围生成键模式
-      const startMinute = Math.floor(query.startTime / 60000)
-      const endMinute = Math.floor(query.endTime / 60000)
-
-      for (let minute = startMinute; minute <= endMinute; minute++) {
-        const pattern = `log:${minute}:*`
-        const keys = await client.keys(pattern)
-
-        for (const key of keys) {
-          const logData = await client.hgetall(key)
-          if (Object.keys(logData).length === 0) continue
-
-          const log: LogEntry = {
-            timestamp: parseInt(logData.timestamp),
-            level: logData.level as LogLevel,
-            message: logData.message,
-            instanceId: logData.instanceId,
-            component: logData.component || undefined,
-            userId: logData.userId || undefined,
-            requestId: logData.requestId || undefined,
-            metadata: logData.metadata ? JSON.parse(logData.metadata) : undefined,
-          }
-
-          // 应用过滤器
-          if (this.matchesQuery(log, query)) {
-            logs.push(log)
-          }
-        }
-      }
-
-      // 排序和限制
-      logs.sort((a, b) => b.timestamp - a.timestamp)
-      return logs.slice(0, query.limit || 1000)
-    } catch (error) {
-      logger.error({ error }, 'Failed to query logs')
-      return []
-    }
-  }
-
-  private matchesQuery(log: LogEntry, query: LogQuery): boolean {
-    if (query.level && log.level !== query.level) return false
-    if (query.instanceId && log.instanceId !== query.instanceId) return false
-    if (query.component && log.component !== query.component) return false
-    if (query.userId && log.userId !== query.userId) return false
-    if (query.message && !log.message.includes(query.message)) return false
-
-    return true
-  }
-
-  private startLogFlushing(): void {
-    this.flushInterval = setInterval(async () => {
-      await this.flushLogs()
-    }, 10000) // 每10秒刷新一次
-
-    logger.debug('Log flushing started')
-  }
-
-  async cleanup(): Promise<void> {
-    try {
-      logger.info('Cleaning up log aggregation manager')
-
-      // 刷新剩余日志
-      await this.flushLogs()
-
-      if (this.flushInterval) {
-        clearInterval(this.flushInterval)
-      }
-
-      logger.info('Log aggregation manager cleanup completed')
-    } catch (error) {
-      logger.error({ error }, 'Error during log aggregation cleanup')
-    }
-  }
-}
-
-// 日志相关类型定义
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal'
-
-export interface LogEntry {
-  timestamp: number
-  level: LogLevel
-  message: string
-  instanceId: string
-  component?: string
-  userId?: string
-  requestId?: string
-  metadata?: Record<string, any>
-}
-
-export interface LogQuery {
-  startTime: number
-  endTime: number
-  level?: LogLevel
-  instanceId?: string
-  component?: string
-  userId?: string
-  message?: string
-  limit?: number
-}
+// 日志相关类型定义已移除 - 不再使用 Redis 存储日志

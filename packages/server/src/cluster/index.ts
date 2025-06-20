@@ -28,7 +28,7 @@ export { TransactionTemplates, withRetry } from './transactionTemplates'
 export { RoomManager } from './roomManager'
 export { ClusterAuthService, createClusterAuthService } from './clusterAuthService'
 export { SessionManager, BlacklistManager } from './sessionManager'
-export { MonitoringManager, LogAggregationManager } from './monitoringManager'
+export { MonitoringManager } from './monitoringManager'
 export { PerformanceTracker } from './performanceTracker'
 
 // 接口
@@ -42,9 +42,6 @@ export type {
   PerformanceMetrics,
   AlertRule,
   Alert,
-  LogLevel,
-  LogEntry,
-  LogQuery,
 } from './monitoringManager'
 export type { TraceSpan, TraceLog, PerformanceMetric } from './performanceTracker'
 

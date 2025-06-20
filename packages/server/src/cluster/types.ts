@@ -165,6 +165,7 @@ export const REDIS_KEYS = {
   SERVICE_INSTANCE: (id: string) => `service:instance:${id}`,
 
   // 玩家连接 - 基于会话
+  ACTIVE_PLAYERS: 'players:active', // 活跃玩家索引集合
   PLAYER_SESSION_CONNECTIONS: (playerId: string) => `player:sessions:connections:${playerId}`, // 玩家的所有会话连接
   PLAYER_SESSION_CONNECTION: (playerId: string, sessionId: string) =>
     `player:session:connection:${playerId}:${sessionId}`, // 特定会话连接

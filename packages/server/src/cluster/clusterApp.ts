@@ -10,7 +10,7 @@ import { BattleRpcServer } from './battleRpcServer'
 import { ServiceDiscoveryManager, WeightedLoadStrategy } from './serviceDiscovery'
 import { FlyIoServiceDiscoveryManager } from './flyIoServiceDiscovery'
 import { ClusterManager, createClusterConfigFromEnv } from './clusterManager'
-import { MonitoringManager, LogAggregationManager } from './monitoringManager'
+import { MonitoringManager } from './monitoringManager'
 import { PerformanceTracker } from './performanceTracker'
 import { createBattleReportRoutes } from '../battleReportRoutes'
 import { createEmailInheritanceRoutes } from '../emailInheritanceRoutes'
@@ -70,7 +70,6 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
   serviceDiscovery: ServiceDiscoveryManager
   monitoring: MonitoringManager
   performanceTracker: PerformanceTracker
-  logAggregation: LogAggregationManager
   start: () => Promise<void>
   stop: () => Promise<void>
 } {
@@ -237,7 +236,6 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
   // 声明集群组件变量，将在启动时初始化
   let performanceTracker: PerformanceTracker
   let monitoring: MonitoringManager
-  let logAggregation: LogAggregationManager
   let serviceDiscovery: ServiceDiscoveryManager
   let socketAdapter: SocketClusterAdapter
   let battleServer: ClusterBattleServer
@@ -283,7 +281,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
         clusterManager.getRedisManager(),
         finalConfig.cluster!.instance.id,
       )
-      logAggregation = new LogAggregationManager(clusterManager.getRedisManager(), finalConfig.cluster!.instance.id)
+      // LogAggregationManager 已移除以减少 Redis 操作频率
       // 根据环境选择服务发现管理器
       if (process.env.FLY_APP_NAME) {
         // Fly.io 环境，使用专门的服务发现管理器
@@ -350,8 +348,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       // 初始化监控管理器
       await monitoring.initialize()
 
-      // 初始化日志聚合管理器
-      await logAggregation.initialize()
+      // 日志聚合管理器已移除
 
       // 初始化服务发现
       await serviceDiscovery.initialize()
@@ -455,7 +452,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       // 清理监控组件
       if (performanceTracker) await performanceTracker.cleanup()
       if (monitoring) await monitoring.cleanup()
-      if (logAggregation) await logAggregation.cleanup()
+      // logAggregation 已移除
 
       // 清理Socket集群适配器
       if (socketAdapter) {
@@ -524,9 +521,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
     get performanceTracker() {
       return performanceTracker
     },
-    get logAggregation() {
-      return logAggregation
-    },
+    // logAggregation 已移除
     start,
     stop,
   }

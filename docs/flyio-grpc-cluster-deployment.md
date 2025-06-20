@@ -238,9 +238,9 @@ curl https://your-app.fly.dev/cluster/status
 - 服务发现延迟
 - 负载均衡分布
 
-### 2. 日志聚合
+### 2. 日志管理
 
-使用 `LogAggregationManager` 收集和分析集群日志
+日志现在直接使用 pino 输出到标准输出，由容器日志系统处理（LogAggregationManager 已移除以减少 Redis 操作）
 
 ### 3. 性能追踪
 
