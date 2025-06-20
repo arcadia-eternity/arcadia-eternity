@@ -75,17 +75,29 @@
     <div class="mb-6 md:mb-8">
       <button
         @click="handleMatchmaking"
+        :disabled="isMatchButtonDisabled && !isMatching"
         class="px-8 py-4 md:px-6 md:py-3 text-lg md:text-lg bg-green-500 text-white border-none rounded-lg cursor-pointer transition-colors duration-300 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed min-h-[48px] touch-manipulation font-medium shadow-lg hover:shadow-xl"
       >
-        {{ isMatching ? '取消匹配' : '开始匹配' }}
+        {{
+          battleClientStore.currentState.matchmaking === 'matched'
+            ? '准备进入战斗...'
+            : isMatching
+              ? '取消匹配'
+              : '开始匹配'
+        }}
       </button>
 
       <!-- 加载状态 -->
-      <div v-if="isMatching" class="mt-6 md:mt-5 flex flex-col items-center gap-3 md:gap-2.5">
+      <div
+        v-if="isMatching || battleClientStore.currentState.matchmaking === 'matched'"
+        class="mt-6 md:mt-5 flex flex-col items-center gap-3 md:gap-2.5"
+      >
         <div
           class="w-10 h-10 md:w-8 md:h-8 border-[3px] border-gray-200 border-t-blue-500 rounded-full animate-spin"
         ></div>
-        <p class="text-gray-600 text-base md:text-sm">正在寻找对手...</p>
+        <p class="text-gray-600 text-base md:text-sm">
+          {{ battleClientStore.currentState.matchmaking === 'matched' ? '正在进入战斗...' : '正在寻找对手...' }}
+        </p>
       </div>
 
       <!-- 错误提示 -->
@@ -141,6 +153,17 @@ const isMatching = computed(() => {
   )
   return state
 })
+
+// 计算是否应该禁用匹配按钮（匹配中或匹配成功准备跳转时）
+const isMatchButtonDisabled = computed(() => {
+  const currentState = battleClientStore.currentState
+  const isSearching = currentState.matchmaking === 'searching'
+  const isMatched = currentState.matchmaking === 'matched'
+  const disabled = isSearching || isMatched
+  console.log('🔒 isMatchButtonDisabled computed:', disabled, 'searching:', isSearching, 'matched:', isMatched)
+  return disabled
+})
+
 const errorMessage = ref<string | null>(null)
 
 const handleMatchmaking = async () => {
@@ -195,8 +218,13 @@ onMounted(() => {
 
 onBeforeUnmount(async () => {
   nextTick(() => {
-    if (isMatching.value) {
+    // 只有在真正搜索匹配时才取消匹配，匹配成功准备跳转时不取消
+    const currentState = battleClientStore.currentState
+    if (currentState.matchmaking === 'searching') {
+      console.log('🚪 Leaving lobby page while searching, canceling matchmaking')
       battleClientStore.cancelMatchmaking()
+    } else if (currentState.matchmaking === 'matched') {
+      console.log('🚪 Leaving lobby page after match success, not canceling')
     }
     errorMessage.value = null
   })
