@@ -210,11 +210,6 @@ export class PerformanceTracker {
 
     this.activeSpans.delete(spanId)
 
-    // 异步存储span数据
-    this.storeSpan(span).catch(error => {
-      logger.error({ error, spanId }, 'Failed to store span')
-    })
-
     logger.debug(
       {
         traceId: span.traceId,
@@ -366,41 +361,6 @@ export class PerformanceTracker {
       }
 
       return descriptor
-    }
-  }
-
-  /**
-   * 存储span数据到Redis
-   */
-  private async storeSpan(span: TraceSpan): Promise<void> {
-    try {
-      const client = this.redisManager.getClient()
-      const spanKey = `trace:${span.traceId}:${span.spanId}`
-
-      await client.hset(spanKey, {
-        traceId: span.traceId,
-        spanId: span.spanId,
-        parentSpanId: span.parentSpanId || '',
-        operationName: span.operationName,
-        startTime: span.startTime.toString(),
-        endTime: span.endTime?.toString() || '',
-        duration: span.duration?.toString() || '',
-        tags: JSON.stringify(span.tags),
-        logs: JSON.stringify(span.logs),
-        status: span.status,
-        error: span.error || '',
-        instanceId: this.instanceId,
-      })
-
-      // 设置过期时间（24小时）
-      await client.expire(spanKey, 24 * 60 * 60)
-
-      // 添加到追踪索引
-      const traceKey = `trace:${span.traceId}:spans`
-      await client.sadd(traceKey, span.spanId)
-      await client.expire(traceKey, 24 * 60 * 60)
-    } catch (error) {
-      logger.error({ error, spanId: span.spanId }, 'Failed to store span')
     }
   }
 
