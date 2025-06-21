@@ -449,44 +449,6 @@ export class PerformanceTracker {
   }
 
   /**
-   * 获取追踪数据
-   */
-  async getTrace(traceId: string): Promise<TraceSpan[]> {
-    try {
-      const client = this.redisManager.getClient()
-      const traceKey = `trace:${traceId}:spans`
-      const spanIds = await client.smembers(traceKey)
-      const spans: TraceSpan[] = []
-
-      for (const spanId of spanIds) {
-        const spanKey = `trace:${traceId}:${spanId}`
-        const spanData = await client.hgetall(spanKey)
-
-        if (Object.keys(spanData).length > 0) {
-          spans.push({
-            traceId: spanData.traceId,
-            spanId: spanData.spanId,
-            parentSpanId: spanData.parentSpanId || undefined,
-            operationName: spanData.operationName,
-            startTime: parseInt(spanData.startTime),
-            endTime: spanData.endTime ? parseInt(spanData.endTime) : undefined,
-            duration: spanData.duration ? parseInt(spanData.duration) : undefined,
-            tags: JSON.parse(spanData.tags),
-            logs: JSON.parse(spanData.logs),
-            status: spanData.status as TraceSpan['status'],
-            error: spanData.error || undefined,
-          })
-        }
-      }
-
-      return spans.sort((a, b) => a.startTime - b.startTime)
-    } catch (error) {
-      logger.error({ error, traceId }, 'Failed to get trace')
-      return []
-    }
-  }
-
-  /**
    * 查询指标数据
    */
   async queryMetrics(
