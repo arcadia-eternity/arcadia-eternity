@@ -25,6 +25,7 @@ import { logMessagesKey, markMapKey, petMapKey, playerMapKey, skillMapKey } from
 import {
   BattleMessageType,
   Category,
+  ELEMENT_CHART,
   type BattleMessage,
   type petId,
   type PetSwitchMessage,
@@ -654,6 +655,17 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
 
   // 在技能的 modifierState 中查找对应的属性
   return skill.modifierState.attributes.find(attr => attr.attributeName === attributeName)
+}
+
+// 计算技能对敌方精灵的属性克制倍率
+const getTypeEffectiveness = (skill: SkillMessage) => {
+  // 获取敌方当前出战精灵
+  const opponentActivePet = opponentPlayer.value?.team?.find(pet => pet.id === opponentPlayer.value?.activePet)
+  if (!opponentActivePet || !skill.element) return 1
+
+  // 从ELEMENT_CHART获取克制倍率
+  const effectiveness = ELEMENT_CHART[skill.element]?.[opponentActivePet.element]
+  return effectiveness !== undefined ? effectiveness : 1
 }
 
 const handleSkillClick = (skillId: string) => {
@@ -2666,6 +2678,7 @@ watch(
                     :power-modifier-info="getSkillModifierInfo(skill, 'power')"
                     :accuracy-modifier-info="getSkillModifierInfo(skill, 'accuracy')"
                     :rage-modifier-info="getSkillModifierInfo(skill, 'rage')"
+                    :type-effectiveness="getTypeEffectiveness(skill)"
                   />
                 </template>
               </div>

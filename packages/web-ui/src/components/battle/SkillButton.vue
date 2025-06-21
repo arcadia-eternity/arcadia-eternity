@@ -20,6 +20,8 @@ const props = defineProps<{
   powerModifierInfo?: AttributeModifierInfo
   accuracyModifierInfo?: AttributeModifierInfo
   rageModifierInfo?: AttributeModifierInfo
+  // 属性克制倍率
+  typeEffectiveness?: number
 }>()
 
 const emit = defineEmits<{
@@ -52,6 +54,50 @@ const description = computed(() =>
 // Modifier 效果类型
 const powerModifierType = computed(() => {
   return analyzeModifierType(props.powerModifierInfo, 'power')
+})
+
+// 属性克制效果样式
+const typeEffectivenessContainerClass = computed(() => {
+  const effectiveness = props.typeEffectiveness ?? 1
+
+  if (effectiveness > 1) {
+    // 效果拔群 - 蓝色边框
+    return 'border-2 border-cyan-300 shadow-lg shadow-cyan-300/60'
+  } else if (effectiveness < 1) {
+    // 效果不佳 - 灰色边框
+    return 'border-2 border-gray-500 shadow-lg shadow-gray-500/40'
+  }
+
+  // 普通效果 - 无特殊样式
+  return ''
+})
+
+// 属性相性文本和样式
+const typeEffectivenessInfo = computed(() => {
+  const effectiveness = props.typeEffectiveness ?? 1
+
+  if (effectiveness > 1) {
+    return {
+      text: '效果拔群',
+      multiplier: `×${effectiveness}`,
+      textClass: 'text-red-400 font-bold',
+      bgClass: 'bg-red-500/20 border border-red-500/50',
+    }
+  } else if (effectiveness < 1) {
+    return {
+      text: '效果不佳',
+      multiplier: `×${effectiveness}`,
+      textClass: 'text-gray-400 font-bold',
+      bgClass: 'bg-gray-500/20 border border-gray-500/50',
+    }
+  }
+
+  return {
+    text: '普通效果',
+    multiplier: '×1',
+    textClass: 'text-gray-300',
+    bgClass: 'bg-gray-600/20 border border-gray-600/50',
+  }
 })
 
 const accuracyModifierType = computed(() => {
@@ -229,8 +275,15 @@ const particlesLoaded = async () => {
 
           <div class="relative flex h-full pointer-events-none gap-2 px-1">
             <div class="flex flex-col items-center w-1/4 justify-center pl-2">
-              <ElementIcon :element="skill.element" class="w-14 h-14 mb-1" />
-              <div class="text-white text-sm font-bold [text-shadow:_1px_1px_0_black] text-center leading-tight">
+              <div class="relative mb-2">
+                <div
+                  class="w-14 h-14 flex items-center justify-center rounded-full"
+                  :class="typeEffectivenessContainerClass"
+                >
+                  <ElementIcon :element="skill.element" class="w-11 h-11 object-contain" />
+                </div>
+              </div>
+              <div class="text-white text-sm font-bold [text-shadow:_1px_1px_0_black] text-center leading-tight mb-1">
                 {{ category }}
               </div>
             </div>
@@ -268,7 +321,14 @@ const particlesLoaded = async () => {
         </button>
       </template>
       <div class="prose prose-invert max-w-none">
-        <h3 class="text-cyan-300">{{ name }}</h3>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-cyan-300 m-0">{{ name }}</h3>
+          <div class="px-2 py-1 rounded text-xs" :class="typeEffectivenessInfo.bgClass">
+            <span :class="typeEffectivenessInfo.textClass">
+              {{ typeEffectivenessInfo.text }} {{ typeEffectivenessInfo.multiplier }}
+            </span>
+          </div>
+        </div>
         <div v-html="md.render(description)" />
 
         <!-- 技能属性详情 -->
