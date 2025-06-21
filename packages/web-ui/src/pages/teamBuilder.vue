@@ -1178,7 +1178,7 @@ const handleSpeciesChange = (newSpeciesId: string) => {
         spe: 0,
       }
       pet.ability = species.ability[0] ?? undefined
-      pet.emblem = undefined
+      pet.emblem = species.emblem[0] ?? undefined
       if (!species.genderRatio) {
         pet.gender = Gender.NoGender
       } else {
