@@ -45,6 +45,8 @@ export interface CostOptimizationConfig {
     disableDetailedMetrics: boolean
     disableAlertHistoryScan: boolean
     enableLocalCache: boolean
+    disableRedisMetricsStorage: boolean // 禁用Redis监控数据存储
+    disableRedisAlertStorage: boolean // 禁用Redis告警数据存储
   }
 }
 
@@ -59,7 +61,9 @@ export function getCostOptimizationConfig(): CostOptimizationConfig {
     monitoring: {
       metricsInterval: isOptimizationEnabled
         ? parseInt(process.env[`MONITORING_METRICS_INTERVAL_${isDev ? 'DEV' : 'PROD'}`] || '300') * 1000
-        : isDev ? 30000 : 60000,
+        : isDev
+          ? 30000
+          : 60000,
       alertCheckInterval: 60000, // 保持1分钟不变
       systemMetricsInterval: isOptimizationEnabled
         ? parseInt(process.env.SYSTEM_METRICS_INTERVAL || '300') * 1000
@@ -69,7 +73,9 @@ export function getCostOptimizationConfig(): CostOptimizationConfig {
     cluster: {
       heartbeatInterval: isOptimizationEnabled
         ? parseInt(process.env[`CLUSTER_HEARTBEAT_INTERVAL_${isDev ? 'DEV' : 'PROD'}`] || '300') * 1000
-        : isDev ? 30000 : 45000,
+        : isDev
+          ? 30000
+          : 45000,
       healthCheckInterval: isOptimizationEnabled
         ? parseInt(process.env.CLUSTER_HEALTH_CHECK_INTERVAL || '600') * 1000
         : 60000,
@@ -103,6 +109,8 @@ export function getCostOptimizationConfig(): CostOptimizationConfig {
       disableDetailedMetrics: process.env.DISABLE_DETAILED_METRICS === 'true',
       disableAlertHistoryScan: process.env.DISABLE_ALERT_HISTORY_SCAN === 'true',
       enableLocalCache: true, // 始终启用本地缓存
+      disableRedisMetricsStorage: process.env.ENABLE_REDIS_METRICS_STORAGE !== 'true', // 默认禁用Redis监控数据存储
+      disableRedisAlertStorage: process.env.ENABLE_REDIS_ALERT_STORAGE !== 'true', // 默认禁用Redis告警数据存储
     },
   }
 }
@@ -113,7 +121,7 @@ export function getCostOptimizationConfig(): CostOptimizationConfig {
 export function getOptimizedInterval(
   defaultInterval: number,
   optimizedInterval: number,
-  enableOptimization: boolean = true
+  enableOptimization: boolean = true,
 ): number {
   return enableOptimization ? optimizedInterval : defaultInterval
 }
@@ -128,7 +136,9 @@ export function logOptimizationConfig(config: CostOptimizationConfig): void {
     console.log(`  💓 Heartbeat: ${config.cluster.heartbeatInterval / 1000}s`)
     console.log(`  🏥 Health Check: ${config.cluster.healthCheckInterval / 1000}s`)
     console.log(`  🔍 SCAN Count: ${config.scan.count}`)
-    console.log(`  💾 Cache TTLs: Redis(${config.cache.redisStatsTTL / 1000}s), Keys(${config.cache.keyStatsTTL / 1000}s)`)
+    console.log(
+      `  💾 Cache TTLs: Redis(${config.cache.redisStatsTTL / 1000}s), Keys(${config.cache.keyStatsTTL / 1000}s)`,
+    )
   } else {
     console.log('⚡ Using default intervals (cost optimization disabled)')
   }

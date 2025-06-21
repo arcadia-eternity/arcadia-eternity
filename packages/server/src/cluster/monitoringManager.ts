@@ -94,6 +94,7 @@ export class MonitoringManager {
   // 本地缓存以减少 Redis 查询
   private redisStatsCache: { stats: RedisMemoryStats; timestamp: number } | null = null
   private readonly REDIS_STATS_CACHE_TTL = 120000 // 2分钟缓存
+  private isCollectingMetrics = false // 防止重复收集指标
 
   constructor(stateManager: ClusterStateManager, redisManager: RedisClientManager, instanceId: string) {
     this.stateManager = stateManager
@@ -128,6 +129,13 @@ export class MonitoringManager {
    * 收集性能指标
    */
   async collectMetrics(): Promise<PerformanceMetrics> {
+    // 防止重复收集指标
+    if (this.isCollectingMetrics) {
+      logger.debug('Metrics collection already in progress, skipping')
+      throw new Error('Metrics collection already in progress')
+    }
+
+    this.isCollectingMetrics = true
     try {
       const startTime = Date.now()
 
@@ -186,6 +194,8 @@ export class MonitoringManager {
     } catch (error) {
       logger.error({ error }, 'Failed to collect metrics')
       throw error
+    } finally {
+      this.isCollectingMetrics = false
     }
   }
 
@@ -195,20 +205,29 @@ export class MonitoringManager {
   private async storeMetrics(metrics: PerformanceMetrics): Promise<void> {
     try {
       const timestamp = Date.now()
-      const client = this.redisManager.getClient()
+      const config = getCostOptimizationConfig()
 
-      // 存储到Redis时序数据
-      const metricsKey = `metrics:${this.instanceId}:${Math.floor(timestamp / 60000)}` // 按分钟分组
+      // 检查是否禁用Redis存储
+      if (!config.features.disableRedisMetricsStorage) {
+        const client = this.redisManager.getClient()
 
-      await client.hset(metricsKey, {
-        timestamp: timestamp.toString(),
-        data: JSON.stringify(metrics),
-      })
+        // 存储到Redis时序数据
+        const metricsKey = `metrics:${this.instanceId}:${Math.floor(timestamp / 60000)}` // 按分钟分组
 
-      // 设置过期时间（24小时）
-      await client.expire(metricsKey, 24 * 60 * 60)
+        await client.hset(metricsKey, {
+          timestamp: timestamp.toString(),
+          data: JSON.stringify(metrics),
+        })
 
-      // 更新本地历史记录
+        // 设置过期时间（24小时）
+        await client.expire(metricsKey, 24 * 60 * 60)
+
+        logger.debug('Metrics stored to Redis')
+      } else {
+        logger.debug('Redis metrics storage disabled, storing only in memory')
+      }
+
+      // 始终更新本地历史记录（内存存储）
       for (const [key, value] of Object.entries(metrics)) {
         if (typeof value === 'number') {
           const history = this.metricsHistory.get(key) || []
@@ -302,6 +321,17 @@ export class MonitoringManager {
     instanceId?: string,
   ): Promise<MetricData[]> {
     try {
+      const config = getCostOptimizationConfig()
+
+      // 如果禁用了Redis指标存储，只返回内存中的数据
+      if (config.features.disableRedisMetricsStorage) {
+        logger.debug('Redis metrics storage disabled, returning only in-memory data')
+        const memoryHistory = this.metricsHistory.get(metric) || []
+        return memoryHistory
+          .filter(data => data.timestamp >= startTime && data.timestamp <= endTime)
+          .sort((a, b) => a.timestamp - b.timestamp)
+      }
+
       const client = this.redisManager.getClient()
       const targetInstanceId = instanceId || this.instanceId
       const history: MetricData[] = []
@@ -423,29 +453,36 @@ export class MonitoringManager {
 
   private async publishAlert(alert: Alert): Promise<void> {
     try {
+      const config = getCostOptimizationConfig()
       const client = this.redisManager.getPublisher()
 
-      // 发布告警事件
+      // 始终发布告警事件（用于实时通知）
       await client.publish('cluster:alerts', JSON.stringify(alert))
 
-      // 存储告警历史
-      const alertKey = `alert:${alert.id}`
-      await client.hset(alertKey, {
-        id: alert.id,
-        ruleId: alert.ruleId,
-        ruleName: alert.ruleName,
-        metric: alert.metric,
-        value: alert.value.toString(),
-        threshold: alert.threshold.toString(),
-        triggeredAt: alert.triggeredAt.toString(),
-        resolvedAt: alert.resolvedAt?.toString() || '',
-        instanceId: alert.instanceId,
-        severity: alert.severity,
-        message: alert.message,
-      })
+      // 根据配置决定是否存储告警历史到Redis
+      if (!config.features.disableRedisAlertStorage) {
+        const alertKey = `alert:${alert.id}`
+        await client.hset(alertKey, {
+          id: alert.id,
+          ruleId: alert.ruleId,
+          ruleName: alert.ruleName,
+          metric: alert.metric,
+          value: alert.value.toString(),
+          threshold: alert.threshold.toString(),
+          triggeredAt: alert.triggeredAt.toString(),
+          resolvedAt: alert.resolvedAt?.toString() || '',
+          instanceId: alert.instanceId,
+          severity: alert.severity,
+          message: alert.message,
+        })
 
-      // 设置过期时间（7天）
-      await client.expire(alertKey, 7 * 24 * 60 * 60)
+        // 设置过期时间（7天）
+        await client.expire(alertKey, 7 * 24 * 60 * 60)
+
+        logger.debug('Alert stored to Redis')
+      } else {
+        logger.debug('Redis alert storage disabled, alert only published for real-time notifications')
+      }
 
       if (alert.resolvedAt) {
         logger.info({ alertId: alert.id, duration: alert.resolvedAt - alert.triggeredAt }, 'Alert resolved')
@@ -538,7 +575,12 @@ export class MonitoringManager {
         const metrics = await this.collectMetrics()
         await this.checkAlerts(metrics)
       } catch (error) {
-        logger.error({ error }, 'Metrics collection error')
+        // 如果是因为正在收集指标而跳过，不记录错误
+        if (error instanceof Error && error.message.includes('already in progress')) {
+          logger.debug('Skipped metrics collection due to ongoing collection')
+        } else {
+          logger.error({ error }, 'Metrics collection error')
+        }
       }
     }, interval)
 
@@ -574,6 +616,14 @@ export class MonitoringManager {
    */
   async getAlertHistory(startTime: number, endTime: number): Promise<Alert[]> {
     try {
+      const config = getCostOptimizationConfig()
+
+      // 如果禁用了Redis告警存储，只返回当前活跃的告警
+      if (config.features.disableRedisAlertStorage) {
+        logger.debug('Redis alert storage disabled, returning only active alerts')
+        return this.getActiveAlerts().filter(alert => alert.triggeredAt >= startTime && alert.triggeredAt <= endTime)
+      }
+
       const client = this.redisManager.getClient()
       const pattern = 'alert:*'
       const keys = await client.keys(pattern)

@@ -12,6 +12,7 @@ import { FlyIoServiceDiscoveryManager } from './flyIoServiceDiscovery'
 import { ClusterManager, createClusterConfigFromEnv } from './clusterManager'
 import { MonitoringManager } from './monitoringManager'
 import { PerformanceTracker } from './performanceTracker'
+import { getGlobalRedisDeduplicationStats, getGlobalRedisDeduplicationSavings } from './redisCallDeduplicator'
 import { createBattleReportRoutes } from '../battleReportRoutes'
 import { createEmailInheritanceRoutes } from '../emailInheritanceRoutes'
 import { createAuthRoutes } from '../authRoutes'
@@ -217,6 +218,33 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       res.send(metrics)
     } catch (error) {
       res.status(500).send('Error retrieving metrics')
+    }
+  })
+
+  // Redis去重统计端点
+  app.get('/cluster/redis-deduplication', async (_req: Request, res: Response): Promise<void> => {
+    try {
+      if (!finalConfig.cluster?.cluster.enabled) {
+        res.json({
+          enabled: false,
+          message: 'Cluster mode is disabled',
+        })
+        return
+      }
+
+      const stats = getGlobalRedisDeduplicationStats()
+      const savings = getGlobalRedisDeduplicationSavings()
+
+      res.json({
+        enabled: true,
+        stats,
+        savings,
+        timestamp: new Date().toISOString(),
+      })
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 

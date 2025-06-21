@@ -76,6 +76,8 @@ export class ServiceDiscoveryManager {
   protected loadBalancer: LoadBalancingStrategy
   private healthCheckInterval?: NodeJS.Timeout
   private failoverCheckInterval?: NodeJS.Timeout
+  private isPerformingHealthCheck = false // 防止重复健康检查
+  private isPerformingFailoverCheck = false // 防止重复故障转移检查
 
   constructor(
     redisManager: RedisClientManager,
@@ -230,6 +232,13 @@ export class ServiceDiscoveryManager {
   }
 
   private async performHealthCheck(): Promise<void> {
+    // 防止重复健康检查
+    if (this.isPerformingHealthCheck) {
+      logger.debug('Service discovery health check already in progress, skipping')
+      return
+    }
+
+    this.isPerformingHealthCheck = true
     try {
       const instances = await this.stateManager.getInstances()
       const now = Date.now()
@@ -253,6 +262,8 @@ export class ServiceDiscoveryManager {
       }
     } catch (error) {
       logger.error({ error }, 'Error performing health check')
+    } finally {
+      this.isPerformingHealthCheck = false
     }
   }
 
@@ -271,6 +282,13 @@ export class ServiceDiscoveryManager {
   }
 
   private async performFailoverCheck(): Promise<void> {
+    // 防止重复故障转移检查
+    if (this.isPerformingFailoverCheck) {
+      logger.debug('Service discovery failover check already in progress, skipping')
+      return
+    }
+
+    this.isPerformingFailoverCheck = true
     try {
       const instances = await this.stateManager.getInstances()
       const healthyInstances = instances.filter(i => i.status === 'healthy')
@@ -309,6 +327,8 @@ export class ServiceDiscoveryManager {
       }
     } catch (error) {
       logger.error({ error }, 'Error performing failover check')
+    } finally {
+      this.isPerformingFailoverCheck = false
     }
   }
 

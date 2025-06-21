@@ -14,6 +14,7 @@ import type {
   ClusterStats,
 } from './types'
 import { REDIS_KEYS, ClusterError } from './types'
+import { dedupRedisCall } from './redisCallDeduplicator'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -26,6 +27,7 @@ export class ClusterStateManager extends EventEmitter {
   private currentInstance: ServiceInstance
   private heartbeatTimer?: NodeJS.Timeout
   private healthCheckTimer?: NodeJS.Timeout
+  private isPerformingHealthCheck = false // 防止重复健康检查
 
   constructor(redisManager: RedisClientManager, lockManager: DistributedLockManager, config: ClusterConfig) {
     super()
@@ -131,37 +133,39 @@ export class ClusterStateManager extends EventEmitter {
   }
 
   async getInstances(): Promise<ServiceInstance[]> {
-    const client = this.redisManager.getClient()
+    return dedupRedisCall('cluster:getInstances', async () => {
+      const client = this.redisManager.getClient()
 
-    try {
-      const instanceIds = await client.smembers(REDIS_KEYS.SERVICE_INSTANCES)
-      if (instanceIds.length === 0) {
-        return []
-      }
+      try {
+        const instanceIds = await client.smembers(REDIS_KEYS.SERVICE_INSTANCES)
+        if (instanceIds.length === 0) {
+          return []
+        }
 
-      // 使用 pipeline 批量获取实例数据，避免 N+1 查询问题
-      const pipeline = client.pipeline()
-      for (const instanceId of instanceIds) {
-        pipeline.hgetall(REDIS_KEYS.SERVICE_INSTANCE(instanceId))
-      }
+        // 使用 pipeline 批量获取实例数据，避免 N+1 查询问题
+        const pipeline = client.pipeline()
+        for (const instanceId of instanceIds) {
+          pipeline.hgetall(REDIS_KEYS.SERVICE_INSTANCE(instanceId))
+        }
 
-      const results = await pipeline.exec()
-      const instances: ServiceInstance[] = []
+        const results = await pipeline.exec()
+        const instances: ServiceInstance[] = []
 
-      if (results) {
-        for (let i = 0; i < results.length; i++) {
-          const [err, instanceData] = results[i]
-          if (!err && instanceData && Object.keys(instanceData).length > 0) {
-            instances.push(this.deserializeInstance(instanceData as Record<string, string>))
+        if (results) {
+          for (let i = 0; i < results.length; i++) {
+            const [err, instanceData] = results[i]
+            if (!err && instanceData && Object.keys(instanceData).length > 0) {
+              instances.push(this.deserializeInstance(instanceData as Record<string, string>))
+            }
           }
         }
-      }
 
-      return instances
-    } catch (error) {
-      logger.error({ error }, 'Failed to get instances')
-      throw new ClusterError('Failed to get instances', 'GET_INSTANCES_ERROR', error)
-    }
+        return instances
+      } catch (error) {
+        logger.error({ error }, 'Failed to get instances')
+        throw new ClusterError('Failed to get instances', 'GET_INSTANCES_ERROR', error)
+      }
+    })
   }
 
   async getInstance(instanceId: string): Promise<ServiceInstance | null> {
@@ -522,48 +526,64 @@ export class ClusterStateManager extends EventEmitter {
   }
 
   async getMatchmakingQueue(): Promise<MatchmakingEntry[]> {
-    const client = this.redisManager.getClient()
-
-    try {
-      const sessionKeys = await client.smembers(REDIS_KEYS.MATCHMAKING_QUEUE)
-      if (sessionKeys.length === 0) {
-        return []
+    return dedupRedisCall('cluster:getMatchmakingQueue', async () => {
+      // 检查缓存
+      const now = Date.now()
+      if (this.matchmakingQueueCache && now - this.matchmakingQueueCache.timestamp < this.MATCHMAKING_QUEUE_CACHE_TTL) {
+        return this.matchmakingQueueCache.queue
       }
 
-      // 使用 pipeline 批量获取匹配队列数据
-      const pipeline = client.pipeline()
-      for (const sessionKey of sessionKeys) {
-        pipeline.hgetall(REDIS_KEYS.MATCHMAKING_PLAYER(sessionKey))
-      }
+      const client = this.redisManager.getClient()
 
-      const results = await pipeline.exec()
-      const entries: MatchmakingEntry[] = []
+      try {
+        const sessionKeys = await client.smembers(REDIS_KEYS.MATCHMAKING_QUEUE)
+        if (sessionKeys.length === 0) {
+          // 缓存空结果
+          this.matchmakingQueueCache = { queue: [], timestamp: now }
+          return []
+        }
 
-      if (results) {
-        for (let i = 0; i < results.length; i++) {
-          const [err, entryData] = results[i]
-          if (!err && entryData && Object.keys(entryData).length > 0) {
-            entries.push(this.deserializeMatchmakingEntry(entryData as Record<string, string>))
+        // 使用 pipeline 批量获取匹配队列数据
+        const pipeline = client.pipeline()
+        for (const sessionKey of sessionKeys) {
+          pipeline.hgetall(REDIS_KEYS.MATCHMAKING_PLAYER(sessionKey))
+        }
+
+        const results = await pipeline.exec()
+        const entries: MatchmakingEntry[] = []
+
+        if (results) {
+          for (let i = 0; i < results.length; i++) {
+            const [err, entryData] = results[i]
+            if (!err && entryData && Object.keys(entryData).length > 0) {
+              entries.push(this.deserializeMatchmakingEntry(entryData as Record<string, string>))
+            }
           }
         }
-      }
 
-      return entries.sort((a, b) => a.joinTime - b.joinTime) // 按加入时间排序
-    } catch (error) {
-      logger.error({ error }, 'Failed to get matchmaking queue')
-      return []
-    }
+        const sortedEntries = entries.sort((a, b) => a.joinTime - b.joinTime) // 按加入时间排序
+
+        // 更新缓存
+        this.matchmakingQueueCache = { queue: sortedEntries, timestamp: now }
+        return sortedEntries
+      } catch (error) {
+        logger.error({ error }, 'Failed to get matchmaking queue')
+        return []
+      }
+    })
   }
 
   async getMatchmakingQueueSize(): Promise<number> {
-    const client = this.redisManager.getClient()
+    return dedupRedisCall('cluster:getMatchmakingQueueSize', async () => {
+      const client = this.redisManager.getClient()
 
-    try {
-      return await client.scard(REDIS_KEYS.MATCHMAKING_QUEUE)
-    } catch (error) {
-      logger.error({ error }, 'Failed to get matchmaking queue size')
-      return 0
-    }
+      try {
+        return await client.scard(REDIS_KEYS.MATCHMAKING_QUEUE)
+      } catch (error) {
+        logger.error({ error }, 'Failed to get matchmaking queue size')
+        return 0
+      }
+    })
   }
 
   // === 会话管理 - 支持多会话 ===
@@ -818,18 +838,29 @@ export class ClusterStateManager extends EventEmitter {
   }
 
   private async performHealthCheck(): Promise<void> {
-    // 检查Redis连接
-    const isRedisHealthy = await this.redisManager.ping()
-
-    if (!isRedisHealthy) {
-      logger.error('Redis health check failed')
-      this.currentInstance.status = 'unhealthy'
-    } else {
-      this.currentInstance.status = 'healthy'
+    // 防止重复健康检查
+    if (this.isPerformingHealthCheck) {
+      logger.debug('Health check already in progress, skipping')
+      return
     }
 
-    // 使用优化的清理过期实例方法
-    await this.cleanupExpiredInstancesOptimized()
+    this.isPerformingHealthCheck = true
+    try {
+      // 检查Redis连接
+      const isRedisHealthy = await this.redisManager.ping()
+
+      if (!isRedisHealthy) {
+        logger.error('Redis health check failed')
+        this.currentInstance.status = 'unhealthy'
+      } else {
+        this.currentInstance.status = 'healthy'
+      }
+
+      // 使用优化的清理过期实例方法
+      await this.cleanupExpiredInstancesOptimized()
+    } finally {
+      this.isPerformingHealthCheck = false
+    }
   }
 
   // 序列化/反序列化方法
@@ -979,13 +1010,21 @@ export class ClusterStateManager extends EventEmitter {
   private instanceCache = new Map<string, { instance: ServiceInstance; timestamp: number }>()
   private readonly CACHE_TTL = 30000 // 30秒缓存
 
-  // 集群统计缓存
+  // 集群统计缓存 - 延长缓存时间以减少Redis调用
   private clusterStatsCache: { stats: ClusterStats; timestamp: number } | null = null
-  private readonly CLUSTER_STATS_CACHE_TTL = 15000 // 15秒缓存，比实例缓存更短
+  private readonly CLUSTER_STATS_CACHE_TTL = 30000 // 30秒缓存，减少频繁调用
 
-  // 玩家连接索引缓存
+  // 玩家连接索引缓存 - 延长缓存时间
   private playerConnectionsCache: { connections: PlayerConnection[]; timestamp: number } | null = null
-  private readonly PLAYER_CONNECTIONS_CACHE_TTL = 10000 // 10秒缓存
+  private readonly PLAYER_CONNECTIONS_CACHE_TTL = 20000 // 20秒缓存
+
+  // 房间列表缓存
+  private roomsCache: { rooms: RoomState[]; timestamp: number } | null = null
+  private readonly ROOMS_CACHE_TTL = 15000 // 15秒缓存
+
+  // 匹配队列缓存
+  private matchmakingQueueCache: { queue: MatchmakingEntry[]; timestamp: number } | null = null
+  private readonly MATCHMAKING_QUEUE_CACHE_TTL = 10000 // 10秒缓存
 
   /**
    * 带缓存的获取实例信息
@@ -1304,87 +1343,89 @@ export class ClusterStateManager extends EventEmitter {
    * 优化的获取玩家连接方法，使用缓存和索引避免KEYS命令
    */
   private async getPlayerConnectionsOptimized(): Promise<PlayerConnection[]> {
-    try {
-      // 检查缓存
-      const now = Date.now()
-      if (
-        this.playerConnectionsCache &&
-        now - this.playerConnectionsCache.timestamp < this.PLAYER_CONNECTIONS_CACHE_TTL
-      ) {
-        return this.playerConnectionsCache.connections
-      }
+    return dedupRedisCall('cluster:getPlayerConnectionsOptimized', async () => {
+      try {
+        // 检查缓存
+        const now = Date.now()
+        if (
+          this.playerConnectionsCache &&
+          now - this.playerConnectionsCache.timestamp < this.PLAYER_CONNECTIONS_CACHE_TTL
+        ) {
+          return this.playerConnectionsCache.connections
+        }
 
-      const client = this.redisManager.getClient()
+        const client = this.redisManager.getClient()
 
-      // 使用全局玩家连接索引，避免KEYS命令
-      const activePlayerIds = await client.smembers(REDIS_KEYS.ACTIVE_PLAYERS)
+        // 使用全局玩家连接索引，避免KEYS命令
+        const activePlayerIds = await client.smembers(REDIS_KEYS.ACTIVE_PLAYERS)
 
-      if (activePlayerIds.length === 0) {
-        // 缓存空结果
-        this.playerConnectionsCache = { connections: [], timestamp: now }
+        if (activePlayerIds.length === 0) {
+          // 缓存空结果
+          this.playerConnectionsCache = { connections: [], timestamp: now }
+          return []
+        }
+
+        const connections: PlayerConnection[] = []
+
+        // 批量获取玩家连接，使用pipeline优化
+        const pipeline = client.pipeline()
+        for (const playerId of activePlayerIds) {
+          pipeline.smembers(REDIS_KEYS.PLAYER_SESSION_CONNECTIONS(playerId))
+        }
+
+        const sessionResults = await pipeline.exec()
+
+        // 收集所有需要获取的连接数据
+        const connectionPipeline = client.pipeline()
+        const playerSessionMap: Array<{ playerId: string; sessionIds: string[] }> = []
+
+        if (sessionResults) {
+          for (let i = 0; i < sessionResults.length; i++) {
+            const [err, sessionIds] = sessionResults[i]
+            if (!err && Array.isArray(sessionIds) && sessionIds.length > 0) {
+              const playerId = activePlayerIds[i]
+              playerSessionMap.push({ playerId, sessionIds })
+
+              // 为每个会话添加获取连接数据的命令
+              for (const sessionId of sessionIds) {
+                connectionPipeline.hgetall(REDIS_KEYS.PLAYER_SESSION_CONNECTION(playerId, sessionId))
+              }
+            }
+          }
+        }
+
+        // 批量获取连接数据
+        const connectionResults = await connectionPipeline.exec()
+
+        if (connectionResults) {
+          let resultIndex = 0
+          for (const { sessionIds } of playerSessionMap) {
+            for (let i = 0; i < sessionIds.length; i++) {
+              const [err, connectionData] = connectionResults[resultIndex++]
+              if (!err && connectionData && Object.keys(connectionData).length > 0) {
+                const connection = this.deserializeSessionConnection(connectionData as Record<string, string>)
+                connections.push({
+                  instanceId: connection.instanceId,
+                  socketId: connection.socketId,
+                  lastSeen: connection.lastSeen,
+                  status: connection.status,
+                  sessionId: connection.sessionId,
+                  metadata: connection.metadata,
+                })
+              }
+            }
+          }
+        }
+
+        // 更新缓存
+        this.playerConnectionsCache = { connections, timestamp: now }
+
+        return connections
+      } catch (error) {
+        logger.error({ error }, 'Failed to get optimized player connections')
         return []
       }
-
-      const connections: PlayerConnection[] = []
-
-      // 批量获取玩家连接，使用pipeline优化
-      const pipeline = client.pipeline()
-      for (const playerId of activePlayerIds) {
-        pipeline.smembers(REDIS_KEYS.PLAYER_SESSION_CONNECTIONS(playerId))
-      }
-
-      const sessionResults = await pipeline.exec()
-
-      // 收集所有需要获取的连接数据
-      const connectionPipeline = client.pipeline()
-      const playerSessionMap: Array<{ playerId: string; sessionIds: string[] }> = []
-
-      if (sessionResults) {
-        for (let i = 0; i < sessionResults.length; i++) {
-          const [err, sessionIds] = sessionResults[i]
-          if (!err && Array.isArray(sessionIds) && sessionIds.length > 0) {
-            const playerId = activePlayerIds[i]
-            playerSessionMap.push({ playerId, sessionIds })
-
-            // 为每个会话添加获取连接数据的命令
-            for (const sessionId of sessionIds) {
-              connectionPipeline.hgetall(REDIS_KEYS.PLAYER_SESSION_CONNECTION(playerId, sessionId))
-            }
-          }
-        }
-      }
-
-      // 批量获取连接数据
-      const connectionResults = await connectionPipeline.exec()
-
-      if (connectionResults) {
-        let resultIndex = 0
-        for (const { sessionIds } of playerSessionMap) {
-          for (let i = 0; i < sessionIds.length; i++) {
-            const [err, connectionData] = connectionResults[resultIndex++]
-            if (!err && connectionData && Object.keys(connectionData).length > 0) {
-              const connection = this.deserializeSessionConnection(connectionData as Record<string, string>)
-              connections.push({
-                instanceId: connection.instanceId,
-                socketId: connection.socketId,
-                lastSeen: connection.lastSeen,
-                status: connection.status,
-                sessionId: connection.sessionId,
-                metadata: connection.metadata,
-              })
-            }
-          }
-        }
-      }
-
-      // 更新缓存
-      this.playerConnectionsCache = { connections, timestamp: now }
-
-      return connections
-    } catch (error) {
-      logger.error({ error }, 'Failed to get optimized player connections')
-      return []
-    }
+    })
   }
 
   /**
@@ -1425,37 +1466,49 @@ export class ClusterStateManager extends EventEmitter {
   }
 
   private async getRooms(): Promise<RoomState[]> {
-    const client = this.redisManager.getClient()
-
-    try {
-      const roomIds = await client.smembers(REDIS_KEYS.ROOMS)
-      if (roomIds.length === 0) {
-        return []
+    return dedupRedisCall('cluster:getRooms', async () => {
+      // 检查缓存
+      const now = Date.now()
+      if (this.roomsCache && now - this.roomsCache.timestamp < this.ROOMS_CACHE_TTL) {
+        return this.roomsCache.rooms
       }
 
-      // 使用 pipeline 批量获取房间数据，避免 N+1 查询问题
-      const pipeline = client.pipeline()
-      for (const roomId of roomIds) {
-        pipeline.hgetall(REDIS_KEYS.ROOM(roomId))
-      }
+      const client = this.redisManager.getClient()
 
-      const results = await pipeline.exec()
-      const rooms: RoomState[] = []
+      try {
+        const roomIds = await client.smembers(REDIS_KEYS.ROOMS)
+        if (roomIds.length === 0) {
+          // 缓存空结果
+          this.roomsCache = { rooms: [], timestamp: now }
+          return []
+        }
 
-      if (results) {
-        for (let i = 0; i < results.length; i++) {
-          const [err, roomData] = results[i]
-          if (!err && roomData && Object.keys(roomData).length > 0) {
-            rooms.push(this.deserializeRoomState(roomData as Record<string, string>))
+        // 使用 pipeline 批量获取房间数据，避免 N+1 查询问题
+        const pipeline = client.pipeline()
+        for (const roomId of roomIds) {
+          pipeline.hgetall(REDIS_KEYS.ROOM(roomId))
+        }
+
+        const results = await pipeline.exec()
+        const rooms: RoomState[] = []
+
+        if (results) {
+          for (let i = 0; i < results.length; i++) {
+            const [err, roomData] = results[i]
+            if (!err && roomData && Object.keys(roomData).length > 0) {
+              rooms.push(this.deserializeRoomState(roomData as Record<string, string>))
+            }
           }
         }
-      }
 
-      return rooms
-    } catch (error) {
-      logger.error({ error }, 'Failed to get rooms')
-      return []
-    }
+        // 更新缓存
+        this.roomsCache = { rooms, timestamp: now }
+        return rooms
+      } catch (error) {
+        logger.error({ error }, 'Failed to get rooms')
+        return []
+      }
+    })
   }
 
   async cleanup(): Promise<void> {
@@ -1475,6 +1528,8 @@ export class ClusterStateManager extends EventEmitter {
       this.instanceCache.clear()
       this.clusterStatsCache = null
       this.playerConnectionsCache = null
+      this.roomsCache = null
+      this.matchmakingQueueCache = null
 
       // 注销实例
       await this.unregisterInstance()
