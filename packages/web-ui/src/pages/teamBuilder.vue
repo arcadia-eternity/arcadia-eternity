@@ -505,21 +505,90 @@
             <div class="bg-white rounded-lg shadow-sm border border-gray-200">
               <div class="px-4 py-3 border-b border-gray-200">
                 <h3 class="text-base font-medium text-gray-900">技能配置</h3>
-                <p class="text-xs text-gray-500 mt-1">最多可配置5个技能</p>
+                <p class="text-xs text-gray-500 mt-1">最多可配置4个普通技能和1个必杀技能</p>
               </div>
               <div class="p-4">
-                <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                  <div v-for="(_, index) in 5" :key="index" class="space-y-2">
-                    <label class="block text-xs font-medium text-gray-700">
-                      技能 {{ index + 1 }}
-                      <span v-if="index === 0" class="text-red-500">*</span>
+                <!-- 普通技能配置 -->
+                <div class="mb-6">
+                  <h4 class="text-sm font-medium text-gray-800 mb-3">普通技能 (最多4个)</h4>
+                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div v-for="(_, index) in 4" :key="`normal-${index}`" class="space-y-2">
+                      <label class="block text-xs font-medium text-gray-700">
+                        普通技能 {{ index + 1 }}
+                        <span v-if="index === 0" class="text-red-500">*</span>
+                      </label>
+                      <el-select-v2
+                        :model-value="displayedNormalSkills[index]"
+                        @update:model-value="value => handleNormalSkillChange(value, index)"
+                        :options="normalSkillSelectOptions"
+                        :disabled="!currentSpecies"
+                        placeholder="选择普通技能"
+                        filterable
+                        clearable
+                        class="w-full"
+                        style="width: 100%"
+                        :height="400"
+                        :item-height="140"
+                      >
+                        <template #default="{ item }">
+                          <div class="flex flex-col space-y-2 p-3 min-w-0 max-w-full">
+                            <!-- 技能名称 -->
+                            <div class="flex items-center space-x-1 text-sm font-medium text-gray-900">
+                              <ElementIcon v-if="item.element" :element="item.element" class="w-4 h-4 flex-shrink-0" />
+                              <span class="font-medium">{{ item.label }}</span>
+                            </div>
+                            <!-- 技能标签 -->
+                            <div class="flex flex-wrap gap-1">
+                              <span
+                                class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
+                              >
+                                威力: {{ item.power }}
+                              </span>
+                              <span
+                                class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
+                              >
+                                {{ item.category }}
+                              </span>
+                              <span
+                                class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800"
+                              >
+                                怒气: {{ item.rage }}
+                              </span>
+                              <span
+                                class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800"
+                              >
+                                命中: {{ item.accuracy }}%
+                              </span>
+                            </div>
+                            <!-- 技能描述 -->
+                            <div
+                              class="text-xs text-gray-600 leading-relaxed break-words whitespace-normal prose prose-xs max-w-none overflow-hidden"
+                              v-html="md.render(item.description)"
+                            ></div>
+                          </div>
+                        </template>
+                      </el-select-v2>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 必杀技能配置 -->
+                <div>
+                  <h4 class="text-sm font-medium text-gray-800 mb-3">
+                    必杀技能 {{ hasClimaxSkills ? '(必须1个)' : '(该种族无必杀技能)' }}
+                  </h4>
+                  <div class="max-w-md">
+                    <label class="block text-xs font-medium text-gray-700 mb-2">
+                      必杀技能
+                      <span v-if="hasClimaxSkills" class="text-red-500">*</span>
+                      <span v-else class="text-gray-400">(无)</span>
                     </label>
                     <el-select-v2
-                      :model-value="displayedSkills[index]"
-                      @update:model-value="value => handleSkillChange(value, index)"
-                      :options="skillSelectOptions"
-                      :disabled="!currentSpecies"
-                      placeholder="选择技能"
+                      :model-value="displayedClimaxSkill"
+                      @update:model-value="value => handleClimaxSkillChange(value)"
+                      :options="climaxSkillSelectOptions"
+                      :disabled="!currentSpecies || !hasClimaxSkills"
+                      :placeholder="hasClimaxSkills ? '选择必杀技能' : '该种族无必杀技能'"
                       filterable
                       clearable
                       class="w-full"
@@ -565,48 +634,6 @@
                         </div>
                       </template>
                     </el-select-v2>
-
-                    <!-- 技能详情显示 -->
-                    <div v-if="displayedSkills[index]" class="p-2 bg-gray-50 rounded-md">
-                      <div class="flex items-center justify-between mb-1">
-                        <div class="flex items-center space-x-1">
-                          <ElementIcon
-                            v-if="gameDataStore.skillList.find(s => s.id === displayedSkills[index])?.element"
-                            :element="gameDataStore.skillList.find(s => s.id === displayedSkills[index])?.element!"
-                            class="w-3 h-3 flex-shrink-0"
-                          />
-                          <h4 class="text-xs font-medium text-gray-900">
-                            {{ i18next.t(`${displayedSkills[index]}.name`, { ns: 'skill' }) }}
-                          </h4>
-                        </div>
-                        <div class="flex flex-wrap gap-1">
-                          <span
-                            class="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
-                          >
-                            威力: {{ gameDataStore.skillList.find(s => s.id === displayedSkills[index])?.power }}
-                          </span>
-                          <span
-                            class="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
-                          >
-                            {{ gameDataStore.skillList.find(s => s.id === displayedSkills[index])?.category }}
-                          </span>
-                          <span
-                            class="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800"
-                          >
-                            怒气: {{ gameDataStore.skillList.find(s => s.id === displayedSkills[index])?.rage }}
-                          </span>
-                          <span
-                            class="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800"
-                          >
-                            命中: {{ gameDataStore.skillList.find(s => s.id === displayedSkills[index])?.accuracy }}%
-                          </span>
-                        </div>
-                      </div>
-                      <div
-                        class="text-xs text-gray-600 leading-relaxed break-words whitespace-normal prose prose-xs max-w-none"
-                        v-html="md.render(i18next.t(`${displayedSkills[index]}.description`, { ns: 'skill' }))"
-                      ></div>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -942,6 +969,17 @@ const filteredSkills = computed(() => {
     .filter(Boolean)
 })
 
+// 检查当前种族是否有必杀技能
+const hasClimaxSkills = computed(() => {
+  if (!currentSpecies.value) return false
+
+  return (
+    currentSpecies.value.learnable_skills?.some(
+      ls => gameDataStore.skillList.find(s => s.id === ls.skill_id)?.category === 'Climax',
+    ) ?? false
+  )
+})
+
 const statChineseMap: Record<StatKey, string> = {
   hp: '体力',
   atk: '攻击',
@@ -985,15 +1023,53 @@ const natureChineseMap: Record<Nature, string> = {
   [Nature.Timid]: '胆小',
 }
 
-const displayedSkills = computed({
+// 分离普通技能和必杀技能的计算属性
+const displayedNormalSkills = computed({
   get: () => {
-    return Array.from({ length: 5 }, (_, i) => selectedPet.value?.skills[i] || '')
+    if (!selectedPet.value) return ['', '', '', '']
+    const normalSkills = selectedPet.value.skills.filter(skillId => {
+      const skill = gameDataStore.skillList.find(s => s.id === skillId)
+      return skill && skill.category !== 'Climax'
+    })
+    return Array.from({ length: 4 }, (_, i) => normalSkills[i] || '')
   },
   set: newValues => {
     if (!selectedPet.value) return
 
-    // 保留所有位置，空字符串转为undefined后过滤
-    selectedPet.value.skills = newValues.map(s => s || undefined).filter((s): s is string => s !== undefined)
+    // 获取当前的必杀技能
+    const climaxSkill = selectedPet.value.skills.find(skillId => {
+      const skill = gameDataStore.skillList.find(s => s.id === skillId)
+      return skill && skill.category === 'Climax'
+    })
+
+    // 合并普通技能和必杀技能
+    const normalSkills = newValues.filter(s => s)
+    const allSkills = climaxSkill ? [...normalSkills, climaxSkill] : normalSkills
+    selectedPet.value.skills = allSkills
+  },
+})
+
+const displayedClimaxSkill = computed({
+  get: () => {
+    if (!selectedPet.value) return ''
+    const climaxSkill = selectedPet.value.skills.find(skillId => {
+      const skill = gameDataStore.skillList.find(s => s.id === skillId)
+      return skill && skill.category === 'Climax'
+    })
+    return climaxSkill || ''
+  },
+  set: newValue => {
+    if (!selectedPet.value) return
+
+    // 获取当前的普通技能
+    const normalSkills = selectedPet.value.skills.filter(skillId => {
+      const skill = gameDataStore.skillList.find(s => s.id === skillId)
+      return skill && skill.category !== 'Climax'
+    })
+
+    // 合并普通技能和必杀技能
+    const allSkills = newValue ? [...normalSkills, newValue] : normalSkills
+    selectedPet.value.skills = allSkills
   },
 })
 
@@ -1057,10 +1133,13 @@ const natureSelectOptions = computed(() => {
   }))
 })
 
-const skillSelectOptions = computed(() => {
-  const currentSkills = displayedSkills.value.filter(s => s)
+// 普通技能选项
+const normalSkillSelectOptions = computed(() => {
+  const currentNormalSkills = displayedNormalSkills.value.filter(s => s)
+  const currentClimaxSkill = displayedClimaxSkill.value
+
   return filteredSkills.value
-    .filter(skill => !!skill)
+    .filter((skill): skill is NonNullable<typeof skill> => !!skill && skill.category !== 'Climax')
     .map(skill => ({
       value: skill.id,
       label: i18next.t(`${skill.id}.name`, { ns: 'skill' }),
@@ -1070,7 +1149,26 @@ const skillSelectOptions = computed(() => {
       category: skill.category,
       rage: skill.rage,
       accuracy: skill.accuracy,
-      disabled: currentSkills.includes(skill.id),
+      disabled: currentNormalSkills.includes(skill.id) || skill.id === currentClimaxSkill,
+    }))
+})
+
+// 必杀技能选项
+const climaxSkillSelectOptions = computed(() => {
+  const currentNormalSkills = displayedNormalSkills.value.filter(s => s)
+
+  return filteredSkills.value
+    .filter((skill): skill is NonNullable<typeof skill> => !!skill && skill.category === 'Climax')
+    .map(skill => ({
+      value: skill.id,
+      label: i18next.t(`${skill.id}.name`, { ns: 'skill' }),
+      description: i18next.t(`${skill.id}.description`, { ns: 'skill' }),
+      element: skill.element,
+      power: skill.power,
+      category: skill.category,
+      rage: skill.rage,
+      accuracy: skill.accuracy,
+      disabled: currentNormalSkills.includes(skill.id),
     }))
 })
 
@@ -1087,7 +1185,7 @@ const addNewPet = () => {
     level: 100,
     evs: { hp: 4, atk: 0, def: 0, spa: 252, spd: 0, spe: 252 },
     ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-    skills: ['skill_wujindaxuanwo', 'skill_ruodianbiaoji', 'skill_feiliupubu', 'skill_yanmo', 'skill_shuihuajianshe'],
+    skills: ['skill_wujindaxuanwo', 'skill_ruodianbiaoji', 'skill_feiliupubu', 'skill_yanmo'], // 4个普通技能，必杀技能会在handleSpeciesChange中自动添加
     gender: Gender.Male,
     nature: Nature.Modest,
     ability: 'mark_ability_zhongjie',
@@ -1151,21 +1249,30 @@ const handleSpeciesChange = (newSpeciesId: string) => {
     const pet = state.teams[state.currentTeamIndex].pets.find(p => p.id === selectedPetId.value)
     if (pet) {
       pet.skills = []
-      // 只有当该种族有climax技能时才优先选择
-      const hasClimax = species.learnable_skills?.some(
-        (ls: { skill_id: string }) =>
-          gameDataStore.skillList.find((s: { id: string }) => s.id === ls.skill_id)?.category === 'Climax',
-      )
 
-      if (hasClimax) {
-        const climaxSkill = species.learnable_skills.find(
-          (ls: { skill_id: string }) =>
-            gameDataStore.skillList.find((s: { id: string }) => s.id === ls.skill_id)?.category === 'Climax',
-        )
-        pet.skills.push(climaxSkill?.skill_id || species.learnable_skills[0]?.skill_id)
-      } else {
-        pet.skills.push(species.learnable_skills[0]?.skill_id)
+      // 获取可学习的普通技能和必杀技能
+      const normalSkills = species.learnable_skills
+        ?.filter((ls: { skill_id: string }) => {
+          const skill = gameDataStore.skillList.find((s: { id: string }) => s.id === ls.skill_id)
+          return skill && skill.category !== 'Climax'
+        })
+        ?.slice(0, 4) // 最多4个普通技能
+
+      const climaxSkills = species.learnable_skills?.filter((ls: { skill_id: string }) => {
+        const skill = gameDataStore.skillList.find((s: { id: string }) => s.id === ls.skill_id)
+        return skill && skill.category === 'Climax'
+      })
+
+      // 添加普通技能
+      if (normalSkills && normalSkills.length > 0) {
+        pet.skills.push(...normalSkills.map(ls => ls.skill_id))
       }
+
+      // 添加必杀技能（仅当种族有必杀技能时）
+      if (climaxSkills && climaxSkills.length > 0) {
+        pet.skills.push(climaxSkills[0].skill_id)
+      }
+      // 如果没有必杀技能，不添加任何技能到必杀技能槽
       pet.name = i18next.t(`${species.id}.name`, {
         ns: 'species',
       })
@@ -1282,65 +1389,52 @@ watch(
   { deep: true },
 )
 
-const handleSkillChange = (newVal: string, index: number) => {
-  const newSkills = [...displayedSkills.value]
-  let value = newVal ?? ''
+// 普通技能变更处理
+const handleNormalSkillChange = (newVal: string, index: number) => {
+  const newSkills = [...displayedNormalSkills.value]
+  const value = newVal ?? ''
 
   // 检查重复技能
   if (value && newSkills.filter(s => s === value).length > 1) {
     ElMessage.warning('该技能已存在于其他槽位')
-    newSkills[index] = ''
-    displayedSkills.value = newSkills
     return
   }
 
-  // 检查当前队伍中Climax技能的数量
-  let currentClimaxCount = newSkills.filter(skillId => {
-    const skill = gameDataStore.skillList.find(s => s.id === skillId)
-    return skill?.category === 'Climax'
-  }).length
-
-  // 如果当前修改的技能槽位是Climax技能，在计算总数时先减去
-  const currentSkill = gameDataStore.skillList.find(s => s.id === displayedSkills.value[index])
-  if (currentSkill?.category === 'Climax') {
-    currentClimaxCount--
+  // 检查是否与必杀技能重复
+  if (value && value === displayedClimaxSkill.value) {
+    ElMessage.warning('该技能已被设置为必杀技能')
+    return
   }
 
-  // 种族是否拥有Climax技能
-  const hasClimax = currentSpecies.value?.learnable_skills?.some(
-    ls => gameDataStore.skillList.find(s => s.id === ls.skill_id)?.category === 'Climax',
-  )
-
-  if (hasClimax) {
-    // 尝试移除最后一个Climax技能
-    if (value === '' && currentClimaxCount === 0 && currentSkill?.category === 'Climax') {
-      ElMessage.warning('必须保留一个必杀技')
-      return
-    }
-
-    // 尝试添加新的Climax技能，但队伍中已经存在一个
-    const newSkill = gameDataStore.skillList.find(s => s.id === value)
-    if (newSkill?.category === 'Climax' && currentClimaxCount >= 1) {
-      ElMessage.warning('队伍中只能存在一个必杀技')
-      return
-    }
-
-    // 自动设置第一个可用的Climax技能（仅当没有时）
-    if (currentClimaxCount === 0 && value === '') {
-      const firstClimax = currentSpecies.value?.learnable_skills
-        ?.map((ls: { skill_id: string }) => gameDataStore.skillList.find((s: { id: string }) => s.id === ls.skill_id))
-        ?.find((s?: { category: string }) => s?.category === 'Climax')
-
-      if (firstClimax) {
-        newSkills[index] = firstClimax.id
-        value = firstClimax.id
-      }
-    }
-  }
-
-  // 更新指定位置的值
   newSkills[index] = value
-  displayedSkills.value = newSkills
+  displayedNormalSkills.value = newSkills
+  debouncedSave()
+}
+
+// 必杀技能变更处理
+const handleClimaxSkillChange = (newVal: string) => {
+  const value = newVal ?? ''
+
+  // 检查是否与普通技能重复
+  if (value && displayedNormalSkills.value.includes(value)) {
+    ElMessage.warning('该技能已被设置为普通技能')
+    return
+  }
+
+  // 如果种族没有必杀技能，直接清空
+  if (!hasClimaxSkills.value) {
+    displayedClimaxSkill.value = ''
+    debouncedSave()
+    return
+  }
+
+  // 如果种族有必杀技能但用户试图清空，给出警告
+  if (hasClimaxSkills.value && !value) {
+    ElMessage.warning('必须选择一个必杀技能')
+    return
+  }
+
+  displayedClimaxSkill.value = value
   debouncedSave()
 }
 
