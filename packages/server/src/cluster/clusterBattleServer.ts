@@ -26,6 +26,8 @@ import type { RoomState, MatchmakingEntry, PlayerConnection } from './types'
 import { REDIS_KEYS } from './types'
 import { BattleRpcServer } from './battleRpcServer'
 import { BattleRpcClient } from './battleRpcClient'
+import { TimerStateCache } from '../timer/timerStateCache'
+import { TimerEventBatcher } from '../timer/timerEventBatcher'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -75,9 +77,13 @@ export class ClusterBattleServer {
   private readonly localBattles = new Map<string, Battle>() // roomId -> Battle
   private readonly localRooms = new Map<string, LocalRoomData>() // roomId -> room data
 
-  // 缓存计时器状态以减少频繁的集群查询
+  // 新的Timer缓存和批处理系统
+  private readonly timerStateCache: TimerStateCache
+  private readonly timerEventBatcher: TimerEventBatcher
+
+  // 保留旧的缓存用于兼容性（逐步迁移）
   private readonly timerStatusCache = new Map<string, { enabled: boolean; timestamp: number }>()
-  private readonly TIMER_CACHE_TTL = 5000 // 5秒缓存
+  private readonly TIMER_CACHE_TTL = 30000 // 30秒缓存，大幅减少跨实例调用
 
   // 玩家房间映射缓存，减少频繁的集群查询
   private readonly playerRoomCache = new Map<string, { roomId: string; timestamp: number }>()
@@ -122,6 +128,13 @@ export class ClusterBattleServer {
     this.instanceId = instanceId || nanoid()
     this.rpcPort = rpcPort
     this.rpcClient = new BattleRpcClient()
+
+    // 初始化新的Timer缓存和批处理系统
+    this.timerStateCache = new TimerStateCache()
+    this.timerEventBatcher = new TimerEventBatcher(async (sessionKey: string, eventType: string, data: any) => {
+      const [playerId, sessionId] = sessionKey.split(':')
+      await this.sendToPlayerSession(playerId, sessionId, eventType, data)
+    })
 
     // 如果提供了外部 RPC 服务器实例，使用它
     if (injectedRpcServer) {
@@ -340,7 +353,7 @@ export class ClusterBattleServer {
       } catch (error) {
         logger.error({ error }, 'Error updating server state')
       }
-    }, 10000)
+    }, 30000)
   }
 
   private setupConnectionHandlers() {
@@ -1702,6 +1715,83 @@ export class ClusterBattleServer {
         { viewerId: playerId as playerId }, // 显示该玩家视角的信息
       )
     }
+
+    // 设置Timer事件监听器 - 新架构
+    this.setupTimerEventListeners(battle, roomState)
+  }
+
+  /**
+   * 设置Timer事件监听器 - 新架构
+   */
+  private setupTimerEventListeners(battle: Battle, roomState: RoomState): void {
+    // 监听Timer快照事件
+    battle.onTimerEvent('timerSnapshot', data => {
+      // Timer快照包含所有玩家的信息，因为在战斗中玩家需要看到对手的Timer状态
+      // 但我们可以根据房间中的玩家进行过滤，只发送房间内玩家的Timer信息
+      for (const sessionId of roomState.sessions) {
+        const playerId = roomState.sessionPlayers[sessionId]
+        if (!playerId) continue
+
+        // 过滤快照，只发送房间内玩家的Timer信息
+        const roomPlayerIds = Object.values(roomState.sessionPlayers)
+        const relevantSnapshots = data.snapshots.filter(snapshot => roomPlayerIds.includes(snapshot.playerId))
+
+        if (relevantSnapshots.length > 0) {
+          const sessionKey = `${playerId}:${sessionId}`
+          this.timerEventBatcher.addSnapshots(sessionKey, relevantSnapshots)
+        }
+      }
+    })
+
+    // 监听Timer状态变化事件
+    battle.onTimerEvent('timerStateChange', data => {
+      // 只向相关玩家发送状态变化事件
+      for (const sessionId of roomState.sessions) {
+        const playerId = roomState.sessionPlayers[sessionId]
+        if (!playerId) continue
+
+        // 只有当状态变化涉及该玩家时才发送
+        if (data.playerId === playerId) {
+          const sessionKey = `${playerId}:${sessionId}`
+          this.timerEventBatcher.addEvent(sessionKey, {
+            type: 'stateChange' as any,
+            playerId: data.playerId,
+            data,
+            timestamp: data.timestamp,
+          })
+        }
+      }
+    })
+
+    // 监听传统Timer事件（保持兼容性）
+    battle.onTimerEvent('timerStart', data => {
+      for (const sessionId of roomState.sessions) {
+        const playerId = roomState.sessionPlayers[sessionId]
+        if (!playerId) continue
+
+        this.sendToPlayerSession(playerId, sessionId, 'timerEvent', {
+          type: 'timerStart',
+          data,
+        }).catch(error => {
+          logger.error({ error, playerId, sessionId }, 'Failed to send timerStart event')
+        })
+      }
+    })
+
+    // 监听Timer超时事件（立即发送）
+    battle.onTimerEvent('timerTimeout', data => {
+      for (const sessionId of roomState.sessions) {
+        const playerId = roomState.sessionPlayers[sessionId]
+        if (!playerId) continue
+
+        this.sendToPlayerSession(playerId, sessionId, 'timerEvent', {
+          type: 'timerTimeout',
+          data,
+        }).catch(error => {
+          logger.error({ error, playerId, sessionId }, 'Failed to send timerTimeout event')
+        })
+      }
+    })
   }
 
   /**
@@ -3214,6 +3304,26 @@ export class ClusterBattleServer {
     this.cleanupTimerCache()
     this.cleanupPlayerRoomCache()
     this.cleanupConnectionCache()
+
+    // 清理新的Timer缓存系统
+    // TimerStateCache和TimerEventBatcher有自己的清理机制，这里只需要获取统计信息
+    const timerCacheStats = this.timerStateCache.getCacheStats()
+    const batchStats = this.timerEventBatcher.getBatchStats()
+
+    if (
+      timerCacheStats.playerSnapshots > 0 ||
+      timerCacheStats.roomSnapshots > 0 ||
+      batchStats.eventBatches > 0 ||
+      batchStats.snapshotBatches > 0
+    ) {
+      logger.debug(
+        {
+          timerCache: timerCacheStats,
+          timerBatches: batchStats,
+        },
+        'Timer system cache and batch status',
+      )
+    }
   }
 
   /**
@@ -3611,6 +3721,10 @@ export class ClusterBattleServer {
 
       // 清理所有批量消息
       await this.cleanupAllBatches()
+
+      // 清理新的Timer系统
+      this.timerEventBatcher.cleanup()
+      this.timerStateCache.cleanup()
 
       // 清理战报服务
       if (this.battleReportService) {

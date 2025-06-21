@@ -6,6 +6,7 @@ import {
   type PlayerTimerState,
   type TimerEvent,
   TimerEventType,
+  type TimerSnapshot,
   TIMER_CONSTANTS,
   BattleStatus,
   BattlePhase,
@@ -147,6 +148,9 @@ export class TimerManager {
       remainingTotalTime,
     })
 
+    // 新架构：发送初始快照
+    this.emitSnapshotEvent(playerIds)
+
     this.logger.debug('Timer startNewTurn: timers reset and started, ready for animation management')
   }
 
@@ -183,6 +187,9 @@ export class TimerManager {
       turnTimeLimit: this.config.turnTimeLimit || null,
       remainingTotalTime,
     })
+
+    // 新架构：发送初始快照
+    this.emitSnapshotEvent(playerIds)
   }
 
   /**
@@ -213,6 +220,9 @@ export class TimerManager {
       player: playerIds,
       reason,
     })
+
+    // 新架构：发送暂停后的快照
+    this.emitSnapshotEvent(playerIds)
   }
 
   /**
@@ -237,6 +247,9 @@ export class TimerManager {
     this.battle.emitter.emit('timerResume', {
       player: playerIds,
     })
+
+    // 新架构：发送恢复后的快照
+    this.emitSnapshotEvent(playerIds)
   }
 
   /**
@@ -331,7 +344,9 @@ export class TimerManager {
             if (!hasActiveAnimationForPlayer) {
               playersToResume.push(id)
             } else {
-              this.logger.debug(`Timer handlePlayerSelectionChange: keeping timer paused for ${id} due to active animation`)
+              this.logger.debug(
+                `Timer handlePlayerSelectionChange: keeping timer paused for ${id} due to active animation`,
+              )
             }
           }
         }
@@ -464,6 +479,42 @@ export class TimerManager {
   }
 
   /**
+   * 创建所有玩家的Timer快照 - 新架构的核心方法
+   */
+  public createAllSnapshots(): TimerSnapshot[] {
+    const snapshots: TimerSnapshot[] = []
+
+    this.playerTimers.forEach(timer => {
+      snapshots.push(timer.createSnapshot())
+    })
+
+    return snapshots
+  }
+
+  /**
+   * 创建指定玩家的Timer快照
+   */
+  public createPlayerSnapshot(playerId: playerId): TimerSnapshot | null {
+    const timer = this.playerTimers.get(playerId)
+    return timer ? timer.createSnapshot() : null
+  }
+
+  /**
+   * 发送Timer快照事件 - 替代频繁的update事件
+   */
+  public emitSnapshotEvent(playerIds?: playerId[]): void {
+    if (!this.config.enabled) return
+
+    const snapshots = playerIds
+      ? (playerIds.map(id => this.createPlayerSnapshot(id)).filter(Boolean) as TimerSnapshot[])
+      : this.createAllSnapshots()
+
+    if (snapshots.length > 0) {
+      this.battle.emitter.emit('timerSnapshot', { snapshots })
+    }
+  }
+
+  /**
    * 事件监听方法
    */
   public on<K extends keyof TimerManagerEvents>(type: K, handler: (event: TimerManagerEvents[K]) => void): void {
@@ -510,6 +561,9 @@ export class TimerManager {
       case TimerEventType.Timeout:
         this.handleTimerTimeout(event)
         break
+      case TimerEventType.StateChange:
+        this.handleTimerStateChange(event)
+        break
       default:
         // 转发其他事件
         this.emit('timerEvent', event)
@@ -518,7 +572,7 @@ export class TimerManager {
   }
 
   /**
-   * 处理计时器更新
+   * 处理计时器更新 - 新架构中减少频率
    */
   private handleTimerUpdate(event: TimerEvent): void {
     if (!event.playerId) return
@@ -528,11 +582,33 @@ export class TimerManager {
 
     const state = timer.getState()
 
-    // 发送更新事件
+    // 新架构：只在必要时发送传统的update事件（保持兼容性）
+    // 大部分情况下使用快照事件
     this.battle.emitter.emit('timerUpdate', {
       player: event.playerId,
       remainingTurnTime: state.remainingTurnTime,
       remainingTotalTime: state.remainingTotalTime,
+    })
+
+    // 同时发送快照事件供新架构使用
+    this.emitSnapshotEvent([event.playerId])
+  }
+
+  /**
+   * 处理计时器状态变化 - 新增方法
+   */
+  private handleTimerStateChange(event: TimerEvent): void {
+    if (!event.playerId) return
+
+    // 状态变化时立即发送快照
+    this.emitSnapshotEvent([event.playerId])
+
+    // 发送状态变化事件
+    this.battle.emitter.emit('timerStateChange', {
+      playerId: event.playerId,
+      oldState: event.data?.oldState || 'unknown',
+      newState: event.data?.newState || 'unknown',
+      timestamp: event.timestamp,
     })
   }
 

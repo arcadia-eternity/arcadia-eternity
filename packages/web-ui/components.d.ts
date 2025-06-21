@@ -52,7 +52,6 @@ declare module 'vue' {
     ElTabs: typeof import('element-plus/es')['ElTabs']
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
-    ElUpload: typeof import('element-plus/es')['ElUpload']
     EmailInheritance: typeof import('./src/components/EmailInheritance.vue')['default']
     EnhancedArrayEditor: typeof import('./src/components/EnhancedArrayEditor.vue')['default']
     HealDisplay: typeof import('./src/components/battle/HealDisplay.vue')['default']
@@ -75,6 +74,7 @@ declare module 'vue' {
     SkillDetail: typeof import('./src/components/dex/SkillDetail.vue')['default']
     SpeciesDetail: typeof import('./src/components/dex/SpeciesDetail.vue')['default']
     SpeciesSkillEditor: typeof import('./src/components/SpeciesSkillEditor.vue')['default']
+    TimerProvider: typeof import('./src/components/TimerProvider.vue')['default']
     Tooltip: typeof import('./src/components/battle/Tooltip.vue')['default']
     TypeChart: typeof import('./src/components/dex/TypeChart.vue')['default']
   }

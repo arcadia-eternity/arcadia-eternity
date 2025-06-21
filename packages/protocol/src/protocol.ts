@@ -34,6 +34,10 @@ export interface ServerToClientEvents {
   battleEventBatch: (messages: BattleMessage[]) => void
   // 计时器事件
   timerEvent: (event: { type: string; data: any }) => void
+  // 新架构：Timer快照事件
+  timerSnapshot: (data: { snapshots: any[] }) => void
+  // 新架构：Timer事件批处理
+  timerEventBatch: (events: any[]) => void
   // 房间关闭通知
   roomClosed: (message: { roomId: string }) => void
   // 匹配成功事件

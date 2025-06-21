@@ -3,6 +3,7 @@ import {
   type playerId,
   type PlayerTimerState,
   type TimerConfig,
+  type TimerSnapshot,
   type Events,
 } from '@arcadia-eternity/const'
 import {
@@ -44,6 +45,10 @@ export class BattleClient {
     battle: 'idle',
   }
   private options: Required<Omit<BattleClientOptions, 'auth'>> & { auth?: BattleClientOptions['auth'] }
+
+  // 新架构：Timer快照本地缓存
+  private timerSnapshots = new Map<playerId, TimerSnapshot>()
+  private lastSnapshotUpdate: number = 0
 
   constructor(options: BattleClientOptions) {
     this.options = {
@@ -119,6 +124,9 @@ export class BattleClient {
       roomId: undefined,
       opponent: undefined,
     })
+
+    // 清理Timer快照缓存
+    this.clearTimerSnapshots()
   }
 
   async connect(): Promise<void> {
@@ -392,6 +400,40 @@ export class BattleClient {
     })
   }
 
+  // 新架构：Timer快照相关方法
+
+  /**
+   * 获取玩家Timer快照（优先使用本地缓存）
+   */
+  getPlayerTimerSnapshot(playerId: playerId): TimerSnapshot | null {
+    return this.timerSnapshots.get(playerId) || null
+  }
+
+  /**
+   * 获取所有Timer快照
+   */
+  getAllTimerSnapshots(): TimerSnapshot[] {
+    return Array.from(this.timerSnapshots.values())
+  }
+
+  /**
+   * 更新Timer快照缓存
+   */
+  private updateTimerSnapshots(snapshots: TimerSnapshot[]): void {
+    snapshots.forEach(snapshot => {
+      this.timerSnapshots.set(snapshot.playerId, snapshot)
+    })
+    this.lastSnapshotUpdate = Date.now()
+  }
+
+  /**
+   * 清理Timer快照缓存
+   */
+  private clearTimerSnapshots(): void {
+    this.timerSnapshots.clear()
+    this.lastSnapshotUpdate = 0
+  }
+
   once<T extends keyof ServerToClientEvents>(event: T, listener: ServerToClientEvents[T]): this {
     this.socket.once(event, listener as any)
     return this
@@ -526,6 +568,30 @@ export class BattleClient {
       if (handlers) {
         handlers.forEach(handler => handler(event.data))
       }
+    })
+
+    // 新架构：Timer快照事件处理
+    this.socket.on('timerSnapshot', data => {
+      if (data.snapshots) {
+        this.updateTimerSnapshots(data.snapshots)
+
+        // 触发timerSnapshot事件处理器
+        const handlers = this.timerEventHandlers.get('timerSnapshot')
+        if (handlers) {
+          handlers.forEach(handler => handler(data))
+        }
+      }
+    })
+
+    // 新架构：Timer事件批处理
+    this.socket.on('timerEventBatch', events => {
+      // 逐个处理批量Timer事件
+      events.forEach(event => {
+        const handlers = this.timerEventHandlers.get(event.type)
+        if (handlers) {
+          handlers.forEach(handler => handler(event.data))
+        }
+      })
     })
 
     // 心跳处理

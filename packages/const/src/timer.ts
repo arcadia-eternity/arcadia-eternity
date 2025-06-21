@@ -36,6 +36,14 @@ export const TIMER_CONSTANTS = {
   UPDATE_INTERVAL: 1000,
   /** 超时时自动选择第一个可用选项 - 固定启用 */
   AUTO_SELECT_ON_TIMEOUT: true,
+  /** 前端本地计算器更新间隔(毫秒) - 100ms提供流畅体验 */
+  LOCAL_CALCULATOR_INTERVAL: 100,
+  /** Timer状态缓存TTL(毫秒) - 5分钟 */
+  TIMER_CACHE_TTL: 5 * 60 * 1000,
+  /** Timer事件批处理大小 */
+  TIMER_EVENT_BATCH_SIZE: 10,
+  /** Timer事件批处理超时(毫秒) */
+  TIMER_EVENT_BATCH_TIMEOUT: 200,
 } as const
 
 /**
@@ -83,11 +91,14 @@ export interface AnimationInfo {
  */
 export enum TimerEventType {
   Start = 'start',
-  Update = 'update',
+  Update = 'update', // 保留用于兼容，但新架构中会减少使用
   Pause = 'pause',
   Resume = 'resume',
   Timeout = 'timeout',
   Stop = 'stop',
+  // 新增事件类型
+  Snapshot = 'snapshot', // Timer快照事件
+  StateChange = 'stateChange', // Timer状态变化事件
 }
 
 /**
@@ -98,4 +109,50 @@ export interface TimerEvent {
   playerId?: playerId
   data?: any
   timestamp: number
+}
+
+/**
+ * Timer快照 - 包含前端本地计算所需的所有信息
+ */
+export interface TimerSnapshot {
+  /** 快照创建时间戳 */
+  timestamp: number
+  /** 玩家ID */
+  playerId: playerId
+  /** 计时器状态 */
+  state: TimerState
+  /** 快照时的剩余回合时间(秒) */
+  remainingTurnTime: number
+  /** 快照时的剩余总时间(秒) */
+  remainingTotalTime: number
+  /** 计时器配置 */
+  config: TimerConfig
+  /** 是否有活跃动画(影响计时) */
+  hasActiveAnimations: boolean
+  /** 暂停原因(如果处于暂停状态) */
+  pauseReason?: 'animation' | 'system'
+}
+
+/**
+ * Timer状态缓存项
+ */
+export interface TimerCacheItem {
+  /** 缓存的Timer快照 */
+  snapshot: TimerSnapshot
+  /** 缓存创建时间 */
+  cachedAt: number
+  /** 缓存TTL */
+  ttl: number
+}
+
+/**
+ * Timer事件批处理项
+ */
+export interface TimerEventBatch {
+  /** 批处理中的事件列表 */
+  events: TimerEvent[]
+  /** 批处理创建时间 */
+  createdAt: number
+  /** 批处理定时器 */
+  timer?: ReturnType<typeof setTimeout>
 }

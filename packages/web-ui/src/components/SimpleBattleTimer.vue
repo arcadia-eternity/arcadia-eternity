@@ -57,9 +57,10 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
-import type { PlayerTimerState, TimerConfig } from '@arcadia-eternity/const'
+import type { PlayerTimerState, TimerConfig, TimerSnapshot } from '@arcadia-eternity/const'
 import { TimerState } from '@arcadia-eternity/const'
 import { useBattleStore } from '../stores/battle'
+import { LocalTimerCalculator } from '../timer/localTimerCalculator'
 import i18next from 'i18next'
 
 interface Props {
@@ -70,17 +71,17 @@ interface Props {
 const props = defineProps<Props>()
 const battleStore = useBattleStore()
 
-// 响应式数据
-const isEnabled = ref(false)
-const timerConfig = ref<TimerConfig | null>(null)
-const timerState = ref<PlayerTimerState | null>(null)
-const updateInterval = ref<ReturnType<typeof setInterval> | null>(null)
+// 新架构：使用LocalTimerCalculator
+const localTimerCalculator = ref<LocalTimerCalculator | null>(null)
+const timerSnapshot = ref<TimerSnapshot | null>(null)
 const timerEventUnsubscribers = ref<(() => void)[]>([])
 
-// 计算属性
-const turnTime = computed(() => timerState.value?.remainingTurnTime || 0)
-const totalTime = computed(() => timerState.value?.remainingTotalTime || 0)
-const state = computed(() => timerState.value?.state || TimerState.Stopped)
+// 计算属性 - 基于TimerSnapshot
+const isEnabled = computed(() => timerSnapshot.value?.config.enabled || false)
+const timerConfig = computed(() => timerSnapshot.value?.config || null)
+const turnTime = computed(() => timerSnapshot.value?.remainingTurnTime || 0)
+const totalTime = computed(() => timerSnapshot.value?.remainingTotalTime || 0)
+const state = computed(() => timerSnapshot.value?.state || TimerState.Stopped)
 
 // 判断是否应该显示时间
 const shouldShowTurnTime = computed(() => {
@@ -109,90 +110,58 @@ const formatTime = (seconds: number): string => {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-const updateTimerState = async () => {
-  if (!battleStore.battleInterface || !props.playerId) return
+// 新架构：初始化LocalTimerCalculator
+const initializeTimerCalculator = () => {
+  if (localTimerCalculator.value) {
+    localTimerCalculator.value.cleanup()
+  }
 
-  try {
-    const enabled = await battleStore.battleInterface.isTimerEnabled()
-    isEnabled.value = enabled
+  localTimerCalculator.value = new LocalTimerCalculator()
 
-    if (!enabled) return
-
-    // 获取配置
-    if (!timerConfig.value) {
-      timerConfig.value = await battleStore.battleInterface.getTimerConfig()
-    }
-
-    // 获取状态
-    const state = await battleStore.battleInterface.getPlayerTimerState(props.playerId as any)
-    timerState.value = state
-  } catch (error) {
-    console.warn('Failed to update timer state:', error)
-    // 在错误情况下，暂时禁用计时器显示，避免过多的失败请求
-    isEnabled.value = false
-    timerState.value = null
-
-    // 减少轮询频率
-    if (updateInterval.value) {
-      clearInterval(updateInterval.value)
-      updateInterval.value = setInterval(updateTimerState, 10000) // 增加到10秒
-    }
+  // 监听指定玩家的Timer更新
+  if (props.playerId) {
+    const unsubscribe = localTimerCalculator.value.onPlayerTimerUpdate(
+      props.playerId as any,
+      (snapshot: TimerSnapshot) => {
+        timerSnapshot.value = snapshot
+      },
+    )
+    timerEventUnsubscribers.value.push(unsubscribe)
   }
 }
 
-const startUpdateLoop = () => {
-  if (updateInterval.value) return
-  // 减少轮询频率从1秒到2秒，减少服务器负载
-  updateInterval.value = setInterval(updateTimerState, 2000)
-}
-
-const stopUpdateLoop = () => {
-  if (updateInterval.value) {
-    clearInterval(updateInterval.value)
-    updateInterval.value = null
+// 清理LocalTimerCalculator
+const cleanupTimerCalculator = () => {
+  if (localTimerCalculator.value) {
+    localTimerCalculator.value.cleanup()
+    localTimerCalculator.value = null
   }
 }
 
 const setupTimerEventListeners = () => {
-  if (!battleStore.battleInterface) return
+  if (!battleStore.battleInterface || !localTimerCalculator.value) return
 
-  // 清理之前的监听器
-  timerEventUnsubscribers.value.forEach(unsubscribe => unsubscribe())
-  timerEventUnsubscribers.value = []
+  // 清理之前的监听器（除了LocalTimerCalculator的监听器）
+  const calculatorUnsubscribers = timerEventUnsubscribers.value.slice() // 保存LocalTimerCalculator的监听器
+  timerEventUnsubscribers.value = calculatorUnsubscribers
 
-  // 监听计时器开始事件
+  // 新架构：监听Timer快照事件
+  const unsubscribeSnapshot = battleStore.battleInterface.onTimerEvent('timerSnapshot', (data: any) => {
+    if (data.snapshots && localTimerCalculator.value) {
+      localTimerCalculator.value.updateSnapshots(data.snapshots)
+    }
+  })
+  timerEventUnsubscribers.value.push(unsubscribeSnapshot)
+
+  // 保持对传统事件的兼容性监听（用于调试和备用）
   const unsubscribeStart = battleStore.battleInterface.onTimerEvent('timerStart', () => {
-    updateTimerState()
+    console.debug('Timer started - waiting for snapshot update')
   })
   timerEventUnsubscribers.value.push(unsubscribeStart)
 
-  // 监听计时器更新事件
-  const unsubscribeUpdate = battleStore.battleInterface.onTimerEvent('timerUpdate', data => {
+  const unsubscribeTimeout = battleStore.battleInterface.onTimerEvent('timerTimeout', (data: any) => {
     if (data.player === props.playerId) {
-      if (timerState.value) {
-        timerState.value.remainingTurnTime = data.remainingTurnTime
-        timerState.value.remainingTotalTime = data.remainingTotalTime
-      }
-    }
-  })
-  timerEventUnsubscribers.value.push(unsubscribeUpdate)
-
-  // 监听计时器暂停事件
-  const unsubscribePause = battleStore.battleInterface.onTimerEvent('timerPause', () => {
-    updateTimerState()
-  })
-  timerEventUnsubscribers.value.push(unsubscribePause)
-
-  // 监听计时器恢复事件
-  const unsubscribeResume = battleStore.battleInterface.onTimerEvent('timerResume', () => {
-    updateTimerState()
-  })
-  timerEventUnsubscribers.value.push(unsubscribeResume)
-
-  // 监听计时器超时事件
-  const unsubscribeTimeout = battleStore.battleInterface.onTimerEvent('timerTimeout', data => {
-    if (data.player === props.playerId) {
-      updateTimerState()
+      console.debug('Timer timeout for player:', props.playerId)
     }
   })
   timerEventUnsubscribers.value.push(unsubscribeTimeout)
@@ -200,14 +169,13 @@ const setupTimerEventListeners = () => {
 
 // 生命周期
 onMounted(() => {
-  updateTimerState()
-  startUpdateLoop()
+  initializeTimerCalculator()
   setupTimerEventListeners()
 })
 
 onUnmounted(() => {
-  stopUpdateLoop()
-  // 清理计时器事件监听器
+  // 清理所有资源
+  cleanupTimerCalculator()
   timerEventUnsubscribers.value.forEach(unsubscribe => unsubscribe())
   timerEventUnsubscribers.value = []
 })
@@ -216,7 +184,8 @@ onUnmounted(() => {
 watch(
   () => props.playerId,
   () => {
-    updateTimerState()
+    // 重新初始化Timer计算器以监听新的玩家
+    initializeTimerCalculator()
   },
 )
 
