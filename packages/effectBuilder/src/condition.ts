@@ -100,7 +100,7 @@ export const Conditions = {
         return context.source.owner === context.parent.source.owner
       }
       if (context.parent instanceof SwitchPetContext) {
-        return context.source.owner === context.parent.target
+        return context.source.owner === context.parent.switchInPet
       }
       if (context.parent instanceof StackContext) {
         return context.source.owner === context.parent.existingMark.owner
@@ -169,7 +169,7 @@ export const Conditions = {
   selfSwitchIn: (): Condition => {
     return context => {
       if (context.parent instanceof SwitchPetContext) {
-        return context.source.owner === context.parent.target
+        return context.source.owner === context.parent.switchInPet
       }
       return false
     }
@@ -178,7 +178,7 @@ export const Conditions = {
   selfSwitchOut: (): Condition => {
     return context => {
       if (context.parent instanceof SwitchPetContext) {
-        return context.source.owner === context.parent.origin.activePet
+        return context.source.owner === context.parent.switchOutPet
       }
       return false
     }

@@ -243,12 +243,12 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
   }
 
   getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[] {
-    return this.effects.filter(e => e.trigger === trigger)
+    return this.effects.filter(e => e.triggers.includes(trigger))
   }
 
   collectEffects(trigger: EffectTrigger, baseContext: UseSkillContext) {
     this.effects
-      .filter(effect => effect.trigger === trigger)
+      .filter(effect => effect.triggers.includes(trigger))
       .forEach(effect => {
         const effectContext = new EffectContext(baseContext, trigger, this, effect)
         try {

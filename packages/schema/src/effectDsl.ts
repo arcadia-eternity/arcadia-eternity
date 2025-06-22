@@ -7,7 +7,7 @@ export type { CompareOperator }
 
 export interface EffectDSL {
   id: string
-  trigger: EffectTrigger
+  trigger: EffectTrigger | EffectTrigger[]
   priority: number
   apply: OperatorDSL | Array<OperatorDSL>
   condition?: ConditionDSL
@@ -29,6 +29,11 @@ export type HealOperator = {
   type: 'heal'
   target: SelectorDSL
   value: Value
+}
+
+export type ExecuteKillOperator = {
+  type: 'executeKill'
+  target: SelectorDSL
 }
 
 export type AddMarkOperator = {
@@ -535,6 +540,7 @@ export type OperatorDSL =
   | ConditionalOperator
   | DealDamageOperator
   | HealOperator
+  | ExecuteKillOperator
   | AddMarkOperator
   | AddStacksOperator
   | ConsumeStacksOperator

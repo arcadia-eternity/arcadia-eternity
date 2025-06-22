@@ -1666,3 +1666,49 @@
     keepOnSwitchOut: false
   effect:
     - effect_mark_increase_evasion_10_percent
+- id: mark_jieli
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: false
+  effect:
+    - effect_mark_add_damage_increase_25_on_switch_in
+- id: mark_dadizhiyou
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 3
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_def_boost_25_per_stack
+- id: mark_shabaozhili
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 3
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_spa_boost_25_per_stack
+- id: mark_taitanzhihu
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - buff
+  effect:
+    - effect_mark_damage_cap_half_max_hp

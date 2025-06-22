@@ -4592,3 +4592,120 @@
     - mark_ability_feixiang
   emblem:
     - mark_emblem_fenshen
+- id: pet_ailu
+  num: 220
+  element: Ground
+  baseStats:
+    hp: 92
+    atk: 118
+    def: 130
+    spa: 125
+    spd: 123
+    spe: 103
+  genderRatio:
+    - 0
+    - 10
+  heightRange:
+    - 23
+    - 28
+  weightRange:
+    - 34
+    - 39
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_jiangu
+      level: 10
+      hidden: false
+    - skill_id: skill_fusudadi
+      level: 15
+      hidden: false
+    - skill_id: skill_silieshabao
+      level: 20
+      hidden: false
+    - skill_id: skill_ningju
+      level: 25
+      hidden: false
+  ability:
+    - mark_ability_liandong
+  emblem:
+    - mark_emblem_lianfang
+- id: pet_ailudake
+  num: 221
+  element: Ground
+  baseStats:
+    hp: 182
+    atk: 163
+    def: 180
+    spa: 175
+    spd: 168
+    spe: 148
+  genderRatio:
+    - 0
+    - 10
+  heightRange:
+    - 87
+    - 92
+  weightRange:
+    - 123
+    - 128
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_jiangu
+      level: 10
+      hidden: false
+    - skill_id: skill_fusudadi
+      level: 15
+      hidden: false
+    - skill_id: skill_silieshabao
+      level: 20
+      hidden: false
+    - skill_id: skill_ningju
+      level: 25
+      hidden: false
+    - skill_id: skill_julidadi
+      level: 30
+      hidden: false
+    - skill_id: skill_lirenshabao
+      level: 35
+      hidden: false
+    - skill_id: skill_paoxiaonuhou
+      level: 40
+      hidden: false
+    - skill_id: skill_jinghuadadi
+      level: 45
+      hidden: false
+    - skill_id: skill_nixishabao
+      level: 50
+      hidden: false
+    - skill_id: skill_zhandounuhou
+      level: 55
+      hidden: false
+    - skill_id: skill_taitanzhinu
+      level: 60
+      hidden: true
+    - skill_id: skill_fuchoudadi
+      level: 60
+      hidden: true
+    - skill_id: skill_huimieshabao
+      level: 60
+      hidden: true
+    - skill_id: skill_xiezuojieli
+      level: 60
+      hidden: true
+    - skill_id: skill_taitanzhihu
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_liandong
+  emblem:
+    - mark_emblem_lianfang

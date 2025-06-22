@@ -59,7 +59,7 @@ export function registerLiteralValue(effectId: string, value: any, configId?: st
 
 export class EffectBuilder<T extends EffectTrigger> {
   private constructor(
-    private readonly trigger: T,
+    private readonly triggers: T[],
     private id: effectId = `effect_${nanoid(8)}` as effectId,
     private apply: Action | Action[] = () => {},
     private priority: number = 0,
@@ -67,8 +67,14 @@ export class EffectBuilder<T extends EffectTrigger> {
     private consumesStacks?: number,
   ) {}
 
-  static create<T extends EffectTrigger>(trigger: T): EffectBuilder<T> {
-    return new EffectBuilder(trigger)
+  static create<T extends EffectTrigger>(trigger: T | T[]): EffectBuilder<T> {
+    const triggers = Array.isArray(trigger) ? trigger : [trigger]
+    return new EffectBuilder(triggers)
+  }
+
+  // 为了向后兼容，保留trigger属性的getter
+  get trigger(): T {
+    return this.triggers[0]
   }
 
   setId(id: string): this {
@@ -104,7 +110,7 @@ export class EffectBuilder<T extends EffectTrigger> {
   }
 
   build(): Effect<T> {
-    return new Effect(this.id, this.trigger, this.apply, this.priority, this.condition, this.consumesStacks)
+    return new Effect(this.id, this.triggers, this.apply, this.priority, this.condition, this.consumesStacks)
   }
 }
 

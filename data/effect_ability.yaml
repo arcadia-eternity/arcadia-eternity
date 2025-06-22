@@ -66,7 +66,7 @@
           base: usingSkillContext
           chain:
             - type: selectPath
-              arg: category
+              arg: element
         evaluator:
           type: same
           value: Fire
@@ -186,7 +186,7 @@
           base: usingSkillContext
           chain:
             - type: selectPath
-              arg: category
+              arg: element
         evaluator:
           type: same
           value: Water
@@ -776,7 +776,7 @@
   condition:
     type: every
     conditions:
-      - type: checkSelf
+      - type: selfBeSkillTarget
       - type: evaluate
         target:
           base: usingSkillContext
@@ -887,3 +887,51 @@
     type: addRage
     target: self
     value: 20
+# 联动: 特攻无视Miss使自身获得1层大地之佑
+- id: effect_ability_spa_skill_add_dadizhi_1_hit_or_miss
+  trigger: [OnHit, OnMiss]
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Special
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_dadizhiyou
+    stack: 1
+# 联动: 物攻无视Miss使自身获得1层沙暴之力
+- id: effect_ability_atk_skill_add_shabaozhi_1_hit_or_miss
+  trigger: [OnHit, OnMiss]
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Physical
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shabaozhili
+    stack: 1

@@ -41,6 +41,7 @@ import { Observable } from 'rxjs'
 import {
   type baseMarkId,
   type baseSkillId,
+  BattleMessageType,
   CleanStageStrategy,
   EffectTrigger,
   IgnoreStageStrategy,
@@ -80,6 +81,29 @@ export const Operators = {
       if (_value.length === 0) return
       targets.forEach(p => p.heal(new HealContext(context, context.source, p, _value[0])))
     },
+
+  executeKill: (): Operator<Pet> => (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
+    targets.forEach(pet => {
+      if (!pet.isAlive) return // 已经击败的精灵不需要再次击败
+
+      // 直接设置精灵为击败状态
+      pet.currentHp = 0
+      pet.isAlive = false
+
+      // 发送精灵击败消息
+      context.battle.emitMessage(BattleMessageType.PetDefeated, {
+        pet: pet.id,
+        killer: context.source instanceof Pet ? context.source.id : undefined,
+      })
+
+      // 注意：OnDefeat效果会在精灵击败时自动触发，这里不需要手动调用
+
+      // 设置最后击杀者（如果来源是精灵的话）
+      if (context.source instanceof Pet && context.source.owner) {
+        context.battle.lastKiller = context.source.owner
+      }
+    })
+  },
 
   addMark:
     <T extends MarkOwner>(

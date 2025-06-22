@@ -109,8 +109,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_def_1_stages
-    - effect_skill_raise_spd_1_stages
+    - effect_skill_raise_def_1_stage
+    - effect_skill_raise_spd_1_stage
 - id: skill_ruohuadaji
   element: Normal
   category: Physical
@@ -231,7 +231,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_atk_1_stages
+    - effect_skill_raise_atk_1_stage
 - id: skill_fenlitupo
   element: Normal
   category: Physical
@@ -267,7 +267,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_spe_1_stages
+    - effect_skill_raise_spe_1_stage
 - id: skill_yanggong
   element: Normal
   category: Physical
@@ -833,7 +833,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_def_1_stages
+    - effect_skill_raise_def_1_stage
 - id: skill_kuihuazhongzi
   element: Grass
   category: Special
@@ -1063,7 +1063,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_def_1_stages
+    - effect_skill_raise_def_1_stage
 - id: skill_zhifanghudun
   element: Normal
   category: Status
@@ -1244,7 +1244,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_def_1_stages
+    - effect_skill_raise_def_1_stage
 - id: skill_shugenyinghua
   element: Grass
   category: Status
@@ -1450,7 +1450,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_spa_1_stages
+    - effect_skill_raise_spa_1_stage
 - id: skill_chuanjibo
   element: Water
   category: Special
@@ -1997,7 +1997,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_atk_1_stages
+    - effect_skill_raise_atk_1_stage
 - id: skill_quanlichongzhuang
   element: Normal
   category: Physical
@@ -2187,7 +2187,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_def_1_stages
+    - effect_skill_raise_def_1_stage
 - id: skill_hailangzhenji
   element: Water
   category: Physical
@@ -2349,7 +2349,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_spa_1_stages
+    - effect_skill_raise_spa_1_stage
 - id: skill_zhuoshao
   element: Fire
   category: Special
@@ -2528,7 +2528,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_def_1_stages
+    - effect_skill_raise_def_1_stage
 - id: skill_zhuangyun
   element: Normal
   category: Physical
@@ -2840,8 +2840,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_atk_1_stages
-    - effect_skill_raise_spa_1_stages
+    - effect_skill_raise_atk_1_stage
+    - effect_skill_raise_spa_1_stage
 - id: skill_moya
   element: Normal
   category: Status
@@ -2852,7 +2852,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_raise_atk_1_stages
+    - effect_skill_raise_atk_1_stage
   tags: []
 - id: skill_yanhuo
   element: Fire
@@ -2900,7 +2900,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_raise_spe_1_stages
+    - effect_skill_raise_spe_1_stage
   tags: []
 - id: skill_baoya
   element: Fire
@@ -3190,7 +3190,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_raise_spd_1_stages
+    - effect_skill_raise_spd_1_stage
   tags: []
 - id: skill_xinzhiyinji
   element: Normal
@@ -3226,8 +3226,8 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_raise_def_1_stages
-    - effect_skill_raise_spd_1_stages
+    - effect_skill_raise_def_1_stage
+    - effect_skill_raise_spd_1_stage
   tags: []
 - id: skill_hongxinyu
   element: Normal
@@ -3385,8 +3385,8 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_raise_spa_1_stages
-    - effect_skill_raise_def_1_stages_if_aideminyi
+    - effect_skill_raise_spa_1_stage
+    - effect_skill_raise_def_1_stage_if_aideminyi
   tags: []
 - id: skill_xinxinxianxi
   element: Psychic
@@ -3699,7 +3699,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_atk_1_stages
+    - effect_skill_raise_atk_1_stage
 - id: skill_zhenci
   element: Grass
   category: Special
@@ -3880,7 +3880,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_spe_1_stages
+    - effect_skill_raise_spe_1_stage
 - id: skill_chuantoutuji
   element: Normal
   category: Physical
@@ -4060,7 +4060,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_spe_1_stages
+    - effect_skill_raise_spe_1_stage
 - id: skill_yitelingyu
   element: Normal
   category: Status
@@ -4133,7 +4133,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_spa_1_stages
+    - effect_skill_raise_spa_1_stage
 - id: skill_jisufeiyu
   element: Wind
   category: Special
@@ -4634,7 +4634,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_atk_1_stages
+    - effect_skill_raise_atk_1_stage
 - id: skill_jinghuazhiguang
   element: Light
   category: Status
@@ -4912,7 +4912,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_spa_1_stages
+    - effect_skill_raise_spa_1_stage
 - id: skill_yinbohuan
   element: Normal
   category: Special
@@ -5752,7 +5752,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_spe_1_stages
+    - effect_skill_raise_spe_1_stage
 - id: skill_wuzhezhixin
   element: Fighting
   category: Special
@@ -5788,7 +5788,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_atk_1_stages
+    - effect_skill_raise_atk_1_stage
 - id: skill_jueying
   element: Shadow
   category: Physical
@@ -5954,7 +5954,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_spa_1_stages
+    - effect_skill_raise_spa_1_stage
 - id: skill_jiguang
   element: Light
   category: Physical
@@ -6156,7 +6156,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_raise_spe_1_stages
+    - effect_skill_raise_spe_1_stage
 - id: skill_xiangtianchong
   element: Flying
   category: Physical
@@ -6269,3 +6269,163 @@
   tags: []
   effect:
     - effect_skill_raise_spa_1_stage_after_2_uses
+- id: skill_fusudadi
+  element: Ground
+  category: Physical
+  target: opponent
+  power: 75
+  rage: 15
+  accuracy: 95
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_heal_self_def_quarter_hit_or_miss # TODO: 无视Miss恢复自身物防值1/4的体力
+- id: skill_silieshabao
+  element: Desert
+  category: Special
+  target: opponent
+  power: 80
+  rage: 15
+  accuracy: 95
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_damage_spa_sixth # TODO: 无视Miss附加自身特攻值1/6的伤害
+    - effect_skill_deal_damage_spa_sixth_on_miss
+- id: skill_julidadi
+  element: Ground
+  category: Physical
+  target: opponent
+  power: 80
+  rage: 20
+  accuracy: 95
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_yinghua_65_hit_or_miss # TODO: 无视Miss使自身获得65点硬化
+- id: skill_lirenshabao
+  element: Desert
+  category: Special
+  target: opponent
+  power: 85
+  rage: 20
+  accuracy: 95
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_liuxie_60_hit_or_miss # TODO: 无视Miss使对手获得60点流血
+- id: skill_paoxiaonuhou
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_yinghua_50 # TODO: 使自身获得50点硬化
+    - effect_skill_add_mark_mianyibuliang_hit_or_miss # TODO: 无视Miss使自身获得免疫异常
+- id: skill_jinghuadadi
+  element: Ground
+  category: Physical
+  target: opponent
+  power: 85
+  rage: 20
+  accuracy: 95
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_clear_status_hit_or_miss
+- id: skill_nixishabao
+  element: Desert
+  category: Special
+  target: opponent
+  power: 90
+  rage: 20
+  accuracy: 95
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_rage_30_hit_or_miss # TODO: 无视Miss恢复自身30点怒气
+- id: skill_zhandounuhou
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_spa_1_stage
+    - effect_skill_raise_def_1_stage
+- id: skill_taitanzhinu
+  element: Ground
+  category: Climax
+  target: opponent
+  power: 165
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_dadizhiyou_1 # TODO: 使自身获得1层大地之佑
+    - effect_skill_add_mark_shabaozhili_1 # TODO: 使自身获得1层沙暴之力
+- id: skill_fuchoudadi
+  element: Ground
+  category: Physical
+  target: opponent
+  power: 90
+  rage: 30
+  accuracy: 95
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_foe_clear_stage_hit_or_miss # TODO: 无视Miss清除对手强化
+- id: skill_huimieshabao
+  element: Desert
+  category: Special
+  target: opponent
+  power: 95
+  rage: 30
+  accuracy: 95
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_execute_foe_hp_under_75_hit_or_miss
+- id: skill_xiezuojieli
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 100
+  rage: 20
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_jieli_hit_or_miss # TODO: 无视Miss使自身获得接力
+- id: skill_taitanzhihu
+  element: Ground
+  category: Status
+  target: self
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_taitanzhihu # TODO: 使自身获得泰坦之护

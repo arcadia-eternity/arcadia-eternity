@@ -348,13 +348,15 @@ export class UseSkillContext extends Context {
 export class SwitchPetContext extends Context {
   readonly type = 'switch-pet'
   public readonly battle: Battle
+  public switchOutPet: Pet | null = null // 被换出的宠物
   constructor(
     public readonly parent: TurnContext | Battle,
     public origin: Player,
-    public target: Pet,
+    public switchInPet: Pet,
   ) {
     super(parent)
     this.battle = parent.battle!
+    this.switchOutPet = this.origin.activePet
   }
 }
 

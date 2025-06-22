@@ -1564,3 +1564,42 @@ skill_tiankongliechong:
 skill_tiankongzhiwu:
   name: 天空之舞
   description: <font color=#93E312>必中</font> 使用2次强化自身特攻1级
+skill_fusudadi:
+  name: 复苏大地
+  description: 无论是否命中 恢复自身物防值1/4的体力
+skill_silieshabao:
+  name: 撕裂沙暴
+  description: 无论是否命中 附加自身特攻值1/6的伤害
+skill_julidadi:
+  name: 拒力大地
+  description: 使自身获得65点硬化
+skill_lirenshabao:
+  name: 利刃沙暴
+  description: 无论是否命中 使对手获得60点流血
+skill_paoxiaonuhou:
+  name: 咆哮怒吼
+  description: 使自身获得50点硬化 使自身获得免疫异常
+skill_jinghuadadi:
+  name: 净化大地
+  description: 无论是否命中 解除自身不良
+skill_nixishabao:
+  name: 逆袭沙暴
+  description: 无论是否命中 恢复自身30点怒气
+skill_zhandounuhou:
+  name: 战斗怒吼
+  description: 强化自身特攻物防1级
+skill_taitanzhinu:
+  name: 泰坦之怒
+  description: 必中 使自身获得1层大地之佑 1层沙暴之力
+skill_fuchoudadi:
+  name: 复仇大地
+  description: 清除对手强化
+skill_huimieshabao:
+  name: 毁灭沙暴
+  description: 无论是否命中 斩杀体力＜75点的对手
+skill_xiezuojieli:
+  name: 协作接力
+  description: 使自身获得接力
+skill_taitanzhihu:
+  name: 泰坦之护
+  description: 使自身获得泰坦之护

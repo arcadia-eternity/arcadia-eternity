@@ -109,3 +109,6 @@ mark_ability_renyi:
 mark_ability_feixiang:
   name: 飞翔
   description: 连续使用飞行系技能恢复自身20点怒气
+mark_ability_liandong:
+  name: 联动
+  description: 特攻无视Miss使自身获得1层大地之佑 物攻无视Miss使自身获得1层沙暴之力

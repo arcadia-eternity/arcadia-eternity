@@ -389,7 +389,7 @@ export class MarkInstanceImpl implements MarkInstance {
     if (!this.isActive) return
 
     this.effects
-      .filter(effect => effect.trigger === trigger)
+      .filter(effect => effect.triggers.includes(trigger))
       .forEach(effect => {
         const effectContext = new EffectContext(baseContext, trigger, this, effect)
         try {
@@ -808,8 +808,8 @@ export class MarkSystem {
       const shouldKeep = mark.config.keepOnSwitchOut ?? false
 
       // 需要转移的印记
-      if (mark.config.transferOnSwitch && context.target) {
-        this.transferMarks(context, context.target, mark)
+      if (mark.config.transferOnSwitch && context.switchInPet) {
+        this.transferMarks(context, context.switchInPet, mark)
         // 印记在换场继承后应该在原精灵上解除
         return false
       } else if (!shouldKeep) {

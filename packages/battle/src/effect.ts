@@ -93,13 +93,18 @@ export class EffectScheduler {
 export class Effect<T extends EffectTrigger> implements Prototype {
   constructor(
     public readonly id: effectId,
-    public readonly trigger: T,
+    public readonly triggers: T[],
     public readonly apply: ((context: EffectContext<T>) => void) | ((context: EffectContext<T>) => void)[],
     public readonly priority: number,
     public readonly condition?: (context: EffectContext<T>) => boolean,
     public readonly consumesStacks?: number,
     public readonly tags: string[] = [],
   ) {}
+
+  // 为了向后兼容，保留trigger属性的getter
+  get trigger(): T {
+    return this.triggers[0]
+  }
 
   public innerApply(context: EffectContext<T>) {
     // 先执行消耗逻辑

@@ -535,3 +535,15 @@ mark_fenshen:
 mark_fenshenhying:
   name: 分身幻影
   description: 闪避率增加10%
+mark_jieli:
+  name: 接力
+  description: 使下只出场精灵获得25点伤害增加
+mark_dadizhiyou:
+  name: 大地之佑
+  description: 每层增加25点物防值 最多3层
+mark_shabaozhili:
+  name: 沙暴之力
+  description: 每层增加25点特攻值 最多3层
+mark_taitanzhihu:
+  name: 泰坦之护
+  description: 受到伤害不超过自身最大体力的1/2

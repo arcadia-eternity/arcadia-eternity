@@ -14,6 +14,7 @@ import {
   type ScopeObject,
   SkillInstance,
   StackContext,
+  SwitchPetContext,
   UseSkillContext,
   Battle,
 } from '@arcadia-eternity/battle'
@@ -75,12 +76,13 @@ export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
     }
 
     // Return effect with all actions (including registerConfig actions if needed)
+    const triggers = Array.isArray(dsl.trigger) ? dsl.trigger : [dsl.trigger]
     if (Array.isArray(dsl.apply)) {
-      return new Effect(dsl.id as effectId, dsl.trigger, actions, dsl.priority, condition, dsl.consumesStacks)
+      return new Effect(dsl.id as effectId, triggers, actions, dsl.priority, condition, dsl.consumesStacks)
     } else {
       return new Effect(
         dsl.id as effectId,
-        dsl.trigger,
+        triggers,
         actions.length === 1 ? actions[0] : actions,
         dsl.priority,
         condition,
@@ -379,6 +381,8 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseDamageAction(effectId, dsl)
     case 'heal':
       return parseHealAction(effectId, dsl)
+    case 'executeKill':
+      return parseExecuteKillAction(effectId, dsl)
     case 'addMark':
       return parseAddMarkAction(effectId, dsl)
     case 'addStacks':
@@ -573,6 +577,11 @@ export function parseDamageAction(effectId: string, dsl: Extract<OperatorDSL, { 
 export function parseHealAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'heal' }>) {
   const selector = parseSelector<Pet>(effectId, dsl.target)
   return selector.apply(Operators.heal(parseValue(effectId, dsl.value) as ValueSource<number>))
+}
+
+export function parseExecuteKillAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'executeKill' }>) {
+  const selector = parseSelector<Pet>(effectId, dsl.target)
+  return selector.apply(Operators.executeKill())
 }
 
 export function parseAddMarkAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'addMark' }>) {

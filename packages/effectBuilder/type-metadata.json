@@ -100,6 +100,13 @@
   ],
   "AttributeSystem": [
     {
+      "n": "logger",
+      "t": "BattleLogger",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "baseAttributes",
       "t": "Map<keyof T, BehaviorSubject<string | number | boolean>>",
       "iu": false,
@@ -234,37 +241,6 @@
     {
       "n": "battleRegistry",
       "t": "Map<string, Set<AttributeSystem<any>>>",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "cleanupInterval",
-      "t": "null | NodeJS.Timeout",
-      "iu": true,
-      "u": [
-        "null",
-        "NodeJS.Timeout"
-      ],
-      "a": false
-    },
-    {
-      "n": "CLEANUP_INTERVAL",
-      "t": "60000",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "MAX_INACTIVE_TIME",
-      "t": "300000",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "lastAccessTime",
-      "t": "number",
       "iu": false,
       "u": [],
       "a": false
@@ -689,6 +665,13 @@
       "a": false
     },
     {
+      "n": "logger",
+      "t": "BattleLogger",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "allowFaintSwitch",
       "t": "false | true",
       "iu": true,
@@ -753,6 +736,13 @@
     {
       "n": "timerManager",
       "t": "TimerManager",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "transformationSystem",
+      "t": "TransformationSystem",
       "iu": false,
       "u": [],
       "a": false
@@ -1006,15 +996,8 @@
       "a": false
     },
     {
-      "n": "configMap",
-      "t": "Map<string, ConfigValue>",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "instanceMap",
-      "t": "WeakMap<ScopeObject, Map<string, ConfigValue>>",
+      "n": "logger",
+      "t": "BattleLogger",
       "iu": false,
       "u": [],
       "a": false
@@ -1048,6 +1031,13 @@
       "a": false
     },
     {
+      "n": "scopedBaseConfigs",
+      "t": "WeakMap<ScopeObject, Map<string, BehaviorSubject<ConfigValue>>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "scopedModifiers",
       "t": "WeakMap<ScopeObject, Map<string, ConfigModifier[]>>",
       "iu": false,
@@ -1072,6 +1062,20 @@
     {
       "n": "phaseTypeInstances",
       "t": "Map<PhaseType, BattlePhaseBase<Context>[]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "tagToConfigKeys",
+      "t": "Map<string, Set<string>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "configKeyToTags",
+      "t": "Map<string, Set<string>>",
       "iu": false,
       "u": [],
       "a": false
@@ -1203,7 +1207,7 @@
     },
     {
       "n": "parent",
-      "t": "null | Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | EffectContext<EffectTrigger>",
+      "t": "null | Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | TransformContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "null",
@@ -1217,6 +1221,7 @@
         "SwitchPetContext",
         "RageContext",
         "StackContext",
+        "TransformContext",
         "EffectContext<EffectTrigger>"
       ],
       "a": false
@@ -1287,6 +1292,13 @@
     {
       "n": "battle",
       "t": "Battle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "logger",
+      "t": "BattleLogger",
       "iu": false,
       "u": [],
       "a": false
@@ -1589,6 +1601,16 @@
       "a": false
     },
     {
+      "n": "switchOutPet",
+      "t": "null | Pet",
+      "iu": true,
+      "u": [
+        "null",
+        "Pet"
+      ],
+      "a": false
+    },
+    {
       "n": "parent",
       "t": "Battle | TurnContext",
       "iu": true,
@@ -1606,7 +1628,7 @@
       "a": false
     },
     {
-      "n": "target",
+      "n": "switchInPet",
       "t": "Pet",
       "iu": false,
       "u": [],
@@ -1887,6 +1909,13 @@
       "a": false
     },
     {
+      "n": "healResult",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "addModified",
       "t": "(percent: number, delta: number) => void",
       "iu": false,
@@ -1918,7 +1947,7 @@
       "a": false
     },
     {
-      "n": "value",
+      "n": "baseHeal",
       "t": "number",
       "iu": false,
       "u": [],
@@ -1937,6 +1966,13 @@
     {
       "n": "modified",
       "t": "[number, number]",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "value",
+      "t": "number",
       "iu": false,
       "u": [],
       "a": false
@@ -2233,10 +2269,111 @@
       "a": false
     }
   ],
+  "TransformContext": [
+    {
+      "n": "type",
+      "t": "\"transform\"",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "battle",
+      "t": "Battle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "available",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "parent",
+      "t": "Battle | EffectContext<EffectTrigger>",
+      "iu": true,
+      "u": [
+        "Battle",
+        "EffectContext<EffectTrigger>"
+      ],
+      "a": false
+    },
+    {
+      "n": "target",
+      "t": "MarkInstance | SkillInstance | Pet",
+      "iu": true,
+      "u": [
+        "MarkInstance",
+        "SkillInstance",
+        "Pet"
+      ],
+      "a": false
+    },
+    {
+      "n": "targetType",
+      "t": "\"skill\" | \"pet\" | \"mark\"",
+      "iu": true,
+      "u": [
+        "\"skill\"",
+        "\"pet\"",
+        "\"mark\""
+      ],
+      "a": false
+    },
+    {
+      "n": "fromBase",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toBase",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "transformType",
+      "t": "\"temporary\" | \"permanent\"",
+      "iu": true,
+      "u": [
+        "\"temporary\"",
+        "\"permanent\""
+      ],
+      "a": false
+    },
+    {
+      "n": "priority",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "causedBy",
+      "t": "undefined | MarkInstance | SkillInstance | Effect<EffectTrigger>",
+      "iu": true,
+      "u": [
+        "undefined",
+        "MarkInstance",
+        "SkillInstance",
+        "Effect<EffectTrigger>"
+      ],
+      "a": false
+    }
+  ],
   "AllContext": [
     {
       "n": "type",
-      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | EffectContext<EffectTrigger>",
+      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | TransformContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "Battle",
@@ -2249,6 +2386,7 @@
         "SwitchPetContext",
         "RageContext",
         "StackContext",
+        "TransformContext",
         "EffectContext<EffectTrigger>"
       ],
       "a": false
@@ -2446,6 +2584,13 @@
       "a": false
     },
     {
+      "n": "OnBeforeHeal",
+      "t": "HealContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "OnHeal",
       "t": "HealContext",
       "iu": false,
@@ -2495,8 +2640,36 @@
       "a": false
     },
     {
+      "n": "BeforeTransform",
+      "t": "TransformContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnTransform",
+      "t": "TransformContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "AfterTransform",
+      "t": "TransformContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnTransformEnd",
+      "t": "TransformContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "BeforeEffect",
-      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | EffectContext<EffectTrigger>",
+      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | TransformContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "Battle",
@@ -2509,13 +2682,14 @@
         "SwitchPetContext",
         "RageContext",
         "StackContext",
+        "TransformContext",
         "EffectContext<EffectTrigger>"
       ],
       "a": false
     },
     {
       "n": "AfterEffect",
-      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | EffectContext<EffectTrigger>",
+      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | TransformContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "Battle",
@@ -2528,6 +2702,7 @@
         "SwitchPetContext",
         "RageContext",
         "StackContext",
+        "TransformContext",
         "EffectContext<EffectTrigger>"
       ],
       "a": false
@@ -2535,8 +2710,22 @@
   ],
   "EffectScheduler": [
     {
+      "n": "logger",
+      "t": "BattleLogger",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "effectQueuesMap",
       "t": "WeakMap<Context, { effect: Effect<EffectTrigger>; context: EffectContext<EffectTrigger>; }[]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "addedEffectsMap",
+      "t": "WeakMap<Context, Set<string>>",
       "iu": false,
       "u": [],
       "a": false
@@ -2551,11 +2740,12 @@
       "a": false
     },
     {
-      "n": "trigger",
+      "n": "triggers",
       "t": "T",
       "iu": false,
       "u": [],
-      "a": false
+      "a": true,
+      "nt": "T"
     },
     {
       "n": "apply",
@@ -2601,6 +2791,13 @@
       "u": [],
       "a": true,
       "nt": "string"
+    },
+    {
+      "n": "trigger",
+      "t": "T",
+      "iu": false,
+      "u": [],
+      "a": false
     }
   ],
   "EffectContainer": [],
@@ -2673,6 +2870,8 @@
       "nt": "MarkInstance"
     }
   ],
+  "CompatibleLogger": [],
+  "BattleLogger": [],
   "BaseMark": [
     {
       "n": "id",
@@ -2715,6 +2914,13 @@
         "Battle",
         "Pet"
       ],
+      "a": false
+    },
+    {
+      "n": "logger",
+      "t": "BattleLogger",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3153,7 +3359,7 @@
       "nt": "SkillInstance"
     },
     {
-      "n": "base",
+      "n": "_base",
       "t": "Species",
       "iu": false,
       "u": [],
@@ -3208,7 +3414,7 @@
       "a": false
     },
     {
-      "n": "species",
+      "n": "originalSpecies",
       "t": "Species",
       "iu": false,
       "u": [],
@@ -3324,6 +3530,20 @@
         "undefined",
         "number"
       ],
+      "a": false
+    },
+    {
+      "n": "base",
+      "t": "Species",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "species",
+      "t": "Species",
+      "iu": false,
+      "u": [],
       "a": false
     },
     {
@@ -3944,6 +4164,1489 @@
       "a": false
     }
   ],
+  "TransformationStrategyRegistry": [
+    {
+      "n": "strategies",
+      "t": "Map<EntityType, AnyTransformationStrategy>",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "TransformationSystem": [
+    {
+      "n": "transformations",
+      "t": "Map<string, TransformationRecord<TransformableEntity, TransformablePrototype>[]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "temporaryTransformStack",
+      "t": "Map<string, TransformationRecord<TransformableEntity, TransformablePrototype>[]>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "permanentTransforms",
+      "t": "Map<string, TransformationRecord<TransformableEntity, TransformablePrototype>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "strategyRegistry",
+      "t": "TransformationStrategyRegistry",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "PetEntity": [
+    {
+      "n": "emitter",
+      "t": "undefined | Emitter<Events> | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "Emitter<Events>",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "gender",
+      "t": "Gender.NoGender | Gender.Male | Gender.Female",
+      "iu": true,
+      "u": [
+        "Gender.NoGender",
+        "Gender.Male",
+        "Gender.Female"
+      ],
+      "a": false
+    },
+    {
+      "n": "baseCritRate",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "baseAccuracy",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "baseRageObtainEfficiency",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "element",
+      "t": "Element.Normal | Element.Grass | Element.Water | Element.Fire | Element.Wind | Element.Bug | Element.Flying | Element.Electric | Element.Ground | Element.Ice | Element.Psychic | Element.Fighting | Element.Trait | Element.Light | Element.Mystery | Element.Shadow | Element.Dragon | Element.Desert | Element.Ancient | Element.Divine | Element.Miracle | Element.Holy | Element.ElfKing",
+      "iu": true,
+      "u": [
+        "Element.Normal",
+        "Element.Grass",
+        "Element.Water",
+        "Element.Fire",
+        "Element.Wind",
+        "Element.Bug",
+        "Element.Flying",
+        "Element.Electric",
+        "Element.Ground",
+        "Element.Ice",
+        "Element.Psychic",
+        "Element.Fighting",
+        "Element.Trait",
+        "Element.Light",
+        "Element.Mystery",
+        "Element.Shadow",
+        "Element.Dragon",
+        "Element.Desert",
+        "Element.Ancient",
+        "Element.Divine",
+        "Element.Miracle",
+        "Element.Holy",
+        "Element.ElfKing"
+      ],
+      "a": false
+    },
+    {
+      "n": "isAlive",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "owner",
+      "t": "null | Player",
+      "iu": true,
+      "u": [
+        "null",
+        "Player"
+      ],
+      "a": false
+    },
+    {
+      "n": "marks",
+      "t": "MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "MarkInstance"
+    },
+    {
+      "n": "skills",
+      "t": "SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "SkillInstance"
+    },
+    {
+      "n": "_base",
+      "t": "Species",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "appeared",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "lastSkill",
+      "t": "undefined | SkillInstance | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "SkillInstance",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "lastSkillUsedTimes",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "attributeSystem",
+      "t": "PetAttributeSystem",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "name",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "id",
+      "t": "petId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "originalSpecies",
+      "t": "Species",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "level",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "evs",
+      "t": "StatOutBattle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "ivs",
+      "t": "StatOutBattle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "nature",
+      "t": "Nature.Hardy | Nature.Lonely | Nature.Brave | Nature.Adamant | Nature.Naughty | Nature.Bold | Nature.Docile | Nature.Relaxed | Nature.Impish | Nature.Lax | Nature.Timid | Nature.Hasty | Nature.Serious | Nature.Jolly | Nature.Naive | Nature.Modest | Nature.Mild | Nature.Quiet | Nature.Bashful | Nature.Rash | Nature.Calm | Nature.Gentle | Nature.Sassy | Nature.Careful | Nature.Quirky",
+      "iu": true,
+      "u": [
+        "Nature.Hardy",
+        "Nature.Lonely",
+        "Nature.Brave",
+        "Nature.Adamant",
+        "Nature.Naughty",
+        "Nature.Bold",
+        "Nature.Docile",
+        "Nature.Relaxed",
+        "Nature.Impish",
+        "Nature.Lax",
+        "Nature.Timid",
+        "Nature.Hasty",
+        "Nature.Serious",
+        "Nature.Jolly",
+        "Nature.Naive",
+        "Nature.Modest",
+        "Nature.Mild",
+        "Nature.Quiet",
+        "Nature.Bashful",
+        "Nature.Rash",
+        "Nature.Calm",
+        "Nature.Gentle",
+        "Nature.Sassy",
+        "Nature.Careful",
+        "Nature.Quirky"
+      ],
+      "a": false
+    },
+    {
+      "n": "baseSkills",
+      "t": "BaseSkill",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "BaseSkill"
+    },
+    {
+      "n": "ability",
+      "t": "undefined | BaseMark | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "BaseMark",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "emblem",
+      "t": "undefined | BaseMark | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "BaseMark",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "weight",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "height",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "maxHp",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "base",
+      "t": "Species",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "species",
+      "t": "Species",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "currentHp",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stat",
+      "t": "StatOnBattle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "currentRage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "isActive",
+      "t": "() => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "settingRage",
+      "t": "(value: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "addRage",
+      "t": "(context: RageContext) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "damage",
+      "t": "(context: DamageContext) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "heal",
+      "t": "(context: HealContext) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "addMark",
+      "t": "(context: AddMarkContext) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "removeMark",
+      "t": "(context: RemoveMarkContext) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "getShieldMark",
+      "t": "() => MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "() => MarkInstance"
+    },
+    {
+      "n": "calculateStat",
+      "t": "(type: StatTypeOnBattle) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "calculateStatWithoutHp",
+      "t": "(type: StatTypeWithoutHp) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "calculateStatOnlyBattle",
+      "t": "(type: StatTypeOnBattle) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "calculateMaxHp",
+      "t": "() => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "setOwner",
+      "t": "(player: Player, emitter: Emitter<Events>) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "calculateStats",
+      "t": "() => { maxHp: number; atk: number; def: number; spa: number; spd: number; spe: number; accuracy: number; critRate: number; evasion: number; ragePerTurn: number; weight: number; height: number; }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "actualStat",
+      "t": "StatOnBattle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "recalculate",
+      "t": "() => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "getEffectiveStat",
+      "t": "(ignoreMark?: boolean, ignoreStageStrategy?: IgnoreStageStrategy) => StatOnBattle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "applyIgnoreStageStrategy",
+      "t": "(effectiveStats: StatOnBattle, ignoreStageStrategy: IgnoreStageStrategy) => StatOnBattle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "addStatStage",
+      "t": "(context: EffectContext<EffectTrigger>, statType: StatTypeWithoutHp, value: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "clearStatStage",
+      "t": "(context: EffectContext<EffectTrigger>, cleanStageStrategy?: CleanStageStrategy, ...statTypes: StatTypeWithoutHp[]) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "transferMarks",
+      "t": "(context: SwitchPetContext, ...marks: MarkInstance[]) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "switchOut",
+      "t": "(context: SwitchPetContext) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "switchIn",
+      "t": "(context: SwitchPetContext) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "getSkillOriginalCategory",
+      "t": "(skill: SkillInstance) => Category",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sortSkillsByOriginalCategory",
+      "t": "(skills: SkillInstance[]) => SkillInstance",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(skills: SkillInstance[]) => SkillInstance"
+    },
+    {
+      "n": "toMessage",
+      "t": "(viewerId?: string | undefined, showHidden?: boolean) => PetMessage",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "status",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "SkillEntity": [
+    {
+      "n": "owner",
+      "t": "null | Pet",
+      "iu": true,
+      "u": [
+        "null",
+        "Pet"
+      ],
+      "a": false
+    },
+    {
+      "n": "id",
+      "t": "skillId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "category",
+      "t": "Category.Physical | Category.Special | Category.Status | Category.Climax",
+      "iu": true,
+      "u": [
+        "Category.Physical",
+        "Category.Special",
+        "Category.Status",
+        "Category.Climax"
+      ],
+      "a": false
+    },
+    {
+      "n": "element",
+      "t": "Element.Normal | Element.Grass | Element.Water | Element.Fire | Element.Wind | Element.Bug | Element.Flying | Element.Electric | Element.Ground | Element.Ice | Element.Psychic | Element.Fighting | Element.Trait | Element.Light | Element.Mystery | Element.Shadow | Element.Dragon | Element.Desert | Element.Ancient | Element.Divine | Element.Miracle | Element.Holy | Element.ElfKing",
+      "iu": true,
+      "u": [
+        "Element.Normal",
+        "Element.Grass",
+        "Element.Water",
+        "Element.Fire",
+        "Element.Wind",
+        "Element.Bug",
+        "Element.Flying",
+        "Element.Electric",
+        "Element.Ground",
+        "Element.Ice",
+        "Element.Psychic",
+        "Element.Fighting",
+        "Element.Trait",
+        "Element.Light",
+        "Element.Mystery",
+        "Element.Shadow",
+        "Element.Dragon",
+        "Element.Desert",
+        "Element.Ancient",
+        "Element.Divine",
+        "Element.Miracle",
+        "Element.Holy",
+        "Element.ElfKing"
+      ],
+      "a": false
+    },
+    {
+      "n": "target",
+      "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
+      "iu": true,
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
+      "a": false
+    },
+    {
+      "n": "multihit",
+      "t": "number | [number, number]",
+      "iu": true,
+      "u": [
+        "number",
+        "[number, number]"
+      ],
+      "a": false
+    },
+    {
+      "n": "sureHit",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "sureCrit",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "ignoreShield",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "tags",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "string"
+    },
+    {
+      "n": "effects",
+      "t": "Effect<EffectTrigger>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "Effect<EffectTrigger>"
+    },
+    {
+      "n": "attributeSystem",
+      "t": "SkillAttributeSystem",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "base",
+      "t": "BaseSkill",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "power",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "accuracy",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "rage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "priority",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "appeared",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "baseId",
+      "t": "baseSkillId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "setOwner",
+      "t": "(owner: Pet) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "getEffects",
+      "t": "(trigger: EffectTrigger) => Effect<EffectTrigger>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "(trigger: EffectTrigger) => Effect<EffectTrigger>"
+    },
+    {
+      "n": "collectEffects",
+      "t": "(trigger: EffectTrigger, baseContext: UseSkillContext) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toMessage",
+      "t": "(viewerId?: string | undefined, showHidden?: boolean) => SkillMessage",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "MarkEntity": [
+    {
+      "n": "owner",
+      "t": "null | Battle | Pet",
+      "iu": true,
+      "u": [
+        "null",
+        "Battle",
+        "Pet"
+      ],
+      "a": false
+    },
+    {
+      "n": "id",
+      "t": "markId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "effects",
+      "t": "Effect<EffectTrigger>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "Effect<EffectTrigger>"
+    },
+    {
+      "n": "config",
+      "t": "Partial<MarkConfig>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "tags",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "string"
+    },
+    {
+      "n": "base",
+      "t": "BaseMark",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "attributeSystem",
+      "t": "MarkAttributeSystem",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "_stack",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "duration",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "isActive",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "stack",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "baseId",
+      "t": "baseMarkId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "setOwner",
+      "t": "(owner: MarkOwner, emitter: Emitter<Events>) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "attachTo",
+      "t": "(target: MarkOwner) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "detach",
+      "t": "() => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "update",
+      "t": "(context: TurnContext) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "addStack",
+      "t": "(value: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "tryStack",
+      "t": "(context: AddMarkContext) => boolean",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "consumeStack",
+      "t": "(context: DamageContext | EffectContext<EffectTrigger>, amount: number) => number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "isStackable",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "collectEffects",
+      "t": "(trigger: EffectTrigger, baseContext: AllContext) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "destroy",
+      "t": "(context: TurnContext | DamageContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | EffectContext<EffectTrigger>) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "transfer",
+      "t": "(context: SwitchPetContext | EffectContext<EffectTrigger>, target: Battle | Pet) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "toMessage",
+      "t": "() => MarkMessage",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "PetPrototype": [
+    {
+      "n": "id",
+      "t": "speciesId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "num",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "element",
+      "t": "Element.Normal | Element.Grass | Element.Water | Element.Fire | Element.Wind | Element.Bug | Element.Flying | Element.Electric | Element.Ground | Element.Ice | Element.Psychic | Element.Fighting | Element.Trait | Element.Light | Element.Mystery | Element.Shadow | Element.Dragon | Element.Desert | Element.Ancient | Element.Divine | Element.Miracle | Element.Holy | Element.ElfKing",
+      "iu": true,
+      "u": [
+        "Element.Normal",
+        "Element.Grass",
+        "Element.Water",
+        "Element.Fire",
+        "Element.Wind",
+        "Element.Bug",
+        "Element.Flying",
+        "Element.Electric",
+        "Element.Ground",
+        "Element.Ice",
+        "Element.Psychic",
+        "Element.Fighting",
+        "Element.Trait",
+        "Element.Light",
+        "Element.Mystery",
+        "Element.Shadow",
+        "Element.Dragon",
+        "Element.Desert",
+        "Element.Ancient",
+        "Element.Divine",
+        "Element.Miracle",
+        "Element.Holy",
+        "Element.ElfKing"
+      ],
+      "a": false
+    },
+    {
+      "n": "baseStats",
+      "t": "StatOutBattle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "genderRatio",
+      "t": "null | [number, number]",
+      "iu": true,
+      "u": [
+        "null",
+        "[number, number]"
+      ],
+      "a": false
+    },
+    {
+      "n": "heightRange",
+      "t": "[number, number]",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "weightRange",
+      "t": "[number, number]",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "ability",
+      "t": "undefined | BaseMark | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "BaseMark",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "emblem",
+      "t": "undefined | BaseMark | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "BaseMark",
+        "undefined"
+      ],
+      "a": false
+    }
+  ],
+  "SkillPrototype": [
+    {
+      "n": "effects",
+      "t": "Effect<EffectTrigger>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "Effect<EffectTrigger>"
+    },
+    {
+      "n": "id",
+      "t": "baseSkillId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "category",
+      "t": "Category.Physical | Category.Special | Category.Status | Category.Climax",
+      "iu": true,
+      "u": [
+        "Category.Physical",
+        "Category.Special",
+        "Category.Status",
+        "Category.Climax"
+      ],
+      "a": false
+    },
+    {
+      "n": "element",
+      "t": "Element.Normal | Element.Grass | Element.Water | Element.Fire | Element.Wind | Element.Bug | Element.Flying | Element.Electric | Element.Ground | Element.Ice | Element.Psychic | Element.Fighting | Element.Trait | Element.Light | Element.Mystery | Element.Shadow | Element.Dragon | Element.Desert | Element.Ancient | Element.Divine | Element.Miracle | Element.Holy | Element.ElfKing",
+      "iu": true,
+      "u": [
+        "Element.Normal",
+        "Element.Grass",
+        "Element.Water",
+        "Element.Fire",
+        "Element.Wind",
+        "Element.Bug",
+        "Element.Flying",
+        "Element.Electric",
+        "Element.Ground",
+        "Element.Ice",
+        "Element.Psychic",
+        "Element.Fighting",
+        "Element.Trait",
+        "Element.Light",
+        "Element.Mystery",
+        "Element.Shadow",
+        "Element.Dragon",
+        "Element.Desert",
+        "Element.Ancient",
+        "Element.Divine",
+        "Element.Miracle",
+        "Element.Holy",
+        "Element.ElfKing"
+      ],
+      "a": false
+    },
+    {
+      "n": "power",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "accuracy",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "rage",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "priority",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "target",
+      "t": "AttackTargetOpinion.self | AttackTargetOpinion.opponent",
+      "iu": true,
+      "u": [
+        "AttackTargetOpinion.self",
+        "AttackTargetOpinion.opponent"
+      ],
+      "a": false
+    },
+    {
+      "n": "multihit",
+      "t": "number | [number, number]",
+      "iu": true,
+      "u": [
+        "number",
+        "[number, number]"
+      ],
+      "a": false
+    },
+    {
+      "n": "sureHit",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "sureCrit",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "ignoreShield",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "ignoreFoeStageStrategy",
+      "t": "IgnoreStageStrategy.none | IgnoreStageStrategy.all | IgnoreStageStrategy.positive | IgnoreStageStrategy.negative",
+      "iu": true,
+      "u": [
+        "IgnoreStageStrategy.none",
+        "IgnoreStageStrategy.all",
+        "IgnoreStageStrategy.positive",
+        "IgnoreStageStrategy.negative"
+      ],
+      "a": false
+    },
+    {
+      "n": "tags",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "string"
+    }
+  ],
+  "MarkPrototype": [
+    {
+      "n": "id",
+      "t": "baseMarkId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "effects",
+      "t": "Effect<EffectTrigger>",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "Effect<EffectTrigger>"
+    },
+    {
+      "n": "config",
+      "t": "Readonly<MarkConfig>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "tags",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "string"
+    },
+    {
+      "n": "createInstance",
+      "t": "(overrides?: { duration?: number | undefined; stack?: number | undefined; config?: Partial<Readonly<MarkConfig>> | undefined; name?: string | undefined; tags?: string[] | undefined; effects?: Effect<EffectTrigger>[] | undefined; } | undefined) => MarkInstanceImpl",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "TransformableEntity": [
+    {
+      "n": "type",
+      "t": "MarkInstance | SkillInstance | Pet",
+      "iu": true,
+      "u": [
+        "MarkInstance",
+        "SkillInstance",
+        "Pet"
+      ],
+      "a": false
+    }
+  ],
+  "TransformablePrototype": [
+    {
+      "n": "type",
+      "t": "BaseMark | Species | BaseSkill",
+      "iu": true,
+      "u": [
+        "BaseMark",
+        "Species",
+        "BaseSkill"
+      ],
+      "a": false
+    }
+  ],
+  "AnyTransformationStrategy": [
+    {
+      "n": "type",
+      "t": "TransformationStrategy<Pet, Species, EntityType.Pet> | TransformationStrategy<SkillInstance, BaseSkill, EntityType.Skill> | TransformationStrategy<MarkInstance, BaseMark, EntityType.Mark>",
+      "iu": true,
+      "u": [
+        "TransformationStrategy<Pet, Species, EntityType.Pet>",
+        "TransformationStrategy<SkillInstance, BaseSkill, EntityType.Skill>",
+        "TransformationStrategy<MarkInstance, BaseMark, EntityType.Mark>"
+      ],
+      "a": false
+    }
+  ],
+  "TransformationStrategy": [],
+  "TransformationState": [
+    {
+      "n": "entityId",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "entityType",
+      "t": "EntityType.Pet | EntityType.Skill | EntityType.Mark",
+      "iu": true,
+      "u": [
+        "EntityType.Pet",
+        "EntityType.Skill",
+        "EntityType.Mark"
+      ],
+      "a": false
+    },
+    {
+      "n": "timestamp",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "currentHpRatio",
+      "t": "undefined | number",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    }
+  ],
+  "Transformable": [
+    {
+      "n": "base",
+      "t": "Prototype",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "EntityTypeMap": [
+    {
+      "n": "[EntityType.Pet]",
+      "t": "{ entity: Pet, prototype: Species, strategy: TransformationStrategy<Pet }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "[EntityType.Skill]",
+      "t": "{ entity: SkillInstance, prototype: BaseSkill, strategy: TransformationStrategy<SkillInstance }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "[EntityType.Mark]",
+      "t": "{ entity: MarkInstance, prototype: BaseMark, strategy: TransformationStrategy<MarkInstance }",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "TransformationRecord": [
+    {
+      "n": "id",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "target",
+      "t": "TEntity",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "targetType",
+      "t": "EntityType.Pet | EntityType.Skill | EntityType.Mark",
+      "iu": true,
+      "u": [
+        "EntityType.Pet",
+        "EntityType.Skill",
+        "EntityType.Mark"
+      ],
+      "a": false
+    },
+    {
+      "n": "originalBase",
+      "t": "TPrototype",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "currentBase",
+      "t": "TPrototype",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "transformType",
+      "t": "\"temporary\" | \"permanent\"",
+      "iu": true,
+      "u": [
+        "\"temporary\"",
+        "\"permanent\""
+      ],
+      "a": false
+    },
+    {
+      "n": "priority",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "causedBy",
+      "t": "undefined | MarkInstance | SkillInstance | Effect<EffectTrigger>",
+      "iu": true,
+      "u": [
+        "undefined",
+        "MarkInstance",
+        "SkillInstance",
+        "Effect<EffectTrigger>"
+      ],
+      "a": false
+    },
+    {
+      "n": "isActive",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "createdAt",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "currentHpRatio",
+      "t": "undefined | number",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    },
+    {
+      "n": "permanentStrategy",
+      "t": "undefined | \"preserve_temporary\" | \"clear_temporary\"",
+      "iu": true,
+      "u": [
+        "undefined",
+        "\"preserve_temporary\"",
+        "\"clear_temporary\""
+      ],
+      "a": false
+    },
+    {
+      "n": "effectHandlingStrategy",
+      "t": "EffectHandlingStrategy.Override | EffectHandlingStrategy.Preserve",
+      "iu": true,
+      "u": [
+        "EffectHandlingStrategy.Override",
+        "EffectHandlingStrategy.Preserve"
+      ],
+      "a": false
+    }
+  ],
+  "PetTransformationStrategy": [],
+  "SkillTransformationStrategy": [],
+  "MarkTransformationStrategy": [],
+  "DefaultTransformationStrategies": [],
   "Brand": [],
   "entityId": [],
   "speciesId": [],
@@ -4571,14 +6274,14 @@
       "nt": "(index: number, value: number) => number"
     },
     {
-      "n": "__@iterator@373",
+      "n": "__@iterator@362",
       "t": "() => ArrayIterator<number>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
-      "n": "__@unscopables@1195",
+      "n": "__@unscopables@1331",
       "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
       "iu": false,
       "u": [],
@@ -4617,6 +6320,20 @@
     {
       "n": "timerTimeout",
       "t": "{ player: playerId, type: \"turn\" | \"total\", autoAction?: string | undefined }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "timerSnapshot",
+      "t": "snapshots",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "timerStateChange",
+      "t": "{ playerId: playerId, oldState: string, newState: string, timestamp: number }",
       "iu": false,
       "u": [],
       "a": false
@@ -4751,7 +6468,7 @@
   "BattleMessage": [
     {
       "n": "type",
-      "t": "BattleStartMessage | TurnStartMessage | TurnEndMessage | BattleEndMessage | PetSwitchMessage | PetDefeatedMessage | PetReviveMessage | StatChangeMessage | RageChangeMessage | HpChangeMessage | SkillUseMessage | SkillUseFailMessage | SkillMissMessage | SkillUseEndMessage | DamageMessage | DamageFailMessage | HealMessage | HealFailMessage | MarkApplyMessage | MarkExpireMessage | MarkUpdateMessage | MarkDestroyMessage | EffectApplyMessage | TurnActionMessage | ForcedSwitchMessage | FaintSwitchMessage | InvalidActionMessage | InfoMessage | ErrorMessage",
+      "t": "BattleStartMessage | TurnStartMessage | TurnEndMessage | BattleEndMessage | PetSwitchMessage | PetDefeatedMessage | PetReviveMessage | StatChangeMessage | RageChangeMessage | HpChangeMessage | SkillUseMessage | SkillUseFailMessage | SkillMissMessage | SkillUseEndMessage | DamageMessage | DamageFailMessage | HealMessage | HealFailMessage | MarkApplyMessage | MarkExpireMessage | MarkUpdateMessage | MarkDestroyMessage | EffectApplyMessage | TurnActionMessage | ForcedSwitchMessage | FaintSwitchMessage | InvalidActionMessage | InfoMessage | ErrorMessage | TransformMessage | TransformEndMessage",
       "iu": true,
       "u": [
         "BattleStartMessage",
@@ -4782,7 +6499,9 @@
         "FaintSwitchMessage",
         "InvalidActionMessage",
         "InfoMessage",
-        "ErrorMessage"
+        "ErrorMessage",
+        "TransformMessage",
+        "TransformEndMessage"
       ],
       "a": false
     }
@@ -6237,6 +7956,106 @@
       "a": false
     }
   ],
+  "TransformMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.Transform",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ target: markId | skillId | petId, targetType: \"skill\" | \"pet\" | \"mark\", fromBase: baseMarkId | baseSkillId | speciesId, toBase: baseMarkId | baseSkillId | speciesId, transformType: \"temporary\" | \"permanent\", priority: number, causedBy?: markId | skillId | effectId | undefined }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
+      "a": false
+    }
+  ],
+  "TransformEndMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.TransformEnd",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ target: markId | skillId | petId, targetType: \"skill\" | \"pet\" | \"mark\", fromBase: baseMarkId | baseSkillId | speciesId, toBase: baseMarkId | baseSkillId | speciesId, reason: \"mark_destroyed\" | \"manual\" | \"replaced\" }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
+      "a": false
+    }
+  ],
   "SkillMessage": [
     {
       "n": "isUnknown",
@@ -6370,6 +8189,16 @@
       "u": [],
       "a": true,
       "nt": "string"
+    },
+    {
+      "n": "modifierState",
+      "t": "undefined | EntityModifierState",
+      "iu": true,
+      "u": [
+        "undefined",
+        "EntityModifierState"
+      ],
+      "a": false
     }
   ],
   "PetMessage": [
@@ -6483,6 +8312,16 @@
       "u": [],
       "a": true,
       "nt": "MarkMessage"
+    },
+    {
+      "n": "modifierState",
+      "t": "undefined | EntityModifierState",
+      "iu": true,
+      "u": [
+        "undefined",
+        "EntityModifierState"
+      ],
+      "a": false
     }
   ],
   "MarkMessage": [
@@ -6583,6 +8422,160 @@
       "t": "number",
       "iu": false,
       "u": [],
+      "a": false
+    },
+    {
+      "n": "modifierState",
+      "t": "undefined | EntityModifierState",
+      "iu": true,
+      "u": [
+        "undefined",
+        "EntityModifierState"
+      ],
+      "a": false
+    }
+  ],
+  "ModifierInfo": [
+    {
+      "n": "id",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "type",
+      "t": "\"percent\" | \"delta\" | \"override\" | \"clampMax\" | \"clampMin\" | \"clamp\"",
+      "iu": true,
+      "u": [
+        "\"percent\"",
+        "\"delta\"",
+        "\"override\"",
+        "\"clampMax\"",
+        "\"clampMin\"",
+        "\"clamp\""
+      ],
+      "a": false
+    },
+    {
+      "n": "value",
+      "t": "string | number | false | true",
+      "iu": true,
+      "u": [
+        "string",
+        "number",
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "priority",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sourceType",
+      "t": "\"skill\" | \"mark\" | \"other\"",
+      "iu": true,
+      "u": [
+        "\"skill\"",
+        "\"mark\"",
+        "\"other\""
+      ],
+      "a": false
+    },
+    {
+      "n": "sourceId",
+      "t": "undefined | string",
+      "iu": true,
+      "u": [
+        "undefined",
+        "string"
+      ],
+      "a": false
+    },
+    {
+      "n": "sourceName",
+      "t": "undefined | string",
+      "iu": true,
+      "u": [
+        "undefined",
+        "string"
+      ],
+      "a": false
+    }
+  ],
+  "AttributeModifierInfo": [
+    {
+      "n": "attributeName",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "baseValue",
+      "t": "string | number | false | true",
+      "iu": true,
+      "u": [
+        "string",
+        "number",
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "currentValue",
+      "t": "string | number | false | true",
+      "iu": true,
+      "u": [
+        "string",
+        "number",
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "modifiers",
+      "t": "ModifierInfo",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "ModifierInfo"
+    },
+    {
+      "n": "isModified",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    }
+  ],
+  "EntityModifierState": [
+    {
+      "n": "attributes",
+      "t": "AttributeModifierInfo",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "AttributeModifierInfo"
+    },
+    {
+      "n": "hasModifiers",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
       "a": false
     }
   ],
@@ -6893,6 +8886,20 @@
       "iu": false,
       "u": [],
       "a": false
+    },
+    {
+      "n": "[BattleMessageType.Transform]",
+      "t": "{ target: markId | skillId | petId, targetType: \"skill\" | \"pet\" | \"mark\", fromBase: baseMarkId | baseSkillId | speciesId, toBase: baseMarkId | baseSkillId | speciesId, transformType: \"temporary\" | \"permanent\", priority: number, causedBy?: markId | skillId | effectId | undefined }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "[BattleMessageType.TransformEnd]",
+      "t": "{ target: markId | skillId | petId, targetType: \"skill\" | \"pet\" | \"mark\", fromBase: baseMarkId | baseSkillId | speciesId, toBase: baseMarkId | baseSkillId | speciesId, reason: \"mark_destroyed\" | \"manual\" | \"replaced\" }",
+      "iu": false,
+      "u": [],
+      "a": false
     }
   ],
   "PlayerSelection": [
@@ -7148,7 +9155,7 @@
   "TimerEvent": [
     {
       "n": "type",
-      "t": "TimerEventType.Start | TimerEventType.Update | TimerEventType.Pause | TimerEventType.Resume | TimerEventType.Timeout | TimerEventType.Stop",
+      "t": "TimerEventType.Start | TimerEventType.Update | TimerEventType.Pause | TimerEventType.Resume | TimerEventType.Timeout | TimerEventType.Stop | TimerEventType.Snapshot | TimerEventType.StateChange",
       "iu": true,
       "u": [
         "TimerEventType.Start",
@@ -7156,7 +9163,9 @@
         "TimerEventType.Pause",
         "TimerEventType.Resume",
         "TimerEventType.Timeout",
-        "TimerEventType.Stop"
+        "TimerEventType.Stop",
+        "TimerEventType.Snapshot",
+        "TimerEventType.StateChange"
       ],
       "a": false
     },
@@ -7182,6 +9191,126 @@
       "t": "number",
       "iu": false,
       "u": [],
+      "a": false
+    }
+  ],
+  "TimerSnapshot": [
+    {
+      "n": "timestamp",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "playerId",
+      "t": "playerId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "state",
+      "t": "TimerState.Stopped | TimerState.Running | TimerState.Paused | TimerState.Timeout",
+      "iu": true,
+      "u": [
+        "TimerState.Stopped",
+        "TimerState.Running",
+        "TimerState.Paused",
+        "TimerState.Timeout"
+      ],
+      "a": false
+    },
+    {
+      "n": "remainingTurnTime",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "remainingTotalTime",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "config",
+      "t": "TimerConfig",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "hasActiveAnimations",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "pauseReason",
+      "t": "undefined | \"animation\" | \"system\"",
+      "iu": true,
+      "u": [
+        "undefined",
+        "\"animation\"",
+        "\"system\""
+      ],
+      "a": false
+    }
+  ],
+  "TimerCacheItem": [
+    {
+      "n": "snapshot",
+      "t": "TimerSnapshot",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "cachedAt",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "ttl",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "TimerEventBatch": [
+    {
+      "n": "events",
+      "t": "TimerEvent",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "TimerEvent"
+    },
+    {
+      "n": "createdAt",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "timer",
+      "t": "undefined | NodeJS.Timeout",
+      "iu": true,
+      "u": [
+        "undefined",
+        "NodeJS.Timeout"
+      ],
       "a": false
     }
   ],
@@ -7496,6 +9625,13 @@
   ],
   "PhaseManager": [
     {
+      "n": "logger",
+      "t": "BattleLogger",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "phases",
       "t": "Map<string, BattlePhaseBase<Context>>",
       "iu": false,
@@ -7805,6 +9941,13 @@
   "TurnPhase": [],
   "AnimationTracker": [
     {
+      "n": "logger",
+      "t": "BattleLogger",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "activeAnimations",
       "t": "Map<string, AnimationInfo>",
       "iu": false,
@@ -7881,6 +10024,13 @@
     }
   ],
   "BattleTimer": [
+    {
+      "n": "logger",
+      "t": "BattleLogger",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
     {
       "n": "state",
       "t": "TimerState.Stopped | TimerState.Running | TimerState.Paused | TimerState.Timeout",
@@ -7959,6 +10109,36 @@
       "a": false
     },
     {
+      "n": "lastEmittedState",
+      "t": "TimerState.Stopped | TimerState.Running | TimerState.Paused | TimerState.Timeout",
+      "iu": true,
+      "u": [
+        "TimerState.Stopped",
+        "TimerState.Running",
+        "TimerState.Paused",
+        "TimerState.Timeout"
+      ],
+      "a": false
+    },
+    {
+      "n": "lastSnapshotTime",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "pauseReason",
+      "t": "undefined | \"animation\" | \"system\"",
+      "iu": true,
+      "u": [
+        "undefined",
+        "\"animation\"",
+        "\"system\""
+      ],
+      "a": false
+    },
+    {
       "n": "playerId",
       "t": "playerId",
       "iu": false,
@@ -7983,6 +10163,13 @@
     }
   ],
   "TimerManager": [
+    {
+      "n": "logger",
+      "t": "BattleLogger",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
     {
       "n": "playerTimers",
       "t": "Map<playerId, BattleTimer>",

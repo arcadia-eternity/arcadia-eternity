@@ -48,15 +48,15 @@ export async function executeSwitchPetOperation(context: SwitchPetContext, battl
   const player = context.origin
 
   // Check if new pet is available
-  if (!player.team.includes(context.target) || !context.target.isAlive) {
+  if (!player.team.includes(context.switchInPet) || !context.switchInPet.isAlive) {
     battle.emitMessage(BattleMessageType.Error, {
-      message: `${context.target.name} 无法出战！`,
+      message: `${context.switchInPet.name} 无法出战！`,
     })
     return
   }
 
   // If switching to the same pet, do nothing
-  if (player.activePet === context.target) {
+  if (player.activePet === context.switchInPet) {
     return
   }
 
@@ -68,7 +68,7 @@ export async function executeSwitchPetOperation(context: SwitchPetContext, battl
   oldPet.switchOut(context)
 
   // Switch the active pet
-  player.activePet = context.target
+  player.activePet = context.switchInPet
 
   // Apply switch in effects
   battle.applyEffects(context, EffectTrigger.OnSwitchIn)
@@ -78,8 +78,8 @@ export async function executeSwitchPetOperation(context: SwitchPetContext, battl
   battle.emitMessage(BattleMessageType.PetSwitch, {
     player: player.id,
     fromPet: oldPet.id,
-    toPet: context.target.id,
-    currentHp: context.target.currentHp,
+    toPet: context.switchInPet.id,
+    currentHp: context.switchInPet.currentHp,
   })
 
   // Reduce rage to 80% after switching

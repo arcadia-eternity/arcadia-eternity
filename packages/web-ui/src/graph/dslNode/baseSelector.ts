@@ -137,6 +137,16 @@ export class StackContextNode extends BaseSelectorNode {
   }
 }
 
+// 换宠上下文节点
+export class SwitchPetContextNode extends BaseSelectorNode {
+  static selectorType = 'switchPetContext' as const
+  constructor() {
+    super()
+    this.title = '换宠上下文'
+    this.size[0] = 140 // 标题较长时调整宽度
+  }
+}
+
 /* ---------- 注册到 LiteGraph ---------- */
 const BASE_SELECTOR_NODES = [
   SelfNode,
@@ -150,6 +160,7 @@ const BASE_SELECTOR_NODES = [
   SelfMarksNode,
   FoeMarksNode,
   StackContextNode,
+  SwitchPetContextNode,
 ]
 
 export function IsBaseSelectorNode(node: LGraphNode): node is BaseSelectorNode {

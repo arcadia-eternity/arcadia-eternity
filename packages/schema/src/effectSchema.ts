@@ -307,6 +307,10 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       value: valueSchema,
     }),
     z.object({
+      type: z.literal('executeKill'),
+      target: selectorDSLSchema,
+    }),
+    z.object({
       type: z.literal('addMark'),
       target: selectorDSLSchema,
       mark: valueSchema,
@@ -848,7 +852,7 @@ export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
 export const effectDSLSchema: z.ZodSchema<EffectDSL> = z.lazy(() =>
   z.object({
     id: z.string(),
-    trigger: effectTriggerSchema,
+    trigger: z.union([effectTriggerSchema, z.array(effectTriggerSchema)]),
     priority: z.number(),
     apply: z.union([operatorDSLSchema, z.array(operatorDSLSchema)]),
     condition: conditionDSLSchema.optional(),

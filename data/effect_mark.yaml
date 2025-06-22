@@ -2664,3 +2664,79 @@
     target: damageContext
     percent: -30
     delta: 0
+
+# 接力：使得换场后的下一只精灵获得25层伤害增加
+- id: effect_mark_add_damage_increase_25_on_switch_in
+  trigger: OnSwitchIn
+  priority: 0
+  apply:
+    type: addMark
+    target:
+      base: switchPetContext
+      chain:
+        - type: selectPath
+          arg: switchInPet
+    mark:
+      type: entity:baseMark
+      value: mark_shanghaizengjia
+    stack: 25
+  condition:
+    type: selfSwitchOut
+
+# 大地之佑: 每层增加25点物防
+- id: effect_mark_def_boost_25_per_stack
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addDynamicAttributeModifier
+    target:
+      base: self
+    stat: def
+    modifierType: delta
+    observableValue:
+      base: mark
+      chain:
+        - type: selectAttribute$
+          arg: stack
+        - type: multiply
+          arg: 25
+
+# 沙暴之力: 每层增加25点特攻
+- id: effect_mark_spa_boost_25_per_stack
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addDynamicAttributeModifier
+    target:
+      base: self
+    stat: spa
+    modifierType: delta
+    observableValue:
+      base: mark
+      chain:
+        - type: selectAttribute$
+          arg: stack
+        - type: multiply
+          arg: 25
+
+# 泰坦之护：受到伤害不超过自身最大体力的1/2
+- id: effect_mark_damage_cap_half_max_hp
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: addThreshold
+    target: damageContext
+    min: 0
+    max:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: maxHp
+          - type: divide
+            arg: 2

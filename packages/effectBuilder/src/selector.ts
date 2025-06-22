@@ -14,6 +14,7 @@ import {
   AddMarkContext,
   RageContext,
   StackContext,
+  SwitchPetContext,
   MarkInstanceImpl,
   type ScopeObject,
   Context,
@@ -592,6 +593,7 @@ export type ObjectOpinion =
   | AddMarkContext
   | RageContext
   | StackContext
+  | SwitchPetContext
   | StatTypeOnBattle
   | Instance
   | BaseMark
@@ -649,6 +651,7 @@ export const BaseSelector: {
   addMarkContext: ChainableSelector<AddMarkContext>
   rageContext: ChainableSelector<RageContext>
   stackContext: ChainableSelector<StackContext>
+  switchPetContext: ChainableSelector<SwitchPetContext>
   battle: ChainableSelector<Battle>
   turnContext: ChainableSelector<TurnContext>
   currentPhase: ChainableSelector<BattlePhaseBase>
@@ -793,6 +796,10 @@ export const BaseSelector: {
   }),
   stackContext: createChainable<StackContext>('StackContext', (context: EffectContext<EffectTrigger>) => {
     const foundContext = findContextRecursively(context, StackContext)
+    return foundContext ? [foundContext] : []
+  }),
+  switchPetContext: createChainable<SwitchPetContext>('SwitchPetContext', (context: EffectContext<EffectTrigger>) => {
+    const foundContext = findContextRecursively(context, SwitchPetContext)
     return foundContext ? [foundContext] : []
   }),
   battle: createChainable<Battle>('Battle', (context: EffectContext<EffectTrigger>) => {

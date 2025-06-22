@@ -11,49 +11,59 @@
             "type": "string"
           },
           "trigger": {
-            "type": "string",
-            "enum": [
-              "OnBattleStart",
-              "BeforeSort",
-              "BeforeUseSkillCheck",
-              "AfterUseSkillCheck",
-              "BeforeMultiHit",
-              "BeforeHit",
-              "OnCritPreDamage",
-              "PreDamage",
-              "OnHit",
-              "OnMiss",
-              "AfterAttacked",
-              "OnDefeat",
-              "OnBeforeCalculateDamage",
-              "OnDamage",
-              "Shield",
-              "PostDamage",
-              "OnCritPostDamage",
-              "OnTransform",
-              "OnTransformEnd",
-              "BeforeTransform",
-              "AfterTransform",
-              "TurnStart",
-              "TurnEnd",
-              "OnBeforeAddMark",
-              "OnAnyMarkAdded",
-              "OnRemoveMark",
-              "OnMarkCreated",
-              "OnMarkDestroy",
-              "OnMarkDurationEnd",
-              "OnStackBefore",
-              "OnStack",
-              "OnBeforeHeal",
-              "OnHeal",
-              "OnRageGain",
-              "OnRageLoss",
-              "OnSwitchIn",
-              "OnSwitchOut",
-              "OnOwnerSwitchIn",
-              "OnOwnerSwitchOut",
-              "BeforeEffect",
-              "AfterEffect"
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "OnBattleStart",
+                  "BeforeSort",
+                  "BeforeUseSkillCheck",
+                  "AfterUseSkillCheck",
+                  "BeforeMultiHit",
+                  "BeforeHit",
+                  "OnCritPreDamage",
+                  "PreDamage",
+                  "OnHit",
+                  "OnMiss",
+                  "AfterAttacked",
+                  "OnDefeat",
+                  "OnBeforeCalculateDamage",
+                  "OnDamage",
+                  "Shield",
+                  "PostDamage",
+                  "OnCritPostDamage",
+                  "OnTransform",
+                  "OnTransformEnd",
+                  "BeforeTransform",
+                  "AfterTransform",
+                  "TurnStart",
+                  "TurnEnd",
+                  "OnBeforeAddMark",
+                  "OnAnyMarkAdded",
+                  "OnRemoveMark",
+                  "OnMarkCreated",
+                  "OnMarkDestroy",
+                  "OnMarkDurationEnd",
+                  "OnStackBefore",
+                  "OnStack",
+                  "OnBeforeHeal",
+                  "OnHeal",
+                  "OnRageGain",
+                  "OnRageLoss",
+                  "OnSwitchIn",
+                  "OnSwitchOut",
+                  "OnOwnerSwitchIn",
+                  "OnOwnerSwitchOut",
+                  "BeforeEffect",
+                  "AfterEffect"
+                ]
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/effect/items/properties/trigger/anyOf/0"
+                }
+              }
             ]
           },
           "priority": {
@@ -120,6 +130,7 @@
                                       "addMarkContext",
                                       "rageContext",
                                       "stackContext",
+                                      "switchPetContext",
                                       "battle",
                                       "turnContext",
                                       "currentPhase",
@@ -1381,6 +1392,23 @@
                       "type",
                       "target",
                       "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "executeKill"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target"
                     ],
                     "additionalProperties": false
                   },

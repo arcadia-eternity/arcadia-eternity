@@ -120,7 +120,7 @@
     conditions:
       - type: selfUseSkill
       - *condition_probability_15_percent_template
-- id: effect_skill_raise_atk_1_stages
+- id: effect_skill_raise_atk_1_stage
   trigger: BeforeHit
   priority: 0
   apply: &apply_self_statstage_+1_template
@@ -148,14 +148,14 @@
     conditions:
       - type: selfUseSkill
       - *condition_probability_15_percent_template
-- id: effect_skill_raise_def_1_stages
+- id: effect_skill_raise_def_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_self_statstage_+1_template
     statType: def
   condition: *condition_self_use_skill_template
-- id: effect_skill_raise_spa_1_stages
+- id: effect_skill_raise_spa_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
@@ -184,7 +184,7 @@
     conditions:
       - type: selfUseSkill
       - *condition_probability_15_percent_template
-- id: effect_skill_raise_spd_1_stages
+- id: effect_skill_raise_spd_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
@@ -210,7 +210,7 @@
             type: 'raw:number'
             value: 20
             tags: ['skill_effect_probability']
-- id: effect_skill_raise_spe_1_stages
+- id: effect_skill_raise_spe_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
@@ -3317,7 +3317,7 @@
   condition:
     type: selfUseSkill
 # 如果有爱的名义标记，防御提升1级
-- id: effect_skill_raise_def_1_stages_if_aideminyi
+- id: effect_skill_raise_def_1_stage_if_aideminyi
   trigger: BeforeHit
   priority: 0
   apply:
@@ -7143,3 +7143,218 @@
     target: skill
   condition:
     type: selfUseSkill
+# 无论命中与否，回复1/4物防的hp
+- id: effect_skill_heal_self_def_quarter_hit_or_miss
+  trigger: [OnHit, OnMiss]
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: stat.def
+          - type: divide
+            arg: 4
+  condition:
+    type: selfUseSkill
+# 命中时造成特攻1/6的额外伤害
+- id: effect_skill_add_damage_spa_sixth
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: stat.spa
+          - type: divide
+            arg: 6
+  condition:
+    type: selfUseSkill
+# 未命中时，给敌方造成特攻1/6的伤害
+- id: effect_skill_deal_damage_spa_sixth_on_miss
+  trigger: OnMiss
+  priority: 0
+  apply:
+    type: dealDamage
+    target: foe
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: stat.spa
+          - type: divide
+            arg: 6
+  condition:
+    type: selfUseSkill
+# 无论命中与否，使自身获得65点硬化
+- id: effect_skill_add_mark_yinghua_65_hit_or_miss
+  trigger: [OnHit, OnMiss]
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_yinghua
+    stack: 65
+  condition:
+    type: selfUseSkill
+# 无论命中与否，给对方添加60层流血
+- id: effect_skill_add_mark_foe_liuxie_60_hit_or_miss
+  trigger: [OnHit, OnMiss]
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_liuxie
+    stack: 60
+  condition:
+    type: selfUseSkill
+# 无论命中与否，添加免疫不良
+- id: effect_skill_add_mark_mianyibuliang_hit_or_miss
+  trigger: [OnHit, OnMiss]
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_mianyibuliang
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+# 无论命中与否，清理自身的不良印记
+- id: effect_skill_clear_status_hit_or_miss
+  trigger: [OnHit, OnMiss]
+  priority: 0
+  apply:
+    type: destroyMark
+    target:
+      base: self
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: tags
+          evaluator:
+            type: contain
+            tag: status
+  condition:
+    type: selfUseSkill
+# 无论命中与否，恢复30点怒气
+- id: effect_skill_add_rage_30_hit_or_miss
+  trigger: [OnHit, OnMiss]
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 30
+  condition:
+    type: selfUseSkill
+# 使自身获得一层大地之佑
+- id: effect_skill_add_mark_dadizhiyou_1
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_dadizhiyou
+    stack: 1
+  condition:
+    type: selfUseSkill
+# 使自身获得一层沙暴之力
+- id: effect_skill_add_mark_shabaozhili_1
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shabaozhili
+    stack: 1
+  condition:
+    type: selfUseSkill
+# 无论命中与否，清除对方的强化状态
+- id: effect_skill_foe_clear_stage_hit_or_miss
+  trigger: [OnHit, OnMiss]
+  priority: 0
+  apply:
+    type: clearStatStage
+    target: foe
+    cleanStageStrategy: positive
+  condition: *condition_self_use_skill_template
+# 无论命中与否，斩杀血量低于75的对手
+- id: effect_skill_execute_foe_hp_under_75_hit_or_miss
+  trigger: [OnHit, OnMiss]
+  priority: 100
+  apply:
+    type: executeKill
+    target: foe
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foe
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: <
+          value: 75
+# 无论命中与否，使自身获得接力
+- id: effect_skill_add_mark_jieli_hit_or_miss
+  trigger: [OnHit, OnMiss]
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_jieli
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+# 使自身获得泰坦之护
+- id: effect_skill_add_mark_taitanzhihu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_taitanzhihu
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill

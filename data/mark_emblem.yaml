@@ -157,3 +157,8 @@
   effect:
     - effect_emblem_fenshenshu_set_sure_hit
     - effect_emblem_add_mark_fenshenhying_when_use_fenshenshu
+- id: mark_emblem_lianfang
+  config: *emblem_config
+  effect:
+    - effect_emblem_add_mark_switchinpet_shoudaoshanghaijianshao_25_on_switchout
+    - effect_emblem_add_mark_shoudaoshanghaijianshao_15_on_switchin
