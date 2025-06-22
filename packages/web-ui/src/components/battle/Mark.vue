@@ -27,7 +27,7 @@ const stackText = computed(() => `${props.mark.stack}`)
 const markData = computed(() => dataStore.getMark(props.mark.baseId))
 const image = computed(() => {
   // if (!markData.value) return 'https://seer2-resource.yuuinih.com/png/traitMark/inc.png'
-  if (markData && markData.value.tags) {
+  if (markData.value && markData.value.tags) {
     if (markData.value.tags?.includes('ability')) {
       return 'https://seer2-resource.yuuinih.com/png/markImage/ability.png'
     }
