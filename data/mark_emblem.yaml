@@ -13,152 +13,189 @@
     - effect_emblem_set_ruodianbiaoji_keeponswitchout
 - id: mark_emblem_nuhuo
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_increase_rage_on_damage
 - id: mark_emblem_zhiyu
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_20percent_double_heal
 - id: mark_emblem_meihuo
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_destroy_meihuo_onturnend
 - id: mark_emblem_kangdu
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_set_zhongdu_duration_2
 - id: mark_emblem_zhongliang
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_increase_weight_10kg
 - id: mark_emblem_shupi
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_decrease_liuxue_duration_1
 - id: mark_emblem_shiming
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_decrease_shiming_duration_1
 - id: mark_emblem_duyao
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_add_manxingduyao_maxstack_4
 - id: mark_emblem_zhixi
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_immune_mark_zhixi
 - id: mark_emblem_xingzhi
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_add_xingzhili_duration
 - id: mark_emblem_zhenji
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_add_crit_rate_5_percent_if_has_shuiwenzhenji
 - id: mark_emblem_yiran
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_add_shaoshang_duration
 - id: mark_emblem_xuanyun
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_add_xuanyun_duration
 - id: mark_emblem_weiyan
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_immune_mark_haipa
 - id: mark_emblem_yanhuo
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_add_mark_yanhuo_duration_1
 - id: mark_emblem_xuruo
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_xuruo_10percent_extra_debuff_stack
 - id: mark_emblem_yinji
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_yinji_reduce_rage_cost_xinzhiyinji
 - id: mark_emblem_huizhi
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_increase_skill_trigger_rate_5_percent
 - id: mark_emblem_yinbo
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_add_yinbo_stack_config_5
 - id: mark_emblem_xinsuo
 - id: mark_emblem_aide
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_add_mark_aideminyi
 - id: mark_emblem_quanzhi
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_increase_quan_skill_damage_5_percent
 - id: mark_emblem_zhenjiu
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_add_zhenjiu_duration_1
 - id: mark_emblem_ganying
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_add_xukongtizhi_when_foe_hit_self
 - id: mark_emblem_zhongji
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_zhongji_damage_boost_35_percent
 - id: mark_emblem_fengbao
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_fengbaozhixing_rage_boost_5
 - id: mark_emblem_dianhe
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_dianhe_crit_rate_boost_5_percent
 - id: mark_emblem_shenjie
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_shenjie_freeze_rate_boost_5_percent
 - id: mark_emblem_anying
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_anying_immune_fear_early_wake
 - id: mark_emblem_guangming
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_guangming_heal_20_per_turn
 - id: mark_emblem_bipo
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_pofangyiji_sure_hit
 - id: mark_emblem_shahe
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_shahezhiguang_power_boost_10_percent
 - id: mark_emblem_dadi
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_dadiqiang_duration_boost_1
 - id: mark_emblem_shamo
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_shazhidanke_max_stack_4
 - id: mark_emblem_wuzhe
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_wuzhe_reduce_damage_increase_5_percent
 - id: mark_emblem_renzhe
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_renzhe_reduce_damage_reduction_5_percent
 - id: mark_emblem_fenshen
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_fenshenshu_set_sure_hit
     - effect_emblem_add_mark_fenshenhying_when_use_fenshenshu
 - id: mark_emblem_lianfang
   config: *emblem_config
+  tags: [emblem]
   effect:
     - effect_emblem_add_mark_switchinpet_shoudaoshanghaijianshao_25_on_switchout
     - effect_emblem_add_mark_shoudaoshanghaijianshao_15_on_switchin

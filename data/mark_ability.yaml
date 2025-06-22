@@ -4,161 +4,199 @@
 # @version 1.0.0
 
 - id: mark_ability_zhongjie
-  config: &ablitity_config
+  config: &ability_config
     persistent: true
     stackable: false
     stackStrategy: extend
     destroyable: false
     keepOnSwitchOut: true
+  tags: [ability]
   effect:
     - effect_ability_amplify_power_consume_ruodian
 - id: mark_ability_yanhuo
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_fire_power_boost_below_25_percent
 - id: mark_ability_jianren
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_damage_reduction_below_25_percent
 - id: mark_ability_rumeng
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
 - id: mark_ability_yangguang
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_heal_1_16_when_qingtian
 - id: mark_ability_zhongya
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_damage_amplify_10_percent_weight_100kg
 - id: mark_ability_jianqiang
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_physical_damage_reduction_below_25_percent
 - id: mark_ability_liushui
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_water_power_boost_below_25_percent
 - id: mark_ability_duyao
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_damage_amplify_10_percent_foe_has_manxingduyao
 - id: mark_ability_kongqi
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_damage_amplify_10_percent_has_kongqichuliang
     - effect_ability_add_water_skill_accuracy_5_percent_has_kongqichuliang
 - id: mark_ability_fengli
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_add_power_50_percent_normal
 - id: mark_ability_chaoshi
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_add_shuiwenpingzhang_value_if_yutian
 - id: mark_ability_ranshao
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_damage_amplify_15_percent_foe_has_shaoshang
 - id: mark_ability_xuanyun
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_damage_amplify_15_percent_foe_has_xuanyun
 - id: mark_ability_yangyan
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_add_skill_accuracy_10_percent_when_yanre
 - id: mark_ability_qianggong
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_add_shoufashanghaizengjia_on_lead
 - id: mark_ability_guanghua
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_add_self_evasion_10
 - id: mark_ability_hongxin
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_hongxin_increase_accuracy_5_percent
 - id: mark_ability_pianxie
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_reduce_physical_damage_30_percent
     - effect_ability_increase_special_damage_taken_15_percent
 - id: mark_ability_yinwang
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_add_self_skill_accuracy_5
 - id: mark_ability_qingying
 - id: mark_ability_youai
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_damage_amplify_10_percent_has_aideminyi
 - id: mark_ability_gaozhan
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_increase_accuracy_5_percent_if_height_above_100
 - id: mark_ability_liangong
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_add_shoufashanghaizengjia_on_switch_in
 - id: mark_ability_xukong
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_add_xukongtizhi_on_skill_hit
 - id: mark_ability_sucheng
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_exp_boost_50_percent
 - id: mark_ability_qiliu
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_rage_boost_5_per_turn
 - id: mark_ability_zhiming
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_electric_crit_rate_boost_10_percent
 - id: mark_ability_pobing
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_ice_damage_boost_15_percent
 - id: mark_ability_anying
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_heal_half_damage_when_rage_less_than_opponent
 - id: mark_ability_guangming
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_heal_1_8_max_hp_when_rage_greater_than_opponent
 - id: mark_ability_pofang
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_damage_amplify_10_percent_foe_has_pofang
 - id: mark_ability_shahe
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_physical_evasion_boost_5_percent
 - id: mark_ability_jianggu
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_reduce_damage_10_percent
 - id: mark_ability_danke
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_reduce_damage_10_percent_has_shazhidanke
 - id: mark_ability_wudou
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_damage_add_10
 - id: mark_ability_renyi
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_damage_reduction_10
 - id: mark_ability_feixiang
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_add_20_rage_when_use_fly_skill_twice
 - id: mark_ability_liandong
-  config: *ablitity_config
+  config: *ability_config
+  tags: [ability]
   effect:
     - effect_ability_spa_skill_add_dadizhi_1_hit_or_miss # TODO: 特攻无视Miss使自身获得1层大地之佑
     - effect_ability_atk_skill_add_shabaozhi_1_hit_or_miss # TODO: 物攻无视Miss使自身获得1层沙暴之力
