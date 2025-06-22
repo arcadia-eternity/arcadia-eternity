@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SkillMessage, AttributeModifierInfo } from '@arcadia-eternity/const'
+import { type SkillMessage, type AttributeModifierInfo, Category } from '@arcadia-eternity/const'
 import ElementIcon from './ElementIcon.vue'
 import Tooltip from './Tooltip.vue'
 import ModifiedValue from './ModifiedValue.vue'
@@ -107,19 +107,21 @@ const typeEffectivenessContainerClass = computed(() => {
 const typeEffectivenessInfo = computed(() => {
   const effectiveness = typeEffectivenessConfig.value.multiplier
 
-  if (effectiveness > 1) {
-    return {
-      text: '效果拔群',
-      multiplier: `×${effectiveness}`,
-      textClass: 'text-red-400 font-bold',
-      bgClass: 'bg-red-500/20 border border-red-500/50',
-    }
-  } else if (effectiveness < 1) {
-    return {
-      text: '效果不佳',
-      multiplier: `×${effectiveness}`,
-      textClass: 'text-gray-400 font-bold',
-      bgClass: 'bg-gray-500/20 border border-gray-500/50',
+  if (props.skill.category !== Category.Status) {
+    if (effectiveness > 1) {
+      return {
+        text: '效果拔群',
+        multiplier: `×${effectiveness}`,
+        textClass: 'text-red-400 font-bold',
+        bgClass: 'bg-red-500/20 border border-red-500/50',
+      }
+    } else if (effectiveness < 1) {
+      return {
+        text: '效果不佳',
+        multiplier: `×${effectiveness}`,
+        textClass: 'text-gray-400 font-bold',
+        bgClass: 'bg-gray-500/20 border border-gray-500/50',
+      }
     }
   }
 
