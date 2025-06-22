@@ -8,10 +8,14 @@ import MarkdownIt from 'markdown-it'
 import i18next from 'i18next'
 import { computed, ref } from 'vue'
 import { analyzeModifierType } from '@/utils/modifierStyles'
+import { useBattleStore } from '@/stores/battle'
+import { getSkillTypeEffectiveness } from '@/utils/typeEffectiveness'
 
 const md = new MarkdownIt({
   html: true,
 })
+
+const battleStore = useBattleStore()
 
 const props = defineProps<{
   skill: SkillMessage
@@ -20,7 +24,7 @@ const props = defineProps<{
   powerModifierInfo?: AttributeModifierInfo
   accuracyModifierInfo?: AttributeModifierInfo
   rageModifierInfo?: AttributeModifierInfo
-  // 属性克制倍率
+  // 属性克制倍率（可选，如果不提供则自动计算）
   typeEffectiveness?: number
 }>()
 
@@ -56,9 +60,36 @@ const powerModifierType = computed(() => {
   return analyzeModifierType(props.powerModifierInfo, 'power')
 })
 
+// 计算属性相性效果（自动计算或使用传入值）
+const typeEffectivenessConfig = computed(() => {
+  // 如果传入了typeEffectiveness，直接使用
+  if (props.typeEffectiveness !== undefined) {
+    return {
+      multiplier: props.typeEffectiveness,
+      bgColor: props.typeEffectiveness > 1 ? 'bg-red-500/30' : props.typeEffectiveness < 1 ? 'bg-blue-900/30' : '',
+      type:
+        props.typeEffectiveness > 1 ? 'super-effective' : props.typeEffectiveness < 1 ? 'not-very-effective' : 'normal',
+    }
+  }
+
+  // 否则自动计算
+  const opponent = battleStore.opponent
+  if (!opponent) return { multiplier: 1, bgColor: '', type: 'normal' }
+
+  const opponentActivePet = battleStore.getPetById(opponent.activePet)
+  if (!opponentActivePet) return { multiplier: 1, bgColor: '', type: 'normal' }
+
+  const effectivenessConfig = getSkillTypeEffectiveness(props.skill, opponentActivePet)
+  return {
+    multiplier: effectivenessConfig.multiplier,
+    bgColor: effectivenessConfig.bgColor,
+    type: effectivenessConfig.type,
+  }
+})
+
 // 属性克制效果样式
 const typeEffectivenessContainerClass = computed(() => {
-  const effectiveness = props.typeEffectiveness ?? 1
+  const effectiveness = typeEffectivenessConfig.value.multiplier
 
   if (effectiveness > 1) {
     // 效果拔群 - 蓝色边框
@@ -74,7 +105,7 @@ const typeEffectivenessContainerClass = computed(() => {
 
 // 属性相性文本和样式
 const typeEffectivenessInfo = computed(() => {
-  const effectiveness = props.typeEffectiveness ?? 1
+  const effectiveness = typeEffectivenessConfig.value.multiplier
 
   if (effectiveness > 1) {
     return {

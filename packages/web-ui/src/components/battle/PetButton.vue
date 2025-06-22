@@ -6,12 +6,15 @@ import Tooltip from './Tooltip.vue'
 import ModifiedValue from './ModifiedValue.vue'
 import type { PetMessage, SkillMessage } from '@arcadia-eternity/const'
 import { useGameDataStore } from '@/stores/gameData'
+import { useBattleStore } from '@/stores/battle'
 import { Z_INDEX } from '@/constants/zIndex'
 import i18next from 'i18next'
 import MarkdownIt from 'markdown-it'
 import { analyzeModifierType } from '@/utils/modifierStyles'
+import { getCurrentSkillEffectiveness } from '@/utils/typeEffectiveness'
 
 const gameDataStore = useGameDataStore()
+const battleStore = useBattleStore()
 
 const md = new MarkdownIt({
   html: true,
@@ -196,6 +199,45 @@ const petButtonClasses = computed(() => {
   return baseClasses
 })
 
+// 计算属性相性效果（用于底部模式名字按钮背景色）
+const typeEffectivenessConfig = computed(() => {
+  // 只在底部模式下计算属性相性
+  if (props.position !== 'bottom') {
+    return { bgColor: '' }
+  }
+
+  // 获取敌方当前出战精灵
+  const opponent = battleStore.opponent
+  if (!opponent) return { bgColor: '' }
+
+  const opponentActivePet = battleStore.getPetById(opponent.activePet)
+  if (!opponentActivePet) return { bgColor: '' }
+
+  // 创建一个虚拟的技能，使用当前PetButton精灵的属性
+  const virtualSkill = {
+    element: props.pet.element,
+    // 其他属性不重要，只需要element来计算属性相性
+  } as SkillMessage
+
+  // 显示当前PetButton精灵的属性技能对敌方精灵的属性相性效果
+  // 无论是否有选择技能都显示
+  return getCurrentSkillEffectiveness(virtualSkill, opponentActivePet)
+})
+
+// 底部模式名字按钮的样式类（包含属性相性背景色）
+const nameButtonClasses = computed(() => {
+  const baseClasses = ['mt-2 rounded-full px-2 py-0.5 text-xs font-medium text-white text-center']
+
+  // 添加属性相性背景色
+  if (typeEffectivenessConfig.value.bgColor) {
+    baseClasses.push(typeEffectivenessConfig.value.bgColor)
+  } else {
+    baseClasses.push('bg-black/80')
+  }
+
+  return baseClasses
+})
+
 // 获取技能的 modifier 信息
 const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
   // 技能的 modifier 信息直接从技能的 modifierState 中获取
@@ -277,10 +319,7 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
             </div>
 
             <!-- 名字显示在血条下方 -->
-            <div
-              v-if="position === 'bottom'"
-              class="mt-2 bg-black/80 rounded-full px-2 py-0.5 text-xs font-medium text-white text-center"
-            >
+            <div v-if="position === 'bottom'" :class="nameButtonClasses">
               {{ petDisplayName }}
             </div>
           </div>

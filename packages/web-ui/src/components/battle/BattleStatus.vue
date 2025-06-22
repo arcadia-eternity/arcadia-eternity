@@ -5,12 +5,13 @@ import PetIcon from '../PetIcon.vue'
 import Mark from './Mark.vue'
 import Tooltip from './Tooltip.vue'
 import ModifiedValue from './ModifiedValue.vue'
-import type { PlayerMessage } from '@arcadia-eternity/const'
+import type { PlayerMessage, SkillMessage } from '@arcadia-eternity/const'
 import ElementIcon from './ElementIcon.vue'
 import { useGameDataStore } from '@/stores/gameData'
 import { useBattleStore } from '@/stores/battle'
 import { Z_INDEX } from '@/constants/zIndex'
 import i18next from 'i18next'
+import { getCurrentSkillEffectiveness } from '@/utils/typeEffectiveness'
 
 const gameDataStore = useGameDataStore()
 const battleStore = useBattleStore()
@@ -79,6 +80,58 @@ const getStatModifierInfo = (statKey: string) => {
   return pet.modifierState.attributes.find(attr => attr.attributeName === statKey)
 }
 
+// 计算属性相性效果（用于精灵图标背景色）
+const typeEffectivenessConfig = computed(() => {
+  const pet = activePet.value
+  if (!pet) {
+    return { bgColor: '' }
+  }
+
+  // 根据当前显示的精灵类型计算属性相性
+  if (props.side === 'left') {
+    // 己方精灵：显示己方精灵属性对敌方精灵的效果
+    const opponent = battleStore.opponent
+    if (!opponent) return { bgColor: '' }
+
+    const opponentActivePet = battleStore.getPetById(opponent.activePet)
+    if (!opponentActivePet) return { bgColor: '' }
+
+    // 创建虚拟技能，使用己方精灵的属性
+    const virtualSkill = {
+      element: pet.element,
+    } as SkillMessage
+
+    return getCurrentSkillEffectiveness(virtualSkill, opponentActivePet)
+  } else {
+    // 敌方精灵：显示己方精灵属性对敌方精灵的效果
+    const currentPlayer = battleStore.currentPlayer
+    if (!currentPlayer) return { bgColor: '' }
+
+    const currentActivePet = battleStore.getPetById(currentPlayer.activePet)
+    if (!currentActivePet) return { bgColor: '' }
+
+    // 创建虚拟技能，使用己方精灵的属性
+    const virtualSkill = {
+      element: currentActivePet.element,
+    } as SkillMessage
+
+    return getCurrentSkillEffectiveness(virtualSkill, pet)
+  }
+})
+
+// 精灵图标的样式类（包含属性相性背景色）
+const petIconClasses = computed(() => {
+  const baseClasses = ['relative w-32 h-32 bg-black flex-none rounded-xl']
+  const zIndexClass = `z-[${Z_INDEX.BATTLE_STATUS_ICON}]`
+
+  // 添加属性相性背景色
+  if (typeEffectivenessConfig.value.bgColor) {
+    baseClasses.push(typeEffectivenessConfig.value.bgColor)
+  }
+
+  return [...baseClasses, zIndexClass]
+})
+
 // 格式化精灵属性信息（用于显示是否有 modifier）
 const petStatsInfo = computed(() => {
   const pet = activePet.value
@@ -137,8 +190,7 @@ const petStatsInfo = computed(() => {
       <template #trigger>
         <PetIcon
           :id="gameDataStore.getSpecies(activePet!.speciesID)?.num ?? 0"
-          class="relative w-32 h-32 bg-black flex-none rounded-xl"
-          :class="`z-[${Z_INDEX.BATTLE_STATUS_ICON}]`"
+          :class="petIconClasses"
           :reverse="side == 'right'"
         />
       </template>
