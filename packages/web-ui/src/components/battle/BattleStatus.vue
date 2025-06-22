@@ -103,19 +103,19 @@ const typeEffectivenessConfig = computed(() => {
 
     return getCurrentSkillEffectiveness(virtualSkill, opponentActivePet)
   } else {
-    // 敌方精灵：显示己方精灵属性对敌方精灵的效果
+    // 敌方精灵：显示敌方精灵属性对己方精灵的效果
     const currentPlayer = battleStore.currentPlayer
     if (!currentPlayer) return { bgColor: '' }
 
     const currentActivePet = battleStore.getPetById(currentPlayer.activePet)
     if (!currentActivePet) return { bgColor: '' }
 
-    // 创建虚拟技能，使用己方精灵的属性
+    // 创建虚拟技能，使用敌方精灵的属性
     const virtualSkill = {
-      element: currentActivePet.element,
+      element: pet.element,
     } as SkillMessage
 
-    return getCurrentSkillEffectiveness(virtualSkill, pet)
+    return getCurrentSkillEffectiveness(virtualSkill, currentActivePet)
   }
 })
 
