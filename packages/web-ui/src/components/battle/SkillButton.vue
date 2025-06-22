@@ -91,12 +91,14 @@ const typeEffectivenessConfig = computed(() => {
 const typeEffectivenessContainerClass = computed(() => {
   const effectiveness = typeEffectivenessConfig.value.multiplier
 
-  if (effectiveness > 1) {
-    // 效果拔群 - 蓝色边框
-    return 'border-2 border-cyan-300 shadow-lg shadow-cyan-300/60'
-  } else if (effectiveness < 1) {
-    // 效果不佳 - 灰色边框
-    return 'border-2 border-gray-500 shadow-lg shadow-gray-500/40'
+  if (props.skill.category !== Category.Status) {
+    if (effectiveness > 1) {
+      // 效果拔群 - 蓝色边框
+      return 'border-2 border-cyan-300 shadow-lg shadow-cyan-300/60'
+    } else if (effectiveness < 1) {
+      // 效果不佳 - 灰色边框
+      return 'border-2 border-gray-500 shadow-lg shadow-gray-500/40'
+    }
   }
 
   // 普通效果 - 无特殊样式
@@ -107,21 +109,19 @@ const typeEffectivenessContainerClass = computed(() => {
 const typeEffectivenessInfo = computed(() => {
   const effectiveness = typeEffectivenessConfig.value.multiplier
 
-  if (props.skill.category !== Category.Status) {
-    if (effectiveness > 1) {
-      return {
-        text: '效果拔群',
-        multiplier: `×${effectiveness}`,
-        textClass: 'text-red-400 font-bold',
-        bgClass: 'bg-red-500/20 border border-red-500/50',
-      }
-    } else if (effectiveness < 1) {
-      return {
-        text: '效果不佳',
-        multiplier: `×${effectiveness}`,
-        textClass: 'text-gray-400 font-bold',
-        bgClass: 'bg-gray-500/20 border border-gray-500/50',
-      }
+  if (effectiveness > 1) {
+    return {
+      text: '效果拔群',
+      multiplier: `×${effectiveness}`,
+      textClass: 'text-red-400 font-bold',
+      bgClass: 'bg-red-500/20 border border-red-500/50',
+    }
+  } else if (effectiveness < 1) {
+    return {
+      text: '效果不佳',
+      multiplier: `×${effectiveness}`,
+      textClass: 'text-gray-400 font-bold',
+      bgClass: 'bg-gray-500/20 border border-gray-500/50',
     }
   }
 
