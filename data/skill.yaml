@@ -6280,7 +6280,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_heal_self_def_quarter_hit_or_miss # TODO: 无视Miss恢复自身物防值1/4的体力
+    - effect_skill_heal_self_def_quarter_hit_or_miss
 - id: skill_silieshabao
   element: Desert
   category: Special
@@ -6292,7 +6292,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_damage_spa_sixth # TODO: 无视Miss附加自身特攻值1/6的伤害
+    - effect_skill_add_damage_spa_sixth
     - effect_skill_deal_damage_spa_sixth_on_miss
 - id: skill_julidadi
   element: Ground
@@ -6305,7 +6305,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_yinghua_65_hit_or_miss # TODO: 无视Miss使自身获得65点硬化
+    - effect_skill_add_mark_yinghua_65_hit_or_miss
 - id: skill_lirenshabao
   element: Desert
   category: Special
@@ -6317,7 +6317,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_liuxie_60_hit_or_miss # TODO: 无视Miss使对手获得60点流血
+    - effect_skill_add_mark_foe_liuxie_60_hit_or_miss
 - id: skill_paoxiaonuhou
   element: Normal
   category: Status
@@ -6329,8 +6329,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_yinghua_50 # TODO: 使自身获得50点硬化
-    - effect_skill_add_mark_mianyibuliang_hit_or_miss # TODO: 无视Miss使自身获得免疫异常
+    - effect_skill_add_mark_yinghua_50
+    - effect_skill_add_mark_mianyibuliang_hit_or_miss
 - id: skill_jinghuadadi
   element: Ground
   category: Physical
@@ -6354,7 +6354,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_rage_30_hit_or_miss # TODO: 无视Miss恢复自身30点怒气
+    - effect_skill_add_rage_30_hit_or_miss
 - id: skill_zhandounuhou
   element: Normal
   category: Status
@@ -6379,8 +6379,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_dadizhiyou_1 # TODO: 使自身获得1层大地之佑
-    - effect_skill_add_mark_shabaozhili_1 # TODO: 使自身获得1层沙暴之力
+    - effect_skill_add_mark_dadizhiyou_1
+    - effect_skill_add_mark_shabaozhili_1
 - id: skill_fuchoudadi
   element: Ground
   category: Physical
@@ -6392,7 +6392,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_foe_clear_stage_hit_or_miss # TODO: 无视Miss清除对手强化
+    - effect_skill_foe_clear_stage_hit_or_miss
 - id: skill_huimieshabao
   element: Desert
   category: Special
@@ -6416,7 +6416,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_jieli_hit_or_miss # TODO: 无视Miss使自身获得接力
+    - effect_skill_add_mark_jieli_hit_or_miss
 - id: skill_taitanzhihu
   element: Ground
   category: Status
@@ -6428,4 +6428,4 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_taitanzhihu # TODO: 使自身获得泰坦之护
+    - effect_skill_add_mark_taitanzhihu
