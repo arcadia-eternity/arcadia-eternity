@@ -137,17 +137,15 @@
     type: every
     conditions:
       - type: checkSelf
-      - type: not
-        condition:
-          type: evaluate
-          target:
-            base: usingSkillContext
-            chain:
-              - type: selectPath
-                arg: category
-          evaluator:
-            type: same
-            value: Status
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Status
   apply:
     type: stun
     target: usingSkillContext
