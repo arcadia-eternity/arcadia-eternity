@@ -9,6 +9,7 @@
     stackStrategy: extend
     destroyable: true
     keepOnSwitchOut: true
+  tags: [emblem]
   effect:
     - effect_emblem_set_ruodianbiaoji_keeponswitchout
 - id: mark_emblem_nuhuo
