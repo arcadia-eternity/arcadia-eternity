@@ -26,12 +26,14 @@ const showTooltip = ref(false)
 const stackText = computed(() => `${props.mark.stack}`)
 const markData = computed(() => dataStore.getMark(props.mark.baseId))
 const image = computed(() => {
-  if (!markData.value) return 'https://seer2-resource.yuuinih.com/png/traitMark/inc.png'
-  if (markData.value.tags?.includes('ability')) {
-    return 'https://seer2-resource.yuuinih.com/png/markImage/ability.png'
-  }
-  if (markData.value.tags?.includes('emblem')) {
-    return 'https://seer2-resource.yuuinih.com/png/markImage/emblem.png'
+  // if (!markData.value) return 'https://seer2-resource.yuuinih.com/png/traitMark/inc.png'
+  if (markData) {
+    if (markData.value.tags?.includes('ability')) {
+      return 'https://seer2-resource.yuuinih.com/png/markImage/ability.png'
+    }
+    if (markData.value.tags?.includes('emblem')) {
+      return 'https://seer2-resource.yuuinih.com/png/markImage/emblem.png'
+    }
   }
   return resourceStore.getMarkImage(props.mark.baseId) ?? 'https://seer2-resource.yuuinih.com/png/traitMark/inc.png'
 })
