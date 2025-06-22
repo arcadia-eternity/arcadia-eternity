@@ -1593,7 +1593,7 @@ skill_taitanzhinu:
   description: 必中 使自身获得1层大地之佑 1层沙暴之力
 skill_fuchoudadi:
   name: 复仇大地
-  description: 清除对手强化
+  description: 无论是否命中 清除对手强化
 skill_huimieshabao:
   name: 毁灭沙暴
   description: 无论是否命中 斩杀体力＜75点的对手
