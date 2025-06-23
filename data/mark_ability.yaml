@@ -205,3 +205,10 @@
   tags: [ability]
   effect:
     - effect_ability_huafenmiman_damage_foe_25_per_turn
+- id: mark_ability_fennu
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_fennu_power_boost_25_percent_when_full_rage
+    - effect_ability_fennu_power_boost_15_percent_when_rage_greater_than_70
+    - effect_ability_fennu_power_boost_10_percent_when_rage_between_50_and_70 # 满怒气时威力增加25% >70点时增加15% >50点时增加10%

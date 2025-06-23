@@ -4826,3 +4826,183 @@
     - mark_ability_dufen
   emblem:
     - mark_emblem_yingguang
+- id: pet_leike
+  num: 161
+  element: Dragon
+  baseStats:
+    hp: 92
+    atk: 128
+    spa: 128
+    def: 115
+    spd: 115
+    spe: 110
+  genderRatio:
+    - 3
+    - 7
+  heightRange:
+    - 26
+    - 31
+  weightRange:
+    - 13
+    - 18
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_nuzhua
+      level: 5
+      hidden: false
+    - skill_id: skill_huoyan
+      level: 10
+      hidden: false
+    - skill_id: skill_baolongzhan
+      level: 14
+      hidden: false
+    - skill_id: skill_longlinjia
+      level: 19
+      hidden: false
+    - skill_id: skill_huolongtuxi
+      level: 24
+      hidden: false
+  ability:
+    - mark_ability_fennu
+  emblem:
+    - mark_emblem_jihuo
+- id: pet_leikesi
+  num: 162
+  element: Dragon
+  baseStats:
+    hp: 180
+    atk: 176
+    spa: 176
+    def: 158
+    spd: 158
+    spe: 153
+  genderRatio:
+    - 3
+    - 7
+  heightRange:
+    - 73
+    - 78
+  weightRange:
+    - 57
+    - 62
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_nuzhua
+      level: 5
+      hidden: false
+    - skill_id: skill_huoyan
+      level: 10
+      hidden: false
+    - skill_id: skill_baolongzhan
+      level: 14
+      hidden: false
+    - skill_id: skill_longlinjia
+      level: 19
+      hidden: false
+    - skill_id: skill_huolongtuxi
+      level: 24
+      hidden: false
+    - skill_id: skill_shixuedaji
+      level: 29
+      hidden: false
+    - skill_id: skill_julongzhita
+      level: 34
+      hidden: false
+    - skill_id: skill_jizhong
+      level: 39
+      hidden: false
+    - skill_id: skill_longzhinu
+      level: 44
+      hidden: false
+    - skill_id: skill_bomingbaoji
+      level: 49
+      hidden: false
+    - skill_id: skill_pojiachuanji
+      level: 54
+      hidden: false
+    - skill_id: skill_hongliannulongzhan
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_fennu
+  emblem:
+    - mark_emblem_jihuo
+- id: pet_leikesasi
+  num: 163
+  element: Dragon
+  baseStats:
+    hp: 185
+    atk: 178
+    spa: 178
+    def: 160
+    spd: 160
+    spe: 158
+  genderRatio:
+    - 3
+    - 7
+  heightRange:
+    - 94
+    - 99
+  weightRange:
+    - 81
+    - 86
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_nuzhua
+      level: 5
+      hidden: false
+    - skill_id: skill_huoyan
+      level: 10
+      hidden: false
+    - skill_id: skill_baolongzhan
+      level: 14
+      hidden: false
+    - skill_id: skill_longlinjia
+      level: 19
+      hidden: false
+    - skill_id: skill_huolongtuxi
+      level: 24
+      hidden: false
+    - skill_id: skill_shixuedaji
+      level: 29
+      hidden: false
+    - skill_id: skill_julongzhita
+      level: 34
+      hidden: false
+    - skill_id: skill_jizhong
+      level: 39
+      hidden: false
+    - skill_id: skill_longzhinu
+      level: 44
+      hidden: false
+    - skill_id: skill_bomingbaoji
+      level: 49
+      hidden: false
+    - skill_id: skill_pojiachuanji
+      level: 54
+      hidden: false
+    - skill_id: skill_hongliannulongzhan
+      level: 60
+      hidden: true
+    - skill_id: skill_longdeliliang
+      level: 60
+      hidden: true
+    - skill_id: skill_kuanglongzhuilie
+      level: 60
+      hidden: true
+    - skill_id: skill_huolongdetiequan
+      level: 60
+      hidden: true
+    - skill_id: skill_huolongdepaoxiao
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_fennu
+  emblem:
+    - mark_emblem_jihuo

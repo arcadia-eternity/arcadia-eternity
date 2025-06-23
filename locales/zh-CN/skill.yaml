@@ -1645,3 +1645,45 @@ skill_huandiedusha:
 skill_huandiemiwu:
   name: 幻蝶迷舞
   description: 【80】使对手睡眠
+skill_nuzhua:
+  name: 怒爪
+  description: 5%弱化对手物防1级
+skill_baolongzhan:
+  name: 暴龙斩
+  description: 自身满体力时威力2倍
+skill_longlinjia:
+  name: 龙鳞甲
+  description: 使自身获得龙鳞甲
+skill_huolongtuxi:
+  name: 火龙吐息
+  description: 体力＞3/4时使对手烧伤
+skill_shixuedaji:
+  name: 嗜血打击
+  description: 恢复造成伤害1/4的体力
+skill_julongzhita:
+  name: 巨龙之踏
+  description: 体力＞1/2时使对手获得50点流血
+skill_longzhinu:
+  name: 龙之怒
+  description: 体力＜1/2时恢复30点怒气
+skill_bomingbaoji:
+  name: 搏命暴击
+  description: 体力＜1/4时必定暴击
+skill_pojiachuanji:
+  name: 破甲穿击
+  description: 体力＞1/4时无视对手双防强化
+skill_hongliannulongzhan:
+  name: 红莲怒龙斩
+  description: 必中 5%使对手昏迷
+skill_longdeliliang:
+  name: 龙的力量
+  description: 强化自身双攻1级
+skill_kuanglongzhuilie:
+  name: 狂龙追猎
+  description: 体力＜3/4时强化自身速度1级
+skill_huolongdetiequan:
+  name: 火龙的铁拳
+  description: 体力＞1/2时威力2倍
+skill_huolongdepaoxiao:
+  name: 火龙的咆哮
+  description: 体力＜1/2时必定暴击

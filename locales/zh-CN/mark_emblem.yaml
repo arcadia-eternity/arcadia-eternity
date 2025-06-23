@@ -116,3 +116,6 @@ mark_emblem_lianfang:
 mark_emblem_yingguang:
   name: 荧光
   description: 使荧光花粉额外使对手获得5点命中下降
+mark_emblem_jihuo:
+  name: 集火
+  description: 使火系技能必中

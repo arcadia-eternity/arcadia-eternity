@@ -1722,3 +1722,16 @@
   effect:
     - effect_mark_reduce_damage_15_percent_per_stack
     - effect_mark_add_stack_on_turn_end
+- id: mark_longlinjia
+  config:
+    duration: 5
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: false
+  tags:
+    - status
+  effect:
+    - effect_mark_longlinjia_reflect_damage_50_percent

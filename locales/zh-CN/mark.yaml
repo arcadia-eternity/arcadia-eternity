@@ -550,3 +550,6 @@ mark_taitanzhihu:
 mark_huafenmiman:
   name: 花粉弥漫
   description: 每层受到伤害减少15% 每回合结束时叠加一层 最多3层
+mark_longlinjia:
+  name: 龙鳞甲【🛡️】
+  description: 反弹受到伤害的50%

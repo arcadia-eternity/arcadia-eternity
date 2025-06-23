@@ -2774,3 +2774,21 @@
     value: 1
   condition:
     type: petIsActive
+# 龙鳞甲：反弹受到伤害的50%
+- id: effect_mark_longlinjia_reflect_damage_50_percent
+  trigger: OnDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    - type: dealDamage
+      target: foe
+      value:
+        type: dynamic
+        selector:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageResult
+            - type: multiply
+              arg: 0.5

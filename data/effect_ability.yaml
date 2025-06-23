@@ -960,3 +960,116 @@
     type: dealDamage
     target: foe
     value: 25
+# 愤怒: 满怒气时威力增加25%
+- id: effect_ability_fennu_power_boost_25_percent_when_full_rage
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 1.25
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: selfPlayer
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: rage
+        evaluator:
+          type: compare
+          operator: ==
+          value:
+            type: dynamic
+            selector:
+              base: selfPlayer
+              chain:
+                - type: select
+                  arg:
+                    type: dynamic
+                    arg: maxRage
+# 愤怒：怒气大于等于70点且不满怒气时威力增加15%
+- id: effect_ability_fennu_power_boost_15_percent_when_rage_greater_than_70
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 1.15
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: selfPlayer
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: rage
+        evaluator:
+          type: compare
+          operator: '>='
+          value: 70
+      - type: evaluate
+        target:
+          base: selfPlayer
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: rage
+        evaluator:
+          type: compare
+          operator: '<'
+          value:
+            type: dynamic
+            selector:
+              base: selfPlayer
+              chain:
+                - type: select
+                  arg:
+                    type: dynamic
+                    arg: maxRage
+# 怒气大于等于50点且小于70点时威力增加10%
+- id: effect_ability_fennu_power_boost_10_percent_when_rage_between_50_and_70
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 1.10
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: selfPlayer
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: rage
+        evaluator:
+          type: compare
+          operator: '>='
+          value: 50
+      - type: evaluate
+        target:
+          base: selfPlayer
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: rage
+        evaluator:
+          type: compare
+          operator: '<'
+          value: 70

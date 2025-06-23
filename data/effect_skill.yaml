@@ -454,27 +454,30 @@
   trigger: OnHit
   priority: 0
   apply: &apply_foe_add_mark_shaoshang_template
-    type: addMark
-    target: foe
-    mark:
-      type: entity:baseMark
-      value: mark_shaoshang
+    type: conditional
+    condition: &condition_foe_not_fire_element
+      type: evaluate
+      target:
+        base: foe
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: element
+      evaluator:
+        type: notSame
+        value: Fire
+    trueOperator:
+      type: addMark
+      target: foe
+      mark:
+        type: entity:baseMark
+        value: mark_shaoshang
   condition:
     type: every
     conditions:
       - type: selfUseSkill
-      - &condition_foe_not_fire_element
-        type: evaluate
-        target:
-          base: foe
-          chain:
-            - type: select
-              arg:
-                type: base
-                arg: element
-        evaluator:
-          type: notSame
-          value: Fire
+      - *condition_foe_not_fire_element
 - id: effect_skill_add_mark_foe_shaoshang_5_percent
   trigger: OnHit
   priority: 0
@@ -869,7 +872,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
+      - &condition_self_hp_below_quarter
+        type: evaluate
         target:
           base: self
           chain:
@@ -1938,7 +1942,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-- id: effect_skill_double_mark_liuxue_stack
+- id: effect_skill_double_mark_liuxie_stack
   trigger: OnHit
   priority: 0
   apply:
@@ -4182,7 +4186,7 @@
   condition:
     type: selfUseSkill
 # 消耗麦麦金针并添加50点流血
-- id: effect_skill_consume_maimaijinzhen_add_liuxue_50
+- id: effect_skill_consume_maimaijinzhen_add_liuxie_50
   trigger: OnHit
   priority: 0
   apply:
@@ -4272,7 +4276,7 @@
   condition:
     type: selfUseSkill
 # 添加50点流血给对手
-- id: effect_skill_add_liuxue_50_foe
+- id: effect_skill_add_liuxie_50_foe
   trigger: OnHit
   priority: 0
   apply:
@@ -7571,3 +7575,292 @@
       value: mark_shuimian
   condition:
     type: selfUseSkill
+# 自身满体力时威力2倍
+- id: effect_skill_power_2x_if_self_full_hp
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: ==
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp
+# 使自身获得龙鳞甲
+- id: effect_skill_add_mark_longlinjia
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_longlinjia
+  condition:
+    type: selfUseSkill
+# 体力值大于3/4时使对手烧伤
+- id: effect_skill_add_mark_foe_shaoshang_if_hp_above_75_percent
+  trigger: OnHit
+  priority: 0
+  apply: *apply_foe_add_mark_shaoshang_template
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: '>'
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp
+                - type: multiply
+                  arg: 0.75
+# 恢复造成伤害1/4的体力
+- id: effect_skill_heal_25_percent_damage_dealt
+  trigger: OnDamage
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value:
+      type: dynamic
+      selector:
+        base: damageContext
+        chain:
+          - type: selectPath
+            arg: damageResult
+          - type: multiply
+            arg: 0.25
+  condition:
+    type: selfUseSkill
+# 体力大于一半时使对手获得50点流血
+- id: effect_skill_add_mark_foe_liuxie_50_if_hp_above_half
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_liuxie
+    stack: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_self_hp_above_half
+        type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: '>'
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp
+                - type: multiply
+                  arg: 0.5
+# 体力低于一半时恢复30点怒气
+- id: effect_skill_add_rage_30_if_hp_below_half
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 30
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_self_hp_below_half
+        type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: '<'
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp
+                - type: multiply
+                  arg: 0.5
+# 体力低于1/4时必定暴击
+- id: effect_skill_set_sure_crit_if_hp_below_quarter
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureCrit
+    target: usingSkillContext
+    priority: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_hp_below_quarter
+# 体力大于1/4时无视对手双防强化
+- id: effect_skill_ignore_foe_stat_if_hp_above_quarter
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: setIgnoreStageStrategy
+    target: usingSkillContext
+    value: positive
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: '>'
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp
+                - type: multiply
+                  arg: 0.25
+# 5%使对手昏迷
+- id: effect_skill_add_mark_foe_hunmi_5_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_hunmi
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_5_percent_template
+# 体力低于3/4时强化自身速度1级
+- id: effect_skill_raise_spe_1_stage_if_hp_below_75_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    stat: spe
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: '<'
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp
+                - type: multiply
+                  arg: 0.75
+# 体力大于一半时威力2倍
+- id: effect_skill_power_2x_if_hp_above_half
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_hp_above_half
+# 体力低于一半时必定暴击
+- id: effect_skill_set_sure_crit_if_hp_below_half
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureCrit
+    target: usingSkillContext
+    priority: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_hp_below_half

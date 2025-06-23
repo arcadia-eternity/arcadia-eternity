@@ -115,3 +115,6 @@ mark_ability_liandong:
 mark_ability_dufen:
   name: 毒粉
   description: 具有花粉弥漫时使对手每回合失去25点体力
+mark_ability_fennu:
+  name: 愤怒
+  description: 满怒气时威力增加25% >70点时增加15% >50点时增加10%

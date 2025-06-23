@@ -633,8 +633,8 @@ export const BaseSelector: {
   foe: ChainableSelector<Pet>
   selfTeam: ChainableSelector<Pet>
   foeTeam: ChainableSelector<Pet>
-  petOwners: ChainableSelector<Player>
-  foeOwners: ChainableSelector<Player>
+  selfPlayer: ChainableSelector<Player>
+  foePlayer: ChainableSelector<Player>
   usingSkillContext: ChainableSelector<UseSkillContext>
   damageContext: ChainableSelector<DamageContext>
   effectContext: ChainableSelector<EffectContext<EffectTrigger>>
@@ -691,13 +691,13 @@ export const BaseSelector: {
     //TODO: error with use owners with global marks
     return []
   }),
-  petOwners: createChainable<Player>('Player', (context: EffectContext<EffectTrigger>) => {
+  selfPlayer: createChainable<Player>('Player', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent.pet.owner!]
     if (context.source.owner instanceof Pet) return [context.source.owner.owner!]
     //TODO: error with use owners with global marks
     return []
   }),
-  foeOwners: createChainable<Player>('Player', (context: EffectContext<EffectTrigger>) => {
+  foePlayer: createChainable<Player>('Player', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent.actualTarget!.owner!]
     if (context.source.owner instanceof Pet) return [context.battle.getOpponent(context.source.owner.owner!)]
     //TODO: error with use owners with global marks

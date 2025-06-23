@@ -253,3 +253,12 @@ pet_yingguangdie:
 pet_huancaidie:
   name: 幻彩蝶
   description: 幻彩蝶由荧光蝶进化而来 它身上的奇异色彩能够令人敢到晕眩
+pet_leike:
+  name: 雷克
+  description: 在爱的呵护下孵化出的龙族精灵 通常将第一眼看到的对象认作爸爸妈妈
+pet_leikesi:
+  name: 雷克斯
+  description: 雷克斯是超高密度的火元素的集合体 它拥有陆地最强的霸王龙的形态和操纵火焰的能力
+pet_leikesasi:
+  name: 雷克萨斯
+  description: 吸收了神秘的飞翼之芯后 进化成了龙族的最终形态雷克萨斯 成为统御一方的霸主

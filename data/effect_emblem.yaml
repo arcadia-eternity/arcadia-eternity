@@ -122,7 +122,7 @@
     stat: weight
     modifierType: delta
     value: 10
-- id: effect_emblem_decrease_liuxue_duration_1
+- id: effect_emblem_decrease_liuxie_duration_1
   trigger: OnBeforeAddMark
   priority: 0
   condition:
@@ -139,7 +139,7 @@
                 arg: baseMark.id
         evaluator:
           type: same
-          value: mark_liuxue
+          value: mark_liuxie
   apply: #TODO:增量而不是设置
     type: setMarkDuration
     target: addMarkContext
@@ -728,7 +728,7 @@
   priority: 0
   apply:
     type: addConfigModifier
-    target: petOwners
+    target: selfPlayer
     configKey: effect_mark_increase_damage_taken_15_percent_per_stack.mark_increase_damage_taken_per_stack
     modifierType: delta
     value: -5
@@ -739,7 +739,7 @@
   priority: 0
   apply:
     type: addConfigModifier
-    target: foeOwners
+    target: foePlayer
     configKey: effect_mark_reduce_damage_taken_15_percent_per_stack.mark_reduce_damage_taken_per_stack
     modifierType: delta
     value: -5
@@ -840,3 +840,38 @@
     tag: skill_effect_mingzhongxiajiang_stack
     modifierType: delta
     value: 5
+# 集火: 使火系技能必中
+- id: effect_emblem_jihuo_fire_skill_sure_hit
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: setValue
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: element
+          evaluator:
+            type: same
+            value: Fire
+        - type: selectProp
+          arg: sureHit
+    value: true
+  condition:
+    type: every
+    conditions:
+      - type: evaluate
+        target:
+          base: selfSkills
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: element
+              evaluator:
+                type: same
+                value: Fire
+        evaluator:
+          type: exist

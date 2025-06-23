@@ -41,7 +41,7 @@
   config: *emblem_config
   tags: [emblem]
   effect:
-    - effect_emblem_decrease_liuxue_duration_1
+    - effect_emblem_decrease_liuxie_duration_1
 - id: mark_emblem_shiming
   config: *emblem_config
   tags: [emblem]
@@ -205,3 +205,8 @@
   tags: [emblem]
   effect:
     - effect_emblem_yingguanghuafen_extra_accuracy_reduction_5 # TODO: 使荧光花粉额外使对手获得5点命中下降
+- id: mark_emblem_jihuo
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_jihuo_fire_skill_sure_hit # TODO: 使火系技能必中

@@ -62,8 +62,8 @@ export class EnemyNode extends BaseSelectorNode {
 }
 
 // 宠物主人节点
-export class PetOwnersNode extends BaseSelectorNode {
-  static selectorType = 'petOwners' as const
+export class selfPlayerNode extends BaseSelectorNode {
+  static selectorType = 'selfPlayer' as const
   constructor() {
     super()
     this.title = '宠物主人'
@@ -72,8 +72,8 @@ export class PetOwnersNode extends BaseSelectorNode {
 }
 
 // 敌方主人节点
-export class FoeOwnersNode extends BaseSelectorNode {
-  static selectorType = 'foeOwners' as const
+export class foePlayerNode extends BaseSelectorNode {
+  static selectorType = 'foePlayer' as const
   constructor() {
     super()
     this.title = '敌方主人'
@@ -152,8 +152,8 @@ const BASE_SELECTOR_NODES = [
   SelfNode,
   TargetNode,
   EnemyNode,
-  PetOwnersNode,
-  FoeOwnersNode,
+  selfPlayerNode,
+  foePlayerNode,
   UsingSkillContextNode,
   DamageContextNode,
   MarkNode,
