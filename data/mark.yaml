@@ -1238,8 +1238,8 @@
     - effect_mark_increase_damage_dealt_20_percent
 - id: mark_shandianwaiyi
   config:
-    duration: -1
-    persistent: true
+    duration: 5
+    persistent: false
     maxStacks: 1
     stackable: false
     stackStrategy: none
@@ -1724,7 +1724,7 @@
     - effect_mark_add_stack_on_turn_end
 - id: mark_longlinjia
   config:
-    duration: 5
+    duration: 3
     persistent: false
     maxStacks: 1
     stackable: true
