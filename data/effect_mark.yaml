@@ -2665,7 +2665,7 @@
 
 # 接力：使得换场后的下一只精灵获得25层伤害增加
 - id: effect_mark_add_damage_increase_25_on_switch_in
-  trigger: OnSwitchIn
+  trigger: OnSwitchOut
   priority: 0
   apply:
     type: addMark
