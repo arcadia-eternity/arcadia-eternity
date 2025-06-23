@@ -112,3 +112,6 @@ mark_ability_feixiang:
 mark_ability_liandong:
   name: 联动
   description: 特攻无视Miss使自身获得1层大地之佑 物攻无视Miss使自身获得1层沙暴之力
+mark_ability_dufen:
+  name: 毒粉
+  description: 具有花粉弥漫时使对手每回合失去25点体力

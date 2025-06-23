@@ -1603,3 +1603,46 @@ skill_xiezuojieli:
 skill_taitanzhihu:
   name: 泰坦之护
   description: 使自身获得泰坦之护
+# 虫系技能本地化
+skill_fushihuafen:
+  name: 腐蚀花粉
+  description: 附加对手最大体力1/8的伤害
+skill_xuruohuafen:
+  name: 虚弱花粉
+  description: 连续使用2次弱化对手特防1级
+skill_dufentuxi:
+  name: 毒粉突袭
+  description: 先制+1
+skill_dufenchongji:
+  name: 毒粉冲击
+  description: 10%强化自身物攻1级
+skill_yingguanghuafen:
+  name: 荧光花粉
+  description: 使对手获得15点命中下降
+skill_mabidufeng:
+  name: 麻痹毒粉
+  description: 15%使对手麻痹 失败时50%强化自身特攻1级
+skill_shuimiandufeng:
+  name: 睡眠毒粉
+  description: 15%使对手睡眠 失败时50%强化自身速度1级
+skill_huandielianji:
+  name: 幻蝶连击
+  description: 连击2~3次
+skill_huafenmiman:
+  name: 花粉弥漫
+  description: 使自身获得花粉弥漫
+skill_huanmiediewu:
+  name: 幻灭蝶舞
+  description: <font color=#93E312>必中</font> 10%使对手睡眠
+skill_fushidufeng:
+  name: 腐蚀毒粉
+  description: 附加对手最大体力1/8的伤害
+skill_xuruodufeng:
+  name: 虚弱毒粉
+  description: 连续使用2次使对手中毒
+skill_huandiedusha:
+  name: 幻蝶毒杀
+  description: 对手睡眠或麻痹时威力2倍
+skill_huandiemiwu:
+  name: 幻蝶迷舞
+  description: 【80】使对手睡眠

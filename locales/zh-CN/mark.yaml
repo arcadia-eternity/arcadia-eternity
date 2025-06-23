@@ -547,3 +547,6 @@ mark_shabaozhili:
 mark_taitanzhihu:
   name: 泰坦之护
   description: 受到伤害不超过自身最大体力的1/2
+mark_huafenmiman:
+  name: 花粉弥漫
+  description: 每层受到伤害减少15% 每回合结束时叠加一层 最多3层

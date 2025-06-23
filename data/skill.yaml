@@ -6429,3 +6429,170 @@
   tags: []
   effect:
     - effect_skill_add_mark_taitanzhihu
+- id: skill_fushihuafen
+  element: Bug
+  category: Special
+  target: opponent
+  power: 65
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_fixed_damage_max_hp_1_8
+- id: skill_xuruohuafen
+  element: Bug
+  category: Special
+  target: opponent
+  power: 75
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_foe_spd_1_stage_consecutive_2_times
+- id: skill_dufentuxi
+  element: Bug
+  category: Physical
+  target: opponent
+  power: 60
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  priority: 1
+  effect: []
+- id: skill_dufenchongji
+  element: Bug
+  category: Physical
+  target: opponent
+  power: 85
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_atk_1_stage_10_percent
+- id: skill_yingguanghuafen
+  element: Bug
+  category: Special
+  target: opponent
+  power: 80
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_mingzhongxiajiang_15
+- id: skill_mabidufeng
+  element: Bug
+  category: Special
+  target: opponent
+  power: 75
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_mabi_15_percent_or_raise_self_spa_1_stage_50_percent
+- id: skill_shuimiandufeng
+  element: Bug
+  category: Special
+  target: opponent
+  power: 75
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_shuimian_15_percent_or_raise_self_spe_1_stage_50_percent
+- id: skill_huandielianji
+  element: Bug
+  category: Physical
+  target: opponent
+  power: 40
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  multihit: [2, 3]
+- id: skill_huafenmiman
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  rage: 15
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_huafenmiman_1
+- id: skill_huanmiediewu
+  element: Bug
+  category: Climax
+  target: opponent
+  power: 165
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_shuimian_10_percent
+- id: skill_fushidufeng
+  element: Bug
+  category: Special
+  target: opponent
+  power: 75
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_fixed_damage_max_hp_1_8
+- id: skill_xuruodufeng
+  element: Bug
+  category: Special
+  target: opponent
+  power: 85
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_zhongdu_consecutive_2_times
+- id: skill_huandiedusha
+  element: Bug
+  category: Special
+  target: opponent
+  power: 85
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_power_2x_if_foe_shuimian_or_mabi
+- id: skill_huandiemiwu
+  element: Bug
+  category: Status
+  target: opponent
+  power: 0
+  rage: 25
+  accuracy: 80
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_foe_shuimian

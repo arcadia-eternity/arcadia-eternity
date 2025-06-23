@@ -118,6 +118,14 @@ export const Evaluators = {
     (context: EffectContext<EffectTrigger>, values: T[]) => {
       return values.length > 0
     },
+
+  //检查输入的values是否与指定数组中的任意一个值匹配，如果value不是数组则返回false
+  anyOf:
+    <T extends SelectorOpinion>(value: ValueSource<T>): Evaluator<T> =>
+    (context: EffectContext<EffectTrigger>, values: T[]): boolean => {
+      const compareValue = GetValueFromSource(context, value)
+      return values.some(v => compareValue.includes(v))
+    },
 }
 
 export const ConditionUtils = {

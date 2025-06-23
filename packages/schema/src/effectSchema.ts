@@ -287,6 +287,10 @@ export const evaluatorDSLSchema: z.ZodSchema<EvaluatorDSL> = z.lazy(() =>
     z.object({
       type: z.literal('exist'),
     }),
+    z.object({
+      type: z.literal('anyOf'),
+      value: valueSchema,
+    }),
   ]),
 )
 
@@ -747,8 +751,8 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
 const conditionalSelectorSchema = z.lazy(() =>
   z.object({
     condition: conditionDSLSchema,
-    trueSelector: z.lazy(() => selectorDSLSchema),
-    falseSelector: z.lazy(() => selectorDSLSchema).optional(),
+    trueSelector: selectorDSLSchema,
+    falseSelector: selectorDSLSchema.optional(),
   }),
 )
 
@@ -756,8 +760,8 @@ const conditionalOperatorSchema = z.lazy(() =>
   z.object({
     type: z.literal('conditional'),
     condition: conditionDSLSchema,
-    trueOperator: z.lazy(() => operatorDSLSchema),
-    falseOperator: z.lazy(() => operatorDSLSchema).optional(),
+    trueOperator: operatorDSLSchema,
+    falseOperator: operatorDSLSchema.optional(),
   }),
 )
 

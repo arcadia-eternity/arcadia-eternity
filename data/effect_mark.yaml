@@ -2738,3 +2738,39 @@
               arg: maxHp
           - type: divide
             arg: 2
+
+# 花粉弥漫：每层受到伤害减少15%
+- id: effect_mark_reduce_damage_15_percent_per_stack
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent:
+      type: dynamic
+      selector:
+        base: mark
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg:
+              type: raw:number
+              configId: mark_reduce_damage_per_stack
+              value: -15
+    delta: 0
+
+# 花粉弥漫：回合结束时层数+1
+- id: effect_mark_add_stack_on_turn_end
+  trigger: TurnEnd
+  priority: 0
+  apply:
+    type: addStacks
+    target: mark
+    value: 1
+  condition:
+    type: petIsActive

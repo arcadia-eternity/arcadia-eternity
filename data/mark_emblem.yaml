@@ -200,3 +200,8 @@
   effect:
     - effect_emblem_add_mark_switchinpet_shoudaoshanghaijianshao_25_on_switchout
     - effect_emblem_add_mark_shoudaoshanghaijianshao_15_on_switchin
+- id: mark_emblem_yingguang
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_yingguanghuafen_extra_accuracy_reduction_5 # TODO: 使荧光花粉额外使对手获得5点命中下降

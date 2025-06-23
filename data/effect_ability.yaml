@@ -935,3 +935,28 @@
       type: entity:baseMark
       value: mark_shabaozhili
     stack: 1
+# 毒粉: 当自身有花粉弥漫时，每回合对对方造成25点伤害
+- id: effect_ability_huafenmiman_damage_foe_25_per_turn
+  trigger: TurnEnd
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: petIsActive
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_huafenmiman
+        evaluator:
+          type: exist
+  apply:
+    type: dealDamage
+    target: foe
+    value: 25

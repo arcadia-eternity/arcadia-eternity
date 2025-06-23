@@ -652,6 +652,23 @@
                                                         "type"
                                                       ],
                                                       "additionalProperties": false
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "type": {
+                                                          "type": "string",
+                                                          "const": "anyOf"
+                                                        },
+                                                        "value": {
+                                                          "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                                                        }
+                                                      },
+                                                      "required": [
+                                                        "type",
+                                                        "value"
+                                                      ],
+                                                      "additionalProperties": false
                                                     }
                                                   ]
                                                 }

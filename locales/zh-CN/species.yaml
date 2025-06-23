@@ -247,3 +247,9 @@ pet_ailu:
 pet_ailudake:
   name: 埃鲁达克
   description: 埃鲁达克守护着纠结之藤 然而负面的力量还没有放弃分裂这位传奇的守护者
+pet_yingguangdie:
+  name: 荧光蝶
+  description: 荧光蝶是生活在深幽沼泽的小精灵 它不擅长战斗 是居民区的温和生灵
+pet_huancaidie:
+  name: 幻彩蝶
+  description: 幻彩蝶由荧光蝶进化而来 它身上的奇异色彩能够令人敢到晕眩

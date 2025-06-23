@@ -352,6 +352,8 @@ function parseEvaluator(effectId: string, dsl: EvaluatorDSL): Evaluator<Selector
       return Evaluators.contain(dsl.tag) as Evaluator<SelectorOpinion>
     case 'exist':
       return Evaluators.exist()
+    case 'anyOf':
+      return Evaluators.anyOf(parseValue(effectId, dsl.value) as ValueSource<any[] | any>) as Evaluator<SelectorOpinion>
     default: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`[parseEffect] 未知的评估器类型: ${(dsl as any).type}`)

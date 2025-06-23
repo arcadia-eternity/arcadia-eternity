@@ -808,6 +808,7 @@ export type EvaluatorDSL =
   | { type: 'probability'; percent: Value }
   | { type: 'contain'; tag: string }
   | { type: 'exist' }
+  | { type: 'anyOf'; value: Value }
 
 export type ConditionDSL =
   | {

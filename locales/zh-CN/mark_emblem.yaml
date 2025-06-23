@@ -113,3 +113,6 @@ mark_emblem_fenshen:
 mark_emblem_lianfang:
   name: 联防
   description: 自身替换上场时下一次受到的伤害减少25% 队友替换自身时受到伤害减少15%
+mark_emblem_yingguang:
+  name: 荧光
+  description: 使荧光花粉额外使对手获得5点命中下降

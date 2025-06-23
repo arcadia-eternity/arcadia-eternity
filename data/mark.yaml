@@ -1708,7 +1708,17 @@
     stackStrategy: extend
     destroyable: true
     keepOnSwitchOut: true
-  tags:
-    - buff
   effect:
     - effect_mark_damage_cap_half_max_hp
+- id: mark_huafenmiman
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 3
+    stackable: true
+    stackStrategy: stack
+    destroyable: true
+    keepOnSwitchOut: false
+  effect:
+    - effect_mark_reduce_damage_15_percent_per_stack
+    - effect_mark_add_stack_on_turn_end
