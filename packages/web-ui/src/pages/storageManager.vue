@@ -2301,6 +2301,7 @@ const copyTeam = (index: number) => {
     const newTeamName = `${originalTeam.name} (副本)`
     petStorage.createNewTeam(newTeamName)
     const newTeamIndex = petStorage.teams.length - 1
+    petStorage.teams[newTeamIndex].pets = []
 
     // 复制队伍中的所有精灵
     originalTeam.pets.forEach(pet => {
