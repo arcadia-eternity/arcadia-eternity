@@ -15,11 +15,11 @@ interface PetStorageState {
   currentTeamIndex: number
 }
 
-export const DefaultTeam = {
+const getDefaultTeam = (): Team => ({
   name: '默认队伍',
   pets: [
     {
-      id: (() => nanoid())(),
+      id: nanoid(),
       name: '休罗斯',
       species: 'pet_xiuluosi',
       level: 100,
@@ -34,7 +34,7 @@ export const DefaultTeam = {
       weight: 39,
     },
     {
-      id: (() => nanoid())(),
+      id: nanoid(),
       name: '迪兰特',
       species: 'pet_dilante',
       level: 100,
@@ -49,7 +49,7 @@ export const DefaultTeam = {
       weight: 31,
     },
     {
-      id: (() => nanoid())(),
+      id: nanoid(),
       name: '拉奥叶',
       species: 'pet_laaoye',
       level: 100,
@@ -64,12 +64,12 @@ export const DefaultTeam = {
       weight: 33,
     },
   ],
-} as const as Team
+})
 
 export const usePetStorageStore = defineStore('petStorage', {
   state: (): PetStorageState => ({
     storage: [],
-    teams: [DefaultTeam],
+    teams: [getDefaultTeam()],
     currentTeamIndex: 0,
   }),
 
@@ -114,7 +114,7 @@ export const usePetStorageStore = defineStore('petStorage', {
     createNewTeam(name?: string) {
       const teamName = name || `队伍 ${this.teams.length + 1}`
       this.teams.push({
-        ...DefaultTeam,
+        ...getDefaultTeam(),
         name: teamName,
       })
       this.currentTeamIndex = this.teams.length - 1
