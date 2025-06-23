@@ -4709,7 +4709,6 @@
     - mark_ability_liandong
   emblem:
     - mark_emblem_lianfang
-# 虫系精灵 - 荧光蝶系列
 - id: pet_yingguangdie
   num: 200
   element: Bug

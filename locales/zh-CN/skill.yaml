@@ -1603,7 +1603,6 @@ skill_xiezuojieli:
 skill_taitanzhihu:
   name: 泰坦之护
   description: 使自身获得泰坦之护
-# 虫系技能本地化
 skill_fushihuafen:
   name: 腐蚀花粉
   description: 附加对手最大体力1/8的伤害
