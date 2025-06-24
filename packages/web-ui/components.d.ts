@@ -76,6 +76,7 @@ declare module 'vue' {
     SpeciesSkillEditor: typeof import('./src/components/SpeciesSkillEditor.vue')['default']
     TimerProvider: typeof import('./src/components/TimerProvider.vue')['default']
     Tooltip: typeof import('./src/components/battle/Tooltip.vue')['default']
+    TrainingPanel: typeof import('./src/components/battle/TrainingPanel.vue')['default']
     TypeChart: typeof import('./src/components/dex/TypeChart.vue')['default']
   }
 }

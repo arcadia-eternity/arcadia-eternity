@@ -151,7 +151,7 @@
                         <!-- 移入仓库按钮 -->
                         <button
                           @click.stop="handleMoveToStorage(pet.id)"
-                          class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 rounded-full text-gray-400 hover:text-blue-500 hover:bg-blue-50"
+                          class="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 p-1 rounded-full text-gray-400 hover:text-blue-500 hover:bg-blue-50"
                           title="移入仓库"
                         >
                           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,7 +166,7 @@
                         <!-- 删除按钮 -->
                         <button
                           @click.stop="handleDeletePet(pet.id)"
-                          class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50"
+                          class="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 p-1 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50"
                           title="永久删除"
                         >
                           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

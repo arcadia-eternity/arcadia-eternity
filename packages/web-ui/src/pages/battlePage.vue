@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
 import BattleStatus from '@/components/battle/BattleStatus.vue'
-import DeveloperPanel from '@/components/battle/DeveloperPanel.vue'
+import TrainingPanel from '@/components/battle/TrainingPanel.vue'
 import Mark from '@/components/battle/Mark.vue'
 import PetButton from '@/components/battle/PetButton.vue'
 import PetSprite from '@/components/battle/PetSprite.vue'
@@ -257,12 +257,11 @@ const climaxEffectRef = useTemplateRef('climaxEffectRef') // climax特效组件�
 // 使用battleView store中的缩放
 const battleViewScale = computed(() => battleViewStore.scale)
 
-// 开发者模式配置
-const developerModeConfig = computed(() => {
+// 训练模式配置
+const trainingModeConfig = computed(() => {
   return {
     // 基础条件检查
     isExplicitlyEnabled: props.enableDeveloperMode === true,
-    isDevelopmentEnv: import.meta.env.DEV,
 
     // 模式排除检查
     isNotReplayMode: !isReplayMode.value && !props.replayMode,
@@ -277,26 +276,25 @@ const developerModeConfig = computed(() => {
       return 'normal-battle'
     },
 
-    // 检查是否应该启用开发者模式
+    // 检查是否应该启用训练模式（移除开发环境限制）
     get shouldEnable() {
-      return this.isExplicitlyEnabled && this.isNotReplayMode && this.isDevelopmentEnv && this.isNotBattleReport
+      return this.isExplicitlyEnabled && this.isNotReplayMode && this.isNotBattleReport
     },
   }
 })
 
-// 开发者模式检测
-const isDeveloperMode = computed(() => {
-  const config = developerModeConfig.value
+// 训练模式检测
+const isTrainingMode = computed(() => {
+  const config = trainingModeConfig.value
 
   // 在开发环境下提供调试信息
   if (import.meta.env.DEV && props.enableDeveloperMode) {
-    console.debug('Developer mode check:', {
+    console.debug('Training mode check:', {
       mode: config.currentMode,
       enabled: config.shouldEnable,
       conditions: {
         isExplicitlyEnabled: config.isExplicitlyEnabled,
         isNotReplayMode: config.isNotReplayMode,
-        isDevelopmentEnv: config.isDevelopmentEnv,
         isNotBattleReport: config.isNotBattleReport,
       },
     })
@@ -305,8 +303,8 @@ const isDeveloperMode = computed(() => {
   return config.shouldEnable
 })
 
-// 开发者面板状态
-const isDeveloperPanelOpen = ref(false)
+// 训练面板状态
+const isTrainingPanelOpen = ref(false)
 
 // 空过按钮粒子效果相关
 const doNothingParticlesId = ref(`do-nothing-particles-${Math.random().toString(36).substring(2, 11)}`)
@@ -2736,37 +2734,34 @@ watch(
                 </div>
               </button>
 
-              <!-- 开发者面板按钮 -->
+              <!-- 训练面板按钮 -->
               <button
-                v-if="isDeveloperMode"
+                v-if="isTrainingMode"
                 class="group relative h-10 p-2 cursor-pointer overflow-visible flex-none"
-                @click="isDeveloperPanelOpen = !isDeveloperPanelOpen"
+                @click="isTrainingPanelOpen = !isTrainingPanelOpen"
               >
                 <div
-                  class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border border-orange-400/50 group-hover:shadow-[0_0_8px_2px_rgba(251,146,60,0.6)]"
+                  class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border border-green-400/50 group-hover:shadow-[0_0_8px_2px_rgba(34,197,94,0.6)]"
                   :class="
-                    isDeveloperPanelOpen
-                      ? 'border-orange-400/50 group-hover:shadow-[0_0_8px_2px_rgba(251,146,60,0.6)]'
-                      : 'border-orange-400/50'
+                    isTrainingPanelOpen
+                      ? 'border-green-400/50 group-hover:shadow-[0_0_8px_2px_rgba(34,197,94,0.6)]'
+                      : 'border-green-400/50'
                   "
                 >
                   <div class="bg-gray-900 w-full h-2"></div>
                   <div class="absolute bottom-1 right-1">
                     <div class="flex">
-                      <div
-                        class="w-2 h-0.5 mt-1"
-                        :class="isDeveloperPanelOpen ? 'bg-orange-400' : 'bg-orange-400'"
-                      ></div>
-                      <div class="w-0.5 h-2" :class="isDeveloperPanelOpen ? 'bg-orange-400' : 'bg-orange-400'"></div>
+                      <div class="w-2 h-0.5 mt-1" :class="isTrainingPanelOpen ? 'bg-green-400' : 'bg-green-400'"></div>
+                      <div class="w-0.5 h-2" :class="isTrainingPanelOpen ? 'bg-green-400' : 'bg-green-400'"></div>
                     </div>
                   </div>
                 </div>
                 <div class="relative flex items-center justify-center h-full pointer-events-none">
                   <div
                     class="text-xs font-bold [text-shadow:_1px_1px_0_black]"
-                    :class="isDeveloperPanelOpen ? 'text-orange-400' : 'text-orange-400'"
+                    :class="isTrainingPanelOpen ? 'text-green-400' : 'text-green-400'"
                   >
-                    🛠️ 调试
+                    🎯 训练
                   </div>
                 </div>
               </button>
@@ -2970,8 +2965,8 @@ watch(
         </div>
       </Transition>
 
-      <!-- 开发者面板 -->
-      <DeveloperPanel :is-developer-mode="isDeveloperMode" v-model:is-open="isDeveloperPanelOpen" />
+      <!-- 训练面板 -->
+      <TrainingPanel :is-developer-mode="isTrainingMode" v-model:is-open="isTrainingPanelOpen" />
     </div>
   </div>
 </template>

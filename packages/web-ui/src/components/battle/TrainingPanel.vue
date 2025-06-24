@@ -6,7 +6,7 @@
       class="fixed top-5 right-5 w-96 max-h-[80vh] bg-white border border-gray-300 rounded-lg shadow-xl overflow-hidden z-[1000]"
     >
       <div class="bg-gray-100 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-        <h3 class="text-lg font-semibold text-gray-800 m-0">开发者调试面板</h3>
+        <h3 class="text-lg font-semibold text-gray-800 m-0">训练面板</h3>
         <button
           @click="isPanelOpen = false"
           class="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full border-none cursor-pointer flex items-center justify-center text-gray-600 text-xl"
@@ -43,7 +43,7 @@
               @click="forceAIAction"
               class="px-3 py-1.5 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors border-none cursor-pointer"
             >
-              强制AI行动
+              强制刷新AI选择
             </button>
           </div>
         </div>
@@ -114,13 +114,7 @@
         <div class="mb-6 pb-4 border-b border-gray-200">
           <h4 class="text-base font-semibold text-gray-700 mb-3">AI控制</h4>
           <div class="space-y-3">
-            <div class="flex flex-col gap-2">
-              <label class="text-sm font-medium text-gray-600">
-                <input type="checkbox" v-model="aiControlEnabled" class="mr-2" />
-                接管AI决策
-              </label>
-            </div>
-            <div v-if="aiControlEnabled" class="space-y-2">
+            <div class="space-y-2">
               <div class="flex justify-between items-center mb-2">
                 <h5 class="text-sm font-medium text-gray-600">强制AI选择:</h5>
                 <button
@@ -165,6 +159,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
 import { useBattleStore } from '@/stores/battle'
 import type { PlayerSelection } from '@arcadia-eternity/const'
 import i18next from 'i18next'
@@ -190,9 +185,6 @@ const isPanelOpen = computed({
 
 // Store
 const battleStore = useBattleStore()
-
-// 面板状态
-const aiControlEnabled = ref(false)
 
 // 计算属性
 const currentPlayer = computed(() => battleStore.currentPlayer)
@@ -313,7 +305,7 @@ watch(
     () => opponentPlayer.value?.activePet,
   ],
   () => {
-    if (aiControlEnabled.value && opponentPlayer.value) {
+    if (opponentPlayer.value) {
       console.debug('战斗状态变化，AI可用操作已自动更新')
     }
   },
@@ -346,30 +338,30 @@ const forceAIAction = () => {
   }
 }
 
-// 血量和怒气更新方法
-const updateCurrentPetHp = () => {
+// 血量和怒气更新方法 - 添加防抖
+const updateCurrentPetHp = useDebounceFn(() => {
   if (currentPet.value) {
     battleStore.setDevPetHp(currentPet.value.id, currentPetHp.value)
   }
-}
+}, 300)
 
-const updateOpponentPetHp = () => {
+const updateOpponentPetHp = useDebounceFn(() => {
   if (opponentPet.value) {
     battleStore.setDevPetHp(opponentPet.value.id, opponentPetHp.value)
   }
-}
+}, 300)
 
-const updateCurrentPlayerRage = () => {
+const updateCurrentPlayerRage = useDebounceFn(() => {
   if (currentPlayer.value) {
     battleStore.setDevPlayerRage(currentPlayer.value.id, currentPlayerRage.value)
   }
-}
+}, 300)
 
-const updateOpponentPlayerRage = () => {
+const updateOpponentPlayerRage = useDebounceFn(() => {
   if (opponentPlayer.value) {
     battleStore.setDevPlayerRage(opponentPlayer.value.id, opponentPlayerRage.value)
   }
-}
+}, 300)
 
 // AI控制方法
 const forceAISelection = (action: PlayerSelection) => {
