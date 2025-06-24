@@ -2,7 +2,7 @@
 import 'seer2-pet-animator'
 import { ActionState } from 'seer2-pet-animator'
 import type {} from 'seer2-pet-animator' //Vue Declare
-import { computed, ref, useTemplateRef, watchEffect, watch } from 'vue'
+import { computed, ref, useTemplateRef, watchEffect, watch, nextTick } from 'vue'
 const props = withDefaults(
   defineProps<{
     num: number
@@ -62,6 +62,7 @@ watchEffect(
         const maxRetries = 5
 
         while ((!states || states.length === 0) && retryCount < maxRetries) {
+          await nextTick()
           states = (await petRenderRef.value.getAvailableStates()) as ActionState[]
           if (!states || states.length === 0) {
             console.debug(
