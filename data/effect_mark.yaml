@@ -645,7 +645,7 @@
         - type: selectAttribute$
           arg: stack
 - id: effect_mark_evade
-  trigger: BeforeUseSkillCheck
+  trigger: AfterUseSkillCheck
   priority: 0
   condition:
     type: selfBeSkillTarget
@@ -654,7 +654,7 @@
     target: usingSkillContext
     priority: -1
 - id: effect_mark_evade_with_stack
-  trigger: BeforeUseSkillCheck
+  trigger: AfterUseSkillCheck
   priority: 0
   condition:
     type: selfBeSkillTarget
