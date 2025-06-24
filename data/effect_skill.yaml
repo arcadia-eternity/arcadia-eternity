@@ -239,6 +239,17 @@
     conditions:
       - type: selfUseSkill
       - *condition_probability_5_percent_template
+- id: effect_skill_raise_spe_1_stage_10_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spe
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_10_percent_template
 - id: effect_skill_raise_atk_2_stages
   trigger: BeforeHit
   priority: 0
@@ -1174,8 +1185,7 @@
   priority: 0
   apply:
     type: setSureCrit
-    target:
-      base: usingSkillContext
+    target: usingSkillContext
     priority: 0
   condition:
     type: every
@@ -1423,7 +1433,7 @@
       type: entity:baseMark
       value: mark_zhongdu
   condition: *condition_probability_10_percent_template
-- id: effect_skill_set_weather_qingtian
+- id: effect_skill_set_field_qingtian
   trigger: OnHit
   priority: 0
   apply:
@@ -1439,9 +1449,8 @@
   priority: 0
   apply:
     type: setSureHit
-    target:
-      base: usingSkillContext
-    priority: 0
+    target: usingSkillContext
+    priority: 2
   condition:
     type: every
     conditions:
@@ -1991,9 +2000,8 @@
   priority: 0
   apply:
     type: setSureHit
-    target:
-      base: usingSkillContext
-    priority: 0
+    target: usingSkillContext
+    priority: 2
   condition:
     type: every
     conditions:
@@ -2146,9 +2154,8 @@
   priority: 0
   apply:
     type: setSureHit
-    target:
-      base: usingSkillContext
-    priority: 0
+    target: usingSkillContext
+    priority: 2
   condition:
     type: every
     conditions:
@@ -2881,8 +2888,7 @@
   priority: 0
   apply:
     type: setSureCrit
-    target:
-      base: usingSkillContext
+    target: usingSkillContext
     priority: 0
   condition:
     type: every
@@ -2970,7 +2976,7 @@
             value: 30
             tags: ['skill_effect_probability']
       - *condition_foe_not_water_element
-- id: effect_skill_set_weather_yutian
+- id: effect_skill_set_field_yutian
   trigger: OnHit
   priority: 0
   apply:
@@ -3033,9 +3039,8 @@
   priority: 0
   apply:
     type: setSureHit
-    target:
-      base: usingSkillContext
-    priority: 0
+    target: usingSkillContext
+    priority: 2
   condition:
     type: every
     conditions:
@@ -3046,9 +3051,8 @@
   priority: 0
   apply:
     type: setSureHit
-    target:
-      base: usingSkillContext
-    priority: 0
+    target: usingSkillContext
+    priority: 2
   condition:
     type: every
     conditions:
@@ -3070,9 +3074,8 @@
   priority: 0
   apply:
     type: setSureHit
-    target:
-      base: usingSkillContext
-    priority: 0
+    target: usingSkillContext
+    priority: 2
   condition:
     type: every
     conditions:
@@ -3210,7 +3213,7 @@
       - type: selfUseSkill
       - *condition_probability_20_percent_template
 # 将当前的天气设为“炎热”
-- id: effect_skill_set_weather_yanre
+- id: effect_skill_set_field_yanre
   trigger: OnHit
   priority: 0
   apply:
@@ -3696,9 +3699,8 @@
   priority: 0
   apply:
     type: setSureHit
-    target:
-      base: usingSkillContext
-    priority: 0
+    target: usingSkillContext
+    priority: 2
   condition:
     type: every
     conditions:
@@ -4020,9 +4022,8 @@
   priority: 0
   apply:
     type: setSureHit
-    target:
-      base: usingSkillContext
-    priority: 1
+    target: usingSkillContext
+    priority: 2
   condition:
     type: every
     conditions:
@@ -4231,9 +4232,8 @@
   priority: 0
   apply:
     type: setSureHit
-    target:
-      base: usingSkillContext
-    priority: 0
+    target: usingSkillContext
+    priority: 2
   condition:
     type: every
     conditions:
@@ -4579,7 +4579,7 @@
   apply:
     type: setSureHit
     target: usingSkillContext
-    priority: 1
+    priority: 2
   condition:
     type: every
     conditions:
@@ -5670,7 +5670,7 @@
       - type: isFirstSkillUsedThisTurn
 
 # 使环境随机变为晴天或夜幕
-- id: effect_skill_set_weather_qingtian_or_yemu
+- id: effect_skill_set_field_qingtian_or_yemu
   trigger: OnHit
   priority: 0
   apply:
@@ -6572,9 +6572,8 @@
   priority: 0
   apply:
     - type: setSureHit
-      target:
-        base: usingSkillContext
-      priority: 0
+      target: usingSkillContext
+      priority: 2
     - type: consumeStacks
       target:
         base: selfMarks
@@ -7864,3 +7863,302 @@
     conditions:
       - type: selfUseSkill
       - *condition_self_hp_below_half
+# 为对方添加一层黑暗物质
+- id: effect_skill_add_mark_foe_heianwuzhi_1
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_heianwuzhi
+    stack: 1
+  condition:
+    type: selfUseSkill
+# 消耗一层黑暗物质降低对手一级特防
+- id: effect_skill_consume_heianwuzhi_reduce_foe_spd_1_stage
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    - &apply_consume_heianwuzhi_1_stack_template
+      type: consumeStacks
+      target:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_heianwuzhi
+      value: 1
+    - type: statStageBuff
+      target: foe
+      statType: spd
+      value: -1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_foe_has_heianwuzhi
+        type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_heianwuzhi
+            - type: select
+              arg:
+                type: base
+                arg: stack
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 0
+# 将当前的场地设为夜幕
+- id: effect_skill_set_field_yemu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: battle
+    mark:
+      type: entity:baseMark
+      value: mark_global_yemu
+  condition:
+    type: selfUseSkill
+# 消耗一个黑暗物质使威力增加50
+- id: effect_skill_add_power_50_consume_heianwuzhi
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    - type: addPower
+      target: usingSkillContext
+      value: 50
+    - *apply_consume_heianwuzhi_1_stack_template
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_foe_has_heianwuzhi
+# 当场地为夜幕时，使对手获得50层流血
+- id: effect_skill_add_mark_foe_liuxie_50_if_field_yemu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: foe
+    mark:
+      type: entity:baseMark
+      value: mark_liuxie
+    stack: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_field_is_yemu
+        type: evaluate
+        target:
+          base: battle
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: marks
+            - type: flat
+            - type: whereAttr
+              extractor: baseId
+              evaluator:
+                type: same
+                value: mark_global_yemu
+        evaluator:
+          type: exist
+# 恢复70点HP，如果场地为夜幕，恢复量翻倍
+- id: effect_skill_heal_70_double_if_field_yemu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value:
+      type: conditional
+      trueValue:
+        type: raw:number
+        value: 140
+      falseValue:
+        type: raw:number
+        value: 70
+      condition: *condition_field_is_yemu
+  condition:
+    type: selfUseSkill
+# 消耗两层黑暗物质使技能必定暴击
+- id: effect_skill_consume_heimowuzhi_2_sure_crit
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    - type: consumeStacks
+      target:
+        base: foeMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_heianwuzhi
+      value: 2
+    - type: setSureCrit
+      target: usingSkillContext
+      priority: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_heianwuzhi
+        evaluator:
+          type: exist
+      - type: evaluate
+        target:
+          base: foeMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_heianwuzhi
+            - type: select
+              arg:
+                type: base
+                arg: stack
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 1
+# 如果环境为夜幕，清除自身弱化
+- id: effect_skill_clear_self_negative_stage_if_field_yemu
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: clearStatStage
+    target: self
+    cleanStageStrategy: negative
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_field_is_yemu
+# 附加对手7%最大生命值的伤害
+- id: effect_skill_fixed_damage_7_percent_max_hp
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta:
+      type: dynamic
+      selector:
+        base: foe
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: maxHp
+          - type: multiply
+            arg:
+              type: raw:number
+              value: 0.07
+  condition:
+    type: selfUseSkill
+# 如果环境为夜幕，必中
+- id: effect_skill_set_sure_hit_if_field_yemu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target: usingSkillContext
+    priority: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_field_is_yemu
+# 清除对方速度强化，如果环境为夜幕，则改为反转对方速度强化
+- id: effect_skill_clear_foe_spe_up_reverse_if_field_yemu
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: conditional
+    condition: *condition_field_is_yemu
+    trueOperator:
+      type: reverseStatStage
+      target: foe
+      statType:
+        - spe
+      cleanStageStrategy: positive
+    falseOperator:
+      type: clearStatStage
+      target: foe
+      statType:
+        - spe
+      cleanStageStrategy: positive
+  condition:
+    type: selfUseSkill
+# 使自身获得影缝
+- id: effect_skill_add_mark_yingfeng
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_yingfeng
+  condition:
+    type: selfUseSkill
+# 使自己获得50点受到伤害增加
+- id: effect_skill_add_mark_shanghaizengjia_50
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shanghaizengjia
+    stack: 50
+  condition:
+    type: selfUseSkill
+# 使自己获得150点伤害增加
+- id: effect_skill_add_mark_shanghaizengjia_150
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shanghaizengjia
+    stack: 150
+  condition:
+    type: selfUseSkill

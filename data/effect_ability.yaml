@@ -1073,3 +1073,27 @@
           type: compare
           operator: '<'
           value: 70
+# 夜行：替换上场时使环境变为夜幕
+- id: effect_ability_set_field_yemu_on_switch
+  trigger: OnSwitchIn
+  priority: 0
+  condition:
+    type: selfSwitchIn
+  apply:
+    type: addMark
+    target: battle
+    mark:
+      type: entity:baseMark
+      value: mark_global_yemu
+# 夜寂：替换上场时使自身获得不谐暗光
+- id: effect_ability_add_mark_buxieanguang_on_switch
+  trigger: OnSwitchIn
+  priority: 0
+  condition:
+    type: selfSwitchIn
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_buxieanguang

@@ -262,3 +262,12 @@ pet_leikesi:
 pet_leikesasi:
   name: 雷克萨斯
   description: 吸收了神秘的飞翼之芯后 进化成了龙族的最终形态雷克萨斯 成为统御一方的霸主
+pet_nigu:
+  name: 尼古
+  description: 一般来说 尼古只会在黑夜出现它不喜欢阳光 正如它隐晦的性格
+pet_nilu:
+  name: 尼禄
+  description: 尼禄神出鬼没的习性被人所神化大家觉得在黑夜中 遇见尼禄的红色灯笼就能获得平安
+pet_nigulasi:
+  name: 尼古拉斯
+  description: 神出鬼没的尼禄 收集了四个符文后变身成了尼古拉斯

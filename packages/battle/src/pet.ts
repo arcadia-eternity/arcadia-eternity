@@ -458,6 +458,44 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     })
   }
 
+  // 反转能力等级（正变负，负变正）
+  public reverseStatStage(
+    context: EffectContext<EffectTrigger>,
+    cleanStageStrategy = CleanStageStrategy.positive,
+    ...statTypes: StatTypeWithoutHp[]
+  ) {
+    if (!statTypes || statTypes.length === 0) {
+      statTypes = [
+        StatTypeWithoutHp.atk,
+        StatTypeWithoutHp.def,
+        StatTypeWithoutHp.spa,
+        StatTypeWithoutHp.spd,
+        StatTypeWithoutHp.spe,
+      ]
+    }
+    statTypes.forEach(statType => {
+      // Find all stat stage marks for this stat type
+      const statStageMarks = this.marks.filter(
+        mark => mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType,
+      ) as StatLevelMarkInstanceImpl[]
+
+      statStageMarks.forEach(mark => {
+        const stage = mark.level
+        const shouldReverse =
+          cleanStageStrategy === CleanStageStrategy.all ||
+          (cleanStageStrategy === CleanStageStrategy.positive && stage > 0) ||
+          (cleanStageStrategy === CleanStageStrategy.negative && stage < 0)
+
+        if (shouldReverse) {
+          // Remove the existing mark
+          mark.destroy(new RemoveMarkContext(context, mark))
+          // Add a new mark with reversed stage
+          this.addStatStage(context, statType, -stage)
+        }
+      })
+    })
+  }
+
   public transferMarks(context: SwitchPetContext, ...marks: MarkInstance[]) {
     // Delegate to MarkSystem
     context.battle.markSystem.transferMarks(context, this, ...marks)

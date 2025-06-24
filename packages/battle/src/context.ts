@@ -408,6 +408,7 @@ export class DamageContext extends Context {
     public modified: [number, number] = [0, 0], // 百分比修正, 固定值修正
     public minThreshold: number = 0, // 最小伤害阈值数值
     public maxThreshold: number = Number.MAX_SAFE_INTEGER, // 最大伤害阈值数值
+    public element?: Element, // 伤害的元素属性
   ) {
     super(parent)
     this.battle = parent.battle

@@ -1908,7 +1908,38 @@
                         "enum": [
                           "all",
                           "positive",
-                          "negative"
+                          "negative",
+                          "reverse"
+                        ],
+                        "default": "positive"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "target"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "reverseStatStage"
+                      },
+                      "target": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target"
+                      },
+                      "statType": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "cleanStageStrategy": {
+                        "type": "string",
+                        "enum": [
+                          "all",
+                          "positive",
+                          "negative",
+                          "reverse"
                         ],
                         "default": "positive"
                       }
@@ -1940,7 +1971,8 @@
                         "enum": [
                           "all",
                           "positive",
-                          "negative"
+                          "negative",
+                          "reverse"
                         ],
                         "default": "negative"
                       }

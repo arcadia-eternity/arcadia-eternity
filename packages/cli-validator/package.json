@@ -1,0 +1,24 @@
+{
+  "name": "@arcadia-eternity/cli-validator",
+  "version": "1.0.0",
+  "description": "CLI数据验证模块，提供游戏数据完整性检查功能",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@arcadia-eternity/data-repository": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  }
+}

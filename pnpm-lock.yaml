@@ -11,6 +11,9 @@ importers:
       '@arcadia-eternity/battle':
         specifier: workspace:^
         version: link:packages/battle
+      '@arcadia-eternity/cli-validator':
+        specifier: workspace:^
+        version: link:packages/cli-validator
       '@arcadia-eternity/client':
         specifier: workspace:^
         version: link:packages/client
@@ -204,6 +207,16 @@ importers:
       rxjs:
         specifier: ^7.8.2
         version: 7.8.2
+
+  packages/cli-validator:
+    dependencies:
+      '@arcadia-eternity/data-repository':
+        specifier: workspace:*
+        version: link:../dataRepository
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.8.3
 
   packages/client:
     dependencies:

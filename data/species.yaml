@@ -5006,3 +5006,195 @@
     - mark_ability_fennu
   emblem:
     - mark_emblem_jihuo
+- id: pet_nigu
+  num: 179
+  element: Shadow
+  baseStats:
+    hp: 89
+    atk: 120
+    spa: 129
+    def: 119
+    spd: 117
+    spe: 109
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 32
+    - 37
+  weightRange:
+    - 12
+    - 17
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_yingxi
+      level: 5
+      hidden: false
+    - skill_id: skill_anhua
+      level: 10
+      hidden: false
+    - skill_id: skill_anxi
+      level: 14
+      hidden: false
+    - skill_id: skill_anti
+      level: 18
+      hidden: false
+    - skill_id: skill_anci
+      level: 23
+      hidden: false
+  ability:
+    - mark_ability_yexing
+  emblem:
+    - mark_emblem_dengxin
+- id: pet_nilu
+  num: 180
+  element: Shadow
+  baseStats:
+    hp: 179
+    atk: 165
+    spa: 179
+    def: 164
+    spd: 162
+    spe: 159
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 66
+    - 71
+  weightRange:
+    - 45
+    - 50
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_yingxi
+      level: 5
+      hidden: false
+    - skill_id: skill_anhua
+      level: 10
+      hidden: false
+    - skill_id: skill_anxi
+      level: 14
+      hidden: false
+    - skill_id: skill_anti
+      level: 18
+      hidden: false
+    - skill_id: skill_anci
+      level: 23
+      hidden: false
+    - skill_id: skill_yemu
+      level: 28
+      hidden: false
+    - skill_id: skill_anyan
+      level: 33
+      hidden: false
+    - skill_id: skill_bianpaozhalei
+      level: 38
+      hidden: false
+    - skill_id: skill_anzhiguang
+      level: 43
+      hidden: false
+    - skill_id: skill_anzhishang
+      level: 48
+      hidden: false
+    - skill_id: skill_anzhishui
+      level: 53
+      hidden: false
+    - skill_id: skill_anyeshisha
+      level: 60
+      hidden: true
+    - skill_id: skill_zhiheiyi
+      level: 60
+      hidden: true
+    - skill_id: skill_anzhiyi
+      level: 60
+      hidden: true
+    - skill_id: skill_yingfeng
+      level: 60
+      hidden: true
+    - skill_id: skill_yijieheian
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_yexing
+  emblem:
+    - mark_emblem_dengxin
+- id: pet_nigulasi
+  num: 366
+  element: Shadow
+  baseStats:
+    hp: 180
+    atk: 166
+    spa: 180
+    def: 165
+    spd: 163
+    spe: 160
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 71
+    - 76
+  weightRange:
+    - 47
+    - 52
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_yingxi
+      level: 5
+      hidden: false
+    - skill_id: skill_anhua
+      level: 10
+      hidden: false
+    - skill_id: skill_anxi
+      level: 14
+      hidden: false
+    - skill_id: skill_anti
+      level: 18
+      hidden: false
+    - skill_id: skill_anci
+      level: 23
+      hidden: false
+    - skill_id: skill_yemu
+      level: 28
+      hidden: false
+    - skill_id: skill_anyan
+      level: 33
+      hidden: false
+    - skill_id: skill_bianpaozhalei
+      level: 38
+      hidden: false
+    - skill_id: skill_anzhiguang
+      level: 43
+      hidden: false
+    - skill_id: skill_anzhishang
+      level: 48
+      hidden: false
+    - skill_id: skill_anzhishui
+      level: 53
+      hidden: false
+    - skill_id: skill_anyeshisha
+      level: 60
+      hidden: true
+    - skill_id: skill_zhiheiyi
+      level: 60
+      hidden: true
+    - skill_id: skill_anzhiyi
+      level: 60
+      hidden: true
+    - skill_id: skill_yingfeng
+      level: 60
+      hidden: true
+    - skill_id: skill_yijieheian
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_yeji
+  emblem:
+    - mark_emblem_dengxin

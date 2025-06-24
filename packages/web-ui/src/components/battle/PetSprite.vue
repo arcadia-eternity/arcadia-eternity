@@ -145,6 +145,9 @@ defineExpose({
       :reverse="reverse"
       salign="TL"
       :offsetX="300"
+      :offsetY="200"
+      :scaleX="1.0"
+      :scaleY="1.0"
       @hit="handleHitEvent"
       @animationComplete="handleAnimationComplete"
     />

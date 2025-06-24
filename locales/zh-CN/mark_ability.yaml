@@ -118,3 +118,9 @@ mark_ability_dufen:
 mark_ability_fennu:
   name: 愤怒
   description: 满怒气时威力增加25% >70点时增加15% >50点时增加10%
+mark_ability_yexing:
+  name: 夜行
+  description: 替换上场使环境变为夜幕
+mark_ability_yeji:
+  name: 夜寂
+  description: 替换上场使环境变为夜幕并使自身获得不谐暗光

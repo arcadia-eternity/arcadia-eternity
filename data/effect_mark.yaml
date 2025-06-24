@@ -2803,3 +2803,106 @@
               arg: damageResult
             - type: multiply
               arg: 0.5
+# 受到伤害增加: 每层增加1%受到的伤害
+- id: effect_mark_add_damage_taken_with_stack
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    - type: addModified
+      target: damageContext
+      percent:
+        type: dynamic
+        selector:
+          base: mark
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: stack
+      delta: 0
+    - type: destroyMark
+      target: mark
+# 黑暗物质：每层降低5点命中率
+- id: effect_mark_reduce_accuracy_5_per_stack
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addDynamicAttributeModifier
+    target:
+      base: self
+    stat: accuracy
+    modifierType: delta
+    observableValue:
+      base: mark
+      chain:
+        - type: selectAttribute$
+          arg: stack
+        - type: multiply
+          arg:
+            type: raw:number
+            configId: reduce_accuracy_per_stack
+            value: -5
+# 影缝：当成功闪避且环境为夜幕时，使自身获得50点回复3回合
+- id: effect_mark_yingfeng_heal_50_on_evasion_in_yemu
+  trigger: OnMiss
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_huifu_50_per_turn
+    duration: 3
+  condition:
+    type: every
+    conditions:
+      - type: selfBeSkillTarget
+      - type: evaluate
+        target:
+          base: battle
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: marks
+            - type: flat
+            - type: whereAttr
+              extractor: baseId
+              evaluator:
+                type: same
+                value: mark_global_yemu
+        evaluator:
+          type: exist
+# 影缝: 被打中或者闪避成功后，消失
+- id: effect_mark_yingfeng_destroy_on_hit_or_miss
+  trigger: [OnHit, OnMiss]
+  priority: -1
+  apply:
+    type: destroyMark
+    target: mark
+  condition:
+    type: selfBeSkillTarget
+# 不谐暗光：受到的光属性伤害减半
+- id: effect_mark_buxieanguang_reduce_light_damage_half
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: -50
+    delta: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: element
+        evaluator:
+          type: same
+          value: Light

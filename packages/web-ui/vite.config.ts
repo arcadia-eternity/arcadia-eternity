@@ -76,6 +76,8 @@ export default defineConfig({
           },
         },
       ],
+      // 忽略找不到文件的错误，继续处理其他目标
+      silent: true,
       watch: {
         // 开发模式监听文件变化
         reloadPageOnChange: true,

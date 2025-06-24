@@ -2449,6 +2449,11 @@ watch(
               </div>
             </div>
 
+            <!-- 公共印记（天气）显示 -->
+            <div v-if="globalMarks.length > 0" class="flex flex-wrap justify-center gap-2 max-w-md">
+              <Mark v-for="mark in globalMarks" :key="mark.id" :mark="mark" />
+            </div>
+
             <!-- 等待对手提示 -->
             <Transition name="fade">
               <div
@@ -2467,18 +2472,13 @@ watch(
                 </span>
               </div>
             </Transition>
-
-            <!-- 公共印记（天气）显示 -->
-            <div v-if="globalMarks.length > 0" class="flex flex-wrap justify-center gap-2 max-w-md">
-              <Mark v-for="mark in globalMarks" :key="mark.id" :mark="mark" />
-            </div>
           </div>
 
-          <!-- 精灵容器 - 基于整个对战画面进行绝对定位 -->
-          <div class="flex-grow relative">
+          <!-- 精灵容器 - 绝对定位相对于整个battleView，不受其他元素挤压 -->
+          <div class="absolute inset-0 pointer-events-none">
             <!-- 左侧精灵侧栏 - 绝对定位 -->
             <div
-              class="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5"
+              class="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 pointer-events-auto"
               :class="Z_INDEX_CLASS.PET_BUTTON_CONTAINER"
             >
               <PetButton
@@ -2494,7 +2494,7 @@ watch(
 
             <!-- 右侧精灵侧栏 - 绝对定位 -->
             <div
-              class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5"
+              class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 pointer-events-auto"
               :class="Z_INDEX_CLASS.PET_BUTTON_CONTAINER"
             >
               <PetButton
@@ -2548,6 +2548,9 @@ watch(
               </div>
             </div>
           </div>
+
+          <!-- 占位元素 - 保持原有的flex布局空间分配 -->
+          <div class="flex-grow"></div>
 
           <!-- 回放模式控制界面 -->
           <div v-if="isReplayMode" class="flex flex-none bg-black/80 h-1/5">

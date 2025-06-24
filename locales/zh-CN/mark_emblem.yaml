@@ -119,3 +119,6 @@ mark_emblem_yingguang:
 mark_emblem_jihuo:
   name: 集火
   description: 使火系技能必中
+mark_emblem_dengxin:
+  name: 灯芯
+  description: 每层黑暗物质使对手的命中率额外降低5%

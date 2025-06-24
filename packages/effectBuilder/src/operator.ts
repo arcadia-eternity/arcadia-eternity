@@ -688,6 +688,17 @@ export const Operators = {
       else target.forEach(v => v.clearStatStage(context, cleanStageStrategy, ..._statTypes))
     },
 
+  reverseStatStage:
+    (
+      statType?: ValueSource<StatTypeWithoutHp>,
+      cleanStageStrategy: CleanStageStrategy = CleanStageStrategy.positive,
+    ): Operator<Pet> =>
+    (context: EffectContext<EffectTrigger>, target: Pet[]) => {
+      const _statTypes = statType ? GetValueFromSource(context, statType) : undefined
+      if (!_statTypes) target.forEach(v => v.reverseStatStage(context))
+      else target.forEach(v => v.reverseStatStage(context, cleanStageStrategy, ..._statTypes))
+    },
+
   transferStatStage:
     (
       source: ValueSource<Pet>,

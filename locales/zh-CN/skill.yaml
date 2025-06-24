@@ -1687,3 +1687,51 @@ skill_huolongdetiequan:
 skill_huolongdepaoxiao:
   name: 火龙的咆哮
   description: 体力＜1/2时必定暴击
+skill_yingxi:
+  name: 影袭
+  description: 5%弱化对手特防1级
+skill_anhua:
+  name: 暗化
+  description: 强化自身特攻1级
+skill_anxi:
+  name: 暗袭
+  description: 使对手获得1层黑暗物质
+skill_anti:
+  name: 暗剃
+  description: 消耗1层黑暗物质弱化对手特防1级
+skill_anci:
+  name: 暗刺
+  description: 10%强化自身速度1级
+skill_yemu:
+  name: 夜幕
+  description: 使环境变为夜幕
+skill_anyan:
+  name: 暗炎
+  description: 消耗1层黑暗物质增加50点威力
+skill_bianpaozhalei:
+  name: 鞭炮炸裂
+  description: 夜幕时使对手获得50点流血
+skill_anzhiguang:
+  name: 暗之光
+  description: 恢复自身70点体力 夜幕时效果2倍
+skill_anzhishang:
+  name: 暗之伤
+  description: 消耗2层黑暗物质必定暴击
+skill_anzhishui:
+  name: 暗之水
+  description: 解除自身不良 夜幕时额外解除自身弱化
+skill_anyeshisha:
+  name: 暗夜瞬杀
+  description: 必中 附加对手最大体力7%的固伤
+skill_zhiheiyi:
+  name: 至黑一击
+  description: 夜幕时必中
+skill_anzhiyi:
+  name: 暗之衣
+  description: 清除对手速度强化 夜幕时反转对手速度强化
+skill_yingfeng:
+  name: 影缝
+  description: 使自身获得影缝
+skill_yijieheian:
+  name: 异界黑暗
+  description: 先制+1 使自身获得50点受伤增加 150点伤害增加

@@ -19,6 +19,7 @@ import {
   createClusterConfigFromCli,
   type ClusterCliOptions,
 } from '@arcadia-eternity/server'
+import { validateAndPrintGameData } from '@arcadia-eternity/cli-validator'
 import DevServer from '../devServer'
 import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
@@ -32,13 +33,80 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 // 解析玩家文件
-async function parsePlayerFile(filePath: string): Promise<Player> {
+async function parsePlayerFile(filePath: string, _options: { validateData?: boolean } = {}): Promise<Player> {
   try {
-    const content = await fs.readFile(path.resolve(filePath), 'utf-8')
-    const rawData = yaml.parse(content)
-    return PlayerParser.parse(rawData)
+    console.log(`[🔍] 正在解析玩家文件: ${filePath}`)
+
+    // 检查文件是否存在
+    const resolvedPath = path.resolve(filePath)
+    try {
+      await fs.access(resolvedPath)
+    } catch {
+      throw new Error(`玩家文件不存在: ${resolvedPath}`)
+    }
+
+    // 读取文件内容
+    const content = await fs.readFile(resolvedPath, 'utf-8')
+    if (!content.trim()) {
+      throw new Error(`玩家文件为空: ${resolvedPath}`)
+    }
+
+    // 解析YAML
+    let rawData: unknown
+    try {
+      rawData = yaml.parse(content)
+    } catch (yamlError) {
+      throw new Error(`YAML格式错误: ${yamlError instanceof Error ? yamlError.message : yamlError}`)
+    }
+
+    // 基本数据验证
+    if (!rawData || typeof rawData !== 'object') {
+      throw new Error('玩家数据格式无效，应该是一个对象')
+    }
+
+    const data = rawData as Record<string, unknown>
+
+    // 检查必要字段
+    if (!data.name || typeof data.name !== 'string' || !data.name.trim()) {
+      throw new Error('玩家名称缺失或无效')
+    }
+
+    if (!data.team || !Array.isArray(data.team) || data.team.length === 0) {
+      throw new Error('玩家队伍数据缺失或无效')
+    }
+
+    // 验证队伍中的精灵数据
+    for (let i = 0; i < data.team.length; i++) {
+      const pet = data.team[i]
+      if (!pet || typeof pet !== 'object') {
+        throw new Error(`第 ${i + 1} 只精灵数据无效`)
+      }
+
+      const petData = pet as Record<string, unknown>
+      if (!petData.name || typeof petData.name !== 'string') {
+        throw new Error(`第 ${i + 1} 只精灵缺少有效名称`)
+      }
+
+      if (!petData.species || typeof petData.species !== 'string') {
+        throw new Error(`第 ${i + 1} 只精灵 "${petData.name}" 缺少有效种族ID`)
+      }
+
+      // 检查种族ID格式
+      if (!petData.species.startsWith('pet_')) {
+        throw new Error(
+          `第 ${i + 1} 只精灵 "${petData.name}" 的种族ID "${petData.species}" 格式不正确，应该以 "pet_" 开头`,
+        )
+      }
+    }
+
+    // 使用PlayerParser进行完整解析
+    const player = PlayerParser.parse(rawData)
+
+    console.log(`[✅] 成功解析玩家: ${player.name} (${player.team.length} 只精灵)`)
+    return player
   } catch (err) {
-    throw new Error(`无法解析玩家文件 ${filePath}: ${err instanceof Error ? err.message : err}`)
+    const errorMessage = err instanceof Error ? err.message : String(err)
+    throw new Error(`无法解析玩家文件 ${filePath}: ${errorMessage}`)
   }
 }
 
@@ -65,11 +133,22 @@ program
   .description('启动在线对战')
   .requiredOption('-d, --data <path>', '玩家数据文件路径')
   .option('-s, --server <url>', '服务器地址', process.env.BATTLE_SERVER_URL || 'ws://localhost:8102')
+  .option('--validate-data', '启用数据完整性验证', false)
   .action(async options => {
     try {
       console.log('[🌀] 正在加载游戏数据...')
       await loadGameData(undefined, LOADING_STRATEGIES.LENIENT)
       await loadScripts()
+
+      // 数据完整性验证
+      if (options.validateData) {
+        console.log('[🔍] 正在验证游戏数据完整性...')
+        const isValid = await validateAndPrintGameData({ verbose: true })
+        if (!isValid) {
+          console.error('[❌] 游戏数据验证失败，请修复数据问题后重试')
+          process.exit(1)
+        }
+      }
 
       console.log('[🌀] 正在解析玩家数据...')
       const content = await fs.readFile(path.resolve(options.data), 'utf-8')
@@ -83,7 +162,7 @@ program
       const remote = new RemoteBattleSystem(client)
 
       await initI18n()
-      const consoleUI = new ConsoleUIV2(remote, player.id as playerId)
+      new ConsoleUIV2(remote, player.id as playerId)
       await client.connect()
 
       // 监听匹配成功事件，自动准备
@@ -111,6 +190,7 @@ program
   .option('--debug', '启用调试模式', false)
   .option('--strict', '使用严格模式加载数据（检测缺失引用）', false)
   .option('--load-scripts', '加载脚本定义', false)
+  .option('--validate-data', '启用数据完整性验证', false)
   .action(async options => {
     try {
       console.log('[🌀] 正在加载游戏数据...')
@@ -135,9 +215,22 @@ program
         await loadScripts()
       }
 
+      // 数据完整性验证
+      if (options.validateData || options.strict) {
+        console.log('[🔍] 正在验证游戏数据完整性...')
+        const isValid = await validateAndPrintGameData({
+          verbose: true,
+          validateCrossReferences: options.strict,
+        })
+        if (!isValid) {
+          console.error('[❌] 游戏数据验证失败，请修复数据问题后重试')
+          process.exit(1)
+        }
+      }
+
       console.log('[🌀] 正在解析玩家数据...')
-      let player1 = await parsePlayerFile(options.player1)
-      let player2 = await parsePlayerFile(options.player2)
+      let player1 = await parsePlayerFile(options.player1, { validateData: options.validateData })
+      let player2 = await parsePlayerFile(options.player2, { validateData: options.validateData })
 
       let selfControl = [player1.id, player2.id]
 
@@ -163,7 +256,7 @@ program
       })
       const battleSystem = new LocalBattleSystem(battle)
       await initI18n(options.debug)
-      const ui = new ConsoleUIV2(battleSystem, ...selfControl)
+      new ConsoleUIV2(battleSystem, ...selfControl)
       battleSystem.ready()
     } catch (err) {
       console.error('[💥] 致命错误:', err instanceof Error ? err.message : err)
@@ -176,6 +269,7 @@ program
   .description('启动对战服务器')
   .option('-p, --port <number>', '服务器端口', process.env.PORT || '8102')
   .option('--enable-battle-reports', '启用战报功能和API', false)
+  .option('--validate-data', '启用数据完整性验证', false)
   .option('--supabase-url <url>', 'Supabase项目URL（可通过 SUPABASE_URL 环境变量设置）')
   .option('--supabase-anon-key <key>', 'Supabase匿名密钥（可通过 SUPABASE_ANON_KEY 环境变量设置）')
   .option('--supabase-service-key <key>', 'Supabase服务密钥（可通过 SUPABASE_SERVICE_KEY 环境变量设置）')
@@ -238,6 +332,16 @@ program
       console.log('[🌀] 正在加载游戏数据...')
       await loadGameData(undefined, LOADING_STRATEGIES.LENIENT)
       await loadScripts()
+
+      // 数据完整性验证
+      if (options.validateData) {
+        console.log('[🔍] 正在验证游戏数据完整性...')
+        const isValid = await validateAndPrintGameData({ verbose: true })
+        if (!isValid) {
+          console.error('[❌] 游戏数据验证失败，请修复数据问题后重试')
+          process.exit(1)
+        }
+      }
 
       // 配置战报服务
       let battleReportConfig: (BattleReportConfig & { enableApi: boolean }) | undefined
@@ -372,6 +476,65 @@ program
       console.log(`📧 邮件服务: ${emailConfig.provider} (${emailConfig.from})`)
     } catch (err) {
       console.error('[💥] 服务器启动失败:', err instanceof Error ? err.message : err)
+      process.exit(1)
+    }
+  })
+
+program
+  .command('validate')
+  .description('验证游戏数据完整性')
+  .option('--strict', '使用严格模式验证（包含交叉引用检查）', false)
+  .option('--load-scripts', '加载脚本定义后再验证', false)
+  .option('--verbose', '显示详细的验证信息', false)
+  .option('--continue-on-error', '发现错误时继续验证', false)
+  .option('--skip-id-format', '跳过ID格式验证', false)
+  .option('--skip-duplicates', '跳过重复ID检查', false)
+  .action(async options => {
+    try {
+      console.log('[🔍] 开始游戏数据验证...')
+
+      // 根据选项选择加载策略
+      let strategy = LOADING_STRATEGIES.LENIENT
+      if (options.strict && options.loadScripts) {
+        strategy = LOADING_STRATEGIES.FULL
+      } else if (options.strict) {
+        strategy = LOADING_STRATEGIES.STRICT
+      } else if (options.loadScripts) {
+        strategy = LOADING_STRATEGIES.DEVELOPMENT
+      }
+
+      console.log('[🌀] 正在加载游戏数据...')
+      console.log(
+        `[📋] 使用加载策略: ${options.strict ? '严格' : '宽松'}模式${options.loadScripts ? ' + 脚本加载' : ''}`,
+      )
+      await loadGameData(undefined, strategy)
+
+      // 如果没有通过策略加载脚本，则单独加载
+      if (!options.loadScripts) {
+        await loadScripts()
+      }
+
+      // 配置验证选项
+      const validationOptions = {
+        validateCrossReferences: options.strict,
+        validateIdFormat: !options.skipIdFormat,
+        checkDuplicateIds: !options.skipDuplicates,
+        continueOnError: options.continueOnError,
+        verbose: options.verbose || true, // 验证命令默认显示详细信息
+      }
+
+      console.log('[🔍] 正在验证游戏数据完整性...')
+      const isValid = await validateAndPrintGameData(validationOptions)
+
+      if (isValid) {
+        console.log('[🎉] 所有数据验证通过！')
+        process.exit(0)
+      } else {
+        console.log('[💥] 数据验证失败，请修复上述问题')
+        process.exit(1)
+      }
+    } catch (err) {
+      console.error('[💥] 验证过程中发生错误:', err instanceof Error ? err.message : err)
       process.exit(1)
     }
   })

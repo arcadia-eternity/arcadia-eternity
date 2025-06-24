@@ -553,3 +553,12 @@ mark_huafenmiman:
 mark_longlinjia:
   name: 龙鳞甲【🛡️】
   description: 反弹特攻伤害50% 持续三回合
+mark_heianwuzhi:
+  name: 黑暗物质
+  description: 每层降低自身5%命中率
+mark_yingfeng:
+  name: 影缝
+  description: 闪避下次攻击 夜幕下闪避成功使自己获得3回合恢复50点体力
+mark_buxieanguang:
+  name: 不谐暗光
+  description: 受到光系伤害减半 持续1回合

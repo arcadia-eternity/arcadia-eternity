@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",
+    "@arcadia-eternity/cli-validator": "workspace:^",
     "@arcadia-eternity/client": "workspace:^",
     "@arcadia-eternity/console": "workspace:^",
     "@arcadia-eternity/const": "workspace:^",

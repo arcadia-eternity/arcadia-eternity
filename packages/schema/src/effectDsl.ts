@@ -179,6 +179,13 @@ export type ClearStatStageOperator = {
   cleanStageStrategy?: CleanStageStrategy
 }
 
+export type ReverseStatStageOperator = {
+  type: 'reverseStatStage'
+  target: SelectorDSL
+  statType?: Value
+  cleanStageStrategy?: CleanStageStrategy
+}
+
 export type TransferStatStageOperator = {
   type: 'transferStatStage'
   source: SelectorDSL
@@ -557,6 +564,7 @@ export type OperatorDSL =
   | AddSkillClampModifierOperator
   | StatStageBuffOperator
   | ClearStatStageOperator
+  | ReverseStatStageOperator
   | TransferStatStageOperator
   | AddRageOperator
   | AmplifyPowerOperator

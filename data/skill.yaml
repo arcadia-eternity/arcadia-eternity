@@ -979,7 +979,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_set_weather_qingtian
+    - effect_skill_set_field_qingtian
 - id: skill_duhua
   element: Grass
   category: Status
@@ -2313,7 +2313,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_set_weather_yutian
+    - effect_skill_set_field_yutian
 - id: skill_jishuichuanliu
   element: Water
   category: Special
@@ -2828,7 +2828,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_set_weather_yanre
+    - effect_skill_set_field_yanre
 - id: skill_huoshanzhili
   element: Fire
   category: Status
@@ -4731,7 +4731,7 @@
   tags: ['combination']
   multihit: 2
   effect:
-    - effect_skill_set_weather_qingtian_or_yemu
+    - effect_skill_set_field_qingtian_or_yemu
 - id: skill_liuxingquan
   element: Normal
   category: Physical
@@ -6765,3 +6765,151 @@
   tags: []
   effect:
     - effect_skill_set_sure_crit_if_hp_below_half
+- id: skill_yingxi
+  element: Shadow
+  category: Special
+  target: opponent
+  power: 60
+  accuracy: 95
+  rage: 5
+  effect:
+    - effect_skill_reduce_foe_spd_1_stage_5_percent
+- id: skill_anhua
+  element: Shadow
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  effect:
+    - effect_skill_raise_spa_1_stage
+- id: skill_anxi
+  element: Shadow
+  category: Special
+  target: opponent
+  power: 75
+  accuracy: 95
+  rage: 10
+  effect:
+    - effect_skill_add_mark_foe_heianwuzhi_1
+- id: skill_anti
+  element: Shadow
+  category: Physical
+  target: opponent
+  power: 85
+  accuracy: 95
+  rage: 15
+  effect:
+    - effect_skill_consume_heianwuzhi_reduce_foe_spd_1_stage
+- id: skill_anci
+  element: Shadow
+  category: Special
+  target: opponent
+  power: 90
+  accuracy: 95
+  rage: 15
+  effect:
+    - effect_skill_raise_spe_1_stage_10_percent
+- id: skill_yemu
+  element: Shadow
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  effect:
+    - effect_skill_set_field_yemu
+- id: skill_anyan
+  element: Shadow
+  category: Physical
+  target: opponent
+  power: 85
+  accuracy: 95
+  rage: 15
+  effect:
+    - effect_skill_add_power_50_consume_heianwuzhi
+- id: skill_bianpaozhalei
+  element: Shadow
+  category: Special
+  target: opponent
+  power: 95
+  accuracy: 95
+  rage: 20
+  effect:
+    - effect_skill_add_mark_foe_liuxie_50_if_field_yemu
+- id: skill_anzhiguang
+  element: Shadow
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  effect:
+    - effect_skill_heal_70_double_if_field_yemu
+- id: skill_anzhishang
+  element: Shadow
+  category: Special
+  target: opponent
+  power: 100
+  accuracy: 95
+  rage: 20
+  effect:
+    - effect_skill_consume_heimowuzhi_2_sure_crit
+- id: skill_anzhishui
+  element: Shadow
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  effect:
+    - effect_skill_clear_status
+    - effect_skill_clear_self_negative_stage_if_field_yemu
+- id: skill_anyeshisha
+  element: Shadow
+  category: Climax
+  target: opponent
+  power: 170
+  accuracy: 100
+  rage: 100
+  sureHit: true
+  effect:
+    - effect_skill_fixed_damage_7_percent_max_hp
+- id: skill_zhiheiyi
+  element: Shadow
+  category: Special
+  target: opponent
+  power: 120
+  accuracy: 70
+  rage: 20
+  effect:
+    - effect_skill_set_sure_hit_if_field_yemu
+- id: skill_anzhiyi
+  element: Shadow
+  category: Special
+  target: opponent
+  power: 50
+  accuracy: 95
+  rage: 20
+  effect:
+    - effect_skill_clear_foe_spe_up_reverse_if_field_yemu
+- id: skill_yingfeng
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 25
+  effect:
+    - effect_skill_add_mark_yingfeng
+- id: skill_yijieheian
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  priority: 1
+  effect:
+    - effect_skill_add_mark_shanghaizengjia_50
+    - effect_skill_add_mark_shanghaizengjia_150

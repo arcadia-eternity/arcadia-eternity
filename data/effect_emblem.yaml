@@ -875,3 +875,13 @@
                 value: Fire
         evaluator:
           type: exist
+# 灯芯：黑暗物质每层减少的命中率再降低5%
+- id: effect_emblem_dengxin_reduce_accuracy_5_percent_per_stack
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addConfigModifier
+    target: foePlayer
+    configKey: effect_mark_reduce_accuracy_5_per_stack.reduce_accuracy_per_stack
+    modifierType: delta
+    value: -5

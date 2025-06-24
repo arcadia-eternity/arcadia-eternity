@@ -148,6 +148,10 @@ export async function executeSkillOperation(context: UseSkillContext, battle: Ba
             context.typeMultiplier,
             context.ignoreShield,
             context.randomFactor,
+            undefined,
+            undefined,
+            undefined,
+            context.element,
           )
 
           // Apply damage

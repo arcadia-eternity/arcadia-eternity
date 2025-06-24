@@ -204,9 +204,14 @@
   config: *emblem_config
   tags: [emblem]
   effect:
-    - effect_emblem_yingguanghuafen_extra_accuracy_reduction_5 # TODO: 使荧光花粉额外使对手获得5点命中下降
+    - effect_emblem_yingguanghuafen_extra_accuracy_reduction_5
 - id: mark_emblem_jihuo
   config: *emblem_config
   tags: [emblem]
   effect:
-    - effect_emblem_jihuo_fire_skill_sure_hit # TODO: 使火系技能必中
+    - effect_emblem_jihuo_fire_skill_sure_hit
+- id: mark_emblem_dengxin
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_dengxin_reduce_accuracy_5_percent_per_stack

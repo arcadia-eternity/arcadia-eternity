@@ -1,4 +1,4 @@
-import { EffectTrigger, BattleMessageType, DamageType } from '@arcadia-eternity/const'
+import { EffectTrigger, BattleMessageType, DamageType, Element } from '@arcadia-eternity/const'
 import { BattlePhaseBase } from './base'
 import { DamageContext } from '../context'
 import type { Battle } from '../battle'
@@ -25,6 +25,7 @@ export class DamagePhase extends BattlePhaseBase<DamageContext> {
     private readonly modified: [number, number] = [0, 0],
     private readonly minThreshold: number = 0,
     private readonly maxThreshold: number = Number.MAX_SAFE_INTEGER,
+    private readonly element?: Element,
     id?: string,
   ) {
     super(battle, id)
@@ -44,6 +45,7 @@ export class DamagePhase extends BattlePhaseBase<DamageContext> {
       this.modified,
       this.minThreshold,
       this.maxThreshold,
+      this.element,
     )
   }
 
