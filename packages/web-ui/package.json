@@ -57,7 +57,7 @@
     "pinia": "^3.0.3",
     "pinia-plugin-persistedstate": "^4.3.0",
     "rxjs": "^7.8.2",
-    "seer2-pet-animator": "^0.0.33",
+    "seer2-pet-animator": "^0.0.34",
     "sortablejs": "^1.15.6",
     "sortablejs-vue3": "^1.2.11",
     "tailwindcss": "^4.1.10",
