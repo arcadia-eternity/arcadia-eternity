@@ -14,10 +14,10 @@ export const Z_INDEX_VALUES = {
   TIMER: 30,
   SKILL_BUTTON: 30,
   BATTLE_STATUS_ICON: 40,
-  PET_BUTTON: 45, // 提升到 45，确保能覆盖 BattleStatus 的触发区域
+  PET_BUTTON: 45,
   MARK: 50,
   PET_BUTTON_CONTAINER: 50, // 侧边 PetButton 容器的 z-index
-  DYNAMIC_ANIMATION: 50,
+  DYNAMIC_ANIMATION: 10,
 
   // UI 层级 (200-999)
   TOOLTIP: 200,
@@ -54,7 +54,7 @@ export enum Z_INDEX_CLASS {
   PET_BUTTON = 'z-[45]',
   MARK = 'z-[50]',
   PET_BUTTON_CONTAINER = 'z-[50]',
-  DYNAMIC_ANIMATION = 'z-[50]',
+  DYNAMIC_ANIMATION = 'z-[10]',
 
   // UI 层级
   TOOLTIP = 'z-[200]',
