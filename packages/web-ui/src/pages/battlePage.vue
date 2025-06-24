@@ -33,7 +33,17 @@ import {
   type SkillMessage,
   type SkillUseEndMessage,
 } from '@arcadia-eternity/const'
-import { Aim, DArrowLeft, DArrowRight, Film, FullScreen, VideoPause, VideoPlay, Warning } from '@element-plus/icons-vue'
+import {
+  Aim,
+  Close,
+  DArrowLeft,
+  DArrowRight,
+  Film,
+  FullScreen,
+  VideoPause,
+  VideoPlay,
+  Warning,
+} from '@element-plus/icons-vue'
 import gsap from 'gsap'
 import i18next from 'i18next'
 import mitt from 'mitt'
@@ -125,7 +135,17 @@ const { isMobile, isPortrait } = useMobile()
 
 // 全屏相关
 const isFullscreen = ref(false)
-const showOrientationHint = computed(() => isMobile.value && isPortrait.value && !isFullscreen.value)
+
+// 横屏提示相关
+const orientationHintDismissed = ref(false)
+const showOrientationHint = computed(
+  () => isMobile.value && isPortrait.value && !isFullscreen.value && !orientationHintDismissed.value,
+)
+
+// 关闭横屏提示
+const dismissOrientationHint = () => {
+  orientationHintDismissed.value = true
+}
 
 // 自定义确认对话框（用于全屏模式）
 const showCustomConfirm = ref(false)
@@ -168,15 +188,6 @@ const enterFullscreen = async () => {
     }
 
     isFullscreen.value = true
-
-    // 尝试锁定屏幕方向为横屏
-    if (screen.orientation && (screen.orientation as any).lock) {
-      try {
-        await (screen.orientation as any).lock('landscape')
-      } catch (error) {
-        console.warn('无法锁定屏幕方向:', error)
-      }
-    }
   } catch (error) {
     console.error('进入全屏失败:', error)
   }
@@ -194,15 +205,6 @@ const exitFullscreen = async () => {
     }
 
     isFullscreen.value = false
-
-    // 解锁屏幕方向
-    if (screen.orientation && (screen.orientation as any).unlock) {
-      try {
-        ;(screen.orientation as any).unlock()
-      } catch (error) {
-        console.warn('无法解锁屏幕方向:', error)
-      }
-    }
   } catch (error) {
     console.error('退出全屏失败:', error)
   }
@@ -2356,12 +2358,40 @@ watch(
         v-if="showOrientationHint"
         class="absolute inset-0 bg-black/60 flex items-center justify-center"
         :class="Z_INDEX_CLASS.MOBILE_ORIENTATION_HINT"
+        @click="dismissOrientationHint"
       >
-        <div class="bg-white/90 backdrop-blur-sm rounded-lg p-6 mx-4 text-center max-w-sm">
+        <div class="bg-white/90 backdrop-blur-sm rounded-lg p-6 mx-4 text-center max-w-sm relative" @click.stop>
+          <!-- 关闭按钮 -->
+          <button
+            @click="dismissOrientationHint"
+            class="absolute top-2 right-2 w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-gray-600 transition-colors duration-200"
+            title="关闭提示"
+          >
+            <el-icon :size="16">
+              <Close />
+            </el-icon>
+          </button>
+
           <div class="text-2xl mb-4">📱 ➡️ 📱</div>
           <h3 class="text-lg font-bold text-gray-800 mb-2">建议横屏游戏</h3>
           <p class="text-gray-600 text-sm mb-4">为了获得最佳游戏体验，建议将设备旋转至横屏模式</p>
-          <p class="text-gray-500 text-xs">或点击右上角的全屏按钮进入全屏模式</p>
+          <p class="text-gray-500 text-xs mb-4">或点击右上角的全屏按钮进入全屏模式</p>
+
+          <!-- 操作按钮 -->
+          <div class="flex gap-2 justify-center">
+            <button
+              @click="toggleFullscreen"
+              class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors duration-200"
+            >
+              进入全屏
+            </button>
+            <button
+              @click="dismissOrientationHint"
+              class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors duration-200"
+            >
+              继续游戏
+            </button>
+          </div>
         </div>
       </div>
 
