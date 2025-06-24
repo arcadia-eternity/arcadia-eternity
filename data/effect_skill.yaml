@@ -7810,7 +7810,7 @@
   priority: 0
   apply:
     <<: *apply_self_statstage_+1_template
-    stat: spe
+    statType: spe
   condition:
     type: every
     conditions:
