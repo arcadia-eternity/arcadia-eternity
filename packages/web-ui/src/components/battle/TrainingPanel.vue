@@ -320,10 +320,12 @@ const fullHealCurrentPet = () => {
   }
 }
 
-const fullRageCurrentPlayer = () => {
+const fullRageCurrentPlayer = async () => {
   if (currentPlayer.value) {
     battleStore.setDevPlayerRage(currentPlayer.value.id, 150)
     currentPlayerRage.value = 150
+    // 自动刷新当前玩家的可选项
+    await refreshPlayerActions()
   }
 }
 
