@@ -26,6 +26,21 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['seer2-pet-animator'],
   },
+  build: {
+    assetsInlineLimit: (filePath, content) => {
+      // 对于SWF文件，永远不内联
+      if (filePath.endsWith('.swf')) {
+        return false
+      }
+      // 对于来自seer2-pet-animator的资源，不内联
+      if (filePath.includes('seer2-pet-animator')) {
+        return false
+      }
+      // 其他文件使用默认的4KB阈值
+      return content.length < 4096
+    },
+  },
+  assetsInclude: ['**/*.swf'], // 确保SWF文件被识别为资源
   plugins: [
     vue({
       template: {
