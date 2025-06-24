@@ -63,7 +63,7 @@ watchEffect(async () => {
       while (!states && retryCount < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, 100))
         states = (await petRenderRef.value.getAvailableStates()) as ActionState[]
-        if (!states) {
+        if (!states || states.length === 0) {
           console.debug(
             `PetSprite: getAvailableStates returned undefined for num ${props.num}, retry ${retryCount + 1}/${maxRetries}`,
           )
