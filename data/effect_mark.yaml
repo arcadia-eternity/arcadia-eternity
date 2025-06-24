@@ -648,7 +648,7 @@
   trigger: BeforeUseSkillCheck
   priority: 0
   condition:
-    type: foeUseSkill
+    type: selfBeSkillTarget
   apply:
     type: setSureMiss
     target: usingSkillContext
@@ -657,7 +657,7 @@
   trigger: BeforeUseSkillCheck
   priority: 0
   condition:
-    type: foeUseSkill
+    type: selfBeSkillTarget
   apply:
     type: setSureMiss
     target: usingSkillContext
