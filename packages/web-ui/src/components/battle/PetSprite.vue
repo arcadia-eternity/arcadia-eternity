@@ -68,6 +68,7 @@ watchEffect(async () => {
             `PetSprite: getAvailableStates returned undefined for num ${props.num}, retry ${retryCount + 1}/${maxRetries}`,
           )
           // 等待一小段时间让pet-render完全加载
+          await new Promise(resolve => setTimeout(resolve, 100))
           retryCount++
         }
       }
