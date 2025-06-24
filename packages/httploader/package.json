@@ -25,10 +25,10 @@
     "@arcadia-eternity/data-repository": "workspace:^",
     "@arcadia-eternity/parser": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
-    "axios": "^1.9.0",
+    "axios": "^1.10.0",
     "yaml": "^2.8.0"
   },
   "devDependencies": {
-    "@types/node": "^24.0.1"
+    "@types/node": "^24.0.4"
   }
 }

@@ -26,10 +26,10 @@
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/effect-builder": "workspace:^",
     "nanoid": "^5.1.5",
-    "zod": "^3.25.64"
+    "zod": "^3.25.67"
   },
   "devDependencies": {
-    "@types/node": "^24.0.1",
+    "@types/node": "^24.0.4",
     "zod-to-json-schema": "^3.24.5"
   }
 }
