@@ -2,8 +2,9 @@ import { useBattleStore } from '@/stores/battle'
 import { type petId } from '@arcadia-eternity/const'
 import gsap from 'gsap'
 import i18next from 'i18next'
-import { h, render, type Ref, type ComputedRef } from 'vue'
+import { h, render, type Ref, type ComputedRef, ref } from 'vue'
 import { Subject, concatMap, delay, tap, timestamp, scan, of } from 'rxjs'
+import { useElementBounding } from '@vueuse/core'
 import DamageDisplay from '@/components/battle/DamageDisplay.vue'
 import HealDisplay from '@/components/battle/HealDisplay.vue'
 // import type { Player } from '@arcadia-eternity/battle' // Assuming Player type is exported from battle package - replaced with MinimalPlayerForAnimations
@@ -19,7 +20,21 @@ export function useBattleAnimations(
   currentPlayer: ComputedRef<MinimalPlayerForAnimations | null | undefined>,
   opponentPlayer: ComputedRef<MinimalPlayerForAnimations | null | undefined>,
   battleViewScale: ComputedRef<number>,
+  backgroundContainerRef?: Ref<HTMLElement | null>,
 ) {
+  // 使用 VueUse 的 useElementBounding 来获取容器尺寸
+  const { width: containerWidth, height: containerHeight } = useElementBounding(backgroundContainerRef)
+
+  // 背景图片的动态宽高比，默认值为 1200x660
+  const backgroundAspectRatio = ref(1200 / 660) // ≈ 1.818
+
+  // 提供方法来更新背景图片宽高比（从外部调用）
+  const updateBackgroundAspectRatio = (width: number, height: number) => {
+    if (width > 0 && height > 0) {
+      backgroundAspectRatio.value = width / height
+      console.debug(`Background aspect ratio updated to: ${backgroundAspectRatio.value} (${width}x${height})`)
+    }
+  }
   // 战斗视图固定坐标系统 (1600x900)
   // 基于battlePage.vue中的实际布局结构计算固定位置
   const getBattleViewPosition = (side: 'left' | 'right', offsetY: number = 120) => {
@@ -210,6 +225,55 @@ export function useBattleAnimations(
     })
   }
 
+  // 背景焦点移动效果
+  let currentBackgroundOffset = 0 // 记录当前背景偏移量
+
+  const moveBackgroundFocus = (targetSide: 'left' | 'right', intensity: number = 1) => {
+    if (!backgroundContainerRef?.value) return
+
+    const container = backgroundContainerRef.value
+
+    // 使用 VueUse 的响应式尺寸数据
+    const currentWidth = containerWidth.value
+    const currentHeight = containerHeight.value
+
+    if (!currentWidth || !currentHeight) return
+
+    // 计算背景图片的实际宽度（基于 backgroundSize: 'auto 100%' 和动态宽高比）
+    const aspectRatio = backgroundAspectRatio.value
+    const backgroundWidth = currentHeight * aspectRatio
+
+    // 计算可移动的最大距离（确保图片左边界不超过容器左边界）
+    const maxMoveDistance = Math.max(0, (backgroundWidth - currentWidth) / 2)
+
+    // 如果背景图片宽度小于等于容器宽度，则不移动
+    if (maxMoveDistance <= 0) return
+
+    // 计算本次移动的增量距离
+    const baseMove = Math.min(currentWidth * 0.3, maxMoveDistance * 0.4)
+    const deltaMove = baseMove * intensity
+
+    // 当左侧精灵受攻击时，背景向右移动（正值）；右侧精灵受攻击时，背景向左移动（负值）
+    const deltaX = targetSide === 'left' ? deltaMove : -deltaMove
+
+    // 计算新的目标位置（基于当前位置的累积移动）
+    const newTargetX = currentBackgroundOffset + deltaX
+
+    // 确保移动距离不会超出边界
+    const clampedTargetX = Math.max(-maxMoveDistance, Math.min(maxMoveDistance, newTargetX))
+
+    // 更新当前偏移量记录
+    currentBackgroundOffset = clampedTargetX
+
+    // 使用backgroundPosition的百分比+像素组合
+    gsap.to(container, {
+      backgroundPosition: `calc(50% + ${clampedTargetX}px) center`,
+      duration: 0.3,
+      ease: 'power2.out',
+      overwrite: true,
+    })
+  }
+
   const healSubject = new Subject<{
     side: 'left' | 'right'
     value: number
@@ -354,6 +418,11 @@ export function useBattleAnimations(
                   })
                 },
               })
+
+              // 触发背景焦点移动效果
+              // 计算移动强度：暴击时强度更高，伤害比例越高强度越高
+              const moveIntensity = Math.min(1.5, (crit ? 1.2 : 0.8) * Math.min(hpRatio * 2, 1))
+              moveBackgroundFocus(side, moveIntensity)
             }
 
             if (hpRatio > 0.5 && battleViewRef.value) {
@@ -524,15 +593,19 @@ export function useBattleAnimations(
   const cleanup = () => {
     damageSubscription.unsubscribe()
     healSubscription.unsubscribe()
+    // 重置背景偏移量
+    currentBackgroundOffset = 0
   }
 
   return {
     showMissMessage,
     showAbsorbMessage,
     flashAndShake,
+    moveBackgroundFocus,
     showDamageMessage,
     showHealMessage,
     showUseSkillMessage,
+    updateBackgroundAspectRatio,
     cleanup,
   }
 }

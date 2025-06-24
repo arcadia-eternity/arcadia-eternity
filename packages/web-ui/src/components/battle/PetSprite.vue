@@ -52,7 +52,7 @@ watch(
 
 watchEffect(async () => {
   // 确保 petRenderRef.value 存在，并且 currentReadyResolve 对应的是当前的 Promise
-  if (props.num && petRenderRef.value && currentReadyResolve && !inited.value) {
+  if (props.num && petRenderRef.value && currentReadyResolve !== undefined && !inited.value) {
     console.debug(`PetSprite: watchEffect triggered for num ${props.num}. Fetching available states.`)
     try {
       // 重试机制：确保pet-render组件完全准备好
@@ -61,13 +61,13 @@ watchEffect(async () => {
       const maxRetries = 5
 
       while (!states && retryCount < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 100))
         states = (await petRenderRef.value.getAvailableStates()) as ActionState[]
         if (!states) {
           console.debug(
             `PetSprite: getAvailableStates returned undefined for num ${props.num}, retry ${retryCount + 1}/${maxRetries}`,
           )
           // 等待一小段时间让pet-render完全加载
-          await new Promise(resolve => setTimeout(resolve, 100))
           retryCount++
         }
       }
@@ -141,10 +141,10 @@ defineExpose({
       :url="swfUrl"
       :reverse="reverse"
       salign="TL"
-      :offsetX="300"
-      :offsetY="200"
-      :scaleX="1.0"
-      :scaleY="1.0"
+      :offsetX="275"
+      :offsetY="160"
+      :scaleX="1.1"
+      :scaleY="1.1"
       @hit="handleHitEvent"
       @animationComplete="handleAnimationComplete"
     />

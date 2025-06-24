@@ -429,14 +429,35 @@ const opponentPlayer = computed(() => store.opponent)
 const globalMarks = computed(() => store.battleState?.marks ?? [])
 const currentTurn = computed(() => store.battleState?.currentTurn ?? 0)
 
+const background = computed(() => {
+  if (gameSettingStore.background === 'random') {
+    return Object.values(resourceStore.background.byId)[
+      Math.floor(Math.random() * resourceStore.background.allIds.length)
+    ]
+  }
+  return (
+    resourceStore.getBackGround(gameSettingStore.background) ??
+    'https://seer2-resource.yuuinih.com/png/battleBackground/grass.png'
+  )
+})
+
 const {
   showMissMessage,
   showAbsorbMessage,
   showDamageMessage,
   showHealMessage,
   showUseSkillMessage,
+  moveBackgroundFocus,
+  updateBackgroundAspectRatio,
   cleanup: cleanupBattleAnimations,
-} = useBattleAnimations(battleViewRef as Ref<HTMLElement | null>, store, currentPlayer, opponentPlayer, battleViewScale)
+} = useBattleAnimations(
+  battleViewRef as Ref<HTMLElement | null>,
+  store,
+  currentPlayer,
+  opponentPlayer,
+  battleViewScale,
+  backgroundContainerRef as Ref<HTMLElement | null>,
+)
 
 const leftPetSpeciesNum = computed(
   () =>
@@ -471,18 +492,6 @@ const allSkillId = computed(() => {
     .map(s => s.baseId)
 })
 const { playSkillSound, playPetSound, playVictorySound } = useSound(allSkillId, allTeamMemberSpritesNum)
-
-const background = computed(() => {
-  if (gameSettingStore.background === 'random') {
-    return Object.values(resourceStore.background.byId)[
-      Math.floor(Math.random() * resourceStore.background.allIds.length)
-    ]
-  }
-  return (
-    resourceStore.getBackGround(gameSettingStore.background) ??
-    'https://seer2-resource.yuuinih.com/png/battleBackground/grass.png'
-  )
-})
 
 // 缓存技能的原始顺序，避免在技能变身时位置发生变化
 const skillOrderCache = ref<
@@ -824,6 +833,14 @@ const checkBackgroundImageLoaded = async () => {
         const img = new Image()
         img.onload = () => {
           console.debug('Background image preloaded successfully')
+
+          // 获取图片的实际尺寸并更新宽高比
+          const imageWidth = img.naturalWidth
+          const imageHeight = img.naturalHeight
+          console.debug(`Background image dimensions: ${imageWidth}x${imageHeight}`)
+
+          // 更新动画系统中的背景宽高比
+          updateBackgroundAspectRatio(imageWidth, imageHeight)
 
           // 直接使用模板引用设置背景
           const setBgToDOM = () => {
