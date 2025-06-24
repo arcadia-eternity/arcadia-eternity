@@ -13,7 +13,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_5_percent
+    - effect_skill_reduce_opponent_def_1_stage_5_percent
 - id: skill_shuipao
   element: Water
   category: Special
@@ -25,7 +25,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spd_1_stage_5_percent
+    - effect_skill_reduce_opponent_spd_1_stage_5_percent
 - id: skill_tuoli
   element: Normal
   category: Status
@@ -37,7 +37,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_atk_1_stage
+    - effect_skill_reduce_opponent_atk_1_stage
 - id: skill_ruodiangongji
   element: Water
   category: Physical
@@ -49,7 +49,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_ruodian
+    - effect_skill_add_mark_opponent_ruodian
 - id: skill_jiliuchuanji
   element: Water
   category: Special
@@ -74,7 +74,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spa_1_stage
+    - effect_skill_reduce_opponent_spa_1_stage
 - id: skill_yinudanu
   element: Normal
   category: Physical
@@ -122,7 +122,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spd_1_stage_5_percent
+    - effect_skill_reduce_opponent_spd_1_stage_5_percent
 - id: skill_feiliupubu
   element: Water
   category: Special
@@ -159,7 +159,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_nishui_10_percent
+    - effect_skill_add_mark_opponent_nishui_10_percent
 - id: skill_shuihuajianshe
   element: Water
   category: Special
@@ -171,7 +171,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_mingzhongxiajiang_15
+    - effect_skill_add_mark_opponent_mingzhongxiajiang_15
 - id: skill_yanmo
   element: Water
   category: Status
@@ -183,7 +183,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_nishui
+    - effect_skill_add_mark_opponent_nishui
 - id: skill_ruodianbiaoji
   element: Water
   category: Special
@@ -195,7 +195,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_ruodian_2
+    - effect_skill_add_mark_opponent_ruodian_2
 - id: skill_lizhua
   element: Normal
   category: Physical
@@ -207,7 +207,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_atk_1_stage_5_percent
+    - effect_skill_reduce_opponent_atk_1_stage_5_percent
 - id: skill_huoyan
   element: Fire
   category: Special
@@ -219,7 +219,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spa_1_stage_5_percent
+    - effect_skill_reduce_opponent_spa_1_stage_5_percent
 - id: skill_qili
   element: Normal
   category: Status
@@ -243,7 +243,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_yishang
+    - effect_skill_add_mark_opponent_yishang
 - id: skill_tahuochongzhuang
   element: Fire
   category: Physical
@@ -255,7 +255,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_shaoshang_5_percent
+    - effect_skill_add_mark_opponent_shaoshang_5_percent
 - id: skill_jiasu
   element: Normal
   category: Status
@@ -304,7 +304,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_shaoshang_50_percent
+    - effect_skill_add_mark_opponent_shaoshang_50_percent
 - id: skill_nuhuomenggong
   element: Fire
   category: Physical
@@ -341,7 +341,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_5_percent
+    - effect_skill_reduce_opponent_def_1_stage_5_percent
 - id: skill_liehuofentianshao
   element: Fire
   category: Climax
@@ -353,7 +353,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_shaoshang_10_percent
+    - effect_skill_add_mark_opponent_shaoshang_10_percent
 - id: skill_yanzhiyizhi
   element: Fire
   category: Status
@@ -449,8 +449,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_atk_1_stage
-    - effect_skill_reduce_foe_spa_1_stage
+    - effect_skill_reduce_opponent_atk_1_stage
+    - effect_skill_reduce_opponent_spa_1_stage
 - id: skill_feiyesushe
   element: Grass
   category: Special
@@ -473,7 +473,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_jisheng
+    - effect_skill_add_mark_opponent_jisheng
 - id: skill_nengliangzhaqu
   element: Grass
   category: Physical
@@ -497,7 +497,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_foe_clear_stage
+    - effect_skill_opponent_clear_stage
   tags: []
 - id: skill_lirendaoye
   element: Grass
@@ -510,7 +510,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_liuxie_with_zhongzinengliang
+    - effect_skill_add_mark_opponent_liuxie_with_zhongzinengliang
     - effect_skill_consume_all_zhongzinengliang
 - id: skill_ganrao
   element: Normal
@@ -523,7 +523,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_mingzhongxiajiang_15
+    - effect_skill_add_mark_opponent_mingzhongxiajiang_15
 - id: skill_laaodehuhuan
   element: Grass
   category: Climax
@@ -547,7 +547,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_power_2x_foe_below_quarter_hp
+    - effect_skill_power_2x_opponent_below_quarter_hp
 - id: skill_jishengzhadan
   element: Grass
   category: Status
@@ -559,7 +559,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_jishengzhadan
+    - effect_skill_add_mark_opponent_jishengzhadan
 - id: skill_yinbaozhongzi
   element: Normal
   category: Status
@@ -571,7 +571,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_ignite_foe_mark_jishengzhadan
+    - effect_skill_ignite_opponent_mark_jishengzhadan
 - id: skill_dixiulazhinu
   element: Normal
   category: Climax
@@ -594,7 +594,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spe_1_stage_5_percent
+    - effect_skill_reduce_opponent_spe_1_stage_5_percent
 - id: skill_zhuangji
   element: Normal
   category: Physical
@@ -606,7 +606,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_5_percent
+    - effect_skill_reduce_opponent_def_1_stage_5_percent
 - id: skill_shouxialiuqing
   element: Normal
   category: Physical
@@ -630,7 +630,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spd_1_stage_5_percent
+    - effect_skill_reduce_opponent_spd_1_stage_5_percent
 - id: skill_miaozhun
   element: Normal
   category: Status
@@ -667,7 +667,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_power_2x_foe_maxhp
+    - effect_skill_power_2x_opponent_maxhp
 - id: skill_shouxiawuqing
   element: Normal
   category: Physical
@@ -679,7 +679,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_power_4x_foe_below_quarter_hp
+    - effect_skill_power_4x_opponent_below_quarter_hp
 - id: skill_meihuo
   element: Normal
   category: Status
@@ -691,7 +691,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_meihuo
+    - effect_skill_add_mark_opponent_meihuo
 - id: skill_ruilishexian
   element: Normal
   category: Special
@@ -703,7 +703,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spd_1_stage_10_percent
+    - effect_skill_reduce_opponent_spd_1_stage_10_percent
 - id: skill_chihuanguangbo
   element: Normal
   category: Status
@@ -715,7 +715,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spe_1_stage
+    - effect_skill_reduce_opponent_spe_1_stage
 - id: skill_houfazhiren
   element: Normal
   category: Physical
@@ -752,7 +752,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_mingzhongxiajiang_15
+    - effect_skill_add_mark_opponent_mingzhongxiajiang_15
 - id: skill_lingcaiguangxian
   element: Normal
   category: Special
@@ -786,7 +786,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_mihuo
+    - effect_skill_add_mark_opponent_mihuo
 - id: skill_tongshenggongsi
   element: Normal
   category: Physical
@@ -810,7 +810,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_5_percent
+    - effect_skill_reduce_opponent_def_1_stage_5_percent
 - id: skill_sanyecao
   element: Grass
   category: Special
@@ -845,7 +845,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_kuihuazhongzi
+    - effect_skill_add_mark_opponent_kuihuazhongzi
 - id: skill_gundongzhuiji
   element: Grass
   category: Physical
@@ -858,7 +858,7 @@
   multihit: 3
   tags: []
   effect:
-    - effect_skill_add_multihit_foe_has_mark_kuihuazhongzi
+    - effect_skill_add_multihit_opponent_has_mark_kuihuazhongzi
 - id: skill_yuhe
   element: Grass
   category: Status
@@ -882,7 +882,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_ignore_stat_foe_has_mark_kuihuazhongzi
+    - effect_skill_ignore_stat_opponent_has_mark_kuihuazhongzi
 - id: skill_xuruo
   element: Normal
   category: Status
@@ -894,8 +894,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage
-    - effect_skill_reduce_foe_spd_1_stage
+    - effect_skill_reduce_opponent_def_1_stage
+    - effect_skill_reduce_opponent_spd_1_stage
 - id: skill_wulicao
   element: Grass
   category: Special
@@ -907,7 +907,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_wulicao
+    - effect_skill_add_mark_opponent_wulicao
 - id: skill_xishoucao
   element: Grass
   category: Status
@@ -931,7 +931,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_setsurehit_foe_has_mark_kuihuazhongzi
+    - effect_skill_setsurehit_opponent_has_mark_kuihuazhongzi
 - id: skill_jieducao
   element: Grass
   category: Status
@@ -955,7 +955,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_zhongdu_10_percent
+    - effect_skill_add_mark_opponent_zhongdu_10_percent
 - id: skill_ducao
   element: Grass
   category: Status
@@ -967,7 +967,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_zhongdu
+    - effect_skill_add_mark_opponent_zhongdu
 - id: skill_fangqing
   element: Grass
   category: Status
@@ -991,7 +991,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_zhongdu_duration_2
+    - effect_skill_add_mark_opponent_zhongdu_duration_2
 - id: skill_qianghuachongji
   element: Grass
   category: Physical
@@ -1015,7 +1015,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_atk_1_stage_5_percent
+    - effect_skill_reduce_opponent_atk_1_stage_5_percent
 - id: skill_zhongji
   element: Normal
   category: Physical
@@ -1027,7 +1027,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_5_percent
+    - effect_skill_reduce_opponent_def_1_stage_5_percent
 - id: skill_bianfei
   element: Normal
   category: Status
@@ -1100,7 +1100,7 @@
   tags: []
   effect:
     - effect_skill_increase_accuracy_50_if_higher_level
-    - effect_skill_add_mark_foe_haipa
+    - effect_skill_add_mark_opponent_haipa
 - id: skill_weixiaguangbo
   element: Normal
   category: Special
@@ -1112,7 +1112,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_haipa_10_if_heavier_40
+    - effect_skill_add_mark_opponent_haipa_10_if_heavier_40
 - id: skill_tuidao
   element: Normal
   category: Physical
@@ -1197,7 +1197,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_exin_foe_50
+    - effect_skill_add_mark_exin_opponent_50
 - id: skill_tanxingzhifang
   element: Normal
   category: Status
@@ -1221,7 +1221,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spa_1_stage_5_percent
+    - effect_skill_reduce_opponent_spa_1_stage_5_percent
 - id: skill_genzhici
   element: Grass
   category: Special
@@ -1280,8 +1280,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_atk_1_stage
-    - effect_skill_reduce_foe_spd_1_stage
+    - effect_skill_reduce_opponent_atk_1_stage
+    - effect_skill_reduce_opponent_spd_1_stage
 - id: skill_jianruiciji
   element: Grass
   category: Physical
@@ -1305,7 +1305,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_clear_foe_spd_stage_if_has_mark_yinghua
+    - effect_skill_clear_opponent_spd_stage_if_has_mark_yinghua
 - id: skill_shupibaozha
   element: Grass
   category: Status
@@ -1355,7 +1355,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_liuxie
+    - effect_skill_add_mark_opponent_liuxie
 - id: skill_qianchuangbaikong
   element: Grass
   category: Climax
@@ -1367,7 +1367,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_liuxie
+    - effect_skill_add_mark_opponent_liuxie
 - id: skill_caomujiebing
   element: Grass
   category: Special
@@ -1401,8 +1401,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_clear_foe_def_stage_if_has_mark_yinghua
-    - effect_skill_clear_foe_spd_stage_if_has_mark_yinghua
+    - effect_skill_clear_opponent_def_stage_if_has_mark_yinghua
+    - effect_skill_clear_opponent_spd_stage_if_has_mark_yinghua
 - id: skill_muyexuanfeng
   element: Grass
   category: Physical
@@ -1426,7 +1426,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_5_percent
+    - effect_skill_reduce_opponent_def_1_stage_5_percent
 - id: skill_shuiqiang
   element: Water
   category: Special
@@ -1438,7 +1438,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spa_1_stage_5_percent
+    - effect_skill_reduce_opponent_spa_1_stage_5_percent
 - id: skill_ningju
   element: Normal
   category: Status
@@ -1474,7 +1474,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spe_1_stage
+    - effect_skill_reduce_opponent_spe_1_stage
 - id: skill_zhimingshuiqiang
   element: Water
   category: Special
@@ -1510,7 +1510,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_10_percent
+    - effect_skill_reduce_opponent_def_1_stage_10_percent
 - id: skill_shuiqianglianbo
   element: Water
   category: Special
@@ -1558,7 +1558,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spa_1_stage
+    - effect_skill_reduce_opponent_spa_1_stage
 - id: skill_junengshuiguangpao
   element: Water
   category: Climax
@@ -1618,8 +1618,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spa_1_stage
-    - effect_skill_reduce_foe_spd_1_stage
+    - effect_skill_reduce_opponent_spa_1_stage
+    - effect_skill_reduce_opponent_spd_1_stage
 - id: skill_duci
   element: Grass
   category: Physical
@@ -1631,7 +1631,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_zhongdu_5_percent
+    - effect_skill_add_mark_opponent_zhongdu_5_percent
 - id: skill_tuihuaye
   element: Grass
   category: Status
@@ -1643,7 +1643,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_atk_1_stage
+    - effect_skill_reduce_opponent_atk_1_stage
 - id: skill_manxingduyao
   element: Grass
   category: Special
@@ -1655,7 +1655,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_manxingduyao_1_stack
+    - effect_skill_add_mark_opponent_manxingduyao_1_stack
 - id: skill_guluoheji
   element: Normal
   category: Physical
@@ -1678,7 +1678,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_manxingduyao_70_percent
+    - effect_skill_add_mark_opponent_manxingduyao_70_percent
 - id: skill_duliao
   element: Grass
   category: Status
@@ -1702,7 +1702,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_manxingduyao_70_percent
+    - effect_skill_add_mark_opponent_manxingduyao_70_percent
 - id: skill_fengkuanghuida
   element: Normal
   category: Physical
@@ -1714,8 +1714,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_50_percent
-    - effect_skill_reduce_foe_spd_1_stage_50_percent
+    - effect_skill_reduce_opponent_def_1_stage_50_percent
+    - effect_skill_reduce_opponent_spd_1_stage_50_percent
 - id: skill_duzhenrugu
   element: Grass
   category: Status
@@ -1727,8 +1727,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage
-    - effect_skill_reduce_foe_spd_1_stage
+    - effect_skill_reduce_opponent_def_1_stage
+    - effect_skill_reduce_opponent_spd_1_stage
 - id: skill_juduyeti
   element: Grass
   category: Special
@@ -1740,7 +1740,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_manxingduyao_70_percent
+    - effect_skill_add_mark_opponent_manxingduyao_70_percent
 - id: skill_duqigongxin
   element: Grass
   category: Climax
@@ -1752,7 +1752,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_manxingduyao_5_stack
+    - effect_skill_add_mark_opponent_manxingduyao_5_stack
 - id: skill_yidugongdu
   element: Grass
   category: Status
@@ -1777,8 +1777,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_power_10_per_foe_manxingduyao
-    - effect_skill_consume_all_foe_manxingduyao
+    - effect_skill_add_power_10_per_opponent_manxingduyao
+    - effect_skill_consume_all_opponent_manxingduyao
 - id: skill_chuisizhenzha
   element: Normal
   category: Physical
@@ -1814,7 +1814,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spe_1_stage_5_percent
+    - effect_skill_reduce_opponent_spe_1_stage_5_percent
 - id: skill_penshui
   element: Water
   category: Special
@@ -1826,7 +1826,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spa_1_stage_5_percent
+    - effect_skill_reduce_opponent_spa_1_stage_5_percent
 - id: skill_mozhipao
   element: Water
   category: Special
@@ -1838,7 +1838,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spe_1_stage_20_percent
+    - effect_skill_reduce_opponent_spe_1_stage_20_percent
 - id: skill_kongqitianchong
   element: Normal
   category: Status
@@ -1899,7 +1899,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_mingzhongxiajiang_15
+    - effect_skill_add_mark_opponent_mingzhongxiajiang_15
 - id: skill_lianxuchouda
   element: Normal
   category: Physical
@@ -1935,7 +1935,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spa_1_stage_10_percent
+    - effect_skill_reduce_opponent_spa_1_stage_10_percent
 - id: skill_gaoyakongqi
   element: Normal
   category: Special
@@ -1960,7 +1960,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_zhixi
+    - effect_skill_add_mark_opponent_zhixi
 - id: skill_luoxuanshuiqiang
   element: Water
   category: Special
@@ -2054,7 +2054,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_haipa
+    - effect_skill_add_mark_opponent_haipa
 - id: skill_shuangxingzhiwei
   element: Normal
   category: Physical
@@ -2137,8 +2137,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage
-    - effect_skill_reduce_foe_spa_1_stage
+    - effect_skill_reduce_opponent_def_1_stage
+    - effect_skill_reduce_opponent_spa_1_stage
 - id: skill_yongbuyanbai
   element: Normal
   category: Status
@@ -2163,7 +2163,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spa_1_stage_5_percent
+    - effect_skill_reduce_opponent_spa_1_stage_5_percent
 - id: skill_shuiwenzhenji
   element: Water
   category: Physical
@@ -2237,7 +2237,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_nishui_30_percent
+    - effect_skill_add_mark_opponent_nishui_30_percent
 - id: skill_pubuzhenji
   element: Water
   category: Physical
@@ -2275,7 +2275,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_atk_1_stage_30_percent
+    - effect_skill_reduce_opponent_atk_1_stage_30_percent
 - id: skill_yazhi
   element: Normal
   category: Physical
@@ -2300,8 +2300,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_atk_1_stage
-    - effect_skill_reduce_foe_spa_1_stage
+    - effect_skill_reduce_opponent_atk_1_stage
+    - effect_skill_reduce_opponent_spa_1_stage
 - id: skill_huanyu
   element: Water
   category: Status
@@ -2325,7 +2325,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_nishui_30_percent
+    - effect_skill_add_mark_opponent_nishui_30_percent
 - id: skill_penhuo
   element: Fire
   category: Special
@@ -2337,7 +2337,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spa_1_stage_5_percent
+    - effect_skill_reduce_opponent_spa_1_stage_5_percent
 - id: skill_jiare
   element: Fire
   category: Status
@@ -2361,7 +2361,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_shaoshang_60_percent
+    - effect_skill_add_mark_opponent_shaoshang_60_percent
 - id: skill_rongjiezhiyan
   element: Fire
   category: Special
@@ -2373,7 +2373,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_power_2x_foe_shaoshang
+    - effect_skill_power_2x_opponent_shaoshang
 - id: skill_huoyanchongzhuang
   element: Fire
   category: Physical
@@ -2385,7 +2385,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_shaoshang_20_percent
+    - effect_skill_add_mark_opponent_shaoshang_20_percent
 - id: skill_shuangguihuopao
   element: Fire
   category: Special
@@ -2398,7 +2398,7 @@
   multihit: 2
   tags: []
   effect:
-    - effect_skill_power_2x_foe_shaoshang
+    - effect_skill_power_2x_opponent_shaoshang
 - id: skill_lieyanzhiju
   element: Fire
   category: Status
@@ -2422,7 +2422,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_sure_hit_foe_shaoshang
+    - effect_skill_sure_hit_opponent_shaoshang
 - id: skill_mijisaoshe
   element: Fire
   category: Special
@@ -2445,7 +2445,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_shaoshang_15_percent
+    - effect_skill_add_mark_opponent_shaoshang_15_percent
 - id: skill_rongyanbaolie
   element: Fire
   category: Climax
@@ -2457,7 +2457,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_shaoshang_10_percent
+    - effect_skill_add_mark_opponent_shaoshang_10_percent
 - id: skill_jisuhuodan
   element: Fire
   category: Special
@@ -2480,7 +2480,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_shaoshang
+    - effect_skill_add_mark_opponent_shaoshang
 - id: skill_chuantouhuoyan
   element: Fire
   category: Special
@@ -2504,7 +2504,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_sure_hit_foe_below_quarter_hp
+    - effect_skill_sure_hit_opponent_below_quarter_hp
 - id: skill_huoqiu
   element: Fire
   category: Special
@@ -2516,7 +2516,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spa_1_stage_5_percent
+    - effect_skill_reduce_opponent_spa_1_stage_5_percent
 - id: skill_jianying
   element: Normal
   category: Status
@@ -2540,7 +2540,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_xuanyun
+    - effect_skill_add_mark_opponent_xuanyun
 - id: skill_daliqian
   element: Normal
   category: Physical
@@ -2552,7 +2552,7 @@
   ignoreShield: false
   tags: ['require_xuanyun']
   effect:
-    - effect_skill_sure_hit_foe_xuanyun
+    - effect_skill_sure_hit_opponent_xuanyun
 - id: skill_reliqian
   element: Fire
   category: Physical
@@ -2564,7 +2564,7 @@
   ignoreShield: false
   tags: ['require_xuanyun']
   effect:
-    - effect_skill_sure_hit_foe_xuanyun
+    - effect_skill_sure_hit_opponent_xuanyun
 - id: skill_huoqiulianshe
   element: Fire
   category: Special
@@ -2587,7 +2587,7 @@
   ignoreShield: false
   tags: ['require_xuanyun']
   effect:
-    - effect_skill_sure_hit_foe_xuanyun
+    - effect_skill_sure_hit_opponent_xuanyun
 - id: skill_huoyanqian
   element: Fire
   category: Physical
@@ -2599,7 +2599,7 @@
   ignoreShield: false
   tags: ['require_xuanyun']
   effect:
-    - effect_skill_sure_hit_foe_xuanyun
+    - effect_skill_sure_hit_opponent_xuanyun
 - id: skill_juansuo
   element: Normal
   category: Status
@@ -2623,7 +2623,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_shaoshang_10_percent
+    - effect_skill_add_mark_opponent_shaoshang_10_percent
 - id: skill_huoyanshazhen
   element: Fire
   category: Climax
@@ -2658,7 +2658,7 @@
   ignoreShield: false
   tags: ['require_xuanyun']
   effect:
-    - effect_skill_sure_hit_foe_xuanyun
+    - effect_skill_sure_hit_opponent_xuanyun
 - id: skill_rongyanqian
   element: Fire
   category: Physical
@@ -2670,7 +2670,7 @@
   ignoreShield: false
   tags: ['require_xuanyun']
   effect:
-    - effect_skill_sure_hit_foe_xuanyun
+    - effect_skill_sure_hit_opponent_xuanyun
 - id: skill_xuanyunhuoqiu
   element: Fire
   category: Special
@@ -2682,7 +2682,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_xuanyun
+    - effect_skill_add_mark_opponent_xuanyun
 - id: skill_guntangchongji
   element: Fire
   category: Physical
@@ -2742,7 +2742,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_haipa
+    - effect_skill_add_mark_opponent_haipa
 - id: skill_rongyanchuanci
   element: Fire
   category: Physical
@@ -2754,7 +2754,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_10_percent
+    - effect_skill_reduce_opponent_def_1_stage_10_percent
 - id: skill_huoshanpenfa
   element: Fire
   category: Special
@@ -2766,7 +2766,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spa_1_stage_10_percent
+    - effect_skill_reduce_opponent_spa_1_stage_10_percent
 - id: skill_huoshanhujia
   element: Fire
   category: Status
@@ -2876,7 +2876,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_foe_shaoshang_10_percent
+    - effect_skill_add_mark_opponent_shaoshang_10_percent
   tags: []
 - id: skill_lieyanzhuangji
   element: Fire
@@ -2888,7 +2888,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_reduce_foe_def_1_stage_15_percent
+    - effect_skill_reduce_opponent_def_1_stage_15_percent
   tags: []
 - id: skill_yezhuzhisu
   element: Normal
@@ -2935,7 +2935,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_foe_shaoshang_50_percent
+    - effect_skill_add_mark_opponent_shaoshang_50_percent
   tags: []
 - id: skill_lieyanyachongpo
   element: Fire
@@ -2947,7 +2947,7 @@
   sureHit: true
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_foe_shaoshang_15_percent
+    - effect_skill_add_mark_opponent_shaoshang_15_percent
   tags: []
 - id: skill_yanwu
   element: Fire
@@ -2959,7 +2959,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_foe_shaoshang_30_percent
+    - effect_skill_add_mark_opponent_shaoshang_30_percent
   tags: []
 - id: skill_badetouchou
   element: Normal
@@ -2996,7 +2996,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_ignite_foe_mark_shaoshang
+    - effect_skill_ignite_opponent_mark_shaoshang
   tags: []
 
 - id: skill_xueruoshuipao
@@ -3009,7 +3009,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_foe_xueruoshuipao
+    - effect_skill_add_mark_opponent_xueruoshuipao
   tags: []
 - id: skill_xuruoshuipao
   element: Water
@@ -3021,7 +3021,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_foe_xuruoshuipao
+    - effect_skill_add_mark_opponent_xuruoshuipao
   tags: []
 - id: skill_guanghuapifu
   element: Water
@@ -3045,7 +3045,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_reduce_foe_def_1_stage_10_percent
+    - effect_skill_reduce_opponent_def_1_stage_10_percent
   tags: []
 - id: skill_shuimo
   element: Water
@@ -3057,7 +3057,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_reduce_foe_spa_1_stage
+    - effect_skill_reduce_opponent_spa_1_stage
   tags: []
 - id: skill_shuihuasijian
   element: Water
@@ -3069,7 +3069,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_reduce_foe_spa_1_stage_10_percent
+    - effect_skill_reduce_opponent_spa_1_stage_10_percent
   tags: []
 - id: skill_wuyi
   element: Normal
@@ -3093,7 +3093,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_reduce_foe_spa_1_stage_15_percent
+    - effect_skill_reduce_opponent_spa_1_stage_15_percent
   tags: []
 - id: skill_xuanzhuanchongfeng
   element: Normal
@@ -3105,7 +3105,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_reduce_foe_def_1_stage_15_percent
+    - effect_skill_reduce_opponent_def_1_stage_15_percent
   tags: []
 - id: skill_chaoliupo
   element: Water
@@ -3129,7 +3129,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_reduce_foe_def_1_stage_20_percent
+    - effect_skill_reduce_opponent_def_1_stage_20_percent
   tags: []
 - id: skill_jushuipao
   element: Water
@@ -3141,7 +3141,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_reduce_foe_spa_1_stage_20_percent
+    - effect_skill_reduce_opponent_spa_1_stage_20_percent
   tags: []
 - id: skill_nongsuoshuimo
   element: Water
@@ -3153,8 +3153,8 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_reduce_foe_def_1_stage
-    - effect_skill_reduce_foe_spa_1_stage
+    - effect_skill_reduce_opponent_def_1_stage
+    - effect_skill_reduce_opponent_spa_1_stage
   tags: []
 - id: skill_chunjingzhixin
   element: Water
@@ -3178,7 +3178,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_foe_mingzhongxiajiang_5
+    - effect_skill_add_mark_opponent_mingzhongxiajiang_5
   tags: []
 - id: skill_rouruan
   element: Normal
@@ -3202,7 +3202,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_foe_xinzhiyinji
+    - effect_skill_add_mark_opponent_xinzhiyinji
   tags: []
 - id: skill_xinlianxin
   element: Normal
@@ -3301,7 +3301,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_foe_mingzhongxiajiang_15
+    - effect_skill_add_mark_opponent_mingzhongxiajiang_15
   tags: []
 - id: skill_xuehongyinji
   element: Normal
@@ -3313,7 +3313,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_foe_xuehongyinji
+    - effect_skill_add_mark_opponent_xuehongyinji
   tags: []
 - id: skill_xinyuan
   element: Normal
@@ -3337,7 +3337,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_clear_foe_atk_spa_stage
+    - effect_skill_clear_opponent_atk_spa_stage
   tags: []
 - id: skill_bingqilin
   element: Normal
@@ -3349,7 +3349,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_clear_foe_spe_stage
+    - effect_skill_clear_opponent_spe_stage
   tags: []
 - id: skill_qiaokeli
   element: Normal
@@ -3361,7 +3361,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_clear_foe_def_spd_stage
+    - effect_skill_clear_opponent_def_spd_stage
   tags: []
 - id: skill_aideminyi
   element: Psychic
@@ -3508,7 +3508,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_foe_xinlingzhiyue
+    - effect_skill_add_mark_opponent_xinlingzhiyue
   tags: []
 - id: skill_xinlingzhuanhuan
   element: Psychic
@@ -3520,7 +3520,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_transfer_debuff_stage_to_foe
+    - effect_skill_transfer_debuff_stage_to_opponent
   tags: []
 - id: skill_xinlingjinghua
   element: Psychic
@@ -3545,7 +3545,7 @@
   ignoreShield: false
   tags: ['quan']
   effect:
-    - effect_skill_reduce_foe_def_1_stage_5_percent
+    - effect_skill_reduce_opponent_def_1_stage_5_percent
 - id: skill_zhunbeidongzuo
   element: Normal
   category: Status
@@ -3569,7 +3569,7 @@
   ignoreShield: false
   tags: ['quan']
   effect:
-    - effect_skill_power_2x_if_height_greater_than_foe
+    - effect_skill_power_2x_if_height_greater_than_opponent
 - id: skill_zuobaiquan
   element: Normal
   category: Special
@@ -3605,7 +3605,7 @@
   ignoreShield: false
   tags: ['quan']
   effect:
-    - effect_skill_power_2x_if_height_less_than_foe
+    - effect_skill_power_2x_if_height_less_than_opponent
 - id: skill_youbaiquan
   element: Normal
   category: Special
@@ -3651,7 +3651,7 @@
   ignoreShield: false
   tags: ['quan']
   effect:
-    - effect_skill_multihit_if_height_greater_than_foe
+    - effect_skill_multihit_if_height_greater_than_opponent
 - id: skill_zuozuozuobaiquan
   element: Normal
   category: Special
@@ -3675,7 +3675,7 @@
   ignoreShield: false
   tags: ['quan']
   effect:
-    - effect_skill_multihit_if_height_less_than_foe
+    - effect_skill_multihit_if_height_less_than_opponent
 - id: skill_youyouyoubaiquan
   element: Normal
   category: Special
@@ -3711,7 +3711,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spd_1_stage_5_percent
+    - effect_skill_reduce_opponent_spd_1_stage_5_percent
 - id: skill_maimaijinzhen
   element: Grass
   category: Special
@@ -3723,7 +3723,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_maimaijinzhen
+    - effect_skill_add_mark_opponent_maimaijinzhen
 - id: skill_bachujinzhen
   element: Normal
   category: Physical
@@ -3747,7 +3747,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_sure_hit_if_foe_has_maimaijinzhen
+    - effect_skill_sure_hit_if_opponent_has_maimaijinzhen
 - id: skill_jinzhenwayi
   element: Grass
   category: Status
@@ -3794,7 +3794,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_chongzhuangzhenci
+    - effect_skill_add_mark_opponent_chongzhuangzhenci
 - id: skill_juxingjinzhen
   element: Grass
   category: Special
@@ -3806,7 +3806,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_sure_hit_if_foe_has_maimaijinzhen
+    - effect_skill_sure_hit_if_opponent_has_maimaijinzhen
 - id: skill_jinzhenluanwu
   element: Grass
   category: Climax
@@ -3818,7 +3818,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_liuxie_50_foe
+    - effect_skill_add_liuxie_50_opponent
 - id: skill_zuijiazhugong
   element: Normal
   category: Physical
@@ -3891,7 +3891,7 @@
   sureHit: false
   ignoreShield: false
   tags: []
-  ignoreFoeStageStrategy: positive
+  ignoreOpponentStageStrategy: positive
 - id: skill_xukongxiji
   element: Water
   category: Special
@@ -3915,7 +3915,7 @@
   ignoreShield: false
   tags: []
   multihit: [2, 3]
-  ignoreFoeStageStrategy: all
+  ignoreOpponentStageStrategy: all
 - id: skill_xukongzhuanhuan
   element: Water
   category: Status
@@ -3951,7 +3951,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_zhixi_10_or_40_percent_if_has_xukongganying
+    - effect_skill_add_mark_opponent_zhixi_10_or_40_percent_if_has_xukongganying
 - id: skill_xukongzhadan
   element: Water
   category: Special
@@ -3974,7 +3974,7 @@
   sureHit: false
   ignoreShield: false
   tags: []
-  ignoreFoeStageStrategy: all
+  ignoreOpponentStageStrategy: all
 - id: skill_xukongshanshen
   element: Water
   category: Special
@@ -3999,7 +3999,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spd_1_stage_15_percent
+    - effect_skill_reduce_opponent_spd_1_stage_15_percent
 - id: skill_xuanwotuxi
   element: Water
   category: Special
@@ -4022,7 +4022,7 @@
   sureHit: true
   ignoreShield: false
   tags: []
-  ignoreFoeStageStrategy: all
+  ignoreOpponentStageStrategy: all
 - id: skill_xuanwozhadan
   element: Water
   category: Special
@@ -4121,7 +4121,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spd_1_stage_15_percent
+    - effect_skill_reduce_opponent_spd_1_stage_15_percent
 - id: skill_jiyun
   element: Wind
   category: Status
@@ -4180,8 +4180,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_20_percent
-    - effect_skill_reduce_foe_spd_1_stage_20_percent
+    - effect_skill_reduce_opponent_def_1_stage_20_percent
+    - effect_skill_reduce_opponent_spd_1_stage_20_percent
 - id: skill_fengzhilingyu
   element: Wind
   category: Status
@@ -4241,7 +4241,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_mabi_70_percent
+    - effect_skill_add_mark_opponent_mabi_70_percent
 - id: skill_xunleiqie
   element: Electric
   category: Physical
@@ -4254,7 +4254,7 @@
   tags: []
   priority: 1
   effect:
-    - effect_skill_power_2x_if_foe_mabi
+    - effect_skill_power_2x_if_opponent_mabi
 - id: skill_jidiantushan
   element: Electric
   category: Physical
@@ -4366,7 +4366,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_bingdong_40_percent
+    - effect_skill_add_mark_opponent_bingdong_40_percent
 - id: skill_pobing
   element: Normal
   category: Physical
@@ -4378,7 +4378,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_sure_crit_if_foe_bingdong
+    - effect_skill_sure_crit_if_opponent_bingdong
 - id: skill_dongqi
   element: Ice
   category: Status
@@ -4390,8 +4390,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_atk_1_stage
-    - effect_skill_reduce_foe_spa_1_stage_if_bingdong
+    - effect_skill_reduce_opponent_atk_1_stage
+    - effect_skill_reduce_opponent_spa_1_stage_if_bingdong
 - id: skill_bingningzhiqi
   element: Ice
   category: Special
@@ -4403,7 +4403,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_bingningzhiqi
+    - effect_skill_add_mark_opponent_bingningzhiqi
 - id: skill_bingshuangzhixing
   element: Ice
   category: Special
@@ -4415,7 +4415,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_bingshuangzhixing
+    - effect_skill_add_mark_opponent_bingshuangzhixing
 - id: skill_bingguzhishen
   element: Ice
   category: Status
@@ -4439,7 +4439,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spe_1_stage_20_percent
+    - effect_skill_reduce_opponent_spe_1_stage_20_percent
 - id: skill_bingzhilingyu
   element: Ice
   category: Status
@@ -4487,7 +4487,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_kongjuzhinian
+    - effect_skill_add_mark_opponent_kongjuzhinian
 - id: skill_yingren
   element: Shadow
   category: Physical
@@ -4499,7 +4499,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_power_plus_50_if_foe_has_kongjuzhinian
+    - effect_skill_power_plus_50_if_opponent_has_kongjuzhinian
 - id: skill_heian
   element: Shadow
   category: Status
@@ -4511,7 +4511,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_mingzhongxiajiang_15
+    - effect_skill_add_mark_opponent_mingzhongxiajiang_15
 - id: skill_ezuoju
   element: Shadow
   category: Status
@@ -4523,7 +4523,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spd_1_stage
+    - effect_skill_reduce_opponent_spd_1_stage
 - id: skill_anyingzhiguang
   element: Shadow
   category: Special
@@ -4547,7 +4547,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_sure_crit_if_foe_has_2_kongjuzhinian
+    - effect_skill_sure_crit_if_opponent_has_2_kongjuzhinian
 - id: skill_huianxiezouqu
   element: Shadow
   category: Climax
@@ -4596,8 +4596,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage
-    - effect_skill_reduce_foe_spd_1_stage
+    - effect_skill_reduce_opponent_def_1_stage
+    - effect_skill_reduce_opponent_spd_1_stage
 # 光伊特技能
 - id: skill_shanguangqiu
   element: Light
@@ -4610,7 +4610,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_shiming_if_first
+    - effect_skill_add_mark_opponent_shiming_if_first
 - id: skill_shanguangqie
   element: Light
   category: Physical
@@ -4646,7 +4646,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_foe_clear_stage
+    - effect_skill_opponent_clear_stage
 - id: skill_guanghuizhiying
   element: Light
   category: Physical
@@ -4658,7 +4658,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_guanghuizhiying
+    - effect_skill_add_mark_opponent_guanghuizhiying
 - id: skill_guangsuqie
   element: Light
   category: Physical
@@ -4755,7 +4755,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_damage_by_foe_weight
+    - effect_skill_damage_by_opponent_weight
 - id: skill_houkongfan
   element: Normal
   category: Status
@@ -4791,7 +4791,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_haipa_5_percent
+    - effect_skill_add_mark_opponent_haipa_5_percent
 - id: skill_xiaoruo
   element: Normal
   category: Status
@@ -4803,8 +4803,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage
-    - effect_skill_reduce_foe_spd_1_stage
+    - effect_skill_reduce_opponent_def_1_stage
+    - effect_skill_reduce_opponent_spd_1_stage
 - id: skill_ziguangpao
   element: Normal
   category: Special
@@ -4816,7 +4816,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_haipa_10_percent
+    - effect_skill_add_mark_opponent_haipa_10_percent
 - id: skill_suixingquan
   element: Normal
   category: Physical
@@ -4852,7 +4852,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_haipa_15_percent
+    - effect_skill_add_mark_opponent_haipa_15_percent
 - id: skill_qiangxingbandao
   element: Normal
   category: Physical
@@ -4864,7 +4864,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_damage_by_foe_weight
+    - effect_skill_damage_by_opponent_weight
 - id: skill_zhuixingquan
   element: Normal
   category: Physical
@@ -4900,7 +4900,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spd_1_stage_5_percent
+    - effect_skill_reduce_opponent_spd_1_stage_5_percent
 - id: skill_shenhuxi
   element: Normal
   category: Status
@@ -4924,7 +4924,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_yinbo_45
+    - effect_skill_add_mark_opponent_yinbo_45
 - id: skill_yinbopao
   element: Normal
   category: Special
@@ -4936,7 +4936,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_yinbo_40
+    - effect_skill_add_mark_opponent_yinbo_40
 - id: skill_siyao
   element: Normal
   category: Physical
@@ -4948,7 +4948,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_liuxie_30_30_percent
+    - effect_skill_add_mark_opponent_liuxie_30_30_percent
 - id: skill_jinyin
   element: Normal
   category: Status
@@ -4960,7 +4960,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_consume_foe_yinbo_heal_self_2x
+    - effect_skill_consume_opponent_yinbo_heal_self_2x
 - id: skill_zaoyin
   element: Normal
   category: Status
@@ -4972,7 +4972,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_consume_foe_yinbo_add_zaoyin
+    - effect_skill_consume_opponent_yinbo_add_zaoyin
 - id: skill_yinbozhadan
   element: Normal
   category: Special
@@ -4984,7 +4984,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_yinbo_35
+    - effect_skill_add_mark_opponent_yinbo_35
 - id: skill_dafengche
   element: Normal
   category: Physical
@@ -4997,7 +4997,7 @@
   multihit: [3, 4]
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_15_percent
+    - effect_skill_reduce_opponent_def_1_stage_15_percent
 - id: skill_yinbopingzhang
   element: Normal
   category: Status
@@ -5009,7 +5009,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_consume_foe_yinbo_add_yinbopingzhang
+    - effect_skill_consume_opponent_yinbo_add_yinbopingzhang
 - id: skill_xuanzhuansiyao
   element: Normal
   category: Physical
@@ -5021,7 +5021,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_liuxie_30_30_percent
+    - effect_skill_add_mark_opponent_liuxie_30_30_percent
 - id: skill_chaojiyinbopao
   element: Normal
   category: Climax
@@ -5033,7 +5033,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_yinbo_40
+    - effect_skill_add_mark_opponent_yinbo_40
 - id: skill_paoxiaodan
   element: Normal
   category: Special
@@ -5045,7 +5045,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_yinbo_30
+    - effect_skill_add_mark_opponent_yinbo_30
 - id: skill_yinbao
   element: Normal
   category: Status
@@ -5057,7 +5057,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_consume_foe_yinbo_damage_2x
+    - effect_skill_consume_opponent_yinbo_damage_2x
 - id: skill_yinbofeidan
   element: Normal
   category: Special
@@ -5070,7 +5070,7 @@
   multihit: 4
   tags: []
   effect:
-    - effect_skill_add_mark_foe_yinbo_10
+    - effect_skill_add_mark_opponent_yinbo_10
 - id: skill_yinzhiwang
   element: Normal
   category: Status
@@ -5082,7 +5082,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_yinzhiwang
+    - effect_skill_add_mark_opponent_yinzhiwang
 - id: skill_feishi
   element: Ground
   category: Special
@@ -5094,7 +5094,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spd_1_stage_5_percent
+    - effect_skill_reduce_opponent_spd_1_stage_5_percent
 - id: skill_pofangyiji
   element: Normal
   category: Physical
@@ -5106,7 +5106,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_pofang_50
+    - effect_skill_add_mark_opponent_pofang_50
 - id: skill_suishituji
   element: Ground
   category: Physical
@@ -5154,7 +5154,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_liuxie_40_if_pofang
+    - effect_skill_add_mark_opponent_liuxie_40_if_pofang
 - id: skill_miaozhuntuji
   element: Normal
   category: Physical
@@ -5176,7 +5176,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_lanbaoshi
+    - effect_skill_add_mark_opponent_lanbaoshi
 - id: skill_juchuidilichong
   element: Ground
   category: Climax
@@ -5188,7 +5188,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spe_1_stage_20_percent
+    - effect_skill_reduce_opponent_spe_1_stage_20_percent
 - id: skill_liuxingdun
   element: Ground
   category: Status
@@ -5249,7 +5249,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spe_1_stage_5_percent
+    - effect_skill_reduce_opponent_spe_1_stage_5_percent
 - id: skill_shahezhiguang
   element: Desert
   category: Special
@@ -5333,7 +5333,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_hongbaoshi
+    - effect_skill_add_mark_opponent_hongbaoshi
 - id: skill_shahuangxiangyuewu
   element: Desert
   category: Climax
@@ -5357,7 +5357,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_mingzhongxiajiang_25
+    - effect_skill_add_mark_opponent_mingzhongxiajiang_25
 - id: skill_shunxunzhiqu
   element: Normal
   category: Physical
@@ -5403,7 +5403,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_5_percent
+    - effect_skill_reduce_opponent_def_1_stage_5_percent
 - id: skill_xulchongzhuang
   element: Ground
   category: Physical
@@ -5427,7 +5427,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_clear_foe_def_spd_stage
+    - effect_skill_clear_opponent_def_spd_stage
 - id: skill_chentufeiyang
   element: Ground
   category: Special
@@ -5449,7 +5449,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_atk_1_stage
+    - effect_skill_reduce_opponent_atk_1_stage
 - id: skill_manlichongzhuang
   element: Ground
   category: Physical
@@ -5461,7 +5461,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_10_percent
+    - effect_skill_reduce_opponent_def_1_stage_10_percent
 - id: skill_dadihuifu
   element: Ground
   category: Status
@@ -5485,7 +5485,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spa_1_stage
+    - effect_skill_reduce_opponent_spa_1_stage
 - id: skill_zhendangdadi
   element: Ground
   category: Special
@@ -5497,7 +5497,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spd_1_stage_10_percent
+    - effect_skill_reduce_opponent_spd_1_stage_10_percent
 - id: skill_kuangyebenteng
   element: Ground
   category: Climax
@@ -5509,7 +5509,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage
+    - effect_skill_reduce_opponent_def_1_stage
 - id: skill_dadizhiqiang
   element: Ground
   category: Status
@@ -5557,7 +5557,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_15_percent
+    - effect_skill_reduce_opponent_def_1_stage_15_percent
 - id: skill_suike
   element: Normal
   category: Physical
@@ -5569,7 +5569,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spd_1_stage_5_percent
+    - effect_skill_reduce_opponent_spd_1_stage_5_percent
 - id: skill_shazhidanke
   element: Desert
   category: Special
@@ -5619,7 +5619,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_clear_foe_def_spd_stage
+    - effect_skill_clear_opponent_def_spd_stage
 - id: skill_feisha
   element: Desert
   category: Special
@@ -5631,7 +5631,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_mingzhongxiajiang_15
+    - effect_skill_add_mark_opponent_mingzhongxiajiang_15
 - id: skill_shazhijiao
   element: Desert
   category: Physical
@@ -5643,7 +5643,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_clear_foe_def_spd_stage
+    - effect_skill_clear_opponent_def_spd_stage
 - id: skill_shachendanke
   element: Desert
   category: Special
@@ -5667,7 +5667,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spd_1_stage_10_percent
+    - effect_skill_reduce_opponent_spd_1_stage_10_percent
 - id: skill_dankebaohu
   element: Normal
   category: Status
@@ -5704,7 +5704,7 @@
   tags: []
   multihit: 2
   effect:
-    - effect_skill_clear_foe_def_spd_stage
+    - effect_skill_clear_opponent_def_spd_stage
 - id: skill_kuaisufeisha
   element: Desert
   category: Special
@@ -5728,7 +5728,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spe_1_stage_5_percent
+    - effect_skill_reduce_opponent_spe_1_stage_5_percent
 - id: skill_douqi
   element: Fighting
   category: Special
@@ -5764,7 +5764,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_wuzhezhixin_1
+    - effect_skill_add_mark_opponent_wuzhezhixin_1
 - id: skill_qiangxi
   element: Fighting
   category: Physical
@@ -5776,7 +5776,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_if_wuzhezhixin
+    - effect_skill_reduce_opponent_def_1_stage_if_wuzhezhixin
 - id: skill_zhanyigaozhang
   element: Normal
   category: Status
@@ -5800,7 +5800,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_jueying
+    - effect_skill_add_mark_opponent_jueying
 - id: skill_kongyazhan
   element: Fighting
   category: Physical
@@ -5812,7 +5812,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_power_50_if_foe_wuzhezhixin
+    - effect_skill_add_power_50_if_opponent_wuzhezhixin
 - id: skill_yingzhidouqi
   element: Shadow
   category: Special
@@ -5824,7 +5824,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_yingzhidouqi
+    - effect_skill_add_mark_opponent_yingzhidouqi
 - id: skill_shuangpozhan
   element: Fighting
   category: Physical
@@ -5837,7 +5837,7 @@
   tags: []
   multihit: 2
   effect:
-    - effect_skill_add_mark_foe_shuangrenzhuiji_if_damage_less_100
+    - effect_skill_add_mark_opponent_shuangrenzhuiji_if_damage_less_100
 - id: skill_mieyingzhan
   element: Shadow
   category: Physical
@@ -5859,7 +5859,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_baiya_equal_damage_max_800
+    - effect_skill_add_mark_opponent_baiya_equal_damage_max_800
 - id: skill_heiyalianbozhan
   element: Fighting
   category: Climax
@@ -5872,8 +5872,8 @@
   tags: []
   multihit: 2
   effect:
-    - effect_skill_reduce_foe_atk_1_stage_20_percent
-    - effect_skill_reduce_foe_def_1_stage_20_percent
+    - effect_skill_reduce_opponent_atk_1_stage_20_percent
+    - effect_skill_reduce_opponent_def_1_stage_20_percent
 - id: skill_gongshoujianbei
   element: Normal
   category: Physical
@@ -5942,7 +5942,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spd_1_stage_if_renzhezhixin
+    - effect_skill_reduce_opponent_spd_1_stage_if_renzhezhixin
 - id: skill_zhanyigaoang
   element: Normal
   category: Status
@@ -5966,7 +5966,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_jiguang
+    - effect_skill_add_mark_opponent_jiguang
 - id: skill_duankongzhan
   element: Fighting
   category: Special
@@ -5978,7 +5978,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_power_50_if_foe_renzhezhixin
+    - effect_skill_add_power_50_if_opponent_renzhezhixin
 - id: skill_shanguangboji
   element: Light
   category: Physical
@@ -5990,7 +5990,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_shanguangboji
+    - effect_skill_add_mark_opponent_shanguangboji
 - id: skill_shuangrenzhan
   element: Fighting
   category: Special
@@ -6003,7 +6003,7 @@
   tags: []
   multihit: 2
   effect:
-    - effect_skill_add_mark_foe_shuangpozhuiji_if_damage_less_100
+    - effect_skill_add_mark_opponent_shuangpozhuiji_if_damage_less_100
 - id: skill_juguangzhan
   element: Light
   category: Special
@@ -6025,7 +6025,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_heiya_equal_damage_max_800
+    - effect_skill_add_mark_opponent_heiya_equal_damage_max_800
 - id: skill_baiyalianbozhan
   element: Fighting
   category: Climax
@@ -6096,7 +6096,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_5_percent
+    - effect_skill_reduce_opponent_def_1_stage_5_percent
 - id: skill_xiangyuqie
   element: Flying
   category: Physical
@@ -6132,7 +6132,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_chenmo
+    - effect_skill_add_mark_opponent_chenmo
 - id: skill_kongzhiguiji
   element: Flying
   category: Physical
@@ -6244,7 +6244,7 @@
   tags: []
   effect:
     - effect_skill_add_mark_fenshen
-    - effect_skill_transfer_status_marks_to_foe
+    - effect_skill_transfer_status_marks_to_opponent
 - id: skill_tiankongliechong
   element: Flying
   category: Physical
@@ -6317,7 +6317,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_liuxie_60_hit_or_miss
+    - effect_skill_add_mark_opponent_liuxie_60_hit_or_miss
 - id: skill_paoxiaonuhou
   element: Normal
   category: Status
@@ -6392,7 +6392,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_foe_clear_stage_hit_or_miss
+    - effect_skill_opponent_clear_stage_hit_or_miss
 - id: skill_huimieshabao
   element: Desert
   category: Special
@@ -6404,7 +6404,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_execute_foe_hp_under_75_hit_or_miss
+    - effect_skill_execute_opponent_hp_under_75_hit_or_miss
 - id: skill_xiezuojieli
   element: Normal
   category: Physical
@@ -6452,7 +6452,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_spd_1_stage_consecutive_2_times
+    - effect_skill_reduce_opponent_spd_1_stage_consecutive_2_times
 - id: skill_dufentuxi
   element: Bug
   category: Physical
@@ -6488,7 +6488,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_mingzhongxiajiang_15
+    - effect_skill_add_mark_opponent_mingzhongxiajiang_15
 - id: skill_mabidufeng
   element: Bug
   category: Special
@@ -6500,7 +6500,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_mabi_15_percent_or_raise_self_spa_1_stage_50_percent
+    - effect_skill_add_mark_opponent_mabi_15_percent_or_raise_self_spa_1_stage_50_percent
 - id: skill_shuimiandufeng
   element: Bug
   category: Special
@@ -6512,7 +6512,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_shuimian_15_percent_or_raise_self_spe_1_stage_50_percent
+    - effect_skill_add_mark_opponent_shuimian_15_percent_or_raise_self_spe_1_stage_50_percent
 - id: skill_huandielianji
   element: Bug
   category: Physical
@@ -6547,7 +6547,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_shuimian_10_percent
+    - effect_skill_add_mark_opponent_shuimian_10_percent
 - id: skill_fushidufeng
   element: Bug
   category: Special
@@ -6571,7 +6571,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_zhongdu_consecutive_2_times
+    - effect_skill_add_mark_opponent_zhongdu_consecutive_2_times
 - id: skill_huandiedusha
   element: Bug
   category: Special
@@ -6583,7 +6583,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_power_2x_if_foe_shuimian_or_mabi
+    - effect_skill_power_2x_if_opponent_shuimian_or_mabi
 - id: skill_huandiemiwu
   element: Bug
   category: Status
@@ -6595,7 +6595,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_shuimian
+    - effect_skill_add_mark_opponent_shuimian
 - id: skill_nuzhua
   element: Dragon
   category: Physical
@@ -6607,7 +6607,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_foe_def_1_stage_5_percent
+    - effect_skill_reduce_opponent_def_1_stage_5_percent
 - id: skill_baolongzhan
   element: Dragon
   category: Physical
@@ -6643,7 +6643,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_shaoshang_if_hp_above_75_percent
+    - effect_skill_add_mark_opponent_shaoshang_if_hp_above_75_percent
 - id: skill_shixuedaji
   element: Dragon
   category: Physical
@@ -6667,7 +6667,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_liuxie_50_if_hp_above_half
+    - effect_skill_add_mark_opponent_liuxie_50_if_hp_above_half
 - id: skill_longzhinu
   element: Dragon
   category: Special
@@ -6703,7 +6703,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_ignore_foe_stat_if_hp_above_quarter
+    - effect_skill_ignore_opponent_stat_if_hp_above_quarter
 - id: skill_hongliannulongzhan
   element: Dragon
   category: Climax
@@ -6715,7 +6715,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_foe_hunmi_5_percent
+    - effect_skill_add_mark_opponent_hunmi_5_percent
 - id: skill_longdeliliang
   element: Dragon
   category: Status
@@ -6773,7 +6773,7 @@
   accuracy: 95
   rage: 5
   effect:
-    - effect_skill_reduce_foe_spd_1_stage_5_percent
+    - effect_skill_reduce_opponent_spd_1_stage_5_percent
 - id: skill_anhua
   element: Shadow
   category: Status
@@ -6791,7 +6791,7 @@
   accuracy: 95
   rage: 10
   effect:
-    - effect_skill_add_mark_foe_heianwuzhi_1
+    - effect_skill_add_mark_opponent_heianwuzhi_1
 - id: skill_anti
   element: Shadow
   category: Physical
@@ -6800,7 +6800,7 @@
   accuracy: 95
   rage: 15
   effect:
-    - effect_skill_consume_heianwuzhi_reduce_foe_spd_1_stage
+    - effect_skill_consume_heianwuzhi_reduce_opponent_spd_1_stage
 - id: skill_anci
   element: Shadow
   category: Special
@@ -6836,7 +6836,7 @@
   accuracy: 95
   rage: 20
   effect:
-    - effect_skill_add_mark_foe_liuxie_50_if_field_yemu
+    - effect_skill_add_mark_opponent_liuxie_50_if_field_yemu
 - id: skill_anzhiguang
   element: Shadow
   category: Status
@@ -6892,7 +6892,7 @@
   accuracy: 95
   rage: 20
   effect:
-    - effect_skill_clear_foe_spe_up_reverse_if_field_yemu
+    - effect_skill_clear_opponent_spe_up_reverse_if_field_yemu
 - id: skill_yingfeng
   element: Normal
   category: Status

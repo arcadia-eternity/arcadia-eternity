@@ -32,7 +32,7 @@ export class BaseSkill implements Prototype {
     public readonly sureHit: boolean = false,
     public readonly sureCrit: boolean = false,
     public readonly ignoreShield: boolean = false,
-    public readonly ignoreFoeStageStrategy: IgnoreStageStrategy = IgnoreStageStrategy.none,
+    public readonly ignoreOpponentStageStrategy: IgnoreStageStrategy = IgnoreStageStrategy.none,
     public readonly tags: string[] = [],
     effects: Effect<EffectTrigger>[] = [],
   ) {
@@ -52,7 +52,7 @@ export class BaseSkill implements Prototype {
     #sureHit: boolean = false
     #sureCrit: boolean = false
     #ignoreShield: boolean = false
-    #ignoreFoeStageStrategy: IgnoreStageStrategy = IgnoreStageStrategy.none
+    #ignoreOpponentStageStrategy: IgnoreStageStrategy = IgnoreStageStrategy.none
     #multihit: [number, number] | number = 0
     #tags: string[] = []
 
@@ -130,7 +130,7 @@ export class BaseSkill implements Prototype {
         this.#sureHit,
         this.#sureCrit,
         this.#ignoreShield,
-        this.#ignoreFoeStageStrategy,
+        this.#ignoreOpponentStageStrategy,
         this.#tags,
         this.#effects,
       )

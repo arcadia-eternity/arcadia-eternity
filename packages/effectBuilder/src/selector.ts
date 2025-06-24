@@ -630,22 +630,22 @@ export function findContextRecursively<T extends Context, U extends EffectTrigge
 export const BaseSelector: {
   target: ChainableSelector<Pet>
   self: ChainableSelector<Pet>
-  foe: ChainableSelector<Pet>
+  opponent: ChainableSelector<Pet>
   selfTeam: ChainableSelector<Pet>
-  foeTeam: ChainableSelector<Pet>
+  opponentTeam: ChainableSelector<Pet>
   selfPlayer: ChainableSelector<Player>
-  foePlayer: ChainableSelector<Player>
+  opponentPlayer: ChainableSelector<Player>
   usingSkillContext: ChainableSelector<UseSkillContext>
   damageContext: ChainableSelector<DamageContext>
   effectContext: ChainableSelector<EffectContext<EffectTrigger>>
   mark: ChainableSelector<MarkInstance>
   selfMarks: ChainableSelector<MarkInstance>
-  foeMarks: ChainableSelector<MarkInstance>
+  opponentMarks: ChainableSelector<MarkInstance>
   skill: ChainableSelector<SkillInstance>
   selfSkills: ChainableSelector<SkillInstance>
-  foeSkills: ChainableSelector<SkillInstance>
+  opponentSkills: ChainableSelector<SkillInstance>
   selfAvailableSkills: ChainableSelector<SkillInstance>
-  foeAvailableSkills: ChainableSelector<SkillInstance>
+  opponentAvailableSkills: ChainableSelector<SkillInstance>
   dataMarks: ChainableSelector<BaseMark>
   healContext: ChainableSelector<HealContext>
   addMarkContext: ChainableSelector<AddMarkContext>
@@ -672,7 +672,7 @@ export const BaseSelector: {
     return []
   }),
   //始终指向效果的拥有者的当前对手。
-  foe: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
+  opponent: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
     if (context.source.owner instanceof Pet) return [context.battle.getOpponent(context.source.owner.owner!).activePet]
     //TODO: error with use owners with global marks
     return []
@@ -685,7 +685,7 @@ export const BaseSelector: {
     return []
   }),
   //选择效果拥有者对手的全队精灵。
-  foeTeam: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
+  opponentTeam: createChainable<Pet>('Pet', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [...context.parent.actualTarget!.owner!.team]
     if (context.source.owner instanceof Pet) return [...context.battle.getOpponent(context.source.owner.owner!).team]
     //TODO: error with use owners with global marks
@@ -697,7 +697,7 @@ export const BaseSelector: {
     //TODO: error with use owners with global marks
     return []
   }),
-  foePlayer: createChainable<Player>('Player', (context: EffectContext<EffectTrigger>) => {
+  opponentPlayer: createChainable<Player>('Player', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [context.parent.actualTarget!.owner!]
     if (context.source.owner instanceof Pet) return [context.battle.getOpponent(context.source.owner.owner!)]
     //TODO: error with use owners with global marks
@@ -740,7 +740,7 @@ export const BaseSelector: {
     //TODO: error with use owners with global marks
     return []
   }),
-  foeMarks: createChainable<MarkInstance>('MarkInstance', (context: EffectContext<EffectTrigger>) => {
+  opponentMarks: createChainable<MarkInstance>('MarkInstance', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return context.parent.actualTarget!.marks
     if (context.source.owner instanceof Pet)
       return context.battle.getOpponent(context.source.owner.owner!).activePet.marks
@@ -752,7 +752,7 @@ export const BaseSelector: {
     if (context.source.owner instanceof Pet) return [...context.source.owner.skills]
     return []
   }),
-  foeSkills: createChainable<SkillInstance>('SkillInstance', (context: EffectContext<EffectTrigger>) => {
+  opponentSkills: createChainable<SkillInstance>('SkillInstance', (context: EffectContext<EffectTrigger>) => {
     if (context.parent instanceof UseSkillContext) return [...context.parent.actualTarget!.skills]
     if (context.source.owner instanceof Pet)
       return [...context.battle.getOpponent(context.source.owner.owner!).activePet.skills]
@@ -769,7 +769,7 @@ export const BaseSelector: {
 
     return [...pet.skills].filter(skill => skill.rage <= pet.currentRage)
   }),
-  foeAvailableSkills: createChainable<SkillInstance>('SkillInstance', (context: EffectContext<EffectTrigger>) => {
+  opponentAvailableSkills: createChainable<SkillInstance>('SkillInstance', (context: EffectContext<EffectTrigger>) => {
     let pet: Pet
     if (context.parent instanceof UseSkillContext) {
       pet = context.parent.actualTarget!

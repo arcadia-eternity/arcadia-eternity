@@ -50,7 +50,7 @@
   config: *ability_config
   tags: [ability]
   effect:
-    - effect_ability_damage_amplify_10_percent_foe_has_manxingduyao
+    - effect_ability_damage_amplify_10_percent_opponent_has_manxingduyao
 - id: mark_ability_kongqi
   config: *ability_config
   tags: [ability]
@@ -71,12 +71,12 @@
   config: *ability_config
   tags: [ability]
   effect:
-    - effect_ability_damage_amplify_15_percent_foe_has_shaoshang
+    - effect_ability_damage_amplify_15_percent_opponent_has_shaoshang
 - id: mark_ability_xuanyun
   config: *ability_config
   tags: [ability]
   effect:
-    - effect_ability_damage_amplify_15_percent_foe_has_xuanyun
+    - effect_ability_damage_amplify_15_percent_opponent_has_xuanyun
 - id: mark_ability_yangyan
   config: *ability_config
   tags: [ability]
@@ -163,7 +163,7 @@
   config: *ability_config
   tags: [ability]
   effect:
-    - effect_ability_damage_amplify_10_percent_foe_has_pofang
+    - effect_ability_damage_amplify_10_percent_opponent_has_pofang
 - id: mark_ability_shahe
   config: *ability_config
   tags: [ability]
@@ -204,7 +204,7 @@
   config: *ability_config
   tags: [ability]
   effect:
-    - effect_ability_huafenmiman_damage_foe_25_per_turn
+    - effect_ability_huafenmiman_damage_opponent_25_per_turn
 - id: mark_ability_fennu
   config: *ability_config
   tags: [ability]

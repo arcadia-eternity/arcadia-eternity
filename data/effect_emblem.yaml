@@ -494,7 +494,7 @@
           type: same
           value: mark_mianyibuliang
 # 感应: 使希捷对手每次技能命中自身时也可以为自身增加5层虚空体质
-- id: effect_emblem_add_xukongtizhi_when_foe_hit_self
+- id: effect_emblem_add_xukongtizhi_when_opponent_hit_self
   trigger: PostDamage
   priority: 0
   apply:
@@ -565,7 +565,7 @@
   apply:
     type: addConfigModifier
     target: self
-    configKey: effect_skill_add_mark_foe_bingdong_40_percent.bingdong_probability
+    configKey: effect_skill_add_mark_opponent_bingdong_40_percent.bingdong_probability
     modifierType: delta
     value: 5
 
@@ -576,7 +576,7 @@
   condition:
     type: every
     conditions:
-      - type: foeBeDamaged
+      - type: opponentBeDamaged
       - type: evaluate
         target:
           base: effectContext
@@ -739,7 +739,7 @@
   priority: 0
   apply:
     type: addConfigModifier
-    target: foePlayer
+    target: opponentPlayer
     configKey: effect_mark_reduce_damage_taken_15_percent_per_stack.mark_reduce_damage_taken_per_stack
     modifierType: delta
     value: -5
@@ -881,7 +881,7 @@
   priority: 0
   apply:
     type: addConfigModifier
-    target: foePlayer
+    target: opponentPlayer
     configKey: effect_mark_reduce_accuracy_5_per_stack.reduce_accuracy_per_stack
     modifierType: delta
     value: -5

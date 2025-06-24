@@ -127,7 +127,7 @@
   config: *emblem_config
   tags: [emblem]
   effect:
-    - effect_emblem_add_xukongtizhi_when_foe_hit_self
+    - effect_emblem_add_xukongtizhi_when_opponent_hit_self
 - id: mark_emblem_zhongji
   config: *emblem_config
   tags: [emblem]

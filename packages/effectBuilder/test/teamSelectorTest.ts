@@ -5,23 +5,23 @@ export function testTeamSelectors() {
   console.log('🧪 Testing team selectors...')
 
   try {
-    // 验证 selfTeam 和 foeTeam 选择器存在
+    // 验证 selfTeam 和 opponentTeam 选择器存在
     if (!BaseSelector.selfTeam) {
       throw new Error('selfTeam selector not found')
     }
-    if (!BaseSelector.foeTeam) {
-      throw new Error('foeTeam selector not found')
+    if (!BaseSelector.opponentTeam) {
+      throw new Error('opponentTeam selector not found')
     }
 
     console.log('✅ selfTeam selector exists')
-    console.log('✅ foeTeam selector exists')
+    console.log('✅ opponentTeam selector exists')
 
     // 验证选择器类型
     if (typeof BaseSelector.selfTeam.build !== 'function') {
       throw new Error('selfTeam is not a ChainableSelector')
     }
-    if (typeof BaseSelector.foeTeam.build !== 'function') {
-      throw new Error('foeTeam is not a ChainableSelector')
+    if (typeof BaseSelector.opponentTeam.build !== 'function') {
+      throw new Error('opponentTeam is not a ChainableSelector')
     }
 
     console.log('✅ Both selectors are ChainableSelector instances')
@@ -36,10 +36,10 @@ export function testTeamSelectors() {
         console.log(`❌ selfTeam.${method} is not available`)
       }
 
-      if (typeof (BaseSelector.foeTeam as any)[method] === 'function') {
-        console.log(`✅ foeTeam.${method} is available`)
+      if (typeof (BaseSelector.opponentTeam as any)[method] === 'function') {
+        console.log(`✅ opponentTeam.${method} is available`)
       } else {
-        console.log(`❌ foeTeam.${method} is not available`)
+        console.log(`❌ opponentTeam.${method} is not available`)
       }
     })
 

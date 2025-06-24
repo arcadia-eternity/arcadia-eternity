@@ -5,16 +5,16 @@ import { Operators } from '../src/operator'
 // Example 1: Using selectObservable to get an ObservableRef
 function exampleSelectObservable() {
   console.log('=== selectObservable Example ===')
-  
+
   // Select a pet's attribute as an ObservableRef
   // This allows both getting the current value and subscribing to changes
   const petHpObservableRef = BaseSelector.self.selectObservable('currentHp')
-  
+
   // In an effect context, this would return ObservableRef objects that can:
   // - Get current value: ref.get()
   // - Get Observable stream: ref.get$()
   // - Set value: ref.set(newValue)
-  
+
   console.log('Pet HP ObservableRef selector created')
   return petHpObservableRef
 }
@@ -22,14 +22,14 @@ function exampleSelectObservable() {
 // Example 2: Using selectAttribute$ to get Observable directly
 function exampleSelectAttributeStream() {
   console.log('=== selectAttribute$ Example ===')
-  
+
   // Select a pet's attribute as an Observable stream
   // This directly returns the Observable from the attribute system
   const petAtkStream = BaseSelector.self.selectAttribute$('atk')
-  
+
   // In an effect context, this would return Observable<number> that emits
   // whenever the pet's attack stat changes
-  
+
   console.log('Pet ATK Observable stream selector created')
   return petAtkStream
 }
@@ -37,7 +37,7 @@ function exampleSelectAttributeStream() {
 // Example 3: Creating dynamic modifiers using Observable values
 function exampleDynamicModifier() {
   console.log('=== Dynamic Modifier Example ===')
-  
+
   // Create a modifier that scales with another pet's HP
   // The modifier value will automatically update when the source pet's HP changes
   const dynamicModifierEffect = {
@@ -56,12 +56,12 @@ function exampleDynamicModifier() {
           { type: 'selectAttribute$', arg: 'currentHp' },
           // Could add mathematical operations here to transform the value
           { type: 'divide', arg: 100 }, // Convert to percentage
-        ]
+        ],
       },
-      priority: 200
-    }
+      priority: 200,
+    },
   }
-  
+
   console.log('Dynamic modifier effect created:', dynamicModifierEffect)
   return dynamicModifierEffect
 }
@@ -69,8 +69,8 @@ function exampleDynamicModifier() {
 // Example 4: Complex dynamic modifier based on multiple attributes
 function exampleComplexDynamicModifier() {
   console.log('=== Complex Dynamic Modifier Example ===')
-  
-  // Create a modifier that scales based on the difference between self and foe stats
+
+  // Create a modifier that scales based on the difference between self and opponent stats
   const complexModifierEffect = {
     id: 'stat_difference_scaling',
     trigger: 'OnTurnStart' as any,
@@ -82,17 +82,17 @@ function exampleComplexDynamicModifier() {
       modifierType: 'delta',
       // This could be a computed Observable that combines multiple attribute streams
       observableValue: {
-        base: 'foe',
+        base: 'opponent',
         chain: [
           { type: 'selectAttribute$', arg: 'def' },
           // In a real implementation, this would need additional operators
           // to combine with self stats and calculate the difference
-        ]
+        ],
       },
-      priority: 150
-    }
+      priority: 150,
+    },
   }
-  
+
   console.log('Complex dynamic modifier effect created:', complexModifierEffect)
   return complexModifierEffect
 }
@@ -100,7 +100,7 @@ function exampleComplexDynamicModifier() {
 // Example 5: Using ObservableRef for conditional effects
 function exampleConditionalObservableEffect() {
   console.log('=== Conditional Observable Effect Example ===')
-  
+
   // Create an effect that applies different modifiers based on HP percentage
   const conditionalEffect = {
     id: 'hp_based_conditional',
@@ -112,15 +112,13 @@ function exampleConditionalObservableEffect() {
         type: 'evaluate',
         target: {
           base: 'self',
-          chain: [
-            { type: 'selectObservable', arg: 'currentHp' }
-          ]
+          chain: [{ type: 'selectObservable', arg: 'currentHp' }],
         },
         evaluator: {
           type: 'compare',
           operator: '<',
-          value: 50 // Less than 50% HP
-        }
+          value: 50, // Less than 50% HP
+        },
       },
       trueOperator: {
         type: 'addDynamicAttributeModifier' as const,
@@ -132,14 +130,14 @@ function exampleConditionalObservableEffect() {
           chain: [
             { type: 'selectAttribute$', arg: 'currentHp' },
             { type: 'multiply', arg: -1 }, // Inverse relationship
-            { type: 'add', arg: 100 }      // Speed boost when low HP
-          ]
+            { type: 'add', arg: 100 }, // Speed boost when low HP
+          ],
         },
-        priority: 300
-      }
-    }
+        priority: 300,
+      },
+    },
   }
-  
+
   console.log('Conditional Observable effect created:', conditionalEffect)
   return conditionalEffect
 }
@@ -150,7 +148,7 @@ export const ObservableSelectorExamples = {
   selectAttributeStream: exampleSelectAttributeStream,
   dynamicModifier: exampleDynamicModifier,
   complexDynamicModifier: exampleComplexDynamicModifier,
-  conditionalObservableEffect: exampleConditionalObservableEffect
+  conditionalObservableEffect: exampleConditionalObservableEffect,
 }
 
 // Usage notes:

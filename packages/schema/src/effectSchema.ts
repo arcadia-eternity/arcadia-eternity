@@ -800,25 +800,25 @@ export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
       type: z.literal('checkSelf'),
     }),
     z.object({
-      type: z.literal('foeUseSkill'),
+      type: z.literal('opponentUseSkill'),
     }),
     z.object({
       type: z.literal('selfBeDamaged'),
     }),
     z.object({
-      type: z.literal('foeBeDamaged'),
+      type: z.literal('opponentBeDamaged'),
     }),
     z.object({
       type: z.literal('selfAddMark'),
     }),
     z.object({
-      type: z.literal('foeAddMark'),
+      type: z.literal('opponentAddMark'),
     }),
     z.object({
       type: z.literal('selfBeAddMark'),
     }),
     z.object({
-      type: z.literal('foeBeAddMark'),
+      type: z.literal('opponentBeAddMark'),
     }),
     z.object({
       type: z.literal('selfBeHeal'),

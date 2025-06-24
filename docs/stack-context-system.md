@@ -114,7 +114,7 @@ export class StackContext extends Context {
           value: 3
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_zhongdu

@@ -5,10 +5,10 @@
 - id: effect_skill_reduce_stat_5_percent
   trigger: OnDamage
   priority: 0
-  apply: &apply_foe_statstage_-1_template
+  apply: &apply_opponent_statstage_-1_template
     type: statStageBuff
     target:
-      base: foe
+      base: opponent
     statType: def
     value: -1
   condition: &condition_probability_5_percent_template
@@ -23,46 +23,46 @@
             type: 'raw:number'
             value: 5
             tags: ['skill_effect_probability']
-- id: effect_skill_reduce_foe_def_1_stage_5_percent
+- id: effect_skill_reduce_opponent_def_1_stage_5_percent
   trigger: OnDamage
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: def
   condition: *condition_probability_5_percent_template
-- id: effect_skill_reduce_foe_spe_1_stage_5_percent
+- id: effect_skill_reduce_opponent_spe_1_stage_5_percent
   trigger: OnDamage
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: spe
   condition: *condition_probability_5_percent_template
-- id: effect_skill_reduce_foe_spd_1_stage_5_percent
+- id: effect_skill_reduce_opponent_spd_1_stage_5_percent
   trigger: OnDamage
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: spd
   condition: *condition_probability_5_percent_template
-- id: effect_skill_reduce_foe_atk_1_stage_5_percent
+- id: effect_skill_reduce_opponent_atk_1_stage_5_percent
   trigger: OnDamage
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: atk
   condition: *condition_probability_5_percent_template
-- id: effect_skill_reduce_foe_spa_1_stage_5_percent
+- id: effect_skill_reduce_opponent_spa_1_stage_5_percent
   trigger: OnDamage
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: spa
   condition: *condition_probability_5_percent_template
-- id: effect_skill_reduce_foe_spd_1_stage_10_percent
+- id: effect_skill_reduce_opponent_spd_1_stage_10_percent
   trigger: OnDamage
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: spd
   condition: &condition_probability_10_percent_template
     type: every
@@ -76,18 +76,18 @@
             type: 'raw:number'
             value: 10
             tags: ['skill_effect_probability']
-- id: effect_skill_reduce_foe_def_1_stage_10_percent
+- id: effect_skill_reduce_opponent_def_1_stage_10_percent
   trigger: OnDamage
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: def
   condition: *condition_probability_10_percent_template
-- id: effect_skill_reduce_foe_def_1_stage_15_percent
+- id: effect_skill_reduce_opponent_def_1_stage_15_percent
   trigger: OnDamage
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: def
   condition:
     type: every
@@ -102,18 +102,18 @@
             type: 'raw:number'
             value: 15
             tags: ['skill_effect_probability']
-- id: effect_skill_reduce_foe_spa_1_stage_10_percent
+- id: effect_skill_reduce_opponent_spa_1_stage_10_percent
   trigger: OnDamage
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: spa
   condition: *condition_probability_10_percent_template
-- id: effect_skill_reduce_foe_spa_1_stage_15_percent
+- id: effect_skill_reduce_opponent_spa_1_stage_15_percent
   trigger: OnDamage
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: spa
   condition:
     type: every
@@ -287,75 +287,75 @@
     <<: *apply_self_statstage_+2_template
     statType: spe
   condition: *condition_self_use_skill_template
-- id: effect_skill_reduce_foe_stat_1_stage
+- id: effect_skill_reduce_opponent_stat_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: def
   condition: *condition_self_use_skill_template
-- id: effect_skill_reduce_foe_atk_1_stage
+- id: effect_skill_reduce_opponent_atk_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: atk
   condition: *condition_self_use_skill_template
-- id: effect_skill_reduce_foe_atk_1_stage_20_percent
+- id: effect_skill_reduce_opponent_atk_1_stage_20_percent
   trigger: BeforeHit
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: atk
   condition:
     type: every
     conditions:
       - type: selfUseSkill
       - *condition_probability_20_percent_template
-- id: effect_skill_reduce_foe_def_1_stage
+- id: effect_skill_reduce_opponent_def_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: def
   condition: *condition_self_use_skill_template
-- id: effect_skill_reduce_foe_spa_1_stage
+- id: effect_skill_reduce_opponent_spa_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: spa
   condition: *condition_self_use_skill_template
-- id: effect_skill_reduce_foe_spd_1_stage
+- id: effect_skill_reduce_opponent_spd_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: spd
   condition: *condition_self_use_skill_template
-- id: effect_skill_reduce_foe_spe_1_stage
+- id: effect_skill_reduce_opponent_spe_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: spe
   condition: *condition_self_use_skill_template
-- id: effect_skill_add_mark_foe_ruodian
+- id: effect_skill_add_mark_opponent_ruodian
   trigger: OnHit
   priority: 0
-  apply: &apply_foe_add_mark_ruodian_template
+  apply: &apply_opponent_add_mark_ruodian_template
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_ruodianjihao
     stack: 1
   condition: *condition_self_use_skill_template
-- id: effect_skill_add_mark_foe_ruodian_2
+- id: effect_skill_add_mark_opponent_ruodian_2
   trigger: OnHit
   priority: 0
   apply:
-    <<: *apply_foe_add_mark_ruodian_template
+    <<: *apply_opponent_add_mark_ruodian_template
     stack: 2
   condition: *condition_self_use_skill_template
 - id: effect_skill_consume_ruodian
@@ -364,7 +364,7 @@
   apply:
     type: consumeStacks
     target:
-      base: foeMarks
+      base: opponentMarks
       chain:
         - type: whereAttr
           extractor:
@@ -385,7 +385,7 @@
     value:
       type: dynamic
       selector:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -411,7 +411,7 @@
     value:
       type: dynamic
       selector:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -435,7 +435,7 @@
     value:
       type: dynamic
       selector:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -451,25 +451,25 @@
           - type: multiply
             arg: 50
   condition: *condition_self_use_skill_template
-- id: effect_skill_add_mark_foe_yishang
+- id: effect_skill_add_mark_opponent_yishang
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_yishang
   condition: *condition_self_use_skill_template
-- id: effect_skill_add_mark_foe_shaoshang
+- id: effect_skill_add_mark_opponent_shaoshang
   trigger: OnHit
   priority: 0
-  apply: &apply_foe_add_mark_shaoshang_template
+  apply: &apply_opponent_add_mark_shaoshang_template
     type: conditional
-    condition: &condition_foe_not_fire_element
+    condition: &condition_opponent_not_fire_element
       type: evaluate
       target:
-        base: foe
+        base: opponent
         chain:
           - type: select
             arg:
@@ -480,7 +480,7 @@
         value: Fire
     trueOperator:
       type: addMark
-      target: foe
+      target: opponent
       mark:
         type: entity:baseMark
         value: mark_shaoshang
@@ -488,51 +488,51 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - *condition_foe_not_fire_element
-- id: effect_skill_add_mark_foe_shaoshang_5_percent
+      - *condition_opponent_not_fire_element
+- id: effect_skill_add_mark_opponent_shaoshang_5_percent
   trigger: OnHit
   priority: 0
-  apply: *apply_foe_add_mark_shaoshang_template
+  apply: *apply_opponent_add_mark_shaoshang_template
   condition:
     type: every
     conditions:
       - type: selfUseSkill
       - *condition_probability_5_percent_template
-      - *condition_foe_not_fire_element
-- id: effect_skill_add_mark_foe_shaoshang_10_percent
+      - *condition_opponent_not_fire_element
+- id: effect_skill_add_mark_opponent_shaoshang_10_percent
   trigger: OnHit
   priority: 0
-  apply: *apply_foe_add_mark_shaoshang_template
+  apply: *apply_opponent_add_mark_shaoshang_template
   condition:
     type: every
     conditions:
       - type: selfUseSkill
       - *condition_probability_10_percent_template
-      - *condition_foe_not_fire_element
-- id: effect_skill_add_mark_foe_shaoshang_15_percent
+      - *condition_opponent_not_fire_element
+- id: effect_skill_add_mark_opponent_shaoshang_15_percent
   trigger: OnHit
   priority: 0
-  apply: *apply_foe_add_mark_shaoshang_template
+  apply: *apply_opponent_add_mark_shaoshang_template
   condition:
     type: every
     conditions:
       - type: selfUseSkill
       - *condition_probability_15_percent_template
-      - *condition_foe_not_fire_element
-- id: effect_skill_add_mark_foe_shaoshang_20_percent
+      - *condition_opponent_not_fire_element
+- id: effect_skill_add_mark_opponent_shaoshang_20_percent
   trigger: OnHit
   priority: 0
-  apply: *apply_foe_add_mark_shaoshang_template
+  apply: *apply_opponent_add_mark_shaoshang_template
   condition:
     type: every
     conditions:
       - type: selfUseSkill
       - *condition_probability_20_percent_template
-      - *condition_foe_not_fire_element
-- id: effect_skill_add_mark_foe_shaoshang_30_percent
+      - *condition_opponent_not_fire_element
+- id: effect_skill_add_mark_opponent_shaoshang_30_percent
   trigger: OnHit
   priority: 0
-  apply: *apply_foe_add_mark_shaoshang_template
+  apply: *apply_opponent_add_mark_shaoshang_template
   condition:
     type: every
     conditions:
@@ -546,16 +546,16 @@
             type: 'raw:number'
             value: 30
             tags: ['skill_effect_probability']
-      - *condition_foe_not_fire_element
-- id: effect_skill_add_mark_foe_shaoshang_50_percent
+      - *condition_opponent_not_fire_element
+- id: effect_skill_add_mark_opponent_shaoshang_50_percent
   trigger: OnHit
   priority: 0
-  apply: *apply_foe_add_mark_shaoshang_template
+  apply: *apply_opponent_add_mark_shaoshang_template
   condition:
     type: every
     conditions:
       - type: selfUseSkill
-      - *condition_foe_not_fire_element
+      - *condition_opponent_not_fire_element
       - &condition_probability_50_percent_template
         type: evaluate
         target: self
@@ -565,15 +565,15 @@
             type: 'raw:number'
             value: 50
             tags: ['skill_effect_probability']
-- id: effect_skill_add_mark_foe_shaoshang_60_percent
+- id: effect_skill_add_mark_opponent_shaoshang_60_percent
   trigger: OnHit
   priority: 0
-  apply: *apply_foe_add_mark_shaoshang_template
+  apply: *apply_opponent_add_mark_shaoshang_template
   condition:
     type: every
     conditions:
       - type: selfUseSkill
-      - *condition_foe_not_fire_element
+      - *condition_opponent_not_fire_element
       - &condition_probability_60_percent_template
         type: evaluate
         target: self
@@ -841,12 +841,12 @@
                       type: base
                       arg: stack
   condition: *condition_self_use_skill_template
-- id: effect_skill_add_mark_foe_mingzhongxiajiang_15
+- id: effect_skill_add_mark_opponent_mingzhongxiajiang_15
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_mingzhongxiajiang
@@ -855,12 +855,12 @@
       value: 15
       tags: ['skill_effect_stack', 'skill_effect_mingzhongxiajiang_stack']
   condition: *condition_self_use_skill_template
-- id: effect_skill_foe_clear_stage
+- id: effect_skill_opponent_clear_stage
   trigger: OnHit
   priority: 0
   apply:
     type: clearStatStage
-    target: foe
+    target: opponent
     cleanStageStrategy: positive
   condition: *condition_self_use_skill_template
 - id: effect_skill_clear_stage
@@ -906,7 +906,7 @@
                     arg: maxHp
                 - type: divide
                   arg: 4
-- id: effect_skill_power_2x_foe_below_quarter_hp
+- id: effect_skill_power_2x_opponent_below_quarter_hp
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -918,10 +918,10 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - &condition_foe_below_quarter_hp
+      - &condition_opponent_below_quarter_hp
         type: evaluate
         target:
-          base: foe
+          base: opponent
           chain:
             - type: select
               arg:
@@ -933,7 +933,7 @@
           value:
             type: dynamic
             selector:
-              base: foe
+              base: opponent
               chain:
                 - type: select
                   arg:
@@ -941,23 +941,23 @@
                     arg: maxHp
                 - type: divide
                   arg: 4
-- id: effect_skill_add_mark_foe_jishengzhadan
+- id: effect_skill_add_mark_opponent_jishengzhadan
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_jishengzhadan
   condition: *condition_self_use_skill_template
-- id: effect_skill_ignite_foe_mark_jishengzhadan
+- id: effect_skill_ignite_opponent_mark_jishengzhadan
   trigger: OnHit
   priority: 0
   apply:
     - type: destroyMark
       target:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor: baseId
@@ -965,7 +965,7 @@
               type: same
               value: mark_jishengzhadan
     - type: dealDamage
-      target: foe
+      target: opponent
       value: 300
   condition:
     type: every
@@ -973,7 +973,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor: baseId
@@ -982,22 +982,22 @@
                 value: mark_jishengzhadan
         evaluator:
           type: exist
-- id: effect_skill_add_mark_foe_jisheng
+- id: effect_skill_add_mark_opponent_jisheng
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_jisheng
   condition: *condition_self_use_skill_template
-- id: effect_skill_add_mark_foe_liuxie_with_zhongzinengliang
+- id: effect_skill_add_mark_opponent_liuxie_with_zhongzinengliang
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_liuxie
@@ -1021,12 +1021,12 @@
             arg: 3
     stack: 50
   condition: *condition_self_use_skill_template
-- id: effect_skill_add_mark_foe_nishui
+- id: effect_skill_add_mark_opponent_nishui
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_nishui
@@ -1034,10 +1034,10 @@
     type: every
     conditions:
       - *condition_self_use_skill_template
-      - &condition_foe_not_water_element
+      - &condition_opponent_not_water_element
         type: evaluate
         target:
-          base: foe
+          base: opponent
           chain:
             - type: select
               arg:
@@ -1046,12 +1046,12 @@
         evaluator:
           type: notSame
           value: Water
-- id: effect_skill_add_mark_foe_nishui_10_percent
+- id: effect_skill_add_mark_opponent_nishui_10_percent
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_nishui
@@ -1060,7 +1060,7 @@
     conditions:
       - type: selfUseSkill
       - *condition_probability_10_percent_template
-      - *condition_foe_not_water_element
+      - *condition_opponent_not_water_element
 - id: effect_skill_add_mark_huifu
   trigger: OnHit
   priority: 0
@@ -1080,7 +1080,7 @@
     max:
       type: dynamic
       selector:
-        base: foe
+        base: opponent
         chain:
           - type: select
             arg:
@@ -1122,7 +1122,7 @@
       value: mark_weilibianhua
     stack: 50
   condition: *condition_self_use_skill_template
-- id: effect_skill_power_2x_foe_maxhp
+- id: effect_skill_power_2x_opponent_maxhp
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -1136,7 +1136,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foe
+          base: opponent
           chain:
             - type: select
               arg:
@@ -1148,13 +1148,13 @@
           value:
             type: dynamic
             selector:
-              base: foe
+              base: opponent
               chain:
                 - type: select
                   arg:
                     type: base
                     arg: currentHp
-- id: effect_skill_power_4x_foe_below_quarter_hp
+- id: effect_skill_power_4x_opponent_below_quarter_hp
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -1166,13 +1166,13 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - *condition_foe_below_quarter_hp
-- id: effect_skill_add_mark_foe_meihuo
+      - *condition_opponent_below_quarter_hp
+- id: effect_skill_add_mark_opponent_meihuo
   trigger: OnHit
   priority: 0
   apply:
     - type: addMark
-      target: foe
+      target: opponent
       mark:
         type: entity:baseMark
         value: mark_meihuo
@@ -1245,12 +1245,12 @@
       type: entity:baseMark
       value: mark_bizhong
   condition: *condition_self_use_skill_template
-- id: effect_skill_add_mark_foe_mihuo
+- id: effect_skill_add_mark_opponent_mihuo
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_mihuo
@@ -1264,7 +1264,7 @@
     delta:
       type: dynamic
       selector:
-        base: foe
+        base: opponent
         chain:
           - type: select
             arg:
@@ -1281,7 +1281,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foe
+          base: opponent
           chain:
             - type: select
               arg:
@@ -1293,13 +1293,13 @@
           value:
             type: dynamic
             selector:
-              base: foe
+              base: opponent
               chain:
                 - type: select
                   arg:
                     type: base
                     arg: maxHp
-- id: effect_skill_add_multihit_foe_has_mark_kuihuazhongzi
+- id: effect_skill_add_multihit_opponent_has_mark_kuihuazhongzi
   trigger: BeforeMultiHit
   priority: 0
   apply:
@@ -1313,7 +1313,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -1324,7 +1324,7 @@
                 value: mark_kuihuazhongzi
         evaluator:
           type: exist
-- id: effect_skill_ignore_stat_foe_has_mark_kuihuazhongzi
+- id: effect_skill_ignore_stat_opponent_has_mark_kuihuazhongzi
   trigger: BeforeHit
   priority: 0
   apply:
@@ -1337,7 +1337,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -1348,23 +1348,23 @@
                 value: mark_kuihuazhongzi
         evaluator:
           type: exist
-- id: effect_skill_add_mark_foe_kuihuazhongzi
+- id: effect_skill_add_mark_opponent_kuihuazhongzi
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_kuihuazhongzi
   condition:
     type: selfUseSkill
-- id: effect_skill_add_mark_foe_wulicao
+- id: effect_skill_add_mark_opponent_wulicao
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_wulicao
@@ -1398,23 +1398,23 @@
             tag: status
   condition:
     type: selfUseSkill
-- id: effect_skill_add_mark_foe_zhongdu
+- id: effect_skill_add_mark_opponent_zhongdu
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_zhongdu
   condition:
     type: selfUseSkill
-- id: effect_skill_add_mark_foe_zhongdu_5_percent
+- id: effect_skill_add_mark_opponent_zhongdu_5_percent
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_zhongdu
@@ -1423,12 +1423,12 @@
     conditions:
       - type: selfUseSkill
       - *condition_probability_5_percent_template
-- id: effect_skill_add_mark_foe_zhongdu_10_percent
+- id: effect_skill_add_mark_opponent_zhongdu_10_percent
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_zhongdu
@@ -1444,7 +1444,7 @@
       value: mark_global_qingtian
   condition:
     type: selfUseSkill
-- id: effect_skill_setsurehit_foe_has_mark_kuihuazhongzi
+- id: effect_skill_setsurehit_opponent_has_mark_kuihuazhongzi
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -1457,7 +1457,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -1468,19 +1468,19 @@
                 value: mark_kuihuazhongzi
         evaluator:
           type: exist
-- id: effect_skill_add_mark_foe_zhongdu_duration_2
+- id: effect_skill_add_mark_opponent_zhongdu_duration_2
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_zhongdu
     duration:
       type: dynamic
       selector:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -1501,7 +1501,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -1580,7 +1580,7 @@
           value:
             type: dynamic
             selector:
-              base: foe
+              base: opponent
               chain:
                 - type: select
                   arg:
@@ -1635,7 +1635,7 @@
           value:
             type: dynamic
             selector:
-              base: foe
+              base: opponent
               chain:
                 - type: select
                   arg:
@@ -1654,23 +1654,23 @@
     conditions:
       - type: selfUseSkill
       - *condition_level_higher_template
-- id: effect_skill_add_mark_foe_haipa
+- id: effect_skill_add_mark_opponent_haipa
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_haipa
   condition:
     type: selfUseSkill
-- id: effect_skill_add_mark_foe_haipa_10_if_heavier_40
+- id: effect_skill_add_mark_opponent_haipa_10_if_heavier_40
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_haipa
@@ -1801,12 +1801,12 @@
             value: mark_zengzhong
     value: 2
   condition: *condition_self_use_skill_template
-- id: effect_skill_add_mark_exin_foe_50
+- id: effect_skill_add_mark_exin_opponent_50
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_exin
@@ -1889,12 +1889,12 @@
     type: every
     conditions:
       - type: selfUseSkill
-- id: effect_skill_clear_foe_def_stage_if_has_mark_yinghua
+- id: effect_skill_clear_opponent_def_stage_if_has_mark_yinghua
   trigger: OnHit
   priority: 0
   apply:
     type: clearStatStage
-    target: foe
+    target: opponent
     statType: def
   condition:
     type: every
@@ -1902,7 +1902,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -1913,12 +1913,12 @@
                 value: mark_yinghua
         evaluator:
           type: exist
-- id: effect_skill_clear_foe_spd_stage_if_has_mark_yinghua
+- id: effect_skill_clear_opponent_spd_stage_if_has_mark_yinghua
   trigger: OnHit
   priority: 0
   apply:
     type: clearStatStage
-    target: foe
+    target: opponent
     statType: spd
   condition:
     type: every
@@ -1926,7 +1926,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -1937,12 +1937,12 @@
                 value: mark_yinghua
         evaluator:
           type: exist
-- id: effect_skill_add_mark_foe_liuxie
+- id: effect_skill_add_mark_opponent_liuxie
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_liuxie
@@ -1956,14 +1956,14 @@
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_liuxie
     stack:
       type: dynamic
       selector:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -1984,7 +1984,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -2195,12 +2195,12 @@
     type: every
     conditions:
       - type: selfUseSkill
-- id: effect_skill_add_mark_foe_manxingduyao_1_stack
+- id: effect_skill_add_mark_opponent_manxingduyao_1_stack
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_manxingduyao
@@ -2209,12 +2209,12 @@
     type: every
     conditions:
       - type: selfUseSkill
-- id: effect_skill_add_mark_foe_manxingduyao_70_percent
+- id: effect_skill_add_mark_opponent_manxingduyao_70_percent
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_manxingduyao
@@ -2238,34 +2238,34 @@
     type: heal
     target: self
     value: 120
-- id: effect_skill_reduce_foe_def_1_stage_50_percent
+- id: effect_skill_reduce_opponent_def_1_stage_50_percent
   trigger: BeforeHit
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: def
   condition:
     type: every
     conditions:
       - type: selfUseSkill
       - *condition_probability_50_percent_template
-- id: effect_skill_reduce_foe_spd_1_stage_50_percent
+- id: effect_skill_reduce_opponent_spd_1_stage_50_percent
   trigger: BeforeHit
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: spd
   condition:
     type: every
     conditions:
       - type: selfUseSkill
       - *condition_probability_50_percent_template
-- id: effect_skill_add_mark_foe_manxingduyao_5_stack
+- id: effect_skill_add_mark_opponent_manxingduyao_5_stack
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_manxingduyao
@@ -2293,7 +2293,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-- id: effect_skill_add_power_10_per_foe_manxingduyao
+- id: effect_skill_add_power_10_per_opponent_manxingduyao
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -2303,7 +2303,7 @@
     value:
       type: dynamic
       selector:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -2318,13 +2318,13 @@
               arg: stack
           - type: multiply
             arg: 10
-- id: effect_skill_consume_all_foe_manxingduyao
+- id: effect_skill_consume_all_opponent_manxingduyao
   trigger: OnHit
   priority: -50
   apply:
     type: consumeStacks
     target:
-      base: foeMarks
+      base: opponentMarks
       chain:
         - type: whereAttr
           extractor:
@@ -2347,44 +2347,44 @@
     type: every
     conditions:
       - type: selfUseSkill
-- id: effect_skill_reduce_foe_def_1_stage_20_percent
+- id: effect_skill_reduce_opponent_def_1_stage_20_percent
   trigger: BeforeHit
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: def
   condition:
     type: every
     conditions:
       - type: selfUseSkill
       - *condition_probability_20_percent_template
-- id: effect_skill_reduce_foe_spa_1_stage_20_percent
+- id: effect_skill_reduce_opponent_spa_1_stage_20_percent
   trigger: BeforeHit
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: spa
   condition:
     type: every
     conditions:
       - type: selfUseSkill
       - *condition_probability_20_percent_template
-- id: effect_skill_reduce_foe_spd_1_stage_20_percent
+- id: effect_skill_reduce_opponent_spd_1_stage_20_percent
   trigger: BeforeHit
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: spd
   condition:
     type: every
     conditions:
       - type: selfUseSkill
       - *condition_probability_20_percent_template
-- id: effect_skill_reduce_foe_spe_1_stage_20_percent
+- id: effect_skill_reduce_opponent_spe_1_stage_20_percent
   trigger: BeforeHit
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: spe
   condition:
     type: every
@@ -2592,12 +2592,12 @@
       selector: *mark_kongqichuliang_stack_template
   condition:
     type: selfUseSkill
-- id: effect_skill_add_mark_foe_zhixi
+- id: effect_skill_add_mark_opponent_zhixi
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_zhixi
@@ -2907,11 +2907,11 @@
                 value: mark_shuiwenzhenji
         evaluator:
           type: exist
-- id: effect_skill_reduce_foe_atk_1_stage_30_percent
+- id: effect_skill_reduce_opponent_atk_1_stage_30_percent
   trigger: BeforeHit
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: atk
   condition:
     type: every
@@ -2953,12 +2953,12 @@
               configId: multiply_value
   condition:
     type: selfUseSkill
-- id: effect_skill_add_mark_foe_nishui_30_percent
+- id: effect_skill_add_mark_opponent_nishui_30_percent
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_nishui
@@ -2975,7 +2975,7 @@
             type: 'raw:number'
             value: 30
             tags: ['skill_effect_probability']
-      - *condition_foe_not_water_element
+      - *condition_opponent_not_water_element
 - id: effect_skill_set_field_yutian
   trigger: OnHit
   priority: 0
@@ -2998,7 +2998,7 @@
       value: mark_fantan
   condition:
     type: selfUseSkill
-- id: effect_skill_power_2x_foe_shaoshang
+- id: effect_skill_power_2x_opponent_shaoshang
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -3009,10 +3009,10 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - &condition_foe_shaoshang_exist
+      - &condition_opponent_shaoshang_exist
         type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor: baseId
@@ -3034,7 +3034,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-- id: effect_skill_sure_hit_foe_shaoshang
+- id: effect_skill_sure_hit_opponent_shaoshang
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -3045,8 +3045,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - *condition_foe_shaoshang_exist
-- id: effect_skill_sure_hit_foe_below_quarter_hp
+      - *condition_opponent_shaoshang_exist
+- id: effect_skill_sure_hit_opponent_below_quarter_hp
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -3057,19 +3057,19 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - *condition_foe_below_quarter_hp
-- id: effect_skill_add_mark_foe_xuanyun
+      - *condition_opponent_below_quarter_hp
+- id: effect_skill_add_mark_opponent_xuanyun
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_xuanyun
   condition:
     type: selfUseSkill
-- id: effect_skill_sure_hit_foe_xuanyun
+- id: effect_skill_sure_hit_opponent_xuanyun
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -3082,7 +3082,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor: baseId
@@ -3288,12 +3288,12 @@
   condition:
     type: selfUseSkill
 # 清除对手攻击和特攻的正面能力等级变化
-- id: effect_skill_clear_foe_atk_spa_stage
+- id: effect_skill_clear_opponent_atk_spa_stage
   trigger: OnHit
   priority: 0
   apply:
     type: clearStatStage
-    target: foe
+    target: opponent
     statType:
       - atk
       - spa
@@ -3301,24 +3301,24 @@
   condition:
     type: selfUseSkill
 # 清除对手速度的正面能力等级变化
-- id: effect_skill_clear_foe_spe_stage
+- id: effect_skill_clear_opponent_spe_stage
   trigger: OnHit
   priority: 0
   apply:
     type: clearStatStage
-    target: foe
+    target: opponent
     statType:
       - spe
     cleanStageStrategy: positive
   condition:
     type: selfUseSkill
 # 清除对手防御和特防的正面能力等级变化
-- id: effect_skill_clear_foe_def_spd_stage
+- id: effect_skill_clear_opponent_def_spd_stage
   trigger: OnHit
   priority: 0
   apply:
     type: clearStatStage
-    target: foe
+    target: opponent
     statType:
       - def
       - spd
@@ -3530,25 +3530,25 @@
       - type: selfUseSkill
       - type: isFirstSkillUsedThisTurn
 # 给对手添加心灵制约标记
-- id: effect_skill_add_mark_foe_xinlingzhiyue
+- id: effect_skill_add_mark_opponent_xinlingzhiyue
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_xinlingzhiyue
   condition:
     type: selfUseSkill
 # 转移自身负面能力等级变化给对手
-- id: effect_skill_transfer_debuff_stage_to_foe
+- id: effect_skill_transfer_debuff_stage_to_opponent
   trigger: OnHit
   priority: 0
   apply:
     type: transferStatStage
     source: self
-    target: foe
+    target: opponent
     cleanStageStrategy: negative
   condition:
     type: selfUseSkill
@@ -3604,13 +3604,13 @@
         evaluator:
           type: exist
 # 如果目标身上有“烧伤”标记，则移除该标记，并对目标造成150点伤害。
-- id: effect_skill_ignite_foe_mark_shaoshang
+- id: effect_skill_ignite_opponent_mark_shaoshang
   trigger: OnHit
   priority: 0
   apply:
     - type: destroyMark
       target:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor: baseId
@@ -3618,7 +3618,7 @@
               type: same
               value: mark_shaoshang
     - type: dealDamage
-      target: foe
+      target: opponent
       value: 150
   condition:
     type: every
@@ -3626,7 +3626,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor: baseId
@@ -3636,12 +3636,12 @@
         evaluator:
           type: exist
 # 给目标添加一层“削弱水泡”
-- id: effect_skill_add_mark_foe_xueruoshuipao
+- id: effect_skill_add_mark_opponent_xueruoshuipao
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_xueruoshuipao
@@ -3649,12 +3649,12 @@
   condition:
     type: selfUseSkill
 # 给目标添加一层“虚弱水泡”
-- id: effect_skill_add_mark_foe_xuruoshuipao
+- id: effect_skill_add_mark_opponent_xuruoshuipao
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_xuruoshuipao
@@ -3683,12 +3683,12 @@
       value: mark_suijixianzhi
   condition:
     type: selfUseSkill
-- id: effect_skill_add_mark_foe_xinzhiyinji
+- id: effect_skill_add_mark_opponent_xinzhiyinji
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_xinzhiyinji
@@ -3707,7 +3707,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -3726,7 +3726,7 @@
     condition:
       type: evaluate
       target:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -3755,7 +3755,7 @@
   apply:
     type: consumeStacks
     target:
-      base: foeMarks
+      base: opponentMarks
       chain:
         - type: whereAttr
           extractor:
@@ -3771,7 +3771,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -3804,7 +3804,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -3815,12 +3815,12 @@
                 tag: xinzhiyinji_tag
         evaluator:
           type: exist
-- id: effect_skill_add_mark_foe_mingzhongxiajiang_5
+- id: effect_skill_add_mark_opponent_mingzhongxiajiang_5
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_mingzhongxiajiang
@@ -3830,12 +3830,12 @@
       tags: ['skill_effect_stack', 'skill_effect_mingzhongxiajiang_stack']
   condition:
     type: selfUseSkill
-- id: effect_skill_add_mark_foe_xuehongyinji
+- id: effect_skill_add_mark_opponent_xuehongyinji
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_xuehongyinji
@@ -3894,7 +3894,7 @@
   condition:
     type: selfUseSkill
 # 自身身高＞对手时威力2倍
-- id: effect_skill_power_2x_if_height_greater_than_foe
+- id: effect_skill_power_2x_if_height_greater_than_opponent
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -3924,7 +3924,7 @@
           value:
             type: dynamic
             selector:
-              base: foe
+              base: opponent
               chain:
                 - type: select
                   arg:
@@ -3976,7 +3976,7 @@
   condition:
     type: selfUseSkill
 # 自身身高＜对手时威力2倍
-- id: effect_skill_power_2x_if_height_less_than_foe
+- id: effect_skill_power_2x_if_height_less_than_opponent
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -4006,7 +4006,7 @@
           value:
             type: dynamic
             selector:
-              base: foe
+              base: opponent
               chain:
                 - type: select
                   arg:
@@ -4045,7 +4045,7 @@
           operator: '>'
           value: 100
 # 自身身高＞对手时连击3次
-- id: effect_skill_multihit_if_height_greater_than_foe
+- id: effect_skill_multihit_if_height_greater_than_opponent
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -4069,7 +4069,7 @@
         value:
           type: dynamic
           selector:
-            base: foe
+            base: opponent
             chain:
               - type: select
                 arg:
@@ -4127,7 +4127,7 @@
   condition:
     type: selfUseSkill
 # 自身身高＜对手时连击3次
-- id: effect_skill_multihit_if_height_less_than_foe
+- id: effect_skill_multihit_if_height_less_than_opponent
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -4151,7 +4151,7 @@
         value:
           type: dynamic
           selector:
-            base: foe
+            base: opponent
             chain:
               - type: select
                 arg:
@@ -4175,12 +4175,12 @@
     type: selfUseSkill
 
 # 添加麦麦金针状态
-- id: effect_skill_add_mark_foe_maimaijinzhen
+- id: effect_skill_add_mark_opponent_maimaijinzhen
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_maimaijinzhen
@@ -4193,7 +4193,7 @@
   apply:
     - type: consumeStacks
       target:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -4204,7 +4204,7 @@
               value: mark_maimaijinzhen
       value: 1
     - type: addMark
-      target: foe
+      target: opponent
       mark:
         type: entity:baseMark
         value: mark_liuxie
@@ -4215,7 +4215,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -4227,7 +4227,7 @@
         evaluator:
           type: exist
 # 对手有麦麦金针时必中
-- id: effect_skill_sure_hit_if_foe_has_maimaijinzhen
+- id: effect_skill_sure_hit_if_opponent_has_maimaijinzhen
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -4240,7 +4240,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -4264,24 +4264,24 @@
   condition:
     type: selfUseSkill
 # 添加冲撞刺针状态
-- id: effect_skill_add_mark_foe_chongzhuangzhenci
+- id: effect_skill_add_mark_opponent_chongzhuangzhenci
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_chongzhuangzhenci
   condition:
     type: selfUseSkill
 # 添加50点流血给对手
-- id: effect_skill_add_liuxie_50_foe
+- id: effect_skill_add_liuxie_50_opponent
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_liuxie
@@ -4296,7 +4296,7 @@
   apply:
     - type: consumeStacks
       target:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -4318,7 +4318,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -4336,7 +4336,7 @@
   apply:
     - type: consumeStacks
       target:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -4347,7 +4347,7 @@
               value: mark_maimaijinzhen
       value: 1
     - type: addMark
-      target: foe
+      target: opponent
       mark:
         type: entity:baseMark
         value: mark_maidijinzhen
@@ -4357,7 +4357,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -4375,7 +4375,7 @@
   apply:
     - type: consumeStacks
       target:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -4386,7 +4386,7 @@
               value: mark_maidijinzhen
       value: 1
     - type: addMark
-      target: foe
+      target: opponent
       mark:
         type: entity:baseMark
         value: mark_jinzhenfenmo
@@ -4396,7 +4396,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -4481,12 +4481,12 @@
   condition:
     type: selfUseSkill
 # 10%使对手窒息，具有虚空感应时40%使对手窒息
-- id: effect_skill_add_mark_foe_zhixi_10_or_40_percent_if_has_xukongganying
+- id: effect_skill_add_mark_opponent_zhixi_10_or_40_percent_if_has_xukongganying
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_zhixi
@@ -4598,12 +4598,12 @@
         evaluator:
           type: exist
 # 15%弱化对手特防1级
-- id: effect_skill_reduce_foe_spd_1_stage_15_percent
+- id: effect_skill_reduce_opponent_spd_1_stage_15_percent
   trigger: OnDamage
   priority: 0
   apply:
     type: statStageBuff
-    target: foe
+    target: opponent
     statType: spd
     value: -1
   condition:
@@ -4874,12 +4874,12 @@
     type: selfUseSkill
 
 # 40%使对手冰冻
-- id: effect_skill_add_mark_foe_bingdong_40_percent
+- id: effect_skill_add_mark_opponent_bingdong_40_percent
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_bingdong
@@ -4898,7 +4898,7 @@
             tags: ['skill_effect_probability']
 
 # 对手冰冻时必定暴击
-- id: effect_skill_sure_crit_if_foe_bingdong
+- id: effect_skill_sure_crit_if_opponent_bingdong
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -4911,7 +4911,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -4924,12 +4924,12 @@
           type: exist
 
 # 对手冰冻时额外弱化特攻1级
-- id: effect_skill_reduce_foe_spa_1_stage_if_bingdong
+- id: effect_skill_reduce_opponent_spa_1_stage_if_bingdong
   trigger: OnHit
   priority: 0
   apply:
     type: statStageBuff
-    target: foe
+    target: opponent
     statType: spa
     value: -1
   condition:
@@ -4938,7 +4938,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -4951,12 +4951,12 @@
           type: exist
 
 # 使对手获得冰凝之气
-- id: effect_skill_add_mark_foe_bingningzhiqi
+- id: effect_skill_add_mark_opponent_bingningzhiqi
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_bingningzhiqi
@@ -4965,12 +4965,12 @@
     type: selfUseSkill
 
 # 使对手获得冰霜之星
-- id: effect_skill_add_mark_foe_bingshuangzhixing
+- id: effect_skill_add_mark_opponent_bingshuangzhixing
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_bingshuangzhixing
@@ -5195,12 +5195,12 @@
     value: 25
 
 # 70%麻痹对手
-- id: effect_skill_add_mark_foe_mabi_70_percent
+- id: effect_skill_add_mark_opponent_mabi_70_percent
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_mabi
@@ -5218,7 +5218,7 @@
             tags: ['skill_effect_probability']
 
 # 如果对方麻痹，威力翻倍
-- id: effect_skill_power_2x_if_foe_mabi
+- id: effect_skill_power_2x_if_opponent_mabi
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -5231,7 +5231,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -5283,12 +5283,12 @@
     type: selfUseSkill
 
 # 给对手添加恐惧之念
-- id: effect_skill_add_mark_foe_kongjuzhinian
+- id: effect_skill_add_mark_opponent_kongjuzhinian
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_kongjuzhinian
@@ -5297,7 +5297,7 @@
     type: selfUseSkill
 
 # 如果对手有恐惧之念，威力增加50点
-- id: effect_skill_power_plus_50_if_foe_has_kongjuzhinian
+- id: effect_skill_power_plus_50_if_opponent_has_kongjuzhinian
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -5310,7 +5310,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -5336,7 +5336,7 @@
     type: selfUseSkill
 
 # 对手具有2层恐惧之念时必定暴击
-- id: effect_skill_sure_crit_if_foe_has_2_kongjuzhinian
+- id: effect_skill_sure_crit_if_opponent_has_2_kongjuzhinian
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -5349,7 +5349,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -5378,7 +5378,7 @@
     delta:
       type: dynamic
       selector:
-        base: foe
+        base: opponent
         chain:
           - type: select
             arg:
@@ -5493,12 +5493,12 @@
     type: selfUseSkill
 
 # 如果先手，使对方获得失明
-- id: effect_skill_add_mark_foe_shiming_if_first
+- id: effect_skill_add_mark_opponent_shiming_if_first
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_shiming
@@ -5509,12 +5509,12 @@
       - type: isFirstSkillUsedThisTurn
 
 # 使对手获得光辉之影
-- id: effect_skill_add_mark_foe_guanghuizhiying
+- id: effect_skill_add_mark_opponent_guanghuizhiying
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_guanghuizhiying
@@ -5707,7 +5707,7 @@
             type: 'raw:number'
             value: 50
             tags: ['skill_effect_probability']
-- id: effect_skill_damage_by_foe_weight
+- id: effect_skill_damage_by_opponent_weight
   trigger: OnBeforeCalculateDamage
   priority: 0
   apply:
@@ -5717,7 +5717,7 @@
     delta:
       type: dynamic
       selector:
-        base: foe
+        base: opponent
         chain:
           - type: select
             arg:
@@ -5755,12 +5755,12 @@
             type: 'raw:number'
             value: 40
             tags: ['skill_effect_probability']
-- id: effect_skill_add_mark_foe_haipa_5_percent
+- id: effect_skill_add_mark_opponent_haipa_5_percent
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_haipa
@@ -5776,12 +5776,12 @@
             type: 'raw:number'
             value: 5
             tags: ['skill_effect_probability']
-- id: effect_skill_add_mark_foe_haipa_10_percent
+- id: effect_skill_add_mark_opponent_haipa_10_percent
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_haipa
@@ -5828,12 +5828,12 @@
     stack: 50
   condition:
     type: selfUseSkill
-- id: effect_skill_add_mark_foe_haipa_15_percent
+- id: effect_skill_add_mark_opponent_haipa_15_percent
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_haipa
@@ -5881,12 +5881,12 @@
   condition:
     type: selfUseSkill
 # 对方添加45层音波标记
-- id: effect_skill_add_mark_foe_yinbo_45
+- id: effect_skill_add_mark_opponent_yinbo_45
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_yinbo
@@ -5897,12 +5897,12 @@
   condition:
     type: selfUseSkill
 # 对方添加40层音波标记
-- id: effect_skill_add_mark_foe_yinbo_40
+- id: effect_skill_add_mark_opponent_yinbo_40
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_yinbo
@@ -5913,12 +5913,12 @@
   condition:
     type: selfUseSkill
 # 对方添加35层音波标记
-- id: effect_skill_add_mark_foe_yinbo_35
+- id: effect_skill_add_mark_opponent_yinbo_35
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_yinbo
@@ -5929,12 +5929,12 @@
   condition:
     type: selfUseSkill
 # 对方添加30层音波标记
-- id: effect_skill_add_mark_foe_yinbo_30
+- id: effect_skill_add_mark_opponent_yinbo_30
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_yinbo
@@ -5945,12 +5945,12 @@
   condition:
     type: selfUseSkill
 # 对方添加10层音波标记
-- id: effect_skill_add_mark_foe_yinbo_10
+- id: effect_skill_add_mark_opponent_yinbo_10
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_yinbo
@@ -5961,12 +5961,12 @@
   condition:
     type: selfUseSkill
 # 30%给对方添加30层流血
-- id: effect_skill_add_mark_foe_liuxie_30_30_percent
+- id: effect_skill_add_mark_opponent_liuxie_30_30_percent
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_liuxie
@@ -5984,7 +5984,7 @@
             value: 30
             tags: ['skill_effect_probability']
 # 消耗对方的音波标记，恢复自身音波印记x2的HP
-- id: effect_skill_consume_foe_yinbo_heal_self_2x
+- id: effect_skill_consume_opponent_yinbo_heal_self_2x
   trigger: OnHit
   priority: 0
   apply:
@@ -5993,7 +5993,7 @@
       value:
         type: dynamic
         selector:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -6012,7 +6012,7 @@
                 value: 2
     - type: destroyMark
       target:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -6024,19 +6024,19 @@
   condition:
     type: selfUseSkill
 # 消耗对方的音波标记，为对方添加等同于音波标记层数的噪音
-- id: effect_skill_consume_foe_yinbo_add_zaoyin
+- id: effect_skill_consume_opponent_yinbo_add_zaoyin
   trigger: OnHit
   priority: 0
   apply:
     - type: addMark
-      target: foe
+      target: opponent
       mark:
         type: entity:baseMark
         value: mark_zaoyin
       stack:
         type: dynamic
         selector:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -6051,7 +6051,7 @@
                 arg: stack
     - type: destroyMark
       target:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -6063,7 +6063,7 @@
   condition:
     type: selfUseSkill
 # 消耗对方的音波标记，为己方添加等同于音波标记层数的音波屏障
-- id: effect_skill_consume_foe_yinbo_add_yinbopingzhang
+- id: effect_skill_consume_opponent_yinbo_add_yinbopingzhang
   trigger: OnHit
   priority: 0
   apply:
@@ -6075,7 +6075,7 @@
       stack:
         type: dynamic
         selector:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -6090,7 +6090,7 @@
                 arg: stack
     - type: destroyMark
       target:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -6103,16 +6103,16 @@
     type: selfUseSkill
 
 # 消耗对方的音波标记，给对方造成音波标记层数*2的伤害
-- id: effect_skill_consume_foe_yinbo_damage_2x
+- id: effect_skill_consume_opponent_yinbo_damage_2x
   trigger: OnHit
   priority: 0
   apply:
     - type: dealDamage
-      target: foe
+      target: opponent
       value:
         type: dynamic
         selector:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -6131,7 +6131,7 @@
                 value: 2
     - type: destroyMark
       target:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -6143,24 +6143,24 @@
   condition:
     type: selfUseSkill
 # 给对方添加音之网
-- id: effect_skill_add_mark_foe_yinzhiwang
+- id: effect_skill_add_mark_opponent_yinzhiwang
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_yinzhiwang
   condition:
     type: selfUseSkill
 # 使对方获得50点破防
-- id: effect_skill_add_mark_foe_pofang_50
+- id: effect_skill_add_mark_opponent_pofang_50
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_pofang
@@ -6177,7 +6177,7 @@
     value:
       type: dynamic
       selector:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -6197,12 +6197,12 @@
   condition:
     type: selfUseSkill
 # 如果对手有破防标记，附加40点流血
-- id: effect_skill_add_mark_foe_liuxie_40_if_pofang
+- id: effect_skill_add_mark_opponent_liuxie_40_if_pofang
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_liuxie
@@ -6213,7 +6213,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -6225,24 +6225,24 @@
         evaluator:
           type: exist
 # 使对手获得蓝宝石
-- id: effect_skill_add_mark_foe_lanbaoshi
+- id: effect_skill_add_mark_opponent_lanbaoshi
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_lanbaoshi
   condition:
     type: selfUseSkill
 # 使对手获得红宝石
-- id: effect_skill_add_mark_foe_hongbaoshi
+- id: effect_skill_add_mark_opponent_hongbaoshi
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_hongbaoshi
@@ -6395,12 +6395,12 @@
   condition:
     type: selfUseSkill
 # 使对手获得25层命中下降
-- id: effect_skill_add_mark_foe_mingzhongxiajiang_25
+- id: effect_skill_add_mark_opponent_mingzhongxiajiang_25
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_mingzhongxiajiang
@@ -6677,12 +6677,12 @@
         evaluator:
           type: exist
 # 为敌方添加一层武者之心
-- id: effect_skill_add_mark_foe_wuzhezhixin_1
+- id: effect_skill_add_mark_opponent_wuzhezhixin_1
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_wuzhezhixin
@@ -6690,12 +6690,12 @@
   condition:
     type: selfUseSkill
 # 如果自身有武者之心，降低对方一级防御
-- id: effect_skill_reduce_foe_def_1_stage_if_wuzhezhixin
+- id: effect_skill_reduce_opponent_def_1_stage_if_wuzhezhixin
   trigger: BeforeHit
   priority: 0
   apply:
     type: statStageBuff
-    target: foe
+    target: opponent
     statType: def
     value: -1
   condition:
@@ -6716,19 +6716,19 @@
         evaluator:
           type: exist
 # 给对方施加绝影
-- id: effect_skill_add_mark_foe_jueying
+- id: effect_skill_add_mark_opponent_jueying
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_jueying
   condition:
     type: selfUseSkill
 # 如果对方有武者之心，威力增加50
-- id: effect_skill_add_power_50_if_foe_wuzhezhixin
+- id: effect_skill_add_power_50_if_opponent_wuzhezhixin
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -6741,7 +6741,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -6753,24 +6753,24 @@
         evaluator:
           type: exist
 # 为对方添加影之斗气
-- id: effect_skill_add_mark_foe_yingzhidouqi
+- id: effect_skill_add_mark_opponent_yingzhidouqi
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_yingzhidouqi
   condition:
     type: selfUseSkill
 # 当伤害低于100时，为对方添加双刃追击
-- id: effect_skill_add_mark_foe_shuangrenzhuiji_if_damage_less_100
+- id: effect_skill_add_mark_opponent_shuangrenzhuiji_if_damage_less_100
   trigger: OnDamage
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_shuangrenzhuiji
@@ -6791,12 +6791,12 @@
             type: raw:number
             value: 100
 # 为对方添加等同于本次伤害层数的白牙
-- id: effect_skill_add_mark_foe_baiya_equal_damage_max_800
+- id: effect_skill_add_mark_opponent_baiya_equal_damage_max_800
   trigger: OnDamage
   priority: 0
   apply:
     - type: addMark
-      target: foe
+      target: opponent
       mark:
         type: entity:baseMark
         value: mark_baiya
@@ -6837,12 +6837,12 @@
   condition:
     type: selfUseSkill
 # 如果对方有仁者之心，降低一级特防
-- id: effect_skill_reduce_foe_spd_1_stage_if_renzhezhixin
+- id: effect_skill_reduce_opponent_spd_1_stage_if_renzhezhixin
   trigger: BeforeHit
   priority: 0
   apply:
     type: statStageBuff
-    target: foe
+    target: opponent
     statType: spd
     value: -1
   condition:
@@ -6851,7 +6851,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -6863,19 +6863,19 @@
         evaluator:
           type: exist
 # 给对方添加极光
-- id: effect_skill_add_mark_foe_jiguang
+- id: effect_skill_add_mark_opponent_jiguang
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_jiguang
   condition:
     type: selfUseSkill
 # 如果对方有仁者之心，威力增加50
-- id: effect_skill_add_power_50_if_foe_renzhezhixin
+- id: effect_skill_add_power_50_if_opponent_renzhezhixin
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -6888,7 +6888,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -6900,24 +6900,24 @@
         evaluator:
           type: exist
 # 为对方添加闪光搏击
-- id: effect_skill_add_mark_foe_shanguangboji
+- id: effect_skill_add_mark_opponent_shanguangboji
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_shanguangboji
   condition:
     type: selfUseSkill
 # 当伤害低于100时，为对方添加双破追击
-- id: effect_skill_add_mark_foe_shuangpozhuiji_if_damage_less_100
+- id: effect_skill_add_mark_opponent_shuangpozhuiji_if_damage_less_100
   trigger: OnDamage
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_shuangpozhuiji
@@ -6938,12 +6938,12 @@
             type: raw:number
             value: 100
 # 为对方添加等同于本次伤害层数的黑牙
-- id: effect_skill_add_mark_foe_heiya_equal_damage_max_800
+- id: effect_skill_add_mark_opponent_heiya_equal_damage_max_800
   trigger: OnDamage
   priority: 0
   apply:
     - type: addMark
-      target: foe
+      target: opponent
       mark:
         type: entity:baseMark
         value: mark_heiya
@@ -6982,12 +6982,12 @@
   condition:
     type: selfUseSkill
 # 给敌人施加沉默
-- id: effect_skill_add_mark_foe_chenmo
+- id: effect_skill_add_mark_opponent_chenmo
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_chenmo
@@ -7076,12 +7076,12 @@
       - type: selfUseSkill
       - *condition_probability_20_percent_template
 # 将所有不良效果的印记转移给对方
-- id: effect_skill_transfer_status_marks_to_foe
+- id: effect_skill_transfer_status_marks_to_opponent
   trigger: OnHit
   priority: 0
   apply:
     type: transferMark
-    target: foe
+    target: opponent
     mark:
       type: dynamic
       selector:
@@ -7213,7 +7213,7 @@
   priority: 0
   apply:
     type: dealDamage
-    target: foe
+    target: opponent
     value:
       type: dynamic
       selector:
@@ -7241,12 +7241,12 @@
   condition:
     type: selfUseSkill
 # 无论命中与否，给对方添加60层流血
-- id: effect_skill_add_mark_foe_liuxie_60_hit_or_miss
+- id: effect_skill_add_mark_opponent_liuxie_60_hit_or_miss
   trigger: [OnHit, OnMiss]
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_liuxie
@@ -7322,28 +7322,28 @@
   condition:
     type: selfUseSkill
 # 无论命中与否，清除对方的强化状态
-- id: effect_skill_foe_clear_stage_hit_or_miss
+- id: effect_skill_opponent_clear_stage_hit_or_miss
   trigger: [OnHit, OnMiss]
   priority: 0
   apply:
     type: clearStatStage
-    target: foe
+    target: opponent
     cleanStageStrategy: positive
   condition: *condition_self_use_skill_template
 # 无论命中与否，斩杀血量低于75的对手
-- id: effect_skill_execute_foe_hp_under_75_hit_or_miss
+- id: effect_skill_execute_opponent_hp_under_75_hit_or_miss
   trigger: [OnHit, OnMiss]
   priority: 100
   apply:
     type: executeKill
-    target: foe
+    target: opponent
   condition:
     type: every
     conditions:
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foe
+          base: opponent
           chain:
             - type: select
               arg:
@@ -7392,7 +7392,7 @@
     delta:
       type: dynamic
       selector:
-        base: foe
+        base: opponent
         chain:
           - type: select
             arg:
@@ -7403,11 +7403,11 @@
   condition:
     type: selfUseSkill
 # 连续使用2次弱化对手特防1级
-- id: effect_skill_reduce_foe_spd_1_stage_consecutive_2_times
+- id: effect_skill_reduce_opponent_spd_1_stage_consecutive_2_times
   trigger: BeforeHit
   priority: 0
   apply:
-    <<: *apply_foe_statstage_-1_template
+    <<: *apply_opponent_statstage_-1_template
     statType: spd
   condition:
     type: every
@@ -7417,7 +7417,7 @@
         times: 2
         strategy: Periodic
 # 15%使对手麻痹 失败时50%强化自身特攻1级
-- id: effect_skill_add_mark_foe_mabi_15_percent_or_raise_self_spa_1_stage_50_percent
+- id: effect_skill_add_mark_opponent_mabi_15_percent_or_raise_self_spa_1_stage_50_percent
   trigger: OnHit
   priority: 0
   condition:
@@ -7426,7 +7426,7 @@
     type: conditional
     condition:
       type: evaluate
-      target: foe
+      target: opponent
       evaluator:
         type: probability
         percent:
@@ -7435,7 +7435,7 @@
           tags: ['skill_effect_probability']
     trueOperator:
       type: addMark
-      target: foe
+      target: opponent
       mark:
         type: entity:baseMark
         value: mark_mabi
@@ -7454,7 +7454,7 @@
         <<: *apply_self_statstage_+1_template
         statType: spa
 # 15%使对手睡眠 失败时50%强化自身速度1级
-- id: effect_skill_add_mark_foe_shuimian_15_percent_or_raise_self_spe_1_stage_50_percent
+- id: effect_skill_add_mark_opponent_shuimian_15_percent_or_raise_self_spe_1_stage_50_percent
   trigger: OnHit #BeforeHit睡眠之后直接就被打醒了
   priority: 0
   condition:
@@ -7463,7 +7463,7 @@
     type: conditional
     condition:
       type: evaluate
-      target: foe
+      target: opponent
       evaluator:
         type: probability
         percent:
@@ -7472,7 +7472,7 @@
           tags: ['skill_effect_probability']
     trueOperator:
       type: addMark
-      target: foe
+      target: opponent
       mark:
         type: entity:baseMark
         value: mark_shuimian
@@ -7504,12 +7504,12 @@
   condition:
     type: selfUseSkill
 # 10%使对手睡眠
-- id: effect_skill_add_mark_foe_shuimian_10_percent
+- id: effect_skill_add_mark_opponent_shuimian_10_percent
   trigger: BeforeHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_shuimian
@@ -7519,12 +7519,12 @@
       - type: selfUseSkill
       - *condition_probability_10_percent_template
 # 连续使用两次使对手中毒
-- id: effect_skill_add_mark_foe_zhongdu_consecutive_2_times
+- id: effect_skill_add_mark_opponent_zhongdu_consecutive_2_times
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_zhongdu
@@ -7536,7 +7536,7 @@
         times: 2
         strategy: Periodic
 # 对手睡眠或麻痹时候威力2倍
-- id: effect_skill_power_2x_if_foe_shuimian_or_mabi
+- id: effect_skill_power_2x_if_opponent_shuimian_or_mabi
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -7549,7 +7549,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -7563,12 +7563,12 @@
         evaluator:
           type: exist
 # 使对手睡眠
-- id: effect_skill_add_mark_foe_shuimian
+- id: effect_skill_add_mark_opponent_shuimian
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_shuimian
@@ -7620,10 +7620,10 @@
   condition:
     type: selfUseSkill
 # 体力值大于3/4时使对手烧伤
-- id: effect_skill_add_mark_foe_shaoshang_if_hp_above_75_percent
+- id: effect_skill_add_mark_opponent_shaoshang_if_hp_above_75_percent
   trigger: OnHit
   priority: 0
-  apply: *apply_foe_add_mark_shaoshang_template
+  apply: *apply_opponent_add_mark_shaoshang_template
   condition:
     type: every
     conditions:
@@ -7669,12 +7669,12 @@
   condition:
     type: selfUseSkill
 # 体力大于一半时使对手获得50点流血
-- id: effect_skill_add_mark_foe_liuxie_50_if_hp_above_half
+- id: effect_skill_add_mark_opponent_liuxie_50_if_hp_above_half
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_liuxie
@@ -7755,7 +7755,7 @@
       - type: selfUseSkill
       - *condition_self_hp_below_quarter
 # 体力大于1/4时无视对手双防强化
-- id: effect_skill_ignore_foe_stat_if_hp_above_quarter
+- id: effect_skill_ignore_opponent_stat_if_hp_above_quarter
   trigger: BeforeHit
   priority: 0
   apply:
@@ -7789,12 +7789,12 @@
                 - type: multiply
                   arg: 0.25
 # 5%使对手昏迷
-- id: effect_skill_add_mark_foe_hunmi_5_percent
+- id: effect_skill_add_mark_opponent_hunmi_5_percent
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_hunmi
@@ -7864,12 +7864,12 @@
       - type: selfUseSkill
       - *condition_self_hp_below_half
 # 为对方添加一层黑暗物质
-- id: effect_skill_add_mark_foe_heianwuzhi_1
+- id: effect_skill_add_mark_opponent_heianwuzhi_1
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_heianwuzhi
@@ -7877,14 +7877,14 @@
   condition:
     type: selfUseSkill
 # 消耗一层黑暗物质降低对手一级特防
-- id: effect_skill_consume_heianwuzhi_reduce_foe_spd_1_stage
+- id: effect_skill_consume_heianwuzhi_reduce_opponent_spd_1_stage
   trigger: BeforeHit
   priority: 0
   apply:
     - &apply_consume_heianwuzhi_1_stack_template
       type: consumeStacks
       target:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -7895,17 +7895,17 @@
               value: mark_heianwuzhi
       value: 1
     - type: statStageBuff
-      target: foe
+      target: opponent
       statType: spd
       value: -1
   condition:
     type: every
     conditions:
       - type: selfUseSkill
-      - &condition_foe_has_heianwuzhi
+      - &condition_opponent_has_heianwuzhi
         type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -7947,14 +7947,14 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - *condition_foe_has_heianwuzhi
+      - *condition_opponent_has_heianwuzhi
 # 当场地为夜幕时，使对手获得50层流血
-- id: effect_skill_add_mark_foe_liuxie_50_if_field_yemu
+- id: effect_skill_add_mark_opponent_liuxie_50_if_field_yemu
   trigger: OnHit
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_liuxie
@@ -8005,7 +8005,7 @@
   apply:
     - type: consumeStacks
       target:
-        base: foeMarks
+        base: opponentMarks
         chain:
           - type: whereAttr
             extractor:
@@ -8024,7 +8024,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -8037,7 +8037,7 @@
           type: exist
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -8078,7 +8078,7 @@
     delta:
       type: dynamic
       selector:
-        base: foe
+        base: opponent
         chain:
           - type: select
             arg:
@@ -8104,7 +8104,7 @@
       - type: selfUseSkill
       - *condition_field_is_yemu
 # 清除对方速度强化，如果环境为夜幕，则改为反转对方速度强化
-- id: effect_skill_clear_foe_spe_up_reverse_if_field_yemu
+- id: effect_skill_clear_opponent_spe_up_reverse_if_field_yemu
   trigger: BeforeHit
   priority: 0
   apply:
@@ -8112,13 +8112,13 @@
     condition: *condition_field_is_yemu
     trueOperator:
       type: reverseStatStage
-      target: foe
+      target: opponent
       statType:
         - spe
       cleanStageStrategy: positive
     falseOperator:
       type: clearStatStage
-      target: foe
+      target: opponent
       statType:
         - spe
       cleanStageStrategy: positive

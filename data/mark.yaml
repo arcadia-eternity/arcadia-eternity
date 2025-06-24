@@ -215,7 +215,7 @@
     destroyable: true
     keepOnSwitchOut: false
   effect:
-    - effect_mark_absorb_hp_to_foe
+    - effect_mark_absorb_hp_to_opponent
 - id: mark_manxingduyao
   tags:
     - status
@@ -572,7 +572,7 @@
     destroyable: true
     keepOnSwitchOut: true
   effect:
-    - effect_mark_when_attacked_add_foe_mark_zhongdu_50_percent
+    - effect_mark_when_attacked_add_opponent_mark_zhongdu_50_percent
 - id: mark_yuansuzhufu
   config:
     duration: -1
@@ -1530,7 +1530,7 @@
     transferOnSwitch: false
   effect:
     - effect_mark_increase_damage_taken_15_percent_per_stack
-    - effect_mark_transfer_to_foe_on_hit
+    - effect_mark_transfer_to_opponent_on_hit
 - id: mark_jueying
   config:
     duration: -1
@@ -1620,7 +1620,7 @@
     transferOnSwitch: false
   effect:
     - effect_mark_reduce_damage_taken_15_percent_per_stack
-    - effect_mark_transfer_to_foe_on_hit
+    - effect_mark_transfer_to_opponent_on_hit
 - id: mark_shanguangboji
   config:
     duration: -1

@@ -5,14 +5,17 @@
 ## 新增选择器
 
 ### `selfTeam` - 己方全队
+
 选择效果拥有者的全队精灵（包括存活和濒死的精灵）。
 
-### `foeTeam` - 敌方全队  
+### `opponentTeam` - 敌方全队  
+
 选择效果拥有者对手的全队精灵（包括存活和濒死的精灵）。
 
 ## 基本用法
 
 ### 直接使用
+
 ```typescript
 import { BaseSelector } from '@arcadia-eternity/effect-builder'
 
@@ -20,10 +23,11 @@ import { BaseSelector } from '@arcadia-eternity/effect-builder'
 const selfTeam = BaseSelector.selfTeam
 
 // 选择敌方全队
-const foeTeam = BaseSelector.foeTeam
+const opponentTeam = BaseSelector.opponentTeam
 ```
 
 ### DSL中使用
+
 ```typescript
 // 治疗己方全队
 {
@@ -35,7 +39,7 @@ const foeTeam = BaseSelector.foeTeam
 // 对敌方全队造成伤害
 {
   type: 'dealDamage',
-  target: 'foeTeam', 
+  target: 'opponentTeam', 
   value: 30
 }
 ```
@@ -45,6 +49,7 @@ const foeTeam = BaseSelector.foeTeam
 团队选择器支持所有标准的链式操作：
 
 ### 筛选存活的精灵
+
 ```typescript
 {
   base: 'selfTeam',
@@ -62,9 +67,10 @@ const foeTeam = BaseSelector.foeTeam
 ```
 
 ### 随机选择
+
 ```typescript
 {
-  base: 'foeTeam',
+  base: 'opponentTeam',
   chain: [
     {
       type: 'randomPick',
@@ -75,6 +81,7 @@ const foeTeam = BaseSelector.foeTeam
 ```
 
 ### 限制数量
+
 ```typescript
 {
   base: 'selfTeam',
@@ -90,6 +97,7 @@ const foeTeam = BaseSelector.foeTeam
 ## 实际应用示例
 
 ### 1. 群体治疗技能
+
 ```typescript
 {
   id: 'group_heal',
@@ -103,19 +111,21 @@ const foeTeam = BaseSelector.foeTeam
 ```
 
 ### 2. 全体攻击技能
+
 ```typescript
 {
   id: 'aoe_attack',
   trigger: 'OnSkillUse', 
   operator: {
     type: 'dealDamage',
-    target: 'foeTeam',
+    target: 'opponentTeam',
     value: 80
   }
 }
 ```
 
 ### 3. 团队增益效果
+
 ```typescript
 {
   id: 'team_buff',
@@ -130,6 +140,7 @@ const foeTeam = BaseSelector.foeTeam
 ```
 
 ### 4. 基于团队状态的动态效果
+
 ```typescript
 {
   id: 'team_synergy',
@@ -165,9 +176,9 @@ const foeTeam = BaseSelector.foeTeam
 | 选择器 | 选择范围 | 数量 |
 |--------|----------|------|
 | `self` | 己方当前出战精灵 | 1个 |
-| `foe` | 敌方当前出战精灵 | 1个 |
+| `opponent` | 敌方当前出战精灵 | 1个 |
 | `selfTeam` | 己方全队精灵 | 多个 |
-| `foeTeam` | 敌方全队精灵 | 多个 |
+| `opponentTeam` | 敌方全队精灵 | 多个 |
 
 ## 注意事项
 

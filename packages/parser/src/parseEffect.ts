@@ -1012,20 +1012,20 @@ export function parseCondition(effectId: string, dsl: ConditionDSL): Condition {
       return Conditions.selfUseSkill()
     case 'checkSelf':
       return Conditions.checkSelf()
-    case 'foeUseSkill':
-      return Conditions.foeUseSkill()
+    case 'opponentUseSkill':
+      return Conditions.opponentUseSkill()
     case 'selfBeDamaged':
       return Conditions.selfBeDamaged()
-    case 'foeBeDamaged':
-      return Conditions.foeBeDamaged()
+    case 'opponentBeDamaged':
+      return Conditions.opponentBeDamaged()
     case 'selfAddMark':
       return Conditions.selfAddMark()
-    case 'foeAddMark':
-      return Conditions.foeAddMark()
+    case 'opponentAddMark':
+      return Conditions.opponentAddMark()
     case 'selfBeAddMark':
       return Conditions.selfBeAddMark()
-    case 'foeBeAddMark':
-      return Conditions.foeBeAddMark()
+    case 'opponentBeAddMark':
+      return Conditions.opponentBeAddMark()
     case 'selfBeHeal':
       return Conditions.selfBeHeal()
     case 'continuousUseSkill':

@@ -29,7 +29,7 @@ export const SkillSchema = z.object({
   sureHit: z.boolean().default(false),
   sureCrit: z.boolean().default(false),
   ignoreShield: z.boolean().default(false),
-  ignoreFoeStageStrategy: ignoreStageStrategySchema.default(IgnoreStageStrategy.none),
+  ignoreOpponentStageStrategy: ignoreStageStrategySchema.default(IgnoreStageStrategy.none),
   tags: z.array(z.string()).default([]),
   effect: z.array(z.string()).optional(),
 })

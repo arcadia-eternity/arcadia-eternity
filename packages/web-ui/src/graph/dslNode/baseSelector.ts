@@ -54,7 +54,7 @@ export class TargetNode extends BaseSelectorNode {
 
 // 敌方节点
 export class EnemyNode extends BaseSelectorNode {
-  static selectorType = 'foe' as const
+  static selectorType = 'opponent' as const
   constructor() {
     super()
     this.title = '敌方单位'
@@ -72,8 +72,8 @@ export class selfPlayerNode extends BaseSelectorNode {
 }
 
 // 敌方主人节点
-export class foePlayerNode extends BaseSelectorNode {
-  static selectorType = 'foePlayer' as const
+export class opponentPlayerNode extends BaseSelectorNode {
+  static selectorType = 'opponentPlayer' as const
   constructor() {
     super()
     this.title = '敌方主人'
@@ -119,8 +119,8 @@ export class SelfMarksNode extends BaseSelectorNode {
 }
 
 // 敌方标记节点
-export class FoeMarksNode extends BaseSelectorNode {
-  static selectorType = 'foeMarks' as const
+export class OpponentMarksNode extends BaseSelectorNode {
+  static selectorType = 'opponentMarks' as const
   constructor() {
     super()
     this.title = '敌方标记'
@@ -153,12 +153,12 @@ const BASE_SELECTOR_NODES = [
   TargetNode,
   EnemyNode,
   selfPlayerNode,
-  foePlayerNode,
+  opponentPlayerNode,
   UsingSkillContextNode,
   DamageContextNode,
   MarkNode,
   SelfMarksNode,
-  FoeMarksNode,
+  OpponentMarksNode,
   StackContextNode,
   SwitchPetContextNode,
 ]

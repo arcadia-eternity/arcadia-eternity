@@ -103,7 +103,7 @@
             "type": "boolean",
             "default": false
           },
-          "ignoreFoeStageStrategy": {
+          "ignoreOpponentStageStrategy": {
             "type": "string",
             "enum": [
               "none",

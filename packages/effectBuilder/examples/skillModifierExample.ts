@@ -23,7 +23,7 @@ export const skillAccuracyDebuffEffect: EffectDSL = {
   priority: 100,
   apply: {
     type: 'addSkillAttributeModifier',
-    target: { base: 'foeSkills' },
+    target: { base: 'opponentSkills' },
     attribute: 'accuracy',
     modifierType: 'percent',
     value: -20,
@@ -62,15 +62,15 @@ export const skillPriorityBoostEffect: EffectDSL = {
             type: 'evaluate',
             target: {
               type: 'selectPath',
-              arg: 'base.element'
+              arg: 'base.element',
             },
             evaluator: {
               type: 'same',
-              value: 'Fire'
-            }
-          }
-        }
-      ]
+              value: 'Fire',
+            },
+          },
+        },
+      ],
     },
     attribute: 'priority',
     modifierType: 'delta',
@@ -93,11 +93,11 @@ export const dynamicSkillPowerEffect: EffectDSL = {
       base: 'self',
       chain: [
         { type: 'selectAttribute$', arg: 'currentHp' },
-        { type: 'multiply', arg: -2 },   // Inverse relationship
-        { type: 'add', arg: 200 },       // Base bonus of 200
-        { type: 'clampMax', arg: 150 },  // Maximum 150 bonus
-        { type: 'clampMin', arg: 0 }     // Minimum 0 bonus
-      ]
+        { type: 'multiply', arg: -2 }, // Inverse relationship
+        { type: 'add', arg: 200 }, // Base bonus of 200
+        { type: 'clampMax', arg: 150 }, // Maximum 150 bonus
+        { type: 'clampMin', arg: 0 }, // Minimum 0 bonus
+      ],
     },
     priority: 250,
   },
@@ -157,15 +157,13 @@ export const conditionalSkillModifierEffect: EffectDSL = {
       type: 'evaluate',
       target: {
         base: 'self',
-        chain: [
-          { type: 'selectPath', arg: 'currentHp' }
-        ]
+        chain: [{ type: 'selectPath', arg: 'currentHp' }],
       },
       evaluator: {
         type: 'compare',
         operator: '<',
-        value: 50 // Less than 50% HP
-      }
+        value: 50, // Less than 50% HP
+      },
     },
     trueOperator: {
       type: 'addSkillAttributeModifier',
@@ -182,7 +180,7 @@ export const conditionalSkillModifierEffect: EffectDSL = {
       modifierType: 'percent',
       value: 25, // 25% accuracy boost when high HP
       priority: 600,
-    }
+    },
   },
 }
 
@@ -215,7 +213,7 @@ export const multipleSkillModifiersEffect: EffectDSL = {
       modifierType: 'delta',
       value: -5,
       priority: 100,
-    }
+    },
   ],
 }
 
@@ -235,20 +233,21 @@ export const SkillModifierExamples = {
 
 // Usage documentation
 export const SkillModifierDocumentation = {
-  description: 'Skill Attribute Modifier Operators allow you to modify skill attributes (power, accuracy, rage, priority) using the Game Ability System.',
-  
+  description:
+    'Skill Attribute Modifier Operators allow you to modify skill attributes (power, accuracy, rage, priority) using the Game Ability System.',
+
   operators: {
     addSkillAttributeModifier: {
       description: 'Add a static modifier to skill attributes',
       parameters: {
-        target: 'SkillInstance selector (e.g., selfSkills, foeSkills)',
+        target: 'SkillInstance selector (e.g., selfSkills, opponentSkills)',
         attribute: 'Skill attribute to modify (power, accuracy, rage, priority)',
         modifierType: 'Type of modification (percent, delta, override)',
         value: 'Static value for the modifier',
-        priority: 'Priority for modifier application (higher = applied first)'
-      }
+        priority: 'Priority for modifier application (higher = applied first)',
+      },
     },
-    
+
     addDynamicSkillAttributeModifier: {
       description: 'Add a dynamic modifier to skill attributes using Observable values',
       parameters: {
@@ -256,30 +255,30 @@ export const SkillModifierDocumentation = {
         attribute: 'Skill attribute to modify',
         modifierType: 'Type of modification',
         observableValue: 'Observable value source that updates dynamically',
-        priority: 'Priority for modifier application'
-      }
+        priority: 'Priority for modifier application',
+      },
     },
-    
+
     addSkillClampMaxModifier: {
       description: 'Limit the maximum value of a skill attribute',
       parameters: {
         target: 'SkillInstance selector',
         attribute: 'Skill attribute to clamp',
         maxValue: 'Maximum allowed value',
-        priority: 'Priority for modifier application'
-      }
+        priority: 'Priority for modifier application',
+      },
     },
-    
+
     addSkillClampMinModifier: {
       description: 'Limit the minimum value of a skill attribute',
       parameters: {
         target: 'SkillInstance selector',
         attribute: 'Skill attribute to clamp',
         minValue: 'Minimum allowed value',
-        priority: 'Priority for modifier application'
-      }
+        priority: 'Priority for modifier application',
+      },
     },
-    
+
     addSkillClampModifier: {
       description: 'Limit both minimum and maximum values of a skill attribute',
       parameters: {
@@ -287,11 +286,11 @@ export const SkillModifierDocumentation = {
         attribute: 'Skill attribute to clamp',
         minValue: 'Minimum allowed value',
         maxValue: 'Maximum allowed value',
-        priority: 'Priority for modifier application'
-      }
-    }
+        priority: 'Priority for modifier application',
+      },
+    },
   },
-  
+
   notes: [
     'Modifiers are automatically bound to mark lifecycles when the effect source is a mark',
     'Higher priority modifiers are applied first',
@@ -299,7 +298,7 @@ export const SkillModifierDocumentation = {
     'Delta modifiers are additive',
     'Override modifiers replace the base value entirely',
     'Clamp modifiers are applied after all other modifiers',
-    'Use selfSkills/foeSkills selectors to target skills',
-    'Chain selectors with where() to target specific skills'
-  ]
+    'Use selfSkills/opponentSkills selectors to target skills',
+    'Chain selectors with where() to target specific skills',
+  ],
 }

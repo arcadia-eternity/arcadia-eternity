@@ -297,7 +297,7 @@
     stat: accuracy
     modifierType: delta
     value: -50
-- id: effect_mark_absorb_hp_to_foe
+- id: effect_mark_absorb_hp_to_opponent
   trigger: TurnEnd
   condition:
     type: petIsActive
@@ -329,7 +329,7 @@
                     - type: divide
                       arg: 8
     - type: heal
-      target: foe
+      target: opponent
       value: *absorb_hp_value
 - id: effect_mark_posion_damage
   trigger: TurnEnd
@@ -772,7 +772,7 @@
                 condition:
                   type: evaluate
                   target:
-                    base: foeMarks
+                    base: opponentMarks
                     chain:
                       - type: whereAttr
                         extractor:
@@ -899,7 +899,7 @@
     - type: preventDamage
       target: damageContext
     - type: dealDamage
-      target: foe
+      target: opponent
       value:
         type: dynamic
         selector:
@@ -948,7 +948,7 @@
       - type: selfAddMark
       - type: statStageChange
         check: down
-- id: effect_mark_when_attacked_add_foe_mark_zhongdu_50_percent
+- id: effect_mark_when_attacked_add_opponent_mark_zhongdu_50_percent
   trigger: PostDamage
   condition:
     type: every
@@ -963,7 +963,7 @@
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_zhongdu
@@ -1010,7 +1010,7 @@
   priority: 0
   apply:
     - type: dealDamage
-      target: foe
+      target: opponent
       value:
         type: dynamic
         selector:
@@ -1333,7 +1333,7 @@
   priority: 0
   apply:
     type: dealDamage
-    target: foe
+    target: opponent
     value:
       type: dynamic
       selector:
@@ -1375,7 +1375,7 @@
   condition:
     type: every
     conditions:
-      - type: foeUseSkill
+      - type: opponentUseSkill
       - type: evaluate
         target:
           base: usingSkillContext
@@ -1452,7 +1452,7 @@
   priority: 0
   apply:
     type: dealDamage
-    target: foe
+    target: opponent
     value: 30
 # 冲撞刺针：造成物攻伤害降低25%
 - id: effect_mark_reduce_atk_damage_25_percent
@@ -1848,7 +1848,7 @@
   priority: 0
   apply:
     type: addMark
-    target: foe
+    target: opponent
     mark:
       type: entity:baseMark
       value: mark_mabi
@@ -2100,7 +2100,7 @@
   condition:
     type: every
     conditions:
-      - type: foeUseSkill
+      - type: opponentUseSkill
       - type: evaluate
         target:
           base: usingSkillContext
@@ -2396,14 +2396,14 @@
               value: 15
     delta: 0
 
-- id: effect_mark_transfer_to_foe_on_hit
+- id: effect_mark_transfer_to_opponent_on_hit
   trigger: OnHit
   condition:
     type: selfBeSkillTarget
   priority: 0
   apply:
     - type: transferMark
-      target: foe
+      target: opponent
       mark:
         type: dynamic
         selector:
@@ -2793,7 +2793,7 @@
   priority: 0
   apply:
     - type: dealDamage
-      target: foe
+      target: opponent
       value:
         type: dynamic
         selector:

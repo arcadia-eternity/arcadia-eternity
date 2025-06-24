@@ -109,22 +109,22 @@
                                     "enum": [
                                       "target",
                                       "self",
-                                      "foe",
+                                      "opponent",
                                       "selfTeam",
-                                      "foeTeam",
+                                      "opponentTeam",
                                       "selfPlayer",
-                                      "foePlayer",
+                                      "opponentPlayer",
                                       "usingSkillContext",
                                       "damageContext",
                                       "effectContext",
                                       "skill",
                                       "mark",
                                       "selfMarks",
-                                      "foeMarks",
+                                      "opponentMarks",
                                       "selfSkills",
-                                      "foeSkills",
+                                      "opponentSkills",
                                       "selfAvailableSkills",
-                                      "foeAvailableSkills",
+                                      "opponentAvailableSkills",
                                       "dataMarks",
                                       "healContext",
                                       "addMarkContext",
@@ -1132,7 +1132,7 @@
                             "properties": {
                               "type": {
                                 "type": "string",
-                                "const": "foeUseSkill"
+                                "const": "opponentUseSkill"
                               }
                             },
                             "required": [
@@ -1158,7 +1158,7 @@
                             "properties": {
                               "type": {
                                 "type": "string",
-                                "const": "foeBeDamaged"
+                                "const": "opponentBeDamaged"
                               }
                             },
                             "required": [
@@ -1184,7 +1184,7 @@
                             "properties": {
                               "type": {
                                 "type": "string",
-                                "const": "foeAddMark"
+                                "const": "opponentAddMark"
                               }
                             },
                             "required": [
@@ -1210,7 +1210,7 @@
                             "properties": {
                               "type": {
                                 "type": "string",
-                                "const": "foeBeAddMark"
+                                "const": "opponentBeAddMark"
                               }
                             },
                             "required": [

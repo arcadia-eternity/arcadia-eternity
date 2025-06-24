@@ -194,7 +194,7 @@
     type: amplifyPower
     target: usingSkillContext
     value: 1.25
-- id: effect_ability_damage_amplify_10_percent_foe_has_manxingduyao
+- id: effect_ability_damage_amplify_10_percent_opponent_has_manxingduyao
   trigger: OnBeforeCalculateDamage
   priority: 0
   condition:
@@ -203,7 +203,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -368,7 +368,7 @@
         evaluator:
           type: same
           value: skill_shuiwenpingzhang
-- id: effect_ability_damage_amplify_15_percent_foe_has_shaoshang
+- id: effect_ability_damage_amplify_15_percent_opponent_has_shaoshang
   trigger: OnBeforeCalculateDamage
   priority: 0
   condition:
@@ -377,7 +377,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -393,7 +393,7 @@
     target: damageContext
     percent: 15
     delta: 0
-- id: effect_ability_damage_amplify_15_percent_foe_has_xuanyun
+- id: effect_ability_damage_amplify_15_percent_opponent_has_xuanyun
   trigger: OnBeforeCalculateDamage
   priority: 0
   condition:
@@ -402,7 +402,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -623,7 +623,7 @@
           value:
             type: dynamic
             selector:
-              base: foe
+              base: opponent
               chain:
                 - type: select
                   arg:
@@ -666,7 +666,7 @@
           value:
             type: dynamic
             selector:
-              base: foe
+              base: opponent
               chain:
                 - type: select
                   arg:
@@ -744,7 +744,7 @@
     modifierType: delta
     value: 5
 # 破防: 对手具有破防时自身造成伤害增加10%
-- id: effect_ability_damage_amplify_10_percent_foe_has_pofang
+- id: effect_ability_damage_amplify_10_percent_opponent_has_pofang
   trigger: OnBeforeCalculateDamage
   priority: 0
   condition:
@@ -753,7 +753,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: foeMarks
+          base: opponentMarks
           chain:
             - type: whereAttr
               extractor:
@@ -936,7 +936,7 @@
       value: mark_shabaozhili
     stack: 1
 # 毒粉: 当自身有花粉弥漫时，每回合对对方造成25点伤害
-- id: effect_ability_huafenmiman_damage_foe_25_per_turn
+- id: effect_ability_huafenmiman_damage_opponent_25_per_turn
   trigger: TurnEnd
   priority: 0
   condition:
@@ -958,7 +958,7 @@
           type: exist
   apply:
     type: dealDamage
-    target: foe
+    target: opponent
     value: 25
 # 愤怒: 满怒气时威力增加25%
 - id: effect_ability_fennu_power_boost_25_percent_when_full_rage

@@ -846,25 +846,25 @@ export type ConditionDSL =
       type: 'checkSelf'
     }
   | {
-      type: 'foeUseSkill'
+      type: 'opponentUseSkill'
     }
   | {
       type: 'selfBeDamaged'
     }
   | {
-      type: 'foeBeDamaged'
+      type: 'opponentBeDamaged'
     }
   | {
       type: 'selfAddMark'
     }
   | {
-      type: 'foeAddMark'
+      type: 'opponentAddMark'
     }
   | {
       type: 'selfBeAddMark'
     }
   | {
-      type: 'foeBeAddMark'
+      type: 'opponentBeAddMark'
     }
   | {
       type: 'selfBeHeal'

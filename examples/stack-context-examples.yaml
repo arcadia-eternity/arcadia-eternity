@@ -6,7 +6,7 @@
   priority: 0
   apply:
     - type: addMark
-      target: foe
+      target: opponent
       mark:
         type: entity:baseMark
         value: mark_zhongdu

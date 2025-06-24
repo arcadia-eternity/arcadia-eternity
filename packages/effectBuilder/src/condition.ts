@@ -109,7 +109,7 @@ export const Conditions = {
     }
   },
 
-  foeUseSkill: (): Condition => {
+  opponentUseSkill: (): Condition => {
     return context => {
       const useSkillContext = findContextRecursively(context, UseSkillContext)
       if (useSkillContext) {
@@ -136,17 +136,17 @@ export const Conditions = {
     }
   },
 
-  foeBeDamaged: (): Condition => {
+  opponentBeDamaged: (): Condition => {
     return context => {
       // Find the nearest DamageContext in the context chain
       let currentCtx: Context = context
       while (!(currentCtx instanceof Battle)) {
         if (currentCtx instanceof DamageContext) {
-          // Found a DamageContext, check if the damaged target is a foe
+          // Found a DamageContext, check if the damaged target is a opponent
           if (context.source.owner instanceof Pet) {
             const sourceOwner = context.source.owner.owner! // Player who owns the effect source
             const targetOwner = currentCtx.target.owner! // Player who owns the damaged pet
-            return sourceOwner !== targetOwner // Different players = foe
+            return sourceOwner !== targetOwner // Different players = opponent
           }
           return false
         }
@@ -184,7 +184,7 @@ export const Conditions = {
     }
   },
 
-  foeAddMark: (): Condition => {
+  opponentAddMark: (): Condition => {
     return context => {
       if (
         context.parent instanceof AddMarkContext &&
@@ -208,7 +208,7 @@ export const Conditions = {
   },
 
   //对方被添加印记时
-  foeBeAddMark: (): Condition => {
+  opponentBeAddMark: (): Condition => {
     return context => {
       if (
         context.parent instanceof AddMarkContext &&
