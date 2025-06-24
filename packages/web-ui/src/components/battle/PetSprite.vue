@@ -61,7 +61,6 @@ watchEffect(async () => {
       const maxRetries = 5
 
       while ((!states || states.length === 0) && retryCount < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 100))
         states = (await petRenderRef.value.getAvailableStates()) as ActionState[]
         if (!states || states.length === 0) {
           console.debug(
