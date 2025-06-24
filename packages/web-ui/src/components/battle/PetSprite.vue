@@ -75,7 +75,6 @@ watchEffect(async () => {
       if (states) {
         availableState.value = states
         console.debug(`PetSprite: availableStates updated for num ${props.num}:`, states)
-        inited.value = true
 
         // 安全地调用 resolve 函数
         const resolveFunction = currentReadyResolve
@@ -137,8 +136,6 @@ defineExpose({
 <template>
   <div ref="petSpriteRef" class="w-full h-full overflow-visible">
     <pet-render
-      :key="num"
-      v-show="inited"
       class="overflow-visible pet-render"
       ref="pet-render"
       :url="swfUrl"
