@@ -9,6 +9,7 @@ export const Z_INDEX_VALUES = {
   PET_SPRITE: 5,
   TIMELINE_CLICKABLE: 10,
   PET_BUTTON_LEVEL: 10,
+  DYNAMIC_ANIMATION: 10,
 
   // 控制层级 (100-199)
   TIMER: 30,
@@ -17,7 +18,6 @@ export const Z_INDEX_VALUES = {
   PET_BUTTON: 45,
   MARK: 50,
   PET_BUTTON_CONTAINER: 50, // 侧边 PetButton 容器的 z-index
-  DYNAMIC_ANIMATION: 10,
 
   // UI 层级 (200-999)
   TOOLTIP: 200,
@@ -46,6 +46,7 @@ export enum Z_INDEX_CLASS {
   PET_SPRITE = 'z-[5]',
   TIMELINE_CLICKABLE = 'z-[10]',
   PET_BUTTON_LEVEL = 'z-[10]',
+  DYNAMIC_ANIMATION = 'z-[10]',
 
   // 控制层级
   TIMER = 'z-[30]',
@@ -54,7 +55,6 @@ export enum Z_INDEX_CLASS {
   PET_BUTTON = 'z-[45]',
   MARK = 'z-[50]',
   PET_BUTTON_CONTAINER = 'z-[50]',
-  DYNAMIC_ANIMATION = 'z-[10]',
 
   // UI 层级
   TOOLTIP = 'z-[200]',
