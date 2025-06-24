@@ -1,19 +1,28 @@
 {
   "name": "@arcadia-eternity/cli-validator",
   "version": "1.0.0",
-  "description": "CLI数据验证模块，提供游戏数据完整性检查功能",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "clean": "rm -rf dist"
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arcadia-eternity/arcadia-eternity.git"
   },
+  "description": "",
+  "main": "./dist/index.js",
+  "types": "./dist/src/index.d.ts",
+  "scripts": {
+    "build": "run-p build:code build:types",
+    "clear": "rm -rf dist",
+    "build:code": "rollup -c",
+    "watch:code": "rollup -c --watch",
+    "watch:types": "tsc --emitDeclarationOnly --watch --preserveWatchOutput",
+    "watch": "run-p watch:code watch:types",
+    "build:types": "tsc --emitDeclarationOnly"
+  },
+  "keywords": [],
+  "author": "yuuinih",
+  "license": "MIT",
   "dependencies": {
     "@arcadia-eternity/data-repository": "workspace:*"
-  },
-  "devDependencies": {
-    "typescript": "^5.8.3"
   },
   "files": [
     "dist"
