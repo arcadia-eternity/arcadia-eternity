@@ -826,7 +826,7 @@
     mark:
       type: entity:baseMark
       value: mark_shoudaoshanghaijianshao
-    stack: 25
+    stack: 15
   condition:
     type: selfSwitchIn
 
