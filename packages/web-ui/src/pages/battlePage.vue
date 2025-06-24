@@ -13,6 +13,7 @@ import { useMusic } from '@/composition/music'
 import { useSound } from '@/composition/sound'
 import { useBattleAnimations } from '@/composition/useBattleAnimations'
 import { useMobile } from '@/composition/useMobile'
+import { useScreenOrientation, useFullscreen } from '@vueuse/core'
 import { Z_INDEX, Z_INDEX_CLASS } from '@/constants/zIndex'
 import { useBattleStore } from '@/stores/battle'
 import { useBattleClientStore } from '@/stores/battleClient'
@@ -133,8 +134,10 @@ let resizeObserver: ResizeObserver | null = null
 // 移动端检测
 const { isMobile, isPortrait } = useMobile()
 
-// 全屏相关
-const isFullscreen = ref(false)
+// 屏幕方向控制
+const { lockOrientation, unlockOrientation } = useScreenOrientation()
+
+// 全屏相关（将在下面重新定义包装函数）
 
 // 横屏提示相关
 const orientationHintDismissed = ref(false)
@@ -172,62 +175,60 @@ const handleCustomConfirm = (confirmed: boolean) => {
   }
 }
 
-// 进入全屏模式
-const enterFullscreen = async () => {
+// 包装VueUse的全屏函数，添加屏幕方向控制
+const {
+  isFullscreen: vueUseIsFullscreen,
+  enter: vueUseEnterFullscreen,
+  exit: vueUseExitFullscreen,
+  toggle: vueUseToggleFullscreen,
+} = useFullscreen(battleContainerRef)
+
+// 自定义进入全屏函数，包含屏幕方向锁定
+const enterFullscreenWithOrientation = async () => {
   try {
-    const element = battleContainerRef.value
-    if (!element) return
-
-    // 请求全屏
-    if (element.requestFullscreen) {
-      await element.requestFullscreen()
-    } else if ((element as any).webkitRequestFullscreen) {
-      await (element as any).webkitRequestFullscreen()
-    } else if ((element as any).msRequestFullscreen) {
-      await (element as any).msRequestFullscreen()
+    await vueUseEnterFullscreen()
+    // 在全屏模式下尝试锁定屏幕方向为横屏
+    try {
+      await lockOrientation('landscape-primary')
+    } catch (error) {
+      console.warn('无法锁定屏幕方向:', error)
     }
-
-    isFullscreen.value = true
   } catch (error) {
     console.error('进入全屏失败:', error)
   }
 }
 
-// 退出全屏模式
-const exitFullscreen = async () => {
+// 自定义退出全屏函数，包含屏幕方向解锁
+const exitFullscreenWithOrientation = async () => {
   try {
-    if (document.exitFullscreen) {
-      await document.exitFullscreen()
-    } else if ((document as any).webkitExitFullscreen) {
-      await (document as any).webkitExitFullscreen()
-    } else if ((document as any).msExitFullscreen) {
-      await (document as any).msExitFullscreen()
+    await vueUseExitFullscreen()
+    // 退出全屏时解锁屏幕方向
+    try {
+      unlockOrientation()
+    } catch (error) {
+      console.warn('无法解锁屏幕方向:', error)
     }
-
-    isFullscreen.value = false
   } catch (error) {
     console.error('退出全屏失败:', error)
   }
 }
 
-// 切换全屏模式
-const toggleFullscreen = () => {
-  if (isFullscreen.value) {
-    exitFullscreen()
+// 自定义切换全屏函数
+const toggleFullscreenWithOrientation = () => {
+  if (vueUseIsFullscreen.value) {
+    exitFullscreenWithOrientation()
   } else {
-    enterFullscreen()
+    enterFullscreenWithOrientation()
   }
 }
 
-// 监听全屏状态变化
-const handleFullscreenChange = () => {
-  const isCurrentlyFullscreen = !!(
-    document.fullscreenElement ||
-    (document as any).webkitFullscreenElement ||
-    (document as any).msFullscreenElement
-  )
-  isFullscreen.value = isCurrentlyFullscreen
-}
+// 为了保持向后兼容性，创建别名
+const isFullscreen = vueUseIsFullscreen
+const enterFullscreen = enterFullscreenWithOrientation
+const exitFullscreen = exitFullscreenWithOrientation
+const toggleFullscreen = toggleFullscreenWithOrientation
+
+// VueUse的useFullscreen会自动处理全屏状态变化，无需手动监听
 
 // 初始化音乐但不自动播放
 const { startMusic, stopMusic } = useMusic(false)
@@ -1888,10 +1889,7 @@ onMounted(async () => {
   await nextTick() // 确保DOM已渲染
   initAdaptiveScaling()
 
-  // 添加全屏状态监听器
-  document.addEventListener('fullscreenchange', handleFullscreenChange)
-  document.addEventListener('webkitfullscreenchange', handleFullscreenChange)
-  document.addEventListener('msfullscreenchange', handleFullscreenChange)
+  // VueUse的useFullscreen会自动处理全屏状态监听，无需手动添加事件监听器
 
   // 开始加载所有资源
   await initializeBattleResources()
@@ -2128,10 +2126,7 @@ onUnmounted(() => {
   // 清理自适应缩放
   cleanupAdaptiveScaling()
 
-  // 清理全屏事件监听器
-  document.removeEventListener('fullscreenchange', handleFullscreenChange)
-  document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
-  document.removeEventListener('msfullscreenchange', handleFullscreenChange)
+  // VueUse的useFullscreen会自动清理事件监听器，无需手动清理
 
   // 停止音乐
   stopMusic()
