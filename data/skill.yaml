@@ -6412,7 +6412,7 @@
   power: 100
   rage: 20
   accuracy: 100
-  sureHit: true
+  sureHit: false
   ignoreShield: false
   tags: []
   effect:
