@@ -1,8 +1,8 @@
 import { EffectTrigger, StackStrategy } from '@arcadia-eternity/const'
-import type { Battle } from 'src/battle'
-import { SwitchPetContext, EffectContext, AddMarkContext, StackContext } from 'src/context'
-import type { MarkInstance } from 'src/mark'
-import type { Pet } from 'src/pet'
+import type { Battle } from '../battle'
+import { SwitchPetContext, EffectContext, AddMarkContext, StackContext } from '../context'
+import type { MarkInstance } from '../mark'
+import type { Pet } from '../pet'
 import { SynchronousPhase } from './base'
 import { MarkStackPhase } from './MarkStackPhase'
 

@@ -1,6 +1,6 @@
-import type { Battle } from 'src/battle'
-import type { TurnContext } from 'src/context'
-import type { Pet } from 'src/pet'
+import type { Battle } from '../battle'
+import type { TurnContext } from '../context'
+import type { Pet } from '../pet'
 import { SynchronousPhase } from './base'
 
 /**
