@@ -20,8 +20,8 @@ export class BattleStartPhase extends SynchronousPhase<Battle> {
   protected getEffectTriggers() {
     return {
       before: [],
-      during: [EffectTrigger.OnBattleStart],
-      after: [],
+      during: [],
+      after: [EffectTrigger.OnBattleStart],
     }
   }
 
