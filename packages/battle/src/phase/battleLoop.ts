@@ -1,4 +1,4 @@
-import { EffectTrigger, BattlePhase } from '@arcadia-eternity/const'
+import { BattlePhase } from '@arcadia-eternity/const'
 import { InteractivePhase } from './base'
 import { BattleSwitchPhase } from './battleSwitch'
 import { SelectionPhase } from './selection'

@@ -1,6 +1,5 @@
 import { BattlePhaseBase, PhaseState, type PhaseResult, InteractivePhase } from './base'
 import type { Battle } from '../battle'
-import { ConfigSystem } from '../config'
 import { createChildLogger } from '../logger'
 
 /**

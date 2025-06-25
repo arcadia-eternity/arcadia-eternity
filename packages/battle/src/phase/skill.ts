@@ -26,6 +26,15 @@ export class SkillPhase extends SynchronousPhase<UseSkillContext> {
     super(battle, id)
   }
 
+  // Public getters for sorting purposes (before context is initialized)
+  public get skillInstance(): SkillInstance {
+    return this.skill
+  }
+
+  public get petInstance(): Pet {
+    return this.pet
+  }
+
   protected createContext(): UseSkillContext {
     // Use existing context if provided, otherwise create new one
     return (

@@ -171,10 +171,11 @@ function updateTurnMark(context: TurnContext, battle: Battle): void {
  * Sort phases by priority and speed
  */
 function phaseSort(a: SkillPhase | SwitchPetPhase, b: SkillPhase | SwitchPetPhase): number {
-  // 获取 Phase 的类型，通过 context 来判断
+  // 获取 Phase 的类型，通过构造函数名称来判断（不依赖context）
   const getPhaseType = (phase: SkillPhase | SwitchPetPhase): string => {
-    if (!phase.context) return 'unknown'
-    return phase.context.type
+    if (phase instanceof SwitchPetPhase) return 'switch-pet'
+    if (phase instanceof SkillPhase) return 'use-skill'
+    return 'unknown'
   }
 
   // 类型优先级：换宠 > 使用技能
@@ -199,17 +200,25 @@ function phaseSort(a: SkillPhase | SwitchPetPhase, b: SkillPhase | SwitchPetPhas
       return 0
 
     case 'use-skill': {
-      const aContext = a.context as UseSkillContext
-      const bContext = b.context as UseSkillContext
+      // 对于技能phase，我们使用公共getter来访问属性
+      // 因为context在排序时还没有初始化
+      const aSkillPhase = a as SkillPhase
+      const bSkillPhase = b as SkillPhase
+
+      // 获取技能实例来比较优先级和速度
+      const aSkill = aSkillPhase.skillInstance
+      const bSkill = bSkillPhase.skillInstance
+      const aPet = aSkillPhase.petInstance
+      const bPet = bSkillPhase.petInstance
 
       // 先比较技能优先级（优先级高的先执行，所以是降序）
-      if (aContext.priority !== bContext.priority) {
-        return bContext.priority - aContext.priority
+      if (aSkill.priority !== bSkill.priority) {
+        return bSkill.priority - aSkill.priority
       }
 
       // 同优先级比较速度（速度快的先执行，所以是降序）
-      if (aContext.pet.actualStat.spe !== bContext.pet.actualStat.spe) {
-        return bContext.pet.actualStat.spe - aContext.pet.actualStat.spe
+      if (aPet.actualStat.spe !== bPet.actualStat.spe) {
+        return bPet.actualStat.spe - aPet.actualStat.spe
       }
 
       // 速度相同，保持原顺序
