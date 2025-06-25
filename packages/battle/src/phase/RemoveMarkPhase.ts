@@ -1,8 +1,8 @@
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
-import type { Battle } from 'src/battle'
-import { RemoveMarkContext } from 'src/context'
-import { type MarkInstance, StatLevelMarkInstanceImpl } from 'src/mark'
-import { Pet } from 'src/pet'
+import type { Battle } from '../battle'
+import { RemoveMarkContext } from '../context'
+import { type MarkInstance, StatLevelMarkInstanceImpl } from '../mark'
+import { Pet } from '../pet'
 import { SynchronousPhase } from './base'
 
 /**
