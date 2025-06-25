@@ -24,14 +24,6 @@ export class SwitchPetPhase extends SynchronousPhase<SwitchPetContext> {
     return new SwitchPetContext(this.parentContext, this.origin, this.target)
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [],
-      during: [], // OnSwitchOut and OnSwitchIn are handled in executeOperation
-      after: [],
-    }
-  }
-
   protected executeOperation(): void {
     const context = this._context!
 

@@ -26,14 +26,6 @@ export class EffectPhase<T extends EffectTrigger> extends SynchronousPhase<Effec
     return new EffectContext<T>(this.parentContext, this.trigger, this.source, this.effect)
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [], // BeforeEffect is handled in executeOperation
-      during: [], // The actual effect execution happens in executeOperation
-      after: [], // AfterEffect is handled in executeOperation
-    }
-  }
-
   protected executeOperation(): void {
     const context = this._context!
 
@@ -117,14 +109,6 @@ export class BatchEffectPhase<T extends EffectTrigger> extends SynchronousPhase<
     }
 
     return new EffectContext<T>(firstEffect.parentContext, firstEffect.trigger, firstEffect.source, firstEffect.effect)
-  }
-
-  protected getEffectTriggers() {
-    return {
-      before: [], // BeforeEffect is handled in executeOperation
-      during: [], // The actual effect execution happens in executeOperation
-      after: [], // AfterEffect is handled in executeOperation
-    }
   }
 
   protected executeOperation(): void {

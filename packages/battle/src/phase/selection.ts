@@ -29,18 +29,10 @@ export class SelectionPhase extends InteractivePhase<SelectionContext> {
     return new SelectionContext(this.battle)
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [],
-      during: [],
-      after: [],
-    }
-  }
-
   protected async executeOperation(): Promise<void> {
     // Clear previous selections
     this.battle.clearSelections()
-    
+
     // Emit turn action message
     this.battle.emitMessage(BattleMessageType.TurnAction, {
       player: [this.battle.playerA.id, this.battle.playerB.id],

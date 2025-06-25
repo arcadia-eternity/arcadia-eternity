@@ -28,14 +28,6 @@ export class HealPhase extends SynchronousPhase<HealContext> {
     return new HealContext(this.parentContext, this.source, this.target, this.value, this.ignoreEffect, this.modified)
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [], // OnBeforeHeal is handled in executeOperation
-      during: [], // OnHeal is handled in executeOperation
-      after: [],
-    }
-  }
-
   protected executeOperation(): void {
     const context = this._context!
 

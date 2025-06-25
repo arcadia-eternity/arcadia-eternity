@@ -41,14 +41,6 @@ export class TransformPhase extends SynchronousPhase<TransformContext> {
     )
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [], // BeforeTransform is handled in executeOperation
-      during: [], // OnTransform is handled in executeOperation
-      after: [], // AfterTransform is handled in executeOperation
-    }
-  }
-
   protected executeOperation(): void {
     const context = this._context!
 
@@ -121,14 +113,6 @@ export class TransformEndPhase extends SynchronousPhase<TransformContext> {
       this.priority,
       this.causedBy,
     )
-  }
-
-  protected getEffectTriggers() {
-    return {
-      before: [],
-      during: [], // OnTransformEnd is handled in executeOperation
-      after: [],
-    }
   }
 
   protected executeOperation(): void {
