@@ -332,12 +332,12 @@ export class Battle extends Context implements MarkOwner {
     this.currentPhase = BattlePhase.StartPhase
     const startPhase = new BattleStartPhase(this)
     this.phaseManager.registerPhase(startPhase)
-    await this.phaseManager.executePhase(startPhase.id)
+    await this.phaseManager.executePhaseAsync(startPhase.id)
 
     // Phase 1: Main battle loop
     const battleLoopPhase = new BattleLoopPhase(this)
     this.phaseManager.registerPhase(battleLoopPhase)
-    await this.phaseManager.executePhase(battleLoopPhase.id)
+    await this.phaseManager.executePhaseAsync(battleLoopPhase.id)
   }
 
   // Legacy generator method removed - use startBattlePhased() instead

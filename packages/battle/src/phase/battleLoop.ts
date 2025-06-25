@@ -34,7 +34,7 @@ export class BattleLoopPhase extends InteractivePhase<Context> {
       battle.phaseManager.registerPhase(switchPhase)
 
       // Execute switch phase
-      await battle.phaseManager.executePhase(switchPhase.id)
+      await battle.phaseManager.executePhaseAsync(switchPhase.id)
 
       if (battle.isBattleEnded()) break
 
@@ -44,7 +44,7 @@ export class BattleLoopPhase extends InteractivePhase<Context> {
       battle.phaseManager.registerPhase(selectionPhase)
 
       // Execute selection phase (async)
-      await battle.phaseManager.executePhase(selectionPhase.id)
+      await battle.phaseManager.executePhaseAsync(selectionPhase.id)
 
       // Phase 3: Execute turn
       battle.currentPhase = BattlePhase.ExecutionPhase
@@ -52,7 +52,7 @@ export class BattleLoopPhase extends InteractivePhase<Context> {
       battle.phaseManager.registerPhase(turnPhase)
 
       // Execute turn phase
-      await battle.phaseManager.executePhase(turnPhase.id)
+      await battle.phaseManager.executePhaseAsync(turnPhase.id)
 
       if (battle.isBattleEnded()) break
 

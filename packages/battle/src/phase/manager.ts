@@ -76,7 +76,7 @@ export class PhaseManager {
     try {
       while (this.executionQueue.length > 0) {
         const phaseId = this.executionQueue.shift()!
-        const result = await this.executePhase(phaseId, options)
+        const result = await this.executePhaseAsync(phaseId, options)
         results.push(result)
 
         // Stop execution if phase failed and skipOnError is false
@@ -93,9 +93,63 @@ export class PhaseManager {
   }
 
   /**
-   * Execute a specific phase (supports both sync and async phases)
+   * Execute a specific phase synchronously (for regular phases only)
    */
-  public async executePhase(phaseId: string, options: PhaseExecutionOptions = {}): Promise<PhaseResult> {
+  public executePhase(phaseId: string, options: PhaseExecutionOptions = {}): PhaseResult {
+    const phase = this.phases.get(phaseId)
+    if (!phase) {
+      throw new Error(`Phase ${phaseId} not found`)
+    }
+
+    // Check if this is an interactive phase - these must use executePhaseAsync
+    if (phase instanceof InteractivePhase) {
+      throw new Error(`Interactive phase ${phaseId} must be executed with executePhaseAsync()`)
+    }
+
+    // Check dependencies
+    this.checkDependencies(phaseId)
+
+    this.currentPhase = phase
+
+    // Push phase to config system stack for level tracking
+    const configSystem = this.battle.configSystem
+    configSystem.pushPhase(phase)
+
+    try {
+      // Initialize phase if needed
+      if (phase.state === PhaseState.Pending && !phase.context) {
+        phase.initialize()
+      }
+
+      // Execute phase synchronously
+      const result = phase.execute()
+
+      this.executionHistory.push(phaseId)
+      return result
+    } catch (error) {
+      const errorResult: PhaseResult = {
+        success: false,
+        state: PhaseState.Failed,
+        error: error instanceof Error ? error : new Error(String(error)),
+      }
+
+      // Retry logic
+      if (options.retryCount && options.retryCount > 0) {
+        this.logger.warn(`Phase ${phaseId} failed, retrying... (${options.retryCount} attempts left)`)
+        return this.executePhase(phaseId, { ...options, retryCount: options.retryCount - 1 })
+      }
+
+      return errorResult
+    } finally {
+      // Always pop phase from stack when execution completes (success or failure)
+      configSystem.popPhase(phase as BattlePhaseBase)
+    }
+  }
+
+  /**
+   * Execute a specific phase asynchronously (supports both sync and async phases)
+   */
+  public async executePhaseAsync(phaseId: string, options: PhaseExecutionOptions = {}): Promise<PhaseResult> {
     const phase = this.phases.get(phaseId)
     if (!phase) {
       throw new Error(`Phase ${phaseId} not found`)
@@ -142,7 +196,7 @@ export class PhaseManager {
       // Retry logic
       if (options.retryCount && options.retryCount > 0) {
         this.logger.warn(`Phase ${phaseId} failed, retrying... (${options.retryCount} attempts left)`)
-        return this.executePhase(phaseId, { ...options, retryCount: options.retryCount - 1 })
+        return this.executePhaseAsync(phaseId, { ...options, retryCount: options.retryCount - 1 })
       }
 
       return errorResult
