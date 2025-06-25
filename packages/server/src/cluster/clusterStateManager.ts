@@ -15,6 +15,7 @@ import type {
 } from './types'
 import { REDIS_KEYS, ClusterError } from './types'
 import { dedupRedisCall } from './redisCallDeduplicator'
+import { TTLHelper } from './ttlConfig'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -91,16 +92,20 @@ export class ClusterStateManager extends EventEmitter {
       this.currentInstance.status = 'healthy'
       this.currentInstance.lastHeartbeat = Date.now()
 
-      // 添加到实例集合
+      // 获取实例数据 TTL
+      const instanceDataTTL = TTLHelper.getTTLForDataType('serviceInstance', 'data')
+      const heartbeatTTL = TTLHelper.getTTLForDataType('serviceInstance', 'heartbeat')
+
+      // 添加到实例集合并设置 TTL
       await client.sadd(REDIS_KEYS.SERVICE_INSTANCES, this.currentInstance.id)
+      await TTLHelper.setKeyTTL(client, REDIS_KEYS.SERVICE_INSTANCES, heartbeatTTL)
 
-      // 存储实例详细信息
-      await client.hset(
-        REDIS_KEYS.SERVICE_INSTANCE(this.currentInstance.id),
-        this.serializeInstance(this.currentInstance),
-      )
+      // 存储实例详细信息并设置 TTL
+      const instanceKey = REDIS_KEYS.SERVICE_INSTANCE(this.currentInstance.id)
+      await client.hset(instanceKey, this.serializeInstance(this.currentInstance))
+      await TTLHelper.setKeyTTL(client, instanceKey, instanceDataTTL)
 
-      logger.info({ instance: this.currentInstance }, 'Instance registered successfully')
+      logger.info({ instance: this.currentInstance, ttl: instanceDataTTL }, 'Instance registered successfully with TTL')
     } catch (error) {
       logger.error({ error }, 'Failed to register instance')
       throw new ClusterError('Failed to register instance', 'REGISTRATION_ERROR', error)
@@ -193,10 +198,17 @@ export class ClusterStateManager extends EventEmitter {
     const client = this.redisManager.getClient()
 
     try {
-      await client.hset(
-        REDIS_KEYS.SERVICE_INSTANCE(this.currentInstance.id),
-        this.serializeInstance(this.currentInstance),
-      )
+      // 获取实例数据 TTL
+      const instanceDataTTL = TTLHelper.getTTLForDataType('serviceInstance', 'data')
+      const heartbeatTTL = TTLHelper.getTTLForDataType('serviceInstance', 'heartbeat')
+
+      // 更新实例信息并刷新 TTL
+      const instanceKey = REDIS_KEYS.SERVICE_INSTANCE(this.currentInstance.id)
+      await client.hset(instanceKey, this.serializeInstance(this.currentInstance))
+      await TTLHelper.setKeyTTL(client, instanceKey, instanceDataTTL)
+
+      // 刷新实例集合的 TTL
+      await TTLHelper.setKeyTTL(client, REDIS_KEYS.SERVICE_INSTANCES, heartbeatTTL)
 
       // 发布实例更新事件
       await this.publishEvent({
@@ -219,6 +231,10 @@ export class ClusterStateManager extends EventEmitter {
         throw new ClusterError('SessionId is required for player connection', 'MISSING_SESSION_ID')
       }
 
+      // 获取连接相关的 TTL
+      const connectionTTL = TTLHelper.getTTLForDataType('playerConnection')
+      const indexTTL = TTLHelper.getTTLForDataType('playerConnection', 'index')
+
       // 只存储基于session的连接
       const sessionConnection = {
         playerId,
@@ -230,16 +246,19 @@ export class ClusterStateManager extends EventEmitter {
         metadata: connection.metadata,
       }
 
-      await client.hset(
-        REDIS_KEYS.PLAYER_SESSION_CONNECTION(playerId, connection.sessionId),
-        this.serializeSessionConnection(sessionConnection),
-      )
+      // 存储会话连接并设置 TTL
+      const connectionKey = REDIS_KEYS.PLAYER_SESSION_CONNECTION(playerId, connection.sessionId)
+      await client.hset(connectionKey, this.serializeSessionConnection(sessionConnection))
+      await TTLHelper.setKeyTTL(client, connectionKey, connectionTTL)
 
-      // 添加到玩家的会话连接集合
-      await client.sadd(REDIS_KEYS.PLAYER_SESSION_CONNECTIONS(playerId), connection.sessionId)
+      // 添加到玩家的会话连接集合并设置 TTL
+      const connectionsKey = REDIS_KEYS.PLAYER_SESSION_CONNECTIONS(playerId)
+      await client.sadd(connectionsKey, connection.sessionId)
+      await TTLHelper.setKeyTTL(client, connectionsKey, connectionTTL)
 
-      // 添加到活跃玩家索引
+      // 添加到活跃玩家索引并设置 TTL
       await client.sadd(REDIS_KEYS.ACTIVE_PLAYERS, playerId)
+      await TTLHelper.setKeyTTL(client, REDIS_KEYS.ACTIVE_PLAYERS, indexTTL)
 
       // 清除相关缓存
       this.invalidatePlayerConnectionsCache()
@@ -250,7 +269,7 @@ export class ClusterStateManager extends EventEmitter {
         data: { playerId, connection },
       })
 
-      logger.debug({ playerId, sessionId: connection.sessionId, connection }, 'Player connection set')
+      logger.debug({ playerId, sessionId: connection.sessionId, connectionTTL }, 'Player connection set with TTL')
     } catch (error) {
       logger.error({ error, playerId }, 'Failed to set player connection')
       throw new ClusterError('Failed to set player connection', 'SET_CONNECTION_ERROR', error)
@@ -387,13 +406,21 @@ export class ClusterStateManager extends EventEmitter {
     const client = this.redisManager.getClient()
 
     try {
-      await client.hset(REDIS_KEYS.ROOM(roomState.id), this.serializeRoomState(roomState))
+      // 根据房间状态获取相应的 TTL
+      const roomTTL = TTLHelper.getDynamicTTL('room', roomState.status, roomState.lastActive)
+      const indexTTL = TTLHelper.getTTLForDataType('room', 'index')
 
-      // 添加到房间集合
+      // 存储房间状态并设置 TTL
+      const roomKey = REDIS_KEYS.ROOM(roomState.id)
+      await client.hset(roomKey, this.serializeRoomState(roomState))
+      await TTLHelper.setKeyTTL(client, roomKey, roomTTL)
+
+      // 添加到房间集合并设置 TTL
       await client.sadd(REDIS_KEYS.ROOMS, roomState.id)
+      await TTLHelper.setKeyTTL(client, REDIS_KEYS.ROOMS, indexTTL)
 
       // 发布房间事件
-      const eventType = (await client.exists(REDIS_KEYS.ROOM(roomState.id))) > 1 ? 'room:update' : 'room:create'
+      const eventType = (await client.exists(roomKey)) > 1 ? 'room:update' : 'room:create'
       await this.publishEvent({
         type: eventType as 'room:create' | 'room:update',
         data: roomState,
@@ -402,7 +429,7 @@ export class ClusterStateManager extends EventEmitter {
       // 清除集群统计缓存（房间状态变化会影响统计）
       this.invalidateClusterStatsCache()
 
-      logger.debug({ roomId: roomState.id, status: roomState.status }, 'Room state set')
+      logger.debug({ roomId: roomState.id, status: roomState.status, roomTTL }, 'Room state set with TTL')
     } catch (error) {
       logger.error({ error, roomId: roomState.id }, 'Failed to set room state')
       throw new ClusterError('Failed to set room state', 'SET_ROOM_ERROR', error)
@@ -459,14 +486,21 @@ export class ClusterStateManager extends EventEmitter {
         throw new ClusterError('SessionId is required for matchmaking', 'MISSING_SESSION_ID')
       }
 
+      // 获取匹配队列相关的 TTL
+      const queueEntryTTL = TTLHelper.getTTLForDataType('matchmaking')
+      const queueIndexTTL = TTLHelper.getTTLForDataType('matchmaking', 'index')
+
       // 使用session作为队列的唯一标识
       const sessionKey = `${entry.playerId}:${entry.sessionId}`
 
-      // 添加到队列集合
+      // 添加到队列集合并设置 TTL
       await client.sadd(REDIS_KEYS.MATCHMAKING_QUEUE, sessionKey)
+      await TTLHelper.setKeyTTL(client, REDIS_KEYS.MATCHMAKING_QUEUE, queueIndexTTL)
 
-      // 存储会话匹配数据
-      await client.hset(REDIS_KEYS.MATCHMAKING_PLAYER(sessionKey), this.serializeMatchmakingEntry(entry))
+      // 存储会话匹配数据并设置 TTL
+      const playerKey = REDIS_KEYS.MATCHMAKING_PLAYER(sessionKey)
+      await client.hset(playerKey, this.serializeMatchmakingEntry(entry))
+      await TTLHelper.setKeyTTL(client, playerKey, queueEntryTTL)
 
       // 立即失效匹配队列缓存，确保下次查询获取最新数据
       this.matchmakingQueueCache = null
@@ -477,7 +511,10 @@ export class ClusterStateManager extends EventEmitter {
         data: entry,
       })
 
-      logger.debug({ playerId: entry.playerId, sessionId: entry.sessionId }, 'Session added to matchmaking queue')
+      logger.debug(
+        { playerId: entry.playerId, sessionId: entry.sessionId, queueEntryTTL },
+        'Session added to matchmaking queue with TTL',
+      )
     } catch (error) {
       logger.error(
         { error, playerId: entry.playerId, sessionId: entry.sessionId },
@@ -598,24 +635,34 @@ export class ClusterStateManager extends EventEmitter {
     const client = this.redisManager.getClient()
 
     try {
-      // 存储具体的会话数据
-      await client.hset(REDIS_KEYS.SESSION(playerId, session.sessionId), this.serializeSession(session))
+      // 获取会话相关的 TTL
+      const sessionDataTTL = TTLHelper.getTTLForDataType('session')
+      const sessionIndexTTL = TTLHelper.getTTLForDataType('session', 'index')
 
-      // 将会话ID添加到玩家的会话列表中
-      await client.sadd(REDIS_KEYS.PLAYER_SESSIONS(playerId), session.sessionId)
-
-      // 添加到全局会话索引（用于清理）
-      await client.zadd(REDIS_KEYS.SESSION_INDEX, session.createdAt, `${playerId}:${session.sessionId}`)
-
-      // 设置过期时间（如果有的话）
+      // 计算实际的 TTL（使用配置的 TTL 或会话的过期时间，取较小值）
+      let actualTTL = sessionDataTTL
       if (session.expiry) {
-        const ttl = session.expiry - Date.now()
-        if (ttl > 0) {
-          await client.pexpire(REDIS_KEYS.SESSION(playerId, session.sessionId), ttl)
+        const sessionTTL = session.expiry - Date.now()
+        if (sessionTTL > 0) {
+          actualTTL = Math.min(actualTTL, sessionTTL)
         }
       }
 
-      logger.debug({ playerId, sessionId: session.sessionId }, 'Session set')
+      // 存储具体的会话数据并设置 TTL
+      const sessionKey = REDIS_KEYS.SESSION(playerId, session.sessionId)
+      await client.hset(sessionKey, this.serializeSession(session))
+      await TTLHelper.setKeyTTL(client, sessionKey, actualTTL)
+
+      // 将会话ID添加到玩家的会话列表中并设置 TTL
+      const playerSessionsKey = REDIS_KEYS.PLAYER_SESSIONS(playerId)
+      await client.sadd(playerSessionsKey, session.sessionId)
+      await TTLHelper.setKeyTTL(client, playerSessionsKey, sessionDataTTL)
+
+      // 添加到全局会话索引（用于清理）并设置 TTL
+      await client.zadd(REDIS_KEYS.SESSION_INDEX, session.createdAt, `${playerId}:${session.sessionId}`)
+      await TTLHelper.setKeyTTL(client, REDIS_KEYS.SESSION_INDEX, sessionIndexTTL)
+
+      logger.debug({ playerId, sessionId: session.sessionId, actualTTL }, 'Session set with TTL')
     } catch (error) {
       logger.error({ error, playerId, sessionId: session.sessionId }, 'Failed to set session')
       throw new ClusterError('Failed to set session', 'SET_SESSION_ERROR', error)
@@ -739,15 +786,22 @@ export class ClusterStateManager extends EventEmitter {
     const client = this.redisManager.getClient()
 
     try {
-      await client.hset(REDIS_KEYS.AUTH_BLACKLIST(entry.jti), this.serializeAuthBlacklistEntry(entry))
+      // 获取认证黑名单的默认 TTL
+      const defaultTTL = TTLHelper.getTTLForDataType('auth')
 
-      // 设置过期时间
-      const ttl = entry.expiry - Date.now()
-      if (ttl > 0) {
-        await client.pexpire(REDIS_KEYS.AUTH_BLACKLIST(entry.jti), ttl)
+      // 计算实际的 TTL（使用条目的过期时间或默认 TTL，取较小值）
+      const entryTTL = entry.expiry - Date.now()
+      const actualTTL = entryTTL > 0 ? Math.min(entryTTL, defaultTTL) : defaultTTL
+
+      // 存储黑名单条目并设置 TTL
+      const blacklistKey = REDIS_KEYS.AUTH_BLACKLIST(entry.jti)
+      await client.hset(blacklistKey, this.serializeAuthBlacklistEntry(entry))
+
+      if (actualTTL > 0) {
+        await TTLHelper.setKeyTTL(client, blacklistKey, actualTTL)
       }
 
-      logger.debug({ jti: entry.jti }, 'Token added to blacklist')
+      logger.debug({ jti: entry.jti, actualTTL }, 'Token added to blacklist with TTL')
     } catch (error) {
       logger.error({ error, jti: entry.jti }, 'Failed to add token to blacklist')
       throw new ClusterError('Failed to add to blacklist', 'BLACKLIST_ADD_ERROR', error)
@@ -862,8 +916,8 @@ export class ClusterStateManager extends EventEmitter {
         this.currentInstance.status = 'healthy'
       }
 
-      // 使用优化的清理过期实例方法
-      await this.cleanupExpiredInstancesOptimized()
+      // TTL 机制会自动清理过期实例，这里只需要清理本地缓存
+      this.cleanupCache()
     } finally {
       this.isPerformingHealthCheck = false
     }
@@ -1129,51 +1183,17 @@ export class ClusterStateManager extends EventEmitter {
   }
 
   /**
-   * 优化的清理过期实例方法，使用缓存减少 Redis 查询
+   * TTL 机制说明：
+   * 现在大部分数据清理都通过 Redis TTL 自动处理，包括：
+   * - 服务实例数据：心跳停止后自动过期
+   * - 玩家连接数据：连接断开后自动过期
+   * - 会话数据：根据会话超时自动过期
+   * - 房间状态：根据房间状态自动过期
+   * - 匹配队列：避免长时间等待自动过期
+   * - 认证黑名单：根据 JWT 过期时间自动过期
+   *
+   * 这大大减少了手动清理的需求和 Redis 命令使用量
    */
-  private async cleanupExpiredInstancesOptimized(): Promise<void> {
-    try {
-      // 先清理内存缓存
-      this.cleanupCache()
-
-      const instanceIds = await this.redisManager.getClient().smembers(REDIS_KEYS.SERVICE_INSTANCES)
-      if (instanceIds.length === 0) {
-        return
-      }
-
-      // 批量获取实例信息
-      const instances = await this.getInstancesBatch(instanceIds)
-      const now = Date.now()
-      const timeout = this.config.cluster.failoverTimeout || 120000 // 2分钟
-
-      const expiredInstanceIds: string[] = []
-
-      for (let i = 0; i < instances.length; i++) {
-        const instance = instances[i]
-        if (instance && now - instance.lastHeartbeat > timeout) {
-          expiredInstanceIds.push(instance.id)
-          // 从缓存中删除过期实例
-          this.instanceCache.delete(instance.id)
-        }
-      }
-
-      // 批量删除过期实例
-      if (expiredInstanceIds.length > 0) {
-        const client = this.redisManager.getClient()
-        const pipeline = client.pipeline()
-
-        for (const instanceId of expiredInstanceIds) {
-          logger.warn({ instanceId }, 'Removing expired instance')
-          pipeline.srem(REDIS_KEYS.SERVICE_INSTANCES, instanceId)
-          pipeline.del(REDIS_KEYS.SERVICE_INSTANCE(instanceId))
-        }
-
-        await pipeline.exec()
-      }
-    } catch (error) {
-      logger.error({ error }, 'Failed to cleanup expired instances')
-    }
-  }
 
   // === 批量操作优化方法 ===
 

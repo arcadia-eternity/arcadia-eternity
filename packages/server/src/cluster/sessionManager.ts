@@ -229,6 +229,7 @@ export class SessionManager {
 
   /**
    * 清理过期会话
+   * 注意：大部分会话清理现在通过 TTL 自动处理，这里只处理少量异常情况
    */
   async cleanupExpiredSessions(): Promise<number> {
     try {
@@ -243,8 +244,8 @@ export class SessionManager {
       // 使用全局会话索引进行清理，更高效
       const sessionIndexKey = `${keyPrefix}sessions:index`
 
-      // 获取所有会话条目，按创建时间排序
-      const sessionEntries = await client.zrange(sessionIndexKey, 0, -1, 'WITHSCORES')
+      // 只获取少量最旧的会话条目，避免大量 Redis 操作
+      const sessionEntries = await client.zrange(sessionIndexKey, 0, 49, 'WITHSCORES') // 最多50个
 
       for (let i = 0; i < sessionEntries.length; i += 2) {
         const sessionKey = sessionEntries[i] as string // playerId:sessionId
@@ -450,7 +451,7 @@ export class SessionManager {
       }
     }, this.options.cleanupInterval)
 
-    logger.debug({ interval: this.options.cleanupInterval }, 'Session cleanup timer started')
+    logger.debug({ interval: this.options.cleanupInterval }, 'Session cleanup timer started (TTL handles most cleanup)')
   }
 
   /**

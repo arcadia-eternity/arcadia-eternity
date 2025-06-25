@@ -28,6 +28,7 @@ import { BattleRpcServer } from './battleRpcServer'
 import { BattleRpcClient } from './battleRpcClient'
 import { TimerStateCache } from '../timer/timerStateCache'
 import { TimerEventBatcher } from '../timer/timerEventBatcher'
+import { TTLHelper } from './ttlConfig'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -3299,14 +3300,18 @@ export class ClusterBattleServer {
 
   /**
    * 执行其他清理任务
+   * 注意：大部分数据清理现在通过 TTL 自动处理，这里只保留必要的清理
    */
   private async performOtherCleanupTasks(): Promise<void> {
     await Promise.all([
-      this.cleanupExpiredConnections(),
-      this.cleanupExpiredLocks(),
+      // 保留本地缓存清理，因为这些是内存中的数据
       this.cleanupAllCaches(),
+      // 保留孤立匹配队列条目清理，因为这需要业务逻辑判断
       this.cleanupOrphanedMatchmakingEntries(),
     ])
+
+    // 连接清理和锁清理现在通过 TTL 自动处理，不再需要手动清理
+    logger.debug('Other cleanup tasks completed - most data now auto-expires via TTL')
   }
 
   /**
@@ -3505,8 +3510,11 @@ export class ClusterBattleServer {
 
       const entriesToRemove: { playerId: string; sessionId: string }[] = []
 
-      // 检查每个匹配队列条目是否有对应的连接
-      for (const entry of matchmakingQueue) {
+      // 只检查少量最旧的条目，避免大量 Redis 查询
+      // TTL 会自动清理过期的队列条目，这里只处理连接状态不一致的情况
+      const entriesToCheck = matchmakingQueue.slice(0, Math.min(10, matchmakingQueue.length))
+
+      for (const entry of entriesToCheck) {
         if (!entry.sessionId) continue
 
         const connection = await this.stateManager.getPlayerConnectionBySession(entry.playerId, entry.sessionId)
@@ -3522,7 +3530,10 @@ export class ClusterBattleServer {
             this.stateManager.removeFromMatchmakingQueue(playerId, sessionId),
           ),
         )
-        logger.info({ count: entriesToRemove.length }, 'Cleaned up orphaned matchmaking entries')
+        logger.info(
+          { count: entriesToRemove.length },
+          'Cleaned up orphaned matchmaking entries (TTL handles most cases)',
+        )
 
         // 更新匹配队列大小统计
         if (this.performanceTracker) {

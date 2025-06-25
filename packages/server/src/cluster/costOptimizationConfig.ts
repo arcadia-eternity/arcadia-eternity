@@ -32,6 +32,17 @@ export interface CostOptimizationConfig {
     redisInfoTTL: number
   }
 
+  // 数据TTL配置（用于自动清理）
+  dataTTL: {
+    serviceInstanceTTL: number
+    playerConnectionTTL: number
+    sessionDataTTL: number
+    roomStateTTL: number
+    matchmakingQueueTTL: number
+    authBlacklistTTL: number
+    distributedLockTTL: number
+  }
+
   // SCAN操作优化配置
   scan: {
     count: number
@@ -96,6 +107,16 @@ export function getCostOptimizationConfig(): CostOptimizationConfig {
       clusterStatsTTL: parseInt(process.env.CLUSTER_STATS_CACHE_TTL || '60000'),
       playerConnectionsTTL: parseInt(process.env.PLAYER_CONNECTIONS_CACHE_TTL || '30000'),
       redisInfoTTL: 30000, // Redis info 缓存30秒
+    },
+
+    dataTTL: {
+      serviceInstanceTTL: parseInt(process.env.SERVICE_INSTANCE_TTL || (isOptimizationEnabled ? '900000' : '300000')), // 15分钟/5分钟
+      playerConnectionTTL: parseInt(process.env.PLAYER_CONNECTION_TTL || '1800000'), // 30分钟
+      sessionDataTTL: parseInt(process.env.SESSION_DATA_TTL || '86400000'), // 24小时
+      roomStateTTL: parseInt(process.env.ROOM_STATE_TTL || '14400000'), // 4小时
+      matchmakingQueueTTL: parseInt(process.env.MATCHMAKING_QUEUE_TTL || '1800000'), // 30分钟
+      authBlacklistTTL: parseInt(process.env.AUTH_BLACKLIST_TTL || '86400000'), // 24小时
+      distributedLockTTL: parseInt(process.env.DISTRIBUTED_LOCK_TTL || '30000'), // 30秒
     },
 
     scan: {

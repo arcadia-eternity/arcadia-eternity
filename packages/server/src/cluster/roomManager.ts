@@ -464,6 +464,7 @@ export class RoomManager {
 
   /**
    * 清理过期的房间
+   * 注意：大部分房间清理现在通过 TTL 自动处理，这里只处理少量异常情况
    */
   async cleanupExpiredRooms(maxAge: number = 30 * 60 * 1000): Promise<number> {
     try {
@@ -471,16 +472,20 @@ export class RoomManager {
       const now = Date.now()
       const allRooms = await this.getAllRooms()
 
-      for (const room of allRooms) {
+      // 只检查少量房间，避免大量操作
+      const roomsToCheck = allRooms.slice(0, Math.min(20, allRooms.length))
+
+      for (const room of roomsToCheck) {
         const age = now - room.lastActive
 
-        // 检查房间是否过期
-        if (age > maxAge) {
+        // 检查房间是否过期（只处理明显异常的情况）
+        if (age > maxAge * 3) {
+          // 提高阈值，只处理严重过期的房间
           // 对于已结束的房间，可以更快清理
           const shouldCleanup =
             room.status === 'ended' ||
-            (room.status === 'waiting' && age > maxAge) ||
-            (room.status === 'active' && age > maxAge * 2) // 活跃房间给更长时间
+            (room.status === 'waiting' && age > maxAge * 2) ||
+            (room.status === 'active' && age > maxAge * 4) // 活跃房间给更长时间
 
           if (shouldCleanup) {
             const success = await this.destroyRoom(room.id, 'expired')

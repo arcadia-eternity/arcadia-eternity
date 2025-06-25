@@ -3,6 +3,7 @@ import pino from 'pino'
 import type { RedisClientManager } from './redisClient'
 import type { DistributedLock, LockOptions } from './types'
 import { LockError, REDIS_KEYS } from './types'
+import { TTLHelper } from './ttlConfig'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -15,7 +16,7 @@ export class DistributedLockManager {
   constructor(redisManager: RedisClientManager) {
     this.redisManager = redisManager
     this.defaultOptions = {
-      ttl: 30000, // 30秒默认TTL
+      ttl: TTLHelper.getTTLForDataType('lock'), // 使用配置的默认锁 TTL
       retryDelay: 100, // 100ms重试延迟
       retryCount: 10, // 最多重试10次
     }
@@ -198,29 +199,36 @@ export class DistributedLockManager {
 
   /**
    * 清理过期的锁（维护操作）
+   * 注意：Redis TTL 会自动清理过期的锁，这个方法主要用于清理异常情况
    */
   async cleanupExpiredLocks(): Promise<number> {
     const client = this.redisManager.getClient()
 
     try {
-      // 获取所有锁键
+      // 获取所有锁键（限制数量以避免性能问题）
       const lockPattern = REDIS_KEYS.LOCK('*')
       const keys = await client.keys(lockPattern)
 
+      // 只处理少量锁，避免大量 Redis 操作
+      const keysToCheck = keys.slice(0, Math.min(50, keys.length))
       let cleanedCount = 0
 
-      for (const key of keys) {
+      for (const key of keysToCheck) {
         const ttl = await client.pttl(key)
 
-        // 如果TTL为-1（永不过期）或-2（键不存在），则清理
-        if (ttl === -1 || ttl === -2) {
+        // 如果TTL为-1（永不过期，异常情况），则清理
+        if (ttl === -1) {
           await client.del(key)
           cleanedCount++
+          logger.warn({ key }, 'Cleaned up lock without TTL (should not happen)')
         }
       }
 
       if (cleanedCount > 0) {
-        logger.info({ cleanedCount }, 'Cleaned up expired locks')
+        logger.info(
+          { cleanedCount, totalLocks: keys.length },
+          'Cleaned up locks without TTL (TTL handles normal expiration)',
+        )
       }
 
       return cleanedCount
