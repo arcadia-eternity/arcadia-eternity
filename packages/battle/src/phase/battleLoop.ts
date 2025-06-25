@@ -23,14 +23,6 @@ export class BattleLoopPhase extends InteractivePhase<Context> {
     return this.battle
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [],
-      during: [],
-      after: [],
-    }
-  }
-
   protected async executeOperation(): Promise<void> {
     const battle = this.battle
 

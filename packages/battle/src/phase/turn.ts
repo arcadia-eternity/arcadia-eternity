@@ -19,14 +19,6 @@ export class TurnPhase extends InteractivePhase<TurnContext> {
     return new TurnContext(this.battle)
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [],
-      during: [], // Individual actions handle their own effects
-      after: [], // TurnEnd is handled manually in executeTurnOperation for correct timing
-    }
-  }
-
   protected async executeOperation(): Promise<void> {
     const context = this._context!
 

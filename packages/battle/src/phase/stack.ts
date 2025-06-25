@@ -38,14 +38,6 @@ export class StackPhase extends SynchronousPhase<StackContext> {
     )
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [], // OnStackBefore is handled in executeOperation
-      during: [], // OnStack is handled in executeOperation
-      after: [],
-    }
-  }
-
   protected executeOperation(): void {
     const context = this._context!
 

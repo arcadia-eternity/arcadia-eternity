@@ -30,14 +30,6 @@ export class BattleSwitchPhase extends InteractivePhase<BattleSwitchContext> {
     return new BattleSwitchContext(this.battle)
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [],
-      during: [],
-      after: [],
-    }
-  }
-
   protected async executeOperation(): Promise<void> {
     // 持续处理更换，直到没有更多需要更换的精灵
     while (true) {

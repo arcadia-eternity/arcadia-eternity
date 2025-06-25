@@ -66,15 +66,6 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
   protected abstract executeOperation(): void
 
   /**
-   * Get the effect triggers that should be applied during this phase
-   */
-  protected abstract getEffectTriggers(): {
-    before?: EffectTrigger[]
-    during?: EffectTrigger[]
-    after?: EffectTrigger[]
-  }
-
-  /**
    * Initialize the phase - create context and prepare for execution
    */
   public initialize(): void {
@@ -114,15 +105,8 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
     this.state = PhaseState.Executing
 
     try {
-      // Apply before effects
-      this.applyEffects('before')
-
       // Execute the core operation
       this.executeOperation()
-
-      // Apply after effects
-      this.applyEffects('after')
-
       this.state = PhaseState.Completed
       this.result = {
         success: true,
@@ -160,14 +144,8 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
     this.state = PhaseState.Executing
 
     try {
-      // Apply before effects
-      await this.applyEffectsAsync('before')
-
       // Execute the core operation
       await this.executeOperationAsync()
-
-      // Apply after effects
-      await this.applyEffectsAsync('after')
 
       this.state = PhaseState.Completed
       this.result = {
@@ -196,13 +174,6 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
    */
   protected async executeOperationAsync(): Promise<void> {
     this.executeOperation()
-  }
-
-  /**
-   * Apply effects asynchronously (default implementation calls sync version)
-   */
-  protected async applyEffectsAsync(stage: 'before' | 'during' | 'after'): Promise<void> {
-    this.applyEffects(stage)
   }
 
   // Async lifecycle hooks - default implementations call sync versions
@@ -311,22 +282,6 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
   private cleanupConfigModifiers(): void {
     this.configModifierCleanups.forEach(cleanup => cleanup())
     this.configModifierCleanups.length = 0
-  }
-
-  /**
-   * Apply effects for the given stage
-   */
-  protected applyEffects(stage: 'before' | 'during' | 'after'): void {
-    if (!this._context) return
-
-    const triggers = this.getEffectTriggers()
-    const stageTriggers = triggers[stage]
-
-    if (stageTriggers) {
-      for (const trigger of stageTriggers) {
-        this.battle.applyEffects(this._context as any, trigger)
-      }
-    }
   }
 
   // Lifecycle hooks - can be overridden by subclasses
@@ -456,14 +411,8 @@ export abstract class InteractivePhase<TContext extends Context = Context> exten
     this.state = PhaseState.Executing
 
     try {
-      // Apply before effects
-      await this.applyEffectsAsync('before')
-
       // Execute the core operation
       await this.executeOperation()
-
-      // Apply after effects
-      await this.applyEffectsAsync('after')
 
       this.state = PhaseState.Completed
       this.result = {

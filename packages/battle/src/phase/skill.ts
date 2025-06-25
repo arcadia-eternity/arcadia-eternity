@@ -29,14 +29,6 @@ export class SkillPhase extends SynchronousPhase<UseSkillContext> {
     return new UseSkillContext(this.parentContext, this.origin, this.pet, this.selectTarget, this.skill)
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [], // BeforeUseSkillCheck is handled in executeOperation
-      during: [], // All skill-related triggers are handled in executeOperation
-      after: [],
-    }
-  }
-
   protected executeOperation(): void {
     const context = this._context!
 

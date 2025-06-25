@@ -28,13 +28,6 @@ export class EffectExecutionPhase<T extends EffectTrigger> extends SynchronousPh
     return this._context!
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [],
-      during: [], // Effects are executed in executeOperation
-      after: [],
-    }
-  }
 
   protected executeOperation(): void {
     const context = this._context!

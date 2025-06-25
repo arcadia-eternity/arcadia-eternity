@@ -35,14 +35,6 @@ export class AddMarkPhase extends SynchronousPhase<AddMarkContext> {
     return new AddMarkContext(this.parentContext, this.target, this.baseMark, this.stack, this.duration, this.config)
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [],
-      during: [], // Mark system handles its own effects
-      after: [],
-    }
-  }
-
   protected executeOperation(): void {
     const context = this._context!
 
@@ -69,14 +61,6 @@ export class RemoveMarkPhase extends SynchronousPhase<RemoveMarkContext> {
     return new RemoveMarkContext(this.parentContext, this.mark)
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [],
-      during: [], // Mark system handles its own effects
-      after: [],
-    }
-  }
-
   protected executeOperation(): void {
     const context = this._context!
 
@@ -101,14 +85,6 @@ export class MarkStackPhase extends SynchronousPhase<StackContext> {
 
   protected createContext(): StackContext {
     return this._context!
-  }
-
-  protected getEffectTriggers() {
-    return {
-      before: [], // OnStackBefore is handled in executeOperation
-      during: [], // OnStack is handled in executeOperation
-      after: [],
-    }
   }
 
   protected executeOperation(): void {
@@ -138,14 +114,6 @@ export class MarkUpdatePhase extends SynchronousPhase<TurnContext> {
     return this._context!
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [],
-      during: [], // OnMarkDurationEnd is handled in executeOperation
-      after: [],
-    }
-  }
-
   protected executeOperation(): void {
     const context = this._context!
 
@@ -170,14 +138,6 @@ export class MarkCleanupPhase extends SynchronousPhase<TurnContext> {
 
   protected createContext(): TurnContext {
     return this._context!
-  }
-
-  protected getEffectTriggers() {
-    return {
-      before: [],
-      during: [],
-      after: [],
-    }
   }
 
   protected executeOperation(): void {
@@ -208,14 +168,6 @@ export class MarkTransferPhase extends SynchronousPhase<SwitchPetContext> {
     return this._context!
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [],
-      during: [EffectTrigger.OnOwnerSwitchOut],
-      after: [],
-    }
-  }
-
   protected executeOperation(): void {
     const context = this._context!
 
@@ -241,14 +193,6 @@ export class MarkSwitchOutPhase extends SynchronousPhase<SwitchPetContext> {
 
   protected createContext(): SwitchPetContext {
     return this._context!
-  }
-
-  protected getEffectTriggers() {
-    return {
-      before: [],
-      during: [EffectTrigger.OnOwnerSwitchOut],
-      after: [],
-    }
   }
 
   protected executeOperation(): void {

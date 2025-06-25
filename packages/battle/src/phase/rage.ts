@@ -35,14 +35,6 @@ export class RagePhase extends SynchronousPhase<RageContext> {
     )
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [],
-      during: [], // OnRageGain and OnRageLoss are handled in executeOperation
-      after: [],
-    }
-  }
-
   protected executeOperation(): void {
     const context = this._context!
 

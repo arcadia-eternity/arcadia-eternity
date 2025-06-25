@@ -49,14 +49,6 @@ export class DamagePhase extends SynchronousPhase<DamageContext> {
     )
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [], // OnBeforeCalculateDamage is handled in executeOperation
-      during: [], // OnDamage, Shield, PostDamage, OnCritPostDamage are handled in executeOperation
-      after: [],
-    }
-  }
-
   protected executeOperation(): void {
     const context = this._context!
 

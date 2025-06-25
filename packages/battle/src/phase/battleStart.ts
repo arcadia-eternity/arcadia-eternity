@@ -17,14 +17,6 @@ export class BattleStartPhase extends SynchronousPhase<Battle> {
     return this.battle
   }
 
-  protected getEffectTriggers() {
-    return {
-      before: [],
-      during: [],
-      after: [EffectTrigger.OnBattleStart],
-    }
-  }
-
   protected executeOperation(): void {
     const battle = this.battle
 
@@ -44,10 +36,8 @@ export class BattleStartPhase extends SynchronousPhase<Battle> {
       cb.lastState = {} as BattleState
     })
 
-    // OnBattleStart effects are applied automatically by the phase system
-    // in the 'during' stage defined in getEffectTriggers()
-
     // Emit battle start message
     battle.emitMessage(BattleMessageType.BattleStart, {})
+    battle.applyEffects(battle, EffectTrigger.OnBattleStart)
   }
 }
