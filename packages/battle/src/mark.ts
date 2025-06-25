@@ -97,19 +97,11 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   detach(): void
   update(context: TurnContext): boolean
   addStack(value: number): void
-  tryStack(context: AddMarkContext): boolean
   consumeStack(context: EffectContext<EffectTrigger> | DamageContext, amount: number): number
   get isStackable(): boolean
   collectEffects(trigger: EffectTrigger, baseContext: AllContext): void
-  destroy(
-    context:
-      | EffectContext<EffectTrigger>
-      | TurnContext
-      | AddMarkContext
-      | SwitchPetContext
-      | RemoveMarkContext
-      | DamageContext,
-  ): void
+
+  cleanupAttributeModifiers(): void
   transfer(context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet): void
   toMessage(): MarkMessage
 }
@@ -248,7 +240,9 @@ export class MarkInstanceImpl implements MarkInstance {
         mark: this.id,
         target: this.owner instanceof Pet ? this.owner.id : 'battle',
       })
-      this.destroy(new RemoveMarkContext(context, this))
+      // Use RemoveMarkPhase for unified mark destruction
+      const removeMarkContext = new RemoveMarkContext(context, this)
+      context.battle.removeMark(removeMarkContext)
       return expired
     }
 
@@ -266,111 +260,14 @@ export class MarkInstanceImpl implements MarkInstance {
     // Note: dirty flag removed, attribute system handles recalculation automatically
   }
 
-  tryStack(context: AddMarkContext): boolean {
-    if (!this.isStackable) return false
-
-    // 始终使用叠加印记的config
-    this.config = context.config || context.baseMark.config
-    const maxStacks = this.config.maxStacks ?? Infinity
-    const strategy = this.config.stackStrategy!
-    const config = {
-      config: context.config,
-      duration: context.duration ?? context.config?.duration,
-      stack: context.stack ?? context.config?.maxStacks,
-    }
-    const newMark = context.baseMark.createInstance(config)
-
-    // 保存叠层前的状态
-    const stacksBefore = this.stack
-    const durationBefore = this.duration
-
-    let newStacks = this.stack
-    let newDuration = this.duration
-
-    // 根据策略计算新的值
-    switch (strategy) {
-      case StackStrategy.stack:
-        newStacks = Math.min(newStacks + newMark.stack, maxStacks)
-        newDuration = Math.max(newDuration, newMark.duration)
-        break
-
-      case StackStrategy.refresh:
-        newDuration = Math.max(newDuration, newMark.duration)
-        break
-
-      case StackStrategy.extend:
-        newStacks = Math.min(newStacks + newMark.stack, maxStacks)
-        newDuration += newMark.duration
-        break
-
-      case StackStrategy.max:
-        newStacks = Math.min(Math.max(newStacks, newMark.stack), maxStacks)
-        newDuration = Math.max(newDuration, newMark.duration)
-        break
-
-      case StackStrategy.replace:
-        newStacks = Math.min(newMark.stack, maxStacks)
-        newDuration = newMark.duration
-        break
-
-      case StackStrategy.remove:
-        this.destroy(new RemoveMarkContext(context, this))
-        return true
-
-      default:
-        return false
-    }
-
-    // 创建StackContext
-    const stackContext = new StackContext(
-      context,
-      this,
-      newMark,
-      stacksBefore,
-      durationBefore,
-      newStacks,
-      newDuration,
-      strategy,
-    )
-
-    // 触发OnStackBefore效果，允许在应用结果前修改叠层数值
-    context.battle.applyEffects(stackContext, EffectTrigger.OnStackBefore)
-
-    // 使用OnStackBefore effect可能修改过的值
-    newStacks = stackContext.stacksAfter
-    newDuration = stackContext.durationAfter
-
-    // 应用最终结果
-    const changed = newStacks !== this.stack || newDuration !== this.duration
-    this.stack = newStacks
-    this.duration = newDuration
-    this.isActive = true
-
-    // 触发OnStack效果，用于基于最终结果的副作用
-    context.battle.applyEffects(stackContext, EffectTrigger.OnStack)
-
-    // 检查是否需要销毁印记（当层数为0时）
-    if (this.stack <= 0) {
-      this.destroy(new RemoveMarkContext(context, this))
-      return true
-    }
-
-    // Note: dirty flag removed, attribute system handles recalculation automatically
-
-    context.battle.emitMessage(BattleMessageType.MarkUpdate, {
-      target: this.owner instanceof Pet ? this.owner.id : 'battle',
-      mark: this.toMessage(),
-    })
-
-    return changed
-  }
-
   consumeStack(context: EffectContext<EffectTrigger> | DamageContext, amount: number): number {
     const actual = Math.min(amount, this.stack)
     this.stack -= actual
 
     if (this.stack <= 0) {
-      this.destroy(new RemoveMarkContext(context, this))
+      // Use RemoveMarkPhase for unified mark destruction
+      const removeMarkContext = new RemoveMarkContext(context, this)
+      context.battle.removeMark(removeMarkContext)
     }
 
     // Note: dirty flag removed, attribute system handles recalculation automatically
@@ -396,7 +293,7 @@ export class MarkInstanceImpl implements MarkInstance {
   }
 
   // Clean up all attribute modifiers
-  private cleanupAttributeModifiers() {
+  public cleanupAttributeModifiers() {
     // Use individual cleanup functions first
     this.attributeModifierCleanups.forEach(cleanup => cleanup())
     this.attributeModifierCleanups = []
@@ -405,31 +302,6 @@ export class MarkInstanceImpl implements MarkInstance {
     if (this.owner instanceof Pet) {
       this.owner.attributeSystem.removeModifiersFromSource(this.id)
     }
-  }
-
-  destroy(context: RemoveMarkContext) {
-    if (!this.isActive || !this.config.destroyable) return
-    //TODO:这俩的语义感觉能分一下
-    context.battle.applyEffects(context, EffectTrigger.OnMarkDestroy, this)
-    context.battle.applyEffects(context, EffectTrigger.OnRemoveMark)
-    this.isActive = false
-
-    // Clean up attribute modifiers before destroying the mark
-    this.cleanupAttributeModifiers()
-
-    // Clean up any transformations caused by this mark
-    context.battle.transformationSystem.cleanupMarkTransformations(this)
-
-    // Use MarkCleanupPhase instead of direct cleanupMarks call
-    // Note: We need a TurnContext for MarkCleanupPhase, but in destroy context we don't have one
-    // For now, we'll create a minimal context or handle this differently
-    // TODO: Consider if mark cleanup should be handled differently in destroy context
-
-    // Note: dirty flag removed, attribute system handles recalculation automatically
-    context.battle.emitMessage(BattleMessageType.MarkDestroy, {
-      mark: this.id,
-      target: this.owner instanceof Pet ? this.owner.id : 'battle',
-    })
   }
 
   public transfer(context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet) {
@@ -542,9 +414,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
 
   private addStatStageModifier(pet: Pet) {
     // Remove existing modifier if any
-    if (this.modifierCleanupFn) {
-      this.modifierCleanupFn()
-    }
+    this.cleanupStatStageModifier()
 
     // Create stage modifier using the computed Observable for automatic updates
     const modifier = new Modifier(
@@ -571,36 +441,6 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
     return (multiplier - 1) * 100
   }
 
-  tryStack(context: AddMarkContext): boolean {
-    const otherMark = context.baseMark
-
-    // 检查是否为同类型的StatLevel印记
-    const isSameStatType = otherMark instanceof BaseStatLevelMark && otherMark.statType === this.base.statType
-    if (!isSameStatType) return super.tryStack(context)
-
-    // 计算新的level值，应用等级限制
-    const STAT_STAGE_MULTIPLIER = [0.25, 0.28, 0.33, 0.4, 0.5, 0.66, 1, 1.5, 2, 2.5, 3, 3.5, 4] as const
-    const maxLevel = (STAT_STAGE_MULTIPLIER.length - 1) / 2
-    const newLevel = Math.max(-maxLevel, Math.min(maxLevel, this.level + otherMark.initialLevel))
-
-    // 如果新level为0，销毁印记
-    if (newLevel === 0) {
-      this.destroy(new RemoveMarkContext(context, this))
-      return true
-    }
-
-    // 检查是否需要更换baseId（符号是否发生变化）
-    if (Math.sign(this.level) !== Math.sign(newLevel)) {
-      // 符号变化，需要创建新印记以确保正确的baseId
-      this.replaceWithNewMark(context, newLevel)
-    } else {
-      // 符号未变化，直接设置level
-      this.level = newLevel
-    }
-
-    return true
-  }
-
   attachTo(target: Pet | Battle) {
     super.attachTo(target)
     if (target instanceof Pet) {
@@ -610,22 +450,17 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
 
   detach(): void {
     super.detach()
-    if (this.modifierCleanupFn) {
-      this.modifierCleanupFn()
-      this.modifierCleanupFn = undefined
-    }
+    this.cleanupStatStageModifier()
   }
 
-  override destroy(context: RemoveMarkContext): void {
-    // Clean up the modifier when the mark is destroyed
+  /**
+   * Clean up the stat stage modifier
+   */
+  public cleanupStatStageModifier(): void {
     if (this.modifierCleanupFn) {
       this.modifierCleanupFn()
       this.modifierCleanupFn = undefined
     }
-    // Clean up the statLevelAttributeSystem
-    // Note: AttributeSystem doesn't need explicit cleanup as it uses BehaviorSubjects
-    // which will be garbage collected when no longer referenced
-    super.destroy(context)
   }
 
   public isOppositeMark(other: StatLevelMarkInstanceImpl): boolean {
@@ -668,10 +503,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
     }
 
     // 清理当前印记的modifier
-    if (this.modifierCleanupFn) {
-      this.modifierCleanupFn()
-      this.modifierCleanupFn = undefined
-    }
+    this.cleanupStatStageModifier()
 
     // 为新印记添加modifier
     if (this.owner instanceof Pet) {

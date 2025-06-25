@@ -480,7 +480,9 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
           (cleanStageStrategy === CleanStageStrategy.negative && stage < 0)
 
         if (shouldClear) {
-          mark.destroy(new RemoveMarkContext(context, mark))
+          // Use RemoveMarkPhase for unified mark destruction
+          const removeMarkContext = new RemoveMarkContext(context, mark)
+          context.battle.removeMark(removeMarkContext)
         }
       })
     })
@@ -515,8 +517,9 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
           (cleanStageStrategy === CleanStageStrategy.negative && stage < 0)
 
         if (shouldReverse) {
-          // Remove the existing mark
-          mark.destroy(new RemoveMarkContext(context, mark))
+          // Remove the existing mark using RemoveMarkPhase
+          const removeMarkContext = new RemoveMarkContext(context, mark)
+          context.battle.removeMark(removeMarkContext)
           // Add a new mark with reversed stage
           this.addStatStage(context, statType, -stage)
         }

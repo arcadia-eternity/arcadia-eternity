@@ -138,7 +138,9 @@ export const Operators = {
     <T extends MarkInstance>(): Operator<T> =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.forEach(m => {
-        m.destroy(context)
+        // Use RemoveMarkPhase for unified mark destruction
+        const removeMarkContext = new RemoveMarkContext(context, m)
+        context.battle.removeMark(removeMarkContext)
       })
     },
 
@@ -745,8 +747,9 @@ export const Operators = {
             // Add the same stage to target pet
             targetPet.addStatStage(context, statType, stage)
 
-            // Remove the mark from source pet
-            mark.destroy(new RemoveMarkContext(context, mark))
+            // Remove the mark from source pet using RemoveMarkPhase
+            const removeMarkContext = new RemoveMarkContext(context, mark)
+            context.battle.removeMark(removeMarkContext)
           }
         })
       })

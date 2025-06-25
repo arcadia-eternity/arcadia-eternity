@@ -225,8 +225,11 @@ export function executeAddMarkOperation(context: AddMarkContext, battle: Battle)
     // Get existing marks in the same mutex group
     const existingMarks = context.target.marks.filter(m => m.config.mutexGroup === context.baseMark.config.mutexGroup)
 
-    // Remove all conflicting marks
-    existingMarks.forEach(mark => mark.destroy(context))
+    // Remove all conflicting marks using RemoveMarkPhase
+    existingMarks.forEach(mark => {
+      const removeMarkContext = new RemoveMarkContext(context, mark)
+      battle.removeMark(removeMarkContext)
+    })
   }
 
   // Create new mark instance
@@ -297,14 +300,47 @@ export function executeAddMarkOperation(context: AddMarkContext, battle: Battle)
 /**
  * Extracted remove mark operation logic
  * This function contains the core mark removal logic, replacing MarkSystem.removeMark
+ * and MarkInstance.destroy logic
  */
 export function executeRemoveMarkOperation(context: RemoveMarkContext, battle: Battle): void {
-  if (context.mark.owner) {
-    context.mark.owner.marks.forEach(mark => {
-      const filtered = mark.id !== context.mark.id
-      if (!filtered) mark.destroy(context)
-    })
+  const mark = context.mark
+
+  // Check if mark can be destroyed
+  if (!mark.isActive || !mark.config.destroyable) return
+
+  // Store owner info before clearing it
+  const owner = mark.owner
+
+  // Apply effects before destroying the mark
+  battle.applyEffects(context, EffectTrigger.OnMarkDestroy, mark)
+  battle.applyEffects(context, EffectTrigger.OnRemoveMark)
+
+  // Mark as inactive
+  mark.isActive = false
+
+  // Clean up attribute modifiers before destroying the mark
+  mark.cleanupAttributeModifiers()
+
+  // Special cleanup for StatLevelMarkInstanceImpl
+  if (mark instanceof StatLevelMarkInstanceImpl) {
+    // Clean up the stat stage modifier
+    mark.cleanupStatStageModifier()
   }
+
+  // Clean up any transformations caused by this mark
+  battle.transformationSystem.cleanupMarkTransformations(mark)
+
+  // Remove mark from owner's marks array
+  if (owner) {
+    owner.marks = owner.marks.filter(m => m !== mark)
+    mark.owner = null
+  }
+
+  // Emit mark destroy message
+  battle.emitMessage(BattleMessageType.MarkDestroy, {
+    mark: mark.id,
+    target: owner instanceof Pet ? owner.id : 'battle',
+  })
 }
 
 /**
