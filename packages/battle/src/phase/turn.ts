@@ -1,8 +1,8 @@
 import { EffectTrigger, BattleMessageType, BattleStatus, BattlePhase } from '@arcadia-eternity/const'
 import { InteractivePhase } from './base'
 import { TurnContext, RageContext, UseSkillContext, SwitchPetContext } from '../context'
-import { SkillPhase, executeSkillOperation } from './skill'
-import { SwitchPetPhase, executeSwitchPetOperation } from './switch'
+import { SkillPhase } from './skill'
+import { SwitchPetPhase } from './switch'
 import { MarkCleanupPhase } from './mark'
 import type { Battle } from '../battle'
 
@@ -51,36 +51,24 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
     turn: battle.currentTurn,
   })
 
-  // Process player selections and create action phases
+  // Process player selections and create contexts for queuing
   for (const selection of [battle.playerA.selection, battle.playerB.selection]) {
     const player = battle.getPlayerByID(selection.player)
 
     switch (selection.type) {
       case 'use-skill': {
         const skill = battle.getSkillByID(selection.skill)
-        const skillPhase = new SkillPhase(battle, player, player.activePet, skill.target, skill, context)
-
-        // Register and initialize the skill phase through PhaseManager
-        battle.phaseManager.registerPhase(skillPhase)
-        battle.phaseManager.executePhase(skillPhase.id)
-        battle.applyEffects(skillPhase.context!, EffectTrigger.BeforeSort)
-        context.pushContext(skillPhase.context!)
-
-        // Note: No need to push to contextQueue separately,
-        // it will be copied from contexts array later
+        // Create UseSkillContext and push to queue for sorting
+        const useSkillContext = new UseSkillContext(context, player, player.activePet, skill.target, skill)
+        battle.applyEffects(useSkillContext, EffectTrigger.BeforeSort)
+        context.pushContext(useSkillContext)
         break
       }
       case 'switch-pet': {
         const pet = battle.getPetByID(selection.pet)
-        const switchPhase = new SwitchPetPhase(battle, player, pet, context)
-
-        // Register and initialize the switch phase through PhaseManager
-        battle.phaseManager.registerPhase(switchPhase)
-        battle.phaseManager.executePhase(switchPhase.id)
-        context.pushContext(switchPhase.context!)
-
-        // Note: No need to push to contextQueue separately,
-        // it will be copied from contexts array later
+        // Create SwitchPetContext and push to queue for sorting
+        const switchPetContext = new SwitchPetContext(context, player, pet)
+        context.pushContext(switchPetContext)
         break
       }
       case 'do-nothing':
@@ -104,10 +92,10 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
   try {
     battle.applyEffects(context, EffectTrigger.TurnStart)
 
-    // Execute all queued contexts
+    // Execute all queued contexts in sorted order
     context.contextQueue = context.contexts.slice()
     while (context.contextQueue.length > 0) {
-      const nowContext = context.contextQueue.pop()
+      const nowContext = context.contextQueue.shift() // 从队列开头取元素，按排序顺序执行
       if (!nowContext) break
 
       context.appledContexts.push(nowContext)
@@ -115,14 +103,25 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
       switch (nowContext.type) {
         case 'use-skill': {
           const _context = nowContext as UseSkillContext
-          // Execute skill operation directly
-          executeSkillOperation(_context, battle)
+          // Create and execute SkillPhase
+          const skillPhase = new SkillPhase(
+            battle,
+            _context.origin,
+            _context.pet,
+            _context.selectTarget,
+            _context.skill,
+            context,
+          )
+          battle.phaseManager.registerPhase(skillPhase)
+          battle.phaseManager.executePhase(skillPhase.id)
           break
         }
         case 'switch-pet': {
           const _context = nowContext as SwitchPetContext
-          // Execute switch operation directly
-          executeSwitchPetOperation(_context, battle)
+          // Create and execute SwitchPetPhase
+          const switchPhase = new SwitchPetPhase(battle, _context.origin, _context.switchInPet, context)
+          battle.phaseManager.registerPhase(switchPhase)
+          battle.phaseManager.executePhase(switchPhase.id)
           break
         }
       }

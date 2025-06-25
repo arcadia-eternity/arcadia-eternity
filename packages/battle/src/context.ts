@@ -61,11 +61,10 @@ export class TurnContext extends Context {
   }
 
   private contextSort(a: Context, b: Context): number {
-    // 类型优先级：换宠 > 印记效果 > 使用技能
-    // 等下，真的有印记效果会在这个时候触发吗？
+    // 类型优先级：换宠 > 使用技能
     const typeOrder: Record<Context['type'], number> = {
-      'switch-pet': 1,
-      'use-skill': 0,
+      'switch-pet': 0, // 换宠优先级最高
+      'use-skill': 1,
     }
 
     // 获取类型顺序值
@@ -80,28 +79,28 @@ export class TurnContext extends Context {
     // 同类型时比较优先级
     switch (aType) {
       case 'switch-pet':
-        // 换宠始终优先
-        return 1
+        // 换宠之间没有优先级差异，保持原顺序
+        return 0
 
       case 'use-skill': {
         const aSkill = a as UseSkillContext
         const bSkill = b as UseSkillContext
 
-        // 先比较技能优先级
+        // 先比较技能优先级（优先级高的先执行，所以是降序）
         if (aSkill.priority !== bSkill.priority) {
-          return aSkill.priority - bSkill.priority
+          return bSkill.priority - aSkill.priority
         }
 
-        // 同优先级比较速度
+        // 同优先级比较速度（速度快的先执行，所以是降序）
         if (aSkill.pet.actualStat.spe !== bSkill.pet.actualStat.spe) {
-          return aSkill.pet.actualStat.spe - bSkill.pet.actualStat.spe
+          return bSkill.pet.actualStat.spe - aSkill.pet.actualStat.spe
         }
 
-        // 速度相同,始终是a先手
-        return -1
+        // 速度相同，保持原顺序
+        return 0
       }
       default:
-        return -1
+        return 0
     }
   }
 

@@ -69,6 +69,11 @@ export function executeSwitchPetOperation(context: SwitchPetContext, battle: Bat
 
   // Switch the active pet
   player.activePet = context.switchInPet
+
+  // Apply switch in effects
+  battle.applyEffects(context, EffectTrigger.OnSwitchIn)
+  player.activePet.switchIn(context)
+
   // Emit switch message
   battle.emitMessage(BattleMessageType.PetSwitch, {
     player: player.id,
@@ -76,10 +81,6 @@ export function executeSwitchPetOperation(context: SwitchPetContext, battle: Bat
     toPet: context.switchInPet.id,
     currentHp: context.switchInPet.currentHp,
   })
-
-  // Apply switch in effects
-  battle.applyEffects(context, EffectTrigger.OnSwitchIn)
-  player.activePet.switchIn(context)
 
   // Reduce rage to 80% after switching
   player.settingRage(Math.floor(player.currentRage * 0.8))

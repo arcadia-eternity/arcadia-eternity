@@ -80,28 +80,7 @@ export class SocketClusterAdapter {
           this.performanceTracker.updateSocketConnections(this.connectionCount)
         }
 
-        // 记录玩家连接到集群状态
-        const sessionId = socket.data.sessionId
-        if (!sessionId) {
-          logger.error({ playerId, socketId: socket.id }, 'SessionId is required for player connection')
-          return
-        }
-
-        const connection: PlayerConnection = {
-          instanceId: this.instanceId,
-          socketId: socket.id,
-          lastSeen: Date.now(),
-          status: 'connected',
-          sessionId: sessionId,
-          metadata: {
-            userAgent: socket.handshake.headers['user-agent'],
-            ip: socket.handshake.address,
-          },
-        }
-
-        await this.stateManager.setPlayerConnection(playerId, connection)
-
-        logger.debug({ playerId, socketId: socket.id }, 'Player connected to cluster')
+        logger.debug({ playerId, socketId: socket.id }, 'Player connected to cluster adapter')
 
         // 监听断开连接
         socket.on('disconnect', async reason => {
@@ -112,35 +91,16 @@ export class SocketClusterAdapter {
               this.performanceTracker.updateSocketConnections(this.connectionCount)
             }
 
-            const sessionId = socket.data.sessionId
-            await this.stateManager.removePlayerConnection(playerId, sessionId)
-            logger.debug({ playerId, socketId: socket.id, reason }, 'Player disconnected from cluster')
+            logger.debug({ playerId, socketId: socket.id, reason }, 'Player disconnected from cluster adapter')
           } catch (error) {
-            logger.error({ error, playerId, socketId: socket.id }, 'Error handling player disconnect')
+            logger.error({ error, playerId, socketId: socket.id }, 'Error handling player disconnect in adapter')
             if (this.performanceTracker) {
               this.performanceTracker.recordError('socket_disconnect_error', 'socketClusterAdapter')
             }
           }
         })
-
-        // 定期更新连接状态
-        const heartbeatInterval = setInterval(async () => {
-          try {
-            const updatedConnection: PlayerConnection = {
-              ...connection,
-              lastSeen: Date.now(),
-            }
-            await this.stateManager.setPlayerConnection(playerId, updatedConnection)
-          } catch (error) {
-            logger.error({ error, playerId, sessionId }, 'Error updating player connection heartbeat')
-          }
-        }, 30000) // 30秒更新一次
-
-        socket.on('disconnect', () => {
-          clearInterval(heartbeatInterval)
-        })
       } catch (error) {
-        logger.error({ error, socketId: socket.id }, 'Error handling socket connection')
+        logger.error({ error, socketId: socket.id }, 'Error handling socket connection in adapter')
       }
     })
   }

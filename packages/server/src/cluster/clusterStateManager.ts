@@ -468,6 +468,9 @@ export class ClusterStateManager extends EventEmitter {
       // 存储会话匹配数据
       await client.hset(REDIS_KEYS.MATCHMAKING_PLAYER(sessionKey), this.serializeMatchmakingEntry(entry))
 
+      // 立即失效匹配队列缓存，确保下次查询获取最新数据
+      this.matchmakingQueueCache = null
+
       // 发布匹配加入事件
       await this.publishEvent({
         type: 'matchmaking:join',
@@ -514,6 +517,9 @@ export class ClusterStateManager extends EventEmitter {
           )
         }
       }
+
+      // 立即失效匹配队列缓存，确保下次查询获取最新数据
+      this.matchmakingQueueCache = null
 
       // 发布匹配离开事件
       await this.publishEvent({

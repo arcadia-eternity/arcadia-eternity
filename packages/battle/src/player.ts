@@ -72,6 +72,7 @@ export class Player {
   public registerBattle(battle: Battle, emitter: Emitter<Events>) {
     this.battle = battle
     this.owner = battle
+    // 所有Player都需要注册监听器来接收battle消息并转发给自己的监听器
     battle.registerListener(this.handleMessage.bind(this))
     this.emitter = emitter
 

@@ -868,11 +868,27 @@ export class ClusterBattleServer {
                   playerId: player1Entry.playerId,
                   sessionId: player1Entry.sessionId,
                   hasConnection: !!p1Connection,
+                  connection: p1Connection
+                    ? {
+                        status: p1Connection.status,
+                        instanceId: p1Connection.instanceId,
+                        socketId: p1Connection.socketId,
+                        lastSeen: p1Connection.lastSeen,
+                      }
+                    : null,
                 },
                 player2: {
                   playerId: player2Entry.playerId,
                   sessionId: player2Entry.sessionId,
                   hasConnection: !!p2Connection,
+                  connection: p2Connection
+                    ? {
+                        status: p2Connection.status,
+                        instanceId: p2Connection.instanceId,
+                        socketId: p2Connection.socketId,
+                        lastSeen: p2Connection.lastSeen,
+                      }
+                    : null,
                 },
               },
               'Player connection check results',
@@ -903,6 +919,37 @@ export class ClusterBattleServer {
                 },
                 'Player sessions not connected, skipping match',
               )
+
+              // 立即清理没有连接的匹配队列条目
+              const cleanupPromises: Promise<void>[] = []
+              if (!p1Connection || p1Connection.status !== 'connected') {
+                logger.info(
+                  { playerId: player1Entry.playerId, sessionId: player1Entry.sessionId },
+                  'Removing disconnected player from matchmaking queue',
+                )
+                cleanupPromises.push(
+                  this.stateManager.removeFromMatchmakingQueue(player1Entry.playerId, player1Entry.sessionId),
+                )
+              }
+              if (!p2Connection || p2Connection.status !== 'connected') {
+                logger.info(
+                  { playerId: player2Entry.playerId, sessionId: player2Entry.sessionId },
+                  'Removing disconnected player from matchmaking queue',
+                )
+                cleanupPromises.push(
+                  this.stateManager.removeFromMatchmakingQueue(player2Entry.playerId, player2Entry.sessionId),
+                )
+              }
+
+              // 等待清理完成
+              await Promise.all(cleanupPromises)
+
+              // 更新匹配队列大小统计
+              if (this.performanceTracker) {
+                const queueSize = await this.stateManager.getMatchmakingQueueSize()
+                this.performanceTracker.updateMatchmakingQueueSize(queueSize)
+              }
+
               return
             }
 
@@ -1707,13 +1754,18 @@ export class ClusterBattleServer {
       const playerId = roomState.sessionPlayers[sessionId]
       if (!playerId) continue
 
-      battle.registerListener(
-        async message => {
-          // 使用批量发送机制
-          await this.addToBatch(playerId, sessionId, message)
-        },
-        { viewerId: playerId as playerId }, // 显示该玩家视角的信息
-      )
+      // 找到对应的Player实例
+      const player = battle.playerA.id === playerId ? battle.playerA : battle.playerB
+      if (!player) {
+        logger.error({ playerId, roomId }, 'Player not found in battle when setting up listeners')
+        continue
+      }
+
+      // 在Player上注册监听器，接收Player转发的消息（已经是该玩家视角）
+      player.registerListener(async message => {
+        // 使用批量发送机制
+        await this.addToBatch(playerId, sessionId, message)
+      })
     }
 
     // 设置Timer事件监听器 - 新架构
@@ -3249,7 +3301,12 @@ export class ClusterBattleServer {
    * 执行其他清理任务
    */
   private async performOtherCleanupTasks(): Promise<void> {
-    await Promise.all([this.cleanupExpiredConnections(), this.cleanupExpiredLocks(), this.cleanupAllCaches()])
+    await Promise.all([
+      this.cleanupExpiredConnections(),
+      this.cleanupExpiredLocks(),
+      this.cleanupAllCaches(),
+      this.cleanupOrphanedMatchmakingEntries(),
+    ])
   }
 
   /**
@@ -3437,6 +3494,48 @@ export class ClusterBattleServer {
   }
 
   /**
+   * 清理孤立的匹配队列条目（没有对应连接的条目）
+   */
+  private async cleanupOrphanedMatchmakingEntries(): Promise<void> {
+    try {
+      const matchmakingQueue = await this.stateManager.getMatchmakingQueue()
+      if (matchmakingQueue.length === 0) {
+        return
+      }
+
+      const entriesToRemove: { playerId: string; sessionId: string }[] = []
+
+      // 检查每个匹配队列条目是否有对应的连接
+      for (const entry of matchmakingQueue) {
+        if (!entry.sessionId) continue
+
+        const connection = await this.stateManager.getPlayerConnectionBySession(entry.playerId, entry.sessionId)
+        if (!connection || connection.status !== 'connected') {
+          entriesToRemove.push({ playerId: entry.playerId, sessionId: entry.sessionId })
+        }
+      }
+
+      // 批量移除孤立的匹配队列条目
+      if (entriesToRemove.length > 0) {
+        await Promise.all(
+          entriesToRemove.map(({ playerId, sessionId }) =>
+            this.stateManager.removeFromMatchmakingQueue(playerId, sessionId),
+          ),
+        )
+        logger.info({ count: entriesToRemove.length }, 'Cleaned up orphaned matchmaking entries')
+
+        // 更新匹配队列大小统计
+        if (this.performanceTracker) {
+          const queueSize = await this.stateManager.getMatchmakingQueueSize()
+          this.performanceTracker.updateMatchmakingQueueSize(queueSize)
+        }
+      }
+    } catch (error) {
+      logger.error({ error }, 'Error cleaning up orphaned matchmaking entries')
+    }
+  }
+
+  /**
    * 清理过期的玩家连接
    */
   private async cleanupExpiredConnections(): Promise<void> {
@@ -3600,6 +3699,17 @@ export class ClusterBattleServer {
     const playerId = socket.data.playerId
     const sessionId = socket.data.sessionId
 
+    logger.info(
+      {
+        socketId: socket.id,
+        playerId,
+        sessionId,
+        hasPlayerId: !!playerId,
+        hasSessionId: !!sessionId,
+      },
+      'Registering player connection',
+    )
+
     // 注册本地socket连接
     this.players.set(socket.id, {
       socket,
@@ -3610,7 +3720,7 @@ export class ClusterBattleServer {
     })
 
     // 更新集群中的玩家连接状态
-    if (playerId) {
+    if (playerId && sessionId) {
       try {
         const connection: PlayerConnection = {
           instanceId: this.instanceId,
@@ -3624,10 +3734,23 @@ export class ClusterBattleServer {
           },
         }
 
+        logger.info({ playerId, sessionId, instanceId: this.instanceId }, 'Setting player connection in cluster')
         await this.stateManager.setPlayerConnection(playerId, connection)
+        logger.info({ playerId, sessionId }, 'Player connection successfully registered in cluster')
       } catch (error) {
-        logger.error({ error, playerId, sessionId }, 'Failed to register player connection')
+        logger.error({ error, playerId, sessionId, socketId: socket.id }, 'Failed to register player connection')
       }
+    } else {
+      logger.warn(
+        {
+          socketId: socket.id,
+          playerId,
+          sessionId,
+          hasPlayerId: !!playerId,
+          hasSessionId: !!sessionId,
+        },
+        'Cannot register player connection - missing playerId or sessionId',
+      )
     }
   }
 
