@@ -19,8 +19,8 @@ import { Battle } from './battle'
 import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { Pet } from './pet'
 import { PlayerAttributeSystem } from './attributeSystem'
-import { executeSkillOperation } from './phase/skill'
-import { executeSwitchPetOperation } from './phase/switch'
+import { SkillPhase } from './phase/skill'
+import { SwitchPetPhase } from './phase/switch'
 import * as jsondiffpatch from 'jsondiffpatch'
 import type { Emitter } from 'mitt'
 
@@ -245,13 +245,24 @@ export class Player {
   public performSwitchPet(context: SwitchPetContext) {
     // Switch logic has been moved to SwitchPetPhase
     // This method now delegates to the phase system
-    executeSwitchPetOperation(context, this.battle!)
+    const switchPhase = new SwitchPetPhase(this.battle!, context.origin, context.switchInPet, context.parent)
+    switchPhase.initialize()
+    switchPhase.execute()
   }
 
   public performAttack(context: UseSkillContext): boolean {
     // Attack logic has been moved to SkillPhase
     // This method now delegates to the phase system
-    executeSkillOperation(context, this.battle!)
+    const skillPhase = new SkillPhase(
+      this.battle!,
+      context.origin,
+      context.pet,
+      context.selectTarget,
+      context.skill,
+      context.parent,
+    )
+    skillPhase.initialize()
+    skillPhase.execute()
     return context.defeated
   }
 

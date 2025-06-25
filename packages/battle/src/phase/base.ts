@@ -41,7 +41,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
   public state: PhaseState = PhaseState.Pending
   public result?: PhaseResult
   protected _context?: TContext
-  private configModifierCleanups: (() => void)[] = []
+  protected configModifierCleanups: (() => void)[] = []
 
   constructor(
     public readonly battle: Battle,
@@ -63,7 +63,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
   /**
    * Abstract method to execute the core operation logic
    */
-  protected abstract executeOperation(): Promise<void> | void
+  protected abstract executeOperation(): void
 
   /**
    * Get the effect triggers that should be applied during this phase
@@ -77,7 +77,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
   /**
    * Initialize the phase - create context and prepare for execution
    */
-  public async initialize(): Promise<void> {
+  public initialize(): void {
     if (this.state !== PhaseState.Pending) {
       throw new Error(`Cannot initialize phase in state: ${this.state}`)
     }
@@ -86,7 +86,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
 
     try {
       this._context = this.createContext()
-      await this.onInitialize()
+      this.onInitialize()
       this.state = PhaseState.Pending // Ready for execution
     } catch (error) {
       this.state = PhaseState.Failed
@@ -100,9 +100,9 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
   }
 
   /**
-   * Execute the phase
+   * Execute the phase (synchronous version)
    */
-  public async execute(): Promise<PhaseResult> {
+  public execute(): PhaseResult {
     if (this.state !== PhaseState.Pending) {
       throw new Error(`Cannot execute phase in state: ${this.state}`)
     }
@@ -115,13 +115,13 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
 
     try {
       // Apply before effects
-      await this.applyEffects('before')
+      this.applyEffects('before')
 
       // Execute the core operation
-      await this.executeOperation()
+      this.executeOperation()
 
       // Apply after effects
-      await this.applyEffects('after')
+      this.applyEffects('after')
 
       this.state = PhaseState.Completed
       this.result = {
@@ -129,7 +129,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
         state: this.state,
       }
 
-      await this.onComplete()
+      this.onComplete()
 
       return this.result
     } catch (error) {
@@ -140,15 +140,92 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
         error: error instanceof Error ? error : new Error(String(error)),
       }
 
-      await this.onError(this.result.error!)
+      this.onError(this.result.error!)
       throw error
     }
   }
 
   /**
+   * Execute the phase asynchronously (for async phases)
+   */
+  public async executeAsync(): Promise<PhaseResult> {
+    if (this.state !== PhaseState.Pending) {
+      throw new Error(`Cannot execute phase in state: ${this.state}`)
+    }
+
+    if (!this._context) {
+      throw new Error('Phase not initialized - context is missing')
+    }
+
+    this.state = PhaseState.Executing
+
+    try {
+      // Apply before effects
+      await this.applyEffectsAsync('before')
+
+      // Execute the core operation
+      await this.executeOperationAsync()
+
+      // Apply after effects
+      await this.applyEffectsAsync('after')
+
+      this.state = PhaseState.Completed
+      this.result = {
+        success: true,
+        state: this.state,
+      }
+
+      await this.onCompleteAsync()
+
+      return this.result
+    } catch (error) {
+      this.state = PhaseState.Failed
+      this.result = {
+        success: false,
+        state: this.state,
+        error: error instanceof Error ? error : new Error(String(error)),
+      }
+
+      await this.onErrorAsync(this.result.error!)
+      throw error
+    }
+  }
+
+  /**
+   * Execute operation asynchronously (default implementation calls sync version)
+   */
+  protected async executeOperationAsync(): Promise<void> {
+    this.executeOperation()
+  }
+
+  /**
+   * Apply effects asynchronously (default implementation calls sync version)
+   */
+  protected async applyEffectsAsync(stage: 'before' | 'during' | 'after'): Promise<void> {
+    this.applyEffects(stage)
+  }
+
+  // Async lifecycle hooks - default implementations call sync versions
+  protected async onInitializeAsync(): Promise<void> {
+    this.onInitialize()
+  }
+  protected async onCompleteAsync(): Promise<void> {
+    this.onComplete()
+  }
+  protected async onErrorAsync(error: Error): Promise<void> {
+    this.onError(error)
+  }
+  protected async onCancelAsync(): Promise<void> {
+    this.onCancel()
+  }
+  protected async onCleanupAsync(): Promise<void> {
+    this.onCleanup()
+  }
+
+  /**
    * Cancel the phase execution
    */
-  public async cancel(): Promise<void> {
+  public cancel(): void {
     if (this.state === PhaseState.Completed || this.state === PhaseState.Failed) {
       return // Already finished
     }
@@ -159,17 +236,17 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
       state: this.state,
     }
 
-    await this.onCancel()
+    this.onCancel()
   }
 
   /**
    * Cleanup phase resources
    */
-  public async cleanup(): Promise<void> {
+  public cleanup(): void {
     // Cleanup all config modifiers
     this.cleanupConfigModifiers()
 
-    await this.onCleanup()
+    this.onCleanup()
     this._context = undefined
   }
 
@@ -239,7 +316,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
   /**
    * Apply effects for the given stage
    */
-  protected async applyEffects(stage: 'before' | 'during' | 'after'): Promise<void> {
+  protected applyEffects(stage: 'before' | 'during' | 'after'): void {
     if (!this._context) return
 
     const triggers = this.getEffectTriggers()
@@ -253,11 +330,11 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
   }
 
   // Lifecycle hooks - can be overridden by subclasses
-  protected async onInitialize(): Promise<void> {}
-  protected async onComplete(): Promise<void> {}
-  protected async onError(error: Error): Promise<void> {}
-  protected async onCancel(): Promise<void> {}
-  protected async onCleanup(): Promise<void> {}
+  protected onInitialize(): void {}
+  protected onComplete(): void {}
+  protected onError(error: Error): void {}
+  protected onCancel(): void {}
+  protected onCleanup(): void {}
 
   /**
    * Check if the phase can be executed
@@ -282,12 +359,166 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
 }
 
 /**
+ * Base class for synchronous phases that don't need to wait for external input
+ * These phases execute immediately without async operations
+ */
+export abstract class SynchronousPhase<TContext extends Context = Context> extends BattlePhaseBase<TContext> {
+  /**
+   * Abstract method to execute the core operation logic synchronously
+   */
+  protected abstract executeOperation(): void
+
+  /**
+   * Execute the phase synchronously - override the execute method
+   */
+  public execute(): PhaseResult {
+    if (!this.canExecute()) {
+      throw new Error(`Cannot execute phase in state: ${this.state}`)
+    }
+
+    this.state = PhaseState.Executing
+
+    try {
+      // Execute the core operation synchronously (no await)
+      this.executeOperation()
+
+      this.state = PhaseState.Completed
+      this.result = {
+        success: true,
+        state: this.state,
+      }
+
+      return this.result
+    } catch (error) {
+      this.state = PhaseState.Failed
+      this.result = {
+        success: false,
+        state: this.state,
+        error: error instanceof Error ? error : new Error(String(error)),
+      }
+
+      throw error
+    }
+  }
+}
+
+/**
  * Base class for phases that need to wait for external input (like player selections)
+ * These phases override the base class methods to support asynchronous operations
  */
 export abstract class InteractivePhase<TContext extends Context = Context> extends BattlePhaseBase<TContext> {
   protected waitingForInput: boolean = false
   protected inputResolver?: (value: any) => void
   protected inputRejecter?: (reason: any) => void
+
+  /**
+   * Abstract method to execute the core operation logic asynchronously
+   */
+  protected abstract executeOperation(): Promise<void>
+
+  /**
+   * Initialize the phase asynchronously
+   */
+  public async initializeAsync(): Promise<void> {
+    if (this.state !== PhaseState.Pending) {
+      throw new Error(`Cannot initialize phase in state: ${this.state}`)
+    }
+
+    this.state = PhaseState.Initializing
+
+    try {
+      this._context = this.createContext()
+      await this.onInitializeAsync()
+      this.state = PhaseState.Pending // Ready for execution
+    } catch (error) {
+      this.state = PhaseState.Failed
+      this.result = {
+        success: false,
+        state: this.state,
+        error: error instanceof Error ? error : new Error(String(error)),
+      }
+      throw error
+    }
+  }
+
+  /**
+   * Execute the phase asynchronously
+   */
+  public async executeAsync(): Promise<PhaseResult> {
+    if (this.state !== PhaseState.Pending) {
+      throw new Error(`Cannot execute phase in state: ${this.state}`)
+    }
+
+    if (!this._context) {
+      throw new Error('Phase not initialized - context is missing')
+    }
+
+    this.state = PhaseState.Executing
+
+    try {
+      // Apply before effects
+      await this.applyEffectsAsync('before')
+
+      // Execute the core operation
+      await this.executeOperation()
+
+      // Apply after effects
+      await this.applyEffectsAsync('after')
+
+      this.state = PhaseState.Completed
+      this.result = {
+        success: true,
+        state: this.state,
+      }
+
+      await this.onCompleteAsync()
+
+      return this.result
+    } catch (error) {
+      this.state = PhaseState.Failed
+      this.result = {
+        success: false,
+        state: this.state,
+        error: error instanceof Error ? error : new Error(String(error)),
+      }
+
+      await this.onErrorAsync(this.result.error!)
+      throw error
+    }
+  }
+
+  /**
+   * Cancel the phase execution asynchronously
+   */
+  public async cancelAsync(): Promise<void> {
+    if (this.state === PhaseState.Completed || this.state === PhaseState.Failed) {
+      return // Already finished
+    }
+
+    this.state = PhaseState.Cancelled
+    this.result = {
+      success: false,
+      state: this.state,
+    }
+
+    if (this.waitingForInput) {
+      this.rejectInput(new Error('Phase cancelled'))
+    }
+
+    await this.onCancelAsync()
+  }
+
+  /**
+   * Cleanup phase resources asynchronously
+   */
+  public async cleanupAsync(): Promise<void> {
+    // Cleanup all config modifiers
+    this.configModifierCleanups.forEach(cleanup => cleanup())
+    this.configModifierCleanups.length = 0
+
+    await this.onCleanupAsync()
+    this._context = undefined
+  }
 
   /**
    * Wait for external input
@@ -322,12 +553,5 @@ export abstract class InteractivePhase<TContext extends Context = Context> exten
       this.inputResolver = undefined
       this.inputRejecter = undefined
     }
-  }
-
-  public override async cancel(): Promise<void> {
-    if (this.waitingForInput) {
-      this.rejectInput(new Error('Phase cancelled'))
-    }
-    await super.cancel()
   }
 }

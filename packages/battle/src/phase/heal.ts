@@ -1,5 +1,5 @@
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
-import { BattlePhaseBase } from './base'
+import { SynchronousPhase } from './base'
 import { HealContext } from '../context'
 import type { Battle } from '../battle'
 import type { Pet } from '../pet'
@@ -10,7 +10,7 @@ import type { SkillInstance } from '../skill'
  * HealPhase handles healing operations
  * Corresponds to HealContext and replaces healing logic
  */
-export class HealPhase extends BattlePhaseBase<HealContext> {
+export class HealPhase extends SynchronousPhase<HealContext> {
   constructor(
     battle: Battle,
     private readonly parentContext: any, // EffectContext
@@ -36,11 +36,11 @@ export class HealPhase extends BattlePhaseBase<HealContext> {
     }
   }
 
-  protected async executeOperation(): Promise<void> {
+  protected executeOperation(): void {
     const context = this._context!
 
     // Execute the heal operation logic (extracted from Pet.heal)
-    await executeHealOperation(context, this.battle)
+    executeHealOperation(context, this.battle)
   }
 }
 
@@ -48,7 +48,7 @@ export class HealPhase extends BattlePhaseBase<HealContext> {
  * Extracted heal operation logic from Pet.heal
  * This function contains the core healing logic
  */
-export async function executeHealOperation(context: HealContext, battle: Battle): Promise<void> {
+export function executeHealOperation(context: HealContext, battle: Battle): void {
   // Apply OnBeforeHeal effects to modify healing value
   battle.applyEffects(context, EffectTrigger.OnBeforeHeal)
   context.updateHealResult()

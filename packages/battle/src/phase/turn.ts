@@ -1,8 +1,9 @@
-import { EffectTrigger, BattleMessageType, RAGE_PER_TURN, BattleStatus, BattlePhase } from '@arcadia-eternity/const'
+import { EffectTrigger, BattleMessageType, BattleStatus, BattlePhase } from '@arcadia-eternity/const'
 import { InteractivePhase } from './base'
 import { TurnContext, RageContext, UseSkillContext, SwitchPetContext } from '../context'
-import { SkillPhase } from './skill'
-import { SwitchPetPhase } from './switch'
+import { SkillPhase, executeSkillOperation } from './skill'
+import { SwitchPetPhase, executeSwitchPetOperation } from './switch'
+import { MarkCleanupPhase } from './mark'
 import type { Battle } from '../battle'
 
 /**
@@ -30,7 +31,8 @@ export class TurnPhase extends InteractivePhase<TurnContext> {
     const context = this._context!
 
     // Execute the turn operation logic (extracted from performTurn)
-    await executeTurnOperation(context, this.battle)
+    // Note: executeTurnOperation is synchronous but we wrap it in async
+    executeTurnOperation(context, this.battle)
   }
 }
 
@@ -38,7 +40,7 @@ export class TurnPhase extends InteractivePhase<TurnContext> {
  * Extracted turn operation logic from Battle.performTurn
  * This function contains the core turn execution logic
  */
-export async function executeTurnOperation(context: TurnContext, battle: Battle): Promise<void> {
+export function executeTurnOperation(context: TurnContext, battle: Battle): void {
   if (!battle.playerA.selection || !battle.playerB.selection) {
     throw new Error('有人还未选择好！')
   }
@@ -59,7 +61,7 @@ export async function executeTurnOperation(context: TurnContext, battle: Battle)
         const skillPhase = new SkillPhase(battle, player, player.activePet, skill.target, skill, context)
 
         // Initialize and queue the skill phase
-        await skillPhase.initialize()
+        skillPhase.initialize()
         battle.applyEffects(skillPhase.context!, EffectTrigger.BeforeSort)
         context.pushContext(skillPhase.context!)
 
@@ -72,7 +74,7 @@ export async function executeTurnOperation(context: TurnContext, battle: Battle)
         const switchPhase = new SwitchPetPhase(battle, player, pet, context)
 
         // Initialize and queue the switch phase
-        await switchPhase.initialize()
+        switchPhase.initialize()
         context.pushContext(switchPhase.context!)
 
         // Note: No need to push to contextQueue separately,
@@ -111,24 +113,33 @@ export async function executeTurnOperation(context: TurnContext, battle: Battle)
       switch (nowContext.type) {
         case 'use-skill': {
           const _context = nowContext as UseSkillContext
-          _context.origin.performAttack(_context)
+          // Execute skill operation directly
+          executeSkillOperation(_context, battle)
           break
         }
         case 'switch-pet': {
           const _context = nowContext as SwitchPetContext
-          _context.origin.performSwitchPet(_context)
+          // Execute switch operation directly
+          executeSwitchPetOperation(_context, battle)
           break
         }
       }
 
-      battle.cleanupMarks()
+      // Use MarkCleanupPhase instead of direct cleanupMarks call
+      const markCleanupPhase = new MarkCleanupPhase(battle, context)
+      markCleanupPhase.initialize()
+      markCleanupPhase.execute()
     }
 
     // Apply TurnEnd effects before adding rage (correct timing)
     battle.applyEffects(context, EffectTrigger.TurnEnd)
     addTurnRage(context, battle) // Add rage at turn end
     updateTurnMark(context, battle)
-    battle.cleanupMarks()
+
+    // Use MarkCleanupPhase instead of direct cleanupMarks call
+    const finalMarkCleanupPhase = new MarkCleanupPhase(battle, context)
+    finalMarkCleanupPhase.initialize()
+    finalMarkCleanupPhase.execute()
   } finally {
     battle.emitMessage(BattleMessageType.TurnEnd, {
       turn: battle.currentTurn,

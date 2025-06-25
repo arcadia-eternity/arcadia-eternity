@@ -1,5 +1,5 @@
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
-import { BattlePhaseBase } from './base'
+import { SynchronousPhase } from './base'
 import { SwitchPetContext } from '../context'
 import type { Battle } from '../battle'
 import type { Player } from '../player'
@@ -9,7 +9,7 @@ import type { Pet } from '../pet'
  * SwitchPetPhase handles pet switching operations
  * Corresponds to SwitchPetContext and replaces performSwitchPet logic
  */
-export class SwitchPetPhase extends BattlePhaseBase<SwitchPetContext> {
+export class SwitchPetPhase extends SynchronousPhase<SwitchPetContext> {
   constructor(
     battle: Battle,
     private readonly origin: Player,
@@ -32,11 +32,11 @@ export class SwitchPetPhase extends BattlePhaseBase<SwitchPetContext> {
     }
   }
 
-  protected async executeOperation(): Promise<void> {
+  protected executeOperation(): void {
     const context = this._context!
 
     // Execute the switch operation logic (extracted from performSwitchPet)
-    await executeSwitchPetOperation(context, this.battle)
+    executeSwitchPetOperation(context, this.battle)
   }
 }
 
@@ -44,7 +44,7 @@ export class SwitchPetPhase extends BattlePhaseBase<SwitchPetContext> {
  * Extracted switch pet operation logic from Player.performSwitchPet
  * This function contains the core pet switching logic
  */
-export async function executeSwitchPetOperation(context: SwitchPetContext, battle: Battle): Promise<void> {
+export function executeSwitchPetOperation(context: SwitchPetContext, battle: Battle): void {
   const player = context.origin
 
   // Check if new pet is available

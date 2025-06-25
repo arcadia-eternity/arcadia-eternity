@@ -1,5 +1,5 @@
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
-import { BattlePhaseBase } from './base'
+import { SynchronousPhase } from './base'
 import { RageContext } from '../context'
 import type { Battle } from '../battle'
 import type { Player } from '../player'
@@ -8,7 +8,7 @@ import type { Player } from '../player'
  * RagePhase handles rage modification operations
  * Corresponds to RageContext and replaces rage modification logic
  */
-export class RagePhase extends BattlePhaseBase<RageContext> {
+export class RagePhase extends SynchronousPhase<RageContext> {
   constructor(
     battle: Battle,
     private readonly parentContext: any, // UseSkillContext, EffectContext, or TurnContext
@@ -43,11 +43,11 @@ export class RagePhase extends BattlePhaseBase<RageContext> {
     }
   }
 
-  protected async executeOperation(): Promise<void> {
+  protected executeOperation(): void {
     const context = this._context!
 
     // Execute the rage operation logic (extracted from Player.addRage)
-    await executeRageOperation(context, this.battle)
+    executeRageOperation(context, this.battle)
   }
 }
 
@@ -55,7 +55,7 @@ export class RagePhase extends BattlePhaseBase<RageContext> {
  * Extracted rage operation logic from Player.addRage
  * This function contains the core rage modification logic
  */
-export async function executeRageOperation(context: RageContext, battle: Battle): Promise<void> {
+export function executeRageOperation(context: RageContext, battle: Battle): void {
   const before = context.target.currentRage
 
   switch (context.modifiedType) {

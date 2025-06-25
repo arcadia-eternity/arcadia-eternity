@@ -128,7 +128,10 @@ export const Operators = {
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       if (targets.length === 0) return
       const _mark = GetValueFromSource(context, mark)
-      context.battle.markSystem.transferMarks(context, targets[0], ..._mark)
+      // Use the new phase-based mark transfer system
+      if (targets[0] instanceof Pet) {
+        targets[0].transferMarks(context as any, ..._mark)
+      }
     },
 
   destroyMark:

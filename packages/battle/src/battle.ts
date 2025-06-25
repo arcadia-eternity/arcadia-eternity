@@ -18,9 +18,9 @@ import {
 import Prando from 'prando'
 import { ConfigSystem } from './config'
 import { AddMarkContext, Context, RemoveMarkContext, type TriggerContextMap } from './context'
-import { type EffectContainer, EffectScheduler } from './effect'
+import { type EffectContainer } from './effect'
 import { type MarkOwner } from './entity'
-import { type MarkInstance, MarkSystem } from './mark'
+import { type MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
 import { SkillInstance } from './skill'
@@ -28,7 +28,9 @@ import { AttributeSystem } from './attributeSystem'
 import * as jsondiffpatch from 'jsondiffpatch'
 import { nanoid } from 'nanoid'
 import mitt from 'mitt'
-import { PhaseManager, SwitchPetPhase, TurnPhase } from './phase'
+import { PhaseManager, BattleSwitchPhase, SelectionPhase, SwitchPetPhase, TurnPhase } from './phase'
+import { EffectExecutionPhase } from './phase/effectExecution'
+import { AddMarkPhase, RemoveMarkPhase } from './phase/mark'
 import { TimerManager } from './timer'
 import { TransformationSystem } from './transformation'
 import { createChildLogger } from './logger'
@@ -43,9 +45,7 @@ export class Battle extends Context implements MarkOwner {
 
   public readonly parent: null = null
   public readonly battle: Battle = this
-  public readonly effectScheduler: EffectScheduler = new EffectScheduler()
   public readonly configSystem: ConfigSystem
-  public readonly markSystem: MarkSystem = new MarkSystem(this)
   public readonly phaseManager: PhaseManager = new PhaseManager(this)
   public readonly timerManager: TimerManager
   public readonly transformationSystem: TransformationSystem = new TransformationSystem(this)
@@ -225,11 +225,23 @@ export class Battle extends Context implements MarkOwner {
   }
 
   public addMark(context: AddMarkContext) {
-    this.markSystem.addMark(this, context)
+    const addMarkPhase = new AddMarkPhase(
+      this,
+      context.parent,
+      context.target,
+      context.baseMark,
+      context.stack,
+      context.duration,
+      context.config,
+    )
+    addMarkPhase.initialize()
+    addMarkPhase.execute()
   }
 
   public removeMark(context: RemoveMarkContext) {
-    this.markSystem.removeMark(this, context)
+    const removeMarkPhase = new RemoveMarkPhase(this, context.parent, context.mark)
+    removeMarkPhase.initialize()
+    removeMarkPhase.execute()
   }
 
   public getOpponent(player: Player) {
@@ -238,23 +250,7 @@ export class Battle extends Context implements MarkOwner {
   }
 
   // Turn rage and mark update logic moved to TurnPhase
-
-  public cleanupMarks() {
-    // 清理战场标记
-    this.marks = this.marks.filter(mark => {
-      return mark.isActive
-    })
-
-    // 清理玩家精灵标记
-    const cleanPetMarks = (pet: Pet) => {
-      pet.marks = pet.marks.filter(mark => {
-        return mark.isActive || mark.owner !== pet
-      })
-    }
-
-    cleanPetMarks(this.playerA.activePet)
-    cleanPetMarks(this.playerB.activePet)
-  }
+  // cleanupMarks logic moved to MarkCleanupPhase
 
   public getPlayerByID(id: playerId): Player {
     const player = [this.playerA, this.playerB].find(p => p.id === id)
@@ -289,16 +285,15 @@ export class Battle extends Context implements MarkOwner {
         ...this.playerB.team.map(p => p.skills).flat(),
       ]
 
-    // 阶段1：收集所有待触发效果
-    effectContainers.forEach(container => container.collectEffects(trigger, context))
-
-    // 阶段2：按全局优先级执行
-    this.effectScheduler.flushEffects(context)
+    // Use EffectExecutionPhase instead of EffectScheduler
+    const effectExecutionPhase = new EffectExecutionPhase(this, context, trigger, effectContainers)
+    effectExecutionPhase.initialize()
+    effectExecutionPhase.execute()
   }
 
   // Turn execution logic has been moved to TurnPhase
 
-  private isBattleEnded(): boolean {
+  public isBattleEnded(): boolean {
     if (this.status === BattleStatus.Ended) return true
     if (this.victor) return true
     // 检查强制换宠失败
@@ -346,21 +341,29 @@ export class Battle extends Context implements MarkOwner {
     this.applyEffects(this, EffectTrigger.OnBattleStart)
     this.emitMessage(BattleMessageType.BattleStart, {})
 
-    // Main battle loop using phases
+    // Main battle loop using PhaseManager
     while (true) {
       // Phase 1: Handle switches (forced and faint switches)
       this.currentPhase = BattlePhase.SwitchPhase
-      const switchResult = await this.handleSwitchPhase()
-      if (switchResult.battleEnded) break
+      const switchPhase = new BattleSwitchPhase(this)
+      this.phaseManager.registerPhase(switchPhase)
+      await this.phaseManager.executePhase(switchPhase.id)
+
+      if (this.isBattleEnded()) break
 
       // Phase 2: Collect player actions
       this.currentPhase = BattlePhase.SelectionPhase
-      await this.handleSelectionPhase()
+      const selectionPhase = new SelectionPhase(this)
+      this.phaseManager.registerPhase(selectionPhase)
+      await this.phaseManager.executePhase(selectionPhase.id)
 
       // Phase 3: Execute turn
       this.currentPhase = BattlePhase.ExecutionPhase
-      const turnResult = await this.handleExecutionPhase()
-      if (turnResult.battleEnded) break
+      const turnPhase = new TurnPhase(this)
+      this.phaseManager.registerPhase(turnPhase)
+      await this.phaseManager.executePhase(turnPhase.id)
+
+      if (this.isBattleEnded()) break
 
       this.clearSelections()
     }
@@ -376,7 +379,7 @@ export class Battle extends Context implements MarkOwner {
     )
   }
 
-  private clearSelections() {
+  public clearSelections() {
     this.playerA.selection = null
     this.playerB.selection = null
 
@@ -518,126 +521,13 @@ export class Battle extends Context implements MarkOwner {
 
   // Phase handler methods for the new phase-based battle system
 
-  private async handleSwitchPhase(): Promise<{ battleEnded: boolean }> {
-    // 持续处理更换，直到没有更多需要更换的精灵
-    while (true) {
-      // 收集需要强制更换的玩家
-      this.pendingForcedSwitches = [this.playerA, this.playerB].filter(player => !player.activePet.isAlive)
-
-      // 检查是否有击破奖励更换
-      // 重要：如果双方都需要强制更换，则不应该有击破奖励更换
-      if (this.allowFaintSwitch && this.lastKiller && this.pendingForcedSwitches.length < 2) {
-        this.pendingFaintSwitch = this.lastKiller
-      } else {
-        this.pendingFaintSwitch = undefined
-      }
-
-      // 如果没有任何需要更换的情况，退出循环
-      if (this.pendingForcedSwitches.length === 0 && !this.pendingFaintSwitch) {
-        break
-      }
-
-      // 检查战斗是否结束
-      if (this.isBattleEnded()) {
-        return { battleEnded: true }
-      }
-
-      // 判断是否为初始更换阶段（需要同时执行）
-      this.isInitialSwitchPhase = this.pendingForcedSwitches.length > 0 || this.pendingFaintSwitch !== undefined
-
-      // 处理初始更换阶段（强制更换和击破奖励更换同时进行）
-      if (this.isInitialSwitchPhase) {
-        const initialSwitchResult = await this.handleInitialSwitchPhase()
-        if (initialSwitchResult.battleEnded) {
-          return { battleEnded: true }
-        }
-      }
-
-      // 重置状态，准备下一轮检查
-      this.isInitialSwitchPhase = false
-      this.pendingForcedSwitches = []
-      this.pendingFaintSwitch = undefined
-      this.lastKiller = undefined
-    }
-
-    return { battleEnded: false }
-  }
-
-  private async handleInitialSwitchPhase(): Promise<{ battleEnded: boolean }> {
-    // 收集所有需要做选择的玩家
-    const playersNeedingSelection: Player[] = []
-
-    // 添加强制更换的玩家
-    playersNeedingSelection.push(...this.pendingForcedSwitches)
-
-    // 添加击破奖励更换的玩家
-    if (this.pendingFaintSwitch) {
-      playersNeedingSelection.push(this.pendingFaintSwitch)
-    }
-
-    // 发送消息通知需要更换
-    if (this.pendingForcedSwitches.length > 0) {
-      this.emitMessage(BattleMessageType.ForcedSwitch, {
-        player: this.pendingForcedSwitches.map(player => player.id),
-      })
-    }
-
-    if (this.pendingFaintSwitch) {
-      this.emitMessage(BattleMessageType.FaintSwitch, {
-        player: this.pendingFaintSwitch.id,
-      })
-    }
-
-    // 启动切换阶段计时器
-    this.timerManager.startSwitchPhase(playersNeedingSelection.map(player => player.id))
-
-    // 等待所有玩家做出选择
-    await this.waitForSwitchSelections(playersNeedingSelection)
-
-    // 同时执行所有更换
-    for (const player of playersNeedingSelection) {
-      if (player.selection?.type === 'switch-pet') {
-        const selectionPet = this.getPetByID((player.selection as SwitchPetSelection).pet)
-        const switchPhase = new SwitchPetPhase(this, player, selectionPet, this)
-        await switchPhase.initialize()
-        await switchPhase.execute()
-      }
-      player.selection = null
-      // 通知TimerManager选择状态已清理
-      this.timerManager.handlePlayerSelectionChange(player.id, false)
-    }
-
-    return { battleEnded: false }
-  }
-
-  private async handleSelectionPhase(): Promise<void> {
-    this.clearSelections()
-    this.emitMessage(BattleMessageType.TurnAction, {
-      player: [this.playerA.id, this.playerB.id],
-    })
-
-    // 启动新回合计时器（重置但不启动，等待前端报告动画开始）
-    this.timerManager.startNewTurn([this.playerA.id, this.playerB.id])
-
-    // Wait for both players to make selections
-    await this.waitForBothPlayersReady()
-  }
-
-  private async handleExecutionPhase(): Promise<{ battleEnded: boolean }> {
-    const turnPhase = new TurnPhase(this)
-    await turnPhase.initialize()
-    await turnPhase.execute()
-
-    return { battleEnded: this.isBattleEnded() }
-  }
-
   // Event-driven waiting methods (no timers)
   private waitingResolvers: {
     switchSelections?: { players: Player[]; resolve: () => void }
     bothPlayersReady?: { resolve: () => void }
   } = {}
 
-  private async waitForSwitchSelections(players: Player[]): Promise<void> {
+  public async waitForSwitchSelections(players: Player[]): Promise<void> {
     // Check if already ready
     // 对于强制更换，必须选择switch-pet
     // 对于击破奖励更换，可以选择switch-pet或do-nothing
@@ -666,7 +556,7 @@ export class Battle extends Context implements MarkOwner {
     })
   }
 
-  private async waitForBothPlayersReady(): Promise<void> {
+  public async waitForBothPlayersReady(): Promise<void> {
     // Check if already ready
     if (this.bothPlayersReady()) {
       return

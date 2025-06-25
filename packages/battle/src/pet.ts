@@ -33,8 +33,9 @@ import { BaseMark, CreateStatStageMark, type MarkInstance, StatLevelMarkInstance
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
 import { PetAttributeSystem } from './attributeSystem'
-import { executeDamageOperation } from './phase/damage'
-import { executeHealOperation } from './phase/heal'
+import { DamagePhase } from './phase/damage'
+import { HealPhase } from './phase/heal'
+import { MarkTransferPhase, MarkSwitchOutPhase } from './phase/mark'
 import type { Emitter } from 'mitt'
 
 export interface Species extends Prototype {
@@ -155,23 +156,50 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public damage(context: DamageContext): boolean {
     // Damage logic has been moved to DamagePhase
     // This method now delegates to the phase system
-    executeDamageOperation(context, context.battle)
+    const damagePhase = new DamagePhase(
+      context.battle,
+      context.parent,
+      context.source,
+      context.target,
+      context.baseDamage,
+      context.damageType,
+      context.crit,
+      context.effectiveness,
+      context.ignoreShield,
+      context.randomFactor,
+      context.modified,
+      context.minThreshold,
+      context.maxThreshold,
+      context.element,
+    )
+    damagePhase.initialize()
+    damagePhase.execute()
     return this.isAlive
   }
 
   public heal(context: HealContext): boolean {
     // Heal logic has been moved to HealPhase
     // This method now delegates to the phase system
-    executeHealOperation(context, context.battle)
+    const healPhase = new HealPhase(
+      context.battle,
+      context.parent,
+      context.source,
+      context.target,
+      context.baseHeal,
+      context.ingoreEffect,
+      context.modified,
+    )
+    healPhase.initialize()
+    healPhase.execute()
     return this.isAlive
   }
 
   public addMark(context: AddMarkContext) {
-    context.battle.markSystem.addMark(this, context)
+    context.battle.addMark(context)
   }
 
   public removeMark(context: RemoveMarkContext) {
-    context.battle.markSystem.removeMark(this, context)
+    context.battle.removeMark(context)
   }
 
   public getShieldMark() {
@@ -497,13 +525,17 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   public transferMarks(context: SwitchPetContext, ...marks: MarkInstance[]) {
-    // Delegate to MarkSystem
-    context.battle.markSystem.transferMarks(context, this, ...marks)
+    // Use MarkTransferPhase
+    const transferPhase = new MarkTransferPhase(context.battle, context, this, marks)
+    transferPhase.initialize()
+    transferPhase.execute()
   }
 
   public switchOut(context: SwitchPetContext) {
-    // Delegate to MarkSystem
-    context.battle.markSystem.handleSwitchOut(context, this)
+    // Use MarkSwitchOutPhase
+    const switchOutPhase = new MarkSwitchOutPhase(context.battle, context, this)
+    switchOutPhase.initialize()
+    switchOutPhase.execute()
   }
 
   switchIn(context: SwitchPetContext) {

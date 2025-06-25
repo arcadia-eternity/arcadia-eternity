@@ -247,18 +247,10 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
   }
 
   collectEffects(trigger: EffectTrigger, baseContext: UseSkillContext) {
-    this.effects
-      .filter(effect => effect.triggers.includes(trigger))
-      .forEach(effect => {
-        const effectContext = new EffectContext(baseContext, trigger, this, effect)
-        try {
-          if (!effect.condition || effect.condition(effectContext)) {
-            baseContext.battle.effectScheduler.addEffect(effect, effectContext)
-          }
-        } catch (err) {
-          console.error(err)
-        }
-      })
+    // Effects are now collected and executed by EffectExecutionPhase
+    // This method is kept for interface compatibility but the actual collection
+    // is handled by collectEffectsFromContainers in EffectExecutionPhase
+    return
   }
 
   toMessage(viewerId?: string, showHidden = false): SkillMessage {

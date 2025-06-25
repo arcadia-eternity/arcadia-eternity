@@ -38,12 +38,12 @@ export class PhaseManager {
   /**
    * Register a phase for management
    */
-  public registerPhase(phase: BattlePhaseBase, dependencies: PhaseDependency[] = []): void {
+  public registerPhase(phase: BattlePhaseBase | InteractivePhase, dependencies: PhaseDependency[] = []): void {
     if (this.phases.has(phase.id)) {
       throw new Error(`Phase with id ${phase.id} already registered`)
     }
 
-    this.phases.set(phase.id, phase)
+    this.phases.set(phase.id, phase as BattlePhaseBase)
     if (dependencies.length > 0) {
       this.dependencies.set(phase.id, dependencies)
     }
@@ -93,7 +93,7 @@ export class PhaseManager {
   }
 
   /**
-   * Execute a specific phase
+   * Execute a specific phase (supports both sync and async phases)
    */
   public async executePhase(phaseId: string, options: PhaseExecutionOptions = {}): Promise<PhaseResult> {
     const phase = this.phases.get(phaseId)
@@ -102,7 +102,7 @@ export class PhaseManager {
     }
 
     // Check dependencies
-    await this.checkDependencies(phaseId)
+    this.checkDependencies(phaseId)
 
     this.currentPhase = phase
 
@@ -113,15 +113,21 @@ export class PhaseManager {
     try {
       // Initialize phase if needed
       if (phase.state === PhaseState.Pending && !phase.context) {
-        await phase.initialize()
+        if (phase instanceof InteractivePhase) {
+          await phase.initializeAsync()
+        } else {
+          phase.initialize()
+        }
       }
 
-      // Execute with timeout if specified
+      // Execute phase - handle both sync and async phases
       let result: PhaseResult
-      if (options.timeout) {
-        result = await this.executeWithTimeout(phase, options.timeout)
+      if (phase instanceof InteractivePhase) {
+        // Interactive phases return Promise<PhaseResult>
+        result = await phase.executeAsync()
       } else {
-        result = await phase.execute()
+        // Regular phases return PhaseResult
+        result = phase.execute()
       }
 
       this.executionHistory.push(phaseId)
@@ -142,38 +148,14 @@ export class PhaseManager {
       return errorResult
     } finally {
       // Always pop phase from stack when execution completes (success or failure)
-      configSystem.popPhase(phase)
+      configSystem.popPhase(phase as BattlePhaseBase)
     }
-  }
-
-  /**
-   * Execute phase with timeout
-   */
-  private async executeWithTimeout(phase: BattlePhaseBase, timeout: number): Promise<PhaseResult> {
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        phase.cancel().then(() => {
-          reject(new Error(`Phase ${phase.id} timed out after ${timeout}ms`))
-        })
-      }, timeout)
-
-      phase
-        .execute()
-        .then(result => {
-          clearTimeout(timeoutId)
-          resolve(result)
-        })
-        .catch(error => {
-          clearTimeout(timeoutId)
-          reject(error)
-        })
-    })
   }
 
   /**
    * Check if all dependencies for a phase are satisfied
    */
-  private async checkDependencies(phaseId: string): Promise<void> {
+  private checkDependencies(phaseId: string): void {
     const deps = this.dependencies.get(phaseId)
     if (!deps) return
 
@@ -204,12 +186,20 @@ export class PhaseManager {
     this.executionQueue.length = 0
 
     if (this.currentPhase) {
-      await this.currentPhase.cancel()
+      if (this.currentPhase instanceof InteractivePhase) {
+        await this.currentPhase.cancelAsync()
+      } else {
+        this.currentPhase.cancel()
+      }
     }
 
     for (const phase of this.phases.values()) {
       if (!phase.isFinished()) {
-        await phase.cancel()
+        if (phase instanceof InteractivePhase) {
+          await phase.cancelAsync()
+        } else {
+          phase.cancel()
+        }
       }
     }
 
@@ -224,7 +214,11 @@ export class PhaseManager {
     await this.cancelAll()
 
     for (const phase of this.phases.values()) {
-      await phase.cleanup()
+      if (phase instanceof InteractivePhase) {
+        await phase.cleanupAsync()
+      } else {
+        phase.cleanup()
+      }
     }
 
     this.phases.clear()

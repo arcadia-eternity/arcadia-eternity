@@ -1,6 +1,7 @@
 import { EffectTrigger, Category, BattleMessageType } from '@arcadia-eternity/const'
-import { BattlePhaseBase } from './base'
-import { UseSkillContext, RageContext, DamageContext } from '../context'
+import { SynchronousPhase } from './base'
+import { UseSkillContext, RageContext, DamageContext, TurnContext } from '../context'
+import { MarkCleanupPhase } from './mark'
 import type { Battle } from '../battle'
 import type { Player } from '../player'
 import type { Pet } from '../pet'
@@ -11,7 +12,7 @@ import { AttackTargetOpinion } from '@arcadia-eternity/const'
  * SkillPhase handles skill usage operations
  * Corresponds to UseSkillContext and replaces performAttack logic
  */
-export class SkillPhase extends BattlePhaseBase<UseSkillContext> {
+export class SkillPhase extends SynchronousPhase<UseSkillContext> {
   constructor(
     battle: Battle,
     private readonly origin: Player,
@@ -45,11 +46,11 @@ export class SkillPhase extends BattlePhaseBase<UseSkillContext> {
     }
   }
 
-  protected async executeOperation(): Promise<void> {
+  protected executeOperation(): void {
     const context = this._context!
 
     // Execute the skill operation logic (extracted from performAttack)
-    await executeSkillOperation(context, this.battle)
+    executeSkillOperation(context, this.battle)
   }
 }
 
@@ -57,7 +58,7 @@ export class SkillPhase extends BattlePhaseBase<UseSkillContext> {
  * Extracted skill operation logic from Player.performAttack
  * This function contains the core skill execution logic
  */
-export async function executeSkillOperation(context: UseSkillContext, battle: Battle): Promise<void> {
+export function executeSkillOperation(context: UseSkillContext, battle: Battle): void {
   // Update skill usage tracking
   if (context.pet.lastSkill && context.pet.lastSkill.baseId === context.skill.baseId) {
     context.pet.lastSkillUsedTimes += 1
@@ -186,7 +187,11 @@ export async function executeSkillOperation(context: UseSkillContext, battle: Ba
       context.defeated = true
     }
   } finally {
-    battle.cleanupMarks()
+    // Use MarkCleanupPhase instead of direct cleanupMarks call
+    const markCleanupPhase = new MarkCleanupPhase(battle, context.parent as TurnContext)
+    markCleanupPhase.initialize()
+    markCleanupPhase.execute()
+
     battle.emitMessage(BattleMessageType.SkillUseEnd, {
       user: context.pet.id,
     })

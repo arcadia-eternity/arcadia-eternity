@@ -1,5 +1,5 @@
 import { EffectTrigger, BattleMessageType, DamageType, Element } from '@arcadia-eternity/const'
-import { BattlePhaseBase } from './base'
+import { SynchronousPhase } from './base'
 import { DamageContext } from '../context'
 import type { Battle } from '../battle'
 import { Pet } from '../pet'
@@ -10,7 +10,7 @@ import type { SkillInstance } from '../skill'
  * DamagePhase handles damage dealing operations
  * Corresponds to DamageContext and replaces damage calculation logic
  */
-export class DamagePhase extends BattlePhaseBase<DamageContext> {
+export class DamagePhase extends SynchronousPhase<DamageContext> {
   constructor(
     battle: Battle,
     private readonly parentContext: any, // UseSkillContext or EffectContext
@@ -57,11 +57,11 @@ export class DamagePhase extends BattlePhaseBase<DamageContext> {
     }
   }
 
-  protected async executeOperation(): Promise<void> {
+  protected executeOperation(): void {
     const context = this._context!
 
     // Execute the damage operation logic (extracted from Pet.damage)
-    await executeDamageOperation(context, this.battle)
+    executeDamageOperation(context, this.battle)
   }
 }
 
@@ -69,7 +69,7 @@ export class DamagePhase extends BattlePhaseBase<DamageContext> {
  * Extracted damage operation logic from Pet.damage
  * This function contains the core damage calculation and application logic
  */
-export async function executeDamageOperation(context: DamageContext, battle: Battle): Promise<void> {
+export function executeDamageOperation(context: DamageContext, battle: Battle): void {
   // Handle damage from pets (skills) vs other sources differently
   if (context.source instanceof Pet) {
     battle.applyEffects(context, EffectTrigger.OnBeforeCalculateDamage)

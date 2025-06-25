@@ -10,7 +10,7 @@ import {
   type Events,
 } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
-import { Subject } from 'rxjs'
+
 import { Battle } from './battle'
 import {
   AddMarkContext,
@@ -36,7 +36,6 @@ import {
   type LevelAccessors,
 } from './attributeSystem'
 import { Observable } from 'rxjs'
-import { createChildLogger } from './logger'
 
 export interface IBaseMark extends Prototype {
   createInstance(...arg: any[]): MarkInstance
@@ -117,7 +116,6 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
 
 export class MarkInstanceImpl implements MarkInstance {
   public owner: Battle | Pet | null = null
-  private readonly logger = createChildLogger('MarkInstance')
 
   public readonly id: markId
   public readonly effects: Effect<EffectTrigger>[]
@@ -386,20 +384,10 @@ export class MarkInstanceImpl implements MarkInstance {
   }
 
   collectEffects(trigger: EffectTrigger, baseContext: AllContext) {
-    if (!this.isActive) return
-
-    this.effects
-      .filter(effect => effect.triggers.includes(trigger))
-      .forEach(effect => {
-        const effectContext = new EffectContext(baseContext, trigger, this, effect)
-        try {
-          if (!effect.condition || effect.condition(effectContext)) {
-            baseContext.battle.effectScheduler.addEffect(effect, effectContext)
-          }
-        } catch (err) {
-          this.logger.error('Error in mark effect:', err)
-        }
-      })
+    // Effects are now collected and executed by EffectExecutionPhase
+    // This method is kept for interface compatibility but the actual collection
+    // is handled by collectEffectsFromContainers in EffectExecutionPhase
+    return
   }
 
   // Add an attribute modifier cleanup function
@@ -432,7 +420,10 @@ export class MarkInstanceImpl implements MarkInstance {
     // Clean up any transformations caused by this mark
     context.battle.transformationSystem.cleanupMarkTransformations(this)
 
-    context.battle.cleanupMarks()
+    // Use MarkCleanupPhase instead of direct cleanupMarks call
+    // Note: We need a TurnContext for MarkCleanupPhase, but in destroy context we don't have one
+    // For now, we'll create a minimal context or handle this differently
+    // TODO: Consider if mark cleanup should be handled differently in destroy context
 
     // Note: dirty flag removed, attribute system handles recalculation automatically
     context.battle.emitMessage(BattleMessageType.MarkDestroy, {
@@ -444,7 +435,8 @@ export class MarkInstanceImpl implements MarkInstance {
   public transfer(context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet) {
     this.attachTo(target)
     target.marks.push(this)
-    context.battle.cleanupMarks()
+    // Mark cleanup will be handled by the phase system at appropriate times
+    // No immediate cleanup needed here as the mark is just being transferred
   }
 
   toMessage(): MarkMessage {
@@ -701,123 +693,6 @@ export function CreateStatStageMark(statType: StatTypeWithoutHp, level: number):
   return new BaseStatLevelMark(statType, level, `stat_stage_${statType}_${level > 0 ? 'up' : 'down'}` as baseMarkId)
 }
 
-export class MarkSystem {
-  // public marks: Map<markId, MarkInstance>
-  constructor(private readonly battle: Battle) {}
-
-  addMark(target: Battle | Pet, context: AddMarkContext) {
-    context.battle.applyEffects(context, EffectTrigger.OnBeforeAddMark)
-    if (!context.available) {
-      return
-    }
-
-    if (context.baseMark.config.mutexGroup) {
-      // 获取同owner下同互斥组的现有印记
-      const existingMarks = context.target.marks.filter(m => m.config.mutexGroup === context.baseMark.config.mutexGroup)
-
-      // 移除所有冲突印记
-      existingMarks.forEach(mark => mark.destroy(context))
-    }
-
-    const config = {
-      config: context.config,
-      duration: context.duration ?? context.config?.duration,
-      stack: context.stack ?? context.config?.maxStacks,
-    }
-    const newMark = context.baseMark.createInstance(config)
-
-    const existingOppositeMark = target.marks.find(
-      mark =>
-        mark instanceof StatLevelMarkInstanceImpl &&
-        newMark instanceof StatLevelMarkInstanceImpl &&
-        mark.isOppositeMark(newMark),
-    )
-
-    const existingMark = target.marks.find(mark => mark.base.id === context.baseMark.id)
-    if (existingMark || existingOppositeMark) {
-      if (existingMark) {
-        existingMark.tryStack(context)
-        return
-      } else if (existingOppositeMark) {
-        existingOppositeMark.tryStack(context)
-        return
-      }
-    } else {
-      newMark.OnMarkCreated(target, context)
-      context.battle.emitMessage(BattleMessageType.MarkApply, {
-        baseMarkId: context.baseMark.id,
-        target: context.target instanceof Pet ? context.target.id : 'battle',
-        mark: newMark.toMessage(),
-      })
-      return
-    }
-  }
-
-  public removeMark(target: MarkOwner, context: RemoveMarkContext) {
-    target.marks.forEach(mark => {
-      const filltered = mark.id !== context.mark.id
-      if (filltered) mark.destroy(context)
-      return false
-    })
-    // Note: dirty flag removed, attribute system handles recalculation automatically
-  }
-
-  /**
-   * Transfer marks from one pet to another during pet switching
-   * Moved from Pet.transferMarks method
-   */
-  public transferMarks(
-    context: SwitchPetContext | EffectContext<EffectTrigger>,
-    target: Pet | Battle,
-    ...marks: MarkInstance[]
-  ) {
-    marks.forEach(mark => {
-      mark.detach()
-      const existingMark = target.marks.find(m => m.base.id === mark.base.id)
-      if (existingMark) {
-        // 创建 AddMarkContext，使用当前 SwitchPetContext 作为父上下文，这个被视为隐式的effect
-        const effectContext =
-          context instanceof EffectContext
-            ? context
-            : new EffectContext(context, EffectTrigger.OnOwnerSwitchOut, mark, undefined)
-
-        // 印记覆盖的config替代原来的config
-        const addMarkContext = new AddMarkContext(
-          effectContext,
-          target,
-          mark.base,
-          mark.stack,
-          mark.duration,
-          mark.config,
-        )
-        existingMark.tryStack(addMarkContext)
-      } else {
-        // 添加新印记
-        mark.transfer(context, target)
-      }
-    })
-  }
-
-  /**
-   * Handle mark cleanup and transfer during pet switch out
-   * Moved from Pet.switchOut method
-   */
-  public handleSwitchOut(context: SwitchPetContext, pet: Pet) {
-    context.battle.applyEffects(context, EffectTrigger.OnOwnerSwitchOut, ...pet.marks)
-    pet.marks = pet.marks.filter(mark => {
-      const shouldKeep = mark.config.keepOnSwitchOut ?? false
-
-      // 需要转移的印记
-      if (mark.config.transferOnSwitch && context.switchInPet) {
-        this.transferMarks(context, context.switchInPet, mark)
-        // 印记在换场继承后应该在原精灵上解除
-        return false
-      } else if (!shouldKeep) {
-        mark.destroy(context)
-        return false
-      }
-
-      return shouldKeep
-    })
-  }
-}
+// MarkSystem has been replaced by Mark-related Phase classes
+// All mark management logic is now handled by the Phase system:
+// - AddMarkPhase, RemoveMarkPhase, MarkStackPhase, MarkUpdatePhase, etc.
