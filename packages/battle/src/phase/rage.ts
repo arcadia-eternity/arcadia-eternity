@@ -38,7 +38,7 @@ export class RagePhase extends SynchronousPhase<RageContext> {
   protected getEffectTriggers() {
     return {
       before: [],
-      during: [EffectTrigger.OnRageGain, EffectTrigger.OnRageLoss],
+      during: [], // OnRageGain and OnRageLoss are handled in executeOperation
       after: [],
     }
   }

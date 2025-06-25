@@ -105,8 +105,8 @@ export class MarkStackPhase extends SynchronousPhase<StackContext> {
 
   protected getEffectTriggers() {
     return {
-      before: [EffectTrigger.OnStackBefore],
-      during: [EffectTrigger.OnStack],
+      before: [], // OnStackBefore is handled in executeOperation
+      during: [], // OnStack is handled in executeOperation
       after: [],
     }
   }
@@ -141,7 +141,7 @@ export class MarkUpdatePhase extends SynchronousPhase<TurnContext> {
   protected getEffectTriggers() {
     return {
       before: [],
-      during: [EffectTrigger.OnMarkDurationEnd],
+      during: [], // OnMarkDurationEnd is handled in executeOperation
       after: [],
     }
   }

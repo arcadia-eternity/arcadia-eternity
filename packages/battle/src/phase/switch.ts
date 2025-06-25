@@ -27,7 +27,7 @@ export class SwitchPetPhase extends SynchronousPhase<SwitchPetContext> {
   protected getEffectTriggers() {
     return {
       before: [],
-      during: [EffectTrigger.OnSwitchOut, EffectTrigger.OnSwitchIn],
+      during: [], // OnSwitchOut and OnSwitchIn are handled in executeOperation
       after: [],
     }
   }

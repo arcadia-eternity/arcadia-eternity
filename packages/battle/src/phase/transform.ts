@@ -43,9 +43,9 @@ export class TransformPhase extends SynchronousPhase<TransformContext> {
 
   protected getEffectTriggers() {
     return {
-      before: [EffectTrigger.BeforeTransform],
-      during: [EffectTrigger.OnTransform],
-      after: [EffectTrigger.AfterTransform],
+      before: [], // BeforeTransform is handled in executeOperation
+      during: [], // OnTransform is handled in executeOperation
+      after: [], // AfterTransform is handled in executeOperation
     }
   }
 
@@ -126,7 +126,7 @@ export class TransformEndPhase extends SynchronousPhase<TransformContext> {
   protected getEffectTriggers() {
     return {
       before: [],
-      during: [EffectTrigger.OnTransformEnd],
+      during: [], // OnTransformEnd is handled in executeOperation
       after: [],
     }
   }

@@ -40,8 +40,8 @@ export class StackPhase extends SynchronousPhase<StackContext> {
 
   protected getEffectTriggers() {
     return {
-      before: [EffectTrigger.OnStackBefore],
-      during: [EffectTrigger.OnStack],
+      before: [], // OnStackBefore is handled in executeOperation
+      during: [], // OnStack is handled in executeOperation
       after: [],
     }
   }

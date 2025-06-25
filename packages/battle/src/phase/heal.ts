@@ -30,8 +30,8 @@ export class HealPhase extends SynchronousPhase<HealContext> {
 
   protected getEffectTriggers() {
     return {
-      before: [EffectTrigger.OnBeforeHeal],
-      during: [EffectTrigger.OnHeal],
+      before: [], // OnBeforeHeal is handled in executeOperation
+      during: [], // OnHeal is handled in executeOperation
       after: [],
     }
   }

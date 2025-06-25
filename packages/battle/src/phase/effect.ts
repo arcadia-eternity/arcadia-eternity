@@ -28,9 +28,9 @@ export class EffectPhase<T extends EffectTrigger> extends SynchronousPhase<Effec
 
   protected getEffectTriggers() {
     return {
-      before: [EffectTrigger.BeforeEffect],
+      before: [], // BeforeEffect is handled in executeOperation
       during: [], // The actual effect execution happens in executeOperation
-      after: [EffectTrigger.AfterEffect],
+      after: [], // AfterEffect is handled in executeOperation
     }
   }
 
@@ -121,9 +121,9 @@ export class BatchEffectPhase<T extends EffectTrigger> extends SynchronousPhase<
 
   protected getEffectTriggers() {
     return {
-      before: [EffectTrigger.BeforeEffect],
+      before: [], // BeforeEffect is handled in executeOperation
       during: [], // The actual effect execution happens in executeOperation
-      after: [EffectTrigger.AfterEffect],
+      after: [], // AfterEffect is handled in executeOperation
     }
   }
 

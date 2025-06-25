@@ -31,17 +31,8 @@ export class SkillPhase extends SynchronousPhase<UseSkillContext> {
 
   protected getEffectTriggers() {
     return {
-      before: [EffectTrigger.BeforeUseSkillCheck],
-      during: [
-        EffectTrigger.AfterUseSkillCheck,
-        EffectTrigger.BeforeMultiHit,
-        EffectTrigger.BeforeHit,
-        EffectTrigger.OnHit,
-        EffectTrigger.OnMiss,
-        EffectTrigger.PreDamage,
-        EffectTrigger.OnCritPreDamage,
-        EffectTrigger.OnDefeat,
-      ],
+      before: [], // BeforeUseSkillCheck is handled in executeOperation
+      during: [], // All skill-related triggers are handled in executeOperation
       after: [],
     }
   }
