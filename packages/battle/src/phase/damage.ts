@@ -66,7 +66,6 @@ export function executeDamageOperation(context: DamageContext, battle: Battle): 
   if (context.source instanceof Pet) {
     battle.applyEffects(context, EffectTrigger.OnBeforeCalculateDamage)
     context.updateDamageResult()
-    battle.applyEffects(context, EffectTrigger.OnDamage)
 
     if (!context.available) {
       battle.emitMessage(BattleMessageType.DamageFail, {
@@ -93,6 +92,7 @@ export function executeDamageOperation(context: DamageContext, battle: Battle): 
   // Apply damage to target
   const newHp = Math.max(0, context.target.currentHp - context.damageResult)
   context.target.currentHp = newHp
+  battle.applyEffects(context, EffectTrigger.OnDamage)
 
   // Emit damage message
   battle.emitMessage(BattleMessageType.Damage, {

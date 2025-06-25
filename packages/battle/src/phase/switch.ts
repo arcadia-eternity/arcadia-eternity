@@ -15,13 +15,15 @@ export class SwitchPetPhase extends SynchronousPhase<SwitchPetContext> {
     private readonly origin: Player,
     private readonly target: Pet,
     private readonly parentContext: any, // TurnContext or other parent
+    private readonly existingContext?: SwitchPetContext, // Optional existing context
     id?: string,
   ) {
     super(battle, id)
   }
 
   protected createContext(): SwitchPetContext {
-    return new SwitchPetContext(this.parentContext, this.origin, this.target)
+    // Use existing context if provided, otherwise create new one
+    return this.existingContext || new SwitchPetContext(this.parentContext, this.origin, this.target)
   }
 
   protected executeOperation(): void {

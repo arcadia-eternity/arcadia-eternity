@@ -20,13 +20,18 @@ export class SkillPhase extends SynchronousPhase<UseSkillContext> {
     private readonly selectTarget: AttackTargetOpinion,
     private readonly skill: SkillInstance,
     private readonly parentContext: any, // TurnContext or other parent
+    private readonly existingContext?: UseSkillContext, // Optional existing context
     id?: string,
   ) {
     super(battle, id)
   }
 
   protected createContext(): UseSkillContext {
-    return new UseSkillContext(this.parentContext, this.origin, this.pet, this.selectTarget, this.skill)
+    // Use existing context if provided, otherwise create new one
+    return (
+      this.existingContext ||
+      new UseSkillContext(this.parentContext, this.origin, this.pet, this.selectTarget, this.skill)
+    )
   }
 
   protected executeOperation(): void {

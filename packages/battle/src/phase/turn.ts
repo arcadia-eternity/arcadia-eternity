@@ -43,24 +43,40 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
     turn: battle.currentTurn,
   })
 
-  // Process player selections and create contexts for queuing
+  // Process player selections and create phases for queuing
+  const phases: (SkillPhase | SwitchPetPhase)[] = []
+
   for (const selection of [battle.playerA.selection, battle.playerB.selection]) {
     const player = battle.getPlayerByID(selection.player)
 
     switch (selection.type) {
       case 'use-skill': {
         const skill = battle.getSkillByID(selection.skill)
-        // Create UseSkillContext and push to queue for sorting
+        // Create UseSkillContext for BeforeSort effects
         const useSkillContext = new UseSkillContext(context, player, player.activePet, skill.target, skill)
         battle.applyEffects(useSkillContext, EffectTrigger.BeforeSort)
-        context.pushContext(useSkillContext)
+
+        // Create SkillPhase with the context
+        const skillPhase = new SkillPhase(
+          battle,
+          player,
+          player.activePet,
+          skill.target,
+          skill,
+          context,
+          useSkillContext,
+        )
+        phases.push(skillPhase)
         break
       }
       case 'switch-pet': {
         const pet = battle.getPetByID(selection.pet)
-        // Create SwitchPetContext and push to queue for sorting
+        // Create SwitchPetContext
         const switchPetContext = new SwitchPetContext(context, player, pet)
-        context.pushContext(switchPetContext)
+
+        // Create SwitchPetPhase with the context
+        const switchPhase = new SwitchPetPhase(battle, player, pet, context, switchPetContext)
+        phases.push(switchPhase)
         break
       }
       case 'do-nothing':
@@ -77,46 +93,21 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
         return
       }
       default:
-        throw new Error('未知的context')
+        throw new Error('未知的selection type')
     }
   }
+
+  // Sort phases directly
+  phases.sort(phaseSort)
 
   try {
     battle.applyEffects(context, EffectTrigger.TurnStart)
 
-    // Execute all queued contexts in sorted order
-    context.contextQueue = context.contexts.slice()
-    while (context.contextQueue.length > 0) {
-      const nowContext = context.contextQueue.shift() // 从队列开头取元素，按排序顺序执行
-      if (!nowContext) break
-
-      context.appledContexts.push(nowContext)
-
-      switch (nowContext.type) {
-        case 'use-skill': {
-          const _context = nowContext as UseSkillContext
-          // Create and execute SkillPhase
-          const skillPhase = new SkillPhase(
-            battle,
-            _context.origin,
-            _context.pet,
-            _context.selectTarget,
-            _context.skill,
-            context,
-          )
-          battle.phaseManager.registerPhase(skillPhase)
-          battle.phaseManager.executePhase(skillPhase.id)
-          break
-        }
-        case 'switch-pet': {
-          const _context = nowContext as SwitchPetContext
-          // Create and execute SwitchPetPhase
-          const switchPhase = new SwitchPetPhase(battle, _context.origin, _context.switchInPet, context)
-          battle.phaseManager.registerPhase(switchPhase)
-          battle.phaseManager.executePhase(switchPhase.id)
-          break
-        }
-      }
+    // Execute all phases in sorted order
+    for (const phase of phases) {
+      // Register and execute the phase
+      battle.phaseManager.registerPhase(phase)
+      battle.phaseManager.executePhase(phase.id)
 
       // Use MarkCleanupPhase managed by PhaseManager
       const markCleanupPhase = new MarkCleanupPhase(battle, context)
@@ -157,4 +148,57 @@ function updateTurnMark(context: TurnContext, battle: Battle): void {
     player.activePet.marks.forEach(mark => mark.update(context))
     player.activePet.marks = player.activePet.marks.filter(mark => mark.isActive)
   })
+}
+
+/**
+ * Sort phases by priority and speed
+ */
+function phaseSort(a: SkillPhase | SwitchPetPhase, b: SkillPhase | SwitchPetPhase): number {
+  // 获取 Phase 的类型，通过 context 来判断
+  const getPhaseType = (phase: SkillPhase | SwitchPetPhase): string => {
+    if (!phase.context) return 'unknown'
+    return phase.context.type
+  }
+
+  // 类型优先级：换宠 > 使用技能
+  const typeOrder: Record<string, number> = {
+    'switch-pet': 0, // 换宠优先级最高
+    'use-skill': 1,
+    unknown: 999,
+  }
+
+  const aType = getPhaseType(a)
+  const bType = getPhaseType(b)
+
+  // 类型不同时按优先级排序
+  if (aType !== bType) {
+    return (typeOrder[aType] ?? 999) - (typeOrder[bType] ?? 999)
+  }
+
+  // 同类型时比较优先级
+  switch (aType) {
+    case 'switch-pet':
+      // 换宠之间没有优先级差异，保持原顺序
+      return 0
+
+    case 'use-skill': {
+      const aContext = a.context as UseSkillContext
+      const bContext = b.context as UseSkillContext
+
+      // 先比较技能优先级（优先级高的先执行，所以是降序）
+      if (aContext.priority !== bContext.priority) {
+        return bContext.priority - aContext.priority
+      }
+
+      // 同优先级比较速度（速度快的先执行，所以是降序）
+      if (aContext.pet.actualStat.spe !== bContext.pet.actualStat.spe) {
+        return bContext.pet.actualStat.spe - aContext.pet.actualStat.spe
+      }
+
+      // 速度相同，保持原顺序
+      return 0
+    }
+    default:
+      return 0
+  }
 }

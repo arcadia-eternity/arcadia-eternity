@@ -24,42 +24,42 @@
             value: 5
             tags: ['skill_effect_probability']
 - id: effect_skill_reduce_opponent_def_1_stage_5_percent
-  trigger: OnDamage
+  trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_opponent_statstage_-1_template
     statType: def
   condition: *condition_probability_5_percent_template
 - id: effect_skill_reduce_opponent_spe_1_stage_5_percent
-  trigger: OnDamage
+  trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_opponent_statstage_-1_template
     statType: spe
   condition: *condition_probability_5_percent_template
 - id: effect_skill_reduce_opponent_spd_1_stage_5_percent
-  trigger: OnDamage
+  trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_opponent_statstage_-1_template
     statType: spd
   condition: *condition_probability_5_percent_template
 - id: effect_skill_reduce_opponent_atk_1_stage_5_percent
-  trigger: OnDamage
+  trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_opponent_statstage_-1_template
     statType: atk
   condition: *condition_probability_5_percent_template
 - id: effect_skill_reduce_opponent_spa_1_stage_5_percent
-  trigger: OnDamage
+  trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_opponent_statstage_-1_template
     statType: spa
   condition: *condition_probability_5_percent_template
 - id: effect_skill_reduce_opponent_spd_1_stage_10_percent
-  trigger: OnDamage
+  trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_opponent_statstage_-1_template
@@ -77,14 +77,14 @@
             value: 10
             tags: ['skill_effect_probability']
 - id: effect_skill_reduce_opponent_def_1_stage_10_percent
-  trigger: OnDamage
+  trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_opponent_statstage_-1_template
     statType: def
   condition: *condition_probability_10_percent_template
 - id: effect_skill_reduce_opponent_def_1_stage_15_percent
-  trigger: OnDamage
+  trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_opponent_statstage_-1_template
@@ -103,14 +103,14 @@
             value: 15
             tags: ['skill_effect_probability']
 - id: effect_skill_reduce_opponent_spa_1_stage_10_percent
-  trigger: OnDamage
+  trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_opponent_statstage_-1_template
     statType: spa
   condition: *condition_probability_10_percent_template
 - id: effect_skill_reduce_opponent_spa_1_stage_15_percent
-  trigger: OnDamage
+  trigger: BeforeHit
   priority: 0
   apply:
     <<: *apply_opponent_statstage_-1_template
@@ -4599,7 +4599,7 @@
           type: exist
 # 15%弱化对手特防1级
 - id: effect_skill_reduce_opponent_spd_1_stage_15_percent
-  trigger: OnDamage
+  trigger: BeforeHit
   priority: 0
   apply:
     type: statStageBuff

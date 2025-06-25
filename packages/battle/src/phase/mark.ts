@@ -262,117 +262,26 @@ export function executeAddMarkOperation(context: AddMarkContext, battle: Battle)
   const existingMark = existingStatLevelMark || context.target.marks.find(mark => mark.base.id === context.baseMark.id)
 
   if (existingMark || existingOppositeMark) {
-    if (existingMark) {
-      // Handle StatLevel marks specially
-      if (existingMark instanceof StatLevelMarkInstanceImpl && newMark instanceof StatLevelMarkInstanceImpl) {
-        handleStatLevelMarkStacking(existingMark, newMark, context, battle)
-        return
-      }
+    const targetMark = existingMark || existingOppositeMark!
+    const strategy = targetMark.config.stackStrategy || StackStrategy.extend
 
-      // Calculate stacking result for regular marks
-      const strategy = existingMark.config.stackStrategy || StackStrategy.extend
-      const maxStacks = existingMark.config.maxStacks ?? Infinity
-      let stacksAfter = existingMark.stack
-      let durationAfter = existingMark.duration
-
-      // Apply stacking strategy to calculate initial values
-      switch (strategy) {
-        case StackStrategy.stack:
-          stacksAfter = Math.min(stacksAfter + newMark.stack, maxStacks)
-          durationAfter = Math.max(durationAfter, newMark.duration)
-          break
-        case StackStrategy.refresh:
-          durationAfter = Math.max(durationAfter, newMark.duration)
-          break
-        case StackStrategy.extend:
-          stacksAfter = Math.min(stacksAfter + newMark.stack, maxStacks)
-          durationAfter += newMark.duration
-          break
-        case StackStrategy.max:
-          stacksAfter = Math.min(Math.max(stacksAfter, newMark.stack), maxStacks)
-          durationAfter = Math.max(durationAfter, newMark.duration)
-          break
-        case StackStrategy.replace:
-          stacksAfter = Math.min(newMark.stack, maxStacks)
-          durationAfter = newMark.duration
-          break
-        default:
-          // For remove, none, etc., use original values
-          break
-      }
-
-      const stackPhase = new MarkStackPhase(
-        battle,
-        new StackContext(
-          context,
-          existingMark,
-          newMark,
-          existingMark.stack,
-          existingMark.duration,
-          stacksAfter,
-          durationAfter,
-          strategy,
-        ),
-      )
-      battle.phaseManager.registerPhase(stackPhase)
-      battle.phaseManager.executePhase(stackPhase.id)
-      return
-    } else if (existingOppositeMark) {
-      // Handle StatLevel opposite marks specially
-      if (existingOppositeMark instanceof StatLevelMarkInstanceImpl && newMark instanceof StatLevelMarkInstanceImpl) {
-        handleStatLevelMarkStacking(existingOppositeMark, newMark, context, battle)
-        return
-      }
-
-      // Calculate stacking result for regular opposite marks
-      const strategy = existingOppositeMark.config.stackStrategy || StackStrategy.extend
-      const maxStacks = existingOppositeMark.config.maxStacks ?? Infinity
-      let stacksAfter = existingOppositeMark.stack
-      let durationAfter = existingOppositeMark.duration
-
-      // Apply stacking strategy to calculate initial values
-      switch (strategy) {
-        case StackStrategy.stack:
-          stacksAfter = Math.min(stacksAfter + newMark.stack, maxStacks)
-          durationAfter = Math.max(durationAfter, newMark.duration)
-          break
-        case StackStrategy.refresh:
-          durationAfter = Math.max(durationAfter, newMark.duration)
-          break
-        case StackStrategy.extend:
-          stacksAfter = Math.min(stacksAfter + newMark.stack, maxStacks)
-          durationAfter += newMark.duration
-          break
-        case StackStrategy.max:
-          stacksAfter = Math.min(Math.max(stacksAfter, newMark.stack), maxStacks)
-          durationAfter = Math.max(durationAfter, newMark.duration)
-          break
-        case StackStrategy.replace:
-          stacksAfter = Math.min(newMark.stack, maxStacks)
-          durationAfter = newMark.duration
-          break
-        default:
-          // For remove, none, etc., use original values
-          break
-      }
-
-      const stackPhase = new MarkStackPhase(
-        battle,
-        new StackContext(
-          context,
-          existingOppositeMark,
-          newMark,
-          existingOppositeMark.stack,
-          existingOppositeMark.duration,
-          stacksAfter,
-          durationAfter,
-          strategy,
-        ),
-      )
-      battle.phaseManager.registerPhase(stackPhase)
-      battle.phaseManager.executePhase(stackPhase.id)
-      return
-    }
+    // Create StackContext with initial values (calculation will be done in MarkStackPhase)
+    const stackPhase = new MarkStackPhase(
+      battle,
+      new StackContext(
+        context,
+        targetMark,
+        newMark,
+        targetMark.stack,
+        targetMark.duration,
+        newMark.stack, // Initial values, will be calculated in MarkStackPhase
+        newMark.duration,
+        strategy,
+      ),
+    )
+    battle.phaseManager.registerPhase(stackPhase)
+    battle.phaseManager.executePhase(stackPhase.id)
+    return
   } else {
     // Create new mark
     newMark.OnMarkCreated(context.target as any, context)
@@ -404,6 +313,7 @@ export function executeRemoveMarkOperation(context: RemoveMarkContext, battle: B
  */
 export function executeMarkStackOperation(context: StackContext, battle: Battle): void {
   const existingMark = context.existingMark
+  const newMark = context.incomingMark
   const strategy = context.stackStrategy
 
   // Handle special strategies that don't modify values
@@ -418,16 +328,61 @@ export function executeMarkStackOperation(context: StackContext, battle: Battle)
     return
   }
 
+  // Handle StatLevel marks with special logic
+  if (existingMark instanceof StatLevelMarkInstanceImpl && newMark instanceof StatLevelMarkInstanceImpl) {
+    executeStatLevelMarkStacking(existingMark, newMark, context, battle)
+    return
+  }
+
+  // Handle regular marks with standard stacking strategies
+  const maxStacks = existingMark.config.maxStacks ?? Infinity
+  let newStacks = existingMark.stack
+  let newDuration = existingMark.duration
+
+  // Apply stacking strategy
+  switch (strategy) {
+    case StackStrategy.stack:
+      newStacks = Math.min(newStacks + newMark.stack, maxStacks)
+      newDuration = Math.max(newDuration, newMark.duration)
+      break
+
+    case StackStrategy.refresh:
+      newDuration = Math.max(newDuration, newMark.duration)
+      break
+
+    case StackStrategy.extend:
+      newStacks = Math.min(newStacks + newMark.stack, maxStacks)
+      newDuration += newMark.duration
+      break
+
+    case StackStrategy.max:
+      newStacks = Math.min(Math.max(newStacks, newMark.stack), maxStacks)
+      newDuration = Math.max(newDuration, newMark.duration)
+      break
+
+    case StackStrategy.replace:
+      newStacks = Math.min(newMark.stack, maxStacks)
+      newDuration = newMark.duration
+      break
+
+    default:
+      return
+  }
+
+  // Update context with calculated values
+  context.stacksAfter = newStacks
+  context.durationAfter = newDuration
+
   // Apply OnStackBefore effects (allows effects to modify the calculated values)
   battle.applyEffects(context, EffectTrigger.OnStackBefore)
 
   // Use potentially modified values from OnStackBefore effects
-  const newStacks = context.stacksAfter
-  const newDuration = context.durationAfter
+  const finalStacks = context.stacksAfter
+  const finalDuration = context.durationAfter
 
   // Apply final results
-  existingMark.stack = newStacks
-  existingMark.duration = newDuration
+  existingMark.attributeSystem.setStack(finalStacks)
+  existingMark.attributeSystem.setDuration(finalDuration)
   existingMark.isActive = true
 
   // Apply OnStack effects
@@ -528,39 +483,8 @@ export function executeMarkTransferOperation(
         mark.config,
       )
 
-      // Calculate stacking result for transfer
+      // Use MarkStackPhase for stacking (calculation will be done in the phase)
       const strategy = existingMark.config.stackStrategy || StackStrategy.extend
-      const maxStacks = existingMark.config.maxStacks ?? Infinity
-      let stacksAfter = existingMark.stack
-      let durationAfter = existingMark.duration
-
-      // Apply stacking strategy to calculate initial values
-      switch (strategy) {
-        case StackStrategy.stack:
-          stacksAfter = Math.min(stacksAfter + mark.stack, maxStacks)
-          durationAfter = Math.max(durationAfter, mark.duration)
-          break
-        case StackStrategy.refresh:
-          durationAfter = Math.max(durationAfter, mark.duration)
-          break
-        case StackStrategy.extend:
-          stacksAfter = Math.min(stacksAfter + mark.stack, maxStacks)
-          durationAfter += mark.duration
-          break
-        case StackStrategy.max:
-          stacksAfter = Math.min(Math.max(stacksAfter, mark.stack), maxStacks)
-          durationAfter = Math.max(durationAfter, mark.duration)
-          break
-        case StackStrategy.replace:
-          stacksAfter = Math.min(mark.stack, maxStacks)
-          durationAfter = mark.duration
-          break
-        default:
-          // For remove, none, etc., use original values
-          break
-      }
-
-      // Use MarkStackPhase for stacking
       const stackPhase = new MarkStackPhase(
         battle,
         new StackContext(
@@ -569,8 +493,8 @@ export function executeMarkTransferOperation(
           mark,
           existingMark.stack,
           existingMark.duration,
-          stacksAfter,
-          durationAfter,
+          mark.stack, // Initial values, will be calculated in MarkStackPhase
+          mark.duration,
           strategy,
         ),
       )
@@ -613,10 +537,10 @@ export function executeMarkSwitchOutOperation(context: SwitchPetContext, pet: Pe
 /**
  * Handle StatLevel mark stacking with special level-based logic
  */
-function handleStatLevelMarkStacking(
+function executeStatLevelMarkStacking(
   existingMark: StatLevelMarkInstanceImpl,
   newMark: StatLevelMarkInstanceImpl,
-  context: AddMarkContext,
+  context: StackContext,
   battle: Battle,
 ): void {
   // Calculate new level by adding the levels
@@ -635,7 +559,7 @@ function handleStatLevelMarkStacking(
   // Check if we need to replace the mark (sign change)
   if (Math.sign(existingMark.level) !== Math.sign(newLevel)) {
     // Sign changed, need to replace with new mark with correct baseId
-    replaceStatLevelMark(existingMark, newLevel, context, battle)
+    replaceStatLevelMark(existingMark, newLevel, context.parent, battle)
   } else {
     // Sign unchanged, just update the level
     existingMark.level = newLevel

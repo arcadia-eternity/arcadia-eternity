@@ -65,12 +65,11 @@ export function executeHealOperation(context: HealContext, battle: Battle): void
   const newHp = Math.floor(Math.min(context.target.stat.maxHp!, context.target.currentHp + context.healResult))
   context.target.currentHp = newHp
 
+  battle.applyEffects(context, EffectTrigger.OnHeal)
+
   battle.emitMessage(BattleMessageType.Heal, {
     target: context.target.id,
     amount: context.healResult,
     source: 'effect',
   })
-
-  // Apply OnHeal effects after healing is applied
-  battle.applyEffects(context, EffectTrigger.OnHeal)
 }

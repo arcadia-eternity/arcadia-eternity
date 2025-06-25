@@ -55,6 +55,7 @@ export class TurnContext extends Context {
   public contextQueue: Context[] = []
   public readonly appledContexts: Context[] = []
   public readonly petTurnDataMap: WeakMap<Pet, PetTurnData> = new WeakMap()
+
   constructor(public readonly parent: Battle) {
     super(parent)
     this.battle = parent.battle

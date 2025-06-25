@@ -309,7 +309,6 @@ export const Conditions = {
   // 精灵当回合使用技能且该技能为本回合最先使用的技能时
   isFirstSkillUsedThisTurn: (): Condition => {
     return context => {
-      console.debug('emm1')
       if (!(context.parent instanceof UseSkillContext)) {
         return false
       }
@@ -323,13 +322,10 @@ export const Conditions = {
         (ctx): ctx is UseSkillContext => ctx instanceof UseSkillContext,
       )
 
-      console.debug(executedSkillContextsInOrder)
       if (executedSkillContextsInOrder.length === 0) {
         return false // 理论上不应发生，因为当前就在一个UseSkillContext中
       }
 
-      console.debug(executedSkillContextsInOrder[0], currentUseSkillContext)
-      console.debug(executedSkillContextsInOrder[0] === currentUseSkillContext)
       return executedSkillContextsInOrder[0] === currentUseSkillContext
     }
   },
