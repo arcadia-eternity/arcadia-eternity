@@ -21,6 +21,7 @@ import { Pet } from './pet'
 import { PlayerAttributeSystem } from './attributeSystem'
 import { SkillPhase } from './phase/skill'
 import { SwitchPetPhase } from './phase/switch'
+import { RagePhase } from './phase/rage'
 import * as jsondiffpatch from 'jsondiffpatch'
 import type { Emitter } from 'mitt'
 
@@ -261,8 +262,8 @@ export class Player {
       context.skill,
       context.parent,
     )
-    skillPhase.initialize()
-    skillPhase.execute()
+    this.battle!.phaseManager.registerPhase(skillPhase)
+    this.battle!.phaseManager.executePhase(skillPhase.id)
     return context.defeated
   }
 
@@ -272,31 +273,20 @@ export class Player {
   }
 
   public addRage(context: RageContext) {
-    const before = this.currentRage
-
-    switch (context.modifiedType) {
-      case 'setting':
-        this.settingRage(context.value)
-        break
-      case 'add':
-        context.battle.applyEffects(context, EffectTrigger.OnRageGain)
-        context.updateRageChangeResult()
-        this.settingRage(this.currentRage + context.rageChangeResult)
-        break
-      case 'reduce':
-        context.battle.applyEffects(context, EffectTrigger.OnRageLoss)
-        context.updateRageChangeResult()
-        this.settingRage(this.currentRage - context.rageChangeResult)
-        break
-    }
-
-    this.battle!.emitMessage(BattleMessageType.RageChange, {
-      player: this.id,
-      pet: this.activePet.id,
-      before: before,
-      after: this.currentRage,
-      reason: context.reason,
-    })
+    // Rage logic has been moved to RagePhase
+    // This method now delegates to the phase system
+    const ragePhase = new RagePhase(
+      context.battle,
+      context.parent,
+      context.target,
+      context.reason,
+      context.modifiedType,
+      context.value,
+      context.ignoreRageObtainEfficiency,
+      context.modified,
+    )
+    context.battle.phaseManager.registerPhase(ragePhase)
+    context.battle.phaseManager.executePhase(ragePhase.id)
   }
 
   public toMessage(viewerId?: string, showHidden = false): PlayerMessage {

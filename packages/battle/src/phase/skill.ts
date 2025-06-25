@@ -187,10 +187,10 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
       context.defeated = true
     }
   } finally {
-    // Use MarkCleanupPhase instead of direct cleanupMarks call
+    // Use MarkCleanupPhase managed by PhaseManager
     const markCleanupPhase = new MarkCleanupPhase(battle, context.parent as TurnContext)
-    markCleanupPhase.initialize()
-    markCleanupPhase.execute()
+    battle.phaseManager.registerPhase(markCleanupPhase)
+    battle.phaseManager.executePhase(markCleanupPhase.id)
 
     battle.emitMessage(BattleMessageType.SkillUseEnd, {
       user: context.pet.id,

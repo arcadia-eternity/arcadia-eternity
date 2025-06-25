@@ -107,7 +107,7 @@ export class PhaseManager {
     this.currentPhase = phase
 
     // Push phase to config system stack for level tracking
-    const configSystem = ConfigSystem.getInstance()
+    const configSystem = this.battle.configSystem
     configSystem.pushPhase(phase)
 
     try {

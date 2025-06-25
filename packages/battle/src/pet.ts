@@ -172,8 +172,8 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       context.maxThreshold,
       context.element,
     )
-    damagePhase.initialize()
-    damagePhase.execute()
+    context.battle.phaseManager.registerPhase(damagePhase)
+    context.battle.phaseManager.executePhase(damagePhase.id)
     return this.isAlive
   }
 
@@ -189,8 +189,8 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       context.ingoreEffect,
       context.modified,
     )
-    healPhase.initialize()
-    healPhase.execute()
+    context.battle.phaseManager.registerPhase(healPhase)
+    context.battle.phaseManager.executePhase(healPhase.id)
     return this.isAlive
   }
 

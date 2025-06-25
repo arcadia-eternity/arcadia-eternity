@@ -28,7 +28,7 @@ import { AttributeSystem } from './attributeSystem'
 import * as jsondiffpatch from 'jsondiffpatch'
 import { nanoid } from 'nanoid'
 import mitt from 'mitt'
-import { PhaseManager, BattleStartPhase, BattleSwitchPhase, SelectionPhase, SwitchPetPhase, TurnPhase } from './phase'
+import { PhaseManager, BattleStartPhase, BattleLoopPhase, SwitchPetPhase } from './phase'
 import { EffectExecutionPhase } from './phase/effectExecution'
 import { AddMarkPhase, RemoveMarkPhase } from './phase/mark'
 import { TimerManager } from './timer'
@@ -234,14 +234,14 @@ export class Battle extends Context implements MarkOwner {
       context.duration,
       context.config,
     )
-    addMarkPhase.initialize()
-    addMarkPhase.execute()
+    this.phaseManager.registerPhase(addMarkPhase)
+    this.phaseManager.executePhase(addMarkPhase.id)
   }
 
   public removeMark(context: RemoveMarkContext) {
     const removeMarkPhase = new RemoveMarkPhase(this, context.parent, context.mark)
-    removeMarkPhase.initialize()
-    removeMarkPhase.execute()
+    this.phaseManager.registerPhase(removeMarkPhase)
+    this.phaseManager.executePhase(removeMarkPhase.id)
   }
 
   public getOpponent(player: Player) {
@@ -285,10 +285,10 @@ export class Battle extends Context implements MarkOwner {
         ...this.playerB.team.map(p => p.skills).flat(),
       ]
 
-    // Use EffectExecutionPhase instead of EffectScheduler
+    // Use EffectExecutionPhase managed by PhaseManager
     const effectExecutionPhase = new EffectExecutionPhase(this, context, trigger, effectContainers)
-    effectExecutionPhase.initialize()
-    effectExecutionPhase.execute()
+    this.phaseManager.registerPhase(effectExecutionPhase)
+    this.phaseManager.executePhase(effectExecutionPhase.id)
   }
 
   // Turn execution logic has been moved to TurnPhase
@@ -333,32 +333,10 @@ export class Battle extends Context implements MarkOwner {
     this.phaseManager.registerPhase(startPhase)
     await this.phaseManager.executePhase(startPhase.id)
 
-    // Main battle loop using PhaseManager
-    while (true) {
-      // Phase 1: Handle switches (forced and faint switches)
-      this.currentPhase = BattlePhase.SwitchPhase
-      const switchPhase = new BattleSwitchPhase(this)
-      this.phaseManager.registerPhase(switchPhase)
-      await this.phaseManager.executePhase(switchPhase.id)
-
-      if (this.isBattleEnded()) break
-
-      // Phase 2: Collect player actions
-      this.currentPhase = BattlePhase.SelectionPhase
-      const selectionPhase = new SelectionPhase(this)
-      this.phaseManager.registerPhase(selectionPhase)
-      await this.phaseManager.executePhase(selectionPhase.id)
-
-      // Phase 3: Execute turn
-      this.currentPhase = BattlePhase.ExecutionPhase
-      const turnPhase = new TurnPhase(this)
-      this.phaseManager.registerPhase(turnPhase)
-      await this.phaseManager.executePhase(turnPhase.id)
-
-      if (this.isBattleEnded()) break
-
-      this.clearSelections()
-    }
+    // Phase 1: Main battle loop
+    const battleLoopPhase = new BattleLoopPhase(this)
+    this.phaseManager.registerPhase(battleLoopPhase)
+    await this.phaseManager.executePhase(battleLoopPhase.id)
   }
 
   // Legacy generator method removed - use startBattlePhased() instead

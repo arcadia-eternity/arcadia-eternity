@@ -1,5 +1,6 @@
 export * from './base'
 export * from './battleStart'
+export * from './battleLoop'
 export * from './battleSwitch'
 export * from './damage'
 export * from './effect'

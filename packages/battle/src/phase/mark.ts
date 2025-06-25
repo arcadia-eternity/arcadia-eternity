@@ -314,8 +314,8 @@ export function executeAddMarkOperation(context: AddMarkContext, battle: Battle)
           existingMark.config.stackStrategy || StackStrategy.extend,
         ),
       )
-      stackPhase.initialize()
-      stackPhase.execute()
+      battle.phaseManager.registerPhase(stackPhase)
+      battle.phaseManager.executePhase(stackPhase.id)
       return
     } else if (existingOppositeMark) {
       // Stack with opposite mark
@@ -332,8 +332,8 @@ export function executeAddMarkOperation(context: AddMarkContext, battle: Battle)
           existingOppositeMark.config.stackStrategy || StackStrategy.extend,
         ),
       )
-      stackPhase.initialize()
-      stackPhase.execute()
+      battle.phaseManager.registerPhase(stackPhase)
+      battle.phaseManager.executePhase(stackPhase.id)
       return
     }
   } else {
@@ -402,8 +402,8 @@ export function executeMarkStackOperation(context: StackContext, battle: Battle)
 
     case StackStrategy.remove:
       const removePhase = new RemoveMarkPhase(battle, context, existingMark)
-      removePhase.initialize()
-      removePhase.execute()
+      battle.phaseManager.registerPhase(removePhase)
+      battle.phaseManager.executePhase(removePhase.id)
       return
 
     case StackStrategy.none:
@@ -436,8 +436,8 @@ export function executeMarkStackOperation(context: StackContext, battle: Battle)
   // Check if mark should be destroyed (when stacks reach 0)
   if (existingMark.stack <= 0) {
     const removePhase = new RemoveMarkPhase(battle, context, existingMark)
-    removePhase.initialize()
-    removePhase.execute()
+    battle.phaseManager.registerPhase(removePhase)
+    battle.phaseManager.executePhase(removePhase.id)
     return
   }
 
@@ -466,8 +466,8 @@ export function executeMarkUpdateOperation(context: TurnContext, mark: MarkInsta
       target: mark.owner instanceof Pet ? mark.owner.id : 'battle',
     })
     const removePhase = new RemoveMarkPhase(battle, context, mark)
-    removePhase.initialize()
-    removePhase.execute()
+    battle.phaseManager.registerPhase(removePhase)
+    battle.phaseManager.executePhase(removePhase.id)
     return expired
   }
 
@@ -542,8 +542,8 @@ export function executeMarkTransferOperation(
           existingMark.config.stackStrategy || StackStrategy.extend,
         ),
       )
-      stackPhase.initialize()
-      stackPhase.execute()
+      battle.phaseManager.registerPhase(stackPhase)
+      battle.phaseManager.executePhase(stackPhase.id)
     } else {
       // Transfer mark directly
       mark.transfer(context, target)
@@ -563,14 +563,14 @@ export function executeMarkSwitchOutOperation(context: SwitchPetContext, pet: Pe
     // Handle marks that need to be transferred
     if (mark.config.transferOnSwitch && (context as any).switchInPet) {
       const transferPhase = new MarkTransferPhase(battle, context, (context as any).switchInPet, [mark])
-      transferPhase.initialize()
-      transferPhase.execute()
+      battle.phaseManager.registerPhase(transferPhase)
+      battle.phaseManager.executePhase(transferPhase.id)
       // Mark should be removed from original pet after transfer
       return false
     } else if (!shouldKeep) {
       const removePhase = new RemoveMarkPhase(battle, context, mark)
-      removePhase.initialize()
-      removePhase.execute()
+      battle.phaseManager.registerPhase(removePhase)
+      battle.phaseManager.executePhase(removePhase.id)
       return false
     }
 

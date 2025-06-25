@@ -60,8 +60,9 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
         const skill = battle.getSkillByID(selection.skill)
         const skillPhase = new SkillPhase(battle, player, player.activePet, skill.target, skill, context)
 
-        // Initialize and queue the skill phase
-        skillPhase.initialize()
+        // Register and initialize the skill phase through PhaseManager
+        battle.phaseManager.registerPhase(skillPhase)
+        battle.phaseManager.executePhase(skillPhase.id)
         battle.applyEffects(skillPhase.context!, EffectTrigger.BeforeSort)
         context.pushContext(skillPhase.context!)
 
@@ -73,8 +74,9 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
         const pet = battle.getPetByID(selection.pet)
         const switchPhase = new SwitchPetPhase(battle, player, pet, context)
 
-        // Initialize and queue the switch phase
-        switchPhase.initialize()
+        // Register and initialize the switch phase through PhaseManager
+        battle.phaseManager.registerPhase(switchPhase)
+        battle.phaseManager.executePhase(switchPhase.id)
         context.pushContext(switchPhase.context!)
 
         // Note: No need to push to contextQueue separately,
@@ -125,10 +127,10 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
         }
       }
 
-      // Use MarkCleanupPhase instead of direct cleanupMarks call
+      // Use MarkCleanupPhase managed by PhaseManager
       const markCleanupPhase = new MarkCleanupPhase(battle, context)
-      markCleanupPhase.initialize()
-      markCleanupPhase.execute()
+      battle.phaseManager.registerPhase(markCleanupPhase)
+      battle.phaseManager.executePhase(markCleanupPhase.id)
     }
 
     // Apply TurnEnd effects before adding rage (correct timing)
@@ -136,10 +138,10 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
     addTurnRage(context, battle) // Add rage at turn end
     updateTurnMark(context, battle)
 
-    // Use MarkCleanupPhase instead of direct cleanupMarks call
+    // Use MarkCleanupPhase managed by PhaseManager
     const finalMarkCleanupPhase = new MarkCleanupPhase(battle, context)
-    finalMarkCleanupPhase.initialize()
-    finalMarkCleanupPhase.execute()
+    battle.phaseManager.registerPhase(finalMarkCleanupPhase)
+    battle.phaseManager.executePhase(finalMarkCleanupPhase.id)
   } finally {
     battle.emitMessage(BattleMessageType.TurnEnd, {
       turn: battle.currentTurn,
