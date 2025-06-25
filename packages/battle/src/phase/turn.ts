@@ -3,7 +3,8 @@ import { InteractivePhase } from './base'
 import { TurnContext, RageContext, UseSkillContext, SwitchPetContext } from '../context'
 import { SkillPhase } from './skill'
 import { SwitchPetPhase } from './switch'
-import { MarkCleanupPhase } from './mark'
+import { MarkCleanupPhase } from './MarkCleanupPhase'
+import { MarkUpdatePhase } from './MarkUpdatePhase'
 import type { Battle } from '../battle'
 
 /**
@@ -141,13 +142,29 @@ function addTurnRage(context: TurnContext, battle: Battle): void {
 }
 
 /**
- * Update turn-based marks
+ * Update turn-based marks using MarkUpdatePhase
  */
 function updateTurnMark(context: TurnContext, battle: Battle): void {
-  ;[battle.playerA, battle.playerB].forEach(player => {
-    player.activePet.marks.forEach(mark => mark.update(context))
-    player.activePet.marks = player.activePet.marks.filter(mark => mark.isActive)
+  // Collect all marks that need updating
+  const allMarks = [
+    ...battle.marks, // Battle-level marks (weather, etc.)
+    ...battle.playerA.activePet.marks,
+    ...battle.playerB.activePet.marks,
+  ]
+
+  // Update each mark using MarkUpdatePhase
+  allMarks.forEach(mark => {
+    if (mark.isActive) {
+      const markUpdatePhase = new MarkUpdatePhase(battle, context, mark)
+      battle.phaseManager.registerPhase(markUpdatePhase)
+      battle.phaseManager.executePhase(markUpdatePhase.id)
+    }
   })
+
+  // Filter out inactive marks after all updates
+  battle.marks = battle.marks.filter(mark => mark.isActive)
+  battle.playerA.activePet.marks = battle.playerA.activePet.marks.filter(mark => mark.isActive)
+  battle.playerB.activePet.marks = battle.playerB.activePet.marks.filter(mark => mark.isActive)
 }
 
 /**

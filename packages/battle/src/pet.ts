@@ -35,7 +35,8 @@ import { BaseSkill, SkillInstance } from './skill'
 import { PetAttributeSystem } from './attributeSystem'
 import { DamagePhase } from './phase/damage'
 import { HealPhase } from './phase/heal'
-import { MarkTransferPhase, MarkSwitchOutPhase } from './phase/mark'
+import { MarkSwitchOutPhase } from './phase/MarkSwitchOutPhase'
+import { MarkTransferPhase } from './phase/MarkTransferPhase'
 import type { Emitter } from 'mitt'
 
 export interface Species extends Prototype {

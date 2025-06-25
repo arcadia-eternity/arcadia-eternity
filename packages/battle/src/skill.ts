@@ -246,13 +246,6 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     return this.effects.filter(e => e.triggers.includes(trigger))
   }
 
-  collectEffects(trigger: EffectTrigger, baseContext: UseSkillContext) {
-    // Effects are now collected and executed by EffectExecutionPhase
-    // This method is kept for interface compatibility but the actual collection
-    // is handled by collectEffectsFromContainers in EffectExecutionPhase
-    return
-  }
-
   toMessage(viewerId?: string, showHidden = false): SkillMessage {
     const isSelf = viewerId === this.owner?.owner?.id
     const shouldShowDetails = this.appeared || isSelf || showHidden

@@ -1,7 +1,7 @@
 import { EffectTrigger, Category, BattleMessageType } from '@arcadia-eternity/const'
 import { SynchronousPhase } from './base'
 import { UseSkillContext, RageContext, DamageContext, TurnContext } from '../context'
-import { MarkCleanupPhase } from './mark'
+import { MarkCleanupPhase } from './MarkCleanupPhase'
 import type { Battle } from '../battle'
 import type { Player } from '../player'
 import type { Pet } from '../pet'

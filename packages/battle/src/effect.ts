@@ -39,5 +39,5 @@ export class Effect<T extends EffectTrigger> implements Prototype {
 }
 
 export interface EffectContainer {
-  collectEffects(trigger: EffectTrigger, baseContext: Context): void
+  effects: Effect<EffectTrigger>[]
 }

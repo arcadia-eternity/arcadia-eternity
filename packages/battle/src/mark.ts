@@ -95,11 +95,9 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   setOwner(owner: MarkOwner, emitter: Emitter<Events>): void
   attachTo(target: MarkOwner): void
   detach(): void
-  update(context: TurnContext): boolean
   addStack(value: number): void
   consumeStack(context: EffectContext<EffectTrigger> | DamageContext, amount: number): number
   get isStackable(): boolean
-  collectEffects(trigger: EffectTrigger, baseContext: AllContext): void
 
   cleanupAttributeModifiers(): void
   transfer(context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet): void
@@ -227,33 +225,6 @@ export class MarkInstanceImpl implements MarkInstance {
     this.owner = null
   }
 
-  update(context: TurnContext): boolean {
-    if (!this.isActive) return true
-    if (this.config.persistent) return false
-
-    this.duration--
-    const expired = this.duration <= 0
-
-    if (expired) {
-      context.battle.applyEffects(context, EffectTrigger.OnMarkDurationEnd, this)
-      context.battle.emitMessage(BattleMessageType.MarkExpire, {
-        mark: this.id,
-        target: this.owner instanceof Pet ? this.owner.id : 'battle',
-      })
-      // Use RemoveMarkPhase for unified mark destruction
-      const removeMarkContext = new RemoveMarkContext(context, this)
-      context.battle.removeMark(removeMarkContext)
-      return expired
-    }
-
-    context.battle.emitMessage(BattleMessageType.MarkUpdate, {
-      target: this.owner instanceof Pet ? this.owner.id : 'battle',
-      mark: this.toMessage(),
-    })
-
-    return expired
-  }
-
   addStack(value: number) {
     this.stack = Math.min(this.config.maxStacks ?? Infinity, this.stack + value)
 
@@ -278,13 +249,6 @@ export class MarkInstanceImpl implements MarkInstance {
   get isStackable() {
     if (this.config.stackable !== undefined) return this.config.stackable
     return false
-  }
-
-  collectEffects(trigger: EffectTrigger, baseContext: AllContext) {
-    // Effects are now collected and executed by EffectExecutionPhase
-    // This method is kept for interface compatibility but the actual collection
-    // is handled by collectEffectsFromContainers in EffectExecutionPhase
-    return
   }
 
   // Add an attribute modifier cleanup function
