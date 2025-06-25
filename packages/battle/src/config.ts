@@ -969,6 +969,8 @@ export class ConfigSystem {
 
     // Map class names to phase types
     switch (className) {
+      case 'BattleStartPhase':
+        return PhaseType.Battle
       case 'TurnPhase':
         return PhaseType.Turn
       case 'SkillPhase':

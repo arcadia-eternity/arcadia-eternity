@@ -28,7 +28,7 @@ import { AttributeSystem } from './attributeSystem'
 import * as jsondiffpatch from 'jsondiffpatch'
 import { nanoid } from 'nanoid'
 import mitt from 'mitt'
-import { PhaseManager, BattleSwitchPhase, SelectionPhase, SwitchPetPhase, TurnPhase } from './phase'
+import { PhaseManager, BattleStartPhase, BattleSwitchPhase, SelectionPhase, SwitchPetPhase, TurnPhase } from './phase'
 import { EffectExecutionPhase } from './phase/effectExecution'
 import { AddMarkPhase, RemoveMarkPhase } from './phase/mark'
 import { TimerManager } from './timer'
@@ -327,19 +327,11 @@ export class Battle extends Context implements MarkOwner {
 
   // Phase-based battle start (main implementation)
   public async startBattle(): Promise<void> {
-    if (this.status != BattleStatus.Unstarted) throw '战斗已经开始过了！'
-    this.status = BattleStatus.OnBattle
-
-    // 初始化 lastStateMessage 为空状态，确保第一个消息包含完整的状态差异
-    this.lastStateMessage = {} as BattleState
-
-    // 初始化所有监听器的 lastState 为空状态
-    this.messageCallbacks.forEach(cb => {
-      cb.lastState = {} as BattleState
-    })
-
-    this.applyEffects(this, EffectTrigger.OnBattleStart)
-    this.emitMessage(BattleMessageType.BattleStart, {})
+    // Phase 0: Initialize battle
+    this.currentPhase = BattlePhase.StartPhase
+    const startPhase = new BattleStartPhase(this)
+    this.phaseManager.registerPhase(startPhase)
+    await this.phaseManager.executePhase(startPhase.id)
 
     // Main battle loop using PhaseManager
     while (true) {
