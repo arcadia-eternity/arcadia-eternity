@@ -535,18 +535,6 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     transferPhase.execute()
   }
 
-  public switchOut(context: SwitchPetContext) {
-    // Use MarkSwitchOutPhase
-    const switchOutPhase = new MarkSwitchOutPhase(context.battle, context, this)
-    switchOutPhase.initialize()
-    switchOutPhase.execute()
-  }
-
-  switchIn(context: SwitchPetContext) {
-    context.battle.applyEffects(context, EffectTrigger.OnOwnerSwitchIn, ...this.marks)
-    this.appeared = true
-  }
-
   /**
    * 获取技能的原始类型（考虑变形）
    */

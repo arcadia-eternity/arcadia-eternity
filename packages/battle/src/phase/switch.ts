@@ -4,6 +4,7 @@ import { SwitchPetContext } from '../context'
 import type { Battle } from '../battle'
 import type { Player } from '../player'
 import type { Pet } from '../pet'
+import { MarkSwitchOutPhase } from './MarkSwitchOutPhase'
 
 /**
  * SwitchPetPhase handles pet switching operations
@@ -56,12 +57,16 @@ export function executeSwitchPetOperation(context: SwitchPetContext, battle: Bat
 
   // Execute switch
   const oldPet = player.activePet
+  context.switchInPet.appeared = true
 
   // Apply switch out effects
   battle.applyEffects(context, EffectTrigger.OnSwitchOut)
   oldPet.switchOut(context)
+  const switchOutPhase = new MarkSwitchOutPhase(context.battle, context, oldPet)
+  switchOutPhase.initialize()
+  switchOutPhase.execute()
 
-  // Switch the active pet
+  // Apply switch in effects
   player.activePet = context.switchInPet
 
   // Emit switch message
@@ -72,9 +77,8 @@ export function executeSwitchPetOperation(context: SwitchPetContext, battle: Bat
     currentHp: context.switchInPet.currentHp,
   })
 
-  // Apply switch in effects
   battle.applyEffects(context, EffectTrigger.OnSwitchIn)
-  player.activePet.switchIn(context)
+  context.battle.applyEffects(context, EffectTrigger.OnOwnerSwitchIn, ...context.switchInPet.marks)
 
   // Reduce rage to 80% after switching
   player.settingRage(Math.floor(player.currentRage * 0.8))
