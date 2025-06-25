@@ -127,6 +127,9 @@ export class BattleClient {
 
     // 清理Timer快照缓存
     this.clearTimerSnapshots()
+
+    // 清理事件处理器（但保留socket监听器）
+    this.clearEventHandlers()
   }
 
   async connect(): Promise<void> {
@@ -210,6 +213,10 @@ export class BattleClient {
       matchmaking: 'idle',
       battle: 'idle',
     })
+
+    // 清理事件处理器和缓存
+    this.clearEventHandlers()
+    this.clearTimerSnapshots()
   }
 
   async joinMatchmaking(playerData: PlayerSchemaType): Promise<void> {
@@ -434,6 +441,15 @@ export class BattleClient {
     this.lastSnapshotUpdate = 0
   }
 
+  /**
+   * 清理事件处理器（但保留socket监听器）
+   */
+  private clearEventHandlers(): void {
+    console.log('🧹 Clearing event handlers, current handlers:', Array.from(this.eventHandlers.keys()))
+    this.eventHandlers.clear()
+    this.timerEventHandlers.clear()
+  }
+
   once<T extends keyof ServerToClientEvents>(event: T, listener: ServerToClientEvents[T]): this {
     this.socket.once(event, listener as any)
     return this
@@ -448,7 +464,11 @@ export class BattleClient {
 
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, new Set())
-      this.socket.on(event, wrapper as any) // 使用安全类型断言
+      // 对于battleEvent和battleEventBatch，不需要重复注册socket监听器
+      // 因为它们已经在setupEventListeners中注册了
+      if (event !== 'battleEvent' && event !== 'battleEventBatch') {
+        this.socket.on(event, wrapper as any) // 使用安全类型断言
+      }
     }
 
     this.eventHandlers.get(event)?.add(wrapper)
@@ -463,7 +483,11 @@ export class BattleClient {
     if (handlers) {
       handlers.forEach(h => {
         if (h === handler) {
-          this.socket.off(event, h as any) // 使用安全类型断言
+          // 对于battleEvent和battleEventBatch，不需要移除socket监听器
+          // 因为它们是在setupEventListeners中注册的，应该保持活跃
+          if (event !== 'battleEvent' && event !== 'battleEventBatch') {
+            this.socket.off(event, h as any) // 使用安全类型断言
+          }
           handlers.delete(h)
         }
       })
@@ -539,13 +563,21 @@ export class BattleClient {
       }
     })
 
+    // 处理单个战斗事件 - 通过eventHandlers管理系统处理
     this.socket.on('battleEvent', message => {
+      // 触发battleEvent处理器
+      const handlers = this.eventHandlers.get('battleEvent')
+      if (handlers) {
+        handlers.forEach(handler => handler(message))
+      }
+
+      // 检查是否有战斗结束消息
       if (message.type === 'BATTLE_END') {
         this.updateState({ battle: 'ended' })
       }
     })
 
-    // 处理批量战斗事件
+    // 处理批量战斗事件 - 通过eventHandlers管理系统处理
     this.socket.on('battleEventBatch', messages => {
       // 逐个处理批量消息
       for (const message of messages) {
