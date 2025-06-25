@@ -687,7 +687,7 @@ export const Operators = {
     ): Operator<Pet> =>
     (context: EffectContext<EffectTrigger>, target: Pet[]) => {
       const _statTypes = statType ? GetValueFromSource(context, statType) : undefined
-      if (!_statTypes) target.forEach(v => v.clearStatStage(context))
+      if (!_statTypes) target.forEach(v => v.clearStatStage(context, cleanStageStrategy))
       else target.forEach(v => v.clearStatStage(context, cleanStageStrategy, ..._statTypes))
     },
 
@@ -698,7 +698,7 @@ export const Operators = {
     ): Operator<Pet> =>
     (context: EffectContext<EffectTrigger>, target: Pet[]) => {
       const _statTypes = statType ? GetValueFromSource(context, statType) : undefined
-      if (!_statTypes) target.forEach(v => v.reverseStatStage(context))
+      if (!_statTypes) target.forEach(v => v.reverseStatStage(context, cleanStageStrategy))
       else target.forEach(v => v.reverseStatStage(context, cleanStageStrategy, ..._statTypes))
     },
 
