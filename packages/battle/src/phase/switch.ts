@@ -61,7 +61,6 @@ export function executeSwitchPetOperation(context: SwitchPetContext, battle: Bat
 
   // Apply switch out effects
   battle.applyEffects(context, EffectTrigger.OnSwitchOut)
-  oldPet.switchOut(context)
   const switchOutPhase = new MarkSwitchOutPhase(context.battle, context, oldPet)
   switchOutPhase.initialize()
   switchOutPhase.execute()
