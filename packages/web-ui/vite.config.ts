@@ -13,6 +13,10 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    // eslint-disable-next-line node/prefer-global/process
+    'import.meta.env.VITE_IS_TAURI': `${process.env.VITE_IS_TAURI === 'true'}`,
+  },
   server: {
     proxy: {
       '/api': {
