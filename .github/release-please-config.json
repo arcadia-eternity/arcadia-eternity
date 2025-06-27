@@ -5,10 +5,11 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "draft": false,
-      "prerelease": false,
-      "skip-labeling": true
+      "prerelease": false
     }
   },
+  "skip-github-release": false,
+  "skip-github-pull-request": false,
   "group-pull-request-title-pattern": "chore: release ${version}",
   "separate-pull-requests": false,
   "tag-separator": "/",
