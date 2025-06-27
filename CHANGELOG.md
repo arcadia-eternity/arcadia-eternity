@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.2.0...arcadia-eternity/v1.2.1) (2025-06-27)
+
+
+### 🐛 Bug Fixes
+
+* correct Fly.io deployment workflow for workflow_run trigger ([59b5d72](https://github.com/arcadia-eternity/arcadia-eternity/commit/59b5d722f8d88f53f5462bcb84278f611beee88c))
+* make Deploy Development Environment depend on Docker build ([90a21e5](https://github.com/arcadia-eternity/arcadia-eternity/commit/90a21e59592a3bb6fa2dcfb60221163019251b68))
+
 ## [1.2.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.1.3...arcadia-eternity/v1.2.0) (2025-06-27)
 
 
