@@ -21,6 +21,7 @@ declare module 'vue' {
     DexCard: typeof import('./src/components/dex/DexCard.vue')['default']
     DexNavigation: typeof import('./src/components/dex/DexNavigation.vue')['default']
     DexSearch: typeof import('./src/components/dex/DexSearch.vue')['default']
+    DMGUpdaterDialog: typeof import('./src/components/DMGUpdaterDialog.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCard: typeof import('element-plus/es')['ElCard']

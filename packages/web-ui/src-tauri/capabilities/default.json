@@ -12,6 +12,9 @@
     "fs:allow-exists",
     "fs:allow-read-dir",
     "fs:allow-write-file",
-    "fs:allow-remove"
+    "fs:allow-remove",
+    "shell:default",
+    "core:app:allow-app-show",
+    "core:app:allow-app-hide"
   ]
 }

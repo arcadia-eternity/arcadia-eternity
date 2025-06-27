@@ -24,6 +24,7 @@ const PlayerBattleRecords = () => import('@/components/battleReport/PlayerBattle
 // 演示页面
 const ParticleEffectDemo = () => import('@/pages/ParticleEffectDemo.vue')
 const ClimaxEffectDemo = () => import('@/pages/ClimaxEffectDemo.vue')
+const UpdaterExample = () => import('@/pages/UpdaterExample.vue')
 
 const routes: RouteRecordRaw[] = [
   {
@@ -226,6 +227,14 @@ const devOnlyRoutes: RouteRecordRaw[] = [
     component: ClimaxEffectDemo,
     meta: {
       title: '必杀技特性动画组件演示',
+    },
+  },
+  {
+    path: '/app-updater',
+    name: 'AppUpdater',
+    component: UpdaterExample,
+    meta: {
+      title: '应用更新',
     },
   },
 ]
