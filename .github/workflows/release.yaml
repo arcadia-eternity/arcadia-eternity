@@ -70,19 +70,13 @@ jobs:
 
             ## 下载说明
 
-            ### 🚀 便携式版本（推荐）
-            - **Windows**: 下载 `*_portable.zip` 解压即用
-            - **macOS**: 下载 `*_portable.tar.gz` 解压即用
-            - **Linux**: 下载 `*_portable.tar.gz` 解压即用
-
             ### 📦 安装版本
             - **Windows**: 下载 `.msi` 文件并运行安装
-            - **macOS**: 下载 `.app.tar.gz` 文件解压后运行
-            - **Linux**: 下载 `.AppImage` 文件，添加执行权限后运行
+            - **macOS**: 下载 `.dmg` 文件并运行安装
 
             ## 自动更新
 
-            便携式版本和安装版本都支持自动更新功能。
+            应用支持自动更新功能。
 
             ---
 
@@ -91,117 +85,20 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
           projectPath: './packages/web-ui'
-
-      - name: Create portable versions
-        if: matrix.platform != 'ubuntu-22.04' # 暂时跳过 Linux，因为 AppImage 本身就是便携式的
-        run: |
-          VERSION="${{ github.ref_name || inputs.version }}"
-          VERSION_NUMBER="${VERSION#v}"
-
-          if [[ "${{ matrix.platform }}" == "windows-latest" ]]; then
-            # Windows 便携式版本
-            cd packages/web-ui/src-tauri/target/release/bundle/msi
-            mkdir -p portable
-            # 提取 MSI 内容到 portable 目录
-            echo "创建 Windows 便携式版本"
-            # 这里需要实际的 MSI 提取逻辑
-
-          elif [[ "${{ matrix.platform }}" == "macos-latest" ]]; then
-            # macOS 便携式版本
-            cd packages/web-ui/src-tauri/target/release/bundle/macos
-            mkdir -p portable
-            cp -r *.app portable/
-            tar -czf "arcadia-eternity-client_${VERSION_NUMBER}_${{ matrix.args == '--target aarch64-apple-darwin' && 'aarch64' || 'x64' }}_portable.tar.gz" -C portable .
-            echo "创建 macOS 便携式版本"
-          fi
-
-      - name: Upload portable versions
-        if: matrix.platform != 'ubuntu-22.04'
-        run: |
-          VERSION="${{ github.ref_name || inputs.version }}"
-
-          # 上传便携式版本到 Release
-          echo "上传便携式版本"
-
-  update-release-json:
-    needs: release
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-
-      - name: Generate update JSON
-        run: |
-          # 获取版本号
-          VERSION="${{ github.ref_name || inputs.version }}"
-          VERSION_NUMBER="${VERSION#v}"
-
-          # 获取发布信息
-          RELEASE_INFO=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/$VERSION")
-
-          # 提取发布日期和说明
-          PUB_DATE=$(echo "$RELEASE_INFO" | jq -r '.published_at')
-          NOTES=$(echo "$RELEASE_INFO" | jq -r '.body')
-
-          # 生成更新 JSON
-          cat > latest.json << EOF
-          {
-            "version": "$VERSION_NUMBER",
-            "notes": "$NOTES",
-            "pub_date": "$PUB_DATE",
-            "platforms": {
-              "linux-x86_64": {
-                "signature": "",
-                "url": "https://github.com/${{ github.repository }}/releases/download/$VERSION/arcadia-eternity-client_${VERSION_NUMBER}_amd64.AppImage"
-              },
-              "windows-x86_64": {
-                "signature": "",
-                "url": "https://github.com/${{ github.repository }}/releases/download/$VERSION/arcadia-eternity-client_${VERSION_NUMBER}_x64_en-US.msi"
-              },
-              "darwin-x86_64": {
-                "signature": "",
-                "url": "https://github.com/${{ github.repository }}/releases/download/$VERSION/arcadia-eternity-client_${VERSION_NUMBER}_x64.app.tar.gz"
-              },
-              "darwin-aarch64": {
-                "signature": "",
-                "url": "https://github.com/${{ github.repository }}/releases/download/$VERSION/arcadia-eternity-client_${VERSION_NUMBER}_aarch64.app.tar.gz"
-              }
-            }
-          }
-          EOF
-
-      - name: Upload update JSON to release
-        run: |
-          VERSION="${{ github.ref_name || inputs.version }}"
-
-          # 上传 JSON 文件到发布
-          curl -X POST \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Content-Type: application/octet-stream" \
-            --data-binary @latest.json \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/releases/tags/$VERSION" | jq -r '.id')/assets?name=latest.json"
+          includeUpdaterJson: true
 
   notify:
-    needs: [release, update-release-json]
+    needs: release
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Notify completion
         run: |
-          if [ "${{ needs.release.result }}" == "success" ] && [ "${{ needs.update-release-json.result }}" == "success" ]; then
+          if [ "${{ needs.release.result }}" == "success" ]; then
             echo "✅ Release completed successfully!"
             echo "Version: ${{ github.ref_name || inputs.version }}"
             echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name || inputs.version }}"
           else
             echo "❌ Release failed!"
             echo "Release result: ${{ needs.release.result }}"
-            echo "Update JSON result: ${{ needs.update-release-json.result }}"
           fi

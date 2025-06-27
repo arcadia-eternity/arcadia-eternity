@@ -21,6 +21,7 @@
     "build-storybook": "storybook build",
     "dev:tauri": "VITE_IS_TAURI=true vite",
     "build:tauri": "VITE_IS_TAURI=true vite build",
+    "tauri": "tauri",
     "build:dmg": "node scripts/build-dmg.js"
   },
   "dependencies": {
