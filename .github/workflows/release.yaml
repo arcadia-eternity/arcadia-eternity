@@ -61,8 +61,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          CI: true
         with:
           tagName: ${{ github.ref_name || inputs.version }}
           releaseName: 'Arcadia Eternity ${{ github.ref_name || inputs.version }}'
@@ -90,6 +89,13 @@ jobs:
           projectPath: './packages/web-ui'
           includeUpdaterJson: true
           includeDebug: false
+
+      - name: Verify DMG creation (macOS only)
+        if: matrix.platform == 'macos-latest'
+        run: |
+          echo "Checking for DMG files..."
+          find ./packages/web-ui/src-tauri/target -name "*.dmg" -type f || echo "No DMG files found"
+          ls -la ./packages/web-ui/src-tauri/target/*/release/bundle/dmg/ || echo "DMG directory not found"
 
   notify:
     needs: release
