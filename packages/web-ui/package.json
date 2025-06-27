@@ -19,8 +19,8 @@
     "format": "prettier --write src/",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "dev:tauri": "VITE_IS_TAURI=true vite",
-    "build:tauri": "VITE_IS_TAURI=true vite build",
+    "dev:tauri": "cross-env VITE_IS_TAURI=true vite",
+    "build:tauri": "cross-env VITE_IS_TAURI=true vite build",
     "tauri": "tauri",
     "build:dmg": "node scripts/build-dmg.js"
   },
@@ -96,6 +96,7 @@
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.5.1",
     "@vue/tsconfig": "^0.7.0",
+    "cross-env": "^7.0.3",
     "eslint": "^9.29.0",
     "eslint-plugin-oxlint": "^1.3.0",
     "eslint-plugin-storybook": "^9.0.13",
