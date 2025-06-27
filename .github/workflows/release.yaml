@@ -12,26 +12,31 @@ on:
         type: string
 
 jobs:
-  release:
+  publish-tauri:
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest'
+          - platform: 'macos-latest' # for Arm based macs (M1 and above).
             args: '--target aarch64-apple-darwin'
-          - platform: 'macos-latest'
+          - platform: 'macos-latest' # for Intel based macs.
             args: '--target x86_64-apple-darwin'
           - platform: 'windows-latest'
             args: ''
 
     runs-on: ${{ matrix.platform }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Rust setup
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'pnpm'
+
+      - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
@@ -41,17 +46,12 @@ jobs:
         with:
           workspaces: './packages/web-ui/src-tauri -> target'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 8
 
-      - name: Install frontend dependencies
+      - name: install frontend dependencies
         run: pnpm install
 
       - name: Build workspace packages
@@ -98,17 +98,15 @@ jobs:
           ls -la ./packages/web-ui/src-tauri/target/*/release/bundle/dmg/ || echo "DMG directory not found"
 
   notify:
-    needs: release
+    needs: publish-tauri
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Notify completion
         run: |
-          if [ "${{ needs.release.result }}" == "success" ]; then
+          if [ "${{ needs.publish-tauri.result }}" == "success" ]; then
             echo "✅ Release completed successfully!"
-            echo "Version: ${{ github.ref_name || inputs.version }}"
-            echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name || inputs.version }}"
           else
             echo "❌ Release failed!"
-            echo "Release result: ${{ needs.release.result }}"
+            echo "Release result: ${{ needs.publish-tauri.result }}"
           fi
