@@ -17,6 +17,9 @@
     "core:app:allow-app-show",
     "core:app:allow-app-hide",
     "process:default",
-    "process:allow-restart"
+    "process:allow-restart",
+    "updater:default",
+    "updater:allow-check",
+    "updater:allow-download-and-install"
   ]
 }
