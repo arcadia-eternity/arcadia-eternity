@@ -587,6 +587,8 @@ const MESSAGE_ICONS: Record<BattleMessageType, string> = {
   [BattleMessageType.Error]: '❌',
   [BattleMessageType.TurnEnd]: '⏹️',
   [BattleMessageType.SkillUseEnd]: '⏹️',
+  [BattleMessageType.Transform]: '',
+  [BattleMessageType.TransformEnd]: '',
 }
 
 // 日志类型中文名称映射
@@ -621,6 +623,8 @@ const LOG_TYPE_NAMES: Record<BattleMessageType, string> = {
   [BattleMessageType.InvalidAction]: '无效操作',
   [BattleMessageType.Info]: '信息',
   [BattleMessageType.Error]: '错误',
+  [BattleMessageType.Transform]: '',
+  [BattleMessageType.TransformEnd]: '',
 }
 
 // 日志类型分类
