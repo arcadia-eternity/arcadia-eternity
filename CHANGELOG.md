@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.1.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.0.1...arcadia-eternity/v1.1.0) (2025-06-27)
+
+
+### ✨ Features
+
+* integrate Tauri releases with release-please ([99e9e34](https://github.com/arcadia-eternity/arcadia-eternity/commit/99e9e34d53bdbb39674433946b5937322cdca81a))
+* trigger production deployments on production branch push ([a3e64fe](https://github.com/arcadia-eternity/arcadia-eternity/commit/a3e64febec909c13a7fe3b7f550a3ac38f42efa4))
+
+
+### 🐛 Bug Fixes
+
+* add explicit bash shell for cross-platform compatibility ([7c28019](https://github.com/arcadia-eternity/arcadia-eternity/commit/7c280194ad79f31f3790124c91d5ac0c894ce3f9))
+* get version from package.json when triggered by production branch push ([4c28024](https://github.com/arcadia-eternity/arcadia-eternity/commit/4c28024533f9176c5dba1142388059fd92b70188))
+
+
+### ♻️ Code Refactoring
+
+* improve production deployment workflow ([ae31f02](https://github.com/arcadia-eternity/arcadia-eternity/commit/ae31f02de470c5d659730b90d54a430bcbfeba59))
+
 ## [1.0.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.0.0...arcadia-eternity/v1.0.1) (2025-06-27)
 
 
