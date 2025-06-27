@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.0.0...arcadia-eternity/v1.0.1) (2025-06-27)
+
+
+### 🐛 Bug Fixes
+
+* remove complex condition from docker metadata tags ([37ff8a4](https://github.com/arcadia-eternity/arcadia-eternity/commit/37ff8a41bc6383f289523e1ebada012880e7be16))
+
 ## 1.0.0 (2025-06-27)
 
 
