@@ -12,6 +12,7 @@ import { battleGuard } from './guards'
 import TeamBuilder from '@/pages/teamBuilder.vue'
 import StorageManager from '@/pages/storageManager.vue'
 import AccountPage from '@/pages/accountPage.vue'
+import { isTauri } from '@/utils/env'
 
 // 战报相关组件
 const BattleRecordList = () => import('@/components/battleReport/BattleRecordList.vue')
@@ -24,7 +25,7 @@ const PlayerBattleRecords = () => import('@/components/battleReport/PlayerBattle
 // 演示页面
 const ParticleEffectDemo = () => import('@/pages/ParticleEffectDemo.vue')
 const ClimaxEffectDemo = () => import('@/pages/ClimaxEffectDemo.vue')
-const UpdaterExample = () => import('@/pages/UpdaterExample.vue')
+const Updater = () => import('@/pages/Updater.vue')
 
 const routes: RouteRecordRaw[] = [
   {
@@ -229,18 +230,25 @@ const devOnlyRoutes: RouteRecordRaw[] = [
       title: '必杀技特性动画组件演示',
     },
   },
+]
+
+if (import.meta.env.DEV) {
+  routes.push(...devOnlyRoutes)
+}
+
+const tauriOnlyRoutes: RouteRecordRaw[] = [
   {
     path: '/app-updater',
     name: 'AppUpdater',
-    component: UpdaterExample,
+    component: Updater,
     meta: {
       title: '应用更新',
     },
   },
 ]
 
-if (import.meta.env.DEV) {
-  routes.push(...devOnlyRoutes)
+if (isTauri) {
+  routes.push(...tauriOnlyRoutes)
 }
 
 const router = createRouter({
