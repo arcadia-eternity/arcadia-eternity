@@ -2,7 +2,7 @@
 import 'seer2-pet-animator'
 import { ActionState } from 'seer2-pet-animator'
 import type {} from 'seer2-pet-animator' //Vue Declare
-import { ref, useTemplateRef, watchEffect, watch, nextTick } from 'vue'
+import { ref, useTemplateRef, watchEffect, watch, nextTick, computed } from 'vue'
 import { petResourceCache } from '@/services/petResourceCache'
 import { asyncComputed } from '@vueuse/core'
 
@@ -20,6 +20,7 @@ const props = withDefaults(
 const petSpriteRef = useTemplateRef('petSpriteRef')
 const petRenderRef = useTemplateRef('pet-render')
 const inited = ref(false)
+const forceHttps = computed(() => window.location.protocol === 'https:')
 
 // 使用 asyncComputed 来异步获取 URL，避免初始化时的空值问题
 const swfUrl = asyncComputed(
@@ -163,6 +164,7 @@ defineExpose({
       :scaleY="1.1"
       @hit="handleHitEvent"
       @animationComplete="handleAnimationComplete"
+      :forceHttps="forceHttps"
     />
   </div>
 </template>
