@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.1.2...arcadia-eternity/v1.1.3) (2025-06-27)
+
+
+### 🐛 Bug Fixes
+
+* remove manual workflow triggers, rely on release event ([88e6d24](https://github.com/arcadia-eternity/arcadia-eternity/commit/88e6d2495fa30c568c14481ae0a756708be7d7bd))
+
 ## [1.1.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.1.1...arcadia-eternity/v1.1.2) (2025-06-27)
 
 
