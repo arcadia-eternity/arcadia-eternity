@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.1.1...arcadia-eternity/v1.1.2) (2025-06-27)
+
+
+### 🐛 Bug Fixes
+
+* use release event instead of production branch push ([1504ecd](https://github.com/arcadia-eternity/arcadia-eternity/commit/1504ecd642e0cac0f86eed66d1f4bc519713c20e))
+
 ## [1.1.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.1.0...arcadia-eternity/v1.1.1) (2025-06-27)
 
 
