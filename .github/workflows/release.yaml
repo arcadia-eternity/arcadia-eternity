@@ -1,15 +1,18 @@
 name: Release Tauri App
 
 on:
+  # 当production分支有push时自动构建
+  push:
+    branches: [production]
+    tags:
+      - 'v*'
+  # 手动触发
   workflow_dispatch:
     inputs:
       version:
         description: 'Version to release (e.g., v1.0.0)'
         required: true
         type: string
-  push:
-    tags:
-      - 'v*'
 
 jobs:
   publish-tauri:
