@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.1.3...arcadia-eternity/v1.2.0) (2025-06-27)
+
+
+### ✨ Features
+
+* use repository_dispatch to trigger production workflows ([c75f13d](https://github.com/arcadia-eternity/arcadia-eternity/commit/c75f13d9498359be59d743b23a2a99f517ae800a))
+
 ## [1.1.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.1.2...arcadia-eternity/v1.1.3) (2025-06-27)
 
 
