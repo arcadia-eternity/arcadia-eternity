@@ -16,6 +16,9 @@ export default defineConfig({
   define: {
     // eslint-disable-next-line node/prefer-global/process
     'import.meta.env.VITE_IS_TAURI': `${process.env.VITE_IS_TAURI === 'true'}`,
+    // 注入构建时间和commit hash
+    'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString()),
+    'import.meta.env.VITE_COMMIT_HASH': JSON.stringify(process.env.GITHUB_SHA || process.env.COMMIT_HASH || 'dev'),
   },
   server: {
     proxy: {
