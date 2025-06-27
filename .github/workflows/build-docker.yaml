@@ -68,7 +68,7 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=main,enable={{is_default_branch}}
             type=raw,value=dev,enable={{is_default_branch}}
-            type=raw,value=latest,enable={{is_default_branch && steps.env.outputs.environment == 'development'}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
         id: build
