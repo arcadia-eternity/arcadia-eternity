@@ -36,19 +36,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name || inputs.version || 'main' }}
+          ref: ${{ inputs.version || 'main' }}
 
       - name: Determine version
         id: version
+        shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            VERSION="${{ github.event.release.tag_name }}"
-          elif [ -n "${{ inputs.version }}" ]; then
+          if [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
           else
-            VERSION="latest"
+            # 从package.json读取版本号
+            VERSION="$(node -p "require('./package.json').version")"
           fi
-          # 移除v前缀
+          # 移除v前缀（如果存在）
           VERSION=${VERSION#v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Deploying production version: $VERSION"
