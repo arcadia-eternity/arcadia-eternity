@@ -6,7 +6,6 @@ on:
     workflows: ['Build Production Docker Image']
     types:
       - completed
-    branches: [production]
   # 手动触发
   workflow_dispatch:
     inputs:
