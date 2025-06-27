@@ -64,6 +64,9 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           CI: true
+          VITE_IS_TAURI: true
+          GITHUB_SHA: ${{ github.sha }}
+          COMMIT_HASH: ${{ github.sha }}
         with:
           tagName: ${{ github.ref_name || inputs.version }}
           releaseName: 'Arcadia Eternity ${{ github.ref_name || inputs.version }}'

@@ -161,7 +161,7 @@
         </nav>
 
         <div class="p-5 border-t border-gray-200 bg-gray-50">
-          <div>
+          <div class="space-y-3">
             <el-button
               type="default"
               @click="
@@ -176,6 +176,11 @@
               <el-icon><Setting /></el-icon>
               <span class="ml-2">游戏设置</span>
             </el-button>
+
+            <!-- 移动端版本信息 -->
+            <div class="flex justify-center">
+              <VersionInfo />
+            </div>
           </div>
         </div>
       </div>
@@ -358,12 +363,19 @@
       </template>
     </el-dialog>
 
-    <main class="flex-1 overflow-auto">
+    <main class="flex-1 overflow-auto relative">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" class="w-full" />
         </transition>
       </router-view>
+
+      <!-- 桌面端版本信息 - 固定在左下角 -->
+      <div v-if="!isMobile" class="fixed bottom-4 left-4 z-30 pointer-events-none">
+        <div class="pointer-events-auto">
+          <VersionInfo />
+        </div>
+      </div>
     </main>
 
     <!-- 全局状态提示 - 移除 el-affix，使用固定定位 -->
@@ -409,6 +421,7 @@ import {
   ArrowDown,
   FolderOpened,
 } from '@element-plus/icons-vue'
+import VersionInfo from '@/components/VersionInfo.vue'
 
 const router = useRouter()
 const dataStore = useGameDataStore()

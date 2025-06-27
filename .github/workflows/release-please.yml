@@ -1,0 +1,136 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+      upload_url: ${{ steps.release.outputs.upload_url }}
+    steps:
+      - name: Run release-please
+        uses: google-github-actions/release-please-action@v4
+        id: release
+        with:
+          release-type: node
+          package-name: arcadia-eternity
+          # 自定义配置
+          config-file: .github/release-please-config.json
+          manifest-file: .github/.release-please-manifest.json
+
+  # 当创建release时，自动合并到production分支
+  merge-to-production:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create or update production branch
+        run: |
+          # 检查production分支是否存在
+          if git show-ref --verify --quiet refs/remotes/origin/production; then
+            echo "Production branch exists, checking out..."
+            git checkout production
+            git pull origin production
+          else
+            echo "Creating production branch..."
+            git checkout -b production
+          fi
+
+      - name: Merge main to production
+        run: |
+          echo "Merging main to production for release ${{ needs.release-please.outputs.tag_name }}"
+          git merge origin/main --no-ff -m "chore: merge main to production for release ${{ needs.release-please.outputs.tag_name }}"
+
+      - name: Push production branch
+        run: |
+          git push origin production
+
+      - name: Create production deployment comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.payload.pull_request?.number || 1,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 **Production Deployment Triggered**
+              
+              Release \`${{ needs.release-please.outputs.tag_name }}\` has been created and merged to production branch.
+              
+              **Deployment Status:**
+              - ✅ Production branch updated
+              - 🔄 Cloudflare Pages deployment in progress
+              - 🔄 Server deployment in progress
+              - 🔄 Tauri build in progress
+              
+              **Links:**
+              - [Release Notes](https://github.com/${{ github.repository }}/releases/tag/${{ needs.release-please.outputs.tag_name }})
+              - [Production Site](https://yourdomain.com) (will update shortly)
+              `
+            });
+
+  # 构建生产环境Docker镜像
+  build-production-image:
+    needs: [release-please, merge-to-production]
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+
+      - name: Log into GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=production
+            type=raw,value=${{ needs.release-please.outputs.tag_name }}
+            type=raw,value=latest
+
+      - name: Build and push production Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NODE_ENV=production
+            VERSION=${{ needs.release-please.outputs.version }}
+            GITHUB_SHA=${{ github.sha }}
+            COMMIT_HASH=${{ github.sha }}

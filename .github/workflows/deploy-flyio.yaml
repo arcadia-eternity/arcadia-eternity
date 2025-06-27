@@ -1,30 +1,53 @@
-name: Deploy to Fly.io
+name: Deploy to Fly.io (Production)
 
 on:
-  workflow_run:
-    workflows: ['Build and Push Docker Image']
-    types:
-      - completed
-    branches: [main, master]
-  push:
-    branches: [main, master]
-    paths:
-      - 'fly.toml'
+  # 只在手动触发或生产部署时运行
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: false
+        default: 'production'
+        type: choice
+        options:
+          - production
+      version:
+        description: 'Version to deploy'
+        required: false
+        type: string
+  # 当有新的release时自动部署
+  release:
+    types: [published]
 
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
 jobs:
   deploy:
-    name: Deploy to Fly.io
+    name: Deploy to Fly.io (Production)
     runs-on: ubuntu-latest
-    # Only run if the Docker build workflow succeeded
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    environment: production
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.version || 'main' }}
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+          elif [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="latest"
+          fi
+          # 移除v前缀
+          VERSION=${VERSION#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Deploying production version: $VERSION"
 
       - name: Setup Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
@@ -36,56 +59,45 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Determine image reference
+      - name: Determine production image reference
         id: image-info
         run: |
           IMAGE_NAME="ghcr.io/${{ github.repository }}"
+          VERSION="${{ steps.version.outputs.version }}"
 
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            # When triggered by workflow_run, use the SHA-based tag for guaranteed uniqueness
-            COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
-            SHORT_SHA=$(echo $COMMIT_SHA | cut -c1-7)
-            IMAGE_REF="${IMAGE_NAME}:main-${SHORT_SHA}"
-
-            echo "Using SHA-based tag: $IMAGE_REF"
-            echo "This ensures we get the exact image built from commit: $COMMIT_SHA"
+          if [ "$VERSION" = "latest" ]; then
+            IMAGE_REF="${IMAGE_NAME}:production"
           else
-            # Manual trigger - get the latest digest to bypass cache
-            echo "Getting latest image digest for ${IMAGE_NAME}:main"
-            DIGEST=$(docker manifest inspect ${IMAGE_NAME}:main | jq -r '.config.digest')
-            IMAGE_REF="${IMAGE_NAME}@${DIGEST}"
-
-            echo "Using digest-based reference: $IMAGE_REF"
-            echo "Latest image digest: $DIGEST"
+            IMAGE_REF="${IMAGE_NAME}:v${VERSION}"
           fi
 
-          echo "Final image reference: $IMAGE_REF"
+          echo "Using production image: $IMAGE_REF"
           echo "image-ref=$IMAGE_REF" >> $GITHUB_OUTPUT
 
-      - name: Deploy with exact image reference
+      - name: Deploy to production
         run: |
-          echo "Deploying with image: ${{ steps.image-info.outputs.image-ref }}"
-          echo "This bypasses all Docker and Fly.io caches to ensure latest version"
+          echo "Deploying to production with image: ${{ steps.image-info.outputs.image-ref }}"
+          echo "Version: ${{ steps.version.outputs.version }}"
 
-          # Deploy using the specific image reference (either SHA-based tag or digest)
-          # This guarantees we get the exact latest version, no cache issues
+          # Deploy using the production image
           flyctl deploy \
             --image "${{ steps.image-info.outputs.image-ref }}" \
             --remote-only \
-            --wait-timeout 300 \
+            --wait-timeout 600 \
             --verbose
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
-      - name: Verify deployment
+      - name: Verify production deployment
         run: |
-          echo "Deployment completed successfully!"
-          echo "Application URL: https://test-battle.fly.dev"
+          echo "Production deployment completed successfully!"
+          echo "Production URL: https://test-battle.fly.dev"
+          echo "Version: ${{ steps.version.outputs.version }}"
 
-          # Optional: Check if the app is responding
-          sleep 30
+          # Wait for app to start
+          sleep 60
           if curl -f https://test-battle.fly.dev/health > /dev/null 2>&1; then
-            echo "✅ Health check passed!"
+            echo "✅ Production health check passed!"
           else
-            echo "⚠️  Health check failed, but deployment may still be starting up"
+            echo "⚠️  Production health check failed, but deployment may still be starting up"
           fi

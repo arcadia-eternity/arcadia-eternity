@@ -1,0 +1,91 @@
+{
+  "release-type": "node",
+  "packages": {
+    ".": {
+      "package-name": "arcadia-eternity",
+      "release-type": "node",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "draft": false,
+      "prerelease": false
+    },
+    "packages/web-ui": {
+      "package-name": "@arcadia-eternity/web-ui",
+      "release-type": "node",
+      "component": "web-ui"
+    },
+    "packages/web-ui/src-tauri": {
+      "package-name": "arcadia-eternity-client",
+      "release-type": "rust",
+      "component": "tauri-app"
+    }
+  },
+  "group-pull-request-title-pattern": "chore: release ${version}",
+  "separate-pull-requests": false,
+  "tag-separator": "/",
+  "include-v-in-tag": true,
+  "changelog-sections": [
+    {
+      "type": "feat",
+      "section": "✨ Features",
+      "hidden": false
+    },
+    {
+      "type": "fix",
+      "section": "🐛 Bug Fixes",
+      "hidden": false
+    },
+    {
+      "type": "perf",
+      "section": "⚡ Performance Improvements",
+      "hidden": false
+    },
+    {
+      "type": "revert",
+      "section": "⏪ Reverts",
+      "hidden": false
+    },
+    {
+      "type": "docs",
+      "section": "📚 Documentation",
+      "hidden": false
+    },
+    {
+      "type": "style",
+      "section": "💄 Styles",
+      "hidden": true
+    },
+    {
+      "type": "chore",
+      "section": "🔧 Miscellaneous Chores",
+      "hidden": true
+    },
+    {
+      "type": "refactor",
+      "section": "♻️ Code Refactoring",
+      "hidden": false
+    },
+    {
+      "type": "test",
+      "section": "✅ Tests",
+      "hidden": true
+    },
+    {
+      "type": "build",
+      "section": "🏗️ Build System",
+      "hidden": true
+    },
+    {
+      "type": "ci",
+      "section": "👷 Continuous Integration",
+      "hidden": true
+    }
+  ],
+  "extra-files": [
+    {
+      "type": "json",
+      "path": "packages/web-ui/src-tauri/tauri.conf.json",
+      "jsonpath": "$.version"
+    }
+  ]
+}

@@ -1,16 +1,6 @@
-name: Build and Push Docker Image
+name: Deploy Development Environment
 
 on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to build for'
-        required: false
-        default: 'development'
-        type: choice
-        options:
-          - development
-          - production
   push:
     branches: [main, master]
     paths:
@@ -21,13 +11,15 @@ on:
       - 'pnpm-lock.yaml'
       - 'package.json'
       - 'Dockerfile'
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-docker:
+  # 构建开发环境Docker镜像
+  build-dev-image:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -35,7 +27,6 @@ jobs:
     outputs:
       image-digest: ${{ steps.build.outputs.digest }}
       image-tags: ${{ steps.meta.outputs.tags }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -47,18 +38,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Determine environment
-        id: env
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            ENV="${{ inputs.environment }}"
-          else
-            ENV="development"
-          fi
-          echo "environment=$ENV" >> $GITHUB_OUTPUT
-          echo "Building for environment: $ENV"
-
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -66,21 +46,37 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
-            type=raw,value=main,enable={{is_default_branch}}
             type=raw,value=dev,enable={{is_default_branch}}
-            type=raw,value=latest,enable={{is_default_branch && steps.env.outputs.environment == 'development'}}
 
-      - name: Build and push Docker image
+      - name: Build and push development Docker image
         id: build
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: |
-            ${{ steps.meta.outputs.tags }}
-          labels: |
-            ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            NODE_ENV=${{ steps.env.outputs.environment == 'production' && 'production' || 'development' }}
-            BUILD_ENV=${{ steps.env.outputs.environment }}
+            NODE_ENV=development
+            BUILD_ENV=development
+            GITHUB_SHA=${{ github.sha }}
+            COMMIT_HASH=${{ github.sha }}
+
+  # 部署到开发环境（如果你有开发服务器的话）
+  # 这里可以添加部署到开发服务器的步骤
+  # 目前只构建镜像，生产环境使用Fly.io
+
+  notify-dev-build:
+    needs: build-dev-image
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Notify development build status
+        run: |
+          echo "Development Docker image built successfully!"
+          echo "Image tags: ${{ needs.build-dev-image.outputs.image-tags }}"
+          echo "This image can be used for local development or testing."
+          echo ""
+          echo "To run locally:"
+          echo "docker run -p 8102:8102 ghcr.io/${{ github.repository }}:dev"
