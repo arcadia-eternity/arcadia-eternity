@@ -25,22 +25,7 @@
         "enable": true,
         "scope": ["$APPCONFIG/*", "$APPDATA/*"]
       },
-      "capabilities": [
-        {
-          "identifier": "main-capability",
-          "description": "Main application capabilities",
-          "windows": ["main"],
-          "permissions": [
-            "core:default",
-            "shell:default",
-            "fs:default",
-            "http:default",
-
-            "process:default",
-            "process:allow-restart"
-          ]
-        }
-      ]
+      "capabilities": ["default"]
     }
   },
   "bundle": {

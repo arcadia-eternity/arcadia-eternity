@@ -15,6 +15,8 @@
     "fs:allow-remove",
     "shell:default",
     "core:app:allow-app-show",
-    "core:app:allow-app-hide"
+    "core:app:allow-app-hide",
+    "process:default",
+    "process:allow-restart"
   ]
 }
