@@ -68,6 +68,34 @@ jobs:
         run: |
           git push origin production
 
+      - name: Trigger production workflows
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // 触发生产镜像构建
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'build-production-image.yml',
+              ref: 'production',
+              inputs: {
+                version: '${{ needs.release-please.outputs.version }}'
+              }
+            });
+
+            // 触发Tauri构建
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'release.yaml',
+              ref: 'production',
+              inputs: {
+                version: '${{ needs.release-please.outputs.tag_name }}'
+              }
+            });
+
+            console.log('Triggered production workflows for version ${{ needs.release-please.outputs.tag_name }}');
+
       - name: Create production deployment comment
         uses: actions/github-script@v7
         with:
