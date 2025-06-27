@@ -62,6 +62,7 @@ jobs:
 
       - name: Get version from package.json
         id: version
+        shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ inputs.version }}"
@@ -88,13 +89,13 @@ jobs:
           tagName: ${{ steps.version.outputs.version }}
           releaseName: 'Arcadia Eternity ${{ steps.version.outputs.version }}'
           releaseBody: |
-            ## 更新内容
+            ## 🖥️ 桌面应用
 
-            请查看 [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) 了解详细更新内容。
+            桌面应用已构建完成，可以下载使用！
 
-            ## 下载说明
+            ## 📦 下载说明
 
-            ### 📦 安装版本
+            ### 安装版本
             - **macOS**: 下载 `.app` 文件并拖拽到应用程序文件夹
             - **Windows**: 下载 `.msi` 或 `.exe` 文件并运行安装
 
@@ -109,9 +110,11 @@ jobs:
 
             ---
 
-            **完整更新日志**: https://github.com/${{ github.repository }}/compare/v${{ github.event.before }}...${{ github.ref_name || inputs.version }}
+            **完整更新日志**: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
           releaseDraft: false
           prerelease: false
+          # 如果release已存在，则更新现有release
+          updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
           projectPath: './packages/web-ui'
           includeUpdaterJson: true
