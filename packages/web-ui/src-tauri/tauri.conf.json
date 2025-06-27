@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": " arcadia-eternity-client",
+  "productName": "arcadia-eternity-client",
   "version": "0.1.0",
   "identifier": "com.tauri.dev",
   "build": {
@@ -12,9 +12,9 @@
   "app": {
     "windows": [
       {
-        "title": "@arcadia-eternity/web-ui arcadia-eternity-client",
-        "width": 800,
-        "height": 600,
+        "title": "arcadia-eternity",
+        "width": 1600,
+        "height": 1000,
         "resizable": true,
         "fullscreen": false
       }
