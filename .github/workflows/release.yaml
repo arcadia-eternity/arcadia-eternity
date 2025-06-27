@@ -1,9 +1,11 @@
 name: Release Tauri App
 
 on:
-  # 当production分支有push时自动构建
+  # 当有新release时自动构建
+  release:
+    types: [published]
+  # 也支持tag触发
   push:
-    branches: [production]
     tags:
       - 'v*'
   # 手动触发
