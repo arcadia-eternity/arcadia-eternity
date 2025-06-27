@@ -39,7 +39,7 @@ jobs:
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ startsWith(matrix.platform, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -86,7 +86,7 @@ jobs:
           includeDebug: false
 
       - name: Verify DMG creation (macOS only)
-        if: matrix.platform == 'macos-latest'
+        if: startsWith(matrix.platform, 'macos')
         run: |
           echo "Checking for DMG files..."
           find ./packages/web-ui/src-tauri/target -name "*.dmg" -type f || echo "No DMG files found"
