@@ -45,6 +45,7 @@
     "@tauri-apps/plugin-http": "^2.5.0",
     "@tauri-apps/plugin-process": "^2.3.0",
     "@tauri-apps/plugin-shell": "~2.3.0",
+    "@tauri-apps/plugin-updater": "^2.9.0",
     "@tsparticles/engine": "^3.8.1",
     "@tsparticles/slim": "^3.8.1",
     "@tsparticles/vue3": "^3.0.1",

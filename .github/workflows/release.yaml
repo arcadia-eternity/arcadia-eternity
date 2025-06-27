@@ -61,6 +61,8 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           CI: true
         with:
           tagName: ${{ github.ref_name || inputs.version }}
@@ -73,12 +75,17 @@ jobs:
             ## 下载说明
 
             ### 📦 安装版本
-            - **Windows**: 下载 `.msi` 文件并运行安装
-            - **macOS**: 下载 `.dmg` 文件并运行安装
+            - **macOS**: 下载 `.app` 文件并拖拽到应用程序文件夹
+            - **Windows**: 下载 `.msi` 或 `.exe` 文件并运行安装
 
-            ## 自动更新
+            ## 🔄 自动更新
 
-            应用支持自动更新功能。
+            应用内置自动更新功能，会自动检查并提示安装新版本。
+
+            - ✅ 自动检查更新
+            - ✅ 一键下载安装
+            - ✅ 安装后自动重启
+            - ✅ 签名验证确保安全
 
             ---
 
@@ -90,12 +97,12 @@ jobs:
           includeUpdaterJson: true
           includeDebug: false
 
-      - name: Verify DMG creation (macOS only)
+      - name: Verify app bundle creation (macOS only)
         if: startsWith(matrix.platform, 'macos')
         run: |
-          echo "Checking for DMG files..."
-          find ./packages/web-ui/src-tauri/target -name "*.dmg" -type f || echo "No DMG files found"
-          ls -la ./packages/web-ui/src-tauri/target/*/release/bundle/dmg/ || echo "DMG directory not found"
+          echo "Checking for app bundle files..."
+          find ./packages/web-ui/src-tauri/target -name "*.app" -type d || echo "No app bundle found"
+          ls -la ./packages/web-ui/src-tauri/target/*/release/bundle/macos/ || echo "macOS bundle directory not found"
 
   notify:
     needs: publish-tauri

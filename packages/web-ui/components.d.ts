@@ -21,7 +21,7 @@ declare module 'vue' {
     DexCard: typeof import('./src/components/dex/DexCard.vue')['default']
     DexNavigation: typeof import('./src/components/dex/DexNavigation.vue')['default']
     DexSearch: typeof import('./src/components/dex/DexSearch.vue')['default']
-    DMGUpdaterDialog: typeof import('./src/components/DMGUpdaterDialog.vue')['default']
+
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCard: typeof import('element-plus/es')['ElCard']
@@ -75,6 +75,7 @@ declare module 'vue' {
     SkillDetail: typeof import('./src/components/dex/SkillDetail.vue')['default']
     SpeciesDetail: typeof import('./src/components/dex/SpeciesDetail.vue')['default']
     SpeciesSkillEditor: typeof import('./src/components/SpeciesSkillEditor.vue')['default']
+    TauriUpdaterDialog: typeof import('./src/components/TauriUpdaterDialog.vue')['default']
     Tooltip: typeof import('./src/components/battle/Tooltip.vue')['default']
     TrainingPanel: typeof import('./src/components/battle/TrainingPanel.vue')['default']
     TypeChart: typeof import('./src/components/dex/TypeChart.vue')['default']

@@ -82,15 +82,15 @@
     </div>
 
     <!-- 更新对话框 -->
-    <DMGUpdaterDialog ref="updaterDialog" />
+    <TauriUpdaterDialog ref="updaterDialog" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { getVersion } from '@tauri-apps/api/app'
-import DMGUpdaterDialog from '@/components/DMGUpdaterDialog.vue'
-import { dmgUpdater } from '@/utils/dmgUpdater'
+import TauriUpdaterDialog from '@/components/TauriUpdaterDialog.vue'
+import { tauriUpdater } from '@/utils/tauriUpdater'
 import { isTauri } from '@/utils/env'
 
 interface UpdateRecord {
@@ -106,7 +106,7 @@ const currentVersion = ref('')
 const latestVersion = ref('')
 const lastCheckTime = ref('')
 const updateHistory = ref<UpdateRecord[]>([])
-const updaterDialog = ref<InstanceType<typeof DMGUpdaterDialog>>()
+const updaterDialog = ref<InstanceType<typeof TauriUpdaterDialog>>()
 
 let autoCheckTimer: number | null = null
 
@@ -192,7 +192,7 @@ const checkUpdatesInBackground = async () => {
   isChecking.value = true
 
   try {
-    const updateInfo = await dmgUpdater.checkForUpdates()
+    const updateInfo = await tauriUpdater.checkForUpdates()
     lastCheckTime.value = new Date().toLocaleString()
     localStorage.setItem('last-check-time', lastCheckTime.value)
 
