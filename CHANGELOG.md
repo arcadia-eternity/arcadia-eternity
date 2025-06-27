@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.1.0...arcadia-eternity/v1.1.1) (2025-06-27)
+
+
+### 🐛 Bug Fixes
+
+* Add Transform message types to icon and name maps ([8401b94](https://github.com/arcadia-eternity/arcadia-eternity/commit/8401b94a237469ab758f43a9400aa72a135dd451))
+
 ## [1.1.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.0.1...arcadia-eternity/v1.1.0) (2025-06-27)
 
 
