@@ -1,9 +1,8 @@
 name: Build Production Docker Image
 
 on:
-  push:
-    tags:
-      - 'v*'
+  repository_dispatch:
+    types: [production-release]
   workflow_dispatch:
     inputs:
       version:
