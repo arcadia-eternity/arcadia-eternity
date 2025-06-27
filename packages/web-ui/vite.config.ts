@@ -28,7 +28,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ['seer2-pet-animator'],
+    exclude: ['seer2-pet-animator', '@tauri-apps/api/http', '@tauri-apps/api/tauri'],
   },
   build: {
     assetsInlineLimit: (filePath, content) => {
@@ -108,6 +108,10 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@data': path.resolve(__dirname, '../../data'),
       '@locales': path.resolve(__dirname, '../../locales'),
+      // 解决 Tauri API 子路径导入问题
+      '@tauri-apps/api/http': path.resolve(__dirname, './node_modules/@tauri-apps/api/http'),
+      '@tauri-apps/api/tauri': path.resolve(__dirname, './node_modules/@tauri-apps/api/tauri'),
+      '@tauri-apps/api': path.resolve(__dirname, './node_modules/@tauri-apps/api'),
     },
   },
 })

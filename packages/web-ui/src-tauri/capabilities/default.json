@@ -2,10 +2,16 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "enables the default permissions",
-  "windows": [
-    "main"
-  ],
+  "windows": ["main"],
   "permissions": [
-    "core:default"
+    "core:default",
+    "fs:allow-appdata-write-recursive",
+    "fs:allow-appdata-read-recursive",
+    "fs:allow-appdata-meta-recursive",
+    "fs:allow-mkdir",
+    "fs:allow-exists",
+    "fs:allow-read-dir",
+    "fs:allow-write-file",
+    "fs:allow-remove"
   ]
 }

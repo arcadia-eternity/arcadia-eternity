@@ -2,7 +2,10 @@
 import 'seer2-pet-animator'
 import { ActionState } from 'seer2-pet-animator'
 import type {} from 'seer2-pet-animator' //Vue Declare
-import { computed, ref, useTemplateRef, watchEffect, watch, nextTick } from 'vue'
+import { ref, useTemplateRef, watchEffect, watch, nextTick } from 'vue'
+import { petResourceCache } from '@/services/petResourceCache'
+import { asyncComputed } from '@vueuse/core'
+
 const props = withDefaults(
   defineProps<{
     num: number
@@ -18,10 +21,16 @@ const petSpriteRef = useTemplateRef('petSpriteRef')
 const petRenderRef = useTemplateRef('pet-render')
 const inited = ref(false)
 
-const swfUrl = computed(() => {
-  // return `https://seer2.61.com/res/pet/fight/${props.num}.swf`
-  return `https://seer2-pet-resource.yuuinih.com/public/fight/${props.num}.swf`
-})
+// 使用 asyncComputed 来异步获取 URL，避免初始化时的空值问题
+const swfUrl = asyncComputed(
+  async () => {
+    if (!props.num) return ''
+    const url = await petResourceCache.getPetSwfUrl(props.num)
+    console.log(`PetSprite(${props.num}): 获取到 URL:`, url)
+    return url
+  },
+  '', // 默认值
+)
 
 const availableState = ref<ActionState[]>([])
 
@@ -142,6 +151,7 @@ defineExpose({
 <template>
   <div ref="petSpriteRef" class="w-full h-full overflow-visible">
     <pet-render
+      v-if="swfUrl && props.num"
       class="overflow-visible pet-render"
       ref="pet-render"
       :url="swfUrl"
