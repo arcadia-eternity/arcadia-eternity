@@ -89,6 +89,7 @@ jobs:
           args: ${{ matrix.args }}
           projectPath: './packages/web-ui'
           includeUpdaterJson: true
+          includeDebug: false
 
   notify:
     needs: release
