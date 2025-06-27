@@ -60,6 +60,20 @@ jobs:
       - name: Build workspace packages
         run: pnpm run build:package
 
+      - name: Get version from package.json
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            # 从package.json读取版本号
+            VERSION="v$(node -p "require('./package.json').version")"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Using version: $VERSION"
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
@@ -71,8 +85,8 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           COMMIT_HASH: ${{ github.sha }}
         with:
-          tagName: ${{ github.ref_name || inputs.version }}
-          releaseName: 'Arcadia Eternity ${{ github.ref_name || inputs.version }}'
+          tagName: ${{ steps.version.outputs.version }}
+          releaseName: 'Arcadia Eternity ${{ steps.version.outputs.version }}'
           releaseBody: |
             ## 更新内容
 
