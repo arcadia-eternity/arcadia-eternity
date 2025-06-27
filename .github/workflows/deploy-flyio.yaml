@@ -1,8 +1,11 @@
 name: Deploy to Fly.io (Production)
 
 on:
-  # 当production分支有push时自动部署
-  push:
+  # 等待生产镜像构建完成后部署
+  workflow_run:
+    workflows: ['Build Production Docker Image']
+    types:
+      - completed
     branches: [production]
   # 手动触发
   workflow_dispatch:
@@ -27,6 +30,8 @@ jobs:
     name: Deploy to Fly.io (Production)
     runs-on: ubuntu-latest
     environment: production
+    # 只有当Docker构建成功时才运行
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
 
     steps:
       - name: Checkout repository
