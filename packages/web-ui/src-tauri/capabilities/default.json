@@ -18,6 +18,7 @@
     "core:app:allow-app-hide",
     "process:default",
     "process:allow-restart",
+    "process:allow-exit",
     "updater:default",
     "updater:allow-check",
     "updater:allow-download-and-install"

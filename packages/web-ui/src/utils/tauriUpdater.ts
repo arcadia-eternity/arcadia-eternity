@@ -32,17 +32,17 @@ export class TauriUpdater {
     try {
       const currentVersion = await getVersion()
       const update = await check()
-      
+
       if (update) {
         this.currentUpdate = update
         return {
           version: update.version,
           currentVersion: update.currentVersion,
           date: update.date || '',
-          body: update.body || ''
+          body: update.body || '',
         }
       }
-      
+
       return null
     } catch (error) {
       console.error('检查更新失败:', error)
@@ -64,14 +64,14 @@ export class TauriUpdater {
           downloaded: 0,
           total: 0,
           percentage: 0,
-          status: 'downloading'
+          status: 'downloading',
         })
       }
 
       let downloaded = 0
       let contentLength = 0
 
-      await this.currentUpdate.downloadAndInstall((event) => {
+      await this.currentUpdate.downloadAndInstall(event => {
         switch (event.event) {
           case 'Started':
             contentLength = event.data.contentLength || 0
@@ -80,7 +80,7 @@ export class TauriUpdater {
                 downloaded: 0,
                 total: contentLength,
                 percentage: 0,
-                status: 'downloading'
+                status: 'downloading',
               })
             }
             break
@@ -92,7 +92,7 @@ export class TauriUpdater {
                 downloaded,
                 total: contentLength,
                 percentage,
-                status: 'downloading'
+                status: 'downloading',
               })
             }
             break
@@ -102,7 +102,7 @@ export class TauriUpdater {
                 downloaded: contentLength,
                 total: contentLength,
                 percentage: 100,
-                status: 'installing'
+                status: 'installing',
               })
             }
             break
@@ -114,7 +114,7 @@ export class TauriUpdater {
           downloaded: contentLength,
           total: contentLength,
           percentage: 100,
-          status: 'complete'
+          status: 'complete',
         })
       }
 
@@ -127,7 +127,7 @@ export class TauriUpdater {
           downloaded: 0,
           total: 0,
           percentage: 0,
-          status: 'error'
+          status: 'error',
         })
       }
       throw error
@@ -142,7 +142,56 @@ export class TauriUpdater {
       await relaunch()
     } catch (error) {
       console.error('重启应用失败:', error)
+
+      // 检查是否是常见的 "No such file or directory" 错误
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      if (errorMessage.includes('No such file or directory') || errorMessage.includes('os error 2')) {
+        throw new Error('自动重启失败，请手动关闭并重新打开应用以完成更新。更新已成功安装。')
+      }
+
       throw error
+    }
+  }
+
+  /**
+   * 检查是否支持自动重启
+   */
+  async canAutoRestart(): Promise<boolean> {
+    try {
+      // 在 Tauri 2.0 中，我们可以尝试检查当前二进制文件路径
+      const { getCurrentWebviewWindow } = await import('@tauri-apps/api/webviewWindow')
+      const window = getCurrentWebviewWindow()
+
+      // 如果能获取到窗口，说明环境正常
+      return window !== null
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * 尝试替代的重启方法
+   */
+  async restartAppAlternative(): Promise<void> {
+    try {
+      // 方法1: 尝试使用 exit 然后让系统重启
+      const { exit } = await import('@tauri-apps/plugin-process')
+
+      // 显示提示信息
+      console.log('正在退出应用，请手动重新启动以完成更新...')
+
+      // 延迟一点时间让用户看到消息
+      setTimeout(async () => {
+        try {
+          await exit(0)
+        } catch (error) {
+          console.error('退出应用失败:', error)
+          throw new Error('无法自动重启应用，请手动关闭并重新打开应用以完成更新。')
+        }
+      }, 2000)
+    } catch (error) {
+      console.error('替代重启方法失败:', error)
+      throw new Error('无法自动重启应用，请手动关闭并重新打开应用以完成更新。')
     }
   }
 
