@@ -422,6 +422,7 @@ import {
   FolderOpened,
 } from '@element-plus/icons-vue'
 import VersionInfo from '@/components/VersionInfo.vue'
+import { autoCheckForUpdates } from '@/utils/version'
 
 const router = useRouter()
 const dataStore = useGameDataStore()
@@ -512,6 +513,12 @@ onMounted(async () => {
         }
       }, 100)
     }
+
+    // 在应用初始化完成后，延迟一段时间再检查更新
+    // 避免与其他初始化操作冲突
+    setTimeout(() => {
+      autoCheckForUpdates()
+    }, 3000) // 延迟3秒后检查更新
   } catch (err) {
     console.error('Initialization error:', err)
     ElMessage.error('初始化失败，请刷新页面重试')

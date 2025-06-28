@@ -148,3 +148,130 @@ export async function getDetailedVersionStringAsync(): Promise<string> {
     .filter(Boolean)
     .join('\n')
 }
+
+/**
+ * 处理更新安装流程
+ */
+async function handleUpdateInstallation(update: any): Promise<void> {
+  const { ElMessageBox, ElMessage } = await import('element-plus')
+
+  await ElMessageBox.confirm(`发现新版本 ${update.version}，是否立即下载并安装？`, '更新提示', {
+    confirmButtonText: '立即更新',
+    cancelButtonText: '稍后更新',
+    type: 'info',
+  })
+
+  // 开始下载和安装更新
+  ElMessage.info('开始下载更新...')
+  await update.downloadAndInstall()
+
+  // 重启应用
+  const { relaunch } = await import('@tauri-apps/plugin-process')
+  await relaunch()
+}
+
+/**
+ * 通用的更新检查函数
+ * @param options 检查选项
+ */
+export async function checkForUpdates(
+  options: {
+    /** 是否为自动检查 */
+    isAutoCheck?: boolean
+    /** 成功回调 */
+    onSuccess?: (hasUpdate: boolean, version?: string) => void
+    /** 错误回调 */
+    onError?: (error: any) => void
+  } = {},
+): Promise<void> {
+  const { isAutoCheck = false, onSuccess, onError } = options
+
+  // 只在Tauri环境下执行
+  if (!isTauri) {
+    return
+  }
+
+  try {
+    console.log(isAutoCheck ? '正在自动检查更新...' : '正在检查更新...')
+
+    // 动态导入Tauri API
+    const { check } = await import('@tauri-apps/plugin-updater')
+    const update = await check()
+
+    if (update) {
+      console.log(`发现新版本: ${update.version}`)
+      onSuccess?.(true, update.version)
+
+      if (isAutoCheck) {
+        // 自动检查：显示通知
+        const { ElNotification } = await import('element-plus')
+
+        ElNotification({
+          title: '发现新版本',
+          message: `新版本 ${update.version} 已发布，点击立即更新`,
+          type: 'info',
+          duration: 0, // 不自动关闭
+          onClick: async () => {
+            try {
+              await handleUpdateInstallation(update)
+            } catch (cancelError) {
+              // 用户取消更新
+              console.log('用户取消了自动更新')
+            }
+          },
+        })
+      } else {
+        // 手动检查：直接显示消息并询问
+        const { ElMessage } = await import('element-plus')
+        ElMessage.success(`发现新版本: ${update.version}`)
+
+        try {
+          await handleUpdateInstallation(update)
+        } catch (cancelError) {
+          // 用户取消更新
+          const { ElMessage } = await import('element-plus')
+          ElMessage.info('已取消更新')
+        }
+      }
+    } else {
+      console.log('当前已是最新版本')
+      onSuccess?.(false)
+
+      if (!isAutoCheck) {
+        // 手动检查时显示"已是最新版本"消息
+        const { ElMessage } = await import('element-plus')
+        ElMessage.info('当前已是最新版本')
+      }
+    }
+  } catch (error) {
+    console.error('检查更新失败:', error)
+    onError?.(error)
+
+    if (!isAutoCheck) {
+      // 手动检查时显示错误消息
+      const { ElMessage } = await import('element-plus')
+      ElMessage.error('检查更新失败，请稍后重试')
+    }
+    // 自动检查失败时不显示错误消息，避免打扰用户
+  }
+}
+
+/**
+ * 自动检查更新（仅在Tauri环境下且为生产环境时执行）
+ * 静默检查，如果有更新则显示通知
+ */
+export async function autoCheckForUpdates(): Promise<void> {
+  // 只在Tauri环境下执行
+  if (!isTauri) {
+    return
+  }
+
+  // 只在生产环境下自动检查更新
+  const info = getVersionInfo()
+  if (info.environment !== 'production') {
+    console.log('开发环境下跳过自动更新检查')
+    return
+  }
+
+  await checkForUpdates({ isAutoCheck: true })
+}
