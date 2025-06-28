@@ -83,14 +83,7 @@ const routes: RouteRecordRaw[] = [
       title: '账户管理',
     },
   },
-  {
-    path: '/download',
-    name: 'Download',
-    component: () => import('@/pages/downloadPage.vue'),
-    meta: {
-      title: '下载客户端',
-    },
-  },
+
   {
     path: '/dex',
     name: 'Dex',
@@ -247,8 +240,21 @@ const tauriOnlyRoutes: RouteRecordRaw[] = [
   // 移除更新页面，使用左下角轻量版本信息代替
 ]
 
+const webOnlyRoutes: RouteRecordRaw[] = [
+  {
+    path: '/download',
+    name: 'Download',
+    component: () => import('@/pages/downloadPage.vue'),
+    meta: {
+      title: '下载客户端',
+    },
+  },
+]
+
 if (isTauri) {
   routes.push(...tauriOnlyRoutes)
+} else {
+  routes.push(...webOnlyRoutes)
 }
 
 const router = createRouter({
