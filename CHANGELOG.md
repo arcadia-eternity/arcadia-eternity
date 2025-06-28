@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.2.8...arcadia-eternity-v1.3.0) (2025-06-28)
+
+
+### ✨ Features
+
+* download page ([dcfd9cf](https://github.com/arcadia-eternity/arcadia-eternity/commit/dcfd9cf99ab9c8496ba219892cbec9ea5cd363f4))
+
+
+### 🐛 Bug Fixes
+
+* Remove app updater link from lobby page ([167ad00](https://github.com/arcadia-eternity/arcadia-eternity/commit/167ad00f0845d53f419f2eae84ed109b355ed843))
+
 ## [1.2.8](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.2.7...arcadia-eternity-v1.2.8) (2025-06-28)
 
 
