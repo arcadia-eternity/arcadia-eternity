@@ -73,6 +73,28 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Using version: $VERSION"
 
+      - name: Get release ID
+        id: release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ steps.version.outputs.version }}';
+            console.log(`Looking for release with tag: ${version}`);
+
+            try {
+              const { data: release } = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: version
+              });
+
+              console.log(`Found release ID: ${release.id}`);
+              return release.id;
+            } catch (error) {
+              console.error(`Failed to find release for tag ${version}:`, error.message);
+              throw error;
+            }
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
@@ -85,7 +107,7 @@ jobs:
           COMMIT_HASH: ${{ github.sha }}
         with:
           # 使用现有的release，不创建新的release
-          releaseId: ${{ steps.version.outputs.version }}
+          releaseId: ${{ steps.release.outputs.result }}
           updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
           projectPath: './packages/web-ui'
