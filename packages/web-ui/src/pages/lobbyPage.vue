@@ -121,8 +121,8 @@
     <div class="mt-6 md:mt-8 text-left">
       <el-alert title="使用提示" type="info" :closable="false" class="mb-4">
         <ul class="text-left text-sm md:text-base space-y-1">
-          <li>不要忘了先在队伍编辑里面编辑队伍</li>
-          <li>目前正在活跃更新中，可能会有一些bug，尽量谅解</li>
+          <li>不要忘了 先在队伍编辑里面编辑队伍</li>
+          <li>目前正在活跃更新中 可能会有一些bug 尽量谅解</li>
           <li>群号：805146068</li>
         </ul>
       </el-alert>
