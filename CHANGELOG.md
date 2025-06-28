@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.2.2...arcadia-eternity/v1.2.3) (2025-06-28)
+
+
+### 🐛 Bug Fixes
+
+* create a empty commit ([4bab2cc](https://github.com/arcadia-eternity/arcadia-eternity/commit/4bab2ccdb0f7861284c9141bbb82aae605012768))
+
 ## [1.2.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.2.1...arcadia-eternity/v1.2.2) (2025-06-28)
 
 
