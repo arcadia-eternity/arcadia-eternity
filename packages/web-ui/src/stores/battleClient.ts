@@ -31,6 +31,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
 
     return new BattleClient({
       serverUrl: import.meta.env.VITE_WS_URL,
+      actionTimeout: 10000, // 10秒超时，比默认的30秒更快
       auth: {
         getToken: () => {
           // 只有注册用户需要token

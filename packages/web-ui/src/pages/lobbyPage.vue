@@ -87,11 +87,13 @@
         class="px-8 py-4 md:px-6 md:py-3 text-lg md:text-lg bg-green-500 text-white border-none rounded-lg cursor-pointer transition-colors duration-300 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed min-h-[48px] touch-manipulation font-medium shadow-lg hover:shadow-xl"
       >
         {{
-          battleClientStore.currentState.matchmaking === 'matched'
-            ? '准备进入战斗...'
-            : isMatching
-              ? '取消匹配'
-              : '开始匹配'
+          battleClientStore.currentState.status !== 'connected'
+            ? '请先连接服务器'
+            : battleClientStore.currentState.matchmaking === 'matched'
+              ? '准备进入战斗...'
+              : isMatching
+                ? '取消匹配'
+                : '开始匹配'
         }}
       </button>
 
@@ -163,13 +165,23 @@ const isMatching = computed(() => {
   return state
 })
 
-// 计算是否应该禁用匹配按钮（匹配中或匹配成功准备跳转时）
+// 计算是否应该禁用匹配按钮（未连接、匹配中或匹配成功准备跳转时）
 const isMatchButtonDisabled = computed(() => {
   const currentState = battleClientStore.currentState
+  const isNotConnected = currentState.status !== 'connected'
   const isSearching = currentState.matchmaking === 'searching'
   const isMatched = currentState.matchmaking === 'matched'
-  const disabled = isSearching || isMatched
-  console.log('🔒 isMatchButtonDisabled computed:', disabled, 'searching:', isSearching, 'matched:', isMatched)
+  const disabled = isNotConnected || isSearching || isMatched
+  console.log(
+    '🔒 isMatchButtonDisabled computed:',
+    disabled,
+    'notConnected:',
+    isNotConnected,
+    'searching:',
+    isSearching,
+    'matched:',
+    isMatched,
+  )
   return disabled
 })
 
@@ -180,6 +192,12 @@ const handleMatchmaking = async () => {
     console.log('🎮 handleMatchmaking called, current isMatching:', isMatching.value)
     // 清除之前的错误信息
     errorMessage.value = null
+
+    // 检查连接状态
+    if (battleClientStore.currentState.status !== 'connected') {
+      errorMessage.value = '请先连接到服务器'
+      return
+    }
 
     if (isMatching.value) {
       console.log('❌ Canceling matchmaking')

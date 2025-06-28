@@ -153,8 +153,6 @@ export async function getDetailedVersionStringAsync(): Promise<string> {
  * 处理更新安装流程
  */
 async function handleUpdateInstallation(update: any): Promise<void> {
-  const { ElMessageBox, ElMessage } = await import('element-plus')
-
   await ElMessageBox.confirm(`发现新版本 ${update.version}，是否立即下载并安装？`, '更新提示', {
     confirmButtonText: '立即更新',
     cancelButtonText: '稍后更新',
@@ -221,15 +219,12 @@ export async function checkForUpdates(
           },
         })
       } else {
-        // 手动检查：直接显示消息并询问
-        const { ElMessage } = await import('element-plus')
         ElMessage.success(`发现新版本: ${update.version}`)
 
         try {
           await handleUpdateInstallation(update)
         } catch (cancelError) {
           // 用户取消更新
-          const { ElMessage } = await import('element-plus')
           ElMessage.info('已取消更新')
         }
       }
@@ -239,7 +234,6 @@ export async function checkForUpdates(
 
       if (!isAutoCheck) {
         // 手动检查时显示"已是最新版本"消息
-        const { ElMessage } = await import('element-plus')
         ElMessage.info('当前已是最新版本')
       }
     }
@@ -249,7 +243,6 @@ export async function checkForUpdates(
 
     if (!isAutoCheck) {
       // 手动检查时显示错误消息
-      const { ElMessage } = await import('element-plus')
       ElMessage.error('检查更新失败，请稍后重试')
     }
     // 自动检查失败时不显示错误消息，避免打扰用户

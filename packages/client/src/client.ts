@@ -158,6 +158,8 @@ export class BattleClient {
         }
       }
 
+      // 连接失败，确保状态重置为disconnected
+      this.updateState({ status: 'disconnected' })
       throw error
     }
   }
@@ -170,6 +172,7 @@ export class BattleClient {
       this.updateSocketAuth()
 
       const connectTimeout = setTimeout(() => {
+        this.updateState({ status: 'disconnected' })
         reject(new Error('Connection timeout'))
       }, this.options.actionTimeout)
 
@@ -187,6 +190,7 @@ export class BattleClient {
 
       this.socket.once('connect_error', error => {
         clearTimeout(connectTimeout)
+        this.updateState({ status: 'disconnected' })
         reject(error)
       })
 

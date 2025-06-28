@@ -378,20 +378,8 @@
       </div>
     </main>
 
-    <!-- 全局状态提示 - 移除 el-affix，使用固定定位 -->
-    <div class="fixed right-4 bottom-4 z-50 md:right-5 md:bottom-5 pointer-events-none">
-      <el-tag
-        :type="connectionState === 'connected' ? 'success' : 'danger'"
-        effect="dark"
-        round
-        class="pointer-events-auto"
-      >
-        <el-icon :size="14">
-          <Connection />
-        </el-icon>
-        {{ connectionState === 'connected' ? '已连接' : '未连接' }}
-      </el-tag>
-    </div>
+    <!-- 连接状态组件 -->
+    <ConnectionStatus />
   </div>
 </template>
 
@@ -416,12 +404,12 @@ import {
   Box,
   Document,
   User,
-  Connection,
   Setting,
   ArrowDown,
   FolderOpened,
 } from '@element-plus/icons-vue'
 import VersionInfo from '@/components/VersionInfo.vue'
+import ConnectionStatus from '@/components/ConnectionStatus.vue'
 import { autoCheckForUpdates } from '@/utils/version'
 
 const router = useRouter()
@@ -445,11 +433,6 @@ watch(isMobile, newIsMobile => {
   if (!newIsMobile) {
     showMobileMenu.value = false
   }
-})
-
-// 连接状态
-const connectionState = computed(() => {
-  return battleClientStore.currentState.status
 })
 
 // 初始化连接
