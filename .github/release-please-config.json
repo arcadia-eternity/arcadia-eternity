@@ -76,6 +76,11 @@
       "type": "json",
       "path": "packages/web-ui/src-tauri/tauri.conf.json",
       "jsonpath": "$.version"
+    },
+    {
+      "type": "json",
+      "path": "packages/web-ui/package.json",
+      "jsonpath": "$.version"
     }
   ]
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.7](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.2.6...arcadia-eternity-v1.2.7) (2025-06-28)
+
+
+### 🐛 Bug Fixes
+
+* Enhance version info ([c8b71cb](https://github.com/arcadia-eternity/arcadia-eternity/commit/c8b71cb371e5a8ae073669a2b6923d334a4a4c28))
+
 ## [1.2.6](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.2.5...arcadia-eternity-v1.2.6) (2025-06-28)
 
 
