@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.3.0...arcadia-eternity-v1.3.1) (2025-06-28)
+
+
+### 🐛 Bug Fixes
+
+* Show download page only in web builds ([0454d97](https://github.com/arcadia-eternity/arcadia-eternity/commit/0454d97552c7dfc91466c7cbd0bfa464cf1e5bc2))
+
+
+### 📚 Documentation
+
+* Update download descriptions for Windows MSI and macOS ([0665fe1](https://github.com/arcadia-eternity/arcadia-eternity/commit/0665fe1f313a76da3ee41caaa503f7a996bf55d6))
+
 ## [1.3.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.2.8...arcadia-eternity-v1.3.0) (2025-06-28)
 
 
