@@ -119,7 +119,7 @@
                 architecture="x64"
                 format="msi"
                 :label="$t('download.windowsMsi', 'Windows MSI')"
-                :description="$t('download.windowsMsiDesc', '适合企业部署')"
+                :description="$t('download.windowsMsiDesc', '')"
                 @download="handleDownload"
               />
             </div>
@@ -138,7 +138,7 @@
                 architecture="aarch64"
                 format="app"
                 :label="$t('download.macosAppleSilicon', 'macOS (Apple Silicon)')"
-                :description="$t('download.macosAppleSiliconDesc', 'M1/M2/M3 芯片')"
+                :description="$t('download.macosAppleSiliconDesc', 'M系列 芯片')"
                 @download="handleDownload"
               />
               <DownloadButton
