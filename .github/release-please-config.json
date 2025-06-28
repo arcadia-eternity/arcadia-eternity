@@ -12,7 +12,7 @@
   "skip-github-pull-request": false,
   "group-pull-request-title-pattern": "chore: release ${version}",
   "separate-pull-requests": false,
-  "tag-separator": "/",
+
   "include-v-in-tag": true,
   "changelog-sections": [
     {
