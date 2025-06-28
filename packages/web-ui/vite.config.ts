@@ -19,6 +19,11 @@ export default defineConfig({
     // 注入构建时间和commit hash
     'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString()),
     'import.meta.env.VITE_COMMIT_HASH': JSON.stringify(process.env.GITHUB_SHA || process.env.COMMIT_HASH || 'dev'),
+    // 下载源配置
+    'import.meta.env.VITE_DOWNLOAD_SOURCES': JSON.stringify(process.env.VITE_DOWNLOAD_SOURCES || 'github'),
+    'import.meta.env.VITE_CDN_BASE_URL': JSON.stringify(process.env.VITE_CDN_BASE_URL || ''),
+    // 应用版本
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env.npm_package_version || '1.0.0'),
   },
   server: {
     proxy: {

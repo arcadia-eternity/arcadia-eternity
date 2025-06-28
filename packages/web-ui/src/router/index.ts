@@ -84,6 +84,14 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/download',
+    name: 'Download',
+    component: () => import('@/pages/downloadPage.vue'),
+    meta: {
+      title: '下载客户端',
+    },
+  },
+  {
     path: '/dex',
     name: 'Dex',
     component: () => import('@/pages/DexPage.vue'),
