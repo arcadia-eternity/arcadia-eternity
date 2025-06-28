@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.2.1...arcadia-eternity/v1.2.2) (2025-06-28)
+
+
+### 📚 Documentation
+
+* Update alert messages for improved readability ([d032406](https://github.com/arcadia-eternity/arcadia-eternity/commit/d03240619bf28ec03d67c9e535604e8842e1ce63))
+
 ## [1.2.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity/v1.2.0...arcadia-eternity/v1.2.1) (2025-06-27)
 
 
