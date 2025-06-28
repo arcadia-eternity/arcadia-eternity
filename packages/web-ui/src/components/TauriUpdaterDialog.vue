@@ -13,7 +13,7 @@
       <!-- 发现新版本 -->
       <div v-else-if="status === 'update-available'" class="p-6">
         <h3 class="text-lg font-semibold text-green-600 mb-4">发现新版本</h3>
-        
+
         <div v-if="updateInfo" class="space-y-3">
           <div class="flex justify-between">
             <span class="text-gray-600">当前版本:</span>
@@ -37,13 +37,13 @@
         </div>
 
         <div class="flex space-x-3 mt-6">
-          <button 
+          <button
             @click="downloadAndInstall"
             class="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
           >
             立即更新
           </button>
-          <button 
+          <button
             @click="closeDialog"
             class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
           >
@@ -57,15 +57,15 @@
         <h3 class="text-lg font-semibold mb-4">
           {{ status === 'downloading' ? '下载更新中...' : '安装更新中...' }}
         </h3>
-        
+
         <div class="space-y-3">
           <div class="w-full bg-gray-200 rounded-full h-2">
-            <div 
+            <div
               class="bg-blue-600 h-2 rounded-full transition-all duration-300"
               :style="{ width: `${progress.percentage}%` }"
             ></div>
           </div>
-          
+
           <div class="flex justify-between text-sm text-gray-600">
             <span>{{ formatBytes(progress.downloaded) }} / {{ formatBytes(progress.total) }}</span>
             <span>{{ Math.round(progress.percentage) }}%</span>
@@ -81,15 +81,15 @@
       <div v-else-if="status === 'complete'" class="p-6">
         <h3 class="text-lg font-semibold text-green-600 mb-4">更新完成</h3>
         <p class="text-gray-600 mb-4">更新已成功安装，需要重启应用以生效。</p>
-        
+
         <div class="flex space-x-3">
-          <button 
+          <button
             @click="restartApp"
             class="flex-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
           >
             立即重启
           </button>
-          <button 
+          <button
             @click="closeDialog"
             class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
           >
@@ -102,8 +102,8 @@
       <div v-else-if="status === 'no-update'" class="p-6">
         <h3 class="text-lg font-semibold text-blue-600 mb-4">已是最新版本</h3>
         <p class="text-gray-600 mb-4">您当前使用的已经是最新版本，无需更新。</p>
-        
-        <button 
+
+        <button
           @click="closeDialog"
           class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
         >
@@ -113,15 +113,49 @@
 
       <!-- 错误状态 -->
       <div v-else-if="status === 'error'" class="p-6">
-        <h3 class="text-lg font-semibold text-red-600 mb-4">更新失败</h3>
+        <h3 class="text-lg font-semibold text-red-600 mb-4">
+          {{ errorMessage && errorMessage.includes('手动') ? '需要手动操作' : '更新失败' }}
+        </h3>
         <p class="text-gray-600 mb-4">{{ errorMessage || '更新过程中发生错误，请稍后重试。' }}</p>
-        
-        <button 
-          @click="closeDialog"
-          class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+
+        <!-- 如果是重启失败，提供额外的说明 -->
+        <div
+          v-if="errorMessage && errorMessage.includes('手动')"
+          class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4"
         >
-          我知道了
-        </button>
+          <div class="flex items-start">
+            <svg class="w-5 h-5 text-yellow-600 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fill-rule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+            <div>
+              <h4 class="text-sm font-medium text-yellow-800">操作说明</h4>
+              <p class="text-sm text-yellow-700 mt-1">
+                更新文件已成功下载并安装。请完全关闭此应用程序，然后重新打开以使用新版本。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex space-x-3">
+          <button
+            v-if="!(errorMessage && errorMessage.includes('手动'))"
+            @click="checkForUpdates"
+            class="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+          >
+            重试
+          </button>
+          <button
+            @click="closeDialog"
+            :class="errorMessage && errorMessage.includes('手动') ? 'w-full' : 'flex-1'"
+            class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
+          >
+            {{ errorMessage && errorMessage.includes('手动') ? '我知道了' : '关闭' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -129,11 +163,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { 
-  tauriUpdater,
-  type UpdateInfo,
-  type UpdateProgress
-} from '@/utils/tauriUpdater'
+import { tauriUpdater, type UpdateInfo, type UpdateProgress } from '@/utils/tauriUpdater'
 
 type UpdateStatus = 'checking' | 'update-available' | 'downloading' | 'installing' | 'complete' | 'no-update' | 'error'
 
@@ -145,7 +175,7 @@ const progress = ref<UpdateProgress>({
   downloaded: 0,
   total: 0,
   percentage: 0,
-  status: 'checking'
+  status: 'checking',
 })
 
 const formatDate = (dateString: string): string => {
@@ -167,10 +197,10 @@ const formatBytes = (bytes: number): string => {
 const checkForUpdates = async () => {
   status.value = 'checking'
   showDialog.value = true
-  
+
   try {
     const update = await tauriUpdater.checkForUpdates()
-    
+
     if (update) {
       updateInfo.value = update
       status.value = 'update-available'
@@ -186,12 +216,12 @@ const checkForUpdates = async () => {
 const downloadAndInstall = async () => {
   try {
     status.value = 'downloading'
-    
-    await tauriUpdater.downloadAndInstall((progressInfo) => {
+
+    await tauriUpdater.downloadAndInstall(progressInfo => {
       progress.value = progressInfo
       status.value = progressInfo.status as UpdateStatus
     })
-    
+
     status.value = 'complete'
   } catch (error) {
     status.value = 'error'
@@ -201,12 +231,29 @@ const downloadAndInstall = async () => {
 
 const restartApp = async () => {
   try {
-    await tauriUpdater.restartApp()
+    // 先检查是否支持自动重启
+    const canRestart = await tauriUpdater.canAutoRestart()
+    if (!canRestart) {
+      status.value = 'error'
+      errorMessage.value = '当前环境不支持自动重启，请手动关闭并重新打开应用以完成更新。'
+      return
+    }
+
+    // 首先尝试正常的重启方法
+    try {
+      await tauriUpdater.restartApp()
+    } catch (restartError) {
+      console.warn('正常重启失败，尝试替代方法:', restartError)
+
+      // 如果正常重启失败，尝试替代方法
+      await tauriUpdater.restartAppAlternative()
+    }
   } catch (error) {
     console.error('重启应用失败:', error)
-    // 如果重启失败，显示错误信息
+    // 如果重启失败，显示更友好的错误信息
     status.value = 'error'
-    errorMessage.value = '重启应用失败，请手动重启应用'
+    const errorMsg = error instanceof Error ? error.message : '重启应用失败，请手动重启应用'
+    errorMessage.value = errorMsg
   }
 }
 
@@ -219,15 +266,15 @@ const closeDialog = () => {
     downloaded: 0,
     total: 0,
     percentage: 0,
-    status: 'checking'
+    status: 'checking',
   }
-  
+
   // 清除待安装的更新
   tauriUpdater.clearPendingUpdate()
 }
 
 // 暴露方法给父组件
 defineExpose({
-  checkForUpdates
+  checkForUpdates,
 })
 </script>
