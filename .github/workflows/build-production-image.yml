@@ -20,6 +20,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      actions: write
     outputs:
       image-digest: ${{ steps.build.outputs.digest }}
       image-tags: ${{ steps.meta.outputs.tags }}
@@ -82,3 +83,19 @@ jobs:
           echo "**Digest:** \`${{ steps.build.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "This image is ready for production deployment." >> $GITHUB_STEP_SUMMARY
+
+      - name: Trigger production deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event_type: 'deploy-production',
+              client_payload: {
+                version: '${{ steps.version.outputs.version }}',
+                image_digest: '${{ steps.build.outputs.digest }}',
+                image_tags: '${{ steps.meta.outputs.tags }}'
+              }
+            });
+            console.log('Triggered production deployment via repository dispatch');
