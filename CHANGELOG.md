@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.6](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.2.5...arcadia-eternity-v1.2.6) (2025-06-28)
+
+
+### 🐛 Bug Fixes
+
+* Improve updater dialog and add robust restart handling ([5261219](https://github.com/arcadia-eternity/arcadia-eternity/commit/5261219060497dabce9df9f1d472c5de065f7670))
+* Resolve version conflict in tauri.conf.json ([72c0cf4](https://github.com/arcadia-eternity/arcadia-eternity/commit/72c0cf402031bdb4e1015eda49dc160dae75d56f))
+
 ## [1.2.5](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.2.4...arcadia-eternity-v1.2.5) (2025-06-28)
 
 

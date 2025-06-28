@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "arcadia-eternity-client",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "identifier": "com.yuuinih.arcadia-eternity",
   "build": {
     "frontendDist": "../dist",
@@ -23,15 +23,30 @@
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPCONFIG/*", "$APPDATA/*"]
+        "scope": [
+          "$APPCONFIG/*",
+          "$APPDATA/*"
+        ]
       },
-      "capabilities": ["default"]
+      "capabilities": [
+        "default"
+      ]
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["app", "msi", "nsis"],
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "targets": [
+      "app",
+      "msi",
+      "nsis"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
     "createUpdaterArtifacts": true,
     "macOS": {
       "minimumSystemVersion": "10.13",
