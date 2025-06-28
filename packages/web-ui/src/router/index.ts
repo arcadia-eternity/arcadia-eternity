@@ -25,7 +25,6 @@ const PlayerBattleRecords = () => import('@/components/battleReport/PlayerBattle
 // 演示页面
 const ParticleEffectDemo = () => import('@/pages/ParticleEffectDemo.vue')
 const ClimaxEffectDemo = () => import('@/pages/ClimaxEffectDemo.vue')
-const Updater = () => import('@/pages/Updater.vue')
 
 const routes: RouteRecordRaw[] = [
   {
@@ -237,14 +236,7 @@ if (import.meta.env.DEV) {
 }
 
 const tauriOnlyRoutes: RouteRecordRaw[] = [
-  {
-    path: '/app-updater',
-    name: 'AppUpdater',
-    component: Updater,
-    meta: {
-      title: '应用更新',
-    },
-  },
+  // 移除更新页面，使用左下角轻量版本信息代替
 ]
 
 if (isTauri) {
@@ -254,7 +246,7 @@ if (isTauri) {
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
-  scrollBehavior(to, from, savedPosition) {
+  scrollBehavior(_to, _from, savedPosition) {
     return savedPosition || { top: 0 }
   },
 })
