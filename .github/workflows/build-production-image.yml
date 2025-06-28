@@ -91,11 +91,11 @@ jobs:
             await github.rest.repos.createDispatchEvent({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              event_type: 'deploy-production',
+              event_type: "deploy-production",
               client_payload: {
-                version: '${{ steps.version.outputs.version }}',
-                image_digest: '${{ steps.build.outputs.digest }}',
-                image_tags: '${{ steps.meta.outputs.tags }}'
+                version: "${{ steps.version.outputs.version }}",
+                image_digest: "${{ steps.build.outputs.digest }}",
+                image_tags: "${{ steps.meta.outputs.tags }}"
               }
             });
-            console.log('Triggered production deployment via repository dispatch');
+            console.log("Triggered production deployment via repository dispatch");
