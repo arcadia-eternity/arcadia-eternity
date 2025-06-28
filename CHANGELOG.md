@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.8](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.2.7...arcadia-eternity-v1.2.8) (2025-06-28)
+
+
+### ♻️ Code Refactoring
+
+* Remove Tauri updater feature and related components ([95d4709](https://github.com/arcadia-eternity/arcadia-eternity/commit/95d4709aaa5a9d2a264ecae164cc5ddbba1ebf80))
+
 ## [1.2.7](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.2.6...arcadia-eternity-v1.2.7) (2025-06-28)
 
 
