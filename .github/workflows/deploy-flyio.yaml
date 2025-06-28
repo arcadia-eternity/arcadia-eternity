@@ -6,6 +6,11 @@ on:
     workflows: ['Build Production Docker Image']
     types:
       - completed
+    branches:
+      - main
+  # 通过repository_dispatch触发部署
+  repository_dispatch:
+    types: [deploy-production]
   # 手动触发
   workflow_dispatch:
     inputs:
@@ -24,19 +29,36 @@ on:
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
+permissions:
+  contents: read
+  packages: read
+  actions: read
+
 jobs:
   deploy:
     name: Deploy to Fly.io (Production)
     runs-on: ubuntu-latest
     environment: production
-    # 只有当Docker构建成功时才运行
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    # 只有当Docker构建成功时才运行，或者手动触发，或者通过repository_dispatch触发
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' }}
 
     steps:
+      - name: Debug workflow trigger
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Workflow run name: ${{ github.event.workflow_run.name }}"
+          echo "Workflow run head branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Workflow run head sha: ${{ github.event.workflow_run.head_sha }}"
+          echo "Repository dispatch action: ${{ github.event.action }}"
+          echo "Repository dispatch client payload: ${{ toJson(github.event.client_payload) }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Actor: ${{ github.actor }}"
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.version || 'main' }}
+          ref: ${{ inputs.version || github.event.workflow_run.head_sha || 'main' }}
 
       - name: Determine version
         id: version
@@ -44,6 +66,8 @@ jobs:
         run: |
           if [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
+          elif [ -n "${{ github.event.client_payload.version }}" ]; then
+            VERSION="${{ github.event.client_payload.version }}"
           else
             # 从package.json读取版本号
             VERSION="$(node -p "require('./package.json').version")"

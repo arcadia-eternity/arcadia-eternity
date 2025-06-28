@@ -58,16 +58,16 @@ jobs:
       - name: Build workspace packages
         run: pnpm run build:package
 
-      - name: Get version from package.json
+      - name: Get version from repository dispatch or workflow dispatch
         id: version
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ inputs.version }}"
-          elif [ "${{ github.ref_type }}" = "tag" ]; then
-            VERSION="${{ github.ref_name }}"
+          elif [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            VERSION="${{ github.event.client_payload.tag_name }}"
           else
-            # 从package.json读取版本号
+            # 从package.json读取版本号作为fallback
             VERSION="v$(node -p "require('./package.json').version")"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -84,34 +84,8 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           COMMIT_HASH: ${{ github.sha }}
         with:
-          tagName: ${{ steps.version.outputs.version }}
-          releaseName: 'Arcadia Eternity ${{ steps.version.outputs.version }}'
-          releaseBody: |
-            ## 🖥️ 桌面应用
-
-            桌面应用已构建完成，可以下载使用！
-
-            ## 📦 下载说明
-
-            ### 安装版本
-            - **macOS**: 下载 `.app` 文件并拖拽到应用程序文件夹
-            - **Windows**: 下载 `.msi` 或 `.exe` 文件并运行安装
-
-            ## 🔄 自动更新
-
-            应用内置自动更新功能，会自动检查并提示安装新版本。
-
-            - ✅ 自动检查更新
-            - ✅ 一键下载安装
-            - ✅ 安装后自动重启
-            - ✅ 签名验证确保安全
-
-            ---
-
-            **完整更新日志**: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
-          releaseDraft: false
-          prerelease: false
-          # 如果release已存在，则更新现有release
+          # 使用现有的release，不创建新的release
+          releaseId: ${{ steps.version.outputs.version }}
           updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
           projectPath: './packages/web-ui'
