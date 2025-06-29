@@ -13,6 +13,7 @@ import { useMusic } from '@/composition/music'
 import { useSound } from '@/composition/sound'
 import { useBattleAnimations } from '@/composition/useBattleAnimations'
 import { useMobile } from '@/composition/useMobile'
+import { petResourceCache } from '@/services/petResourceCache'
 import { useScreenOrientation, useFullscreen } from '@vueuse/core'
 import { Z_INDEX, Z_INDEX_CLASS } from '@/constants/zIndex'
 import { useBattleStore } from '@/stores/battle'
@@ -965,7 +966,7 @@ const checkPetSpritesLoaded = async () => {
     loadingStatus.value = '加载精灵资源...'
 
     // 预加载精灵资源
-    preloadPetSprites()
+    await preloadPetSprites()
 
     // 等待PetSprite组件准备完成
     if (isReplayMode.value) {
@@ -1873,18 +1874,19 @@ const animatesubscribe = animationQueue
   )
   .subscribe()
 
-const preloadPetSprites = () => {
+const preloadPetSprites = async () => {
   const spriteNums = allTeamMemberSpritesNum.value
   if (!spriteNums || !Array.isArray(spriteNums)) {
     console.debug('Skipping sprite preload: sprite numbers not available yet')
     return
   }
-  spriteNums.forEach(num => {
-    if (num && num > 0) {
-      const img = new Image()
-      img.src = `https://seer2-pet-resource.yuuinih.com/public/fight/${num}.swf`
-    }
-  })
+
+  // 使用 petResourceCache 来预加载，避免重复加载
+  const uniqueNums = [...new Set(spriteNums.filter(num => num && num > 0))]
+  console.debug('Preloading pet sprites:', uniqueNums)
+
+  // 使用 petResourceCache 的预加载方法，它会检查是否已经缓存
+  await Promise.allSettled(uniqueNums.map(num => petResourceCache.preloadPetSwf(num)))
 }
 
 async function animatePetEntry(
