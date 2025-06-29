@@ -60,6 +60,8 @@ export interface ServerToClientEvents {
     battleState: string
     fullBattleState?: BattleState // 可选的完整战斗状态，避免客户端额外调用 getState
   }) => void
+  // 重连测试事件（用于验证消息发送是否正常）
+  reconnectTest: (data: { message: string; timestamp: number }) => void
 }
 
 export interface ClientToServerEvents {
