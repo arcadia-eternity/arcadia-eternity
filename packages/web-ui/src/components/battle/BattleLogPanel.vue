@@ -13,6 +13,7 @@ import {
 import i18next from 'i18next'
 import { logMessagesKey, petMapKey, skillMapKey, playerMapKey, markMapKey } from '@/symbol/battlelog'
 import { useGameSettingStore } from '@/stores/gameSetting'
+import { useBattleViewStore } from '@/stores/battleView'
 
 const messages = inject(logMessagesKey, [])
 const petMap = inject(petMapKey, new Map())
@@ -22,6 +23,8 @@ const markMap = inject(markMapKey, new Map())
 
 // 游戏设置store
 const gameSettingStore = useGameSettingStore()
+// 战斗视图store
+const battleViewStore = useBattleViewStore()
 
 const MESSAGE_ICONS: Record<BattleMessageType, string> = {
   [BattleMessageType.Damage]: '💥',
@@ -326,11 +329,33 @@ watch(
 </script>
 
 <template>
-  <div class="bg-black/80 rounded-lg p-4 h-full flex flex-col min-w-0 max-h-full overflow-hidden">
+  <div class="bg-black/80 rounded-lg h-full flex flex-col min-w-0 max-h-full overflow-hidden">
+    <!-- 日志面板标题栏 -->
+    <div class="flex items-center justify-between px-3 py-1 border-b border-white/10 flex-none">
+      <div class="text-xs font-medium text-white/70">战斗日志</div>
+      <button
+        class="group relative w-5 h-4 cursor-pointer flex-none"
+        @click="battleViewStore.toggleLogPanel()"
+        title="隐藏日志面板"
+      >
+        <div
+          class="w-full h-full rounded-sm transition-all duration-200 border border-red-400/30 group-hover:border-red-400/60 group-hover:bg-red-400/10"
+        ></div>
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <!-- 向左箭头 -->
+          <div
+            class="text-[10px] font-bold text-red-400 transform group-hover:-translate-x-0.5 transition-transform duration-200"
+          >
+            ◀
+          </div>
+        </div>
+      </button>
+    </div>
+
     <!-- 日志内容 -->
     <div
       ref="logContainerRef"
-      class="h-full flex-1 overflow-y-auto overflow-x-hidden pr-2 scroll-smooth scrollbar-thin scrollbar-track-white/5 scrollbar-thumb-white/20 scrollbar-thumb-rounded min-w-0 min-h-0"
+      class="h-full flex-1 overflow-y-auto overflow-x-hidden px-3 py-2 scroll-smooth scrollbar-thin scrollbar-track-white/5 scrollbar-thumb-white/20 scrollbar-thumb-rounded min-w-0 min-h-0"
     >
       <BattleLogEntry v-for="(msg, index) in formattedMessages" :key="index" :message="msg" />
     </div>

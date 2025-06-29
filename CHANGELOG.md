@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.5.2...arcadia-eternity-v1.5.3) (2025-06-29)
+
+
+### ⚡ Performance Improvements
+
+* Handle pet selection during faint switch phase ([4a0a647](https://github.com/arcadia-eternity/arcadia-eternity/commit/4a0a647d38b0948afdddee95f1a5105f316b1848))
+* Redesign battle log panel toggle UI ([5e9ba2a](https://github.com/arcadia-eternity/arcadia-eternity/commit/5e9ba2a64233d23eaa39ea1927b43a4397710258))
+
 ## [1.5.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.5.1...arcadia-eternity-v1.5.2) (2025-06-29)
 
 

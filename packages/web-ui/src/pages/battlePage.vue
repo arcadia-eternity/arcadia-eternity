@@ -694,9 +694,23 @@ const handleSkillClick = (skillId: string) => {
 
 const handlePetSelect = (petId: string) => {
   if (isWaitingForOpponent.value) return
-  const action = store.availableActions.find(a => a.type === 'switch-pet' && a.pet === petId)
-  if (action) store.sendplayerSelection(action)
-  panelState.value = PanelState.SKILLS
+
+  // 优先尝试正常的精灵切换
+  const switchAction = store.availableActions.find(a => a.type === 'switch-pet' && a.pet === petId)
+  if (switchAction) {
+    store.sendplayerSelection(switchAction)
+    panelState.value = PanelState.SKILLS
+    return
+  }
+
+  // 击破奖励回合时，如果点击的是当前在场精灵，则执行空过操作
+  if (isInFaintSwitchPhase.value && petId === currentPlayer.value?.activePet) {
+    const doNothingAction = store.availableActions.find(a => a.type === 'do-nothing')
+    if (doNothingAction) {
+      store.sendplayerSelection(doNothingAction)
+      panelState.value = PanelState.SKILLS
+    }
+  }
 }
 
 const handleEscape = async () => {
@@ -802,6 +816,26 @@ const isSkillAvailable = (skillId: skillId) => {
 
 const isPetSwitchable = (petId: petId) => {
   return store.availableActions?.some(a => a.type === 'switch-pet' && a.pet === petId) ?? false
+}
+
+// 检查是否处于击破奖励回合
+const isInFaintSwitchPhase = computed(() => {
+  return store.availableActions?.some(a => a.type === 'do-nothing') ?? false
+})
+
+// 检查精灵是否可以被选择（包括击破奖励回合的当前在场精灵）
+const isPetSelectable = (petId: petId) => {
+  // 正常情况下，检查是否可以切换
+  if (isPetSwitchable(petId)) {
+    return true
+  }
+
+  // 击破奖励回合时，当前在场精灵也可以被选择（用于空过）
+  if (isInFaintSwitchPhase.value && petId === currentPlayer.value?.activePet) {
+    return true
+  }
+
+  return false
 }
 
 // 回放模式相关
@@ -2628,7 +2662,7 @@ watch(
                 v-for="pet in leftPlayerPets"
                 :key="pet.id"
                 :pet="pet"
-                :disabled="!isPetSwitchable(pet.id) || isWaitingForOpponent"
+                :disabled="!isPetSelectable(pet.id) || isWaitingForOpponent"
                 :is-active="pet.id === currentPlayer?.activePet"
                 position="left"
                 @click="handlePetSelect"
@@ -2800,16 +2834,31 @@ watch(
             </div>
           </div>
 
+          <!-- 显示日志按钮（浮动在左下角） -->
+          <div v-if="!isReplayMode && !battleViewStore.showLogPanel" class="absolute bottom-4 left-4 z-50">
+            <button
+              class="group relative w-8 h-8 cursor-pointer bg-black/70 rounded-r-lg border border-gray-400/50 hover:border-green-400/70 hover:bg-black/90 transition-all duration-200"
+              @click="battleViewStore.toggleLogPanel()"
+              title="显示日志面板"
+            >
+              <div class="flex items-center justify-center h-full">
+                <!-- 向右箭头 -->
+                <div
+                  class="text-sm font-bold text-gray-400 group-hover:text-green-400 transform group-hover:translate-x-0.5 transition-transform duration-200"
+                >
+                  ▶
+                </div>
+              </div>
+            </button>
+          </div>
+
           <!-- 控制面板（移动端和桌面端完全一样） -->
           <div v-if="!isReplayMode" class="flex h-1/5 flex-none overflow-visible">
             <div v-if="battleViewStore.showLogPanel" class="w-1/5 h-full p-2 max-h-full overflow-hidden">
               <BattleLogPanel />
             </div>
 
-            <div
-              class="h-full max-h-full overflow-visible"
-              :class="battleViewStore.showLogPanel ? 'flex-1' : 'flex-[4]'"
-            >
+            <div class="h-full max-h-full overflow-visible" :class="battleViewStore.showLogPanel ? 'flex-1' : 'w-full'">
               <div
                 class="h-full max-h-full grid grid-cols-5 gap-4 p-2 overflow-visible"
                 v-show="panelState === PanelState.SKILLS"
@@ -2835,7 +2884,7 @@ watch(
                   v-for="pet in currentPlayer?.team || []"
                   :key="pet.id"
                   :pet="pet"
-                  :disabled="!isPetSwitchable(pet.id) || isWaitingForOpponent"
+                  :disabled="!isPetSelectable(pet.id) || isWaitingForOpponent"
                   @click="handlePetSelect"
                   position="bottom"
                 />
@@ -2843,43 +2892,6 @@ watch(
             </div>
 
             <div class="flex flex-col gap-2 p-2 w-1/5 flex-none h-full">
-              <!-- 日志切换按钮 -->
-              <button
-                class="group relative h-10 p-2 cursor-pointer overflow-visible flex-none"
-                @click="battleViewStore.toggleLogPanel()"
-              >
-                <div
-                  class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border border-gray-400/50 group-hover:shadow-[0_0_8px_2px_rgba(156,163,175,0.6)]"
-                  :class="
-                    battleViewStore.showLogPanel
-                      ? 'border-green-400/50 group-hover:shadow-[0_0_8px_2px_rgba(34,197,94,0.6)]'
-                      : 'border-gray-400/50'
-                  "
-                >
-                  <div class="bg-gray-900 w-full h-2"></div>
-                  <div class="absolute bottom-1 right-1">
-                    <div class="flex">
-                      <div
-                        class="w-2 h-0.5 mt-1"
-                        :class="battleViewStore.showLogPanel ? 'bg-green-400' : 'bg-gray-400'"
-                      ></div>
-                      <div
-                        class="w-0.5 h-2"
-                        :class="battleViewStore.showLogPanel ? 'bg-green-400' : 'bg-gray-400'"
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="relative flex items-center justify-center h-full pointer-events-none">
-                  <div
-                    class="text-xs font-bold [text-shadow:_1px_1px_0_black]"
-                    :class="battleViewStore.showLogPanel ? 'text-green-400' : 'text-gray-400'"
-                  >
-                    {{ battleViewStore.showLogPanel ? '隐藏日志' : '显示日志' }}
-                  </div>
-                </div>
-              </button>
-
               <!-- 训练面板按钮 -->
               <button
                 v-if="isTrainingMode"
