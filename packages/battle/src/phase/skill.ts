@@ -1,7 +1,8 @@
 import { EffectTrigger, Category, BattleMessageType } from '@arcadia-eternity/const'
 import { SynchronousPhase } from './base'
-import { UseSkillContext, RageContext, DamageContext, TurnContext } from '../context'
+import { UseSkillContext, DamageContext, TurnContext } from '../context'
 import { MarkCleanupPhase } from './MarkCleanupPhase'
+import { RagePhase } from './rage'
 import type { Battle } from '../battle'
 import type { Player } from '../player'
 import type { Pet } from '../pet'
@@ -100,7 +101,9 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
 
   try {
     // Consume rage
-    context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.skill.rage))
+    const ragePhase = new RagePhase(battle, context, context.origin, 'skill', 'reduce', context.skill.rage)
+    battle.phaseManager.registerPhase(ragePhase)
+    battle.phaseManager.executePhase(ragePhase.id)
 
     // Apply after skill check effects
     battle.applyEffects(context, EffectTrigger.AfterUseSkillCheck)
@@ -157,9 +160,16 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
 
           // Target gains rage from taking damage
           const gainedRage = Math.floor((damageContext.damageResult * 49) / context.actualTarget.stat.maxHp)
-          context.actualTarget.owner!.addRage(
-            new RageContext(context, context.actualTarget.owner!, 'damage', 'add', gainedRage),
+          const damageRagePhase = new RagePhase(
+            battle,
+            context,
+            context.actualTarget.owner!,
+            'damage',
+            'add',
+            gainedRage,
           )
+          battle.phaseManager.registerPhase(damageRagePhase)
+          battle.phaseManager.executePhase(damageRagePhase.id)
         }
 
         battle.applyEffects(context, EffectTrigger.OnHit) // Trigger hit effects
@@ -168,7 +178,9 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
 
     // Hit reward rage for non-status moves
     if (context.category !== Category.Status && context.hitResult) {
-      context.origin.addRage(new RageContext(context, context.origin, 'skillHit', 'add', 15))
+      const hitRagePhase = new RagePhase(battle, context, context.origin, 'skillHit', 'add', 15)
+      battle.phaseManager.registerPhase(hitRagePhase)
+      battle.phaseManager.executePhase(hitRagePhase.id)
     }
 
     // Check for defeat

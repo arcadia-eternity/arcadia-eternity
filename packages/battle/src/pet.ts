@@ -154,6 +154,10 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     this.owner?.addRage(context)
   }
 
+  /**
+   * @deprecated Use DamagePhase directly instead of calling this method.
+   * This method is kept for backward compatibility but will be removed in future versions.
+   */
   public damage(context: DamageContext): boolean {
     // Damage logic has been moved to DamagePhase
     // This method now delegates to the phase system
@@ -175,9 +179,20 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     )
     context.battle.phaseManager.registerPhase(damagePhase)
     context.battle.phaseManager.executePhase(damagePhase.id)
+
+    // Sync the damage result back to the original context
+    const phaseContext = damagePhase.context
+    if (phaseContext) {
+      context.damageResult = phaseContext.damageResult
+    }
+
     return this.isAlive
   }
 
+  /**
+   * @deprecated Use HealPhase directly instead of calling this method.
+   * This method is kept for backward compatibility but will be removed in future versions.
+   */
   public heal(context: HealContext): boolean {
     // Heal logic has been moved to HealPhase
     // This method now delegates to the phase system
@@ -195,6 +210,10 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     return this.isAlive
   }
 
+  /**
+   * @deprecated Use AddMark directly instead of calling this method.
+   * This method is kept for backward compatibility but will be removed in future versions.
+   */
   public addMark(context: AddMarkContext) {
     context.battle.addMark(context)
   }
