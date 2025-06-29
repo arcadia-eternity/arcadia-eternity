@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.5.1...arcadia-eternity-v1.5.2) (2025-06-29)
+
+
+### 🐛 Bug Fixes
+
+* Refactor pet sprite preloading with petResourceCache ([61dc57b](https://github.com/arcadia-eternity/arcadia-eternity/commit/61dc57b2a0a4468eac57c9426a554dd6c89874b9))
+
 ## [1.5.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.5.0...arcadia-eternity-v1.5.1) (2025-06-29)
 
 
