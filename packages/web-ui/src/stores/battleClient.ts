@@ -100,9 +100,15 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     })
   }
 
+  // 战斗重连处理器引用，用于防止重复注册
+  let _battleReconnectHandler:
+    | ((data: { roomId: string; shouldRedirect: boolean; fullBattleState?: any }) => void)
+    | null = null
+
   // Actions
   const initialize = () => {
     if (isInitialized.value) {
+      console.log('🔄 BattleClient already initialized, skipping')
       return
     }
 
@@ -114,9 +120,9 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     console.log('🔄 BattleClient initialized, state change monitoring active')
 
     // 设置战斗重连监听器（用于页面刷新后自动跳转）
-    _instance.value.on(
-      'battleReconnect',
-      async (data: { roomId: string; shouldRedirect: boolean; fullBattleState?: any }) => {
+    // 确保只注册一次
+    if (!_battleReconnectHandler) {
+      _battleReconnectHandler = async (data: { roomId: string; shouldRedirect: boolean; fullBattleState?: any }) => {
         console.log('🔄 Battle reconnect detected:', data)
 
         if (data.shouldRedirect) {
@@ -146,8 +152,13 @@ export const useBattleClientStore = defineStore('battleClient', () => {
             // 不触发跳转事件
           }
         }
-      },
-    )
+      }
+
+      _instance.value.on('battleReconnect', _battleReconnectHandler)
+      console.log('🔄 Battle reconnect handler registered')
+    } else {
+      console.log('🔄 Battle reconnect handler already exists, skipping registration')
+    }
 
     // 注册之前缓存的事件监听器
     registerPendingHandlers()
@@ -168,6 +179,12 @@ export const useBattleClientStore = defineStore('battleClient', () => {
 
   const reset = () => {
     if (_instance.value) {
+      // 清理战斗重连监听器
+      if (_battleReconnectHandler) {
+        _instance.value.off('battleReconnect', _battleReconnectHandler)
+        _battleReconnectHandler = null
+        console.log('🔄 Battle reconnect handler cleaned up')
+      }
       _instance.value.disconnect()
       _instance.value = null
     }

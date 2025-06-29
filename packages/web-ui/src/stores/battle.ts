@@ -39,6 +39,8 @@ export const useBattleStore = defineStore('battle', {
     animateQueue: new Subject<() => Promise<void>>(),
     // 用于跟踪已处理的消息序号
     lastProcessedSequenceId: -1,
+    // 战斗事件监听器清理函数，用于防止重复注册
+    _battleEventUnsubscribe: null as (() => void) | null,
     // 回放模式相关状态
     isReplayMode: false,
     replayMessages: [] as BattleMessage[],
@@ -67,6 +69,13 @@ export const useBattleStore = defineStore('battle', {
 
   actions: {
     async initBattle(battleInterface: IBattleSystem, playerId: string) {
+      // 清理旧的战斗事件监听器
+      if (this._battleEventUnsubscribe) {
+        console.log('🔄 Cleaning up previous battle event listener')
+        this._battleEventUnsubscribe()
+        this._battleEventUnsubscribe = null
+      }
+
       this.battleInterface = markRaw(battleInterface)
       this.playerId = playerId
       this.battleState = await this.battleInterface.getState(playerId as playerId)
@@ -82,15 +91,26 @@ export const useBattleStore = defineStore('battle', {
       // 清空并重新初始化Map缓存
       this._clearMapCaches()
       this._updateMapCaches()
-      this.battleInterface.BattleEvent(msg => {
+
+      // 注册新的战斗事件监听器并保存清理函数
+      this._battleEventUnsubscribe = this.battleInterface.BattleEvent(msg => {
         this.waitingForResponse = false
         this.handleBattleMessage(msg)
       })
+      console.log('🔄 Registered new battle event listener')
+
       this.availableActions = await this.fetchAvailableSelection()
     },
 
     // 使用服务器提供的战斗状态初始化战斗，避免额外的 getState 调用
     async initBattleWithState(battleInterface: IBattleSystem, playerId: string, battleState: BattleState) {
+      // 清理旧的战斗事件监听器
+      if (this._battleEventUnsubscribe) {
+        console.log('🔄 Cleaning up previous battle event listener')
+        this._battleEventUnsubscribe()
+        this._battleEventUnsubscribe = null
+      }
+
       this.battleInterface = markRaw(battleInterface)
       this.playerId = playerId
       this.battleState = battleState // 直接使用服务器提供的状态
@@ -106,10 +126,14 @@ export const useBattleStore = defineStore('battle', {
       // 清空并重新初始化Map缓存
       this._clearMapCaches()
       this._updateMapCaches()
-      this.battleInterface.BattleEvent(msg => {
+
+      // 注册新的战斗事件监听器并保存清理函数
+      this._battleEventUnsubscribe = this.battleInterface.BattleEvent(msg => {
         this.waitingForResponse = false
         this.handleBattleMessage(msg)
       })
+      console.log('🔄 Registered new battle event listener')
+
       this.availableActions = await this.fetchAvailableSelection()
     },
 
@@ -143,12 +167,12 @@ export const useBattleStore = defineStore('battle', {
 
         // 调试：检查 modifier 信息
         if (import.meta.env.DEV && this.battleState.players) {
-          this.battleState.players.forEach((player, playerIndex) => {
+          this.battleState.players.forEach(player => {
             if (player.modifierState?.hasModifiers) {
               console.log(`Player ${player.name} has modifiers:`, player.modifierState)
             }
 
-            player.team?.forEach((pet, petIndex) => {
+            player.team?.forEach(pet => {
               if (pet.modifierState?.hasModifiers) {
                 console.log(`Pet ${pet.name} has modifiers:`, pet.modifierState)
               }
@@ -214,6 +238,13 @@ export const useBattleStore = defineStore('battle', {
           player: this.playerId as playerId,
           type: 'surrender',
         })
+      }
+
+      // 清理战斗事件监听器
+      if (this._battleEventUnsubscribe) {
+        console.log('🔄 Cleaning up battle event listener during reset')
+        this._battleEventUnsubscribe()
+        this._battleEventUnsubscribe = null
       }
 
       // Clean up battle interface resources

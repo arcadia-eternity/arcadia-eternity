@@ -725,12 +725,23 @@ const handleEscape = async () => {
   }
 }
 
+// 断线事件处理器引用，用于防止重复注册和清理
+let opponentDisconnectedHandler: ((data: { disconnectedPlayerId: string; graceTimeRemaining: number }) => void) | null =
+  null
+let opponentReconnectedHandler: ((data: { reconnectedPlayerId: string }) => void) | null = null
+
 // 设置掉线重连事件处理
 const setupDisconnectHandlers = () => {
   if (props.replayMode) return // 回放模式不需要处理掉线
 
+  // 防止重复注册
+  if (opponentDisconnectedHandler || opponentReconnectedHandler) {
+    console.log('🔄 Disconnect handlers already registered, skipping')
+    return
+  }
+
   // 监听对手掉线事件
-  battleClientStore.on('opponentDisconnected', (data: { disconnectedPlayerId: string; graceTimeRemaining: number }) => {
+  opponentDisconnectedHandler = (data: { disconnectedPlayerId: string; graceTimeRemaining: number }) => {
     console.log('对手掉线:', data)
     opponentDisconnected.value = true
     disconnectGraceTime.value = Math.ceil(data.graceTimeRemaining / 1000) // 转换为秒
@@ -748,10 +759,10 @@ const setupDisconnectHandlers = () => {
         // 倒计时结束，等待服务器通知战斗结果
       }
     }, 1000)
-  })
+  }
 
   // 监听对手重连事件
-  battleClientStore.on('opponentReconnected', (data: { reconnectedPlayerId: string }) => {
+  opponentReconnectedHandler = (data: { reconnectedPlayerId: string }) => {
     console.log('对手重连:', data)
     opponentDisconnected.value = false
 
@@ -759,7 +770,24 @@ const setupDisconnectHandlers = () => {
       clearInterval(disconnectTimer.value)
       disconnectTimer.value = null
     }
-  })
+  }
+
+  battleClientStore.on('opponentDisconnected', opponentDisconnectedHandler)
+  battleClientStore.on('opponentReconnected', opponentReconnectedHandler)
+  console.log('🔄 Disconnect handlers registered')
+}
+
+// 清理断线事件处理器
+const cleanupDisconnectHandlers = () => {
+  if (opponentDisconnectedHandler) {
+    battleClientStore.off('opponentDisconnected', opponentDisconnectedHandler)
+    opponentDisconnectedHandler = null
+  }
+  if (opponentReconnectedHandler) {
+    battleClientStore.off('opponentReconnected', opponentReconnectedHandler)
+    opponentReconnectedHandler = null
+  }
+  console.log('🔄 Disconnect handlers cleaned up')
 }
 
 const battleResult = computed(() => {
@@ -2200,6 +2228,9 @@ onUnmounted(() => {
     clearInterval(disconnectTimer.value)
     disconnectTimer.value = null
   }
+
+  // 清理断线事件处理器
+  cleanupDisconnectHandlers()
 
   // 清理战斗和回放状态
   store.resetBattle()
