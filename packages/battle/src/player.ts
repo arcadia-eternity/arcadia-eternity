@@ -273,6 +273,10 @@ export class Player {
     this.currentRage = Math.max(Math.min(value, this.maxRage), 0)
   }
 
+  /**
+   * @deprecated Use RagePhase directly instead of calling this method.
+   * This method is kept for backward compatibility but will be removed in future versions.
+   */
   public addRage(context: RageContext) {
     // Rage logic has been moved to RagePhase
     // This method now delegates to the phase system
@@ -288,6 +292,12 @@ export class Player {
     )
     context.battle.phaseManager.registerPhase(ragePhase)
     context.battle.phaseManager.executePhase(ragePhase.id)
+
+    // Sync the rage result back to the original context
+    const phaseContext = ragePhase.context
+    if (phaseContext) {
+      context.rageChangeResult = phaseContext.rageChangeResult
+    }
   }
 
   public toMessage(viewerId?: string, showHidden = false): PlayerMessage {
