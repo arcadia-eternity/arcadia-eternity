@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.4.2...arcadia-eternity-v1.4.3) (2025-06-29)
+
+
+### 🐛 Bug Fixes
+
+* set dragDropEnabled to fix SortableJS ([14f8178](https://github.com/arcadia-eternity/arcadia-eternity/commit/14f8178cb66c774e76f350b66e18c8445ea3972a))
+
 ## [1.4.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.4.1...arcadia-eternity-v1.4.2) (2025-06-29)
 
 
