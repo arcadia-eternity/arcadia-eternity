@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.5.0...arcadia-eternity-v1.5.1) (2025-06-29)
+
+
+### 🐛 Bug Fixes
+
+* Update import path for resourceLoadingManager ([20913ba](https://github.com/arcadia-eternity/arcadia-eternity/commit/20913ba1b9e218d75869d1f5a734be3362ad31fd))
+
 ## [1.5.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.4.3...arcadia-eternity-v1.5.0) (2025-06-29)
 
 
