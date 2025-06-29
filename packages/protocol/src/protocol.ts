@@ -49,6 +49,17 @@ export interface ServerToClientEvents {
   ) => void
   // 错误通知事件
   matchmakingError: (error: ErrorResponse) => void
+  // 对手掉线通知
+  opponentDisconnected: (data: { disconnectedPlayerId: string; graceTimeRemaining: number }) => void
+  // 对手重连通知
+  opponentReconnected: (data: { reconnectedPlayerId: string }) => void
+  // 战斗重连通知（用于页面刷新后自动跳转）
+  battleReconnect: (data: {
+    roomId: string
+    shouldRedirect: boolean
+    battleState: string
+    fullBattleState?: BattleState // 可选的完整战斗状态，避免客户端额外调用 getState
+  }) => void
 }
 
 export interface ClientToServerEvents {
@@ -63,7 +74,7 @@ export interface ClientToServerEvents {
   //取消匹配
   cancelMatchmaking: (ack: AckResponse<{ status: 'CANCELED' }>) => void
   // 准备开始对战
-  ready: () => void
+  ready: (ack: AckResponse<{ status: 'READY' }>) => void
 
   // 玩家动作
   submitPlayerSelection: (

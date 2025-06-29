@@ -9,7 +9,6 @@ import {
   EffectTrigger,
   type Events,
   type PlayerSelection,
-  type SwitchPetSelection,
   type petId,
   type playerId,
   type skillId,
@@ -28,7 +27,7 @@ import { AttributeSystem } from './attributeSystem'
 import * as jsondiffpatch from 'jsondiffpatch'
 import { nanoid } from 'nanoid'
 import mitt from 'mitt'
-import { PhaseManager, BattleStartPhase, BattleLoopPhase, SwitchPetPhase } from './phase'
+import { PhaseManager, BattleStartPhase, BattleLoopPhase } from './phase'
 import { EffectExecutionPhase } from './phase/effectExecution'
 import { RemoveMarkPhase } from './phase/RemoveMarkPhase'
 import { AddMarkPhase } from './phase/AddMarkPhase'
@@ -56,6 +55,7 @@ export class Battle extends Context implements MarkOwner {
   public status: BattleStatus = BattleStatus.Unstarted
   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
   public currentTurn = 0
+  private _isStarting: boolean = false // 防止重复启动的标志
   private messageCallbacks: Array<{
     original: (message: BattleMessage) => void
     wrapped: (message: BattleMessage) => void
@@ -328,16 +328,38 @@ export class Battle extends Context implements MarkOwner {
 
   // Phase-based battle start (main implementation)
   public async startBattle(): Promise<void> {
-    // Phase 0: Initialize battle
-    this.currentPhase = BattlePhase.StartPhase
-    const startPhase = new BattleStartPhase(this)
-    this.phaseManager.registerPhase(startPhase)
-    await this.phaseManager.executePhaseAsync(startPhase.id)
+    // 防止重复启动的检查
+    if (this._isStarting) {
+      this.logger.warn({ battleId: this.id }, 'Battle is already starting, ignoring duplicate startBattle call')
+      return
+    }
 
-    // Phase 1: Main battle loop
-    const battleLoopPhase = new BattleLoopPhase(this)
-    this.phaseManager.registerPhase(battleLoopPhase)
-    await this.phaseManager.executePhaseAsync(battleLoopPhase.id)
+    if (this.status !== BattleStatus.Unstarted) {
+      this.logger.warn(
+        { battleId: this.id, currentStatus: this.status },
+        'Battle has already started, ignoring startBattle call',
+      )
+      return
+    }
+
+    // 设置启动标志
+    this._isStarting = true
+
+    try {
+      // Phase 0: Initialize battle
+      this.currentPhase = BattlePhase.StartPhase
+      const startPhase = new BattleStartPhase(this)
+      this.phaseManager.registerPhase(startPhase)
+      await this.phaseManager.executePhaseAsync(startPhase.id)
+
+      // Phase 1: Main battle loop
+      const battleLoopPhase = new BattleLoopPhase(this)
+      this.phaseManager.registerPhase(battleLoopPhase)
+      await this.phaseManager.executePhaseAsync(battleLoopPhase.id)
+    } finally {
+      // 无论成功还是失败，都要清除启动标志
+      this._isStarting = false
+    }
   }
 
   // Legacy generator method removed - use startBattlePhased() instead
@@ -482,6 +504,7 @@ export class Battle extends Context implements MarkOwner {
       currentPhase: this.currentPhase,
       currentTurn: this.currentTurn,
       marks: this.marks.map(m => m.toMessage()),
+      sequenceId: this.sequenceId, // 包含当前的序列ID
       players: [this.playerA, this.playerB].map(p => p.toMessage(viewerId, showHidden)),
     }
   }
@@ -522,8 +545,17 @@ export class Battle extends Context implements MarkOwner {
       return
     }
 
+    // 检查战斗是否已结束，避免无限等待
+    if (this.isBattleEnded()) {
+      this.logger.warn({ battleId: this.id }, 'Battle ended while waiting for switch selections')
+      return
+    }
+
     return new Promise<void>(resolve => {
-      this.waitingResolvers.switchSelections = { players, resolve }
+      this.waitingResolvers.switchSelections = {
+        players,
+        resolve,
+      }
     })
   }
 
@@ -533,8 +565,16 @@ export class Battle extends Context implements MarkOwner {
       return
     }
 
+    // 检查战斗是否已结束，避免无限等待
+    if (this.isBattleEnded()) {
+      this.logger.warn({ battleId: this.id }, 'Battle ended while waiting for players ready')
+      return
+    }
+
     return new Promise<void>(resolve => {
-      this.waitingResolvers.bothPlayersReady = { resolve }
+      this.waitingResolvers.bothPlayersReady = {
+        resolve,
+      }
     })
   }
 

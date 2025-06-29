@@ -23,8 +23,13 @@ export class LocalBattleSystem implements IBattleSystemWithDev {
     if (this.isCleanedUp) {
       throw new Error('Cannot call ready() on cleaned up LocalBattleSystem')
     }
-    if (this.battleStarted) return
+    if (this.battleStarted) {
+      console.warn(`Battle ${this.battle.id} already started, ignoring duplicate ready() call`)
+      return
+    }
     this.battleStarted = true
+
+    console.log(`Starting battle ${this.battle.id} via LocalBattleSystem.ready()`)
 
     // Start the battle asynchronously
     this.battlePromise = this.battle.startBattle().catch(error => {

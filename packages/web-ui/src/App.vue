@@ -378,20 +378,8 @@
       </div>
     </main>
 
-    <!-- 全局状态提示 - 移除 el-affix，使用固定定位 -->
-    <div class="fixed right-4 bottom-4 z-50 md:right-5 md:bottom-5 pointer-events-none">
-      <el-tag
-        :type="connectionState === 'connected' ? 'success' : 'danger'"
-        effect="dark"
-        round
-        class="pointer-events-auto"
-      >
-        <el-icon :size="14">
-          <Connection />
-        </el-icon>
-        {{ connectionState === 'connected' ? '已连接' : '未连接' }}
-      </el-tag>
-    </div>
+    <!-- 连接状态组件 -->
+    <ConnectionStatus />
   </div>
 </template>
 
@@ -416,12 +404,15 @@ import {
   Box,
   Document,
   User,
-  Connection,
   Setting,
   ArrowDown,
   FolderOpened,
 } from '@element-plus/icons-vue'
 import VersionInfo from '@/components/VersionInfo.vue'
+import ConnectionStatus from '@/components/ConnectionStatus.vue'
+import { autoCheckForUpdates } from '@/utils/version'
+import { useBattleStore } from './stores/battle'
+import { BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
 
 const router = useRouter()
 const dataStore = useGameDataStore()
@@ -431,6 +422,7 @@ const petStorage = usePetStorageStore()
 const serverState = useServerStateStore()
 const gameSettingStore = useGameSettingStore()
 const battleClientStore = useBattleClientStore()
+const battleStore = useBattleStore()
 
 // 使用 VueUse 的响应式断点检测
 const breakpoints = useBreakpoints(breakpointsTailwind)
@@ -444,11 +436,6 @@ watch(isMobile, newIsMobile => {
   if (!newIsMobile) {
     showMobileMenu.value = false
   }
-})
-
-// 连接状态
-const connectionState = computed(() => {
-  return battleClientStore.currentState.status
 })
 
 // 初始化连接
@@ -474,6 +461,50 @@ onMounted(async () => {
 
     // 现在初始化battleClient（此时Pinia已经完全准备好）
     battleClientStore.initialize()
+
+    // 监听战斗重连事件（用于页面刷新后自动跳转）
+    let isRedirecting = false
+    window.addEventListener('battleReconnect', async (event: any) => {
+      const data = event.detail
+      console.log('🔄 Received battleReconnect event, redirecting to battle page:', data)
+      console.log('🔄 Current route:', router.currentRoute.value.path)
+
+      // 防止重复跳转
+      if (isRedirecting) {
+        console.log('🔄 Already redirecting, ignoring duplicate event')
+        return
+      }
+
+      isRedirecting = true
+
+      try {
+        // 检查服务器是否提供了完整的战斗状态数据
+        if (data.fullBattleState) {
+          console.log('🔄 Using server-provided battle state, skipping additional getState call')
+
+          // 创建一个特殊的战斗接口，直接使用服务器提供的状态
+          const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
+
+          // 直接初始化战斗，使用服务器提供的状态
+          await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState)
+
+          const result = await router.push('/battle')
+          console.log('🔄 Router push result:', result)
+        } else {
+          // 如果服务器没有提供战斗状态，说明可能出现了问题
+          console.warn('🔄 Server did not provide battle state, battle may have ended')
+          ElMessage.info('战斗状态异常，无法跳转到战斗页面')
+        }
+      } catch (error) {
+        console.error('🔄 Router push failed:', error)
+        ElMessage.error('跳转到战斗页面失败')
+      } finally {
+        // 延迟重置标志，防止快速重复事件
+        setTimeout(() => {
+          isRedirecting = false
+        }, 1000)
+      }
+    })
 
     // 等待玩家认证完成后再连接战斗客户端
     // 对于注册用户，需要等待自动登录完成
@@ -512,6 +543,12 @@ onMounted(async () => {
         }
       }, 100)
     }
+
+    // 在应用初始化完成后，延迟一段时间再检查更新
+    // 避免与其他初始化操作冲突
+    setTimeout(() => {
+      autoCheckForUpdates()
+    }, 3000) // 延迟3秒后检查更新
   } catch (err) {
     console.error('Initialization error:', err)
     ElMessage.error('初始化失败，请刷新页面重试')

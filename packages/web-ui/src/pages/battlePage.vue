@@ -126,6 +126,7 @@ const gameDataStore = useGameDataStore()
 const resourceStore = useResourceStore()
 const gameSettingStore = useGameSettingStore()
 const battleViewStore = useBattleViewStore()
+const battleClientStore = useBattleClientStore()
 
 // 自适应缩放相关
 const battleContainerRef = useTemplateRef('battleContainerRef')
@@ -155,6 +156,11 @@ const showCustomConfirm = ref(false)
 const customConfirmTitle = ref('')
 const customConfirmMessage = ref('')
 const customConfirmResolve = ref<((value: boolean) => void) | null>(null)
+
+// 掉线重连状态
+const opponentDisconnected = ref(false)
+const disconnectGraceTime = ref(0)
+const disconnectTimer = ref<number | null>(null)
 
 // 自定义确认对话框方法
 const showCustomConfirmDialog = (title: string, message: string): Promise<boolean> => {
@@ -717,6 +723,43 @@ const handleEscape = async () => {
   } catch {
     // 用户取消投降，不执行任何操作
   }
+}
+
+// 设置掉线重连事件处理
+const setupDisconnectHandlers = () => {
+  if (props.replayMode) return // 回放模式不需要处理掉线
+
+  // 监听对手掉线事件
+  battleClientStore.on('opponentDisconnected', (data: { disconnectedPlayerId: string; graceTimeRemaining: number }) => {
+    console.log('对手掉线:', data)
+    opponentDisconnected.value = true
+    disconnectGraceTime.value = Math.ceil(data.graceTimeRemaining / 1000) // 转换为秒
+
+    // 启动倒计时
+    if (disconnectTimer.value) {
+      clearInterval(disconnectTimer.value)
+    }
+
+    disconnectTimer.value = window.setInterval(() => {
+      disconnectGraceTime.value--
+      if (disconnectGraceTime.value <= 0) {
+        clearInterval(disconnectTimer.value!)
+        disconnectTimer.value = null
+        // 倒计时结束，等待服务器通知战斗结果
+      }
+    }, 1000)
+  })
+
+  // 监听对手重连事件
+  battleClientStore.on('opponentReconnected', (data: { reconnectedPlayerId: string }) => {
+    console.log('对手重连:', data)
+    opponentDisconnected.value = false
+
+    if (disconnectTimer.value) {
+      clearInterval(disconnectTimer.value)
+      disconnectTimer.value = null
+    }
+  })
 }
 
 const battleResult = computed(() => {
@@ -2027,6 +2070,10 @@ onMounted(async () => {
 
   // 正常战斗模式
   await setupMessageSubscription()
+
+  // 设置掉线重连事件监听（在 ready 之前设置，确保能接收到重连状态）
+  setupDisconnectHandlers()
+
   await store.ready()
   await initialPetEntryAnimation()
 })
@@ -2147,6 +2194,12 @@ onUnmounted(() => {
 
   // 停止音乐
   stopMusic()
+
+  // 清理掉线计时器
+  if (disconnectTimer.value) {
+    clearInterval(disconnectTimer.value)
+    disconnectTimer.value = null
+  }
 
   // 清理战斗和回放状态
   store.resetBattle()
@@ -2511,6 +2564,21 @@ watch(
                       defaultValue: '等待对手操作中...',
                     })
                   }}
+                </span>
+              </div>
+            </Transition>
+
+            <!-- 对手掉线提示 -->
+            <Transition name="fade">
+              <div
+                v-if="opponentDisconnected && !isReplayMode"
+                class="flex items-center justify-center gap-2 text-orange-300 text-lg font-medium bg-orange-900/30 px-4 py-2 rounded-lg border border-orange-500/50"
+              >
+                <!-- 警告图标 -->
+                <div class="w-5 h-5 text-orange-400">⚠️</div>
+                <span>
+                  对手已掉线，等待重连中...
+                  <span v-if="disconnectGraceTime > 0" class="text-orange-200"> ({{ disconnectGraceTime }}秒) </span>
                 </span>
               </div>
             </Transition>

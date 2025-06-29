@@ -3,6 +3,34 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './auth'
 import { usePlayerStore } from './player'
+import { nanoid } from 'nanoid'
+
+// 全局 sessionId 管理（在 store 外部，确保整个应用生命周期中唯一）
+const getOrCreateGlobalSessionId = (): string => {
+  try {
+    // 首先尝试从 sessionStorage 获取（标签页级别）
+    let sessionId = sessionStorage.getItem('battle-session-id')
+
+    if (!sessionId) {
+      // 直接用 nanoid 生成全局唯一ID
+      sessionId = nanoid()
+      sessionStorage.setItem('battle-session-id', sessionId)
+      console.log('🆔 Generated new sessionId:', sessionId)
+    } else {
+      console.log('🆔 Reusing existing sessionId:', sessionId)
+    }
+
+    console.log('🆔 Final sessionId to use:', sessionId)
+    console.log('🆔 sessionStorage content:', sessionStorage.getItem('battle-session-id'))
+
+    return sessionId
+  } catch {
+    // 如果 sessionStorage 不可用，直接生成
+    const sessionId = nanoid()
+    console.log('🆔 Generated fallback sessionId:', sessionId)
+    return sessionId
+  }
+}
 
 export const useBattleClientStore = defineStore('battleClient', () => {
   // 状态
@@ -31,6 +59,8 @@ export const useBattleClientStore = defineStore('battleClient', () => {
 
     return new BattleClient({
       serverUrl: import.meta.env.VITE_WS_URL,
+      actionTimeout: 10000,
+      sessionId: getOrCreateGlobalSessionId(), // 使用全局 sessionId // 10秒超时，比默认的30秒更快
       auth: {
         getToken: () => {
           // 只有注册用户需要token
@@ -80,10 +110,44 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     isInitialized.value = true
 
     // 设置状态变化监听器
-    _instance.value.on('stateChange', () => {
-      console.log('🔄 BattleClient state change detected, triggering Vue reactivity')
-      _stateUpdateTrigger.value++
-    })
+    // 注意：这里可能需要根据你修改的 client 接口来调整
+    console.log('🔄 BattleClient initialized, state change monitoring active')
+
+    // 设置战斗重连监听器（用于页面刷新后自动跳转）
+    _instance.value.on(
+      'battleReconnect',
+      async (data: { roomId: string; shouldRedirect: boolean; fullBattleState?: any }) => {
+        console.log('🔄 Battle reconnect detected:', data)
+
+        if (data.shouldRedirect) {
+          // 如果服务器提供了完整的战斗状态，说明战斗确实还在进行中
+          if (data.fullBattleState) {
+            console.log('🔄 Server provided full battle state, battle is active')
+
+            // 更新客户端状态
+            console.log('🔄 Current state before update:', _instance.value?.currentState)
+
+            // 更新战斗状态
+            if (_instance.value) {
+              console.log('🔄 Updating battle state to active')
+            }
+
+            console.log('🔄 Current state after update:', _instance.value?.currentState)
+
+            // 触发状态更新
+            _stateUpdateTrigger.value++
+
+            // 触发全局事件，让 App.vue 处理路由跳转
+            // 传递完整的战斗状态数据，避免额外的 getState 调用
+            window.dispatchEvent(new CustomEvent('battleReconnect', { detail: data }))
+          } else {
+            // 如果服务器没有提供战斗状态，说明可能出现了问题
+            console.warn('🔄 Server did not provide battle state, battle may have ended')
+            // 不触发跳转事件
+          }
+        }
+      },
+    )
 
     // 注册之前缓存的事件监听器
     registerPendingHandlers()

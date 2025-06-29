@@ -96,14 +96,25 @@ export class ClusterStateManager extends EventEmitter {
       const instanceDataTTL = TTLHelper.getTTLForDataType('serviceInstance', 'data')
       const heartbeatTTL = TTLHelper.getTTLForDataType('serviceInstance', 'heartbeat')
 
+      const instanceKey = REDIS_KEYS.SERVICE_INSTANCE(this.currentInstance.id)
+
+      // 使用 pipeline 批量执行操作
+      const pipeline = client.pipeline()
+
       // 添加到实例集合并设置 TTL
-      await client.sadd(REDIS_KEYS.SERVICE_INSTANCES, this.currentInstance.id)
-      await TTLHelper.setKeyTTL(client, REDIS_KEYS.SERVICE_INSTANCES, heartbeatTTL)
+      pipeline.sadd(REDIS_KEYS.SERVICE_INSTANCES, this.currentInstance.id)
+      if (heartbeatTTL > 0) {
+        pipeline.pexpire(REDIS_KEYS.SERVICE_INSTANCES, heartbeatTTL)
+      }
 
       // 存储实例详细信息并设置 TTL
-      const instanceKey = REDIS_KEYS.SERVICE_INSTANCE(this.currentInstance.id)
-      await client.hset(instanceKey, this.serializeInstance(this.currentInstance))
-      await TTLHelper.setKeyTTL(client, instanceKey, instanceDataTTL)
+      pipeline.hset(instanceKey, this.serializeInstance(this.currentInstance))
+      if (instanceDataTTL > 0) {
+        pipeline.pexpire(instanceKey, instanceDataTTL)
+      }
+
+      // 执行批量操作
+      await pipeline.exec()
 
       logger.info({ instance: this.currentInstance, ttl: instanceDataTTL }, 'Instance registered successfully with TTL')
     } catch (error) {
@@ -155,12 +166,34 @@ export class ClusterStateManager extends EventEmitter {
 
         const results = await pipeline.exec()
         const instances: ServiceInstance[] = []
+        const now = Date.now()
+
+        // 计算实例过期时间阈值
+        const isProduction = process.env.NODE_ENV === 'production'
+        const heartbeatInterval = this.config.cluster.heartbeatInterval || (isProduction ? 300000 : 120000)
+        const staleTimeout = heartbeatInterval * 2 // 2倍心跳间隔作为超时时间
 
         if (results) {
           for (let i = 0; i < results.length; i++) {
             const [err, instanceData] = results[i]
             if (!err && instanceData && Object.keys(instanceData).length > 0) {
-              instances.push(this.deserializeInstance(instanceData as Record<string, string>))
+              const instance = this.deserializeInstance(instanceData as Record<string, string>)
+
+              // 检查实例是否过期
+              const timeSinceLastHeartbeat = now - instance.lastHeartbeat
+              if (timeSinceLastHeartbeat <= staleTimeout) {
+                instances.push(instance)
+              } else {
+                // 记录过期实例但不返回
+                logger.debug(
+                  {
+                    instanceId: instance.id,
+                    timeSinceLastHeartbeat: Math.floor(timeSinceLastHeartbeat / 1000),
+                    staleTimeoutSeconds: Math.floor(staleTimeout / 1000),
+                  },
+                  'Filtering out stale instance from getInstances result',
+                )
+              }
             }
           }
         }
@@ -202,18 +235,31 @@ export class ClusterStateManager extends EventEmitter {
       const instanceDataTTL = TTLHelper.getTTLForDataType('serviceInstance', 'data')
       const heartbeatTTL = TTLHelper.getTTLForDataType('serviceInstance', 'heartbeat')
 
-      // 更新实例信息并刷新 TTL
       const instanceKey = REDIS_KEYS.SERVICE_INSTANCE(this.currentInstance.id)
-      await client.hset(instanceKey, this.serializeInstance(this.currentInstance))
-      await TTLHelper.setKeyTTL(client, instanceKey, instanceDataTTL)
+
+      // 使用 pipeline 批量执行操作
+      const pipeline = client.pipeline()
+
+      // 更新实例信息并刷新 TTL
+      pipeline.hset(instanceKey, this.serializeInstance(this.currentInstance))
+      if (instanceDataTTL > 0) {
+        pipeline.pexpire(instanceKey, instanceDataTTL)
+      }
 
       // 刷新实例集合的 TTL
-      await TTLHelper.setKeyTTL(client, REDIS_KEYS.SERVICE_INSTANCES, heartbeatTTL)
+      if (heartbeatTTL > 0) {
+        pipeline.pexpire(REDIS_KEYS.SERVICE_INSTANCES, heartbeatTTL)
+      }
 
-      // 发布实例更新事件
-      await this.publishEvent({
+      // 执行批量操作
+      await pipeline.exec()
+
+      // 异步发布实例更新事件，不阻塞主流程
+      this.publishEvent({
         type: 'instance:update',
         data: this.currentInstance,
+      }).catch(error => {
+        logger.error({ error }, 'Failed to publish instance update event')
       })
     } catch (error) {
       logger.error({ error }, 'Failed to update instance load')
@@ -223,56 +269,108 @@ export class ClusterStateManager extends EventEmitter {
   // === 玩家连接管理 - 支持多会话 ===
 
   async setPlayerConnection(playerId: string, connection: PlayerConnection): Promise<void> {
+    try {
+      await this.setPlayerConnectionInternal(playerId, connection)
+    } catch (error) {
+      logger.warn({ error, playerId, sessionId: connection.sessionId }, 'Failed to set player connection, no retry')
+      // 不重试，直接抛出错误
+      throw new ClusterError('Failed to set player connection', 'SET_CONNECTION_ERROR', error)
+    }
+  }
+
+  private async setPlayerConnectionInternal(playerId: string, connection: PlayerConnection): Promise<void> {
     const client = this.redisManager.getClient()
 
+    // sessionId是必需的
+    if (!connection.sessionId) {
+      throw new ClusterError('SessionId is required for player connection', 'MISSING_SESSION_ID')
+    }
+
+    // 获取连接相关的 TTL
+    const connectionTTL = TTLHelper.getTTLForDataType('playerConnection')
+    const indexTTL = TTLHelper.getTTLForDataType('playerConnection', 'index')
+
+    // 只存储基于session的连接
+    const sessionConnection = {
+      playerId,
+      sessionId: connection.sessionId,
+      instanceId: connection.instanceId,
+      socketId: connection.socketId,
+      lastSeen: connection.lastSeen,
+      status: connection.status,
+      metadata: connection.metadata,
+    }
+
+    // 使用事务确保原子性操作，添加超时保护
+    const multi = client.multi()
+
+    // 存储会话连接并设置 TTL
+    const connectionKey = REDIS_KEYS.PLAYER_SESSION_CONNECTION(playerId, connection.sessionId)
+    multi.hset(connectionKey, this.serializeSessionConnection(sessionConnection))
+    multi.expire(connectionKey, Math.floor(connectionTTL / 1000))
+
+    // 添加到玩家的会话连接集合并设置 TTL
+    const connectionsKey = REDIS_KEYS.PLAYER_SESSION_CONNECTIONS(playerId)
+    multi.sadd(connectionsKey, connection.sessionId)
+    multi.expire(connectionsKey, Math.floor(connectionTTL / 1000))
+
+    // 添加到活跃玩家索引并设置 TTL
+    multi.sadd(REDIS_KEYS.ACTIVE_PLAYERS, playerId)
+    multi.expire(REDIS_KEYS.ACTIVE_PLAYERS, Math.floor(indexTTL / 1000))
+
+    // 执行事务，添加超时保护
+    const results = (await Promise.race([
+      multi.exec(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Player connection transaction timeout')), 5000)),
+    ])) as any[]
+
+    // 检查事务执行结果
+    if (!results || results.some((result: any) => result[0] !== null)) {
+      const errors = results
+        ? results.filter((result: any) => result[0] !== null).map((result: any) => result[0])
+        : ['Transaction failed']
+      throw new Error(`Player connection transaction failed: ${errors.map(e => e.message || e).join(', ')}`)
+    }
+
+    // 异步发布玩家连接事件，不阻塞主流程
+    this.publishEvent({
+      type: 'player:connect',
+      data: { playerId, connection },
+    }).catch(error => {
+      logger.error({ error, playerId, sessionId: connection.sessionId }, 'Failed to publish player connect event')
+    })
+
+    logger.debug({ playerId, sessionId: connection.sessionId, connectionTTL }, 'Player connection set with TTL')
+  }
+
+  /**
+   * 强制刷新连接状态（用于重连场景）
+   */
+  async forceRefreshPlayerConnection(playerId: string, sessionId: string): Promise<PlayerConnection | null> {
     try {
-      // sessionId是必需的
-      if (!connection.sessionId) {
-        throw new ClusterError('SessionId is required for player connection', 'MISSING_SESSION_ID')
+      // 先从Redis直接获取最新状态，绕过任何缓存
+      const connection = await this.getPlayerConnectionBySession(playerId, sessionId)
+
+      if (connection) {
+        // 更新lastSeen时间戳以确保连接活跃
+        const refreshedConnection: PlayerConnection = {
+          ...connection,
+          lastSeen: Date.now(),
+          metadata: {
+            ...connection.metadata,
+            lastRefresh: Date.now(),
+          },
+        }
+
+        await this.setPlayerConnection(playerId, refreshedConnection)
+        logger.debug({ playerId, sessionId }, 'Player connection force refreshed')
+        return refreshedConnection
       }
 
-      // 获取连接相关的 TTL
-      const connectionTTL = TTLHelper.getTTLForDataType('playerConnection')
-      const indexTTL = TTLHelper.getTTLForDataType('playerConnection', 'index')
-
-      // 只存储基于session的连接
-      const sessionConnection = {
-        playerId,
-        sessionId: connection.sessionId,
-        instanceId: connection.instanceId,
-        socketId: connection.socketId,
-        lastSeen: connection.lastSeen,
-        status: connection.status,
-        metadata: connection.metadata,
-      }
-
-      // 存储会话连接并设置 TTL
-      const connectionKey = REDIS_KEYS.PLAYER_SESSION_CONNECTION(playerId, connection.sessionId)
-      await client.hset(connectionKey, this.serializeSessionConnection(sessionConnection))
-      await TTLHelper.setKeyTTL(client, connectionKey, connectionTTL)
-
-      // 添加到玩家的会话连接集合并设置 TTL
-      const connectionsKey = REDIS_KEYS.PLAYER_SESSION_CONNECTIONS(playerId)
-      await client.sadd(connectionsKey, connection.sessionId)
-      await TTLHelper.setKeyTTL(client, connectionsKey, connectionTTL)
-
-      // 添加到活跃玩家索引并设置 TTL
-      await client.sadd(REDIS_KEYS.ACTIVE_PLAYERS, playerId)
-      await TTLHelper.setKeyTTL(client, REDIS_KEYS.ACTIVE_PLAYERS, indexTTL)
-
-      // 清除相关缓存
-      this.invalidatePlayerConnectionsCache()
-
-      // 发布玩家连接事件
-      await this.publishEvent({
-        type: 'player:connect',
-        data: { playerId, connection },
-      })
-
-      logger.debug({ playerId, sessionId: connection.sessionId, connectionTTL }, 'Player connection set with TTL')
+      return null
     } catch (error) {
-      logger.error({ error, playerId }, 'Failed to set player connection')
-      throw new ClusterError('Failed to set player connection', 'SET_CONNECTION_ERROR', error)
+      logger.error({ error, playerId, sessionId }, 'Failed to force refresh player connection')
+      return null
     }
   }
 
@@ -385,8 +483,7 @@ export class ClusterStateManager extends EventEmitter {
         await client.del(REDIS_KEYS.PLAYER_SESSION_CONNECTIONS(playerId))
       }
 
-      // 清除相关缓存
-      this.invalidatePlayerConnectionsCache()
+      // 移除缓存失效逻辑
 
       logger.debug({ playerId, sessionId, remainingConnections }, 'Player session connection removed')
 
@@ -403,37 +500,82 @@ export class ClusterStateManager extends EventEmitter {
   // === 房间状态管理 ===
 
   async setRoomState(roomState: RoomState): Promise<void> {
+    const maxRetries = 3
+    let lastError: any
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await this.setRoomStateInternal(roomState)
+        return // 成功则直接返回
+      } catch (error) {
+        lastError = error
+        logger.warn(
+          { error, roomId: roomState.id, attempt, maxRetries },
+          `Failed to set room state, attempt ${attempt}/${maxRetries}`,
+        )
+
+        // 如果不是最后一次尝试，等待后重试
+        if (attempt < maxRetries) {
+          const delay = Math.min(100 * Math.pow(2, attempt - 1), 1000) // 指数退避，最大1秒
+          await new Promise(resolve => setTimeout(resolve, delay))
+        }
+      }
+    }
+
+    // 所有重试都失败，抛出错误
+    logger.error({ error: lastError, roomId: roomState.id }, 'Failed to set room state after all retries')
+    throw new ClusterError('Failed to set room state', 'SET_ROOM_ERROR', lastError)
+  }
+
+  private async setRoomStateInternal(roomState: RoomState): Promise<void> {
     const client = this.redisManager.getClient()
 
-    try {
-      // 根据房间状态获取相应的 TTL
-      const roomTTL = TTLHelper.getDynamicTTL('room', roomState.status, roomState.lastActive)
-      const indexTTL = TTLHelper.getTTLForDataType('room', 'index')
+    // 根据房间状态获取相应的 TTL
+    const roomTTL = TTLHelper.getDynamicTTL('room', roomState.status, roomState.lastActive)
+    const indexTTL = TTLHelper.getTTLForDataType('room', 'index')
 
-      // 存储房间状态并设置 TTL
-      const roomKey = REDIS_KEYS.ROOM(roomState.id)
-      await client.hset(roomKey, this.serializeRoomState(roomState))
-      await TTLHelper.setKeyTTL(client, roomKey, roomTTL)
+    const roomKey = REDIS_KEYS.ROOM(roomState.id)
 
-      // 添加到房间集合并设置 TTL
-      await client.sadd(REDIS_KEYS.ROOMS, roomState.id)
-      await TTLHelper.setKeyTTL(client, REDIS_KEYS.ROOMS, indexTTL)
+    // 首先检查房间是否已存在，以确定事件类型
+    const roomExists = await client.exists(roomKey)
+    const eventType = roomExists > 0 ? 'room:update' : 'room:create'
 
-      // 发布房间事件
-      const eventType = (await client.exists(roomKey)) > 1 ? 'room:update' : 'room:create'
-      await this.publishEvent({
-        type: eventType as 'room:create' | 'room:update',
-        data: roomState,
-      })
+    // 使用 pipeline 批量执行 Redis 操作，减少网络往返
+    const pipeline = client.pipeline()
 
-      // 清除集群统计缓存（房间状态变化会影响统计）
-      this.invalidateClusterStatsCache()
-
-      logger.debug({ roomId: roomState.id, status: roomState.status, roomTTL }, 'Room state set with TTL')
-    } catch (error) {
-      logger.error({ error, roomId: roomState.id }, 'Failed to set room state')
-      throw new ClusterError('Failed to set room state', 'SET_ROOM_ERROR', error)
+    // 存储房间状态并设置 TTL
+    pipeline.hset(roomKey, this.serializeRoomState(roomState))
+    if (roomTTL > 0) {
+      pipeline.pexpire(roomKey, roomTTL)
     }
+
+    // 添加到房间集合并设置 TTL
+    pipeline.sadd(REDIS_KEYS.ROOMS, roomState.id)
+    if (indexTTL > 0) {
+      pipeline.pexpire(REDIS_KEYS.ROOMS, indexTTL)
+    }
+
+    // 执行批量操作，添加超时保护
+    const results = (await Promise.race([
+      pipeline.exec(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Pipeline execution timeout')), 8000)),
+    ])) as any[]
+
+    // 检查pipeline执行结果
+    if (results && results.some((result: any) => result[0] !== null)) {
+      const errors = results.filter((result: any) => result[0] !== null).map((result: any) => result[0])
+      throw new Error(`Pipeline execution failed: ${errors.map(e => e.message).join(', ')}`)
+    }
+
+    // 异步发布房间事件，不阻塞主流程
+    this.publishEvent({
+      type: eventType as 'room:create' | 'room:update',
+      data: roomState,
+    }).catch(error => {
+      logger.error({ error, roomId: roomState.id }, 'Failed to publish room event')
+    })
+
+    logger.debug({ roomId: roomState.id, status: roomState.status, roomTTL }, 'Room state set with TTL')
   }
 
   async getRoomState(roomId: string): Promise<RoomState | null> {
@@ -466,8 +608,7 @@ export class ClusterStateManager extends EventEmitter {
         data: { roomId },
       })
 
-      // 清除集群统计缓存（房间状态变化会影响统计）
-      this.invalidateClusterStatsCache()
+      // 移除缓存失效逻辑
 
       logger.debug({ roomId }, 'Room state removed')
     } catch (error) {
@@ -493,22 +634,35 @@ export class ClusterStateManager extends EventEmitter {
       // 使用session作为队列的唯一标识
       const sessionKey = `${entry.playerId}:${entry.sessionId}`
 
+      const playerKey = REDIS_KEYS.MATCHMAKING_PLAYER(sessionKey)
+
+      // 使用 pipeline 批量执行操作
+      const pipeline = client.pipeline()
+
       // 添加到队列集合并设置 TTL
-      await client.sadd(REDIS_KEYS.MATCHMAKING_QUEUE, sessionKey)
-      await TTLHelper.setKeyTTL(client, REDIS_KEYS.MATCHMAKING_QUEUE, queueIndexTTL)
+      pipeline.sadd(REDIS_KEYS.MATCHMAKING_QUEUE, sessionKey)
+      if (queueIndexTTL > 0) {
+        pipeline.pexpire(REDIS_KEYS.MATCHMAKING_QUEUE, queueIndexTTL)
+      }
 
       // 存储会话匹配数据并设置 TTL
-      const playerKey = REDIS_KEYS.MATCHMAKING_PLAYER(sessionKey)
-      await client.hset(playerKey, this.serializeMatchmakingEntry(entry))
-      await TTLHelper.setKeyTTL(client, playerKey, queueEntryTTL)
+      pipeline.hset(playerKey, this.serializeMatchmakingEntry(entry))
+      if (queueEntryTTL > 0) {
+        pipeline.pexpire(playerKey, queueEntryTTL)
+      }
 
-      // 立即失效匹配队列缓存，确保下次查询获取最新数据
-      this.matchmakingQueueCache = null
+      // 执行批量操作
+      await pipeline.exec()
 
-      // 发布匹配加入事件
-      await this.publishEvent({
+      // 异步发布匹配加入事件，不阻塞主流程
+      this.publishEvent({
         type: 'matchmaking:join',
         data: entry,
+      }).catch(error => {
+        logger.error(
+          { error, playerId: entry.playerId, sessionId: entry.sessionId },
+          'Failed to publish matchmaking join event',
+        )
       })
 
       logger.debug(
@@ -555,8 +709,7 @@ export class ClusterStateManager extends EventEmitter {
         }
       }
 
-      // 立即失效匹配队列缓存，确保下次查询获取最新数据
-      this.matchmakingQueueCache = null
+      // 移除缓存失效逻辑
 
       // 发布匹配离开事件
       await this.publishEvent({
@@ -570,19 +723,11 @@ export class ClusterStateManager extends EventEmitter {
 
   async getMatchmakingQueue(): Promise<MatchmakingEntry[]> {
     return dedupRedisCall('cluster:getMatchmakingQueue', async () => {
-      // 检查缓存
-      const now = Date.now()
-      if (this.matchmakingQueueCache && now - this.matchmakingQueueCache.timestamp < this.MATCHMAKING_QUEUE_CACHE_TTL) {
-        return this.matchmakingQueueCache.queue
-      }
-
       const client = this.redisManager.getClient()
 
       try {
         const sessionKeys = await client.smembers(REDIS_KEYS.MATCHMAKING_QUEUE)
         if (sessionKeys.length === 0) {
-          // 缓存空结果
-          this.matchmakingQueueCache = { queue: [], timestamp: now }
           return []
         }
 
@@ -604,11 +749,7 @@ export class ClusterStateManager extends EventEmitter {
           }
         }
 
-        const sortedEntries = entries.sort((a, b) => a.joinTime - b.joinTime) // 按加入时间排序
-
-        // 更新缓存
-        this.matchmakingQueueCache = { queue: sortedEntries, timestamp: now }
-        return sortedEntries
+        return entries.sort((a, b) => a.joinTime - b.joinTime) // 按加入时间排序
       } catch (error) {
         logger.error({ error }, 'Failed to get matchmaking queue')
         return []
@@ -916,10 +1057,107 @@ export class ClusterStateManager extends EventEmitter {
         this.currentInstance.status = 'healthy'
       }
 
-      // TTL 机制会自动清理过期实例，这里只需要清理本地缓存
+      // 主动清理过期和不健康的实例
+      await this.cleanupStaleInstances()
+
+      // 清理本地缓存
       this.cleanupCache()
     } finally {
       this.isPerformingHealthCheck = false
+    }
+  }
+
+  /**
+   * 主动清理过期和不健康的实例
+   * 这个方法会检查所有实例的心跳时间，并清理那些长时间没有心跳的实例
+   */
+  private async cleanupStaleInstances(): Promise<void> {
+    const client = this.redisManager.getClient()
+    const now = Date.now()
+
+    // 使用较短的超时时间来快速检测崩溃的实例
+    // 生产环境：心跳间隔5分钟，超时时间设为10分钟（2倍心跳间隔）
+    // 开发环境：心跳间隔2分钟，超时时间设为5分钟
+    const isProduction = process.env.NODE_ENV === 'production'
+    const heartbeatInterval = this.config.cluster.heartbeatInterval || (isProduction ? 300000 : 120000)
+    const staleTimeout = heartbeatInterval * 2 // 2倍心跳间隔作为超时时间
+
+    try {
+      const instanceIds = await client.smembers(REDIS_KEYS.SERVICE_INSTANCES)
+      const staleBatch: string[] = []
+
+      for (const instanceId of instanceIds) {
+        // 跳过当前实例
+        if (instanceId === this.currentInstance.id) {
+          continue
+        }
+
+        const instanceData = await client.hgetall(REDIS_KEYS.SERVICE_INSTANCE(instanceId))
+
+        if (Object.keys(instanceData).length === 0) {
+          // 实例数据不存在，从集合中移除
+          staleBatch.push(instanceId)
+          continue
+        }
+
+        const instance = this.deserializeInstance(instanceData)
+        const timeSinceLastHeartbeat = now - instance.lastHeartbeat
+
+        if (timeSinceLastHeartbeat > staleTimeout) {
+          logger.warn(
+            {
+              instanceId,
+              timeSinceLastHeartbeat: Math.floor(timeSinceLastHeartbeat / 1000),
+              staleTimeoutSeconds: Math.floor(staleTimeout / 1000),
+            },
+            'Detected stale instance, marking for cleanup',
+          )
+          staleBatch.push(instanceId)
+        }
+      }
+
+      // 批量清理过期实例
+      if (staleBatch.length > 0) {
+        await this.cleanupInstancesBatch(staleBatch)
+        logger.info({ cleanedInstances: staleBatch.length, instanceIds: staleBatch }, 'Cleaned up stale instances')
+      }
+    } catch (error) {
+      logger.error({ error }, 'Error during stale instance cleanup')
+    }
+  }
+
+  /**
+   * 批量清理实例
+   */
+  private async cleanupInstancesBatch(instanceIds: string[]): Promise<void> {
+    const client = this.redisManager.getClient()
+
+    try {
+      const pipeline = client.pipeline()
+
+      for (const instanceId of instanceIds) {
+        // 从实例集合中移除
+        pipeline.srem(REDIS_KEYS.SERVICE_INSTANCES, instanceId)
+        // 删除实例详细信息
+        pipeline.del(REDIS_KEYS.SERVICE_INSTANCE(instanceId))
+      }
+
+      await pipeline.exec()
+
+      // 清理本地缓存
+      for (const instanceId of instanceIds) {
+        this.instanceCache.delete(instanceId)
+      }
+
+      // 发布实例清理事件
+      for (const instanceId of instanceIds) {
+        await this.publishEvent({
+          type: 'instance:leave',
+          data: { instanceId },
+        })
+      }
+    } catch (error) {
+      logger.error({ error, instanceIds }, 'Error cleaning up instances batch')
     }
   }
 
@@ -988,7 +1226,8 @@ export class ClusterStateManager extends EventEmitter {
       sessionPlayers: JSON.stringify(room.sessionPlayers || {}),
       instanceId: room.instanceId,
       lastActive: room.lastActive.toString(),
-      battleState: JSON.stringify(room.battleState || null),
+      // 移除 battleState 存储，避免数据过大导致 Redis 超时
+      // battleState: JSON.stringify(room.battleState || null),
       metadata: JSON.stringify(room.metadata || {}),
     }
   }
@@ -1001,7 +1240,9 @@ export class ClusterStateManager extends EventEmitter {
       sessionPlayers: data.sessionPlayers ? JSON.parse(data.sessionPlayers) : {},
       instanceId: data.instanceId,
       lastActive: parseInt(data.lastActive),
-      battleState: data.battleState ? JSON.parse(data.battleState) : undefined,
+      // 不再从 Redis 中读取 battleState，避免数据过大
+      // battleState: data.battleState ? JSON.parse(data.battleState) : undefined,
+      battleState: undefined,
       metadata: data.metadata ? JSON.parse(data.metadata) : undefined,
     }
   }
@@ -1065,26 +1306,10 @@ export class ClusterStateManager extends EventEmitter {
     }
   }
 
-  // === 缓存优化 ===
+  // === 简化缓存 - 只保留实例缓存 ===
 
   private instanceCache = new Map<string, { instance: ServiceInstance; timestamp: number }>()
   private readonly CACHE_TTL = 30000 // 30秒缓存
-
-  // 集群统计缓存 - 延长缓存时间以减少Redis调用
-  private clusterStatsCache: { stats: ClusterStats; timestamp: number } | null = null
-  private readonly CLUSTER_STATS_CACHE_TTL = 30000 // 30秒缓存，减少频繁调用
-
-  // 玩家连接索引缓存 - 延长缓存时间
-  private playerConnectionsCache: { connections: PlayerConnection[]; timestamp: number } | null = null
-  private readonly PLAYER_CONNECTIONS_CACHE_TTL = 20000 // 20秒缓存
-
-  // 房间列表缓存
-  private roomsCache: { rooms: RoomState[]; timestamp: number } | null = null
-  private readonly ROOMS_CACHE_TTL = 15000 // 15秒缓存
-
-  // 匹配队列缓存
-  private matchmakingQueueCache: { queue: MatchmakingEntry[]; timestamp: number } | null = null
-  private readonly MATCHMAKING_QUEUE_CACHE_TTL = 10000 // 10秒缓存
 
   /**
    * 带缓存的获取实例信息
@@ -1124,18 +1349,8 @@ export class ClusterStateManager extends EventEmitter {
   }
 
   /**
-   * 清除玩家连接缓存
+   * 移除缓存失效方法
    */
-  private invalidatePlayerConnectionsCache(): void {
-    this.playerConnectionsCache = null
-  }
-
-  /**
-   * 清除集群统计缓存
-   */
-  private invalidateClusterStatsCache(): void {
-    this.clusterStatsCache = null
-  }
 
   /**
    * 重建活跃玩家索引（用于初始化或修复）
@@ -1308,13 +1523,7 @@ export class ClusterStateManager extends EventEmitter {
 
   async getClusterStats(): Promise<ClusterStats> {
     try {
-      // 检查缓存
       const now = Date.now()
-      if (this.clusterStatsCache && now - this.clusterStatsCache.timestamp < this.CLUSTER_STATS_CACHE_TTL) {
-        return this.clusterStatsCache.stats
-      }
-
-      // 缓存失效，重新计算
       const [instances, playerConnections, rooms, queueSize] = await Promise.all([
         this.getInstances(),
         this.getPlayerConnectionsOptimized(),
@@ -1333,7 +1542,7 @@ export class ClusterStateManager extends EventEmitter {
       const averageWaitTime =
         queue.length > 0 ? queue.reduce((sum, entry) => sum + (now - entry.joinTime), 0) / queue.length : 0
 
-      const stats: ClusterStats = {
+      return {
         instances: {
           total: instances.length,
           healthy: healthyInstances,
@@ -1355,10 +1564,6 @@ export class ClusterStateManager extends EventEmitter {
           averageWaitTime,
         },
       }
-
-      // 更新缓存
-      this.clusterStatsCache = { stats, timestamp: now }
-      return stats
     } catch (error) {
       logger.error({ error }, 'Failed to get cluster stats')
       throw new ClusterError('Failed to get cluster stats', 'GET_STATS_ERROR', error)
@@ -1371,23 +1576,12 @@ export class ClusterStateManager extends EventEmitter {
   private async getPlayerConnectionsOptimized(): Promise<PlayerConnection[]> {
     return dedupRedisCall('cluster:getPlayerConnectionsOptimized', async () => {
       try {
-        // 检查缓存
-        const now = Date.now()
-        if (
-          this.playerConnectionsCache &&
-          now - this.playerConnectionsCache.timestamp < this.PLAYER_CONNECTIONS_CACHE_TTL
-        ) {
-          return this.playerConnectionsCache.connections
-        }
-
         const client = this.redisManager.getClient()
 
         // 使用全局玩家连接索引，避免KEYS命令
         const activePlayerIds = await client.smembers(REDIS_KEYS.ACTIVE_PLAYERS)
 
         if (activePlayerIds.length === 0) {
-          // 缓存空结果
-          this.playerConnectionsCache = { connections: [], timestamp: now }
           return []
         }
 
@@ -1443,9 +1637,6 @@ export class ClusterStateManager extends EventEmitter {
           }
         }
 
-        // 更新缓存
-        this.playerConnectionsCache = { connections, timestamp: now }
-
         return connections
       } catch (error) {
         logger.error({ error }, 'Failed to get optimized player connections')
@@ -1493,19 +1684,11 @@ export class ClusterStateManager extends EventEmitter {
 
   private async getRooms(): Promise<RoomState[]> {
     return dedupRedisCall('cluster:getRooms', async () => {
-      // 检查缓存
-      const now = Date.now()
-      if (this.roomsCache && now - this.roomsCache.timestamp < this.ROOMS_CACHE_TTL) {
-        return this.roomsCache.rooms
-      }
-
       const client = this.redisManager.getClient()
 
       try {
         const roomIds = await client.smembers(REDIS_KEYS.ROOMS)
         if (roomIds.length === 0) {
-          // 缓存空结果
-          this.roomsCache = { rooms: [], timestamp: now }
           return []
         }
 
@@ -1527,8 +1710,6 @@ export class ClusterStateManager extends EventEmitter {
           }
         }
 
-        // 更新缓存
-        this.roomsCache = { rooms, timestamp: now }
         return rooms
       } catch (error) {
         logger.error({ error }, 'Failed to get rooms')
@@ -1552,10 +1733,6 @@ export class ClusterStateManager extends EventEmitter {
 
       // 清理内存缓存
       this.instanceCache.clear()
-      this.clusterStatsCache = null
-      this.playerConnectionsCache = null
-      this.roomsCache = null
-      this.matchmakingQueueCache = null
 
       // 注销实例
       await this.unregisterInstance()

@@ -51,7 +51,13 @@
 
         <!-- 更新检查按钮（仅Tauri版本） -->
         <div v-if="versionInfo.isTauri" class="pt-3 border-t">
-          <el-button @click="checkForUpdates" :loading="checkingUpdates" type="primary" size="small" class="w-full">
+          <el-button
+            @click="handleCheckForUpdates"
+            :loading="checkingUpdates"
+            type="primary"
+            size="small"
+            class="w-full"
+          >
             {{ checkingUpdates ? '检查中...' : '检查更新' }}
           </el-button>
         </div>
@@ -75,6 +81,7 @@ import {
   getVersionInfoAsync,
   getVersionStringAsync,
   getDetailedVersionStringAsync,
+  checkForUpdates,
 } from '@/utils/version'
 import { isTauri } from '@/utils/env'
 
@@ -126,9 +133,9 @@ async function copyVersionInfo() {
 }
 
 /**
- * 检查更新（仅Tauri版本）
+ * 手动检查更新（仅Tauri版本）
  */
-async function checkForUpdates() {
+async function handleCheckForUpdates() {
   if (!versionInfo.value.isTauri) {
     return
   }
@@ -136,41 +143,7 @@ async function checkForUpdates() {
   checkingUpdates.value = true
 
   try {
-    // 动态导入Tauri API
-    const { check } = await import('@tauri-apps/plugin-updater')
-
-    const update = await check()
-
-    if (update) {
-      ElMessage.success(`发现新版本: ${update.version}`)
-
-      // 询问是否立即更新
-      const { ElMessageBox } = await import('element-plus')
-
-      try {
-        await ElMessageBox.confirm(`发现新版本 ${update.version}，是否立即下载并安装？`, '更新提示', {
-          confirmButtonText: '立即更新',
-          cancelButtonText: '稍后更新',
-          type: 'info',
-        })
-
-        // 开始下载和安装更新
-        ElMessage.info('开始下载更新...')
-        await update.downloadAndInstall()
-
-        // 重启应用
-        const { relaunch } = await import('@tauri-apps/plugin-process')
-        await relaunch()
-      } catch (cancelError) {
-        // 用户取消更新
-        ElMessage.info('已取消更新')
-      }
-    } else {
-      ElMessage.info('当前已是最新版本')
-    }
-  } catch (error) {
-    console.error('检查更新失败:', error)
-    ElMessage.error('检查更新失败，请稍后重试')
+    await checkForUpdates({ isAutoCheck: false })
   } finally {
     checkingUpdates.value = false
   }

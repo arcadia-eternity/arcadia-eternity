@@ -72,7 +72,9 @@ export class RoomManager {
           sessionPlayers: options.sessionPlayers,
           instanceId: options.instanceId || this.instanceId,
           lastActive: Date.now(),
-          battleState: options.battleState,
+          // 不再存储 battleState 到 Redis，避免数据过大导致超时
+          // battleState: options.battleState,
+          battleState: undefined,
           metadata: {
             createdAt: Date.now(),
             ...options.metadata,
@@ -348,10 +350,11 @@ export class RoomManager {
           },
         }
 
-        // 如果不保留状态，清除战斗状态
-        if (!options.preserveState) {
-          migratedState.battleState = undefined
-        }
+        // battleState 不再存储到 Redis，所以无需清除
+        // if (!options.preserveState) {
+        //   migratedState.battleState = undefined
+        // }
+        migratedState.battleState = undefined // 始终为 undefined
 
         await this.stateManager.setRoomState(migratedState)
 
