@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.4.1...arcadia-eternity-v1.4.2) (2025-06-29)
+
+
+### 🐛 Bug Fixes
+
+* Improve event handler cleanup and prevent duplicate listeners ([1572b85](https://github.com/arcadia-eternity/arcadia-eternity/commit/1572b856f509290f68e54f9f988e530331c24fc9))
+
 ## [1.4.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.4.0...arcadia-eternity-v1.4.1) (2025-06-29)
 
 

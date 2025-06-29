@@ -384,7 +384,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick, watch } from 'vue'
+import { ref, onMounted, computed, nextTick, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
 import { useBattleClientStore } from './stores/battleClient'
@@ -431,6 +431,9 @@ const isMobile = breakpoints.smaller('md') // md 断点是 768px
 // 移动端菜单状态
 const showMobileMenu = ref(false)
 
+// 战斗重连处理器引用，用于清理
+let battleReconnectHandler: ((event: any) => void) | null = null
+
 // 监听移动端状态变化，当切换到桌面端时自动关闭移动端菜单
 watch(isMobile, newIsMobile => {
   if (!newIsMobile) {
@@ -464,47 +467,68 @@ onMounted(async () => {
 
     // 监听战斗重连事件（用于页面刷新后自动跳转）
     let isRedirecting = false
-    window.addEventListener('battleReconnect', async (event: any) => {
-      const data = event.detail
-      console.log('🔄 Received battleReconnect event, redirecting to battle page:', data)
-      console.log('🔄 Current route:', router.currentRoute.value.path)
+    let battleReconnectHandler: ((event: any) => void) | null = null
 
-      // 防止重复跳转
-      if (isRedirecting) {
-        console.log('🔄 Already redirecting, ignoring duplicate event')
+    // 确保只注册一次事件监听器
+    const setupBattleReconnectHandler = () => {
+      if (battleReconnectHandler) {
+        console.log('🔄 Battle reconnect handler already registered, skipping')
         return
       }
 
-      isRedirecting = true
+      battleReconnectHandler = async (event: any) => {
+        const data = event.detail
+        console.log('🔄 Received battleReconnect event, redirecting to battle page:', data)
+        console.log('🔄 Current route:', router.currentRoute.value.path)
 
-      try {
-        // 检查服务器是否提供了完整的战斗状态数据
-        if (data.fullBattleState) {
-          console.log('🔄 Using server-provided battle state, skipping additional getState call')
-
-          // 创建一个特殊的战斗接口，直接使用服务器提供的状态
-          const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
-
-          // 直接初始化战斗，使用服务器提供的状态
-          await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState)
-
-          const result = await router.push('/battle')
-          console.log('🔄 Router push result:', result)
-        } else {
-          // 如果服务器没有提供战斗状态，说明可能出现了问题
-          console.warn('🔄 Server did not provide battle state, battle may have ended')
-          ElMessage.info('战斗状态异常，无法跳转到战斗页面')
+        // 防止重复跳转
+        if (isRedirecting) {
+          console.log('🔄 Already redirecting, ignoring duplicate event')
+          return
         }
-      } catch (error) {
-        console.error('🔄 Router push failed:', error)
-        ElMessage.error('跳转到战斗页面失败')
-      } finally {
-        // 延迟重置标志，防止快速重复事件
-        setTimeout(() => {
-          isRedirecting = false
-        }, 1000)
+
+        isRedirecting = true
+
+        try {
+          // 检查服务器是否提供了完整的战斗状态数据
+          if (data.fullBattleState) {
+            console.log('🔄 Using server-provided battle state, skipping additional getState call')
+
+            // 如果已经在战斗页面，避免重复跳转，只更新状态
+            if (router.currentRoute.value.path === '/battle') {
+              console.log('🔄 Already on battle page, updating state only')
+              // 直接更新战斗状态，不进行路由跳转
+              const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
+              await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState)
+            } else {
+              // 不在战斗页面，需要跳转
+              console.log('🔄 Not on battle page, redirecting')
+              const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
+              await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState)
+              const result = await router.push('/battle')
+              console.log('🔄 Router push result:', result)
+            }
+          } else {
+            // 如果服务器没有提供战斗状态，说明可能出现了问题
+            console.warn('🔄 Server did not provide battle state, battle may have ended')
+            ElMessage.info('战斗状态异常，无法跳转到战斗页面')
+          }
+        } catch (error) {
+          console.error('🔄 Router push failed:', error)
+          ElMessage.error('跳转到战斗页面失败')
+        } finally {
+          // 延迟重置标志，防止快速重复事件
+          setTimeout(() => {
+            isRedirecting = false
+          }, 1000)
+        }
       }
-    })
+
+      window.addEventListener('battleReconnect', battleReconnectHandler)
+      console.log('🔄 Battle reconnect handler registered')
+    }
+
+    setupBattleReconnectHandler()
 
     // 等待玩家认证完成后再连接战斗客户端
     // 对于注册用户，需要等待自动登录完成
@@ -552,6 +576,15 @@ onMounted(async () => {
   } catch (err) {
     console.error('Initialization error:', err)
     ElMessage.error('初始化失败，请刷新页面重试')
+  }
+})
+
+// 清理事件监听器
+onUnmounted(() => {
+  if (battleReconnectHandler) {
+    window.removeEventListener('battleReconnect', battleReconnectHandler)
+    battleReconnectHandler = null
+    console.log('🔄 Battle reconnect handler cleaned up')
   }
 })
 
