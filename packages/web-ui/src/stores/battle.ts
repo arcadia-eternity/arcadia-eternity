@@ -88,6 +88,29 @@ export const useBattleStore = defineStore('battle', {
       this.availableActions = await this.fetchAvailableSelection()
     },
 
+    // 使用服务器提供的战斗状态初始化战斗，避免额外的 getState 调用
+    async initBattleWithState(battleInterface: IBattleSystem, playerId: string, battleState: BattleState) {
+      this.battleInterface = markRaw(battleInterface)
+      this.playerId = playerId
+      this.battleState = battleState // 直接使用服务器提供的状态
+      this.isBattleEnd = false
+      this.victor = null
+      this.errorMessage = null
+      // 初始化RxJS流
+      // 使用响应式方式清空log数组
+      this.log.splice(0, this.log.length)
+      this._messageSubject = new Subject<BattleMessage>()
+      this.lastProcessedSequenceId = -1
+      // 清空并重新初始化Map缓存
+      this._clearMapCaches()
+      this._updateMapCaches()
+      this.battleInterface.BattleEvent(msg => {
+        this.waitingForResponse = false
+        this.handleBattleMessage(msg)
+      })
+      this.availableActions = await this.fetchAvailableSelection()
+    },
+
     async ready() {
       await this.battleInterface?.ready()
     },

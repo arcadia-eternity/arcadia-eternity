@@ -14,12 +14,14 @@ import {
 } from '@arcadia-eternity/protocol'
 import { type PlayerSchemaType, type PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
 import { io, type Socket } from 'socket.io-client'
+import { nanoid } from 'nanoid'
 
 type BattleClientOptions = {
   serverUrl: string
   autoReconnect?: boolean
   reconnectAttempts?: number
   actionTimeout?: number
+  sessionId?: string // 预设的 sessionId
   auth?: {
     getToken?: () => string | null
     getPlayerId?: () => string
@@ -50,13 +52,21 @@ export class BattleClient {
   private timerSnapshots = new Map<playerId, TimerSnapshot>()
   private lastSnapshotUpdate: number = 0
 
+  // 多实例支持：会话管理
+  private sessionId: string
+
   constructor(options: BattleClientOptions) {
+    console.log('🏗️ Creating new BattleClient instance')
     this.options = {
       autoReconnect: true,
       reconnectAttempts: 5,
       actionTimeout: 30000,
       ...options,
-    }
+    } as Required<BattleClientOptions>
+
+    // 使用预设的 sessionId 或创建新的
+    this.sessionId = options.sessionId || this.getOrCreateSessionId()
+    console.log('🏗️ BattleClient instance created with sessionId:', this.sessionId)
 
     // 在构造函数中就创建socket
     this.socket = this.createSocket()
@@ -78,18 +88,46 @@ export class BattleClient {
     return io(this.options.serverUrl, socketConfig)
   }
 
+  private getOrCreateSessionId(): string {
+    try {
+      // 首先尝试从 sessionStorage 获取（标签页级别）
+      let sessionId = sessionStorage.getItem('battle-session-id')
+
+      if (!sessionId) {
+        // 直接用 nanoid 生成全局唯一ID
+        sessionId = nanoid()
+        sessionStorage.setItem('battle-session-id', sessionId)
+      }
+
+      return sessionId
+    } catch {
+      // 如果 sessionStorage 不可用，直接生成
+      return nanoid()
+    }
+  }
+
   private updateSocketAuth(config?: any) {
+    console.log('🔗 updateSocketAuth called, config:', !!config)
     if (this.options.auth) {
       try {
         const playerId = this.options.auth.getPlayerId?.()
         const token = this.options.auth.getToken?.()
 
+        console.log('🔗 Auth info:', { playerId, hasToken: !!token, sessionId: this.sessionId })
+
         if (playerId) {
+          const query: any = {
+            playerId,
+            sessionId: this.sessionId,
+          }
+
+          console.log('🔗 Setting socket query:', { playerId, sessionId: this.sessionId })
+
           if (config) {
-            config.query = { playerId }
+            config.query = query
           } else {
             // 更新现有socket的query参数
-            this.socket.io.opts.query = { playerId }
+            this.socket.io.opts.query = query
           }
         }
 
@@ -113,6 +151,13 @@ export class BattleClient {
   // 公开的状态获取方法
   get currentState() {
     return { ...this.state }
+  }
+
+  // 获取实例信息
+  get instanceInfo() {
+    return {
+      sessionId: this.sessionId,
+    }
   }
 
   // 公开的状态重置方法
@@ -325,9 +370,19 @@ export class BattleClient {
   }
 
   async ready(): Promise<void> {
-    return new Promise(resolve => {
-      this.socket.emit('ready')
-      resolve()
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Ready timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('ready', response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve()
+        } else {
+          reject(this.parseError(response))
+        }
+      })
     })
   }
 
@@ -630,8 +685,45 @@ export class BattleClient {
       })
     })
 
+    // 掉线重连事件处理
+    this.socket.on('opponentDisconnected', data => {
+      const handlers = this.eventHandlers.get('opponentDisconnected')
+      if (handlers) {
+        handlers.forEach(handler => handler(data))
+      }
+    })
+
+    this.socket.on('opponentReconnected', data => {
+      const handlers = this.eventHandlers.get('opponentReconnected')
+      if (handlers) {
+        handlers.forEach(handler => handler(data))
+      }
+    })
+
+    // 战斗重连事件处理（用于页面刷新后自动跳转）
+    this.socket.on('battleReconnect', data => {
+      const handlers = this.eventHandlers.get('battleReconnect')
+      this.updateState({
+        matchmaking: 'matched',
+        battle: 'active',
+        roomId: data.roomId,
+      })
+      if (handlers) {
+        handlers.forEach(handler => handler(data))
+      }
+    })
+
+    // 重连测试事件处理（用于验证消息发送是否正常）
+    this.socket.on('reconnectTest', data => {
+      console.log('🔄 Reconnect test message received:', data)
+      const handlers = this.eventHandlers.get('reconnectTest')
+      if (handlers) {
+        handlers.forEach(handler => handler(data))
+      }
+    })
+
     // 心跳处理
-    this.socket.on('ping', () => this.socket.emit('pong'))
+    this.socket.on('ping', async () => this.socket.emit('pong'))
   }
 
   private updateState(partialState: Partial<ClientState>) {

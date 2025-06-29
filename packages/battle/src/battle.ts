@@ -56,6 +56,7 @@ export class Battle extends Context implements MarkOwner {
   public status: BattleStatus = BattleStatus.Unstarted
   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
   public currentTurn = 0
+  private _isStarting: boolean = false // 防止重复启动的标志
   private messageCallbacks: Array<{
     original: (message: BattleMessage) => void
     wrapped: (message: BattleMessage) => void
@@ -328,16 +329,38 @@ export class Battle extends Context implements MarkOwner {
 
   // Phase-based battle start (main implementation)
   public async startBattle(): Promise<void> {
-    // Phase 0: Initialize battle
-    this.currentPhase = BattlePhase.StartPhase
-    const startPhase = new BattleStartPhase(this)
-    this.phaseManager.registerPhase(startPhase)
-    await this.phaseManager.executePhaseAsync(startPhase.id)
+    // 防止重复启动的检查
+    if (this._isStarting) {
+      this.logger.warn({ battleId: this.id }, 'Battle is already starting, ignoring duplicate startBattle call')
+      return
+    }
 
-    // Phase 1: Main battle loop
-    const battleLoopPhase = new BattleLoopPhase(this)
-    this.phaseManager.registerPhase(battleLoopPhase)
-    await this.phaseManager.executePhaseAsync(battleLoopPhase.id)
+    if (this.status !== BattleStatus.Unstarted) {
+      this.logger.warn(
+        { battleId: this.id, currentStatus: this.status },
+        'Battle has already started, ignoring startBattle call',
+      )
+      return
+    }
+
+    // 设置启动标志
+    this._isStarting = true
+
+    try {
+      // Phase 0: Initialize battle
+      this.currentPhase = BattlePhase.StartPhase
+      const startPhase = new BattleStartPhase(this)
+      this.phaseManager.registerPhase(startPhase)
+      await this.phaseManager.executePhaseAsync(startPhase.id)
+
+      // Phase 1: Main battle loop
+      const battleLoopPhase = new BattleLoopPhase(this)
+      this.phaseManager.registerPhase(battleLoopPhase)
+      await this.phaseManager.executePhaseAsync(battleLoopPhase.id)
+    } finally {
+      // 无论成功还是失败，都要清除启动标志
+      this._isStarting = false
+    }
   }
 
   // Legacy generator method removed - use startBattlePhased() instead
@@ -522,9 +545,68 @@ export class Battle extends Context implements MarkOwner {
       return
     }
 
-    return new Promise<void>(resolve => {
-      this.waitingResolvers.switchSelections = { players, resolve }
+    // 检查战斗是否已结束，避免无限等待
+    if (this.isBattleEnded()) {
+      this.logger.warn({ battleId: this.id }, 'Battle ended while waiting for switch selections')
+      return
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      // 设置超时机制，防止无限等待
+      const timeout = setTimeout(() => {
+        this.waitingResolvers.switchSelections = undefined
+        this.logger.error(
+          { battleId: this.id, playerIds: players.map(p => p.id) },
+          'Timeout waiting for switch selections',
+        )
+
+        // 为没有做出选择的玩家自动选择
+        this.handleSwitchSelectionTimeout(players)
+        resolve() // 不要reject，而是继续执行
+      }, 45000) // 45秒超时
+
+      this.waitingResolvers.switchSelections = {
+        players,
+        resolve: () => {
+          clearTimeout(timeout)
+          resolve()
+        },
+      }
     })
+  }
+
+  private handleSwitchSelectionTimeout(players: Player[]): void {
+    for (const player of players) {
+      if (!player.selection) {
+        this.logger.warn(
+          { playerId: player.id, battleId: this.id },
+          'Player switch selection timeout, making automatic selection',
+        )
+
+        // 获取可用选择并自动选择
+        const availableSelections = player.getAvailableSelection()
+        if (availableSelections.length > 0) {
+          // 对于强制更换，优先选择switch-pet
+          let autoSelection = availableSelections[0]
+          if (this.pendingForcedSwitches.includes(player)) {
+            const switchSelection = availableSelections.find(s => s.type === 'switch-pet')
+            if (switchSelection) {
+              autoSelection = switchSelection
+            }
+          }
+
+          const success = player.setSelection(autoSelection)
+          if (success) {
+            this.logger.info(
+              { playerId: player.id, selection: autoSelection.type },
+              'Automatic switch selection made due to timeout',
+            )
+            // 通知计时器管理器
+            this.timerManager.handlePlayerSelectionChange(player.id, true)
+          }
+        }
+      }
+    }
   }
 
   public async waitForBothPlayersReady(): Promise<void> {
@@ -533,9 +615,56 @@ export class Battle extends Context implements MarkOwner {
       return
     }
 
-    return new Promise<void>(resolve => {
-      this.waitingResolvers.bothPlayersReady = { resolve }
+    // 检查战斗是否已结束，避免无限等待
+    if (this.isBattleEnded()) {
+      this.logger.warn({ battleId: this.id }, 'Battle ended while waiting for players ready')
+      return
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      // 设置超时机制，防止无限等待
+      const timeout = setTimeout(() => {
+        this.waitingResolvers.bothPlayersReady = undefined
+        this.logger.error({ battleId: this.id }, 'Timeout waiting for both players ready')
+
+        // 检查是否有玩家没有做出选择，自动为其选择
+        this.handlePlayerReadyTimeout()
+        resolve() // 不要reject，而是继续执行
+      }, 60000) // 60秒超时
+
+      this.waitingResolvers.bothPlayersReady = {
+        resolve: () => {
+          clearTimeout(timeout)
+          resolve()
+        },
+      }
     })
+  }
+
+  private handlePlayerReadyTimeout(): void {
+    // 为没有做出选择的玩家自动选择
+    const players = [this.playerA, this.playerB]
+
+    for (const player of players) {
+      if (!player.selection) {
+        this.logger.warn({ playerId: player.id, battleId: this.id }, 'Player timeout, making automatic selection')
+
+        // 获取可用选择并自动选择第一个
+        const availableSelections = player.getAvailableSelection()
+        if (availableSelections.length > 0) {
+          const autoSelection = availableSelections[0]
+          const success = player.setSelection(autoSelection)
+          if (success) {
+            this.logger.info(
+              { playerId: player.id, selection: autoSelection.type },
+              'Automatic selection made due to timeout',
+            )
+            // 通知计时器管理器
+            this.timerManager.handlePlayerSelectionChange(player.id, true)
+          }
+        }
+      }
+    }
   }
 
   // Called when a player makes a selection to check if any waiting promises should resolve

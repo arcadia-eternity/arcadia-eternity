@@ -53,6 +53,7 @@ declare module 'vue' {
     ElTabs: typeof import('element-plus/es')['ElTabs']
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
+    ElUpload: typeof import('element-plus/es')['ElUpload']
     EmailInheritance: typeof import('./src/components/EmailInheritance.vue')['default']
     EnhancedArrayEditor: typeof import('./src/components/EnhancedArrayEditor.vue')['default']
     FeatureRow: typeof import('./src/components/FeatureRow.vue')['default']

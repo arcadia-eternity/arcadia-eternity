@@ -19,16 +19,8 @@ export class RedisClientManager {
   private config: ClusterConfig['redis']
   private performanceTracker?: PerformanceTracker
 
-  // 通用本地缓存层以减少 Redis 查询
-  private localCache: Map<string, { value: any; timestamp: number; ttl: number }> = new Map()
-  private readonly DEFAULT_CACHE_TTL = 60000 // 1分钟默认缓存
-  private cacheCleanupTimer?: NodeJS.Timeout
-
   private constructor(config: ClusterConfig['redis']) {
     this.config = config
-
-    // 定期清理过期缓存
-    this.cacheCleanupTimer = setInterval(() => this.cleanupExpiredCache(), 300000) // 每5分钟清理一次
   }
 
   setPerformanceTracker(tracker: PerformanceTracker): void {
@@ -47,6 +39,12 @@ export class RedisClientManager {
 
   async initialize(): Promise<void> {
     try {
+      // 根据环境调整超时配置
+      const isProduction = process.env.NODE_ENV === 'production'
+      const connectTimeout = isProduction ? 20000 : 15000 // 生产环境更长连接超时
+      const commandTimeout = isProduction ? 15000 : 10000 // 生产环境更长命令超时
+      const maxRetries = isProduction ? 15 : 10 // 生产环境更多重试
+
       // 创建主客户端 - 优化配置
       this.client = new Redis({
         host: this.config.host,
@@ -54,7 +52,7 @@ export class RedisClientManager {
         password: this.config.password,
         db: this.config.db || 0,
         keyPrefix: this.config.keyPrefix || 'arcadia:',
-        maxRetriesPerRequest: this.config.maxRetriesPerRequest || 10, // 增加重试次数
+        maxRetriesPerRequest: this.config.maxRetriesPerRequest || maxRetries,
         enableReadyCheck: this.config.enableReadyCheck !== false,
         lazyConnect: this.config.lazyConnect !== false,
         // TLS配置
@@ -62,15 +60,13 @@ export class RedisClientManager {
         // 连接池配置 - 优化性能
         family: 4,
         keepAlive: 30000,
-        connectTimeout: 10000, // 10秒连接超时
-        commandTimeout: 5000, // 5秒命令超时
-        // 重连配置
+        connectTimeout, // 动态连接超时
+        commandTimeout, // 动态命令超时
+        // 重连配置 - 更智能的重连策略
         reconnectOnError: err => {
-          const targetError = 'READONLY'
-          return err.message.includes(targetError)
+          const reconnectErrors = ['READONLY', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND']
+          return reconnectErrors.some(errorType => err.message.includes(errorType))
         },
-        // 性能优化
-        enableOfflineQueue: false, // 禁用离线队列，避免内存积累
       })
 
       // 创建发布者客户端 - 优化配置
@@ -82,12 +78,15 @@ export class RedisClientManager {
         keyPrefix: this.config.keyPrefix || 'arcadia:',
         tls: this.config.tls ? {} : undefined,
         lazyConnect: true,
-        maxRetriesPerRequest: 10,
-        connectTimeout: 10000,
-        commandTimeout: 5000,
-        enableOfflineQueue: false,
+        maxRetriesPerRequest: maxRetries,
+        connectTimeout,
+        commandTimeout,
         family: 4,
         keepAlive: 30000,
+        reconnectOnError: err => {
+          const reconnectErrors = ['READONLY', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND']
+          return reconnectErrors.some(errorType => err.message.includes(errorType))
+        },
       })
 
       // 创建订阅者客户端 - 优化配置
@@ -99,12 +98,15 @@ export class RedisClientManager {
         keyPrefix: this.config.keyPrefix || 'arcadia:',
         tls: this.config.tls ? {} : undefined,
         lazyConnect: true,
-        maxRetriesPerRequest: 10,
-        connectTimeout: 10000,
-        commandTimeout: 5000,
-        enableOfflineQueue: false,
+        maxRetriesPerRequest: maxRetries,
+        connectTimeout,
+        commandTimeout,
         family: 4,
         keepAlive: 30000,
+        reconnectOnError: err => {
+          const reconnectErrors = ['READONLY', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND']
+          return reconnectErrors.some(errorType => err.message.includes(errorType))
+        },
       })
 
       // 设置事件监听器
@@ -136,6 +138,11 @@ export class RedisClientManager {
       logger.warn('Redis main client connection closed')
     })
 
+    // 监控慢查询
+    this.client.on('ready', () => {
+      logger.info('Redis main client ready')
+    })
+
     // 发布者事件
     this.publisher.on('connect', () => {
       logger.info('Redis publisher connected')
@@ -145,6 +152,10 @@ export class RedisClientManager {
       logger.error({ error }, 'Redis publisher error')
     })
 
+    this.publisher.on('ready', () => {
+      logger.info('Redis publisher ready')
+    })
+
     // 订阅者事件
     this.subscriber.on('connect', () => {
       logger.info('Redis subscriber connected')
@@ -152,6 +163,10 @@ export class RedisClientManager {
 
     this.subscriber.on('error', error => {
       logger.error({ error }, 'Redis subscriber error')
+    })
+
+    this.subscriber.on('ready', () => {
+      logger.info('Redis subscriber ready')
     })
   }
 
@@ -178,6 +193,40 @@ export class RedisClientManager {
 
   getKeyPrefix(): string {
     return this.config.keyPrefix || 'arcadia:'
+  }
+
+  /**
+   * 执行Redis命令并监控性能
+   */
+  async executeCommand<T>(commandName: string, fn: () => Promise<T>): Promise<T> {
+    const startTime = Date.now()
+    try {
+      const result = await fn()
+      const duration = Date.now() - startTime
+
+      // 记录慢查询（超过100ms）
+      if (duration > 100) {
+        logger.warn({ commandName, duration }, 'Slow Redis command detected')
+      }
+
+      // 记录性能指标
+      if (this.performanceTracker) {
+        this.performanceTracker.recordRedisOperation(commandName, duration)
+      }
+
+      return result
+    } catch (error) {
+      const duration = Date.now() - startTime
+
+      // 记录错误和操作时间
+      if (this.performanceTracker) {
+        this.performanceTracker.recordRedisOperation(commandName, duration)
+        this.performanceTracker.recordError('redis_error', commandName)
+      }
+
+      logger.error({ error, commandName, duration }, 'Redis command failed')
+      throw error
+    }
   }
 
   async ping(): Promise<boolean> {
@@ -210,13 +259,6 @@ export class RedisClientManager {
     try {
       if (!this.client) throw new Error('Redis client not initialized')
 
-      // 检查缓存
-      const cacheKey = 'redis:info'
-      const cached = this.getFromCache(cacheKey)
-      if (cached) {
-        return cached
-      }
-
       const info = await this.client.info()
       const lines = info.split('\r\n')
       const result: Record<string, any> = {}
@@ -230,9 +272,6 @@ export class RedisClientManager {
         }
       }
 
-      // 缓存结果（30秒TTL，因为Redis info变化不频繁）
-      this.setCache(cacheKey, result, 30000)
-
       return result
     } catch (error) {
       logger.error({ error }, 'Failed to get Redis info')
@@ -240,58 +279,9 @@ export class RedisClientManager {
     }
   }
 
-  /**
-   * 本地缓存操作方法
-   */
-  private setCache(key: string, value: any, ttl: number = this.DEFAULT_CACHE_TTL): void {
-    this.localCache.set(key, {
-      value,
-      timestamp: Date.now(),
-      ttl,
-    })
-  }
-
-  private getFromCache(key: string): any | null {
-    const cached = this.localCache.get(key)
-    if (!cached) return null
-
-    const now = Date.now()
-    if (now - cached.timestamp > cached.ttl) {
-      this.localCache.delete(key)
-      return null
-    }
-
-    return cached.value
-  }
-
-  private cleanupExpiredCache(): void {
-    const now = Date.now()
-    let cleanedCount = 0
-
-    for (const [key, cached] of this.localCache.entries()) {
-      if (now - cached.timestamp > cached.ttl) {
-        this.localCache.delete(key)
-        cleanedCount++
-      }
-    }
-
-    if (cleanedCount > 0) {
-      logger.debug({ cleanedCount, totalCacheSize: this.localCache.size }, 'Cleaned up expired cache entries')
-    }
-  }
-
   async cleanup(): Promise<void> {
     try {
       logger.info('Cleaning up Redis connections')
-
-      // 清理缓存定时器
-      if (this.cacheCleanupTimer) {
-        clearInterval(this.cacheCleanupTimer)
-        this.cacheCleanupTimer = undefined
-      }
-
-      // 清理本地缓存
-      this.localCache.clear()
 
       const promises: Promise<any>[] = []
 

@@ -1558,13 +1558,13 @@
         evaluator:
           type: exist
   apply:
-    - type: destroyMark
-      target: mark
     - type: addMark
       target: self
       mark:
         type: entity:baseMark
         value: mark_xukongganying
+    - type: destroyMark
+      target: mark
 
 # 伊特领域：提高自身队伍10%暴击率
 - id: effect_mark_increase_self_crit_rate

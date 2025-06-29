@@ -19,7 +19,9 @@
     "watch": "run-p watch:code watch:types",
     "build:types": "tsc --emitDeclarationOnly",
     "start": "node dist/index.js",
-    "dev": "npm run build && npm start"
+    "dev": "npm run build && npm start",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "keywords": [],
   "author": "yuuinih",
@@ -34,7 +36,6 @@
     "@aws-sdk/client-sesv2": "^3.835.0",
     "@grpc/grpc-js": "^1.13.4",
     "@grpc/proto-loader": "^0.7.15",
-    "@socket.io/redis-adapter": "^8.3.0",
     "@types/handlebars": "^4.1.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
