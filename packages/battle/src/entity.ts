@@ -28,6 +28,14 @@ export interface OwnedEntity<T = CanOwnedEntity> {
 export interface MarkOwner {
   marks: MarkInstance[]
 
+  /*
+   * @deprecated Use AddPhase directly instead of calling this method.
+   * This method is kept for backward compatibility but will be removed in future versions.
+   */
   addMark(context: AddMarkContext): void
+  /**
+   * @deprecated Use RemovePhase directly instead of calling this method.
+   * This method is kept for backward compatibility but will be removed in future versions.
+   */
   removeMark(context: RemoveMarkContext): void
 }
