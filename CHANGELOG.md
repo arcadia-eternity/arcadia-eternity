@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.4.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.3.1...arcadia-eternity-v1.4.0) (2025-06-29)
+
+
+### ✨ Features
+
+* Add auto-update check for Tauri desktop app ([4442f78](https://github.com/arcadia-eternity/arcadia-eternity/commit/4442f7880f75257c0d3be7fc3abe06bc55bf2669))
+* Add ConnectionStatus component and improve connection handling ([33bb1c8](https://github.com/arcadia-eternity/arcadia-eternity/commit/33bb1c89043a1cc08769b1c79670a4a88b232596))
+* reconnect ([6a07b2c](https://github.com/arcadia-eternity/arcadia-eternity/commit/6a07b2c47cf75aaafcc7347eb0fe32ee7ab73b1e))
+
+
+### ⚡ Performance Improvements
+
+* reconnect ([5384c78](https://github.com/arcadia-eternity/arcadia-eternity/commit/5384c785f1670a245c4ad2887905fc46b09cef3b))
+
 ## [1.3.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.3.0...arcadia-eternity-v1.3.1) (2025-06-28)
 
 
