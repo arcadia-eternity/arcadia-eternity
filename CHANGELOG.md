@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.4.3...arcadia-eternity-v1.5.0) (2025-06-29)
+
+
+### ✨ Features
+
+* Add async resource loading manager and status API ([c086289](https://github.com/arcadia-eternity/arcadia-eternity/commit/c086289812885e7a4903b181e2b8989e201452b8))
+* Add draggable order tip to team builder page ([e621f07](https://github.com/arcadia-eternity/arcadia-eternity/commit/e621f07a9ca3e958709e80337fc5579ede5db126))
+
 ## [1.4.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.4.2...arcadia-eternity-v1.4.3) (2025-06-29)
 
 
