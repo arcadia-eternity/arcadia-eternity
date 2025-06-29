@@ -694,9 +694,23 @@ const handleSkillClick = (skillId: string) => {
 
 const handlePetSelect = (petId: string) => {
   if (isWaitingForOpponent.value) return
-  const action = store.availableActions.find(a => a.type === 'switch-pet' && a.pet === petId)
-  if (action) store.sendplayerSelection(action)
-  panelState.value = PanelState.SKILLS
+
+  // 优先尝试正常的精灵切换
+  const switchAction = store.availableActions.find(a => a.type === 'switch-pet' && a.pet === petId)
+  if (switchAction) {
+    store.sendplayerSelection(switchAction)
+    panelState.value = PanelState.SKILLS
+    return
+  }
+
+  // 击破奖励回合时，如果点击的是当前在场精灵，则执行空过操作
+  if (isInFaintSwitchPhase.value && petId === currentPlayer.value?.activePet) {
+    const doNothingAction = store.availableActions.find(a => a.type === 'do-nothing')
+    if (doNothingAction) {
+      store.sendplayerSelection(doNothingAction)
+      panelState.value = PanelState.SKILLS
+    }
+  }
 }
 
 const handleEscape = async () => {
@@ -802,6 +816,26 @@ const isSkillAvailable = (skillId: skillId) => {
 
 const isPetSwitchable = (petId: petId) => {
   return store.availableActions?.some(a => a.type === 'switch-pet' && a.pet === petId) ?? false
+}
+
+// 检查是否处于击破奖励回合
+const isInFaintSwitchPhase = computed(() => {
+  return store.availableActions?.some(a => a.type === 'do-nothing') ?? false
+})
+
+// 检查精灵是否可以被选择（包括击破奖励回合的当前在场精灵）
+const isPetSelectable = (petId: petId) => {
+  // 正常情况下，检查是否可以切换
+  if (isPetSwitchable(petId)) {
+    return true
+  }
+
+  // 击破奖励回合时，当前在场精灵也可以被选择（用于空过）
+  if (isInFaintSwitchPhase.value && petId === currentPlayer.value?.activePet) {
+    return true
+  }
+
+  return false
 }
 
 // 回放模式相关
@@ -2628,7 +2662,7 @@ watch(
                 v-for="pet in leftPlayerPets"
                 :key="pet.id"
                 :pet="pet"
-                :disabled="!isPetSwitchable(pet.id) || isWaitingForOpponent"
+                :disabled="!isPetSelectable(pet.id) || isWaitingForOpponent"
                 :is-active="pet.id === currentPlayer?.activePet"
                 position="left"
                 @click="handlePetSelect"
@@ -2835,7 +2869,7 @@ watch(
                   v-for="pet in currentPlayer?.team || []"
                   :key="pet.id"
                   :pet="pet"
-                  :disabled="!isPetSwitchable(pet.id) || isWaitingForOpponent"
+                  :disabled="!isPetSelectable(pet.id) || isWaitingForOpponent"
                   @click="handlePetSelect"
                   position="bottom"
                 />
