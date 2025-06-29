@@ -2547,6 +2547,17 @@ export class ClusterBattleServer {
 
       logger.info({ roomId, battleId: localRoom.battle.id }, 'Starting battle asynchronously')
 
+      // 确保游戏资源已加载完成
+      try {
+        const { resourceLoadingManager } = await import('../resourceLoadingManager')
+        logger.info({ roomId }, 'Waiting for game resources to be ready...')
+        await resourceLoadingManager.waitForResourcesReady()
+        logger.info({ roomId }, 'Game resources are ready, proceeding with battle start')
+      } catch (error) {
+        logger.error({ error, roomId }, 'Failed to load game resources, battle cannot start')
+        throw new Error(`游戏资源加载失败: ${error instanceof Error ? error.message : error}`)
+      }
+
       // 启动战斗，这会一直运行直到战斗结束
       await localRoom.battle.startBattle()
 

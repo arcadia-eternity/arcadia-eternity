@@ -17,6 +17,7 @@ import { createBattleReportRoutes } from '../battleReportRoutes'
 import { createEmailInheritanceRoutes } from '../emailInheritanceRoutes'
 import { createAuthRoutes } from '../authRoutes'
 import { createSessionRoutes } from '../sessionRoutes'
+import { createResourceStatusRoutes } from '../resourceStatusRoutes'
 import type { BattleReportConfig } from '../battleReportService'
 import type { EmailConfig } from '../emailService'
 import { createEmailConfigFromEnv } from '../emailService'
@@ -286,6 +287,10 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
   // 邮箱继承 API 路由
   apiRouter.use('/email', createEmailInheritanceRoutes())
   logger.info('Email inheritance API enabled at /api/v1/email')
+
+  // 资源状态监控 API 路由
+  apiRouter.use('/resources', createResourceStatusRoutes())
+  logger.info('Resource status API enabled at /api/v1/resources')
 
   app.use('/api/v1', apiRouter)
 

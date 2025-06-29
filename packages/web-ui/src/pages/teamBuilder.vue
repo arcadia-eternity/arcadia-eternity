@@ -89,6 +89,33 @@
                   </router-link>
                 </el-tooltip>
               </div>
+              <!-- 拖拽提示 -->
+              <div
+                v-if="currentTeam.length > 1 && showDragTip"
+                class="mt-2 p-2 bg-blue-50 rounded-md border border-blue-200"
+              >
+                <div class="flex items-start space-x-2">
+                  <el-icon class="text-blue-600 mt-0.5 flex-shrink-0" :size="14">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path
+                        d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
+                      />
+                    </svg>
+                  </el-icon>
+                  <div class="flex-1">
+                    <p class="text-xs text-blue-700 leading-relaxed">
+                      可拖拽精灵调整出战顺序，<span class="font-medium">第一位为首发精灵</span>
+                    </p>
+                  </div>
+                  <button
+                    @click="hideDragTip"
+                    class="flex-shrink-0 p-0.5 rounded-full text-blue-400 hover:text-blue-600 hover:bg-blue-100 transition-colors"
+                    title="关闭提示"
+                  >
+                    <el-icon :size="12"><Close /></el-icon>
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div class="p-3 space-y-2">
@@ -861,6 +888,7 @@ const md = new MarkdownIt({
 // 响应式状态
 const selectedPetId = ref<string | null>(null)
 const showGuide = ref(localStorage.getItem('teamBuilderGuideHidden') !== 'true') // 控制指引显示
+const showDragTip = ref(localStorage.getItem('teamBuilderDragTipHidden') !== 'true') // 控制拖拽提示显示
 
 type StatKey = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe'
 
@@ -872,6 +900,12 @@ const drag = ref(false)
 const hideGuide = () => {
   showGuide.value = false
   localStorage.setItem('teamBuilderGuideHidden', 'true')
+}
+
+// 关闭拖拽提示
+const hideDragTip = () => {
+  showDragTip.value = false
+  localStorage.setItem('teamBuilderDragTipHidden', 'true')
 }
 
 const onStart = () => {

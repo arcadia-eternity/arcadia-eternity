@@ -329,19 +329,22 @@ program
   )
   .action(async options => {
     try {
-      console.log('[🌀] 正在加载游戏数据...')
-      await loadGameData(undefined, LOADING_STRATEGIES.LENIENT)
-      await loadScripts()
+      // 导入资源加载管理器
+      const { resourceLoadingManager } = await import('@arcadia-eternity/server/src/resourceLoadingManager')
 
-      // 数据完整性验证
-      if (options.validateData) {
-        console.log('[🔍] 正在验证游戏数据完整性...')
-        const isValid = await validateAndPrintGameData({ verbose: true })
-        if (!isValid) {
-          console.error('[❌] 游戏数据验证失败，请修复数据问题后重试')
-          process.exit(1)
-        }
-      }
+      console.log('[🌀] 启动异步游戏资源加载...')
+      // 启动异步资源加载，不等待完成
+      resourceLoadingManager
+        .startAsyncLoading({
+          loadingStrategy: LOADING_STRATEGIES.LENIENT,
+          validateData: options.validateData,
+          continueOnError: true,
+        })
+        .catch(error => {
+          console.error('[❌] 异步资源加载失败:', error instanceof Error ? error.message : error)
+        })
+
+      console.log('[✅] 异步资源加载已启动，服务器将在后台加载资源')
 
       // 配置战报服务
       let battleReportConfig: (BattleReportConfig & { enableApi: boolean }) | undefined
