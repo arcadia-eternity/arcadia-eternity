@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.4.0...arcadia-eternity-v1.4.1) (2025-06-29)
+
+
+### 🐛 Bug Fixes
+
+* Add reconnectTest event to ServerToClientEvents ([a04c65a](https://github.com/arcadia-eternity/arcadia-eternity/commit/a04c65a84a15697e8d245fa72506421bf9b33e43))
+
 ## [1.4.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.3.1...arcadia-eternity-v1.4.0) (2025-06-29)
 
 
