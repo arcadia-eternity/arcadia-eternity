@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "arcadia-eternity-client",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "identifier": "com.yuuinih.arcadia-eternity",
   "build": {
     "frontendDist": "../dist",
@@ -16,7 +16,8 @@
         "width": 1600,
         "height": 1000,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "dragDropEnabled": false
       }
     ],
     "security": {
