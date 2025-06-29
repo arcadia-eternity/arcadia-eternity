@@ -9,7 +9,6 @@ import {
   EffectTrigger,
   type Events,
   type PlayerSelection,
-  type SwitchPetSelection,
   type petId,
   type playerId,
   type skillId,
@@ -28,7 +27,7 @@ import { AttributeSystem } from './attributeSystem'
 import * as jsondiffpatch from 'jsondiffpatch'
 import { nanoid } from 'nanoid'
 import mitt from 'mitt'
-import { PhaseManager, BattleStartPhase, BattleLoopPhase, SwitchPetPhase } from './phase'
+import { PhaseManager, BattleStartPhase, BattleLoopPhase } from './phase'
 import { EffectExecutionPhase } from './phase/effectExecution'
 import { RemoveMarkPhase } from './phase/RemoveMarkPhase'
 import { AddMarkPhase } from './phase/AddMarkPhase'
@@ -505,6 +504,7 @@ export class Battle extends Context implements MarkOwner {
       currentPhase: this.currentPhase,
       currentTurn: this.currentTurn,
       marks: this.marks.map(m => m.toMessage()),
+      sequenceId: this.sequenceId, // 包含当前的序列ID
       players: [this.playerA, this.playerB].map(p => p.toMessage(viewerId, showHidden)),
     }
   }
@@ -551,62 +551,12 @@ export class Battle extends Context implements MarkOwner {
       return
     }
 
-    return new Promise<void>((resolve, reject) => {
-      // 设置超时机制，防止无限等待
-      const timeout = setTimeout(() => {
-        this.waitingResolvers.switchSelections = undefined
-        this.logger.error(
-          { battleId: this.id, playerIds: players.map(p => p.id) },
-          'Timeout waiting for switch selections',
-        )
-
-        // 为没有做出选择的玩家自动选择
-        this.handleSwitchSelectionTimeout(players)
-        resolve() // 不要reject，而是继续执行
-      }, 45000) // 45秒超时
-
+    return new Promise<void>(resolve => {
       this.waitingResolvers.switchSelections = {
         players,
-        resolve: () => {
-          clearTimeout(timeout)
-          resolve()
-        },
+        resolve,
       }
     })
-  }
-
-  private handleSwitchSelectionTimeout(players: Player[]): void {
-    for (const player of players) {
-      if (!player.selection) {
-        this.logger.warn(
-          { playerId: player.id, battleId: this.id },
-          'Player switch selection timeout, making automatic selection',
-        )
-
-        // 获取可用选择并自动选择
-        const availableSelections = player.getAvailableSelection()
-        if (availableSelections.length > 0) {
-          // 对于强制更换，优先选择switch-pet
-          let autoSelection = availableSelections[0]
-          if (this.pendingForcedSwitches.includes(player)) {
-            const switchSelection = availableSelections.find(s => s.type === 'switch-pet')
-            if (switchSelection) {
-              autoSelection = switchSelection
-            }
-          }
-
-          const success = player.setSelection(autoSelection)
-          if (success) {
-            this.logger.info(
-              { playerId: player.id, selection: autoSelection.type },
-              'Automatic switch selection made due to timeout',
-            )
-            // 通知计时器管理器
-            this.timerManager.handlePlayerSelectionChange(player.id, true)
-          }
-        }
-      }
-    }
   }
 
   public async waitForBothPlayersReady(): Promise<void> {
@@ -621,50 +571,11 @@ export class Battle extends Context implements MarkOwner {
       return
     }
 
-    return new Promise<void>((resolve, reject) => {
-      // 设置超时机制，防止无限等待
-      const timeout = setTimeout(() => {
-        this.waitingResolvers.bothPlayersReady = undefined
-        this.logger.error({ battleId: this.id }, 'Timeout waiting for both players ready')
-
-        // 检查是否有玩家没有做出选择，自动为其选择
-        this.handlePlayerReadyTimeout()
-        resolve() // 不要reject，而是继续执行
-      }, 60000) // 60秒超时
-
+    return new Promise<void>(resolve => {
       this.waitingResolvers.bothPlayersReady = {
-        resolve: () => {
-          clearTimeout(timeout)
-          resolve()
-        },
+        resolve,
       }
     })
-  }
-
-  private handlePlayerReadyTimeout(): void {
-    // 为没有做出选择的玩家自动选择
-    const players = [this.playerA, this.playerB]
-
-    for (const player of players) {
-      if (!player.selection) {
-        this.logger.warn({ playerId: player.id, battleId: this.id }, 'Player timeout, making automatic selection')
-
-        // 获取可用选择并自动选择第一个
-        const availableSelections = player.getAvailableSelection()
-        if (availableSelections.length > 0) {
-          const autoSelection = availableSelections[0]
-          const success = player.setSelection(autoSelection)
-          if (success) {
-            this.logger.info(
-              { playerId: player.id, selection: autoSelection.type },
-              'Automatic selection made due to timeout',
-            )
-            // 通知计时器管理器
-            this.timerManager.handlePlayerSelectionChange(player.id, true)
-          }
-        }
-      }
-    }
   }
 
   // Called when a player makes a selection to check if any waiting promises should resolve

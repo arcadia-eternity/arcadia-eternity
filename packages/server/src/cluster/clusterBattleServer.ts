@@ -2329,33 +2329,26 @@ export class ClusterBattleServer {
     this.messageBatches.delete(sessionKey)
 
     try {
-      // 添加超时保护
+      // 直接发送，不等待结果，不重试
       const sendPromise =
         messages.length === 1
           ? this.sendToPlayerSession(playerId, sessionId, 'battleEvent', messages[0])
           : this.sendToPlayerSession(playerId, sessionId, 'battleEventBatch', messages)
 
-      await Promise.race([
-        sendPromise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Batch send timeout')), 5000)),
-      ])
+      // 不等待发送结果，发送失败就丢弃，重连时状态会自动恢复
+      sendPromise.catch(error => {
+        logger.debug(
+          { error, sessionKey, messageCount: messages.length },
+          'Batch messages send failed, will recover on reconnect',
+        )
+      })
 
-      logger.debug({ sessionKey, messageCount: messages.length }, 'Batch messages sent successfully')
+      logger.debug({ sessionKey, messageCount: messages.length }, 'Batch messages sent (fire and forget)')
     } catch (error) {
-      logger.error({ error, sessionKey, messageCount: messages.length }, 'Error sending batch messages')
-
-      // 如果发送失败，尝试重新加入队列（但限制重试次数）
-      const retryBatch = this.messageBatches.get(sessionKey)
-      if (!retryBatch && messages.length <= 5) {
-        // 只对小批次重试
-        setTimeout(() => {
-          messages.forEach(msg => {
-            this.addToBatch(playerId, sessionId, msg).catch((retryError: any) => {
-              logger.error({ error: retryError, sessionKey }, 'Error retrying failed batch message')
-            })
-          })
-        }, 1000) // 1秒后重试
-      }
+      logger.debug(
+        { error, sessionKey, messageCount: messages.length },
+        'Error sending batch messages, will recover on reconnect',
+      )
     }
   }
 
@@ -4937,20 +4930,31 @@ export class ClusterBattleServer {
       clearTimeout(disconnectInfo.graceTimer)
       this.disconnectedPlayers.delete(disconnectKey)
 
-      // 强制刷新连接状态，确保最新的socket信息被更新
-      await this.stateManager.forceRefreshPlayerConnection(playerId, sessionId)
+      // 强制刷新连接状态，确保最新的socket信息被更新（不等待结果）
+      this.stateManager.forceRefreshPlayerConnection(playerId, sessionId).catch(error => {
+        logger.debug({ error, playerId, sessionId }, 'Force refresh connection failed')
+      })
 
-      // 恢复战斗状态
-      await this.resumeBattleAfterReconnect(disconnectInfo.roomId, playerId)
+      // 恢复战斗状态（不等待结果）
+      this.resumeBattleAfterReconnect(disconnectInfo.roomId, playerId).catch(error => {
+        logger.debug({ error, roomId: disconnectInfo.roomId, playerId }, 'Resume battle after reconnect failed')
+      })
 
       // 清理该玩家的待发送消息批次（因为连接已更新）
       await this.cleanupPlayerBatches(playerId, sessionId)
 
-      // 发送完整的战斗状态给重连的玩家
-      await this.sendBattleStateToPlayer(socket, disconnectInfo.roomId)
+      // 发送完整的战斗状态给重连的玩家（不等待结果）
+      this.sendBattleStateToPlayer(socket, disconnectInfo.roomId).catch(error => {
+        logger.debug(
+          { error, playerId, sessionId, roomId: disconnectInfo.roomId },
+          'Send battle state failed, will recover on next reconnect',
+        )
+      })
 
-      // 通知对手玩家已重连
-      await this.notifyOpponentReconnect(disconnectInfo.roomId, playerId)
+      // 通知对手玩家已重连（不等待结果）
+      this.notifyOpponentReconnect(disconnectInfo.roomId, playerId).catch(error => {
+        logger.debug({ error, playerId, roomId: disconnectInfo.roomId }, 'Notify opponent reconnect failed')
+      })
 
       return { isReconnect: true, roomId: disconnectInfo.roomId }
     }
@@ -4974,58 +4978,21 @@ export class ClusterBattleServer {
     if (roomState && roomState.status === 'active') {
       logger.info({ playerId, sessionId, roomId: roomState.id }, '玩家主动重连到活跃战斗房间')
 
-      // 使用重试机制确保连接状态完全更新
-      let connection = null
-      let retryCount = 0
-      const maxRetries = 5
-      const retryDelay = 50 // 50ms
-
-      while (retryCount < maxRetries) {
-        connection = await this.stateManager.getPlayerConnectionBySession(playerId, sessionId)
-
-        if (connection && connection.socketId === socket.id) {
-          logger.info({ playerId, sessionId, socketId: socket.id, retryCount }, '连接状态验证成功')
-          break
-        }
-
-        retryCount++
-        if (retryCount < maxRetries) {
-          logger.debug(
-            {
-              playerId,
-              sessionId,
-              expectedSocketId: socket.id,
-              actualSocketId: connection?.socketId || 'null',
-              retryCount,
-            },
-            '连接状态尚未更新，等待重试',
-          )
-          await new Promise(resolve => setTimeout(resolve, retryDelay))
-        }
-      }
-
-      if (!connection || connection.socketId !== socket.id) {
-        logger.warn(
-          {
-            playerId,
-            sessionId,
-            roomId: roomState.id,
-            expectedSocketId: socket.id,
-            actualSocketId: connection?.socketId || 'null',
-            maxRetries,
-          },
-          '重连后连接状态验证失败，但继续处理重连逻辑',
-        )
-      }
-
       // 清理该玩家的待发送消息批次（因为连接已更新）
       await this.cleanupPlayerBatches(playerId, sessionId)
 
-      // 发送完整的战斗状态给重连的玩家
-      await this.sendBattleStateToPlayer(socket, roomState.id)
+      // 发送完整的战斗状态给重连的玩家（不等待结果）
+      this.sendBattleStateToPlayer(socket, roomState.id).catch(error => {
+        logger.debug(
+          { error, playerId, sessionId, roomId: roomState.id },
+          'Send battle state failed, will recover on next reconnect',
+        )
+      })
 
-      // 通知对手玩家已重连（如果对手还在线的话）
-      await this.notifyOpponentReconnect(roomState.id, playerId)
+      // 通知对手玩家已重连（不等待结果）
+      this.notifyOpponentReconnect(roomState.id, playerId).catch(error => {
+        logger.debug({ error, playerId, roomId: roomState.id }, 'Notify opponent reconnect failed')
+      })
 
       return { isReconnect: true, roomId: roomState.id }
     } else if (roomState && roomState.status === 'ended') {

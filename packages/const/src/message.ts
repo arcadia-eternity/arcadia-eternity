@@ -102,6 +102,7 @@ export interface BattleState {
   currentPhase: BattlePhase
   currentTurn: number
   marks: MarkMessage[]
+  sequenceId?: number // 当前战斗的序列ID，用于客户端状态同步
 
   players: PlayerMessage[]
 }

@@ -269,34 +269,13 @@ export class ClusterStateManager extends EventEmitter {
   // === 玩家连接管理 - 支持多会话 ===
 
   async setPlayerConnection(playerId: string, connection: PlayerConnection): Promise<void> {
-    const maxRetries = 3
-    let lastError: any
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        await this.setPlayerConnectionInternal(playerId, connection)
-        return // 成功则直接返回
-      } catch (error) {
-        lastError = error
-        logger.warn(
-          { error, playerId, sessionId: connection.sessionId, attempt, maxRetries },
-          `Failed to set player connection, attempt ${attempt}/${maxRetries}`,
-        )
-
-        // 如果不是最后一次尝试，等待后重试
-        if (attempt < maxRetries) {
-          const delay = Math.min(50 * Math.pow(2, attempt - 1), 500) // 指数退避，最大500ms
-          await new Promise(resolve => setTimeout(resolve, delay))
-        }
-      }
+    try {
+      await this.setPlayerConnectionInternal(playerId, connection)
+    } catch (error) {
+      logger.warn({ error, playerId, sessionId: connection.sessionId }, 'Failed to set player connection, no retry')
+      // 不重试，直接抛出错误
+      throw new ClusterError('Failed to set player connection', 'SET_CONNECTION_ERROR', error)
     }
-
-    // 所有重试都失败，抛出错误
-    logger.error(
-      { error: lastError, playerId, sessionId: connection.sessionId },
-      'Failed to set player connection after all retries',
-    )
-    throw new ClusterError('Failed to set player connection', 'SET_CONNECTION_ERROR', lastError)
   }
 
   private async setPlayerConnectionInternal(playerId: string, connection: PlayerConnection): Promise<void> {

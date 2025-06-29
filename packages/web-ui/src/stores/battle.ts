@@ -77,7 +77,8 @@ export const useBattleStore = defineStore('battle', {
       // 使用响应式方式清空log数组
       this.log.splice(0, this.log.length)
       this._messageSubject = new Subject<BattleMessage>()
-      this.lastProcessedSequenceId = -1
+      // 使用battleState中的sequenceId来设置lastProcessedSequenceId，帮助客户端判断从哪个状态开始
+      this.lastProcessedSequenceId = this.battleState?.sequenceId ?? -1
       // 清空并重新初始化Map缓存
       this._clearMapCaches()
       this._updateMapCaches()
@@ -100,7 +101,8 @@ export const useBattleStore = defineStore('battle', {
       // 使用响应式方式清空log数组
       this.log.splice(0, this.log.length)
       this._messageSubject = new Subject<BattleMessage>()
-      this.lastProcessedSequenceId = -1
+      // 使用battleState中的sequenceId来设置lastProcessedSequenceId，帮助客户端判断从哪个状态开始
+      this.lastProcessedSequenceId = battleState?.sequenceId ?? -1
       // 清空并重新初始化Map缓存
       this._clearMapCaches()
       this._updateMapCaches()
