@@ -330,7 +330,7 @@ program
   .action(async options => {
     try {
       // 导入资源加载管理器
-      const { resourceLoadingManager } = await import('@arcadia-eternity/server/src/resourceLoadingManager')
+      const { resourceLoadingManager } = await import('@arcadia-eternity/server')
 
       console.log('[🌀] 启动异步游戏资源加载...')
       // 启动异步资源加载，不等待完成
