@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.5.3...arcadia-eternity-v1.5.4) (2025-06-29)
+
+
+### 🐛 Bug Fixes
+
+* Deprecate direct state methods in favor of phases ([0775684](https://github.com/arcadia-eternity/arcadia-eternity/commit/07756841c748b2f485a89b309d34381723ce86e2))
+
 ## [1.5.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.5.2...arcadia-eternity-v1.5.3) (2025-06-29)
 
 
