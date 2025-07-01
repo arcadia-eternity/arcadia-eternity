@@ -394,7 +394,8 @@ export class Battle extends Context implements MarkOwner {
     if (!player) return false
     const result = player.setSelection(selection)
     if (result) {
-      this.checkWaitingResolvers()
+      // Resolve any waiting promises for this player
+      this.resolvePlayerSelection(selection.player)
 
       // 通知TimerManager玩家选择状态变化
       this.timerManager.handlePlayerSelectionChange(selection.player, true)
@@ -523,110 +524,250 @@ export class Battle extends Context implements MarkOwner {
 
   // Phase handler methods for the new phase-based battle system
 
-  // Event-driven waiting methods (no timers)
-  private waitingResolvers: {
-    switchSelections?: { players: Player[]; resolve: () => void }
-    bothPlayersReady?: { resolve: () => void }
-  } = {}
+  // AbortController-based selection management
+  private currentSelectionController?: AbortController
+  private playerSelectionResolvers = new Map<string, () => void>()
 
   public async waitForSwitchSelections(players: Player[]): Promise<void> {
-    // Check if already ready
-    // 对于强制更换，必须选择switch-pet
-    // 对于击破奖励更换，可以选择switch-pet或do-nothing
-    const allReady = players.every(player => {
-      if (!player.selection) return false
+    // Cancel any existing selection waiting
+    this.cancelCurrentSelections()
 
-      // 如果是强制更换的玩家，必须选择switch-pet
-      if (this.pendingForcedSwitches.includes(player)) {
-        return player.selection.type === 'switch-pet'
+    // Continue waiting until all players are ready
+    while (true) {
+      // Check if already ready
+      const allReady = this.checkSwitchPlayersReady(players)
+      if (allReady) {
+        return
       }
 
-      // 如果是击破奖励更换的玩家，可以选择switch-pet或do-nothing
-      if (this.pendingFaintSwitch === player) {
-        return player.selection.type === 'switch-pet' || player.selection.type === 'do-nothing'
+      // 检查战斗是否已结束，避免无限等待
+      if (this.isBattleEnded()) {
+        this.logger.warn({ battleId: this.id }, 'Battle ended while waiting for switch selections')
+        return
       }
 
-      return false
-    })
+      // Create new AbortController for this selection session
+      const abortController = new AbortController()
+      this.currentSelectionController = abortController
 
-    if (allReady) {
-      return
+      // Create promises for each player that needs to make a selection
+      const playerPromises = players
+        .filter(player => !this.isPlayerSwitchReady(player))
+        .map(player => this.createPlayerSwitchSelectionPromise(player, abortController.signal))
+
+      if (playerPromises.length === 0) {
+        this.currentSelectionController = undefined
+        return
+      }
+
+      try {
+        await Promise.all(playerPromises)
+        // All players made selections, exit the loop
+        break
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          // Selection was cancelled (player cancelled their choice), continue waiting
+          this.logger.debug({ battleId: this.id }, 'Switch selection cancelled, continuing to wait')
+          continue
+        }
+        throw error
+      } finally {
+        this.currentSelectionController = undefined
+      }
     }
-
-    // 检查战斗是否已结束，避免无限等待
-    if (this.isBattleEnded()) {
-      this.logger.warn({ battleId: this.id }, 'Battle ended while waiting for switch selections')
-      return
-    }
-
-    return new Promise<void>(resolve => {
-      this.waitingResolvers.switchSelections = {
-        players,
-        resolve,
-      }
-    })
   }
 
   public async waitForBothPlayersReady(): Promise<void> {
-    // Check if already ready
-    if (this.bothPlayersReady()) {
-      return
-    }
+    // Cancel any existing selection waiting
+    this.cancelCurrentSelections()
 
-    // 检查战斗是否已结束，避免无限等待
-    if (this.isBattleEnded()) {
-      this.logger.warn({ battleId: this.id }, 'Battle ended while waiting for players ready')
-      return
-    }
-
-    return new Promise<void>(resolve => {
-      this.waitingResolvers.bothPlayersReady = {
-        resolve,
+    // Continue waiting until both players are ready
+    while (true) {
+      // Check if already ready
+      if (this.bothPlayersReady()) {
+        return
       }
+
+      // 检查战斗是否已结束，避免无限等待
+      if (this.isBattleEnded()) {
+        this.logger.warn({ battleId: this.id }, 'Battle ended while waiting for players ready')
+        return
+      }
+
+      // Create new AbortController for this selection session
+      const abortController = new AbortController()
+      this.currentSelectionController = abortController
+
+      // Create promises for each player that needs to make a selection
+      const playerPromises = [this.playerA, this.playerB]
+        .filter(player => !player.selection)
+        .map(player => this.createPlayerSelectionPromise(player, abortController.signal))
+
+      if (playerPromises.length === 0) {
+        this.currentSelectionController = undefined
+        return
+      }
+
+      try {
+        await Promise.all(playerPromises)
+        // All players made selections, exit the loop
+        break
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          // Selection was cancelled (player cancelled their choice), continue waiting
+          this.logger.debug({ battleId: this.id }, 'Player selection cancelled, continuing to wait')
+          continue
+        }
+        throw error
+      } finally {
+        this.currentSelectionController = undefined
+      }
+    }
+  }
+
+  // Helper methods for the new Promise.all-based selection system
+
+  /**
+   * Cancel current selection waiting
+   */
+  public cancelCurrentSelections(): void {
+    if (this.currentSelectionController) {
+      this.currentSelectionController.abort()
+      this.currentSelectionController = undefined
+    }
+    this.playerSelectionResolvers.clear()
+  }
+
+  /**
+   * Cancel a specific player's selection (e.g., when they want to change their choice)
+   */
+  public cancelPlayerSelection(playerId: playerId): void {
+    const player = [this.playerA, this.playerB].find(p => p.id === playerId)
+    if (player) {
+      player.selection = null
+      // 通知TimerManager选择状态已清理
+      this.timerManager.handlePlayerSelectionChange(playerId, false)
+
+      // Trigger re-evaluation of waiting promises by cancelling current session
+      // This will cause the while loop to restart and wait for this player again
+      if (this.currentSelectionController) {
+        this.currentSelectionController.abort()
+      }
+    }
+  }
+
+  /**
+   * Check if all switch players are ready
+   */
+  private checkSwitchPlayersReady(players: Player[]): boolean {
+    return players.every(player => this.isPlayerSwitchReady(player))
+  }
+
+  /**
+   * Check if a specific player is ready for switch selection
+   */
+  private isPlayerSwitchReady(player: Player): boolean {
+    if (!player.selection) return false
+
+    // 如果是强制更换的玩家，必须选择switch-pet
+    if (this.pendingForcedSwitches.includes(player)) {
+      return player.selection.type === 'switch-pet'
+    }
+
+    // 如果是击破奖励更换的玩家，可以选择switch-pet或do-nothing
+    if (this.pendingFaintSwitch === player) {
+      return player.selection.type === 'switch-pet' || player.selection.type === 'do-nothing'
+    }
+
+    return false
+  }
+
+  /**
+   * Create a promise that resolves when a player makes any valid selection
+   */
+  private createPlayerSelectionPromise(player: Player, signal: AbortSignal): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      // Check if already has selection
+      if (player.selection) {
+        resolve()
+        return
+      }
+
+      // Check if signal is already aborted
+      if (signal.aborted) {
+        reject(new DOMException('Aborted', 'AbortError'))
+        return
+      }
+
+      // Listen for abort signal
+      const abortHandler = () => {
+        this.playerSelectionResolvers.delete(player.id)
+        reject(new DOMException('Aborted', 'AbortError'))
+      }
+      signal.addEventListener('abort', abortHandler, { once: true })
+
+      // Store resolver for this player
+      const resolverWrapper = () => {
+        signal.removeEventListener('abort', abortHandler)
+        this.playerSelectionResolvers.delete(player.id)
+        resolve()
+      }
+      this.playerSelectionResolvers.set(player.id, resolverWrapper)
     })
   }
 
-  // Called when a player makes a selection to check if any waiting promises should resolve
-  private checkWaitingResolvers(): void {
-    // Check switch selections
-    if (this.waitingResolvers.switchSelections) {
-      const { players, resolve } = this.waitingResolvers.switchSelections
-
-      // 使用与waitForSwitchSelections相同的逻辑检查是否所有玩家都准备好了
-      const allReady = players.every(player => {
-        if (!player.selection) return false
-
-        // 如果是强制更换的玩家，必须选择switch-pet
-        if (this.pendingForcedSwitches.includes(player)) {
-          return player.selection.type === 'switch-pet'
-        }
-
-        // 如果是击破奖励更换的玩家，可以选择switch-pet或do-nothing
-        if (this.pendingFaintSwitch === player) {
-          return player.selection.type === 'switch-pet' || player.selection.type === 'do-nothing'
-        }
-
-        return false
-      })
-
-      if (allReady) {
-        this.waitingResolvers.switchSelections = undefined
+  /**
+   * Create a promise that resolves when a player makes a valid switch selection
+   */
+  private createPlayerSwitchSelectionPromise(player: Player, signal: AbortSignal): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      // Check if already ready
+      if (this.isPlayerSwitchReady(player)) {
         resolve()
+        return
       }
-    }
 
-    // Check both players ready
-    if (this.waitingResolvers.bothPlayersReady) {
-      const { resolve } = this.waitingResolvers.bothPlayersReady
-      if (this.bothPlayersReady()) {
-        this.waitingResolvers.bothPlayersReady = undefined
-        resolve()
+      // Check if signal is already aborted
+      if (signal.aborted) {
+        reject(new DOMException('Aborted', 'AbortError'))
+        return
       }
+
+      // Listen for abort signal
+      const abortHandler = () => {
+        this.playerSelectionResolvers.delete(player.id)
+        reject(new DOMException('Aborted', 'AbortError'))
+      }
+      signal.addEventListener('abort', abortHandler, { once: true })
+
+      // Store resolver for this player
+      const resolverWrapper = () => {
+        if (this.isPlayerSwitchReady(player)) {
+          signal.removeEventListener('abort', abortHandler)
+          this.playerSelectionResolvers.delete(player.id)
+          resolve()
+        }
+      }
+      this.playerSelectionResolvers.set(player.id, resolverWrapper)
+    })
+  }
+
+  /**
+   * Resolve waiting promises for a specific player
+   */
+  private resolvePlayerSelection(playerId: playerId): void {
+    const resolver = this.playerSelectionResolvers.get(playerId)
+    if (resolver) {
+      resolver()
     }
   }
 
   public async cleanup() {
     this.clearListeners()
+
+    // Cancel any ongoing selections
+    this.cancelCurrentSelections()
+
     await this.phaseManager.cleanup()
 
     // Clean up timer manager
