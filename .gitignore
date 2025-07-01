@@ -27,3 +27,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+packages/web-ui/.eslintrc-auto-import.json
