@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.6.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.5.4...arcadia-eternity-v1.6.0) (2025-07-01)
+
+
+### ✨ Features
+
+* Add delayed and reactive AI decision timing support ([295c3a2](https://github.com/arcadia-eternity/arcadia-eternity/commit/295c3a26a2b8bf9b7c9284f7abb8279872750edc))
+
+
+### ⚡ Performance Improvements
+
+* setSelection and cancle Selection ([d5f49ff](https://github.com/arcadia-eternity/arcadia-eternity/commit/d5f49ff772660ede145d96d15eca93fd98cf41d7))
+
 ## [1.5.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.5.3...arcadia-eternity-v1.5.4) (2025-06-29)
 
 
