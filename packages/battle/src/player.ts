@@ -23,6 +23,12 @@ import { SkillPhase } from './phase/skill'
 import { SwitchPetPhase } from './phase/switch'
 import { RagePhase } from './phase/rage'
 import * as jsondiffpatch from 'jsondiffpatch'
+
+export enum AIDecisionTiming {
+  IMMEDIATE = 'immediate', // 立即决策（当前行为）
+  DELAYED = 'delayed', // 在Promise等待期间决策
+  REACTIVE = 'reactive', // 等待对方选择后决策
+}
 import type { Emitter } from 'mitt'
 
 export class Player {
@@ -327,7 +333,13 @@ export class Player {
 export class AIPlayer extends Player {
   private decisionPending = false
   private phaseChangeRegistered = false
-  constructor(name: string, id: playerId, team: Pet[]) {
+
+  constructor(
+    name: string,
+    id: playerId,
+    team: Pet[],
+    private decisionTiming: AIDecisionTiming = AIDecisionTiming.IMMEDIATE,
+  ) {
     super(name, id, team)
     this.registerPhaseListener()
   }
@@ -342,7 +354,11 @@ export class AIPlayer extends Player {
   private handleBattleMessage(message: BattleMessage) {
     if (message.type === BattleMessageType.TurnAction && this.battle?.currentPhase === BattlePhase.SelectionPhase) {
       this.decisionPending = true
-      this.processAIDecision()
+
+      // 只有IMMEDIATE模式的AI才立即决策
+      if (this.decisionTiming === AIDecisionTiming.IMMEDIATE) {
+        this.processAIDecision()
+      }
       return
     }
 
@@ -425,5 +441,45 @@ export class AIPlayer extends Player {
       throw new Error('No actions available for random selection')
     }
     return actions[Math.floor(Math.random() * actions.length)]
+  }
+
+  /**
+   * 检查AI是否需要延迟决策
+   */
+  public needsDelayedDecision(): boolean {
+    return this.decisionTiming !== AIDecisionTiming.IMMEDIATE && this.decisionPending && !this.selection
+  }
+
+  /**
+   * 延迟决策方法，在Promise等待期间调用
+   */
+  public async makeDelayedDecision(): Promise<PlayerSelection> {
+    if (!this.battle) {
+      throw new Error('AI Player not in battle')
+    }
+
+    // 对于REACTIVE模式，等待对方选择
+    if (this.decisionTiming === AIDecisionTiming.REACTIVE) {
+      await this.waitForOpponentSelection()
+    }
+
+    // 做出决策
+    const selection = this.makeAIDecision()
+    this.decisionPending = false
+    return selection
+  }
+
+  /**
+   * 等待对方玩家做出选择
+   */
+  private async waitForOpponentSelection(): Promise<void> {
+    if (!this.battle) return
+
+    const opponent = this.battle.playerA === this ? this.battle.playerB : this.battle.playerA
+
+    // 轮询等待对方选择（简单实现）
+    while (!opponent.selection && !this.battle.isBattleEnded()) {
+      await new Promise(resolve => setTimeout(resolve, 10)) // 10ms轮询间隔
+    }
   }
 }

@@ -30,3 +30,5 @@ coverage
 *.tsbuildinfo
 
 *storybook.log
+
+.eslintrc-auto-import.json

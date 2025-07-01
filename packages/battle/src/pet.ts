@@ -218,6 +218,10 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     context.battle.addMark(context)
   }
 
+  /**
+   * @deprecated Use RemoveMark directly instead of calling this method.
+   * This method is kept for backward compatibility but will be removed in future versions.
+   */
   public removeMark(context: RemoveMarkContext) {
     context.battle.removeMark(context)
   }
@@ -466,12 +470,14 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     }, {} as StatOnBattle)
   }
 
+  //TODO: migrate to new phase system
   public addStatStage(context: EffectContext<EffectTrigger>, statType: StatTypeWithoutHp, value: number) {
     const upMark = CreateStatStageMark(statType, value)
     this.addMark(new AddMarkContext(context, this, upMark, value))
   }
 
   // 清理能力等级时同时清除相关印记
+  //TODO: migrate to new phase system
   public clearStatStage(
     context: EffectContext<EffectTrigger>,
     cleanStageStrategy = CleanStageStrategy.positive,
@@ -509,6 +515,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   // 反转能力等级（正变负，负变正）
+  //TODO: migrate to new phase system
   public reverseStatStage(
     context: EffectContext<EffectTrigger>,
     cleanStageStrategy = CleanStageStrategy.positive,
@@ -547,6 +554,10 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     })
   }
 
+  /*
+   * @deprecated Use MarkTransferPhase directly instead of calling this method.
+   * This method is kept for backward compatibility but will be removed in future versions.
+   */
   public transferMarks(context: SwitchPetContext, ...marks: MarkInstance[]) {
     // Use MarkTransferPhase
     const transferPhase = new MarkTransferPhase(context.battle, context, this, marks)
