@@ -21,7 +21,7 @@ import { type EffectContainer } from './effect'
 import { type MarkOwner } from './entity'
 import { type MarkInstance } from './mark'
 import { Pet } from './pet'
-import { Player } from './player'
+import { Player, AIPlayer } from './player'
 import { SkillInstance } from './skill'
 import { AttributeSystem } from './attributeSystem'
 import * as jsondiffpatch from 'jsondiffpatch'
@@ -687,7 +687,7 @@ export class Battle extends Context implements MarkOwner {
    */
   private createPlayerSelectionPromise(player: Player, signal: AbortSignal): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      // Check if already has selection
+      // Check if already has selection (for immediate AI or human players who already chose)
       if (player.selection) {
         resolve()
         return
@@ -696,6 +696,27 @@ export class Battle extends Context implements MarkOwner {
       // Check if signal is already aborted
       if (signal.aborted) {
         reject(new DOMException('Aborted', 'AbortError'))
+        return
+      }
+
+      // Handle AI players that need delayed decision
+      if (player instanceof AIPlayer && player.needsDelayedDecision()) {
+        player
+          .makeDelayedDecision()
+          .then((selection: PlayerSelection) => {
+            if (signal.aborted) {
+              reject(new DOMException('Aborted', 'AbortError'))
+              return
+            }
+            // Set selection through battle to trigger proper notifications
+            this.setSelection(selection)
+            resolve()
+          })
+          .catch((error: Error) => {
+            if (!signal.aborted) {
+              reject(error)
+            }
+          })
         return
       }
 
@@ -730,6 +751,27 @@ export class Battle extends Context implements MarkOwner {
       // Check if signal is already aborted
       if (signal.aborted) {
         reject(new DOMException('Aborted', 'AbortError'))
+        return
+      }
+
+      // Handle AI players that need delayed decision for switch
+      if (player instanceof AIPlayer && player.needsDelayedDecision()) {
+        player
+          .makeDelayedDecision()
+          .then((selection: PlayerSelection) => {
+            if (signal.aborted) {
+              reject(new DOMException('Aborted', 'AbortError'))
+              return
+            }
+            // Set selection through battle to trigger proper notifications
+            this.setSelection(selection)
+            resolve()
+          })
+          .catch((error: Error) => {
+            if (!signal.aborted) {
+              reject(error)
+            }
+          })
         return
       }
 
