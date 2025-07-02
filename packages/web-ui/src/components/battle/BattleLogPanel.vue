@@ -11,7 +11,14 @@ import {
   type SkillMessage,
 } from '@arcadia-eternity/const'
 import i18next from 'i18next'
-import { logMessagesKey, petMapKey, skillMapKey, playerMapKey, markMapKey } from '@/symbol/battlelog'
+import {
+  logMessagesKey,
+  petMapKey,
+  skillMapKey,
+  playerMapKey,
+  markMapKey,
+  type TimestampedBattleMessage,
+} from '@/symbol/battlelog'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import { useBattleViewStore } from '@/stores/battleView'
 
@@ -83,7 +90,7 @@ const MISS_REASON_MAP: Record<string, string> = {
   immune: '技能免疫',
 }
 
-type FormattedBattleMessage = BattleMessage & {
+type FormattedBattleMessage = TimestampedBattleMessage & {
   icon: string
   content: string
   timestamp: string
@@ -110,7 +117,7 @@ function getStatArrows(stage: number): string {
 }
 
 function formatBattleMessage(
-  msg: BattleMessage,
+  msg: TimestampedBattleMessage,
   petMap?: Map<string, PetMessage>,
   skillMap?: Map<string, SkillMessage>,
   playerMap?: Map<string, PlayerMessage>,
@@ -303,7 +310,7 @@ function formatBattleMessage(
     ...msg,
     icon,
     content,
-    timestamp: new Date(Date.now()).toLocaleTimeString(),
+    timestamp: new Date(msg.receivedAt).toLocaleTimeString(),
   }
 }
 

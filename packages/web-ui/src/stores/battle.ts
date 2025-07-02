@@ -24,11 +24,16 @@ function isDeveloperBattleSystem(
   )
 }
 
+// 带时间戳的战斗消息类型
+export interface TimestampedBattleMessage extends BattleMessage {
+  receivedAt: number // 消息接收时的时间戳
+}
+
 export const useBattleStore = defineStore('battle', {
   state: () => ({
     battleInterface: null as IBattleSystem | null,
     battleState: null as BattleState | null,
-    log: [] as BattleMessage[],
+    log: [] as TimestampedBattleMessage[],
     availableActions: [] as PlayerSelection[],
     errorMessage: null as string | null,
     isBattleEnd: false,
@@ -187,7 +192,12 @@ export const useBattleStore = defineStore('battle', {
         console.warn('Current battleState:', this.battleState)
         // 跳过这个有问题的消息，继续处理
       }
-      this.log.push(msg)
+      // 添加时间戳并推入日志
+      const timestampedMsg: TimestampedBattleMessage = {
+        ...msg,
+        receivedAt: Date.now(),
+      }
+      this.log.push(timestampedMsg)
 
       // 更新已处理的序号
       if (msg.sequenceId !== undefined) {
@@ -455,9 +465,13 @@ export const useBattleStore = defineStore('battle', {
       const startIndex = Math.max(0, snapshot.messageIndex + 1)
       const endIndex = nextSnapshot ? nextSnapshot.messageIndex : this.replayMessages.length - 1
 
-      // 使用响应式方式更新log数组，而不是直接赋值
+      // 使用响应式方式更新log数组，为回放消息添加时间戳
       const newMessages = this.replayMessages.slice(startIndex, endIndex + 1)
-      this.log.splice(0, this.log.length, ...newMessages)
+      const timestampedMessages: TimestampedBattleMessage[] = newMessages.map(msg => ({
+        ...msg,
+        receivedAt: Date.now(), // 回放时使用当前时间作为接收时间
+      }))
+      this.log.splice(0, this.log.length, ...timestampedMessages)
 
       // 检查是否是战斗结束状态
       if (snapshot.type === 'battleEnd') {
