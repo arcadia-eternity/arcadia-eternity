@@ -281,7 +281,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useSmartDownload } from '@/composables/useSmartDownload'
+import { useSmartDownload } from '@/composition/useSmartDownload'
 import { getPlatformDisplayName, getFormatInfo } from '@/utils/platformDetection'
 import DownloadButton from '@/components/DownloadButton.vue'
 import FeatureRow from '@/components/FeatureRow.vue'
