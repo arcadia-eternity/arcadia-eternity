@@ -527,7 +527,7 @@ export class ConfigSystem {
   private getParentScope(scope: ScopeObject): ScopeObject | undefined {
     if ('owner' in scope && scope.owner) {
       return scope.owner as ScopeObject
-    } else if ('battle' in scope && scope.battle) {
+    } else if ('battle' in scope && scope.battle && !(scope instanceof Battle)) {
       return scope.battle as ScopeObject
     }
     return undefined

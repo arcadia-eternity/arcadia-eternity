@@ -186,7 +186,7 @@ export class ScriptLoader {
 export async function loadScripts(config: ScriptLoaderConfig): Promise<ScriptLoader> {
   const loader = new ScriptLoader(config)
 
-  if (typeof window === 'undefined') {
+  if ((typeof window as any) === 'undefined') {
     // Node.js环境
     if (config.scriptPaths && config.scriptPaths.length > 0) {
       for (const scriptPath of config.scriptPaths) {
