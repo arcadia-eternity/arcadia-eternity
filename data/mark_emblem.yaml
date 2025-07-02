@@ -215,3 +215,8 @@
   tags: [emblem]
   effect:
     - effect_emblem_dengxin_reduce_accuracy_5_percent_per_stack
+- id: mark_emblem_malui
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_add_mark_mabi_chance_5

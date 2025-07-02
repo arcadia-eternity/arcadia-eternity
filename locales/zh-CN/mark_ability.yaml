@@ -124,3 +124,6 @@ mark_ability_yexing:
 mark_ability_yeji:
   name: 夜寂
   description: 替换上场使环境变为夜幕并使自身获得不谐暗光
+mark_ability_lianji:
+  name: 连击
+  description: 使连击技能连击数+1

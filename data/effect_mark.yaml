@@ -1625,9 +1625,9 @@
       modifierType: percent
       value: 100
 
-# 气流涌动：每次使用非必杀非状态技能命中时消耗一层
-- id: effect_mark_qiliuyongdong_consume_stack_on_skill_use
-  trigger: OnHit
+# 气流涌动：每次使用非必杀非状态技能结束时消耗一层
+- id: effect_mark_consume_stack_on_skill_use
+  trigger: SkillUseEnd
   priority: 0
   consumesStacks: 1
   apply:
@@ -2906,3 +2906,49 @@
         evaluator:
           type: same
           value: Light
+# 闪电烙印：如果当前使用的技能为闪电烙印，消耗自身使自身获得麻痹
+- id: effect_mark_shandianluoyin_paralyze
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: addMark
+      target: self
+      mark:
+        type: entity:baseMark
+        value: mark_mabi
+    - type: destroyMark
+      target: mark
+  condition:
+    type: every
+    conditions:
+      - type: selfBeSkillTarget
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill.baseId
+        evaluator:
+          type: same
+          value: skill_shandianluoyin
+# 蓄电：使自身的电系技能威力提升70%
+- id: effect_mark_amplify_electric_skill_70
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addSkillAttributeModifier
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: dynamic
+            arg: element
+          evaluator:
+            type: same
+            value: Electric
+    attribute: power
+    modifierType: percent
+    value: 70

@@ -5198,3 +5198,108 @@
     - mark_ability_yeji
   emblem:
     - mark_emblem_dengxin
+- id: pet_xiaoba
+  num: 149
+  element: Electric
+  baseStats:
+    hp: 85
+    atk: 122
+    spa: 130
+    def: 114
+    spd: 114
+    spe: 111
+  genderRatio: [8, 2]
+  heightRange: [22, 27]
+  weightRange: [6, 11]
+  learnable_skills:
+    - skill_id: skill_kuaigong
+      level: 1
+      hidden: false
+    - skill_id: skill_leidian
+      level: 5
+      hidden: false
+    - skill_id: skill_julei
+      level: 10
+      hidden: false
+    - skill_id: skill_shandiandashe
+      level: 14
+      hidden: false
+    - skill_id: skill_dianguanghuoshi
+      level: 19
+      hidden: false
+    - skill_id: skill_leiguangshan
+      level: 22
+      hidden: false
+  ability:
+    - mark_ability_lianji
+  emblem:
+    - mark_emblem_malui
+- id: pet_batu
+  num: 150
+  element: Electric
+  baseStats:
+    hp: 175
+    atk: 167
+    spa: 180
+    def: 159
+    spd: 159
+    spe: 161
+  genderRatio: [8, 2]
+  heightRange: [62, 67]
+  weightRange: [28, 33]
+  learnable_skills:
+    - skill_id: skill_kuaigong
+      level: 1
+      hidden: false
+    - skill_id: skill_leidian
+      level: 5
+      hidden: false
+    - skill_id: skill_julei
+      level: 10
+      hidden: false
+    - skill_id: skill_shandiandashe
+      level: 14
+      hidden: false
+    - skill_id: skill_dianguanghuoshi
+      level: 19
+      hidden: false
+    - skill_id: skill_leiguangshan
+      level: 22
+      hidden: false
+    - skill_id: skill_leiguangqiu
+      level: 29
+      hidden: false
+    - skill_id: skill_xudian
+      level: 34
+      hidden: false
+    - skill_id: skill_tianleiji
+      level: 39
+      hidden: false
+    - skill_id: skill_shandianshoushu
+      level: 44
+      hidden: false
+    - skill_id: skill_shandianzhilian
+      level: 49
+      hidden: false
+    - skill_id: skill_shandianzhongji
+      level: 54
+      hidden: false
+    - skill_id: skill_dianshanleiming
+      level: 60
+      hidden: true
+    - skill_id: skill_shandianluoyin
+      level: 60
+      hidden: true
+    - skill_id: skill_shandianchongji
+      level: 60
+      hidden: true
+    - skill_id: skill_dianguangchongji
+      level: 60
+      hidden: true
+    - skill_id: skill_tianleijiangling
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_lianji
+  emblem:
+    - mark_emblem_malui

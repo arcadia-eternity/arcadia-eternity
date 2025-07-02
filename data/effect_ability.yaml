@@ -1097,3 +1097,25 @@
     mark:
       type: entity:baseMark
       value: mark_buxieanguang
+# 连击：使连击技能连击数+1
+- id: effect_ability_add_multihit_1_on_multihit_skill
+  trigger: BeforeMultiHit
+  priority: 0
+  apply:
+    type: addMultihitResult
+    target: usingSkillContext
+    value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: multihitResult
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 1

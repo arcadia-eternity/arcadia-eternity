@@ -223,3 +223,8 @@
   effect:
     - effect_ability_set_field_yemu_on_switch
     - effect_ability_add_mark_buxieanguang_on_switch
+- id: mark_ability_lianji
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_add_multihit_1_on_multihit_skill
