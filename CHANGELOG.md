@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.7.0...arcadia-eternity-v1.7.1) (2025-07-02)
+
+
+### ⚡ Performance Improvements
+
+* Enhance AttributeSystem cleanup and memory leak detection ([da57fd9](https://github.com/arcadia-eternity/arcadia-eternity/commit/da57fd9e3819927738650d7cee91d9136f1be99f))
+
 ## [1.7.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.6.0...arcadia-eternity-v1.7.0) (2025-07-02)
 
 
