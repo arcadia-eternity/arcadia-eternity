@@ -948,13 +948,27 @@ export class ConfigSystem {
    */
 
   /**
-   * Notify AttributeSystem of phase changes
+   * Notify AttributeSystem instances of phase changes
    */
   private notifyAttributeSystemPhaseChange(): void {
     // Use async import to avoid circular dependency issues
     import('./attributeSystem.js')
       .then(({ AttributeSystem }) => {
-        AttributeSystem.notifyPhaseChange()
+        // If this ConfigSystem is associated with a battle, notify only that battle's AttributeSystem instances
+        if (this.battleId) {
+          const battleInstances = AttributeSystem.getBattleInstances(this.battleId)
+          if (battleInstances) {
+            for (const instance of battleInstances) {
+              if (!instance.isInstanceDestroyed()) {
+                instance.notifyPhaseChange()
+              }
+            }
+          }
+        } else {
+          // For global ConfigSystem (backward compatibility), we need a different approach
+          // This should rarely happen in new code, but we'll handle it gracefully
+          this.logger.warn('Global ConfigSystem phase change notification - consider using battle-specific instances')
+        }
       })
       .catch(() => {
         // AttributeSystem not available, ignore

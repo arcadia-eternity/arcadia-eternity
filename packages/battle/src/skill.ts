@@ -240,6 +240,11 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
 
   setOwner(owner: Pet): void {
     this.owner = owner
+
+    // Set battleId for attribute system if owner has a battle
+    if (owner.owner?.battle) {
+      this.attributeSystem.setBattleId(owner.owner.battle.id)
+    }
   }
 
   getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[] {
