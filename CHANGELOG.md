@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.7.1...arcadia-eternity-v1.7.2) (2025-07-02)
+
+
+### ⚡ Performance Improvements
+
+* Refactor AttributeSystem phase change and cleanup logic ([d1bd985](https://github.com/arcadia-eternity/arcadia-eternity/commit/d1bd985eef1edc211e197353eeb98485b3541dc8))
+
 ## [1.7.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.7.0...arcadia-eternity-v1.7.1) (2025-07-02)
 
 

@@ -351,8 +351,8 @@ export class AttributeSystem<T extends AttributeData> {
   // Static reference to ConfigSystem to avoid circular dependency
   private static configSystemGetter: (() => any) | null = null
 
-  // Phase change notification subject
-  private static phaseChangeSubject = new Subject<void>()
+  // Instance-specific phase change notification subject
+  private phaseChangeSubject = new Subject<void>()
 
   // Circular dependency detection and prevention
   private calculationStack = new Set<keyof T>()
@@ -394,10 +394,10 @@ export class AttributeSystem<T extends AttributeData> {
   }
 
   /**
-   * Notify all AttributeSystem instances that phase state has changed
+   * Notify this AttributeSystem instance that phase state has changed
    */
-  static notifyPhaseChange(): void {
-    AttributeSystem.phaseChangeSubject.next()
+  notifyPhaseChange(): void {
+    this.phaseChangeSubject.next()
   }
 
   /**
@@ -414,7 +414,7 @@ export class AttributeSystem<T extends AttributeData> {
     const globalKey = `${this.objectId}.${String(key)}`
 
     // Check if this attribute is already being calculated in any object
-    for (const [, stack] of AttributeSystem.globalCalculationStack) {
+    for (const [objectId, stack] of AttributeSystem.globalCalculationStack) {
       if (stack.has(globalKey)) {
         return true
       }
@@ -467,6 +467,16 @@ export class AttributeSystem<T extends AttributeData> {
     if (typeof baseValue === 'number') return 0
     if (typeof baseValue === 'boolean') return false
     return ''
+  }
+
+  /**
+   * Track dependency between attributes for cycle detection
+   */
+  private trackDependency(from: keyof T, to: keyof T): void {
+    if (!this.dependencyGraph.has(from)) {
+      this.dependencyGraph.set(from, new Set())
+    }
+    this.dependencyGraph.get(from)!.add(to)
   }
 
   /**
@@ -538,7 +548,7 @@ export class AttributeSystem<T extends AttributeData> {
     const computed$ = combineLatest([
       this.baseAttributes.get(key)!,
       this.modifiers.get(key)!,
-      AttributeSystem.phaseChangeSubject.pipe(
+      this.phaseChangeSubject.pipe(
         startWith(Date.now()), // Start with initial value
         map(() => Date.now()), // Use timestamp to ensure emission
         distinctUntilChanged(),
@@ -558,7 +568,7 @@ export class AttributeSystem<T extends AttributeData> {
 
         // Combine base value with all modifier values
         return combineLatest([of(base), of(modifiers), ...modifierValueObservables]).pipe(
-          map(([baseValue, modifierList]) => {
+          map(([baseValue, modifierList, ...modifierValues]) => {
             return this.calculateAttributeValueSafely(key, baseValue, modifierList)
           }),
         )
@@ -1062,41 +1072,6 @@ export class AttributeSystem<T extends AttributeData> {
   }
 
   /**
-   * Force cleanup of all static references and registries
-   * This method should be called when you want to completely reset the AttributeSystem state
-   * WARNING: This will destroy ALL AttributeSystem instances across all battles
-   */
-  static forceGlobalCleanup(): number {
-    let totalCleaned = 0
-
-    // Destroy all instances in the registry
-    const instancesToDestroy = Array.from(AttributeSystem.instanceRegistry)
-    for (const instance of instancesToDestroy) {
-      if (!instance.isDestroyed) {
-        instance.destroy()
-        totalCleaned++
-      }
-    }
-
-    // Clear all static registries
-    AttributeSystem.instanceRegistry.clear()
-    AttributeSystem.battleRegistry.clear()
-    AttributeSystem.globalCalculationStack.clear()
-    AttributeSystem.globalDependencyGraph.clear()
-
-    // Complete the phase change subject to prevent memory leaks
-    if (AttributeSystem.phaseChangeSubject && !AttributeSystem.phaseChangeSubject.closed) {
-      AttributeSystem.phaseChangeSubject.complete()
-      // Create a new subject for future use
-      AttributeSystem.phaseChangeSubject = new Subject<void>()
-    }
-
-    const logger = createChildLogger('AttributeSystem')
-    logger.debug(`Force global cleanup completed: destroyed ${totalCleaned} instances`)
-    return totalCleaned
-  }
-
-  /**
    * Get this object's ID
    */
   getObjectId(): string {
@@ -1171,6 +1146,9 @@ export class AttributeSystem<T extends AttributeData> {
       baseSubject.complete()
     }
 
+    // Clean up phase change subject
+    this.phaseChangeSubject.complete()
+
     // Clear all maps
     this.baseAttributes.clear()
     this.modifiers.clear()
@@ -1182,7 +1160,7 @@ export class AttributeSystem<T extends AttributeData> {
     this.fallbackValues.clear()
     this.calculationDepthCounter.clear()
 
-    // Remove from global tracking - more thorough cleanup
+    // Remove from global tracking
     AttributeSystem.globalCalculationStack.delete(this.objectId)
 
     // Remove from instance registry
@@ -1200,36 +1178,14 @@ export class AttributeSystem<T extends AttributeData> {
       }
     }
 
-    // Clean up global dependency graph entries for this object - more thorough cleanup
+    // Clean up global dependency graph entries for this object
     const keysToDelete: string[] = []
-    const dependenciesToDelete: string[] = []
-
-    // Find all keys that start with this object's ID
-    for (const [key, dependencies] of AttributeSystem.globalDependencyGraph) {
+    for (const [key, _] of AttributeSystem.globalDependencyGraph) {
       if (key.startsWith(`${this.objectId}.`)) {
         keysToDelete.push(key)
-      } else {
-        // Also remove references to this object from other objects' dependencies
-        const dependenciesToRemove: string[] = []
-        for (const dep of dependencies) {
-          if (dep.startsWith(`${this.objectId}.`)) {
-            dependenciesToRemove.push(dep)
-          }
-        }
-        // Remove dependencies that reference this object
-        dependenciesToRemove.forEach(dep => dependencies.delete(dep))
-
-        // If the dependency set becomes empty, mark the key for deletion
-        if (dependencies.size === 0) {
-          dependenciesToDelete.push(key)
-        }
       }
     }
-
-    // Delete all keys related to this object
     keysToDelete.forEach(key => AttributeSystem.globalDependencyGraph.delete(key))
-    // Delete empty dependency entries
-    dependenciesToDelete.forEach(key => AttributeSystem.globalDependencyGraph.delete(key))
 
     this.logger.debug(`AttributeSystem ${this.objectId} destroyed successfully`)
   }
@@ -1267,7 +1223,6 @@ export class AttributeSystem<T extends AttributeData> {
     destroyedInstances: number
     globalCalculationStackSize: number
     globalDependencyGraphSize: number
-    battleRegistrySize: number
     memoryUsageByInstance: ReturnType<AttributeSystem<any>['getMemoryStats']>[]
   } {
     let activeCount = 0
@@ -1291,104 +1246,7 @@ export class AttributeSystem<T extends AttributeData> {
       destroyedInstances: destroyedCount,
       globalCalculationStackSize: AttributeSystem.globalCalculationStack.size,
       globalDependencyGraphSize: AttributeSystem.globalDependencyGraph.size,
-      battleRegistrySize: AttributeSystem.battleRegistry.size,
       memoryUsageByInstance: instanceStats,
-    }
-  }
-
-  /**
-   * Detect potential memory leaks in the AttributeSystem
-   */
-  static detectMemoryLeaks(): {
-    hasLeaks: boolean
-    destroyedInstancesInRegistry: number
-    orphanedGlobalCalculationStacks: number
-    orphanedGlobalDependencies: number
-    emptyBattleRegistries: number
-    recommendations: string[]
-  } {
-    const recommendations: string[] = []
-    let hasLeaks = false
-
-    // Check for destroyed instances still in registry
-    let destroyedInstancesInRegistry = 0
-    for (const instance of AttributeSystem.instanceRegistry) {
-      if (instance.isInstanceDestroyed()) {
-        destroyedInstancesInRegistry++
-        hasLeaks = true
-      }
-    }
-
-    if (destroyedInstancesInRegistry > 0) {
-      recommendations.push(
-        `Call AttributeSystem.forceCleanupDestroyedInstances() to remove ${destroyedInstancesInRegistry} destroyed instances from registry`,
-      )
-    }
-
-    // Check for orphaned global calculation stacks
-    let orphanedGlobalCalculationStacks = 0
-    for (const [objectId] of AttributeSystem.globalCalculationStack) {
-      // Check if this objectId corresponds to any active instance
-      const hasActiveInstance = Array.from(AttributeSystem.instanceRegistry).some(
-        instance => instance.getObjectId() === objectId && !instance.isInstanceDestroyed(),
-      )
-      if (!hasActiveInstance) {
-        orphanedGlobalCalculationStacks++
-        hasLeaks = true
-      }
-    }
-
-    if (orphanedGlobalCalculationStacks > 0) {
-      recommendations.push(
-        `Found ${orphanedGlobalCalculationStacks} orphaned global calculation stacks. Consider calling AttributeSystem.clearGlobalTracking()`,
-      )
-    }
-
-    // Check for orphaned global dependencies
-    let orphanedGlobalDependencies = 0
-    for (const [key] of AttributeSystem.globalDependencyGraph) {
-      const objectId = key.split('.')[0]
-      const hasActiveInstance = Array.from(AttributeSystem.instanceRegistry).some(
-        instance => instance.getObjectId() === objectId && !instance.isInstanceDestroyed(),
-      )
-      if (!hasActiveInstance) {
-        orphanedGlobalDependencies++
-        hasLeaks = true
-      }
-    }
-
-    if (orphanedGlobalDependencies > 0) {
-      recommendations.push(
-        `Found ${orphanedGlobalDependencies} orphaned global dependencies. Consider calling AttributeSystem.clearGlobalTracking()`,
-      )
-    }
-
-    // Check for empty battle registries
-    let emptyBattleRegistries = 0
-    for (const [, instances] of AttributeSystem.battleRegistry) {
-      if (instances.size === 0) {
-        emptyBattleRegistries++
-        hasLeaks = true
-      }
-    }
-
-    if (emptyBattleRegistries > 0) {
-      recommendations.push(
-        `Found ${emptyBattleRegistries} empty battle registries. These should be cleaned up automatically.`,
-      )
-    }
-
-    if (!hasLeaks) {
-      recommendations.push('No memory leaks detected in AttributeSystem')
-    }
-
-    return {
-      hasLeaks,
-      destroyedInstancesInRegistry,
-      orphanedGlobalCalculationStacks,
-      orphanedGlobalDependencies,
-      emptyBattleRegistries,
-      recommendations,
     }
   }
 
@@ -1440,10 +1298,7 @@ export class AttributeSystem<T extends AttributeData> {
     }
 
     let cleanedCount = 0
-    // Create a copy of the set to avoid modification during iteration
-    const instancesToCleanup = Array.from(battleInstances)
-
-    for (const instance of instancesToCleanup) {
+    for (const instance of battleInstances) {
       if (!instance.isDestroyed) {
         instance.destroy()
         cleanedCount++
@@ -1452,9 +1307,6 @@ export class AttributeSystem<T extends AttributeData> {
 
     // Remove the battle from registry
     AttributeSystem.battleRegistry.delete(battleId)
-
-    // Force cleanup of any remaining global references for this battle
-    AttributeSystem.forceCleanupGlobalReferencesForBattle(battleId)
 
     const logger = createChildLogger('AttributeSystem')
     logger.debug(`Cleaned up ${cleanedCount} AttributeSystem instances for battle ${battleId}`)
@@ -1476,54 +1328,13 @@ export class AttributeSystem<T extends AttributeData> {
   }
 
   /**
-   * Force cleanup of global references for a specific battle
-   */
-  static forceCleanupGlobalReferencesForBattle(battleId: string): void {
-    // Clean up any remaining global calculation stack entries
-    const stackKeysToDelete: string[] = []
-    for (const [objectId, stack] of AttributeSystem.globalCalculationStack) {
-      if (objectId.includes(battleId) || stack.size === 0) {
-        stackKeysToDelete.push(objectId)
-      }
-    }
-    stackKeysToDelete.forEach(key => AttributeSystem.globalCalculationStack.delete(key))
-
-    // Clean up any remaining global dependency graph entries
-    const depKeysToDelete: string[] = []
-    for (const [key, dependencies] of AttributeSystem.globalDependencyGraph) {
-      if (key.includes(battleId) || dependencies.size === 0) {
-        depKeysToDelete.push(key)
-      } else {
-        // Remove dependencies that might reference objects from this battle
-        const depsToRemove: string[] = []
-        for (const dep of dependencies) {
-          if (dep.includes(battleId)) {
-            depsToRemove.push(dep)
-          }
-        }
-        depsToRemove.forEach(dep => dependencies.delete(dep))
-
-        // If the dependency set becomes empty, mark for deletion
-        if (dependencies.size === 0) {
-          depKeysToDelete.push(key)
-        }
-      }
-    }
-    depKeysToDelete.forEach(key => AttributeSystem.globalDependencyGraph.delete(key))
-  }
-
-  /**
    * Clean up all battles and their associated instances
    */
   static cleanupAllBattles(): number {
     let totalCleaned = 0
 
-    // Create a copy of the registry to avoid modification during iteration
-    const battlesToCleanup = Array.from(AttributeSystem.battleRegistry.entries())
-
-    for (const [, instances] of battlesToCleanup) {
-      const instancesToCleanup = Array.from(instances)
-      for (const instance of instancesToCleanup) {
+    for (const [, instances] of AttributeSystem.battleRegistry) {
+      for (const instance of instances) {
         if (!instance.isDestroyed) {
           instance.destroy()
           totalCleaned++
@@ -1532,10 +1343,6 @@ export class AttributeSystem<T extends AttributeData> {
     }
 
     AttributeSystem.battleRegistry.clear()
-
-    // Force cleanup of all global references
-    AttributeSystem.clearGlobalTracking()
-
     const logger = createChildLogger('AttributeSystem')
     logger.debug(`Cleaned up ${totalCleaned} AttributeSystem instances from all battles`)
     return totalCleaned

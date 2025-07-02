@@ -315,10 +315,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       this.skills = this.baseSkills.map(s => new SkillInstance(s))
       this.skills.forEach(skill => {
         skill.setOwner(this)
-        // Set battleId for skill attribute systems
-        if (player.battle) {
-          skill.attributeSystem.setBattleId(player.battle.id)
-        }
+        // battleId is now set automatically in skill.setOwner()
       })
     }
 
