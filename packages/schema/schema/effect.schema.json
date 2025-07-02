@@ -27,6 +27,7 @@
                   "OnMiss",
                   "AfterAttacked",
                   "OnDefeat",
+                  "SkillUseEnd",
                   "OnBeforeCalculateDamage",
                   "OnDamage",
                   "Shield",

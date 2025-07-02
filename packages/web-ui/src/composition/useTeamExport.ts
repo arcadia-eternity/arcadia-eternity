@@ -1,4 +1,3 @@
-// src/composables/useTeamExport.ts
 import { ElMessage } from 'element-plus'
 import { stringify } from 'yaml'
 import type { PetSchemaType } from '@arcadia-eternity/schema'

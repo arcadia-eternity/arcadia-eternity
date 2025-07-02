@@ -15,6 +15,7 @@ export enum EffectTrigger {
   OnMiss = 'OnMiss',
   AfterAttacked = 'AfterAttacked',
   OnDefeat = 'OnDefeat',
+  SkillUseEnd = 'SkillUseEnd',
 
   //以下context的parent一定是DamageContext
   OnBeforeCalculateDamage = 'OnBeforeCalculateDamage',

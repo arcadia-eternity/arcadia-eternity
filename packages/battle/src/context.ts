@@ -637,6 +637,7 @@ export type TriggerContextMap = {
   [EffectTrigger.OnMiss]: UseSkillContext
   [EffectTrigger.AfterAttacked]: UseSkillContext
   [EffectTrigger.OnDefeat]: UseSkillContext
+  [EffectTrigger.SkillUseEnd]: UseSkillContext
 
   [EffectTrigger.OnBeforeCalculateDamage]: DamageContext
   [EffectTrigger.OnDamage]: DamageContext

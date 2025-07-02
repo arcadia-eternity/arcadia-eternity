@@ -562,3 +562,12 @@ mark_yingfeng:
 mark_buxieanguang:
   name: 不谐暗光
   description: 受到光系伤害减半 持续1回合
+mark_shandianshoushu:
+  name: 闪电守护【🛡️】
+  description: 抵挡150点伤害
+mark_shandianluoyin:
+  name: 闪电烙印
+  description: 使下一个受到的闪电烙印会施加麻痹
+mark_xudian:
+  name: 蓄电
+  description: 使电系技能的威力增加70%

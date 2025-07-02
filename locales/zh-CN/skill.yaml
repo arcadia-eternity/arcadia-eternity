@@ -1079,7 +1079,6 @@ skill_tianleishan:
 skill_shanyue:
   name: 闪跃
   description: 使自身获得闪避
-# 冰伊特技能
 skill_shenjie:
   name: 深结
   description: 40%使对手冰冻
@@ -1735,3 +1734,51 @@ skill_yingfeng:
 skill_yijieheian:
   name: 异界黑暗
   description: 先制+1 使自身获得50点受伤增加 150点伤害增加
+skill_leidian:
+  name: 雷电
+  description: 5%弱化对手特防1级
+skill_julei:
+  name: 聚雷
+  description: 强化自身特攻1级
+skill_shandiandashe:
+  name: 闪电打击
+  description: 连击2~3次 每次连击10%使对手麻痹
+skill_dianguanghuoshi:
+  name: 电光火石
+  description: 先制+1 50%强化自身速度1级
+skill_leiguangshan:
+  name: 雷光闪
+  description: 对手麻痹时威力2倍
+skill_leiguangqiu:
+  name: 雷光球
+  description: 50%弱化对手特防1级
+skill_xudian:
+  name: 蓄电
+  description: 使自身获得蓄电
+skill_tianleiji:
+  name: 天雷击
+  description: 连击2~3次 每次连击10%使对手昏迷
+skill_shandianshoushu:
+  name: 闪电守护
+  description: 使自身获得闪电守护
+skill_shandianzhilian:
+  name: 闪电之链
+  description: 对手麻痹时50%使对手昏迷
+skill_shandianzhongji:
+  name: 闪电重击
+  description: 对手麻痹时必中
+skill_dianshanleiming:
+  name: 电闪雷鸣
+  description: 必中 连击3次 每次连击10%使对手麻痹 对手麻痹时50%使对手昏迷
+skill_shandianluoyin:
+  name: 闪电烙印
+  description: 30%使对手麻痹 失败时使对手获得闪电烙印
+skill_shandianchongji:
+  name: 闪电冲击
+  description: 对手麻痹时威力2倍
+skill_dianguangchongji:
+  name: 电光冲击
+  description: 对手麻痹时威力2倍
+skill_tianleijiangling:
+  name: 天雷降临
+  description: 必中 对手麻痹时威力2倍 对手昏迷时2倍

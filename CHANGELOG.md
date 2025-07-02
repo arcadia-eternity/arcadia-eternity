@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.6.0...arcadia-eternity-v1.7.0) (2025-07-02)
+
+
+### ✨ Features
+
+* **netpet:** 巴图 ([781c582](https://github.com/arcadia-eternity/arcadia-eternity/commit/781c582fd17dc61093290e9b502d5d30fe90b0b2))
+
+
+### 🐛 Bug Fixes
+
+* Add SkillUseEnd to TriggerContextMap ([2e24a93](https://github.com/arcadia-eternity/arcadia-eternity/commit/2e24a938e8dcad125ae1fa9a5f34df3040390d12))
+
 ## [1.6.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.5.4...arcadia-eternity-v1.6.0) (2025-07-01)
 
 

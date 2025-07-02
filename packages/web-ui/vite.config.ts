@@ -10,6 +10,7 @@ import Components from 'unplugin-vue-components/vite'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import tailwindcss from '@tailwindcss/vite'
+import { execSync } from 'node:child_process'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -18,7 +19,9 @@ export default defineConfig({
     'import.meta.env.VITE_IS_TAURI': `${process.env.VITE_IS_TAURI === 'true'}`,
     // 注入构建时间和commit hash
     'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString()),
-    'import.meta.env.VITE_COMMIT_HASH': JSON.stringify(process.env.GITHUB_SHA || process.env.COMMIT_HASH || 'dev'),
+    'import.meta.env.VITE_COMMIT_HASH': JSON.stringify(
+      process.env.GITHUB_SHA || process.env.COMMIT_HASH || String(execSync('git rev-parse --short HEAD')) || 'dev',
+    ),
     // 下载源配置
     'import.meta.env.VITE_DOWNLOAD_SOURCES': JSON.stringify(process.env.VITE_DOWNLOAD_SOURCES || 'github'),
     'import.meta.env.VITE_CDN_BASE_URL': JSON.stringify(process.env.VITE_CDN_BASE_URL || ''),

@@ -1144,7 +1144,7 @@
     inheritOnFaint: false
   effect:
     - effect_mark_double_rage_cost_double_damage_non_climax
-    - effect_mark_qiliuyongdong_consume_stack_on_skill_use
+    - effect_mark_consume_stack_on_skill_use
 - id: mark_fengzhilingyu
   config:
     duration: -1
@@ -1780,3 +1780,39 @@
     keepOnSwitchOut: false
   effect:
     - effect_mark_buxieanguang_reduce_light_damage_half # TODO
+- id: mark_shandianshoushu
+  config:
+    persistent: true
+    stackable: true
+    stackStrategy: max
+    maxStacks: 150
+    destroyable: true
+    duration: -1
+    keepOnSwitchOut: true
+    isShield: true
+  tags: []
+- id: mark_shandianluoyin
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: none
+    destroyable: true
+    keepOnSwitchOut: true
+  tags: []
+  effect:
+    - effect_mark_shandianluoyin_paralyze
+- id: mark_xudian
+  config:
+    persistent: true
+    stackable: true
+    stackStrategy: max
+    destroyable: true
+    duration: -1
+    maxStacks: 2
+    keepOnSwitchOut: true
+  tags: []
+  effect:
+    - effect_mark_amplify_electric_skill_70
+    - effect_mark_consume_stack_on_skill_use

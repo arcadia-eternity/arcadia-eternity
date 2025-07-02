@@ -271,3 +271,9 @@ pet_nilu:
 pet_nigulasi:
   name: 尼古拉斯
   description: 神出鬼没的尼禄 收集了四个符文后变身成了尼古拉斯
+pet_xiaoba:
+  name: 小巴
+  description: 可以说是被眷顾的精灵 天生就具有超强的能力
+pet_batu:
+  name: 巴图
+  description: 萨伦帝国士官最为喜爱的精灵之一 是作战时的理想伙伴

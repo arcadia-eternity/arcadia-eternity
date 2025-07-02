@@ -122,3 +122,6 @@ mark_emblem_jihuo:
 mark_emblem_dengxin:
   name: 灯芯
   description: 每层黑暗物质使对手的命中率额外降低5%
+mark_emblem_malui:
+  name: 麻痹
+  description: 使技能所附带的麻痹几率提高5%
