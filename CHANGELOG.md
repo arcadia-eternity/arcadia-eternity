@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.7.2...arcadia-eternity-v1.7.3) (2025-07-03)
+
+
+### 🐛 Bug Fixes
+
+* Add timestamp to battle log messages ([721585e](https://github.com/arcadia-eternity/arcadia-eternity/commit/721585ef1645cc8828dd2b3ca9e5beecddb88a06))
+* overridehp ([cd9aa29](https://github.com/arcadia-eternity/arcadia-eternity/commit/cd9aa29a6b557064b84129987ff30954b8016d32))
+
 ## [1.7.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.7.1...arcadia-eternity-v1.7.2) (2025-07-02)
 
 
