@@ -2076,6 +2076,11 @@
           operator: '<'
           value: 3
   apply:
+    - type: addMark
+      target: self
+      mark:
+        type: entity:baseMark
+        value: mark_kongju
     - type: consumeStacks
       target: mark
       value:
@@ -2087,12 +2092,6 @@
               arg:
                 type: base
                 arg: stack
-    - type: addMark
-      target: self
-      mark:
-        type: entity:baseMark
-        value: mark_kongju
-
 # 后空翻：闪避物理攻击
 - id: effect_mark_evade_physical_attacks
   trigger: BeforeUseSkillCheck
