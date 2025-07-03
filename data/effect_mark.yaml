@@ -2734,7 +2734,7 @@
         chain:
           - type: select
             arg:
-              type: dynamic
+              type: base
               arg: maxHp
           - type: divide
             arg: 2

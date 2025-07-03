@@ -10,10 +10,17 @@ import {
   type StatTypeOnBattle,
   type baseSkillId,
 } from '@arcadia-eternity/const'
-import { logMessagesKey, petMapKey, skillMapKey, playerMapKey, markMapKey } from '@/symbol/battlelog'
+import {
+  logMessagesKey,
+  petMapKey,
+  skillMapKey,
+  playerMapKey,
+  markMapKey,
+  type TimestampedBattleMessage,
+} from '@/symbol/battlelog'
 
 interface StoryProps {
-  messages: BattleMessage[]
+  messages: TimestampedBattleMessage[]
 }
 
 const meta: Meta<StoryProps> = {
@@ -77,6 +84,7 @@ export const SingleMessage: Story = {
               message: '[战斗] 战斗开始！',
             },
             stateDelta: {},
+            receivedAt: Date.now(),
           },
         ])
         provide(petMapKey, new Map())
@@ -104,6 +112,7 @@ export const MultipleMessages: Story = {
               message: '[战斗] 战斗开始！',
             },
             stateDelta: {},
+            receivedAt: Date.now() - 3000,
           },
           {
             sequenceId: 2,
@@ -116,6 +125,7 @@ export const MultipleMessages: Story = {
               rage: 30,
             },
             stateDelta: {},
+            receivedAt: Date.now() - 2000,
           },
           {
             sequenceId: 3,
@@ -127,6 +137,7 @@ export const MultipleMessages: Story = {
               reason: '技能效果',
             },
             stateDelta: {},
+            receivedAt: Date.now() - 1000,
           },
         ])
         provide(petMapKey, new Map())
@@ -154,7 +165,9 @@ export const LongMessages: Story = {
             data: {
               message: `[战斗] 这是第${i + 1}条测试消息，用于测试滚动条功能`,
             },
-          })) as BattleMessage[],
+            stateDelta: {},
+            receivedAt: Date.now() - (20 - i) * 1000, // 每条消息间隔1秒
+          })) as TimestampedBattleMessage[],
         )
         provide(petMapKey, new Map())
         provide(skillMapKey, new Map())
