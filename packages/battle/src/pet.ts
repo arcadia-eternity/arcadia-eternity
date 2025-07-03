@@ -89,7 +89,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     public readonly weight?: number,
     public readonly height?: number,
     gender?: Gender,
-    public readonly maxHp?: number, //可以额外手动设置hp
+    public readonly overrideMaxHp?: number, //可以额外手动设置hp
   ) {
     this._base = originalSpecies
 
@@ -288,6 +288,9 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   private calculateMaxHp(): number {
+    if (this.overrideMaxHp !== undefined) {
+      return this.overrideMaxHp
+    }
     const baseStat = this.base.baseStats.hp
     const level = this.level
     const iv = this.ivs.hp
