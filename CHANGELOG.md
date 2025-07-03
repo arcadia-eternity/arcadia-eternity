@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.7.3...arcadia-eternity-v1.7.4) (2025-07-03)
+
+
+### 🐛 Bug Fixes
+
+* Reorder addMark and consumeStacks actions in effect_mark.yaml ([e72f782](https://github.com/arcadia-eternity/arcadia-eternity/commit/e72f78269959c7c80b098e6fa02c5938e29afcb1))
+* Reorder consumeStacks and dealDamage actions ([04e42a1](https://github.com/arcadia-eternity/arcadia-eternity/commit/04e42a13312d15c53e13e1fc3ff5b17eef365edc))
+
 ## [1.7.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.7.2...arcadia-eternity-v1.7.3) (2025-07-03)
 
 
