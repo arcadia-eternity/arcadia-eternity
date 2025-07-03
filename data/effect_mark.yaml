@@ -2175,17 +2175,17 @@
           operator: '>='
           value: 100
   apply:
-    - type: consumeStacks
-      target: mark
-      value:
-        type: raw:number
-        configId: yinbo_consume_stacks_value
-        value: 100
     - type: dealDamage
       target: self
       value:
         type: raw:number
         configId: yinbo_damage_value
+        value: 100
+    - type: consumeStacks
+      target: mark
+      value:
+        type: raw:number
+        configId: yinbo_consume_stacks_value
         value: 100
 
 # 噪音：下一次使用技能的命中率减少该印记的层数
