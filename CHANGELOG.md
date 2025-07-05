@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.5](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.7.4...arcadia-eternity-v1.7.5) (2025-07-05)
+
+
+### 🐛 Bug Fixes
+
+* Add opponent mark check to Yinbo skill conditions ([f245224](https://github.com/arcadia-eternity/arcadia-eternity/commit/f2452243e4e04dbc499f7c9fc6f458ddcaf39e66))
+
 ## [1.7.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.7.3...arcadia-eternity-v1.7.4) (2025-07-03)
 
 
