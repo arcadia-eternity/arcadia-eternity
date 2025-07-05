@@ -6061,7 +6061,22 @@
               type: same
               value: mark_yinbo
   condition:
-    type: selfUseSkill
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_yinbo
+        evaluator:
+          type: exist
 # 消耗对方的音波标记，为己方添加等同于音波标记层数的音波屏障
 - id: effect_skill_consume_opponent_yinbo_add_yinbopingzhang
   trigger: OnHit
@@ -6100,8 +6115,22 @@
               type: same
               value: mark_yinbo
   condition:
-    type: selfUseSkill
-
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_yinbo
+        evaluator:
+          type: exist
 # 消耗对方的音波标记，给对方造成音波标记层数*2的伤害
 - id: effect_skill_consume_opponent_yinbo_damage_2x
   trigger: OnHit
@@ -6141,7 +6170,22 @@
               type: same
               value: mark_yinbo
   condition:
-    type: selfUseSkill
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_yinbo
+        evaluator:
+          type: exist
 # 给对方添加音之网
 - id: effect_skill_add_mark_opponent_yinzhiwang
   trigger: OnHit
