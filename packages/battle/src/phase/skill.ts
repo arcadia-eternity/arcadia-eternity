@@ -1,8 +1,9 @@
 import { EffectTrigger, Category, BattleMessageType } from '@arcadia-eternity/const'
 import { SynchronousPhase } from './base'
-import { UseSkillContext, DamageContext, TurnContext } from '../context'
+import { UseSkillContext, TurnContext } from '../context'
 import { MarkCleanupPhase } from './MarkCleanupPhase'
 import { RagePhase } from './rage'
+import { DamagePhase } from './damage'
 import type { Battle } from '../battle'
 import type { Player } from '../player'
 import type { Pet } from '../pet'
@@ -139,7 +140,9 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
           if (context.crit) battle.applyEffects(context, EffectTrigger.OnCritPreDamage)
           battle.applyEffects(context, EffectTrigger.PreDamage)
 
-          const damageContext = new DamageContext(
+          // Create and execute damage phase
+          const damagePhase = new DamagePhase(
+            battle,
             context,
             context.pet,
             context.actualTarget,
@@ -154,29 +157,32 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
             undefined,
             context.element,
           )
+          battle.phaseManager.registerPhase(damagePhase)
+          battle.phaseManager.executePhase(damagePhase.id)
 
-          // Apply damage
-          context.actualTarget.damage(damageContext)
-
-          // Target gains rage from taking damage
-          const gainedRage = Math.floor((damageContext.damageResult * 49) / context.actualTarget.stat.maxHp)
-          const damageRagePhase = new RagePhase(
-            battle,
-            context,
-            context.actualTarget.owner!,
-            'damage',
-            'add',
-            gainedRage,
-          )
-          battle.phaseManager.registerPhase(damageRagePhase)
-          battle.phaseManager.executePhase(damageRagePhase.id)
+          // Only proceed with damage-related effects if damage was not prevented
+          const damageContext = damagePhase.context
+          if (damageContext && damageContext.available) {
+            // Target gains rage from taking damage
+            const gainedRage = Math.floor((damageContext.damageResult * 49) / context.actualTarget.stat.maxHp)
+            const damageRagePhase = new RagePhase(
+              battle,
+              context,
+              context.actualTarget.owner!,
+              'damage',
+              'add',
+              gainedRage,
+            )
+            battle.phaseManager.registerPhase(damageRagePhase)
+            battle.phaseManager.executePhase(damageRagePhase.id)
+          }
         }
 
         battle.applyEffects(context, EffectTrigger.OnHit) // Trigger hit effects
       }
     }
 
-    // Hit reward rage for non-status moves
+    // Hit reward rage for non-status moves - only requires hit, not damage
     if (context.category !== Category.Status && context.hitResult) {
       const hitRagePhase = new RagePhase(battle, context, context.origin, 'skillHit', 'add', 15)
       battle.phaseManager.registerPhase(hitRagePhase)

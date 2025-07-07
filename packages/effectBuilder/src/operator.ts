@@ -36,6 +36,7 @@ import {
   DurationType,
   StatLevelMarkInstanceImpl,
   type BattlePhaseBase,
+  DamagePhase,
 } from '@arcadia-eternity/battle'
 import { Observable } from 'rxjs'
 import {
@@ -72,7 +73,12 @@ export const Operators = {
     (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
       const _value = GetValueFromSource(context, value)
       if (_value.length === 0) return
-      targets.forEach(p => p.damage(new DamageContext(context, context.source, p, _value[0])))
+      targets.forEach(p => {
+        // Use DamagePhase directly instead of Pet.damage
+        const damagePhase = new DamagePhase(context.battle, context, context.source, p, _value[0])
+        context.battle.phaseManager.registerPhase(damagePhase)
+        context.battle.phaseManager.executePhase(damagePhase.id)
+      })
     },
 
   heal:
