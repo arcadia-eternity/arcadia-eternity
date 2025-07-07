@@ -435,6 +435,7 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       target: selectorDSLSchema,
       statType: valueSchema,
       value: valueSchema,
+      strategy: valueSchema.optional(),
     }),
     z.object({
       type: z.literal('clearStatStage'),

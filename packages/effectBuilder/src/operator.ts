@@ -46,6 +46,7 @@ import {
   EffectTrigger,
   IgnoreStageStrategy,
   type PrototypeId,
+  SetStageStrategy,
   type speciesId,
   StackStrategy,
   type StatTypeOnBattle,
@@ -170,7 +171,7 @@ export const Operators = {
         const effectStrategy =
           _effectHandlingStrategy[Math.min(index, _effectHandlingStrategy.length - 1)] || 'preserve'
 
-        await context.battle.transformationSystem.applyTransformation(
+        context.battle.transformationSystem.applyTransformation(
           target as any,
           base as any,
           type,
@@ -207,7 +208,7 @@ export const Operators = {
         const effectStrategy =
           _effectHandlingStrategy[Math.min(index, _effectHandlingStrategy.length - 1)] || 'preserve'
 
-        await context.battle.transformationSystem.applyTransformation(
+        context.battle.transformationSystem.applyTransformation(
           target as any,
           base as any,
           type,
@@ -223,7 +224,7 @@ export const Operators = {
     <T extends { id: string }>(): Operator<T> =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.forEach(async target => {
-        await context.battle.transformationSystem.removeTransformation(target as any)
+        context.battle.transformationSystem.removeTransformation(target as any)
       })
     },
 
@@ -675,11 +676,23 @@ export const Operators = {
     },
 
   statStageBuff:
-    (statType: ValueSource<StatTypeWithoutHp>, value: ValueSource<number>): Operator<Pet> =>
+    (
+      statType: ValueSource<StatTypeWithoutHp>,
+      value: ValueSource<number>,
+      strategy: ValueSource<SetStageStrategy> = SetStageStrategy.add,
+    ): Operator<Pet> =>
     (context: EffectContext<EffectTrigger>, target: Pet[]) => {
       const _value = GetValueFromSource(context, value)[0] ?? 0
       const _statType = GetValueFromSource(context, statType)[0] ?? null
-      target.forEach(v => v.addStatStage(context, _statType, _value))
+      const _strategy = GetValueFromSource(context, strategy)[0] ?? SetStageStrategy.add
+
+      target.forEach(v => {
+        if (_strategy === SetStageStrategy.set) {
+          v.setStatStage(context, _statType, _value)
+        } else {
+          v.addStatStage(context, _statType, _value)
+        }
+      })
     },
 
   clearStatStage:

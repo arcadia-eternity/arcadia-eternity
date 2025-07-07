@@ -171,6 +171,7 @@ export type StatStageBuffOperator = {
   target: SelectorDSL
   statType: Value
   value: Value
+  strategy?: Value
 }
 export type ClearStatStageOperator = {
   type: 'clearStatStage'
