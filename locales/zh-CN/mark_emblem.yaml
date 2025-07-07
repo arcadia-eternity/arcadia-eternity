@@ -125,3 +125,6 @@ mark_emblem_dengxin:
 mark_emblem_malui:
   name: 麻痹
   description: 使技能所附带的麻痹几率提高5%
+mark_emblem_jingsong:
+  name: 惊悚
+  description: 使惊悚之眼命中率增加5%

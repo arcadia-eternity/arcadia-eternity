@@ -571,3 +571,6 @@ mark_shandianluoyin:
 mark_xudian:
   name: 蓄电
   description: 使电系技能的威力增加70%
+mark_jingshencuoluan:
+  name: 精神错乱
+  description: 自身承受25%的自损伤害

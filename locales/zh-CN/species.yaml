@@ -277,3 +277,9 @@ pet_xiaoba:
 pet_batu:
   name: 巴图
   description: 萨伦帝国士官最为喜爱的精灵之一 是作战时的理想伙伴
+pet_sanyanxie:
+  name: 三眼蝎
+  description: 三眼蝎 拥有奇异的第三只眼睛 被地面族人认为是邪恶的象征
+pet_sanyanshixie:
+  name: 三眼石蝎
+  description: 习惯了他人的厌弃 三眼石蝎躲入黑暗的地下 只有在听到音乐时才现身

@@ -8412,3 +8412,264 @@
     conditions:
       - type: selfUseSkill
       - *condition_probability_10_percent_template
+# 给对手添加精神错乱
+- id: effect_skill_add_mark_opponent_jingshencuoluan
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_jingshencuoluan
+  condition:
+    type: selfUseSkill
+# 对手精神错乱时，该技能必中
+- id: effect_skill_sure_hit_opponent_jingshencuoluan
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target: usingSkillContext
+    priority: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_jingshencuoluan
+        evaluator:
+          type: exist
+# 对手精神错乱时，吸收造成伤害1/4的体力
+- id: effect_skill_heal_25_percent_damage_dealt_if_opponent_jingshencuoluan
+  trigger: OnDamage
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value:
+      type: dynamic
+      selector:
+        base: damageContext
+        chain:
+          - type: selectPath
+            arg: damageResult
+          - type: multiply
+            arg: 0.25
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_jingshencuoluan
+        evaluator:
+          type: exist
+# 对手害怕时，威力2倍
+- id: effect_skill_power_2x_if_opponent_has_mark_haipa
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_haipa
+        evaluator:
+          type: exist
+# 对手中毒时，附加80点伤害
+- id: effect_skill_add_damage_80_if_opponent_has_mark_zhongdu
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta:
+      type: raw:number
+      value: 80
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_zhongdu
+        evaluator:
+          type: exist
+# 对手精神错乱时，增加40点威力
+- id: effect_skill_add_power_40_if_opponent_has_mark_jingshencuoluan
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: usingSkillContext
+    value: 40
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_jingshencuoluan
+        evaluator:
+          type: exist
+# 给对手添加石化
+- id: effect_skill_add_mark_opponent_shihua
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_shihua
+  condition:
+    type: selfUseSkill
+# 对手石化时，暴击率增加85%
+- id: effect_skill_add_crit_rate_85_if_opponent_has_mark_shihua
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addCritRate
+    target: usingSkillContext
+    value: 85
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_shihua
+        evaluator:
+          type: exist
+# 对手害怕且中毒时，暴击率增加85%
+- id: effect_skill_add_crit_rate_85_if_opponent_has_mark_zhongdu_and_haipa
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addCritRate
+    target: usingSkillContext
+    value: 85
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_zhongdu
+        evaluator:
+          type: exist
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_haipa
+        evaluator:
+          type: exist
+# 对手精神错乱且害怕时，威力2倍
+- id: effect_skill_power_2x_if_opponent_has_mark_jingshencuoluan_and_haipa
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_jingshencuoluan
+        evaluator:
+          type: exist
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_haipa
+        evaluator:
+          type: exist

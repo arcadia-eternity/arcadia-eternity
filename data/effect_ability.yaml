@@ -1119,3 +1119,28 @@
           type: compare
           operator: '>'
           value: 1
+# 石化：对手石化时，自己使用技能时暴击率增加10%
+- id: effect_ability_add_crit_rate_10_if_opponent_has_mark_shihua
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addCritRate
+    target: usingSkillContext
+    value: 10
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_shihua
+        evaluator:
+          type: exist

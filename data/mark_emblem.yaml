@@ -220,3 +220,8 @@
   tags: [emblem]
   effect:
     - effect_emblem_add_mark_mabi_chance_5
+- id: mark_emblem_jingsong
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_jingsongzhiyan_accuracy_boost_5_percent

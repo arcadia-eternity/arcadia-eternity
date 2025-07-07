@@ -2951,3 +2951,44 @@
     attribute: power
     modifierType: percent
     value: 70
+# 精神错乱：自身承受25%的自损伤害
+- id: effect_mark_self_damage_25_percent
+  trigger: OnDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: notSame
+          value: Status
+      - # 防止无限递归
+        type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: source
+        evaluator:
+          type: notSame
+          value:
+            type: dynamic
+            selector: mark
+  priority: 0
+  apply:
+    type: dealDamage
+    target: self
+    value:
+      type: dynamic
+      selector:
+        base: damageContext
+        chain:
+          - type: selectPath
+            arg: damageResult
+          - type: multiply
+            arg: 0.25

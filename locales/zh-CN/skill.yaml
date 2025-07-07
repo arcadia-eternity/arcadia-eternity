@@ -1782,3 +1782,43 @@ skill_dianguangchongji:
 skill_tianleijiangling:
   name: 天雷降临
   description: 必中 对手麻痹时威力2倍 对手昏迷时2倍
+# 三眼蝎系列技能
+skill_xienianzhi:
+  name: 邪念之眼
+  description: 【95】使对手获得精神错乱
+skill_shixiduzhen:
+  name: 石蝎毒针
+  description: 【60】使对手中毒 对手具有精神错乱时必中
+skill_shixizhiqian:
+  name: 石蝎之钳
+  description: 对手具有精神错乱时恢复自身造成伤害1/4的体力
+skill_jingsongzhiyan:
+  name: 惊悚之眼
+  description: 【40】使对手害怕
+skill_podanjiaji:
+  name: 破胆夹击
+  description: 对手害怕时威力2倍
+skill_judukuosan:
+  name: 剧毒扩散
+  description: 对手中毒时附加80点固伤
+skill_shixijuqian:
+  name: 石蝎巨钳
+  description: 对手具有精神错乱时增加40点威力
+skill_yanbubaoyong:
+  name: 眼部保养
+  description: 使自身获得1/8的恢复
+skill_sanyanjuguangbo:
+  name: 三眼聚光波
+  description: 必中 20%强化自身特防1级
+skill_shihuazhi:
+  name: 石化之眼
+  description: 【50】使对手石化
+skill_suishizhiqian:
+  name: 碎石之钳
+  description: 对手石化时暴击率增加85%
+skill_zhimingzhiqian:
+  name: 致命之钳
+  description: 对手中毒且石化时暴击率增加85%
+skill_duomingzhiqian:
+  name: 夺命之钳
+  description: 对手具有精神错乱且害怕时威力2倍

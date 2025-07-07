@@ -1816,3 +1816,15 @@
   effect:
     - effect_mark_amplify_electric_skill_70
     - effect_mark_consume_stack_on_skill_use
+- id: mark_jingshencuoluan
+  config:
+    duration: 5
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  tags: []
+  effect:
+    - effect_mark_self_damage_25_percent

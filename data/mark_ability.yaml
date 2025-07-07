@@ -228,3 +228,8 @@
   tags: [ability]
   effect:
     - effect_ability_add_multihit_1_on_multihit_skill
+- id: mark_ability_shihua
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_add_crit_rate_10_if_opponent_has_mark_shihua

@@ -895,3 +895,22 @@
     tag: mark_mabi_chance
     modifierType: delta
     value: 5
+# 惊悚：惊悚之眼的命中率提高5%
+- id: effect_emblem_jingsongzhiyan_accuracy_boost_5_percent
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addAttributeModifier
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value: skill_jingsongzhiyan
+    stat: accuracy
+    value: 5
+    modifierType: delta
