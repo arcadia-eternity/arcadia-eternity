@@ -47,6 +47,8 @@
                   "OnMarkDurationEnd",
                   "OnStackBefore",
                   "OnStack",
+                  "OnBeforeConsumeStack",
+                  "OnConsumeStack",
                   "OnBeforeHeal",
                   "OnHeal",
                   "OnRageGain",
@@ -131,6 +133,7 @@
                                       "addMarkContext",
                                       "rageContext",
                                       "stackContext",
+                                      "consumeStackContext",
                                       "switchPetContext",
                                       "battle",
                                       "turnContext",
@@ -1880,6 +1883,9 @@
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       },
                       "value": {
+                        "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
+                      },
+                      "strategy": {
                         "$ref": "#/definitions/effect/items/properties/apply/anyOf/0/anyOf/1/properties/condition/anyOf/0/properties/target/anyOf/1/properties/chain/items/anyOf/4/properties/arg/anyOf/0/properties/value"
                       }
                     },

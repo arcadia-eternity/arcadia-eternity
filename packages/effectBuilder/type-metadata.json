@@ -1214,7 +1214,7 @@
     },
     {
       "n": "parent",
-      "t": "null | Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | TransformContext | EffectContext<EffectTrigger>",
+      "t": "null | Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | ConsumeStackContext | TransformContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "null",
@@ -1228,6 +1228,7 @@
         "SwitchPetContext",
         "RageContext",
         "StackContext",
+        "ConsumeStackContext",
         "TransformContext",
         "EffectContext<EffectTrigger>"
       ],
@@ -2115,12 +2116,13 @@
     },
     {
       "n": "parent",
-      "t": "TurnContext | DamageContext | AddMarkContext | EffectContext<EffectTrigger>",
+      "t": "TurnContext | DamageContext | AddMarkContext | ConsumeStackContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "TurnContext",
         "DamageContext",
         "AddMarkContext",
+        "ConsumeStackContext",
         "EffectContext<EffectTrigger>"
       ],
       "a": false
@@ -2231,6 +2233,63 @@
     },
     {
       "n": "durationChange",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "ConsumeStackContext": [
+    {
+      "n": "type",
+      "t": "\"consumeStack\"",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "battle",
+      "t": "Battle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "available",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "parent",
+      "t": "DamageContext | EffectContext<EffectTrigger>",
+      "iu": true,
+      "u": [
+        "DamageContext",
+        "EffectContext<EffectTrigger>"
+      ],
+      "a": false
+    },
+    {
+      "n": "mark",
+      "t": "MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "requestedAmount",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "actualAmount",
       "t": "number",
       "iu": false,
       "u": [],
@@ -2412,7 +2471,7 @@
   "AllContext": [
     {
       "n": "type",
-      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | TransformContext | EffectContext<EffectTrigger>",
+      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | ConsumeStackContext | TransformContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "Battle",
@@ -2425,6 +2484,7 @@
         "SwitchPetContext",
         "RageContext",
         "StackContext",
+        "ConsumeStackContext",
         "TransformContext",
         "EffectContext<EffectTrigger>"
       ],
@@ -2630,6 +2690,20 @@
       "a": false
     },
     {
+      "n": "OnBeforeConsumeStack",
+      "t": "ConsumeStackContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "OnConsumeStack",
+      "t": "ConsumeStackContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "OnBeforeHeal",
       "t": "HealContext",
       "iu": false,
@@ -2715,7 +2789,7 @@
     },
     {
       "n": "BeforeEffect",
-      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | TransformContext | EffectContext<EffectTrigger>",
+      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | ConsumeStackContext | TransformContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "Battle",
@@ -2728,6 +2802,7 @@
         "SwitchPetContext",
         "RageContext",
         "StackContext",
+        "ConsumeStackContext",
         "TransformContext",
         "EffectContext<EffectTrigger>"
       ],
@@ -2735,7 +2810,7 @@
     },
     {
       "n": "AfterEffect",
-      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | TransformContext | EffectContext<EffectTrigger>",
+      "t": "Battle | TurnContext | UseSkillContext | DamageContext | HealContext | AddMarkContext | RemoveMarkContext | SwitchPetContext | RageContext | StackContext | ConsumeStackContext | TransformContext | EffectContext<EffectTrigger>",
       "iu": true,
       "u": [
         "Battle",
@@ -2748,6 +2823,7 @@
         "SwitchPetContext",
         "RageContext",
         "StackContext",
+        "ConsumeStackContext",
         "TransformContext",
         "EffectContext<EffectTrigger>"
       ],
@@ -4680,6 +4756,13 @@
       "a": false
     },
     {
+      "n": "setStatStage",
+      "t": "(context: EffectContext<EffectTrigger>, statType: StatTypeWithoutHp, value: number) => void",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "clearStatStage",
       "t": "(context: EffectContext<EffectTrigger>, cleanStageStrategy?: CleanStageStrategy, ...statTypes: StatTypeWithoutHp[]) => void",
       "iu": false,
@@ -6262,7 +6345,7 @@
       "a": false
     },
     {
-      "n": "__@unscopables@1300",
+      "n": "__@unscopables@1313",
       "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
       "iu": false,
       "u": [],
@@ -9538,6 +9621,29 @@
     }
   ],
   "BattleSwitchPhase": [],
+  "ConsumeStackPhase": [
+    {
+      "n": "parentContext",
+      "t": "any",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "mark",
+      "t": "MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "requestedAmount",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
   "DamagePhase": [
     {
       "n": "parentContext",

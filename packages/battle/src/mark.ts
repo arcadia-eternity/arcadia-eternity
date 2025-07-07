@@ -22,6 +22,7 @@ import {
   SwitchPetContext,
   TurnContext,
 } from './context'
+import { ConsumeStackPhase } from './phase/ConsumeStackPhase'
 import { Effect, type EffectContainer } from './effect'
 import { type Instance, type MarkOwner, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
@@ -227,23 +228,18 @@ export class MarkInstanceImpl implements MarkInstance {
 
   addStack(value: number) {
     this.stack = Math.min(this.config.maxStacks ?? Infinity, this.stack + value)
-
-    // Note: dirty flag removed, attribute system handles recalculation automatically
   }
 
   consumeStack(context: EffectContext<EffectTrigger> | DamageContext, amount: number): number {
-    const actual = Math.min(amount, this.stack)
-    this.stack -= actual
+    // Use ConsumeStackPhase for unified stack consumption
+    const consumePhase = new ConsumeStackPhase(context.battle, context, this, amount)
+    context.battle.phaseManager.registerPhase(consumePhase)
+    const result = context.battle.phaseManager.executePhase(consumePhase.id)
 
-    if (this.stack <= 0) {
-      // Use RemoveMarkPhase for unified mark destruction
-      const removeMarkContext = new RemoveMarkContext(context, this)
-      context.battle.removeMark(removeMarkContext)
+    if (result.success && consumePhase.context) {
+      return consumePhase.context.actualAmount
     }
-
-    // Note: dirty flag removed, attribute system handles recalculation automatically
-
-    return actual
+    return 0
   }
 
   get isStackable() {

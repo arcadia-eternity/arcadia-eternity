@@ -47,6 +47,8 @@ export enum EffectTrigger {
   //以下一定是EffectContext
   OnStackBefore = 'OnStackBefore',
   OnStack = 'OnStack',
+  OnBeforeConsumeStack = 'OnBeforeConsumeStack',
+  OnConsumeStack = 'OnConsumeStack',
   OnBeforeHeal = 'OnBeforeHeal',
   OnHeal = 'OnHeal',
 

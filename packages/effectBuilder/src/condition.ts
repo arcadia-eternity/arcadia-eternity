@@ -2,6 +2,7 @@ import {
   AddMarkContext,
   BaseStatLevelMark,
   Battle,
+  ConsumeStackContext,
   Context,
   DamageContext,
   EffectContext,
@@ -104,6 +105,9 @@ export const Conditions = {
       }
       if (context.parent instanceof StackContext) {
         return context.source.owner === context.parent.existingMark.owner
+      }
+      if (context.parent instanceof ConsumeStackContext) {
+        return context.source.owner === context.parent.mark.owner
       }
       return false
     }

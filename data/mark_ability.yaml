@@ -233,3 +233,8 @@
   tags: [ability]
   effect:
     - effect_ability_add_crit_rate_10_if_opponent_has_mark_shihua
+- id: mark_ability_huanxiang
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_reduce_damage_10_if_has_mark_huanxiang

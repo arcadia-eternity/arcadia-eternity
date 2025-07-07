@@ -1828,3 +1828,51 @@
   tags: []
   effect:
     - effect_mark_self_damage_25_percent
+- id: mark_huanxiang
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 2
+    stackable: true
+    stackStrategy: stack
+    destroyable: true
+    keepOnSwitchOut: true
+  tags: []
+- id: mark_zhenshihuanxiang
+  config:
+    duration: 4
+    persistent: false
+    maxStacks: 1
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  tags: []
+  effect:
+    - effect_mark_zhenshihuanxiang_prevent_consume
+- id: mark_wanan
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - status
+  effect:
+    - effect_mark_heal_40_per_turn
+    - effect_mark_add_crit_on_damage
+- id: mark_huixin
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - buff
+  effect:
+    - effect_mark_next_non_status_skill_sure_crit

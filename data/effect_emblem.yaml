@@ -914,3 +914,22 @@
     stat: accuracy
     value: 5
     modifierType: delta
+# 化身：化冰、化雪、化雾的怒气消耗减少5
+- id: effect_emblem_huashen_skill_rage_cost_reduce_5
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addSkillAttributeModifier
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: tags
+          evaluator:
+            type: contain
+            tag: huashen
+    attribute: rage
+    modifierType: delta
+    value: -5

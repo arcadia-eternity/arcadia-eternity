@@ -128,3 +128,6 @@ mark_emblem_malui:
 mark_emblem_jingsong:
   name: 惊悚
   description: 使惊悚之眼命中率增加5%
+mark_emblem_huashen:
+  name: 化身
+  description: 减少5点化冰 化雪 化雾的怒气消耗
