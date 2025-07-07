@@ -46,7 +46,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_DB=0
-      - REDIS_KEY_PREFIX=arcadia:
+      - 'REDIS_KEY_PREFIX=arcadia:'
 
       # Supabase configuration (uncomment and set values to enable battle reports)
       # - SUPABASE_URL=https://your-project.supabase.co
