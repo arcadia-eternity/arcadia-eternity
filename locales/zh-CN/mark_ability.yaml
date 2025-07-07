@@ -127,3 +127,9 @@ mark_ability_yeji:
 mark_ability_lianji:
   name: 连击
   description: 使连击技能连击数+1
+mark_ability_shihua:
+  name: 石化
+  description: 对手石化时自身暴击率增加10%
+mark_ability_huanxiang:
+  name: 幻想
+  description: 具有幻想时受到伤害减少10%

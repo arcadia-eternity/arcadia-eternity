@@ -5303,3 +5303,237 @@
     - mark_ability_lianji
   emblem:
     - mark_emblem_malui
+- id: pet_sanyanxie
+  num: 86
+  element: Ground
+  baseStats:
+    hp: 91
+    atk: 120
+    def: 124
+    spa: 110
+    spd: 124
+    spe: 109
+  genderRatio:
+    - 1
+    - 9
+  heightRange:
+    - 32
+    - 37
+  weightRange:
+    - 16
+    - 21
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_feishi
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 10
+      hidden: false
+    - skill_id: skill_xienianzhi
+      level: 15
+      hidden: false
+    - skill_id: skill_shixiduzhen
+      level: 19
+      hidden: false
+    - skill_id: skill_shixizhiqian
+      level: 24
+      hidden: false
+  ability:
+    - mark_ability_shihua
+  emblem:
+    - mark_emblem_jingsong
+- id: pet_sanyanshixie
+  num: 87
+  element: Ground
+  baseStats:
+    hp: 181
+    atk: 165
+    def: 174
+    spa: 155
+    spd: 174
+    spe: 154
+  genderRatio:
+    - 1
+    - 9
+  heightRange:
+    - 55
+    - 60
+  weightRange:
+    - 63
+    - 68
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_feishi
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 10
+      hidden: false
+    - skill_id: skill_xienianzhi
+      level: 15
+      hidden: false
+    - skill_id: skill_shixiduzhen
+      level: 19
+      hidden: false
+    - skill_id: skill_shixizhiqian
+      level: 24
+      hidden: false
+    - skill_id: skill_jingsongzhiyan
+      level: 29
+      hidden: false
+    - skill_id: skill_podanjiaji
+      level: 34
+      hidden: false
+    - skill_id: skill_jianren
+      level: 39
+      hidden: false
+    - skill_id: skill_judukuosan
+      level: 44
+      hidden: false
+    - skill_id: skill_shixijuqian
+      level: 49
+      hidden: false
+    - skill_id: skill_yanbubaoyong
+      level: 54
+      hidden: false
+    - skill_id: skill_sanyanjuguangbo
+      level: 60
+      hidden: false
+    - skill_id: skill_shihuazhi
+      level: 60
+      hidden: true
+    - skill_id: skill_suishizhiqian
+      level: 60
+      hidden: true
+    - skill_id: skill_zhimingzhiqian
+      level: 60
+      hidden: true
+    - skill_id: skill_duomingzhiqian
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_shihua
+  emblem:
+    - mark_emblem_jingsong
+- id: pet_yilu
+  num: 124
+  element: Ice
+  baseStats:
+    hp: 89
+    atk: 128 # 78 + 50
+    spa: 123 # 73 + 50
+    def: 116 # 66 + 50
+    spd: 114 # 64 + 50
+    spe: 104 # 54 + 50
+  genderRatio:
+    - 6
+    - 4
+  heightRange:
+    - 22
+    - 27
+  weightRange:
+    - 11
+    - 16
+  learnable_skills:
+    - skill_id: skill_caita
+      level: 1
+      hidden: false
+    - skill_id: skill_touzhi
+      level: 5
+      hidden: false
+    - skill_id: skill_jianding
+      level: 10
+      hidden: false
+    - skill_id: skill_huanxiangshijie
+      level: 14
+      hidden: false
+    - skill_id: skill_huabing
+      level: 19
+      hidden: false
+    - skill_id: skill_huanxiangzhiying
+      level: 24
+      hidden: false
+  ability:
+    - mark_ability_huanxiang
+  emblem:
+    - mark_emblem_huashen
+- id: pet_yiluxin
+  num: 125
+  element: Ice
+  baseStats:
+    hp: 179
+    atk: 178 # 128 + 50
+    spa: 173 # 123 + 50
+    def: 161 # 111 + 50
+    spd: 159 # 109 + 50
+    spe: 149 # 99 + 50
+  genderRatio:
+    - 6
+    - 4
+  heightRange:
+    - 61
+    - 66
+  weightRange:
+    - 53
+    - 58
+  learnable_skills:
+    - skill_id: skill_caita
+      level: 1
+      hidden: false
+    - skill_id: skill_touzhi
+      level: 5
+      hidden: false
+    - skill_id: skill_jianding
+      level: 10
+      hidden: false
+    - skill_id: skill_huanxiangshijie
+      level: 14
+      hidden: false
+    - skill_id: skill_huabing
+      level: 19
+      hidden: false
+    - skill_id: skill_huanxiangzhiying
+      level: 24
+      hidden: false
+    - skill_id: skill_huaxue
+      level: 29
+      hidden: false
+    - skill_id: skill_wanan
+      level: 34
+      hidden: false
+    - skill_id: skill_huanxiangzhixing
+      level: 39
+      hidden: false
+    - skill_id: skill_xinsuo
+      level: 44
+      hidden: false
+    - skill_id: skill_baobing
+      level: 49
+      hidden: false
+    - skill_id: skill_huanxiangzhinian
+      level: 54
+      hidden: false
+    - skill_id: skill_zhenjiabinglengjiang
+      level: 60
+      hidden: true
+    - skill_id: skill_buyi
+      level: 60
+      hidden: true
+    - skill_id: skill_taobei
+      level: 60
+      hidden: true
+    - skill_id: skill_huawu
+      level: 60
+      hidden: true
+    - skill_id: skill_huanxiangzhiling
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_huanxiang
+  emblem:
+    - mark_emblem_huashen

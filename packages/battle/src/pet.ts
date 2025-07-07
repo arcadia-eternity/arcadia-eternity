@@ -476,6 +476,17 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     this.addMark(new AddMarkContext(context, this, upMark, value))
   }
 
+  //TODO: migrate to new phase system
+  public setStatStage(context: EffectContext<EffectTrigger>, statType: StatTypeWithoutHp, value: number) {
+    // 首先清除该属性类型的所有能力等级印记
+    this.clearStatStage(context, CleanStageStrategy.all, statType)
+    // 然后设置新的能力等级
+    if (value !== 0) {
+      const upMark = CreateStatStageMark(statType, value)
+      this.addMark(new AddMarkContext(context, this, upMark, value))
+    }
+  }
+
   // 清理能力等级时同时清除相关印记
   //TODO: migrate to new phase system
   public clearStatStage(

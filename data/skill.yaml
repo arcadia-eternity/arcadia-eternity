@@ -6500,7 +6500,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_opponent_mabi_15_percent_or_raise_self_spa_1_stage_50_percent
+    - effect_skill_add_mark_opponent_mabi_15_percent_or_raise_spa_1_stage_50_percent
 - id: skill_shuimiandufeng
   element: Bug
   category: Special
@@ -6512,7 +6512,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_opponent_shuimian_15_percent_or_raise_self_spe_1_stage_50_percent
+    - effect_skill_add_mark_opponent_shuimian_15_percent_or_raise_spe_1_stage_50_percent
 - id: skill_huandielianji
   element: Bug
   category: Physical
@@ -7111,3 +7111,367 @@
   effect:
     - effect_skill_power_2x_if_opponent_has_mark_mabi
     - effect_skill_power_2x_if_opponent_has_mark_hunmi
+- id: skill_xienianzhi
+  element: Normal
+  category: Status
+  target: opponent
+  power: 0
+  rage: 10
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_opponent_jingshencuoluan
+- id: skill_shixiduzhen
+  element: Ground
+  category: Special
+  target: opponent
+  power: 65
+  rage: 15
+  accuracy: 60
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_opponent_zhongdu
+    - effect_skill_sure_hit_opponent_jingshencuoluan
+- id: skill_shixizhiqian
+  element: Ground
+  category: Physical
+  target: opponent
+  power: 80
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_heal_25_percent_damage_dealt_if_opponent_jingshencuoluan
+- id: skill_jingsongzhiyan
+  element: Normal
+  category: Status
+  target: opponent
+  power: 0
+  rage: 25
+  accuracy: 40
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_opponent_haipa
+- id: skill_podanjiaji
+  element: Ground
+  category: Physical
+  target: opponent
+  power: 80
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_power_2x_if_opponent_has_mark_haipa
+- id: skill_judukuosan
+  element: Ground
+  category: Special
+  target: opponent
+  power: 75
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_damage_80_if_opponent_has_mark_zhongdu
+- id: skill_shixijuqian
+  element: Ground
+  category: Physical
+  target: opponent
+  power: 90
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_power_40_if_opponent_has_mark_jingshencuoluan
+- id: skill_yanbubaoyong
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_huifu
+- id: skill_sanyanjuguangbo
+  element: Ground
+  category: Climax
+  target: opponent
+  power: 160
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_spd_1_stage_20_percent
+- id: skill_shihuazhi
+  element: Normal
+  category: Status
+  target: opponent
+  power: 0
+  rage: 30
+  accuracy: 50
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_opponent_shihua
+- id: skill_suishizhiqian
+  element: Ground
+  category: Physical
+  target: opponent
+  power: 80
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_crit_rate_85_if_opponent_has_mark_shihua
+- id: skill_zhimingzhiqian
+  element: Ground
+  category: Physical
+  target: opponent
+  power: 110
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_crit_rate_85_if_opponent_has_mark_zhongdu_and_haipa
+- id: skill_duomingzhiqian
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 110
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_power_2x_if_opponent_has_mark_jingshencuoluan_and_haipa
+- id: skill_caita
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 35
+  rage: 0
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_opponent_def_1_stage_5_percent
+- id: skill_touzhi
+  element: Normal
+  category: Special
+  target: opponent
+  power: 60
+  rage: 5
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_opponent_spd_1_stage_5_percent
+- id: skill_jianding
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  rage: 10
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_atk_1_stage
+- id: skill_huanxiangshijie
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  rage: 10
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_huanxiang
+- id: skill_huabing
+  element: Ice
+  category: Physical
+  target: opponent
+  power: 70
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  multihit: 1
+  tags: ['consume_huanxiang', 'huashen']
+  effect:
+    - effect_skill_consume_huanxiang_multihit_2
+- id: skill_huanxiangzhiying
+  element: Normal
+  category: Special
+  target: opponent
+  power: 85
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: ['consume_huanxiang']
+  effect:
+    - effect_skill_consume_huanxiang_raise_spa_1_stage
+- id: skill_huaxue
+  element: Ice
+  category: Physical
+  target: opponent
+  power: 85
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: ['consume_huanxiang', 'huashen']
+  effect:
+    - effect_skill_consume_huanxiang_add_mark_opponent_dongshang
+- id: skill_wanan
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_wanan
+- id: skill_huanxiangzhixing
+  element: Normal
+  category: Special
+  target: opponent
+  power: 95
+  rage: 20
+  accuracy: 90
+  sureHit: false
+  ignoreShield: false
+  tags: ['consume_huanxiang']
+  effect:
+    - effect_skill_consume_huanxiang_set_sure_hit
+- id: skill_xinsuo
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_fantan
+- id: skill_baobing
+  element: Ice
+  category: Physical
+  target: opponent
+  power: 100
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_crit_gain_rage_20
+- id: skill_huanxiangzhinian
+  element: Normal
+  category: Special
+  target: opponent
+  power: 95
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: ['consume_huanxiang']
+  effect:
+    - effect_skill_consume_huanxiang_raise_def_1_stage
+- id: skill_zhenjiabinglengjiang
+  element: Ice
+  category: Climax
+  target: opponent
+  power: 160
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_huanxiang
+    - effect_skill_add_mark_zhenshihuanxiang
+- id: skill_buyi
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  rage: 10
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_set_self_spa_to_atk
+- id: skill_taobei
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  rage: 20
+  accuracy: 90
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_taobi
+- id: skill_huawu
+  element: Ice
+  category: Physical
+  target: opponent
+  power: 50
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  multihit: 1
+  tags: ['consume_huanxiang', 'huashen']
+  effect:
+    - effect_skill_consume_huanxiang_multihit_4_to_5
+- id: skill_huanxiangzhiling
+  element: Normal
+  category: Special
+  target: opponent
+  power: 100
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: ['consume_huanxiang']
+  effect:
+    - effect_skill_consume_huanxiang_raise_spd_1_stage

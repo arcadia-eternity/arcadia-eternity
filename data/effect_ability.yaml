@@ -1119,3 +1119,54 @@
           type: compare
           operator: '>'
           value: 1
+# 石化：对手石化时，自己使用技能时暴击率增加10%
+- id: effect_ability_add_crit_rate_10_if_opponent_has_mark_shihua
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addCritRate
+    target: usingSkillContext
+    value: 10
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_shihua
+        evaluator:
+          type: exist
+# 幻想：当自身有幻想标记时，受到的伤害减少10%
+- id: effect_ability_reduce_damage_10_if_has_mark_huanxiang
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: -10
+    delta: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_huanxiang
+        evaluator:
+          type: exist

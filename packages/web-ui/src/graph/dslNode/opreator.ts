@@ -229,6 +229,7 @@ export class StatStageBuffNode extends BaseOperatorNode {
     super('状态增益')
     this.addInput('statType', 'selector')
     this.addInput('value', 'selector')
+    this.addInput('strategy', 'selector')
     this.addWidget('combo', '属性类型', 'atk', v => (this.properties.statType = v), {
       values: Object.values(StatTypeWithoutHp),
       property: 'statType',
@@ -238,10 +239,16 @@ export class StatStageBuffNode extends BaseOperatorNode {
       property: 'value',
       associatedInput: 'value',
     })
+    this.addWidget('combo', '设置策略', 'add', v => (this.properties.strategy = v), {
+      values: ['add', 'set'],
+      property: 'strategy',
+      associatedInput: 'strategy',
+    })
 
     this.properties = {
       statType: 'atk',
       value: 1,
+      strategy: 'add',
     }
   }
 
@@ -249,6 +256,7 @@ export class StatStageBuffNode extends BaseOperatorNode {
     return {
       statType: this.getStringValue(1, 'atk'),
       value: this.getNumberValue(2, 10),
+      strategy: this.getStringValue(3, 'add'),
     }
   }
 }

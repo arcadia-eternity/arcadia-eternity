@@ -7461,7 +7461,7 @@
         times: 2
         strategy: Periodic
 # 15%使对手麻痹 失败时50%强化自身特攻1级
-- id: effect_skill_add_mark_opponent_mabi_15_percent_or_raise_self_spa_1_stage_50_percent
+- id: effect_skill_add_mark_opponent_mabi_15_percent_or_raise_spa_1_stage_50_percent
   trigger: OnHit
   priority: 0
   condition:
@@ -7498,7 +7498,7 @@
         <<: *apply_self_statstage_+1_template
         statType: spa
 # 15%使对手睡眠 失败时50%强化自身速度1级
-- id: effect_skill_add_mark_opponent_shuimian_15_percent_or_raise_self_spe_1_stage_50_percent
+- id: effect_skill_add_mark_opponent_shuimian_15_percent_or_raise_spe_1_stage_50_percent
   trigger: OnHit #BeforeHit睡眠之后直接就被打醒了
   priority: 0
   condition:
@@ -8412,3 +8412,489 @@
     conditions:
       - type: selfUseSkill
       - *condition_probability_10_percent_template
+# 给对手添加精神错乱
+- id: effect_skill_add_mark_opponent_jingshencuoluan
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_jingshencuoluan
+  condition:
+    type: selfUseSkill
+# 对手精神错乱时，该技能必中
+- id: effect_skill_sure_hit_opponent_jingshencuoluan
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target: usingSkillContext
+    priority: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_jingshencuoluan
+        evaluator:
+          type: exist
+# 对手精神错乱时，吸收造成伤害1/4的体力
+- id: effect_skill_heal_25_percent_damage_dealt_if_opponent_jingshencuoluan
+  trigger: OnDamage
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value:
+      type: dynamic
+      selector:
+        base: damageContext
+        chain:
+          - type: selectPath
+            arg: damageResult
+          - type: multiply
+            arg: 0.25
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_jingshencuoluan
+        evaluator:
+          type: exist
+# 对手害怕时，威力2倍
+- id: effect_skill_power_2x_if_opponent_has_mark_haipa
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_haipa
+        evaluator:
+          type: exist
+# 对手中毒时，附加80点伤害
+- id: effect_skill_add_damage_80_if_opponent_has_mark_zhongdu
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta:
+      type: raw:number
+      value: 80
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_zhongdu
+        evaluator:
+          type: exist
+# 对手精神错乱时，增加40点威力
+- id: effect_skill_add_power_40_if_opponent_has_mark_jingshencuoluan
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: usingSkillContext
+    value: 40
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_jingshencuoluan
+        evaluator:
+          type: exist
+# 给对手添加石化
+- id: effect_skill_add_mark_opponent_shihua
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_shihua
+  condition:
+    type: selfUseSkill
+# 对手石化时，暴击率增加85%
+- id: effect_skill_add_crit_rate_85_if_opponent_has_mark_shihua
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addCritRate
+    target: usingSkillContext
+    value: 85
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_shihua
+        evaluator:
+          type: exist
+# 对手害怕且中毒时，暴击率增加85%
+- id: effect_skill_add_crit_rate_85_if_opponent_has_mark_zhongdu_and_haipa
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addCritRate
+    target: usingSkillContext
+    value: 85
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_zhongdu
+        evaluator:
+          type: exist
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_haipa
+        evaluator:
+          type: exist
+# 对手精神错乱且害怕时，威力2倍
+- id: effect_skill_power_2x_if_opponent_has_mark_jingshencuoluan_and_haipa
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_jingshencuoluan
+        evaluator:
+          type: exist
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_haipa
+        evaluator:
+          type: exist
+# 使自身获得幻想
+- id: effect_skill_add_mark_huanxiang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_huanxiang
+  condition:
+    type: selfUseSkill
+# 消耗幻想连击2次
+- id: effect_skill_consume_huanxiang_multihit_2
+  trigger: BeforeMultiHit
+  priority: 0
+  apply:
+    - type: addMultihitResult
+      target: usingSkillContext
+      value: 1
+    - &apply_consume_huanxiang_1_stack_template
+      type: consumeStacks
+      target:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_huanxiang
+      value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_self_has_huanxiang
+        type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_huanxiang
+        evaluator:
+          type: exist
+# 消耗幻想强化自身特攻1级
+- id: effect_skill_consume_huanxiang_raise_spa_1_stage
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    - *apply_consume_huanxiang_1_stack_template
+    - <<: *apply_self_statstage_+1_template
+      statType: spa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_has_huanxiang
+# 消耗幻想使对手冻伤
+- id: effect_skill_consume_huanxiang_add_mark_opponent_dongshang
+  trigger: OnHit
+  priority: 0
+  apply:
+    - *apply_consume_huanxiang_1_stack_template
+    - type: addMark
+      target: opponent
+      mark:
+        type: entity:baseMark
+        value: mark_dongshang
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_has_huanxiang
+# 使自身获得晚安
+- id: effect_skill_add_mark_wanan
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_wanan
+  condition:
+    type: selfUseSkill
+# 消耗幻想使技能必中
+- id: effect_skill_consume_huanxiang_set_sure_hit
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    - *apply_consume_huanxiang_1_stack_template
+    - type: setSureHit
+      target: usingSkillContext
+      priority: 99
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_has_huanxiang
+# 暴击时获得20点怒气
+- id: effect_skill_crit_gain_rage_20
+  trigger: OnCritPostDamage
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 20
+  condition:
+    type: selfUseSkill
+# 消耗幻想强化自身物防1级
+- id: effect_skill_consume_huanxiang_raise_def_1_stage
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    - *apply_consume_huanxiang_1_stack_template
+    - <<: *apply_self_statstage_+1_template
+      statType: def
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_has_huanxiang
+# 使自身获得真实幻想
+- id: effect_skill_add_mark_zhenshihuanxiang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_zhenshihuanxiang
+  condition:
+    type: selfUseSkill
+# 将自身的特攻强化设定为物攻强化的等级
+# 当前物攻强化等级为0时，特攻强化等级也为0。
+# 否则，特攻强化等级为物攻强化等级。
+# 如果物攻强化等级为负或者为0，没有任何效果。
+- id: effect_skill_set_self_spa_to_atk
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: self
+    statType: spa
+    strategy: set
+    value:
+      type: dynamic
+      selector:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: stat_stage_atk_up
+          - type: select
+            arg:
+              type: base
+              arg: stack
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: stat_stage_atk_up
+        evaluator:
+          type: exist
+# 使自身获得逃避
+- id: effect_skill_add_mark_taobi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_taobi
+  condition:
+    type: selfUseSkill
+# 消耗幻想连击4到5次
+- id: effect_skill_consume_huanxiang_multihit_4_to_5
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    - type: setMultihit
+      target: usingSkillContext
+      value: [4, 5]
+    - *apply_consume_huanxiang_1_stack_template
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_has_huanxiang
+# 消耗幻想强化自身特防1级
+- id: effect_skill_consume_huanxiang_raise_spd_1_stage
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    - *apply_consume_huanxiang_1_stack_template
+    - <<: *apply_self_statstage_+1_template
+      statType: spd
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_has_huanxiang

@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.8.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.7.5...arcadia-eternity-v1.8.0) (2025-07-07)
+
+
+### ✨ Features
+
+* Add set strategy for stat stage buff operator ([1b387d3](https://github.com/arcadia-eternity/arcadia-eternity/commit/1b387d34980fb85f5330d675f57bd7dcd6982ce8))
+* **netpet:** 三眼石蝎 ([5d6fb3a](https://github.com/arcadia-eternity/arcadia-eternity/commit/5d6fb3a122de8cf2aa60bc9014162d3931d4bb90))
+* **netpet:** 伊露辛 ([fdb32d9](https://github.com/arcadia-eternity/arcadia-eternity/commit/fdb32d98e821f63a524871a388985fd7a4d47645))
+
 ## [1.7.5](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.7.4...arcadia-eternity-v1.7.5) (2025-07-05)
 
 

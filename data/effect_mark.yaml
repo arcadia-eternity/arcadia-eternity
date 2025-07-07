@@ -112,7 +112,7 @@
           - type: limit
             arg: 1
 - id: effect_mark_prevent_damage
-  trigger: OnDamage
+  trigger: OnBeforeCalculateDamage
   priority: 0
   condition:
     type: checkSelf
@@ -2951,3 +2951,121 @@
     attribute: power
     modifierType: percent
     value: 70
+# 精神错乱：自身承受25%的自损伤害
+- id: effect_mark_self_damage_25_percent
+  trigger: OnDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: notSame
+          value: Status
+      - # 防止无限递归
+        type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: source
+        evaluator:
+          type: notSame
+          value:
+            type: dynamic
+            selector: mark
+  priority: 0
+  apply:
+    type: dealDamage
+    target: self
+    value:
+      type: dynamic
+      selector:
+        base: damageContext
+        chain:
+          - type: selectPath
+            arg: damageResult
+          - type: multiply
+            arg: 0.25
+
+# 真实幻想：防止幻想被消耗
+- id: effect_mark_zhenshihuanxiang_prevent_consume
+  trigger: OnBeforeConsumeStack
+  priority: 100 # 高优先级确保在其他效果之前执行
+  condition:
+    type: every
+    conditions:
+      # 检查当前mark是否是真实幻想
+      - type: checkSelf
+      # 检查被消耗的mark是否是幻想
+      - type: evaluate
+        target:
+          base: consumeStackContext
+          chain:
+            - type: selectPath
+              arg: mark.base.id
+        evaluator:
+          type: same
+          value: mark_huanxiang
+  apply:
+    type: disableContext
+    target: consumeStackContext
+
+# 会心：下一次使用非属性类技能必定暴击
+- id: effect_mark_next_non_status_skill_sure_crit
+  trigger: AfterUseSkillCheck
+  priority: 0
+  consumesStacks: 1
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: skill
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: notSame
+          value: Status
+  apply:
+    - type: setSureCrit
+      target: usingSkillContext
+      priority: 1
+
+# 晚安：每回合结束时恢复40点体力
+- id: effect_mark_heal_40_per_turn
+  trigger: TurnEnd
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value: 40
+  condition:
+    type: petIsActive
+
+# 晚安：受到攻击时，消耗自身并使自身获得会心
+- id: effect_mark_add_crit_on_damage
+  trigger: PostDamage
+  priority: 0
+  apply:
+    - type: addMark
+      target: self
+      mark:
+        type: entity:baseMark
+        value: mark_huixin
+    - type: destroyMark
+      target: mark
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged

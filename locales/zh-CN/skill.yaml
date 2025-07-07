@@ -1782,3 +1782,94 @@ skill_dianguangchongji:
 skill_tianleijiangling:
   name: 天雷降临
   description: 必中 对手麻痹时威力2倍 对手昏迷时2倍
+# 三眼蝎系列技能
+skill_xienianzhi:
+  name: 邪念之眼
+  description: 【95】使对手获得精神错乱
+skill_shixiduzhen:
+  name: 石蝎毒针
+  description: 【60】使对手中毒 对手具有精神错乱时必中
+skill_shixizhiqian:
+  name: 石蝎之钳
+  description: 对手具有精神错乱时恢复自身造成伤害1/4的体力
+skill_jingsongzhiyan:
+  name: 惊悚之眼
+  description: 【40】使对手害怕
+skill_podanjiaji:
+  name: 破胆夹击
+  description: 对手害怕时威力2倍
+skill_judukuosan:
+  name: 剧毒扩散
+  description: 对手中毒时附加80点固伤
+skill_shixijuqian:
+  name: 石蝎巨钳
+  description: 对手具有精神错乱时增加40点威力
+skill_yanbubaoyong:
+  name: 眼部保养
+  description: 使自身获得1/8的恢复
+skill_sanyanjuguangbo:
+  name: 三眼聚光波
+  description: 必中 20%强化自身特防1级
+skill_shihuazhi:
+  name: 石化之眼
+  description: 【50】使对手石化
+skill_suishizhiqian:
+  name: 碎石之钳
+  description: 对手石化时暴击率增加85%
+skill_zhimingzhiqian:
+  name: 致命之钳
+  description: 对手中毒且石化时暴击率增加85%
+skill_duomingzhiqian:
+  name: 夺命之钳
+  description: 对手具有精神错乱且害怕时威力2倍
+skill_caita:
+  name: 踩踏
+  description: 5%弱化对手物防1级
+skill_touzhi:
+  name: 投掷
+  description: 5%弱化对手特防1级
+skill_jianding:
+  name: 坚定
+  description: 强化自身物攻1级
+skill_huanxiangshijie:
+  name: 幻想世界
+  description: 使自身获得幻想
+skill_huabing:
+  name: 化冰
+  description: 消耗幻想连击2次
+skill_huanxiangzhiying:
+  name: 幻想之影
+  description: 消耗幻想强化自身特攻1级
+skill_huaxue:
+  name: 化雪
+  description: 消耗幻想使对手冻伤
+skill_wanan:
+  name: 晚安
+  description: 使自身获得晚安
+skill_huanxiangzhixing:
+  name: 幻想之形
+  description: 【90】消耗幻想使技能必中
+skill_xinsuo:
+  name: 心锁
+  description: 【95】使自身获得反弹
+skill_baobing:
+  name: 爆冰
+  description: 暴击时恢复20点怒气
+skill_huanxiangzhinian:
+  name: 幻想之念
+  description: 消耗幻想强化自身物防1级
+skill_zhenjiabinglengjiang:
+  name: 真假冰棱镜
+  description: <font color=#93E312>必中</font> 使自身获得幻想 真实幻想
+skill_buyi:
+  name: 不移
+  description: 复制自身物攻强化为特攻强化
+skill_taobei:
+  name: 逃避
+  description: 【90】使自身获得逃避
+skill_huawu:
+  name: 化雾
+  description: 消耗幻想连击4~5次
+skill_huanxiangzhiling:
+  name: 幻想之灵
+  description: 消耗幻想强化自身特防1级

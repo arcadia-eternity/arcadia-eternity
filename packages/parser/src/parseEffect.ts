@@ -25,6 +25,7 @@ import {
   type effectId,
   EffectTrigger,
   IgnoreStageStrategy,
+  SetStageStrategy,
   type speciesId,
   StackStrategy,
   type StatTypeOnBattle,
@@ -671,6 +672,7 @@ export function parseStatStageBuffAction(effectId: string, dsl: Extract<Operator
     Operators.statStageBuff(
       parseValue(effectId, dsl.statType) as ValueSource<StatTypeWithoutHp>,
       parseValue(effectId, dsl.value) as ValueSource<number>,
+      dsl.strategy ? (parseValue(effectId, dsl.strategy) as ValueSource<SetStageStrategy>) : SetStageStrategy.add,
     ),
   )
 }

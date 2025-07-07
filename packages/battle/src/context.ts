@@ -44,6 +44,7 @@ export type AllContext =
   | SwitchPetContext
   | RageContext
   | StackContext
+  | ConsumeStackContext
   | TransformContext
   | EffectContext<EffectTrigger>
 
@@ -577,7 +578,12 @@ export class RemoveMarkContext extends Context {
   public readonly battle: Battle
   public available: boolean = true
   constructor(
-    public readonly parent: EffectContext<EffectTrigger> | DamageContext | AddMarkContext | TurnContext,
+    public readonly parent:
+      | EffectContext<EffectTrigger>
+      | DamageContext
+      | AddMarkContext
+      | TurnContext
+      | ConsumeStackContext,
     public mark: MarkInstance,
   ) {
     super(parent)
@@ -623,6 +629,27 @@ export class StackContext extends Context {
   }
 }
 
+export class ConsumeStackContext extends Context {
+  readonly type = 'consumeStack'
+  public readonly battle: Battle
+  public available: boolean = true
+
+  constructor(
+    public readonly parent: EffectContext<EffectTrigger> | DamageContext,
+    public readonly mark: MarkInstance,
+    public readonly requestedAmount: number,
+    public actualAmount: number = 0,
+  ) {
+    super(parent)
+    this.battle = parent.battle
+  }
+
+  // 允许效果修改实际消耗的数量
+  setActualAmount(amount: number): void {
+    this.actualAmount = Math.max(0, Math.min(amount, this.mark.stack, this.requestedAmount))
+  }
+}
+
 export type TriggerContextMap = {
   [EffectTrigger.OnBattleStart]: Battle
 
@@ -657,6 +684,8 @@ export type TriggerContextMap = {
 
   [EffectTrigger.OnStackBefore]: StackContext
   [EffectTrigger.OnStack]: StackContext
+  [EffectTrigger.OnBeforeConsumeStack]: ConsumeStackContext
+  [EffectTrigger.OnConsumeStack]: ConsumeStackContext
   [EffectTrigger.OnBeforeHeal]: HealContext
   [EffectTrigger.OnHeal]: HealContext
   [EffectTrigger.OnRageGain]: RageContext
