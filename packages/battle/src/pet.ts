@@ -19,21 +19,13 @@ import {
   StatTypeOnlyBattle,
   StatTypeWithoutHp,
 } from '@arcadia-eternity/const'
-import {
-  AddMarkContext,
-  DamageContext,
-  EffectContext,
-  HealContext,
-  RageContext,
-  RemoveMarkContext,
-  SwitchPetContext,
-} from './context'
+import { AddMarkContext, EffectContext, HealContext, RageContext, RemoveMarkContext, SwitchPetContext } from './context'
 import type { Instance, MarkOwner, OwnedEntity, Prototype } from './entity'
 import { BaseMark, CreateStatStageMark, type MarkInstance, StatLevelMarkInstanceImpl } from './mark'
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
 import { PetAttributeSystem } from './attributeSystem'
-import { DamagePhase } from './phase/damage'
+
 import { HealPhase } from './phase/heal'
 import { MarkSwitchOutPhase } from './phase/MarkSwitchOutPhase'
 import { MarkTransferPhase } from './phase/MarkTransferPhase'
@@ -152,41 +144,6 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
 
   public addRage(context: RageContext) {
     this.owner?.addRage(context)
-  }
-
-  /**
-   * @deprecated Use DamagePhase directly instead of calling this method.
-   * This method is kept for backward compatibility but will be removed in future versions.
-   */
-  public damage(context: DamageContext): boolean {
-    // Damage logic has been moved to DamagePhase
-    // This method now delegates to the phase system
-    const damagePhase = new DamagePhase(
-      context.battle,
-      context.parent,
-      context.source,
-      context.target,
-      context.baseDamage,
-      context.damageType,
-      context.crit,
-      context.effectiveness,
-      context.ignoreShield,
-      context.randomFactor,
-      context.modified,
-      context.minThreshold,
-      context.maxThreshold,
-      context.element,
-    )
-    context.battle.phaseManager.registerPhase(damagePhase)
-    context.battle.phaseManager.executePhase(damagePhase.id)
-
-    // Sync the damage result back to the original context
-    const phaseContext = damagePhase.context
-    if (phaseContext) {
-      context.damageResult = phaseContext.damageResult
-    }
-
-    return this.isAlive
   }
 
   /**
