@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.8.0...arcadia-eternity-v1.8.1) (2025-07-07)
+
+
+### 🐛 Bug Fixes
+
+* Remove deprecated Pet.damage method and update usage ([2a3ef99](https://github.com/arcadia-eternity/arcadia-eternity/commit/2a3ef99a3486ede5416d7ca571a09ee0b9b8feb6))
+
 ## [1.8.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.7.5...arcadia-eternity-v1.8.0) (2025-07-07)
 
 
