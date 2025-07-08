@@ -1,6 +1,6 @@
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
 import { SynchronousPhase } from './base'
-import { SwitchPetContext } from '../context'
+import { SwitchPetContext, TurnContext } from '../context'
 import type { Battle } from '../battle'
 import type { Player } from '../player'
 import type { Pet } from '../pet'
@@ -29,6 +29,12 @@ export class SwitchPetPhase extends SynchronousPhase<SwitchPetContext> {
 
   protected executeOperation(): void {
     const context = this._context!
+
+    // Add the context to TurnContext's appledContexts for condition checking BEFORE execution
+    // This is important because effects during switch execution need to see this context
+    if (context.parent instanceof TurnContext) {
+      context.parent.appledContexts.push(context)
+    }
 
     // Execute the switch operation logic (extracted from performSwitchPet)
     executeSwitchPetOperation(context, this.battle)

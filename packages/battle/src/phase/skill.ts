@@ -48,6 +48,12 @@ export class SkillPhase extends SynchronousPhase<UseSkillContext> {
   protected executeOperation(): void {
     const context = this._context!
 
+    // Add the context to TurnContext's appledContexts for condition checking BEFORE execution
+    // This is important because effects during skill execution need to see this context
+    if (context.parent instanceof TurnContext) {
+      context.parent.appledContexts.push(context)
+    }
+
     // Execute the skill operation logic (extracted from performAttack)
     executeSkillOperation(context, this.battle)
   }

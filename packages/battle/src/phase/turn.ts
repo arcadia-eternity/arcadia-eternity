@@ -57,6 +57,9 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
         const useSkillContext = new UseSkillContext(context, player, player.activePet, skill.target, skill)
         battle.applyEffects(useSkillContext, EffectTrigger.BeforeSort)
 
+        // Add context to TurnContext for condition checking
+        context.pushContext(useSkillContext)
+
         // Create SkillPhase with the context
         const skillPhase = new SkillPhase(
           battle,
@@ -74,6 +77,9 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
         const pet = battle.getPetByID(selection.pet)
         // Create SwitchPetContext
         const switchPetContext = new SwitchPetContext(context, player, pet)
+
+        // Add context to TurnContext for condition checking
+        context.pushContext(switchPetContext)
 
         // Create SwitchPetPhase with the context
         const switchPhase = new SwitchPetPhase(battle, player, pet, context, switchPetContext)
