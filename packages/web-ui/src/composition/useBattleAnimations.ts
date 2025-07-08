@@ -361,7 +361,25 @@ export function useBattleAnimations(
     value: number
     effectiveness: 'up' | 'normal' | 'down'
     crit: boolean
+    skillId?: string // 添加技能ID用于跟踪连击
   }>()
+
+  // 连击伤害累计跟踪
+  const comboTracker = new Map<
+    string,
+    {
+      totalDamage: number
+      hitCount: number
+      lastHitTime: number
+      side: 'left' | 'right'
+      skillId: string
+    }
+  >()
+
+  // 连击重置超时时间（毫秒）
+  const COMBO_RESET_TIMEOUT = 2000
+  // 连击触发特殊效果的伤害阈值比例（相对于目标最大HP）
+  const COMBO_EFFECT_THRESHOLD = 0.4
 
   const damageSubscription = damageSubject
     .pipe(
@@ -378,11 +396,50 @@ export function useBattleAnimations(
       concatMap(({ value, timestamp }) =>
         of(value).pipe(
           delay(Math.max(0, timestamp - Date.now())),
-          tap(({ side, value, effectiveness, crit }) => {
+          tap(({ side, value, effectiveness, crit, skillId }) => {
             const activePetId = side === 'left' ? currentPlayer.value?.activePet : opponentPlayer.value?.activePet
             if (typeof activePetId !== 'string') return
             const currentPet = store.getPetById(activePetId)
             if (!currentPet) return
+
+            // 连击伤害累计逻辑
+            let shouldTriggerComboEffect = false
+            if (skillId) {
+              const now = Date.now()
+              const comboKey = `${side}-${skillId}`
+
+              // 清理过期的连击记录
+              for (const [key, combo] of comboTracker.entries()) {
+                if (now - combo.lastHitTime > COMBO_RESET_TIMEOUT) {
+                  comboTracker.delete(key)
+                }
+              }
+
+              // 更新或创建连击记录
+              const existingCombo = comboTracker.get(comboKey)
+              if (existingCombo && now - existingCombo.lastHitTime <= COMBO_RESET_TIMEOUT) {
+                // 连击继续
+                existingCombo.totalDamage += value
+                existingCombo.hitCount += 1
+                existingCombo.lastHitTime = now
+              } else {
+                // 新的连击开始
+                comboTracker.set(comboKey, {
+                  totalDamage: value,
+                  hitCount: 1,
+                  lastHitTime: now,
+                  side,
+                  skillId,
+                })
+              }
+
+              // 检查是否达到连击特殊效果阈值
+              const combo = comboTracker.get(comboKey)!
+              const comboHpRatio = combo.totalDamage / currentPet.maxHp
+              if (combo.hitCount >= 2 && comboHpRatio >= COMBO_EFFECT_THRESHOLD) {
+                shouldTriggerComboEffect = true
+              }
+            }
 
             const { x: baseX, y: baseY } = getBattleViewPosition(side, 120)
             const randomOffsetX = (Math.random() - 0.5) * 200
@@ -392,8 +449,11 @@ export function useBattleAnimations(
 
             const hpRatio = value / currentPet.maxHp
 
-            if ((hpRatio > 0.25 || crit) && battleViewRef.value) {
-              const shakeIntensity = 20 + Math.random() * 30
+            // 修改触发条件：原有条件或连击特殊效果
+            if ((hpRatio > 0.25 || crit || shouldTriggerComboEffect) && battleViewRef.value) {
+              // 连击特殊效果时增强震动强度
+              const baseShakeIntensity = shouldTriggerComboEffect ? 40 : 20
+              const shakeIntensity = baseShakeIntensity + Math.random() * 30
               const shakeAngle = Math.random() * Math.PI * 2
               const shakeX = Math.cos(shakeAngle) * shakeIntensity
               const shakeY = Math.sin(shakeAngle) * shakeIntensity
@@ -401,12 +461,15 @@ export function useBattleAnimations(
               // 捕获当前的缩放值，避免在动画过程中发生变化
               const currentScale = battleViewScale.value
 
+              // 连击特殊效果时增加震动次数
+              const repeatCount = shouldTriggerComboEffect ? 8 : 5
+
               gsap.to(battleViewRef.value, {
                 x: shakeX,
                 y: shakeY,
                 scale: currentScale, // 保持当前的缩放比例
                 duration: 0.05,
-                repeat: 5,
+                repeat: repeatCount,
                 yoyo: true,
                 ease: 'power1.inOut',
                 onComplete: () => {
@@ -420,12 +483,16 @@ export function useBattleAnimations(
               })
 
               // 触发背景焦点移动效果
-              // 计算移动强度：暴击时强度更高，伤害比例越高强度越高
-              const moveIntensity = Math.min(1.5, (crit ? 1.2 : 0.8) * Math.min(hpRatio * 2, 1))
+              // 计算移动强度：连击特殊效果时增强，暴击时强度更高，伤害比例越高强度越高
+              let moveIntensity = Math.min(1.5, (crit ? 1.2 : 0.8) * Math.min(hpRatio * 2, 1))
+              if (shouldTriggerComboEffect) {
+                moveIntensity = Math.min(2.0, moveIntensity * 1.5) // 连击特殊效果时增强移动强度
+              }
               moveBackgroundFocus(side, moveIntensity)
             }
 
-            if (hpRatio > 0.5 && battleViewRef.value) {
+            // 修改闪屏触发条件：原有条件或连击特殊效果
+            if ((hpRatio > 0.5 || shouldTriggerComboEffect) && battleViewRef.value) {
               flashAndShake()
             }
 
@@ -500,8 +567,9 @@ export function useBattleAnimations(
     value: number,
     effectiveness: 'up' | 'normal' | 'down' = 'normal',
     crit: boolean = false,
+    skillId?: string, // 添加可选的技能ID参数
   ) => {
-    damageSubject.next({ side, value, effectiveness, crit })
+    damageSubject.next({ side, value, effectiveness, crit, skillId })
   }
 
   const showHealMessage = (side: 'left' | 'right', value: number) => {
@@ -595,6 +663,8 @@ export function useBattleAnimations(
     healSubscription.unsubscribe()
     // 重置背景偏移量
     currentBackgroundOffset = 0
+    // 清理连击跟踪器
+    comboTracker.clear()
   }
 
   return {
