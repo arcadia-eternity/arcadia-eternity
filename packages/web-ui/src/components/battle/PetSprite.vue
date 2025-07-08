@@ -73,6 +73,7 @@ watchEffect(
 
         while ((!states || states.length === 0) && retryCount < maxRetries) {
           await nextTick()
+          await petRenderRef.value.updateComplete
           states = (await petRenderRef.value.getAvailableStates()) as ActionState[]
           if (!states || states.length === 0) {
             console.debug(
