@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.8.1...arcadia-eternity-v1.8.2) (2025-07-08)
+
+
+### 🐛 Bug Fixes
+
+* Add context tracking for skill and switch operations ([cf73675](https://github.com/arcadia-eternity/arcadia-eternity/commit/cf73675c7065b650d2c2d54b0228e0fdac91f782))
+* Quote REDIS_KEY_PREFIX value in docker-compose.yml ([dbd8f65](https://github.com/arcadia-eternity/arcadia-eternity/commit/dbd8f65d7cb219e976f40801b78adc62ccc0a9fe))
+
 ## [1.8.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.8.0...arcadia-eternity-v1.8.1) (2025-07-07)
 
 
