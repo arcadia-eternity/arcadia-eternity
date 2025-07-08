@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.8.2...arcadia-eternity-v1.8.3) (2025-07-08)
+
+
+### 🐛 Bug Fixes
+
+* Await updateComplete before fetching pet states ([e3a4a06](https://github.com/arcadia-eternity/arcadia-eternity/commit/e3a4a06501e6dbd87098766d2b44dca880e2d03a))
+
 ## [1.8.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.8.1...arcadia-eternity-v1.8.2) (2025-07-08)
 
 
