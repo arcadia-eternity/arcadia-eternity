@@ -62,7 +62,7 @@ export class TurnContext extends Context {
     this.battle = parent.battle
   }
 
-  private contextSort(a: Context, b: Context): number {
+  private getExecutionOrder(a: Context, b: Context): number {
     // 类型优先级：换宠 > 使用技能
     const typeOrder: Record<Context['type'], number> = {
       'switch-pet': 0, // 换宠优先级最高
@@ -108,7 +108,9 @@ export class TurnContext extends Context {
 
   pushContext(context: Context) {
     this.contexts.push(context)
-    this.contexts.sort(this.contextSort)
+    // 按执行顺序排序，然后反转，使得contexts[0]是最后执行的
+    this.contexts.sort(this.getExecutionOrder)
+    this.contexts.reverse()
   }
 }
 
