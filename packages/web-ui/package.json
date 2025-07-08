@@ -1,6 +1,6 @@
 {
   "name": "@arcadia-eternity/web-ui",
-  "version": "1.8.2",
+  "version": "1.8.3",
   "private": true,
   "type": "module",
   "repository": {
@@ -66,7 +66,7 @@
     "pinia": "^3.0.3",
     "pinia-plugin-persistedstate": "^4.3.0",
     "rxjs": "^7.8.2",
-    "seer2-pet-animator": "^0.0.36",
+    "seer2-pet-animator": "^0.0.37",
     "sortablejs": "^1.15.6",
     "sortablejs-vue3": "^1.2.11",
     "tailwindcss": "^4.1.10",
