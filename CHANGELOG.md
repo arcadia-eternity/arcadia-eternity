@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.8.3...arcadia-eternity-v1.8.4) (2025-07-08)
+
+
+### ⚡ Performance Improvements
+
+* Add combo damage tracking and effects to battle animations ([49250b4](https://github.com/arcadia-eternity/arcadia-eternity/commit/49250b432654524f771a7a26eca1284a20f62078))
+
 ## [1.8.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.8.2...arcadia-eternity-v1.8.3) (2025-07-08)
 
 

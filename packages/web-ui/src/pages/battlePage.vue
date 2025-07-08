@@ -436,6 +436,9 @@ const opponentPlayer = computed(() => store.opponent)
 const globalMarks = computed(() => store.battleState?.marks ?? [])
 const currentTurn = computed(() => store.battleState?.currentTurn ?? 0)
 
+// 当前正在使用的技能ID跟踪（用于连击伤害累计）
+const currentActiveSkillId = ref<string | null>(null)
+
 const background = computed(() => {
   if (gameSettingStore.background === 'random') {
     return Object.values(resourceStore.background.byId)[
@@ -1482,6 +1485,9 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   const useSkill = messages.filter(m => m.type === BattleMessageType.SkillUse)[0]
   if (!useSkill) return
 
+  // 设置当前活跃技能ID用于连击伤害跟踪
+  currentActiveSkillId.value = useSkill.data.skill
+
   // 统一使用 applyStateDelta，回放模式下跳过重复检查
   await store.applyStateDelta(useSkill)
 
@@ -1670,6 +1676,9 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
       console.warn('Failed to end animation tracking:', error)
     }
   }
+
+  // 清除当前活跃技能ID
+  currentActiveSkillId.value = null
 }
 
 function handleCombatEventMessage(message: CombatEventMessageWithTarget, isFromSkillSequenceContext: boolean) {
@@ -1703,6 +1712,7 @@ function handleCombatEventMessage(message: CombatEventMessageWithTarget, isFromS
             damageData.damage,
             damageData.effectiveness > 1 ? 'up' : damageData.effectiveness < 1 ? 'down' : 'normal',
             damageData.isCrit,
+            currentActiveSkillId.value || undefined,
           )
           break
         }
@@ -1727,6 +1737,7 @@ function handleCombatEventMessage(message: CombatEventMessageWithTarget, isFromS
           damageData.damage,
           damageData.effectiveness > 1 ? 'up' : damageData.effectiveness < 1 ? 'down' : 'normal',
           damageData.isCrit,
+          currentActiveSkillId.value || undefined,
         )
       }
       break
