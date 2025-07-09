@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.9.1...arcadia-eternity-v1.9.2) (2025-07-09)
+
+
+### 🐛 Bug Fixes
+
+* Update Dockerfile ownership to joseph user ([033b40e](https://github.com/arcadia-eternity/arcadia-eternity/commit/033b40e83c56d75dd10f1baacc83567bffee267b))
+
 ## [1.9.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.9.0...arcadia-eternity-v1.9.1) (2025-07-09)
 
 
