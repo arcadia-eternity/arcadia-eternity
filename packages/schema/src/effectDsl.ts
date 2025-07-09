@@ -760,6 +760,9 @@ export type SelectorChain =
       type: 'sum' // 数值求和（无参数）
     }
   | {
+      type: 'avg' // 数值求平均值（无参数）
+    }
+  | {
       type: 'add'
       arg: Value
     }

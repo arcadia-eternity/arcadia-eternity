@@ -344,6 +344,40 @@ export class ChainableSelector<T> {
     }, this.type)
   }
 
+  //对所有的结果进行求平均值，得到唯一的参数
+  avg(this: ChainableSelector<number>): ChainableSelector<number>
+  avg(this: ChainableSelector<Observable<number>>): ChainableSelector<Observable<number>>
+  avg(
+    this: ChainableSelector<number> | ChainableSelector<Observable<number>>,
+  ): ChainableSelector<number> | ChainableSelector<Observable<number>> {
+    if (this.type.includes('Observable')) {
+      return new ChainableSelector<Observable<number>>(context => {
+        const observables = this.selector(context) as Observable<number>[]
+        if (observables.length === 0) {
+          return [
+            new Observable(subscriber => {
+              subscriber.next(0)
+              subscriber.complete()
+            }),
+          ]
+        }
+        if (observables.length === 1) {
+          return observables
+        }
+        // 使用combineLatest来组合多个Observable并求平均值
+        const combined = combineLatest(observables).pipe(
+          map(values => values.reduce((acc, cur) => acc + cur, 0) / values.length),
+        )
+        return [combined]
+      }, 'Observable<number>')
+    }
+    return new ChainableSelector<number>(context => {
+      const values = this.selector(context) as number[]
+      if (values.length === 0) return [0]
+      return [values.reduce((acc, cur) => acc + cur, 0) / values.length]
+    }, this.type)
+  }
+
   //加一个固定数，或者加一个来源的数。如果来源选择了多个数，则会加上来源的每一个数。
   add(this: ChainableSelector<number>, valueSource: ValueSource<number>): ChainableSelector<number>
   add(

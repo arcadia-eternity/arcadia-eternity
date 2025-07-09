@@ -183,6 +183,9 @@ export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
       type: z.literal('sum'),
     }),
     z.object({
+      type: z.literal('avg'),
+    }),
+    z.object({
       type: z.literal('add'),
       arg: valueSchema,
     }),
