@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.9.0...arcadia-eternity-v1.9.1) (2025-07-09)
+
+
+### 🐛 Bug Fixes
+
+* Change non-root user from arcadia to joseph in Dockerfile ([15d230d](https://github.com/arcadia-eternity/arcadia-eternity/commit/15d230d717b6e474fe96a6efa1842ddd8b40ebbe))
+
 ## [1.9.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.8.4...arcadia-eternity-v1.9.0) (2025-07-09)
 
 
