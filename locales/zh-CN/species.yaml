@@ -289,3 +289,9 @@ pet_yilu:
 pet_yiluxin:
   name: 伊露辛
   description: 伊露辛在战斗中 能够将对手纳入它的幻想世界 受制其中
+pet_abao:
+  name: 阿宝
+  description: 部落的人说 阿宝会在你即将获得财运的时候出现
+pet_acai:
+  name: 阿财
+  description: 见到返老还童的阿财 也许会有更大的好运等着你哦

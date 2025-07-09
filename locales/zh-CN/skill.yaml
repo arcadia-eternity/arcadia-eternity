@@ -1873,3 +1873,39 @@ skill_huawu:
 skill_huanxiangzhiling:
   name: 幻想之灵
   description: 消耗幻想强化自身特防1级
+skill_lingdang:
+  name: 铃铛
+  description: 5%弱化对手特防1级
+skill_yaoling:
+  name: 摇铃
+  description: 使自身获得招财或进宝
+skill_zhenling:
+  name: 震铃
+  description: 具有招财时威力2倍 具有进宝时暴击率增加95%
+skill_shengcai:
+  name: 生财
+  description: 击败对手时获得1个赛尔豆
+skill_feiling:
+  name: 飞铃
+  description: 【85】具有招财时必中 具有进宝时使对手获得15点命中下降
+skill_wabao:
+  name: 挖宝
+  description: 击败SPT时使装备掉率提高2%
+skill_bailingji:
+  name: 百铃击
+  description: 具有招财时连击3次 具有进宝时附加100点固伤
+skill_lingyinsiqi:
+  name: 铃音似起
+  description: <font color=#93E312>必中</font> 使自身获得招财或进宝
+skill_changmingbuzhi:
+  name: 长鸣不止
+  description: 强化自身双攻1级
+skill_shengcailing:
+  name: 生财令
+  description: 具有招财时伤害增加50% 具有进宝时伤害减少50%
+skill_wabaolin:
+  name: 挖宝令
+  description: 具有招财时伤害减少50% 具有进宝时伤害增加50%
+skill_lingdangshouhu:
+  name: 铃铛守护
+  description: 强化自身双防1级

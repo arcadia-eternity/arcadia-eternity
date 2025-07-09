@@ -133,3 +133,6 @@ mark_ability_shihua:
 mark_ability_huanxiang:
   name: 幻想
   description: 具有幻想时受到伤害减少10%
+mark_ability_caibao:
+  name: 财宝
+  description: 跟随时玩小游戏获得的赛尔豆增加5%

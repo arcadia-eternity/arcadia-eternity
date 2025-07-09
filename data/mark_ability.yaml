@@ -238,3 +238,7 @@
   tags: [ability]
   effect:
     - effect_ability_reduce_damage_10_if_has_mark_huanxiang
+- id: mark_ability_caibao
+  config: *ability_config
+  tags: [ability]
+  effect: [] # TODO: 跟随时玩小游戏获得的赛尔豆增加5%
