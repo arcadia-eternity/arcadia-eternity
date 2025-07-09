@@ -644,20 +644,28 @@
       chain:
         - type: selectAttribute$
           arg: stack
+# 闪避来自敌方的技能
 - id: effect_mark_evade
   trigger: AfterUseSkillCheck
   priority: 0
   condition:
-    type: selfBeSkillTarget
+    type: every
+    conditions:
+      - type: opponentUseSkill
+      - type: selfBeSkillTarget
   apply:
     type: setSureMiss
     target: usingSkillContext
     priority: -1
+# 闪避来自敌方的技能，消耗印记层数
 - id: effect_mark_evade_with_stack
   trigger: AfterUseSkillCheck
   priority: 0
   condition:
-    type: selfBeSkillTarget
+    type: every
+    conditions:
+      - type: opponentUseSkill
+      - type: selfBeSkillTarget
   apply:
     type: setSureMiss
     target: usingSkillContext
@@ -2862,7 +2870,7 @@
                 value: mark_global_yemu
         evaluator:
           type: exist
-# 影缝: 被打中或者闪避成功后，消失
+# 影缝: 被对方打中或者闪避成功后，消失
 - id: effect_mark_yingfeng_destroy_on_hit_or_miss
   trigger: [OnHit, OnMiss]
   priority: -1
@@ -2870,7 +2878,10 @@
     type: destroyMark
     target: mark
   condition:
-    type: selfBeSkillTarget
+    type: every
+    conditions:
+      - type: opponentUseSkill
+      - type: selfBeSkillTarget
 # 不谐暗光：受到的光属性伤害减半
 - id: effect_mark_buxieanguang_reduce_light_damage_half
   trigger: OnBeforeCalculateDamage

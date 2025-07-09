@@ -57,6 +57,7 @@ export type SelectorValue = {
 ### 3. 链式操作支持
 
 支持所有现有的 SelectorChain 操作：
+
 - 数学运算 (add, multiply, divide, sum)
 - 数组操作 (randomPick, randomSample, limit, shuffled)
 - 条件操作 (clampMax, clampMin)
@@ -123,6 +124,33 @@ export type SelectorValue = {
 }
 ```
 
+### 平均值计算
+
+```json
+{
+  "type": "dealDamage",
+  "target": "target",
+  "value": {
+    "type": "selector",
+    "value": {
+      "type": "dynamic",
+      "selector": {
+        "base": "allPets",
+        "chain": [
+          { "type": "selectPath", "arg": "currentHp" }
+        ]
+      }
+    },
+    "chain": [
+      { "type": "avg" },
+      { "type": "divide", "arg": 2 }
+    ]
+  }
+}
+```
+
+这个效果会计算所有宠物当前HP的平均值，然后除以2作为伤害值。
+
 ### 条件值计算
 
 ```json
@@ -162,6 +190,7 @@ export type SelectorValue = {
 ## 测试
 
 创建了完整的测试套件来验证新功能的正确性，包括：
+
 - 基础 SelectorValue 验证
 - 数组值处理
 - 动态值处理
@@ -172,6 +201,7 @@ export type SelectorValue = {
 ## 文档
 
 提供了详细的文档和示例：
+
 - `packages/schema/docs/selector-value-syntax.md` - 语法说明文档
 - `packages/schema/examples/selector-value-examples.ts` - 使用示例
 - `packages/schema/test/selector-value.test.ts` - 测试用例

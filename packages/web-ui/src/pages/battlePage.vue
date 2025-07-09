@@ -2387,9 +2387,6 @@ watch(
     <div
       ref="battleContainerRef"
       class="h-full w-full bg-[#1a1a2e] overflow-visible relative flex justify-center items-center"
-      :style="{
-        '--battle-view-scale': battleViewScale,
-      }"
     >
       <!-- 加载遮罩 -->
       <Transition name="fade">
@@ -2556,7 +2553,7 @@ watch(
         ref="battleViewRef"
         class="w-[1600px] h-[900px] min-w-[1600px] min-h-[900px] flex-shrink-0 relative flex justify-center items-center object-contain bg-gray-900 transition-transform duration-300 ease-out"
         :style="{
-          transform: `scale(${battleViewScale})`,
+          transform: `scale(${battleViewScale}) translateZ(0)`,
           transformOrigin: 'center center',
           opacity: isFullyLoaded ? 1 : 0,
           transition: 'opacity 0.5s ease-in-out',

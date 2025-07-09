@@ -230,6 +230,11 @@ function applySelectorStep(
         return selector.sum()
       }
 
+      case 'avg': {
+        assertNumberSelector(selector)
+        return selector.avg()
+      }
+
       case 'add': {
         assertNumberSelector(selector)
         return selector.add(parseValue(effectId, step.arg) as ValueSource<number>)
