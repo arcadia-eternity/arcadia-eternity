@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.9.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.8.4...arcadia-eternity-v1.9.0) (2025-07-09)
+
+
+### ✨ Features
+
+* **netpet:** 阿财 ([b60a203](https://github.com/arcadia-eternity/arcadia-eternity/commit/b60a203f1d30f69758a6d64d61ee54344fef454c))
+
+
+### 🐛 Bug Fixes
+
+* Refine mark removal logic in AddMarkPhase ([ab01e2b](https://github.com/arcadia-eternity/arcadia-eternity/commit/ab01e2becd404923721b441034a3e20150002301))
+
 ## [1.8.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.8.3...arcadia-eternity-v1.8.4) (2025-07-08)
 
 
