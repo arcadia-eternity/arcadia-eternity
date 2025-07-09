@@ -1,11 +1,12 @@
 import { EffectTrigger, StackStrategy, BattleMessageType } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
-import { AddMarkContext, RemoveMarkContext, StackContext } from '../context'
+import { AddMarkContext, StackContext } from '../context'
 import type { MarkOwner } from '../entity'
 import { type BaseMark, type MarkInstance, StatLevelMarkInstanceImpl, BaseStatLevelMark } from '../mark'
 import { Pet } from '../pet'
 import { SynchronousPhase } from './base'
 import { MarkStackPhase } from './MarkStackPhase'
+import { RemoveMarkPhase } from './RemoveMarkPhase'
 
 /**
  * AddMarkPhase handles mark addition operations
@@ -54,10 +55,27 @@ export function executeAddMarkOperation(context: AddMarkContext, battle: Battle)
     // Get existing marks in the same mutex group
     const existingMarks = context.target.marks.filter(m => m.config.mutexGroup === context.baseMark.config.mutexGroup)
 
-    // Remove all conflicting marks using RemoveMarkPhase
+    // Remove conflicting marks, but skip marks of the same type (they should stack instead)
     existingMarks.forEach(mark => {
-      const removeMarkContext = new RemoveMarkContext(context, mark)
-      battle.removeMark(removeMarkContext)
+      // Skip if it's the same mark type - let stacking logic handle it
+      if (mark.base.id === context.baseMark.id) {
+        return
+      }
+
+      // For stat level marks, also check if they're the same stat type
+      if (
+        mark instanceof StatLevelMarkInstanceImpl &&
+        context.baseMark instanceof BaseStatLevelMark &&
+        mark.base instanceof BaseStatLevelMark &&
+        mark.base.statType === context.baseMark.statType
+      ) {
+        return
+      }
+
+      // Remove conflicting marks using RemoveMarkPhase
+      const removeMarkPhase = new RemoveMarkPhase(battle, context, mark)
+      battle.phaseManager.registerPhase(removeMarkPhase)
+      battle.phaseManager.executePhase(removeMarkPhase.id)
     })
   }
 
