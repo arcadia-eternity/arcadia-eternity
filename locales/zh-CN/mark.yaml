@@ -586,3 +586,9 @@ mark_wanan:
 mark_huixin:
   name: 会心
   description: 下一次使用非属性类技能必定暴击
+mark_zhaocai:
+  name: 招财
+  description: 造成伤害提升25%
+mark_jinbao:
+  name: 进宝
+  description: 受到伤害减少25%

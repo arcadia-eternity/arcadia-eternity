@@ -5537,3 +5537,120 @@
     - mark_ability_huanxiang
   emblem:
     - mark_emblem_huashen
+- id: pet_abao
+  num: 51
+  element: Normal
+  baseStats:
+    hp: 91
+    atk: 117
+    def: 122
+    spa: 131
+    spd: 118
+    spe: 105
+  genderRatio:
+    - 9
+    - 1
+  heightRange:
+    - 81
+    - 86
+  weightRange:
+    - 60
+    - 65
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_lingdang
+      level: 5
+      hidden: false
+    - skill_id: skill_rouruan
+      level: 10
+      hidden: false
+    - skill_id: skill_yaoling
+      level: 15
+      hidden: false
+    - skill_id: skill_zhenling
+      level: 20
+      hidden: false
+    - skill_id: skill_shengcai
+      level: 25
+      hidden: false
+  ability:
+    - mark_ability_caibao
+  emblem:
+    - mark_emblem_yaoling
+- id: pet_acai
+  num: 52
+  element: Normal
+  baseStats:
+    hp: 181
+    atk: 162
+    def: 167
+    spa: 181
+    spd: 163
+    spe: 150
+  genderRatio:
+    - 9
+    - 1
+  heightRange:
+    - 34
+    - 39
+  weightRange:
+    - 12
+    - 17
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_lingdang
+      level: 5
+      hidden: false
+    - skill_id: skill_rouruan
+      level: 10
+      hidden: false
+    - skill_id: skill_yaoling
+      level: 15
+      hidden: false
+    - skill_id: skill_zhenling
+      level: 20
+      hidden: false
+    - skill_id: skill_shengcai
+      level: 25
+      hidden: false
+    - skill_id: skill_feiling
+      level: 30
+      hidden: false
+    - skill_id: skill_rourun
+      level: 35
+      hidden: false
+    - skill_id: skill_quanlichongfeng
+      level: 40
+      hidden: false
+    - skill_id: skill_xiaoruo
+      level: 45
+      hidden: false
+    - skill_id: skill_wabao
+      level: 50
+      hidden: false
+    - skill_id: skill_bailingji
+      level: 55
+      hidden: false
+    - skill_id: skill_lingyinsiqi
+      level: 60
+      hidden: true
+    - skill_id: skill_changmingbuzhi
+      level: 60
+      hidden: true
+    - skill_id: skill_shengcailing
+      level: 60
+      hidden: true
+    - skill_id: skill_wabaolin
+      level: 60
+      hidden: true
+    - skill_id: skill_lingdangshouhu
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_caibao
+  emblem:
+    - mark_emblem_yaoling

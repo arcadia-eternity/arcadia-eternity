@@ -230,3 +230,8 @@
   tags: [emblem]
   effect:
     - effect_emblem_huashen_skill_rage_cost_reduce_5
+- id: mark_emblem_yaoling
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_yaoling_extend_zhaocai_jinbao_duration # TODO: 使招财进宝的回合数+1

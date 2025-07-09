@@ -1483,7 +1483,7 @@
     destroyable: true
     keepOnSwitchOut: true
   effect:
-    - effect_mark_damage_boost_35
+    - effect_mark_increase_damage_dealt_35_percent
 
 - id: mark_shazhiwang
   config:
@@ -1517,7 +1517,7 @@
     destroyable: true
     keepOnSwitchOut: true
   effect:
-    - effect_mark_reduce_damage_20_percent
+    - effect_mark_reduce_damage_taken_20_percent
 - id: mark_wuzhezhixin
   config:
     duration: -1
@@ -1876,3 +1876,27 @@
     - buff
   effect:
     - effect_mark_next_non_status_skill_sure_crit
+- id: mark_zhaocai
+  tags:
+    - status
+  config:
+    persistent: false
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    duration: 5
+    mutexGroup: fortune_marks
+  effect:
+    - effect_mark_increase_damage_dealt_25_percent
+- id: mark_jinbao
+  tags:
+    - status
+  config:
+    persistent: false
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    duration: 5
+    mutexGroup: fortune_marks
+  effect:
+    - effect_mark_reduce_damage_taken_25_percent

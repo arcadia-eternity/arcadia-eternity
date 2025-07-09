@@ -933,3 +933,27 @@
     attribute: rage
     modifierType: delta
     value: -5
+- id: effect_emblem_yaoling_extend_zhaocai_jinbao_duration
+  trigger: OnBeforeAddMark
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark.id
+        evaluator:
+          type: anyOf
+          value:
+            - mark_zhaocai
+            - mark_jinbao
+  apply:
+    type: setMarkDuration
+    target: addMarkContext
+    value: 6

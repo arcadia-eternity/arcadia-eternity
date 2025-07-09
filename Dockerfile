@@ -76,7 +76,7 @@ COPY package.json ./
 RUN chown -R arcadia:nodejs /app
 
 # Switch to non-root user
-USER arcadia
+USER joseph
 
 # Set environment variables
 ENV NODE_ENV=production

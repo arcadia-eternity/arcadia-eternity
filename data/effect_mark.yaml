@@ -2290,7 +2290,7 @@
     target: damageContext
 
 # 沙鹤之力: 造成伤害增加35%
-- id: effect_mark_damage_boost_35
+- id: effect_mark_increase_damage_dealt_35_percent
   trigger: OnBeforeCalculateDamage
   priority: 0
   condition:
@@ -2357,18 +2357,6 @@
             arg: stack
           - type: multiply
             arg: 20
-
-# 沙之蛋壳: 降低受到的伤害20%
-- id: effect_mark_reduce_damage_20_percent
-  trigger: OnBeforeCalculateDamage
-  condition:
-    type: selfBeDamaged
-  priority: 0
-  apply:
-    type: addModified
-    target: damageContext
-    percent: -20
-    delta: 0
 
 # 武者之心: 每层会增加受到的伤害15% 对方技能命中后转移给对方
 - id: effect_mark_increase_damage_taken_15_percent_per_stack
@@ -3069,3 +3057,27 @@
     type: every
     conditions:
       - type: selfBeDamaged
+
+# 招财：造成的伤害提升25%
+- id: effect_mark_increase_damage_dealt_25_percent
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 25
+    delta: 0
+  condition:
+    type: selfUseSkill
+
+# 进宝：受到的伤害减少25%
+- id: effect_mark_reduce_damage_taken_25_percent
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: -25
+    delta: 0
+  condition:
+    type: selfBeDamaged

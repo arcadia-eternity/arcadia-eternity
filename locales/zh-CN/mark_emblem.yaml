@@ -131,3 +131,6 @@ mark_emblem_jingsong:
 mark_emblem_huashen:
   name: 化身
   description: 减少5点化冰 化雪 化雾的怒气消耗
+mark_emblem_yaoling:
+  name: 摇铃
+  description: 使招财进宝的回合数+1
