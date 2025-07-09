@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.10.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.9.2...arcadia-eternity-v1.10.0) (2025-07-09)
+
+
+### ✨ Features
+
+* **effect:** Add avg operator to SelectorChain for average calculation ([b5b09a6](https://github.com/arcadia-eternity/arcadia-eternity/commit/b5b09a691d7d47ac2af1526d56d2264fb417a0ea))
+
+
+### 🐛 Bug Fixes
+
+* Refine conditions for mark effects to require opponent skills ([f2701ea](https://github.com/arcadia-eternity/arcadia-eternity/commit/f2701eabbd79cedfff747debfbd2e1bdfd72ce52))
+
+
+### ⚡ Performance Improvements
+
+* Update battle view scaling and transform style ([da5fc69](https://github.com/arcadia-eternity/arcadia-eternity/commit/da5fc69ba0074a7e2a8d367f9c686429755ebd42))
+
 ## [1.9.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.9.1...arcadia-eternity-v1.9.2) (2025-07-09)
 
 
