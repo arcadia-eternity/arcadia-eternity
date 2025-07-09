@@ -73,7 +73,7 @@ RUN mkdir -p ./scripts
 COPY package.json ./
 
 # Change ownership to non-root user
-RUN chown -R arcadia:nodejs /app
+RUN chown -R joseph:nodejs /app
 
 # Switch to non-root user
 USER joseph
