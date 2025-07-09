@@ -1,0 +1,182 @@
+# 简化版印记判断语法示例
+# 展示新增的 selfHasMark 和 opponentHasMark condition
+
+# 示例1：使用新的简化语法 - 自己有指定印记时触发
+- id: effect_simplified_self_has_mark
+  trigger: OnSkillUse
+  priority: 100
+  apply:
+    type: dealDamage
+    target: { base: target }
+    value: 50
+  condition:
+    # 🆕 新的简化语法：直接判断自己是否有指定印记
+    type: selfHasMark
+    baseId: mark_liuxie
+
+# 示例2：使用新的简化语法 - 对手有指定印记时触发
+- id: effect_simplified_opponent_has_mark
+  trigger: OnSkillUse
+  priority: 100
+  apply:
+    type: setSureHit
+    target: usingSkillContext
+    priority: 2
+  condition:
+    # 🆕 新的简化语法：直接判断对手是否有指定印记
+    type: opponentHasMark
+    baseId: mark_yinghua
+
+# 示例3：组合使用 - 自己有印记A且对手有印记B时触发
+- id: effect_combined_mark_check
+  trigger: OnDamage
+  priority: 100
+  apply:
+    type: addMark
+    target: { base: target }
+    mark: { type: 'entity:baseMark', value: 'mark_zhongdu' }
+  condition:
+    type: every
+    conditions:
+      - type: selfHasMark
+        baseId: mark_nengliang
+      - type: opponentHasMark
+        baseId: mark_ruodianjihao
+
+# 示例4：使用动态值 - 根据技能baseId判断印记
+- id: effect_dynamic_mark_check
+  trigger: OnSkillUse
+  priority: 100
+  apply:
+    type: heal
+    target: { base: self }
+    value: 30
+  condition:
+    type: selfHasMark
+    baseId:
+      type: dynamic
+      selector:
+        base: usingSkillContext
+        chain:
+          - type: selectPath
+            arg: skill
+          - type: selectPath
+            arg: baseId
+          - type: replace
+            arg: 'skill_'
+            with: 'mark_'
+
+# 对比：旧的复杂语法 vs 新的简化语法
+
+# 旧语法：判断自己是否有流血印记（复杂）
+- id: effect_old_syntax_self_has_mark
+  trigger: OnSkillUse
+  priority: 100
+  apply:
+    type: dealDamage
+    target: { base: target }
+    value:
+      type: dynamic
+      selector:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_liuxie
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 2
+  condition:
+    type: evaluate
+    target:
+      base: selfMarks
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value: mark_liuxie
+    evaluator:
+      type: exist
+
+# 新语法：判断自己是否有流血印记（简化）
+- id: effect_new_syntax_self_has_mark
+  trigger: OnSkillUse
+  priority: 100
+  apply:
+    type: dealDamage
+    target: { base: target }
+    value:
+      type: dynamic
+      selector:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_liuxie
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 2
+  condition:
+    # 🎉 大大简化了condition部分！
+    type: selfHasMark
+    baseId: mark_liuxie
+
+# 示例5：否定判断 - 自己没有指定印记时触发
+- id: effect_self_not_has_mark
+  trigger: OnSkillUse
+  priority: 100
+  apply:
+    type: addMark
+    target: { base: self }
+    mark: { type: 'entity:baseMark', value: 'mark_nengliang' }
+  condition:
+    type: not
+    condition:
+      type: selfHasMark
+      baseId: mark_nengliang
+
+# 示例6：多重条件 - 复杂的印记判断逻辑
+- id: effect_complex_mark_logic
+  trigger: OnSkillUse
+  priority: 100
+  apply:
+    type: dealDamage
+    target: { base: target }
+    value: 100
+  condition:
+    type: some  # 满足任一条件即可
+    conditions:
+      # 情况1：自己有能量印记且对手有中毒印记
+      - type: every
+        conditions:
+          - type: selfHasMark
+            baseId: mark_nengliang
+          - type: opponentHasMark
+            baseId: mark_zhongdu
+      # 情况2：自己有流血印记且对手有弱点印记
+      - type: every
+        conditions:
+          - type: selfHasMark
+            baseId: mark_liuxie
+          - type: opponentHasMark
+            baseId: mark_ruodianjihao
+      # 情况3：自己有樱花印记
+      - type: selfHasMark
+        baseId: mark_yinghua

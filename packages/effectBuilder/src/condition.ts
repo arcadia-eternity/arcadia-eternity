@@ -359,6 +359,36 @@ export const Conditions = {
     }
   },
 
+  // 简化版：检查自己是否有指定baseId的印记
+  selfHasMark: (baseId: ValueSource<string>): Condition => {
+    return context => {
+      if (context.source.owner instanceof Pet) {
+        const _baseId = GetValueFromSource(context, baseId)
+        if (_baseId.length === 0) return false
+        return context.source.owner.marks.some(mark => mark.baseId === _baseId[0])
+      }
+      return false
+    }
+  },
+
+  // 简化版：检查对手是否有指定baseId的印记
+  opponentHasMark: (baseId: ValueSource<string>): Condition => {
+    return context => {
+      let opponentPet: Pet
+      if (context.parent instanceof UseSkillContext) {
+        opponentPet = context.parent.actualTarget!
+      } else if (context.source.owner instanceof Pet) {
+        opponentPet = context.battle.getOpponent(context.source.owner.owner!).activePet
+      } else {
+        return false
+      }
+
+      const _baseId = GetValueFromSource(context, baseId)
+      if (_baseId.length === 0) return false
+      return opponentPet.marks.some(mark => mark.baseId === _baseId[0])
+    }
+  },
+
   // 当自己被选为当前UseSkillContext的目标时返回true
   selfBeSkillTarget: (): Condition => {
     return context => {

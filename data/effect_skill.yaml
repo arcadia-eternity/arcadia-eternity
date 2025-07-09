@@ -1311,19 +1311,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_kuihuazhongzi
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_kuihuazhongzi
 - id: effect_skill_ignore_stat_opponent_has_mark_kuihuazhongzi
   trigger: BeforeHit
   priority: 0
@@ -1335,19 +1324,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_kuihuazhongzi
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_kuihuazhongzi
 - id: effect_skill_add_mark_opponent_kuihuazhongzi
   trigger: OnHit
   priority: 0
@@ -1455,19 +1433,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_kuihuazhongzi
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_kuihuazhongzi
 - id: effect_skill_add_mark_opponent_zhongdu_duration_2
   trigger: OnHit
   priority: 0
@@ -1499,19 +1466,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_zhongdu
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_zhongdu
 - id: effect_skill_add_mark_rouhua_50
   trigger: OnHit
   priority: 0
@@ -1855,19 +1811,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_yinghua
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_yinghua
 - id: effect_skill_heal_self_90_hp
   trigger: OnHit
   priority: 0
@@ -1900,19 +1845,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_yinghua
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_yinghua
 - id: effect_skill_clear_opponent_spd_stage_if_has_mark_yinghua
   trigger: OnHit
   priority: 0
@@ -1924,19 +1858,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_yinghua
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_yinghua
 - id: effect_skill_add_mark_opponent_liuxie
   trigger: OnHit
   priority: 0
@@ -1982,19 +1905,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_liuxie
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_liuxie
 - id: effect_skill_sure_hit_if_has_mark_yinghua
   trigger: AfterUseSkillCheck
   priority: 0
@@ -2006,19 +1918,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_yinghua
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_yinghua
 - id: effect_skill_add_power_30_per_usetime
   trigger: AfterUseSkillCheck
   priority: 0
@@ -2820,19 +2721,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_shuiwenzhenji
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_shuiwenzhenji
 - id: effect_skill_add_crit_rate_50_shuiwenzhenji
   trigger: AfterUseSkillCheck
   priority: 0
@@ -2845,19 +2735,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_shuiwenzhenji
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_shuiwenzhenji
 - id: effect_skill_add_crit_rate_70_shuiwenzhenji
   trigger: AfterUseSkillCheck
   priority: 0
@@ -2870,19 +2749,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_shuiwenzhenji
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_shuiwenzhenji
 - id: effect_skill_sure_crit_shuiwenzhenji
   trigger: AfterUseSkillCheck
   priority: 0
@@ -2894,19 +2762,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_shuiwenzhenji
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_shuiwenzhenji
 - id: effect_skill_reduce_opponent_atk_1_stage_30_percent
   trigger: BeforeHit
   priority: 0
@@ -3350,19 +3207,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_aideminyi
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_aideminyi
 # 如果有爱的名义标记，技能威力增加50
 - id: effect_skill_add_power_50_if_aideminyi
   trigger: AfterUseSkillCheck
@@ -3375,19 +3221,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_aideminyi
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_aideminyi
 # 给自己添加誓言之约标记
 - id: effect_skill_add_mark_shiyanzhiyue
   trigger: OnHit
@@ -3412,19 +3247,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_aideminyi
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_aideminyi
 # 如果有爱的名义标记，最小伤害100
 - id: effect_skill_minimum_damage_100_if_aideminyi
   trigger: OnBeforeCalculateDamage
@@ -3437,19 +3261,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_aideminyi
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_aideminyi
 # 如果有爱的名义标记，先制+1
 - id: effect_skill_priority_plus_1_if_aideminyi
   trigger: BeforeSort
@@ -3466,19 +3279,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_aideminyi
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_aideminyi
 # 如果有爱的名义标记，恢复自身最大体力的1/16
 - id: effect_skill_heal_self_1_16_if_aideminyi
   trigger: OnHit
@@ -3501,19 +3303,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_aideminyi
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_aideminyi
 # 如果是本回合第一个技能，给自己添加闪避标记
 - id: effect_skill_add_mark_shanbi_if_first
   trigger: OnHit
@@ -3590,19 +3381,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_aideminyi
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_aideminyi
 # 如果目标身上有“烧伤”标记，则移除该标记，并对目标造成150点伤害。
 - id: effect_skill_ignite_opponent_mark_shaoshang
   trigger: OnHit
@@ -3769,19 +3549,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_xinzhiyinji
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_xinzhiyinji
 - id: effect_skill_consume_xinzhiyinji_power_2x
   trigger: AfterUseSkillCheck
   priority: 0
@@ -4213,19 +3982,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_maimaijinzhen
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_maimaijinzhen
 # 对手有麦麦金针时必中
 - id: effect_skill_sure_hit_if_opponent_has_maimaijinzhen
   trigger: AfterUseSkillCheck
@@ -4238,19 +3996,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_maimaijinzhen
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_maimaijinzhen
 # 添加金针外衣状态
 - id: effect_skill_add_mark_jinzhenwayi
   trigger: OnHit
@@ -4316,19 +4063,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_maimaijinzhen
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_maimaijinzhen
 # 消耗麦麦金针并添加麦迪金针
 - id: effect_skill_consume_maimaijinzhen_add_maidijinzhen
   trigger: OnHit
@@ -4355,19 +4091,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_maimaijinzhen
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_maimaijinzhen
 # 消耗麦迪金针并添加金针粉末
 - id: effect_skill_consume_maidijinzhen_add_jinzhenfenmo
   trigger: OnHit
@@ -4394,19 +4119,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_maidijinzhen
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_maidijinzhen
 # 最佳助攻被动效果：替换上场时添加临时标记
 - id: effect_skill_add_first_turn_mark_on_switch_in
   trigger: OnSwitchIn
@@ -4432,19 +4146,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_first_turn_after_switch
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_first_turn_after_switch
 # 具有虚空感应时威力2倍
 - id: effect_skill_power_2x_if_has_xukongganying
   trigger: AfterUseSkillCheck
@@ -4457,19 +4160,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_xukongganying
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_xukongganying
 # 解除自身弱化
 - id: effect_skill_clear_self_negative_stage
   trigger: OnHit
@@ -4523,19 +4215,8 @@
                     tags: ['skill_effect_probability']
           - type: every
             conditions:
-              - type: evaluate
-                target:
-                  base: selfMarks
-                  chain:
-                    - type: whereAttr
-                      extractor:
-                        type: base
-                        arg: baseId
-                      evaluator:
-                        type: same
-                        value: mark_xukongganying
-                evaluator:
-                  type: exist
+              - type: selfHasMark
+                baseId: mark_xukongganying
               - type: evaluate
                 target: self
                 evaluator:
@@ -4584,19 +4265,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_xukongganying
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_xukongganying
 # 15%弱化对手特防1级
 - id: effect_skill_reduce_opponent_spd_1_stage_15_percent
   trigger: BeforeHit
@@ -4630,19 +4300,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_xukongganying
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_xukongganying
 # 附加50点固伤，具有虚空感应时附加100点固伤
 - id: effect_skill_add_damage_50_or_100_if_has_xukongganying
   trigger: OnBeforeCalculateDamage
@@ -4710,19 +4369,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_yitelingyu
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_yitelingyu
 
 # 添加气流涌动标记 (2层)
 - id: effect_skill_add_mark_qiliuyongdong
@@ -4909,19 +4557,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_bingdong
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_bingdong
 
 # 对手冰冻时额外弱化特攻1级
 - id: effect_skill_reduce_opponent_spa_1_stage_if_bingdong
@@ -4936,19 +4573,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_bingdong
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_bingdong
 
 # 使对手获得冰凝之气
 - id: effect_skill_add_mark_opponent_bingningzhiqi
@@ -5229,19 +4855,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_mabi
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_mabi
 
 # 增加一层电荷
 - id: effect_skill_add_mark_dianhe_1
@@ -5308,19 +4923,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_kongjuzhinian
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_kongjuzhinian
 
 # 使自己获得暗影之光
 - id: effect_skill_add_mark_anyingzhiguang
@@ -5406,32 +5010,10 @@
       - type: selfUseSkill
       - type: some
         conditions:
-          - type: evaluate
-            target:
-              base: selfMarks
-              chain:
-                - type: whereAttr
-                  extractor:
-                    type: base
-                    arg: baseId
-                  evaluator:
-                    type: same
-                    value: mark_anzhilingyu
-            evaluator:
-              type: exist
-          - type: evaluate
-            target:
-              base: selfMarks
-              chain:
-                - type: whereAttr
-                  extractor:
-                    type: base
-                    arg: baseId
-                  evaluator:
-                    type: same
-                    value: mark_anyinglingyu
-            evaluator:
-              type: exist
+          - type: selfHasMark
+            baseId: mark_anzhilingyu
+          - type: selfHasMark
+            baseId: mark_anyinglingyu
 
 # 具有暗影领域时，该技能命中后获得一级攻击强化
 - id: effect_skill_raise_atk_1_stage_if_anyinglingyu
@@ -5446,19 +5028,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_anyinglingyu
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_anyinglingyu
 
 # 为自己添加暗之领域或暗影领域
 - id: effect_skill_add_mark_anzhilingyu_or_anyinglingyu
@@ -5590,32 +5161,10 @@
       - type: selfUseSkill
       - type: some
         conditions:
-          - type: evaluate
-            target:
-              base: selfMarks
-              chain:
-                - type: whereAttr
-                  extractor:
-                    type: base
-                    arg: baseId
-                  evaluator:
-                    type: same
-                    value: mark_guangzhilingyu
-            evaluator:
-              type: exist
-          - type: evaluate
-            target:
-              base: selfMarks
-              chain:
-                - type: whereAttr
-                  extractor:
-                    type: base
-                    arg: baseId
-                  evaluator:
-                    type: same
-                    value: mark_guanghuilingyu
-            evaluator:
-              type: exist
+          - type: selfHasMark
+            baseId: mark_guangzhilingyu
+          - type: selfHasMark
+            baseId: mark_guanghuilingyu
 
 # 当有光辉领域时，恢复自身最大体力的1/4
 - id: effect_skill_heal_quarter_if_guanghuilingyu
@@ -5641,19 +5190,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_guanghuilingyu
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_guanghuilingyu
 
 # 先出手时必定暴击
 - id: effect_skill_crit_if_first
@@ -6064,19 +5602,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_yinbo
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_yinbo
 # 消耗对方的音波标记，为己方添加等同于音波标记层数的音波屏障
 - id: effect_skill_consume_opponent_yinbo_add_yinbopingzhang
   trigger: OnHit
@@ -6118,19 +5645,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_yinbo
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_yinbo
 # 消耗对方的音波标记，给对方造成音波标记层数*2的伤害
 - id: effect_skill_consume_opponent_yinbo_damage_2x
   trigger: OnHit
@@ -6173,19 +5689,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_yinbo
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_yinbo
 # 给对方添加音之网
 - id: effect_skill_add_mark_opponent_yinzhiwang
   trigger: OnHit
@@ -6255,19 +5760,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_pofang
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_pofang
 # 使对手获得蓝宝石
 - id: effect_skill_add_mark_opponent_lanbaoshi
   trigger: OnHit
@@ -6343,19 +5837,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_shahezhili
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_shahezhili
 # 20%强化自身速度1级
 - id: effect_skill_raise_spe_20_percent
   trigger: BeforeHit
@@ -6412,19 +5895,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_shahezhili
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_shahezhili
 # 使自身获得沙之网
 - id: effect_skill_add_mark_shazhiwang
   trigger: OnHit
@@ -6485,19 +5957,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_shahezhili
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_shahezhili
 # 给自己添加一层蓄力
 - id: effect_skill_add_mark_xuli_1
   trigger: OnHit
@@ -6560,19 +6021,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_shazhidanke
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_shazhidanke
 # 消耗一层沙之蛋壳使威力+10
 - id: effect_skill_add_power_10_consume_shazhidanke
   trigger: AfterUseSkillCheck
@@ -6597,19 +6047,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_shazhidanke
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_shazhidanke
 # 消耗一层沙之蛋壳使技能必中
 - id: effect_skill_sure_hit_consume_shazhidanke
   trigger: AfterUseSkillCheck
@@ -6634,19 +6073,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_shazhidanke
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_shazhidanke
 # 恢复120体力，连续使用则减半
 - id: effect_skill_heal_self_120_hp_if_consecutive_half
   trigger: OnHit
@@ -6707,19 +6135,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_shazhidanke
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_shazhidanke
 # 为敌方添加一层武者之心
 - id: effect_skill_add_mark_opponent_wuzhezhixin_1
   trigger: OnHit
@@ -6746,19 +6163,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_wuzhezhixin
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_wuzhezhixin
 # 给对方施加绝影
 - id: effect_skill_add_mark_opponent_jueying
   trigger: OnHit
@@ -6783,19 +6189,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_wuzhezhixin
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_wuzhezhixin
 # 为对方添加影之斗气
 - id: effect_skill_add_mark_opponent_yingzhidouqi
   trigger: OnHit
@@ -6893,19 +6288,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_renzhezhixin
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_renzhezhixin
 # 给对方添加极光
 - id: effect_skill_add_mark_opponent_jiguang
   trigger: OnHit
@@ -6930,19 +6314,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_renzhezhixin
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_renzhezhixin
 # 为对方添加闪光搏击
 - id: effect_skill_add_mark_opponent_shanguangboji
   trigger: OnHit
@@ -8066,19 +7439,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_heianwuzhi
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_heianwuzhi
       - type: evaluate
         target:
           base: opponentMarks
@@ -8252,19 +7614,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_mabi
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_mabi
 # 使自身获得蓄电
 - id: effect_skill_add_mark_xudian
   trigger: OnHit
@@ -8304,19 +7655,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_mabi
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_mabi
       - *condition_probability_50_percent_template
 # 对手麻痹时必中
 - id: effect_skill_sure_hit_if_opponent_has_mark_mabi
@@ -8330,19 +7670,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_mabi
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_mabi
 # 30%使对手麻痹 若失败则给对手获得闪电烙印
 - id: effect_skill_add_mark_mabi_30_percent_or_shandianluoyin_if_fail
   trigger: OnHit
@@ -8384,19 +7713,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_hunmi
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_hunmi
 # 10%使对手昏迷
 - id: effect_skill_add_mark_opponent_hunmi_10_percent
   trigger: OnHit
@@ -8436,19 +7754,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_jingshencuoluan
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_jingshencuoluan
 # 对手精神错乱时，吸收造成伤害1/4的体力
 - id: effect_skill_heal_25_percent_damage_dealt_if_opponent_jingshencuoluan
   trigger: OnDamage
@@ -8469,19 +7776,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_jingshencuoluan
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_jingshencuoluan
 # 对手害怕时，威力2倍
 - id: effect_skill_power_2x_if_opponent_has_mark_haipa
   trigger: AfterUseSkillCheck
@@ -8494,19 +7790,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_haipa
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_haipa
 # 对手中毒时，附加80点伤害
 - id: effect_skill_add_damage_80_if_opponent_has_mark_zhongdu
   trigger: OnBeforeCalculateDamage
@@ -8522,19 +7807,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_zhongdu
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_zhongdu
 # 对手精神错乱时，增加40点威力
 - id: effect_skill_add_power_40_if_opponent_has_mark_jingshencuoluan
   trigger: AfterUseSkillCheck
@@ -8547,19 +7821,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_jingshencuoluan
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_jingshencuoluan
 # 给对手添加石化
 - id: effect_skill_add_mark_opponent_shihua
   trigger: OnHit
@@ -8584,19 +7847,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_shihua
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_shihua
 # 对手害怕且中毒时，暴击率增加85%
 - id: effect_skill_add_crit_rate_85_if_opponent_has_mark_zhongdu_and_haipa
   trigger: AfterUseSkillCheck
@@ -8609,32 +7861,10 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_zhongdu
-        evaluator:
-          type: exist
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_haipa
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_zhongdu
+      - type: opponentHasMark
+        baseId: mark_haipa
 # 对手精神错乱且害怕时，威力2倍
 - id: effect_skill_power_2x_if_opponent_has_mark_jingshencuoluan_and_haipa
   trigger: AfterUseSkillCheck
@@ -8647,32 +7877,10 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_jingshencuoluan
-        evaluator:
-          type: exist
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_haipa
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_jingshencuoluan
+      - type: opponentHasMark
+        baseId: mark_haipa
 # 使自身获得幻想
 - id: effect_skill_add_mark_huanxiang
   trigger: OnHit
@@ -8846,19 +8054,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: stat_stage_atk_up
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: stat_stage_atk_up
 # 使自身获得逃避
 - id: effect_skill_add_mark_taobi
   trigger: OnHit

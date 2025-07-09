@@ -860,6 +860,14 @@ export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
     z.object({
       type: z.literal('selfBeSkillTarget'),
     }),
+    z.object({
+      type: z.literal('selfHasMark'),
+      baseId: valueSchema,
+    }),
+    z.object({
+      type: z.literal('opponentHasMark'),
+      baseId: valueSchema,
+    }),
   ]),
 )
 
