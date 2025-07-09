@@ -4460,19 +4460,8 @@
           type: entity:baseMark
           value: mark_dianzhilingyu
         condition:
-          type: evaluate
-          target:
-            base: selfMarks
-            chain:
-              - type: whereAttr
-                extractor:
-                  type: base
-                  arg: baseId
-                evaluator:
-                  type: same
-                  value: mark_yitelingyu
-          evaluator:
-            type: exist
+          type: selfHasMark
+          baseId: mark_yitelingyu
   condition:
     type: selfUseSkill
 
@@ -4633,19 +4622,8 @@
           type: entity:baseMark
           value: mark_bingzhilingyu
         condition:
-          type: evaluate
-          target:
-            base: selfMarks
-            chain:
-              - type: whereAttr
-                extractor:
-                  type: base
-                  arg: baseId
-                evaluator:
-                  type: same
-                  value: mark_yitelingyu
-          evaluator:
-            type: exist
+          type: selfHasMark
+          baseId: mark_yitelingyu
   condition:
     type: selfUseSkill
 
@@ -4751,19 +4729,8 @@
           type: entity:baseMark
           value: mark_fengzhilingyu
         condition:
-          type: evaluate
-          target:
-            base: selfMarks
-            chain:
-              - type: whereAttr
-                extractor:
-                  type: base
-                  arg: baseId
-                evaluator:
-                  type: same
-                  value: mark_yitelingyu
-          evaluator:
-            type: exist
+          type: selfHasMark
+          baseId: mark_yitelingyu
   condition:
     type: selfUseSkill
 
@@ -5047,19 +5014,8 @@
           type: entity:baseMark
           value: mark_anzhilingyu
         condition:
-          type: evaluate
-          target:
-            base: selfMarks
-            chain:
-              - type: whereAttr
-                extractor:
-                  type: base
-                  arg: baseId
-                evaluator:
-                  type: same
-                  value: mark_yitelingyu
-          evaluator:
-            type: exist
+          type: selfHasMark
+          baseId: mark_yitelingyu
   condition:
     type: selfUseSkill
 
@@ -5131,19 +5087,8 @@
           type: entity:baseMark
           value: mark_guangzhilingyu
         condition:
-          type: evaluate
-          target:
-            base: selfMarks
-            chain:
-              - type: whereAttr
-                extractor:
-                  type: base
-                  arg: baseId
-                evaluator:
-                  type: same
-                  value: mark_yitelingyu
-          evaluator:
-            type: exist
+          type: selfHasMark
+          baseId: mark_yitelingyu
   condition:
     type: selfUseSkill
 
@@ -7919,19 +7864,8 @@
     conditions:
       - type: selfUseSkill
       - &condition_self_has_huanxiang
-        type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_huanxiang
-        evaluator:
-          type: exist
+        type: selfHasMark
+        baseId: mark_huanxiang
 # 消耗幻想强化自身特攻1级
 - id: effect_skill_consume_huanxiang_raise_spa_1_stage
   trigger: BeforeHit
@@ -8127,19 +8061,8 @@
     conditions:
       - type: selfUseSkill
       - &condition_self_has_zhaocai
-        type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_zhaocai
-        evaluator:
-          type: exist
+        type: selfHasMark
+        baseId: mark_zhaocai
 # 具有进宝时暴击率增加95%
 - id: effect_skill_add_crit_rate_95_if_has_jinbao
   trigger: AfterUseSkillCheck
@@ -8153,19 +8076,8 @@
     conditions:
       - type: selfUseSkill
       - &condition_self_has_jinbao
-        type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_jinbao
-        evaluator:
-          type: exist
+        type: selfHasMark
+        baseId: mark_jinbao
 # 具有招财时必中
 - id: effect_skill_sure_hit_if_has_zhaocai
   trigger: AfterUseSkillCheck

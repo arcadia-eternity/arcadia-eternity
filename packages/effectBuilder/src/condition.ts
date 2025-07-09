@@ -19,7 +19,7 @@ import {
 import type { Condition, ValueSource } from './effectBuilder'
 import { ContinuousUseSkillStrategy, StatTypeWithoutHp } from '@arcadia-eternity/const'
 import { GetValueFromSource } from './operator'
-import { findContextRecursively } from './selector'
+import { BaseSelector, findContextRecursively } from './selector'
 
 export const Conditions = {
   some: (...conditions: Condition[]): Condition => {
@@ -374,14 +374,8 @@ export const Conditions = {
   // 简化版：检查对手是否有指定baseId的印记
   opponentHasMark: (baseId: ValueSource<string>): Condition => {
     return context => {
-      let opponentPet: Pet
-      if (context.parent instanceof UseSkillContext) {
-        opponentPet = context.parent.actualTarget!
-      } else if (context.source.owner instanceof Pet) {
-        opponentPet = context.battle.getOpponent(context.source.owner.owner!).activePet
-      } else {
-        return false
-      }
+      let opponentPet: Pet = BaseSelector.opponent.build()(context)[0]
+      if (!opponentPet) return false
 
       const _baseId = GetValueFromSource(context, baseId)
       if (_baseId.length === 0) return false
