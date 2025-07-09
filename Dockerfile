@@ -46,7 +46,7 @@ FROM node:24-alpine AS production
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S arcadia -u 1001
+    adduser -S joseph -u 1001
 
 # Install minimal runtime dependencies
 RUN apk add --no-cache curl && \
