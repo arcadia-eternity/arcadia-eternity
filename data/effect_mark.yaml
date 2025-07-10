@@ -2283,8 +2283,10 @@
           type: same
           value: Special
   apply:
-    type: preventDamage
-    target: damageContext
+    - type: preventDamage
+      target: damageContext
+    - type: destroyMark
+      target: mark
 
 # 沙鹤之力: 造成伤害增加35%
 - id: effect_mark_increase_damage_dealt_35_percent

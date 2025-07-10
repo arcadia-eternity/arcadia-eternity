@@ -1458,7 +1458,7 @@
     stackStrategy: refresh
     destroyable: true
     keepOnSwitchOut: true
-    isShield: true
+    isShield: false
   effect:
     - effect_mark_block_next_special_damage
 - id: mark_hongbaoshi
