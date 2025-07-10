@@ -1,8 +1,10 @@
 // src/stores/petStorage.ts
 import { defineStore } from 'pinia'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
-import { Gender, NatureMap, Nature } from '@arcadia-eternity/const'
+import { PetSchema, PetSetSchema } from '@arcadia-eternity/schema'
+import { Gender, Nature } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
+import { z } from 'zod'
 
 interface Team {
   name: string
@@ -13,6 +15,46 @@ interface PetStorageState {
   storage: PetSchemaType[]
   teams: Team[]
   currentTeamIndex: number
+}
+
+// Zod 校验 schema
+const TeamSchema = z.object({
+  name: z.string().min(1, '队伍名称不能为空'),
+  pets: PetSetSchema.max(6, '队伍最多只能有6只精灵'),
+})
+
+const PetStorageStateSchema = z.object({
+  storage: PetSetSchema,
+  teams: z.array(TeamSchema).min(1, '至少需要一个队伍'),
+  currentTeamIndex: z.number().int().min(0, '当前队伍索引不能为负数'),
+})
+
+// 校验函数
+function validatePetStorageData(data: unknown): { valid: boolean; data?: PetStorageState; errors?: string[] } {
+  try {
+    const validatedData = PetStorageStateSchema.parse(data)
+
+    // 额外校验：确保 currentTeamIndex 不超出 teams 数组范围
+    if (validatedData.currentTeamIndex >= validatedData.teams.length) {
+      return {
+        valid: false,
+        errors: [
+          `当前队伍索引 ${validatedData.currentTeamIndex} 超出了队伍数量范围 (0-${validatedData.teams.length - 1})`,
+        ],
+      }
+    }
+
+    return { valid: true, data: validatedData }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const errors = error.issues.map(err => {
+        const path = err.path.length > 0 ? err.path.join('.') : '根对象'
+        return `${path}: ${err.message}`
+      })
+      return { valid: false, errors }
+    }
+    return { valid: false, errors: ['未知的校验错误'] }
+  }
 }
 
 const getDefaultTeam = (): Team => ({
@@ -77,7 +119,57 @@ export const usePetStorageStore = defineStore('petStorage', {
     loadFromLocal() {
       const saved = localStorage.getItem('petStorage')
       if (saved) {
-        Object.assign(this, JSON.parse(saved))
+        try {
+          const parsedData = JSON.parse(saved)
+          const validation = validatePetStorageData(parsedData)
+
+          if (validation.valid && validation.data) {
+            Object.assign(this, validation.data)
+          } else {
+            // 校验失败，显示错误提示并重置为默认数据
+            const errorMessage = validation.errors?.join('; ') || '数据格式错误'
+            ElMessage.error(`精灵仓库数据校验失败: ${errorMessage}`)
+            console.error('精灵仓库数据校验失败:', validation.errors)
+
+            // 重置为默认数据
+            this.resetToDefault()
+            ElMessage.warning('已重置为默认数据')
+          }
+        } catch (error) {
+          // JSON 解析失败
+          ElMessage.error('精灵仓库数据解析失败，已重置为默认数据')
+          console.error('精灵仓库数据解析失败:', error)
+          this.resetToDefault()
+        }
+      }
+    },
+
+    resetToDefault() {
+      this.storage = []
+      this.teams = [getDefaultTeam()]
+      this.currentTeamIndex = 0
+      this.saveToLocal()
+    },
+
+    // 校验当前状态并保存
+    validateAndSave(): boolean {
+      const currentState = {
+        storage: this.storage,
+        teams: this.teams,
+        currentTeamIndex: this.currentTeamIndex,
+      }
+
+      const validation = validatePetStorageData(currentState)
+
+      if (validation.valid) {
+        this.saveToLocal()
+        return true
+      } else {
+        // 校验失败，只显示错误提示，不自动重置数据
+        const errorMessage = validation.errors?.join('; ') || '数据格式错误'
+        ElMessage.error(`数据校验失败: ${errorMessage}`)
+        console.error('精灵仓库数据校验失败:', validation.errors)
+        return false
       }
     },
 
@@ -97,18 +189,33 @@ export const usePetStorageStore = defineStore('petStorage', {
       this.teams = []
       this.currentTeamIndex = 0
       this.createNewTeam()
-      this.saveToLocal()
+      this.validateAndSave()
     },
 
     updateTeamOrder(teamIndex: number, newOrder: PetSchemaType[]) {
-      this.teams[teamIndex].pets = newOrder
-      this.saveToLocal()
+      if (teamIndex >= 0 && teamIndex < this.teams.length) {
+        this.teams[teamIndex].pets = newOrder
+        this.validateAndSave()
+      }
     },
 
     // 其他方法保持原有逻辑，移除playerId参数
     addToStorage(pet: PetSchemaType) {
-      this.storage.push(pet)
-      this.saveToLocal()
+      // 先校验单个精灵数据
+      try {
+        PetSchema.parse(pet)
+        this.storage.push(pet)
+        this.validateAndSave()
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          const errorMessage = error.issues.map(err => err.message).join('; ')
+          ElMessage.error(`精灵数据校验失败: ${errorMessage}`)
+          console.error('精灵数据校验失败:', error.issues)
+        } else {
+          ElMessage.error('添加精灵失败')
+          console.error('添加精灵失败:', error)
+        }
+      }
     },
 
     createNewTeam(name?: string) {
@@ -118,13 +225,13 @@ export const usePetStorageStore = defineStore('petStorage', {
         name: teamName,
       })
       this.currentTeamIndex = this.teams.length - 1
-      this.saveToLocal()
+      this.validateAndSave()
     },
 
     switchTeam(index: number) {
       if (index >= 0 && index < this.teams.length) {
         this.currentTeamIndex = index
-        this.saveToLocal()
+        this.validateAndSave()
         return true
       }
       return false
@@ -166,7 +273,7 @@ export const usePetStorageStore = defineStore('petStorage', {
       // 添加到目标队伍
       if (pet) {
         this.teams[targetTeamIndex].pets.push(pet)
-        this.saveToLocal()
+        this.validateAndSave()
         return true
       } else {
         return false
@@ -191,19 +298,23 @@ export const usePetStorageStore = defineStore('petStorage', {
         }
       })
       if (moved) {
-        this.saveToLocal()
+        this.validateAndSave()
       }
       return moved
     },
 
     updateTeam(index: number, newTeam: PetSchemaType[]) {
-      this.teams[index].pets = newTeam
+      if (index >= 0 && index < this.teams.length) {
+        this.teams[index].pets = newTeam
+        this.validateAndSave()
+      }
     },
 
     deleteTeam(index: number) {
       if (this.teams.length <= 1) return
       this.teams.splice(index, 1)
       this.currentTeamIndex = Math.min(this.currentTeamIndex, this.teams.length - 1)
+      this.validateAndSave()
     },
 
     getTeam(index: number) {
@@ -211,12 +322,22 @@ export const usePetStorageStore = defineStore('petStorage', {
     },
 
     removeFromStorage(petId: string) {
+      let removed = false
       this.teams.forEach(team => {
         const index = team.pets.findIndex(p => p.id === petId)
-        if (index > -1) team.pets.splice(index, 1)
+        if (index > -1) {
+          team.pets.splice(index, 1)
+          removed = true
+        }
       })
       const index = this.storage.findIndex(p => p.id === petId)
-      if (index > -1) this.storage.splice(index, 1)
+      if (index > -1) {
+        this.storage.splice(index, 1)
+        removed = true
+      }
+      if (removed) {
+        this.validateAndSave()
+      }
     },
   },
   getters: {

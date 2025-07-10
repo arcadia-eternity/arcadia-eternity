@@ -14,20 +14,36 @@
               </span>
             </div>
           </div>
-          <router-link
-            to="/storage"
-            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-              />
-            </svg>
-            仓库管理
-          </router-link>
+          <div class="flex items-center space-x-3">
+            <button
+              @click="clearAllData"
+              class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+              清理所有数据
+            </button>
+            <router-link
+              to="/storage"
+              class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
+              </svg>
+              仓库管理
+            </router-link>
+          </div>
         </div>
       </div>
     </header>
@@ -865,6 +881,7 @@ import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 import MarkdownIt from 'markdown-it'
 import { InfoFilled, FolderOpened, Close, QuestionFilled } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { usePetManagement } from '@/composition/usePetManagement'
 import { useTeamExport } from '@/composition/useTeamExport'
 
@@ -1269,6 +1286,23 @@ const saveCurrentTeam = () => {
     ElMessage.success('队伍保存成功')
   } catch (err) {
     ElMessage.error('保存失败，请检查数据')
+  }
+}
+
+const clearAllData = async () => {
+  try {
+    await ElMessageBox.confirm('此操作将清空所有队伍和仓库数据，无法撤销！确定要继续吗？', '清理所有数据', {
+      confirmButtonText: '确定清理',
+      cancelButtonText: '取消',
+      type: 'warning',
+      customStyle: { zIndex: '10000' },
+    })
+
+    petStorage.clearStorage()
+    selectedPetId.value = null
+    ElMessage.success('所有数据已清理完成！')
+  } catch {
+    // 用户取消操作
   }
 }
 
