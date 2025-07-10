@@ -2139,6 +2139,10 @@
     type: heal
     target: self
     value: 120
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
 - id: effect_skill_reduce_opponent_def_1_stage_50_percent
   trigger: BeforeHit
   priority: 0
