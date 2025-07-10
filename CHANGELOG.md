@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.10.1...arcadia-eternity-v1.10.2) (2025-07-10)
+
+
+### 🐛 Bug Fixes
+
+* migrate zod to v4 ([f91d84b](https://github.com/arcadia-eternity/arcadia-eternity/commit/f91d84ba236091c0045291a5e36f08ed0cc7f7c8))
+
 ## [1.10.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.10.0...arcadia-eternity-v1.10.1) (2025-07-10)
 
 
