@@ -182,7 +182,7 @@ export function createAuthRoutes(): Router {
       if (error instanceof z.ZodError) {
         res.status(400).json({
           success: false,
-          message: error.errors[0].message,
+          message: error.issues[0].message,
           code: 'VALIDATION_ERROR',
         })
         return
@@ -327,7 +327,7 @@ export function createAuthRoutes(): Router {
       if (error instanceof z.ZodError) {
         return res.status(400).json({
           success: false,
-          message: error.errors[0].message,
+          message: error.issues[0].message,
           code: 'VALIDATION_ERROR',
         })
       }

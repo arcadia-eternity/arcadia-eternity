@@ -1,7 +1,6 @@
 import fs from 'fs/promises'
 import path from 'path'
 import { z } from 'zod'
-import { zodToJsonSchema } from 'zod-to-json-schema'
 import { MarkDataSetSchema, SkillDataSetSchema, SpeciesDataSetSchema } from '..'
 import { EffectDSLSetSchema } from '@arcadia-eternity/schema'
 import { fileURLToPath } from 'node:url'
@@ -43,13 +42,7 @@ async function generateJsonSchema() {
   })
 
   for (const [schemaName, schema] of uniqueSchemas) {
-    const jsonSchema = {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      ...zodToJsonSchema(schema, {
-        name: schemaName.replace('.schema.json', ''),
-        errorMessages: true, // 启用错误信息（如果库支持）
-      }),
-    }
+    const jsonSchema = z.toJSONSchema(schema, { io: 'input' })
 
     const schemaPath = path.join(schemaDir, schemaName)
     await fs.writeFile(schemaPath, JSON.stringify(jsonSchema, null, 2))

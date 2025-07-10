@@ -4,7 +4,7 @@ import { AttackTargetOpinionSchema } from './skill'
 export const UseSkillSelectionSchema = z
   .object({
     type: z.literal('use-skill'),
-    player: z.string().nanoid(),
+    player: z.nanoid(),
     skill: z.string(),
     target: AttackTargetOpinionSchema,
   })
@@ -13,22 +13,22 @@ export const UseSkillSelectionSchema = z
 export const SwitchPetSelectionSchema = z
   .object({
     type: z.literal('switch-pet'),
-    player: z.string().nanoid(),
-    pet: z.string().nanoid(),
+    player: z.nanoid(),
+    pet: z.nanoid(),
   })
   .strict()
 
 export const DoNothingSelectionSchema = z
   .object({
     type: z.literal('do-nothing'),
-    player: z.string().nanoid(),
+    player: z.nanoid(),
   })
   .strict()
 
 export const SurrenderSelectionSchema = z
   .object({
     type: z.literal('surrender'),
-    player: z.string().nanoid(),
+    player: z.nanoid(),
   })
   .strict()
 
@@ -43,6 +43,6 @@ export type PlayerSelectionSchemaType = z.infer<typeof PlayerSelectionSchema>
 
 // 最终命令结构
 export const PlayerSelectionsSchema = z.object({
-  playerId: z.string().nanoid(),
+  playerId: z.nanoid(),
   selections: PlayerSelectionSchema,
 })

@@ -1,92 +1,88 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$ref": "#/definitions/mark",
-  "definitions": {
-    "mark": {
-      "type": "array",
-      "items": {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "config": {
         "type": "object",
         "properties": {
-          "id": {
+          "duration": {
+            "default": -1,
+            "type": "number"
+          },
+          "persistent": {
+            "default": true,
+            "type": "boolean"
+          },
+          "maxStacks": {
+            "default": 1,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "stackable": {
+            "default": false,
+            "type": "boolean"
+          },
+          "stackStrategy": {
+            "default": "extend",
             "type": "string",
-            "minLength": 1
+            "enum": [
+              "stack",
+              "refresh",
+              "extend",
+              "max",
+              "replace",
+              "none",
+              "remove"
+            ]
           },
-          "config": {
-            "type": "object",
-            "properties": {
-              "duration": {
-                "type": "number",
-                "default": -1
-              },
-              "persistent": {
-                "type": "boolean",
-                "default": true
-              },
-              "maxStacks": {
-                "type": "integer",
-                "default": 1
-              },
-              "stackable": {
-                "type": "boolean",
-                "default": false
-              },
-              "stackStrategy": {
-                "type": "string",
-                "enum": [
-                  "stack",
-                  "refresh",
-                  "extend",
-                  "max",
-                  "replace",
-                  "none",
-                  "remove"
-                ],
-                "default": "extend"
-              },
-              "destroyable": {
-                "type": "boolean",
-                "default": true
-              },
-              "isShield": {
-                "type": "boolean",
-                "default": false
-              },
-              "keepOnSwitchOut": {
-                "type": "boolean",
-                "default": false
-              },
-              "transferOnSwitch": {
-                "type": "boolean",
-                "default": false
-              },
-              "inheritOnFaint": {
-                "type": "boolean",
-                "default": false
-              },
-              "mutexGroup": {
-                "type": "string"
-              }
-            },
-            "additionalProperties": {}
+          "destroyable": {
+            "default": true,
+            "type": "boolean"
           },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "isShield": {
+            "default": false,
+            "type": "boolean"
           },
-          "effect": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "keepOnSwitchOut": {
+            "default": false,
+            "type": "boolean"
+          },
+          "transferOnSwitch": {
+            "default": false,
+            "type": "boolean"
+          },
+          "inheritOnFaint": {
+            "default": false,
+            "type": "boolean"
+          },
+          "mutexGroup": {
+            "type": "string"
           }
         },
-        "required": [
-          "id"
-        ],
-        "additionalProperties": false
+        "additionalProperties": {}
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "effect": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       }
-    }
+    },
+    "required": [
+      "id"
+    ]
   }
 }
