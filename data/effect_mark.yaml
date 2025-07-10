@@ -1552,19 +1552,8 @@
     type: every
     conditions:
       - type: selfBeSkillTarget
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_xukongtizhi
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_xukongtizhi
   apply:
     - type: addMark
       target: self

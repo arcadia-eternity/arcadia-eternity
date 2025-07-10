@@ -19,7 +19,7 @@ import {
 import type { Condition, ValueSource } from './effectBuilder'
 import { ContinuousUseSkillStrategy, StatTypeWithoutHp } from '@arcadia-eternity/const'
 import { GetValueFromSource } from './operator'
-import { findContextRecursively } from './selector'
+import { BaseSelector, findContextRecursively } from './selector'
 
 export const Conditions = {
   some: (...conditions: Condition[]): Condition => {
@@ -356,6 +356,30 @@ export const Conditions = {
 
       // 由于 contextQueue.pop() 从尾部取，turnContext.contexts[0] 是计划中最后执行的技能
       return plannedSkillContextsThisTurn[0] === currentUseSkillContext
+    }
+  },
+
+  // 简化版：检查自己是否有指定baseId的印记
+  selfHasMark: (baseId: ValueSource<string>): Condition => {
+    return context => {
+      if (context.source.owner instanceof Pet) {
+        const _baseId = GetValueFromSource(context, baseId)
+        if (_baseId.length === 0) return false
+        return context.source.owner.marks.some(mark => mark.baseId === _baseId[0])
+      }
+      return false
+    }
+  },
+
+  // 简化版：检查对手是否有指定baseId的印记
+  opponentHasMark: (baseId: ValueSource<string>): Condition => {
+    return context => {
+      let opponentPet: Pet = BaseSelector.opponent.build()(context)[0]
+      if (!opponentPet) return false
+
+      const _baseId = GetValueFromSource(context, baseId)
+      if (_baseId.length === 0) return false
+      return opponentPet.marks.some(mark => mark.baseId === _baseId[0])
     }
   },
 

@@ -201,19 +201,8 @@
     type: every
     conditions:
       - type: checkSelf
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_manxingduyao
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_manxingduyao
   apply:
     type: addModified
     target: damageContext
@@ -226,19 +215,8 @@
     type: every
     conditions:
       - type: checkSelf
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_kongqichuliang
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_kongqichuliang
   apply:
     type: addModified
     target: damageContext
@@ -252,19 +230,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_aideminyi
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_aideminyi
   apply:
     type: addModified
     target: damageContext
@@ -277,19 +244,8 @@
     type: every
     conditions:
       - type: checkSelf
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_kongqichuliang
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_kongqichuliang
       - type: evaluate
         target:
           base: usingSkillContext
@@ -375,19 +331,8 @@
     type: every
     conditions:
       - type: checkSelf
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_shaoshang
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_shaoshang
   apply:
     type: addModified
     target: damageContext
@@ -400,19 +345,8 @@
     type: every
     conditions:
       - type: checkSelf
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_xuanyun
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_xuanyun
   apply:
     type: addModified
     target: damageContext
@@ -534,7 +468,6 @@
     stack: 10
   condition:
     type: selfUseSkill
-
 # 速成：获得经验值提高50% (暂时使用占位符效果)
 - id: effect_ability_exp_boost_50_percent
   trigger: OnBattleStart
@@ -543,7 +476,6 @@
     type: checkSelf
   apply:
     type: TODO
-
 # 气流：每回合获得怒气增加5
 - id: effect_ability_rage_boost_5_per_turn
   trigger: OnBattleStart
@@ -555,7 +487,6 @@
     stat: ragePerTurn
     modifierType: delta
     value: 5
-
 # 致命：电系技能致命率增加10%
 - id: effect_ability_electric_crit_rate_boost_10_percent
   trigger: AfterUseSkillCheck
@@ -577,7 +508,6 @@
     type: addCritRate
     target: usingSkillContext
     value: 10
-
 # 破冰：冰系技能造成伤害增加15%
 - id: effect_ability_ice_damage_boost_15_percent
   trigger: OnBeforeCalculateDamage
@@ -600,7 +530,6 @@
     target: damageContext
     percent: 15
     delta: 0
-
 # 暗影：当怒气低于对手时，回复造成伤害1/2的体力
 - id: effect_ability_heal_half_damage_when_rage_less_than_opponent
   trigger: OnDamage
@@ -751,19 +680,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_pofang
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_pofang
   apply:
     type: addModified
     target: damageContext
@@ -814,19 +732,8 @@
     type: every
     conditions:
       - type: selfBeDamaged
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_shazhidanke
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_shazhidanke
   apply:
     type: addModified
     target:
@@ -943,19 +850,8 @@
     type: every
     conditions:
       - type: petIsActive
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_huafenmiman
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_huafenmiman
   apply:
     type: dealDamage
     target: opponent
@@ -1131,19 +1027,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
-        target:
-          base: opponentMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_shihua
-        evaluator:
-          type: exist
+      - type: opponentHasMark
+        baseId: mark_shihua
 # 幻想：当自身有幻想标记时，受到的伤害减少10%
 - id: effect_ability_reduce_damage_10_if_has_mark_huanxiang
   trigger: OnBeforeCalculateDamage
@@ -1157,16 +1042,5 @@
     type: every
     conditions:
       - type: selfBeDamaged
-      - type: evaluate
-        target:
-          base: selfMarks
-          chain:
-            - type: whereAttr
-              extractor:
-                type: base
-                arg: baseId
-              evaluator:
-                type: same
-                value: mark_huanxiang
-        evaluator:
-          type: exist
+      - type: selfHasMark
+        baseId: mark_huanxiang

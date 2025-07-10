@@ -898,6 +898,14 @@ export type ConditionDSL =
   | {
       type: 'selfBeSkillTarget'
     }
+  | {
+      type: 'selfHasMark'
+      baseId: Value
+    }
+  | {
+      type: 'opponentHasMark'
+      baseId: Value
+    }
 
 export type WhenSelectorStep = {
   type: 'when'
