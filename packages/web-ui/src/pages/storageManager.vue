@@ -50,6 +50,20 @@
               总计: {{ petStorage.storage.length + totalTeamPets }} 只精灵
             </span>
             <button
+              @click="clearAllData"
+              class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+              清理所有数据
+            </button>
+            <button
               @click="showHelp = true"
               class="p-2 text-gray-400 hover:text-gray-500 rounded-full hover:bg-gray-100"
               title="帮助"
@@ -68,7 +82,7 @@
 
         <!-- 移动端布局 -->
         <div class="sm:hidden">
-          <!-- 第一行：返回按钮和帮助按钮 -->
+          <!-- 第一行：返回按钮、清理按钮和帮助按钮 -->
           <div class="flex items-center justify-between h-12 border-b border-gray-100">
             <button
               @click="$router.back()"
@@ -79,20 +93,36 @@
               </svg>
               返回
             </button>
-            <button
-              @click="showHelp = true"
-              class="p-2 text-gray-400 hover:text-gray-500 rounded-full hover:bg-gray-100"
-              title="帮助"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </button>
+            <div class="flex items-center space-x-2">
+              <button
+                @click="clearAllData"
+                class="inline-flex items-center px-2 py-1 border border-red-300 text-xs font-medium rounded-md text-red-700 bg-white hover:bg-red-50"
+              >
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+                清理
+              </button>
+              <button
+                @click="showHelp = true"
+                class="p-2 text-gray-400 hover:text-gray-500 rounded-full hover:bg-gray-100"
+                title="帮助"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <!-- 第二行：标题和模式切换 -->
@@ -2319,6 +2349,23 @@ const copyTeam = (index: number) => {
   } catch (error) {
     console.error('队伍复制失败:', error)
     ElMessage.error('队伍复制失败，请重试')
+  }
+}
+
+// 清理所有数据
+const clearAllData = async () => {
+  try {
+    await ElMessageBox.confirm('此操作将清空所有队伍和仓库数据，无法撤销！确定要继续吗？', '清理所有数据', {
+      confirmButtonText: '确定清理',
+      cancelButtonText: '取消',
+      type: 'warning',
+      customStyle: { zIndex: '10000' },
+    })
+
+    petStorage.clearStorage()
+    ElMessage.success('所有数据已清理完成！')
+  } catch {
+    // 用户取消操作
   }
 }
 

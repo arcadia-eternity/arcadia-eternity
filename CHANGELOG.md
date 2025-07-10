@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.10.3...arcadia-eternity-v1.10.4) (2025-07-10)
+
+
+### 🐛 Bug Fixes
+
+* Add data validation and clear-all functionality to pet storage ([ed64943](https://github.com/arcadia-eternity/arcadia-eternity/commit/ed64943a86037b0cea9a8d587dfc84f19fc8f0d0))
+
 ## [1.10.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.10.2...arcadia-eternity-v1.10.3) (2025-07-10)
 
 
