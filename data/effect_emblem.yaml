@@ -947,3 +947,26 @@
     type: setMarkDuration
     target: addMarkContext
     value: 6
+# 夜视：使必中的回合数增加5
+- id: effect_emblem_extend_bizhong_duration_5
+  trigger: OnBeforeAddMark
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark.id
+        evaluator:
+          type: same
+          value: mark_bizhong
+  apply:
+    type: setMarkDuration
+    target: addMarkContext
+    value: 10

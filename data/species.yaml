@@ -5654,3 +5654,121 @@
     - mark_ability_caibao
   emblem:
     - mark_emblem_yaoling
+# 齿轮鹰系列
+- id: pet_chilunying
+  num: 77
+  element: Flying
+  baseStats:
+    hp: 84
+    atk: 127
+    def: 115
+    spa: 127
+    spd: 115
+    spe: 108
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 29
+    - 34
+  weightRange:
+    - 6
+    - 11
+  learnable_skills:
+    - skill_id: skill_zhuoji
+      level: 1
+      hidden: false
+    - skill_id: skill_yiji
+      level: 5
+      hidden: false
+    - skill_id: skill_huiyi
+      level: 9
+      hidden: false
+    - skill_id: skill_yizhituji
+      level: 13
+      hidden: false
+    - skill_id: skill_yizhiwudong
+      level: 18
+      hidden: false
+    - skill_id: skill_yeshizhiyan
+      level: 23
+      hidden: false
+  ability:
+    - mark_ability_yingyan
+  emblem:
+    - mark_emblem_yeshi
+- id: pet_daimuchilunying
+  num: 78
+  element: Flying
+  baseStats:
+    hp: 174
+    atk: 177
+    def: 160
+    spa: 177
+    spd: 160
+    spe: 153
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 77
+    - 82
+  weightRange:
+    - 25
+    - 30
+  learnable_skills:
+    - skill_id: skill_zhuoji
+      level: 1
+      hidden: false
+    - skill_id: skill_yiji
+      level: 5
+      hidden: false
+    - skill_id: skill_huiyi
+      level: 9
+      hidden: false
+    - skill_id: skill_yizhituji
+      level: 13
+      hidden: false
+    - skill_id: skill_yizhiwudong
+      level: 18
+      hidden: false
+    - skill_id: skill_yeshizhiyan
+      level: 23
+      hidden: false
+    - skill_id: skill_yingzhizhua
+      level: 28
+      hidden: false
+    - skill_id: skill_yingzhiyuyi
+      level: 33
+      hidden: false
+    - skill_id: skill_yingzhuatuji
+      level: 38
+      hidden: false
+    - skill_id: skill_baiyuqiege
+      level: 43
+      hidden: false
+    - skill_id: skill_xunjie
+      level: 48
+      hidden: false
+    - skill_id: skill_chihuan
+      level: 53
+      hidden: false
+    - skill_id: skill_jiaochayingzhuagong
+      level: 60
+      hidden: true
+    - skill_id: skill_yingzhilijue
+      level: 60
+      hidden: true
+    - skill_id: skill_yingzhiruiyu
+      level: 60
+      hidden: true
+    - skill_id: skill_yingzhuasilie
+      level: 60
+      hidden: true
+    - skill_id: skill_baiyuzhuiji
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_yingyan
+  emblem:
+    - mark_emblem_yeshi

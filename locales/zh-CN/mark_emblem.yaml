@@ -134,3 +134,6 @@ mark_emblem_huashen:
 mark_emblem_yaoling:
   name: 摇铃
   description: 使招财进宝的回合数+1
+mark_emblem_yeshi:
+  name: 夜视
+  description: 使必中的回合数+5

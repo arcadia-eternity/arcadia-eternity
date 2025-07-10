@@ -295,3 +295,9 @@ pet_abao:
 pet_acai:
   name: 阿财
   description: 见到返老还童的阿财 也许会有更大的好运等着你哦
+pet_chilunying:
+  name: 齿轮鹰
+  description: 眼旁长有奇怪齿轮印记的一种神秘鸟种 被草木氏族的人们视为幸运之鸟
+pet_daimuchilunying:
+  name: 呆目齿轮鹰
+  description: 怪怪的齿轮变为给力的眉毛 同时也长出了一对有力而有巨大的翅膀！

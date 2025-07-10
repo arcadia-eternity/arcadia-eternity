@@ -8196,3 +8196,137 @@
     conditions:
       - type: selfUseSkill
       - *condition_self_has_zhaocai
+# 先出手时增加40点威力
+- id: effect_skill_add_power_40_if_first
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: addPower
+    target: usingSkillContext
+    value: 40
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isFirstSkillUsedThisTurn
+# 后出手时增加40点威力
+- id: effect_skill_add_power_40_if_last
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: addPower
+    target: usingSkillContext
+    value: 40
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isLastSkillUsedThisTurn
+# 先出手时连击4次
+- id: effect_skill_multihit_4_if_first
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setMultihit
+    target: usingSkillContext
+    value: 4
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isFirstSkillUsedThisTurn
+# 后出手时连击4次
+- id: effect_skill_multihit_4_if_last
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setMultihit
+    target: usingSkillContext
+    value: 4
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isLastSkillUsedThisTurn
+# 先出手时伤害增加30%
+- id: effect_skill_damage_increase_30_percent_if_first
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 30
+    delta: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isFirstSkillUsedThisTurn
+# 后出手时伤害增加30%
+- id: effect_skill_damage_increase_30_percent_if_last
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 30
+    delta: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isLastSkillUsedThisTurn
+# 使自身获得一层迅捷
+- id: effect_skill_add_mark_xunjie_1
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_xunjie
+    stack: 1
+  condition:
+    type: selfUseSkill
+# 使自身获得一层迟缓
+- id: effect_skill_add_mark_chihuan_1
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_chihuan
+    stack: 1
+  condition:
+    type: selfUseSkill
+# 先出手附带50点固伤
+- id: effect_skill_add_fixed_damage_50_if_first
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isFirstSkillUsedThisTurn
+# 后出手附带50点固伤
+- id: effect_skill_add_fixed_damage_50_if_last
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isLastSkillUsedThisTurn
