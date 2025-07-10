@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.10.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.10.0...arcadia-eternity-v1.10.1) (2025-07-10)
+
+
+### 🐛 Bug Fixes
+
+* Add self-use condition to healing skill ([d4be68e](https://github.com/arcadia-eternity/arcadia-eternity/commit/d4be68e1f326b4cdf28c04f08f97e1823f021c54))
+
+
+### ♻️ Code Refactoring
+
+* Refactor mark condition checks to simplified types ([9fe81ba](https://github.com/arcadia-eternity/arcadia-eternity/commit/9fe81ba1d34f91b9e00dc35c31adee5315b63b02))
+* Refactor mark condition checks to use selfHasMark ([f04df1f](https://github.com/arcadia-eternity/arcadia-eternity/commit/f04df1f78392a8a1eedf9419ee186044df43502f))
+
 ## [1.10.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.9.2...arcadia-eternity-v1.10.0) (2025-07-09)
 
 
