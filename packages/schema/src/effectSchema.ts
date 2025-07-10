@@ -29,7 +29,7 @@ import { MarkConfigSchema } from './mark'
 const selectorKeys = Object.keys(BaseSelector)
 export const baseSelectorSchema = z.enum(selectorKeys as [keyof typeof BaseSelector])
 
-const effectTriggerSchema = z.nativeEnum(EffectTrigger)
+const effectTriggerSchema = z.enum(EffectTrigger)
 
 const COMPARE_OPERATORS = ['>', '<', '>=', '<=', '=='] as const
 const compareOperatorSchema = z.enum(COMPARE_OPERATORS)
@@ -338,8 +338,8 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       type: z.literal('modifyStat'),
       target: selectorDSLSchema,
       statType: valueSchema,
-      delta: valueSchema.default(0),
-      percent: valueSchema.default(0),
+      delta: valueSchema.default(0).optional(),
+      percent: valueSchema.default(0).optional(),
     }),
     z.object({
       type: z.literal('addAttributeModifier'),
@@ -444,20 +444,20 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       type: z.literal('clearStatStage'),
       target: selectorDSLSchema,
       statType: valueSchema.optional(),
-      cleanStageStrategy: z.nativeEnum(CleanStageStrategy).optional().default(CleanStageStrategy.positive),
+      cleanStageStrategy: z.enum(CleanStageStrategy).default(CleanStageStrategy.positive).optional(),
     }),
     z.object({
       type: z.literal('reverseStatStage'),
       target: selectorDSLSchema,
       statType: valueSchema.optional(),
-      cleanStageStrategy: z.nativeEnum(CleanStageStrategy).optional().default(CleanStageStrategy.positive),
+      cleanStageStrategy: z.enum(CleanStageStrategy).default(CleanStageStrategy.positive).optional(),
     }),
     z.object({
       type: z.literal('transferStatStage'),
       source: selectorDSLSchema,
       target: selectorDSLSchema,
       statType: valueSchema.optional(),
-      cleanStageStrategy: z.nativeEnum(CleanStageStrategy).optional().default(CleanStageStrategy.negative),
+      cleanStageStrategy: z.enum(CleanStageStrategy).default(CleanStageStrategy.negative).optional(),
     }),
     z.object({
       type: z.literal('addRage'),
@@ -829,8 +829,8 @@ export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
     }),
     z.object({
       type: z.literal('continuousUseSkill'),
-      times: valueSchema.default(2),
-      strategy: z.nativeEnum(ContinuousUseSkillStrategy).default(ContinuousUseSkillStrategy.Continuous),
+      times: valueSchema.default(2).optional(),
+      strategy: z.enum(ContinuousUseSkillStrategy).default(ContinuousUseSkillStrategy.Continuous).optional(),
     }),
     z.object({
       type: z.literal('statStageChange'),
@@ -879,7 +879,7 @@ export const effectDSLSchema: z.ZodSchema<EffectDSL> = z.lazy(() =>
     apply: z.union([operatorDSLSchema, z.array(operatorDSLSchema)]),
     condition: conditionDSLSchema.optional(),
     consumesStacks: z.number().optional(),
-    tags: z.array(z.string()).optional().default([]),
+    tags: z.array(z.string()).default([]).optional(),
   }),
 )
 

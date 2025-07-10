@@ -22,10 +22,7 @@ export const StatOutBattleIVSSchema = z.object({
 
 export const PetSchema = z.object({
   name: z.string().min(1),
-  id: z
-    .string()
-    .nanoid()
-    .default(() => nanoid()),
+  id: z.nanoid().default(() => nanoid()),
   species: z.string().regex(/^pet_/), //种族的编号
   level: z.number().int().min(1).max(100),
   evs: StatOutBattleEVSSchema.refine(
@@ -33,8 +30,8 @@ export const PetSchema = z.object({
     '学习力总和不能超过510',
   ),
   ivs: StatOutBattleIVSSchema,
-  nature: z.nativeEnum(Nature),
-  gender: z.nativeEnum(Gender).optional(),
+  nature: z.enum(Nature),
+  gender: z.enum(Gender).optional(),
   height: z.number().optional(),
   weight: z.number().optional(),
   skills: z.array(z.string()).min(0).max(5),

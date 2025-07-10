@@ -3683,8 +3683,8 @@ export class ClusterBattleServer {
       return PlayerSchema.parse(rawData)
     } catch (error) {
       if (error instanceof ZodError) {
-        logger.warn({ error: error.errors, rawData }, 'Raw player data validation failed')
-        throw new Error(`Invalid player data: ${error.errors.map(e => e.message).join(', ')}`)
+        logger.warn({ error: error.issues, rawData }, 'Raw player data validation failed')
+        throw new Error(`Invalid player data: ${error.issues.map((e: any) => e.message).join(', ')}`)
       }
       throw new Error('Failed to validate raw player data')
     }
@@ -3699,8 +3699,8 @@ export class ClusterBattleServer {
       return PlayerParser.parse(rawData)
     } catch (error) {
       if (error instanceof ZodError) {
-        logger.warn({ error: error.errors, rawData }, 'Player data validation failed')
-        throw new Error(`Invalid player data: ${error.errors.map(e => e.message).join(', ')}`)
+        logger.warn({ error: error.issues, rawData }, 'Player data validation failed')
+        throw new Error(`Invalid player data: ${error.issues.map((e: any) => e.message).join(', ')}`)
       }
       throw new Error('Failed to validate player data')
     }

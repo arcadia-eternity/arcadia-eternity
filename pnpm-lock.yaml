@@ -508,9 +508,6 @@ importers:
       '@types/node':
         specifier: ^24.0.12
         version: 24.0.12
-      zod-to-json-schema:
-        specifier: ^3.24.6
-        version: 3.24.6(zod@4.0.2)
 
   packages/server:
     dependencies:
@@ -7871,11 +7868,6 @@ packages:
     resolution: {integrity: sha512-D7eujBWkLa3p2sIpJA0d1pr7es+a7m0vFAnZLlCEKq/Ij2k0MLi9Br2UPxoxdYystm5K1yeBGzub0FlYUEWj2Q==}
     engines: {node: '>=8.0.0'}
     hasBin: true
-
-  zod-to-json-schema@3.24.6:
-    resolution: {integrity: sha512-h/z3PKvcTcTetyjl1fkj79MHNEjm+HpD6NXheWjzOekY7kV+lwDYnHw+ivHkijnCSMz1yJaWBD9vu/Fcmk+vEg==}
-    peerDependencies:
-      zod: ^3.24.1
 
   zod-validation-error@4.0.0-beta.1:
     resolution: {integrity: sha512-42DSXwZyDKeLHrug+luXt6RMaoYsgMXc68bCz9kOyk66k7XBG35cAxsu2Lg42uVrJ1kEem2RyHxMBAv25SeZzQ==}
@@ -16120,10 +16112,6 @@ snapshots:
       validator: 13.15.15
     optionalDependencies:
       commander: 9.5.0
-
-  zod-to-json-schema@3.24.6(zod@4.0.2):
-    dependencies:
-      zod: 4.0.2
 
   zod-validation-error@4.0.0-beta.1(zod@4.0.2):
     dependencies:

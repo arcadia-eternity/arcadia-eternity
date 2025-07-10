@@ -1,175 +1,161 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$ref": "#/definitions/species",
-  "definitions": {
-    "species": {
-      "type": "array",
-      "items": {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "num": {
+        "type": "number"
+      },
+      "element": {
+        "type": "string",
+        "enum": [
+          "Normal",
+          "Grass",
+          "Water",
+          "Fire",
+          "Wind",
+          "Bug",
+          "Flying",
+          "Electric",
+          "Ground",
+          "Ice",
+          "Psychic",
+          "Fighting",
+          "Trait",
+          "Light",
+          "Mystery",
+          "Shadow",
+          "Dragon",
+          "Desert",
+          "Ancient",
+          "Divine",
+          "Miracle",
+          "Holy",
+          "ElfKing"
+        ]
+      },
+      "baseStats": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "num": {
+          "hp": {
             "type": "number"
           },
-          "element": {
-            "type": "string",
-            "enum": [
-              "Normal",
-              "Grass",
-              "Water",
-              "Fire",
-              "Wind",
-              "Bug",
-              "Flying",
-              "Electric",
-              "Ground",
-              "Ice",
-              "Psychic",
-              "Fighting",
-              "Trait",
-              "Light",
-              "Mystery",
-              "Shadow",
-              "Dragon",
-              "Desert",
-              "Ancient",
-              "Divine",
-              "Miracle",
-              "Holy",
-              "ElfKing"
-            ]
+          "atk": {
+            "type": "number"
           },
-          "baseStats": {
-            "type": "object",
-            "properties": {
-              "hp": {
-                "type": "number"
-              },
-              "atk": {
-                "type": "number"
-              },
-              "spa": {
-                "type": "number"
-              },
-              "def": {
-                "type": "number"
-              },
-              "spd": {
-                "type": "number"
-              },
-              "spe": {
-                "type": "number"
-              }
-            },
-            "required": [
-              "hp",
-              "atk",
-              "spa",
-              "def",
-              "spd",
-              "spe"
-            ],
-            "additionalProperties": false
+          "spa": {
+            "type": "number"
           },
-          "genderRatio": {
-            "anyOf": [
-              {
-                "type": "array",
-                "minItems": 2,
-                "maxItems": 2,
-                "items": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "number"
-                  }
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "def": {
+            "type": "number"
           },
-          "heightRange": {
-            "type": "array",
-            "minItems": 2,
-            "maxItems": 2,
-            "items": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "number"
-              }
-            ]
+          "spd": {
+            "type": "number"
           },
-          "weightRange": {
-            "type": "array",
-            "minItems": 2,
-            "maxItems": 2,
-            "items": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "number"
-              }
-            ]
-          },
-          "learnable_skills": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "skill_id": {
-                  "type": "string"
-                },
-                "level": {
-                  "type": "number"
-                },
-                "hidden": {
-                  "type": "boolean"
-                }
-              },
-              "required": [
-                "skill_id",
-                "level",
-                "hidden"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "ability": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "emblem": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "spe": {
+            "type": "number"
           }
         },
         "required": [
-          "id",
-          "num",
-          "element",
-          "baseStats",
-          "genderRatio",
-          "heightRange",
-          "weightRange",
-          "learnable_skills",
-          "ability",
-          "emblem"
-        ],
-        "additionalProperties": false
+          "hp",
+          "atk",
+          "spa",
+          "def",
+          "spd",
+          "spe"
+        ]
+      },
+      "genderRatio": {
+        "anyOf": [
+          {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "heightRange": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "number"
+          }
+        ]
+      },
+      "weightRange": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "number"
+          }
+        ]
+      },
+      "learnable_skills": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "skill_id": {
+              "type": "string"
+            },
+            "level": {
+              "type": "number"
+            },
+            "hidden": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "skill_id",
+            "level",
+            "hidden"
+          ]
+        }
+      },
+      "ability": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "emblem": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       }
-    }
+    },
+    "required": [
+      "id",
+      "num",
+      "element",
+      "baseStats",
+      "genderRatio",
+      "heightRange",
+      "weightRange",
+      "learnable_skills",
+      "ability",
+      "emblem"
+    ]
   }
 }

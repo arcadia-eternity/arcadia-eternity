@@ -29,7 +29,6 @@
     "zod": "^4.0.2"
   },
   "devDependencies": {
-    "@types/node": "^24.0.12",
-    "zod-to-json-schema": "^3.24.6"
+    "@types/node": "^24.0.12"
   }
 }
