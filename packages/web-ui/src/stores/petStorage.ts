@@ -192,6 +192,11 @@ export const usePetStorageStore = defineStore('petStorage', {
           console.error('精灵仓库数据解析失败:', error)
           this.resetToDefault()
         }
+      } else {
+        // 没有保存的数据，使用默认数据并标记为已初始化
+        console.log('没有找到保存的精灵仓库数据，使用默认数据')
+        this.initialized = true // 设置为已初始化
+        this.saveToLocal() // 保存默认数据到本地存储
       }
     },
 
