@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.0.0...arcadia-eternity-v2.0.1) (2025-07-12)
+
+
+### 🐛 Bug Fixes
+
+* Migrate team gameMode to ruleSetId and update creation ([59682f6](https://github.com/arcadia-eternity/arcadia-eternity/commit/59682f630beb883605c6a69cd5fafd63d480d006))
+
 ## [2.0.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.10.4...arcadia-eternity-v2.0.0) (2025-07-12)
 
 
