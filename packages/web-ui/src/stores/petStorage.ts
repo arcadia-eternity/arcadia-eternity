@@ -130,18 +130,32 @@ export const usePetStorageStore = defineStore('petStorage', {
         try {
           const parsedData = JSON.parse(saved)
 
-          // 数据迁移：为没有gameMode的队伍添加默认gameMode
+          // 数据迁移：为没有ruleSetId的队伍添加默认ruleSetId
+          let needsMigration = false
           if (parsedData.teams && Array.isArray(parsedData.teams)) {
-            let needsMigration = false
             parsedData.teams = parsedData.teams.map((team: any) => {
-              if (!team.gameMode) {
+              let updatedTeam = { ...team }
+
+              // 处理缺少 ruleSetId 的情况
+              if (!team.ruleSetId) {
                 needsMigration = true
-                return {
-                  ...team,
-                  gameMode: 'casual', // 为旧队伍设置默认的休闲模式
-                }
+                updatedTeam.ruleSetId = 'casual_standard_ruleset' // 为旧队伍设置默认的规则集
               }
-              return team
+
+              // 处理旧的 gameMode 字段（向后兼容）
+              if (team.gameMode && !team.ruleSetId) {
+                needsMigration = true
+                // 根据旧的 gameMode 映射到对应的 ruleSetId
+                if (team.gameMode === 'competitive') {
+                  updatedTeam.ruleSetId = 'competitive_ruleset'
+                } else {
+                  updatedTeam.ruleSetId = 'casual_standard_ruleset'
+                }
+                // 移除旧的 gameMode 字段
+                delete updatedTeam.gameMode
+              }
+
+              return updatedTeam
             })
 
             if (needsMigration) {
@@ -159,11 +173,8 @@ export const usePetStorageStore = defineStore('petStorage', {
             this.initialized = true // 加载完成后设置为已初始化
 
             // 如果进行了数据迁移，保存更新后的数据
-            if (parsedData.teams && Array.isArray(parsedData.teams)) {
-              const hasMigration = parsedData.teams.some((team: any) => team.gameMode === 'casual')
-              if (hasMigration) {
-                this.saveToLocal()
-              }
+            if (needsMigration) {
+              this.saveToLocal()
             }
           } else {
             // 校验失败，显示错误提示并重置为默认数据
