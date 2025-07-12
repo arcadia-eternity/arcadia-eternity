@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.0.1...arcadia-eternity-v2.0.2) (2025-07-12)
+
+
+### 🐛 Bug Fixes
+
+* Handle missing pet storage data with defaults ([a80b3ec](https://github.com/arcadia-eternity/arcadia-eternity/commit/a80b3ec997aaefc7da968f7e4b2e2be404d72475))
+
 ## [2.0.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.0.0...arcadia-eternity-v2.0.1) (2025-07-12)
 
 
