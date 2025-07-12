@@ -1,5 +1,19 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <!-- 加载界面 -->
+  <div v-if="!isInitialized" class="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div class="text-center">
+      <div class="mb-4">
+        <el-icon class="animate-spin text-4xl text-blue-500" :size="48">
+          <Loading />
+        </el-icon>
+      </div>
+      <h2 class="text-xl font-semibold text-gray-700 mb-2">正在初始化精灵仓库</h2>
+      <p class="text-gray-500">{{ loadingMessage }}</p>
+    </div>
+  </div>
+
+  <!-- 主要内容 -->
+  <div v-else class="min-h-screen bg-gray-50">
     <!-- 头部导航 -->
     <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1624,6 +1638,7 @@ import ContextMenu from '../components/ContextMenu.vue'
 import { usePetManagement } from '@/composition/usePetManagement'
 import { useTeamExport } from '@/composition/useTeamExport'
 import { useStorageImportExport } from '@/composition/useStorageImportExport'
+import { Loading } from '@element-plus/icons-vue'
 
 const petStorage = usePetStorageStore()
 const playerStore = usePlayerStore()
@@ -1791,6 +1806,33 @@ const setupPetInteraction = (
     }
   })
 }
+
+// 初始化状态检查
+const isInitialized = computed(() => {
+  // 检查游戏数据是否加载完成
+  if (!gameDataStore.loaded) {
+    return false
+  }
+
+  // 检查petStorage是否已初始化
+  if (!petStorage.initialized) {
+    return false
+  }
+
+  return true
+})
+
+const loadingMessage = computed(() => {
+  if (!gameDataStore.loaded) {
+    return '正在加载游戏数据...'
+  }
+
+  if (!petStorage.initialized) {
+    return '正在加载仓库数据...'
+  }
+
+  return '初始化完成'
+})
 
 // 响应式状态
 const showHelp = ref(false)

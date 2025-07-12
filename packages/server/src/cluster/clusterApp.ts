@@ -25,6 +25,7 @@ import { createContainer, resetContainer } from '../container'
 import type { ClientToServerEvents, ServerToClientEvents } from '@arcadia-eternity/protocol'
 import { swaggerSpec, swaggerUiOptions } from '../swagger'
 import { initializeSupabase } from '@arcadia-eternity/database'
+import { ServerRuleIntegration } from '@arcadia-eternity/rules'
 import type { ClusterConfig } from './types'
 
 const logger = pino({
@@ -306,6 +307,10 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
 
       // 初始化集群管理器
       await clusterManager.initialize()
+
+      // 初始化规则系统
+      await ServerRuleIntegration.initializeServer()
+      logger.info('Rule system initialized successfully')
 
       // 创建并初始化集群组件
       performanceTracker = new PerformanceTracker(clusterManager.getRedisManager(), finalConfig.cluster!.instance.id)

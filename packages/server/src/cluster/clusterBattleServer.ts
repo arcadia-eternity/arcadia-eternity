@@ -29,6 +29,7 @@ import { BattleRpcServer } from './battleRpcServer'
 import { BattleRpcClient } from './battleRpcClient'
 import { TimerEventBatcher } from '../timer/timerEventBatcher'
 import { TTLHelper } from './ttlConfig'
+import { ServerRuleIntegration } from '@arcadia-eternity/rules'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -207,7 +208,7 @@ export class ClusterBattleServer {
       // 直接访问当前实例信息并更新RPC地址
       if (this.rpcPort) {
         // 更新实例信息，添加RPC地址
-        const currentInstance = this.stateManager['currentInstance']
+        const currentInstance = this.stateManager.currentInstance
         currentInstance.rpcPort = this.rpcPort
         currentInstance.rpcAddress = `${currentInstance.host}:${this.rpcPort}`
 
@@ -732,8 +733,8 @@ export class ClusterBattleServer {
     logger.warn({ instanceId }, 'Instance left cluster, cleaning up its rooms')
 
     try {
-      // 获取所有房间 - 使用私有方法访问
-      const allRooms = await this.stateManager['getRooms']()
+      // 获取所有房间 - 使用公共方法访问
+      const allRooms = await this.stateManager.getRooms()
 
       // 找到属于离开实例的房间
       const orphanedRooms = allRooms.filter((room: any) => room.instanceId === instanceId)
@@ -800,7 +801,7 @@ export class ClusterBattleServer {
   private async notifyRoomCleanup(targetInstanceId: string, roomId: string): Promise<void> {
     try {
       // 发布房间清理通知
-      const publisher = this.stateManager['redisManager'].getPublisher()
+      const publisher = this.stateManager.redisManager.getPublisher()
       const channel = `instance:${targetInstanceId}:room-cleanup`
 
       const notification = {
@@ -821,6 +822,9 @@ export class ClusterBattleServer {
   private async handleClusterMatchmakingJoin(entry: MatchmakingEntry) {
     const startTime = Date.now()
     logger.info({ playerId: entry.playerId, sessionId: entry.sessionId }, 'Received cluster matchmaking join event')
+
+    // 添加小延迟，避免同时加入的玩家产生锁竞争
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 1000))
 
     // 只有指定的匹配实例才处理匹配逻辑，避免多实例竞争
     const leadershipCheckStart = Date.now()
@@ -869,7 +873,7 @@ export class ClusterBattleServer {
    * 设置跨实例操作监听器
    */
   private setupCrossInstanceActionListener(): void {
-    const subscriber = this.stateManager['redisManager'].getSubscriber()
+    const subscriber = this.stateManager.redisManager.getSubscriber()
     const channel = `instance:${this.instanceId}:battle-actions`
 
     subscriber.subscribe(channel, err => {
@@ -996,11 +1000,83 @@ export class ClusterBattleServer {
 
   private async handleJoinMatchmaking(
     socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
-    rawPlayerData: unknown,
+    rawData: unknown,
     ack?: AckResponse<{ status: 'QUEUED' }>,
   ) {
     try {
-      // 首先验证原始数据格式
+      // 首先检查游戏资源是否已加载完成
+      try {
+        const { resourceLoadingManager } = await import('../resourceLoadingManager')
+
+        if (!resourceLoadingManager.isReady()) {
+          const progress = resourceLoadingManager.getProgress()
+          logger.warn(
+            {
+              socketId: socket.id,
+              playerId: socket.data.playerId,
+              resourceStatus: progress.status,
+              resourceError: progress.error,
+            },
+            '玩家尝试加入匹配队列但游戏资源尚未加载完成',
+          )
+
+          // 返回错误响应，告知客户端资源尚未准备就绪
+          if (ack) {
+            ack({
+              status: 'ERROR',
+              code: 'RESOURCES_NOT_READY',
+              details: `游戏资源正在加载中，请稍后再试。状态: ${progress.status}, 游戏数据: ${progress.gameDataLoaded ? '已加载' : '未加载'}, 脚本: ${progress.scriptsLoaded ? '已加载' : '未加载'}, 验证: ${progress.validationCompleted ? '已完成' : '未完成'}`,
+            })
+          }
+          return
+        }
+
+        logger.debug(
+          {
+            socketId: socket.id,
+            playerId: socket.data.playerId,
+          },
+          '游戏资源已准备就绪，允许加入匹配队列',
+        )
+      } catch (error) {
+        logger.error(
+          {
+            error,
+            socketId: socket.id,
+            playerId: socket.data.playerId,
+          },
+          '检查游戏资源状态时发生错误',
+        )
+
+        if (ack) {
+          ack({
+            status: 'ERROR',
+            code: 'RESOURCE_CHECK_FAILED',
+            details: '无法检查游戏资源状态，请稍后再试',
+          })
+        }
+        return
+      }
+
+      // 解析数据格式，支持旧格式和新格式
+      let rawPlayerData: unknown
+      let ruleSetId: string = 'standard'
+
+      // 类型守卫：检查是否为新格式
+      const isNewFormat = (data: unknown): data is { playerSchema: unknown; ruleSetId?: string } => {
+        return data !== null && typeof data === 'object' && 'playerSchema' in data
+      }
+
+      if (isNewFormat(rawData)) {
+        // 新格式：包含规则集信息
+        rawPlayerData = rawData.playerSchema
+        ruleSetId = rawData.ruleSetId || 'standard'
+      } else {
+        // 旧格式：直接是 PlayerSchemaType
+        rawPlayerData = rawData
+      }
+
+      // 验证原始数据格式
       const validatedRawData = this.validateRawPlayerData(rawPlayerData)
       const playerId = socket.data.playerId!
 
@@ -1021,6 +1097,58 @@ export class ClusterBattleServer {
       const playerData = this.validatePlayerData(rawPlayerData)
       socket.data.data = playerData
 
+      // 验证队伍是否符合规则集要求
+      try {
+        const { ServerRuleIntegration } = await import('@arcadia-eternity/rules')
+        // 将Pet[]转换为PetSchemaType[]格式用于验证
+        const teamForValidation = playerData.team.map(pet => ({
+          id: pet.id,
+          name: pet.name,
+          species: pet.species.id, // 转换Species对象为字符串ID
+          level: pet.level,
+          evs: pet.evs,
+          ivs: pet.ivs,
+          skills: pet.skills.map(skill => skill.id), // 转换Skill对象为字符串ID
+          gender: pet.gender,
+          nature: pet.nature,
+          ability: pet.ability?.id || '', // 转换Mark对象为字符串ID
+          emblem: pet.emblem?.id, // 转换Mark对象为字符串ID
+          height: pet.height,
+          weight: pet.weight,
+        }))
+        const teamValidation = await ServerRuleIntegration.validateTeamWithRuleSet(teamForValidation, ruleSetId)
+
+        if (!teamValidation.isValid) {
+          const errorMessage = teamValidation.errors[0]?.message || '队伍不符合规则要求'
+          logger.warn(
+            {
+              socketId: socket.id,
+              playerId,
+              ruleSetId,
+              validationErrors: teamValidation.errors,
+            },
+            '队伍验证失败，拒绝加入匹配',
+          )
+          throw new Error(`TEAM_VALIDATION_FAILED: ${errorMessage}`)
+        }
+
+        logger.info(
+          {
+            socketId: socket.id,
+            playerId,
+            ruleSetId,
+            teamSize: playerData.team.length,
+          },
+          '队伍验证通过',
+        )
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith('TEAM_VALIDATION_FAILED:')) {
+          throw error
+        }
+        logger.error({ error, playerId, ruleSetId }, '队伍验证过程中发生错误')
+        throw new Error('TEAM_VALIDATION_ERROR')
+      }
+
       // 使用队列专用锁确保队列操作的原子性
       await this.lockManager.withLock(LOCK_KEYS.MATCHMAKING_QUEUE, async () => {
         // 添加到集群匹配队列 - 存储原始验证过的数据而不是解析后的实例
@@ -1029,11 +1157,14 @@ export class ClusterBattleServer {
           joinTime: Date.now(),
           playerData: validatedRawData, // 存储原始数据而不是Player实例
           sessionId: socket.data.sessionId,
+          ruleSetId,
           metadata: {
             sessionId: socket.data.sessionId,
+            ruleSetId,
           },
         }
 
+        // 使用基于规则的队列管理
         await this.stateManager.addToMatchmakingQueue(entry)
 
         // 更新匹配队列大小统计
@@ -1066,7 +1197,7 @@ export class ClusterBattleServer {
         {
           socketId: socket.id,
           error: error instanceof Error ? error.stack : error,
-          inputData: rawPlayerData,
+          inputData: rawData,
         },
         '加入匹配队列失败',
       )
@@ -1080,276 +1211,31 @@ export class ClusterBattleServer {
       LOCK_KEYS.MATCHMAKING,
       async () => {
         try {
-          const queue = await this.stateManager.getMatchmakingQueue()
+          // 获取所有活跃的规则集
+          const activeRuleSetIds = await this.stateManager.getActiveRuleSetIds()
 
           logger.info(
             {
-              queueLength: queue.length,
-              queue: queue.map(e => ({ playerId: e.playerId, sessionId: e.sessionId, joinTime: e.joinTime })),
+              activeRuleSetIds,
+              ruleSetCount: activeRuleSetIds.length,
             },
-            'Attempting cluster matchmaking',
+            'Attempting rule-based cluster matchmaking',
           )
 
-          if (queue.length < 2) {
-            logger.info('Not enough players in queue for matching')
+          if (activeRuleSetIds.length === 0) {
+            logger.info('No active rule sets found for matching')
             return
           }
 
-          logger.info({ queueLength: queue.length }, 'Found sufficient players for matching, proceeding')
-
-          // 按加入时间排序
-          const sortedQueue = queue.sort((a, b) => a.joinTime - b.joinTime)
-
-          // 寻找可以匹配的两个session（确保不是同一个playerId）
-          let player1Entry: MatchmakingEntry | null = null
-          let player2Entry: MatchmakingEntry | null = null
-
-          for (let i = 0; i < sortedQueue.length; i++) {
-            if (!player1Entry) {
-              player1Entry = sortedQueue[i]
-              continue
-            }
-
-            const candidate = sortedQueue[i]
-
-            // 确保不是同一个玩家的不同session
-            if (candidate.playerId !== player1Entry.playerId) {
-              player2Entry = candidate
+          // 为每个规则集尝试匹配
+          for (const ruleSetId of activeRuleSetIds) {
+            const success = await this.attemptMatchmakingForRuleSet(ruleSetId)
+            if (success) {
+              // 如果成功匹配了一对玩家，就停止继续匹配
+              // 这样可以避免一次处理太多匹配，保持系统响应性
               break
             }
           }
-
-          // 如果找不到合适的匹配，返回
-          if (!player1Entry || !player2Entry) {
-            logger.info(
-              {
-                player1Entry: !!player1Entry,
-                player2Entry: !!player2Entry,
-                queueLength: queue.length,
-                queueDetails: queue.map(e => ({ playerId: e.playerId, sessionId: e.sessionId })),
-              },
-              'No suitable match found - all entries may be from same player',
-            )
-            return
-          }
-
-          logger.info(
-            {
-              player1: { playerId: player1Entry.playerId, sessionId: player1Entry.sessionId },
-              player2: { playerId: player2Entry.playerId, sessionId: player2Entry.sessionId },
-            },
-            'Found suitable match pair, proceeding with match creation',
-          )
-
-          // 使用分布式锁确保匹配的原子性
-          // 基于sessionId生成锁键，确保顺序一致，避免死锁
-          const session1Key = `${player1Entry.playerId}:${player1Entry.sessionId}`
-          const session2Key = `${player2Entry.playerId}:${player2Entry.sessionId}`
-          const sortedSessionKeys = [session1Key, session2Key].sort()
-          const lockKey = `match:${sortedSessionKeys[0]}:${sortedSessionKeys[1]}`
-
-          logger.info(
-            {
-              player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
-              player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
-              lockKey,
-            },
-            'Starting match creation with lock',
-          )
-
-          await this.lockManager.withLock(lockKey, async () => {
-            // 再次检查session是否仍在队列中
-            const currentQueue = await this.stateManager.getMatchmakingQueue()
-            const p1Still = currentQueue.find(
-              e => e.playerId === player1Entry!.playerId && e.sessionId === player1Entry!.sessionId,
-            )
-            const p2Still = currentQueue.find(
-              e => e.playerId === player2Entry!.playerId && e.sessionId === player2Entry!.sessionId,
-            )
-
-            if (!p1Still || !p2Still) {
-              return
-            }
-
-            // 检查玩家连接状态（基于session）
-            logger.info(
-              {
-                player1: { playerId: player1Entry.playerId, sessionId: player1Entry.sessionId },
-                player2: { playerId: player2Entry.playerId, sessionId: player2Entry.sessionId },
-              },
-              'About to check player connections by session',
-            )
-
-            const p1Connection = await this.stateManager.getPlayerConnectionBySession(
-              player1Entry.playerId,
-              player1Entry.sessionId!,
-            )
-            const p2Connection = await this.stateManager.getPlayerConnectionBySession(
-              player2Entry.playerId,
-              player2Entry.sessionId!,
-            )
-
-            logger.info(
-              {
-                player1: {
-                  playerId: player1Entry.playerId,
-                  sessionId: player1Entry.sessionId,
-                  hasConnection: !!p1Connection,
-                  connection: p1Connection
-                    ? {
-                        status: p1Connection.status,
-                        instanceId: p1Connection.instanceId,
-                        socketId: p1Connection.socketId,
-                        lastSeen: p1Connection.lastSeen,
-                      }
-                    : null,
-                },
-                player2: {
-                  playerId: player2Entry.playerId,
-                  sessionId: player2Entry.sessionId,
-                  hasConnection: !!p2Connection,
-                  connection: p2Connection
-                    ? {
-                        status: p2Connection.status,
-                        instanceId: p2Connection.instanceId,
-                        socketId: p2Connection.socketId,
-                        lastSeen: p2Connection.lastSeen,
-                      }
-                    : null,
-                },
-              },
-              'Player connection check results',
-            )
-
-            if (
-              !p1Connection ||
-              !p2Connection ||
-              p1Connection.status !== 'connected' ||
-              p2Connection.status !== 'connected'
-            ) {
-              logger.info(
-                {
-                  player1: {
-                    playerId: player1Entry.playerId,
-                    sessionId: player1Entry.sessionId,
-                    connection: p1Connection
-                      ? { status: p1Connection.status, instanceId: p1Connection.instanceId }
-                      : null,
-                  },
-                  player2: {
-                    playerId: player2Entry.playerId,
-                    sessionId: player2Entry.sessionId,
-                    connection: p2Connection
-                      ? { status: p2Connection.status, instanceId: p2Connection.instanceId }
-                      : null,
-                  },
-                },
-                'Player sessions not connected, skipping match',
-              )
-
-              // 立即清理没有连接的匹配队列条目
-              const cleanupPromises: Promise<void>[] = []
-              if (!p1Connection || p1Connection.status !== 'connected') {
-                logger.info(
-                  { playerId: player1Entry.playerId, sessionId: player1Entry.sessionId },
-                  'Removing disconnected player from matchmaking queue',
-                )
-                cleanupPromises.push(
-                  this.stateManager.removeFromMatchmakingQueue(player1Entry.playerId, player1Entry.sessionId),
-                )
-              }
-              if (!p2Connection || p2Connection.status !== 'connected') {
-                logger.info(
-                  { playerId: player2Entry.playerId, sessionId: player2Entry.sessionId },
-                  'Removing disconnected player from matchmaking queue',
-                )
-                cleanupPromises.push(
-                  this.stateManager.removeFromMatchmakingQueue(player2Entry.playerId, player2Entry.sessionId),
-                )
-              }
-
-              // 等待清理完成
-              await Promise.all(cleanupPromises)
-
-              // 更新匹配队列大小统计
-              if (this.performanceTracker) {
-                const queueSize = await this.stateManager.getMatchmakingQueueSize()
-                this.performanceTracker.updateMatchmakingQueueSize(queueSize)
-              }
-
-              return
-            }
-
-            // 创建战斗房间
-            logger.info(
-              {
-                player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
-                player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
-              },
-              'About to create cluster battle room',
-            )
-
-            const roomId = await this.createClusterBattleRoom(player1Entry, player2Entry)
-
-            logger.info(
-              {
-                roomId,
-                player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
-                player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
-              },
-              'Battle room creation result',
-            )
-
-            if (roomId) {
-              // 从队列中移除session
-              await this.stateManager.removeFromMatchmakingQueue(player1Entry.playerId, player1Entry.sessionId)
-              await this.stateManager.removeFromMatchmakingQueue(player2Entry.playerId, player2Entry.sessionId)
-
-              // 更新匹配队列大小统计
-              if (this.performanceTracker) {
-                const queueSize = await this.stateManager.getMatchmakingQueueSize()
-                this.performanceTracker.updateMatchmakingQueueSize(queueSize)
-              }
-
-              logger.info(
-                {
-                  roomId,
-                  player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
-                  player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
-                },
-                'About to notify match success',
-              )
-
-              // 通知玩家匹配成功
-              await this.notifyMatchSuccess(player1Entry, player2Entry, roomId)
-
-              logger.info(
-                {
-                  roomId,
-                  player1: { id: player1Entry.playerId, name: player1Entry.playerData.name },
-                  player2: { id: player2Entry.playerId, name: player2Entry.playerData.name },
-                },
-                '集群匹配成功',
-              )
-            } else {
-              logger.error(
-                {
-                  player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
-                  player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
-                },
-                'Failed to create battle room - roomId is null',
-              )
-            }
-
-            logger.info(
-              {
-                roomId,
-                player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
-                player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
-              },
-              'Exiting withLock callback in attemptClusterMatchmaking',
-            )
-          })
         } catch (error) {
           logger.error(
             {
@@ -1367,8 +1253,316 @@ export class ClusterBattleServer {
           )
         }
       },
-      { ttl: 30000, retryCount: 5, retryDelay: 200 }, // 较长的TTL，适中的重试
+      { ttl: 60000, retryCount: 10, retryDelay: 500 }, // 更长的TTL，更多重试，更长延迟
     )
+  }
+
+  private async attemptMatchmakingForRuleSet(ruleSetId: string): Promise<boolean> {
+    try {
+      const queue = await this.stateManager.getRuleBasedQueue(ruleSetId)
+
+      logger.info(
+        {
+          ruleSetId,
+          queueLength: queue.length,
+          queue: queue.map(e => ({
+            playerId: e.playerId,
+            sessionId: e.sessionId,
+            joinTime: e.joinTime,
+            ruleSetId: e.ruleSetId,
+          })),
+        },
+        'Attempting matchmaking for rule set',
+      )
+
+      if (queue.length < 2) {
+        logger.debug({ ruleSetId }, 'Not enough players in rule set queue for matching')
+        return false
+      }
+
+      logger.info({ ruleSetId, queueLength: queue.length }, 'Found sufficient players for matching, proceeding')
+
+      // 按加入时间排序
+      const sortedQueue = queue.sort((a, b) => a.joinTime - b.joinTime)
+
+      // 寻找可以匹配的两个session（确保不是同一个playerId且规则集相同）
+      let player1Entry: MatchmakingEntry | null = null
+      let player2Entry: MatchmakingEntry | null = null
+
+      for (let i = 0; i < sortedQueue.length; i++) {
+        if (!player1Entry) {
+          player1Entry = sortedQueue[i]
+          continue
+        }
+
+        const candidate = sortedQueue[i]
+
+        // 确保不是同一个玩家的不同session
+        // 注意：从基于规则的队列获取的玩家已经是同一规则集的，无需再次检查
+        if (candidate.playerId !== player1Entry.playerId) {
+          player2Entry = candidate
+          break
+        }
+      }
+
+      // 如果找不到合适的匹配，返回
+      if (!player1Entry || !player2Entry) {
+        logger.debug(
+          {
+            ruleSetId,
+            player1Entry: !!player1Entry,
+            player2Entry: !!player2Entry,
+            queueLength: queue.length,
+            queueDetails: queue.map(e => ({
+              playerId: e.playerId,
+              sessionId: e.sessionId,
+              ruleSetId: e.ruleSetId,
+            })),
+          },
+          'No suitable match found for rule set - all entries may be from same player',
+        )
+        return false
+      }
+
+      logger.info(
+        {
+          ruleSetId,
+          player1: {
+            playerId: player1Entry.playerId,
+            sessionId: player1Entry.sessionId,
+            ruleSetId: player1Entry.ruleSetId,
+          },
+          player2: {
+            playerId: player2Entry.playerId,
+            sessionId: player2Entry.sessionId,
+            ruleSetId: player2Entry.ruleSetId,
+          },
+        },
+        'Found suitable match pair for rule set, proceeding with match creation',
+      )
+
+      // 使用分布式锁确保匹配的原子性
+      // 基于sessionId生成锁键，确保顺序一致，避免死锁
+      const session1Key = `${player1Entry.playerId}:${player1Entry.sessionId}`
+      const session2Key = `${player2Entry.playerId}:${player2Entry.sessionId}`
+      const sortedSessionKeys = [session1Key, session2Key].sort()
+      const lockKey = `match:${sortedSessionKeys[0]}:${sortedSessionKeys[1]}`
+
+      logger.info(
+        {
+          player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
+          player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
+          lockKey,
+        },
+        'Starting match creation with lock',
+      )
+
+      await this.lockManager.withLock(lockKey, async () => {
+        // 再次检查session是否仍在基于规则的队列中
+        const currentQueue = await this.stateManager.getRuleBasedQueue(ruleSetId)
+        const p1Still = currentQueue.find(
+          e => e.playerId === player1Entry!.playerId && e.sessionId === player1Entry!.sessionId,
+        )
+        const p2Still = currentQueue.find(
+          e => e.playerId === player2Entry!.playerId && e.sessionId === player2Entry!.sessionId,
+        )
+
+        if (!p1Still || !p2Still) {
+          logger.debug(
+            {
+              ruleSetId,
+              player1Still: !!p1Still,
+              player2Still: !!p2Still,
+            },
+            'One or both players no longer in rule-based queue, skipping match',
+          )
+          return
+        }
+
+        // 检查玩家连接状态（基于session）
+        logger.info(
+          {
+            player1: { playerId: player1Entry.playerId, sessionId: player1Entry.sessionId },
+            player2: { playerId: player2Entry.playerId, sessionId: player2Entry.sessionId },
+          },
+          'About to check player connections by session',
+        )
+
+        const p1Connection = await this.stateManager.getPlayerConnectionBySession(
+          player1Entry.playerId,
+          player1Entry.sessionId!,
+        )
+        const p2Connection = await this.stateManager.getPlayerConnectionBySession(
+          player2Entry.playerId,
+          player2Entry.sessionId!,
+        )
+
+        logger.info(
+          {
+            player1: {
+              playerId: player1Entry.playerId,
+              sessionId: player1Entry.sessionId,
+              hasConnection: !!p1Connection,
+              connection: p1Connection
+                ? {
+                    status: p1Connection.status,
+                    instanceId: p1Connection.instanceId,
+                    socketId: p1Connection.socketId,
+                    lastSeen: p1Connection.lastSeen,
+                  }
+                : null,
+            },
+            player2: {
+              playerId: player2Entry.playerId,
+              sessionId: player2Entry.sessionId,
+              hasConnection: !!p2Connection,
+              connection: p2Connection
+                ? {
+                    status: p2Connection.status,
+                    instanceId: p2Connection.instanceId,
+                    socketId: p2Connection.socketId,
+                    lastSeen: p2Connection.lastSeen,
+                  }
+                : null,
+            },
+          },
+          'Player connection check results',
+        )
+
+        if (
+          !p1Connection ||
+          !p2Connection ||
+          p1Connection.status !== 'connected' ||
+          p2Connection.status !== 'connected'
+        ) {
+          logger.info(
+            {
+              player1: {
+                playerId: player1Entry.playerId,
+                sessionId: player1Entry.sessionId,
+                connection: p1Connection ? { status: p1Connection.status, instanceId: p1Connection.instanceId } : null,
+              },
+              player2: {
+                playerId: player2Entry.playerId,
+                sessionId: player2Entry.sessionId,
+                connection: p2Connection ? { status: p2Connection.status, instanceId: p2Connection.instanceId } : null,
+              },
+            },
+            'Player sessions not connected, skipping match',
+          )
+
+          // 立即清理没有连接的匹配队列条目
+          const cleanupPromises: Promise<void>[] = []
+          if (!p1Connection || p1Connection.status !== 'connected') {
+            logger.info(
+              { playerId: player1Entry.playerId, sessionId: player1Entry.sessionId },
+              'Removing disconnected player from matchmaking queue',
+            )
+            cleanupPromises.push(
+              this.stateManager.removeFromMatchmakingQueue(player1Entry.playerId, player1Entry.sessionId),
+            )
+          }
+          if (!p2Connection || p2Connection.status !== 'connected') {
+            logger.info(
+              { playerId: player2Entry.playerId, sessionId: player2Entry.sessionId },
+              'Removing disconnected player from matchmaking queue',
+            )
+            cleanupPromises.push(
+              this.stateManager.removeFromMatchmakingQueue(player2Entry.playerId, player2Entry.sessionId),
+            )
+          }
+
+          // 等待清理完成
+          await Promise.all(cleanupPromises)
+
+          // 更新匹配队列大小统计
+          if (this.performanceTracker) {
+            const queueSize = await this.stateManager.getMatchmakingQueueSize()
+            this.performanceTracker.updateMatchmakingQueueSize(queueSize)
+          }
+
+          return
+        }
+
+        // 创建战斗房间
+        logger.info(
+          {
+            player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
+            player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
+          },
+          'About to create cluster battle room',
+        )
+
+        const roomId = await this.createClusterBattleRoom(player1Entry, player2Entry)
+
+        logger.info(
+          {
+            roomId,
+            player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
+            player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
+          },
+          'Battle room creation result',
+        )
+
+        if (roomId) {
+          // 从基于规则的队列中移除session
+          await this.stateManager.removeFromMatchmakingQueue(player1Entry.playerId, player1Entry.sessionId)
+          await this.stateManager.removeFromMatchmakingQueue(player2Entry.playerId, player2Entry.sessionId)
+
+          // 更新匹配队列大小统计
+          if (this.performanceTracker) {
+            const queueSize = await this.stateManager.getMatchmakingQueueSize()
+            this.performanceTracker.updateMatchmakingQueueSize(queueSize)
+          }
+
+          logger.info(
+            {
+              ruleSetId,
+              roomId,
+              player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
+              player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
+            },
+            'About to notify match success for rule set',
+          )
+
+          // 通知玩家匹配成功
+          await this.notifyMatchSuccess(player1Entry, player2Entry, roomId)
+
+          logger.info(
+            {
+              ruleSetId,
+              roomId,
+              player1: { id: player1Entry.playerId, name: player1Entry.playerData.name },
+              player2: { id: player2Entry.playerId, name: player2Entry.playerData.name },
+            },
+            '基于规则集的集群匹配成功',
+          )
+
+          return true // 匹配成功
+        } else {
+          logger.error(
+            {
+              ruleSetId,
+              player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
+              player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
+            },
+            'Failed to create battle room for rule set - roomId is null',
+          )
+          return false // 匹配失败
+        }
+      })
+
+      return true // 如果到达这里，说明匹配成功
+    } catch (error) {
+      logger.error(
+        {
+          error: error instanceof Error ? error.message : error,
+          ruleSetId,
+        },
+        'Error in rule set matchmaking',
+      )
+      return false // 匹配失败
+    }
   }
 
   private async createClusterBattleRoom(
@@ -1433,6 +1627,10 @@ export class ClusterBattleServer {
         // 先创建本地Battle实例
         const session1 = player1Entry.sessionId || player1Entry.metadata?.sessionId || 'default'
         const session2 = player2Entry.sessionId || player2Entry.metadata?.sessionId || 'default'
+
+        // 获取规则集信息，优先使用player1的规则集，如果不存在则使用player2的，最后默认为休闲规则集
+        const ruleSetId = player1Entry.ruleSetId || player2Entry.ruleSetId || 'casual_standard_ruleset'
+
         const tempRoomState: RoomState = {
           id: roomId,
           status: 'waiting',
@@ -1447,6 +1645,7 @@ export class ClusterBattleServer {
           metadata: {
             battleRecordId,
             createdAt: Date.now(),
+            ruleSetId, // 添加规则集信息
           },
         }
 
@@ -1748,7 +1947,7 @@ export class ClusterBattleServer {
    */
   private async removeSessionRoomMapping(playerId: string, sessionId: string, roomId: string): Promise<void> {
     try {
-      const client = this.stateManager['redisManager'].getClient()
+      const client = this.stateManager.redisManager.getClient()
       const sessionKey = `${playerId}:${sessionId}`
       await client.srem(`session:rooms:${sessionKey}`, roomId)
     } catch (error) {
@@ -1759,7 +1958,7 @@ export class ClusterBattleServer {
   private async getPlayerRoomFromCluster(playerId: string, sessionId: string): Promise<RoomState | null> {
     try {
       // 直接从 Redis 查找，无本地缓存
-      const client = this.stateManager['redisManager'].getClient()
+      const client = this.stateManager.redisManager.getClient()
 
       // 首先尝试从玩家会话映射中查找
       const sessionRoomKey = `session:rooms:${playerId}:${sessionId}`
@@ -2056,7 +2255,7 @@ export class ClusterBattleServer {
     error?: string,
   ): Promise<void> {
     try {
-      const publisher = this.stateManager['redisManager'].getPublisher()
+      const publisher = this.stateManager.redisManager.getPublisher()
       await publisher.publish(
         responseChannel,
         JSON.stringify({
@@ -2091,16 +2290,85 @@ export class ClusterBattleServer {
    * 创建本地Battle实例
    */
   private async createLocalBattle(roomState: RoomState, player1Data: any, player2Data: any): Promise<Battle> {
-    const battle = new Battle(player1Data, player2Data, {
-      showHidden: false,
-      timerConfig: {
-        enabled: true,
-        turnTimeLimit: 30,
-        totalTimeLimit: 1500,
-        animationPauseEnabled: true,
-        maxAnimationDuration: 20000,
+    // 获取规则集信息
+    const ruleSetId = roomState.metadata?.ruleSetId || 'casual_standard_ruleset'
+
+    logger.info(
+      {
+        roomId: roomState.id,
+        ruleSetId,
+        player1: player1Data.name,
+        player2: player2Data.name,
       },
-    })
+      'Creating battle with rule set',
+    )
+
+    let battle: Battle
+    let ruleManager: any = null
+
+    try {
+      // 使用规则系统验证战斗创建并应用规则
+      const battleValidation = await ServerRuleIntegration.validateBattleCreation(
+        player1Data.team,
+        player2Data.team,
+        [ruleSetId],
+        {
+          allowFaintSwitch: true,
+          showHidden: false,
+        },
+      )
+
+      // 检查验证结果
+      if (!battleValidation.validation.isValid) {
+        const errorMessage = `战斗验证失败: ${battleValidation.validation.errors.map((e: any) => e.message).join(', ')}`
+        logger.error(
+          {
+            roomId: roomState.id,
+            ruleSetId,
+            errors: battleValidation.validation.errors,
+          },
+          errorMessage,
+        )
+        throw new Error(errorMessage)
+      }
+
+      // 使用规则修改后的选项创建战斗
+      battle = new Battle(player1Data, player2Data, battleValidation.battleOptions)
+      ruleManager = battleValidation.ruleManager
+
+      // 绑定规则管理器到战斗
+      await ServerRuleIntegration.bindRulesToBattle(battle, ruleManager)
+
+      logger.info(
+        {
+          roomId: roomState.id,
+          ruleSetId,
+          battleOptions: battleValidation.battleOptions,
+        },
+        'Battle created with rule system successfully',
+      )
+    } catch (error) {
+      logger.warn(
+        {
+          roomId: roomState.id,
+          ruleSetId,
+          error: error instanceof Error ? error.message : error,
+        },
+        'Failed to use rule system, falling back to default battle creation',
+      )
+
+      // 如果规则系统失败，回退到默认创建方式
+      battle = new Battle(player1Data, player2Data, {
+        showHidden: false,
+        timerConfig: {
+          enabled: true,
+          turnTimeLimit: 30,
+          totalTimeLimit: 1500,
+          animationPauseEnabled: true,
+          maxAnimationDuration: 20000,
+        },
+      })
+    }
 
     // 创建本地房间数据
     const players = roomState.sessions.map(sessionId => roomState.sessionPlayers[sessionId]).filter(Boolean)
@@ -2916,7 +3184,7 @@ export class ClusterBattleServer {
     reason: 'disconnect' | 'abandon',
   ): Promise<void> {
     try {
-      const publisher = this.stateManager['redisManager'].getPublisher()
+      const publisher = this.stateManager.redisManager.getPublisher()
       const channel = `instance:${instanceId}:battle-actions`
 
       await publisher.publish(
@@ -2948,7 +3216,7 @@ export class ClusterBattleServer {
    */
   private async notifyInstancePlayerAbandon(instanceId: string, roomId: string, playerId: string): Promise<void> {
     try {
-      const publisher = this.stateManager['redisManager'].getPublisher()
+      const publisher = this.stateManager.redisManager.getPublisher()
       const channel = `instance:${instanceId}:battle-actions`
 
       await publisher.publish(
@@ -3791,7 +4059,7 @@ export class ClusterBattleServer {
   private setupInstanceExpirationWatcher(): void {
     try {
       // 创建专门用于监听的 Redis 连接
-      const subscriber = this.stateManager['redisManager'].getSubscriber()
+      const subscriber = this.stateManager.redisManager.getSubscriber()
 
       // 启用 keyspace notifications for expired events
       // 注意：这需要 Redis 配置 notify-keyspace-events 包含 'Ex'
@@ -3839,7 +4107,7 @@ export class ClusterBattleServer {
    */
   private setupRoomCleanupListener(): void {
     try {
-      const subscriber = this.stateManager['redisManager'].getSubscriber()
+      const subscriber = this.stateManager.redisManager.getSubscriber()
       const channel = `instance:${this.instanceId}:room-cleanup`
 
       subscriber.subscribe(channel, (err, count) => {
@@ -3941,7 +4209,7 @@ export class ClusterBattleServer {
       logger.warn({ instanceId }, 'Handling instance crash, starting room cleanup')
 
       // 获取所有房间
-      const allRooms = await this.stateManager['getRooms']()
+      const allRooms = await this.stateManager.getRooms()
 
       // 找到属于崩溃实例的房间
       const crashedInstanceRooms = allRooms.filter((room: any) => room.instanceId === instanceId)
@@ -4202,7 +4470,7 @@ export class ClusterBattleServer {
       const timeout = 30 * 60 * 1000 // 30分钟超时
 
       // 获取所有房间并批量检查状态
-      const client = this.stateManager['redisManager'].getClient()
+      const client = this.stateManager.redisManager.getClient()
       const roomIds = await client.smembers('arcadia:rooms')
 
       if (roomIds.length === 0) {
@@ -4305,7 +4573,7 @@ export class ClusterBattleServer {
    */
   private async notifyInstanceCleanup(instanceId: string, roomId: string): Promise<void> {
     try {
-      const publisher = this.stateManager['redisManager'].getPublisher()
+      const publisher = this.stateManager.redisManager.getPublisher()
       const channel = `instance:${instanceId}:cleanup`
 
       await publisher.publish(
@@ -4327,7 +4595,7 @@ export class ClusterBattleServer {
    */
   private async notifyInstanceBatchCleanup(instanceId: string, roomIds: string[]): Promise<void> {
     try {
-      const publisher = this.stateManager['redisManager'].getPublisher()
+      const publisher = this.stateManager.redisManager.getPublisher()
       const channel = `instance:${instanceId}:cleanup`
 
       await publisher.publish(
@@ -4369,7 +4637,7 @@ export class ClusterBattleServer {
    */
   private async createSessionRoomMappings(roomState: RoomState): Promise<void> {
     try {
-      const client = this.stateManager['redisManager'].getClient()
+      const client = this.stateManager.redisManager.getClient()
 
       for (const sessionId of roomState.sessions) {
         const playerId = roomState.sessionPlayers[sessionId]
@@ -4390,7 +4658,7 @@ export class ClusterBattleServer {
    */
   private async cleanupSessionRoomMappings(roomState: RoomState): Promise<void> {
     try {
-      const client = this.stateManager['redisManager'].getClient()
+      const client = this.stateManager.redisManager.getClient()
 
       for (const sessionId of roomState.sessions) {
         const playerId = roomState.sessionPlayers[sessionId]
@@ -4409,23 +4677,30 @@ export class ClusterBattleServer {
    */
   private async cleanupOrphanedMatchmakingEntries(): Promise<void> {
     try {
-      const matchmakingQueue = await this.stateManager.getMatchmakingQueue()
-      if (matchmakingQueue.length === 0) {
+      // 获取所有活跃的规则集
+      const activeRuleSetIds = await this.stateManager.getActiveRuleSetIds()
+      if (activeRuleSetIds.length === 0) {
         return
       }
 
       const entriesToRemove: { playerId: string; sessionId: string }[] = []
 
-      // 只检查少量最旧的条目，避免大量 Redis 查询
-      // TTL 会自动清理过期的队列条目，这里只处理连接状态不一致的情况
-      const entriesToCheck = matchmakingQueue.slice(0, Math.min(10, matchmakingQueue.length))
+      // 检查每个规则集的队列
+      for (const ruleSetId of activeRuleSetIds) {
+        const queue = await this.stateManager.getRuleBasedQueue(ruleSetId)
+        if (queue.length === 0) continue
 
-      for (const entry of entriesToCheck) {
-        if (!entry.sessionId) continue
+        // 只检查少量最旧的条目，避免大量 Redis 查询
+        // TTL 会自动清理过期的队列条目，这里只处理连接状态不一致的情况
+        const entriesToCheck = queue.slice(0, Math.min(5, queue.length))
 
-        const connection = await this.stateManager.getPlayerConnectionBySession(entry.playerId, entry.sessionId)
-        if (!connection || connection.status !== 'connected') {
-          entriesToRemove.push({ playerId: entry.playerId, sessionId: entry.sessionId })
+        for (const entry of entriesToCheck) {
+          if (!entry.sessionId) continue
+
+          const connection = await this.stateManager.getPlayerConnectionBySession(entry.playerId, entry.sessionId)
+          if (!connection || connection.status !== 'connected') {
+            entriesToRemove.push({ playerId: entry.playerId, sessionId: entry.sessionId })
+          }
         }
       }
 
@@ -4438,7 +4713,7 @@ export class ClusterBattleServer {
         )
         logger.info(
           { count: entriesToRemove.length },
-          'Cleaned up orphaned matchmaking entries (TTL handles most cases)',
+          'Cleaned up orphaned matchmaking entries from rule-based queues (TTL handles most cases)',
         )
 
         // 更新匹配队列大小统计
@@ -4460,14 +4735,18 @@ export class ClusterBattleServer {
       const now = Date.now()
       const timeout = 10 * 60 * 1000 // 10分钟超时
 
-      const client = this.stateManager['redisManager'].getClient()
+      const client = this.stateManager.redisManager.getClient()
 
       // 获取当前匹配队列中的所有玩家会话，避免清理正在匹配的玩家连接
-      const matchmakingQueue = await this.stateManager.getMatchmakingQueue()
+      const activeRuleSetIds = await this.stateManager.getActiveRuleSetIds()
       const playersInQueue = new Set<string>()
-      for (const entry of matchmakingQueue) {
-        if (entry.sessionId) {
-          playersInQueue.add(`${entry.playerId}:${entry.sessionId}`)
+
+      for (const ruleSetId of activeRuleSetIds) {
+        const queue = await this.stateManager.getRuleBasedQueue(ruleSetId)
+        for (const entry of queue) {
+          if (entry.sessionId) {
+            playersInQueue.add(`${entry.playerId}:${entry.sessionId}`)
+          }
         }
       }
 
@@ -4840,7 +5119,7 @@ export class ClusterBattleServer {
       }
 
       // 清理跨实例监听器
-      const subscriber = this.stateManager['redisManager'].getSubscriber()
+      const subscriber = this.stateManager.redisManager.getSubscriber()
       await subscriber.unsubscribe(`instance:${this.instanceId}:battle-actions`)
       await subscriber.unsubscribe(`instance:${this.instanceId}:cleanup`)
       await subscriber.unsubscribe(`instance:${this.instanceId}:responses`)

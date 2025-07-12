@@ -19,6 +19,8 @@ import {
   createClusterConfigFromCli,
   type ClusterCliOptions,
 } from '@arcadia-eternity/server'
+import { ServerRuleIntegration } from '@arcadia-eternity/rules'
+import { dataRepo } from '@arcadia-eternity/data-repository'
 import { validateAndPrintGameData } from '@arcadia-eternity/cli-validator'
 import DevServer from '../devServer'
 import { fileURLToPath } from 'node:url'
@@ -339,6 +341,16 @@ program
           loadingStrategy: LOADING_STRATEGIES.LENIENT,
           validateData: options.validateData,
           continueOnError: true,
+        })
+        .then(async () => {
+          // 资源加载完成后初始化规则系统
+          console.log('[⚖️] 正在初始化服务端规则系统...')
+          try {
+            await ServerRuleIntegration.initializeServer(dataRepo)
+            console.log('[✅] 服务端规则系统初始化成功')
+          } catch (error) {
+            console.error('[❌] 服务端规则系统初始化失败:', error)
+          }
         })
         .catch(error => {
           console.error('[❌] 异步资源加载失败:', error instanceof Error ? error.message : error)

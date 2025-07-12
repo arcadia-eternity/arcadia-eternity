@@ -225,8 +225,8 @@ export function useStorageImportExport() {
             counter++
           }
 
-          // 创建新队伍
-          petStorage.createNewTeam(teamName)
+          // 创建新队伍（不包含默认精灵）
+          petStorage.createNewTeam(teamName, 'casual', false)
           const newTeamIndex = petStorage.teams.length - 1
 
           // 添加精灵到队伍

@@ -84,9 +84,9 @@ export function usePetManagement() {
               weight: pet.weight ?? gameDataStore.getSpecies(pet.species)?.weightRange[1] ?? 0,
             }))
 
-            // 创建新队伍
+            // 创建新队伍（不包含默认精灵）
             const teamName = `导入队伍 ${new Date().toLocaleString()}`
-            petStorage.createNewTeam(teamName)
+            petStorage.createNewTeam(teamName, 'casual', false)
             const newTeamIndex = petStorage.teams.length - 1
 
             // 将导入的精灵添加到新队伍
@@ -138,7 +138,7 @@ export function usePetManagement() {
             throw new Error('无效的队伍文件格式')
           }
 
-          petStorage.createNewTeam(teamData.name)
+          petStorage.createNewTeam(teamData.name, 'casual', false)
           const newTeamIndex = petStorage.teams.length - 1
 
           teamData.pets.forEach((pet: PetSchemaType) => {
