@@ -592,3 +592,9 @@ mark_zhaocai:
 mark_jinbao:
   name: 进宝
   description: 受到伤害减少25%
+mark_xunjie:
+  name: 迅捷
+  description: 先制+{{mark.stack}}
+mark_chihuan:
+  name: 迟缓
+  description: 先制-{{mark.stack}}

@@ -1044,3 +1044,36 @@
       - type: selfBeDamaged
       - type: selfHasMark
         baseId: mark_huanxiang
+# 鹰眼：先出手时伤害增加10%
+- id: effect_ability_damage_boost_10_percent_when_first
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 10
+    delta: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isFirstSkillUsedThisTurn
+# 鹰眼：后出手时受到的伤害减少10%
+- id: effect_ability_damage_reduction_10_percent_when_last
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: -10
+    delta: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      # 这里的useSkillContext是指对手的技能上下文
+      # 因此如果对手的使用的技能不是最后一个技能时
+      # 意味着自己是最后一个使用技能的 此时触发效果
+      - type: not
+        condition:
+          type: isLastSkillUsedThisTurn

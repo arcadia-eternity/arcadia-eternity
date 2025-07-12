@@ -192,11 +192,11 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     isInitialized.value = false
   }
 
-  const joinMatchmaking = (playerData: any) => {
+  const joinMatchmaking = (data: any) => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
-    return _instance.value.joinMatchmaking(playerData)
+    return _instance.value.joinMatchmaking(data)
   }
 
   const cancelMatchmaking = () => {

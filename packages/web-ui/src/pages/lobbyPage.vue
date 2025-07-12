@@ -79,23 +79,150 @@
       </a>
     </div>
 
-    <!-- 匹配控制区域 -->
-    <div class="mb-6 md:mb-8">
-      <button
-        @click="handleMatchmaking"
-        :disabled="isMatchButtonDisabled && !isMatching"
-        class="px-8 py-4 md:px-6 md:py-3 text-lg md:text-lg bg-green-500 text-white border-none rounded-lg cursor-pointer transition-colors duration-300 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed min-h-[48px] touch-manipulation font-medium shadow-lg hover:shadow-xl"
-      >
-        {{
-          battleClientStore.currentState.status !== 'connected'
-            ? '请先连接服务器'
-            : battleClientStore.currentState.matchmaking === 'matched'
-              ? '准备进入战斗...'
-              : isMatching
-                ? '取消匹配'
-                : '开始匹配'
-        }}
-      </button>
+    <!-- 匹配配置区域 -->
+    <div class="mb-6 md:mb-8 space-y-6">
+      <!-- 规则选择 -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
+          <el-icon><Setting /></el-icon>
+          选择游戏规则
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div
+            v-for="ruleSet in availableRuleSets"
+            :key="ruleSet.id"
+            @click="selectedRuleSetId = ruleSet.id"
+            class="p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md"
+            :class="{
+              'border-blue-500 bg-blue-50': selectedRuleSetId === ruleSet.id,
+              'border-gray-200 hover:border-gray-300': selectedRuleSetId !== ruleSet.id,
+            }"
+          >
+            <div class="font-medium text-gray-800">{{ ruleSet.name }}</div>
+            <div class="text-sm text-gray-600 mt-1">{{ ruleSet.description }}</div>
+            <div class="text-xs text-gray-500 mt-2">{{ ruleSet.ruleCount }} 条规则</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 队伍选择 -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
+          <el-icon><User /></el-icon>
+          选择队伍
+          <span v-if="selectedRuleSetId" class="text-sm text-gray-500 font-normal">
+            ({{ availableTeams.length }}/{{ allTeams.length }} 队伍符合规则)
+          </span>
+        </h3>
+        <!-- 符合规则的队伍 -->
+        <div v-if="availableTeams.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+          <div
+            v-for="(team, index) in availableTeams"
+            :key="`valid-${index}`"
+            @click="selectedTeamIndex = index"
+            class="p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md"
+            :class="{
+              'border-blue-500 bg-blue-50': selectedTeamIndex === index,
+              'border-gray-200 hover:border-gray-300': selectedTeamIndex !== index,
+            }"
+          >
+            <div class="flex items-center justify-between">
+              <div class="font-medium text-gray-800">{{ team.name }}</div>
+              <div class="flex items-center gap-1">
+                <span class="text-sm text-gray-600">{{ team.pets.length }}只</span>
+                <el-icon class="text-green-500" :size="16">
+                  <Check />
+                </el-icon>
+                <el-icon v-if="selectedTeamIndex === index" class="text-blue-500 ml-1" size="20">
+                  <Select />
+                </el-icon>
+              </div>
+            </div>
+            <div class="text-sm text-gray-600 mt-1">
+              {{ team.pets.map(p => p.name).join('、') }}
+            </div>
+            <div class="text-xs text-green-600 mt-1">✓ 符合规则要求</div>
+          </div>
+        </div>
+
+        <!-- 没有符合规则的队伍时的提示 -->
+        <div v-if="availableTeams.length === 0 && selectedRuleSetId" class="text-center py-8">
+          <el-icon class="text-gray-400 text-4xl mb-2"><Warning /></el-icon>
+          <p class="text-gray-600 mb-2">没有队伍符合当前规则要求</p>
+          <p class="text-sm text-gray-500">请前往队伍编辑器调整队伍配置</p>
+          <router-link
+            to="/team-builder"
+            class="inline-flex items-center gap-1 mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            <el-icon><Edit /></el-icon>
+            前往队伍编辑器
+          </router-link>
+        </div>
+
+        <!-- 不匹配当前规则集的队伍（折叠显示） -->
+        <div v-if="incompatibleTeams.length > 0 && selectedRuleSetId" class="mt-4">
+          <el-collapse>
+            <el-collapse-item>
+              <template #title>
+                <span class="text-sm text-gray-600">
+                  <el-icon class="text-orange-500"><Warning /></el-icon>
+                  {{ incompatibleTeams.length }} 个队伍使用不同规则集 (点击查看)
+                </span>
+              </template>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div
+                  v-for="(team, index) in incompatibleTeams"
+                  :key="`incompatible-${index}`"
+                  class="p-3 border-2 border-orange-300 bg-orange-50 rounded-lg opacity-60 cursor-not-allowed"
+                >
+                  <div class="flex items-center justify-between">
+                    <div class="font-medium text-gray-800">{{ team.name }}</div>
+                    <div class="flex items-center gap-1">
+                      <span class="text-sm text-gray-600">{{ team.pets.length }}只</span>
+                      <el-icon class="text-orange-500" :size="16">
+                        <Warning />
+                      </el-icon>
+                    </div>
+                  </div>
+                  <div class="text-sm text-gray-600 mt-1">
+                    {{ team.pets.map((p: any) => p.name).join('、') }}
+                  </div>
+                  <div class="text-xs text-orange-600 mt-1">
+                    队伍使用{{ team.ruleSetId === 'competitive_ruleset' ? '竞技' : '休闲' }}规则集
+                  </div>
+                </div>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
+      </div>
+
+      <!-- 匹配按钮 -->
+      <div class="text-center">
+        <button
+          @click="handleMatchmaking"
+          :disabled="isMatchButtonDisabled && !isMatching"
+          class="px-8 py-4 md:px-6 md:py-3 text-lg md:text-lg bg-green-500 text-white border-none rounded-lg cursor-pointer transition-colors duration-300 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed min-h-[48px] touch-manipulation font-medium shadow-lg hover:shadow-xl"
+        >
+          {{
+            battleClientStore.currentState.status !== 'connected'
+              ? '请先连接服务器'
+              : !selectedRuleSetId
+                ? '请选择游戏规则'
+                : selectedTeamIndex === -1
+                  ? '请选择队伍'
+                  : !isSelectedTeamValid
+                    ? '所选队伍不符合规则'
+                    : !isSelectedTeamCompatible
+                      ? '队伍规则集不匹配'
+                      : battleClientStore.currentState.matchmaking === 'matched'
+                        ? '准备进入战斗...'
+                        : isMatching
+                          ? '取消匹配'
+                          : '开始匹配'
+          }}
+        </button>
+      </div>
 
       <!-- 加载状态 -->
       <div
@@ -133,20 +260,121 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount, onMounted, nextTick } from 'vue'
+import { ref, computed, onBeforeUnmount, onMounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
 import { useBattleClientStore } from '@/stores/battleClient'
+import { usePetStorageStore } from '@/stores/petStorage'
+import { useRuleSetStore } from '@/stores/ruleSet'
 import { type BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
-import { User, Document, Monitor, Setting, FolderOpened, Collection, Download } from '@element-plus/icons-vue'
+import {
+  User,
+  Document,
+  Monitor,
+  Setting,
+  FolderOpened,
+  Collection,
+  Download,
+  Check,
+  Warning,
+  Edit,
+  Select,
+} from '@element-plus/icons-vue'
 import { isTauri } from '@/utils/env'
+import type { PetSchemaType } from '@arcadia-eternity/schema'
 
 const router = useRouter()
 const route = useRoute()
 const battleStore = useBattleStore()
 const playerStore = usePlayerStore()
 const battleClientStore = useBattleClientStore()
+const petStorageStore = usePetStorageStore()
+const ruleSetStore = useRuleSetStore()
+
+// 匹配配置状态
+const selectedTeamIndex = ref<number>(-1)
+
+// 计算属性
+const availableRuleSets = computed(() => ruleSetStore.availableRuleSets)
+const selectedRuleSetId = computed({
+  get: () => ruleSetStore.selectedRuleSetId,
+  set: (value: string) => ruleSetStore.setSelectedRuleSet(value),
+})
+
+// 计算属性 - 只显示与当前选择规则集匹配的队伍
+const availableTeams = computed(() => {
+  if (!selectedRuleSetId.value) {
+    // 如果没有选择规则集，显示所有队伍
+    return petStorageStore.teams
+  }
+
+  // 过滤出规则集匹配的队伍
+  return petStorageStore.teams.filter(team => {
+    const teamRuleSetId = team.ruleSetId || 'casual_standard_ruleset' // 默认为休闲规则集
+    return teamRuleSetId === selectedRuleSetId.value
+  })
+})
+
+// 所有队伍（包括不匹配规则集的）
+const allTeams = computed(() => {
+  return petStorageStore.teams
+})
+
+// 不匹配当前规则集的队伍
+const incompatibleTeams = computed(() => {
+  if (!selectedRuleSetId.value) {
+    return []
+  }
+
+  return petStorageStore.teams.filter(team => {
+    const teamRuleSetId = team.ruleSetId || 'casual_standard_ruleset' // 默认为休闲规则集
+    return teamRuleSetId !== selectedRuleSetId.value
+  })
+})
+
+const selectedTeam = computed(() => {
+  if (selectedTeamIndex.value >= 0 && selectedTeamIndex.value < availableTeams.value.length) {
+    return availableTeams.value[selectedTeamIndex.value]
+  }
+  return null
+})
+
+// 当规则变化时，重置队伍选择
+watch(selectedRuleSetId, () => {
+  selectedTeamIndex.value = -1
+})
+
+// 检查选中的队伍是否与当前规则集匹配
+const isSelectedTeamCompatible = computed(() => {
+  if (!selectedTeam.value || !selectedRuleSetId.value) return false
+
+  const teamRuleSetId = selectedTeam.value.ruleSetId || 'casual_standard_ruleset'
+  return teamRuleSetId === selectedRuleSetId.value
+})
+
+// 进入匹配时的额外验证（检查队伍是否真正符合规则要求）
+const isSelectedTeamValid = computed(() => {
+  if (!selectedTeam.value || !selectedRuleSetId.value) return false
+  if (!isSelectedTeamCompatible.value) return false
+
+  // 进行实际的规则验证
+  return isTeamValidForRule(selectedTeam.value, selectedRuleSetId.value)
+})
+
+// 队伍验证函数
+const isTeamValidForRule = (team: { name: string; pets: PetSchemaType[] }, ruleSetId: string): boolean => {
+  if (!team || !ruleSetId) return false
+
+  try {
+    // 使用Pinia store验证队伍
+    const validation = ruleSetStore.validateTeam(team.pets, ruleSetId)
+    return validation.isValid
+  } catch (error) {
+    console.error('队伍验证失败:', error)
+    return false
+  }
+}
 
 // 响应式状态
 const isMatching = computed(() => {
@@ -165,13 +393,20 @@ const isMatching = computed(() => {
   return state
 })
 
-// 计算是否应该禁用匹配按钮（未连接、匹配中或匹配成功准备跳转时）
+// 计算是否应该禁用匹配按钮
 const isMatchButtonDisabled = computed(() => {
   const currentState = battleClientStore.currentState
   const isNotConnected = currentState.status !== 'connected'
   const isSearching = currentState.matchmaking === 'searching'
   const isMatched = currentState.matchmaking === 'matched'
-  const disabled = isNotConnected || isSearching || isMatched
+  const noRuleSelected = !selectedRuleSetId.value
+  const noTeamSelected = selectedTeamIndex.value === -1
+  const teamInvalid = !isSelectedTeamValid.value
+  const teamIncompatible = !isSelectedTeamCompatible.value
+
+  const disabled =
+    isNotConnected || isSearching || isMatched || noRuleSelected || noTeamSelected || teamInvalid || teamIncompatible
+
   console.log(
     '🔒 isMatchButtonDisabled computed:',
     disabled,
@@ -181,6 +416,14 @@ const isMatchButtonDisabled = computed(() => {
     isSearching,
     'matched:',
     isMatched,
+    'noRuleSelected:',
+    noRuleSelected,
+    'noTeamSelected:',
+    noTeamSelected,
+    'teamInvalid:',
+    teamInvalid,
+    'teamIncompatible:',
+    teamIncompatible,
   )
   return disabled
 })
@@ -199,6 +442,24 @@ const handleMatchmaking = async () => {
       return
     }
 
+    // 检查规则选择
+    if (!selectedRuleSetId.value) {
+      errorMessage.value = '请选择游戏规则'
+      return
+    }
+
+    // 检查队伍选择
+    if (selectedTeamIndex.value === -1 || !selectedTeam.value) {
+      errorMessage.value = '请选择队伍'
+      return
+    }
+
+    // 检查队伍是否符合规则
+    if (!isSelectedTeamValid.value) {
+      errorMessage.value = '所选队伍不符合规则要求'
+      return
+    }
+
     if (isMatching.value) {
       console.log('❌ Canceling matchmaking')
       try {
@@ -208,9 +469,27 @@ const handleMatchmaking = async () => {
         // 如果取消失败，可能是因为已经匹配成功了，忽略错误
       }
     } else {
-      console.log('🔍 Starting matchmaking for player:', playerStore.player.id)
-      await battleClientStore.joinMatchmaking(playerStore.player)
-      console.log('✅ Matchmaking request sent, setting up matchSuccess listener')
+      console.log(
+        '🔍 Starting matchmaking for player:',
+        playerStore.player.id,
+        'with rule:',
+        selectedRuleSetId.value,
+        'team:',
+        selectedTeam.value.name,
+      )
+
+      // 构建玩家数据，使用选定的队伍
+      const playerData = {
+        ...playerStore.player,
+        team: selectedTeam.value.pets,
+      }
+
+      // 发送匹配请求，包含规则集信息
+      await battleClientStore.joinMatchmaking({
+        playerSchema: playerData,
+        ruleSetId: selectedRuleSetId.value,
+      })
+      console.log('✅ Matchmaking request sent with ruleSetId:', selectedRuleSetId.value)
 
       battleClientStore.once('matchSuccess', async () => {
         console.log('🎯 matchSuccess event received in lobbyPage')

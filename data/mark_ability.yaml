@@ -242,3 +242,9 @@
   config: *ability_config
   tags: [ability]
   effect: [] # TODO: 跟随时玩小游戏获得的赛尔豆增加5%
+- id: mark_ability_yingyan
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_damage_boost_10_percent_when_first
+    - effect_ability_damage_reduction_10_percent_when_last

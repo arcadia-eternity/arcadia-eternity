@@ -16,18 +16,20 @@ import type {
 import { REDIS_KEYS, ClusterError } from './types'
 import { dedupRedisCall } from './redisCallDeduplicator'
 import { TTLHelper } from './ttlConfig'
+import { RuleBasedQueueManager } from './ruleBasedQueueManager'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
 })
 
 export class ClusterStateManager extends EventEmitter {
-  private redisManager: RedisClientManager
+  public redisManager: RedisClientManager
   private _lockManager: DistributedLockManager
   private config: ClusterConfig
-  private currentInstance: ServiceInstance
+  public currentInstance: ServiceInstance
   private heartbeatTimer?: NodeJS.Timeout
   private healthCheckTimer?: NodeJS.Timeout
+  private ruleBasedQueueManager: RuleBasedQueueManager
   private isPerformingHealthCheck = false // 防止重复健康检查
 
   constructor(redisManager: RedisClientManager, lockManager: DistributedLockManager, config: ClusterConfig) {
@@ -51,6 +53,9 @@ export class ClusterStateManager extends EventEmitter {
         isFlyIo: config.instance.isFlyIo || false,
       },
     }
+
+    // 初始化基于规则的队列管理器
+    this.ruleBasedQueueManager = new RuleBasedQueueManager(this.redisManager)
   }
 
   async initialize(): Promise<void> {
@@ -618,156 +623,101 @@ export class ClusterStateManager extends EventEmitter {
 
   // === 匹配队列管理 ===
 
-  async addToMatchmakingQueue(entry: MatchmakingEntry): Promise<void> {
-    const client = this.redisManager.getClient()
-
-    try {
-      // sessionId是必需的
-      if (!entry.sessionId) {
-        throw new ClusterError('SessionId is required for matchmaking', 'MISSING_SESSION_ID')
-      }
-
-      // 获取匹配队列相关的 TTL
-      const queueEntryTTL = TTLHelper.getTTLForDataType('matchmaking')
-      const queueIndexTTL = TTLHelper.getTTLForDataType('matchmaking', 'index')
-
-      // 使用session作为队列的唯一标识
-      const sessionKey = `${entry.playerId}:${entry.sessionId}`
-
-      const playerKey = REDIS_KEYS.MATCHMAKING_PLAYER(sessionKey)
-
-      // 使用 pipeline 批量执行操作
-      const pipeline = client.pipeline()
-
-      // 添加到队列集合并设置 TTL
-      pipeline.sadd(REDIS_KEYS.MATCHMAKING_QUEUE, sessionKey)
-      if (queueIndexTTL > 0) {
-        pipeline.pexpire(REDIS_KEYS.MATCHMAKING_QUEUE, queueIndexTTL)
-      }
-
-      // 存储会话匹配数据并设置 TTL
-      pipeline.hset(playerKey, this.serializeMatchmakingEntry(entry))
-      if (queueEntryTTL > 0) {
-        pipeline.pexpire(playerKey, queueEntryTTL)
-      }
-
-      // 执行批量操作
-      await pipeline.exec()
-
-      // 异步发布匹配加入事件，不阻塞主流程
-      this.publishEvent({
-        type: 'matchmaking:join',
-        data: entry,
-      }).catch(error => {
-        logger.error(
-          { error, playerId: entry.playerId, sessionId: entry.sessionId },
-          'Failed to publish matchmaking join event',
-        )
-      })
-
-      logger.debug(
-        { playerId: entry.playerId, sessionId: entry.sessionId, queueEntryTTL },
-        'Session added to matchmaking queue with TTL',
-      )
-    } catch (error) {
-      logger.error(
-        { error, playerId: entry.playerId, sessionId: entry.sessionId },
-        'Failed to add session to matchmaking queue',
-      )
-      throw new ClusterError('Failed to add to matchmaking queue', 'MATCHMAKING_ADD_ERROR', error)
-    }
-  }
-
-  async removeFromMatchmakingQueue(playerId: string, sessionId?: string): Promise<void> {
-    const client = this.redisManager.getClient()
-
-    try {
-      if (sessionId) {
-        // 移除特定session
-        const sessionKey = `${playerId}:${sessionId}`
-        await client.srem(REDIS_KEYS.MATCHMAKING_QUEUE, sessionKey)
-        await client.del(REDIS_KEYS.MATCHMAKING_PLAYER(sessionKey))
-
-        logger.debug({ playerId, sessionId }, 'Session removed from matchmaking queue')
-      } else {
-        // 移除该playerId的所有session（向后兼容）
-        const allSessionKeys = await client.smembers(REDIS_KEYS.MATCHMAKING_QUEUE)
-        const playerSessionKeys = allSessionKeys.filter(key => key.startsWith(`${playerId}:`))
-
-        if (playerSessionKeys.length > 0) {
-          await client.srem(REDIS_KEYS.MATCHMAKING_QUEUE, ...playerSessionKeys)
-
-          // 删除所有相关的匹配数据
-          for (const sessionKey of playerSessionKeys) {
-            await client.del(REDIS_KEYS.MATCHMAKING_PLAYER(sessionKey))
-          }
-
-          logger.debug(
-            { playerId, removedSessions: playerSessionKeys.length },
-            'All player sessions removed from matchmaking queue',
-          )
-        }
-      }
-
-      // 移除缓存失效逻辑
-
-      // 发布匹配离开事件
-      await this.publishEvent({
-        type: 'matchmaking:leave',
-        data: { playerId, sessionId },
-      })
-    } catch (error) {
-      logger.error({ error, playerId, sessionId }, 'Failed to remove from matchmaking queue')
-    }
-  }
-
-  async getMatchmakingQueue(): Promise<MatchmakingEntry[]> {
-    return dedupRedisCall('cluster:getMatchmakingQueue', async () => {
-      const client = this.redisManager.getClient()
-
-      try {
-        const sessionKeys = await client.smembers(REDIS_KEYS.MATCHMAKING_QUEUE)
-        if (sessionKeys.length === 0) {
-          return []
-        }
-
-        // 使用 pipeline 批量获取匹配队列数据
-        const pipeline = client.pipeline()
-        for (const sessionKey of sessionKeys) {
-          pipeline.hgetall(REDIS_KEYS.MATCHMAKING_PLAYER(sessionKey))
-        }
-
-        const results = await pipeline.exec()
-        const entries: MatchmakingEntry[] = []
-
-        if (results) {
-          for (let i = 0; i < results.length; i++) {
-            const [err, entryData] = results[i]
-            if (!err && entryData && Object.keys(entryData).length > 0) {
-              entries.push(this.deserializeMatchmakingEntry(entryData as Record<string, string>))
-            }
-          }
-        }
-
-        return entries.sort((a, b) => a.joinTime - b.joinTime) // 按加入时间排序
-      } catch (error) {
-        logger.error({ error }, 'Failed to get matchmaking queue')
-        return []
-      }
-    })
-  }
-
   async getMatchmakingQueueSize(): Promise<number> {
     return dedupRedisCall('cluster:getMatchmakingQueueSize', async () => {
-      const client = this.redisManager.getClient()
-
       try {
-        return await client.scard(REDIS_KEYS.MATCHMAKING_QUEUE)
+        // 获取所有规则集队列的总大小
+        const activeRuleSetIds = await this.ruleBasedQueueManager.getActiveRuleSetIds()
+        let totalSize = 0
+
+        for (const ruleSetId of activeRuleSetIds) {
+          const queue = await this.ruleBasedQueueManager.getRuleBasedQueue(ruleSetId)
+          totalSize += queue.length
+        }
+
+        return totalSize
       } catch (error) {
         logger.error({ error }, 'Failed to get matchmaking queue size')
         return 0
       }
     })
+  }
+
+  /**
+   * 添加玩家到匹配队列
+   * @param entry 匹配条目（包含游戏模式和规则集信息）
+   */
+  async addToMatchmakingQueue(entry: MatchmakingEntry): Promise<void> {
+    // 添加到基于规则的队列
+    await this.ruleBasedQueueManager.addToRuleBasedQueue(entry)
+
+    // 发布匹配加入事件，触发匹配逻辑
+    this.publishEvent({
+      type: 'matchmaking:join',
+      data: entry,
+    }).catch(error => {
+      logger.error(
+        { error, playerId: entry.playerId, sessionId: entry.sessionId },
+        'Failed to publish matchmaking join event',
+      )
+    })
+  }
+
+  /**
+   * 从匹配队列中移除玩家
+   * @param playerId 玩家ID
+   * @param sessionId 会话ID
+   */
+  async removeFromMatchmakingQueue(playerId: string, sessionId?: string): Promise<void> {
+    // 从基于规则的队列中移除
+    await this.ruleBasedQueueManager.removeFromRuleBasedQueue(playerId, sessionId)
+  }
+
+  /**
+   * 获取匹配队列（为了向后兼容，返回所有规则集的队列）
+   * @returns 匹配条目列表
+   */
+  async getMatchmakingQueue(): Promise<MatchmakingEntry[]> {
+    const activeRuleSetIds = await this.ruleBasedQueueManager.getActiveRuleSetIds()
+    const allEntries: MatchmakingEntry[] = []
+
+    for (const ruleSetId of activeRuleSetIds) {
+      const queue = await this.ruleBasedQueueManager.getRuleBasedQueue(ruleSetId)
+      allEntries.push(...queue)
+    }
+
+    return allEntries.sort((a, b) => a.joinTime - b.joinTime)
+  }
+
+  /**
+   * 获取所有活跃的规则集ID
+   * @returns 活跃的规则集ID列表
+   */
+  async getActiveRuleSetIds(): Promise<string[]> {
+    return this.ruleBasedQueueManager.getActiveRuleSetIds()
+  }
+
+  /**
+   * 获取特定规则集的队列
+   * @param ruleSetId 规则集ID
+   * @returns 匹配条目列表
+   */
+  async getRuleBasedQueue(ruleSetId: string = 'standard'): Promise<MatchmakingEntry[]> {
+    return this.ruleBasedQueueManager.getRuleBasedQueue(ruleSetId)
+  }
+
+  /**
+   * 获取所有活跃的队列信息
+   * @returns 队列信息列表
+   */
+  async getAllActiveQueues(): Promise<
+    Array<{
+      ruleSetId: string
+      queueKey: string
+      playerCount: number
+    }>
+  > {
+    return this.ruleBasedQueueManager.getAllActiveQueues()
   }
 
   // === 会话管理 - 支持多会话 ===
@@ -1247,28 +1197,6 @@ export class ClusterStateManager extends EventEmitter {
     }
   }
 
-  private serializeMatchmakingEntry(entry: MatchmakingEntry): Record<string, string> {
-    return {
-      playerId: entry.playerId,
-      sessionId: entry.sessionId || '',
-      joinTime: entry.joinTime.toString(),
-      playerData: JSON.stringify(entry.playerData),
-      preferences: JSON.stringify(entry.preferences || {}),
-      metadata: JSON.stringify(entry.metadata || {}),
-    }
-  }
-
-  private deserializeMatchmakingEntry(data: Record<string, string>): MatchmakingEntry {
-    return {
-      playerId: data.playerId,
-      sessionId: data.sessionId || undefined,
-      joinTime: parseInt(data.joinTime),
-      playerData: JSON.parse(data.playerData),
-      preferences: data.preferences ? JSON.parse(data.preferences) : undefined,
-      metadata: data.metadata ? JSON.parse(data.metadata) : undefined,
-    }
-  }
-
   private serializeSession(session: SessionData): Record<string, string> {
     return {
       playerId: session.playerId,
@@ -1682,7 +1610,7 @@ export class ClusterStateManager extends EventEmitter {
     }
   }
 
-  private async getRooms(): Promise<RoomState[]> {
+  public async getRooms(): Promise<RoomState[]> {
     return dedupRedisCall('cluster:getRooms', async () => {
       const client = this.redisManager.getClient()
 

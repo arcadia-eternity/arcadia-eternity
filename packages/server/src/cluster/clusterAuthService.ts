@@ -33,7 +33,7 @@ export class ClusterAuthService implements IAuthService {
       const { DistributedLockManager } = await import('./distributedLock')
 
       // 创建一个简单的锁管理器实例
-      const lockManager = new DistributedLockManager(this.stateManager['redisManager'])
+      const lockManager = new DistributedLockManager(this.stateManager.redisManager)
       this.sessionManager = new SessionManager(this.stateManager, lockManager)
     }
     return this.sessionManager

@@ -313,14 +313,15 @@ export const Conditions = {
   // 精灵当回合使用技能且该技能为本回合最先使用的技能时
   isFirstSkillUsedThisTurn: (): Condition => {
     return context => {
-      if (!(context.parent instanceof UseSkillContext)) {
+      const currentUseSkillContext = findContextRecursively(context, UseSkillContext)
+      if (!currentUseSkillContext) {
         return false
       }
-      const currentUseSkillContext = context.parent
-      if (!(currentUseSkillContext.parent instanceof TurnContext)) {
+
+      const turnContext = findContextRecursively(context, TurnContext)
+      if (!turnContext) {
         return false
       }
-      const turnContext = currentUseSkillContext.parent
 
       const executedSkillContextsInOrder = turnContext.appledContexts.filter(
         (ctx): ctx is UseSkillContext => ctx instanceof UseSkillContext,
@@ -337,14 +338,15 @@ export const Conditions = {
   // 精灵当回合使用技能且该技能为本回合（到目前为止）最后使用的技能时
   isLastSkillUsedThisTurn: (): Condition => {
     return context => {
-      if (!(context.parent instanceof UseSkillContext)) {
+      const currentUseSkillContext = findContextRecursively(context, UseSkillContext)
+      if (!currentUseSkillContext) {
         return false
       }
-      const currentUseSkillContext = context.parent
-      if (!(currentUseSkillContext.parent instanceof TurnContext)) {
+
+      const turnContext = findContextRecursively(context, TurnContext)
+      if (!turnContext) {
         return false
       }
-      const turnContext = currentUseSkillContext.parent
 
       const plannedSkillContextsThisTurn = turnContext.contexts.filter(
         (ctx): ctx is UseSkillContext => ctx instanceof UseSkillContext,

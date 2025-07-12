@@ -9,18 +9,21 @@ import { z } from 'zod'
 interface Team {
   name: string
   pets: PetSchemaType[]
+  ruleSetId: string // 队伍对应的规则集ID
 }
 
 interface PetStorageState {
   storage: PetSchemaType[]
   teams: Team[]
   currentTeamIndex: number
+  initialized: boolean
 }
 
 // Zod 校验 schema
 const TeamSchema = z.object({
   name: z.string().min(1, '队伍名称不能为空'),
   pets: PetSetSchema.max(6, '队伍最多只能有6只精灵'),
+  ruleSetId: z.string().min(1, '规则集ID不能为空'),
 })
 
 const PetStorageStateSchema = z.object({
@@ -29,8 +32,11 @@ const PetStorageStateSchema = z.object({
   currentTeamIndex: z.number().int().min(0, '当前队伍索引不能为负数'),
 })
 
+// 定义持久化数据的类型（不包含initialized）
+type PersistentPetStorageData = Omit<PetStorageState, 'initialized'>
+
 // 校验函数
-function validatePetStorageData(data: unknown): { valid: boolean; data?: PetStorageState; errors?: string[] } {
+function validatePetStorageData(data: unknown): { valid: boolean; data?: PersistentPetStorageData; errors?: string[] } {
   try {
     const validatedData = PetStorageStateSchema.parse(data)
 
@@ -59,6 +65,7 @@ function validatePetStorageData(data: unknown): { valid: boolean; data?: PetStor
 
 const getDefaultTeam = (): Team => ({
   name: '默认队伍',
+  ruleSetId: 'casual_standard_ruleset', // 默认使用休闲规则集
   pets: [
     {
       id: nanoid(),
@@ -113,6 +120,7 @@ export const usePetStorageStore = defineStore('petStorage', {
     storage: [],
     teams: [getDefaultTeam()],
     currentTeamIndex: 0,
+    initialized: false,
   }),
 
   actions: {
@@ -121,10 +129,42 @@ export const usePetStorageStore = defineStore('petStorage', {
       if (saved) {
         try {
           const parsedData = JSON.parse(saved)
+
+          // 数据迁移：为没有gameMode的队伍添加默认gameMode
+          if (parsedData.teams && Array.isArray(parsedData.teams)) {
+            let needsMigration = false
+            parsedData.teams = parsedData.teams.map((team: any) => {
+              if (!team.gameMode) {
+                needsMigration = true
+                return {
+                  ...team,
+                  gameMode: 'casual', // 为旧队伍设置默认的休闲模式
+                }
+              }
+              return team
+            })
+
+            if (needsMigration) {
+              console.log('检测到旧版本队伍数据，已自动迁移到新格式')
+            }
+          }
+
           const validation = validatePetStorageData(parsedData)
 
           if (validation.valid && validation.data) {
-            Object.assign(this, validation.data)
+            // 只更新持久化的数据，不包含initialized
+            this.storage = validation.data.storage
+            this.teams = validation.data.teams
+            this.currentTeamIndex = validation.data.currentTeamIndex
+            this.initialized = true // 加载完成后设置为已初始化
+
+            // 如果进行了数据迁移，保存更新后的数据
+            if (parsedData.teams && Array.isArray(parsedData.teams)) {
+              const hasMigration = parsedData.teams.some((team: any) => team.gameMode === 'casual')
+              if (hasMigration) {
+                this.saveToLocal()
+              }
+            }
           } else {
             // 校验失败，显示错误提示并重置为默认数据
             const errorMessage = validation.errors?.join('; ') || '数据格式错误'
@@ -148,6 +188,7 @@ export const usePetStorageStore = defineStore('petStorage', {
       this.storage = []
       this.teams = [getDefaultTeam()]
       this.currentTeamIndex = 0
+      this.initialized = true // 重置后也设置为已初始化
       this.saveToLocal()
     },
 
@@ -218,12 +259,24 @@ export const usePetStorageStore = defineStore('petStorage', {
       }
     },
 
-    createNewTeam(name?: string) {
+    createNewTeam(name?: string, ruleSetId: string = 'casual_standard_ruleset', includeDefaultPets: boolean = true) {
       const teamName = name || `队伍 ${this.teams.length + 1}`
-      this.teams.push({
-        ...getDefaultTeam(),
-        name: teamName,
-      })
+
+      if (includeDefaultPets) {
+        this.teams.push({
+          ...getDefaultTeam(),
+          name: teamName,
+          ruleSetId,
+        })
+      } else {
+        // 创建空队伍，不包含默认精灵
+        this.teams.push({
+          name: teamName,
+          ruleSetId,
+          pets: [],
+        })
+      }
+
       this.currentTeamIndex = this.teams.length - 1
       this.validateAndSave()
     },
@@ -235,6 +288,24 @@ export const usePetStorageStore = defineStore('petStorage', {
         return true
       }
       return false
+    },
+
+    // 规则集相关方法
+    getCurrentTeamRuleSetId(): string {
+      const team = this.teams[this.currentTeamIndex]
+      return team?.ruleSetId || 'casual_standard_ruleset'
+    },
+
+    getTeamRuleSetId(index: number): string {
+      const team = this.teams[index]
+      return team?.ruleSetId || 'casual_standard_ruleset'
+    },
+
+    updateTeamRuleSetId(index: number, ruleSetId: string) {
+      if (index >= 0 && index < this.teams.length) {
+        this.teams[index].ruleSetId = ruleSetId
+        this.validateAndSave()
+      }
     },
 
     moveToTeam(petId: string, targetTeamIndex: number) {

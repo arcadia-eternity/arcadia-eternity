@@ -1,5 +1,19 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <!-- 加载界面 -->
+  <div v-if="!isInitialized" class="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div class="text-center">
+      <div class="mb-4">
+        <el-icon class="animate-spin text-4xl text-blue-500" :size="48">
+          <Loading />
+        </el-icon>
+      </div>
+      <h2 class="text-xl font-semibold text-gray-700 mb-2">正在初始化队伍编辑器</h2>
+      <p class="text-gray-500">{{ loadingMessage }}</p>
+    </div>
+  </div>
+
+  <!-- 主要内容 -->
+  <div v-else class="min-h-screen bg-gray-50">
     <!-- 头部信息栏 -->
     <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -84,6 +98,110 @@
       </div>
     </div>
 
+    <!-- 队伍规则验证状态 -->
+    <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 pt-3">
+      <!-- 验证中状态 -->
+      <div v-if="isValidating" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
+        <div class="flex items-center space-x-3">
+          <div class="flex-shrink-0">
+            <el-icon class="text-blue-600 animate-spin" :size="20"><Loading /></el-icon>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-sm font-medium text-blue-800">正在验证队伍</h3>
+            <p class="text-sm text-blue-700">正在检查队伍是否符合规则要求...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 验证成功状态 -->
+      <div v-else-if="teamValidationResult.isValid" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-3">
+        <div class="flex items-center space-x-3">
+          <div class="flex-shrink-0">
+            <el-icon class="text-green-600" :size="20"><SuccessFilled /></el-icon>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-sm font-medium text-green-800">队伍验证通过</h3>
+            <p class="text-sm text-green-700">当前队伍符合所选游戏模式的所有规则要求</p>
+          </div>
+        </div>
+        <!-- 显示警告信息（如果有） -->
+        <div v-if="teamValidationResult.warnings.length > 0" class="mt-3 pt-3 border-t border-green-200">
+          <h4 class="text-xs font-medium text-green-800 mb-2">建议优化：</h4>
+          <ul class="space-y-1">
+            <li v-for="warning in teamValidationResult.warnings" :key="warning.code" class="text-xs text-green-700">
+              • {{ warning.message }}
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 验证失败状态 -->
+      <div v-else class="bg-red-50 border border-red-200 rounded-lg p-4 mb-3">
+        <div class="flex items-start space-x-3">
+          <div class="flex-shrink-0">
+            <el-icon class="text-red-600" :size="20"><WarningFilled /></el-icon>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-sm font-medium text-red-800">队伍不符合规则要求</h3>
+              <div class="flex items-center space-x-2">
+                <button
+                  v-if="canAutoFix"
+                  @click="handleAutoFix"
+                  class="inline-flex items-center px-2 py-1 border border-red-300 text-xs font-medium rounded text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                >
+                  <el-icon class="mr-1" :size="12"><Tools /></el-icon>
+                  自动修复
+                </button>
+                <button
+                  @click="showValidationDetails = !showValidationDetails"
+                  class="inline-flex items-center px-2 py-1 border border-red-300 text-xs font-medium rounded text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                >
+                  <el-icon class="mr-1" :size="12">
+                    <ArrowDown v-if="!showValidationDetails" />
+                    <ArrowUp v-else />
+                  </el-icon>
+                  {{ showValidationDetails ? '收起' : '详情' }}
+                </button>
+              </div>
+            </div>
+            <p class="text-sm text-red-700 mb-3">发现 {{ teamValidationResult.errors.length }} 个问题需要解决</p>
+
+            <!-- 错误详情列表 -->
+            <div v-if="showValidationDetails" class="space-y-2">
+              <div
+                v-for="(error, index) in teamValidationResult.errors"
+                :key="`${getErrorCode(error)}-${index}`"
+                class="bg-white border border-red-200 rounded-md p-3 cursor-pointer hover:bg-red-50 transition-colors"
+                @click="handleErrorClick(error)"
+              >
+                <div class="flex items-start space-x-2">
+                  <el-icon class="text-red-500 mt-0.5" :size="14">
+                    <component :is="getErrorIcon(getErrorType(error))" />
+                  </el-icon>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-red-800">{{ error.message }}</p>
+                    <div v-if="getErrorObjectId(error) || getErrorContext(error)" class="mt-1 text-xs text-red-600">
+                      <span v-if="getErrorObjectId(error)">
+                        相关精灵: {{ getPetNameById(getErrorObjectId(error)!) || getErrorObjectId(error) }}
+                      </span>
+                      <span
+                        v-if="getErrorContext(error) && Object.keys(getErrorContext(error)).length > 0"
+                        class="ml-2"
+                      >
+                        {{ formatErrorContext(getErrorContext(error)) }}
+                      </span>
+                    </div>
+                  </div>
+                  <el-icon class="text-red-400" :size="12"><ArrowRight /></el-icon>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 主要内容区域 -->
     <main class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-3 pb-20">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
@@ -91,6 +209,25 @@
         <div class="lg:col-span-3">
           <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             <div class="p-3 border-b border-gray-200">
+              <!-- 游戏模式选择器 -->
+              <div class="mb-3">
+                <label class="block text-xs font-medium text-gray-700 mb-1">游戏模式</label>
+                <el-select
+                  v-model="selectedGameMode"
+                  @change="onGameModeChange"
+                  size="small"
+                  class="w-full"
+                  placeholder="选择游戏模式"
+                >
+                  <el-option v-for="mode in availableGameModes" :key="mode.id" :label="mode.name" :value="mode.id">
+                    <div>
+                      <div class="font-medium">{{ mode.name }}</div>
+                      <div class="text-xs text-gray-500">{{ mode.description }}</div>
+                    </div>
+                  </el-option>
+                </el-select>
+              </div>
+
               <div class="flex items-center justify-between">
                 <div>
                   <h2 class="text-base font-medium text-gray-900">当前队伍</h2>
@@ -321,7 +458,6 @@
                         :options="genderOptions"
                         :disabled="!currentSpecies?.genderRatio"
                         placeholder="选择性别"
-                        filterable
                         class="w-full"
                         style="width: 100%"
                       >
@@ -365,7 +501,6 @@
                         :options="abilitySelectOptions"
                         :disabled="!currentSpecies"
                         placeholder="选择特性"
-                        filterable
                         clearable
                         class="w-full"
                         style="width: 100%"
@@ -390,7 +525,6 @@
                         v-model="selectedPet.emblem"
                         :options="emblemSelectOptions"
                         placeholder="选择纹章"
-                        filterable
                         clearable
                         class="w-full"
                         style="width: 100%"
@@ -415,7 +549,6 @@
                         v-model="selectedPet.nature"
                         :options="natureSelectOptions"
                         placeholder="选择性格"
-                        filterable
                         class="w-full"
                         style="width: 100%"
                         :height="300"
@@ -566,7 +699,6 @@
                         :options="normalSkillSelectOptions"
                         :disabled="!currentSpecies"
                         placeholder="选择普通技能"
-                        filterable
                         clearable
                         class="w-full"
                         style="width: 100%"
@@ -632,7 +764,6 @@
                       :options="climaxSkillSelectOptions"
                       :disabled="!currentSpecies || !hasClimaxSkills"
                       :placeholder="hasClimaxSkills ? '选择必杀技能' : '该种族无必杀技能'"
-                      filterable
                       clearable
                       class="w-full"
                       style="width: 100%"
@@ -866,11 +997,12 @@
 </style>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, watchEffect, markRaw } from 'vue'
 import { nanoid } from 'nanoid'
 import { usePlayerStore } from '@/stores/player'
 import { useGameDataStore } from '@/stores/gameData'
 import { usePetStorageStore } from '@/stores/petStorage'
+import { ClientRuleIntegration } from '@arcadia-eternity/rules'
 
 import { type PetSchemaType } from '@arcadia-eternity/schema'
 import { useTranslation } from 'i18next-vue'
@@ -880,7 +1012,19 @@ import { Sortable } from 'sortablejs-vue3'
 import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 import MarkdownIt from 'markdown-it'
-import { InfoFilled, FolderOpened, Close, QuestionFilled } from '@element-plus/icons-vue'
+import {
+  InfoFilled,
+  FolderOpened,
+  Close,
+  QuestionFilled,
+  SuccessFilled,
+  WarningFilled,
+  ArrowDown,
+  ArrowUp,
+  ArrowRight,
+  Tools,
+  Loading,
+} from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { usePetManagement } from '@/composition/usePetManagement'
 import { useTeamExport } from '@/composition/useTeamExport'
@@ -906,12 +1050,92 @@ const md = new MarkdownIt({
 const selectedPetId = ref<string | null>(null)
 const showGuide = ref(localStorage.getItem('teamBuilderGuideHidden') !== 'true') // 控制指引显示
 const showDragTip = ref(localStorage.getItem('teamBuilderDragTipHidden') !== 'true') // 控制拖拽提示显示
+const showValidationDetails = ref(false) // 控制验证详情显示
 
 type StatKey = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe'
 
 const statList: StatKey[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe']
 
 const drag = ref(false)
+
+// 游戏模式相关
+const availableGameModes = ref<
+  Array<{
+    id: string
+    name: string
+    description: string
+  }>
+>([])
+
+// 初始化规则集
+onMounted(async () => {
+  try {
+    const ruleSets = await ClientRuleIntegration.getAvailableRuleSets()
+    availableGameModes.value = markRaw(
+      ruleSets.map(id => ({
+        id,
+        name: id === 'competitive_ruleset' ? '竞技规则' : '休闲规则',
+        description: id === 'competitive_ruleset' ? '严格的竞技对战规则集' : '休闲模式的规则集合',
+      })),
+    )
+
+    // 初始化时同步当前队伍的规则集到ClientRuleIntegration
+    const currentRuleSetId = petStorage.getCurrentTeamRuleSetId()
+    await ClientRuleIntegration.setTeamBuilderRuleSetIds([currentRuleSetId])
+  } catch (error) {
+    console.error('获取可用规则集失败:', error)
+    // 提供默认规则集
+    availableGameModes.value = markRaw([
+      { id: 'casual_standard_ruleset', name: '休闲规则', description: '休闲模式的规则集合' },
+      { id: 'competitive_ruleset', name: '竞技规则', description: '严格的竞技对战规则集' },
+    ])
+  }
+})
+
+// 监听队伍切换，同步规则集
+watch(
+  () => petStorage.currentTeamIndex,
+  async newIndex => {
+    try {
+      // 当切换队伍时，同步该队伍的规则集
+      const ruleSetId = petStorage.getTeamRuleSetId(newIndex)
+      await ClientRuleIntegration.setTeamBuilderRuleSetIds([ruleSetId])
+      console.log(`切换到队伍 ${newIndex + 1}，规则集: ${ruleSetId}`)
+    } catch (error) {
+      console.error('设置规则集失败:', error)
+    }
+  },
+)
+
+// 当前队伍的规则集（与队伍绑定）
+const selectedGameMode = computed({
+  get: () => petStorage.getCurrentTeamRuleSetId(),
+  set: (newRuleSetId: string) => {
+    petStorage.updateTeamRuleSetId(petStorage.currentTeamIndex, newRuleSetId)
+  },
+})
+
+// 规则集变更处理
+const onGameModeChange = async (ruleSetId: string) => {
+  try {
+    // 通过computed属性的setter更新规则集，这会自动保存到队伍数据中
+    selectedGameMode.value = ruleSetId
+
+    // 同时更新ClientRuleIntegration的全局设置
+    await ClientRuleIntegration.setTeamBuilderRuleSetIds([ruleSetId])
+    console.log(`规则集已切换为: ${ruleSetId}`)
+
+    // 重新验证当前队伍
+    const error = await validateTeam()
+    if (error) {
+      const ruleSetName = ruleSetId === 'competitive_ruleset' ? '竞技规则' : '休闲规则'
+      ElMessage.warning(`切换到${ruleSetName}后，当前队伍不符合规则: ${error}`)
+    }
+  } catch (error) {
+    console.error('切换规则集失败:', error)
+    ElMessage.error('切换规则集失败')
+  }
+}
 
 // 关闭指引
 const hideGuide = () => {
@@ -956,26 +1180,92 @@ const handleDragEnd = (event: any) => {
   }
 }
 
-// 简单的验证函数
-const validateTeam = () => {
-  if (currentTeam.value.length > 6) {
-    return '队伍数量不能超过6个'
-  }
+// 使用规则系统的验证函数
+const validateTeam = async () => {
+  try {
+    const validation = await ClientRuleIntegration.validateTeam(currentTeam.value)
 
-  for (const pet of currentTeam.value) {
-    if (!pet.name || pet.name.length > 20) {
-      return '精灵名称不能为空且不能超过20个字符'
+    if (!validation.isValid) {
+      // 返回第一个错误信息
+      return validation.errors[0]?.message || '队伍验证失败'
     }
-    if (!pet.species) {
-      return '请为所有精灵选择种族'
-    }
-    if (currentEVTotal.value > 510) {
-      return '学习力总和不能超过510'
-    }
-  }
 
-  return null
+    // 显示警告信息（如果有）
+    if (validation.warnings.length > 0) {
+      const warningMessages = validation.warnings.map((warning: any) => warning.message)
+      console.warn('队伍验证警告:', warningMessages)
+    }
+
+    return null
+  } catch (error) {
+    console.error('队伍验证出错:', error)
+    // 如果规则系统出错，回退到简单验证
+    if (currentTeam.value.length > 6) {
+      return '队伍数量不能超过6个'
+    }
+
+    for (const pet of currentTeam.value) {
+      if (!pet.name || pet.name.length > 20) {
+        return '精灵名称不能为空且不能超过20个字符'
+      }
+      if (!pet.species) {
+        return '请为所有精灵选择种族'
+      }
+      if (currentEVTotal.value > 510) {
+        return '学习力总和不能超过510'
+      }
+    }
+
+    return null
+  }
 }
+
+// 初始化状态检查
+const isInitialized = computed(() => {
+  // 检查游戏数据是否加载完成
+  if (!gameDataStore.loaded) {
+    return false
+  }
+
+  // 检查petStorage是否已初始化
+  if (!petStorage.initialized) {
+    return false
+  }
+
+  // 检查ClientRuleIntegration是否准备就绪
+  try {
+    const status = ClientRuleIntegration.getClientStatus()
+    if (!status.isReady) {
+      return false
+    }
+  } catch (error) {
+    console.warn('检查ClientRuleIntegration状态失败:', error)
+    return false
+  }
+
+  return true
+})
+
+const loadingMessage = computed(() => {
+  if (!gameDataStore.loaded) {
+    return '正在加载游戏数据...'
+  }
+
+  if (!petStorage.initialized) {
+    return '正在加载队伍数据...'
+  }
+
+  try {
+    const status = ClientRuleIntegration.getClientStatus()
+    if (!status.isReady) {
+      return '正在初始化规则系统...'
+    }
+  } catch (error) {
+    return '正在初始化规则系统...'
+  }
+
+  return '初始化完成'
+})
 
 // 计算属性
 const currentTeam = computed<PetSchemaType[]>({
@@ -989,9 +1279,144 @@ const currentTeamName = computed(() => {
   return petStorage.teams[petStorage.currentTeamIndex]?.name || '未知队伍'
 })
 
+// 响应式的验证结果
+const teamValidationResultRef = ref<any>({
+  isValid: true,
+  errors: [],
+  warnings: [],
+})
+
+// 验证状态管理
+const isValidating = ref(false)
+
+// 防抖验证函数
+const debouncedValidate = debounce(async () => {
+  if (isValidating.value) return // 防止重复验证
+
+  try {
+    isValidating.value = true
+
+    const ruleSetId = selectedGameMode.value
+    const team = currentTeam.value
+
+    console.log(`验证队伍 - 规则集: ${ruleSetId}, 队伍大小: ${team.length}`)
+
+    // 检查数据是否已加载完成
+    if (!gameDataStore.loaded) {
+      console.log('⏳ 游戏数据尚未加载完成，跳过验证')
+      teamValidationResultRef.value = {
+        isValid: true,
+        errors: [],
+        warnings: [
+          {
+            type: 'info' as const,
+            code: 'DATA_LOADING',
+            message: '正在加载游戏数据，请稍候...',
+            objectId: undefined,
+            objectType: undefined,
+            context: {},
+          },
+        ],
+      }
+      return
+    }
+
+    // 使用规则集验证队伍
+    const result = await ClientRuleIntegration.validateTeam(team)
+    teamValidationResultRef.value = markRaw(result)
+  } catch (error) {
+    console.error('队伍验证出错:', error)
+    teamValidationResultRef.value = {
+      isValid: false,
+      errors: [
+        {
+          type: 'system_error' as const,
+          code: 'VALIDATION_ERROR',
+          message: '验证系统出现错误，请检查队伍配置',
+          objectId: undefined,
+          objectType: undefined,
+          context: {},
+        },
+      ],
+      warnings: [],
+    }
+  } finally {
+    isValidating.value = false
+  }
+}, 300) // 300ms防抖
+
+// 监听队伍和规则集变化
+watchEffect(
+  () => {
+    // 依赖于规则集和队伍数据
+    selectedGameMode.value
+    currentTeam.value
+    // 触发防抖验证
+    debouncedValidate()
+  },
+  {
+    flush: 'post',
+  },
+)
+
+// 实时队伍验证结果
+const teamValidationResult = computed(() => {
+  return teamValidationResultRef.value
+})
+
+// 当前精灵的验证结果
+const currentPetValidationResult = ref<any>({
+  isValid: true,
+  errors: [],
+  warnings: [],
+})
+
+// 精灵级别的防抖验证
+const debouncedValidatePet = debounce(async () => {
+  if (!selectedPet.value || !gameDataStore.loaded) {
+    currentPetValidationResult.value = {
+      isValid: true,
+      errors: [],
+      warnings: [],
+    }
+    return
+  }
+
+  try {
+    const result = await ClientRuleIntegration.validatePet(selectedPet.value, currentTeam.value)
+    currentPetValidationResult.value = markRaw(result)
+  } catch (error) {
+    console.error('精灵验证出错:', error)
+    currentPetValidationResult.value = {
+      isValid: true, // 验证失败时不显示错误，避免干扰用户
+      errors: [],
+      warnings: [],
+    }
+  }
+}, 200)
+
+// 检查是否可以自动修复
+const canAutoFix = computed(() => {
+  if (teamValidationResult.value.isValid) return false
+
+  // 检查错误类型，某些错误可以自动修复
+  return teamValidationResult.value.errors.some((error: any) =>
+    ['TEAM_TOO_LARGE', 'LEVEL_TOO_HIGH', 'LEVEL_TOO_LOW', 'EV_TOTAL_TOO_HIGH'].includes(getErrorCode(error)),
+  )
+})
+
 const selectedPet = computed<PetSchemaType | null>(() => {
   return currentTeam.value.find(p => p.id === selectedPetId.value) || null
 })
+
+// 监听当前精灵变化，触发精灵级别验证
+watch(
+  () => selectedPet.value,
+  () => {
+    debouncedValidatePet()
+  },
+  { deep: true },
+)
 
 const currentSpecies = computed(() => {
   return gameDataStore.speciesList.find(v => v.id === selectedPet.value?.species || '')
@@ -1014,8 +1439,27 @@ const filteredElblem = computed(() => {
 const filteredSkills = computed(() => {
   if (!currentSpecies.value) return []
 
-  return currentSpecies.value.learnable_skills
-    .filter(learnable => (selectedPet.value?.level ?? 0) >= learnable.level)
+  // 获取原始可学习技能
+  const originalSkills = currentSpecies.value.learnable_skills.filter(
+    learnable => (selectedPet.value?.level ?? 0) >= learnable.level,
+  )
+
+  // 获取规则系统提供的额外技能
+  let extraSkills: Array<{ skill_id: string; level: number; hidden: boolean }> = []
+  // try {
+  //   // 将从ClientRuleIntegration获取的数据标记为raw
+  //   extraSkills = markRaw(ClientRuleIntegration.getSpeciesExtraLearnableSkills(currentSpecies.value.id)).filter(
+  //     learnable => (selectedPet.value?.level ?? 0) >= learnable.level,
+  //   )
+  // } catch (error) {
+  //   console.warn('获取额外技能失败:', error)
+  // }
+
+  // 合并原始技能和额外技能
+  const allLearnableSkills = [...originalSkills, ...extraSkills]
+
+  // 转换为技能对象并过滤
+  return allLearnableSkills
     .map(learnable => gameDataStore.skillList.find(v => v.id === learnable.skill_id))
     .filter(Boolean)
 })
@@ -1024,11 +1468,25 @@ const filteredSkills = computed(() => {
 const hasClimaxSkills = computed(() => {
   if (!currentSpecies.value) return false
 
-  return (
+  // 检查原始技能中是否有必杀技能
+  const hasOriginalClimax =
     currentSpecies.value.learnable_skills?.some(
       ls => gameDataStore.skillList.find(s => s.id === ls.skill_id)?.category === 'Climax',
     ) ?? false
-  )
+
+  // 检查额外技能中是否有必杀技能
+  let hasExtraClimax = false
+  // try {
+  //   // 将从ClientRuleIntegration获取的数据标记为raw
+  //   const extraSkills = markRaw(ClientRuleIntegration.getSpeciesExtraLearnableSkills(currentSpecies.value.id))
+  //   hasExtraClimax = extraSkills.some(
+  //     ls => gameDataStore.skillList.find(s => s.id === ls.skill_id)?.category === 'Climax',
+  //   )
+  // } catch (error) {
+  //   console.warn('检查额外必杀技能失败:', error)
+  // }
+
+  return hasOriginalClimax || hasExtraClimax
 })
 
 const statChineseMap: Record<StatKey, string> = {
@@ -1224,10 +1682,22 @@ const climaxSkillSelectOptions = computed(() => {
 })
 
 const addNewPet = () => {
-  if (currentTeam.value.length >= 6) {
-    ElMessage.warning('队伍已满，最多只能添加六个精灵')
-    return
-  }
+  // 使用规则系统检查是否可以添加更多精灵
+  // try {
+  //   const canAdd = ClientRuleIntegration.canAddMorePets(currentTeam.value)
+  //   if (!canAdd) {
+  //     const limitations = ClientRuleIntegration.getRuleLimitations()
+  //     ElMessage.warning(`队伍已满，最多只能添加${limitations.teamSize.max}个精灵`)
+  //     return
+  //   }
+  // } catch (error) {
+  //   console.error('检查队伍大小限制出错:', error)
+  //   // 回退到简单检查
+  //   if (currentTeam.value.length >= 6) {
+  //     ElMessage.warning('队伍已满，最多只能添加六个精灵')
+  //     return
+  //   }
+  // }
 
   const newPet: PetSchemaType = {
     id: nanoid(),
@@ -1274,8 +1744,8 @@ const handleDeletePet = (petId: string) => {
   })
 }
 
-const saveCurrentTeam = () => {
-  const error = validateTeam()
+const saveCurrentTeam = async () => {
+  const error = await validateTeam()
   if (error) {
     ElMessage.error(error)
     return
@@ -1303,6 +1773,125 @@ const clearAllData = async () => {
     ElMessage.success('所有数据已清理完成！')
   } catch {
     // 用户取消操作
+  }
+}
+
+// 验证相关方法
+const getErrorIcon = (errorType: string) => {
+  switch (errorType) {
+    case 'team_validation':
+      return 'UserFilled'
+    case 'pet_validation':
+      return 'Avatar'
+    case 'skill_validation':
+      return 'MagicStick'
+    case 'mark_validation':
+      return 'Medal'
+    case 'rule_conflict':
+      return 'Warning'
+    case 'config_error':
+      return 'Setting'
+    case 'system_error':
+    default:
+      return 'CircleCloseFilled'
+  }
+}
+
+// 错误处理辅助函数
+const getErrorCode = (error: any): string => {
+  return error.code || 'UNKNOWN_ERROR'
+}
+
+const getErrorType = (error: any): string => {
+  return error.type || 'system_error'
+}
+
+const getErrorObjectId = (error: any): string | undefined => {
+  return error.objectId
+}
+
+const getErrorContext = (error: any): Record<string, any> => {
+  return error.context || {}
+}
+
+const getPetNameById = (petId: string) => {
+  return currentTeam.value.find(pet => pet.id === petId)?.name
+}
+
+const formatErrorContext = (context: Record<string, any>) => {
+  const parts = []
+  if (context.minSize !== undefined) parts.push(`最少${context.minSize}只`)
+  if (context.maxSize !== undefined) parts.push(`最多${context.maxSize}只`)
+  if (context.currentSize !== undefined) parts.push(`当前${context.currentSize}只`)
+  if (context.minLevel !== undefined) parts.push(`最低等级${context.minLevel}`)
+  if (context.maxLevel !== undefined) parts.push(`最高等级${context.maxLevel}`)
+  if (context.currentLevel !== undefined) parts.push(`当前等级${context.currentLevel}`)
+  if (context.maxEV !== undefined) parts.push(`学习力上限${context.maxEV}`)
+  if (context.currentEV !== undefined) parts.push(`当前学习力${context.currentEV}`)
+  if (context.skillId !== undefined) parts.push(`技能${context.skillId}`)
+  if (context.requiredLevel !== undefined) parts.push(`需要等级${context.requiredLevel}`)
+  if (context.currentLevel !== undefined && context.requiredLevel !== undefined) {
+    parts.push(`当前等级${context.currentLevel}`)
+  }
+  return parts.join(', ')
+}
+
+const handleErrorClick = (error: any) => {
+  // 如果错误关联到特定精灵，选中该精灵
+  if (error.objectId) {
+    const pet = currentTeam.value.find(p => p.id === error.objectId)
+    if (pet) {
+      selectedPetId.value = pet.id
+      ElMessage.info(`已选中精灵: ${pet.name}`)
+    }
+  }
+}
+
+const handleAutoFix = async () => {
+  try {
+    const result = await ClientRuleIntegration.autoFixTeam(currentTeam.value)
+
+    if (result.changes.length === 0) {
+      ElMessage.info('没有需要修复的问题')
+      return
+    }
+
+    // 显示修复预览
+    const changeMessages = result.changes
+      .map(change => {
+        switch (change.type) {
+          case 'removed':
+            return `• 移除精灵: ${change.petName} (${change.description})`
+          case 'modified':
+            return `• 修改精灵: ${change.petName} - ${change.description}`
+          default:
+            return `• ${change.description}`
+        }
+      })
+      .join('\n')
+
+    await ElMessageBox.confirm(`将进行以下修复操作：\n\n${changeMessages}\n\n确定要应用这些修复吗？`, '自动修复预览', {
+      confirmButtonText: '应用修复',
+      cancelButtonText: '取消',
+      type: 'warning',
+      customStyle: { zIndex: '10000' },
+    })
+
+    // 应用修复
+    petStorage.updateTeamOrder(petStorage.currentTeamIndex, result.fixedTeam)
+    petStorage.saveToLocal()
+
+    ElMessage.success(`已应用 ${result.changes.length} 项修复`)
+
+    // 如果还有剩余问题，提示用户
+    if (result.remainingIssues && !result.remainingIssues.isValid) {
+      ElMessage.warning(`还有 ${result.remainingIssues.errors.length} 个问题需要手动处理`)
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('自动修复失败:', error)
+      ElMessage.error('自动修复失败，请手动调整队伍')
+    }
   }
 }
 
@@ -1437,17 +2026,23 @@ const debouncedSave = debounce(() => {
 
   try {
     petStorage.saveToLocal()
+    // 保存后触发验证
+    debouncedValidate()
   } catch (err) {
     ElMessage.error('自动保存失败')
   }
 }, 100)
 
+// 监听精灵属性变化，触发保存和验证
 watch(
   () => ({
     skills: selectedPet.value?.skills,
     evs: selectedPet.value?.evs,
     ability: selectedPet.value?.ability,
     emblem: selectedPet.value?.emblem,
+    species: selectedPet.value?.species,
+    nature: selectedPet.value?.nature,
+    level: selectedPet.value?.level,
   }),
   (newVal, oldVal) => {
     if (JSON.stringify(newVal) !== JSON.stringify(oldVal)) {
@@ -1476,7 +2071,7 @@ const handleNormalSkillChange = (newVal: string, index: number) => {
 
   newSkills[index] = value
   displayedNormalSkills.value = newSkills
-  debouncedSave()
+  debouncedSave() // 这会触发保存和验证
 }
 
 // 必杀技能变更处理
@@ -1492,7 +2087,7 @@ const handleClimaxSkillChange = (newVal: string) => {
   // 如果种族没有必杀技能，直接清空
   if (!hasClimaxSkills.value) {
     displayedClimaxSkill.value = ''
-    debouncedSave()
+    debouncedSave() // 这会触发保存和验证
     return
   }
 
@@ -1503,7 +2098,7 @@ const handleClimaxSkillChange = (newVal: string) => {
   }
 
   displayedClimaxSkill.value = value
-  debouncedSave()
+  debouncedSave() // 这会触发保存和验证
 }
 
 function debounce(fn: Function, delay: number) {

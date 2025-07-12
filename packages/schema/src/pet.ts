@@ -24,7 +24,7 @@ export const PetSchema = z.object({
   name: z.string().min(1),
   id: z.nanoid().default(() => nanoid()),
   species: z.string().regex(/^pet_/), //种族的编号
-  level: z.number().int().min(1).max(100),
+  level: z.number().int().min(1),
   evs: StatOutBattleEVSSchema.refine(
     evs => Object.values(evs).reduce((a, b) => a + b, 0) <= 510,
     '学习力总和不能超过510',

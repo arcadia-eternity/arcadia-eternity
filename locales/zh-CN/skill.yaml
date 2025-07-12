@@ -1909,3 +1909,54 @@ skill_wabaolin:
 skill_lingdangshouhu:
   name: 铃铛守护
   description: 强化自身双防1级
+skill_zhuoji:
+  name: 啄击
+  description: 5%弱化对手速度1级
+skill_yiji:
+  name: 翼击
+  description: 5%弱化对手速度1级
+skill_huiyi:
+  name: 挥翼
+  description: 强化自身速度1级
+skill_yizhituji:
+  name: 翼之突击
+  description: 先出手时增加40点威力
+skill_yizhiwudong:
+  name: 翼之舞动
+  description: 后出手时增加40点威力
+skill_yeshizhiyan:
+  name: 夜视之眼
+  description: <font color=#93E312>必中</font> 使自身获得<font color=#93E312>必中</font>
+skill_yingzhizhua:
+  name: 鹰之爪
+  description: 连击2次 先出手时连击4次
+skill_yingzhiyuyi:
+  name: 鹰之羽翼
+  description: 连击2次 后出手时连击4次
+skill_yingzhuatuji:
+  name: 硬爪突击
+  description: 先出手时伤害增加30%
+skill_baiyuqiege:
+  name: 白羽切割
+  description: 后出手时伤害增加30%
+skill_xunjie:
+  name: 迅捷
+  description: 使自身获得1层迅捷
+skill_chihuan:
+  name: 迟缓
+  description: 使自身获得1层迟缓
+skill_jiaochayingzhuagong:
+  name: 交叉鹰爪功
+  description: <font color=#93E312>必中</font> 20%强化自身物攻1级
+skill_yingzhilijue:
+  name: 鹰之利爪
+  description: 先出手时威力2倍
+skill_yingzhiruiyu:
+  name: 鹰之锐羽
+  description: 后出手时威力2倍
+skill_yingzhuasilie:
+  name: 硬爪撕裂
+  description: 先出手时附加50点固伤
+skill_baiyuzhuiji:
+  name: 白羽追击
+  description: 后出手时附加50点固伤

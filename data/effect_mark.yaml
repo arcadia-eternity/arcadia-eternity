@@ -724,7 +724,6 @@
     type: setSureHit
     target: usingSkillContext
     priority: 99
-  consumesStacks: 1
 - id: effect_mark_reduce_damage_15_percent
   trigger: OnBeforeCalculateDamage
   condition:
@@ -1984,7 +1983,7 @@
     type: TODO
 
 # 光辉之影：为所有技能添加优先度-1的modifier
-- id: effect_mark_guanghuizhiying_priority_minus_1
+- id: effect_mark_priority_reduce_1
   trigger: OnMarkCreated
   priority: 0
   apply:
@@ -3083,3 +3082,15 @@
     delta: 0
   condition:
     type: selfBeDamaged
+
+# 迅捷：为所有技能添加先制+1的modifier
+- id: effect_mark_priority_add_1
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addSkillAttributeModifier
+    target:
+      base: selfSkills
+    attribute: priority
+    modifierType: delta
+    value: 1

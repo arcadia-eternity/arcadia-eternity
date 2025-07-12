@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.0.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.10.4...arcadia-eternity-v2.0.0) (2025-07-12)
+
+
+### ✨ Features
+
+* **newpet:** 呆目齿轮鹰 ([6c6a81d](https://github.com/arcadia-eternity/arcadia-eternity/commit/6c6a81d8908a825a2d41c665d6e605a469b81fa4))
+* rule ([2a69279](https://github.com/arcadia-eternity/arcadia-eternity/commit/2a6927957ce52945afc3d72d361c05796b7a82ec))
+* rule ([2a69279](https://github.com/arcadia-eternity/arcadia-eternity/commit/2a6927957ce52945afc3d72d361c05796b7a82ec))
+
+
+### 🔧 Miscellaneous Chores
+
+* release 2.0.0 ([df26f7e](https://github.com/arcadia-eternity/arcadia-eternity/commit/df26f7e0c8952cd4addb3857f1ebdbb7dbbd59e0))
+
 ## [1.10.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v1.10.3...arcadia-eternity-v1.10.4) (2025-07-10)
 
 

@@ -136,3 +136,6 @@ mark_ability_huanxiang:
 mark_ability_caibao:
   name: 财宝
   description: 跟随时玩小游戏获得的赛尔豆增加5%
+mark_ability_yingyan:
+  name: 鹰眼
+  description: 先出手时伤害增加10% 后出手时受到伤害减少10%

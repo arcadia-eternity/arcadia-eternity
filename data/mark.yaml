@@ -2,7 +2,6 @@
 # yaml-language-server: $schema=../packages/schema/schema/mark.schema.json
 # @metaType mark
 # @version 1.0.0
-
 - id: mark_meihuo
   tags:
     - status
@@ -396,11 +395,11 @@
     - effect_mark_amplify_non_yanggong
 - id: mark_bizhong
   config:
-    duration: 1
-    persistent: true
+    duration: 5
+    persistent: false
     maxStacks: 1
     stackable: true
-    stackStrategy: extend
+    stackStrategy: refresh
     destroyable: true
     keepOnSwitchOut: true
   effect:
@@ -1365,7 +1364,7 @@
     destroyable: true
     keepOnSwitchOut: true
   effect:
-    - effect_mark_guanghuizhiying_priority_minus_1
+    - effect_mark_priority_reduce_1
 - id: mark_guangzhilingyu
   config:
     duration: -1
@@ -1900,3 +1899,27 @@
     mutexGroup: fortune_marks
   effect:
     - effect_mark_reduce_damage_taken_25_percent
+- id: mark_xunjie
+  tags:
+    - status
+  config:
+    persistent: false
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    duration: 5
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_priority_add_1
+- id: mark_chihuan
+  tags:
+    - status
+  config:
+    persistent: false
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    duration: 5
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_priority_reduce_1

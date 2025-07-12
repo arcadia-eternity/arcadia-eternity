@@ -560,7 +560,7 @@ export class RoomManager {
    */
   private async getAllRooms(): Promise<RoomState[]> {
     try {
-      const client = this.stateManager['redisManager'].getClient()
+      const client = this.stateManager.redisManager.getClient()
       const roomIds = await client.smembers(REDIS_KEYS.ROOMS)
       const rooms: RoomState[] = []
 
@@ -583,7 +583,7 @@ export class RoomManager {
    */
   private async setSessionRoomMapping(sessionId: string, roomId: string): Promise<void> {
     try {
-      const client = this.stateManager['redisManager'].getClient()
+      const client = this.stateManager.redisManager.getClient()
       await client.set(`session:room:${sessionId}`, roomId, 'EX', 3600) // 1小时过期
     } catch (error) {
       logger.error({ error, sessionId, roomId }, 'Failed to set session room mapping')
@@ -595,7 +595,7 @@ export class RoomManager {
    */
   private async getSessionRoomMapping(sessionId: string): Promise<string | null> {
     try {
-      const client = this.stateManager['redisManager'].getClient()
+      const client = this.stateManager.redisManager.getClient()
       return await client.get(`session:room:${sessionId}`)
     } catch (error) {
       logger.error({ error, sessionId }, 'Failed to get session room mapping')
@@ -608,7 +608,7 @@ export class RoomManager {
    */
   private async removeSessionRoomMapping(sessionId: string): Promise<void> {
     try {
-      const client = this.stateManager['redisManager'].getClient()
+      const client = this.stateManager.redisManager.getClient()
       await client.del(`session:room:${sessionId}`)
     } catch (error) {
       logger.error({ error, sessionId }, 'Failed to remove session room mapping')

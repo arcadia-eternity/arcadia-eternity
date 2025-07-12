@@ -341,8 +341,8 @@ export class SessionManager {
       const timeout = this.options.sessionTimeout || 24 * 60 * 60 * 1000 // 默认24小时
 
       // 获取Redis客户端
-      const client = this.stateManager['redisManager'].getClient()
-      const keyPrefix = this.stateManager['redisManager'].getKeyPrefix()
+      const client = this.stateManager.redisManager.getClient()
+      const keyPrefix = this.stateManager.redisManager.getKeyPrefix()
 
       // 使用全局会话索引获取统计信息
       const sessionIndexKey = `${keyPrefix}sessions:index`

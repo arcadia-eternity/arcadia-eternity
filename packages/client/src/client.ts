@@ -268,9 +268,26 @@ export class BattleClient {
     this.clearTimerSnapshots()
   }
 
-  async joinMatchmaking(playerData: PlayerSchemaType): Promise<void> {
+  async joinMatchmaking(
+    data: PlayerSchemaType | { playerSchema: PlayerSchemaType; ruleSetId?: string },
+  ): Promise<void> {
     this.verifyConnection()
-    console.log('🔍 Starting matchmaking process for player:', playerData.id)
+
+    // 处理不同的输入格式
+    let playerData: PlayerSchemaType
+    let ruleSetId: string
+
+    if ('playerSchema' in data) {
+      // 新格式：包含规则集信息
+      playerData = data.playerSchema
+      ruleSetId = data.ruleSetId || 'standard'
+    } else {
+      // 旧格式：直接是 PlayerSchemaType
+      playerData = data
+      ruleSetId = 'standard'
+    }
+
+    console.log('🔍 Starting matchmaking process for player:', playerData.id, 'with rule:', ruleSetId)
     this.updateState({ matchmaking: 'searching' })
     console.log('🔄 State updated to searching, current state:', this.state.matchmaking)
 
@@ -281,11 +298,18 @@ export class BattleClient {
       }, this.options.actionTimeout)
 
       console.log('📤 Sending joinMatchmaking request to server')
-      this.socket.emit('joinMatchmaking', playerData, response => {
-        clearTimeout(timeout)
-        console.log('📥 Received joinMatchmaking response:', response)
-        this.handleMatchmakingResponse(response, resolve, reject)
-      })
+      this.socket.emit(
+        'joinMatchmaking',
+        {
+          playerSchema: playerData,
+          ruleSetId,
+        },
+        response => {
+          clearTimeout(timeout)
+          console.log('📥 Received joinMatchmaking response:', response)
+          this.handleMatchmakingResponse(response, resolve, reject)
+        },
+      )
     })
   }
 

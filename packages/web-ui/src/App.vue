@@ -365,8 +365,8 @@
 
     <main class="flex-1 overflow-auto relative">
       <router-view v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
-          <component :is="Component" class="w-full" />
+        <transition name="fade">
+          <component :is="Component" class="w-full" :key="$route.path" />
         </transition>
       </router-view>
 
@@ -413,6 +413,7 @@ import ConnectionStatus from '@/components/ConnectionStatus.vue'
 import { autoCheckForUpdates } from '@/utils/version'
 import { useBattleStore } from './stores/battle'
 import { BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
+import { ClientRuleIntegration } from '@arcadia-eternity/rules'
 
 const router = useRouter()
 const dataStore = useGameDataStore()
@@ -445,9 +446,27 @@ watch(isMobile, newIsMobile => {
 onMounted(async () => {
   try {
     // 首先初始化基础数据
-    dataStore.initialize()
+    await dataStore.initialize()
     resourceStore.initialize()
     petStorage.loadFromLocal()
+
+    try {
+      await ClientRuleIntegration.initializeClient()
+      console.log('客户端规则系统初始化成功')
+    } catch (error) {
+      console.error('客户端规则系统初始化失败:', error)
+    }
+
+    // 等待游戏数据加载完成后初始化种族数据提供者
+    if (dataStore.loaded) {
+      try {
+        await ClientRuleIntegration.initializeSpeciesDataProvider(dataStore)
+      } catch (error) {
+        console.error('❌ 种族数据提供者初始化失败:', error)
+      }
+    } else {
+      console.warn('⚠️ 游戏数据尚未加载完成，种族数据提供者初始化被跳过')
+    }
 
     // 初始化玩家状态（这会确保Pinia store准备就绪）
     await playerStore.initializePlayer()
