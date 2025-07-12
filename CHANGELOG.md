@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.0.2...arcadia-eternity-v2.0.3) (2025-07-12)
+
+
+### 🐛 Bug Fixes
+
+* Enhance team validation feedback in lobby page ([7c35b86](https://github.com/arcadia-eternity/arcadia-eternity/commit/7c35b86b12486848662f9e3a97013323da5e5654))
+
+
+### ⚡ Performance Improvements
+
+* Add team ruleset selection and validation UI ([ccee338](https://github.com/arcadia-eternity/arcadia-eternity/commit/ccee3389e24036f455959e5668fd4ab86df9eadc))
+
 ## [2.0.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.0.1...arcadia-eternity-v2.0.2) (2025-07-12)
 
 

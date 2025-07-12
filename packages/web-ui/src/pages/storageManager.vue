@@ -355,6 +355,56 @@
                       >
                         当前队伍
                       </span>
+
+                      <!-- 规则集显示 -->
+                      <el-dropdown
+                        @command="(ruleSetId: string) => changeTeamRuleSet(petStorage.teams.indexOf(team), ruleSetId)"
+                      >
+                        <span
+                          class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200"
+                        >
+                          {{ getRuleSetName(team.ruleSetId) }}
+                          <el-icon class="ml-1" :size="12"><ArrowDown /></el-icon>
+                        </span>
+                        <template #dropdown>
+                          <el-dropdown-menu>
+                            <el-dropdown-item
+                              v-for="(name, id) in ruleSetNames"
+                              :key="id"
+                              :command="id"
+                              :disabled="id === team.ruleSetId"
+                            >
+                              {{ name }}
+                            </el-dropdown-item>
+                          </el-dropdown-menu>
+                        </template>
+                      </el-dropdown>
+
+                      <!-- 校验状态 -->
+                      <span
+                        v-if="teamValidationStatus[petStorage.teams.indexOf(team)]"
+                        class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium cursor-pointer"
+                        :class="{
+                          'bg-yellow-100 text-yellow-800':
+                            teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating,
+                          'bg-green-100 text-green-800':
+                            !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating &&
+                            teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid,
+                          'bg-red-100 text-red-800':
+                            !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating &&
+                            !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid,
+                        }"
+                        @click="validateTeam(petStorage.teams.indexOf(team))"
+                      >
+                        <el-icon class="mr-1" :size="12">
+                          <Refresh v-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating" />
+                          <Check v-else-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid" />
+                          <Close v-else />
+                        </el-icon>
+                        <span v-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating">校验中</span>
+                        <span v-else-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid">规则通过</span>
+                        <span v-else>规则失败</span>
+                      </span>
                     </div>
                     <div class="flex items-center space-x-2">
                       <button
@@ -1638,7 +1688,8 @@ import ContextMenu from '../components/ContextMenu.vue'
 import { usePetManagement } from '@/composition/usePetManagement'
 import { useTeamExport } from '@/composition/useTeamExport'
 import { useStorageImportExport } from '@/composition/useStorageImportExport'
-import { Loading } from '@element-plus/icons-vue'
+import { Loading, Check, Close, Warning, Refresh, ArrowDown } from '@element-plus/icons-vue'
+import { ClientRuleIntegration } from '@arcadia-eternity/rules'
 
 const petStorage = usePetStorageStore()
 const playerStore = usePlayerStore()
@@ -1850,6 +1901,25 @@ const filters = ref({
 })
 const sortBy = ref('name')
 const sortOrder = ref<'asc' | 'desc'>('asc')
+
+// 规则集相关数据
+const ruleSetNames = ref<Record<string, string>>({
+  casual_standard_ruleset: '休闲规则',
+  competitive_ruleset: '竞技规则',
+})
+
+// 队伍校验状态
+const teamValidationStatus = ref<
+  Record<
+    number,
+    {
+      isValidating: boolean
+      isValid: boolean
+      errors: string[]
+      warnings: string[]
+    }
+  >
+>({})
 
 // 容器尺寸监听
 const teamContainerRef = ref<HTMLElement>()
@@ -2186,6 +2256,8 @@ onMounted(() => {
   // 初始计算
   nextTick(() => {
     calculatePageSizes()
+    // 初始化规则校验
+    validateAllTeams()
   })
 
   // 设置 ResizeObserver
@@ -2217,6 +2289,34 @@ onUnmounted(() => {
   // 移除窗口事件监听
   window.removeEventListener('resize', debouncedCalculatePageSizes)
 })
+
+// 监听队伍数据变化，自动重新校验
+watch(
+  () => petStorage.teams,
+  async (newTeams, oldTeams) => {
+    // 如果队伍数量变化，校验所有队伍
+    if (!oldTeams || newTeams.length !== oldTeams.length) {
+      await validateAllTeams()
+      return
+    }
+
+    // 检查每个队伍是否有变化
+    for (let i = 0; i < newTeams.length; i++) {
+      const newTeam = newTeams[i]
+      const oldTeam = oldTeams[i]
+
+      if (
+        !oldTeam ||
+        newTeam.ruleSetId !== oldTeam.ruleSetId ||
+        newTeam.pets.length !== oldTeam.pets.length ||
+        JSON.stringify(newTeam.pets) !== JSON.stringify(oldTeam.pets)
+      ) {
+        await validateTeam(i)
+      }
+    }
+  },
+  { deep: true },
+)
 
 // 队伍名称编辑
 const editTeamName = (index: number) => {
@@ -2360,6 +2460,65 @@ const handleShowTeamPetContextMenu = (event: MouseEvent, pet: PetSchemaType, tea
   showTeamPetContextMenu(event, pet, teamIndex)
 }
 
+// 规则校验相关方法
+const validateTeam = async (teamIndex: number) => {
+  const team = petStorage.teams[teamIndex]
+  if (!team) return
+
+  // 设置校验状态
+  teamValidationStatus.value[teamIndex] = {
+    isValidating: true,
+    isValid: false,
+    errors: [],
+    warnings: [],
+  }
+
+  try {
+    const result = await ClientRuleIntegration.validateTeamWithRuleSet(team.pets, team.ruleSetId)
+
+    teamValidationStatus.value[teamIndex] = {
+      isValidating: false,
+      isValid: result.isValid,
+      errors: result.errors?.map(e => e.message || e.toString()) || [],
+      warnings: result.warnings?.map(w => w.message || w.toString()) || [],
+    }
+  } catch (error) {
+    console.error('队伍校验失败:', error)
+    teamValidationStatus.value[teamIndex] = {
+      isValidating: false,
+      isValid: false,
+      errors: ['校验系统出现错误'],
+      warnings: [],
+    }
+  }
+}
+
+// 获取规则集名称
+const getRuleSetName = (ruleSetId: string) => {
+  return ruleSetNames.value[ruleSetId] || ruleSetId
+}
+
+// 切换队伍规则集
+const changeTeamRuleSet = async (teamIndex: number, newRuleSetId: string) => {
+  const team = petStorage.teams[teamIndex]
+  if (!team) return
+
+  team.ruleSetId = newRuleSetId
+  petStorage.validateAndSave()
+
+  // 重新校验队伍
+  await validateTeam(teamIndex)
+
+  ElMessage.success(`已将队伍 "${team.name}" 的规则集更改为 "${getRuleSetName(newRuleSetId)}"`)
+}
+
+// 校验所有队伍
+const validateAllTeams = async () => {
+  for (let i = 0; i < petStorage.teams.length; i++) {
+    await validateTeam(i)
+  }
+}
+
 // 复制队伍
 const copyTeam = (index: number) => {
   try {
@@ -2371,7 +2530,7 @@ const copyTeam = (index: number) => {
 
     // 创建新队伍
     const newTeamName = `${originalTeam.name} (副本)`
-    petStorage.createNewTeam(newTeamName)
+    petStorage.createNewTeam(newTeamName, originalTeam.ruleSetId)
     const newTeamIndex = petStorage.teams.length - 1
     petStorage.teams[newTeamIndex].pets = []
 

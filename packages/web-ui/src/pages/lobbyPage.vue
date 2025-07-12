@@ -188,7 +188,7 @@
                     {{ team.pets.map((p: any) => p.name).join('、') }}
                   </div>
                   <div class="text-xs text-orange-600 mt-1">
-                    队伍使用{{ team.ruleSetId === 'competitive_ruleset' ? '竞技' : '休闲' }}规则集
+                    队伍使用{{ getRuleSetName(team.ruleSetId || 'casual_standard_ruleset') }}规则集
                   </div>
                 </div>
               </div>
@@ -211,10 +211,12 @@
                 ? '请选择游戏规则'
                 : selectedTeamIndex === -1
                   ? '请选择队伍'
-                  : !isSelectedTeamValid
-                    ? '所选队伍不符合规则'
-                    : !isSelectedTeamCompatible
-                      ? '队伍规则集不匹配'
+                  : !isSelectedTeamCompatible
+                    ? '队伍规则集不匹配'
+                    : !isSelectedTeamValid
+                      ? selectedTeamValidationErrors.length > 0
+                        ? `队伍不符合规则 (${selectedTeamValidationErrors.length}个问题)`
+                        : '所选队伍不符合规则'
                       : battleClientStore.currentState.matchmaking === 'matched'
                         ? '准备进入战斗...'
                         : isMatching
@@ -243,6 +245,24 @@
         class="text-red-500 mt-4 p-3 md:p-2.5 border border-red-500 rounded-lg bg-red-50 text-sm md:text-base"
       >
         {{ errorMessage }}
+      </div>
+
+      <!-- 选中队伍验证错误提示 -->
+      <div
+        v-if="selectedTeamValidationErrors.length > 0 && selectedTeam && selectedRuleSetId"
+        class="text-orange-600 mt-4 p-3 md:p-2.5 border border-orange-400 rounded-lg bg-orange-50 text-sm md:text-base"
+      >
+        <div class="flex items-center gap-2 mb-2">
+          <el-icon class="text-orange-500"><Warning /></el-icon>
+          <span class="font-medium"
+            >队伍 "{{ selectedTeam.name }}" 不符合 {{ getRuleSetName(selectedRuleSetId) }} 要求：</span
+          >
+        </div>
+        <ul class="list-disc list-inside space-y-1">
+          <li v-for="error in selectedTeamValidationErrors" :key="error" class="text-sm">
+            {{ error }}
+          </li>
+        </ul>
       </div>
     </div>
 
@@ -362,6 +382,19 @@ const isSelectedTeamValid = computed(() => {
   return isTeamValidForRule(selectedTeam.value, selectedRuleSetId.value)
 })
 
+// 获取当前选中队伍的详细验证结果
+const selectedTeamValidationResult = computed(() => {
+  if (!selectedTeam.value || !selectedRuleSetId.value) return null
+  return getTeamValidationResult(selectedTeam.value, selectedRuleSetId.value)
+})
+
+// 获取当前选中队伍的验证错误信息（用于显示）
+const selectedTeamValidationErrors = computed(() => {
+  const result = selectedTeamValidationResult.value
+  if (!result || result.isValid) return []
+  return result.errors
+})
+
 // 队伍验证函数
 const isTeamValidForRule = (team: { name: string; pets: PetSchemaType[] }, ruleSetId: string): boolean => {
   if (!team || !ruleSetId) return false
@@ -374,6 +407,25 @@ const isTeamValidForRule = (team: { name: string; pets: PetSchemaType[] }, ruleS
     console.error('队伍验证失败:', error)
     return false
   }
+}
+
+// 获取队伍验证详细结果
+const getTeamValidationResult = (team: { name: string; pets: PetSchemaType[] }, ruleSetId: string) => {
+  if (!team || !ruleSetId) return null
+
+  try {
+    // 使用Pinia store验证队伍
+    return ruleSetStore.validateTeam(team.pets, ruleSetId)
+  } catch (error) {
+    console.error('队伍验证失败:', error)
+    return { isValid: false, errors: ['验证过程中发生错误'] }
+  }
+}
+
+// 根据规则集ID获取规则集名称
+const getRuleSetName = (ruleSetId: string): string => {
+  const ruleSet = ruleSetStore.ruleSets.find(r => r.id === ruleSetId)
+  return ruleSet?.name || ruleSetId
 }
 
 // 响应式状态
@@ -456,7 +508,13 @@ const handleMatchmaking = async () => {
 
     // 检查队伍是否符合规则
     if (!isSelectedTeamValid.value) {
-      errorMessage.value = '所选队伍不符合规则要求'
+      // 获取详细的验证错误信息
+      const validationResult = getTeamValidationResult(selectedTeam.value, selectedRuleSetId.value)
+      if (validationResult && validationResult.errors.length > 0) {
+        errorMessage.value = `队伍不符合规则要求：${validationResult.errors[0]}`
+      } else {
+        errorMessage.value = '所选队伍不符合规则要求'
+      }
       return
     }
 
