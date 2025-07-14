@@ -7,7 +7,7 @@ const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://loca
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 30 * 1000, // 30秒超时
   headers: {
     'Content-Type': 'application/json',
   },
