@@ -17,6 +17,7 @@ import { REDIS_KEYS, ClusterError } from './types'
 import { dedupRedisCall } from './redisCallDeduplicator'
 import { TTLHelper } from './ttlConfig'
 import { RuleBasedQueueManager } from './ruleBasedQueueManager'
+import type { InstancePerformanceData } from './performanceTracker'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -49,6 +50,17 @@ export class ClusterStateManager extends EventEmitter {
       lastHeartbeat: Date.now(),
       connections: 0,
       load: 0,
+      performance: {
+        cpuUsage: 0,
+        memoryUsage: 0,
+        memoryUsedMB: 0,
+        memoryTotalMB: 0,
+        activeBattles: 0,
+        queuedPlayers: 0,
+        avgResponseTime: 0,
+        errorRate: 0,
+        lastUpdated: Date.now(),
+      },
       metadata: {
         isFlyIo: config.instance.isFlyIo || false,
       },
@@ -268,6 +280,65 @@ export class ClusterStateManager extends EventEmitter {
       })
     } catch (error) {
       logger.error({ error }, 'Failed to update instance load')
+    }
+  }
+
+  /**
+   * 更新实例性能数据
+   */
+  async updateInstancePerformance(performanceData: Partial<InstancePerformanceData>): Promise<void> {
+    try {
+      // 更新性能数据
+      this.currentInstance.performance = {
+        ...this.currentInstance.performance,
+        ...performanceData,
+        lastUpdated: Date.now(),
+      }
+
+      this.currentInstance.lastHeartbeat = Date.now()
+
+      const client = this.redisManager.getClient()
+
+      // 获取实例数据 TTL
+      const instanceDataTTL = TTLHelper.getTTLForDataType('serviceInstance', 'data')
+      const heartbeatTTL = TTLHelper.getTTLForDataType('serviceInstance', 'heartbeat')
+
+      const instanceKey = REDIS_KEYS.SERVICE_INSTANCE(this.currentInstance.id)
+
+      // 使用 pipeline 批量执行操作
+      const pipeline = client.pipeline()
+
+      // 更新实例信息并刷新 TTL
+      pipeline.hset(instanceKey, this.serializeInstance(this.currentInstance))
+      if (instanceDataTTL > 0) {
+        pipeline.pexpire(instanceKey, instanceDataTTL)
+      }
+
+      // 刷新实例集合的 TTL
+      if (heartbeatTTL > 0) {
+        pipeline.pexpire(REDIS_KEYS.SERVICE_INSTANCES, heartbeatTTL)
+      }
+
+      // 执行批量操作
+      await pipeline.exec()
+
+      // 异步发布实例更新事件，不阻塞主流程
+      this.publishEvent({
+        type: 'instance:update',
+        data: this.currentInstance,
+      }).catch(error => {
+        logger.error({ error }, 'Failed to publish instance performance update event')
+      })
+
+      logger.debug(
+        {
+          instanceId: this.currentInstance.id,
+          performance: this.currentInstance.performance,
+        },
+        'Instance performance data updated',
+      )
+    } catch (error) {
+      logger.error({ error, performanceData }, 'Failed to update instance performance')
     }
   }
 
@@ -1124,11 +1195,25 @@ export class ClusterStateManager extends EventEmitter {
       lastHeartbeat: instance.lastHeartbeat.toString(),
       connections: instance.connections.toString(),
       load: instance.load.toString(),
+      performance: JSON.stringify(instance.performance),
       metadata: JSON.stringify(instance.metadata || {}),
     }
   }
 
   private deserializeInstance(data: Record<string, string>): ServiceInstance {
+    // 默认性能数据（向后兼容）
+    const defaultPerformance = {
+      cpuUsage: 0,
+      memoryUsage: 0,
+      memoryUsedMB: 0,
+      memoryTotalMB: 0,
+      activeBattles: 0,
+      queuedPlayers: 0,
+      avgResponseTime: 0,
+      errorRate: 0,
+      lastUpdated: Date.now(),
+    }
+
     return {
       id: data.id,
       host: data.host,
@@ -1140,6 +1225,7 @@ export class ClusterStateManager extends EventEmitter {
       lastHeartbeat: parseInt(data.lastHeartbeat),
       connections: parseInt(data.connections),
       load: parseFloat(data.load),
+      performance: data.performance ? JSON.parse(data.performance) : defaultPerformance,
       metadata: data.metadata ? JSON.parse(data.metadata) : undefined,
     }
   }

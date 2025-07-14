@@ -36,11 +36,42 @@ export interface PerformanceMetric {
   tags: Record<string, string>
 }
 
+export interface InstancePerformanceData {
+  cpuUsage: number
+  memoryUsage: number
+  memoryUsedMB: number
+  memoryTotalMB: number
+  activeBattles: number
+  queuedPlayers: number
+  avgResponseTime: number
+  errorRate: number
+  lastUpdated: number
+}
+
 export class PerformanceTracker {
   private redisManager: RedisClientManager
   private instanceId: string
   private activeSpans: Map<string, TraceSpan> = new Map()
   private registry: promClient.Registry
+  private systemMetricsInterval?: NodeJS.Timeout
+
+  // 性能数据缓存
+  private currentPerformanceData: InstancePerformanceData = {
+    cpuUsage: 0,
+    memoryUsage: 0,
+    memoryUsedMB: 0,
+    memoryTotalMB: 0,
+    activeBattles: 0,
+    queuedPlayers: 0,
+    avgResponseTime: 0,
+    errorRate: 0,
+    lastUpdated: Date.now(),
+  }
+
+  // 响应时间统计
+  private responseTimes: number[] = []
+  private errorCount = 0
+  private totalRequests = 0
 
   // Prometheus指标
   private httpRequestDuration!: promClient.Histogram<string>
@@ -52,6 +83,12 @@ export class PerformanceTracker {
   private memoryUsage!: promClient.Gauge<string>
   private cpuUsage!: promClient.Gauge<string>
   private errorTotal!: promClient.Counter<string>
+
+  // 负载均衡相关指标
+  private loadBalancingDecisions!: promClient.Counter<string>
+  private instanceSelectionDuration!: promClient.Histogram<string>
+  private instanceScore!: promClient.Gauge<string>
+  private battleCreationMethod!: promClient.Counter<string>
 
   constructor(redisManager: RedisClientManager, instanceId: string) {
     this.redisManager = redisManager
@@ -133,6 +170,39 @@ export class PerformanceTracker {
       name: 'errors_total',
       help: 'Total number of errors',
       labelNames: ['type', 'component', 'instance_id'],
+      registers: [this.registry],
+    })
+
+    // 负载均衡决策计数器
+    this.loadBalancingDecisions = new promClient.Counter({
+      name: 'load_balancing_decisions_total',
+      help: 'Total number of load balancing decisions',
+      labelNames: ['strategy', 'result', 'instance_id'],
+      registers: [this.registry],
+    })
+
+    // 实例选择耗时
+    this.instanceSelectionDuration = new promClient.Histogram({
+      name: 'instance_selection_duration_seconds',
+      help: 'Duration of instance selection process',
+      labelNames: ['strategy', 'instance_id'],
+      buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1],
+      registers: [this.registry],
+    })
+
+    // 实例得分
+    this.instanceScore = new promClient.Gauge({
+      name: 'instance_score',
+      help: 'Load balancing score for instances',
+      labelNames: ['target_instance_id', 'instance_id'],
+      registers: [this.registry],
+    })
+
+    // 战斗创建方式
+    this.battleCreationMethod = new promClient.Counter({
+      name: 'battle_creation_method_total',
+      help: 'Total number of battles created by method',
+      labelNames: ['method', 'instance_id'],
       registers: [this.registry],
     })
 
@@ -387,13 +457,15 @@ export class PerformanceTracker {
    * 启动系统指标收集（优化频率以节约资源）
    */
   private startSystemMetricsCollection(): void {
-    // 延长系统指标收集间隔：每5分钟更新一次
-    setInterval(() => {
-      this.updateMemoryUsage()
-      this.updateCpuUsage()
-    }, 300000) // 5分钟
+    // 延长系统指标收集间隔：每30秒更新一次（为负载均衡提供及时数据）
+    this.systemMetricsInterval = setInterval(() => {
+      this.updateSystemMetrics()
+    }, 30000) // 30秒
 
-    logger.debug('System metrics collection started (optimized for cost reduction)')
+    // 立即执行一次
+    this.updateSystemMetrics()
+
+    logger.debug('Enhanced system metrics collection started for load balancing')
   }
 
   /**
@@ -505,9 +577,171 @@ export class PerformanceTracker {
     return true
   }
 
+  /**
+   * 更新系统性能指标
+   */
+  private updateSystemMetrics(): void {
+    try {
+      // 更新内存使用情况
+      const memUsage = process.memoryUsage()
+      const totalMemory = require('os').totalmem()
+      const freeMemory = require('os').freemem()
+      const usedMemory = totalMemory - freeMemory
+
+      this.currentPerformanceData.memoryUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024)
+      this.currentPerformanceData.memoryTotalMB = Math.round(totalMemory / 1024 / 1024)
+      this.currentPerformanceData.memoryUsage = Math.round((usedMemory / totalMemory) * 100)
+
+      // 更新CPU使用率（简化版本，实际生产环境可能需要更精确的计算）
+      this.updateCpuUsageMetric()
+
+      // 计算平均响应时间
+      if (this.responseTimes.length > 0) {
+        const sum = this.responseTimes.reduce((a, b) => a + b, 0)
+        this.currentPerformanceData.avgResponseTime = Math.round(sum / this.responseTimes.length)
+
+        // 保留最近100个响应时间记录
+        if (this.responseTimes.length > 100) {
+          this.responseTimes = this.responseTimes.slice(-100)
+        }
+      }
+
+      // 计算错误率
+      if (this.totalRequests > 0) {
+        this.currentPerformanceData.errorRate = this.errorCount / this.totalRequests
+      }
+
+      this.currentPerformanceData.lastUpdated = Date.now()
+
+      // 更新Prometheus指标
+      this.memoryUsage.set({ type: 'heap_used', instance_id: this.instanceId }, memUsage.heapUsed)
+      this.memoryUsage.set({ type: 'heap_total', instance_id: this.instanceId }, memUsage.heapTotal)
+      this.memoryUsage.set({ type: 'system_used', instance_id: this.instanceId }, usedMemory)
+      this.memoryUsage.set({ type: 'system_total', instance_id: this.instanceId }, totalMemory)
+
+      logger.debug(
+        {
+          instanceId: this.instanceId,
+          performance: this.currentPerformanceData,
+        },
+        'System metrics updated',
+      )
+    } catch (error) {
+      logger.error({ error }, 'Error updating system metrics')
+    }
+  }
+
+  /**
+   * 更新CPU使用率指标
+   */
+  private updateCpuUsageMetric(): void {
+    try {
+      const cpus = require('os').cpus()
+      let totalIdle = 0
+      let totalTick = 0
+
+      for (const cpu of cpus) {
+        for (const type in cpu.times) {
+          totalTick += cpu.times[type]
+        }
+        totalIdle += cpu.times.idle
+      }
+
+      const idle = totalIdle / cpus.length
+      const total = totalTick / cpus.length
+      const usage = 100 - Math.round((100 * idle) / total)
+
+      this.currentPerformanceData.cpuUsage = Math.max(0, Math.min(100, usage))
+      this.cpuUsage.set({ instance_id: this.instanceId }, this.currentPerformanceData.cpuUsage)
+    } catch (error) {
+      logger.error({ error }, 'Error updating CPU usage metric')
+    }
+  }
+
+  /**
+   * 记录响应时间
+   */
+  recordResponseTime(duration: number): void {
+    this.responseTimes.push(duration)
+    this.totalRequests++
+  }
+
+  /**
+   * 记录错误
+   */
+  recordErrorOccurrence(): void {
+    this.errorCount++
+  }
+
+  /**
+   * 获取当前性能数据
+   */
+  getCurrentPerformanceData(): InstancePerformanceData {
+    return { ...this.currentPerformanceData }
+  }
+
+  /**
+   * 更新活跃战斗数量
+   */
+  updateActiveBattlesCount(count: number): void {
+    this.currentPerformanceData.activeBattles = count
+    this.updateActiveBattleRooms(count)
+  }
+
+  /**
+   * 更新排队玩家数量
+   */
+  updateQueuedPlayersCount(count: number): void {
+    this.currentPerformanceData.queuedPlayers = count
+    this.updateMatchmakingQueueSize(count)
+  }
+
+  /**
+   * 记录负载均衡决策
+   */
+  recordLoadBalancingDecision(strategy: string, result: 'success' | 'fallback' | 'error'): void {
+    this.loadBalancingDecisions.inc({
+      strategy,
+      result,
+      instance_id: this.instanceId,
+    })
+  }
+
+  /**
+   * 记录实例选择耗时
+   */
+  recordInstanceSelectionDuration(strategy: string, duration: number): void {
+    this.instanceSelectionDuration.observe(
+      { strategy, instance_id: this.instanceId },
+      duration / 1000, // 转换为秒
+    )
+  }
+
+  /**
+   * 更新实例得分
+   */
+  updateInstanceScore(targetInstanceId: string, score: number): void {
+    this.instanceScore.set({ target_instance_id: targetInstanceId, instance_id: this.instanceId }, score)
+  }
+
+  /**
+   * 记录战斗创建方式
+   */
+  recordBattleCreationMethod(method: 'local' | 'remote_rpc' | 'fallback'): void {
+    this.battleCreationMethod.inc({
+      method,
+      instance_id: this.instanceId,
+    })
+  }
+
   async cleanup(): Promise<void> {
     try {
       logger.info('Cleaning up performance tracker')
+
+      // 清理定时器
+      if (this.systemMetricsInterval) {
+        clearInterval(this.systemMetricsInterval)
+      }
 
       // 结束所有活跃的span
       for (const [spanId, _span] of this.activeSpans.entries()) {

@@ -51,19 +51,16 @@ export class FlyIoServiceDiscoveryManager extends ServiceDiscoveryManager {
       if (preferSameRegion && this.flyRegion) {
         const sameRegionInstances = grpcInstances.filter(instance => instance.region === this.flyRegion)
         if (sameRegionInstances.length > 0) {
-          const selected = this.loadBalancer.selectInstance(sameRegionInstances)
+          const selected = this.loadBalancer.selectInstance(sameRegionInstances, this.flyRegion)
           if (selected) {
-            logger.debug(
-              { instanceId: selected.id, region: selected.region },
-              'Selected same-region gRPC instance',
-            )
+            logger.debug({ instanceId: selected.id, region: selected.region }, 'Selected same-region gRPC instance')
             return selected
           }
         }
       }
 
       // 如果没有同区域实例或不需要优先同区域，选择最佳实例
-      const selected = this.loadBalancer.selectInstance(grpcInstances)
+      const selected = this.loadBalancer.selectInstance(grpcInstances, this.flyRegion)
       if (selected) {
         logger.debug({ instanceId: selected.id, region: selected.region }, 'Selected gRPC instance')
       }

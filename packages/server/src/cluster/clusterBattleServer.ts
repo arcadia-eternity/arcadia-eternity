@@ -29,6 +29,7 @@ import { BattleRpcServer } from './battleRpcServer'
 import { BattleRpcClient } from './battleRpcClient'
 import { TimerEventBatcher } from '../timer/timerEventBatcher'
 import { TTLHelper } from './ttlConfig'
+import type { ServiceDiscoveryManager } from './serviceDiscovery'
 import { ServerRuleIntegration } from '@arcadia-eternity/rules'
 
 const logger = pino({
@@ -82,6 +83,7 @@ export class ClusterBattleServer {
   private readonly players = new Map<string, PlayerMeta>()
   private battleReportService?: BattleReportService
   private performanceTracker?: PerformanceTracker
+  private serviceDiscovery?: ServiceDiscoveryManager
   private instanceId: string
 
   // 本地Battle实例管理
@@ -156,6 +158,43 @@ export class ClusterBattleServer {
 
   setPerformanceTracker(tracker: PerformanceTracker): void {
     this.performanceTracker = tracker
+    // 启动性能数据同步
+    this.startPerformanceDataSync()
+  }
+
+  setServiceDiscovery(serviceDiscovery: ServiceDiscoveryManager): void {
+    this.serviceDiscovery = serviceDiscovery
+  }
+
+  get currentInstanceId(): string {
+    return this.instanceId
+  }
+
+  /**
+   * 启动性能数据同步到集群状态管理器
+   */
+  private startPerformanceDataSync(): void {
+    if (!this.performanceTracker) {
+      return
+    }
+
+    // 每30秒同步一次性能数据
+    setInterval(() => {
+      if (this.performanceTracker) {
+        const performanceData = this.performanceTracker.getCurrentPerformanceData()
+
+        // 更新活跃战斗数和排队玩家数
+        performanceData.activeBattles = this.localBattles.size
+        performanceData.queuedPlayers = 0 // 这个值会在其他地方更新
+
+        // 同步到集群状态管理器
+        this.stateManager.updateInstancePerformance(performanceData).catch(error => {
+          logger.error({ error }, 'Failed to sync performance data to cluster state')
+        })
+      }
+    }, 30000) // 30秒
+
+    logger.debug('Performance data sync started')
   }
 
   /**
@@ -1484,16 +1523,16 @@ export class ClusterBattleServer {
           return
         }
 
-        // 创建战斗房间
+        // 创建战斗房间 - 使用智能负载均衡选择最佳实例
         logger.info(
           {
             player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
             player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
           },
-          'About to create cluster battle room',
+          'About to create cluster battle room with load balancing',
         )
 
-        const roomId = await this.createClusterBattleRoom(player1Entry, player2Entry)
+        const roomId = await this.createBattleWithLoadBalancing(player1Entry, player2Entry)
 
         logger.info(
           {
@@ -1565,7 +1604,171 @@ export class ClusterBattleServer {
     }
   }
 
-  private async createClusterBattleRoom(
+  /**
+   * 使用负载均衡创建战斗房间
+   */
+  private async createBattleWithLoadBalancing(
+    player1Entry: MatchmakingEntry,
+    player2Entry: MatchmakingEntry,
+  ): Promise<string | null> {
+    try {
+      // 如果没有配置服务发现，回退到本地创建
+      if (!this.serviceDiscovery) {
+        logger.warn('Service discovery not configured, falling back to local battle creation')
+        return await this.createClusterBattleRoom(player1Entry, player2Entry)
+      }
+
+      // 获取最佳实例来创建战斗
+      const optimalInstance = await this.serviceDiscovery.getOptimalInstance()
+
+      if (!optimalInstance) {
+        logger.warn('No optimal instance found, falling back to local battle creation')
+        return await this.createClusterBattleRoom(player1Entry, player2Entry)
+      }
+
+      // 如果最佳实例就是当前实例，直接在本地创建
+      if (optimalInstance.id === this.instanceId) {
+        logger.info(
+          {
+            instanceId: this.instanceId,
+            performance: optimalInstance.performance,
+          },
+          'Current instance selected as optimal, creating battle locally',
+        )
+
+        // 记录本地战斗创建
+        this.performanceTracker?.recordBattleCreationMethod('local')
+
+        return await this.createClusterBattleRoom(player1Entry, player2Entry)
+      }
+
+      // 使用RPC在最佳实例上创建战斗
+      logger.info(
+        {
+          optimalInstanceId: optimalInstance.id,
+          currentInstanceId: this.instanceId,
+          performance: optimalInstance.performance,
+        },
+        'Delegating battle creation to optimal instance via RPC',
+      )
+
+      return await this.createBattleOnRemoteInstance(optimalInstance, player1Entry, player2Entry)
+    } catch (error) {
+      logger.error(
+        {
+          error,
+          player1Id: player1Entry.playerId,
+          player2Id: player2Entry.playerId,
+        },
+        'Error in load-balanced battle creation, falling back to local creation',
+      )
+
+      // 出错时回退到本地创建
+      return await this.createClusterBattleRoom(player1Entry, player2Entry)
+    }
+  }
+
+  /**
+   * 在远程实例上创建战斗
+   */
+  private async createBattleOnRemoteInstance(
+    targetInstance: ServiceInstance,
+    player1Entry: MatchmakingEntry,
+    player2Entry: MatchmakingEntry,
+  ): Promise<string | null> {
+    try {
+      // 获取目标实例的RPC客户端
+      const rpcClient = await this.rpcClient.getClientByInstanceId(targetInstance.id)
+
+      if (!rpcClient) {
+        logger.warn(
+          { targetInstanceId: targetInstance.id },
+          'Failed to get RPC client for target instance, falling back to local creation',
+        )
+        return await this.createClusterBattleRoom(player1Entry, player2Entry)
+      }
+
+      // 通过RPC调用远程实例创建战斗
+      const response = await new Promise<{ success: boolean; error?: string; roomId?: string }>((resolve, reject) => {
+        ;(rpcClient as any).createBattle(
+          {
+            player1_entry: {
+              player_id: player1Entry.playerId,
+              session_id: player1Entry.sessionId || '',
+              player_data: JSON.stringify(player1Entry.playerData),
+              rule_set_id: player1Entry.ruleSetId || 'casual_standard_ruleset',
+              join_time: player1Entry.joinTime,
+            },
+            player2_entry: {
+              player_id: player2Entry.playerId,
+              session_id: player2Entry.sessionId || '',
+              player_data: JSON.stringify(player2Entry.playerData),
+              rule_set_id: player2Entry.ruleSetId || 'casual_standard_ruleset',
+              join_time: player2Entry.joinTime,
+            },
+          },
+          (error: any, response: any) => {
+            if (error) {
+              reject(error)
+            } else {
+              resolve({
+                success: response.success,
+                error: response.error,
+                roomId: response.room_id,
+              })
+            }
+          },
+        )
+      })
+
+      if (response.success && response.roomId) {
+        logger.info(
+          {
+            roomId: response.roomId,
+            targetInstanceId: targetInstance.id,
+            player1Id: player1Entry.playerId,
+            player2Id: player2Entry.playerId,
+          },
+          'Battle created successfully on remote instance',
+        )
+
+        // 记录远程RPC战斗创建
+        this.performanceTracker?.recordBattleCreationMethod('remote_rpc')
+
+        return response.roomId
+      } else {
+        logger.warn(
+          {
+            targetInstanceId: targetInstance.id,
+            error: response.error,
+          },
+          'Remote battle creation failed, falling back to local creation',
+        )
+
+        // 记录回退到本地创建
+        this.performanceTracker?.recordBattleCreationMethod('fallback')
+
+        return await this.createClusterBattleRoom(player1Entry, player2Entry)
+      }
+    } catch (error) {
+      logger.error(
+        {
+          error,
+          targetInstanceId: targetInstance.id,
+          player1Id: player1Entry.playerId,
+          player2Id: player2Entry.playerId,
+        },
+        'Error creating battle on remote instance, falling back to local creation',
+      )
+
+      // 记录回退到本地创建
+      this.performanceTracker?.recordBattleCreationMethod('fallback')
+
+      return await this.createClusterBattleRoom(player1Entry, player2Entry)
+    }
+  }
+
+  async createClusterBattleRoom(
     player1Entry: MatchmakingEntry,
     player2Entry: MatchmakingEntry,
   ): Promise<string | null> {

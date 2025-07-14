@@ -81,6 +81,7 @@ export class BattleRpcServer {
         StartAnimation: this.handleStartAnimation.bind(this),
         EndAnimation: this.handleEndAnimation.bind(this),
         TerminateBattle: this.handleTerminateBattle.bind(this),
+        CreateBattle: this.handleCreateBattle.bind(this),
       })
 
       logger.info({ port: this.port }, 'Battle RPC service configured')
@@ -435,6 +436,86 @@ export class BattleRpcServer {
       })
     } catch (error) {
       logger.error({ error, request: call.request }, 'RPC error: TerminateBattle')
+      callback(null, {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
+  }
+
+  private async handleCreateBattle(call: any, callback: any): Promise<void> {
+    try {
+      const { player1_entry, player2_entry } = call.request
+
+      logger.info(
+        {
+          player1Id: player1_entry.player_id,
+          player2Id: player2_entry.player_id,
+          instanceId: this.battleServer.currentInstanceId,
+        },
+        'RPC: CreateBattle request received',
+      )
+
+      // 转换proto消息为MatchmakingEntry格式
+      const player1Entry = {
+        playerId: player1_entry.player_id,
+        sessionId: player1_entry.session_id,
+        playerData: JSON.parse(player1_entry.player_data),
+        ruleSetId: player1_entry.rule_set_id,
+        joinTime: Number(player1_entry.join_time),
+        metadata: {
+          sessionId: player1_entry.session_id,
+          ruleSetId: player1_entry.rule_set_id,
+        },
+      }
+
+      const player2Entry = {
+        playerId: player2_entry.player_id,
+        sessionId: player2_entry.session_id,
+        playerData: JSON.parse(player2_entry.player_data),
+        ruleSetId: player2_entry.rule_set_id,
+        joinTime: Number(player2_entry.join_time),
+        metadata: {
+          sessionId: player2_entry.session_id,
+          ruleSetId: player2_entry.rule_set_id,
+        },
+      }
+
+      // 调用本地战斗创建方法
+      const roomId = await this.battleServer.createClusterBattleRoom(player1Entry, player2Entry)
+
+      if (roomId) {
+        logger.info(
+          {
+            roomId,
+            player1Id: player1Entry.playerId,
+            player2Id: player2Entry.playerId,
+            instanceId: this.battleServer.currentInstanceId,
+          },
+          'RPC: Battle created successfully',
+        )
+
+        callback(null, {
+          success: true,
+          room_id: roomId,
+        })
+      } else {
+        logger.warn(
+          {
+            player1Id: player1Entry.playerId,
+            player2Id: player2Entry.playerId,
+            instanceId: this.battleServer.currentInstanceId,
+          },
+          'RPC: Battle creation failed',
+        )
+
+        callback(null, {
+          success: false,
+          error: 'Failed to create battle room',
+        })
+      }
+    } catch (error) {
+      logger.error({ error, request: call.request }, 'RPC error: CreateBattle')
       callback(null, {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

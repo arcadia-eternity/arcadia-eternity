@@ -3,19 +3,20 @@ import type { RedisClientManager } from './redisClient'
 import type { ClusterStateManager } from './clusterStateManager'
 import type { ServiceInstance } from './types'
 import { ServiceDiscoveryError } from './types'
+import { loadBalancingConfigManager, type LoadBalancingConfigManager } from './loadBalancingConfig'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
 })
 
 export interface LoadBalancingStrategy {
-  selectInstance(instances: ServiceInstance[]): ServiceInstance | null
+  selectInstance(instances: ServiceInstance[], preferredRegion?: string): ServiceInstance | null
 }
 
 export class RoundRobinStrategy implements LoadBalancingStrategy {
   private currentIndex = 0
 
-  selectInstance(instances: ServiceInstance[]): ServiceInstance | null {
+  selectInstance(instances: ServiceInstance[], _preferredRegion?: string): ServiceInstance | null {
     const healthyInstances = instances.filter(i => i.status === 'healthy')
 
     if (healthyInstances.length === 0) {
@@ -30,7 +31,7 @@ export class RoundRobinStrategy implements LoadBalancingStrategy {
 }
 
 export class LeastConnectionsStrategy implements LoadBalancingStrategy {
-  selectInstance(instances: ServiceInstance[]): ServiceInstance | null {
+  selectInstance(instances: ServiceInstance[], _preferredRegion?: string): ServiceInstance | null {
     const healthyInstances = instances.filter(i => i.status === 'healthy')
 
     if (healthyInstances.length === 0) {
@@ -42,7 +43,7 @@ export class LeastConnectionsStrategy implements LoadBalancingStrategy {
 }
 
 export class WeightedLoadStrategy implements LoadBalancingStrategy {
-  selectInstance(instances: ServiceInstance[]): ServiceInstance | null {
+  selectInstance(instances: ServiceInstance[], _preferredRegion?: string): ServiceInstance | null {
     const healthyInstances = instances.filter(i => i.status === 'healthy')
 
     if (healthyInstances.length === 0) {
@@ -70,10 +71,227 @@ export class WeightedLoadStrategy implements LoadBalancingStrategy {
   }
 }
 
+export interface SmartLoadBalancingConfig {
+  // 各指标权重配置
+  weights: {
+    cpu: number // CPU使用率权重
+    memory: number // 内存使用率权重
+    battles: number // 活跃战斗数权重
+    connections: number // 连接数权重
+    responseTime: number // 响应时间权重
+    errorRate: number // 错误率权重
+  }
+  // 负载阈值配置
+  thresholds: {
+    cpuHigh: number // CPU高负载阈值 (%)
+    memoryHigh: number // 内存高负载阈值 (%)
+    battlesMax: number // 最大战斗数
+    connectionsMax: number // 最大连接数
+    responseTimeMax: number // 最大响应时间 (ms)
+    errorRateMax: number // 最大错误率
+  }
+  // 是否启用区域优先
+  preferSameRegion: boolean
+  // 是否启用负载阈值过滤
+  enableThresholdFiltering: boolean
+}
+
+export class SmartLoadBalancingStrategy implements LoadBalancingStrategy {
+  private configManager: LoadBalancingConfigManager
+  private performanceTracker?: any // PerformanceTracker type
+
+  constructor(configManager?: LoadBalancingConfigManager, performanceTracker?: any) {
+    this.configManager = configManager || loadBalancingConfigManager
+    this.performanceTracker = performanceTracker
+
+    // 监听配置更新
+    this.configManager.onConfigUpdate(newConfig => {
+      logger.info({ newConfig }, 'Load balancing configuration updated')
+    })
+  }
+
+  selectInstance(instances: ServiceInstance[], preferredRegion?: string): ServiceInstance | null {
+    const startTime = Date.now()
+
+    try {
+      let healthyInstances = instances.filter(i => i.status === 'healthy')
+
+      if (healthyInstances.length === 0) {
+        this.performanceTracker?.recordLoadBalancingDecision('smart', 'error')
+        return null
+      }
+
+      const config = this.configManager.getConfig()
+
+      // 区域优先过滤
+      if (config.preferSameRegion && preferredRegion) {
+        const sameRegionInstances = healthyInstances.filter(i => i.region === preferredRegion)
+        if (sameRegionInstances.length > 0) {
+          healthyInstances = sameRegionInstances
+        }
+      }
+
+      // 负载阈值过滤
+      let usedThresholdFiltering = false
+      if (config.enableThresholdFiltering) {
+        const filteredInstances = healthyInstances.filter(instance => this.isWithinThresholds(instance))
+        if (filteredInstances.length > 0) {
+          healthyInstances = filteredInstances
+          usedThresholdFiltering = true
+        }
+        // 如果所有实例都超过阈值，仍然使用原始列表，但会选择负载最低的
+      }
+
+      // 计算每个实例的综合得分
+      const scoredInstances = healthyInstances.map(instance => {
+        const score = this.calculateInstanceScore(instance)
+
+        // 记录实例得分用于监控
+        this.performanceTracker?.updateInstanceScore(instance.id, score)
+
+        return {
+          instance,
+          score,
+        }
+      })
+
+      // 按得分排序（得分越高越好）
+      scoredInstances.sort((a, b) => b.score - a.score)
+
+      // 使用加权随机选择，偏向高分实例
+      const selectedInstance = this.weightedRandomSelection(scoredInstances)
+
+      // 记录成功的负载均衡决策
+      this.performanceTracker?.recordLoadBalancingDecision('smart', 'success')
+
+      // 记录选择耗时
+      const duration = Date.now() - startTime
+      this.performanceTracker?.recordInstanceSelectionDuration('smart', duration)
+
+      logger.debug(
+        {
+          selectedInstanceId: selectedInstance?.id,
+          totalInstances: instances.length,
+          healthyInstances: healthyInstances.length,
+          usedThresholdFiltering,
+          preferredRegion,
+          selectionDuration: duration,
+          topScores: scoredInstances.slice(0, 3).map(s => ({ id: s.instance.id, score: s.score })),
+        },
+        'Smart load balancing instance selection completed',
+      )
+
+      return selectedInstance
+    } catch (error) {
+      this.performanceTracker?.recordLoadBalancingDecision('smart', 'error')
+
+      const duration = Date.now() - startTime
+      this.performanceTracker?.recordInstanceSelectionDuration('smart', duration)
+
+      logger.error(
+        {
+          error,
+          instanceCount: instances.length,
+          preferredRegion,
+          selectionDuration: duration,
+        },
+        'Error in smart load balancing instance selection',
+      )
+
+      // 出错时回退到简单选择
+      const healthyInstances = instances.filter(i => i.status === 'healthy')
+      return healthyInstances.length > 0 ? healthyInstances[0] : null
+    }
+  }
+
+  private isWithinThresholds(instance: ServiceInstance): boolean {
+    const { performance } = instance
+    const { thresholds } = this.configManager.getConfig()
+
+    return (
+      performance.cpuUsage <= thresholds.cpuHigh &&
+      performance.memoryUsage <= thresholds.memoryHigh &&
+      performance.activeBattles <= thresholds.battlesMax &&
+      instance.connections <= thresholds.connectionsMax &&
+      performance.avgResponseTime <= thresholds.responseTimeMax &&
+      performance.errorRate <= thresholds.errorRateMax
+    )
+  }
+
+  private calculateInstanceScore(instance: ServiceInstance): number {
+    const { performance } = instance
+    const { weights, thresholds } = this.configManager.getConfig()
+
+    // 计算各项指标的标准化得分（0-1，越高越好）
+    const cpuScore = Math.max(0, 1 - performance.cpuUsage / 100)
+    const memoryScore = Math.max(0, 1 - performance.memoryUsage / 100)
+    const battlesScore = Math.max(0, 1 - performance.activeBattles / thresholds.battlesMax)
+    const connectionsScore = Math.max(0, 1 - instance.connections / thresholds.connectionsMax)
+    const responseTimeScore = Math.max(0, 1 - performance.avgResponseTime / thresholds.responseTimeMax)
+    const errorRateScore = Math.max(0, 1 - performance.errorRate / thresholds.errorRateMax)
+
+    // 加权计算综合得分
+    const totalScore =
+      cpuScore * weights.cpu +
+      memoryScore * weights.memory +
+      battlesScore * weights.battles +
+      connectionsScore * weights.connections +
+      responseTimeScore * weights.responseTime +
+      errorRateScore * weights.errorRate
+
+    return Math.max(0.01, totalScore) // 确保最小得分为0.01
+  }
+
+  private weightedRandomSelection(
+    scoredInstances: Array<{ instance: ServiceInstance; score: number }>,
+  ): ServiceInstance {
+    if (scoredInstances.length === 1) {
+      return scoredInstances[0].instance
+    }
+
+    // 计算总权重
+    const totalWeight = scoredInstances.reduce((sum, item) => sum + item.score, 0)
+    const random = Math.random() * totalWeight
+
+    let currentWeight = 0
+    for (const item of scoredInstances) {
+      currentWeight += item.score
+      if (random <= currentWeight) {
+        return item.instance
+      }
+    }
+
+    // 备用：返回得分最高的实例
+    return scoredInstances[0].instance
+  }
+
+  /**
+   * 更新配置
+   */
+  updateConfig(config: Partial<SmartLoadBalancingConfig>): void {
+    this.configManager.updateConfig(config)
+  }
+
+  /**
+   * 获取当前配置
+   */
+  getConfig(): SmartLoadBalancingConfig {
+    return this.configManager.getConfig()
+  }
+
+  /**
+   * 获取配置管理器
+   */
+  getConfigManager(): LoadBalancingConfigManager {
+    return this.configManager
+  }
+}
+
 export class ServiceDiscoveryManager {
   protected redisManager: RedisClientManager
   protected stateManager: ClusterStateManager
   protected loadBalancer: LoadBalancingStrategy
+  protected configManager: LoadBalancingConfigManager
   private healthCheckInterval?: NodeJS.Timeout
   private failoverCheckInterval?: NodeJS.Timeout
   private isPerformingHealthCheck = false // 防止重复健康检查
@@ -83,10 +301,12 @@ export class ServiceDiscoveryManager {
     redisManager: RedisClientManager,
     stateManager: ClusterStateManager,
     loadBalancer: LoadBalancingStrategy = new WeightedLoadStrategy(),
+    configManager: LoadBalancingConfigManager = loadBalancingConfigManager,
   ) {
     this.redisManager = redisManager
     this.stateManager = stateManager
     this.loadBalancer = loadBalancer
+    this.configManager = configManager
   }
 
   async initialize(): Promise<void> {
@@ -109,10 +329,10 @@ export class ServiceDiscoveryManager {
   /**
    * 获取最佳服务实例
    */
-  async getOptimalInstance(): Promise<ServiceInstance | null> {
+  async getOptimalInstance(preferredRegion?: string): Promise<ServiceInstance | null> {
     try {
       const instances = await this.stateManager.getInstances()
-      return this.loadBalancer.selectInstance(instances)
+      return this.loadBalancer.selectInstance(instances, preferredRegion)
     } catch (error) {
       logger.error({ error }, 'Error getting optimal instance')
       throw new ServiceDiscoveryError('Failed to get optimal instance', error)
@@ -126,7 +346,7 @@ export class ServiceDiscoveryManager {
     try {
       const instances = await this.stateManager.getInstances()
       const regionInstances = instances.filter(i => i.region === region)
-      return this.loadBalancer.selectInstance(regionInstances)
+      return this.loadBalancer.selectInstance(regionInstances, region)
     } catch (error) {
       logger.error({ error, region }, 'Error getting optimal instance in region')
       throw new ServiceDiscoveryError('Failed to get optimal instance in region', error)
@@ -188,6 +408,36 @@ export class ServiceDiscoveryManager {
   setLoadBalancingStrategy(strategy: LoadBalancingStrategy): void {
     this.loadBalancer = strategy
     logger.info({ strategy: strategy.constructor.name }, 'Load balancing strategy updated')
+  }
+
+  /**
+   * 获取负载均衡配置管理器
+   */
+  getLoadBalancingConfigManager(): LoadBalancingConfigManager {
+    return this.configManager
+  }
+
+  /**
+   * 更新负载均衡配置
+   */
+  updateLoadBalancingConfig(config: Partial<SmartLoadBalancingConfig>): void {
+    this.configManager.updateConfig(config)
+    logger.info({ config }, 'Load balancing configuration updated')
+  }
+
+  /**
+   * 获取当前负载均衡配置
+   */
+  getLoadBalancingConfig(): SmartLoadBalancingConfig {
+    return this.configManager.getConfig()
+  }
+
+  /**
+   * 重置负载均衡配置为默认值
+   */
+  resetLoadBalancingConfig(): void {
+    this.configManager.resetToDefault()
+    logger.info('Load balancing configuration reset to default')
   }
 
   /**
