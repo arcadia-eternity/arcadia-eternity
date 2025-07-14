@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.1.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.0.4...arcadia-eternity-v2.1.0) (2025-07-14)
+
+
+### ✨ Features
+
+* Add smart load balancing and monitoring features ([42bb412](https://github.com/arcadia-eternity/arcadia-eternity/commit/42bb412f347b21893c05bd5d37ab509304effac8))
+
+
+### 🐛 Bug Fixes
+
+* Refactor nature translations to use i18n ([867dd1d](https://github.com/arcadia-eternity/arcadia-eternity/commit/867dd1dbc88b9bc7976b4b3540858be42e7a0915))
+
+
+### ♻️ Code Refactoring
+
+* Refactor server structure and update imports ([a29e621](https://github.com/arcadia-eternity/arcadia-eternity/commit/a29e62105eb2c80a37a4c8291076c9b00a6ea35f))
+
 ## [2.0.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.0.3...arcadia-eternity-v2.0.4) (2025-07-14)
 
 
