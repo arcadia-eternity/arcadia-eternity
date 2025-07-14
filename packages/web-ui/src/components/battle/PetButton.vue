@@ -4,6 +4,7 @@ import PetIcon from '../PetIcon.vue'
 import ElementIcon from './ElementIcon.vue'
 import Tooltip from './Tooltip.vue'
 import ModifiedValue from './ModifiedValue.vue'
+import BattleMarkInfo from './BattleMarkInfo.vue'
 import type { PetMessage, SkillMessage } from '@arcadia-eternity/const'
 import { useGameDataStore } from '@/stores/gameData'
 import { useBattleStore } from '@/stores/battle'
@@ -12,6 +13,7 @@ import i18next from 'i18next'
 import MarkdownIt from 'markdown-it'
 import { analyzeModifierType } from '@/utils/modifierStyles'
 import { getCurrentSkillEffectiveness } from '@/utils/typeEffectiveness'
+import { SkillMarkRelationService } from '@/services/skillMarkRelationService'
 
 const gameDataStore = useGameDataStore()
 const battleStore = useBattleStore()

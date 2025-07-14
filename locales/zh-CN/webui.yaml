@@ -100,6 +100,8 @@ dex:
     sureHit: 必中
     sureCrit: 必定暴击
     ignoreShield: 无视护盾
+    relatedMarks: 相关印记
+    noRelatedMarks: 暂无相关印记
 
   # 印记详情
   markDetail:
@@ -168,3 +170,13 @@ battleReport:
   noRecordsHint: 开始一场战斗来创建第一个战报吧！
   shareDetail: 分享详情
   sharePreview: 分享回放
+
+# 修改器相关
+modifier:
+  title: 修改器信息
+  baseValue: 基础值
+  currentValue: 当前值
+  activeModifiers: 生效的修改器
+  source: 来源
+  effect: 效果
+  tags: 标签
