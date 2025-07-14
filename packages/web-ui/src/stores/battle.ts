@@ -25,7 +25,7 @@ function isDeveloperBattleSystem(
 }
 
 // 带时间戳的战斗消息类型
-export interface TimestampedBattleMessage extends BattleMessage {
+export type TimestampedBattleMessage = BattleMessage & {
   receivedAt: number // 消息接收时的时间戳
 }
 
