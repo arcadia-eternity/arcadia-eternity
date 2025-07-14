@@ -3,12 +3,15 @@ import { type SkillMessage, type AttributeModifierInfo, Category } from '@arcadi
 import ElementIcon from './ElementIcon.vue'
 import Tooltip from './Tooltip.vue'
 import ModifiedValue from './ModifiedValue.vue'
+import BattleMarkInfo from './BattleMarkInfo.vue'
 import { Z_INDEX } from '@/constants/zIndex'
 import MarkdownIt from 'markdown-it'
 import i18next from 'i18next'
 import { computed, ref } from 'vue'
 import { analyzeModifierType } from '@/utils/modifierStyles'
 import { useBattleStore } from '@/stores/battle'
+import { useGameDataStore } from '@/stores/gameData'
+import { SkillMarkRelationService } from '@/services/skillMarkRelationService'
 import { getSkillTypeEffectiveness } from '@/utils/typeEffectiveness'
 
 const md = new MarkdownIt({
@@ -16,6 +19,7 @@ const md = new MarkdownIt({
 })
 
 const battleStore = useBattleStore()
+const gameDataStore = useGameDataStore()
 
 const props = defineProps<{
   skill: SkillMessage
@@ -139,6 +143,21 @@ const accuracyModifierType = computed(() => {
 
 const rageModifierType = computed(() => {
   return analyzeModifierType(props.rageModifierInfo, 'rage')
+})
+
+// 技能印记关联分析
+const skillMarkRelations = computed(() => {
+  if (!gameDataStore.loaded || !props.skill.baseId) return []
+
+  const relationService = new SkillMarkRelationService(
+    gameDataStore.skills.byId,
+    gameDataStore.marks.byId,
+    gameDataStore.effects.byId,
+  )
+
+  const analysis = relationService.analyzeSkillMarkRelations(props.skill.baseId)
+  // 只显示前3个最相关的印记，避免tooltip过长
+  return analysis.relatedMarks.slice(0, 3)
 })
 
 // 技能按钮的特殊样式
@@ -384,6 +403,19 @@ const particlesLoaded = async () => {
               <span class="text-gray-300">类别:</span>
               <span class="text-white">{{ category }}</span>
             </div>
+          </div>
+        </div>
+
+        <!-- 相关印记 -->
+        <div v-if="skillMarkRelations.length > 0" class="mt-4 border-t border-gray-600 pt-3">
+          <div class="space-y-2">
+            <BattleMarkInfo
+              v-for="relation in skillMarkRelations"
+              :key="`${relation.markId}-${relation.relationType}`"
+              :mark-id="relation.markId"
+              :relation="relation"
+              :show-description="true"
+            />
           </div>
         </div>
       </div>

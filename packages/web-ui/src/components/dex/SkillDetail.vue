@@ -137,6 +137,9 @@
           </div>
         </div>
 
+        <!-- 相关印记 -->
+        <RelatedMarks :skill-id="skill.id" :show-confidence="false" />
+
         <!-- 效果 -->
         <div
           v-if="skill.effect && skill.effect.length > 0"
@@ -158,16 +161,16 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useGameDataStore } from '@/stores/gameData'
 import { useTranslation } from 'i18next-vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
+import RelatedMarks from './RelatedMarks.vue'
 import { ArrowLeftIcon } from '@heroicons/vue/24/outline'
 import MarkdownIt from 'markdown-it'
 
 const { i18next } = useTranslation()
 const route = useRoute()
-const router = useRouter()
 const gameDataStore = useGameDataStore()
 
 // 创建markdown实例

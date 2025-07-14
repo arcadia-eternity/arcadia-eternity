@@ -230,12 +230,25 @@ class PetResourceCache {
             fileExists,
           })
 
-          if (fileExists) {
-            // 在 Tauri 环境中，通过本地 HTTP 服务器提供文件
-            const localHttpUrl = `http://localhost:${tauriApi.localServerPort}/cache/pets/${num}.swf`
-            console.log(`Pet ${num}: 使用本地 HTTP 服务器 URL: ${localHttpUrl}`)
-            return localHttpUrl
+          // 在客户端模式下，始终返回本地URL
+          const localHttpUrl = `http://localhost:${tauriApi.localServerPort}/cache/pets/${num}.swf`
+
+          if (!fileExists) {
+            // 如果本地文件不存在，通过Rust后端下载
+            console.log(`Pet ${num}: 本地文件不存在，开始下载...`)
+            try {
+              if (tauriApi.invoke) {
+                await tauriApi.invoke('download_pet_swf', { petNum: num, remoteUrl })
+                console.log(`Pet ${num}: 下载完成`)
+              }
+            } catch (downloadError) {
+              console.error(`Pet ${num}: 下载失败:`, downloadError)
+              // 下载失败时仍然返回本地URL，让HTTP服务器处理404
+            }
           }
+
+          console.log(`Pet ${num}: 使用本地 HTTP 服务器 URL: ${localHttpUrl}`)
+          return localHttpUrl
         } catch (error) {
           console.error(`Error accessing local file for pet ${num}:`, error)
         }
@@ -244,7 +257,7 @@ class PetResourceCache {
       }
     }
 
-    // 降级到远程 URL
+    // 非客户端模式降级到远程 URL
     console.log(`Pet ${num}: 使用远程 URL: ${remoteUrl}`)
     return remoteUrl
   }
@@ -288,19 +301,11 @@ class PetResourceCache {
     this.updateStats()
 
     try {
-      if (isTauri && this.localPetDir && tauriApi.http && tauriApi.path && tauriApi.fs) {
-        // Tauri environment: download and save locally
-        // 文件将通过本地 HTTP 服务器 (localhost:8103) 提供给 Ruffle
-        const response = await fetch(remoteUrl)
-
-        if (response.ok) {
-          const arrayBuffer = await response.arrayBuffer()
-          const localPath = await tauriApi.path.join(this.localPetDir, `${num}.swf`)
-          await tauriApi.fs.writeFile(localPath, new Uint8Array(arrayBuffer))
-          console.debug(`Pet ${num} 已下载到本地缓存，将通过本地 HTTP 服务器提供`)
-        } else {
-          throw new Error(`Failed to fetch pet ${num}: ${response.status}`)
-        }
+      if (isTauri && this.localPetDir && tauriApi.invoke) {
+        // Tauri environment: 使用Rust后端下载
+        console.debug(`Pet ${num}: 开始通过Rust后端下载...`)
+        await tauriApi.invoke('download_pet_swf', { petNum: num, remoteUrl })
+        console.debug(`Pet ${num}: 通过Rust后端下载完成`)
       } else {
         // Web environment: use fetch to populate browser cache
         const response = await fetch(remoteUrl, {
