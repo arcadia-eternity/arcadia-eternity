@@ -443,7 +443,7 @@ const paginatedData = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
 
-  return [...filteredData.slice(start, end)]
+  return filteredData.slice(start, end)
 })
 
 // 分页事件处理
