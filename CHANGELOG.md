@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.2.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.1.0...arcadia-eternity-v2.2.0) (2025-07-14)
+
+
+### ✨ Features
+
+* add skill-mark relationship display system ([096de84](https://github.com/arcadia-eternity/arcadia-eternity/commit/096de84c389518cf94ba3888b161bda99eaf9cfe))
+
+
+### ⚡ Performance Improvements
+
+* Add SWF file download via Rust backend in Tauri ([3dbff2f](https://github.com/arcadia-eternity/arcadia-eternity/commit/3dbff2f7d0b8dbf0b0009b07146663a383ff41bc))
+* Adjust tooltip position to prevent viewport overflow ([129d5b1](https://github.com/arcadia-eternity/arcadia-eternity/commit/129d5b1dbf8731916ff6dcfc69b7586292b81600))
+
 ## [2.1.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.0.4...arcadia-eternity-v2.1.0) (2025-07-14)
 
 
