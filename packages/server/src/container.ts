@@ -1,10 +1,10 @@
 import 'reflect-metadata'
 import { Container } from 'inversify'
-import { EmailService, createEmailConfigFromEnv, type EmailConfig } from './emailService'
-import { AuthService, createAuthConfigFromEnv } from './authService'
+import { EmailService, createEmailConfigFromEnv, type EmailConfig } from './domain/email/emailService'
+import { AuthService, createAuthConfigFromEnv } from './domain/auth/services/authService'
 import { EmailVerificationRepository, PlayerRepository } from '@arcadia-eternity/database'
 import type { IEmailService } from './interfaces/IEmailService'
-import type { IAuthService } from './authService'
+import type { IAuthService } from './domain/auth/services/authService'
 
 // 服务标识符
 export const TYPES = {

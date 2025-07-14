@@ -2603,38 +2603,13 @@ const getGenderText = (gender?: Gender) => {
   }
 }
 
-// 性格中文映射
-const natureChineseMap: Record<Nature, string> = {
-  [Nature.Adamant]: '固执',
-  [Nature.Bashful]: '害羞',
-  [Nature.Bold]: '大胆',
-  [Nature.Brave]: '勇敢',
-  [Nature.Calm]: '冷静',
-  [Nature.Careful]: '慎重',
-  [Nature.Docile]: '坦率',
-  [Nature.Gentle]: '温和',
-  [Nature.Hardy]: '勤奋',
-  [Nature.Hasty]: '急躁',
-  [Nature.Impish]: '淘气',
-  [Nature.Jolly]: '爽朗',
-  [Nature.Lax]: '乐天',
-  [Nature.Lonely]: '怕寂寞',
-  [Nature.Mild]: '温和',
-  [Nature.Modest]: '内敛',
-  [Nature.Naive]: '天真',
-  [Nature.Naughty]: '顽皮',
-  [Nature.Quiet]: '冷静',
-  [Nature.Quirky]: '古怪',
-  [Nature.Rash]: '马虎',
-  [Nature.Relaxed]: '悠闲',
-  [Nature.Sassy]: '自大',
-  [Nature.Serious]: '认真',
-  [Nature.Timid]: '胆小',
-}
-
 // 获取性格文本
 const getNatureText = (nature: Nature) => {
-  return natureChineseMap[nature] || nature
+  try {
+    return i18next.t(`${nature}.name`, { ns: 'nature' }) || nature
+  } catch {
+    return nature
+  }
 }
 
 // 获取技能名称

@@ -42,6 +42,18 @@ export interface ServiceInstance {
   lastHeartbeat: number
   connections: number
   load: number
+  // 增强的性能指标
+  performance: {
+    cpuUsage: number // CPU使用率 (0-100)
+    memoryUsage: number // 内存使用率 (0-100)
+    memoryUsedMB: number // 已使用内存 (MB)
+    memoryTotalMB: number // 总内存 (MB)
+    activeBattles: number // 活跃战斗数量
+    queuedPlayers: number // 排队玩家数量
+    avgResponseTime: number // 平均响应时间 (ms)
+    errorRate: number // 错误率 (0-1)
+    lastUpdated: number // 性能指标最后更新时间
+  }
   metadata?: Record<string, any>
 }
 
