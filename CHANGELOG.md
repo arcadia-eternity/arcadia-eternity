@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.0.3...arcadia-eternity-v2.0.4) (2025-07-14)
+
+
+### 🐛 Bug Fixes
+
+* Increase API timeout and update message type ([2397e07](https://github.com/arcadia-eternity/arcadia-eternity/commit/2397e07f0424810abf2599a86ded8911314c796c))
+
 ## [2.0.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.0.2...arcadia-eternity-v2.0.3) (2025-07-12)
 
 
