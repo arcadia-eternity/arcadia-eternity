@@ -269,6 +269,33 @@
                   </button>
                 </div>
               </div>
+
+              <!-- 排序锁控件 -->
+              <div v-if="currentTeam.length > 1" class="mt-2 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <el-icon :size="14" class="text-gray-500">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path
+                        v-if="sortLocked"
+                        d="M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10A2,2 0 0,1 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"
+                      />
+                      <path
+                        v-else
+                        d="M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3M6,10V20H18V10H6Z"
+                      />
+                    </svg>
+                  </el-icon>
+                  <span class="text-xs text-gray-600">排序锁</span>
+                </div>
+                <el-switch
+                  v-model="sortLocked"
+                  size="small"
+                  :active-text="sortLocked ? '已锁定' : ''"
+                  :inactive-text="!sortLocked ? '可拖拽' : ''"
+                  active-color="#ef4444"
+                  inactive-color="#10b981"
+                />
+              </div>
             </div>
 
             <div class="p-3 space-y-2">
@@ -278,7 +305,7 @@
                 :options="{
                   animation: 150,
                   handle: '.drag-handle',
-                  disabled: currentTeam.length <= 1,
+                  disabled: sortLocked || currentTeam.length <= 1,
                   group: 'pets',
                   ghostClass: 'sortable-ghost',
                   chosenClass: 'sortable-chosen',
@@ -1028,6 +1055,7 @@ import {
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { usePetManagement } from '@/composition/usePetManagement'
 import { useTeamExport } from '@/composition/useTeamExport'
+import { useMobile } from '@/composition/useMobile'
 
 const { i18next } = useTranslation()
 
@@ -1046,11 +1074,17 @@ const md = new MarkdownIt({
   typographer: false,
 })
 
+// 移动端检测
+const { isMobile } = useMobile()
+
 // 响应式状态
 const selectedPetId = ref<string | null>(null)
 const showGuide = ref(localStorage.getItem('teamBuilderGuideHidden') !== 'true') // 控制指引显示
 const showDragTip = ref(localStorage.getItem('teamBuilderDragTipHidden') !== 'true') // 控制拖拽提示显示
 const showValidationDetails = ref(false) // 控制验证详情显示
+
+// 排序锁状态 - PC端默认关闭，移动端默认开启
+const sortLocked = ref(isMobile.value)
 
 type StatKey = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe'
 

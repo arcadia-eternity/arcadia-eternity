@@ -11,6 +11,7 @@ import {
 import type { IBattleSystem, IDeveloperBattleSystem } from '@arcadia-eternity/interface'
 import * as jsondiffpatch from 'jsondiffpatch'
 import { markRaw } from 'vue'
+import { ReplayBattleInterface } from './replayBattleInterface'
 
 // 类型守卫函数：检查battleInterface是否支持开发者功能
 function isDeveloperBattleSystem(
@@ -186,18 +187,55 @@ export const useBattleStore = defineStore('battle', {
         }
         // 在状态更新后，使用节流的方式更新Map缓存
         this._throttledUpdateMapCaches()
+
+        // 在回放模式下，同步更新ReplayBattleInterface的状态
+        if (
+          this.isReplayMode &&
+          this.battleInterface &&
+          this.battleInterface instanceof ReplayBattleInterface &&
+          this.battleState
+        ) {
+          this.battleInterface.updateState(this.battleState)
+        }
       } catch (error) {
         console.warn(`Failed to apply state delta for ${msg.type} (${msg.sequenceId}):`, error)
         console.warn('StateDelta:', msg.stateDelta)
         console.warn('Current battleState:', this.battleState)
         // 跳过这个有问题的消息，继续处理
       }
-      // 添加时间戳并推入日志
+      // 添加时间戳并推入日志（回放模式和正常模式都需要）
       const timestampedMsg: TimestampedBattleMessage = {
         ...msg,
         receivedAt: Date.now(),
       }
       this.log.push(timestampedMsg)
+
+      // 调试日志
+      if (this.isReplayMode) {
+        console.debug(`[Replay] Applied message ${msg.type} (${msg.sequenceId}), log length: ${this.log.length}`)
+
+        // 检查状态更新后的数据
+        if (msg.type === BattleMessageType.SkillUse && this.battleState?.players) {
+          const playersWithPets = this.battleState.players.filter(p => p.team && p.team.length > 0)
+          console.debug('[Replay] After SkillUse, players with pets:', playersWithPets.length)
+          if (playersWithPets.length > 0) {
+            const firstPetWithSkills = playersWithPets[0].team?.find(pet => pet.skills && pet.skills.length > 0)
+            if (firstPetWithSkills) {
+              console.debug('[Replay] Sample pet with skills:', {
+                petId: firstPetWithSkills.id,
+                petName: firstPetWithSkills.name,
+                skillCount: firstPetWithSkills.skills?.length || 0,
+                firstSkill: firstPetWithSkills.skills?.[0]
+                  ? {
+                      id: firstPetWithSkills.skills[0].id,
+                      baseId: firstPetWithSkills.skills[0].baseId,
+                    }
+                  : null,
+              })
+            }
+          }
+        }
+      }
 
       // 更新已处理的序号
       if (msg.sequenceId !== undefined) {
@@ -331,11 +369,23 @@ export const useBattleStore = defineStore('battle', {
       this.log.splice(0, this.log.length)
       this.availableActions = []
       this.lastProcessedSequenceId = -1
+      this.playerId = viewerId || ''
 
       // 初始化消息订阅系统（重要！）
       this._messageSubject = new Subject<BattleMessage>()
       this.animateQueue = new Subject<() => Promise<void>>()
       console.log('Initialized message subject for replay mode')
+
+      // 创建回放专用的battleInterface，复用观战模式逻辑
+      const initialState = {} as BattleState
+      const replayInterface = new ReplayBattleInterface(initialState, viewerId as playerId)
+      this.battleInterface = markRaw(replayInterface)
+
+      // 注册回放模式的事件监听器
+      this._battleEventUnsubscribe = this.battleInterface.BattleEvent(msg => {
+        this.handleBattleMessage(msg)
+      })
+      console.log('🔄 Registered replay battle event listener')
 
       // 设置玩家ID，优先使用提供的viewerId，否则使用第一个玩家的ID
       const battleStartMsg = messages.find(msg => msg.type === BattleMessageType.BattleStart)
@@ -395,6 +445,8 @@ export const useBattleStore = defineStore('battle', {
       // 模拟完整的战斗过程来生成快照
       let simulationState: BattleState = {} as BattleState
 
+      console.debug('[Replay] Generating snapshots from', this.replayMessages.length, 'messages')
+
       // 模拟所有消息，在关键节点生成快照
       for (let i = 0; i < this.replayMessages.length; i++) {
         const msg = this.replayMessages[i]
@@ -403,6 +455,22 @@ export const useBattleStore = defineStore('battle', {
         if (msg.stateDelta) {
           try {
             jsondiffpatch.patch(simulationState, msg.stateDelta)
+
+            // 调试：检查状态更新
+            if (i < 5 || msg.type === BattleMessageType.TurnStart) {
+              console.debug(
+                `[Replay] Applied message ${i}: ${msg.type}, players:`,
+                simulationState.players?.length || 0,
+              )
+              if (simulationState.players && simulationState.players.length > 0) {
+                const firstPlayer = simulationState.players[0]
+                console.debug('[Replay] First player after message:', {
+                  id: firstPlayer.id,
+                  name: firstPlayer.name,
+                  teamLength: firstPlayer.team?.length || 0,
+                })
+              }
+            }
           } catch (error) {
             console.warn(
               `Failed to apply state delta during snapshot generation for ${msg.type} (${msg.sequenceId}):`,
@@ -457,21 +525,37 @@ export const useBattleStore = defineStore('battle', {
       // 直接使用快照的状态
       this.battleState = JSON.parse(JSON.stringify(snapshot.state)) // 深拷贝避免修改原快照
 
-      // 更新Map缓存以反映快照状态
+      // 更新ReplayBattleInterface的状态
+      if (this.battleInterface && this.battleInterface instanceof ReplayBattleInterface && this.battleState) {
+        this.battleInterface.updateState(this.battleState)
+      }
+
+      // 更新Map缓存以反映快照状态（不需要清空，直接更新即可）
       this._updateMapCaches()
 
-      // 设置对应的消息日志（从快照开始到下一个快照之间的消息）
-      const nextSnapshot = this.replaySnapshots[snapshotIndex + 1]
-      const startIndex = Math.max(0, snapshot.messageIndex + 1)
-      const endIndex = nextSnapshot ? nextSnapshot.messageIndex : this.replayMessages.length - 1
+      console.debug(`Replay snapshot ${snapshotIndex} set:`, {
+        snapshotLabel: snapshot.label,
+        battleStateExists: !!this.battleState,
+        playersCount: this.battleState?.players?.length || 0,
+        petMapSize: this._petMapCache.size,
+        skillMapSize: this._skillMapCache.size,
+      })
 
-      // 使用响应式方式更新log数组，为回放消息添加时间戳
-      const newMessages = this.replayMessages.slice(startIndex, endIndex + 1)
-      const timestampedMessages: TimestampedBattleMessage[] = newMessages.map(msg => ({
-        ...msg,
-        receivedAt: Date.now(), // 回放时使用当前时间作为接收时间
-      }))
-      this.log.splice(0, this.log.length, ...timestampedMessages)
+      // 设置累积日志到当前快照位置（用于静态显示）
+      // 注意：这里只是为了在不播放动画时显示正确的日志状态
+      // 实际的日志更新会在播放动画时通过applyStateDelta正常处理
+      const currentMessageIndex = snapshot.messageIndex
+      if (currentMessageIndex >= 0) {
+        const cumulativeMessages = this.replayMessages.slice(0, currentMessageIndex + 1)
+        const timestampedMessages: TimestampedBattleMessage[] = cumulativeMessages.map(msg => ({
+          ...msg,
+          receivedAt: Date.now(),
+        }))
+        this.log.splice(0, this.log.length, ...timestampedMessages)
+      } else {
+        // 如果是初始快照，清空日志
+        this.log.splice(0, this.log.length)
+      }
 
       // 检查是否是战斗结束状态
       if (snapshot.type === 'battleEnd') {
@@ -544,10 +628,28 @@ export const useBattleStore = defineStore('battle', {
 
       // 首先恢复到快照状态
       this.battleState = JSON.parse(JSON.stringify(snapshot.state))
+
+      // 更新ReplayBattleInterface的状态
+      if (this.battleInterface && this.battleInterface instanceof ReplayBattleInterface && this.battleState) {
+        this.battleInterface.updateState(this.battleState)
+      }
+
       // 更新Map缓存以反映快照状态
       this._updateMapCaches()
-      // 使用响应式方式清空log数组
-      this.log.splice(0, this.log.length)
+
+      // 重置日志到快照位置，后续消息会通过applyStateDelta正常添加
+      const currentMessageIndex = snapshot.messageIndex
+      if (currentMessageIndex >= 0) {
+        const cumulativeMessages = this.replayMessages.slice(0, currentMessageIndex + 1)
+        const timestampedMessages: TimestampedBattleMessage[] = cumulativeMessages.map(msg => ({
+          ...msg,
+          receivedAt: Date.now(),
+        }))
+        this.log.splice(0, this.log.length, ...timestampedMessages)
+      } else {
+        this.log.splice(0, this.log.length)
+      }
+
       this.isBattleEnd = false
       this.victor = null
 
@@ -568,10 +670,16 @@ export const useBattleStore = defineStore('battle', {
 
       console.debug(`Playing ${messagesToPlay.length} messages for snapshot ${snapshotIndex}: ${snapshot.label}`)
 
-      // 模拟battleInterface回调，向messageSubject推送消息
-      // 这样可以确保和正常战斗模式使用完全相同的消息处理逻辑
-      for (const message of messagesToPlay) {
-        this._messageSubject.next(message)
+      // 通过ReplayBattleInterface触发事件，复用观战模式的消息处理逻辑
+      if (this.battleInterface && this.battleInterface instanceof ReplayBattleInterface) {
+        for (const message of messagesToPlay) {
+          this.battleInterface.emitEvent(message)
+        }
+      } else {
+        // 回退到直接推送消息的方式
+        for (const message of messagesToPlay) {
+          this._messageSubject.next(message)
+        }
       }
 
       // 等待所有消息处理完成 - 使用事件驱动方式
@@ -738,6 +846,29 @@ export const useBattleStore = defineStore('battle', {
       const currentPlayers = this.battleState.players ?? []
       const allMarks: any[] = []
 
+      // 调试信息
+      if (this.isReplayMode) {
+        console.debug('[Replay] Updating map caches, battleState players:', currentPlayers.length)
+
+        // 检查battleState的数据结构
+        if (currentPlayers.length > 0) {
+          const firstPlayer = currentPlayers[0]
+          console.debug('[Replay] First player structure:', {
+            id: firstPlayer?.id,
+            name: firstPlayer?.name,
+            teamLength: firstPlayer?.team?.length || 0,
+            firstPet: firstPlayer?.team?.[0]
+              ? {
+                  id: firstPlayer.team[0].id,
+                  name: firstPlayer.team[0].name,
+                  isUnknown: firstPlayer.team[0].isUnknown,
+                  skillsLength: firstPlayer.team[0].skills?.length || 0,
+                }
+              : null,
+          })
+        }
+      }
+
       // 收集玩家数据
       for (const player of currentPlayers) {
         if (player) {
@@ -792,6 +923,36 @@ export const useBattleStore = defineStore('battle', {
       this._batchUpdateCache(this._markMapCache, allMarks)
 
       this._mapCacheVersion++
+
+      // 在回放模式下，强制触发响应式更新
+      // 由于Map被markRaw包装，Vue不会自动检测Map内容变化
+      // 我们需要手动触发更新
+      if (this.isReplayMode) {
+        // 通过修改一个响应式属性来触发更新
+        // 这会导致所有依赖这些getter的组件重新渲染
+        this._mapCacheVersion = this._mapCacheVersion + 0.1 - 0.1 // 强制触发响应式更新
+      }
+
+      // 调试信息
+      if (this.isReplayMode) {
+        console.debug('[Replay] Map caches updated:', {
+          pets: this._petMapCache.size,
+          skills: this._skillMapCache.size,
+          players: this._playerMapCache.size,
+          marks: this._markMapCache.size,
+          version: this._mapCacheVersion,
+        })
+
+        // 输出一些具体的缓存内容用于调试
+        if (this._petMapCache.size > 0) {
+          const firstPet = Array.from(this._petMapCache.values())[0]
+          console.debug('[Replay] Sample pet in cache:', { id: firstPet?.id, name: firstPet?.name })
+        }
+        if (this._skillMapCache.size > 0) {
+          const firstSkill = Array.from(this._skillMapCache.values())[0]
+          console.debug('[Replay] Sample skill in cache:', { id: firstSkill?.id, baseId: firstSkill?.baseId })
+        }
+      }
     },
 
     // 清理缓存中 ID 不匹配的条目

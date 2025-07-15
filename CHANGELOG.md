@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.3.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.2.0...arcadia-eternity-v2.3.0) (2025-07-15)
+
+
+### ✨ Features
+
+* **teamBuilder:** add sort lock to prevent mobile drag conflicts ([f22335f](https://github.com/arcadia-eternity/arcadia-eternity/commit/f22335fdbcf761ed6f71194d7662f32870fe2642))
+
+
+### 🐛 Bug Fixes
+
+* TimestampedBattleMessage ([9d9dda9](https://github.com/arcadia-eternity/arcadia-eternity/commit/9d9dda96ae0ae6f2a852545b4a41d644f916a47d))
+
+
+### ♻️ Code Refactoring
+
+* replayMode ([5f7c41f](https://github.com/arcadia-eternity/arcadia-eternity/commit/5f7c41f58da66a6fbea7f07765774f9a47b34b62))
+
 ## [2.2.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.1.0...arcadia-eternity-v2.2.0) (2025-07-14)
 
 

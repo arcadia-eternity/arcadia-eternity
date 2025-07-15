@@ -98,7 +98,15 @@ type FormattedBattleMessage = TimestampedBattleMessage & {
 
 // 获取精灵名称
 function getPetName(petId: string, petMap: Map<string, PetMessage>): string {
-  return petMap.get(petId)?.name || petId
+  const petInfo = petMap.get(petId)
+  if (!petInfo) {
+    console.debug('[BattleLog] Pet not found in petMap:', {
+      petId,
+      petMapSize: petMap.size,
+      availablePets: Array.from(petMap.keys()).slice(0, 3),
+    })
+  }
+  return petInfo?.name || petId
 }
 
 // 获取技能名称
@@ -133,11 +141,22 @@ function formatBattleMessage(
     case BattleMessageType.TurnStart:
       content = `第 ${msg.data.turn} 回合`
       break
-    case BattleMessageType.SkillUse:
-      content = `${getPetName(msg.data.user, petMap || new Map())} 使用 ${
-        skillMap ? getSkillName(skillMap.get(msg.data.skill)?.baseId || '') : msg.data.skill
-      } (消耗${msg.data.rage}怒气) → ${getPetName(msg.data.target, petMap || new Map())}`
+    case BattleMessageType.SkillUse: {
+      const skillInfo = skillMap?.get(msg.data.skill)
+      const skillName = skillInfo?.baseId ? getSkillName(skillInfo.baseId) : msg.data.skill
+
+      // 调试信息
+      if (!skillInfo) {
+        console.debug('[BattleLog] Skill not found in skillMap:', {
+          skillId: msg.data.skill,
+          skillMapSize: skillMap?.size || 0,
+          availableSkills: skillMap ? Array.from(skillMap.keys()).slice(0, 3) : [],
+        })
+      }
+
+      content = `${getPetName(msg.data.user, petMap || new Map())} 使用 ${skillName} (消耗${msg.data.rage}怒气) → ${getPetName(msg.data.target, petMap || new Map())}`
       break
+    }
     case BattleMessageType.Damage: {
       const data = msg.data as {
         target: string
