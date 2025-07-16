@@ -137,3 +137,6 @@ mark_emblem_yaoling:
 mark_emblem_yeshi:
   name: 夜视
   description: 使必中的回合数+5
+mark_emblem_yuren:
+  name: 羽刃
+  description: 受到物攻技能时反弹50点伤害

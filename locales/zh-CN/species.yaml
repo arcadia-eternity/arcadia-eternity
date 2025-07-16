@@ -301,3 +301,9 @@ pet_chilunying:
 pet_daimuchilunying:
   name: 呆目齿轮鹰
   description: 怪怪的齿轮变为给力的眉毛 同时也长出了一对有力而有巨大的翅膀！
+pet_salan:
+  name: 萨兰
+  description: 萨兰内心是一个孤傲的剑士 直到它遇见真正的主人
+pet_salanguer:
+  name: 萨兰古尔
+  description: 只用羽翼上独特的刀刃 它可以化作最强的利剑

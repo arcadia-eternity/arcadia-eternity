@@ -1960,3 +1960,42 @@ skill_yingzhuasilie:
 skill_baiyuzhuiji:
   name: 白羽追击
   description: 后出手时附加50点固伤
+skill_fuchongtuji:
+  name: 俯冲突击
+  description: 10%弱化对手物防1级
+skill_yutusishi:
+  name: 羽突四式
+  description: 使自身获得1层强攻
+skill_feiyujian:
+  name: 飞羽箭
+  description: 连击2~3次
+skill_yurentuji:
+  name: 羽刃突击
+  description: 使对手获得50点流血
+skill_yutubashi:
+  name: 羽突八式
+  description: 使自身获得1层强攻
+skill_yurenjiazou:
+  name: 羽刃甲胄
+  description: 使自身获得羽刃反弹
+skill_yurenzhan:
+  name: 羽刃斩
+  description: 无视对手<font color=#02CAC9>护盾</font>
+skill_yutushiliushi:
+  name: 羽突十六式
+  description: 使自身获得1层强攻
+skill_salangulerjian:
+  name: 萨兰古尔剑
+  description: <font color=#93E312>必中</font> 暴击率增加15%
+skill_gangduoyizhi:
+  name: 刚铎意志
+  description: 强化自身物攻1级及其他1项能力1级
+skill_yutuyishi:
+  name: 羽突一式
+  description: 自身物攻值＞500时先制+1
+skill_yutulingshi:
+  name: 羽突零式
+  description: 自身物攻值＞500时<font color=#93E312>必中</font>
+skill_yutubaibashi:
+  name: 羽突百八式
+  description: 附加自身物攻值＞500的伤害

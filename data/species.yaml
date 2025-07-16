@@ -5772,3 +5772,121 @@
     - mark_ability_yingyan
   emblem:
     - mark_emblem_yeshi
+# 萨兰系列
+- id: pet_salan
+  num: 235
+  element: Flying
+  baseStats:
+    hp: 91
+    atk: 129
+    def: 120
+    spa: 115
+    spd: 116
+    spe: 116
+  genderRatio:
+    - 0
+    - 10
+  heightRange:
+    - 17
+    - 22
+  weightRange:
+    - 16
+    - 21
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_fuchongtuji
+      level: 10
+      hidden: false
+    - skill_id: skill_yutusishi
+      level: 15
+      hidden: false
+    - skill_id: skill_feiyujian
+      level: 20
+      hidden: false
+    - skill_id: skill_jiasu
+      level: 25
+      hidden: false
+  ability:
+    - mark_ability_yuren
+  emblem:
+    - mark_emblem_yuren
+- id: pet_salanguer
+  num: 236
+  element: Flying
+  baseStats:
+    hp: 181
+    atk: 179
+    def: 170
+    spa: 160
+    spd: 161
+    spe: 161
+  genderRatio:
+    - 0
+    - 10
+  heightRange:
+    - 90
+    - 95
+  weightRange:
+    - 83
+    - 88
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_fuchongtuji
+      level: 10
+      hidden: false
+    - skill_id: skill_yutusishi
+      level: 15
+      hidden: false
+    - skill_id: skill_feiyujian
+      level: 20
+      hidden: false
+    - skill_id: skill_jiasu
+      level: 25
+      hidden: false
+    - skill_id: skill_yurentuji
+      level: 30
+      hidden: false
+    - skill_id: skill_yutubashi
+      level: 35
+      hidden: false
+    - skill_id: skill_yurenjiazou
+      level: 40
+      hidden: false
+    - skill_id: skill_yurenzhan
+      level: 45
+      hidden: false
+    - skill_id: skill_yutushiliushi
+      level: 50
+      hidden: false
+    - skill_id: skill_jizhong
+      level: 55
+      hidden: false
+    - skill_id: skill_salangulerjian
+      level: 60
+      hidden: true
+    - skill_id: skill_gangduoyizhi
+      level: 60
+      hidden: true
+    - skill_id: skill_yutuyishi
+      level: 60
+      hidden: true
+    - skill_id: skill_yutulingshi
+      level: 60
+      hidden: true
+    - skill_id: skill_yutubaibashi
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_yuren
+  emblem:
+    - mark_emblem_yuren

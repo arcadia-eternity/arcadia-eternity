@@ -240,3 +240,8 @@
   tags: [emblem]
   effect:
     - effect_emblem_extend_bizhong_duration_5
+- id: mark_emblem_yuren
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_yuren_dealdamage_on_physical_skill 

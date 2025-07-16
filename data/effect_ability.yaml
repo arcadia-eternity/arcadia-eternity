@@ -1077,3 +1077,32 @@
       - type: not
         condition:
           type: isLastSkillUsedThisTurn
+# 羽刃：羽突类技能额外造成40点固伤
+- id: effect_ability_add_damage_40_if_using_yutu_skill
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: 40
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill
+            - type: select
+              arg:
+                type: base
+                arg: tags
+            - type: flat
+        evaluator:
+          type: contain
+          tag: yutu

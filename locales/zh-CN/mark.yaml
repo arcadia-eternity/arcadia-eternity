@@ -598,3 +598,9 @@ mark_xunjie:
 mark_chihuan:
   name: 迟缓
   description: 先制-{{mark.stack}}
+mark_qianggong:
+  name: 强攻
+  description: 物攻值增加35点 最多3层
+mark_yurenfantan:
+  name: 羽刃反弹
+  description: 反弹受到伤害的1/3
