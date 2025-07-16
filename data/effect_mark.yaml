@@ -3094,3 +3094,38 @@
     attribute: priority
     modifierType: delta
     value: 1
+# 强攻：每层添加物攻值35点
+- id: effect_mark_add_atk_stack_x35
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addDynamicAttributeModifier
+    target:
+      base: self
+    stat: atk
+    modifierType: delta
+    observableValue:
+      base: mark
+      chain:
+        - type: selectAttribute$
+          arg: stack
+        - type: multiply
+          arg: 35
+# 羽刃反弹：反弹受到伤害的1/3
+- id: effect_mark_fantan_reflect_damage_1_3
+  trigger: OnDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: dealDamage
+    target: opponent
+    value:
+      type: dynamic
+      selector:
+        base: damageContext
+        chain:
+          - type: selectPath
+            arg: damageResult
+          - type: multiply
+            arg: 0.33

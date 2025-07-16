@@ -970,3 +970,24 @@
     type: setMarkDuration
     target: addMarkContext
     value: 10
+# 羽刃：受到物攻技能时，给对方造成50点伤害
+- id: effect_emblem_yuren_dealdamage_on_physical_skill
+  trigger: PostDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Physical
+  apply:
+    type: dealDamage
+    target: opponent
+    value: 50

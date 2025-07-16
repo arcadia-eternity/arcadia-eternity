@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.3.0...arcadia-eternity-v2.4.0) (2025-07-16)
+
+
+### ✨ Features
+
+* **netpet:** 萨兰古尔 ([26a3d26](https://github.com/arcadia-eternity/arcadia-eternity/commit/26a3d26f6c6667b7a2cc064ae09847270bea413c))
+
 ## [2.3.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.2.0...arcadia-eternity-v2.3.0) (2025-07-15)
 
 

@@ -139,3 +139,6 @@ mark_ability_caibao:
 mark_ability_yingyan:
   name: 鹰眼
   description: 先出手时伤害增加10% 后出手时受到伤害减少10%
+mark_ability_yuren:
+  name: 羽刃
+  description: 羽突类技能额外造成40点固伤

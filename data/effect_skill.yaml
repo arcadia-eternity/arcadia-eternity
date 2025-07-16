@@ -8330,3 +8330,108 @@
     conditions:
       - type: selfUseSkill
       - type: isLastSkillUsedThisTurn
+# 添加一层强攻
+- id: effect_skill_add_mark_qianggong_1_stack
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_qianggong
+    stack: 1
+  condition:
+    type: selfUseSkill
+# 获得羽刃反弹
+- id: effect_skill_add_mark_yurenfantan
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_yurenfantan
+  condition:
+    type: selfUseSkill
+# 强化自身物攻1级及其他1项能力1级
+- id: effect_skill_raise_atk_1_stage_and_other_1_stage
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    - <<: *apply_self_statstage_+1_template
+      statType: atk
+    - <<: *apply_self_statstage_+1_template
+      statType:
+        type: selector
+        value: ['def', 'spd', 'spa', 'spe']
+        chain:
+          - type: randomPick
+            arg: 1
+  condition:
+    type: selfUseSkill
+# 自身物攻大于500时，先制+1
+- id: effect_skill_priority_plus_1_if_atk_over_500
+  trigger: BeforeSort
+  priority: 0
+  apply:
+    type: addValue
+    target:
+      base: usingSkillContext
+      chain:
+        - type: selectProp
+          arg: priority
+    value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_self_atk_over_500
+        type: evaluate
+        target:
+          base: self
+          chain:
+            - type: selectPath
+              arg: stat.atk
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 500
+# 自身物攻大于500时，必中
+- id: effect_skill_sure_hit_if_atk_over_500
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target: usingSkillContext
+    priority: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_atk_over_500
+# 附加自身物攻值>500的伤害
+- id: effect_skill_fixed_damage_over_atk_500
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: selectPath
+            arg: stat.atk
+          - type: add
+            arg: -500
+          - type: clampMax
+            arg: 105
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_atk_over_500

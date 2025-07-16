@@ -248,3 +248,8 @@
   effect:
     - effect_ability_damage_boost_10_percent_when_first
     - effect_ability_damage_reduction_10_percent_when_last
+- id: mark_ability_yuren
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_add_damage_40_if_using_yutu_skill # TODO: 羽突类技能额外造成40点固伤
