@@ -1,5 +1,5 @@
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
-import type { Battle } from '../battle'
+import { Battle } from '../battle'
 import { RemoveMarkContext } from '../context'
 import { type MarkInstance, StatLevelMarkInstanceImpl } from '../mark'
 import { Pet } from '../pet'
@@ -69,6 +69,26 @@ export function executeRemoveMarkOperation(context: RemoveMarkContext, battle: B
   if (owner) {
     owner.marks = owner.marks.filter(m => m !== mark)
     mark.owner = null
+  } else {
+    // Even if owner is null, we should still try to find and remove the mark from all possible owners
+    // This is a fallback mechanism to prevent orphaned marks
+    const contextBattle = battle
+
+    if (contextBattle) {
+      // Try to find and remove from battle marks
+      const battleMarkIndex = contextBattle.marks.findIndex((m: MarkInstance) => m === mark)
+      if (battleMarkIndex !== -1) {
+        contextBattle.marks.splice(battleMarkIndex, 1)
+      }
+
+      // Try to find and remove from pet marks
+      ;[contextBattle.playerA.activePet, contextBattle.playerB.activePet].forEach(pet => {
+        const petMarkIndex = pet.marks.findIndex((m: MarkInstance) => m === mark)
+        if (petMarkIndex !== -1) {
+          pet.marks.splice(petMarkIndex, 1)
+        }
+      })
+    }
   }
 
   // Emit mark destroy message

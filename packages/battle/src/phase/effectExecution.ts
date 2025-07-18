@@ -58,9 +58,7 @@ export function executeEffectExecutionOperation<T extends EffectTrigger>(
   const addedEffects = new Set<string>()
 
   // Phase 1: Collect all effects to be triggered directly from containers
-  console.debug('effectContainers', effectContainers)
   const collectedEffects = collectEffectsFromContainers(trigger, parentContext, effectContainers)
-  console.debug('collectedEffects', collectedEffects)
   collectedEffects.forEach(({ effect, context }) => {
     const effectKey = `${(context.source as any).id || 'unknown'}_${effect.id}_${context.source.constructor.name}`
 

@@ -8486,9 +8486,9 @@
   apply:
     - <<: *apply_self_statstage_+1_template
       statType: spe
-    - <<: *apply_opponent_statstage_-1_template
+    - <<: *apply_self_statstage_+1_template
+      target: opponent
       statType: spe
-      value: 1
   condition:
     type: selfUseSkill
 # 具有时间法则时，弱化对手两级
