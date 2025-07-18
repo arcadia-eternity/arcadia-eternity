@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.5.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.4.0...arcadia-eternity-v2.5.0) (2025-07-18)
+
+
+### ✨ Features
+
+* **newpet:** 泰姆尔 ([d405d1d](https://github.com/arcadia-eternity/arcadia-eternity/commit/d405d1d82b0af678e18db9bb3765e8392c9d7a87))
+
+
+### 🐛 Bug Fixes
+
+* **battle:** resolve stat level mark stacking and cleanup issues ([00e147f](https://github.com/arcadia-eternity/arcadia-eternity/commit/00e147f91abf0c7dd0296871608598cbf4b2bdd1))
+
 ## [2.4.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.3.0...arcadia-eternity-v2.4.0) (2025-07-16)
 
 
