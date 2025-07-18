@@ -1247,8 +1247,8 @@
     - effect_mark_increase_damage_dealt_20_percent
 - id: mark_shandianwaiyi
   config:
-    duration: 5
-    persistent: false
+    duration: -1
+    persistent: true
     maxStacks: 1
     stackable: false
     stackStrategy: none
@@ -1931,3 +1931,64 @@
     keepOnSwitchOut: false
   effect:
     - effect_mark_fantan_reflect_damage_1_3
+- id: mark_dingshizhadan
+  config:
+    duration: 2
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: false
+  effect:
+    - effect_mark_dingshizhadan_on_duration_end_deal_damage_50
+- id: mark_shijianfaze
+  config:
+    persistent: false
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    duration: 5
+    keepOnSwitchOut: true
+- id: mark_shijianhudun
+  config:
+    persistent: true
+    stackable: false
+    destroyable: true
+    maxStacks: 1
+    duration: -1
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_shijianhudun_reduce_damage_75_if_has_mark_shijianfaze_150
+- id: mark_shijianzhadan
+  config:
+    duration: 2
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: false
+  effect:
+    - effect_mark_shijianzhadan_on_duration_end_deal_damage_50
+- id: mark_chuansuoweilai
+  config:
+    persistent: false
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    duration: 2
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_priority_add_1
+- id: mark_shiguangchongsheng
+  config:
+    persistent: false
+    stackable: true
+    stackStrategy: stack
+    destroyable: true
+    duration: 1
+    maxStacks: 1
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_shiguangchongsheng

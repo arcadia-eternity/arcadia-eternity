@@ -98,7 +98,8 @@ export function executeAddMarkOperation(context: AddMarkContext, battle: Battle)
       mark =>
         mark instanceof StatLevelMarkInstanceImpl &&
         mark.base instanceof BaseStatLevelMark &&
-        mark.base.statType === baseStatLevelMark.statType,
+        mark.base.statType === baseStatLevelMark.statType &&
+        mark.isActive, // Only consider active marks
     ) as StatLevelMarkInstanceImpl | undefined
 
     // Check if it's an opposite mark (different sign)
@@ -109,7 +110,8 @@ export function executeAddMarkOperation(context: AddMarkContext, battle: Battle)
   }
 
   // Check for existing mark of the same type (for non-stat level marks)
-  const existingMark = existingStatLevelMark || context.target.marks.find(mark => mark.base.id === context.baseMark.id)
+  const existingMark =
+    existingStatLevelMark || context.target.marks.find(mark => mark.base.id === context.baseMark.id && mark.isActive)
 
   if (existingMark || existingOppositeMark) {
     const targetMark = existingMark || existingOppositeMark!

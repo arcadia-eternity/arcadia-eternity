@@ -27,14 +27,17 @@ export class Effect<T extends EffectTrigger> implements Prototype {
     // 先执行消耗逻辑
     if (context.source instanceof MarkInstanceImpl) {
       if (!context.source.isActive) return
-      if (this.consumesStacks) {
-        context.source.consumeStack(context, this.consumesStacks)
-      }
     }
 
     // 执行实际效果
     if (Array.isArray(this.apply)) this.apply.forEach(a => a.call(this, context))
     else this.apply.call(this, context)
+
+    if (context.source instanceof MarkInstanceImpl) {
+      if (this.consumesStacks) {
+        context.source.consumeStack(context, this.consumesStacks)
+      }
+    }
   }
 }
 

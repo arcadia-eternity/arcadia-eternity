@@ -140,3 +140,6 @@ mark_emblem_yeshi:
 mark_emblem_yuren:
   name: 羽刃
   description: 受到物攻技能时反弹50点伤害
+mark_emblem_xianzhi:
+  name: 先致
+  description: 先出手时暴击率增加5%

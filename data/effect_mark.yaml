@@ -383,7 +383,8 @@
     type: addModified
     target:
       base: damageContext
-    delta:
+    delta: 0
+    percent:
       type: dynamic
       selector:
         base: mark
@@ -392,7 +393,6 @@
             arg:
               type: base
               arg: stack
-    percent: 0
 - id: effect_mark_increase_damage_taken_50
   trigger: OnBeforeCalculateDamage
   condition:
@@ -402,8 +402,8 @@
     type: addModified
     target:
       base: damageContext
-    delta: 50
-    percent: 0
+    percent: 50
+    delta: 0
 - id: effect_mark_reduce_damage_taken_once
   trigger: OnBeforeCalculateDamage
   condition:
@@ -413,7 +413,7 @@
     - type: addModified
       target:
         base: damageContext
-      delta:
+      percent:
         type: dynamic
         selector:
           base: mark
@@ -424,7 +424,7 @@
                 arg: stack
             - type: multiply
               arg: -1
-      percent: 0
+      delta: 0
     - type: destroyMark
       target: mark
 - id: effect_mark_increase_damage_taken_once
@@ -436,7 +436,7 @@
     - type: addModified
       target:
         base: damageContext
-      delta:
+      percent:
         type: dynamic
         selector:
           base: mark
@@ -445,7 +445,7 @@
               arg:
                 type: base
                 arg: stack
-      percent: 0
+      delta: 0
     - type: destroyMark
       target: mark
 - id: effect_mark_self_damage_on_expire
@@ -3129,3 +3129,80 @@
             arg: damageResult
           - type: multiply
             arg: 0.33
+# 定时炸弹: 结束时受到50点固伤
+- id: effect_mark_dingshizhadan_on_duration_end_deal_damage_50
+  trigger: OnMarkDurationEnd
+  priority: 0
+  condition:
+    type: petIsActive
+  apply:
+    type: dealDamage
+    target:
+      base: self
+    value: 50
+# 时间炸弹: 结束时受到100点固伤
+- id: effect_mark_shijianzhadan_on_duration_end_deal_damage_50
+  trigger: OnMarkDurationEnd
+  priority: 0
+  condition:
+    type: petIsActive
+  apply:
+    type: dealDamage
+    target:
+      base: self
+    value: 100
+# 时光重生: 受到致死打击时恢复自身最大体力的1/4
+- id: effect_mark_shiguangchongsheng
+  trigger: PostDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: '<='
+          value: 0
+  apply:
+    type: setValue
+    target:
+      base: self
+      chain:
+        - type: selectProp
+          arg: currentHp
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: maxHp
+          - type: divide
+            arg: 4
+# 时间护盾: 减少受到的伤害75点，如果有时间法则，则150点
+- id: effect_mark_shijianhudun_reduce_damage_75_if_has_mark_shijianfaze_150
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta:
+      type: conditional
+      trueValue: -150
+      falseValue: -75
+      condition:
+        type: selfHasMark
+        baseId: mark_shijianfaze

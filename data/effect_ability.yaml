@@ -1106,3 +1106,26 @@
         evaluator:
           type: contain
           tag: yutu
+# 时光重生: 使用必杀技时，使自身获得时光重生
+- id: effect_ability_shiguang_climax_add_mark_shiguangchongsheng
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shiguangchongsheng
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Climax

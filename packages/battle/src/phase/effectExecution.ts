@@ -28,7 +28,6 @@ export class EffectExecutionPhase<T extends EffectTrigger> extends SynchronousPh
     return this._context!
   }
 
-
   protected executeOperation(): void {
     const context = this._context!
 
@@ -143,9 +142,10 @@ export function collectEffectsFromContainers<T extends EffectTrigger>(
           const effectContext = new EffectContext(parentContext, trigger, container as any, effect)
 
           try {
+            if ((container as any).base.id === 'mark_shijianhudun') console.log('emmm')
+
             if (!effect.condition || effect.condition(effectContext)) {
               const effectKey = `${(container as any).id || 'unknown'}_${effect.id}_${container.constructor.name}`
-
               if (!addedEffects.has(effectKey)) {
                 addedEffects.add(effectKey)
                 effects.push({ effect, context: effectContext })

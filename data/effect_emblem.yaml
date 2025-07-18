@@ -991,3 +991,16 @@
     type: dealDamage
     target: opponent
     value: 50
+# 先致: 先出手时暴击率增加5%
+- id: effect_emblem_xianzhi_crit_rate_5_percent_if_first
+  trigger: BeforeHit
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: isFirstSkillUsedThisTurn
+  apply:
+    type: addCritRate
+    target: usingSkillContext
+    value: 5
