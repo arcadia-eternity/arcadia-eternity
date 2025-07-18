@@ -244,4 +244,9 @@
   config: *emblem_config
   tags: [emblem]
   effect:
-    - effect_emblem_yuren_dealdamage_on_physical_skill 
+    - effect_emblem_yuren_dealdamage_on_physical_skill
+- id: mark_emblem_xianzhi
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_xianzhi_crit_rate_5_percent_if_first

@@ -119,6 +119,8 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     this.attributeSystem.setCurrentHp(value)
     if (value === 0) {
       this.isAlive = false
+    } else {
+      this.isAlive = true
     }
   }
 

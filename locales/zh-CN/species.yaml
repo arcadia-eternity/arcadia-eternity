@@ -307,3 +307,9 @@ pet_salan:
 pet_salanguer:
   name: 萨兰古尔
   description: 只用羽翼上独特的刀刃 它可以化作最强的利剑
+pet_taimu:
+  name: 泰姆
+  description: 泰姆就是生活在羽冠之岛的精灵 对时钟有着特别的喜好
+pet_taimuer:
+  name: 泰姆尔
+  description: 泰姆尔已经是羽冠之岛公认的报时精灵 它被认为是没有误差的

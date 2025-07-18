@@ -252,4 +252,9 @@
   config: *ability_config
   tags: [ability]
   effect:
-    - effect_ability_add_damage_40_if_using_yutu_skill # TODO: 羽突类技能额外造成40点固伤
+    - effect_ability_add_damage_40_if_using_yutu_skill
+- id: mark_ability_shiguang
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_shiguang_climax_add_mark_shiguangchongsheng

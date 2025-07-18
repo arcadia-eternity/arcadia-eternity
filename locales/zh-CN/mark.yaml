@@ -604,3 +604,21 @@ mark_qianggong:
 mark_yurenfantan:
   name: 羽刃反弹
   description: 反弹受到伤害的1/3
+mark_dingshizhadan:
+  name: 定时炸弹
+  description: 结束时受到50点固伤
+mark_shijianfaze:
+  name: 时间法则
+  description: 时间系技能效果增强
+mark_shijianhudun:
+  name: 时间护盾
+  description: 受到伤害降低75点 具有时间法则时效果2倍
+mark_shijianzhadan:
+  name: 时间炸弹
+  description: 结束时受到100点固伤
+mark_chuansuoweilai:
+  name: 穿梭未来
+  description: 所有技能先制+1
+mark_shiguangchongsheng:
+  name: 时光重生
+  description: 受到致死打击时恢复自身最大体力的1/4

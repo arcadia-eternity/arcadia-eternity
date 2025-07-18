@@ -1999,3 +1999,45 @@ skill_yutulingshi:
 skill_yutubaibashi:
   name: 羽突百八式
   description: 附加自身物攻值＞500的伤害
+skill_ruili:
+  name: 锐利
+  description: 强化自身特攻1级
+skill_dingshizhadan:
+  name: 定时炸弹
+  description: 使对手获得定时炸弹 具有时间法则时直接触发
+skill_shijianfaze:
+  name: 时间法则
+  description: 使自身获得时间法则
+skill_gaosuzhuangji:
+  name: 高速撞击
+  description: 先制+1
+skill_shijianjiasu:
+  name: 时间加速
+  description: 强化双方速度1级 具有时间法则时额外弱化对手速度2级
+skill_shiguangdaoliu:
+  name: 时光倒流
+  description: 弱化双方特攻1级 具有时间法则时额外强化自身特攻2级
+skill_shiguangchongji:
+  name: 时光冲击
+  description: 先出手时<font color=#93E312>必中</font>
+skill_shiguangliushu:
+  name: 时光流束
+  description: 先出手时暴击率增加50%
+skill_shiguanghudun:
+  name: 时光护盾
+  description: 使自身获得时间护盾
+skill_shiguangzhongcai:
+  name: 时光仲裁
+  description: <font color=#93E312>必中</font> 20%强化自身速度1级
+skill_shijianzhadan:
+  name: 时间炸弹
+  description: 使对手获得时间炸弹 具有时间法则时直接触发
+skill_yuzhi:
+  name: 预知
+  description: 使自身获得预知未来
+skill_chuansuoweilai:
+  name: 穿梭未来
+  description: 使自身获得穿梭未来
+skill_shiguanghongliu:
+  name: 时光洪流
+  description: 先出手时暴击率增加65%
