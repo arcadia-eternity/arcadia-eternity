@@ -6229,3 +6229,164 @@
     - mark_ability_xushui
   emblem:
     - mark_emblem_chaoshui
+- id: pet_dada
+  num: 74
+  element: Fire
+  baseStats:
+    hp: 75
+    atk: 113
+    spa: 122
+    def: 104
+    spd: 107
+    spe: 114
+  genderRatio:
+    - 4
+    - 6
+  heightRange:
+    - 31
+    - 36
+  weightRange:
+    - 10
+    - 15
+  learnable_skills:
+    - skill_id: skill_lizhua
+      level: 1
+      hidden: false
+    - skill_id: skill_penhuo
+      level: 5
+      hidden: false
+    - skill_id: skill_jiare
+      level: 10
+      hidden: false
+    - skill_id: skill_huoyanzhihuan
+      level: 16
+      hidden: false
+  ability:
+    - mark_ability_huohuan
+  emblem:
+    - mark_emblem_huoxinwenzhang
+
+- id: pet_dakeer
+  num: 75
+  element: Fire
+  baseStats:
+    hp: 115
+    atk: 143
+    spa: 152
+    def: 129
+    spd: 132
+    spe: 134
+  genderRatio:
+    - 4
+    - 6
+  heightRange:
+    - 52
+    - 57
+  weightRange:
+    - 23
+    - 28
+  learnable_skills:
+    - skill_id: skill_lizhua
+      level: 1
+      hidden: false
+    - skill_id: skill_penhuo
+      level: 5
+      hidden: false
+    - skill_id: skill_jiare
+      level: 10
+      hidden: false
+    - skill_id: skill_huoyanzhihuan
+      level: 16
+      hidden: false
+    - skill_id: skill_huoyanzhizhua
+      level: 21
+      hidden: false
+    - skill_id: skill_jiasu
+      level: 26
+      hidden: false
+    - skill_id: skill_lieyanzhihuan
+      level: 31
+      hidden: false
+    - skill_id: skill_lieyanzhizhua
+      level: 36
+      hidden: false
+  ability:
+    - mark_ability_huohuan
+  emblem:
+    - mark_emblem_huoxinwenzhang
+
+- id: pet_dakelaer
+  num: 76
+  element: Fire
+  baseStats:
+    hp: 175
+    atk: 173
+    spa: 182
+    def: 154
+    spd: 157
+    spe: 164
+  genderRatio:
+    - 4
+    - 6
+  heightRange:
+    - 72
+    - 77
+  weightRange:
+    - 46
+    - 51
+  learnable_skills:
+    - skill_id: skill_lizhua
+      level: 1
+      hidden: false
+    - skill_id: skill_penhuo
+      level: 5
+      hidden: false
+    - skill_id: skill_jiare
+      level: 10
+      hidden: false
+    - skill_id: skill_huoyanzhihuan
+      level: 16
+      hidden: false
+    - skill_id: skill_huoyanzhizhua
+      level: 21
+      hidden: false
+    - skill_id: skill_jiasu
+      level: 26
+      hidden: false
+    - skill_id: skill_lieyanzhihuan
+      level: 31
+      hidden: false
+    - skill_id: skill_lieyanzhizhua
+      level: 36
+      hidden: false
+    - skill_id: skill_jisuhuohuan
+      level: 41
+      hidden: false
+    - skill_id: skill_fengli
+      level: 46
+      hidden: false
+    - skill_id: skill_heiyanzhihuan
+      level: 51
+      hidden: false
+    - skill_id: skill_heiyanzhizhua
+      level: 56
+      hidden: false
+    - skill_id: skill_heimeiguizhihuo
+      level: 60
+      hidden: false
+    - skill_id: skill_zhenkongzhihuan
+      level: 60
+      hidden: true
+    - skill_id: skill_zhenkongzhizhua
+      level: 60
+      hidden: true
+    - skill_id: skill_huohuanzhili
+      level: 60
+      hidden: true
+    - skill_id: skill_zhenkongsuzhao
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_huohuan
+  emblem:
+    - mark_emblem_huoxinwenzhang

@@ -149,3 +149,6 @@ mark_emblem_xianzhi:
 mark_emblem_zhongxin:
   name: 重心
   description: 使绊倒技能无效
+mark_emblem_huoxinwenzhang:
+  name: 火心纹章
+  description: 使达达火环之心的最大叠加数增加4

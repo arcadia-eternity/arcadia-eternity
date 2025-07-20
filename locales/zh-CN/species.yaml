@@ -325,3 +325,12 @@ pet_niuniu:
 pet_niudun:
   name: 牛顿
   description: 终于有一天 长大的牛牛明白了地心引力的道理 激发了强大的潜能
+pet_dada:
+  name: 达达
+  description: 达达是高傲的小精灵 它能够吞噬火焰转化为自身的力量
+pet_dakeer:
+  name: 达克尔
+  description: 达克尔长长的尾巴 能保持身体的平衡 即使是最陡峭的火山熔岩也难不倒它
+pet_dakelaer:
+  name: 达克拉尔
+  description: 达克拉尔进化出了黑色的恶魔羽翼 更加快如闪电

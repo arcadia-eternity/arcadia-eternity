@@ -1192,3 +1192,13 @@
       - type: selfUseSkill
       - type: selfHasMark
         baseId: mark_shuiliangbaohe
+# 火环: 获得火环的效果的获得数+1
+- id: effect_ability_increase_huohuanzhixin_gain_1
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addTaggedConfigModifier
+    target: self
+    tag: skill_effect_huohuanzhixin_stack
+    modifierType: delta
+    value: 1

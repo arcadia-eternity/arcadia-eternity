@@ -2,7 +2,6 @@
 # yaml-language-server: $schema=../packages/schema/schema/mark.schema.json
 # @metaType mark
 # @version 1.0.0
-
 - id: mark_ability_zhongjie
   config: &ability_config
     persistent: true
@@ -269,3 +268,8 @@
   effect:
     - effect_ability_shuiliangchongzu_increase_damage_5_percent
     - effect_ability_shuiliangbaohe_increase_damage_10_percent
+- id: mark_ability_huohuan
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_increase_huohuanzhixin_gain_1

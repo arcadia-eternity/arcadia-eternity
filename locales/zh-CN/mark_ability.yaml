@@ -151,3 +151,6 @@ mark_ability_shiguang:
 mark_ability_shifu:
   name: 石肤
   description: 满体力时受到伤害减半
+mark_ability_huohuan:
+  name: 火环
+  description: 使火环之心的获得数+1
