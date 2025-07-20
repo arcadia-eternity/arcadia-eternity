@@ -3319,3 +3319,24 @@
                     arg: maxHp
                 - type: multiply
                   arg: 0.25
+# 火环之心: 每层火环添加10%造成的伤害
+- id: effect_mark_increase_damage_10_percent_per_stack
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfUseSkill
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    delta: 0
+    percent:
+      type: dynamic
+      selector:
+        base: mark
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 10

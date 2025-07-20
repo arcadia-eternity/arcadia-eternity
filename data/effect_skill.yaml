@@ -633,6 +633,7 @@
           percent:
             type: 'raw:number'
             value: 50
+            configId: probability
             tags: ['skill_effect_probability']
 - id: effect_skill_add_mark_opponent_shaoshang_60_percent
   trigger: OnHit
@@ -8649,3 +8650,270 @@
       value: mark_yuecuoyueyong
   condition:
     type: selfUseSkill
+# 获得20点怒气
+- id: effect_skill_add_rage_20
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 20
+  condition:
+    type: selfUseSkill
+# 使自身获得水量充足
+- id: effect_skill_add_mark_shuiliangchongzu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shuiliangchongzu
+  condition:
+    type: selfUseSkill
+# 使自身获得水量饱和
+- id: effect_skill_add_mark_shuiliangbaohe
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shuiliangbaohe
+  condition:
+    type: selfUseSkill
+# 水量充足时使威力翻倍
+- id: effect_skill_power_2x_if_has_shuiliangchongzu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shuiliangchongzu
+# 水量充足时使连击5次
+- id: effect_skill_multi_hit_5_times_if_has_shuiliangchongzu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setMultihit
+    target: usingSkillContext
+    value: 5
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shuiliangchongzu
+# 50%几率使对手溺水
+- id: effect_skill_add_mark_opponent_nishui_50_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_nishui
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_50_percent_template
+# 水量饱和时威力翻倍
+- id: effect_skill_power_2x_if_has_shuiliangbaohe
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: usingSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shuiliangbaohe
+# 水量饱和时强化自身特攻1级
+- id: effect_skill_raise_spa_1_stage_if_shuiliangbaohe
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shuiliangbaohe
+# 在技能命中后，如果存在水量饱和，消耗它
+- id: effect_skill_consume_mark_shuiliangbaohe
+  trigger: OnHit
+  priority: -1
+  apply:
+    type: destroyMark
+    target:
+      base: selfMarks
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value: mark_shuiliangbaohe
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shuiliangbaohe
+# 在技能命中后，如果存在水量充足，消耗它
+- id: effect_skill_consume_mark_shuiliangchongzu
+  trigger: OnHit
+  priority: -1
+  apply:
+    type: destroyMark
+    target:
+      base: selfMarks
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value: mark_shuiliangchongzu
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shuiliangchongzu
+# 获得3个火环之心
+- id: effect_skill_add_mark_self_huohuanzhixin_3
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_huohuanzhixin
+    stack:
+      type: raw:number
+      value: 3
+      tags: ['skill_effect_stack', 'skill_effect_huohuanzhixin_stack']
+  condition:
+    type: selfUseSkill
+# 获得2个火环之心
+- id: effect_skill_add_mark_self_huohuanzhixin_2
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_huohuanzhixin
+    stack:
+      type: raw:number
+      value: 2
+      tags: ['skill_effect_stack', 'skill_effect_huohuanzhixin_stack']
+  condition:
+    type: selfUseSkill
+# 获得1个火环之心
+- id: effect_skill_add_mark_self_huohuanzhixin_1
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_huohuanzhixin
+    stack:
+      type: raw:number
+      value: 1
+      tags: ['skill_effect_stack', 'skill_effect_huohuanzhixin_stack']
+  condition:
+    type: selfUseSkill
+# 每有一个火环之心,增加15威力
+- id: effect_skill_add_power_15_each_huohuanzhixin
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: usingSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_huohuanzhixin
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 15
+  condition:
+    type: selfUseSkill
+# 如果有火环之心，则消耗它
+- id: effect_skill_consume_mark_huohuanzhixin
+  trigger: OnHit
+  priority: -1
+  apply:
+    type: destroyMark
+    target:
+      base: selfMarks
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value: mark_huohuanzhixin
+  condition:
+    type: selfUseSkill
+# 获得真空之心
+- id: effect_skill_add_mark_self_zhenkongzhixin
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_zhenkongzhixin
+  condition:
+    type: selfUseSkill
+# 当有真空之心时，必中
+- id: effect_skill_sure_hit_if_has_zhenkongzhixin
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target: usingSkillContext
+    priority: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_zhenkongzhixin

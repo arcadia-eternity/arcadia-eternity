@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.7.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.6.0...arcadia-eternity-v2.7.0) (2025-07-20)
+
+
+### ✨ Features
+
+* **newpet:** 乌达 ([2e49750](https://github.com/arcadia-eternity/arcadia-eternity/commit/2e49750fbb582d22e34a6157cd134450d51eb1d9))
+* **newpet:** 达克拉尔 ([1ec1b4e](https://github.com/arcadia-eternity/arcadia-eternity/commit/1ec1b4e98517e6cb7235987497df36b1aace3724))
+
 ## [2.6.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.5.0...arcadia-eternity-v2.6.0) (2025-07-20)
 
 

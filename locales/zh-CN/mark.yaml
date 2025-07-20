@@ -1,3 +1,9 @@
+mark_shuiliangchongzu:
+  name: 水量充足
+  description: ''
+mark_shuiliangbaohe:
+  name: 水量饱和
+  description: ''
 stat_stage_atk_down:
   name: 攻击力下降
   description: 攻击等级{{mark.stack}}
@@ -625,3 +631,9 @@ mark_shiguangchongsheng:
 mark_yuecuoyueyong:
   name: 越挫越勇
   description: 体力＜75%时伤害提升30% ＜50%时提升50% ＜25%时提升70%
+mark_huohuanzhixin:
+  name: 火环之心
+  description: 每个使自身造成伤害增加10% 最多6个
+mark_zhenkongzhixin:
+  name: 真空之心
+  description: ''

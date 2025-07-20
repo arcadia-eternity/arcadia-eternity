@@ -1025,3 +1025,36 @@
     type: setSureMiss
     target: usingSkillContext
     priority: -1
+# 潮水: 潮水中的的溺水的触发几率增加10%
+- id: effect_emblem_increase_chaoshui_nishui_chance_10_percent
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addConfigModifier
+    target: opponentPlayer
+    configKey: effect_skill_add_mark_opponent_nishui_50_percent.probability
+    modifierType: delta
+    value: 10
+# 火心: 火环之心的效果层数上限增加4
+- id: effect_emblem_increase_huohuanzhixin_maxstacks_4
+  trigger: OnBeforeAddMark
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark.id
+        evaluator:
+          type: same
+          value: mark_huohuanzhixin
+  apply:
+    type: setMarkMaxStack
+    target: addMarkContext
+    value: 10

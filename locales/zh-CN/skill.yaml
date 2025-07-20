@@ -1,3 +1,36 @@
+skill_xishui:
+  name: 吸水
+  description: 使自身获得水量充足并恢复20点怒气
+skill_qianglipenshui:
+  name: 强力喷水
+  description: 消耗水量充足威力2倍
+skill_yinshui:
+  name: 饮水
+  description: 恢复自身最大体力的1/4
+skill_shuiqiangliansha:
+  name: 水枪连射
+  description: 连击2~5次 消耗水量充足连击5次
+skill_chaoshui:
+  name: 潮水
+  description: 50%使对手溺水
+skill_jiancizhangji:
+  name: 尖刺撞击
+  description: 无效果
+skill_fanjiangdaohai:
+  name: 翻江倒海
+  description: 必中 20%弱化对手特防1级
+skill_dakouxi:
+  name: 大口吸水
+  description: 使自身获得水量饱和 水量充足并恢复25点怒气
+skill_chaojishuiqiang:
+  name: 超级水枪
+  description: 消耗水量饱和威力2倍
+skill_pensheshuiqiang:
+  name: 喷射水枪
+  description: 先制+1
+skill_tunyinshuiyuan:
+  name: 吞饮水源
+  description: 强化自身特攻1级 消耗水量饱和效果2倍
 skill_paida:
   name: 拍打
   description: 5%弱化对手物防1级
@@ -2080,3 +2113,39 @@ skill_zuli:
 skill_jiancipifu:
   name: 尖刺皮肤
   description: 使自身获得反弹
+skill_huoyanzhihuan:
+  name: 火焰之环
+  description: 使自身获得3个火环之心
+skill_huoyanzhizhua:
+  name: 火焰之爪
+  description: 清空火环之心 每个增加15点威力
+skill_lieyanzhihuan:
+  name: 烈焰之环
+  description: 使自身获得2个火环之心
+skill_lieyanzhizhua:
+  name: 烈焰之爪
+  description: 清空火环之心 每个增加15点威力
+skill_jisuhuohuan:
+  name: 极速火环
+  description: 先制+1
+skill_heiyanzhihuan:
+  name: 黑焰之环
+  description: 使自身获得1个火环之心
+skill_heiyanzhizhua:
+  name: 黑焰之爪
+  description: 清空火环之心 每个增加15点威力
+skill_heimeiguizhihuo:
+  name: 黑玫瑰之火
+  description: 必中 20%弱化对手速度1级
+skill_zhenkongzhihuan:
+  name: 真空之环
+  description: 使自身获得真空之心
+skill_zhenkongzhizhua:
+  name: 真空之爪
+  description: 具有真空之心时必中
+skill_huohuanzhili:
+  name: 火环之力
+  description: 强化自身双攻1级
+skill_zhenkongsuzhao:
+  name: 真空速爪
+  description: 先制+1

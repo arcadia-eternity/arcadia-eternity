@@ -1,3 +1,6 @@
+mark_emblem_chaoshui:
+  name: 潮水纹章
+  description: 使潮水技能使对手中溺水的几率提升10%
 mark_emblem_zhuiji:
   name: 追击
   description: 使弱点记号换场继承
@@ -146,3 +149,6 @@ mark_emblem_xianzhi:
 mark_emblem_zhongxin:
   name: 重心
   description: 使绊倒技能无效
+mark_emblem_huoxinwenzhang:
+  name: 火心纹章
+  description: 使达达火环之心的最大叠加数增加4

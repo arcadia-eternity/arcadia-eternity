@@ -1,3 +1,6 @@
+mark_ability_xushui:
+  name: 水量增伤
+  description: 水量充足时伤害增加5% 水量饱和时伤害增加10%
 mark_ability_zhongjie:
   name: 终结
   description: 体力低于1/4以下时消耗弱点记号的技能造成的伤害增加25%
@@ -148,3 +151,6 @@ mark_ability_shiguang:
 mark_ability_shifu:
   name: 石肤
   description: 满体力时受到伤害减半
+mark_ability_huohuan:
+  name: 火环
+  description: 使火环之心的获得数+1
