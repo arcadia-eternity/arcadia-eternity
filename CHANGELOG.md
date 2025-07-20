@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.6.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.5.0...arcadia-eternity-v2.6.0) (2025-07-20)
+
+
+### ✨ Features
+
+* **newpet:** 牛顿 ([1bb35fb](https://github.com/arcadia-eternity/arcadia-eternity/commit/1bb35fbd56a1caf07cc62ddde8865ea591f571ba))
+
+
+### 🐛 Bug Fixes
+
+* shiguangzhongcai element ([d58e773](https://github.com/arcadia-eternity/arcadia-eternity/commit/d58e7734fdf7d0a67b0a588ba34fe631cf5a9ea0))
+
 ## [2.5.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.4.0...arcadia-eternity-v2.5.0) (2025-07-18)
 
 
