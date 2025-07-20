@@ -6007,3 +6007,108 @@
     - mark_ability_shiguang
   emblem:
     - mark_emblem_xianzhi
+- id: pet_niuniu
+  num: 53
+  element: Ground
+  baseStats:
+    hp: 94
+    atk: 120
+    def: 125
+    spa: 120
+    spd: 125
+    spe: 90
+  genderRatio: [1, 9]
+  heightRange: [33, 38]
+  weightRange: [25, 30]
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_jianita
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 9
+      hidden: false
+    - skill_id: skill_yuecuoyueyong
+      level: 13
+      hidden: false
+    - skill_id: skill_zhendibo
+      level: 18
+      hidden: false
+    - skill_id: skill_lumangchongzhuang
+      level: 23
+      hidden: false
+  ability:
+    - mark_ability_shifu
+  emblem:
+    - mark_emblem_zhongxin
+- id: pet_niudun
+  num: 54
+  element: Ground
+  baseStats:
+    hp: 184
+    atk: 165
+    def: 175
+    spa: 165
+    spd: 175
+    spe: 135
+  genderRatio: [1, 9]
+  heightRange: [72, 77]
+  weightRange: [136, 141]
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_jianita
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 9
+      hidden: false
+    - skill_id: skill_yuecuoyueyong
+      level: 13
+      hidden: false
+    - skill_id: skill_zhendibo
+      level: 18
+      hidden: false
+    - skill_id: skill_lumangchongzhuang
+      level: 23
+      hidden: false
+    - skill_id: skill_manxinghuifu
+      level: 28
+      hidden: false
+    - skill_id: skill_qunniujianita
+      level: 33
+      hidden: false
+    - skill_id: skill_jianren
+      level: 38
+      hidden: false
+    - skill_id: skill_suishichongzhuang
+      level: 43
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 48
+      hidden: false
+    - skill_id: skill_yongmengjianita
+      level: 53
+      hidden: false
+    - skill_id: skill_wanyouyinli
+      level: 60
+      hidden: true
+    - skill_id: skill_guailijianita
+      level: 60
+      hidden: true
+    - skill_id: skill_yongqichongzhuang
+      level: 60
+      hidden: true
+    - skill_id: skill_zuli
+      level: 60
+      hidden: true
+    - skill_id: skill_jiancipifu
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_shifu
+  emblem:
+    - mark_emblem_zhongxin

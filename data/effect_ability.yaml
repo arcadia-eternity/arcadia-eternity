@@ -1106,7 +1106,7 @@
         evaluator:
           type: contain
           tag: yutu
-# 时光重生: 使用必杀技时，使自身获得时光重生
+# 时光: 使用必杀技时，使自身获得时光重生
 - id: effect_ability_shiguang_climax_add_mark_shiguangchongsheng
   trigger: OnHit
   priority: 0
@@ -1129,3 +1129,36 @@
         evaluator:
           type: same
           value: Climax
+# 石肤：满体力时受到的伤害减半
+- id: effect_ability_damage_reduction_50_percent_at_full_hp
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: -50
+    delta: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: ==
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp

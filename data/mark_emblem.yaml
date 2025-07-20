@@ -250,3 +250,8 @@
   tags: [emblem]
   effect:
     - effect_emblem_xianzhi_crit_rate_5_percent_if_first
+- id: mark_emblem_zhongxin
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_immune_skill_bandao

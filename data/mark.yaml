@@ -1992,3 +1992,14 @@
     keepOnSwitchOut: true
   effect:
     - effect_mark_shiguangchongsheng
+- id: mark_yuecuoyueyong
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+    duration: -1
+  tags: []
+  effect:
+    - effect_mark_damage_boost_based_on_hp_percentage # TODO: 体力＜75%时伤害提升30% ＜50%时提升50% ＜25%时提升70%

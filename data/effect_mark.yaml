@@ -3206,3 +3206,116 @@
       condition:
         type: selfHasMark
         baseId: mark_shijianfaze
+# 越挫越勇: 体力＜75%时伤害提升30% ＜50%时提升50% ＜25%时提升70%
+- id: effect_mark_damage_boost_based_on_hp_percentage
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: '<'
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp
+                - type: multiply
+                  arg: 0.75
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    delta: 0
+    percent:
+      type: conditional
+      trueValue: 70
+      falseValue:
+        type: conditional
+        trueValue: 50
+        falseValue:
+          type: conditional
+          trueValue: 30
+          falseValue: 0
+          condition:
+            type: evaluate
+            target:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: currentHp
+            evaluator:
+              type: compare
+              operator: '<'
+              value:
+                type: dynamic
+                selector:
+                  base: self
+                  chain:
+                    - type: select
+                      arg:
+                        type: base
+                        arg: maxHp
+                    - type: multiply
+                      arg: 0.75
+        condition:
+          type: evaluate
+          target:
+            base: self
+            chain:
+              - type: select
+                arg:
+                  type: base
+                  arg: currentHp
+          evaluator:
+            type: compare
+            operator: '<'
+            value:
+              type: dynamic
+              selector:
+                base: self
+                chain:
+                  - type: select
+                    arg:
+                      type: base
+                      arg: maxHp
+                  - type: multiply
+                    arg: 0.5
+      condition:
+        type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: '<'
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp
+                - type: multiply
+                  arg: 0.25

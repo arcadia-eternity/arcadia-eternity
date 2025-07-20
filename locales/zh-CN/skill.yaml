@@ -2041,3 +2041,42 @@ skill_chuansuoweilai:
 skill_shiguanghongliu:
   name: 时光洪流
   description: 先出手时暴击率增加65%
+skill_jianita:
+  name: 践踏
+  description: 5%弱化对手特防1级
+skill_yuecuoyueyong:
+  name: 越挫越勇
+  description: 使自身获得越挫越勇
+skill_zhendibo:
+  name: 震地波
+  description: 10%弱化对手特防1级
+skill_lumangchongzhuang:
+  name: 鲁莽冲撞
+  description: 自身承受25%的自损伤害
+skill_manxinghuifu:
+  name: 慢性回复
+  description: 使自身获得1/8的恢复
+skill_qunniujianita:
+  name: 群牛践踏
+  description: 15%弱化对手特防1级
+skill_suishichongzhuang:
+  name: 碎石冲撞
+  description: 自身承受25%的自损伤害
+skill_yongmengjianita:
+  name: 勇猛践踏
+  description: 25%弱化对手特防1级
+skill_wanyouyinli:
+  name: 万有引力
+  description: 必中 弱化对手速度1级
+skill_guailijianita:
+  name: 怪力践踏
+  description: 30%弱化对手特防1级
+skill_yongqichongzhuang:
+  name: 勇气冲撞
+  description: 自身承受25%的自损伤害
+skill_zuli:
+  name: 阻力
+  description: 弱化对手物攻1级
+skill_jiancipifu:
+  name: 尖刺皮肤
+  description: 使自身获得反弹

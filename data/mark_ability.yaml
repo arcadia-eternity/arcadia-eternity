@@ -258,3 +258,8 @@
   tags: [ability]
   effect:
     - effect_ability_shiguang_climax_add_mark_shiguangchongsheng
+- id: mark_ability_shifu
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_damage_reduction_50_percent_at_full_hp

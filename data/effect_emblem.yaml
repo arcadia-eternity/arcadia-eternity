@@ -1004,3 +1004,24 @@
     type: addCritRate
     target: usingSkillContext
     value: 5
+# 重心：如果当前使用的技能为绊倒且以自身为目标，使该技能无效
+- id: effect_emblem_immune_skill_bandao
+  trigger: BeforeHit
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: checkSelf
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: skill.base.id
+        evaluator:
+          type: same
+          value: skill_bandao
+  apply:
+    type: setSureMiss
+    target: usingSkillContext
+    priority: -1
