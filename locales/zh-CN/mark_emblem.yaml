@@ -143,3 +143,6 @@ mark_emblem_yuren:
 mark_emblem_xianzhi:
   name: 先致
   description: 先出手时暴击率增加5%
+mark_emblem_zhongxin:
+  name: 重心
+  description: 使绊倒技能无效

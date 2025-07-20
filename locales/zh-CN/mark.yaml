@@ -622,3 +622,6 @@ mark_chuansuoweilai:
 mark_shiguangchongsheng:
   name: 时光重生
   description: 受到致死打击时恢复自身最大体力的1/4
+mark_yuecuoyueyong:
+  name: 越挫越勇
+  description: 体力＜75%时伤害提升30% ＜50%时提升50% ＜25%时提升70%

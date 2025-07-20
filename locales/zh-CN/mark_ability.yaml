@@ -145,3 +145,6 @@ mark_ability_yuren:
 mark_ability_shiguang:
   name: 时光
   description: 使用必杀技使自身获得时光重生
+mark_ability_shifu:
+  name: 石肤
+  description: 满体力时受到伤害减半

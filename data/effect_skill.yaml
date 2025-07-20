@@ -76,6 +76,72 @@
             type: 'raw:number'
             value: 10
             tags: ['skill_effect_probability']
+# 15%弱化对手特防1级
+- id: effect_skill_reduce_opponent_spd_1_stage_15_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: opponent
+    statType: spd
+    value: -1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_probability_15_percent_template
+        type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent:
+            type: 'raw:number'
+            value: 15
+            tags: ['skill_effect_probability']
+# 25%弱化对手特防1级
+- id: effect_skill_reduce_opponent_spd_1_stage_25_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: opponent
+    statType: spd
+    value: -1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_probability_25_percent_template
+        type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent:
+            type: 'raw:number'
+            value: 25
+            tags: ['skill_effect_probability']
+# 30%弱化对手特防1级
+- id: effect_skill_reduce_opponent_spd_1_stage_30_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: opponent
+    statType: spd
+    value: -1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_probability_30_percent_template
+        type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent:
+            type: 'raw:number'
+            value: 30
+            tags: ['skill_effect_probability']
 - id: effect_skill_reduce_opponent_def_1_stage_10_percent
   trigger: BeforeHit
   priority: 0
@@ -548,15 +614,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - &condition_probability_30_percent_template
-        type: evaluate
-        target: self
-        evaluator:
-          type: probability
-          percent:
-            type: 'raw:number'
-            value: 30
-            tags: ['skill_effect_probability']
+      - *condition_probability_30_percent_template
       - *condition_opponent_not_fire_element
 - id: effect_skill_add_mark_opponent_shaoshang_50_percent
   trigger: OnHit
@@ -2789,15 +2847,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - &condition_probability_30_percent_template
-        type: evaluate
-        target: self
-        evaluator:
-          type: probability
-          percent:
-            type: 'raw:number'
-            value: 30
-            tags: ['skill_effect_probability']
+      - *condition_probability_30_percent_template
 - id: effect_skill_add_mark_shuiwenpingzhang
   trigger: OnHit
   priority: 0
@@ -2838,15 +2888,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - &condition_probability_30_percent_template
-        type: evaluate
-        target: self
-        evaluator:
-          type: probability
-          percent:
-            type: 'raw:number'
-            value: 30
-            tags: ['skill_effect_probability']
+      - *condition_probability_30_percent_template
       - *condition_opponent_not_water_element
 - id: effect_skill_set_field_yutian
   trigger: OnHit
@@ -4282,27 +4324,6 @@
       - type: selfUseSkill
       - type: selfHasMark
         baseId: mark_xukongganying
-# 15%弱化对手特防1级
-- id: effect_skill_reduce_opponent_spd_1_stage_15_percent
-  trigger: BeforeHit
-  priority: 0
-  apply:
-    type: statStageBuff
-    target: opponent
-    statType: spd
-    value: -1
-  condition:
-    type: every
-    conditions:
-      - type: selfUseSkill
-      - type: evaluate
-        target: self
-        evaluator:
-          type: probability
-          percent:
-            type: 'raw:number'
-            value: 15
-            tags: ['skill_effect_probability']
 # 具有虚空感应时增加50点威力
 - id: effect_skill_add_power_50_if_has_xukongganying
   trigger: AfterUseSkillCheck
@@ -8616,3 +8637,15 @@
     conditions:
       - type: selfUseSkill
       - type: isFirstSkillUsedThisTurn
+# 使自身获得越挫越勇
+- id: effect_skill_add_mark_yuecuoyueyong
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_yuecuoyueyong
+  condition:
+    type: selfUseSkill
