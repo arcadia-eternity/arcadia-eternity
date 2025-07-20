@@ -8096,7 +8096,7 @@
   effect:
     - effect_skill_add_mark_shijianhudun
 - id: skill_shiguangzhongcai
-  element: Normal
+  element: Flying
   category: Climax
   target: opponent
   power: 165
@@ -8118,7 +8118,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_damage_100_or_add_mark_shijianzhadan # TODO: 使对手获得时间炸弹 具有时间法则时直接触发
+    - effect_skill_add_damage_100_or_add_mark_shijianzhadan
 - id: skill_yuzhi
   element: Normal
   category: Status
@@ -8142,7 +8142,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_chuansuoweilai # TODO: 使自身获得穿梭未来
+    - effect_skill_add_mark_chuansuoweilai
 - id: skill_shiguanghongliu
   element: Flying
   category: Special
@@ -8154,7 +8154,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_crit_rate_65_if_first # TODO: 先出手时暴击率增加65%
+    - effect_skill_add_crit_rate_65_if_first
 - id: skill_jianita
   element: Ground
   category: Special
