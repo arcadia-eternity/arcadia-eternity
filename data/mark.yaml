@@ -2,6 +2,24 @@
 # yaml-language-server: $schema=../packages/schema/schema/mark.schema.json
 # @metaType mark
 # @version 1.0.0
+- id: mark_shuiliangchongzu
+  tags: []
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: false
+  effect: []
+- id: mark_shuiliangbaohe
+  tags: []
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: false
+  effect: []
 - id: mark_meihuo
   tags:
     - status

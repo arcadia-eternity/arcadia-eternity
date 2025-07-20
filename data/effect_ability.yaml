@@ -1162,3 +1162,33 @@
                   arg:
                     type: base
                     arg: maxHp
+# 蓄水: 有水量充足时，造成伤害增加5%
+- id: effect_ability_shuiliangchongzu_increase_damage_5_percent
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 5
+    delta: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shuiliangchongzu
+# 蓄水: 有水量饱和时，造成伤害增加10%
+- id: effect_ability_shuiliangbaohe_increase_damage_10_percent
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 10
+    delta: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shuiliangbaohe

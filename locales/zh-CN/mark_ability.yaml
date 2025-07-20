@@ -1,3 +1,6 @@
+mark_ability_xushui:
+  name: 水量增伤
+  description: 水量充足时伤害增加5% 水量饱和时伤害增加10%
 mark_ability_zhongjie:
   name: 终结
   description: 体力低于1/4以下时消耗弱点记号的技能造成的伤害增加25%

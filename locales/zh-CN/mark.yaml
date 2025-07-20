@@ -1,3 +1,9 @@
+mark_shuiliangchongzu:
+  name: 水量充足
+  description: ''
+mark_shuiliangbaohe:
+  name: 水量饱和
+  description: ''
 stat_stage_atk_down:
   name: 攻击力下降
   description: 攻击等级{{mark.stack}}

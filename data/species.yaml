@@ -6112,3 +6112,120 @@
     - mark_ability_shifu
   emblem:
     - mark_emblem_zhongxin
+- id: pet_wuda
+  num: 72
+  element: Water
+  baseStats:
+    hp: 90
+    atk: 117
+    def: 118
+    spa: 132
+    spd: 122
+    spe: 98
+  genderRatio:
+    - 8
+    - 2
+  heightRange:
+    - 31
+    - 36
+  weightRange:
+    - 15
+    - 20
+  learnable_skills:
+    - skill_id: skill_paida
+      level: 1
+      hidden: false
+    - skill_id: skill_shuipao
+      level: 5
+      hidden: false
+    - skill_id: skill_tuoli
+      level: 10
+      hidden: false
+    - skill_id: skill_xishui
+      level: 16
+      hidden: false
+    - skill_id: skill_qianglipenshui
+      level: 21
+      hidden: false
+    - skill_id: skill_yinshui
+      level: 26
+      hidden: false
+  ability:
+    - mark_ability_xushui
+  emblem:
+    - mark_emblem_chaoshui
+- id: pet_wuguda
+  num: 73
+  element: Water
+  baseStats:
+    hp: 180
+    atk: 162
+    def: 163
+    spa: 182
+    spd: 172
+    spe: 143
+  genderRatio:
+    - 8
+    - 2
+  heightRange:
+    - 62
+    - 67
+  weightRange:
+    - 49
+    - 54
+  learnable_skills:
+    - skill_id: skill_paida
+      level: 1
+      hidden: false
+    - skill_id: skill_shuipao
+      level: 5
+      hidden: false
+    - skill_id: skill_tuoli
+      level: 10
+      hidden: false
+    - skill_id: skill_xishui
+      level: 16
+      hidden: false
+    - skill_id: skill_qianglipenshui
+      level: 21
+      hidden: false
+    - skill_id: skill_yinshui
+      level: 26
+      hidden: false
+    - skill_id: skill_shuiqiangliansha
+      level: 31
+      hidden: false
+    - skill_id: skill_ningju
+      level: 36
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 41
+      hidden: false
+    - skill_id: skill_quanlichongfeng
+      level: 46
+      hidden: false
+    - skill_id: skill_chaoshui
+      level: 50
+      hidden: false
+    - skill_id: skill_jiancizhangji
+      level: 55
+      hidden: false
+    - skill_id: skill_fanjiangdaohai
+      level: 60
+      hidden: true
+    - skill_id: skill_dakouxi
+      level: 60
+      hidden: true
+    - skill_id: skill_chaojishuiqiang
+      level: 60
+      hidden: true
+    - skill_id: skill_pensheshuiqiang
+      level: 60
+      hidden: true
+    - skill_id: skill_tunyinshuiyuan
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_xushui
+  emblem:
+    - mark_emblem_chaoshui

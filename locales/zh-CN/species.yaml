@@ -1,3 +1,9 @@
+pet_wuda:
+  name: 乌达
+  description: 乌达其实有两只小精灵 它们终日黏在一起 大家习惯将它们叫做乌达
+pet_wuguda:
+  name: 乌古达
+  description: 能量集合在乌古达尾部产生了一种神秘的泡泡 实现了它飞行的梦想
 pet_dilan:
   name: 迪兰
   description: 漂亮冷酷的精灵 不爱说话
