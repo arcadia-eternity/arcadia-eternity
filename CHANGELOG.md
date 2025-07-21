@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.7.0...arcadia-eternity-v2.7.1) (2025-07-21)
+
+
+### 🐛 Bug Fixes
+
+* Use instance random generator in shuffle method ([29faf33](https://github.com/arcadia-eternity/arcadia-eternity/commit/29faf332026dcb746186445eff33365c5efcde1f))
+
 ## [2.7.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.6.0...arcadia-eternity-v2.7.0) (2025-07-20)
 
 
