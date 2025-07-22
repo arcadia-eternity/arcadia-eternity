@@ -260,8 +260,13 @@
   tags: [emblem]
   effect:
     - effect_emblem_increase_chaoshui_nishui_chance_10_percent
-- id: mark_emblem_huoxinwenzhang
+- id: mark_emblem_huoxin
   config: *emblem_config
   tags: [emblem]
   effect:
     - effect_emblem_increase_huohuanzhixin_maxstacks_4
+- id: mark_emblem_guangwu
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_reduce_light_skill_rage_cost_5

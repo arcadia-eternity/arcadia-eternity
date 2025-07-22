@@ -1058,3 +1058,22 @@
     type: setMarkMaxStack
     target: addMarkContext
     value: 10
+# 光武: 减少5点光系技能的消耗
+- id: effect_emblem_reduce_light_skill_rage_cost_5
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addSkillAttributeModifier
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: element
+          evaluator:
+            type: same
+            value: Light
+    attribute: rage
+    modifierType: delta
+    value: -5

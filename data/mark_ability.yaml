@@ -273,3 +273,9 @@
   tags: [ability]
   effect:
     - effect_ability_increase_huohuanzhixin_gain_1
+- id: mark_ability_shenguang
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_shenguang_immune_status_above_half_hp
+    - effect_ability_shenguang_sure_hit_below_half_hp

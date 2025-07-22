@@ -528,6 +528,15 @@
           - type: multiply
             arg: 50
   condition: *condition_self_use_skill_template
+# 减少对方20点怒气
+- id: effect_skill_reduce_opponent_rage_20
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: opponent
+    value: -20
+  condition: *condition_self_use_skill_template
 - id: effect_skill_add_mark_opponent_yishang
   trigger: OnHit
   priority: 0
@@ -4966,7 +4975,7 @@
                 arg: baseId
               evaluator:
                 type: same
-                value: mark_ruodianjihao
+                value: mark_kongjuzhinian
             - type: select
               arg:
                 type: base
@@ -6653,8 +6662,8 @@
     stack: 60
   condition:
     type: selfUseSkill
-# 无论命中与否，添加免疫不良
-- id: effect_skill_add_mark_mianyibuliang_hit_or_miss
+# 无论命中与否，添加免疫异常
+- id: effect_skill_add_mark_mianyiyichang_hit_or_miss
   trigger: [OnHit, OnMiss]
   priority: 0
   apply:
@@ -6662,7 +6671,7 @@
     target: self
     mark:
       type: entity:baseMark
-      value: mark_mianyibuliang
+      value: mark_mianyiyichang
   condition:
     type: every
     conditions:
@@ -8799,7 +8808,7 @@
       - type: selfHasMark
         baseId: mark_shuiliangchongzu
 # 获得3个火环之心
-- id: effect_skill_add_mark_self_huohuanzhixin_3
+- id: effect_skill_add_mark_huohuanzhixin_3
   trigger: OnHit
   priority: 0
   apply:
@@ -8815,7 +8824,7 @@
   condition:
     type: selfUseSkill
 # 获得2个火环之心
-- id: effect_skill_add_mark_self_huohuanzhixin_2
+- id: effect_skill_add_mark_huohuanzhixin_2
   trigger: OnHit
   priority: 0
   apply:
@@ -8831,7 +8840,7 @@
   condition:
     type: selfUseSkill
 # 获得1个火环之心
-- id: effect_skill_add_mark_self_huohuanzhixin_1
+- id: effect_skill_add_mark_huohuanzhixin_1
   trigger: OnHit
   priority: 0
   apply:
@@ -8892,7 +8901,7 @@
   condition:
     type: selfUseSkill
 # 获得真空之心
-- id: effect_skill_add_mark_self_zhenkongzhixin
+- id: effect_skill_add_mark_zhenkongzhixin
   trigger: OnHit
   priority: 0
   apply:
@@ -8917,3 +8926,116 @@
       - type: selfUseSkill
       - type: selfHasMark
         baseId: mark_zhenkongzhixin
+# 使自身获得光武神通
+- id: effect_skill_add_mark_guangwushentong
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_guangwushentong
+    stack: 1 #TODO: 实现0层的印记
+  condition:
+    type: selfUseSkill
+# 当此次造成伤害大于100时，恢复自身25点怒气
+- id: effect_skill_add_rage_25_if_damage_over_100
+  trigger: OnDamage
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 25
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageResult
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 100
+# 使自身获得光武灵通
+- id: effect_skill_add_mark_guangwulingtong
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_guangwulingtong
+    stack: 1 #TODO: 实现0层的印记
+  condition:
+    type: selfUseSkill
+# 附加50点固伤
+- id: effect_skill_add_fixed_damage_50
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: 50
+  condition:
+    type: selfUseSkill
+# 附加55点固伤
+- id: effect_skill_add_fixed_damage_55
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: 55
+  condition:
+    type: selfUseSkill
+# 使自身获得灵通传达
+- id: effect_skill_add_mark_lingtongchuanda
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_lingtongchuanda
+  condition:
+    type: selfUseSkill
+# 减少对方15点怒气
+- id: effect_skill_reduce_opponent_rage_15
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: opponent
+    value: -15
+  condition: *condition_self_use_skill_template
+# 击败对手时，恢复自身1/6的体力
+- id: effect_skill_heal_self_1_6_max_hp_on_defeat_opponent
+  trigger: OnDefeat
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: maxHp
+          - type: divide
+            arg:
+              type: raw:number
+              value: 6
+  condition:
+    type: selfUseSkill
