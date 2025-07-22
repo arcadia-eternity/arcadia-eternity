@@ -1074,6 +1074,47 @@
           evaluator:
             type: same
             value: Light
+        - type: whereAttr
+          extractor:
+            type: dynamic
+            arg: category
+          evaluator:
+            type: notSame
+            value: Climax
     attribute: rage
     modifierType: delta
     value: -5
+# 光武：使用光系的必杀技时，减少5点怒气消耗
+- id: effect_emblem_reduce_light_climax_skill_rage_cost_5
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  apply:
+    type: addValue
+    target:
+      base: usingSkillContext
+      chain:
+        - type: selectProp
+          arg: rage
+    value: -5
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: skill.base.element
+        evaluator:
+          type: same
+          value: Light
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: skill.base.category
+        evaluator:
+          type: same
+          value: Climax

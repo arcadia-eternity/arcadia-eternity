@@ -2184,7 +2184,7 @@ skill_guangyuandan:
   description: 附加50点固伤
 skill_guangwushenlingtong:
   name: 光武神灵通
-  description: <font color=#93E312>必中</font> 吸收对手10点怒气并恢复自身5点怒气
+  description: <font color=#93E312>必中</font> 吸收对手15点怒气
 skill_shenguangliechong:
   name: 神光烈冲
   description: 附加55点固伤

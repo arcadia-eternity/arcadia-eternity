@@ -270,3 +270,4 @@
   tags: [emblem]
   effect:
     - effect_emblem_reduce_light_skill_rage_cost_5
+    - effect_emblem_reduce_light_climax_skill_rage_cost_5
