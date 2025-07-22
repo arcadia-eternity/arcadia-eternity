@@ -624,7 +624,7 @@ skill_huoyanchongzhuang:
 skill_shuangguihuopao:
   name: 双轨火炮
   description: 连击2次 对手烧伤时威力2倍
-skill_lieyanzhiju:
+skill_lieyanzhiqu:
   name: 烈焰之躯
   description: 使自身获得免疫不良
 skill_huoyanxuanfeng:
@@ -968,7 +968,7 @@ skill_jinzhenlianfa:
   description: 连击3次
 skill_zhenjiu:
   name: 针灸
-  description: 使自身获得免疫不良
+  description: 使自身获得免疫异常
 skill_zhencichongzhuang:
   name: 针刺冲撞
   description: 使对手获得冲撞刺针
@@ -2149,3 +2149,51 @@ skill_huohuanzhili:
 skill_zhenkongsuzhao:
   name: 真空速爪
   description: 先制+1
+skill_guangdan:
+  name: 光弹
+  description: 5%弱化对手特防1级
+skill_guangzhiquan:
+  name: 光之泉
+  description: 恢复自身最大体力的1/4并解除自身弱化
+skill_guangwushentong:
+  name: 光武神通
+  description: 使自身获得光武神通
+skill_shentongchuanda:
+  name: 神通传达
+  description: 造成伤害＞100点时恢复自身25点怒气
+skill_guangsu:
+  name: 光速
+  description: 强化自身速度1级
+skill_guangwulingtong:
+  name: 光武灵通
+  description: 使自身获得光武灵通
+skill_guangliechong:
+  name: 光烈冲
+  description: 附加50点固伤
+skill_shenguanghuti:
+  name: 神光护体
+  description: <font color=#93E312>必中</font> 使自身获得免疫异常
+skill_lingtongchuanda:
+  name: 灵通传达
+  description: 使自身获得灵通传达
+skill_guangzhili:
+  name: 光之力
+  description: 强化自身双攻1级
+skill_guangyuandan:
+  name: 光源弹
+  description: 附加50点固伤
+skill_guangwushenlingtong:
+  name: 光武神灵通
+  description: <font color=#93E312>必中</font> 吸收对手15点怒气
+skill_shenguangliechong:
+  name: 神光烈冲
+  description: 附加55点固伤
+skill_shenguangyuandan:
+  name: 神光源弹
+  description: 附加55点固伤
+skill_guangsuliechong:
+  name: 光速烈冲
+  description: 先制+1 击败对手时恢复自身最大体力的1/6
+skill_guangsufeidan:
+  name: 光速飞弹
+  description: 先制+1 击败对手时恢复自身最大体力的1/6

@@ -1202,3 +1202,95 @@
     tag: skill_effect_huohuanzhixin_stack
     modifierType: delta
     value: 1
+# 神光: 体力＞1/2时免疫不良
+- id: effect_ability_shenguang_immune_status_above_half_hp
+  trigger: OnBeforeAddMark
+  priority: 0
+  apply:
+    type: disableContext
+    target: addMarkContext
+  condition:
+    type: every
+    conditions:
+      - type: selfBeAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark
+            - type: select
+              arg:
+                type: base
+                arg: tags
+            - type: flat
+        evaluator:
+          type: contain
+          tag: status
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: '>'
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp
+                - type: divide
+                  arg: 2
+# 神光: 体力低于1/2时，光系技能必中
+- id: effect_ability_shenguang_sure_hit_below_half_hp
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target: usingSkillContext
+    priority: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: usingSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Light
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: '<'
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp
+                - type: divide
+                  arg: 2

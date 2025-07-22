@@ -637,3 +637,18 @@ mark_huohuanzhixin:
 mark_zhenkongzhixin:
   name: 真空之心
   description: ''
+mark_guangzhiquan:
+  name: 光之泉
+  description: 使下个非必杀技能不消耗怒气
+mark_guangwushentong:
+  name: 光武神通
+  description: 记录受到伤害的50% 下个技能附加层数点伤害值并消耗该印记
+mark_guangwulingtong:
+  name: 光武灵通
+  description: 记录受到伤害的50% 下回合使自身获得层数点光护盾
+mark_lingtongchuanda:
+  name: 灵通传达
+  description: 受到伤害＜75点时减少对手15点怒气
+mark_guanghudun:
+  name: 光护盾【🛡️】
+  description: 抵挡层数点伤害

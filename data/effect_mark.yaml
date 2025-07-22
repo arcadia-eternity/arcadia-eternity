@@ -1062,6 +1062,33 @@
         evaluator:
           type: contain
           tag: status
+# 免疫异常效果
+- id: effect_mark_immune_exceptional
+  trigger: OnBeforeAddMark
+  priority: 0
+  apply:
+    type: disableContext
+    target: addMarkContext
+  condition:
+    type: every
+    conditions:
+      - type: selfBeAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark
+            - type: select
+              arg:
+                type: base
+                arg: tags
+            - type: flat
+        evaluator:
+          type: contain
+          tag: exceptional
 - id: effect_mark_reduce_speed_50
   trigger: OnMarkCreated
   priority: 0
@@ -3340,3 +3367,119 @@
               arg: stack
           - type: multiply
             arg: 10
+# 光武神通/光武灵通：累积受到的伤害的50%并转化为层数
+- id: effect_mark_stack_mark_with_damage
+  trigger: OnDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageResult
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 0
+  priority: 0
+  apply:
+    type: addStacks
+    target: mark
+    value:
+      type: dynamic
+      selector:
+        base: damageContext
+        chain:
+          - type: selectPath
+            arg: damageResult
+          - type: multiply
+            arg: 0.5
+# 光武神通: 造成伤害时，附加当前层数的伤害并消耗自身
+- id: effect_mark_add_damage_with_stack_and_consume
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: mark
+          chain:
+            - type: selectPath
+              arg: stack
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 1
+  priority: 0
+  apply:
+    - type: addModified
+      target: damageContext
+      percent: 0
+      delta:
+        type: dynamic
+        selector:
+          base: mark
+          chain:
+            - type: selectPath
+              arg: stack
+    - type: destroyMark
+      target: mark
+# 光武灵通: 回合结束时，若该印记的层数大于1，消耗自身并转化为光护盾
+- id: effect_mark_add_guanghudun_on_turn_end_with_stack
+  trigger: TurnEnd
+  condition:
+    type: every
+    conditions:
+      - type: petIsActive
+      - type: evaluate
+        target:
+          base: mark
+          chain:
+            - type: selectPath
+              arg: stack
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 1
+  priority: 0
+  apply:
+    - type: addMark
+      target: self
+      mark:
+        type: entity:baseMark
+        value: mark_guanghudun
+      stack:
+        type: dynamic
+        selector:
+          base: mark
+          chain:
+            - type: selectPath
+              arg: stack
+    - type: destroyMark
+      target: mark
+# 灵通传达: 受到伤害低于75点时，减少对手15点怒气
+- id: effect_mark_reduce_opponent_rage_15_if_damage_below_75
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageResult
+        evaluator:
+          type: compare
+          operator: '<'
+          value: 75
+  priority: 0
+  apply:
+    type: addRage
+    target: opponent
+    value: -15

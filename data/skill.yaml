@@ -85,6 +85,8 @@
   sureHit: false
   ignoreShield: false
   tags: []
+  effect:
+    - effect_skill_reduce_opponent_rage_20
 - id: skill_haixiaolianji
   element: Water
   category: Special
@@ -2399,7 +2401,7 @@
   tags: []
   effect:
     - effect_skill_power_2x_opponent_shaoshang
-- id: skill_lieyanzhiju
+- id: skill_lieyanzhiqu
   element: Fire
   category: Status
   target: self
@@ -3166,7 +3168,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_mianyibuliang
+    - effect_skill_add_mark_mianyiyichang
   tags: []
 - id: skill_hongxin
   element: Normal
@@ -3460,7 +3462,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_add_mark_mianyibuliang
+    - effect_skill_add_mark_mianyiyichang
   tags: []
 - id: skill_yonghengzhiguang
   element: Psychic
@@ -3782,7 +3784,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_mianyibuliang
+    - effect_skill_add_mark_mianyiyichang
 - id: skill_zhencichongzhuang
   element: Grass
   category: Physical
@@ -6330,7 +6332,7 @@
   tags: []
   effect:
     - effect_skill_add_mark_yinghua_50
-    - effect_skill_add_mark_mianyibuliang_hit_or_miss
+    - effect_skill_add_mark_mianyiyichang_hit_or_miss
 - id: skill_jinghuadadi
   element: Ground
   category: Physical
@@ -8463,7 +8465,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_self_huohuanzhixin_3
+    - effect_skill_add_mark_huohuanzhixin_3
 - id: skill_huoyanzhizhua
   element: Fire
   category: Physical
@@ -8490,7 +8492,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_self_huohuanzhixin_2
+    - effect_skill_add_mark_huohuanzhixin_2
 - id: skill_lieyanzhizhua
   element: Fire
   category: Physical
@@ -8517,7 +8519,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_self_huohuanzhixin_1
+    - effect_skill_add_mark_huohuanzhixin_1
 - id: skill_heiyanzhihuan
   element: Fire
   category: Special
@@ -8530,7 +8532,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_self_huohuanzhixin_1
+    - effect_skill_add_mark_huohuanzhixin_1
 - id: skill_heiyanzhizhua
   element: Fire
   category: Physical
@@ -8570,7 +8572,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_mark_self_zhenkongzhixin
+    - effect_skill_add_mark_zhenkongzhixin
 - id: skill_zhenkongzhizhua
   element: Normal
   category: Physical
@@ -8609,3 +8611,200 @@
   sureHit: false
   ignoreShield: false
   tags: []
+- id: skill_guangdan
+  element: Light
+  category: Special
+  target: opponent
+  power: 60
+  rage: 5
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_opponent_spd_1_stage_5_percent
+- id: skill_guangzhiquan
+  element: Light
+  category: Status
+  target: self
+  power: 0
+  rage: 25
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_heal_self_quarter
+    - effect_skill_clear_stage
+- id: skill_guangwushentong
+  element: Light
+  category: Physical
+  target: opponent
+  power: 75
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_guangwushentong
+- id: skill_shentongchuanda
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 90
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_rage_25_if_damage_over_100
+- id: skill_guangsu
+  element: Light
+  category: Status
+  target: self
+  power: 0
+  rage: 10
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_spe_1_stage
+- id: skill_guangwulingtong
+  element: Light
+  category: Special
+  target: opponent
+  power: 75
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_guangwulingtong
+- id: skill_guangliechong
+  element: Light
+  category: Physical
+  target: opponent
+  power: 90
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_fixed_damage_50
+- id: skill_shenguanghuti
+  element: Light
+  category: Status
+  target: self
+  power: 0
+  rage: 15
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_mianyiyichang
+- id: skill_lingtongchuanda
+  element: Normal
+  category: Special
+  target: opponent
+  power: 90
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_lingtongchuanda
+- id: skill_guangzhili
+  element: Light
+  category: Status
+  target: self
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_atk_1_stage
+    - effect_skill_raise_spa_1_stage
+- id: skill_guangyuandan
+  element: Light
+  category: Special
+  target: opponent
+  power: 90
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_fixed_damage_50
+- id: skill_guangwushenlingtong
+  element: Light
+  category: Climax
+  target: opponent
+  power: 170
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_opponent_rage_15
+    - effect_skill_add_rage_15
+- id: skill_shenguangliechong
+  element: Light
+  category: Physical
+  target: opponent
+  power: 105
+  rage: 25
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_fixed_damage_55
+- id: skill_shenguangyuandan
+  element: Light
+  category: Special
+  target: opponent
+  power: 105
+  rage: 25
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_fixed_damage_55
+- id: skill_guangsuliechong
+  element: Light
+  category: Physical
+  target: opponent
+  power: 55
+  rage: 15
+  accuracy: 95
+  priority: 1
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_heal_self_1_6_max_hp_on_defeat_opponent
+- id: skill_guangsufeidan
+  element: Light
+  category: Special
+  target: opponent
+  power: 55
+  rage: 15
+  accuracy: 95
+  priority: 1
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_heal_self_1_6_max_hp_on_defeat_opponent

@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.8.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.7.1...arcadia-eternity-v2.8.0) (2025-07-22)
+
+
+### ✨ Features
+
+* **netpet:** 艾丽希斯 ([ac94c2e](https://github.com/arcadia-eternity/arcadia-eternity/commit/ac94c2e3af0c38e59b8d127b16d1512ae9f882db))
+
+
+### 🐛 Bug Fixes
+
+* **balance:** Add effect to reduce Light Climax skill rage cost by 5 ([c5585f0](https://github.com/arcadia-eternity/arcadia-eternity/commit/c5585f01315d3582b668c21f929a6ca21252be60))
+
 ## [2.7.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.7.0...arcadia-eternity-v2.7.1) (2025-07-21)
 
 

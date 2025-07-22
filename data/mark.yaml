@@ -4,7 +4,7 @@
 # @version 1.0.0
 - id: mark_meihuo
   tags:
-    - status
+    - exceptional
   config: &status_config
     persistent: false
     stackable: true
@@ -18,7 +18,7 @@
 - id: mark_haipa
   config: *status_config
   tags:
-    - status
+    - exceptional
   effect:
     - effect_mark_stun
     - effect_mark_cant_evasion
@@ -35,7 +35,7 @@
     destroyable: true
     duration: 5
   tags:
-    - status
+    - exceptional
   effect:
     - effect_mark_40probability_stun
 - id: mark_hunmi
@@ -46,34 +46,34 @@
 - id: mark_shuimian
   config: *status_config
   tags:
-    - status
+    - exceptional
   effect:
     - effect_mark_stun
     - effect_mark_onDamage_recovery
 - id: mark_shihua
   config: *status_config
   tags:
-    - status
+    - exceptional
   effect:
     - effect_mark_stun
     - effect_mark_onCritDamage_recovery
 - id: mark_zhixi
   config: *status_config
   tags:
-    - status
+    - exceptional
   effect:
     - effect_mark_stun
 - id: mark_bingdong
   config: *status_config
   tags:
-    - status
+    - exceptional
   effect:
     - effect_mark_stun
     - effect_mark_onCritDamage_recovery
 - id: mark_kongju
   config: *status_config
   tags:
-    - status
+    - exceptional
   effect:
     - effect_mark_randomUseSkill
     - effect_mark_onDamage_over100_recovery
@@ -86,13 +86,13 @@
     duration: 3
     keepOnSwitchOut: false
   tags:
-    - status
+    - exceptional
   effect:
     - effect_mark_curse_add_random_status
 - id: mark_taobi
   config: *status_config
   tags:
-    - status
+    - exceptional
   effect:
     - effect_mark_stun
     - effect_mark_prevent_damage
@@ -105,25 +105,25 @@
     stackStrategy: extend
     destroyable: true
   tags:
-    - status
+    - exceptional
   effect:
     - effect_mark_confuse
 - id: mark_chenmo
   config: *status_config
   tags:
-    - status
+    - exceptional
   effect:
     - effect_mark_taunt
 - id: mark_jingu
   config: *status_config
   tags:
-    - status
+    - exceptional
   effect:
     - effect_mark_cant_evasion
     - effect_mark_physical_stun
 - id: mark_xuankong
   tags:
-    - status
+    - exceptional
   config:
     duration: 1
     persistent: false
@@ -143,7 +143,7 @@
     stackStrategy: extend
     destroyable: true
   tags:
-    - status
+    - exceptional
   effect:
     - effect_mark_stun
 - id: mark_meimeng
@@ -652,6 +652,19 @@
     inheritOnFaint: false
   effect: [] #TODO
 - id: mark_mianyiyichang
+  config:
+    duration: 5
+    persistent: false
+    maxStacks: 1
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_immune_exceptional
 - id: mark_xinzhiyinji
   config:
     duration: -1
@@ -2041,3 +2054,49 @@
     duration: -1
     keepOnSwitchOut: true
   effect: []
+- id: mark_guangwushentong
+  config:
+    persistent: true
+    stackable: true
+    stackStrategy: stack
+    destroyable: true
+    duration: -1
+    keepOnSwitchOut: true
+    maxStacks: 114514
+  effect:
+    - effect_mark_stack_mark_with_damage
+    - effect_mark_add_damage_with_stack_and_consume
+- id: mark_guangwulingtong
+  config:
+    persistent: true
+    stackable: true
+    stackStrategy: stack
+    destroyable: true
+    duration: -1
+    keepOnSwitchOut: true
+    maxStacks: 114514
+  effect:
+    - effect_mark_stack_mark_with_damage
+    - effect_mark_add_guanghudun_on_turn_end_with_stack
+- id: mark_lingtongchuanda
+  config:
+    persistent: false
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    duration: 2
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_reduce_opponent_rage_15_if_damage_below_75
+- id: mark_guanghudun
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 114514
+    stackable: true
+    stackStrategy: replace
+    destroyable: true
+    isShield: true
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false

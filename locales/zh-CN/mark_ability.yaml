@@ -154,3 +154,6 @@ mark_ability_shifu:
 mark_ability_huohuan:
   name: 火环
   description: 使火环之心的获得数+1
+mark_ability_shenguang:
+  name: 神光
+  description: 体力＞1/2时免疫不良 ＜1/2时光系技能必中

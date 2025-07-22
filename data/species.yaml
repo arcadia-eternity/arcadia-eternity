@@ -1786,7 +1786,7 @@
     - skill_id: skill_shuangguihuopao
       level: 36
       hidden: false
-    - skill_id: skill_lieyanzhiju
+    - skill_id: skill_lieyanzhiqu
       level: 41
       hidden: false
     - skill_id: skill_huoyanxuanfeng
@@ -6264,7 +6264,7 @@
   ability:
     - mark_ability_huohuan
   emblem:
-    - mark_emblem_huoxinwenzhang
+    - mark_emblem_huoxin
 
 - id: pet_dakeer
   num: 75
@@ -6313,7 +6313,7 @@
   ability:
     - mark_ability_huohuan
   emblem:
-    - mark_emblem_huoxinwenzhang
+    - mark_emblem_huoxin
 
 - id: pet_dakelaer
   num: 76
@@ -6389,4 +6389,121 @@
   ability:
     - mark_ability_huohuan
   emblem:
-    - mark_emblem_huoxinwenzhang
+    - mark_emblem_huoxin
+- id: pet_aixi
+  num: 214
+  element: Light
+  baseStats:
+    hp: 93
+    atk: 125
+    spa: 125
+    def: 115
+    spd: 115
+    spe: 112
+  genderRatio:
+    - 10
+    - 0
+  heightRange:
+    - 20
+    - 25
+  weightRange:
+    - 15
+    - 20
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_guangdan
+      level: 5
+      hidden: false
+    - skill_id: skill_guangzhiquan
+      level: 10
+      hidden: false
+    - skill_id: skill_guangwushentong
+      level: 15
+      hidden: false
+    - skill_id: skill_shentongchuanda
+      level: 20
+      hidden: false
+    - skill_id: skill_guangsu
+      level: 25
+      hidden: false
+  ability:
+    - mark_ability_shenguang
+  emblem:
+    - mark_emblem_guangwu
+- id: pet_ailixisi
+  num: 215
+  element: Light
+  baseStats:
+    hp: 183
+    atk: 175
+    spa: 175
+    def: 160
+    spd: 160
+    spe: 162
+  genderRatio:
+    - 10
+    - 0
+  heightRange:
+    - 105
+    - 110
+  weightRange:
+    - 65
+    - 70
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_guangdan
+      level: 5
+      hidden: false
+    - skill_id: skill_guangzhiquan
+      level: 10
+      hidden: false
+    - skill_id: skill_guangwushentong
+      level: 15
+      hidden: false
+    - skill_id: skill_shentongchuanda
+      level: 20
+      hidden: false
+    - skill_id: skill_guangsu
+      level: 25
+      hidden: false
+    - skill_id: skill_guangwulingtong
+      level: 30
+      hidden: false
+    - skill_id: skill_guangliechong
+      level: 35
+      hidden: false
+    - skill_id: skill_shenguanghuti
+      level: 40
+      hidden: false
+    - skill_id: skill_lingtongchuanda
+      level: 45
+      hidden: false
+    - skill_id: skill_guangzhili
+      level: 50
+      hidden: false
+    - skill_id: skill_guangyuandan
+      level: 55
+      hidden: false
+    - skill_id: skill_guangwushenlingtong
+      level: 60
+      hidden: true
+    - skill_id: skill_shenguangliechong
+      level: 60
+      hidden: true
+    - skill_id: skill_shenguangyuandan
+      level: 60
+      hidden: true
+    - skill_id: skill_guangsuliechong
+      level: 60
+      hidden: true
+    - skill_id: skill_guangsufeidan
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_shenguang
+  emblem:
+    - mark_emblem_guangwu
