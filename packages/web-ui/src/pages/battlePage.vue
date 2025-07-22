@@ -1953,6 +1953,7 @@ async function initialPetEntryAnimation() {
   const rightPet = petSprites.value.right
   const battleViewWidth = 1600 // 固定的战斗视图宽度
   const animationDuration = 1
+  const entryTimeout = 5
   const animations = []
   for (const [pet, speciesNum, initialX, side] of [
     [leftPet, leftPetSpeciesNum.value, -battleViewWidth / 2 - 100, 'left'],
@@ -1970,6 +1971,11 @@ async function initialPetEntryAnimation() {
               }
             }
             emitter.on('animation-complete', handler)
+            setTimeout(async () => {
+              if (pet && pet.$el && (await pet.getState()) !== ActionState.PRESENT) {
+                resolve()
+              }
+            }, entryTimeout * 1000)
           }),
           pet.setState(ActionState.PRESENT),
         )
