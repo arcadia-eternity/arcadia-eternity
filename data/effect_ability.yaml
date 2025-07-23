@@ -1305,6 +1305,7 @@
     type: every
     conditions:
       - type: opponentUseSkill
+      - type: petIsActive
       - type: evaluate
         target:
           base: rageContext
