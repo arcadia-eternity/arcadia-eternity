@@ -139,6 +139,7 @@ const validation = ruleSystem.validateTeam(team)
 - **TeamSizeRule** - 队伍大小限制
 - **LevelLimitRule** - 等级限制
 - **BanRule** - 禁用特定内容
+- **GenderRestrictionRule** - 性别限制，根据精灵种族限制可选择的性别
 
 ### 竞技规则
 

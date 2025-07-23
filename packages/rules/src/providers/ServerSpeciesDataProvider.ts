@@ -1,5 +1,5 @@
 import type { SpeciesSchemaType } from '@arcadia-eternity/schema'
-import type { SpeciesDataProvider } from '../rules/basic/SkillAvailabilityRule'
+import type { SpeciesDataProvider } from '../interfaces/SpeciesDataProvider'
 
 /**
  * 服务端种族数据提供者

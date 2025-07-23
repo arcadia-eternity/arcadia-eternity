@@ -1116,6 +1116,9 @@ onMounted(async () => {
     // 初始化时同步当前队伍的规则集到ClientRuleIntegration
     const currentRuleSetId = petStorage.getCurrentTeamRuleSetId()
     await ClientRuleIntegration.setTeamBuilderRuleSetIds([currentRuleSetId])
+
+    // 确保种族数据提供者已正确初始化
+    await ClientRuleIntegration.initializeSpeciesDataProvider(gameDataStore)
   } catch (error) {
     console.error('获取可用规则集失败:', error)
     // 提供默认规则集
@@ -1609,12 +1612,45 @@ const speciesOptions = computed(() => {
   return options
 })
 
+// 存储当前种族允许的性别
+const allowedGendersForCurrentSpecies = ref<string[]>(['Male', 'Female', 'NoGender'])
+
+// 监听选中精灵的种族变化，更新允许的性别
+watch(
+  () => selectedPet.value?.species,
+  async newSpecies => {
+    if (!newSpecies) {
+      allowedGendersForCurrentSpecies.value = ['Male', 'Female', 'NoGender']
+      return
+    }
+
+    try {
+      const allowedGenders = await ClientRuleIntegration.getAllowedGendersForSpecies(newSpecies)
+      allowedGendersForCurrentSpecies.value = allowedGenders
+
+      // 如果当前选中的性别不在允许范围内，自动选择第一个允许的性别
+      if (selectedPet.value && selectedPet.value.gender && !allowedGenders.includes(selectedPet.value.gender)) {
+        if (allowedGenders.length > 0) {
+          selectedPet.value.gender = allowedGenders[0] as Gender
+        }
+      }
+    } catch (error) {
+      console.warn('获取性别限制失败:', error)
+      allowedGendersForCurrentSpecies.value = ['Male', 'Female', 'NoGender']
+    }
+  },
+  { immediate: true },
+)
+
 const genderOptions = computed(() => {
-  return Object.values(Gender).map(gender => ({
-    value: gender,
-    label: genderChineseMap[gender as Gender],
-    icon: gender === Gender.Male ? '♂' : gender === Gender.Female ? '♀' : '⚲',
-  }))
+  // 只返回允许的性别选项
+  return Object.values(Gender)
+    .filter(gender => allowedGendersForCurrentSpecies.value.includes(gender))
+    .map(gender => ({
+      value: gender,
+      label: genderChineseMap[gender as Gender],
+      icon: gender === Gender.Male ? '♂' : gender === Gender.Female ? '♀' : '⚲',
+    }))
 })
 
 const abilitySelectOptions = computed(() => {
