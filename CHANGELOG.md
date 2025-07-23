@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.10.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.10.2...arcadia-eternity-v2.10.3) (2025-07-23)
+
+
+### ♻️ Code Refactoring
+
+* Refactor battle and matchmaking logic into services ([ba0751d](https://github.com/arcadia-eternity/arcadia-eternity/commit/ba0751d906f0868235b5074d4343173e5c1b5a68))
+* Refactor battle service to use DI with Inversify ([79af962](https://github.com/arcadia-eternity/arcadia-eternity/commit/79af962736d80ccec5072b7d376859cf8337c518))
+
 ## [2.10.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.10.1...arcadia-eternity-v2.10.2) (2025-07-23)
 
 
