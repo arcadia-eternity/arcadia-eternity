@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.10.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.10.1...arcadia-eternity-v2.10.2) (2025-07-23)
+
+
+### 🐛 Bug Fixes
+
+* Add petIsActive condition to effect ability ([01d4588](https://github.com/arcadia-eternity/arcadia-eternity/commit/01d4588f244403b39498fab4b4b33af2ea00d3de))
+
 ## [2.10.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.10.0...arcadia-eternity-v2.10.1) (2025-07-23)
 
 
