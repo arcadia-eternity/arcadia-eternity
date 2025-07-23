@@ -10,6 +10,7 @@ import { BattleRpcServer } from '../communication/rpc/battleRpcServer'
 import { ServiceDiscoveryManager, WeightedLoadStrategy } from '../discovery/serviceDiscovery'
 import { FlyIoServiceDiscoveryManager } from '../discovery/flyIoServiceDiscovery'
 import { ClusterManager, createClusterConfigFromEnv } from './clusterManager'
+import { getContainer, configureClusterServices } from '../../container'
 import { MonitoringManager } from '../monitoring/monitoringManager'
 import { PerformanceTracker } from '../monitoring/performanceTracker'
 import { getGlobalRedisDeduplicationStats, getGlobalRedisDeduplicationSavings } from '../redis/redisCallDeduplicator'
@@ -344,34 +345,24 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
         clusterManager.getStateManager(),
         finalConfig.cluster!.instance.id,
       )
-      // 创建 gRPC 服务器实例（需要先创建，然后注入到 ClusterBattleServer）
+      // 使用 DI 容器创建集群服务（解决循环依赖）
       const grpcPort = finalConfig.cluster!.instance.grpcPort || 50051
+      const container = getContainer()
 
-      // 先创建一个临时的 ClusterBattleServer 实例用于 gRPC 服务器
-      const tempBattleServer = new ClusterBattleServer(
+      const { battleServer: diServer, rpcServer: diRpcServer } = configureClusterServices(container, {
         io,
-        clusterManager.getStateManager(),
+        stateManager: clusterManager.getStateManager(),
         socketAdapter,
-        clusterManager.getLockManager(),
-        finalConfig.battleReport,
-        finalConfig.cluster!.instance.id,
-        finalConfig.rpcPort,
-      )
+        lockManager: clusterManager.getLockManager(),
+        instanceId: finalConfig.cluster!.instance.id,
+        rpcPort: grpcPort,
+        battleReportConfig: finalConfig.battleReport,
+        performanceTracker,
+        serviceDiscovery,
+      })
 
-      // 创建 gRPC 服务器实例
-      rpcServer = new BattleRpcServer(tempBattleServer, grpcPort)
-
-      // 创建最终的 ClusterBattleServer 实例，注入 gRPC 服务器
-      battleServer = new ClusterBattleServer(
-        io,
-        clusterManager.getStateManager(),
-        socketAdapter,
-        clusterManager.getLockManager(),
-        finalConfig.battleReport,
-        finalConfig.cluster!.instance.id,
-        finalConfig.rpcPort,
-        rpcServer,
-      )
+      battleServer = diServer
+      rpcServer = diRpcServer
 
       logger.info({ grpcPort }, 'gRPC server created and injected into ClusterBattleServer')
 

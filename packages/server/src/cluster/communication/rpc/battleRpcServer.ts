@@ -5,6 +5,8 @@ import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
 import type { ClusterBattleServer } from '../../../domain/battle/services/clusterBattleServer'
+import { injectable, inject } from 'inversify'
+import { TYPES } from '../../../types'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -17,12 +19,16 @@ const logger = pino({
   timestamp: () => `,"time":"${new Date().toISOString()}"`,
 })
 
+@injectable()
 export class BattleRpcServer {
   private server: grpc.Server
   private battleServer: ClusterBattleServer
   private port: number
 
-  constructor(battleServer: ClusterBattleServer, port: number) {
+  constructor(
+    @inject(TYPES.ClusterBattleServer) battleServer: ClusterBattleServer,
+    @inject(TYPES.RpcPort) port: number,
+  ) {
     this.battleServer = battleServer
     this.port = port
     this.server = new grpc.Server()

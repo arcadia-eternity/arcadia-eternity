@@ -15,7 +15,7 @@ import pino from 'pino'
 import { ZodError } from 'zod'
 import type { Server, Socket } from 'socket.io'
 import { BattleReportService, type BattleReportConfig } from '../../report/services/battleReportService'
-import { getContainer, TYPES } from '../../../container'
+import { TYPES as GlobalTYPES } from '../../../container'
 import type { IAuthService, JWTPayload } from '../../auth/services/authService'
 import { PlayerRepository } from '@arcadia-eternity/database'
 import type { ClusterStateManager } from '../../../cluster/core/clusterStateManager'
@@ -28,9 +28,12 @@ import { REDIS_KEYS } from '../../../cluster/types'
 import { BattleRpcServer } from '../../../cluster/communication/rpc/battleRpcServer'
 import { BattleRpcClient } from '../../../cluster/communication/rpc/battleRpcClient'
 import { TimerEventBatcher } from '../../../timer/timerEventBatcher'
-import { TTLHelper } from '../../../cluster/config/ttlConfig'
+
 import type { ServiceDiscoveryManager } from '../../../cluster/discovery/serviceDiscovery'
 import { ServerRuleIntegration } from '@arcadia-eternity/rules'
+import { getContainer, configureBattleServices, TYPES } from '../../../container'
+import type { MatchmakingCallbacks, BattleCallbacks, IMatchmakingService, IBattleService } from './interfaces'
+import { injectable, inject, optional } from 'inversify'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -76,6 +79,7 @@ interface SocketData {
   session?: any // 会话数据
 }
 
+@injectable()
 export class ClusterBattleServer {
   private readonly CLEANUP_INTERVAL = 5 * 60 * 1000
   private readonly DISCONNECT_GRACE_PERIOD = 60000 // 60秒掉线宽限期
@@ -98,11 +102,14 @@ export class ClusterBattleServer {
   private readonly timerStatusCache = new Map<string, { enabled: boolean; timestamp: number }>()
   private readonly TIMER_CACHE_TTL = 30000 // 30秒缓存，大幅减少跨实例调用
 
+  // 服务实例（在初始化时设置）
+  private matchmakingService!: IMatchmakingService
+  private battleService!: IBattleService
+
   // RPC相关
   private rpcServer?: BattleRpcServer
   private rpcClient: BattleRpcClient
   private rpcPort?: number
-  private isRpcServerInjected = false
 
   // 批量消息处理相关
   private readonly messageBatches = new Map<
@@ -125,14 +132,14 @@ export class ClusterBattleServer {
   ])
 
   constructor(
+    @inject(TYPES.SocketIOServer)
     private readonly io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
-    private readonly stateManager: ClusterStateManager,
-    private readonly socketAdapter: SocketClusterAdapter,
-    private readonly lockManager: DistributedLockManager,
-    private readonly _battleReportConfig?: BattleReportConfig,
-    instanceId?: string,
-    rpcPort?: number,
-    injectedRpcServer?: BattleRpcServer,
+    @inject(TYPES.ClusterStateManager) private readonly stateManager: ClusterStateManager,
+    @inject(TYPES.SocketClusterAdapter) private readonly socketAdapter: SocketClusterAdapter,
+    @inject(TYPES.DistributedLockManager) private readonly lockManager: DistributedLockManager,
+    @inject(TYPES.InstanceId) instanceId: string,
+    @optional() @inject(TYPES.RpcPort) rpcPort?: number,
+    @optional() @inject(TYPES.BattleReportConfig) private readonly _battleReportConfig?: BattleReportConfig,
   ) {
     this.instanceId = instanceId || nanoid()
     this.rpcPort = rpcPort
@@ -144,16 +151,29 @@ export class ClusterBattleServer {
       await this.sendToPlayerSession(playerId, sessionId, eventType, data)
     })
 
-    // 如果提供了外部 RPC 服务器实例，使用它
-    if (injectedRpcServer) {
-      this.rpcServer = injectedRpcServer
-      this.isRpcServerInjected = true
-    }
+    // RPC服务器将通过setRpcServer方法设置
 
     // 初始化战报服务
     if (this._battleReportConfig) {
       this.battleReportService = new BattleReportService(this._battleReportConfig, logger)
     }
+
+    // 服务实例已通过 DI 注入，无需手动获取
+  }
+
+  /**
+   * 设置RPC服务器实例（用于解决循环依赖）
+   */
+  setRpcServer(rpcServer: BattleRpcServer): void {
+    this.rpcServer = rpcServer
+  }
+
+  /**
+   * 设置服务实例（在 DI 容器创建后调用）
+   */
+  setServices(matchmakingService: IMatchmakingService, battleService: IBattleService): void {
+    this.matchmakingService = matchmakingService
+    this.battleService = battleService
   }
 
   setPerformanceTracker(tracker: PerformanceTracker): void {
@@ -310,8 +330,8 @@ export class ClusterBattleServer {
         }
 
         const container = getContainer()
-        const playerRepo = container.get<PlayerRepository>(TYPES.PlayerRepository)
-        const authService = container.get<IAuthService>(TYPES.AuthService)
+        const playerRepo = container.get<PlayerRepository>(GlobalTYPES.PlayerRepository)
+        const authService = container.get<IAuthService>(GlobalTYPES.AuthService)
 
         // 检查玩家是否存在
         const player = await playerRepo.getPlayerById(playerId)
@@ -859,53 +879,8 @@ export class ClusterBattleServer {
   }
 
   private async handleClusterMatchmakingJoin(entry: MatchmakingEntry) {
-    const startTime = Date.now()
-    logger.info({ playerId: entry.playerId, sessionId: entry.sessionId }, 'Received cluster matchmaking join event')
-
-    // 添加小延迟，避免同时加入的玩家产生锁竞争
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 1000))
-
-    // 只有指定的匹配实例才处理匹配逻辑，避免多实例竞争
-    const leadershipCheckStart = Date.now()
-    const isMatchmakingLeader = await this.isMatchmakingLeader()
-    const leadershipCheckDuration = Date.now() - leadershipCheckStart
-
-    logger.info(
-      {
-        instanceId: this.instanceId,
-        isMatchmakingLeader,
-        leadershipCheckDurationMs: leadershipCheckDuration,
-        source: 'handleClusterMatchmakingJoin',
-      },
-      'Leadership check for matchmaking completed',
-    )
-
-    if (!isMatchmakingLeader) {
-      logger.debug(
-        {
-          instanceId: this.instanceId,
-          playerId: entry.playerId,
-          totalDurationMs: Date.now() - startTime,
-        },
-        'Not the matchmaking leader, skipping matchmaking attempt',
-      )
-      return
-    }
-
-    // 尝试进行匹配
-    logger.info({ instanceId: this.instanceId }, 'Starting matchmaking attempt as leader')
-    const matchmakingStart = Date.now()
-    await this.attemptClusterMatchmaking()
-    const matchmakingDuration = Date.now() - matchmakingStart
-
-    logger.info(
-      {
-        instanceId: this.instanceId,
-        matchmakingDurationMs: matchmakingDuration,
-        totalDurationMs: Date.now() - startTime,
-      },
-      'Matchmaking attempt completed',
-    )
+    // 委托给匹配服务处理
+    await this.matchmakingService.handleClusterMatchmakingJoin(entry)
   }
 
   /**
@@ -952,55 +927,55 @@ export class ClusterBattleServer {
           case 'submitPlayerSelection':
             // 从data中提取selection数据，如果data包含selection字段则使用，否则使用整个data
             const selectionData = data.selection || data
-            result = await this.handleLocalPlayerSelection(roomId, playerId, selectionData)
+            result = await this.battleService.handleLocalPlayerSelection(roomId, playerId, selectionData)
             break
 
           case 'getState':
-            result = await this.handleLocalGetState(roomId, playerId)
+            result = await this.battleService.handleLocalGetState(roomId, playerId)
             break
 
           case 'getAvailableSelection':
-            result = await this.handleLocalGetSelection(roomId, playerId)
+            result = await this.battleService.handleLocalGetSelection(roomId, playerId)
             break
 
           case 'ready':
-            result = await this.handleLocalReady(roomId, playerId)
+            result = await this.battleService.handleLocalReady(roomId, playerId)
             break
 
           case 'player-abandon':
-            result = await this.handleLocalPlayerAbandon(roomId, playerId)
+            result = await this.battleService.handleLocalPlayerAbandon(roomId, playerId)
             break
 
           case 'force-terminate-battle':
-            result = await this.handleLocalBattleTermination(roomId, playerId, data.reason || 'abandon')
+            result = await this.battleService.handleLocalBattleTermination(roomId, playerId, data.reason || 'abandon')
             break
 
           case 'reportAnimationEnd':
-            result = await this.handleLocalReportAnimationEnd(roomId, playerId, data)
+            result = await this.battleService.handleLocalReportAnimationEnd(roomId, playerId, data)
             break
 
           case 'isTimerEnabled':
-            result = await this.handleLocalIsTimerEnabled(roomId, playerId)
+            result = await this.battleService.handleLocalIsTimerEnabled(roomId, playerId)
             break
 
           case 'getPlayerTimerState':
-            result = await this.handleLocalGetPlayerTimerState(roomId, playerId, data)
+            result = await this.battleService.handleLocalGetPlayerTimerState(roomId, playerId, data)
             break
 
           case 'getAllPlayerTimerStates':
-            result = await this.handleLocalGetAllPlayerTimerStates(roomId, playerId)
+            result = await this.battleService.handleLocalGetAllPlayerTimerStates(roomId, playerId)
             break
 
           case 'getTimerConfig':
-            result = await this.handleLocalGetTimerConfig(roomId, playerId)
+            result = await this.battleService.handleLocalGetTimerConfig(roomId, playerId)
             break
 
           case 'startAnimation':
-            result = await this.handleLocalStartAnimation(roomId, playerId, data)
+            result = await this.battleService.handleLocalStartAnimation(roomId, playerId, data)
             break
 
           case 'endAnimation':
-            result = await this.handleLocalEndAnimation(roomId, playerId, data)
+            result = await this.battleService.handleLocalEndAnimation(roomId, playerId, data)
             break
 
           default:
@@ -1042,730 +1017,8 @@ export class ClusterBattleServer {
     rawData: unknown,
     ack?: AckResponse<{ status: 'QUEUED' }>,
   ) {
-    try {
-      // 首先检查游戏资源是否已加载完成
-      try {
-        const { resourceLoadingManager } = await import('../../../resourceLoadingManager')
-
-        if (!resourceLoadingManager.isReady()) {
-          const progress = resourceLoadingManager.getProgress()
-          logger.warn(
-            {
-              socketId: socket.id,
-              playerId: socket.data.playerId,
-              resourceStatus: progress.status,
-              resourceError: progress.error,
-            },
-            '玩家尝试加入匹配队列但游戏资源尚未加载完成',
-          )
-
-          // 返回错误响应，告知客户端资源尚未准备就绪
-          if (ack) {
-            ack({
-              status: 'ERROR',
-              code: 'RESOURCES_NOT_READY',
-              details: `游戏资源正在加载中，请稍后再试。状态: ${progress.status}, 游戏数据: ${progress.gameDataLoaded ? '已加载' : '未加载'}, 脚本: ${progress.scriptsLoaded ? '已加载' : '未加载'}, 验证: ${progress.validationCompleted ? '已完成' : '未完成'}`,
-            })
-          }
-          return
-        }
-
-        logger.debug(
-          {
-            socketId: socket.id,
-            playerId: socket.data.playerId,
-          },
-          '游戏资源已准备就绪，允许加入匹配队列',
-        )
-      } catch (error) {
-        logger.error(
-          {
-            error,
-            socketId: socket.id,
-            playerId: socket.data.playerId,
-          },
-          '检查游戏资源状态时发生错误',
-        )
-
-        if (ack) {
-          ack({
-            status: 'ERROR',
-            code: 'RESOURCE_CHECK_FAILED',
-            details: '无法检查游戏资源状态，请稍后再试',
-          })
-        }
-        return
-      }
-
-      // 解析数据格式，支持旧格式和新格式
-      let rawPlayerData: unknown
-      let ruleSetId: string = 'standard'
-
-      // 类型守卫：检查是否为新格式
-      const isNewFormat = (data: unknown): data is { playerSchema: unknown; ruleSetId?: string } => {
-        return data !== null && typeof data === 'object' && 'playerSchema' in data
-      }
-
-      if (isNewFormat(rawData)) {
-        // 新格式：包含规则集信息
-        rawPlayerData = rawData.playerSchema
-        ruleSetId = rawData.ruleSetId || 'standard'
-      } else {
-        // 旧格式：直接是 PlayerSchemaType
-        rawPlayerData = rawData
-      }
-
-      // 验证原始数据格式
-      const validatedRawData = this.validateRawPlayerData(rawPlayerData)
-      const playerId = socket.data.playerId!
-
-      // 验证玩家ID是否与连接时验证的ID一致
-      if (validatedRawData.id !== playerId) {
-        logger.warn(
-          {
-            socketId: socket.id,
-            connectedPlayerId: playerId,
-            requestedPlayerId: validatedRawData.id,
-          },
-          '玩家ID不匹配，拒绝加入匹配',
-        )
-        throw new Error('PLAYER_ID_MISMATCH')
-      }
-
-      // 解析为Player实例用于本地存储
-      const playerData = this.validatePlayerData(rawPlayerData)
-      socket.data.data = playerData
-
-      // 验证队伍是否符合规则集要求
-      try {
-        const { ServerRuleIntegration } = await import('@arcadia-eternity/rules')
-        // 将Pet[]转换为PetSchemaType[]格式用于验证
-        const teamForValidation = playerData.team.map(pet => ({
-          id: pet.id,
-          name: pet.name,
-          species: pet.species.id, // 转换Species对象为字符串ID
-          level: pet.level,
-          evs: pet.evs,
-          ivs: pet.ivs,
-          skills: pet.skills.map(skill => skill.id), // 转换Skill对象为字符串ID
-          gender: pet.gender,
-          nature: pet.nature,
-          ability: pet.ability?.id || '', // 转换Mark对象为字符串ID
-          emblem: pet.emblem?.id, // 转换Mark对象为字符串ID
-          height: pet.height,
-          weight: pet.weight,
-        }))
-        const teamValidation = await ServerRuleIntegration.validateTeamWithRuleSet(teamForValidation, ruleSetId)
-
-        if (!teamValidation.isValid) {
-          const errorMessage = teamValidation.errors[0]?.message || '队伍不符合规则要求'
-          logger.warn(
-            {
-              socketId: socket.id,
-              playerId,
-              ruleSetId,
-              validationErrors: teamValidation.errors,
-            },
-            '队伍验证失败，拒绝加入匹配',
-          )
-          throw new Error(`TEAM_VALIDATION_FAILED: ${errorMessage}`)
-        }
-
-        logger.info(
-          {
-            socketId: socket.id,
-            playerId,
-            ruleSetId,
-            teamSize: playerData.team.length,
-          },
-          '队伍验证通过',
-        )
-      } catch (error) {
-        if (error instanceof Error && error.message.startsWith('TEAM_VALIDATION_FAILED:')) {
-          throw error
-        }
-        logger.error({ error, playerId, ruleSetId }, '队伍验证过程中发生错误')
-        throw new Error('TEAM_VALIDATION_ERROR')
-      }
-
-      // 使用队列专用锁确保队列操作的原子性
-      await this.lockManager.withLock(LOCK_KEYS.MATCHMAKING_QUEUE, async () => {
-        // 添加到集群匹配队列 - 存储原始验证过的数据而不是解析后的实例
-        const entry: MatchmakingEntry = {
-          playerId,
-          joinTime: Date.now(),
-          playerData: validatedRawData, // 存储原始数据而不是Player实例
-          sessionId: socket.data.sessionId,
-          ruleSetId,
-          metadata: {
-            sessionId: socket.data.sessionId,
-            ruleSetId,
-          },
-        }
-
-        // 使用基于规则的队列管理
-        await this.stateManager.addToMatchmakingQueue(entry)
-
-        // 更新匹配队列大小统计
-        if (this.performanceTracker) {
-          const queueSize = await this.stateManager.getMatchmakingQueueSize()
-          this.performanceTracker.updateMatchmakingQueueSize(queueSize)
-        }
-
-        logger.info(
-          {
-            socketId: socket.id,
-            playerId,
-            sessionId: socket.data.sessionId,
-            playerName: playerData.name,
-            teamSize: playerData.team.length,
-          },
-          '玩家加入集群匹配队列',
-        )
-
-        ack?.({
-          status: 'SUCCESS',
-          data: { status: 'QUEUED' },
-        })
-
-        // 不在这里直接尝试匹配，而是依赖集群事件触发
-        // 这样避免了双重触发的问题
-      })
-    } catch (error) {
-      logger.error(
-        {
-          socketId: socket.id,
-          error: error instanceof Error ? error.stack : error,
-          inputData: rawData,
-        },
-        '加入匹配队列失败',
-      )
-      this.handleValidationError(error, socket, ack)
-    }
-  }
-
-  private async attemptClusterMatchmaking(): Promise<void> {
-    // 使用全局匹配锁确保只有一个实例在同一时间进行匹配
-    return await this.lockManager.withLock(
-      LOCK_KEYS.MATCHMAKING,
-      async () => {
-        try {
-          // 获取所有活跃的规则集
-          const activeRuleSetIds = await this.stateManager.getActiveRuleSetIds()
-
-          logger.info(
-            {
-              activeRuleSetIds,
-              ruleSetCount: activeRuleSetIds.length,
-            },
-            'Attempting rule-based cluster matchmaking',
-          )
-
-          if (activeRuleSetIds.length === 0) {
-            logger.info('No active rule sets found for matching')
-            return
-          }
-
-          // 为每个规则集尝试匹配
-          for (const ruleSetId of activeRuleSetIds) {
-            const success = await this.attemptMatchmakingForRuleSet(ruleSetId)
-            if (success) {
-              // 如果成功匹配了一对玩家，就停止继续匹配
-              // 这样可以避免一次处理太多匹配，保持系统响应性
-              break
-            }
-          }
-        } catch (error) {
-          logger.error(
-            {
-              error:
-                error instanceof Error
-                  ? {
-                      name: error.name,
-                      message: error.message,
-                      stack: error.stack,
-                      code: (error as any).code,
-                    }
-                  : error,
-            },
-            'Error in cluster matchmaking',
-          )
-        }
-      },
-      { ttl: 60000, retryCount: 10, retryDelay: 500 }, // 更长的TTL，更多重试，更长延迟
-    )
-  }
-
-  private async attemptMatchmakingForRuleSet(ruleSetId: string): Promise<boolean> {
-    try {
-      const queue = await this.stateManager.getRuleBasedQueue(ruleSetId)
-
-      logger.info(
-        {
-          ruleSetId,
-          queueLength: queue.length,
-          queue: queue.map(e => ({
-            playerId: e.playerId,
-            sessionId: e.sessionId,
-            joinTime: e.joinTime,
-            ruleSetId: e.ruleSetId,
-          })),
-        },
-        'Attempting matchmaking for rule set',
-      )
-
-      if (queue.length < 2) {
-        logger.debug({ ruleSetId }, 'Not enough players in rule set queue for matching')
-        return false
-      }
-
-      logger.info({ ruleSetId, queueLength: queue.length }, 'Found sufficient players for matching, proceeding')
-
-      // 按加入时间排序
-      const sortedQueue = queue.sort((a, b) => a.joinTime - b.joinTime)
-
-      // 寻找可以匹配的两个session（确保不是同一个playerId且规则集相同）
-      let player1Entry: MatchmakingEntry | null = null
-      let player2Entry: MatchmakingEntry | null = null
-
-      for (let i = 0; i < sortedQueue.length; i++) {
-        if (!player1Entry) {
-          player1Entry = sortedQueue[i]
-          continue
-        }
-
-        const candidate = sortedQueue[i]
-
-        // 确保不是同一个玩家的不同session
-        // 注意：从基于规则的队列获取的玩家已经是同一规则集的，无需再次检查
-        if (candidate.playerId !== player1Entry.playerId) {
-          player2Entry = candidate
-          break
-        }
-      }
-
-      // 如果找不到合适的匹配，返回
-      if (!player1Entry || !player2Entry) {
-        logger.debug(
-          {
-            ruleSetId,
-            player1Entry: !!player1Entry,
-            player2Entry: !!player2Entry,
-            queueLength: queue.length,
-            queueDetails: queue.map(e => ({
-              playerId: e.playerId,
-              sessionId: e.sessionId,
-              ruleSetId: e.ruleSetId,
-            })),
-          },
-          'No suitable match found for rule set - all entries may be from same player',
-        )
-        return false
-      }
-
-      logger.info(
-        {
-          ruleSetId,
-          player1: {
-            playerId: player1Entry.playerId,
-            sessionId: player1Entry.sessionId,
-            ruleSetId: player1Entry.ruleSetId,
-          },
-          player2: {
-            playerId: player2Entry.playerId,
-            sessionId: player2Entry.sessionId,
-            ruleSetId: player2Entry.ruleSetId,
-          },
-        },
-        'Found suitable match pair for rule set, proceeding with match creation',
-      )
-
-      // 使用分布式锁确保匹配的原子性
-      // 基于sessionId生成锁键，确保顺序一致，避免死锁
-      const session1Key = `${player1Entry.playerId}:${player1Entry.sessionId}`
-      const session2Key = `${player2Entry.playerId}:${player2Entry.sessionId}`
-      const sortedSessionKeys = [session1Key, session2Key].sort()
-      const lockKey = `match:${sortedSessionKeys[0]}:${sortedSessionKeys[1]}`
-
-      logger.info(
-        {
-          player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
-          player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
-          lockKey,
-        },
-        'Starting match creation with lock',
-      )
-
-      await this.lockManager.withLock(lockKey, async () => {
-        // 再次检查session是否仍在基于规则的队列中
-        const currentQueue = await this.stateManager.getRuleBasedQueue(ruleSetId)
-        const p1Still = currentQueue.find(
-          e => e.playerId === player1Entry!.playerId && e.sessionId === player1Entry!.sessionId,
-        )
-        const p2Still = currentQueue.find(
-          e => e.playerId === player2Entry!.playerId && e.sessionId === player2Entry!.sessionId,
-        )
-
-        if (!p1Still || !p2Still) {
-          logger.debug(
-            {
-              ruleSetId,
-              player1Still: !!p1Still,
-              player2Still: !!p2Still,
-            },
-            'One or both players no longer in rule-based queue, skipping match',
-          )
-          return
-        }
-
-        // 检查玩家连接状态（基于session）
-        logger.info(
-          {
-            player1: { playerId: player1Entry.playerId, sessionId: player1Entry.sessionId },
-            player2: { playerId: player2Entry.playerId, sessionId: player2Entry.sessionId },
-          },
-          'About to check player connections by session',
-        )
-
-        const p1Connection = await this.stateManager.getPlayerConnectionBySession(
-          player1Entry.playerId,
-          player1Entry.sessionId!,
-        )
-        const p2Connection = await this.stateManager.getPlayerConnectionBySession(
-          player2Entry.playerId,
-          player2Entry.sessionId!,
-        )
-
-        logger.info(
-          {
-            player1: {
-              playerId: player1Entry.playerId,
-              sessionId: player1Entry.sessionId,
-              hasConnection: !!p1Connection,
-              connection: p1Connection
-                ? {
-                    status: p1Connection.status,
-                    instanceId: p1Connection.instanceId,
-                    socketId: p1Connection.socketId,
-                    lastSeen: p1Connection.lastSeen,
-                  }
-                : null,
-            },
-            player2: {
-              playerId: player2Entry.playerId,
-              sessionId: player2Entry.sessionId,
-              hasConnection: !!p2Connection,
-              connection: p2Connection
-                ? {
-                    status: p2Connection.status,
-                    instanceId: p2Connection.instanceId,
-                    socketId: p2Connection.socketId,
-                    lastSeen: p2Connection.lastSeen,
-                  }
-                : null,
-            },
-          },
-          'Player connection check results',
-        )
-
-        if (
-          !p1Connection ||
-          !p2Connection ||
-          p1Connection.status !== 'connected' ||
-          p2Connection.status !== 'connected'
-        ) {
-          logger.info(
-            {
-              player1: {
-                playerId: player1Entry.playerId,
-                sessionId: player1Entry.sessionId,
-                connection: p1Connection ? { status: p1Connection.status, instanceId: p1Connection.instanceId } : null,
-              },
-              player2: {
-                playerId: player2Entry.playerId,
-                sessionId: player2Entry.sessionId,
-                connection: p2Connection ? { status: p2Connection.status, instanceId: p2Connection.instanceId } : null,
-              },
-            },
-            'Player sessions not connected, skipping match',
-          )
-
-          // 立即清理没有连接的匹配队列条目
-          const cleanupPromises: Promise<void>[] = []
-          if (!p1Connection || p1Connection.status !== 'connected') {
-            logger.info(
-              { playerId: player1Entry.playerId, sessionId: player1Entry.sessionId },
-              'Removing disconnected player from matchmaking queue',
-            )
-            cleanupPromises.push(
-              this.stateManager.removeFromMatchmakingQueue(player1Entry.playerId, player1Entry.sessionId),
-            )
-          }
-          if (!p2Connection || p2Connection.status !== 'connected') {
-            logger.info(
-              { playerId: player2Entry.playerId, sessionId: player2Entry.sessionId },
-              'Removing disconnected player from matchmaking queue',
-            )
-            cleanupPromises.push(
-              this.stateManager.removeFromMatchmakingQueue(player2Entry.playerId, player2Entry.sessionId),
-            )
-          }
-
-          // 等待清理完成
-          await Promise.all(cleanupPromises)
-
-          // 更新匹配队列大小统计
-          if (this.performanceTracker) {
-            const queueSize = await this.stateManager.getMatchmakingQueueSize()
-            this.performanceTracker.updateMatchmakingQueueSize(queueSize)
-          }
-
-          return
-        }
-
-        // 创建战斗房间 - 使用智能负载均衡选择最佳实例
-        logger.info(
-          {
-            player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
-            player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
-          },
-          'About to create cluster battle room with load balancing',
-        )
-
-        const roomId = await this.createBattleWithLoadBalancing(player1Entry, player2Entry)
-
-        logger.info(
-          {
-            roomId,
-            player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
-            player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
-          },
-          'Battle room creation result',
-        )
-
-        if (roomId) {
-          // 从基于规则的队列中移除session
-          await this.stateManager.removeFromMatchmakingQueue(player1Entry.playerId, player1Entry.sessionId)
-          await this.stateManager.removeFromMatchmakingQueue(player2Entry.playerId, player2Entry.sessionId)
-
-          // 更新匹配队列大小统计
-          if (this.performanceTracker) {
-            const queueSize = await this.stateManager.getMatchmakingQueueSize()
-            this.performanceTracker.updateMatchmakingQueueSize(queueSize)
-          }
-
-          logger.info(
-            {
-              ruleSetId,
-              roomId,
-              player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
-              player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
-            },
-            'About to notify match success for rule set',
-          )
-
-          // 通知玩家匹配成功
-          await this.notifyMatchSuccess(player1Entry, player2Entry, roomId)
-
-          logger.info(
-            {
-              ruleSetId,
-              roomId,
-              player1: { id: player1Entry.playerId, name: player1Entry.playerData.name },
-              player2: { id: player2Entry.playerId, name: player2Entry.playerData.name },
-            },
-            '基于规则集的集群匹配成功',
-          )
-
-          return true // 匹配成功
-        } else {
-          logger.error(
-            {
-              ruleSetId,
-              player1: { id: player1Entry.playerId, sessionId: player1Entry.sessionId },
-              player2: { id: player2Entry.playerId, sessionId: player2Entry.sessionId },
-            },
-            'Failed to create battle room for rule set - roomId is null',
-          )
-          return false // 匹配失败
-        }
-      })
-
-      return true // 如果到达这里，说明匹配成功
-    } catch (error) {
-      logger.error(
-        {
-          error: error instanceof Error ? error.message : error,
-          ruleSetId,
-        },
-        'Error in rule set matchmaking',
-      )
-      return false // 匹配失败
-    }
-  }
-
-  /**
-   * 使用负载均衡创建战斗房间
-   */
-  private async createBattleWithLoadBalancing(
-    player1Entry: MatchmakingEntry,
-    player2Entry: MatchmakingEntry,
-  ): Promise<string | null> {
-    try {
-      // 如果没有配置服务发现，回退到本地创建
-      if (!this.serviceDiscovery) {
-        logger.warn('Service discovery not configured, falling back to local battle creation')
-        return await this.createClusterBattleRoom(player1Entry, player2Entry)
-      }
-
-      // 获取最佳实例来创建战斗
-      const optimalInstance = await this.serviceDiscovery.getOptimalInstance()
-
-      if (!optimalInstance) {
-        logger.warn('No optimal instance found, falling back to local battle creation')
-        return await this.createClusterBattleRoom(player1Entry, player2Entry)
-      }
-
-      // 如果最佳实例就是当前实例，直接在本地创建
-      if (optimalInstance.id === this.instanceId) {
-        logger.info(
-          {
-            instanceId: this.instanceId,
-            performance: optimalInstance.performance,
-          },
-          'Current instance selected as optimal, creating battle locally',
-        )
-
-        // 记录本地战斗创建
-        this.performanceTracker?.recordBattleCreationMethod('local')
-
-        return await this.createClusterBattleRoom(player1Entry, player2Entry)
-      }
-
-      // 使用RPC在最佳实例上创建战斗
-      logger.info(
-        {
-          optimalInstanceId: optimalInstance.id,
-          currentInstanceId: this.instanceId,
-          performance: optimalInstance.performance,
-        },
-        'Delegating battle creation to optimal instance via RPC',
-      )
-
-      return await this.createBattleOnRemoteInstance(optimalInstance, player1Entry, player2Entry)
-    } catch (error) {
-      logger.error(
-        {
-          error,
-          player1Id: player1Entry.playerId,
-          player2Id: player2Entry.playerId,
-        },
-        'Error in load-balanced battle creation, falling back to local creation',
-      )
-
-      // 出错时回退到本地创建
-      return await this.createClusterBattleRoom(player1Entry, player2Entry)
-    }
-  }
-
-  /**
-   * 在远程实例上创建战斗
-   */
-  private async createBattleOnRemoteInstance(
-    targetInstance: ServiceInstance,
-    player1Entry: MatchmakingEntry,
-    player2Entry: MatchmakingEntry,
-  ): Promise<string | null> {
-    try {
-      // 获取目标实例的RPC客户端
-      const rpcClient = await this.rpcClient.getClientByInstanceId(targetInstance.id)
-
-      if (!rpcClient) {
-        logger.warn(
-          { targetInstanceId: targetInstance.id },
-          'Failed to get RPC client for target instance, falling back to local creation',
-        )
-        return await this.createClusterBattleRoom(player1Entry, player2Entry)
-      }
-
-      // 通过RPC调用远程实例创建战斗
-      const response = await new Promise<{ success: boolean; error?: string; roomId?: string }>((resolve, reject) => {
-        ;(rpcClient as any).createBattle(
-          {
-            player1_entry: {
-              player_id: player1Entry.playerId,
-              session_id: player1Entry.sessionId || '',
-              player_data: JSON.stringify(player1Entry.playerData),
-              rule_set_id: player1Entry.ruleSetId || 'casual_standard_ruleset',
-              join_time: player1Entry.joinTime,
-            },
-            player2_entry: {
-              player_id: player2Entry.playerId,
-              session_id: player2Entry.sessionId || '',
-              player_data: JSON.stringify(player2Entry.playerData),
-              rule_set_id: player2Entry.ruleSetId || 'casual_standard_ruleset',
-              join_time: player2Entry.joinTime,
-            },
-          },
-          (error: any, response: any) => {
-            if (error) {
-              reject(error)
-            } else {
-              resolve({
-                success: response.success,
-                error: response.error,
-                roomId: response.room_id,
-              })
-            }
-          },
-        )
-      })
-
-      if (response.success && response.roomId) {
-        logger.info(
-          {
-            roomId: response.roomId,
-            targetInstanceId: targetInstance.id,
-            player1Id: player1Entry.playerId,
-            player2Id: player2Entry.playerId,
-          },
-          'Battle created successfully on remote instance',
-        )
-
-        // 记录远程RPC战斗创建
-        this.performanceTracker?.recordBattleCreationMethod('remote_rpc')
-
-        return response.roomId
-      } else {
-        logger.warn(
-          {
-            targetInstanceId: targetInstance.id,
-            error: response.error,
-          },
-          'Remote battle creation failed, falling back to local creation',
-        )
-
-        // 记录回退到本地创建
-        this.performanceTracker?.recordBattleCreationMethod('fallback')
-
-        return await this.createClusterBattleRoom(player1Entry, player2Entry)
-      }
-    } catch (error) {
-      logger.error(
-        {
-          error,
-          targetInstanceId: targetInstance.id,
-          player1Id: player1Entry.playerId,
-          player2Id: player2Entry.playerId,
-        },
-        'Error creating battle on remote instance, falling back to local creation',
-      )
-
-      // 记录回退到本地创建
-      this.performanceTracker?.recordBattleCreationMethod('fallback')
-
-      return await this.createClusterBattleRoom(player1Entry, player2Entry)
-    }
+    // 委托给匹配服务处理
+    await this.matchmakingService.handleJoinMatchmaking(socket, rawData, ack)
   }
 
   async createClusterBattleRoom(
@@ -1920,162 +1173,7 @@ export class ClusterBattleServer {
     }
   }
 
-  private async notifyMatchSuccess(
-    player1Entry: MatchmakingEntry,
-    player2Entry: MatchmakingEntry,
-    roomId: string,
-  ): Promise<void> {
-    try {
-      const player1Id = player1Entry.playerId
-      const player2Id = player2Entry.playerId
-      const session1Id = player1Entry.sessionId || player1Entry.metadata?.sessionId
-      const session2Id = player2Entry.sessionId || player2Entry.metadata?.sessionId
-
-      // sessionId是必需的
-      if (!session1Id || !session2Id) {
-        logger.error(
-          { player1Id, player2Id, session1Id, session2Id, roomId },
-          'SessionId is required for both players in match notification',
-        )
-        return
-      }
-
-      logger.info(
-        { player1Id, player2Id, session1Id, session2Id, roomId },
-        'Starting match success notification process',
-      )
-
-      // 获取玩家连接信息（基于session）
-      logger.info({ player1Id, player2Id, session1Id, session2Id }, 'Looking up player connections by session')
-
-      const player1Connection = await this.stateManager.getPlayerConnectionBySession(player1Id, session1Id)
-      const player2Connection = await this.stateManager.getPlayerConnectionBySession(player2Id, session2Id)
-
-      logger.info(
-        {
-          player1Id,
-          player2Id,
-          session1Id,
-          session2Id,
-          player1Connection: player1Connection
-            ? {
-                instanceId: player1Connection.instanceId,
-                socketId: player1Connection.socketId,
-                status: player1Connection.status,
-              }
-            : null,
-          player2Connection: player2Connection
-            ? {
-                instanceId: player2Connection.instanceId,
-                socketId: player2Connection.socketId,
-                status: player2Connection.status,
-              }
-            : null,
-        },
-        'Player connection lookup results',
-      )
-
-      if (!player1Connection || !player2Connection) {
-        logger.error(
-          {
-            player1Id,
-            player2Id,
-            session1Id,
-            session2Id,
-            player1Connection: !!player1Connection,
-            player2Connection: !!player2Connection,
-          },
-          'Player session connections not found for match notification',
-        )
-        return
-      }
-
-      logger.debug(
-        {
-          player1Id,
-          player2Id,
-          session1Id,
-          session2Id,
-          player1Instance: player1Connection.instanceId,
-          player2Instance: player2Connection.instanceId,
-          currentInstance: this.instanceId,
-        },
-        'Player connections found',
-      )
-
-      // 获取玩家名称
-      const player1Name = await this.getPlayerName(player1Id)
-      const player2Name = await this.getPlayerName(player2Id)
-
-      // 构造匹配成功消息
-      const player1Message = {
-        status: 'SUCCESS' as const,
-        data: {
-          roomId,
-          opponent: { id: player2Id, name: player2Name },
-        },
-      }
-
-      const player2Message = {
-        status: 'SUCCESS' as const,
-        data: {
-          roomId,
-          opponent: { id: player1Id, name: player1Name },
-        },
-      }
-
-      logger.info(
-        {
-          player1Id,
-          player2Id,
-          session1Id,
-          session2Id,
-          roomId,
-          player1Message,
-          player2Message,
-        },
-        'Sending match success notifications',
-      )
-
-      // 先将玩家加入房间，然后发送匹配成功通知
-      logger.info({ player1Id, player2Id, session1Id, session2Id, roomId }, 'Adding players to battle room')
-
-      const joinResult1 = await this.socketAdapter.joinPlayerToRoom(player1Id, roomId)
-      const joinResult2 = await this.socketAdapter.joinPlayerToRoom(player2Id, roomId)
-
-      logger.info(
-        {
-          player1Id,
-          player2Id,
-          session1Id,
-          session2Id,
-          roomId,
-          joinResult1,
-          joinResult2,
-        },
-        'Players joined room results',
-      )
-
-      // 发送匹配成功通知（基于session）
-      const result1 = await this.sendToPlayerSession(player1Id, session1Id, 'matchSuccess', player1Message)
-      const result2 = await this.sendToPlayerSession(player2Id, session2Id, 'matchSuccess', player2Message)
-
-      logger.info(
-        {
-          player1Id,
-          player2Id,
-          session1Id,
-          session2Id,
-          roomId,
-          result1,
-          result2,
-        },
-        'Match success notifications sent with results',
-      )
-    } catch (error) {
-      logger.error({ error, roomId }, 'Error sending match success notifications')
-    }
-  }
+  // === 集群感知的房间管理 ===
 
   // === 集群感知的房间管理 ===
 
@@ -2477,17 +1575,6 @@ export class ClusterBattleServer {
   /**
    * 检查房间是否在当前实例
    */
-  private isRoomInCurrentInstance(roomState: RoomState): boolean {
-    return roomState.instanceId === this.instanceId
-  }
-
-  /**
-   * 获取本地Battle实例
-   */
-  private getLocalBattle(roomId: string): Battle | null {
-    const localRoom = this.localRooms.get(roomId)
-    return localRoom?.battle || null
-  }
 
   /**
    * 创建本地Battle实例
@@ -2885,7 +1972,7 @@ export class ClusterBattleServer {
   private async getPlayerName(playerId: string): Promise<string> {
     try {
       const container = getContainer()
-      const playerRepo = container.get<PlayerRepository>(TYPES.PlayerRepository)
+      const playerRepo = container.get<PlayerRepository>(GlobalTYPES.PlayerRepository)
 
       const player = await playerRepo.getPlayerById(playerId)
       return player?.name || `Player ${playerId.slice(0, 8)}`
@@ -3411,7 +2498,7 @@ export class ClusterBattleServer {
    */
   private async handleClusterBattleAbandon(roomState: RoomState, playerId: string): Promise<void> {
     // 重定向到强制终止战斗逻辑
-    await this.forceTerminateBattle(roomState, playerId, 'abandon')
+    await this.battleService.forceTerminateBattle(roomState, playerId, 'abandon')
   }
 
   /**
@@ -3501,46 +2588,8 @@ export class ClusterBattleServer {
     socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
     ack?: AckResponse<{ status: 'CANCELED' }>,
   ) {
-    try {
-      const playerId = socket.data.playerId
-      if (!playerId) {
-        throw new Error('PLAYER_ID_MISSING')
-      }
-
-      // 从集群匹配队列中移除
-      const sessionId = socket.data.sessionId
-      await this.stateManager.removeFromMatchmakingQueue(playerId, sessionId)
-
-      // 更新匹配队列大小统计
-      if (this.performanceTracker) {
-        const queueSize = await this.stateManager.getMatchmakingQueueSize()
-        this.performanceTracker.updateMatchmakingQueueSize(queueSize)
-      }
-
-      logger.info({ socketId: socket.id, playerId }, '玩家取消匹配')
-
-      ack?.({
-        status: 'SUCCESS',
-        data: { status: 'CANCELED' },
-      })
-    } catch (error) {
-      this.handleCancelError(error, socket, ack)
-    }
-  }
-
-  private handleCancelError(
-    error: unknown,
-    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
-    ack?: AckResponse<{ status: 'CANCELED' }>,
-  ) {
-    const errorResponse: ErrorResponse = {
-      status: 'ERROR',
-      code: 'CANCEL_FAILED',
-      details: error instanceof Error ? error.message : '取消匹配失败',
-    }
-
-    ack?.(errorResponse)
-    logger.warn({ socketId: socket.id, error: error instanceof Error ? error.stack : error }, '取消匹配时发生错误')
+    // 委托给匹配服务处理
+    await this.matchmakingService.handleCancelMatchmaking(socket, ack)
   }
 
   private async getCurrentState(): Promise<ServerState> {
@@ -3627,7 +2676,7 @@ export class ClusterBattleServer {
       }
 
       // 在当前实例处理
-      const result = await this.handleLocalPlayerSelection(roomState.id, playerId, rawData)
+      const result = await this.battleService.handleLocalPlayerSelection(roomState.id, playerId, rawData)
 
       ack?.({
         status: 'SUCCESS',
@@ -3711,7 +2760,7 @@ export class ClusterBattleServer {
 
       // 在当前实例处理
       logger.debug({ playerId, roomId: roomState.id }, 'Handling getState locally')
-      const result = await this.handleLocalGetState(roomState.id, playerId)
+      const result = await this.battleService.handleLocalGetState(roomState.id, playerId)
 
       ack?.({
         status: 'SUCCESS',
@@ -3760,7 +2809,7 @@ export class ClusterBattleServer {
       }
 
       // 在当前实例处理
-      const result = await this.handleLocalGetSelection(roomState.id, playerId)
+      const result = await this.battleService.handleLocalGetSelection(roomState.id, playerId)
 
       ack?.({
         status: 'SUCCESS',
@@ -3815,7 +2864,7 @@ export class ClusterBattleServer {
       }
 
       // 在当前实例处理
-      const result = await this.handleLocalReady(roomState.id, playerId)
+      const result = await this.battleService.handleLocalReady(roomState.id, playerId)
 
       logger.info({ socketId: socket.id, roomId: roomState.id, playerId }, '玩家已准备')
       ack?.({ status: 'SUCCESS', data: { status: result.status as 'READY' } })
@@ -4517,139 +3566,6 @@ export class ClusterBattleServer {
     }
   }
 
-  /**
-   * 检查当前实例是否为匹配领导者
-   * 使用分布式锁实现可靠的领导者选举，并验证选出的leader确实可用
-   */
-  private async isMatchmakingLeader(): Promise<boolean> {
-    try {
-      // 使用分布式锁确保leader选举的原子性
-      return await this.lockManager.withLock(
-        LOCK_KEYS.MATCHMAKING_LEADER_ELECTION,
-        async () => {
-          // 获取所有实例（已经过滤了过期实例）
-          const instances = await this.stateManager.getInstances()
-          const healthyInstances = instances
-            .filter(instance => instance.status === 'healthy')
-            .sort((a, b) => a.id.localeCompare(b.id)) // 确保顺序一致
-
-          logger.debug(
-            {
-              instanceId: this.instanceId,
-              totalInstances: instances.length,
-              healthyInstances: healthyInstances.map(i => ({
-                id: i.id,
-                status: i.status,
-                lastHeartbeat: i.lastHeartbeat,
-                timeSinceHeartbeat: Date.now() - i.lastHeartbeat,
-              })),
-            },
-            'Leader election: evaluating instances',
-          )
-
-          if (healthyInstances.length === 0) {
-            logger.warn({ instanceId: this.instanceId }, 'No healthy instances found, assuming leadership')
-            return true
-          }
-
-          // 验证候选leader是否真正可用
-          let selectedLeader: ServiceInstance | null = null
-
-          for (const instance of healthyInstances) {
-            // 如果是当前实例，直接认为可用
-            if (instance.id === this.instanceId) {
-              selectedLeader = instance
-              break
-            }
-
-            // 对于其他实例，进行额外的可达性检查
-            const isReachable = await this.verifyInstanceReachability(instance)
-            if (isReachable) {
-              selectedLeader = instance
-              break
-            } else {
-              logger.warn(
-                {
-                  instanceId: instance.id,
-                  lastHeartbeat: instance.lastHeartbeat,
-                  timeSinceHeartbeat: Date.now() - instance.lastHeartbeat,
-                },
-                'Instance appears healthy but is not reachable, skipping for leader election',
-              )
-            }
-          }
-
-          if (!selectedLeader) {
-            logger.warn(
-              { instanceId: this.instanceId, healthyInstanceCount: healthyInstances.length },
-              'No reachable instances found, assuming leadership',
-            )
-            return true
-          }
-
-          const isLeader = selectedLeader.id === this.instanceId
-
-          logger.info(
-            {
-              instanceId: this.instanceId,
-              selectedLeaderId: selectedLeader.id,
-              isLeader,
-              healthyInstanceCount: healthyInstances.length,
-              evaluatedInstances: healthyInstances.map(i => i.id),
-            },
-            'Matchmaking leadership election result',
-          )
-
-          return isLeader
-        },
-        { ttl: 5000, retryCount: 3, retryDelay: 50 }, // 短TTL，快速重试
-      )
-    } catch (error) {
-      logger.error(
-        {
-          instanceId: this.instanceId,
-          error: error instanceof Error ? error.message : error,
-        },
-        'Error checking matchmaking leadership, assuming not leader',
-      )
-      return false
-    }
-  }
-
-  /**
-   * 验证实例的可达性
-   * 这里可以实现简单的健康检查，比如检查实例的心跳时间
-   */
-  private async verifyInstanceReachability(instance: ServiceInstance): Promise<boolean> {
-    try {
-      const now = Date.now()
-      const timeSinceLastHeartbeat = now - instance.lastHeartbeat
-
-      // 使用更严格的心跳检查：如果心跳超过1.5倍间隔，认为不可达
-      const isProduction = process.env.NODE_ENV === 'production'
-      // 从环境变量或默认值获取心跳间隔
-      const heartbeatInterval = parseInt(process.env.CLUSTER_HEARTBEAT_INTERVAL || (isProduction ? '300000' : '120000'))
-      const reachabilityTimeout = heartbeatInterval * 1.5
-
-      const isReachable = timeSinceLastHeartbeat <= reachabilityTimeout
-
-      logger.debug(
-        {
-          instanceId: instance.id,
-          timeSinceLastHeartbeat: Math.floor(timeSinceLastHeartbeat / 1000),
-          reachabilityTimeoutSeconds: Math.floor(reachabilityTimeout / 1000),
-          isReachable,
-        },
-        'Instance reachability check',
-      )
-
-      return isReachable
-    } catch (error) {
-      logger.error({ error, instanceId: instance.id }, 'Error verifying instance reachability, assuming not reachable')
-      return false
-    }
-  }
-
   // === 生命周期管理 ===
 
   private setupAutoCleanup() {
@@ -5276,12 +4192,9 @@ export class ClusterBattleServer {
     try {
       logger.info('开始清理 ClusterBattleServer 资源')
 
-      // 清理RPC服务器（只有自己创建的才停止）
-      if (this.rpcServer && !this.isRpcServerInjected) {
-        await this.rpcServer.stop()
-        logger.info('RPC server stopped')
-      } else if (this.rpcServer && this.isRpcServerInjected) {
-        logger.info('Skipping RPC server stop (injected server managed externally)')
+      // 清理RPC服务器（由DI容器管理，不需要手动停止）
+      if (this.rpcServer) {
+        logger.info('RPC server cleanup managed by DI container')
       }
 
       // 清理RPC客户端连接
@@ -5345,17 +4258,11 @@ export class ClusterBattleServer {
     const graceTimer = setTimeout(async () => {
       logger.warn({ playerId, sessionId, roomId }, '掉线宽限期结束，判定为放弃战斗')
       await this.handlePlayerAbandon(roomId, playerId, sessionId)
-      this.disconnectedPlayers.delete(`${playerId}:${sessionId}`)
+      this.removeDisconnectedPlayer(`${playerId}:${sessionId}`)
     }, this.DISCONNECT_GRACE_PERIOD)
 
     // 记录掉线信息
-    this.disconnectedPlayers.set(`${playerId}:${sessionId}`, {
-      playerId,
-      sessionId,
-      roomId,
-      disconnectTime: Date.now(),
-      graceTimer,
-    })
+    this.addDisconnectedPlayer(playerId, sessionId, roomId)
 
     // 通知对手玩家掉线
     await this.notifyOpponentDisconnect(roomId, playerId)
@@ -5657,6 +4564,121 @@ export class ClusterBattleServer {
       }
     } catch (error) {
       logger.error({ error, roomId, reconnectedPlayerId }, 'Failed to notify opponent of reconnect')
+    }
+  }
+
+  // === 委托方法 ===
+
+  /**
+   * 获取本地战斗实例（委托给战斗服务）
+   */
+  private getLocalBattle(roomId: string): Battle | undefined {
+    return this.battleService.getLocalBattle(roomId)
+  }
+
+  /**
+   * 检查房间是否在当前实例（委托给战斗服务）
+   */
+  private isRoomInCurrentInstance(roomState: RoomState): boolean {
+    return this.battleService.isRoomInCurrentInstance(roomState)
+  }
+
+  /**
+   * 获取断线玩家信息（委托给战斗服务）
+   */
+  private getDisconnectedPlayer(key: string) {
+    return this.battleService.getDisconnectedPlayer(key)
+  }
+
+  /**
+   * 添加断线玩家信息（委托给战斗服务）
+   */
+  private addDisconnectedPlayer(playerId: string, sessionId: string, roomId: string) {
+    this.battleService.addDisconnectedPlayer(playerId, sessionId, roomId)
+  }
+
+  /**
+   * 移除断线玩家信息（委托给战斗服务）
+   */
+  private removeDisconnectedPlayer(key: string) {
+    this.battleService.removeDisconnectedPlayer(key)
+  }
+
+  /**
+   * 验证实例的可达性
+   */
+  private async verifyInstanceReachability(instance: ServiceInstance): Promise<boolean> {
+    try {
+      const now = Date.now()
+      const timeSinceLastHeartbeat = now - instance.lastHeartbeat
+
+      // 使用更严格的心跳检查：如果心跳超过1.5倍间隔，认为不可达
+      const isProduction = process.env.NODE_ENV === 'production'
+      // 从环境变量或默认值获取心跳间隔
+      const heartbeatInterval = parseInt(process.env.CLUSTER_HEARTBEAT_INTERVAL || (isProduction ? '300000' : '120000'))
+      const reachabilityTimeout = heartbeatInterval * 1.5
+
+      const isReachable = timeSinceLastHeartbeat <= reachabilityTimeout
+
+      logger.debug(
+        {
+          instanceId: instance.id,
+          timeSinceLastHeartbeat: Math.floor(timeSinceLastHeartbeat / 1000),
+          reachabilityTimeoutSeconds: Math.floor(reachabilityTimeout / 1000),
+          isReachable,
+        },
+        'Instance reachability check',
+      )
+
+      return isReachable
+    } catch (error) {
+      logger.error({ error, instanceId: instance.id }, 'Error verifying instance reachability, assuming not reachable')
+      return false
+    }
+  }
+
+  // === 回调接口实现 ===
+
+  /**
+   * 创建匹配服务回调
+   */
+  createMatchmakingCallbacks(): MatchmakingCallbacks {
+    return {
+      createLocalBattle: async (roomState: RoomState, player1Data: any, player2Data: any) => {
+        return await this.battleService.createLocalBattle(roomState, player1Data, player2Data)
+      },
+      sendToPlayerSession: async (playerId: string, sessionId: string, event: string, data: any) => {
+        return await this.sendToPlayerSession(playerId, sessionId, event, data)
+      },
+      getPlayerName: async (playerId: string) => {
+        return await this.getPlayerName(playerId)
+      },
+      createSessionRoomMappings: async (roomState: RoomState) => {
+        await this.createSessionRoomMappings(roomState)
+      },
+      verifyInstanceReachability: async (instance: ServiceInstance) => {
+        return await this.verifyInstanceReachability(instance)
+      },
+    }
+  }
+
+  /**
+   * 创建战斗服务回调
+   */
+  createBattleCallbacks(): BattleCallbacks {
+    return {
+      sendToPlayerSession: async (playerId: string, sessionId: string, event: string, data: any) => {
+        return await this.sendToPlayerSession(playerId, sessionId, event, data)
+      },
+      addToBatch: async (playerId: string, sessionId: string, message: any) => {
+        await this.addToBatch(playerId, sessionId, message)
+      },
+      cleanupSessionRoomMappings: async (roomState: RoomState) => {
+        await this.cleanupSessionRoomMappings(roomState)
+      },
+      forwardPlayerAction: async (instanceId: string, action: string, playerId: string, data: any) => {
+        return await this.forwardPlayerAction(instanceId, action, playerId, data)
+      },
     }
   }
 }
