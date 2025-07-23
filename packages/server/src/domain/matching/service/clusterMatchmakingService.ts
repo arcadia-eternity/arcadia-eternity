@@ -1,3 +1,4 @@
+import { injectable, inject, optional } from 'inversify'
 import { PlayerParser } from '@arcadia-eternity/parser'
 import type { AckResponse, ErrorResponse } from '@arcadia-eternity/protocol'
 import { PlayerSchema } from '@arcadia-eternity/schema'
@@ -13,7 +14,12 @@ import { LOCK_KEYS } from '../../../cluster/redis/distributedLock'
 import type { RoomState, MatchmakingEntry, ServiceInstance } from '../../../cluster/types'
 import { BattleRpcClient } from '../../../cluster/communication/rpc/battleRpcClient'
 import type { ServiceDiscoveryManager } from '../../../cluster/discovery/serviceDiscovery'
-import { resourceLoadingManager } from '../../../resourceLoadingManager'
+import type {
+  IResourceLoadingManager,
+  MatchmakingCallbacks,
+  IMatchmakingService,
+} from '../../battle/services/interfaces'
+import { TYPES } from '../../../types'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -23,26 +29,19 @@ const logger = pino({
   timestamp: () => `,"time":"${new Date().toISOString()}"`,
 })
 
-// 回调接口定义
-export interface MatchmakingCallbacks {
-  createLocalBattle: (roomState: RoomState, player1Data: any, player2Data: any) => Promise<any>
-  sendToPlayerSession: (playerId: string, sessionId: string, event: string, data: any) => Promise<boolean>
-  getPlayerName: (playerId: string) => Promise<string>
-  createSessionRoomMappings: (roomState: RoomState) => Promise<void>
-  verifyInstanceReachability: (instance: ServiceInstance) => Promise<boolean>
-}
-
-export class ClusterMatchmakingService {
+@injectable()
+export class ClusterMatchmakingService implements IMatchmakingService {
   private rpcClient: BattleRpcClient
 
   constructor(
-    private readonly stateManager: ClusterStateManager,
-    private readonly socketAdapter: SocketClusterAdapter,
-    private readonly lockManager: DistributedLockManager,
-    private readonly callbacks: MatchmakingCallbacks,
-    private readonly instanceId: string,
-    private readonly performanceTracker?: PerformanceTracker,
-    private readonly serviceDiscovery?: ServiceDiscoveryManager,
+    @inject(TYPES.ClusterStateManager) private readonly stateManager: ClusterStateManager,
+    @inject(TYPES.SocketClusterAdapter) private readonly socketAdapter: SocketClusterAdapter,
+    @inject(TYPES.DistributedLockManager) private readonly lockManager: DistributedLockManager,
+    @inject(TYPES.MatchmakingCallbacks) private readonly callbacks: MatchmakingCallbacks,
+    @inject(TYPES.ResourceLoadingManager) private readonly resourceLoadingManager: IResourceLoadingManager,
+    @inject(TYPES.InstanceId) private readonly instanceId: string,
+    @inject(TYPES.PerformanceTracker) @optional() private readonly performanceTracker?: PerformanceTracker,
+    @inject(TYPES.ServiceDiscoveryManager) @optional() private readonly serviceDiscovery?: ServiceDiscoveryManager,
   ) {
     this.rpcClient = new BattleRpcClient()
   }
@@ -58,8 +57,8 @@ export class ClusterMatchmakingService {
     try {
       // 首先检查游戏资源是否已加载完成
       try {
-        if (!resourceLoadingManager.isReady()) {
-          const progress = resourceLoadingManager.getProgress()
+        if (!this.resourceLoadingManager.isReady()) {
+          const progress = this.resourceLoadingManager.getProgress()
           logger.warn(
             {
               socketId: socket.id,

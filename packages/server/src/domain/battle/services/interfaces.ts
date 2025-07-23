@@ -1,0 +1,79 @@
+import type { Socket } from 'socket.io'
+import type { AckResponse } from '@arcadia-eternity/protocol'
+import type { RoomState, MatchmakingEntry, ServiceInstance } from '../../../cluster/types'
+
+// 资源加载管理器接口
+export interface IResourceLoadingManager {
+  isReady(): boolean
+  getProgress(): {
+    status: string
+    error?: string
+    gameDataLoaded: boolean
+    scriptsLoaded: boolean
+    validationCompleted: boolean
+  }
+}
+
+// 匹配服务依赖接口
+export interface IMatchmakingDependencies {
+  resourceLoadingManager: IResourceLoadingManager
+}
+
+// 战斗服务依赖接口
+export interface IBattleDependencies {
+  // 目前战斗服务没有外部依赖，保留接口以备将来扩展
+}
+
+// 匹配服务回调接口
+export interface MatchmakingCallbacks {
+  createLocalBattle: (roomState: RoomState, player1Data: any, player2Data: any) => Promise<any>
+  sendToPlayerSession: (playerId: string, sessionId: string, event: string, data: any) => Promise<boolean>
+  getPlayerName: (playerId: string) => Promise<string>
+  createSessionRoomMappings: (roomState: RoomState) => Promise<void>
+  verifyInstanceReachability: (instance: ServiceInstance) => Promise<boolean>
+}
+
+// 战斗服务回调接口
+export interface BattleCallbacks {
+  sendToPlayerSession: (playerId: string, sessionId: string, event: string, data: any) => Promise<boolean>
+  addToBatch: (playerId: string, sessionId: string, message: any) => Promise<void>
+  cleanupSessionRoomMappings: (roomState: RoomState) => Promise<void>
+  forwardPlayerAction: (instanceId: string, action: string, playerId: string, data: any) => Promise<any>
+}
+
+// 匹配服务接口
+export interface IMatchmakingService {
+  handleJoinMatchmaking(socket: Socket, rawData: unknown, ack?: AckResponse<{ status: 'QUEUED' }>): Promise<void>
+  handleCancelMatchmaking(socket: Socket, ack?: AckResponse<{ status: 'CANCELED' }>): Promise<void>
+  handleClusterMatchmakingJoin(entry: MatchmakingEntry): Promise<void>
+}
+
+// 战斗服务接口
+export interface IBattleService {
+  createLocalBattle(roomState: RoomState, player1Data: any, player2Data: any): Promise<any>
+  getLocalBattle(roomId: string): any
+  isRoomInCurrentInstance(roomState: RoomState): boolean
+  addDisconnectedPlayer(playerId: string, sessionId: string, roomId: string): void
+  getDisconnectedPlayer(key: string): any
+  removeDisconnectedPlayer(key: string): void
+  clearAllDisconnectedPlayers(): void
+  handleLocalPlayerSelection(roomId: string, playerId: string, data: any): Promise<{ status: string }>
+  handleLocalReportAnimationEnd(roomId: string, playerId: string, data: any): Promise<{ status: string }>
+  handleLocalIsTimerEnabled(roomId: string, playerId: string): Promise<boolean>
+  handleLocalGetAllPlayerTimerStates(roomId: string, playerId: string): Promise<any[]>
+  handleLocalGetTimerConfig(roomId: string, playerId: string): Promise<any>
+  handleLocalStartAnimation(roomId: string, playerId: string, data: any): Promise<string>
+  handleLocalEndAnimation(roomId: string, playerId: string, data: any): Promise<{ status: string }>
+
+  // 添加缺少的方法
+  handleLocalGetState(roomId: string, playerId: string): Promise<any>
+  handleLocalGetSelection(roomId: string, playerId: string): Promise<any>
+  handleLocalReady(roomId: string, playerId: string): Promise<{ status: string }>
+  handleLocalGetBattleState(roomId: string, playerId: string): Promise<any>
+  handleLocalGetBattleHistory(roomId: string, playerId: string): Promise<any>
+  handleLocalGetBattleReport(roomId: string, playerId: string): Promise<any>
+  handleLocalPlayerAbandon(roomId: string, playerId: string): Promise<any>
+  handleLocalBattleTermination(roomId: string, playerId: string, reason: string): Promise<any>
+  handleLocalGetPlayerTimerState(roomId: string, playerId: string, data: any): Promise<any>
+  forceTerminateBattle(roomState: RoomState, playerId: string, reason: string): Promise<void>
+}

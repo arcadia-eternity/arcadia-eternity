@@ -15,7 +15,7 @@ import pino from 'pino'
 import { ZodError } from 'zod'
 import type { Server, Socket } from 'socket.io'
 import { BattleReportService, type BattleReportConfig } from '../../report/services/battleReportService'
-import { getContainer, TYPES } from '../../../container'
+import { TYPES as GlobalTYPES } from '../../../container'
 import type { IAuthService, JWTPayload } from '../../auth/services/authService'
 import { PlayerRepository } from '@arcadia-eternity/database'
 import type { ClusterStateManager } from '../../../cluster/core/clusterStateManager'
@@ -31,8 +31,9 @@ import { TimerEventBatcher } from '../../../timer/timerEventBatcher'
 
 import type { ServiceDiscoveryManager } from '../../../cluster/discovery/serviceDiscovery'
 import { ServerRuleIntegration } from '@arcadia-eternity/rules'
-import { ClusterMatchmakingService, type MatchmakingCallbacks } from '../../matching/service/clusterMatchmakingService'
-import { ClusterBattleService, type BattleCallbacks } from './clusterBattleService'
+import { getContainer, configureBattleServices, TYPES } from '../../../container'
+import type { MatchmakingCallbacks, BattleCallbacks, IMatchmakingService, IBattleService } from './interfaces'
+import { injectable, inject, optional } from 'inversify'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -78,6 +79,7 @@ interface SocketData {
   session?: any // 会话数据
 }
 
+@injectable()
 export class ClusterBattleServer {
   private readonly CLEANUP_INTERVAL = 5 * 60 * 1000
   private readonly DISCONNECT_GRACE_PERIOD = 60000 // 60秒掉线宽限期
@@ -100,15 +102,14 @@ export class ClusterBattleServer {
   private readonly timerStatusCache = new Map<string, { enabled: boolean; timestamp: number }>()
   private readonly TIMER_CACHE_TTL = 30000 // 30秒缓存，大幅减少跨实例调用
 
-  // 新的服务实例
-  private readonly matchmakingService: ClusterMatchmakingService
-  private readonly battleService: ClusterBattleService
+  // 服务实例（在初始化时设置）
+  private matchmakingService!: IMatchmakingService
+  private battleService!: IBattleService
 
   // RPC相关
   private rpcServer?: BattleRpcServer
   private rpcClient: BattleRpcClient
   private rpcPort?: number
-  private isRpcServerInjected = false
 
   // 批量消息处理相关
   private readonly messageBatches = new Map<
@@ -131,14 +132,14 @@ export class ClusterBattleServer {
   ])
 
   constructor(
+    @inject(TYPES.SocketIOServer)
     private readonly io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
-    private readonly stateManager: ClusterStateManager,
-    private readonly socketAdapter: SocketClusterAdapter,
-    private readonly lockManager: DistributedLockManager,
-    private readonly _battleReportConfig?: BattleReportConfig,
-    instanceId?: string,
-    rpcPort?: number,
-    injectedRpcServer?: BattleRpcServer,
+    @inject(TYPES.ClusterStateManager) private readonly stateManager: ClusterStateManager,
+    @inject(TYPES.SocketClusterAdapter) private readonly socketAdapter: SocketClusterAdapter,
+    @inject(TYPES.DistributedLockManager) private readonly lockManager: DistributedLockManager,
+    @inject(TYPES.InstanceId) instanceId: string,
+    @optional() @inject(TYPES.RpcPort) rpcPort?: number,
+    @optional() @inject(TYPES.BattleReportConfig) private readonly _battleReportConfig?: BattleReportConfig,
   ) {
     this.instanceId = instanceId || nanoid()
     this.rpcPort = rpcPort
@@ -150,36 +151,29 @@ export class ClusterBattleServer {
       await this.sendToPlayerSession(playerId, sessionId, eventType, data)
     })
 
-    // 如果提供了外部 RPC 服务器实例，使用它
-    if (injectedRpcServer) {
-      this.rpcServer = injectedRpcServer
-      this.isRpcServerInjected = true
-    }
+    // RPC服务器将通过setRpcServer方法设置
 
     // 初始化战报服务
     if (this._battleReportConfig) {
       this.battleReportService = new BattleReportService(this._battleReportConfig, logger)
     }
 
-    // 初始化新服务
-    this.matchmakingService = new ClusterMatchmakingService(
-      this.stateManager,
-      this.socketAdapter,
-      this.lockManager,
-      this.createMatchmakingCallbacks(),
-      this.instanceId,
-      this.performanceTracker,
-      this.serviceDiscovery,
-    )
+    // 服务实例已通过 DI 注入，无需手动获取
+  }
 
-    this.battleService = new ClusterBattleService(
-      this.stateManager,
-      this.lockManager,
-      this.createBattleCallbacks(),
-      this.instanceId,
-      this.performanceTracker,
-      this._battleReportConfig,
-    )
+  /**
+   * 设置RPC服务器实例（用于解决循环依赖）
+   */
+  setRpcServer(rpcServer: BattleRpcServer): void {
+    this.rpcServer = rpcServer
+  }
+
+  /**
+   * 设置服务实例（在 DI 容器创建后调用）
+   */
+  setServices(matchmakingService: IMatchmakingService, battleService: IBattleService): void {
+    this.matchmakingService = matchmakingService
+    this.battleService = battleService
   }
 
   setPerformanceTracker(tracker: PerformanceTracker): void {
@@ -336,8 +330,8 @@ export class ClusterBattleServer {
         }
 
         const container = getContainer()
-        const playerRepo = container.get<PlayerRepository>(TYPES.PlayerRepository)
-        const authService = container.get<IAuthService>(TYPES.AuthService)
+        const playerRepo = container.get<PlayerRepository>(GlobalTYPES.PlayerRepository)
+        const authService = container.get<IAuthService>(GlobalTYPES.AuthService)
 
         // 检查玩家是否存在
         const player = await playerRepo.getPlayerById(playerId)
@@ -1978,7 +1972,7 @@ export class ClusterBattleServer {
   private async getPlayerName(playerId: string): Promise<string> {
     try {
       const container = getContainer()
-      const playerRepo = container.get<PlayerRepository>(TYPES.PlayerRepository)
+      const playerRepo = container.get<PlayerRepository>(GlobalTYPES.PlayerRepository)
 
       const player = await playerRepo.getPlayerById(playerId)
       return player?.name || `Player ${playerId.slice(0, 8)}`
@@ -4198,12 +4192,9 @@ export class ClusterBattleServer {
     try {
       logger.info('开始清理 ClusterBattleServer 资源')
 
-      // 清理RPC服务器（只有自己创建的才停止）
-      if (this.rpcServer && !this.isRpcServerInjected) {
-        await this.rpcServer.stop()
-        logger.info('RPC server stopped')
-      } else if (this.rpcServer && this.isRpcServerInjected) {
-        logger.info('Skipping RPC server stop (injected server managed externally)')
+      // 清理RPC服务器（由DI容器管理，不需要手动停止）
+      if (this.rpcServer) {
+        logger.info('RPC server cleanup managed by DI container')
       }
 
       // 清理RPC客户端连接
@@ -4271,13 +4262,7 @@ export class ClusterBattleServer {
     }, this.DISCONNECT_GRACE_PERIOD)
 
     // 记录掉线信息
-    this.setDisconnectedPlayer(`${playerId}:${sessionId}`, {
-      playerId,
-      sessionId,
-      roomId,
-      disconnectTime: Date.now(),
-      graceTimer,
-    })
+    this.addDisconnectedPlayer(playerId, sessionId, roomId)
 
     // 通知对手玩家掉线
     await this.notifyOpponentDisconnect(roomId, playerId)
@@ -4606,10 +4591,10 @@ export class ClusterBattleServer {
   }
 
   /**
-   * 设置断线玩家信息（委托给战斗服务）
+   * 添加断线玩家信息（委托给战斗服务）
    */
-  private setDisconnectedPlayer(key: string, info: any) {
-    this.battleService.setDisconnectedPlayer(key, info)
+  private addDisconnectedPlayer(playerId: string, sessionId: string, roomId: string) {
+    this.battleService.addDisconnectedPlayer(playerId, sessionId, roomId)
   }
 
   /**
@@ -4657,7 +4642,7 @@ export class ClusterBattleServer {
   /**
    * 创建匹配服务回调
    */
-  private createMatchmakingCallbacks(): MatchmakingCallbacks {
+  createMatchmakingCallbacks(): MatchmakingCallbacks {
     return {
       createLocalBattle: async (roomState: RoomState, player1Data: any, player2Data: any) => {
         return await this.battleService.createLocalBattle(roomState, player1Data, player2Data)
@@ -4680,7 +4665,7 @@ export class ClusterBattleServer {
   /**
    * 创建战斗服务回调
    */
-  private createBattleCallbacks(): BattleCallbacks {
+  createBattleCallbacks(): BattleCallbacks {
     return {
       sendToPlayerSession: async (playerId: string, sessionId: string, event: string, data: any) => {
         return await this.sendToPlayerSession(playerId, sessionId, event, data)

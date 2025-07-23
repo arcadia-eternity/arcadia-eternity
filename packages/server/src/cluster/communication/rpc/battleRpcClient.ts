@@ -5,6 +5,8 @@ import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
 import type { FlyIoServiceDiscoveryManager } from '../../discovery/flyIoServiceDiscovery'
+import { injectable, inject, optional } from 'inversify'
+import { TYPES } from '../../../types'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -33,13 +35,14 @@ interface BattleServiceClient {
   TerminateBattle: (request: any, callback: grpc.requestCallback<any>) => void
 }
 
+@injectable()
 export class BattleRpcClient {
   private clients = new Map<string, BattleServiceClient>() // instanceId -> client
   private packageDefinition: any
   private readonly REQUEST_TIMEOUT = 15000 // 15秒超时，适应Docker环境
   private serviceDiscovery?: FlyIoServiceDiscoveryManager
 
-  constructor(serviceDiscovery?: FlyIoServiceDiscoveryManager) {
+  constructor(@optional() @inject(TYPES.ServiceDiscoveryManager) serviceDiscovery?: FlyIoServiceDiscoveryManager) {
     this.serviceDiscovery = serviceDiscovery
     this.loadProtoDefinition()
   }

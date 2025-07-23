@@ -12,6 +12,9 @@ import type { RoomState } from '../../../cluster/types'
 import { BattleReportService, type BattleReportConfig } from '../../report/services/battleReportService'
 import { TimerEventBatcher } from '../../../timer/timerEventBatcher'
 import { ServerRuleIntegration } from '@arcadia-eternity/rules'
+import type { BattleCallbacks, IBattleService } from './interfaces'
+import { TYPES } from '../../../types'
+import { injectable, inject, optional } from 'inversify'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -39,15 +42,8 @@ type DisconnectedPlayerInfo = {
   graceTimer: ReturnType<typeof setTimeout>
 }
 
-// 回调接口定义
-export interface BattleCallbacks {
-  sendToPlayerSession: (playerId: string, sessionId: string, event: string, data: any) => Promise<boolean>
-  addToBatch: (playerId: string, sessionId: string, message: any) => Promise<void>
-  cleanupSessionRoomMappings: (roomState: RoomState) => Promise<void>
-  forwardPlayerAction: (instanceId: string, action: string, playerId: string, data: any) => Promise<any>
-}
-
-export class ClusterBattleService {
+@injectable()
+export class ClusterBattleService implements IBattleService {
   private readonly DISCONNECT_GRACE_PERIOD = 60000 // 60秒掉线宽限期
 
   // 本地Battle实例管理
@@ -61,12 +57,12 @@ export class ClusterBattleService {
   private battleReportService?: BattleReportService
 
   constructor(
-    private readonly stateManager: ClusterStateManager,
-    private readonly lockManager: DistributedLockManager,
-    private readonly callbacks: BattleCallbacks,
-    private readonly instanceId: string,
-    private readonly performanceTracker?: PerformanceTracker,
-    private readonly _battleReportConfig?: BattleReportConfig,
+    @inject(TYPES.ClusterStateManager) private readonly stateManager: ClusterStateManager,
+    @inject(TYPES.DistributedLockManager) private readonly lockManager: DistributedLockManager,
+    @inject(TYPES.BattleCallbacks) private readonly callbacks: BattleCallbacks,
+    @inject(TYPES.InstanceId) private readonly instanceId: string,
+    @inject(TYPES.PerformanceTracker) @optional() private readonly performanceTracker?: PerformanceTracker,
+    @inject(TYPES.BattleReportConfig) @optional() private readonly _battleReportConfig?: BattleReportConfig,
   ) {
     // 初始化Timer批处理系统
     this.timerEventBatcher = new TimerEventBatcher(async (sessionKey: string, eventType: string, data: any) => {
@@ -240,9 +236,19 @@ export class ClusterBattleService {
   }
 
   /**
-   * 设置断线玩家信息
+   * 添加断线玩家信息
    */
-  setDisconnectedPlayer(key: string, info: DisconnectedPlayerInfo): void {
+  addDisconnectedPlayer(playerId: string, sessionId: string, roomId: string): void {
+    const key = `${playerId}:${sessionId}`
+    const info: DisconnectedPlayerInfo = {
+      playerId,
+      sessionId,
+      roomId,
+      disconnectTime: Date.now(),
+      graceTimer: setTimeout(() => {
+        this.removeDisconnectedPlayer(key)
+      }, this.DISCONNECT_GRACE_PERIOD),
+    }
     this.disconnectedPlayers.set(key, info)
   }
 
@@ -921,5 +927,46 @@ export class ClusterBattleService {
     } catch (error) {
       logger.error({ error }, 'Error during ClusterBattleService cleanup')
     }
+  }
+
+  /**
+   * 获取战斗状态（详细）
+   */
+  async handleLocalGetBattleState(roomId: string, playerId: string): Promise<any> {
+    const battle = this.localBattles.get(roomId)
+    if (!battle) {
+      throw new Error('BATTLE_NOT_FOUND')
+    }
+    // 使用现有的 getState 方法
+    return battle.getState()
+  }
+
+  /**
+   * 获取战斗历史
+   */
+  async handleLocalGetBattleHistory(roomId: string, _playerId: string): Promise<any> {
+    const battle = this.localBattles.get(roomId)
+    if (!battle) {
+      throw new Error('BATTLE_NOT_FOUND')
+    }
+    // 返回战斗的状态作为历史
+    return battle.getState()
+  }
+
+  /**
+   * 获取战斗报告
+   */
+  async handleLocalGetBattleReport(roomId: string, _playerId: string): Promise<any> {
+    const localRoom = this.localRooms.get(roomId)
+    if (!localRoom || !localRoom.battleRecordId) {
+      throw new Error('BATTLE_REPORT_NOT_FOUND')
+    }
+
+    if (this.battleReportService) {
+      // 返回战斗记录ID，让客户端自行获取报告
+      return { battleRecordId: localRoom.battleRecordId }
+    }
+
+    throw new Error('BATTLE_REPORT_SERVICE_NOT_AVAILABLE')
   }
 }
