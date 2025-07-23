@@ -82,7 +82,7 @@ export class opponentPlayerNode extends BaseSelectorNode {
 
 // 技能使用上下文节点
 export class UsingSkillContextNode extends BaseSelectorNode {
-  static selectorType = 'usingSkillContext' as const
+  static selectorType = 'useSkillContext' as const
   constructor() {
     super()
     this.title = '技能上下文'

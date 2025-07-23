@@ -1801,12 +1801,11 @@
     },
     {
       "n": "source",
-      "t": "MarkInstance | SkillInstance | Pet",
+      "t": "MarkInstance | SkillInstance",
       "iu": true,
       "u": [
         "MarkInstance",
-        "SkillInstance",
-        "Pet"
+        "SkillInstance"
       ],
       "a": false
     },
@@ -2713,6 +2712,20 @@
     {
       "n": "OnHeal",
       "t": "HealContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "BeforeRageGain",
+      "t": "RageContext",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "BeforeRageLoss",
+      "t": "RageContext",
       "iu": false,
       "u": [],
       "a": false
@@ -4643,13 +4656,6 @@
       "a": false
     },
     {
-      "n": "damage",
-      "t": "(context: DamageContext) => boolean",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
       "n": "heal",
       "t": "(context: HealContext) => boolean",
       "iu": false,
@@ -6345,7 +6351,7 @@
       "a": false
     },
     {
-      "n": "__@unscopables@1313",
+      "n": "__@unscopables@1314",
       "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
       "iu": false,
       "u": [],
@@ -9654,12 +9660,11 @@
     },
     {
       "n": "source",
-      "t": "MarkInstance | SkillInstance | Pet",
+      "t": "MarkInstance | SkillInstance",
       "iu": true,
       "u": [
         "MarkInstance",
-        "SkillInstance",
-        "Pet"
+        "SkillInstance"
       ],
       "a": false
     },
@@ -9774,52 +9779,6 @@
         "Element.ElfKing"
       ],
       "a": false
-    }
-  ],
-  "EffectPhase": [
-    {
-      "n": "parentContext",
-      "t": "TriggerContextMap[T]",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "trigger",
-      "t": "T",
-      "iu": false,
-      "u": [],
-      "a": false
-    },
-    {
-      "n": "source",
-      "t": "MarkInstance | SkillInstance",
-      "iu": true,
-      "u": [
-        "MarkInstance",
-        "SkillInstance"
-      ],
-      "a": false
-    },
-    {
-      "n": "effect",
-      "t": "undefined | Effect<EffectTrigger>",
-      "iu": true,
-      "u": [
-        "undefined",
-        "Effect<EffectTrigger>"
-      ],
-      "a": false
-    }
-  ],
-  "BatchEffectPhase": [
-    {
-      "n": "effects",
-      "t": "{ parentContext: TriggerContextMap[T]; trigger: T; source: MarkInstance | SkillInstance; effect?: Effect<EffectTrigger> | undefined; }",
-      "iu": false,
-      "u": [],
-      "a": true,
-      "nt": "{ parentContext: TriggerContextMap[T]; trigger: T; source: MarkInstance | SkillInstance; effect?: Effect<EffectTrigger> | undefined; }"
     }
   ],
   "EffectExecutionPhase": [

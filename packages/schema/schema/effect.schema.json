@@ -48,6 +48,8 @@
               "OnConsumeStack",
               "OnBeforeHeal",
               "OnHeal",
+              "BeforeRageGain",
+              "BeforeRageLoss",
               "OnRageGain",
               "OnRageLoss",
               "OnSwitchIn",
@@ -99,6 +101,8 @@
                 "OnConsumeStack",
                 "OnBeforeHeal",
                 "OnHeal",
+                "BeforeRageGain",
+                "BeforeRageLoss",
                 "OnRageGain",
                 "OnRageLoss",
                 "OnSwitchIn",
@@ -789,6 +793,26 @@
             "type": {
               "type": "string",
               "const": "addRage"
+            },
+            "target": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "value": {
+              "$ref": "#/$defs/__schema5"
+            }
+          },
+          "required": [
+            "type",
+            "target",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "setRage"
             },
             "target": {
               "$ref": "#/$defs/__schema2"
@@ -2425,7 +2449,7 @@
             "opponentTeam",
             "selfPlayer",
             "opponentPlayer",
-            "usingSkillContext",
+            "useSkillContext",
             "damageContext",
             "effectContext",
             "skill",
@@ -2462,7 +2486,7 @@
                 "opponentTeam",
                 "selfPlayer",
                 "opponentPlayer",
-                "usingSkillContext",
+                "useSkillContext",
                 "damageContext",
                 "effectContext",
                 "skill",

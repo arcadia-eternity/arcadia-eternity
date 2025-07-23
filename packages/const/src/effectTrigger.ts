@@ -52,6 +52,8 @@ export enum EffectTrigger {
   OnBeforeHeal = 'OnBeforeHeal',
   OnHeal = 'OnHeal',
 
+  BeforeRageGain = 'BeforeRageGain',
+  BeforeRageLoss = 'BeforeRageLoss',
   OnRageGain = 'OnRageGain',
   OnRageLoss = 'OnRageLoss',
 

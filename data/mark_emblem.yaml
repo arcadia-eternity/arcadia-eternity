@@ -271,3 +271,8 @@
   effect:
     - effect_emblem_reduce_light_skill_rage_cost_5
     - effect_emblem_reduce_light_climax_skill_rage_cost_5
+- id: mark_emblem_anhun
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_climax_damage_boost_10_percent

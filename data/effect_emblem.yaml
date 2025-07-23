@@ -25,7 +25,7 @@
     target: addMarkContext
     value: true
 - id: effect_emblem_increase_rage_on_damage
-  trigger: OnRageGain
+  trigger: BeforeRageGain
   priority: 0
   condition:
     type: selfBeDamaged
@@ -226,7 +226,7 @@
   priority: 0
   apply:
     - type: addCritRate
-      target: usingSkillContext
+      target: useSkillContext
       value: 5
   condition:
     type: every
@@ -377,14 +377,14 @@
   apply:
     type: setValue
     target:
-      base: usingSkillContext
+      base: useSkillContext
       chain:
         - type: selectProp
           arg: rage
     value:
       type: dynamic
       selector:
-        base: usingSkillContext
+        base: useSkillContext
         chain:
           - type: selectPath
             arg: rage
@@ -400,7 +400,7 @@
         conditions:
           - type: evaluate
             target:
-              base: usingSkillContext
+              base: useSkillContext
               chain:
                 - type: selectPath
                   arg: skill
@@ -411,7 +411,7 @@
               value: skill_xinzhiyinji
           - type: evaluate
             target:
-              base: usingSkillContext
+              base: useSkillContext
               chain:
                 - type: selectPath
                   arg: skill
@@ -431,7 +431,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -507,7 +507,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -770,7 +770,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -980,7 +980,7 @@
       - type: selfBeDamaged
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -1002,7 +1002,7 @@
       - type: isFirstSkillUsedThisTurn
   apply:
     type: addCritRate
-    target: usingSkillContext
+    target: useSkillContext
     value: 5
 # 重心：如果当前使用的技能为绊倒且以自身为目标，使该技能无效
 - id: effect_emblem_immune_skill_bandao
@@ -1014,7 +1014,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: skill.base.id
@@ -1023,7 +1023,7 @@
           value: skill_bandao
   apply:
     type: setSureMiss
-    target: usingSkillContext
+    target: useSkillContext
     priority: -1
 # 潮水: 潮水中的的溺水的触发几率增加10%
 - id: effect_emblem_increase_chaoshui_nishui_chance_10_percent
@@ -1091,7 +1091,7 @@
   apply:
     type: addValue
     target:
-      base: usingSkillContext
+      base: useSkillContext
       chain:
         - type: selectProp
           arg: rage
@@ -1102,7 +1102,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: skill.base.element
@@ -1111,10 +1111,32 @@
           value: Light
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: skill.base.category
+        evaluator:
+          type: same
+          value: Climax
+# 安魂: 必杀技造成的伤害增加10%
+- id: effect_emblem_climax_damage_boost_10_percent
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 10
+    delta: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: selectPath
+              arg: category
         evaluator:
           type: same
           value: Climax

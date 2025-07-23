@@ -400,7 +400,7 @@ export class DamageContext extends Context {
   public damageResult: number = 0
   constructor(
     public readonly parent: UseSkillContext | EffectContext<EffectTrigger>,
-    public readonly source: Pet | MarkInstance | SkillInstance, //来自技能伤害，还是印记和技能的效果获得的伤害
+    public readonly source: MarkInstance | SkillInstance, //来自技能伤害，还是印记和技能的效果获得的伤害
     public readonly target: Pet,
     public baseDamage: number,
     public damageType: DamageType = DamageType.Effect,
@@ -690,6 +690,9 @@ export type TriggerContextMap = {
   [EffectTrigger.OnConsumeStack]: ConsumeStackContext
   [EffectTrigger.OnBeforeHeal]: HealContext
   [EffectTrigger.OnHeal]: HealContext
+
+  [EffectTrigger.BeforeRageGain]: RageContext
+  [EffectTrigger.BeforeRageLoss]: RageContext
   [EffectTrigger.OnRageGain]: RageContext
   [EffectTrigger.OnRageLoss]: RageContext
 

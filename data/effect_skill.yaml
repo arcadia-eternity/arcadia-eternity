@@ -458,7 +458,7 @@
   apply:
     type: addCritRate
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value:
       type: dynamic
       selector:
@@ -484,7 +484,7 @@
   apply:
     type: addMultihitResult
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value:
       type: dynamic
       selector:
@@ -508,7 +508,7 @@
   apply:
     type: addPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value:
       type: dynamic
       selector:
@@ -750,7 +750,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 4
   condition:
     type: every
@@ -867,7 +867,7 @@
   apply:
     type: addPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value:
       type: dynamic
       selector:
@@ -956,7 +956,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 2
   condition:
     type: every
@@ -991,7 +991,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 2
   condition:
     type: every
@@ -1207,7 +1207,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 2
   condition:
     type: every
@@ -1239,7 +1239,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 4
   condition:
     type: every
@@ -1264,7 +1264,7 @@
   priority: 0
   apply:
     type: setSureCrit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 0
   condition:
     type: every
@@ -1384,7 +1384,7 @@
   apply:
     type: addMultihitResult
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 1
   condition:
     type: every
@@ -1397,7 +1397,7 @@
   priority: 0
   apply:
     type: setIgnoreStageStrategy
-    target: usingSkillContext
+    target: useSkillContext
     value: positive
   condition:
     type: every
@@ -1506,7 +1506,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -1567,7 +1567,7 @@
   apply:
     type: addAccuracy
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 25
   condition:
     type: every
@@ -1594,7 +1594,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 2
   condition:
     type: every
@@ -1649,7 +1649,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 2
   condition:
     type: every
@@ -1682,7 +1682,7 @@
   apply:
     type: addAccuracy
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 50
   condition:
     type: every
@@ -1770,7 +1770,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 2
   condition:
     type: every
@@ -1884,7 +1884,7 @@
   apply:
     type: addPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 30
   condition:
     type: every
@@ -1991,7 +1991,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -2005,7 +2005,7 @@
   apply:
     type: addPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: &value_skill_add_30_per_usetime
       type: dynamic
       selector:
@@ -2031,7 +2031,7 @@
   apply:
     type: addCritRate
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: *value_skill_add_30_per_usetime
   condition:
     type: every
@@ -2043,7 +2043,7 @@
   apply:
     type: addMultihitResult
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value:
       type: dynamic
       selector:
@@ -2134,7 +2134,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -2283,7 +2283,7 @@
   apply:
     type: addPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value:
       type: dynamic
       selector:
@@ -2623,7 +2623,7 @@
   priority: 0
   apply:
     type: addPower
-    target: usingSkillContext
+    target: useSkillContext
     value:
       type: dynamic
       selector:
@@ -2691,7 +2691,7 @@
   apply:
     type: addMultihitResult
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value:
       type: dynamic
       selector:
@@ -2812,7 +2812,7 @@
   apply:
     type: addCritRate
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 50
   condition:
     type: every
@@ -2826,7 +2826,7 @@
   apply:
     type: addCritRate
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 70
   condition:
     type: every
@@ -2839,7 +2839,7 @@
   priority: 0
   apply:
     type: setSureCrit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 0
   condition:
     type: every
@@ -2927,7 +2927,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
   condition:
     type: every
@@ -2963,7 +2963,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -2975,7 +2975,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -2998,7 +2998,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -3167,7 +3167,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 2
   condition:
     type: every
@@ -3181,7 +3181,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 2
   condition:
     type: every
@@ -3282,7 +3282,7 @@
   priority: 0
   apply:
     type: addPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 50
   condition:
     type: every
@@ -3337,7 +3337,7 @@
   apply:
     type: addValue
     target:
-      base: usingSkillContext
+      base: useSkillContext
       chain:
         - type: selectProp
           arg: priority
@@ -3546,7 +3546,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -3587,12 +3587,12 @@
     trueOperator:
       type: setMultihit
       target:
-        base: usingSkillContext
+        base: useSkillContext
       value: [5, 8]
     falseOperator:
       type: setMultihit
       target:
-        base: usingSkillContext
+        base: useSkillContext
       value: 1
   condition:
     type: selfUseSkill
@@ -3624,11 +3624,11 @@
   apply:
     type: addPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value:
       type: dynamic
       selector:
-        base: usingSkillContext
+        base: useSkillContext
         chain:
           - type: selectPath
             arg: power
@@ -3736,7 +3736,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 2
   condition:
     type: every
@@ -3777,7 +3777,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 2
   condition:
     type: every
@@ -3818,7 +3818,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 2
   condition:
     type: every
@@ -3858,7 +3858,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -3918,12 +3918,12 @@
     trueOperator:
       type: setMultihit
       target:
-        base: usingSkillContext
+        base: useSkillContext
       value: 3
     falseOperator:
       type: setMultihit
       target:
-        base: usingSkillContext
+        base: useSkillContext
       value: 1
   condition:
     type: selfUseSkill
@@ -3953,12 +3953,12 @@
     trueOperator:
       type: setMultihit
       target:
-        base: usingSkillContext
+        base: useSkillContext
       value: 3
     falseOperator:
       type: setMultihit
       target:
-        base: usingSkillContext
+        base: useSkillContext
       value: 1
   condition:
     type: selfUseSkill
@@ -4000,12 +4000,12 @@
     trueOperator:
       type: setMultihit
       target:
-        base: usingSkillContext
+        base: useSkillContext
       value: 3
     falseOperator:
       type: setMultihit
       target:
-        base: usingSkillContext
+        base: useSkillContext
       value: 1
   condition:
     type: selfUseSkill
@@ -4057,7 +4057,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -4207,7 +4207,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 2
   condition:
     type: every
@@ -4221,7 +4221,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
   condition:
     type: every
@@ -4326,7 +4326,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -4340,7 +4340,7 @@
   priority: 0
   apply:
     type: addPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 50
   condition:
     type: every
@@ -4409,7 +4409,7 @@
   priority: 0
   apply:
     type: setSureCrit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 1
   condition:
     type: every
@@ -4516,7 +4516,7 @@
   priority: 0
   apply:
     type: addPower
-    target: usingSkillContext
+    target: useSkillContext
     value:
       type: conditional
       trueValue: 150
@@ -4585,7 +4585,7 @@
   priority: 0
   apply:
     type: setSureCrit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 1
   condition:
     type: every
@@ -4678,7 +4678,7 @@
   priority: 0
   apply:
     type: addPower
-    target: usingSkillContext
+    target: useSkillContext
     value:
       type: conditional
       trueValue: 150
@@ -4784,7 +4784,7 @@
   priority: 0
   apply:
     type: addPower
-    target: usingSkillContext
+    target: useSkillContext
     value:
       type: conditional
       trueValue: 150
@@ -4863,7 +4863,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
   condition:
     type: every
@@ -4892,7 +4892,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
   condition:
     type: every
@@ -4906,7 +4906,7 @@
   priority: 0
   apply:
     type: addCritRate
-    target: usingSkillContext
+    target: useSkillContext
     value: 15
   condition:
     type: selfUseSkill
@@ -4931,7 +4931,7 @@
   priority: 0
   apply:
     type: addPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 50
   condition:
     type: every
@@ -4959,7 +4959,7 @@
   priority: 0
   apply:
     type: setSureCrit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 1
   condition:
     type: every
@@ -5016,7 +5016,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
   condition:
     type: every
@@ -5145,7 +5145,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
   condition:
     type: every
@@ -5191,7 +5191,7 @@
   priority: 0
   apply:
     type: setSureCrit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 1
   condition:
     type: every
@@ -5223,7 +5223,7 @@
   priority: 0
   apply:
     type: setMultihit
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
   condition:
     type: every
@@ -5271,7 +5271,7 @@
   priority: 0
   apply:
     type: setMultihit
-    target: usingSkillContext
+    target: useSkillContext
     value: 3
   condition:
     type: every
@@ -5332,7 +5332,7 @@
   priority: 0
   apply:
     type: setMultihit
-    target: usingSkillContext
+    target: useSkillContext
     value: 4
   condition:
     type: every
@@ -5384,7 +5384,7 @@
   priority: 0
   apply:
     type: setMultihit
-    target: usingSkillContext
+    target: useSkillContext
     value: 4
   condition:
     type: every
@@ -5714,7 +5714,7 @@
   priority: 0
   apply:
     type: addPower
-    target: usingSkillContext
+    target: useSkillContext
     value:
       type: dynamic
       selector:
@@ -5808,7 +5808,7 @@
   priority: 0
   apply:
     type: setMultihit
-    target: usingSkillContext
+    target: useSkillContext
     value:
       type: dynamic
       selector:
@@ -5862,7 +5862,7 @@
   priority: 0
   apply:
     type: addCritRate
-    target: usingSkillContext
+    target: useSkillContext
     value:
       type: dynamic
       selector:
@@ -5924,7 +5924,7 @@
   priority: 0
   apply:
     type: addAccuracy
-    target: usingSkillContext
+    target: useSkillContext
     value:
       type: dynamic
       selector:
@@ -5995,7 +5995,7 @@
   priority: 0
   apply:
     - type: addMultihitResult
-      target: usingSkillContext
+      target: useSkillContext
       value: 1
     - type: consumeStacks
       target:
@@ -6021,7 +6021,7 @@
   priority: 0
   apply:
     - type: addPower
-      target: usingSkillContext
+      target: useSkillContext
       value: 10
     - type: consumeStacks
       target:
@@ -6047,7 +6047,7 @@
   priority: 0
   apply:
     - type: setSureHit
-      target: usingSkillContext
+      target: useSkillContext
       priority: 2
     - type: consumeStacks
       target:
@@ -6106,7 +6106,7 @@
   apply:
     - type: addValue
       target:
-        base: usingSkillContext
+        base: useSkillContext
         chain:
           - type: selectProp
             arg: priority
@@ -6175,7 +6175,7 @@
   priority: 0
   apply:
     type: addPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 50
   condition:
     type: every
@@ -6300,7 +6300,7 @@
   priority: 0
   apply:
     type: addPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 50
   condition:
     type: every
@@ -6537,7 +6537,7 @@
     newBase:
       type: dynamic
       selector:
-        base: usingSkillContext
+        base: useSkillContext
         chain:
           - type: select
             arg:
@@ -6549,7 +6549,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -6950,7 +6950,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
   condition:
     type: every
@@ -6990,7 +6990,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 2
   condition:
     type: every
@@ -7156,7 +7156,7 @@
   priority: 0
   apply:
     type: setSureCrit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 1
   condition:
     type: every
@@ -7169,7 +7169,7 @@
   priority: 0
   apply:
     type: setIgnoreStageStrategy
-    target: usingSkillContext
+    target: useSkillContext
     value: positive
   condition:
     type: every
@@ -7252,7 +7252,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 2
   condition:
     type: every
@@ -7265,7 +7265,7 @@
   priority: 0
   apply:
     type: setSureCrit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 1
   condition:
     type: every
@@ -7349,7 +7349,7 @@
   priority: 0
   apply:
     - type: addPower
-      target: usingSkillContext
+      target: useSkillContext
       value: 50
     - *apply_consume_heianwuzhi_1_stack_template
   condition:
@@ -7425,7 +7425,7 @@
               value: mark_heianwuzhi
       value: 2
     - type: setSureCrit
-      target: usingSkillContext
+      target: useSkillContext
       priority: 1
   condition:
     type: every
@@ -7494,7 +7494,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -7600,7 +7600,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
   condition:
     type: every
@@ -7656,7 +7656,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -7699,7 +7699,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
   condition:
     type: every
@@ -7740,7 +7740,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -7776,7 +7776,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
   condition:
     type: every
@@ -7807,7 +7807,7 @@
   priority: 0
   apply:
     type: addPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 40
   condition:
     type: every
@@ -7833,7 +7833,7 @@
   priority: 0
   apply:
     type: addCritRate
-    target: usingSkillContext
+    target: useSkillContext
     value: 85
   condition:
     type: every
@@ -7847,7 +7847,7 @@
   priority: 0
   apply:
     type: addCritRate
-    target: usingSkillContext
+    target: useSkillContext
     value: 85
   condition:
     type: every
@@ -7863,7 +7863,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
   condition:
     type: every
@@ -7891,7 +7891,7 @@
   priority: 0
   apply:
     - type: addMultihitResult
-      target: usingSkillContext
+      target: useSkillContext
       value: 1
     - &apply_consume_huanxiang_1_stack_template
       type: consumeStacks
@@ -7961,7 +7961,7 @@
   apply:
     - *apply_consume_huanxiang_1_stack_template
     - type: setSureHit
-      target: usingSkillContext
+      target: useSkillContext
       priority: 99
   condition:
     type: every
@@ -8055,7 +8055,7 @@
   priority: 0
   apply:
     - type: setMultihit
-      target: usingSkillContext
+      target: useSkillContext
       value: [4, 5]
     - *apply_consume_huanxiang_1_stack_template
   condition:
@@ -8101,7 +8101,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
   condition:
     type: every
@@ -8116,7 +8116,7 @@
   priority: 0
   apply:
     type: addCritRate
-    target: usingSkillContext
+    target: useSkillContext
     value: 95
   condition:
     type: every
@@ -8131,7 +8131,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -8160,7 +8160,7 @@
   priority: 0
   apply:
     type: setMultihit
-    target: usingSkillContext
+    target: useSkillContext
     value: 3
   condition:
     type: every
@@ -8243,7 +8243,7 @@
   priority: 0
   apply:
     type: addPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 40
   condition:
     type: every
@@ -8256,7 +8256,7 @@
   priority: 0
   apply:
     type: addPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 40
   condition:
     type: every
@@ -8269,7 +8269,7 @@
   priority: 0
   apply:
     type: setMultihit
-    target: usingSkillContext
+    target: useSkillContext
     value: 4
   condition:
     type: every
@@ -8282,7 +8282,7 @@
   priority: 0
   apply:
     type: setMultihit
-    target: usingSkillContext
+    target: useSkillContext
     value: 4
   condition:
     type: every
@@ -8419,7 +8419,7 @@
   apply:
     type: addValue
     target:
-      base: usingSkillContext
+      base: useSkillContext
       chain:
         - type: selectProp
           arg: priority
@@ -8445,7 +8445,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -8568,7 +8568,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -8581,7 +8581,7 @@
   priority: 0
   apply:
     type: addCritRate
-    target: usingSkillContext
+    target: useSkillContext
     value: 50
   condition:
     type: every
@@ -8640,7 +8640,7 @@
   priority: 0
   apply:
     type: addCritRate
-    target: usingSkillContext
+    target: useSkillContext
     value: 65
   condition:
     type: every
@@ -8699,7 +8699,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
   condition:
     type: every
@@ -8713,7 +8713,7 @@
   priority: 0
   apply:
     type: setMultihit
-    target: usingSkillContext
+    target: useSkillContext
     value: 5
   condition:
     type: every
@@ -8742,7 +8742,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
   condition:
     type: every
@@ -8861,7 +8861,7 @@
   priority: 0
   apply:
     type: addPower
-    target: usingSkillContext
+    target: useSkillContext
     value:
       type: dynamic
       selector:
@@ -8918,7 +8918,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -9037,5 +9037,108 @@
             arg:
               type: raw:number
               value: 6
+  condition:
+    type: selfUseSkill
+# 使对手获得35点拉扯
+- id: effect_skill_add_mark_opponent_lache_35
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_lache
+    stack: 35
+  condition:
+    type: selfUseSkill
+# 对手特攻＞物攻时必中
+- id: effect_skill_sure_hit_if_opponent_spa_greater_than_atk
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target: useSkillContext
+    priority: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_opponent_spa_greater_than_atk
+        type: evaluate
+        target:
+          base: opponent
+          chain:
+            - type: selectPath
+              arg: stat.spa
+        evaluator:
+          type: compare
+          operator: '>'
+          value:
+            type: dynamic
+            selector:
+              base: opponent
+              chain:
+                - type: selectPath
+                  arg: stat.atk
+# 对手特攻＞物攻时，威力增加35点
+- id: effect_skill_add_power_35_if_opponent_spa_greater_than_atk
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: useSkillContext
+    value: 35
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_opponent_spa_greater_than_atk
+# 使对手获得安魂曲
+- id: effect_skill_add_mark_opponent_anhunqu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_anhunqu
+  condition:
+    type: selfUseSkill
+# 使自身获得寒霜屏障
+- id: effect_skill_add_mark_self_hanshuangpingzhang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_hanshuangpingzhang
+  condition:
+    type: selfUseSkill
+# 使自身获得抑火屏障
+- id: effect_skill_add_mark_self_yihuopingzhang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_yihuopingzhang
+  condition:
+    type: selfUseSkill
+# 使对手获得霜魂旋律
+- id: effect_skill_add_mark_opponent_shuanghunxuanlv
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_shuanghunxuanlv
   condition:
     type: selfUseSkill

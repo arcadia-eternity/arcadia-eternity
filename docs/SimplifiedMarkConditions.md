@@ -82,7 +82,7 @@ condition:
   priority: 100
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: opponentHasMark
@@ -143,7 +143,7 @@ condition:
     baseId:
       type: dynamic
       selector:
-        base: usingSkillContext
+        base: useSkillContext
         chain:
           - type: selectPath
             arg: skill

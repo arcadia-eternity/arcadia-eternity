@@ -281,6 +281,18 @@ export const Operators = {
       )
     },
 
+  setRage:
+    (value: ValueSource<number>): Operator<Pet | Player> =>
+    (context: EffectContext<EffectTrigger>, targets: (Player | Pet)[]) => {
+      const _value = GetValueFromSource(context, value)
+      if (_value.length === 0) return
+      targets.forEach(player =>
+        player.addRage(
+          new RageContext(context, player instanceof Player ? player : player.owner!, 'effect', 'setting', _value[0]),
+        ),
+      )
+    },
+
   modifyStat:
     (stat: ValueSource<StatTypeOnBattle>, percent: ValueSource<number>, delta: ValueSource<number>): Operator<Pet> =>
     (context: EffectContext<EffectTrigger>, targets: Pet[]) => {

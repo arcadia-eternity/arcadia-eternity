@@ -9,7 +9,7 @@
     type: checkSelf
   apply:
     type: stun
-    target: usingSkillContext
+    target: useSkillContext
 - id: effect_mark_cant_evasion
   trigger: BeforeUseSkillCheck
   priority: 0
@@ -17,7 +17,7 @@
     type: checkSelf
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 1
 - id: effect_mark_40probability_stun
   trigger: BeforeUseSkillCheck
@@ -33,7 +33,7 @@
           percent: 40
   apply:
     type: stun
-    target: usingSkillContext
+    target: useSkillContext
 - id: effect_mark_onDamage_recovery
   trigger: PostDamage
   priority: 0
@@ -59,7 +59,7 @@
     type: checkSelf
   apply:
     type: setSkill
-    target: usingSkillContext
+    target: useSkillContext
     updateConfig: true
     value:
       type: dynamic
@@ -126,7 +126,7 @@
     type: checkSelf
   apply:
     type: setActualTarget
-    target: usingSkillContext
+    target: useSkillContext
     newTarget:
       type: dynamic
       selector: self
@@ -139,7 +139,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -148,7 +148,7 @@
           value: Status
   apply:
     type: stun
-    target: usingSkillContext
+    target: useSkillContext
 - id: effect_mark_physical_stun
   trigger: BeforeUseSkillCheck
   priority: 0
@@ -158,7 +158,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -167,7 +167,7 @@
           value: Physical
   apply:
     type: stun
-    target: usingSkillContext
+    target: useSkillContext
 - id: effect_mark_silence
   trigger: BeforeUseSkillCheck
   priority: 0
@@ -179,7 +179,7 @@
         condition:
           type: evaluate
           target:
-            base: usingSkillContext
+            base: useSkillContext
             chain:
               - type: selectPath
                 arg: category
@@ -189,7 +189,7 @@
   apply:
     type: setSureMiss
     priority: -1
-    target: usingSkillContext
+    target: useSkillContext
 - id: effect_mark_turn_damage
   trigger: TurnEnd
   priority: 0
@@ -461,7 +461,7 @@
   priority: 0
   apply:
     type: addPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 50
   condition:
     type: every
@@ -469,7 +469,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -478,7 +478,7 @@
           value: Status
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -507,7 +507,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -516,7 +516,7 @@
           value: Status
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
   consumesStacks: 1
 - id: effect_mark_amplify_next_damage_skill_power_with_stack
@@ -528,7 +528,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -537,7 +537,7 @@
           value: Status
   apply:
     - type: amplifyPower
-      target: usingSkillContext
+      target: useSkillContext
       value:
         type: dynamic
         selector:
@@ -618,7 +618,7 @@
   priority: 0
   apply:
     type: addPower
-    target: usingSkillContext
+    target: useSkillContext
     value:
       type: dynamic
       selector:
@@ -655,7 +655,7 @@
       - type: selfBeSkillTarget
   apply:
     type: setSureMiss
-    target: usingSkillContext
+    target: useSkillContext
     priority: -1
 # 闪避来自敌方的技能，消耗印记层数
 - id: effect_mark_evade_with_stack
@@ -668,7 +668,7 @@
       - type: selfBeSkillTarget
   apply:
     type: setSureMiss
-    target: usingSkillContext
+    target: useSkillContext
     priority: -1
   consumesStacks: 1
 - id: effect_mark_mihuo_reduce_damage
@@ -722,7 +722,7 @@
       - type: checkSelf
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 99
 - id: effect_mark_reduce_damage_15_percent
   trigger: OnBeforeCalculateDamage
@@ -739,7 +739,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 0.5
   condition:
     type: every
@@ -747,7 +747,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -1034,7 +1034,7 @@
   priority: 0
   apply:
     - type: addCritRate
-      target: usingSkillContext
+      target: useSkillContext
       value: 5
 - id: effect_mark_immune_status
   trigger: OnBeforeAddMark
@@ -1170,7 +1170,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 1.7
   condition:
     type: every
@@ -1178,7 +1178,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg: element
@@ -1225,7 +1225,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 1.1
   condition:
     type: every
@@ -1301,7 +1301,7 @@
     type: checkSelf
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 1
 # 誓言之约：结束时恢复自身所有体力
 - id: effect_mark_heal_all_hp_on_expire
@@ -1321,7 +1321,7 @@
               arg: maxHp
 # 心灵制约：每次获得怒气不超过y点
 - id: effect_mark_limit_rage_gain
-  trigger: OnRageGain
+  trigger: BeforeRageGain
   priority: 0
   condition:
     type: checkSelf
@@ -1387,7 +1387,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -1396,10 +1396,10 @@
           value: Status
   apply:
     - type: amplifyPower
-      target: usingSkillContext
+      target: useSkillContext
       value: 1.5
     - type: setSureHit
-      target: usingSkillContext
+      target: useSkillContext
       priority: 1
   consumesStacks: 1
 # 灵巧：闪避特攻，受到物攻伤害2倍
@@ -1412,7 +1412,7 @@
       - type: opponentUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -1421,7 +1421,7 @@
           value: Special
   apply:
     type: setSureMiss
-    target: usingSkillContext
+    target: useSkillContext
     priority: -1
 - id: effect_mark_double_physical_damage_taken
   trigger: OnBeforeCalculateDamage
@@ -1431,7 +1431,7 @@
       - type: selfBeDamaged
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -1661,7 +1661,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -1670,7 +1670,7 @@
           value: Climax
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -1687,7 +1687,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: element
@@ -1716,7 +1716,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: element
@@ -1999,7 +1999,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -2023,7 +2023,7 @@
 
 # 使自身受击怒气增加10%
 - id: effect_mark_increase_rage_on_damage_10_percent
-  trigger: OnRageGain
+  trigger: BeforeRageGain
   priority: 0
   condition:
     type: selfBeDamaged
@@ -2035,7 +2035,7 @@
 
 # 使自身受击怒气增加20%
 - id: effect_mark_increase_rage_on_damage_20_percent
-  trigger: OnRageGain
+  trigger: BeforeRageGain
   priority: 0
   condition:
     type: selfBeDamaged
@@ -2125,7 +2125,7 @@
       - type: opponentUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -2134,7 +2134,7 @@
           value: Physical
   apply:
     type: setSureMiss
-    target: usingSkillContext
+    target: useSkillContext
     priority: -1
 
 # 后空翻： 受到的特殊伤害翻倍
@@ -2218,7 +2218,7 @@
     type: checkSelf
   apply:
     - type: addAccuracy
-      target: usingSkillContext
+      target: useSkillContext
       value:
         type: dynamic
         selector:
@@ -2244,7 +2244,7 @@
       - type: selfBeDamaged
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -2273,7 +2273,7 @@
       - type: selfBeDamaged
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -2435,7 +2435,7 @@
       - type: selfBeDamaged
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -2464,7 +2464,7 @@
       - type: selfBeDamaged
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -2505,7 +2505,7 @@
       - type: selfBeSkillTarget
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -2516,7 +2516,7 @@
           value: skill_shuangrenzhan
   apply:
     type: addMultihitResult
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
 
 # 白牙: 使得下一个白牙破附带基于层数的伤害
@@ -2529,7 +2529,7 @@
       - type: selfBeDamaged
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -2562,7 +2562,7 @@
       - type: selfBeDamaged
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -2636,7 +2636,7 @@
       - type: selfBeSkillTarget
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -2647,7 +2647,7 @@
           value: skill_shuangpozhan
   apply:
     type: addMultihitResult
-    target: usingSkillContext
+    target: useSkillContext
     value: 2
 
 # 蓄力冲击：下一次造成伤害增加50%
@@ -2939,7 +2939,7 @@
       - type: selfBeSkillTarget
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -2976,7 +2976,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -3044,7 +3044,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: skill
@@ -3055,7 +3055,7 @@
           value: Status
   apply:
     - type: setSureCrit
-      target: usingSkillContext
+      target: useSkillContext
       priority: 1
 
 # 晚安：每回合结束时恢复40点体力
@@ -3483,3 +3483,82 @@
     type: addRage
     target: opponent
     value: -15
+# 寒霜屏障: 如果技能的类型为必杀，阻止该技能造成的伤害
+- id: effect_mark_block_climax_damage
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Climax
+  priority: 0
+  apply:
+    - type: preventDamage
+      target: damageContext
+# 抑火屏障: 受到火系的伤害减半
+- id: effect_mark_reduce_fire_damage_half
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: selectPath
+              arg: element
+        evaluator:
+          type: same
+          value: Fire
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: -50
+    delta: 0
+# 拉扯: 速度降低层数的数值
+- id: effect_mark_reduce_speed_with_stack
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addDynamicAttributeModifier
+    target:
+      base: self
+    stat: spe
+    modifierType: delta
+    observableValue:
+      base: mark
+      chain:
+        - type: selectAttribute$
+          arg: stack
+        - type: multiply
+          arg: -1
+# 安魂曲: 回合开始时，将怒气清空
+- id: effect_mark_clear_rage_on_turn_start
+  trigger: TurnStart
+  priority: 0
+  apply:
+    type: setRage
+    target: self
+    value: 0
+  condition:
+    type: petIsActive
+# 霜魂旋律: 换下场时，将怒气清空
+- id: effect_mark_clear_rage_on_switch_out
+  trigger: OnSwitchOut
+  priority: 0
+  apply:
+    type: setRage
+    target: self
+    value: 0
+  condition:
+    type: selfSwitchOut

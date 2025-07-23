@@ -10,7 +10,7 @@
     conditions:
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg: element
@@ -21,7 +21,7 @@
             - Light
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 1.35
 - id: effect_global_power_35_percent_water
   trigger: AfterUseSkillCheck
@@ -31,7 +31,7 @@
     conditions:
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg: element
@@ -40,7 +40,7 @@
           value: Water
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 1.35
 - id: effect_global_power_35_percent_fire
   trigger: AfterUseSkillCheck
@@ -50,7 +50,7 @@
     conditions:
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg: element
@@ -59,7 +59,7 @@
           value: Fire
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 1.35
 # 夜幕：暗影系和特质系技能的威力增加35%
 - id: effect_global_power_35_percent_shadow_trait
@@ -70,7 +70,7 @@
     conditions:
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg: element
@@ -81,5 +81,5 @@
             - Trait
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 1.35

@@ -8,7 +8,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 1.25
   condition:
     type: every
@@ -39,7 +39,7 @@
                   arg: 4
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -63,7 +63,7 @@
       - *hp_below_1_4
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: element
@@ -72,7 +72,7 @@
           value: Fire
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 1.25
 - id: effect_ability_damage_reduction_below_25_percent
   trigger: OnDamage
@@ -148,7 +148,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 1.1
 - id: effect_ability_physical_damage_reduction_below_25_percent
   trigger: OnDamage
@@ -183,7 +183,7 @@
       - *hp_below_1_4
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: element
@@ -192,7 +192,7 @@
           value: Water
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 1.25
 - id: effect_ability_damage_amplify_10_percent_opponent_has_manxingduyao
   trigger: OnBeforeCalculateDamage
@@ -248,7 +248,7 @@
         baseId: mark_kongqichuliang
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg: element
@@ -257,14 +257,14 @@
           value: Water
   apply:
     type: addAccuracy
-    target: usingSkillContext
+    target: useSkillContext
     value: 5
 - id: effect_ability_add_power_50_percent_normal
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 1.5
   condition:
     type: every
@@ -272,7 +272,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg: element
@@ -313,7 +313,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -377,7 +377,7 @@
           type: exist
   apply:
     type: addAccuracy
-    target: usingSkillContext
+    target: useSkillContext
     value: 10
 - id: effect_ability_add_shoufashanghaizengjia_on_lead
   trigger: OnBattleStart
@@ -496,7 +496,7 @@
       - type: checkSelf
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: element
@@ -506,7 +506,7 @@
   priority: 0
   apply:
     type: addCritRate
-    target: usingSkillContext
+    target: useSkillContext
     value: 10
 # 破冰：冰系技能造成伤害增加15%
 - id: effect_ability_ice_damage_boost_15_percent
@@ -517,7 +517,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: element
@@ -697,7 +697,7 @@
       - type: selfBeSkillTarget
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -707,7 +707,7 @@
   apply:
     type: addValue
     target:
-      base: usingSkillContext
+      base: useSkillContext
       chain:
         - type: selectProp
           arg: evasion
@@ -783,7 +783,7 @@
           value: Flying
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: element
@@ -804,7 +804,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -828,7 +828,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -862,7 +862,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 1.25
   condition:
     type: every
@@ -894,7 +894,7 @@
   priority: 0
   apply:
     type: amplifyPower
-    target: usingSkillContext
+    target: useSkillContext
     value: 1.15
   condition:
     type: every
@@ -939,7 +939,7 @@
   apply:
     type: amplifyPower
     target:
-      base: usingSkillContext
+      base: useSkillContext
     value: 1.10
   condition:
     type: every
@@ -999,7 +999,7 @@
   priority: 0
   apply:
     type: addMultihitResult
-    target: usingSkillContext
+    target: useSkillContext
     value: 1
   condition:
     type: every
@@ -1007,7 +1007,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: multihitResult
@@ -1021,7 +1021,7 @@
   priority: 0
   apply:
     type: addCritRate
-    target: usingSkillContext
+    target: useSkillContext
     value: 10
   condition:
     type: every
@@ -1092,7 +1092,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: select
               arg:
@@ -1122,7 +1122,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -1257,7 +1257,7 @@
   priority: 0
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     type: every
@@ -1265,7 +1265,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: usingSkillContext
+          base: useSkillContext
           chain:
             - type: selectPath
               arg: category
@@ -1294,3 +1294,23 @@
                     arg: maxHp
                 - type: divide
                   arg: 2
+# 孤高: 当使用敌方使用技能的时候，阻止攻击怒气
+- id: effect_ability_gugao_prevent_rage_when_opponent_use_skill
+  trigger: BeforeRageGain
+  priority: 0
+  apply:
+    type: disableContext
+    target: rageContext
+  condition:
+    type: every
+    conditions:
+      - type: opponentUseSkill
+      - type: evaluate
+        target:
+          base: rageContext
+          chain:
+            - type: selectPath
+              arg: reason
+        evaluator:
+          type: same
+          value: skillHit
