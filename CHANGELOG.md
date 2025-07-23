@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.10.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.10.0...arcadia-eternity-v2.10.1) (2025-07-23)
+
+
+### ♻️ Code Refactoring
+
+* Refactor team header for responsive layout ([83d66ef](https://github.com/arcadia-eternity/arcadia-eternity/commit/83d66efd492e07b03c8144370bca6fe447871640))
+
 ## [2.10.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.9.0...arcadia-eternity-v2.10.0) (2025-07-23)
 
 
