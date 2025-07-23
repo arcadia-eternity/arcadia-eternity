@@ -6517,7 +6517,7 @@
     def: 116 # 66 + 50
     spd: 118 # 68 + 50
     spe: 112 # 62 + 50
-  genderRatio: [5, 5]
+  genderRatio: [10, 0]
   heightRange: [18, 23]
   weightRange: [12, 17]
   learnable_skills:
@@ -6553,7 +6553,7 @@
     def: 161 # 111 + 50
     spd: 163 # 113 + 50
     spe: 162 # 112 + 50
-  genderRatio: [5, 5]
+  genderRatio: [10, 0]
   heightRange: [92, 97]
   weightRange: [45, 50]
   learnable_skills:

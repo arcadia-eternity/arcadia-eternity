@@ -42,7 +42,7 @@ export class ClientRuleIntegration {
       // 如果之前设置了游戏数据存储，使用它来初始化种族数据提供者
       if (ClientRuleIntegration.gameDataStore) {
         initializeGlobalClientSpeciesDataProvider(ClientRuleIntegration.gameDataStore)
-        // 更新所有技能验证规则的种族数据提供者
+        // 更新所有需要种族数据的规则的种族数据提供者
         await ClientRuleIntegration.updateSkillAvailabilityRulesDataProvider()
       }
 
@@ -305,6 +305,27 @@ export class ClientRuleIntegration {
   }
 
   /**
+   * 获取精灵种族允许的性别列表
+   * @param speciesId 种族ID
+   * @returns 允许的性别列表
+   */
+  static async getAllowedGendersForSpecies(speciesId: string): Promise<string[]> {
+    const manager = await ClientRuleIntegration.getTeamBuilderManager()
+    return manager.getAllowedGendersForSpecies(speciesId)
+  }
+
+  /**
+   * 检查指定性别是否被种族允许
+   * @param speciesId 种族ID
+   * @param gender 性别
+   * @returns 是否允许
+   */
+  static async isGenderAllowedForSpecies(speciesId: string, gender: string): Promise<boolean> {
+    const manager = await ClientRuleIntegration.getTeamBuilderManager()
+    return manager.isGenderAllowedForSpecies(speciesId, gender)
+  }
+
+  /**
    * 获取客户端规则系统状态
    */
   static getClientStatus() {
@@ -322,12 +343,12 @@ export class ClientRuleIntegration {
   static async initializeSpeciesDataProvider(gameDataStore: any): Promise<void> {
     initializeGlobalClientSpeciesDataProvider(gameDataStore)
 
-    // 重新设置所有技能验证规则的种族数据提供者
+    // 重新设置所有需要种族数据的规则的种族数据提供者
     await ClientRuleIntegration.updateSkillAvailabilityRulesDataProvider()
   }
 
   /**
-   * 更新所有技能验证规则的种族数据提供者
+   * 更新所有需要种族数据的规则的种族数据提供者
    */
   private static async updateSkillAvailabilityRulesDataProvider(): Promise<void> {
     try {
@@ -341,20 +362,26 @@ export class ClientRuleIntegration {
       const registry = GlobalRuleRegistry.getRegistry()
       const allRules = registry.getAllRules()
 
-      // 查找所有技能验证规则并更新其数据提供者
+      // 查找所有需要种族数据的规则并更新其数据提供者
       let updatedCount = 0
       for (const rule of allRules) {
+        // 更新技能验证规则
         if (rule.id.includes('skill_availability') && typeof (rule as any).setSpeciesDataProvider === 'function') {
+          ;(rule as any).setSpeciesDataProvider(provider)
+          updatedCount++
+        }
+        // 更新性别限制规则
+        else if (rule.id.includes('gender_restriction') && typeof (rule as any).setSpeciesDataProvider === 'function') {
           ;(rule as any).setSpeciesDataProvider(provider)
           updatedCount++
         }
       }
 
       if (updatedCount > 0) {
-        console.log(`✅ 已更新 ${updatedCount} 个技能验证规则的种族数据提供者`)
+        console.log(`✅ 已更新 ${updatedCount} 个规则的种族数据提供者`)
       }
     } catch (error) {
-      console.error('更新技能验证规则数据提供者失败:', error)
+      console.error('更新规则数据提供者失败:', error)
     }
   }
 

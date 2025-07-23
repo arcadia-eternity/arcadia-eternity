@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.10.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.9.0...arcadia-eternity-v2.10.0) (2025-07-23)
+
+
+### ✨ Features
+
+* Add gender restriction rule and integrate with team builder ([ad0c1dd](https://github.com/arcadia-eternity/arcadia-eternity/commit/ad0c1dd8637ed5e2650fe35f05b85c0dc6d5cd85))
+
+
+### 🐛 Bug Fixes
+
+* Update gender ratios for two species entries ([caef297](https://github.com/arcadia-eternity/arcadia-eternity/commit/caef29730efc5a1d828646e8e810c2874ce792f0))
+
 ## [2.9.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.8.0...arcadia-eternity-v2.9.0) (2025-07-23)
 
 

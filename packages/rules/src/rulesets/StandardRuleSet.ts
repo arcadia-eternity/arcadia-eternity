@@ -23,12 +23,14 @@ export function createCasualStandardRuleSet(): RuleSetImpl {
   const standardEVLimitRule = registry.getRule('standard_ev_limit')
   const casualTimerRule = registry.getRule('casual_timer')
   const standardSkillAvailabilityRule = registry.getRule('standard_skill_availability')
+  const standardGenderRestrictionRule = registry.getRule('standard_gender_restriction')
 
   if (standardTeamSizeRule) ruleSet.addRule(standardTeamSizeRule)
   if (standardLevelLimitRule) ruleSet.addRule(standardLevelLimitRule)
   if (standardEVLimitRule) ruleSet.addRule(standardEVLimitRule)
   if (casualTimerRule) ruleSet.addRule(casualTimerRule)
   if (standardSkillAvailabilityRule) ruleSet.addRule(standardSkillAvailabilityRule)
+  if (standardGenderRestrictionRule) ruleSet.addRule(standardGenderRestrictionRule)
 
   return ruleSet
 }

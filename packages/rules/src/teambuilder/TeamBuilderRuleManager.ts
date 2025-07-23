@@ -159,6 +159,49 @@ export class TeamBuilderRuleManager {
   }
 
   /**
+   * 获取精灵种族允许的性别列表
+   * @param speciesId 种族ID
+   * @returns 允许的性别列表
+   */
+  getAllowedGendersForSpecies(speciesId: string): string[] {
+    // 激活当前规则集
+    this.ruleSystem.clearActiveRuleSets()
+    for (const ruleSetId of this.currentRuleSetIds) {
+      try {
+        this.ruleSystem.activateRuleSet(ruleSetId)
+      } catch (error) {
+        // 忽略无法激活的规则集
+        continue
+      }
+    }
+
+    // 获取性别限制规则
+    const genderRule = this.ruleSystem.getActiveRules().find(rule => rule.id === 'standard_gender_restriction')
+    if (!genderRule || !('getAllowedGendersForSpecies' in genderRule)) {
+      // 如果没有性别限制规则，返回所有性别
+      return ['Male', 'Female', 'NoGender']
+    }
+
+    try {
+      return (genderRule as any).getAllowedGendersForSpecies(speciesId)
+    } catch (error) {
+      console.warn('获取性别限制失败:', error)
+      return ['Male', 'Female', 'NoGender']
+    }
+  }
+
+  /**
+   * 检查指定性别是否被种族允许
+   * @param speciesId 种族ID
+   * @param gender 性别
+   * @returns 是否允许
+   */
+  isGenderAllowedForSpecies(speciesId: string, gender: string): boolean {
+    const allowedGenders = this.getAllowedGendersForSpecies(speciesId)
+    return allowedGenders.includes(gender)
+  }
+
+  /**
    * 获取管理器状态
    */
   getStatus() {

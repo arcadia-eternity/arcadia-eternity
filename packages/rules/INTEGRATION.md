@@ -196,6 +196,7 @@ const onGameModeChange = async (gameMode: string) => {
 - 等级限制: 1-100级
 - 学习力限制: 总和510，单项252
 - 计时器: 休闲计时器配置
+- 性别限制: 根据精灵种族限制可选择的性别
 
 ### 竞技模式 (competitive_ruleset)
 

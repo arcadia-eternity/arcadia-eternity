@@ -18,6 +18,8 @@ import {
   // 技能验证规则
   createStandardSkillAvailabilityRule,
   createCompetitiveSkillAvailabilityRule,
+  // 性别限制规则
+  createStandardGenderRestrictionRule,
 } from '../rules'
 
 /**
@@ -67,6 +69,9 @@ function registerAllBasicRules(registry: RuleRegistry): void {
   // 技能验证规则
   registry.registerRule(createStandardSkillAvailabilityRule())
   registry.registerRule(createCompetitiveSkillAvailabilityRule())
+
+  // 性别限制规则
+  registry.registerRule(createStandardGenderRestrictionRule())
 }
 
 /**

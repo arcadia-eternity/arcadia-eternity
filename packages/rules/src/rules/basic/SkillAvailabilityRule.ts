@@ -1,16 +1,10 @@
-import type { PetSchemaType, LearnableSkill, SpeciesSchemaType } from '@arcadia-eternity/schema'
+import type { PetSchemaType, LearnableSkill } from '@arcadia-eternity/schema'
 import type { RuleContext, Team } from '../../interfaces/Rule'
 import { RulePriority } from '../../interfaces/Rule'
 import { AbstractRule } from '../../core/AbstractRule'
 import { ValidationResultBuilder, ValidationErrorType } from '../../interfaces/ValidationResult'
 import type { ValidationResult } from '../../interfaces/ValidationResult'
-
-/**
- * 种族数据提供者接口
- */
-export interface SpeciesDataProvider {
-  getSpeciesById(speciesId: string): SpeciesSchemaType | undefined
-}
+import type { SpeciesDataProvider } from '../../interfaces/SpeciesDataProvider'
 
 /**
  * 技能可用性验证规则
