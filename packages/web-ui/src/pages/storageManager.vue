@@ -327,112 +327,253 @@
                   ]"
                 >
                   <!-- 队伍头部 -->
-                  <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center space-x-3">
-                      <h3
-                        v-if="editingIndex !== petStorage.teams.indexOf(team)"
-                        class="text-lg font-medium text-gray-900 cursor-pointer"
-                        @click="editTeamName(petStorage.teams.indexOf(team))"
-                      >
-                        {{ team.name }}
-                      </h3>
-                      <input
-                        v-else
-                        v-model="tempTeamName"
-                        @blur="saveTeamName(petStorage.teams.indexOf(team))"
-                        @keyup.enter="saveTeamName(petStorage.teams.indexOf(team))"
-                        class="text-lg font-medium text-gray-900 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        ref="editInput"
-                      />
-                      <span
-                        class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
-                      >
-                        {{ team.pets.length }}/6
-                      </span>
-                      <span
-                        v-if="petStorage.teams.indexOf(team) === petStorage.currentTeamIndex"
-                        class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
-                      >
-                        当前队伍
-                      </span>
+                  <div class="mb-4">
+                    <!-- 移动端：分行布局 -->
+                    <div class="sm:hidden">
+                      <!-- 第一行：队伍名称和数量 -->
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-3 flex-1 min-w-0 pr-4">
+                          <h3
+                            v-if="editingIndex !== petStorage.teams.indexOf(team)"
+                            class="text-lg font-medium text-gray-900 cursor-pointer truncate"
+                            @click="editTeamName(petStorage.teams.indexOf(team))"
+                          >
+                            {{ team.name }}
+                          </h3>
+                          <input
+                            v-else
+                            v-model="tempTeamName"
+                            @blur="saveTeamName(petStorage.teams.indexOf(team))"
+                            @keyup.enter="saveTeamName(petStorage.teams.indexOf(team))"
+                            class="text-lg font-medium text-gray-900 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 min-w-0"
+                            ref="editInput"
+                          />
+                          <span
+                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 flex-shrink-0"
+                          >
+                            {{ team.pets.length }}/6
+                          </span>
+                        </div>
 
-                      <!-- 规则集显示 -->
-                      <el-dropdown
-                        @command="(ruleSetId: string) => changeTeamRuleSet(petStorage.teams.indexOf(team), ruleSetId)"
-                      >
+                        <!-- 移动端操作按钮 -->
+                        <div class="flex items-center space-x-1 flex-shrink-0">
+                          <button
+                            @click="setCurrentTeam(petStorage.teams.indexOf(team))"
+                            :disabled="petStorage.teams.indexOf(team) === petStorage.currentTeamIndex"
+                            class="px-1.5 py-1 text-xs border border-gray-300 rounded text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="设为当前"
+                          >
+                            当前
+                          </button>
+                          <button
+                            @click="copyTeam(petStorage.teams.indexOf(team))"
+                            class="px-1.5 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                            title="复制"
+                          >
+                            复制
+                          </button>
+                          <button
+                            @click="exportTeam(petStorage.teams.indexOf(team))"
+                            class="px-1.5 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                            title="导出"
+                          >
+                            导出
+                          </button>
+                          <button
+                            @click="deleteTeam(petStorage.teams.indexOf(team))"
+                            :disabled="petStorage.teams.length <= 1"
+                            class="px-1.5 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="删除"
+                          >
+                            删除
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- 第二行：状态标签 -->
+                      <div class="flex items-center space-x-2 flex-wrap gap-y-1 mb-2">
                         <span
-                          class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200"
+                          v-if="petStorage.teams.indexOf(team) === petStorage.currentTeamIndex"
+                          class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0"
                         >
-                          {{ getRuleSetName(team.ruleSetId) }}
-                          <el-icon class="ml-1" :size="12"><ArrowDown /></el-icon>
+                          当前队伍
                         </span>
-                        <template #dropdown>
-                          <el-dropdown-menu>
-                            <el-dropdown-item
-                              v-for="(name, id) in ruleSetNames"
-                              :key="id"
-                              :command="id"
-                              :disabled="id === team.ruleSetId"
-                            >
-                              {{ name }}
-                            </el-dropdown-item>
-                          </el-dropdown-menu>
-                        </template>
-                      </el-dropdown>
+                      </div>
 
-                      <!-- 校验状态 -->
-                      <span
-                        v-if="teamValidationStatus[petStorage.teams.indexOf(team)]"
-                        class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium cursor-pointer"
-                        :class="{
-                          'bg-yellow-100 text-yellow-800':
-                            teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating,
-                          'bg-green-100 text-green-800':
-                            !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating &&
-                            teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid,
-                          'bg-red-100 text-red-800':
-                            !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating &&
-                            !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid,
-                        }"
-                        @click="validateTeam(petStorage.teams.indexOf(team))"
-                      >
-                        <el-icon class="mr-1" :size="12">
-                          <Refresh v-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating" />
-                          <Check v-else-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid" />
-                          <Close v-else />
-                        </el-icon>
-                        <span v-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating">校验中</span>
-                        <span v-else-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid">规则通过</span>
-                        <span v-else>规则失败</span>
-                      </span>
+                      <!-- 第三行：规则集和校验状态 -->
+                      <div class="flex items-center space-x-3 flex-wrap gap-y-2">
+                        <!-- 规则集显示 -->
+                        <el-dropdown
+                          @command="(ruleSetId: string) => changeTeamRuleSet(petStorage.teams.indexOf(team), ruleSetId)"
+                        >
+                          <span
+                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200"
+                          >
+                            {{ getRuleSetName(team.ruleSetId) }}
+                            <el-icon class="ml-1" :size="12"><ArrowDown /></el-icon>
+                          </span>
+                          <template #dropdown>
+                            <el-dropdown-menu>
+                              <el-dropdown-item
+                                v-for="(name, id) in ruleSetNames"
+                                :key="id"
+                                :command="id"
+                                :disabled="id === team.ruleSetId"
+                              >
+                                {{ name }}
+                              </el-dropdown-item>
+                            </el-dropdown-menu>
+                          </template>
+                        </el-dropdown>
+
+                        <!-- 校验状态 -->
+                        <span
+                          v-if="teamValidationStatus[petStorage.teams.indexOf(team)]"
+                          class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium cursor-pointer"
+                          :class="{
+                            'bg-yellow-100 text-yellow-800':
+                              teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating,
+                            'bg-green-100 text-green-800':
+                              !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating &&
+                              teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid,
+                            'bg-red-100 text-red-800':
+                              !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating &&
+                              !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid,
+                          }"
+                          @click="validateTeam(petStorage.teams.indexOf(team))"
+                        >
+                          <el-icon class="mr-1" :size="12">
+                            <Refresh v-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating" />
+                            <Check v-else-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid" />
+                            <Close v-else />
+                          </el-icon>
+                          <span v-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating">校验中</span>
+                          <span v-else-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid"
+                            >规则通过</span
+                          >
+                          <span v-else>规则失败</span>
+                        </span>
+                      </div>
                     </div>
-                    <div class="flex items-center space-x-2">
-                      <button
-                        @click="setCurrentTeam(petStorage.teams.indexOf(team))"
-                        :disabled="petStorage.teams.indexOf(team) === petStorage.currentTeamIndex"
-                        class="px-3 py-1 text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        设为当前
-                      </button>
-                      <button
-                        @click="copyTeam(petStorage.teams.indexOf(team))"
-                        class="px-3 py-1 text-xs bg-green-600 text-white rounded-md hover:bg-green-700"
-                      >
-                        复制
-                      </button>
-                      <button
-                        @click="exportTeam(petStorage.teams.indexOf(team))"
-                        class="px-3 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                      >
-                        导出
-                      </button>
-                      <button
-                        @click="deleteTeam(petStorage.teams.indexOf(team))"
-                        :disabled="petStorage.teams.length <= 1"
-                        class="px-3 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        删除
-                      </button>
+
+                    <!-- 桌面端：单行紧凑布局 -->
+                    <div class="hidden sm:block">
+                      <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center space-x-3 flex-1 min-w-0 pr-4">
+                          <h3
+                            v-if="editingIndex !== petStorage.teams.indexOf(team)"
+                            class="text-lg font-medium text-gray-900 cursor-pointer truncate"
+                            @click="editTeamName(petStorage.teams.indexOf(team))"
+                          >
+                            {{ team.name }}
+                          </h3>
+                          <input
+                            v-else
+                            v-model="tempTeamName"
+                            @blur="saveTeamName(petStorage.teams.indexOf(team))"
+                            @keyup.enter="saveTeamName(petStorage.teams.indexOf(team))"
+                            class="text-lg font-medium text-gray-900 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 min-w-0"
+                            ref="editInput"
+                          />
+                          <span
+                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 flex-shrink-0"
+                          >
+                            {{ team.pets.length }}/6
+                          </span>
+                          <span
+                            v-if="petStorage.teams.indexOf(team) === petStorage.currentTeamIndex"
+                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0"
+                          >
+                            当前队伍
+                          </span>
+
+                          <!-- 规则集显示 -->
+                          <el-dropdown
+                            @command="
+                              (ruleSetId: string) => changeTeamRuleSet(petStorage.teams.indexOf(team), ruleSetId)
+                            "
+                          >
+                            <span
+                              class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200"
+                            >
+                              {{ getRuleSetName(team.ruleSetId) }}
+                              <el-icon class="ml-1" :size="12"><ArrowDown /></el-icon>
+                            </span>
+                            <template #dropdown>
+                              <el-dropdown-menu>
+                                <el-dropdown-item
+                                  v-for="(name, id) in ruleSetNames"
+                                  :key="id"
+                                  :command="id"
+                                  :disabled="id === team.ruleSetId"
+                                >
+                                  {{ name }}
+                                </el-dropdown-item>
+                              </el-dropdown-menu>
+                            </template>
+                          </el-dropdown>
+
+                          <!-- 校验状态 -->
+                          <span
+                            v-if="teamValidationStatus[petStorage.teams.indexOf(team)]"
+                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium cursor-pointer"
+                            :class="{
+                              'bg-yellow-100 text-yellow-800':
+                                teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating,
+                              'bg-green-100 text-green-800':
+                                !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating &&
+                                teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid,
+                              'bg-red-100 text-red-800':
+                                !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating &&
+                                !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid,
+                            }"
+                            @click="validateTeam(petStorage.teams.indexOf(team))"
+                          >
+                            <el-icon class="mr-1" :size="12">
+                              <Refresh v-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating" />
+                              <Check v-else-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid" />
+                              <Close v-else />
+                            </el-icon>
+                            <span v-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating"
+                              >校验中</span
+                            >
+                            <span v-else-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid"
+                              >规则通过</span
+                            >
+                            <span v-else>规则失败</span>
+                          </span>
+                        </div>
+
+                        <!-- 桌面端操作按钮 -->
+                        <div class="flex items-center space-x-2 flex-shrink-0">
+                          <button
+                            @click="setCurrentTeam(petStorage.teams.indexOf(team))"
+                            :disabled="petStorage.teams.indexOf(team) === petStorage.currentTeamIndex"
+                            class="px-2 py-1 text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                          >
+                            设为当前
+                          </button>
+                          <button
+                            @click="copyTeam(petStorage.teams.indexOf(team))"
+                            class="px-2 py-1 text-xs bg-green-600 text-white rounded-md hover:bg-green-700 whitespace-nowrap"
+                          >
+                            复制
+                          </button>
+                          <button
+                            @click="exportTeam(petStorage.teams.indexOf(team))"
+                            class="px-2 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 whitespace-nowrap"
+                          >
+                            导出
+                          </button>
+                          <button
+                            @click="deleteTeam(petStorage.teams.indexOf(team))"
+                            :disabled="petStorage.teams.length <= 1"
+                            class="px-2 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                          >
+                            删除
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
