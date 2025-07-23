@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.9.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.8.0...arcadia-eternity-v2.9.0) (2025-07-23)
+
+
+### ✨ Features
+
+* **netpet:** 卡特琳娜 ([ef6bb4c](https://github.com/arcadia-eternity/arcadia-eternity/commit/ef6bb4c17029ece9dad392f5d6ff49eca4af0396))
+
+
+### ⚡ Performance Improvements
+
+* Add timeout fallback for pet entry animation ([c35c581](https://github.com/arcadia-eternity/arcadia-eternity/commit/c35c5810a88070d4eec1d7f93269019ec50772ef))
+
+
+### ♻️ Code Refactoring
+
+* Refactor initialPetEntryAnimation for cleaner logic ([b9b1e4c](https://github.com/arcadia-eternity/arcadia-eternity/commit/b9b1e4cddd95f9b0ec9369391ca2ef724e9aea9c))
+
 ## [2.8.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.7.1...arcadia-eternity-v2.8.0) (2025-07-22)
 
 
