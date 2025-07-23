@@ -55,14 +55,24 @@ export function executeRageOperation(context: RageContext, battle: Battle): void
       context.target.settingRage(context.value)
       break
     case 'add':
-      battle.applyEffects(context, EffectTrigger.OnRageGain)
+      battle.applyEffects(context, EffectTrigger.BeforeRageGain)
+      if (!context.available) {
+        context.rageChangeResult = 0
+        return
+      }
       context.updateRageChangeResult()
       context.target.settingRage(context.target.currentRage + context.rageChangeResult)
+      battle.applyEffects(context, EffectTrigger.OnRageGain)
       break
     case 'reduce':
-      battle.applyEffects(context, EffectTrigger.OnRageLoss)
+      battle.applyEffects(context, EffectTrigger.BeforeRageLoss)
+      if (!context.available) {
+        context.rageChangeResult = 0
+        return
+      }
       context.updateRageChangeResult()
       context.target.settingRage(context.target.currentRage - context.rageChangeResult)
+      battle.applyEffects(context, EffectTrigger.OnRageLoss)
       break
   }
 

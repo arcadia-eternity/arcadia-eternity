@@ -2197,3 +2197,45 @@ skill_guangsuliechong:
 skill_guangsufeidan:
   name: 光速飞弹
   description: 先制+1 击败对手时恢复自身最大体力的1/6
+skill_hanshuangchuanliu:
+  name: 寒霜川流
+  description: 使对手获得拉扯
+skill_bingdiangongji:
+  name: 冰点攻击
+  description: 对手特攻＞物攻时<font color=#93E312>必中</font>
+skill_xishuichangliu:
+  name: 细水长流
+  description: 对手特攻＞物攻时增加35点威力
+skill_hanqibaifa:
+  name: 寒气爆发
+  description: 减少对手15点怒气
+skill_hanshuangyuyi:
+  name: 寒霜羽衣
+  description: 强化自身物防1级并恢复最大体力的1/6
+skill_jidongsexian:
+  name: 急冻射线
+  description: 先制+1
+skill_zhihanyiji:
+  name: 致寒一击
+  description: 对手特攻＞物攻时增加35点威力
+skill_luoshuang:
+  name: 落霜
+  description: 弱化对手速度1级
+skill_hanshuangtiandi:
+  name: 寒霜天地
+  description: 对手特攻＞物攻时增加35点威力
+skill_shuanghounhunqu:
+  name: 霜后安魂曲
+  description: <font color=#93E312>必中</font> 使对手获得安魂曲
+skill_hanshuangpingzhang:
+  name: 寒霜屏障
+  description: 先制+1 使自身获得寒霜屏障
+skill_qiannianbingbi:
+  name: 千年冰壁
+  description: 使自身获得抑火屏障
+skill_tuanliubuxi:
+  name: 湍流不息
+  description: 对手特攻＞物攻时增加35点威力
+skill_shuanghunxuanlv:
+  name: 霜魂旋律
+  description: 使对手获得霜魂旋律

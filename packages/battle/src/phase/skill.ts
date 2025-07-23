@@ -150,7 +150,7 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
           const damagePhase = new DamagePhase(
             battle,
             context,
-            context.pet,
+            context.skill,
             context.actualTarget,
             context.baseDamage,
             context.damageType,

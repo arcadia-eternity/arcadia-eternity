@@ -465,6 +465,11 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       value: valueSchema,
     }),
     z.object({
+      type: z.literal('setRage'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
       type: z.literal('amplifyPower'),
       target: selectorDSLSchema,
       value: valueSchema,

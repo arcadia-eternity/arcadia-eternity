@@ -157,3 +157,6 @@ mark_ability_huohuan:
 mark_ability_shenguang:
   name: 神光
   description: 体力＞1/2时免疫不良 ＜1/2时光系技能必中
+mark_ability_gugao:
+  name: 孤高
+  description: 对手不会获得攻击怒气

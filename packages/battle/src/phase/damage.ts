@@ -14,7 +14,7 @@ export class DamagePhase extends SynchronousPhase<DamageContext> {
   constructor(
     battle: Battle,
     private readonly parentContext: any, // UseSkillContext or EffectContext
-    private readonly source: Pet | MarkInstance | SkillInstance,
+    private readonly source: MarkInstance | SkillInstance,
     private readonly target: Pet,
     private readonly baseDamage: number,
     private readonly damageType: DamageType = DamageType.Effect,
@@ -63,7 +63,7 @@ export class DamagePhase extends SynchronousPhase<DamageContext> {
  */
 export function executeDamageOperation(context: DamageContext, battle: Battle): void {
   // Handle damage from pets (skills) vs other sources differently
-  if (context.source instanceof Pet) {
+  if ([DamageType.Physical, DamageType.Special].includes(context.damageType)) {
     battle.applyEffects(context, EffectTrigger.OnBeforeCalculateDamage)
     context.updateDamageResult()
 
@@ -107,7 +107,7 @@ export function executeDamageOperation(context: DamageContext, battle: Battle): 
   })
 
   // Apply post-damage effects for pet sources
-  if (context.source instanceof Pet) {
+  if ([DamageType.Physical, DamageType.Special].includes(context.damageType)) {
     battle.applyEffects(context, EffectTrigger.PostDamage)
     if (context.crit) {
       battle.applyEffects(context, EffectTrigger.OnCritPostDamage) // Trigger crit post-damage effects

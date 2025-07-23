@@ -2100,3 +2100,57 @@
     keepOnSwitchOut: true
     transferOnSwitch: false
     inheritOnFaint: false
+- id: mark_hanshuangpingzhang
+  config:
+    persistent: false
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    duration: 1
+    keepOnSwitchOut: true
+  tags: []
+  effect:
+    - effect_mark_block_climax_damage
+- id: mark_yihuopingzhang
+  config:
+    persistent: false
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    duration: 5
+    keepOnSwitchOut: true
+  tags: []
+  effect:
+    - effect_mark_reduce_fire_damage_half
+- id: mark_lache
+  config:
+    persistent: true
+    stackable: true
+    stackStrategy: max
+    destroyable: true
+    maxStacks: 114514
+    keepOnSwitchOut: true
+  tags: []
+  effect:
+    - effect_mark_reduce_speed_with_stack
+- id: mark_anhunqu
+  config:
+    persistent: false
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    duration: 2
+    keepOnSwitchOut: false
+  effect:
+    - effect_mark_clear_rage_on_turn_start
+- id: mark_shuanghunxuanlv
+  config:
+    persistent: false
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    duration: 3
+    keepOnSwitchOut: false
+  tags: []
+  effect:
+    - effect_mark_clear_rage_on_switch_out

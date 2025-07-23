@@ -8808,3 +8808,173 @@
   tags: []
   effect:
     - effect_skill_heal_self_1_6_max_hp_on_defeat_opponent
+- id: skill_hanshuangchuanliu
+  element: Ice
+  category: Special
+  target: opponent
+  power: 75
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_opponent_lache_35
+- id: skill_bingdiangongji
+  element: Ice
+  category: Physical
+  target: opponent
+  power: 90
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_sure_hit_if_opponent_spa_greater_than_atk
+- id: skill_xishuichangliu
+  element: Water
+  category: Special
+  target: opponent
+  power: 85
+  rage: 15
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_power_35_if_opponent_spa_greater_than_atk
+- id: skill_hanqibaifa
+  element: Ice
+  category: Special
+  target: opponent
+  power: 80
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_opponent_rage_15
+- id: skill_hanshuangyuyi
+  element: Ice
+  category: Status
+  target: self
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_def_1_stage
+    - effect_skill_heal_self_1_6_max_hp
+- id: skill_jidongsexian
+  element: Ice
+  category: Special
+  target: opponent
+  power: 60
+  rage: 15
+  accuracy: 95
+  priority: 1
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect: []
+- id: skill_zhihanyiji
+  element: Ice
+  category: Physical
+  target: opponent
+  power: 95
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_power_35_if_opponent_spa_greater_than_atk
+- id: skill_luoshuang
+  element: Ice
+  category: Status
+  target: opponent
+  power: 0
+  rage: 10
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_opponent_spe_1_stage
+- id: skill_hanshuangtiandi
+  element: Ice
+  category: Special
+  target: opponent
+  power: 100
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_power_35_if_opponent_spa_greater_than_atk
+- id: skill_shuanghounhunqu
+  element: Ice
+  category: Climax
+  target: opponent
+  power: 165
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_opponent_anhunqu
+- id: skill_hanshuangpingzhang
+  element: Ice
+  category: Status
+  target: self
+  power: 0
+  rage: 25
+  accuracy: 100
+  priority: 1
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_self_hanshuangpingzhang
+- id: skill_qiannianbingbi
+  element: Ice
+  category: Status
+  target: self
+  power: 0
+  rage: 20
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_self_yihuopingzhang
+- id: skill_tuanliubuxi
+  element: Water
+  category: Special
+  target: opponent
+  power: 95
+  rage: 20
+  accuracy: 95
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_power_35_if_opponent_spa_greater_than_atk
+- id: skill_shuanghunxuanlv
+  element: Ice
+  category: Status
+  target: opponent
+  power: 0
+  rage: 10
+  accuracy: 100
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_opponent_shuanghunxuanlv

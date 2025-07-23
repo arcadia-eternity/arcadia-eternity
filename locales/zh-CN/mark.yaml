@@ -651,4 +651,19 @@ mark_lingtongchuanda:
   description: 受到伤害＜75点时减少对手15点怒气
 mark_guanghudun:
   name: 光护盾【🛡️】
-  description: 抵挡层数点伤害
+  description: 抵挡{{mark.stack}}点伤害
+mark_hanshuangpingzhang:
+  name: 寒霜屏障
+  description: 抵挡必杀伤害
+mark_yihuopingzhang:
+  name: 抑火屏障
+  description: 受到火系伤害减半
+mark_lache:
+  name: 拉扯
+  description: 速度值下降{{mark.stack}}点
+mark_anhunqu:
+  name: 安魂曲
+  description: 回合开始时清空自身怒气 换场失效
+mark_shuanghunxuanlv:
+  name: 霜魂旋律
+  description: 清空下只出场精灵的怒气

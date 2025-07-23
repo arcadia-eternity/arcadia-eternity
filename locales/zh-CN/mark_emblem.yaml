@@ -154,3 +154,6 @@ mark_emblem_chaoshui:
 mark_emblem_guangwu:
   name: 光武
   description: 减少5点光系技能的怒气消耗
+mark_emblem_anhun:
+  name: 安魂
+  description: 必杀伤害增加10%

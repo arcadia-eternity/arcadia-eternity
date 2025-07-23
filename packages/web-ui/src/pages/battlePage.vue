@@ -1953,30 +1953,35 @@ async function initialPetEntryAnimation() {
   const rightPet = petSprites.value.right
   const battleViewWidth = 1600 // 固定的战斗视图宽度
   const animationDuration = 1
+  const entryTimeout = 5
   const animations = []
-
-  if (leftPet && leftPet.$el) {
-    if (leftPetSpeciesNum.value !== 0) {
-      playPetSound(leftPetSpeciesNum.value)
-    }
-
-    // Check if PRESENT state is available, use setState animation instead of translation
-    if (leftPet.availableState.includes(ActionState.PRESENT)) {
-      animations.push(leftPet.setState(ActionState.PRESENT))
-    } else {
-      animations.push(animatePetEntry(leftPet, -battleViewWidth / 2 - 100, 0, animationDuration))
-    }
-  }
-  if (rightPet && rightPet.$el) {
-    if (rightPetSpeciesNum.value !== 0) {
-      playPetSound(rightPetSpeciesNum.value)
-    }
-
-    // Check if PRESENT state is available, use setState animation instead of translation
-    if (rightPet.availableState.includes(ActionState.PRESENT)) {
-      animations.push(rightPet.setState(ActionState.PRESENT))
-    } else {
-      animations.push(animatePetEntry(rightPet, battleViewWidth / 2 + 100, 0, animationDuration))
+  for (const [pet, speciesNum, initialX, side] of [
+    [leftPet, leftPetSpeciesNum.value, -battleViewWidth / 2 - 100, 'left'],
+    [rightPet, rightPetSpeciesNum.value, battleViewWidth / 2 + 100, 'right'],
+  ] as const) {
+    if (pet && pet.$el && speciesNum !== 0) {
+      playPetSound(speciesNum)
+      if (pet.availableState.includes(ActionState.PRESENT)) {
+        animations.push(
+          new Promise<void>(resolve => {
+            const handler = (completeSide: 'left' | 'right') => {
+              if (completeSide === side) {
+                emitter.off('animation-complete', handler)
+                resolve()
+              }
+            }
+            emitter.on('animation-complete', handler)
+            setTimeout(async () => {
+              if (pet && pet.$el && (await pet.getState()) !== ActionState.PRESENT) {
+                resolve()
+              }
+            }, entryTimeout * 1000)
+          }),
+          pet.setState(ActionState.PRESENT),
+        )
+      } else {
+        animations.push(animatePetEntry(pet, initialX, 0, animationDuration))
+      }
     }
   }
   await Promise.all(animations)

@@ -20,7 +20,7 @@
   priority: 100
   apply:
     type: setSureHit
-    target: usingSkillContext
+    target: useSkillContext
     priority: 2
   condition:
     # 🆕 新的简化语法：直接判断对手是否有指定印记
@@ -56,7 +56,7 @@
     baseId:
       type: dynamic
       selector:
-        base: usingSkillContext
+        base: useSkillContext
         chain:
           - type: selectPath
             arg: skill
@@ -161,7 +161,7 @@
     target: { base: target }
     value: 100
   condition:
-    type: some  # 满足任一条件即可
+    type: some # 满足任一条件即可
     conditions:
       # 情况1：自己有能量印记且对手有中毒印记
       - type: every
