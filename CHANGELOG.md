@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.11.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.10.3...arcadia-eternity-v2.11.0) (2025-07-24)
+
+
+### ✨ Features
+
+* Add ELO rating support to lobby and battle flow ([916af53](https://github.com/arcadia-eternity/arcadia-eternity/commit/916af532d561c48a4b970b1501e61e492804cbab))
+* Implement ELO leaderboard with ruleset support ([86e4729](https://github.com/arcadia-eternity/arcadia-eternity/commit/86e472991d3922eed36e9a47baa51c1af57c76d1))
+* Integrate ELO rating and matching system ([41d8633](https://github.com/arcadia-eternity/arcadia-eternity/commit/41d86331ac1dc1f5b86d83f30804b0a550ff3afd))
+
+
+### ♻️ Code Refactoring
+
+* Improve server state broadcasting and add indicator component ([188f10f](https://github.com/arcadia-eternity/arcadia-eternity/commit/188f10f92360e31ace7f780f3b44c3a9ea1c30ce))
+* unify cluster battle room creation logic ([fa6bd7c](https://github.com/arcadia-eternity/arcadia-eternity/commit/fa6bd7c8280d770fc7fdf8d60ba3d7a6009a4159))
+
 ## [2.10.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.10.2...arcadia-eternity-v2.10.3) (2025-07-23)
 
 
