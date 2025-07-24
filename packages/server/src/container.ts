@@ -5,7 +5,7 @@ import { AuthService, createAuthConfigFromEnv } from './domain/auth/services/aut
 import { EmailVerificationRepository, PlayerRepository } from '@arcadia-eternity/database'
 import type { IEmailService } from './interfaces/IEmailService'
 import type { IAuthService } from './domain/auth/services/authService'
-import { ClusterMatchmakingService } from './domain/matching/service/clusterMatchmakingService'
+import { ClusterMatchmakingService } from './domain/matching/services/clusterMatchmakingService'
 import { ClusterBattleService } from './domain/battle/services/clusterBattleService'
 import { ClusterBattleServer } from './domain/battle/services/clusterBattleServer'
 import { BattleRpcServer } from './cluster/communication/rpc/battleRpcServer'

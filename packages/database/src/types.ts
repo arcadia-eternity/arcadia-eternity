@@ -22,6 +22,19 @@ export interface PlayerStats {
   updated_at: string
 }
 
+export interface PlayerEloRating {
+  player_id: string
+  rule_set_id: string
+  elo_rating: number
+  games_played: number
+  wins: number
+  losses: number
+  draws: number
+  highest_elo: number
+  created_at: string
+  updated_at: string
+}
+
 export interface BattleRecord {
   id: string
   player_a_id: string
@@ -126,6 +139,40 @@ export interface LeaderboardEntry {
   losses: number
   draws: number
   win_rate: number
+}
+
+export interface EloLeaderboardEntry {
+  player_id: string
+  player_name: string
+  elo_rating: number
+  games_played: number
+  wins: number
+  losses: number
+  draws: number
+  win_rate: number
+  highest_elo: number
+}
+
+export interface CreateEloRatingInput {
+  player_id: string
+  rule_set_id: string
+  initial_elo?: number
+}
+
+export interface UpdateEloRatingInput {
+  player_id: string
+  rule_set_id: string
+  new_elo: number
+  result: 'win' | 'loss' | 'draw'
+}
+
+export interface EloUpdateResult {
+  player_id: string
+  rule_set_id: string
+  old_elo: number
+  new_elo: number
+  elo_change: number
+  result: 'win' | 'loss' | 'draw'
 }
 
 export interface BattleStatistics {

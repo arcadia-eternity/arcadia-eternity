@@ -54,6 +54,28 @@ export class ClusterBattleService implements IBattleService {
   // Timer事件批处理系统
   private readonly timerEventBatcher: TimerEventBatcher
 
+  // 批量消息处理相关
+  private readonly messageBatches = new Map<
+    string,
+    { messages: any[]; timer: ReturnType<typeof setTimeout>; createdAt: number }
+  >() // sessionKey -> batch
+  private readonly BATCH_SIZE = 15 // 批量大小（进一步减少，避免Redis积压）
+  private readonly BATCH_TIMEOUT = 50 // 批量超时时间（减少到50毫秒，更快发送）
+  private readonly MAX_BATCH_AGE = 3000 // 批次最大存活时间（减少到3秒，更快清理）
+
+  // 需要立即发送的消息类型（重要消息和需要玩家输入的消息）
+  private readonly IMMEDIATE_MESSAGE_TYPES = new Set([
+    'BATTLE_START',
+    'BATTLE_END',
+    'TURN_ACTION', // 需要玩家选择行动
+    'FORCED_SWITCH', // 需要玩家强制切换
+    'FAINT_SWITCH', // 需要玩家击破奖励切换
+    'TIMER_TIMEOUT', // 计时器超时
+    'TIMER_WARNING', // 计时器警告
+    'BATTLE_ERROR', // 战斗错误
+    'ROOM_CLOSED', // 房间关闭
+  ])
+
   private battleReportService?: BattleReportService
 
   constructor(
@@ -72,7 +94,10 @@ export class ClusterBattleService implements IBattleService {
 
     // 初始化战报服务
     if (this._battleReportConfig) {
+      logger.info('✅ 初始化战报服务')
       this.battleReportService = new BattleReportService(this._battleReportConfig, logger)
+    } else {
+      logger.warn('❌ 战报服务未初始化')
     }
 
     // 设置Battle系统的全局logger
@@ -335,7 +360,7 @@ export class ClusterBattleService implements IBattleService {
       // 在Player上注册监听器，接收Player转发的消息（已经是该玩家视角）
       player.registerListener(async message => {
         // 使用批量发送机制
-        await this.callbacks.addToBatch(playerId, sessionId, message)
+        await this.addToBatch(playerId, sessionId, message)
       })
     }
 
@@ -968,5 +993,202 @@ export class ClusterBattleService implements IBattleService {
     }
 
     throw new Error('BATTLE_REPORT_SERVICE_NOT_AVAILABLE')
+  }
+
+  // === 批量消息处理方法 ===
+
+  /**
+   * 批量发送消息到玩家会话
+   */
+  async addToBatch(playerId: string, sessionId: string, message: any): Promise<void> {
+    const sessionKey = `${playerId}:${sessionId}`
+    const now = Date.now()
+
+    let batch = this.messageBatches.get(sessionKey)
+    if (!batch) {
+      batch = { messages: [], timer: null as any, createdAt: now }
+      this.messageBatches.set(sessionKey, batch)
+    }
+
+    // 检查批次是否过期，如果过期则先清理
+    if (now - batch.createdAt > this.MAX_BATCH_AGE) {
+      await this.flushBatch(sessionKey)
+      // 创建新批次
+      batch = { messages: [], timer: null as any, createdAt: now }
+      this.messageBatches.set(sessionKey, batch)
+    }
+
+    // 清除之前的定时器
+    if (batch.timer) {
+      clearTimeout(batch.timer)
+    }
+
+    // 添加消息到批次
+    batch.messages.push(message)
+
+    // 检查是否需要立即发送
+    const shouldSendImmediately =
+      batch.messages.length >= this.BATCH_SIZE ||
+      this.IMMEDIATE_MESSAGE_TYPES.has(message.type) ||
+      (message.data && this.IMMEDIATE_MESSAGE_TYPES.has(message.data.type))
+
+    if (shouldSendImmediately) {
+      await this.flushBatch(sessionKey)
+    } else {
+      // 设置定时器，在超时后发送
+      batch.timer = setTimeout(() => {
+        this.flushBatch(sessionKey).catch(error => {
+          logger.error({ error, sessionKey }, 'Error flushing batch on timeout')
+        })
+      }, this.BATCH_TIMEOUT)
+    }
+  }
+
+  /**
+   * 立即发送批次中的所有消息
+   */
+  private async flushBatch(sessionKey: string): Promise<void> {
+    const batch = this.messageBatches.get(sessionKey)
+    if (!batch || batch.messages.length === 0) {
+      return
+    }
+
+    const [playerId, sessionId] = sessionKey.split(':')
+    const messages = [...batch.messages] // 复制消息数组
+
+    // 清理批次
+    if (batch.timer) {
+      clearTimeout(batch.timer)
+    }
+    this.messageBatches.delete(sessionKey)
+
+    try {
+      // 直接发送，不等待结果，不重试
+      const sendPromise =
+        messages.length === 1
+          ? this.callbacks.sendToPlayerSession(playerId, sessionId, 'battleEvent', messages[0])
+          : this.callbacks.sendToPlayerSession(playerId, sessionId, 'battleEventBatch', messages)
+
+      // 不等待发送结果，避免阻塞
+      sendPromise.catch(error => {
+        logger.debug(
+          { error, playerId, sessionId, messageCount: messages.length },
+          'Failed to send batch messages (non-blocking)',
+        )
+      })
+    } catch (error) {
+      logger.debug(
+        { error, playerId, sessionId, messageCount: messages.length },
+        'Error creating send promise for batch',
+      )
+    }
+  }
+
+  /**
+   * 清理所有批量消息
+   */
+  async cleanupAllBatches(): Promise<void> {
+    const sessionKeys = Array.from(this.messageBatches.keys())
+
+    // 发送所有待处理的批次
+    await Promise.all(sessionKeys.map(sessionKey => this.flushBatch(sessionKey)))
+
+    // 清理所有定时器
+    for (const batch of this.messageBatches.values()) {
+      if (batch.timer) {
+        clearTimeout(batch.timer)
+      }
+    }
+
+    this.messageBatches.clear()
+    logger.info({ batchCount: sessionKeys.length }, 'All message batches cleaned up')
+  }
+
+  /**
+   * 清理特定玩家的批量消息
+   */
+  async cleanupPlayerBatches(playerId: string, sessionId: string): Promise<void> {
+    const sessionKey = `${playerId}:${sessionId}`
+    const batch = this.messageBatches.get(sessionKey)
+
+    if (batch) {
+      if (batch.timer) {
+        clearTimeout(batch.timer)
+      }
+      this.messageBatches.delete(sessionKey)
+
+      logger.debug({ playerId, sessionId, messageCount: batch.messages.length }, '清理玩家重连前的待发送消息批次')
+    }
+  }
+
+  // === 重连相关方法 ===
+
+  /**
+   * 暂停战斗计时器（玩家掉线时）
+   */
+  async pauseBattleForDisconnect(roomId: string, playerId: string): Promise<void> {
+    const battle = this.localBattles.get(roomId)
+    if (battle) {
+      // 暂停该玩家的计时器
+      battle.timerManager.pauseTimers([playerId as playerId], 'system')
+      logger.info({ roomId, playerId }, '玩家掉线，暂停计时器')
+    }
+  }
+
+  /**
+   * 恢复战斗计时器（玩家重连时）
+   */
+  async resumeBattleAfterReconnect(roomId: string, playerId: string): Promise<void> {
+    const battle = this.localBattles.get(roomId)
+    if (battle) {
+      // 恢复该玩家的计时器
+      battle.timerManager.resumeTimers([playerId as playerId])
+      logger.info({ roomId, playerId }, '玩家重连，恢复计时器')
+    }
+  }
+
+  /**
+   * 通知对手玩家掉线
+   */
+  async notifyOpponentDisconnect(roomId: string, disconnectedPlayerId: string): Promise<void> {
+    try {
+      const roomState = await this.stateManager.getRoomState(roomId)
+      if (!roomState) return
+
+      // 找到对手并通知
+      for (const sessionId of roomState.sessions) {
+        const playerId = roomState.sessionPlayers[sessionId]
+        if (playerId && playerId !== disconnectedPlayerId) {
+          await this.callbacks.sendToPlayerSession(playerId, sessionId, 'opponentDisconnected', {
+            disconnectedPlayerId,
+            graceTimeRemaining: this.DISCONNECT_GRACE_PERIOD,
+          })
+        }
+      }
+    } catch (error) {
+      logger.error({ error, roomId, disconnectedPlayerId }, 'Failed to notify opponent of disconnect')
+    }
+  }
+
+  /**
+   * 发送战斗状态给重连的玩家
+   */
+  async sendBattleStateOnReconnect(roomId: string, playerId: string, sessionId: string): Promise<void> {
+    try {
+      const battle = this.localBattles.get(roomId)
+      if (battle) {
+        // 重连时，让客户端重新获取完整的战斗状态
+        // 不需要通过事件发送，客户端会主动调用 getState
+        logger.info({ roomId, playerId, sessionId }, '玩家重连，准备发送战斗状态')
+
+        // 可以发送一个重连成功的通知
+        await this.callbacks.sendToPlayerSession(playerId, sessionId, 'reconnectSuccess', {
+          roomId,
+          message: '重连成功，战斗继续',
+        })
+      }
+    } catch (error) {
+      logger.error({ error, roomId, playerId, sessionId }, 'Failed to send battle state on reconnect')
+    }
   }
 }

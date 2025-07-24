@@ -34,9 +34,31 @@ CREATE TABLE IF NOT EXISTS player_stats (
     losses INTEGER DEFAULT 0 CHECK (losses >= 0),
     draws INTEGER DEFAULT 0 CHECK (draws >= 0),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
+
     -- 确保统计数据一致性
     CONSTRAINT stats_consistency CHECK (total_battles = wins + losses + draws)
+);
+
+-- 玩家ELO评级表（按规则集分离）
+CREATE TABLE IF NOT EXISTS player_elo_ratings (
+    player_id TEXT NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    rule_set_id TEXT NOT NULL,
+    elo_rating INTEGER DEFAULT 1200 CHECK (elo_rating >= 0),
+    games_played INTEGER DEFAULT 0 CHECK (games_played >= 0),
+    wins INTEGER DEFAULT 0 CHECK (wins >= 0),
+    losses INTEGER DEFAULT 0 CHECK (losses >= 0),
+    draws INTEGER DEFAULT 0 CHECK (draws >= 0),
+    highest_elo INTEGER DEFAULT 1200 CHECK (highest_elo >= 0),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+    -- 复合主键确保每个玩家在每个规则集下只有一条记录
+    PRIMARY KEY (player_id, rule_set_id),
+
+    -- 确保统计数据一致性
+    CONSTRAINT elo_stats_consistency CHECK (games_played = wins + losses + draws),
+    -- 确保最高ELO不低于当前ELO的历史最低值
+    CONSTRAINT elo_highest_valid CHECK (highest_elo >= elo_rating OR games_played = 0)
 );
 
 -- 战报记录表
@@ -117,6 +139,12 @@ CREATE INDEX IF NOT EXISTS idx_players_created_at ON players(created_at DESC);
 -- 统计表索引
 CREATE INDEX IF NOT EXISTS idx_player_stats_wins ON player_stats(wins DESC);
 CREATE INDEX IF NOT EXISTS idx_player_stats_total ON player_stats(total_battles DESC);
+
+-- ELO评级表索引
+CREATE INDEX IF NOT EXISTS idx_player_elo_ratings_rule_set ON player_elo_ratings(rule_set_id);
+CREATE INDEX IF NOT EXISTS idx_player_elo_ratings_elo ON player_elo_ratings(rule_set_id, elo_rating DESC);
+CREATE INDEX IF NOT EXISTS idx_player_elo_ratings_games ON player_elo_ratings(rule_set_id, games_played DESC);
+CREATE INDEX IF NOT EXISTS idx_player_elo_ratings_updated ON player_elo_ratings(updated_at DESC);
 
 -- 邮箱验证码表索引
 CREATE INDEX IF NOT EXISTS idx_email_verification_codes_email ON email_verification_codes(email);

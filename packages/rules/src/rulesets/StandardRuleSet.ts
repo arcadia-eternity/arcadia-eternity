@@ -12,6 +12,9 @@ export function createCasualStandardRuleSet(): RuleSetImpl {
     author: 'Arcadia Eternity Team',
     tags: ['casual', 'standard', 'default'],
     enabled: true,
+    matchingConfig: {
+      strategy: 'fifo',
+    },
   })
 
   // 从注册表获取规则实例，而不是创建新实例

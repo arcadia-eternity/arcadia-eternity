@@ -12,6 +12,15 @@ export function createCompetitiveRuleSet(): RuleSetImpl {
     author: 'Arcadia Eternity Team',
     tags: ['competitive', 'strict', 'tournament'],
     enabled: true,
+    matchingConfig: {
+      strategy: 'elo',
+      eloConfig: {
+        initialRange: 100,
+        rangeExpansionPerSecond: 15,
+        maxEloDifference: 400,
+        maxWaitTime: 180, // 3分钟
+      },
+    },
   })
 
   // 从注册表获取规则实例，而不是创建新实例

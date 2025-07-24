@@ -86,6 +86,25 @@ CREATE POLICY "Only service can modify stats" ON player_stats
     );
 
 -- ============================================================================
+-- 玩家ELO评级表 (player_elo_ratings) 策略
+-- ============================================================================
+
+-- 查看策略：所有人可以查看ELO评级信息
+CREATE POLICY "Anyone can view elo ratings or service can view any" ON player_elo_ratings
+    FOR SELECT USING (
+        true OR  -- 允许所有人查看ELO评级信息
+        auth.role() = 'service_role' OR
+        auth.uid() IS NULL  -- 允许无认证的服务端操作
+    );
+
+-- 修改策略：只有服务端可以修改ELO评级信息
+CREATE POLICY "Only service can modify elo ratings" ON player_elo_ratings
+    FOR ALL USING (
+        auth.role() = 'service_role' OR
+        auth.uid() IS NULL  -- 允许无认证的服务端操作
+    );
+
+-- ============================================================================
 -- 战报记录表 (battle_records) 策略
 -- ============================================================================
 

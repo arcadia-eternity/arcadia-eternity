@@ -19,6 +19,7 @@ import { createEmailInheritanceRoutes } from '../../app/routes/emailInheritanceR
 import { createAuthRoutes } from '../../app/routes/authRoutes'
 import { createSessionRoutes } from '../../app/routes/sessionRoutes'
 import { createResourceStatusRoutes } from '../../app/routes/resourceStatusRoutes'
+import eloRoutes from '../../api/routes/elo'
 import type { BattleReportConfig } from '../../domain/report/services/battleReportService'
 import type { EmailConfig } from '../../domain/email/emailService'
 import { createEmailConfigFromEnv } from '../../domain/email/emailService'
@@ -293,6 +294,10 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
   // 资源状态监控 API 路由
   apiRouter.use('/resources', createResourceStatusRoutes())
   logger.info('Resource status API enabled at /api/v1/resources')
+
+  // ELO 评级 API 路由
+  apiRouter.use('/elo', eloRoutes)
+  logger.info('ELO rating API enabled at /api/v1/elo')
 
   app.use('/api/v1', apiRouter)
 
