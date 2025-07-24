@@ -273,6 +273,9 @@ export const useBattleStore = defineStore('battle', {
       if (msg.type === BattleMessageType.BattleEnd) {
         this.isBattleEnd = true
         this.victor = msg.data.winner
+
+        // 战斗结束后刷新ELO数据
+        this.refreshEloAfterBattle()
       }
     },
 
@@ -333,6 +336,27 @@ export const useBattleStore = defineStore('battle', {
       // 重新初始化RxJS Subject，以防后续使用
       this._messageSubject = new Subject<BattleMessage>()
       this.animateQueue = new Subject<() => Promise<void>>()
+    },
+
+    // 战斗结束后刷新ELO数据
+    async refreshEloAfterBattle() {
+      try {
+        // 延迟一段时间确保后端ELO更新完成
+        setTimeout(async () => {
+          const { usePlayerStore } = await import('./player')
+          const { useEloStore } = await import('./elo')
+
+          const playerStore = usePlayerStore()
+          const eloStore = useEloStore()
+
+          if (playerStore.id) {
+            console.log('🔄 Refreshing ELO data after battle end')
+            await eloStore.refreshAllElos(playerStore.id)
+          }
+        }, 2000) // 2秒延迟，确保后端处理完成
+      } catch (error) {
+        console.warn('Failed to refresh ELO data after battle:', error)
+      }
     },
 
     getPetById(petId: petId) {

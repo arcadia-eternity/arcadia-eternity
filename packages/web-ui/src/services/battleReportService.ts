@@ -7,6 +7,7 @@ import type {
   PlayerSearchResult,
   Player,
   PlayerStats,
+  PlayerEloRating,
   PaginatedResponse,
   RuleSetInfo,
   RuleSetDetails,
@@ -139,6 +140,22 @@ export class BattleReportService {
   }
 
   /**
+   * 获取玩家在特定规则集下的ELO信息
+   */
+  async getPlayerElo(playerId: string, ruleSetId: string): Promise<PlayerEloRating & { rank: number | null }> {
+    const response = await api.get(`/elo/player/${playerId}/${ruleSetId}`)
+    return response.data.data
+  }
+
+  /**
+   * 获取玩家所有规则集的ELO信息
+   */
+  async getPlayerAllElos(playerId: string): Promise<(PlayerEloRating & { rank: number | null })[]> {
+    const response = await api.get(`/elo/player/${playerId}`)
+    return response.data.data
+  }
+
+  /**
    * 获取规则集详情
    */
   async getRuleSetDetails(ruleSetId: string): Promise<RuleSetDetails> {
@@ -167,6 +184,7 @@ export type {
   PlayerSearchResult,
   Player,
   PlayerStats,
+  PlayerEloRating,
   PaginatedResponse,
   RuleSetInfo,
   RuleSetDetails,
