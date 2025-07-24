@@ -4,7 +4,6 @@ import { battleReportService } from '@/services/battleReportService'
 import type {
   BattleRecord,
   PlayerBattleRecord,
-  LeaderboardEntry,
   EloLeaderboardEntry,
   BattleStatistics,
   PlayerSearchResult,

@@ -11,7 +11,7 @@ import type { SocketClusterAdapter } from '../../../cluster/communication/socket
 
 import type { RoomState, MatchmakingEntry } from '../../../cluster/types'
 import { BattleReportService, type BattleReportConfig } from '../../report/services/battleReportService'
-import { TimerEventBatcher } from '../../../timer/timerEventBatcher'
+import { TimerEventBatcher } from './timerEventBatcher'
 import { ServerRuleIntegration } from '@arcadia-eternity/rules'
 import type { BattleCallbacks, IBattleService } from './interfaces'
 import { TYPES } from '../../../types'

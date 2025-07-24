@@ -2,7 +2,6 @@ import axios from 'axios'
 import type {
   BattleRecord,
   PlayerBattleRecord,
-  LeaderboardEntry,
   EloLeaderboardEntry,
   BattleStatistics,
   PlayerSearchResult,
@@ -113,14 +112,6 @@ export class BattleReportService {
   }
 
   /**
-   * 获取排行榜（已废弃，使用 getEloLeaderboard 代替）
-   */
-  async getLeaderboard(params: PaginationParams = {}): Promise<PaginatedResponse<LeaderboardEntry>> {
-    const response = await api.get('/leaderboard', { params })
-    return response.data
-  }
-
-  /**
    * 获取ELO排行榜
    */
   async getEloLeaderboard(
@@ -171,7 +162,6 @@ export const battleReportService = new BattleReportService()
 export type {
   BattleRecord,
   PlayerBattleRecord,
-  LeaderboardEntry,
   EloLeaderboardEntry,
   BattleStatistics,
   PlayerSearchResult,
