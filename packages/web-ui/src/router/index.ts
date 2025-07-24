@@ -18,8 +18,7 @@ import { isTauri } from '@/utils/env'
 const BattleRecordList = () => import('@/components/battleReport/BattleRecordList.vue')
 const BattleRecordDetail = () => import('@/components/battleReport/BattleRecordDetail.vue')
 const LocalBattleReports = () => import('@/components/battleReport/LocalBattleReports.vue')
-// 排行榜功能暂时禁用
-// const Leaderboard = () => import('@/components/battleReport/Leaderboard.vue')
+const Leaderboard = () => import('@/components/battleReport/Leaderboard.vue')
 const PlayerBattleRecords = () => import('@/components/battleReport/PlayerBattleRecords.vue')
 
 // 演示页面
@@ -154,15 +153,14 @@ const routes: RouteRecordRaw[] = [
       title: '战报预览',
     },
   },
-  // 排行榜功能暂时禁用
-  // {
-  //   path: '/leaderboard',
-  //   name: 'Leaderboard',
-  //   component: Leaderboard,
-  //   meta: {
-  //     title: '排行榜',
-  //   },
-  // },
+  {
+    path: '/leaderboard',
+    name: 'Leaderboard',
+    component: Leaderboard,
+    meta: {
+      title: '排行榜',
+    },
+  },
   {
     path: '/players/:playerId/battles',
     name: 'PlayerBattleRecords',

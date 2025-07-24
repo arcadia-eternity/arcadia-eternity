@@ -175,6 +175,45 @@ export interface EloUpdateResult {
   result: 'win' | 'loss' | 'draw'
 }
 
+// 规则集相关类型
+export interface RuleSetInfo {
+  id: string
+  name: string
+  description?: string
+  version: string
+  author?: string
+  tags: string[]
+  enabled: boolean
+  ruleCount: number
+  matchingConfig?: {
+    strategy: 'fifo' | 'elo'
+    eloConfig?: {
+      initialRange: number
+      rangeExpansionPerSecond: number
+      maxEloDifference: number
+      maxWaitTime: number
+    }
+  }
+  eloConfig?: {
+    initialRange: number
+    rangeExpansionPerSecond: number
+    maxEloDifference: number
+    maxWaitTime: number
+  } | null
+}
+
+export interface RuleSetDetails extends RuleSetInfo {
+  isEloEnabled: boolean
+  rules: {
+    id: string
+    name: string
+    description?: string
+    enabled: boolean
+    priority: number
+    tags: string[]
+  }[]
+}
+
 export interface BattleStatistics {
   total_battles: number
   total_players: number

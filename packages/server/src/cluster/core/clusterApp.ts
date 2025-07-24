@@ -20,6 +20,7 @@ import { createAuthRoutes } from '../../app/routes/authRoutes'
 import { createSessionRoutes } from '../../app/routes/sessionRoutes'
 import { createResourceStatusRoutes } from '../../app/routes/resourceStatusRoutes'
 import eloRoutes from '../../api/routes/elo'
+import ruleSetsRoutes from '../../api/routes/rulesets'
 import type { BattleReportConfig } from '../../domain/report/services/battleReportService'
 import type { EmailConfig } from '../../domain/email/emailService'
 import { createEmailConfigFromEnv } from '../../domain/email/emailService'
@@ -298,6 +299,10 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
   // ELO 评级 API 路由
   apiRouter.use('/elo', eloRoutes)
   logger.info('ELO rating API enabled at /api/v1/elo')
+
+  // 规则集 API 路由
+  apiRouter.use('/rulesets', ruleSetsRoutes)
+  logger.info('Rule sets API enabled at /api/v1/rulesets')
 
   app.use('/api/v1', apiRouter)
 

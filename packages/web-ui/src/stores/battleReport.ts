@@ -5,10 +5,12 @@ import type {
   BattleRecord,
   PlayerBattleRecord,
   LeaderboardEntry,
+  EloLeaderboardEntry,
   BattleStatistics,
   PlayerSearchResult,
   Player,
   PlayerStats,
+  RuleSetInfo,
 } from '@/services/battleReportService'
 import { LocalBattleReportManager, type LocalBattleReport } from '@/utils/localBattleReport'
 
@@ -17,11 +19,16 @@ export const useBattleReportStore = defineStore('battleReport', () => {
   const battleRecords = ref<BattleRecord[]>([])
   const currentBattleRecord = ref<BattleRecord | null>(null)
   const playerBattleRecords = ref<PlayerBattleRecord[]>([])
-  const leaderboard = ref<LeaderboardEntry[]>([])
+  const leaderboard = ref<EloLeaderboardEntry[]>([])
   const battleStatistics = ref<BattleStatistics | null>(null)
   const searchResults = ref<PlayerSearchResult[]>([])
   const currentPlayer = ref<Player | null>(null)
   const currentPlayerStats = ref<PlayerStats | null>(null)
+
+  // 规则集相关状态
+  const ruleSets = ref<RuleSetInfo[]>([])
+  const eloEnabledRuleSets = ref<RuleSetInfo[]>([])
+  const selectedRuleSetId = ref<string | null>(null)
 
   // 本地战报状态
   const localBattleReports = ref<LocalBattleReport[]>([])
@@ -59,6 +66,8 @@ export const useBattleReportStore = defineStore('battleReport', () => {
     search: false,
     player: false,
     playerStats: false,
+    ruleSets: false,
+    eloEnabledRuleSets: false,
   })
 
   // 错误状态
@@ -173,12 +182,23 @@ export const useBattleReportStore = defineStore('battleReport', () => {
 
   // 获取排行榜
   const fetchLeaderboard = async (reset: boolean = false) => {
+    // 如果没有选择规则集，先尝试获取ELO启用的规则集
+    if (!selectedRuleSetId.value) {
+      await fetchEloEnabledRuleSets()
+      if (eloEnabledRuleSets.value.length > 0) {
+        selectedRuleSetId.value = eloEnabledRuleSets.value[0].id
+      } else {
+        errors.value.leaderboard = '没有启用ELO的规则集，无法显示排行榜'
+        return
+      }
+    }
+
     try {
       loading.value.leaderboard = true
       clearError('leaderboard')
 
       const offset = reset ? 0 : leaderboardPagination.value.offset
-      const result = await battleReportService.getLeaderboard({
+      const result = await battleReportService.getEloLeaderboard(selectedRuleSetId.value, {
         limit: leaderboardPagination.value.limit,
         offset,
       })
@@ -215,6 +235,46 @@ export const useBattleReportStore = defineStore('battleReport', () => {
     } finally {
       loading.value.statistics = false
     }
+  }
+
+  // 获取所有规则集
+  const fetchRuleSets = async () => {
+    try {
+      loading.value.ruleSets = true
+      clearError('ruleSets')
+
+      const result = await battleReportService.getRuleSets()
+      ruleSets.value = result
+    } catch (error) {
+      errors.value.ruleSets = error instanceof Error ? error.message : 'Failed to fetch rule sets'
+    } finally {
+      loading.value.ruleSets = false
+    }
+  }
+
+  // 获取启用ELO的规则集
+  const fetchEloEnabledRuleSets = async () => {
+    try {
+      loading.value.eloEnabledRuleSets = true
+      clearError('eloEnabledRuleSets')
+
+      const result = await battleReportService.getEloEnabledRuleSets()
+      eloEnabledRuleSets.value = result
+
+      // 如果当前选择的规则集不在ELO启用列表中，重置选择
+      if (selectedRuleSetId.value && !result.some(rs => rs.id === selectedRuleSetId.value)) {
+        selectedRuleSetId.value = result.length > 0 ? result[0].id : null
+      }
+    } catch (error) {
+      errors.value.eloEnabledRuleSets = error instanceof Error ? error.message : 'Failed to fetch ELO-enabled rule sets'
+    } finally {
+      loading.value.eloEnabledRuleSets = false
+    }
+  }
+
+  // 设置选择的规则集
+  const setSelectedRuleSet = (ruleSetId: string | null) => {
+    selectedRuleSetId.value = ruleSetId
   }
 
   // 搜索玩家
@@ -359,6 +419,11 @@ export const useBattleReportStore = defineStore('battleReport', () => {
     currentPlayer,
     currentPlayerStats,
 
+    // 规则集相关状态
+    ruleSets,
+    eloEnabledRuleSets,
+    selectedRuleSetId,
+
     // 本地战报状态
     localBattleReports,
     currentLocalBattleReport,
@@ -381,6 +446,9 @@ export const useBattleReportStore = defineStore('battleReport', () => {
     fetchPlayerBattleRecords,
     fetchLeaderboard,
     fetchBattleStatistics,
+    fetchRuleSets,
+    fetchEloEnabledRuleSets,
+    setSelectedRuleSet,
     searchPlayers,
     fetchPlayer,
     fetchPlayerStats,
