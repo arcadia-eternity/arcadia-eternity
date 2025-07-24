@@ -21,6 +21,7 @@ export class BattleReportService {
       startTime: Date
       playerAId: string
       playerBId: string
+      ruleSetId?: string
     }
   >()
 
@@ -45,6 +46,7 @@ export class BattleReportService {
     playerAName: string,
     playerBId: string,
     playerBName: string,
+    ruleSetId?: string,
   ): Promise<string | null> {
     if (!this.config.enableReporting) {
       return null
@@ -84,6 +86,7 @@ export class BattleReportService {
         startTime: new Date(),
         playerAId,
         playerBId,
+        ruleSetId,
       })
 
       this.logger.info(
@@ -176,6 +179,49 @@ export class BattleReportService {
         battleData.messages,
         finalState,
       )
+
+      // 更新ELO评级（如果有规则集信息）
+      if (battleData.ruleSetId && battleResult !== 'abandoned') {
+        try {
+          const { EloService } = await import('../../elo/services/eloService')
+          const { EloCalculationService } = await import('../../elo/services/eloCalculationService')
+          const { EloRepository } = await import('@arcadia-eternity/database')
+
+          // 创建ELO服务实例
+          const eloRepository = new EloRepository()
+          const eloCalculationService = new EloCalculationService()
+          const eloService = new EloService(eloRepository, eloCalculationService)
+
+          // 处理ELO更新
+          await eloService.processBattleEloUpdate(
+            battleData.playerAId,
+            battleData.playerBId,
+            winnerId,
+            battleData.ruleSetId,
+          )
+
+          this.logger.info(
+            {
+              battleId: battleData.recordId,
+              playerAId: battleData.playerAId,
+              playerBId: battleData.playerBId,
+              winnerId,
+              ruleSetId: battleData.ruleSetId,
+            },
+            'ELO ratings updated successfully',
+          )
+        } catch (eloError) {
+          this.logger.error(
+            {
+              error: eloError,
+              battleId: battleData.recordId,
+              ruleSetId: battleData.ruleSetId,
+            },
+            'Failed to update ELO ratings, but battle record was saved',
+          )
+          // 不抛出错误，因为战报已经保存成功，ELO更新失败不应该影响战报保存
+        }
+      }
 
       this.logger.info(
         {

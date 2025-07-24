@@ -1,6 +1,6 @@
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import type { Rule, Team, RuleContext } from '../interfaces/Rule'
-import type { RuleSet, RuleSetBuilder } from '../interfaces/RuleSet'
+import type { RuleSet, RuleSetBuilder, MatchingConfig } from '../interfaces/RuleSet'
 import { ValidationResultBuilder, type ValidationResult } from '../interfaces/ValidationResult'
 
 /**
@@ -16,6 +16,7 @@ export abstract class AbstractRuleSet implements RuleSet {
   public readonly tags: string[]
   public enabled: boolean
   public readonly rules: Rule[]
+  public readonly matchingConfig?: MatchingConfig
 
   constructor(
     id: string,
@@ -27,7 +28,8 @@ export abstract class AbstractRuleSet implements RuleSet {
       tags?: string[]
       enabled?: boolean
       rules?: Rule[]
-    } = {}
+      matchingConfig?: MatchingConfig
+    } = {},
   ) {
     this.id = id
     this.name = name
@@ -37,6 +39,7 @@ export abstract class AbstractRuleSet implements RuleSet {
     this.tags = options.tags ?? []
     this.enabled = options.enabled ?? true
     this.rules = options.rules ?? []
+    this.matchingConfig = options.matchingConfig
   }
 
   /**
@@ -175,18 +178,14 @@ export abstract class AbstractRuleSet implements RuleSet {
    * 克隆规则集
    */
   clone(): RuleSet {
-    return new (this.constructor as any)(
-      this.id + '_clone',
-      this.name + ' (Clone)',
-      {
-        description: this.description,
-        version: this.version,
-        author: this.author,
-        tags: [...this.tags],
-        enabled: this.enabled,
-        rules: [...this.rules],
-      }
-    )
+    return new (this.constructor as any)(this.id + '_clone', this.name + ' (Clone)', {
+      description: this.description,
+      version: this.version,
+      author: this.author,
+      tags: [...this.tags],
+      enabled: this.enabled,
+      rules: [...this.rules],
+    })
   }
 
   /**
@@ -276,7 +275,8 @@ export class RuleSetImpl extends AbstractRuleSet {
       tags?: string[]
       enabled?: boolean
       rules?: Rule[]
-    } = {}
+      matchingConfig?: MatchingConfig
+    } = {},
   ) {
     super(id, name, options)
   }

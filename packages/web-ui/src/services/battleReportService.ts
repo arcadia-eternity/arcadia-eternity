@@ -2,12 +2,15 @@ import axios from 'axios'
 import type {
   BattleRecord,
   PlayerBattleRecord,
-  LeaderboardEntry,
+  EloLeaderboardEntry,
   BattleStatistics,
   PlayerSearchResult,
   Player,
   PlayerStats,
+  PlayerEloRating,
   PaginatedResponse,
+  RuleSetInfo,
+  RuleSetDetails,
 } from '@arcadia-eternity/database'
 
 // API 基础配置
@@ -110,11 +113,54 @@ export class BattleReportService {
   }
 
   /**
-   * 获取排行榜
+   * 获取ELO排行榜
    */
-  async getLeaderboard(params: PaginationParams = {}): Promise<PaginatedResponse<LeaderboardEntry>> {
-    const response = await api.get('/leaderboard', { params })
-    return response.data
+  async getEloLeaderboard(
+    ruleSetId: string,
+    params: PaginationParams = {},
+  ): Promise<PaginatedResponse<EloLeaderboardEntry>> {
+    const response = await api.get(`/elo/leaderboard/${ruleSetId}`, { params })
+    return response.data.data // API返回 { success: true, data: PaginatedResponse }
+  }
+
+  /**
+   * 获取所有规则集
+   */
+  async getRuleSets(): Promise<RuleSetInfo[]> {
+    const response = await api.get('/rulesets')
+    return response.data.data
+  }
+
+  /**
+   * 获取启用ELO的规则集
+   */
+  async getEloEnabledRuleSets(): Promise<RuleSetInfo[]> {
+    const response = await api.get('/rulesets/elo-enabled')
+    return response.data.data
+  }
+
+  /**
+   * 获取玩家在特定规则集下的ELO信息
+   */
+  async getPlayerElo(playerId: string, ruleSetId: string): Promise<PlayerEloRating & { rank: number | null }> {
+    const response = await api.get(`/elo/player/${playerId}/${ruleSetId}`)
+    return response.data.data
+  }
+
+  /**
+   * 获取玩家所有规则集的ELO信息
+   */
+  async getPlayerAllElos(playerId: string): Promise<(PlayerEloRating & { rank: number | null })[]> {
+    const response = await api.get(`/elo/player/${playerId}`)
+    return response.data.data
+  }
+
+  /**
+   * 获取规则集详情
+   */
+  async getRuleSetDetails(ruleSetId: string): Promise<RuleSetDetails> {
+    const response = await api.get(`/rulesets/${ruleSetId}`)
+    return response.data.data
   }
 
   /**
@@ -133,10 +179,13 @@ export const battleReportService = new BattleReportService()
 export type {
   BattleRecord,
   PlayerBattleRecord,
-  LeaderboardEntry,
+  EloLeaderboardEntry,
   BattleStatistics,
   PlayerSearchResult,
   Player,
   PlayerStats,
+  PlayerEloRating,
   PaginatedResponse,
+  RuleSetInfo,
+  RuleSetDetails,
 }

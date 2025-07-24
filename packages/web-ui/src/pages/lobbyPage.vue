@@ -35,6 +35,13 @@
         <span class="text-sm md:text-base">在线战报</span>
       </router-link>
       <router-link
+        to="/leaderboard"
+        class="flex flex-col items-center gap-2 p-4 md:p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500 min-h-[80px] md:min-h-[auto] touch-manipulation"
+      >
+        <el-icon :size="20"><Trophy /></el-icon>
+        <span class="text-sm md:text-base">排行榜</span>
+      </router-link>
+      <router-link
         to="/local-battle-reports"
         class="flex flex-col items-center gap-2 p-4 md:p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500 min-h-[80px] md:min-h-[auto] touch-manipulation"
       >
@@ -101,6 +108,47 @@
             <div class="font-medium text-gray-800">{{ ruleSet.name }}</div>
             <div class="text-sm text-gray-600 mt-1">{{ ruleSet.description }}</div>
             <div class="text-xs text-gray-500 mt-2">{{ ruleSet.ruleCount }} 条规则</div>
+
+            <!-- ELO信息 -->
+            <div v-if="isEloEnabled(ruleSet.id) && ruleSetElos[ruleSet.id]" class="mt-3 pt-2 border-t border-gray-200">
+              <div class="flex items-center justify-between">
+                <div class="text-xs text-gray-600">ELO评分</div>
+                <div class="flex items-center gap-1">
+                  <span class="font-bold text-sm text-blue-600">
+                    {{ ruleSetElos[ruleSet.id].elo_rating }}
+                  </span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between mt-1">
+                <div class="text-xs text-gray-600">排名</div>
+                <div class="text-xs text-gray-700">
+                  {{ ruleSetElos[ruleSet.id].rank ? `#${ruleSetElos[ruleSet.id].rank}` : '未排名' }}
+                </div>
+              </div>
+              <div class="flex items-center justify-between mt-1">
+                <div class="text-xs text-gray-600">胜率</div>
+                <div class="text-xs text-gray-700">
+                  {{
+                    eloStore.formatWinRate(
+                      ruleSetElos[ruleSet.id].wins,
+                      ruleSetElos[ruleSet.id].losses,
+                      ruleSetElos[ruleSet.id].draws,
+                    )
+                  }}
+                  ({{ ruleSetElos[ruleSet.id].games_played }}场)
+                </div>
+              </div>
+            </div>
+
+            <!-- 无ELO数据时的提示（仅对启用ELO的规则集显示） -->
+            <div v-else-if="isEloEnabled(ruleSet.id) && !eloStore.isLoading" class="mt-3 pt-2 border-t border-gray-200">
+              <div class="text-xs text-gray-500 text-center">暂无评分记录</div>
+            </div>
+
+            <!-- 加载状态（仅对启用ELO的规则集显示） -->
+            <div v-else-if="isEloEnabled(ruleSet.id)" class="mt-3 pt-2 border-t border-gray-200">
+              <div class="text-xs text-gray-500 text-center">加载中...</div>
+            </div>
           </div>
         </div>
       </div>
@@ -287,6 +335,7 @@ import { usePlayerStore } from '@/stores/player'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { usePetStorageStore } from '@/stores/petStorage'
 import { useRuleSetStore } from '@/stores/ruleSet'
+import { useEloStore } from '@/stores/elo'
 import { type BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
 import {
   User,
@@ -300,6 +349,7 @@ import {
   Warning,
   Edit,
   Select,
+  Trophy,
 } from '@element-plus/icons-vue'
 import { isTauri } from '@/utils/env'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
@@ -311,6 +361,7 @@ const playerStore = usePlayerStore()
 const battleClientStore = useBattleClientStore()
 const petStorageStore = usePetStorageStore()
 const ruleSetStore = useRuleSetStore()
+const eloStore = useEloStore()
 
 // 匹配配置状态
 const selectedTeamIndex = ref<number>(-1)
@@ -321,6 +372,23 @@ const selectedRuleSetId = computed({
   get: () => ruleSetStore.selectedRuleSetId,
   set: (value: string) => ruleSetStore.setSelectedRuleSet(value),
 })
+
+// ELO相关计算属性
+const ruleSetElos = computed(() => {
+  const eloMap: Record<string, any> = {}
+  availableRuleSets.value.forEach(ruleSet => {
+    eloMap[ruleSet.id] = eloStore.getEloForRuleSet(ruleSet.id)
+  })
+  return eloMap
+})
+
+// 启用ELO的规则集列表
+const eloEnabledRuleSets = ref<string[]>([])
+
+// 检查规则集是否启用ELO
+const isEloEnabled = (ruleSetId: string) => {
+  return eloEnabledRuleSets.value.includes(ruleSetId)
+}
 
 // 计算属性 - 只显示与当前选择规则集匹配的队伍
 const availableTeams = computed(() => {
@@ -574,7 +642,41 @@ const handleMatchmaking = async () => {
     setTimeout(() => (errorMessage.value = null), 3000)
   }
 }
-onMounted(() => {
+// 监听路由变化，从战斗页面返回时刷新ELO
+watch(
+  () => route.path,
+  async (newPath, oldPath) => {
+    if (newPath === '/' && oldPath === '/battle' && playerStore.id) {
+      console.log('🔄 Returned from battle, refreshing ELO data')
+      try {
+        await eloStore.refreshAllElos(playerStore.id)
+      } catch (error) {
+        console.warn('Failed to refresh ELO data after returning from battle:', error)
+      }
+    }
+  },
+)
+
+onMounted(async () => {
+  // 获取启用ELO的规则集列表
+  try {
+    const { BattleReportService } = await import('@/services/battleReportService')
+    const battleReportService = new BattleReportService()
+    const eloRuleSets = await battleReportService.getEloEnabledRuleSets()
+    eloEnabledRuleSets.value = eloRuleSets.map(rs => rs.id)
+  } catch (error) {
+    console.warn('Failed to fetch ELO-enabled rule sets:', error)
+  }
+
+  // 获取玩家ELO数据
+  if (playerStore.id) {
+    try {
+      await eloStore.fetchPlayerAllElos(playerStore.id)
+    } catch (error) {
+      console.warn('Failed to fetch player ELO data:', error)
+    }
+  }
+
   nextTick(() => {
     if (route.query.startMatching === 'true') handleMatchmaking()
   })

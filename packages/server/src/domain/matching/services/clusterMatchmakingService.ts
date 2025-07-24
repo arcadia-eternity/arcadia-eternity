@@ -2,16 +2,15 @@ import { injectable, inject, optional } from 'inversify'
 import { PlayerParser } from '@arcadia-eternity/parser'
 import type { AckResponse, ErrorResponse } from '@arcadia-eternity/protocol'
 import { PlayerSchema } from '@arcadia-eternity/schema'
-import { nanoid } from 'nanoid'
 import pino from 'pino'
 import { ZodError } from 'zod'
 import type { Socket } from 'socket.io'
 import type { ClusterStateManager } from '../../../cluster/core/clusterStateManager'
 import type { SocketClusterAdapter } from '../../../cluster/communication/socketClusterAdapter'
 import type { DistributedLockManager } from '../../../cluster/redis/distributedLock'
-import type { PerformanceTracker } from '../../../cluster/monitoring/performanceTracker'
 import { LOCK_KEYS } from '../../../cluster/redis/distributedLock'
-import type { RoomState, MatchmakingEntry, ServiceInstance } from '../../../cluster/types'
+import type { PerformanceTracker } from '../../../cluster/monitoring/performanceTracker'
+import type { MatchmakingEntry, ServiceInstance } from '../../../cluster/types'
 import { BattleRpcClient } from '../../../cluster/communication/rpc/battleRpcClient'
 import type { ServiceDiscoveryManager } from '../../../cluster/discovery/serviceDiscovery'
 import type {
@@ -20,6 +19,8 @@ import type {
   IMatchmakingService,
 } from '../../battle/services/interfaces'
 import { TYPES } from '../../../types'
+import { MatchingStrategyFactory } from '../strategies/MatchingStrategyFactory'
+import { MatchingConfigManager } from './MatchingConfigManager'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -32,6 +33,10 @@ const logger = pino({
 @injectable()
 export class ClusterMatchmakingService implements IMatchmakingService {
   private rpcClient: BattleRpcClient
+  private matchingConfigManager: MatchingConfigManager
+  private periodicMatchingTimer: NodeJS.Timeout | null = null
+  private periodicMatchingEnabled = true
+  private periodicMatchingInterval = 15000 // 15秒
 
   constructor(
     @inject(TYPES.ClusterStateManager) private readonly stateManager: ClusterStateManager,
@@ -44,6 +49,8 @@ export class ClusterMatchmakingService implements IMatchmakingService {
     @inject(TYPES.ServiceDiscoveryManager) @optional() private readonly serviceDiscovery?: ServiceDiscoveryManager,
   ) {
     this.rpcClient = new BattleRpcClient()
+    this.matchingConfigManager = MatchingConfigManager.getInstance()
+    this.startPeriodicMatching()
   }
 
   /**
@@ -221,6 +228,9 @@ export class ClusterMatchmakingService implements IMatchmakingService {
           this.performanceTracker.updateMatchmakingQueueSize(queueSize)
         }
 
+        // 玩家加入队列后广播服务器状态更新
+        this.callbacks.broadcastServerStateUpdate?.()
+
         logger.info(
           {
             socketId: socket.id,
@@ -274,6 +284,9 @@ export class ClusterMatchmakingService implements IMatchmakingService {
         const queueSize = await this.stateManager.getMatchmakingQueueSize()
         this.performanceTracker.updateMatchmakingQueueSize(queueSize)
       }
+
+      // 玩家取消匹配后广播服务器状态更新
+      this.callbacks.broadcastServerStateUpdate?.()
 
       logger.info({ socketId: socket.id, playerId, sessionId }, '玩家取消匹配')
       ack?.({ status: 'SUCCESS', data: { status: 'CANCELED' } })
@@ -419,47 +432,62 @@ export class ClusterMatchmakingService implements IMatchmakingService {
 
       logger.info({ ruleSetId, queueLength: queue.length }, 'Found sufficient players for matching, proceeding')
 
-      // 按加入时间排序
-      const sortedQueue = queue.sort((a, b) => a.joinTime - b.joinTime)
+      // 获取规则集的匹配配置
+      const matchingConfig = this.matchingConfigManager.getMatchingConfig(ruleSetId)
+      const strategy = MatchingStrategyFactory.getStrategy(matchingConfig)
 
-      // 寻找可以匹配的两个session（确保不是同一个playerId且规则集相同）
-      let player1Entry: MatchmakingEntry | null = null
-      let player2Entry: MatchmakingEntry | null = null
+      logger.debug(
+        {
+          ruleSetId,
+          strategy: strategy.name,
+          config: matchingConfig,
+        },
+        'Using matching strategy for rule set',
+      )
 
-      for (let i = 0; i < sortedQueue.length; i++) {
-        if (!player1Entry) {
-          player1Entry = sortedQueue[i]
-          continue
-        }
+      // 使用匹配策略寻找最佳匹配
+      const matchResult = await strategy.findMatch(queue, matchingConfig)
 
-        const candidate = sortedQueue[i]
-
-        // 确保不是同一个玩家的不同session
-        // 注意：从基于规则的队列获取的玩家已经是同一规则集的，无需再次检查
-        if (candidate.playerId !== player1Entry.playerId) {
-          player2Entry = candidate
-          break
-        }
-      }
-
-      // 如果找不到合适的匹配，返回
-      if (!player1Entry || !player2Entry) {
+      if (!matchResult) {
         logger.debug(
           {
             ruleSetId,
-            player1Entry: !!player1Entry,
-            player2Entry: !!player2Entry,
+            strategy: strategy.name,
             queueLength: queue.length,
-            queueDetails: queue.map(e => ({
-              playerId: e.playerId,
-              sessionId: e.sessionId,
-              ruleSetId: e.ruleSetId,
-            })),
           },
-          'No suitable match found for rule set - all entries may be from same player',
+          'No suitable match found using matching strategy',
         )
         return false
       }
+
+      const { player1, player2, quality } = matchResult
+
+      logger.info(
+        {
+          ruleSetId,
+          strategy: strategy.name,
+          matchQuality: {
+            score: quality.score,
+            eloDifference: quality.eloDifference,
+            waitTimeDifference: quality.waitTimeDifference,
+            acceptable: quality.acceptable,
+          },
+          player1: {
+            playerId: player1.playerId,
+            sessionId: player1.sessionId,
+            ruleSetId: player1.ruleSetId,
+          },
+          player2: {
+            playerId: player2.playerId,
+            sessionId: player2.sessionId,
+            ruleSetId: player2.ruleSetId,
+          },
+        },
+        'Found suitable match using matching strategy',
+      )
+
+      const player1Entry = player1
+      const player2Entry = player2
 
       logger.info(
         {
@@ -613,6 +641,9 @@ export class ClusterMatchmakingService implements IMatchmakingService {
             const queueSize = await this.stateManager.getMatchmakingQueueSize()
             this.performanceTracker.updateMatchmakingQueueSize(queueSize)
           }
+
+          // 匹配成功创建房间后广播服务器状态更新
+          this.callbacks.broadcastServerStateUpdate?.()
 
           // 通知匹配成功
           await this.notifyMatchSuccess(player1Entry, player2Entry, roomId)
@@ -842,131 +873,8 @@ export class ClusterMatchmakingService implements IMatchmakingService {
     player1Entry: MatchmakingEntry,
     player2Entry: MatchmakingEntry,
   ): Promise<string | null> {
-    try {
-      const roomId = nanoid()
-
-      // 使用分布式锁确保房间创建的原子性
-      return await this.lockManager.withLock(LOCK_KEYS.ROOM_CREATE(roomId), async () => {
-        // 解析玩家数据 - 现在playerData应该是原始验证过的数据
-        let player1Data, player2Data
-        try {
-          player1Data = PlayerParser.parse(player1Entry.playerData)
-        } catch (error) {
-          logger.error(
-            {
-              error: error instanceof Error ? error.message : error,
-              playerId: player1Entry.playerId,
-              playerData: player1Entry.playerData,
-            },
-            'Failed to parse player 1 data',
-          )
-          throw new Error(`Failed to parse player 1 data: ${error instanceof Error ? error.message : 'Unknown error'}`)
-        }
-
-        try {
-          player2Data = PlayerParser.parse(player2Entry.playerData)
-        } catch (error) {
-          logger.error(
-            {
-              error: error instanceof Error ? error.message : error,
-              playerId: player2Entry.playerId,
-              playerData: player2Entry.playerData,
-            },
-            'Failed to parse player 2 data',
-          )
-          throw new Error(`Failed to parse player 2 data: ${error instanceof Error ? error.message : 'Unknown error'}`)
-        }
-
-        // 先创建本地Battle实例
-        const session1 = player1Entry.sessionId || player1Entry.metadata?.sessionId || 'default'
-        const session2 = player2Entry.sessionId || player2Entry.metadata?.sessionId || 'default'
-
-        // 获取规则集信息，优先使用player1的规则集，如果不存在则使用player2的，最后默认为休闲规则集
-        const ruleSetId = player1Entry.ruleSetId || player2Entry.ruleSetId || 'casual_standard_ruleset'
-
-        const tempRoomState: RoomState = {
-          id: roomId,
-          status: 'waiting',
-          sessions: [session1, session2],
-          sessionPlayers: {
-            [session1]: player1Entry.playerId,
-            [session2]: player2Entry.playerId,
-          },
-          instanceId: this.instanceId,
-          lastActive: Date.now(),
-          battleState: undefined, // 临时空状态，稍后更新
-          metadata: {
-            createdAt: Date.now(),
-            ruleSetId, // 添加规则集信息
-          },
-        }
-
-        // 先更新映射关系，确保原子性
-        logger.info({ roomId }, 'About to update session room mappings')
-
-        // 建立会话到房间的映射索引（Redis）
-        await this.callbacks.createSessionRoomMappings(tempRoomState)
-
-        // 3. 最后保存房间状态到集群，此时所有映射已就绪
-        logger.info({ roomId }, 'All mappings updated, about to save room state to cluster')
-        await this.stateManager.setRoomState(tempRoomState)
-
-        logger.info({ roomId }, 'Room state saved with all mappings ready, about to create local battle')
-
-        // 创建本地战斗实例（存储在 localBattles Map 中供后续使用）
-        const battle = await this.callbacks.createLocalBattle(tempRoomState, player1Data, player2Data)
-        logger.info({ roomId, battleId: battle.id }, 'Local battle created successfully')
-
-        // 更新房间状态（不再存储 battleState 到 Redis）
-        logger.info({ roomId }, 'About to update room state')
-        const roomState: RoomState = {
-          ...tempRoomState,
-          status: 'active', // 更新状态为活跃
-          // 移除 battleState 存储，避免 Redis 超时
-          // battleState: battle.getState(player1Data.id, false),
-        }
-
-        // 更新集群状态
-        logger.info({ roomId }, 'About to save updated room state to cluster')
-        await this.stateManager.setRoomState(roomState)
-        logger.info({ roomId }, 'Updated room state saved to cluster')
-
-        // 将玩家加入Socket.IO房间
-        logger.info(
-          { roomId, player1Id: player1Entry.playerId, player2Id: player2Entry.playerId },
-          'About to join players to Socket.IO room',
-        )
-        await this.socketAdapter.joinPlayerToRoom(player1Entry.playerId, roomId)
-        await this.socketAdapter.joinPlayerToRoom(player2Entry.playerId, roomId)
-
-        logger.info({ roomId }, 'Players joined Socket.IO room successfully')
-
-        logger.info(
-          { roomId, sessions: roomState.sessions, sessionPlayers: roomState.sessionPlayers },
-          'Cluster battle room created',
-        )
-
-        logger.info({ roomId }, 'About to return roomId from createClusterBattleRoom')
-        return roomId
-      })
-    } catch (error) {
-      logger.error(
-        {
-          error:
-            error instanceof Error
-              ? {
-                  name: error.name,
-                  message: error.message,
-                  stack: error.stack,
-                }
-              : error,
-          player1Id: player1Entry.playerId,
-          player2Id: player2Entry.playerId,
-        },
-        'Failed to create cluster battle room',
-      )
-      return null
-    }
+    // 委托给回调处理
+    return await this.callbacks.createClusterBattleRoom(player1Entry, player2Entry)
   }
 
   /**
@@ -1260,5 +1168,186 @@ export class ClusterMatchmakingService implements IMatchmakingService {
       details: error instanceof Error ? error.message : 'Invalid data format',
     }
     ack?.(response)
+  }
+
+  // === 定时匹配功能 ===
+
+  /**
+   * 启动定时匹配
+   */
+  private startPeriodicMatching(): void {
+    if (!this.periodicMatchingEnabled) {
+      logger.info('Periodic matching is disabled')
+      return
+    }
+
+    logger.info({ interval: this.periodicMatchingInterval }, 'Starting periodic matching timer')
+
+    this.periodicMatchingTimer = setInterval(() => {
+      this.performPeriodicMatching().catch(error => {
+        logger.error({ error }, 'Error in periodic matching')
+      })
+    }, this.periodicMatchingInterval)
+  }
+
+  /**
+   * 停止定时匹配
+   */
+  private stopPeriodicMatching(): void {
+    if (this.periodicMatchingTimer) {
+      clearInterval(this.periodicMatchingTimer)
+      this.periodicMatchingTimer = null
+      logger.info('Stopped periodic matching timer')
+    }
+  }
+
+  /**
+   * 执行定时匹配检查
+   */
+  private async performPeriodicMatching(): Promise<void> {
+    try {
+      // 只有匹配领导者才执行定时匹配
+      const isLeader = await this.isMatchmakingLeader()
+      if (!isLeader) {
+        logger.debug('Not the matchmaking leader, skipping periodic matching')
+        return
+      }
+
+      // 获取所有活跃的规则集
+      const activeRuleSetIds = await this.stateManager.getActiveRuleSetIds()
+      if (activeRuleSetIds.length === 0) {
+        logger.debug('No active rule sets found for periodic matching')
+        return
+      }
+
+      logger.debug({ activeRuleSetIds, ruleSetCount: activeRuleSetIds.length }, 'Performing periodic matching check')
+
+      // 检查每个规则集是否需要定时匹配
+      for (const ruleSetId of activeRuleSetIds) {
+        await this.checkRuleSetForPeriodicMatching(ruleSetId)
+      }
+    } catch (error) {
+      logger.error({ error }, 'Error in periodic matching execution')
+    }
+  }
+
+  /**
+   * 检查特定规则集是否需要定时匹配
+   */
+  private async checkRuleSetForPeriodicMatching(ruleSetId: string): Promise<void> {
+    try {
+      // 获取规则集队列
+      const queue = await this.stateManager.getRuleBasedQueue(ruleSetId)
+
+      if (queue.length < 2) {
+        logger.debug({ ruleSetId, queueSize: queue.length }, 'Queue size insufficient for matching')
+        return
+      }
+
+      // 获取匹配配置
+      const matchingConfig = this.matchingConfigManager.getMatchingConfig(ruleSetId)
+
+      // 检查是否需要定时匹配
+      const needsMatching = this.shouldTriggerPeriodicMatching(queue, matchingConfig)
+
+      if (!needsMatching) {
+        logger.debug({ ruleSetId, strategy: matchingConfig.strategy }, 'Rule set does not need periodic matching')
+        return
+      }
+
+      const oldestWaitTime = this.getOldestWaitTime(queue)
+      logger.info(
+        {
+          ruleSetId,
+          queueSize: queue.length,
+          strategy: matchingConfig.strategy,
+          oldestWaitTime,
+        },
+        'Triggering periodic matching for rule set',
+      )
+
+      // 触发匹配
+      await this.attemptMatchmakingForRuleSet(ruleSetId)
+    } catch (error) {
+      logger.error({ error, ruleSetId }, 'Error checking rule set for periodic matching')
+    }
+  }
+
+  /**
+   * 判断是否应该触发定时匹配
+   */
+  private shouldTriggerPeriodicMatching(queue: any[], matchingConfig: any): boolean {
+    // FIFO策略：有2个以上玩家就可以匹配
+    if (matchingConfig.strategy === 'fifo') {
+      return queue.length >= 2
+    }
+
+    // ELO策略：检查等待时间，支持时间扩展机制
+    if (matchingConfig.strategy === 'elo') {
+      const oldestWaitTime = this.getOldestWaitTime(queue)
+
+      // 如果最老的玩家等待时间超过30秒，就触发定时匹配
+      // 这样可以让ELO范围扩展机制生效
+      return oldestWaitTime >= 30
+    }
+
+    return false
+  }
+
+  /**
+   * 获取队列中最老玩家的等待时间 (秒)
+   */
+  private getOldestWaitTime(queue: any[]): number {
+    if (queue.length === 0) return 0
+
+    const now = Date.now()
+    const oldestJoinTime = Math.min(...queue.map(entry => entry.joinTime))
+    return Math.floor((now - oldestJoinTime) / 1000)
+  }
+
+  /**
+   * 设置定时匹配配置
+   */
+  setPeriodicMatchingConfig(config: { enabled?: boolean; interval?: number }): void {
+    const oldEnabled = this.periodicMatchingEnabled
+    const oldInterval = this.periodicMatchingInterval
+
+    if (config.enabled !== undefined) {
+      this.periodicMatchingEnabled = config.enabled
+    }
+    if (config.interval !== undefined) {
+      this.periodicMatchingInterval = config.interval
+    }
+
+    logger.info(
+      {
+        oldConfig: { enabled: oldEnabled, interval: oldInterval },
+        newConfig: { enabled: this.periodicMatchingEnabled, interval: this.periodicMatchingInterval },
+      },
+      'Updated periodic matching configuration',
+    )
+
+    // 重启定时器如果配置改变
+    if (oldEnabled !== this.periodicMatchingEnabled || oldInterval !== this.periodicMatchingInterval) {
+      this.stopPeriodicMatching()
+      if (this.periodicMatchingEnabled) {
+        this.startPeriodicMatching()
+      }
+    }
+  }
+
+  /**
+   * 获取定时匹配状态
+   */
+  getPeriodicMatchingStatus(): {
+    enabled: boolean
+    interval: number
+    isRunning: boolean
+  } {
+    return {
+      enabled: this.periodicMatchingEnabled,
+      interval: this.periodicMatchingInterval,
+      isRunning: this.periodicMatchingTimer !== null,
+    }
   }
 }

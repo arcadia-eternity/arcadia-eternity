@@ -3,6 +3,25 @@ import type { ValidationResult } from './ValidationResult'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 
 /**
+ * 匹配策略配置
+ */
+export interface MatchingConfig {
+  /** 匹配策略类型 */
+  strategy: 'fifo' | 'elo'
+  /** ELO匹配配置 (仅当strategy为'elo'时有效) */
+  eloConfig?: {
+    /** 初始ELO匹配范围 */
+    initialRange: number
+    /** 每秒扩大的范围 */
+    rangeExpansionPerSecond: number
+    /** 最大ELO差距 */
+    maxEloDifference: number
+    /** 最大等待时间 (秒) */
+    maxWaitTime: number
+  }
+}
+
+/**
  * 规则集接口
  */
 export interface RuleSet {
@@ -22,6 +41,8 @@ export interface RuleSet {
   enabled: boolean
   /** 包含的规则列表 */
   readonly rules: Rule[]
+  /** 匹配策略配置 */
+  readonly matchingConfig?: MatchingConfig
 
   /**
    * 添加规则

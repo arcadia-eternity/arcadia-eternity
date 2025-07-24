@@ -3,28 +3,42 @@
     <!-- 头部 -->
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-2xl font-bold text-gray-800">排行榜</h2>
-      <el-button @click="refresh" :loading="loading.leaderboard" type="primary">
-        刷新
-      </el-button>
+      <div class="flex items-center space-x-4">
+        <!-- 规则集选择器 -->
+        <el-select
+          :model-value="selectedRuleSetId || ''"
+          placeholder="选择规则集"
+          @change="onRuleSetChange"
+          :loading="loading.eloEnabledRuleSets"
+          style="width: 200px"
+        >
+          <el-option
+            v-for="ruleSet in eloEnabledRuleSets"
+            :key="ruleSet.id"
+            :label="ruleSet.name"
+            :value="ruleSet.id"
+          />
+        </el-select>
+        <el-button @click="refresh" :loading="loading.leaderboard" type="primary"> 刷新 </el-button>
+      </div>
     </div>
 
     <!-- 错误提示 -->
+    <el-alert v-if="errors.leaderboard" :title="errors.leaderboard" type="error" :closable="false" class="mb-4" />
+
+    <!-- 无ELO规则集提示 -->
     <el-alert
-      v-if="errors.leaderboard"
-      :title="errors.leaderboard"
-      type="error"
+      v-if="!loading.eloEnabledRuleSets && eloEnabledRuleSets.length === 0"
+      title="暂无排行榜"
+      description="当前没有启用ELO评级的规则集，无法显示排行榜。"
+      type="info"
       :closable="false"
       class="mb-4"
     />
 
     <!-- 排行榜表格 -->
     <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-      <el-table
-        :data="leaderboard"
-        v-loading="loading.leaderboard"
-        stripe
-        style="width: 100%"
-      >
+      <el-table :data="leaderboard" v-loading="loading.leaderboard" stripe style="width: 100%">
         <el-table-column label="排名" width="80" align="center">
           <template #default="{ $index }">
             <div class="flex items-center justify-center">
@@ -53,9 +67,18 @@
           </template>
         </el-table-column>
 
+        <el-table-column label="ELO评分" width="120" align="center">
+          <template #default="{ row }">
+            <div class="flex flex-col items-center">
+              <span class="font-bold text-lg text-blue-600">{{ row.elo_rating }}</span>
+              <span class="text-xs text-gray-500">最高: {{ row.highest_elo }}</span>
+            </div>
+          </template>
+        </el-table-column>
+
         <el-table-column label="总场次" width="100" align="center">
           <template #default="{ row }">
-            <span class="font-medium">{{ row.total_battles }}</span>
+            <span class="font-medium">{{ row.games_played || row.total_battles || 0 }}</span>
           </template>
         </el-table-column>
 
@@ -80,9 +103,7 @@
         <el-table-column label="胜率" width="120" align="center">
           <template #default="{ row }">
             <div class="flex items-center justify-center space-x-2">
-              <span class="font-medium" :class="getWinRateColor(row.win_rate)">
-                {{ row.win_rate }}%
-              </span>
+              <span class="font-medium" :class="getWinRateColor(row.win_rate)"> {{ row.win_rate }}% </span>
               <el-progress
                 :percentage="row.win_rate"
                 :show-text="false"
@@ -96,14 +117,7 @@
 
         <el-table-column label="操作" width="120" align="center">
           <template #default="{ row }">
-            <el-button
-              size="small"
-              @click="viewPlayerRecords(row.player_id)"
-              type="primary"
-              link
-            >
-              查看战报
-            </el-button>
+            <el-button size="small" @click="viewPlayerRecords(row.player_id)" type="primary" link> 查看战报 </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -111,14 +125,7 @@
 
     <!-- 加载更多 -->
     <div v-if="leaderboardPagination.hasMore" class="text-center mt-6">
-      <el-button
-        @click="loadMore"
-        :loading="loading.leaderboard"
-        type="primary"
-        plain
-      >
-        加载更多
-      </el-button>
+      <el-button @click="loadMore" :loading="loading.leaderboard" type="primary" plain> 加载更多 </el-button>
     </div>
 
     <!-- 空状态 -->
@@ -144,12 +151,8 @@ import { Trophy, Medal } from '@element-plus/icons-vue'
 const router = useRouter()
 const battleReportStore = useBattleReportStore()
 
-const {
-  leaderboard,
-  leaderboardPagination,
-  loading,
-  errors
-} = storeToRefs(battleReportStore)
+const { leaderboard, leaderboardPagination, loading, errors, eloEnabledRuleSets, selectedRuleSetId } =
+  storeToRefs(battleReportStore)
 
 // 获取胜率颜色
 const getWinRateColor = (winRate: number) => {
@@ -172,6 +175,12 @@ const viewPlayerRecords = (playerId: string) => {
   router.push(`/players/${playerId}/battles`)
 }
 
+// 规则集变化处理
+const onRuleSetChange = async (ruleSetId: string) => {
+  battleReportStore.setSelectedRuleSet(ruleSetId)
+  await refresh()
+}
+
 // 刷新数据
 const refresh = async () => {
   await battleReportStore.fetchLeaderboard(true)
@@ -183,8 +192,11 @@ const loadMore = () => {
 }
 
 // 初始化
-onMounted(() => {
-  refresh()
+onMounted(async () => {
+  // 先获取启用ELO的规则集
+  await battleReportStore.fetchEloEnabledRuleSets()
+  // 然后获取排行榜数据
+  await refresh()
 })
 </script>
 

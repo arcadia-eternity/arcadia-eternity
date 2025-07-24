@@ -12,6 +12,7 @@ export * from './client'
 export { PlayerRepository } from './repositories/playerRepository'
 export { BattleRepository } from './repositories/battleRepository'
 export { EmailVerificationRepository } from './repositories/EmailVerificationRepository'
+export { EloRepository } from './repositories/eloRepository'
 
 // 导出数据库服务类
 export class DatabaseService {

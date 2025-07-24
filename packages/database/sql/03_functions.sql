@@ -179,3 +179,187 @@ BEGIN
     RETURN affected_rows;
 END;
 $$;
+
+-- 获取或创建玩家ELO评级记录
+CREATE OR REPLACE FUNCTION get_or_create_player_elo(
+    p_player_id TEXT,
+    p_rule_set_id TEXT,
+    p_initial_elo INTEGER DEFAULT 1200
+)
+RETURNS TABLE (
+    player_id TEXT,
+    rule_set_id TEXT,
+    elo_rating INTEGER,
+    games_played INTEGER,
+    wins INTEGER,
+    losses INTEGER,
+    draws INTEGER,
+    highest_elo INTEGER,
+    created_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- 尝试获取现有记录
+    RETURN QUERY
+    SELECT
+        per.player_id,
+        per.rule_set_id,
+        per.elo_rating,
+        per.games_played,
+        per.wins,
+        per.losses,
+        per.draws,
+        per.highest_elo,
+        per.created_at,
+        per.updated_at
+    FROM player_elo_ratings per
+    WHERE per.player_id = p_player_id AND per.rule_set_id = p_rule_set_id;
+
+    -- 如果没有找到记录，创建新记录
+    IF NOT FOUND THEN
+        INSERT INTO player_elo_ratings (
+            player_id,
+            rule_set_id,
+            elo_rating,
+            highest_elo
+        ) VALUES (
+            p_player_id,
+            p_rule_set_id,
+            p_initial_elo,
+            p_initial_elo
+        );
+
+        -- 返回新创建的记录
+        RETURN QUERY
+        SELECT
+            per.player_id,
+            per.rule_set_id,
+            per.elo_rating,
+            per.games_played,
+            per.wins,
+            per.losses,
+            per.draws,
+            per.highest_elo,
+            per.created_at,
+            per.updated_at
+        FROM player_elo_ratings per
+        WHERE per.player_id = p_player_id AND per.rule_set_id = p_rule_set_id;
+    END IF;
+END;
+$$;
+
+-- 更新玩家ELO评级
+CREATE OR REPLACE FUNCTION update_player_elo(
+    p_player_id TEXT,
+    p_rule_set_id TEXT,
+    p_new_elo INTEGER,
+    p_result TEXT -- 'win', 'loss', 'draw'
+)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    current_highest INTEGER;
+BEGIN
+    -- 获取当前最高ELO
+    SELECT highest_elo INTO current_highest
+    FROM player_elo_ratings
+    WHERE player_id = p_player_id AND rule_set_id = p_rule_set_id;
+
+    -- 更新ELO评级和统计
+    UPDATE player_elo_ratings
+    SET
+        elo_rating = p_new_elo,
+        games_played = games_played + 1,
+        wins = wins + CASE WHEN p_result = 'win' THEN 1 ELSE 0 END,
+        losses = losses + CASE WHEN p_result = 'loss' THEN 1 ELSE 0 END,
+        draws = draws + CASE WHEN p_result = 'draw' THEN 1 ELSE 0 END,
+        highest_elo = GREATEST(COALESCE(current_highest, p_new_elo), p_new_elo),
+        updated_at = NOW()
+    WHERE player_id = p_player_id AND rule_set_id = p_rule_set_id;
+END;
+$$;
+
+-- 获取规则集ELO排行榜
+CREATE OR REPLACE FUNCTION get_elo_leaderboard(
+    p_rule_set_id TEXT,
+    p_limit INTEGER DEFAULT 50,
+    p_offset INTEGER DEFAULT 0
+)
+RETURNS TABLE (
+    player_id TEXT,
+    player_name TEXT,
+    elo_rating INTEGER,
+    games_played INTEGER,
+    wins INTEGER,
+    losses INTEGER,
+    draws INTEGER,
+    win_rate NUMERIC,
+    highest_elo INTEGER
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        per.player_id,
+        p.name as player_name,
+        per.elo_rating,
+        per.games_played,
+        per.wins,
+        per.losses,
+        per.draws,
+        CASE
+            WHEN per.games_played > 0 THEN
+                ROUND((per.wins::NUMERIC / per.games_played::NUMERIC) * 100, 2)
+            ELSE 0
+        END as win_rate,
+        per.highest_elo
+    FROM player_elo_ratings per
+    JOIN players p ON per.player_id = p.id
+    WHERE per.rule_set_id = p_rule_set_id
+    ORDER BY per.elo_rating DESC, per.games_played DESC
+    LIMIT p_limit OFFSET p_offset;
+END;
+$$;
+
+-- 批量更新玩家ELO评级（用于战斗结束后的原子更新）
+CREATE OR REPLACE FUNCTION batch_update_player_elos(
+    updates JSONB
+)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    update_record JSONB;
+    current_highest INTEGER;
+BEGIN
+    -- 遍历更新记录
+    FOR update_record IN SELECT * FROM jsonb_array_elements(updates)
+    LOOP
+        -- 获取当前最高ELO
+        SELECT highest_elo INTO current_highest
+        FROM player_elo_ratings
+        WHERE player_id = (update_record->>'player_id')::TEXT
+        AND rule_set_id = (update_record->>'rule_set_id')::TEXT;
+
+        -- 更新ELO评级和统计
+        UPDATE player_elo_ratings
+        SET
+            elo_rating = (update_record->>'new_elo')::INTEGER,
+            games_played = games_played + 1,
+            wins = wins + CASE WHEN (update_record->>'result')::TEXT = 'win' THEN 1 ELSE 0 END,
+            losses = losses + CASE WHEN (update_record->>'result')::TEXT = 'loss' THEN 1 ELSE 0 END,
+            draws = draws + CASE WHEN (update_record->>'result')::TEXT = 'draw' THEN 1 ELSE 0 END,
+            highest_elo = GREATEST(
+                COALESCE(current_highest, (update_record->>'new_elo')::INTEGER),
+                (update_record->>'new_elo')::INTEGER
+            ),
+            updated_at = NOW()
+        WHERE player_id = (update_record->>'player_id')::TEXT
+        AND rule_set_id = (update_record->>'rule_set_id')::TEXT;
+    END LOOP;
+END;
+$$;
