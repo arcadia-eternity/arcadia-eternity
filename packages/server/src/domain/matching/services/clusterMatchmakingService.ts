@@ -2,16 +2,15 @@ import { injectable, inject, optional } from 'inversify'
 import { PlayerParser } from '@arcadia-eternity/parser'
 import type { AckResponse, ErrorResponse } from '@arcadia-eternity/protocol'
 import { PlayerSchema } from '@arcadia-eternity/schema'
-import { nanoid } from 'nanoid'
 import pino from 'pino'
 import { ZodError } from 'zod'
 import type { Socket } from 'socket.io'
 import type { ClusterStateManager } from '../../../cluster/core/clusterStateManager'
 import type { SocketClusterAdapter } from '../../../cluster/communication/socketClusterAdapter'
 import type { DistributedLockManager } from '../../../cluster/redis/distributedLock'
-import type { PerformanceTracker } from '../../../cluster/monitoring/performanceTracker'
 import { LOCK_KEYS } from '../../../cluster/redis/distributedLock'
-import type { RoomState, MatchmakingEntry, ServiceInstance } from '../../../cluster/types'
+import type { PerformanceTracker } from '../../../cluster/monitoring/performanceTracker'
+import type { MatchmakingEntry, ServiceInstance } from '../../../cluster/types'
 import { BattleRpcClient } from '../../../cluster/communication/rpc/battleRpcClient'
 import type { ServiceDiscoveryManager } from '../../../cluster/discovery/serviceDiscovery'
 import type {
@@ -865,131 +864,8 @@ export class ClusterMatchmakingService implements IMatchmakingService {
     player1Entry: MatchmakingEntry,
     player2Entry: MatchmakingEntry,
   ): Promise<string | null> {
-    try {
-      const roomId = nanoid()
-
-      // 使用分布式锁确保房间创建的原子性
-      return await this.lockManager.withLock(LOCK_KEYS.ROOM_CREATE(roomId), async () => {
-        // 解析玩家数据 - 现在playerData应该是原始验证过的数据
-        let player1Data, player2Data
-        try {
-          player1Data = PlayerParser.parse(player1Entry.playerData)
-        } catch (error) {
-          logger.error(
-            {
-              error: error instanceof Error ? error.message : error,
-              playerId: player1Entry.playerId,
-              playerData: player1Entry.playerData,
-            },
-            'Failed to parse player 1 data',
-          )
-          throw new Error(`Failed to parse player 1 data: ${error instanceof Error ? error.message : 'Unknown error'}`)
-        }
-
-        try {
-          player2Data = PlayerParser.parse(player2Entry.playerData)
-        } catch (error) {
-          logger.error(
-            {
-              error: error instanceof Error ? error.message : error,
-              playerId: player2Entry.playerId,
-              playerData: player2Entry.playerData,
-            },
-            'Failed to parse player 2 data',
-          )
-          throw new Error(`Failed to parse player 2 data: ${error instanceof Error ? error.message : 'Unknown error'}`)
-        }
-
-        // 先创建本地Battle实例
-        const session1 = player1Entry.sessionId || player1Entry.metadata?.sessionId || 'default'
-        const session2 = player2Entry.sessionId || player2Entry.metadata?.sessionId || 'default'
-
-        // 获取规则集信息，优先使用player1的规则集，如果不存在则使用player2的，最后默认为休闲规则集
-        const ruleSetId = player1Entry.ruleSetId || player2Entry.ruleSetId || 'casual_standard_ruleset'
-
-        const tempRoomState: RoomState = {
-          id: roomId,
-          status: 'waiting',
-          sessions: [session1, session2],
-          sessionPlayers: {
-            [session1]: player1Entry.playerId,
-            [session2]: player2Entry.playerId,
-          },
-          instanceId: this.instanceId,
-          lastActive: Date.now(),
-          battleState: undefined, // 临时空状态，稍后更新
-          metadata: {
-            createdAt: Date.now(),
-            ruleSetId, // 添加规则集信息
-          },
-        }
-
-        // 先更新映射关系，确保原子性
-        logger.info({ roomId }, 'About to update session room mappings')
-
-        // 建立会话到房间的映射索引（Redis）
-        await this.callbacks.createSessionRoomMappings(tempRoomState)
-
-        // 3. 最后保存房间状态到集群，此时所有映射已就绪
-        logger.info({ roomId }, 'All mappings updated, about to save room state to cluster')
-        await this.stateManager.setRoomState(tempRoomState)
-
-        logger.info({ roomId }, 'Room state saved with all mappings ready, about to create local battle')
-
-        // 创建本地战斗实例（存储在 localBattles Map 中供后续使用）
-        const battle = await this.callbacks.createLocalBattle(tempRoomState, player1Data, player2Data)
-        logger.info({ roomId, battleId: battle.id }, 'Local battle created successfully')
-
-        // 更新房间状态（不再存储 battleState 到 Redis）
-        logger.info({ roomId }, 'About to update room state')
-        const roomState: RoomState = {
-          ...tempRoomState,
-          status: 'active', // 更新状态为活跃
-          // 移除 battleState 存储，避免 Redis 超时
-          // battleState: battle.getState(player1Data.id, false),
-        }
-
-        // 更新集群状态
-        logger.info({ roomId }, 'About to save updated room state to cluster')
-        await this.stateManager.setRoomState(roomState)
-        logger.info({ roomId }, 'Updated room state saved to cluster')
-
-        // 将玩家加入Socket.IO房间
-        logger.info(
-          { roomId, player1Id: player1Entry.playerId, player2Id: player2Entry.playerId },
-          'About to join players to Socket.IO room',
-        )
-        await this.socketAdapter.joinPlayerToRoom(player1Entry.playerId, roomId)
-        await this.socketAdapter.joinPlayerToRoom(player2Entry.playerId, roomId)
-
-        logger.info({ roomId }, 'Players joined Socket.IO room successfully')
-
-        logger.info(
-          { roomId, sessions: roomState.sessions, sessionPlayers: roomState.sessionPlayers },
-          'Cluster battle room created',
-        )
-
-        logger.info({ roomId }, 'About to return roomId from createClusterBattleRoom')
-        return roomId
-      })
-    } catch (error) {
-      logger.error(
-        {
-          error:
-            error instanceof Error
-              ? {
-                  name: error.name,
-                  message: error.message,
-                  stack: error.stack,
-                }
-              : error,
-          player1Id: player1Entry.playerId,
-          player2Id: player2Entry.playerId,
-        },
-        'Failed to create cluster battle room',
-      )
-      return null
-    }
+    // 委托给回调处理
+    return await this.callbacks.createClusterBattleRoom(player1Entry, player2Entry)
   }
 
   /**
