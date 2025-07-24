@@ -44,8 +44,6 @@ type PlayerMeta = {
   heartbeatTimer?: ReturnType<typeof setTimeout>
 }
 
-// LocalRoomData 和 DisconnectedPlayerInfo 类型已移动到 clusterBattleService
-
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface InterServerEvents {}
 
@@ -268,6 +266,7 @@ export class ClusterBattleServer {
     this.setupLeaderElectionMonitoring()
     this.setupInstanceExpirationWatcher()
     this.setupRoomCleanupListener()
+    this.setupStateUpdateListener()
 
     // 启动RPC服务器
     await this.initializeRpcServer()
@@ -378,15 +377,132 @@ export class ClusterBattleServer {
     })
   }
 
+  private lastBroadcastState: ServerState | null = null
+  private broadcastDebounceTimer: NodeJS.Timeout | null = null
+  private readonly BROADCAST_DEBOUNCE_MS = 1000 // 1秒防抖
+  private readonly AUTO_BROADCAST_INTERVAL = 5000 // 5秒定时广播
+
   private setupAutoUpdateState() {
+    // 定时广播，间隔缩短到5秒，只有Leader才广播
     setInterval(async () => {
       try {
-        const state: ServerState = await this.getCurrentState()
-        this.io.emit('updateState', state)
+        // 检查当前实例是否为Leader
+        const leaderStatus = await this.getLeaderElectionStatus()
+        if (leaderStatus.isCurrentInstanceLeader) {
+          await this.broadcastServerState(false) // 不强制广播，会检查状态变化
+          logger.debug('Periodic server state update by leader')
+        }
       } catch (error) {
-        logger.error({ error }, 'Error updating server state')
+        logger.error({ error }, 'Error in auto server state update')
       }
-    }, 30000)
+    }, this.AUTO_BROADCAST_INTERVAL)
+  }
+
+  /**
+   * 广播服务器状态，支持防抖和状态变化检测
+   */
+  private async broadcastServerState(force: boolean = false): Promise<void> {
+    try {
+      const currentState = await this.getCurrentState()
+
+      // 检查状态是否有变化（除非强制广播）
+      if (!force && this.lastBroadcastState && this.isStateEqual(currentState, this.lastBroadcastState)) {
+        return // 状态没有变化，跳过广播
+      }
+
+      this.lastBroadcastState = { ...currentState }
+      this.io.emit('updateState', currentState)
+
+      logger.debug({ state: currentState }, 'Server state broadcasted')
+    } catch (error) {
+      logger.error({ error }, 'Error broadcasting server state')
+    }
+  }
+
+  /**
+   * 防抖广播服务器状态（只有Leader才广播）
+   */
+  private debouncedBroadcastServerState(): void {
+    if (this.broadcastDebounceTimer) {
+      clearTimeout(this.broadcastDebounceTimer)
+    }
+
+    this.broadcastDebounceTimer = setTimeout(async () => {
+      // 检查当前实例是否为Leader
+      const leaderStatus = await this.getLeaderElectionStatus()
+      if (leaderStatus.isCurrentInstanceLeader) {
+        await this.broadcastServerState(true) // 防抖后的广播总是强制执行
+        logger.debug('Server state broadcasted by leader instance')
+      } else {
+        // 非Leader实例发布状态变化事件，通知Leader广播
+        await this.notifyLeaderToUpdateState()
+        logger.debug('Non-leader instance notified leader to update state')
+      }
+      this.broadcastDebounceTimer = null
+    }, this.BROADCAST_DEBOUNCE_MS)
+  }
+
+  /**
+   * 通知Leader实例更新服务器状态
+   */
+  private async notifyLeaderToUpdateState(): Promise<void> {
+    try {
+      const publisher = this.stateManager.redisManager.getPublisher()
+      await publisher.publish(
+        'cluster:state-update-request',
+        JSON.stringify({
+          instanceId: this.instanceId,
+          timestamp: Date.now(),
+        }),
+      )
+    } catch (error) {
+      logger.error({ error }, 'Failed to notify leader to update state')
+    }
+  }
+
+  /**
+   * 设置状态更新监听器（Leader监听其他实例的更新请求）
+   */
+  private setupStateUpdateListener(): void {
+    const subscriber = this.stateManager.redisManager.getSubscriber()
+
+    subscriber.subscribe('cluster:state-update-request', err => {
+      if (err) {
+        logger.error({ error: err }, 'Failed to subscribe to state update requests')
+      } else {
+        logger.debug('Subscribed to cluster state update requests')
+      }
+    })
+
+    subscriber.on('message', async (channel, message) => {
+      if (channel === 'cluster:state-update-request') {
+        try {
+          const request = JSON.parse(message)
+
+          // 只有Leader才处理状态更新请求
+          const leaderStatus = await this.getLeaderElectionStatus()
+          if (leaderStatus.isCurrentInstanceLeader) {
+            logger.debug({ requestFrom: request.instanceId }, 'Leader received state update request')
+            // 立即广播最新状态
+            await this.broadcastServerState(true)
+          }
+        } catch (error) {
+          logger.error({ error, message }, 'Error processing state update request')
+        }
+      }
+    })
+  }
+
+  /**
+   * 检查两个服务器状态是否相等
+   */
+  private isStateEqual(state1: ServerState, state2: ServerState): boolean {
+    return (
+      state1.onlinePlayers === state2.onlinePlayers &&
+      state1.matchmakingQueue === state2.matchmakingQueue &&
+      state1.rooms === state2.rooms &&
+      state1.playersInRooms === state2.playersInRooms
+    )
   }
 
   private setupConnectionHandlers() {
@@ -611,6 +727,9 @@ export class ClusterBattleServer {
 
         // 从集群状态中移除玩家连接
         await this.stateManager.removePlayerConnection(playerId, sessionId)
+
+        // 玩家断开连接后立即广播服务器状态更新
+        this.debouncedBroadcastServerState()
       }
 
       // 从匹配队列中移除该session
@@ -3043,6 +3162,9 @@ export class ClusterBattleServer {
 
         logger.info({ playerId, sessionId, instanceId: this.instanceId }, 'Setting player connection in cluster')
         await this.stateManager.setPlayerConnection(playerId, connection)
+
+        // 玩家连接后立即广播服务器状态更新
+        this.debouncedBroadcastServerState()
       } catch (error) {
         logger.error({ error, playerId, sessionId, socketId: socket.id }, 'Failed to register player connection')
       }
@@ -3556,6 +3678,9 @@ export class ClusterBattleServer {
       },
       createClusterBattleRoom: async (player1Entry: any, player2Entry: any) => {
         return await this.battleService.createClusterBattleRoom(player1Entry, player2Entry)
+      },
+      broadcastServerStateUpdate: () => {
+        this.debouncedBroadcastServerState()
       },
     }
   }

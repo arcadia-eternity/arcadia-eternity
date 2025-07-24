@@ -32,6 +32,7 @@ export interface MatchmakingCallbacks {
   createSessionRoomMappings: (roomState: RoomState) => Promise<void>
   verifyInstanceReachability: (instance: ServiceInstance) => Promise<boolean>
   createClusterBattleRoom: (player1Entry: any, player2Entry: any) => Promise<string | null>
+  broadcastServerStateUpdate?: () => void
 }
 
 // 战斗服务回调接口

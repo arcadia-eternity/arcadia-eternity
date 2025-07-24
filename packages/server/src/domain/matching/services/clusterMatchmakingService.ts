@@ -228,6 +228,9 @@ export class ClusterMatchmakingService implements IMatchmakingService {
           this.performanceTracker.updateMatchmakingQueueSize(queueSize)
         }
 
+        // 玩家加入队列后广播服务器状态更新
+        this.callbacks.broadcastServerStateUpdate?.()
+
         logger.info(
           {
             socketId: socket.id,
@@ -281,6 +284,9 @@ export class ClusterMatchmakingService implements IMatchmakingService {
         const queueSize = await this.stateManager.getMatchmakingQueueSize()
         this.performanceTracker.updateMatchmakingQueueSize(queueSize)
       }
+
+      // 玩家取消匹配后广播服务器状态更新
+      this.callbacks.broadcastServerStateUpdate?.()
 
       logger.info({ socketId: socket.id, playerId, sessionId }, '玩家取消匹配')
       ack?.({ status: 'SUCCESS', data: { status: 'CANCELED' } })
@@ -635,6 +641,9 @@ export class ClusterMatchmakingService implements IMatchmakingService {
             const queueSize = await this.stateManager.getMatchmakingQueueSize()
             this.performanceTracker.updateMatchmakingQueueSize(queueSize)
           }
+
+          // 匹配成功创建房间后广播服务器状态更新
+          this.callbacks.broadcastServerStateUpdate?.()
 
           // 通知匹配成功
           await this.notifyMatchSuccess(player1Entry, player2Entry, roomId)
