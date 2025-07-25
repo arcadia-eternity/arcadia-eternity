@@ -303,7 +303,6 @@ export const useBattleStore = defineStore('battle', {
 
     async handleBattleMessage(msg: BattleMessage) {
       // 处理团队选择相关消息
-      console.debug('🔄 Received battle message:', msg.type, msg)
       if (msg.type === BattleMessageType.TeamSelectionStart) {
         // 将消息中的 config 转换为 TeamSelectionConfig 格式
         const config: TeamSelectionConfig = {

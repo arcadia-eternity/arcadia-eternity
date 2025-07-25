@@ -18,6 +18,28 @@ cancel: 取消
 waiting-for-opponent-title: 等待对手操作
 waiting-for-opponent-message: 等待对手操作中...
 
+# 队伍选择相关
+teamSelection:
+  fullTeam: 完整队伍
+  opponentTeam: 对手队伍
+  reset: 重置
+  confirm: 确认
+  selected: 已选择
+  starter: 首发
+  notSelected: 未选择
+  opponentStatus: 对手状态
+  titles:
+    viewOnly: 队伍预览
+    teamSelection: 选择你的队伍
+    fullTeamWithStarter: 选择你的首发
+    fullTeamPreview: 队伍预览
+    default: 队伍选择
+  opponentProgress:
+    not_started: 等待中
+    in_progress: 选择中...
+    completed: 已完成
+    unknown: 未知
+
 # 属性翻译
 element:
   Normal: 普通

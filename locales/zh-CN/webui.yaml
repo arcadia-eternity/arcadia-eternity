@@ -7,6 +7,7 @@ unknown_pet_hint: 该精灵尚未出现过，信息未知
 # 基本属性
 species: 种族
 level: 等级
+levelShort: Lv.
 element: 属性
 skills: 技能
 
