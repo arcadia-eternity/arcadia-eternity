@@ -190,6 +190,9 @@ export class ClusterBattleService implements IBattleService {
           animationPauseEnabled: true,
           maxAnimationDuration: 20000,
         },
+        teamSelection: {
+          enabled: false, // 默认不启用团队选择
+        },
       })
     }
 

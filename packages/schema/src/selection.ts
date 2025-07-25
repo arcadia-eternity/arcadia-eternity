@@ -32,11 +32,21 @@ export const SurrenderSelectionSchema = z
   })
   .strict()
 
+export const TeamSelectionSchema = z
+  .object({
+    type: z.literal('team-selection'),
+    player: z.nanoid(),
+    selectedPets: z.array(z.nanoid()),
+    starterPetId: z.nanoid(),
+  })
+  .strict()
+
 export const PlayerSelectionSchema = z.discriminatedUnion('type', [
   UseSkillSelectionSchema,
   SwitchPetSelectionSchema,
   DoNothingSelectionSchema,
   SurrenderSelectionSchema,
+  TeamSelectionSchema,
 ])
 
 export type PlayerSelectionSchemaType = z.infer<typeof PlayerSelectionSchema>

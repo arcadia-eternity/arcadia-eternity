@@ -25,6 +25,7 @@ export const Z_INDEX_VALUES = {
   // 顶层 UI (1000+)
   KO_BANNER: 1000,
   BATTLE_END_UI: 1000,
+  TEAM_SELECTION_PANEL: 1020,
 
   // Climax 特效层级 (1050+)
   CLIMAX_BLACK_SCREEN: 1050, // Climax 黑屏遮罩
@@ -62,6 +63,7 @@ export enum Z_INDEX_CLASS {
   // 顶层 UI
   KO_BANNER = 'z-[1000]',
   BATTLE_END_UI = 'z-[1000]',
+  TEAM_SELECTION_PANEL = 'z-[1020]',
 
   // Climax 特效层级
   CLIMAX_BLACK_SCREEN = 'z-[1050]',

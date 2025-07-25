@@ -147,6 +147,14 @@ export class ConsoleUIV2 {
         }
       }
     }
+
+    // 处理团队选择逻辑
+    if (message.type === BattleMessageType.TeamSelectionStart) {
+      for (const p of this.currentPlayer) {
+        console.log(`\n🏆 ${this.getPlayerNameById(p)}需要选择出战队伍！`)
+        await this.handleTeamSelection(p, message.data.config)
+      }
+    }
   }
 
   private renderBattleState() {
@@ -444,6 +452,14 @@ export class ConsoleUIV2 {
         break
       }
 
+      case BattleMessageType.TeamSelectionStart:
+        console.log(`🎮 队伍选择开始！`)
+        break
+
+      case BattleMessageType.TeamSelectionComplete:
+        console.log(`🎮 队伍选择完成！`)
+        break
+
       default:
         // @ts-expect-error
         console.log(`未知消息类型: ${message.type}`)
@@ -671,7 +687,7 @@ export class ConsoleUIV2 {
     await this.renderTimerInfo(playerId)
 
     const selections = await this.battleInterface.getAvailableSelection(playerId)
-    this.showSelectionMenu(selections)
+    this.showSelectionMenu(selections as any)
 
     const choice = await this.prompt('请选择操作: ')
     const selection = this.parseSelection(selections, parseInt(choice))
@@ -714,7 +730,7 @@ export class ConsoleUIV2 {
     return states[state] || state
   }
 
-  private showSelectionMenu(selections: PlayerSelectionSchemaType[]) {
+  private showSelectionMenu(selections: any[]) {
     console.log('\n=== 可用操作 ===')
     selections.forEach((s, i) => {
       const index = i + 1
@@ -750,6 +766,10 @@ export class ConsoleUIV2 {
           console.log(`${index}. [投降] 结束对战`)
           break
 
+        case 'team-selection':
+          console.log(`${index}. [团队选择] 选择出战队伍`)
+          break
+
         default:
           console.log(`${index}. 未知操作类型`)
       }
@@ -781,6 +801,126 @@ export class ConsoleUIV2 {
         resolve(answer)
       }),
     )
+  }
+
+  private async handleTeamSelection(playerId: playerId, config: any) {
+    console.log('\n=== 团队选择 ===')
+    console.log(`模式: ${this.translateTeamSelectionMode(config.mode)}`)
+    if (config.timeLimit) {
+      console.log(`时间限制: ${config.timeLimit}秒`)
+    }
+
+    const player = this.battleState.players?.find(p => p.id === playerId)
+    if (!player) {
+      console.log('找不到玩家信息')
+      return
+    }
+
+    // 临时类型断言，后续需要更新Player类型定义
+    const fullTeam = (player as any).fullTeam || player.team || []
+    if (fullTeam.length === 0) {
+      console.log('没有可用的精灵')
+      return
+    }
+
+    // 显示完整队伍
+    console.log('\n可选精灵:')
+    fullTeam.forEach((pet: any, index: number) => {
+      const status = pet.currentHp > 0 ? '健康' : '倒下'
+      console.log(`${index + 1}. ${pet.name} (Lv.${pet.level}) - ${pet.currentHp}/${pet.stat.maxHp} HP [${status}]`)
+    })
+
+    if (config.mode === 'VIEW_ONLY') {
+      console.log('\n这是查看模式，无需选择。按回车继续...')
+      await this.prompt('')
+      return
+    }
+
+    let selectedPets: string[] = []
+    let starterPetId = ''
+
+    if (config.mode === 'TEAM_SELECTION') {
+      // 选择队伍成员
+      const maxTeamSize = config.maxTeamSize || 6
+      const minTeamSize = config.minTeamSize || 1
+
+      console.log(`\n请选择 ${minTeamSize}-${maxTeamSize} 只精灵组成队伍`)
+      console.log('输入精灵编号，用空格分隔 (例如: 1 3 5):')
+
+      while (selectedPets.length < minTeamSize || selectedPets.length > maxTeamSize) {
+        const input = await this.prompt('选择精灵: ')
+        const indices = input
+          .split(' ')
+          .map(s => parseInt(s.trim()))
+          .filter(n => !isNaN(n))
+
+        selectedPets = []
+        for (const index of indices) {
+          if (index >= 1 && index <= fullTeam.length) {
+            const pet = fullTeam[index - 1]
+            if (pet.currentHp > 0) {
+              selectedPets.push(pet.id)
+            } else {
+              console.log(`精灵 ${pet.name} 已倒下，无法选择`)
+            }
+          } else {
+            console.log(`无效编号: ${index}`)
+          }
+        }
+
+        if (selectedPets.length < minTeamSize) {
+          console.log(`至少需要选择 ${minTeamSize} 只精灵`)
+        } else if (selectedPets.length > maxTeamSize) {
+          console.log(`最多只能选择 ${maxTeamSize} 只精灵`)
+        }
+      }
+    } else {
+      // FULL_TEAM 模式，使用全部精灵
+      selectedPets = fullTeam.filter((pet: any) => pet.currentHp > 0).map((pet: any) => pet.id)
+    }
+
+    // 选择首发精灵
+    if (config.allowStarterSelection && selectedPets.length > 0) {
+      console.log('\n选择的精灵:')
+      selectedPets.forEach((petId, index) => {
+        const pet = fullTeam.find((p: any) => p.id === petId)
+        console.log(`${index + 1}. ${pet?.name}`)
+      })
+
+      while (!starterPetId) {
+        const input = await this.prompt('选择首发精灵编号: ')
+        const index = parseInt(input.trim())
+
+        if (index >= 1 && index <= selectedPets.length) {
+          starterPetId = selectedPets[index - 1]
+        } else {
+          console.log('无效编号')
+        }
+      }
+    } else {
+      starterPetId = selectedPets[0] || ''
+    }
+
+    // 提交选择
+    const teamSelection = {
+      type: 'team-selection' as const,
+      player: playerId,
+      selectedPets: selectedPets, // petId类型需要后续统一
+      starterPetId: starterPetId, // petId类型需要后续统一
+    }
+
+    console.log('\n团队选择完成！')
+    // 临时类型断言，后续需要更新PlayerSelection类型定义
+    await this.battleInterface.submitAction(teamSelection as any)
+  }
+
+  private translateTeamSelectionMode(mode: string): string {
+    const modes: Record<string, string> = {
+      VIEW_ONLY: '仅查看',
+      TEAM_SELECTION: '选择队伍',
+      FULL_TEAM: '完整队伍',
+    }
+    return modes[mode] || mode
   }
 
   /**

@@ -31,6 +31,13 @@ export class SelectionParser {
           type: 'surrender',
           player: schema.player as playerId,
         }
+      case 'team-selection':
+        return {
+          type: 'team-selection',
+          player: schema.player as playerId,
+          selectedPets: schema.selectedPets as petId[],
+          starterPetId: schema.starterPetId as petId,
+        }
       default:
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         throw new Error(`未知的选择类型: ${(schema as any).type}`)
@@ -57,6 +64,13 @@ export class SelectionParser {
         return {
           type: selection.type,
           player: selection.player,
+        }
+      case 'team-selection':
+        return {
+          type: 'team-selection',
+          player: selection.player,
+          selectedPets: selection.selectedPets,
+          starterPetId: selection.starterPetId,
         }
       default: {
         // 类型保护，确保处理所有可能类型

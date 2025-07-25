@@ -158,6 +158,104 @@
         </template>
       </div>
 
+      <!-- 团队选择配置 -->
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">团队选择配置</h3>
+
+        <div class="mb-3 flex items-center">
+          <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+            <input
+              type="checkbox"
+              v-model="battleConfig.teamSelection.enabled"
+              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+            />
+            启用团队选择
+          </label>
+        </div>
+
+        <template v-if="battleConfig.teamSelection.enabled">
+          <div class="mb-3">
+            <label class="block text-sm text-gray-600 mb-1">选择模式:</label>
+            <select
+              v-model="battleConfig.teamSelection.mode"
+              class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="VIEW_ONLY">仅查看模式</option>
+              <option value="TEAM_SELECTION">团队选择模式</option>
+              <option value="FULL_TEAM">全队参战模式</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">最大队伍大小:</label>
+              <input
+                type="number"
+                v-model.number="battleConfig.teamSelection.maxTeamSize"
+                min="1"
+                max="12"
+                class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">最小队伍大小:</label>
+              <input
+                type="number"
+                v-model.number="battleConfig.teamSelection.minTeamSize"
+                min="1"
+                :max="battleConfig.teamSelection.maxTeamSize"
+                class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="block text-sm text-gray-600 mb-1">选择时间限制 (秒):</label>
+            <input
+              type="number"
+              v-model.number="battleConfig.teamSelection.timeLimit"
+              min="10"
+              max="300"
+              class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div class="mb-3 flex items-center">
+            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                v-model="battleConfig.teamSelection.allowStarterSelection"
+                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+              />
+              允许选择首发精灵
+            </label>
+          </div>
+
+          <div class="mb-3 flex items-center">
+            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                v-model="battleConfig.teamSelection.showOpponentTeam"
+                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+              />
+              显示对手队伍
+            </label>
+          </div>
+
+          <div class="mb-3">
+            <label class="block text-sm text-gray-600 mb-1">队伍信息可见性:</label>
+            <select
+              v-model="battleConfig.teamSelection.teamInfoVisibility"
+              class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="HIDDEN">隐藏</option>
+              <option value="BASIC">基础信息</option>
+              <option value="FULL">完整信息</option>
+            </select>
+          </div>
+        </template>
+      </div>
+
       <!-- 预设配置按钮 -->
       <div class="flex gap-3 justify-center mt-6 pt-6 border-t border-gray-200">
         <button
@@ -177,6 +275,12 @@
           class="px-4 py-2 text-sm bg-gray-100 text-gray-700 border border-gray-300 rounded-md cursor-pointer transition-all duration-200 hover:bg-gray-200 hover:border-gray-400"
         >
           竞技模式
+        </button>
+        <button
+          @click="loadPreset('teamSelection')"
+          class="px-4 py-2 text-sm bg-green-100 text-green-700 border border-green-300 rounded-md cursor-pointer transition-all duration-200 hover:bg-green-200 hover:border-green-400"
+        >
+          团队选择测试
         </button>
       </div>
     </div>
@@ -253,12 +357,32 @@ interface BattleConfig {
   allowFaintSwitch: boolean
   showHidden: boolean
   rngSeed?: number
+  teamSelection: {
+    enabled: boolean
+    mode: 'VIEW_ONLY' | 'TEAM_SELECTION' | 'FULL_TEAM'
+    maxTeamSize: number
+    minTeamSize: number
+    allowStarterSelection: boolean
+    showOpponentTeam: boolean
+    teamInfoVisibility: 'HIDDEN' | 'BASIC' | 'FULL'
+    timeLimit: number
+  }
 }
 
 const battleConfig = reactive<BattleConfig>({
   allowFaintSwitch: true,
   showHidden: true,
   rngSeed: undefined,
+  teamSelection: {
+    enabled: false,
+    mode: 'TEAM_SELECTION',
+    maxTeamSize: 6,
+    minTeamSize: 1,
+    allowStarterSelection: true,
+    showOpponentTeam: false,
+    teamInfoVisibility: 'HIDDEN',
+    timeLimit: 60,
+  },
 })
 
 // 计时器配置
@@ -294,6 +418,16 @@ const presets = {
       allowFaintSwitch: true,
       showHidden: true,
       rngSeed: undefined,
+      teamSelection: {
+        enabled: false,
+        mode: 'TEAM_SELECTION' as const,
+        maxTeamSize: 6,
+        minTeamSize: 1,
+        allowStarterSelection: true,
+        showOpponentTeam: false,
+        teamInfoVisibility: 'HIDDEN' as const,
+        timeLimit: 60,
+      },
     },
     timer: {
       ...DEFAULT_TIMER_CONFIG,
@@ -306,6 +440,16 @@ const presets = {
       allowFaintSwitch: true,
       showHidden: true,
       rngSeed: undefined,
+      teamSelection: {
+        enabled: true,
+        mode: 'TEAM_SELECTION' as const,
+        maxTeamSize: 4,
+        minTeamSize: 2,
+        allowStarterSelection: true,
+        showOpponentTeam: false,
+        teamInfoVisibility: 'BASIC' as const,
+        timeLimit: 30, // 快速模式：30秒选择
+      },
     },
     timer: {
       ...DEFAULT_TIMER_CONFIG,
@@ -322,6 +466,16 @@ const presets = {
       allowFaintSwitch: true,
       showHidden: false, // 竞技模式不显示隐藏信息
       rngSeed: undefined,
+      teamSelection: {
+        enabled: true,
+        mode: 'TEAM_SELECTION' as const,
+        maxTeamSize: 6,
+        minTeamSize: 3,
+        allowStarterSelection: true,
+        showOpponentTeam: false,
+        teamInfoVisibility: 'HIDDEN' as const,
+        timeLimit: 90, // 竞技模式：90秒选择
+      },
     },
     timer: {
       ...DEFAULT_TIMER_CONFIG,
@@ -332,6 +486,29 @@ const presets = {
     },
     enableTurnTimeLimit: true,
     enableTotalTimeLimit: true,
+  },
+  teamSelection: {
+    battle: {
+      allowFaintSwitch: true,
+      showHidden: true,
+      rngSeed: undefined,
+      teamSelection: {
+        enabled: true,
+        mode: 'TEAM_SELECTION' as const,
+        maxTeamSize: 6,
+        minTeamSize: 1,
+        allowStarterSelection: true,
+        showOpponentTeam: true,
+        teamInfoVisibility: 'FULL' as const,
+        timeLimit: 120, // 团队选择测试：2分钟选择
+      },
+    },
+    timer: {
+      ...DEFAULT_TIMER_CONFIG,
+      enabled: false, // 团队选择测试模式不启用战斗计时器
+    },
+    enableTurnTimeLimit: false,
+    enableTotalTimeLimit: false,
   },
 }
 
@@ -480,6 +657,18 @@ const startLocalBattle = async () => {
       rngSeed?: number
       showHidden?: boolean
       timerConfig?: Partial<TimerConfig>
+      teamSelection?: {
+        enabled: boolean
+        config?: {
+          mode?: 'VIEW_ONLY' | 'TEAM_SELECTION' | 'FULL_TEAM'
+          maxTeamSize?: number
+          minTeamSize?: number
+          allowStarterSelection?: boolean
+          showOpponentTeam?: boolean
+          teamInfoVisibility?: 'HIDDEN' | 'BASIC' | 'FULL'
+          timeLimit?: number
+        }
+      }
     } = {
       allowFaintSwitch: battleConfig.allowFaintSwitch,
       showHidden: battleConfig.showHidden,
@@ -492,6 +681,22 @@ const startLocalBattle = async () => {
 
     // 添加计时器配置
     battleOptions.timerConfig = { ...timerConfig }
+
+    // 添加团队选择配置
+    if (battleConfig.teamSelection.enabled) {
+      battleOptions.teamSelection = {
+        enabled: true,
+        config: {
+          mode: battleConfig.teamSelection.mode,
+          maxTeamSize: battleConfig.teamSelection.maxTeamSize,
+          minTeamSize: battleConfig.teamSelection.minTeamSize,
+          allowStarterSelection: battleConfig.teamSelection.allowStarterSelection,
+          showOpponentTeam: battleConfig.teamSelection.showOpponentTeam,
+          teamInfoVisibility: battleConfig.teamSelection.teamInfoVisibility,
+          timeLimit: battleConfig.teamSelection.timeLimit,
+        },
+      }
+    }
 
     // 创建战斗实例
     let battle: Battle
