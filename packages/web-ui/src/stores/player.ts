@@ -157,32 +157,28 @@ export const usePlayerStore = defineStore('player', {
       // 尝试同步到服务器
       try {
         const authStore = useAuthStore()
-        const response = await fetch('/api/v1/auth/update-player-name', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(this.isAuthenticated && authStore.getAccessToken()
-              ? {
-                  Authorization: `Bearer ${authStore.getAccessToken()}`,
-                }
-              : {}),
-          },
-          body: JSON.stringify({
-            playerId: this.id,
-            name: newName,
-          }),
+        const api = authStore.getApiInstance()
+
+        const response = await api.put('/auth/update-player-name', {
+          playerId: this.id,
+          name: newName,
         })
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          console.warn('Failed to sync name to server:', errorData.message)
-          // 不显示错误消息给用户，因为本地已经保存成功
-        } else {
+        if (response.data.success) {
           console.log('Name synced to server successfully')
+        } else {
+          console.warn('Failed to sync name to server:', response.data.message)
+          ElMessage.warning('名称同步到服务器失败，但本地已保存')
         }
-      } catch (error) {
+      } catch (error: any) {
         console.warn('Failed to sync name to server:', error)
-        // 不显示错误消息给用户，因为本地已经保存成功
+        if (error.response?.status === 405) {
+          ElMessage.error('服务器不支持此操作，请检查服务器配置')
+        } else if (error.response?.data?.message) {
+          ElMessage.warning(`同步失败: ${error.response.data.message}`)
+        } else {
+          ElMessage.warning('名称同步到服务器失败，但本地已保存')
+        }
       }
     },
 

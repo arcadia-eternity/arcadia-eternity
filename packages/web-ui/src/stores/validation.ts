@@ -268,7 +268,7 @@ export const useValidationStore = defineStore('validation', () => {
       case 'standard_gender_restriction_rule':
         return '根据精灵种族限制性别选择'
       case 'competitive_full_team_rule':
-        return '要求必须选择完整的6只精灵参战'
+        return '要求必须选择完整的6只精灵参战，并且允许选择初始出战精灵'
       default:
         return rule.description || '该规则会影响队伍构建或战斗行为'
     }
