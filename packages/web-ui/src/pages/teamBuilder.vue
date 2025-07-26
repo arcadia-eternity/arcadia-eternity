@@ -223,6 +223,10 @@
                     <div>
                       <div class="font-medium">{{ mode.name }}</div>
                       <div class="text-xs text-gray-500">{{ mode.description }}</div>
+                      <div class="text-xs text-gray-400 flex items-center mt-1">
+                        {{ mode.ruleCount }} 条规则
+                        <RuleSetTooltip :rule-set-id="mode.id" />
+                      </div>
                     </div>
                   </el-option>
                 </el-select>
@@ -1029,7 +1033,7 @@ import { nanoid } from 'nanoid'
 import { usePlayerStore } from '@/stores/player'
 import { useGameDataStore } from '@/stores/gameData'
 import { usePetStorageStore } from '@/stores/petStorage'
-import { ClientRuleIntegration } from '@arcadia-eternity/rules'
+import { useValidationStore } from '@/stores/validation'
 
 import { type PetSchemaType } from '@arcadia-eternity/schema'
 import { useTranslation } from 'i18next-vue'
@@ -1038,6 +1042,7 @@ import { Nature } from '@arcadia-eternity/const'
 import { Sortable } from 'sortablejs-vue3'
 import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
+import RuleSetTooltip from '@/components/RuleSetTooltip.vue'
 import MarkdownIt from 'markdown-it'
 import {
   InfoFilled,
@@ -1062,6 +1067,7 @@ const { i18next } = useTranslation()
 const playerStore = usePlayerStore()
 const gameDataStore = useGameDataStore()
 const petStorage = usePetStorageStore()
+const validationStore = useValidationStore()
 
 // 使用组合式函数
 const { importTeamConfig, moveToStorage, deletePet } = usePetManagement()
@@ -1092,55 +1098,27 @@ const statList: StatKey[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe']
 
 const drag = ref(false)
 
-// 游戏模式相关
-const availableGameModes = ref<
-  Array<{
-    id: string
-    name: string
-    description: string
-  }>
->([])
+// 游戏模式相关 - 使用 validation store
+const availableGameModes = computed(() => validationStore.availableRuleSets)
 
 // 初始化规则集
 onMounted(async () => {
-  try {
-    const ruleSets = await ClientRuleIntegration.getAvailableRuleSets()
-    availableGameModes.value = markRaw(
-      ruleSets.map(id => ({
-        id,
-        name: id === 'competitive_ruleset' ? '竞技规则' : '休闲规则',
-        description: id === 'competitive_ruleset' ? '严格的竞技对战规则集' : '休闲模式的规则集合',
-      })),
-    )
+  // 初始化验证系统
+  await validationStore.initialize()
 
-    // 初始化时同步当前队伍的规则集到ClientRuleIntegration
-    const currentRuleSetId = petStorage.getCurrentTeamRuleSetId()
-    await ClientRuleIntegration.setTeamBuilderRuleSetIds([currentRuleSetId])
-
-    // 确保种族数据提供者已正确初始化
-    await ClientRuleIntegration.initializeSpeciesDataProvider(gameDataStore)
-  } catch (error) {
-    console.error('获取可用规则集失败:', error)
-    // 提供默认规则集
-    availableGameModes.value = markRaw([
-      { id: 'casual_standard_ruleset', name: '休闲规则', description: '休闲模式的规则集合' },
-      { id: 'competitive_ruleset', name: '竞技规则', description: '严格的竞技对战规则集' },
-    ])
-  }
+  // 初始化时同步当前队伍的规则集
+  const currentRuleSetId = petStorage.getCurrentTeamRuleSetId()
+  validationStore.setSelectedRuleSet(currentRuleSetId)
 })
 
 // 监听队伍切换，同步规则集
 watch(
   () => petStorage.currentTeamIndex,
-  async newIndex => {
-    try {
-      // 当切换队伍时，同步该队伍的规则集
-      const ruleSetId = petStorage.getTeamRuleSetId(newIndex)
-      await ClientRuleIntegration.setTeamBuilderRuleSetIds([ruleSetId])
-      console.log(`切换到队伍 ${newIndex + 1}，规则集: ${ruleSetId}`)
-    } catch (error) {
-      console.error('设置规则集失败:', error)
-    }
+  newIndex => {
+    // 当切换队伍时，同步该队伍的规则集
+    const ruleSetId = petStorage.getTeamRuleSetId(newIndex)
+    validationStore.setSelectedRuleSet(ruleSetId)
+    console.log(`切换到队伍 ${newIndex + 1}，规则集: ${ruleSetId}`)
   },
 )
 
@@ -1149,6 +1127,7 @@ const selectedGameMode = computed({
   get: () => petStorage.getCurrentTeamRuleSetId(),
   set: (newRuleSetId: string) => {
     petStorage.updateTeamRuleSetId(petStorage.currentTeamIndex, newRuleSetId)
+    validationStore.setSelectedRuleSet(newRuleSetId)
   },
 })
 
@@ -1158,8 +1137,6 @@ const onGameModeChange = async (ruleSetId: string) => {
     // 通过computed属性的setter更新规则集，这会自动保存到队伍数据中
     selectedGameMode.value = ruleSetId
 
-    // 同时更新ClientRuleIntegration的全局设置
-    await ClientRuleIntegration.setTeamBuilderRuleSetIds([ruleSetId])
     console.log(`规则集已切换为: ${ruleSetId}`)
 
     // 重新验证当前队伍
@@ -1220,17 +1197,11 @@ const handleDragEnd = (event: any) => {
 // 使用规则系统的验证函数
 const validateTeam = async () => {
   try {
-    const validation = await ClientRuleIntegration.validateTeam(currentTeam.value)
+    const validation = await validationStore.validateTeam(currentTeam.value)
 
     if (!validation.isValid) {
       // 返回第一个错误信息
-      return validation.errors[0]?.message || '队伍验证失败'
-    }
-
-    // 显示警告信息（如果有）
-    if (validation.warnings.length > 0) {
-      const warningMessages = validation.warnings.map((warning: any) => warning.message)
-      console.warn('队伍验证警告:', warningMessages)
+      return validation.errors[0] || '队伍验证失败'
     }
 
     return null
@@ -1269,14 +1240,8 @@ const isInitialized = computed(() => {
     return false
   }
 
-  // 检查ClientRuleIntegration是否准备就绪
-  try {
-    const status = ClientRuleIntegration.getClientStatus()
-    if (!status.isReady) {
-      return false
-    }
-  } catch (error) {
-    console.warn('检查ClientRuleIntegration状态失败:', error)
+  // 检查验证系统是否准备就绪
+  if (!validationStore.isInitialized) {
     return false
   }
 
@@ -1292,12 +1257,11 @@ const loadingMessage = computed(() => {
     return '正在加载队伍数据...'
   }
 
-  try {
-    const status = ClientRuleIntegration.getClientStatus()
-    if (!status.isReady) {
-      return '正在初始化规则系统...'
-    }
-  } catch (error) {
+  if (validationStore.isLoading) {
+    return '正在初始化规则系统...'
+  }
+
+  if (!validationStore.isInitialized) {
     return '正在初始化规则系统...'
   }
 
@@ -1358,8 +1322,30 @@ const debouncedValidate = debounce(async () => {
       return
     }
 
+    // 检查验证系统是否已初始化
+    if (!validationStore.isInitialized) {
+      console.log('⏳ 验证系统尚未初始化，跳过验证')
+      teamValidationResultRef.value = {
+        isValid: true,
+        errors: [],
+        warnings: [
+          {
+            type: 'info' as const,
+            code: 'VALIDATION_LOADING',
+            message: '正在初始化验证系统，请稍候...',
+            objectId: undefined,
+            objectType: undefined,
+            context: {},
+          },
+        ],
+      }
+      return
+    }
+
     // 使用规则集验证队伍
-    const result = await ClientRuleIntegration.validateTeam(team)
+    const result = await validationStore.validateTeam(team)
+
+    // 直接使用 validation store 返回的完整格式
     teamValidationResultRef.value = markRaw(result)
   } catch (error) {
     console.error('队伍验证出错:', error)
@@ -1420,7 +1406,7 @@ const debouncedValidatePet = debounce(async () => {
   }
 
   try {
-    const result = await ClientRuleIntegration.validatePet(selectedPet.value, currentTeam.value)
+    const result = await validationStore.validatePet(selectedPet.value, currentTeam.value)
     currentPetValidationResult.value = markRaw(result)
   } catch (error) {
     console.error('精灵验证出错:', error)
@@ -1473,6 +1459,20 @@ const filteredElblem = computed(() => {
   return currentSpecies.value.emblem.map(elblem => gameDataStore.marksList.find(m => m.id === elblem)).filter(Boolean)
 })
 
+// 额外技能状态
+const extraLearnableSkills = ref<Array<{ skill_id: string; level: number; hidden: boolean }>>([])
+
+// 加载额外技能
+const loadExtraSkills = async (speciesId: string) => {
+  try {
+    const skills = await validationStore.getSpeciesExtraLearnableSkills(speciesId)
+    extraLearnableSkills.value = markRaw(skills)
+  } catch (error) {
+    console.warn('获取额外技能失败:', error)
+    extraLearnableSkills.value = []
+  }
+}
+
 const filteredSkills = computed(() => {
   if (!currentSpecies.value) return []
 
@@ -1482,15 +1482,7 @@ const filteredSkills = computed(() => {
   )
 
   // 获取规则系统提供的额外技能
-  let extraSkills: Array<{ skill_id: string; level: number; hidden: boolean }> = []
-  // try {
-  //   // 将从ClientRuleIntegration获取的数据标记为raw
-  //   extraSkills = markRaw(ClientRuleIntegration.getSpeciesExtraLearnableSkills(currentSpecies.value.id)).filter(
-  //     learnable => (selectedPet.value?.level ?? 0) >= learnable.level,
-  //   )
-  // } catch (error) {
-  //   console.warn('获取额外技能失败:', error)
-  // }
+  const extraSkills = extraLearnableSkills.value.filter(learnable => (selectedPet.value?.level ?? 0) >= learnable.level)
 
   // 合并原始技能和额外技能
   const allLearnableSkills = [...originalSkills, ...extraSkills]
@@ -1512,16 +1504,9 @@ const hasClimaxSkills = computed(() => {
     ) ?? false
 
   // 检查额外技能中是否有必杀技能
-  let hasExtraClimax = false
-  // try {
-  //   // 将从ClientRuleIntegration获取的数据标记为raw
-  //   const extraSkills = markRaw(ClientRuleIntegration.getSpeciesExtraLearnableSkills(currentSpecies.value.id))
-  //   hasExtraClimax = extraSkills.some(
-  //     ls => gameDataStore.skillList.find(s => s.id === ls.skill_id)?.category === 'Climax',
-  //   )
-  // } catch (error) {
-  //   console.warn('检查额外必杀技能失败:', error)
-  // }
+  const hasExtraClimax = extraLearnableSkills.value.some(
+    ls => gameDataStore.skillList.find(s => s.id === ls.skill_id)?.category === 'Climax',
+  )
 
   return hasOriginalClimax || hasExtraClimax
 })
@@ -1625,7 +1610,12 @@ watch(
     }
 
     try {
-      const allowedGenders = await ClientRuleIntegration.getAllowedGendersForSpecies(newSpecies)
+      // 并行加载性别限制和额外技能
+      const [allowedGenders] = await Promise.all([
+        validationStore.getAllowedGendersForSpecies(newSpecies),
+        loadExtraSkills(newSpecies),
+      ])
+
       allowedGendersForCurrentSpecies.value = allowedGenders
 
       // 如果当前选中的性别不在允许范围内，自动选择第一个允许的性别
@@ -1732,23 +1722,23 @@ const climaxSkillSelectOptions = computed(() => {
     }))
 })
 
-const addNewPet = () => {
+const addNewPet = async () => {
   // 使用规则系统检查是否可以添加更多精灵
-  // try {
-  //   const canAdd = ClientRuleIntegration.canAddMorePets(currentTeam.value)
-  //   if (!canAdd) {
-  //     const limitations = ClientRuleIntegration.getRuleLimitations()
-  //     ElMessage.warning(`队伍已满，最多只能添加${limitations.teamSize.max}个精灵`)
-  //     return
-  //   }
-  // } catch (error) {
-  //   console.error('检查队伍大小限制出错:', error)
-  //   // 回退到简单检查
-  //   if (currentTeam.value.length >= 6) {
-  //     ElMessage.warning('队伍已满，最多只能添加六个精灵')
-  //     return
-  //   }
-  // }
+  try {
+    const canAdd = await validationStore.canAddMorePets(currentTeam.value)
+    if (!canAdd) {
+      const limitations = await validationStore.getRuleLimitations()
+      ElMessage.warning(`队伍已满，最多只能添加${limitations.teamSize.max}个精灵`)
+      return
+    }
+  } catch (error) {
+    console.error('检查队伍大小限制出错:', error)
+    // 回退到简单检查
+    if (currentTeam.value.length >= 6) {
+      ElMessage.warning('队伍已满，最多只能添加六个精灵')
+      return
+    }
+  }
 
   const newPet: PetSchemaType = {
     id: nanoid(),
@@ -1900,7 +1890,7 @@ const handleErrorClick = (error: any) => {
 
 const handleAutoFix = async () => {
   try {
-    const result = await ClientRuleIntegration.autoFixTeam(currentTeam.value)
+    const result = await validationStore.autoFixTeam(currentTeam.value)
 
     if (result.changes.length === 0) {
       ElMessage.info('没有需要修复的问题')
@@ -1909,7 +1899,7 @@ const handleAutoFix = async () => {
 
     // 显示修复预览
     const changeMessages = result.changes
-      .map(change => {
+      .map((change: any) => {
         switch (change.type) {
           case 'removed':
             return `• 移除精灵: ${change.petName} (${change.description})`
