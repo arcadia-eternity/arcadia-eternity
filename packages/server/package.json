@@ -18,6 +18,7 @@
     "watch:types": "tsc --emitDeclarationOnly --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
     "build:types": "tsc --emitDeclarationOnly",
+    "generate-proto": "protoc --plugin=protoc-gen-ts_proto=../../node_modules/.pnpm/node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./src/generated --ts_proto_opt=esModuleInterop=true,forceLong=string,useOptionals=messages --proto_path=./proto ./proto/battle-rpc.proto",
     "start": "node dist/index.js",
     "dev": "npm run build && npm start",
     "test": "vitest",
@@ -35,6 +36,7 @@
     "@arcadia-eternity/rules": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
     "@aws-sdk/client-sesv2": "^3.844.0",
+    "@bufbuild/protobuf": "^2.6.2",
     "@grpc/grpc-js": "^1.13.4",
     "@grpc/proto-loader": "^0.7.15",
     "@types/handlebars": "^4.1.0",
@@ -61,6 +63,7 @@
     "@types/nodemailer": "^6.4.17",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
-    "rollup-plugin-copy": "^3.5.0"
+    "rollup-plugin-copy": "^3.5.0",
+    "ts-proto": "^2.7.5"
   }
 }
