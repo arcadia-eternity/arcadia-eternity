@@ -1,5 +1,15 @@
-import { Battle, setGlobalLogger } from '@arcadia-eternity/battle'
-import { type BattleState, BattleMessageType, type playerId } from '@arcadia-eternity/const'
+import { Battle, setGlobalLogger, type Player } from '@arcadia-eternity/battle'
+import {
+  type BattleState,
+  BattleMessageType,
+  type playerId,
+  type BattleMessage,
+  type TimerEvent,
+  type TimerSnapshot,
+  type PlayerTimerState,
+  type TimerConfig,
+  TimerEventType,
+} from '@arcadia-eternity/const'
 import { SelectionParser } from '@arcadia-eternity/parser'
 import type { PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
 
@@ -12,7 +22,7 @@ import type { SocketClusterAdapter } from '../../../cluster/communication/socket
 import type { RoomState, MatchmakingEntry } from '../../../cluster/types'
 import { BattleReportService, type BattleReportConfig } from '../../report/services/battleReportService'
 import { TimerEventBatcher } from './timerEventBatcher'
-import { ServerRuleIntegration } from '@arcadia-eternity/rules'
+import { ServerRuleIntegration, type BattleRuleManager } from '@arcadia-eternity/rules'
 import type { BattleCallbacks, IBattleService } from './interfaces'
 import { TYPES } from '../../../types'
 import { injectable, inject, optional } from 'inversify'
@@ -61,23 +71,23 @@ export class ClusterBattleService implements IBattleService {
   // 批量消息处理相关
   private readonly messageBatches = new Map<
     string,
-    { messages: any[]; timer: ReturnType<typeof setTimeout>; createdAt: number }
+    { messages: BattleMessage[]; timer: ReturnType<typeof setTimeout> | null; createdAt: number }
   >() // sessionKey -> batch
   private readonly BATCH_SIZE = 15 // 批量大小（进一步减少，避免Redis积压）
   private readonly BATCH_TIMEOUT = 50 // 批量超时时间（减少到50毫秒，更快发送）
   private readonly MAX_BATCH_AGE = 3000 // 批次最大存活时间（减少到3秒，更快清理）
 
   // 需要立即发送的消息类型（重要消息和需要玩家输入的消息）
-  private readonly IMMEDIATE_MESSAGE_TYPES = new Set([
-    'BATTLE_START',
-    'BATTLE_END',
-    'TURN_ACTION', // 需要玩家选择行动
-    'FORCED_SWITCH', // 需要玩家强制切换
-    'FAINT_SWITCH', // 需要玩家击破奖励切换
-    'TIMER_TIMEOUT', // 计时器超时
-    'TIMER_WARNING', // 计时器警告
-    'BATTLE_ERROR', // 战斗错误
-    'ROOM_CLOSED', // 房间关闭
+  private readonly IMMEDIATE_MESSAGE_TYPES = new Set<BattleMessageType>([
+    BattleMessageType.BattleStart,
+    BattleMessageType.BattleEnd,
+    BattleMessageType.TurnAction,
+    BattleMessageType.ForcedSwitch,
+    BattleMessageType.FaintSwitch,
+    BattleMessageType.TurnStart,
+    BattleMessageType.TurnEnd,
+    BattleMessageType.TeamSelectionStart,
+    BattleMessageType.TeamSelectionComplete,
   ])
 
   private battleReportService?: BattleReportService
@@ -92,10 +102,16 @@ export class ClusterBattleService implements IBattleService {
     @inject(TYPES.BattleReportConfig) @optional() private readonly _battleReportConfig?: BattleReportConfig,
   ) {
     // 初始化Timer批处理系统
-    this.timerEventBatcher = new TimerEventBatcher(async (sessionKey: string, eventType: string, data: any) => {
-      const [playerId, sessionId] = sessionKey.split(':')
-      await this.callbacks.sendToPlayerSession(playerId, sessionId, eventType, data)
-    })
+    this.timerEventBatcher = new TimerEventBatcher(
+      async (
+        sessionKey: string,
+        eventType: string,
+        data: TimerEvent | TimerEvent[] | { snapshots: TimerSnapshot[] },
+      ) => {
+        const [playerId, sessionId] = sessionKey.split(':')
+        await this.callbacks.sendToPlayerSession(playerId, sessionId, eventType, data)
+      },
+    )
 
     // 初始化战报服务
     if (this._battleReportConfig) {
@@ -112,7 +128,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 创建本地Battle实例
    */
-  async createLocalBattle(roomState: RoomState, player1Data: any, player2Data: any): Promise<Battle> {
+  async createLocalBattle(roomState: RoomState, player1Data: Player, player2Data: Player): Promise<Battle> {
     // 获取规则集信息
     const ruleSetId = roomState.metadata?.ruleSetId || 'casual_standard_ruleset'
 
@@ -127,13 +143,32 @@ export class ClusterBattleService implements IBattleService {
     )
 
     let battle: Battle
-    let ruleManager: any = null
+    let ruleManager: BattleRuleManager | null = null
 
     try {
+      // 将Player实例的team转换为规则验证所需的Team格式
+      const convertPlayerTeamToSchema = (player: Player) => {
+        return player.team.map(pet => ({
+          id: pet.id,
+          name: pet.name,
+          species: pet.species.id, // 转换Species对象为字符串ID
+          level: pet.level,
+          evs: pet.evs,
+          ivs: pet.ivs,
+          skills: pet.skills.map(skill => skill.id), // 转换Skill对象为字符串ID
+          gender: pet.gender,
+          nature: pet.nature,
+          ability: pet.ability?.id || '', // 转换Mark对象为字符串ID
+          emblem: pet.emblem?.id, // 转换Mark对象为字符串ID
+          height: pet.height,
+          weight: pet.weight,
+        }))
+      }
+
       // 使用规则系统验证战斗创建并应用规则
       const battleValidation = await ServerRuleIntegration.validateBattleCreation(
-        player1Data.team,
-        player2Data.team,
+        convertPlayerTeamToSchema(player1Data),
+        convertPlayerTeamToSchema(player2Data),
         [ruleSetId],
         {
           allowFaintSwitch: true,
@@ -143,7 +178,7 @@ export class ClusterBattleService implements IBattleService {
 
       // 检查验证结果
       if (!battleValidation.validation.isValid) {
-        const errorMessage = `战斗验证失败: ${battleValidation.validation.errors.map((e: any) => e.message).join(', ')}`
+        const errorMessage = `战斗验证失败: ${battleValidation.validation.errors.map(e => e.message).join(', ')}`
         logger.error(
           {
             roomId: roomState.id,
@@ -563,7 +598,7 @@ export class ClusterBattleService implements IBattleService {
         if (data.playerId === playerId) {
           const sessionKey = `${playerId}:${sessionId}`
           this.timerEventBatcher.addEvent(sessionKey, {
-            type: 'timerStateChange' as any,
+            type: TimerEventType.StateChange,
             data,
             timestamp: Date.now(),
           })
@@ -579,7 +614,7 @@ export class ClusterBattleService implements IBattleService {
 
         const sessionKey = `${playerId}:${sessionId}`
         this.timerEventBatcher.addEvent(sessionKey, {
-          type: 'timerPause' as any,
+          type: TimerEventType.Pause,
           data,
           timestamp: Date.now(),
         })
@@ -593,7 +628,7 @@ export class ClusterBattleService implements IBattleService {
 
         const sessionKey = `${playerId}:${sessionId}`
         this.timerEventBatcher.addEvent(sessionKey, {
-          type: 'timerResume' as any,
+          type: TimerEventType.Resume,
           data,
           timestamp: Date.now(),
         })
@@ -604,7 +639,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 本地处理玩家选择
    */
-  async handleLocalPlayerSelection(roomId: string, playerId: string, data: any): Promise<{ status: string }> {
+  async handleLocalPlayerSelection(roomId: string, playerId: string, data: unknown): Promise<{ status: string }> {
     const battle = this.getLocalBattle(roomId)
     if (!battle) {
       logger.error(
@@ -715,7 +750,7 @@ export class ClusterBattleService implements IBattleService {
       logger.info({ roomId }, 'All players ready, starting battle')
 
       // 异步启动战斗，不阻塞当前方法
-      this.startBattleAsync(roomId, localRoom).catch((error: any) => {
+      this.startBattleAsync(roomId, localRoom).catch((error: unknown) => {
         logger.error({ error, roomId }, 'Error starting local battle')
         localRoom.status = 'ended'
         this.cleanupLocalRoom(roomId)
@@ -896,7 +931,11 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 本地处理玩家计时器状态获取
    */
-  async handleLocalGetPlayerTimerState(roomId: string, playerId: string, data: any): Promise<any> {
+  async handleLocalGetPlayerTimerState(
+    roomId: string,
+    playerId: string,
+    data: { playerId?: string },
+  ): Promise<PlayerTimerState | null> {
     const battle = this.getLocalBattle(roomId)
     if (!battle) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -911,7 +950,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 本地处理所有玩家计时器状态获取
    */
-  async handleLocalGetAllPlayerTimerStates(roomId: string, playerId: string): Promise<any[]> {
+  async handleLocalGetAllPlayerTimerStates(roomId: string, playerId: string): Promise<PlayerTimerState[]> {
     const battle = this.getLocalBattle(roomId)
     if (!battle) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -924,7 +963,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 本地处理计时器配置获取
    */
-  async handleLocalGetTimerConfig(roomId: string, playerId: string): Promise<any> {
+  async handleLocalGetTimerConfig(roomId: string, playerId: string): Promise<TimerConfig> {
     const battle = this.getLocalBattle(roomId)
     if (!battle) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -937,7 +976,11 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 本地处理动画开始
    */
-  async handleLocalStartAnimation(roomId: string, playerId: string, data: any): Promise<string> {
+  async handleLocalStartAnimation(
+    roomId: string,
+    playerId: string,
+    data: { source: string; expectedDuration: number; ownerId: playerId },
+  ): Promise<string> {
     const battle = this.getLocalBattle(roomId)
     if (!battle) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -955,7 +998,11 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 本地处理动画结束
    */
-  async handleLocalEndAnimation(roomId: string, playerId: string, data: any): Promise<{ status: string }> {
+  async handleLocalEndAnimation(
+    roomId: string,
+    playerId: string,
+    data: { animationId: string; actualDuration?: number },
+  ): Promise<{ status: string }> {
     const battle = this.getLocalBattle(roomId)
     if (!battle) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -971,7 +1018,11 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 本地处理动画结束报告
    */
-  async handleLocalReportAnimationEnd(roomId: string, playerId: string, data: any): Promise<{ status: string }> {
+  async handleLocalReportAnimationEnd(
+    roomId: string,
+    playerId: string,
+    data: { animationId: string; actualDuration?: number },
+  ): Promise<{ status: string }> {
     const battle = this.getLocalBattle(roomId)
     if (!battle) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -1118,7 +1169,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 获取战斗状态（详细）
    */
-  async handleLocalGetBattleState(roomId: string, playerId: string): Promise<any> {
+  async handleLocalGetBattleState(roomId: string, playerId: string): Promise<BattleState> {
     const battle = this.localBattles.get(roomId)
     if (!battle) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -1130,7 +1181,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 获取战斗历史
    */
-  async handleLocalGetBattleHistory(roomId: string, _playerId: string): Promise<any> {
+  async handleLocalGetBattleHistory(roomId: string, _playerId: string): Promise<BattleState> {
     const battle = this.localBattles.get(roomId)
     if (!battle) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -1142,7 +1193,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 获取战斗报告
    */
-  async handleLocalGetBattleReport(roomId: string, _playerId: string): Promise<any> {
+  async handleLocalGetBattleReport(roomId: string, _playerId: string): Promise<{ battleRecordId: string }> {
     const localRoom = this.localRooms.get(roomId)
     if (!localRoom || !localRoom.battleRecordId) {
       throw new Error('BATTLE_REPORT_NOT_FOUND')
@@ -1161,13 +1212,13 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 批量发送消息到玩家会话
    */
-  async addToBatch(playerId: string, sessionId: string, message: any): Promise<void> {
+  async addToBatch(playerId: string, sessionId: string, message: BattleMessage): Promise<void> {
     const sessionKey = `${playerId}:${sessionId}`
     const now = Date.now()
 
     let batch = this.messageBatches.get(sessionKey)
     if (!batch) {
-      batch = { messages: [], timer: null as any, createdAt: now }
+      batch = { messages: [], timer: null, createdAt: now }
       this.messageBatches.set(sessionKey, batch)
     }
 
@@ -1175,7 +1226,7 @@ export class ClusterBattleService implements IBattleService {
     if (now - batch.createdAt > this.MAX_BATCH_AGE) {
       await this.flushBatch(sessionKey)
       // 创建新批次
-      batch = { messages: [], timer: null as any, createdAt: now }
+      batch = { messages: [], timer: null, createdAt: now }
       this.messageBatches.set(sessionKey, batch)
     }
 
@@ -1189,9 +1240,7 @@ export class ClusterBattleService implements IBattleService {
 
     // 检查是否需要立即发送
     const shouldSendImmediately =
-      batch.messages.length >= this.BATCH_SIZE ||
-      this.IMMEDIATE_MESSAGE_TYPES.has(message.type) ||
-      (message.data && this.IMMEDIATE_MESSAGE_TYPES.has(message.data.type))
+      batch.messages.length >= this.BATCH_SIZE || this.IMMEDIATE_MESSAGE_TYPES.has(message.type)
 
     if (shouldSendImmediately) {
       await this.flushBatch(sessionKey)
