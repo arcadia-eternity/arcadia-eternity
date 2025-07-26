@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.12.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.12.0...arcadia-eternity-v2.12.1) (2025-07-26)
+
+
+### ♻️ Code Refactoring
+
+* Refactor rule set logic and add RuleSetTooltip component ([27f28a2](https://github.com/arcadia-eternity/arcadia-eternity/commit/27f28a2c8034ec6e7a1a85c2b97b4d99a8b4d6fc))
+
 ## [2.12.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.11.0...arcadia-eternity-v2.12.0) (2025-07-26)
 
 
