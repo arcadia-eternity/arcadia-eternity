@@ -626,8 +626,46 @@ export class AIPlayer extends Player {
     timeLimit: number
   }): BattleTeamSelection {
     const availablePets = this.fullTeam.filter(pet => pet.currentHp > 0)
-    const maxSize = Math.min(config.maxTeamSize || 6, availablePets.length)
+
+    // FULL_TEAM模式：使用完整队伍，只选择首发
+    if (config.mode === 'FULL_TEAM' || config.mode === 'VIEW_ONLY') {
+      // 使用完整队伍
+      const selectedPets = this.fullTeam.map(pet => pet.id)
+
+      // 选择最适合首发的精灵（从有血量的精灵中选择）
+      let starterPetId: petId
+      if (config.allowStarterSelection && availablePets.length > 0) {
+        // AI策略：选择最适合首发的精灵（优先考虑速度和攻击力）
+        const bestStarter = availablePets.reduce((best, current) => {
+          const bestScore = this.calculateStarterScore(best)
+          const currentScore = this.calculateStarterScore(current)
+          return currentScore > bestScore ? current : best
+        }, availablePets[0])
+        starterPetId = bestStarter.id
+      } else {
+        // 使用第一只有血量的精灵作为首发
+        starterPetId = availablePets[0]?.id || this.fullTeam[0]?.id || ('' as petId)
+      }
+
+      return {
+        selectedPets,
+        starterPetId,
+      }
+    }
+
+    // TEAM_SELECTION模式：从队伍中选择部分精灵
+    const maxSize = config.maxTeamSize || 6
     const minSize = config.minTeamSize || 1
+
+    // 计算有效的队伍大小限制
+    const availableCount = availablePets.length
+    const effectiveMaxSize = Math.min(maxSize, availableCount)
+    const effectiveMinSize = Math.min(minSize, effectiveMaxSize)
+
+    // 如果没有足够的可用精灵，记录警告
+    if (availableCount < minSize) {
+      console.warn(`AI Player ${this.id}: 可用精灵数量(${availableCount})少于最小要求(${minSize})，将使用所有可用精灵`)
+    }
 
     // AI策略：优先选择高血量、高等级的精灵
     const scoredPets = availablePets.map(pet => ({
@@ -638,35 +676,28 @@ export class AIPlayer extends Player {
     // 按分数排序
     scoredPets.sort((a, b) => b.score - a.score)
 
-    // 选择最佳精灵，但保持一定随机性
-    const targetSize = Math.max(minSize, Math.min(maxSize, Math.floor(Math.random() * 2) + minSize))
+    // AI始终选择最大数量的精灵
+    const targetSize = effectiveMaxSize
+
+    // 选择最佳精灵
     const selectedPets = scoredPets.slice(0, targetSize).map(item => item.pet.id)
 
     // 选择首发精灵（通常是分数最高的）
     const starterPetId = selectedPets[0] || availablePets[0]?.id || ('' as petId)
 
+    // 验证选择结果
+    if (selectedPets.length < effectiveMinSize || selectedPets.length > effectiveMaxSize) {
+      console.error(`AI Player ${this.id}: 团队选择结果不符合配置限制`, {
+        selected: selectedPets.length,
+        minSize: effectiveMinSize,
+        maxSize: effectiveMaxSize,
+        config: { minTeamSize: config.minTeamSize, maxTeamSize: config.maxTeamSize },
+      })
+    }
+
     return {
       selectedPets,
       starterPetId,
-    }
-  }
-
-  /**
-   * 战略性首发选择
-   */
-  private makeStrategicStarterSelection(): BattleTeamSelection {
-    const availablePets = this.fullTeam.filter(pet => pet.currentHp > 0)
-
-    // 选择最适合首发的精灵
-    const bestStarter = availablePets.reduce((best, current) => {
-      const bestScore = this.calculateStarterScore(best)
-      const currentScore = this.calculateStarterScore(current)
-      return currentScore > bestScore ? current : best
-    }, availablePets[0])
-
-    return {
-      selectedPets: this.fullTeam.map(pet => pet.id),
-      starterPetId: bestStarter?.id || this.fullTeam[0]?.id || ('' as petId),
     }
   }
 
