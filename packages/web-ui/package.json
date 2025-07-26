@@ -40,6 +40,7 @@
     "@element-plus/icons-vue": "^2.3.1",
     "@faker-js/faker": "^9.9.0",
     "@heroicons/vue": "^2.2.0",
+    "@ruffle-rs/ruffle": "0.2.0-nightly.2025.7.26",
     "@tailwindcss/vite": "^4.1.11",
     "@tauri-apps/api": "^2.6.0",
     "@tauri-apps/plugin-fs": "^2.4.0",
