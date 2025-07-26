@@ -110,6 +110,7 @@ export class Battle extends Context implements MarkOwner {
           timeLimit?: number
         }
       }
+      customConfig?: Record<string, any>
     },
     configSystem?: ConfigSystem,
   ) {
@@ -122,15 +123,26 @@ export class Battle extends Context implements MarkOwner {
     this.showHidden = options?.showHidden ?? false
 
     // Initialize team selection configuration
+    // Check both direct teamSelection option and customConfig.teamSelection
+    const teamSelectionFromCustom = options?.customConfig?.teamSelection
+    const teamSelectionDirect = options?.teamSelection
+
     this.teamSelectionConfig = {
-      enabled: options?.teamSelection?.enabled ?? false,
-      mode: options?.teamSelection?.config?.mode ?? 'TEAM_SELECTION',
-      maxTeamSize: options?.teamSelection?.config?.maxTeamSize ?? 6,
-      minTeamSize: options?.teamSelection?.config?.minTeamSize ?? 1,
-      allowStarterSelection: options?.teamSelection?.config?.allowStarterSelection ?? true,
-      showOpponentTeam: options?.teamSelection?.config?.showOpponentTeam ?? false,
-      teamInfoVisibility: options?.teamSelection?.config?.teamInfoVisibility ?? 'HIDDEN',
-      timeLimit: options?.teamSelection?.config?.timeLimit ?? 60,
+      enabled: teamSelectionFromCustom?.enabled ?? teamSelectionDirect?.enabled ?? false,
+      mode: teamSelectionFromCustom?.config?.mode ?? teamSelectionDirect?.config?.mode ?? 'TEAM_SELECTION',
+      maxTeamSize: teamSelectionFromCustom?.config?.maxTeamSize ?? teamSelectionDirect?.config?.maxTeamSize ?? 6,
+      minTeamSize: teamSelectionFromCustom?.config?.minTeamSize ?? teamSelectionDirect?.config?.minTeamSize ?? 1,
+      allowStarterSelection:
+        teamSelectionFromCustom?.config?.allowStarterSelection ??
+        teamSelectionDirect?.config?.allowStarterSelection ??
+        true,
+      showOpponentTeam:
+        teamSelectionFromCustom?.config?.showOpponentTeam ?? teamSelectionDirect?.config?.showOpponentTeam ?? false,
+      teamInfoVisibility:
+        teamSelectionFromCustom?.config?.teamInfoVisibility ??
+        teamSelectionDirect?.config?.teamInfoVisibility ??
+        'HIDDEN',
+      timeLimit: teamSelectionFromCustom?.config?.timeLimit ?? teamSelectionDirect?.config?.timeLimit ?? 60,
     }
 
     // 初始化计时器管理器

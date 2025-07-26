@@ -139,13 +139,6 @@ export class TeamSelectionRule extends AbstractRule {
   }
 
   /**
-   * Get battle configuration modifications
-   */
-  getBattleConfigModifications(_context?: RuleContext): BattleConfigModifications {
-    return {}
-  }
-
-  /**
    * Get timer configuration modifications
    */
   getTimerConfigModifications(_context?: RuleContext): Partial<TimerConfig> {
@@ -196,6 +189,20 @@ export class TeamSelectionRule extends AbstractRule {
    */
   allowsStarterSelection(): boolean {
     return this.config.allowStarterSelection
+  }
+
+  /**
+   * Get battle configuration modifications
+   */
+  getBattleConfigModifications(_context?: RuleContext): BattleConfigModifications {
+    return {
+      customConfig: {
+        teamSelection: {
+          enabled: true,
+          config: this.config,
+        },
+      },
+    }
   }
 
   /**
@@ -275,6 +282,20 @@ export function createCasual6v4Rule(timeLimit: number = 90): TeamSelectionRule {
     allowStarterSelection: true,
     showOpponentTeam: true,
     teamInfoVisibility: 'FULL',
+    timeLimit,
+  })
+}
+
+/**
+ * Create a competitive full team selection rule
+ * All 6 pets participate, but players can choose starter
+ */
+export function createCompetitiveFullTeamRule(timeLimit: number = 60): TeamSelectionRule {
+  return new TeamSelectionRule('competitive_full_team_rule', '竞技全队参战规则', {
+    mode: 'FULL_TEAM',
+    allowStarterSelection: true,
+    showOpponentTeam: true,
+    teamInfoVisibility: 'BASIC',
     timeLimit,
   })
 }
