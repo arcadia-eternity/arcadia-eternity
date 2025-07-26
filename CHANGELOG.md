@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.12.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.11.0...arcadia-eternity-v2.12.0) (2025-07-26)
+
+
+### ✨ Features
+
+* Add type-safe gRPC interfaces and proto codegen ([1edbecc](https://github.com/arcadia-eternity/arcadia-eternity/commit/1edbecc5610f6ba7a53dd8c3ad288b7a0d26f144))
+* team selection ([ec805c7](https://github.com/arcadia-eternity/arcadia-eternity/commit/ec805c7dfecb8ebd4af9148b2151c9a511ef22b7))
+
+
+### 🐛 Bug Fixes
+
+* Hide action buttons in VIEW_ONLY mode ([7389927](https://github.com/arcadia-eternity/arcadia-eternity/commit/7389927ae0582c8b3fa792d7293aadd36e5fb1ab))
+* Refactor battle service types and remove unused env files ([02001de](https://github.com/arcadia-eternity/arcadia-eternity/commit/02001deb7b4790a7bb72ddf6c0bbc461f32e8fd9))
+* Update pet selection logic in TeamSelectionPanel ([c29f6d6](https://github.com/arcadia-eternity/arcadia-eternity/commit/c29f6d6fee49d169db992b642ad9b7659ad2c686))
+
+
+### ♻️ Code Refactoring
+
+* Add surrender option to all battle phases ([53fd204](https://github.com/arcadia-eternity/arcadia-eternity/commit/53fd204349535df07dd471a5d447d0d2fb274c19))
+* Add team selection rule integration and config support ([e8d46e8](https://github.com/arcadia-eternity/arcadia-eternity/commit/e8d46e8e6ae992cf089854dbacd3d122864bc12d))
+* Refactor AI team selection logic for multiple modes ([2ba92d5](https://github.com/arcadia-eternity/arcadia-eternity/commit/2ba92d5854fdaac4c4d727cef23dc6833d55a480))
+* Refactor team selection to use TeamInfo structure ([0288ea3](https://github.com/arcadia-eternity/arcadia-eternity/commit/0288ea306f28be8ad3ab64bccd2a2e4b3e065e52))
+* Refactor team selection UI and improve localization ([3f77b81](https://github.com/arcadia-eternity/arcadia-eternity/commit/3f77b8146becab385b0a38b61e1c2d1572c01bd7))
+
 ## [2.11.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.10.3...arcadia-eternity-v2.11.0) (2025-07-24)
 
 
