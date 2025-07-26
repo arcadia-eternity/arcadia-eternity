@@ -103,7 +103,10 @@ export class BattleSwitchPhase extends InteractivePhase<BattleSwitchContext> {
 
     // 执行所有更换操作
     for (const player of playersNeedingSwitch) {
-      if (player.selection?.type === 'switch-pet') {
+      if (player.selection?.type === 'surrender') {
+        this.battle.handleSurrender(player.id)
+        return
+      } else if (player.selection?.type === 'switch-pet') {
         const selectionPet = this.battle.getPetByID((player.selection as SwitchPetSelection).pet)
         const switchPhase = new SwitchPetPhase(this.battle, player, selectionPet, this)
         this.battle.phaseManager.registerPhase(switchPhase)

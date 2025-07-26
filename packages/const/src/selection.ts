@@ -1,6 +1,12 @@
 import { AttackTargetOpinion, type petId, type playerId, type skillId } from './const'
+import { type TeamSelectionAction } from './teamSelection'
 
-export type PlayerSelection = UseSkillSelection | SwitchPetSelection | DoNothingSelection | SurrenderSelection
+export type PlayerSelection =
+  | UseSkillSelection
+  | SwitchPetSelection
+  | DoNothingSelection
+  | SurrenderSelection
+  | TeamSelectionAction
 export type PlayerSelections = { player: playerId; selections: PlayerSelection[] }
 
 export type UseSkillSelection = { player: playerId; type: 'use-skill'; skill: skillId; target: AttackTargetOpinion }

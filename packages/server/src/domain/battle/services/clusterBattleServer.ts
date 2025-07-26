@@ -1506,41 +1506,6 @@ export class ClusterBattleServer {
   }
 
   /**
-   * 检查房间是否在当前实例
-   */
-
-  // createLocalBattle 方法已移动到 clusterBattleService
-
-  // setupBattleEventListeners 方法已移动到 clusterBattleService
-
-  // setupTimerEventListeners 方法已移动到 clusterBattleService
-
-  // addToBatch 方法已移动到 clusterBattleService
-
-  // flushBatch 方法已移动到 clusterBattleService
-
-  // 所有批量消息清理方法已移动到 clusterBattleService
-
-  /**
-   * 处理玩家选择数据
-   */
-  private processPlayerSelection(playerId: string, rawData: unknown): ReturnType<typeof SelectionParser.parse> {
-    try {
-      const selection = SelectionParser.parse(rawData)
-
-      // 验证选择是否属于正确的玩家
-      if (selection.player !== playerId) {
-        throw new Error('PLAYER_ID_MISMATCH')
-      }
-
-      return selection
-    } catch (error) {
-      logger.error({ error, playerId, rawData }, 'Error processing player selection')
-      throw new Error('INVALID_SELECTION_DATA')
-    }
-  }
-
-  /**
    * 获取玩家名称
    */
   private async getPlayerName(playerId: string): Promise<string> {
@@ -1552,26 +1517,6 @@ export class ClusterBattleServer {
       return `Player ${playerId.slice(0, 8)}`
     }
   }
-
-  // === 本地Battle处理方法已移动到 clusterBattleService ===
-
-  // startBattleAsync 方法已移动到 clusterBattleService
-
-  // handleLocalPlayerAbandon 方法已移动到 clusterBattleService
-
-  // handleBattleEnd 和 cleanupLocalRoom 方法已移动到 clusterBattleService
-
-  // === 本地跨实例处理方法 ===
-
-  // handleLocalReportAnimationEnd 方法已移动到 clusterBattleService
-
-  // 所有 handleLocal*Timer* 方法已移动到 clusterBattleService
-
-  // 所有 handleLocal*Animation* 方法已移动到 clusterBattleService
-
-  // forceTerminateBattle 方法已移动到 clusterBattleService
-
-  // handleLocalBattleTermination 相关方法已移动到 clusterBattleService
 
   /**
    * 通知其他实例终止战斗

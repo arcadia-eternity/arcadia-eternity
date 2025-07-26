@@ -2,6 +2,7 @@
 import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
 import BattleStatus from '@/components/battle/BattleStatus.vue'
 import TrainingPanel from '@/components/battle/TrainingPanel.vue'
+import TeamSelectionPanel from '@/components/battle/TeamSelectionPanel.vue'
 import Mark from '@/components/battle/Mark.vue'
 import PetButton from '@/components/battle/PetButton.vue'
 import PetSprite from '@/components/battle/PetSprite.vue'
@@ -26,10 +27,17 @@ import { useResourceStore } from '@/stores/resource'
 import { logMessagesKey, markMapKey, petMapKey, playerMapKey, skillMapKey } from '@/symbol/battlelog'
 import {
   BattleMessageType,
+  BattlePhase,
   Category,
   ELEMENT_CHART,
   type BattleMessage,
+  type BattleTeamSelection,
+  type TeamSelectionAction,
+  type TeamSelectionConfig,
+  type TeamInfo,
   type petId,
+  type playerId,
+  type PetMessage,
   type PetSwitchMessage,
   type skillId,
   type SkillMessage,
@@ -259,6 +267,41 @@ const koBannerRef = useTemplateRef('koBannerRef') // 新增：KO横幅的模板�
 // 等待对手响应状态 - 使用store中的waitingForResponse
 const isWaitingForOpponent = computed(() => store.waitingForResponse)
 
+// 团队选择相关计算属性
+const currentPlayerTeam = computed(() => {
+  const player = store.currentPlayer
+  return player?.team || []
+})
+
+const opponentPlayerTeam = computed(() => {
+  const opponent = store.opponent
+  return opponent?.team || []
+})
+
+// 团队选择阶段的对手队伍数据
+const teamSelectionOpponentTeam = computed(() => {
+  if (!teamSelectionPlayerATeam.value || !teamSelectionPlayerBTeam.value) {
+    return []
+  }
+
+  const currentPlayerId = store.playerId
+  const players = store.battleState?.players || []
+
+  // 根据当前玩家ID确定对手队伍
+  if (players[0]?.id === currentPlayerId) {
+    // 当前玩家是 playerA，对手是 playerB
+    return teamSelectionPlayerBTeam.value?.pets || []
+  } else {
+    // 当前玩家是 playerB，对手是 playerA
+    return teamSelectionPlayerATeam.value?.pets || []
+  }
+})
+
+// 检查是否处于团队选择阶段
+const isTeamSelectionPhase = computed(() => {
+  return store.battleState?.currentPhase === BattlePhase.TeamSelectionPhase
+})
+
 // Climax特效相关
 const showClimaxEffect = ref(false) // 控制climax特效显示
 const climaxEffectSide = ref<'left' | 'right' | null>(null) // 特效显示在哪一侧
@@ -315,6 +358,25 @@ const isTrainingMode = computed(() => {
 
 // 训练面板状态
 const isTrainingPanelOpen = ref(false)
+
+// 团队选择相关状态
+const showTeamSelectionPanel = ref(false)
+const teamSelectionConfig = ref<TeamSelectionConfig | null>(null)
+const teamSelectionTimeLimit = ref<number | undefined>(undefined)
+const currentTeamSelection = ref<BattleTeamSelection | null>(null)
+const teamSelectionPlayerATeam = ref<TeamInfo | null>(null)
+const teamSelectionPlayerBTeam = ref<TeamInfo | null>(null)
+
+// 对手团队选择状态（目前为占位符，实际应从战斗状态中获取）
+const opponentSelectionProgress = computed(() => {
+  // TODO: 从战斗状态中获取对手的选择进度
+  return 'not_started' as 'not_started' | 'in_progress' | 'completed'
+})
+
+const opponentTeamSelection = computed(() => {
+  // TODO: 从战斗状态中获取对手的团队选择
+  return null as BattleTeamSelection | null
+})
 
 // 空过按钮粒子效果相关
 const doNothingParticlesId = ref(`do-nothing-particles-${Math.random().toString(36).substring(2, 11)}`)
@@ -740,6 +802,41 @@ const handleEscape = async () => {
     }
   } catch {
     // 用户取消投降，不执行任何操作
+  }
+}
+
+// 团队选择事件处理
+const onTeamSelectionChange = (selection: BattleTeamSelection) => {
+  currentTeamSelection.value = selection
+}
+
+const onTeamSelectionConfirm = async (selection: BattleTeamSelection) => {
+  console.log('team selection confirm:', selection)
+  try {
+    const teamSelectionAction: TeamSelectionAction = {
+      type: 'team-selection' as const,
+      player: store.playerId as playerId,
+      selectedPets: selection.selectedPets,
+      starterPetId: selection.starterPetId,
+    }
+
+    await store.sendplayerSelection(teamSelectionAction)
+    showTeamSelectionPanel.value = false
+  } catch (error) {
+    console.error('团队选择提交失败:', error)
+  }
+}
+
+const onTeamSelectionTimeout = () => {
+  // 超时时使用默认选择
+  if (currentPlayerTeam.value.length > 0) {
+    const defaultSelection: BattleTeamSelection = {
+      selectedPets: currentPlayerTeam.value
+        .slice(0, teamSelectionConfig.value?.maxTeamSize || 6)
+        .map((pet: PetMessage) => pet.id),
+      starterPetId: currentPlayerTeam.value[0]?.id || ('' as petId),
+    }
+    onTeamSelectionConfirm(defaultSelection)
   }
 }
 
@@ -2192,60 +2289,84 @@ const setupMessageSubscription = async () => {
           )
         }
         const task = async () => {
-          // 检查是否已经处理过这个消息（包括回放模式）
-          if (store.lastProcessedSequenceId >= (msg.sequenceId ?? -1)) {
-            return
-          }
-
-          if (msg.type === BattleMessageType.PetSwitch) {
-            // 对于 PetSwitch，状态更新由 switchPetAnimate 内部精确控制时机
-            await switchPetAnimate(msg.data.toPet, getTargetSide(msg.data.toPet), msg as PetSwitchMessage)
-          } else {
-            const combatEventTypes: BattleMessageType[] = [
-              BattleMessageType.SkillMiss,
-              BattleMessageType.Damage,
-              BattleMessageType.DamageFail,
-              BattleMessageType.Heal,
-            ]
-
-            // 回放模式和正常模式使用相同的消息处理逻辑
-
-            // 对于其他所有消息，先应用状态变更
-            await store.applyStateDelta(msg)
-
-            // 等待一个 tick 确保状态更新完成
-            await nextTick()
-
-            if (combatEventTypes.includes(msg.type as BattleMessageType)) {
-              handleCombatEventMessage(msg as CombatEventMessageWithTarget, false)
+          try {
+            if (msg.type === BattleMessageType.PetSwitch) {
+              // 对于 PetSwitch，状态更新由 switchPetAnimate 内部精确控制时机
+              await switchPetAnimate(msg.data.toPet, getTargetSide(msg.data.toPet), msg as PetSwitchMessage)
             } else {
-              // 处理其他非战斗事件相关的消息 (PetSwitch 已在上面单独处理)
-              switch (msg.type) {
-                case BattleMessageType.TurnAction:
-                  if (!props.replayMode) panelState.value = PanelState.SKILLS
-                  break
-                case BattleMessageType.ForcedSwitch:
-                  // 确保 msg.data 和 msg.data.player 存在
-                  if (
-                    msg.data &&
-                    'player' in msg.data &&
-                    Array.isArray(msg.data.player) &&
-                    !msg.data.player.some(p => p === currentPlayer.value?.id)
-                  )
+              const combatEventTypes: BattleMessageType[] = [
+                BattleMessageType.SkillMiss,
+                BattleMessageType.Damage,
+                BattleMessageType.DamageFail,
+                BattleMessageType.Heal,
+              ]
+
+              // 回放模式和正常模式使用相同的消息处理逻辑
+
+              // 对于其他所有消息，先应用状态变更
+              await store.applyStateDelta(msg)
+
+              // 检查是否已经处理过这个消息（在 applyStateDelta 之后检查）
+              // 注意：applyStateDelta 会更新 lastProcessedSequenceId，所以我们需要检查是否应该跳过 UI 处理
+              const wasAlreadyProcessed = msg.sequenceId !== undefined && msg.sequenceId < store.lastProcessedSequenceId
+              if (wasAlreadyProcessed) {
+                return
+              }
+
+              // 等待一个 tick 确保状态更新完成
+              await nextTick()
+
+              if (combatEventTypes.includes(msg.type as BattleMessageType)) {
+                handleCombatEventMessage(msg as CombatEventMessageWithTarget, false)
+              } else {
+                // 处理其他非战斗事件相关的消息 (PetSwitch 已在上面单独处理)
+                switch (msg.type) {
+                  case BattleMessageType.TurnAction:
+                    if (!props.replayMode) panelState.value = PanelState.SKILLS
                     break
-                  if (!props.replayMode) panelState.value = PanelState.PETS
-                  break
-                case BattleMessageType.FaintSwitch:
-                  // 确保 msg.data 和 msg.data.player 存在
-                  if (msg.data && 'player' in msg.data && !(msg.data.player === currentPlayer.value?.id)) break
-                  if (!props.replayMode) panelState.value = PanelState.PETS
-                  break
-                // PetSwitch 类型的消息已在外部 if 条件中处理
-                default:
-                  // 其他消息类型，如果它们不直接触发战斗动画或UI，则仅应用状态（已在上方完成）
-                  break
+                  case BattleMessageType.ForcedSwitch:
+                    // 确保 msg.data 和 msg.data.player 存在
+                    if (
+                      msg.data &&
+                      'player' in msg.data &&
+                      Array.isArray(msg.data.player) &&
+                      !msg.data.player.some(p => p === currentPlayer.value?.id)
+                    )
+                      break
+                    if (!props.replayMode) panelState.value = PanelState.PETS
+                    break
+                  case BattleMessageType.FaintSwitch:
+                    // 确保 msg.data 和 msg.data.player 存在
+                    if (msg.data && 'player' in msg.data && !(msg.data.player === currentPlayer.value?.id)) break
+                    if (!props.replayMode) panelState.value = PanelState.PETS
+                    break
+                  case BattleMessageType.TeamSelectionStart:
+                    // 处理团队选择开始消息
+                    if (!props.replayMode && msg.data) {
+                      teamSelectionConfig.value = msg.data.config
+                      teamSelectionTimeLimit.value = msg.data.config.timeLimit
+                      teamSelectionPlayerATeam.value = msg.data.playerATeam
+                      teamSelectionPlayerBTeam.value = msg.data.playerBTeam
+                      showTeamSelectionPanel.value = true
+                    }
+                    break
+                  case BattleMessageType.TeamSelectionComplete:
+                    // 处理团队选择完成消息
+                    showTeamSelectionPanel.value = false
+                    // 清理团队选择数据
+                    teamSelectionPlayerATeam.value = null
+                    teamSelectionPlayerBTeam.value = null
+                    break
+                  // PetSwitch 类型的消息已在外部 if 条件中处理
+                  default:
+                    // 其他消息类型，如果它们不直接触发战斗动画或UI，则仅应用状态（已在上方完成）
+                    break
+                }
               }
             }
+          } catch (error) {
+            console.error('Error executing message task for:', msg.type, error)
+            throw error
           }
         }
         return of(task)
@@ -2564,6 +2685,29 @@ watch(
           transition: 'opacity 0.5s ease-in-out',
         }"
       >
+        <!-- Team Selection Panel -->
+        <Transition name="fade">
+          <div
+            v-if="showTeamSelectionPanel"
+            class="absolute inset-0 bg-black/80 flex items-center justify-center"
+            :class="Z_INDEX_CLASS.TEAM_SELECTION_PANEL"
+          >
+            <TeamSelectionPanel
+              v-if="teamSelectionConfig"
+              :fullTeam="currentPlayerTeam"
+              :opponentTeam="teamSelectionOpponentTeam"
+              :config="teamSelectionConfig"
+              :timeLimit="teamSelectionTimeLimit"
+              :initialSelection="currentTeamSelection || undefined"
+              :opponentProgress="opponentSelectionProgress"
+              :opponentSelection="opponentTeamSelection || undefined"
+              @selectionChange="onTeamSelectionChange"
+              @confirm="onTeamSelectionConfirm"
+              @timeout="onTeamSelectionTimeout"
+            />
+          </div>
+        </Transition>
+
         <img
           v-show="showKoBanner"
           ref="koBannerRef"

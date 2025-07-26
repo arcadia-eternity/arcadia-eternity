@@ -34,8 +34,9 @@ export class TimerManager {
   private animationTracker: AnimationTracker
   private config: TimerConfig
   private isActive: boolean = false
-  private currentPhase: 'selection' | 'execution' | 'switch' | null = null
+  private currentPhase: 'selection' | 'execution' | 'switch' | 'team-selection' | null = null
   private pendingTurnReset: { playerIds: playerId[] } | null = null
+  private teamSelectionTimer: NodeJS.Timeout | null = null
   private emitter: Emitter<TimerManagerEvents> = mitt<TimerManagerEvents>()
 
   // 追踪玩家选择状态
@@ -152,6 +153,59 @@ export class TimerManager {
     this.emitSnapshotEvent(playerIds)
 
     this.logger.debug('Timer startNewTurn: timers reset and started, ready for animation management')
+  }
+
+  /**
+   * 开始团队选择阶段计时
+   */
+  public startTeamSelectionTimer(timeLimit: number): void {
+    if (!this.config.enabled) return
+
+    this.logger.debug(`Timer startTeamSelectionTimer: starting team selection timer with ${timeLimit}s limit`)
+
+    this.currentPhase = 'team-selection'
+    this.isActive = true
+
+    // 清除现有的团队选择计时器
+    if (this.teamSelectionTimer) {
+      clearTimeout(this.teamSelectionTimer)
+    }
+
+    // 启动团队选择计时器
+    this.teamSelectionTimer = setTimeout(() => {
+      this.handleTeamSelectionTimeout()
+    }, timeLimit * 1000)
+
+    // 发送团队选择计时器开始事件
+    this.battle.emitter.emit('teamSelectionTimerStart', {
+      timeLimit,
+      timestamp: Date.now(),
+    })
+  }
+
+  /**
+   * 停止团队选择计时器
+   */
+  public stopTeamSelectionTimer(): void {
+    if (!this.config.enabled) return
+
+    this.logger.debug('Timer stopTeamSelectionTimer: stopping team selection timer')
+
+    if (this.teamSelectionTimer) {
+      clearTimeout(this.teamSelectionTimer)
+      this.teamSelectionTimer = null
+    }
+
+    // 发送团队选择计时器停止事件
+    this.battle.emitter.emit('teamSelectionTimerStop', {
+      timestamp: Date.now(),
+    })
+
+    // 如果当前阶段是团队选择，重置阶段
+    if (this.currentPhase === 'team-selection') {
+      this.currentPhase = null
+      this.isActive = false
+    }
   }
 
   /**
@@ -673,6 +727,23 @@ export class TimerManager {
   }
 
   /**
+   * 处理团队选择超时
+   */
+  private handleTeamSelectionTimeout(): void {
+    this.logger.debug('Timer handleTeamSelectionTimeout: team selection timed out')
+
+    // 发送团队选择超时事件
+    this.battle.emitter.emit('teamSelectionTimeout', {
+      timestamp: Date.now(),
+    })
+
+    // 清理计时器状态
+    this.teamSelectionTimer = null
+    this.currentPhase = null
+    this.isActive = false
+  }
+
+  /**
    * 处理总时间超时
    */
   private handleTotalTimeout(playerId: playerId): void {
@@ -691,6 +762,12 @@ export class TimerManager {
    */
   public cleanup(): void {
     this.stopAllTimers()
+
+    // 清理团队选择计时器
+    if (this.teamSelectionTimer) {
+      clearTimeout(this.teamSelectionTimer)
+      this.teamSelectionTimer = null
+    }
 
     this.playerTimers.forEach(timer => {
       timer.cleanup()

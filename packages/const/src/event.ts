@@ -25,6 +25,17 @@ export type Events = {
     type: 'turn' | 'total'
     autoAction?: string
   }
+  // 团队选择计时器事件
+  teamSelectionTimerStart: {
+    timeLimit: number
+    timestamp: number
+  }
+  teamSelectionTimerStop: {
+    timestamp: number
+  }
+  teamSelectionTimeout: {
+    timestamp: number
+  }
   // 新增Timer快照事件 - 用于高效的状态同步
   timerSnapshot: {
     snapshots: TimerSnapshot[]

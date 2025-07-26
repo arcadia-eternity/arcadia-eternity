@@ -34,6 +34,7 @@ export function createCompetitiveRuleSet(): RuleSetImpl {
   const competitivePetSpeciesUniqueRule = registry.getRule('competitive_pet_species_unique')
   const competitiveSkillAvailabilityRule = registry.getRule('competitive_skill_availability')
   const standardGenderRestrictionRule = registry.getRule('standard_gender_restriction')
+  const competitiveFullTeamRule = registry.getRule('competitive_full_team_rule')
 
   if (competitiveTeamSizeRule) ruleSet.addRule(competitiveTeamSizeRule)
   if (competitiveLevelLimitRule) ruleSet.addRule(competitiveLevelLimitRule)
@@ -42,6 +43,7 @@ export function createCompetitiveRuleSet(): RuleSetImpl {
   if (competitivePetSpeciesUniqueRule) ruleSet.addRule(competitivePetSpeciesUniqueRule)
   if (competitiveSkillAvailabilityRule) ruleSet.addRule(competitiveSkillAvailabilityRule)
   if (standardGenderRestrictionRule) ruleSet.addRule(standardGenderRestrictionRule)
+  if (competitiveFullTeamRule) ruleSet.addRule(competitiveFullTeamRule)
 
   return ruleSet
 }

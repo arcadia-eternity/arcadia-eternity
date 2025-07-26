@@ -9,6 +9,7 @@ import {
   EffectTrigger,
   type Events,
   type PlayerSelection,
+  type BattleTeamSelection,
   type petId,
   type playerId,
   type skillId,
@@ -27,7 +28,7 @@ import { AttributeSystem } from './attributeSystem'
 import * as jsondiffpatch from 'jsondiffpatch'
 import { nanoid } from 'nanoid'
 import mitt from 'mitt'
-import { PhaseManager, BattleStartPhase, BattleLoopPhase } from './phase'
+import { PhaseManager, BattleStartPhase, BattleLoopPhase, TeamSelectionPhase } from './phase'
 import { EffectExecutionPhase } from './phase/effectExecution'
 import { RemoveMarkPhase } from './phase/RemoveMarkPhase'
 import { AddMarkPhase } from './phase/AddMarkPhase'
@@ -42,6 +43,16 @@ export class Battle extends Context implements MarkOwner {
 
   public allowFaintSwitch: boolean
   public showHidden: boolean
+  public readonly teamSelectionConfig: {
+    enabled: boolean
+    mode: 'VIEW_ONLY' | 'TEAM_SELECTION' | 'FULL_TEAM'
+    maxTeamSize: number
+    minTeamSize: number
+    allowStarterSelection: boolean
+    showOpponentTeam: boolean
+    teamInfoVisibility: 'HIDDEN' | 'BASIC' | 'FULL'
+    timeLimit: number
+  }
 
   public readonly parent: null = null
   public readonly battle: Battle = this
@@ -87,6 +98,19 @@ export class Battle extends Context implements MarkOwner {
       rngSeed?: number
       showHidden?: boolean
       timerConfig?: Partial<TimerConfig>
+      teamSelection?: {
+        enabled: boolean
+        config?: {
+          mode?: 'VIEW_ONLY' | 'TEAM_SELECTION' | 'FULL_TEAM'
+          maxTeamSize?: number
+          minTeamSize?: number
+          allowStarterSelection?: boolean
+          showOpponentTeam?: boolean
+          teamInfoVisibility?: 'HIDDEN' | 'BASIC' | 'FULL'
+          timeLimit?: number
+        }
+      }
+      customConfig?: Record<string, any>
     },
     configSystem?: ConfigSystem,
   ) {
@@ -97,6 +121,29 @@ export class Battle extends Context implements MarkOwner {
 
     this.allowFaintSwitch = options?.allowFaintSwitch ?? true
     this.showHidden = options?.showHidden ?? false
+
+    // Initialize team selection configuration
+    // Check both direct teamSelection option and customConfig.teamSelection
+    const teamSelectionFromCustom = options?.customConfig?.teamSelection
+    const teamSelectionDirect = options?.teamSelection
+
+    this.teamSelectionConfig = {
+      enabled: teamSelectionFromCustom?.enabled ?? teamSelectionDirect?.enabled ?? false,
+      mode: teamSelectionFromCustom?.config?.mode ?? teamSelectionDirect?.config?.mode ?? 'TEAM_SELECTION',
+      maxTeamSize: teamSelectionFromCustom?.config?.maxTeamSize ?? teamSelectionDirect?.config?.maxTeamSize ?? 6,
+      minTeamSize: teamSelectionFromCustom?.config?.minTeamSize ?? teamSelectionDirect?.config?.minTeamSize ?? 1,
+      allowStarterSelection:
+        teamSelectionFromCustom?.config?.allowStarterSelection ??
+        teamSelectionDirect?.config?.allowStarterSelection ??
+        true,
+      showOpponentTeam:
+        teamSelectionFromCustom?.config?.showOpponentTeam ?? teamSelectionDirect?.config?.showOpponentTeam ?? false,
+      teamInfoVisibility:
+        teamSelectionFromCustom?.config?.teamInfoVisibility ??
+        teamSelectionDirect?.config?.teamInfoVisibility ??
+        'HIDDEN',
+      timeLimit: teamSelectionFromCustom?.config?.timeLimit ?? teamSelectionDirect?.config?.timeLimit ?? 60,
+    }
 
     // 初始化计时器管理器
     this.timerManager = new TimerManager(this, options?.timerConfig)
@@ -315,8 +362,8 @@ export class Battle extends Context implements MarkOwner {
         isBattleEnded = true
       }
     }
-    const playerAisDefeat = this.playerA.team.every(p => !p.isAlive)
-    const playerBisDefeat = this.playerB.team.every(p => !p.isAlive)
+    const playerAisDefeat = this.playerA.effectiveTeam.every(p => !p.isAlive)
+    const playerBisDefeat = this.playerB.effectiveTeam.every(p => !p.isAlive)
     if (playerAisDefeat || playerBisDefeat) {
       isBattleEnded = true
     }
@@ -332,6 +379,111 @@ export class Battle extends Context implements MarkOwner {
     }
 
     return isBattleEnded
+  }
+
+  /**
+   * Check if team selection phase is needed
+   */
+  private needsTeamSelection(): boolean {
+    return this.teamSelectionConfig.enabled
+  }
+
+  /**
+   * Validate team selection for a player
+   */
+  public validateTeamSelection(
+    playerId: playerId,
+    selection: BattleTeamSelection,
+  ): { isValid: boolean; errors: string[] } {
+    const player = this.getPlayerByID(playerId)
+    if (!player) {
+      return { isValid: false, errors: ['Player not found'] }
+    }
+
+    const errors: string[] = []
+    const config = this.teamSelectionConfig
+
+    // Check that all selected pets exist in player's full team
+    const fullTeamIds = new Set(player.fullTeam.map((pet: Pet) => pet.id))
+    for (const petId of selection.selectedPets) {
+      if (!fullTeamIds.has(petId)) {
+        errors.push(`Pet ${petId} not found in player's team`)
+      }
+    }
+
+    // Check for duplicates
+    const uniquePets = new Set(selection.selectedPets)
+    if (uniquePets.size !== selection.selectedPets.length) {
+      errors.push('Duplicate pets in selection')
+    }
+
+    // Check team size constraints using battle configuration
+    const teamSize = selection.selectedPets.length
+    if (teamSize < config.minTeamSize) {
+      errors.push(`Team size ${teamSize} is below minimum ${config.minTeamSize}`)
+    }
+    if (teamSize > config.maxTeamSize) {
+      errors.push(`Team size ${teamSize} exceeds maximum ${config.maxTeamSize}`)
+    }
+
+    // Check that selected pets are alive
+    for (const petId of selection.selectedPets) {
+      const pet = player.fullTeam.find((p: Pet) => p.id === petId)
+      if (pet && !pet.isAlive) {
+        errors.push(`Pet ${petId} is not alive`)
+      }
+    }
+
+    // Check starter pet if starter selection is allowed
+    if (config.allowStarterSelection) {
+      if (!selection.starterPetId) {
+        errors.push('Starter pet must be selected')
+      } else if (!selection.selectedPets.includes(selection.starterPetId)) {
+        errors.push('Starter pet must be in selected team')
+      } else {
+        const starterPet = player.fullTeam.find((p: Pet) => p.id === selection.starterPetId)
+        if (starterPet && !starterPet.isAlive) {
+          errors.push('Starter pet must be alive')
+        }
+      }
+    }
+
+    return { isValid: errors.length === 0, errors }
+  }
+
+  /**
+   * Apply team selection to a player
+   */
+  public applyTeamSelection(playerId: playerId, selection: BattleTeamSelection): boolean {
+    const validation = this.validateTeamSelection(playerId, selection)
+    if (!validation.isValid) {
+      this.logger.warn({ playerId, selection, errors: validation.errors }, 'Invalid team selection')
+      return false
+    }
+
+    const player = this.getPlayerByID(playerId)
+    if (!player) {
+      return false
+    }
+
+    player.applyTeamSelection(selection)
+    return true
+  }
+
+  /**
+   * Re-initialize battle maps after team selection
+   * This is needed because the initial maps are built from player.team,
+   * but after team selection, the effective teams may be different
+   */
+  private reinitializeBattleMaps(): void {
+    // Clear existing maps
+    this.petMap.clear()
+    this.skillMap.clear()
+
+    // Re-populate with effective teams (battleTeam or team)
+    const allPets = [...this.playerA.effectiveTeam, ...this.playerB.effectiveTeam]
+    allPets.forEach(pet => this.petMap.set(pet.id, pet))
+    this.petMap.forEach(pet => pet.skills.forEach(skill => this.skillMap.set(skill.id, skill)))
   }
 
   // Phase-based battle start (main implementation)
@@ -354,13 +506,24 @@ export class Battle extends Context implements MarkOwner {
     this._isStarting = true
 
     try {
-      // Phase 0: Initialize battle
+      // Phase 0: Team selection (if needed) - MUST be before battle initialization
+      if (this.needsTeamSelection()) {
+        this.currentPhase = BattlePhase.TeamSelectionPhase
+        const teamSelectionPhase = new TeamSelectionPhase(this, this.teamSelectionConfig)
+        this.phaseManager.registerPhase(teamSelectionPhase)
+        await this.phaseManager.executePhaseAsync(teamSelectionPhase.id)
+
+        // Re-initialize battle maps after team selection
+        this.reinitializeBattleMaps()
+      }
+
+      // Phase 1: Initialize battle
       this.currentPhase = BattlePhase.StartPhase
       const startPhase = new BattleStartPhase(this)
       this.phaseManager.registerPhase(startPhase)
       await this.phaseManager.executePhaseAsync(startPhase.id)
 
-      // Phase 1: Main battle loop
+      // Phase 2: Main battle loop
       const battleLoopPhase = new BattleLoopPhase(this)
       this.phaseManager.registerPhase(battleLoopPhase)
       await this.phaseManager.executePhaseAsync(battleLoopPhase.id)
@@ -478,8 +641,8 @@ export class Battle extends Context implements MarkOwner {
     }
     if (this.status != BattleStatus.Ended && this.isBattleEnded()) throw '战斗未结束'
 
-    const playerAloose = this.playerA.team.every(pet => !pet.isAlive)
-    const playerBloose = this.playerB.team.every(pet => !pet.isAlive)
+    const playerAloose = this.playerA.effectiveTeam.every(pet => !pet.isAlive)
+    const playerBloose = this.playerB.effectiveTeam.every(pet => !pet.isAlive)
 
     if (playerAloose && playerBloose) {
       this.emitMessage(BattleMessageType.BattleEnd, { winner: null, reason: 'all_pet_fainted' })
@@ -504,6 +667,23 @@ export class Battle extends Context implements MarkOwner {
     // 停止所有计时器
     this.timerManager.stopAllTimers()
     this.getVictor(true)
+  }
+
+  /**
+   * 统一的投降处理方法，可在任意阶段调用
+   */
+  public handleSurrender(playerId: playerId): void {
+    const surrenderPlayer = [this.playerA, this.playerB].find(v => v.id === playerId)
+    if (!surrenderPlayer) return
+
+    this.victor = this.getOpponent(surrenderPlayer)
+    this.status = BattleStatus.Ended
+    this.currentPhase = BattlePhase.Ended
+    // 停止所有计时器
+    this.timerManager.stopAllTimers()
+    // 取消当前的选择等待
+    this.cancelCurrentSelections()
+    this.getVictor(true, 'surrender')
   }
 
   toMessage(viewerId?: playerId, showHidden = false): BattleState {
@@ -668,6 +848,11 @@ export class Battle extends Context implements MarkOwner {
    */
   private isPlayerSwitchReady(player: Player): boolean {
     if (!player.selection) return false
+
+    // 投降选择总是被认为是ready状态
+    if (player.selection.type === 'surrender') {
+      return true
+    }
 
     // 如果是强制更换的玩家，必须选择switch-pet
     if (this.pendingForcedSwitches.includes(player)) {

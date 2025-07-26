@@ -7,6 +7,35 @@ import { fileURLToPath } from 'url'
 import type { FlyIoServiceDiscoveryManager } from '../../discovery/flyIoServiceDiscovery'
 import { injectable, inject, optional } from 'inversify'
 import { TYPES } from '../../../types'
+import type {
+  TypedBattleServiceClient,
+  PlayerSelectionRequest,
+  PlayerSelectionResponse,
+  SelectionRequest,
+  SelectionResponse,
+  BattleStateRequest,
+  BattleStateResponse,
+  ReadyRequest,
+  ReadyResponse,
+  AbandonRequest,
+  AbandonResponse,
+  AnimationEndRequest,
+  AnimationEndResponse,
+  TimerEnabledRequest,
+  TimerEnabledResponse,
+  PlayerTimerStateRequest,
+  PlayerTimerStateResponse,
+  AllPlayerTimerStatesRequest,
+  AllPlayerTimerStatesResponse,
+  TimerConfigRequest,
+  TimerConfigResponse,
+  StartAnimationRequest,
+  StartAnimationResponse,
+  EndAnimationRequest,
+  EndAnimationResponse,
+  TerminateBattleRequest,
+  TerminateBattleResponse,
+} from '../../../generated/grpc-types'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -19,26 +48,13 @@ const logger = pino({
   timestamp: () => `,"time":"${new Date().toISOString()}"`,
 })
 
-interface BattleServiceClient {
-  SubmitPlayerSelection: (request: any, callback: grpc.requestCallback<any>) => void
-  GetAvailableSelection: (request: any, callback: grpc.requestCallback<any>) => void
-  GetBattleState: (request: any, callback: grpc.requestCallback<any>) => void
-  PlayerReady: (request: any, callback: grpc.requestCallback<any>) => void
-  PlayerAbandon: (request: any, callback: grpc.requestCallback<any>) => void
-  ReportAnimationEnd: (request: any, callback: grpc.requestCallback<any>) => void
-  IsTimerEnabled: (request: any, callback: grpc.requestCallback<any>) => void
-  GetPlayerTimerState: (request: any, callback: grpc.requestCallback<any>) => void
-  GetAllPlayerTimerStates: (request: any, callback: grpc.requestCallback<any>) => void
-  GetTimerConfig: (request: any, callback: grpc.requestCallback<any>) => void
-  StartAnimation: (request: any, callback: grpc.requestCallback<any>) => void
-  EndAnimation: (request: any, callback: grpc.requestCallback<any>) => void
-  TerminateBattle: (request: any, callback: grpc.requestCallback<any>) => void
-}
+// 使用生成的类型安全接口
+type BattleServiceClient = TypedBattleServiceClient
 
 @injectable()
 export class BattleRpcClient {
   private clients = new Map<string, BattleServiceClient>() // instanceId -> client
-  private packageDefinition: any
+  private packageDefinition!: protoLoader.PackageDefinition
   private readonly REQUEST_TIMEOUT = 15000 // 15秒超时，适应Docker环境
   private serviceDiscovery?: FlyIoServiceDiscoveryManager
 
@@ -90,15 +106,17 @@ export class BattleRpcClient {
     }
 
     try {
-      const battleProto = grpc.loadPackageDefinition(this.packageDefinition).battle as any
+      const battleProto = grpc.loadPackageDefinition(this.packageDefinition).battle as {
+        BattleService: grpc.ServiceClientConstructor
+      }
       const client = new battleProto.BattleService(address, grpc.credentials.createInsecure(), {
         'grpc.keepalive_time_ms': 30000,
         'grpc.keepalive_timeout_ms': 5000,
-        'grpc.keepalive_permit_without_calls': true,
+        'grpc.keepalive_permit_without_calls': 1,
         'grpc.http2.max_pings_without_data': 0,
         'grpc.http2.min_time_between_pings_ms': 10000,
         'grpc.http2.min_ping_interval_without_data_ms': 300000,
-      }) as BattleServiceClient
+      }) as unknown as BattleServiceClient
 
       this.clients.set(instanceId, client)
       logger.debug({ instanceId, address }, 'Created new RPC client')
@@ -109,28 +127,30 @@ export class BattleRpcClient {
     }
   }
 
-  private async callWithTimeout<T>(
+  private async callWithTimeout<TRequest, TResponse>(
     client: BattleServiceClient,
     method: keyof BattleServiceClient,
-    request: any,
+    request: TRequest,
     timeout: number = this.REQUEST_TIMEOUT,
-  ): Promise<T> {
+  ): Promise<TResponse> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new Error('RPC_TIMEOUT'))
       }, timeout)
 
-      const clientMethod = client[method] as any
-      clientMethod.call(client, request, (error: any, response: any) => {
+      const clientMethod = client[method] as (req: TRequest, callback: grpc.requestCallback<TResponse>) => void
+      clientMethod.call(client, request, (error: grpc.ServiceError | null, response?: TResponse) => {
         clearTimeout(timer)
 
         if (error) {
           logger.error({ error, method, request }, 'RPC call failed')
           reject(error)
-        } else if (!response.success) {
-          reject(new Error(response.error || 'RPC_ERROR'))
+        } else if (response && (response as any).success === false) {
+          reject(new Error((response as any).error || 'RPC_ERROR'))
+        } else if (response) {
+          resolve(response)
         } else {
-          resolve(response as T)
+          reject(new Error('No response received'))
         }
       })
     })
@@ -143,36 +163,45 @@ export class BattleRpcClient {
     address: string,
     roomId: string,
     playerId: string,
-    selectionData: any,
+    selectionData: unknown,
   ): Promise<{ status: string }> {
     const client = this.getClient(instanceId, address)
-    const response = await this.callWithTimeout<any>(client, 'SubmitPlayerSelection', {
-      room_id: roomId,
-      player_id: playerId,
-      selection_data: JSON.stringify(selectionData),
-    })
+    const response = await this.callWithTimeout<PlayerSelectionRequest, PlayerSelectionResponse>(
+      client,
+      'SubmitPlayerSelection',
+      {
+        roomId,
+        playerId,
+        selectionData: JSON.stringify(selectionData),
+      },
+    )
 
     return { status: response.status }
   }
 
-  async getAvailableSelection(instanceId: string, address: string, roomId: string, playerId: string): Promise<any[]> {
+  async getAvailableSelection(
+    instanceId: string,
+    address: string,
+    roomId: string,
+    playerId: string,
+  ): Promise<unknown[]> {
     const client = this.getClient(instanceId, address)
-    const response = await this.callWithTimeout<any>(client, 'GetAvailableSelection', {
-      room_id: roomId,
-      player_id: playerId,
+    const response = await this.callWithTimeout<SelectionRequest, SelectionResponse>(client, 'GetAvailableSelection', {
+      roomId,
+      playerId,
     })
 
     return JSON.parse(response.selections)
   }
 
-  async getBattleState(instanceId: string, address: string, roomId: string, playerId: string): Promise<any> {
+  async getBattleState(instanceId: string, address: string, roomId: string, playerId: string): Promise<unknown> {
     const client = this.getClient(instanceId, address)
-    const response = await this.callWithTimeout<any>(client, 'GetBattleState', {
-      room_id: roomId,
-      player_id: playerId,
+    const response = await this.callWithTimeout<BattleStateRequest, BattleStateResponse>(client, 'GetBattleState', {
+      roomId,
+      playerId,
     })
 
-    return JSON.parse(response.battle_state)
+    return JSON.parse(response.battleState)
   }
 
   async playerReady(
@@ -182,9 +211,9 @@ export class BattleRpcClient {
     playerId: string,
   ): Promise<{ status: string }> {
     const client = this.getClient(instanceId, address)
-    const response = await this.callWithTimeout<any>(client, 'PlayerReady', {
-      room_id: roomId,
-      player_id: playerId,
+    const response = await this.callWithTimeout<ReadyRequest, ReadyResponse>(client, 'PlayerReady', {
+      roomId,
+      playerId,
     })
 
     return { status: response.status }
@@ -197,9 +226,9 @@ export class BattleRpcClient {
     playerId: string,
   ): Promise<{ status: string }> {
     const client = this.getClient(instanceId, address)
-    const response = await this.callWithTimeout<any>(client, 'PlayerAbandon', {
-      room_id: roomId,
-      player_id: playerId,
+    const response = await this.callWithTimeout<AbandonRequest, AbandonResponse>(client, 'PlayerAbandon', {
+      roomId,
+      playerId,
     })
 
     return { status: response.status }
@@ -210,23 +239,27 @@ export class BattleRpcClient {
     address: string,
     roomId: string,
     playerId: string,
-    animationData: any,
+    animationData: unknown,
   ): Promise<{ status: string }> {
     const client = this.getClient(instanceId, address)
-    const response = await this.callWithTimeout<any>(client, 'ReportAnimationEnd', {
-      room_id: roomId,
-      player_id: playerId,
-      animation_data: JSON.stringify(animationData),
-    })
+    const response = await this.callWithTimeout<AnimationEndRequest, AnimationEndResponse>(
+      client,
+      'ReportAnimationEnd',
+      {
+        roomId,
+        playerId,
+        animationData: JSON.stringify(animationData),
+      },
+    )
 
     return { status: response.status }
   }
 
   async isTimerEnabled(instanceId: string, address: string, roomId: string, playerId: string): Promise<boolean> {
     const client = this.getClient(instanceId, address)
-    const response = await this.callWithTimeout<any>(client, 'IsTimerEnabled', {
-      room_id: roomId,
-      player_id: playerId,
+    const response = await this.callWithTimeout<TimerEnabledRequest, TimerEnabledResponse>(client, 'IsTimerEnabled', {
+      roomId,
+      playerId,
     })
 
     return response.enabled
@@ -237,33 +270,46 @@ export class BattleRpcClient {
     address: string,
     roomId: string,
     playerId: string,
-    timerData: any,
-  ): Promise<any> {
+    timerData: unknown,
+  ): Promise<unknown> {
     const client = this.getClient(instanceId, address)
-    const response = await this.callWithTimeout<any>(client, 'GetPlayerTimerState', {
-      room_id: roomId,
-      player_id: playerId,
-      timer_data: JSON.stringify(timerData),
-    })
+    const response = await this.callWithTimeout<PlayerTimerStateRequest, PlayerTimerStateResponse>(
+      client,
+      'GetPlayerTimerState',
+      {
+        roomId,
+        playerId,
+        timerData: JSON.stringify(timerData),
+      },
+    )
 
-    return JSON.parse(response.timer_state)
+    return JSON.parse(response.timerState)
   }
 
-  async getAllPlayerTimerStates(instanceId: string, address: string, roomId: string, playerId: string): Promise<any> {
+  async getAllPlayerTimerStates(
+    instanceId: string,
+    address: string,
+    roomId: string,
+    playerId: string,
+  ): Promise<unknown> {
     const client = this.getClient(instanceId, address)
-    const response = await this.callWithTimeout<any>(client, 'GetAllPlayerTimerStates', {
-      room_id: roomId,
-      player_id: playerId,
-    })
+    const response = await this.callWithTimeout<AllPlayerTimerStatesRequest, AllPlayerTimerStatesResponse>(
+      client,
+      'GetAllPlayerTimerStates',
+      {
+        roomId,
+        playerId,
+      },
+    )
 
-    return JSON.parse(response.timer_states)
+    return JSON.parse(response.timerStates)
   }
 
-  async getTimerConfig(instanceId: string, address: string, roomId: string, playerId: string): Promise<any> {
+  async getTimerConfig(instanceId: string, address: string, roomId: string, playerId: string): Promise<unknown> {
     const client = this.getClient(instanceId, address)
-    const response = await this.callWithTimeout<any>(client, 'GetTimerConfig', {
-      room_id: roomId,
-      player_id: playerId,
+    const response = await this.callWithTimeout<TimerConfigRequest, TimerConfigResponse>(client, 'GetTimerConfig', {
+      roomId,
+      playerId,
     })
 
     return JSON.parse(response.config)
@@ -277,11 +323,15 @@ export class BattleRpcClient {
     animationData: any,
   ): Promise<any> {
     const client = this.getClient(instanceId, address)
-    const response = await this.callWithTimeout<any>(client, 'StartAnimation', {
-      room_id: roomId,
-      player_id: playerId,
-      animation_data: JSON.stringify(animationData),
-    })
+    const response = await this.callWithTimeout<StartAnimationRequest, StartAnimationResponse>(
+      client,
+      'StartAnimation',
+      {
+        roomId,
+        playerId,
+        animationData: JSON.stringify(animationData),
+      },
+    )
 
     return JSON.parse(response.result)
   }
@@ -294,10 +344,10 @@ export class BattleRpcClient {
     animationData: any,
   ): Promise<{ status: string }> {
     const client = this.getClient(instanceId, address)
-    const response = await this.callWithTimeout<any>(client, 'EndAnimation', {
-      room_id: roomId,
-      player_id: playerId,
-      animation_data: JSON.stringify(animationData),
+    const response = await this.callWithTimeout<EndAnimationRequest, EndAnimationResponse>(client, 'EndAnimation', {
+      roomId,
+      playerId,
+      animationData: JSON.stringify(animationData),
     })
 
     return { status: response.status }
@@ -311,11 +361,15 @@ export class BattleRpcClient {
     reason: string,
   ): Promise<{ status: string }> {
     const client = this.getClient(instanceId, address)
-    const response = await this.callWithTimeout<any>(client, 'TerminateBattle', {
-      room_id: roomId,
-      player_id: playerId,
-      reason,
-    })
+    const response = await this.callWithTimeout<TerminateBattleRequest, TerminateBattleResponse>(
+      client,
+      'TerminateBattle',
+      {
+        roomId,
+        playerId,
+        reason,
+      },
+    )
 
     return { status: response.status }
   }

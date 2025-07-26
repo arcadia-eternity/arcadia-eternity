@@ -21,6 +21,7 @@ import {
   // 性别限制规则
   createStandardGenderRestrictionRule,
 } from '../rules'
+import { createCompetitiveFullTeamRule } from '../rules/special/TeamSelectionRule'
 
 /**
  * 创建带有默认规则的规则系统
@@ -72,6 +73,9 @@ function registerAllBasicRules(registry: RuleRegistry): void {
 
   // 性别限制规则
   registry.registerRule(createStandardGenderRestrictionRule())
+
+  // 团队选择规则
+  registry.registerRule(createCompetitiveFullTeamRule())
 }
 
 /**

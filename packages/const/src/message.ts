@@ -71,6 +71,13 @@ export interface PlayerMessage {
   modifierState?: EntityModifierState // 修改器状态信息
 }
 
+export interface TeamInfo {
+  playerId: string
+  playerName: string
+  teamSize: number
+  pets: PetMessage[]
+}
+
 // Modifier 信息接口
 export interface ModifierInfo {
   id: string
@@ -150,6 +157,10 @@ export enum BattleMessageType {
   Transform = 'TRANSFORM',
   TransformEnd = 'TRANSFORM_END',
 
+  // 队伍选择相关
+  TeamSelectionStart = 'TEAM_SELECTION_START',
+  TeamSelectionComplete = 'TEAM_SELECTION_COMPLETE',
+
   // 需要等待回应的信息
   TurnAction = 'TURN_ACTION',
   ForcedSwitch = 'FORCED_SWITCH',
@@ -192,6 +203,8 @@ export type BattleMessage =
   | ErrorMessage
   | TransformMessage
   | TransformEndMessage
+  | TeamSelectionStartMessage
+  | TeamSelectionCompleteMessage
 
 // 基础消息结构
 export interface BaseBattleMessage<T extends BattleMessageType> {
@@ -357,6 +370,29 @@ export interface BattleMessageData {
     toBase: speciesId | baseSkillId | baseMarkId
     reason: 'mark_destroyed' | 'manual' | 'replaced'
   }
+  [BattleMessageType.TeamSelectionStart]: {
+    config: {
+      mode: 'FULL_TEAM' | 'TEAM_SELECTION' | 'VIEW_ONLY'
+      maxTeamSize?: number
+      minTeamSize?: number
+      allowStarterSelection: boolean
+      showOpponentTeam: boolean
+      teamInfoVisibility: 'FULL' | 'BASIC' | 'HIDDEN'
+      timeLimit?: number
+    }
+    playerATeam: TeamInfo | null
+    playerBTeam: TeamInfo | null
+  }
+  [BattleMessageType.TeamSelectionComplete]: {
+    playerASelection: {
+      selectedPets: petId[]
+      starterPetId: petId
+    }
+    playerBSelection: {
+      selectedPets: petId[]
+      starterPetId: petId
+    }
+  }
 }
 
 // 具体消息类型定义
@@ -391,3 +427,5 @@ export type InfoMessage = BaseBattleMessage<BattleMessageType.Info>
 export type ErrorMessage = BaseBattleMessage<BattleMessageType.Error>
 export type TransformMessage = BaseBattleMessage<BattleMessageType.Transform>
 export type TransformEndMessage = BaseBattleMessage<BattleMessageType.TransformEnd>
+export type TeamSelectionStartMessage = BaseBattleMessage<BattleMessageType.TeamSelectionStart>
+export type TeamSelectionCompleteMessage = BaseBattleMessage<BattleMessageType.TeamSelectionComplete>

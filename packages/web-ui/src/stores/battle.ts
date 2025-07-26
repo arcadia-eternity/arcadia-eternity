@@ -7,6 +7,7 @@ import {
   type petId,
   type playerId,
   type PlayerSelection,
+  type TeamSelectionConfig,
 } from '@arcadia-eternity/const'
 import type { IBattleSystem, IDeveloperBattleSystem } from '@arcadia-eternity/interface'
 import * as jsondiffpatch from 'jsondiffpatch'
@@ -71,6 +72,10 @@ export const useBattleStore = defineStore('battle', {
     _cacheUpdatePending: false,
     _lastCacheUpdateTime: 0,
     waitingForResponse: false,
+    // 团队选择相关状态
+    teamSelectionActive: false,
+    teamSelectionConfig: null as TeamSelectionConfig | null,
+    teamSelectionTimeRemaining: 0,
   }),
 
   actions: {
@@ -155,6 +160,23 @@ export const useBattleStore = defineStore('battle', {
       } catch (error) {
         this.errorMessage = (error as Error).message
       }
+    },
+
+    // 团队选择相关方法
+    startTeamSelection(config: TeamSelectionConfig, timeLimit?: number) {
+      this.teamSelectionActive = true
+      this.teamSelectionConfig = markRaw(config) // 使用 markRaw 避免响应式代理问题
+      this.teamSelectionTimeRemaining = timeLimit || 0
+    },
+
+    endTeamSelection() {
+      this.teamSelectionActive = false
+      this.teamSelectionConfig = null
+      this.teamSelectionTimeRemaining = 0
+    },
+
+    updateTeamSelectionTimer(timeRemaining: number) {
+      this.teamSelectionTimeRemaining = timeRemaining
     },
 
     async applyStateDelta(msg: BattleMessage) {
@@ -280,6 +302,23 @@ export const useBattleStore = defineStore('battle', {
     },
 
     async handleBattleMessage(msg: BattleMessage) {
+      // 处理团队选择相关消息
+      if (msg.type === BattleMessageType.TeamSelectionStart) {
+        // 将消息中的 config 转换为 TeamSelectionConfig 格式
+        const config: TeamSelectionConfig = {
+          mode: msg.data.config.mode,
+          maxTeamSize: msg.data.config.maxTeamSize,
+          minTeamSize: msg.data.config.minTeamSize,
+          allowStarterSelection: msg.data.config.allowStarterSelection,
+          showOpponentTeam: msg.data.config.showOpponentTeam,
+          teamInfoVisibility: msg.data.config.teamInfoVisibility,
+          timeLimit: msg.data.config.timeLimit,
+        }
+        this.startTeamSelection(config, msg.data.config.timeLimit)
+      } else if (msg.type === BattleMessageType.TeamSelectionComplete) {
+        this.endTeamSelection()
+      }
+
       this._messageSubject.next(msg)
     },
 
@@ -318,6 +357,11 @@ export const useBattleStore = defineStore('battle', {
       this.log.splice(0, this.log.length)
       this.availableActions = []
       this.lastProcessedSequenceId = -1
+
+      // 清理团队选择状态
+      this.teamSelectionActive = false
+      this.teamSelectionConfig = null
+      this.teamSelectionTimeRemaining = 0
 
       // 清理回放模式相关状态
       this.isReplayMode = false
@@ -414,8 +458,8 @@ export const useBattleStore = defineStore('battle', {
       // 设置玩家ID，优先使用提供的viewerId，否则使用第一个玩家的ID
       const battleStartMsg = messages.find(msg => msg.type === BattleMessageType.BattleStart)
       if (battleStartMsg && battleStartMsg.data) {
-        const data = battleStartMsg.data as any
-        this.playerId = viewerId || data.playerA?.id || ''
+        // BattleStart 消息的 data 是空对象，从 battleState 中获取玩家信息
+        this.playerId = viewerId || ''
       } else {
         this.playerId = viewerId || ''
       }
@@ -507,7 +551,7 @@ export const useBattleStore = defineStore('battle', {
         // 注意：此时simulationState已经应用了TurnStart消息的状态变化
         if (msg.type === BattleMessageType.TurnStart) {
           // 直接使用消息中的回合数，确保与战斗系统一致
-          const turnNumber = (msg.data as any).turn || 1
+          const turnNumber = msg.data.turn || 1
           snapshots.push({
             type: 'turnStart',
             turnNumber: turnNumber,
@@ -586,7 +630,7 @@ export const useBattleStore = defineStore('battle', {
         this.isBattleEnd = true
         // 从最后的BattleEnd消息中获取胜利者信息
         const battleEndMsg = this.replayMessages.find(msg => msg.type === BattleMessageType.BattleEnd)
-        this.victor = (battleEndMsg?.data as any)?.winner || null
+        this.victor = battleEndMsg?.data?.winner || null
       } else {
         this.isBattleEnd = false
         this.victor = null
@@ -865,10 +909,10 @@ export const useBattleStore = defineStore('battle', {
       this._lastCacheUpdateTime = Date.now()
 
       // 一次性收集所有对象，减少数组操作
-      const currentPets: any[] = []
-      const currentSkills: any[] = []
+      const currentPets: unknown[] = []
+      const currentSkills: unknown[] = []
       const currentPlayers = this.battleState.players ?? []
-      const allMarks: any[] = []
+      const allMarks: unknown[] = []
 
       // 调试信息
       if (this.isReplayMode) {
@@ -1149,5 +1193,7 @@ export const useBattleStore = defineStore('battle', {
       // 返回缓存的Map，避免频繁重新创建
       return state._markMapCache
     },
+    // 注意：teamSelectionActive, teamSelectionConfig, teamSelectionTimeRemaining
+    // 已经在 state 中定义，会自动暴露，不需要在 getters 中重复定义
   },
 })
