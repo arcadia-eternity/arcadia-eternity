@@ -250,13 +250,18 @@ const isSelected = (petId: string): boolean => {
 }
 
 const canSelectPet = (petId: string): boolean => {
-  if (props.config.mode !== 'TEAM_SELECTION') return false
+  if (props.config.mode === 'TEAM_SELECTION') {
+    const maxSize = props.config.maxTeamSize || 6
+    return isSelected(petId) || selectedPets.value.length < maxSize
+  }
 
-  const pet = getPetById(petId)
-  if (!pet || pet.currentHp <= 0) return false
+  // 全队模式下，如果允许选择首发，则所有存活的精灵都可以选择
+  if (props.config.mode === 'FULL_TEAM' && props.config.allowStarterSelection) {
+    return true
+  }
 
-  const maxSize = props.config.maxTeamSize || 6
-  return isSelected(petId) || selectedPets.value.length < maxSize
+  // VIEW_ONLY 模式下始终高亮
+  return false
 }
 
 const getPetById = (petId: string): PetMessage | undefined => {
