@@ -105,6 +105,11 @@ export default defineConfig({
             return relativePath.replace(/\\/g, '/')
           },
         },
+        // 复制 @ruffle-rs/ruffle 包的所有文件到 ruffle 文件夹
+        {
+          src: 'node_modules/@ruffle-rs/ruffle/*',
+          dest: 'ruffle',
+        },
       ],
       // 忽略找不到文件的错误，继续处理其他目标
       silent: true,
