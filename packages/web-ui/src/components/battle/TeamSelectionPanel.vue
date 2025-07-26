@@ -102,7 +102,7 @@
     </div>
 
     <!-- Action Buttons -->
-    <div class="flex gap-4 justify-center" :class="{ 'flex-col': isMobile }">
+    <div v-if="config.mode !== 'VIEW_ONLY'" class="flex gap-4 justify-center" :class="{ 'flex-col': isMobile }">
       <button
         class="px-6 py-3 bg-gray-600 text-white rounded-lg font-medium transition-all duration-200 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
         :class="{ 'min-h-[48px] text-lg': isMobile }"
@@ -261,7 +261,7 @@ const canSelectPet = (petId: string): boolean => {
   }
 
   // VIEW_ONLY 模式下始终高亮
-  return false
+  return true
 }
 
 const getPetById = (petId: string): PetMessage | undefined => {
