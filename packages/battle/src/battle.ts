@@ -669,6 +669,23 @@ export class Battle extends Context implements MarkOwner {
     this.getVictor(true)
   }
 
+  /**
+   * 统一的投降处理方法，可在任意阶段调用
+   */
+  public handleSurrender(playerId: playerId): void {
+    const surrenderPlayer = [this.playerA, this.playerB].find(v => v.id === playerId)
+    if (!surrenderPlayer) return
+
+    this.victor = this.getOpponent(surrenderPlayer)
+    this.status = BattleStatus.Ended
+    this.currentPhase = BattlePhase.Ended
+    // 停止所有计时器
+    this.timerManager.stopAllTimers()
+    // 取消当前的选择等待
+    this.cancelCurrentSelections()
+    this.getVictor(true, 'surrender')
+  }
+
   toMessage(viewerId?: playerId, showHidden = false): BattleState {
     showHidden = showHidden || this.showHidden
     return {
@@ -831,6 +848,11 @@ export class Battle extends Context implements MarkOwner {
    */
   private isPlayerSwitchReady(player: Player): boolean {
     if (!player.selection) return false
+
+    // 投降选择总是被认为是ready状态
+    if (player.selection.type === 'surrender') {
+      return true
+    }
 
     // 如果是强制更换的玩家，必须选择switch-pet
     if (this.pendingForcedSwitches.includes(player)) {

@@ -174,7 +174,7 @@ export class Player {
 
     // 检查是否在团队选择阶段
     if (this.battle!.currentPhase === BattlePhase.TeamSelectionPhase) {
-      // 返回团队选择选项
+      // 返回团队选择选项和投降选项
       return [
         {
           type: 'team-selection',
@@ -182,17 +182,27 @@ export class Player {
           selectedPets: [], // 这里会被AI的makeTeamSelectionDecision方法覆盖
           starterPetId: '' as any, // 这里会被AI的makeTeamSelectionDecision方法覆盖
         },
+        {
+          type: 'surrender',
+          player: this.id,
+        },
       ]
     }
 
     // 检查是否在强制更换阶段
     if (this.battle!.currentPhase === BattlePhase.SwitchPhase) {
-      // 如果是强制更换的玩家，只能选择换宠
+      // 如果是强制更换的玩家，可以选择换宠或投降
       if (this.battle!.pendingForcedSwitches.includes(this)) {
-        return this.getAvailableSwitch()
+        return [
+          ...this.getAvailableSwitch(),
+          {
+            type: 'surrender',
+            player: this.id,
+          },
+        ]
       }
 
-      // 如果是击破奖励更换的玩家，可以选择换宠或什么都不做
+      // 如果是击破奖励更换的玩家，可以选择换宠、什么都不做或投降
       if (this.battle!.pendingFaintSwitch === this) {
         return [
           {
@@ -200,11 +210,20 @@ export class Player {
             type: 'do-nothing',
           },
           ...this.getAvailableSwitch(),
+          {
+            type: 'surrender',
+            player: this.id,
+          },
         ]
       }
 
-      // 如果在更换阶段但不需要更换，返回空数组（等待其他玩家完成更换）
-      return []
+      // 如果在更换阶段但不需要更换，只能投降（等待其他玩家完成更换）
+      return [
+        {
+          type: 'surrender',
+          player: this.id,
+        },
+      ]
     }
 
     // 击破奖励更换逻辑（非SwitchPhase时）

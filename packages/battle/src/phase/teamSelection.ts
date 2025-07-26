@@ -295,58 +295,68 @@ export class TeamSelectionPhase extends InteractivePhase<TeamSelectionContext> {
     const battle = this.battle
 
     // Check player A selection
-    if (battle.playerA.selection?.type === 'team-selection' && !context.getPlayerSelection(battle.playerA.id)) {
-      console.log('Processing Player A team selection:', battle.playerA.selection)
-      // Mark as in progress if not already
-      context.markPlayerSelectionStarted(battle.playerA.id)
+    if (battle.playerA.selection) {
+      if (battle.playerA.selection.type === 'surrender') {
+        battle.handleSurrender(battle.playerA.id)
+        return
+      } else if (battle.playerA.selection.type === 'team-selection' && !context.getPlayerSelection(battle.playerA.id)) {
+        console.log('Processing Player A team selection:', battle.playerA.selection)
+        // Mark as in progress if not already
+        context.markPlayerSelectionStarted(battle.playerA.id)
 
-      const selection = battle.playerA.selection as TeamSelectionAction
-      const teamSelection: BattleTeamSelection = {
-        selectedPets: selection.selectedPets,
-        starterPetId: selection.starterPetId,
-      }
+        const selection = battle.playerA.selection as TeamSelectionAction
+        const teamSelection: BattleTeamSelection = {
+          selectedPets: selection.selectedPets,
+          starterPetId: selection.starterPetId,
+        }
 
-      // Validate selection
-      const validationResult = battle.validateTeamSelection(battle.playerA.id, teamSelection)
-      if (validationResult.isValid) {
-        console.log('Player A team selection valid, adding to context')
-        context.addPlayerSelection(battle.playerA.id, teamSelection)
-        battle.playerA.selection = null // Clear selection
-      } else {
-        console.log('Player A team selection invalid:', validationResult.errors)
-        // Emit validation error
-        battle.emitMessage(BattleMessageType.Error, {
-          message: `Player A team selection invalid: ${validationResult.errors.join(', ')}`,
-        })
-        battle.playerA.selection = null // Clear invalid selection
+        // Validate selection
+        const validationResult = battle.validateTeamSelection(battle.playerA.id, teamSelection)
+        if (validationResult.isValid) {
+          console.log('Player A team selection valid, adding to context')
+          context.addPlayerSelection(battle.playerA.id, teamSelection)
+          battle.playerA.selection = null // Clear selection
+        } else {
+          console.log('Player A team selection invalid:', validationResult.errors)
+          // Emit validation error
+          battle.emitMessage(BattleMessageType.Error, {
+            message: `Player A team selection invalid: ${validationResult.errors.join(', ')}`,
+          })
+          battle.playerA.selection = null // Clear invalid selection
+        }
       }
     }
 
     // Check player B selection
-    if (battle.playerB.selection?.type === 'team-selection' && !context.getPlayerSelection(battle.playerB.id)) {
-      console.log('Processing Player B team selection:', battle.playerB.selection)
-      // Mark as in progress if not already
-      context.markPlayerSelectionStarted(battle.playerB.id)
+    if (battle.playerB.selection) {
+      if (battle.playerB.selection.type === 'surrender') {
+        battle.handleSurrender(battle.playerB.id)
+        return
+      } else if (battle.playerB.selection.type === 'team-selection' && !context.getPlayerSelection(battle.playerB.id)) {
+        console.log('Processing Player B team selection:', battle.playerB.selection)
+        // Mark as in progress if not already
+        context.markPlayerSelectionStarted(battle.playerB.id)
 
-      const selection = battle.playerB.selection as TeamSelectionAction
-      const teamSelection: BattleTeamSelection = {
-        selectedPets: selection.selectedPets,
-        starterPetId: selection.starterPetId,
-      }
+        const selection = battle.playerB.selection as TeamSelectionAction
+        const teamSelection: BattleTeamSelection = {
+          selectedPets: selection.selectedPets,
+          starterPetId: selection.starterPetId,
+        }
 
-      // Validate selection
-      const validationResult = battle.validateTeamSelection(battle.playerB.id, teamSelection)
-      if (validationResult.isValid) {
-        console.log('Player B team selection valid, adding to context')
-        context.addPlayerSelection(battle.playerB.id, teamSelection)
-        battle.playerB.selection = null // Clear selection
-      } else {
-        console.log('Player B team selection invalid:', validationResult.errors)
-        // Emit validation error
-        battle.emitMessage(BattleMessageType.Error, {
-          message: `Player B team selection invalid: ${validationResult.errors.join(', ')}`,
-        })
-        battle.playerB.selection = null // Clear invalid selection
+        // Validate selection
+        const validationResult = battle.validateTeamSelection(battle.playerB.id, teamSelection)
+        if (validationResult.isValid) {
+          console.log('Player B team selection valid, adding to context')
+          context.addPlayerSelection(battle.playerB.id, teamSelection)
+          battle.playerB.selection = null // Clear selection
+        } else {
+          console.log('Player B team selection invalid:', validationResult.errors)
+          // Emit validation error
+          battle.emitMessage(BattleMessageType.Error, {
+            message: `Player B team selection invalid: ${validationResult.errors.join(', ')}`,
+          })
+          battle.playerB.selection = null // Clear invalid selection
+        }
       }
     }
   }

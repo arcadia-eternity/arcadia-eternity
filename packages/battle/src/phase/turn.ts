@@ -90,13 +90,7 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
         // Do nothing
         break
       case 'surrender': {
-        const player = battle.getPlayerByID(selection.player)
-        battle.victor = battle.getOpponent(player)
-        battle.status = BattleStatus.Ended
-        battle.currentPhase = BattlePhase.Ended
-        // 停止所有计时器
-        battle.timerManager.stopAllTimers()
-        battle.getVictor(true)
+        battle.handleSurrender(selection.player)
         return
       }
       default:
