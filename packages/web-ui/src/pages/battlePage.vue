@@ -34,6 +34,7 @@ import {
   type BattleTeamSelection,
   type TeamSelectionAction,
   type TeamSelectionConfig,
+  type TeamInfo,
   type petId,
   type playerId,
   type PetMessage,
@@ -277,6 +278,25 @@ const opponentPlayerTeam = computed(() => {
   return opponent?.team || []
 })
 
+// 团队选择阶段的对手队伍数据
+const teamSelectionOpponentTeam = computed(() => {
+  if (!teamSelectionPlayerATeam.value || !teamSelectionPlayerBTeam.value) {
+    return []
+  }
+
+  const currentPlayerId = store.playerId
+  const players = store.battleState?.players || []
+
+  // 根据当前玩家ID确定对手队伍
+  if (players[0]?.id === currentPlayerId) {
+    // 当前玩家是 playerA，对手是 playerB
+    return teamSelectionPlayerBTeam.value?.pets || []
+  } else {
+    // 当前玩家是 playerB，对手是 playerA
+    return teamSelectionPlayerATeam.value?.pets || []
+  }
+})
+
 // 检查是否处于团队选择阶段
 const isTeamSelectionPhase = computed(() => {
   return store.battleState?.currentPhase === BattlePhase.TeamSelectionPhase
@@ -344,6 +364,8 @@ const showTeamSelectionPanel = ref(false)
 const teamSelectionConfig = ref<TeamSelectionConfig | null>(null)
 const teamSelectionTimeLimit = ref<number | undefined>(undefined)
 const currentTeamSelection = ref<BattleTeamSelection | null>(null)
+const teamSelectionPlayerATeam = ref<TeamInfo | null>(null)
+const teamSelectionPlayerBTeam = ref<TeamInfo | null>(null)
 
 // 对手团队选择状态（目前为占位符，实际应从战斗状态中获取）
 const opponentSelectionProgress = computed(() => {
@@ -2323,12 +2345,17 @@ const setupMessageSubscription = async () => {
                     if (!props.replayMode && msg.data) {
                       teamSelectionConfig.value = msg.data.config
                       teamSelectionTimeLimit.value = msg.data.config.timeLimit
+                      teamSelectionPlayerATeam.value = msg.data.playerATeam
+                      teamSelectionPlayerBTeam.value = msg.data.playerBTeam
                       showTeamSelectionPanel.value = true
                     }
                     break
                   case BattleMessageType.TeamSelectionComplete:
                     // 处理团队选择完成消息
                     showTeamSelectionPanel.value = false
+                    // 清理团队选择数据
+                    teamSelectionPlayerATeam.value = null
+                    teamSelectionPlayerBTeam.value = null
                     break
                   // PetSwitch 类型的消息已在外部 if 条件中处理
                   default:
@@ -2668,7 +2695,7 @@ watch(
             <TeamSelectionPanel
               v-if="teamSelectionConfig"
               :fullTeam="currentPlayerTeam"
-              :opponentTeam="opponentPlayerTeam"
+              :opponentTeam="teamSelectionOpponentTeam"
               :config="teamSelectionConfig"
               :timeLimit="teamSelectionTimeLimit"
               :initialSelection="currentTeamSelection || undefined"

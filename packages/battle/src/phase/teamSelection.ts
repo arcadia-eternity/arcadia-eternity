@@ -3,6 +3,8 @@ import {
   BattlePhase,
   type TeamSelectionAction,
   type BattleTeamSelection,
+  type PetMessage,
+  type TeamInfo,
 } from '@arcadia-eternity/const'
 import { InteractivePhase } from './base'
 import { Context } from '../context'
@@ -439,7 +441,7 @@ export class TeamSelectionPhase extends InteractivePhase<TeamSelectionContext> {
   /**
    * Get team information based on visibility level
    */
-  private getTeamInfo(player: Player, visibility: 'FULL' | 'BASIC' | 'HIDDEN'): any {
+  private getTeamInfo(player: Player, visibility: 'FULL' | 'BASIC' | 'HIDDEN'): TeamInfo | null {
     switch (visibility) {
       case 'HIDDEN':
         return null
@@ -451,8 +453,13 @@ export class TeamSelectionPhase extends InteractivePhase<TeamSelectionContext> {
           pets: player.fullTeam.map(pet => ({
             id: pet.id,
             name: pet.name,
-            species: pet.species,
+            speciesID: pet.species.id, // 使用 species.id 而不是整个 species 对象
+            element: pet.element,
             level: pet.level,
+            currentHp: pet.currentHp,
+            maxHp: pet.stat.maxHp,
+            isUnknown: false,
+            marks: [], // 基础可见性不显示印记
           })),
         }
       case 'FULL':
@@ -463,14 +470,28 @@ export class TeamSelectionPhase extends InteractivePhase<TeamSelectionContext> {
           pets: player.fullTeam.map(pet => ({
             id: pet.id,
             name: pet.name,
-            species: pet.species,
+            speciesID: pet.species.id, // 使用 species.id 而不是整个 species 对象
+            element: pet.element,
             level: pet.level,
             currentHp: pet.currentHp,
             maxHp: pet.stat.maxHp,
+            isUnknown: false,
+            marks: pet.marks.map(m => m.toMessage()),
             skills: pet.skills.map(skill => ({
               id: skill.id,
-              name: skill.base.id, // Use base skill id as name
+              baseId: skill.base.id, // 使用 baseId 字段
+              name: skill.base.id, // 保持向后兼容
               rage: skill.rage,
+              element: skill.element,
+              category: skill.category,
+              power: skill.power,
+              accuracy: skill.accuracy,
+              priority: skill.priority,
+              target: skill.target,
+              multihit: skill.multihit,
+              sureHit: skill.sureHit,
+              tag: skill.tags,
+              isUnknown: false,
             })),
           })),
         }

@@ -71,6 +71,13 @@ export interface PlayerMessage {
   modifierState?: EntityModifierState // 修改器状态信息
 }
 
+export interface TeamInfo {
+  playerId: string
+  playerName: string
+  teamSize: number
+  pets: PetMessage[]
+}
+
 // Modifier 信息接口
 export interface ModifierInfo {
   id: string
@@ -373,8 +380,8 @@ export interface BattleMessageData {
       teamInfoVisibility: 'FULL' | 'BASIC' | 'HIDDEN'
       timeLimit?: number
     }
-    playerATeam: PetMessage[]
-    playerBTeam: PetMessage[]
+    playerATeam: TeamInfo | null
+    playerBTeam: TeamInfo | null
   }
   [BattleMessageType.TeamSelectionComplete]: {
     playerASelection: {
