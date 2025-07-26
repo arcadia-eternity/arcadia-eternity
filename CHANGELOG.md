@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.12.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.12.1...arcadia-eternity-v2.12.2) (2025-07-26)
+
+
+### 🐛 Bug Fixes
+
+* Refactor player name sync and update validation message ([625a9ac](https://github.com/arcadia-eternity/arcadia-eternity/commit/625a9acbaa35d7eddffef68ae0a6ccc593a85956))
+
 ## [2.12.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.12.0...arcadia-eternity-v2.12.1) (2025-07-26)
 
 
