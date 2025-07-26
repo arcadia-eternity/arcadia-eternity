@@ -76,6 +76,7 @@ declare module 'vue' {
     RelatedMarks: typeof import('./src/components/dex/RelatedMarks.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    RuleSetTooltip: typeof import('./src/components/RuleSetTooltip.vue')['default']
     SimpleBattleTimer: typeof import('./src/components/SimpleBattleTimer.vue')['default']
     SkillButton: typeof import('./src/components/battle/SkillButton.vue')['default']
     SkillDetail: typeof import('./src/components/dex/SkillDetail.vue')['default']

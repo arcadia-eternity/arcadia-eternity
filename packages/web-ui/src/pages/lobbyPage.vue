@@ -107,7 +107,10 @@
           >
             <div class="font-medium text-gray-800">{{ ruleSet.name }}</div>
             <div class="text-sm text-gray-600 mt-1">{{ ruleSet.description }}</div>
-            <div class="text-xs text-gray-500 mt-2">{{ ruleSet.ruleCount }} 条规则</div>
+            <div class="text-xs text-gray-500 mt-2 flex items-center">
+              {{ ruleSet.ruleCount }} 条规则
+              <RuleSetTooltip :rule-set-id="ruleSet.id" />
+            </div>
 
             <!-- ELO信息 -->
             <div v-if="isEloEnabled(ruleSet.id) && ruleSetElos[ruleSet.id]" class="mt-3 pt-2 border-t border-gray-200">
@@ -334,8 +337,8 @@ import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { usePetStorageStore } from '@/stores/petStorage'
-import { useRuleSetStore } from '@/stores/ruleSet'
 import { useEloStore } from '@/stores/elo'
+import { useValidationStore } from '@/stores/validation'
 import { type BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
 import {
   User,
@@ -352,7 +355,7 @@ import {
   Trophy,
 } from '@element-plus/icons-vue'
 import { isTauri } from '@/utils/env'
-import type { PetSchemaType } from '@arcadia-eternity/schema'
+import RuleSetTooltip from '@/components/RuleSetTooltip.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -360,17 +363,17 @@ const battleStore = useBattleStore()
 const playerStore = usePlayerStore()
 const battleClientStore = useBattleClientStore()
 const petStorageStore = usePetStorageStore()
-const ruleSetStore = useRuleSetStore()
 const eloStore = useEloStore()
+const validationStore = useValidationStore()
 
 // 匹配配置状态
 const selectedTeamIndex = ref<number>(-1)
 
 // 计算属性
-const availableRuleSets = computed(() => ruleSetStore.availableRuleSets)
+const availableRuleSets = computed(() => validationStore.availableRuleSets)
 const selectedRuleSetId = computed({
-  get: () => ruleSetStore.selectedRuleSetId,
-  set: (value: string) => ruleSetStore.setSelectedRuleSet(value),
+  get: () => validationStore.selectedRuleSetId,
+  set: (value: string) => validationStore.setSelectedRuleSet(value),
 })
 
 // ELO相关计算属性
@@ -428,72 +431,55 @@ const selectedTeam = computed(() => {
   return null
 })
 
-// 当规则变化时，重置队伍选择
+// 当规则变化时，重置队伍选择并重新验证
 watch(selectedRuleSetId, () => {
   selectedTeamIndex.value = -1
+  validateSelectedTeam()
+})
+
+// 当选中的队伍变化时，重新验证
+watch(selectedTeam, () => {
+  validateSelectedTeam()
 })
 
 // 检查选中的队伍是否与当前规则集匹配
 const isSelectedTeamCompatible = computed(() => {
   if (!selectedTeam.value || !selectedRuleSetId.value) return false
-
-  const teamRuleSetId = selectedTeam.value.ruleSetId || 'casual_standard_ruleset'
-  return teamRuleSetId === selectedRuleSetId.value
+  return validationStore.isTeamCompatibleWithRuleSet(selectedTeam.value, selectedRuleSetId.value)
 })
 
 // 进入匹配时的额外验证（检查队伍是否真正符合规则要求）
-const isSelectedTeamValid = computed(() => {
-  if (!selectedTeam.value || !selectedRuleSetId.value) return false
-  if (!isSelectedTeamCompatible.value) return false
+const isSelectedTeamValid = ref<boolean>(false)
+const selectedTeamValidationErrors = ref<string[]>([])
 
-  // 进行实际的规则验证
-  return isTeamValidForRule(selectedTeam.value, selectedRuleSetId.value)
-})
-
-// 获取当前选中队伍的详细验证结果
-const selectedTeamValidationResult = computed(() => {
-  if (!selectedTeam.value || !selectedRuleSetId.value) return null
-  return getTeamValidationResult(selectedTeam.value, selectedRuleSetId.value)
-})
-
-// 获取当前选中队伍的验证错误信息（用于显示）
-const selectedTeamValidationErrors = computed(() => {
-  const result = selectedTeamValidationResult.value
-  if (!result || result.isValid) return []
-  return result.errors
-})
-
-// 队伍验证函数
-const isTeamValidForRule = (team: { name: string; pets: PetSchemaType[] }, ruleSetId: string): boolean => {
-  if (!team || !ruleSetId) return false
-
-  try {
-    // 使用Pinia store验证队伍
-    const validation = ruleSetStore.validateTeam(team.pets, ruleSetId)
-    return validation.isValid
-  } catch (error) {
-    console.error('队伍验证失败:', error)
-    return false
+// 验证选中的队伍
+const validateSelectedTeam = async () => {
+  if (!selectedTeam.value || !selectedRuleSetId.value) {
+    isSelectedTeamValid.value = false
+    selectedTeamValidationErrors.value = []
+    return
   }
-}
 
-// 获取队伍验证详细结果
-const getTeamValidationResult = (team: { name: string; pets: PetSchemaType[] }, ruleSetId: string) => {
-  if (!team || !ruleSetId) return null
+  if (!isSelectedTeamCompatible.value) {
+    isSelectedTeamValid.value = false
+    selectedTeamValidationErrors.value = ['队伍规则集不匹配']
+    return
+  }
 
   try {
-    // 使用Pinia store验证队伍
-    return ruleSetStore.validateTeam(team.pets, ruleSetId)
+    const result = await validationStore.validateTeam(selectedTeam.value.pets, selectedRuleSetId.value)
+    isSelectedTeamValid.value = result.isValid
+    selectedTeamValidationErrors.value = result.errors.map(error => error.message)
   } catch (error) {
-    console.error('队伍验证失败:', error)
-    return { isValid: false, errors: ['验证过程中发生错误'] }
+    console.error('验证队伍时出错:', error)
+    isSelectedTeamValid.value = false
+    selectedTeamValidationErrors.value = ['验证过程中发生错误']
   }
 }
 
 // 根据规则集ID获取规则集名称
 const getRuleSetName = (ruleSetId: string): string => {
-  const ruleSet = ruleSetStore.ruleSets.find(r => r.id === ruleSetId)
-  return ruleSet?.name || ruleSetId
+  return validationStore.getRuleSetName(ruleSetId)
 }
 
 // 响应式状态
@@ -576,10 +562,9 @@ const handleMatchmaking = async () => {
 
     // 检查队伍是否符合规则
     if (!isSelectedTeamValid.value) {
-      // 获取详细的验证错误信息
-      const validationResult = getTeamValidationResult(selectedTeam.value, selectedRuleSetId.value)
-      if (validationResult && validationResult.errors.length > 0) {
-        errorMessage.value = `队伍不符合规则要求：${validationResult.errors[0]}`
+      // 使用已经计算好的验证错误信息
+      if (selectedTeamValidationErrors.value.length > 0) {
+        errorMessage.value = `队伍不符合规则要求：${selectedTeamValidationErrors.value[0]}`
       } else {
         errorMessage.value = '所选队伍不符合规则要求'
       }
@@ -658,6 +643,9 @@ watch(
 )
 
 onMounted(async () => {
+  // 初始化验证系统
+  await validationStore.initialize()
+
   // 获取启用ELO的规则集列表
   try {
     const { BattleReportService } = await import('@/services/battleReportService')
@@ -676,6 +664,9 @@ onMounted(async () => {
       console.warn('Failed to fetch player ELO data:', error)
     }
   }
+
+  // 初始验证选中的队伍
+  validateSelectedTeam()
 
   nextTick(() => {
     if (route.query.startMatching === 'true') handleMatchmaking()
