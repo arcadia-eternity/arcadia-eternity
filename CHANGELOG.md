@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.12.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.12.2...arcadia-eternity-v2.12.3) (2025-07-26)
+
+
+### ⚡ Performance Improvements
+
+* Integrate Ruffle for Flash support in web UI ([bc3bd9d](https://github.com/arcadia-eternity/arcadia-eternity/commit/bc3bd9db2d7d2a5332edab97a24fface1e5b828f))
+
 ## [2.12.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.12.1...arcadia-eternity-v2.12.2) (2025-07-26)
 
 
