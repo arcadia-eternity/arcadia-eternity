@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.12.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.12.3...arcadia-eternity-v2.12.4) (2025-07-27)
+
+
+### 🐛 Bug Fixes
+
+* Restore last matchmaking config in lobby and store ([240fc49](https://github.com/arcadia-eternity/arcadia-eternity/commit/240fc494b4680ffdcdf9ea857eba9228d135e416))
+
 ## [2.12.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.12.2...arcadia-eternity-v2.12.3) (2025-07-26)
 
 
