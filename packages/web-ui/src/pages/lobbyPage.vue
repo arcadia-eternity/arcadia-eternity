@@ -56,14 +56,6 @@
         <el-icon :size="20"><Download /></el-icon>
         <span class="text-sm md:text-base">下载客户端</span>
       </router-link>
-      <!-- 排行榜功能暂时禁用 -->
-      <!-- <router-link
-        to="/leaderboard"
-        class="flex flex-col items-center gap-2 p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500"
-      >
-        <el-icon><Trophy /></el-icon>
-        排行榜
-      </router-link> -->
       <router-link
         to="/local-battle"
         class="flex flex-col items-center gap-2 p-4 md:p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500 min-h-[80px] md:min-h-[auto] touch-manipulation"
@@ -431,9 +423,14 @@ const selectedTeam = computed(() => {
   return null
 })
 
-// 当规则变化时，重置队伍选择并重新验证
+// 标记是否正在恢复配置，避免在恢复时重置选择
+const isRestoringConfig = ref(false)
+
+// 当规则变化时，重置队伍选择并重新验证（除非正在恢复配置）
 watch(selectedRuleSetId, () => {
-  selectedTeamIndex.value = -1
+  if (!isRestoringConfig.value) {
+    selectedTeamIndex.value = -1
+  }
   validateSelectedTeam()
 })
 
@@ -475,6 +472,79 @@ const validateSelectedTeam = async () => {
     isSelectedTeamValid.value = false
     selectedTeamValidationErrors.value = ['验证过程中发生错误']
   }
+}
+
+// 保存上一次匹配配置
+const saveLastMatchingConfig = () => {
+  // 获取当前选中的队伍
+  const currentSelectedTeam = selectedTeam.value
+  if (!currentSelectedTeam) return
+
+  // 找到该队伍在 petStorageStore.teams 中的实际索引
+  const actualTeamIndex = petStorageStore.teams.findIndex(
+    team => team.name === currentSelectedTeam.name && team.ruleSetId === currentSelectedTeam.ruleSetId,
+  )
+
+  if (actualTeamIndex >= 0) {
+    petStorageStore.saveLastMatchingConfig(actualTeamIndex, selectedRuleSetId.value)
+  }
+}
+
+// 加载上一次匹配配置
+const loadLastMatchingConfig = async () => {
+  const config = petStorageStore.getLastMatchingConfig()
+  if (!config) return false
+
+  // 设置恢复标记，避免在恢复过程中重置选择
+  isRestoringConfig.value = true
+
+  try {
+    // 先尝试根据保存的队伍索引找到对应的队伍
+    const allTeams = petStorageStore.teams
+    if (config.teamIndex >= 0 && config.teamIndex < allTeams.length) {
+      const targetTeam = allTeams[config.teamIndex]
+
+      // 使用队伍自身的规则集，确保匹配
+      const teamRuleSetId = targetTeam.ruleSetId || 'casual_standard_ruleset'
+
+      // 检查规则集是否有效
+      if (availableRuleSets.value.find(r => r.id === teamRuleSetId)) {
+        selectedRuleSetId.value = teamRuleSetId
+
+        // 在规则集设置后，重新计算可用队伍并找到目标队伍的新索引
+        await nextTick()
+
+        const newTeamIndex = availableTeams.value.findIndex(
+          team => team.name === targetTeam.name && team.ruleSetId === teamRuleSetId,
+        )
+
+        if (newTeamIndex >= 0) {
+          selectedTeamIndex.value = newTeamIndex
+        } else {
+          // 如果找不到目标队伍，选择第一个可用队伍
+          if (availableTeams.value.length > 0) {
+            selectedTeamIndex.value = 0
+          }
+        }
+
+        // 恢复完成，清除标记并重新验证
+        isRestoringConfig.value = false
+
+        // 确保队伍验证在恢复完成后执行
+        await nextTick()
+        await validateSelectedTeam()
+
+        return true
+      }
+    }
+  } finally {
+    // 确保标记被清除
+    if (isRestoringConfig.value) {
+      isRestoringConfig.value = false
+    }
+  }
+
+  return false
 }
 
 // 根据规则集ID获取规则集名称
@@ -602,6 +672,9 @@ const handleMatchmaking = async () => {
       })
       console.log('✅ Matchmaking request sent with ruleSetId:', selectedRuleSetId.value)
 
+      // 保存这次的匹配配置，以便下次使用
+      saveLastMatchingConfig()
+
       battleClientStore.once('matchSuccess', async () => {
         console.log('🎯 matchSuccess event received in lobbyPage')
         if (!battleClientStore._instance) {
@@ -665,12 +738,34 @@ onMounted(async () => {
     }
   }
 
-  // 初始验证选中的队伍
-  validateSelectedTeam()
+  // 尝试恢复上一次的匹配配置
+  const restored = await loadLastMatchingConfig()
 
-  nextTick(() => {
-    if (route.query.startMatching === 'true') handleMatchmaking()
-  })
+  // 如果没有恢复成功，使用默认选择
+  if (!restored) {
+    // 使用当前队伍作为默认选择
+    if (availableTeams.value.length > 0) {
+      // 找到当前队伍在可用队伍中的索引
+      const currentTeam = petStorageStore.teams[petStorageStore.currentTeamIndex]
+      if (currentTeam) {
+        const currentTeamIndex = availableTeams.value.findIndex(team => team.name === currentTeam.name)
+        if (currentTeamIndex >= 0) {
+          selectedTeamIndex.value = currentTeamIndex
+        } else if (availableTeams.value.length > 0) {
+          selectedTeamIndex.value = 0
+        }
+      }
+    }
+
+    // 如果没有恢复配置，验证选中的队伍
+    await validateSelectedTeam()
+  }
+
+  // 现在配置已经完全恢复，检查是否需要开始匹配
+  if (route.query.startMatching === 'true') {
+    await nextTick()
+    handleMatchmaking()
+  }
 })
 
 onBeforeUnmount(async () => {

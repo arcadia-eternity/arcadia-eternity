@@ -12,11 +12,18 @@ interface Team {
   ruleSetId: string // 队伍对应的规则集ID
 }
 
+interface LastMatchingConfig {
+  teamIndex: number
+  ruleSetId: string
+  timestamp: number
+}
+
 interface PetStorageState {
   storage: PetSchemaType[]
   teams: Team[]
   currentTeamIndex: number
   initialized: boolean
+  lastMatchingConfig: LastMatchingConfig | null
 }
 
 // Zod 校验 schema
@@ -26,10 +33,17 @@ const TeamSchema = z.object({
   ruleSetId: z.string().min(1, '规则集ID不能为空'),
 })
 
+const LastMatchingConfigSchema = z.object({
+  teamIndex: z.number().int().min(0),
+  ruleSetId: z.string().min(1),
+  timestamp: z.number(),
+})
+
 const PetStorageStateSchema = z.object({
   storage: PetSetSchema,
   teams: z.array(TeamSchema).min(1, '至少需要一个队伍'),
   currentTeamIndex: z.number().int().min(0, '当前队伍索引不能为负数'),
+  lastMatchingConfig: LastMatchingConfigSchema.nullable().optional(),
 })
 
 // 定义持久化数据的类型（不包含initialized）
@@ -50,7 +64,13 @@ function validatePetStorageData(data: unknown): { valid: boolean; data?: Persist
       }
     }
 
-    return { valid: true, data: validatedData }
+    return {
+      valid: true,
+      data: {
+        ...validatedData,
+        lastMatchingConfig: validatedData.lastMatchingConfig || null,
+      },
+    }
   } catch (error) {
     if (error instanceof z.ZodError) {
       const errors = error.issues.map(err => {
@@ -121,6 +141,7 @@ export const usePetStorageStore = defineStore('petStorage', {
     teams: [getDefaultTeam()],
     currentTeamIndex: 0,
     initialized: false,
+    lastMatchingConfig: null,
   }),
 
   actions: {
@@ -170,6 +191,7 @@ export const usePetStorageStore = defineStore('petStorage', {
             this.storage = validation.data.storage
             this.teams = validation.data.teams
             this.currentTeamIndex = validation.data.currentTeamIndex
+            this.lastMatchingConfig = validation.data.lastMatchingConfig || null
             this.initialized = true // 加载完成后设置为已初始化
 
             // 如果进行了数据迁移，保存更新后的数据
@@ -214,6 +236,7 @@ export const usePetStorageStore = defineStore('petStorage', {
         storage: this.storage,
         teams: this.teams,
         currentTeamIndex: this.currentTeamIndex,
+        lastMatchingConfig: this.lastMatchingConfig,
       }
 
       const validation = validatePetStorageData(currentState)
@@ -237,6 +260,7 @@ export const usePetStorageStore = defineStore('petStorage', {
           storage: this.storage,
           teams: this.teams,
           currentTeamIndex: this.currentTeamIndex,
+          lastMatchingConfig: this.lastMatchingConfig,
         }),
       )
     },
@@ -322,6 +346,34 @@ export const usePetStorageStore = defineStore('petStorage', {
         this.teams[index].ruleSetId = ruleSetId
         this.validateAndSave()
       }
+    },
+
+    // 上一次匹配配置相关方法
+    saveLastMatchingConfig(teamIndex: number, ruleSetId: string) {
+      this.lastMatchingConfig = {
+        teamIndex,
+        ruleSetId,
+        timestamp: Date.now(),
+      }
+      this.validateAndSave()
+    },
+
+    getLastMatchingConfig(): LastMatchingConfig | null {
+      // 检查配置是否过期（7天）
+      if (this.lastMatchingConfig) {
+        const isExpired = Date.now() - this.lastMatchingConfig.timestamp > 7 * 24 * 60 * 60 * 1000
+        if (isExpired) {
+          this.lastMatchingConfig = null
+          this.validateAndSave()
+          return null
+        }
+      }
+      return this.lastMatchingConfig
+    },
+
+    clearLastMatchingConfig() {
+      this.lastMatchingConfig = null
+      this.validateAndSave()
     },
 
     moveToTeam(petId: string, targetTeamIndex: number) {
