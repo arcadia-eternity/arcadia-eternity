@@ -12,9 +12,35 @@ import {
   type SuccessResponse,
   type ErrorResponse,
 } from '@arcadia-eternity/protocol'
-import { type PlayerSchemaType, type PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
+import { type PlayerSchemaType, type PlayerSelectionSchemaType, type PetSchemaType } from '@arcadia-eternity/schema'
 import { io, type Socket } from 'socket.io-client'
 import { nanoid } from 'nanoid'
+
+// 私人房间相关类型定义
+export type PrivateRoomConfig = {
+  ruleSetId?: string
+  isPrivate?: boolean
+  password?: string
+  allowSpectators?: boolean
+  maxSpectators?: number
+  spectatorMode?: 'free' | 'player1' | 'player2' | 'god'
+}
+
+export type CreatePrivateRoomData = {
+  team: PetSchemaType[]
+  config: PrivateRoomConfig
+}
+
+export type JoinPrivateRoomData = {
+  roomCode: string
+  team: PetSchemaType[]
+  password?: string
+}
+
+export type JoinSpectatorData = {
+  roomCode: string
+  preferredView?: 'player1' | 'player2' | 'god'
+}
 
 type BattleClientOptions = {
   serverUrl: string
@@ -490,6 +516,197 @@ export class BattleClient {
     })
   }
 
+  // 私人房间相关方法
+  async createPrivateRoom(data: CreatePrivateRoomData): Promise<string> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Create room timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('createPrivateRoom', data, response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve(response.data.roomCode)
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async joinPrivateRoom(data: JoinPrivateRoomData): Promise<void> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Join room timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('joinPrivateRoom', data, response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve()
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async joinPrivateRoomAsSpectator(data: JoinSpectatorData): Promise<void> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Join as spectator timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('joinPrivateRoomAsSpectator', data, response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve()
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async leavePrivateRoom(): Promise<void> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Leave room timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('leavePrivateRoom', response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve()
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async togglePrivateRoomReady(): Promise<void> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Toggle ready timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('togglePrivateRoomReady', response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve()
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async startPrivateRoomBattle(): Promise<string> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Start battle timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('startPrivateRoomBattle', response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve(response.data.battleRoomId)
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async getPrivateRoomInfo(roomCode: string): Promise<any> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Get room info timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('getPrivateRoomInfo', { roomCode }, response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve(response.data)
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async resetPrivateRoom(): Promise<void> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Reset room timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('resetPrivateRoom', response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve()
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async switchToSpectator(preferredView?: 'player1' | 'player2' | 'god'): Promise<void> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Switch to spectator timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('switchToSpectator', { preferredView }, response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve()
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async switchToPlayer(team: any[]): Promise<void> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Switch to player timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('switchToPlayer', { team }, response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve()
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
   // 新架构：Timer快照相关方法
 
   /**
@@ -529,6 +746,7 @@ export class BattleClient {
    */
   private clearEventHandlers(): void {
     console.log('🧹 Clearing event handlers, current handlers:', Array.from(this.eventHandlers.keys()))
+    console.log('🧹 Stack trace:', new Error().stack)
     this.eventHandlers.clear()
     this.timerEventHandlers.clear()
   }
@@ -547,9 +765,9 @@ export class BattleClient {
 
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, new Set())
-      // 对于battleEvent和battleEventBatch，不需要重复注册socket监听器
-      // 因为它们已经在setupEventListeners中注册了
-      if (event !== 'battleEvent' && event !== 'battleEventBatch') {
+      // 对于这些事件，不需要重复注册socket监听器，因为它们已经在setupEventListeners中注册了
+      const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent']
+      if (!preRegisteredEvents.includes(event)) {
         this.socket.on(event, wrapper as any) // 使用安全类型断言
       }
     }
@@ -566,9 +784,9 @@ export class BattleClient {
     if (handlers) {
       handlers.forEach(h => {
         if (h === handler) {
-          // 对于battleEvent和battleEventBatch，不需要移除socket监听器
-          // 因为它们是在setupEventListeners中注册的，应该保持活跃
-          if (event !== 'battleEvent' && event !== 'battleEventBatch') {
+          // 对于这些事件，不需要移除socket监听器，因为它们是在setupEventListeners中注册的，应该保持活跃
+          const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent']
+          if (!preRegisteredEvents.includes(event)) {
             this.socket.off(event, h as any) // 使用安全类型断言
           }
           handlers.delete(h)
@@ -743,6 +961,24 @@ export class BattleClient {
       const handlers = this.eventHandlers.get('reconnectTest')
       if (handlers) {
         handlers.forEach(handler => handler(data))
+      }
+    })
+
+    // 私人房间事件处理
+    this.socket.on('privateRoomEvent', event => {
+      console.log('🏠 Private room event received in client:', event)
+      const handlers = this.eventHandlers.get('privateRoomEvent')
+      console.log('🏠 Handlers for privateRoomEvent:', handlers?.size || 0)
+      if (handlers) {
+        console.log('🏠 Calling', handlers.size, 'handlers for privateRoomEvent')
+        let index = 0
+        handlers.forEach(handler => {
+          console.log('🏠 Calling handler', index + 1, 'for privateRoomEvent')
+          handler(event)
+          index++
+        })
+      } else {
+        console.log('🏠 No handlers registered for privateRoomEvent!')
       }
     })
 

@@ -44,10 +44,22 @@ const routes: RouteRecordRaw[] = [
     component: BattleView,
     props: route => ({
       enableDeveloperMode: route.query.dev === 'true',
+      privateRoom: route.query.privateRoom === 'true',
+      roomCode: route.query.roomCode as string,
     }),
     meta: {
       title: '对战界面',
       requiresBattle: true, // 需要有效对战会话
+    },
+  },
+  {
+    path: '/room/:roomCode',
+    name: 'PrivateRoom',
+    component: () => import('@/pages/PrivateRoomPage.vue'),
+    props: true,
+    meta: {
+      title: '私人房间',
+      requiresAuth: false, // 私人房间不需要强制认证
     },
   },
   {

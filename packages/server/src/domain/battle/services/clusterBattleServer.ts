@@ -28,6 +28,9 @@ import { BattleRpcClient } from '../../../cluster/communication/rpc/battleRpcCli
 import type { ServiceDiscoveryManager } from '../../../cluster/discovery/serviceDiscovery'
 import { TYPES } from '../../../types'
 import type { MatchmakingCallbacks, BattleCallbacks, IMatchmakingService, IBattleService } from './interfaces'
+import { PrivateRoomService } from '../../room/services/privateRoomService'
+import { PrivateRoomHandlers } from '../../room/handlers/privateRoomHandlers'
+import { SessionStateManager } from '../../session/sessionStateManager'
 import { injectable, inject, optional } from 'inversify'
 
 const logger = pino({
@@ -82,6 +85,8 @@ export class ClusterBattleServer {
   // 服务实例（在初始化时设置）
   private matchmakingService!: IMatchmakingService
   private battleService!: IBattleService
+  private privateRoomService!: PrivateRoomService
+  private privateRoomHandlers!: PrivateRoomHandlers
 
   // RPC相关
   private rpcServer?: BattleRpcServer
@@ -96,6 +101,7 @@ export class ClusterBattleServer {
     @inject(TYPES.ClusterStateManager) private readonly stateManager: ClusterStateManager,
     @inject(TYPES.SocketClusterAdapter) private readonly socketAdapter: SocketClusterAdapter,
     @inject(TYPES.DistributedLockManager) private readonly lockManager: DistributedLockManager,
+    @inject(TYPES.SessionStateManager) private readonly sessionStateManager: SessionStateManager,
     @inject(TYPES.InstanceId) instanceId: string,
     @inject(TYPES.PlayerRepository) private readonly playerRepository: PlayerRepository,
     @inject(TYPES.AuthService) private readonly authService: IAuthService,
@@ -132,6 +138,27 @@ export class ClusterBattleServer {
   setServices(matchmakingService: IMatchmakingService, battleService: IBattleService): void {
     this.matchmakingService = matchmakingService
     this.battleService = battleService
+
+    // 初始化私人房间服务
+    this.privateRoomService = new PrivateRoomService(
+      this.stateManager,
+      this.lockManager,
+      this.socketAdapter,
+      this.sessionStateManager,
+    )
+
+    // 初始化私人房间处理器
+    this.privateRoomHandlers = new PrivateRoomHandlers(this.privateRoomService, this.socketAdapter)
+
+    // 设置私人房间的战斗创建回调
+    this.privateRoomService.setBattleCallbacks({
+      createClusterBattleRoom: async (player1Entry, player2Entry) => {
+        return await this.battleService.createClusterBattleRoom(player1Entry, player2Entry)
+      },
+    })
+
+    // 订阅私人房间事件
+    this.subscribeToPrivateRoomEvents()
   }
 
   setPerformanceTracker(tracker: PerformanceTracker): void {
@@ -173,6 +200,67 @@ export class ClusterBattleServer {
     }, 30000) // 30秒
 
     logger.debug('Performance data sync started')
+  }
+
+  /**
+   * 订阅私人房间事件
+   */
+  private subscribeToPrivateRoomEvents(): void {
+    try {
+      const subscriber = this.stateManager.redisManager.getSubscriber()
+
+      // 订阅所有私人房间事件
+      subscriber.psubscribe('private_room_events:*')
+
+      subscriber.on('pmessage', (pattern: string, channel: string, message: string) => {
+        try {
+          const data = JSON.parse(message)
+          const { roomCode, event } = data
+
+          // 转发事件给房间内的所有客户端
+          this.forwardPrivateRoomEvent(roomCode, event)
+        } catch (error) {
+          logger.error({ error, channel, message }, 'Failed to process private room event')
+        }
+      })
+
+      logger.debug('Subscribed to private room events')
+    } catch (error) {
+      logger.error({ error }, 'Failed to subscribe to private room events')
+    }
+  }
+
+  /**
+   * 转发私人房间事件给客户端
+   */
+  private async forwardPrivateRoomEvent(roomCode: string, event: any): Promise<void> {
+    try {
+      // 获取房间内的所有玩家和观战者
+      const room = await this.privateRoomService?.getRoom(roomCode)
+      if (!room) return
+
+      const allParticipants = [
+        ...room.players.map(p => ({ playerId: p.playerId, sessionId: p.sessionId })),
+        ...room.spectators.map(s => ({ playerId: s.playerId, sessionId: s.sessionId })),
+      ]
+
+      // 向所有参与者发送事件
+      for (const participant of allParticipants) {
+        await this.socketAdapter.sendToPlayerSession(
+          participant.playerId,
+          participant.sessionId,
+          'privateRoomEvent',
+          event,
+        )
+      }
+
+      logger.debug(
+        { roomCode, eventType: event.type, participantCount: allParticipants.length },
+        'Private room event forwarded',
+      )
+    } catch (error) {
+      logger.error({ error, roomCode, event }, 'Failed to forward private room event')
+    }
   }
 
   /**
@@ -735,6 +823,22 @@ export class ClusterBattleServer {
       // 从匹配队列中移除该session
       await this.stateManager.removeFromMatchmakingQueue(playerId, sessionId)
 
+      // 处理私人房间断线
+      if (this.privateRoomService) {
+        try {
+          const currentRoom = await this.privateRoomService.getPlayerSessionCurrentRoom(playerId, sessionId)
+          if (currentRoom) {
+            logger.info(
+              { playerId, sessionId, roomCode: currentRoom.config.roomCode },
+              '玩家在私人房间中断线，移除玩家会话',
+            )
+            await this.privateRoomService.leaveRoom(currentRoom.config.roomCode, playerId, sessionId)
+          }
+        } catch (error) {
+          logger.error({ error, playerId, sessionId }, 'Failed to handle private room disconnect')
+        }
+      }
+
       // 更新匹配队列大小统计
       if (this.performanceTracker) {
         const queueSize = await this.stateManager.getMatchmakingQueueSize()
@@ -795,6 +899,20 @@ export class ClusterBattleServer {
     socket.on('getTimerConfig', ack => this.handleGetTimerConfig(socket, ack))
     socket.on('startAnimation', (data, ack) => this.handleStartAnimation(socket, data, ack))
     socket.on('endAnimation', data => this.handleEndAnimation(socket, data))
+
+    // 私人房间相关事件处理
+    socket.on('createPrivateRoom', (data, ack) => this.privateRoomHandlers?.handleCreateRoom(socket, data, ack))
+    socket.on('joinPrivateRoom', (data, ack) => this.privateRoomHandlers?.handleJoinRoom(socket, data, ack))
+    socket.on('joinPrivateRoomAsSpectator', (data, ack) =>
+      this.privateRoomHandlers?.handleJoinAsSpectator(socket, data, ack),
+    )
+    socket.on('leavePrivateRoom', ack => this.privateRoomHandlers?.handleLeaveRoom(socket, ack))
+    socket.on('togglePrivateRoomReady', ack => this.privateRoomHandlers?.handleToggleReady(socket, ack))
+    socket.on('startPrivateRoomBattle', ack => this.privateRoomHandlers?.handleStartBattle(socket, ack))
+    socket.on('resetPrivateRoom', ack => this.privateRoomHandlers?.handleResetRoom(socket, ack))
+    socket.on('switchToSpectator', (data, ack) => this.privateRoomHandlers?.handleSwitchToSpectator(socket, data, ack))
+    socket.on('switchToPlayer', (data, ack) => this.privateRoomHandlers?.handleSwitchToPlayer(socket, data, ack))
+    socket.on('getPrivateRoomInfo', (data, ack) => this.privateRoomHandlers?.handleGetRoomInfo(socket, data, ack))
   }
 
   private setupClusterEventHandlers() {
@@ -3657,6 +3775,14 @@ export class ClusterBattleServer {
       },
       joinPlayerToRoom: async (playerId: string, roomId: string) => {
         await this.socketAdapter.joinPlayerToRoom(playerId, roomId)
+      },
+      handlePrivateRoomBattleFinished: async (
+        battleRoomId: string,
+        battleResult: { winner: string | null; reason: string },
+      ) => {
+        if (this.privateRoomService) {
+          await this.privateRoomService.handleBattleFinished(battleRoomId, battleResult)
+        }
       },
     }
   }

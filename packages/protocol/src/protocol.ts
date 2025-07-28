@@ -1,6 +1,9 @@
 // src/protocol.ts
 import type { BattleMessage, BattleState, TimerConfig, PlayerTimerState } from '@arcadia-eternity/const'
-import type { PlayerSchemaType, PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
+import type { PlayerSchemaType, PlayerSelectionSchemaType, PetSchemaType } from '@arcadia-eternity/schema'
+
+// 重新导出常用类型
+export type { PetSchemaType, PlayerSchemaType, PlayerSelectionSchemaType }
 
 // 统一响应类型
 export type SuccessResponse<T = undefined> = {
@@ -62,6 +65,9 @@ export interface ServerToClientEvents {
   }) => void
   // 重连测试事件（用于验证消息发送是否正常）
   reconnectTest: (data: { message: string; timestamp: number }) => void
+
+  // 私人房间事件
+  privateRoomEvent: (event: PrivateRoomEvent) => void
 }
 
 export interface ClientToServerEvents {
@@ -107,4 +113,103 @@ export interface ClientToServerEvents {
     ack: AckResponse<string>,
   ) => void
   endAnimation: (data: { animationId: string; actualDuration?: number }) => void
+
+  // 私人房间相关事件
+  createPrivateRoom: (data: CreatePrivateRoomRequest, ack: AckResponse<{ roomCode: string }>) => void
+  joinPrivateRoom: (data: JoinPrivateRoomRequest, ack: AckResponse<{ status: 'JOINED' }>) => void
+  joinPrivateRoomAsSpectator: (data: JoinPrivateRoomSpectatorRequest, ack: AckResponse<{ status: 'JOINED' }>) => void
+  leavePrivateRoom: (ack: AckResponse<{ status: 'LEFT' }>) => void
+  togglePrivateRoomReady: (ack: AckResponse<{ status: 'READY_TOGGLED' }>) => void
+  startPrivateRoomBattle: (ack: AckResponse<{ battleRoomId: string }>) => void
+  resetPrivateRoom: (ack: AckResponse<{ status: 'RESET' }>) => void
+  switchToSpectator: (
+    data: { preferredView?: 'player1' | 'player2' | 'god' },
+    ack: AckResponse<{ status: 'SWITCHED' }>,
+  ) => void
+  switchToPlayer: (data: { team: PetSchemaType[] }, ack: AckResponse<{ status: 'SWITCHED' }>) => void
+  getPrivateRoomInfo: (data: { roomCode: string }, ack: AckResponse<PrivateRoomInfo>) => void
 }
+
+// 私人房间相关类型定义
+export interface CreatePrivateRoomRequest {
+  team: PetSchemaType[]
+  config: {
+    ruleSetId?: string
+    isPrivate?: boolean
+    password?: string
+    allowSpectators?: boolean
+    maxSpectators?: number
+    spectatorMode?: 'free' | 'player1' | 'player2' | 'god'
+  }
+}
+
+export interface JoinPrivateRoomRequest {
+  roomCode: string
+  team: PetSchemaType[]
+  password?: string
+}
+
+export interface JoinPrivateRoomSpectatorRequest {
+  roomCode: string
+  preferredView?: 'player1' | 'player2' | 'god'
+}
+
+export interface PrivateRoomPlayer {
+  playerId: string
+  playerName: string
+  sessionId: string
+  team: PetSchemaType[]
+  isReady: boolean
+  joinedAt: number
+}
+
+export interface PrivateRoomSpectator {
+  playerId: string
+  playerName: string
+  sessionId: string
+  joinedAt: number
+  preferredView?: 'player1' | 'player2' | 'god'
+}
+
+export interface PrivateRoomInfo {
+  id: string
+  config: {
+    roomCode: string
+    hostPlayerId: string
+    ruleSetId: string
+    maxPlayers: number
+    maxSpectators: number
+    allowSpectators: boolean
+    spectatorMode: 'free' | 'player1' | 'player2' | 'god'
+    isPrivate: boolean
+  }
+  players: PrivateRoomPlayer[]
+  spectators: PrivateRoomSpectator[]
+  status: 'waiting' | 'ready' | 'started' | 'finished' | 'ended'
+  createdAt: number
+  lastActivity: number
+  battleRoomId?: string
+  lastBattleResult?: {
+    winner: string | null
+    reason: string
+    endedAt: number
+    battleRoomId: string
+  }
+}
+
+export type PrivateRoomEvent =
+  | { type: 'playerJoined'; data: PrivateRoomPlayer }
+  | { type: 'playerLeft'; data: { playerId: string } }
+  | { type: 'playerReady'; data: { playerId: string; isReady: boolean } }
+  | { type: 'spectatorJoined'; data: PrivateRoomSpectator }
+  | { type: 'spectatorLeft'; data: { playerId: string } }
+  | { type: 'playerSwitchedToSpectator'; data: { playerId: string; preferredView: string } }
+  | { type: 'spectatorSwitchedToPlayer'; data: { playerId: string } }
+  | { type: 'roomUpdate'; data: PrivateRoomInfo }
+  | { type: 'battleStarted'; data: { battleRoomId: string } }
+  | {
+      type: 'battleFinished'
+      data: { battleResult: { winner: string | null; reason: string; endedAt: number; battleRoomId: string } }
+    }
+  | { type: 'roomReset'; data: { message: string } }
+  | { type: 'roomClosed'; data: { reason: string } }

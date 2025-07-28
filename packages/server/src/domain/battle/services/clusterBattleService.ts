@@ -535,6 +535,12 @@ export class ClusterBattleService implements IBattleService {
             { roomId, winner: battleEndData.winner, reason: battleEndData.reason },
             'Battle ended, starting cleanup',
           )
+
+          // 处理私人房间战斗结束
+          if (this.callbacks.handlePrivateRoomBattleFinished) {
+            this.callbacks.handlePrivateRoomBattleFinished(roomId, battleEndData)
+          }
+
           this.handleBattleEnd(roomId, battleEndData)
         }
       },

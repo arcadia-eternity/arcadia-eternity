@@ -269,6 +269,76 @@
         </button>
       </div>
 
+      <!-- 私人房间区域 -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
+          <el-icon><User /></el-icon>
+          私人房间
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- 创建房间 -->
+          <div class="space-y-3">
+            <h4 class="text-sm font-medium text-gray-700">创建房间</h4>
+            <el-button
+              type="success"
+              :disabled="!selectedTeam || !isSelectedTeamValid || battleClientStore.currentState.status !== 'connected'"
+              @click="showCreateRoomDialog = true"
+              class="w-full"
+            >
+              创建私人房间
+            </el-button>
+          </div>
+
+          <!-- 加入房间 -->
+          <div class="space-y-3">
+            <h4 class="text-sm font-medium text-gray-700">加入房间</h4>
+            <div class="flex gap-2">
+              <el-input
+                v-model="joinRoomCode"
+                placeholder="输入房间码"
+                maxlength="6"
+                class="flex-1"
+                @keyup.enter="joinRoom"
+              />
+              <el-button
+                type="primary"
+                :disabled="
+                  !joinRoomCode ||
+                  !selectedTeam ||
+                  !isSelectedTeamValid ||
+                  battleClientStore.currentState.status !== 'connected'
+                "
+                @click="joinRoom"
+              >
+                加入
+              </el-button>
+            </div>
+          </div>
+
+          <!-- 观战房间 -->
+          <div class="space-y-3">
+            <h4 class="text-sm font-medium text-gray-700">观战房间</h4>
+            <div class="flex gap-2">
+              <el-input
+                v-model="spectateRoomCode"
+                placeholder="输入房间码"
+                maxlength="6"
+                class="flex-1"
+                @keyup.enter="joinAsSpectator"
+              />
+              <el-button
+                type="info"
+                :disabled="!spectateRoomCode || battleClientStore.currentState.status !== 'connected'"
+                @click="joinAsSpectator"
+              >
+                观战
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 加载状态 -->
       <div
         v-if="isMatching || battleClientStore.currentState.matchmaking === 'matched'"
@@ -319,6 +389,37 @@
         </ul>
       </el-alert>
     </div>
+
+    <!-- 创建房间对话框 -->
+    <el-dialog v-model="showCreateRoomDialog" title="创建私人房间" width="400px">
+      <el-form :model="roomConfig" label-width="100px">
+        <el-form-item label="房间密码">
+          <el-input v-model="roomConfig.password" placeholder="留空为公开房间" show-password />
+        </el-form-item>
+
+        <el-form-item label="允许观战">
+          <el-switch v-model="roomConfig.allowSpectators" />
+        </el-form-item>
+
+        <el-form-item v-if="roomConfig.allowSpectators" label="观战人数">
+          <el-input-number v-model="roomConfig.maxSpectators" :min="1" :max="20" />
+        </el-form-item>
+
+        <el-form-item v-if="roomConfig.allowSpectators" label="观战模式">
+          <el-select v-model="roomConfig.spectatorMode" placeholder="选择观战模式">
+            <el-option label="自由视角" value="free" />
+            <el-option label="玩家1视角" value="player1" />
+            <el-option label="玩家2视角" value="player2" />
+            <el-option label="上帝视角" value="god" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="showCreateRoomDialog = false">取消</el-button>
+        <el-button type="primary" @click="createRoom">创建</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -331,6 +432,7 @@ import { useBattleClientStore } from '@/stores/battleClient'
 import { usePetStorageStore } from '@/stores/petStorage'
 import { useEloStore } from '@/stores/elo'
 import { useValidationStore } from '@/stores/validation'
+import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { type BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
 import {
   User,
@@ -346,6 +448,7 @@ import {
   Select,
   Trophy,
 } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import { isTauri } from '@/utils/env'
 import RuleSetTooltip from '@/components/RuleSetTooltip.vue'
 
@@ -357,9 +460,21 @@ const battleClientStore = useBattleClientStore()
 const petStorageStore = usePetStorageStore()
 const eloStore = useEloStore()
 const validationStore = useValidationStore()
+const privateRoomStore = usePrivateRoomStore()
 
 // 匹配配置状态
 const selectedTeamIndex = ref<number>(-1)
+
+// 私人房间状态
+const showCreateRoomDialog = ref(false)
+const joinRoomCode = ref('')
+const spectateRoomCode = ref('')
+const roomConfig = ref({
+  password: '',
+  allowSpectators: false,
+  maxSpectators: 10,
+  spectatorMode: 'free' as 'free' | 'player1' | 'player2' | 'god',
+})
 
 // 计算属性
 const availableRuleSets = computed(() => validationStore.availableRuleSets)
@@ -700,6 +815,77 @@ const handleMatchmaking = async () => {
     setTimeout(() => (errorMessage.value = null), 3000)
   }
 }
+
+// 私人房间相关方法
+const createRoom = async () => {
+  try {
+    if (!selectedTeam.value) {
+      ElMessage.error('请先选择队伍')
+      return
+    }
+
+    const config = {
+      ruleSetId: selectedRuleSetId.value,
+      isPrivate: !!roomConfig.value.password,
+      password: roomConfig.value.password || undefined,
+      allowSpectators: roomConfig.value.allowSpectators,
+      maxSpectators: roomConfig.value.maxSpectators,
+      spectatorMode: roomConfig.value.spectatorMode,
+    }
+
+    const roomCode = await privateRoomStore.createRoom(selectedTeam.value.pets, config)
+
+    showCreateRoomDialog.value = false
+    ElMessage.success(`房间创建成功！房间码: ${roomCode}`)
+
+    // 跳转到房间页面
+    router.push(`/room/${roomCode}`)
+  } catch (error) {
+    ElMessage.error('创建房间失败: ' + (error as Error).message)
+  }
+}
+
+const joinRoom = async () => {
+  try {
+    if (!joinRoomCode.value) {
+      ElMessage.error('请输入房间码')
+      return
+    }
+
+    if (!selectedTeam.value) {
+      ElMessage.error('请先选择队伍')
+      return
+    }
+
+    await privateRoomStore.joinRoom(joinRoomCode.value, selectedTeam.value.pets)
+
+    ElMessage.success('成功加入房间')
+
+    // 跳转到房间页面
+    router.push(`/room/${joinRoomCode.value}`)
+  } catch (error) {
+    ElMessage.error('加入房间失败: ' + (error as Error).message)
+  }
+}
+
+const joinAsSpectator = async () => {
+  try {
+    if (!spectateRoomCode.value) {
+      ElMessage.error('请输入房间码')
+      return
+    }
+
+    await privateRoomStore.joinAsSpectator(spectateRoomCode.value)
+
+    ElMessage.success('成功加入观战')
+
+    // 跳转到房间页面
+    router.push(`/room/${spectateRoomCode.value}`)
+  } catch (error) {
+    ElMessage.error('加入观战失败: ' + (error as Error).message)
+  }
+}
+
 // 监听路由变化，从战斗页面返回时刷新ELO
 watch(
   () => route.path,

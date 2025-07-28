@@ -18,6 +18,7 @@ import type {
   MatchmakingCallbacks,
   IMatchmakingService,
 } from '../../battle/services/interfaces'
+import type { SessionStateManager } from '../../session/sessionStateManager'
 import { TYPES } from '../../../types'
 import { MatchingStrategyFactory } from '../strategies/MatchingStrategyFactory'
 import { MatchingConfigManager } from './MatchingConfigManager'
@@ -45,6 +46,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
     @inject(TYPES.MatchmakingCallbacks) private readonly callbacks: MatchmakingCallbacks,
     @inject(TYPES.ResourceLoadingManager) private readonly resourceLoadingManager: IResourceLoadingManager,
     @inject(TYPES.InstanceId) private readonly instanceId: string,
+    @inject(TYPES.SessionStateManager) private readonly sessionStateManager: SessionStateManager,
     @inject(TYPES.PerformanceTracker) @optional() private readonly performanceTracker?: PerformanceTracker,
     @inject(TYPES.ServiceDiscoveryManager) @optional() private readonly serviceDiscovery?: ServiceDiscoveryManager,
   ) {
@@ -62,6 +64,25 @@ export class ClusterMatchmakingService implements IMatchmakingService {
     ack?: AckResponse<{ status: 'QUEUED' }>,
   ): Promise<void> {
     try {
+      const playerId = socket.data?.playerId
+      const sessionId = socket.data?.sessionId
+
+      if (!playerId || !sessionId) {
+        ack?.({ status: 'ERROR', code: 'AUTHENTICATION_REQUIRED', details: '需要认证' })
+        return
+      }
+
+      // 检查 session 状态，确保不与私人房间冲突
+      const stateCheck = await this.sessionStateManager.canEnterMatchmaking(playerId, sessionId)
+      if (!stateCheck.allowed) {
+        logger.warn(
+          { playerId, sessionId, reason: stateCheck.reason },
+          'Session cannot enter matchmaking due to state conflict',
+        )
+        ack?.({ status: 'ERROR', code: 'STATE_CONFLICT', details: stateCheck.reason })
+        return
+      }
+
       // 首先检查游戏资源是否已加载完成
       try {
         if (!this.resourceLoadingManager.isReady()) {
@@ -133,7 +154,6 @@ export class ClusterMatchmakingService implements IMatchmakingService {
 
       // 验证原始数据格式
       const validatedRawData = this.validateRawPlayerData(rawPlayerData)
-      const playerId = socket.data.playerId!
 
       // 验证玩家ID是否与连接时验证的ID一致
       if (validatedRawData.id !== playerId) {
@@ -222,6 +242,11 @@ export class ClusterMatchmakingService implements IMatchmakingService {
         // 使用基于规则的队列管理
         await this.stateManager.addToMatchmakingQueue(entry)
 
+        // 设置 session 状态为匹配中
+        await this.sessionStateManager.setSessionState(playerId, sessionId, 'matchmaking', {
+          queueId: ruleSetId,
+        })
+
         // 更新匹配队列大小统计
         if (this.performanceTracker) {
           const queueSize = await this.stateManager.getMatchmakingQueueSize()
@@ -278,6 +303,9 @@ export class ClusterMatchmakingService implements IMatchmakingService {
 
       // 从匹配队列中移除
       await this.stateManager.removeFromMatchmakingQueue(playerId, sessionId)
+
+      // 清除 session 状态
+      await this.sessionStateManager.clearSessionState(playerId, sessionId)
 
       // 更新匹配队列大小统计
       if (this.performanceTracker) {

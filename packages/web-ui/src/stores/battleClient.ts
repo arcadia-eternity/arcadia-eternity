@@ -1,4 +1,9 @@
-import { BattleClient } from '@arcadia-eternity/client'
+import {
+  BattleClient,
+  type CreatePrivateRoomData,
+  type JoinPrivateRoomData,
+  type JoinSpectatorData,
+} from '@arcadia-eternity/client'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './auth'
@@ -214,9 +219,15 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   }
 
   const on = (event: any, handler: any) => {
+    console.log('🔧 battleClientStore.on called:', event, 'instance available:', !!_instance.value)
+
     if (_instance.value) {
-      return _instance.value.on(event, handler)
+      console.log('🔧 Registering event handler directly to instance')
+      const unsubscribe = _instance.value.on(event, handler)
+      console.log('🔧 Event handler registered, unsubscribe type:', typeof unsubscribe)
+      return unsubscribe
     } else {
+      console.log('🔧 Instance not available, caching event handler')
       // 如果实例还没准备好，缓存事件监听器
       if (!_pendingEventHandlers.value.has(event)) {
         _pendingEventHandlers.value.set(event, new Set())
@@ -268,6 +279,87 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     }
   }
 
+  // 私人房间相关方法
+  const createPrivateRoom = async (data: CreatePrivateRoomData): Promise<string> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    return await _instance.value.createPrivateRoom(data)
+  }
+
+  const joinPrivateRoom = async (data: JoinPrivateRoomData): Promise<void> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    return await _instance.value.joinPrivateRoom(data)
+  }
+
+  const leavePrivateRoom = async (): Promise<void> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    return await _instance.value.leavePrivateRoom()
+  }
+
+  const joinPrivateRoomAsSpectator = async (data: JoinSpectatorData): Promise<void> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    return await _instance.value.joinPrivateRoomAsSpectator(data)
+  }
+
+  const toggleRoomReady = async (): Promise<void> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    return await _instance.value.togglePrivateRoomReady()
+  }
+
+  const startRoomBattle = async (): Promise<string> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    return await _instance.value.startPrivateRoomBattle()
+  }
+
+  const getPrivateRoomInfo = async (roomCode: string): Promise<any> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    return await _instance.value.getPrivateRoomInfo(roomCode)
+  }
+
+  const resetPrivateRoom = async (): Promise<void> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    return await _instance.value.resetPrivateRoom()
+  }
+
+  const switchToSpectator = async (preferredView?: 'player1' | 'player2' | 'god'): Promise<void> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    return await _instance.value.switchToSpectator(preferredView)
+  }
+
+  const switchToPlayer = async (team: any[]): Promise<void> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    return await _instance.value.switchToPlayer(team)
+  }
+
   // 内部方法：注册缓存的事件监听器到实际实例
   const registerPendingHandlers = () => {
     if (!_instance.value || _pendingEventHandlers.value.size === 0) {
@@ -301,5 +393,17 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     on,
     off,
     once,
+
+    // 私人房间方法
+    createPrivateRoom,
+    joinPrivateRoom,
+    joinPrivateRoomAsSpectator,
+    leavePrivateRoom,
+    toggleRoomReady,
+    startRoomBattle,
+    resetPrivateRoom,
+    switchToSpectator,
+    switchToPlayer,
+    getPrivateRoomInfo,
   }
 })
