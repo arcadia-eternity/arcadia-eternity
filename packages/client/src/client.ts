@@ -27,13 +27,11 @@ export type PrivateRoomConfig = {
 }
 
 export type CreatePrivateRoomData = {
-  team: PetSchemaType[]
   config: PrivateRoomConfig
 }
 
 export type JoinPrivateRoomData = {
   roomCode: string
-  team: PetSchemaType[]
   password?: string
 }
 
@@ -593,7 +591,7 @@ export class BattleClient {
     })
   }
 
-  async togglePrivateRoomReady(): Promise<void> {
+  async togglePrivateRoomReady(team?: PetSchemaType[]): Promise<void> {
     this.verifyConnection()
 
     return new Promise((resolve, reject) => {
@@ -601,7 +599,7 @@ export class BattleClient {
         reject(new Error('Toggle ready timeout'))
       }, this.options.actionTimeout)
 
-      this.socket.emit('togglePrivateRoomReady', response => {
+      this.socket.emit('togglePrivateRoomReady', { team }, response => {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
           resolve()
@@ -612,7 +610,7 @@ export class BattleClient {
     })
   }
 
-  async startPrivateRoomBattle(): Promise<string> {
+  async startPrivateRoomBattle(hostTeam: PetSchemaType[]): Promise<string> {
     this.verifyConnection()
 
     return new Promise((resolve, reject) => {
@@ -620,7 +618,7 @@ export class BattleClient {
         reject(new Error('Start battle timeout'))
       }, this.options.actionTimeout)
 
-      this.socket.emit('startPrivateRoomBattle', response => {
+      this.socket.emit('startPrivateRoomBattle', { hostTeam }, response => {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
           resolve(response.data.battleRoomId)
@@ -643,6 +641,44 @@ export class BattleClient {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
           resolve(response.data)
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async getCurrentPrivateRoom(): Promise<any> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Get current room timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('getCurrentPrivateRoom', response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve(response.data)
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async updatePrivateRoomRuleSet(data: { ruleSetId: string }): Promise<void> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Update rule set timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('updatePrivateRoomRuleSet', data, response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve()
         } else {
           reject(this.parseError(response))
         }

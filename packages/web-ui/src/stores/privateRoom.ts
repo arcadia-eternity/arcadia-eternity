@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBattleClientStore } from './battleClient'
 import { usePlayerStore } from './player'
+import { usePetStorageStore } from './petStorage'
 import type { PrivateRoomInfo, PrivateRoomEvent, CreatePrivateRoomRequest } from '@arcadia-eternity/protocol'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 
@@ -10,11 +11,13 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   const router = useRouter()
   const battleClientStore = useBattleClientStore()
   const playerStore = usePlayerStore()
+  const petStorageStore = usePetStorageStore()
 
   // 状态
   const currentRoom = ref<PrivateRoomInfo | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+  const selectedTeam = ref<PetSchemaType[]>([]) // 当前选择的队伍
 
   // 计算属性
   const players = computed(() => currentRoom.value?.players || [])
@@ -30,19 +33,21 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     if (!isHost.value || !currentRoom.value) return false
     if (players.value.length < 2) return false
 
+    // 检查房主是否选择了队伍（本地检查）
+    if (!selectedTeam.value || selectedTeam.value.length === 0) return false
+
     // 检查所有非房主玩家是否已准备
     const nonHostPlayers = players.value.filter(p => p.playerId !== currentRoom.value?.config.hostPlayerId)
     return nonHostPlayers.every(p => p.isReady)
   })
 
   // 方法
-  const createRoom = async (team: PetSchemaType[], config: CreatePrivateRoomRequest['config']): Promise<string> => {
+  const createRoom = async (config: CreatePrivateRoomRequest['config']): Promise<string> => {
     isLoading.value = true
     error.value = null
 
     try {
       const roomCode = await battleClientStore.createPrivateRoom({
-        team,
         config,
       })
 
@@ -66,14 +71,13 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
   }
 
-  const joinRoom = async (roomCode: string, team: PetSchemaType[], password?: string): Promise<void> => {
+  const joinRoom = async (roomCode: string, password?: string): Promise<void> => {
     isLoading.value = true
     error.value = null
 
     try {
       await battleClientStore.joinPrivateRoom({
         roomCode,
-        team,
         password,
       })
 
@@ -150,7 +154,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     error.value = null
 
     try {
-      await battleClientStore.toggleRoomReady()
+      // 如果要准备，使用当前选择的队伍；如果取消准备，不传队伍
+      const teamToSubmit = myReadyStatus.value ? undefined : selectedTeam.value
+      await battleClientStore.toggleRoomReady(teamToSubmit)
       console.log('✅ Toggled ready status')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
@@ -163,7 +169,12 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   }
 
   const startBattle = async (): Promise<void> => {
-    if (!currentRoom.value || !isHost.value || !canStartBattle.value) return
+    if (!currentRoom.value || !isHost.value) return
+
+    // 检查房主是否选择了队伍
+    if (!selectedTeam.value || selectedTeam.value.length === 0) {
+      throw new Error('请先选择队伍')
+    }
 
     isLoading.value = true
     error.value = null
@@ -171,9 +182,8 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     try {
       console.log('🚀 Starting battle...')
 
-      // 发送开始战斗请求，但不立即跳转
-      // 跳转逻辑已经在 handleRoomEvent 的 'battleStarted' 事件中处理
-      await battleClientStore.startRoomBattle()
+      // 发送开始战斗请求，传递房主队伍
+      await battleClientStore.startRoomBattle(selectedTeam.value)
 
       console.log('✅ Battle start request sent, waiting for battleStarted event...')
 
@@ -202,6 +212,25 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
       console.error('❌ Failed to reset room:', errorMessage)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const updateRuleSet = async (ruleSetId: string): Promise<void> => {
+    if (!currentRoom.value || !isHost.value) return
+
+    isLoading.value = true
+    error.value = null
+
+    try {
+      await battleClientStore.updatePrivateRoomRuleSet({ ruleSetId })
+      console.log('✅ Rule set updated to:', ruleSetId)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      error.value = errorMessage
+      console.error('❌ Failed to update rule set:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -413,6 +442,12 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         console.log('🎮 Spectator switched to player:', event.data.playerId)
         break
 
+      case 'ruleSetChanged':
+        // 规则集变更
+        console.log('📋 Rule set changed:', event.data.ruleSetId, 'by:', event.data.changedBy)
+        // 房间信息会通过 roomUpdate 事件更新
+        break
+
       case 'roomClosed':
         cleanup()
         // 可以显示房间关闭的通知
@@ -422,8 +457,59 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
   }
 
+  // 队伍管理方法
+  const updateSelectedTeam = (team: PetSchemaType[]): void => {
+    selectedTeam.value = team
+    // 如果已经准备了，更新队伍后自动取消准备
+    if (myReadyStatus.value) {
+      toggleReady().catch(err => {
+        console.error('Failed to cancel ready after team update:', err)
+      })
+    }
+  }
+
+  const initializeSelectedTeam = (): void => {
+    // 初始化时使用当前队伍
+    selectedTeam.value = petStorageStore.getCurrentTeam()
+  }
+
+  // 全局状态检查方法
+  const checkCurrentRoom = async (): Promise<PrivateRoomInfo | null> => {
+    try {
+      const roomInfo = await battleClientStore.getCurrentPrivateRoom()
+      if (roomInfo) {
+        currentRoom.value = roomInfo
+        setupRoomEventListeners()
+        initializeSelectedTeam()
+      }
+      return roomInfo
+    } catch (err) {
+      console.error('Failed to check current room:', err)
+      return null
+    }
+  }
+
+  // 页面离开时的清理
+  const handlePageLeave = async (): Promise<void> => {
+    // 如果已准备，自动取消准备
+    if (myReadyStatus.value) {
+      try {
+        await toggleReady()
+      } catch (err) {
+        console.error('Failed to cancel ready on page leave:', err)
+      }
+    }
+  }
+
+  // 只移除事件监听器，保持房间状态
+  const removeEventListeners = (): void => {
+    battleClientStore.off('privateRoomEvent', handleRoomEvent)
+  }
+
+  // 完全清理房间状态（只在真正离开房间时使用）
   const cleanup = (): void => {
     currentRoom.value = null
+    selectedTeam.value = []
     error.value = null
     isLoading.value = false
 
@@ -434,6 +520,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   return {
     // 状态
     currentRoom,
+    selectedTeam,
     isLoading,
     error,
 
@@ -454,9 +541,16 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     toggleReady,
     startBattle,
     resetRoom,
+    updateRuleSet,
     switchToSpectator,
     switchToPlayer,
     getRoomInfo,
+    setupRoomEventListeners,
+    updateSelectedTeam,
+    initializeSelectedTeam,
+    checkCurrentRoom,
+    handlePageLeave,
+    removeEventListeners,
     cleanup,
   }
 })

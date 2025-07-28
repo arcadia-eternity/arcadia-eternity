@@ -34,8 +34,8 @@ export interface RoomPlayer {
   playerName: string
   /** Socket会话ID */
   sessionId: string
-  /** 玩家队伍 */
-  team: PetSchemaType[]
+  /** 玩家队伍（准备时才有） */
+  team?: PetSchemaType[]
   /** 是否已准备 */
   isReady: boolean
   /** 加入时间 */
@@ -105,8 +105,6 @@ export interface PrivateRoom {
  * 创建房间请求
  */
 export interface CreateRoomRequest {
-  /** 房主队伍 */
-  team: PetSchemaType[]
   /** 房间配置 */
   config: Partial<PrivateRoomConfig>
 }
@@ -117,8 +115,6 @@ export interface CreateRoomRequest {
 export interface JoinRoomRequest {
   /** 房间码 */
   roomCode: string
-  /** 玩家队伍 */
-  team: PetSchemaType[]
   /** 房间密码（如果是私密房间） */
   password?: string
 }
@@ -149,6 +145,7 @@ export type PrivateRoomEvent =
   | { type: 'battleFinished'; data: { battleResult: BattleResult } }
   | { type: 'roomReset'; data: { message: string } }
   | { type: 'roomClosed'; data: { reason: string } }
+  | { type: 'ruleSetChanged'; data: { ruleSetId: string; changedBy: string } }
 
 /**
  * Socket事件响应类型
@@ -177,7 +174,10 @@ export class PrivateRoomError extends Error {
       | 'HOST_CANNOT_SPECTATE'
       | 'SPECTATOR_LIMIT_REACHED'
       | 'PLAYER_LIMIT_REACHED'
-      | 'INVALID_TEAM',
+      | 'INVALID_TEAM'
+      | 'INVALID_RULESET'
+      | 'TEAM_VALIDATION_FAILED',
+    public details?: any,
   ) {
     super(message)
     this.name = 'PrivateRoomError'

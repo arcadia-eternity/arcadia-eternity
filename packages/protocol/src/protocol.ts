@@ -119,8 +119,8 @@ export interface ClientToServerEvents {
   joinPrivateRoom: (data: JoinPrivateRoomRequest, ack: AckResponse<{ status: 'JOINED' }>) => void
   joinPrivateRoomAsSpectator: (data: JoinPrivateRoomSpectatorRequest, ack: AckResponse<{ status: 'JOINED' }>) => void
   leavePrivateRoom: (ack: AckResponse<{ status: 'LEFT' }>) => void
-  togglePrivateRoomReady: (ack: AckResponse<{ status: 'READY_TOGGLED' }>) => void
-  startPrivateRoomBattle: (ack: AckResponse<{ battleRoomId: string }>) => void
+  togglePrivateRoomReady: (data: TogglePrivateRoomReadyRequest, ack: AckResponse<{ status: 'READY_TOGGLED' }>) => void
+  startPrivateRoomBattle: (data: StartPrivateRoomBattleRequest, ack: AckResponse<{ battleRoomId: string }>) => void
   resetPrivateRoom: (ack: AckResponse<{ status: 'RESET' }>) => void
   switchToSpectator: (
     data: { preferredView?: 'player1' | 'player2' | 'god' },
@@ -128,11 +128,12 @@ export interface ClientToServerEvents {
   ) => void
   switchToPlayer: (data: { team: PetSchemaType[] }, ack: AckResponse<{ status: 'SWITCHED' }>) => void
   getPrivateRoomInfo: (data: { roomCode: string }, ack: AckResponse<PrivateRoomInfo>) => void
+  updatePrivateRoomRuleSet: (data: UpdatePrivateRoomRuleSetRequest, ack: AckResponse<{ status: 'UPDATED' }>) => void
+  getCurrentPrivateRoom: (ack: AckResponse<PrivateRoomInfo | null>) => void
 }
 
 // 私人房间相关类型定义
 export interface CreatePrivateRoomRequest {
-  team: PetSchemaType[]
   config: {
     ruleSetId?: string
     isPrivate?: boolean
@@ -145,7 +146,6 @@ export interface CreatePrivateRoomRequest {
 
 export interface JoinPrivateRoomRequest {
   roomCode: string
-  team: PetSchemaType[]
   password?: string
 }
 
@@ -154,11 +154,23 @@ export interface JoinPrivateRoomSpectatorRequest {
   preferredView?: 'player1' | 'player2' | 'god'
 }
 
+export interface TogglePrivateRoomReadyRequest {
+  team?: PetSchemaType[]
+}
+
+export interface UpdatePrivateRoomRuleSetRequest {
+  ruleSetId: string
+}
+
+export interface StartPrivateRoomBattleRequest {
+  hostTeam: PetSchemaType[]
+}
+
 export interface PrivateRoomPlayer {
   playerId: string
   playerName: string
   sessionId: string
-  team: PetSchemaType[]
+  team?: PetSchemaType[]
   isReady: boolean
   joinedAt: number
 }
@@ -212,4 +224,5 @@ export type PrivateRoomEvent =
       data: { battleResult: { winner: string | null; reason: string; endedAt: number; battleRoomId: string } }
     }
   | { type: 'roomReset'; data: { message: string } }
+  | { type: 'ruleSetChanged'; data: { ruleSetId: string; changedBy: string } }
   | { type: 'roomClosed'; data: { reason: string } }

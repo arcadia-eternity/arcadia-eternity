@@ -4,20 +4,16 @@
       <div class="player-avatar">
         <el-avatar :size="40">{{ player.playerName.charAt(0) }}</el-avatar>
       </div>
-      
+
       <div class="player-info">
         <div class="player-name">
           {{ player.playerName }}
           <el-tag v-if="isHost" type="warning" size="small">房主</el-tag>
           <el-tag v-if="isCurrentPlayer" type="primary" size="small">我</el-tag>
         </div>
-        
+
         <div class="player-status">
-          <el-tag 
-            v-if="!isHost"
-            :type="isReady ? 'success' : 'info'" 
-            size="small"
-          >
+          <el-tag v-if="!isHost" :type="isReady ? 'success' : 'info'" size="small">
             {{ isReady ? '已准备' : '未准备' }}
           </el-tag>
           <el-tag v-else type="warning" size="small">房主</el-tag>
@@ -25,33 +21,15 @@
       </div>
     </div>
 
+    <!-- 队伍信息已隐藏，保持神秘感 -->
     <div class="team-info">
-      <div class="team-header">
-        <span class="team-label">队伍配置</span>
-        <span class="team-count">{{ player.team.length }} 只精灵</span>
-      </div>
-      
-      <div class="team-preview">
-        <div 
-          v-for="(pet, index) in player.team.slice(0, 3)" 
-          :key="index"
-          class="pet-preview"
-        >
-          <div class="pet-avatar">
-            {{ pet.name.charAt(0) }}
-          </div>
-          <span class="pet-name">{{ pet.name }}</span>
-        </div>
-        
-        <div v-if="player.team.length > 3" class="more-pets">
-          +{{ player.team.length - 3 }}
-        </div>
+      <div class="team-status">
+        <span class="team-label">队伍状态</span>
+        <span class="team-status-text">已准备队伍</span>
       </div>
     </div>
 
-    <div class="join-time">
-      加入时间: {{ formatJoinTime(player.joinedAt) }}
-    </div>
+    <div class="join-time">加入时间: {{ formatJoinTime(player.joinedAt) }}</div>
   </div>
 </template>
 
@@ -199,6 +177,21 @@ const formatJoinTime = (timestamp: number): string => {
   color: var(--el-text-color-placeholder);
 }
 
+.no-team {
+  padding: 1rem;
+  text-align: center;
+  background: var(--el-bg-color-page);
+  border: 2px dashed var(--el-border-color);
+  border-radius: 6px;
+  margin-top: 0.5rem;
+}
+
+.no-team-text {
+  color: var(--el-text-color-placeholder);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
 .join-time {
   font-size: 0.75rem;
   color: var(--el-text-color-placeholder);
@@ -209,15 +202,15 @@ const formatJoinTime = (timestamp: number): string => {
   .player-card {
     padding: 0.75rem;
   }
-  
+
   .team-preview {
     gap: 0.25rem;
   }
-  
+
   .pet-preview {
     padding: 0.125rem 0.25rem;
   }
-  
+
   .pet-name {
     max-width: 40px;
   }

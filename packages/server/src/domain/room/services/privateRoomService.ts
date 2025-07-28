@@ -16,6 +16,7 @@ import type {
 import type { SessionStateManager } from '../../session/sessionStateManager'
 import type { PetSchemaType } from '@arcadia-eternity/protocol'
 import { PrivateRoomError } from '../types/PrivateRoom'
+import { ServerRuleIntegration } from '@arcadia-eternity/rules'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -468,7 +469,7 @@ export class PrivateRoomService {
   /**
    * 切换玩家准备状态
    */
-  async togglePlayerReady(roomCode: string, playerId: string): Promise<void> {
+  async togglePlayerReady(roomCode: string, playerId: string, team?: PetSchemaType[]): Promise<void> {
     await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
       const room = await this.getRoom(roomCode)
       if (!room) {
@@ -480,9 +481,47 @@ export class PrivateRoomService {
         throw new PrivateRoomError('玩家不在房间中', 'ROOM_NOT_FOUND')
       }
 
-      // 房主不需要准备
-      if (playerId === room.config.hostPlayerId) {
+      // 房主也可以设置队伍，但不需要准备状态
+      const isHost = playerId === room.config.hostPlayerId
+
+      // 如果提供了队伍，设置队伍（房主和普通玩家都可以）
+      if (team) {
+        // 验证队伍数据
+        if (!team || team.length === 0) {
+          throw new PrivateRoomError('队伍数据不能为空', 'INVALID_TEAM')
+        }
+
+        // 验证队伍是否符合当前规则集
+        try {
+          const validation = await ServerRuleIntegration.validateTeamWithRuleSet(team, room.config.ruleSetId)
+          if (!validation.isValid) {
+            const errorMessage = validation.errors.map(error => error.message).join('; ')
+            throw new PrivateRoomError(`队伍不符合当前规则集要求：${errorMessage}`, 'TEAM_VALIDATION_FAILED', {
+              errors: validation.errors,
+              ruleSetId: room.config.ruleSetId,
+            })
+          }
+        } catch (error) {
+          if (error instanceof PrivateRoomError) {
+            throw error
+          }
+          logger.error({ error, playerId, ruleSetId: room.config.ruleSetId }, 'Failed to validate team with rule set')
+          throw new PrivateRoomError('队伍验证失败', 'TEAM_VALIDATION_FAILED')
+        }
+
+        player.team = team
+      }
+
+      // 房主不需要准备状态，只设置队伍
+      if (isHost) {
+        // 房主只设置队伍，不改变准备状态
         return
+      }
+
+      // 普通玩家的准备状态切换
+      // 如果取消准备，清除队伍数据
+      if (player.isReady && !team) {
+        player.team = undefined
       }
 
       player.isReady = !player.isReady
@@ -509,6 +548,69 @@ export class PrivateRoomService {
           isReady: player.isReady,
         },
         'Player ready status changed',
+      )
+    })
+  }
+
+  /**
+   * 更新房间规则集（仅房主可操作）
+   */
+  async updateRuleSet(roomCode: string, hostPlayerId: string, ruleSetId: string): Promise<void> {
+    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+      const room = await this.getRoom(roomCode)
+      if (!room) {
+        throw new PrivateRoomError('房间不存在', 'ROOM_NOT_FOUND')
+      }
+
+      // 检查是否为房主
+      if (room.config.hostPlayerId !== hostPlayerId) {
+        throw new PrivateRoomError('只有房主可以更改规则集', 'NOT_HOST')
+      }
+
+      // 检查房间状态
+      if (room.status !== 'waiting') {
+        throw new PrivateRoomError('只能在等待状态下更改规则集', 'INVALID_STATE')
+      }
+
+      // 验证规则集是否存在（这里可以添加更严格的验证）
+      if (!ruleSetId || ruleSetId.trim() === '') {
+        throw new PrivateRoomError('规则集ID不能为空', 'INVALID_RULESET')
+      }
+
+      // 更新规则集
+      const oldRuleSetId = room.config.ruleSetId
+      room.config.ruleSetId = ruleSetId
+      room.lastActivity = Date.now()
+
+      // 重置所有非房主玩家的准备状态
+      room.players.forEach(player => {
+        if (player.playerId !== hostPlayerId) {
+          player.isReady = false
+        }
+      })
+
+      await this.saveRoom(room)
+
+      // 广播规则集变更事件
+      await this.broadcastRoomEvent(roomCode, {
+        type: 'ruleSetChanged',
+        data: { ruleSetId, changedBy: hostPlayerId },
+      })
+
+      // 广播房间状态更新
+      await this.broadcastRoomEvent(roomCode, {
+        type: 'roomUpdate',
+        data: room,
+      })
+
+      logger.info(
+        {
+          roomCode,
+          hostPlayerId,
+          oldRuleSetId,
+          newRuleSetId: ruleSetId,
+        },
+        'Room rule set updated',
       )
     })
   }
@@ -740,9 +842,42 @@ export class PrivateRoomService {
   }
 
   /**
+   * 验证房间内所有队伍是否符合当前规则集
+   */
+  async validateTeamsWithRuleSet(room: PrivateRoom): Promise<{ isValid: boolean; errors: string[] }> {
+    const errors: string[] = []
+
+    for (const player of room.players) {
+      // 只验证已准备且有队伍的玩家
+      if (!player.isReady || !player.team) {
+        continue
+      }
+
+      try {
+        const validation = await ServerRuleIntegration.validateTeamWithRuleSet(player.team, room.config.ruleSetId)
+        if (!validation.isValid) {
+          const playerErrors = validation.errors.map(error => `玩家 ${player.playerName}: ${error.message}`)
+          errors.push(...playerErrors)
+        }
+      } catch (error) {
+        logger.error(
+          { error, playerId: player.playerId, ruleSetId: room.config.ruleSetId },
+          'Failed to validate team with rule set',
+        )
+        errors.push(`玩家 ${player.playerName}: 队伍验证失败`)
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    }
+  }
+
+  /**
    * 开始战斗
    */
-  async startBattle(roomCode: string, hostPlayerId: string): Promise<string | null> {
+  async startBattle(roomCode: string, hostPlayerId: string, hostTeam: PetSchemaType[]): Promise<string | null> {
     return await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
       const canStart = await this.canStartBattle(roomCode, hostPlayerId)
       if (!canStart) {
@@ -756,6 +891,56 @@ export class PrivateRoomService {
 
       if (room.players.length < 2) {
         throw new PrivateRoomError('玩家数量不足', 'INVALID_STATE')
+      }
+
+      // 设置房主队伍
+      const hostPlayer = room.players.find(p => p.playerId === hostPlayerId)
+      if (!hostPlayer) {
+        throw new PrivateRoomError('房主不在房间中', 'INVALID_STATE')
+      }
+
+      // 验证房主队伍
+      if (!hostTeam || hostTeam.length === 0) {
+        throw new PrivateRoomError('房主队伍不能为空', 'INVALID_TEAM')
+      }
+
+      try {
+        const validation = await ServerRuleIntegration.validateTeamWithRuleSet(hostTeam, room.config.ruleSetId)
+        if (!validation.isValid) {
+          const errorMessage = validation.errors.map(error => error.message).join('; ')
+          throw new PrivateRoomError(`房主队伍不符合当前规则集要求：${errorMessage}`, 'TEAM_VALIDATION_FAILED', {
+            errors: validation.errors,
+            ruleSetId: room.config.ruleSetId,
+          })
+        }
+      } catch (error) {
+        if (error instanceof PrivateRoomError) {
+          throw error
+        }
+        logger.error(
+          { error, hostPlayerId, ruleSetId: room.config.ruleSetId },
+          'Failed to validate host team with rule set',
+        )
+        throw new PrivateRoomError('房主队伍验证失败', 'TEAM_VALIDATION_FAILED')
+      }
+
+      // 设置房主队伍
+      hostPlayer.team = hostTeam
+
+      // 检查所有玩家是否都有队伍
+      const allPlayersHaveTeam = room.players.every(player => player.team && player.team.length > 0)
+      if (!allPlayersHaveTeam) {
+        throw new PrivateRoomError('还有玩家未设置队伍', 'INVALID_STATE')
+      }
+
+      // 验证所有队伍是否符合当前规则集
+      const teamValidation = await this.validateTeamsWithRuleSet(room)
+      if (!teamValidation.isValid) {
+        throw new PrivateRoomError(
+          `队伍不符合当前规则集要求：${teamValidation.errors.join('; ')}`,
+          'TEAM_VALIDATION_FAILED',
+          { errors: teamValidation.errors, ruleSetId: room.config.ruleSetId },
+        )
       }
 
       // 检查是否有战斗创建回调
@@ -773,7 +958,7 @@ export class PrivateRoomService {
         playerData: {
           id: player1.playerId,
           name: player1.playerName,
-          team: player1.team,
+          team: player1.team!, // 已验证不为空
         },
         sessionId: player1.sessionId,
         ruleSetId: room.config.ruleSetId,
@@ -791,7 +976,7 @@ export class PrivateRoomService {
         playerData: {
           id: player2.playerId,
           name: player2.playerName,
-          team: player2.team,
+          team: player2.team!, // 已验证不为空
         },
         sessionId: player2.sessionId,
         ruleSetId: room.config.ruleSetId,

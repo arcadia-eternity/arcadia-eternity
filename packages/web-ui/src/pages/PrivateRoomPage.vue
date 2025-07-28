@@ -89,6 +89,37 @@
         </div>
       </div>
 
+      <!-- 队伍选择区域 -->
+      <div
+        v-if="privateRoomStore.isPlayer && privateRoomStore.currentRoom?.status === 'waiting'"
+        class="team-selection-section"
+      >
+        <h3>队伍选择</h3>
+        <div class="team-selection-content">
+          <div class="current-team-display">
+            <h4>当前选择的队伍</h4>
+            <div class="team-pets">
+              <div v-for="pet in privateRoomStore.selectedTeam" :key="pet.id" class="pet-card">
+                <div class="pet-info">
+                  <span class="pet-name">{{ pet.name }}</span>
+                  <span class="pet-species">{{ pet.species }}</span>
+                  <span class="pet-level">Lv.{{ pet.level }}</span>
+                </div>
+              </div>
+              <div v-if="privateRoomStore.selectedTeam.length === 0" class="no-team">
+                <span>请选择队伍</span>
+              </div>
+            </div>
+          </div>
+          <div class="team-actions">
+            <el-button type="primary" @click="showTeamSelector = true"> 选择队伍 </el-button>
+            <el-button v-if="privateRoomStore.selectedTeam.length > 0" type="success" @click="useCurrentTeam">
+              使用当前队伍
+            </el-button>
+          </div>
+        </div>
+      </div>
+
       <!-- 房间控制 -->
       <div class="room-controls">
         <!-- 房主控制按钮 -->
@@ -103,9 +134,9 @@
             开始对战
           </el-button>
 
-          <!-- 等待状态：等待玩家准备 -->
+          <!-- 等待状态：等待玩家准备或选择队伍 -->
           <el-button v-else-if="privateRoomStore.currentRoom?.status === 'waiting'" type="primary" disabled>
-            等待玩家准备
+            {{ privateRoomStore.selectedTeam.length === 0 ? '请先选择队伍' : '等待玩家准备' }}
           </el-button>
 
           <!-- 战斗结束状态：可以再来一局 -->
@@ -222,15 +253,39 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 队伍选择对话框 -->
+    <el-dialog v-model="showTeamSelector" title="选择队伍" width="600px">
+      <div class="team-selector">
+        <div v-for="(team, index) in petStorageStore.teams" :key="index" class="team-option">
+          <div class="team-header">
+            <h4>{{ team.name }}</h4>
+            <span class="team-count">{{ team.pets.length }}只精灵</span>
+          </div>
+          <div class="team-preview">
+            <div v-for="pet in team.pets.slice(0, 6)" :key="pet.id" class="pet-preview">
+              <span class="pet-name">{{ pet.name }}</span>
+              <span class="pet-species">{{ pet.species }}</span>
+            </div>
+          </div>
+          <el-button type="primary" size="small" @click="selectTeam(index)"> 选择此队伍 </el-button>
+        </div>
+        <div v-if="petStorageStore.teams.length === 0" class="no-teams">
+          <p>暂无可用队伍，请先在队伍编辑器中创建队伍</p>
+          <el-button type="primary" @click="router.push('/team-builder')"> 前往队伍编辑器 </el-button>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { usePlayerStore } from '@/stores/player'
 import { useValidationStore } from '@/stores/validation'
+import { usePetStorageStore } from '@/stores/petStorage'
 import { User, Loading, ArrowDown } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import PlayerCard from '@/components/PlayerCard.vue'
@@ -240,11 +295,13 @@ const router = useRouter()
 const privateRoomStore = usePrivateRoomStore()
 const playerStore = usePlayerStore()
 const validationStore = useValidationStore()
+const petStorageStore = usePetStorageStore()
 
 const roomCode = route.params.roomCode as string
 
 // 响应式变量
 const switchToPlayerDialogVisible = ref(false)
+const showTeamSelector = ref(false)
 
 // 计算属性
 const getRuleSetName = (ruleSetId: string): string => {
@@ -360,6 +417,20 @@ const resetRoom = async () => {
   }
 }
 
+// 队伍选择相关方法
+const useCurrentTeam = () => {
+  const currentTeam = petStorageStore.getCurrentTeam()
+  privateRoomStore.updateSelectedTeam(currentTeam)
+  ElMessage.success('已选择当前队伍')
+}
+
+const selectTeam = (teamIndex: number) => {
+  const team = petStorageStore.teams[teamIndex]?.pets || []
+  privateRoomStore.updateSelectedTeam(team)
+  showTeamSelector.value = false
+  ElMessage.success(`已选择队伍：${petStorageStore.teams[teamIndex]?.name || '未命名队伍'}`)
+}
+
 const leaveRoom = async () => {
   try {
     await privateRoomStore.leaveRoom()
@@ -410,17 +481,59 @@ onMounted(async () => {
     return
   }
 
-  try {
-    // 获取房间信息
-    await privateRoomStore.getRoomInfo(roomCode)
-  } catch (error) {
-    ElMessage.error('获取房间信息失败: ' + (error as Error).message)
-    router.push('/')
+  // 如果已经有当前房间状态且房间码匹配，直接使用
+  if (privateRoomStore.currentRoom && privateRoomStore.currentRoom.config.roomCode === roomCode) {
+    console.log('🏠 Using existing room state, skipping server call')
+    try {
+      // 重新设置事件监听器（因为页面切换时可能被移除）
+      privateRoomStore.setupRoomEventListeners()
+      // 初始化选择的队伍
+      privateRoomStore.initializeSelectedTeam()
+      console.log('🏠 PrivateRoomPage mounted successfully with existing state')
+    } catch (error) {
+      console.error('🏠 Error setting up existing room state:', error)
+      // 如果使用现有状态失败，尝试重新获取
+      try {
+        console.log('🏠 Fallback: Getting room info from server...')
+        await privateRoomStore.getRoomInfo(roomCode)
+        privateRoomStore.initializeSelectedTeam()
+        console.log('🏠 Fallback successful')
+      } catch (fallbackError) {
+        console.error('🏠 Fallback also failed:', fallbackError)
+        ElMessage.error('房间状态异常: ' + (fallbackError as Error).message)
+        router.push('/')
+      }
+    }
+  } else {
+    // 没有匹配的房间状态，从服务器获取
+    try {
+      console.log('🏠 Getting room info from server...')
+      await privateRoomStore.getRoomInfo(roomCode)
+      privateRoomStore.initializeSelectedTeam()
+      console.log('🏠 Room info retrieved successfully')
+    } catch (error) {
+      console.error('🏠 Failed to get room info:', error)
+      ElMessage.error('获取房间信息失败: ' + (error as Error).message)
+      router.push('/')
+    }
+  }
+})
+
+onBeforeUnmount(async () => {
+  // 页面离开时只取消准备状态，不离开房间
+  if (privateRoomStore.myReadyStatus && privateRoomStore.isPlayer) {
+    try {
+      await privateRoomStore.toggleReady()
+    } catch (err) {
+      console.error('Failed to cancel ready on page leave:', err)
+    }
   }
 })
 
 onUnmounted(() => {
-  privateRoomStore.cleanup()
+  // 页面卸载时不清空房间状态，保持全局房间状态
+  // 只移除事件监听器
+  privateRoomStore.removeEventListeners()
 })
 </script>
 
@@ -658,5 +771,142 @@ onUnmounted(() => {
   .room-controls {
     flex-direction: column;
   }
+}
+
+/* 队伍选择样式 */
+.team-selection-section {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: var(--el-bg-color-page);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color);
+}
+
+.team-selection-section h3 {
+  margin: 0 0 1rem 0;
+  color: var(--el-text-color-primary);
+}
+
+.team-selection-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.current-team-display h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--el-text-color-regular);
+  font-size: 0.9rem;
+}
+
+.team-pets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.pet-card {
+  padding: 0.5rem;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+  min-width: 120px;
+}
+
+.pet-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pet-name {
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.pet-species {
+  font-size: 0.8rem;
+  color: var(--el-text-color-regular);
+}
+
+.pet-level {
+  font-size: 0.8rem;
+  color: var(--el-text-color-placeholder);
+}
+
+.no-team {
+  padding: 1rem;
+  text-align: center;
+  color: var(--el-text-color-placeholder);
+  border: 2px dashed var(--el-border-color);
+  border-radius: 6px;
+}
+
+.team-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* 队伍选择对话框样式 */
+.team-selector {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.team-option {
+  padding: 1rem;
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.team-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.team-header h4 {
+  margin: 0;
+  color: var(--el-text-color-primary);
+}
+
+.team-count {
+  font-size: 0.8rem;
+  color: var(--el-text-color-placeholder);
+}
+
+.team-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.pet-preview {
+  display: flex;
+  flex-direction: column;
+  padding: 0.25rem 0.5rem;
+  background: var(--el-bg-color-page);
+  border-radius: 4px;
+  min-width: 80px;
+}
+
+.pet-preview .pet-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.pet-preview .pet-species {
+  font-size: 0.7rem;
+  color: var(--el-text-color-placeholder);
+}
+
+.no-teams {
+  text-align: center;
+  padding: 2rem;
+  color: var(--el-text-color-placeholder);
 }
 </style>

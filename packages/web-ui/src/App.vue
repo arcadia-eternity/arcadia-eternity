@@ -72,6 +72,12 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
+          <!-- 房间状态显示 -->
+          <el-button v-if="privateRoomStore.currentRoom" type="warning" size="small" @click="handleRoomButtonClick">
+            <el-icon><House /></el-icon>
+            房间: {{ privateRoomStore.currentRoom.config.roomCode }}
+          </el-button>
+
           <el-tag type="info" effect="dark">
             <el-icon><User /></el-icon>
             在线人数：{{ serverState.serverState.onlinePlayers }}
@@ -394,6 +400,7 @@ import { usePetStorageStore } from './stores/petStorage'
 import { useResourceStore } from './stores/resource'
 import { useServerStateStore } from './stores/serverState'
 import { useGameSettingStore } from './stores/gameSetting'
+import { usePrivateRoomStore } from './stores/privateRoom'
 import { BattleMessageType } from '@arcadia-eternity/const'
 import {
   Menu,
@@ -424,6 +431,7 @@ const serverState = useServerStateStore()
 const gameSettingStore = useGameSettingStore()
 const battleClientStore = useBattleClientStore()
 const battleStore = useBattleStore()
+const privateRoomStore = usePrivateRoomStore()
 
 // 使用 VueUse 的响应式断点检测
 const breakpoints = useBreakpoints(breakpointsTailwind)
@@ -441,6 +449,20 @@ watch(isMobile, newIsMobile => {
     showMobileMenu.value = false
   }
 })
+
+// 房间按钮点击处理
+const handleRoomButtonClick = () => {
+  console.log('🏠 Room button clicked')
+  console.log('🏠 Current room:', privateRoomStore.currentRoom)
+
+  if (privateRoomStore.currentRoom) {
+    const roomCode = privateRoomStore.currentRoom.config.roomCode
+    console.log('🏠 Navigating to room:', roomCode)
+    router.push(`/room/${roomCode}`)
+  } else {
+    console.error('🏠 No current room found')
+  }
+}
 
 // 初始化连接
 onMounted(async () => {
@@ -483,6 +505,16 @@ onMounted(async () => {
 
     // 现在初始化battleClient（此时Pinia已经完全准备好）
     battleClientStore.initialize()
+
+    // 检查是否在私人房间中
+    try {
+      const currentRoom = await privateRoomStore.checkCurrentRoom()
+      if (currentRoom) {
+        console.log('🏠 Found existing room:', currentRoom.config.roomCode)
+      }
+    } catch (error) {
+      console.error('Failed to check current room:', error)
+    }
 
     // 监听战斗重连事件（用于页面刷新后自动跳转）
     let isRedirecting = false

@@ -907,12 +907,16 @@ export class ClusterBattleServer {
       this.privateRoomHandlers?.handleJoinAsSpectator(socket, data, ack),
     )
     socket.on('leavePrivateRoom', ack => this.privateRoomHandlers?.handleLeaveRoom(socket, ack))
-    socket.on('togglePrivateRoomReady', ack => this.privateRoomHandlers?.handleToggleReady(socket, ack))
-    socket.on('startPrivateRoomBattle', ack => this.privateRoomHandlers?.handleStartBattle(socket, ack))
+    socket.on('togglePrivateRoomReady', (data, ack) => this.privateRoomHandlers?.handleToggleReady(socket, data, ack))
+    socket.on('startPrivateRoomBattle', (data, ack) => this.privateRoomHandlers?.handleStartBattle(socket, data, ack))
     socket.on('resetPrivateRoom', ack => this.privateRoomHandlers?.handleResetRoom(socket, ack))
     socket.on('switchToSpectator', (data, ack) => this.privateRoomHandlers?.handleSwitchToSpectator(socket, data, ack))
     socket.on('switchToPlayer', (data, ack) => this.privateRoomHandlers?.handleSwitchToPlayer(socket, data, ack))
     socket.on('getPrivateRoomInfo', (data, ack) => this.privateRoomHandlers?.handleGetRoomInfo(socket, data, ack))
+    socket.on('updatePrivateRoomRuleSet', (data, ack) =>
+      this.privateRoomHandlers?.handleUpdateRuleSet(socket, data, ack),
+    )
+    socket.on('getCurrentPrivateRoom', ack => this.privateRoomHandlers?.handleGetCurrentRoom(socket, ack))
   }
 
   private setupClusterEventHandlers() {

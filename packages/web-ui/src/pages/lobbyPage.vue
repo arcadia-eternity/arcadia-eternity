@@ -303,12 +303,7 @@
               />
               <el-button
                 type="primary"
-                :disabled="
-                  !joinRoomCode ||
-                  !selectedTeam ||
-                  !isSelectedTeamValid ||
-                  battleClientStore.currentState.status !== 'connected'
-                "
+                :disabled="!joinRoomCode || battleClientStore.currentState.status !== 'connected'"
                 @click="joinRoom"
               >
                 加入
@@ -819,11 +814,6 @@ const handleMatchmaking = async () => {
 // 私人房间相关方法
 const createRoom = async () => {
   try {
-    if (!selectedTeam.value) {
-      ElMessage.error('请先选择队伍')
-      return
-    }
-
     const config = {
       ruleSetId: selectedRuleSetId.value,
       isPrivate: !!roomConfig.value.password,
@@ -833,7 +823,7 @@ const createRoom = async () => {
       spectatorMode: roomConfig.value.spectatorMode,
     }
 
-    const roomCode = await privateRoomStore.createRoom(selectedTeam.value.pets, config)
+    const roomCode = await privateRoomStore.createRoom(config)
 
     showCreateRoomDialog.value = false
     ElMessage.success(`房间创建成功！房间码: ${roomCode}`)
@@ -852,12 +842,7 @@ const joinRoom = async () => {
       return
     }
 
-    if (!selectedTeam.value) {
-      ElMessage.error('请先选择队伍')
-      return
-    }
-
-    await privateRoomStore.joinRoom(joinRoomCode.value, selectedTeam.value.pets)
+    await privateRoomStore.joinRoom(joinRoomCode.value)
 
     ElMessage.success('成功加入房间')
 

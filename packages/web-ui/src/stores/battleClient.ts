@@ -312,20 +312,20 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return await _instance.value.joinPrivateRoomAsSpectator(data)
   }
 
-  const toggleRoomReady = async (): Promise<void> => {
+  const toggleRoomReady = async (team?: any[]): Promise<void> => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
 
-    return await _instance.value.togglePrivateRoomReady()
+    return await _instance.value.togglePrivateRoomReady(team)
   }
 
-  const startRoomBattle = async (): Promise<string> => {
+  const startRoomBattle = async (hostTeam: any[]): Promise<string> => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
 
-    return await _instance.value.startPrivateRoomBattle()
+    return await _instance.value.startPrivateRoomBattle(hostTeam)
   }
 
   const getPrivateRoomInfo = async (roomCode: string): Promise<any> => {
@@ -334,6 +334,22 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     }
 
     return await _instance.value.getPrivateRoomInfo(roomCode)
+  }
+
+  const getCurrentPrivateRoom = async (): Promise<any> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    return await _instance.value.getCurrentPrivateRoom()
+  }
+
+  const updatePrivateRoomRuleSet = async (data: { ruleSetId: string }): Promise<void> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    return await _instance.value.updatePrivateRoomRuleSet(data)
   }
 
   const resetPrivateRoom = async (): Promise<void> => {
@@ -405,5 +421,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     switchToSpectator,
     switchToPlayer,
     getPrivateRoomInfo,
+    getCurrentPrivateRoom,
+    updatePrivateRoomRuleSet,
   }
 })

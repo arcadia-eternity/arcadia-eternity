@@ -6,6 +6,9 @@ import type {
   CreatePrivateRoomRequest,
   JoinPrivateRoomRequest,
   JoinPrivateRoomSpectatorRequest,
+  UpdatePrivateRoomRuleSetRequest,
+  TogglePrivateRoomReadyRequest,
+  StartPrivateRoomBattleRequest,
   AckResponse,
   PrivateRoomInfo,
 } from '@arcadia-eternity/protocol'
@@ -58,7 +61,6 @@ export class PrivateRoomHandlers {
         playerId,
         playerName,
         sessionId,
-        team: data.team,
         isReady: false,
         joinedAt: Date.now(),
       }
@@ -113,7 +115,6 @@ export class PrivateRoomHandlers {
         playerId,
         playerName,
         sessionId,
-        team: data.team,
         isReady: false,
         joinedAt: Date.now(),
       }
@@ -250,7 +251,11 @@ export class PrivateRoomHandlers {
   /**
    * 处理切换准备状态请求
    */
-  async handleToggleReady(socket: Socket<any, any, any, SocketData>, ack?: AckResponse<{ status: 'READY_TOGGLED' }>) {
+  async handleToggleReady(
+    socket: Socket<any, any, any, SocketData>,
+    data: TogglePrivateRoomReadyRequest,
+    ack?: AckResponse<{ status: 'READY_TOGGLED' }>,
+  ) {
     try {
       const playerId = socket.data?.playerId
       const sessionId = socket.data?.sessionId
@@ -267,7 +272,7 @@ export class PrivateRoomHandlers {
         return
       }
 
-      await this.roomService.togglePlayerReady(currentRoom.config.roomCode, playerId)
+      await this.roomService.togglePlayerReady(currentRoom.config.roomCode, playerId, data.team)
 
       logger.info(
         {
@@ -293,7 +298,11 @@ export class PrivateRoomHandlers {
   /**
    * 处理开始战斗请求
    */
-  async handleStartBattle(socket: Socket<any, any, any, SocketData>, ack?: AckResponse<{ battleRoomId: string }>) {
+  async handleStartBattle(
+    socket: Socket<any, any, any, SocketData>,
+    data: StartPrivateRoomBattleRequest,
+    ack?: AckResponse<{ battleRoomId: string }>,
+  ) {
     try {
       const playerId = socket.data?.playerId
       const sessionId = socket.data?.sessionId
@@ -310,7 +319,7 @@ export class PrivateRoomHandlers {
         return
       }
 
-      const battleRoomId = await this.roomService.startBattle(currentRoom.config.roomCode, playerId)
+      const battleRoomId = await this.roomService.startBattle(currentRoom.config.roomCode, playerId, data.hostTeam)
 
       if (battleRoomId) {
         logger.info(
@@ -518,6 +527,111 @@ export class PrivateRoomHandlers {
       } else {
         ack?.({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '转换为玩家失败' })
       }
+    }
+  }
+
+  /**
+   * 处理更新房间规则集请求
+   */
+  async handleUpdateRuleSet(
+    socket: Socket<any, any, any, SocketData>,
+    data: UpdatePrivateRoomRuleSetRequest,
+    ack?: AckResponse<{ status: 'UPDATED' }>,
+  ) {
+    try {
+      const playerId = socket.data?.playerId
+      const sessionId = socket.data?.sessionId
+
+      if (!playerId || !sessionId) {
+        ack?.({ status: 'ERROR', code: 'AUTHENTICATION_REQUIRED', details: '需要认证' })
+        return
+      }
+
+      // 获取该 session 当前所在房间
+      const currentRoom = await this.roomService.getPlayerSessionCurrentRoom(playerId, sessionId)
+      if (!currentRoom) {
+        ack?.({ status: 'ERROR', code: 'NOT_IN_ROOM', details: '该会话不在任何房间中' })
+        return
+      }
+
+      await this.roomService.updateRuleSet(currentRoom.config.roomCode, playerId, data.ruleSetId)
+
+      logger.info(
+        {
+          roomCode: currentRoom.config.roomCode,
+          playerId,
+          ruleSetId: data.ruleSetId,
+        },
+        'Private room rule set updated successfully',
+      )
+
+      ack?.({ status: 'SUCCESS', data: { status: 'UPDATED' } })
+    } catch (error) {
+      logger.error({ error, playerId: socket.data?.playerId }, 'Failed to update private room rule set')
+
+      if (error instanceof Error && error.name === 'PrivateRoomError') {
+        const roomError = error as PrivateRoomError
+        ack?.({ status: 'ERROR', code: roomError.code, details: roomError.message })
+      } else {
+        ack?.({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '更新规则集失败' })
+      }
+    }
+  }
+
+  /**
+   * 处理获取当前房间请求
+   */
+  async handleGetCurrentRoom(socket: Socket<any, any, any, SocketData>, ack?: AckResponse<PrivateRoomInfo | null>) {
+    try {
+      const playerId = socket.data?.playerId
+      const sessionId = socket.data?.sessionId
+
+      if (!playerId || !sessionId) {
+        ack?.({ status: 'ERROR', code: 'AUTHENTICATION_REQUIRED', details: '需要认证' })
+        return
+      }
+
+      // 获取该 session 当前所在房间
+      const currentRoom = await this.roomService.getPlayerSessionCurrentRoom(playerId, sessionId)
+      if (!currentRoom) {
+        ack?.({ status: 'SUCCESS', data: null })
+        return
+      }
+
+      // 转换为协议格式
+      const roomInfo: PrivateRoomInfo = {
+        id: currentRoom.id,
+        config: {
+          roomCode: currentRoom.config.roomCode,
+          hostPlayerId: currentRoom.config.hostPlayerId,
+          ruleSetId: currentRoom.config.ruleSetId,
+          maxPlayers: currentRoom.config.maxPlayers,
+          maxSpectators: currentRoom.config.maxSpectators,
+          allowSpectators: currentRoom.config.allowSpectators,
+          spectatorMode: currentRoom.config.spectatorMode,
+          isPrivate: currentRoom.config.isPrivate,
+        },
+        players: currentRoom.players,
+        spectators: currentRoom.spectators,
+        status: currentRoom.status,
+        createdAt: currentRoom.createdAt,
+        lastActivity: currentRoom.lastActivity,
+        battleRoomId: currentRoom.battleRoomId,
+        lastBattleResult: currentRoom.lastBattleResult,
+      }
+
+      logger.info(
+        {
+          roomCode: currentRoom.config.roomCode,
+          playerId,
+        },
+        'Current room retrieved successfully',
+      )
+
+      ack?.({ status: 'SUCCESS', data: roomInfo })
+    } catch (error) {
+      logger.error({ error, playerId: socket.data?.playerId }, 'Failed to get current room')
+      ack?.({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '获取当前房间失败' })
     }
   }
 }
