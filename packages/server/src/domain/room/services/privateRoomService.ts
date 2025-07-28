@@ -616,6 +616,152 @@ export class PrivateRoomService {
   }
 
   /**
+   * 更新房间配置（仅房主可操作）
+   */
+  async updateRoomConfig(
+    roomCode: string,
+    hostPlayerId: string,
+    configUpdates: {
+      ruleSetId?: string
+      allowSpectators?: boolean
+      maxSpectators?: number
+      spectatorMode?: 'free' | 'player1' | 'player2' | 'god'
+      isPrivate?: boolean
+      password?: string
+    },
+  ): Promise<void> {
+    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+      const room = await this.getRoom(roomCode)
+      if (!room) {
+        throw new PrivateRoomError('房间不存在', 'ROOM_NOT_FOUND')
+      }
+
+      // 检查是否为房主
+      if (room.config.hostPlayerId !== hostPlayerId) {
+        throw new PrivateRoomError('只有房主可以更改房间配置', 'NOT_HOST')
+      }
+
+      // 检查房间状态
+      if (room.status !== 'waiting') {
+        throw new PrivateRoomError('只能在等待状态下更改房间配置', 'INVALID_STATE')
+      }
+
+      const oldConfig = { ...room.config }
+      let needsPlayerReadyReset = false
+
+      // 更新规则集
+      if (configUpdates.ruleSetId !== undefined) {
+        if (!configUpdates.ruleSetId || configUpdates.ruleSetId.trim() === '') {
+          throw new PrivateRoomError('规则集ID不能为空', 'INVALID_RULESET')
+        }
+        room.config.ruleSetId = configUpdates.ruleSetId
+        needsPlayerReadyReset = true
+      }
+
+      // 更新观战设置
+      if (configUpdates.allowSpectators !== undefined) {
+        room.config.allowSpectators = configUpdates.allowSpectators
+
+        // 如果禁用观战，需要移除所有观战者
+        if (!configUpdates.allowSpectators && room.spectators.length > 0) {
+          // 广播观战者被移除的事件
+          for (const spectator of room.spectators) {
+            await this.broadcastRoomEvent(roomCode, {
+              type: 'spectatorLeft',
+              data: spectator,
+            })
+          }
+          room.spectators = []
+        }
+      }
+
+      if (configUpdates.maxSpectators !== undefined) {
+        if (configUpdates.maxSpectators < 1 || configUpdates.maxSpectators > 50) {
+          throw new PrivateRoomError('观战者数量必须在1-50之间', 'INVALID_CONFIG')
+        }
+        room.config.maxSpectators = configUpdates.maxSpectators
+
+        // 如果当前观战者数量超过新限制，移除多余的观战者
+        if (room.spectators.length > configUpdates.maxSpectators) {
+          const removedSpectators = room.spectators.splice(configUpdates.maxSpectators)
+          for (const spectator of removedSpectators) {
+            await this.broadcastRoomEvent(roomCode, {
+              type: 'spectatorLeft',
+              data: spectator,
+            })
+          }
+        }
+      }
+
+      if (configUpdates.spectatorMode !== undefined) {
+        room.config.spectatorMode = configUpdates.spectatorMode
+      }
+
+      // 更新隐私设置
+      if (configUpdates.isPrivate !== undefined) {
+        room.config.isPrivate = configUpdates.isPrivate
+
+        // 如果设置为私密房间但没有密码，抛出错误
+        if (configUpdates.isPrivate && !configUpdates.password && !room.config.password) {
+          throw new PrivateRoomError('私密房间必须设置密码', 'INVALID_CONFIG')
+        }
+
+        // 如果设置为公开房间，清除密码
+        if (!configUpdates.isPrivate) {
+          room.config.password = undefined
+        }
+      }
+
+      if (configUpdates.password !== undefined) {
+        if (room.config.isPrivate && (!configUpdates.password || configUpdates.password.trim() === '')) {
+          throw new PrivateRoomError('私密房间密码不能为空', 'INVALID_CONFIG')
+        }
+        room.config.password = configUpdates.password || undefined
+      }
+
+      room.lastActivity = Date.now()
+
+      // 如果规则集发生变化，重置所有非房主玩家的准备状态
+      if (needsPlayerReadyReset) {
+        room.players.forEach(player => {
+          if (player.playerId !== hostPlayerId) {
+            player.isReady = false
+          }
+        })
+      }
+
+      await this.saveRoom(room)
+
+      // 广播房间配置变更事件
+      await this.broadcastRoomEvent(roomCode, {
+        type: 'roomConfigChanged',
+        data: {
+          oldConfig,
+          newConfig: room.config,
+          changedBy: hostPlayerId,
+        },
+      })
+
+      // 广播房间状态更新
+      await this.broadcastRoomEvent(roomCode, {
+        type: 'roomUpdate',
+        data: room,
+      })
+
+      logger.info(
+        {
+          roomCode,
+          hostPlayerId,
+          configUpdates,
+          oldConfig,
+          newConfig: room.config,
+        },
+        'Room configuration updated',
+      )
+    })
+  }
+
+  /**
    * 获取房间信息
    */
   async getRoom(roomCode: string): Promise<PrivateRoom | null> {

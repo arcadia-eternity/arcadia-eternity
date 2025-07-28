@@ -237,6 +237,56 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
   }
 
+  const updateRoomConfig = async (configUpdates: {
+    ruleSetId?: string
+    allowSpectators?: boolean
+    maxSpectators?: number
+    spectatorMode?: 'free' | 'player1' | 'player2' | 'god'
+    isPrivate?: boolean
+    password?: string
+  }): Promise<void> => {
+    if (!currentRoom.value || !isHost.value) return
+
+    isLoading.value = true
+    error.value = null
+
+    try {
+      await battleClientStore.updatePrivateRoomConfig(configUpdates)
+      console.log('✅ Room config updated:', configUpdates)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      error.value = errorMessage
+      console.error('❌ Failed to update room config:', errorMessage)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // 房间配置表单状态
+  const roomConfigForm = ref({
+    ruleSetId: '',
+    allowSpectators: false,
+    maxSpectators: 10,
+    spectatorMode: 'free' as 'free' | 'player1' | 'player2' | 'god',
+    isPrivate: false,
+    password: '',
+  })
+
+  // 初始化房间配置表单
+  const initializeRoomConfigForm = (): void => {
+    if (currentRoom.value) {
+      roomConfigForm.value = {
+        ruleSetId: currentRoom.value.config.ruleSetId,
+        allowSpectators: currentRoom.value.config.allowSpectators,
+        maxSpectators: currentRoom.value.config.maxSpectators,
+        spectatorMode: currentRoom.value.config.spectatorMode,
+        isPrivate: currentRoom.value.config.isPrivate,
+        password: currentRoom.value.config.password || '',
+      }
+    }
+  }
+
   const switchToSpectator = async (preferredView?: 'player1' | 'player2' | 'god'): Promise<void> => {
     if (!currentRoom.value) return
 
@@ -448,6 +498,16 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         // 房间信息会通过 roomUpdate 事件更新
         break
 
+      case 'roomConfigChanged':
+        // 房间配置变更
+        console.log('⚙️ Room config changed by:', event.data.changedBy)
+        console.log('📊 Old config:', event.data.oldConfig)
+        console.log('📊 New config:', event.data.newConfig)
+        // 房间信息会通过 roomUpdate 事件更新
+        // 同时更新本地配置表单
+        initializeRoomConfigForm()
+        break
+
       case 'roomClosed':
         cleanup()
         // 可以显示房间关闭的通知
@@ -523,6 +583,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     selectedTeam,
     isLoading,
     error,
+    roomConfigForm,
 
     // 计算属性
     players,
@@ -542,6 +603,8 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     startBattle,
     resetRoom,
     updateRuleSet,
+    updateRoomConfig,
+    initializeRoomConfigForm,
     switchToSpectator,
     switchToPlayer,
     getRoomInfo,

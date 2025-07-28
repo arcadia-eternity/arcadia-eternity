@@ -146,6 +146,10 @@ export type PrivateRoomEvent =
   | { type: 'roomReset'; data: { message: string } }
   | { type: 'roomClosed'; data: { reason: string } }
   | { type: 'ruleSetChanged'; data: { ruleSetId: string; changedBy: string } }
+  | {
+      type: 'roomConfigChanged'
+      data: { oldConfig: PrivateRoomConfig; newConfig: PrivateRoomConfig; changedBy: string }
+    }
 
 /**
  * Socket事件响应类型
@@ -176,7 +180,8 @@ export class PrivateRoomError extends Error {
       | 'PLAYER_LIMIT_REACHED'
       | 'INVALID_TEAM'
       | 'INVALID_RULESET'
-      | 'TEAM_VALIDATION_FAILED',
+      | 'TEAM_VALIDATION_FAILED'
+      | 'INVALID_CONFIG',
     public details?: any,
   ) {
     super(message)

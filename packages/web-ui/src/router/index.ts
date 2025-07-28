@@ -20,11 +20,6 @@ const BattleRecordDetail = () => import('@/components/battleReport/BattleRecordD
 const LocalBattleReports = () => import('@/components/battleReport/LocalBattleReports.vue')
 const Leaderboard = () => import('@/components/battleReport/Leaderboard.vue')
 const PlayerBattleRecords = () => import('@/components/battleReport/PlayerBattleRecords.vue')
-
-// 演示页面
-const ParticleEffectDemo = () => import('@/pages/ParticleEffectDemo.vue')
-const ClimaxEffectDemo = () => import('@/pages/ClimaxEffectDemo.vue')
-
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
@@ -224,22 +219,6 @@ const devOnlyRoutes: RouteRecordRaw[] = [
   //   component: EffectGraphEditor,
   //   props: true,
   // },  // 演示页面路由
-  {
-    path: '/particle-demo',
-    name: 'ParticleEffectDemo',
-    component: ParticleEffectDemo,
-    meta: {
-      title: '必杀技特效调整页面',
-    },
-  },
-  {
-    path: '/climax-demo',
-    name: 'ClimaxEffectDemo',
-    component: ClimaxEffectDemo,
-    meta: {
-      title: '必杀技特性动画组件演示',
-    },
-  },
 ]
 
 if (import.meta.env.DEV) {

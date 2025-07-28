@@ -59,6 +59,15 @@
           <el-tag>{{ getRuleSetName(privateRoomStore.currentRoom.config.ruleSetId) }}</el-tag>
           <el-tag type="info">房主: {{ getHostPlayerName() }}</el-tag>
           <el-button type="primary" size="small" @click="copyRoomCode"> 复制房间码 </el-button>
+          <!-- 房主配置按钮 -->
+          <el-button
+            v-if="privateRoomStore.isHost && privateRoomStore.currentRoom?.status === 'waiting'"
+            type="warning"
+            size="small"
+            @click="openRoomConfigDialog"
+          >
+            房间设置
+          </el-button>
         </div>
       </div>
 
@@ -276,6 +285,76 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- 房间配置对话框 -->
+    <el-dialog v-model="showRoomConfigDialog" title="房间设置" width="500px">
+      <el-form :model="privateRoomStore.roomConfigForm" label-width="120px">
+        <!-- 规则集选择 -->
+        <el-form-item label="游戏规则">
+          <el-select v-model="privateRoomStore.roomConfigForm.ruleSetId" placeholder="选择规则集" style="width: 100%">
+            <el-option
+              v-for="ruleSet in validationStore.availableRuleSets"
+              :key="ruleSet.id"
+              :label="ruleSet.name"
+              :value="ruleSet.id"
+            >
+              <div style="display: flex; justify-content: space-between; align-items: center">
+                <span>{{ ruleSet.name }}</span>
+                <el-tag size="small" type="info">{{ ruleSet.ruleCount }} 条规则</el-tag>
+              </div>
+            </el-option>
+          </el-select>
+          <div class="form-help-text">当前: {{ getRuleSetName(privateRoomStore.roomConfigForm.ruleSetId) }}</div>
+        </el-form-item>
+
+        <!-- 观战设置 -->
+        <el-form-item label="允许观战">
+          <el-switch v-model="privateRoomStore.roomConfigForm.allowSpectators" />
+        </el-form-item>
+
+        <el-form-item v-if="privateRoomStore.roomConfigForm.allowSpectators" label="最大观战者数">
+          <el-input-number
+            v-model="privateRoomStore.roomConfigForm.maxSpectators"
+            :min="1"
+            :max="50"
+            style="width: 100%"
+          />
+        </el-form-item>
+
+        <el-form-item v-if="privateRoomStore.roomConfigForm.allowSpectators" label="观战模式">
+          <el-select v-model="privateRoomStore.roomConfigForm.spectatorMode" style="width: 100%">
+            <el-option label="自由观战" value="free" />
+            <el-option label="玩家1视角" value="player1" />
+            <el-option label="玩家2视角" value="player2" />
+            <el-option label="上帝视角" value="god" />
+          </el-select>
+        </el-form-item>
+
+        <!-- 房间隐私设置 -->
+        <el-form-item label="房间类型">
+          <el-radio-group v-model="privateRoomStore.roomConfigForm.isPrivate">
+            <el-radio :label="false">公开房间</el-radio>
+            <el-radio :label="true">私密房间</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item v-if="privateRoomStore.roomConfigForm.isPrivate" label="房间密码">
+          <el-input
+            v-model="privateRoomStore.roomConfigForm.password"
+            type="password"
+            placeholder="设置房间密码"
+            show-password
+          />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="showRoomConfigDialog = false">取消</el-button>
+          <el-button type="primary" @click="saveRoomConfig" :loading="privateRoomStore.isLoading"> 保存设置 </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -302,6 +381,7 @@ const roomCode = route.params.roomCode as string
 // 响应式变量
 const switchToPlayerDialogVisible = ref(false)
 const showTeamSelector = ref(false)
+const showRoomConfigDialog = ref(false)
 
 // 计算属性
 const getRuleSetName = (ruleSetId: string): string => {
@@ -470,6 +550,37 @@ const confirmSwitchToPlayer = async () => {
     ElMessage.success('已转为玩家')
   } catch (error) {
     ElMessage.error('转换为玩家失败: ' + (error as Error).message)
+  }
+}
+
+// 房间配置相关方法
+const openRoomConfigDialog = () => {
+  // 初始化配置表单
+  privateRoomStore.initializeRoomConfigForm()
+  showRoomConfigDialog.value = true
+}
+
+const saveRoomConfig = async () => {
+  try {
+    const configUpdates: {
+      ruleSetId?: string
+      allowSpectators?: boolean
+      maxSpectators?: number
+      spectatorMode?: 'free' | 'player1' | 'player2' | 'god'
+      isPrivate?: boolean
+      password?: string
+    } = { ...privateRoomStore.roomConfigForm }
+
+    // 如果密码为空字符串，设置为undefined
+    if (configUpdates.password === '') {
+      delete configUpdates.password
+    }
+
+    await privateRoomStore.updateRoomConfig(configUpdates)
+    showRoomConfigDialog.value = false
+    ElMessage.success('房间配置已更新')
+  } catch (error) {
+    ElMessage.error('更新房间配置失败: ' + (error as Error).message)
   }
 }
 
@@ -709,6 +820,12 @@ onUnmounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+
+.form-help-text {
+  font-size: 0.875rem;
+  color: var(--el-text-color-secondary);
+  margin-top: 0.25rem;
 }
 
 .spectators-section {

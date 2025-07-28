@@ -686,6 +686,32 @@ export class BattleClient {
     })
   }
 
+  async updatePrivateRoomConfig(data: {
+    ruleSetId?: string
+    allowSpectators?: boolean
+    maxSpectators?: number
+    spectatorMode?: 'free' | 'player1' | 'player2' | 'god'
+    isPrivate?: boolean
+    password?: string
+  }): Promise<void> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Update room config timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('updatePrivateRoomConfig', data, response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve()
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
   async resetPrivateRoom(): Promise<void> {
     this.verifyConnection()
 

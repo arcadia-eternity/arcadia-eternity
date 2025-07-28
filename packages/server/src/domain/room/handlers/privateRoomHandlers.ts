@@ -7,6 +7,7 @@ import type {
   JoinPrivateRoomRequest,
   JoinPrivateRoomSpectatorRequest,
   UpdatePrivateRoomRuleSetRequest,
+  UpdatePrivateRoomConfigRequest,
   TogglePrivateRoomReadyRequest,
   StartPrivateRoomBattleRequest,
   AckResponse,
@@ -574,6 +575,54 @@ export class PrivateRoomHandlers {
         ack?.({ status: 'ERROR', code: roomError.code, details: roomError.message })
       } else {
         ack?.({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '更新规则集失败' })
+      }
+    }
+  }
+
+  /**
+   * 处理更新房间配置请求
+   */
+  async handleUpdateRoomConfig(
+    socket: Socket<any, any, any, SocketData>,
+    data: UpdatePrivateRoomConfigRequest,
+    ack?: AckResponse<{ status: 'UPDATED' }>,
+  ) {
+    try {
+      const playerId = socket.data?.playerId
+      const sessionId = socket.data?.sessionId
+
+      if (!playerId || !sessionId) {
+        ack?.({ status: 'ERROR', code: 'AUTHENTICATION_REQUIRED', details: '需要认证' })
+        return
+      }
+
+      // 获取该 session 当前所在房间
+      const currentRoom = await this.roomService.getPlayerSessionCurrentRoom(playerId, sessionId)
+      if (!currentRoom) {
+        ack?.({ status: 'ERROR', code: 'NOT_IN_ROOM', details: '该会话不在任何房间中' })
+        return
+      }
+
+      await this.roomService.updateRoomConfig(currentRoom.config.roomCode, playerId, data)
+
+      logger.info(
+        {
+          roomCode: currentRoom.config.roomCode,
+          playerId,
+          configUpdates: data,
+        },
+        'Private room configuration updated successfully',
+      )
+
+      ack?.({ status: 'SUCCESS', data: { status: 'UPDATED' } })
+    } catch (error) {
+      logger.error({ error, playerId: socket.data?.playerId }, 'Failed to update private room configuration')
+
+      if (error instanceof Error && error.name === 'PrivateRoomError') {
+        const roomError = error as PrivateRoomError
+        ack?.({ status: 'ERROR', code: roomError.code, details: roomError.message })
+      } else {
+        ack?.({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '更新房间配置失败' })
       }
     }
   }

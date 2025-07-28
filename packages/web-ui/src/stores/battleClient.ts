@@ -352,6 +352,21 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return await _instance.value.updatePrivateRoomRuleSet(data)
   }
 
+  const updatePrivateRoomConfig = async (data: {
+    ruleSetId?: string
+    allowSpectators?: boolean
+    maxSpectators?: number
+    spectatorMode?: 'free' | 'player1' | 'player2' | 'god'
+    isPrivate?: boolean
+    password?: string
+  }): Promise<void> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    return await _instance.value.updatePrivateRoomConfig(data)
+  }
+
   const resetPrivateRoom = async (): Promise<void> => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
@@ -423,5 +438,6 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     getPrivateRoomInfo,
     getCurrentPrivateRoom,
     updatePrivateRoomRuleSet,
+    updatePrivateRoomConfig,
   }
 })

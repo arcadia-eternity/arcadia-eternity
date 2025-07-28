@@ -129,6 +129,7 @@ export interface ClientToServerEvents {
   switchToPlayer: (data: { team: PetSchemaType[] }, ack: AckResponse<{ status: 'SWITCHED' }>) => void
   getPrivateRoomInfo: (data: { roomCode: string }, ack: AckResponse<PrivateRoomInfo>) => void
   updatePrivateRoomRuleSet: (data: UpdatePrivateRoomRuleSetRequest, ack: AckResponse<{ status: 'UPDATED' }>) => void
+  updatePrivateRoomConfig: (data: UpdatePrivateRoomConfigRequest, ack: AckResponse<{ status: 'UPDATED' }>) => void
   getCurrentPrivateRoom: (ack: AckResponse<PrivateRoomInfo | null>) => void
 }
 
@@ -160,6 +161,15 @@ export interface TogglePrivateRoomReadyRequest {
 
 export interface UpdatePrivateRoomRuleSetRequest {
   ruleSetId: string
+}
+
+export interface UpdatePrivateRoomConfigRequest {
+  ruleSetId?: string
+  allowSpectators?: boolean
+  maxSpectators?: number
+  spectatorMode?: 'free' | 'player1' | 'player2' | 'god'
+  isPrivate?: boolean
+  password?: string
 }
 
 export interface StartPrivateRoomBattleRequest {
@@ -194,6 +204,7 @@ export interface PrivateRoomInfo {
     allowSpectators: boolean
     spectatorMode: 'free' | 'player1' | 'player2' | 'god'
     isPrivate: boolean
+    password?: string
   }
   players: PrivateRoomPlayer[]
   spectators: PrivateRoomSpectator[]
@@ -226,3 +237,11 @@ export type PrivateRoomEvent =
   | { type: 'roomReset'; data: { message: string } }
   | { type: 'ruleSetChanged'; data: { ruleSetId: string; changedBy: string } }
   | { type: 'roomClosed'; data: { reason: string } }
+  | {
+      type: 'roomConfigChanged'
+      data: {
+        oldConfig: PrivateRoomInfo['config']
+        newConfig: PrivateRoomInfo['config']
+        changedBy: string
+      }
+    }
