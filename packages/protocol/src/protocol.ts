@@ -131,6 +131,7 @@ export interface ClientToServerEvents {
   updatePrivateRoomRuleSet: (data: UpdatePrivateRoomRuleSetRequest, ack: AckResponse<{ status: 'UPDATED' }>) => void
   updatePrivateRoomConfig: (data: UpdatePrivateRoomConfigRequest, ack: AckResponse<{ status: 'UPDATED' }>) => void
   transferPrivateRoomHost: (data: TransferPrivateRoomHostRequest, ack: AckResponse<{ status: 'TRANSFERRED' }>) => void
+  kickPlayerFromPrivateRoom: (data: KickPlayerFromPrivateRoomRequest, ack: AckResponse<{ status: 'KICKED' }>) => void
   getCurrentPrivateRoom: (ack: AckResponse<PrivateRoomInfo | null>) => void
 }
 
@@ -172,6 +173,10 @@ export interface StartPrivateRoomBattleRequest {
 }
 
 export interface TransferPrivateRoomHostRequest {
+  targetPlayerId: string
+}
+
+export interface KickPlayerFromPrivateRoomRequest {
   targetPlayerId: string
 }
 
@@ -219,6 +224,7 @@ export interface PrivateRoomInfo {
 export type PrivateRoomEvent =
   | { type: 'playerJoined'; data: PrivateRoomPlayer }
   | { type: 'playerLeft'; data: { playerId: string } }
+  | { type: 'playerKicked'; data: { playerId: string; kickedBy: string } }
   | { type: 'playerReady'; data: { playerId: string; isReady: boolean } }
   | { type: 'spectatorJoined'; data: PrivateRoomSpectator }
   | { type: 'spectatorLeft'; data: { playerId: string } }

@@ -375,6 +375,14 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return await _instance.value.transferPrivateRoomHost(targetPlayerId)
   }
 
+  const kickPlayerFromPrivateRoom = async (targetPlayerId: string): Promise<void> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    return await _instance.value.kickPlayerFromPrivateRoom(targetPlayerId)
+  }
+
   const resetPrivateRoom = async (): Promise<void> => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
@@ -448,5 +456,6 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     updatePrivateRoomRuleSet,
     updatePrivateRoomConfig,
     transferPrivateRoomHost,
+    kickPlayerFromPrivateRoom,
   }
 })

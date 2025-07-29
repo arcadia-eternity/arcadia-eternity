@@ -728,6 +728,25 @@ export class BattleClient {
     })
   }
 
+  async kickPlayerFromPrivateRoom(targetPlayerId: string): Promise<void> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Kick player timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('kickPlayerFromPrivateRoom', { targetPlayerId }, response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve()
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
   async resetPrivateRoom(): Promise<void> {
     this.verifyConnection()
 

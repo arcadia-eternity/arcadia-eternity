@@ -115,6 +115,82 @@ export class PrivateRoomService {
   }
 
   /**
+   * 踢出玩家
+   */
+  async kickPlayer(roomCode: string, hostId: string, targetPlayerId: string): Promise<void> {
+    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+      const room = await this.getRoom(roomCode)
+      if (!room) {
+        throw new PrivateRoomError('房间不存在', 'ROOM_NOT_FOUND')
+      }
+
+      // 验证当前用户是房主
+      if (room.config.hostPlayerId !== hostId) {
+        throw new PrivateRoomError('只有房主可以踢出玩家', 'NOT_HOST')
+      }
+
+      // 不能踢出自己
+      if (hostId === targetPlayerId) {
+        throw new PrivateRoomError('不能踢出自己', 'CANNOT_KICK_SELF')
+      }
+
+      // 查找目标玩家（可能是玩家或观战者）
+      const targetPlayer = room.players.find(p => p.playerId === targetPlayerId)
+      const targetSpectator = room.spectators.find(s => s.playerId === targetPlayerId)
+
+      if (!targetPlayer && !targetSpectator) {
+        throw new PrivateRoomError('目标用户不在房间中', 'PLAYER_NOT_FOUND')
+      }
+
+      // 获取该玩家的所有 session
+      const playerSessions = room.players.filter(p => p.playerId === targetPlayerId).map(p => p.sessionId)
+      const spectatorSessions = room.spectators.filter(s => s.playerId === targetPlayerId).map(s => s.sessionId)
+      const allSessions = [...playerSessions, ...spectatorSessions]
+
+      // 先广播踢出事件，确保被踢玩家能收到通知
+      await this.broadcastRoomEvent(roomCode, {
+        type: 'playerKicked',
+        data: { playerId: targetPlayerId, kickedBy: hostId },
+      })
+
+      // 然后移除玩家或观战者
+      if (targetPlayer) {
+        room.players = room.players.filter(p => p.playerId !== targetPlayerId)
+      }
+      if (targetSpectator) {
+        room.spectators = room.spectators.filter(s => s.playerId !== targetPlayerId)
+      }
+
+      // 移除所有相关的 session 映射
+      for (const sessionId of allSessions) {
+        await this.removePlayerSessionFromRoom(targetPlayerId, sessionId)
+        // 清理 session 状态
+        await this.sessionStateManager.clearSessionState(targetPlayerId, sessionId)
+      }
+
+      room.lastActivity = Date.now()
+      await this.saveRoom(room)
+
+      // 广播房间状态更新
+      await this.broadcastRoomEvent(roomCode, {
+        type: 'roomUpdate',
+        data: room,
+      })
+
+      logger.info(
+        {
+          roomCode,
+          hostId,
+          targetPlayerId,
+          wasPlayer: !!targetPlayer,
+          wasSpectator: !!targetSpectator,
+        },
+        'Player kicked from private room',
+      )
+    })
+  }
+
+  /**
    * 转移房主权限
    */
   async transferHost(roomCode: string, currentHostId: string, targetPlayerId: string): Promise<void> {
@@ -1135,39 +1211,41 @@ export class PrivateRoomService {
         throw new PrivateRoomError('玩家数量不足', 'INVALID_STATE')
       }
 
-      // 设置房主队伍
+      // 检查房主是否是玩家
       const hostPlayer = room.players.find(p => p.playerId === hostPlayerId)
-      if (!hostPlayer) {
-        throw new PrivateRoomError('房主不在房间中', 'INVALID_STATE')
-      }
 
-      // 验证房主队伍
-      if (!hostTeam || hostTeam.length === 0) {
-        throw new PrivateRoomError('房主队伍不能为空', 'INVALID_TEAM')
-      }
-
-      try {
-        const validation = await ServerRuleIntegration.validateTeamWithRuleSet(hostTeam, room.config.ruleSetId)
-        if (!validation.isValid) {
-          const errorMessage = validation.errors.map(error => error.message).join('; ')
-          throw new PrivateRoomError(`房主队伍不符合当前规则集要求：${errorMessage}`, 'TEAM_VALIDATION_FAILED', {
-            errors: validation.errors,
-            ruleSetId: room.config.ruleSetId,
-          })
+      if (hostPlayer) {
+        // 房主是玩家，需要验证队伍
+        if (!hostTeam || hostTeam.length === 0) {
+          throw new PrivateRoomError('房主队伍不能为空', 'INVALID_TEAM')
         }
-      } catch (error) {
-        if (error instanceof PrivateRoomError) {
-          throw error
-        }
-        logger.error(
-          { error, hostPlayerId, ruleSetId: room.config.ruleSetId },
-          'Failed to validate host team with rule set',
-        )
-        throw new PrivateRoomError('房主队伍验证失败', 'TEAM_VALIDATION_FAILED')
-      }
 
-      // 设置房主队伍
-      hostPlayer.team = hostTeam
+        try {
+          const validation = await ServerRuleIntegration.validateTeamWithRuleSet(hostTeam, room.config.ruleSetId)
+          if (!validation.isValid) {
+            const errorMessage = validation.errors.map(error => error.message).join('; ')
+            throw new PrivateRoomError(`房主队伍不符合当前规则集要求：${errorMessage}`, 'TEAM_VALIDATION_FAILED', {
+              errors: validation.errors,
+              ruleSetId: room.config.ruleSetId,
+            })
+          }
+        } catch (error) {
+          if (error instanceof PrivateRoomError) {
+            throw error
+          }
+          logger.error(
+            { error, hostPlayerId, ruleSetId: room.config.ruleSetId },
+            'Failed to validate host team with rule set',
+          )
+          throw new PrivateRoomError('房主队伍验证失败', 'TEAM_VALIDATION_FAILED')
+        }
+
+        // 设置房主队伍
+        hostPlayer.team = hostTeam
+      } else {
+        // 房主是观战者，不需要队伍验证
+        logger.info({ roomCode, hostPlayerId }, 'Host is spectator, skipping team validation')
+      }
 
       // 检查所有玩家是否都有队伍
       const allPlayersHaveTeam = room.players.every(player => player.team && player.team.length > 0)
@@ -1352,21 +1430,8 @@ export class PrivateRoomService {
 
       const player = room.players[playerIndex]
 
-      // 房主可以转换为观战者，但需要确保房间中还有其他人可以成为房主
-      if (room.config.hostPlayerId === playerId) {
-        // 检查是否有其他玩家或观战者可以成为房主
-        const otherPlayers = room.players.filter(p => p.playerId !== playerId)
-        const hasOtherUsers = otherPlayers.length > 0 || room.spectators.length > 0
-
-        if (!hasOtherUsers) {
-          throw new PrivateRoomError('房主不能转换为观战者，因为房间中没有其他人可以成为房主', 'INVALID_STATE')
-        }
-      }
-
+      // 房主可以转换为观战者，保持房主身份
       // 观战者无数量限制
-
-      // 检查是否是房主转为观战者
-      const wasHost = room.config.hostPlayerId === playerId
 
       // 从玩家列表中移除
       room.players.splice(playerIndex, 1)
@@ -1381,31 +1446,7 @@ export class PrivateRoomService {
       }
       room.spectators.push(spectatorEntry)
 
-      // 如果是房主转为观战者，需要选择新房主
-      if (wasHost) {
-        const newHost = this.selectNewHost(room, playerId)
-        if (newHost) {
-          const oldHostId = room.config.hostPlayerId
-          room.config.hostPlayerId = newHost.playerId
-
-          // 广播房主转移事件
-          await this.broadcastRoomEvent(roomCode, {
-            type: 'hostTransferred',
-            data: { oldHostId, newHostId: newHost.playerId, transferredBy: 'system' },
-          })
-
-          logger.info(
-            {
-              roomCode,
-              oldHostId,
-              newHostId: newHost.playerId,
-              newHostType: newHost.type,
-              transferredBy: 'system',
-            },
-            'Host transferred automatically after host switched to spectator',
-          )
-        }
-      }
+      // 房主转为观战者时保持房主身份，不转移房主权限
 
       room.lastActivity = Date.now()
       await this.saveRoom(room)

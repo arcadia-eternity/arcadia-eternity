@@ -1,5 +1,26 @@
 <template>
   <div class="player-card" :class="{ 'is-host': isHost, 'is-current': isCurrentPlayer, 'is-ready': isReady }">
+    <!-- 房主操作按钮 - 右上角 -->
+    <div v-if="canTransferHost || canKick" class="host-actions-corner">
+      <el-dropdown trigger="hover" placement="bottom-end">
+        <el-button type="text" size="small" class="action-trigger">
+          <el-icon><MoreFilled /></el-icon>
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item v-if="canTransferHost" @click="handleTransferHost">
+              <el-icon><Star /></el-icon>
+              转移房主
+            </el-dropdown-item>
+            <el-dropdown-item v-if="canKick" @click="handleKickPlayer" class="danger-item">
+              <el-icon><Close /></el-icon>
+              踢出房间
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+    </div>
+
     <div class="player-header">
       <div class="player-avatar">
         <el-avatar :size="40">{{ player.playerName.charAt(0) }}</el-avatar>
@@ -21,7 +42,6 @@
       </div>
     </div>
 
-    <!-- 队伍信息已隐藏，保持神秘感 -->
     <div class="team-info">
       <div class="team-status">
         <span class="team-label">队伍状态</span>
@@ -30,18 +50,11 @@
     </div>
 
     <div class="join-time">加入时间: {{ formatJoinTime(player.joinedAt) }}</div>
-
-    <!-- 转移房主按钮 -->
-    <div v-if="canTransferHost" class="transfer-host-section">
-      <el-button type="warning" size="small" :disabled="isLoading" @click="handleTransferHost">
-        转移房主给此玩家
-      </el-button>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { MoreFilled, Star, Close } from '@element-plus/icons-vue'
 import type { PrivateRoomPlayer } from '@arcadia-eternity/protocol'
 
 interface Props {
@@ -50,6 +63,7 @@ interface Props {
   isReady: boolean
   isCurrentPlayer: boolean
   canTransferHost?: boolean
+  canKick?: boolean
   isLoading?: boolean
 }
 
@@ -57,10 +71,15 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   transferHost: [playerId: string]
+  kickPlayer: [playerId: string]
 }>()
 
 const handleTransferHost = () => {
   emit('transferHost', props.player.playerId)
+}
+
+const handleKickPlayer = () => {
+  emit('kickPlayer', props.player.playerId)
 }
 
 const formatJoinTime = (timestamp: number): string => {
@@ -75,6 +94,7 @@ const formatJoinTime = (timestamp: number): string => {
 
 <style scoped>
 .player-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -215,14 +235,35 @@ const formatJoinTime = (timestamp: number): string => {
   text-align: right;
 }
 
-.transfer-host-section {
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--el-border-color-light);
+.host-actions-corner {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 10;
 }
 
-.transfer-host-section .el-button {
-  width: 100%;
+.action-trigger {
+  padding: 4px !important;
+  min-height: auto !important;
+  border-radius: 50% !important;
+  color: var(--el-text-color-regular) !important;
+  background: var(--el-bg-color-overlay) !important;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+
+.action-trigger:hover {
+  background: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary) !important;
+  transform: scale(1.1);
+}
+
+.danger-item {
+  color: var(--el-color-danger);
+}
+
+.danger-item:hover {
+  background: var(--el-color-danger-light-9);
 }
 
 @media (max-width: 768px) {

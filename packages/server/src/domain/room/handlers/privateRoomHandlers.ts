@@ -11,6 +11,7 @@ import type {
   TogglePrivateRoomReadyRequest,
   StartPrivateRoomBattleRequest,
   TransferPrivateRoomHostRequest,
+  KickPlayerFromPrivateRoomRequest,
   AckResponse,
   PrivateRoomInfo,
 } from '@arcadia-eternity/protocol'
@@ -435,6 +436,54 @@ export class PrivateRoomHandlers {
         ack?.({ status: 'ERROR', code: roomError.code, details: roomError.message })
       } else {
         ack?.({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '转移房主失败' })
+      }
+    }
+  }
+
+  /**
+   * 处理踢出玩家请求
+   */
+  async handleKickPlayer(
+    socket: Socket<any, any, any, SocketData>,
+    data: KickPlayerFromPrivateRoomRequest,
+    ack?: AckResponse<{ status: 'KICKED' }>,
+  ) {
+    try {
+      const playerId = socket.data?.playerId
+      const sessionId = socket.data?.sessionId
+
+      if (!playerId || !sessionId) {
+        ack?.({ status: 'ERROR', code: 'AUTHENTICATION_REQUIRED', details: '需要认证' })
+        return
+      }
+
+      // 获取该 session 当前所在房间
+      const currentRoom = await this.roomService.getPlayerSessionCurrentRoom(playerId, sessionId)
+      if (!currentRoom) {
+        ack?.({ status: 'ERROR', code: 'NOT_IN_ROOM', details: '该会话不在任何房间中' })
+        return
+      }
+
+      await this.roomService.kickPlayer(currentRoom.config.roomCode, playerId, data.targetPlayerId)
+
+      logger.info(
+        {
+          roomCode: currentRoom.config.roomCode,
+          hostId: playerId,
+          targetPlayerId: data.targetPlayerId,
+        },
+        'Player kicked successfully',
+      )
+
+      ack?.({ status: 'SUCCESS', data: { status: 'KICKED' } })
+    } catch (error) {
+      logger.error({ error, playerId: socket.data?.playerId }, 'Failed to kick player')
+
+      if (error instanceof Error && error.name === 'PrivateRoomError') {
+        const roomError = error as PrivateRoomError
+        ack?.({ status: 'ERROR', code: roomError.code, details: roomError.message })
+      } else {
+        ack?.({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '踢出玩家失败' })
       }
     }
   }

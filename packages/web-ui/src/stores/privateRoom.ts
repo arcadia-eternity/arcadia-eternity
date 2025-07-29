@@ -33,7 +33,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     if (!isHost.value || !currentRoom.value) return false
     if (players.value.length < 2) return false
 
-    // 如果房主是玩家，检查房主是否选择了队伍
+    // 如果房主是玩家，需要选择队伍
     if (isPlayer.value && (!selectedTeam.value || selectedTeam.value.length === 0)) {
       return false
     }
@@ -173,8 +173,8 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   const startBattle = async (): Promise<void> => {
     if (!currentRoom.value || !isHost.value) return
 
-    // 检查房主是否选择了队伍
-    if (!selectedTeam.value || selectedTeam.value.length === 0) {
+    // 如果房主是玩家，检查是否选择了队伍
+    if (isPlayer.value && (!selectedTeam.value || selectedTeam.value.length === 0)) {
       throw new Error('请先选择队伍')
     }
 
@@ -184,8 +184,10 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     try {
       console.log('🚀 Starting battle...')
 
-      // 发送开始战斗请求，传递房主队伍
-      await battleClientStore.startRoomBattle(selectedTeam.value)
+      // 发送开始战斗请求
+      // 如果房主是玩家，传递房主队伍；如果房主是观战者，传递空数组或undefined
+      const hostTeam = isPlayer.value ? selectedTeam.value : []
+      await battleClientStore.startRoomBattle(hostTeam)
 
       console.log('✅ Battle start request sent, waiting for battleStarted event...')
 
@@ -275,6 +277,25 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
       console.error('❌ Failed to transfer host:', errorMessage)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const kickPlayer = async (targetPlayerId: string): Promise<void> => {
+    if (!currentRoom.value || !isHost.value) return
+
+    isLoading.value = true
+    error.value = null
+
+    try {
+      await battleClientStore.kickPlayerFromPrivateRoom(targetPlayerId)
+      console.log('✅ Player kicked:', targetPlayerId)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      error.value = errorMessage
+      console.error('❌ Failed to kick player:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -379,6 +400,51 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       case 'playerLeft':
         if (currentRoom.value) {
           currentRoom.value.players = currentRoom.value.players.filter(p => p.playerId !== event.data.playerId)
+        }
+        break
+
+      case 'playerKicked':
+        if (currentRoom.value) {
+          // 移除被踢的玩家或观战者
+          currentRoom.value.players = currentRoom.value.players.filter(p => p.playerId !== event.data.playerId)
+          currentRoom.value.spectators = currentRoom.value.spectators.filter(s => s.playerId !== event.data.playerId)
+
+          // 如果被踢的是当前用户，显示消息并跳转到大厅
+          if (event.data.playerId === playerStore.player.id) {
+            console.log('🚫 You have been kicked from the room')
+
+            // 先显示被踢消息 - 使用更明显的错误类型提示
+            const { ElMessageBox, ElNotification } = await import('element-plus')
+
+            // 显示通知提示
+            ElNotification({
+              title: '被踢出房间',
+              message: '您已被房主踢出房间',
+              type: 'error',
+              duration: 5000,
+              position: 'top-right',
+            })
+
+            try {
+              await ElMessageBox.alert('您已被房主踢出房间，将返回匹配大厅', '被踢出房间', {
+                confirmButtonText: '确定',
+                type: 'error',
+                showClose: false,
+              })
+            } catch (error) {
+              // 用户可能直接关闭了对话框，继续执行后续逻辑
+            }
+
+            // 清理房间状态
+            cleanup()
+
+            // 检查当前页面是否在房间内，如果是则导航回大厅
+            const currentRoute = router.currentRoute.value
+            if (currentRoute.name === 'PrivateRoom' || currentRoute.path.startsWith('/room/')) {
+              console.log('🏠 Navigating back to lobby from room page')
+              router.push({ name: 'Lobby' })
+            }
+          }
         }
         break
 
@@ -622,6 +688,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     updateRuleSet,
     updateRoomConfig,
     transferHost,
+    kickPlayer,
     initializeRoomConfigForm,
     switchToSpectator,
     switchToPlayer,

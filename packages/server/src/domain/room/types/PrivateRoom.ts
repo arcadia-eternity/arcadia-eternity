@@ -129,6 +129,7 @@ export interface JoinSpectatorRequest {
 export type PrivateRoomEvent =
   | { type: 'playerJoined'; data: RoomPlayer }
   | { type: 'playerLeft'; data: { playerId: string } }
+  | { type: 'playerKicked'; data: { playerId: string; kickedBy: string } }
   | { type: 'playerReady'; data: { playerId: string; isReady: boolean } }
   | { type: 'spectatorJoined'; data: SpectatorEntry }
   | { type: 'spectatorLeft'; data: { playerId: string } }
@@ -178,7 +179,8 @@ export class PrivateRoomError extends Error {
       | 'TEAM_VALIDATION_FAILED'
       | 'INVALID_CONFIG'
       | 'TARGET_NOT_PLAYER'
-      | 'CANNOT_TRANSFER_TO_SELF',
+      | 'CANNOT_TRANSFER_TO_SELF'
+      | 'CANNOT_KICK_SELF',
     public details?: any,
   ) {
     super(message)

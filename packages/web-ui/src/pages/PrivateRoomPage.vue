@@ -87,8 +87,15 @@
                 privateRoomStore.currentRoom?.status === 'waiting' &&
                 player.playerId !== privateRoomStore.currentRoom.config.hostPlayerId
               "
+              :canKick="
+                privateRoomStore.isHost &&
+                privateRoomStore.currentRoom?.status === 'waiting' &&
+                player.playerId !== privateRoomStore.currentRoom.config.hostPlayerId &&
+                player.playerId !== playerStore.player.id
+              "
               :isLoading="privateRoomStore.isLoading"
               @transferHost="transferHost"
+              @kickPlayer="kickPlayer"
             />
           </div>
 
@@ -225,6 +232,35 @@
 
         <div v-if="privateRoomStore.spectators.length > 0" class="spectator-list">
           <div v-for="spectator in privateRoomStore.spectators" :key="spectator.playerId" class="spectator-item">
+            <!-- 房主操作按钮 - 右上角 -->
+            <div
+              v-if="
+                privateRoomStore.isHost &&
+                privateRoomStore.currentRoom?.status === 'waiting' &&
+                spectator.playerId !== privateRoomStore.currentRoom?.config.hostPlayerId &&
+                spectator.playerId !== playerStore.player.id
+              "
+              class="spectator-actions-corner"
+            >
+              <el-dropdown trigger="hover" placement="bottom-end">
+                <el-button type="text" size="small" class="spectator-action-trigger">
+                  <el-icon><MoreFilled /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item @click="transferHost(spectator.playerId)">
+                      <el-icon><Star /></el-icon>
+                      转移房主
+                    </el-dropdown-item>
+                    <el-dropdown-item @click="kickPlayer(spectator.playerId)" class="danger-item">
+                      <el-icon><Close /></el-icon>
+                      踢出房间
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
+
             <div class="spectator-info">
               <el-avatar :size="32">{{ spectator.playerName.charAt(0) }}</el-avatar>
               <div class="spectator-details">
@@ -245,25 +281,6 @@
                   <span class="join-time">{{ formatTime(spectator.joinedAt) }}</span>
                 </div>
               </div>
-            </div>
-
-            <!-- 转移房主按钮 -->
-            <div
-              v-if="
-                privateRoomStore.isHost &&
-                privateRoomStore.currentRoom?.status === 'waiting' &&
-                spectator.playerId !== privateRoomStore.currentRoom?.config.hostPlayerId
-              "
-              class="spectator-actions"
-            >
-              <el-button
-                type="warning"
-                size="small"
-                :disabled="privateRoomStore.isLoading"
-                @click="transferHost(spectator.playerId)"
-              >
-                转移房主
-              </el-button>
             </div>
           </div>
         </div>
@@ -382,8 +399,8 @@ import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { usePlayerStore } from '@/stores/player'
 import { useValidationStore } from '@/stores/validation'
 import { usePetStorageStore } from '@/stores/petStorage'
-import { User, Loading, ArrowDown } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { User, Loading, ArrowDown, MoreFilled, Star, Close } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import PlayerCard from '@/components/PlayerCard.vue'
 
 const route = useRoute()
@@ -582,6 +599,28 @@ const transferHost = async (targetPlayerId: string) => {
     ElMessage.success(`房主权限已转移给 ${targetPlayer?.playerName || '该玩家'}`)
   } catch (error) {
     ElMessage.error('转移房主失败: ' + (error as Error).message)
+  }
+}
+
+// 踢出玩家
+const kickPlayer = async (targetPlayerId: string) => {
+  try {
+    const targetPlayer = privateRoomStore.players.find(p => p.playerId === targetPlayerId)
+    const targetSpectator = privateRoomStore.spectators.find(s => s.playerId === targetPlayerId)
+    const targetName = targetPlayer?.playerName || targetSpectator?.playerName || '该玩家'
+
+    await ElMessageBox.confirm(`确定要踢出 ${targetName} 吗？`, '踢出玩家', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+
+    await privateRoomStore.kickPlayer(targetPlayerId)
+    ElMessage.success(`已踢出 ${targetName}`)
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('踢出玩家失败: ' + (error as Error).message)
+    }
   }
 }
 
@@ -908,6 +947,7 @@ onUnmounted(() => {
 }
 
 .spectator-item {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -957,6 +997,37 @@ onUnmounted(() => {
 .spectator-actions {
   display: flex;
   gap: 0.5rem;
+}
+
+.spectator-actions-corner {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 10;
+}
+
+.spectator-action-trigger {
+  padding: 4px !important;
+  min-height: auto !important;
+  border-radius: 50% !important;
+  color: var(--el-text-color-regular) !important;
+  background: var(--el-bg-color-overlay) !important;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+
+.spectator-action-trigger:hover {
+  background: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary) !important;
+  transform: scale(1.1);
+}
+
+.danger-item {
+  color: var(--el-color-danger);
+}
+
+.danger-item:hover {
+  background: var(--el-color-danger-light-9);
 }
 
 .no-spectators {
