@@ -310,6 +310,9 @@ export class ClusterBattleService implements IBattleService {
         // 获取规则集信息，优先使用player1的规则集，如果不存在则使用player2的，最后默认为休闲规则集
         const ruleSetId = player1Entry.ruleSetId || player2Entry.ruleSetId || 'casual_standard_ruleset'
 
+        // 检查是否是私人房间战斗
+        const isPrivateRoom = player1Entry.metadata?.privateRoom || player2Entry.metadata?.privateRoom || false
+
         // 创建战报记录
         let battleRecordId: string | undefined
         if (this.battleReportService) {
@@ -322,6 +325,7 @@ export class ClusterBattleService implements IBattleService {
                 player2Data.id,
                 player2Data.name,
                 ruleSetId,
+                { isPrivateRoom },
               )) || undefined
           } catch (error) {
             logger.error({ error }, 'Failed to create battle record')
