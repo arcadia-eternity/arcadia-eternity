@@ -160,7 +160,7 @@
       <div class="text-center">
         <button
           @click="handleMatchmaking"
-          :disabled="!selectedRuleSetId || !selectedTeam || !isSelectedTeamValid || isMatching"
+          :disabled="isMatchButtonDisabled"
           class="px-8 py-4 md:px-6 md:py-3 text-lg md:text-lg bg-green-500 text-white border-none rounded-lg cursor-pointer transition-colors duration-300 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed min-h-[48px] touch-manipulation font-medium shadow-lg hover:shadow-xl"
         >
           {{
@@ -419,6 +419,23 @@ const isMatching = computed(() => {
     currentState,
   )
   return state
+})
+
+const isMatchButtonDisabled = computed(() => {
+  const state = battleClientStore.currentState
+
+  // If we are currently searching for a match, the button should be ENABLED to allow cancellation.
+  if (state.matchmaking === 'searching') {
+    return false
+  }
+
+  // If we are already matched or not connected, the button should be DISABLED.
+  if (state.matchmaking === 'matched' || state.status !== 'connected') {
+    return true
+  }
+
+  // Otherwise (status is 'waiting'), disable the button if prerequisites are not met.
+  return !selectedRuleSetId.value || !selectedTeam.value || !isSelectedTeamValid.value
 })
 
 const errorMessage = ref<string | null>(null)
