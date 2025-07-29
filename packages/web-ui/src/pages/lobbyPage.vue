@@ -171,14 +171,14 @@
                 : !selectedTeam
                   ? '请选择队伍'
                   : !isSelectedTeamValid
-                      ? selectedTeamValidationErrors.length > 0
-                        ? `队伍不符合规则 (${selectedTeamValidationErrors.length}个问题)`
-                        : '所选队伍不符合规则'
-                      : battleClientStore.currentState.matchmaking === 'matched'
-                        ? '准备进入战斗...'
-                        : isMatching
-                          ? '取消匹配'
-                          : '开始匹配'
+                    ? selectedTeamValidationErrors.length > 0
+                      ? `队伍不符合规则 (${selectedTeamValidationErrors.length}个问题)`
+                      : '所选队伍不符合规则'
+                    : battleClientStore.currentState.matchmaking === 'matched'
+                      ? '准备进入战斗...'
+                      : isMatching
+                        ? '取消匹配'
+                        : '开始匹配'
           }}
         </button>
       </div>
@@ -302,23 +302,6 @@
         <el-form-item label="房间密码">
           <el-input v-model="roomConfig.password" placeholder="留空为公开房间" show-password />
         </el-form-item>
-
-        <el-form-item label="允许观战">
-          <el-switch v-model="roomConfig.allowSpectators" />
-        </el-form-item>
-
-        <el-form-item v-if="roomConfig.allowSpectators" label="观战人数">
-          <el-input-number v-model="roomConfig.maxSpectators" :min="1" :max="20" />
-        </el-form-item>
-
-        <el-form-item v-if="roomConfig.allowSpectators" label="观战模式">
-          <el-select v-model="roomConfig.spectatorMode" placeholder="选择观战模式">
-            <el-option label="自由视角" value="free" />
-            <el-option label="玩家1视角" value="player1" />
-            <el-option label="玩家2视角" value="player2" />
-            <el-option label="上帝视角" value="god" />
-          </el-select>
-        </el-form-item>
       </el-form>
 
       <template #footer>
@@ -379,9 +362,6 @@ const showCreateRoomDialog = ref(false)
 const joinRoomCode = ref('')
 const roomConfig = ref({
   password: '',
-  allowSpectators: false,
-  maxSpectators: 10,
-  spectatorMode: 'free' as 'free' | 'player1' | 'player2' | 'god',
 })
 
 // 计算属性
@@ -408,7 +388,6 @@ const goToCurrentRoom = () => {
     router.push(`/room/${privateRoomStore.currentRoom.config.roomCode}`)
   }
 }
-
 
 // 启用ELO的规则集列表
 const eloEnabledRuleSets = ref<string[]>([])
@@ -569,9 +548,6 @@ const createRoom = async () => {
       ruleSetId: selectedRuleSetId.value,
       isPrivate: !!roomConfig.value.password,
       password: roomConfig.value.password || undefined,
-      allowSpectators: roomConfig.value.allowSpectators,
-      maxSpectators: roomConfig.value.maxSpectators,
-      spectatorMode: roomConfig.value.spectatorMode,
     }
 
     const roomCode = await privateRoomStore.createRoom(config)
