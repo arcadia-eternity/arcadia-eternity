@@ -919,6 +919,7 @@ export class ClusterBattleServer {
     socket.on('updatePrivateRoomConfig', (data, ack) =>
       this.privateRoomHandlers?.handleUpdateRoomConfig(socket, data, ack),
     )
+    socket.on('transferPrivateRoomHost', (data, ack) => this.privateRoomHandlers?.handleTransferHost(socket, data, ack))
     socket.on('getCurrentPrivateRoom', ack => this.privateRoomHandlers?.handleGetCurrentRoom(socket, ack))
   }
 

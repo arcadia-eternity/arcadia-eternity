@@ -10,6 +10,7 @@ import type {
   UpdatePrivateRoomConfigRequest,
   TogglePrivateRoomReadyRequest,
   StartPrivateRoomBattleRequest,
+  TransferPrivateRoomHostRequest,
   AckResponse,
   PrivateRoomInfo,
 } from '@arcadia-eternity/protocol'
@@ -389,6 +390,54 @@ export class PrivateRoomHandlers {
     } catch (error) {
       logger.error({ error, roomCode: data.roomCode }, 'Failed to get room info')
       ack?.({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '获取房间信息失败' })
+    }
+  }
+
+  /**
+   * 处理转移房主请求
+   */
+  async handleTransferHost(
+    socket: Socket<any, any, any, SocketData>,
+    data: TransferPrivateRoomHostRequest,
+    ack?: AckResponse<{ status: 'TRANSFERRED' }>,
+  ) {
+    try {
+      const playerId = socket.data?.playerId
+      const sessionId = socket.data?.sessionId
+
+      if (!playerId || !sessionId) {
+        ack?.({ status: 'ERROR', code: 'AUTHENTICATION_REQUIRED', details: '需要认证' })
+        return
+      }
+
+      // 获取该 session 当前所在房间
+      const currentRoom = await this.roomService.getPlayerSessionCurrentRoom(playerId, sessionId)
+      if (!currentRoom) {
+        ack?.({ status: 'ERROR', code: 'NOT_IN_ROOM', details: '该会话不在任何房间中' })
+        return
+      }
+
+      await this.roomService.transferHost(currentRoom.config.roomCode, playerId, data.targetPlayerId)
+
+      logger.info(
+        {
+          roomCode: currentRoom.config.roomCode,
+          currentHostId: playerId,
+          targetPlayerId: data.targetPlayerId,
+        },
+        'Host transferred successfully',
+      )
+
+      ack?.({ status: 'SUCCESS', data: { status: 'TRANSFERRED' } })
+    } catch (error) {
+      logger.error({ error, playerId: socket.data?.playerId }, 'Failed to transfer host')
+
+      if (error instanceof Error && error.name === 'PrivateRoomError') {
+        const roomError = error as PrivateRoomError
+        ack?.({ status: 'ERROR', code: roomError.code, details: roomError.message })
+      } else {
+        ack?.({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '转移房主失败' })
+      }
     }
   }
 

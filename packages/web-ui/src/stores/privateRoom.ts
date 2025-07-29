@@ -263,6 +263,25 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
   }
 
+  const transferHost = async (targetPlayerId: string): Promise<void> => {
+    if (!currentRoom.value || !isHost.value) return
+
+    isLoading.value = true
+    error.value = null
+
+    try {
+      await battleClientStore.transferPrivateRoomHost(targetPlayerId)
+      console.log('✅ Host transferred to:', targetPlayerId)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      error.value = errorMessage
+      console.error('❌ Failed to transfer host:', errorMessage)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   // 房间配置表单状态
   const roomConfigForm = ref({
     ruleSetId: '',
@@ -604,6 +623,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     resetRoom,
     updateRuleSet,
     updateRoomConfig,
+    transferHost,
     initializeRoomConfigForm,
     switchToSpectator,
     switchToPlayer,

@@ -82,6 +82,13 @@
               :isHost="player.playerId === privateRoomStore.currentRoom.config.hostPlayerId"
               :isReady="player.isReady"
               :isCurrentPlayer="player.playerId === playerStore.player.id"
+              :canTransferHost="
+                privateRoomStore.isHost &&
+                privateRoomStore.currentRoom?.status === 'waiting' &&
+                player.playerId !== privateRoomStore.currentRoom.config.hostPlayerId
+              "
+              :isLoading="privateRoomStore.isLoading"
+              @transferHost="transferHost"
             />
           </div>
 
@@ -209,9 +216,7 @@
         </template>
 
         <!-- 离开房间按钮 -->
-        <el-button :disabled="privateRoomStore.isLoading" @click="leaveRoom">
-          {{ privateRoomStore.isHost ? '解散房间' : '离开房间' }}
-        </el-button>
+        <el-button :disabled="privateRoomStore.isLoading" @click="leaveRoom"> 离开房间 </el-button>
       </div>
 
       <!-- 观战者区域 -->
@@ -518,6 +523,17 @@ const leaveRoom = async () => {
     router.push('/')
   } catch (error) {
     ElMessage.error('离开房间失败: ' + (error as Error).message)
+  }
+}
+
+// 转移房主
+const transferHost = async (targetPlayerId: string) => {
+  try {
+    const targetPlayer = privateRoomStore.players.find(p => p.playerId === targetPlayerId)
+    await privateRoomStore.transferHost(targetPlayerId)
+    ElMessage.success(`房主权限已转移给 ${targetPlayer?.playerName || '该玩家'}`)
+  } catch (error) {
+    ElMessage.error('转移房主失败: ' + (error as Error).message)
   }
 }
 

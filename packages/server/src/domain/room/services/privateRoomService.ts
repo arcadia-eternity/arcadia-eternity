@@ -115,6 +115,62 @@ export class PrivateRoomService {
   }
 
   /**
+   * 转移房主权限
+   */
+  async transferHost(roomCode: string, currentHostId: string, targetPlayerId: string): Promise<void> {
+    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+      const room = await this.getRoom(roomCode)
+      if (!room) {
+        throw new PrivateRoomError('房间不存在', 'ROOM_NOT_FOUND')
+      }
+
+      // 验证当前用户是房主
+      if (room.config.hostPlayerId !== currentHostId) {
+        throw new PrivateRoomError('只有房主可以转移房主权限', 'NOT_HOST')
+      }
+
+      // 验证目标玩家存在且是玩家（不是观战者）
+      const targetPlayer = room.players.find(p => p.playerId === targetPlayerId)
+      if (!targetPlayer) {
+        throw new PrivateRoomError('目标玩家不在房间中或不是玩家', 'TARGET_NOT_PLAYER')
+      }
+
+      // 不能转移给自己
+      if (currentHostId === targetPlayerId) {
+        throw new PrivateRoomError('不能转移房主权限给自己', 'CANNOT_TRANSFER_TO_SELF')
+      }
+
+      const oldHostId = room.config.hostPlayerId
+      room.config.hostPlayerId = targetPlayerId
+      room.lastActivity = Date.now()
+
+      await this.saveRoom(room)
+
+      // 广播房主转移事件
+      await this.broadcastRoomEvent(roomCode, {
+        type: 'hostTransferred',
+        data: { oldHostId, newHostId: targetPlayerId, transferredBy: currentHostId },
+      })
+
+      // 广播房间状态更新
+      await this.broadcastRoomEvent(roomCode, {
+        type: 'roomUpdate',
+        data: room,
+      })
+
+      logger.info(
+        {
+          roomCode,
+          oldHostId,
+          newHostId: targetPlayerId,
+          transferredBy: currentHostId,
+        },
+        'Host transferred successfully',
+      )
+    })
+  }
+
+  /**
    * 重置房间到等待状态（再来一局）
    */
   async resetRoomForNextBattle(roomCode: string, hostPlayerId: string): Promise<void> {
@@ -382,11 +438,51 @@ export class PrivateRoomService {
       // 清除 session 状态
       await this.sessionStateManager.clearSessionState(playerId, sessionId)
 
-      if (wasHost || room.players.length === 0) {
-        // 房主离开或房间为空，解散房间
-        await this.closeRoom(roomCode, '房主离开或房间为空')
+      if (room.players.length === 0) {
+        // 房间为空，解散房间
+        await this.closeRoom(roomCode, '房间为空')
+      } else if (wasHost) {
+        // 房主离开，自动转移房主权限
+        const newHost = this.selectNewHost(room, playerId)
+        if (newHost) {
+          const oldHostId = room.config.hostPlayerId
+          room.config.hostPlayerId = newHost.playerId
+          room.lastActivity = Date.now()
+          await this.saveRoom(room)
+
+          // 广播房主转移事件
+          await this.broadcastRoomEvent(roomCode, {
+            type: 'hostTransferred',
+            data: { oldHostId, newHostId: newHost.playerId, transferredBy: 'system' },
+          })
+
+          // 广播玩家离开事件
+          await this.broadcastRoomEvent(roomCode, {
+            type: 'playerLeft',
+            data: { playerId },
+          })
+
+          // 广播房间状态更新
+          await this.broadcastRoomEvent(roomCode, {
+            type: 'roomUpdate',
+            data: room,
+          })
+
+          logger.info(
+            {
+              roomCode,
+              oldHostId,
+              newHostId: newHost.playerId,
+              leavingPlayerId: playerId,
+            },
+            'Host automatically transferred due to host leaving',
+          )
+        } else {
+          // 没有合适的新房主，解散房间
+          await this.closeRoom(roomCode, '无法找到新房主')
+        }
       } else {
-        // 更新房间状态
+        // 普通玩家离开，更新房间状态
         room.lastActivity = Date.now()
         await this.saveRoom(room)
 
@@ -438,11 +534,51 @@ export class PrivateRoomService {
         await this.removePlayerSessionFromRoom(playerId, sessionId)
       }
 
-      if (wasHost || room.players.length === 0) {
-        // 房主离开或房间为空，解散房间
-        await this.closeRoom(roomCode, '房主离开或房间为空')
+      if (room.players.length === 0) {
+        // 房间为空，解散房间
+        await this.closeRoom(roomCode, '房间为空')
+      } else if (wasHost) {
+        // 房主离开，自动转移房主权限
+        const newHost = this.selectNewHost(room, playerId)
+        if (newHost) {
+          const oldHostId = room.config.hostPlayerId
+          room.config.hostPlayerId = newHost.playerId
+          room.lastActivity = Date.now()
+          await this.saveRoom(room)
+
+          // 广播房主转移事件
+          await this.broadcastRoomEvent(roomCode, {
+            type: 'hostTransferred',
+            data: { oldHostId, newHostId: newHost.playerId, transferredBy: 'system' },
+          })
+
+          // 广播玩家离开事件
+          await this.broadcastRoomEvent(roomCode, {
+            type: 'playerLeft',
+            data: { playerId },
+          })
+
+          // 广播房间状态更新
+          await this.broadcastRoomEvent(roomCode, {
+            type: 'roomUpdate',
+            data: room,
+          })
+
+          logger.info(
+            {
+              roomCode,
+              oldHostId,
+              newHostId: newHost.playerId,
+              removedPlayerId: playerId,
+            },
+            'Host automatically transferred due to host removal',
+          )
+        } else {
+          // 没有合适的新房主，解散房间
+          await this.closeRoom(roomCode, '无法找到新房主')
+        }
       } else {
-        // 更新房间状态
+        // 普通玩家离开，更新房间状态
         room.lastActivity = Date.now()
         await this.saveRoom(room)
 
@@ -450,6 +586,12 @@ export class PrivateRoomService {
         await this.broadcastRoomEvent(roomCode, {
           type: 'playerLeft',
           data: { playerId },
+        })
+
+        // 广播房间状态更新
+        await this.broadcastRoomEvent(roomCode, {
+          type: 'roomUpdate',
+          data: room,
         })
       }
 
@@ -912,6 +1054,18 @@ export class PrivateRoomService {
     } catch (error) {
       logger.error({ error, roomCode, event }, 'Failed to broadcast room event')
     }
+  }
+
+  /**
+   * 自动选择新房主
+   */
+  private selectNewHost(room: PrivateRoom, excludePlayerId?: string): RoomPlayer | null {
+    // 过滤掉要排除的玩家，按加入时间排序，选择最早加入的玩家
+    const eligiblePlayers = room.players
+      .filter(p => p.playerId !== excludePlayerId)
+      .sort((a, b) => a.joinedAt - b.joinedAt)
+
+    return eligiblePlayers.length > 0 ? eligiblePlayers[0] : null
   }
 
   /**

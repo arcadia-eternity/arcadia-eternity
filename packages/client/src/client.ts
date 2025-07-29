@@ -712,6 +712,25 @@ export class BattleClient {
     })
   }
 
+  async transferPrivateRoomHost(targetPlayerId: string): Promise<void> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Transfer host timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('transferPrivateRoomHost', { targetPlayerId }, response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve()
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
   async resetPrivateRoom(): Promise<void> {
     this.verifyConnection()
 

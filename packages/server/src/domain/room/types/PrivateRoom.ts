@@ -144,6 +144,7 @@ export type PrivateRoomEvent =
   | { type: 'battleStarted'; data: { battleRoomId: string } }
   | { type: 'battleFinished'; data: { battleResult: BattleResult } }
   | { type: 'roomReset'; data: { message: string } }
+  | { type: 'hostTransferred'; data: { oldHostId: string; newHostId: string; transferredBy: string } }
   | { type: 'roomClosed'; data: { reason: string } }
   | { type: 'ruleSetChanged'; data: { ruleSetId: string; changedBy: string } }
   | {
@@ -181,7 +182,9 @@ export class PrivateRoomError extends Error {
       | 'INVALID_TEAM'
       | 'INVALID_RULESET'
       | 'TEAM_VALIDATION_FAILED'
-      | 'INVALID_CONFIG',
+      | 'INVALID_CONFIG'
+      | 'TARGET_NOT_PLAYER'
+      | 'CANNOT_TRANSFER_TO_SELF',
     public details?: any,
   ) {
     super(message)

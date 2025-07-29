@@ -30,6 +30,13 @@
     </div>
 
     <div class="join-time">加入时间: {{ formatJoinTime(player.joinedAt) }}</div>
+
+    <!-- 转移房主按钮 -->
+    <div v-if="canTransferHost" class="transfer-host-section">
+      <el-button type="warning" size="small" :disabled="isLoading" @click="handleTransferHost">
+        转移房主给此玩家
+      </el-button>
+    </div>
   </div>
 </template>
 
@@ -42,9 +49,19 @@ interface Props {
   isHost: boolean
   isReady: boolean
   isCurrentPlayer: boolean
+  canTransferHost?: boolean
+  isLoading?: boolean
 }
 
 const props = defineProps<Props>()
+
+const emit = defineEmits<{
+  transferHost: [playerId: string]
+}>()
+
+const handleTransferHost = () => {
+  emit('transferHost', props.player.playerId)
+}
 
 const formatJoinTime = (timestamp: number): string => {
   const date = new Date(timestamp)
@@ -196,6 +213,16 @@ const formatJoinTime = (timestamp: number): string => {
   font-size: 0.75rem;
   color: var(--el-text-color-placeholder);
   text-align: right;
+}
+
+.transfer-host-section {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--el-border-color-light);
+}
+
+.transfer-host-section .el-button {
+  width: 100%;
 }
 
 @media (max-width: 768px) {

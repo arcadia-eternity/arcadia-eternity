@@ -130,6 +130,7 @@ export interface ClientToServerEvents {
   getPrivateRoomInfo: (data: { roomCode: string }, ack: AckResponse<PrivateRoomInfo>) => void
   updatePrivateRoomRuleSet: (data: UpdatePrivateRoomRuleSetRequest, ack: AckResponse<{ status: 'UPDATED' }>) => void
   updatePrivateRoomConfig: (data: UpdatePrivateRoomConfigRequest, ack: AckResponse<{ status: 'UPDATED' }>) => void
+  transferPrivateRoomHost: (data: TransferPrivateRoomHostRequest, ack: AckResponse<{ status: 'TRANSFERRED' }>) => void
   getCurrentPrivateRoom: (ack: AckResponse<PrivateRoomInfo | null>) => void
 }
 
@@ -174,6 +175,10 @@ export interface UpdatePrivateRoomConfigRequest {
 
 export interface StartPrivateRoomBattleRequest {
   hostTeam: PetSchemaType[]
+}
+
+export interface TransferPrivateRoomHostRequest {
+  targetPlayerId: string
 }
 
 export interface PrivateRoomPlayer {
@@ -236,6 +241,7 @@ export type PrivateRoomEvent =
     }
   | { type: 'roomReset'; data: { message: string } }
   | { type: 'ruleSetChanged'; data: { ruleSetId: string; changedBy: string } }
+  | { type: 'hostTransferred'; data: { oldHostId: string; newHostId: string; transferredBy: string } }
   | { type: 'roomClosed'; data: { reason: string } }
   | {
       type: 'roomConfigChanged'

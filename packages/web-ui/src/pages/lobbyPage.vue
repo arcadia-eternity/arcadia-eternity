@@ -282,7 +282,7 @@
             <h4 class="text-sm font-medium text-gray-700">创建房间</h4>
             <el-button
               type="success"
-              :disabled="!selectedTeam || !isSelectedTeamValid || battleClientStore.currentState.status !== 'connected'"
+              :disabled="battleClientStore.currentState.status !== 'connected'"
               @click="showCreateRoomDialog = true"
               class="w-full"
             >
