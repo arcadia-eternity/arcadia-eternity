@@ -33,8 +33,10 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     if (!isHost.value || !currentRoom.value) return false
     if (players.value.length < 2) return false
 
-    // 检查房主是否选择了队伍（本地检查）
-    if (!selectedTeam.value || selectedTeam.value.length === 0) return false
+    // 如果房主是玩家，检查房主是否选择了队伍
+    if (isPlayer.value && (!selectedTeam.value || selectedTeam.value.length === 0)) {
+      return false
+    }
 
     // 检查所有非房主玩家是否已准备
     const nonHostPlayers = players.value.filter(p => p.playerId !== currentRoom.value?.config.hostPlayerId)
@@ -239,9 +241,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
   const updateRoomConfig = async (configUpdates: {
     ruleSetId?: string
-    allowSpectators?: boolean
-    maxSpectators?: number
-    spectatorMode?: 'free' | 'player1' | 'player2' | 'god'
     isPrivate?: boolean
     password?: string
   }): Promise<void> => {
@@ -285,9 +284,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   // 房间配置表单状态
   const roomConfigForm = ref({
     ruleSetId: '',
-    allowSpectators: false,
-    maxSpectators: 10,
-    spectatorMode: 'free' as 'free' | 'player1' | 'player2' | 'god',
     isPrivate: false,
     password: '',
   })
@@ -297,9 +293,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     if (currentRoom.value) {
       roomConfigForm.value = {
         ruleSetId: currentRoom.value.config.ruleSetId,
-        allowSpectators: currentRoom.value.config.allowSpectators,
-        maxSpectators: currentRoom.value.config.maxSpectators,
-        spectatorMode: currentRoom.value.config.spectatorMode,
         isPrivate: currentRoom.value.config.isPrivate,
         password: currentRoom.value.config.password || '',
       }
@@ -504,6 +497,11 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       case 'playerSwitchedToSpectator':
         // 玩家转换为观战者
         console.log('👁️ Player switched to spectator:', event.data.playerId, 'View:', event.data.preferredView)
+        if (currentRoom.value && event.data.playerId === playerStore.player.id) {
+          console.log('🔄 Current user switched to spectator, updating local state')
+          console.log('📊 Before switch - isPlayer:', isPlayer.value, 'isSpectator:', isSpectator.value)
+          // 房间状态会通过后续的 roomUpdate 事件更新，这里只是记录日志
+        }
         break
 
       case 'spectatorSwitchedToPlayer':

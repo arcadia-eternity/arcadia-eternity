@@ -140,9 +140,6 @@ export interface CreatePrivateRoomRequest {
     ruleSetId?: string
     isPrivate?: boolean
     password?: string
-    allowSpectators?: boolean
-    maxSpectators?: number
-    spectatorMode?: 'free' | 'player1' | 'player2' | 'god'
   }
 }
 
@@ -166,9 +163,6 @@ export interface UpdatePrivateRoomRuleSetRequest {
 
 export interface UpdatePrivateRoomConfigRequest {
   ruleSetId?: string
-  allowSpectators?: boolean
-  maxSpectators?: number
-  spectatorMode?: 'free' | 'player1' | 'player2' | 'god'
   isPrivate?: boolean
   password?: string
 }
@@ -205,9 +199,6 @@ export interface PrivateRoomInfo {
     hostPlayerId: string
     ruleSetId: string
     maxPlayers: number
-    maxSpectators: number
-    allowSpectators: boolean
-    spectatorMode: 'free' | 'player1' | 'player2' | 'god'
     isPrivate: boolean
     password?: string
   }

@@ -129,10 +129,12 @@ export class PrivateRoomService {
         throw new PrivateRoomError('只有房主可以转移房主权限', 'NOT_HOST')
       }
 
-      // 验证目标玩家存在且是玩家（不是观战者）
+      // 验证目标用户存在（可以是玩家或观战者）
       const targetPlayer = room.players.find(p => p.playerId === targetPlayerId)
-      if (!targetPlayer) {
-        throw new PrivateRoomError('目标玩家不在房间中或不是玩家', 'TARGET_NOT_PLAYER')
+      const targetSpectator = room.spectators.find(s => s.playerId === targetPlayerId)
+
+      if (!targetPlayer && !targetSpectator) {
+        throw new PrivateRoomError('目标用户不在房间中', 'PLAYER_NOT_FOUND')
       }
 
       // 不能转移给自己
@@ -164,6 +166,7 @@ export class PrivateRoomService {
           oldHostId,
           newHostId: targetPlayerId,
           transferredBy: currentHostId,
+          targetType: targetPlayer ? 'player' : 'spectator',
         },
         'Host transferred successfully',
       )
@@ -238,9 +241,6 @@ export class PrivateRoomService {
           hostPlayerId: hostEntry.playerId,
           ruleSetId: config.ruleSetId || 'casual_standard_ruleset',
           maxPlayers: 2,
-          maxSpectators: config.maxSpectators || 10,
-          allowSpectators: config.allowSpectators || false,
-          spectatorMode: config.spectatorMode || 'free',
           isPrivate: config.isPrivate || false,
           password: config.password,
         },
@@ -268,11 +268,15 @@ export class PrivateRoomService {
   }
 
   /**
-   * 加入房间
+   * 加入房间（支持玩家和观战者）
    */
-  async joinRoom(request: { roomCode: string; password?: string }, playerEntry: RoomPlayer): Promise<boolean> {
+  async joinRoom(
+    request: { roomCode: string; password?: string },
+    entry: RoomPlayer | SpectatorEntry,
+    role: 'player' | 'spectator',
+  ): Promise<boolean> {
     // 检查 session 状态，确保不与匹配队列冲突
-    const stateCheck = await this.sessionStateManager.canEnterPrivateRoom(playerEntry.playerId, playerEntry.sessionId)
+    const stateCheck = await this.sessionStateManager.canEnterPrivateRoom(entry.playerId, entry.sessionId)
     if (!stateCheck.allowed) {
       throw new PrivateRoomError(stateCheck.reason || '无法加入房间', 'INVALID_STATE')
     }
@@ -292,129 +296,79 @@ export class PrivateRoomService {
         throw new PrivateRoomError('房间密码错误', 'INVALID_PASSWORD')
       }
 
-      // 检查房间是否已满
-      if (room.players.length >= room.config.maxPlayers) {
-        throw new PrivateRoomError('房间已满', 'ROOM_FULL')
-      }
-
       // 检查该 session 是否已在房间中
-      if (room.players.some(p => p.playerId === playerEntry.playerId && p.sessionId === playerEntry.sessionId)) {
+      const isAlreadyPlayer = room.players.some(p => p.playerId === entry.playerId && p.sessionId === entry.sessionId)
+      const isAlreadySpectator = room.spectators.some(
+        s => s.playerId === entry.playerId && s.sessionId === entry.sessionId,
+      )
+
+      if (isAlreadyPlayer || isAlreadySpectator) {
         throw new PrivateRoomError('该会话已在房间中', 'ALREADY_IN_ROOM')
       }
 
       // 检查该 session 是否在其他房间
-      const existingRoom = await this.findPlayerSessionRoom(playerEntry.playerId, playerEntry.sessionId)
+      const existingRoom = await this.findPlayerSessionRoom(entry.playerId, entry.sessionId)
       if (existingRoom && existingRoom !== request.roomCode) {
         throw new PrivateRoomError('该会话已在其他房间中', 'ALREADY_IN_ROOM')
       }
 
-      room.players.push(playerEntry)
-      room.lastActivity = Date.now()
+      // 根据角色进行不同的处理
+      if (role === 'player') {
+        // 检查房间是否已满
+        if (room.players.length >= room.config.maxPlayers) {
+          throw new PrivateRoomError('房间已满', 'ROOM_FULL')
+        }
 
+        room.players.push(entry as RoomPlayer)
+
+        // 广播玩家加入事件
+        await this.broadcastRoomEvent(request.roomCode, {
+          type: 'playerJoined',
+          data: entry as RoomPlayer,
+        })
+
+        logger.info(
+          {
+            roomCode: request.roomCode,
+            playerId: entry.playerId,
+            playerCount: room.players.length,
+          },
+          'Player joined private room',
+        )
+      } else {
+        // 观战者加入（观战功能默认开启，无需检查限制）
+        room.spectators.push(entry as SpectatorEntry)
+
+        // 广播观战者加入事件
+        await this.broadcastRoomEvent(request.roomCode, {
+          type: 'spectatorJoined',
+          data: entry,
+        })
+
+        logger.info(
+          {
+            roomCode: request.roomCode,
+            playerId: entry.playerId,
+            spectatorCount: room.spectators.length,
+          },
+          'Spectator joined private room',
+        )
+      }
+
+      room.lastActivity = Date.now()
       await this.saveRoom(room)
-      await this.addPlayerSessionToRoom(playerEntry.playerId, playerEntry.sessionId, request.roomCode)
+      await this.addPlayerSessionToRoom(entry.playerId, entry.sessionId, request.roomCode)
 
       // 设置 session 状态为私人房间
-      await this.sessionStateManager.setSessionState(playerEntry.playerId, playerEntry.sessionId, 'private_room', {
+      await this.sessionStateManager.setSessionState(entry.playerId, entry.sessionId, 'private_room', {
         roomCode: request.roomCode,
       })
 
-      // 广播玩家加入事件
-      await this.broadcastRoomEvent(request.roomCode, {
-        type: 'playerJoined',
-        data: playerEntry,
-      })
-
       // 广播房间状态更新
       await this.broadcastRoomEvent(request.roomCode, {
         type: 'roomUpdate',
         data: room,
       })
-
-      logger.info(
-        {
-          roomCode: request.roomCode,
-          playerId: playerEntry.playerId,
-          playerCount: room.players.length,
-        },
-        'Player joined private room',
-      )
-
-      return true
-    })
-  }
-
-  /**
-   * 观战者加入房间
-   */
-  async joinAsSpectator(
-    request: { roomCode: string; preferredView?: 'player1' | 'player2' | 'god' },
-    spectatorEntry: SpectatorEntry,
-  ): Promise<boolean> {
-    // 检查 session 状态，确保不与匹配队列冲突
-    const stateCheck = await this.sessionStateManager.canEnterPrivateRoom(
-      spectatorEntry.playerId,
-      spectatorEntry.sessionId,
-    )
-    if (!stateCheck.allowed) {
-      throw new PrivateRoomError(stateCheck.reason || '无法加入房间', 'INVALID_STATE')
-    }
-
-    return await this.lockManager.withLock(`private_room:${request.roomCode}`, async () => {
-      const room = await this.getRoom(request.roomCode)
-      if (!room) {
-        throw new PrivateRoomError('房间不存在', 'ROOM_NOT_FOUND')
-      }
-
-      if (!room.config.allowSpectators) {
-        throw new PrivateRoomError('房间不允许观战', 'INVALID_STATE')
-      }
-
-      if (room.spectators.length >= room.config.maxSpectators) {
-        throw new PrivateRoomError('观战席已满', 'ROOM_FULL')
-      }
-
-      // 检查是否已在观战列表中
-      if (room.spectators.some(s => s.playerId === spectatorEntry.playerId)) {
-        throw new PrivateRoomError('已在观战列表中', 'ALREADY_IN_ROOM')
-      }
-
-      spectatorEntry.preferredView = request.preferredView
-      room.spectators.push(spectatorEntry)
-      room.lastActivity = Date.now()
-
-      await this.saveRoom(room)
-
-      // 设置 session 状态为私人房间
-      await this.sessionStateManager.setSessionState(
-        spectatorEntry.playerId,
-        spectatorEntry.sessionId,
-        'private_room',
-        {
-          roomCode: request.roomCode,
-        },
-      )
-
-      // 广播观战者加入事件
-      await this.broadcastRoomEvent(request.roomCode, {
-        type: 'spectatorJoined',
-        data: spectatorEntry,
-      })
-
-      // 广播房间状态更新
-      await this.broadcastRoomEvent(request.roomCode, {
-        type: 'roomUpdate',
-        data: room,
-      })
-
-      logger.info(
-        {
-          roomCode: request.roomCode,
-          playerId: spectatorEntry.playerId,
-          spectatorCount: room.spectators.length,
-        },
-        'Spectator joined private room',
-      )
 
       return true
     })
@@ -473,6 +427,7 @@ export class PrivateRoomService {
               roomCode,
               oldHostId,
               newHostId: newHost.playerId,
+              newHostType: newHost.type,
               leavingPlayerId: playerId,
             },
             'Host automatically transferred due to host leaving',
@@ -569,6 +524,7 @@ export class PrivateRoomService {
               roomCode,
               oldHostId,
               newHostId: newHost.playerId,
+              newHostType: newHost.type,
               removedPlayerId: playerId,
             },
             'Host automatically transferred due to host removal',
@@ -765,9 +721,6 @@ export class PrivateRoomService {
     hostPlayerId: string,
     configUpdates: {
       ruleSetId?: string
-      allowSpectators?: boolean
-      maxSpectators?: number
-      spectatorMode?: 'free' | 'player1' | 'player2' | 'god'
       isPrivate?: boolean
       password?: string
     },
@@ -800,44 +753,7 @@ export class PrivateRoomService {
         needsPlayerReadyReset = true
       }
 
-      // 更新观战设置
-      if (configUpdates.allowSpectators !== undefined) {
-        room.config.allowSpectators = configUpdates.allowSpectators
-
-        // 如果禁用观战，需要移除所有观战者
-        if (!configUpdates.allowSpectators && room.spectators.length > 0) {
-          // 广播观战者被移除的事件
-          for (const spectator of room.spectators) {
-            await this.broadcastRoomEvent(roomCode, {
-              type: 'spectatorLeft',
-              data: spectator,
-            })
-          }
-          room.spectators = []
-        }
-      }
-
-      if (configUpdates.maxSpectators !== undefined) {
-        if (configUpdates.maxSpectators < 1 || configUpdates.maxSpectators > 50) {
-          throw new PrivateRoomError('观战者数量必须在1-50之间', 'INVALID_CONFIG')
-        }
-        room.config.maxSpectators = configUpdates.maxSpectators
-
-        // 如果当前观战者数量超过新限制，移除多余的观战者
-        if (room.spectators.length > configUpdates.maxSpectators) {
-          const removedSpectators = room.spectators.splice(configUpdates.maxSpectators)
-          for (const spectator of removedSpectators) {
-            await this.broadcastRoomEvent(roomCode, {
-              type: 'spectatorLeft',
-              data: spectator,
-            })
-          }
-        }
-      }
-
-      if (configUpdates.spectatorMode !== undefined) {
-        room.config.spectatorMode = configUpdates.spectatorMode
-      }
+      // 观战功能默认开启，无需配置
 
       // 更新隐私设置
       if (configUpdates.isPrivate !== undefined) {
@@ -1059,13 +975,39 @@ export class PrivateRoomService {
   /**
    * 自动选择新房主
    */
-  private selectNewHost(room: PrivateRoom, excludePlayerId?: string): RoomPlayer | null {
-    // 过滤掉要排除的玩家，按加入时间排序，选择最早加入的玩家
+  private selectNewHost(
+    room: PrivateRoom,
+    excludePlayerId?: string,
+  ): { playerId: string; playerName: string; type: 'player' | 'spectator' } | null {
+    // 首先尝试从玩家中选择，过滤掉要排除的玩家，按加入时间排序
     const eligiblePlayers = room.players
       .filter(p => p.playerId !== excludePlayerId)
       .sort((a, b) => a.joinedAt - b.joinedAt)
 
-    return eligiblePlayers.length > 0 ? eligiblePlayers[0] : null
+    if (eligiblePlayers.length > 0) {
+      const player = eligiblePlayers[0]
+      return {
+        playerId: player.playerId,
+        playerName: player.playerName,
+        type: 'player',
+      }
+    }
+
+    // 如果没有合适的玩家，从观战者中选择
+    const eligibleSpectators = room.spectators
+      .filter(s => s.playerId !== excludePlayerId)
+      .sort((a, b) => a.joinedAt - b.joinedAt)
+
+    if (eligibleSpectators.length > 0) {
+      const spectator = eligibleSpectators[0]
+      return {
+        playerId: spectator.playerId,
+        playerName: spectator.playerName,
+        type: 'spectator',
+      }
+    }
+
+    return null
   }
 
   /**
@@ -1410,15 +1352,21 @@ export class PrivateRoomService {
 
       const player = room.players[playerIndex]
 
-      // 检查是否是房主
+      // 房主可以转换为观战者，但需要确保房间中还有其他人可以成为房主
       if (room.config.hostPlayerId === playerId) {
-        throw new PrivateRoomError('房主不能转换为观战者', 'HOST_CANNOT_SPECTATE')
+        // 检查是否有其他玩家或观战者可以成为房主
+        const otherPlayers = room.players.filter(p => p.playerId !== playerId)
+        const hasOtherUsers = otherPlayers.length > 0 || room.spectators.length > 0
+
+        if (!hasOtherUsers) {
+          throw new PrivateRoomError('房主不能转换为观战者，因为房间中没有其他人可以成为房主', 'INVALID_STATE')
+        }
       }
 
-      // 检查观战者数量限制
-      if (room.spectators.length >= room.config.maxSpectators) {
-        throw new PrivateRoomError('观战者数量已达上限', 'SPECTATOR_LIMIT_REACHED')
-      }
+      // 观战者无数量限制
+
+      // 检查是否是房主转为观战者
+      const wasHost = room.config.hostPlayerId === playerId
 
       // 从玩家列表中移除
       room.players.splice(playerIndex, 1)
@@ -1432,6 +1380,32 @@ export class PrivateRoomService {
         preferredView: preferredView || 'god',
       }
       room.spectators.push(spectatorEntry)
+
+      // 如果是房主转为观战者，需要选择新房主
+      if (wasHost) {
+        const newHost = this.selectNewHost(room, playerId)
+        if (newHost) {
+          const oldHostId = room.config.hostPlayerId
+          room.config.hostPlayerId = newHost.playerId
+
+          // 广播房主转移事件
+          await this.broadcastRoomEvent(roomCode, {
+            type: 'hostTransferred',
+            data: { oldHostId, newHostId: newHost.playerId, transferredBy: 'system' },
+          })
+
+          logger.info(
+            {
+              roomCode,
+              oldHostId,
+              newHostId: newHost.playerId,
+              newHostType: newHost.type,
+              transferredBy: 'system',
+            },
+            'Host transferred automatically after host switched to spectator',
+          )
+        }
+      }
 
       room.lastActivity = Date.now()
       await this.saveRoom(room)

@@ -12,12 +12,6 @@ export interface PrivateRoomConfig {
   ruleSetId: string
   /** 最大玩家数量 */
   maxPlayers: number
-  /** 最大观战者数量 */
-  maxSpectators: number
-  /** 是否允许观战 */
-  allowSpectators: boolean
-  /** 观战模式 */
-  spectatorMode: 'free' | 'player1' | 'player2' | 'god'
   /** 是否为私密房间 */
   isPrivate: boolean
   /** 房间密码（私密房间时必填） */

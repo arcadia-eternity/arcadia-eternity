@@ -21,9 +21,6 @@ export type PrivateRoomConfig = {
   ruleSetId?: string
   isPrivate?: boolean
   password?: string
-  allowSpectators?: boolean
-  maxSpectators?: number
-  spectatorMode?: 'free' | 'player1' | 'player2' | 'god'
 }
 
 export type CreatePrivateRoomData = {

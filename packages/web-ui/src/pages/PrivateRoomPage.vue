@@ -152,7 +152,7 @@
 
           <!-- 等待状态：等待玩家准备或选择队伍 -->
           <el-button v-else-if="privateRoomStore.currentRoom?.status === 'waiting'" type="primary" disabled>
-            {{ privateRoomStore.selectedTeam.length === 0 ? '请先选择队伍' : '等待玩家准备' }}
+            {{ getStartBattleDisabledReason() }}
           </el-button>
 
           <!-- 战斗结束状态：可以再来一局 -->
@@ -187,7 +187,7 @@
         <template v-if="privateRoomStore.currentRoom?.status === 'waiting'">
           <!-- 玩家转观战者 -->
           <el-dropdown
-            v-if="!privateRoomStore.isHost && privateRoomStore.isPlayer"
+            v-if="privateRoomStore.isPlayer"
             @command="switchToSpectator"
             :disabled="privateRoomStore.isLoading"
           >
@@ -220,18 +220,51 @@
       </div>
 
       <!-- 观战者区域 -->
-      <div v-if="privateRoomStore.currentRoom.config.allowSpectators" class="spectators-section">
-        <h3>
-          观战者 ({{ privateRoomStore.spectators.length }}/{{ privateRoomStore.currentRoom.config.maxSpectators }})
-        </h3>
+      <div class="spectators-section">
+        <h3>观战者 ({{ privateRoomStore.spectators.length }})</h3>
 
         <div v-if="privateRoomStore.spectators.length > 0" class="spectator-list">
           <div v-for="spectator in privateRoomStore.spectators" :key="spectator.playerId" class="spectator-item">
-            <el-avatar :size="32">{{ spectator.playerName.charAt(0) }}</el-avatar>
-            <span class="spectator-name">{{ spectator.playerName }}</span>
-            <el-tag v-if="spectator.preferredView" size="small">
-              {{ getViewModeText(spectator.preferredView) }}
-            </el-tag>
+            <div class="spectator-info">
+              <el-avatar :size="32">{{ spectator.playerName.charAt(0) }}</el-avatar>
+              <div class="spectator-details">
+                <div class="spectator-name-row">
+                  <span class="spectator-name">{{ spectator.playerName }}</span>
+                  <el-tag
+                    v-if="spectator.playerId === privateRoomStore.currentRoom?.config.hostPlayerId"
+                    type="warning"
+                    size="small"
+                    >房主</el-tag
+                  >
+                  <el-tag v-if="spectator.playerId === playerStore.player.id" type="primary" size="small">我</el-tag>
+                </div>
+                <div class="spectator-meta">
+                  <el-tag v-if="spectator.preferredView" size="small">
+                    {{ getViewModeText(spectator.preferredView) }}
+                  </el-tag>
+                  <span class="join-time">{{ formatTime(spectator.joinedAt) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 转移房主按钮 -->
+            <div
+              v-if="
+                privateRoomStore.isHost &&
+                privateRoomStore.currentRoom?.status === 'waiting' &&
+                spectator.playerId !== privateRoomStore.currentRoom?.config.hostPlayerId
+              "
+              class="spectator-actions"
+            >
+              <el-button
+                type="warning"
+                size="small"
+                :disabled="privateRoomStore.isLoading"
+                @click="transferHost(spectator.playerId)"
+              >
+                转移房主
+              </el-button>
+            </div>
           </div>
         </div>
 
@@ -312,28 +345,7 @@
           <div class="form-help-text">当前: {{ getRuleSetName(privateRoomStore.roomConfigForm.ruleSetId) }}</div>
         </el-form-item>
 
-        <!-- 观战设置 -->
-        <el-form-item label="允许观战">
-          <el-switch v-model="privateRoomStore.roomConfigForm.allowSpectators" />
-        </el-form-item>
-
-        <el-form-item v-if="privateRoomStore.roomConfigForm.allowSpectators" label="最大观战者数">
-          <el-input-number
-            v-model="privateRoomStore.roomConfigForm.maxSpectators"
-            :min="1"
-            :max="50"
-            style="width: 100%"
-          />
-        </el-form-item>
-
-        <el-form-item v-if="privateRoomStore.roomConfigForm.allowSpectators" label="观战模式">
-          <el-select v-model="privateRoomStore.roomConfigForm.spectatorMode" style="width: 100%">
-            <el-option label="自由观战" value="free" />
-            <el-option label="玩家1视角" value="player1" />
-            <el-option label="玩家2视角" value="player2" />
-            <el-option label="上帝视角" value="god" />
-          </el-select>
-        </el-form-item>
+        <!-- 观战功能默认开启，无需配置 -->
 
         <!-- 房间隐私设置 -->
         <el-form-item label="房间类型">
@@ -395,10 +407,21 @@ const getRuleSetName = (ruleSetId: string): string => {
 
 const getHostPlayerName = (): string => {
   if (!privateRoomStore.currentRoom) return ''
-  const hostPlayer = privateRoomStore.players.find(
-    p => p.playerId === privateRoomStore.currentRoom?.config.hostPlayerId,
-  )
-  return hostPlayer?.playerName || '未知'
+  const hostPlayerId = privateRoomStore.currentRoom.config.hostPlayerId
+
+  // 先在玩家中查找
+  const hostPlayer = privateRoomStore.players.find(p => p.playerId === hostPlayerId)
+  if (hostPlayer) {
+    return hostPlayer.playerName
+  }
+
+  // 再在观战者中查找
+  const hostSpectator = privateRoomStore.spectators.find(s => s.playerId === hostPlayerId)
+  if (hostSpectator) {
+    return `${hostSpectator.playerName} (观战)`
+  }
+
+  return '未知'
 }
 
 const getStatusText = (status: string): string => {
@@ -463,6 +486,31 @@ const formatTime = (timestamp: number): string => {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+const getStartBattleDisabledReason = (): string => {
+  if (!privateRoomStore.currentRoom) return '房间信息加载中'
+
+  if (privateRoomStore.players.length < 2) {
+    return '等待玩家加入'
+  }
+
+  // 如果房主是玩家且没有选择队伍
+  if (privateRoomStore.isPlayer && privateRoomStore.selectedTeam.length === 0) {
+    return '请先选择队伍'
+  }
+
+  // 检查非房主玩家是否都已准备
+  const nonHostPlayers = privateRoomStore.players.filter(
+    p => p.playerId !== privateRoomStore.currentRoom?.config.hostPlayerId,
+  )
+  const unreadyPlayers = nonHostPlayers.filter(p => !p.isReady)
+
+  if (unreadyPlayers.length > 0) {
+    return '等待玩家准备'
+  }
+
+  return '可以开始战斗'
 }
 
 // 方法
@@ -580,9 +628,6 @@ const saveRoomConfig = async () => {
   try {
     const configUpdates: {
       ruleSetId?: string
-      allowSpectators?: boolean
-      maxSpectators?: number
-      spectatorMode?: 'free' | 'player1' | 'player2' | 'god'
       isPrivate?: boolean
       password?: string
     } = { ...privateRoomStore.roomConfigForm }
@@ -865,15 +910,53 @@ onUnmounted(() => {
 .spectator-item {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.5rem;
+  padding: 0.75rem;
   background: var(--el-bg-color);
   border-radius: 6px;
+  border: 1px solid var(--el-border-color);
+}
+
+.spectator-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.spectator-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.spectator-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .spectator-name {
-  flex: 1;
+  font-weight: 500;
   color: var(--el-text-color-primary);
+}
+
+.spectator-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.join-time {
+  font-size: 0.75rem;
+  color: var(--el-text-color-placeholder);
+}
+
+.spectator-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .no-spectators {

@@ -121,7 +121,7 @@ export class PrivateRoomHandlers {
         joinedAt: Date.now(),
       }
 
-      const success = await this.roomService.joinRoom(data, playerEntry)
+      const success = await this.roomService.joinRoom(data, playerEntry, 'player')
 
       if (success) {
         // 将Socket加入房间组
@@ -178,7 +178,7 @@ export class PrivateRoomHandlers {
         preferredView: data.preferredView,
       }
 
-      const success = await this.roomService.joinAsSpectator(data, spectatorEntry)
+      const success = await this.roomService.joinRoom({ roomCode: data.roomCode }, spectatorEntry, 'spectator')
 
       if (success) {
         // 将Socket加入房间组
@@ -373,10 +373,8 @@ export class PrivateRoomHandlers {
           hostPlayerId: room.config.hostPlayerId,
           ruleSetId: room.config.ruleSetId,
           maxPlayers: room.config.maxPlayers,
-          maxSpectators: room.config.maxSpectators,
-          allowSpectators: room.config.allowSpectators,
-          spectatorMode: room.config.spectatorMode,
           isPrivate: room.config.isPrivate,
+          password: room.config.password,
         },
         players: room.players,
         spectators: room.spectators,
@@ -704,10 +702,8 @@ export class PrivateRoomHandlers {
           hostPlayerId: currentRoom.config.hostPlayerId,
           ruleSetId: currentRoom.config.ruleSetId,
           maxPlayers: currentRoom.config.maxPlayers,
-          maxSpectators: currentRoom.config.maxSpectators,
-          allowSpectators: currentRoom.config.allowSpectators,
-          spectatorMode: currentRoom.config.spectatorMode,
           isPrivate: currentRoom.config.isPrivate,
+          password: currentRoom.config.password,
         },
         players: currentRoom.players,
         spectators: currentRoom.spectators,
