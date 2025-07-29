@@ -191,46 +191,57 @@
         </h3>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <!-- 创建房间 -->
-          <div class="space-y-3">
-            <h4 class="text-sm font-medium text-gray-700">创建房间</h4>
-            <el-button
-              type="success"
-              :disabled="battleClientStore.currentState.status !== 'connected'"
-              @click="showCreateRoomDialog = true"
-              class="w-full"
-            >
-              创建私人房间
+          <!-- 如果已在房间，显示进入房间按钮 -->
+          <div v-if="privateRoomStore.currentRoom" class="md:col-span-3">
+            <h4 class="text-sm font-medium text-gray-700 mb-3">你已在房间中</h4>
+            <el-button type="primary" @click="goToCurrentRoom" class="w-full">
+              回到房间 ({{ privateRoomStore.currentRoom.config.roomCode }})
             </el-button>
           </div>
 
-          <!-- 加入房间 -->
-          <div class="space-y-3 col-span-2">
-            <h4 class="text-sm font-medium text-gray-700">加入房间</h4>
-            <div class="flex gap-2">
-              <el-input
-                v-model="joinRoomCode"
-                placeholder="输入房间码"
-                maxlength="6"
-                class="flex-1"
-                @keyup.enter="joinRoom"
-              />
+          <!-- 否则，显示创建和加入选项 -->
+          <template v-else>
+            <!-- 创建房间 -->
+            <div class="space-y-3">
+              <h4 class="text-sm font-medium text-gray-700">创建房间</h4>
               <el-button
-                type="primary"
-                :disabled="!joinRoomCode || battleClientStore.currentState.status !== 'connected'"
-                @click="joinRoom"
+                type="success"
+                :disabled="battleClientStore.currentState.status !== 'connected'"
+                @click="showCreateRoomDialog = true"
+                class="w-full"
               >
-                加入
-              </el-button>
-              <el-button
-                type="info"
-                :disabled="!joinRoomCode || battleClientStore.currentState.status !== 'connected'"
-                @click="joinAsSpectator"
-              >
-                观战
+                创建私人房间
               </el-button>
             </div>
-          </div>
+
+            <!-- 加入房间 -->
+            <div class="space-y-3 col-span-2">
+              <h4 class="text-sm font-medium text-gray-700">加入房间</h4>
+              <div class="flex gap-2">
+                <el-input
+                  v-model="joinRoomCode"
+                  placeholder="输入房间码"
+                  maxlength="6"
+                  class="flex-1"
+                  @keyup.enter="joinRoom"
+                />
+                <el-button
+                  type="primary"
+                  :disabled="!joinRoomCode || battleClientStore.currentState.status !== 'connected'"
+                  @click="joinRoom"
+                >
+                  加入
+                </el-button>
+                <el-button
+                  type="info"
+                  :disabled="!joinRoomCode || battleClientStore.currentState.status !== 'connected'"
+                  @click="joinAsSpectator"
+                >
+                  观战
+                </el-button>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
 
@@ -391,6 +402,13 @@ const ruleSetElos = computed(() => {
   })
   return eloMap
 })
+
+const goToCurrentRoom = () => {
+  if (privateRoomStore.currentRoom) {
+    router.push(`/room/${privateRoomStore.currentRoom.config.roomCode}`)
+  }
+}
+
 
 // 启用ELO的规则集列表
 const eloEnabledRuleSets = ref<string[]>([])
