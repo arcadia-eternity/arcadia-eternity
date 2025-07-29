@@ -216,7 +216,7 @@
             v-if="privateRoomStore.isSpectator && privateRoomStore.players.length < 2"
             type="warning"
             :disabled="privateRoomStore.isLoading"
-            @click="showSwitchToPlayerDialog"
+            @click="confirmSwitchToPlayer"
           >
             转为玩家
           </el-button>
@@ -290,33 +290,6 @@
         </div>
       </div>
     </div>
-
-    <!-- 转为玩家对话框 -->
-    <el-dialog v-model="switchToPlayerDialogVisible" title="转为玩家" width="500px">
-      <div class="switch-dialog-content">
-        <p>转为玩家需要选择你的队伍。请确保你已经准备好参与战斗。</p>
-
-        <div class="team-selection">
-          <h4>选择队伍：</h4>
-          <el-alert
-            title="提示"
-            description="这里应该集成队伍选择组件，目前使用默认队伍"
-            type="info"
-            show-icon
-            :closable="false"
-          />
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="switchToPlayerDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="confirmSwitchToPlayer" :loading="privateRoomStore.isLoading">
-            确认转为玩家
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
 
     <!-- 队伍选择对话框 -->
     <el-dialog v-model="showTeamSelector" title="选择队伍" width="600px">
@@ -412,8 +385,6 @@ const petStorageStore = usePetStorageStore()
 
 const roomCode = route.params.roomCode as string
 
-// 响应式变量
-const switchToPlayerDialogVisible = ref(false)
 const showTeamSelector = ref(false)
 const showRoomConfigDialog = ref(false)
 
@@ -634,10 +605,6 @@ const switchToSpectator = async (preferredView: 'player1' | 'player2' | 'god') =
   }
 }
 
-const showSwitchToPlayerDialog = () => {
-  switchToPlayerDialogVisible.value = true
-}
-
 const confirmSwitchToPlayer = async () => {
   try {
     // 这里应该使用用户选择的队伍，目前使用默认队伍
@@ -649,7 +616,6 @@ const confirmSwitchToPlayer = async () => {
     }
 
     await privateRoomStore.switchToPlayer(defaultTeam)
-    switchToPlayerDialogVisible.value = false
     ElMessage.success('已转为玩家')
   } catch (error) {
     ElMessage.error('转换为玩家失败: ' + (error as Error).message)

@@ -37,15 +37,7 @@
           <el-tag v-if="!isHost" :type="isReady ? 'success' : 'info'" size="small">
             {{ isReady ? '已准备' : '未准备' }}
           </el-tag>
-          <el-tag v-else type="warning" size="small">房主</el-tag>
         </div>
-      </div>
-    </div>
-
-    <div class="team-info">
-      <div class="team-status">
-        <span class="team-label">队伍状态</span>
-        <span class="team-status-text">已准备队伍</span>
       </div>
     </div>
 

@@ -291,7 +291,7 @@
           </div>
 
           <!-- 加入房间 -->
-          <div class="space-y-3">
+          <div class="space-y-3 col-span-2">
             <h4 class="text-sm font-medium text-gray-700">加入房间</h4>
             <div class="flex gap-2">
               <el-input
@@ -308,23 +308,9 @@
               >
                 加入
               </el-button>
-            </div>
-          </div>
-
-          <!-- 观战房间 -->
-          <div class="space-y-3">
-            <h4 class="text-sm font-medium text-gray-700">观战房间</h4>
-            <div class="flex gap-2">
-              <el-input
-                v-model="spectateRoomCode"
-                placeholder="输入房间码"
-                maxlength="6"
-                class="flex-1"
-                @keyup.enter="joinAsSpectator"
-              />
               <el-button
                 type="info"
-                :disabled="!spectateRoomCode || battleClientStore.currentState.status !== 'connected'"
+                :disabled="!joinRoomCode || battleClientStore.currentState.status !== 'connected'"
                 @click="joinAsSpectator"
               >
                 观战
@@ -463,7 +449,6 @@ const selectedTeamIndex = ref<number>(-1)
 // 私人房间状态
 const showCreateRoomDialog = ref(false)
 const joinRoomCode = ref('')
-const spectateRoomCode = ref('')
 const roomConfig = ref({
   password: '',
   allowSpectators: false,
@@ -855,17 +840,17 @@ const joinRoom = async () => {
 
 const joinAsSpectator = async () => {
   try {
-    if (!spectateRoomCode.value) {
+    if (!joinRoomCode.value) {
       ElMessage.error('请输入房间码')
       return
     }
 
-    await privateRoomStore.joinAsSpectator(spectateRoomCode.value)
+    await privateRoomStore.joinAsSpectator(joinRoomCode.value)
 
     ElMessage.success('成功加入观战')
 
     // 跳转到房间页面
-    router.push(`/room/${spectateRoomCode.value}`)
+    router.push(`/room/${joinRoomCode.value}`)
   } catch (error) {
     ElMessage.error('加入观战失败: ' + (error as Error).message)
   }
