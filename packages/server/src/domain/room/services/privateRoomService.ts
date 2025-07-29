@@ -372,7 +372,7 @@ export class PrivateRoomService {
         throw new PrivateRoomError('房间密码错误', 'INVALID_PASSWORD')
       }
 
-      // 检查该 session 是否已在房间中
+      // 检查该 session 和 player 是否已在房间中
       const isAlreadyPlayer = room.players.some(p => p.playerId === entry.playerId && p.sessionId === entry.sessionId)
       const isAlreadySpectator = room.spectators.some(
         s => s.playerId === entry.playerId && s.sessionId === entry.sessionId,

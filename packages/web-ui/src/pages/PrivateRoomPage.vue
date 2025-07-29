@@ -117,30 +117,12 @@
         v-if="privateRoomStore.isPlayer && privateRoomStore.currentRoom?.status === 'waiting'"
         class="team-selection-section"
       >
-        <h3>队伍选择</h3>
-        <div class="team-selection-content">
-          <div class="current-team-display">
-            <h4>当前选择的队伍</h4>
-            <div class="team-pets">
-              <div v-for="pet in privateRoomStore.selectedTeam" :key="pet.id" class="pet-card">
-                <div class="pet-info">
-                  <span class="pet-name">{{ pet.name }}</span>
-                  <span class="pet-species">{{ pet.species }}</span>
-                  <span class="pet-level">Lv.{{ pet.level }}</span>
-                </div>
-              </div>
-              <div v-if="privateRoomStore.selectedTeam.length === 0" class="no-team">
-                <span>请选择队伍</span>
-              </div>
-            </div>
-          </div>
-          <div class="team-actions">
-            <el-button type="primary" @click="showTeamSelector = true"> 选择队伍 </el-button>
-            <el-button v-if="privateRoomStore.selectedTeam.length > 0" type="success" @click="useCurrentTeam">
-              使用当前队伍
-            </el-button>
-          </div>
-        </div>
+        <TeamSelector
+          v-model="selectedTeam"
+          :selected-rule-set-id="privateRoomStore.currentRoom.config.ruleSetId"
+          @update:is-valid="isTeamValid = $event"
+          @update:validation-errors="teamValidationErrors = $event"
+        />
       </div>
 
       <!-- 房间控制 -->
@@ -291,29 +273,6 @@
       </div>
     </div>
 
-    <!-- 队伍选择对话框 -->
-    <el-dialog v-model="showTeamSelector" title="选择队伍" width="600px">
-      <div class="team-selector">
-        <div v-for="(team, index) in petStorageStore.teams" :key="index" class="team-option">
-          <div class="team-header">
-            <h4>{{ team.name }}</h4>
-            <span class="team-count">{{ team.pets.length }}只精灵</span>
-          </div>
-          <div class="team-preview">
-            <div v-for="pet in team.pets.slice(0, 6)" :key="pet.id" class="pet-preview">
-              <span class="pet-name">{{ pet.name }}</span>
-              <span class="pet-species">{{ pet.species }}</span>
-            </div>
-          </div>
-          <el-button type="primary" size="small" @click="selectTeam(index)"> 选择此队伍 </el-button>
-        </div>
-        <div v-if="petStorageStore.teams.length === 0" class="no-teams">
-          <p>暂无可用队伍，请先在队伍编辑器中创建队伍</p>
-          <el-button type="primary" @click="router.push('/team-builder')"> 前往队伍编辑器 </el-button>
-        </div>
-      </div>
-    </el-dialog>
-
     <!-- 房间配置对话框 -->
     <el-dialog v-model="showRoomConfigDialog" title="房间设置" width="500px">
       <el-form :model="privateRoomStore.roomConfigForm" label-width="120px">
@@ -366,7 +325,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onUnmounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { usePlayerStore } from '@/stores/player'
@@ -375,6 +334,7 @@ import { usePetStorageStore } from '@/stores/petStorage'
 import { User, Loading, ArrowDown, MoreFilled, Star, Close } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PlayerCard from '@/components/PlayerCard.vue'
+import TeamSelector from '@/components/TeamSelector.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -385,8 +345,19 @@ const petStorageStore = usePetStorageStore()
 
 const roomCode = route.params.roomCode as string
 
-const showTeamSelector = ref(false)
+const selectedTeam = ref<any | null>(null)
+const isTeamValid = ref(false)
+const teamValidationErrors = ref<string[]>([])
+
 const showRoomConfigDialog = ref(false)
+
+watch(selectedTeam, newTeam => {
+  if (newTeam) {
+    privateRoomStore.updateSelectedTeam(newTeam.pets)
+  } else {
+    privateRoomStore.updateSelectedTeam([])
+  }
+})
 
 // 计算属性
 const getRuleSetName = (ruleSetId: string): string => {
@@ -484,8 +455,12 @@ const getStartBattleDisabledReason = (): string => {
   }
 
   // 如果房主是玩家且没有选择队伍
-  if (privateRoomStore.isPlayer && privateRoomStore.selectedTeam.length === 0) {
+  if (privateRoomStore.isPlayer && !selectedTeam.value) {
     return '请先选择队伍'
+  }
+
+  if (!isTeamValid.value) {
+    return teamValidationErrors.value[0] || '队伍不符合规则'
   }
 
   // 检查非房主玩家是否都已准备
@@ -539,18 +514,6 @@ const resetRoom = async () => {
 }
 
 // 队伍选择相关方法
-const useCurrentTeam = () => {
-  const currentTeam = petStorageStore.getCurrentTeam()
-  privateRoomStore.updateSelectedTeam(currentTeam)
-  ElMessage.success('已选择当前队伍')
-}
-
-const selectTeam = (teamIndex: number) => {
-  const team = petStorageStore.teams[teamIndex]?.pets || []
-  privateRoomStore.updateSelectedTeam(team)
-  showTeamSelector.value = false
-  ElMessage.success(`已选择队伍：${petStorageStore.teams[teamIndex]?.name || '未命名队伍'}`)
-}
 
 const leaveRoom = async () => {
   try {
@@ -608,14 +571,14 @@ const switchToSpectator = async (preferredView: 'player1' | 'player2' | 'god') =
 const confirmSwitchToPlayer = async () => {
   try {
     // 这里应该使用用户选择的队伍，目前使用默认队伍
-    const defaultTeam = playerStore.player?.team || []
+    const teamToSwitch = selectedTeam.value?.pets || playerStore.player?.team || []
 
-    if (defaultTeam.length === 0) {
-      ElMessage.error('请先设置你的队伍')
+    if (teamToSwitch.length === 0) {
+      ElMessage.error('请先选择或设置你的队伍')
       return
     }
 
-    await privateRoomStore.switchToPlayer(defaultTeam)
+    await privateRoomStore.switchToPlayer(teamToSwitch)
     ElMessage.success('已转为玩家')
   } catch (error) {
     ElMessage.error('转换为玩家失败: ' + (error as Error).message)
@@ -665,7 +628,8 @@ onMounted(async () => {
       // 重新设置事件监听器（因为页面切换时可能被移除）
       privateRoomStore.setupRoomEventListeners()
       // 初始化选择的队伍
-      privateRoomStore.initializeSelectedTeam()
+      selectedTeam.value =
+        petStorageStore.teams.find(t => t.pets.every((p, i) => p.id === privateRoomStore.selectedTeam[i]?.id)) || null
       console.log('🏠 PrivateRoomPage mounted successfully with existing state')
     } catch (error) {
       console.error('🏠 Error setting up existing room state:', error)
@@ -673,7 +637,8 @@ onMounted(async () => {
       try {
         console.log('🏠 Fallback: Getting room info from server...')
         await privateRoomStore.getRoomInfo(roomCode)
-        privateRoomStore.initializeSelectedTeam()
+        selectedTeam.value =
+          petStorageStore.teams.find(t => t.pets.every((p, i) => p.id === privateRoomStore.selectedTeam[i]?.id)) || null
         console.log('🏠 Fallback successful')
       } catch (fallbackError) {
         console.error('🏠 Fallback also failed:', fallbackError)
@@ -686,7 +651,8 @@ onMounted(async () => {
     try {
       console.log('🏠 Getting room info from server...')
       await privateRoomStore.getRoomInfo(roomCode)
-      privateRoomStore.initializeSelectedTeam()
+      selectedTeam.value =
+        petStorageStore.teams.find(t => t.pets.every((p, i) => p.id === privateRoomStore.selectedTeam[i]?.id)) || null
       console.log('🏠 Room info retrieved successfully')
     } catch (error) {
       console.error('🏠 Failed to get room info:', error)
