@@ -21,6 +21,14 @@
               {{ team.name }} ({{ team.pets.length }}只精灵)
             </option>
           </select>
+          <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+            <input
+              type="checkbox"
+              v-model="useAI"
+              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+            />
+            允许AI接管
+          </label>
         </div>
 
         <!-- 玩家2队伍选择 -->
@@ -328,6 +336,7 @@ const isLoading = ref(true)
 // 队伍选择
 const selectedPlayer1TeamIndex = ref(0)
 const selectedPlayer2TeamIndex = ref(0)
+const useAI = ref(false)
 
 // 可用队伍列表（过滤掉空队伍）
 const availableTeams = computed(() => {
@@ -634,10 +643,15 @@ const startLocalBattle = async () => {
 
     let player1: Player
     let player2: Player
+    const createAIPlayer = (basePlayer: Player) => new AIPlayer(basePlayer.name, basePlayer.id, basePlayer.team)
 
     try {
       // 解析玩家1数据
-      player1 = PlayerParser.parse(rawPlayer1Data)
+      if (!useAI.value) {
+        player1 = PlayerParser.parse(rawPlayer1Data)
+      } else {
+        player1 = createAIPlayer(PlayerParser.parse(rawPlayer1Data))
+      }
     } catch (parseError) {
       throw new Error(`玩家1数据解析失败: ${(parseError as Error).message}`)
     }
@@ -645,7 +659,6 @@ const startLocalBattle = async () => {
     try {
       // 创建玩家2队伍数据并解析
       const player2TeamData = createOpponentTeam(selectedPlayer2TeamIndex.value)
-      const createAIPlayer = (basePlayer: Player) => new AIPlayer(basePlayer.name, basePlayer.id, basePlayer.team)
       player2 = createAIPlayer(PlayerParser.parse(player2TeamData))
     } catch (parseError) {
       throw new Error(`玩家2队伍数据解析失败: ${(parseError as Error).message}`)
