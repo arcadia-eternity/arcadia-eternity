@@ -191,6 +191,7 @@ import { usePlayerStore } from '@/stores/player'
 import { emailInheritanceService } from '@/services/emailInheritanceService'
 import type { PlayerInfo } from '@/stores/auth'
 import { useBattleClientStore } from '@/stores/battleClient'
+import { useAuthStore } from '../stores/auth'
 
 // 定义props和emits
 interface Props {
@@ -311,7 +312,6 @@ const confirmBind = async () => {
 
       // 如果返回了认证信息，设置到认证服务中
       if (response.auth) {
-        const { useAuthStore } = await import('../stores/auth')
         const authStore = useAuthStore()
         // 构造完整的AuthResult对象
         const authResult = {
@@ -445,7 +445,6 @@ const confirmRecover = async () => {
 
       // 如果返回了认证信息，设置到认证服务中
       if (response.auth) {
-        const { useAuthStore } = await import('../stores/auth')
         const authStore = useAuthStore()
         // 构造完整的AuthResult对象
         const authResult = {

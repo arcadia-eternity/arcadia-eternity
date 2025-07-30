@@ -13,6 +13,8 @@ import type { IBattleSystem, IDeveloperBattleSystem } from '@arcadia-eternity/in
 import * as jsondiffpatch from 'jsondiffpatch'
 import { markRaw } from 'vue'
 import { ReplayBattleInterface } from './replayBattleInterface'
+import { usePlayerStore } from './player'
+import { useEloStore } from './elo'
 
 // 类型守卫函数：检查battleInterface是否支持开发者功能
 function isDeveloperBattleSystem(
@@ -387,9 +389,6 @@ export const useBattleStore = defineStore('battle', {
       try {
         // 延迟一段时间确保后端ELO更新完成
         setTimeout(async () => {
-          const { usePlayerStore } = await import('./player')
-          const { useEloStore } = await import('./elo')
-
           const playerStore = usePlayerStore()
           const eloStore = useEloStore()
 
