@@ -595,8 +595,6 @@ onMounted(async () => {
   if (privateRoomStore.currentRoom && privateRoomStore.currentRoom.config.roomCode === roomCode) {
     console.log('🏠 Using existing room state, skipping server call')
     try {
-      // 重新设置事件监听器（因为页面切换时可能被移除）
-      privateRoomStore.setupRoomEventListeners()
       // 初始化选择的队伍
       selectedTeam.value =
         petStorageStore.teams.find(t => t.pets.every((p, i) => p.id === privateRoomStore.selectedTeam[i]?.id)) || null

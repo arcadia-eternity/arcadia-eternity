@@ -57,10 +57,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
       // 获取房间信息
       await getRoomInfo(roomCode)
-      // 监听房间事件
-      console.log('🚨 About to call setupRoomEventListeners (createRoom)')
-      setupRoomEventListeners()
-      console.log('🚨 setupRoomEventListeners called (createRoom)')
 
       console.log('✅ Private room created:', roomCode)
       return roomCode
@@ -87,11 +83,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       // 获取房间信息
       await getRoomInfo(roomCode)
 
-      // 监听房间事件
-      console.log('🚨 About to call setupRoomEventListeners')
-      setupRoomEventListeners()
-      console.log('🚨 setupRoomEventListeners called')
-
       console.log('✅ Joined private room:', roomCode)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
@@ -115,9 +106,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
       // 获取房间信息
       await getRoomInfo(roomCode)
-
-      // 监听房间事件
-      setupRoomEventListeners()
 
       console.log('✅ Joined as spectator in room:', roomCode)
     } catch (err) {
@@ -350,25 +338,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
   }
 
-  const setupRoomEventListeners = (): void => {
-    console.log('🔧 Setting up private room event listeners...')
-    console.log('🔧 BattleClient instance available:', !!battleClientStore._instance)
-    console.log('🔧 BattleClient initialized:', battleClientStore.isInitialized)
-
-    // 如果 BattleClient 还没初始化，先初始化
-    if (!battleClientStore.isInitialized) {
-      console.log('🔧 BattleClient not initialized, initializing now...')
-      battleClientStore.initialize()
-    }
-
-    // 使用 battleClientStore 的正确方法，而不是直接操作 _instance
-    battleClientStore.off('privateRoomEvent', handleRoomEvent)
-    const unsubscribe = battleClientStore.on('privateRoomEvent', handleRoomEvent)
-
-    console.log('🔧 Event listener registered, unsubscribe function:', typeof unsubscribe)
-    console.log('✅ Private room event listeners set up successfully')
-  }
-
   const handleRoomEvent = async (event: PrivateRoomEvent): Promise<void> => {
     console.log('🏠 Private room event received:', event.type, event)
 
@@ -587,7 +556,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       if (roomInfo) {
         console.log('🏠 Current room info:', roomInfo)
         currentRoom.value = roomInfo
-        setupRoomEventListeners()
         initializeSelectedTeam()
       }
       return roomInfo
@@ -609,21 +577,20 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
   }
 
-  // 只移除事件监听器，保持房间状态
-  const removeEventListeners = (): void => {
-    battleClientStore.off('privateRoomEvent', handleRoomEvent)
-  }
-
   // 完全清理房间状态（只在真正离开房间时使用）
   const cleanup = (): void => {
     currentRoom.value = null
     selectedTeam.value = []
     error.value = null
     isLoading.value = false
-
-    // 移除事件监听器
-    battleClientStore.off('privateRoomEvent', handleRoomEvent)
   }
+
+  // 在 store 创建时设置一次事件监听器
+  if (!battleClientStore.isInitialized) {
+    battleClientStore.initialize()
+  }
+  battleClientStore.on('privateRoomEvent', handleRoomEvent)
+  console.log('✅ Private room event listener initialized')
 
   return {
     // 状态
@@ -657,12 +624,10 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     switchToSpectator,
     switchToPlayer,
     getRoomInfo,
-    setupRoomEventListeners,
     updateSelectedTeam,
     initializeSelectedTeam,
     checkCurrentRoom,
     handlePageLeave,
-    removeEventListeners,
     cleanup,
   }
 })
