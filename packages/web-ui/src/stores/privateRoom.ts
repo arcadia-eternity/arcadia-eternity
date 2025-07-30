@@ -71,7 +71,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       isLoading.value = false
     }
   }
-  p
+
   const joinRoom = async (roomCode: string, password?: string): Promise<void> => {
     isLoading.value = true
     error.value = null
