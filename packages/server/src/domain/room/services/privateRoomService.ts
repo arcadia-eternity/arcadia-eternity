@@ -4,7 +4,7 @@ import pino from 'pino'
 import type { ClusterStateManager } from '../../../cluster/core/clusterStateManager'
 import type { DistributedLockManager } from '../../../cluster/redis/distributedLock'
 import type { SocketClusterAdapter } from '../../../cluster/communication/socketClusterAdapter'
-import type { MatchmakingEntry } from '../../../cluster/types'
+import { REDIS_KEYS, type MatchmakingEntry } from '../../../cluster/types'
 import type {
   PrivateRoom,
   PrivateRoomConfig,
@@ -57,7 +57,7 @@ export class PrivateRoomService {
   private subscribeToBattleFinishedEvents(): void {
     try {
       const subscriber = this.stateManager.redisManager.getSubscriber()
-      const channel = 'private_battle_finished'
+      const channel = REDIS_KEYS.PRIVATE_BATTLE_FINISHED_EVENTS
 
       subscriber.subscribe(channel, err => {
         if (err) {
@@ -98,7 +98,7 @@ export class PrivateRoomService {
         return
       }
 
-      await this.lockManager.withLock(`private_room:${finalRoomCode}`, async () => {
+      await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(finalRoomCode), async () => {
         const room = await this.getRoom(finalRoomCode)
         if (!room || room.battleRoomId !== battleRoomId) {
           logger.warn({ roomCode, battleRoomId }, 'Room not found or battle ID mismatch')
@@ -119,13 +119,9 @@ export class PrivateRoomService {
         room.lastActivity = Date.now()
         // 保留 battleRoomId 用于显示结果
 
-        // 重置所有玩家的准备状态和在线状态
+        // 重置所有玩家的准备状态
         room.players.forEach(player => {
           player.isReady = false
-          player.connectionStatus = 'online' // 战斗结束后，所有玩家都应被视作在线
-        })
-        room.spectators.forEach(spectator => {
-          spectator.connectionStatus = 'online'
         })
 
         await this.saveRoom(room)
@@ -158,7 +154,7 @@ export class PrivateRoomService {
    * 处理玩家在战斗中断线
    */
   async handlePlayerDisconnect(roomCode: string, playerId: string, sessionId: string): Promise<void> {
-    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+    await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
       const room = await this.getRoom(roomCode)
       if (!room) return
 
@@ -189,7 +185,7 @@ export class PrivateRoomService {
    * 处理玩家在战斗中重连
    */
   async handlePlayerReconnect(roomCode: string, playerId: string, sessionId: string): Promise<void> {
-    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+    await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
       const room = await this.getRoom(roomCode)
       if (!room) return
 
@@ -220,7 +216,7 @@ export class PrivateRoomService {
    * 踢出玩家
    */
   async kickPlayer(roomCode: string, hostId: string, targetPlayerId: string): Promise<void> {
-    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+    await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
       const room = await this.getRoom(roomCode)
       if (!room) {
         throw new PrivateRoomError('房间不存在', 'ROOM_NOT_FOUND')
@@ -296,7 +292,7 @@ export class PrivateRoomService {
    * 转移房主权限
    */
   async transferHost(roomCode: string, currentHostId: string, targetPlayerId: string): Promise<void> {
-    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+    await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
       const room = await this.getRoom(roomCode)
       if (!room) {
         throw new PrivateRoomError('房间不存在', 'ROOM_NOT_FOUND')
@@ -357,7 +353,7 @@ export class PrivateRoomService {
   async createRoom(hostEntry: RoomPlayer, config: Partial<PrivateRoomConfig>): Promise<string> {
     const roomCode = this.generateRoomCode()
 
-    return await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+    return await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
       // 检查房主的当前 session 是否已在其他房间
       const existingRoom = await this.findPlayerSessionRoom(hostEntry.playerId, hostEntry.sessionId)
       if (existingRoom) {
@@ -411,7 +407,7 @@ export class PrivateRoomService {
       throw new PrivateRoomError(stateCheck.reason || '无法加入房间', 'INVALID_STATE')
     }
 
-    return await this.lockManager.withLock(`private_room:${request.roomCode}`, async () => {
+    return await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(request.roomCode), async () => {
       const room = await this.getRoom(request.roomCode)
       if (!room) {
         throw new PrivateRoomError('房间不存在', 'ROOM_NOT_FOUND')
@@ -468,7 +464,6 @@ export class PrivateRoomService {
           'Player joined private room',
         )
       } else {
-        // 观战者加入（观战功能默认开启，无需检查限制）
         const spectatorEntry = entry as SpectatorEntry
         spectatorEntry.connectionStatus = 'online'
         room.spectators.push(spectatorEntry)
@@ -512,7 +507,7 @@ export class PrivateRoomService {
    * 玩家离开房间（基于 session）
    */
   async leaveRoom(roomCode: string, playerId: string, sessionId: string): Promise<void> {
-    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+    await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
       const room = await this.getRoom(roomCode)
       if (!room) return
 
@@ -604,7 +599,7 @@ export class PrivateRoomService {
    * 移除玩家的所有 session（用于踢出玩家等管理操作）
    */
   async removePlayerAllSessions(roomCode: string, playerId: string): Promise<void> {
-    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+    await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
       const room = await this.getRoom(roomCode)
       if (!room) return
 
@@ -702,7 +697,7 @@ export class PrivateRoomService {
    * 切换玩家准备状态
    */
   async togglePlayerReady(roomCode: string, playerId: string, team?: PetSchemaType[]): Promise<void> {
-    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+    await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
       const room = await this.getRoom(roomCode)
       if (!room) {
         throw new PrivateRoomError('房间不存在', 'ROOM_NOT_FOUND')
@@ -788,7 +783,7 @@ export class PrivateRoomService {
    * 更新房间规则集（仅房主可操作）
    */
   async updateRuleSet(roomCode: string, hostPlayerId: string, ruleSetId: string): Promise<void> {
-    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+    await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
       const room = await this.getRoom(roomCode)
       if (!room) {
         throw new PrivateRoomError('房间不存在', 'ROOM_NOT_FOUND')
@@ -859,7 +854,7 @@ export class PrivateRoomService {
       password?: string
     },
   ): Promise<void> {
-    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+    await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
       const room = await this.getRoom(roomCode)
       if (!room) {
         throw new PrivateRoomError('房间不存在', 'ROOM_NOT_FOUND')
@@ -959,7 +954,7 @@ export class PrivateRoomService {
   async getRoom(roomCode: string): Promise<PrivateRoom | null> {
     try {
       const client = this.stateManager.redisManager.getClient()
-      const roomData = await client.get(`private_room:${roomCode}`)
+      const roomData = await client.get(REDIS_KEYS.PRIVATE_ROOM(roomCode))
       if (!roomData) return null
       return JSON.parse(roomData) as PrivateRoom
     } catch (error) {
@@ -986,7 +981,11 @@ export class PrivateRoomService {
    */
   private async saveRoom(room: PrivateRoom): Promise<void> {
     const client = this.stateManager.redisManager.getClient()
-    await client.setex(`private_room:${room.config.roomCode}`, Math.floor(this.ROOM_TTL / 1000), JSON.stringify(room))
+    await client.setex(
+      REDIS_KEYS.PRIVATE_ROOM(room.config.roomCode),
+      Math.floor(this.ROOM_TTL / 1000),
+      JSON.stringify(room),
+    )
   }
 
   /**
@@ -994,11 +993,11 @@ export class PrivateRoomService {
    */
   private async addPlayerSessionToRoom(playerId: string, sessionId: string, roomCode: string): Promise<void> {
     const client = this.stateManager.redisManager.getClient()
-    const sessionKey = `private_room_player:${playerId}:${sessionId}`
+    const sessionKey = REDIS_KEYS.PRIVATE_ROOM_PLAYER_SESSION(playerId, sessionId)
     await client.setex(sessionKey, Math.floor(this.ROOM_TTL / 1000), roomCode)
 
     // 同时维护玩家的所有 session 列表，用于查询和清理
-    const playerSessionsKey = `private_room_player_sessions:${playerId}`
+    const playerSessionsKey = REDIS_KEYS.PRIVATE_ROOM_PLAYER_SESSIONS(playerId)
     await client.sadd(playerSessionsKey, sessionId)
     await client.expire(playerSessionsKey, Math.floor(this.ROOM_TTL / 1000))
   }
@@ -1008,11 +1007,11 @@ export class PrivateRoomService {
    */
   private async removePlayerSessionFromRoom(playerId: string, sessionId: string): Promise<void> {
     const client = this.stateManager.redisManager.getClient()
-    const sessionKey = `private_room_player:${playerId}:${sessionId}`
+    const sessionKey = REDIS_KEYS.PRIVATE_ROOM_PLAYER_SESSION(playerId, sessionId)
     await client.del(sessionKey)
 
     // 从玩家 session 列表中移除
-    const playerSessionsKey = `private_room_player_sessions:${playerId}`
+    const playerSessionsKey = REDIS_KEYS.PRIVATE_ROOM_PLAYER_SESSIONS(playerId)
     await client.srem(playerSessionsKey, sessionId)
   }
 
@@ -1022,7 +1021,7 @@ export class PrivateRoomService {
   private async findPlayerSessionRoom(playerId: string, sessionId: string): Promise<string | null> {
     try {
       const client = this.stateManager.redisManager.getClient()
-      const sessionKey = `private_room_player:${playerId}:${sessionId}`
+      const sessionKey = REDIS_KEYS.PRIVATE_ROOM_PLAYER_SESSION(playerId, sessionId)
       return await client.get(sessionKey)
     } catch (error) {
       logger.error({ error, playerId, sessionId }, 'Failed to find player session room')
@@ -1038,7 +1037,7 @@ export class PrivateRoomService {
       const client = this.stateManager.redisManager.getClient()
 
       // 扫描所有私人房间，查找匹配的战斗ID
-      const keys = await client.keys('private_room:*')
+      const keys = await client.keys(REDIS_KEYS.PRIVATE_ROOM('*'))
 
       for (const key of keys) {
         const roomData = await client.get(key)
@@ -1063,13 +1062,13 @@ export class PrivateRoomService {
   private async findPlayerAllSessionRooms(playerId: string): Promise<{ sessionId: string; roomCode: string }[]> {
     try {
       const client = this.stateManager.redisManager.getClient()
-      const playerSessionsKey = `private_room_player_sessions:${playerId}`
+      const playerSessionsKey = REDIS_KEYS.PRIVATE_ROOM_PLAYER_SESSIONS(playerId)
       const sessionIds = await client.smembers(playerSessionsKey)
 
       const results: { sessionId: string; roomCode: string }[] = []
 
       for (const sessionId of sessionIds) {
-        const sessionKey = `private_room_player:${playerId}:${sessionId}`
+        const sessionKey = REDIS_KEYS.PRIVATE_ROOM_PLAYER_SESSION(playerId, sessionId)
         const roomCode = await client.get(sessionKey)
         if (roomCode) {
           results.push({ sessionId, roomCode })
@@ -1090,7 +1089,7 @@ export class PrivateRoomService {
     try {
       // 使用 Redis 发布订阅来广播私人房间事件
       const client = this.stateManager.redisManager.getPublisher()
-      const channel = `private_room_events:${roomCode}`
+      const channel = REDIS_KEYS.PRIVATE_ROOM_EVENTS(roomCode)
 
       const message = {
         roomCode,
@@ -1169,7 +1168,7 @@ export class PrivateRoomService {
 
     // 删除房间数据
     const client = this.stateManager.redisManager.getClient()
-    await client.del(`private_room:${roomCode}`)
+    await client.del(REDIS_KEYS.PRIVATE_ROOM(roomCode))
 
     logger.info({ roomCode, reason }, 'Private room closed')
   }
@@ -1254,7 +1253,7 @@ export class PrivateRoomService {
    * 开始战斗
    */
   async startBattle(roomCode: string, hostPlayerId: string, hostTeam: PetSchemaType[]): Promise<string | null> {
-    return await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+    return await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
       const canStart = await this.canStartBattle(roomCode, hostPlayerId)
       if (!canStart) {
         throw new PrivateRoomError('无法开始战斗', 'INVALID_STATE')
@@ -1406,7 +1405,7 @@ export class PrivateRoomService {
   async getRoomList(): Promise<PrivateRoom[]> {
     try {
       const client = this.stateManager.redisManager.getClient()
-      const keys = await client.keys('private_room:*')
+      const keys = await client.keys(REDIS_KEYS.PRIVATE_ROOM('*'))
       const rooms: PrivateRoom[] = []
 
       for (const key of keys) {
@@ -1470,7 +1469,7 @@ export class PrivateRoomService {
     sessionId: string,
     preferredView?: 'player1' | 'player2' | 'god',
   ): Promise<void> {
-    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+    await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
       const room = await this.getRoom(roomCode)
       if (!room) {
         throw new PrivateRoomError('房间不存在', 'ROOM_NOT_FOUND')
@@ -1487,9 +1486,6 @@ export class PrivateRoomService {
       }
 
       const player = room.players[playerIndex]
-
-      // 房主可以转换为观战者，保持房主身份
-      // 观战者无数量限制
 
       // 从玩家列表中移除
       room.players.splice(playerIndex, 1)
@@ -1538,7 +1534,7 @@ export class PrivateRoomService {
    * 观战者转换为玩家
    */
   async switchToPlayer(roomCode: string, playerId: string, sessionId: string, team: PetSchemaType[]): Promise<void> {
-    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+    await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
       const room = await this.getRoom(roomCode)
       if (!room) {
         throw new PrivateRoomError('房间不存在', 'ROOM_NOT_FOUND')
