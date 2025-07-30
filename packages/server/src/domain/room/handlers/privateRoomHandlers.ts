@@ -489,49 +489,6 @@ export class PrivateRoomHandlers {
   }
 
   /**
-   * 处理重置房间请求（再来一局）
-   */
-  async handleResetRoom(socket: Socket<any, any, any, SocketData>, ack?: AckResponse<{ status: 'RESET' }>) {
-    try {
-      const playerId = socket.data?.playerId
-      const sessionId = socket.data?.sessionId
-
-      if (!playerId || !sessionId) {
-        ack?.({ status: 'ERROR', code: 'AUTHENTICATION_REQUIRED', details: '需要认证' })
-        return
-      }
-
-      // 获取该 session 当前所在房间
-      const currentRoom = await this.roomService.getPlayerSessionCurrentRoom(playerId, sessionId)
-      if (!currentRoom) {
-        ack?.({ status: 'ERROR', code: 'NOT_IN_ROOM', details: '该会话不在任何房间中' })
-        return
-      }
-
-      await this.roomService.resetRoomForNextBattle(currentRoom.config.roomCode, playerId)
-
-      logger.info(
-        {
-          roomCode: currentRoom.config.roomCode,
-          playerId,
-        },
-        'Private room reset successfully',
-      )
-
-      ack?.({ status: 'SUCCESS', data: { status: 'RESET' } })
-    } catch (error) {
-      logger.error({ error, playerId: socket.data?.playerId }, 'Failed to reset room')
-
-      if (error instanceof Error && error.name === 'PrivateRoomError') {
-        const roomError = error as PrivateRoomError
-        ack?.({ status: 'ERROR', code: roomError.code, details: roomError.message })
-      } else {
-        ack?.({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '重置房间失败' })
-      }
-    }
-  }
-
-  /**
    * 处理玩家转换为观战者请求
    */
   async handleSwitchToSpectator(

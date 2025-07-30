@@ -41,6 +41,7 @@ export class PrivateRoomService {
   ) {
     // 启动房间清理定时器
     this.startRoomCleanup()
+    this.subscribeToBattleFinishedEvents()
   }
 
   /**
@@ -51,22 +52,54 @@ export class PrivateRoomService {
   }
 
   /**
+   * 订阅战斗结束事件
+   */
+  private subscribeToBattleFinishedEvents(): void {
+    try {
+      const subscriber = this.stateManager.redisManager.getSubscriber()
+      const channel = 'private_battle_finished'
+
+      subscriber.subscribe(channel, err => {
+        if (err) {
+          logger.error({ error: err }, 'Failed to subscribe to private battle finished events')
+        }
+      })
+
+      subscriber.on('message', (receivedChannel, message) => {
+        if (receivedChannel === channel) {
+          try {
+            const { roomCode, battleRoomId, battleResult } = JSON.parse(message)
+            this.handleBattleFinished(battleRoomId, battleResult, roomCode)
+          } catch (error) {
+            logger.error({ error, message }, 'Failed to process private battle finished event')
+          }
+        }
+      })
+
+      logger.info('Subscribed to private battle finished events')
+    } catch (error) {
+      logger.error({ error }, 'Failed to subscribe to private battle finished events')
+    }
+  }
+
+  /**
    * 处理战斗结束
    */
   async handleBattleFinished(
     battleRoomId: string,
     battleResult: { winner: string | null; reason: string },
+    roomCode?: string,
   ): Promise<void> {
     try {
       // 查找包含该战斗的房间
-      const roomCode = await this.findRoomByBattleId(battleRoomId)
-      if (!roomCode) {
+      const finalRoomCode = roomCode ?? (await this.findRoomByBattleId(battleRoomId))
+      if (!finalRoomCode) {
         logger.warn({ battleRoomId }, 'No private room found for finished battle')
         return
       }
 
-      await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
-        const room = await this.getRoom(roomCode)
+      await this.lockManager.withLock(`private_room:${finalRoomCode}`, async () => {
+        const room = await this.getRoom(finalRoomCode)
         if (!room || room.battleRoomId !== battleRoomId) {
           logger.warn({ roomCode, battleRoomId }, 'Room not found or battle ID mismatch')
           return
@@ -81,7 +114,7 @@ export class PrivateRoomService {
         }
 
         // 更新房间状态
-        room.status = 'finished'
+        room.status = 'waiting'
         room.lastBattleResult = result
         room.lastActivity = Date.now()
         // 保留 battleRoomId 用于显示结果
@@ -94,10 +127,13 @@ export class PrivateRoomService {
         await this.saveRoom(room)
 
         // 广播战斗结束事件
-        await this.broadcastRoomEvent(roomCode, {
+        await this.broadcastRoomEvent(finalRoomCode, {
           type: 'battleFinished',
           data: { battleResult: result },
         })
+
+        // 广播房间状态更新
+        await this.broadcastRoomEvent(finalRoomCode, { type: 'roomUpdate', data: room })
 
         logger.info(
           {
@@ -245,54 +281,6 @@ export class PrivateRoomService {
           targetType: targetPlayer ? 'player' : 'spectator',
         },
         'Host transferred successfully',
-      )
-    })
-  }
-
-  /**
-   * 重置房间到等待状态（再来一局）
-   */
-  async resetRoomForNextBattle(roomCode: string, hostPlayerId: string): Promise<void> {
-    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
-      const room = await this.getRoom(roomCode)
-      if (!room) {
-        throw new PrivateRoomError('房间不存在', 'ROOM_NOT_FOUND')
-      }
-
-      if (room.config.hostPlayerId !== hostPlayerId) {
-        throw new PrivateRoomError('只有房主可以重置房间', 'NOT_HOST')
-      }
-
-      if (room.status !== 'finished') {
-        throw new PrivateRoomError('房间状态不正确', 'INVALID_STATE')
-      }
-
-      // 重置房间状态
-      room.status = 'waiting'
-      room.battleRoomId = undefined
-      room.lastActivity = Date.now()
-      // 保留 lastBattleResult 用于显示历史
-
-      // 重置所有玩家的准备状态
-      room.players.forEach(player => {
-        player.isReady = false
-      })
-
-      await this.saveRoom(room)
-
-      // 广播房间重置事件
-      await this.broadcastRoomEvent(roomCode, {
-        type: 'roomReset',
-        data: { message: '房间已重置，可以开始新的战斗' },
-      })
-
-      logger.info(
-        {
-          roomCode,
-          hostPlayerId,
-          playersCount: room.players.length,
-        },
-        'Private room reset for next battle',
       )
     })
   }

@@ -7,6 +7,8 @@ import { usePetStorageStore } from './petStorage'
 import type { PrivateRoomInfo, PrivateRoomEvent, CreatePrivateRoomRequest } from '@arcadia-eternity/protocol'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 
+import { ElMessageBox, ElNotification } from 'element-plus'
+
 export const usePrivateRoomStore = defineStore('privateRoom', () => {
   const router = useRouter()
   const battleClientStore = useBattleClientStore()
@@ -197,25 +199,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
       console.error('❌ Failed to start battle:', errorMessage)
-      throw err
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  const resetRoom = async (): Promise<void> => {
-    if (!currentRoom.value || !isHost.value) return
-
-    isLoading.value = true
-    error.value = null
-
-    try {
-      await battleClientStore.resetPrivateRoom()
-      console.log('✅ Room reset for next battle')
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      error.value = errorMessage
-      console.error('❌ Failed to reset room:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -413,9 +396,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
           if (event.data.playerId === playerStore.player.id) {
             console.log('🚫 You have been kicked from the room')
 
-            // 先显示被踢消息 - 使用更明显的错误类型提示
-            const { ElMessageBox, ElNotification } = await import('element-plus')
-
             // 显示通知提示
             ElNotification({
               title: '被踢出房间',
@@ -541,18 +521,8 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         break
 
       case 'battleFinished':
-        // 战斗结束，返回房间页面并显示结果
-        console.log('⚔️ Battle finished:', event.data.battleResult)
-
-        // 如果当前在战斗页面，跳转回房间页面
-        if (router.currentRoute.value.path === '/battle') {
-          router.push(`/room/${currentRoom.value?.config.roomCode}`)
-        }
-
-        // 显示战斗结果通知
-        const result = event.data.battleResult
-        const winnerText = result.winner ? `玩家 ${result.winner} 获胜` : '平局'
-        console.log(`🏆 战斗结果: ${winnerText} (${result.reason})`)
+        // 战斗结束，房间状态将通过 roomUpdate 事件同步
+        console.log('⚔️ Battle finished, waiting for roomUpdate event:', event.data.battleResult)
         break
 
       case 'roomReset':
@@ -684,7 +654,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     leaveRoom,
     toggleReady,
     startBattle,
-    resetRoom,
     updateRuleSet,
     updateRoomConfig,
     transferHost,

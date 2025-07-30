@@ -121,7 +121,6 @@ export interface ClientToServerEvents {
   leavePrivateRoom: (ack: AckResponse<{ status: 'LEFT' }>) => void
   togglePrivateRoomReady: (data: TogglePrivateRoomReadyRequest, ack: AckResponse<{ status: 'READY_TOGGLED' }>) => void
   startPrivateRoomBattle: (data: StartPrivateRoomBattleRequest, ack: AckResponse<{ battleRoomId: string }>) => void
-  resetPrivateRoom: (ack: AckResponse<{ status: 'RESET' }>) => void
   switchToSpectator: (
     data: { preferredView?: 'player1' | 'player2' | 'god' },
     ack: AckResponse<{ status: 'SWITCHED' }>,
@@ -236,7 +235,6 @@ export type PrivateRoomEvent =
       type: 'battleFinished'
       data: { battleResult: { winner: string | null; reason: string; endedAt: number; battleRoomId: string } }
     }
-  | { type: 'roomReset'; data: { message: string } }
   | { type: 'ruleSetChanged'; data: { ruleSetId: string; changedBy: string } }
   | { type: 'hostTransferred'; data: { oldHostId: string; newHostId: string; transferredBy: string } }
   | { type: 'roomClosed'; data: { reason: string } }

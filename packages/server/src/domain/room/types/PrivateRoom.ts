@@ -69,7 +69,7 @@ export interface BattleResult {
 /**
  * 私人房间状态
  */
-export type PrivateRoomStatus = 'waiting' | 'ready' | 'started' | 'finished' | 'ended'
+export type PrivateRoomStatus = 'waiting' | 'ready' | 'started' | 'ended'
 
 /**
  * 私人房间完整信息

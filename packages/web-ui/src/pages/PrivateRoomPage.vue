@@ -163,7 +163,9 @@
                         size="small"
                         >房主</el-tag
                       >
-                      <el-tag v-if="spectator.playerId === playerStore.player.id" type="primary" size="small">我</el-tag>
+                      <el-tag v-if="spectator.playerId === playerStore.player.id" type="primary" size="small"
+                        >我</el-tag
+                      >
                     </div>
                     <div class="spectator-meta">
                       <el-tag v-if="spectator.preferredView" size="small">
@@ -213,16 +215,6 @@
           <!-- 等待状态：等待玩家准备或选择队伍 -->
           <el-button v-else-if="privateRoomStore.currentRoom?.status === 'waiting'" type="primary" disabled>
             {{ getStartBattleDisabledReason() }}
-          </el-button>
-
-          <!-- 战斗结束状态：可以再来一局 -->
-          <el-button
-            v-else-if="privateRoomStore.currentRoom?.status === 'finished'"
-            type="success"
-            :disabled="privateRoomStore.isLoading"
-            @click="resetRoom"
-          >
-            再来一局
           </el-button>
 
           <!-- 战斗进行中状态 -->
@@ -398,8 +390,6 @@ const getStatusText = (status: string): string => {
       return '准备就绪'
     case 'started':
       return '战斗中'
-    case 'finished':
-      return '战斗结束'
     case 'ended':
       return '已结束'
     default:
@@ -415,8 +405,6 @@ const getStatusTagType = (status: string): 'primary' | 'success' | 'warning' | '
       return 'success'
     case 'started':
       return 'warning'
-    case 'finished':
-      return 'primary'
     case 'ended':
       return 'danger'
     default:
@@ -508,15 +496,6 @@ const startBattle = async () => {
     ElMessage.success('战斗已开始')
   } catch (error) {
     ElMessage.error('开始战斗失败: ' + (error as Error).message)
-  }
-}
-
-const resetRoom = async () => {
-  try {
-    await privateRoomStore.resetRoom()
-    ElMessage.success('房间已重置，可以开始新的战斗')
-  } catch (error) {
-    ElMessage.error('重置房间失败: ' + (error as Error).message)
   }
 }
 
@@ -678,12 +657,6 @@ onBeforeUnmount(async () => {
       console.error('Failed to cancel ready on page leave:', err)
     }
   }
-})
-
-onUnmounted(() => {
-  // 页面卸载时不清空房间状态，保持全局房间状态
-  // 只移除事件监听器
-  privateRoomStore.removeEventListeners()
 })
 </script>
 

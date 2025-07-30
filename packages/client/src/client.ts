@@ -747,25 +747,6 @@ export class BattleClient {
     })
   }
 
-  async resetPrivateRoom(): Promise<void> {
-    this.verifyConnection()
-
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Reset room timeout'))
-      }, this.options.actionTimeout)
-
-      this.socket.emit('resetPrivateRoom', response => {
-        clearTimeout(timeout)
-        if (response.status === 'SUCCESS') {
-          resolve()
-        } else {
-          reject(this.parseError(response))
-        }
-      })
-    })
-  }
-
   async switchToSpectator(preferredView?: 'player1' | 'player2' | 'god'): Promise<void> {
     this.verifyConnection()
 
