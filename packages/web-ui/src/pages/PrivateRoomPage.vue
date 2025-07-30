@@ -220,9 +220,9 @@
         </el-button>
 
         <!-- 角色转换按钮 -->
-        <template v-if="privateRoomStore.currentRoom?.status === 'waiting'">
-          <!-- 玩家转观战者 -->
-          <el-dropdown
+        <!-- <template v-if="privateRoomStore.currentRoom?.status === 'waiting'"> -->
+        <!-- 玩家转观战者 -->
+        <!-- <el-dropdown
             v-if="privateRoomStore.isPlayer"
             @command="switchToSpectator"
             :disabled="privateRoomStore.isLoading"
@@ -238,10 +238,10 @@
                 <el-dropdown-item command="player2">玩家2视角</el-dropdown-item>
               </el-dropdown-menu>
             </template>
-          </el-dropdown>
+          </el-dropdown> -->
 
-          <!-- 观战者转玩家 -->
-          <el-button
+        <!-- 观战者转玩家 -->
+        <!-- <el-button
             v-if="privateRoomStore.isSpectator && privateRoomStore.players.length < 2"
             type="warning"
             :disabled="privateRoomStore.isLoading"
@@ -249,7 +249,7 @@
           >
             转为玩家
           </el-button>
-        </template>
+        </template> -->
 
         <!-- 离开房间按钮 -->
         <el-button :disabled="privateRoomStore.isLoading" @click="leaveRoom"> 离开房间 </el-button>
