@@ -70,14 +70,6 @@ export class ClusterBattleServer {
   private serviceDiscovery?: ServiceDiscoveryManager
   private instanceId: string
 
-  // 移除本地Battle实例管理 - 这些现在由 clusterBattleService 管理
-  // private readonly localBattles = new Map<string, Battle>() // roomId -> Battle
-  // private readonly localRooms = new Map<string, LocalRoomData>() // roomId -> room data
-  // private readonly disconnectedPlayers = new Map<string, DisconnectedPlayerInfo>() // 掉线玩家管理
-
-  // 移除Timer批处理系统 - 现在由 clusterBattleService 管理
-  // private readonly timerEventBatcher: TimerEventBatcher
-
   // 保留旧的缓存用于兼容性（逐步迁移）
   private readonly timerStatusCache = new Map<string, { enabled: boolean; timestamp: number }>()
   private readonly TIMER_CACHE_TTL = 30000 // 30秒缓存，大幅减少跨实例调用
