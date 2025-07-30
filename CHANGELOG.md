@@ -1,5 +1,41 @@
 # Changelog
 
+## [2.13.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.12.4...arcadia-eternity-v2.13.0) (2025-07-30)
+
+
+### ✨ Features
+
+* Add AI control option for Player 1 in local battle ([4aa79c8](https://github.com/arcadia-eternity/arcadia-eternity/commit/4aa79c844feb6fbd2574319fa4ca342a76c3293b))
+* Add kick player feature to private rooms ([6232396](https://github.com/arcadia-eternity/arcadia-eternity/commit/62323964812c08473d588cdb46552fe0f1f32126))
+* Add private room config update API and event ([260721c](https://github.com/arcadia-eternity/arcadia-eternity/commit/260721c6dd5427254cc8784b4f1cf73289e2cb6d))
+* Add private room host transfer feature ([de3b4e7](https://github.com/arcadia-eternity/arcadia-eternity/commit/de3b4e7fa0c6b884d36b24612c153796ef18cdb9))
+* Refactor player and spectator layout in PrivateRoomPage ([52f31a2](https://github.com/arcadia-eternity/arcadia-eternity/commit/52f31a235b092ce22a80960bcff86216af412991))
+* room ([dbf6436](https://github.com/arcadia-eternity/arcadia-eternity/commit/dbf64368db15dcbe404eea4e7a6fbf3253844ac5))
+* Show 'Return to Room' button if already in a room ([c1e1dbc](https://github.com/arcadia-eternity/arcadia-eternity/commit/c1e1dbcd748a3b309637b3f0bfb7d94b22bf3fc6))
+
+
+### 🐛 Bug Fixes
+
+* matchmaking button disabled logic ([ba1ad65](https://github.com/arcadia-eternity/arcadia-eternity/commit/ba1ad659b94b16dbfd7971824dc1dde4e6ec74ff))
+* Refactor private room team and ruleset management ([fc28f60](https://github.com/arcadia-eternity/arcadia-eternity/commit/fc28f608450a1b5321b58d73c8fc69b8154fba89))
+* Refactor spectator logic in private rooms ([9665353](https://github.com/arcadia-eternity/arcadia-eternity/commit/9665353c720ea3385057808f0840d49a371d697f))
+* Remove private room reset functionality ([e50bcb8](https://github.com/arcadia-eternity/arcadia-eternity/commit/e50bcb88a430dc37bb9fcdf101e77f0584e18fbe))
+* Remove spectator options from room creation ([7ac2e8d](https://github.com/arcadia-eternity/arcadia-eternity/commit/7ac2e8d6ae326ff9dc90c0a2673e99abc78f2459))
+* Skip ELO updates for private room battles ([62d6ca3](https://github.com/arcadia-eternity/arcadia-eternity/commit/62d6ca3ef14020da8b87d27f8e5f57b136ba94bb))
+
+
+### ⚡ Performance Improvements
+
+* setup room event once ([825234f](https://github.com/arcadia-eternity/arcadia-eternity/commit/825234f52504425fea7adcff16d16b32328ba610))
+
+
+### ♻️ Code Refactoring
+
+* Add connection status tracking for private room players ([b4b0c72](https://github.com/arcadia-eternity/arcadia-eternity/commit/b4b0c720e897803bc53729633d131c4b354391ed))
+* Refactor room join and spectator logic in UI ([6af0192](https://github.com/arcadia-eternity/arcadia-eternity/commit/6af01928738744a3126dbe3d3cecdaaf5fa3f0cd))
+* Refactor team selection with TeamSelector component ([dcaa1b6](https://github.com/arcadia-eternity/arcadia-eternity/commit/dcaa1b6d3e7804cbabe28a7045988c446b506dfb))
+* Simplify battle result UI in PrivateRoomPage ([e9f637c](https://github.com/arcadia-eternity/arcadia-eternity/commit/e9f637ce14a9ef7073640b761cc3813849489de2))
+
 ## [2.12.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.12.3...arcadia-eternity-v2.12.4) (2025-07-27)
 
 
