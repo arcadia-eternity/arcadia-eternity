@@ -57,7 +57,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
       // 获取房间信息
       await getRoomInfo(roomCode)
-
       // 监听房间事件
       console.log('🚨 About to call setupRoomEventListeners (createRoom)')
       setupRoomEventListeners()
@@ -525,11 +524,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         console.log('⚔️ Battle finished, waiting for roomUpdate event:', event.data.battleResult)
         break
 
-      case 'roomReset':
-        // 房间重置，显示通知
-        console.log('🔄 Room reset:', event.data.message)
-        break
-
       case 'playerSwitchedToSpectator':
         // 玩家转换为观战者
         console.log('👁️ Player switched to spectator:', event.data.playerId, 'View:', event.data.preferredView)
@@ -591,6 +585,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     try {
       const roomInfo = await battleClientStore.getCurrentPrivateRoom()
       if (roomInfo) {
+        console.log('🏠 Current room info:', roomInfo)
         currentRoom.value = roomInfo
         setupRoomEventListeners()
         initializeSelectedTeam()

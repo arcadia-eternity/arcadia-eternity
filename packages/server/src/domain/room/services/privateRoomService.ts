@@ -119,9 +119,13 @@ export class PrivateRoomService {
         room.lastActivity = Date.now()
         // 保留 battleRoomId 用于显示结果
 
-        // 重置所有玩家的准备状态
+        // 重置所有玩家的准备状态和在线状态
         room.players.forEach(player => {
           player.isReady = false
+          player.connectionStatus = 'online' // 战斗结束后，所有玩家都应被视作在线
+        })
+        room.spectators.forEach(spectator => {
+          spectator.connectionStatus = 'online'
         })
 
         await this.saveRoom(room)
@@ -148,6 +152,68 @@ export class PrivateRoomService {
     } catch (error) {
       logger.error({ error, battleRoomId }, 'Failed to handle battle finished')
     }
+  }
+
+  /**
+   * 处理玩家在战斗中断线
+   */
+  async handlePlayerDisconnect(roomCode: string, playerId: string, sessionId: string): Promise<void> {
+    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+      const room = await this.getRoom(roomCode)
+      if (!room) return
+
+      const player = room.players.find(p => p.playerId === playerId && p.sessionId === sessionId)
+      if (player) {
+        player.connectionStatus = 'offline'
+      } else {
+        const spectator = room.spectators.find(s => s.playerId === playerId && s.sessionId === sessionId)
+        if (spectator) {
+          spectator.connectionStatus = 'offline'
+        }
+      }
+
+      room.lastActivity = Date.now()
+      await this.saveRoom(room)
+
+      // 广播房间状态更新
+      await this.broadcastRoomEvent(roomCode, {
+        type: 'roomUpdate',
+        data: room,
+      })
+
+      logger.info({ roomCode, playerId, sessionId }, 'Player disconnected during battle, status set to offline')
+    })
+  }
+
+  /**
+   * 处理玩家在战斗中重连
+   */
+  async handlePlayerReconnect(roomCode: string, playerId: string, sessionId: string): Promise<void> {
+    await this.lockManager.withLock(`private_room:${roomCode}`, async () => {
+      const room = await this.getRoom(roomCode)
+      if (!room) return
+
+      const player = room.players.find(p => p.playerId === playerId && p.sessionId === sessionId)
+      if (player) {
+        player.connectionStatus = 'online'
+      } else {
+        const spectator = room.spectators.find(s => s.playerId === playerId && s.sessionId === sessionId)
+        if (spectator) {
+          spectator.connectionStatus = 'online'
+        }
+      }
+
+      room.lastActivity = Date.now()
+      await this.saveRoom(room)
+
+      // 广播房间状态更新
+      await this.broadcastRoomEvent(roomCode, {
+        type: 'roomUpdate',
+        data: room,
+      })
+
+      logger.info({ roomCode, playerId, sessionId }, 'Player reconnected during battle, status set to online')
+    })
   }
 
   /**
@@ -308,7 +374,7 @@ export class PrivateRoomService {
           isPrivate: config.isPrivate || false,
           password: config.password,
         },
-        players: [hostEntry],
+        players: [{ ...hostEntry, connectionStatus: 'online' }],
         spectators: [],
         status: 'waiting',
         createdAt: Date.now(),
@@ -383,12 +449,14 @@ export class PrivateRoomService {
           throw new PrivateRoomError('房间已满', 'ROOM_FULL')
         }
 
-        room.players.push(entry as RoomPlayer)
+        const playerEntry = entry as RoomPlayer
+        playerEntry.connectionStatus = 'online'
+        room.players.push(playerEntry)
 
         // 广播玩家加入事件
         await this.broadcastRoomEvent(request.roomCode, {
           type: 'playerJoined',
-          data: entry as RoomPlayer,
+          data: playerEntry,
         })
 
         logger.info(
@@ -401,12 +469,14 @@ export class PrivateRoomService {
         )
       } else {
         // 观战者加入（观战功能默认开启，无需检查限制）
-        room.spectators.push(entry as SpectatorEntry)
+        const spectatorEntry = entry as SpectatorEntry
+        spectatorEntry.connectionStatus = 'online'
+        room.spectators.push(spectatorEntry)
 
         // 广播观战者加入事件
         await this.broadcastRoomEvent(request.roomCode, {
           type: 'spectatorJoined',
-          data: entry,
+          data: spectatorEntry,
         })
 
         logger.info(
@@ -1431,6 +1501,7 @@ export class PrivateRoomService {
         sessionId: player.sessionId,
         joinedAt: Date.now(),
         preferredView: preferredView || 'god',
+        connectionStatus: 'online',
       }
       room.spectators.push(spectatorEntry)
 
@@ -1506,6 +1577,7 @@ export class PrivateRoomService {
         team: team,
         isReady: false,
         joinedAt: Date.now(),
+        connectionStatus: 'online',
       }
       room.players.push(playerEntry)
 

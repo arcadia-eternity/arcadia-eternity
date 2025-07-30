@@ -66,6 +66,7 @@ export class PrivateRoomHandlers {
         sessionId,
         isReady: false,
         joinedAt: Date.now(),
+        connectionStatus: 'online',
       }
 
       const roomCode = await this.roomService.createRoom(hostEntry, data.config)
@@ -120,6 +121,7 @@ export class PrivateRoomHandlers {
         sessionId,
         isReady: false,
         joinedAt: Date.now(),
+        connectionStatus: 'online',
       }
 
       const success = await this.roomService.joinRoom(data, playerEntry, 'player')
@@ -177,6 +179,7 @@ export class PrivateRoomHandlers {
         sessionId,
         joinedAt: Date.now(),
         preferredView: data.preferredView,
+        connectionStatus: 'online',
       }
 
       const success = await this.roomService.joinRoom({ roomCode: data.roomCode }, spectatorEntry, 'spectator')

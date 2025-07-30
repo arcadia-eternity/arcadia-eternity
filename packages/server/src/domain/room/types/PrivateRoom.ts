@@ -19,6 +19,11 @@ export interface PrivateRoomConfig {
 }
 
 /**
+ * 玩家连接状态
+ */
+export type ConnectionStatus = 'online' | 'offline'
+
+/**
  * 房间内玩家信息
  */
 export interface RoomPlayer {
@@ -34,6 +39,8 @@ export interface RoomPlayer {
   isReady: boolean
   /** 加入时间 */
   joinedAt: number
+  /** 连接状态 */
+  connectionStatus: ConnectionStatus
 }
 
 /**
@@ -50,6 +57,8 @@ export interface SpectatorEntry {
   joinedAt: number
   /** 偏好的观战视角 */
   preferredView?: 'player1' | 'player2' | 'god'
+  /** 连接状态 */
+  connectionStatus: ConnectionStatus
 }
 
 /**

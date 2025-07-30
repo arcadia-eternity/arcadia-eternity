@@ -627,6 +627,25 @@ export class ClusterBattleServer {
           '玩家重连处理完成',
         )
 
+        // 处理私人房间重连
+        if (this.privateRoomService) {
+          const { playerId, sessionId } = socket.data
+          if (playerId && sessionId) {
+            try {
+              const currentRoom = await this.privateRoomService.getPlayerSessionCurrentRoom(playerId, sessionId)
+              if (currentRoom && currentRoom.status === 'started') {
+                logger.info(
+                  { playerId, sessionId, roomCode: currentRoom.config.roomCode },
+                  '玩家在私人房间战斗中重连，更新状态为在线',
+                )
+                await this.privateRoomService.handlePlayerReconnect(currentRoom.config.roomCode, playerId, sessionId)
+              }
+            } catch (error) {
+              logger.error({ error, playerId, sessionId }, 'Failed to handle private room reconnect')
+            }
+          }
+        }
+
         // 通知客户端需要跳转到战斗页面
         if (reconnectInfo.roomId) {
           // 在发送重连测试消息之前，再次验证房间状态
@@ -820,11 +839,21 @@ export class ClusterBattleServer {
         try {
           const currentRoom = await this.privateRoomService.getPlayerSessionCurrentRoom(playerId, sessionId)
           if (currentRoom) {
-            logger.info(
-              { playerId, sessionId, roomCode: currentRoom.config.roomCode },
-              '玩家在私人房间中断线，移除玩家会话',
-            )
-            await this.privateRoomService.leaveRoom(currentRoom.config.roomCode, playerId, sessionId)
+            if (currentRoom.status === 'started') {
+              // 战斗中掉线，只更新状态，不离开房间
+              logger.info(
+                { playerId, sessionId, roomCode: currentRoom.config.roomCode },
+                '玩家在私人房间战斗中掉线，更新连接状态',
+              )
+              await this.privateRoomService.handlePlayerDisconnect(currentRoom.config.roomCode, playerId, sessionId)
+            } else {
+              // 不在战斗中掉线，直接离开房间
+              logger.info(
+                { playerId, sessionId, roomCode: currentRoom.config.roomCode },
+                '玩家在私人房间中断线（非战斗状态），移除玩家会话',
+              )
+              await this.privateRoomService.leaveRoom(currentRoom.config.roomCode, playerId, sessionId)
+            }
           }
         } catch (error) {
           logger.error({ error, playerId, sessionId }, 'Failed to handle private room disconnect')
