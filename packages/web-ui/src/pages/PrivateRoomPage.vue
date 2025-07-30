@@ -31,28 +31,12 @@
 
         <!-- 战斗结果显示 -->
         <div v-if="privateRoomStore.currentRoom.lastBattleResult" class="battle-result">
-          <el-card class="result-card">
-            <template #header>
-              <div class="result-header">
-                <el-icon><Trophy /></el-icon>
-                <span>上一局战斗结果</span>
-              </div>
-            </template>
-            <div class="result-content">
-              <div class="winner-info">
-                <span v-if="privateRoomStore.currentRoom.lastBattleResult.winner" class="winner">
-                  🏆 胜利者: {{ getPlayerName(privateRoomStore.currentRoom.lastBattleResult.winner) }}
-                </span>
-                <span v-else class="draw">🤝 平局</span>
-              </div>
-              <div class="result-reason">
-                {{ privateRoomStore.currentRoom.lastBattleResult.reason }}
-              </div>
-              <div class="result-time">
-                {{ formatTime(privateRoomStore.currentRoom.lastBattleResult.endedAt) }}
-              </div>
-            </div>
-          </el-card>
+          <strong v-if="privateRoomStore.currentRoom.lastBattleResult.winner" class="winner">
+            🏆 胜利者: {{ getPlayerName(privateRoomStore.currentRoom.lastBattleResult.winner) }}
+          </strong>
+          <strong v-else class="draw">🤝 平局</strong>
+          <span class="result-reason">{{ privateRoomStore.currentRoom.lastBattleResult.reason }}</span>
+          <span class="result-time">{{ formatTime(privateRoomStore.currentRoom.lastBattleResult.endedAt) }}</span>
         </div>
 
         <div class="room-info">
@@ -771,24 +755,14 @@ onBeforeUnmount(async () => {
 }
 
 .battle-result {
-  margin: 1.5rem 0;
-}
-
-.result-card {
-  border: 2px solid #e6f7ff;
-  background: linear-gradient(135deg, #f6ffed 0%, #e6f7ff 100%);
-}
-
-.result-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-weight: bold;
-  color: #1890ff;
-}
-
-.result-content {
-  text-align: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--el-bg-color-page);
+  border-radius: 6px;
+  border: 1px solid var(--el-border-color);
+  margin: 1rem 0;
 }
 
 .winner-info {
@@ -799,20 +773,23 @@ onBeforeUnmount(async () => {
 
 .winner {
   color: #52c41a;
+  font-weight: bold;
 }
 
 .draw {
   color: #faad14;
+  font-weight: bold;
 }
 
 .result-reason {
-  color: #666;
-  margin-bottom: 0.5rem;
+  color: var(--el-text-color-secondary);
+  font-size: 0.9rem;
 }
 
 .result-time {
   font-size: 0.9rem;
-  color: #999;
+  color: var(--el-text-color-placeholder);
+  margin-left: auto;
 }
 
 .switch-dialog-content {
