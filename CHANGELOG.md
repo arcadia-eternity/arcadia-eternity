@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.13.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.13.0...arcadia-eternity-v2.13.1) (2025-07-30)
+
+
+### 🐛 Bug Fixes
+
+* temporary remove self ai ([6402ce5](https://github.com/arcadia-eternity/arcadia-eternity/commit/6402ce5d88ce50e7e650b52c5da718d32c7e1983))
+
 ## [2.13.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.12.4...arcadia-eternity-v2.13.0) (2025-07-30)
 
 
