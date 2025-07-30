@@ -71,42 +71,113 @@
         </div>
       </div>
 
-      <!-- 玩家区域 -->
-      <div class="players-section">
-        <h3>玩家 ({{ privateRoomStore.players.length }}/{{ privateRoomStore.currentRoom.config.maxPlayers }})</h3>
+      <!-- Combined Players and Spectators Section -->
+      <div class="participants-section">
+        <!-- Players Section -->
+        <div class="players-column">
+          <div class="players-section">
+            <h3>玩家 ({{ privateRoomStore.players.length }}/{{ privateRoomStore.currentRoom.config.maxPlayers }})</h3>
 
-        <div class="player-slots">
-          <div v-for="player in privateRoomStore.players" :key="player.playerId" class="player-slot filled">
-            <PlayerCard
-              :player="player"
-              :isHost="player.playerId === privateRoomStore.currentRoom.config.hostPlayerId"
-              :isReady="player.isReady"
-              :isCurrentPlayer="player.playerId === playerStore.player.id"
-              :canTransferHost="
-                privateRoomStore.isHost &&
-                privateRoomStore.currentRoom?.status === 'waiting' &&
-                player.playerId !== privateRoomStore.currentRoom.config.hostPlayerId
-              "
-              :canKick="
-                privateRoomStore.isHost &&
-                privateRoomStore.currentRoom?.status === 'waiting' &&
-                player.playerId !== privateRoomStore.currentRoom.config.hostPlayerId &&
-                player.playerId !== playerStore.player.id
-              "
-              :isLoading="privateRoomStore.isLoading"
-              @transferHost="transferHost"
-              @kickPlayer="kickPlayer"
-            />
+            <div class="player-slots">
+              <div v-for="player in privateRoomStore.players" :key="player.playerId" class="player-slot filled">
+                <PlayerCard
+                  :player="player"
+                  :isHost="player.playerId === privateRoomStore.currentRoom.config.hostPlayerId"
+                  :isReady="player.isReady"
+                  :isCurrentPlayer="player.playerId === playerStore.player.id"
+                  :canTransferHost="
+                    privateRoomStore.isHost &&
+                    privateRoomStore.currentRoom?.status === 'waiting' &&
+                    player.playerId !== privateRoomStore.currentRoom.config.hostPlayerId
+                  "
+                  :canKick="
+                    privateRoomStore.isHost &&
+                    privateRoomStore.currentRoom?.status === 'waiting' &&
+                    player.playerId !== privateRoomStore.currentRoom.config.hostPlayerId &&
+                    player.playerId !== playerStore.player.id
+                  "
+                  :isLoading="privateRoomStore.isLoading"
+                  @transferHost="transferHost"
+                  @kickPlayer="kickPlayer"
+                />
+              </div>
+
+              <div
+                v-for="i in privateRoomStore.currentRoom.config.maxPlayers - privateRoomStore.players.length"
+                :key="`empty-${i}`"
+                class="player-slot empty"
+              >
+                <div class="waiting-indicator">
+                  <el-icon><User /></el-icon>
+                  <span>等待玩家加入...</span>
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
 
-          <div
-            v-for="i in privateRoomStore.currentRoom.config.maxPlayers - privateRoomStore.players.length"
-            :key="`empty-${i}`"
-            class="player-slot empty"
-          >
-            <div class="waiting-indicator">
-              <el-icon><User /></el-icon>
-              <span>等待玩家加入...</span>
+        <!-- Spectators Section -->
+        <div class="spectators-column">
+          <div class="spectators-section">
+            <h3>观战者 ({{ privateRoomStore.spectators.length }})</h3>
+
+            <div v-if="privateRoomStore.spectators.length > 0" class="spectator-list">
+              <div v-for="spectator in privateRoomStore.spectators" :key="spectator.playerId" class="spectator-item">
+                <!-- 房主操作按钮 - 右上角 -->
+                <div
+                  v-if="
+                    privateRoomStore.isHost &&
+                    privateRoomStore.currentRoom?.status === 'waiting' &&
+                    spectator.playerId !== privateRoomStore.currentRoom?.config.hostPlayerId &&
+                    spectator.playerId !== playerStore.player.id
+                  "
+                  class="spectator-actions-corner"
+                >
+                  <el-dropdown trigger="hover" placement="bottom-end">
+                    <el-button type="text" size="small" class="spectator-action-trigger">
+                      <el-icon><MoreFilled /></el-icon>
+                    </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item @click="transferHost(spectator.playerId)">
+                          <el-icon><Star /></el-icon>
+                          转移房主
+                        </el-dropdown-item>
+                        <el-dropdown-item @click="kickPlayer(spectator.playerId)" class="danger-item">
+                          <el-icon><Close /></el-icon>
+                          踢出房间
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </div>
+
+                <div class="spectator-info">
+                  <el-avatar :size="32">{{ spectator.playerName.charAt(0) }}</el-avatar>
+                  <div class="spectator-details">
+                    <div class="spectator-name-row">
+                      <span class="spectator-name">{{ spectator.playerName }}</span>
+                      <el-tag
+                        v-if="spectator.playerId === privateRoomStore.currentRoom?.config.hostPlayerId"
+                        type="warning"
+                        size="small"
+                        >房主</el-tag
+                      >
+                      <el-tag v-if="spectator.playerId === playerStore.player.id" type="primary" size="small">我</el-tag>
+                    </div>
+                    <div class="spectator-meta">
+                      <el-tag v-if="spectator.preferredView" size="small">
+                        {{ getViewModeText(spectator.preferredView) }}
+                      </el-tag>
+                      <span class="join-time">{{ formatTime(spectator.joinedAt) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-else class="no-spectators">
+              <p>暂无观战者</p>
             </div>
           </div>
         </div>
@@ -206,70 +277,6 @@
 
         <!-- 离开房间按钮 -->
         <el-button :disabled="privateRoomStore.isLoading" @click="leaveRoom"> 离开房间 </el-button>
-      </div>
-
-      <!-- 观战者区域 -->
-      <div class="spectators-section">
-        <h3>观战者 ({{ privateRoomStore.spectators.length }})</h3>
-
-        <div v-if="privateRoomStore.spectators.length > 0" class="spectator-list">
-          <div v-for="spectator in privateRoomStore.spectators" :key="spectator.playerId" class="spectator-item">
-            <!-- 房主操作按钮 - 右上角 -->
-            <div
-              v-if="
-                privateRoomStore.isHost &&
-                privateRoomStore.currentRoom?.status === 'waiting' &&
-                spectator.playerId !== privateRoomStore.currentRoom?.config.hostPlayerId &&
-                spectator.playerId !== playerStore.player.id
-              "
-              class="spectator-actions-corner"
-            >
-              <el-dropdown trigger="hover" placement="bottom-end">
-                <el-button type="text" size="small" class="spectator-action-trigger">
-                  <el-icon><MoreFilled /></el-icon>
-                </el-button>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item @click="transferHost(spectator.playerId)">
-                      <el-icon><Star /></el-icon>
-                      转移房主
-                    </el-dropdown-item>
-                    <el-dropdown-item @click="kickPlayer(spectator.playerId)" class="danger-item">
-                      <el-icon><Close /></el-icon>
-                      踢出房间
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-            </div>
-
-            <div class="spectator-info">
-              <el-avatar :size="32">{{ spectator.playerName.charAt(0) }}</el-avatar>
-              <div class="spectator-details">
-                <div class="spectator-name-row">
-                  <span class="spectator-name">{{ spectator.playerName }}</span>
-                  <el-tag
-                    v-if="spectator.playerId === privateRoomStore.currentRoom?.config.hostPlayerId"
-                    type="warning"
-                    size="small"
-                    >房主</el-tag
-                  >
-                  <el-tag v-if="spectator.playerId === playerStore.player.id" type="primary" size="small">我</el-tag>
-                </div>
-                <div class="spectator-meta">
-                  <el-tag v-if="spectator.preferredView" size="small">
-                    {{ getViewModeText(spectator.preferredView) }}
-                  </el-tag>
-                  <span class="join-time">{{ formatTime(spectator.joinedAt) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div v-else class="no-spectators">
-          <p>暂无观战者</p>
-        </div>
       </div>
     </div>
 
@@ -860,11 +867,28 @@ onUnmounted(() => {
   margin-top: 0.25rem;
 }
 
+.participants-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.players-column {
+  flex: 2;
+  min-width: 300px;
+}
+
+.spectators-column {
+  flex: 1;
+  min-width: 250px;
+}
+
 .spectators-section {
   padding: 1.5rem;
   background: var(--el-bg-color-page);
   border-radius: 8px;
   border: 1px solid var(--el-border-color);
+  height: 100%; /* Ensure it takes full height of its column */
 }
 
 .spectators-section h3 {
@@ -883,46 +907,48 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.75rem;
+  gap: 0.5rem; /* Reduced gap */
+  padding: 0.5rem 0.75rem; /* Reduced padding */
   background: var(--el-bg-color);
   border-radius: 6px;
   border: 1px solid var(--el-border-color);
+  font-size: 0.875rem; /* Smaller font size */
 }
 
 .spectator-info {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem; /* Reduced gap */
   flex: 1;
 }
 
 .spectator-details {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.1rem; /* Reduced gap */
   flex: 1;
 }
 
 .spectator-name-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem; /* Reduced gap */
 }
 
 .spectator-name {
   font-weight: 500;
   color: var(--el-text-color-primary);
+  font-size: 0.9rem; /* Slightly smaller name font */
 }
 
 .spectator-meta {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem; /* Reduced gap */
 }
 
 .join-time {
-  font-size: 0.75rem;
+  font-size: 0.7rem; /* Smaller join time font */
   color: var(--el-text-color-placeholder);
 }
 
@@ -933,13 +959,13 @@ onUnmounted(() => {
 
 .spectator-actions-corner {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: 0.2rem; /* Adjusted position */
+  right: 0.2rem; /* Adjusted position */
   z-index: 10;
 }
 
 .spectator-action-trigger {
-  padding: 4px !important;
+  padding: 2px !important; /* Reduced padding */
   min-height: auto !important;
   border-radius: 50% !important;
   color: var(--el-text-color-regular) !important;
@@ -965,7 +991,8 @@ onUnmounted(() => {
 .no-spectators {
   text-align: center;
   color: var(--el-text-color-placeholder);
-  padding: 2rem;
+  padding: 1rem; /* Reduced padding */
+  font-size: 0.9rem; /* Smaller font size */
 }
 
 @media (max-width: 768px) {
@@ -989,6 +1016,10 @@ onUnmounted(() => {
 
   .room-controls {
     flex-direction: column;
+  }
+
+  .participants-section {
+    flex-direction: column; /* Stack columns on small screens */
   }
 }
 
