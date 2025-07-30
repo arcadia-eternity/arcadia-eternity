@@ -1,4 +1,5 @@
 import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useBattleStore } from '@/stores/battle'
 import { useBattleClientStore } from '@/stores/battleClient'
 
@@ -16,6 +17,14 @@ export const battleGuard = (to: RouteLocationNormalized, from: RouteLocationNorm
       return next()
     } else if (from.name === 'LocalBattle') {
       return next()
+    } else if (from.name === 'PrivateRoom') {
+      // 私人房间战斗：检查是否有有效的私人房间战斗参数
+      if (to.query.privateRoom === 'true' && to.query.roomId) {
+        return next()
+      } else {
+        ElMessage.warning('无效的私人房间战斗参数')
+        return next('/')
+      }
     } else {
       return next('/')
     }

@@ -208,6 +208,13 @@ export const REDIS_KEYS = {
 
   // 统计信息
   STATS: 'cluster:stats',
+
+  // 私人房间
+  PRIVATE_ROOM: (roomCode: string) => `private_room:${roomCode}`,
+  PRIVATE_ROOM_PLAYER_SESSION: (playerId: string, sessionId: string) => `private_room_player:${playerId}:${sessionId}`,
+  PRIVATE_ROOM_PLAYER_SESSIONS: (playerId: string) => `private_room_player_sessions:${playerId}`,
+  PRIVATE_ROOM_EVENTS: (roomCode: string) => `private_room_events:${roomCode}`,
+  PRIVATE_BATTLE_FINISHED_EVENTS: 'private_battle_finished',
 } as const
 
 // 错误类型

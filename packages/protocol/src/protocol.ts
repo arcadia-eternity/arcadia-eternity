@@ -1,6 +1,9 @@
 // src/protocol.ts
 import type { BattleMessage, BattleState, TimerConfig, PlayerTimerState } from '@arcadia-eternity/const'
-import type { PlayerSchemaType, PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
+import type { PlayerSchemaType, PlayerSelectionSchemaType, PetSchemaType } from '@arcadia-eternity/schema'
+
+// 重新导出常用类型
+export type { PetSchemaType, PlayerSchemaType, PlayerSelectionSchemaType }
 
 // 统一响应类型
 export type SuccessResponse<T = undefined> = {
@@ -62,6 +65,9 @@ export interface ServerToClientEvents {
   }) => void
   // 重连测试事件（用于验证消息发送是否正常）
   reconnectTest: (data: { message: string; timestamp: number }) => void
+
+  // 私人房间事件
+  privateRoomEvent: (event: PrivateRoomEvent) => void
 }
 
 export interface ClientToServerEvents {
@@ -107,4 +113,136 @@ export interface ClientToServerEvents {
     ack: AckResponse<string>,
   ) => void
   endAnimation: (data: { animationId: string; actualDuration?: number }) => void
+
+  // 私人房间相关事件
+  createPrivateRoom: (data: CreatePrivateRoomRequest, ack: AckResponse<{ roomCode: string }>) => void
+  joinPrivateRoom: (data: JoinPrivateRoomRequest, ack: AckResponse<{ status: 'JOINED' }>) => void
+  joinPrivateRoomAsSpectator: (data: JoinPrivateRoomSpectatorRequest, ack: AckResponse<{ status: 'JOINED' }>) => void
+  leavePrivateRoom: (ack: AckResponse<{ status: 'LEFT' }>) => void
+  togglePrivateRoomReady: (data: TogglePrivateRoomReadyRequest, ack: AckResponse<{ status: 'READY_TOGGLED' }>) => void
+  startPrivateRoomBattle: (data: StartPrivateRoomBattleRequest, ack: AckResponse<{ battleRoomId: string }>) => void
+  switchToSpectator: (
+    data: { preferredView?: 'player1' | 'player2' | 'god' },
+    ack: AckResponse<{ status: 'SWITCHED' }>,
+  ) => void
+  switchToPlayer: (data: { team: PetSchemaType[] }, ack: AckResponse<{ status: 'SWITCHED' }>) => void
+  getPrivateRoomInfo: (data: { roomCode: string }, ack: AckResponse<PrivateRoomInfo>) => void
+  updatePrivateRoomRuleSet: (data: UpdatePrivateRoomRuleSetRequest, ack: AckResponse<{ status: 'UPDATED' }>) => void
+  updatePrivateRoomConfig: (data: UpdatePrivateRoomConfigRequest, ack: AckResponse<{ status: 'UPDATED' }>) => void
+  transferPrivateRoomHost: (data: TransferPrivateRoomHostRequest, ack: AckResponse<{ status: 'TRANSFERRED' }>) => void
+  kickPlayerFromPrivateRoom: (data: KickPlayerFromPrivateRoomRequest, ack: AckResponse<{ status: 'KICKED' }>) => void
+  getCurrentPrivateRoom: (ack: AckResponse<PrivateRoomInfo | null>) => void
 }
+
+// 私人房间相关类型定义
+export interface CreatePrivateRoomRequest {
+  config: {
+    ruleSetId?: string
+    isPrivate?: boolean
+    password?: string
+  }
+}
+
+export interface JoinPrivateRoomRequest {
+  roomCode: string
+  password?: string
+}
+
+export interface JoinPrivateRoomSpectatorRequest {
+  roomCode: string
+  preferredView?: 'player1' | 'player2' | 'god'
+}
+
+export interface TogglePrivateRoomReadyRequest {
+  team?: PetSchemaType[]
+}
+
+export interface UpdatePrivateRoomRuleSetRequest {
+  ruleSetId: string
+}
+
+export interface UpdatePrivateRoomConfigRequest {
+  ruleSetId?: string
+  isPrivate?: boolean
+  password?: string
+}
+
+export interface StartPrivateRoomBattleRequest {
+  hostTeam: PetSchemaType[]
+}
+
+export interface TransferPrivateRoomHostRequest {
+  targetPlayerId: string
+}
+
+export interface KickPlayerFromPrivateRoomRequest {
+  targetPlayerId: string
+}
+
+export interface PrivateRoomPlayer {
+  playerId: string
+  playerName: string
+  sessionId: string
+  team?: PetSchemaType[]
+  isReady: boolean
+  joinedAt: number
+}
+
+export interface PrivateRoomSpectator {
+  playerId: string
+  playerName: string
+  sessionId: string
+  joinedAt: number
+  preferredView?: 'player1' | 'player2' | 'god'
+}
+
+export interface PrivateRoomInfo {
+  id: string
+  config: {
+    roomCode: string
+    hostPlayerId: string
+    ruleSetId: string
+    maxPlayers: number
+    isPrivate: boolean
+    password?: string
+  }
+  players: PrivateRoomPlayer[]
+  spectators: PrivateRoomSpectator[]
+  status: 'waiting' | 'ready' | 'started' | 'finished' | 'ended'
+  createdAt: number
+  lastActivity: number
+  battleRoomId?: string
+  lastBattleResult?: {
+    winner: string | null
+    reason: string
+    endedAt: number
+    battleRoomId: string
+  }
+}
+
+export type PrivateRoomEvent =
+  | { type: 'playerJoined'; data: PrivateRoomPlayer }
+  | { type: 'playerLeft'; data: { playerId: string } }
+  | { type: 'playerKicked'; data: { playerId: string; kickedBy: string } }
+  | { type: 'playerReady'; data: { playerId: string; isReady: boolean } }
+  | { type: 'spectatorJoined'; data: PrivateRoomSpectator }
+  | { type: 'spectatorLeft'; data: { playerId: string } }
+  | { type: 'playerSwitchedToSpectator'; data: { playerId: string; preferredView: string } }
+  | { type: 'spectatorSwitchedToPlayer'; data: { playerId: string } }
+  | { type: 'roomUpdate'; data: PrivateRoomInfo }
+  | { type: 'battleStarted'; data: { battleRoomId: string } }
+  | {
+      type: 'battleFinished'
+      data: { battleResult: { winner: string | null; reason: string; endedAt: number; battleRoomId: string } }
+    }
+  | { type: 'ruleSetChanged'; data: { ruleSetId: string; changedBy: string } }
+  | { type: 'hostTransferred'; data: { oldHostId: string; newHostId: string; transferredBy: string } }
+  | { type: 'roomClosed'; data: { reason: string } }
+  | {
+      type: 'roomConfigChanged'
+      data: {
+        oldConfig: PrivateRoomInfo['config']
+        newConfig: PrivateRoomInfo['config']
+        changedBy: string
+      }
+    }

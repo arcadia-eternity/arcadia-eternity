@@ -46,6 +46,7 @@ type LocalRoomData = {
   status: 'waiting' | 'active' | 'ended'
   lastActive: number
   battleRecordId?: string
+  privateRoom?: boolean
 }
 
 type DisconnectedPlayerInfo = {
@@ -241,6 +242,7 @@ export class ClusterBattleService implements IBattleService {
       status: 'waiting',
       lastActive: Date.now(),
       battleRecordId: roomState.metadata?.battleRecordId,
+      privateRoom: roomState.metadata?.privateRoom,
     }
 
     this.localRooms.set(roomState.id, localRoom)
@@ -310,6 +312,10 @@ export class ClusterBattleService implements IBattleService {
         // 获取规则集信息，优先使用player1的规则集，如果不存在则使用player2的，最后默认为休闲规则集
         const ruleSetId = player1Entry.ruleSetId || player2Entry.ruleSetId || 'casual_standard_ruleset'
 
+        // 检查是否是私人房间战斗
+        const isPrivateRoom = player1Entry.metadata?.privateRoom || player2Entry.metadata?.privateRoom || false
+        const roomCode = player1Entry.metadata?.roomCode || player2Entry.metadata?.roomCode
+
         // 创建战报记录
         let battleRecordId: string | undefined
         if (this.battleReportService) {
@@ -322,6 +328,7 @@ export class ClusterBattleService implements IBattleService {
                 player2Data.id,
                 player2Data.name,
                 ruleSetId,
+                { isPrivateRoom },
               )) || undefined
           } catch (error) {
             logger.error({ error }, 'Failed to create battle record')
@@ -343,6 +350,8 @@ export class ClusterBattleService implements IBattleService {
             battleRecordId,
             createdAt: Date.now(),
             ruleSetId, // 添加规则集信息
+            privateRoom: isPrivateRoom,
+            roomCode: roomCode,
           },
         }
 
@@ -535,6 +544,9 @@ export class ClusterBattleService implements IBattleService {
             { roomId, winner: battleEndData.winner, reason: battleEndData.reason },
             'Battle ended, starting cleanup',
           )
+
+          
+
           this.handleBattleEnd(roomId, battleEndData)
         }
       },
@@ -836,6 +848,29 @@ export class ClusterBattleService implements IBattleService {
   }
 
   /**
+   * 发布私人战斗结束事件
+   */
+  private async publishPrivateBattleFinishedEvent(
+    roomCode: string,
+    battleRoomId: string,
+    battleResult: { winner: string | null; reason: string },
+  ): Promise<void> {
+    try {
+      const publisher = this.stateManager.redisManager.getPublisher()
+      const channel = 'private_battle_finished'
+      const message = {
+        roomCode,
+        battleRoomId,
+        battleResult,
+      }
+      await publisher.publish(channel, JSON.stringify(message))
+      logger.info({ roomCode, battleRoomId }, 'Published private battle finished event')
+    } catch (error) {
+      logger.error({ error, roomCode, battleRoomId }, 'Failed to publish private battle finished event')
+    }
+  }
+
+  /**
    * 处理战斗结束
    */
   private async handleBattleEnd(
@@ -855,6 +890,11 @@ export class ClusterBattleService implements IBattleService {
 
       // 获取房间状态用于后续清理
       const roomState = await this.stateManager.getRoomState(roomId)
+
+      // If it's a private room, publish an event
+      if (localRoom.privateRoom && roomState && roomState.metadata?.roomCode) {
+        await this.publishPrivateBattleFinishedEvent(roomState.metadata.roomCode, roomId, battleEndData)
+      }
 
       // 立即清理会话到房间的映射，防止重连到已结束的战斗
       if (roomState) {

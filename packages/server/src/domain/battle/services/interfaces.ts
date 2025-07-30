@@ -42,6 +42,10 @@ export interface BattleCallbacks {
   cleanupSessionRoomMappings: (roomState: RoomState) => Promise<void>
   forwardPlayerAction: (instanceId: string, action: string, playerId: string, data: any) => Promise<any>
   createSessionRoomMappings: (roomState: RoomState) => Promise<void>
+  handlePrivateRoomBattleFinished?: (
+    battleRoomId: string,
+    battleResult: { winner: string | null; reason: string },
+  ) => Promise<void>
   joinPlayerToRoom: (playerId: string, roomId: string) => Promise<void>
 }
 

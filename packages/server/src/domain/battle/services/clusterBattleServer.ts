@@ -28,6 +28,9 @@ import { BattleRpcClient } from '../../../cluster/communication/rpc/battleRpcCli
 import type { ServiceDiscoveryManager } from '../../../cluster/discovery/serviceDiscovery'
 import { TYPES } from '../../../types'
 import type { MatchmakingCallbacks, BattleCallbacks, IMatchmakingService, IBattleService } from './interfaces'
+import { PrivateRoomService } from '../../room/services/privateRoomService'
+import { PrivateRoomHandlers } from '../../room/handlers/privateRoomHandlers'
+import { SessionStateManager } from '../../session/sessionStateManager'
 import { injectable, inject, optional } from 'inversify'
 
 const logger = pino({
@@ -67,14 +70,6 @@ export class ClusterBattleServer {
   private serviceDiscovery?: ServiceDiscoveryManager
   private instanceId: string
 
-  // 移除本地Battle实例管理 - 这些现在由 clusterBattleService 管理
-  // private readonly localBattles = new Map<string, Battle>() // roomId -> Battle
-  // private readonly localRooms = new Map<string, LocalRoomData>() // roomId -> room data
-  // private readonly disconnectedPlayers = new Map<string, DisconnectedPlayerInfo>() // 掉线玩家管理
-
-  // 移除Timer批处理系统 - 现在由 clusterBattleService 管理
-  // private readonly timerEventBatcher: TimerEventBatcher
-
   // 保留旧的缓存用于兼容性（逐步迁移）
   private readonly timerStatusCache = new Map<string, { enabled: boolean; timestamp: number }>()
   private readonly TIMER_CACHE_TTL = 30000 // 30秒缓存，大幅减少跨实例调用
@@ -82,6 +77,8 @@ export class ClusterBattleServer {
   // 服务实例（在初始化时设置）
   private matchmakingService!: IMatchmakingService
   private battleService!: IBattleService
+  private privateRoomService!: PrivateRoomService
+  private privateRoomHandlers!: PrivateRoomHandlers
 
   // RPC相关
   private rpcServer?: BattleRpcServer
@@ -96,6 +93,7 @@ export class ClusterBattleServer {
     @inject(TYPES.ClusterStateManager) private readonly stateManager: ClusterStateManager,
     @inject(TYPES.SocketClusterAdapter) private readonly socketAdapter: SocketClusterAdapter,
     @inject(TYPES.DistributedLockManager) private readonly lockManager: DistributedLockManager,
+    @inject(TYPES.SessionStateManager) private readonly sessionStateManager: SessionStateManager,
     @inject(TYPES.InstanceId) instanceId: string,
     @inject(TYPES.PlayerRepository) private readonly playerRepository: PlayerRepository,
     @inject(TYPES.AuthService) private readonly authService: IAuthService,
@@ -132,6 +130,27 @@ export class ClusterBattleServer {
   setServices(matchmakingService: IMatchmakingService, battleService: IBattleService): void {
     this.matchmakingService = matchmakingService
     this.battleService = battleService
+
+    // 初始化私人房间服务
+    this.privateRoomService = new PrivateRoomService(
+      this.stateManager,
+      this.lockManager,
+      this.socketAdapter,
+      this.sessionStateManager,
+    )
+
+    // 初始化私人房间处理器
+    this.privateRoomHandlers = new PrivateRoomHandlers(this.privateRoomService, this.socketAdapter)
+
+    // 设置私人房间的战斗创建回调
+    this.privateRoomService.setBattleCallbacks({
+      createClusterBattleRoom: async (player1Entry, player2Entry) => {
+        return await this.battleService.createClusterBattleRoom(player1Entry, player2Entry)
+      },
+    })
+
+    // 订阅私人房间事件
+    this.subscribeToPrivateRoomEvents()
   }
 
   setPerformanceTracker(tracker: PerformanceTracker): void {
@@ -173,6 +192,67 @@ export class ClusterBattleServer {
     }, 30000) // 30秒
 
     logger.debug('Performance data sync started')
+  }
+
+  /**
+   * 订阅私人房间事件
+   */
+  private subscribeToPrivateRoomEvents(): void {
+    try {
+      const subscriber = this.stateManager.redisManager.getSubscriber()
+
+      // 订阅所有私人房间事件
+      subscriber.psubscribe('private_room_events:*')
+
+      subscriber.on('pmessage', (pattern: string, channel: string, message: string) => {
+        try {
+          const data = JSON.parse(message)
+          const { roomCode, event } = data
+
+          // 转发事件给房间内的所有客户端
+          this.forwardPrivateRoomEvent(roomCode, event)
+        } catch (error) {
+          logger.error({ error, channel, message }, 'Failed to process private room event')
+        }
+      })
+
+      logger.debug('Subscribed to private room events')
+    } catch (error) {
+      logger.error({ error }, 'Failed to subscribe to private room events')
+    }
+  }
+
+  /**
+   * 转发私人房间事件给客户端
+   */
+  private async forwardPrivateRoomEvent(roomCode: string, event: any): Promise<void> {
+    try {
+      // 获取房间内的所有玩家和观战者
+      const room = await this.privateRoomService?.getRoom(roomCode)
+      if (!room) return
+
+      const allParticipants = [
+        ...room.players.map(p => ({ playerId: p.playerId, sessionId: p.sessionId })),
+        ...room.spectators.map(s => ({ playerId: s.playerId, sessionId: s.sessionId })),
+      ]
+
+      // 向所有参与者发送事件
+      for (const participant of allParticipants) {
+        await this.socketAdapter.sendToPlayerSession(
+          participant.playerId,
+          participant.sessionId,
+          'privateRoomEvent',
+          event,
+        )
+      }
+
+      logger.debug(
+        { roomCode, eventType: event.type, participantCount: allParticipants.length },
+        'Private room event forwarded',
+      )
+    } catch (error) {
+      logger.error({ error, roomCode, event }, 'Failed to forward private room event')
+    }
   }
 
   /**
@@ -547,6 +627,25 @@ export class ClusterBattleServer {
           '玩家重连处理完成',
         )
 
+        // 处理私人房间重连
+        if (this.privateRoomService) {
+          const { playerId, sessionId } = socket.data
+          if (playerId && sessionId) {
+            try {
+              const currentRoom = await this.privateRoomService.getPlayerSessionCurrentRoom(playerId, sessionId)
+              if (currentRoom && currentRoom.status === 'started') {
+                logger.info(
+                  { playerId, sessionId, roomCode: currentRoom.config.roomCode },
+                  '玩家在私人房间战斗中重连，更新状态为在线',
+                )
+                await this.privateRoomService.handlePlayerReconnect(currentRoom.config.roomCode, playerId, sessionId)
+              }
+            } catch (error) {
+              logger.error({ error, playerId, sessionId }, 'Failed to handle private room reconnect')
+            }
+          }
+        }
+
         // 通知客户端需要跳转到战斗页面
         if (reconnectInfo.roomId) {
           // 在发送重连测试消息之前，再次验证房间状态
@@ -735,6 +834,32 @@ export class ClusterBattleServer {
       // 从匹配队列中移除该session
       await this.stateManager.removeFromMatchmakingQueue(playerId, sessionId)
 
+      // 处理私人房间断线
+      if (this.privateRoomService) {
+        try {
+          const currentRoom = await this.privateRoomService.getPlayerSessionCurrentRoom(playerId, sessionId)
+          if (currentRoom) {
+            if (currentRoom.status === 'started') {
+              // 战斗中掉线，只更新状态，不离开房间
+              logger.info(
+                { playerId, sessionId, roomCode: currentRoom.config.roomCode },
+                '玩家在私人房间战斗中掉线，更新连接状态',
+              )
+              await this.privateRoomService.handlePlayerDisconnect(currentRoom.config.roomCode, playerId, sessionId)
+            } else {
+              // 不在战斗中掉线，直接离开房间
+              logger.info(
+                { playerId, sessionId, roomCode: currentRoom.config.roomCode },
+                '玩家在私人房间中断线（非战斗状态），移除玩家会话',
+              )
+              await this.privateRoomService.leaveRoom(currentRoom.config.roomCode, playerId, sessionId)
+            }
+          }
+        } catch (error) {
+          logger.error({ error, playerId, sessionId }, 'Failed to handle private room disconnect')
+        }
+      }
+
       // 更新匹配队列大小统计
       if (this.performanceTracker) {
         const queueSize = await this.stateManager.getMatchmakingQueueSize()
@@ -795,6 +920,28 @@ export class ClusterBattleServer {
     socket.on('getTimerConfig', ack => this.handleGetTimerConfig(socket, ack))
     socket.on('startAnimation', (data, ack) => this.handleStartAnimation(socket, data, ack))
     socket.on('endAnimation', data => this.handleEndAnimation(socket, data))
+
+    // 私人房间相关事件处理
+    socket.on('createPrivateRoom', (data, ack) => this.privateRoomHandlers?.handleCreateRoom(socket, data, ack))
+    socket.on('joinPrivateRoom', (data, ack) => this.privateRoomHandlers?.handleJoinRoom(socket, data, ack))
+    socket.on('joinPrivateRoomAsSpectator', (data, ack) =>
+      this.privateRoomHandlers?.handleJoinAsSpectator(socket, data, ack),
+    )
+    socket.on('leavePrivateRoom', ack => this.privateRoomHandlers?.handleLeaveRoom(socket, ack))
+    socket.on('togglePrivateRoomReady', (data, ack) => this.privateRoomHandlers?.handleToggleReady(socket, data, ack))
+    socket.on('startPrivateRoomBattle', (data, ack) => this.privateRoomHandlers?.handleStartBattle(socket, data, ack))
+    socket.on('switchToSpectator', (data, ack) => this.privateRoomHandlers?.handleSwitchToSpectator(socket, data, ack))
+    socket.on('switchToPlayer', (data, ack) => this.privateRoomHandlers?.handleSwitchToPlayer(socket, data, ack))
+    socket.on('getPrivateRoomInfo', (data, ack) => this.privateRoomHandlers?.handleGetRoomInfo(socket, data, ack))
+    socket.on('updatePrivateRoomRuleSet', (data, ack) =>
+      this.privateRoomHandlers?.handleUpdateRuleSet(socket, data, ack),
+    )
+    socket.on('updatePrivateRoomConfig', (data, ack) =>
+      this.privateRoomHandlers?.handleUpdateRoomConfig(socket, data, ack),
+    )
+    socket.on('transferPrivateRoomHost', (data, ack) => this.privateRoomHandlers?.handleTransferHost(socket, data, ack))
+    socket.on('kickPlayerFromPrivateRoom', (data, ack) => this.privateRoomHandlers?.handleKickPlayer(socket, data, ack))
+    socket.on('getCurrentPrivateRoom', ack => this.privateRoomHandlers?.handleGetCurrentRoom(socket, ack))
   }
 
   private setupClusterEventHandlers() {
@@ -3657,6 +3804,14 @@ export class ClusterBattleServer {
       },
       joinPlayerToRoom: async (playerId: string, roomId: string) => {
         await this.socketAdapter.joinPlayerToRoom(playerId, roomId)
+      },
+      handlePrivateRoomBattleFinished: async (
+        battleRoomId: string,
+        battleResult: { winner: string | null; reason: string },
+      ) => {
+        if (this.privateRoomService) {
+          await this.privateRoomService.handleBattleFinished(battleRoomId, battleResult)
+        }
       },
     }
   }

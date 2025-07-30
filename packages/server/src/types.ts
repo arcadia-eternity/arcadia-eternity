@@ -10,6 +10,10 @@ export const TYPES = {
   BattleService: Symbol.for('BattleService'),
   ResourceLoadingManager: Symbol.for('ResourceLoadingManager'),
 
+  // 私人房间服务
+  PrivateRoomService: Symbol.for('PrivateRoomService'),
+  SessionStateManager: Symbol.for('SessionStateManager'),
+
   // 集群服务
   ClusterBattleServer: Symbol.for('ClusterBattleServer'),
   BattleRpcServer: Symbol.for('BattleRpcServer'),

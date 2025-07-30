@@ -217,7 +217,6 @@ export class UseSkillContext extends Context {
     if (this.critOverrides.length > 0)
       this.crit = this.critOverrides.reduce((a, b) => (a.priority > b.priority ? a : b)).willCrit
     else this.crit = this.battle.random() * 100 < this.critRate
-    this.logger.debug('critrate', this.critRate)
   }
 
   updateDamageResult() {

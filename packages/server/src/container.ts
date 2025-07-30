@@ -10,6 +10,7 @@ import { ClusterBattleService } from './domain/battle/services/clusterBattleServ
 import { ClusterBattleServer } from './domain/battle/services/clusterBattleServer'
 import { BattleRpcServer } from './cluster/communication/rpc/battleRpcServer'
 import { BattleRpcClient } from './cluster/communication/rpc/battleRpcClient'
+import { SessionStateManager } from './domain/session/sessionStateManager'
 import type { IMatchmakingService, IBattleService, IResourceLoadingManager } from './domain/battle/services/interfaces'
 import { resourceLoadingManager } from './resourceLoadingManager'
 import { TYPES } from './types'
@@ -169,6 +170,7 @@ export function configureClusterServices(
   container.bind<ClusterBattleServer>(TYPES.ClusterBattleServer).to(ClusterBattleServer).inSingletonScope()
   container.bind<BattleRpcServer>(TYPES.BattleRpcServer).to(BattleRpcServer).inSingletonScope()
   container.bind<BattleRpcClient>(TYPES.BattleRpcClient).to(BattleRpcClient).inSingletonScope()
+  container.bind<SessionStateManager>(TYPES.SessionStateManager).to(SessionStateManager).inSingletonScope()
 
   // 获取 ClusterBattleServer 实例（它不依赖回调）
   const battleServer = container.get<ClusterBattleServer>(TYPES.ClusterBattleServer)

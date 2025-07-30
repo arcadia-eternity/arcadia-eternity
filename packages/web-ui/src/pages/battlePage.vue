@@ -84,7 +84,6 @@ import {
   unref,
   useTemplateRef,
   watch,
-  withDefaults,
   type Ref,
 } from 'vue'
 import { useRoute, useRouter } from 'vue-router'

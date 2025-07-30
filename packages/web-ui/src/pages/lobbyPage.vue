@@ -149,102 +149,18 @@
       </div>
 
       <!-- 队伍选择 -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
-          <el-icon><User /></el-icon>
-          选择队伍
-          <span v-if="selectedRuleSetId" class="text-sm text-gray-500 font-normal">
-            ({{ availableTeams.length }}/{{ allTeams.length }} 队伍符合规则)
-          </span>
-        </h3>
-        <!-- 符合规则的队伍 -->
-        <div v-if="availableTeams.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
-          <div
-            v-for="(team, index) in availableTeams"
-            :key="`valid-${index}`"
-            @click="selectedTeamIndex = index"
-            class="p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md"
-            :class="{
-              'border-blue-500 bg-blue-50': selectedTeamIndex === index,
-              'border-gray-200 hover:border-gray-300': selectedTeamIndex !== index,
-            }"
-          >
-            <div class="flex items-center justify-between">
-              <div class="font-medium text-gray-800">{{ team.name }}</div>
-              <div class="flex items-center gap-1">
-                <span class="text-sm text-gray-600">{{ team.pets.length }}只</span>
-                <el-icon class="text-green-500" :size="16">
-                  <Check />
-                </el-icon>
-                <el-icon v-if="selectedTeamIndex === index" class="text-blue-500 ml-1" size="20">
-                  <Select />
-                </el-icon>
-              </div>
-            </div>
-            <div class="text-sm text-gray-600 mt-1">
-              {{ team.pets.map(p => p.name).join('、') }}
-            </div>
-            <div class="text-xs text-green-600 mt-1">✓ 符合规则要求</div>
-          </div>
-        </div>
-
-        <!-- 没有符合规则的队伍时的提示 -->
-        <div v-if="availableTeams.length === 0 && selectedRuleSetId" class="text-center py-8">
-          <el-icon class="text-gray-400 text-4xl mb-2"><Warning /></el-icon>
-          <p class="text-gray-600 mb-2">没有队伍符合当前规则要求</p>
-          <p class="text-sm text-gray-500">请前往队伍编辑器调整队伍配置</p>
-          <router-link
-            to="/team-builder"
-            class="inline-flex items-center gap-1 mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            <el-icon><Edit /></el-icon>
-            前往队伍编辑器
-          </router-link>
-        </div>
-
-        <!-- 不匹配当前规则集的队伍（折叠显示） -->
-        <div v-if="incompatibleTeams.length > 0 && selectedRuleSetId" class="mt-4">
-          <el-collapse>
-            <el-collapse-item>
-              <template #title>
-                <span class="text-sm text-gray-600">
-                  <el-icon class="text-orange-500"><Warning /></el-icon>
-                  {{ incompatibleTeams.length }} 个队伍使用不同规则集 (点击查看)
-                </span>
-              </template>
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                <div
-                  v-for="(team, index) in incompatibleTeams"
-                  :key="`incompatible-${index}`"
-                  class="p-3 border-2 border-orange-300 bg-orange-50 rounded-lg opacity-60 cursor-not-allowed"
-                >
-                  <div class="flex items-center justify-between">
-                    <div class="font-medium text-gray-800">{{ team.name }}</div>
-                    <div class="flex items-center gap-1">
-                      <span class="text-sm text-gray-600">{{ team.pets.length }}只</span>
-                      <el-icon class="text-orange-500" :size="16">
-                        <Warning />
-                      </el-icon>
-                    </div>
-                  </div>
-                  <div class="text-sm text-gray-600 mt-1">
-                    {{ team.pets.map((p: any) => p.name).join('、') }}
-                  </div>
-                  <div class="text-xs text-orange-600 mt-1">
-                    队伍使用{{ getRuleSetName(team.ruleSetId || 'casual_standard_ruleset') }}规则集
-                  </div>
-                </div>
-              </div>
-            </el-collapse-item>
-          </el-collapse>
-        </div>
-      </div>
+      <TeamSelector
+        v-model="selectedTeam"
+        :selected-rule-set-id="selectedRuleSetId"
+        @update:is-valid="isSelectedTeamValid = $event"
+        @update:validation-errors="selectedTeamValidationErrors = $event"
+      />
 
       <!-- 匹配按钮 -->
       <div class="text-center">
         <button
           @click="handleMatchmaking"
-          :disabled="isMatchButtonDisabled && !isMatching"
+          :disabled="isMatchButtonDisabled"
           class="px-8 py-4 md:px-6 md:py-3 text-lg md:text-lg bg-green-500 text-white border-none rounded-lg cursor-pointer transition-colors duration-300 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed min-h-[48px] touch-manipulation font-medium shadow-lg hover:shadow-xl"
         >
           {{
@@ -252,21 +168,81 @@
               ? '请先连接服务器'
               : !selectedRuleSetId
                 ? '请选择游戏规则'
-                : selectedTeamIndex === -1
+                : !selectedTeam
                   ? '请选择队伍'
-                  : !isSelectedTeamCompatible
-                    ? '队伍规则集不匹配'
-                    : !isSelectedTeamValid
-                      ? selectedTeamValidationErrors.length > 0
-                        ? `队伍不符合规则 (${selectedTeamValidationErrors.length}个问题)`
-                        : '所选队伍不符合规则'
-                      : battleClientStore.currentState.matchmaking === 'matched'
-                        ? '准备进入战斗...'
-                        : isMatching
-                          ? '取消匹配'
-                          : '开始匹配'
+                  : !isSelectedTeamValid
+                    ? selectedTeamValidationErrors.length > 0
+                      ? `队伍不符合规则 (${selectedTeamValidationErrors.length}个问题)`
+                      : '所选队伍不符合规则'
+                    : battleClientStore.currentState.matchmaking === 'matched'
+                      ? '准备进入战斗...'
+                      : isMatching
+                        ? '取消匹配'
+                        : '开始匹配'
           }}
         </button>
+      </div>
+
+      <!-- 私人房间区域 -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
+          <el-icon><User /></el-icon>
+          私人房间
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- 如果已在房间，显示进入房间按钮 -->
+          <div v-if="privateRoomStore.currentRoom" class="md:col-span-3">
+            <h4 class="text-sm font-medium text-gray-700 mb-3">你已在房间中</h4>
+            <el-button type="primary" @click="goToCurrentRoom" class="w-full">
+              回到房间 ({{ privateRoomStore.currentRoom.config.roomCode }})
+            </el-button>
+          </div>
+
+          <!-- 否则，显示创建和加入选项 -->
+          <template v-else>
+            <!-- 创建房间 -->
+            <div class="space-y-3">
+              <h4 class="text-sm font-medium text-gray-700">创建房间</h4>
+              <el-button
+                type="success"
+                :disabled="battleClientStore.currentState.status !== 'connected'"
+                @click="showCreateRoomDialog = true"
+                class="w-full"
+              >
+                创建私人房间
+              </el-button>
+            </div>
+
+            <!-- 加入房间 -->
+            <div class="space-y-3 col-span-2">
+              <h4 class="text-sm font-medium text-gray-700">加入房间</h4>
+              <div class="flex gap-2">
+                <el-input
+                  v-model="joinRoomCode"
+                  placeholder="输入房间码"
+                  maxlength="6"
+                  class="flex-1"
+                  @keyup.enter="joinRoom"
+                />
+                <el-button
+                  type="primary"
+                  :disabled="!joinRoomCode || battleClientStore.currentState.status !== 'connected'"
+                  @click="joinRoom"
+                >
+                  加入
+                </el-button>
+                <!-- <el-button
+                  type="info"
+                  :disabled="!joinRoomCode || battleClientStore.currentState.status !== 'connected'"
+                  @click="joinAsSpectator"
+                >
+                  观战
+                </el-button> -->
+              </div>
+            </div>
+          </template>
+        </div>
       </div>
 
       <!-- 加载状态 -->
@@ -319,6 +295,20 @@
         </ul>
       </el-alert>
     </div>
+
+    <!-- 创建房间对话框 -->
+    <el-dialog v-model="showCreateRoomDialog" title="创建私人房间" width="400px">
+      <el-form :model="roomConfig" label-width="100px">
+        <el-form-item label="房间密码">
+          <el-input v-model="roomConfig.password" placeholder="留空为公开房间" show-password />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="showCreateRoomDialog = false">取消</el-button>
+        <el-button type="primary" @click="createRoom">创建</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -331,6 +321,7 @@ import { useBattleClientStore } from '@/stores/battleClient'
 import { usePetStorageStore } from '@/stores/petStorage'
 import { useEloStore } from '@/stores/elo'
 import { useValidationStore } from '@/stores/validation'
+import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { type BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
 import {
   User,
@@ -346,8 +337,10 @@ import {
   Select,
   Trophy,
 } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import { isTauri } from '@/utils/env'
 import RuleSetTooltip from '@/components/RuleSetTooltip.vue'
+import TeamSelector from '@/components/TeamSelector.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -357,15 +350,28 @@ const battleClientStore = useBattleClientStore()
 const petStorageStore = usePetStorageStore()
 const eloStore = useEloStore()
 const validationStore = useValidationStore()
+const privateRoomStore = usePrivateRoomStore()
 
 // 匹配配置状态
-const selectedTeamIndex = ref<number>(-1)
+const selectedTeam = ref<any | null>(null)
+const isSelectedTeamValid = ref(false)
+const selectedTeamValidationErrors = ref<string[]>([])
+
+// 私人房间状态
+const showCreateRoomDialog = ref(false)
+const joinRoomCode = ref('')
+const roomConfig = ref({
+  password: '',
+})
 
 // 计算属性
 const availableRuleSets = computed(() => validationStore.availableRuleSets)
 const selectedRuleSetId = computed({
   get: () => validationStore.selectedRuleSetId,
-  set: (value: string) => validationStore.setSelectedRuleSet(value),
+  set: (value: string) => {
+    validationStore.setSelectedRuleSet(value)
+    selectedTeam.value = null
+  },
 })
 
 // ELO相关计算属性
@@ -377,6 +383,12 @@ const ruleSetElos = computed(() => {
   return eloMap
 })
 
+const goToCurrentRoom = () => {
+  if (privateRoomStore.currentRoom) {
+    router.push(`/room/${privateRoomStore.currentRoom.config.roomCode}`)
+  }
+}
+
 // 启用ELO的规则集列表
 const eloEnabledRuleSets = ref<string[]>([])
 
@@ -385,169 +397,6 @@ const isEloEnabled = (ruleSetId: string) => {
   return eloEnabledRuleSets.value.includes(ruleSetId)
 }
 
-// 计算属性 - 只显示与当前选择规则集匹配的队伍
-const availableTeams = computed(() => {
-  if (!selectedRuleSetId.value) {
-    // 如果没有选择规则集，显示所有队伍
-    return petStorageStore.teams
-  }
-
-  // 过滤出规则集匹配的队伍
-  return petStorageStore.teams.filter(team => {
-    const teamRuleSetId = team.ruleSetId || 'casual_standard_ruleset' // 默认为休闲规则集
-    return teamRuleSetId === selectedRuleSetId.value
-  })
-})
-
-// 所有队伍（包括不匹配规则集的）
-const allTeams = computed(() => {
-  return petStorageStore.teams
-})
-
-// 不匹配当前规则集的队伍
-const incompatibleTeams = computed(() => {
-  if (!selectedRuleSetId.value) {
-    return []
-  }
-
-  return petStorageStore.teams.filter(team => {
-    const teamRuleSetId = team.ruleSetId || 'casual_standard_ruleset' // 默认为休闲规则集
-    return teamRuleSetId !== selectedRuleSetId.value
-  })
-})
-
-const selectedTeam = computed(() => {
-  if (selectedTeamIndex.value >= 0 && selectedTeamIndex.value < availableTeams.value.length) {
-    return availableTeams.value[selectedTeamIndex.value]
-  }
-  return null
-})
-
-// 标记是否正在恢复配置，避免在恢复时重置选择
-const isRestoringConfig = ref(false)
-
-// 当规则变化时，重置队伍选择并重新验证（除非正在恢复配置）
-watch(selectedRuleSetId, () => {
-  if (!isRestoringConfig.value) {
-    selectedTeamIndex.value = -1
-  }
-  validateSelectedTeam()
-})
-
-// 当选中的队伍变化时，重新验证
-watch(selectedTeam, () => {
-  validateSelectedTeam()
-})
-
-// 检查选中的队伍是否与当前规则集匹配
-const isSelectedTeamCompatible = computed(() => {
-  if (!selectedTeam.value || !selectedRuleSetId.value) return false
-  return validationStore.isTeamCompatibleWithRuleSet(selectedTeam.value, selectedRuleSetId.value)
-})
-
-// 进入匹配时的额外验证（检查队伍是否真正符合规则要求）
-const isSelectedTeamValid = ref<boolean>(false)
-const selectedTeamValidationErrors = ref<string[]>([])
-
-// 验证选中的队伍
-const validateSelectedTeam = async () => {
-  if (!selectedTeam.value || !selectedRuleSetId.value) {
-    isSelectedTeamValid.value = false
-    selectedTeamValidationErrors.value = []
-    return
-  }
-
-  if (!isSelectedTeamCompatible.value) {
-    isSelectedTeamValid.value = false
-    selectedTeamValidationErrors.value = ['队伍规则集不匹配']
-    return
-  }
-
-  try {
-    const result = await validationStore.validateTeam(selectedTeam.value.pets, selectedRuleSetId.value)
-    isSelectedTeamValid.value = result.isValid
-    selectedTeamValidationErrors.value = result.errors.map(error => error.message)
-  } catch (error) {
-    console.error('验证队伍时出错:', error)
-    isSelectedTeamValid.value = false
-    selectedTeamValidationErrors.value = ['验证过程中发生错误']
-  }
-}
-
-// 保存上一次匹配配置
-const saveLastMatchingConfig = () => {
-  // 获取当前选中的队伍
-  const currentSelectedTeam = selectedTeam.value
-  if (!currentSelectedTeam) return
-
-  // 找到该队伍在 petStorageStore.teams 中的实际索引
-  const actualTeamIndex = petStorageStore.teams.findIndex(
-    team => team.name === currentSelectedTeam.name && team.ruleSetId === currentSelectedTeam.ruleSetId,
-  )
-
-  if (actualTeamIndex >= 0) {
-    petStorageStore.saveLastMatchingConfig(actualTeamIndex, selectedRuleSetId.value)
-  }
-}
-
-// 加载上一次匹配配置
-const loadLastMatchingConfig = async () => {
-  const config = petStorageStore.getLastMatchingConfig()
-  if (!config) return false
-
-  // 设置恢复标记，避免在恢复过程中重置选择
-  isRestoringConfig.value = true
-
-  try {
-    // 先尝试根据保存的队伍索引找到对应的队伍
-    const allTeams = petStorageStore.teams
-    if (config.teamIndex >= 0 && config.teamIndex < allTeams.length) {
-      const targetTeam = allTeams[config.teamIndex]
-
-      // 使用队伍自身的规则集，确保匹配
-      const teamRuleSetId = targetTeam.ruleSetId || 'casual_standard_ruleset'
-
-      // 检查规则集是否有效
-      if (availableRuleSets.value.find(r => r.id === teamRuleSetId)) {
-        selectedRuleSetId.value = teamRuleSetId
-
-        // 在规则集设置后，重新计算可用队伍并找到目标队伍的新索引
-        await nextTick()
-
-        const newTeamIndex = availableTeams.value.findIndex(
-          team => team.name === targetTeam.name && team.ruleSetId === teamRuleSetId,
-        )
-
-        if (newTeamIndex >= 0) {
-          selectedTeamIndex.value = newTeamIndex
-        } else {
-          // 如果找不到目标队伍，选择第一个可用队伍
-          if (availableTeams.value.length > 0) {
-            selectedTeamIndex.value = 0
-          }
-        }
-
-        // 恢复完成，清除标记并重新验证
-        isRestoringConfig.value = false
-
-        // 确保队伍验证在恢复完成后执行
-        await nextTick()
-        await validateSelectedTeam()
-
-        return true
-      }
-    }
-  } finally {
-    // 确保标记被清除
-    if (isRestoringConfig.value) {
-      isRestoringConfig.value = false
-    }
-  }
-
-  return false
-}
-
-// 根据规则集ID获取规则集名称
 const getRuleSetName = (ruleSetId: string): string => {
   return validationStore.getRuleSetName(ruleSetId)
 }
@@ -569,39 +418,21 @@ const isMatching = computed(() => {
   return state
 })
 
-// 计算是否应该禁用匹配按钮
 const isMatchButtonDisabled = computed(() => {
-  const currentState = battleClientStore.currentState
-  const isNotConnected = currentState.status !== 'connected'
-  const isSearching = currentState.matchmaking === 'searching'
-  const isMatched = currentState.matchmaking === 'matched'
-  const noRuleSelected = !selectedRuleSetId.value
-  const noTeamSelected = selectedTeamIndex.value === -1
-  const teamInvalid = !isSelectedTeamValid.value
-  const teamIncompatible = !isSelectedTeamCompatible.value
+  const state = battleClientStore.currentState
 
-  const disabled =
-    isNotConnected || isSearching || isMatched || noRuleSelected || noTeamSelected || teamInvalid || teamIncompatible
+  // If we are currently searching for a match, the button should be ENABLED to allow cancellation.
+  if (state.matchmaking === 'searching') {
+    return false
+  }
 
-  console.log(
-    '🔒 isMatchButtonDisabled computed:',
-    disabled,
-    'notConnected:',
-    isNotConnected,
-    'searching:',
-    isSearching,
-    'matched:',
-    isMatched,
-    'noRuleSelected:',
-    noRuleSelected,
-    'noTeamSelected:',
-    noTeamSelected,
-    'teamInvalid:',
-    teamInvalid,
-    'teamIncompatible:',
-    teamIncompatible,
-  )
-  return disabled
+  // If we are already matched or not connected, the button should be DISABLED.
+  if (state.matchmaking === 'matched' || state.status !== 'connected') {
+    return true
+  }
+
+  // Otherwise (status is 'waiting'), disable the button if prerequisites are not met.
+  return !selectedRuleSetId.value || !selectedTeam.value || !isSelectedTeamValid.value
 })
 
 const errorMessage = ref<string | null>(null)
@@ -625,7 +456,7 @@ const handleMatchmaking = async () => {
     }
 
     // 检查队伍选择
-    if (selectedTeamIndex.value === -1 || !selectedTeam.value) {
+    if (!selectedTeam.value) {
       errorMessage.value = '请选择队伍'
       return
     }
@@ -671,10 +502,7 @@ const handleMatchmaking = async () => {
         ruleSetId: selectedRuleSetId.value,
       })
       console.log('✅ Matchmaking request sent with ruleSetId:', selectedRuleSetId.value)
-
-      // 保存这次的匹配配置，以便下次使用
       saveLastMatchingConfig()
-
       battleClientStore.once('matchSuccess', async () => {
         console.log('🎯 matchSuccess event received in lobbyPage')
         if (!battleClientStore._instance) {
@@ -700,6 +528,95 @@ const handleMatchmaking = async () => {
     setTimeout(() => (errorMessage.value = null), 3000)
   }
 }
+
+const saveLastMatchingConfig = () => {
+  if (!selectedTeam.value) return
+
+  const actualTeamIndex = petStorageStore.teams.findIndex(
+    team => team.name === selectedTeam.value.name && team.ruleSetId === selectedTeam.value.ruleSetId,
+  )
+
+  if (actualTeamIndex >= 0) {
+    petStorageStore.saveLastMatchingConfig(actualTeamIndex, selectedRuleSetId.value)
+  }
+}
+
+// 私人房间相关方法
+const createRoom = async () => {
+  try {
+    const config = {
+      ruleSetId: selectedRuleSetId.value,
+      isPrivate: !!roomConfig.value.password,
+      password: roomConfig.value.password || undefined,
+    }
+
+    const roomCode = await privateRoomStore.createRoom(config)
+
+    showCreateRoomDialog.value = false
+    ElMessage.success(`房间创建成功！房间码: ${roomCode}`)
+
+    // 跳转到房间页面
+    router.push(`/room/${roomCode}`)
+  } catch (error) {
+    ElMessage.error('创建房间失败: ' + (error as Error).message)
+  }
+}
+
+const joinRoom = async () => {
+  try {
+    if (!joinRoomCode.value) {
+      ElMessage.error('请输入房间码')
+      return
+    }
+
+    await privateRoomStore.joinRoom(joinRoomCode.value)
+
+    ElMessage.success('成功加入房间')
+
+    // 跳转到房间页面
+    router.push(`/room/${joinRoomCode.value}`)
+  } catch (error) {
+    ElMessage.error('加入房间失败: ' + (error as Error).message)
+  }
+}
+
+const joinAsSpectator = async () => {
+  try {
+    if (!joinRoomCode.value) {
+      ElMessage.error('请输入房间码')
+      return
+    }
+
+    await privateRoomStore.joinAsSpectator(joinRoomCode.value)
+
+    ElMessage.success('成功加入观战')
+
+    // 跳转到房间页面
+    router.push(`/room/${joinRoomCode.value}`)
+  } catch (error) {
+    ElMessage.error('加入观战失败: ' + (error as Error).message)
+  }
+}
+
+const loadLastMatchingConfig = async () => {
+  const config = petStorageStore.getLastMatchingConfig()
+  if (!config) return false
+
+  const allTeams = petStorageStore.teams
+  if (config.teamIndex >= 0 && config.teamIndex < allTeams.length) {
+    const targetTeam = allTeams[config.teamIndex]
+    const teamRuleSetId = targetTeam.ruleSetId || 'casual_standard_ruleset'
+
+    if (availableRuleSets.value.find(r => r.id === teamRuleSetId)) {
+      selectedRuleSetId.value = teamRuleSetId
+      await nextTick()
+      selectedTeam.value = targetTeam
+      return true
+    }
+  }
+  return false
+}
+
 // 监听路由变化，从战斗页面返回时刷新ELO
 watch(
   () => route.path,
@@ -738,28 +655,7 @@ onMounted(async () => {
     }
   }
 
-  // 尝试恢复上一次的匹配配置
-  const restored = await loadLastMatchingConfig()
-
-  // 如果没有恢复成功，使用默认选择
-  if (!restored) {
-    // 使用当前队伍作为默认选择
-    if (availableTeams.value.length > 0) {
-      // 找到当前队伍在可用队伍中的索引
-      const currentTeam = petStorageStore.teams[petStorageStore.currentTeamIndex]
-      if (currentTeam) {
-        const currentTeamIndex = availableTeams.value.findIndex(team => team.name === currentTeam.name)
-        if (currentTeamIndex >= 0) {
-          selectedTeamIndex.value = currentTeamIndex
-        } else if (availableTeams.value.length > 0) {
-          selectedTeamIndex.value = 0
-        }
-      }
-    }
-
-    // 如果没有恢复配置，验证选中的队伍
-    await validateSelectedTeam()
-  }
+  await loadLastMatchingConfig()
 
   // 现在配置已经完全恢复，检查是否需要开始匹配
   if (route.query.startMatching === 'true') {

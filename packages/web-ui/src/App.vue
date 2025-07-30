@@ -72,6 +72,12 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
+          <!-- 房间状态显示 -->
+          <el-button v-if="privateRoomStore.currentRoom" type="warning" size="small" @click="handleRoomButtonClick">
+            <el-icon><House /></el-icon>
+            房间: {{ privateRoomStore.currentRoom.config.roomCode }}
+          </el-button>
+
           <el-tag type="info" effect="dark">
             <el-icon><User /></el-icon>
             在线人数：{{ serverState.serverState.onlinePlayers }}
@@ -394,6 +400,7 @@ import { usePetStorageStore } from './stores/petStorage'
 import { useResourceStore } from './stores/resource'
 import { useServerStateStore } from './stores/serverState'
 import { useGameSettingStore } from './stores/gameSetting'
+import { usePrivateRoomStore } from './stores/privateRoom'
 import { BattleMessageType } from '@arcadia-eternity/const'
 import {
   Menu,
@@ -424,6 +431,7 @@ const serverState = useServerStateStore()
 const gameSettingStore = useGameSettingStore()
 const battleClientStore = useBattleClientStore()
 const battleStore = useBattleStore()
+const privateRoomStore = usePrivateRoomStore()
 
 // 使用 VueUse 的响应式断点检测
 const breakpoints = useBreakpoints(breakpointsTailwind)
@@ -442,6 +450,20 @@ watch(isMobile, newIsMobile => {
   }
 })
 
+// 房间按钮点击处理
+const handleRoomButtonClick = () => {
+  console.log('🏠 Room button clicked')
+  console.log('🏠 Current room:', privateRoomStore.currentRoom)
+
+  if (privateRoomStore.currentRoom) {
+    const roomCode = privateRoomStore.currentRoom.config.roomCode
+    console.log('🏠 Navigating to room:', roomCode)
+    router.push(`/room/${roomCode}`)
+  } else {
+    console.error('🏠 No current room found')
+  }
+}
+
 // 初始化连接
 onMounted(async () => {
   try {
@@ -450,6 +472,7 @@ onMounted(async () => {
     resourceStore.initialize()
     petStorage.loadFromLocal()
 
+    // 初始化客户端规则系统
     try {
       await ClientRuleIntegration.initializeClient()
       console.log('客户端规则系统初始化成功')
@@ -468,27 +491,24 @@ onMounted(async () => {
       console.warn('⚠️ 游戏数据尚未加载完成，种族数据提供者初始化被跳过')
     }
 
-    // 初始化玩家状态（这会确保Pinia store准备就绪）
+    // 初始化玩家状态
     await playerStore.initializePlayer()
 
-    // 确保玩家ID存在
     if (!playerStore.id) {
       console.error('Player ID is missing after initialization')
       ElMessage.error('玩家ID初始化失败，请刷新页面重试')
       return
     }
 
-    // 等待一个tick确保所有store都已初始化
     await nextTick()
 
-    // 现在初始化battleClient（此时Pinia已经完全准备好）
+    // 初始化battleClient
     battleClientStore.initialize()
 
-    // 监听战斗重连事件（用于页面刷新后自动跳转）
+    // 设置战斗重连处理器
     let isRedirecting = false
     let battleReconnectHandler: ((event: any) => void) | null = null
 
-    // 确保只注册一次事件监听器
     const setupBattleReconnectHandler = () => {
       if (battleReconnectHandler) {
         console.log('🔄 Battle reconnect handler already registered, skipping')
@@ -497,46 +517,27 @@ onMounted(async () => {
 
       battleReconnectHandler = async (event: any) => {
         const data = event.detail
-        console.log('🔄 Received battleReconnect event, redirecting to battle page:', data)
-        console.log('🔄 Current route:', router.currentRoute.value.path)
-
-        // 防止重复跳转
-        if (isRedirecting) {
-          console.log('🔄 Already redirecting, ignoring duplicate event')
-          return
-        }
-
+        if (isRedirecting) return
         isRedirecting = true
 
         try {
-          // 检查服务器是否提供了完整的战斗状态数据
           if (data.fullBattleState) {
-            console.log('🔄 Using server-provided battle state, skipping additional getState call')
-
-            // 如果已经在战斗页面，避免重复跳转，只更新状态
             if (router.currentRoute.value.path === '/battle') {
-              console.log('🔄 Already on battle page, updating state only')
-              // 直接更新战斗状态，不进行路由跳转
               const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
               await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState)
             } else {
-              // 不在战斗页面，需要跳转
-              console.log('🔄 Not on battle page, redirecting')
               const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
               await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState)
-              const result = await router.push('/battle')
-              console.log('🔄 Router push result:', result)
+              await router.push('/battle')
             }
           } else {
-            // 如果服务器没有提供战斗状态，说明可能出现了问题
-            console.warn('🔄 Server did not provide battle state, battle may have ended')
+            console.warn('🔄 Server did not provide battle state')
             ElMessage.info('战斗状态异常，无法跳转到战斗页面')
           }
         } catch (error) {
           console.error('🔄 Router push failed:', error)
           ElMessage.error('跳转到战斗页面失败')
         } finally {
-          // 延迟重置标志，防止快速重复事件
           setTimeout(() => {
             isRedirecting = false
           }, 1000)
@@ -549,49 +550,32 @@ onMounted(async () => {
 
     setupBattleReconnectHandler()
 
-    // 等待玩家认证完成后再连接战斗客户端
-    // 对于注册用户，需要等待自动登录完成
+    // 连接战斗客户端并等待连接完成
     if (playerStore.is_registered) {
-      // 等待认证完成
-      let authCheckCount = 0
-      const maxAuthChecks = 50 // 最多等待5秒
+      let retries = 0
+      const maxRetries = 50
 
-      const waitForAuth = () => {
-        if (playerStore.isAuthenticated || authCheckCount >= maxAuthChecks) {
-          // 认证完成或超时，连接战斗客户端
-          setTimeout(async () => {
-            try {
-              console.log('连接战斗客户端，认证状态:', playerStore.isAuthenticated)
-              await battleClientStore.connect()
-            } catch (err) {
-              console.error('Battle client connection failed:', err)
-              ElMessage.error('连接服务器失败')
-            }
-          }, 100)
-        } else {
-          authCheckCount++
-          setTimeout(waitForAuth, 100)
-        }
+      while (!playerStore.isAuthenticated && retries < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        retries++
       }
 
-      waitForAuth()
+      console.log('连接战斗客户端，认证状态:', playerStore.isAuthenticated)
+      await battleClientStore.connect()
     } else {
-      // 游客用户，直接连接
-      setTimeout(async () => {
-        try {
-          await battleClientStore.connect()
-        } catch (err) {
-          console.error('Battle client connection failed:', err)
-          ElMessage.error('连接服务器失败')
-        }
-      }, 100)
+      await battleClientStore.connect()
     }
 
-    // 在应用初始化完成后，延迟一段时间再检查更新
-    // 避免与其他初始化操作冲突
+    // 在连接完成后检查房间状态
+    const currentRoom = await privateRoomStore.checkCurrentRoom()
+    if (currentRoom) {
+      console.log('🏠 Found existing room:', currentRoom.config.roomCode)
+    }
+
+    // 延迟检查更新
     setTimeout(() => {
       autoCheckForUpdates()
-    }, 3000) // 延迟3秒后检查更新
+    }, 3000)
   } catch (err) {
     console.error('Initialization error:', err)
     ElMessage.error('初始化失败，请刷新页面重试')
@@ -678,6 +662,8 @@ const MESSAGE_ICONS: Record<BattleMessageType, string> = {
   [BattleMessageType.SkillUseEnd]: '⏹️',
   [BattleMessageType.Transform]: '',
   [BattleMessageType.TransformEnd]: '',
+  [BattleMessageType.TeamSelectionStart]: '',
+  [BattleMessageType.TeamSelectionComplete]: '',
 }
 
 // 日志类型中文名称映射
@@ -712,8 +698,10 @@ const LOG_TYPE_NAMES: Record<BattleMessageType, string> = {
   [BattleMessageType.InvalidAction]: '无效操作',
   [BattleMessageType.Info]: '信息',
   [BattleMessageType.Error]: '错误',
-  [BattleMessageType.Transform]: '',
-  [BattleMessageType.TransformEnd]: '',
+  [BattleMessageType.Transform]: '变身',
+  [BattleMessageType.TransformEnd]: '变身结束',
+  [BattleMessageType.TeamSelectionStart]: '选择队伍',
+  [BattleMessageType.TeamSelectionComplete]: '选择队伍完成',
 }
 
 // 日志类型分类

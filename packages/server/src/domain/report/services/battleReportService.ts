@@ -22,6 +22,7 @@ export class BattleReportService {
       playerAId: string
       playerBId: string
       ruleSetId?: string
+      isPrivateRoom?: boolean
     }
   >()
 
@@ -47,6 +48,7 @@ export class BattleReportService {
     playerBId: string,
     playerBName: string,
     ruleSetId?: string,
+    metadata?: { isPrivateRoom?: boolean; [key: string]: any },
   ): Promise<string | null> {
     if (!this.config.enableReporting) {
       return null
@@ -76,7 +78,11 @@ export class BattleReportService {
         player_a_name: playerAName,
         player_b_id: playerBId,
         player_b_name: playerBName,
-        metadata: { battleId },
+        metadata: {
+          battleId,
+          isPrivateRoom: metadata?.isPrivateRoom || false,
+          ...metadata,
+        },
       })
 
       // 记录活跃战斗
@@ -87,6 +93,7 @@ export class BattleReportService {
         playerAId,
         playerBId,
         ruleSetId,
+        isPrivateRoom: metadata?.isPrivateRoom || false,
       })
 
       this.logger.info(
@@ -180,8 +187,8 @@ export class BattleReportService {
         finalState,
       )
 
-      // 更新ELO评级（如果有规则集信息）
-      if (battleData.ruleSetId && battleResult !== 'abandoned') {
+      // 更新ELO评级（如果有规则集信息且不是私人房间战斗）
+      if (battleData.ruleSetId && battleResult !== 'abandoned' && !battleData.isPrivateRoom) {
         try {
           const { EloService } = await import('../../elo/services/eloService')
           const { EloCalculationService } = await import('../../elo/services/eloCalculationService')
@@ -221,6 +228,17 @@ export class BattleReportService {
           )
           // 不抛出错误，因为战报已经保存成功，ELO更新失败不应该影响战报保存
         }
+      } else if (battleData.isPrivateRoom) {
+        this.logger.info(
+          {
+            battleId: battleData.recordId,
+            playerAId: battleData.playerAId,
+            playerBId: battleData.playerBId,
+            winnerId,
+            ruleSetId: battleData.ruleSetId,
+          },
+          'Skipped ELO update for private room battle',
+        )
       }
 
       this.logger.info(
