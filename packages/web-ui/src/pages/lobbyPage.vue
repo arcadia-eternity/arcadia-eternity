@@ -341,6 +341,7 @@ import { ElMessage } from 'element-plus'
 import { isTauri } from '@/utils/env'
 import RuleSetTooltip from '@/components/RuleSetTooltip.vue'
 import TeamSelector from '@/components/TeamSelector.vue'
+import { BattleReportService } from '@/services/battleReportService'
 
 const router = useRouter()
 const route = useRoute()
@@ -638,7 +639,6 @@ onMounted(async () => {
 
   // 获取启用ELO的规则集列表
   try {
-    const { BattleReportService } = await import('@/services/battleReportService')
     const battleReportService = new BattleReportService()
     const eloRuleSets = await battleReportService.getEloEnabledRuleSets()
     eloEnabledRuleSets.value = eloRuleSets.map(rs => rs.id)

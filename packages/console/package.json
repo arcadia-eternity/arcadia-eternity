@@ -29,11 +29,11 @@
     "i18next-chained-backend": "^4.6.2",
     "i18next-fs-backend": "^2.6.0",
     "jsondiffpatch": "^0.7.3",
-    "marked": "^16.0.0",
+    "marked": "^16.1.1",
     "marked-terminal": "^7.3.0"
   },
   "devDependencies": {
     "@types/marked-terminal": "^6.1.1",
-    "@types/node": "^24.0.13"
+    "@types/node": "^24.1.0"
   }
 }

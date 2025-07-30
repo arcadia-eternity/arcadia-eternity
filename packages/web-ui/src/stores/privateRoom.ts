@@ -8,6 +8,8 @@ import type { PrivateRoomInfo, PrivateRoomEvent, CreatePrivateRoomRequest } from
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 
 import { ElMessageBox, ElNotification } from 'element-plus'
+import { useBattleStore } from './battle'
+import { RemoteBattleSystem } from '@arcadia-eternity/client'
 
 export const usePrivateRoomStore = defineStore('privateRoom', () => {
   const router = useRouter()
@@ -69,7 +71,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       isLoading.value = false
     }
   }
-
+  p
   const joinRoom = async (roomCode: string, password?: string): Promise<void> => {
     isLoading.value = true
     error.value = null
@@ -450,10 +452,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
               new: clientInstance.state,
             })
           }
-
-          // 导入必要的模块
-          const { useBattleStore } = await import('./battle')
-          const { RemoteBattleSystem } = await import('@arcadia-eternity/client')
 
           const battleStore = useBattleStore()
 
