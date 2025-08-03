@@ -17,7 +17,7 @@ import {
   type baseMarkId,
 } from '@arcadia-eternity/const'
 import { Battle } from './battle'
-import { type MarkOwner } from './entity'
+import { type Instance, type MarkOwner } from './entity'
 import { BaseMark, type MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
@@ -504,6 +504,7 @@ export class AddMarkContext extends Context {
     stack?: number,
     duration?: number,
     public config?: Partial<MarkInstance['config']>,
+    public creator?: Instance,
   ) {
     super(parent)
     this.battle = parent.battle

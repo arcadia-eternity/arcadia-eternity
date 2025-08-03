@@ -1,7 +1,7 @@
 import { EffectTrigger, StackStrategy, BattleMessageType } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
 import { AddMarkContext, StackContext } from '../context'
-import type { MarkOwner } from '../entity'
+import type { Instance, MarkOwner } from '../entity'
 import { type BaseMark, type MarkInstance, StatLevelMarkInstanceImpl, BaseStatLevelMark } from '../mark'
 import { Pet } from '../pet'
 import { SynchronousPhase } from './base'
@@ -23,6 +23,7 @@ export class AddMarkPhase extends SynchronousPhase<AddMarkContext> {
     private readonly duration?: number,
     private readonly config?: Partial<MarkInstance['config']>,
     id?: string,
+    creator?: Instance,
   ) {
     super(battle, id)
   }

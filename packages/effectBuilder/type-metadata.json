@@ -692,6 +692,13 @@
       "a": false
     },
     {
+      "n": "teamSelectionConfig",
+      "t": "{ enabled: boolean, mode: \"VIEW_ONLY\" | \"TEAM_SELECTION\" | \"FULL_TEAM\", maxTeamSize: number, minTeamSize: number, allowStarterSelection: boolean, showOpponentTeam: boolean, teamInfoVisibility: \"HIDDEN\" | \"BASIC\" | \"FULL\", timeLimit: number }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "parent",
       "t": "null",
       "iu": false,
@@ -760,10 +767,11 @@
     },
     {
       "n": "currentPhase",
-      "t": "BattlePhase.StartPhase | BattlePhase.SwitchPhase | BattlePhase.SelectionPhase | BattlePhase.ExecutionPhase | BattlePhase.Ended",
+      "t": "BattlePhase.StartPhase | BattlePhase.TeamSelectionPhase | BattlePhase.SwitchPhase | BattlePhase.SelectionPhase | BattlePhase.ExecutionPhase | BattlePhase.Ended",
       "iu": true,
       "u": [
         "BattlePhase.StartPhase",
+        "BattlePhase.TeamSelectionPhase",
         "BattlePhase.SwitchPhase",
         "BattlePhase.SelectionPhase",
         "BattlePhase.ExecutionPhase",
@@ -2086,6 +2094,16 @@
         "Partial<MarkConfig>"
       ],
       "a": false
+    },
+    {
+      "n": "creator",
+      "t": "undefined | Instance",
+      "iu": true,
+      "u": [
+        "undefined",
+        "Instance"
+      ],
+      "a": false
     }
   ],
   "RemoveMarkContext": [
@@ -3100,6 +3118,16 @@
       "a": false
     },
     {
+      "n": "creator",
+      "t": "undefined | Instance",
+      "iu": true,
+      "u": [
+        "undefined",
+        "Instance"
+      ],
+      "a": false
+    },
+    {
       "n": "_stack",
       "t": "number",
       "iu": false,
@@ -3825,14 +3853,15 @@
     },
     {
       "n": "selection",
-      "t": "null | UseSkillSelection | SwitchPetSelection | DoNothingSelection | SurrenderSelection",
+      "t": "null | UseSkillSelection | SwitchPetSelection | DoNothingSelection | SurrenderSelection | TeamSelectionAction",
       "iu": true,
       "u": [
         "null",
         "UseSkillSelection",
         "SwitchPetSelection",
         "DoNothingSelection",
-        "SurrenderSelection"
+        "SurrenderSelection",
+        "TeamSelectionAction"
       ],
       "a": false
     },
@@ -3850,6 +3879,32 @@
       "u": [],
       "a": true,
       "nt": "((message: BattleMessage) => void)"
+    },
+    {
+      "n": "fullTeam",
+      "t": "Pet",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "Pet"
+    },
+    {
+      "n": "battleTeam",
+      "t": "Pet",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "Pet"
+    },
+    {
+      "n": "teamSelection",
+      "t": "undefined | BattleTeamSelection",
+      "iu": true,
+      "u": [
+        "undefined",
+        "BattleTeamSelection"
+      ],
+      "a": false
     },
     {
       "n": "attributeSystem",
@@ -3879,6 +3934,24 @@
       "u": [],
       "a": true,
       "nt": "Pet"
+    },
+    {
+      "n": "effectiveTeam",
+      "t": "Pet",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "Pet"
+    },
+    {
+      "n": "hasTeamSelection",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
     },
     {
       "n": "currentRage",
@@ -6344,14 +6417,14 @@
       "nt": "(index: number, value: number) => number"
     },
     {
-      "n": "__@iterator@358",
+      "n": "__@iterator@377",
       "t": "() => ArrayIterator<number>",
       "iu": false,
       "u": [],
       "a": false
     },
     {
-      "n": "__@unscopables@1314",
+      "n": "__@unscopables@1345",
       "t": "Record<x: number, boolean | undefined, length?: boolean | undefined, toString?: boolean | undefined, toLocaleString?: boolean | undefined, pop?: boolean | undefined, push?: boolean | undefined, concat?: boolean | undefined, join?: boolean | undefined, reverse?: boolean | undefined, shift?: boolean | undefined, slice?: boolean | undefined, sort?: boolean | undefined, splice?: boolean | undefined, unshift?: boolean | undefined, indexOf?: boolean | undefined, lastIndexOf?: boolean | undefined, every?: boolean | undefined, some?: boolean | undefined, forEach?: boolean | undefined, map?: boolean | undefined, filter?: boolean | undefined, reduce?: boolean | undefined, reduceRight?: boolean | undefined, find?: boolean | undefined, findIndex?: boolean | undefined, fill?: boolean | undefined, copyWithin?: boolean | undefined, entries?: boolean | undefined, keys?: boolean | undefined, values?: boolean | undefined, includes?: boolean | undefined, flatMap?: boolean | undefined, flat?: boolean | undefined, at?: boolean | undefined, findLast?: boolean | undefined, findLastIndex?: boolean | undefined, toReversed?: boolean | undefined, toSorted?: boolean | undefined, toSpliced?: boolean | undefined, with?: boolean | undefined, [Symbol.iterator]?: boolean | undefined, readonly [Symbol.unscopables]?: boolean | undefined,>",
       "iu": false,
       "u": [],
@@ -6390,6 +6463,27 @@
     {
       "n": "timerTimeout",
       "t": "{ player: playerId, type: \"turn\" | \"total\", autoAction?: string | undefined }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "teamSelectionTimerStart",
+      "t": "{ timeLimit: number, timestamp: number }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "teamSelectionTimerStop",
+      "t": "timestamp",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "teamSelectionTimeout",
+      "t": "timestamp",
       "iu": false,
       "u": [],
       "a": false
@@ -6538,7 +6632,7 @@
   "BattleMessage": [
     {
       "n": "type",
-      "t": "BattleStartMessage | TurnStartMessage | TurnEndMessage | BattleEndMessage | PetSwitchMessage | PetDefeatedMessage | PetReviveMessage | StatChangeMessage | RageChangeMessage | HpChangeMessage | SkillUseMessage | SkillUseFailMessage | SkillMissMessage | SkillUseEndMessage | DamageMessage | DamageFailMessage | HealMessage | HealFailMessage | MarkApplyMessage | MarkExpireMessage | MarkUpdateMessage | MarkDestroyMessage | EffectApplyMessage | TurnActionMessage | ForcedSwitchMessage | FaintSwitchMessage | InvalidActionMessage | InfoMessage | ErrorMessage | TransformMessage | TransformEndMessage",
+      "t": "BattleStartMessage | TurnStartMessage | TurnEndMessage | BattleEndMessage | PetSwitchMessage | PetDefeatedMessage | PetReviveMessage | StatChangeMessage | RageChangeMessage | HpChangeMessage | SkillUseMessage | SkillUseFailMessage | SkillMissMessage | SkillUseEndMessage | DamageMessage | DamageFailMessage | HealMessage | HealFailMessage | MarkApplyMessage | MarkExpireMessage | MarkUpdateMessage | MarkDestroyMessage | EffectApplyMessage | TurnActionMessage | ForcedSwitchMessage | FaintSwitchMessage | InvalidActionMessage | InfoMessage | ErrorMessage | TransformMessage | TransformEndMessage | TeamSelectionStartMessage | TeamSelectionCompleteMessage",
       "iu": true,
       "u": [
         "BattleStartMessage",
@@ -6571,7 +6665,9 @@
         "InfoMessage",
         "ErrorMessage",
         "TransformMessage",
-        "TransformEndMessage"
+        "TransformEndMessage",
+        "TeamSelectionStartMessage",
+        "TeamSelectionCompleteMessage"
       ],
       "a": false
     }
@@ -8126,6 +8222,106 @@
       "a": false
     }
   ],
+  "TeamSelectionStartMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.TeamSelectionStart",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ config: mode, maxTeamSize?: number | undefined, minTeamSize?: number | undefined, allowStarterSelection: boolean, showOpponentTeam: boolean, teamInfoVisibility: \"HIDDEN\" | \"BASIC\" | \"FULL\", timeLimit?: number | undefined, playerATeam: TeamInfo | null, playerBTeam: TeamInfo | null }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
+      "a": false
+    }
+  ],
+  "TeamSelectionCompleteMessage": [
+    {
+      "n": "type",
+      "t": "BattleMessageType.TeamSelectionComplete",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "sequenceId",
+      "t": "undefined | number | undefined",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number",
+        "undefined"
+      ],
+      "a": false
+    },
+    {
+      "n": "battleId",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "data",
+      "t": "{ playerASelection: selectedPets, starterPetId: petId, playerBSelection: selectedPets, starterPetId: petId }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "stateDelta",
+      "t": "undefined | AddedDelta | ModifiedDelta | DeletedDelta | ObjectDelta | ArrayDelta | MovedDelta | TextDiffDelta",
+      "iu": true,
+      "u": [
+        "undefined",
+        "AddedDelta",
+        "ModifiedDelta",
+        "DeletedDelta",
+        "ObjectDelta",
+        "ArrayDelta",
+        "MovedDelta",
+        "TextDiffDelta"
+      ],
+      "a": false
+    }
+  ],
   "SkillMessage": [
     {
       "n": "isUnknown",
@@ -8505,6 +8701,37 @@
       "a": false
     }
   ],
+  "TeamInfo": [
+    {
+      "n": "playerId",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "playerName",
+      "t": "string",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "teamSize",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "pets",
+      "t": "PetMessage",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "PetMessage"
+    }
+  ],
   "ModifierInfo": [
     {
       "n": "id",
@@ -8663,10 +8890,11 @@
     },
     {
       "n": "currentPhase",
-      "t": "BattlePhase.StartPhase | BattlePhase.SwitchPhase | BattlePhase.SelectionPhase | BattlePhase.ExecutionPhase | BattlePhase.Ended",
+      "t": "BattlePhase.StartPhase | BattlePhase.TeamSelectionPhase | BattlePhase.SwitchPhase | BattlePhase.SelectionPhase | BattlePhase.ExecutionPhase | BattlePhase.Ended",
       "iu": true,
       "u": [
         "BattlePhase.StartPhase",
+        "BattlePhase.TeamSelectionPhase",
         "BattlePhase.SwitchPhase",
         "BattlePhase.SelectionPhase",
         "BattlePhase.ExecutionPhase",
@@ -8981,18 +9209,33 @@
       "iu": false,
       "u": [],
       "a": false
+    },
+    {
+      "n": "[BattleMessageType.TeamSelectionStart]",
+      "t": "{ config: mode, maxTeamSize?: number | undefined, minTeamSize?: number | undefined, allowStarterSelection: boolean, showOpponentTeam: boolean, teamInfoVisibility: \"HIDDEN\" | \"BASIC\" | \"FULL\", timeLimit?: number | undefined, playerATeam: TeamInfo | null, playerBTeam: TeamInfo | null }",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "[BattleMessageType.TeamSelectionComplete]",
+      "t": "{ playerASelection: selectedPets, starterPetId: petId, playerBSelection: selectedPets, starterPetId: petId }",
+      "iu": false,
+      "u": [],
+      "a": false
     }
   ],
   "PlayerSelection": [
     {
       "n": "type",
-      "t": "UseSkillSelection | SwitchPetSelection | DoNothingSelection | SurrenderSelection",
+      "t": "UseSkillSelection | SwitchPetSelection | DoNothingSelection | SurrenderSelection | TeamSelectionAction",
       "iu": true,
       "u": [
         "UseSkillSelection",
         "SwitchPetSelection",
         "DoNothingSelection",
-        "SurrenderSelection"
+        "SurrenderSelection",
+        "TeamSelectionAction"
       ],
       "a": false
     }
@@ -9097,6 +9340,129 @@
     {
       "n": "type",
       "t": "\"surrender\"",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "BattleTeamSelection": [
+    {
+      "n": "selectedPets",
+      "t": "petId",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "petId"
+    },
+    {
+      "n": "starterPetId",
+      "t": "petId",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "TeamSelectionConfig": [
+    {
+      "n": "enabled",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "mode",
+      "t": "\"VIEW_ONLY\" | \"TEAM_SELECTION\" | \"FULL_TEAM\"",
+      "iu": true,
+      "u": [
+        "\"VIEW_ONLY\"",
+        "\"TEAM_SELECTION\"",
+        "\"FULL_TEAM\""
+      ],
+      "a": false
+    },
+    {
+      "n": "maxTeamSize",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "minTeamSize",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "allowStarterSelection",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "showOpponentTeam",
+      "t": "false | true",
+      "iu": true,
+      "u": [
+        "false",
+        "true"
+      ],
+      "a": false
+    },
+    {
+      "n": "teamInfoVisibility",
+      "t": "\"HIDDEN\" | \"BASIC\" | \"FULL\"",
+      "iu": true,
+      "u": [
+        "\"HIDDEN\"",
+        "\"BASIC\"",
+        "\"FULL\""
+      ],
+      "a": false
+    },
+    {
+      "n": "timeLimit",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
+  ],
+  "TeamSelectionAction": [
+    {
+      "n": "type",
+      "t": "\"team-selection\"",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "player",
+      "t": "playerId",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "selectedPets",
+      "t": "petId",
+      "iu": false,
+      "u": [],
+      "a": true,
+      "nt": "petId"
+    },
+    {
+      "n": "starterPetId",
+      "t": "petId",
       "iu": false,
       "u": [],
       "a": false
@@ -10252,6 +10618,79 @@
       "a": false
     }
   ],
+  "TeamSelectionContext": [
+    {
+      "n": "type",
+      "t": "\"team-selection\"",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "battle",
+      "t": "Battle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "config",
+      "t": "TeamSelectionConfig",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "playerSelections",
+      "t": "Map<string, BattleTeamSelection>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "selectionProgress",
+      "t": "Map<string, \"not_started\" | \"in_progress\" | \"completed\">",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "selectionStartTime",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "selectionEndTime",
+      "t": "undefined | number",
+      "iu": true,
+      "u": [
+        "undefined",
+        "number"
+      ],
+      "a": false
+    }
+  ],
+  "TeamSelectionPhase": [
+    {
+      "n": "config",
+      "t": "TeamSelectionConfig",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "timeoutHandler",
+      "t": "undefined | () => void",
+      "iu": true,
+      "u": [
+        "undefined",
+        "() => void"
+      ],
+      "a": false
+    }
+  ],
   "TransformPhase": [
     {
       "n": "parentContext",
@@ -10671,11 +11110,12 @@
     },
     {
       "n": "currentPhase",
-      "t": "null | \"switch\" | \"selection\" | \"execution\"",
+      "t": "null | \"switch\" | \"team-selection\" | \"selection\" | \"execution\"",
       "iu": true,
       "u": [
         "null",
         "\"switch\"",
+        "\"team-selection\"",
         "\"selection\"",
         "\"execution\""
       ],
@@ -10688,6 +11128,16 @@
       "u": [
         "null",
         "playerIds"
+      ],
+      "a": false
+    },
+    {
+      "n": "teamSelectionTimer",
+      "t": "null | NodeJS.Timeout",
+      "iu": true,
+      "u": [
+        "null",
+        "NodeJS.Timeout"
       ],
       "a": false
     },
