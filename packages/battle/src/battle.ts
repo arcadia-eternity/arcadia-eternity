@@ -285,6 +285,8 @@ export class Battle extends Context implements MarkOwner {
       context.stack,
       context.duration,
       context.config,
+      undefined,
+      context.creator,
     )
     this.phaseManager.registerPhase(addMarkPhase)
     this.phaseManager.executePhase(addMarkPhase.id)

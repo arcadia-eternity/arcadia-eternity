@@ -126,7 +126,7 @@ export const Operators = {
       const stackValue = stack ? GetValueFromSource(context, stack)[0] : undefined
       const durationValue = duration ? GetValueFromSource(context, duration)[0] : undefined
       targets.forEach(target => {
-        target.addMark(new AddMarkContext(context, target, marks[0], stackValue, durationValue, config))
+        target.addMark(new AddMarkContext(context, target, marks[0], stackValue, durationValue, config, context.source))
       })
     },
 
