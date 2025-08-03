@@ -105,13 +105,13 @@ export const useValidationStore = defineStore('validation', () => {
           {
             id: 'casual_standard_ruleset',
             name: '休闲规则',
-            description: '休闲模式的规则集合',
+            description: '没有严格限制的模式',
             ruleCount: registry.getRuleSet('casual_standard_ruleset')?.getRules().length || 0,
           },
           {
             id: 'competitive_ruleset',
             name: '竞技规则',
-            description: '严格的竞技对战规则集',
+            description: '严格的竞技对战模式',
             ruleCount: registry.getRuleSet('competitive_ruleset')?.getRules().length || 0,
           },
         ])
@@ -120,7 +120,7 @@ export const useValidationStore = defineStore('validation', () => {
         // 如果连注册表都无法访问，使用完全默认的值
         availableRuleSets.value = markRaw([
           { id: 'casual_standard_ruleset', name: '休闲规则', description: '休闲模式的规则集合', ruleCount: 0 },
-          { id: 'competitive_ruleset', name: '竞技规则', description: '严格的竞技对战规则集', ruleCount: 0 },
+          { id: 'competitive_ruleset', name: '竞技规则', description: '严格的竞技对战模式', ruleCount: 0 },
         ])
       }
       isInitialized.value = true
