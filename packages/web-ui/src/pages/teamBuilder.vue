@@ -237,13 +237,13 @@
                   <h2 class="text-base font-medium text-gray-900">当前队伍</h2>
                   <p class="text-xs text-gray-500 mt-1">{{ currentTeam.length }}/6 只精灵</p>
                 </div>
-                <el-tooltip content="在精灵仓库中可以管理多个队伍" placement="left" :show-after="500" class="md:hidden">
-                  <router-link
-                    to="/storage"
+                <el-tooltip content="使用教程" placement="left" :show-after="500" class="md:hidden">
+                  <button
+                    @click="showHelp = true"
                     class="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-blue-600 transition-colors"
                   >
-                    <el-icon :size="16"><QuestionFilled /></el-icon>
-                  </router-link>
+                    <el-icon :size="16"><InfoFilled /></el-icon>
+                  </button>
                 </el-tooltip>
               </div>
               <!-- 拖拽提示 -->
@@ -982,15 +982,65 @@
 
         <!-- 仓库管理提示 -->
         <div class="hidden md:flex items-center ml-3 pl-3 border-l border-gray-300">
-          <el-tooltip content="在精灵仓库中可以管理多个队伍、复制队伍等更多功能" placement="top" :show-after="500">
-            <router-link
-              to="/storage"
+          <el-tooltip content="查看使用教程" placement="top" :show-after="500">
+            <button
+              @click="showHelp = true"
               class="inline-flex items-center text-xs text-gray-500 hover:text-blue-600 transition-colors"
             >
-              <el-icon class="mr-1" :size="12"><QuestionFilled /></el-icon>
-              更多队伍管理功能
-            </router-link>
+              <el-icon class="mr-1" :size="12"><InfoFilled /></el-icon>
+              使用教程
+            </button>
           </el-tooltip>
+        </div>
+      </div>
+    </div>
+    <!-- 帮助对话框 -->
+    <div v-if="showHelp" class="fixed inset-0 z-[9998] overflow-y-auto" @click="showHelp = false">
+      <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-black/50 transition-opacity"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+        <div
+          class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full z-10"
+          @click.stop
+        >
+          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-medium text-gray-900">使用帮助</h3>
+              <button @click="showHelp = false" class="text-gray-400 hover:text-gray-500">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div class="space-y-4 text-sm text-gray-600">
+              <div>
+                <h4 class="font-medium text-gray-900 mb-2">队伍操作</h4>
+                <ul class="space-y-1 list-disc list-inside">
+                  <li>拖拽左侧列表中的精灵可以调整出战顺序。</li>
+                  <li>点击“添加精灵”按钮可以向当前队伍中添加新的精灵。</li>
+                  <li>在精灵卡片上，可以将精灵移入仓库或永久删除。</li>
+                </ul>
+              </div>
+              <div>
+                <h4 class="font-medium text-gray-900 mb-2">配置精灵</h4>
+                <ul class="space-y-1 list-disc list-inside">
+                  <li>在右侧配置区域，可以修改精灵的名称、种族、等级、性别等基础信息。</li>
+                  <li>通过滑块和输入框精确调整精灵的能力值（学习力、个体值）。</li>
+                  <li>为精灵选择合适的技能，包括普通技能和必杀技能。</li>
+                </ul>
+              </div>
+              <div>
+                <h4 class="font-medium text-gray-900 mb-2">数据管理</h4>
+                <ul class="space-y-1 list-disc list-inside">
+                  <li>点击“保存”按钮，可以将当前队伍的修改保存到本地。</li>
+                  <li>使用“导出”和“导入”功能，可以方便地备份和分享你的队伍配置。</li>
+                  <li>在仓库管理页面，可以管理多个队伍和所有未编队的精灵。</li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1104,6 +1154,7 @@ const selectedPetId = ref<string | null>(null)
 const showGuide = ref(localStorage.getItem('teamBuilderGuideHidden') !== 'true') // 控制指引显示
 const showDragTip = ref(localStorage.getItem('teamBuilderDragTipHidden') !== 'true') // 控制拖拽提示显示
 const showValidationDetails = ref(false) // 控制验证详情显示
+const showHelp = ref(false) // 控制帮助对话框显示
 
 // 排序锁状态 - PC端默认关闭，移动端默认开启
 const sortLocked = ref(isMobile.value)
