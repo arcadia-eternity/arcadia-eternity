@@ -1,67 +1,53 @@
+import { UAParser } from 'ua-parser-js'
 import type { Platform, Architecture, WindowsFormat, MacOSFormat, PlatformInfo } from '@/types/download'
 
+// Per official documentation, instantiate the parser once.
+const parser = new UAParser()
+// The getResult() method returns all parsed information, which we can reuse.
+const result = parser.getResult()
+
 /**
- * 检测用户的操作系统平台
+ * Detects the user's operating system platform using ua-parser-js.
  */
 export function detectPlatform(): Platform {
-  const userAgent = navigator.userAgent.toLowerCase()
-  const platform = navigator.platform.toLowerCase()
-
-  // Windows 检测
-  if (platform.includes('win') || userAgent.includes('windows')) {
-    return 'windows'
+  const osName = result.os.name
+  if (typeof osName === 'string') {
+    const lowerOsName = osName.toLowerCase()
+    if (lowerOsName.includes('mac')) {
+      return 'macos'
+    }
+    if (lowerOsName.includes('windows')) {
+      return 'windows'
+    }
+    if (lowerOsName.includes('linux')) {
+      return 'linux'
+    }
   }
-
-  // macOS 检测
-  if (platform.includes('mac') || userAgent.includes('mac os')) {
-    return 'macos'
-  }
-
-  // Linux 检测
-  if (platform.includes('linux') || userAgent.includes('linux')) {
-    return 'linux'
-  }
-
-  // 默认返回 windows（最常见的桌面平台）
+  // Fallback for undetected OS
   return 'windows'
 }
 
 /**
- * 检测用户的处理器架构
+ * Detects the user's processor architecture using ua-parser-js.
  */
 export function detectArchitecture(): Architecture {
-  const userAgent = navigator.userAgent.toLowerCase()
-  const platform = navigator.platform.toLowerCase()
+  // The `cpu.architecture` property provides the architecture name.
+  const arch = result.cpu.architecture
+  switch (arch) {
+    // `arm64` is used for Apple Silicon (M1/M2 etc.) and other 64-bit ARM.
+    case 'arm64':
+    case 'arm': // Also map 32-bit ARM to our aarch64 build for simplicity.
+      return 'aarch64'
 
-  // Apple Silicon 检测
-  if (platform.includes('mac')) {
-    // 检测是否为 Apple Silicon
-    // 注意：在 Apple Silicon 上运行的 Intel 应用会显示为 Intel
-    if (userAgent.includes('intel')) {
+    // `amd64` is for 64-bit Intel/AMD, `ia32` is for 32-bit Intel.
+    case 'amd64':
+    case 'ia32':
       return 'x64'
-    }
-    // 新的 Mac 默认为 Apple Silicon
-    return 'aarch64'
-  }
 
-  // ARM 架构检测
-  if (platform.includes('arm') || userAgent.includes('arm')) {
-    return 'aarch64'
+    // Default to x64 for any other architectures.
+    default:
+      return 'x64'
   }
-
-  // 64位检测
-  if (
-    platform.includes('x64') ||
-    platform.includes('x86_64') ||
-    platform.includes('amd64') ||
-    userAgent.includes('x64') ||
-    userAgent.includes('wow64')
-  ) {
-    return 'x64'
-  }
-
-  // 默认返回 x64
-  return 'x64'
 }
 
 /**

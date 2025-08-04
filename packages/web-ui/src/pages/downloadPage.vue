@@ -28,7 +28,7 @@
         </h2>
 
         <div class="max-w-md mx-auto">
-          <div class="bg-white rounded-lg shadow-lg p-6 border-2 border-blue-200">
+          <div class="bg-white rounded-lg shadow-lg p-6 border border-gray-300">
             <!-- 检测到的平台信息 -->
             <div class="text-center mb-4" v-if="platformInfo">
               <div class="flex items-center justify-center mb-2">
@@ -99,7 +99,7 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <!-- Windows -->
-          <div class="platform-card bg-white rounded-lg shadow-md p-6">
+          <div class="platform-card bg-white rounded-lg shadow-md p-6 border border-gray-300">
             <div class="flex items-center mb-4">
               <WindowsIcon class="w-8 h-8 mr-3 text-blue-600" />
               <h3 class="text-xl font-semibold">Windows</h3>
@@ -126,7 +126,7 @@
           </div>
 
           <!-- macOS -->
-          <div class="platform-card bg-white rounded-lg shadow-md p-6">
+          <div class="platform-card bg-white rounded-lg shadow-md p-6 border border-gray-300">
             <div class="flex items-center mb-4">
               <MacOSIcon class="w-8 h-8 mr-3 text-gray-700" />
               <h3 class="text-xl font-semibold">macOS</h3>
@@ -153,7 +153,7 @@
           </div>
 
           <!-- Linux (预留) -->
-          <div class="platform-card bg-white rounded-lg shadow-md p-6 opacity-50">
+          <div class="platform-card bg-white rounded-lg shadow-md p-6 opacity-50 border border-gray-300">
             <div class="flex items-center mb-4">
               <LinuxIcon class="w-8 h-8 mr-3 text-orange-600" />
               <h3 class="text-xl font-semibold">Linux</h3>
@@ -174,7 +174,7 @@
         </h2>
 
         <div class="max-w-4xl mx-auto">
-          <div class="bg-white rounded-lg shadow-md overflow-hidden">
+          <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-300">
             <table class="w-full">
               <thead class="bg-gray-50">
                 <tr>
@@ -208,7 +208,7 @@
         </h2>
 
         <div class="max-w-2xl mx-auto">
-          <div class="bg-white rounded-lg shadow-md p-6">
+          <div class="bg-white rounded-lg shadow-md p-6 border border-gray-300">
             <div class="space-y-3">
               <div
                 v-for="source in availableSources"
@@ -357,13 +357,9 @@ const handleDownload = async (platform: string, architecture: string, format: st
 <style scoped>
 .download-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .download-header {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  color: white;
 }
 
 .container {
