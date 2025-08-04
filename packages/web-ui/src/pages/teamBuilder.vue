@@ -419,8 +419,24 @@
           <div class="space-y-3">
             <!-- 基础信息卡片 -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div class="px-4 py-3 border-b border-gray-200">
+              <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
                 <h3 class="text-base font-medium text-gray-900">基础信息</h3>
+                <div>
+                  <button
+                    @click="handleMoveToStorage(selectedPet.id)"
+                    class="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                  >
+                    <el-icon class="mr-1" :size="12"><FolderOpened /></el-icon>
+                    移入仓库
+                  </button>
+                  <button
+                    @click="handleDeletePet(selectedPet.id)"
+                    class="ml-2 inline-flex items-center px-2 py-1 text-xs font-medium text-red-600 bg-red-100 rounded hover:bg-red-200 transition-colors"
+                  >
+                    <el-icon class="mr-1" :size="12"><Delete /></el-icon>
+                    永久删除
+                  </button>
+                </div>
               </div>
               <div class="p-4">
                 <form class="space-y-4">
