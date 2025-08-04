@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.13.8](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.13.7...arcadia-eternity-v2.13.8) (2025-08-04)
+
+
+### 🐛 Bug Fixes
+
+* add max buffer size ([af2c74c](https://github.com/arcadia-eternity/arcadia-eternity/commit/af2c74ca306229c68cbacaf860f2b55ba8517150))
+
 ## [2.13.7](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.13.6...arcadia-eternity-v2.13.7) (2025-08-04)
 
 
