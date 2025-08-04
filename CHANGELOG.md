@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.14.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.13.8...arcadia-eternity-v2.14.0) (2025-08-04)
+
+
+### ✨ Features
+
+* room url ([0e9675d](https://github.com/arcadia-eternity/arcadia-eternity/commit/0e9675dbd6440b3e6f5effe14498eae95516c6c1))
+
 ## [2.13.8](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.13.7...arcadia-eternity-v2.13.8) (2025-08-04)
 
 
