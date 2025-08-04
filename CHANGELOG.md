@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.13.6](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.13.5...arcadia-eternity-v2.13.6) (2025-08-04)
+
+
+### ♻️ Code Refactoring
+
+* update description ([618233c](https://github.com/arcadia-eternity/arcadia-eternity/commit/618233c59bf09986f58f434d2f4893d2d6cecebe))
+
 ## [2.13.5](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.13.4...arcadia-eternity-v2.13.5) (2025-08-04)
 
 

@@ -81,7 +81,7 @@ export const useValidationStore = defineStore('validation', () => {
           return {
             id,
             name: id === 'competitive_ruleset' ? '竞技规则' : '休闲规则',
-            description: id === 'competitive_ruleset' ? '严格的竞技对战规则集' : '休闲模式的规则集合',
+            description: id === 'competitive_ruleset' ? '严格的竞技对战规则' : '休闲模式规则',
             ruleCount,
           }
         }),
