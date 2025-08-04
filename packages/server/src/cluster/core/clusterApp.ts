@@ -261,6 +261,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
     cors: finalConfig.cors,
     pingTimeout: 60000,
     pingInterval: 25000,
+    maxHttpBufferSize: 4e6, // 4MB
   })
 
   // 初始化集群管理器
