@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.13.5](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.13.4...arcadia-eternity-v2.13.5) (2025-08-04)
+
+
+### ♻️ Code Refactoring
+
+* add move and delete button to pet setting card ([7156b9d](https://github.com/arcadia-eternity/arcadia-eternity/commit/7156b9d79e8c3e420a07d1ebcb668eb6264cd6c3))
+* add teambuilder help info ([8bb9d55](https://github.com/arcadia-eternity/arcadia-eternity/commit/8bb9d553e6bb27328c553247f7e3424d61fad4cb))
+
 ## [2.13.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.13.3...arcadia-eternity-v2.13.4) (2025-08-03)
 
 
