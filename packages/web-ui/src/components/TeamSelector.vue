@@ -23,7 +23,6 @@
           <div class="font-medium text-gray-800">{{ team.name }}</div>
           <div class="flex items-center gap-1">
             <span class="text-sm text-gray-600">{{ team.pets.length }}只</span>
-            <el-icon class="text-green-500" :size="16"><Check /></el-icon>
             <el-icon v-if="selectedTeamIndex === index" class="text-blue-500 ml-1" size="20"><Select /></el-icon>
           </div>
         </div>
@@ -137,24 +136,31 @@ function selectTeam(index: number) {
   emit('update:modelValue', selectedTeam.value)
 }
 
-watch(() => props.modelValue, (newTeam) => {
-  if (newTeam) {
-    const index = availableTeams.value.findIndex(t => t.name === newTeam.name && t.ruleSetId === newTeam.ruleSetId)
-    if (index !== -1) {
-      selectedTeamIndex.value = index
+watch(
+  () => props.modelValue,
+  newTeam => {
+    if (newTeam) {
+      const index = availableTeams.value.findIndex(t => t.name === newTeam.name && t.ruleSetId === newTeam.ruleSetId)
+      if (index !== -1) {
+        selectedTeamIndex.value = index
+      } else {
+        selectedTeamIndex.value = -1
+      }
     } else {
       selectedTeamIndex.value = -1
     }
-  } else {
-    selectedTeamIndex.value = -1
-  }
-}, { immediate: true, deep: true })
-watch(() => props.selectedRuleSetId, () => {
-  if (selectedTeamIndex.value !== -1) {
-    selectedTeamIndex.value = -1
-    emit('update:modelValue', null)
-  }
-})
+  },
+  { immediate: true, deep: true },
+)
+watch(
+  () => props.selectedRuleSetId,
+  () => {
+    if (selectedTeamIndex.value !== -1) {
+      selectedTeamIndex.value = -1
+      emit('update:modelValue', null)
+    }
+  },
+)
 
 watch(selectedTeam, () => {
   validateSelectedTeam()
@@ -181,7 +187,10 @@ const validateSelectedTeam = async () => {
   try {
     const result = await validationStore.validateTeam(selectedTeam.value.pets, props.selectedRuleSetId)
     emit('update:isValid', result.isValid)
-    emit('update:validationErrors', result.errors.map(error => error.message))
+    emit(
+      'update:validationErrors',
+      result.errors.map(error => error.message),
+    )
   } catch (error) {
     console.error('验证队伍时出错:', error)
     emit('update:isValid', false)
