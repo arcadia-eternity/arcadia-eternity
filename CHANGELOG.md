@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.13.7](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.13.6...arcadia-eternity-v2.13.7) (2025-08-04)
+
+
+### ♻️ Code Refactoring
+
+* remove check icon ([fdb7b5e](https://github.com/arcadia-eternity/arcadia-eternity/commit/fdb7b5e3874b2948ef93bc0711eed7809422a729))
+
 ## [2.13.6](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.13.5...arcadia-eternity-v2.13.6) (2025-08-04)
 
 
