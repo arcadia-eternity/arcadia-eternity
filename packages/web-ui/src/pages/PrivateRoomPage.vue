@@ -43,6 +43,7 @@
           <el-tag>{{ getRuleSetName(privateRoomStore.currentRoom.config.ruleSetId) }}</el-tag>
           <el-tag type="info">房主: {{ getHostPlayerName() }}</el-tag>
           <el-button type="primary" size="small" @click="copyRoomCode"> 复制房间码 </el-button>
+          <el-button type="primary" size="small" @click="copyRoomLink"> 复制链接 </el-button>
           <!-- 房主配置按钮 -->
           <el-button
             v-if="privateRoomStore.isHost && privateRoomStore.currentRoom?.status === 'waiting'"
@@ -314,6 +315,7 @@ import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { usePlayerStore } from '@/stores/player'
 import { useValidationStore } from '@/stores/validation'
 import { usePetStorageStore } from '@/stores/petStorage'
+import { useBattleClientStore } from '@/stores/battleClient'
 import { User, Loading, ArrowDown, MoreFilled, Star, Close } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PlayerCard from '@/components/PlayerCard.vue'
@@ -325,6 +327,7 @@ const privateRoomStore = usePrivateRoomStore()
 const playerStore = usePlayerStore()
 const validationStore = useValidationStore()
 const petStorageStore = usePetStorageStore()
+const battleClientStore = useBattleClientStore()
 
 const roomCode = route.params.roomCode as string
 
@@ -465,6 +468,16 @@ const copyRoomCode = async () => {
   }
 }
 
+const copyRoomLink = async () => {
+  try {
+    const roomUrl = `${window.location.origin}/room/${roomCode}`
+    await navigator.clipboard.writeText(roomUrl)
+    ElMessage.success('房间链接已复制到剪贴板')
+  } catch (error) {
+    ElMessage.error('复制失败，请手动复制房间链接')
+  }
+}
+
 const toggleReady = async () => {
   try {
     await privateRoomStore.toggleReady()
@@ -583,7 +596,6 @@ const saveRoomConfig = async () => {
   }
 }
 
-// 生命周期
 onMounted(async () => {
   if (!roomCode) {
     ElMessage.error('房间码无效')
@@ -591,42 +603,37 @@ onMounted(async () => {
     return
   }
 
-  // 如果已经有当前房间状态且房间码匹配，直接使用
-  if (privateRoomStore.currentRoom && privateRoomStore.currentRoom.config.roomCode === roomCode) {
-    console.log('🏠 Using existing room state, skipping server call')
-    try {
-      // 初始化选择的队伍
-      selectedTeam.value =
-        petStorageStore.teams.find(t => t.pets.every((p, i) => p.id === privateRoomStore.selectedTeam[i]?.id)) || null
-      console.log('🏠 PrivateRoomPage mounted successfully with existing state')
-    } catch (error) {
-      console.error('🏠 Error setting up existing room state:', error)
-      // 如果使用现有状态失败，尝试重新获取
-      try {
-        console.log('🏠 Fallback: Getting room info from server...')
-        await privateRoomStore.getRoomInfo(roomCode)
-        selectedTeam.value =
-          petStorageStore.teams.find(t => t.pets.every((p, i) => p.id === privateRoomStore.selectedTeam[i]?.id)) || null
-        console.log('🏠 Fallback successful')
-      } catch (fallbackError) {
-        console.error('🏠 Fallback also failed:', fallbackError)
-        ElMessage.error('房间状态异常: ' + (fallbackError as Error).message)
-        router.push('/')
-      }
+  const joinRoomAction = async () => {
+    // 检查是否已在该房间
+    const isAlreadyInRoom = privateRoomStore.currentRoom?.config.roomCode === roomCode
+    if (isAlreadyInRoom) {
+      console.log('🏠 Already in room, skipping join logic.')
+      return
     }
-  } else {
-    // 没有匹配的房间状态，从服务器获取
+
     try {
-      console.log('🏠 Getting room info from server...')
-      await privateRoomStore.getRoomInfo(roomCode)
-      selectedTeam.value =
-        petStorageStore.teams.find(t => t.pets.every((p, i) => p.id === privateRoomStore.selectedTeam[i]?.id)) || null
-      console.log('🏠 Room info retrieved successfully')
+      console.log(`🚪 Attempting to join room: ${roomCode}`)
+      await privateRoomStore.joinRoom(roomCode)
+      console.log(`✅ Successfully joined room: ${roomCode}`)
     } catch (error) {
-      console.error('🏠 Failed to get room info:', error)
-      ElMessage.error('获取房间信息失败: ' + (error as Error).message)
+      console.error(`💥 Failed to join room: ${roomCode}`, error)
+      ElMessage.error(`加入房间失败: ${(error as Error).message}`)
       router.push('/')
     }
+  }
+
+  if (battleClientStore.currentState.status === 'connected') {
+    await joinRoomAction()
+  } else {
+    const unwatch = watch(
+      () => battleClientStore.currentState.status,
+      newStatus => {
+        if (newStatus === 'connected') {
+          joinRoomAction()
+          unwatch() // Stop watching after the action is triggered
+        }
+      },
+    )
   }
 })
 
