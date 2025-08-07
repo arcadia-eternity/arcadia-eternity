@@ -796,16 +796,16 @@ export class ClusterBattleServer {
       // 检查该session是否在战斗中
       const roomState = await this.getPlayerRoomFromCluster(playerId, sessionId)
 
-      // 检查是否为观战者
-      const battle = roomState ? this.battleService.getLocalBattle(roomState.id) : undefined
-      const isPlayer = battle ? battle.playerA.id === playerId || battle.playerB.id === playerId : false
+      // 检查是否为观战者 - 直接从 roomState 判断
+      const isSpectator = roomState?.spectators.some(s => s.sessionId === sessionId) ?? false
 
-      if (roomState && !isPlayer) {
+      if (roomState && isSpectator) {
         logger.info({ playerId, sessionId, roomId: roomState.id }, '观战者断开连接，立即清理资源')
         await this.stateManager.removePlayerConnection(playerId, sessionId)
-        await this.battleService.removeSpectatorFromRoom(roomState.id, sessionId)
-        // 新增：移除观战者的会话房间映射
-        await this.removeSessionRoomMapping(playerId, sessionId, roomState.id)
+        if (roomState) {
+          await this.battleService.removeSpectatorFromRoom(roomState.id, sessionId)
+          await this.removeSessionRoomMapping(playerId, sessionId, roomState.id)
+        }
         this.debouncedBroadcastServerState()
         return
       }
@@ -1374,9 +1374,7 @@ export class ClusterBattleServer {
         const roomState = await this.stateManager.getRoomState(roomId)
         if (roomState) {
           const isPlayer = roomState.sessions.includes(sessionId) && roomState.sessionPlayers[sessionId] === playerId
-          const isSpectator = roomState.spectators.some(
-            s => s.sessionId === sessionId && s.playerId === playerId,
-          )
+          const isSpectator = roomState.spectators.some(s => s.sessionId === sessionId && s.playerId === playerId)
 
           if (isPlayer || isSpectator) {
             return roomState
@@ -2990,16 +2988,37 @@ export class ClusterBattleServer {
   private async createSessionRoomMappings(roomState: RoomState): Promise<void> {
     try {
       const client = this.stateManager.redisManager.getClient()
+      const pipeline = client.pipeline()
 
+      // 为玩家创建映射
       for (const sessionId of roomState.sessions) {
         const playerId = roomState.sessionPlayers[sessionId]
         if (playerId) {
-          const sessionRoomKey = `session:rooms:${playerId}:${sessionId}`
-          await client.sadd(sessionRoomKey, roomState.id)
-          // 设置过期时间，防止映射泄漏
-          await client.expire(sessionRoomKey, 24 * 60 * 60) // 24小时过期
+          const sessionRoomKey = REDIS_KEYS.SESSION_ROOM_MAPPING(playerId, sessionId)
+          pipeline.sadd(sessionRoomKey, roomState.id)
+          pipeline.expire(sessionRoomKey, 24 * 60 * 60) // 24小时过期
         }
       }
+
+      // 为观战者创建映射
+      for (const spectator of roomState.spectators) {
+        const { playerId, sessionId } = spectator
+        if (playerId && sessionId) {
+          const sessionRoomKey = REDIS_KEYS.SESSION_ROOM_MAPPING(playerId, sessionId)
+          pipeline.sadd(sessionRoomKey, roomState.id)
+          pipeline.expire(sessionRoomKey, 24 * 60 * 60) // 24小时过期
+        }
+      }
+
+      await pipeline.exec()
+      logger.info(
+        {
+          roomId: roomState.id,
+          playerCount: roomState.sessions.length,
+          spectatorCount: roomState.spectators.length,
+        },
+        'Created session room mappings for players and spectators',
+      )
     } catch (error) {
       logger.error({ error, roomId: roomState.id }, 'Error creating session room mappings')
     }
