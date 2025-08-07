@@ -190,15 +190,32 @@ export interface MatchmakingEntryProto {
   joinTime: string;
 }
 
+export interface SpectatorEntryProto {
+  playerId: string;
+  sessionId: string;
+}
+
 export interface CreateBattleRequest {
   player1Entry?: MatchmakingEntryProto | undefined;
   player2Entry?: MatchmakingEntryProto | undefined;
+  spectators: SpectatorEntryProto[];
 }
 
 export interface CreateBattleResponse {
   success: boolean;
   error: string;
   roomId: string;
+}
+
+export interface JoinSpectateBattleRequest {
+  roomId: string;
+  playerId: string;
+  sessionId: string;
+}
+
+export interface JoinSpectateBattleResponse {
+  success: boolean;
+  error: string;
 }
 
 function createBasePlayerSelectionRequest(): PlayerSelectionRequest {
@@ -2605,8 +2622,84 @@ export const MatchmakingEntryProto: MessageFns<MatchmakingEntryProto> = {
   },
 };
 
+function createBaseSpectatorEntryProto(): SpectatorEntryProto {
+  return { playerId: "", sessionId: "" };
+}
+
+export const SpectatorEntryProto: MessageFns<SpectatorEntryProto> = {
+  encode(message: SpectatorEntryProto, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.playerId !== "") {
+      writer.uint32(10).string(message.playerId);
+    }
+    if (message.sessionId !== "") {
+      writer.uint32(18).string(message.sessionId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SpectatorEntryProto {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSpectatorEntryProto();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.playerId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.sessionId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SpectatorEntryProto {
+    return {
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
+    };
+  },
+
+  toJSON(message: SpectatorEntryProto): unknown {
+    const obj: any = {};
+    if (message.playerId !== "") {
+      obj.playerId = message.playerId;
+    }
+    if (message.sessionId !== "") {
+      obj.sessionId = message.sessionId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SpectatorEntryProto>, I>>(base?: I): SpectatorEntryProto {
+    return SpectatorEntryProto.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SpectatorEntryProto>, I>>(object: I): SpectatorEntryProto {
+    const message = createBaseSpectatorEntryProto();
+    message.playerId = object.playerId ?? "";
+    message.sessionId = object.sessionId ?? "";
+    return message;
+  },
+};
+
 function createBaseCreateBattleRequest(): CreateBattleRequest {
-  return { player1Entry: undefined, player2Entry: undefined };
+  return { player1Entry: undefined, player2Entry: undefined, spectators: [] };
 }
 
 export const CreateBattleRequest: MessageFns<CreateBattleRequest> = {
@@ -2616,6 +2709,9 @@ export const CreateBattleRequest: MessageFns<CreateBattleRequest> = {
     }
     if (message.player2Entry !== undefined) {
       MatchmakingEntryProto.encode(message.player2Entry, writer.uint32(18).fork()).join();
+    }
+    for (const v of message.spectators) {
+      SpectatorEntryProto.encode(v!, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -2643,6 +2739,14 @@ export const CreateBattleRequest: MessageFns<CreateBattleRequest> = {
           message.player2Entry = MatchmakingEntryProto.decode(reader, reader.uint32());
           continue;
         }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.spectators.push(SpectatorEntryProto.decode(reader, reader.uint32()));
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2656,6 +2760,9 @@ export const CreateBattleRequest: MessageFns<CreateBattleRequest> = {
     return {
       player1Entry: isSet(object.player1Entry) ? MatchmakingEntryProto.fromJSON(object.player1Entry) : undefined,
       player2Entry: isSet(object.player2Entry) ? MatchmakingEntryProto.fromJSON(object.player2Entry) : undefined,
+      spectators: globalThis.Array.isArray(object?.spectators)
+        ? object.spectators.map((e: any) => SpectatorEntryProto.fromJSON(e))
+        : [],
     };
   },
 
@@ -2666,6 +2773,9 @@ export const CreateBattleRequest: MessageFns<CreateBattleRequest> = {
     }
     if (message.player2Entry !== undefined) {
       obj.player2Entry = MatchmakingEntryProto.toJSON(message.player2Entry);
+    }
+    if (message.spectators?.length) {
+      obj.spectators = message.spectators.map((e) => SpectatorEntryProto.toJSON(e));
     }
     return obj;
   },
@@ -2681,6 +2791,7 @@ export const CreateBattleRequest: MessageFns<CreateBattleRequest> = {
     message.player2Entry = (object.player2Entry !== undefined && object.player2Entry !== null)
       ? MatchmakingEntryProto.fromPartial(object.player2Entry)
       : undefined;
+    message.spectators = object.spectators?.map((e) => SpectatorEntryProto.fromPartial(e)) || [];
     return message;
   },
 };
@@ -2777,6 +2888,174 @@ export const CreateBattleResponse: MessageFns<CreateBattleResponse> = {
   },
 };
 
+function createBaseJoinSpectateBattleRequest(): JoinSpectateBattleRequest {
+  return { roomId: "", playerId: "", sessionId: "" };
+}
+
+export const JoinSpectateBattleRequest: MessageFns<JoinSpectateBattleRequest> = {
+  encode(message: JoinSpectateBattleRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.roomId !== "") {
+      writer.uint32(10).string(message.roomId);
+    }
+    if (message.playerId !== "") {
+      writer.uint32(18).string(message.playerId);
+    }
+    if (message.sessionId !== "") {
+      writer.uint32(26).string(message.sessionId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): JoinSpectateBattleRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseJoinSpectateBattleRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.roomId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.playerId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.sessionId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): JoinSpectateBattleRequest {
+    return {
+      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : "",
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
+    };
+  },
+
+  toJSON(message: JoinSpectateBattleRequest): unknown {
+    const obj: any = {};
+    if (message.roomId !== "") {
+      obj.roomId = message.roomId;
+    }
+    if (message.playerId !== "") {
+      obj.playerId = message.playerId;
+    }
+    if (message.sessionId !== "") {
+      obj.sessionId = message.sessionId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<JoinSpectateBattleRequest>, I>>(base?: I): JoinSpectateBattleRequest {
+    return JoinSpectateBattleRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<JoinSpectateBattleRequest>, I>>(object: I): JoinSpectateBattleRequest {
+    const message = createBaseJoinSpectateBattleRequest();
+    message.roomId = object.roomId ?? "";
+    message.playerId = object.playerId ?? "";
+    message.sessionId = object.sessionId ?? "";
+    return message;
+  },
+};
+
+function createBaseJoinSpectateBattleResponse(): JoinSpectateBattleResponse {
+  return { success: false, error: "" };
+}
+
+export const JoinSpectateBattleResponse: MessageFns<JoinSpectateBattleResponse> = {
+  encode(message: JoinSpectateBattleResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.success !== false) {
+      writer.uint32(8).bool(message.success);
+    }
+    if (message.error !== "") {
+      writer.uint32(18).string(message.error);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): JoinSpectateBattleResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseJoinSpectateBattleResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.success = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.error = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): JoinSpectateBattleResponse {
+    return {
+      success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
+      error: isSet(object.error) ? globalThis.String(object.error) : "",
+    };
+  },
+
+  toJSON(message: JoinSpectateBattleResponse): unknown {
+    const obj: any = {};
+    if (message.success !== false) {
+      obj.success = message.success;
+    }
+    if (message.error !== "") {
+      obj.error = message.error;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<JoinSpectateBattleResponse>, I>>(base?: I): JoinSpectateBattleResponse {
+    return JoinSpectateBattleResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<JoinSpectateBattleResponse>, I>>(object: I): JoinSpectateBattleResponse {
+    const message = createBaseJoinSpectateBattleResponse();
+    message.success = object.success ?? false;
+    message.error = object.error ?? "";
+    return message;
+  },
+};
+
 export interface BattleService {
   /** 玩家选择相关 */
   SubmitPlayerSelection(request: PlayerSelectionRequest): Promise<PlayerSelectionResponse>;
@@ -2796,6 +3075,7 @@ export interface BattleService {
   /** 战斗管理相关 */
   TerminateBattle(request: TerminateBattleRequest): Promise<TerminateBattleResponse>;
   CreateBattle(request: CreateBattleRequest): Promise<CreateBattleResponse>;
+  JoinSpectateBattle(request: JoinSpectateBattleRequest): Promise<JoinSpectateBattleResponse>;
 }
 
 export const BattleServiceServiceName = "battle.BattleService";
@@ -2819,6 +3099,7 @@ export class BattleServiceClientImpl implements BattleService {
     this.EndAnimation = this.EndAnimation.bind(this);
     this.TerminateBattle = this.TerminateBattle.bind(this);
     this.CreateBattle = this.CreateBattle.bind(this);
+    this.JoinSpectateBattle = this.JoinSpectateBattle.bind(this);
   }
   SubmitPlayerSelection(request: PlayerSelectionRequest): Promise<PlayerSelectionResponse> {
     const data = PlayerSelectionRequest.encode(request).finish();
@@ -2902,6 +3183,12 @@ export class BattleServiceClientImpl implements BattleService {
     const data = CreateBattleRequest.encode(request).finish();
     const promise = this.rpc.request(this.service, "CreateBattle", data);
     return promise.then((data) => CreateBattleResponse.decode(new BinaryReader(data)));
+  }
+
+  JoinSpectateBattle(request: JoinSpectateBattleRequest): Promise<JoinSpectateBattleResponse> {
+    const data = JoinSpectateBattleRequest.encode(request).finish();
+    const promise = this.rpc.request(this.service, "JoinSpectateBattle", data);
+    return promise.then((data) => JoinSpectateBattleResponse.decode(new BinaryReader(data)));
   }
 }
 

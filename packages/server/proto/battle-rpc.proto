@@ -24,6 +24,7 @@ service BattleService {
   // 战斗管理相关
   rpc TerminateBattle(TerminateBattleRequest) returns (TerminateBattleResponse);
   rpc CreateBattle(CreateBattleRequest) returns (CreateBattleResponse);
+  rpc JoinSpectateBattle(JoinSpectateBattleRequest) returns (JoinSpectateBattleResponse);
 }
 
 // 玩家选择相关消息
@@ -189,13 +190,30 @@ message MatchmakingEntryProto {
   int64 join_time = 5;
 }
 
+message SpectatorEntryProto {
+  string playerId = 1;
+  string sessionId = 2;
+}
+
 message CreateBattleRequest {
   MatchmakingEntryProto player1_entry = 1;
   MatchmakingEntryProto player2_entry = 2;
+  repeated SpectatorEntryProto spectators = 3;
 }
 
 message CreateBattleResponse {
   bool success = 1;
   string error = 2;
   string room_id = 3;
+}
+
+message JoinSpectateBattleRequest {
+  string roomId = 1;
+  string playerId = 2;
+  string sessionId = 3;
+}
+
+message JoinSpectateBattleResponse {
+  bool success = 1;
+  string error = 2;
 }

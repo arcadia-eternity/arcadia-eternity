@@ -46,6 +46,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     const nonHostPlayers = players.value.filter(p => p.playerId !== currentRoom.value?.config.hostPlayerId)
     return nonHostPlayers.every(p => p.isReady)
   })
+  const isBattleInProgress = computed(() => currentRoom.value?.status === 'started')
 
   // 方法
   const createRoom = async (config: CreatePrivateRoomRequest['config']): Promise<string> => {
@@ -268,6 +269,47 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
       console.error('❌ Failed to kick player:', errorMessage)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const joinSpectateBattle = async (): Promise<void> => {
+    if (!currentRoom.value?.battleRoomId) {
+      throw new Error('当前没有正在进行的战斗')
+    }
+
+    isLoading.value = true
+    error.value = null
+
+    try {
+      // 1. 请求后端将会话加入观战
+      await battleClientStore.joinSpectateBattle(currentRoom.value.battleRoomId)
+
+      // 2. 初始化战斗系统 (复用 battleStarted 的逻辑)
+      if (!battleClientStore._instance) {
+        throw new Error('BattleClient 实例尚未初始化')
+      }
+      const battleStore = useBattleStore()
+      await battleStore.initBattle(new RemoteBattleSystem(battleClientStore._instance as any), playerStore.player.id)
+
+      // 3. 导航到战斗页面
+      router.push({
+        path: '/battle',
+        query: {
+          roomId: currentRoom.value.battleRoomId,
+          privateRoom: 'true',
+          roomCode: currentRoom.value.config.roomCode,
+          spectate: 'true', // 添加一个观战标记
+        },
+      })
+
+      console.log('✅ Joined spectate and navigating to battle:', currentRoom.value.battleRoomId)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      error.value = errorMessage
+      console.error('❌ Failed to join spectate battle:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -606,6 +648,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     isSpectator,
     myReadyStatus,
     canStartBattle,
+    isBattleInProgress,
 
     // 方法
     createRoom,
@@ -627,5 +670,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     checkCurrentRoom,
     handlePageLeave,
     cleanup,
+    joinSpectateBattle,
   }
 })

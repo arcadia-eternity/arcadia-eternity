@@ -399,6 +399,14 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return await _instance.value.switchToPlayer(team)
   }
 
+  const joinSpectateBattle = async (battleRoomId: string): Promise<void> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+    // BattleClient 中需要添加 joinSpectateBattle 方法
+    return await _instance.value.joinSpectateBattle(battleRoomId)
+  }
+
   // 内部方法：注册缓存的事件监听器到实际实例
   const registerPendingHandlers = () => {
     if (!_instance.value || _pendingEventHandlers.value.size === 0) {
@@ -448,5 +456,6 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     updatePrivateRoomConfig,
     transferPrivateRoomHost,
     kickPlayerFromPrivateRoom,
+    joinSpectateBattle,
   }
 })

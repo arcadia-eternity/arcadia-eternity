@@ -785,6 +785,25 @@ export class BattleClient {
     })
   }
 
+  async joinSpectateBattle(battleRoomId: string): Promise<void> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Join spectate battle timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('joinSpectateBattle', { battleRoomId }, response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve()
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
   // 新架构：Timer快照相关方法
 
   /**

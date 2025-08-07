@@ -24,7 +24,12 @@ const logger = pino({
 
 // 私人房间战斗创建回调接口
 export interface PrivateRoomBattleCallbacks {
-  createClusterBattleRoom: (player1Entry: MatchmakingEntry, player2Entry: MatchmakingEntry) => Promise<string | null>
+  createClusterBattleRoom: (
+    player1Entry: MatchmakingEntry,
+    player2Entry: MatchmakingEntry,
+    spectators?: { playerId: string; sessionId: string }[],
+  ) => Promise<string | null>
+  joinSpectateBattle: (battleRoomId: string, spectator: { playerId: string; sessionId: string }) => Promise<boolean>
 }
 
 @injectable()
@@ -1196,6 +1201,16 @@ export class PrivateRoomService {
   }
 
   /**
+   * 中途加入观战（代理到 battleCallbacks）
+   */
+  async joinSpectateBattle(battleRoomId: string, spectator: { playerId: string; sessionId: string }): Promise<boolean> {
+    if (!this.battleCallbacks?.joinSpectateBattle) {
+      throw new PrivateRoomError('观战功能未初始化', 'INVALID_STATE')
+    }
+    return this.battleCallbacks.joinSpectateBattle(battleRoomId, spectator)
+  }
+
+  /**
    * 检查房间是否可以开始战斗
    */
   async canStartBattle(roomCode: string, hostPlayerId: string): Promise<boolean> {
@@ -1365,8 +1380,11 @@ export class PrivateRoomService {
         },
       }
 
+      // 提取观战者信息
+      const spectators = room.spectators.map(s => ({ playerId: s.playerId, sessionId: s.sessionId }))
+
       // 调用战斗系统创建战斗房间
-      const battleRoomId = await this.battleCallbacks.createClusterBattleRoom(player1Entry, player2Entry)
+      const battleRoomId = await this.battleCallbacks.createClusterBattleRoom(player1Entry, player2Entry, spectators)
 
       if (!battleRoomId) {
         throw new PrivateRoomError('创建战斗房间失败', 'INVALID_STATE')

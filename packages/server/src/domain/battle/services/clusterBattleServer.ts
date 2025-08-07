@@ -144,8 +144,11 @@ export class ClusterBattleServer {
 
     // 设置私人房间的战斗创建回调
     this.privateRoomService.setBattleCallbacks({
-      createClusterBattleRoom: async (player1Entry, player2Entry) => {
-        return await this.battleService.createClusterBattleRoom(player1Entry, player2Entry)
+      createClusterBattleRoom: async (player1Entry, player2Entry, spectators) => {
+        return await this.battleService.createClusterBattleRoom(player1Entry, player2Entry, spectators)
+      },
+      joinSpectateBattle: async (battleRoomId, spectator) => {
+        return await this.joinSpectateBattle(battleRoomId, spectator)
       },
     })
 
@@ -790,91 +793,85 @@ export class ClusterBattleServer {
       // 移除本地玩家记录
       this.removePlayer(socket.id)
 
-      // 先检查该session是否在战斗中（在清理任何数据之前）
-      // 优先检查本地房间，因为本地状态更可靠
-      const localRoomId = this.findPlayerInLocalRooms(playerId, sessionId)
-      let roomState = null
+      // 检查该session是否在战斗中
+      const roomState = await this.getPlayerRoomFromCluster(playerId, sessionId)
 
-      if (localRoomId) {
-        const localRoom = this.battleService ? this.battleService.getLocalRoom(localRoomId) : null
-        if (localRoom && localRoom.status === 'active') {
-          // 构造房间状态对象
-          roomState = { id: localRoomId, status: 'active' as const }
-          logger.info({ playerId, sessionId, roomId: localRoomId }, '在本地房间中找到活跃战斗')
+      // 检查是否为观战者
+      const isSpectator = roomState?.spectators?.some((s: { sessionId: string }) => s.sessionId === sessionId) || false
+
+      if (isSpectator) {
+        logger.info({ playerId, sessionId, roomId: roomState?.id }, '观战者断开连接，立即清理资源')
+        // 如果是观战者，立即清理资源，不进入重连流程
+        await this.stateManager.removePlayerConnection(playerId, sessionId)
+        if (roomState) {
+          await this.battleService.removeSpectatorFromRoom(roomState.id, sessionId)
         }
-      }
-
-      // 如果本地没找到，再查询集群状态
-      if (!roomState) {
-        roomState = await this.getPlayerRoomFromCluster(playerId, sessionId)
+        this.debouncedBroadcastServerState()
+        return // 提前返回，不执行后续的玩家断线逻辑
       }
 
       if (roomState && roomState.status === 'active') {
-        // 在战斗中掉线，启动宽限期
-        // 更新连接状态为断开，但保持映射关系以便重连
+        // 玩家在战斗中掉线，启动宽限期
         logger.info({ playerId, sessionId, roomId: roomState.id }, '玩家在战斗中掉线，启动宽限期')
 
-        // 异步更新连接状态，不阻塞主流程
+        // 异步更新连接状态
         this.updateDisconnectedPlayerState(playerId, sessionId).catch((error: any) => {
           logger.error({ error, playerId, sessionId }, '更新断开连接状态失败')
         })
 
         await this.startDisconnectGracePeriod(playerId, sessionId, roomState.id)
       } else {
-        // 确认不在战斗中，才清理连接信息
-        logger.info({ playerId, sessionId }, '玩家会话断线，但该会话不在任何战斗中，清理连接信息')
-
-        // 从集群状态中移除玩家连接
+        // 玩家不在战斗中，直接清理连接信息
+        logger.info({ playerId, sessionId }, '玩家不在战斗中，清理连接信息')
         await this.stateManager.removePlayerConnection(playerId, sessionId)
-
-        // 玩家断开连接后立即广播服务器状态更新
         this.debouncedBroadcastServerState()
       }
 
-      // 从匹配队列中移除该session
+      // 从匹配队列中移除
       await this.stateManager.removeFromMatchmakingQueue(playerId, sessionId)
 
       // 处理私人房间断线
       if (this.privateRoomService) {
-        try {
-          const currentRoom = await this.privateRoomService.getPlayerSessionCurrentRoom(playerId, sessionId)
-          if (currentRoom) {
-            if (currentRoom.status === 'started') {
-              // 战斗中掉线，只更新状态，不离开房间
-              logger.info(
-                { playerId, sessionId, roomCode: currentRoom.config.roomCode },
-                '玩家在私人房间战斗中掉线，更新连接状态',
-              )
-              await this.privateRoomService.handlePlayerDisconnect(currentRoom.config.roomCode, playerId, sessionId)
-            } else {
-              // 不在战斗中掉线，直接离开房间
-              logger.info(
-                { playerId, sessionId, roomCode: currentRoom.config.roomCode },
-                '玩家在私人房间中断线（非战斗状态），移除玩家会话',
-              )
-              await this.privateRoomService.leaveRoom(currentRoom.config.roomCode, playerId, sessionId)
-            }
-          }
-        } catch (error) {
-          logger.error({ error, playerId, sessionId }, 'Failed to handle private room disconnect')
-        }
+        await this.handlePrivateRoomDisconnect(playerId, sessionId)
       }
 
-      // 更新匹配队列大小统计
+      // 更新性能统计
       if (this.performanceTracker) {
         const queueSize = await this.stateManager.getMatchmakingQueueSize()
         this.performanceTracker.updateMatchmakingQueueSize(queueSize)
       }
 
-      // 检查该玩家是否还有其他活跃连接，用于日志记录
+      // 检查其他活跃连接
       const hasOtherConnections = await this.hasOtherActiveConnections(playerId, socket.id, sessionId)
-      if (hasOtherConnections) {
-        logger.info({ playerId, sessionId }, '玩家还有其他活跃连接')
-      } else {
-        logger.info({ playerId, sessionId }, '玩家所有连接都已断开')
-      }
+      logger.info(
+        { playerId, sessionId, hasOtherConnections },
+        hasOtherConnections ? '玩家还有其他活跃连接' : '玩家所有连接都已断开',
+      )
     } catch (error) {
       logger.error({ error, playerId, sessionId }, 'Error handling player disconnect')
+    }
+  }
+
+  private async handlePrivateRoomDisconnect(playerId: string, sessionId: string): Promise<void> {
+    try {
+      const currentRoom = await this.privateRoomService.getPlayerSessionCurrentRoom(playerId, sessionId)
+      if (currentRoom) {
+        if (currentRoom.status === 'started') {
+          logger.info(
+            { playerId, sessionId, roomCode: currentRoom.config.roomCode },
+            '玩家在私人房间战斗中掉线，更新连接状态',
+          )
+          await this.privateRoomService.handlePlayerDisconnect(currentRoom.config.roomCode, playerId, sessionId)
+        } else {
+          logger.info(
+            { playerId, sessionId, roomCode: currentRoom.config.roomCode },
+            '玩家在私人房间中断线（非战斗状态），移除玩家会话',
+          )
+          await this.privateRoomService.leaveRoom(currentRoom.config.roomCode, playerId, sessionId)
+        }
+      }
+    } catch (error) {
+      logger.error({ error, playerId, sessionId }, 'Failed to handle private room disconnect')
     }
   }
 
@@ -942,6 +939,9 @@ export class ClusterBattleServer {
     socket.on('transferPrivateRoomHost', (data, ack) => this.privateRoomHandlers?.handleTransferHost(socket, data, ack))
     socket.on('kickPlayerFromPrivateRoom', (data, ack) => this.privateRoomHandlers?.handleKickPlayer(socket, data, ack))
     socket.on('getCurrentPrivateRoom', ack => this.privateRoomHandlers?.handleGetCurrentRoom(socket, ack))
+    socket.on('joinSpectateBattle', (data, ack) =>
+      this.privateRoomHandlers?.handleJoinSpectateBattle(socket, data, ack),
+    )
   }
 
   private setupClusterEventHandlers() {
@@ -1251,10 +1251,35 @@ export class ClusterBattleServer {
   async createClusterBattleRoom(
     player1Entry: MatchmakingEntry,
     player2Entry: MatchmakingEntry,
+    spectators: { playerId: string; sessionId: string }[] = [],
   ): Promise<string | null> {
     // 委托给 battleService 处理
-    return await this.battleService.createClusterBattleRoom(player1Entry, player2Entry)
+    return await this.battleService.createClusterBattleRoom(player1Entry, player2Entry, spectators)
   }
+
+  async joinSpectateBattle(roomId: string, spectator: { playerId: string; sessionId: string }): Promise<boolean> {
+    const roomState = await this.stateManager.getRoomState(roomId)
+    if (!roomState) {
+      throw new Error('ROOM_NOT_FOUND')
+    }
+
+    if (this.isRoomInCurrentInstance(roomState)) {
+      return this.battleService.joinSpectateBattle(roomId, spectator)
+    } else {
+      const targetInstance = await this.stateManager.getInstance(roomState.instanceId)
+      if (!targetInstance || !targetInstance.rpcAddress) {
+        throw new Error('TARGET_INSTANCE_NOT_AVAILABLE')
+      }
+      return this.rpcClient.joinSpectateBattle(
+        roomState.instanceId,
+        targetInstance.rpcAddress,
+        roomId,
+        spectator.playerId,
+        spectator.sessionId,
+      )
+    }
+  }
+
   // === 集群感知的房间管理 ===
 
   /**
@@ -3400,112 +3425,64 @@ export class ClusterBattleServer {
 
   // pauseBattleForDisconnect 和 notifyOpponentDisconnect 方法已移动到 clusterBattleService
 
+  private async resumeBattle(socket: Socket, roomId: string): Promise<void> {
+    const playerId = socket.data.playerId as string
+    const sessionId = socket.data.sessionId as string
+
+    // 强制刷新连接状态
+    await this.stateManager.forceRefreshPlayerConnection(playerId, sessionId)
+
+    // 恢复战斗状态
+    await this.battleService.resumeBattleAfterReconnect(roomId, playerId)
+
+    // 清理待发送消息批次
+    await this.battleService.cleanupPlayerBatches(playerId, sessionId)
+
+    // 发送战斗状态给重连玩家
+    await this.sendBattleStateToPlayer(socket, roomId)
+
+    // 通知对手重连
+    await this.notifyOpponentReconnect(roomId, playerId)
+  }
+
   private async handlePlayerReconnect(
     socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
   ): Promise<{ isReconnect: boolean; roomId?: string }> {
     const playerId = socket.data.playerId
     const sessionId = socket.data.sessionId
 
-    logger.info(
-      {
-        playerId,
-        sessionId,
-        hasPlayerId: !!playerId,
-        hasSessionId: !!sessionId,
-      },
-      'handlePlayerReconnect 开始',
-    )
-
     if (!playerId || !sessionId) {
-      logger.info('handlePlayerReconnect: 缺少 playerId 或 sessionId')
       return { isReconnect: false }
     }
 
+    // 检查是否为观战者
+    const roomState = await this.getPlayerRoomFromCluster(playerId, sessionId)
+    if (roomState?.spectators?.some((s: { sessionId: string }) => s.sessionId === sessionId)) {
+      logger.info({ playerId, sessionId, roomId: roomState.id }, '观战者尝试重连，已忽略')
+      return { isReconnect: false } // 观战者不允许重连
+    }
+
+    // 处理玩家掉线重连
     const disconnectKey = `${playerId}:${sessionId}`
-    const disconnectInfo = this.battleService ? this.battleService.getDisconnectedPlayer(disconnectKey) : null
+    const disconnectInfo = this.battleService.getDisconnectedPlayer(disconnectKey)
 
-    // 情况1：处理掉线重连（玩家在宽限期内重连）
     if (disconnectInfo) {
-      logger.info({ playerId, sessionId, roomId: disconnectInfo.roomId }, '玩家掉线重连成功，恢复战斗状态')
-
-      // 清除宽限期计时器
+      logger.info({ playerId, sessionId, roomId: disconnectInfo.roomId }, '玩家掉线重连成功')
       clearTimeout(disconnectInfo.graceTimer)
       this.battleService.removeDisconnectedPlayer(disconnectKey)
 
-      // 强制刷新连接状态，确保最新的socket信息被更新（不等待结果）
-      this.stateManager.forceRefreshPlayerConnection(playerId, sessionId).catch(error => {
-        logger.debug({ error, playerId, sessionId }, 'Force refresh connection failed')
-      })
-
-      // 恢复战斗状态（不等待结果）
-      this.battleService.resumeBattleAfterReconnect(disconnectInfo.roomId, playerId).catch(error => {
-        logger.debug({ error, roomId: disconnectInfo.roomId, playerId }, 'Resume battle after reconnect failed')
-      })
-
-      // 清理该玩家的待发送消息批次（因为连接已更新）
-      await this.battleService.cleanupPlayerBatches(playerId, sessionId)
-
-      // 发送完整的战斗状态给重连的玩家（不等待结果）
-      this.sendBattleStateToPlayer(socket, disconnectInfo.roomId).catch(error => {
-        logger.debug(
-          { error, playerId, sessionId, roomId: disconnectInfo.roomId },
-          'Send battle state failed, will recover on next reconnect',
-        )
-      })
-
-      // 通知对手玩家已重连（不等待结果）
-      this.notifyOpponentReconnect(disconnectInfo.roomId, playerId).catch(error => {
-        logger.debug({ error, playerId, roomId: disconnectInfo.roomId }, 'Notify opponent reconnect failed')
-      })
-
+      await this.resumeBattle(socket, disconnectInfo.roomId)
       return { isReconnect: true, roomId: disconnectInfo.roomId }
     }
 
-    // 情况2：处理主动重连（如刷新页面）
-    // 检查玩家是否还在某个活跃的战斗房间中
-    logger.info({ playerId, sessionId }, '检查玩家是否在活跃战斗房间中')
-    const roomState = await this.getPlayerRoomFromCluster(playerId, sessionId)
-
-    logger.info(
-      {
-        playerId,
-        sessionId,
-        roomState: roomState ? { id: roomState.id, status: roomState.status } : null,
-      },
-      '房间状态查询结果',
-    )
-
-    // 只有当房间状态为 'active' 时才进行重连处理
-    // 避免对已结束或正在清理的房间发送重连测试消息
+    // 处理玩家主动重连（如刷新页面）
     if (roomState && roomState.status === 'active') {
-      logger.info({ playerId, sessionId, roomId: roomState.id }, '玩家主动重连到活跃战斗房间')
-
-      // 清理该玩家的待发送消息批次（因为连接已更新）
-      await this.battleService.cleanupPlayerBatches(playerId, sessionId)
-
-      // 发送完整的战斗状态给重连的玩家（不等待结果）
-      this.sendBattleStateToPlayer(socket, roomState.id).catch(error => {
-        logger.debug(
-          { error, playerId, sessionId, roomId: roomState.id },
-          'Send battle state failed, will recover on next reconnect',
-        )
-      })
-
-      // 通知对手玩家已重连（不等待结果）
-      this.notifyOpponentReconnect(roomState.id, playerId).catch(error => {
-        logger.debug({ error, playerId, roomId: roomState.id }, 'Notify opponent reconnect failed')
-      })
-
+      logger.info({ playerId, sessionId, roomId: roomState.id }, '玩家主动重连到活跃战斗')
+      await this.resumeBattle(socket, roomState.id)
       return { isReconnect: true, roomId: roomState.id }
-    } else if (roomState && roomState.status === 'ended') {
-      // 如果房间已结束，记录日志但不进行重连处理
-      logger.info(
-        { playerId, sessionId, roomId: roomState.id, status: roomState.status },
-        '玩家尝试重连到已结束的战斗房间，跳过重连处理',
-      )
     }
 
-    logger.info({ playerId, sessionId }, '没有找到活跃的战斗房间，不是重连')
+    logger.info({ playerId, sessionId }, '没有找到活跃战斗，不是重连')
     return { isReconnect: false }
   }
 
