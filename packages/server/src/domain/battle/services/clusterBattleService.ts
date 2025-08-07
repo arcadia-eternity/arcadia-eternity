@@ -762,11 +762,16 @@ export class ClusterBattleService implements IBattleService {
       return { status: 'READY' }
     }
 
+    // 检查是否是场上玩家
+    const playersInBattle = [localRoom.battle.playerA.id, localRoom.battle.playerB.id]
+    if (!playersInBattle.includes(playerId as playerId)) {
+      logger.debug({ roomId, playerId }, 'Spectator ready request ignored')
+      return { status: 'READY' } // 直接返回，不影响战斗开始
+    }
+
     // 标记玩家已准备
     localRoom.playersReady.add(playerId)
     localRoom.lastActive = Date.now()
-
-    const playersInBattle = [localRoom.battle.playerA.id, localRoom.battle.playerB.id]
     logger.info(
       {
         roomId,

@@ -2250,7 +2250,10 @@ onMounted(async () => {
   // 设置掉线重连事件监听（在 ready 之前设置，确保能接收到重连状态）
   setupDisconnectHandlers()
 
-  await store.ready()
+  const isPlayer = store.battleState?.players.some(p => p.id === store.playerId)
+  if (isPlayer) {
+    await store.ready()
+  }
   await initialPetEntryAnimation()
 })
 
