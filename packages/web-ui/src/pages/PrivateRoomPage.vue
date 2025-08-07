@@ -208,6 +208,16 @@
           </el-button>
         </template>
 
+        <!-- 观战/战斗中 状态 -->
+        <el-button
+          v-if="privateRoomStore.isBattleInProgress && privateRoomStore.isSpectator"
+          type="success"
+          @click="joinSpectate"
+        >
+          进入观战
+        </el-button>
+        <el-button v-else-if="privateRoomStore.isBattleInProgress" type="info" disabled> 战斗进行中 </el-button>
+
         <!-- 玩家准备按钮 -->
         <el-button
           v-if="
@@ -493,6 +503,15 @@ const startBattle = async () => {
     ElMessage.success('战斗已开始')
   } catch (error) {
     ElMessage.error('开始战斗失败: ' + (error as Error).message)
+  }
+}
+
+const joinSpectate = async () => {
+  try {
+    await privateRoomStore.joinSpectateBattle()
+    ElMessage.success('正在进入观战...')
+  } catch (error) {
+    ElMessage.error('进入观战失败: ' + (error as Error).message)
   }
 }
 

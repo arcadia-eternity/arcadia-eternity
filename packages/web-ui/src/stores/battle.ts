@@ -1155,8 +1155,22 @@ export const useBattleStore = defineStore('battle', {
   },
 
   getters: {
-    currentPlayer: state => state.battleState?.players?.find(p => p.id === state.playerId),
-    opponent: state => state.battleState?.players?.find(p => p.id !== state.playerId),
+    currentPlayer: state => {
+      if (!state.battleState?.players) return undefined
+      const player = state.battleState.players.find(p => p.id === state.playerId)
+      if (player) return player
+      // Spectator mode or player not found, assign player 1
+      return state.battleState.players[0]
+    },
+    opponent: state => {
+      if (!state.battleState?.players) return undefined
+      const player = state.battleState.players.find(p => p.id === state.playerId)
+      if (player) {
+        return state.battleState.players.find(p => p.id !== state.playerId)
+      }
+      // Spectator mode or player not found, assign player 2
+      return state.battleState.players[1]
+    },
     // 兼容性getters，将快照系统映射到旧的回合系统接口
     currentReplayTurn: state => state.currentSnapshotIndex,
     totalReplayTurns: state => state.totalSnapshots,

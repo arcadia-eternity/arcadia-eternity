@@ -232,13 +232,13 @@
                 >
                   加入
                 </el-button>
-                <!-- <el-button
+                <el-button
                   type="info"
                   :disabled="!joinRoomCode || battleClientStore.currentState.status !== 'connected'"
                   @click="joinAsSpectator"
                 >
                   观战
-                </el-button> -->
+                </el-button>
               </div>
             </div>
           </template>

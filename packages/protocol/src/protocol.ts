@@ -132,6 +132,7 @@ export interface ClientToServerEvents {
   transferPrivateRoomHost: (data: TransferPrivateRoomHostRequest, ack: AckResponse<{ status: 'TRANSFERRED' }>) => void
   kickPlayerFromPrivateRoom: (data: KickPlayerFromPrivateRoomRequest, ack: AckResponse<{ status: 'KICKED' }>) => void
   getCurrentPrivateRoom: (ack: AckResponse<PrivateRoomInfo | null>) => void
+  joinSpectateBattle: (data: { battleRoomId: string }, ack: AckResponse<{ status: 'SPECTATING' }>) => void
 }
 
 // 私人房间相关类型定义

@@ -85,6 +85,7 @@ export interface RoomState {
   instanceId: string
   lastActive: number
   battleState?: BattleState
+  spectators?: { playerId: string; sessionId: string }[]
   metadata?: Record<string, any>
 }
 

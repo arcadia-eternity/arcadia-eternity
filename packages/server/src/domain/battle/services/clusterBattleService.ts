@@ -269,6 +269,7 @@ export class ClusterBattleService implements IBattleService {
   async createClusterBattleRoom(
     player1Entry: MatchmakingEntry,
     player2Entry: MatchmakingEntry,
+    spectators: { playerId: string; sessionId: string }[] = [],
   ): Promise<string | null> {
     try {
       const roomId = nanoid()
@@ -335,13 +336,24 @@ export class ClusterBattleService implements IBattleService {
           }
         }
 
+        // 将观战者添加到会话和玩家映射中
+        const spectatorSessions = spectators.map(s => s.sessionId)
+        const spectatorSessionPlayers = spectators.reduce(
+          (acc, s) => {
+            acc[s.sessionId] = s.playerId
+            return acc
+          },
+          {} as Record<string, string>,
+        )
+
         const tempRoomState: RoomState = {
           id: roomId,
           status: 'waiting',
-          sessions: [session1, session2],
+          sessions: [session1, session2, ...spectatorSessions],
           sessionPlayers: {
             [session1]: player1Entry.playerId,
             [session2]: player2Entry.playerId,
+            ...spectatorSessionPlayers,
           },
           instanceId: this.instanceId,
           lastActive: Date.now(),
@@ -392,6 +404,9 @@ export class ClusterBattleService implements IBattleService {
         )
         await this.callbacks.joinPlayerToRoom(player1Entry.playerId, roomId)
         await this.callbacks.joinPlayerToRoom(player2Entry.playerId, roomId)
+        for (const spectator of spectators) {
+          await this.callbacks.joinPlayerToRoom(spectator.playerId, roomId)
+        }
 
         logger.info({ roomId }, 'Players joined Socket.IO room successfully')
 
@@ -1073,6 +1088,78 @@ export class ClusterBattleService implements IBattleService {
     }
 
     return { status: 'SUCCESS' }
+  }
+
+  // === 新增：中途加入观战 ===
+
+  /**
+   * 允许玩家中途加入观战
+   */
+  async joinSpectateBattle(roomId: string, spectator: { playerId: string; sessionId: string }): Promise<boolean> {
+    const localRoom = this.localRooms.get(roomId)
+    if (!localRoom || localRoom.status !== 'active') {
+      logger.warn({ roomId, spectatorId: spectator.playerId }, 'Cannot join spectate: room not found or not active')
+      return false
+    }
+
+    const battle = localRoom.battle
+    const roomState = await this.stateManager.getRoomState(roomId)
+    if (!roomState) {
+      logger.error({ roomId }, 'Room state not found for spectate join')
+      return false
+    }
+
+    // 1. 将观战者加入Socket.IO房间
+    await this.callbacks.joinPlayerToRoom(spectator.playerId, roomId)
+
+    // 2. 更新 RoomState，将观战者持久化
+    if (!roomState.sessions.includes(spectator.sessionId)) {
+      roomState.sessions.push(spectator.sessionId)
+      roomState.sessionPlayers[spectator.sessionId] = spectator.playerId
+      await this.stateManager.setRoomState(roomState)
+    }
+
+    // 3. 为新观战者设置战斗事件监听 (上帝视角)
+    battle.registerListener(async message => {
+      await this.addToBatch(spectator.playerId, spectator.sessionId, message)
+    }, { showAll: true })
+
+    // 4. 发送一次性的战斗状态快照
+    const battleState = battle.getState(spectator.playerId as playerId, true) // true 表示上帝视角
+    await this.callbacks.sendToPlayerSession(spectator.playerId, spectator.sessionId, 'battleEvent', {
+      type: BattleMessageType.BattleStart, // 伪装成 BattleStart，让客户端能正确初始化
+      data: battleState,
+    })
+
+    logger.info({ roomId, spectatorId: spectator.playerId }, 'Spectator joined battle successfully')
+    return true
+  }
+
+  /**
+   * 从房间中移除观战者
+   */
+  async removeSpectatorFromRoom(roomId: string, sessionId: string): Promise<void> {
+    const roomState = await this.stateManager.getRoomState(roomId)
+    if (!roomState || !roomState.spectators) {
+      logger.warn({ roomId, sessionId }, 'Cannot remove spectator: room or spectators not found')
+      return
+    }
+
+    const spectatorIndex = roomState.spectators.findIndex(s => s.sessionId === sessionId)
+    if (spectatorIndex === -1) {
+      logger.warn({ roomId, sessionId }, 'Cannot remove spectator: spectator not found')
+      return
+    }
+
+    const spectator = roomState.spectators[spectatorIndex]
+    roomState.spectators.splice(spectatorIndex, 1)
+
+    roomState.sessions = roomState.sessions.filter(s => s !== sessionId)
+    delete roomState.sessionPlayers[sessionId]
+
+    await this.stateManager.setRoomState(roomState)
+
+    logger.info({ roomId, spectatorId: spectator.playerId, sessionId }, 'Spectator removed from room')
   }
 
   /**

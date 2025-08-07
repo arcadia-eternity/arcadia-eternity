@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.14.1...arcadia-eternity-v2.15.0) (2025-08-07)
+
+
+### ✨ Features
+
+* spectators ([6cbe4c0](https://github.com/arcadia-eternity/arcadia-eternity/commit/6cbe4c042e9a9d026a1bc62408cdd407814c4415))
+
 ## [2.14.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.14.0...arcadia-eternity-v2.14.1) (2025-08-04)
 
 

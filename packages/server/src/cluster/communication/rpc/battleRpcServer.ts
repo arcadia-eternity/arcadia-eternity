@@ -36,7 +36,9 @@ import type {
   TerminateBattleResponse,
   CreateBattleRequest,
   CreateBattleResponse,
-} from '../../../generated/grpc-types'
+  JoinSpectateBattleRequest,
+  JoinSpectateBattleResponse,
+} from '../../../generated/battle-rpc'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -120,6 +122,7 @@ export class BattleRpcServer {
         EndAnimation: this.handleEndAnimation.bind(this),
         TerminateBattle: this.handleTerminateBattle.bind(this),
         CreateBattle: this.handleCreateBattle.bind(this),
+        JoinSpectateBattle: this.handleJoinSpectateBattle.bind(this),
       })
 
       logger.info({ port: this.port }, 'Battle RPC service configured')
@@ -552,8 +555,14 @@ export class BattleRpcServer {
         },
       }
 
+      // 转换观战者
+      const spectators = (call.request.spectators || []).map(s => ({
+        playerId: s.playerId,
+        sessionId: s.sessionId,
+      }))
+
       // 调用本地战斗创建方法
-      const roomId = await this.battleServer.createClusterBattleRoom(player1Entry, player2Entry)
+      const roomId = await this.battleServer.createClusterBattleRoom(player1Entry, player2Entry, spectators)
 
       if (roomId) {
         logger.info(
@@ -593,6 +602,29 @@ export class BattleRpcServer {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
         roomId: '',
+      })
+    }
+  }
+
+  private async handleJoinSpectateBattle(
+    call: grpc.ServerUnaryCall<JoinSpectateBattleRequest, any>,
+    callback: grpc.sendUnaryData<JoinSpectateBattleResponse>,
+  ): Promise<void> {
+    try {
+      const { roomId, playerId, sessionId } = call.request
+      logger.debug({ roomId, playerId, sessionId }, 'RPC: JoinSpectate')
+
+      const result = await this.battleServer.joinSpectateBattle(roomId, { playerId, sessionId })
+
+      callback(null, {
+        success: result,
+        error: result ? '' : 'Failed to join as spectator',
+      })
+    } catch (error) {
+      logger.error({ error, request: call.request }, 'RPC error: JoinSpectate')
+      callback(null, {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
       })
     }
   }

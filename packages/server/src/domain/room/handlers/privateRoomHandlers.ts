@@ -737,4 +737,48 @@ export class PrivateRoomHandlers {
       ack?.({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '获取当前房间失败' })
     }
   }
+
+  /**
+   * 处理中途加入观战请求
+   */
+  async handleJoinSpectateBattle(
+    socket: Socket<any, any, any, SocketData>,
+    data: { battleRoomId: string },
+    ack?: AckResponse<{ status: 'SPECTATING' }>,
+  ) {
+    try {
+      const playerId = socket.data?.playerId
+      const sessionId = socket.data?.sessionId
+
+      if (!playerId || !sessionId) {
+        ack?.({ status: 'ERROR', code: 'AUTHENTICATION_REQUIRED', details: '需要认证' })
+        return
+      }
+
+      // 这里需要一个方法来调用 battleService 的 joinSpectateBattle
+      // 我们假设在 roomService 中添加一个代理方法
+      const success = await this.roomService.joinSpectateBattle(data.battleRoomId, { playerId, sessionId })
+
+      if (success) {
+        logger.info(
+          {
+            battleRoomId: data.battleRoomId,
+            playerId,
+          },
+          'Player started spectating battle successfully',
+        )
+        ack?.({ status: 'SUCCESS', data: { status: 'SPECTATING' } })
+      } else {
+        ack?.({ status: 'ERROR', code: 'JOIN_FAILED', details: '加入观战失败' })
+      }
+    } catch (error) {
+      logger.error({ error, playerId: socket.data?.playerId }, 'Failed to join spectate battle')
+      if (error instanceof Error && error.name === 'PrivateRoomError') {
+        const roomError = error as PrivateRoomError
+        ack?.({ status: 'ERROR', code: roomError.code, details: roomError.message })
+      } else {
+        ack?.({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '加入观战失败' })
+      }
+    }
+  }
 }

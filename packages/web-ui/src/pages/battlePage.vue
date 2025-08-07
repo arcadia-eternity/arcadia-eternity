@@ -2406,14 +2406,6 @@ onUnmounted(() => {
 
   // 清理战斗和回放状态
   store.resetBattle()
-
-  // 重置battleClient状态，确保返回lobby时状态正确
-  const battleClientStore = useBattleClientStore()
-  if (battleClientStore._instance) {
-    console.log('🔄 Resetting battleClient state on battlePage unmount')
-    // 重置状态为idle，避免状态残留
-    battleClientStore._instance.resetState()
-  }
 })
 
 // 监听加载状态变化

@@ -31,7 +31,11 @@ export interface MatchmakingCallbacks {
   getPlayerName: (playerId: string) => Promise<string>
   createSessionRoomMappings: (roomState: RoomState) => Promise<void>
   verifyInstanceReachability: (instance: ServiceInstance) => Promise<boolean>
-  createClusterBattleRoom: (player1Entry: any, player2Entry: any) => Promise<string | null>
+  createClusterBattleRoom: (
+    player1Entry: any,
+    player2Entry: any,
+    spectators?: { playerId: string; sessionId: string }[],
+  ) => Promise<string | null>
   broadcastServerStateUpdate?: () => void
 }
 
@@ -59,7 +63,11 @@ export interface IMatchmakingService {
 // 战斗服务接口
 export interface IBattleService {
   createLocalBattle(roomState: RoomState, player1Data: any, player2Data: any): Promise<any>
-  createClusterBattleRoom(player1Entry: MatchmakingEntry, player2Entry: MatchmakingEntry): Promise<string | null>
+  createClusterBattleRoom(
+    player1Entry: MatchmakingEntry,
+    player2Entry: MatchmakingEntry,
+    spectators?: { playerId: string; sessionId: string }[],
+  ): Promise<string | null>
   getLocalBattle(roomId: string): any
   isRoomInCurrentInstance(roomState: RoomState): boolean
   getAllLocalRooms(): Map<string, any>
@@ -93,4 +101,6 @@ export interface IBattleService {
   resumeBattleAfterReconnect(roomId: string, playerId: string): Promise<void>
   notifyOpponentDisconnect(roomId: string, disconnectedPlayerId: string): Promise<void>
   sendBattleStateOnReconnect(roomId: string, playerId: string, sessionId: string): Promise<void>
+  joinSpectateBattle(roomId: string, spectator: { playerId: string; sessionId: string }): Promise<boolean>
+  removeSpectatorFromRoom(roomId: string, sessionId: string): Promise<void>
 }

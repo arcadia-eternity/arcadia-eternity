@@ -8,7 +8,7 @@ import type { FlyIoServiceDiscoveryManager } from '../../discovery/flyIoServiceD
 import { injectable, inject, optional } from 'inversify'
 import { TYPES } from '../../../types'
 import type {
-  TypedBattleServiceClient,
+  BattleServiceClientImpl,
   PlayerSelectionRequest,
   PlayerSelectionResponse,
   SelectionRequest,
@@ -35,7 +35,7 @@ import type {
   EndAnimationResponse,
   TerminateBattleRequest,
   TerminateBattleResponse,
-} from '../../../generated/grpc-types'
+} from '../../../generated/battle-rpc'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -49,7 +49,7 @@ const logger = pino({
 })
 
 // 使用生成的类型安全接口
-type BattleServiceClient = TypedBattleServiceClient
+type BattleServiceClient = BattleServiceClientImpl
 
 @injectable()
 export class BattleRpcClient {
@@ -372,6 +372,23 @@ export class BattleRpcClient {
     )
 
     return { status: response.status }
+  }
+
+  async joinSpectateBattle(
+    instanceId: string,
+    address: string,
+    roomId: string,
+    playerId: string,
+    sessionId: string,
+  ): Promise<boolean> {
+    const client = this.getClient(instanceId, address)
+    const response = await this.callWithTimeout<any, any>(client, 'JoinSpectateBattle', {
+      roomId,
+      playerId,
+      sessionId,
+    })
+
+    return response.success
   }
 
   // === 连接管理 ===
