@@ -762,19 +762,26 @@ export class ClusterBattleService implements IBattleService {
     localRoom.playersReady.add(playerId)
     localRoom.lastActive = Date.now()
 
+    const playersInBattle = [localRoom.battle.playerA.id, localRoom.battle.playerB.id]
     logger.info(
-      { roomId, playerId, readyCount: localRoom.playersReady.size, totalPlayers: localRoom.players.length },
+      {
+        roomId,
+        playerId,
+        readyCount: localRoom.playersReady.size,
+        requiredReadyCount: playersInBattle.length,
+        totalPlayersInRoom: localRoom.players.length,
+      },
       'Player marked as ready',
     )
 
-    // 检查是否所有玩家都已准备
-    const allPlayersReady = localRoom.players.every(pid => localRoom.playersReady.has(pid))
+    // 检查是否所有场上玩家都已准备
+    const allPlayersReady = playersInBattle.every(pid => localRoom.playersReady.has(pid))
 
     if (allPlayersReady && localRoom.status === 'waiting') {
       // 原子性地更新状态，防止重复启动
       localRoom.status = 'active'
 
-      logger.info({ roomId }, 'All players ready, starting battle')
+      logger.info({ roomId }, 'All battle players ready, starting battle')
 
       // 异步启动战斗，不阻塞当前方法
       this.startBattleAsync(roomId, localRoom).catch((error: unknown) => {
