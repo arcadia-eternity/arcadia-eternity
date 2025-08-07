@@ -1473,6 +1473,11 @@ export class ClusterBattleService implements IBattleService {
   async pauseBattleForDisconnect(roomId: string, playerId: string): Promise<void> {
     const battle = this.localBattles.get(roomId)
     if (battle) {
+      const isSpectator = battle.playerA.id !== playerId && battle.playerB.id !== playerId
+      if (isSpectator) {
+        logger.info({ roomId, playerId }, '观战者掉线，不暂停计时器')
+        return
+      }
       // 暂停该玩家的计时器
       battle.timerManager.pauseTimers([playerId as playerId], 'system')
       logger.info({ roomId, playerId }, '玩家掉线，暂停计时器')
