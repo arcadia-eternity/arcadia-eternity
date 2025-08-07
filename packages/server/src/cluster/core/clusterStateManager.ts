@@ -1262,6 +1262,7 @@ export class ClusterStateManager extends EventEmitter {
       sessionPlayers: JSON.stringify(room.sessionPlayers || {}),
       instanceId: room.instanceId,
       lastActive: room.lastActive.toString(),
+      spectators: JSON.stringify(room.spectators || []),
       // 移除 battleState 存储，避免数据过大导致 Redis 超时
       // battleState: JSON.stringify(room.battleState || null),
       metadata: JSON.stringify(room.metadata || {}),
@@ -1276,6 +1277,7 @@ export class ClusterStateManager extends EventEmitter {
       sessionPlayers: data.sessionPlayers ? JSON.parse(data.sessionPlayers) : {},
       instanceId: data.instanceId,
       lastActive: parseInt(data.lastActive),
+      spectators: data.spectators ? JSON.parse(data.spectators) : [],
       // 不再从 Redis 中读取 battleState，避免数据过大
       // battleState: data.battleState ? JSON.parse(data.battleState) : undefined,
       battleState: undefined,

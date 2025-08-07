@@ -1,3 +1,5 @@
+import { SocketManager } from './cluster/communication/socketManager';
+import { SpectatorBroadcastService } from './domain/battle/services/spectatorBroadcastService';
 import 'reflect-metadata'
 import { Container } from 'inversify'
 import { EmailService, createEmailConfigFromEnv, type EmailConfig } from './domain/email/emailService'
@@ -137,6 +139,7 @@ export function configureClusterServices(
     stateManager: any
     socketAdapter: any
     lockManager: any
+    redisManager: any // 添加 redisManager
     instanceId: string
     rpcPort?: number
     battleReportConfig?: any
@@ -151,6 +154,7 @@ export function configureClusterServices(
   container.bind(TYPES.ClusterStateManager).toConstantValue(dependencies.stateManager)
   container.bind(TYPES.SocketClusterAdapter).toConstantValue(dependencies.socketAdapter)
   container.bind(TYPES.DistributedLockManager).toConstantValue(dependencies.lockManager)
+  container.bind(TYPES.RedisManager).toConstantValue(dependencies.redisManager) // 添加绑定
   container.bind(TYPES.InstanceId).toConstantValue(dependencies.instanceId)
 
   if (dependencies.rpcPort) {
@@ -171,6 +175,8 @@ export function configureClusterServices(
   container.bind<BattleRpcServer>(TYPES.BattleRpcServer).to(BattleRpcServer).inSingletonScope()
   container.bind<BattleRpcClient>(TYPES.BattleRpcClient).to(BattleRpcClient).inSingletonScope()
   container.bind<SessionStateManager>(TYPES.SessionStateManager).to(SessionStateManager).inSingletonScope()
+  container.bind<SpectatorBroadcastService>(TYPES.SpectatorBroadcastService).to(SpectatorBroadcastService).inSingletonScope()
+  container.bind<SocketManager>(TYPES.SocketManager).to(SocketManager).inSingletonScope()
 
   // 获取 ClusterBattleServer 实例（它不依赖回调）
   const battleServer = container.get<ClusterBattleServer>(TYPES.ClusterBattleServer)

@@ -80,12 +80,12 @@ export interface PlayerSessionConnection {
 export interface RoomState {
   id: string
   status: 'waiting' | 'active' | 'ended'
-  sessions: string[] // sessionIds - room的个人单位始终是session
-  sessionPlayers: Record<string, string> // sessionId -> playerId 映射，用于反向查找
+  sessions: string[] // 战斗中玩家的 sessionIds
+  sessionPlayers: Record<string, string> // sessionId -> playerId 映射，用于反向查找 (包含玩家和观战者)
   instanceId: string
   lastActive: number
   battleState?: BattleState
-  spectators?: { playerId: string; sessionId: string }[]
+  spectators: { playerId: string; sessionId: string }[] // 观战者的 session 信息
   metadata?: Record<string, any>
 }
 

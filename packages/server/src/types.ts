@@ -23,6 +23,7 @@ export const TYPES = {
   ClusterStateManager: Symbol.for('ClusterStateManager'),
   SocketClusterAdapter: Symbol.for('SocketClusterAdapter'),
   DistributedLockManager: Symbol.for('DistributedLockManager'),
+  RedisManager: Symbol.for('RedisManager'),
   PerformanceTracker: Symbol.for('PerformanceTracker'),
   ServiceDiscoveryManager: Symbol.for('ServiceDiscoveryManager'),
   InstanceId: Symbol.for('InstanceId'),
@@ -33,4 +34,10 @@ export const TYPES = {
   // Socket.IO 服务器实例
   SocketIOServer: Symbol.for('SocketIOServer'),
   RpcPort: Symbol.for('RpcPort'),
+
+  // 观战者广播服务
+  SpectatorBroadcastService: Symbol.for('SpectatorBroadcastService'),
+
+  // Socket管理器
+  SocketManager: Symbol.for('SocketManager'),
 } as const

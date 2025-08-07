@@ -337,7 +337,6 @@ export class ClusterBattleService implements IBattleService {
         }
 
         // 将观战者添加到会话和玩家映射中
-        const spectatorSessions = spectators.map(s => s.sessionId)
         const spectatorSessionPlayers = spectators.reduce(
           (acc, s) => {
             acc[s.sessionId] = s.playerId
@@ -349,7 +348,7 @@ export class ClusterBattleService implements IBattleService {
         const tempRoomState: RoomState = {
           id: roomId,
           status: 'waiting',
-          sessions: [session1, session2, ...spectatorSessions],
+          sessions: [session1, session2],
           sessionPlayers: {
             [session1]: player1Entry.playerId,
             [session2]: player2Entry.playerId,
@@ -358,6 +357,7 @@ export class ClusterBattleService implements IBattleService {
           instanceId: this.instanceId,
           lastActive: Date.now(),
           battleState: undefined, // 临时空状态，稍后更新
+          spectators: spectators,
           metadata: {
             battleRecordId,
             createdAt: Date.now(),
@@ -544,50 +544,50 @@ export class ClusterBattleService implements IBattleService {
       return
     }
 
-    // 监听战斗消息用于战报记录和战斗结束处理
+    // 1. 为战斗核心事件（如结束、战报）设置一个通用监听器
     battle.registerListener(
       message => {
-        // 记录战斗消息到战报（如果有战报服务）
         if (this.battleReportService && localRoom.battleRecordId) {
           this.battleReportService.recordBattleMessage(roomId, message)
         }
-
-        // 处理战斗结束
         if (message.type === BattleMessageType.BattleEnd) {
           const battleEndData = message.data as { winner: string | null; reason: string }
-          logger.info(
-            { roomId, winner: battleEndData.winner, reason: battleEndData.reason },
-            'Battle ended, starting cleanup',
-          )
-
-          
-
+          logger.info({ roomId, winner: battleEndData.winner, reason: battleEndData.reason }, 'Battle ended')
           this.handleBattleEnd(roomId, battleEndData)
         }
       },
-      { showAll: true }, // 用于战报记录，显示所有信息
+      { showAll: true },
     )
 
-    // 为每个玩家设置单独的监听器，发送各自视角的战斗事件（基于session）
-    for (const sessionId of roomState.sessions) {
+    // 2. 为每个玩家设置单独的、具有正确视角的事件监听器
+    const playerSessions = roomState.sessions.filter(sessionId => roomState.sessionPlayers[sessionId])
+    for (const sessionId of playerSessions) {
       const playerId = roomState.sessionPlayers[sessionId]
       if (!playerId) continue
 
-      // 找到对应的Player实例
       const player = battle.playerA.id === playerId ? battle.playerA : battle.playerB
-      if (!player) {
-        logger.error({ playerId, roomId }, 'Player not found in battle when setting up listeners')
-        continue
+      if (player) {
+        player.registerListener(async message => {
+          await this.addToBatch(playerId, sessionId, message)
+        })
       }
-
-      // 在Player上注册监听器，接收Player转发的消息（已经是该玩家视角）
-      player.registerListener(async message => {
-        // 使用批量发送机制
-        await this.addToBatch(playerId, sessionId, message)
-      })
     }
 
-    // 设置Timer事件监听器 - 新架构
+    // 3. 为观战者设置一个统一的广播监听器（上帝视角）
+    battle.registerListener(
+      async message => {
+        try {
+          const publisher = this.stateManager.redisManager.getPublisher()
+          const channel = `battle-spectators:${roomId}`
+          await publisher.publish(channel, JSON.stringify(message))
+        } catch (error) {
+          logger.error({ error, roomId }, 'Failed to publish spectator message to Redis')
+        }
+      },
+      { showAll: true }, // 上帝视角
+    )
+
+    // 4. 设置Timer事件监听器
     this.setupTimerEventListeners(battle, roomState)
   }
 
@@ -1120,18 +1120,13 @@ export class ClusterBattleService implements IBattleService {
     await this.callbacks.joinPlayerToRoom(spectator.playerId, roomId)
 
     // 2. 更新 RoomState，将观战者持久化
-    if (!roomState.sessions.includes(spectator.sessionId)) {
-      roomState.sessions.push(spectator.sessionId)
+    if (!roomState.spectators.some(s => s.sessionId === spectator.sessionId)) {
+      roomState.spectators.push(spectator)
       roomState.sessionPlayers[spectator.sessionId] = spectator.playerId
       await this.stateManager.setRoomState(roomState)
     }
 
-    // 3. 为新观战者设置战斗事件监听 (上帝视角)
-    battle.registerListener(async message => {
-      await this.addToBatch(spectator.playerId, spectator.sessionId, message)
-    }, { showAll: true })
-
-    // 4. 发送一次性的战斗状态快照
+    // 3. 发送一次性的战斗状态快照给新加入的观战者
     const battleState = battle.getState(spectator.playerId as playerId, true) // true 表示上帝视角
     await this.callbacks.sendToPlayerSession(spectator.playerId, spectator.sessionId, 'battleEvent', {
       type: BattleMessageType.BattleStart, // 伪装成 BattleStart，让客户端能正确初始化
