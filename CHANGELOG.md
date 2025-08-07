@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.0...arcadia-eternity-v2.15.1) (2025-08-07)
+
+
+### 🐛 Bug Fixes
+
+* wait player ready ([3dc8ca0](https://github.com/arcadia-eternity/arcadia-eternity/commit/3dc8ca01c9014bfcc6c4d37d9addbbefb8da48df))
+
 ## [2.15.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.14.1...arcadia-eternity-v2.15.0) (2025-08-07)
 
 
