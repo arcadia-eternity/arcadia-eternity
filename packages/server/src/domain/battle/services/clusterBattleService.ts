@@ -695,7 +695,11 @@ export class ClusterBattleService implements IBattleService {
       throw new Error('BATTLE_NOT_FOUND')
     }
 
-    const battleState = battle.getState(playerId as playerId, false)
+    // 检查是否是观战者
+    const roomState = await this.stateManager.getRoomState(roomId)
+    const isSpectator = roomState?.spectators.some(s => s.playerId === playerId) ?? false
+
+    const battleState = battle.getState(playerId as playerId, isSpectator)
 
     return battleState
   }

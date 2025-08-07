@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.2...arcadia-eternity-v2.15.3) (2025-08-07)
+
+
+### 🐛 Bug Fixes
+
+* add isSpectator ([6b087a3](https://github.com/arcadia-eternity/arcadia-eternity/commit/6b087a35750aa80b1bb3bfc6b11ac6293801dde7))
+
 ## [2.15.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.1...arcadia-eternity-v2.15.2) (2025-08-07)
 
 
