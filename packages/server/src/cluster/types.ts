@@ -188,6 +188,7 @@ export const REDIS_KEYS = {
   // 房间状态
   ROOMS: 'rooms',
   ROOM: (roomId: string) => `room:${roomId}`,
+  SESSION_ROOM_MAPPING: (playerId: string, sessionId: string) => `session:rooms:${playerId}:${sessionId}`,
 
   // 匹配队列
   MATCHMAKING_QUEUE: 'matchmaking:queue',
