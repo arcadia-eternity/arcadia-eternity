@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.3...arcadia-eternity-v2.15.4) (2025-08-07)
+
+
+### 🐛 Bug Fixes
+
+* session room mapping ([1a24b24](https://github.com/arcadia-eternity/arcadia-eternity/commit/1a24b24dcbbc396dde5751dec910f39663df47cb))
+
 ## [2.15.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.2...arcadia-eternity-v2.15.3) (2025-08-07)
 
 
