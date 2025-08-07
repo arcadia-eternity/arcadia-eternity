@@ -1127,7 +1127,22 @@ export class ClusterBattleService implements IBattleService {
     if (!roomState.spectators.some(s => s.sessionId === spectator.sessionId)) {
       roomState.spectators.push(spectator)
       roomState.sessionPlayers[spectator.sessionId] = spectator.playerId
+      if (!roomState.sessions.includes(spectator.sessionId)) {
+        roomState.sessions.push(spectator.sessionId)
+      }
       await this.stateManager.setRoomState(roomState)
+
+      // 新增：为观战者创建会话到房间的映射
+      try {
+        const client = this.stateManager.redisManager.getClient()
+        await client.sadd(REDIS_KEYS.SESSION_ROOM_MAPPING(spectator.playerId, spectator.sessionId), roomId)
+        logger.info(
+          { roomId, spectatorId: spectator.playerId, sessionId: spectator.sessionId },
+          'Spectator session-room mapping created',
+        )
+      } catch (error) {
+        logger.error({ error, roomId, spectator }, 'Failed to create spectator session-room mapping')
+      }
     }
 
     // 3. 发送一次性的战斗状态快照给新加入的观战者

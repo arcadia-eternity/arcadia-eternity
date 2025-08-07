@@ -797,15 +797,17 @@ export class ClusterBattleServer {
       const roomState = await this.getPlayerRoomFromCluster(playerId, sessionId)
 
       // 检查是否为观战者
-      const battle = roomState ? this.battleService.getLocalBattle(roomState.id) : undefined;
-      const isPlayer = battle ? battle.playerA.id === playerId || battle.playerB.id === playerId : false;
+      const battle = roomState ? this.battleService.getLocalBattle(roomState.id) : undefined
+      const isPlayer = battle ? battle.playerA.id === playerId || battle.playerB.id === playerId : false
 
       if (roomState && !isPlayer) {
-        logger.info({ playerId, sessionId, roomId: roomState.id }, '观战者断开连接，立即清理资源');
-        await this.stateManager.removePlayerConnection(playerId, sessionId);
-        await this.battleService.removeSpectatorFromRoom(roomState.id, sessionId);
-        this.debouncedBroadcastServerState();
-        return;
+        logger.info({ playerId, sessionId, roomId: roomState.id }, '观战者断开连接，立即清理资源')
+        await this.stateManager.removePlayerConnection(playerId, sessionId)
+        await this.battleService.removeSpectatorFromRoom(roomState.id, sessionId)
+        // 新增：移除观战者的会话房间映射
+        await this.removeSessionRoomMapping(playerId, sessionId, roomState.id)
+        this.debouncedBroadcastServerState()
+        return
       }
 
       if (roomState && roomState.status === 'active') {
@@ -1352,8 +1354,7 @@ export class ClusterBattleServer {
   private async removeSessionRoomMapping(playerId: string, sessionId: string, roomId: string): Promise<void> {
     try {
       const client = this.stateManager.redisManager.getClient()
-      const sessionKey = `${playerId}:${sessionId}`
-      await client.srem(`session:rooms:${sessionKey}`, roomId)
+      await client.srem(REDIS_KEYS.SESSION_ROOM_MAPPING(playerId, sessionId), roomId)
     } catch (error) {
       logger.error({ error, playerId, sessionId, roomId }, 'Failed to remove session room mapping')
     }
@@ -1365,7 +1366,7 @@ export class ClusterBattleServer {
       const client = this.stateManager.redisManager.getClient()
 
       // 首先尝试从玩家会话映射中查找
-      const sessionRoomKey = `session:rooms:${playerId}:${sessionId}`
+      const sessionRoomKey = REDIS_KEYS.SESSION_ROOM_MAPPING(playerId, sessionId)
       const roomIds = await client.smembers(sessionRoomKey)
 
       // 如果找到映射，直接验证房间状态

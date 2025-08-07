@@ -151,8 +151,8 @@ describe('Session Room Mapping Cleanup', () => {
 
     // Setup: Create session room mappings
     const client = mockRedisManager.getClient()
-    await client.sadd(`session:rooms:${playerId1}:${sessionId1}`, roomId)
-    await client.sadd(`session:rooms:${playerId2}:${sessionId2}`, roomId)
+    await client.sadd(REDIS_KEYS.SESSION_ROOM_MAPPING(playerId1, sessionId1), roomId)
+    await client.sadd(REDIS_KEYS.SESSION_ROOM_MAPPING(playerId2, sessionId2), roomId)
 
     // Verify mappings exist before battle end
     const mappings1Before = await client.smembers(`session:rooms:${playerId1}:${sessionId1}`)
@@ -199,8 +199,8 @@ describe('Session Room Mapping Cleanup', () => {
 
     // Setup: Create session room mappings
     const client = mockRedisManager.getClient()
-    await client.sadd(`session:rooms:${playerId1}:${sessionId1}`, roomId)
-    await client.sadd(`session:rooms:${playerId2}:${sessionId2}`, roomId)
+    await client.sadd(REDIS_KEYS.SESSION_ROOM_MAPPING(playerId1, sessionId1), roomId)
+    await client.sadd(REDIS_KEYS.SESSION_ROOM_MAPPING(playerId2, sessionId2), roomId)
 
     // Mock the stateManager.getRoomState method
     stateManager.getRoomState = async (id: string) => {
@@ -223,8 +223,8 @@ describe('Session Room Mapping Cleanup', () => {
     await (battleServer as any).cleanupSessionRoomMappings(roomState)
 
     // Assert: Verify mappings are cleaned up
-    const mappings1After = await client.smembers(`session:rooms:${playerId1}:${sessionId1}`)
-    const mappings2After = await client.smembers(`session:rooms:${playerId2}:${sessionId2}`)
+    const mappings1After = await client.smembers(REDIS_KEYS.SESSION_ROOM_MAPPING(playerId1, sessionId1))
+    const mappings2After = await client.smembers(REDIS_KEYS.SESSION_ROOM_MAPPING(playerId2, sessionId2))
     expect(mappings1After).not.toContain(roomId)
     expect(mappings2After).not.toContain(roomId)
   })
