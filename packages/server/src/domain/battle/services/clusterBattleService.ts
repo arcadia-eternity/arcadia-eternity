@@ -1132,12 +1132,12 @@ export class ClusterBattleService implements IBattleService {
     if (!roomState.spectators.some(s => s.sessionId === spectator.sessionId)) {
       roomState.spectators.push(spectator)
       roomState.sessionPlayers[spectator.sessionId] = spectator.playerId
+      // 正确更新 sessions 列表
       if (!roomState.sessions.includes(spectator.sessionId)) {
         roomState.sessions.push(spectator.sessionId)
       }
-      await this.stateManager.setRoomState(roomState)
 
-      // 新增：为观战者创建会话到房间的映射
+      // 在更新 roomState 之前先更新映射
       try {
         const client = this.stateManager.redisManager.getClient()
         await client.sadd(REDIS_KEYS.SESSION_ROOM_MAPPING(spectator.playerId, spectator.sessionId), roomId)
@@ -1148,6 +1148,9 @@ export class ClusterBattleService implements IBattleService {
       } catch (error) {
         logger.error({ error, roomId, spectator }, 'Failed to create spectator session-room mapping')
       }
+
+      // 最后更新 roomState
+      await this.stateManager.setRoomState(roomState)
     }
 
     // 3. 发送一次性的战斗状态快照给新加入的观战者
