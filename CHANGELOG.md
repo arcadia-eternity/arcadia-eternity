@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.8](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.7...arcadia-eternity-v2.15.8) (2025-08-07)
+
+
+### 🐛 Bug Fixes
+
+* session room mapping ([82027b2](https://github.com/arcadia-eternity/arcadia-eternity/commit/82027b257d4ff9325a076842ba582948a0bc3736))
+
 ## [2.15.7](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.6...arcadia-eternity-v2.15.7) (2025-08-07)
 
 
