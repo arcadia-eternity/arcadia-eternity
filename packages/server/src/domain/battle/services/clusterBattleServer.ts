@@ -1372,8 +1372,15 @@ export class ClusterBattleServer {
       // 如果找到映射，直接验证房间状态
       for (const roomId of roomIds) {
         const roomState = await this.stateManager.getRoomState(roomId)
-        if (roomState && roomState.sessions.includes(sessionId) && roomState.sessionPlayers[sessionId] === playerId) {
-          return roomState
+        if (roomState) {
+          const isPlayer = roomState.sessions.includes(sessionId) && roomState.sessionPlayers[sessionId] === playerId
+          const isSpectator = roomState.spectators.some(
+            s => s.sessionId === sessionId && s.playerId === playerId,
+          )
+
+          if (isPlayer || isSpectator) {
+            return roomState
+          }
         }
         // 清理无效的映射
         await client.srem(sessionRoomKey, roomId)
@@ -1399,19 +1406,28 @@ export class ClusterBattleServer {
             const roomState = JSON.parse((roomData as any).data || '{}') as RoomState
             if (!roomState.id) continue
 
-            // 检查会话匹配
+            // 检查会话匹配（包括观战者）
             if (sessionId) {
-              if (roomState.sessions.includes(sessionId) && roomState.sessionPlayers[sessionId] === playerId) {
+              const isPlayerInRoom =
+                roomState.sessions.includes(sessionId) && roomState.sessionPlayers[sessionId] === playerId
+              const isSpectatorInRoom = roomState.spectators.some(
+                s => s.sessionId === sessionId && s.playerId === playerId,
+              )
+
+              if (isPlayerInRoom || isSpectatorInRoom) {
                 // 重建映射索引
                 await client.sadd(sessionRoomKey, roomState.id)
                 return roomState
               }
             } else {
-              // 向后兼容：检查是否有任何会话对应该playerId
-              for (const roomSessionId of roomState.sessions) {
-                if (roomState.sessionPlayers[roomSessionId] === playerId) {
-                  return roomState
-                }
+              // 向后兼容：检查是否有任何会话对应该playerId（包括观战者）
+              const isPlayer = roomState.sessions.some(
+                roomSessionId => roomState.sessionPlayers[roomSessionId] === playerId,
+              )
+              const isSpectator = roomState.spectators.some(s => s.playerId === playerId)
+
+              if (isPlayer || isSpectator) {
+                return roomState
               }
             }
           } catch (parseError) {

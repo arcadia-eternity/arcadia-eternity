@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.7](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.6...arcadia-eternity-v2.15.7) (2025-08-07)
+
+
+### 🐛 Bug Fixes
+
+* get player room ([49ab44c](https://github.com/arcadia-eternity/arcadia-eternity/commit/49ab44c72a75a2d2bd213643fa197e59cd8e6a30))
+
 ## [2.15.6](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.5...arcadia-eternity-v2.15.6) (2025-08-07)
 
 
