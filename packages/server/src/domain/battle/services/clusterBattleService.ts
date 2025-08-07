@@ -19,7 +19,7 @@ import type { DistributedLockManager } from '../../../cluster/redis/distributedL
 import type { PerformanceTracker } from '../../../cluster/monitoring/performanceTracker'
 import type { SocketClusterAdapter } from '../../../cluster/communication/socketClusterAdapter'
 
-import type { RoomState, MatchmakingEntry } from '../../../cluster/types'
+import { type RoomState, type MatchmakingEntry, REDIS_KEYS } from '../../../cluster/types'
 import { BattleReportService, type BattleReportConfig } from '../../report/services/battleReportService'
 import { TimerEventBatcher } from './timerEventBatcher'
 import { ServerRuleIntegration, type BattleRuleManager } from '@arcadia-eternity/rules'
