@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.15.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.1...arcadia-eternity-v2.15.2) (2025-08-07)
+
+
+### 🐛 Bug Fixes
+
+* spectator disconnect ([90d180a](https://github.com/arcadia-eternity/arcadia-eternity/commit/90d180a6a1479873443cbff2b0b3701664f26e11))
+
+
+### ♻️ Code Refactoring
+
+* spectator bordcast ([21d8bb1](https://github.com/arcadia-eternity/arcadia-eternity/commit/21d8bb16edb01ef58822d7e5117cd509bc3f3655))
+
 ## [2.15.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.0...arcadia-eternity-v2.15.1) (2025-08-07)
 
 

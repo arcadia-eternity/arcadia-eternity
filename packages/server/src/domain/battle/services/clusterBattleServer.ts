@@ -797,17 +797,15 @@ export class ClusterBattleServer {
       const roomState = await this.getPlayerRoomFromCluster(playerId, sessionId)
 
       // 检查是否为观战者
-      const isSpectator = roomState?.spectators?.some((s: { sessionId: string }) => s.sessionId === sessionId) || false
+      const battle = roomState ? this.battleService.getLocalBattle(roomState.id) : undefined;
+      const isPlayer = battle ? battle.playerA.id === playerId || battle.playerB.id === playerId : false;
 
-      if (isSpectator) {
-        logger.info({ playerId, sessionId, roomId: roomState?.id }, '观战者断开连接，立即清理资源')
-        // 如果是观战者，立即清理资源，不进入重连流程
-        await this.stateManager.removePlayerConnection(playerId, sessionId)
-        if (roomState) {
-          await this.battleService.removeSpectatorFromRoom(roomState.id, sessionId)
-        }
-        this.debouncedBroadcastServerState()
-        return // 提前返回，不执行后续的玩家断线逻辑
+      if (roomState && !isPlayer) {
+        logger.info({ playerId, sessionId, roomId: roomState.id }, '观战者断开连接，立即清理资源');
+        await this.stateManager.removePlayerConnection(playerId, sessionId);
+        await this.battleService.removeSpectatorFromRoom(roomState.id, sessionId);
+        this.debouncedBroadcastServerState();
+        return;
       }
 
       if (roomState && roomState.status === 'active') {

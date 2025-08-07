@@ -1,3 +1,6 @@
+import { SocketManager } from '../communication/socketManager';
+import { SpectatorBroadcastService } from '../../domain/battle/services/spectatorBroadcastService';
+import { TYPES } from '../../types';
 import express, { type Request, type Response } from 'express'
 import cors from 'cors'
 import { createServer } from 'http'
@@ -365,6 +368,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
         stateManager: clusterManager.getStateManager(),
         socketAdapter,
         lockManager: clusterManager.getLockManager(),
+        redisManager: clusterManager.getRedisManager(), // 添加 redisManager
         instanceId: finalConfig.cluster!.instance.id,
         rpcPort: grpcPort,
         battleReportConfig: finalConfig.battleReport,
@@ -374,6 +378,24 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
 
       battleServer = diServer
       rpcServer = diRpcServer
+
+      const socketManager = container.get<SocketManager>(TYPES.SocketManager);
+      io.on('connection', (socket) => {
+        const sessionId = socket.handshake.auth.sessionId;
+        if (sessionId) {
+          socketManager.registerSocket(sessionId, socket);
+        }
+
+        socket.on('disconnect', () => {
+          if (sessionId) {
+            socketManager.unregisterSocket(sessionId);
+          }
+        });
+      });
+
+      // 初始化观战者广播服务
+      const spectatorBroadcastService = container.get<SpectatorBroadcastService>(TYPES.SpectatorBroadcastService)
+      await spectatorBroadcastService.initialize()
 
       logger.info({ grpcPort }, 'gRPC server created and injected into ClusterBattleServer')
 
@@ -487,6 +509,12 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       // 清理战斗服务器资源
       if (battleServer) {
         await battleServer.cleanup()
+      }
+
+      // 清理观战者广播服务
+      const spectatorBroadcastService = getContainer().get<SpectatorBroadcastService>(TYPES.SpectatorBroadcastService)
+      if (spectatorBroadcastService) {
+        await spectatorBroadcastService.cleanup()
       }
 
       // 清理监控组件
