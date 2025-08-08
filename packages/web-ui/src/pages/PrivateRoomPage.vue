@@ -231,9 +231,9 @@
         </el-button>
 
         <!-- 角色转换按钮 -->
-        <!-- <template v-if="privateRoomStore.currentRoom?.status === 'waiting'"> -->
-        <!-- 玩家转观战者 -->
-        <!-- <el-dropdown
+        <template v-if="privateRoomStore.currentRoom?.status === 'waiting'">
+          <!-- 玩家转观战者 -->
+          <el-dropdown
             v-if="privateRoomStore.isPlayer"
             @command="switchToSpectator"
             :disabled="privateRoomStore.isLoading"
@@ -249,10 +249,10 @@
                 <el-dropdown-item command="player2">玩家2视角</el-dropdown-item>
               </el-dropdown-menu>
             </template>
-          </el-dropdown> -->
+          </el-dropdown>
 
-        <!-- 观战者转玩家 -->
-        <!-- <el-button
+          <!-- 观战者转玩家 -->
+          <el-button
             v-if="privateRoomStore.isSpectator && privateRoomStore.players.length < 2"
             type="warning"
             :disabled="privateRoomStore.isLoading"
@@ -260,7 +260,7 @@
           >
             转为玩家
           </el-button>
-        </template> -->
+        </template>
 
         <!-- 离开房间按钮 -->
         <el-button :disabled="privateRoomStore.isLoading" @click="leaveRoom"> 离开房间 </el-button>
@@ -319,14 +319,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { usePlayerStore } from '@/stores/player'
 import { useValidationStore } from '@/stores/validation'
-import { usePetStorageStore } from '@/stores/petStorage'
 import { useBattleClientStore } from '@/stores/battleClient'
-import { User, Loading, ArrowDown, MoreFilled, Star, Close } from '@element-plus/icons-vue'
+import { User, Loading, MoreFilled, Star, Close } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PlayerCard from '@/components/PlayerCard.vue'
 import TeamSelector from '@/components/TeamSelector.vue'
@@ -336,7 +335,6 @@ const router = useRouter()
 const privateRoomStore = usePrivateRoomStore()
 const playerStore = usePlayerStore()
 const validationStore = useValidationStore()
-const petStorageStore = usePetStorageStore()
 const battleClientStore = useBattleClientStore()
 
 const roomCode = route.params.roomCode as string
