@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.9](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.8...arcadia-eternity-v2.15.9) (2025-08-08)
+
+
+### 🐛 Bug Fixes
+
+* spectator broadcast ([ca0d3dd](https://github.com/arcadia-eternity/arcadia-eternity/commit/ca0d3dd3842c3f39d1ee14d9d01c7362fc8e72e6))
+
 ## [2.15.8](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.7...arcadia-eternity-v2.15.8) (2025-08-07)
 
 
