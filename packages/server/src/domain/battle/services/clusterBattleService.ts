@@ -19,7 +19,15 @@ import type { DistributedLockManager } from '../../../cluster/redis/distributedL
 import type { PerformanceTracker } from '../../../cluster/monitoring/performanceTracker'
 import type { SocketClusterAdapter } from '../../../cluster/communication/socketClusterAdapter'
 
-import { type RoomState, type MatchmakingEntry, REDIS_KEYS, BattleControlEventType, type BattleControlEvent, type BattleCreatedEventPayload, type CleanupEventPayload } from '../../../cluster/types'
+import {
+  type RoomState,
+  type MatchmakingEntry,
+  REDIS_KEYS,
+  BattleControlEventType,
+  type BattleControlEvent,
+  type BattleCreatedEventPayload,
+  type CleanupEventPayload,
+} from '../../../cluster/types'
 import { BattleReportService, type BattleReportConfig } from '../../report/services/battleReportService'
 import { TimerEventBatcher } from './timerEventBatcher'
 import { ServerRuleIntegration, type BattleRuleManager } from '@arcadia-eternity/rules'
@@ -65,7 +73,7 @@ export class ClusterBattleService implements IBattleService {
   private readonly localBattles = new Map<string, Battle>() // roomId -> Battle
   private readonly localRooms = new Map<string, LocalRoomData>() // roomId -> room data
   private readonly disconnectedPlayers = new Map<string, DisconnectedPlayerInfo>() // 掉线玩家管理
-  private readonly localSpectators = new Map<string, Set<{playerId: string, sessionId: string}>>() // roomId -> Set of spectators
+  private readonly localSpectators = new Map<string, Set<{ playerId: string; sessionId: string }>>() // roomId -> Set of spectators
 
   // Timer事件批处理系统
   private readonly timerEventBatcher: TimerEventBatcher
@@ -652,26 +660,58 @@ export class ClusterBattleService implements IBattleService {
       return
     }
 
-    // 1. 为战斗核心事件（如结束、战报）设置一个通用监听器
+    // 1. 为战斗核心事件（如结束、战报）和观战者设置一个统一的、上帝视角的事件监听器
     battle.registerListener(
-      message => {
+      async message => {
+        // 优先将消息广播给所有观战者
+        await this.addToSpectatorBatch(roomId, message)
+
+        // 记录战报
         if (this.battleReportService && localRoom.battleRecordId) {
           this.battleReportService.recordBattleMessage(roomId, message)
         }
+
+        // 检查是否是战斗结束事件，并处理所有后续逻辑
         if (message.type === BattleMessageType.BattleEnd) {
           const battleEndData = message.data as { winner: string | null; reason: string }
           logger.info({ roomId, winner: battleEndData.winner, reason: battleEndData.reason }, 'Battle ended')
-          this.handleBattleEnd(roomId, battleEndData)
-        }
-      },
-      { showAll: true },
-    )
 
-    // 3. 为观战者设置一个单独的、上帝视角的事件监听器,并发布到Redis
-    battle.registerListener(
-      async message => {
-        // 使用批处理来发布观战者消息
-        this.addToSpectatorBatch(roomId, message)
+          // 更新本地房间状态
+          localRoom.status = 'ended'
+          localRoom.lastActive = Date.now()
+
+          // 如果是私人房间，发布战斗结束事件
+          if (localRoom.privateRoom && roomState && roomState.metadata?.roomCode) {
+            await this.publishPrivateBattleFinishedEvent(roomState.metadata.roomCode, roomId, battleEndData)
+          }
+
+          // 延迟清理所有资源，给客户端一些时间处理战斗结束事件
+          setTimeout(async () => {
+            const currentRoomState = await this.stateManager.getRoomState(roomId)
+            if (currentRoomState) {
+              // 清理会话映射
+              await this.callbacks.cleanupSessionRoomMappings(currentRoomState)
+              logger.info({ roomId }, 'Session room mappings cleaned up after battle end')
+
+              // 通知所有客户端房间关闭
+              for (const sessionId of currentRoomState.sessions) {
+                const playerId = currentRoomState.sessionPlayers[sessionId]
+                if (playerId) {
+                  await this.callbacks.sendToPlayerSession(playerId, sessionId, 'roomClosed', { roomId })
+                }
+              }
+            }
+
+            // 清理本地和集群状态
+            await this.cleanupLocalRoom(roomId)
+            await this.stateManager.removeRoomState(roomId)
+
+            logger.info(
+              { roomId, winner: battleEndData.winner, reason: battleEndData.reason },
+              'Battle cleanup completed',
+            )
+          }, 5000) // 5秒延迟
+        }
       },
       { showAll: true },
     )
@@ -690,7 +730,7 @@ export class ClusterBattleService implements IBattleService {
       }
     }
 
-    // 4. 设置Timer事件监听器
+    // 3. 设置Timer事件监听器
     this.setupTimerEventListeners(battle, roomState)
   }
 
@@ -1007,58 +1047,6 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 处理战斗结束
    */
-  private async handleBattleEnd(
-    roomId: string,
-    battleEndData: { winner: string | null; reason: string },
-  ): Promise<void> {
-    try {
-      const localRoom = this.localRooms.get(roomId)
-      if (!localRoom) {
-        logger.warn({ roomId }, 'Local room not found when handling battle end')
-        return
-      }
-
-      // 更新本地房间状态
-      localRoom.status = 'ended'
-      localRoom.lastActive = Date.now()
-
-      // 获取房间状态用于后续清理
-      const roomState = await this.stateManager.getRoomState(roomId)
-
-      // If it's a private room, publish an event
-      if (localRoom.privateRoom && roomState && roomState.metadata?.roomCode) {
-        await this.publishPrivateBattleFinishedEvent(roomState.metadata.roomCode, roomId, battleEndData)
-      }
-
-      // 立即清理会话到房间的映射，防止重连到已结束的战斗
-      if (roomState) {
-        await this.callbacks.cleanupSessionRoomMappings(roomState)
-        logger.info({ roomId }, 'Session room mappings cleaned up immediately after battle end')
-      }
-
-      // 通知所有玩家房间关闭（基于session）
-      if (roomState) {
-        for (const sessionId of roomState.sessions) {
-          const playerId = roomState.sessionPlayers[sessionId]
-          if (playerId) {
-            await this.callbacks.sendToPlayerSession(playerId, sessionId, 'roomClosed', { roomId })
-          }
-        }
-      }
-
-      // 延迟清理其他资源，给客户端一些时间处理战斗结束事件
-      setTimeout(async () => {
-        await this.cleanupLocalRoom(roomId)
-
-        // 从集群中移除房间状态
-        await this.stateManager.removeRoomState(roomId)
-
-        logger.info({ roomId, winner: battleEndData.winner, reason: battleEndData.reason }, 'Battle cleanup completed')
-      }, 5000) // 5秒延迟
-    } catch (error) {
-      logger.error({ error, roomId }, 'Error handling battle end')
-    }
-  }
 
   /**
    * 清理本地房间
@@ -1620,6 +1608,12 @@ export class ClusterBattleService implements IBattleService {
   // === 新增：观战者消息批处理 ===
 
   async addToSpectatorBatch(roomId: string, message: BattleMessage): Promise<void> {
+    // 优化：如果房间中没有任何观战者，则不进行广播
+    const roomState = await this.stateManager.getRoomState(roomId)
+    if (!roomState || !roomState.spectators || roomState.spectators.length === 0) {
+      return
+    }
+
     const now = Date.now()
 
     let batch = this.spectatorMessageBatches.get(roomId)
@@ -1788,7 +1782,10 @@ export class ClusterBattleService implements IBattleService {
   cleanupSpectatorsForRoom(roomId: string): void {
     if (this.localSpectators.has(roomId)) {
       this.localSpectators.delete(roomId)
-      logger.info({ roomId, instanceId: this.instanceId }, 'Cleaned up local spectators for room after BATTLE_CLEANUP event')
+      logger.info(
+        { roomId, instanceId: this.instanceId },
+        'Cleaned up local spectators for room after BATTLE_CLEANUP event',
+      )
     }
   }
 }
