@@ -5,6 +5,8 @@ import { DistributedLockManager } from '../redis/distributedLock'
 import { ClusterStateManager } from './clusterStateManager'
 import type { ClusterConfig, ClusterEvent } from '../types'
 import { ClusterError } from '../types'
+import type { IBattleService } from '../../domain/battle/services/interfaces'
+import type { BattleMessage } from '@arcadia-eternity/const'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -178,6 +180,65 @@ export class ClusterManager {
     if (!this.initialized) {
       throw new ClusterError('Cluster manager not initialized', 'NOT_INITIALIZED')
     }
+  }
+
+  startSpectatorSubscription(battleService: IBattleService): void {
+    const subscriber = this.redisManager.getSubscriber()
+    if (!subscriber) {
+      logger.error('Redis subscriber client not available for spectator broadcasting.')
+      return
+    }
+
+    // 订阅观战数据频道
+    const dataPattern = 'spectate:*'
+    subscriber.psubscribe(dataPattern, (err, count) => {
+      if (err) {
+        logger.error({ err }, `Failed to psubscribe to ${dataPattern}`)
+        return
+      }
+      logger.info(`PSUBSCRIBE to ${dataPattern} succeeded, subscribed to ${count} channels.`)
+    })
+
+    // 订阅控制频道
+    const controlChannel = 'battle-control'
+    subscriber.subscribe(controlChannel, (err, count) => {
+      if (err) {
+        logger.error({ err }, `Failed to subscribe to ${controlChannel}`)
+        return
+      }
+      logger.info(`SUBSCRIBE to ${controlChannel} succeeded, subscribed to ${count} channels.`)
+    })
+
+    subscriber.on('pmessage', (pattern, channel, message) => {
+      if (pattern === dataPattern) {
+        try {
+          const roomId = channel.substring(channel.indexOf(':') + 1)
+          if (!roomId) return
+
+          if (battleService) {
+            const battleMessages = JSON.parse(message) as BattleMessage[] | BattleMessage
+            battleService.forwardSpectatorMessage(roomId, battleMessages)
+          } else {
+            logger.warn({ roomId }, 'battleService not available, cannot forward spectator message')
+          }
+        } catch (error) {
+          logger.error({ error, channel, message }, 'Error processing pmessage for spectator')
+        }
+      }
+    })
+
+    subscriber.on('message', (channel, message) => {
+      if (channel === controlChannel) {
+        try {
+          const controlEvent = JSON.parse(message)
+          if (controlEvent.event === 'cleanup' && controlEvent.roomId) {
+            battleService.cleanupSpectatorsForRoom(controlEvent.roomId)
+          }
+        } catch (error) {
+          logger.error({ error, channel, message }, 'Error processing control channel message')
+        }
+      }
+    })
   }
 }
 

@@ -65,9 +65,16 @@ export class ClusterBattleService implements IBattleService {
   private readonly localBattles = new Map<string, Battle>() // roomId -> Battle
   private readonly localRooms = new Map<string, LocalRoomData>() // roomId -> room data
   private readonly disconnectedPlayers = new Map<string, DisconnectedPlayerInfo>() // 掉线玩家管理
+  private readonly localSpectators = new Map<string, Set<{playerId: string, sessionId: string}>>() // roomId -> Set of spectators
 
   // Timer事件批处理系统
   private readonly timerEventBatcher: TimerEventBatcher
+
+  // 批量消息处理相关
+  private readonly spectatorMessageBatches = new Map<
+    string,
+    { messages: BattleMessage[]; timer: ReturnType<typeof setTimeout> | null; createdAt: number }
+  >() // roomId -> batch
 
   // 批量消息处理相关
   private readonly messageBatches = new Map<
@@ -559,6 +566,15 @@ export class ClusterBattleService implements IBattleService {
       { showAll: true },
     )
 
+    // 3. 为观战者设置一个单独的、上帝视角的事件监听器,并发布到Redis
+    battle.registerListener(
+      async message => {
+        // 使用批处理来发布观战者消息
+        this.addToSpectatorBatch(roomId, message)
+      },
+      { showAll: true },
+    )
+
     // 2. 为每个玩家设置单独的、具有正确视角的事件监听器
     const playerSessions = roomState.sessions.filter(sessionId => roomState.sessionPlayers[sessionId])
     for (const sessionId of playerSessions) {
@@ -572,20 +588,6 @@ export class ClusterBattleService implements IBattleService {
         })
       }
     }
-
-    // 3. 为观战者设置一个统一的广播监听器（上帝视角）
-    battle.registerListener(
-      async message => {
-        try {
-          const publisher = this.stateManager.redisManager.getPublisher()
-          const channel = `battle-spectators:${roomId}`
-          await publisher.publish(channel, JSON.stringify(message))
-        } catch (error) {
-          logger.error({ error, roomId }, 'Failed to publish spectator message to Redis')
-        }
-      },
-      { showAll: true }, // 上帝视角
-    )
 
     // 4. 设置Timer事件监听器
     this.setupTimerEventListeners(battle, roomState)
@@ -970,6 +972,16 @@ export class ClusterBattleService implements IBattleService {
         // 从本地映射中移除
         this.localRooms.delete(roomId)
         this.localBattles.delete(roomId)
+        this.localSpectators.delete(roomId) // 清理观战者
+
+        // 发布清理通知到所有实例
+        try {
+          const publisher = this.stateManager.redisManager.getPublisher()
+          const channel = `battle-control`
+          publisher.publish(channel, JSON.stringify({ event: 'cleanup', roomId }))
+        } catch (error) {
+          logger.error({ error, roomId }, 'Failed to publish spectator cleanup message')
+        }
 
         // 更新活跃战斗房间数统计
         if (this.performanceTracker) {
@@ -1125,7 +1137,7 @@ export class ClusterBattleService implements IBattleService {
       return false
     }
 
-    // 1. 将观战者加入Socket.IO房间
+    // 1. 将观战者加入房间
     await this.callbacks.joinPlayerToRoom(spectator.playerId, roomId)
 
     // 2. 更新 RoomState，将观战者持久化
@@ -1160,6 +1172,11 @@ export class ClusterBattleService implements IBattleService {
       data: battleState,
     })
 
+    // 4. 将观战者添加到本地观战者列表中
+    const spectators = this.localSpectators.get(roomId) || new Set()
+    spectators.add(spectator)
+    this.localSpectators.set(roomId, spectators)
+
     logger.info({ roomId, spectatorId: spectator.playerId }, 'Spectator joined battle successfully')
     return true
   }
@@ -1187,6 +1204,17 @@ export class ClusterBattleService implements IBattleService {
     delete roomState.sessionPlayers[sessionId]
 
     await this.stateManager.setRoomState(roomState)
+
+    // 从本地观战者列表中移除
+    const localSpectators = this.localSpectators.get(roomId)
+    if (localSpectators) {
+      for (const s of localSpectators) {
+        if (s.sessionId === sessionId) {
+          localSpectators.delete(s)
+          break
+        }
+      }
+    }
 
     logger.info({ roomId, spectatorId: spectator.playerId, sessionId }, 'Spectator removed from room')
   }
@@ -1487,6 +1515,66 @@ export class ClusterBattleService implements IBattleService {
     }
   }
 
+  // === 新增：观战者消息批处理 ===
+
+  async addToSpectatorBatch(roomId: string, message: BattleMessage): Promise<void> {
+    const now = Date.now()
+
+    let batch = this.spectatorMessageBatches.get(roomId)
+    if (!batch) {
+      batch = { messages: [], timer: null, createdAt: now }
+      this.spectatorMessageBatches.set(roomId, batch)
+    }
+
+    if (now - batch.createdAt > this.MAX_BATCH_AGE) {
+      await this.flushSpectatorBatch(roomId)
+      batch = { messages: [], timer: null, createdAt: now }
+      this.spectatorMessageBatches.set(roomId, batch)
+    }
+
+    if (batch.timer) {
+      clearTimeout(batch.timer)
+    }
+
+    batch.messages.push(message)
+
+    const shouldSendImmediately =
+      batch.messages.length >= this.BATCH_SIZE || this.IMMEDIATE_MESSAGE_TYPES.has(message.type)
+
+    if (shouldSendImmediately) {
+      await this.flushSpectatorBatch(roomId)
+    } else {
+      batch.timer = setTimeout(() => {
+        this.flushSpectatorBatch(roomId).catch(error => {
+          logger.error({ error, roomId }, 'Error flushing spectator batch on timeout')
+        })
+      }, this.BATCH_TIMEOUT)
+    }
+  }
+
+  private async flushSpectatorBatch(roomId: string): Promise<void> {
+    const batch = this.spectatorMessageBatches.get(roomId)
+    if (!batch || batch.messages.length === 0) {
+      return
+    }
+
+    const messages = [...batch.messages]
+
+    if (batch.timer) {
+      clearTimeout(batch.timer)
+    }
+    this.spectatorMessageBatches.delete(roomId)
+
+    try {
+      const publisher = this.stateManager.redisManager.getPublisher()
+      const channel = `spectate:${roomId}`
+      // 直接发布序列化后的消息数组
+      await publisher.publish(channel, JSON.stringify(messages))
+    } catch (error) {
+      logger.error({ error, roomId }, 'Failed to publish spectator message batch to Redis')
+    }
+  }
+
   // === 重连相关方法 ===
 
   /**
@@ -1560,6 +1648,45 @@ export class ClusterBattleService implements IBattleService {
       }
     } catch (error) {
       logger.error({ error, roomId, playerId, sessionId }, 'Failed to send battle state on reconnect')
+    }
+  }
+
+  // === 新增：观战者消息转发 ===
+
+  /**
+   * 将从Redis收到的观战消息转发给本地观战者
+   */
+  async forwardSpectatorMessage(roomId: string, messages: BattleMessage | BattleMessage[]): Promise<void> {
+    const localSpectators = this.localSpectators.get(roomId)
+    if (!localSpectators || localSpectators.size === 0) {
+      return
+    }
+
+    const messagesArray = Array.isArray(messages) ? messages : [messages]
+    if (messagesArray.length === 0) {
+      return
+    }
+
+    try {
+      const event = messagesArray.length > 1 ? 'battleEventBatch' : 'battleEvent'
+      const payload = messagesArray.length > 1 ? messagesArray : messagesArray[0]
+
+      const promises = Array.from(localSpectators).map(spectator => {
+        this.callbacks.sendToPlayerSession(spectator.playerId, spectator.sessionId, event, payload)
+      })
+      await Promise.all(promises)
+    } catch (error) {
+      logger.error({ error, roomId }, 'Failed to forward spectator message(s)')
+    }
+  }
+
+  /**
+   * 清理指定房间的本地观战者列表（由Redis广播调用）
+   */
+  cleanupSpectatorsForRoom(roomId: string): void {
+    if (this.localSpectators.has(roomId)) {
+      this.localSpectators.delete(roomId)
+      logger.info({ roomId, instanceId: this.instanceId }, 'Cleaned up local spectators for room after BATTLE_CLEANUP event')
     }
   }
 }
