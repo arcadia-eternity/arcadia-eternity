@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.10](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.9...arcadia-eternity-v2.15.10) (2025-08-08)
+
+
+### 🐛 Bug Fixes
+
+* init spectators ([d451391](https://github.com/arcadia-eternity/arcadia-eternity/commit/d4513915bdd30003a80477c0ad6de6b57ce0907e))
+
 ## [2.15.9](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.8...arcadia-eternity-v2.15.9) (2025-08-08)
 
 
