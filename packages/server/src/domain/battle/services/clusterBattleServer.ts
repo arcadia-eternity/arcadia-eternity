@@ -170,6 +170,10 @@ export class ClusterBattleServer {
     return this.instanceId
   }
 
+  get battleServiceInstance(): IBattleService {
+    return this.battleService
+  }
+
   /**
    * 启动性能数据同步到集群状态管理器
    */

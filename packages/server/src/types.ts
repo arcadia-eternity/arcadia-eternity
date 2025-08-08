@@ -35,9 +35,6 @@ export const TYPES = {
   SocketIOServer: Symbol.for('SocketIOServer'),
   RpcPort: Symbol.for('RpcPort'),
 
-  // 观战者广播服务
-  SpectatorBroadcastService: Symbol.for('SpectatorBroadcastService'),
-
   // Socket管理器
   SocketManager: Symbol.for('SocketManager'),
 } as const

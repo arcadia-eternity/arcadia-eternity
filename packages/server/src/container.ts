@@ -1,5 +1,4 @@
-import { SocketManager } from './cluster/communication/socketManager';
-import { SpectatorBroadcastService } from './domain/battle/services/spectatorBroadcastService';
+import { SocketManager } from './cluster/communication/socketManager'
 import 'reflect-metadata'
 import { Container } from 'inversify'
 import { EmailService, createEmailConfigFromEnv, type EmailConfig } from './domain/email/emailService'
@@ -175,7 +174,6 @@ export function configureClusterServices(
   container.bind<BattleRpcServer>(TYPES.BattleRpcServer).to(BattleRpcServer).inSingletonScope()
   container.bind<BattleRpcClient>(TYPES.BattleRpcClient).to(BattleRpcClient).inSingletonScope()
   container.bind<SessionStateManager>(TYPES.SessionStateManager).to(SessionStateManager).inSingletonScope()
-  container.bind<SpectatorBroadcastService>(TYPES.SpectatorBroadcastService).to(SpectatorBroadcastService).inSingletonScope()
   container.bind<SocketManager>(TYPES.SocketManager).to(SocketManager).inSingletonScope()
 
   // 获取 ClusterBattleServer 实例（它不依赖回调）

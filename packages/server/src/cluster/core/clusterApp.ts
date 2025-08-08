@@ -1,6 +1,5 @@
-import { SocketManager } from '../communication/socketManager';
-import { SpectatorBroadcastService } from '../../domain/battle/services/spectatorBroadcastService';
-import { TYPES } from '../../types';
+import { SocketManager } from '../communication/socketManager'
+import { TYPES } from '../../types'
 import express, { type Request, type Response } from 'express'
 import cors from 'cors'
 import { createServer } from 'http'
@@ -379,23 +378,19 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       battleServer = diServer
       rpcServer = diRpcServer
 
-      const socketManager = container.get<SocketManager>(TYPES.SocketManager);
-      io.on('connection', (socket) => {
-        const sessionId = socket.handshake.auth.sessionId;
+      const socketManager = container.get<SocketManager>(TYPES.SocketManager)
+      io.on('connection', socket => {
+        const sessionId = socket.handshake.auth.sessionId
         if (sessionId) {
-          socketManager.registerSocket(sessionId, socket);
+          socketManager.registerSocket(sessionId, socket)
         }
 
         socket.on('disconnect', () => {
           if (sessionId) {
-            socketManager.unregisterSocket(sessionId);
+            socketManager.unregisterSocket(sessionId)
           }
-        });
-      });
-
-      // 初始化观战者广播服务
-      const spectatorBroadcastService = container.get<SpectatorBroadcastService>(TYPES.SpectatorBroadcastService)
-      await spectatorBroadcastService.initialize()
+        })
+      })
 
       logger.info({ grpcPort }, 'gRPC server created and injected into ClusterBattleServer')
 
@@ -444,6 +439,9 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
 
       // 最后初始化 ClusterBattleServer（确保所有依赖都准备好）
       await battleServer.initialize()
+
+      // 启动观战者广播订阅
+      clusterManager.startSpectatorSubscription(battleServer.battleServiceInstance)
 
       // 启动 gRPC 服务器
       await rpcServer.start()
@@ -511,16 +509,9 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
         await battleServer.cleanup()
       }
 
-      // 清理观战者广播服务
-      const spectatorBroadcastService = getContainer().get<SpectatorBroadcastService>(TYPES.SpectatorBroadcastService)
-      if (spectatorBroadcastService) {
-        await spectatorBroadcastService.cleanup()
-      }
-
       // 清理监控组件
       if (performanceTracker) await performanceTracker.cleanup()
       if (monitoring) await monitoring.cleanup()
-      // logAggregation 已移除
 
       // 清理Socket集群适配器
       if (socketAdapter) {

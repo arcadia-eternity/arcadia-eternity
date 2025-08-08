@@ -1,6 +1,7 @@
 import type { Socket } from 'socket.io'
 import type { AckResponse } from '@arcadia-eternity/protocol'
 import type { RoomState, MatchmakingEntry, ServiceInstance } from '../../../cluster/types'
+import type { BattleMessage } from '@arcadia-eternity/const'
 
 // 资源加载管理器接口
 export interface IResourceLoadingManager {
@@ -103,4 +104,6 @@ export interface IBattleService {
   sendBattleStateOnReconnect(roomId: string, playerId: string, sessionId: string): Promise<void>
   joinSpectateBattle(roomId: string, spectator: { playerId: string; sessionId: string }): Promise<boolean>
   removeSpectatorFromRoom(roomId: string, sessionId: string): Promise<void>
+  forwardSpectatorMessage(roomId: string, messages: BattleMessage | BattleMessage[]): Promise<void>
+  cleanupSpectatorsForRoom(roomId: string): void
 }
