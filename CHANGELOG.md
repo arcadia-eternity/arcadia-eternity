@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.12](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.11...arcadia-eternity-v2.15.12) (2025-08-08)
+
+
+### 🐛 Bug Fixes
+
+* remove perf ([ac7e33e](https://github.com/arcadia-eternity/arcadia-eternity/commit/ac7e33ee2b0d0caade3431b6f52109d8567c30b3))
+
 ## [2.15.11](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.10...arcadia-eternity-v2.15.11) (2025-08-08)
 
 
