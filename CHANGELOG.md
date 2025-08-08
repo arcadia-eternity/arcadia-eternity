@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.14](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.13...arcadia-eternity-v2.15.14) (2025-08-08)
+
+
+### 🐛 Bug Fixes
+
+* switch role button ([4b4cf9c](https://github.com/arcadia-eternity/arcadia-eternity/commit/4b4cf9c9c99b5403195c9c02cc16522fef1e42a2))
+
 ## [2.15.13](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.12...arcadia-eternity-v2.15.13) (2025-08-08)
 
 
