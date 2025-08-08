@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.11](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.10...arcadia-eternity-v2.15.11) (2025-08-08)
+
+
+### ⚡ Performance Improvements
+
+* spectators and battle listener ([871e673](https://github.com/arcadia-eternity/arcadia-eternity/commit/871e673a62656017085c6bc3b02ff5c5a097a3af))
+
 ## [2.15.10](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.9...arcadia-eternity-v2.15.10) (2025-08-08)
 
 
