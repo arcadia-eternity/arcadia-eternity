@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.13](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.12...arcadia-eternity-v2.15.13) (2025-08-08)
+
+
+### 🐛 Bug Fixes
+
+* spectators delete ([cbbb91f](https://github.com/arcadia-eternity/arcadia-eternity/commit/cbbb91fa2bd02e4ade195587f2f5ec5897d85ea6))
+
 ## [2.15.12](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.11...arcadia-eternity-v2.15.12) (2025-08-08)
 
 
