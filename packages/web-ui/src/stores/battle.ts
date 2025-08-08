@@ -510,7 +510,7 @@ export const useBattleStore = defineStore('battle', {
       }
 
       // 模拟完整的战斗过程来生成快照
-      let simulationState: BattleState = {} as BattleState
+      const simulationState: BattleState = {} as BattleState
 
       console.debug('[Replay] Generating snapshots from', this.replayMessages.length, 'messages')
 
