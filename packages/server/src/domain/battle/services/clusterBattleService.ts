@@ -1061,7 +1061,7 @@ export class ClusterBattleService implements IBattleService {
         // 从本地映射中移除
         this.localRooms.delete(roomId)
         this.localBattles.delete(roomId)
-        this.localSpectators.delete(roomId) // 清理观战者
+        // this.localSpectators.delete(roomId) // 清理观战者
 
         // 发布清理通知到所有实例
         try {
