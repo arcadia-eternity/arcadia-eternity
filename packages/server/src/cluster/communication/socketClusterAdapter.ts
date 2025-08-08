@@ -464,6 +464,20 @@ export class SocketClusterAdapter {
   }
 
   /**
+   * 获取所有本地连接的 sessionId
+   */
+  async getLocalSessionIds(): Promise<Set<string>> {
+    const localSockets = await this.io.fetchSockets()
+    const sessionIds = new Set<string>()
+    for (const socket of localSockets) {
+      if (socket.data.sessionId) {
+        sessionIds.add(socket.data.sessionId)
+      }
+    }
+    return sessionIds
+  }
+
+  /**
    * 设置跨实例通信
    * 注意：现在使用自定义的广播机制处理跨实例通信，不再依赖Socket.IO的Redis适配器
    */

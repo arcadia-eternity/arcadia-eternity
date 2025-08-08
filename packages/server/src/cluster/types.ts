@@ -207,6 +207,7 @@ export const REDIS_KEYS = {
 
   // 集群事件
   CLUSTER_EVENTS: 'cluster:events',
+  BATTLE_CONTROL_CHANNEL: 'battle-control', // 新增：战斗控制频道
 
   // 统计信息
   STATS: 'cluster:stats',
@@ -242,6 +243,26 @@ export class ServiceDiscoveryError extends ClusterError {
     super(message, 'SERVICE_DISCOVERY_ERROR', details)
   }
 }
+
+// === 新增：战斗控制频道事件类型 ===
+export enum BattleControlEventType {
+  BattleCreated = 'battleCreated',
+  Cleanup = 'cleanup',
+}
+
+export interface BattleCreatedEventPayload {
+  event: BattleControlEventType.BattleCreated
+  roomId: string
+  spectators: { playerId: string; sessionId: string }[]
+  sourceInstance: string
+}
+
+export interface CleanupEventPayload {
+  event: BattleControlEventType.Cleanup
+  roomId: string
+}
+
+export type BattleControlEvent = BattleCreatedEventPayload | CleanupEventPayload
 
 // === 工具函数 ===
 

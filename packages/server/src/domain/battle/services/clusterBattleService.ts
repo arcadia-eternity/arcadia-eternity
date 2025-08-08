@@ -19,7 +19,7 @@ import type { DistributedLockManager } from '../../../cluster/redis/distributedL
 import type { PerformanceTracker } from '../../../cluster/monitoring/performanceTracker'
 import type { SocketClusterAdapter } from '../../../cluster/communication/socketClusterAdapter'
 
-import { type RoomState, type MatchmakingEntry, REDIS_KEYS } from '../../../cluster/types'
+import { type RoomState, type MatchmakingEntry, REDIS_KEYS, BattleControlEventType, type BattleControlEvent, type BattleCreatedEventPayload, type CleanupEventPayload } from '../../../cluster/types'
 import { BattleReportService, type BattleReportConfig } from '../../report/services/battleReportService'
 import { TimerEventBatcher } from './timerEventBatcher'
 import { ServerRuleIntegration, type BattleRuleManager } from '@arcadia-eternity/rules'
@@ -131,6 +131,104 @@ export class ClusterBattleService implements IBattleService {
 
     // 设置Battle系统的全局logger
     setGlobalLogger(logger)
+    this.subscribeToBattleControlEvents()
+  }
+
+  /**
+   * 订阅战斗控制事件
+   */
+  private subscribeToBattleControlEvents(): void {
+    try {
+      const subscriber = this.stateManager.redisManager.getSubscriber()
+      const channel = REDIS_KEYS.BATTLE_CONTROL_CHANNEL
+
+      subscriber.subscribe(channel, err => {
+        if (err) {
+          logger.error({ err }, `Failed to subscribe to ${channel}`)
+          return
+        }
+        logger.info(`Successfully subscribed to ${channel}`)
+      })
+
+      subscriber.on('message', (receivedChannel, message) => {
+        if (receivedChannel === channel) {
+          try {
+            const payload = JSON.parse(message) as BattleControlEvent
+            switch (payload.event) {
+              case BattleControlEventType.Cleanup:
+                this.cleanupSpectatorsForRoom(payload.roomId)
+                break
+              case BattleControlEventType.BattleCreated:
+                this.handleRemoteBattleCreated(payload.roomId, payload.spectators)
+                break
+              default:
+                logger.warn({ payload }, 'Received unknown battle control event')
+            }
+          } catch (error) {
+            logger.error({ error, message }, 'Failed to process battle control event')
+          }
+        }
+      })
+    } catch (error) {
+      logger.error({ error }, 'Failed to set up battle control subscription')
+    }
+  }
+
+  /**
+   * 处理远程战斗创建事件，用于同步观战者列表
+   */
+  async handleRemoteBattleCreated(
+    roomId: string,
+    spectators: { playerId: string; sessionId: string }[],
+  ): Promise<void> {
+    if (!spectators || spectators.length === 0) {
+      return
+    }
+
+    // 找出存在于当前实例的观战者
+    const localInstanceSpectators = new Set<{ playerId: string; sessionId: string }>()
+    const localSessionIds = await this.socketAdapter.getLocalSessionIds()
+
+    for (const spectator of spectators) {
+      if (localSessionIds.has(spectator.sessionId)) {
+        localInstanceSpectators.add(spectator)
+      }
+    }
+
+    if (localInstanceSpectators.size > 0) {
+      this.localSpectators.set(roomId, localInstanceSpectators)
+      logger.info(
+        {
+          roomId,
+          instanceId: this.instanceId,
+          count: localInstanceSpectators.size,
+          totalSpectators: spectators.length,
+        },
+        'Local spectators registered for new battle from remote event',
+      )
+    }
+  }
+
+  /**
+   * 发布战斗创建事件，通知所有实例同步观战者
+   */
+  private async publishBattleCreatedEvent(
+    roomId: string,
+    spectators: { playerId: string; sessionId: string }[],
+  ): Promise<void> {
+    try {
+      const publisher = this.stateManager.redisManager.getPublisher()
+      const channel = REDIS_KEYS.BATTLE_CONTROL_CHANNEL
+      const message: BattleCreatedEventPayload = {
+        event: BattleControlEventType.BattleCreated,
+        roomId,
+        spectators,
+        sourceInstance: this.instanceId,
+      }
+      await publisher.publish(channel, JSON.stringify(message))
+    } catch (error) {
+      logger.error({ error, roomId }, 'Failed to publish battle created event')
+    }
   }
 
   /**
@@ -421,6 +519,9 @@ export class ClusterBattleService implements IBattleService {
           { roomId, sessions: roomState.sessions, sessionPlayers: roomState.sessionPlayers },
           'Cluster battle room created',
         )
+
+        // 发布战斗创建事件，通知所有实例同步观战者
+        await this.publishBattleCreatedEvent(roomId, spectators)
 
         logger.info({ roomId }, 'About to return roomId from createClusterBattleRoom')
         return roomId
@@ -977,8 +1078,9 @@ export class ClusterBattleService implements IBattleService {
         // 发布清理通知到所有实例
         try {
           const publisher = this.stateManager.redisManager.getPublisher()
-          const channel = `battle-control`
-          publisher.publish(channel, JSON.stringify({ event: 'cleanup', roomId }))
+          const channel = REDIS_KEYS.BATTLE_CONTROL_CHANNEL
+          const message: CleanupEventPayload = { event: BattleControlEventType.Cleanup, roomId }
+          publisher.publish(channel, JSON.stringify(message))
         } catch (error) {
           logger.error({ error, roomId }, 'Failed to publish spectator cleanup message')
         }
