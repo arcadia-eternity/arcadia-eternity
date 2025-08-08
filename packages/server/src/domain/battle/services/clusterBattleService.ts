@@ -1608,11 +1608,11 @@ export class ClusterBattleService implements IBattleService {
   // === 新增：观战者消息批处理 ===
 
   async addToSpectatorBatch(roomId: string, message: BattleMessage): Promise<void> {
-    // 优化：如果房间中没有任何观战者，则不进行广播
-    const roomState = await this.stateManager.getRoomState(roomId)
-    if (!roomState || !roomState.spectators || roomState.spectators.length === 0) {
-      return
-    }
+    // // 优化：如果房间中没有任何观战者，则不进行广播
+    // const roomState = await this.stateManager.getRoomState(roomId)
+    // if (!roomState || !roomState.spectators || roomState.spectators.length === 0) {
+    //   return
+    // }
 
     const now = Date.now()
 
