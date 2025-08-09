@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.20](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.19...arcadia-eternity-v2.15.20) (2025-08-09)
+
+
+### 🐛 Bug Fixes
+
+* spectatorMode ui ([310e5b6](https://github.com/arcadia-eternity/arcadia-eternity/commit/310e5b6955162171f0f9ae5410a8fab80684215e))
+
 ## [2.15.19](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.18...arcadia-eternity-v2.15.19) (2025-08-09)
 
 
