@@ -512,6 +512,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
               roomId: event.data.battleRoomId,
               privateRoom: 'true',
               roomCode: currentRoom.value?.config.roomCode,
+              ...(isSpectator.value && { spectate: 'true' }), // 如果是观战者，添加观战标记
             },
           })
         } catch (error) {
@@ -523,6 +524,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
               roomId: event.data.battleRoomId,
               privateRoom: 'true',
               roomCode: currentRoom.value?.config.roomCode,
+              ...(isSpectator.value && { spectate: 'true' }), // 如果是观战者，添加观战标记
             },
           })
         }
