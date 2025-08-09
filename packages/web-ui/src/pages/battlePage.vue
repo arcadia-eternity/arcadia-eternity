@@ -2383,7 +2383,7 @@ const setupMessageSubscription = async () => {
     .subscribe(task => animationQueue.next(task))
 }
 
-onUnmounted(() => {
+onUnmounted(async () => {
   // 清理播放定时器
   stopPlayback()
 
@@ -2413,8 +2413,22 @@ onUnmounted(() => {
   // 清理断线事件处理器
   cleanupDisconnectHandlers()
 
-  // 清理战斗和回放状态
-  store.resetBattle()
+  // 如果是观战模式，主动通知后端离开观战
+  if (isSpectatorMode.value && !props.replayMode) {
+    try {
+      await battleClientStore.leaveSpectateBattle()
+      console.log('✅ Left spectate battle successfully')
+    } catch (err) {
+      console.warn('⚠️ Failed to leave spectate battle:', err)
+    }
+  }
+
+  // 清理战斗状态 - 观战者不发送surrender
+  if (isSpectatorMode.value) {
+    await store.resetBattleWithoutSurrender()
+  } else {
+    await store.resetBattle()
+  }
 })
 
 // 监听加载状态变化

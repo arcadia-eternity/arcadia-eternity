@@ -561,6 +561,11 @@ export class BattleClient {
       this.socket.emit('joinPrivateRoomAsSpectator', data, response => {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
+          // Update battle state to active for spectators
+          this.updateState({
+            battle: 'active',
+            roomId: data.roomCode,
+          })
           resolve()
         } else {
           reject(this.parseError(response))
@@ -796,9 +801,38 @@ export class BattleClient {
       this.socket.emit('joinSpectateBattle', { battleRoomId }, response => {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
+          // Update battle state to active for spectators
+          this.updateState({
+            battle: 'active',
+            roomId: battleRoomId,
+          })
           resolve()
         } else {
           reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async leaveSpectateBattle(): Promise<void> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Leave spectate battle timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('leaveSpectateBattle', {}, (response: { status: string; error?: string }) => {
+        clearTimeout(timeout)
+        if (response.status === 'LEFT_SPECTATE') {
+          // Update battle state to idle for spectators
+          this.updateState({
+            battle: 'idle',
+            roomId: undefined,
+          })
+          resolve()
+        } else {
+          reject(new Error(response.error || 'Failed to leave spectate battle'))
         }
       })
     })

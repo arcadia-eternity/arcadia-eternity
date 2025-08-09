@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.21](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.20...arcadia-eternity-v2.15.21) (2025-08-09)
+
+
+### ♻️ Code Refactoring
+
+* leaveSpectateBattle ([e4ef83f](https://github.com/arcadia-eternity/arcadia-eternity/commit/e4ef83fc13ba3de6bf58d6b297da1e3b426e5d84))
+
 ## [2.15.20](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.19...arcadia-eternity-v2.15.20) (2025-08-09)
 
 

@@ -150,6 +150,9 @@ export class ClusterBattleServer {
       joinSpectateBattle: async (battleRoomId, spectator) => {
         return await this.joinSpectateBattle(battleRoomId, spectator)
       },
+      leaveSpectateBattle: async (playerId, sessionId) => {
+        return await this.leaveSpectateBattle(playerId, sessionId)
+      },
     })
 
     // 订阅私人房间事件
@@ -946,6 +949,9 @@ export class ClusterBattleServer {
     socket.on('joinSpectateBattle', (data, ack) =>
       this.privateRoomHandlers?.handleJoinSpectateBattle(socket, data, ack),
     )
+    socket.on('leaveSpectateBattle', (data, ack) =>
+      this.privateRoomHandlers?.handleLeaveSpectateBattle(socket, data, ack),
+    )
   }
 
   private setupClusterEventHandlers() {
@@ -1282,6 +1288,39 @@ export class ClusterBattleServer {
         spectator.sessionId,
       )
     }
+  }
+
+  async leaveSpectateBattle(playerId: string, sessionId: string): Promise<void> {
+    // 通过Redis查找这个session所在的房间
+    const client = this.stateManager.redisManager.getClient()
+    const roomIds = await client.smembers(REDIS_KEYS.SESSION_ROOM_MAPPING(playerId, sessionId))
+    
+    if (roomIds.length === 0) {
+      logger.warn({ playerId, sessionId }, 'No room found for session when leaving spectate')
+      return
+    }
+
+    // 通常一个session只会在一个房间中，但为了安全起见遍历所有房间
+    for (const roomId of roomIds) {
+      const roomState = await this.stateManager.getRoomState(roomId)
+      if (!roomState || roomState.status !== 'active') {
+        continue
+      }
+
+      if (this.isRoomInCurrentInstance(roomState)) {
+        await this.battleService.removeSpectatorFromRoom(roomId, sessionId)
+      } else {
+        // 对于远程实例，我们依赖现有的断线检测机制
+        // 只需要清理本地的Redis映射
+        logger.info({ roomId, playerId, sessionId }, 'Removing session mapping for remote room')
+      }
+      
+      // 清理Redis中的session-room映射
+      const client = this.stateManager.redisManager.getClient()
+      await client.srem(REDIS_KEYS.SESSION_ROOM_MAPPING(playerId, sessionId), roomId)
+    }
+
+    logger.info({ playerId, sessionId }, 'Successfully left spectate battle')
   }
 
   // === 集群感知的房间管理 ===

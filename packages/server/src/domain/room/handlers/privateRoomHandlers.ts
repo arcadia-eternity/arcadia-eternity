@@ -778,4 +778,44 @@ export class PrivateRoomHandlers {
       }
     }
   }
+
+  /**
+   * 处理离开观战请求
+   */
+  async handleLeaveSpectateBattle(
+    socket: Socket<any, any, any, SocketData>,
+    data: {},
+    ack?: AckResponse<{ status: 'LEFT_SPECTATE' }>,
+  ) {
+    try {
+      const playerId = socket.data?.playerId
+      const sessionId = socket.data?.sessionId
+
+      if (!playerId || !sessionId) {
+        ack?.({ status: 'ERROR', code: 'AUTHENTICATION_REQUIRED', details: '需要认证' })
+        return
+      }
+
+      // 直接调用 battleService 来移除观战者
+      // 需要通过 roomService 访问 battleCallbacks
+      await this.roomService.leaveSpectateBattle(playerId, sessionId)
+
+      logger.info(
+        {
+          playerId,
+          sessionId,
+        },
+        'Player left spectate battle successfully',
+      )
+      ack?.({ status: 'SUCCESS', data: { status: 'LEFT_SPECTATE' } })
+    } catch (error) {
+      logger.error({ error, playerId: socket.data?.playerId }, 'Failed to leave spectate battle')
+      if (error instanceof Error && error.name === 'PrivateRoomError') {
+        const roomError = error as PrivateRoomError
+        ack?.({ status: 'ERROR', code: roomError.code, details: roomError.message })
+      } else {
+        ack?.({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '离开观战失败' })
+      }
+    }
+  }
 }

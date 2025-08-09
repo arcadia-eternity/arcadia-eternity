@@ -284,15 +284,41 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     error.value = null
 
     try {
-      // 1. 请求后端将会话加入观战
-      await battleClientStore.joinSpectateBattle(currentRoom.value.battleRoomId)
+      // 检查当前是否已经在正确的观战页面
+      const currentRoute = router.currentRoute.value
+      const isCorrectSpectatorPage = currentRoute.path === '/battle' &&
+        currentRoute.query.roomId === currentRoom.value.battleRoomId &&
+        currentRoute.query.spectate === 'true'
 
-      // 2. 初始化战斗系统 (复用 battleStarted 的逻辑)
-      if (!battleClientStore._instance) {
-        throw new Error('BattleClient 实例尚未初始化')
+      if (isCorrectSpectatorPage) {
+        console.log('✅ Already in correct spectator battle page')
+        return
       }
+
+      // 检查战斗系统状态
       const battleStore = useBattleStore()
-      await battleStore.initBattle(new RemoteBattleSystem(battleClientStore._instance as any), playerStore.player.id)
+      const hasValidBattleConnection = battleStore.battleInterface && 
+        battleClientStore._instance && 
+        battleStore.playerId === playerStore.player.id
+
+      if (!hasValidBattleConnection) {
+        // 只有在没有有效连接时才重新建立连接
+        await battleClientStore.joinSpectateBattle(currentRoom.value.battleRoomId)
+        
+        if (!battleClientStore._instance) {
+          throw new Error('BattleClient 实例尚未初始化')
+        }
+        
+        await battleStore.initBattle(
+          new RemoteBattleSystem(battleClientStore._instance as any), 
+          playerStore.player.id
+        )
+        console.log('🏗️ New battle connection established for spectate')
+      } else {
+        // 如果已有连接，只需要确保后端知道当前session在观战
+        await battleClientStore.joinSpectateBattle(currentRoom.value.battleRoomId)
+        console.log('♻️ Reusing existing battle connection, notified backend')
+      }
 
       // 3. 导航到战斗页面
       router.push({
@@ -305,7 +331,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         },
       })
 
-      console.log('✅ Joined spectate and navigating to battle:', currentRoom.value.battleRoomId)
+      console.log('✅ Navigating to spectate battle:', currentRoom.value.battleRoomId)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
