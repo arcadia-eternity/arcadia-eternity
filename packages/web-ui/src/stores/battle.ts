@@ -332,6 +332,16 @@ export const useBattleStore = defineStore('battle', {
         })
       }
 
+      await this._cleanupBattleResources()
+    },
+
+    // 观战者专用的重置方法，不发送surrender
+    async resetBattleWithoutSurrender() {
+      await this._cleanupBattleResources()
+    },
+
+    // 私有方法：清理战斗资源
+    async _cleanupBattleResources() {
       // 清理战斗事件监听器
       if (this._battleEventUnsubscribe) {
         console.log('🔄 Cleaning up battle event listener during reset')

@@ -130,6 +130,7 @@ export interface ClientToServerEvents {
   kickPlayerFromPrivateRoom: (data: KickPlayerFromPrivateRoomRequest, ack: AckResponse<{ status: 'KICKED' }>) => void
   getCurrentPrivateRoom: (ack: AckResponse<PrivateRoomInfo | null>) => void
   joinSpectateBattle: (data: { battleRoomId: string }, ack: AckResponse<{ status: 'SPECTATING' }>) => void
+  leaveSpectateBattle: (data: {}, ack: AckResponse<{ status: 'LEFT_SPECTATE' }>) => void
 }
 
 // 私人房间相关类型定义

@@ -403,8 +403,14 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
-    // BattleClient 中需要添加 joinSpectateBattle 方法
     return await _instance.value.joinSpectateBattle(battleRoomId)
+  }
+
+  const leaveSpectateBattle = async (): Promise<void> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+    return await _instance.value.leaveSpectateBattle()
   }
 
   // 内部方法：注册缓存的事件监听器到实际实例
@@ -457,5 +463,6 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     transferPrivateRoomHost,
     kickPlayerFromPrivateRoom,
     joinSpectateBattle,
+    leaveSpectateBattle,
   }
 })

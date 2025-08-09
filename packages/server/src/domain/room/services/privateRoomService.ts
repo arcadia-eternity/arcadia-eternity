@@ -30,6 +30,7 @@ export interface PrivateRoomBattleCallbacks {
     spectators?: { playerId: string; sessionId: string }[],
   ) => Promise<string | null>
   joinSpectateBattle: (battleRoomId: string, spectator: { playerId: string; sessionId: string }) => Promise<boolean>
+  leaveSpectateBattle: (playerId: string, sessionId: string) => Promise<void>
 }
 
 @injectable()
@@ -1208,6 +1209,16 @@ export class PrivateRoomService {
       throw new PrivateRoomError('观战功能未初始化', 'INVALID_STATE')
     }
     return this.battleCallbacks.joinSpectateBattle(battleRoomId, spectator)
+  }
+
+  /**
+   * 离开观战（代理到 battleCallbacks）
+   */
+  async leaveSpectateBattle(playerId: string, sessionId: string): Promise<void> {
+    if (!this.battleCallbacks?.leaveSpectateBattle) {
+      throw new PrivateRoomError('观战功能未初始化', 'INVALID_STATE')
+    }
+    await this.battleCallbacks.leaveSpectateBattle(playerId, sessionId)
   }
 
   /**
