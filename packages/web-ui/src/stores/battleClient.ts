@@ -182,6 +182,12 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     }
   }
 
+  const resetState = () => {
+    if (_instance.value) {
+      _instance.value.resetState()
+    }
+  }
+
   const reset = () => {
     if (_instance.value) {
       // 清理战斗重连监听器
@@ -440,6 +446,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     connect,
     disconnect,
     reset,
+    resetState,
     joinMatchmaking,
     cancelMatchmaking,
     sendplayerSelection,
