@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.15.15](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.14...arcadia-eternity-v2.15.15) (2025-08-09)
+
+
+### ♻️ Code Refactoring
+
+* remove spectator view settings, default to global spectator mode ([6dce314](https://github.com/arcadia-eternity/arcadia-eternity/commit/6dce314b0a5a256ba573a69d23ee4b370525e75a))
+* spectator mode ui ([b537cd5](https://github.com/arcadia-eternity/arcadia-eternity/commit/b537cd53de61d1b2d392ed91ab108718a046c919))
+
 ## [2.15.14](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.13...arcadia-eternity-v2.15.14) (2025-08-08)
 
 
