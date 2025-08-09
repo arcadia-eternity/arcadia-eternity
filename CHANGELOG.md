@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.16](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.15...arcadia-eternity-v2.15.16) (2025-08-09)
+
+
+### 🐛 Bug Fixes
+
+* remove preferredView ([568e2fa](https://github.com/arcadia-eternity/arcadia-eternity/commit/568e2fa8bd03f5b7ed0fad1418902138624aa704))
+
 ## [2.15.15](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.14...arcadia-eternity-v2.15.15) (2025-08-09)
 
 
