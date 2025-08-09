@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.18](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.17...arcadia-eternity-v2.15.18) (2025-08-09)
+
+
+### 🐛 Bug Fixes
+
+* privateRoom spectator ([ec7d378](https://github.com/arcadia-eternity/arcadia-eternity/commit/ec7d3787e9c9dbf54b7c1979fcfac10c800e7f84))
+
 ## [2.15.17](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.16...arcadia-eternity-v2.15.17) (2025-08-09)
 
 
