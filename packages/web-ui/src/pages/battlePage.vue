@@ -27,9 +27,12 @@ import { useResourceStore } from '@/stores/resource'
 import { logMessagesKey, markMapKey, petMapKey, playerMapKey, skillMapKey } from '@/symbol/battlelog'
 import {
   BattleMessageType,
+  BattlePhase,
+  BattleStatus as BattleStatusEnum,
   Category,
   ELEMENT_CHART,
   type BattleMessage,
+  type BattleState,
   type BattleTeamSelection,
   type TeamSelectionAction,
   type TeamSelectionConfig,
@@ -2195,7 +2198,7 @@ onMounted(async () => {
       try {
         store.initReplayMode(
           battleRecord.battle_messages,
-          battleRecord.final_state as any,
+          battleRecord.final_state as BattleState,
           battleRecord.player_a_id, // 默认从玩家A视角观看
         )
         console.debug('Replay mode initialized successfully')
@@ -2208,7 +2211,13 @@ onMounted(async () => {
       console.warn('No battle record available for replay mode')
       // 即使没有战报数据，也要初始化一个空的回放模式，确保UI能正常显示
       try {
-        store.initReplayMode([], {} as any, '')
+        store.initReplayMode([], {
+          status: BattleStatusEnum.Unstarted,
+          currentPhase: BattlePhase.SelectionPhase,
+          currentTurn: 0,
+          marks: [],
+          players: []
+        } as BattleState, '')
         console.debug('Empty replay mode initialized as fallback')
       } catch (error) {
         console.error('Failed to initialize empty replay mode:', error)
@@ -3041,93 +3050,20 @@ watch(
               <!-- 观战模式下显示信息面板 -->
               <div
                 v-if="isSpectatorMode"
-                class="h-full max-h-full p-4 overflow-y-auto"
+                class="h-full max-h-full p-4 overflow-y-auto bg-black/20"
               >
                 <div class="text-white">
-                  <h3 class="text-xl font-bold mb-4 text-center">👁️ 观战模式</h3>
-                  <p class="text-gray-300 mb-4 text-center text-sm">您正在观看战斗，无法进行操作</p>
+                  <h3 class="text-lg font-bold mb-3 text-center text-gray-300">观战模式</h3>
+                  <p class="text-gray-400 mb-4 text-center text-sm">您正在观看战斗</p>
                   
-                  <!-- 显示当前回合信息 -->
-                  <div class="bg-black/30 rounded-lg p-3 mb-4">
-                    <h4 class="text-lg font-semibold mb-2 text-center">回合 {{ currentTurn || 1 }}</h4>
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                      <div v-if="currentPlayer" class="text-left">
-                        <div class="text-blue-400 font-bold">{{ currentPlayer.name || '玩家A' }}</div>
-                        <div class="text-gray-300">出战: {{ store.getPetById(currentPlayer.activePet)?.name || '未知' }}</div>
-                        <div class="text-xs text-gray-400 mt-1">
-                          HP: {{ store.getPetById(currentPlayer.activePet)?.currentHp || 0 }} / {{ store.getPetById(currentPlayer.activePet)?.maxHp || 0 }}
-                        </div>
-                      </div>
-                      <div v-if="opponentPlayer" class="text-right">
-                        <div class="text-red-400 font-bold">{{ opponentPlayer.name || '玩家B' }}</div>
-                        <div class="text-gray-300">出战: {{ store.getPetById(opponentPlayer.activePet)?.name || '未知' }}</div>
-                        <div class="text-xs text-gray-400 mt-1">
-                          HP: {{ store.getPetById(opponentPlayer.activePet)?.currentHp || 0 }} / {{ store.getPetById(opponentPlayer.activePet)?.maxHp || 0 }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- 显示全局印记 -->
-                  <div v-if="globalMarks.length > 0" class="bg-black/30 rounded-lg p-3 mb-4">
-                    <h4 class="text-sm font-semibold mb-2 text-center">场地效果</h4>
-                    <div class="flex flex-wrap justify-center gap-1">
-                      <Mark v-for="mark in globalMarks" :key="mark.id" :mark="mark" />
-                    </div>
-                  </div>
-
-                  <!-- 显示队伍状态 -->
-                  <div class="bg-black/30 rounded-lg p-3 mb-4">
-                    <h4 class="text-sm font-semibold mb-2 text-center">队伍状态</h4>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                      <div v-if="currentPlayer">
-                        <div class="text-blue-400 font-bold text-center mb-1">{{ currentPlayer.name || '玩家A' }}</div>
-                        <div class="space-y-1">
-                          <div 
-                            v-for="pet in currentPlayer.team" 
-                            :key="pet.id" 
-                            class="flex justify-between items-center"
-                            :class="{ 'text-green-400': pet.id === currentPlayer.activePet, 'text-gray-500': pet.currentHp <= 0 }"
-                          >
-                            <span class="truncate">{{ pet.name }}</span>
-                            <span>{{ pet.currentHp }}/{{ pet.maxHp }}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div v-if="opponentPlayer">
-                        <div class="text-red-400 font-bold text-center mb-1">{{ opponentPlayer.name || '玩家B' }}</div>
-                        <div class="space-y-1">
-                          <div 
-                            v-for="pet in opponentPlayer.team" 
-                            :key="pet.id" 
-                            class="flex justify-between items-center"
-                            :class="{ 'text-green-400': pet.id === opponentPlayer.activePet, 'text-gray-500': pet.currentHp <= 0 }"
-                          >
-                            <span class="truncate">{{ pet.name }}</span>
-                            <span>{{ pet.currentHp }}/{{ pet.maxHp }}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- 观战控制选项 -->
-                  <div class="bg-black/30 rounded-lg p-3">
-                    <h4 class="text-sm font-semibold mb-2 text-center">观战选项</h4>
-                    <div class="flex justify-center space-x-2">
-                      <button
-                        @click="battleViewStore.toggleLogPanel()"
-                        class="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-xs font-bold transition-colors"
-                      >
-                        {{ battleViewStore.showLogPanel ? '隐藏' : '显示' }}日志
-                      </button>
-                      <button
-                        @click="toggleFullscreen"
-                        class="px-3 py-1 bg-purple-600 hover:bg-purple-500 rounded text-xs font-bold transition-colors"
-                      >
-                        {{ isFullscreen ? '退出' : '进入' }}全屏
-                      </button>
-                    </div>
+                  <!-- 退出按钮 -->
+                  <div class="flex justify-center mb-4">
+                    <button
+                      @click="navigateToHome"
+                      class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-bold transition-colors"
+                    >
+                      退出观战
+                    </button>
                   </div>
                 </div>
               </div>
