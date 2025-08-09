@@ -178,7 +178,6 @@ export class PrivateRoomHandlers {
         playerName,
         sessionId,
         joinedAt: Date.now(),
-        preferredView: data.preferredView,
         connectionStatus: 'online',
       }
 
@@ -193,7 +192,6 @@ export class PrivateRoomHandlers {
             roomCode: data.roomCode,
             playerId,
             playerName,
-            preferredView: data.preferredView,
           },
           'Spectator joined private room successfully',
         )
@@ -496,7 +494,7 @@ export class PrivateRoomHandlers {
    */
   async handleSwitchToSpectator(
     socket: Socket<any, any, any, SocketData>,
-    data: { preferredView?: 'player1' | 'player2' | 'god' },
+    data: {},
     ack?: AckResponse<{ status: 'SWITCHED' }>,
   ) {
     try {
@@ -515,13 +513,12 @@ export class PrivateRoomHandlers {
         return
       }
 
-      await this.roomService.switchToSpectator(currentRoom.config.roomCode, playerId, sessionId, data.preferredView)
+      await this.roomService.switchToSpectator(currentRoom.config.roomCode, playerId, sessionId)
 
       logger.info(
         {
           roomCode: currentRoom.config.roomCode,
           playerId,
-          preferredView: data.preferredView,
         },
         'Player switched to spectator successfully',
       )
