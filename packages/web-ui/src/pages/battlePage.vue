@@ -935,11 +935,11 @@ const isReplayMode = computed(() => props.replayMode)
 const isSpectatorMode = computed(() => {
   // 检查props中的观战模式设置
   if (props.spectatorMode) return true
-  
+
   // 检查URL查询参数中的观战标记
   const spectateParam = route.query.spectate
   if (spectateParam === 'true') return true
-  
+
   return false
 })
 
@@ -1983,9 +1983,6 @@ const getClimaxEffectStyle = () => {
   }
 }
 
-onUnmounted(() => {
-  emitter.all.clear()
-})
 
 const getTargetSide = (targetPetId: string): 'left' | 'right' => {
   const isCurrentPlayerPet = currentPlayer.value?.team?.some(p => p.id === targetPetId)
@@ -2385,6 +2382,8 @@ const setupMessageSubscription = async () => {
 
 onUnmounted(async () => {
   // 清理播放定时器
+  emitter.all.clear()
+
   stopPlayback()
 
   // 清理订阅和动画
@@ -2429,6 +2428,8 @@ onUnmounted(async () => {
   } else {
     await store.resetBattle()
   }
+
+  battleClientStore.resetState()
 })
 
 // 监听加载状态变化
@@ -3069,7 +3070,7 @@ watch(
                 <div class="text-white">
                   <h3 class="text-lg font-bold mb-3 text-center text-gray-300">观战模式</h3>
                   <p class="text-gray-400 mb-4 text-center text-sm">您正在观看战斗</p>
-                  
+
                   <!-- 退出按钮 -->
                   <div class="flex justify-center mb-4">
                     <button

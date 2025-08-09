@@ -34,7 +34,6 @@ export type JoinPrivateRoomData = {
 
 export type JoinSpectatorData = {
   roomCode: string
-  preferredView?: 'player1' | 'player2' | 'god'
 }
 
 type BattleClientOptions = {
@@ -193,9 +192,6 @@ export class BattleClient {
 
     // 清理Timer快照缓存
     this.clearTimerSnapshots()
-
-    // 清理事件处理器（但保留socket监听器）
-    this.clearEventHandlers()
   }
 
   async connect(): Promise<void> {
