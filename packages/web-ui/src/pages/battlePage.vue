@@ -27,7 +27,6 @@ import { useResourceStore } from '@/stores/resource'
 import { logMessagesKey, markMapKey, petMapKey, playerMapKey, skillMapKey } from '@/symbol/battlelog'
 import {
   BattleMessageType,
-  BattlePhase,
   Category,
   ELEMENT_CHART,
   type BattleMessage,
@@ -194,7 +193,6 @@ const {
   isFullscreen: vueUseIsFullscreen,
   enter: vueUseEnterFullscreen,
   exit: vueUseExitFullscreen,
-  toggle: vueUseToggleFullscreen,
 } = useFullscreen(battleContainerRef)
 
 // 自定义进入全屏函数，包含屏幕方向锁定
@@ -238,7 +236,6 @@ const toggleFullscreenWithOrientation = () => {
 
 // 为了保持向后兼容性，创建别名
 const isFullscreen = vueUseIsFullscreen
-const enterFullscreen = enterFullscreenWithOrientation
 const exitFullscreen = exitFullscreenWithOrientation
 const toggleFullscreen = toggleFullscreenWithOrientation
 
@@ -272,11 +269,6 @@ const currentPlayerTeam = computed(() => {
   return player?.team || []
 })
 
-const opponentPlayerTeam = computed(() => {
-  const opponent = store.opponent
-  return opponent?.team || []
-})
-
 // 团队选择阶段的对手队伍数据
 const teamSelectionOpponentTeam = computed(() => {
   if (!teamSelectionPlayerATeam.value || !teamSelectionPlayerBTeam.value) {
@@ -294,11 +286,6 @@ const teamSelectionOpponentTeam = computed(() => {
     // 当前玩家是 playerB，对手是 playerA
     return teamSelectionPlayerATeam.value?.pets || []
   }
-})
-
-// 检查是否处于团队选择阶段
-const isTeamSelectionPhase = computed(() => {
-  return store.battleState?.currentPhase === BattlePhase.TeamSelectionPhase
 })
 
 // Climax特效相关
@@ -518,7 +505,6 @@ const {
   showDamageMessage,
   showHealMessage,
   showUseSkillMessage,
-  moveBackgroundFocus,
   updateBackgroundAspectRatio,
   cleanup: cleanupBattleAnimations,
 } = useBattleAnimations(
@@ -1160,17 +1146,13 @@ const checkBattleDataLoaded = async () => {
       console.debug('Waiting for replay data to load...')
       if (!isReplayDataLoaded.value) {
         await new Promise<void>(resolve => {
-          let unwatch: (() => void) | undefined
-          let timeoutId: ReturnType<typeof setTimeout> | undefined
-
-          // 设置超时机制，避免无限等待
-          timeoutId = setTimeout(() => {
+          const timeoutId = setTimeout(() => {
             console.warn('Replay data loading timeout, continuing anyway...')
             unwatch?.()
             resolve()
           }, 10000) // 10秒超时
 
-          unwatch = watch(
+          const unwatch = watch(
             isReplayDataLoaded,
             loaded => {
               if (loaded) {
@@ -2132,8 +2114,7 @@ onMounted(async () => {
 
   // 等待加载完成后再进行后续初始化
   await new Promise<void>(resolve => {
-    let unwatch: (() => void) | undefined
-    unwatch = watch(
+    const unwatch = watch(
       isFullyLoaded,
       loaded => {
         if (loaded) {

@@ -383,12 +383,12 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return await _instance.value.kickPlayerFromPrivateRoom(targetPlayerId)
   }
 
-  const switchToSpectator = async (preferredView?: 'player1' | 'player2' | 'god'): Promise<void> => {
+  const switchToSpectator = async (): Promise<void> => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
 
-    return await _instance.value.switchToSpectator(preferredView)
+    return await _instance.value.switchToSpectator()
   }
 
   const switchToPlayer = async (team: any[]): Promise<void> => {

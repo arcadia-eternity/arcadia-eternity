@@ -121,10 +121,7 @@ export interface ClientToServerEvents {
   leavePrivateRoom: (ack: AckResponse<{ status: 'LEFT' }>) => void
   togglePrivateRoomReady: (data: TogglePrivateRoomReadyRequest, ack: AckResponse<{ status: 'READY_TOGGLED' }>) => void
   startPrivateRoomBattle: (data: StartPrivateRoomBattleRequest, ack: AckResponse<{ battleRoomId: string }>) => void
-  switchToSpectator: (
-    data: { preferredView?: 'player1' | 'player2' | 'god' },
-    ack: AckResponse<{ status: 'SWITCHED' }>,
-  ) => void
+  switchToSpectator: (data: {}, ack: AckResponse<{ status: 'SWITCHED' }>) => void
   switchToPlayer: (data: { team: PetSchemaType[] }, ack: AckResponse<{ status: 'SWITCHED' }>) => void
   getPrivateRoomInfo: (data: { roomCode: string }, ack: AckResponse<PrivateRoomInfo>) => void
   updatePrivateRoomRuleSet: (data: UpdatePrivateRoomRuleSetRequest, ack: AckResponse<{ status: 'UPDATED' }>) => void
@@ -151,7 +148,6 @@ export interface JoinPrivateRoomRequest {
 
 export interface JoinPrivateRoomSpectatorRequest {
   roomCode: string
-  preferredView?: 'player1' | 'player2' | 'god'
 }
 
 export interface TogglePrivateRoomReadyRequest {
@@ -194,7 +190,6 @@ export interface PrivateRoomSpectator {
   playerName: string
   sessionId: string
   joinedAt: number
-  preferredView?: 'player1' | 'player2' | 'god'
 }
 
 export interface PrivateRoomInfo {
@@ -228,7 +223,7 @@ export type PrivateRoomEvent =
   | { type: 'playerReady'; data: { playerId: string; isReady: boolean } }
   | { type: 'spectatorJoined'; data: PrivateRoomSpectator }
   | { type: 'spectatorLeft'; data: { playerId: string } }
-  | { type: 'playerSwitchedToSpectator'; data: { playerId: string; preferredView: string } }
+  | { type: 'playerSwitchedToSpectator'; data: { playerId: string } }
   | { type: 'spectatorSwitchedToPlayer'; data: { playerId: string } }
   | { type: 'roomUpdate'; data: PrivateRoomInfo }
   | { type: 'battleStarted'; data: { battleRoomId: string } }
