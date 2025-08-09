@@ -331,10 +331,7 @@ import {
   FolderOpened,
   Collection,
   Download,
-  Check,
   Warning,
-  Edit,
-  Select,
   Trophy,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'

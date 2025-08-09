@@ -334,14 +334,14 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
   }
 
-  const switchToSpectator = async (preferredView?: 'player1' | 'player2' | 'god'): Promise<void> => {
+  const switchToSpectator = async (): Promise<void> => {
     if (!currentRoom.value) return
 
     isLoading.value = true
     error.value = null
 
     try {
-      await battleClientStore.switchToSpectator(preferredView)
+      await battleClientStore.switchToSpectator()
       console.log('✅ Switched to spectator')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'

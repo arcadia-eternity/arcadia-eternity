@@ -153,9 +153,6 @@
                       >
                     </div>
                     <div class="spectator-meta">
-                      <el-tag v-if="spectator.preferredView" size="small">
-                        {{ getViewModeText(spectator.preferredView) }}
-                      </el-tag>
                       <span class="join-time">{{ formatTime(spectator.joinedAt) }}</span>
                     </div>
                   </div>
@@ -233,23 +230,14 @@
         <!-- 角色转换按钮 -->
         <template v-if="privateRoomStore.currentRoom?.status === 'waiting'">
           <!-- 玩家转观战者 -->
-          <el-dropdown
+          <el-button
             v-if="privateRoomStore.isPlayer"
-            @command="switchToSpectator"
+            type="info"
             :disabled="privateRoomStore.isLoading"
+            @click="switchToSpectator()"
           >
-            <el-button type="info" :disabled="privateRoomStore.isLoading">
-              转为观战者
-              <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="god">上帝视角</el-dropdown-item>
-                <el-dropdown-item command="player1">玩家1视角</el-dropdown-item>
-                <el-dropdown-item command="player2">玩家2视角</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+            转为观战者
+          </el-button>
 
           <!-- 观战者转玩家 -->
           <el-button
@@ -407,21 +395,6 @@ const getStatusTagType = (status: string): 'primary' | 'success' | 'warning' | '
   }
 }
 
-const getViewModeText = (viewMode: string): string => {
-  switch (viewMode) {
-    case 'player1':
-      return '玩家1视角'
-    case 'player2':
-      return '玩家2视角'
-    case 'god':
-      return '上帝视角'
-    case 'free':
-      return '自由视角'
-    default:
-      return viewMode
-  }
-}
-
 const getPlayerName = (playerId: string): string => {
   const player = privateRoomStore.players.find(p => p.playerId === playerId)
   return player?.playerName || playerId
@@ -559,10 +532,10 @@ const kickPlayer = async (targetPlayerId: string) => {
 }
 
 // 角色转换方法
-const switchToSpectator = async (preferredView: 'player1' | 'player2' | 'god') => {
+const switchToSpectator = async () => {
   try {
-    await privateRoomStore.switchToSpectator(preferredView)
-    ElMessage.success(`已转为观战者 (${getViewModeText(preferredView)})`)
+    await privateRoomStore.switchToSpectator()
+    ElMessage.success('已转为观战者')
   } catch (error) {
     ElMessage.error('转换为观战者失败: ' + (error as Error).message)
   }

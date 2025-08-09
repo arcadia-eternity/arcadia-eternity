@@ -747,7 +747,7 @@ export class BattleClient {
     })
   }
 
-  async switchToSpectator(preferredView?: 'player1' | 'player2' | 'god'): Promise<void> {
+  async switchToSpectator(): Promise<void> {
     this.verifyConnection()
 
     return new Promise((resolve, reject) => {
@@ -755,7 +755,7 @@ export class BattleClient {
         reject(new Error('Switch to spectator timeout'))
       }, this.options.actionTimeout)
 
-      this.socket.emit('switchToSpectator', { preferredView }, response => {
+      this.socket.emit('switchToSpectator', {}, response => {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
           resolve()
