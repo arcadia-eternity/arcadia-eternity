@@ -2129,7 +2129,8 @@ onMounted(async () => {
 
   // 等待加载完成后再进行后续初始化
   await new Promise<void>(resolve => {
-    const unwatch = watch(
+    let unwatch: (() => void) | null = null
+    unwatch = watch(
       isFullyLoaded,
       loaded => {
         if (loaded) {
