@@ -41,6 +41,7 @@ const routes: RouteRecordRaw[] = [
       enableDeveloperMode: route.query.dev === 'true',
       privateRoom: route.query.privateRoom === 'true',
       roomCode: route.query.roomCode as string,
+      spectatorMode: route.query.spectate === 'true',
     }),
     meta: {
       title: '对战界面',

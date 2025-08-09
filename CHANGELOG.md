@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.17](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.16...arcadia-eternity-v2.15.17) (2025-08-09)
+
+
+### 🐛 Bug Fixes
+
+* spectator prop ([781240e](https://github.com/arcadia-eternity/arcadia-eternity/commit/781240ec6ded3591df6db661c97e666460de4cdc))
+
 ## [2.15.16](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.15...arcadia-eternity-v2.15.16) (2025-08-09)
 
 
