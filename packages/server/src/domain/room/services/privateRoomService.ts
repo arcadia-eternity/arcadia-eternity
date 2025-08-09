@@ -1481,12 +1481,7 @@ export class PrivateRoomService {
   /**
    * 玩家转换为观战者
    */
-  async switchToSpectator(
-    roomCode: string,
-    playerId: string,
-    sessionId: string,
-    preferredView?: 'player1' | 'player2' | 'god',
-  ): Promise<void> {
+  async switchToSpectator(roomCode: string, playerId: string, sessionId: string): Promise<void> {
     await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
       const room = await this.getRoom(roomCode)
       if (!room) {
@@ -1514,7 +1509,6 @@ export class PrivateRoomService {
         playerName: player.playerName,
         sessionId: player.sessionId,
         joinedAt: Date.now(),
-        preferredView: preferredView || 'god',
         connectionStatus: 'online',
       }
       room.spectators.push(spectatorEntry)
@@ -1527,7 +1521,7 @@ export class PrivateRoomService {
       // 广播角色转换事件
       await this.broadcastRoomEvent(roomCode, {
         type: 'playerSwitchedToSpectator',
-        data: { playerId, preferredView: spectatorEntry.preferredView as string },
+        data: { playerId },
       })
 
       // 广播房间状态更新
@@ -1541,7 +1535,6 @@ export class PrivateRoomService {
           roomCode,
           playerId,
           sessionId,
-          preferredView: spectatorEntry.preferredView,
         },
         'Player switched to spectator',
       )

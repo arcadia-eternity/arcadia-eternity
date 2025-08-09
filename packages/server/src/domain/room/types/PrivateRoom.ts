@@ -55,8 +55,6 @@ export interface SpectatorEntry {
   sessionId: string
   /** 加入时间 */
   joinedAt: number
-  /** 偏好的观战视角 */
-  preferredView?: 'player1' | 'player2' | 'god'
   /** 连接状态 */
   connectionStatus: ConnectionStatus
 }
@@ -142,7 +140,7 @@ export type PrivateRoomEvent =
   | { type: 'playerReady'; data: { playerId: string; isReady: boolean } }
   | { type: 'spectatorJoined'; data: SpectatorEntry }
   | { type: 'spectatorLeft'; data: { playerId: string } }
-  | { type: 'playerSwitchedToSpectator'; data: { playerId: string; preferredView: string } }
+  | { type: 'playerSwitchedToSpectator'; data: { playerId: string } }
   | { type: 'spectatorSwitchedToPlayer'; data: { playerId: string } }
   | { type: 'roomUpdate'; data: PrivateRoom }
   | { type: 'battleStarted'; data: { battleRoomId: string } }
