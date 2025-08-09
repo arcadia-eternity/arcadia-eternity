@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.19](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.18...arcadia-eternity-v2.15.19) (2025-08-09)
+
+
+### 🐛 Bug Fixes
+
+* unwatch init ([1196e8b](https://github.com/arcadia-eternity/arcadia-eternity/commit/1196e8b7aa92cfda3d18c5e76896f3115221503a))
+
 ## [2.15.18](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.17...arcadia-eternity-v2.15.18) (2025-08-09)
 
 

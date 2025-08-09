@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "arcadia-eternity-client",
-  "version": "2.15.18",
+  "version": "2.15.19",
   "identifier": "com.yuuinih.arcadia-eternity",
   "build": {
     "frontendDist": "../dist",
