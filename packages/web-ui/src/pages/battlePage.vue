@@ -93,6 +93,7 @@ interface Props {
   battleRecordId?: string
   localReportId?: string
   enableDeveloperMode?: boolean
+  spectatorMode?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -100,6 +101,7 @@ const props = withDefaults(defineProps<Props>(), {
   battleRecordId: undefined,
   localReportId: undefined,
   enableDeveloperMode: false,
+  spectatorMode: false,
 })
 
 enum PanelState {
@@ -736,14 +738,14 @@ const getTypeEffectiveness = (skill: SkillMessage) => {
 }
 
 const handleSkillClick = (skillId: string) => {
-  if (isWaitingForOpponent.value) return
+  if (isWaitingForOpponent.value || isSpectatorMode.value) return
   const action = store.availableActions.find(a => a.type === 'use-skill' && a.skill === skillId)
   if (action) store.sendplayerSelection(action)
   panelState.value = PanelState.SKILLS
 }
 
 const handlePetSelect = (petId: string) => {
-  if (isWaitingForOpponent.value) return
+  if (isWaitingForOpponent.value || isSpectatorMode.value) return
 
   // 优先尝试正常的精灵切换
   const switchAction = store.availableActions.find(a => a.type === 'switch-pet' && a.pet === petId)
@@ -764,7 +766,7 @@ const handlePetSelect = (petId: string) => {
 }
 
 const handleEscape = async () => {
-  if (isWaitingForOpponent.value) return
+  if (isWaitingForOpponent.value || isSpectatorMode.value) return
   const action = store.availableActions.find(a => a.type === 'surrender')
   if (!action) return
 
@@ -925,6 +927,19 @@ const isPetSelectable = (petId: petId) => {
 
 // 回放模式相关
 const isReplayMode = computed(() => props.replayMode)
+
+// 观战模式相关
+const isSpectatorMode = computed(() => {
+  // 检查props中的观战模式设置
+  if (props.spectatorMode) return true
+  
+  // 检查URL查询参数中的观战标记
+  const spectateParam = route.query.spectate
+  if (spectateParam === 'true') return true
+  
+  return false
+})
+
 const currentReplayTurn = computed(() => store.currentReplayTurn)
 const totalReplayTurns = computed(() => store.totalReplayTurns)
 // 用于显示的回合数（从1开始）
@@ -2663,7 +2678,7 @@ watch(
         <!-- Team Selection Panel -->
         <Transition name="fade">
           <div
-            v-if="showTeamSelectionPanel"
+            v-if="showTeamSelectionPanel && !isSpectatorMode"
             class="absolute inset-0 bg-black/80 flex items-center justify-center"
             :class="Z_INDEX_CLASS.TEAM_SELECTION_PANEL"
           >
@@ -2722,7 +2737,7 @@ watch(
             <div class="grid grid-cols-3 items-center mb-2 min-h-[24px]">
               <!-- 回合时间 - 左侧 -->
               <div class="flex justify-start">
-                <SimpleBattleTimer v-if="!isReplayMode" type="turn" :player-id="currentPlayer?.id" />
+                <SimpleBattleTimer v-if="!isReplayMode && !isSpectatorMode" type="turn" :player-id="currentPlayer?.id" />
               </div>
 
               <!-- 回合数居中显示 - 始终在中间 -->
@@ -2739,7 +2754,7 @@ watch(
 
               <!-- 总时间 - 右侧 -->
               <div class="flex justify-end">
-                <SimpleBattleTimer v-if="!isReplayMode" type="total" :player-id="currentPlayer?.id" />
+                <SimpleBattleTimer v-if="!isReplayMode && !isSpectatorMode" type="total" :player-id="currentPlayer?.id" />
               </div>
             </div>
 
@@ -2751,7 +2766,7 @@ watch(
             <!-- 等待对手提示 -->
             <Transition name="fade">
               <div
-                v-if="isWaitingForOpponent && !isReplayMode"
+                v-if="isWaitingForOpponent && !isReplayMode && !isSpectatorMode"
                 class="flex items-center justify-center gap-2 text-blue-300 text-lg font-medium"
               >
                 <!-- 简单的旋转加载图标 -->
@@ -2770,7 +2785,7 @@ watch(
             <!-- 对手掉线提示 -->
             <Transition name="fade">
               <div
-                v-if="opponentDisconnected && !isReplayMode"
+                v-if="opponentDisconnected && !isReplayMode && !isSpectatorMode"
                 class="flex items-center justify-center gap-2 text-orange-300 text-lg font-medium bg-orange-900/30 px-4 py-2 rounded-lg border border-orange-500/50"
               >
                 <!-- 警告图标 -->
@@ -2794,7 +2809,7 @@ watch(
                 v-for="pet in leftPlayerPets"
                 :key="pet.id"
                 :pet="pet"
-                :disabled="!isPetSelectable(pet.id) || isWaitingForOpponent"
+                :disabled="!isPetSelectable(pet.id) || isWaitingForOpponent || isSpectatorMode"
                 :is-active="pet.id === currentPlayer?.activePet"
                 position="left"
                 @click="handlePetSelect"
@@ -2967,7 +2982,7 @@ watch(
           </div>
 
           <!-- 显示日志按钮（浮动在左下角） -->
-          <div v-if="!isReplayMode && !battleViewStore.showLogPanel" class="absolute bottom-4 left-4 z-50">
+          <div v-if="!isReplayMode && !isSpectatorMode && !battleViewStore.showLogPanel" class="absolute bottom-4 left-4 z-50">
             <button
               class="group relative w-8 h-8 cursor-pointer bg-black/70 rounded-r-lg border border-gray-400/50 hover:border-green-400/70 hover:bg-black/90 transition-all duration-200"
               @click="battleViewStore.toggleLogPanel()"
@@ -2993,7 +3008,7 @@ watch(
             <div class="h-full max-h-full overflow-visible" :class="battleViewStore.showLogPanel ? 'flex-1' : 'w-full'">
               <div
                 class="h-full max-h-full grid grid-cols-5 gap-4 p-2 overflow-visible"
-                v-show="panelState === PanelState.SKILLS"
+                v-show="panelState === PanelState.SKILLS && !isSpectatorMode"
               >
                 <template v-for="skill in availableSkills" :key="skill._stableId">
                   <SkillButton
@@ -3010,7 +3025,7 @@ watch(
 
               <div
                 class="grid grid-cols-6 gap-2 h-full max-h-full overflow-visible"
-                v-show="panelState === PanelState.PETS"
+                v-show="panelState === PanelState.PETS && !isSpectatorMode"
               >
                 <PetButton
                   v-for="pet in currentPlayer?.team || []"
@@ -3021,9 +3036,103 @@ watch(
                   position="bottom"
                 />
               </div>
+
+              <!-- 观战模式下显示信息面板 -->
+              <div
+                v-if="isSpectatorMode"
+                class="h-full max-h-full p-4 overflow-y-auto"
+              >
+                <div class="text-white">
+                  <h3 class="text-xl font-bold mb-4 text-center">👁️ 观战模式</h3>
+                  <p class="text-gray-300 mb-4 text-center text-sm">您正在观看战斗，无法进行操作</p>
+                  
+                  <!-- 显示当前回合信息 -->
+                  <div class="bg-black/30 rounded-lg p-3 mb-4">
+                    <h4 class="text-lg font-semibold mb-2 text-center">回合 {{ currentTurn || 1 }}</h4>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                      <div v-if="currentPlayer" class="text-left">
+                        <div class="text-blue-400 font-bold">{{ currentPlayer.name || '玩家A' }}</div>
+                        <div class="text-gray-300">出战: {{ store.getPetById(currentPlayer.activePet)?.name || '未知' }}</div>
+                        <div class="text-xs text-gray-400 mt-1">
+                          HP: {{ store.getPetById(currentPlayer.activePet)?.currentHp || 0 }} / {{ store.getPetById(currentPlayer.activePet)?.maxHp || 0 }}
+                        </div>
+                      </div>
+                      <div v-if="opponentPlayer" class="text-right">
+                        <div class="text-red-400 font-bold">{{ opponentPlayer.name || '玩家B' }}</div>
+                        <div class="text-gray-300">出战: {{ store.getPetById(opponentPlayer.activePet)?.name || '未知' }}</div>
+                        <div class="text-xs text-gray-400 mt-1">
+                          HP: {{ store.getPetById(opponentPlayer.activePet)?.currentHp || 0 }} / {{ store.getPetById(opponentPlayer.activePet)?.maxHp || 0 }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 显示全局印记 -->
+                  <div v-if="globalMarks.length > 0" class="bg-black/30 rounded-lg p-3 mb-4">
+                    <h4 class="text-sm font-semibold mb-2 text-center">场地效果</h4>
+                    <div class="flex flex-wrap justify-center gap-1">
+                      <Mark v-for="mark in globalMarks" :key="mark.id" :mark="mark" />
+                    </div>
+                  </div>
+
+                  <!-- 显示队伍状态 -->
+                  <div class="bg-black/30 rounded-lg p-3 mb-4">
+                    <h4 class="text-sm font-semibold mb-2 text-center">队伍状态</h4>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                      <div v-if="currentPlayer">
+                        <div class="text-blue-400 font-bold text-center mb-1">{{ currentPlayer.name || '玩家A' }}</div>
+                        <div class="space-y-1">
+                          <div 
+                            v-for="pet in currentPlayer.team" 
+                            :key="pet.id" 
+                            class="flex justify-between items-center"
+                            :class="{ 'text-green-400': pet.id === currentPlayer.activePet, 'text-gray-500': pet.currentHp <= 0 }"
+                          >
+                            <span class="truncate">{{ pet.name }}</span>
+                            <span>{{ pet.currentHp }}/{{ pet.maxHp }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div v-if="opponentPlayer">
+                        <div class="text-red-400 font-bold text-center mb-1">{{ opponentPlayer.name || '玩家B' }}</div>
+                        <div class="space-y-1">
+                          <div 
+                            v-for="pet in opponentPlayer.team" 
+                            :key="pet.id" 
+                            class="flex justify-between items-center"
+                            :class="{ 'text-green-400': pet.id === opponentPlayer.activePet, 'text-gray-500': pet.currentHp <= 0 }"
+                          >
+                            <span class="truncate">{{ pet.name }}</span>
+                            <span>{{ pet.currentHp }}/{{ pet.maxHp }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 观战控制选项 -->
+                  <div class="bg-black/30 rounded-lg p-3">
+                    <h4 class="text-sm font-semibold mb-2 text-center">观战选项</h4>
+                    <div class="flex justify-center space-x-2">
+                      <button
+                        @click="battleViewStore.toggleLogPanel()"
+                        class="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-xs font-bold transition-colors"
+                      >
+                        {{ battleViewStore.showLogPanel ? '隐藏' : '显示' }}日志
+                      </button>
+                      <button
+                        @click="toggleFullscreen"
+                        class="px-3 py-1 bg-purple-600 hover:bg-purple-500 rounded text-xs font-bold transition-colors"
+                      >
+                        {{ isFullscreen ? '退出' : '进入' }}全屏
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div class="flex flex-col gap-2 p-2 w-1/5 flex-none h-full">
+            <div v-if="!isSpectatorMode" class="flex flex-col gap-2 p-2 w-1/5 flex-none h-full">
               <!-- 训练面板按钮 -->
               <button
                 v-if="isTrainingMode"
