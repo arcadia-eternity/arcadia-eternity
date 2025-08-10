@@ -276,8 +276,6 @@
           <div class="form-help-text">当前: {{ getRuleSetName(privateRoomStore.roomConfigForm.ruleSetId) }}</div>
         </el-form-item>
 
-        <!-- 观战功能默认开启，无需配置 -->
-
         <!-- 房间隐私设置 -->
         <el-form-item label="房间类型">
           <el-radio-group v-model="privateRoomStore.roomConfigForm.isPrivate">
