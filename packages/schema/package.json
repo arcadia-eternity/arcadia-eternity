@@ -26,9 +26,9 @@
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/effect-builder": "workspace:^",
     "nanoid": "^5.1.5",
-    "zod": "^4.0.14"
+    "zod": "^4.0.17"
   },
   "devDependencies": {
-    "@types/node": "^24.1.0"
+    "@types/node": "^24.2.1"
   }
 }

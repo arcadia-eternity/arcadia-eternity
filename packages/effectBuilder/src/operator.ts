@@ -1809,7 +1809,7 @@ export function GetValueFromSource<T extends SelectorOpinion>(
         : []
   }
   if (typeof source == 'function') return source(context) //TargetSelector
-  if (Array.isArray(source)) return source.map(v => GetValueFromSource(context, v)[0]) as T[]
+  if (Array.isArray(source)) return source.map(v => GetValueFromSource(context, v as ValueSource<T>[])[0]) as T[]
   if (source && typeof source === 'object' && 'configId' in source) {
     const _source = source as ConfigValueSource<T>
     // Use the battle's ConfigSystem instance instead of the global singleton

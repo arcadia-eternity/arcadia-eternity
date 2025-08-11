@@ -286,7 +286,7 @@ export function createEmailInheritanceRoutes(): Router {
           playerName = player?.name
         } catch (error) {
           // 忽略获取玩家信息的错误，不影响验证码发送
-          logger.warn(`Failed to get player info for ${playerId}:`, error)
+          logger.warn({ msg: `Failed to get player info for ${playerId}:%O`, err: error })
         }
       }
 

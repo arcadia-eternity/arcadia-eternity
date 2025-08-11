@@ -29,7 +29,7 @@
     "@arcadia-eternity/schema": "workspace:^",
     "nanoid": "^5.1.5",
     "rxjs": "^7.8.2",
-    "zod": "^4.0.14",
+    "zod": "^4.0.17",
     "zod-validation-error": "4.0.1"
   }
 }

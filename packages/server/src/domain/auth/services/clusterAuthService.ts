@@ -86,9 +86,9 @@ export class ClusterAuthService implements IAuthService {
       return decoded
     } catch (error) {
       if (error instanceof jwt.JsonWebTokenError) {
-        logger.debug('Invalid token:', error.message)
+        logger.debug({ msg: 'Invalid token:', err: error })
       } else if (error instanceof jwt.TokenExpiredError) {
-        logger.debug('Token expired')
+        logger.debug({ msg: 'Token expired' })
       } else {
         logger.error({ error }, 'Token verification error')
       }
@@ -113,7 +113,10 @@ export class ClusterAuthService implements IAuthService {
       return decoded
     } catch (error) {
       if (error instanceof jwt.JsonWebTokenError) {
-        logger.debug('Invalid token:', error.message)
+        logger.debug({
+          error,
+          msg: 'Invalid token',
+        })
       } else if (error instanceof jwt.TokenExpiredError) {
         logger.debug('Token expired')
       } else {
@@ -134,7 +137,7 @@ export class ClusterAuthService implements IAuthService {
 
       return { playerId: decoded.playerId }
     } catch (error) {
-      logger.debug('Refresh token verification failed:', error)
+      logger.debug({ msg: 'Refresh token verification failed:', error })
       return null
     }
   }
