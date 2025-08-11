@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.16.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.16.0...arcadia-eternity-v2.16.1) (2025-08-11)
+
+
+### ⚡ Performance Improvements
+
+* **web-ui:** init ([dae8e29](https://github.com/arcadia-eternity/arcadia-eternity/commit/dae8e290b0acc0ed0315056ee608d82365d393a6))
+
 ## [2.16.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.23...arcadia-eternity-v2.16.0) (2025-08-11)
 
 

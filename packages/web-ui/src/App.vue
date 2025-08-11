@@ -443,6 +443,50 @@ const showMobileMenu = ref(false)
 // 战斗重连处理器引用，用于清理
 let battleReconnectHandler: ((event: any) => void) | null = null
 
+// 设置战斗重连处理器
+const setupBattleReconnectHandler = () => {
+  if (battleReconnectHandler) {
+    console.log('🔄 Battle reconnect handler already registered, skipping')
+    return
+  }
+
+  // 使用对象来存储重定向状态
+  const redirectState = { isRedirecting: false }
+
+  battleReconnectHandler = async (event: any) => {
+    const data = event.detail
+    // 使用防抖避免重复处理
+    if (redirectState.isRedirecting) return
+    redirectState.isRedirecting = true
+
+    try {
+      if (data.fullBattleState) {
+        if (router.currentRoute.value.path === '/battle') {
+          const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
+          await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState)
+        } else {
+          const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
+          await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState)
+          await router.push('/battle')
+        }
+      } else {
+        console.warn('🔄 Server did not provide battle state')
+        ElMessage.info('战斗状态异常，无法跳转到战斗页面')
+      }
+    } catch (error) {
+      console.error('🔄 Router push failed:', error)
+      ElMessage.error('跳转到战斗页面失败')
+    } finally {
+      setTimeout(() => {
+        redirectState.isRedirecting = false
+      }, 1000)
+    }
+  }
+
+  window.addEventListener('battleReconnect', battleReconnectHandler)
+  console.log('🔄 Battle reconnect handler registered')
+}
+
 // 监听移动端状态变化，当切换到桌面端时自动关闭移动端菜单
 watch(isMobile, newIsMobile => {
   if (!newIsMobile) {
@@ -467,29 +511,23 @@ const handleRoomButtonClick = () => {
 // 初始化连接
 onMounted(async () => {
   try {
-    // 首先初始化基础数据
-    await dataStore.initialize()
-    resourceStore.initialize()
+    // 并行初始化基础数据和资源
+    const initDataPromise = dataStore.initialize()
+    const initResourcePromise = resourceStore.initialize()
     petStorage.loadFromLocal()
 
     // 初始化客户端规则系统
-    try {
-      await ClientRuleIntegration.initializeClient()
-      console.log('客户端规则系统初始化成功')
-    } catch (error) {
+    const initClientPromise = ClientRuleIntegration.initializeClient().catch(error => {
       console.error('客户端规则系统初始化失败:', error)
-    }
+    })
 
-    // 等待游戏数据加载完成后初始化种族数据提供者
-    if (dataStore.loaded) {
-      try {
-        await ClientRuleIntegration.initializeSpeciesDataProvider(dataStore)
-      } catch (error) {
-        console.error('❌ 种族数据提供者初始化失败:', error)
-      }
-    } else {
-      console.warn('⚠️ 游戏数据尚未加载完成，种族数据提供者初始化被跳过')
-    }
+    // 等待基础数据加载完成
+    await initDataPromise
+
+    // 初始化种族数据提供者
+    const initSpeciesPromise = ClientRuleIntegration.initializeSpeciesDataProvider(dataStore).catch(error => {
+      console.error('❌ 种族数据提供者初始化失败:', error)
+    })
 
     // 初始化玩家状态
     await playerStore.initializePlayer()
@@ -506,65 +544,15 @@ onMounted(async () => {
     battleClientStore.initialize()
 
     // 设置战斗重连处理器
-    let isRedirecting = false
-    let battleReconnectHandler: ((event: any) => void) | null = null
-
-    const setupBattleReconnectHandler = () => {
-      if (battleReconnectHandler) {
-        console.log('🔄 Battle reconnect handler already registered, skipping')
-        return
-      }
-
-      battleReconnectHandler = async (event: any) => {
-        const data = event.detail
-        if (isRedirecting) return
-        isRedirecting = true
-
-        try {
-          if (data.fullBattleState) {
-            if (router.currentRoute.value.path === '/battle') {
-              const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
-              await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState)
-            } else {
-              const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
-              await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState)
-              await router.push('/battle')
-            }
-          } else {
-            console.warn('🔄 Server did not provide battle state')
-            ElMessage.info('战斗状态异常，无法跳转到战斗页面')
-          }
-        } catch (error) {
-          console.error('🔄 Router push failed:', error)
-          ElMessage.error('跳转到战斗页面失败')
-        } finally {
-          setTimeout(() => {
-            isRedirecting = false
-          }, 1000)
-        }
-      }
-
-      window.addEventListener('battleReconnect', battleReconnectHandler)
-      console.log('🔄 Battle reconnect handler registered')
-    }
-
     setupBattleReconnectHandler()
 
-    // 连接战斗客户端并等待连接完成
-    if (playerStore.is_registered) {
-      let retries = 0
-      const maxRetries = 50
-
-      while (!playerStore.isAuthenticated && retries < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 100))
-        retries++
-      }
-
-      console.log('连接战斗客户端，认证状态:', playerStore.isAuthenticated)
-      await battleClientStore.connect()
-    } else {
-      await battleClientStore.connect()
-    }
+    // 并行执行不依赖连接的初始化任务
+    await Promise.all([
+      initResourcePromise,
+      initClientPromise,
+      initSpeciesPromise,
+      battleClientStore.connect()
+    ])
 
     // 在连接完成后检查房间状态
     const currentRoom = await privateRoomStore.checkCurrentRoom()

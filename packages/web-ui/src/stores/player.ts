@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { PlayerSchema, type PlayerSchemaType } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 import { usePetStorageStore } from './petStorage'
-import { useAuthStore, type PlayerInfo } from './auth'
+import { useAuthStore, type PlayerInfo, type PlayerStatus } from './auth'
 import { ElMessage } from 'element-plus'
 
 // 定义状态类型
@@ -221,7 +221,7 @@ export const usePlayerStore = defineStore('player', {
       try {
         // 首先检查当前玩家是否在服务器上存在
         let playerExists = false
-        let status: any = null
+        let status: PlayerStatus | null = null
 
         try {
           console.log('Checking if player exists on server:', this.id)
@@ -229,7 +229,7 @@ export const usePlayerStore = defineStore('player', {
           status = await authStore.checkPlayerStatus(this.id)
           playerExists = true
           console.log('Player exists on server:', status)
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.log('Player does not exist on server or server error:', error)
           playerExists = false
 
@@ -289,8 +289,8 @@ export const usePlayerStore = defineStore('player', {
             console.log('Server returned guest player:', guestPlayer)
 
             // 使用服务器返回的玩家信息，但保留本地数据作为备份
-            const newId = (guestPlayer as any).playerId || guestPlayer.id
-            const newName = (guestPlayer as any).playerName || guestPlayer.name
+            const newId = guestPlayer.id
+            const newName = guestPlayer.name
 
             // 只有在服务器返回有效数据时才更新
             if (newId && newName) {
@@ -304,7 +304,7 @@ export const usePlayerStore = defineStore('player', {
             this.isInitialized = true
             this.saveToLocal()
             ElMessage.success(`欢迎新游客: ${this.name}`)
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.warn('Failed to create guest on server, using local ID:', error)
             // 如果创建游客失败，使用本地数据作为离线模式
             // 保留现有的ID和name，不要覆盖
@@ -322,7 +322,7 @@ export const usePlayerStore = defineStore('player', {
             }
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Failed to initialize player:', error)
 
         // 确保总是有一个有效的ID和name（保留现有值）

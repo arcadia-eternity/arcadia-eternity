@@ -103,11 +103,12 @@ export const useResourceStore = defineStore('Resource', {
         // 验证数据完整性
         this.validateDataIntegrity()
 
-        console.log('store installed')
+        console.log('📁 Resource store installed')
 
         this.loaded = true
       } catch (error) {
         this.error = error instanceof Error ? error.message : '未知错误'
+        console.error('❌ Resource initialization failed:', error)
         throw error
       }
     },
