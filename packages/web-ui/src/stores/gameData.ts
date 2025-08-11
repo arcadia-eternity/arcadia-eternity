@@ -156,7 +156,7 @@ export const useGameDataStore = defineStore('gameData', {
     validateCrossReferences(errors: string[]) {
       // 验证技能引用的效果
       this.skills.allIds.forEach(skillId => {
-        const skill = this.skills.byId[skillId] as any
+        const skill = this.skills.byId[skillId]
         if (skill?.effect && Array.isArray(skill.effect)) {
           skill.effect.forEach((effectId: string) => {
             if (!this.effects.byId[effectId]) {
@@ -168,7 +168,7 @@ export const useGameDataStore = defineStore('gameData', {
 
       // 验证标记引用的效果
       this.marks.allIds.forEach(markId => {
-        const mark = this.marks.byId[markId] as any
+        const mark = this.marks.byId[markId]
         if (mark?.effect && Array.isArray(mark.effect)) {
           mark.effect.forEach((effectId: string) => {
             if (!this.effects.byId[effectId]) {
@@ -180,11 +180,11 @@ export const useGameDataStore = defineStore('gameData', {
 
       // 验证物种引用的技能和标记
       this.species.allIds.forEach(speciesId => {
-        const species = this.species.byId[speciesId] as any
+        const species = this.species.byId[speciesId]
 
         // 验证可学习技能
         if (species?.learnable_skills && Array.isArray(species.learnable_skills)) {
-          species.learnable_skills.forEach((learnableSkill: any) => {
+          species.learnable_skills.forEach((learnableSkill: { skill_id: string }) => {
             if (!this.skills.byId[learnableSkill.skill_id]) {
               errors.push(`物种 ${speciesId} 引用了不存在的技能 ${learnableSkill.skill_id}`)
             }
