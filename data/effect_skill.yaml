@@ -8452,8 +8452,8 @@
     conditions:
       - type: selfUseSkill
       - *condition_self_atk_over_500
-# 附加自身物攻值>500的伤害
-- id: effect_skill_fixed_damage_over_atk_500
+# 自身物攻大于500时，附加强攻增加的攻击力的伤害
+- id: effect_skill_fixed_damage_with_qianggong_stack_if_atk_over_500
   trigger: OnBeforeCalculateDamage
   priority: 0
   apply:
@@ -8463,19 +8463,28 @@
     delta:
       type: dynamic
       selector:
-        base: self
+        base: selfMarks
         chain:
-          - type: selectPath
-            arg: stat.atk
-          - type: add
-            arg: -500
-          - type: clampMax
-            arg: 105
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_qianggong
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 35
   condition:
     type: every
     conditions:
       - type: selfUseSkill
       - *condition_self_atk_over_500
+      - type: selfHasMark
+        baseId: mark_qianggong
 # 如果有时间法则，则额外附加50点伤害，否则添加定时炸弹
 - id: effect_skill_add_damage_50_or_add_mark_dingshizhadan
   trigger: OnBeforeCalculateDamage
