@@ -3597,4 +3597,4 @@
           - type: selectPath
             arg: stack
           - type: multiply
-            arg: 25
+            arg: -25
