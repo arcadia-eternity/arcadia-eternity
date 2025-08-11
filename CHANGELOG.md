@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.16.5](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.16.4...arcadia-eternity-v2.16.5) (2025-08-11)
+
+
+### ♻️ Code Refactoring
+
+* **balance:** 羽突百八式 ([6e78025](https://github.com/arcadia-eternity/arcadia-eternity/commit/6e78025c1e296d62458ff9daa9c8a11c7ca2b7b0))
+
 ## [2.16.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.16.3...arcadia-eternity-v2.16.4) (2025-08-11)
 
 
