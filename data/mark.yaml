@@ -2154,3 +2154,27 @@
   tags: []
   effect:
     - effect_mark_clear_rage_on_switch_out
+- id: mark_shunliu
+  config:
+    persistent: true
+    stackable: true
+    stackStrategy: stack
+    maxStacks: 2
+    destroyable: true
+    keepOnSwitchOut: true
+    mutexGroup: liuzhuan_marks
+  tags: []
+  effect:
+    - effect_mark_raise_spe_by_25_per_stack
+- id: mark_niliu
+  config:
+    persistent: true
+    stackable: true
+    stackStrategy: stack
+    maxStacks: 2
+    destroyable: true
+    keepOnSwitchOut: true
+    mutexGroup: liuzhuan_marks
+  tags: []
+  effect:
+    - effect_mark_reduce_damage_taken_by_25_per_stack

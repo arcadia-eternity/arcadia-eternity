@@ -157,3 +157,6 @@ mark_emblem_guangwu:
 mark_emblem_anhun:
   name: 安魂
   description: 必杀伤害增加10%
+mark_emblem_chuanliu:
+  name: 川流
+  description: 顺流时每次技能命中对手可恢复5点怒气，逆流时自己造成的伤害增加10%

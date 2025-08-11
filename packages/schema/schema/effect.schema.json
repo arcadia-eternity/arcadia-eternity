@@ -1061,6 +1061,22 @@
           "properties": {
             "type": {
               "type": "string",
+              "const": "setIgnoreShield"
+            },
+            "target": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type",
+            "target"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
               "const": "destroyMark"
             },
             "target": {

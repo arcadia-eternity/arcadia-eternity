@@ -276,3 +276,9 @@
   tags: [emblem]
   effect:
     - effect_emblem_climax_damage_boost_10_percent
+- id: mark_emblem_chuanliu
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_add_rage_on_hit_if_has_shunliu
+    - effect_emblem_add_damage_if_has_niliu

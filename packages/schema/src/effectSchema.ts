@@ -524,6 +524,10 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       priority: z.number(),
     }),
     z.object({
+      type: z.literal('setIgnoreShield'),
+      target: selectorDSLSchema,
+    }),
+    z.object({
       type: z.literal('destroyMark'),
       target: selectorDSLSchema,
     }),

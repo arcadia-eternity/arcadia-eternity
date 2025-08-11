@@ -8736,6 +8736,7 @@
     conditions:
       - type: selfUseSkill
       - *condition_probability_50_percent_template
+      - *condition_opponent_not_water_element
 # 水量饱和时威力翻倍
 - id: effect_skill_power_2x_if_has_shuiliangbaohe
   trigger: AfterUseSkillCheck
@@ -9142,3 +9143,296 @@
       value: mark_shuanghunxuanlv
   condition:
     type: selfUseSkill
+# 顺流时提升物攻
+- id: effect_skill_raise_atk_1_stage_if_has_shunliu
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: atk
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shunliu
+# 逆流时提升特防
+- id: effect_skill_raise_spd_1_stage_if_has_niliu
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spd
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_niliu
+# 每一层顺流增加30点威力
+- id: effect_skill_add_power_30_per_shunliu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: useSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_shunliu
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 30
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shunliu
+# 每一层逆流附加30点伤害
+- id: effect_skill_add_damage_30_per_niliu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta:
+      type: dynamic
+      selector:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_niliu
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 30
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_niliu
+# 顺流时提升物防
+- id: effect_skill_raise_def_1_stage_if_has_shunliu
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: def
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shunliu
+# 逆流时提升特攻
+- id: effect_skill_raise_spa_1_stage_if_has_niliu
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_niliu
+# 顺流时无视对手护盾
+- id: effect_skill_ignore_opponent_shield_if_has_shunliu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setIgnoreShield
+    target: useSkillContext
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shunliu
+# 逆流时必中
+- id: effect_skill_set_sure_hit_if_has_niliu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target: useSkillContext
+    priority: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_niliu
+# 先出手时恢复15点怒气
+- id: effect_skill_add_rage_15_if_first
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 15
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isFirstSkillUsedThisTurn
+# 顺流时50%使对手溺水
+- id: effect_skill_add_mark_opponent_nishui_50_percent_if_has_shunliu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_nishui
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shunliu
+      - *condition_probability_50_percent_template
+      - *condition_opponent_not_water_element
+# 逆流时清除自身不良
+- id: effect_skill_clear_status_if_has_niliu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: destroyMark
+    target:
+      base: self
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: tags
+          evaluator:
+            type: contain
+            tag: status
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_niliu
+# 顺流时弱化对手物防1级
+- id: effect_skill_reduce_def_1_stage_if_has_shunliu
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_opponent_statstage_-1_template
+    statType: def
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shunliu
+# 逆流时弱化对手特攻1级
+- id: effect_skill_reduce_spa_1_stage_if_has_niliu
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_opponent_statstage_-1_template
+    statType: spa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_niliu
+# 每层顺流添加30点威力
+- id: effect_skill_add_power_30_per_stack_if_has_shunliu
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: addPower
+    target: useSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: selfMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_shunliu
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 30
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shunliu
+# 每层逆流恢复最大体力的1/16
+- id: effect_heal_1_16_max_hp_per_stack_if_has_niliu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value:
+      type: dynamic
+      selector:
+        base: self
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: maxHp
+          - type: divide
+            arg: 16
+          - type: multiply
+            arg:
+              type: dynamic
+              selector:
+                base: selfMarks
+                chain:
+                  - type: whereAttr
+                    extractor:
+                      type: base
+                      arg: baseId
+                    evaluator:
+                      type: same
+                      value: mark_niliu
+                  - type: select
+                    arg:
+                      type: base
+                      arg: stack
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_niliu

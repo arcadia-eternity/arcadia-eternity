@@ -2239,3 +2239,48 @@ skill_tuanliubuxi:
 skill_shuanghunxuanlv:
   name: 霜魂旋律
   description: 使对手获得霜魂旋律
+skill_shuiliu:
+  name: 水流
+  description: 顺流时强化自身物攻1级 逆流时强化自身特防1级
+skill_zhulangzhuiji:
+  name: 逐浪追击
+  description: 每层顺流增加30点威力
+skill_nixingfanji:
+  name: 逆行反击
+  description: 每层逆流附加30点固伤
+skill_shuiguangzhaoyue:
+  name: 水光照月
+  description: 50%使对手迷惑
+skill_yueguang:
+  name: 月光
+  description: 顺流时强化自身物防1级 逆流时强化自身特攻1级
+skill_shunshitupo:
+  name: 顺势突破
+  description: 顺流时无视对手护盾
+skill_nishuixingzhou:
+  name: 逆水行舟
+  description: 逆流时必中
+skill_shuiguangsiqi:
+  name: 水光似起
+  description: 先出手时恢复15点怒气
+skill_anyong:
+  name: 暗涌
+  description: 顺流时50%使对手溺水
+skill_penyong:
+  name: 喷涌
+  description: 逆流时解除自身不良
+skill_chaoxizanmeishi:
+  name: 潮汐赞美诗
+  description: 必中 恢复自身最大体力的1/8
+skill_liudong:
+  name: 流动
+  description: 顺流时弱化对手物防1级 逆流时弱化对手特攻1级
+skill_qusan:
+  name: 驱散
+  description: 解除自身弱化
+skill_feiliuzhixia:
+  name: 飞流直下
+  description: 每层顺流增加30点威力
+skill_niliuershang:
+  name: 逆流而上
+  description: 每层逆流恢复自身最大体力的1/16

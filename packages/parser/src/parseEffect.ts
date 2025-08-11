@@ -453,6 +453,8 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseSetSureMissAction(effectId, dsl)
     case 'setSureNoCrit':
       return parseSetSureNoCritAction(effectId, dsl)
+    case 'setIgnoreShield':
+      return parseSetIgnoreShieldAction(effectId, dsl)
     case 'destroyMark':
       return parseDestroyMarkAction(effectId, dsl)
     case 'modifyStackResult':
@@ -1346,4 +1348,8 @@ export function parseRemoveTransformationAction(
   dsl: Extract<OperatorDSL, { type: 'removeTransformation' }>,
 ) {
   return parseSelector<Pet>(effectId, dsl.target).apply(Operators.removeTransformation())
+}
+
+export function parseSetIgnoreShieldAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'setIgnoreShield' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(Operators.setIgnoreShield())
 }
