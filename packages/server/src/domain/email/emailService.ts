@@ -176,7 +176,7 @@ export class EmailService implements IEmailService {
       }
 
       const result = await this.transporter.sendMail(mailOptions)
-      logger.info(`Email sent successfully to ${message.to}`, { messageId: result.messageId })
+      logger.info({ msg: `Email sent successfully to ${message.to}`, messageId: result.messageId })
       return true
     } catch (error) {
       logger.error(
@@ -225,7 +225,7 @@ export class EmailService implements IEmailService {
       text = renderVerificationText(templateData)
       html = renderVerificationHtml(templateData)
     } catch (error) {
-      logger.warn('Failed to render external templates, using fallback', { error })
+      logger.warn({ msg: 'Failed to render external templates, using fallback', error })
       // Fallback to simple templates
       text = this.generateFallbackText(templateData)
       html = this.generateFallbackHtml(templateData)
