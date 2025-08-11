@@ -2031,7 +2031,7 @@ skill_yutulingshi:
   description: 自身物攻值＞500时<font color=#93E312>必中</font>
 skill_yutubaibashi:
   name: 羽突百八式
-  description: 附加自身物攻值＞500的伤害
+  description: 自身物攻值>500时 附加强攻增加的攻击力的伤害
 skill_ruili:
   name: 锐利
   description: 强化自身特攻1级

@@ -7974,7 +7974,7 @@
   ignoreShield: false
   tags: [yutu]
   effect:
-    - effect_skill_sure_hit_if_atk_over_500 # TODO: 自身物攻值＞500时必中
+    - effect_skill_sure_hit_if_atk_over_500
 - id: skill_yutubaibashi
   element: Flying
   category: Physical
@@ -7986,7 +7986,7 @@
   ignoreShield: false
   tags: [yutu]
   effect:
-    - effect_skill_fixed_damage_over_atk_500 # TODO: 附加自身物攻值＞500的伤害
+    - effect_skill_fixed_damage_with_qianggong_stack_if_atk_over_500
 - id: skill_ruili
   element: Normal
   category: Status
