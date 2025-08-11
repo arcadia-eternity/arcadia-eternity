@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.16.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.16.1...arcadia-eternity-v2.16.2) (2025-08-11)
+
+
+### 🐛 Bug Fixes
+
+* gameDataLoaded ([b07f4b4](https://github.com/arcadia-eternity/arcadia-eternity/commit/b07f4b44d320988a407e13fa29ac06514d3bd3c4))
+
 ## [2.16.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.16.0...arcadia-eternity-v2.16.1) (2025-08-11)
 
 
