@@ -88,7 +88,6 @@ export const useGameDataStore = defineStore('gameData', {
         console.log('🎮 Game data store installed')
 
         this.loaded = true
-        this.gameDataLoaded = true
       } catch (error) {
         this.error = error instanceof Error ? error.message : '未知错误'
         console.error('❌ Game data initialization failed:', error)
