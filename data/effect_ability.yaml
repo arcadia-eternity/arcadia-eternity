@@ -537,7 +537,7 @@
   condition:
     type: every
     conditions:
-      - type: selfBeDamaged
+      - type: selfUseSkill
       - type: evaluate
         target:
           base: self
