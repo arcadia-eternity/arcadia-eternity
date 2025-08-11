@@ -330,6 +330,10 @@ export class UseSkillContext extends Context {
     })
   }
 
+  setIgnoreShield() {
+    this.ignoreShield = true
+  }
+
   setActualTarget(target: Pet) {
     this.actualTarget = target
   }

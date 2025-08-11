@@ -667,3 +667,9 @@ mark_anhunqu:
 mark_shuanghunxuanlv:
   name: 霜魂旋律
   description: 清空下只出场精灵的怒气
+mark_shunliu:
+  name: 顺流
+  description: 每层速度增加25点，最多2层
+mark_niliu:
+  name: 逆流
+  description: 每层受到伤害减少25点，最多2层

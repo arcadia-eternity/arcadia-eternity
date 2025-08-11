@@ -1140,3 +1140,32 @@
         evaluator:
           type: same
           value: Climax
+# 川流: 顺流时每次命中对方获得5点怒气
+- id: effect_emblem_add_rage_on_hit_if_has_shunliu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 5
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shunliu
+# 川流：逆流时造成的伤害增加10%
+- id: effect_emblem_add_damage_if_has_niliu
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 10
+    delta: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_niliu

@@ -6612,3 +6612,104 @@
     - mark_ability_gugao
   emblem:
     - mark_emblem_anhun
+- id: pet_naipu
+  num: 218
+  element: Water
+  baseStats:
+    hp: 94
+    atk: 130
+    def: 110
+    spa: 125
+    spd: 120
+    spe: 110
+  ability: [mark_ability_liuzhuan]
+  emblem: [mark_emblem_chuanliu]
+  genderRatio: [10, 0]
+  heightRange: [21, 26]
+  weightRange: [17, 22]
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_shuiqiang
+      level: 5
+      hidden: false
+    - skill_id: skill_shuiliu
+      level: 10
+      hidden: false
+    - skill_id: skill_zhulangzhuiji
+      level: 15
+      hidden: false
+    - skill_id: skill_nixingfanji
+      level: 20
+      hidden: false
+    - skill_id: skill_shuiguangzhaoyue
+      level: 25
+      hidden: false
+- id: pet_naiputulong
+  num: 219
+  element: Water
+  baseStats:
+    hp: 184
+    atk: 180
+    def: 155
+    spa: 170
+    spd: 170
+    spe: 155
+  ability: [mark_ability_liuzhuan]
+  emblem: [mark_emblem_chuanliu]
+  genderRatio: [10, 0]
+  heightRange: [98, 103]
+  weightRange: [69, 74]
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_shuiqiang
+      level: 5
+      hidden: false
+    - skill_id: skill_shuiliu
+      level: 10
+      hidden: false
+    - skill_id: skill_zhulangzhuiji
+      level: 15
+      hidden: false
+    - skill_id: skill_nixingfanji
+      level: 20
+      hidden: false
+    - skill_id: skill_shuiguangzhaoyue
+      level: 25
+      hidden: false
+    - skill_id: skill_yueguang
+      level: 30
+      hidden: false
+    - skill_id: skill_shunshitupo
+      level: 35
+      hidden: false
+    - skill_id: skill_nishuixingzhou
+      level: 40
+      hidden: false
+    - skill_id: skill_shuiguangsiqi
+      level: 45
+      hidden: false
+    - skill_id: skill_anyong
+      level: 50
+      hidden: false
+    - skill_id: skill_penyong
+      level: 55
+      hidden: false
+    - skill_id: skill_chaoxizanmeishi
+      level: 60
+      hidden: true
+    - skill_id: skill_liudong
+      level: 60
+      hidden: true
+    - skill_id: skill_qusan
+      level: 60
+      hidden: true
+    - skill_id: skill_feiliuzhixia
+      level: 60
+      hidden: true
+    - skill_id: skill_niliuershang
+      level: 60
+      hidden: true

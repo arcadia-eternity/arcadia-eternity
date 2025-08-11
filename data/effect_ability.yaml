@@ -1315,3 +1315,51 @@
         evaluator:
           type: same
           value: skillHit
+# 流转: 特攻使自身获得1层逆流
+- id: effect_ability_spa_skill_add_niliu_1
+  trigger: OnHit
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Special
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_niliu
+    stack: 1
+# 流转: 物攻使自身获得1层顺流
+- id: effect_ability_atk_skill_add_shunliu_1
+  trigger: OnHit
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Physical
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shunliu
+    stack: 1

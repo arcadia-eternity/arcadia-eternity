@@ -346,3 +346,9 @@ pet_linna:
 pet_katelinna:
   name: 卡特琳娜
   description: 卡特琳娜曾经为了帮助冰沁氏族而化身人形 她的歌声被所有族人铭记
+pet_naipu:
+  name: 耐普
+  description: 耐普和爱丽斯一起诞生在脉流之瀑，它守护着整个星球的水源源头
+pet_naiputulong:
+  name: 耐普图隆
+  description: 日复一日，耐普图隆都张开净化结界，抵御污染的侵袭，净化被污染的生灵

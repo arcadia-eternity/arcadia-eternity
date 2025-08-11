@@ -8978,3 +8978,143 @@
   tags: []
   effect:
     - effect_skill_add_mark_opponent_shuanghunxuanlv
+- id: skill_shuiliu
+  element: Water
+  category: Status
+  power: 0
+  accuracy: 100
+  rage: 10
+  target: self
+  effect:
+    - effect_skill_raise_atk_1_stage_if_has_shunliu
+    - effect_skill_raise_spd_1_stage_if_has_niliu
+- id: skill_zhulangzhuiji
+  element: Water
+  category: Physical
+  power: 70
+  accuracy: 95
+  rage: 10
+  target: opponent
+  effect:
+    - effect_skill_add_power_30_per_shunliu
+- id: skill_nixingfanji
+  element: Normal
+  category: Special
+  power: 70
+  accuracy: 95
+  rage: 10
+  target: opponent
+  effect:
+    - effect_skill_add_damage_30_per_niliu
+- id: skill_shuiguangzhaoyue
+  element: Water
+  category: Status
+  power: 0
+  accuracy: 50
+  rage: 20
+  target: opponent
+  effect:
+    - effect_skill_add_mark_opponent_mihuo
+- id: skill_yueguang
+  element: Normal
+  category: Status
+  power: 0
+  accuracy: 100
+  rage: 10
+  target: self
+  effect:
+    - effect_skill_raise_def_1_stage_if_has_shunliu
+    - effect_skill_raise_spa_1_stage_if_has_niliu
+- id: skill_shunshitupo
+  element: Normal
+  category: Physical
+  power: 90
+  accuracy: 95
+  rage: 20
+  target: opponent
+  effect:
+    - effect_skill_ignore_opponent_shield_if_has_shunliu
+- id: skill_nishuixingzhou
+  element: Water
+  category: Special
+  power: 90
+  accuracy: 95
+  rage: 20
+  target: opponent
+  sureHit: true
+  effect:
+    - effect_skill_set_sure_hit_if_has_niliu
+- id: skill_shuiguangsiqi
+  element: Water
+  category: Physical
+  power: 95
+  accuracy: 95
+  rage: 20
+  target: opponent
+  effect:
+    - effect_skill_add_rage_15_if_first
+- id: skill_anyong
+  element: Water
+  category: Physical
+  power: 95
+  accuracy: 95
+  rage: 20
+  target: opponent
+  effect:
+    - effect_skill_add_mark_opponent_nishui_50_percent_if_has_shunliu
+- id: skill_penyong
+  element: Water
+  category: Special
+  power: 95
+  accuracy: 95
+  rage: 20
+  target: self
+  effect:
+    - effect_skill_clear_status_if_has_niliu
+- id: skill_chaoxizanmeishi
+  element: Water
+  category: Climax
+  power: 160
+  accuracy: 100
+  rage: 100
+  target: opponent
+  sureHit: true
+  effect:
+    - effect_skill_heal_self_eighth
+- id: skill_liudong
+  element: Water
+  category: Status
+  power: 0
+  accuracy: 100
+  rage: 10
+  target: opponent
+  effect:
+    - effect_skill_reduce_def_1_stage_if_has_shunliu
+    - effect_skill_reduce_spa_1_stage_if_has_niliu
+- id: skill_qusan
+  element: Normal
+  category: Status
+  power: 0
+  accuracy: 100
+  rage: 20
+  target: self
+  effect:
+    - effect_skill_clear_self_negative_stage
+- id: skill_feiliuzhixia
+  element: Water
+  category: Physical
+  power: 90
+  accuracy: 95
+  rage: 25
+  target: opponent
+  effect:
+    - effect_skill_add_power_30_per_stack_if_has_shunliu
+- id: skill_niliuershang
+  element: Water
+  category: Special
+  power: 90
+  accuracy: 95
+  rage: 20
+  target: opponent
+  effect:
+    - effect_heal_1_16_max_hp_per_stack_if_has_niliu

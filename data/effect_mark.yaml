@@ -3562,3 +3562,39 @@
     value: 0
   condition:
     type: selfSwitchOut
+# 顺流: 每层提升25点速度
+- id: effect_mark_raise_spe_by_25_per_stack
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addDynamicAttributeModifier
+    target:
+      base: self
+    stat: spe
+    modifierType: delta
+    observableValue:
+      base: mark
+      chain:
+        - type: selectAttribute$
+          arg: stack
+        - type: multiply
+          arg: 25
+# 逆流: 每层减少25点受到的伤害
+- id: effect_mark_reduce_damage_taken_by_25_per_stack
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta:
+      type: dynamic
+      selector:
+        base: mark
+        chain:
+          - type: selectPath
+            arg: stack
+          - type: multiply
+            arg: 25

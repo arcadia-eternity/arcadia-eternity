@@ -160,3 +160,6 @@ mark_ability_shenguang:
 mark_ability_gugao:
   name: 孤高
   description: 对手不会获得攻击怒气
+mark_ability_liuzhuan:
+  name: 流转
+  description: 物攻使自身获得1层顺流，特攻使自身获得1层逆流

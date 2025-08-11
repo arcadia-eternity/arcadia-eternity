@@ -854,6 +854,14 @@ export const Operators = {
     }
   },
 
+  setIgnoreShield: (): Operator<UseSkillContext> => {
+    return (context, contexts) => {
+      contexts.forEach(skillCtx => {
+        skillCtx.setIgnoreShield()
+      })
+    }
+  },
+
   setSkill: (skill: ValueSource<SkillInstance>, updateConfig?: boolean): Operator<UseSkillContext> => {
     return (context, contexts) => {
       const _skill = GetValueFromSource(context, skill)
