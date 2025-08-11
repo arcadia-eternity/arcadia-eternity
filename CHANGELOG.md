@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.16.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.23...arcadia-eternity-v2.16.0) (2025-08-11)
+
+
+### ✨ Features
+
+* **newpet:** 耐普图隆 ([4afc68a](https://github.com/arcadia-eternity/arcadia-eternity/commit/4afc68a025169cd76a0b93fcc7f75af449b03ea4))
+
 ## [2.15.23](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.15.22...arcadia-eternity-v2.15.23) (2025-08-11)
 
 
