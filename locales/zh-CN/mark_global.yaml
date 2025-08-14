@@ -10,3 +10,6 @@ mark_global_yanre:
 mark_global_yemu:
   name: 夜幕
   description: 暗影系 特质系技能伤害提高35%
+mark_global_leibaotian:
+  name: 雷暴天
+  description: 电系技能伤害提高35%

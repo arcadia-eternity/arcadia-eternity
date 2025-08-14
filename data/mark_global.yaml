@@ -28,6 +28,8 @@
   config: *global_config
 - id: mark_global_leibaotian
   config: *global_config
+  effect:
+    - effect_global_power_35_percent_electric
 - id: mark_global_jufeng
   config: *global_config
 - id: mark_global_yemu

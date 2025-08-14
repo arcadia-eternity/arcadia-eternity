@@ -687,7 +687,7 @@
           type: same
           value: mark_yinghua
 
-# 沙之：使沙之蛋壳的最大层数设为4
+# 沙之: 使沙之蛋壳的最大层数设为4
 - id: effect_emblem_shazhidanke_max_stack_4
   trigger: OnBeforeAddMark
   condition:
@@ -865,7 +865,7 @@
                 value: Fire
         evaluator:
           type: exist
-# 灯芯：黑暗物质每层减少的命中率再降低5%
+# 灯芯: 黑暗物质每层减少的命中率再降低5%
 - id: effect_emblem_dengxin_reduce_accuracy_5_percent_per_stack
   trigger: OnBattleStart
   priority: 0
@@ -875,7 +875,7 @@
     configKey: effect_mark_reduce_accuracy_5_per_stack.reduce_accuracy_per_stack
     modifierType: delta
     value: -5
-# 麻痹：使技能所附带的麻痹几率提高5%
+# 麻痹: 使技能所附带的麻痹几率提高5%
 - id: effect_emblem_add_mark_mabi_chance_5
   trigger: OnBattleStart
   priority: 0
@@ -885,7 +885,7 @@
     tag: mark_mabi_chance
     modifierType: delta
     value: 5
-# 惊悚：惊悚之眼的命中率提高5%
+# 惊悚: 惊悚之眼的命中率提高5%
 - id: effect_emblem_jingsongzhiyan_accuracy_boost_5_percent
   trigger: OnBattleStart
   priority: 0
@@ -904,7 +904,7 @@
     stat: accuracy
     value: 5
     modifierType: delta
-# 化身：化冰、化雪、化雾的怒气消耗减少5
+# 化身: 化冰、化雪、化雾的怒气消耗减少5
 - id: effect_emblem_huashen_skill_rage_cost_reduce_5
   trigger: OnBattleStart
   priority: 0
@@ -947,7 +947,7 @@
     type: setMarkDuration
     target: addMarkContext
     value: 6
-# 夜视：使必中的回合数增加5
+# 夜视: 使必中的回合数增加5
 - id: effect_emblem_extend_bizhong_duration_5
   trigger: OnBeforeAddMark
   priority: 0
@@ -970,7 +970,7 @@
     type: setMarkDuration
     target: addMarkContext
     value: 10
-# 羽刃：受到物攻技能时，给对方造成50点伤害
+# 羽刃: 受到物攻技能时，给对方造成50点伤害
 - id: effect_emblem_yuren_dealdamage_on_physical_skill
   trigger: PostDamage
   priority: 0
@@ -1004,7 +1004,7 @@
     type: addCritRate
     target: useSkillContext
     value: 5
-# 重心：如果当前使用的技能为绊倒且以自身为目标，使该技能无效
+# 重心: 如果当前使用的技能为绊倒且以自身为目标，使该技能无效
 - id: effect_emblem_immune_skill_bandao
   trigger: BeforeHit
   priority: 0
@@ -1084,7 +1084,7 @@
     attribute: rage
     modifierType: delta
     value: -5
-# 光武：使用光系的必杀技时，减少5点怒气消耗
+# 光武: 使用光系的必杀技时，减少5点怒气消耗
 - id: effect_emblem_reduce_light_climax_skill_rage_cost_5
   trigger: BeforeUseSkillCheck
   priority: 0
@@ -1154,7 +1154,7 @@
       - type: selfUseSkill
       - type: selfHasMark
         baseId: mark_shunliu
-# 川流：逆流时造成的伤害增加10%
+# 川流: 逆流时造成的伤害增加10%
 - id: effect_emblem_add_damage_if_has_niliu
   trigger: OnBeforeCalculateDamage
   priority: 0
@@ -1169,3 +1169,26 @@
       - type: selfUseSkill
       - type: selfHasMark
         baseId: mark_niliu
+# 觉醒: 雷神觉醒的回合数+1
+- id: effect_emblem_increase_leishenjuexing_duration_1
+  trigger: OnBeforeAddMark
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark.id
+        evaluator:
+          type: same
+          value: mark_leishenjuexing
+  apply:
+    type: setMarkDuration
+    target: addMarkContext
+    value: 4

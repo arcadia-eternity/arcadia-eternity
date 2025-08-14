@@ -6713,3 +6713,69 @@
     - skill_id: skill_niliuershang
       level: 60
       hidden: true
+- id: pet_leiyi
+  num: 90
+  element: Electric
+  baseStats:
+    hp: 178
+    atk: 184
+    def: 160
+    spa: 171
+    spd: 157
+    spe: 170
+  heightRange: [124, 129]
+  weightRange: [36, 41]
+  genderRatio: [0, 10]
+  ability:
+    - mark_ability_leishen
+  emblem:
+    - mark_emblem_juexing
+  learnable_skills:
+    - skill_id: skill_fengchidianche
+      level: 1
+      hidden: false
+    - skill_id: skill_shanguangji
+      level: 5
+      hidden: false
+    - skill_id: skill_chongdian
+      level: 10
+      hidden: false
+    - skill_id: skill_jingleiqie
+      level: 15
+      hidden: false
+    - skill_id: skill_leibaotian
+      level: 20
+      hidden: false
+    - skill_id: skill_baiguangren
+      level: 25
+      hidden: false
+    - skill_id: skill_leiji
+      level: 30
+      hidden: false
+    - skill_id: skill_guangmangwanzhang
+      level: 35
+      hidden: false
+    - skill_id: skill_dianshanguang
+      level: 40
+      hidden: false
+    - skill_id: skill_jidiantianchong
+      level: 45
+      hidden: false
+    - skill_id: skill_shunleitianxian
+      level: 50
+      hidden: false
+    - skill_id: skill_modiandian
+      level: 55
+      hidden: false
+    - skill_id: skill_leishentianmingshan
+      level: 60
+      hidden: false
+    - skill_id: skill_leishenjuexing
+      level: 60
+      hidden: false
+    - skill_id: skill_shandiandouqi
+      level: 60
+      hidden: false
+    - skill_id: skill_jiguangren
+      level: 60
+      hidden: false

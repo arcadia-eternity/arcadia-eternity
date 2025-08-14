@@ -61,7 +61,7 @@
     type: amplifyPower
     target: useSkillContext
     value: 1.35
-# 夜幕：暗影系和特质系技能的威力增加35%
+# 夜幕: 暗影系和特质系技能的威力增加35%
 - id: effect_global_power_35_percent_shadow_trait
   trigger: AfterUseSkillCheck
   priority: 0
@@ -79,6 +79,27 @@
           value:
             - Shadow
             - Trait
+  apply:
+    type: amplifyPower
+    target: useSkillContext
+    value: 1.35
+# 雷暴天: 电系技能的威力增加35%
+- id: effect_global_power_35_percent_electric
+  trigger: AfterUseSkillCheck
+  priority: 0
+  condition:
+    type: some
+    conditions:
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: select
+              arg: element
+        evaluator:
+          type: anyOf
+          value:
+            - Electric
   apply:
     type: amplifyPower
     target: useSkillContext

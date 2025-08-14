@@ -290,3 +290,9 @@
   effect:
     - effect_ability_spa_skill_add_niliu_1
     - effect_ability_atk_skill_add_shunliu_1
+- id: mark_ability_leishen
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_set_field_leibaotian_on_switch
+    - effect_ability_set_field_leibaotian_on_lead
