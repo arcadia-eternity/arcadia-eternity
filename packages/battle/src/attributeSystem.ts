@@ -364,6 +364,7 @@ export class AttributeSystem<T extends AttributeData> {
   // Cross-object dependency tracking
   private static globalCalculationStack = new Map<string, Set<string>>()
   private static globalDependencyGraph = new Map<string, Set<string>>()
+  private static globalKeyIndex = new Map<string, Set<string>>() // 反向索引：globalKey -> objectIds
   private objectId: string
 
   // Memory management
@@ -412,15 +413,9 @@ export class AttributeSystem<T extends AttributeData> {
    */
   private wouldCreateCrossObjectCircularDependency(key: keyof T): boolean {
     const globalKey = `${this.objectId}.${String(key)}`
-
-    // Check if this attribute is already being calculated in any object
-    for (const [objectId, stack] of AttributeSystem.globalCalculationStack) {
-      if (stack.has(globalKey)) {
-        return true
-      }
-    }
-
-    return false
+    // 使用反向索引直接检查，O(1)时间复杂度
+    return AttributeSystem.globalKeyIndex.has(globalKey) && 
+           AttributeSystem.globalKeyIndex.get(globalKey)!.size > 0
   }
 
   /**
@@ -431,6 +426,11 @@ export class AttributeSystem<T extends AttributeData> {
     const stack = AttributeSystem.globalCalculationStack.get(this.objectId)
     if (stack) {
       stack.add(globalKey)
+      // 更新反向索引
+      if (!AttributeSystem.globalKeyIndex.has(globalKey)) {
+        AttributeSystem.globalKeyIndex.set(globalKey, new Set())
+      }
+      AttributeSystem.globalKeyIndex.get(globalKey)!.add(this.objectId)
     }
   }
 
@@ -442,6 +442,14 @@ export class AttributeSystem<T extends AttributeData> {
     const stack = AttributeSystem.globalCalculationStack.get(this.objectId)
     if (stack) {
       stack.delete(globalKey)
+      // 更新反向索引
+      const keyIndex = AttributeSystem.globalKeyIndex.get(globalKey)
+      if (keyIndex) {
+        keyIndex.delete(this.objectId)
+        if (keyIndex.size === 0) {
+          AttributeSystem.globalKeyIndex.delete(globalKey)
+        }
+      }
     }
   }
 
@@ -1186,6 +1194,18 @@ export class AttributeSystem<T extends AttributeData> {
       }
     }
     keysToDelete.forEach(key => AttributeSystem.globalDependencyGraph.delete(key))
+    
+    // Clean up global key index entries for this object
+    const globalKeysToDelete: string[] = []
+    for (const [globalKey, objectIds] of AttributeSystem.globalKeyIndex) {
+      if (objectIds.has(this.objectId)) {
+        objectIds.delete(this.objectId)
+        if (objectIds.size === 0) {
+          globalKeysToDelete.push(globalKey)
+        }
+      }
+    }
+    globalKeysToDelete.forEach(key => AttributeSystem.globalKeyIndex.delete(key))
 
     this.logger.debug(`AttributeSystem ${this.objectId} destroyed successfully`)
   }
