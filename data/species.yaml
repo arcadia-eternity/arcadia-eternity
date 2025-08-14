@@ -6758,13 +6758,13 @@
     - skill_id: skill_dianshanguang
       level: 40
       hidden: false
-    - skill_id: skill_jidiantianchong
+    - skill_id: skill_jidianqianniao
       level: 45
       hidden: false
     - skill_id: skill_shunleitianxian
       level: 50
       hidden: false
-    - skill_id: skill_modiandian
+    - skill_id: skill_morileidian
       level: 55
       hidden: false
     - skill_id: skill_leishentianmingshan

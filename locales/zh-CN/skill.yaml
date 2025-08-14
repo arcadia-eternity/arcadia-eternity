@@ -2311,13 +2311,13 @@ skill_guangmangwanzhang:
 skill_dianshanguang:
   name: 电闪光
   description: 弱化对手速度1级并使对手获得15点命中下降
-skill_jidiantianchong:
+skill_jidianqianniao:
   name: 极电千鸟
   description: 必中 15%使对手麻痹
 skill_shunleitianxian:
   name: 瞬雷天闪
   description: 20%使对手麻痹
-skill_modiandian:
+skill_morileidian:
   name: 末日雷电
   description: 对手麻痹时恢复自身40点怒气
 skill_leishentianmingshan:
