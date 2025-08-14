@@ -4833,7 +4833,6 @@
     value: 25
   condition:
     type: selfUseSkill
-
 # 70%麻痹对手
 - id: effect_skill_add_mark_opponent_mabi_70_percent
   trigger: OnHit
@@ -9445,3 +9444,148 @@
       - type: selfUseSkill
       - type: selfHasMark
         baseId: mark_niliu
+# 技能命中时，给自己添加一个名为"电系增强"的标记。
+- id: effect_skill_add_mark_dianxizengqiang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_dianxizengqiang
+  condition:
+    type: selfUseSkill
+# 技能命中时，给自己添加一个名为"雷神觉醒"的标记。
+- id: effect_skill_add_mark_leishenjuexing
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_leishenjuexing
+  condition:
+    type: selfUseSkill
+# 体力低于一半时威力2倍
+- id: effect_skill_power_2x_if_hp_below_half
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: useSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_hp_below_half
+# 将场地设为雷暴天
+- id: effect_skill_set_field_leibaotian
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: battle
+    mark:
+      type: entity:baseMark
+      value: mark_global_leibaotian
+  condition:
+    type: selfUseSkill
+# 技能本身获得30%的额外暴击率
+- id: effect_skill_add_crit_rate_30_percent
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addCritRate
+    target: useSkillContext
+    value: 30
+  condition:
+    type: selfUseSkill
+# 使对手麻痹
+- id: effect_skill_add_mark_opponent_mabi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_mabi
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+# 15%麻痹对手
+- id: effect_skill_add_mark_opponent_mabi_15_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_mabi
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent:
+            type: 'raw:number'
+            value: 15
+            tags: ['skill_effect_probability', 'mark_mabi_chance']
+# 20%麻痹对手
+- id: effect_skill_add_mark_opponent_mabi_20_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_mabi
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent:
+            type: 'raw:number'
+            value: 20
+            tags: ['skill_effect_probability', 'mark_mabi_chance']
+# 当对手麻痹时，获得40点怒气
+- id: effect_skill_add_self_40_rage_if_opponent_mabi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 40
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_mabi
+# 10%几率威力4倍
+- id: effect_skill_power_4x_10_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: useSkillContext
+    value: 4
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_10_percent_template

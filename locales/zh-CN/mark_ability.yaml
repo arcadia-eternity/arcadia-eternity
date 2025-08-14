@@ -163,3 +163,6 @@ mark_ability_gugao:
 mark_ability_liuzhuan:
   name: 流转
   description: 物攻使自身获得1层顺流，特攻使自身获得1层逆流
+mark_ability_leishen:
+  name: 雷神
+  description: 出场时使环境变为雷暴天

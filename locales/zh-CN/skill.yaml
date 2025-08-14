@@ -2284,3 +2284,51 @@ skill_feiliuzhixia:
 skill_niliuershang:
   name: 逆流而上
   description: 每层逆流恢复自身最大体力的1/16
+skill_fengchidianche:
+  name: 风驰电掣
+  description: 先制+2
+skill_shanguangji:
+  name: 闪光击
+  description: 先制+1
+skill_chongdian:
+  name: 充电
+  description: 使自身获得电系强化
+skill_jingleiqie:
+  name: 惊雷切
+  description: 体力＜1/2时威力2倍
+skill_leibaotian:
+  name: 雷暴天
+  description: 使环境变为雷暴天
+skill_baiguangren:
+  name: 白光刃
+  description: 暴击率增加30%
+skill_leiji:
+  name: 雷祭
+  description: 使对手麻痹
+skill_guangmangwanzhang:
+  name: 光芒万丈
+  description: 解除自身弱化
+skill_dianshanguang:
+  name: 电闪光
+  description: 弱化对手速度1级并使对手获得15点命中下降
+skill_jidiantianchong:
+  name: 极电千鸟
+  description: 必中 15%使对手麻痹
+skill_shunleitianxian:
+  name: 瞬雷天闪
+  description: 20%使对手麻痹
+skill_modiandian:
+  name: 末日雷电
+  description: 对手麻痹时恢复自身40点怒气
+skill_leishentianmingshan:
+  name: 雷神天明闪
+  description: 必中 10%伤害4倍
+skill_leishenjuexing:
+  name: 雷神觉醒
+  description: 强化自身物攻速度1级并获得雷神觉醒
+skill_shandiandouqi:
+  name: 闪电斗气
+  description: 强化自身双防1级
+skill_jiguangren:
+  name: 极光刃
+  description: 清除对手强化

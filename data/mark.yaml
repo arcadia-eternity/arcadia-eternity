@@ -2178,3 +2178,26 @@
   tags: []
   effect:
     - effect_mark_reduce_damage_taken_by_25_per_stack
+- id: mark_dianxizengqiang
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: stack
+    destroyable: true
+    duration: -1
+    maxStacks: 1
+    keepOnSwitchOut: true
+  tags: []
+  effect:
+    - effect_mark_amplify_next_electric_skill
+- id: mark_leishenjuexing
+  config:
+    persistent: false
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    duration: 3
+    keepOnSwitchOut: true
+  tags: []
+  effect:
+    - effect_mark_add_rage_35_turnEnd

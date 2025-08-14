@@ -673,3 +673,9 @@ mark_shunliu:
 mark_niliu:
   name: 逆流
   description: 每层受到伤害减少25点，最多2层
+mark_dianxizengqiang:
+  name: 电系强化
+  description: 下一个电系技能威力翻倍
+mark_leishenjuexing:
+  name: 雷神觉醒
+  description: 每回合恢复35点怒气

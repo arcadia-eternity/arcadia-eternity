@@ -1363,3 +1363,27 @@
       type: entity:baseMark
       value: mark_shunliu
     stack: 1
+# 雷神: 替换上场时,将场地替换为雷暴天
+- id: effect_ability_set_field_leibaotian_on_switch
+  trigger: OnSwitchIn
+  priority: 0
+  condition:
+    type: selfSwitchIn
+  apply:
+    type: addMark
+    target: battle
+    mark:
+      type: entity:baseMark
+      value: mark_global_leibaotian
+# 雷神: 首发时，将场地替换为雷暴天
+- id: effect_ability_set_field_leibaotian_on_lead
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addMark
+    target: battle
+    mark:
+      type: entity:baseMark
+      value: mark_global_leibaotian
+  condition:
+    type: petIsActive

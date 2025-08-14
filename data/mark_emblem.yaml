@@ -282,3 +282,8 @@
   effect:
     - effect_emblem_add_rage_on_hit_if_has_shunliu
     - effect_emblem_add_damage_if_has_niliu
+- id: mark_emblem_juexing
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_increase_leishenjuexing_duration_1
