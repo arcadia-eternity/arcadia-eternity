@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.17.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.17.1...arcadia-eternity-v2.17.2) (2025-08-14)
+
+
+### ⚡ Performance Improvements
+
+* check GlobalCircularDependencies ([dddea01](https://github.com/arcadia-eternity/arcadia-eternity/commit/dddea01f6248bf170d2c0656d95827d5bbf482f6))
+
 ## [2.17.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.17.0...arcadia-eternity-v2.17.1) (2025-08-14)
 
 
