@@ -414,8 +414,7 @@ export class AttributeSystem<T extends AttributeData> {
   private wouldCreateCrossObjectCircularDependency(key: keyof T): boolean {
     const globalKey = `${this.objectId}.${String(key)}`
     // 使用反向索引直接检查，O(1)时间复杂度
-    return AttributeSystem.globalKeyIndex.has(globalKey) && 
-           AttributeSystem.globalKeyIndex.get(globalKey)!.size > 0
+    return AttributeSystem.globalKeyIndex.has(globalKey) && AttributeSystem.globalKeyIndex.get(globalKey)!.size > 0
   }
 
   /**
@@ -1077,6 +1076,7 @@ export class AttributeSystem<T extends AttributeData> {
   static clearGlobalTracking(): void {
     AttributeSystem.globalCalculationStack.clear()
     AttributeSystem.globalDependencyGraph.clear()
+    AttributeSystem.globalKeyIndex.clear()
   }
 
   /**
@@ -1194,7 +1194,7 @@ export class AttributeSystem<T extends AttributeData> {
       }
     }
     keysToDelete.forEach(key => AttributeSystem.globalDependencyGraph.delete(key))
-    
+
     // Clean up global key index entries for this object
     const globalKeysToDelete: string[] = []
     for (const [globalKey, objectIds] of AttributeSystem.globalKeyIndex) {
