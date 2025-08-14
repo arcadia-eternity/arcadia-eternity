@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.17.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.17.0...arcadia-eternity-v2.17.1) (2025-08-14)
+
+
+### 🐛 Bug Fixes
+
+* Skill id ([c28a81e](https://github.com/arcadia-eternity/arcadia-eternity/commit/c28a81ec353dbd59cf7206fbc8806eab6e3b9899))
+
 ## [2.17.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.16.5...arcadia-eternity-v2.17.0) (2025-08-14)
 
 
