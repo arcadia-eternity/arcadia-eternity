@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.17.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.17.2...arcadia-eternity-v2.17.3) (2025-08-14)
+
+
+### 🐛 Bug Fixes
+
+* clear global tracking ([926ea84](https://github.com/arcadia-eternity/arcadia-eternity/commit/926ea84d3458c310a984701646d3d42f9abc736c))
+
 ## [2.17.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.17.1...arcadia-eternity-v2.17.2) (2025-08-14)
 
 
