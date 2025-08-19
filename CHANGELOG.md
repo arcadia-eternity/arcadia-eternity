@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.18.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.18.1...arcadia-eternity-v2.18.2) (2025-08-19)
+
+
+### 🐛 Bug Fixes
+
+* applyStateDelta timing ([9f3be07](https://github.com/arcadia-eternity/arcadia-eternity/commit/9f3be07b07701e39ad0f887abb44c3d4bb32c5c3))
+
 ## [2.18.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.18.0...arcadia-eternity-v2.18.1) (2025-08-19)
 
 
