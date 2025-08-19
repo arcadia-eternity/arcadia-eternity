@@ -307,6 +307,10 @@ export const useBattleStore = defineStore('battle', {
       }
     },
 
+    isApplied(msg: BattleMessage): boolean {
+      return this.lastProcessedSequenceId >= (msg.sequenceId ?? -1)
+    },
+
     async handleBattleMessage(msg: BattleMessage) {
       // 处理团队选择相关消息
       if (msg.type === BattleMessageType.TeamSelectionStart) {

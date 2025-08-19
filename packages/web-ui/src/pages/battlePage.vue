@@ -1537,7 +1537,6 @@ async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitc
 
   await animatePetTransition(oldPetSprite, offScreenX, 0, animationDuration, 'power2.in')
 
-  // 统一使用 applyStateDelta，回放模式下跳过重复检查
   await store.applyStateDelta(petSwitchMessage)
   await nextTick()
 
@@ -1584,7 +1583,6 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   // 设置当前活跃技能ID用于连击伤害跟踪
   currentActiveSkillId.value = useSkill.data.skill
 
-  // 统一使用 applyStateDelta，回放模式下跳过重复检查
   await store.applyStateDelta(useSkill)
 
   const baseSkillId = useSkill.data.baseSkill
@@ -1749,7 +1747,6 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
     playSkillSound(baseSkillId)
 
   for (const msg of messages) {
-    await store.applyStateDelta(msg)
     const combatEventTypes: BattleMessageType[] = [
       BattleMessageType.SkillMiss,
       BattleMessageType.Damage,
@@ -1759,6 +1756,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
     if (combatEventTypes.includes(msg.type as BattleMessageType)) {
       handleCombatEventMessage(msg as CombatEventMessageWithTarget, true)
     }
+    await store.applyStateDelta(msg)
   }
 
   await animateCompletePromise
@@ -1778,6 +1776,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
 }
 
 function handleCombatEventMessage(message: CombatEventMessageWithTarget, isFromSkillSequenceContext: boolean) {
+  if (store.isApplied(message)) return
   const targetPetId = message.data.target
   const targetSide = getTargetSide(targetPetId)
   const targetPetSprite = petSprites.value[targetSide]
@@ -1982,7 +1981,6 @@ const getClimaxEffectStyle = () => {
     transform: 'translate(-50%, -50%)',
   }
 }
-
 
 const getTargetSide = (targetPetId: string): 'left' | 'right' => {
   const isCurrentPlayerPet = currentPlayer.value?.team?.some(p => p.id === targetPetId)
@@ -2208,13 +2206,17 @@ onMounted(async () => {
       console.warn('No battle record available for replay mode')
       // 即使没有战报数据，也要初始化一个空的回放模式，确保UI能正常显示
       try {
-        store.initReplayMode([], {
-          status: BattleStatusEnum.Unstarted,
-          currentPhase: BattlePhase.SelectionPhase,
-          currentTurn: 0,
-          marks: [],
-          players: []
-        } as BattleState, '')
+        store.initReplayMode(
+          [],
+          {
+            status: BattleStatusEnum.Unstarted,
+            currentPhase: BattlePhase.SelectionPhase,
+            currentTurn: 0,
+            marks: [],
+            players: [],
+          } as BattleState,
+          '',
+        )
         console.debug('Empty replay mode initialized as fallback')
       } catch (error) {
         console.error('Failed to initialize empty replay mode:', error)
@@ -2306,21 +2308,6 @@ const setupMessageSubscription = async () => {
                 BattleMessageType.Heal,
               ]
 
-              // 回放模式和正常模式使用相同的消息处理逻辑
-
-              // 对于其他所有消息，先应用状态变更
-              await store.applyStateDelta(msg)
-
-              // 检查是否已经处理过这个消息（在 applyStateDelta 之后检查）
-              // 注意：applyStateDelta 会更新 lastProcessedSequenceId，所以我们需要检查是否应该跳过 UI 处理
-              const wasAlreadyProcessed = msg.sequenceId !== undefined && msg.sequenceId < store.lastProcessedSequenceId
-              if (wasAlreadyProcessed) {
-                return
-              }
-
-              // 等待一个 tick 确保状态更新完成
-              await nextTick()
-
               if (combatEventTypes.includes(msg.type as BattleMessageType)) {
                 handleCombatEventMessage(msg as CombatEventMessageWithTarget, false)
               } else {
@@ -2364,10 +2351,11 @@ const setupMessageSubscription = async () => {
                     break
                   // PetSwitch 类型的消息已在外部 if 条件中处理
                   default:
-                    // 其他消息类型，如果它们不直接触发战斗动画或UI，则仅应用状态（已在上方完成）
+                    // 其他消息类型，如果它们不直接触发战斗动画或UI，则仅应用状态
                     break
                 }
               }
+              await store.applyStateDelta(msg)
             }
           } catch (error) {
             console.error('Error executing message task for:', msg.type, error)
@@ -2762,7 +2750,11 @@ watch(
             <div class="grid grid-cols-3 items-center mb-2 min-h-[24px]">
               <!-- 回合时间 - 左侧 -->
               <div class="flex justify-start">
-                <SimpleBattleTimer v-if="!isReplayMode && !isSpectatorMode" type="turn" :player-id="currentPlayer?.id" />
+                <SimpleBattleTimer
+                  v-if="!isReplayMode && !isSpectatorMode"
+                  type="turn"
+                  :player-id="currentPlayer?.id"
+                />
               </div>
 
               <!-- 回合数居中显示 - 始终在中间 -->
@@ -2779,7 +2771,11 @@ watch(
 
               <!-- 总时间 - 右侧 -->
               <div class="flex justify-end">
-                <SimpleBattleTimer v-if="!isReplayMode && !isSpectatorMode" type="total" :player-id="currentPlayer?.id" />
+                <SimpleBattleTimer
+                  v-if="!isReplayMode && !isSpectatorMode"
+                  type="total"
+                  :player-id="currentPlayer?.id"
+                />
               </div>
             </div>
 
@@ -3007,7 +3003,10 @@ watch(
           </div>
 
           <!-- 显示日志按钮（浮动在左下角） -->
-          <div v-if="!isReplayMode && !isSpectatorMode && !battleViewStore.showLogPanel" class="absolute bottom-4 left-4 z-50">
+          <div
+            v-if="!isReplayMode && !isSpectatorMode && !battleViewStore.showLogPanel"
+            class="absolute bottom-4 left-4 z-50"
+          >
             <button
               class="group relative w-8 h-8 cursor-pointer bg-black/70 rounded-r-lg border border-gray-400/50 hover:border-green-400/70 hover:bg-black/90 transition-all duration-200"
               @click="battleViewStore.toggleLogPanel()"
@@ -3063,10 +3062,7 @@ watch(
               </div>
 
               <!-- 观战模式下显示信息面板 -->
-              <div
-                v-if="isSpectatorMode"
-                class="h-full max-h-full p-4 overflow-y-auto bg-black/20"
-              >
+              <div v-if="isSpectatorMode" class="h-full max-h-full p-4 overflow-y-auto bg-black/20">
                 <div class="text-white">
                   <h3 class="text-lg font-bold mb-3 text-center text-gray-300">观战模式</h3>
                   <p class="text-gray-400 mb-4 text-center text-sm">您正在观看战斗</p>
