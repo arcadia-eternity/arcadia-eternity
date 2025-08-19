@@ -723,7 +723,7 @@ export function parseAddRageAction(effectId: string, dsl: Extract<OperatorDSL, {
 }
 
 export function parseSetRageAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'setRage' }>) {
-  return parseSelector<Player>(effectId, dsl.target).apply(
+  return parseSelector<Player | Pet>(effectId, dsl.target).apply(
     Operators.setRage(parseValue(effectId, dsl.value) as ValueSource<number>),
   )
 }

@@ -814,6 +814,8 @@
     keepOnSwitchOut: true
     transferOnSwitch: false
     inheritOnFaint: false
+  tags:
+    - shield
 - id: mark_tanxingzhifang
   config:
     duration: -1
@@ -844,6 +846,8 @@
   effect:
     - effect_mark_reduce_physical_damage_with_stack
 - id: mark_kongqihudun
+  tags:
+    - shield
   config:
     duration: -1
     persistent: true
@@ -892,6 +896,8 @@
     keepOnSwitchOut: true
   effect: []
 - id: mark_shuiwenpingzhang
+  tags:
+    - shield
   config:
     duration: -1
     persistent: true
@@ -1259,6 +1265,8 @@
     - effect_mark_reduce_damage_taken_20_percent
     - effect_mark_increase_damage_dealt_20_percent
 - id: mark_shandianwaiyi
+  tags:
+    - shield
   config:
     duration: -1
     persistent: true
@@ -1428,6 +1436,8 @@
   effect:
     - effect_mark_increase_skill_trigger_rate_with_stack
 - id: mark_yinbopingzhang
+  tags:
+    - shield
   config:
     duration: -1
     persistent: true
@@ -1791,6 +1801,8 @@
   effect:
     - effect_mark_buxieanguang_reduce_light_damage_half # TODO
 - id: mark_shandianshoushu
+  tags:
+    - shield
   config:
     persistent: true
     stackable: true
@@ -1800,7 +1812,6 @@
     duration: -1
     keepOnSwitchOut: true
     isShield: true
-  tags: []
 - id: mark_shandianluoyin
   config:
     duration: -1
@@ -2089,6 +2100,8 @@
   effect:
     - effect_mark_reduce_opponent_rage_15_if_damage_below_75
 - id: mark_guanghudun
+  tags:
+    - shield
   config:
     duration: -1
     persistent: true

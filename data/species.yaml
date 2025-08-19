@@ -6779,3 +6779,69 @@
     - skill_id: skill_jiguangren
       level: 60
       hidden: false
+- id: pet_kaisa
+  num: 234
+  element: Fire
+  baseStats:
+    hp: 178
+    atk: 167
+    def: 158
+    spa: 186
+    spd: 161
+    spe: 170
+  heightRange: [116, 121]
+  weightRange: [46, 51]
+  genderRatio: [0, 10]
+  ability:
+    - mark_ability_yandi
+  emblem:
+    - mark_emblem_yangyan
+  learnable_skills:
+    - skill_id: skill_huoquan
+      level: 1
+      hidden: false
+    - skill_id: skill_huanghuo
+      level: 5
+      hidden: false
+    - skill_id: skill_jiaoao
+      level: 10
+      hidden: false
+    - skill_id: skill_yanjie
+      level: 15
+      hidden: false
+    - skill_id: skill_qihequan
+      level: 20
+      hidden: false
+    - skill_id: skill_yanhuohuanrao
+      level: 25
+      hidden: false
+    - skill_id: skill_shunyansha
+      level: 30
+      hidden: false
+    - skill_id: skill_qiheshan
+      level: 35
+      hidden: false
+    - skill_id: skill_baoyan
+      level: 40
+      hidden: false
+    - skill_id: skill_feiyanzhan
+      level: 45
+      hidden: false
+    - skill_id: skill_kaisazhiyan
+      level: 50
+      hidden: false
+    - skill_id: skill_feihongjiaoyanzhen
+      level: 55
+      hidden: false
+    - skill_id: skill_yandihuangyanshan
+      level: 60
+      hidden: true
+    - skill_id: skill_zhenyangyan
+      level: 60
+      hidden: true
+    - skill_id: skill_qiankunzhiyan
+      level: 60
+      hidden: true
+    - skill_id: skill_yandezizun
+      level: 60
+      hidden: true

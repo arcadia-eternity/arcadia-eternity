@@ -1192,3 +1192,31 @@
     type: setMarkDuration
     target: addMarkContext
     value: 4
+# 阳炎: 炎热时所有技能必中
+- id: effect_emblem_sure_hit_when_yanre
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target: useSkillContext
+    priority: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: battle
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: marks
+            - type: flat
+            - type: whereAttr
+              extractor: baseId
+              evaluator:
+                type: same
+                value: mark_global_yanre
+        evaluator:
+          type: exist

@@ -8,6 +8,10 @@ import {
   type playerId,
   type PlayerSelection,
   type TeamSelectionConfig,
+  type PetMessage,
+  type SkillMessage,
+  type PlayerMessage,
+  type MarkMessage,
 } from '@arcadia-eternity/const'
 import type { IBattleSystem, IDeveloperBattleSystem } from '@arcadia-eternity/interface'
 import * as jsondiffpatch from 'jsondiffpatch'
@@ -64,10 +68,10 @@ export const useBattleStore = defineStore('battle', {
     totalSnapshots: 0,
     // 持久化的Map缓存，避免频繁重新创建
     // 使用 markRaw 避免 Vue 响应式跟踪，提升性能
-    _petMapCache: markRaw(new Map()) as Map<petId, any>,
-    _skillMapCache: markRaw(new Map()) as Map<string, any>,
-    _playerMapCache: markRaw(new Map()) as Map<playerId, any>,
-    _markMapCache: markRaw(new Map()) as Map<string, any>,
+    _petMapCache: markRaw(new Map()) as Map<petId, PetMessage>,
+    _skillMapCache: markRaw(new Map()) as Map<string, SkillMessage>,
+    _playerMapCache: markRaw(new Map()) as Map<playerId, PlayerMessage>,
+    _markMapCache: markRaw(new Map()) as Map<string, MarkMessage>,
     // 用于跟踪Map缓存的版本，当battleState发生变化时递增
     _mapCacheVersion: 0,
     // 缓存更新节流相关
