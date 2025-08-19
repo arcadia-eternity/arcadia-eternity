@@ -228,6 +228,7 @@ skill_mihuo:
   description: 【35】使对手获得迷惑
 skill_tongshenggongsi:
   name: 同生共死
+  description: 对手满体力时额外减少其1/4体力
 skill_chongding:
   name: 冲顶
   description: 5%弱化对手物防1级
