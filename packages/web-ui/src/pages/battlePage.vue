@@ -1754,9 +1754,10 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
       BattleMessageType.Heal,
     ]
     if (combatEventTypes.includes(msg.type as BattleMessageType)) {
-      handleCombatEventMessage(msg as CombatEventMessageWithTarget, true)
+      await handleCombatEventMessage(msg as CombatEventMessageWithTarget, true)
+    } else {
+      await store.applyStateDelta(msg)
     }
-    await store.applyStateDelta(msg)
   }
 
   await animateCompletePromise
@@ -1775,7 +1776,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   currentActiveSkillId.value = null
 }
 
-function handleCombatEventMessage(message: CombatEventMessageWithTarget, isFromSkillSequenceContext: boolean) {
+async function handleCombatEventMessage(message: CombatEventMessageWithTarget, isFromSkillSequenceContext: boolean) {
   if (store.isApplied(message)) return
   const targetPetId = message.data.target
   const targetSide = getTargetSide(targetPetId)
@@ -1850,7 +1851,7 @@ function handleCombatEventMessage(message: CombatEventMessageWithTarget, isFromS
         message,
       )
   }
-  await store.applyStateDelta(msg)
+  await store.applyStateDelta(message)
 }
 
 const handleAttackHit = (side: 'left' | 'right') => {
@@ -2310,7 +2311,7 @@ const setupMessageSubscription = async () => {
               ]
 
               if (combatEventTypes.includes(msg.type as BattleMessageType)) {
-                handleCombatEventMessage(msg as CombatEventMessageWithTarget, false)
+                await handleCombatEventMessage(msg as CombatEventMessageWithTarget, false)
               } else {
                 // 处理其他非战斗事件相关的消息 (PetSwitch 已在上面单独处理)
                 switch (msg.type) {

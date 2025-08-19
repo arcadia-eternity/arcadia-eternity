@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.18.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.18.2...arcadia-eternity-v2.18.3) (2025-08-19)
+
+
+### 🐛 Bug Fixes
+
+* handleCombatEventMessage ([bfbcc72](https://github.com/arcadia-eternity/arcadia-eternity/commit/bfbcc7229d6976c7cd5c9595112d9ab07d6ee148))
+
 ## [2.18.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.18.1...arcadia-eternity-v2.18.2) (2025-08-19)
 
 
