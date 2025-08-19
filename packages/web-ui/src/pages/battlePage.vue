@@ -1813,7 +1813,7 @@ function handleCombatEventMessage(message: CombatEventMessageWithTarget, isFromS
         }
         const { currentHp, maxHp } = targetPetInfo
         const { availableState } = targetPetSprite
-        const isDead = currentHp <= 0
+        const isDead = currentHp - damageData.damage <= 0
         const isCriticalHealth = currentHp < maxHp * 0.25
         const shouldSetPetAnimationState =
           !isFromSkillSequenceContext || (isFromSkillSequenceContext && damageData.damageType !== 'Effect')
@@ -1850,6 +1850,7 @@ function handleCombatEventMessage(message: CombatEventMessageWithTarget, isFromS
         message,
       )
   }
+  await store.applyStateDelta(msg)
 }
 
 const handleAttackHit = (side: 'left' | 'right') => {
@@ -2354,8 +2355,8 @@ const setupMessageSubscription = async () => {
                     // 其他消息类型，如果它们不直接触发战斗动画或UI，则仅应用状态
                     break
                 }
+                await store.applyStateDelta(msg)
               }
-              await store.applyStateDelta(msg)
             }
           } catch (error) {
             console.error('Error executing message task for:', msg.type, error)
