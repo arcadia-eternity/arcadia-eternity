@@ -1387,3 +1387,69 @@
       value: mark_global_leibaotian
   condition:
     type: petIsActive
+# 炎帝: 怒气大于50时，免疫异常状态
+- id: effect_ability_immune_exceptional_if_rage_greater_than_50
+  trigger: OnBeforeAddMark
+  priority: 0
+  apply:
+    type: disableContext
+    target: addMarkContext
+  condition:
+    type: every
+    conditions:
+      - type: selfBeAddMark
+      - type: evaluate
+        target:
+          base: selfPlayer
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: rage
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 50
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark
+            - type: select
+              arg:
+                type: base
+                arg: tags
+            - type: flat
+        evaluator:
+          type: contain
+          tag: exceptional
+# 炎帝: 当发生怒气变化时,怒气始终不低于25
+- id: effect_ability_keep_rage_at_least_25
+  trigger:
+    - OnRageGain
+    - OnRageLoss
+    - OnBattleStart
+  priority: 0
+  apply:
+    type: setRage
+    target: self
+    value: 25
+  condition:
+    type: every
+    conditions:
+      - type: petIsActive
+      - type: evaluate
+        target:
+          base: selfPlayer
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: rage
+        evaluator:
+          type: compare
+          operator: <
+          value: 25

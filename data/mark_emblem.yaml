@@ -287,3 +287,8 @@
   tags: [emblem]
   effect:
     - effect_emblem_increase_leishenjuexing_duration_1
+- id: mark_emblem_yangyan
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_sure_hit_when_yanre

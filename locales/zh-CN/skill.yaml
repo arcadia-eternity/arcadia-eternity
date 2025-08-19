@@ -2332,3 +2332,51 @@ skill_shandiandouqi:
 skill_jiguangren:
   name: 极光刃
   description: 清除对手强化
+skill_huoquan:
+  name: 火拳
+  description: 必中
+skill_huanghuo:
+  name: 荒火
+  description: 无视对手护盾 对手有护盾时威力2倍
+skill_jiaoao:
+  name: 骄傲
+  description: 强化自身速度1级并解除自身不良
+skill_yanjie:
+  name: 炎戒
+  description: 具有不良时威力4倍
+skill_qihequan:
+  name: 气合拳
+  description: 必中 体力＜1/2时附加50点伤害
+skill_yanhuohuanrao:
+  name: 炎火环绕
+  description: 强化自身特攻特防1级
+skill_shunyansha:
+  name: 瞬炎杀
+  description: 先制+1
+skill_qiheshan:
+  name: 气合闪
+  description: 使对手怒气与自身相同
+skill_baoyan:
+  name: 爆炎
+  description: 暴击率增加15% 体力＜1/2时效果2倍
+skill_feiyanzhan:
+  name: 绯炎斩
+  description: 造成伤害不低于100点
+skill_kaisazhiyan:
+  name: 凯萨之炎
+  description: 必中 无视对手双防强化
+skill_feihongjiaoyanzhen:
+  name: 绯红焦炎阵
+  description: 对手烧伤时恢复自身25点怒气
+skill_yandihuangyanshan:
+  name: 炎帝煌炎闪
+  description: 必中 使对手烧伤
+skill_zhenyangyan:
+  name: 真阳炎
+  description: 使环境变为炎热
+skill_qiankunzhiyan:
+  name: 乾坤之炎
+  description: 扭转自身弱化
+skill_yandezizun:
+  name: 炎帝的自尊
+  description: 强化自身特攻速度1级 体力＜1/2时额外强化特攻1级

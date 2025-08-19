@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.18.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.17.2...arcadia-eternity-v2.18.0) (2025-08-19)
+
+
+### ✨ Features
+
+* **newpet:** 凯萨 ([0c6c3c2](https://github.com/arcadia-eternity/arcadia-eternity/commit/0c6c3c253fc3994ca54b653578bc114191c334a1))
+
+
+### 🐛 Bug Fixes
+
+* clear global tracking ([926ea84](https://github.com/arcadia-eternity/arcadia-eternity/commit/926ea84d3458c310a984701646d3d42f9abc736c))
+
 ## [2.17.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.17.1...arcadia-eternity-v2.17.2) (2025-08-14)
 
 

@@ -163,3 +163,6 @@ mark_emblem_chuanliu:
 mark_emblem_juexing:
   name: 觉醒
   description: 使雷神觉醒回合数+1
+mark_emblem_yangyan:
+  name: 阳炎
+  description: 炎热时所有技能必中

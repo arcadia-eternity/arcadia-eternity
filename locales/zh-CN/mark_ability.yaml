@@ -166,3 +166,6 @@ mark_ability_liuzhuan:
 mark_ability_leishen:
   name: 雷神
   description: 出场时使环境变为雷暴天
+mark_ability_yandi:
+  name: 炎帝
+  description: 怒气始终不低于25点 怒气＞50点时免疫异常

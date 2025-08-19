@@ -4870,7 +4870,6 @@
       - type: selfUseSkill
       - type: opponentHasMark
         baseId: mark_mabi
-
 # 增加一层电荷
 - id: effect_skill_add_mark_dianhe_1
   trigger: OnHit
@@ -4884,7 +4883,6 @@
     stack: 1
   condition:
     type: selfUseSkill
-
 # 如果后手，威力翻倍
 - id: effect_skill_power_2x_if_last
   trigger: AfterUseSkillCheck
@@ -4898,7 +4896,6 @@
     conditions:
       - type: selfUseSkill
       - type: isLastSkillUsedThisTurn
-
 # 技能本身获得15%的额外暴击率
 - id: effect_skill_add_crit_rate_15_percent
   trigger: AfterUseSkillCheck
@@ -4909,7 +4906,6 @@
     value: 15
   condition:
     type: selfUseSkill
-
 # 给对手添加恐惧之念
 - id: effect_skill_add_mark_opponent_kongjuzhinian
   trigger: OnHit
@@ -9589,3 +9585,110 @@
     conditions:
       - type: selfUseSkill
       - *condition_probability_10_percent_template
+# 对方有护盾时，威力2倍
+- id: effect_skill_power_2x_if_opponent_has_shield
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: useSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_opponent_has_shield
+        type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: tags
+              evaluator:
+                type: contain
+                tag: shield
+        evaluator:
+          type: exist
+# 自身hp低于一半时，附加50点伤害
+- id: effect_skill_fixed_damage_50_if_hp_less_than_half
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_hp_below_half
+# 将敌方的怒气设为和己方相同
+- id: effect_skill_set_opponent_rage_to_self
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: setRage
+    target: opponent
+    value:
+      type: dynamic
+      selector:
+        base: selfPlayer
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: rage
+  condition:
+    type: selfUseSkill
+# 生命值低于一半时，获得15%暴击率
+- id: effect_skill_add_crit_rate_15_percent_if_hp_less_than_half
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addCritRate
+    target: useSkillContext
+    value: 15
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_hp_below_half
+# 对手烧伤时，恢复25点怒气
+- id: effect_skill_restore_rage_25_if_opponent_shaoshang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 25
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_shaoshang
+# 反转自身的弱化
+- id: effect_skill_reverse_self_negative_stage
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: reverseStatStage
+    target: self
+    cleanStageStrategy: negative
+  condition:
+    type: selfUseSkill
+# 生命值低于一半时，提升一级特攻
+- id: effect_skill_raise_spa_1_stage_if_hp_less_than_half
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_hp_below_half

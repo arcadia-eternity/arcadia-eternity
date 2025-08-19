@@ -352,6 +352,9 @@ pet_naipu:
 pet_naiputulong:
   name: 耐普图隆
   description: 日复一日，耐普图隆都张开净化结界，抵御污染的侵袭，净化被污染的生灵
+pet_kaisa:
+  name: 凯萨
+  description: 为了寻求真正的对手而走上歧途 却在雷伊的引导下回归正义
 pet_leiyi:
   name: 雷伊
   description: 雷电之子 它身环金色闪电 驾驭着超凡的电能量 兼备神兽的力量与人类智慧的精灵

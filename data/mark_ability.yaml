@@ -296,3 +296,9 @@
   effect:
     - effect_ability_set_field_leibaotian_on_switch
     - effect_ability_set_field_leibaotian_on_lead
+- id: mark_ability_yandi
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_immune_exceptional_if_rage_greater_than_50
+    - effect_ability_keep_rage_at_least_25
