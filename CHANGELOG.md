@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.18.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.18.3...arcadia-eternity-v2.18.4) (2025-08-20)
+
+
+### 🐛 Bug Fixes
+
+* **balance:** clear stage before hit ([d2c026f](https://github.com/arcadia-eternity/arcadia-eternity/commit/d2c026f20b448411cf9c011ac60a7de127c4f0b5))
+
+
+### ♻️ Code Refactoring
+
+* teamBuilder type ([1bbe620](https://github.com/arcadia-eternity/arcadia-eternity/commit/1bbe6207f1aa86ba175108380783d37601887100))
+
 ## [2.18.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.18.2...arcadia-eternity-v2.18.3) (2025-08-19)
 
 

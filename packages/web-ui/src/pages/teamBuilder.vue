@@ -1096,6 +1096,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, watchEffect, markRaw } from 'vue'
 import { nanoid } from 'nanoid'
+import { useDebounceFn } from '@vueuse/core'
 import { usePlayerStore } from '@/stores/player'
 import { useGameDataStore } from '@/stores/gameData'
 import { usePetStorageStore } from '@/stores/petStorage'
@@ -1114,7 +1115,6 @@ import {
   InfoFilled,
   FolderOpened,
   Close,
-  QuestionFilled,
   SuccessFilled,
   WarningFilled,
   ArrowDown,
@@ -1234,7 +1234,7 @@ const onStart = () => {
   drag.value = true
 }
 
-const handleDragEnd = (event: any) => {
+const handleDragEnd = (event: { oldIndex: number | undefined; newIndex: number | undefined }) => {
   nextTick(() => {
     drag.value = false
   })
@@ -1348,17 +1348,32 @@ const currentTeamName = computed(() => {
 })
 
 // 响应式的验证结果
-const teamValidationResultRef = ref<any>({
+interface ValidationError {
+  type: string
+  code: string
+  message: string
+  objectId?: string
+  objectType?: string
+  context?: Record<string, any>
+}
+
+type ValidationResult = {
+  isValid: boolean
+  errors: ValidationError[]
+  warnings: ValidationError[]
+}
+
+const teamValidationResultRef = ref<ValidationResult>({
   isValid: true,
-  errors: [],
-  warnings: [],
+  errors: [] as ValidationError[],
+  warnings: [] as ValidationError[],
 })
 
 // 验证状态管理
 const isValidating = ref(false)
 
 // 防抖验证函数
-const debouncedValidate = debounce(async () => {
+const debouncedValidate = useDebounceFn(async () => {
   if (isValidating.value) return // 防止重复验证
 
   try {
@@ -1374,7 +1389,7 @@ const debouncedValidate = debounce(async () => {
       console.log('⏳ 游戏数据尚未加载完成，跳过验证')
       teamValidationResultRef.value = {
         isValid: true,
-        errors: [],
+        errors: [] as ValidationError[],
         warnings: [
           {
             type: 'info' as const,
@@ -1394,7 +1409,7 @@ const debouncedValidate = debounce(async () => {
       console.log('⏳ 验证系统尚未初始化，跳过验证')
       teamValidationResultRef.value = {
         isValid: true,
-        errors: [],
+        errors: [] as ValidationError[],
         warnings: [
           {
             type: 'info' as const,
@@ -1428,7 +1443,7 @@ const debouncedValidate = debounce(async () => {
           context: {},
         },
       ],
-      warnings: [],
+      warnings: [] as ValidationError[],
     }
   } finally {
     isValidating.value = false
@@ -1439,8 +1454,6 @@ const debouncedValidate = debounce(async () => {
 watchEffect(
   () => {
     // 依赖于规则集和队伍数据
-    selectedGameMode.value
-    currentTeam.value
     // 触发防抖验证
     debouncedValidate()
   },
@@ -1455,19 +1468,19 @@ const teamValidationResult = computed(() => {
 })
 
 // 当前精灵的验证结果
-const currentPetValidationResult = ref<any>({
+const currentPetValidationResult = ref<ValidationResult>({
   isValid: true,
-  errors: [],
-  warnings: [],
+  errors: [] as ValidationError[],
+  warnings: [] as ValidationError[],
 })
 
 // 精灵级别的防抖验证
-const debouncedValidatePet = debounce(async () => {
+const debouncedValidatePet = useDebounceFn(async () => {
   if (!selectedPet.value || !gameDataStore.loaded) {
     currentPetValidationResult.value = {
       isValid: true,
-      errors: [],
-      warnings: [],
+      errors: [] as ValidationError[],
+      warnings: [] as ValidationError[],
     }
     return
   }
@@ -1479,8 +1492,8 @@ const debouncedValidatePet = debounce(async () => {
     console.error('精灵验证出错:', error)
     currentPetValidationResult.value = {
       isValid: true, // 验证失败时不显示错误，避免干扰用户
-      errors: [],
-      warnings: [],
+      errors: [] as ValidationError[],
+      warnings: [] as ValidationError[],
     }
   }
 }, 200)
@@ -1490,7 +1503,7 @@ const canAutoFix = computed(() => {
   if (teamValidationResult.value.isValid) return false
 
   // 检查错误类型，某些错误可以自动修复
-  return teamValidationResult.value.errors.some((error: any) =>
+  return teamValidationResult.value.errors.some((error: ValidationError) =>
     ['TEAM_TOO_LARGE', 'LEVEL_TOO_HIGH', 'LEVEL_TOO_LOW', 'EV_TOTAL_TOO_HIGH'].includes(getErrorCode(error)),
   )
 })
@@ -1862,7 +1875,7 @@ const saveCurrentTeam = async () => {
   try {
     petStorage.saveToLocal()
     ElMessage.success('队伍保存成功')
-  } catch (err) {
+  } catch {
     ElMessage.error('保存失败，请检查数据')
   }
 }
@@ -1906,19 +1919,19 @@ const getErrorIcon = (errorType: string) => {
 }
 
 // 错误处理辅助函数
-const getErrorCode = (error: any): string => {
+const getErrorCode = (error: ValidationError): string => {
   return error.code || 'UNKNOWN_ERROR'
 }
 
-const getErrorType = (error: any): string => {
+const getErrorType = (error: ValidationError): string => {
   return error.type || 'system_error'
 }
 
-const getErrorObjectId = (error: any): string | undefined => {
+const getErrorObjectId = (error: ValidationError): string | undefined => {
   return error.objectId
 }
 
-const getErrorContext = (error: any): Record<string, any> => {
+const getErrorContext = (error: ValidationError): Record<string, any> => {
   return error.context || {}
 }
 
@@ -1944,7 +1957,7 @@ const formatErrorContext = (context: Record<string, any>) => {
   return parts.join(', ')
 }
 
-const handleErrorClick = (error: any) => {
+const handleErrorClick = (error: ValidationError) => {
   // 如果错误关联到特定精灵，选中该精灵
   if (error.objectId) {
     const pet = currentTeam.value.find(p => p.id === error.objectId)
@@ -2129,14 +2142,14 @@ const getNatureMultiplier = (nature: Nature, stat: Exclude<StatKey, 'hp'>): numb
   return NatureMap[nature]?.[stat] ?? 1.0
 }
 
-const debouncedSave = debounce(() => {
+const debouncedSave = useDebounceFn(() => {
   if (!selectedPet.value) return
 
   try {
     petStorage.saveToLocal()
     // 保存后触发验证
     debouncedValidate()
-  } catch (err) {
+  } catch {
     ElMessage.error('自动保存失败')
   }
 }, 100)
@@ -2207,14 +2220,6 @@ const handleClimaxSkillChange = (newVal: string) => {
 
   displayedClimaxSkill.value = value
   debouncedSave() // 这会触发保存和验证
-}
-
-function debounce(fn: Function, delay: number) {
-  let timer: ReturnType<typeof setTimeout> | null = null
-  return function (this: any, ...args: any[]) {
-    if (timer) clearTimeout(timer)
-    timer = setTimeout(() => fn.apply(this, args), delay)
-  }
 }
 
 // 导出队伍配置的包装函数

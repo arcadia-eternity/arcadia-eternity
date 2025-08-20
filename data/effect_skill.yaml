@@ -935,7 +935,7 @@
       tags: ['skill_effect_stack', 'skill_effect_mingzhongxiajiang_stack']
   condition: *condition_self_use_skill_template
 - id: effect_skill_opponent_clear_stage
-  trigger: OnHit
+  trigger: BeforeHit
   priority: 0
   apply:
     type: clearStatStage
@@ -943,7 +943,7 @@
     cleanStageStrategy: positive
   condition: *condition_self_use_skill_template
 - id: effect_skill_clear_stage
-  trigger: OnHit
+  trigger: BeforeHit
   priority: 0
   apply:
     type: clearStatStage
@@ -1914,7 +1914,7 @@
     conditions:
       - type: selfUseSkill
 - id: effect_skill_clear_opponent_def_stage_if_has_mark_yinghua
-  trigger: OnHit
+  trigger: BeforeHit
   priority: 0
   apply:
     type: clearStatStage
@@ -1927,7 +1927,7 @@
       - type: opponentHasMark
         baseId: mark_yinghua
 - id: effect_skill_clear_opponent_spd_stage_if_has_mark_yinghua
-  trigger: OnHit
+  trigger: BeforeHit
   priority: 0
   apply:
     type: clearStatStage
@@ -3213,7 +3213,7 @@
     type: selfUseSkill
 # 清除对手攻击和特攻的正面能力等级变化
 - id: effect_skill_clear_opponent_atk_spa_stage
-  trigger: OnHit
+  trigger: BeforeHit
   priority: 0
   apply:
     type: clearStatStage
@@ -3226,7 +3226,7 @@
     type: selfUseSkill
 # 清除对手速度的正面能力等级变化
 - id: effect_skill_clear_opponent_spe_stage
-  trigger: OnHit
+  trigger: BeforeHit
   priority: 0
   apply:
     type: clearStatStage
@@ -3238,7 +3238,7 @@
     type: selfUseSkill
 # 清除对手防御和特防的正面能力等级变化
 - id: effect_skill_clear_opponent_def_spd_stage
-  trigger: OnHit
+  trigger: BeforeHit
   priority: 0
   apply:
     type: clearStatStage
@@ -4231,7 +4231,7 @@
         baseId: mark_xukongganying
 # 解除自身弱化
 - id: effect_skill_clear_self_negative_stage
-  trigger: OnHit
+  trigger: BeforeHit
   priority: 0
   apply:
     type: clearStatStage
@@ -6727,7 +6727,7 @@
     type: selfUseSkill
 # 无论命中与否，清除对方的强化状态
 - id: effect_skill_opponent_clear_stage_hit_or_miss
-  trigger: [OnHit, OnMiss]
+  trigger: [BeforeHit, OnMiss]
   priority: 0
   apply:
     type: clearStatStage
@@ -9672,7 +9672,7 @@
         baseId: mark_shaoshang
 # 反转自身的弱化
 - id: effect_skill_reverse_self_negative_stage
-  trigger: OnHit
+  trigger: BeforeHit
   priority: 0
   apply:
     type: reverseStatStage
