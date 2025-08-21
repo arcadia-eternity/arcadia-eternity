@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.19.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.19.0...arcadia-eternity-v2.19.1) (2025-08-21)
+
+
+### 🐛 Bug Fixes
+
+* **teambuilder:** Allow vertical scroll on locked team list ([400ded4](https://github.com/arcadia-eternity/arcadia-eternity/commit/400ded45dc098062adf1c315571fdef1f5b938be))
+
 ## [2.19.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.18.4...arcadia-eternity-v2.19.0) (2025-08-21)
 
 

@@ -318,6 +318,7 @@
                 @start="onStart"
                 @end="handleDragEnd"
                 class="space-y-3"
+                :class="{ 'touch-panning-y': sortLocked }"
               >
                 <template #item="{ element: pet }">
                   <div
@@ -797,12 +798,12 @@
                 <!-- 必杀技能配置 -->
                 <div>
                   <h4 class="text-sm font-medium text-gray-800 mb-3">
-                    必杀技能 {{ hasClimaxSkills ? '(必须1个)' : '(该种族无必杀技能)' }}
+                    必杀技能 {{ climaxSkillSelectOptions.length > 0 ? '(必须1个)' : '(无可用必杀技能)' }}
                   </h4>
                   <div class="max-w-md">
                     <label class="block text-xs font-medium text-gray-700 mb-2">
                       必杀技能
-                      <span v-if="hasClimaxSkills" class="text-red-500">*</span>
+                      <span v-if="climaxSkillSelectOptions.length > 0" class="text-red-500">*</span>
                       <span v-else class="text-gray-400">(无)</span>
                     </label>
                     <el-select-v2
@@ -1048,6 +1049,10 @@
 </template>
 
 <style scoped>
+.touch-panning-y .drag-handle {
+  touch-action: pan-y;
+}
+
 /* 技能下拉框样式优化 */
 :deep(.el-select-dropdown__item) {
   height: auto !important;
@@ -2205,15 +2210,8 @@ const handleClimaxSkillChange = (newVal: string) => {
     return
   }
 
-  // 如果种族没有必杀技能，直接清空
-  if (!hasClimaxSkills.value) {
-    displayedClimaxSkill.value = ''
-    debouncedSave() // 这会触发保存和验证
-    return
-  }
-
-  // 如果种族有必杀技能但用户试图清空，给出警告
-  if (hasClimaxSkills.value && !value) {
+  // 如果种族有必杀技能但用户试图清空，并且当前等级下有可选的必杀技能，给出警告
+  if (hasClimaxSkills.value && !value && climaxSkillSelectOptions.value.length > 0) {
     ElMessage.warning('必须选择一个必杀技能')
     return
   }
