@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.19.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.18.4...arcadia-eternity-v2.19.0) (2025-08-21)
+
+
+### ✨ Features
+
+* **netpet:** 🧊🐢寒冰龟 ([90fba1b](https://github.com/arcadia-eternity/arcadia-eternity/commit/90fba1bade9c366becdd8e55de8c006c4006976d))
+
 ## [2.18.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.18.3...arcadia-eternity-v2.18.4) (2025-08-20)
 
 
