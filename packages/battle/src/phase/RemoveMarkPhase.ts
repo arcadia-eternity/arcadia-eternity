@@ -95,5 +95,6 @@ export function executeRemoveMarkOperation(context: RemoveMarkContext, battle: B
   battle.emitMessage(BattleMessageType.MarkDestroy, {
     mark: mark.id,
     target: owner instanceof Pet ? owner.id : 'battle',
+    baseMarkId: mark.base.id,
   })
 }

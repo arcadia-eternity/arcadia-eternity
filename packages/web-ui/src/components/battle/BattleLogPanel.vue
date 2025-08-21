@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import BattleLogEntry from './BattleLogEntry.vue'
-import { BattleMessageType, type BattleMessageData, type playerId } from '@arcadia-eternity/const'
+import {
+  BattleMessageType,
+  type baseMarkId,
+  type baseSkillId,
+  type BattleMessageData,
+  type petId,
+  type playerId,
+} from '@arcadia-eternity/const'
 import i18next from 'i18next'
 import { type TimestampedBattleMessage } from '@/symbol/battlelog'
 import { useGameSettingStore } from '@/stores/gameSetting'
@@ -83,18 +90,18 @@ type FormattedBattleMessage = TimestampedBattleMessage & {
 }
 
 // 获取精灵名称
-function getPetName(petId: string): string {
+function getPetName(petId: petId): string {
   const pet = battleStore.getPetById(petId)
   return pet?.name || petId
 }
 
 // 获取技能名称
-function getSkillName(skillId: string): string {
+function getSkillName(skillId: baseSkillId): string {
   return i18next.t(`${skillId}.name`, { ns: 'skill' }) || skillId
 }
 
 // 获取印记名称
-function getMarkName(markId: string): string {
+function getMarkName(markId: baseMarkId): string {
   return i18next.t(`${markId}.name`, { ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'] }) || markId
 }
 
@@ -118,7 +125,7 @@ function formatBattleMessage(msg: TimestampedBattleMessage): FormattedBattleMess
       const skillInfo = battleStore.getSkillInfo(msg.data.skill)
       const skillName = skillInfo?.baseId ? getSkillName(skillInfo.baseId) : msg.data.skill
 
-      content = `${getPetName(msg.data.user)} 使用 ${skillName} (消耗${msg.data.rage}怒气) → ${getPetName(msg.data.target)}`
+      content = `${getPetName(msg.data.user)} 使用 ${skillName} (消耗${msg.data.rage}怒气) → ${getPetName(msg.data.target as petId)}`
       break
     }
     case BattleMessageType.Damage: {
@@ -131,7 +138,7 @@ function formatBattleMessage(msg: TimestampedBattleMessage): FormattedBattleMess
         currentHp: number
         maxHp: number
       }
-      content = `${getPetName(data.target)} 受到 ${data.damage} 点 ${DAMAGE_TYPE_MAP[data.damageType]}伤害`
+      content = `${getPetName(data.target as petId)} 受到 ${data.damage} 点 ${DAMAGE_TYPE_MAP[data.damageType]}伤害`
       if (data.isCrit) content += ' (暴击)'
       if (data.effectiveness > 1) content += ' 效果拔群！'
       if (data.effectiveness < 1) content += ' 效果不佳...'
@@ -140,7 +147,7 @@ function formatBattleMessage(msg: TimestampedBattleMessage): FormattedBattleMess
     }
     case BattleMessageType.StatChange: {
       const data = msg.data as { pet: string; stat: string; stage: number; reason: string }
-      content = `${getPetName(data.pet)} ${data.stat} ${getStatArrows(data.stage).repeat(
+      content = `${getPetName(data.pet as petId)} ${data.stat} ${getStatArrows(data.stage).repeat(
         Math.abs(data.stage),
       )} (${data.reason})`
       break
@@ -149,13 +156,13 @@ function formatBattleMessage(msg: TimestampedBattleMessage): FormattedBattleMess
       const data = msg.data as { player: string; fromPet: string; toPet: string; currentHp: number }
       const player = battleStore.getPlayerById(data.player as playerId)
       content = `${player?.name || data.player} 更换精灵：${getPetName(
-        data.fromPet,
-      )} → ${getPetName(data.toPet)} (剩余HP: ${data.currentHp})`
+        data.fromPet as petId,
+      )} → ${getPetName(data.toPet as petId)} (剩余HP: ${data.currentHp})`
       break
     }
     case BattleMessageType.RageChange: {
       const data = msg.data as { pet: string; before: number; after: number; reason: string }
-      content = `${getPetName(data.pet)} 怒气 ${data.before} → ${
+      content = `${getPetName(data.pet as petId)} 怒气 ${data.before} → ${
         data.after
       } (${RAGE_REASON_MAP[data.reason] || data.reason})`
       break
@@ -163,20 +170,20 @@ function formatBattleMessage(msg: TimestampedBattleMessage): FormattedBattleMess
     case BattleMessageType.SkillMiss: {
       const data = msg.data as { user: string; skill: string; reason: string }
       const skillInfo = battleStore.getSkillInfo(data.skill)
-      content = `${getPetName(data.user)} 的 ${
+      content = `${getPetName(data.user as petId)} 的 ${
         skillInfo ? getSkillName(skillInfo.baseId) : data.skill
       } 未命中！ (${MISS_REASON_MAP[data.reason] || data.reason})`
       break
     }
     case BattleMessageType.PetDefeated: {
       const data = msg.data as { pet: string; killer?: string }
-      content = `${getPetName(data.pet)} 倒下！`
-      if (data.killer) content += ` (击败者: ${getPetName(data.killer)})`
+      content = `${getPetName(data.pet as petId)} 倒下！`
+      if (data.killer) content += ` (击败者: ${getPetName(data.killer as petId)})`
       break
     }
     case BattleMessageType.MarkApply: {
       const data = msg.data as BattleMessageData[typeof BattleMessageType.MarkApply]
-      content = `${getPetName(data.target)} 被施加 【${getMarkName(data.mark.baseId)}】 印记`
+      content = `${getPetName(data.target as petId)} 被施加 【${getMarkName(data.mark.baseId)}】 印记`
       break
     }
     case BattleMessageType.BattleEnd:
@@ -225,13 +232,13 @@ function formatBattleMessage(msg: TimestampedBattleMessage): FormattedBattleMess
     }
     case BattleMessageType.MarkDestroy: {
       const data = msg.data as BattleMessageData[typeof BattleMessageType.MarkDestroy]
-      const markName = getMarkName(data.mark)
-      content = `${getPetName(data.target)} 的【${markName}】印记被销毁`
+      const markName = getMarkName(data.baseMarkId)
+      content = `${getPetName(data.target as petId)} 的【${markName}】印记被销毁`
       break
     }
     case BattleMessageType.MarkUpdate: {
       const data = msg.data as BattleMessageData[typeof BattleMessageType.MarkUpdate]
-      content = `${getPetName(data.target)} 的【${getMarkName(data.mark.baseId)}】更新为 ${data.mark.stack} 层`
+      content = `${getPetName(data.target as petId)} 的【${getMarkName(data.mark.baseId)}】更新为 ${data.mark.stack} 层`
       break
     }
     case BattleMessageType.EffectApply: {
@@ -240,18 +247,13 @@ function formatBattleMessage(msg: TimestampedBattleMessage): FormattedBattleMess
 
       // First check if it's a skill
       const skillInfo = battleStore.getSkillInfo(data.source)
+      const markInfo = battleStore.getMarkInfo(data.source)
       if (skillInfo) {
         sourceName = getSkillName(skillInfo.baseId)
+      } else if (markInfo) {
+        sourceName = getMarkName(markInfo.baseId)
       } else {
-        // Fallback: try to get name directly using the source as baseId
-        const skillName = getSkillName(data.source)
-        const markName = getMarkName(data.source)
-        // Use the translated name if it's different from the source ID
-        if (skillName !== data.source) {
-          sourceName = skillName
-        } else if (markName !== data.source) {
-          sourceName = markName
-        }
+        sourceName = data.source
       }
 
       content = `${sourceName} 触发效果：${i18next.t(`effect:${data.effect}`, { defaultValue: data.effect })}`
@@ -291,12 +293,21 @@ function formatBattleMessage(msg: TimestampedBattleMessage): FormattedBattleMess
   }
 }
 
-// 格式化消息数据 - 直接复用 formatBattleMessage 函数
+// 格式化消息数据 - 使用缓存避免重新渲染
+const messageCache = new Map<string, FormattedBattleMessage>()
 const formattedMessages = computed(() => {
   const messageArray = messages.value // 处理可能的Ref类型
   return messageArray
     .filter((msg: TimestampedBattleMessage) => gameSettingStore.visibleLogTypes.has(msg.type)) // 根据设置过滤消息类型
-    .map(msg => formatBattleMessage(msg))
+    .map(msg => {
+      const cacheKey = `${msg.receivedAt}_${msg.type}_${JSON.stringify(msg.data)}`
+      if (messageCache.has(cacheKey)) {
+        return messageCache.get(cacheKey)!
+      }
+      const formatted = formatBattleMessage(msg)
+      messageCache.set(cacheKey, formatted)
+      return formatted
+    })
 })
 
 const logContainerRef = ref<HTMLElement | null>(null)
@@ -341,7 +352,7 @@ watch(
       ref="logContainerRef"
       class="h-full flex-1 overflow-y-auto overflow-x-hidden px-3 py-2 scroll-smooth scrollbar-thin scrollbar-track-white/5 scrollbar-thumb-white/20 scrollbar-thumb-rounded min-w-0 min-h-0"
     >
-      <BattleLogEntry v-for="(msg, index) in formattedMessages" :key="index" :message="msg" />
+      <BattleLogEntry v-for="(msg, index) in formattedMessages" :key="msg.receivedAt + index" :message="msg" />
     </div>
   </div>
 </template>
