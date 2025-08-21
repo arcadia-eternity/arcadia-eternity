@@ -16,6 +16,7 @@ import {
 import type { IBattleSystem, IDeveloperBattleSystem } from '@arcadia-eternity/interface'
 import * as jsondiffpatch from 'jsondiffpatch'
 import { markRaw } from 'vue'
+import { useCloned } from '@vueuse/core'
 import { ReplayBattleInterface } from './replayBattleInterface'
 import { usePlayerStore } from './player'
 import { useEloStore } from './elo'
@@ -1109,66 +1110,10 @@ export const useBattleStore = defineStore('battle', {
       return true // 默认更新，确保数据一致性
     },
 
-    // 优化的对象克隆方法
-    _cloneObject(obj: any): any {
-      // 对于简单对象，使用结构化克隆
-      if (typeof structuredClone !== 'undefined') {
-        try {
-          return structuredClone(obj)
-        } catch {
-          // 降级到 JSON 克隆
-        }
-      }
-
-      // 降级方案：JSON 序列化
-      return JSON.parse(JSON.stringify(obj))
-    },
-
-    // 高性能的浅拷贝方法（用于不需要深拷贝的场景）
-    _shallowCloneObject(obj: any): any {
-      if (obj === null || typeof obj !== 'object') {
-        return obj
-      }
-
-      if (Array.isArray(obj)) {
-        return [...obj]
-      }
-
-      return { ...obj }
-    },
-
-    // 智能克隆策略：根据对象特征选择最优的克隆方法
+    // 使用 vueuse 的 useCloned 进行高性能克隆
     _smartCloneObject(obj: any): any {
-      // 对于简单对象（没有嵌套数组或对象），使用浅拷贝
-      if (this._isSimpleObject(obj)) {
-        return this._shallowCloneObject(obj)
-      }
-
-      // 对于复杂对象，使用深拷贝
-      return this._cloneObject(obj)
-    },
-
-    // 检查是否为简单对象（没有深层嵌套）
-    _isSimpleObject(obj: any): boolean {
-      if (obj === null || typeof obj !== 'object') {
-        return true
-      }
-
-      // 检查对象的第一层属性
-      for (const key in obj) {
-        const value = obj[key]
-        if (value !== null && typeof value === 'object') {
-          // 如果有嵌套的对象或数组，则认为是复杂对象
-          if (Array.isArray(value) && value.length > 0) {
-            return false
-          }
-          if (!Array.isArray(value) && Object.keys(value).length > 0) {
-            return false
-          }
-        }
-      }
-
-      return true
+      // 使用 vueuse 的 useCloned 进行高性能克隆
+      return useCloned(obj).cloned.value
     },
   },
 
