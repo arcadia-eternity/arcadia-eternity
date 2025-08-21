@@ -2253,4 +2253,18 @@
     transferOnSwitch: false
     inheritOnFaint: false
   effect:
-    - effect_mark_reflect_special_damage_max_with_stack #TODO
+    - effect_mark_reflect_special_damage_max_with_stack
+- id: mark_huijiachifan
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: max
+    destroyable: true
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_heal_self_1_6_turnEnd
+    - effect_mark_raise_def_1_when_hit_and_remove_self

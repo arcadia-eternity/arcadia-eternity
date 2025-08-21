@@ -1479,3 +1479,43 @@
       base: damageContext
     delta: 0
     percent: -10
+# 强化: 强化特攻时也会强化物攻
+- id: effect_ability_enhance_atk_when_spa_enhanced
+  trigger: OnBeforeAddMark
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: self
+    statType: atk
+    value:
+      type: dynamic
+      selector:
+        base: addMarkContext
+        chain:
+          - type: select
+            arg:
+              type: dynamic
+              arg: baseMark
+          - type: asStatLevelMark
+          - type: selectPath
+            arg: initialLevel
+  condition:
+    type: every
+    conditions:
+      - type: selfAddMark
+      - type: statStageChange
+        check: up
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark
+            - type: asStatLevelMark
+            - type: selectPath
+              arg: statType
+        evaluator:
+          type: same
+          value: spa

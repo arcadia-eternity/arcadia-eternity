@@ -169,3 +169,6 @@ mark_emblem_yangyan:
 mark_emblem_dongqi:
   name: 冻气
   description: 具有冻气附体时暴击率增加5%
+mark_emblem_baonuan:
+  name: 保暖
+  description: 使保暖有20%几率额外提升1级特防

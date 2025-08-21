@@ -307,3 +307,8 @@
   tags: [ability]
   effect:
     - effect_ability_reduce_damage_when_max_hp_over_500
+- id: mark_ability_qianghua
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_enhance_atk_when_spa_enhanced

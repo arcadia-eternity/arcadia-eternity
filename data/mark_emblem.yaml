@@ -297,3 +297,8 @@
   tags: [emblem]
   effect:
     - effect_emblem_increase_crit_rate_when_dongqifuti
+- id: mark_emblem_baonuan
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_raise_spd_1_stage_when_baonuan_20_percent

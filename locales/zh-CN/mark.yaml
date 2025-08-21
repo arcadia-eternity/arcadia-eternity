@@ -688,3 +688,6 @@ mark_hanbinghujia:
 mark_fansheguike:
   name: 反射龟壳【🛡️】
   description: 反弹特攻伤害 最多{{mark.stack}}点
+mark_huijiachifan:
+  name: 回家吃饭
+  description: 每回合恢复自身最大体力的1/6 被攻击时强化自身物防1级并失效

@@ -6962,3 +6962,120 @@
     - skill_id: skill_hanbingtuji
       level: 60
       hidden: true
+- id: pet_duoli
+  num: 138
+  element: Ice
+  baseStats:
+    hp: 86
+    atk: 125
+    def: 115
+    spa: 125
+    spd: 115
+    spe: 110
+  genderRatio:
+    - 3
+    - 7
+  heightRange:
+    - 17
+    - 20
+  weightRange:
+    - 10
+    - 15
+  ability:
+    - mark_ability_qianghua
+  emblem:
+    - mark_emblem_baonuan
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_xueqiu
+      level: 5
+      hidden: false
+    - skill_id: skill_ningju
+      level: 9
+      hidden: false
+    - skill_id: skill_yuandingyiji
+      level: 13
+      hidden: false
+    - skill_id: skill_tixueqiu
+      level: 18
+      hidden: false
+    - skill_id: skill_bingzhili
+      level: 23
+      hidden: false
+- id: pet_duopuli
+  num: 139
+  element: Ice
+  baseStats:
+    hp: 176
+    atk: 175
+    def: 160
+    spa: 175
+    spd: 160
+    spe: 155
+  genderRatio:
+    - 3
+    - 7
+  heightRange:
+    - 60
+    - 65
+  weightRange:
+    - 44
+    - 49
+  ability:
+    - mark_ability_qianghua
+  emblem:
+    - mark_emblem_baonuan
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_xueqiu
+      level: 5
+      hidden: false
+    - skill_id: skill_ningju
+      level: 9
+      hidden: false
+    - skill_id: skill_yuandingyiji
+      level: 13
+      hidden: false
+    - skill_id: skill_tixueqiu
+      level: 18
+      hidden: false
+    - skill_id: skill_bingzhili
+      level: 23
+      hidden: false
+    - skill_id: skill_baonuan
+      level: 28
+      hidden: false
+    - skill_id: skill_bingxuanyiji
+      level: 33
+      hidden: false
+    - skill_id: skill_huijiachifan
+      level: 38
+      hidden: false
+    - skill_id: skill_bingxuechongji
+      level: 43
+      hidden: false
+    - skill_id: skill_juxingxueqiu
+      level: 48
+      hidden: false
+    - skill_id: skill_shuangdongchongji
+      level: 53
+      hidden: false
+    - skill_id: skill_bingshuangdaxueqiu
+      level: 60
+      hidden: true
+    - skill_id: skill_tongganyindiao
+      level: 60
+      hidden: true
+    - skill_id: skill_binghuzhiwu
+      level: 60
+      hidden: true
+    - skill_id: skill_jisuyiji
+      level: 60
+      hidden: true
+    - skill_id: skill_quzhuhanyi
+      level: 60
+      hidden: true

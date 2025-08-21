@@ -3678,3 +3678,36 @@
                     arg:
                       type: base
                       arg: maxHp
+# 回家吃饭: 每回合结束恢复1/6的HP
+- id: effect_mark_heal_self_1_6_turnEnd
+  trigger: TurnEnd
+  condition:
+    type: petIsActive
+  priority: 0
+  apply:
+    - type: heal
+      target: self
+      value:
+        type: dynamic
+        selector:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: maxHp
+            - type: divide
+              arg: 6
+# 回家吃饭: 被攻击时，移除印记并提升一级物防
+- id: effect_mark_raise_def_1_when_hit_and_remove_self
+  trigger: OnDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    - type: statStageBuff
+      target: self
+      statType: def
+      value: 1
+    - type: destroyMark
+      target: mark
