@@ -6842,6 +6842,123 @@
     - skill_id: skill_qiankunzhiyan
       level: 60
       hidden: true
-    - skill_id: skill_yandezizun
+    - skill_id: skill_yandidezizun
+      level: 60
+      hidden: true
+- id: pet_dongqigui
+  num: 122
+  element: Ice
+  baseStats:
+    hp: 96
+    atk: 119
+    def: 113
+    spa: 128
+    spd: 123
+    spe: 94
+  genderRatio:
+    - 4
+    - 6
+  heightRange:
+    - 30
+    - 35
+  weightRange:
+    - 15
+    - 20
+  ability:
+    - mark_ability_binggu
+  emblem:
+    - mark_emblem_dongqi
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_dongqiqianghua
+      level: 10
+      hidden: false
+    - skill_id: skill_dongqifuti
+      level: 14
+      hidden: false
+    - skill_id: skill_dongqichongji
+      level: 18
+      hidden: false
+    - skill_id: skill_dongqichongfeng
+      level: 23
+      hidden: false
+- id: pet_hanbinggui
+  num: 123
+  element: Ice
+  baseStats:
+    hp: 186
+    atk: 164
+    def: 163
+    spa: 173
+    spd: 173
+    spe: 139
+  genderRatio:
+    - 4
+    - 6
+  heightRange:
+    - 46
+    - 51
+  weightRange:
+    - 77
+    - 82
+  ability:
+    - mark_ability_binggu
+  emblem:
+    - mark_emblem_dongqi
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_dongqiqianghua
+      level: 10
+      hidden: false
+    - skill_id: skill_dongqifuti
+      level: 14
+      hidden: false
+    - skill_id: skill_dongqichongji
+      level: 18
+      hidden: false
+    - skill_id: skill_dongqichongfeng
+      level: 23
+      hidden: false
+    - skill_id: skill_dongqishenjie
+      level: 28
+      hidden: false
+    - skill_id: skill_ningjudongqi
+      level: 33
+      hidden: false
+    - skill_id: skill_dongqiguanchuan
+      level: 38
+      hidden: false
+    - skill_id: skill_dongqisilie
+      level: 43
+      hidden: false
+    - skill_id: skill_fansheguike
+      level: 48
+      hidden: false
+    - skill_id: skill_dongqipenshe
+      level: 53
+      hidden: false
+    - skill_id: skill_wuxianbingjie
+      level: 60
+      hidden: false
+    - skill_id: skill_hanbingdongqi
+      level: 60
+      hidden: true
+    - skill_id: skill_hanbingbaofa
+      level: 60
+      hidden: true
+    - skill_id: skill_hanbinghujia
+      level: 60
+      hidden: true
+    - skill_id: skill_hanbingtuji
       level: 60
       hidden: true

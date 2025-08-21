@@ -2378,6 +2378,51 @@ skill_zhenyangyan:
 skill_qiankunzhiyan:
   name: 乾坤之炎
   description: 扭转自身弱化
-skill_yandezizun:
+skill_yandidezizun:
   name: 炎帝的自尊
   description: 强化自身特攻速度1级 体力＜1/2时额外强化特攻1级
+skill_dongqiqianghua:
+  name: 冻气强化
+  description: 强化自身物攻1级
+skill_dongqifuti:
+  name: 冻气附体
+  description: 【95】使自身获得冻气附体
+skill_dongqichongji:
+  name: 冻气冲击
+  description: 消耗对手的冻气附体恢复自身最大体力的1/4
+skill_dongqichongfeng:
+  name: 冻气冲锋
+  description: 消耗冻气附体必定暴击
+skill_dongqishenjie:
+  name: 冻气深结
+  description: 10%使对手冰冻 消耗冻气附体效果7倍
+skill_ningjudongqi:
+  name: 凝聚冻气
+  description: 使自身获得自身最大体力1/8的恢复
+skill_dongqiguanchuan:
+  name: 冻气贯穿
+  description: 最大体力＞对手时暴击率增加95%
+skill_dongqisilie:
+  name: 冻气撕裂
+  description: 最大体力＞对手时使对手获得30点流血
+skill_fansheguike:
+  name: 反射龟壳
+  description: 【95】使自身获得反射龟壳
+skill_dongqipenshe:
+  name: 冻气喷射
+  description: 附加自身最大体力-500的威力
+skill_wuxianbingjie:
+  name: 无限冰洁
+  description: '[93E312]必中[-] 10%使对手冰冻'
+skill_hanbingdongqi:
+  name: 寒冰冻气
+  description: 对手冰冻时威力2倍
+skill_hanbingbaofa:
+  name: 寒冰爆发
+  description: 附加自身最大体力-500 的伤害
+skill_hanbinghujia:
+  name: 寒冰护甲
+  description: 【95】使自身获得自身最大体力-500的2倍的寒冰护甲
+skill_hanbingtuji:
+  name: 寒冰突击
+  description: 消耗冻气附体造成暴击

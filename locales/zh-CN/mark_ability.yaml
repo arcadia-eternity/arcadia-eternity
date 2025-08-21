@@ -169,3 +169,6 @@ mark_ability_leishen:
 mark_ability_yandi:
   name: 炎帝
   description: 怒气始终不低于25点 怒气＞50点时免疫异常
+mark_ability_binggu:
+  name: 冰固
+  description: 最大体力＞500点时受到伤害减少10%

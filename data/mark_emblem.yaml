@@ -292,3 +292,8 @@
   tags: [emblem]
   effect:
     - effect_emblem_sure_hit_when_yanre
+- id: mark_emblem_dongqi
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_increase_crit_rate_when_dongqifuti

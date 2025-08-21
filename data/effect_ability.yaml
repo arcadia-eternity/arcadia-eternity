@@ -1453,3 +1453,29 @@
           type: compare
           operator: <
           value: 25
+# 冰固: 最大生命值大于500点时,减少受到的伤害10%
+- id: effect_ability_reduce_damage_when_max_hp_over_500
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: maxHp
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 500
+  apply:
+    type: addModified
+    target:
+      base: damageContext
+    delta: 0
+    percent: -10

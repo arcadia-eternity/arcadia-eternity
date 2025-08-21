@@ -302,3 +302,8 @@
   effect:
     - effect_ability_immune_exceptional_if_rage_greater_than_50
     - effect_ability_keep_rage_at_least_25
+- id: mark_ability_binggu
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_reduce_damage_when_max_hp_over_500
