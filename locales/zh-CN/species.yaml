@@ -358,3 +358,9 @@ pet_kaisa:
 pet_leiyi:
   name: 雷伊
   description: 雷电之子 它身环金色闪电 驾驭着超凡的电能量 兼备神兽的力量与人类智慧的精灵
+pet_dongqigui:
+  name: 冻气龟
+  description: 冻气龟总是因为自己背上坚硬的冰壳被别的精灵嘲笑是：“驼子”
+pet_hanbinggui:
+  name: 寒冰龟
+  description: 寒冰龟在陆地和海洋中都能够游刃有余 它时常潜入海底躲避寒冷

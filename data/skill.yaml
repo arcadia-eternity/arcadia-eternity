@@ -9493,7 +9493,7 @@
   tags: []
   effect:
     - effect_skill_reverse_self_negative_stage
-- id: skill_yandezizun
+- id: skill_yandidezizun
   element: Fire
   category: Status
   target: self
@@ -9507,3 +9507,139 @@
     - effect_skill_raise_spa_1_stage
     - effect_skill_raise_spe_1_stage
     - effect_skill_raise_spa_1_stage_if_hp_less_than_half
+- id: skill_dongqiqianghua
+  element: Ice
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  effect:
+    - effect_skill_raise_atk_1_stage
+- id: skill_dongqifuti
+  element: Ice
+  category: Status
+  target: self
+  power: 0
+  accuracy: 95
+  rage: 10
+  effect:
+    - effect_skill_add_mark_dongqifuti
+- id: skill_dongqichongji
+  element: Ice
+  category: Special
+  target: opponent
+  power: 70
+  accuracy: 95
+  rage: 15
+  effect:
+    - effect_skill_consume_dongqifuti_heal_self_quarter_max_hp
+- id: skill_dongqichongfeng
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 75
+  accuracy: 95
+  rage: 15
+  effect:
+    - effect_skill_consume_dongqifuti_sure_crit
+- id: skill_dongqishenjie
+  element: Ice
+  category: Special
+  target: opponent
+  power: 65
+  accuracy: 95
+  rage: 10
+  effect:
+    - effect_skill_add_mark_opponent_dongshang_10_percent_if_consume_dongqifuti_70_percent
+- id: skill_ningjudongqi
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  effect:
+    - effect_skill_add_mark_huifu
+- id: skill_dongqiguanchuan
+  element: Ice
+  category: Physical
+  target: opponent
+  power: 65
+  accuracy: 95
+  rage: 15
+  effect:
+    - effect_skill_increase_crit_rate_95_if_max_hp_greater_than_opponent
+- id: skill_dongqisilie
+  element: Ice
+  category: Special
+  target: opponent
+  power: 65
+  accuracy: 95
+  rage: 10
+  effect:
+    - effect_skill_add_mark_opponent_liuxie_30_if_max_hp_greater_than_opponent
+- id: skill_fansheguike
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 95
+  rage: 20
+  effect:
+    - effect_skill_add_mark_fansheguike
+- id: skill_dongqipenshe
+  element: Ice
+  category: Special
+  target: opponent
+  power: 70
+  accuracy: 95
+  rage: 20
+  effect:
+    - effect_skill_add_power_by_self_max_hp_minus_500
+- id: skill_wuxianbingjie
+  element: Ice
+  category: Climax
+  target: opponent
+  power: 165
+  accuracy: 100
+  rage: 100
+  sureHit: true
+  effect:
+    - effect_skill_add_mark_opponent_dongshang_10_percent
+- id: skill_hanbingdongqi
+  element: Ice
+  category: Special
+  target: opponent
+  power: 80
+  accuracy: 95
+  rage: 20
+  effect:
+    - effect_skill_power_2x_if_opponent_is_bingdong
+- id: skill_hanbingbaofa
+  element: Ice
+  category: Physical
+  target: opponent
+  power: 65
+  accuracy: 95
+  rage: 15
+  effect:
+    - effect_skill_fixed_damage_by_self_max_hp_minus_500
+- id: skill_hanbinghujia
+  element: Ice
+  category: Status
+  target: self
+  power: 0
+  accuracy: 95
+  rage: 20
+  effect:
+    - effect_skill_add_mark_hanbinghujia_2x_self_max_hp_minus_500
+- id: skill_hanbingtuji
+  element: Ice
+  category: Physical
+  target: opponent
+  power: 80
+  accuracy: 95
+  rage: 15
+  effect:
+    - effect_skill_consume_dongqifuti_sure_crit

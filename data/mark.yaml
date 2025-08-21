@@ -808,7 +808,7 @@
     persistent: true
     maxStacks: 114514
     stackable: true
-    stackStrategy: replace
+    stackStrategy: max
     destroyable: true
     isShield: true
     keepOnSwitchOut: true
@@ -853,7 +853,7 @@
     persistent: true
     maxStacks: 114514
     stackable: true
-    stackStrategy: replace
+    stackStrategy: max
     destroyable: true
     isShield: true
     keepOnSwitchOut: true
@@ -903,7 +903,7 @@
     persistent: true
     maxStacks: 114514
     stackable: true
-    stackStrategy: replace
+    stackStrategy: max
     destroyable: true
     isShield: true
     keepOnSwitchOut: true
@@ -1443,7 +1443,7 @@
     persistent: true
     maxStacks: 114514
     stackable: true
-    stackStrategy: replace
+    stackStrategy: max
     destroyable: true
     isShield: true
     keepOnSwitchOut: true
@@ -2214,3 +2214,43 @@
   tags: []
   effect:
     - effect_mark_add_rage_35_turnEnd
+- id: mark_dongqifuti
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    duration: -1
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_increase_crit_rate_10_percent
+- id: mark_hanbinghujia
+  tags:
+    - shield
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 114514
+    stackable: true
+    stackStrategy: max
+    destroyable: true
+    isShield: true
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+- id: mark_fansheguike
+  tags:
+    - shield
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 114514
+    stackable: true
+    stackStrategy: max
+    destroyable: true
+    isShield: true
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_reflect_special_damage_max_with_stack #TODO

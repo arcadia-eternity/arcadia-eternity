@@ -1028,14 +1028,14 @@
             - type: divide
               arg: 4
 - id: effect_mark_add_crit_rate_5_percent
-  trigger: AfterUseSkillCheck
-  condition:
-    type: checkSelf
+  trigger: OnMarkCreated
   priority: 0
   apply:
-    - type: addCritRate
-      target: useSkillContext
-      value: 5
+    type: addAttributeModifier
+    target: self
+    stat: critRate
+    modifierType: delta
+    value: 5
 - id: effect_mark_immune_status
   trigger: OnBeforeAddMark
   priority: 0
@@ -3631,3 +3631,50 @@
     type: addRage
     target: self
     value: 35
+# 冻气附体: 添加10%的暴击率
+- id: effect_mark_add_crit_rate_10_percent
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addAttributeModifier
+    target: self
+    stat: critRate
+    modifierType: delta
+    value: 10
+# 反射龟壳: 反弹特攻伤害 最多层数点
+- id: effect_mark_reflect_special_damage_max_with_stack
+  trigger: OnDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageType
+        evaluator:
+          type: same
+          value: Special
+  priority: 0
+  apply:
+    type: dealDamage
+    target: opponent
+    value:
+      type: dynamic
+      selector:
+        base: damageContext
+        chain:
+          - type: selectPath
+            arg: damageResult
+          - type: clampMax
+            arg:
+              type: dynamic
+              selector:
+                base: self
+                chain:
+                  - type: select
+                    arg:
+                      type: base
+                      arg: maxHp

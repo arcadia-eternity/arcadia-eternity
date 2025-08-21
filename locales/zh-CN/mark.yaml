@@ -679,3 +679,12 @@ mark_dianxizengqiang:
 mark_leishenjuexing:
   name: 雷神觉醒
   description: 每回合恢复35点怒气
+mark_dongqifuti:
+  name: 冻气附体
+  description: 暴击率增加10%
+mark_hanbinghujia:
+  name: 寒冰护甲【🛡️】
+  description: 抵挡{{mark.stack}}点伤害
+mark_fansheguike:
+  name: 反射龟壳【🛡️】
+  description: 反弹特攻伤害 最多{{mark.stack}}点

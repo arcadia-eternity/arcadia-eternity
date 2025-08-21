@@ -166,3 +166,6 @@ mark_emblem_juexing:
 mark_emblem_yangyan:
   name: 阳炎
   description: 炎热时所有技能必中
+mark_emblem_dongqi:
+  name: 冻气
+  description: 具有冻气附体时暴击率增加5%
