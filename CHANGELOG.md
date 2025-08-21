@@ -6,6 +6,7 @@
 ### 🐛 Bug Fixes
 
 * **teambuilder:** Allow vertical scroll on locked team list ([400ded4](https://github.com/arcadia-eternity/arcadia-eternity/commit/400ded45dc098062adf1c315571fdef1f5b938be))
+* **teambuilder:** Relax ultimate skill requirement for low-level pets ([6388fd3](https://github.com/arcadia-eternity/arcadia-eternity/commit/6388fd32903a57f51bda87f37a0a8caa30d6bead))
 
 ## [2.19.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.18.4...arcadia-eternity-v2.19.0) (2025-08-21)
 
