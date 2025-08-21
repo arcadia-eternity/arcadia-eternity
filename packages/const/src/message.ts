@@ -314,6 +314,7 @@ export interface BattleMessageData {
   }
   [BattleMessageType.MarkDestroy]: {
     mark: markId
+    baseMarkId: baseMarkId
     target: petId | 'battle'
   }
   [BattleMessageType.MarkExpire]: {

@@ -417,6 +417,13 @@ export const useBattleStore = defineStore('battle', {
         .find(s => s?.id === skillId)
     },
 
+    getMarkInfo(markId: string) {
+      return this.battleState?.players
+        ?.flatMap(p => p.team)
+        .flatMap(p => p?.marks)
+        .find(m => m?.id === markId)
+    },
+
     async fetchAvailableSelection() {
       const res = await this.battleInterface?.getAvailableSelection(this.playerId as playerId)
       return res as PlayerSelection[]
