@@ -12,10 +12,6 @@ import {
 } from '@arcadia-eternity/const'
 import {
   logMessagesKey,
-  petMapKey,
-  skillMapKey,
-  playerMapKey,
-  markMapKey,
   type TimestampedBattleMessage,
 } from '@/symbol/battlelog'
 

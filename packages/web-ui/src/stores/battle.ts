@@ -67,17 +67,6 @@ export const useBattleStore = defineStore('battle', {
     }>,
     currentSnapshotIndex: 0,
     totalSnapshots: 0,
-    // 持久化的Map缓存，避免频繁重新创建
-    // 使用 markRaw 避免 Vue 响应式跟踪，提升性能
-    _petMapCache: markRaw(new Map()) as Map<petId, PetMessage>,
-    _skillMapCache: markRaw(new Map()) as Map<string, SkillMessage>,
-    _playerMapCache: markRaw(new Map()) as Map<playerId, PlayerMessage>,
-    _markMapCache: markRaw(new Map()) as Map<string, MarkMessage>,
-    // 用于跟踪Map缓存的版本，当battleState发生变化时递增
-    _mapCacheVersion: 0,
-    // 缓存更新节流相关
-    _cacheUpdatePending: false,
-    _lastCacheUpdateTime: 0,
     waitingForResponse: false,
     // 团队选择相关状态
     teamSelectionActive: false,
@@ -106,9 +95,6 @@ export const useBattleStore = defineStore('battle', {
       this._messageSubject = new Subject<BattleMessage>()
       // 使用battleState中的sequenceId来设置lastProcessedSequenceId，帮助客户端判断从哪个状态开始
       this.lastProcessedSequenceId = this.battleState?.sequenceId ?? -1
-      // 清空并重新初始化Map缓存
-      this._clearMapCaches()
-      this._updateMapCaches()
 
       // 注册新的战斗事件监听器并保存清理函数
       this._battleEventUnsubscribe = this.battleInterface.BattleEvent(msg => {
@@ -141,9 +127,6 @@ export const useBattleStore = defineStore('battle', {
       this._messageSubject = new Subject<BattleMessage>()
       // 使用battleState中的sequenceId来设置lastProcessedSequenceId，帮助客户端判断从哪个状态开始
       this.lastProcessedSequenceId = battleState?.sequenceId ?? -1
-      // 清空并重新初始化Map缓存
-      this._clearMapCaches()
-      this._updateMapCaches()
 
       // 注册新的战斗事件监听器并保存清理函数
       this._battleEventUnsubscribe = this.battleInterface.BattleEvent(msg => {
@@ -214,8 +197,6 @@ export const useBattleStore = defineStore('battle', {
             })
           })
         }
-        // 在状态更新后，使用节流的方式更新Map缓存
-        this._throttledUpdateMapCaches()
 
         // 在回放模式下，同步更新ReplayBattleInterface的状态
         if (
@@ -391,9 +372,6 @@ export const useBattleStore = defineStore('battle', {
       this.currentSnapshotIndex = 0
       this.totalSnapshots = 0
 
-      // 清理Map缓存
-      this._clearMapCaches()
-
       // 清理RxJS资源
       this._messageSubject.complete()
       this.animateQueue.complete()
@@ -421,7 +399,7 @@ export const useBattleStore = defineStore('battle', {
       }
     },
 
-    getPetById(petId: petId) {
+    getPetById(petId: string) {
       return this.battleState?.players
         ?.map(p => p.team)
         .flat()
@@ -485,9 +463,6 @@ export const useBattleStore = defineStore('battle', {
       // 设置初始空状态，模拟联机战斗的逻辑
       // 联机战斗中，battleState 一开始为空，然后通过消息的 stateDelta 逐步构建
       this.battleState = {} as BattleState
-
-      // 清空并重新初始化Map缓存
-      this._clearMapCaches()
 
       // 生成快照数据（即使消息为空也要生成）
       this.generateReplaySnapshots()
@@ -616,15 +591,10 @@ export const useBattleStore = defineStore('battle', {
         this.battleInterface.updateState(this.battleState)
       }
 
-      // 更新Map缓存以反映快照状态（不需要清空，直接更新即可）
-      this._updateMapCaches()
-
       console.debug(`Replay snapshot ${snapshotIndex} set:`, {
         snapshotLabel: snapshot.label,
         battleStateExists: !!this.battleState,
         playersCount: this.battleState?.players?.length || 0,
-        petMapSize: this._petMapCache.size,
-        skillMapSize: this._skillMapCache.size,
       })
 
       // 设置累积日志到当前快照位置（用于静态显示）
@@ -719,9 +689,6 @@ export const useBattleStore = defineStore('battle', {
       if (this.battleInterface && this.battleInterface instanceof ReplayBattleInterface && this.battleState) {
         this.battleInterface.updateState(this.battleState)
       }
-
-      // 更新Map缓存以反映快照状态
-      this._updateMapCaches()
 
       // 重置日志到快照位置，后续消息会通过applyStateDelta正常添加
       const currentMessageIndex = snapshot.messageIndex
@@ -887,234 +854,6 @@ export const useBattleStore = defineStore('battle', {
         console.error('刷新玩家可用操作失败:', error)
       }
     },
-
-    // Map缓存管理方法
-    _clearMapCaches() {
-      // 重新创建 markRaw 的 Map，确保不被 Vue 响应式跟踪
-      this._petMapCache = markRaw(new Map())
-      this._skillMapCache = markRaw(new Map())
-      this._playerMapCache = markRaw(new Map())
-      this._markMapCache = markRaw(new Map())
-      this._mapCacheVersion++
-    },
-
-    // 节流版本的缓存更新，避免短时间内频繁更新
-    _throttledUpdateMapCaches() {
-      const now = Date.now()
-      const THROTTLE_INTERVAL = 16 // 约60fps，避免过于频繁的更新
-
-      if (now - this._lastCacheUpdateTime < THROTTLE_INTERVAL) {
-        // 如果还没有待处理的更新，则安排一个
-        if (!this._cacheUpdatePending) {
-          this._cacheUpdatePending = true
-          setTimeout(
-            () => {
-              this._cacheUpdatePending = false
-              this._updateMapCaches()
-            },
-            THROTTLE_INTERVAL - (now - this._lastCacheUpdateTime),
-          )
-        }
-        return
-      }
-
-      this._updateMapCaches()
-    },
-
-    _updateMapCaches() {
-      if (!this.battleState) return
-
-      this._lastCacheUpdateTime = Date.now()
-
-      // 一次性收集所有对象，减少数组操作
-      const currentPets: unknown[] = []
-      const currentSkills: unknown[] = []
-      const currentPlayers = this.battleState.players ?? []
-      const allMarks: unknown[] = []
-
-      // 调试信息
-      if (this.isReplayMode) {
-        console.debug('[Replay] Updating map caches, battleState players:', currentPlayers.length)
-
-        // 检查battleState的数据结构
-        if (currentPlayers.length > 0) {
-          const firstPlayer = currentPlayers[0]
-          console.debug('[Replay] First player structure:', {
-            id: firstPlayer?.id,
-            name: firstPlayer?.name,
-            teamLength: firstPlayer?.team?.length || 0,
-            firstPet: firstPlayer?.team?.[0]
-              ? {
-                  id: firstPlayer.team[0].id,
-                  name: firstPlayer.team[0].name,
-                  isUnknown: firstPlayer.team[0].isUnknown,
-                  skillsLength: firstPlayer.team[0].skills?.length || 0,
-                }
-              : null,
-          })
-        }
-      }
-
-      // 收集玩家数据
-      for (const player of currentPlayers) {
-        if (player) {
-          // 收集宠物数据
-          if (player.team) {
-            for (const pet of player.team) {
-              if (pet && !pet.isUnknown) {
-                currentPets.push(pet)
-
-                // 收集技能数据
-                if (pet.skills) {
-                  for (const skill of pet.skills) {
-                    if (skill && !skill.isUnknown) {
-                      currentSkills.push(skill)
-                    }
-                  }
-                }
-
-                // 收集宠物标记
-                if (pet.marks) {
-                  for (const mark of pet.marks) {
-                    if (mark) {
-                      allMarks.push(mark)
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      // 收集全局标记
-      if (this.battleState.marks) {
-        for (const mark of this.battleState.marks) {
-          if (mark) {
-            allMarks.push(mark)
-          }
-        }
-      }
-
-      // 优化的缓存清理：只检查和清理有问题的条目
-      this._cleanupInvalidCacheEntries(this._petMapCache, 'Pet')
-      this._cleanupInvalidCacheEntries(this._skillMapCache, 'Skill')
-      this._cleanupInvalidCacheEntries(this._playerMapCache, 'Player')
-      this._cleanupInvalidCacheEntries(this._markMapCache, 'Mark')
-
-      // 批量更新缓存，只更新变化的对象
-      this._batchUpdateCache(this._petMapCache, currentPets)
-      this._batchUpdateCache(this._skillMapCache, currentSkills)
-      this._batchUpdateCache(this._playerMapCache, currentPlayers)
-      this._batchUpdateCache(this._markMapCache, allMarks)
-
-      this._mapCacheVersion++
-
-      // 在回放模式下，强制触发响应式更新
-      // 由于Map被markRaw包装，Vue不会自动检测Map内容变化
-      // 我们需要手动触发更新
-      if (this.isReplayMode) {
-        // 通过修改一个响应式属性来触发更新
-        // 这会导致所有依赖这些getter的组件重新渲染
-        this._mapCacheVersion = this._mapCacheVersion + 0.1 - 0.1 // 强制触发响应式更新
-      }
-
-      // 调试信息
-      if (this.isReplayMode) {
-        console.debug('[Replay] Map caches updated:', {
-          pets: this._petMapCache.size,
-          skills: this._skillMapCache.size,
-          players: this._playerMapCache.size,
-          marks: this._markMapCache.size,
-          version: this._mapCacheVersion,
-        })
-
-        // 输出一些具体的缓存内容用于调试
-        if (this._petMapCache.size > 0) {
-          const firstPet = Array.from(this._petMapCache.values())[0]
-          console.debug('[Replay] Sample pet in cache:', { id: firstPet?.id, name: firstPet?.name })
-        }
-        if (this._skillMapCache.size > 0) {
-          const firstSkill = Array.from(this._skillMapCache.values())[0]
-          console.debug('[Replay] Sample skill in cache:', { id: firstSkill?.id, baseId: firstSkill?.baseId })
-        }
-      }
-    },
-
-    // 清理缓存中 ID 不匹配的条目
-    _cleanupInvalidCacheEntries(cache: Map<string, any>, type: string) {
-      const toDelete: string[] = []
-
-      for (const [cachedId, cachedObj] of cache.entries()) {
-        if (cachedObj && String(cachedObj.id) !== String(cachedId)) {
-          toDelete.push(cachedId)
-        }
-      }
-
-      if (toDelete.length > 0) {
-        console.warn(`${type} object reuse detected, removing ${toDelete.length} entries from cache`)
-        for (const id of toDelete) {
-          cache.delete(id)
-        }
-      }
-    },
-
-    // 批量更新缓存，使用浅拷贝优化性能
-    _batchUpdateCache(cache: Map<string, any>, objects: any[]) {
-      // 收集需要更新的对象，减少 Map 操作次数
-      const toUpdate: Array<{ id: string; obj: any }> = []
-
-      // 第一遍：检查哪些对象需要更新
-      for (const obj of objects) {
-        if (obj) {
-          const cached = cache.get(obj.id)
-
-          // 简单的变化检测：比较对象引用或关键属性
-          if (!cached || this._shouldUpdateCacheEntry(cached, obj)) {
-            toUpdate.push({ id: obj.id, obj })
-          }
-        }
-      }
-
-      // 第二遍：批量更新（减少 Map 操作和克隆操作）
-      if (toUpdate.length > 0) {
-        for (const { id, obj } of toUpdate) {
-          // 使用智能克隆策略
-          cache.set(id, this._smartCloneObject(obj))
-        }
-      }
-    },
-
-    // 检查是否需要更新缓存条目
-    _shouldUpdateCacheEntry(cached: any, current: any): boolean {
-      // 快速检查：如果对象引用相同，则不需要更新
-      if (cached === current) return false
-
-      // 检查关键属性是否变化（避免深度比较）
-      // 对于宠物对象
-      if (current.currentHp !== undefined && cached.currentHp !== current.currentHp) return true
-      if (current.currentRage !== undefined && cached.currentRage !== current.currentRage) return true
-      if (current.marks && cached.marks?.length !== current.marks?.length) return true
-
-      // 对于玩家对象
-      if (current.rage !== undefined && cached.rage !== current.rage) return true
-      if (current.team && cached.team?.length !== current.team?.length) return true
-
-      // 对于修饰符状态
-      if (current.modifierState?.hasModifiers !== cached.modifierState?.hasModifiers) return true
-
-      // 对于标记对象
-      if (current.level !== undefined && cached.level !== current.level) return true
-      if (current.stacks !== undefined && cached.stacks !== current.stacks) return true
-
-      return true // 默认更新，确保数据一致性
-    },
-
-    // 使用 vueuse 的 useCloned 进行高性能克隆
-    _smartCloneObject(obj: any): any {
-      // 使用 vueuse 的 useCloned 进行高性能克隆
-      return useCloned(obj).cloned.value
-    },
   },
 
   getters: {
@@ -1152,22 +891,6 @@ export const useBattleStore = defineStore('battle', {
         .reverse()
         .find(s => s.type === 'turnStart')
       return lastTurnSnapshot?.turnNumber || 1
-    },
-    petMap: state => {
-      // 返回缓存的Map，避免频繁重新创建
-      return state._petMapCache
-    },
-    skillMap: state => {
-      // 返回缓存的Map，避免频繁重新创建
-      return state._skillMapCache
-    },
-    playerMap: state => {
-      // 返回缓存的Map，避免频繁重新创建
-      return state._playerMapCache
-    },
-    markMap: state => {
-      // 返回缓存的Map，避免频繁重新创建
-      return state._markMapCache
     },
     // 注意：teamSelectionActive, teamSelectionConfig, teamSelectionTimeRemaining
     // 已经在 state 中定义，会自动暴露，不需要在 getters 中重复定义
