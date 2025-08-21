@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.20.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.20.0...arcadia-eternity-v2.20.1) (2025-08-21)
+
+
+### ⚡ Performance Improvements
+
+* remove map ([68ddd89](https://github.com/arcadia-eternity/arcadia-eternity/commit/68ddd8955f3a2e52e303f6bf0368361e8b71f9f7))
+* update cache ([8b2e15a](https://github.com/arcadia-eternity/arcadia-eternity/commit/8b2e15a59b3b4c85da47526c5ac9dd0b97c0304a))
+
 ## [2.20.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.19.1...arcadia-eternity-v2.20.0) (2025-08-21)
 
 

@@ -24,7 +24,7 @@ import { useBattleViewStore } from '@/stores/battleView'
 import { useGameDataStore } from '@/stores/gameData'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import { useResourceStore } from '@/stores/resource'
-import { logMessagesKey, markMapKey, petMapKey, playerMapKey, skillMapKey } from '@/symbol/battlelog'
+import { logMessagesKey } from '@/symbol/battlelog'
 import {
   BattleMessageType,
   BattlePhase,
@@ -250,10 +250,6 @@ const toggleFullscreen = toggleFullscreenWithOrientation
 const { startMusic, stopMusic } = useMusic(false)
 
 provide(logMessagesKey, store.log)
-provide(markMapKey, store.markMap)
-provide(skillMapKey, store.skillMap)
-provide(petMapKey, store.petMap)
-provide(playerMapKey, store.playerMap)
 const battleViewRef = useTemplateRef('battleViewRef')
 const backgroundContainerRef = useTemplateRef('backgroundContainerRef')
 const leftPetRef = useTemplateRef('leftPetRef')
@@ -1587,8 +1583,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
 
   const baseSkillId = useSkill.data.baseSkill
   const baseSkillData = gameDataStore.getSkill(baseSkillId)
-  // 优先从 gameDataStore 获取技能类别，回退到 store.skillMap
-  const category = baseSkillData?.category || store.skillMap.get(useSkill.data.skill)?.category || Category.Physical
+  const category = baseSkillData?.category || Category.Physical
   const side = getTargetSide(useSkill.data.user)
   let source = petSprites.value[side]
 

@@ -1,37 +1,21 @@
 <script setup lang="ts">
-import { computed, inject, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import BattleLogEntry from './BattleLogEntry.vue'
-import {
-  BattleMessageType,
-  type BattleMessage,
-  type BattleMessageData,
-  type MarkMessage,
-  type PetMessage,
-  type PlayerMessage,
-  type SkillMessage,
-} from '@arcadia-eternity/const'
+import { BattleMessageType, type BattleMessageData, type playerId } from '@arcadia-eternity/const'
 import i18next from 'i18next'
-import {
-  logMessagesKey,
-  petMapKey,
-  skillMapKey,
-  playerMapKey,
-  markMapKey,
-  type TimestampedBattleMessage,
-} from '@/symbol/battlelog'
+import { type TimestampedBattleMessage } from '@/symbol/battlelog'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import { useBattleViewStore } from '@/stores/battleView'
+import { useBattleStore } from '@/stores/battle'
 
-const messages = inject(logMessagesKey, [])
-const petMap = inject(petMapKey, new Map())
-const skillMap = inject(skillMapKey, new Map())
-const playerMap = inject(playerMapKey, new Map())
-const markMap = inject(markMapKey, new Map())
+const messages = computed(() => battleStore.log)
 
 // 游戏设置store
 const gameSettingStore = useGameSettingStore()
 // 战斗视图store
 const battleViewStore = useBattleViewStore()
+// 战斗store
+const battleStore = useBattleStore()
 
 const MESSAGE_ICONS: Record<BattleMessageType, string> = {
   [BattleMessageType.Damage]: '💥',
@@ -62,10 +46,12 @@ const MESSAGE_ICONS: Record<BattleMessageType, string> = {
   [BattleMessageType.EffectApplyFail]: '❌',
   [BattleMessageType.InvalidAction]: '🚫',
   [BattleMessageType.Error]: '❌',
-  [BattleMessageType.TurnEnd]: '',
-  [BattleMessageType.SkillUseEnd]: '',
-  [BattleMessageType.Transform]: '.Transform',
-  [BattleMessageType.TransformEnd]: '.TransformEnd',
+  [BattleMessageType.TurnEnd]: '🏁',
+  [BattleMessageType.SkillUseEnd]: '🔚',
+  [BattleMessageType.Transform]: '🦋',
+  [BattleMessageType.TransformEnd]: '🔚',
+  [BattleMessageType.TeamSelectionStart]: '👥',
+  [BattleMessageType.TeamSelectionComplete]: '✅',
 }
 
 // 伤害类型映射
@@ -97,16 +83,9 @@ type FormattedBattleMessage = TimestampedBattleMessage & {
 }
 
 // 获取精灵名称
-function getPetName(petId: string, petMap: Map<string, PetMessage>): string {
-  const petInfo = petMap.get(petId)
-  if (!petInfo) {
-    console.debug('[BattleLog] Pet not found in petMap:', {
-      petId,
-      petMapSize: petMap.size,
-      availablePets: Array.from(petMap.keys()).slice(0, 3),
-    })
-  }
-  return petInfo?.name || petId
+function getPetName(petId: string): string {
+  const pet = battleStore.getPetById(petId)
+  return pet?.name || petId
 }
 
 // 获取技能名称
@@ -124,13 +103,7 @@ function getStatArrows(stage: number): string {
   return stage > 0 ? '↑' : '↓'
 }
 
-function formatBattleMessage(
-  msg: TimestampedBattleMessage,
-  petMap?: Map<string, PetMessage>,
-  skillMap?: Map<string, SkillMessage>,
-  playerMap?: Map<string, PlayerMessage>,
-  markMap?: Map<string, MarkMessage>,
-): FormattedBattleMessage {
+function formatBattleMessage(msg: TimestampedBattleMessage): FormattedBattleMessage {
   const icon = MESSAGE_ICONS[msg.type] || '📝'
   let content = ''
 
@@ -142,19 +115,10 @@ function formatBattleMessage(
       content = `第 ${msg.data.turn} 回合`
       break
     case BattleMessageType.SkillUse: {
-      const skillInfo = skillMap?.get(msg.data.skill)
+      const skillInfo = battleStore.getSkillInfo(msg.data.skill)
       const skillName = skillInfo?.baseId ? getSkillName(skillInfo.baseId) : msg.data.skill
 
-      // 调试信息
-      if (!skillInfo) {
-        console.debug('[BattleLog] Skill not found in skillMap:', {
-          skillId: msg.data.skill,
-          skillMapSize: skillMap?.size || 0,
-          availableSkills: skillMap ? Array.from(skillMap.keys()).slice(0, 3) : [],
-        })
-      }
-
-      content = `${getPetName(msg.data.user, petMap || new Map())} 使用 ${skillName} (消耗${msg.data.rage}怒气) → ${getPetName(msg.data.target, petMap || new Map())}`
+      content = `${getPetName(msg.data.user)} 使用 ${skillName} (消耗${msg.data.rage}怒气) → ${getPetName(msg.data.target)}`
       break
     }
     case BattleMessageType.Damage: {
@@ -167,9 +131,7 @@ function formatBattleMessage(
         currentHp: number
         maxHp: number
       }
-      content = `${getPetName(data.target, petMap || new Map())} 受到 ${data.damage} 点 ${
-        DAMAGE_TYPE_MAP[data.damageType]
-      }伤害`
+      content = `${getPetName(data.target)} 受到 ${data.damage} 点 ${DAMAGE_TYPE_MAP[data.damageType]}伤害`
       if (data.isCrit) content += ' (暴击)'
       if (data.effectiveness > 1) content += ' 效果拔群！'
       if (data.effectiveness < 1) content += ' 效果不佳...'
@@ -178,96 +140,98 @@ function formatBattleMessage(
     }
     case BattleMessageType.StatChange: {
       const data = msg.data as { pet: string; stat: string; stage: number; reason: string }
-      content = `${getPetName(data.pet, petMap || new Map())} ${data.stat} ${getStatArrows(data.stage).repeat(
+      content = `${getPetName(data.pet)} ${data.stat} ${getStatArrows(data.stage).repeat(
         Math.abs(data.stage),
       )} (${data.reason})`
       break
     }
     case BattleMessageType.PetSwitch: {
       const data = msg.data as { player: string; fromPet: string; toPet: string; currentHp: number }
-      content = `${playerMap?.get(data.player)?.name || data.player} 更换精灵：${getPetName(
+      const player = battleStore.getPlayerById(data.player as playerId)
+      content = `${player?.name || data.player} 更换精灵：${getPetName(
         data.fromPet,
-        petMap || new Map(),
-      )} → ${getPetName(data.toPet, petMap || new Map())} (剩余HP: ${data.currentHp})`
+      )} → ${getPetName(data.toPet)} (剩余HP: ${data.currentHp})`
       break
     }
     case BattleMessageType.RageChange: {
       const data = msg.data as { pet: string; before: number; after: number; reason: string }
-      content = `${getPetName(data.pet, petMap || new Map())} 怒气 ${data.before} → ${
+      content = `${getPetName(data.pet)} 怒气 ${data.before} → ${
         data.after
       } (${RAGE_REASON_MAP[data.reason] || data.reason})`
       break
     }
     case BattleMessageType.SkillMiss: {
       const data = msg.data as { user: string; skill: string; reason: string }
-      content = `${getPetName(data.user, petMap || new Map())} 的 ${
-        skillMap ? getSkillName(skillMap.get(data.skill)?.baseId || '') : data.skill
+      const skillInfo = battleStore.getSkillInfo(data.skill)
+      content = `${getPetName(data.user)} 的 ${
+        skillInfo ? getSkillName(skillInfo.baseId) : data.skill
       } 未命中！ (${MISS_REASON_MAP[data.reason] || data.reason})`
       break
     }
     case BattleMessageType.PetDefeated: {
       const data = msg.data as { pet: string; killer?: string }
-      content = `${getPetName(data.pet, petMap || new Map())} 倒下！`
-      if (data.killer) content += ` (击败者: ${getPetName(data.killer, petMap || new Map())})`
+      content = `${getPetName(data.pet)} 倒下！`
+      if (data.killer) content += ` (击败者: ${getPetName(data.killer)})`
       break
     }
     case BattleMessageType.MarkApply: {
       const data = msg.data as BattleMessageData[typeof BattleMessageType.MarkApply]
-      content = `${getPetName(data.target, petMap || new Map())} 被施加 【${getMarkName(data.mark.baseId)}】 印记`
+      content = `${getPetName(data.target)} 被施加 【${getMarkName(data.mark.baseId)}】 印记`
       break
     }
     case BattleMessageType.BattleEnd:
-      content = `🎉 对战结束！胜利者：${msg.data.winner ? playerMap?.get(msg.data.winner)?.name : '无'}`
+      const winnerPlayer = battleStore.getPlayerById(msg.data.winner as playerId)
+      content = `🎉 对战结束！胜利者：${winnerPlayer?.name || msg.data.winner || '无'}`
       break
     case BattleMessageType.ForcedSwitch:
-      content = `${msg.data.player.map(p => playerMap?.get(p)?.name).join(',')} 必须更换倒下的精灵！`
+      content = `${msg.data.player.map(p => battleStore.getPlayerById(p as playerId)?.name || p).join(',')} 必须更换倒下的精灵！`
       break
     case BattleMessageType.FaintSwitch:
-      content = `🎁 ${playerMap?.get(msg.data.player)?.name} 击倒对手，获得换宠机会！`
+      const player = battleStore.getPlayerById(msg.data.player as playerId)
+      content = `🎁 ${player?.name || msg.data.player} 击倒对手，获得换宠机会！`
       break
     case BattleMessageType.PetRevive: {
       const data = msg.data as BattleMessageData[typeof BattleMessageType.PetRevive]
-      const revivedPet = petMap?.get(data.pet)
-      content = `${getPetName(data.pet, petMap || new Map())} 被 ${getPetName(data.revivedBy, petMap || new Map())} 复活 (当前HP: ${revivedPet?.currentHp})`
+      const revivedPet = battleStore.getPetById(data.pet)
+      content = `${getPetName(data.pet)} 被 ${getPetName(data.revivedBy)} 复活 (当前HP: ${revivedPet?.currentHp})`
       break
     }
     case BattleMessageType.HpChange: {
       const data = msg.data as BattleMessageData[typeof BattleMessageType.HpChange]
       const change = data.after - data.before
-      content = `${getPetName(data.pet, petMap || new Map())} HP ${change > 0 ? '+' : ''}${change} (当前: ${data.after}/${data.maxHp}) [${i18next.t(`battle:hpChangeReason.${data.reason}`, { defaultValue: data.reason })}]`
+      content = `${getPetName(data.pet)} HP ${change > 0 ? '+' : ''}${change} (当前: ${data.after}/${data.maxHp}) [${i18next.t(`battle:hpChangeReason.${data.reason}`, { defaultValue: data.reason })}]`
       break
     }
     case BattleMessageType.SkillUseFail: {
       const data = msg.data as BattleMessageData[typeof BattleMessageType.SkillUseFail]
-      content = `${getPetName(data.user, petMap || new Map())} 无法使用技能：${i18next.t(`battle:skillFailReason.${data.reason}`, { defaultValue: data.reason })}`
+      content = `${getPetName(data.user)} 无法使用技能：${i18next.t(`battle:skillFailReason.${data.reason}`, { defaultValue: data.reason })}`
       break
     }
     case BattleMessageType.SkillUseEnd: {
       const data = msg.data as BattleMessageData[typeof BattleMessageType.SkillUseEnd]
-      content = `${getPetName(data.user, petMap || new Map())} 结束技能使用`
+      content = `${getPetName(data.user)} 结束技能使用`
       break
     }
     case BattleMessageType.Heal: {
       const data = msg.data as BattleMessageData[typeof BattleMessageType.Heal]
-      const targetPet = petMap?.get(data.target)
-      content = `${getPetName(data.target, petMap || new Map())} 恢复 ${data.amount} HP (当前: ${targetPet?.currentHp})`
+      const targetPet = battleStore.getPetById(data.target)
+      content = `${getPetName(data.target)} 恢复 ${data.amount} HP (当前: ${targetPet?.currentHp})`
       break
     }
     case BattleMessageType.HealFail: {
       const data = msg.data as BattleMessageData[typeof BattleMessageType.HealFail]
-      content = `${getPetName(data.target, petMap || new Map())} 治疗失败：${i18next.t(`battle:healFailReason.${data.reason}`, { defaultValue: data.reason })}`
+      content = `${getPetName(data.target)} 治疗失败：${i18next.t(`battle:healFailReason.${data.reason}`, { defaultValue: data.reason })}`
       break
     }
     case BattleMessageType.MarkDestroy: {
       const data = msg.data as BattleMessageData[typeof BattleMessageType.MarkDestroy]
-      const mark = markMap?.get(data.mark)
-      const markName = mark ? getMarkName(mark.baseId) : getMarkName(data.mark)
-      content = `${getPetName(data.target, petMap || new Map())} 的【${markName}】印记被销毁`
+      const markName = getMarkName(data.mark)
+      content = `${getPetName(data.target)} 的【${markName}】印记被销毁`
       break
     }
     case BattleMessageType.MarkUpdate: {
       const data = msg.data as BattleMessageData[typeof BattleMessageType.MarkUpdate]
-      content = `${getPetName(data.target, petMap || new Map())} 的【${getMarkName(data.mark.baseId)}】更新为 ${data.mark.stack} 层`
+      content = `${getPetName(data.target)} 的【${getMarkName(data.mark.baseId)}】更新为 ${data.mark.stack} 层`
       break
     }
     case BattleMessageType.EffectApply: {
@@ -275,24 +239,18 @@ function formatBattleMessage(
       let sourceName: string = data.source
 
       // First check if it's a skill
-      const skill = skillMap?.get(data.source)
-      if (skill) {
-        sourceName = getSkillName(skill.baseId)
+      const skillInfo = battleStore.getSkillInfo(data.source)
+      if (skillInfo) {
+        sourceName = getSkillName(skillInfo.baseId)
       } else {
-        // Then check if it's a mark
-        const mark = markMap?.get(data.source)
-        if (mark) {
-          sourceName = getMarkName(mark.baseId)
-        } else {
-          // Fallback: try to get name directly using the source as baseId
-          const skillName = getSkillName(data.source)
-          const markName = getMarkName(data.source)
-          // Use the translated name if it's different from the source ID
-          if (skillName !== data.source) {
-            sourceName = skillName
-          } else if (markName !== data.source) {
-            sourceName = markName
-          }
+        // Fallback: try to get name directly using the source as baseId
+        const skillName = getSkillName(data.source)
+        const markName = getMarkName(data.source)
+        // Use the translated name if it's different from the source ID
+        if (skillName !== data.source) {
+          sourceName = skillName
+        } else if (markName !== data.source) {
+          sourceName = markName
         }
       }
 
@@ -335,10 +293,10 @@ function formatBattleMessage(
 
 // 格式化消息数据 - 直接复用 formatBattleMessage 函数
 const formattedMessages = computed(() => {
-  const messageArray = messages // 处理可能的Ref类型
+  const messageArray = messages.value // 处理可能的Ref类型
   return messageArray
-    .filter(msg => gameSettingStore.visibleLogTypes.has(msg.type)) // 根据设置过滤消息类型
-    .map(msg => formatBattleMessage(msg, petMap, skillMap, playerMap, markMap))
+    .filter((msg: TimestampedBattleMessage) => gameSettingStore.visibleLogTypes.has(msg.type)) // 根据设置过滤消息类型
+    .map(msg => formatBattleMessage(msg))
 })
 
 const logContainerRef = ref<HTMLElement | null>(null)
