@@ -277,10 +277,36 @@ function formatBattleMessage(msg: TimestampedBattleMessage): FormattedBattleMess
     case BattleMessageType.Error:
       content = '❌ 错误：' + (msg.data.message || '')
       break
-    case BattleMessageType.DamageFail:
-    case BattleMessageType.MarkExpire:
-    case BattleMessageType.Transform:
-    case BattleMessageType.TransformEnd:
+    case BattleMessageType.DamageFail: {
+      const data = msg.data as BattleMessageData[typeof BattleMessageType.DamageFail]
+      content = `${getPetName(data.target)} 伤害失败：${i18next.t(`battle:damageFailReason.${data.reason}`, { defaultValue: data.reason })}`
+      break
+    }
+    case BattleMessageType.MarkExpire: {
+      const data = msg.data as BattleMessageData[typeof BattleMessageType.MarkExpire]
+      const markInfo = battleStore.getMarkInfo(data.mark)
+      content = `${getPetName(data.target as petId)} 的【${getMarkName(markInfo?.baseId ?? ('' as baseMarkId))}】印记已过期`
+      break
+    }
+    case BattleMessageType.Transform: {
+      const data = msg.data as BattleMessageData[typeof BattleMessageType.Transform]
+      switch (data.targetType) {
+        case 'pet':
+          content = `${getPetName(data.target as petId)} 变身为 ${data.target}`
+          break
+      }
+    }
+    case BattleMessageType.TransformEnd: {
+      const data = msg.data as BattleMessageData[typeof BattleMessageType.TransformEnd]
+      content = `${data.target} 恢复了原来的样子`
+      break
+    }
+    case BattleMessageType.TeamSelectionStart:
+      content = '队伍选择阶段开始'
+      break
+    case BattleMessageType.TeamSelectionComplete:
+      content = '队伍选择完成'
+      break
     default:
       content = ''
   }
