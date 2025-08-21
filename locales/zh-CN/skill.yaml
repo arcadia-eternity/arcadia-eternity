@@ -2426,3 +2426,48 @@ skill_hanbinghujia:
 skill_hanbingtuji:
   name: 寒冰突击
   description: 消耗冻气附体造成暴击
+skill_xueqiu:
+  name: 雪球
+  description: 5%弱化对手特防1级
+skill_yuandingyiji:
+  name: 圆顶一击
+  description: 对手每级特防强化增加40点威力
+skill_tixueqiu:
+  name: 踢雪球
+  description: 【90】再次使用使对手冻伤
+skill_bingzhili:
+  name: 冰之砾
+  description: 连击3~5次
+skill_baonuan:
+  name: 保暖
+  description: 强化自身特防1级
+skill_bingxuanyiji:
+  name: 冰旋一击
+  description: 对手每级特攻强化增加40点威力
+skill_huijiachifan:
+  name: 回家吃饭
+  description: 使自身获得回家吃饭
+skill_bingxuechongji:
+  name: 冰雪冲击
+  description: 对手每级物防强化增加40点威力
+skill_juxingxueqiu:
+  name: 巨型雪球
+  description: 【90】再次使用使对手冻伤
+skill_shuangdongchongji:
+  name: 霜冻冲击
+  description: 对手每级物攻强化增加40点威力
+skill_bingshuangdaxueqiu:
+  name: 冰霜大雪球
+  description: <font color=#93E312>必中</font> 10%使对手冻伤
+skill_tongganyindiao:
+  name: 同感音调
+  description: 清空对手的音波值并吸收对手等值的怒气
+skill_binghuzhiwu:
+  name: 冰弧之舞
+  description: 对手具有音之网时威力2倍
+skill_jisuyiji:
+  name: 极速一击
+  description: 先制+1 对手每级速度强化增加40点威力
+skill_quzhuhanyi:
+  name: 驱逐寒意
+  description: 弱化对手双攻1级

@@ -9960,3 +9960,240 @@
     conditions:
       - type: selfUseSkill
       - *condition_self_max_hp_greater_than_500
+# 对手每提升1级攻击则威力增加40
+- id: effect_skill_add_power_40_opponent_per_atk_level
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: addPower
+    target: useSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: opponentMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: stat_stage_atk_up
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 40
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: stat_stage_atk_up
+# 对手每提升1级防御则威力增加40
+- id: effect_skill_add_power_40_opponent_per_def_level
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: addPower
+    target: useSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: opponentMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: stat_stage_def_up
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 40
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: stat_stage_def_up
+# 对手每提升1级特攻则威力增加40
+- id: effect_skill_add_power_40_opponent_per_spa_level
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: addPower
+    target: useSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: opponentMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: stat_stage_spa_up
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 40
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: stat_stage_spa_up
+# 对手每提升1级特防则威力增加40
+- id: effect_skill_add_power_40_opponent_per_spd_level
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: addPower
+    target: useSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: opponentMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: stat_stage_spd_up
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 40
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: stat_stage_spd_up
+# 对手每提升1级速度则威力增加40
+- id: effect_skill_add_power_40_opponent_per_spe_level
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: addPower
+    target: useSkillContext
+    value:
+      type: dynamic
+      selector:
+        base: opponentMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: stat_stage_spe_up
+          - type: select
+            arg:
+              type: base
+              arg: stack
+          - type: multiply
+            arg: 40
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: stat_stage_spe_up
+# 重复使用时使对手冻伤
+- id: effect_skill_add_mark_opponent_dongshang_when_reused
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_dongshang
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: continuousUseSkill
+      - *condition_opponent_not_ice_element
+# 给自己添加回家吃饭
+- id: effect_skill_add_mark_huijiachifan
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_huijiachifan
+  condition:
+    type: selfUseSkill
+# 消耗对方的音波标记，恢复自身音波印记的怒气
+- id: effect_skill_add_rage_with_consume_yinbo_stack
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: addRage
+      target: self
+      value:
+        type: dynamic
+        selector:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: baseId
+              evaluator:
+                type: same
+                value: mark_yinbo
+            - type: select
+              arg:
+                type: base
+                arg: stack
+    - type: destroyMark
+      target:
+        base: opponentMarks
+        chain:
+          - type: whereAttr
+            extractor:
+              type: base
+              arg: baseId
+            evaluator:
+              type: same
+              value: mark_yinbo
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_yinbo
+# 对手有音之网时，威力翻倍
+- id: effect_skill_power_2x_if_oppoent_has_yinzhiwang
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: useSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_yinzhiwang

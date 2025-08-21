@@ -1234,3 +1234,36 @@
       - type: checkSelf
       - type: selfHasMark
         baseId: mark_dongqifuti
+# 保暖: 使用保暖时，有20%几率提升一级特防
+- id: effect_emblem_raise_spd_1_stage_when_baonuan_20_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: self
+    statType: spd
+    value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill
+            - type: select
+              arg:
+                type: base
+                arg: baseId
+        evaluator:
+          type: same
+          value: skill_baonuan
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 20

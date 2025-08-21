@@ -364,3 +364,9 @@ pet_dongqigui:
 pet_hanbinggui:
   name: 寒冰龟
   description: 寒冰龟在陆地和海洋中都能够游刃有余 它时常潜入海底躲避寒冷
+pet_duoli:
+  name: 多利
+  description: 多利的襁褓与身世有关 那上面有一个奇怪的咒文 曾多次帮助多利脱险
+pet_duopuli:
+  name: 多普利
+  description: 多利成功进化为多普利的时候 养母把它的襁褓改成了一顶温暖的帽子

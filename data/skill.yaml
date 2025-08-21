@@ -9643,3 +9643,140 @@
   rage: 15
   effect:
     - effect_skill_consume_dongqifuti_sure_crit
+- id: skill_xueqiu
+  element: Ice
+  category: Special
+  target: opponent
+  power: 60
+  accuracy: 95
+  rage: 5
+  effect:
+    - effect_skill_reduce_opponent_spd_1_stage_5_percent
+- id: skill_yuandingyiji
+  element: Ice
+  category: Physical
+  target: opponent
+  power: 80
+  accuracy: 95
+  rage: 10
+  effect:
+    - effect_skill_add_power_40_opponent_per_spd_level
+- id: skill_tixueqiu
+  element: Ice
+  category: Special
+  target: opponent
+  power: 85
+  accuracy: 90
+  rage: 15
+  effect:
+    - effect_skill_add_mark_opponent_dongshang_when_reused
+- id: skill_bingzhili
+  element: Ice
+  category: Special
+  target: opponent
+  power: 30
+  accuracy: 95
+  rage: 20
+  multihit: [3, 5]
+- id: skill_baonuan
+  element: Ice
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  effect:
+    - effect_skill_raise_spd_1_stage
+- id: skill_bingxuanyiji
+  element: Ice
+  category: Physical
+  target: opponent
+  power: 85
+  accuracy: 95
+  rage: 10
+  effect:
+    - effect_skill_add_power_40_opponent_per_spa_level
+- id: skill_huijiachifan
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  effect:
+    - effect_skill_add_mark_huijiachifan
+- id: skill_bingxuechongji
+  element: Ice
+  category: Special
+  target: opponent
+  power: 80
+  accuracy: 95
+  rage: 10
+  effect:
+    - effect_skill_add_power_40_opponent_per_def_level
+- id: skill_juxingxueqiu
+  element: Ice
+  category: Special
+  target: opponent
+  power: 100
+  accuracy: 90
+  rage: 20
+  effect:
+    - effect_skill_add_mark_opponent_dongshang_when_reused
+- id: skill_shuangdongchongji
+  element: Ice
+  category: Special
+  target: opponent
+  power: 85
+  accuracy: 95
+  rage: 10
+  effect:
+    - effect_skill_add_power_40_opponent_per_atk_level
+- id: skill_bingshuangdaxueqiu
+  element: Ice
+  category: Climax
+  target: opponent
+  power: 165
+  accuracy: 100
+  rage: 100
+  sureHit: true
+  effect:
+    - effect_skill_add_mark_opponent_dongshang_10_percent
+- id: skill_tongganyindiao
+  element: Ice
+  category: Special
+  target: opponent
+  power: 90
+  accuracy: 95
+  rage: 20
+  effect:
+    - effect_skill_add_rage_with_consume_yinbo_stack
+- id: skill_binghuzhiwu
+  element: Ice
+  category: Physical
+  target: opponent
+  power: 90
+  accuracy: 95
+  rage: 20
+  effect:
+    - effect_skill_power_2x_if_oppoent_has_yinzhiwang
+- id: skill_jisuyiji
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 75
+  accuracy: 95
+  rage: 15
+  priority: 1
+  effect:
+    - effect_skill_add_power_40_opponent_per_spe_level
+- id: skill_quzhuhanyi
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 70
+  accuracy: 95
+  rage: 20
+  effect:
+    - effect_skill_reduce_opponent_atk_1_stage
+    - effect_skill_reduce_opponent_spa_1_stage

@@ -172,3 +172,6 @@ mark_ability_yandi:
 mark_ability_binggu:
   name: 冰固
   description: 最大体力＞500点时受到伤害减少10%
+mark_ability_qianghua:
+  name: 强化
+  description: 强化特攻的同时也强化物攻
