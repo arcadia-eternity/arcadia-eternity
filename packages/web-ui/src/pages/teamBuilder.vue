@@ -318,6 +318,7 @@
                 @start="onStart"
                 @end="handleDragEnd"
                 class="space-y-3"
+                :class="{ 'touch-panning-y': sortLocked }"
               >
                 <template #item="{ element: pet }">
                   <div
@@ -1048,6 +1049,10 @@
 </template>
 
 <style scoped>
+.touch-panning-y .drag-handle {
+  touch-action: pan-y;
+}
+
 /* 技能下拉框样式优化 */
 :deep(.el-select-dropdown__item) {
   height: auto !important;
