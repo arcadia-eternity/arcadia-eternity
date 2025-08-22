@@ -82,6 +82,53 @@ export function resetContainer(): void {
 }
 
 /**
+ * 配置战斗系统服务的绑定
+ * 这些服务需要特殊的依赖（如回调函数），所以需要在运行时配置
+ */
+export function configureBattleServices(
+  container: Container,
+  dependencies: {
+    stateManager: any
+    socketAdapter: any
+    lockManager: any
+    instanceId: string
+    matchmakingCallbacks: any
+    battleCallbacks: any
+    performanceTracker?: any
+    serviceDiscovery?: any
+    battleReportConfig?: any
+  },
+): void {
+  // 检查是否已经配置过，如果是则跳过
+  if (container.isBound(TYPES.ClusterStateManager)) {
+    return
+  }
+
+  // 绑定核心依赖
+  container.bind(TYPES.ClusterStateManager).toConstantValue(dependencies.stateManager)
+  container.bind(TYPES.SocketClusterAdapter).toConstantValue(dependencies.socketAdapter)
+  container.bind(TYPES.DistributedLockManager).toConstantValue(dependencies.lockManager)
+  container.bind(TYPES.InstanceId).toConstantValue(dependencies.instanceId)
+  container.bind(TYPES.MatchmakingCallbacks).toConstantValue(dependencies.matchmakingCallbacks)
+  container.bind(TYPES.BattleCallbacks).toConstantValue(dependencies.battleCallbacks)
+
+  // 绑定可选依赖
+  if (dependencies.performanceTracker) {
+    container.bind(TYPES.PerformanceTracker).toConstantValue(dependencies.performanceTracker)
+  }
+  if (dependencies.serviceDiscovery) {
+    container.bind(TYPES.ServiceDiscoveryManager).toConstantValue(dependencies.serviceDiscovery)
+  }
+  if (dependencies.battleReportConfig) {
+    container.bind(TYPES.BattleReportConfig).toConstantValue(dependencies.battleReportConfig)
+  }
+
+  // 绑定服务实现
+  container.bind<IMatchmakingService>(TYPES.MatchmakingService).to(ClusterMatchmakingService).inSingletonScope()
+  container.bind<IBattleService>(TYPES.BattleService).to(ClusterBattleService).inSingletonScope()
+}
+
+/**
  * 配置集群服务的绑定（解决循环依赖）
  */
 export function configureClusterServices(

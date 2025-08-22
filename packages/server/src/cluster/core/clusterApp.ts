@@ -261,15 +261,9 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
   // 创建 Socket.IO 服务器
   const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
     cors: finalConfig.cors,
-    pingTimeout: 10000,
-    pingInterval: 2000,
+    pingTimeout: 60000,
+    pingInterval: 25000,
     maxHttpBufferSize: 4e6, // 4MB
-    connectionStateRecovery: {
-      // the backup duration of the sessions and the packets
-      maxDisconnectionDuration: 30 * 1000,
-      // whether to skip middlewares upon successful recovery
-      skipMiddlewares: true,
-    },
   })
 
   // 初始化集群管理器
