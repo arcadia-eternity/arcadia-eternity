@@ -35,9 +35,7 @@ export interface SessionStateInfo {
 export class SessionStateManager {
   private readonly SESSION_STATE_TTL = 24 * 60 * 60 * 1000 // 24小时
 
-  constructor(
-    @inject(TYPES.ClusterStateManager) private stateManager: ClusterStateManager,
-  ) {}
+  constructor(@inject(TYPES.ClusterStateManager) private stateManager: ClusterStateManager) {}
 
   /**
    * 获取 session 当前状态
@@ -47,11 +45,11 @@ export class SessionStateManager {
       const client = this.stateManager.redisManager.getClient()
       const key = this.getSessionStateKey(playerId, sessionId)
       const data = await client.get(key)
-      
+
       if (!data) {
         return null
       }
-      
+
       return JSON.parse(data) as SessionStateInfo
     } catch (error) {
       logger.error({ error, playerId, sessionId }, 'Failed to get session state')
@@ -63,15 +61,15 @@ export class SessionStateManager {
    * 设置 session 状态
    */
   async setSessionState(
-    playerId: string, 
-    sessionId: string, 
-    state: SessionState, 
-    context?: SessionStateInfo['context']
+    playerId: string,
+    sessionId: string,
+    state: SessionState,
+    context?: SessionStateInfo['context'],
   ): Promise<void> {
     try {
       const client = this.stateManager.redisManager.getClient()
       const key = this.getSessionStateKey(playerId, sessionId)
-      
+
       const stateInfo: SessionStateInfo = {
         playerId,
         sessionId,
@@ -79,9 +77,9 @@ export class SessionStateManager {
         context,
         updatedAt: Date.now(),
       }
-      
+
       await client.setex(key, Math.floor(this.SESSION_STATE_TTL / 1000), JSON.stringify(stateInfo))
-      
+
       logger.debug({ playerId, sessionId, state, context }, 'Session state updated')
     } catch (error) {
       logger.error({ error, playerId, sessionId, state }, 'Failed to set session state')
@@ -97,7 +95,7 @@ export class SessionStateManager {
       const client = this.stateManager.redisManager.getClient()
       const key = this.getSessionStateKey(playerId, sessionId)
       await client.del(key)
-      
+
       logger.debug({ playerId, sessionId }, 'Session state cleared')
     } catch (error) {
       logger.error({ error, playerId, sessionId }, 'Failed to clear session state')
@@ -109,11 +107,11 @@ export class SessionStateManager {
    */
   async canEnterMatchmaking(playerId: string, sessionId: string): Promise<{ allowed: boolean; reason?: string }> {
     const currentState = await this.getSessionState(playerId, sessionId)
-    
+
     if (!currentState || currentState.state === 'idle') {
       return { allowed: true }
     }
-    
+
     switch (currentState.state) {
       case 'matchmaking':
         return { allowed: false, reason: '已在匹配队列中' }
@@ -131,11 +129,11 @@ export class SessionStateManager {
    */
   async canEnterPrivateRoom(playerId: string, sessionId: string): Promise<{ allowed: boolean; reason?: string }> {
     const currentState = await this.getSessionState(playerId, sessionId)
-    
+
     if (!currentState || currentState.state === 'idle') {
       return { allowed: true }
     }
-    
+
     switch (currentState.state) {
       case 'matchmaking':
         return { allowed: false, reason: '当前在匹配队列中，请先取消匹配' }
@@ -153,15 +151,15 @@ export class SessionStateManager {
    */
   async canEnterBattle(playerId: string, sessionId: string): Promise<{ allowed: boolean; reason?: string }> {
     const currentState = await this.getSessionState(playerId, sessionId)
-    
+
     if (!currentState) {
       return { allowed: false, reason: 'Session 状态未知' }
     }
-    
+
     if (currentState.state === 'matchmaking' || currentState.state === 'private_room') {
       return { allowed: true }
     }
-    
+
     return { allowed: false, reason: `当前状态 ${currentState.state} 不允许开始战斗` }
   }
 
@@ -173,11 +171,11 @@ export class SessionStateManager {
       const client = this.stateManager.redisManager.getClient()
       const pattern = `session_state:${playerId}:*`
       const keys = await client.keys(pattern)
-      
+
       if (keys.length === 0) {
         return []
       }
-      
+
       const states: SessionStateInfo[] = []
       for (const key of keys) {
         const data = await client.get(key)
@@ -185,7 +183,7 @@ export class SessionStateManager {
           states.push(JSON.parse(data))
         }
       }
-      
+
       return states
     } catch (error) {
       logger.error({ error, playerId }, 'Failed to get player session states')
@@ -201,7 +199,7 @@ export class SessionStateManager {
       const client = this.stateManager.redisManager.getClient()
       const pattern = `session_state:${playerId}:*`
       const keys = await client.keys(pattern)
-      
+
       if (keys.length > 0) {
         await client.del(...keys)
         logger.debug({ playerId, clearedCount: keys.length }, 'Cleared all player session states')
@@ -224,12 +222,12 @@ export class SessionStateManager {
   async batchUpdateSessionStates(
     sessions: Array<{ playerId: string; sessionId: string }>,
     state: SessionState,
-    context?: SessionStateInfo['context']
+    context?: SessionStateInfo['context'],
   ): Promise<void> {
     try {
       const client = this.stateManager.redisManager.getClient()
       const pipeline = client.pipeline()
-      
+
       for (const { playerId, sessionId } of sessions) {
         const key = this.getSessionStateKey(playerId, sessionId)
         const stateInfo: SessionStateInfo = {
@@ -239,12 +237,12 @@ export class SessionStateManager {
           context,
           updatedAt: Date.now(),
         }
-        
+
         pipeline.setex(key, Math.floor(this.SESSION_STATE_TTL / 1000), JSON.stringify(stateInfo))
       }
-      
+
       await pipeline.exec()
-      
+
       logger.debug({ sessionCount: sessions.length, state, context }, 'Batch updated session states')
     } catch (error) {
       logger.error({ error, sessionCount: sessions.length, state }, 'Failed to batch update session states')

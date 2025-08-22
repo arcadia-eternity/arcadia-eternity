@@ -1197,12 +1197,12 @@ const checkBattleDataLoaded = async () => {
 const initializeBattleResources = async () => {
   try {
     console.debug('Starting battle resources initialization...')
+    const backgroundLoadedPromise = checkBackgroundImageLoaded()
 
     // 并行加载基础资源
     await Promise.all([checkResourceStoreLoaded(), checkGameDataStoreLoaded()])
 
     // 加载背景图片（依赖于resourceStore）
-    await checkBackgroundImageLoaded()
 
     // 加载战斗数据
     await checkBattleDataLoaded()
@@ -1212,6 +1212,8 @@ const initializeBattleResources = async () => {
 
     // 检查是否全部加载完成
     checkAllResourcesLoaded()
+
+    await backgroundLoadedPromise
 
     // 所有资源加载完成后启动音乐
     startMusic()

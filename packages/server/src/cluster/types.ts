@@ -94,7 +94,7 @@ export interface MatchmakingEntry {
   joinTime: number
   playerData: any
   preferences?: Record<string, any>
-  sessionId?: string // 新增：会话ID
+  sessionId: string // 新增：会话ID
   ruleSetId?: string // 新增：规则集ID
   metadata?: {
     sessionId?: string
