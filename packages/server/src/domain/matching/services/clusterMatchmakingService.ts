@@ -662,6 +662,13 @@ export class ClusterMatchmakingService implements IMatchmakingService {
           await Promise.all([
             this.stateManager.removeFromMatchmakingQueue(player1Entry.playerId, player1Entry.sessionId),
             this.stateManager.removeFromMatchmakingQueue(player2Entry.playerId, player2Entry.sessionId),
+            this.sessionStateManager.batchUpdateSessionStates(
+              [player1Entry, player2Entry].map(entry => ({
+                playerId: entry.playerId,
+                sessionId: entry.sessionId,
+              })),
+              'battle',
+            ),
           ])
 
           // 更新匹配队列大小统计

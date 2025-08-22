@@ -37,6 +37,7 @@ import { injectable, inject, optional } from 'inversify'
 import { PlayerParser } from '@arcadia-eternity/parser'
 import { nanoid } from 'nanoid'
 import { LOCK_KEYS } from '../../../cluster/redis/distributedLock'
+import type { SessionStateManager } from 'src/domain/session/sessionStateManager'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -114,6 +115,7 @@ export class ClusterBattleService implements IBattleService {
     @inject(TYPES.SocketClusterAdapter) private readonly socketAdapter: SocketClusterAdapter,
     @inject(TYPES.BattleCallbacks) private readonly callbacks: BattleCallbacks,
     @inject(TYPES.InstanceId) private readonly instanceId: string,
+    @inject(TYPES.SessionStateManager) private readonly sessionStateManager: SessionStateManager,
     @inject(TYPES.PerformanceTracker) @optional() private readonly performanceTracker?: PerformanceTracker,
     @inject(TYPES.BattleReportConfig) @optional() private readonly _battleReportConfig?: BattleReportConfig,
   ) {
@@ -679,10 +681,28 @@ export class ClusterBattleService implements IBattleService {
           // 更新本地房间状态
           localRoom.status = 'ended'
           localRoom.lastActive = Date.now()
+          const currentRoomState = await this.stateManager.getRoomState(roomId)!
 
           // 如果是私人房间，发布战斗结束事件
           if (localRoom.privateRoom && roomState && roomState.metadata?.roomCode) {
             await this.publishPrivateBattleFinishedEvent(roomState.metadata.roomCode, roomId, battleEndData)
+            if (currentRoomState)
+              await this.sessionStateManager.batchUpdateSessionStates(
+                currentRoomState.sessions.map(sessionId => ({
+                  sessionId,
+                  playerId: currentRoomState.sessionPlayers[sessionId],
+                })),
+                'private_room',
+              )
+          } else {
+            if (currentRoomState)
+              await this.sessionStateManager.batchUpdateSessionStates(
+                currentRoomState.sessions.map(sessionId => ({
+                  sessionId,
+                  playerId: currentRoomState.sessionPlayers[sessionId],
+                })),
+                'idle',
+              )
           }
 
           // 延迟清理所有资源，给客户端一些时间处理战斗结束事件
@@ -693,13 +713,14 @@ export class ClusterBattleService implements IBattleService {
               await this.callbacks.cleanupSessionRoomMappings(currentRoomState)
               logger.info({ roomId }, 'Session room mappings cleaned up after battle end')
 
-              // 通知所有客户端房间关闭
-              for (const sessionId of currentRoomState.sessions) {
-                const playerId = currentRoomState.sessionPlayers[sessionId]
-                if (playerId) {
-                  await this.callbacks.sendToPlayerSession(playerId, sessionId, 'roomClosed', { roomId })
-                }
-              }
+              await Promise.all(
+                currentRoomState.sessions.map(async sessionId => {
+                  const playerId = currentRoomState.sessionPlayers[sessionId]
+                  if (playerId) {
+                    await this.callbacks.sendToPlayerSession(playerId, sessionId, 'roomClosed', { roomId })
+                  }
+                }),
+              )
             }
 
             // 清理本地和集群状态

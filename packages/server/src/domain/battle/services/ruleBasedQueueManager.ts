@@ -355,7 +355,7 @@ export class RuleBasedQueueManager {
   deserializeMatchmakingEntry(data: Record<string, string>): MatchmakingEntry {
     return {
       playerId: data.playerId,
-      sessionId: data.sessionId || undefined,
+      sessionId: data.sessionId,
       joinTime: parseInt(data.joinTime),
       playerData: JSON.parse(data.playerData),
       preferences: data.preferences ? JSON.parse(data.preferences) : undefined,
