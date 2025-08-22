@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.20.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.20.3...arcadia-eternity-v2.20.4) (2025-08-22)
+
+
+### 🐛 Bug Fixes
+
+* connectionStateRecovery ([65c09fa](https://github.com/arcadia-eternity/arcadia-eternity/commit/65c09fa810fd9639c568d899f32420a27f04dab9))
+* Revert "fix: connectionStateRecovery" ([924159a](https://github.com/arcadia-eternity/arcadia-eternity/commit/924159aeb87d830f9549dd43b0e394196f6e4bfc))
+* session state ([acc90ca](https://github.com/arcadia-eternity/arcadia-eternity/commit/acc90ca90cbc2bf1205c9514dc2e34e1a26624d4))
+
+
+### ⚡ Performance Improvements
+
+* loading background ([850c2d7](https://github.com/arcadia-eternity/arcadia-eternity/commit/850c2d7037bbb1191fc92ee72235719c5a174830))
+
 ## [2.20.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.20.2...arcadia-eternity-v2.20.3) (2025-08-21)
 
 
