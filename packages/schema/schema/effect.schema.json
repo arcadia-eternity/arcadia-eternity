@@ -3094,12 +3094,6 @@
             "type": {
               "type": "string",
               "const": "sampleBetween"
-            },
-            "first": {
-              "$ref": "#/$defs/__schema5"
-            },
-            "second": {
-              "$ref": "#/$defs/__schema5"
             }
           },
           "required": [

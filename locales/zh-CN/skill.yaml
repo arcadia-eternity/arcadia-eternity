@@ -2516,3 +2516,51 @@ skill_shachenhoutuiti:
 skill_fasibilei:
   name: 发丝壁垒
   description: 使自身获得发丝壁垒
+skill_niandong:
+  name: 念动
+  description: 5%弱化对手特防1级
+skill_zhenfen:
+  name: 振奋
+  description: 强化自身特攻1级
+skill_cuimiananshi:
+  name: 催眠暗示
+  description: 使对手获得催眠
+skill_jingshenbodong:
+  name: 精神波动
+  description: 对手具有催眠时附加30~70点固伤
+skill_jingsheganrao:
+  name: 精神干扰
+  description: 弱化对手双攻1级
+skill_cuimianshexian:
+  name: 催眠射线
+  description: 10%使对手睡眠
+skill_emengxiji:
+  name: 恶梦袭击
+  description: 对手睡眠时威力2倍且10%使对手害怕
+skill_shuimianguangxian:
+  name: 睡眠光线
+  description: 40%使对手睡眠 对手具有催眠时命中率增加20%
+skill_niandongfanshe:
+  name: 念动反射
+  description: 使自身获得念动反射
+skill_jingshensilie:
+  name: 精神撕裂
+  description: 对手具有催眠时使对手获得50点流血
+skill_jingshenshikong:
+  name: 精神失控
+  description: 使自身获得精神失控
+skill_xiaozhubieduidui:
+  name: 小猪别动队
+  description: 必中 附加30~70点固伤
+skill_jingshenguangbo:
+  name: 精神光波
+  description: 对手具有催眠时附加30~70点固伤
+skill_emengqinxi:
+  name: 恶梦侵袭
+  description: 对手睡眠时威力2倍且15%使对手害怕
+skill_ziwocuimian:
+  name: 自我催眠
+  description: 使自身睡眠并获得100点伤害增加
+skill_shiyi:
+  name: 失忆
+  description: 解除自身弱化

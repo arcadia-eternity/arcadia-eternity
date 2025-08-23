@@ -289,10 +289,7 @@ function applySelectorStep(
 
       case 'sampleBetween': {
         assertNumberSelector(selector)
-        return (selector as ChainableSelector<number>).sampleBetween(
-          parseValue(effectId, step.first) as ValueSource<number>,
-          parseValue(effectId, step.second) as ValueSource<number>,
-        ) as ChainableSelector<SelectorOpinion>
+        return (selector as ChainableSelector<number>).sampleBetween() as ChainableSelector<SelectorOpinion>
       }
 
       case 'when':

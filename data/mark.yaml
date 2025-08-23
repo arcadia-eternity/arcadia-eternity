@@ -75,7 +75,7 @@
   tags:
     - exceptional
   effect:
-    - effect_mark_randomUseSkill
+    - effect_mark_random_use_skill
     - effect_mark_onDamage_over100_recovery
 - id: mark_zuzhou
   config:
@@ -2314,3 +2314,41 @@
     inheritOnFaint: false
   effect:
     - effect_mark_reduce_damage_taken_20_percent
+- id: mark_cuimian
+  config:
+    duration: -1
+    maxStacks: 1
+    persistent: true
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+- id: mark_jingshenshikong
+  config:
+    duration: 4
+    maxStacks: 1
+    persistent: false
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_amplify_all_skill_power_2
+    - effect_mark_random_use_skill_except_jingshenshikong
+- id: mark_niandongfanshe
+  config:
+    duration: 5
+    maxStacks: 1
+    persistent: false
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_reflect_damage_1_4

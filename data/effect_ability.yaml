@@ -1545,3 +1545,18 @@
     target: damageContext
     delta: 15
     percent: 0
+# 催眠: 对手有催眠时,造成的伤害降低10%
+- id: effect_ability_reduce_damage_10_percent_when_opponent_has_cuimian
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    delta: 0
+    percent: -10
+  condition:
+    type: every
+    conditions:
+      - type: opponentUseSkill
+      - type: opponentHasMark
+        baseId: mark_cuimian
