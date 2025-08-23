@@ -84,7 +84,12 @@ export class ChainableSelector<T> {
     public type: string,
   ) {
     this._isNumberType =
-      RuntimeTypeChecker.isNumberType(type) || type === 'number' || type === 'number[]' || type.includes('number')
+      RuntimeTypeChecker.isNumberType(type) ||
+      type === 'number' ||
+      type === 'number[]' ||
+      type.includes('number') ||
+      type === 'Observable<number>' ||
+      type === 'any'
   }
 
   [Symbol.toPrimitive](context: EffectContext<EffectTrigger>): T[] {
@@ -474,29 +479,14 @@ export class ChainableSelector<T> {
    * 选择number的第一项和第二项之间的值，在这之间随机取样，返回包含取样值的数组
    * 如果值不存在或者非数字值，或者第一项大于第二项则返回空数组
    */
-  sampleBetween(this: ChainableSelector<number>, first: ValueSource<number>, second: ValueSource<number>): ChainableSelector<number> {
+  sampleBetween(this: ChainableSelector<number>): ChainableSelector<number> {
     return new ChainableSelector(context => {
-      const firstValues = GetValueFromSource(context, first)
-      const secondValues = GetValueFromSource(context, second)
-      
-      if (firstValues.length === 0 || secondValues.length === 0) return []
-      
-      const firstVal = firstValues[0]
-      const secondVal = secondValues[0]
-      
-      // 检查是否为数字值
-      if (typeof firstVal !== 'number' || typeof secondVal !== 'number') return []
-      
-      // 检查第一项是否大于第二项
-      if (firstVal > secondVal) return []
-      
-      // 在第一项和第二项之间随机取样
+      const values = this.selector(context)
+      const firstVal = values[0]
+      const secondVal = values[1]
+      if (typeof firstVal !== 'number' || typeof secondVal !== 'number' || firstVal > secondVal) return []
       const randomValue = context.battle.randomInt(firstVal, secondVal)
-      
-      return this.selector(context).filter(target => {
-        if (typeof target !== 'number') return false
-        return target >= firstVal && target <= secondVal
-      }).map(() => randomValue)
+      return [randomValue]
     }, this.type)
   }
 

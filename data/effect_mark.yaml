@@ -52,7 +52,7 @@
     type: destroyMark
     target:
       base: mark
-- id: effect_mark_randomUseSkill
+- id: effect_mark_random_use_skill
   trigger: BeforeUseSkillCheck
   priority: 0
   condition:
@@ -66,8 +66,7 @@
       selector:
         base: selfAvailableSkills
         chain:
-          - type: shuffled
-          - type: limit
+          - type: randomPick
             arg: 1
 - id: effect_mark_onDamage_over100_recovery
   trigger: PostDamage
@@ -2903,6 +2902,13 @@
         - type: whereAttr
           extractor:
             type: dynamic
+            arg: category
+          evaluator:
+            type: notSame
+            value: Status
+        - type: whereAttr
+          extractor:
+            type: dynamic
             arg: element
           evaluator:
             type: same
@@ -3667,3 +3673,44 @@
     mark:
       type: entity:baseMark
       value: mark_qianglipenti
+# 精神失控: 所有技能威力翻倍
+- id: effect_mark_amplify_all_skill_power_2
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addSkillAttributeModifier
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: dynamic
+            arg: category
+          evaluator:
+            type: notSame
+            value: Status
+    attribute: power
+    modifierType: percent
+    value: 100
+# 精神失控: 随机使用除了精神失控以外的其他技能
+- id: effect_mark_random_use_skill_except_jingshenshikong
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  condition:
+    type: checkSelf
+  apply:
+    type: setSkill
+    target: useSkillContext
+    updateConfig: true
+    value:
+      type: dynamic
+      selector:
+        base: selfAvailableSkills
+        chain:
+          - type: whereAttr
+            extractor: baseId
+            evaluator:
+              type: notSame
+              value: skill_jingshenshikong
+          - type: randomPick
+            arg: 1

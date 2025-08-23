@@ -178,3 +178,6 @@ mark_ability_qianghua:
 mark_ability_penti:
   name: 喷嚏
   description: 具有喷嚏时附加15点伤害
+mark_ability_cuimian:
+  name: 催眠
+  description: 对手具有催眠时造成伤害减少10%

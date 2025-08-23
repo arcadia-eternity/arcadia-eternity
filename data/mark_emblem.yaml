@@ -307,3 +307,8 @@
   tags: [emblem]
   effect:
     - effect_emblem_no_rage_cost_for_fasi_skills
+- id: mark_emblem_zimian
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_ziwocuimian_priority_plus_1

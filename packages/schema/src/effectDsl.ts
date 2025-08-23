@@ -819,8 +819,6 @@ export type SelectorChain =
     }
   | {
       type: 'sampleBetween'
-      first: Value
-      second: Value
     }
   | WhenSelectorStep
 

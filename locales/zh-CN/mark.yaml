@@ -700,3 +700,12 @@ mark_chaojipenti:
 mark_fasibilei:
   name: 发丝壁垒
   description: 受到伤害减少20%
+mark_cuimian:
+  name: 催眠
+  description: 催眠状态
+mark_jingshenshikong:
+  name: 精神失控
+  description: 攻击技能威力2倍并随机使用精神失控外的技能
+mark_niandongfanshe:
+  name: 念动反射
+  description: 反弹受到伤害的1/4

@@ -379,3 +379,9 @@ pet_meihuatou:
 pet_baozhatou:
   name: 爆炸头
   description: 爆炸头拥有惹眼的摇滚发型 它打心眼儿里觉得 逗乐大家才是最重要的
+pet_pige:
+  name: 皮格
+  description: 皮格打小就有特异功能 能够催眠别的精灵
+pet_pipige:
+  name: 皮皮格
+  description: 成长后的皮皮格 凭借强大的科学技术 将自己的念力做成了武器
