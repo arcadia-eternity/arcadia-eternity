@@ -2330,7 +2330,7 @@
     duration: 4
     maxStacks: 1
     persistent: false
-    stackable: false
+    stackable: true
     stackStrategy: refresh
     destroyable: true
     keepOnSwitchOut: true
@@ -2344,7 +2344,7 @@
     duration: 5
     maxStacks: 1
     persistent: false
-    stackable: false
+    stackable: true
     stackStrategy: refresh
     destroyable: true
     keepOnSwitchOut: true
