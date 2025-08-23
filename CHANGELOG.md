@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.21.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.20.4...arcadia-eternity-v2.21.0) (2025-08-23)
+
+
+### ✨ Features
+
+* add sampleBetween ([eac536a](https://github.com/arcadia-eternity/arcadia-eternity/commit/eac536af318bb8336834305918e48981a466be37))
+* **newpet:** 爆炸头 ([9f3d55d](https://github.com/arcadia-eternity/arcadia-eternity/commit/9f3d55dce49cfd216e8619422272b40382de1438))
+* **newpet:** 皮皮格 ([dacf1ae](https://github.com/arcadia-eternity/arcadia-eternity/commit/dacf1aec7856593b5747e74bd7916618b179bb37))
+* **newpet:** 皮皮格 ([ba24b89](https://github.com/arcadia-eternity/arcadia-eternity/commit/ba24b893c3259ad9d4842e650f158e5945019158))
+
+
+### 🐛 Bug Fixes
+
+* stackable ([279d67c](https://github.com/arcadia-eternity/arcadia-eternity/commit/279d67cccfe0908476ed5c2e41adb8f4cde0136b))
+
 ## [2.20.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.20.3...arcadia-eternity-v2.20.4) (2025-08-22)
 
 

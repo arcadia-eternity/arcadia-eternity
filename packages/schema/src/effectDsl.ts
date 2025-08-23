@@ -817,6 +817,9 @@ export type SelectorChain =
   | {
       type: 'asStatLevelMark'
     }
+  | {
+      type: 'sampleBetween'
+    }
   | WhenSelectorStep
 
 export type EvaluatorDSL =

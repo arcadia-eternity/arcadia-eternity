@@ -175,3 +175,9 @@ mark_ability_binggu:
 mark_ability_qianghua:
   name: 强化
   description: 强化特攻的同时也强化物攻
+mark_ability_penti:
+  name: 喷嚏
+  description: 具有喷嚏时附加15点伤害
+mark_ability_cuimian:
+  name: 催眠
+  description: 对手具有催眠时造成伤害减少10%

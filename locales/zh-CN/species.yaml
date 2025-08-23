@@ -370,3 +370,18 @@ pet_duoli:
 pet_duopuli:
   name: 多普利
   description: 多利成功进化为多普利的时候 养母把它的襁褓改成了一顶温暖的帽子
+pet_saobatou:
+  name: 扫把头
+  description: 生活在沙漠的扫把头 被风沙破坏了鼻粘膜 染上了鼻炎
+pet_meihuatou:
+  name: 梅花头
+  description: 梅花头说话不到两句就要打喷嚏 虽然麻烦 却常常成功逗乐大家
+pet_baozhatou:
+  name: 爆炸头
+  description: 爆炸头拥有惹眼的摇滚发型 它打心眼儿里觉得 逗乐大家才是最重要的
+pet_pige:
+  name: 皮格
+  description: 皮格打小就有特异功能 能够催眠别的精灵
+pet_pipige:
+  name: 皮皮格
+  description: 成长后的皮皮格 凭借强大的科学技术 将自己的念力做成了武器

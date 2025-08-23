@@ -172,3 +172,9 @@ mark_emblem_dongqi:
 mark_emblem_baonuan:
   name: 保暖
   description: 使保暖有20%几率额外提升1级特防
+mark_emblem_fasi:
+  name: 发丝
+  description: 使发丝技能不消耗怒气
+mark_emblem_zimian:
+  name: 自眠
+  description: 使自我催眠技能先制+1

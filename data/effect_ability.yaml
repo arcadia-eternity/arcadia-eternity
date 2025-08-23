@@ -1519,3 +1519,44 @@
         evaluator:
           type: same
           value: spa
+# 喷嚏: 有喷嚏类印记时,造成固定15点伤害
+- id: effect_ability_fixed_damage_15_when_has_penti
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: tags
+              evaluator:
+                type: contain
+                tag: penti
+        evaluator:
+          type: exist
+  apply:
+    type: addModified
+    target: damageContext
+    delta: 15
+    percent: 0
+# 催眠: 对手有催眠时,造成的伤害降低10%
+- id: effect_ability_reduce_damage_10_percent_when_opponent_has_cuimian
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    delta: 0
+    percent: -10
+  condition:
+    type: every
+    conditions:
+      - type: opponentUseSkill
+      - type: opponentHasMark
+        baseId: mark_cuimian

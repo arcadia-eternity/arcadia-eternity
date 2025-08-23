@@ -3093,6 +3093,20 @@
           "properties": {
             "type": {
               "type": "string",
+              "const": "sampleBetween"
+            }
+          },
+          "required": [
+            "type",
+            "first",
+            "second"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
               "const": "when"
             },
             "condition": {

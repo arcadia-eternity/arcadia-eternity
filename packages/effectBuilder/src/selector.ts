@@ -84,7 +84,12 @@ export class ChainableSelector<T> {
     public type: string,
   ) {
     this._isNumberType =
-      RuntimeTypeChecker.isNumberType(type) || type === 'number' || type === 'number[]' || type.includes('number')
+      RuntimeTypeChecker.isNumberType(type) ||
+      type === 'number' ||
+      type === 'number[]' ||
+      type.includes('number') ||
+      type === 'Observable<number>' ||
+      type === 'any'
   }
 
   [Symbol.toPrimitive](context: EffectContext<EffectTrigger>): T[] {
@@ -467,6 +472,21 @@ export class ChainableSelector<T> {
       const _percent = GetValueFromSource(context, percent)
       if (_percent.length === 0) return []
       return this.selector(context).filter(() => context.battle.randomInt(1, 100) <= _percent[0])
+    }, this.type)
+  }
+
+  /**
+   * 选择number的第一项和第二项之间的值，在这之间随机取样，返回包含取样值的数组
+   * 如果值不存在或者非数字值，或者第一项大于第二项则返回空数组
+   */
+  sampleBetween(this: ChainableSelector<number>): ChainableSelector<number> {
+    return new ChainableSelector(context => {
+      const values = this.selector(context)
+      const firstVal = values[0]
+      const secondVal = values[1]
+      if (typeof firstVal !== 'number' || typeof secondVal !== 'number' || firstVal > secondVal) return []
+      const randomValue = context.battle.randomInt(firstVal, secondVal)
+      return [randomValue]
     }, this.type)
   }
 

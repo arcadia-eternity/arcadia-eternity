@@ -52,7 +52,7 @@
     type: destroyMark
     target:
       base: mark
-- id: effect_mark_randomUseSkill
+- id: effect_mark_random_use_skill
   trigger: BeforeUseSkillCheck
   priority: 0
   condition:
@@ -66,8 +66,7 @@
       selector:
         base: selfAvailableSkills
         chain:
-          - type: shuffled
-          - type: limit
+          - type: randomPick
             arg: 1
 - id: effect_mark_onDamage_over100_recovery
   trigger: PostDamage
@@ -1130,7 +1129,6 @@
       delta: 0
     - type: destroyMark
       target: mark
-
 # 印记的拥有者使用下一个特攻技能时，造成的伤害增加基于印记层数的百分比
 - id: effect_mark_amplify_next_special_damage_with_stack
   trigger: OnBeforeCalculateDamage
@@ -1163,7 +1161,6 @@
       delta: 0
     - type: destroyMark
       target: mark
-
 # 印记的拥有者使用火系技能时，技能的威力增幅70%
 - id: effect_mark_amplify_fire_skill_70
   trigger: AfterUseSkillCheck
@@ -1533,7 +1530,6 @@
     percent: -50
     delta: 0
 # 虚空体质相关效果
-
 # 金针恢复: 每回合恢复50点体力
 - id: effect_mark_heal_self_50_turn_end
   trigger: TurnEnd
@@ -1588,7 +1584,6 @@
         value: mark_xukongganying
     - type: destroyMark
       target: mark
-
 # 伊特领域: 提高自身队伍10%暴击率
 - id: effect_mark_increase_self_crit_rate
   trigger: OnMarkCreated
@@ -1599,7 +1594,6 @@
     stat: critRate
     modifierType: delta
     value: 10
-
 # 气流涌动: 非必杀的攻击技能怒气消耗2倍 伤害2倍
 - id: effect_mark_double_rage_cost_double_damage_non_climax
   trigger: OnMarkCreated
@@ -1647,7 +1641,6 @@
       attribute: power
       modifierType: percent
       value: 100
-
 # 气流涌动: 每次使用非必杀非状态技能结束时消耗一层
 - id: effect_mark_consume_stack_on_skill_use
   trigger: SkillUseEnd
@@ -1677,7 +1670,6 @@
         evaluator:
           type: notSame
           value: Status
-
 # 风之领域: 增加自身本系技能伤害10%
 - id: effect_mark_increase_self_element_damage_10_percent
   trigger: OnBeforeCalculateDamage
@@ -1706,7 +1698,6 @@
     target: damageContext
     percent: 10
     delta: 0
-
 # 风暴领域/电磁领域: 增加自身本系技能伤害20%
 - id: effect_mark_increase_self_element_damage_20_percent
   trigger: OnBeforeCalculateDamage
@@ -1735,7 +1726,6 @@
     target: damageContext
     percent: 20
     delta: 0
-
 # 电荷: 每个暴击率增加20%
 - id: effect_mark_increase_crit_rate_20_percent_per_stack
   trigger: OnMarkCreated
@@ -1757,7 +1747,6 @@
               type: raw:number
               configId: crit_rate_increase_per_stack
               value: 20
-
 # 电之领域: 使自身暴击率和闪避率增加10%
 - id: effect_mark_increase_crit_rate_10_percent
   trigger: OnMarkCreated
@@ -1768,7 +1757,6 @@
     stat: critRate
     modifierType: delta
     value: 10
-
 - id: effect_mark_increase_evasion_10_percent
   trigger: OnMarkCreated
   priority: 0
@@ -1778,7 +1766,6 @@
     stat: evasion
     modifierType: delta
     value: 10
-
 # 冰之领域: 受到伤害降低10% 造成伤害增加10%
 - id: effect_mark_reduce_damage_taken_10_percent
   trigger: OnBeforeCalculateDamage
@@ -1790,7 +1777,6 @@
     target: damageContext
     percent: -10
     delta: 0
-
 - id: effect_mark_increase_damage_dealt_10_percent
   trigger: OnBeforeCalculateDamage
   condition:
@@ -1801,7 +1787,6 @@
     target: damageContext
     percent: 10
     delta: 0
-
 # 冰霜领域: 受到伤害降低20% 造成伤害增加20%
 - id: effect_mark_reduce_damage_taken_20_percent
   trigger: OnBeforeCalculateDamage
@@ -1813,7 +1798,6 @@
     target: damageContext
     percent: -20
     delta: 0
-
 - id: effect_mark_increase_damage_dealt_20_percent
   trigger: OnBeforeCalculateDamage
   condition:
@@ -1824,7 +1808,6 @@
     target: damageContext
     percent: 20
     delta: 0
-
 # 闪电外衣: 受到特攻伤害降低30点 受到物攻50%使对手麻痹
 - id: effect_mark_reduce_special_damage_30
   trigger: OnBeforeCalculateDamage
@@ -1847,7 +1830,6 @@
     target: damageContext
     percent: 0
     delta: -30
-
 - id: effect_mark_paralyze_on_physical_50_percent
   trigger: OnDamage
   condition:
@@ -1875,7 +1857,6 @@
     mark:
       type: entity:baseMark
       value: mark_mabi
-
 # 冰凝之气: 受到伤害增加50%，如果冰冻则效果翻倍（100%）
 - id: effect_increase_damage_taken_once_50_percent_double_effect_if_frozen
   trigger: OnBeforeCalculateDamage
@@ -1913,7 +1894,6 @@
       percent: 50
       delta: 0
   consumesStacks: 1
-
 # 冰霜之星: 造成伤害时减少等于层数的伤害
 - id: effect_mark_reduce_deal_damage_once_per_stack
   trigger: OnBeforeCalculateDamage
@@ -1937,7 +1917,6 @@
       percent: 0
     - type: destroyMark
       target: mark
-
 # 伤害阻挡: 当伤害值低于等于60时，把实际的伤害值置0
 - id: effect_block_damage_under_60
   trigger: OnDamage
@@ -1959,7 +1938,6 @@
   apply:
     type: preventDamage
     target: damageContext
-
 # 暗影之光: 威力低于100的攻击技能威力变为100
 - id: effect_mark_anyingzhiguang_power_min_100
   trigger: OnMarkCreated
@@ -1987,7 +1965,6 @@
     attribute: power
     modifierType: override
     value: 100
-
 # 暗影之光: 每次使用攻击技能命中时消耗一层
 - id: effect_mark_anyingzhiguang_consume_stack_on_skill_use
   trigger: OnHit
@@ -2008,7 +1985,6 @@
           value: Status
   apply:
     type: TODO
-
 # 光辉之影: 为所有技能添加优先度-1的modifier
 - id: effect_mark_priority_reduce_1
   trigger: OnMarkCreated
@@ -2020,7 +1996,6 @@
     attribute: priority
     modifierType: delta
     value: -1
-
 # 使自身受击怒气增加10%
 - id: effect_mark_increase_rage_on_damage_10_percent
   trigger: BeforeRageGain
@@ -2032,7 +2007,6 @@
     target: rageContext
     percent: 10
     delta: 0
-
 # 使自身受击怒气增加20%
 - id: effect_mark_increase_rage_on_damage_20_percent
   trigger: BeforeRageGain
@@ -2044,7 +2018,6 @@
     target: rageContext
     percent: 20
     delta: 0
-
 # 使自身治疗效果增加20%
 - id: effect_mark_increase_heal_20_percent
   trigger: OnBeforeHeal
@@ -2056,7 +2029,6 @@
     target: healContext
     percent: 20
     delta: 0
-
 # 使自身治疗效果增加40%
 - id: effect_mark_increase_heal_40_percent
   trigger: OnBeforeHeal
@@ -2068,7 +2040,6 @@
     target: healContext
     percent: 40
     delta: 0
-
 # 恐惧之念: 当层数达到3层时，消耗所有恐惧之念并给自己附加恐惧
 - id: effect_mark_fear_consume_stacks_at_3
   trigger: OnStack
@@ -2136,7 +2107,6 @@
     type: setSureMiss
     target: useSkillContext
     priority: -1
-
 # 后空翻:  受到的特殊伤害翻倍
 - id: effect_mark_double_special_damage_taken
   trigger: OnBeforeCalculateDamage
@@ -2159,7 +2129,6 @@
     target: damageContext
     percent: 100
     delta: 0
-
 # 星之辉: 技能特效的触发概率提高印记的层数
 - id: effect_mark_increase_skill_trigger_rate_with_stack
   trigger: OnMarkCreated
@@ -2177,7 +2146,6 @@
         chain:
           - type: selectAttribute$
             arg: stack
-
 # 音波: 当叠层后层数大于100层时，消耗100层印记并对自身造成100点伤害
 - id: effect_mark_explode_on_stack_over_100
   trigger: OnStack
@@ -2209,7 +2177,6 @@
         type: raw:number
         configId: yinbo_consume_stacks_value
         value: 100
-
 # 噪音: 下一次使用技能的命中率减少该印记的层数
 - id: effect_mark_reduce_accuracy_next_skill_with_stack
   trigger: BeforeUseSkillCheck
@@ -2232,7 +2199,6 @@
               arg: -1
     - type: destroyMark
       target: mark
-
 # 蓝宝石: 使下一个红宝石之光附加200点固伤
 - id: effect_mark_hongbaoshizhiguang_add_200_fixed_damage
   trigger: OnBeforeCalculateDamage
@@ -2261,7 +2227,6 @@
       type: raw:number
       configId: hongbaoshi_fixed_damage_value
       value: 200
-
 # 红宝石: 使下一个蓝宝石之力附加200点固伤
 - id: effect_mark_lanbaoshizhiguang_add_200_fixed_damage
   trigger: OnBeforeCalculateDamage
@@ -2290,7 +2255,6 @@
       type: raw:number
       configId: lanbaoshi_fixed_damage_value
       value: 200
-
 # 流星盾: 完全抵挡下一次特攻伤害
 - id: effect_mark_block_next_special_damage
   trigger: OnBeforeCalculateDamage
@@ -2313,7 +2277,6 @@
       target: damageContext
     - type: destroyMark
       target: mark
-
 # 沙鹤之力: 造成伤害增加35%
 - id: effect_mark_increase_damage_dealt_35_percent
   trigger: OnBeforeCalculateDamage
@@ -2325,7 +2288,6 @@
     target: damageContext
     percent: 35
     delta: 0
-
 # 沙之网: 受到的特攻伤害减少层数的数值
 - id: effect_mark_special_damage_reduction_with_stack
   trigger: OnBeforeCalculateDamage
@@ -2354,7 +2316,6 @@
         chain:
           - type: selectAttribute$
             arg: stack
-
 # 蓄力: 为自己所有的攻击技能添加20x层数的威力的增幅
 - id: effect_mark_amplify_power_20x_stack
   trigger: OnMarkCreated
@@ -2382,7 +2343,6 @@
             arg: stack
           - type: multiply
             arg: 20
-
 # 武者之心: 每层会增加受到的伤害15% 对方技能命中后转移给对方
 - id: effect_mark_increase_damage_taken_15_percent_per_stack
   trigger: OnBeforeCalculateDamage
@@ -2407,7 +2367,6 @@
               configId: mark_increase_damage_taken_per_stack
               value: 15
     delta: 0
-
 - id: effect_mark_transfer_to_opponent_on_hit
   trigger: OnHit
   condition:
@@ -2423,7 +2382,6 @@
     - type: addStacks
       target: mark
       value: 1
-
 # 绝影: 使得下一个极光附带200点固伤
 - id: effect_mark_jiguang_add_200_damage
   trigger: OnBeforeCalculateDamage
@@ -2452,7 +2410,6 @@
       type: raw:number
       configId: jiguang_fixed_damage_value
       value: 200
-
 # 极光: 使得下一个绝影附带200点固伤
 - id: effect_mark_jueying_add_200_damage
   trigger: OnBeforeCalculateDamage
@@ -2481,7 +2438,6 @@
       type: raw:number
       configId: jueying_fixed_damage_value
       value: 200
-
 # 影之斗气/闪光搏击: 受到的伤害增加50%
 - id: effect_mark_increase_damage_taken_50_percent
   trigger: OnBeforeCalculateDamage
@@ -2493,7 +2449,6 @@
     target: damageContext
     percent: 50
     delta: 0
-
 # 双刃追击: 使下一个双刃斩额外连击两次
 - id: effect_mark_shuangrenzhan_add_2_hits
   trigger: BeforeMultiHit
@@ -2518,7 +2473,6 @@
     type: addMultihitResult
     target: useSkillContext
     value: 2
-
 # 白牙: 使得下一个白牙破附带基于层数的伤害
 - id: effect_mark_baiyapo_add_damage_based_on_stack
   trigger: OnBeforeCalculateDamage
@@ -2551,7 +2505,6 @@
               arg: stack
     - type: destroyMark
       target: mark
-
 # 黑牙: 使得下一个黑牙破附带基于层数的伤害
 - id: effect_mark_heiyapao_add_damage_based_on_stack
   trigger: OnBeforeCalculateDamage
@@ -2584,7 +2537,6 @@
               arg: stack
     - type: destroyMark
       target: mark
-
 # 攻守兼备: 使得下一个受到的伤害减少50%
 - id: effect_mark_reduce_next_skill_damage_50_percent
   trigger: OnBeforeCalculateDamage
@@ -2597,7 +2549,6 @@
     target: damageContext
     percent: -50
     delta: 0
-
 # 仁者之心: 每层减少受到的伤害15%,对方技能命中后转移给对方
 - id: effect_mark_reduce_damage_taken_15_percent_per_stack
   trigger: OnBeforeCalculateDamage
@@ -2624,7 +2575,6 @@
           - type: multiply
             arg: -1
     delta: 0
-
 # 双破追击: 使下一个双破斩额外连击两次
 - id: effect_mark_shuangpozhan_add_2_hits
   trigger: BeforeMultiHit
@@ -2649,7 +2599,6 @@
     type: addMultihitResult
     target: useSkillContext
     value: 2
-
 # 蓄力冲击: 下一次造成伤害增加50%
 - id: effect_mark_xulichongji_add_50_percent_damage
   trigger: OnBeforeCalculateDamage
@@ -2662,7 +2611,6 @@
     target: damageContext
     percent: 50
     delta: 0
-
 # 分身术: 减少30%受到的伤害
 - id: effect_mark_reduce_damage_30_percent
   trigger: OnBeforeCalculateDamage
@@ -2674,7 +2622,6 @@
     target: damageContext
     percent: -30
     delta: 0
-
 # 接力: 使得换场后的下一只精灵获得25层伤害增加
 - id: effect_mark_add_damage_increase_25_on_switch_in
   trigger: OnSwitchOut
@@ -2692,7 +2639,6 @@
     stack: 25
   condition:
     type: selfSwitchOut
-
 # 大地之佑: 每层增加25点物防
 - id: effect_mark_def_boost_25_per_stack
   trigger: OnMarkCreated
@@ -2710,7 +2656,6 @@
           arg: stack
         - type: multiply
           arg: 25
-
 # 沙暴之力: 每层增加25点特攻
 - id: effect_mark_spa_boost_25_per_stack
   trigger: OnMarkCreated
@@ -2728,7 +2673,6 @@
           arg: stack
         - type: multiply
           arg: 25
-
 # 泰坦之护: 受到伤害不超过自身最大体力的1/2
 - id: effect_mark_damage_cap_half_max_hp
   trigger: OnBeforeCalculateDamage
@@ -2750,7 +2694,6 @@
               arg: maxHp
           - type: divide
             arg: 2
-
 # 花粉弥漫: 每层受到伤害减少15%
 - id: effect_mark_reduce_damage_15_percent_per_stack
   trigger: OnBeforeCalculateDamage
@@ -2775,7 +2718,6 @@
               configId: mark_reduce_damage_per_stack
               value: -15
     delta: 0
-
 # 花粉弥漫: 回合结束时层数+1
 - id: effect_mark_add_stack_on_turn_end
   trigger: TurnEnd
@@ -2960,6 +2902,13 @@
         - type: whereAttr
           extractor:
             type: dynamic
+            arg: category
+          evaluator:
+            type: notSame
+            value: Status
+        - type: whereAttr
+          extractor:
+            type: dynamic
             arg: element
           evaluator:
             type: same
@@ -3008,7 +2957,6 @@
             arg: damageResult
           - type: multiply
             arg: 0.25
-
 # 真实幻想: 防止幻想被消耗
 - id: effect_mark_zhenshihuanxiang_prevent_consume
   trigger: OnBeforeConsumeStack
@@ -3031,7 +2979,6 @@
   apply:
     type: disableContext
     target: consumeStackContext
-
 # 会心: 下一次使用非属性类技能必定暴击
 - id: effect_mark_next_non_status_skill_sure_crit
   trigger: AfterUseSkillCheck
@@ -3057,7 +3004,6 @@
     - type: setSureCrit
       target: useSkillContext
       priority: 1
-
 # 晚安: 每回合结束时恢复40点体力
 - id: effect_mark_heal_40_per_turn
   trigger: TurnEnd
@@ -3068,7 +3014,6 @@
     value: 40
   condition:
     type: petIsActive
-
 # 晚安: 受到攻击时，消耗自身并使自身获得会心
 - id: effect_mark_add_crit_on_damage
   trigger: PostDamage
@@ -3085,7 +3030,6 @@
     type: every
     conditions:
       - type: selfBeDamaged
-
 # 招财: 造成的伤害提升25%
 - id: effect_mark_increase_damage_dealt_25_percent
   trigger: OnBeforeCalculateDamage
@@ -3097,7 +3041,6 @@
     delta: 0
   condition:
     type: selfUseSkill
-
 # 进宝: 受到的伤害减少25%
 - id: effect_mark_reduce_damage_taken_25_percent
   trigger: OnBeforeCalculateDamage
@@ -3109,7 +3052,6 @@
     delta: 0
   condition:
     type: selfBeDamaged
-
 # 迅捷: 为所有技能添加先制+1的modifier
 - id: effect_mark_priority_add_1
   trigger: OnMarkCreated
@@ -3711,3 +3653,64 @@
       value: 1
     - type: destroyMark
       target: mark
+# 强力喷嚏: 结束时,给自己添加喷嚏
+- id: effect_mark_on_duration_end_add_mark_penti
+  trigger: OnMarkDurationEnd
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_penti
+# 超级喷嚏: 结束时,给自己添加强力喷嚏
+- id: effect_mark_on_duration_end_add_mark_qianglipenti
+  trigger: OnMarkDurationEnd
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_qianglipenti
+# 精神失控: 所有技能威力翻倍
+- id: effect_mark_amplify_all_skill_power_2
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addSkillAttributeModifier
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: dynamic
+            arg: category
+          evaluator:
+            type: notSame
+            value: Status
+    attribute: power
+    modifierType: percent
+    value: 100
+# 精神失控: 随机使用除了精神失控以外的其他技能
+- id: effect_mark_random_use_skill_except_jingshenshikong
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  condition:
+    type: checkSelf
+  apply:
+    type: setSkill
+    target: useSkillContext
+    updateConfig: true
+    value:
+      type: dynamic
+      selector:
+        base: selfAvailableSkills
+        chain:
+          - type: whereAttr
+            extractor: baseId
+            evaluator:
+              type: notSame
+              value: skill_jingshenshikong
+          - type: randomPick
+            arg: 1

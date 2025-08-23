@@ -6265,7 +6265,6 @@
     - mark_ability_huohuan
   emblem:
     - mark_emblem_huoxin
-
 - id: pet_dakeer
   num: 75
   element: Fire
@@ -6314,7 +6313,6 @@
     - mark_ability_huohuan
   emblem:
     - mark_emblem_huoxin
-
 - id: pet_dakelaer
   num: 76
   element: Fire
@@ -7079,3 +7077,279 @@
     - skill_id: skill_quzhuhanyi
       level: 60
       hidden: true
+- id: pet_saobatou
+  num: 83
+  element: Desert
+  baseStats:
+    hp: 83
+    atk: 120
+    spa: 105
+    def: 113
+    spd: 110
+    spe: 103
+  genderRatio:
+    - 9
+    - 1
+  heightRange:
+    - 30
+    - 35
+  weightRange:
+    - 14
+    - 19
+  learnable_skills:
+    - skill_id: skill_houtuiti
+      level: 1
+      hidden: false
+    - skill_id: skill_yili
+      level: 5
+      hidden: false
+    - skill_id: skill_shachen
+      level: 11
+      hidden: false
+    - skill_id: skill_yigenfasi
+      level: 16
+      hidden: false
+  ability:
+    - mark_ability_penti
+  emblem:
+    - mark_emblem_fasi
+- id: pet_meihuatou
+  num: 84
+  element: Desert
+  baseStats:
+    hp: 123
+    atk: 150
+    spa: 135
+    def: 138
+    spd: 135
+    spe: 123
+  genderRatio:
+    - 9
+    - 1
+  heightRange:
+    - 51
+    - 56
+  weightRange:
+    - 29
+    - 34
+  learnable_skills:
+    - skill_id: skill_houtuiti
+      level: 1
+      hidden: false
+    - skill_id: skill_yili
+      level: 5
+      hidden: false
+    - skill_id: skill_shachen
+      level: 11
+      hidden: false
+    - skill_id: skill_yigenfasi
+      level: 16
+      hidden: false
+    - skill_id: skill_shatuihouti
+      level: 21
+      hidden: false
+    - skill_id: skill_dantuofeng
+      level: 26
+      hidden: false
+    - skill_id: skill_fasizhenci
+      level: 31
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 36
+      hidden: false
+  ability:
+    - mark_ability_penti
+  emblem:
+    - mark_emblem_fasi
+- id: pet_baozhatou
+  num: 85
+  element: Desert
+  baseStats:
+    hp: 183
+    atk: 180
+    spa: 165
+    def: 163
+    spd: 160
+    spe: 153
+  genderRatio:
+    - 9
+    - 1
+  heightRange:
+    - 84
+    - 89
+  weightRange:
+    - 77
+    - 82
+  learnable_skills:
+    - skill_id: skill_houtuiti
+      level: 1
+      hidden: false
+    - skill_id: skill_yili
+      level: 5
+      hidden: false
+    - skill_id: skill_shachen
+      level: 11
+      hidden: false
+    - skill_id: skill_yigenfasi
+      level: 16
+      hidden: false
+    - skill_id: skill_shatuihouti
+      level: 21
+      hidden: false
+    - skill_id: skill_dantuofeng
+      level: 26
+      hidden: false
+    - skill_id: skill_fasizhenci
+      level: 31
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 36
+      hidden: false
+    - skill_id: skill_lianggenfasi
+      level: 41
+      hidden: false
+    - skill_id: skill_shatuizhonghouti
+      level: 46
+      hidden: false
+    - skill_id: skill_shuangtuofeng
+      level: 51
+      hidden: false
+    - skill_id: skill_fasilianshe
+      level: 56
+      hidden: false
+    - skill_id: skill_baozhatou
+      level: 60
+      hidden: true
+    - skill_id: skill_sangenfasi
+      level: 60
+      hidden: true
+    - skill_id: skill_jisuhouti
+      level: 60
+      hidden: true
+    - skill_id: skill_shachenhoutuiti
+      level: 60
+      hidden: true
+    - skill_id: skill_fasibilei
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_penti
+  emblem:
+    - mark_emblem_fasi
+- id: pet_pige
+  num: 88
+  element: Psychic
+  baseStats:
+    hp: 82
+    atk: 119
+    def: 118
+    spa: 128
+    spd: 117
+    spe: 108
+  genderRatio:
+    - 8
+    - 2
+  heightRange:
+    - 29
+    - 34
+  weightRange:
+    - 10
+    - 15
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_niandong
+      level: 5
+      hidden: false
+    - skill_id: skill_zhenfen
+      level: 10
+      hidden: false
+    - skill_id: skill_cuimiananshi
+      level: 14
+      hidden: false
+    - skill_id: skill_jingshenbodong
+      level: 18
+      hidden: false
+    - skill_id: skill_jingsheganrao
+      level: 23
+      hidden: false
+  ability:
+    - mark_ability_cuimian
+  emblem:
+    - mark_emblem_zimian
+- id: pet_pipige
+  num: 89
+  element: Psychic
+  baseStats:
+    hp: 172
+    atk: 169
+    def: 163
+    spa: 178
+    spd: 162
+    spe: 153
+  genderRatio:
+    - 8
+    - 2
+  heightRange:
+    - 51
+    - 56
+  weightRange:
+    - 47
+    - 52
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_niandong
+      level: 5
+      hidden: false
+    - skill_id: skill_zhenfen
+      level: 10
+      hidden: false
+    - skill_id: skill_cuimiananshi
+      level: 14
+      hidden: false
+    - skill_id: skill_jingshenbodong
+      level: 18
+      hidden: false
+    - skill_id: skill_jingsheganrao
+      level: 23
+      hidden: false
+    - skill_id: skill_cuimianshexian
+      level: 28
+      hidden: false
+    - skill_id: skill_emengxiji
+      level: 33
+      hidden: false
+    - skill_id: skill_shuimianguangxian
+      level: 38
+      hidden: false
+    - skill_id: skill_niandongfanshe
+      level: 43
+      hidden: false
+    - skill_id: skill_jingshensilie
+      level: 48
+      hidden: false
+    - skill_id: skill_jingshenshikong
+      level: 53
+      hidden: false
+    - skill_id: skill_xiaozhubieduidui
+      level: 60
+      hidden: true
+    - skill_id: skill_jingshenguangbo
+      level: 60
+      hidden: true
+    - skill_id: skill_emengqinxi
+      level: 60
+      hidden: true
+    - skill_id: skill_ziwocuimian
+      level: 60
+      hidden: true
+    - skill_id: skill_shiyi
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_cuimian
+  emblem:
+    - mark_emblem_zimian

@@ -312,3 +312,13 @@
   tags: [ability]
   effect:
     - effect_ability_enhance_atk_when_spa_enhanced
+- id: mark_ability_penti
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_fixed_damage_15_when_has_penti
+- id: mark_ability_cuimian
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_reduce_damage_10_percent_when_opponent_has_cuimian
