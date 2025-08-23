@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.0...arcadia-eternity-v2.22.1) (2025-08-23)
+
+
+### ⚡ Performance Improvements
+
+* **teambuilder:** set starter ([5a08f9b](https://github.com/arcadia-eternity/arcadia-eternity/commit/5a08f9ba5d65d0eaefc019b8cdc47ac59002bc1a))
+
 ## [2.22.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.21.0...arcadia-eternity-v2.22.0) (2025-08-23)
 
 
