@@ -13,3 +13,6 @@ mark_global_yemu:
 mark_global_leibaotian:
   name: 雷暴天
   description: 电系技能伤害提高35%
+mark_global_chongqun:
+  name: 虫群
+  description: 虫系技能伤害提高35%

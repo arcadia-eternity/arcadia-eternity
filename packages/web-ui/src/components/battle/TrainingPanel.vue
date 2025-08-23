@@ -192,7 +192,7 @@ const opponentPlayer = computed(() => battleStore.opponent)
 const currentTurn = computed(() => battleStore.battleState?.currentTurn ?? 0)
 const currentPhase = computed(() => battleStore.battleState?.currentPhase ?? 'Unknown')
 const messageCount = computed(() => battleStore.log.length)
-const battleSeed = computed(() => (battleStore.battleState as any)?.rngSeed)
+const battleSeed = computed(() => '')
 
 // 当前宠物信息
 const currentPet = computed(() => {
@@ -404,7 +404,7 @@ const getActionKey = (action: PlayerSelection): string => {
 const getActionDisplayName = (action: PlayerSelection) => {
   switch (action.type) {
     case 'use-skill':
-      const skill = battleStore.skillMap.get(action.skill)
+      const skill = battleStore.getSkillInfo(action.skill)
       if (skill) {
         // 尝试获取技能的基础ID，如果没有则使用实例ID
         const skillId = skill.baseId || action.skill

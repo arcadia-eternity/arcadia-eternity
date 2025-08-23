@@ -42,6 +42,8 @@
   config: *global_config
 - id: mark_global_chongqun
   config: *global_config
+  effect:
+    - effect_global_power_35_percent_bug
 - id: mark_global_xingyi
 - id: mark_global_3jixingyi
 - id: mark_global_2jixingyi

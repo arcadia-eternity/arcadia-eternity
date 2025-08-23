@@ -208,6 +208,13 @@
       "a": false
     },
     {
+      "n": "globalKeyIndex",
+      "t": "Map<string, Set<string>>",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "objectId",
       "t": "string",
       "iu": false,
@@ -1501,6 +1508,13 @@
     },
     {
       "n": "multihitResult",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "currentHitCount",
       "t": "number",
       "iu": false,
       "u": [],
@@ -3998,13 +4012,6 @@
       "u": [],
       "a": true,
       "nt": "Effect<EffectTrigger>"
-    },
-    {
-      "n": "Builder",
-      "t": "typeof (Anonymous class)",
-      "iu": false,
-      "u": [],
-      "a": false
     },
     {
       "n": "id",
@@ -7650,7 +7657,7 @@
     },
     {
       "n": "data",
-      "t": "{ mark: markId, target: petId | \"battle\" }",
+      "t": "{ mark: markId, baseMarkId: baseMarkId, target: petId | \"battle\" }",
       "iu": false,
       "u": [],
       "a": false
@@ -9121,7 +9128,7 @@
     },
     {
       "n": "[BattleMessageType.MarkDestroy]",
-      "t": "{ mark: markId, target: petId | \"battle\" }",
+      "t": "{ mark: markId, baseMarkId: baseMarkId, target: petId | \"battle\" }",
       "iu": false,
       "u": [],
       "a": false

@@ -178,3 +178,12 @@ mark_emblem_fasi:
 mark_emblem_zimian:
   name: 自眠
   description: 使自我催眠技能先制+1
+mark_emblem_feixuan:
+  name: 飞旋
+  description: 使飞旋之光+5点怒气恢复
+mark_emblem_shazhen:
+  name: 沙阵
+  description: 使沙暴阵的闪避率+5%
+mark_emblem_chongqun:
+  name: 虫群
+  description: 虫群环境下连击技能怒气消耗减少5点

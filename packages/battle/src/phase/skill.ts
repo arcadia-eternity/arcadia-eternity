@@ -124,7 +124,7 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
     battle.applyEffects(context, EffectTrigger.BeforeMultiHit)
 
     // Execute multihit loop
-    for (; context.multihitResult > 0; context.multihitResult--) {
+    for (; context.currentHitCount <= context.multihitResult; context.currentHitCount++) {
       // Hit check
       if (!context.hitResult) {
         battle.emitMessage(BattleMessageType.SkillMiss, {

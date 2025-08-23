@@ -4005,7 +4005,6 @@
       value: 1
   condition:
     type: selfUseSkill
-
 # 添加麦麦金针状态
 - id: effect_skill_add_mark_opponent_maimaijinzhen
   trigger: OnHit
@@ -4098,7 +4097,6 @@
     stack: 50
   condition:
     type: selfUseSkill
-
 # 消耗麦麦金针并在5回合内每回合恢复50点体力
 - id: effect_skill_consume_maimaijinzhen_heal_self_50
   trigger: OnHit
@@ -4385,7 +4383,6 @@
     stack: 75
   condition:
     type: selfUseSkill
-
 # 添加伊特领域标记
 - id: effect_skill_add_mark_yitelingyu
   trigger: OnHit
@@ -4398,7 +4395,6 @@
       value: mark_yitelingyu
   condition:
     type: selfUseSkill
-
 # 有伊特领域时必定暴击
 - id: effect_skill_sure_crit_if_has_yitelingyu
   trigger: AfterUseSkillCheck
@@ -4413,7 +4409,6 @@
       - type: selfUseSkill
       - type: selfHasMark
         baseId: mark_yitelingyu
-
 # 添加气流涌动标记 (2层)
 - id: effect_skill_add_mark_qiliuyongdong
   trigger: OnHit
@@ -4427,7 +4422,6 @@
     stack: 2
   condition:
     type: selfUseSkill
-
 # 恢复怒气15点
 - id: effect_skill_add_rage_15
   trigger: OnHit
@@ -4438,7 +4432,6 @@
     value: 15
   condition:
     type: selfUseSkill
-
 # 暴击时强化自身物攻1级
 - id: effect_skill_raise_atk_1_stage_on_crit
   trigger: OnCritPreDamage
@@ -4450,7 +4443,6 @@
     value: 1
   condition:
     type: selfUseSkill
-
 # 添加闪电外衣标记
 - id: effect_skill_add_mark_shandianwaiyi
   trigger: OnHit
@@ -4484,7 +4476,6 @@
             type: 'raw:number'
             value: 20
             tags: ['skill_effect_probability']
-
 # 添加电之领域或电磁领域
 - id: effect_skill_add_mark_dianzhilingyu_or_diancilingyu
   trigger: OnHit
@@ -4505,7 +4496,6 @@
           baseId: mark_yitelingyu
   condition:
     type: selfUseSkill
-
 # 根据电之领域威力变化
 - id: effect_skill_power_100_if_dianzhilingyu_200_if_diancilingyu
   trigger: AfterUseSkillCheck
@@ -4550,7 +4540,6 @@
           type: exist
   condition:
     type: selfUseSkill
-
 # 40%使对手冰冻
 - id: effect_skill_add_mark_opponent_bingdong_40_percent
   trigger: OnHit
@@ -4574,7 +4563,6 @@
             configId: bingdong_probability
             value: 40
             tags: ['skill_effect_probability']
-
 # 对手冰冻时必定暴击
 - id: effect_skill_sure_crit_if_opponent_bingdong
   trigger: AfterUseSkillCheck
@@ -4589,7 +4577,6 @@
       - type: selfUseSkill
       - type: opponentHasMark
         baseId: mark_bingdong
-
 # 对手冰冻时额外弱化特攻1级
 - id: effect_skill_reduce_opponent_spa_1_stage_if_bingdong
   trigger: OnHit
@@ -4605,7 +4592,6 @@
       - type: selfUseSkill
       - type: opponentHasMark
         baseId: mark_bingdong
-
 # 使对手获得冰凝之气
 - id: effect_skill_add_mark_opponent_bingningzhiqi
   trigger: OnHit
@@ -4619,7 +4605,6 @@
     stack: 1
   condition:
     type: selfUseSkill
-
 # 使对手获得冰霜之星
 - id: effect_skill_add_mark_opponent_bingshuangzhixing
   trigger: OnHit
@@ -4633,7 +4618,6 @@
     stack: 60
   condition:
     type: selfUseSkill
-
 # 使自身获得免疫异常
 - id: effect_skill_add_mark_mianyiyichang
   trigger: OnHit
@@ -4646,7 +4630,6 @@
       value: mark_mianyiyichang
   condition:
     type: selfUseSkill
-
 # 添加冰之领域或冰霜领域
 - id: effect_skill_add_mark_bingzhilingyu_or_bingshuanglingyu
   trigger: OnHit
@@ -4667,7 +4650,6 @@
           baseId: mark_yitelingyu
   condition:
     type: selfUseSkill
-
 # 根据冰之领域威力变化
 - id: effect_skill_power_100_if_bingzhilingyu_200_if_bingshuanglingyu
   trigger: AfterUseSkillCheck
@@ -4712,7 +4694,6 @@
           type: exist
   condition:
     type: selfUseSkill
-
 # 添加寒冰甲标记
 - id: effect_skill_add_mark_hanbingjia
   trigger: OnHit
@@ -4725,7 +4706,6 @@
       value: mark_hanbingjia
   condition:
     type: selfUseSkill
-
 # 当怒气低于40时，立即获得20点怒气
 - id: effect_skill_add_rage_20_if_rage_below_40
   trigger: OnHit
@@ -4753,7 +4733,6 @@
           type: compare
           operator: '<'
           value: 40
-
 # 添加风之领域或风暴领域
 - id: effect_skill_add_mark_fengzhilingyu_or_fengbaolingyu
   trigger: OnHit
@@ -4774,7 +4753,6 @@
           baseId: mark_yitelingyu
   condition:
     type: selfUseSkill
-
 - id: effect_skill_power_100_if_fengzhilingyu_200_if_fengbaolingyu
   trigger: AfterUseSkillCheck
   priority: 0
@@ -4818,7 +4796,6 @@
           type: exist
   condition:
     type: selfUseSkill
-
 # 添加25点怒气
 - id: effect_skill_add_rage_25
   trigger: OnHit
@@ -4851,7 +4828,6 @@
             type: 'raw:number'
             value: 70
             tags: ['skill_effect_probability', 'mark_mabi_chance']
-
 # 如果对方麻痹，威力翻倍
 - id: effect_skill_power_2x_if_opponent_mabi
   trigger: AfterUseSkillCheck
@@ -4915,7 +4891,6 @@
     stack: 1
   condition:
     type: selfUseSkill
-
 # 如果对手有恐惧之念，威力增加50点
 - id: effect_skill_power_plus_50_if_opponent_has_kongjuzhinian
   trigger: AfterUseSkillCheck
@@ -4930,7 +4905,6 @@
       - type: selfUseSkill
       - type: opponentHasMark
         baseId: mark_kongjuzhinian
-
 # 使自己获得暗影之光
 - id: effect_skill_add_mark_anyingzhiguang
   trigger: OnHit
@@ -4943,7 +4917,6 @@
       value: mark_anyingzhiguang
   condition:
     type: selfUseSkill
-
 # 对手具有2层恐惧之念时必定暴击
 - id: effect_skill_sure_crit_if_opponent_has_2_kongjuzhinian
   trigger: AfterUseSkillCheck
@@ -4975,7 +4948,6 @@
           type: compare
           operator: '>='
           value: 2
-
 # 附加对手最大体力6%的固伤
 - id: effect_skill_add_fixed_damage_6_percent_max_hp
   trigger: OnBeforeCalculateDamage
@@ -5000,7 +4972,6 @@
               configId: fixed_damage_percent
   condition:
     type: selfUseSkill
-
 # 具有暗之领域或暗影领域时威力2倍
 - id: effect_skill_power_2x_if_anzhilingyu_or_anyinglingyu
   trigger: AfterUseSkillCheck
@@ -5019,7 +4990,6 @@
             baseId: mark_anzhilingyu
           - type: selfHasMark
             baseId: mark_anyinglingyu
-
 # 具有暗影领域时，该技能命中后获得一级攻击强化
 - id: effect_skill_raise_atk_1_stage_if_anyinglingyu
   trigger: BeforeHit
@@ -5035,7 +5005,6 @@
       - type: selfUseSkill
       - type: selfHasMark
         baseId: mark_anyinglingyu
-
 # 为自己添加暗之领域或暗影领域
 - id: effect_skill_add_mark_anzhilingyu_or_anyinglingyu
   trigger: OnHit
@@ -5056,7 +5025,6 @@
           baseId: mark_yitelingyu
   condition:
     type: selfUseSkill
-
 # 如果先手，使对方获得失明
 - id: effect_skill_add_mark_opponent_shiming_if_first
   trigger: OnHit
@@ -5072,7 +5040,6 @@
     conditions:
       - type: selfUseSkill
       - type: isFirstSkillUsedThisTurn
-
 # 使对手获得光辉之影
 - id: effect_skill_add_mark_opponent_guanghuizhiying
   trigger: OnHit
@@ -5085,7 +5052,6 @@
       value: mark_guanghuizhiying
   condition:
     type: selfUseSkill
-
 # 恢复自身最大体力的1/6
 - id: effect_skill_heal_self_1_6_max_hp
   trigger: OnHit
@@ -5108,7 +5074,6 @@
               value: 6
   condition:
     type: selfUseSkill
-
 # 为自己添加光之领域或光辉领域
 - id: effect_skill_add_mark_guangzhilingyu_or_guanghuilingyu
   trigger: OnHit
@@ -5129,7 +5094,6 @@
           baseId: mark_yitelingyu
   condition:
     type: selfUseSkill
-
 # 当有光之领域或光辉领域时，威力翻倍
 - id: effect_skill_power_2x_if_guangzhilingyu_or_guanghuilingyu
   trigger: AfterUseSkillCheck
@@ -5148,7 +5112,6 @@
             baseId: mark_guangzhilingyu
           - type: selfHasMark
             baseId: mark_guanghuilingyu
-
 # 当有光辉领域时，恢复自身最大体力的1/4
 - id: effect_skill_heal_quarter_if_guanghuilingyu
   trigger: OnHit
@@ -5175,7 +5138,6 @@
       - type: selfUseSkill
       - type: selfHasMark
         baseId: mark_guanghuilingyu
-
 # 先出手时必定暴击
 - id: effect_skill_crit_if_first
   trigger: AfterUseSkillCheck
@@ -5189,7 +5151,6 @@
     conditions:
       - type: selfUseSkill
       - type: isFirstSkillUsedThisTurn
-
 # 使环境随机变为晴天或夜幕
 - id: effect_skill_set_field_qingtian_or_yemu
   trigger: OnHit
@@ -9582,7 +9543,7 @@
         baseId: mark_mabi
 # 10%几率威力4倍
 - id: effect_skill_power_4x_10_percent
-  trigger: OnHit
+  trigger: AfterUseSkillCheck
   priority: 0
   apply:
     type: amplifyPower
@@ -9665,7 +9626,7 @@
       - type: selfUseSkill
       - *condition_self_hp_below_half
 # 对手烧伤时，恢复25点怒气
-- id: effect_skill_restore_rage_25_if_opponent_shaoshang
+- id: effect_skill_add_rage_25_if_opponent_shaoshang
   trigger: OnHit
   priority: 0
   apply:
@@ -9900,7 +9861,7 @@
       - *condition_self_max_hp_greater_than_500
 # 对手冰冻时威力翻倍
 - id: effect_skill_power_2x_if_opponent_is_bingdong
-  trigger: BeforeHit
+  trigger: AfterUseSkillCheck
   priority: 0
   apply:
     type: amplifyPower
@@ -10231,7 +10192,7 @@
     type: selfUseSkill
 # 有喷嚏时，威力两倍
 - id: effect_skill_power_2x_if_has_mark_penti
-  trigger: BeforeHit
+  trigger: AfterUseSkillCheck
   priority: 0
   apply:
     type: amplifyPower
@@ -10301,7 +10262,7 @@
       - *condition_probability_15_percent_template
 # 当有强力喷嚏时,威力2倍
 - id: effect_skill_power_2x_if_has_mark_qianglipenti
-  trigger: BeforeHit
+  trigger: AfterUseSkillCheck
   priority: 0
   apply:
     type: amplifyPower
@@ -10315,7 +10276,7 @@
         baseId: mark_qianglipenti
 # 当有强力喷嚏时,威力4倍
 - id: effect_skill_power_4x_if_has_mark_qianglipenti
-  trigger: BeforeHit
+  trigger: AfterUseSkillCheck
   priority: 0
   apply:
     type: amplifyPower
@@ -10329,7 +10290,7 @@
         baseId: mark_qianglipenti
 # 当有超级喷嚏时,威力4倍
 - id: effect_skill_power_4x_if_has_mark_chaojipenti
-  trigger: BeforeHit
+  trigger: AfterUseSkillCheck
   priority: 0
   apply:
     type: amplifyPower
@@ -10563,3 +10524,380 @@
       - type: opponentHasMark
         baseId: mark_cuimian
       - *condition_probability_15_percent_template
+# 减少对方5点怒气
+- id: effect_skill_reduce_opponent_rage_5
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: opponent
+    value: -5
+  condition: *condition_self_use_skill_template
+# 使自身获得飞旋阵
+- id: effect_skill_add_mark_feixuanzhen
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_feixuanzhen
+  condition:
+    type: selfUseSkill
+# 获得10点怒气
+- id: effect_skill_add_rage_10
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 10
+  condition:
+    type: selfUseSkill
+# 使自身获得飞之领域或飞空领域
+- id: effect_skill_add_mark_feizhilingyu_or_feikonglingyu
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: addMark
+      target: self
+      mark:
+        type: conditional
+        trueValue:
+          type: entity:baseMark
+          value: mark_feikonglingyu
+        falseValue:
+          type: entity:baseMark
+          value: mark_feizhilingyu
+        condition:
+          type: selfHasMark
+          baseId: mark_yitelingyu
+  condition:
+    type: selfUseSkill
+# 使自身获得沙之领域或沙暴领域
+- id: effect_skill_add_mark_shazhilingyu_or_shabaoLingyu
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: addMark
+      target: self
+      mark:
+        type: conditional
+        trueValue:
+          type: entity:baseMark
+          value: mark_shabaolingyu
+        falseValue:
+          type: entity:baseMark
+          value: mark_shazhilingyu
+        condition:
+          type: selfHasMark
+          baseId: mark_yitelingyu
+  condition:
+    type: selfUseSkill
+# 使自身获得虫之领域或虫群领域
+- id: effect_skill_add_mark_chongzhilingyu_or_chongqunLingyu
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: addMark
+      target: self
+      mark:
+        type: conditional
+        trueValue:
+          type: entity:baseMark
+          value: mark_chongqunlingyu
+        falseValue:
+          type: entity:baseMark
+          value: mark_chongzhilingyu
+        condition:
+          type: selfHasMark
+          baseId: mark_yitelingyu
+  condition:
+    type: selfUseSkill
+# 拥有飞之领域或飞空领域时,威力2倍
+- id: effect_skill_power_2x_if_has_mark_feizhilingyu_or_feikonglingyu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: useSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: some
+        conditions:
+          - type: selfHasMark
+            baseId: mark_feizhilingyu
+          - type: selfHasMark
+            baseId: mark_feikonglingyu
+# 拥有沙之领域或沙暴领域时,威力2倍
+- id: effect_skill_power_2x_if_has_mark_shazhilingyu_or_shabaoLingyu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: useSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: some
+        conditions:
+          - type: selfHasMark
+            baseId: mark_shazhilingyu
+          - type: selfHasMark
+            baseId: mark_shabaoLingyu
+# 拥有虫之领域或虫群领域时,威力2倍
+- id: effect_skill_power_2x_if_has_mark_chongzhilingyu_or_chongqunLingyu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: useSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: some
+        conditions:
+          - type: selfHasMark
+            baseId: mark_chongzhilingyu
+          - type: selfHasMark
+            baseId: mark_chongqunlingyu
+# 当有飞空领域时,恢复40点怒气
+- id: effect_skill_add_rage_40_if_feikonglingyu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 35
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_feikonglingyu
+# 当有任意领域时,必定暴击
+- id: effect_skill_sure_crit_if_has_field
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureCrit
+    target: useSkillContext
+    priority: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: tags
+              evaluator:
+                type: contain
+                tag: area
+        evaluator:
+          type: exist
+# 40%使对手窒息
+- id: effect_skill_add_mark_opponent_zhixi_40_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_zhixi
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_40_percent_template
+# 使自身获得沙暴阵
+- id: effect_skill_add_mark_shabaozhen
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shabaozhen
+  condition:
+    type: selfUseSkill
+# 对手窒息时威力翻倍
+- id: effect_skill_power_2x_if_opponent_zhixi
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: useSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_zhixi
+# 当有沙暴领域时,使自身获得闪避物攻
+- id: effect_skill_add_mark_shanbiwugong_if_shabaolingyu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shanbiwugong
+    stack: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_shabaolingyu
+# 连击3次时,提升一级特攻
+- id: effect_skill_raise_self_spa_1_stage_if_3_hits
+  trigger: BeforeMultiHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_multihit_3
+        type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: selectPath
+              arg: multihitResult
+        evaluator:
+          type: compare
+          operator: '=='
+          value: 3
+# 连击3次时,恢复造成伤害一半的hp
+- id: effect_skill_heal_half_damage_dealt_if_3_hits
+  trigger: OnDamage
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value:
+      type: dynamic
+      selector:
+        base: damageContext
+        chain:
+          - type: selectPath
+            arg: damageResult
+          - type: multiply
+            arg: 0.5
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_multihit_3
+# 连击3次时,每次命中附加25点固伤
+- id: effect_skill_add_fixed_damage_25_if_3_hits
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: 25
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_multihit_3
+# 使自身获得虫群阵
+- id: effect_skill_add_mark_chongqunzhen
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_chongqunzhen
+  condition:
+    type: selfUseSkill
+# 连击3次时,使对手中毒
+- id: effect_skill_add_mark_opponent_zhongdu_if_3_hits
+  trigger: BeforeMultiHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_zhongdu
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_multihit_3
+        type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: selectPath
+              arg: multihitResult
+        evaluator:
+          type: compare
+          operator: '=='
+          value: 3
+# 使自身获得连击
+- id: effect_skill_add_mark_lianji
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_lianji
+  condition:
+    type: selfUseSkill
+# 当有虫群领域时,使对手获得60点流血
+- id: effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_liuxue
+    stack: 60
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_chongqunlingyu
+# 使当前场地变为虫群
+- id: effect_skill_set_field_chongqun
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: battle
+    mark:
+      type: entity:baseMark
+      value: mark_global_chongqun
+  condition:
+    type: selfUseSkill

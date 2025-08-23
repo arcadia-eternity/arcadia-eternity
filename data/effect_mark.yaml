@@ -248,6 +248,8 @@
       base: healContext
     percent: -15
     delta: 0
+  condition:
+    type: checkSelf
 - id: effect_mark_damage_with_stack
   trigger: TurnEnd
   condition:
@@ -1347,7 +1349,7 @@
                       type: base
                       arg: stack
 # 静养生息: 回合结束时增加10点怒气
-- id: effect_mark_add_rage_10_turnEnd
+- id: effect_mark_add_rage_10_per_turn
   trigger: TurnEnd
   condition:
     type: petIsActive
@@ -3564,7 +3566,7 @@
           type: same
           value: Electric
 # 雷神觉醒: 回合结束时增加35点怒气
-- id: effect_mark_add_rage_35_turnEnd
+- id: effect_mark_add_rage_35_per_turn
   trigger: TurnEnd
   condition:
     type: petIsActive
@@ -3714,3 +3716,154 @@
               value: skill_jingshenshikong
           - type: randomPick
             arg: 1
+# 飞旋阵: 阻止换场损失的怒气
+- id: effect_mark_prevent_rage_loss_on_switch
+  trigger: BeforeRageLoss
+  priority: 0
+  apply:
+    - type: disableContext
+      target: rageContext
+    - type: destroyMark
+      target: mark
+  condition:
+    type: every
+    conditions:
+      - type: selfSwitchOut
+      - type: evaluate
+        target:
+          base: rageContext
+          chain:
+            - type: selectPath
+              arg: reason
+        evaluator:
+          type: same
+          value: switch
+# 飞之领域: 回合结束时增加5点怒气
+- id: effect_mark_add_rage_5_per_turn
+  trigger: TurnEnd
+  condition:
+    type: petIsActive
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 5
+# 沙之领域: 使自身获得5点闪避率
+- id: effect_mark_increase_evasion_5_percent
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addAttributeModifier
+    target: self
+    stat: evasion
+    modifierType: delta
+    value: 5
+# 沙暴阵: 使自身获得15点闪避率
+- id: effect_mark_increase_evasion_15_percent
+  trigger: OnMarkCreated
+  priority: 0
+  apply:
+    type: addAttributeModifier
+    target: self
+    stat: evasion
+    modifierType: delta
+    value:
+      type: raw:number
+      configId: evasion_increase
+      value: 15
+# 闪避物攻: 闪避物攻技能
+- id: effect_mark_evade_physical_with_stack
+  trigger: AfterUseSkillCheck
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: opponentUseSkill
+      - type: selfBeSkillTarget
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Physical
+  apply:
+    type: setSureMiss
+    target: useSkillContext
+    priority: -1
+  consumesStacks: 1
+# 虫群阵: 连击技能造成的伤害增加35%
+- id: effect_mark_increase_multi_hit_damage_35_percent
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 35
+    delta: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: selectPath
+              arg: multihitResult
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 1
+# 连击: 下一次连击技能的连击次数+1
+- id: effect_mark_add_multihit_1_on_next_multihit_skill
+  trigger: BeforeMultiHit
+  priority: 0
+  apply:
+    - type: addMultihitResult
+      target: useSkillContext
+      value: 1
+    - type: destroyMark
+      target: mark
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: selectPath
+              arg: multihitResult
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 1
+# 虫之领域: 附加20点伤害
+- id: effect_mark_fixed_damage_20
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: 20
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+# 虫群领域: 附加40点伤害
+- id: effect_mark_fixed_damage_40
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: 40
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
