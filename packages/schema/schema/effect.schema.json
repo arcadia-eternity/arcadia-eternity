@@ -3093,6 +3093,26 @@
           "properties": {
             "type": {
               "type": "string",
+              "const": "sampleBetween"
+            },
+            "first": {
+              "$ref": "#/$defs/__schema5"
+            },
+            "second": {
+              "$ref": "#/$defs/__schema5"
+            }
+          },
+          "required": [
+            "type",
+            "first",
+            "second"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
               "const": "when"
             },
             "condition": {

@@ -287,6 +287,14 @@ function applySelectorStep(
       case 'asStatLevelMark':
         return selector.asStatLevelMark() as ChainableSelector<SelectorOpinion>
 
+      case 'sampleBetween': {
+        assertNumberSelector(selector)
+        return (selector as ChainableSelector<number>).sampleBetween(
+          parseValue(effectId, step.first) as ValueSource<number>,
+          parseValue(effectId, step.second) as ValueSource<number>,
+        ) as ChainableSelector<SelectorOpinion>
+      }
+
       case 'when':
         return selector.when(
           parseCondition(effectId, step.condition),

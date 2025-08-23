@@ -227,6 +227,11 @@ export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
     z.object({
       type: z.literal('asStatLevelMark'),
     }),
+    z.object({
+      type: z.literal('sampleBetween'),
+      first: valueSchema,
+      second: valueSchema,
+    }),
     whenSelectorStepSchema,
   ]),
 )
