@@ -360,6 +360,21 @@
                         </div>
                       </div>
                       <div class="flex items-center space-x-1">
+                        <!-- 设置首发按钮 -->
+                        <button
+                          @click.stop="setAsStarter(pet.id)"
+                          class="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 p-1 rounded-full text-gray-400 hover:text-green-500 hover:bg-green-50"
+                          title="设置为首发"
+                        >
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M11 3L5 9h4v8h4V9h4l-6-6z"
+                            />
+                          </svg>
+                        </button>
                         <!-- 移入仓库按钮 -->
                         <button
                           @click.stop="handleMoveToStorage(pet.id)"
@@ -424,8 +439,15 @@
                 <h3 class="text-base font-medium text-gray-900">基础信息</h3>
                 <div>
                   <button
+                    @click="setAsStarter(selectedPet.id)"
+                    class="inline-flex items-center px-2 py-1 text-xs font-medium text-green-600 bg-green-100 rounded hover:bg-green-200 transition-colors"
+                  >
+                    <el-icon class="mr-1" :size="12"><StarFilled /></el-icon>
+                    设置首发
+                  </button>
+                  <button
                     @click="handleMoveToStorage(selectedPet.id)"
-                    class="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                    class="ml-2 inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
                   >
                     <el-icon class="mr-1" :size="12"><FolderOpened /></el-icon>
                     移入仓库
@@ -1127,6 +1149,7 @@ import {
   ArrowRight,
   Tools,
   Loading,
+  StarFilled,
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { usePetManagement } from '@/composition/usePetManagement'
@@ -1868,6 +1891,33 @@ const handleDeletePet = (petId: string) => {
       selectedPetId.value = remainingTeam.length > 0 ? remainingTeam[0].id : null
     }
   })
+}
+
+// 设置精灵为首发
+const setAsStarter = (petId: string) => {
+  const team = [...currentTeam.value]
+  const petIndex = team.findIndex(pet => pet.id === petId)
+  
+  if (petIndex === 0) {
+    // 已经是首发，不需要操作
+    ElMessage.info('该精灵已经是首发位置')
+    return
+  }
+  
+  if (petIndex === -1) {
+    ElMessage.error('未找到该精灵')
+    return
+  }
+  
+  // 将精灵移动到队伍首位
+  const [pet] = team.splice(petIndex, 1)
+  team.unshift(pet)
+  
+  // 更新队伍顺序
+  petStorage.updateTeamOrder(petStorage.currentTeamIndex, team)
+  petStorage.saveToLocal()
+  
+  ElMessage.success('已设置为首发精灵')
 }
 
 const saveCurrentTeam = async () => {
