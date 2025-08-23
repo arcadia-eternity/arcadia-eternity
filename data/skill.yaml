@@ -402,7 +402,6 @@
   sureHit: false
   ignoreShield: false
   multihit: [2, 3]
-  tags: []
 - id: skill_zhiyu
   element: Grass
   category: Status
@@ -462,7 +461,7 @@
   accuracy: 95
   sureHit: false
   ignoreShield: false
-  tags: []
+
   multihit: [3, 5]
 - id: skill_jishengzhongzi
   element: Grass
@@ -822,7 +821,7 @@
   accuracy: 95
   sureHit: false
   ignoreShield: false
-  tags: []
+
   multihit: 3
 - id: skill_yepianbaohu
   element: Grass
@@ -858,7 +857,7 @@
   sureHit: false
   ignoreShield: false
   multihit: 3
-  tags: []
+
   effect:
     - effect_skill_add_multihit_opponent_has_mark_kuihuazhongzi
 - id: skill_yuhe
@@ -4049,8 +4048,7 @@
   priority: 1
   effect:
     - effect_skill_add_mark_shoudaoshanghaijianshao_75
-# 伊特系列技能
-- id: skill_tisusu
+- id: skill_tisu
   element: Normal
   category: Status
   target: self
@@ -4355,7 +4353,6 @@
   tags: []
   effect:
     - effect_skill_add_mark_shanbi
-# 冰伊特技能
 - id: skill_shenjie
   element: Ice
   category: Special
@@ -9455,7 +9452,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_restore_rage_25_if_opponent_shaoshang
+    - effect_skill_add_rage_25_if_opponent_shaoshang
 - id: skill_yandihuangyanshan
   element: Fire
   category: Climax
@@ -9862,7 +9859,8 @@
   power: 40
   accuracy: 95
   rage: 15
-  multiHit: 3
+  multihit: 3
+  effect:
     - effect_skill_reduce_opponent_atk_1_stage_15_percent
 - id: skill_baozhatou
   element: Desert
@@ -10063,3 +10061,296 @@
   rage: 15
   effect:
     - effect_skill_clear_stage
+- id: skill_feixuanzhiyu
+  element: Flying
+  category: Special
+  target: opponent
+  power: 70
+  accuracy: 95
+  rage: 10
+  effect:
+    - effect_skill_reduce_opponent_rage_5
+- id: skill_jikongyu
+  element: Flying
+  category: Special
+  target: opponent
+  power: 60
+  accuracy: 95
+  rage: 15
+  priority: 1
+- id: skill_feikongnengliang
+  element: Flying
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  effect:
+    - effect_skill_raise_spa_1_stage
+- id: skill_jikongzhan
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 80
+  accuracy: 95
+  rage: 15
+  priority: 1
+- id: skill_feixuanzhen
+  element: Flying
+  category: Special
+  target: opponent
+  power: 100
+  accuracy: 100
+  rage: 20
+  sureHit: true
+  effect:
+    - effect_skill_add_mark_feixuanzhen
+- id: skill_feixuanzhiguang
+  element: Flying
+  category: Special
+  target: opponent
+  power: 95
+  accuracy: 95
+  rage: 20
+  effect:
+    - effect_skill_add_rage_10
+- id: skill_feikongluoxuanzhan
+  element: Flying
+  category: Climax
+  target: opponent
+  power: 170
+  accuracy: 100
+  rage: 100
+  sureHit: true
+  effect:
+    - effect_skill_add_rage_20
+- id: skill_feizhilingyu
+  element: Flying
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  effect:
+    - effect_skill_add_mark_feizhilingyu_or_feikonglingyu
+- id: skill_feitianguangren
+  element: Flying
+  category: Special
+  target: opponent
+  power: 50
+  accuracy: 100
+  rage: 20
+  effect:
+    - effect_skill_power_2x_if_has_mark_feizhilingyu_or_feikonglingyu
+    - effect_skill_add_rage_40_if_feikonglingyu
+- id: skill_feikongjingneng
+  element: Flying
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  effect:
+    - effect_skill_raise_spa_1_stage
+    - effect_skill_raise_spd_1_stage
+- id: skill_miewangsanjiaozhen
+  element: Normal
+  category: Climax
+  target: opponent
+  power: 85
+  accuracy: 100
+  rage: 100
+  sureHit: true
+  multihit: 3
+  tags: ['combination']
+- id: skill_shachenjiejie
+  element: Desert
+  category: Physical
+  target: opponent
+  power: 70
+  accuracy: 95
+  rage: 10
+  effect:
+    - effect_skill_sure_crit_if_has_field
+- id: skill_shaxuanwo
+  element: Desert
+  category: Special
+  target: opponent
+  power: 80
+  accuracy: 95
+  rage: 15
+  effect:
+    - effect_skill_add_mark_opponent_zhixi_40_percent
+- id: skill_jisushanji
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 75
+  accuracy: 95
+  rage: 15
+  priority: 1
+- id: skill_shachenzhili
+  element: Desert
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  effect:
+    - effect_skill_raise_atk_1_stage
+- id: skill_shabaozhen
+  element: Desert
+  category: Physical
+  target: opponent
+  power: 100
+  accuracy: 100
+  rage: 20
+  sureHit: true
+  effect:
+    - effect_skill_add_mark_shabaozhen
+- id: skill_shalieshe
+  element: Desert
+  category: Physical
+  target: opponent
+  power: 75
+  accuracy: 95
+  rage: 15
+  sureHit: true
+  effect:
+    - effect_skill_power_2x_if_opponent_zhixi
+- id: skill_baolieluoshajiao
+  element: Desert
+  category: Climax
+  target: opponent
+  power: 170
+  accuracy: 100
+  rage: 100
+  sureHit: true
+  effect:
+    - effect_skill_reduce_opponent_def_1_stage_20_percent
+- id: skill_shazhilingyu
+  element: Desert
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  effect:
+    - effect_skill_add_mark_shazhilingyu_or_shabaoLingyu
+- id: skill_shabaozhan
+  element: Desert
+  category: Physical
+  target: opponent
+  power: 50
+  accuracy: 100
+  rage: 20
+  effect:
+    - effect_skill_power_2x_if_has_mark_shazhilingyu_or_shabaoLingyu
+    - effect_skill_add_mark_shanbiwugong_if_shabaolingyu
+- id: skill_mizongbu
+  element: Desert
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  effect:
+    - effect_skill_raise_atk_1_stage
+    - effect_skill_add_mark_opponent_mingzhongxiajiang_15
+- id: skill_heicilianji
+  element: Bug
+  category: Special
+  target: opponent
+  power: 30
+  accuracy: 95
+  rage: 15
+  multihit: [2, 3]
+  effect:
+    - effect_skill_raise_self_spa_1_stage_if_3_hits
+- id: skill_xixuelianji
+  element: Bug
+  category: Special
+  target: opponent
+  power: 30
+  accuracy: 95
+  rage: 15
+  multihit: [2, 3]
+  effect:
+    - effect_skill_heal_half_damage_dealt_if_3_hits
+- id: skill_chongqunzhixin
+  element: Bug
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  effect:
+    - effect_skill_raise_spa_1_stage
+- id: skill_fushilianji
+  element: Bug
+  category: Special
+  target: opponent
+  power: 35
+  accuracy: 95
+  rage: 20
+  multihit: [2, 3]
+  effect:
+    - effect_skill_add_fixed_damage_25_if_3_hits
+- id: skill_chongqunzhen
+  element: Bug
+  category: Special
+  target: opponent
+  power: 100
+  accuracy: 100
+  rage: 20
+  sureHit: true
+  effect:
+    - effect_skill_add_mark_chongqunzhen
+- id: skill_dugulianji
+  element: Bug
+  category: Special
+  target: opponent
+  power: 35
+  accuracy: 95
+  rage: 20
+  multihit: [2, 3]
+  effect:
+    - effect_skill_add_mark_opponent_zhongdu_if_3_hits
+- id: skill_yalianbengxici
+  element: Bug
+  category: Climax
+  target: opponent
+  power: 170
+  accuracy: 100
+  rage: 100
+  sureHit: true
+  effect:
+    - effect_skill_add_mark_lianji
+- id: skill_chongzhilingyu
+  element: Bug
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  effect:
+    - effect_skill_add_mark_chongzhilingyu_or_chongqunLingyu
+- id: skill_xueji
+  element: Bug
+  category: Special
+  target: opponent
+  power: 50
+  accuracy: 100
+  rage: 20
+  effect:
+    - effect_skill_power_2x_if_has_mark_chongzhilingyu_or_chongqunLingyu
+    - effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu
+- id: skill_chongqundajun
+  element: Bug
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  effect:
+    - effect_skill_set_field_chongqun

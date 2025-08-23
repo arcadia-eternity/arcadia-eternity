@@ -312,3 +312,18 @@
   tags: [emblem]
   effect:
     - effect_emblem_ziwocuimian_priority_plus_1
+- id: mark_emblem_feixuan
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_add_rage_5_when_use_feixuanzhiguang
+- id: mark_emblem_shazhen
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_shabaozhen_plus_5_percent_dodge
+- id: mark_emblem_chongqun
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_reduce_5_rage_cost_in_field_chongqun

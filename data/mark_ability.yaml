@@ -322,3 +322,20 @@
   tags: [ability]
   effect:
     - effect_ability_reduce_damage_10_percent_when_opponent_has_cuimian
+- id: mark_ability_feikong
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_add_rage_5_when_first_attack
+- id: mark_ability_shasu
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_raise_spe_1_stage_when_dodge
+- id: mark_ability_lianxie
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_reduce_rage_cost_5
+    - effect_ability_reduce_climax_skill_rage_cost_5
+    - effect_ability_multi_hit_skills_sure_hit

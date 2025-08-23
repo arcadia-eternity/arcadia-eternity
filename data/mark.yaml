@@ -769,7 +769,7 @@
     destroyable: true
     keepOnSwitchOut: true
   effect:
-    - effect_mark_add_rage_10_turnEnd
+    - effect_mark_add_rage_10_per_turn
 - id: mark_huifu_1_16
   config:
     duration: 5
@@ -1136,6 +1136,8 @@
     keepOnSwitchOut: true
     transferOnSwitch: true
     inheritOnFaint: false
+  tags:
+    - area
   effect:
     - effect_mark_increase_self_crit_rate
 - id: mark_qiliuyongdong
@@ -1349,7 +1351,7 @@
     destroyable: true
     keepOnSwitchOut: true
   tags:
-    - field
+    - area
   effect:
     - effect_mark_increase_rage_on_damage_10_percent
 - id: mark_anyinglingyu
@@ -1362,7 +1364,7 @@
     destroyable: true
     keepOnSwitchOut: true
   tags:
-    - field
+    - area
   effect:
     - effect_mark_increase_rage_on_damage_20_percent
 - id: mark_guanghuizhiying
@@ -1386,7 +1388,7 @@
     destroyable: true
     keepOnSwitchOut: true
   tags:
-    - field
+    - area
   effect:
     - effect_mark_increase_heal_20_percent
 - id: mark_guanghuilingyu
@@ -1399,7 +1401,7 @@
     destroyable: true
     keepOnSwitchOut: true
   tags:
-    - field
+    - area
   effect:
     - effect_mark_increase_heal_40_percent
 - id: mark_houkongfan
@@ -2203,7 +2205,7 @@
     keepOnSwitchOut: true
   tags: []
   effect:
-    - effect_mark_add_rage_35_turnEnd
+    - effect_mark_add_rage_35_per_turn
 - id: mark_dongqifuti
   config:
     persistent: true
@@ -2352,3 +2354,138 @@
     inheritOnFaint: false
   effect:
     - effect_mark_reflect_damage_1_4
+- id: mark_feixuanzhen
+  config:
+    duration: -1
+    maxStacks: 1
+    persistent: true
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_prevent_rage_loss_on_switch
+- id: mark_feizhilingyu
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - area
+  effect:
+    - effect_mark_add_rage_5_per_turn
+- id: mark_feikonglingyu
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - area
+  effect:
+    - effect_mark_add_rage_10_per_turn
+- id: mark_shazhilingyu
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - area
+  effect:
+    - effect_mark_increase_evasion_5_percent
+- id: mark_shabaolingyu
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - area
+  effect:
+    - effect_mark_increase_evasion_10_percent
+- id: mark_shabaozhen
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_increase_evasion_15_percent
+- id: mark_shanbiwugong
+  config:
+    duration: 1
+    persistent: true
+    maxStacks: 5
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_evade_physical_with_stack
+- id: mark_chongqunzhen
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_increase_multi_hit_damage_35_percent
+- id: mark_lianji
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_add_multihit_1_on_next_multihit_skill
+- id: mark_chongzhilingyu
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - area
+  effect:
+    - effect_mark_fixed_damage_20
+- id: mark_chongqunlingyu
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - area
+  effect:
+    - effect_mark_fixed_damage_40

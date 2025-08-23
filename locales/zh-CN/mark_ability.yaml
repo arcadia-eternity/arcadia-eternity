@@ -181,3 +181,12 @@ mark_ability_penti:
 mark_ability_cuimian:
   name: 催眠
   description: 对手具有催眠时造成伤害减少10%
+mark_ability_feikong:
+  name: 飞空
+  description: 先出手时攻击技能恢复5点怒气
+mark_ability_shasu:
+  name: 沙速
+  description: 闪避时强化自身速度1级
+mark_ability_lianxie:
+  name: 连携
+  description: 降低5点怒气消耗 连击技能必中

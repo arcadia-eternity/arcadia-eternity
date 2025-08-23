@@ -385,3 +385,12 @@ pet_pige:
 pet_pipige:
   name: 皮皮格
   description: 成长后的皮皮格 凭借强大的科学技术 将自己的念力做成了武器
+pet_feiyite:
+  name: 飞伊特
+  description: 飞伊特和所有飞行系的精灵一样 向往自由 来去如风
+pet_shayite:
+  name: 沙伊特
+  description: 沙伊特是沙漠中的黄金 是沙漠旅人的指路标记 也是传说中沙漠奇宝的引路人
+pet_chongyite:
+  name: 虫伊特
+  description: 虫伊特喜好群居 生活安分守己、恪守规律不过 胆小的它很害怕与大部队走失

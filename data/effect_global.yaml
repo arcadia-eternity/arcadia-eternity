@@ -104,3 +104,24 @@
     type: amplifyPower
     target: useSkillContext
     value: 1.35
+# 虫群: 虫系技能的威力增加35%
+- id: effect_global_power_35_percent_bug
+  trigger: AfterUseSkillCheck
+  priority: 0
+  condition:
+    type: some
+    conditions:
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: select
+              arg: element
+        evaluator:
+          type: anyOf
+          value:
+            - Bug
+  apply:
+    type: amplifyPower
+    target: useSkillContext
+    value: 1.35

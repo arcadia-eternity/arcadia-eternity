@@ -172,8 +172,9 @@ export const Conditions = {
 
   selfSwitchIn: (): Condition => {
     return context => {
-      if (context.parent instanceof SwitchPetContext) {
-        return context.source.owner === context.parent.switchInPet
+      const switchPetContext = findContextRecursively(context, SwitchPetContext)
+      if (switchPetContext) {
+        return context.source.owner === switchPetContext.switchInPet
       }
       return false
     }
@@ -181,8 +182,9 @@ export const Conditions = {
 
   selfSwitchOut: (): Condition => {
     return context => {
-      if (context.parent instanceof SwitchPetContext) {
-        return context.source.owner === context.parent.switchOutPet
+      const switchPetContext = findContextRecursively(context, SwitchPetContext)
+      if (switchPetContext) {
+        return context.source.owner === switchPetContext.switchOutPet
       }
       return false
     }

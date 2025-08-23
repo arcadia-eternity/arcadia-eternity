@@ -150,6 +150,7 @@ export class UseSkillContext extends Context {
   hitResult: boolean = false
   crit: boolean = false
   multihitResult = 1
+  currentHitCount = 1
 
   damageType: DamageType = DamageType.Physical
   typeMultiplier = 1

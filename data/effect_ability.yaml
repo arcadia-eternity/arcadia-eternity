@@ -1560,3 +1560,89 @@
       - type: opponentUseSkill
       - type: opponentHasMark
         baseId: mark_cuimian
+# 飞空: 先出手时恢复5点怒气
+- id: effect_ability_add_rage_5_when_first_attack
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 5
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isFirstSkillUsedThisTurn
+# 沙速: 闪避时提升1级速度
+- id: effect_ability_raise_spe_1_stage_when_dodge
+  trigger: OnMiss
+  priority: 0
+  condition:
+    type: selfBeSkillTarget
+  apply:
+    type: statStageBuff
+    target: self
+    statType: spe
+    value: 1
+# 连携: 所有技能的怒气消耗减少5
+- id: effect_ability_reduce_rage_cost_5
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addSkillAttributeModifier
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: dynamic
+            arg: category
+          evaluator:
+            type: notSame
+            value: Climax
+    attribute: rage
+    modifierType: delta
+    value: -5
+- id: effect_ability_reduce_climax_skill_rage_cost_5
+  trigger: BeforeUseSkillCheck
+  priority: 0
+  apply:
+    type: addValue
+    target:
+      base: useSkillContext
+      chain:
+        - type: selectProp
+          arg: rage
+    value: -5
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: selectPath
+              arg: skill.base.category
+        evaluator:
+          type: same
+          value: Climax
+# 连携: 连击技能必中
+- id: effect_ability_multi_hit_skills_sure_hit
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: setValue
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: dynamic
+            arg: multihit
+          evaluator:
+            type: notSame
+            value: 1
+        - type: selectProp
+          arg: sureHit
+    value: true

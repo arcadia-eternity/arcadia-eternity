@@ -1037,7 +1037,7 @@ skill_xuanwozhadan:
 skill_xukongtizhi:
   name: 虚空体质
   description: 先制+1 使自身获得75点受伤减少
-skill_tisusu:
+skill_tisu:
   name: 提速
   description: 强化自身速度1级
 skill_yitelingyu:
@@ -2564,3 +2564,96 @@ skill_ziwocuimian:
 skill_shiyi:
   name: 失忆
   description: 解除自身弱化
+skill_feixuanzhiyu:
+  name: 飞旋之羽
+  description: 减少对手5点怒气
+skill_jikongyu:
+  name: 疾空羽
+  description: 先制+1
+skill_feikongnengliang:
+  name: 飞空能量
+  description: 强化自身特攻1级
+skill_jikongzhan:
+  name: 疾空斩
+  description: 先制+1
+skill_feixuanzhen:
+  name: 飞旋阵
+  description: 必中 使自身获得飞旋阵
+skill_feixuanzhiguang:
+  name: 飞旋之光
+  description: 恢复自身10点怒气
+skill_feikongluoxuanzhan:
+  name: 飞空螺旋斩
+  description: 必中 恢复自身20点怒气
+skill_feizhilingyu:
+  name: 飞之领域
+  description: 使自身获得飞之领域 具有伊特领域时变为飞空领域
+skill_feitianguangren:
+  name: 飞天光刃
+  description: 具有飞之领域时威力2倍 具有飞空领域时额外恢复自身40点怒气
+skill_feikongjingneng:
+  name: 飞空晶能
+  description: 强化自身特攻特防1级
+skill_miewangsanjiaozhen:
+  name: 灭亡三角阵
+  description: 必中 连击3次
+skill_shachenjiejie:
+  name: 沙尘截击
+  description: 具有任意领域时必定暴击
+skill_shaxuanwo:
+  name: 沙漩涡
+  description: 40%使对手窒息
+skill_jisushanji:
+  name: 极速闪击
+  description: 先制+1
+skill_shachenzhili:
+  name: 沙尘之力
+  description: 强化自身物攻1级
+skill_shabaozhen:
+  name: 沙暴阵
+  description: 必中 使自身获得沙暴阵
+skill_shalieshe:
+  name: 沙烈袭
+  description: 必中 对手窒息时威力2倍
+skill_baolieluoshajiao:
+  name: 爆裂落沙脚
+  description: 必中 20%弱化对手物防1级
+skill_shazhilingyu:
+  name: 沙之领域
+  description: 使双方获得沙之领域 具有伊特领域时变为沙暴领域
+skill_shabaozhan:
+  name: 沙暴斩
+  description: 具有沙之领域时威力2倍 具有沙暴领域时额外使自身获得闪避物攻
+skill_mizongbu:
+  name: 迷踪步
+  description: 强化自身物攻1级 使对手获得15点命中下降
+skill_heicilianji:
+  name: 黑刺连击
+  description: 连击2~3次 连击3次时强化自身特攻1级
+skill_xixuelianji:
+  name: 吸血连击
+  description: 连击2~3次 连击3次时恢复造成伤害1/2的体力
+skill_chongqunzhixin:
+  name: 虫群之心
+  description: 强化自身特攻1级
+skill_fushilianji:
+  name: 腐蚀连击
+  description: 连击2~3次 连击3次时每次命中附加25点固伤
+skill_chongqunzhen:
+  name: 虫群阵
+  description: 必中 使自身获得虫群阵
+skill_dugulianji:
+  name: 毒蛊连击
+  description: 连击2~3次 连击3次时使对手中毒
+skill_yalianbengxici:
+  name: 牙连崩袭刺
+  description: 必中 使自身获得连击
+skill_chongzhilingyu:
+  name: 虫之领域
+  description: 使双方获得虫之领域 具有伊特领域时变为虫群领域
+skill_xueji:
+  name: 血祭
+  description: 具有虫之领域时威力2倍 具有虫群领域时额外使对手获得60点流血
+skill_chongqundajun:
+  name: 虫群大军
+  description: 使环境变为虫群

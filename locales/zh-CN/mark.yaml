@@ -709,3 +709,36 @@ mark_jingshenshikong:
 mark_niandongfanshe:
   name: 念动反射
   description: 反弹受到伤害的1/4
+mark_feixuanzhen:
+  name: 飞旋阵
+  description: 换场时不会损失怒气
+mark_feizhilingyu:
+  name: 飞之领域
+  description: 每回合恢复自身5点怒气 减少对手2点怒气
+mark_feikonglingyu:
+  name: 飞空领域
+  description: 每回合恢复自身10点怒气 减少对手5点怒气
+mark_shazhilingyu:
+  name: 沙之领域
+  description: 闪避率增加5%
+mark_shabaolingyu:
+  name: 沙暴领域
+  description: 闪避率增加10%
+mark_shabaozhen:
+  name: 沙暴阵
+  description: 闪避率增加15%
+mark_shanbiwugong:
+  name: 闪避物攻
+  description: 闪避物攻
+mark_chongqunzhen:
+  name: 虫群阵
+  description: 连击技能伤害增加35%
+mark_lianji:
+  name: 连击
+  description: 连击技能连击数+1
+mark_chongzhilingyu:
+  name: 虫之领域
+  description: 附加20点伤害
+mark_chongqunlingyu:
+  name: 虫群领域
+  description: 附加40点伤害
