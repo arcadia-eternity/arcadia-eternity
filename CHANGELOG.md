@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.21.0...arcadia-eternity-v2.22.0) (2025-08-23)
+
+
+### ✨ Features
+
+* **newpet:** 飞伊特,沙伊特,虫伊特 ([ce92014](https://github.com/arcadia-eternity/arcadia-eternity/commit/ce920144ba5fc2e470182ed6cff708c819e8a50b))
+
 ## [2.21.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.20.4...arcadia-eternity-v2.21.0) (2025-08-23)
 
 
