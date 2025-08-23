@@ -1267,3 +1267,22 @@
         evaluator:
           type: probability
           percent: 20
+# 发丝: 使发丝类技能不消耗怒气
+- id: effect_emblem_no_rage_cost_for_fasi_skills
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addSkillAttributeModifier
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: tags
+          evaluator:
+            type: contain
+            tag: fasi
+    attribute: rage
+    modifierType: override
+    value: 0

@@ -319,9 +319,6 @@ mark_xinzhiyinji:
 mark_xuehongyinji:
   name: 血红印记
   description: 视为心之印记且不消耗
-mark_xinyuan_used:
-  name: 心愿使用
-  description: 心愿技能效果减半
 mark_houkongfan:
   name: 后空翻
   description: 闪避物攻 受到特攻伤害2倍
@@ -691,3 +688,15 @@ mark_fansheguike:
 mark_huijiachifan:
   name: 回家吃饭
   description: 每回合恢复自身最大体力的1/6 被攻击时强化自身物防1级并失效
+mark_penti:
+  name: 喷嚏
+  description: ''
+mark_qianglipenti:
+  name: 强力喷嚏
+  description: 结束时变为喷嚏
+mark_chaojipenti:
+  name: 超级喷嚏
+  description: 结束时变为强力喷嚏
+mark_fasibilei:
+  name: 发丝壁垒
+  description: 受到伤害减少20%

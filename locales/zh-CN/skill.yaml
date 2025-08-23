@@ -2471,3 +2471,48 @@ skill_jisuyiji:
 skill_quzhuhanyi:
   name: 驱逐寒意
   description: 弱化对手双攻1级
+skill_houtuiti:
+  name: 后腿踢
+  description: 5%弱化对手物防1级
+skill_yiling:
+  name: 毅力
+  description: 强化自身物攻1级
+skill_yigenfasi:
+  name: 一根发丝
+  description: 使自身获得喷嚏
+skill_shatuihouti:
+  name: 沙腿后踢
+  description: 具有任意喷嚏时威力2倍
+skill_dantuofeng:
+  name: 单驼峰
+  description: 恢复自身最大体力的1/4 连续使用效果减半
+skill_fasizhenci:
+  name: 发丝针刺
+  description: 10%弱化对手物攻1级
+skill_lianggenfasi:
+  name: 两根发丝
+  description: 使自身获得强力喷嚏
+skill_shatuizhonghouti:
+  name: 沙腿重后踢
+  description: 具有喷嚏时威力2倍 具有强力喷嚏时威力4倍 具有超级喷嚏时威力4倍
+skill_shuangtuofeng:
+  name: 双驼峰
+  description: 恢复自身125点体力 连续使用效果减半
+skill_fasilianshe:
+  name: 发丝连射
+  description: 连击3次 15%弱化对手物攻1级
+skill_baozhatou:
+  name: 爆炸头
+  description: 必中 附加50点伤害
+skill_sangenfasi:
+  name: 三根发丝
+  description: 使自身获得超级喷嚏
+skill_jisuhouti:
+  name: 极速后踢
+  description: 具有超级喷嚏时先制+2
+skill_shachenhoutuiti:
+  name: 沙尘后腿踢
+  description: 具有喷嚏时威力2倍 具有强力喷嚏时威力2倍 具有超级喷嚏时威力4倍
+skill_fasibilei:
+  name: 发丝壁垒
+  description: 使自身获得发丝壁垒

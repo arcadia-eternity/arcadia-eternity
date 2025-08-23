@@ -1444,7 +1444,7 @@
   apply:
     type: destroyMark
     target:
-      base: self
+      base: selfMarks
       chain:
         - type: whereAttr
           extractor:
@@ -3677,44 +3677,40 @@
       value: mark_xuehongyinji
   condition:
     type: selfUseSkill
-- id: effect_skill_heal_self_quarter_diminishing
+- id: effect_skill_heal_self_quarter_if_consecutive_half
   trigger: OnHit
   priority: 0
   apply:
-    - type: heal
-      target:
+    type: heal
+    target:
+      base: self
+    value:
+      type: dynamic
+      selector:
         base: self
-      value:
-        type: dynamic
-        selector:
-          base: self
-          chain:
-            - type: select
-              arg:
-                type: base
-                arg: maxHp
-            - type: divide
-              arg:
-                type: conditional
-                trueValue: 8
-                falseValue: 4
-                condition:
-                  type: evaluate
-                  target:
-                    base: selfMarks
-                    chain:
-                      - type: whereAttr
-                        extractor: baseId
-                        evaluator:
-                          type: same
-                          value: mark_xinyuan_used
-                  evaluator:
-                    type: exist
-    - type: addMark
-      target: self
-      mark:
-        type: entity:baseMark
-        value: mark_xinyuan_used
+        chain:
+          - type: select
+            arg:
+              type: base
+              arg: maxHp
+          - type: divide
+            arg:
+              type: conditional
+              trueValue: 8
+              falseValue: 4
+              condition:
+                type: evaluate
+                target:
+                  base: self
+                  chain:
+                    - type: select
+                      arg:
+                        type: dynamic
+                        arg: lastSkillUsedTimes
+                evaluator:
+                  type: compare
+                  operator: '>'
+                  value: 1
   condition:
     type: selfUseSkill
 # 添加准备动作状态
@@ -6678,7 +6674,7 @@
   apply:
     type: destroyMark
     target:
-      base: self
+      base: selfMarks
       chain:
         - type: whereAttr
           extractor:
@@ -9339,7 +9335,7 @@
   apply:
     type: destroyMark
     target:
-      base: self
+      base: selfMarks
       chain:
         - type: whereAttr
           extractor:
@@ -10197,3 +10193,194 @@
       - type: selfUseSkill
       - type: opponentHasMark
         baseId: mark_yinzhiwang
+# 给自己添加喷嚏
+- id: effect_skill_add_mark_penti
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_penti
+  condition:
+    type: selfUseSkill
+# 给自己添加强力喷嚏
+- id: effect_skill_add_mark_qianglipenti
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_qianglipenti
+  condition:
+    type: selfUseSkill
+# 给自己添加超级喷嚏
+- id: effect_skill_add_mark_chaojipenti
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_chaojipenti
+  condition:
+    type: selfUseSkill
+# 有喷嚏时，威力两倍
+- id: effect_skill_power_2x_if_has_mark_penti
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: useSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_penti
+# 恢复125体力，连续使用则减半
+- id: effect_skill_heal_self_125_hp_if_consecutive_half
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: heal
+    target: self
+    value:
+      type: conditional
+      trueValue:
+        type: raw:number
+        value: 125
+      falseValue:
+        type: raw:number
+        value: 63
+      condition:
+        type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: lastSkillUsedTimes
+        evaluator:
+          type: compare
+          operator: '>'
+          value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+# 10%降低对面一级物攻
+- id: effect_skill_reduce_opponent_atk_1_stage_10_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_opponent_statstage_-1_template
+    statType: atk
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_10_percent_template
+# 15%降低对面一级物攻
+- id: effect_skill_reduce_opponent_atk_1_stage_15_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_opponent_statstage_-1_template
+    statType: atk
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_15_percent_template
+# 当有强力喷嚏时,威力2倍
+- id: effect_skill_power_2x_if_has_mark_qianglipenti
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: useSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_qianglipenti
+# 当有强力喷嚏时,威力4倍
+- id: effect_skill_power_4x_if_has_mark_qianglipenti
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: useSkillContext
+    value: 4
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_qianglipenti
+# 当有超级喷嚏时,威力4倍
+- id: effect_skill_power_4x_if_has_mark_chaojipenti
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: useSkillContext
+    value: 4
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_chaojipenti
+# 附加50点伤害
+- id: effect_skill_fixed_damage_50
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+# 如果有超级喷嚏标记，先制+2
+- id: effect_skill_priority_plus_2_if_has_mark_chaojipenti
+  trigger: BeforeSort
+  priority: 0
+  apply:
+    type: addValue
+    target:
+      base: useSkillContext
+      chain:
+        - type: selectProp
+          arg: priority
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_chaojipenti
+# 给自己添加发丝壁垒
+- id: effect_skill_add_mark_fasibilei
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_fasibilei
+  condition:
+    type: selfUseSkill

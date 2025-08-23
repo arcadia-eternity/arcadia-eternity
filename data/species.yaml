@@ -6265,7 +6265,6 @@
     - mark_ability_huohuan
   emblem:
     - mark_emblem_huoxin
-
 - id: pet_dakeer
   num: 75
   element: Fire
@@ -6314,7 +6313,6 @@
     - mark_ability_huohuan
   emblem:
     - mark_emblem_huoxin
-
 - id: pet_dakelaer
   num: 76
   element: Fire
@@ -7079,3 +7077,162 @@
     - skill_id: skill_quzhuhanyi
       level: 60
       hidden: true
+- id: pet_saobatou
+  num: 83
+  element: Desert
+  baseStats:
+    hp: 83
+    atk: 120
+    spa: 105
+    def: 113
+    spd: 110
+    spe: 103
+  genderRatio:
+    - 9
+    - 1
+  heightRange:
+    - 30
+    - 35
+  weightRange:
+    - 14
+    - 19
+  learnable_skills:
+    - skill_id: skill_houtuiti
+      level: 1
+      hidden: false
+    - skill_id: skill_yili
+      level: 5
+      hidden: false
+    - skill_id: skill_shachen
+      level: 11
+      hidden: false
+    - skill_id: skill_yigenfasi
+      level: 16
+      hidden: false
+  ability:
+    - mark_ability_penti
+  emblem:
+    - mark_emblem_fasi
+- id: pet_meihuatou
+  num: 84
+  element: Desert
+  baseStats:
+    hp: 123
+    atk: 150
+    spa: 135
+    def: 138
+    spd: 135
+    spe: 123
+  genderRatio:
+    - 9
+    - 1
+  heightRange:
+    - 51
+    - 56
+  weightRange:
+    - 29
+    - 34
+  learnable_skills:
+    - skill_id: skill_houtuiti
+      level: 1
+      hidden: false
+    - skill_id: skill_yili
+      level: 5
+      hidden: false
+    - skill_id: skill_shachen
+      level: 11
+      hidden: false
+    - skill_id: skill_yigenfasi
+      level: 16
+      hidden: false
+    - skill_id: skill_shatuihouti
+      level: 21
+      hidden: false
+    - skill_id: skill_dantuofeng
+      level: 26
+      hidden: false
+    - skill_id: skill_fasizhenci
+      level: 31
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 36
+      hidden: false
+  ability:
+    - mark_ability_penti
+  emblem:
+    - mark_emblem_fasi
+- id: pet_baozhatou
+  num: 85
+  element: Desert
+  baseStats:
+    hp: 183
+    atk: 180
+    spa: 165
+    def: 163
+    spd: 160
+    spe: 153
+  genderRatio:
+    - 9
+    - 1
+  heightRange:
+    - 84
+    - 89
+  weightRange:
+    - 77
+    - 82
+  learnable_skills:
+    - skill_id: skill_houtuiti
+      level: 1
+      hidden: false
+    - skill_id: skill_yili
+      level: 5
+      hidden: false
+    - skill_id: skill_shachen
+      level: 11
+      hidden: false
+    - skill_id: skill_yigenfasi
+      level: 16
+      hidden: false
+    - skill_id: skill_shatuihouti
+      level: 21
+      hidden: false
+    - skill_id: skill_dantuofeng
+      level: 26
+      hidden: false
+    - skill_id: skill_fasizhenci
+      level: 31
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 36
+      hidden: false
+    - skill_id: skill_lianggenfasi
+      level: 41
+      hidden: false
+    - skill_id: skill_shatuizhonghouti
+      level: 46
+      hidden: false
+    - skill_id: skill_shuangtuofeng
+      level: 51
+      hidden: false
+    - skill_id: skill_fasilianshe
+      level: 56
+      hidden: false
+    - skill_id: skill_baozhatou
+      level: 60
+      hidden: true
+    - skill_id: skill_sangenfasi
+      level: 60
+      hidden: true
+    - skill_id: skill_jisuhouti
+      level: 60
+      hidden: true
+    - skill_id: skill_shachenhoutuiti
+      level: 60
+      hidden: true
+    - skill_id: skill_fasibilei
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_penti
+  emblem:
+    - mark_emblem_fasi

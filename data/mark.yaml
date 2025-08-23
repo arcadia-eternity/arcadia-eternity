@@ -688,16 +688,6 @@
     keepOnSwitchOut: false
   tags:
     - xinzhiyinji_tag
-- id: mark_xinyuan_used
-  config:
-    duration: -1
-    persistent: true
-    maxStacks: 1
-    stackable: true
-    stackStrategy: extend
-    destroyable: true
-    keepOnSwitchOut: true
-  effect: []
 - id: mark_texiaochufalvshangsheng
 - id: mark_kongqichuliang
   config:
@@ -1799,7 +1789,7 @@
     destroyable: true
     keepOnSwitchOut: false
   effect:
-    - effect_mark_buxieanguang_reduce_light_damage_half # TODO
+    - effect_mark_buxieanguang_reduce_light_damage_half
 - id: mark_shandianshoushu
   tags:
     - shield
@@ -2268,3 +2258,59 @@
   effect:
     - effect_mark_heal_self_1_6_turnEnd
     - effect_mark_raise_def_1_when_hit_and_remove_self
+- id: mark_penti
+  tags: ['penti']
+  config:
+    duration: 4
+    maxStacks: 1
+    stackable: true
+    persistent: false
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+    mutexGroup: penti_marks
+- id: mark_qianglipenti
+  tags: ['penti']
+  config:
+    duration: 4
+    maxStacks: 1
+    stackable: true
+    persistent: false
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+    mutexGroup: penti_marks
+  effect:
+    - effect_mark_on_duration_end_add_mark_penti
+- id: mark_chaojipenti
+  tags: ['penti']
+  config:
+    duration: 4
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    persistent: false
+    destroyable: true
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+    mutexGroup: penti_marks
+  effect:
+    - effect_mark_on_duration_end_add_mark_qianglipenti
+- id: mark_fasibilei
+  config:
+    duration: -1
+    maxStacks: 1
+    persistent: true
+    stackable: false
+    stackStrategy: max
+    destroyable: true
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  effect:
+    - effect_mark_reduce_damage_taken_20_percent

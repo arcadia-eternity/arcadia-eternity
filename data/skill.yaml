@@ -3326,7 +3326,7 @@
   sureHit: false
   ignoreShield: false
   effect:
-    - effect_skill_heal_self_quarter_diminishing
+    - effect_skill_heal_self_quarter_if_consecutive_half
   tags: []
 - id: skill_ruantang
   element: Normal
@@ -5238,7 +5238,6 @@
   tags: []
   effect:
     - effect_skill_add_power_20_per_pofang_turn
-# 沙鹤系列技能
 - id: skill_shachen
   element: Desert
   category: Special
@@ -9780,3 +9779,138 @@
   effect:
     - effect_skill_reduce_opponent_atk_1_stage
     - effect_skill_reduce_opponent_spa_1_stage
+- id: skill_houtuiti
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 45
+  accuracy: 100
+  rage: 0
+  effect:
+    - effect_skill_reduce_opponent_def_1_stage_5_percent
+- id: skill_yigenfasi
+  tags: ['fasi']
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 5
+  effect:
+    - effect_skill_add_mark_penti
+- id: skill_shatuihouti
+  element: Desert
+  category: Physical
+  target: opponent
+  power: 70
+  accuracy: 95
+  rage: 15
+  effect:
+    - effect_skill_power_2x_if_has_mark_penti
+- id: skill_dantuofeng
+  element: Desert
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  effect:
+    - effect_skill_heal_self_quarter_if_consecutive_half
+- id: skill_fasizhenci
+  element: Normal
+  category: Special
+  target: opponent
+  power: 90
+  accuracy: 95
+  rage: 15
+  effect:
+    - effect_skill_reduce_opponent_atk_1_stage_10_percent
+- id: skill_lianggenfasi
+  tags: ['fasi']
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  effect:
+    - effect_skill_add_mark_qianglipenti
+- id: skill_shatuizhonghouti
+  element: Desert
+  category: Physical
+  target: opponent
+  power: 45
+  accuracy: 95
+  rage: 15
+  effect:
+    - effect_skill_power_2x_if_has_mark_penti
+    - effect_skill_power_4x_if_has_mark_qianglipenti
+    - effect_skill_power_4x_if_has_mark_chaojipenti
+- id: skill_shuangtuofeng
+  element: Desert
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  effect:
+    - effect_skill_heal_self_125_hp_if_consecutive_half
+- id: skill_fasilianshe
+  element: Normal
+  category: Special
+  target: opponent
+  power: 40
+  accuracy: 95
+  rage: 15
+  multiHit: 3
+    - effect_skill_reduce_opponent_atk_1_stage_15_percent
+- id: skill_baozhatou
+  element: Desert
+  category: Climax
+  target: opponent
+  power: 160
+  accuracy: 100
+  rage: 100
+  sureHit: true
+  effect:
+    - effect_skill_fixed_damage_50
+- id: skill_sangenfasi
+  tags: ['fasi']
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 15
+  effect:
+    - effect_skill_add_mark_chaojipenti
+- id: skill_jisuhouti
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 75
+  accuracy: 95
+  rage: 15
+  priority: 2
+  effect:
+    - effect_skill_priority_plus_2_if_has_mark_chaojipenti
+- id: skill_shachenhoutuiti
+  element: Desert
+  category: Physical
+  target: opponent
+  power: 50
+  accuracy: 95
+  rage: 20
+  effect:
+    - effect_skill_power_2x_if_has_mark_penti
+    - effect_skill_power_2x_if_has_mark_qianglipenti
+    - effect_skill_power_4x_if_has_mark_chaojipenti
+- id: skill_fasibilei
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  effect:
+    - effect_skill_add_mark_fasibilei

@@ -175,3 +175,6 @@ mark_ability_binggu:
 mark_ability_qianghua:
   name: 强化
   description: 强化特攻的同时也强化物攻
+mark_ability_penti:
+  name: 喷嚏
+  description: 具有喷嚏时附加15点伤害
