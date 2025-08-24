@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.1...arcadia-eternity-v2.22.2) (2025-08-24)
+
+
+### 🐛 Bug Fixes
+
+* add zhongji option ([b6a4f10](https://github.com/arcadia-eternity/arcadia-eternity/commit/b6a4f10378e0bf75ddf57c0b68710e99b3d70e57))
+
 ## [2.22.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.0...arcadia-eternity-v2.22.1) (2025-08-23)
 
 
