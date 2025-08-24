@@ -7422,8 +7422,8 @@
   ability:
     - mark_ability_feikong
   emblem:
+    - mark_emblem_zhongji
     - mark_emblem_feixuan
-
 - id: pet_shayite
   num: 98
   element: Desert
@@ -7492,8 +7492,8 @@
   ability:
     - mark_ability_shasu
   emblem:
+    - mark_emblem_zhongji
     - mark_emblem_shazhen
-
 - id: pet_chongyite
   num: 99
   element: Bug
@@ -7562,4 +7562,5 @@
   ability:
     - mark_ability_lianxie
   emblem:
+    - mark_emblem_zhongji
     - mark_emblem_chongqun
