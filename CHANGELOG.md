@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.6](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.5...arcadia-eternity-v2.22.6) (2025-08-26)
+
+
+### 🐛 Bug Fixes
+
+* stat stage phase ([68c9059](https://github.com/arcadia-eternity/arcadia-eternity/commit/68c905975fc3960d91130dd23f6753f7c5c0b977))
+
 ## [2.22.5](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.4...arcadia-eternity-v2.22.5) (2025-08-26)
 
 
