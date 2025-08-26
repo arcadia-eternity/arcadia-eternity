@@ -11,10 +11,10 @@ import { MarkStackPhase } from './MarkStackPhase'
  * Replaces MarkSystem.transferMarks logic with proper phase-based execution
  */
 
-export class MarkTransferPhase extends SynchronousPhase<SwitchPetContext> {
+export class MarkTransferPhase extends SynchronousPhase<SwitchPetContext | EffectContext<EffectTrigger>> {
   constructor(
     battle: Battle,
-    private readonly transferContext: SwitchPetContext,
+    private readonly transferContext: SwitchPetContext | EffectContext<EffectTrigger>,
     private readonly target: Pet | Battle,
     private readonly marks: MarkInstance[],
     id?: string,
@@ -23,7 +23,7 @@ export class MarkTransferPhase extends SynchronousPhase<SwitchPetContext> {
     this._context = transferContext
   }
 
-  protected createContext(): SwitchPetContext {
+  protected createContext() {
     return this._context!
   }
 

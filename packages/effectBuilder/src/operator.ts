@@ -11,7 +11,12 @@ import {
   type PhaseTypeSpec,
   PhaseType,
   PhaseScope,
-  type Prototype,
+  AddMarkPhase,
+  RemoveMarkPhase,
+  RagePhase,
+  HealPhase,
+  MarkTransferPhase,
+  StatStagePhase,
 } from '@arcadia-eternity/battle'
 import {
   AttributeSystem,
@@ -86,7 +91,11 @@ export const Operators = {
     (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
       const _value = GetValueFromSource(context, value)
       if (_value.length === 0) return
-      targets.forEach(p => p.heal(new HealContext(context, context.source, p, _value[0])))
+      targets.forEach(p => {
+        const healPhase = new HealPhase(context.battle, context, context.source, p, _value[0])
+        context.battle.phaseManager.registerPhase(healPhase)
+        context.battle.phaseManager.executePhase(healPhase.id)
+      })
     },
 
   executeKill: (): Operator<Pet> => (context: EffectContext<EffectTrigger>, targets: Pet[]) => {
@@ -126,7 +135,19 @@ export const Operators = {
       const stackValue = stack ? GetValueFromSource(context, stack)[0] : undefined
       const durationValue = duration ? GetValueFromSource(context, duration)[0] : undefined
       targets.forEach(target => {
-        target.addMark(new AddMarkContext(context, target, marks[0], stackValue, durationValue, config, context.source))
+        const addMarkPhase = new AddMarkPhase(
+          context.battle,
+          context,
+          target,
+          marks[0],
+          stackValue,
+          durationValue,
+          config,
+          undefined,
+          context.source,
+        )
+        context.battle.phaseManager.registerPhase(addMarkPhase)
+        context.battle.phaseManager.executePhase(addMarkPhase.id)
       })
     },
 
@@ -135,9 +156,11 @@ export const Operators = {
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       if (targets.length === 0) return
       const _mark = GetValueFromSource(context, mark)
-      // Use the new phase-based mark transfer system
+      // Use the phase-based mark transfer system
       if (targets[0] instanceof Pet) {
-        targets[0].transferMarks(context as any, ..._mark)
+        const transferPhase = new MarkTransferPhase(context.battle, context, targets[0], _mark)
+        transferPhase.initialize()
+        transferPhase.execute()
       }
     },
 
@@ -145,9 +168,9 @@ export const Operators = {
     <T extends MarkInstance>(): Operator<T> =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
       targets.forEach(m => {
-        // Use RemoveMarkPhase for unified mark destruction
-        const removeMarkContext = new RemoveMarkContext(context, m)
-        context.battle.removeMark(removeMarkContext)
+        const removeMarkPhase = new RemoveMarkPhase(context.battle, context, m)
+        context.battle.phaseManager.registerPhase(removeMarkPhase)
+        context.battle.phaseManager.executePhase(removeMarkPhase.id)
       })
     },
 
@@ -274,11 +297,12 @@ export const Operators = {
     (context: EffectContext<EffectTrigger>, targets: (Player | Pet)[]) => {
       const _value = GetValueFromSource(context, value)
       if (_value.length === 0) return
-      targets.forEach(player =>
-        player.addRage(
-          new RageContext(context, player instanceof Player ? player : player.owner!, 'effect', 'add', _value[0]),
-        ),
-      )
+      targets.forEach(target => {
+        const player = target instanceof Player ? target : target.owner!
+        const ragePhase = new RagePhase(context.battle, context, player, 'effect', 'add', _value[0])
+        context.battle.phaseManager.registerPhase(ragePhase)
+        context.battle.phaseManager.executePhase(ragePhase.id)
+      })
     },
 
   setRage:
@@ -286,11 +310,12 @@ export const Operators = {
     (context: EffectContext<EffectTrigger>, targets: (Player | Pet)[]) => {
       const _value = GetValueFromSource(context, value)
       if (_value.length === 0) return
-      targets.forEach(player =>
-        player.addRage(
-          new RageContext(context, player instanceof Player ? player : player.owner!, 'effect', 'setting', _value[0]),
-        ),
-      )
+      targets.forEach(target => {
+        const player = target instanceof Player ? target : target.owner!
+        const ragePhase = new RagePhase(context.battle, context, player, 'effect', 'setting', _value[0])
+        context.battle.phaseManager.registerPhase(ragePhase)
+        context.battle.phaseManager.executePhase(ragePhase.id)
+      })
     },
 
   modifyStat:
@@ -705,11 +730,10 @@ export const Operators = {
       const _strategy = GetValueFromSource(context, strategy)[0] ?? SetStageStrategy.add
 
       target.forEach(v => {
-        if (_strategy === SetStageStrategy.set) {
-          v.setStatStage(context, _statType, _value)
-        } else {
-          v.addStatStage(context, _statType, _value)
-        }
+        const operation = _strategy === SetStageStrategy.set ? 'set' : 'add'
+        const statStagePhase = new StatStagePhase(context.battle, context, v, operation, _statType, _value)
+        context.battle.phaseManager.registerPhase(statStagePhase)
+        context.battle.phaseManager.executePhase(statStagePhase.id)
       })
     },
 
@@ -720,8 +744,20 @@ export const Operators = {
     ): Operator<Pet> =>
     (context: EffectContext<EffectTrigger>, target: Pet[]) => {
       const _statTypes = statType ? GetValueFromSource(context, statType) : undefined
-      if (!_statTypes) target.forEach(v => v.clearStatStage(context, cleanStageStrategy))
-      else target.forEach(v => v.clearStatStage(context, cleanStageStrategy, ..._statTypes))
+      target.forEach(v => {
+        const statStagePhase = new StatStagePhase(
+          context.battle, 
+          context, 
+          v, 
+          'clear', 
+          undefined, 
+          undefined, 
+          cleanStageStrategy, 
+          _statTypes
+        )
+        context.battle.phaseManager.registerPhase(statStagePhase)
+        context.battle.phaseManager.executePhase(statStagePhase.id)
+      })
     },
 
   reverseStatStage:
@@ -731,8 +767,20 @@ export const Operators = {
     ): Operator<Pet> =>
     (context: EffectContext<EffectTrigger>, target: Pet[]) => {
       const _statTypes = statType ? GetValueFromSource(context, statType) : undefined
-      if (!_statTypes) target.forEach(v => v.reverseStatStage(context, cleanStageStrategy))
-      else target.forEach(v => v.reverseStatStage(context, cleanStageStrategy, ..._statTypes))
+      target.forEach(v => {
+        const statStagePhase = new StatStagePhase(
+          context.battle, 
+          context, 
+          v, 
+          'reverse', 
+          undefined, 
+          undefined, 
+          cleanStageStrategy, 
+          _statTypes
+        )
+        context.battle.phaseManager.registerPhase(statStagePhase)
+        context.battle.phaseManager.executePhase(statStagePhase.id)
+      })
     },
 
   transferStatStage:
@@ -775,12 +823,14 @@ export const Operators = {
             (cleanStageStrategy === CleanStageStrategy.negative && stage < 0)
 
           if (shouldTransfer) {
-            // Add the same stage to target pet
-            targetPet.addStatStage(context, statType, stage)
+            // Add the same stage to target pet using phase system
+            const statStagePhase = new StatStagePhase(context.battle, context, targetPet, 'add', statType, stage)
+            context.battle.phaseManager.registerPhase(statStagePhase)
+            context.battle.phaseManager.executePhase(statStagePhase.id)
 
-            // Remove the mark from source pet using RemoveMarkPhase
-            const removeMarkContext = new RemoveMarkContext(context, mark)
-            context.battle.removeMark(removeMarkContext)
+            const removeMarkPhase = new RemoveMarkPhase(context.battle, context, mark)
+            context.battle.phaseManager.registerPhase(removeMarkPhase)
+            context.battle.phaseManager.executePhase(removeMarkPhase.id)
           }
         })
       })
