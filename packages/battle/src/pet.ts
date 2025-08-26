@@ -16,11 +16,11 @@ import {
   StatTypeOnlyBattle,
   StatTypeWithoutHp,
 } from '@arcadia-eternity/const'
+import { PetAttributeSystem } from './attributeSystem'
 import type { Instance, MarkOwner, OwnedEntity, Prototype } from './entity'
 import { BaseMark, type MarkInstance } from './mark'
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
-import { PetAttributeSystem } from './attributeSystem'
 
 import type { Emitter } from 'mitt'
 

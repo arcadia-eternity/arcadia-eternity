@@ -1,42 +1,32 @@
 import {
-  BattleMessageType,
   EffectTrigger,
-  type MarkMessage,
   StackStrategy,
   StatTypeWithoutHp,
+  type Events,
   type MarkConfig,
+  type MarkMessage,
   type baseMarkId,
   type markId,
-  type Events,
 } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 
-import { Battle } from './battle'
-import {
-  AddMarkContext,
-  type AllContext,
-  DamageContext,
-  EffectContext,
-  RemoveMarkContext,
-  StackContext,
-  SwitchPetContext,
-  TurnContext,
-} from './context'
-import { ConsumeStackPhase } from './phase/ConsumeStackPhase'
-import { Effect, type EffectContainer } from './effect'
-import { type Instance, type MarkOwner, type OwnedEntity, type Prototype } from './entity'
-import { Pet } from './pet'
 import type { Emitter } from 'mitt'
+import { Observable } from 'rxjs'
 import {
-  Modifier,
   DurationType,
   MarkAttributeSystem,
-  createStatLevelMarkAttributeSystem,
+  Modifier,
   computed,
+  createStatLevelMarkAttributeSystem,
   type BaseMarkAccessors,
   type LevelAccessors,
 } from './attributeSystem'
-import { Observable } from 'rxjs'
+import { Battle } from './battle'
+import { AddMarkContext, DamageContext, EffectContext, SwitchPetContext } from './context'
+import { Effect, type EffectContainer } from './effect'
+import { type Instance, type MarkOwner, type OwnedEntity, type Prototype } from './entity'
+import { Pet } from './pet'
+import { ConsumeStackPhase } from './phase/ConsumeStackPhase'
 
 export interface IBaseMark extends Prototype {
   createInstance(...arg: any[]): MarkInstance

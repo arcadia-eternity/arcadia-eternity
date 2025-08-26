@@ -10,11 +10,10 @@ import {
   type SkillMessage,
 } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
-import { EffectContext, UseSkillContext } from './context'
+import { SkillAttributeSystem } from './attributeSystem'
 import { Effect, type EffectContainer } from './effect'
 import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
-import { SkillAttributeSystem } from './attributeSystem'
 
 export class BaseSkill implements Prototype {
   public readonly effects: Effect<EffectTrigger>[] = []

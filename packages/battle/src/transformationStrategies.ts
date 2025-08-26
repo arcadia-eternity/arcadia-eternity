@@ -1,17 +1,17 @@
+import { MarkInstanceImpl } from './mark'
+import { Pet } from './pet'
+import { SkillInstance } from './skill'
 import {
-  type TransformationStrategy,
-  EntityType,
+  type MarkEntity,
+  type MarkPrototype,
   type PetEntity,
   type PetPrototype,
   type SkillEntity,
   type SkillPrototype,
-  type MarkEntity,
-  type MarkPrototype,
+  type TransformationStrategy,
   EffectHandlingStrategy,
+  EntityType,
 } from './transformation'
-import { Pet } from './pet'
-import { SkillInstance } from './skill'
-import { MarkInstanceImpl } from './mark'
 
 /**
  * 精灵变身策略 - 简化版本，只处理base值变更

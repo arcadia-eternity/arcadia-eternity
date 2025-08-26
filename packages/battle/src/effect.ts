@@ -1,7 +1,7 @@
-import { EffectTrigger } from '@arcadia-eternity/const'
-import { EffectContext, Context } from './context'
-import { type Prototype } from './entity'
 import type { effectId } from '@arcadia-eternity/const'
+import { EffectTrigger } from '@arcadia-eternity/const'
+import { EffectContext } from './context'
+import { type Prototype } from './entity'
 import { MarkInstanceImpl } from './mark'
 
 // EffectScheduler has been replaced by EffectExecutionPhase

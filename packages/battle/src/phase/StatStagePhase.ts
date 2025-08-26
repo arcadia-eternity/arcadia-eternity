@@ -20,10 +20,10 @@ export class StatStagePhase extends SynchronousPhase<EffectContext<EffectTrigger
     private readonly parentContext: EffectContext<EffectTrigger>,
     private readonly target: MarkOwner,
     private readonly operation: 'add' | 'set' | 'clear' | 'reverse',
-    private readonly statType?: StatTypeWithoutHp,
+    private statType?: StatTypeWithoutHp,
     private readonly value?: number,
     private readonly cleanStageStrategy?: CleanStageStrategy,
-    private readonly statTypes?: StatTypeWithoutHp[],
+    private statTypes?: StatTypeWithoutHp[],
     id?: string,
   ) {
     super(battle, id)
@@ -67,38 +67,8 @@ export class StatStagePhase extends SynchronousPhase<EffectContext<EffectTrigger
     if (!this.statType || this.value === undefined) {
       throw new Error('Stat type and value are required for set operation')
     }
-
-    // First clear all stat stages for this type
-    this.executeClearStatStageInternal(CleanStageStrategy.all, this.statType)
-    
-    // Then add the new stat stage if value is not zero
-    if (this.value !== 0) {
-      this.executeAddStatStage()
-    }
-  }
-
-  private executeClearStatStage(): void {
-    if (!this.cleanStageStrategy || !this.statTypes) {
-      throw new Error('Clean strategy and stat types are required for clear operation')
-    }
-
-    this.executeClearStatStageInternal(this.cleanStageStrategy, ...this.statTypes)
-  }
-
-  private executeReverseStatStage(): void {
-    if (!this.cleanStageStrategy || !this.statTypes) {
-      throw new Error('Clean strategy and stat types are required for reverse operation')
-    }
-
-    this.executeReverseStatStageInternal(this.cleanStageStrategy, ...this.statTypes)
-  }
-
-  private executeClearStatStageInternal(
-    cleanStageStrategy: CleanStageStrategy,
-    ...statTypes: StatTypeWithoutHp[]
-  ): void {
-    if (!statTypes || statTypes.length === 0) {
-      statTypes = [
+    if (!this.statTypes || this.statTypes.length === 0) {
+      this.statTypes = [
         StatTypeWithoutHp.atk,
         StatTypeWithoutHp.def,
         StatTypeWithoutHp.spa,
@@ -106,6 +76,46 @@ export class StatStagePhase extends SynchronousPhase<EffectContext<EffectTrigger
         StatTypeWithoutHp.spe,
       ]
     }
+
+    this.statTypes.forEach(statType => {
+      // Find all stat stage marks for this stat type
+      const statStageMarks = this.target.marks.filter(
+        mark => mark.config.isStatStageMark && mark.config.statType === statType,
+      )
+
+      statStageMarks.forEach(mark => {
+        const stage = mark.config.statStageValue || 0
+        const shouldClear =
+          this.cleanStageStrategy === CleanStageStrategy.all ||
+          (this.cleanStageStrategy === CleanStageStrategy.positive && stage > 0) ||
+          (this.cleanStageStrategy === CleanStageStrategy.negative && stage < 0)
+
+        if (shouldClear) {
+          const removeMarkPhase = new RemoveMarkPhase(this.battle, this.parentContext, mark)
+          this.battle.phaseManager.registerPhase(removeMarkPhase)
+          this.battle.phaseManager.executePhase(removeMarkPhase.id)
+        }
+      })
+    })
+
+    // Then add the new stat stage if value is not zero
+    if (this.value !== 0) {
+      this.executeAddStatStage()
+    }
+  }
+
+  private executeClearStatStage(): void {
+    if (!this.cleanStageStrategy) {
+      throw new Error('Clean strategy is required for clear operation')
+    }
+
+    const statTypes = this.statTypes || [
+      StatTypeWithoutHp.atk,
+      StatTypeWithoutHp.def,
+      StatTypeWithoutHp.spa,
+      StatTypeWithoutHp.spd,
+      StatTypeWithoutHp.spe,
+    ]
 
     statTypes.forEach(statType => {
       // Find all stat stage marks for this stat type
@@ -116,9 +126,9 @@ export class StatStagePhase extends SynchronousPhase<EffectContext<EffectTrigger
       statStageMarks.forEach(mark => {
         const stage = mark.config.statStageValue || 0
         const shouldClear =
-          cleanStageStrategy === CleanStageStrategy.all ||
-          (cleanStageStrategy === CleanStageStrategy.positive && stage > 0) ||
-          (cleanStageStrategy === CleanStageStrategy.negative && stage < 0)
+          this.cleanStageStrategy === CleanStageStrategy.all ||
+          (this.cleanStageStrategy === CleanStageStrategy.positive && stage > 0) ||
+          (this.cleanStageStrategy === CleanStageStrategy.negative && stage < 0)
 
         if (shouldClear) {
           const removeMarkPhase = new RemoveMarkPhase(this.battle, this.parentContext, mark)
@@ -129,19 +139,18 @@ export class StatStagePhase extends SynchronousPhase<EffectContext<EffectTrigger
     })
   }
 
-  private executeReverseStatStageInternal(
-    cleanStageStrategy: CleanStageStrategy,
-    ...statTypes: StatTypeWithoutHp[]
-  ): void {
-    if (!statTypes || statTypes.length === 0) {
-      statTypes = [
-        StatTypeWithoutHp.atk,
-        StatTypeWithoutHp.def,
-        StatTypeWithoutHp.spa,
-        StatTypeWithoutHp.spd,
-        StatTypeWithoutHp.spe,
-      ]
+  private executeReverseStatStage(): void {
+    if (!this.cleanStageStrategy) {
+      throw new Error('Clean strategy is required for reverse operation')
     }
+
+    const statTypes = this.statTypes || [
+      StatTypeWithoutHp.atk,
+      StatTypeWithoutHp.def,
+      StatTypeWithoutHp.spa,
+      StatTypeWithoutHp.spd,
+      StatTypeWithoutHp.spe,
+    ]
 
     statTypes.forEach(statType => {
       // Find all stat stage marks for this stat type
@@ -152,9 +161,9 @@ export class StatStagePhase extends SynchronousPhase<EffectContext<EffectTrigger
       statStageMarks.forEach(mark => {
         const stage = mark.config.statStageValue || 0
         const shouldReverse =
-          cleanStageStrategy === CleanStageStrategy.all ||
-          (cleanStageStrategy === CleanStageStrategy.positive && stage > 0) ||
-          (cleanStageStrategy === CleanStageStrategy.negative && stage < 0)
+          this.cleanStageStrategy === CleanStageStrategy.all ||
+          (this.cleanStageStrategy === CleanStageStrategy.positive && stage > 0) ||
+          (this.cleanStageStrategy === CleanStageStrategy.negative && stage < 0)
 
         if (shouldReverse) {
           // Remove the existing mark
@@ -171,47 +180,4 @@ export class StatStagePhase extends SynchronousPhase<EffectContext<EffectTrigger
       })
     })
   }
-}
-
-/**
- * Helper functions to create StatStagePhase instances for different operations
- */
-export function createAddStatStagePhase(
-  battle: Battle,
-  context: EffectContext<EffectTrigger>,
-  target: MarkOwner,
-  statType: StatTypeWithoutHp,
-  value: number,
-): StatStagePhase {
-  return new StatStagePhase(battle, context, target, 'add', statType, value)
-}
-
-export function createSetStatStagePhase(
-  battle: Battle,
-  context: EffectContext<EffectTrigger>,
-  target: MarkOwner,
-  statType: StatTypeWithoutHp,
-  value: number,
-): StatStagePhase {
-  return new StatStagePhase(battle, context, target, 'set', statType, value)
-}
-
-export function createClearStatStagePhase(
-  battle: Battle,
-  context: EffectContext<EffectTrigger>,
-  target: MarkOwner,
-  cleanStageStrategy: CleanStageStrategy = CleanStageStrategy.positive,
-  ...statTypes: StatTypeWithoutHp[]
-): StatStagePhase {
-  return new StatStagePhase(battle, context, target, 'clear', undefined, undefined, cleanStageStrategy, statTypes)
-}
-
-export function createReverseStatStagePhase(
-  battle: Battle,
-  context: EffectContext<EffectTrigger>,
-  target: MarkOwner,
-  cleanStageStrategy: CleanStageStrategy = CleanStageStrategy.positive,
-  ...statTypes: StatTypeWithoutHp[]
-): StatStagePhase {
-  return new StatStagePhase(battle, context, target, 'reverse', undefined, undefined, cleanStageStrategy, statTypes)
 }
