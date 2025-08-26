@@ -81,10 +81,10 @@ export class StatStagePhase extends SynchronousPhase<EffectContext<EffectTrigger
       // Find all stat stage marks for this stat type
       const statStageMarks = this.target.marks.filter(
         mark => mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType,
-      )
+      ) as StatLevelMarkInstanceImpl[]
 
       statStageMarks.forEach(mark => {
-        const stage = mark.config.statStageValue || 0
+        const stage = mark.level || 0
         const shouldClear =
           this.cleanStageStrategy === CleanStageStrategy.all ||
           (this.cleanStageStrategy === CleanStageStrategy.positive && stage > 0) ||
@@ -121,10 +121,10 @@ export class StatStagePhase extends SynchronousPhase<EffectContext<EffectTrigger
       // Find all stat stage marks for this stat type
       const statStageMarks = this.target.marks.filter(
         mark => mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType,
-      )
+      ) as StatLevelMarkInstanceImpl[]
 
       statStageMarks.forEach(mark => {
-        const stage = mark.config.statStageValue || 0
+        const stage = mark.level || 0
         const shouldClear =
           this.cleanStageStrategy === CleanStageStrategy.all ||
           (this.cleanStageStrategy === CleanStageStrategy.positive && stage > 0) ||
@@ -156,10 +156,10 @@ export class StatStagePhase extends SynchronousPhase<EffectContext<EffectTrigger
       // Find all stat stage marks for this stat type
       const statStageMarks = this.target.marks.filter(
         mark => mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType,
-      )
+      ) as StatLevelMarkInstanceImpl[]
 
       statStageMarks.forEach(mark => {
-        const stage = mark.config.statStageValue || 0
+        const stage = mark.level || 0
         const shouldReverse =
           this.cleanStageStrategy === CleanStageStrategy.all ||
           (this.cleanStageStrategy === CleanStageStrategy.positive && stage > 0) ||
