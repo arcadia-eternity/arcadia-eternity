@@ -19,12 +19,11 @@ import {
   type petId,
 } from '@arcadia-eternity/const'
 import { Battle } from './battle'
-import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
+import { DamageContext, SwitchPetContext, UseSkillContext } from './context'
 import { Pet } from './pet'
 import { PlayerAttributeSystem } from './attributeSystem'
 import { SkillPhase } from './phase/skill'
 import { SwitchPetPhase } from './phase/switch'
-import { RagePhase } from './phase/rage'
 import * as jsondiffpatch from 'jsondiffpatch'
 
 export enum AIDecisionTiming {
@@ -390,32 +389,6 @@ export class Player {
     this.currentRage = Math.max(Math.min(value, this.maxRage), 0)
   }
 
-  /**
-   * @deprecated Use RagePhase directly instead of calling this method.
-   * This method is kept for backward compatibility but will be removed in future versions.
-   */
-  public addRage(context: RageContext) {
-    // Rage logic has been moved to RagePhase
-    // This method now delegates to the phase system
-    const ragePhase = new RagePhase(
-      context.battle,
-      context.parent,
-      context.target,
-      context.reason,
-      context.modifiedType,
-      context.value,
-      context.ignoreRageObtainEfficiency,
-      context.modified,
-    )
-    context.battle.phaseManager.registerPhase(ragePhase)
-    context.battle.phaseManager.executePhase(ragePhase.id)
-
-    // Sync the rage result back to the original context
-    const phaseContext = ragePhase.context
-    if (phaseContext) {
-      context.rageChangeResult = phaseContext.rageChangeResult
-    }
-  }
 
   public toMessage(viewerId?: string, showHidden = false): PlayerMessage {
     const teamAlives = this.effectiveTeam.filter(p => p.isAlive).length

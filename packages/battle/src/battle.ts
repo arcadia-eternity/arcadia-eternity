@@ -272,36 +272,6 @@ export class Battle extends Context implements MarkOwner {
     this.messageCallbacks.forEach(cb => cb.wrapped(jsondiffpatch.clone(message) as BattleMessage))
   }
 
-  /**
-   * @deprecated Use AddPhase directly instead of calling this method.
-   * This method is kept for backward compatibility but will be removed in future versions.
-   */
-  public addMark(context: AddMarkContext) {
-    const addMarkPhase = new AddMarkPhase(
-      this,
-      context.parent,
-      context.target,
-      context.baseMark,
-      context.stack,
-      context.duration,
-      context.config,
-      undefined,
-      context.creator,
-    )
-    this.phaseManager.registerPhase(addMarkPhase)
-    this.phaseManager.executePhase(addMarkPhase.id)
-  }
-
-  /**
-   * @deprecated Use RemovePhase directly instead of calling this method.
-   * This method is kept for backward compatibility but will be removed in future versions.
-   */
-  public removeMark(context: RemoveMarkContext) {
-    const removeMarkPhase = new RemoveMarkPhase(this, context.parent, context.mark)
-    this.phaseManager.registerPhase(removeMarkPhase)
-    this.phaseManager.executePhase(removeMarkPhase.id)
-  }
-
   public getOpponent(player: Player) {
     if (player === this.playerA) return this.playerB
     return this.playerA

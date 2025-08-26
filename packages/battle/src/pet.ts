@@ -1,8 +1,5 @@
 import {
-  BattleMessageType,
   Category,
-  CleanStageStrategy,
-  EffectTrigger,
   Element,
   type Events,
   Gender,
@@ -19,16 +16,12 @@ import {
   StatTypeOnlyBattle,
   StatTypeWithoutHp,
 } from '@arcadia-eternity/const'
-import { AddMarkContext, EffectContext, HealContext, RageContext, RemoveMarkContext, SwitchPetContext } from './context'
 import type { Instance, MarkOwner, OwnedEntity, Prototype } from './entity'
-import { BaseMark, CreateStatStageMark, type MarkInstance, StatLevelMarkInstanceImpl } from './mark'
+import { BaseMark, type MarkInstance } from './mark'
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
 import { PetAttributeSystem } from './attributeSystem'
 
-import { HealPhase } from './phase/heal'
-import { MarkSwitchOutPhase } from './phase/MarkSwitchOutPhase'
-import { MarkTransferPhase } from './phase/MarkTransferPhase'
 import type { Emitter } from 'mitt'
 
 export interface Species extends Prototype {
@@ -142,47 +135,6 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
 
   public settingRage(value: number) {
     this.owner?.settingRage(value)
-  }
-
-  public addRage(context: RageContext) {
-    this.owner?.addRage(context)
-  }
-
-  /**
-   * @deprecated Use HealPhase directly instead of calling this method.
-   * This method is kept for backward compatibility but will be removed in future versions.
-   */
-  public heal(context: HealContext): boolean {
-    // Heal logic has been moved to HealPhase
-    // This method now delegates to the phase system
-    const healPhase = new HealPhase(
-      context.battle,
-      context.parent,
-      context.source,
-      context.target,
-      context.baseHeal,
-      context.ingoreEffect,
-      context.modified,
-    )
-    context.battle.phaseManager.registerPhase(healPhase)
-    context.battle.phaseManager.executePhase(healPhase.id)
-    return this.isAlive
-  }
-
-  /**
-   * @deprecated Use AddMark directly instead of calling this method.
-   * This method is kept for backward compatibility but will be removed in future versions.
-   */
-  public addMark(context: AddMarkContext) {
-    context.battle.addMark(context)
-  }
-
-  /**
-   * @deprecated Use RemoveMark directly instead of calling this method.
-   * This method is kept for backward compatibility but will be removed in future versions.
-   */
-  public removeMark(context: RemoveMarkContext) {
-    context.battle.removeMark(context)
   }
 
   public getShieldMark() {
@@ -427,112 +379,6 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       result[statType] = shouldApplyEffectiveValue ? effectiveValue : baseValue
       return result
     }, {} as StatOnBattle)
-  }
-
-  //TODO: migrate to new phase system
-  public addStatStage(context: EffectContext<EffectTrigger>, statType: StatTypeWithoutHp, value: number) {
-    const upMark = CreateStatStageMark(statType, value)
-    this.addMark(new AddMarkContext(context, this, upMark, value))
-  }
-
-  //TODO: migrate to new phase system
-  public setStatStage(context: EffectContext<EffectTrigger>, statType: StatTypeWithoutHp, value: number) {
-    // 首先清除该属性类型的所有能力等级印记
-    this.clearStatStage(context, CleanStageStrategy.all, statType)
-    // 然后设置新的能力等级
-    if (value !== 0) {
-      const upMark = CreateStatStageMark(statType, value)
-      this.addMark(new AddMarkContext(context, this, upMark, value))
-    }
-  }
-
-  // 清理能力等级时同时清除相关印记
-  //TODO: migrate to new phase system
-  public clearStatStage(
-    context: EffectContext<EffectTrigger>,
-    cleanStageStrategy = CleanStageStrategy.positive,
-    ...statTypes: StatTypeWithoutHp[]
-  ) {
-    if (!statTypes || statTypes.length === 0) {
-      statTypes = [
-        StatTypeWithoutHp.atk,
-        StatTypeWithoutHp.def,
-        StatTypeWithoutHp.spa,
-        StatTypeWithoutHp.spd,
-        StatTypeWithoutHp.spe,
-      ]
-    }
-    statTypes.forEach(statType => {
-      // Find all stat stage marks for this stat type
-      const statStageMarks = this.marks.filter(
-        mark => mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType,
-      ) as StatLevelMarkInstanceImpl[]
-
-      statStageMarks.forEach(mark => {
-        const stage = mark.level
-        const shouldClear =
-          cleanStageStrategy === CleanStageStrategy.all ||
-          (cleanStageStrategy === CleanStageStrategy.positive && stage > 0) ||
-          (cleanStageStrategy === CleanStageStrategy.negative && stage < 0)
-
-        if (shouldClear) {
-          // Use RemoveMarkPhase for unified mark destruction
-          const removeMarkContext = new RemoveMarkContext(context, mark)
-          context.battle.removeMark(removeMarkContext)
-        }
-      })
-    })
-  }
-
-  // 反转能力等级（正变负，负变正）
-  //TODO: migrate to new phase system
-  public reverseStatStage(
-    context: EffectContext<EffectTrigger>,
-    cleanStageStrategy = CleanStageStrategy.positive,
-    ...statTypes: StatTypeWithoutHp[]
-  ) {
-    if (!statTypes || statTypes.length === 0) {
-      statTypes = [
-        StatTypeWithoutHp.atk,
-        StatTypeWithoutHp.def,
-        StatTypeWithoutHp.spa,
-        StatTypeWithoutHp.spd,
-        StatTypeWithoutHp.spe,
-      ]
-    }
-    statTypes.forEach(statType => {
-      // Find all stat stage marks for this stat type
-      const statStageMarks = this.marks.filter(
-        mark => mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType,
-      ) as StatLevelMarkInstanceImpl[]
-
-      statStageMarks.forEach(mark => {
-        const stage = mark.level
-        const shouldReverse =
-          cleanStageStrategy === CleanStageStrategy.all ||
-          (cleanStageStrategy === CleanStageStrategy.positive && stage > 0) ||
-          (cleanStageStrategy === CleanStageStrategy.negative && stage < 0)
-
-        if (shouldReverse) {
-          // Remove the existing mark using RemoveMarkPhase
-          const removeMarkContext = new RemoveMarkContext(context, mark)
-          context.battle.removeMark(removeMarkContext)
-          // Add a new mark with reversed stage
-          this.addStatStage(context, statType, -stage)
-        }
-      })
-    })
-  }
-
-  /*
-   * @deprecated Use MarkTransferPhase directly instead of calling this method.
-   * This method is kept for backward compatibility but will be removed in future versions.
-   */
-  public transferMarks(context: SwitchPetContext, ...marks: MarkInstance[]) {
-    // Use MarkTransferPhase
-    const transferPhase = new MarkTransferPhase(context.battle, context, this, marks)
-    transferPhase.initialize()
-    transferPhase.execute()
   }
 
   /**
