@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.2...arcadia-eternity-v2.22.3) (2025-08-26)
+
+
+### ♻️ Code Refactoring
+
+* migrate method to phase system ([a3e673a](https://github.com/arcadia-eternity/arcadia-eternity/commit/a3e673a0963dee725a0294b709fb70395034f441))
+
 ## [2.22.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.1...arcadia-eternity-v2.22.2) (2025-08-24)
 
 
