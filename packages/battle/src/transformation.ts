@@ -2,16 +2,16 @@ import { BattleMessageType, EffectTrigger } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 import { Battle } from './battle'
 import { TransformContext } from './context'
-import { type Prototype, type Instance } from './entity'
-import {
-  PetTransformationStrategy,
-  SkillTransformationStrategy,
-  MarkTransformationStrategy,
-} from './transformationStrategies'
+import type { Effect } from './effect'
+import { type Instance, type Prototype } from './entity'
+import { MarkInstanceImpl, type BaseMark, type MarkInstance } from './mark'
 import { Pet, type Species } from './pet'
 import { SkillInstance, type BaseSkill } from './skill'
-import { type MarkInstance, MarkInstanceImpl, type BaseMark } from './mark'
-import type { Effect } from './effect'
+import {
+  MarkTransformationStrategy,
+  PetTransformationStrategy,
+  SkillTransformationStrategy,
+} from './transformationStrategies'
 
 // 实体类型枚举
 export const enum EntityType {

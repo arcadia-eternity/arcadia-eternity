@@ -4,34 +4,32 @@ import {
   BattlePhase,
   type BattleState,
   BattleStatus,
-  Category,
+  type BattleTeamSelection,
   type DoNothingSelection,
-  EffectTrigger,
   type Events,
   MAX_RAGE,
+  type petId,
+  type playerId,
   type PlayerMessage,
   type PlayerSelection,
   type SwitchPetSelection,
-  type UseSkillSelection,
   type TeamSelectionAction,
-  type BattleTeamSelection,
-  type playerId,
-  type petId,
+  type UseSkillSelection,
 } from '@arcadia-eternity/const'
-import { Battle } from './battle'
-import { DamageContext, SwitchPetContext, UseSkillContext } from './context'
-import { Pet } from './pet'
+import * as jsondiffpatch from 'jsondiffpatch'
+import type { Emitter } from 'mitt'
 import { PlayerAttributeSystem } from './attributeSystem'
+import { Battle } from './battle'
+import { SwitchPetContext, UseSkillContext } from './context'
+import { Pet } from './pet'
 import { SkillPhase } from './phase/skill'
 import { SwitchPetPhase } from './phase/switch'
-import * as jsondiffpatch from 'jsondiffpatch'
 
 export enum AIDecisionTiming {
   IMMEDIATE = 'immediate', // 立即决策（当前行为）
   DELAYED = 'delayed', // 在Promise等待期间决策
   REACTIVE = 'reactive', // 等待对方选择后决策
 }
-import type { Emitter } from 'mitt'
 
 export class Player {
   public emitter?: Emitter<Events>
@@ -388,7 +386,6 @@ export class Player {
     //TODO:触发设定怒气相关事件
     this.currentRage = Math.max(Math.min(value, this.maxRage), 0)
   }
-
 
   public toMessage(viewerId?: string, showHidden = false): PlayerMessage {
     const teamAlives = this.effectiveTeam.filter(p => p.isAlive).length

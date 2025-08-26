@@ -6,35 +6,33 @@ import {
   BattlePhase,
   type BattleState,
   BattleStatus,
+  type BattleTeamSelection,
   EffectTrigger,
   type Events,
-  type PlayerSelection,
-  type BattleTeamSelection,
   type petId,
   type playerId,
+  type PlayerSelection,
   type skillId,
   type TimerConfig,
 } from '@arcadia-eternity/const'
+import * as jsondiffpatch from 'jsondiffpatch'
+import mitt from 'mitt'
+import { nanoid } from 'nanoid'
 import Prando from 'prando'
+import { AttributeSystem } from './attributeSystem'
 import { ConfigSystem } from './config'
-import { AddMarkContext, Context, RemoveMarkContext, type TriggerContextMap } from './context'
+import { Context, type TriggerContextMap } from './context'
 import { type EffectContainer } from './effect'
 import { type MarkOwner } from './entity'
+import { createChildLogger } from './logger'
 import { type MarkInstance } from './mark'
 import { Pet } from './pet'
-import { Player, AIPlayer } from './player'
-import { SkillInstance } from './skill'
-import { AttributeSystem } from './attributeSystem'
-import * as jsondiffpatch from 'jsondiffpatch'
-import { nanoid } from 'nanoid'
-import mitt from 'mitt'
-import { PhaseManager, BattleStartPhase, BattleLoopPhase, TeamSelectionPhase } from './phase'
+import { BattleLoopPhase, BattleStartPhase, PhaseManager, TeamSelectionPhase } from './phase'
 import { EffectExecutionPhase } from './phase/effectExecution'
-import { RemoveMarkPhase } from './phase/RemoveMarkPhase'
-import { AddMarkPhase } from './phase/AddMarkPhase'
+import { AIPlayer, Player } from './player'
+import { SkillInstance } from './skill'
 import { TimerManager } from './timer'
 import { TransformationSystem } from './transformation'
-import { createChildLogger } from './logger'
 
 export class Battle extends Context implements MarkOwner {
   private lastStateMessage: BattleState = {} as BattleState
