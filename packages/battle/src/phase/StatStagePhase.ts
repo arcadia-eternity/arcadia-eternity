@@ -2,7 +2,7 @@ import { EffectTrigger, CleanStageStrategy, StatTypeWithoutHp } from '@arcadia-e
 import type { Battle } from '../battle'
 import { EffectContext } from '../context'
 import type { MarkOwner } from '../entity'
-import { CreateStatStageMark } from '../mark'
+import { CreateStatStageMark, StatLevelMarkInstanceImpl } from '../mark'
 import { SynchronousPhase } from './base'
 import { AddMarkPhase } from './AddMarkPhase'
 import { RemoveMarkPhase } from './RemoveMarkPhase'
@@ -80,7 +80,7 @@ export class StatStagePhase extends SynchronousPhase<EffectContext<EffectTrigger
     this.statTypes.forEach(statType => {
       // Find all stat stage marks for this stat type
       const statStageMarks = this.target.marks.filter(
-        mark => mark.config.isStatStageMark && mark.config.statType === statType,
+        mark => mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType,
       )
 
       statStageMarks.forEach(mark => {
@@ -120,7 +120,7 @@ export class StatStagePhase extends SynchronousPhase<EffectContext<EffectTrigger
     statTypes.forEach(statType => {
       // Find all stat stage marks for this stat type
       const statStageMarks = this.target.marks.filter(
-        mark => mark.config.isStatStageMark && mark.config.statType === statType,
+        mark => mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType,
       )
 
       statStageMarks.forEach(mark => {
@@ -155,7 +155,7 @@ export class StatStagePhase extends SynchronousPhase<EffectContext<EffectTrigger
     statTypes.forEach(statType => {
       // Find all stat stage marks for this stat type
       const statStageMarks = this.target.marks.filter(
-        mark => mark.config.isStatStageMark && mark.config.statType === statType,
+        mark => mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType,
       )
 
       statStageMarks.forEach(mark => {
