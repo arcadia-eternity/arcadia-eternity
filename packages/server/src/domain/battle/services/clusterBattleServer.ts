@@ -21,7 +21,7 @@ import type { ClusterStateManager } from '../../../cluster/core/clusterStateMana
 import type { SocketClusterAdapter } from '../../../cluster/communication/socketClusterAdapter'
 import type { DistributedLockManager } from '../../../cluster/redis/distributedLock'
 import type { PerformanceTracker } from '../../../cluster/monitoring/performanceTracker'
-import type { RoomState, MatchmakingEntry, PlayerConnection, ServiceInstance } from '../../../cluster/types'
+import type { RoomState, MatchmakingEntry, PlayerConnection, ServiceInstance, RedisDisconnectedPlayerInfo } from '../../../cluster/types'
 import { REDIS_KEYS } from '../../../cluster/types'
 import { BattleRpcServer } from '../../../cluster/communication/rpc/battleRpcServer'
 import { BattleRpcClient } from '../../../cluster/communication/rpc/battleRpcClient'
@@ -1618,6 +1618,10 @@ export class ClusterBattleServer {
             playerId,
             data,
           )
+
+        case 'cleanupDisconnectedPlayer':
+          await this.battleService.removeDisconnectedPlayer(`${data.playerId}:${data.sessionId}`)
+          return { success: true }
 
         case 'getAllPlayerTimerStates':
           return await this.rpcClient.getAllPlayerTimerStates(
@@ -3486,15 +3490,15 @@ export class ClusterBattleServer {
     // 暂停战斗计时器
     await this.battleService.pauseBattleForDisconnect(roomId, playerId)
 
-    // 设置宽限期计时器
+    // 设置宽限期计时器并存储引用
     const graceTimer = setTimeout(async () => {
       logger.warn({ playerId, sessionId, roomId }, '掉线宽限期结束，判定为放弃战斗')
       await this.handlePlayerAbandon(roomId, playerId, sessionId)
-      this.battleService.removeDisconnectedPlayer(`${playerId}:${sessionId}`)
+      await this.battleService.removeDisconnectedPlayer(`${playerId}:${sessionId}`)
     }, this.DISCONNECT_GRACE_PERIOD)
 
-    // 记录掉线信息
-    this.battleService.addDisconnectedPlayer(playerId, sessionId, roomId)
+    // 记录掉线信息并存储计时器引用
+    await this.battleService.addDisconnectedPlayer(playerId, sessionId, roomId, graceTimer)
 
     // 通知对手玩家掉线
     await this.battleService.notifyOpponentDisconnect(roomId, playerId)
@@ -3546,10 +3550,27 @@ export class ClusterBattleServer {
     if (disconnectInfo) {
       logger.info({ playerId, sessionId, roomId: disconnectInfo.roomId }, '玩家掉线重连成功')
       clearTimeout(disconnectInfo.graceTimer)
-      this.battleService.removeDisconnectedPlayer(disconnectKey)
+      await this.battleService.removeDisconnectedPlayer(disconnectKey)
 
       await this.resumeBattle(socket, disconnectInfo.roomId)
       return { isReconnect: true, roomId: disconnectInfo.roomId }
+    }
+
+    // 检查Redis集群中是否有断线玩家信息（跨实例重连）
+    const redisDisconnectInfo = await this.getRedisDisconnectedPlayer(playerId, sessionId)
+    if (redisDisconnectInfo) {
+      logger.info({ playerId, sessionId, roomId: redisDisconnectInfo.roomId, instanceId: redisDisconnectInfo.instanceId }, '玩家跨实例重连成功')
+      
+      // 通知原实例清理断线信息
+      if (redisDisconnectInfo.instanceId !== this.instanceId) {
+        await this.notifyInstanceCleanupDisconnect(redisDisconnectInfo.instanceId, playerId, sessionId)
+      }
+      
+      // 清理Redis中的断线信息
+      await this.cleanupRedisDisconnectedPlayer(playerId, sessionId)
+      
+      await this.resumeBattle(socket, redisDisconnectInfo.roomId)
+      return { isReconnect: true, roomId: redisDisconnectInfo.roomId }
     }
 
     // 处理玩家主动重连（如刷新页面）
@@ -3670,6 +3691,51 @@ export class ClusterBattleServer {
    */
   private getDisconnectedPlayer(key: string) {
     return this.battleService.getDisconnectedPlayer(key)
+  }
+
+  /**
+   * 从Redis获取断线玩家信息
+   */
+  private async getRedisDisconnectedPlayer(playerId: string, sessionId: string): Promise<RedisDisconnectedPlayerInfo | null> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      const redisKey = REDIS_KEYS.DISCONNECTED_PLAYER(playerId, sessionId)
+      const playerInfoStr = await client.get(redisKey)
+      
+      if (playerInfoStr) {
+        return JSON.parse(playerInfoStr)
+      }
+      return null
+    } catch (error) {
+      logger.warn({ error, playerId, sessionId }, '获取Redis断线玩家信息失败')
+      return null
+    }
+  }
+
+  /**
+   * 清理Redis中的断线玩家信息
+   */
+  private async cleanupRedisDisconnectedPlayer(playerId: string, sessionId: string): Promise<void> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      const redisKey = REDIS_KEYS.DISCONNECTED_PLAYER(playerId, sessionId)
+      
+      await client.del(redisKey)
+      await client.srem(REDIS_KEYS.DISCONNECTED_PLAYERS, redisKey)
+    } catch (error) {
+      logger.warn({ error, playerId, sessionId }, '清理Redis断线玩家信息失败')
+    }
+  }
+
+  /**
+   * 通知实例清理断线玩家信息
+   */
+  private async notifyInstanceCleanupDisconnect(instanceId: string, playerId: string, sessionId: string): Promise<void> {
+    try {
+      await this.forwardPlayerAction(instanceId, 'cleanupDisconnectedPlayer', playerId, { playerId, sessionId })
+    } catch (error) {
+      logger.warn({ error, instanceId, playerId, sessionId }, '通知实例清理断线玩家信息失败')
+    }
   }
 
   // 断线玩家管理方法已移动到 clusterBattleService，直接调用即可
