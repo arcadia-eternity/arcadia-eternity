@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.10](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.9...arcadia-eternity-v2.22.10) (2025-08-27)
+
+
+### 🐛 Bug Fixes
+
+* add battleEvent logs ([ff6f0b1](https://github.com/arcadia-eternity/arcadia-eternity/commit/ff6f0b1022f560a7330fd2747b18b3af1777aaa3))
+
 ## [2.22.9](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.8...arcadia-eternity-v2.22.9) (2025-08-27)
 
 
