@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.8](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.7...arcadia-eternity-v2.22.8) (2025-08-27)
+
+
+### 🐛 Bug Fixes
+
+* teamSelector ([c8fefb0](https://github.com/arcadia-eternity/arcadia-eternity/commit/c8fefb0e25fa143a3e840e940a5c2aa516472b89))
+
 ## [2.22.7](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.6...arcadia-eternity-v2.22.7) (2025-08-27)
 
 
