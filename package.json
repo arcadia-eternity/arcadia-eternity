@@ -1,7 +1,7 @@
 {
   "name": "arcadia-eternity",
   "private": true,
-  "version": "2.22.6",
+  "version": "2.22.7",
   "type": "module",
   "repository": {
     "type": "git",
