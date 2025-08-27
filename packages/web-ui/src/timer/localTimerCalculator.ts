@@ -38,6 +38,12 @@ export class LocalTimerCalculator {
       return null
     }
 
+    // 检查config是否存在，如果不存在则返回null避免错误
+    if (!snapshot.config) {
+      console.warn(`Timer snapshot for player ${playerId} has missing config, skipping`)
+      return null
+    }
+
     // 如果Timer未启用，直接返回快照
     if (!snapshot.config.enabled) {
       return snapshot
@@ -51,12 +57,20 @@ export class LocalTimerCalculator {
    * 获取所有玩家的实时Timer状态
    */
   public getAllPlayerTimerStates(): TimerSnapshot[] {
-    return Array.from(this.snapshots.values()).map(snapshot => {
-      if (!snapshot.config.enabled) {
-        return snapshot
-      }
-      return this.calculateRealTimeState(snapshot)
-    })
+    return Array.from(this.snapshots.values())
+      .filter(snapshot => {
+        if (!snapshot.config) {
+          console.warn(`Timer snapshot for player ${snapshot.playerId} has missing config, filtering out`)
+          return false
+        }
+        return true
+      })
+      .map(snapshot => {
+        if (!snapshot.config.enabled) {
+          return snapshot
+        }
+        return this.calculateRealTimeState(snapshot)
+      })
   }
 
   /**
@@ -188,7 +202,7 @@ export class LocalTimerCalculator {
    */
   public hasActiveTimers(): boolean {
     return Array.from(this.snapshots.values()).some(
-      snapshot => snapshot.config.enabled && snapshot.state === TimerState.Running
+      snapshot => snapshot.config && snapshot.config.enabled && snapshot.state === TimerState.Running
     )
   }
 
