@@ -67,7 +67,7 @@ export class BattleClient {
     battle: 'idle',
   }
   private options: Required<Omit<BattleClientOptions, 'auth'>> & { auth?: BattleClientOptions['auth'] }
-  
+
   // 专门的状态变化监听器
   private stateChangeListeners = new Set<(state: ClientState) => void>()
 
@@ -1006,10 +1006,20 @@ export class BattleClient {
 
     // 处理单个战斗事件 - 通过eventHandlers管理系统处理
     this.socket.on('battleEvent', message => {
+      console.log(
+        '🎮 Client received battleEvent:',
+        message.type,
+        'handlers count:',
+        this.eventHandlers.get('battleEvent')?.size || 0,
+      )
+
       // 触发battleEvent处理器
       const handlers = this.eventHandlers.get('battleEvent')
       if (handlers) {
+        console.log('🎮 Calling', handlers.size, 'battleEvent handlers')
         handlers.forEach(handler => handler(message))
+      } else {
+        console.warn('🎮 No battleEvent handlers registered!')
       }
 
       // 检查是否有战斗结束消息
@@ -1025,7 +1035,10 @@ export class BattleClient {
         // 触发单个battleEvent处理器
         const handlers = this.eventHandlers.get('battleEvent')
         if (handlers) {
+          console.log('🎮 Calling', handlers.size, 'battleEvent handlers')
           handlers.forEach(handler => handler(message))
+        } else {
+          console.warn('🎮 No battleEventBatch handlers registered!')
         }
 
         // 检查是否有战斗结束消息
