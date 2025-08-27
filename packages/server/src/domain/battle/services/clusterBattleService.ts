@@ -38,6 +38,7 @@ import { PlayerParser } from '@arcadia-eternity/parser'
 import { nanoid } from 'nanoid'
 import { LOCK_KEYS } from '../../../cluster/redis/distributedLock'
 import type { SessionStateManager } from 'src/domain/session/sessionStateManager'
+import { TTLHelper } from '../../../cluster/config/ttlConfig'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -66,16 +67,21 @@ type DisconnectedPlayerInfo = {
   graceTimer: ReturnType<typeof setTimeout>
 }
 
-
 @injectable()
 export class ClusterBattleService implements IBattleService {
-  private readonly DISCONNECT_GRACE_PERIOD = 60000 // 60秒掉线宽限期
+  // 使用 TTL 配置管理断线宽限期，完全依赖 Redis TTL
+  private get DISCONNECT_GRACE_PERIOD(): number {
+    return TTLHelper.getTTLForDataType('disconnect', 'gracePeriod')
+  }
 
   // 本地Battle实例管理
   private readonly localBattles = new Map<string, Battle>() // roomId -> Battle
   private readonly localRooms = new Map<string, LocalRoomData>() // roomId -> room data
   private readonly disconnectedPlayers = new Map<string, DisconnectedPlayerInfo>() // 掉线玩家管理
   private readonly localSpectators = new Map<string, Set<{ playerId: string; sessionId: string }>>() // roomId -> Set of spectators
+
+  // TTL 过期监听器状态
+  private ttlExpirationListenerSetup = false
 
   // Timer事件批处理系统
   private readonly timerEventBatcher: TimerEventBatcher
@@ -600,40 +606,58 @@ export class ClusterBattleService implements IBattleService {
   }
 
   /**
-   * 添加断线玩家信息
+   * 添加断线玩家信息 - 完全依赖 Redis TTL 管理
    */
-  async addDisconnectedPlayer(playerId: string, sessionId: string, roomId: string, graceTimer?: ReturnType<typeof setTimeout>): Promise<void> {
+  async addDisconnectedPlayer(
+    playerId: string,
+    sessionId: string,
+    roomId: string,
+    graceTimer?: ReturnType<typeof setTimeout>,
+  ): Promise<void> {
     const key = `${playerId}:${sessionId}`
     const disconnectTime = Date.now()
-    const expiresAt = disconnectTime + this.DISCONNECT_GRACE_PERIOD
-    
-    // 本地存储
-    const info: DisconnectedPlayerInfo = {
-      playerId,
-      sessionId,
-      roomId,
-      disconnectTime,
-      graceTimer: graceTimer || setTimeout(() => {
-        this.removeDisconnectedPlayer(key)
-      }, this.DISCONNECT_GRACE_PERIOD),
-    }
-    this.disconnectedPlayers.set(key, info)
-    
-    // Redis集群存储
+    const gracePeriodTTL = this.DISCONNECT_GRACE_PERIOD
+    const expiresAt = disconnectTime + gracePeriodTTL
+
+    // Redis集群存储 - 使用 TTL 自动过期
     const redisInfo = {
       playerId,
       sessionId,
       roomId,
       disconnectTime,
       instanceId: this.instanceId,
-      expiresAt
+      expiresAt,
     }
-    
+
     const client = this.stateManager.redisManager.getClient()
     const redisKey = REDIS_KEYS.DISCONNECTED_PLAYER(playerId, sessionId)
-    
-    await client.set(redisKey, JSON.stringify(redisInfo), 'PX', this.DISCONNECT_GRACE_PERIOD)
+
+    // 使用 Redis TTL 自动管理过期，不再使用本地定时器
+    await client.set(redisKey, JSON.stringify(redisInfo), 'PX', gracePeriodTTL)
     await client.sadd(REDIS_KEYS.DISCONNECTED_PLAYERS, redisKey)
+
+    // 设置 Redis 键空间通知监听器来处理过期事件
+    await this.setupTTLExpirationListener()
+
+    // 本地存储仅用于快速查询，不使用本地定时器
+    const info: DisconnectedPlayerInfo = {
+      playerId,
+      sessionId,
+      roomId,
+      disconnectTime,
+      graceTimer:
+        graceTimer ||
+        setTimeout(() => {
+          // 这个定时器现在仅作为备份，主要依赖 Redis TTL
+          this.checkAndHandleExpiredPlayer(key)
+        }, gracePeriodTTL),
+    }
+    this.disconnectedPlayers.set(key, info)
+
+    logger.info(
+      { playerId, sessionId, roomId, gracePeriodTTL, expiresAt },
+      '断线玩家信息已添加，依赖 Redis TTL 自动过期',
+    )
   }
 
   /**
@@ -645,12 +669,12 @@ export class ClusterBattleService implements IBattleService {
       clearTimeout(info.graceTimer)
     }
     this.disconnectedPlayers.delete(key)
-    
+
     // 从Redis集群中移除
     const [playerId, sessionId] = key.split(':')
     const client = this.stateManager.redisManager.getClient()
     const redisKey = REDIS_KEYS.DISCONNECTED_PLAYER(playerId, sessionId)
-    
+
     await client.del(redisKey)
     await client.srem(REDIS_KEYS.DISCONNECTED_PLAYERS, redisKey)
   }
@@ -665,11 +689,11 @@ export class ClusterBattleService implements IBattleService {
       }
     }
     this.disconnectedPlayers.clear()
-    
+
     // 清理Redis中本实例相关的断线玩家
     const client = this.stateManager.redisManager.getClient()
     const disconnectedKeys = await client.smembers(REDIS_KEYS.DISCONNECTED_PLAYERS)
-    
+
     for (const redisKey of disconnectedKeys) {
       const playerInfoStr = await client.get(redisKey)
       if (playerInfoStr) {
@@ -679,6 +703,216 @@ export class ClusterBattleService implements IBattleService {
           await client.srem(REDIS_KEYS.DISCONNECTED_PLAYERS, redisKey)
         }
       }
+    }
+  }
+
+  /**
+   * 设置 TTL 过期监听器 - 监听 Redis 键过期事件
+   */
+  private async setupTTLExpirationListener(): Promise<void> {
+    if (this.ttlExpirationListenerSetup) {
+      return
+    }
+
+    try {
+      // 创建专门用于监听的 Redis 连接
+      const subscriber = this.stateManager.redisManager.getSubscriber()
+
+      // 启用 keyspace notifications for expired events
+      // 注意：这需要 Redis 配置 notify-keyspace-events 包含 'Ex'
+      const expiredKeyPattern = '__keyevent@*__:expired'
+
+      subscriber.psubscribe(expiredKeyPattern, (err, count) => {
+        if (err) {
+          logger.error({ error: err }, 'Failed to subscribe to Redis key expiration events')
+        } else {
+          logger.info(
+            { subscriptionCount: count },
+            'Subscribed to Redis key expiration events for TTL-based disconnect management',
+          )
+        }
+      })
+
+      subscriber.on('pmessage', async (pattern, channel, expiredKey) => {
+        try {
+          // 检查是否是断线玩家 key 过期
+          if (expiredKey.includes(':disconnected:player:')) {
+            await this.handleDisconnectedPlayerTTLExpired(expiredKey)
+          }
+        } catch (error) {
+          logger.error({ error, pattern, channel, expiredKey }, 'Error processing TTL expiration event')
+        }
+      })
+
+      this.ttlExpirationListenerSetup = true
+      logger.info('TTL expiration listener setup completed for disconnect management')
+    } catch (error) {
+      logger.error({ error }, 'Failed to setup TTL expiration listener')
+    }
+  }
+
+  /**
+   * 处理断线玩家 TTL 过期事件
+   */
+  private async handleDisconnectedPlayerTTLExpired(expiredKey: string): Promise<void> {
+    try {
+      // 从过期的 key 中提取玩家信息
+      // key 格式: arcadia:disconnected:player:playerId:sessionId
+      const keyParts = expiredKey.split(':')
+      if (keyParts.length < 5) {
+        logger.warn({ expiredKey }, 'Invalid disconnected player key format')
+        return
+      }
+
+      const playerId = keyParts[keyParts.length - 2]
+      const sessionId = keyParts[keyParts.length - 1]
+      const playerKey = `${playerId}:${sessionId}`
+
+      logger.warn({ playerId, sessionId, expiredKey }, 'Disconnected player TTL expired, handling battle abandonment')
+
+      // 检查本地是否有这个断线玩家
+      const localInfo = this.disconnectedPlayers.get(playerKey)
+      if (localInfo) {
+        // 清理本地信息
+        if (localInfo.graceTimer) {
+          clearTimeout(localInfo.graceTimer)
+        }
+        this.disconnectedPlayers.delete(playerKey)
+
+        // 处理战斗放弃逻辑
+        await this.handlePlayerAbandonmentAfterTTLExpiry(localInfo.roomId, playerId, sessionId)
+      } else {
+        // 可能是跨实例的断线玩家，检查 Redis 是否还有相关房间信息
+        await this.handleCrossInstanceDisconnectExpiry(playerId, sessionId)
+      }
+
+      // 清理 Redis 中的相关索引
+      const client = this.stateManager.redisManager.getClient()
+      await client.srem(REDIS_KEYS.DISCONNECTED_PLAYERS, expiredKey)
+    } catch (error) {
+      logger.error({ error, expiredKey }, 'Error handling disconnected player TTL expiration')
+    }
+  }
+
+  /**
+   * 检查并处理过期的玩家（备份机制）
+   */
+  private async checkAndHandleExpiredPlayer(playerKey: string): Promise<void> {
+    try {
+      const [playerId, sessionId] = playerKey.split(':')
+      if (!playerId || !sessionId) {
+        return
+      }
+
+      // 检查 Redis 中的 TTL 状态
+      const client = this.stateManager.redisManager.getClient()
+      const redisKey = REDIS_KEYS.DISCONNECTED_PLAYER(playerId, sessionId)
+      const ttl = await client.pttl(redisKey)
+
+      // 如果 TTL 已过期（-2）或不存在（-1）
+      if (ttl <= 0) {
+        logger.info({ playerId, sessionId, ttl }, 'Player disconnect TTL expired, handling abandonment')
+
+        const localInfo = this.disconnectedPlayers.get(playerKey)
+        if (localInfo) {
+          await this.handlePlayerAbandonmentAfterTTLExpiry(localInfo.roomId, playerId, sessionId)
+          this.disconnectedPlayers.delete(playerKey)
+        }
+      }
+    } catch (error) {
+      logger.error({ error, playerKey }, 'Error checking expired player')
+    }
+  }
+
+  /**
+   * 处理 TTL 过期后的玩家战斗放弃
+   */
+  private async handlePlayerAbandonmentAfterTTLExpiry(
+    roomId: string,
+    playerId: string,
+    sessionId: string,
+  ): Promise<void> {
+    try {
+      logger.warn({ roomId, playerId, sessionId }, 'Handling player abandonment after TTL expiry')
+
+      // 获取房间状态
+      const roomState = await this.stateManager.getRoomState(roomId)
+      if (!roomState || roomState.status !== 'active') {
+        logger.info({ roomId, playerId, sessionId }, 'Room no longer active, skipping abandonment handling')
+        return
+      }
+
+      // 如果房间在当前实例，直接处理
+      if (this.isRoomInCurrentInstance(roomState)) {
+        await this.forceTerminateBattle(roomState, playerId, 'disconnect')
+      } else {
+        // 通知正确的实例处理放弃逻辑
+        await this.notifyInstancePlayerAbandon(roomState.instanceId, roomId, playerId, 'disconnect')
+      }
+
+      logger.info({ roomId, playerId, sessionId }, 'Player abandonment handled after TTL expiry')
+    } catch (error) {
+      logger.error({ error, roomId, playerId, sessionId }, 'Error handling player abandonment after TTL expiry')
+    }
+  }
+
+  /**
+   * 处理跨实例断线过期
+   */
+  private async handleCrossInstanceDisconnectExpiry(playerId: string, sessionId: string): Promise<void> {
+    try {
+      // 通过会话房间映射查找玩家所在的房间
+      const client = this.stateManager.redisManager.getClient()
+      const sessionRoomKey = REDIS_KEYS.SESSION_ROOM_MAPPING(playerId, sessionId)
+      const roomIds = await client.smembers(sessionRoomKey)
+
+      for (const roomId of roomIds) {
+        const roomState = await this.stateManager.getRoomState(roomId)
+        if (roomState && roomState.status === 'active') {
+          logger.info(
+            { playerId, sessionId, roomId, roomInstance: roomState.instanceId },
+            'Found active room for expired cross-instance disconnect, notifying instance',
+          )
+          await this.notifyInstancePlayerAbandon(roomState.instanceId, roomId, playerId, 'disconnect_timeout')
+        }
+      }
+    } catch (error) {
+      logger.error({ error, playerId, sessionId }, 'Error handling cross-instance disconnect expiry')
+    }
+  }
+
+  /**
+   * 通知其他实例玩家因超时放弃
+   */
+  private async notifyInstancePlayerAbandon(
+    instanceId: string,
+    roomId: string,
+    playerId: string,
+    reason: string,
+  ): Promise<void> {
+    try {
+      if (instanceId === this.instanceId) {
+        return // 不需要通知自己
+      }
+
+      const publisher = this.stateManager.redisManager.getPublisher()
+      const channel = `instance:${instanceId}:battle-actions`
+
+      await publisher.publish(
+        channel,
+        JSON.stringify({
+          from: this.instanceId,
+          timestamp: Date.now(),
+          action: 'player-abandon',
+          roomId,
+          playerId,
+          reason,
+        }),
+      )
+
+      logger.info({ instanceId, roomId, playerId, reason }, 'Notified instance of player abandonment due to TTL expiry')
+    } catch (error) {
+      logger.error({ error, instanceId, roomId, playerId, reason }, 'Error notifying instance of player abandon')
     }
   }
 

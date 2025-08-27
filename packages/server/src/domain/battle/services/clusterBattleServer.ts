@@ -32,6 +32,7 @@ import { PrivateRoomService } from '../../room/services/privateRoomService'
 import { PrivateRoomHandlers } from '../../room/handlers/privateRoomHandlers'
 import { SessionStateManager } from '../../session/sessionStateManager'
 import { injectable, inject, optional } from 'inversify'
+import { TTLHelper } from '../../../cluster/config/ttlConfig'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -62,7 +63,10 @@ interface SocketData {
 @injectable()
 export class ClusterBattleServer {
   private readonly CLEANUP_INTERVAL = 5 * 60 * 1000
-  private readonly DISCONNECT_GRACE_PERIOD = 60000 // 60秒掉线宽限期
+  // 使用 TTL 配置管理断线宽限期，与 clusterBattleService 保持一致
+  private get DISCONNECT_GRACE_PERIOD(): number {
+    return TTLHelper.getTTLForDataType('disconnect', 'gracePeriod')
+  }
   private readonly HEARTBEAT_INTERVAL = 5000
   private readonly players = new Map<string, PlayerMeta>()
   private battleReportService?: BattleReportService
@@ -3485,23 +3489,22 @@ export class ClusterBattleServer {
   // === 掉线宽限期处理 ===
 
   private async startDisconnectGracePeriod(playerId: string, sessionId: string, roomId: string) {
-    logger.warn({ playerId, sessionId, roomId }, '玩家在战斗中掉线，启动宽限期')
+    logger.warn({ playerId, sessionId, roomId }, '玩家在战斗中掉线，启动基于 TTL 的宽限期')
 
     // 暂停战斗计时器
     await this.battleService.pauseBattleForDisconnect(roomId, playerId)
 
-    // 设置宽限期计时器并存储引用
-    const graceTimer = setTimeout(async () => {
-      logger.warn({ playerId, sessionId, roomId }, '掉线宽限期结束，判定为放弃战斗')
-      await this.handlePlayerAbandon(roomId, playerId, sessionId)
-      await this.battleService.removeDisconnectedPlayer(`${playerId}:${sessionId}`)
-    }, this.DISCONNECT_GRACE_PERIOD)
+    // 使用 TTL-based 断线管理，不再使用本地定时器
+    // battleService 会设置 Redis TTL 并监听过期事件
+    await this.battleService.addDisconnectedPlayer(playerId, sessionId, roomId)
 
-    // 记录掉线信息并存储计时器引用
-    await this.battleService.addDisconnectedPlayer(playerId, sessionId, roomId, graceTimer)
-
-    // 通知对手玩家掉线
+    // 通知对手玩家掉线，包含 TTL 信息
     await this.battleService.notifyOpponentDisconnect(roomId, playerId)
+
+    logger.info(
+      { playerId, sessionId, roomId, gracePeriodTTL: this.DISCONNECT_GRACE_PERIOD },
+      '断线宽限期已启动，依赖 Redis TTL 自动处理超时'
+    )
   }
 
   // pauseBattleForDisconnect 和 notifyOpponentDisconnect 方法已移动到 clusterBattleService
