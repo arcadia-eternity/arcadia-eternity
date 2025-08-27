@@ -1,5 +1,19 @@
 <template>
-  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+  <!-- 加载界面 -->
+  <div v-if="!isInitialized" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <div class="text-center py-8">
+      <div class="mb-4">
+        <el-icon class="animate-spin text-4xl text-blue-500" :size="48">
+          <Loading />
+        </el-icon>
+      </div>
+      <h3 class="text-lg font-medium text-gray-700 mb-2">正在初始化队伍选择器</h3>
+      <p class="text-gray-500">{{ loadingMessage }}</p>
+    </div>
+  </div>
+
+  <!-- 主要内容 -->
+  <div v-else class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
     <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
       <el-icon><User /></el-icon>
       选择队伍
@@ -85,10 +99,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, defineProps, defineEmits } from 'vue'
+import { ref, computed, watch, defineProps, defineEmits, onMounted } from 'vue'
 import { usePetStorageStore } from '@/stores/petStorage'
 import { useValidationStore } from '@/stores/validation'
-import { User, Check, Warning, Edit, Select } from '@element-plus/icons-vue'
+import { useGameDataStore } from '@/stores/gameData'
+import { User, Warning, Edit, Select, Loading } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   selectedRuleSetId: string | null
@@ -99,8 +114,54 @@ const emit = defineEmits(['update:modelValue', 'update:isValid', 'update:validat
 
 const petStorageStore = usePetStorageStore()
 const validationStore = useValidationStore()
+const gameDataStore = useGameDataStore()
 
 const selectedTeamIndex = ref<number>(-1)
+
+// 初始化状态检查
+const isInitialized = computed(() => {
+  // 检查游戏数据是否加载完成
+  if (!gameDataStore.loaded) {
+    return false
+  }
+
+  // 检查petStorage是否已初始化
+  if (!petStorageStore.initialized) {
+    return false
+  }
+
+  // 检查验证系统是否准备就绪
+  if (!validationStore.isInitialized) {
+    return false
+  }
+
+  return true
+})
+
+const loadingMessage = computed(() => {
+  if (!gameDataStore.loaded) {
+    return '正在加载游戏数据...'
+  }
+
+  if (!petStorageStore.initialized) {
+    return '正在加载队伍数据...'
+  }
+
+  if (validationStore.isLoading) {
+    return '正在初始化规则系统...'
+  }
+
+  if (!validationStore.isInitialized) {
+    return '正在初始化规则系统...'
+  }
+
+  return '初始化完成'
+})
+
+// 初始化验证系统
+onMounted(async () => {
+  await validationStore.initialize()
+})
 
 const availableTeams = computed(() => {
   if (!props.selectedRuleSetId) {
@@ -167,11 +228,18 @@ watch(selectedTeam, () => {
 })
 
 const isSelectedTeamCompatible = computed(() => {
-  if (!selectedTeam.value || !props.selectedRuleSetId) return false
+  if (!isInitialized.value || !selectedTeam.value || !props.selectedRuleSetId) return false
   return validationStore.isTeamCompatibleWithRuleSet(selectedTeam.value, props.selectedRuleSetId)
 })
 
 const validateSelectedTeam = async () => {
+  // 只有在初始化完成后才进行验证
+  if (!isInitialized.value) {
+    emit('update:isValid', false)
+    emit('update:validationErrors', [])
+    return
+  }
+
   if (!selectedTeam.value || !props.selectedRuleSetId) {
     emit('update:isValid', false)
     emit('update:validationErrors', [])
@@ -199,6 +267,7 @@ const validateSelectedTeam = async () => {
 }
 
 const getRuleSetName = (ruleSetId: string): string => {
+  if (!isInitialized.value) return ruleSetId
   return validationStore.getRuleSetName(ruleSetId)
 }
 </script>
