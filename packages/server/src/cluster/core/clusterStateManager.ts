@@ -428,18 +428,20 @@ export class ClusterStateManager extends EventEmitter {
       const connection = await this.getPlayerConnectionBySession(playerId, sessionId)
 
       if (connection) {
-        // 更新lastSeen时间戳以确保连接活跃
+        // 更新lastSeen时间戳以确保连接活跃，并将状态重置为connected
         const refreshedConnection: PlayerConnection = {
           ...connection,
           lastSeen: Date.now(),
+          status: 'connected', // 重连时强制将状态重置为connected
           metadata: {
             ...connection.metadata,
             lastRefresh: Date.now(),
+            reconnectedAt: Date.now(),
           },
         }
 
         await this.setPlayerConnection(playerId, refreshedConnection)
-        logger.debug({ playerId, sessionId }, 'Player connection force refreshed')
+        logger.debug({ playerId, sessionId }, 'Player connection force refreshed and status reset to connected')
         return refreshedConnection
       }
 
