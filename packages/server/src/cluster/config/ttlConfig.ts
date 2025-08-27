@@ -54,6 +54,12 @@ export interface TTLConfig {
     activeBattleTTL: number // 活跃战斗 TTL
     completedBattleTTL: number // 已完成战斗 TTL
   }
+
+  // 断线重连相关 TTL
+  disconnect: {
+    gracePeriodTTL: number // 断线宽限期 TTL
+    reconnectWindowTTL: number // 重连窗口 TTL
+  }
 }
 
 /**
@@ -61,7 +67,7 @@ export interface TTLConfig {
  */
 export function getTTLConfig(): TTLConfig {
   const isProduction = process.env.NODE_ENV === 'production'
-  
+
   // 基础时间单位（毫秒）
   const MINUTE = 60 * 1000
   const HOUR = 60 * MINUTE
@@ -129,6 +135,13 @@ export function getTTLConfig(): TTLConfig {
       // 已完成战斗 TTL，用于查看历史
       completedBattleTTL: parseInt(process.env.COMPLETED_BATTLE_TTL || '7') * DAY,
     },
+
+    disconnect: {
+      // 断线宽限期 TTL，玩家断线后的重连窗口
+      gracePeriodTTL: parseInt(process.env.DISCONNECT_GRACE_PERIOD_TTL || '60') * 1000, // 生产环境2分钟，开发环境1分钟
+      // 重连窗口 TTL，用于跨实例重连支持
+      reconnectWindowTTL: parseInt(process.env.RECONNECT_WINDOW_TTL || '60') * 1000, // 生产环境5分钟，开发环境3分钟
+    },
   }
 }
 
@@ -181,43 +194,57 @@ export class TTLHelper {
    */
   static getTTLForDataType(dataType: string, subType?: string): number {
     const config = this.getConfig()
-    
+
     switch (dataType) {
       case 'serviceInstance':
         return subType === 'heartbeat' ? config.serviceInstance.heartbeatTTL : config.serviceInstance.instanceDataTTL
-      
+
       case 'playerConnection':
-        return subType === 'index' ? config.playerConnection.activePlayerIndexTTL : config.playerConnection.sessionConnectionTTL
-      
+        return subType === 'index'
+          ? config.playerConnection.activePlayerIndexTTL
+          : config.playerConnection.sessionConnectionTTL
+
       case 'session':
         return subType === 'index' ? config.session.sessionIndexTTL : config.session.sessionDataTTL
-      
+
       case 'room':
         switch (subType) {
-          case 'waiting': return config.room.waitingRoomTTL
-          case 'active': return config.room.activeRoomTTL
-          case 'ended': return config.room.endedRoomTTL
-          case 'index': return config.room.roomIndexTTL
-          default: return config.room.activeRoomTTL
+          case 'waiting':
+            return config.room.waitingRoomTTL
+          case 'active':
+            return config.room.activeRoomTTL
+          case 'ended':
+            return config.room.endedRoomTTL
+          case 'index':
+            return config.room.roomIndexTTL
+          default:
+            return config.room.activeRoomTTL
         }
-      
+
       case 'matchmaking':
         return subType === 'index' ? config.matchmaking.queueIndexTTL : config.matchmaking.queueEntryTTL
-      
+
       case 'auth':
         return config.auth.blacklistTTL
-      
+
       case 'lock':
         switch (subType) {
-          case 'matchmaking': return config.lock.matchmakingLockTTL
-          case 'room': return config.lock.roomActionLockTTL
-          case 'player': return config.lock.playerActionLockTTL
-          default: return config.lock.defaultLockTTL
+          case 'matchmaking':
+            return config.lock.matchmakingLockTTL
+          case 'room':
+            return config.lock.roomActionLockTTL
+          case 'player':
+            return config.lock.playerActionLockTTL
+          default:
+            return config.lock.defaultLockTTL
         }
-      
+
       case 'battleReport':
         return subType === 'completed' ? config.battleReport.completedBattleTTL : config.battleReport.activeBattleTTL
-      
+
+      case 'disconnect':
+        return subType === 'window' ? config.disconnect.reconnectWindowTTL : config.disconnect.gracePeriodTTL
+
       default:
         return config.lock.defaultLockTTL // 默认使用锁的 TTL
     }
@@ -229,7 +256,7 @@ export class TTLHelper {
   static getDynamicTTL(dataType: string, status: string, baseTime?: number): number {
     const config = this.getConfig()
     const now = Date.now()
-    
+
     switch (dataType) {
       case 'room':
         switch (status) {
@@ -245,7 +272,7 @@ export class TTLHelper {
           default:
             return config.room.activeRoomTTL
         }
-      
+
       case 'battle':
         switch (status) {
           case 'active':
@@ -256,7 +283,7 @@ export class TTLHelper {
           default:
             return config.battleReport.activeBattleTTL
         }
-      
+
       default:
         return this.getTTLForDataType(dataType)
     }

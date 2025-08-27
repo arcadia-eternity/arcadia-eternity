@@ -16,6 +16,7 @@ import type {
 import { REDIS_KEYS, ClusterError } from '../types'
 import { dedupRedisCall } from '../redis/redisCallDeduplicator'
 import { TTLHelper } from '../config/ttlConfig'
+import { RedisKeyspaceConfig } from '../config/redisKeyspaceConfig'
 import { RuleBasedQueueManager } from '../../domain/battle/services/ruleBasedQueueManager'
 import type { InstancePerformanceData } from '../monitoring/performanceTracker'
 
@@ -74,6 +75,9 @@ export class ClusterStateManager extends EventEmitter {
     try {
       logger.info({ instanceId: this.currentInstance.id }, 'Initializing cluster state manager')
 
+      // 配置 Redis 键空间通知以支持 TTL 过期事件（用于断线管理）
+      await this.initializeRedisKeyspaceNotifications()
+
       // 注册当前实例
       await this.registerInstance()
 
@@ -97,6 +101,44 @@ export class ClusterStateManager extends EventEmitter {
     } catch (error) {
       logger.error({ error }, 'Failed to initialize cluster state manager')
       throw error
+    }
+  }
+
+  /**
+   * 初始化 Redis 键空间通知配置
+   * 用于支持基于 TTL 的断线管理
+   */
+  private async initializeRedisKeyspaceNotifications(): Promise<void> {
+    try {
+      logger.info('Initializing Redis keyspace notifications for TTL-based disconnect management')
+
+      const client = this.redisManager.getClient()
+      const subscriber = this.redisManager.getSubscriber()
+
+      // 启用键空间通知
+      await RedisKeyspaceConfig.enableKeyspaceNotifications(client)
+
+      // 可选：应用推荐的 Redis 配置
+      if (process.env.APPLY_REDIS_OPTIMIZATIONS === 'true') {
+        await RedisKeyspaceConfig.applyRecommendedConfig(client)
+      }
+
+      // 可选：测试 TTL 过期事件（仅在开发环境）
+      if (process.env.NODE_ENV !== 'production') {
+        const testResult = await RedisKeyspaceConfig.testTTLExpiration(client, subscriber)
+        if (testResult) {
+          logger.info('Redis TTL expiration events verified successfully')
+        } else {
+          logger.warn('Redis TTL expiration test failed - disconnect management may not work properly')
+        }
+      }
+
+      logger.info('Redis keyspace notifications initialized for TTL-based disconnect management')
+    } catch (error) {
+      logger.error({ error }, 'Failed to initialize Redis keyspace notifications')
+      
+      // 不抛出错误，允许系统继续运行，但记录警告
+      logger.warn('TTL-based disconnect management may not work properly without keyspace notifications')
     }
   }
 
