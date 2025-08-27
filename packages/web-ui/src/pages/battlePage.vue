@@ -174,6 +174,10 @@ const opponentDisconnected = ref(false)
 const disconnectGraceTime = ref(0)
 const disconnectTimer = ref<number | null>(null)
 
+// 自己掉线状态
+const selfDisconnected = ref(false)
+const reconnecting = ref(false)
+
 // 自定义确认对话框方法
 const showCustomConfirmDialog = (title: string, message: string): Promise<boolean> => {
   return new Promise(resolve => {
@@ -890,6 +894,33 @@ const cleanupDisconnectHandlers = () => {
   }
   console.log('🔄 Disconnect handlers cleaned up')
 }
+
+// 监听自己的连接状态变化
+watch(
+  () => battleClientStore.currentState.status,
+  (newStatus, oldStatus) => {
+    if (props.replayMode || isSpectatorMode.value) return // 回放模式和观战模式不需要处理掉线
+    
+    console.log('🔗 Connection status changed:', { old: oldStatus, new: newStatus })
+    
+    if (newStatus === 'disconnected' && oldStatus === 'connected') {
+      // 从连接状态变为断线状态
+      selfDisconnected.value = true
+      reconnecting.value = false
+      console.log('🔗 Self disconnected detected')
+    } else if (newStatus === 'connecting' && oldStatus === 'disconnected') {
+      // 开始重连
+      reconnecting.value = true
+      console.log('🔗 Reconnecting...')
+    } else if (newStatus === 'connected' && (oldStatus === 'disconnected' || oldStatus === 'connecting')) {
+      // 重连成功
+      selfDisconnected.value = false
+      reconnecting.value = false
+      console.log('🔗 Reconnected successfully')
+    }
+  },
+  { immediate: true }
+)
 
 const battleResult = computed(() => {
   if (!store.isBattleEnd) return ''
@@ -2813,6 +2844,23 @@ watch(
                 <span>
                   对手已掉线，等待重连中...
                   <span v-if="disconnectGraceTime > 0" class="text-orange-200"> ({{ disconnectGraceTime }}秒) </span>
+                </span>
+              </div>
+            </Transition>
+
+            <!-- 自己掉线提示 -->
+            <Transition name="fade">
+              <div
+                v-if="selfDisconnected && !isReplayMode && !isSpectatorMode"
+                class="flex items-center justify-center gap-2 text-red-300 text-lg font-medium bg-red-900/30 px-4 py-2 rounded-lg border border-red-500/50"
+              >
+                <!-- 警告图标 -->
+                <div class="w-5 h-5 text-red-400">🔌</div>
+                <span v-if="reconnecting">
+                  连接已断开，正在重连中...
+                </span>
+                <span v-else>
+                  连接已断开，请检查网络连接
                 </span>
               </div>
             </Transition>
