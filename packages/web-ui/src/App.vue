@@ -462,11 +462,27 @@ const setupBattleReconnectHandler = () => {
     try {
       if (data.fullBattleState) {
         if (router.currentRoute.value.path === '/battle') {
-          const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
-          await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState)
+          // 如果已经在战斗页面，复用现有的battleInterface或创建新的
+          if (battleStore.battleInterface) {
+            // 复用现有接口，只更新状态
+            battleStore.battleState = data.fullBattleState
+            battleStore.lastProcessedSequenceId = data.fullBattleState?.sequenceId ?? -1
+          } else {
+            // 没有现有接口，创建新的
+            const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
+            await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState)
+          }
         } else {
-          const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
-          await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState)
+          // 不在战斗页面，检查是否有现有的battle接口
+          if (battleStore.battleInterface) {
+            // 复用现有接口，只更新状态
+            battleStore.battleState = data.fullBattleState
+            battleStore.lastProcessedSequenceId = data.fullBattleState?.sequenceId ?? -1
+          } else {
+            // 没有现有接口，创建新的
+            const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
+            await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState)
+          }
           await router.push('/battle')
         }
       } else {
