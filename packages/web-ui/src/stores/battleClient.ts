@@ -42,14 +42,11 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   const _instance = ref<BattleClient | null>(null)
   const _pendingEventHandlers = ref(new Map<string, Set<(...args: any[]) => void>>())
   const isInitialized = ref(false)
-  const _stateUpdateTrigger = ref(0) // 用于强制触发响应式更新
 
   // 计算属性
   const currentState = computed(() => {
     // 依赖触发器确保响应式更新
-    _stateUpdateTrigger.value
     const state = _instance.value?.currentState || { status: 'disconnected', matchmaking: 'idle', battle: 'idle' }
-    console.log('🔍 battleClientStore currentState computed:', state, 'trigger:', _stateUpdateTrigger.value)
     return state
   })
 
@@ -144,9 +141,6 @@ export const useBattleClientStore = defineStore('battleClient', () => {
             }
 
             console.log('🔄 Current state after update:', _instance.value?.currentState)
-
-            // 触发状态更新
-            _stateUpdateTrigger.value++
 
             // 触发全局事件，让 App.vue 处理路由跳转
             // 传递完整的战斗状态数据，避免额外的 getState 调用

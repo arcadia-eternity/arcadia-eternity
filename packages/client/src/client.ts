@@ -1120,9 +1120,6 @@ export class BattleClient {
       new: this.state,
       changes: partialState,
     })
-
-    // 触发状态变化事件，确保Vue响应式系统能够检测到变化
-    this.eventHandlers.get('stateChange')?.forEach(handler => handler(this.state))
   }
 
   private verifyConnection() {
