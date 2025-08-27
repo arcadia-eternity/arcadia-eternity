@@ -1,5 +1,5 @@
 {
-  ".": "2.22.13",
+  ".": "2.22.14",
   "packages/web-ui": "0.0.0",
   "packages/web-ui/src-tauri": "0.1.0"
 }
