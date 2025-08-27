@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.14](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.13...arcadia-eternity-v2.22.14) (2025-08-27)
+
+
+### 🐛 Bug Fixes
+
+* types ([7817ae0](https://github.com/arcadia-eternity/arcadia-eternity/commit/7817ae0a03ec0d0dee52aaf3b4beea89b773f467))
+
 ## [2.22.13](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.12...arcadia-eternity-v2.22.13) (2025-08-27)
 
 
