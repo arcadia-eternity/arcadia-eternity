@@ -43,9 +43,14 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   const _pendingEventHandlers = ref(new Map<string, Set<(...args: any[]) => void>>())
   const isInitialized = ref(false)
 
+  // 响应式状态触发器
+  const _stateUpdateTrigger = ref(0)
+
   // 计算属性
   const currentState = computed(() => {
     // 依赖触发器确保响应式更新
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    _stateUpdateTrigger.value // 触发依赖追踪
     const state = _instance.value?.currentState || { status: 'disconnected', matchmaking: 'idle', battle: 'idle' }
     return state
   })
@@ -117,8 +122,15 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     _instance.value = createBattleClient()
     isInitialized.value = true
 
-    // 设置状态变化监听器
-    // 注意：这里可能需要根据你修改的 client 接口来调整
+    // 设置状态变化监听器 - 当底层client状态变化时触发Vue响应式更新
+    const stateUpdateHandler = (state: { status: string; matchmaking: string; battle: string; roomId?: string; opponent?: { id: string; name: string } }) => {
+      _stateUpdateTrigger.value++
+      console.log('🔄 BattleClient state updated, triggering Vue reactivity:', state)
+    }
+
+    // 使用专门的状态变化监听器
+    _instance.value.onStateChange(stateUpdateHandler)
+
     console.log('🔄 BattleClient initialized, state change monitoring active')
 
     // 设置战斗重连监听器（用于页面刷新后自动跳转）
