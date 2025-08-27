@@ -73,7 +73,12 @@ export interface IBattleService {
   isRoomInCurrentInstance(roomState: RoomState): boolean
   getAllLocalRooms(): Map<string, any>
   getLocalRoom(roomId: string): any
-  addDisconnectedPlayer(playerId: string, sessionId: string, roomId: string): void
+  addDisconnectedPlayer(
+    playerId: string,
+    sessionId: string,
+    roomId: string,
+    graceTimer?: ReturnType<typeof setTimeout>,
+  ): void
   getDisconnectedPlayer(key: string): any
   removeDisconnectedPlayer(key: string): void
   clearAllDisconnectedPlayers(): void

@@ -209,6 +209,20 @@ export const REDIS_KEYS = {
   CLUSTER_EVENTS: 'cluster:events',
   BATTLE_CONTROL_CHANNEL: 'battle-control', // 新增：战斗控制频道
 
+  // 断线玩家宽限期管理
+  DISCONNECTED_PLAYER: (playerId: string, sessionId: string) => `disconnected:player:${playerId}:${sessionId}`, // 断线玩家信息
+  DISCONNECTED_PLAYERS: 'disconnected:players', // 所有断线玩家索引
+}
+
+export type RedisDisconnectedPlayerInfo = {
+  playerId: string
+  sessionId: string
+  roomId: string
+  disconnectTime: number
+  instanceId: string
+  expiresAt: number
+}
+
   // 统计信息
   STATS: 'cluster:stats',
 

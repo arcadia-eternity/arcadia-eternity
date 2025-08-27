@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.13](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.12...arcadia-eternity-v2.22.13) (2025-08-27)
+
+
+### 🐛 Bug Fixes
+
+* DisconnectedPlayer ([95be745](https://github.com/arcadia-eternity/arcadia-eternity/commit/95be74514c04d3e0ff4f7a43158a66a4fce67cf9))
+
 ## [2.22.12](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.11...arcadia-eternity-v2.22.12) (2025-08-27)
 
 

@@ -66,6 +66,7 @@ type DisconnectedPlayerInfo = {
   graceTimer: ReturnType<typeof setTimeout>
 }
 
+
 @injectable()
 export class ClusterBattleService implements IBattleService {
   private readonly DISCONNECT_GRACE_PERIOD = 60000 // 60秒掉线宽限期
@@ -601,41 +602,84 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 添加断线玩家信息
    */
-  addDisconnectedPlayer(playerId: string, sessionId: string, roomId: string): void {
+  async addDisconnectedPlayer(playerId: string, sessionId: string, roomId: string, graceTimer?: ReturnType<typeof setTimeout>): Promise<void> {
     const key = `${playerId}:${sessionId}`
+    const disconnectTime = Date.now()
+    const expiresAt = disconnectTime + this.DISCONNECT_GRACE_PERIOD
+    
+    // 本地存储
     const info: DisconnectedPlayerInfo = {
       playerId,
       sessionId,
       roomId,
-      disconnectTime: Date.now(),
-      graceTimer: setTimeout(() => {
+      disconnectTime,
+      graceTimer: graceTimer || setTimeout(() => {
         this.removeDisconnectedPlayer(key)
       }, this.DISCONNECT_GRACE_PERIOD),
     }
     this.disconnectedPlayers.set(key, info)
+    
+    // Redis集群存储
+    const redisInfo = {
+      playerId,
+      sessionId,
+      roomId,
+      disconnectTime,
+      instanceId: this.instanceId,
+      expiresAt
+    }
+    
+    const client = this.stateManager.redisManager.getClient()
+    const redisKey = REDIS_KEYS.DISCONNECTED_PLAYER(playerId, sessionId)
+    
+    await client.set(redisKey, JSON.stringify(redisInfo), 'PX', this.DISCONNECT_GRACE_PERIOD)
+    await client.sadd(REDIS_KEYS.DISCONNECTED_PLAYERS, redisKey)
   }
 
   /**
    * 移除断线玩家信息
    */
-  removeDisconnectedPlayer(key: string): void {
+  async removeDisconnectedPlayer(key: string): Promise<void> {
     const info = this.disconnectedPlayers.get(key)
     if (info?.graceTimer) {
       clearTimeout(info.graceTimer)
     }
     this.disconnectedPlayers.delete(key)
+    
+    // 从Redis集群中移除
+    const [playerId, sessionId] = key.split(':')
+    const client = this.stateManager.redisManager.getClient()
+    const redisKey = REDIS_KEYS.DISCONNECTED_PLAYER(playerId, sessionId)
+    
+    await client.del(redisKey)
+    await client.srem(REDIS_KEYS.DISCONNECTED_PLAYERS, redisKey)
   }
 
   /**
    * 清理所有断线玩家信息
    */
-  clearAllDisconnectedPlayers(): void {
+  async clearAllDisconnectedPlayers(): Promise<void> {
     for (const [key, info] of this.disconnectedPlayers.entries()) {
       if (info.graceTimer) {
         clearTimeout(info.graceTimer)
       }
     }
     this.disconnectedPlayers.clear()
+    
+    // 清理Redis中本实例相关的断线玩家
+    const client = this.stateManager.redisManager.getClient()
+    const disconnectedKeys = await client.smembers(REDIS_KEYS.DISCONNECTED_PLAYERS)
+    
+    for (const redisKey of disconnectedKeys) {
+      const playerInfoStr = await client.get(redisKey)
+      if (playerInfoStr) {
+        const playerInfo = JSON.parse(playerInfoStr)
+        if (playerInfo.instanceId === this.instanceId) {
+          await client.del(redisKey)
+          await client.srem(REDIS_KEYS.DISCONNECTED_PLAYERS, redisKey)
+        }
+      }
+    }
   }
 
   /**
