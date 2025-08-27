@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.9](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.8...arcadia-eternity-v2.22.9) (2025-08-27)
+
+
+### 🐛 Bug Fixes
+
+* reconnected ([6956aa8](https://github.com/arcadia-eternity/arcadia-eternity/commit/6956aa8f0174e698a5199ba2b409de2c806c7859))
+
 ## [2.22.8](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.7...arcadia-eternity-v2.22.8) (2025-08-27)
 
 
