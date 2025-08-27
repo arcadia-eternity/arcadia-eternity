@@ -149,6 +149,13 @@ export const useBattleStore = defineStore('battle', {
         await this.battleInterface?.submitAction(selection)
       } catch (error) {
         this.errorMessage = (error as Error).message
+        try {
+          this.availableActions = await this.fetchAvailableSelection()
+          this.waitingForResponse = false
+        } catch (fetchError) {
+          this.errorMessage = (fetchError as Error).message
+          this.waitingForResponse = false
+        }
       }
     },
 
