@@ -13,7 +13,7 @@ import {
   type ErrorResponse,
 } from '@arcadia-eternity/protocol'
 import { type PlayerSchemaType, type PlayerSelectionSchemaType, type PetSchemaType } from '@arcadia-eternity/schema'
-import { io, type Socket } from 'socket.io-client'
+import { io, type ManagerOptions, type Socket, type SocketOptions } from 'socket.io-client'
 import { nanoid } from 'nanoid'
 
 // 私人房间相关类型定义
@@ -94,8 +94,7 @@ export class BattleClient {
   }
 
   private createSocket() {
-    const socketConfig: any = {
-      autoConnect: false,
+    const socketConfig: Partial<ManagerOptions> = {
       transports: ['websocket'],
       reconnection: this.options.autoReconnect,
       reconnectionAttempts: this.options.reconnectAttempts,

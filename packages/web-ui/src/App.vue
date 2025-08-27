@@ -547,12 +547,7 @@ onMounted(async () => {
     setupBattleReconnectHandler()
 
     // 并行执行不依赖连接的初始化任务
-    await Promise.all([
-      initResourcePromise,
-      initClientPromise,
-      initSpeciesPromise,
-      battleClientStore.connect()
-    ])
+    await Promise.all([initResourcePromise, initClientPromise, initSpeciesPromise, battleClientStore.connect()])
 
     // 在连接完成后检查房间状态
     const currentRoom = await privateRoomStore.checkCurrentRoom()
