@@ -104,7 +104,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     try {
       await battleClientStore.joinPrivateRoomAsSpectator({
         roomCode,
-        preferredView,
       })
 
       // 获取房间信息
@@ -286,7 +285,8 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     try {
       // 检查当前是否已经在正确的观战页面
       const currentRoute = router.currentRoute.value
-      const isCorrectSpectatorPage = currentRoute.path === '/battle' &&
+      const isCorrectSpectatorPage =
+        currentRoute.path === '/battle' &&
         currentRoute.query.roomId === currentRoom.value.battleRoomId &&
         currentRoute.query.spectate === 'true'
 
@@ -297,22 +297,18 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
       // 检查战斗系统状态
       const battleStore = useBattleStore()
-      const hasValidBattleConnection = battleStore.battleInterface && 
-        battleClientStore._instance && 
-        battleStore.playerId === playerStore.player.id
+      const hasValidBattleConnection =
+        battleStore.battleInterface && battleClientStore._instance && battleStore.playerId === playerStore.player.id
 
       if (!hasValidBattleConnection) {
         // 只有在没有有效连接时才重新建立连接
         await battleClientStore.joinSpectateBattle(currentRoom.value.battleRoomId)
-        
+
         if (!battleClientStore._instance) {
           throw new Error('BattleClient 实例尚未初始化')
         }
-        
-        await battleStore.initBattle(
-          new RemoteBattleSystem(battleClientStore._instance as any), 
-          playerStore.player.id
-        )
+
+        await battleStore.initBattle(new RemoteBattleSystem(battleClientStore._instance as any), playerStore.player.id)
         console.log('🏗️ New battle connection established for spectate')
       } else {
         // 如果已有连接，只需要确保后端知道当前session在观战

@@ -13,7 +13,7 @@ import {
   type ErrorResponse,
 } from '@arcadia-eternity/protocol'
 import { type PlayerSchemaType, type PlayerSelectionSchemaType, type PetSchemaType } from '@arcadia-eternity/schema'
-import { io, type Socket } from 'socket.io-client'
+import { io, type ManagerOptions, type Socket, type SocketOptions } from 'socket.io-client'
 import { nanoid } from 'nanoid'
 
 // 私人房间相关类型定义
@@ -67,6 +67,9 @@ export class BattleClient {
     battle: 'idle',
   }
   private options: Required<Omit<BattleClientOptions, 'auth'>> & { auth?: BattleClientOptions['auth'] }
+  
+  // 专门的状态变化监听器
+  private stateChangeListeners = new Set<(state: ClientState) => void>()
 
   // 新架构：Timer快照本地缓存
   private timerSnapshots = new Map<playerId, TimerSnapshot>()
@@ -94,8 +97,7 @@ export class BattleClient {
   }
 
   private createSocket() {
-    const socketConfig: any = {
-      autoConnect: false,
+    const socketConfig: Partial<ManagerOptions> = {
       transports: ['websocket'],
       reconnection: this.options.autoReconnect,
       reconnectionAttempts: this.options.reconnectAttempts,
@@ -876,6 +878,7 @@ export class BattleClient {
     console.log('🧹 Stack trace:', new Error().stack)
     this.eventHandlers.clear()
     this.timerEventHandlers.clear()
+    this.stateChangeListeners.clear()
   }
 
   once<T extends keyof ServerToClientEvents>(event: T, listener: ServerToClientEvents[T]): this {
@@ -920,6 +923,16 @@ export class BattleClient {
         }
       })
     }
+  }
+
+  // 状态变化监听器管理
+  onStateChange(listener: (state: ClientState) => void): () => void {
+    this.stateChangeListeners.add(listener)
+    return () => this.offStateChange(listener)
+  }
+
+  offStateChange(listener: (state: ClientState) => void): void {
+    this.stateChangeListeners.delete(listener)
   }
 
   // 计时器事件订阅方法
@@ -1122,8 +1135,14 @@ export class BattleClient {
       changes: partialState,
     })
 
-    // 触发状态变化事件，确保Vue响应式系统能够检测到变化
-    this.eventHandlers.get('stateChange')?.forEach(handler => handler(this.state))
+    // 触发专门的状态变化监听器
+    this.stateChangeListeners.forEach(listener => {
+      try {
+        listener(this.state)
+      } catch (error) {
+        console.error('State change listener error:', error)
+      }
+    })
   }
 
   private verifyConnection() {
