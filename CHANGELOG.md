@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.15](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.14...arcadia-eternity-v2.22.15) (2025-08-27)
+
+
+### ⚡ Performance Improvements
+
+* disconnected ([4e7f13d](https://github.com/arcadia-eternity/arcadia-eternity/commit/4e7f13d1dd90635f9680295d3b536ab7e92f97d4))
+
 ## [2.22.14](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.13...arcadia-eternity-v2.22.14) (2025-08-27)
 
 
