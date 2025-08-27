@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.16](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.15...arcadia-eternity-v2.22.16) (2025-08-27)
+
+
+### 🐛 Bug Fixes
+
+* error on sendplayerSelection ([3d4523a](https://github.com/arcadia-eternity/arcadia-eternity/commit/3d4523a59a95599a63dad3963bbaab588d47d4fa))
+
 ## [2.22.15](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.14...arcadia-eternity-v2.22.15) (2025-08-27)
 
 
