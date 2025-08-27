@@ -212,16 +212,6 @@ export const REDIS_KEYS = {
   // 断线玩家宽限期管理
   DISCONNECTED_PLAYER: (playerId: string, sessionId: string) => `disconnected:player:${playerId}:${sessionId}`, // 断线玩家信息
   DISCONNECTED_PLAYERS: 'disconnected:players', // 所有断线玩家索引
-}
-
-export type RedisDisconnectedPlayerInfo = {
-  playerId: string
-  sessionId: string
-  roomId: string
-  disconnectTime: number
-  instanceId: string
-  expiresAt: number
-}
 
   // 统计信息
   STATS: 'cluster:stats',
@@ -233,6 +223,15 @@ export type RedisDisconnectedPlayerInfo = {
   PRIVATE_ROOM_EVENTS: (roomCode: string) => `private_room_events:${roomCode}`,
   PRIVATE_BATTLE_FINISHED_EVENTS: 'private_battle_finished',
 } as const
+
+export type RedisDisconnectedPlayerInfo = {
+  playerId: string
+  sessionId: string
+  roomId: string
+  disconnectTime: number
+  instanceId: string
+  expiresAt: number
+}
 
 // 错误类型
 export class ClusterError extends Error {
