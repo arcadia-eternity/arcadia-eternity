@@ -143,6 +143,7 @@ export const useBattleStore = defineStore('battle', {
     },
 
     async sendplayerSelection(selection: PlayerSelection) {
+      const availableActionsCache = useCloned(this.availableActions)
       this.availableActions = []
       this.waitingForResponse = true
       try {
@@ -154,6 +155,7 @@ export const useBattleStore = defineStore('battle', {
           this.waitingForResponse = false
         } catch (fetchError) {
           this.errorMessage = (fetchError as Error).message
+          this.availableActions = availableActionsCache.cloned.value
           this.waitingForResponse = false
         }
       }
