@@ -2499,7 +2499,7 @@
     destroyable: true
     isShield: false
     keepOnSwitchOut: true
-    transferOnSwitch: true
+    transferOnSwitch: false
     inheritOnFaint: false
   tags:
     - area
@@ -2516,7 +2516,7 @@
     destroyable: true
     isShield: false
     keepOnSwitchOut: true
-    transferOnSwitch: true
+    transferOnSwitch: false
     inheritOnFaint: false
   tags:
     - area
