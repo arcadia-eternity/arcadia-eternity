@@ -3569,7 +3569,7 @@
   ignoreShield: false
   tags: ['quan']
   effect:
-    - effect_skill_power_2x_if_height_greater_than_opponent
+    - effect_skill_power_2x_if_height_gt_opponent
 - id: skill_zuobaiquan
   element: Normal
   category: Special
@@ -3605,7 +3605,7 @@
   ignoreShield: false
   tags: ['quan']
   effect:
-    - effect_skill_power_2x_if_height_less_than_opponent
+    - effect_skill_power_2x_if_height_lt_opponent
 - id: skill_youbaiquan
   element: Normal
   category: Special
@@ -3651,7 +3651,7 @@
   ignoreShield: false
   tags: ['quan']
   effect:
-    - effect_skill_multihit_if_height_greater_than_opponent
+    - effect_skill_multihit_if_height_gt_opponent
 - id: skill_zuozuozuobaiquan
   element: Normal
   category: Special
@@ -3675,7 +3675,7 @@
   ignoreShield: false
   tags: ['quan']
   effect:
-    - effect_skill_multihit_if_height_less_than_opponent
+    - effect_skill_multihit_if_height_lt_opponent
 - id: skill_youyouyoubaiquan
   element: Normal
   category: Special
@@ -8826,7 +8826,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_sure_hit_if_opponent_spa_greater_than_atk
+    - effect_skill_sure_hit_if_opponent_spa_gt_atk
 - id: skill_xishuichangliu
   element: Water
   category: Special
@@ -8838,7 +8838,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_power_35_if_opponent_spa_greater_than_atk
+    - effect_skill_add_power_35_if_opponent_spa_gt_atk
 - id: skill_hanqibaifa
   element: Ice
   category: Special
@@ -8887,7 +8887,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_power_35_if_opponent_spa_greater_than_atk
+    - effect_skill_add_power_35_if_opponent_spa_gt_atk
 - id: skill_luoshuang
   element: Ice
   category: Status
@@ -8911,7 +8911,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_power_35_if_opponent_spa_greater_than_atk
+    - effect_skill_add_power_35_if_opponent_spa_gt_atk
 - id: skill_shuanghounhunqu
   element: Ice
   category: Climax
@@ -8960,7 +8960,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_add_power_35_if_opponent_spa_greater_than_atk
+    - effect_skill_add_power_35_if_opponent_spa_gt_atk
 - id: skill_shuanghunxuanlv
   element: Ice
   category: Status
@@ -9367,7 +9367,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_fixed_damage_50_if_hp_less_than_half
+    - effect_skill_fixed_damage_50_if_hp_lt_half
 - id: skill_yanhuohuanrao
   element: Fire
   category: Status
@@ -9417,7 +9417,7 @@
   tags: []
   effect:
     - effect_skill_add_crit_rate_15_percent
-    - effect_skill_add_crit_rate_15_percent_if_hp_less_than_half
+    - effect_skill_add_crit_rate_15_percent_if_hp_lt_half
 - id: skill_feiyanzhan
   element: Fire
   category: Physical
@@ -9502,7 +9502,7 @@
   effect:
     - effect_skill_raise_spa_1_stage
     - effect_skill_raise_spe_1_stage
-    - effect_skill_raise_spa_1_stage_if_hp_less_than_half
+    - effect_skill_raise_spa_1_stage_if_hp_lt_half
 - id: skill_dongqiqianghua
   element: Ice
   category: Status
@@ -9565,7 +9565,7 @@
   accuracy: 95
   rage: 15
   effect:
-    - effect_skill_increase_crit_rate_95_if_max_hp_greater_than_opponent
+    - effect_skill_increase_crit_rate_95_if_max_hp_gt_opponent
 - id: skill_dongqisilie
   element: Ice
   category: Special
@@ -9574,7 +9574,7 @@
   accuracy: 95
   rage: 10
   effect:
-    - effect_skill_add_mark_opponent_liuxie_30_if_max_hp_greater_than_opponent
+    - effect_skill_add_mark_opponent_liuxie_30_if_max_hp_gt_opponent
 - id: skill_fansheguike
   element: Normal
   category: Status
@@ -10354,3 +10354,110 @@
   rage: 20
   effect:
     - effect_skill_set_field_chongqun
+- id: skill_zhandoujieji
+  element: Fighting
+  category: Physical
+  target: opponent
+  power: 60
+  accuracy: 95
+  rage: 15
+  priority: 1
+  effect:
+    - effect_skill_add_power_25_if_has_field
+- id: skill_zhandouzhiqi
+  element: Fighting
+  category: Special
+  target: opponent
+  power: 80
+  accuracy: 95
+  rage: 15
+  effect:
+    - effect_skill_reduce_opponent_def_1_stage_if_rage_lt_30
+- id: skill_nizhan
+  element: Fighting
+  category: Physical
+  target: opponent
+  power: 90
+  accuracy: 100
+  rage: 20
+  sureHit: true
+  effect:
+    - effect_skill_power2x_vs_wind_psychic_fighting_trait
+- id: skill_zhandoudaren
+  element: Fighting
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  effect:
+    - effect_skill_raise_atk_1_stage
+    - effect_skill_heal_self_1_6_max_hp
+- id: skill_douzhanzhihun
+  element: Fighting
+  category: Physical
+  target: opponent
+  power: 100
+  accuracy: 100
+  rage: 20
+  sureHit: true
+  effect:
+    - effect_skill_clear_rage_add_fixed_damage
+- id: skill_sidou
+  element: Fighting
+  category: Physical
+  target: opponent
+  power: 100
+  accuracy: 100
+  rage: 20
+  effect:
+    - effect_skill_add_rage_30_if_guzhanchang
+- id: skill_zhankuangshankongpo
+  element: Fighting
+  category: Climax
+  target: opponent
+  power: 170
+  accuracy: 100
+  rage: 100
+  sureHit: true
+  effect:
+    - effect_skill_raise_atk_1_stage_20_percent
+    - effect_skill_raise_def_1_stage_20_percent
+- id: skill_zhanzhilingyu
+  element: Fighting
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  effect:
+    - effect_skill_add_mark_zhanzhilingyu_or_zhandoulingyu
+- id: skill_kuangzhan
+  element: Fighting
+  category: Physical
+  target: opponent
+  power: 50
+  accuracy: 100
+  rage: 20
+  effect:
+    - effect_skill_power_2x_if_has_mark_zhanzhilingyu_or_zhandouLingyu
+    - effect_skill_raise_spe_1_stage_if_zhandoulingyu
+- id: skill_juezhanzhidi
+  element: Fighting
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  effect:
+    - effect_skill_set_field_guzhanchang
+- id: skill_yitedaluandou
+  element: Normal
+  category: Climax
+  target: opponent
+  power: 35
+  accuracy: 100
+  rage: 100
+  sureHit: true
+  multihit: [5, 9]
+  tags: ['combination']

@@ -742,3 +742,9 @@ mark_chongzhilingyu:
 mark_chongqunlingyu:
   name: 虫群领域
   description: 附加40点伤害
+mark_zhanzhilingyu:
+  name: 战之领域
+  description: 造成伤害增加10% 受到伤害减少10%
+mark_zhandoulingyu:
+  name: 战斗领域
+  description: 造成伤害增加20% 受到伤害减少20%

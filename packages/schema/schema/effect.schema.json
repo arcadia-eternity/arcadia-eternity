@@ -3097,9 +3097,7 @@
             }
           },
           "required": [
-            "type",
-            "first",
-            "second"
+            "type"
           ]
         },
         {

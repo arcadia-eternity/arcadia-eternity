@@ -187,3 +187,6 @@ mark_emblem_shazhen:
 mark_emblem_chongqun:
   name: 虫群
   description: 虫群环境下连击技能怒气消耗减少5点
+mark_emblem_douhun:
+  name: 斗魂
+  description: 使斗战之魂固伤增加50%

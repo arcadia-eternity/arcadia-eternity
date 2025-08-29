@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.23.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.17...arcadia-eternity-v2.23.0) (2025-08-29)
+
+
+### ✨ Features
+
+* **newpet:** 战伊特 ([f6a03fa](https://github.com/arcadia-eternity/arcadia-eternity/commit/f6a03fab323d63a447f4de1e1367be51396e0804))
+
+
+### ⚡ Performance Improvements
+
+* battlePage disconnected tips ([8252134](https://github.com/arcadia-eternity/arcadia-eternity/commit/8252134afbc78af2ca5fb7684ea383cafa479352))
+
 ## [2.22.17](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.16...arcadia-eternity-v2.22.17) (2025-08-27)
 
 
