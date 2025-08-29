@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.23.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.23.0...arcadia-eternity-v2.23.1) (2025-08-29)
+
+
+### 🐛 Bug Fixes
+
+* **balance:** transferOnSwitch ([b383bd1](https://github.com/arcadia-eternity/arcadia-eternity/commit/b383bd1cc82ea1f37e2d1ee8d4855f067d5e8d3e))
+
 ## [2.23.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.22.17...arcadia-eternity-v2.23.0) (2025-08-29)
 
 
