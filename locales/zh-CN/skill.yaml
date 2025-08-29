@@ -2657,3 +2657,36 @@ skill_xueji:
 skill_chongqundajun:
   name: 虫群大军
   description: 使环境变为虫群
+skill_zhandoujieji:
+  name: 战斗截击
+  description: 先制+1 具有任意领域时增加25点威力
+skill_zhandouzhiqi:
+  name: 战斗之气
+  description: 怒气＜30点时弱化对手物防1级
+skill_nizhan:
+  name: 逆战
+  description: 必中 对风/超能/战斗/特质系威力2倍
+skill_zhandoudaren:
+  name: 战斗达人
+  description: 强化自身物攻1级并恢复自身最大体力的1/6
+skill_douzhanzhihun:
+  name: 斗战之魂
+  description: 必中 清空自身怒气附加等值固伤
+skill_sidou:
+  name: 死斗
+  description: 古战场时恢复自身30点怒气
+skill_zhankuangshankongpo:
+  name: 战狂闪空破
+  description: 必中 20%强化自身物攻1级 20%强化自身物防1级
+skill_zhanzhilingyu:
+  name: 战之领域
+  description: 使双方获得战之领域 具有伊特领域时变为战斗领域
+skill_kuangzhan:
+  name: 狂战
+  description: 具有战之领域时威力2倍 具有战斗领域时额外强化自身速度1级
+skill_juezhanzhidi:
+  name: 决战之地
+  description: 使环境变为古战场
+skill_yitedaluandou:
+  name: 伊特大乱斗
+  description: 必中 连击5~9次

@@ -394,3 +394,6 @@ pet_shayite:
 pet_chongyite:
   name: 虫伊特
   description: 虫伊特喜好群居 生活安分守己、恪守规律不过 胆小的它很害怕与大部队走失
+pet_zhanyite:
+  name: 战伊特
+  description: 自称众伊特中的老大 有着超凡的战斗力

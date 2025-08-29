@@ -895,33 +895,6 @@ const cleanupDisconnectHandlers = () => {
   console.log('🔄 Disconnect handlers cleaned up')
 }
 
-// 监听自己的连接状态变化
-watch(
-  () => battleClientStore.currentState.status,
-  (newStatus, oldStatus) => {
-    if (props.replayMode || isSpectatorMode.value) return // 回放模式和观战模式不需要处理掉线
-    
-    console.log('🔗 Connection status changed:', { old: oldStatus, new: newStatus })
-    
-    if (newStatus === 'disconnected' && oldStatus === 'connected') {
-      // 从连接状态变为断线状态
-      selfDisconnected.value = true
-      reconnecting.value = false
-      console.log('🔗 Self disconnected detected')
-    } else if (newStatus === 'connecting' && oldStatus === 'disconnected') {
-      // 开始重连
-      reconnecting.value = true
-      console.log('🔗 Reconnecting...')
-    } else if (newStatus === 'connected' && (oldStatus === 'disconnected' || oldStatus === 'connecting')) {
-      // 重连成功
-      selfDisconnected.value = false
-      reconnecting.value = false
-      console.log('🔗 Reconnected successfully')
-    }
-  },
-  { immediate: true }
-)
-
 const battleResult = computed(() => {
   if (!store.isBattleEnd) return ''
   return store.victor === store.playerId ? '胜利！' : store.victor ? '失败...' : '平局'
@@ -2474,6 +2447,33 @@ watch(
   { deep: true },
 )
 
+// 监听自己的连接状态变化
+watch(
+  () => battleClientStore.currentState.status,
+  (newStatus, oldStatus) => {
+    if (props.replayMode || isSpectatorMode.value) return // 回放模式和观战模式不需要处理掉线
+
+    console.log('🔗 Connection status changed:', { old: oldStatus, new: newStatus })
+
+    if (newStatus === 'disconnected' && oldStatus === 'connected') {
+      // 从连接状态变为断线状态
+      selfDisconnected.value = true
+      reconnecting.value = false
+      console.log('🔗 Self disconnected detected')
+    } else if (newStatus === 'connecting' && oldStatus === 'disconnected') {
+      // 开始重连
+      reconnecting.value = true
+      console.log('🔗 Reconnecting...')
+    } else if (newStatus === 'connected' && (oldStatus === 'disconnected' || oldStatus === 'connecting')) {
+      // 重连成功
+      selfDisconnected.value = false
+      reconnecting.value = false
+      console.log('🔗 Reconnected successfully')
+    }
+  },
+  { immediate: true },
+)
+
 watch(
   () => store.isBattleEnd,
   async (newVal, oldVal) => {
@@ -2856,12 +2856,8 @@ watch(
               >
                 <!-- 警告图标 -->
                 <div class="w-5 h-5 text-red-400">🔌</div>
-                <span v-if="reconnecting">
-                  连接已断开，正在重连中...
-                </span>
-                <span v-else>
-                  连接已断开，请检查网络连接
-                </span>
+                <span v-if="reconnecting"> 连接已断开，正在重连中... </span>
+                <span v-else> 连接已断开，请检查网络连接 </span>
               </div>
             </Transition>
           </div>

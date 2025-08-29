@@ -190,3 +190,6 @@ mark_ability_shasu:
 mark_ability_lianxie:
   name: 连携
   description: 降低5点怒气消耗 连击技能必中
+mark_ability_haozhan:
+  name: 好战
+  description: 回合结束时 怒气＜对手时恢复15点怒气

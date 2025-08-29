@@ -7564,3 +7564,78 @@
   emblem:
     - mark_emblem_zhongji
     - mark_emblem_chongqun
+- id: pet_zhanyite
+  num: 100
+  element: Fighting
+  baseStats:
+    hp: 180
+    atk: 184
+    def: 165
+    spa: 163
+    spd: 160
+    spe: 163
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 66
+    - 71
+  weightRange:
+    - 29
+    - 34
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_tisu
+      level: 9
+      hidden: false
+    - skill_id: skill_yitelingyu
+      level: 13
+      hidden: false
+    - skill_id: skill_yiteguanghuan
+      level: 17
+      hidden: false
+    - skill_id: skill_yitejieji
+      level: 21
+      hidden: false
+    - skill_id: skill_zhandoujieji
+      level: 24
+      hidden: false
+    - skill_id: skill_zhandouzhiqi
+      level: 29
+      hidden: false
+    - skill_id: skill_nizhan
+      level: 34
+      hidden: false
+    - skill_id: skill_zhandoudaren
+      level: 40
+      hidden: false
+    - skill_id: skill_douzhanzhihun
+      level: 46
+      hidden: false
+    - skill_id: skill_sidou
+      level: 52
+      hidden: false
+    - skill_id: skill_zhankuangshankongpo
+      level: 60
+      hidden: true
+    - skill_id: skill_zhanzhilingyu
+      level: 60
+      hidden: true
+    - skill_id: skill_kuangzhan
+      level: 60
+      hidden: true
+    - skill_id: skill_juezhanzhidi
+      level: 60
+      hidden: true
+    - skill_id: skill_yitedaluandou
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_haozhan
+  emblem:
+    - mark_emblem_douhun

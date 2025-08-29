@@ -3726,7 +3726,7 @@
   condition:
     type: selfUseSkill
 # 自身身高＞对手时威力2倍
-- id: effect_skill_power_2x_if_height_greater_than_opponent
+- id: effect_skill_power_2x_if_height_gt_opponent
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -3808,7 +3808,7 @@
   condition:
     type: selfUseSkill
 # 自身身高＜对手时威力2倍
-- id: effect_skill_power_2x_if_height_less_than_opponent
+- id: effect_skill_power_2x_if_height_lt_opponent
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -3877,7 +3877,7 @@
           operator: '>'
           value: 100
 # 自身身高＞对手时连击3次
-- id: effect_skill_multihit_if_height_greater_than_opponent
+- id: effect_skill_multihit_if_height_gt_opponent
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -3959,7 +3959,7 @@
   condition:
     type: selfUseSkill
 # 自身身高＜对手时连击3次
-- id: effect_skill_multihit_if_height_less_than_opponent
+- id: effect_skill_multihit_if_height_lt_opponent
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -9027,7 +9027,7 @@
   condition:
     type: selfUseSkill
 # 对手特攻＞物攻时必中
-- id: effect_skill_sure_hit_if_opponent_spa_greater_than_atk
+- id: effect_skill_sure_hit_if_opponent_spa_gt_atk
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -9038,7 +9038,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - &condition_opponent_spa_greater_than_atk
+      - &condition_opponent_spa_gt_atk
         type: evaluate
         target:
           base: opponent
@@ -9056,7 +9056,7 @@
                 - type: selectPath
                   arg: stat.atk
 # 对手特攻＞物攻时，威力增加35点
-- id: effect_skill_add_power_35_if_opponent_spa_greater_than_atk
+- id: effect_skill_add_power_35_if_opponent_spa_gt_atk
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -9067,7 +9067,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - *condition_opponent_spa_greater_than_atk
+      - *condition_opponent_spa_gt_atk
 # 使对手获得安魂曲
 - id: effect_skill_add_mark_opponent_anhunqu
   trigger: OnHit
@@ -9581,7 +9581,7 @@
         evaluator:
           type: exist
 # 自身hp低于一半时，附加50点伤害
-- id: effect_skill_fixed_damage_50_if_hp_less_than_half
+- id: effect_skill_fixed_damage_50_if_hp_lt_half
   trigger: OnBeforeCalculateDamage
   priority: 0
   apply:
@@ -9613,7 +9613,7 @@
   condition:
     type: selfUseSkill
 # 生命值低于一半时，获得15%暴击率
-- id: effect_skill_add_crit_rate_15_percent_if_hp_less_than_half
+- id: effect_skill_add_crit_rate_15_percent_if_hp_lt_half
   trigger: AfterUseSkillCheck
   priority: 0
   apply:
@@ -9650,7 +9650,7 @@
   condition:
     type: selfUseSkill
 # 生命值低于一半时，提升一级特攻
-- id: effect_skill_raise_spa_1_stage_if_hp_less_than_half
+- id: effect_skill_raise_spa_1_stage_if_hp_lt_half
   trigger: BeforeHit
   priority: 0
   apply:
@@ -9758,7 +9758,7 @@
               type: selfHasMark
               baseId: mark_dongqifuti
 # 当最大生命值大于敌方时，增加95%暴击率
-- id: effect_skill_increase_crit_rate_95_if_max_hp_greater_than_opponent
+- id: effect_skill_increase_crit_rate_95_if_max_hp_gt_opponent
   trigger: BeforeHit
   priority: 0
   apply:
@@ -9769,7 +9769,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - &condition_self_max_hp_greater_than_opponent
+      - &condition_self_max_hp_gt_opponent
         type: evaluate
         target:
           base: self
@@ -9791,7 +9791,7 @@
                     type: base
                     arg: maxHp
 # 当最大生命值大于敌方时，给敌方附加30点流血
-- id: effect_skill_add_mark_opponent_liuxie_30_if_max_hp_greater_than_opponent
+- id: effect_skill_add_mark_opponent_liuxie_30_if_max_hp_gt_opponent
   trigger: OnHit
   priority: 0
   apply:
@@ -9805,7 +9805,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - *condition_self_max_hp_greater_than_opponent
+      - *condition_self_max_hp_gt_opponent
 # 给自己添加最大生命值-500层的反射龟壳
 - id: effect_skill_add_mark_fansheguike
   trigger: OnHit
@@ -9833,7 +9833,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - &condition_self_max_hp_greater_than_500
+      - &condition_self_max_hp_gt_500
         type: evaluate
         target:
           base: self
@@ -9858,7 +9858,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - *condition_self_max_hp_greater_than_500
+      - *condition_self_max_hp_gt_500
 # 对手冰冻时威力翻倍
 - id: effect_skill_power_2x_if_opponent_is_bingdong
   trigger: AfterUseSkillCheck
@@ -9886,7 +9886,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - *condition_self_max_hp_greater_than_500
+      - *condition_self_max_hp_gt_500
 # 给自己添加(最大生命值-500)*2的寒冰护甲
 - id: effect_skill_add_mark_hanbinghujia_2x_self_max_hp_minus_500
   trigger: OnHit
@@ -9916,7 +9916,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - *condition_self_max_hp_greater_than_500
+      - *condition_self_max_hp_gt_500
 # 对手每提升1级攻击则威力增加40
 - id: effect_skill_add_power_40_opponent_per_atk_level
   trigger: BeforeHit
@@ -10695,7 +10695,8 @@
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
+      - &condition_has_field
+        type: evaluate
         target:
           base: selfMarks
           chain:
@@ -10901,3 +10902,208 @@
       value: mark_global_chongqun
   condition:
     type: selfUseSkill
+# 当有任意领域时,增加25点威力
+- id: effect_skill_add_power_25_if_has_field
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target: useSkillContext
+    value: 25
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_has_field
+# 当怒气低于30点时,使对手物防降低一级
+- id: effect_skill_reduce_opponent_def_1_stage_if_rage_lt_30
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_opponent_statstage_-1_template
+    statType: def
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: selfPlayer
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: rage
+        evaluator:
+          type: compare
+          operator: '<'
+          value: 30
+# 当对方为风系,超能系,战斗系,特质系时,威力翻倍
+- id: effect_skill_power2x_vs_wind_psychic_fighting_trait
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: useSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponent
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: element
+        evaluator:
+          type: anyOf
+          value:
+            - Wind
+            - Psychic
+            - Fighting
+            - Trait
+# 造成当前怒气的附加伤害,并清空所有怒气
+- id: effect_skill_clear_rage_add_fixed_damage
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    - type: addModified
+      target: damageContext
+      percent: 0
+      delta:
+        type: dynamic
+        selector:
+          base: selfPlayer
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: rage
+            - type: multiply
+              arg:
+                type: raw:number
+                value: 1
+                configId: multiply_value
+    - type: addRage
+      target: selfPlayer
+      value:
+        type: dynamic
+        selector:
+          base: selfPlayer
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: rage
+            - type: multiply
+              arg: -1
+  condition:
+    type: selfUseSkill
+# 当前场地为古战场时,添加30点怒气
+- id: effect_skill_add_rage_30_if_guzhanchang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 30
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_field_is_guzhanchang
+        type: evaluate
+        target:
+          base: battle
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: marks
+            - type: flat
+            - type: whereAttr
+              extractor: baseId
+              evaluator:
+                type: same
+                value: mark_global_guzhanchang
+        evaluator:
+          type: exist
+# 20%提升一级物防
+- id: effect_skill_raise_def_1_stage_20_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: def
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_20_percent_template
+# 将当前的场地设为古战场
+- id: effect_skill_set_field_guzhanchang
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: battle
+    mark:
+      type: entity:baseMark
+      value: mark_global_guzhanchang
+  condition:
+    type: selfUseSkill
+# 使自身获得战之领域或战斗领域
+- id: effect_skill_add_mark_zhanzhilingyu_or_zhandoulingyu
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: addMark
+      target: self
+      mark:
+        type: conditional
+        trueValue:
+          type: entity:baseMark
+          value: mark_zhandoulingyu
+        falseValue:
+          type: entity:baseMark
+          value: mark_zhanzhilingyu
+        condition:
+          type: selfHasMark
+          baseId: mark_yitelingyu
+  condition:
+    type: selfUseSkill
+# 拥有战之领域或战斗领域时,威力2倍
+- id: effect_skill_power_2x_if_has_mark_zhanzhilingyu_or_zhandouLingyu
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: useSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: some
+        conditions:
+          - type: selfHasMark
+            baseId: mark_zhanzhilingyu
+          - type: selfHasMark
+            baseId: mark_zhandoulingyu
+# 有战斗领域时提升一级速度
+- id: effect_skill_raise_spe_1_stage_if_zhandoulingyu
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spe
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_zhandoulingyu

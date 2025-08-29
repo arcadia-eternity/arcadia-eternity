@@ -16,3 +16,6 @@ mark_global_leibaotian:
 mark_global_chongqun:
   name: 虫群
   description: 虫系技能伤害提高35%
+mark_global_guzhanchang:
+  name: 古战场
+  description: 战斗系 龙系 上古系技能伤害提高35%

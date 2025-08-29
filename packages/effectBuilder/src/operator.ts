@@ -19,10 +19,7 @@ import {
   StatStagePhase,
 } from '@arcadia-eternity/battle'
 import {
-  AttributeSystem,
-  Modifier as AttributeModifier,
   DurationType as AttributeDurationType,
-  ModifierHelpers,
   DamageContext,
   EffectContext,
   HealContext,
@@ -32,7 +29,6 @@ import {
   Pet,
   Player,
   RageContext,
-  RemoveMarkContext,
   type ScopeObject,
   SkillInstance,
   StackContext,
@@ -45,15 +41,11 @@ import {
 } from '@arcadia-eternity/battle'
 import { Observable } from 'rxjs'
 import {
-  type baseMarkId,
-  type baseSkillId,
   BattleMessageType,
   CleanStageStrategy,
   EffectTrigger,
   IgnoreStageStrategy,
-  type PrototypeId,
   SetStageStrategy,
-  type speciesId,
   StackStrategy,
   type StatTypeOnBattle,
   StatTypeWithoutHp,
@@ -746,14 +738,14 @@ export const Operators = {
       const _statTypes = statType ? GetValueFromSource(context, statType) : undefined
       target.forEach(v => {
         const statStagePhase = new StatStagePhase(
-          context.battle, 
-          context, 
-          v, 
-          'clear', 
-          undefined, 
-          undefined, 
-          cleanStageStrategy, 
-          _statTypes
+          context.battle,
+          context,
+          v,
+          'clear',
+          undefined,
+          undefined,
+          cleanStageStrategy,
+          _statTypes,
         )
         context.battle.phaseManager.registerPhase(statStagePhase)
         context.battle.phaseManager.executePhase(statStagePhase.id)
@@ -769,14 +761,14 @@ export const Operators = {
       const _statTypes = statType ? GetValueFromSource(context, statType) : undefined
       target.forEach(v => {
         const statStagePhase = new StatStagePhase(
-          context.battle, 
-          context, 
-          v, 
-          'reverse', 
-          undefined, 
-          undefined, 
-          cleanStageStrategy, 
-          _statTypes
+          context.battle,
+          context,
+          v,
+          'reverse',
+          undefined,
+          undefined,
+          cleanStageStrategy,
+          _statTypes,
         )
         context.battle.phaseManager.registerPhase(statStagePhase)
         context.battle.phaseManager.executePhase(statStagePhase.id)

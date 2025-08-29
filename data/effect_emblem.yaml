@@ -1393,3 +1393,13 @@
                 value: mark_global_chongqun
         evaluator:
           type: exist
+# 斗魂: 斗战之魂的附加伤害提升50%
+- id: effect_emblem_increase_douzhanzhihun_fixed_damage_50_percent
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addConfigModifier
+    target: self
+    configKey: effect_skill_clear_rage_add_fixed_damage.multiply_value
+    modifierType: delta
+    value: 0.5

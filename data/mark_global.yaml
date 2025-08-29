@@ -40,6 +40,8 @@
   config: *global_config
 - id: mark_global_guzhanchang
   config: *global_config
+  effect:
+    - effect_global_power_35_percent_fighting_dragon_ancient
 - id: mark_global_chongqun
   config: *global_config
   effect:

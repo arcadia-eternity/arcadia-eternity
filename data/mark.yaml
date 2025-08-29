@@ -2489,3 +2489,37 @@
     - area
   effect:
     - effect_mark_fixed_damage_40
+- id: mark_zhanzhilingyu
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: none
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: true
+    inheritOnFaint: false
+  tags:
+    - area
+  effect:
+    - effect_mark_reduce_damage_taken_10_percent
+    - effect_mark_increase_damage_dealt_10_percent
+- id: mark_zhandoulingyu
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: none
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: true
+    inheritOnFaint: false
+  tags:
+    - area
+  effect:
+    - effect_mark_reduce_damage_taken_20_percent
+    - effect_mark_increase_damage_dealt_20_percent

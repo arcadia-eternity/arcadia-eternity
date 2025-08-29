@@ -327,3 +327,8 @@
   tags: [emblem]
   effect:
     - effect_emblem_reduce_5_rage_cost_in_field_chongqun
+- id: mark_emblem_douhun
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_increase_douzhanzhihun_fixed_damage_50_percent #TODO: Implement emblem effect for skill_douzhanzhihun

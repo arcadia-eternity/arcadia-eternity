@@ -531,14 +531,15 @@
     percent: 15
     delta: 0
 # 暗影：当怒气低于对手时，回复造成伤害1/2的体力
-- id: effect_ability_heal_half_damage_when_rage_less_than_opponent
+- id: effect_ability_heal_half_damage_when_rage_lt_opponent
   trigger: OnDamage
   priority: 0
   condition:
     type: every
     conditions:
       - type: selfUseSkill
-      - type: evaluate
+      - &condition_rage_lt_opponent
+        type: evaluate
         target:
           base: self
           chain:
@@ -574,7 +575,7 @@
           - type: divide
             arg: 2
 # 光明：当怒气高于对手且技能命中时,回复自身最大体力的1/8
-- id: effect_ability_heal_1_8_max_hp_when_rage_greater_than_opponent
+- id: effect_ability_heal_1_8_max_hp_when_rage_gt_opponent
   trigger: OnHit
   priority: 0
   condition:
@@ -889,7 +890,7 @@
                     type: dynamic
                     arg: maxRage
 # 愤怒：怒气大于等于70点且不满怒气时威力增加15%
-- id: effect_ability_fennu_power_boost_15_percent_when_rage_greater_than_70
+- id: effect_ability_fennu_power_boost_15_percent_when_rage_gt_70
   trigger: BeforeUseSkillCheck
   priority: 0
   apply:
@@ -1388,7 +1389,7 @@
   condition:
     type: petIsActive
 # 炎帝: 怒气大于50时，免疫异常状态
-- id: effect_ability_immune_exceptional_if_rage_greater_than_50
+- id: effect_ability_immune_exceptional_if_rage_gt_50
   trigger: OnBeforeAddMark
   priority: 0
   apply:
@@ -1646,3 +1647,16 @@
         - type: selectProp
           arg: sureHit
     value: true
+# 好战: 回合结束时，当怒气低于对手时,恢复15点怒气
+- id: effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end
+  trigger: TurnEnd
+  condition:
+    type: every
+    conditions:
+      - type: petIsActive
+      - *condition_rage_lt_opponent
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 15

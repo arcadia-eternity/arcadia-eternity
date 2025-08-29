@@ -125,3 +125,26 @@
     type: amplifyPower
     target: useSkillContext
     value: 1.35
+# 古战场: 战斗系,龙系,上古系威力增加35%
+- id: effect_global_power_35_percent_fighting_dragon_ancient
+  trigger: AfterUseSkillCheck
+  priority: 0
+  condition:
+    type: some
+    conditions:
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: select
+              arg: element
+        evaluator:
+          type: anyOf
+          value:
+            - Fighting
+            - Dragon
+            - Ancient
+  apply:
+    type: amplifyPower
+    target: useSkillContext
+    value: 1.35

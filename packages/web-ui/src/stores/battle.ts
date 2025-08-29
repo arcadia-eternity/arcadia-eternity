@@ -196,12 +196,12 @@ export const useBattleStore = defineStore('battle', {
         if (import.meta.env.DEV && this.battleState.players) {
           this.battleState.players.forEach(player => {
             if (player.modifierState?.hasModifiers) {
-              console.log(`Player ${player.name} has modifiers:`, player.modifierState)
+              console.debug(`Player ${player.name} has modifiers:`, player.modifierState)
             }
 
             player.team?.forEach(pet => {
               if (pet.modifierState?.hasModifiers) {
-                console.log(`Pet ${pet.name} has modifiers:`, pet.modifierState)
+                console.debug(`Pet ${pet.name} has modifiers:`, pet.modifierState)
               }
             })
           })

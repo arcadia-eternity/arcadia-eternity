@@ -152,12 +152,12 @@
   config: *ability_config
   tags: [ability]
   effect:
-    - effect_ability_heal_half_damage_when_rage_less_than_opponent
+    - effect_ability_heal_half_damage_when_rage_lt_opponent
 - id: mark_ability_guangming
   config: *ability_config
   tags: [ability]
   effect:
-    - effect_ability_heal_1_8_max_hp_when_rage_greater_than_opponent
+    - effect_ability_heal_1_8_max_hp_when_rage_gt_opponent
 - id: mark_ability_pofang
   config: *ability_config
   tags: [ability]
@@ -209,7 +209,7 @@
   tags: [ability]
   effect:
     - effect_ability_fennu_power_boost_25_percent_when_full_rage
-    - effect_ability_fennu_power_boost_15_percent_when_rage_greater_than_70
+    - effect_ability_fennu_power_boost_15_percent_when_rage_gt_70
     - effect_ability_fennu_power_boost_10_percent_when_rage_between_50_and_70 # 满怒气时威力增加25% >70点时增加15% >50点时增加10%
 - id: mark_ability_yexing
   config: *ability_config
@@ -300,7 +300,7 @@
   config: *ability_config
   tags: [ability]
   effect:
-    - effect_ability_immune_exceptional_if_rage_greater_than_50
+    - effect_ability_immune_exceptional_if_rage_gt_50
     - effect_ability_keep_rage_at_least_25
 - id: mark_ability_binggu
   config: *ability_config
@@ -339,3 +339,8 @@
     - effect_ability_reduce_rage_cost_5
     - effect_ability_reduce_climax_skill_rage_cost_5
     - effect_ability_multi_hit_skills_sure_hit
+- id: mark_ability_haozhan
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end #TODO: Implement rage recovery when rage < opponent
