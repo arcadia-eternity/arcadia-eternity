@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-slate-800/40 backdrop-blur-sm border border-slate-700 rounded-lg p-4 hover:bg-slate-700/40 hover:border-blue-500/50 transition-all duration-200 cursor-pointer group"
+    class="bg-white border border-gray-300 rounded-lg p-3 sm:p-4 hover:bg-gray-50 hover:border-blue-500 transition-all duration-200 cursor-pointer group shadow-sm"
     @click="$emit('click', item)"
   >
     <!-- 精灵卡片 -->
@@ -15,13 +15,13 @@
 
       <!-- 精灵信息 -->
       <div class="space-y-2">
-        <h3 class="font-bold text-white group-hover:text-blue-300 transition-colors">
+        <h3 class="font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-sm sm:text-base">
           {{ getItemName() }}
         </h3>
         <div class="flex justify-center">
           <ElementIcon :element="(item as SpeciesSchemaType).element" class="w-6 h-6" />
         </div>
-        <div class="text-xs text-gray-400">#{{ String((item as SpeciesSchemaType).num).padStart(3, '0') }}</div>
+        <div class="text-xs text-gray-500 text-[10px] sm:text-xs">#{{ String((item as SpeciesSchemaType).num).padStart(3, '0') }}</div>
       </div>
     </div>
 
@@ -30,34 +30,34 @@
       <!-- 技能头部 -->
       <div class="flex items-center justify-between">
         <ElementIcon :element="(item as SkillSchemaType).element" class="w-6 h-6" />
-        <div class="text-xs text-gray-400 bg-slate-700 px-2 py-1 rounded">
+        <div class="text-xs text-gray-600 bg-gray-200 px-2 py-1 rounded text-[10px] sm:text-xs">
           {{ getCategoryName() }}
         </div>
       </div>
 
       <!-- 技能名称 -->
-      <h3 class="font-bold text-white group-hover:text-blue-300 transition-colors">
+      <h3 class="font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-sm sm:text-base">
         {{ getItemName() }}
       </h3>
 
       <!-- 技能描述 -->
       <div
         v-if="getSkillDescription()"
-        class="text-xs text-gray-300 line-clamp-2 leading-relaxed"
+        class="text-xs text-gray-600 line-clamp-2 leading-relaxed text-[11px] sm:text-xs"
         v-html="getRenderedSkillDescription()"
       ></div>
 
       <!-- 技能属性 -->
-      <div class="grid grid-cols-2 gap-2 text-xs">
-        <div class="text-gray-300">
-          <span class="text-gray-400">威力:</span> {{ (item as SkillSchemaType).power || '-' }}
+      <div class="grid grid-cols-2 gap-1 sm:gap-2 text-[10px] sm:text-xs">
+        <div class="text-gray-600">
+          <span class="text-gray-500">威力:</span> {{ (item as SkillSchemaType).power || '-' }}
         </div>
-        <div class="text-gray-300">
-          <span class="text-gray-400">命中:</span> {{ (item as SkillSchemaType).accuracy }}%
+        <div class="text-gray-600">
+          <span class="text-gray-500">命中:</span> {{ (item as SkillSchemaType).accuracy }}%
         </div>
-        <div class="text-gray-300"><span class="text-gray-400">怒气:</span> {{ (item as SkillSchemaType).rage }}</div>
-        <div class="text-gray-300">
-          <span class="text-gray-400">优先:</span> {{ (item as SkillSchemaType).priority || 0 }}
+        <div class="text-gray-600"><span class="text-gray-400">怒气:</span> {{ (item as SkillSchemaType).rage }}</div>
+        <div class="text-gray-600">
+          <span class="text-gray-500">优先:</span> {{ (item as SkillSchemaType).priority || 0 }}
         </div>
       </div>
     </div>
@@ -67,7 +67,7 @@
       <!-- 印记图像 -->
       <div class="flex justify-center mb-3">
         <div
-          class="w-16 h-16 flex items-center justify-center bg-slate-700/30 rounded-lg overflow-hidden group-hover:scale-110 transition-transform duration-200"
+          class="w-16 h-16 flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden group-hover:scale-110 transition-transform duration-200"
         >
           <img
             v-if="markImageUrl"
@@ -85,28 +85,28 @@
         <div class="text-xs text-purple-400 font-medium">印记</div>
         <div
           v-if="(item as MarkSchemaType).config?.maxStacks && (item as MarkSchemaType).config!.maxStacks > 1"
-          class="text-xs text-gray-400 bg-slate-700 px-2 py-1 rounded"
+          class="text-xs text-gray-600 bg-gray-200 px-2 py-1 rounded"
         >
           最大{{ (item as MarkSchemaType).config!.maxStacks }}层
         </div>
       </div>
 
       <!-- 印记名称 -->
-      <h3 class="font-bold text-white group-hover:text-blue-300 transition-colors text-center">
+      <h3 class="font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-center">
         {{ getItemName() }}
       </h3>
 
       <!-- 印记描述 -->
       <div
         v-if="getMarkDescription()"
-        class="text-xs text-gray-300 line-clamp-2 leading-relaxed text-center"
+        class="text-xs text-gray-600 line-clamp-2 leading-relaxed text-center"
         v-html="getRenderedMarkDescription()"
       ></div>
 
       <!-- 印记属性 -->
       <div class="space-y-1 text-xs">
         <div v-if="(item as MarkSchemaType).config?.duration" class="text-gray-300">
-          <span class="text-gray-400">持续:</span>
+          <span class="text-gray-500">持续:</span>
           {{
             (item as MarkSchemaType).config!.duration === -1
               ? '永久'

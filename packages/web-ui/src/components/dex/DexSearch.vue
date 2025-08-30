@@ -1,16 +1,16 @@
 <template>
-  <div class="bg-slate-800/30 backdrop-blur-sm rounded-lg p-6 border border-slate-700">
-    <div class="flex flex-col lg:flex-row gap-4">
+  <div class="bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-300">
+    <div class="flex flex-col lg:flex-row gap-3 sm:gap-4">
       <!-- 搜索框 -->
       <div class="flex-1">
         <div class="relative">
-          <MagnifyingGlassIcon class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <MagnifyingGlassIcon class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
           <input
             :value="searchQuery"
             @input="$emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
             type="text"
             :placeholder="i18next.t('dex.searchPlaceholder', { ns: 'webui' })"
-            class="w-full pl-10 pr-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="w-full pl-10 pr-4 py-2 sm:py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
           />
         </div>
       </div>
@@ -20,7 +20,7 @@
         <select
           :value="selectedElement"
           @change="handleElementChange"
-          class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="w-full px-4 py-2 sm:py-3 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
         >
           <option value="all">
             {{ i18next.t('dex.all', { ns: 'webui' }) }} {{ i18next.t('dex.element', { ns: 'webui' }) }}
@@ -36,7 +36,7 @@
         <select
           :value="selectedCategory"
           @change="$emit('update:selectedCategory', ($event.target as HTMLSelectElement).value)"
-          class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="w-full px-4 py-2 sm:py-3 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
         >
           <option value="all">
             {{ i18next.t('dex.all', { ns: 'webui' }) }} {{ i18next.t('dex.category', { ns: 'webui' }) }}
@@ -51,7 +51,7 @@
       <button
         v-if="hasActiveFilters"
         @click="clearFilters"
-        class="px-4 py-3 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 rounded-lg text-red-300 hover:text-red-200 transition-colors duration-200 flex items-center space-x-2"
+        class="px-4 py-2 sm:py-3 bg-red-100 hover:bg-red-200 border border-red-300 rounded-lg text-red-700 hover:text-red-800 transition-colors duration-200 flex items-center space-x-2 text-sm sm:text-base"
       >
         <XMarkIcon class="w-4 h-4" />
         <span>清除</span>
