@@ -1,11 +1,11 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-4">
+  <div class="min-h-screen bg-white p-4">
     <div class="max-w-4xl mx-auto">
       <!-- 返回按钮 -->
       <div class="mb-6">
         <button
           @click="$router.push('/dex')"
-          class="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
+          class="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
         >
           <ArrowLeftIcon class="w-5 h-5" />
           <span>{{ i18next.t('dex.backToDex', { ns: 'webui' }) }}</span>
@@ -14,18 +14,18 @@
 
       <!-- 加载状态 -->
       <div v-if="loading" class="text-center py-16">
-        <div class="text-white text-lg">加载中...</div>
+        <div class="text-gray-800 text-lg">加载中...</div>
       </div>
 
       <!-- 错误状态 -->
       <div v-else-if="error" class="text-center py-16">
-        <div class="text-red-400 text-lg">{{ error }}</div>
+        <div class="text-red-600 text-lg">{{ error }}</div>
       </div>
 
       <!-- 精灵详情 -->
       <div v-else-if="species" class="space-y-8">
         <!-- 精灵头部信息 -->
-        <div class="bg-slate-800/40 backdrop-blur-sm border border-slate-700 rounded-lg p-6">
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
           <div class="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
             <!-- 精灵图标 -->
             <div class="flex-shrink-0">
@@ -34,76 +34,76 @@
 
             <!-- 基本信息 -->
             <div class="flex-1 text-center md:text-left">
-              <h1 class="text-3xl font-bold text-white mb-2">
+              <h1 class="text-3xl font-bold text-gray-800 mb-2">
                 {{ getSpeciesName() }}
               </h1>
               <div class="flex items-center justify-center md:justify-start space-x-4 mb-4">
                 <ElementIcon :element="species.element" class="w-8 h-8" />
-                <span class="text-gray-300">{{ getElementName() }}</span>
+                <span class="text-gray-600">{{ getElementName() }}</span>
               </div>
-              <div class="text-gray-400 text-sm">#{{ String(species.num).padStart(3, '0') }}</div>
+              <div class="text-gray-500 text-sm">#{{ String(species.num).padStart(3, '0') }}</div>
             </div>
           </div>
         </div>
 
         <!-- 种族值 -->
-        <div class="bg-slate-800/40 backdrop-blur-sm border border-slate-700 rounded-lg p-6">
-          <h2 class="text-xl font-bold text-white mb-4">
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+          <h2 class="text-xl font-bold text-gray-800 mb-4">
             {{ i18next.t('dex.speciesDetail.stats', { ns: 'webui' }) }}
           </h2>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div v-for="(value, stat) in species.baseStats" :key="stat" class="bg-slate-700/30 rounded-lg p-3">
-              <div class="text-gray-400 text-sm">{{ getStatName(stat) }}</div>
-              <div class="text-white font-bold text-lg">{{ value }}</div>
+            <div v-for="(value, stat) in species.baseStats" :key="stat" class="bg-white border border-gray-200 rounded-lg p-3">
+              <div class="text-gray-600 text-sm">{{ getStatName(stat) }}</div>
+              <div class="text-gray-800 font-bold text-lg">{{ value }}</div>
             </div>
           </div>
         </div>
 
         <!-- 物理特征 -->
-        <div class="bg-slate-800/40 backdrop-blur-sm border border-slate-700 rounded-lg p-6">
-          <h2 class="text-xl font-bold text-white mb-4">物理特征</h2>
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+          <h2 class="text-xl font-bold text-gray-800 mb-4">物理特征</h2>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- 性别比例 -->
-            <div class="bg-slate-700/30 rounded-lg p-3">
-              <div class="text-gray-400 text-sm mb-2">
+            <div class="bg-white border border-gray-200 rounded-lg p-3">
+              <div class="text-gray-600 text-sm mb-2">
                 {{ i18next.t('dex.speciesDetail.genderRatio', { ns: 'webui' }) }}
               </div>
               <div v-if="species.genderRatio" class="space-y-1">
                 <div class="flex items-center space-x-2">
                   <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span class="text-white"
+                  <span class="text-gray-800"
                     >{{ i18next.t('dex.speciesDetail.male', { ns: 'webui' }) }}: {{ species.genderRatio[1] }}%</span
                   >
                 </div>
                 <div class="flex items-center space-x-2">
                   <div class="w-3 h-3 bg-pink-500 rounded-full"></div>
-                  <span class="text-white"
+                  <span class="text-gray-800"
                     >{{ i18next.t('dex.speciesDetail.female', { ns: 'webui' }) }}: {{ species.genderRatio[0] }}%</span
                   >
                 </div>
               </div>
-              <div v-else class="text-gray-400">
+              <div v-else class="text-gray-600">
                 {{ i18next.t('dex.speciesDetail.genderless', { ns: 'webui' }) }}
               </div>
             </div>
 
             <!-- 身高范围 -->
-            <div class="bg-slate-700/30 rounded-lg p-3">
-              <div class="text-gray-400 text-sm mb-2">
+            <div class="bg-white border border-gray-200 rounded-lg p-3">
+              <div class="text-gray-600 text-sm mb-2">
                 {{ i18next.t('dex.speciesDetail.heightRange', { ns: 'webui' }) }}
               </div>
-              <div class="text-white">
+              <div class="text-gray-800">
                 {{ species.heightRange[0] }} - {{ species.heightRange[1] }}
                 {{ i18next.t('dex.speciesDetail.cm', { ns: 'webui' }) }}
               </div>
             </div>
 
             <!-- 体重范围 -->
-            <div class="bg-slate-700/30 rounded-lg p-3">
-              <div class="text-gray-400 text-sm mb-2">
+            <div class="bg-white border border-gray-200 rounded-lg p-3">
+              <div class="text-gray-600 text-sm mb-2">
                 {{ i18next.t('dex.speciesDetail.weightRange', { ns: 'webui' }) }}
               </div>
-              <div class="text-white">
+              <div class="text-gray-800">
                 {{ species.weightRange[0] }} - {{ species.weightRange[1] }}
                 {{ i18next.t('dex.speciesDetail.kg', { ns: 'webui' }) }}
               </div>
@@ -112,23 +112,23 @@
         </div>
 
         <!-- 可学习技能 -->
-        <div class="bg-slate-800/40 backdrop-blur-sm border border-slate-700 rounded-lg p-6">
-          <h2 class="text-xl font-bold text-white mb-4">
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+          <h2 class="text-xl font-bold text-gray-800 mb-4">
             {{ i18next.t('dex.speciesDetail.learnableSkills', { ns: 'webui' }) }}
           </h2>
           <div class="space-y-2">
             <div
               v-for="skill in species.learnable_skills"
               :key="skill.skill_id"
-              class="flex items-center justify-between bg-slate-700/30 rounded-lg p-3 hover:bg-slate-700/50 transition-colors cursor-pointer"
+              class="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors cursor-pointer"
               @click="$router.push(`/dex/skill/${skill.skill_id}`)"
             >
               <div class="flex items-center space-x-3">
-                <div class="text-gray-400 text-sm w-12">Lv.{{ skill.level }}</div>
-                <div class="text-white">{{ getSkillName(skill.skill_id) }}</div>
+                <div class="text-gray-600 text-sm w-12">Lv.{{ skill.level }}</div>
+                <div class="text-gray-800">{{ getSkillName(skill.skill_id) }}</div>
                 <div v-if="skill.hidden" class="text-xs bg-purple-600 text-white px-2 py-1 rounded">隐藏</div>
               </div>
-              <ChevronRightIcon class="w-4 h-4 text-gray-400" />
+              <ChevronRightIcon class="w-4 h-4 text-gray-600" />
             </div>
           </div>
         </div>
@@ -136,35 +136,35 @@
         <!-- 特性和纹章 -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- 特性 -->
-          <div class="bg-slate-800/40 backdrop-blur-sm border border-slate-700 rounded-lg p-6">
-            <h2 class="text-xl font-bold text-white mb-4">
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">
               {{ i18next.t('dex.speciesDetail.abilities', { ns: 'webui' }) }}
             </h2>
             <div class="space-y-2">
               <div
                 v-for="ability in species.ability"
                 :key="ability"
-                class="bg-slate-700/30 rounded-lg p-3 hover:bg-slate-700/50 transition-colors cursor-pointer"
+                class="bg-white border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors cursor-pointer"
                 @click="$router.push(`/dex/mark/${ability}`)"
               >
-                <div class="text-white">{{ getMarkName(ability) }}</div>
+                <div class="text-gray-800">{{ getMarkName(ability) }}</div>
               </div>
             </div>
           </div>
 
           <!-- 纹章 -->
-          <div class="bg-slate-800/40 backdrop-blur-sm border border-slate-700 rounded-lg p-6">
-            <h2 class="text-xl font-bold text-white mb-4">
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">
               {{ i18next.t('dex.speciesDetail.emblems', { ns: 'webui' }) }}
             </h2>
             <div class="space-y-2">
               <div
                 v-for="emblem in species.emblem"
                 :key="emblem"
-                class="bg-slate-700/30 rounded-lg p-3 hover:bg-slate-700/50 transition-colors cursor-pointer"
+                class="bg-white border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors cursor-pointer"
                 @click="$router.push(`/dex/mark/${emblem}`)"
               >
-                <div class="text-white">{{ getMarkName(emblem) }}</div>
+                <div class="text-gray-800">{{ getMarkName(emblem) }}</div>
               </div>
             </div>
           </div>

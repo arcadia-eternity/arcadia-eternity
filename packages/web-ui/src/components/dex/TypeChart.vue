@@ -1,46 +1,160 @@
 <template>
   <div>
-    <!-- 页面标题 -->
-    <div class="text-center mb-8">
-      <h2 class="text-2xl font-bold text-white mb-2">
-        {{ i18next.t('dex.typeChartDetail.title', { ns: 'webui' }) }}
+    <!-- 桌面端图例 -->
+    <div class="hidden md:block mb-8 bg-slate-800/40 backdrop-blur-sm border border-slate-700 rounded-lg p-4 sm:p-6">
+      <h2 class="text-lg sm:text-xl font-bold text-white mb-4">
+        {{ i18next.t('dex.typeChartDetail.legend', { ns: 'webui' }) }}
       </h2>
-      <p class="text-gray-300">{{ i18next.t('dex.typeChartDetail.description', { ns: 'webui' }) }}</p>
-    </div>
-
-    <!-- 图例 -->
-    <div class="mb-8 bg-slate-800/40 backdrop-blur-sm border border-slate-700 rounded-lg p-6">
-      <h2 class="text-xl font-bold text-white mb-4">{{ i18next.t('dex.typeChartDetail.legend', { ns: 'webui' }) }}</h2>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         <div class="flex items-center space-x-2">
-          <div class="w-6 h-6 bg-red-500 rounded"></div>
-          <span class="text-white">2.0× {{ i18next.t('dex.typeChartDetail.superEffective', { ns: 'webui' }) }}</span>
+          <div class="w-5 h-5 sm:w-6 sm:h-6 bg-red-500 rounded flex-shrink-0"></div>
+          <span class="text-white text-sm"
+            >2.0× {{ i18next.t('dex.typeChartDetail.superEffective', { ns: 'webui' }) }}</span
+          >
         </div>
         <div class="flex items-center space-x-2">
-          <div class="w-6 h-6 bg-orange-500 rounded"></div>
-          <span class="text-white">1.25× {{ i18next.t('dex.typeChartDetail.effective', { ns: 'webui' }) }}</span>
+          <div class="w-5 h-5 sm:w-6 sm:h-6 bg-orange-500 rounded flex-shrink-0"></div>
+          <span class="text-white text-sm"
+            >1.25× {{ i18next.t('dex.typeChartDetail.effective', { ns: 'webui' }) }}</span
+          >
         </div>
         <div class="flex items-center space-x-2">
-          <div class="w-6 h-6 bg-gray-500 rounded"></div>
-          <span class="text-white">1.0× {{ i18next.t('dex.typeChartDetail.effective', { ns: 'webui' }) }}</span>
+          <div class="w-5 h-5 sm:w-6 sm:h-6 bg-gray-500 rounded flex-shrink-0"></div>
+          <span class="text-white text-sm">1.0× {{ i18next.t('dex.typeChartDetail.effective', { ns: 'webui' }) }}</span>
         </div>
         <div class="flex items-center space-x-2">
-          <div class="w-6 h-6 bg-blue-500 rounded"></div>
-          <span class="text-white">0.75× {{ i18next.t('dex.typeChartDetail.notVeryEffective', { ns: 'webui' }) }}</span>
+          <div class="w-5 h-5 sm:w-6 sm:h-6 bg-blue-500 rounded flex-shrink-0"></div>
+          <span class="text-white text-sm"
+            >0.75× {{ i18next.t('dex.typeChartDetail.notVeryEffective', { ns: 'webui' }) }}</span
+          >
         </div>
         <div class="flex items-center space-x-2">
-          <div class="w-6 h-6 bg-green-500 rounded"></div>
-          <span class="text-white">0.5× {{ i18next.t('dex.typeChartDetail.notVeryEffective', { ns: 'webui' }) }}</span>
+          <div class="w-5 h-5 sm:w-6 sm:h-6 bg-green-500 rounded flex-shrink-0"></div>
+          <span class="text-white text-sm"
+            >0.5× {{ i18next.t('dex.typeChartDetail.notVeryEffective', { ns: 'webui' }) }}</span
+          >
         </div>
         <div class="flex items-center space-x-2">
-          <div class="w-6 h-6 bg-black rounded border border-gray-600"></div>
-          <span class="text-white">0× {{ i18next.t('dex.typeChartDetail.noEffect', { ns: 'webui' }) }}</span>
+          <div class="w-5 h-5 sm:w-6 sm:h-6 bg-black rounded border border-gray-600 flex-shrink-0"></div>
+          <span class="text-white text-sm">0× {{ i18next.t('dex.typeChartDetail.noEffect', { ns: 'webui' }) }}</span>
         </div>
       </div>
     </div>
 
-    <!-- 属性克制表 -->
-    <div class="bg-slate-800/40 backdrop-blur-sm border border-slate-700 rounded-lg p-6 overflow-x-auto">
+    <!-- 移动端交互式视图 -->
+    <div class="block md:hidden h-full">
+      <div class="flex flex-row gap-3 h-full">
+        <!-- 左侧竖长条属性选择器 -->
+        <div
+          class="w-16 flex-shrink-0 bg-slate-800/40 backdrop-blur-sm border border-slate-700 rounded-lg p-2 flex flex-col"
+        >
+          <!-- 模式切换 -->
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs text-white font-medium">{{ viewMode === 'attack' ? '攻击' : '防御' }}</span>
+            <button
+              :class="[
+                'relative inline-flex h-4 w-7 items-center rounded-full transition-all duration-200 text-xs',
+                viewMode === 'attack' ? 'bg-blue-500' : 'bg-green-500',
+              ]"
+              @click="viewMode = viewMode === 'attack' ? 'defense' : 'attack'"
+            >
+              <span
+                :class="[
+                  'inline-block h-2 w-2 transform rounded-full bg-white transition-all duration-200',
+                  viewMode === 'attack' ? 'translate-x-0.5' : 'translate-x-3.5',
+                ]"
+              />
+            </button>
+          </div>
+
+          <!-- 竖长条属性列表 -->
+          <div class="space-y-1 flex-1 overflow-y-auto">
+            <button
+              v-for="element in elements"
+              :key="`selector-${element}`"
+              :class="[
+                'flex items-center justify-center w-full p-1 rounded transition-all',
+                selectedElement === element
+                  ? viewMode === 'attack'
+                    ? 'bg-blue-500'
+                    : 'bg-green-500'
+                  : 'bg-slate-700/30 hover:bg-slate-600/30',
+              ]"
+              @click="selectedElement = element"
+            >
+              <ElementIcon :element="element" class="w-6 h-6" />
+            </button>
+          </div>
+
+          <!-- 简化图例 -->
+          <div class="mt-3 pt-3 border-t border-slate-600 flex-shrink-0">
+            <div class="grid grid-cols-2 gap-1 text-xs">
+              <div class="flex items-center space-x-1">
+                <div class="w-2 h-2 bg-red-500 rounded"></div>
+                <span class="text-white">2×</span>
+              </div>
+              <div class="flex items-center space-x-1">
+                <div class="w-2 h-2 bg-orange-500 rounded"></div>
+                <span class="text-white">1¼×</span>
+              </div>
+              <div class="flex items-center space-x-1">
+                <div class="w-2 h-2 bg-gray-500 rounded"></div>
+                <span class="text-white">1×</span>
+              </div>
+              <div class="flex items-center space-x-1">
+                <div class="w-2 h-2 bg-blue-500 rounded"></div>
+                <span class="text-white">¾×</span>
+              </div>
+              <div class="flex items-center space-x-1">
+                <div class="w-2 h-2 bg-green-500 rounded"></div>
+                <span class="text-white">½×</span>
+              </div>
+              <div class="flex items-center space-x-1">
+                <div class="w-2 h-2 bg-black rounded border border-gray-600"></div>
+                <span class="text-white">0×</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧效果展示 -->
+        <div
+          class="flex-1 min-w-0 bg-slate-800/40 backdrop-blur-sm border border-slate-700 rounded-lg p-2 flex items-center justify-center"
+        >
+          <div class="grid grid-cols-5 gap-1 w-full max-w-xs">
+            <div
+              v-for="targetElement in elements"
+              :key="`result-${selectedElement}-${targetElement}`"
+              :class="[
+                'flex flex-col items-center justify-center p-2 rounded cursor-pointer transition-all hover:scale-105 aspect-square',
+                viewMode === 'attack'
+                  ? getEffectivenessColor(selectedElement, targetElement)
+                  : getEffectivenessColor(targetElement, selectedElement),
+              ]"
+              @click="
+                viewMode === 'attack'
+                  ? showEffectivenessDetail(selectedElement, targetElement)
+                  : showEffectivenessDetail(targetElement, selectedElement)
+              "
+            >
+              <ElementIcon :element="targetElement" class="w-6 h-6 mb-1" />
+              <span class="text-white font-bold text-xs">
+                {{
+                  viewMode === 'attack'
+                    ? formatEffectiveness(getEffectiveness(selectedElement, targetElement))
+                    : formatEffectiveness(getEffectiveness(targetElement, selectedElement))
+                }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 桌面端完整表格 -->
+    <div
+      class="hidden md:block bg-slate-800/40 backdrop-blur-sm border border-slate-700 rounded-lg p-6 overflow-x-auto"
+    >
       <div class="min-w-max">
         <!-- 表头 -->
         <div class="grid grid-cols-24 gap-1 mb-2">
@@ -131,6 +245,12 @@ const { i18next } = useTranslation()
 
 // 所有属性列表
 const elements = computed(() => Object.values(Element))
+
+// 移动端视图模式
+const viewMode = ref<'attack' | 'defense'>('attack')
+
+// 移动端选中的属性
+const selectedElement = ref<Element>(Element.Fire)
 
 // 选中的效果详情
 const selectedEffectiveness = ref<{

@@ -1,12 +1,11 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-4">
-    <div class="max-w-7xl mx-auto">
+  <div class="bg-white p-2 sm:p-3 flex flex-col h-full">
+    <div class="flex flex-col h-full">
       <!-- 页面标题 -->
-      <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold text-white mb-2">
+      <div class="text-center mb-4 sm:mb-6">
+        <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
           {{ i18next.t('dex.title', { ns: 'webui' }) }}
         </h1>
-        <p class="text-gray-300">{{ i18next.t('dex.searchPlaceholder', { ns: 'webui' }) }}</p>
       </div>
 
       <!-- 导航标签 -->
@@ -22,21 +21,21 @@
       />
 
       <!-- 内容区域 -->
-      <div class="mt-8">
+      <div class="mt-4 sm:mt-6 flex-1 min-h-0">
         <!-- 属性克制表 -->
-        <TypeChart v-if="activeTab === 'typeChart'" />
+        <TypeChart v-if="activeTab === 'typeChart'" class="h-full" />
 
         <!-- 其他标签页的内容 -->
         <template v-else>
           <!-- 结果统计 -->
-          <div class="mb-4 text-gray-300 text-sm">
+          <div class="mb-3 text-gray-600 text-xs">
             {{ i18next.t('dex.total', { ns: 'webui', count: filteredItems.length }) }}
           </div>
 
           <!-- 卡片网格 -->
           <div
             v-if="filteredItems.length > 0"
-            class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+            class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3"
           >
             <DexCard
               v-for="item in paginatedItems"
@@ -48,14 +47,14 @@
           </div>
 
           <!-- 无结果提示 -->
-          <div v-else class="text-center py-16">
-            <div class="text-gray-400 text-lg">
+          <div v-else class="text-center py-8">
+            <div class="text-gray-500 text-sm">
               {{ i18next.t('dex.noResults', { ns: 'webui' }) }}
             </div>
           </div>
 
           <!-- 分页 -->
-          <div v-if="totalPages > 1" class="mt-8 flex justify-center">
+          <div v-if="totalPages > 1" class="mt-4 flex justify-center">
             <el-pagination
               v-model:current-page="currentPage"
               :page-size="pageSize"
@@ -215,13 +214,13 @@ onMounted(async () => {
 }
 
 :deep(.dex-pagination .el-pager li) {
-  background-color: rgba(30, 41, 59, 0.8);
-  color: #e2e8f0;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background-color: #f9fafb;
+  color: #374151;
+  border: 1px solid #d1d5db;
 }
 
 :deep(.dex-pagination .el-pager li:hover) {
-  background-color: rgba(59, 130, 246, 0.2);
+  background-color: #e5e7eb;
 }
 
 :deep(.dex-pagination .el-pager li.is-active) {
@@ -231,13 +230,13 @@ onMounted(async () => {
 
 :deep(.dex-pagination .btn-prev),
 :deep(.dex-pagination .btn-next) {
-  background-color: rgba(30, 41, 59, 0.8);
-  color: #e2e8f0;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background-color: #f9fafb;
+  color: #374151;
+  border: 1px solid #d1d5db;
 }
 
 :deep(.dex-pagination .btn-prev:hover),
 :deep(.dex-pagination .btn-next:hover) {
-  background-color: rgba(59, 130, 246, 0.2);
+  background-color: #e5e7eb;
 }
 </style>

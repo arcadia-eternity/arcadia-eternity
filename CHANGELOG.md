@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.23.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.23.1...arcadia-eternity-v2.23.2) (2025-08-30)
+
+
+### ♻️ Code Refactoring
+
+* dex ([c2a920c](https://github.com/arcadia-eternity/arcadia-eternity/commit/c2a920c885ab64ba9fb2ca6e2658ca1235eca2cd))
+
 ## [2.23.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.23.0...arcadia-eternity-v2.23.1) (2025-08-29)
 
 
