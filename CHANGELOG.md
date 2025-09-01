@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.23.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.23.2...arcadia-eternity-v2.23.3) (2025-09-01)
+
+
+### 🐛 Bug Fixes
+
+* add connect tip ([5d4c522](https://github.com/arcadia-eternity/arcadia-eternity/commit/5d4c522038039cf82580cd5e2541a01aada208e6))
+
 ## [2.23.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.23.1...arcadia-eternity-v2.23.2) (2025-08-30)
 
 
