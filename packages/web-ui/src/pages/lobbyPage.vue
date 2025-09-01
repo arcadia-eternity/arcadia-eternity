@@ -291,6 +291,7 @@
         <ul class="text-left text-sm md:text-base space-y-1">
           <li>不要忘了 先在队伍编辑里面编辑队伍</li>
           <li>目前正在活跃更新中 可能会有一些bug 尽量谅解</li>
+          <li>如果暂时连不上服务器 可能是因为服务器处于休眠状态 等待一下后重连或者刷新即可</li>
           <li>群号：805146068</li>
         </ul>
       </el-alert>
