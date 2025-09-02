@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.23.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.23.3...arcadia-eternity-v2.23.4) (2025-09-02)
+
+
+### 🐛 Bug Fixes
+
+* cleanup battle ([1eef8dd](https://github.com/arcadia-eternity/arcadia-eternity/commit/1eef8ddb36658147d99f58d2cf3e12a59f8d8c09))
+
 ## [2.23.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.23.2...arcadia-eternity-v2.23.3) (2025-09-01)
 
 
