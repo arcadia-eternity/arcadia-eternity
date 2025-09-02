@@ -1,5 +1,5 @@
 import { BattleMessageType } from '@arcadia-eternity/const'
-import { InteractivePhase } from './base'
+import { InteractivePhase } from '../phase'
 import { Context } from '../context'
 import type { Battle } from '../battle'
 

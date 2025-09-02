@@ -1,7 +1,6 @@
-import { EffectTrigger } from '@arcadia-eternity/const'
-import { Context, type TriggerContextMap } from '../context'
-import type { Battle } from '../battle'
-import { ConfigSystem, ConfigModifier, ConfigDurationType, ConfigModifierType, type ConfigValue } from '../config'
+import { Context } from './context'
+import type { Battle } from './battle'
+import { ConfigSystem, ConfigModifier, ConfigDurationType, ConfigModifierType, type ConfigValue } from './config'
 
 /**
  * Phase execution state

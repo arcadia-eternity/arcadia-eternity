@@ -1,5 +1,5 @@
 import { EffectTrigger, BattleMessageType, BattleStatus, BattlePhase } from '@arcadia-eternity/const'
-import { SynchronousPhase } from './base'
+import { SynchronousPhase } from '../phase'
 import type { Battle } from '../battle'
 import type { BattleState } from '@arcadia-eternity/const'
 

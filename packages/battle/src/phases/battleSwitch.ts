@@ -1,5 +1,5 @@
 import { BattleMessageType, type SwitchPetSelection } from '@arcadia-eternity/const'
-import { InteractivePhase } from './base'
+import { InteractivePhase } from '../phase'
 import { Context } from '../context'
 import { SwitchPetPhase } from './switch'
 import type { Battle } from '../battle'

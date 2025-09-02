@@ -6,7 +6,7 @@ import {
   type PetMessage,
   type TeamInfo,
 } from '@arcadia-eternity/const'
-import { InteractivePhase } from './base'
+import { InteractivePhase } from '../phase'
 import { Context } from '../context'
 import type { Battle } from '../battle'
 import type { Player } from '../player'

@@ -1,11 +1,11 @@
 import { EffectTrigger, BattleMessageType, BattleStatus, BattlePhase } from '@arcadia-eternity/const'
-import { InteractivePhase } from './base'
+import { InteractivePhase } from '../phase'
 import { TurnContext, UseSkillContext, SwitchPetContext } from '../context'
 import { SkillPhase } from './skill'
 import { SwitchPetPhase } from './switch'
 import { RagePhase } from './rage'
-import { MarkCleanupPhase } from './MarkCleanupPhase'
-import { MarkUpdatePhase } from './MarkUpdatePhase'
+import { MarkCleanupPhase } from './markCleanup'
+import { MarkUpdatePhase } from './markUpdate'
 import type { Battle } from '../battle'
 
 /**
@@ -138,14 +138,7 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
  */
 function addTurnRage(context: TurnContext, battle: Battle): void {
   ;[battle.playerA, battle.playerB].forEach(player => {
-    const ragePhase = new RagePhase(
-      battle,
-      context,
-      player,
-      'turn',
-      'add',
-      player.activePet.stat.ragePerTurn,
-    )
+    const ragePhase = new RagePhase(battle, context, player, 'turn', 'add', player.activePet.stat.ragePerTurn)
     battle.phaseManager.registerPhase(ragePhase)
     battle.phaseManager.executePhase(ragePhase.id)
   })

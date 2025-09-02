@@ -1,10 +1,10 @@
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
-import { SynchronousPhase } from './base'
+import { SynchronousPhase } from '../phase'
 import { SwitchPetContext, TurnContext } from '../context'
 import type { Battle } from '../battle'
 import type { Player } from '../player'
 import type { Pet } from '../pet'
-import { MarkSwitchOutPhase } from './MarkSwitchOutPhase'
+import { MarkSwitchOutPhase } from './markSwitchOut'
 import { RagePhase } from './rage'
 
 /**

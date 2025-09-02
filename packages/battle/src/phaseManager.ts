@@ -1,6 +1,6 @@
-import { BattlePhaseBase, PhaseState, type PhaseResult, InteractivePhase } from './base'
-import type { Battle } from '../battle'
-import { createChildLogger } from '../logger'
+import { BattlePhaseBase, PhaseState, type PhaseResult, InteractivePhase } from './phase'
+import type { Battle } from './battle'
+import { createChildLogger } from './logger'
 
 /**
  * Phase execution options

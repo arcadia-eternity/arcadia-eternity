@@ -2,9 +2,9 @@ import { EffectTrigger } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
 import type { SwitchPetContext } from '../context'
 import type { Pet } from '../pet'
-import { SynchronousPhase } from './base'
-import { MarkTransferPhase } from './MarkTransferPhase'
-import { RemoveMarkPhase } from './RemoveMarkPhase'
+import { SynchronousPhase } from '../phase'
+import { MarkTransferPhase } from './markTransfer'
+import { RemoveMarkPhase } from './removeMark'
 
 /**
  * MarkSwitchOutPhase handles mark switch out operations
