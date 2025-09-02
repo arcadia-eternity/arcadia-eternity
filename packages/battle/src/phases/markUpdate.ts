@@ -3,8 +3,8 @@ import type { Battle } from '../battle'
 import type { TurnContext } from '../context'
 import type { MarkInstance } from '../mark'
 import { Pet } from '../pet'
-import { SynchronousPhase } from './base'
-import { RemoveMarkPhase } from './RemoveMarkPhase'
+import { SynchronousPhase } from '../phase'
+import { RemoveMarkPhase } from './removeMark'
 
 /**
  * MarkUpdatePhase handles mark update operations

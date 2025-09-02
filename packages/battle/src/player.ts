@@ -22,8 +22,8 @@ import { PlayerAttributeSystem } from './attributeSystem'
 import { Battle } from './battle'
 import { SwitchPetContext, UseSkillContext } from './context'
 import { Pet } from './pet'
-import { SkillPhase } from './phase/skill'
-import { SwitchPetPhase } from './phase/switch'
+import { SkillPhase } from './phases/skill'
+import { SwitchPetPhase } from './phases/switch'
 
 export enum AIDecisionTiming {
   IMMEDIATE = 'immediate', // 立即决策（当前行为）

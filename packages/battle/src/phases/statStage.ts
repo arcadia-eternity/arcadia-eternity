@@ -3,9 +3,9 @@ import type { Battle } from '../battle'
 import { EffectContext } from '../context'
 import type { MarkOwner } from '../entity'
 import { CreateStatStageMark, StatLevelMarkInstanceImpl } from '../mark'
-import { SynchronousPhase } from './base'
-import { AddMarkPhase } from './AddMarkPhase'
-import { RemoveMarkPhase } from './RemoveMarkPhase'
+import { SynchronousPhase } from '../phase'
+import { AddMarkPhase } from './addMark'
+import { RemoveMarkPhase } from './removeMark'
 
 /**
  * StatStagePhase handles stat stage operations including:

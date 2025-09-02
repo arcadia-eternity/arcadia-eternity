@@ -3,7 +3,7 @@ import { StackContext } from '../context'
 import type { Battle } from '../battle'
 import { Pet } from '../pet'
 import { StatLevelMarkInstanceImpl, CreateStatStageMark } from '../mark'
-import { RemoveMarkPhase } from './RemoveMarkPhase'
+import { RemoveMarkPhase } from './removeMark'
 
 /**
  * Handle StatLevel mark stacking with special level-based logic

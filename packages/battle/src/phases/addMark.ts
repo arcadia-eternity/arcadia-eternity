@@ -4,9 +4,9 @@ import { AddMarkContext, StackContext } from '../context'
 import type { Instance, MarkOwner } from '../entity'
 import { type BaseMark, type MarkInstance, StatLevelMarkInstanceImpl, BaseStatLevelMark } from '../mark'
 import { Pet } from '../pet'
-import { SynchronousPhase } from './base'
-import { MarkStackPhase } from './MarkStackPhase'
-import { RemoveMarkPhase } from './RemoveMarkPhase'
+import { SynchronousPhase } from '../phase'
+import { MarkStackPhase } from './markStack'
+import { RemoveMarkPhase } from './removeMark'
 
 /**
  * AddMarkPhase handles mark addition operations

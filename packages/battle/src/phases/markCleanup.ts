@@ -1,7 +1,7 @@
 import type { Battle } from '../battle'
 import type { TurnContext } from '../context'
 import type { Pet } from '../pet'
-import { SynchronousPhase } from './base'
+import { SynchronousPhase } from '../phase'
 
 /**
  * MarkCleanupPhase handles mark cleanup operations

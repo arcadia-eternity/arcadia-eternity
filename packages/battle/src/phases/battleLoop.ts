@@ -1,5 +1,5 @@
 import { BattlePhase } from '@arcadia-eternity/const'
-import { InteractivePhase } from './base'
+import { InteractivePhase } from '../phase'
 import { BattleSwitchPhase } from './battleSwitch'
 import { SelectionPhase } from './selection'
 import { TurnPhase } from './turn'

@@ -1,5 +1,5 @@
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
-import { SynchronousPhase } from './base'
+import { SynchronousPhase } from '../phase'
 import { HealContext } from '../context'
 import type { Battle } from '../battle'
 import type { Pet } from '../pet'

@@ -3,7 +3,7 @@ import { Battle } from '../battle'
 import { RemoveMarkContext } from '../context'
 import { type MarkInstance, StatLevelMarkInstanceImpl } from '../mark'
 import { Pet } from '../pet'
-import { SynchronousPhase } from './base'
+import { SynchronousPhase } from '../phase'
 
 /**
  * RemoveMarkPhase handles mark removal operations

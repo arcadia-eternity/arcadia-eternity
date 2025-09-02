@@ -3,8 +3,8 @@ import type { Battle } from '../battle'
 import { SwitchPetContext, EffectContext, AddMarkContext, StackContext } from '../context'
 import type { MarkInstance } from '../mark'
 import type { Pet } from '../pet'
-import { SynchronousPhase } from './base'
-import { MarkStackPhase } from './MarkStackPhase'
+import { SynchronousPhase } from '../phase'
+import { MarkStackPhase } from './markStack'
 
 /**
  * MarkTransferPhase handles mark transfer operations

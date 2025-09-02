@@ -26,7 +26,7 @@ import { AddMarkContext, DamageContext, EffectContext, SwitchPetContext } from '
 import { Effect, type EffectContainer } from './effect'
 import { type Instance, type MarkOwner, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
-import { ConsumeStackPhase } from './phase/ConsumeStackPhase'
+import { ConsumeStackPhase } from './phases/consumeStack'
 
 export interface IBaseMark extends Prototype {
   createInstance(...arg: any[]): MarkInstance

@@ -3,9 +3,9 @@ import type { Battle } from '../battle'
 import type { StackContext } from '../context'
 import { StatLevelMarkInstanceImpl } from '../mark'
 import { Pet } from '../pet'
-import { SynchronousPhase } from './base'
+import { SynchronousPhase } from '../phase'
 import { executeStatLevelMarkStacking } from './mark'
-import { RemoveMarkPhase } from './RemoveMarkPhase'
+import { RemoveMarkPhase } from './removeMark'
 
 /**
  * MarkStackPhase handles mark stacking operations
