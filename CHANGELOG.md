@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.23.5](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.23.4...arcadia-eternity-v2.23.5) (2025-09-03)
+
+
+### ⚡ Performance Improvements
+
+* rename local battle to ai battle ([71a1e14](https://github.com/arcadia-eternity/arcadia-eternity/commit/71a1e147f32895e6f86815ea5a97b2eae4a69930))
+
 ## [2.23.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.23.3...arcadia-eternity-v2.23.4) (2025-09-02)
 
 
