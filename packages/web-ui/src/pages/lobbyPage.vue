@@ -61,7 +61,7 @@
         class="flex flex-col items-center gap-2 p-4 md:p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500 min-h-[80px] md:min-h-[auto] touch-manipulation"
       >
         <el-icon :size="20"><Monitor /></el-icon>
-        <span class="text-sm md:text-base">本地测试</span>
+        <span class="text-sm md:text-base">人机对战</span>
       </router-link>
       <a
         href="https://github.com/arcadia-eternity/arcadia-eternity"
@@ -292,6 +292,7 @@
           <li>不要忘了 先在队伍编辑里面编辑队伍</li>
           <li>目前正在活跃更新中 可能会有一些bug 尽量谅解</li>
           <li>如果暂时连不上服务器 可能是因为服务器处于休眠状态 等待一下后重连或者刷新即可</li>
+          <li>人机对战可以在没有连接服务器的情况下进行</li>
           <li>群号：805146068</li>
         </ul>
       </el-alert>

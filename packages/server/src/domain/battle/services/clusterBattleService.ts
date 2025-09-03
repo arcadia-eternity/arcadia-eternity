@@ -1354,7 +1354,7 @@ export class ClusterBattleService implements IBattleService {
     try {
       const localRoom = this.localRooms.get(roomId)
       if (localRoom) {
-        // 清理战斗监听器
+        // 清理战斗
         localRoom.battle.cleanup()
 
         // 从本地映射中移除

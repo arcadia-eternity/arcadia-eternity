@@ -56,7 +56,7 @@
             @click="router.push('/local-battle')"
             :disabled="$route.path === '/local-battle'"
           >
-            本地测试
+            人机对战
           </el-button>
           <el-dropdown @command="handleBattleReportCommand">
             <el-button type="info" icon="Document">
@@ -135,7 +135,7 @@
             :class="{ 'bg-blue-50 text-blue-600 border-l-blue-600': $route.path === '/local-battle' }"
           >
             <el-icon><MagicStick /></el-icon>
-            <span>本地测试</span>
+            <span>人机对战</span>
           </router-link>
           <router-link
             to="/storage"
