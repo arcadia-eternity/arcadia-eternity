@@ -89,7 +89,7 @@ export const dynamicValueSchema: z.ZodSchema<DynamicValue> = z.lazy(() =>
 
 export const selectorValueSchema: z.ZodSchema<SelectorValue> = z.lazy(() =>
   z.object({
-    type: z.literal('selector'),
+    type: z.literal('selectorValue'),
     value: valueSchema,
     chain: z.array(selectorChainSchema).optional(),
   }),
@@ -119,6 +119,7 @@ export const valueSchema: z.ZodSchema<Value> = z.lazy(() =>
     selectorValueSchema,
     conditionalValueSchema,
     z.array(valueSchema),
+    operatorDSLSchema,
   ]),
 )
 
@@ -765,6 +766,10 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
     }),
     z.object({
       type: z.literal('removeTransformation'),
+      target: selectorDSLSchema,
+    }),
+    z.object({
+      type: z.literal('executeActions'),
       target: selectorDSLSchema,
     }),
   ]),

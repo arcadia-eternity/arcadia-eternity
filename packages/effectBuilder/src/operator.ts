@@ -50,7 +50,7 @@ import {
   type StatTypeOnBattle,
   StatTypeWithoutHp,
 } from '@arcadia-eternity/const'
-import type { Condition, ConditionalValueSource, ConfigValueSource, Operator } from './effectBuilder'
+import type { Action, Condition, ConditionalValueSource, ConfigValueSource, Operator } from './effectBuilder'
 import { ChainableSelector, type PrimitiveOpinion, type PropertyRef, type SelectorOpinion } from './selector'
 import { type ValueSource } from './effectBuilder'
 
@@ -1832,6 +1832,11 @@ export const Operators = {
         }
       })
     },
+
+  /** 执行Action数组操作符 */
+  executeActions: (): Operator<Action> => (context: EffectContext<EffectTrigger>, actions: Action[]) => {
+    actions.forEach(action => action(context))
+  },
 }
 
 export function GetValueFromSource<T extends SelectorOpinion>(
@@ -1850,7 +1855,19 @@ export function GetValueFromSource<T extends SelectorOpinion>(
         ? GetValueFromSource(context, condSource.falseValue)
         : []
   }
-  if (typeof source == 'function') return source(context) //TargetSelector
+  if (typeof source == 'function') {
+    const result = source(context)
+    // For TargetSelector functions that return T[], return the result
+    if (Array.isArray(result)) {
+      return result
+    }
+    // For Action functions that return void, warn and return empty array
+    console.warn(
+      `Warning: Action function executed in GetValueFromSource. This may cause unintended side effects. ` +
+        `Action functions should be used with Operators.executeActions() instead of being called directly in value extraction.`,
+    )
+    return []
+  }
   if (Array.isArray(source)) return source.map(v => GetValueFromSource(context, v as ValueSource<T>[])[0]) as T[]
   if (source && typeof source === 'object' && 'configId' in source) {
     const _source = source as ConfigValueSource<T>

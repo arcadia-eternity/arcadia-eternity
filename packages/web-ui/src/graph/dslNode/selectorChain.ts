@@ -17,7 +17,7 @@ import { CompareEvaluatorNode } from './evaluator'
 export abstract class SelectorStepNode extends BaseGetVariableNode {
   // 节点类型，对应 SelectorChain.type
   title: string = ''
-  static stepType: SelectorChain['type']
+  static steptype: selectorValueChain['type']
 
   constructor() {
     super('SelectorChain')

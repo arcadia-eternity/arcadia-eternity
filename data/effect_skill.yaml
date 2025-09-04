@@ -5159,7 +5159,7 @@
     type: addMark
     target: battle
     mark:
-      type: selector
+      type: selectorValue
       value:
         - type: entity:baseMark
           value: mark_global_qingtian
@@ -8048,7 +8048,7 @@
     type: addMark
     target: self
     mark:
-      type: selector
+      type: selectorValue
       value:
         - type: entity:baseMark
           value: mark_zhaocai
@@ -8369,7 +8369,7 @@
       statType: atk
     - <<: *apply_self_statstage_+1_template
       statType:
-        type: selector
+        type: selectorValue
         value: ['def', 'spd', 'spa', 'spe']
         chain:
           - type: randomPick
@@ -10366,7 +10366,7 @@
     target: damageContext
     percent: 0
     delta: &sample_30_70
-      type: selector
+      type: selectorValue
       value: [30, 70]
       chain:
         - type: sampleBetween

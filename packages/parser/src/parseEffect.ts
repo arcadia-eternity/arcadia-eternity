@@ -50,6 +50,7 @@ import {
   registerLiteralValue,
   type ConfigValueSource,
   type ConditionalValueSource,
+  type Action,
 } from '@arcadia-eternity/effect-builder'
 import { RuntimeTypeChecker } from '@arcadia-eternity/effect-builder'
 import type {
@@ -64,6 +65,7 @@ import type {
   ChainSelector,
   SelectorValue,
 } from '@arcadia-eternity/schema'
+import { create } from 'domain'
 
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   try {
@@ -105,23 +107,6 @@ export function parseSelector<T extends SelectorOpinion>(effectId: string, dsl: 
     return trueSelector.when(condition, trueSelector.build(), falseSelector?.build()) as ChainableSelector<T>
   }
 
-  // 处理SelectorValue类型
-  if (typeof dsl === 'object' && 'type' in dsl && dsl.type === 'selector') {
-    const selectorValue = dsl as SelectorValue
-    // 从Value创建selector
-    const valueSelector = createSelectorFromValue(effectId, selectorValue.value)
-
-    // 处理链式操作
-    if (selectorValue.chain) {
-      return selectorValue.chain.reduce(
-        (selector, step) => applySelectorStep(effectId, selector, step),
-        valueSelector as ChainableSelector<SelectorOpinion>,
-      ) as ChainableSelector<T>
-    }
-
-    return valueSelector as ChainableSelector<T>
-  }
-
   // 解析基础选择器
   const baseSelector = typeof dsl === 'string' ? getBaseSelector(dsl) : getBaseSelector((dsl as ChainSelector).base)
 
@@ -134,6 +119,21 @@ export function parseSelector<T extends SelectorOpinion>(effectId: string, dsl: 
   }
 
   return baseSelector as ChainableSelector<T>
+}
+
+function parseSelectorValue(effectId: string, dsl: SelectorValue): ChainableSelector<SelectorOpinion> {
+  // 从Value创建selector
+  const valueSelector = createSelectorFromValue(effectId, dsl.value)
+
+  // 处理链式操作
+  if (dsl.chain) {
+    return dsl.chain.reduce(
+      (selector, step) => applySelectorStep(effectId, selector, step),
+      valueSelector as ChainableSelector<SelectorOpinion>,
+    ) as ChainableSelector<SelectorOpinion>
+  }
+
+  return valueSelector as ChainableSelector<SelectorOpinion>
 }
 
 function getBaseSelector(selectorKey: string): ChainableSelector<SelectorOpinion> {
@@ -540,6 +540,8 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseTransformWithPreservationAction(effectId, dsl)
     case 'removeTransformation':
       return parseRemoveTransformationAction(effectId, dsl)
+    case 'executeActions':
+      return parseExecuteActionsAction(effectId, dsl)
     default:
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`[parseEffect] 未知的操作类型: ${(dsl as any).type}`)
@@ -552,6 +554,9 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
   if (typeof v === 'string') return v
   if (typeof v === 'number') return v
   if (typeof v === 'boolean') return v
+  if (typeof v === 'object' && ('target' in v || ('type' in v && v.type === 'conditional' && 'trueOperator' in v))) {
+    return createAction(effectId, v)
+  }
   if (typeof v === 'object' && 'type' in v && v.type === 'conditional') {
     const condition = parseCondition(effectId, v.condition)
     const trueValue = parseValue(effectId, v.trueValue)
@@ -579,7 +584,7 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
   if (v.type === 'entity:species')
     return (() => [DataRepository.getInstance().getSpecies(v.value as speciesId)]) as ValueSource<any>
   if (v.type === 'dynamic') return parseSelector(effectId, v.selector)
-  if (v.type === 'selector') return parseSelector(effectId, v)
+  if (v.type === 'selectorValue') return parseSelectorValue(effectId, v)
   throw new Error(`[parseEffect] 未知的数值类型: ${(v as any).type}`)
 }
 
@@ -1016,6 +1021,13 @@ export function parseAddClampModifierAction(effectId: string, dsl: Extract<Opera
       dsl.phaseId ? (parseValue(effectId, dsl.phaseId) as ValueSource<string>) : undefined,
     ),
   )
+}
+
+export function parseExecuteActionsAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'executeActions' }>,
+): Action {
+  return parseSelector<Action>(effectId, dsl.target).apply(Operators.executeActions())
 }
 
 export function parseCondition(effectId: string, dsl: ConditionDSL): Condition {
