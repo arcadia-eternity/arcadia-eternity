@@ -1835,7 +1835,10 @@ export const Operators = {
 
   /** 执行Action数组操作符 */
   executeActions: (): Operator<Action> => (context: EffectContext<EffectTrigger>, actions: Action[]) => {
-    actions.forEach(action => action(context))
+    actions.forEach(action => {
+      if (typeof action !== 'function') return
+      action(context)
+    })
   },
 }
 
