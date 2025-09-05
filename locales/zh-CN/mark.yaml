@@ -367,6 +367,9 @@ mark_yinbopingzhang:
 mark_shoudaoshanghaijianshao:
   name: 受到伤害减少
   description: 受到伤害减少{{mark.stack}}%
+mark_shoudaoshanghaizengjia:
+  name: 受到伤害增加
+  description: 受到伤害增加{{mark.stack}}%
 mark_wulishanghaizengjia:
   name: 物理伤害增加
   description: 造成物理伤害增加{{mark.stack}}%
@@ -748,3 +751,6 @@ mark_zhanzhilingyu:
 mark_zhandoulingyu:
   name: 战斗领域
   description: 造成伤害增加20% 受到伤害减少20%
+mark_xifamihuo:
+  name: 戏法迷惑
+  description: 拥有两层戏法迷惑时，消耗所有戏法迷惑使自身混乱

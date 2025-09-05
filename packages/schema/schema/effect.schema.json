@@ -2108,6 +2108,26 @@
             "type",
             "target"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "addTemporaryEffect"
+            },
+            "target": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "effect": {
+              "$ref": "#/$defs/__schema5"
+            }
+          },
+          "required": [
+            "type",
+            "target",
+            "effect"
+          ]
         }
       ]
     },
@@ -3442,6 +3462,22 @@
             "type": {
               "type": "string",
               "const": "entity:species"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "entity:effect"
             },
             "value": {
               "type": "string"

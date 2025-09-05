@@ -657,6 +657,23 @@ export class Battle extends Context implements MarkOwner {
     this.getVictor(true, 'surrender')
   }
 
+  cleanupPhaseEffects(phaseId: string): void {
+    // Clear temporary effects from battle-level marks
+    for (const mark of this.marks) {
+      mark.clearTemporaryEffects(phaseId)
+    }
+
+    // Clear temporary effects from pets, their skills, and their marks
+    for (const pet of this.petMap.values()) {
+      for (const skill of pet.skills) {
+        skill.clearTemporaryEffects(phaseId)
+      }
+      for (const mark of pet.marks) {
+        mark.clearTemporaryEffects(phaseId)
+      }
+    }
+  }
+
   toMessage(viewerId?: playerId, showHidden = false): BattleState {
     showHidden = showHidden || this.showHidden
     return {

@@ -23,7 +23,7 @@ import {
 } from './attributeSystem'
 import { Battle } from './battle'
 import { AddMarkContext, DamageContext, EffectContext, SwitchPetContext } from './context'
-import { Effect, type EffectContainer } from './effect'
+import { Effect, type EffectContainer, TemporaryEffect } from './effect'
 import { type Instance, type MarkOwner, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 import { ConsumeStackPhase } from './phases/consumeStack'
@@ -90,6 +90,9 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   consumeStack(context: EffectContext<EffectTrigger> | DamageContext, amount: number): number
   get isStackable(): boolean
 
+  addTemporaryEffect(effect: Effect<EffectTrigger>, phaseId: string): void
+  clearTemporaryEffects(phaseId: string): void
+
   cleanupAttributeModifiers(): void
   transfer(context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet): void
   toMessage(): MarkMessage
@@ -99,11 +102,16 @@ export class MarkInstanceImpl implements MarkInstance {
   public owner: Battle | Pet | null = null
 
   public readonly id: markId
-  public readonly effects: Effect<EffectTrigger>[]
+  private _effects: Effect<EffectTrigger>[]
+  private temporaryEffects: TemporaryEffect[] = []
   public config: Partial<MarkConfig> = { destroyable: true }
   public readonly tags: string[] = []
 
   public emitter?: Emitter<Events>
+
+  get effects(): Effect<EffectTrigger>[] {
+    return [...this._effects, ...this.temporaryEffects.map(te => te.effect)]
+  }
 
   // Attribute system for managing mark parameters
   public readonly attributeSystem: MarkAttributeSystem
@@ -142,9 +150,17 @@ export class MarkInstanceImpl implements MarkInstance {
 
     this.config = mergedConfig
     this.tags = [...base.tags, ...(overrides?.tags || [])]
-    this.effects = [...base.effects, ...(overrides?.effects || [])]
+    this._effects = [...base.effects, ...(overrides?.effects || [])]
 
     this.config.isShield = mergedConfig.isShield ?? false
+  }
+
+  addTemporaryEffect(effect: Effect<EffectTrigger>, phaseId: string): void {
+    this.temporaryEffects.push(new TemporaryEffect(effect, phaseId))
+  }
+
+  clearTemporaryEffects(phaseId: string): void {
+    this.temporaryEffects = this.temporaryEffects.filter(tempEffect => tempEffect.phaseId !== phaseId)
   }
 
   // Compatibility properties using AttributeSystem

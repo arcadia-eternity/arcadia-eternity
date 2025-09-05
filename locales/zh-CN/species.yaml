@@ -397,3 +397,9 @@ pet_chongyite:
 pet_zhanyite:
   name: 战伊特
   description: 自称众伊特中的老大 有着超凡的战斗力
+pet_aika:
+  name: 埃卡
+  description: 埃卡打小喜欢四处收集好玩的小物，对于有趣的东西，它没有任何抵抗力
+pet_aikaweite:
+  name: 埃卡维特
+  description: 埃卡维特在长年摆弄小物的过程中，学会了变戏法，让所有观众都眼花缭乱

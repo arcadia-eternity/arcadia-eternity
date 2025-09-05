@@ -20,6 +20,7 @@ import {
   type ScopeObject,
   Context,
   type BattlePhaseBase,
+  Effect,
 } from '@arcadia-eternity/battle'
 import { Observable, combineLatest, map } from 'rxjs'
 import {
@@ -664,6 +665,7 @@ export type ObjectOpinion =
   | Observable<any>
   | BattlePhaseBase
   | Action
+  | Effect<EffectTrigger>
 
 export type SelectorOpinion = PrimitiveOpinion | ObjectOpinion | EnumOpinion | Action | Array<SelectorOpinion>
 

@@ -17,6 +17,7 @@ import {
   HealPhase,
   MarkTransferPhase,
   StatStagePhase,
+  Effect,
 } from '@arcadia-eternity/battle'
 import {
   DurationType as AttributeDurationType,
@@ -1840,6 +1841,34 @@ export const Operators = {
       action(context)
     })
   },
+
+  addTemporaryEffect:
+    <T extends SkillInstance | MarkInstance>(
+      effect: ValueSource<Effect<EffectTrigger>>,
+    ): Operator<T> =>
+    (context: EffectContext<EffectTrigger>, targets: T[]) => {
+      const configSystem = context.battle.configSystem
+      let relevantPhase = configSystem.getCurrentPhaseOfType(PhaseType.Skill)
+      if (!relevantPhase) {
+        relevantPhase = configSystem.getCurrentPhaseOfType(PhaseType.Turn)
+      }
+
+      const phaseId = relevantPhase ? relevantPhase.id : context.battle.phaseManager.getCurrentPhase()?.id
+
+      if (!phaseId) {
+        // Cannot add a temporary effect without a phase context
+        return
+      }
+
+      const effects = GetValueFromSource(context, effect)
+      if (effects.length === 0) return
+
+      targets.forEach(target => {
+        effects.forEach(eff => {
+          target.addTemporaryEffect(eff, phaseId)
+        })
+      })
+    },
 }
 
 export function GetValueFromSource<T extends SelectorOpinion>(

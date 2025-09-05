@@ -119,10 +119,10 @@
     type: preventDamage
     target: damageContext
 - id: effect_mark_confuse
-  trigger: BeforeUseSkillCheck
+  trigger: AfterUseSkillCheck
   priority: 0
   condition:
-    type: checkSelf
+    type: selfUseSkill
   apply:
     type: setActualTarget
     target: useSkillContext
@@ -1445,7 +1445,7 @@
     delta: 0
     percent: 100
 # 麦麦金针: 造成特攻伤害降低20%
-- id: effect_mark_reduce_spa_damage_20_percent
+- id: effect_mark_reduce_opponent_spa_damage_20_percent
   trigger: OnBeforeCalculateDamage
   condition:
     type: every
@@ -3867,3 +3867,49 @@
     type: every
     conditions:
       - type: selfUseSkill
+# 戏法迷惑: 当层数达到2层时，消耗所有戏法迷惑并给自己附加混乱
+- id: effect_mark_hunluan_consume_stacks_at_2
+  trigger: OnStack
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      # 检查叠层后是否达到2层
+      - type: evaluate
+        target:
+          base: stackContext
+          chain:
+            - type: selectPath
+              arg: stacksAfter
+        evaluator:
+          type: compare
+          operator: '>='
+          value: 2
+      # 检查叠层前是否小于2层（确保是刚达到阈值）
+      - type: evaluate
+        target:
+          base: stackContext
+          chain:
+            - type: selectPath
+              arg: stacksBefore
+        evaluator:
+          type: compare
+          operator: '<'
+          value: 2
+  apply:
+    - type: addMark
+      target: self
+      mark:
+        type: entity:baseMark
+        value: mark_hunluan
+    - type: consumeStacks
+      target: mark
+      value:
+        type: dynamic
+        selector:
+          base: mark
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: stack

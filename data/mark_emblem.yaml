@@ -332,3 +332,8 @@
   tags: [emblem]
   effect:
     - effect_emblem_increase_douzhanzhihun_fixed_damage_50_percent #TODO: Implement emblem effect for skill_douzhanzhihun
+- id: mark_emblem_moshu
+  config: *emblem_config
+  tags: [emblem]
+  effect: 
+    - effect_emblem_xifa_skill_accuracy_boost_5_percent

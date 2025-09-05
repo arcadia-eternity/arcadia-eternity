@@ -142,6 +142,7 @@ export class PhaseManager {
     } finally {
       // Always pop phase from stack when execution completes (success or failure)
       configSystem.popPhase(phase as BattlePhaseBase)
+      this.battle.cleanupPhaseEffects(phase.id)
     }
   }
 
@@ -202,6 +203,7 @@ export class PhaseManager {
     } finally {
       // Always pop phase from stack when execution completes (success or failure)
       configSystem.popPhase(phase as BattlePhaseBase)
+      this.battle.cleanupPhaseEffects(phase.id)
     }
   }
 

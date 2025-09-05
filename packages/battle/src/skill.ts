@@ -11,7 +11,7 @@ import {
 } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 import { SkillAttributeSystem } from './attributeSystem'
-import { Effect, type EffectContainer } from './effect'
+import { Effect, type EffectContainer, TemporaryEffect } from './effect'
 import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 
@@ -148,7 +148,12 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
   public readonly sureCrit: boolean = false
   public readonly ignoreShield: boolean = false
   public readonly tags: string[] = []
-  effects: Effect<EffectTrigger>[] = []
+  private _effects: Effect<EffectTrigger>[] = []
+  private temporaryEffects: TemporaryEffect[] = []
+
+  get effects(): Effect<EffectTrigger>[] {
+    return [...this._effects, ...this.temporaryEffects.map(te => te.effect)]
+  }
 
   // Attribute system for managing skill parameters
   public readonly attributeSystem: SkillAttributeSystem
@@ -178,7 +183,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     this.sureCrit = overrides?.sureCrit ?? base.sureCrit
     this.ignoreShield = overrides?.ignoreShield ?? base.ignoreShield
     this.tags = overrides?.tag ? [...base.tags, ...overrides.tag] : [...base.tags]
-    this.effects = [...base.effects, ...(overrides?.effects ? overrides.effects : [])]
+    this._effects = [...base.effects, ...(overrides?.effects ? overrides.effects : [])]
 
     // Initialize attribute system with skill ID (battleId will be set later in setOwner)
     this.attributeSystem = new SkillAttributeSystem()
@@ -248,6 +253,14 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
 
   getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[] {
     return this.effects.filter(e => e.triggers.includes(trigger))
+  }
+
+  addTemporaryEffect(effect: Effect<EffectTrigger>, phaseId: string): void {
+    this.temporaryEffects.push(new TemporaryEffect(effect, phaseId))
+  }
+
+  clearTemporaryEffects(phaseId: string): void {
+    this.temporaryEffects = this.temporaryEffects.filter(tempEffect => tempEffect.phaseId !== phaseId)
   }
 
   toMessage(viewerId?: string, showHidden = false): SkillMessage {

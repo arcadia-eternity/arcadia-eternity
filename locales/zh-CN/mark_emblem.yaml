@@ -190,3 +190,6 @@ mark_emblem_chongqun:
 mark_emblem_douhun:
   name: 斗魂
   description: 使斗战之魂固伤增加50%
+mark_emblem_moshu:
+  name: 魔术
+  description: 戏法技能命中率增加5%

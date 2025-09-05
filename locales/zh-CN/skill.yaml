@@ -2690,3 +2690,45 @@ skill_juezhanzhidi:
 skill_yitedaluandou:
   name: 伊特大乱斗
   description: 必中 连击5~9次
+skill_xifayishi:
+  name: 戏法一式
+  description: 使对手获得15点<font color=#C702EC>命中下降</font>
+skill_yingzhaolianji:
+  name: 硬爪连击
+  description: 连击3次 10%弱化对手物防1级
+skill_xifaershi:
+  name: 戏法二式
+  description: 使双方获得50点伤害增加
+skill_suishigongji:
+  name: 碎石攻击
+  description: 对手混乱时威力2倍
+skill_mozhua:
+  name: 磨爪
+  description: 强化自身物攻1级
+skill_xifasanshi:
+  name: 戏法三式
+  description: 先制+1
+skill_fenglizhuaji:
+  name: 锋利爪击
+  description: 对手混乱时威力2倍
+skill_dunzu:
+  name: 顿足
+  description: 弱化对手速度1级
+skill_lieshituji:
+  name: 裂石突击
+  description: 15%弱化对手物防1级
+skill_juzhaoliediji:
+  name: 巨爪裂地击
+  description: 必中 20%弱化对手速度1级
+skill_gangzhaozhiji:
+  name: 钢爪直击
+  description: 无视对手双防强化
+skill_xifasishi:
+  name: 戏法四式
+  description: 必中 体力＜1/8时先出手使自身获得闪避
+skill_tishen:
+  name: 替身
+  description: 解除自身不良
+skill_xifalingshi:
+  name: 戏法零式
+  description: 随机出现1种戏法效果

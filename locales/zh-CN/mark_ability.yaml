@@ -193,3 +193,6 @@ mark_ability_lianxie:
 mark_ability_haozhan:
   name: 好战
   description: 回合结束时 怒气＜对手时恢复15点怒气
+mark_ability_xifa:
+  name: 戏法
+  description: 戏法技能使对手获得戏法迷惑

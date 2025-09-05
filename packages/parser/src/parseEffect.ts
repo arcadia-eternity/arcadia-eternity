@@ -542,6 +542,8 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseRemoveTransformationAction(effectId, dsl)
     case 'executeActions':
       return parseExecuteActionsAction(effectId, dsl)
+    case 'addTemporaryEffect':
+      return parseAddTemporaryEffectAction(effectId, dsl)
     default:
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`[parseEffect] 未知的操作类型: ${(dsl as any).type}`)
@@ -581,6 +583,8 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
     return (() => [DataRepository.getInstance().getMark(v.value as baseMarkId)]) as ValueSource<BaseMark>
   if (v.type === 'entity:baseSkill')
     return (() => [DataRepository.getInstance().getSkill(v.value as baseSkillId)]) as ValueSource<BaseSkill>
+  if (v.type === 'entity:effect')
+    return (() => [DataRepository.getInstance().getEffect(v.value as effectId)]) as ValueSource<Effect<EffectTrigger>>
   if (v.type === 'entity:species')
     return (() => [DataRepository.getInstance().getSpecies(v.value as speciesId)]) as ValueSource<any>
   if (v.type === 'dynamic') return parseSelector(effectId, v.selector)
@@ -1028,6 +1032,17 @@ export function parseExecuteActionsAction(
   dsl: Extract<OperatorDSL, { type: 'executeActions' }>,
 ): Action {
   return parseSelector<Action>(effectId, dsl.target).apply(Operators.executeActions())
+}
+
+export function parseAddTemporaryEffectAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addTemporaryEffect' }>,
+) {
+  return parseSelector<SkillInstance | MarkInstance>(effectId, dsl.target).apply(
+    Operators.addTemporaryEffect(
+      parseValue(effectId, dsl.effect) as ValueSource<Effect<EffectTrigger>>,
+    ),
+  )
 }
 
 export function parseCondition(effectId: string, dsl: ConditionDSL): Condition {

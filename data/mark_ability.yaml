@@ -343,4 +343,9 @@
   config: *ability_config
   tags: [ability]
   effect:
-    - effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end #TODO: Implement rage recovery when rage < opponent
+    - effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end
+- id: mark_ability_xifa
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_add_mark_opponent_xifamihuo_if_using_xifa_skill
