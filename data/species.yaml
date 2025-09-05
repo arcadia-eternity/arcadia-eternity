@@ -7869,3 +7869,121 @@
     - mark_ability_renzhen
   emblem:
     - mark_emblem_wuxing
+
+- id: pet_shasha
+  num: 111
+  element: Ground
+  baseStats:
+    hp: 92
+    atk: 115
+    spa: 126
+    def: 116
+    spd: 125
+    spe: 100
+  genderRatio:
+    - 2
+    - 8
+  heightRange:
+    - 37
+    - 42
+  weightRange:
+    - 23
+    - 28
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_chuanci
+      level: 5
+      hidden: false
+    - skill_id: skill_dengmu
+      level: 10
+      hidden: false
+    - skill_id: skill_shaduzhitong
+      level: 14
+      hidden: false
+    - skill_id: skill_ruohuadaji
+      level: 18
+      hidden: false
+    - skill_id: skill_qutizhuangji
+      level: 23
+      hidden: false
+  ability:
+    - mark_ability_rouxing
+  emblem:
+    - mark_emblem_rouxing
+- id: pet_shajita
+  num: 112
+  element: Ground
+  baseStats:
+    hp: 182
+    atk: 160
+    spa: 176
+    def: 161
+    spd: 175
+    spe: 145
+  genderRatio:
+    - 2
+    - 8
+  heightRange:
+    - 91
+    - 96
+  weightRange:
+    - 90
+    - 95
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_chuanci
+      level: 5
+      hidden: false
+    - skill_id: skill_dengmu
+      level: 10
+      hidden: false
+    - skill_id: skill_shaduzhitong
+      level: 14
+      hidden: false
+    - skill_id: skill_ruohuadaji
+      level: 18
+      hidden: false
+    - skill_id: skill_qutizhuangji
+      level: 23
+      hidden: false
+    - skill_id: skill_juanjin
+      level: 28
+      hidden: false
+    - skill_id: skill_ruohua
+      level: 33
+      hidden: false
+    - skill_id: skill_shaduchuanci
+      level: 38
+      hidden: false
+    - skill_id: skill_rouxingzhuangji
+      level: 43
+      hidden: false
+    - skill_id: skill_shaduzhihong
+      level: 48
+      hidden: false
+    - skill_id: skill_shaduzhixue
+      level: 53
+      hidden: false
+    - skill_id: skill_qunsheluanwu
+      level: 60
+      hidden: true
+    - skill_id: skill_rourenchuanci
+      level: 60
+      hidden: true
+    - skill_id: skill_qianglijuanjin
+      level: 60
+      hidden: true
+    - skill_id: skill_shaduchuantou
+      level: 60
+      hidden: true
+    - skill_id: skill_shaduhongxue
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_rouxing
+  emblem:
+    - mark_emblem_rouxing

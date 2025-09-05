@@ -199,3 +199,6 @@ mark_ability_xifa:
 mark_ability_renzhen:
   name: 认真
   description: 属性技能必中
+mark_ability_rouxing:
+  name: 柔性
+  description: 受到特攻伤害减少10%

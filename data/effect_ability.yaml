@@ -1712,3 +1712,25 @@
         evaluator:
           type: same
           value: Status
+# 柔软：减少受到的特攻伤害10%
+- id: effect_ability_reduce_special_damage_10_percent
+  trigger: OnDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageType
+        evaluator:
+          type: same
+          value: Special
+  apply:
+    type: addModified
+    target: damageContext
+    delta: 0
+    percent: -10

@@ -409,3 +409,9 @@ pet_huanhuan:
 pet_huanli:
   name: 浣狸
   description: 即使是成长为浣狸之后 它也经常在变身中途失败 被居民抓到扔出屋来
+pet_shasha:
+  name: 砂砂
+  description: 砂砂从小脑子很迟钝 在和其它精灵玩耍猜拳的时候 它只会出拳头
+pet_shajita:
+  name: 砂吉塔
+  description: 砂吉塔在战斗的时候 会发出沙沙沙的声音吓唬敌人

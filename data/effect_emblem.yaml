@@ -496,7 +496,6 @@
     stack: 5
   condition:
     type: selfBeDamaged
-
 # 重击: 使重击技能造成的伤害增加35%
 - id: effect_emblem_zhongji_damage_boost_35_percent
   trigger: OnBeforeCalculateDamage
@@ -525,7 +524,6 @@
     target: damageContext
     percent: 35
     delta: 0
-
 # 风暴: 使风暴之星恢复的怒气增加5
 - id: effect_emblem_fengbaozhixing_rage_boost_5
   trigger: OnBattleStart
@@ -536,7 +534,6 @@
     configKey: effect_skill_add_rage_20_if_rage_below_40.add_rage_value
     modifierType: delta
     value: 5
-
 # 电荷: 使每个电荷增加的致命几率提高5%
 - id: effect_emblem_dianhe_crit_rate_boost_5_percent
   trigger: OnBattleStart
@@ -547,7 +544,6 @@
     configKey: effect_mark_increase_crit_rate_20_percent_per_stack.crit_rate_increase_per_stack
     modifierType: delta
     value: 5
-
 # 深结: 使深结冰冻对手的几率提高5%
 - id: effect_emblem_shenjie_freeze_rate_boost_5_percent
   trigger: OnBattleStart
@@ -558,7 +554,6 @@
     configKey: effect_skill_add_mark_opponent_bingdong_40_percent.bingdong_probability
     modifierType: delta
     value: 5
-
 # 恐惧: 当对方因为受伤而解除恐惧时，使"effect_mark_onDamage_over100_recovery"效果无效
 - id: effect_emblem_anying_immune_fear_early_wake
   trigger: BeforeEffect
@@ -579,7 +574,6 @@
   apply:
     type: disableContext
     target: effectContext
-
 # 光辉: 每回合结束时恢复20点HP
 - id: effect_emblem_guangming_heal_20_per_turn
   trigger: TurnEnd
@@ -590,7 +584,6 @@
     value: 20
   condition:
     type: petIsActive
-
 # 辉之: 使技能效果触发率提高5%
 - id: effect_emblem_increase_skill_trigger_rate_5_percent
   trigger: OnBattleStart
@@ -601,7 +594,6 @@
     tag: skill_effect_probability
     modifierType: delta
     value: 5
-
 # 音波: 使叠加音波标记的效果的叠加值增加5
 - id: effect_emblem_add_yinbo_stack_config_5
   trigger: OnBattleStart
@@ -612,7 +604,6 @@
     tag: skill_effect_yinbo_stack
     modifierType: delta
     value: 5
-
 # 必破: 使破防一击必中
 - id: effect_emblem_pofangyiji_sure_hit
   trigger: OnBattleStart
@@ -632,7 +623,6 @@
         - type: selectProp
           arg: sureHit
     value: true
-
 # 沙鹤: 使沙鹤之光的威力增加10%
 - id: effect_emblem_shahezhiguang_power_boost_10_percent
   trigger: OnBattleStart
@@ -652,7 +642,6 @@
     attribute: power
     modifierType: percent
     value: 10
-
 # 大地: 使大地之墙的效果持续时间增加1回合
 - id: effect_emblem_dadiqiang_duration_boost_1
   trigger: OnBeforeAddMark
@@ -686,7 +675,6 @@
         evaluator:
           type: same
           value: mark_yinghua
-
 # 沙之: 使沙之蛋壳的最大层数设为4
 - id: effect_emblem_shazhidanke_max_stack_4
   trigger: OnBeforeAddMark
@@ -711,7 +699,6 @@
     target:
       base: addMarkContext
     value: 4
-
 # 武者: 使得己方的武者之心的增伤效果减少5%
 - id: effect_emblem_wuzhe_reduce_damage_increase_5_percent
   trigger: OnBattleStart
@@ -722,7 +709,6 @@
     configKey: effect_mark_increase_damage_taken_15_percent_per_stack.mark_increase_damage_taken_per_stack
     modifierType: delta
     value: -5
-
 # 仁者: 使得对方的仁者之心的减伤效果减少5%
 - id: effect_emblem_renzhe_reduce_damage_reduction_5_percent
   trigger: OnBattleStart
@@ -733,7 +719,6 @@
     configKey: effect_mark_reduce_damage_taken_15_percent_per_stack.mark_reduce_damage_taken_per_stack
     modifierType: delta
     value: -5
-
 # 分身: 使分身术必中
 - id: effect_emblem_fenshenshu_set_sure_hit
   trigger: OnBattleStart
@@ -753,7 +738,6 @@
         - type: selectProp
           arg: sureHit
     value: true
-
 # 分身: 当使用分身术时，为自身增加分身幻影标记
 - id: effect_emblem_add_mark_fenshenhying_when_use_fenshenshu
   trigger: OnHit
@@ -783,7 +767,6 @@
         evaluator:
           type: same
           value: skill_fenshenshu
-
 # 联防: 换下场时，给换上场的精灵添加25点受到伤害减少
 - id: effect_emblem_add_mark_switchinpet_shoudaoshanghaijianshao_25_on_switchout
   trigger: OnSwitchOut
@@ -1420,3 +1403,36 @@
     stat: accuracy
     value: 5
     modifierType: delta
+# 柔软: 使用柔软技能时有20%几率额外提升一级特防
+- id: effect_emblem_raise_spd_1_stage_when_rouruan_20_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: self
+    statType: spd
+    value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill
+            - type: select
+              arg:
+                type: base
+                arg: baseId
+        evaluator:
+          type: same
+          value: skill_rouruan
+      - type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent: 20

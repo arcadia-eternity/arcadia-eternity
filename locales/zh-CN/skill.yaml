@@ -2771,3 +2771,48 @@ skill_nuli:
 skill_jinqu:
   name: 进取
   description: 对手雌性时弱化对手特攻特防1级 对手雄性时弱化对手物攻物防1级
+skill_chuanci:
+  name: 穿刺
+  description: 5%弱化对手特防1级
+skill_dengmu:
+  name: 瞪目
+  description: 弱化对手特防1级
+skill_shaduzhitong:
+  name: 砂毒之痛
+  description: 使对手获得自损
+skill_qutizhuangji:
+  name: 躯体撞击
+  description: 10%弱化对手物防1级
+skill_juanjin:
+  name: 卷紧
+  description: 使用2次增加50点威力
+skill_ruohua:
+  name: 弱化
+  description: 弱化对手物攻1级
+skill_shaduchuanci:
+  name: 砂毒穿刺
+  description: 使对手获得砂毒
+skill_rouxingzhuangji:
+  name: 柔性撞击
+  description: 15%弱化对手速度1级 后出手时威力2倍
+skill_shaduzhihong:
+  name: 砂毒之红
+  description: 使对手中毒
+skill_shaduzhixue:
+  name: 砂毒之血
+  description: 解除自身中毒并获得砂毒之血
+skill_qunsheluanwu:
+  name: 群蛇乱舞
+  description: 必中 20%弱化对手速度1级
+skill_rourenchuanci:
+  name: 柔软穿刺
+  description: 自身每级特防强化增加15点威力
+skill_qianglijuanjin:
+  name: 强力卷紧
+  description: 使用2次增加50点威力
+skill_shaduchuantou:
+  name: 砂毒穿透
+  description: 使对手获得砂毒
+skill_shaduhongxue:
+  name: 砂毒红血
+  description: 砂使对手获得砂毒红血

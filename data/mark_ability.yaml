@@ -354,3 +354,8 @@
   tags: [ability]
   effect:
     - effect_ability_status_skill_sure_hit
+- id: mark_ability_rouxing
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_reduce_special_damage_10_percent
