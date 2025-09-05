@@ -1723,7 +1723,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
       }
     }
     setTimeout(async () => {
-      if ((await source.getState()) !== ActionState.IDLE) return
+      if ((await source.getState()) !== ActionState.IDLE || (await source.getState()) !== ActionState.DEAD) return
       resolve()
     }, expectedDuration)
     emitter.on('attack-hit', handler)
@@ -1737,7 +1737,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
       }
     }
     setTimeout(async () => {
-      if ((await source.getState()) !== ActionState.IDLE) return
+      if ((await source.getState()) !== ActionState.IDLE || (await source.getState()) !== ActionState.DEAD) return
       resolve()
     }, expectedDuration)
     emitter.on('animation-complete', handler)
