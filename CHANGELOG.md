@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.24.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.24.2...arcadia-eternity-v2.24.3) (2025-09-05)
+
+
+### 🐛 Bug Fixes
+
+* idle state ([55b5e00](https://github.com/arcadia-eternity/arcadia-eternity/commit/55b5e0049b9c445ca2020cca40b829592aac43b0))
+
 ## [2.24.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.24.1...arcadia-eternity-v2.24.2) (2025-09-05)
 
 
