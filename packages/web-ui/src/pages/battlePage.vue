@@ -1813,12 +1813,14 @@ async function handleCombatEventMessage(message: CombatEventMessageWithTarget, i
           )
           break
         }
-        const { currentHp, maxHp } = targetPetInfo
+        const { currentHp, maxHp } = damageData
         const { availableState } = targetPetSprite
-        const isDead = currentHp - damageData.damage <= 0
+        const isDead = currentHp <= 0
         const isCriticalHealth = currentHp < maxHp * 0.25
+        const isFromSelf = damageData.source === targetPetId
         const shouldSetPetAnimationState =
-          !isFromSkillSequenceContext || (isFromSkillSequenceContext && damageData.damageType !== 'Effect')
+          (!isFromSkillSequenceContext || (isFromSkillSequenceContext && damageData.damageType !== 'Effect')) &&
+          !isFromSelf
 
         if (shouldSetPetAnimationState) {
           if (isDead && availableState.includes(ActionState.DEAD)) {
