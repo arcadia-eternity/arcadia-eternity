@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.24.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.24.0...arcadia-eternity-v2.24.1) (2025-09-05)
+
+
+### 🐛 Bug Fixes
+
+* damageMessage ([655735f](https://github.com/arcadia-eternity/arcadia-eternity/commit/655735faa7275e6ad72df6451b6130fa5f4ce47d))
+
 ## [2.24.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.23.5...arcadia-eternity-v2.24.0) (2025-09-05)
 
 
