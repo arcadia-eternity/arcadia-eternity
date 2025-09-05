@@ -1269,7 +1269,7 @@
           base: useSkillContext
           chain:
             - type: selectPath
-              arg: category
+              arg: element
         evaluator:
           type: same
           value: Light
@@ -1691,3 +1691,24 @@
         evaluator:
           type: contain
           tag: xifa
+# 认真: 属性技能必中
+- id: effect_ability_status_skill_sure_hit
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target: useSkillContext
+    priority: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Status

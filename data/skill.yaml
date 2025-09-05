@@ -10625,3 +10625,169 @@
   tags: ['xifa']
   effect:
     - effect_skill_random_xifa_effect
+- id: skill_qinangdan
+  element: Normal
+  category: Special
+  target: opponent
+  power: 70
+  accuracy: 95
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_power_30_if_female
+- id: skill_qigaichongfeng
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 70
+  accuracy: 95
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_power_30_if_male
+- id: skill_guancha
+  element: Normal
+  category: Status
+  target: opponent
+  power: 0
+  accuracy: 100
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_opponent_spa_1_stage_if_opponent_female
+    - effect_skill_reduce_opponent_atk_1_stage_if_opponent_male
+    - effect_skill_reduce_opponent_atk_or_spa_1_stage_if_opponent_nogender_and_self_has_wuxing
+- id: skill_xuexi
+  element: Normal
+  category: Status
+  target: opponent
+  power: 0
+  accuracy: 100
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_spe_1_stage_if_opponent_female
+    - effect_skill_raise_atk_1_stage_if_opponent_male
+    - effect_skill_raise_atk_or_spe_1_stage_if_opponent_nogender_and_self_has_wuxing
+- id: skill_qinangbaodan
+  element: Normal
+  category: Special
+  target: opponent
+  power: 80
+  accuracy: 95
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_power_30_if_female
+- id: skill_qipochongfeng
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 80
+  accuracy: 95
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_power_30_if_male
+- id: skill_sikao
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_mark_rouhua_50_if_female
+    - effect_skill_add_mark_yinghua_50_if_male
+- id: skill_yunyong
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_spa_2_stage_if_female
+    - effect_skill_raise_atk_2_stage_if_male
+- id: skill_woyaorenzhenle
+  element: Normal
+  category: Climax
+  target: opponent
+  power: 160
+  accuracy: 100
+  rage: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_opponent_def_1_stage_10_percent
+    - effect_skill_reduce_opponent_spd_1_stage_10_percent
+- id: skill_qinangjudan
+  element: Normal
+  category: Special
+  target: opponent
+  power: 90
+  accuracy: 95
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_power_30_if_female
+- id: skill_polichongfeng
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 90
+  accuracy: 95
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_add_power_30_if_male
+- id: skill_nuli
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_spa_spd_1_stage_if_female
+    - effect_skill_raise_atk_def_1_stage_if_male
+- id: skill_jinqu
+  element: Normal
+  category: Status
+  target: opponent
+  power: 0
+  accuracy: 100
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_opponent_spa_spd_1_stage_if_opponent_female
+    - effect_skill_reduce_opponent_atk_def_1_stage_if_opponent_male
+    - effect_skill_reduce_opponent_atk_def_or_spa_spd_1_stage_if_opponent_nogender_and_self_has_wuxing

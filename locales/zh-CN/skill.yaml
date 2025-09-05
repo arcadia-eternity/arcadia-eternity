@@ -2732,3 +2732,42 @@ skill_tishen:
 skill_xifalingshi:
   name: 戏法零式
   description: 随机出现1种戏法效果
+skill_qinangdan:
+  name: 气囊弹
+  description: 自身雌性时增加30点威力
+skill_qigaichongfeng:
+  name: 气概冲锋
+  description: 自身雄性时增加30点威力
+skill_guancha:
+  name: 观察
+  description: 对手雌性时弱化对手特攻1级 对手雄性时弱化对手物攻1级
+skill_xuexi:
+  name: 学习
+  description: 对手雌性时强化自身速度1级 对手雄性时强化自身物攻1级
+skill_qinangbaodan:
+  name: 气囊爆弹
+  description: 自身雌性时增加30点威力
+skill_qipochongfeng:
+  name: 气魄冲锋
+  description: 自身雄性时增加30点威力
+skill_sikao:
+  name: 思考
+  description: 自身雌性时使自身获得50点柔化 自身雄性时使自身获得50点硬化
+skill_yunyong:
+  name: 运用
+  description: 自身雌性时强化自身特攻2级 自身雄性时强化自身物攻2级
+skill_woyaorenzhenle:
+  name: 我要认真了
+  description: 必中 10%弱化对手物防1级 10%弱化对手特防1级
+skill_qinangjudan:
+  name: 气囊巨弹
+  description: 自身雌性时增加30点威力
+skill_polichongfeng:
+  name: 魄力冲锋
+  description: 自身雄性时增加30点威力
+skill_nuli:
+  name: 努力
+  description: 自身雌性时强化自身特攻特防1级 自身雄性时强化自身物攻物防1级
+skill_jinqu:
+  name: 进取
+  description: 对手雌性时弱化对手特攻特防1级 对手雄性时弱化对手物攻物防1级

@@ -349,3 +349,8 @@
   tags: [ability]
   effect:
     - effect_ability_add_mark_opponent_xifamihuo_if_using_xifa_skill
+- id: mark_ability_renzhen
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_status_skill_sure_hit

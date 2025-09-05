@@ -193,3 +193,6 @@ mark_emblem_douhun:
 mark_emblem_moshu:
   name: 魔术
   description: 戏法技能命中率增加5%
+mark_emblem_wuxing:
+  name: 无性
+  description: 使浣浣遇到无性别的精灵，属性攻击会随机产生2个中的一个效果

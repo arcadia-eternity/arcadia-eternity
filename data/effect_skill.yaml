@@ -11218,3 +11218,315 @@
     type: every
     conditions:
       - type: selfUseSkill
+# 如果自身是雌性,威力+30
+- id: effect_skill_add_power_30_if_female
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target:
+      base: useSkillContext
+    value: 30
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_self_female
+        type: evaluate
+        target:
+          base: self
+          chain:
+            - type: selectPath
+              arg: gender
+        evaluator:
+          type: compare
+          operator: ==
+          value: Female
+# 如果自身是雄性,威力+30
+- id: effect_skill_add_power_30_if_male
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: addPower
+    target:
+      base: useSkillContext
+    value: 30
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_self_male
+        type: evaluate
+        target:
+          base: self
+          chain:
+            - type: selectPath
+              arg: gender
+        evaluator:
+          type: compare
+          operator: ==
+          value: Male
+# 如果对方是雌性,降低对方一级特攻
+- id: effect_skill_reduce_opponent_spa_1_stage_if_opponent_female
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_opponent_statstage_-1_template
+    statType: spa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_opponent_female
+        type: evaluate
+        target:
+          base: opponent
+          chain:
+            - type: selectPath
+              arg: gender
+        evaluator:
+          type: compare
+          operator: ==
+          value: Female
+# 如果对方是雄性,降低对方一级物攻
+- id: effect_skill_reduce_opponent_atk_1_stage_if_opponent_male
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_opponent_statstage_-1_template
+    statType: atk
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_opponent_male
+        type: evaluate
+        target:
+          base: opponent
+          chain:
+            - type: selectPath
+              arg: gender
+        evaluator:
+          type: compare
+          operator: ==
+          value: Male
+# 如果对方是无性别且自身有无性纹章,随机降低对方一级物攻或者特攻
+- id: effect_skill_reduce_opponent_atk_or_spa_1_stage_if_opponent_nogender_and_self_has_wuxing
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: executeActions
+    target:
+      type: selectorValue
+      value:
+        - <<: *apply_opponent_statstage_-1_template
+          statType: atk
+        - <<: *apply_opponent_statstage_-1_template
+          statType: spa
+      chain:
+        - type: randomPick
+          arg: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_emblem_wuxing
+      - &condition_opponent_nogender
+        type: evaluate
+        target:
+          base: opponent
+          chain:
+            - type: selectPath
+              arg: gender
+        evaluator:
+          type: compare
+          operator: ==
+          value: NoGender
+# 对方是雌性时提升速度
+- id: effect_skill_raise_spe_1_stage_if_opponent_female
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spe
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_opponent_female
+# 对方是雄性时提升物攻
+- id: effect_skill_raise_atk_1_stage_if_opponent_male
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: atk
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_opponent_male
+# 对方是无性别且自身有无性纹章,随机提升自身一级物攻或速度
+- id: effect_skill_raise_atk_or_spe_1_stage_if_opponent_nogender_and_self_has_wuxing
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: executeActions
+    target:
+      type: selectorValue
+      value:
+        - <<: *apply_self_statstage_+1_template
+          statType: atk
+        - <<: *apply_self_statstage_+1_template
+          statType: spe
+      chain:
+        - type: randomPick
+          arg: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_emblem_wuxing
+      - *condition_opponent_nogender
+# 如果自身是雌性,获得50层柔化
+- id: effect_skill_add_mark_rouhua_50_if_female
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_rouhua
+    stack: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_female
+# 如果自身是雄性,获得50层硬化
+- id: effect_skill_add_mark_yinghua_50_if_male
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_yinghua
+    stack: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_male
+# 自身是雌性时提升2级特攻
+- id: effect_skill_raise_spa_2_stage_if_female
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+2_template
+    statType: spa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_female
+# 自身是雄性时提升2级物攻
+- id: effect_skill_raise_atk_2_stage_if_male
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+2_template
+    statType: atk
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_male
+# 自身是雌性时，提升特攻特防一级
+- id: effect_skill_raise_spa_spd_1_stage_if_female
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    - <<: *apply_self_statstage_+1_template
+      statType: spa
+    - <<: *apply_self_statstage_+1_template
+      statType: spd
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_female
+# 自身是雄性时，提升物攻物防一级
+- id: effect_skill_raise_atk_def_1_stage_if_male
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    - <<: *apply_self_statstage_+1_template
+      statType: atk
+    - <<: *apply_self_statstage_+1_template
+      statType: def
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_self_male
+# 对方是雌性时,降低对方特攻特防一级
+- id: effect_skill_reduce_opponent_spa_spd_1_stage_if_opponent_female
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    - <<: *apply_opponent_statstage_-1_template
+      statType: spa
+    - <<: *apply_opponent_statstage_-1_template
+      statType: spd
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_opponent_female
+# 对方是雄性时,降低对方物攻物防一级
+- id: effect_skill_reduce_opponent_atk_def_1_stage_if_opponent_male
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    - <<: *apply_opponent_statstage_-1_template
+      statType: atk
+    - <<: *apply_opponent_statstage_-1_template
+      statType: def
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_opponent_male
+# 对方是无性别且自身有无性纹章,随机降低对方物攻物防一级或降低对方特攻特防一级
+- id: effect_skill_reduce_opponent_atk_def_or_spa_spd_1_stage_if_opponent_nogender_and_self_has_wuxing
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    type: executeActions
+    target:
+      type: selectorValue
+      value:
+        - - <<: *apply_opponent_statstage_-1_template
+            statType: atk
+          - <<: *apply_opponent_statstage_-1_template
+            statType: def
+        - - <<: *apply_opponent_statstage_-1_template
+            statType: spa
+          - <<: *apply_opponent_statstage_-1_template
+            statType: spd
+      chain:
+        - type: randomPick
+          arg: 1
+        - type: flat
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: selfHasMark
+        baseId: mark_emblem_wuxing
+      - *condition_opponent_nogender
