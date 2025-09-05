@@ -1754,7 +1754,7 @@
     type: every
     conditions:
       - type: selfUseSkill
-- id: effect_skill_add_mark_tanhuan_10
+- id: effect_skill_add_mark_opponent_tanhuan_10_percent
   trigger: OnHit
   priority: 0
   apply:
@@ -11636,3 +11636,407 @@
       value: mark_shaduhongxue
   condition:
     type: selfUseSkill
+# 使对手获得通缉令
+- id: effect_skill_add_mark_opponent_tongjiling
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_tongjiling
+  condition:
+    type: selfUseSkill
+# 35%使对手物防降低一级
+- id: effect_skill_reduce_opponent_def_1_stage_35_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_opponent_statstage_-1_template
+    statType: def
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - &condition_probability_35_percent_template
+        type: evaluate
+        target: self
+        evaluator:
+          type: probability
+          percent:
+            type: 'raw:number'
+            value: 35
+            tags: ['skill_effect_probability']
+# 对手有通缉令时,必定命中
+- id: effect_skill_sure_hit_if_opponent_has_tongjiling
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target: useSkillContext
+    priority: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_tongjiling
+# 对方有通缉令时,提升特防一级
+- id: effect_skill_raise_spd_1_stage_if_opponent_has_tongjiling
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spd
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_tongjiling
+# 对方有通缉令且低于1/2体力时威力2倍
+- id: effect_skill_power2x_if_opponent_has_tongjiling_and_below_half_hp
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: useSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_tongjiling
+      - &condition_opponent_hp_below_half
+        type: evaluate
+        target:
+          base: opponent
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: '<'
+          value:
+            type: dynamic
+            selector:
+              base: opponent
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp
+                - type: multiply
+                  arg: 0.5
+# 35%使对手速度降低一级
+- id: effect_skill_reduce_opponent_spe_1_stage_35_percent
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_opponent_statstage_-1_template
+    statType: spe
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_35_percent_template
+# 30%使对手瘫痪
+- id: effect_skill_add_mark_opponent_tanhuan_30_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_tanhuan
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_30_percent_template
+# 击败具有通缉令的对手时, 强化自身速度一级
+- id: effect_skill_raise_spe_1_stage_if_opponent_has_tongjiling_on_defeated
+  trigger: OnDefeat
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: spe
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_tongjiling
+# 20%使对手恐惧
+- id: effect_skill_add_mark_opponent_kongju_20_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_kongju
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_20_percent_template
+# 对方有通缉令时连击3次
+- id: effect_skill_multihit_3_times_if_opponent_has_tongjiling
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setMultihit
+    target: useSkillContext
+    value: 3
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_tongjiling
+# 使自身获得英勇遗志
+- id: effect_skill_add_mark_yingyongyizhi
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_yingyongyizhi
+  condition:
+    type: selfUseSkill
+# 对方具有异常时威力2倍
+- id: effect_skill_power2x_if_opponent_has_exceptional
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target:
+      base: useSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: opponentMarks
+          chain:
+            - type: whereAttr
+              extractor:
+                type: base
+                arg: tags
+              evaluator:
+                type: contain
+                tag: exceptional
+        evaluator:
+          type: exist
+# 对方有通缉令时降低对方30点怒气
+- id: effect_skill_reduce_opponent_rage_30_if_opponent_has_tongjiling
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: opponent
+    value: -20
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_tongjiling
+# 使对手获得拷问
+- id: effect_skill_add_mark_opponent_kaowen
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_kaowen
+  condition:
+    type: selfUseSkill
+# 使对方拥有拷问时恢复45点怒气
+- id: effect_skill_add_rage_opponent_45_if_opponent_has_kaowen
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: opponent
+    value: 45
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_kaowen
+# 对手拥有拷问时对方获得50点受伤增加
+- id: effect_skill_add_mark_opponent_shoudaoshanghaizengjia_50_if_opponent_has_kaowen
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_shoudaoshanghaizengjia
+    stack: 50
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_kaowen
+# 后出手时造成的伤害增加50%
+- id: effect_skill_add_damage_50_percent_if_last
+  trigger: OnBeforeCalculateDamage
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 50
+    delta: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isLastSkillUsedThisTurn
+# 后出手时使具有拷问的对手获得15点命中下降
+- id: effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_opponent_has_kaowen_and_last
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_mingzhongxiajiang
+    stack: 15
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_kaowen
+      - type: isLastSkillUsedThisTurn
+# 对方有拷问时,提升物防一级
+- id: effect_skill_raise_def_1_stage_if_opponent_has_kaowen
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_self_statstage_+1_template
+    statType: def
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_kaowen
+# 后出手且对手具有拷问时,弱化对手特攻1级
+- id: effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last
+  trigger: BeforeHit
+  priority: 0
+  apply:
+    <<: *apply_opponent_statstage_-1_template
+    statType: spa
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_kaowen
+      - type: isLastSkillUsedThisTurn
+# 后出手时使对手获得40点流血
+- id: effect_skill_add_mark_opponent_liuxie_40_if_last
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_liuxie
+    stack: 40
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isLastSkillUsedThisTurn
+# 对方有拷问时60%使对手获得逃避
+- id: effect_skill_add_mark_opponent_taobi_60_percent_if_opponent_has_kaowen
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_taobi
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_kaowen
+      - *condition_probability_60_percent_template
+# 后出手时连击4次
+- id: effect_skill_multihit_4_times_if_last
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setMultihit
+    target: useSkillContext
+    value: 4
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isLastSkillUsedThisTurn
+# 5%使对手获得窒息
+- id: effect_skill_add_mark_opponent_zhixi_5_percent
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_zhixi
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - *condition_probability_5_percent_template
+# 使自身获得壁垒延伸
+- id: effect_skill_add_mark_bileiyanshen
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_bileiyanshen
+  condition:
+    type: selfUseSkill
+# 击败被拷问的对手时恢复1/4体力
+- id: effect_skill_heal_self_quarter_if_opponent_has_kaowen_on_defeat_opponent
+  trigger: OnDefeat
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_kaowen
+  apply: *operator_heal_self_quarter

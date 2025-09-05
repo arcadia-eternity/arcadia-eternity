@@ -346,3 +346,13 @@
   tags: [emblem]
   effect:
     - effect_emblem_raise_spd_1_stage_when_rouruan_20_percent
+- id: mark_emblem_kaoda
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_skill_kaowenzhe_sure_hit
+- id: mark_emblem_jina
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_skill_tongjiling_sure_hit

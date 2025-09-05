@@ -1436,3 +1436,41 @@
         evaluator:
           type: probability
           percent: 20
+# 拷打: 使拷问者必中
+- id: effect_emblem_skill_kaowenzhe_sure_hit
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: setValue
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value: skill_kaowenzhe
+        - type: selectProp
+          arg: sureHit
+    value: true
+# 缉拿: 使通缉令必中
+- id: effect_emblem_skill_tongjiling_sure_hit
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: setValue
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
+            type: same
+            value: skill_tongjiling
+        - type: selectProp
+          arg: sureHit
+    value: true

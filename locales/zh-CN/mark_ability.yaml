@@ -202,3 +202,9 @@ mark_ability_renzhen:
 mark_ability_rouxing:
   name: 柔性
   description: 受到特攻伤害减少10%
+mark_ability_tongji:
+  name: 通缉
+  description: 攻击具有通缉令的对手恢复自身5点怒气
+mark_ability_kaowen:
+  name: 拷问
+  description: 后出手时减少具有拷问的对手5点怒气

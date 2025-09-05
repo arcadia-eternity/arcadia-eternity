@@ -4017,3 +4017,47 @@
         value: mark_zhongdu
     - type: destroyMark
       target: mark
+# 通缉令: 增加40点受到的伤害
+- id: effect_mark_increase_damage_taken_40
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: 40
+# 拷问: 降低造成的伤害40点
+- id: effect_mark_reduce_damage_dealt_40
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfUseSkill
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: -40
+# 被对手击败时降低对手一级速度
+- id: effect_mark_reduce_opponent_spe_1_stage_when_fainted
+  trigger: OnDefeat
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: opponent
+    statType: spe
+    value: -1
+  condition:
+    type: selfBeSkillTarget
+# 被对手击败时降低对手一级物攻
+- id: effect_mark_reduce_opponent_atk_1_stage_when_fainted
+  trigger: OnDefeat
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: opponent
+    statType: atk
+    value: -1
+  condition:
+    type: selfBeSkillTarget

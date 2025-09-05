@@ -1734,3 +1734,32 @@
     target: damageContext
     delta: 0
     percent: -10
+# 通缉: 攻击有通缉令的对手时获得5点怒气
+- id: effect_ability_add_rage_5_when_attack_opponent_has_tongjiling
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 5
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_tongjiling
+# 拷问: 后手且攻击具有拷问的对手使对手降低5点怒气
+- id: effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: opponent
+    value: -5
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isLastSkillUsedThisTurn
+      - type: opponentHasMark
+        baseId: mark_kaowen

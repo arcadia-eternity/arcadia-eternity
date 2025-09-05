@@ -359,3 +359,13 @@
   tags: [ability]
   effect:
     - effect_ability_reduce_special_damage_10_percent
+- id: mark_ability_tongji
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_add_rage_5_when_attack_opponent_has_tongjiling
+- id: mark_ability_kaowen
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen

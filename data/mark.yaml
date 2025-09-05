@@ -2540,7 +2540,6 @@
     duration: -1
     maxStacks: 1
     keepOnSwitchOut: true
-  tags: [status]
   effect:
     - effect_mark_self_damage_50_percent_once
 - id: mark_shaduzhixue
@@ -2552,7 +2551,6 @@
     duration: -1
     maxStacks: 1
     keepOnSwitchOut: true
-  tags: [status]
   effect:
     - effect_mark_immune_zhongdu
 - id: mark_shadu
@@ -2564,7 +2562,6 @@
     duration: -1
     maxStacks: 1
     keepOnSwitchOut: true
-  tags: [status]
   effect:
     - effect_mark_reduce_healing_50_percent
 - id: mark_shaduhongxue
@@ -2576,7 +2573,50 @@
     duration: -1
     maxStacks: 1
     keepOnSwitchOut: true
-  tags: [status]
   effect:
     - effect_mark_self_damage_50_percent_once_when_special
     - effect_mark_add_mark_zhongdu_if_using_physical_attack
+- id: mark_tongjiling
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_increase_damage_taken_40
+- id: mark_kaowen
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_reduce_damage_dealt_40
+- id: mark_yingyongyizhi
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_reduce_opponent_spe_1_stage_when_fainted
+- id: mark_bileiyanshen
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_reduce_opponent_atk_1_stage_when_fainted

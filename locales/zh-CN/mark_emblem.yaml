@@ -199,3 +199,9 @@ mark_emblem_wuxing:
 mark_emblem_rouxing:
   name: 柔软
   description: 20%额外提升一级特防
+mark_emblem_kaoda:
+  name: 拷打
+  description: 使拷问者技能必中
+mark_emblem_jina:
+  name: 缉拿
+  description: 使通缉令技能必中
