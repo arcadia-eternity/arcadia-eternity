@@ -754,3 +754,27 @@ mark_zhandoulingyu:
 mark_xifamihuo:
   name: 戏法迷惑
   description: 拥有两层戏法迷惑时，消耗所有戏法迷惑使自身混乱
+mark_zisun:
+  name: 自损
+  description: 下一次攻击自身承受50%的自损伤害
+mark_shaduzhixue:
+  name: 砂毒之血
+  description: 免疫中毒
+mark_shadu:
+  name: 砂毒
+  description: 恢复量减半
+mark_shaduhongxue:
+  name: 砂毒红血
+  description: 下一次攻击特攻承受50%自损伤害 使用物攻时中毒
+mark_tongjiling:
+  name: 通缉令
+  description: 受到伤害增加40点
+mark_kaowen:
+  name: 拷问
+  description: 造成伤害减少40点
+mark_yingyongyizhi:
+  name: 英勇遗志
+  description: 被击败时弱化对手速度1级
+mark_bileiyanshen:
+  name: 壁垒延伸
+  description: 被击败时弱化对手攻击1级

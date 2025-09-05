@@ -1269,7 +1269,7 @@
           base: useSkillContext
           chain:
             - type: selectPath
-              arg: category
+              arg: element
         evaluator:
           type: same
           value: Light
@@ -1691,3 +1691,75 @@
         evaluator:
           type: contain
           tag: xifa
+# 认真: 属性技能必中
+- id: effect_ability_status_skill_sure_hit
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: setSureHit
+    target: useSkillContext
+    priority: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Status
+# 柔软：减少受到的特攻伤害10%
+- id: effect_ability_reduce_special_damage_10_percent
+  trigger: OnDamage
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeDamaged
+      - type: evaluate
+        target:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageType
+        evaluator:
+          type: same
+          value: Special
+  apply:
+    type: addModified
+    target: damageContext
+    delta: 0
+    percent: -10
+# 通缉: 攻击有通缉令的对手时获得5点怒气
+- id: effect_ability_add_rage_5_when_attack_opponent_has_tongjiling
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: self
+    value: 5
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_tongjiling
+# 拷问: 后手且攻击具有拷问的对手使对手降低5点怒气
+- id: effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addRage
+    target: opponent
+    value: -5
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: isLastSkillUsedThisTurn
+      - type: opponentHasMark
+        baseId: mark_kaowen

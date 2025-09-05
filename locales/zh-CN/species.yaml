@@ -403,3 +403,33 @@ pet_aika:
 pet_aikaweite:
   name: 埃卡维特
   description: 埃卡维特在长年摆弄小物的过程中，学会了变戏法，让所有观众都眼花缭乱
+pet_huanhuan:
+  name: 浣浣
+  description: 浣浣天生有一种能力 会变身贪吃的它经常变身混入居民家里偷吃东西
+pet_huanli:
+  name: 浣狸
+  description: 即使是成长为浣狸之后 它也经常在变身中途失败 被居民抓到扔出屋来
+pet_shasha:
+  name: 砂砂
+  description: 砂砂从小脑子很迟钝 在和其它精灵玩耍猜拳的时候 它只会出拳头
+pet_shajita:
+  name: 砂吉塔
+  description: 砂吉塔在战斗的时候 会发出沙沙沙的声音吓唬敌人
+pet_fenfen:
+  name: 芬芬
+  description: 芬芬是从棉花一般的云朵中探出头来的精灵 幼年的它已经具有了超于其他精灵的胆识
+pet_leifen:
+  name: 蕾芬
+  description: 蕾芬的大部分时间都会花费在军训上对于玩耍嬉笑没有任何兴趣
+pet_geleifen:
+  name: 葛蕾芬
+  description: 葛蕾芬已经是可以独当一面的苍穹战士它妖冶却冷漠 以军纪为自己的行为准则
+pet_sasa:
+  name: 萨萨
+  description: 文武双修的萨萨没有经历过特别严酷的军事化训练 在知识和道德上的修养使得它内心深处难免古板和高傲
+pet_sabo:
+  name: 萨伯
+  description: 萨伯一直是一个优等生 面对已经开始投入战斗的雷芬 它难免有一丝鄙夷的情绪
+pet_saber:
+  name: 萨伯尔
+  description: 萨伯尔的羽翼终于丰满起来 一改青年时略显轻浮的性格 萨伯尔兵团能够给整个飞翼氏族带来安全感

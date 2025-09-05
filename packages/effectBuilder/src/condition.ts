@@ -390,8 +390,9 @@ export const Conditions = {
   // 当自己被选为当前UseSkillContext的目标时返回true
   selfBeSkillTarget: (): Condition => {
     return context => {
-      if (context.parent instanceof UseSkillContext) {
-        return context.source.owner === context.parent.actualTarget
+      const useSkillContext = findContextRecursively(context, UseSkillContext)
+      if (useSkillContext) {
+        return context.source.owner === useSkillContext.actualTarget
       }
       return false
     }

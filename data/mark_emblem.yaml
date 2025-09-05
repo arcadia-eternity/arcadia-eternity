@@ -331,9 +331,28 @@
   config: *emblem_config
   tags: [emblem]
   effect:
-    - effect_emblem_increase_douzhanzhihun_fixed_damage_50_percent #TODO: Implement emblem effect for skill_douzhanzhihun
+    - effect_emblem_increase_douzhanzhihun_fixed_damage_50_percent
 - id: mark_emblem_moshu
   config: *emblem_config
   tags: [emblem]
-  effect: 
+  effect:
     - effect_emblem_xifa_skill_accuracy_boost_5_percent
+- id: mark_emblem_wuxing
+  config: *emblem_config
+  tags: [emblem]
+  effect: [] # 该纹章的效果在技能上
+- id: mark_emblem_rouxing
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_raise_spd_1_stage_when_rouruan_20_percent
+- id: mark_emblem_kaoda
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_skill_kaowenzhe_sure_hit
+- id: mark_emblem_jina
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_skill_tongjiling_sure_hit

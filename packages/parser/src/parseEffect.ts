@@ -106,6 +106,8 @@ export function parseSelector<T extends SelectorOpinion>(effectId: string, dsl: 
     const falseSelector = dsl.falseSelector ? parseSelector(effectId, dsl.falseSelector) : undefined
     return trueSelector.when(condition, trueSelector.build(), falseSelector?.build()) as ChainableSelector<T>
   }
+  if (typeof dsl === 'object' && 'type' in dsl && dsl.type === 'selectorValue')
+    return parseSelectorValue(effectId, dsl) as ChainableSelector<T>
 
   // 解析基础选择器
   const baseSelector = typeof dsl === 'string' ? getBaseSelector(dsl) : getBaseSelector((dsl as ChainSelector).base)
@@ -382,10 +384,8 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       const falseAction = dsl.falseOperator ? createAction(effectId, dsl.falseOperator) : undefined
       return (ctx: EffectContext<EffectTrigger>) => {
         if (condition(ctx)) {
-          console.log('true')
           trueAction(ctx)
         } else if (falseAction) {
-          console.log('false')
           falseAction(ctx)
         }
       }
@@ -1039,9 +1039,7 @@ export function parseAddTemporaryEffectAction(
   dsl: Extract<OperatorDSL, { type: 'addTemporaryEffect' }>,
 ) {
   return parseSelector<SkillInstance | MarkInstance>(effectId, dsl.target).apply(
-    Operators.addTemporaryEffect(
-      parseValue(effectId, dsl.effect) as ValueSource<Effect<EffectTrigger>>,
-    ),
+    Operators.addTemporaryEffect(parseValue(effectId, dsl.effect) as ValueSource<Effect<EffectTrigger>>),
   )
 }
 

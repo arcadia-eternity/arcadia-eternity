@@ -904,8 +904,6 @@
     type: selfBeDamaged
   priority: 0
   apply:
-    - type: preventDamage
-      target: damageContext
     - type: dealDamage
       target: opponent
       value:
@@ -1358,24 +1356,6 @@
     type: addRage
     target: self
     value: 10
-# 反弹印记: 反弹受到伤害的25%
-- id: effect_mark_fantan_reflect_damage
-  trigger: OnDamage
-  condition:
-    type: selfBeDamaged
-  priority: 0
-  apply:
-    type: dealDamage
-    target: opponent
-    value:
-      type: dynamic
-      selector:
-        base: damageContext
-        chain:
-          - type: selectPath
-            arg: damageResult
-          - type: multiply
-            arg: 0.25
 # 准备动作: 下一次攻击技能造成伤害增加50%且必中
 - id: effect_mark_next_attack_damage_increase_50_percent_sure_hit
   trigger: AfterUseSkillCheck
@@ -2731,7 +2711,7 @@
   condition:
     type: petIsActive
 # 龙鳞甲: 反弹特攻伤害50%
-- id: effect_mark_longlinjia_reflect_damage_50_percent
+- id: effect_mark_reflect_special_damage_50_percent
   trigger: OnDamage
   condition:
     type: every
@@ -2934,7 +2914,7 @@
         evaluator:
           type: notSame
           value: Status
-      - # 防止无限递归
+      - &condition_prevent_infinite_recursion # 防止无限递归
         type: evaluate
         target:
           base: damageContext
@@ -3913,3 +3893,171 @@
               arg:
                 type: base
                 arg: stack
+# 自损: 自己造成伤害时，同时给自己造成伤害值50%的伤害
+- id: effect_mark_self_damage_50_percent_once
+  trigger: OnDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: notSame
+          value: Status
+      - *condition_prevent_infinite_recursion
+  priority: 0
+  apply:
+    - type: dealDamage
+      target: self
+      value:
+        type: dynamic
+        selector:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageResult
+            - type: multiply
+              arg: 0.5
+    - type: destroyMark
+      target: mark
+# 砂毒之血: 免疫中毒
+- id: effect_mark_immune_zhongdu
+  trigger: OnBeforeAddMark
+  priority: 0
+  apply:
+    type: disableContext
+    target: addMarkContext
+  condition:
+    type: every
+    conditions:
+      - type: selfBeAddMark
+      - type: evaluate
+        target:
+          base: addMarkContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: baseMark.id
+        evaluator:
+          type: same
+          value: mark_zhongdu
+# 砂毒: 使治疗效果减半
+- id: effect_mark_reduce_healing_50_percent
+  trigger: OnBeforeHeal
+  priority: 0
+  condition:
+    type: every
+    conditions:
+      - type: selfBeHeal
+  apply:
+    type: addModified
+    target: healContext
+    percent: -50
+    delta: 0
+# 砂毒红血: 下一次使用特攻技能时,受到50%自损伤害
+- id: effect_mark_self_damage_50_percent_once_when_special
+  trigger: OnDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Special
+      - *condition_prevent_infinite_recursion
+  priority: 0
+  apply:
+    - type: dealDamage
+      target: self
+      value:
+        type: dynamic
+        selector:
+          base: damageContext
+          chain:
+            - type: selectPath
+              arg: damageResult
+            - type: multiply
+              arg: 0.5
+    - type: destroyMark
+      target: mark
+# 砂毒红血: 下一次使用物攻技能时,使自身中毒
+- id: effect_mark_add_mark_zhongdu_if_using_physical_attack
+  trigger: OnDamage
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: selectPath
+              arg: category
+        evaluator:
+          type: same
+          value: Physical
+  priority: 0
+  apply:
+    - type: addMark
+      target: self
+      mark:
+        type: entity:baseMark
+        value: mark_zhongdu
+    - type: destroyMark
+      target: mark
+# 通缉令: 增加40点受到的伤害
+- id: effect_mark_increase_damage_taken_40
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfBeDamaged
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: 40
+# 拷问: 降低造成的伤害40点
+- id: effect_mark_reduce_damage_dealt_40
+  trigger: OnBeforeCalculateDamage
+  condition:
+    type: selfUseSkill
+  priority: 0
+  apply:
+    type: addModified
+    target: damageContext
+    percent: 0
+    delta: -40
+# 被对手击败时降低对手一级速度
+- id: effect_mark_reduce_opponent_spe_1_stage_when_fainted
+  trigger: OnDefeat
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: opponent
+    statType: spe
+    value: -1
+  condition:
+    type: selfBeSkillTarget
+# 被对手击败时降低对手一级物攻
+- id: effect_mark_reduce_opponent_atk_1_stage_when_fainted
+  trigger: OnDefeat
+  priority: 0
+  apply:
+    type: statStageBuff
+    target: opponent
+    statType: atk
+    value: -1
+  condition:
+    type: selfBeSkillTarget

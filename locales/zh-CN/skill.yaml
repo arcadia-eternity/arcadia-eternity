@@ -2732,3 +2732,180 @@ skill_tishen:
 skill_xifalingshi:
   name: 戏法零式
   description: 随机出现1种戏法效果
+skill_qinangdan:
+  name: 气囊弹
+  description: 自身雌性时增加30点威力
+skill_qigaichongfeng:
+  name: 气概冲锋
+  description: 自身雄性时增加30点威力
+skill_guancha:
+  name: 观察
+  description: 对手雌性时弱化对手特攻1级 对手雄性时弱化对手物攻1级
+skill_xuexi:
+  name: 学习
+  description: 对手雌性时强化自身速度1级 对手雄性时强化自身物攻1级
+skill_qinangbaodan:
+  name: 气囊爆弹
+  description: 自身雌性时增加30点威力
+skill_qipochongfeng:
+  name: 气魄冲锋
+  description: 自身雄性时增加30点威力
+skill_sikao:
+  name: 思考
+  description: 自身雌性时使自身获得50点柔化 自身雄性时使自身获得50点硬化
+skill_yunyong:
+  name: 运用
+  description: 自身雌性时强化自身特攻2级 自身雄性时强化自身物攻2级
+skill_woyaorenzhenle:
+  name: 我要认真了
+  description: 必中 10%弱化对手物防1级 10%弱化对手特防1级
+skill_qinangjudan:
+  name: 气囊巨弹
+  description: 自身雌性时增加30点威力
+skill_polichongfeng:
+  name: 魄力冲锋
+  description: 自身雄性时增加30点威力
+skill_nuli:
+  name: 努力
+  description: 自身雌性时强化自身特攻特防1级 自身雄性时强化自身物攻物防1级
+skill_jinqu:
+  name: 进取
+  description: 对手雌性时弱化对手特攻特防1级 对手雄性时弱化对手物攻物防1级
+skill_chuanci:
+  name: 穿刺
+  description: 5%弱化对手特防1级
+skill_dengmu:
+  name: 瞪目
+  description: 弱化对手特防1级
+skill_shaduzhitong:
+  name: 砂毒之痛
+  description: 使对手获得自损
+skill_qutizhuangji:
+  name: 躯体撞击
+  description: 10%弱化对手物防1级
+skill_juanjin:
+  name: 卷紧
+  description: 使用2次增加50点威力
+skill_ruohua:
+  name: 弱化
+  description: 弱化对手物攻1级
+skill_shaduchuanci:
+  name: 砂毒穿刺
+  description: 使对手获得砂毒
+skill_rouxingzhuangji:
+  name: 柔性撞击
+  description: 15%弱化对手速度1级 后出手时威力2倍
+skill_shaduzhihong:
+  name: 砂毒之红
+  description: 使对手中毒
+skill_shaduzhixue:
+  name: 砂毒之血
+  description: 解除自身中毒并获得砂毒之血
+skill_qunsheluanwu:
+  name: 群蛇乱舞
+  description: 必中 20%弱化对手速度1级
+skill_rourenchuanci:
+  name: 柔软穿刺
+  description: 自身每级特防强化增加15点威力
+skill_qianglijuanjin:
+  name: 强力卷紧
+  description: 使用2次增加50点威力
+skill_shaduchuantou:
+  name: 砂毒穿透
+  description: 使对手获得砂毒
+skill_shaduhongxue:
+  name: 砂毒红血
+  description: 砂使对手获得砂毒红血
+skill_mengji:
+  name: 猛击
+  description: 5%弱化对手物防1级
+skill_yingyongjianxiao:
+  name: 英勇尖啸
+  description: 强化自身物攻1级
+skill_tongjiling:
+  name: 通缉令
+  description: 使对手获得通缉令
+skill_kongjingtuxi:
+  name: 空警突袭
+  description: 先制+1
+skill_yiduanyazhi:
+  name: 异端压制
+  description: 35%弱化对手物防1级
+skill_kongjingweijiao:
+  name: 空警围剿
+  description: 对手具有通缉令时必中
+skill_kongxijingjie:
+  name: 空袭警戒
+  description: 强化自身物防1级 对手具有通缉令时额外强化自身特防1级
+skill_kongjingzhansha:
+  name: 空警斩杀
+  description: 对手具有通缉令且体力＜1/2时威力2倍
+skill_yiduanjielan:
+  name: 异端拦截
+  description: 35%弱化对手速度1级
+skill_kongjingqianna:
+  name: 空警擒拿
+  description: 30%使对手瘫痪
+skill_yiduanzhuiji:
+  name: 异端追击
+  description: 击败具有通缉令的对手强化自身速度1级
+skill_kongzhongjianyu:
+  name: 空中监狱
+  description: 必中 20%使对手恐惧
+skill_kongjinglianxi:
+  name: 空警连袭
+  description: 对手具有通缉令时连击3次
+skill_yingyongyizhi:
+  name: 英勇遗志
+  description: 使自身获得英勇遗志
+skill_fatingzhinu:
+  name: 法庭之怒
+  description: 对手具有异常时威力2倍
+skill_zuizhongshenpan:
+  name: 最终审判
+  description: 降低具有通缉令的对手30点怒气
+skill_chengjizitai:
+  name: 惩击姿态
+  description: 强化自身特攻1级
+skill_kaowenzhe:
+  name: 拷问者
+  description: 使对手获得拷问
+skill_jijiangfa:
+  name: 激将法
+  description: 恢复具有拷问的对手45点怒气并获得50点受伤增加
+skill_kaowenzhuoji:
+  name: 拷问啄击
+  description: 后出手时伤害增加50%
+skill_guhuofa:
+  name: 蛊惑法
+  description: 后出手时使具有拷问的对手获得15点命中下降
+skill_yanshouzitai:
+  name: 严防姿态
+  description: 强化自身特防1级 对手具有拷问时额外强化自身物防1级
+skill_dajifa:
+  name: 打击法
+  description: 后出手时弱化具有拷问的对手特攻1级
+skill_kaowensilie:
+  name: 拷问撕裂
+  description: 后出手时使对手获得40点流血
+skill_weixiafa:
+  name: 威吓法
+  description: 后出手时60%使具有拷问的对手逃避
+skill_kaowenlianfa:
+  name: 拷问连发
+  description: 连击2次 后出手时连击4次
+skill_xinlingzhenbao:
+  name: 心灵震爆
+  description: 必中 5%使对手窒息
+skill_tongjilianxie:
+  name: 通缉联协
+  description: 对手具有通缉令时必中
+skill_bileiyanshen:
+  name: 壁垒延伸
+  description: 使自身获得壁垒延伸
+skill_fangkongdong:
+  name: 防空洞
+  description: 解除自身弱化
+skill_zuizhongcaijue:
+  name: 最终裁决
+  description: 击败具有拷问的对手时恢复自身最大体力的1/4

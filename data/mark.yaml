@@ -321,7 +321,7 @@
     destroyable: true
     keepOnSwitchOut: false
   effect:
-    - effect_mark_fantan_reflect_damage
+    - effect_mark_reflect_damage_1_4
 - id: mark_teshushanghaizengjia
   config:
     duration: -1
@@ -1753,7 +1753,7 @@
     destroyable: true
     keepOnSwitchOut: false
   effect:
-    - effect_mark_longlinjia_reflect_damage_50_percent
+    - effect_mark_reflect_special_damage_50_percent
 - id: mark_heianwuzhi
   config:
     duration: -1
@@ -2531,3 +2531,92 @@
     keepOnSwitchOut: true
   effect:
     - effect_mark_hunluan_consume_stacks_at_2
+- id: mark_zisun
+  config:
+    persistent: true
+    stackable: true
+    stackStrategy: max
+    destroyable: true
+    duration: -1
+    maxStacks: 1
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_self_damage_50_percent_once
+- id: mark_shaduzhixue
+  config:
+    persistent: true
+    stackable: true
+    stackStrategy: max
+    destroyable: true
+    duration: -1
+    maxStacks: 1
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_immune_zhongdu
+- id: mark_shadu
+  config:
+    persistent: true
+    stackable: true
+    stackStrategy: max
+    destroyable: true
+    duration: -1
+    maxStacks: 1
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_reduce_healing_50_percent
+- id: mark_shaduhongxue
+  config:
+    persistent: true
+    stackable: true
+    stackStrategy: max
+    destroyable: true
+    duration: -1
+    maxStacks: 1
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_self_damage_50_percent_once_when_special
+    - effect_mark_add_mark_zhongdu_if_using_physical_attack
+- id: mark_tongjiling
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_increase_damage_taken_40
+- id: mark_kaowen
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_reduce_damage_dealt_40
+- id: mark_yingyongyizhi
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_reduce_opponent_spe_1_stage_when_fainted
+- id: mark_bileiyanshen
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_reduce_opponent_atk_1_stage_when_fainted

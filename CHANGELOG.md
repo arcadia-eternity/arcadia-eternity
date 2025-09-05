@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.25.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.24.3...arcadia-eternity-v2.25.0) (2025-09-05)
+
+
+### ✨ Features
+
+* **newpet:** 浣狸 ([6dbffbe](https://github.com/arcadia-eternity/arcadia-eternity/commit/6dbffbeaf35e246b06cf08f7b3b32b39646026fd))
+* **newpet:** 砂吉塔 ([c346678](https://github.com/arcadia-eternity/arcadia-eternity/commit/c34667811c8ca02cc30f209f7aad8d8571541983))
+* **newpet:** 葛蕾芬、萨伯尔 ([4e44771](https://github.com/arcadia-eternity/arcadia-eternity/commit/4e44771f1a9beaf0a7ccbd766ae74139a102acdc))
+
 ## [2.24.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.24.2...arcadia-eternity-v2.24.3) (2025-09-05)
 
 
