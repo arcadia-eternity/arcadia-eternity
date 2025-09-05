@@ -20,6 +20,7 @@ import {
   type ScopeObject,
   Context,
   type BattlePhaseBase,
+  Effect,
 } from '@arcadia-eternity/battle'
 import { Observable, combineLatest, map } from 'rxjs'
 import {
@@ -663,8 +664,10 @@ export type ObjectOpinion =
   | ObservableRef<any, any>
   | Observable<any>
   | BattlePhaseBase
+  | Action
+  | Effect<EffectTrigger>
 
-export type SelectorOpinion = PrimitiveOpinion | ObjectOpinion | EnumOpinion | Array<SelectorOpinion>
+export type SelectorOpinion = PrimitiveOpinion | ObjectOpinion | EnumOpinion | Action | Array<SelectorOpinion>
 
 // 递归查找context的通用函数
 export function findContextRecursively<T extends Context, U extends EffectTrigger>(

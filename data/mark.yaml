@@ -1037,7 +1037,7 @@
     transferOnSwitch: false
     inheritOnFaint: false
   effect:
-    - effect_mark_reduce_spa_damage_20_percent
+    - effect_mark_reduce_opponent_spa_damage_20_percent
 - id: mark_jinzhenwayi
   config:
     duration: -1
@@ -1094,7 +1094,6 @@
     inheritOnFaint: false
   effect:
     - effect_mark_reduce_damage_50_percent
-
 - id: mark_huifu_50_per_turn
   config:
     duration: 5
@@ -1486,7 +1485,6 @@
     keepOnSwitchOut: true
   effect:
     - effect_mark_lanbaoshizhiguang_add_200_fixed_damage
-
 - id: mark_shahezhili
   config:
     duration: 6
@@ -1498,7 +1496,6 @@
     keepOnSwitchOut: true
   effect:
     - effect_mark_increase_damage_dealt_35_percent
-
 - id: mark_shazhiwang
   config:
     duration: -1
@@ -2523,3 +2520,14 @@
   effect:
     - effect_mark_reduce_damage_taken_20_percent
     - effect_mark_increase_damage_dealt_20_percent
+- id: mark_xifamihuo
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 2
+    stackable: true
+    stackStrategy: stack
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_hunluan_consume_stacks_at_2

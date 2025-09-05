@@ -2092,6 +2092,42 @@
             "type",
             "target"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "executeActions"
+            },
+            "target": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type",
+            "target"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "addTemporaryEffect"
+            },
+            "target": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "effect": {
+              "$ref": "#/$defs/__schema5"
+            }
+          },
+          "required": [
+            "type",
+            "target",
+            "effect"
+          ]
         }
       ]
     },
@@ -2560,7 +2596,7 @@
           "properties": {
             "type": {
               "type": "string",
-              "const": "selector"
+              "const": "selectorValue"
             },
             "value": {
               "$ref": "#/$defs/__schema5"
@@ -3441,6 +3477,22 @@
           "properties": {
             "type": {
               "type": "string",
+              "const": "entity:effect"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
               "const": "dynamic"
             },
             "selector": {
@@ -3457,7 +3509,7 @@
           "properties": {
             "type": {
               "type": "string",
-              "const": "selector"
+              "const": "selectorValue"
             },
             "value": {
               "$ref": "#/$defs/__schema5"
@@ -3502,6 +3554,9 @@
           "items": {
             "$ref": "#/$defs/__schema5"
           }
+        },
+        {
+          "$ref": "#/$defs/__schema0"
         }
       ]
     }

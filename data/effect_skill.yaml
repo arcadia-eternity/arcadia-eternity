@@ -5159,7 +5159,7 @@
     type: addMark
     target: battle
     mark:
-      type: selector
+      type: selectorValue
       value:
         - type: entity:baseMark
           value: mark_global_qingtian
@@ -6052,7 +6052,7 @@
     conditions:
       - type: selfUseSkill
 # 消耗一层沙之蛋壳使优先级+1
-- id: effect_skill_add_priority_1_consume_shazhidanke
+- id: effect_skill_priority_plus_1_consume_shazhidanke
   trigger: BeforeSort
   priority: 0
   apply:
@@ -7487,7 +7487,7 @@
   condition:
     type: selfUseSkill
 # 使自己获得50点受到伤害增加
-- id: effect_skill_add_mark_shanghaizengjia_50
+- id: effect_skill_add_mark_shoudaoshanghaizengjia_50
   trigger: OnHit
   priority: 0
   apply:
@@ -7495,7 +7495,7 @@
     target: self
     mark:
       type: entity:baseMark
-      value: mark_shanghaizengjia
+      value: mark_shoudaoshanghaizengjia
     stack: 50
   condition:
     type: selfUseSkill
@@ -8048,7 +8048,7 @@
     type: addMark
     target: self
     mark:
-      type: selector
+      type: selectorValue
       value:
         - type: entity:baseMark
           value: mark_zhaocai
@@ -8369,7 +8369,7 @@
       statType: atk
     - <<: *apply_self_statstage_+1_template
       statType:
-        type: selector
+        type: selectorValue
         value: ['def', 'spd', 'spa', 'spe']
         chain:
           - type: randomPick
@@ -9312,7 +9312,7 @@
       - type: selfHasMark
         baseId: mark_niliu
 # 顺流时弱化对手物防1级
-- id: effect_skill_reduce_def_1_stage_if_has_shunliu
+- id: effect_skill_reduce_opponent_def_1_stage_if_has_shunliu
   trigger: BeforeHit
   priority: 0
   apply:
@@ -9325,7 +9325,7 @@
       - type: selfHasMark
         baseId: mark_shunliu
 # 逆流时弱化对手特攻1级
-- id: effect_skill_reduce_spa_1_stage_if_has_niliu
+- id: effect_skill_reduce_opponent_spa_1_stage_if_has_niliu
   trigger: BeforeHit
   priority: 0
   apply:
@@ -10366,7 +10366,7 @@
     target: damageContext
     percent: 0
     delta: &sample_30_70
-      type: selector
+      type: selectorValue
       value: [30, 70]
       chain:
         - type: sampleBetween
@@ -10477,7 +10477,7 @@
       value: mark_shuimian
   condition:
     type: selfUseSkill
-# 使自己获得100点受到伤害增加
+# 使自己获得100点伤害增加
 - id: effect_skill_add_mark_shanghaizengjia_100
   trigger: OnHit
   priority: 0
@@ -11107,3 +11107,114 @@
       - type: selfUseSkill
       - type: selfHasMark
         baseId: mark_zhandoulingyu
+# 使双方方获得50点伤害增加
+- id: effect_skill_add_mark_both_shanghaizengjia_50
+  trigger: OnHit
+  priority: 0
+  apply:
+    - type: addMark
+      target: opponent
+      mark:
+        type: entity:baseMark
+        value: mark_shanghaizengjia
+      stack: 50
+    - type: addMark
+      target: self
+      mark:
+        type: entity:baseMark
+        value: mark_shanghaizengjia
+      stack: 50
+  condition:
+    type: selfUseSkill
+# 对手混乱时威力翻倍
+- id: effect_skill_power_2x_if_opponent_hunluan
+  trigger: AfterUseSkillCheck
+  priority: 0
+  apply:
+    type: amplifyPower
+    target: useSkillContext
+    value: 2
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: opponentHasMark
+        baseId: mark_hunluan
+# 如果自身的血量低于1/8，使自身获得闪避
+- id: effect_skill_add_mark_shanbi_below_1_8_hp
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: self
+    mark:
+      type: entity:baseMark
+      value: mark_shanbi
+    stack: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: self
+          chain:
+            - type: select
+              arg:
+                type: base
+                arg: currentHp
+        evaluator:
+          type: compare
+          operator: <=
+          value:
+            type: dynamic
+            selector:
+              base: self
+              chain:
+                - type: select
+                  arg:
+                    type: base
+                    arg: maxHp
+                - type: divide
+                  arg: 8
+# 先制+1
+- id: effect_skill_priority_plus_1
+  trigger: BeforeSort
+  priority: 0
+  apply:
+    type: addValue
+    target:
+      base: useSkillContext
+      chain:
+        - type: selectProp
+          arg: priority
+    value: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+# 随机产生一个戏法效果
+- id: effect_skill_random_xifa_effect
+  trigger: BeforeSort
+  priority: 100
+  apply:
+    type: addTemporaryEffect
+    target: skill
+    effect:
+      type: selectorValue
+      value:
+        - type: entity:effect
+          value: effect_skill_add_mark_shanbi_below_1_8_hp
+        - type: entity:effect
+          value: effect_skill_add_mark_both_shanghaizengjia_50
+        - type: entity:effect
+          value: effect_skill_add_mark_opponent_mingzhongxiajiang_15
+        - type: entity:effect
+          value: effect_skill_priority_plus_1
+      chain:
+        - type: randomPick
+          arg: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill

@@ -44,3 +44,10 @@ export class Effect<T extends EffectTrigger> implements Prototype {
 export interface EffectContainer {
   effects: Effect<EffectTrigger>[]
 }
+
+export class TemporaryEffect {
+  constructor(
+    public readonly effect: Effect<EffectTrigger>,
+    public readonly phaseId: string,
+  ) {}
+}

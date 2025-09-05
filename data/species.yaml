@@ -7353,7 +7353,6 @@
     - mark_ability_cuimian
   emblem:
     - mark_emblem_zimian
-
 - id: pet_feiyite
   num: 97
   element: Flying
@@ -7639,3 +7638,120 @@
     - mark_ability_haozhan
   emblem:
     - mark_emblem_douhun
+- id: pet_aika
+  num: 109
+  element: Ground
+  baseStats:
+    hp: 90
+    atk: 129
+    spa: 120
+    def: 113
+    spd: 120
+    spe: 108
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 26
+    - 36
+  weightRange:
+    - 13
+    - 18
+  learnable_skills:
+    - skill_id: skill_paida
+      level: 1
+      hidden: false
+    - skill_id: skill_feishi
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 9
+      hidden: false
+    - skill_id: skill_xifayishi
+      level: 13
+      hidden: false
+    - skill_id: skill_yingzhaolianji
+      level: 17
+      hidden: false
+    - skill_id: skill_xifaershi
+      level: 22
+      hidden: false
+  ability:
+    - mark_ability_xifa
+  emblem:
+    - mark_emblem_moshu
+- id: pet_aikaweite
+  num: 110
+  element: Ground
+  baseStats:
+    hp: 180
+    atk: 179
+    spa: 165
+    def: 158
+    spd: 170
+    spe: 153
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 64
+    - 69
+  weightRange:
+    - 55
+    - 60
+  learnable_skills:
+    - skill_id: skill_paida
+      level: 1
+      hidden: false
+    - skill_id: skill_feishi
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 9
+      hidden: false
+    - skill_id: skill_xifayishi
+      level: 13
+      hidden: false
+    - skill_id: skill_yingzhaolianji
+      level: 17
+      hidden: false
+    - skill_id: skill_xifaershi
+      level: 22
+      hidden: false
+    - skill_id: skill_suishigongji
+      level: 27
+      hidden: false
+    - skill_id: skill_mozhua
+      level: 32
+      hidden: false
+    - skill_id: skill_xifasanshi
+      level: 37
+      hidden: false
+    - skill_id: skill_fenglizhuaji
+      level: 42
+      hidden: false
+    - skill_id: skill_dunzu
+      level: 47
+      hidden: false
+    - skill_id: skill_lieshituji
+      level: 52
+      hidden: false
+    - skill_id: skill_juzhaoliediji
+      level: 60
+      hidden: true
+    - skill_id: skill_gangzhaozhiji
+      level: 60
+      hidden: true
+    - skill_id: skill_xifasishi
+      level: 60
+      hidden: true
+    - skill_id: skill_tishen
+      level: 60
+      hidden: true
+    - skill_id: skill_xifalingshi
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_xifa
+  emblem:
+    - mark_emblem_moshu

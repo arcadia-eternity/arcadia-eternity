@@ -23,6 +23,7 @@ import type {
   RawBaseSkillIdValue,
   RawSpeciesIdValue,
   SelectorValue,
+  RawEffectIdValue,
 } from './effectDsl'
 import { MarkConfigSchema } from './mark'
 
@@ -80,6 +81,11 @@ export const rawSpeciesIdValueSchema = z.object({
   }),
 })
 
+export const rawEffectIdValueSchema: z.ZodSchema<RawEffectIdValue> = z.object({
+  type: z.literal('entity:effect'),
+  value: z.string(),
+})
+
 export const dynamicValueSchema: z.ZodSchema<DynamicValue> = z.lazy(() =>
   z.object({
     type: z.literal('dynamic'),
@@ -89,7 +95,7 @@ export const dynamicValueSchema: z.ZodSchema<DynamicValue> = z.lazy(() =>
 
 export const selectorValueSchema: z.ZodSchema<SelectorValue> = z.lazy(() =>
   z.object({
-    type: z.literal('selector'),
+    type: z.literal('selectorValue'),
     value: valueSchema,
     chain: z.array(selectorChainSchema).optional(),
   }),
@@ -115,10 +121,12 @@ export const valueSchema: z.ZodSchema<Value> = z.lazy(() =>
     rawBaseMarkIdValueSchema,
     rawBaseSkillIdValueSchema,
     rawSpeciesIdValueSchema,
+    rawEffectIdValueSchema,
     dynamicValueSchema,
     selectorValueSchema,
     conditionalValueSchema,
     z.array(valueSchema),
+    operatorDSLSchema,
   ]),
 )
 
@@ -766,6 +774,15 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
     z.object({
       type: z.literal('removeTransformation'),
       target: selectorDSLSchema,
+    }),
+    z.object({
+      type: z.literal('executeActions'),
+      target: selectorDSLSchema,
+    }),
+    z.object({
+      type: z.literal('addTemporaryEffect'),
+      target: selectorDSLSchema,
+      effect: valueSchema,
     }),
   ]),
 )

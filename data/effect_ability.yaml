@@ -1660,3 +1660,34 @@
     type: addRage
     target: self
     value: 15
+# 戏法: 使用戏法类技能时, 对手获得1层戏法迷惑
+- id: effect_ability_add_mark_opponent_xifamihuo_if_using_xifa_skill
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: addMark
+    target: opponent
+    mark:
+      type: entity:baseMark
+      value: mark_xifamihuo
+    stack: 1
+  condition:
+    type: every
+    conditions:
+      - type: selfUseSkill
+      - type: evaluate
+        target:
+          base: useSkillContext
+          chain:
+            - type: select
+              arg:
+                type: dynamic
+                arg: skill
+            - type: select
+              arg:
+                type: base
+                arg: tags
+            - type: flat
+        evaluator:
+          type: contain
+          tag: xifa

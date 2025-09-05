@@ -554,6 +554,17 @@ export type RemoveTransformationOperator = {
   target: SelectorDSL
 }
 
+export type ExecuteActionsOperator = {
+  type: 'executeActions'
+  target: SelectorDSL
+}
+
+export type AddTemporaryEffectOperator = {
+  type: 'addTemporaryEffect'
+  target: SelectorDSL
+  effect: Value
+}
+
 export type OperatorDSL =
   | TODOOperator
   | ConditionalOperator
@@ -632,6 +643,8 @@ export type OperatorDSL =
   | TransformOperator
   | TransformWithPreservationOperator
   | RemoveTransformationOperator
+  | ExecuteActionsOperator
+  | AddTemporaryEffectOperator
 
 export type RawNumberValue = {
   type: 'raw:number'
@@ -669,13 +682,18 @@ export type RawSpeciesIdValue = {
   value: string // Species的ID需符合特定格式
 }
 
+export type RawEffectIdValue = {
+  type: 'entity:effect'
+  value: string
+}
+
 export type DynamicValue = {
   type: 'dynamic'
   selector: SelectorDSL
 }
 
 export type SelectorValue = {
-  type: 'selector'
+  type: 'selectorValue'
   value: Value
   chain?: Array<SelectorChain>
 }
@@ -687,6 +705,7 @@ export type Value =
   | RawBaseMarkIdValue
   | RawBaseSkillIdValue
   | RawSpeciesIdValue
+  | RawEffectIdValue
   | DynamicValue
   | SelectorValue
   | Array<Value>
@@ -694,6 +713,7 @@ export type Value =
   | string
   | boolean
   | ConditionalValue
+  | OperatorDSL
 
 export type BaseSelectorKey = keyof typeof BaseSelector
 

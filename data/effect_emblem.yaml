@@ -801,7 +801,6 @@
     stack: 25
   condition:
     type: selfSwitchOut
-
 # 联防: 换上场时，给自己添加15点受到伤害减少
 - id: effect_emblem_add_mark_shoudaoshanghaijianshao_15_on_switchin
   trigger: OnSwitchOut
@@ -819,7 +818,6 @@
     stack: 15
   condition:
     type: selfSwitchIn
-
 # 荧光: 使添加命中下降的效果额外增加5
 - id: effect_emblem_yingguanghuafen_extra_accuracy_reduction_5
   trigger: OnBattleStart
@@ -1403,3 +1401,22 @@
     configKey: effect_skill_clear_rage_add_fixed_damage.multiply_value
     modifierType: delta
     value: 0.5
+# 魔术: 戏法类技能的命中率提高5%
+- id: effect_emblem_xifa_skill_accuracy_boost_5_percent
+  trigger: OnBattleStart
+  priority: 0
+  apply:
+    type: addAttributeModifier
+    target:
+      base: selfSkills
+      chain:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: tags
+          evaluator:
+            type: contain
+            tag: xifa
+    stat: accuracy
+    value: 5
+    modifierType: delta

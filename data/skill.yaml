@@ -461,7 +461,6 @@
   accuracy: 95
   sureHit: false
   ignoreShield: false
-
   multihit: [3, 5]
 - id: skill_jishengzhongzi
   element: Grass
@@ -821,7 +820,6 @@
   accuracy: 95
   sureHit: false
   ignoreShield: false
-
   multihit: 3
 - id: skill_yepianbaohu
   element: Grass
@@ -857,7 +855,6 @@
   sureHit: false
   ignoreShield: false
   multihit: 3
-
   effect:
     - effect_skill_add_multihit_opponent_has_mark_kuihuazhongzi
 - id: skill_yuhe
@@ -5713,7 +5710,7 @@
   ignoreShield: false
   tags: ['consume_shazhidanke']
   effect:
-    - effect_skill_add_priority_1_consume_shazhidanke
+    - effect_skill_priority_plus_1_consume_shazhidanke
 - id: skill_boudou
   element: Normal
   category: Physical
@@ -6908,7 +6905,7 @@
   rage: 20
   priority: 1
   effect:
-    - effect_skill_add_mark_shanghaizengjia_50
+    - effect_skill_add_mark_shoudaoshanghaizengjia_50
     - effect_skill_add_mark_shanghaizengjia_150
 - id: skill_leidian
   element: Electric
@@ -9084,8 +9081,8 @@
   rage: 10
   target: opponent
   effect:
-    - effect_skill_reduce_def_1_stage_if_has_shunliu
-    - effect_skill_reduce_spa_1_stage_if_has_niliu
+    - effect_skill_reduce_opponent_def_1_stage_if_has_shunliu
+    - effect_skill_reduce_opponent_spa_1_stage_if_has_niliu
 - id: skill_qusan
   element: Normal
   category: Status
@@ -10461,3 +10458,170 @@
   sureHit: true
   multihit: [5, 9]
   tags: ['combination']
+- id: skill_xifayishi
+  element: Normal
+  category: Special
+  target: opponent
+  power: 80
+  accuracy: 95
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  tags: ['xifa']
+  effect:
+    - effect_skill_add_mark_opponent_mingzhongxiajiang_15
+- id: skill_yingzhaolianji
+  element: Ground
+  category: Physical
+  target: opponent
+  power: 30
+  accuracy: 90
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  multihit: 3
+  effect:
+    - effect_skill_reduce_opponent_def_1_stage_10_percent
+- id: skill_xifaershi
+  element: Ground
+  category: Special
+  target: opponent
+  power: 80
+  accuracy: 95
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  tags: ['xifa']
+  effect:
+    - effect_skill_add_mark_both_shanghaizengjia_50
+- id: skill_suishigongji
+  element: Ground
+  category: Physical
+  target: opponent
+  power: 75
+  accuracy: 95
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_power_2x_if_opponent_hunluan
+- id: skill_mozhua
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_atk_1_stage
+- id: skill_xifasanshi
+  element: Normal
+  category: Special
+  target: opponent
+  power: 75
+  accuracy: 95
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  tags: ['xifa']
+  priority: 1
+- id: skill_fenglizhuaji
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 75
+  accuracy: 95
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_power_2x_if_opponent_hunluan
+- id: skill_dunzu
+  element: Normal
+  category: Status
+  target: opponent
+  power: 0
+  accuracy: 95
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_opponent_spe_1_stage
+- id: skill_lieshituji
+  element: Ground
+  category: Physical
+  target: opponent
+  power: 100
+  accuracy: 95
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_opponent_def_1_stage_15_percent
+- id: skill_juzhaoliediji
+  element: Ground
+  category: Climax
+  target: opponent
+  power: 165
+  accuracy: 100
+  rage: 100
+  sureHit: true
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_reduce_opponent_spe_1_stage_20_percent
+- id: skill_gangzhaozhiji
+  element: Ground
+  category: Physical
+  target: opponent
+  power: 100
+  accuracy: 95
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  ignoreOpponentStageStrategy: positive
+- id: skill_xifasishi
+  element: Ground
+  category: Special
+  target: opponent
+  power: 110
+  accuracy: 100
+  rage: 30
+  sureHit: true
+  ignoreShield: false
+  tags: ['xifa']
+  effect:
+    - effect_skill_add_mark_shanbi_below_1_8_hp
+- id: skill_tishen
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 95
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_clear_status
+- id: skill_xifalingshi
+  element: Normal
+  category: Special
+  target: opponent
+  power: 100
+  accuracy: 95
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  tags: ['xifa']
+  effect:
+    - effect_skill_random_xifa_effect
