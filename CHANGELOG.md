@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.24.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.23.5...arcadia-eternity-v2.24.0) (2025-09-05)
+
+
+### ✨ Features
+
+* **netpet:** 埃卡维特 ([af33fd8](https://github.com/arcadia-eternity/arcadia-eternity/commit/af33fd84c237e95a2f8823de4ecba1a3f11b7125))
+
+
+### 🐛 Bug Fixes
+
+* action after check ([690fc5e](https://github.com/arcadia-eternity/arcadia-eternity/commit/690fc5e9706996a3cb34cfa19610b4da89b91ae5))
+
+
+### ♻️ Code Refactoring
+
+* action selector ([896d21a](https://github.com/arcadia-eternity/arcadia-eternity/commit/896d21a06c552e52fddae8b5ec13e81ca1784040))
+
 ## [2.23.5](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.23.4...arcadia-eternity-v2.23.5) (2025-09-03)
 
 
