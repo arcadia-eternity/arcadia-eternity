@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.25.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.25.0...arcadia-eternity-v2.25.1) (2025-09-05)
+
+
+### 🐛 Bug Fixes
+
+* mark_bileiyanshen image ([fb04185](https://github.com/arcadia-eternity/arcadia-eternity/commit/fb041853ea9d9e702d906df1315865bd4923a617))
+
+
+### ♻️ Code Refactoring
+
+* TurnPhase ([01a600e](https://github.com/arcadia-eternity/arcadia-eternity/commit/01a600e12221f4e6ff9a1e3a71e8b5dc9a46e971))
+
 ## [2.25.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.24.3...arcadia-eternity-v2.25.0) (2025-09-05)
 
 
