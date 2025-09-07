@@ -1,5 +1,5 @@
 import { EffectTrigger, BattleMessageType, BattleStatus, BattlePhase } from '@arcadia-eternity/const'
-import { InteractivePhase } from '../phase'
+import { SynchronousPhase } from '../phase'
 import { TurnContext, UseSkillContext, SwitchPetContext } from '../context'
 import { SkillPhase } from './skill'
 import { SwitchPetPhase } from './switch'
@@ -12,7 +12,7 @@ import type { Battle } from '../battle'
  * TurnPhase handles turn execution operations
  * Corresponds to TurnContext and replaces performTurn logic
  */
-export class TurnPhase extends InteractivePhase<TurnContext> {
+export class TurnPhase extends SynchronousPhase<TurnContext> {
   constructor(battle: Battle, id?: string) {
     super(battle, id)
   }
@@ -21,7 +21,7 @@ export class TurnPhase extends InteractivePhase<TurnContext> {
     return new TurnContext(this.battle)
   }
 
-  protected async executeOperation(): Promise<void> {
+  protected executeOperation() {
     const context = this._context!
 
     // Execute the turn operation logic (extracted from performTurn)

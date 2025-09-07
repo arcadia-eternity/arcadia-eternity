@@ -110,7 +110,7 @@ export class BattleSwitchPhase extends InteractivePhase<BattleSwitchContext> {
         const selectionPet = this.battle.getPetByID((player.selection as SwitchPetSelection).pet)
         const switchPhase = new SwitchPetPhase(this.battle, player, selectionPet, this)
         this.battle.phaseManager.registerPhase(switchPhase)
-        await this.battle.phaseManager.executePhase(switchPhase.id)
+        this.battle.phaseManager.executePhase(switchPhase.id)
       }
       player.selection = null
       // 通知TimerManager选择状态已清理
