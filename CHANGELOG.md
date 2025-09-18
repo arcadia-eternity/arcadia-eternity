@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.25.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.25.1...arcadia-eternity-v2.25.2) (2025-09-18)
+
+
+### 🐛 Bug Fixes
+
+* remove climax limit ([496056a](https://github.com/arcadia-eternity/arcadia-eternity/commit/496056abd17644b156439de0c4d6eeb59703e2fc))
+
 ## [2.25.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.25.0...arcadia-eternity-v2.25.1) (2025-09-05)
 
 
