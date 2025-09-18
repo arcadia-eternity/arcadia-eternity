@@ -23,8 +23,6 @@ export class TurnPhase extends SynchronousPhase<TurnContext> {
 
   protected executeOperation() {
     const context = this._context!
-
-    // Execute the turn operation logic (extracted from performTurn)
     // Note: executeTurnOperation is synchronous but we wrap it in async
     executeTurnOperation(context, this.battle)
   }

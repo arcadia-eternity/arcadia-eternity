@@ -1351,15 +1351,6 @@
           value: 1
       - type: evaluate
         target:
-          base: useSkillContext
-          chain:
-            - type: selectPath
-              arg: skill.base.category
-        evaluator:
-          type: same
-          value: Climax
-      - type: evaluate
-        target:
           base: battle
           chain:
             - type: select
