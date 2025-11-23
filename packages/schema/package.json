@@ -25,10 +25,10 @@
   "dependencies": {
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/effect-builder": "workspace:^",
-    "nanoid": "^5.1.5",
-    "zod": "^4.0.17"
+    "nanoid": "^5.1.6",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@types/node": "^24.2.1"
+    "@types/node": "^24.10.1"
   }
 }
