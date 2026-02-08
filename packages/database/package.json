@@ -29,16 +29,16 @@
   "dependencies": {
     "@arcadia-eternity/const": "workspace:^",
     "@supabase/supabase-js": "^2.95.3",
-    "inversify": "^7.10.4",
+    "inversify": "^7.11.0",
     "nanoid": "^5.1.6",
     "reflect-metadata": "^0.2.2",
-    "zod": "^4.1.12"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-typescript": "^12.3.0",
-    "@types/node": "^24.10.1",
-    "rollup": "^4.53.3",
+    "@types/node": "^25.2.2",
+    "rollup": "^4.57.1",
     "rollup-plugin-node-externals": "^8.1.2",
     "tslib": "^2.8.1",
     "typescript": "^5.9.3"
