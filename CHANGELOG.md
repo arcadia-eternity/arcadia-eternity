@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.25.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.25.2...arcadia-eternity-v2.25.3) (2026-02-08)
+
+
+### 🐛 Bug Fixes
+
+* resolve Supabase type errors in database and server packages ([2dcb87e](https://github.com/arcadia-eternity/arcadia-eternity/commit/2dcb87e4e1d6fc919397fc6e95aa2dd7dcff6a91))
+
+
+### 📚 Documentation
+
+* update readme ([39403dd](https://github.com/arcadia-eternity/arcadia-eternity/commit/39403dd5eb37335fd04b208f5e4ea3864450fe6c))
+
 ## [2.25.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.25.1...arcadia-eternity-v2.25.2) (2025-09-18)
 
 
