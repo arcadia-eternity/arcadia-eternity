@@ -26,13 +26,13 @@
     "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/data-repository": "workspace:^",
-    "nanoid": "^5.1.5",
+    "nanoid": "^5.1.6",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "@babel/core": "^7.28.0",
-    "@babel/preset-env": "^7.28.0",
-    "@babel/preset-typescript": "^7.27.1",
-    "@jest/transform": "^30.0.5"
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
+    "@jest/transform": "^30.2.0"
   }
 }

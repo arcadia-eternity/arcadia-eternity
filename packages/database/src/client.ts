@@ -39,6 +39,7 @@ export interface Database {
           email_bound_at?: string | null
           is_registered?: boolean
         }
+        Relationships: []
       }
       player_stats: {
         Row: {
@@ -65,6 +66,7 @@ export interface Database {
           draws?: number
           updated_at?: string
         }
+        Relationships: []
       }
       battle_records: {
         Row: {
@@ -77,8 +79,8 @@ export interface Database {
           ended_at: string | null
           duration_seconds: number | null
           winner_id: string | null
-          battle_result: string
-          end_reason: string
+          battle_result: 'player_a_wins' | 'player_b_wins' | 'draw' | 'abandoned'
+          end_reason: 'all_pet_fainted' | 'surrender' | 'timeout' | 'disconnect'
           battle_messages: any[]
           final_state: Record<string, any>
           metadata: Record<string, any>
@@ -94,8 +96,8 @@ export interface Database {
           ended_at?: string | null
           duration_seconds?: number | null
           winner_id?: string | null
-          battle_result: string
-          end_reason: string
+          battle_result: 'player_a_wins' | 'player_b_wins' | 'draw' | 'abandoned'
+          end_reason: 'all_pet_fainted' | 'surrender' | 'timeout' | 'disconnect'
           battle_messages?: any[]
           final_state?: Record<string, any>
           metadata?: Record<string, any>
@@ -111,13 +113,14 @@ export interface Database {
           ended_at?: string | null
           duration_seconds?: number | null
           winner_id?: string | null
-          battle_result?: string
-          end_reason?: string
+          battle_result?: 'player_a_wins' | 'player_b_wins' | 'draw' | 'abandoned'
+          end_reason?: 'all_pet_fainted' | 'surrender' | 'timeout' | 'disconnect'
           battle_messages?: any[]
           final_state?: Record<string, any>
           metadata?: Record<string, any>
           created_at?: string
         }
+        Relationships: []
       }
       email_verification_codes: {
         Row: {
@@ -150,7 +153,56 @@ export interface Database {
           expires_at?: string
           used_at?: string | null
         }
+        Relationships: []
       }
+      player_elo_ratings: {
+        Row: {
+          player_id: string
+          rule_set_id: string
+          elo_rating: number
+          games_played: number
+          wins: number
+          losses: number
+          draws: number
+          highest_elo: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          player_id: string
+          rule_set_id: string
+          elo_rating?: number
+          games_played?: number
+          wins?: number
+          losses?: number
+          draws?: number
+          highest_elo?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          player_id?: string
+          rule_set_id?: string
+          elo_rating?: number
+          games_played?: number
+          wins?: number
+          losses?: number
+          draws?: number
+          highest_elo?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
     Functions: {
       get_player_battle_records: {
@@ -164,7 +216,7 @@ export interface Database {
           opponent_id: string
           opponent_name: string
           is_winner: boolean
-          battle_result: string
+          battle_result: 'player_a_wins' | 'player_b_wins' | 'draw' | 'abandoned'
           started_at: string
           ended_at: string | null
           duration_seconds: number | null
@@ -206,6 +258,75 @@ export interface Database {
           total_battles: number
           wins: number
           win_rate: number
+        }[]
+      }
+      cleanup_abandoned_battles: {
+        Args: {
+          p_hours_threshold: number
+        }
+        Returns: number
+      }
+      cleanup_old_battle_records: {
+        Args: {
+          p_days_threshold: number
+        }
+        Returns: number
+      }
+      get_or_create_player_elo: {
+        Args: {
+          p_player_id: string
+          p_rule_set_id: string
+          p_initial_elo: number
+        }
+        Returns: {
+          player_id: string
+          rule_set_id: string
+          elo_rating: number
+          games_played: number
+          wins: number
+          losses: number
+          draws: number
+          highest_elo: number
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      update_player_elo: {
+        Args: {
+          p_player_id: string
+          p_rule_set_id: string
+          p_new_elo: number
+          p_result: 'win' | 'loss' | 'draw'
+        }
+        Returns: void
+      }
+      batch_update_player_elos: {
+        Args: {
+          updates: {
+            player_id: string
+            rule_set_id: string
+            new_elo: number
+            result: 'win' | 'loss' | 'draw'
+          }[]
+        }
+        Returns: void
+      }
+      get_elo_leaderboard: {
+        Args: {
+          p_rule_set_id: string
+          p_limit: number
+          p_offset: number
+        }
+        Returns: {
+          player_id: string
+          player_name: string
+          elo_rating: number
+          games_played: number
+          wins: number
+          losses: number
+          draws: number
+          win_rate: number
+          highest_elo: number
         }[]
       }
     }

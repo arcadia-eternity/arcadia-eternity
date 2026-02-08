@@ -28,19 +28,19 @@
   "license": "MIT",
   "dependencies": {
     "@arcadia-eternity/const": "workspace:^",
-    "@supabase/supabase-js": "^2.54.0",
-    "inversify": "^7.7.0",
-    "nanoid": "^5.1.5",
+    "@supabase/supabase-js": "^2.95.3",
+    "inversify": "^7.10.4",
+    "nanoid": "^5.1.6",
     "reflect-metadata": "^0.2.2",
-    "zod": "^4.0.17"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@rollup/plugin-node-resolve": "^16.0.1",
-    "@rollup/plugin-typescript": "^12.1.4",
-    "@types/node": "^24.2.1",
-    "rollup": "^4.46.2",
-    "rollup-plugin-node-externals": "^8.0.1",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-typescript": "^12.3.0",
+    "@types/node": "^24.10.1",
+    "rollup": "^4.53.3",
+    "rollup-plugin-node-externals": "^8.1.2",
     "tslib": "^2.8.1",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   }
 }
