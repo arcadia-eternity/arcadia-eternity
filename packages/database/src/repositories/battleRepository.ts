@@ -24,8 +24,8 @@ export class BattleRepository {
       player_b_id: input.player_b_id,
       player_b_name: input.player_b_name,
       started_at: input.started_at || new Date().toISOString(),
-      battle_result: 'abandoned', // 初始状态
-      end_reason: 'disconnect', // 初始状态
+      battle_result: 'abandoned' as const, // 初始状态
+      end_reason: 'disconnect' as const, // 初始状态
       battle_messages: [],
       final_state: {},
       metadata: input.metadata || {},

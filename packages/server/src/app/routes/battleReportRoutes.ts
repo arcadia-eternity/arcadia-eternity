@@ -157,7 +157,7 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
    */
   router.get('/battles/:id', async (req: Request, res: Response): Promise<void> => {
     try {
-      const { id } = req.params
+      const id = req.params.id as string
       const battleRecord = await databaseService.battles.getBattleRecordById(id)
 
       if (!battleRecord) {
@@ -233,7 +233,7 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
    */
   router.get('/players/:playerId/battles', validatePagination, async (req: Request, res: Response): Promise<void> => {
     try {
-      const { playerId } = req.params
+      const playerId = req.params.playerId as string
       const result = await databaseService.battles.getPlayerBattleRecords(playerId, req.pagination)
       res.json(result)
     } catch (error) {
@@ -278,7 +278,7 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
    */
   router.get('/players/:playerId', async (req: Request, res: Response): Promise<void> => {
     try {
-      const { playerId } = req.params
+      const playerId = req.params.playerId as string
       const player = await databaseService.players.getPlayerById(playerId)
 
       if (!player) {
@@ -332,7 +332,7 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
    */
   router.get('/players/:playerId/stats', async (req: Request, res: Response): Promise<void> => {
     try {
-      const { playerId } = req.params
+      const playerId = req.params.playerId as string
       const stats = await databaseService.players.getPlayerStats(playerId)
 
       if (!stats) {

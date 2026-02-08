@@ -28,7 +28,7 @@
   "license": "MIT",
   "dependencies": {
     "@arcadia-eternity/const": "workspace:^",
-    "@supabase/supabase-js": "^2.84.0",
+    "@supabase/supabase-js": "^2.95.3",
     "inversify": "^7.10.4",
     "nanoid": "^5.1.6",
     "reflect-metadata": "^0.2.2",
