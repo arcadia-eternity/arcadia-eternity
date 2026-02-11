@@ -5,911 +5,694 @@ import {
   StatTypeWithoutHp,
 } from '@arcadia-eternity/const'
 import { BaseSelector, Extractor } from '@arcadia-eternity/effect-builder'
-import { z } from 'zod'
-import type {
-  OperatorDSL,
-  ConditionDSL,
-  DynamicValue,
-  EffectDSL,
-  EvaluatorDSL,
-  ExtractorDSL,
-  RawBooleanValue,
-  RawBaseMarkIdValue,
-  RawNumberValue,
-  RawStringValue,
-  SelectorChain,
-  SelectorDSL,
-  Value,
-  RawBaseSkillIdValue,
-  RawSpeciesIdValue,
-  SelectorValue,
-  RawEffectIdValue,
-} from './effectDsl'
+import { Type, type TSchema } from '@sinclair/typebox'
 import { MarkConfigSchema } from './mark'
+import { StringEnum } from './utils'
 
+// --- Base enums ---
 const selectorKeys = Object.keys(BaseSelector)
-export const baseSelectorSchema = z.enum(selectorKeys as [keyof typeof BaseSelector])
+export const baseSelectorSchema = StringEnum(selectorKeys)
 
-const effectTriggerSchema = z.enum(EffectTrigger)
+const effectTriggerSchema = StringEnum(Object.values(EffectTrigger))
 
 const COMPARE_OPERATORS = ['>', '<', '>=', '<=', '=='] as const
-const compareOperatorSchema = z.enum(COMPARE_OPERATORS)
+const compareOperatorSchema = StringEnum([...COMPARE_OPERATORS])
 
 const extractorKeys = Object.keys(Extractor)
-const baseExtractorSchema = z.enum(extractorKeys as [keyof typeof Extractor])
+const baseExtractorSchema = StringEnum(extractorKeys)
 
-// const operatorKeys = Object.keys(Operators)
-// const operatorSchema = z.enum(operatorKeys as [keyof typeof Operators])
+// --- Forward-declared recursive schemas ---
+// TypeBox doesn't support mutual recursion natively like Zod's z.lazy().
+// We use Type.Unsafe to declare forward references, then assign them later.
+// At runtime these are plain JSON Schema objects with $ref-like semantics;
+// TypeBox's Value.Check will still validate structurally.
 
-export const rawNumberValueSchema: z.ZodSchema<RawNumberValue> = z.object({
-  type: z.literal('raw:number'),
-  value: z.number(),
-  configId: z.string().optional(),
-  tags: z.array(z.string()).optional(),
+// We build the schemas imperatively so that every reference resolves.
+// The trick: define mutable schema holders, fill them in order.
+
+const _value: { schema: TSchema } = { schema: Type.Any() }
+const _selector: { schema: TSchema } = { schema: Type.Any() }
+const _condition: { schema: TSchema } = { schema: Type.Any() }
+const _evaluator: { schema: TSchema } = { schema: Type.Any() }
+const _operator: { schema: TSchema } = { schema: Type.Any() }
+const _selectorChain: { schema: TSchema } = { schema: Type.Any() }
+
+// Helper: lazily reference a schema holder (returns Type.Unsafe wrapping the holder)
+function Lazy(holder: { schema: TSchema }): TSchema {
+  return Type.Unsafe<any>({ ...holder.schema, $lazy: true })
+}
+
+// We'll use Type.Any() as the recursive placeholder and build real schemas.
+// Since TypeBox schemas are plain objects, we can construct them and they work
+// with Value.Check as long as the structure is correct.
+
+// --- Leaf value schemas ---
+export const rawNumberValueSchema = Type.Object({
+  type: Type.Literal('raw:number'),
+  value: Type.Number(),
+  configId: Type.Optional(Type.String()),
+  tags: Type.Optional(Type.Array(Type.String())),
 })
 
-export const rawStringValueSchema: z.ZodSchema<RawStringValue> = z.object({
-  type: z.literal('raw:string'),
-  value: z.string(),
-  configId: z.string().optional(),
-  tags: z.array(z.string()).optional(),
+export const rawStringValueSchema = Type.Object({
+  type: Type.Literal('raw:string'),
+  value: Type.String(),
+  configId: Type.Optional(Type.String()),
+  tags: Type.Optional(Type.Array(Type.String())),
 })
 
-export const rawBooleanValueSchema: z.ZodSchema<RawBooleanValue> = z.object({
-  type: z.literal('raw:boolean'),
-  value: z.boolean(),
-  configId: z.string().optional(),
-  tags: z.array(z.string()).optional(),
+export const rawBooleanValueSchema = Type.Object({
+  type: Type.Literal('raw:boolean'),
+  value: Type.Boolean(),
+  configId: Type.Optional(Type.String()),
+  tags: Type.Optional(Type.Array(Type.String())),
 })
 
-export const rawBaseMarkIdValueSchema: z.ZodSchema<RawBaseMarkIdValue> = z.object({
-  type: z.literal('entity:baseMark'),
-  value: z.string().refine(v => v.startsWith('mark_')),
+export const rawBaseMarkIdValueSchema = Type.Object({
+  type: Type.Literal('entity:baseMark'),
+  value: Type.String({ pattern: '^mark_' }),
 })
 
-export const rawBaseSkillIdValueSchema: z.ZodSchema<RawBaseSkillIdValue> = z.object({
-  type: z.literal('entity:baseSkill'),
-  value: z.string().refine(v => v.startsWith('skill_'), {
-    message: "Skill ID must start with 'skill_'",
-  }),
+export const rawBaseSkillIdValueSchema = Type.Object({
+  type: Type.Literal('entity:baseSkill'),
+  value: Type.String({ pattern: '^skill_' }),
 })
 
-export const rawSpeciesIdValueSchema = z.object({
-  type: z.literal('entity:species'),
-  value: z.string().refine(v => v.startsWith('pet_'), {
-    message: "Species ID must start with 'pet_'",
-  }),
+export const rawSpeciesIdValueSchema = Type.Object({
+  type: Type.Literal('entity:species'),
+  value: Type.String({ pattern: '^pet_' }),
 })
 
-export const rawEffectIdValueSchema: z.ZodSchema<RawEffectIdValue> = z.object({
-  type: z.literal('entity:effect'),
-  value: z.string(),
+export const rawEffectIdValueSchema = Type.Object({
+  type: Type.Literal('entity:effect'),
+  value: Type.String(),
 })
 
-export const dynamicValueSchema: z.ZodSchema<DynamicValue> = z.lazy(() =>
-  z.object({
-    type: z.literal('dynamic'),
-    selector: selectorDSLSchema,
+export const dynamicValueSchema = Type.Object({
+  type: Type.Literal('dynamic'),
+  selector: Type.Any(), // selectorDSL - resolved at runtime
+})
+
+export const selectorValueSchema = Type.Object({
+  type: Type.Literal('selectorValue'),
+  value: Type.Any(), // value - resolved at runtime
+  chain: Type.Optional(Type.Array(Type.Any())), // selectorChain[]
+})
+
+// --- Extractor schema ---
+export const extractorSchema = Type.Union([
+  Type.Object({
+    type: Type.Literal('base'),
+    arg: baseExtractorSchema,
   }),
-)
-
-export const selectorValueSchema: z.ZodSchema<SelectorValue> = z.lazy(() =>
-  z.object({
-    type: z.literal('selectorValue'),
-    value: valueSchema,
-    chain: z.array(selectorChainSchema).optional(),
+  Type.Object({
+    type: Type.Literal('dynamic'),
+    arg: Type.String(),
   }),
-)
+  baseExtractorSchema,
+])
 
-const conditionalValueSchema = z.lazy(() =>
-  z.object({
-    type: z.literal('conditional'),
-    condition: conditionDSLSchema,
-    trueValue: valueSchema,
-    falseValue: valueSchema.optional(),
+// --- Evaluator DSL schema ---
+export const evaluatorDSLSchema = Type.Union([
+  Type.Object({
+    type: Type.Literal('compare'),
+    operator: compareOperatorSchema,
+    value: Type.Any(),
   }),
-)
+  Type.Object({ type: Type.Literal('same'), value: Type.Any() }),
+  Type.Object({ type: Type.Literal('notSame'), value: Type.Any() }),
+  Type.Object({ type: Type.Literal('any'), conditions: Type.Array(Type.Any()) }),
+  Type.Object({ type: Type.Literal('all'), conditions: Type.Array(Type.Any()) }),
+  Type.Object({ type: Type.Literal('not'), condition: Type.Any() }),
+  Type.Object({ type: Type.Literal('probability'), percent: Type.Any() }),
+  Type.Object({ type: Type.Literal('contain'), tag: Type.String() }),
+  Type.Object({ type: Type.Literal('exist') }),
+  Type.Object({ type: Type.Literal('anyOf'), value: Type.Any() }),
+])
 
-export const valueSchema: z.ZodSchema<Value> = z.lazy(() =>
-  z.union([
-    rawNumberValueSchema,
-    z.number(),
-    rawStringValueSchema,
-    z.string(),
-    rawBooleanValueSchema,
-    z.boolean(),
-    rawBaseMarkIdValueSchema,
-    rawBaseSkillIdValueSchema,
-    rawSpeciesIdValueSchema,
-    rawEffectIdValueSchema,
-    dynamicValueSchema,
-    selectorValueSchema,
-    conditionalValueSchema,
-    z.array(valueSchema),
-    operatorDSLSchema,
-  ]),
-)
-
-export const extractorSchema: z.ZodSchema<ExtractorDSL> = z.lazy(() =>
-  z.union([
-    z.object({
-      type: z.literal('base'),
-      arg: baseExtractorSchema,
-    }),
-    z.object({
-      type: z.literal('dynamic'),
-      arg: z.string(),
-    }),
-    baseExtractorSchema,
-  ]),
-)
-
-export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
-  z.union([
-    z.object({
-      type: z.literal('select'),
-      arg: extractorSchema,
-    }),
-    z.object({
-      type: z.literal('selectPath'),
-      arg: z.string(),
-    }),
-    z.object({
-      type: z.literal('selectProp'),
-      arg: z.string(),
-    }),
-    z.object({
-      type: z.literal('flat'),
-    }),
-    z.object({
-      type: z.literal('where'),
-      arg: evaluatorDSLSchema,
-    }),
-    z.object({
-      type: z.literal('whereAttr'),
-      extractor: extractorSchema,
-      evaluator: evaluatorDSLSchema,
-    }),
-    z.object({
-      type: z.literal('and'),
-      arg: z.lazy(() => selectorDSLSchema),
-    }),
-    z.object({
-      type: z.literal('or'),
-      arg: z.lazy(() => selectorDSLSchema),
-      duplicate: z.boolean().optional(),
-    }),
-    z.object({
-      type: z.literal('randomPick'),
-      arg: valueSchema,
-    }),
-    z.object({
-      type: z.literal('randomSample'),
-      arg: valueSchema,
-    }),
-    z.object({
-      type: z.literal('sum'),
-    }),
-    z.object({
-      type: z.literal('avg'),
-    }),
-    z.object({
-      type: z.literal('add'),
-      arg: valueSchema,
-    }),
-    z.object({
-      type: z.literal('multiply'),
-      arg: valueSchema,
-    }),
-    z.object({
-      type: z.literal('divide'),
-      arg: valueSchema,
-    }),
-    z.object({
-      type: z.literal('shuffled'),
-    }),
-    z.object({
-      type: z.literal('limit'),
-      arg: valueSchema,
-    }),
-    z.object({
-      type: z.literal('clampMax'),
-      arg: valueSchema,
-    }),
-    z.object({
-      type: z.literal('clampMin'),
-      arg: valueSchema,
-    }),
-    z.object({
-      type: z.literal('configGet'),
-      key: valueSchema,
-    }),
-    z.object({
-      type: z.literal('selectObservable'),
-      arg: z.string(),
-    }),
-    z.object({
-      type: z.literal('selectAttribute$'),
-      arg: z.string(),
-    }),
-    z.object({
-      type: z.literal('asStatLevelMark'),
-    }),
-    z.object({
-      type: z.literal('sampleBetween'),
-    }),
-    whenSelectorStepSchema,
-  ]),
-)
-
-export const selectorDSLSchema: z.ZodSchema<SelectorDSL> = z.lazy(() =>
-  z.union([
-    baseSelectorSchema,
-    z.object({
-      base: baseSelectorSchema,
-      chain: z.array(selectorChainSchema).optional(),
-    }),
-    conditionalSelectorSchema,
-    selectorValueSchema,
-  ]),
-)
-
-const whenSelectorStepSchema = z.lazy(() =>
-  z.object({
-    type: z.literal('when'),
-    condition: conditionDSLSchema,
-    trueValue: z.lazy(() => valueSchema),
-    falseValue: z.lazy(() => valueSchema).optional(),
+// --- Selector chain schema ---
+export const selectorChainSchema = Type.Union([
+  Type.Object({ type: Type.Literal('select'), arg: extractorSchema }),
+  Type.Object({ type: Type.Literal('selectPath'), arg: Type.String() }),
+  Type.Object({ type: Type.Literal('selectProp'), arg: Type.String() }),
+  Type.Object({ type: Type.Literal('flat') }),
+  Type.Object({ type: Type.Literal('where'), arg: Type.Any() }),
+  Type.Object({
+    type: Type.Literal('whereAttr'),
+    extractor: extractorSchema,
+    evaluator: Type.Any(),
   }),
-)
-
-export const evaluatorDSLSchema: z.ZodSchema<EvaluatorDSL> = z.lazy(() =>
-  z.union([
-    z.object({
-      type: z.literal('compare'),
-      operator: compareOperatorSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('same'),
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('notSame'),
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('any'),
-      conditions: z.array(evaluatorDSLSchema),
-    }),
-    z.object({
-      type: z.literal('all'),
-      conditions: z.array(evaluatorDSLSchema),
-    }),
-    z.object({
-      type: z.literal('not'),
-      condition: evaluatorDSLSchema,
-    }),
-    z.object({
-      type: z.literal('probability'),
-      percent: valueSchema,
-    }),
-    z.object({
-      type: z.literal('contain'),
-      tag: z.string(),
-    }),
-    z.object({
-      type: z.literal('exist'),
-    }),
-    z.object({
-      type: z.literal('anyOf'),
-      value: valueSchema,
-    }),
-  ]),
-)
-
-export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
-  z.union([
-    z.object({
-      type: z.literal('TODO'),
-    }),
-    conditionalOperatorSchema,
-    z.object({
-      type: z.literal('dealDamage'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('heal'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('executeKill'),
-      target: selectorDSLSchema,
-    }),
-    z.object({
-      type: z.literal('addMark'),
-      target: selectorDSLSchema,
-      mark: valueSchema,
-      duration: valueSchema.optional(),
-      stack: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('addStacks'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('consumeStacks'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('modifyStat'),
-      target: selectorDSLSchema,
-      statType: valueSchema,
-      delta: valueSchema.default(0).optional(),
-      percent: valueSchema.default(0).optional(),
-    }),
-    z.object({
-      type: z.literal('addAttributeModifier'),
-      target: selectorDSLSchema,
-      stat: valueSchema,
-      modifierType: valueSchema,
-      value: valueSchema,
-      priority: valueSchema.optional(),
-      // 🆕 Phase-aware parameters
-      phaseType: valueSchema.optional(),
-      scope: valueSchema.optional(),
-      phaseId: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('addDynamicAttributeModifier'),
-      target: selectorDSLSchema,
-      stat: valueSchema,
-      modifierType: valueSchema,
-      observableValue: selectorDSLSchema,
-      priority: valueSchema.optional(),
-      // 🆕 Phase-aware parameters
-      phaseType: valueSchema.optional(),
-      scope: valueSchema.optional(),
-      phaseId: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('addClampMaxModifier'),
-      target: selectorDSLSchema,
-      stat: valueSchema,
-      maxValue: valueSchema,
-      priority: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('addClampMinModifier'),
-      target: selectorDSLSchema,
-      stat: valueSchema,
-      minValue: valueSchema,
-      priority: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('addClampModifier'),
-      target: selectorDSLSchema,
-      stat: valueSchema,
-      minValue: valueSchema.optional(), // 🆕 Made optional
-      maxValue: valueSchema.optional(), // 🆕 Made optional
-      priority: valueSchema.optional(),
-      // 🆕 Phase-aware parameters
-      phaseType: valueSchema.optional(),
-      scope: valueSchema.optional(),
-      phaseId: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('addSkillAttributeModifier'),
-      target: selectorDSLSchema,
-      attribute: valueSchema,
-      modifierType: valueSchema,
-      value: valueSchema,
-      priority: valueSchema.optional(),
-      // 🆕 Phase-aware parameters
-      phaseType: valueSchema.optional(),
-      scope: valueSchema.optional(),
-      phaseId: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('addDynamicSkillAttributeModifier'),
-      target: selectorDSLSchema,
-      attribute: valueSchema,
-      modifierType: valueSchema,
-      observableValue: selectorDSLSchema,
-      priority: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('addSkillClampMaxModifier'),
-      target: selectorDSLSchema,
-      attribute: valueSchema,
-      maxValue: valueSchema,
-      priority: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('addSkillClampMinModifier'),
-      target: selectorDSLSchema,
-      attribute: valueSchema,
-      minValue: valueSchema,
-      priority: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('addSkillClampModifier'),
-      target: selectorDSLSchema,
-      attribute: valueSchema,
-      minValue: valueSchema,
-      maxValue: valueSchema,
-      priority: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('statStageBuff'),
-      target: selectorDSLSchema,
-      statType: valueSchema,
-      value: valueSchema,
-      strategy: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('clearStatStage'),
-      target: selectorDSLSchema,
-      statType: valueSchema.optional(),
-      cleanStageStrategy: z.enum(CleanStageStrategy).default(CleanStageStrategy.positive).optional(),
-    }),
-    z.object({
-      type: z.literal('reverseStatStage'),
-      target: selectorDSLSchema,
-      statType: valueSchema.optional(),
-      cleanStageStrategy: z.enum(CleanStageStrategy).default(CleanStageStrategy.positive).optional(),
-    }),
-    z.object({
-      type: z.literal('transferStatStage'),
-      source: selectorDSLSchema,
-      target: selectorDSLSchema,
-      statType: valueSchema.optional(),
-      cleanStageStrategy: z.enum(CleanStageStrategy).default(CleanStageStrategy.negative).optional(),
-    }),
-    z.object({
-      type: z.literal('addRage'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('setRage'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('amplifyPower'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('addPower'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('addCritRate'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('addMultihitResult'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('setMultihit'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('transferMark'),
-      target: selectorDSLSchema,
-      mark: dynamicValueSchema,
-    }),
-    z.object({
-      type: z.literal('stun'),
-      target: selectorDSLSchema,
-    }),
-    z.object({
-      type: z.literal('setSureHit'),
-      target: selectorDSLSchema,
-      priority: z.number(),
-    }),
-    z.object({
-      type: z.literal('setSureCrit'),
-      target: selectorDSLSchema,
-      priority: z.number(),
-    }),
-    z.object({
-      type: z.literal('setSureMiss'),
-      target: selectorDSLSchema,
-      priority: z.number(),
-    }),
-    z.object({
-      type: z.literal('setSureNoCrit'),
-      target: selectorDSLSchema,
-      priority: z.number(),
-    }),
-    z.object({
-      type: z.literal('setIgnoreShield'),
-      target: selectorDSLSchema,
-    }),
-    z.object({
-      type: z.literal('destroyMark'),
-      target: selectorDSLSchema,
-    }),
-    z.object({
-      type: z.literal('modifyStackResult'),
-      target: selectorDSLSchema,
-      newStacks: valueSchema.optional(),
-      newDuration: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('setSkill'),
-      target: selectorDSLSchema,
-      value: dynamicValueSchema,
-      updateConfig: z.boolean().optional(),
-    }),
-    z.object({
-      type: z.literal('preventDamage'),
-      target: selectorDSLSchema,
-    }),
-    z.object({
-      type: z.literal('setActualTarget'),
-      target: selectorDSLSchema,
-      newTarget: dynamicValueSchema,
-    }),
-    z.object({
-      type: z.literal('addModified'),
-      target: selectorDSLSchema,
-      delta: valueSchema,
-      percent: valueSchema,
-    }),
-    z.object({
-      type: z.literal('addThreshold'),
-      target: selectorDSLSchema,
-      min: valueSchema.optional(),
-      max: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('overrideMarkConfig'),
-      target: selectorDSLSchema,
-      config: MarkConfigSchema,
-    }),
-    z.object({
-      type: z.literal('setMarkDuration'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('setMarkStack'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('setMarkMaxStack'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('setMarkPersistent'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('setMarkStackable'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('setMarkStackStrategy'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('setMarkDestroyable'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('setMarkIsShield'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('setMarkKeepOnSwitchOut'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('setMarkTransferOnSwitch'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('setMarkInheritOnFaint'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('setStatLevelMarkLevel'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('setValue'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('addValue'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('toggle'),
-      target: selectorDSLSchema,
-    }),
-    z.object({
-      type: z.literal('setConfig'),
-      target: selectorDSLSchema,
-      key: valueSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('setIgnoreStageStrategy'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('addAccuracy'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('setAccuracy'),
-      target: selectorDSLSchema,
-      value: valueSchema,
-    }),
-    z.object({
-      type: z.literal('disableContext'),
-      target: selectorDSLSchema,
-    }),
-    z.object({
-      type: z.literal('addConfigModifier'),
-      target: selectorDSLSchema,
-      configKey: valueSchema,
-      modifierType: valueSchema,
-      value: valueSchema,
-      priority: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('addDynamicConfigModifier'),
-      target: selectorDSLSchema,
-      configKey: valueSchema,
-      modifierType: valueSchema,
-      observableValue: selectorDSLSchema,
-      priority: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('registerConfig'),
-      target: selectorDSLSchema,
-      configKey: valueSchema,
-      initialValue: valueSchema,
-    }),
-    z.object({
-      type: z.literal('registerTaggedConfig'),
-      target: selectorDSLSchema,
-      configKey: valueSchema,
-      initialValue: valueSchema,
-      tags: valueSchema,
-    }),
-    z.object({
-      type: z.literal('addTaggedConfigModifier'),
-      target: selectorDSLSchema,
-      tag: valueSchema,
-      modifierType: valueSchema,
-      value: valueSchema,
-      priority: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('addPhaseConfigModifier'),
-      target: selectorDSLSchema,
-      configKey: valueSchema,
-      modifierType: valueSchema,
-      value: valueSchema,
-      priority: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('addPhaseDynamicConfigModifier'),
-      target: selectorDSLSchema,
-      configKey: valueSchema,
-      modifierType: valueSchema,
-      observableValue: selectorDSLSchema,
-      priority: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('addPhaseTypeConfigModifier'),
-      target: selectorDSLSchema,
-      configKey: valueSchema,
-      modifierType: valueSchema,
-      value: valueSchema,
-      phaseType: valueSchema,
-      scope: valueSchema.optional(),
-      priority: valueSchema.optional(),
-      phaseId: valueSchema.optional(),
-    }),
-    z.object({
-      type: z.literal('addDynamicPhaseTypeConfigModifier'),
-      target: selectorDSLSchema,
-      configKey: valueSchema,
-      modifierType: valueSchema,
-      observableValue: selectorDSLSchema,
-      phaseType: valueSchema,
-      scope: valueSchema.optional(),
-      priority: valueSchema.optional(),
-      phaseId: valueSchema.optional(),
-    }),
-    // 变身相关操作符
-    z.object({
-      type: z.literal('transform'),
-      target: selectorDSLSchema,
-      newBase: valueSchema,
-      transformType: z.enum(['temporary', 'permanent']).optional(),
-      priority: valueSchema.optional(),
-      permanentStrategy: z.enum(['preserve_temporary', 'clear_temporary']).optional(),
-    }),
-    z.object({
-      type: z.literal('transformWithPreservation'),
-      target: selectorDSLSchema,
-      newBase: valueSchema,
-      transformType: z.enum(['temporary', 'permanent']).optional(),
-      priority: valueSchema.optional(),
-      permanentStrategy: z.enum(['preserve_temporary', 'clear_temporary']).optional(),
-    }),
-    z.object({
-      type: z.literal('removeTransformation'),
-      target: selectorDSLSchema,
-    }),
-    z.object({
-      type: z.literal('executeActions'),
-      target: selectorDSLSchema,
-    }),
-    z.object({
-      type: z.literal('addTemporaryEffect'),
-      target: selectorDSLSchema,
-      effect: valueSchema,
-    }),
-  ]),
-)
-
-const conditionalSelectorSchema = z.lazy(() =>
-  z.object({
-    condition: conditionDSLSchema,
-    trueSelector: selectorDSLSchema,
-    falseSelector: selectorDSLSchema.optional(),
+  Type.Object({ type: Type.Literal('and'), arg: Type.Any() }),
+  Type.Object({
+    type: Type.Literal('or'),
+    arg: Type.Any(),
+    duplicate: Type.Optional(Type.Boolean()),
   }),
-)
-
-const conditionalOperatorSchema = z.lazy(() =>
-  z.object({
-    type: z.literal('conditional'),
-    condition: conditionDSLSchema,
-    trueOperator: operatorDSLSchema,
-    falseOperator: operatorDSLSchema.optional(),
+  Type.Object({ type: Type.Literal('randomPick'), arg: Type.Any() }),
+  Type.Object({ type: Type.Literal('randomSample'), arg: Type.Any() }),
+  Type.Object({ type: Type.Literal('sum') }),
+  Type.Object({ type: Type.Literal('avg') }),
+  Type.Object({ type: Type.Literal('add'), arg: Type.Any() }),
+  Type.Object({ type: Type.Literal('multiply'), arg: Type.Any() }),
+  Type.Object({ type: Type.Literal('divide'), arg: Type.Any() }),
+  Type.Object({ type: Type.Literal('shuffled') }),
+  Type.Object({ type: Type.Literal('limit'), arg: Type.Any() }),
+  Type.Object({ type: Type.Literal('clampMax'), arg: Type.Any() }),
+  Type.Object({ type: Type.Literal('clampMin'), arg: Type.Any() }),
+  Type.Object({ type: Type.Literal('configGet'), key: Type.Any() }),
+  Type.Object({ type: Type.Literal('selectObservable'), arg: Type.String() }),
+  Type.Object({ type: Type.Literal('selectAttribute$'), arg: Type.String() }),
+  Type.Object({ type: Type.Literal('asStatLevelMark') }),
+  Type.Object({ type: Type.Literal('sampleBetween') }),
+  // whenSelectorStep
+  Type.Object({
+    type: Type.Literal('when'),
+    condition: Type.Any(),
+    trueValue: Type.Any(),
+    falseValue: Type.Optional(Type.Any()),
   }),
+])
+
+// --- Selector DSL schema ---
+export const selectorDSLSchema = Type.Union([
+  baseSelectorSchema,
+  Type.Object({
+    base: baseSelectorSchema,
+    chain: Type.Optional(Type.Array(selectorChainSchema)),
+  }),
+  // conditionalSelector
+  Type.Object({
+    condition: Type.Any(),
+    trueSelector: Type.Any(),
+    falseSelector: Type.Optional(Type.Any()),
+  }),
+  selectorValueSchema,
+])
+
+// --- Value schema ---
+export const valueSchema = Type.Union([
+  rawNumberValueSchema,
+  Type.Number(),
+  rawStringValueSchema,
+  Type.String(),
+  rawBooleanValueSchema,
+  Type.Boolean(),
+  rawBaseMarkIdValueSchema,
+  rawBaseSkillIdValueSchema,
+  rawSpeciesIdValueSchema,
+  rawEffectIdValueSchema,
+  dynamicValueSchema,
+  selectorValueSchema,
+  // conditionalValue
+  Type.Object({
+    type: Type.Literal('conditional'),
+    condition: Type.Any(),
+    trueValue: Type.Any(),
+    falseValue: Type.Optional(Type.Any()),
+  }),
+  Type.Array(Type.Any()), // Array<Value>
+  Type.Any(), // OperatorDSL (catch-all for deeply nested recursive types)
+])
+
+// --- Condition DSL schema ---
+const cleanStageStrategySchema = StringEnum(Object.values(CleanStageStrategy))
+const continuousUseSkillStrategySchema = StringEnum(
+  Object.values(ContinuousUseSkillStrategy),
 )
 
-export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
-  z.union([
-    z.object({
-      type: z.literal('evaluate'),
-      target: selectorDSLSchema,
-      evaluator: evaluatorDSLSchema,
-    }),
-    z.object({
-      type: z.literal('some'),
-      conditions: z.array(conditionDSLSchema),
-    }),
-    z.object({
-      type: z.literal('every'),
-      conditions: z.array(conditionDSLSchema),
-    }),
-    z.object({
-      type: z.literal('not'),
-      condition: conditionDSLSchema,
-    }),
-    z.object({
-      type: z.literal('petIsActive'),
-    }),
-    z.object({
-      type: z.literal('selfUseSkill'),
-    }),
-    z.object({
-      type: z.literal('checkSelf'),
-    }),
-    z.object({
-      type: z.literal('opponentUseSkill'),
-    }),
-    z.object({
-      type: z.literal('selfBeDamaged'),
-    }),
-    z.object({
-      type: z.literal('opponentBeDamaged'),
-    }),
-    z.object({
-      type: z.literal('selfAddMark'),
-    }),
-    z.object({
-      type: z.literal('opponentAddMark'),
-    }),
-    z.object({
-      type: z.literal('selfBeAddMark'),
-    }),
-    z.object({
-      type: z.literal('opponentBeAddMark'),
-    }),
-    z.object({
-      type: z.literal('selfBeHeal'),
-    }),
-    z.object({
-      type: z.literal('continuousUseSkill'),
-      times: valueSchema.default(2).optional(),
-      strategy: z.enum(ContinuousUseSkillStrategy).default(ContinuousUseSkillStrategy.Continuous).optional(),
-    }),
-    z.object({
-      type: z.literal('statStageChange'),
-      stat: valueSchema
-        .default([
+export const conditionDSLSchema = Type.Union([
+  Type.Object({
+    type: Type.Literal('evaluate'),
+    target: Type.Any(),
+    evaluator: Type.Any(),
+  }),
+  Type.Object({ type: Type.Literal('some'), conditions: Type.Array(Type.Any()) }),
+  Type.Object({ type: Type.Literal('every'), conditions: Type.Array(Type.Any()) }),
+  Type.Object({ type: Type.Literal('not'), condition: Type.Any() }),
+  Type.Object({ type: Type.Literal('petIsActive') }),
+  Type.Object({ type: Type.Literal('selfUseSkill') }),
+  Type.Object({ type: Type.Literal('checkSelf') }),
+  Type.Object({ type: Type.Literal('opponentUseSkill') }),
+  Type.Object({ type: Type.Literal('selfBeDamaged') }),
+  Type.Object({ type: Type.Literal('opponentBeDamaged') }),
+  Type.Object({ type: Type.Literal('selfAddMark') }),
+  Type.Object({ type: Type.Literal('opponentAddMark') }),
+  Type.Object({ type: Type.Literal('selfBeAddMark') }),
+  Type.Object({ type: Type.Literal('opponentBeAddMark') }),
+  Type.Object({ type: Type.Literal('selfBeHeal') }),
+  Type.Object({
+    type: Type.Literal('continuousUseSkill'),
+    times: Type.Optional(Type.Any({ default: 2 })),
+    strategy: Type.Optional(
+      Type.Union(Object.values(ContinuousUseSkillStrategy).map(v => Type.Literal(v)), {
+        default: ContinuousUseSkillStrategy.Continuous,
+      }),
+    ),
+  }),
+  Type.Object({
+    type: Type.Literal('statStageChange'),
+    stat: Type.Optional(
+      Type.Any({
+        default: [
           StatTypeWithoutHp.atk,
           StatTypeWithoutHp.def,
           StatTypeWithoutHp.spa,
           StatTypeWithoutHp.spd,
           StatTypeWithoutHp.spe,
-        ])
-        .optional(),
-      check: z.enum(['up', 'down', 'all']).default('all').optional(),
-    }),
-    z.object({
-      type: z.literal('isFirstSkillUsedThisTurn'),
-    }),
-    z.object({
-      type: z.literal('isLastSkillUsedThisTurn'),
-    }),
-    z.object({
-      type: z.literal('selfSwitchIn'),
-    }),
-    z.object({
-      type: z.literal('selfSwitchOut'),
-    }),
-    z.object({
-      type: z.literal('selfBeSkillTarget'),
-    }),
-    z.object({
-      type: z.literal('selfHasMark'),
-      baseId: valueSchema,
-    }),
-    z.object({
-      type: z.literal('opponentHasMark'),
-      baseId: valueSchema,
-    }),
-  ]),
-)
-
-export const effectDSLSchema: z.ZodSchema<EffectDSL> = z.lazy(() =>
-  z.object({
-    id: z.string(),
-    trigger: z.union([effectTriggerSchema, z.array(effectTriggerSchema)]),
-    priority: z.number(),
-    apply: z.union([operatorDSLSchema, z.array(operatorDSLSchema)]),
-    condition: conditionDSLSchema.optional(),
-    consumesStacks: z.number().optional(),
-    tags: z.array(z.string()).default([]).optional(),
+        ],
+      }),
+    ),
+    check: Type.Optional(
+      Type.Union([Type.Literal('up'), Type.Literal('down'), Type.Literal('all')], {
+        default: 'all',
+      }),
+    ),
   }),
-)
+  Type.Object({ type: Type.Literal('isFirstSkillUsedThisTurn') }),
+  Type.Object({ type: Type.Literal('isLastSkillUsedThisTurn') }),
+  Type.Object({ type: Type.Literal('selfSwitchIn') }),
+  Type.Object({ type: Type.Literal('selfSwitchOut') }),
+  Type.Object({ type: Type.Literal('selfBeSkillTarget') }),
+  Type.Object({ type: Type.Literal('selfHasMark'), baseId: Type.Any() }),
+  Type.Object({ type: Type.Literal('opponentHasMark'), baseId: Type.Any() }),
+])
 
-export const EffectDSLSetSchema = z.array(effectDSLSchema)
+// --- Operator DSL schema ---
+export const operatorDSLSchema = Type.Union([
+  Type.Object({ type: Type.Literal('TODO') }),
+  // conditionalOperator
+  Type.Object({
+    type: Type.Literal('conditional'),
+    condition: Type.Any(),
+    trueOperator: Type.Any(),
+    falseOperator: Type.Optional(Type.Any()),
+  }),
+  Type.Object({ type: Type.Literal('dealDamage'), target: Type.Any(), value: Type.Any() }),
+  Type.Object({ type: Type.Literal('heal'), target: Type.Any(), value: Type.Any() }),
+  Type.Object({ type: Type.Literal('executeKill'), target: Type.Any() }),
+  Type.Object({
+    type: Type.Literal('addMark'),
+    target: Type.Any(),
+    mark: Type.Any(),
+    duration: Type.Optional(Type.Any()),
+    stack: Type.Optional(Type.Any()),
+  }),
+  Type.Object({ type: Type.Literal('addStacks'), target: Type.Any(), value: Type.Any() }),
+  Type.Object({ type: Type.Literal('consumeStacks'), target: Type.Any(), value: Type.Any() }),
+  Type.Object({
+    type: Type.Literal('modifyStat'),
+    target: Type.Any(),
+    statType: Type.Any(),
+    delta: Type.Optional(Type.Any({ default: 0 })),
+    percent: Type.Optional(Type.Any({ default: 0 })),
+  }),
+  Type.Object({
+    type: Type.Literal('addAttributeModifier'),
+    target: Type.Any(),
+    stat: Type.Any(),
+    modifierType: Type.Any(),
+    value: Type.Any(),
+    priority: Type.Optional(Type.Any()),
+    phaseType: Type.Optional(Type.Any()),
+    scope: Type.Optional(Type.Any()),
+    phaseId: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('addDynamicAttributeModifier'),
+    target: Type.Any(),
+    stat: Type.Any(),
+    modifierType: Type.Any(),
+    observableValue: Type.Any(),
+    priority: Type.Optional(Type.Any()),
+    phaseType: Type.Optional(Type.Any()),
+    scope: Type.Optional(Type.Any()),
+    phaseId: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('addClampMaxModifier'),
+    target: Type.Any(),
+    stat: Type.Any(),
+    maxValue: Type.Any(),
+    priority: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('addClampMinModifier'),
+    target: Type.Any(),
+    stat: Type.Any(),
+    minValue: Type.Any(),
+    priority: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('addClampModifier'),
+    target: Type.Any(),
+    stat: Type.Any(),
+    minValue: Type.Optional(Type.Any()),
+    maxValue: Type.Optional(Type.Any()),
+    priority: Type.Optional(Type.Any()),
+    phaseType: Type.Optional(Type.Any()),
+    scope: Type.Optional(Type.Any()),
+    phaseId: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('addSkillAttributeModifier'),
+    target: Type.Any(),
+    attribute: Type.Any(),
+    modifierType: Type.Any(),
+    value: Type.Any(),
+    priority: Type.Optional(Type.Any()),
+    phaseType: Type.Optional(Type.Any()),
+    scope: Type.Optional(Type.Any()),
+    phaseId: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('addDynamicSkillAttributeModifier'),
+    target: Type.Any(),
+    attribute: Type.Any(),
+    modifierType: Type.Any(),
+    observableValue: Type.Any(),
+    priority: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('addSkillClampMaxModifier'),
+    target: Type.Any(),
+    attribute: Type.Any(),
+    maxValue: Type.Any(),
+    priority: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('addSkillClampMinModifier'),
+    target: Type.Any(),
+    attribute: Type.Any(),
+    minValue: Type.Any(),
+    priority: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('addSkillClampModifier'),
+    target: Type.Any(),
+    attribute: Type.Any(),
+    minValue: Type.Any(),
+    maxValue: Type.Any(),
+    priority: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('statStageBuff'),
+    target: Type.Any(),
+    statType: Type.Any(),
+    value: Type.Any(),
+    strategy: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('clearStatStage'),
+    target: Type.Any(),
+    statType: Type.Optional(Type.Any()),
+    cleanStageStrategy: Type.Optional(
+      Type.Union(Object.values(CleanStageStrategy).map(v => Type.Literal(v)), {
+        default: CleanStageStrategy.positive,
+      }),
+    ),
+  }),
+  Type.Object({
+    type: Type.Literal('reverseStatStage'),
+    target: Type.Any(),
+    statType: Type.Optional(Type.Any()),
+    cleanStageStrategy: Type.Optional(
+      Type.Union(Object.values(CleanStageStrategy).map(v => Type.Literal(v)), {
+        default: CleanStageStrategy.positive,
+      }),
+    ),
+  }),
+  Type.Object({
+    type: Type.Literal('transferStatStage'),
+    source: Type.Any(),
+    target: Type.Any(),
+    statType: Type.Optional(Type.Any()),
+    cleanStageStrategy: Type.Optional(
+      Type.Union(Object.values(CleanStageStrategy).map(v => Type.Literal(v)), {
+        default: CleanStageStrategy.negative,
+      }),
+    ),
+  }),
+  Type.Object({ type: Type.Literal('addRage'), target: Type.Any(), value: Type.Any() }),
+  Type.Object({ type: Type.Literal('setRage'), target: Type.Any(), value: Type.Any() }),
+  Type.Object({ type: Type.Literal('amplifyPower'), target: Type.Any(), value: Type.Any() }),
+  Type.Object({ type: Type.Literal('addPower'), target: Type.Any(), value: Type.Any() }),
+  Type.Object({ type: Type.Literal('addCritRate'), target: Type.Any(), value: Type.Any() }),
+  Type.Object({
+    type: Type.Literal('addMultihitResult'),
+    target: Type.Any(),
+    value: Type.Any(),
+  }),
+  Type.Object({ type: Type.Literal('setMultihit'), target: Type.Any(), value: Type.Any() }),
+  Type.Object({
+    type: Type.Literal('transferMark'),
+    target: Type.Any(),
+    mark: dynamicValueSchema,
+  }),
+  Type.Object({ type: Type.Literal('stun'), target: Type.Any() }),
+  Type.Object({
+    type: Type.Literal('setSureHit'),
+    target: Type.Any(),
+    priority: Type.Number(),
+  }),
+  Type.Object({
+    type: Type.Literal('setSureCrit'),
+    target: Type.Any(),
+    priority: Type.Number(),
+  }),
+  Type.Object({
+    type: Type.Literal('setSureMiss'),
+    target: Type.Any(),
+    priority: Type.Number(),
+  }),
+  Type.Object({
+    type: Type.Literal('setSureNoCrit'),
+    target: Type.Any(),
+    priority: Type.Number(),
+  }),
+  Type.Object({ type: Type.Literal('setIgnoreShield'), target: Type.Any() }),
+  Type.Object({ type: Type.Literal('destroyMark'), target: Type.Any() }),
+  Type.Object({
+    type: Type.Literal('modifyStackResult'),
+    target: Type.Any(),
+    newStacks: Type.Optional(Type.Any()),
+    newDuration: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('setSkill'),
+    target: Type.Any(),
+    value: dynamicValueSchema,
+    updateConfig: Type.Optional(Type.Boolean()),
+  }),
+  Type.Object({ type: Type.Literal('preventDamage'), target: Type.Any() }),
+  Type.Object({
+    type: Type.Literal('setActualTarget'),
+    target: Type.Any(),
+    newTarget: dynamicValueSchema,
+  }),
+  Type.Object({
+    type: Type.Literal('addModified'),
+    target: Type.Any(),
+    delta: Type.Any(),
+    percent: Type.Any(),
+  }),
+  Type.Object({
+    type: Type.Literal('addThreshold'),
+    target: Type.Any(),
+    min: Type.Optional(Type.Any()),
+    max: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('overrideMarkConfig'),
+    target: Type.Any(),
+    config: MarkConfigSchema,
+  }),
+  Type.Object({ type: Type.Literal('setMarkDuration'), target: Type.Any(), value: Type.Any() }),
+  Type.Object({ type: Type.Literal('setMarkStack'), target: Type.Any(), value: Type.Any() }),
+  Type.Object({
+    type: Type.Literal('setMarkMaxStack'),
+    target: Type.Any(),
+    value: Type.Any(),
+  }),
+  Type.Object({
+    type: Type.Literal('setMarkPersistent'),
+    target: Type.Any(),
+    value: Type.Any(),
+  }),
+  Type.Object({
+    type: Type.Literal('setMarkStackable'),
+    target: Type.Any(),
+    value: Type.Any(),
+  }),
+  Type.Object({
+    type: Type.Literal('setMarkStackStrategy'),
+    target: Type.Any(),
+    value: Type.Any(),
+  }),
+  Type.Object({
+    type: Type.Literal('setMarkDestroyable'),
+    target: Type.Any(),
+    value: Type.Any(),
+  }),
+  Type.Object({
+    type: Type.Literal('setMarkIsShield'),
+    target: Type.Any(),
+    value: Type.Any(),
+  }),
+  Type.Object({
+    type: Type.Literal('setMarkKeepOnSwitchOut'),
+    target: Type.Any(),
+    value: Type.Any(),
+  }),
+  Type.Object({
+    type: Type.Literal('setMarkTransferOnSwitch'),
+    target: Type.Any(),
+    value: Type.Any(),
+  }),
+  Type.Object({
+    type: Type.Literal('setMarkInheritOnFaint'),
+    target: Type.Any(),
+    value: Type.Any(),
+  }),
+  Type.Object({
+    type: Type.Literal('setStatLevelMarkLevel'),
+    target: Type.Any(),
+    value: Type.Any(),
+  }),
+  Type.Object({ type: Type.Literal('setValue'), target: Type.Any(), value: Type.Any() }),
+  Type.Object({ type: Type.Literal('addValue'), target: Type.Any(), value: Type.Any() }),
+  Type.Object({ type: Type.Literal('toggle'), target: Type.Any() }),
+  Type.Object({
+    type: Type.Literal('setConfig'),
+    target: Type.Any(),
+    key: Type.Any(),
+    value: Type.Any(),
+  }),
+  Type.Object({
+    type: Type.Literal('setIgnoreStageStrategy'),
+    target: Type.Any(),
+    value: Type.Any(),
+  }),
+  Type.Object({ type: Type.Literal('addAccuracy'), target: Type.Any(), value: Type.Any() }),
+  Type.Object({ type: Type.Literal('setAccuracy'), target: Type.Any(), value: Type.Any() }),
+  Type.Object({ type: Type.Literal('disableContext'), target: Type.Any() }),
+  Type.Object({
+    type: Type.Literal('addConfigModifier'),
+    target: Type.Any(),
+    configKey: Type.Any(),
+    modifierType: Type.Any(),
+    value: Type.Any(),
+    priority: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('addDynamicConfigModifier'),
+    target: Type.Any(),
+    configKey: Type.Any(),
+    modifierType: Type.Any(),
+    observableValue: Type.Any(),
+    priority: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('registerConfig'),
+    target: Type.Any(),
+    configKey: Type.Any(),
+    initialValue: Type.Any(),
+  }),
+  Type.Object({
+    type: Type.Literal('registerTaggedConfig'),
+    target: Type.Any(),
+    configKey: Type.Any(),
+    initialValue: Type.Any(),
+    tags: Type.Any(),
+  }),
+  Type.Object({
+    type: Type.Literal('addTaggedConfigModifier'),
+    target: Type.Any(),
+    tag: Type.Any(),
+    modifierType: Type.Any(),
+    value: Type.Any(),
+    priority: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('addPhaseConfigModifier'),
+    target: Type.Any(),
+    configKey: Type.Any(),
+    modifierType: Type.Any(),
+    value: Type.Any(),
+    priority: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('addPhaseDynamicConfigModifier'),
+    target: Type.Any(),
+    configKey: Type.Any(),
+    modifierType: Type.Any(),
+    observableValue: Type.Any(),
+    priority: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('addPhaseTypeConfigModifier'),
+    target: Type.Any(),
+    configKey: Type.Any(),
+    modifierType: Type.Any(),
+    value: Type.Any(),
+    phaseType: Type.Any(),
+    scope: Type.Optional(Type.Any()),
+    priority: Type.Optional(Type.Any()),
+    phaseId: Type.Optional(Type.Any()),
+  }),
+  Type.Object({
+    type: Type.Literal('addDynamicPhaseTypeConfigModifier'),
+    target: Type.Any(),
+    configKey: Type.Any(),
+    modifierType: Type.Any(),
+    observableValue: Type.Any(),
+    phaseType: Type.Any(),
+    scope: Type.Optional(Type.Any()),
+    priority: Type.Optional(Type.Any()),
+    phaseId: Type.Optional(Type.Any()),
+  }),
+  // 变身相关操作符
+  Type.Object({
+    type: Type.Literal('transform'),
+    target: Type.Any(),
+    newBase: Type.Any(),
+    transformType: Type.Optional(
+      Type.Union([Type.Literal('temporary'), Type.Literal('permanent')]),
+    ),
+    priority: Type.Optional(Type.Any()),
+    permanentStrategy: Type.Optional(
+      Type.Union([Type.Literal('preserve_temporary'), Type.Literal('clear_temporary')]),
+    ),
+  }),
+  Type.Object({
+    type: Type.Literal('transformWithPreservation'),
+    target: Type.Any(),
+    newBase: Type.Any(),
+    transformType: Type.Optional(
+      Type.Union([Type.Literal('temporary'), Type.Literal('permanent')]),
+    ),
+    priority: Type.Optional(Type.Any()),
+    permanentStrategy: Type.Optional(
+      Type.Union([Type.Literal('preserve_temporary'), Type.Literal('clear_temporary')]),
+    ),
+  }),
+  Type.Object({ type: Type.Literal('removeTransformation'), target: Type.Any() }),
+  Type.Object({ type: Type.Literal('executeActions'), target: Type.Any() }),
+  Type.Object({
+    type: Type.Literal('addTemporaryEffect'),
+    target: Type.Any(),
+    effect: Type.Any(),
+  }),
+])
+
+// --- Effect DSL schema ---
+export const effectDSLSchema = Type.Object({
+  id: Type.String(),
+  trigger: Type.Union([effectTriggerSchema, Type.Array(effectTriggerSchema)]),
+  priority: Type.Number(),
+  apply: Type.Union([operatorDSLSchema, Type.Array(operatorDSLSchema)]),
+  condition: Type.Optional(conditionDSLSchema),
+  consumesStacks: Type.Optional(Type.Number()),
+  tags: Type.Optional(Type.Array(Type.String(), { default: [] })),
+})
+
+export const EffectDSLSetSchema = Type.Array(effectDSLSchema)

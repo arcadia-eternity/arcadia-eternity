@@ -3,7 +3,8 @@ import { PlayerParser } from '@arcadia-eternity/parser'
 import type { AckResponse, ErrorResponse } from '@arcadia-eternity/protocol'
 import { PlayerSchema } from '@arcadia-eternity/schema'
 import pino from 'pino'
-import { ZodError } from 'zod'
+import { parseWithErrors } from '@arcadia-eternity/schema'
+import type { Static } from '@sinclair/typebox'
 import type { Socket } from 'socket.io'
 import type { ClusterStateManager } from '../../../cluster/core/clusterStateManager'
 import type { SocketClusterAdapter } from '../../../cluster/communication/socketClusterAdapter'
@@ -713,13 +714,13 @@ export class ClusterMatchmakingService implements IMatchmakingService {
     }
   }
 
-  private validateRawPlayerData(rawData: unknown): ReturnType<typeof PlayerSchema.parse> {
+  private validateRawPlayerData(rawData: unknown): Static<typeof PlayerSchema> {
     try {
-      return PlayerSchema.parse(rawData)
+      return parseWithErrors(PlayerSchema, rawData)
     } catch (error) {
-      if (error instanceof ZodError) {
-        logger.warn({ error: error.issues, rawData }, 'Raw player data validation failed')
-        throw new Error(`Invalid player data: ${error.issues.map((e: any) => e.message).join(', ')}`)
+      if (error instanceof Error) {
+        logger.warn({ error: error.message, rawData }, 'Raw player data validation failed')
+        throw new Error(`Invalid player data: ${error.message}`)
       }
       throw new Error('Failed to validate raw player data')
     }
@@ -729,9 +730,9 @@ export class ClusterMatchmakingService implements IMatchmakingService {
     try {
       return PlayerParser.parse(rawData)
     } catch (error) {
-      if (error instanceof ZodError) {
-        logger.warn({ error: error.issues, rawData }, 'Player data validation failed')
-        throw new Error(`Invalid player data: ${error.issues.map((e: any) => e.message).join(', ')}`)
+      if (error instanceof Error) {
+        logger.warn({ error: error.message, rawData }, 'Player data validation failed')
+        throw new Error(`Invalid player data: ${error.message}`)
       }
       throw new Error('Failed to validate player data')
     }

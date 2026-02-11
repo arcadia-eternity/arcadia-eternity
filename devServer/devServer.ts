@@ -6,7 +6,7 @@ import path, { dirname } from 'path'
 import { fileURLToPath } from 'url'
 import pino from 'pino'
 import YAML from 'yaml'
-import { z } from 'zod'
+import { parseWithErrors } from '@arcadia-eternity/schema'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -66,7 +66,7 @@ class DevServer {
       })
 
       return {
-        metadata: MetadataSchema.parse(
+        metadata: parseWithErrors(MetadataSchema,
           Object.fromEntries(
             metadataLines.map(line => {
               const [key, ...values] = line.replace('# @', '').split(/\s+/)
@@ -129,16 +129,16 @@ class DevServer {
       // 获取保留注释
       const { metadata, preservedComments, data } = await this.readFileWithMetadata(filePath)
       const schemaType = metadata.metaType as SchemaType
-      const parsed = DATA_SCHEMA_MAP[schemaType].safeParse(data)
-
-      // 返回保留注释给客户端
-      parsed.success
-        ? res.json({ metadata, preservedComments, data: parsed.data })
-        : res.status(500).json({ error: '文件内容验证失败', details: parsed.error.errors })
+      try {
+        const parsed = parseWithErrors(DATA_SCHEMA_MAP[schemaType], data)
+        res.json({ metadata, preservedComments, data: parsed })
+      } catch (err) {
+        res.status(500).json({ error: '文件内容验证失败', details: err instanceof Error ? err.message : 'Unknown error' })
+      }
       logger.info('File loaded successfully: %s', filename)
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        logger.error('Validation failed for %s: %j', filename, error.errors)
+      if (error instanceof Error) {
+        logger.error('Validation failed for %s: %s', filename, error.message)
       } else {
         logger.error({ error, filename }, 'Error processing file')
       }
@@ -151,9 +151,9 @@ class DevServer {
     try {
       logger.debug('Processing save request: %s', filename)
       const { metadata, data, preservedComments = [] } = req.body
-      const validatedMetadata = MetadataSchema.parse(metadata)
+      const validatedMetadata = parseWithErrors(MetadataSchema, metadata)
       const schemaType = validatedMetadata.metaType as SchemaType
-      const validatedData = DATA_SCHEMA_MAP[schemaType].parse(data)
+      const validatedData = parseWithErrors(DATA_SCHEMA_MAP[schemaType], data)
 
       const filePath = path.join(__dirname, '../../data', req.params.filename)
       // 写入时携带保留注释
@@ -162,15 +162,11 @@ class DevServer {
       res.json({ success: true })
       logger.info('File saved successfully: %s', filename)
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        logger.error('Save validation failed for %s: %j', filename, error.errors)
+      if (error instanceof Error) {
+        logger.error('Save validation failed for %s: %s', filename, error.message)
         res.status(400).json({
           error: '验证失败',
-          details: error.errors.map(e => ({
-            path: e.path.join('.'),
-            code: e.code,
-            message: e.message,
-          })),
+          details: error.message,
         })
       } else {
         logger.error({ error, filename }, 'Save failed')

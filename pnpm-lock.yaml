@@ -86,9 +86,6 @@ importers:
       yaml:
         specifier: ^2.8.2
         version: 2.8.2
-      zod:
-        specifier: ^4.3.6
-        version: 4.3.6
     devDependencies:
       0x:
         specifier: ^6.0.0
@@ -243,9 +240,6 @@ importers:
       socket.io-client:
         specifier: ^4.8.3
         version: 4.8.3
-      zod:
-        specifier: ^4.3.6
-        version: 4.3.6
 
   packages/console:
     dependencies:
@@ -316,9 +310,6 @@ importers:
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
-      zod:
-        specifier: ^4.3.6
-        version: 4.3.6
     devDependencies:
       '@rollup/plugin-node-resolve':
         specifier: ^16.0.3
@@ -434,9 +425,6 @@ importers:
       socket.io-client:
         specifier: ^4.8.3
         version: 4.8.3
-      zod:
-        specifier: ^4.3.6
-        version: 4.3.6
 
   packages/localAdapter:
     dependencies:
@@ -477,12 +465,6 @@ importers:
       rxjs:
         specifier: ^7.8.2
         version: 7.8.2
-      zod:
-        specifier: ^4.3.6
-        version: 4.3.6
-      zod-validation-error:
-        specifier: 5.0.0
-        version: 5.0.0(zod@4.3.6)
 
   packages/protocol:
     dependencies:
@@ -541,12 +523,12 @@ importers:
       '@arcadia-eternity/effect-builder':
         specifier: workspace:^
         version: link:../effectBuilder
+      '@sinclair/typebox':
+        specifier: ^0.34.48
+        version: 0.34.48
       nanoid:
         specifier: ^5.1.6
         version: 5.1.6
-      zod:
-        specifier: ^4.3.6
-        version: 4.3.6
     devDependencies:
       '@types/node':
         specifier: ^25.2.2
@@ -587,6 +569,9 @@ importers:
       '@grpc/proto-loader':
         specifier: ^0.8.0
         version: 0.8.0
+      '@sinclair/typebox':
+        specifier: ^0.34.48
+        version: 0.34.48
       '@types/handlebars':
         specifier: ^4.1.0
         version: 4.1.0
@@ -635,9 +620,6 @@ importers:
       swagger-ui-express:
         specifier: ^5.0.1
         version: 5.0.1(express@5.2.1)
-      zod:
-        specifier: ^4.3.6
-        version: 4.3.6
     devDependencies:
       '@types/jsonwebtoken':
         specifier: ^9.0.10
@@ -663,9 +645,6 @@ importers:
 
   packages/web-ui:
     dependencies:
-      '@anatine/zod-mock':
-        specifier: ^3.14.0
-        version: 3.14.0(@faker-js/faker@10.3.0)(zod@4.3.6)
       '@arcadia-eternity/client':
         specifier: workspace:^
         version: link:../client
@@ -714,6 +693,9 @@ importers:
       '@ruffle-rs/ruffle':
         specifier: 0.2.0-nightly.2026.2.8
         version: 0.2.0-nightly.2026.2.8
+      '@sinclair/typebox':
+        specifier: ^0.34.48
+        version: 0.34.48
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(@types/node@25.2.2)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
@@ -825,9 +807,6 @@ importers:
       yaml:
         specifier: ^2.8.2
         version: 2.8.2
-      zod:
-        specifier: ^4.3.6
-        version: 4.3.6
     devDependencies:
       '@chromatic-com/storybook':
         specifier: ^5.0.0
@@ -958,12 +937,6 @@ packages:
 
   '@adobe/css-tools@4.4.4':
     resolution: {integrity: sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg==}
-
-  '@anatine/zod-mock@3.14.0':
-    resolution: {integrity: sha512-pTYyn9dlszUl5gMGWtE7DBRvx1EcqpBJ1iJ73rlJYCZr9lgIEdZ6PCZQqoXIdlC8DYIwuT1M3/N8arkJa7A10Q==}
-    peerDependencies:
-      '@faker-js/faker': ^7.0.0 || ^8.0.0 || ^9.0.0
-      zod: ^3.21.4
 
   '@apidevtools/json-schema-ref-parser@9.1.2':
     resolution: {integrity: sha512-r1w81DpR+KyRWd3f+rk6TNqMgedmAxZP5v5KWlXQWlgMUUtyEJch0DKEci1SorPMiSeM8XPl7MZ3miJ60JIpQg==}
@@ -4690,10 +4663,6 @@ packages:
   dprint-node@1.0.8:
     resolution: {integrity: sha512-iVKnUtYfGrYcW1ZAlfR/F59cUVL8QIhWoBJoSjkkdua/dkWIgjZfiLMeTjiB06X0ZLkQ0M2C1VbUj/CxkIf1zg==}
 
-  drange@1.1.1:
-    resolution: {integrity: sha512-pYxfDYpued//QpnLIm4Avk7rsNtAtQkUES2cwAYSvD/wd2pKD71gN2Ebj3e7klzXwjocvE8c5vx/1fxwpqmSxA==}
-    engines: {node: '>=4'}
-
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
@@ -6704,10 +6673,6 @@ packages:
     engines: {node: '>=18.12.0'}
     hasBin: true
 
-  randexp@0.5.3:
-    resolution: {integrity: sha512-U+5l2KrcMNOUPYvazA3h5ekF80FHTUG+87SEAmHZmolh1M+i/WyTCxVzmi+tidIa1tM4BSe8g2Y/D3loWDjj+w==}
-    engines: {node: '>=4'}
-
   randombytes@2.1.0:
     resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
 
@@ -6847,10 +6812,6 @@ packages:
   restore-cursor@3.1.0:
     resolution: {integrity: sha512-l+sSefzHpj5qimhFSE5a8nufZYAM3sBSVMAPtYkmC+4EH2anSGaEMXSD0izRQbu9nfyQ9y5JrVmp7E8oZrUjvA==}
     engines: {node: '>=8'}
-
-  ret@0.2.2:
-    resolution: {integrity: sha512-M0b3YWQs7R3Z917WRQy1HHA7Ba7D8hvZg6UE5mLykJxQVE2ju0IXbGlaHPPlkY+WN7wFP+wUMXmBFA0aV6vYGQ==}
-    engines: {node: '>=4'}
 
   retry@0.13.1:
     resolution: {integrity: sha512-XQBQ3I8W1Cge0Seh+6gjj03LbmRFWuoszgK9ooCpwYIrhhoO80pfq4cUkU5DkknwfOfFteRwlZ56PYOGYyFWdg==}
@@ -8170,15 +8131,6 @@ packages:
     engines: {node: '>=8.0.0'}
     hasBin: true
 
-  zod-validation-error@5.0.0:
-    resolution: {integrity: sha512-hmk+pkyKq7Q71PiWVSDUc3VfpzpvcRHZ3QPw9yEMVvmtCekaMeOHnbr3WbxfrgEnQTv6haGP4cmv0Ojmihzsxw==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      zod: ^3.25.0 || ^4.0.0
-
-  zod@4.3.6:
-    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
-
 snapshots:
 
   0x@6.0.0:
@@ -8215,12 +8167,6 @@ snapshots:
       - supports-color
 
   '@adobe/css-tools@4.4.4': {}
-
-  '@anatine/zod-mock@3.14.0(@faker-js/faker@10.3.0)(zod@4.3.6)':
-    dependencies:
-      '@faker-js/faker': 10.3.0
-      randexp: 0.5.3
-      zod: 4.3.6
 
   '@apidevtools/json-schema-ref-parser@9.1.2':
     dependencies:
@@ -12757,8 +12703,6 @@ snapshots:
     dependencies:
       detect-libc: 1.0.3
 
-  drange@1.1.1: {}
-
   dunder-proto@1.0.1:
     dependencies:
       call-bind-apply-helpers: 1.0.2
@@ -15020,11 +14964,6 @@ snapshots:
       - '@swc/wasm'
       - encoding
 
-  randexp@0.5.3:
-    dependencies:
-      drange: 1.1.1
-      ret: 0.2.2
-
   randombytes@2.1.0:
     dependencies:
       safe-buffer: 5.2.1
@@ -15197,8 +15136,6 @@ snapshots:
     dependencies:
       onetime: 5.1.2
       signal-exit: 3.0.7
-
-  ret@0.2.2: {}
 
   retry@0.13.1: {}
 
@@ -16718,9 +16655,3 @@ snapshots:
       validator: 13.15.26
     optionalDependencies:
       commander: 9.5.0
-
-  zod-validation-error@5.0.0(zod@4.3.6):
-    dependencies:
-      zod: 4.3.6
-
-  zod@4.3.6: {}

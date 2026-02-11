@@ -1,37 +1,41 @@
-import { z } from 'zod'
+import { Type, type Static } from '@sinclair/typebox'
 import { StackStrategy } from '@arcadia-eternity/const'
+import { NativeEnum, parseWithErrors } from './utils'
 
-export const StackStrategySchema = z.nativeEnum(StackStrategy)
+export const StackStrategySchema = NativeEnum(StackStrategy)
 
-export const MarkConfigSchema = z
-  .object({
-    duration: z.number().optional().default(-1),
-    persistent: z.boolean().optional().default(true),
-    maxStacks: z.number().int().optional().default(1),
-    stackable: z.boolean().optional().default(false),
-    stackStrategy: StackStrategySchema.optional().default(StackStrategy.extend),
-    destroyable: z.boolean().optional().default(true),
-    isShield: z.boolean().optional().default(false),
-    keepOnSwitchOut: z.boolean().optional().default(false),
-    transferOnSwitch: z.boolean().optional().default(false),
-    inheritOnFaint: z.boolean().optional().default(false),
-    mutexGroup: z.string().optional(),
-  })
-  .catchall(z.any())
+export const MarkConfigSchema = Type.Object(
+  {
+    duration: Type.Number({ default: -1 }),
+    persistent: Type.Boolean({ default: true }),
+    maxStacks: Type.Integer({ default: 1 }),
+    stackable: Type.Boolean({ default: false }),
+    stackStrategy: Type.Union(Object.values(StackStrategy).map(v => Type.Literal(v)), {
+      default: StackStrategy.extend,
+    }),
+    destroyable: Type.Boolean({ default: true }),
+    isShield: Type.Boolean({ default: false }),
+    keepOnSwitchOut: Type.Boolean({ default: false }),
+    transferOnSwitch: Type.Boolean({ default: false }),
+    inheritOnFaint: Type.Boolean({ default: false }),
+    mutexGroup: Type.Optional(Type.String()),
+  },
+  { additionalProperties: true },
+)
 
-export const MarkSchema = z.object({
-  id: z.string().min(1),
-  config: MarkConfigSchema.optional(),
-  tags: z.array(z.string()).optional(),
-  effect: z.array(z.string()).optional(),
+export const MarkSchema = Type.Object({
+  id: Type.String({ minLength: 1 }),
+  config: Type.Optional(MarkConfigSchema),
+  tags: Type.Optional(Type.Array(Type.String())),
+  effect: Type.Optional(Type.Array(Type.String())),
 })
 
-export type MarkSchemaType = z.infer<typeof MarkSchema>
+export type MarkSchemaType = Static<typeof MarkSchema>
 
 export function validateMark(data: unknown): MarkSchemaType {
-  return MarkSchema.parse(data)
+  return parseWithErrors(MarkSchema, data)
 }
 
-export const MarkDataSetSchema = z.array(MarkSchema)
+export const MarkDataSetSchema = Type.Array(MarkSchema)
 
-export type MarkDataSet = z.infer<typeof MarkDataSetSchema>
+export type MarkDataSet = Static<typeof MarkDataSetSchema>

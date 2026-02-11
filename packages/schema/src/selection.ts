@@ -1,47 +1,55 @@
-import { z } from 'zod'
+import { Type, type Static } from '@sinclair/typebox'
 import { AttackTargetOpinionSchema } from './skill'
 
-export const UseSkillSelectionSchema = z
-  .object({
-    type: z.literal('use-skill'),
-    player: z.nanoid(),
-    skill: z.string(),
+const NANOID_PATTERN = '^[A-Za-z0-9_-]{21}$'
+const NanoidString = Type.String({ pattern: NANOID_PATTERN })
+
+export const UseSkillSelectionSchema = Type.Object(
+  {
+    type: Type.Literal('use-skill'),
+    player: NanoidString,
+    skill: Type.String(),
     target: AttackTargetOpinionSchema,
-  })
-  .strict()
+  },
+  { additionalProperties: false },
+)
 
-export const SwitchPetSelectionSchema = z
-  .object({
-    type: z.literal('switch-pet'),
-    player: z.nanoid(),
-    pet: z.nanoid(),
-  })
-  .strict()
+export const SwitchPetSelectionSchema = Type.Object(
+  {
+    type: Type.Literal('switch-pet'),
+    player: NanoidString,
+    pet: NanoidString,
+  },
+  { additionalProperties: false },
+)
 
-export const DoNothingSelectionSchema = z
-  .object({
-    type: z.literal('do-nothing'),
-    player: z.nanoid(),
-  })
-  .strict()
+export const DoNothingSelectionSchema = Type.Object(
+  {
+    type: Type.Literal('do-nothing'),
+    player: NanoidString,
+  },
+  { additionalProperties: false },
+)
 
-export const SurrenderSelectionSchema = z
-  .object({
-    type: z.literal('surrender'),
-    player: z.nanoid(),
-  })
-  .strict()
+export const SurrenderSelectionSchema = Type.Object(
+  {
+    type: Type.Literal('surrender'),
+    player: NanoidString,
+  },
+  { additionalProperties: false },
+)
 
-export const TeamSelectionSchema = z
-  .object({
-    type: z.literal('team-selection'),
-    player: z.nanoid(),
-    selectedPets: z.array(z.nanoid()),
-    starterPetId: z.nanoid(),
-  })
-  .strict()
+export const TeamSelectionSchema = Type.Object(
+  {
+    type: Type.Literal('team-selection'),
+    player: NanoidString,
+    selectedPets: Type.Array(NanoidString),
+    starterPetId: NanoidString,
+  },
+  { additionalProperties: false },
+)
 
-export const PlayerSelectionSchema = z.discriminatedUnion('type', [
+export const PlayerSelectionSchema = Type.Union([
   UseSkillSelectionSchema,
   SwitchPetSelectionSchema,
   DoNothingSelectionSchema,
@@ -49,10 +57,10 @@ export const PlayerSelectionSchema = z.discriminatedUnion('type', [
   TeamSelectionSchema,
 ])
 
-export type PlayerSelectionSchemaType = z.infer<typeof PlayerSelectionSchema>
+export type PlayerSelectionSchemaType = Static<typeof PlayerSelectionSchema>
 
 // 最终命令结构
-export const PlayerSelectionsSchema = z.object({
-  playerId: z.nanoid(),
+export const PlayerSelectionsSchema = Type.Object({
+  playerId: NanoidString,
   selections: PlayerSelectionSchema,
 })

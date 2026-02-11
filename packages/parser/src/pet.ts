@@ -1,26 +1,18 @@
 import { BaseMark, Pet, type Species } from '@arcadia-eternity/battle'
 import { Gender, type baseMarkId, type baseSkillId, type petId, type speciesId } from '@arcadia-eternity/const'
 import { DataRepository } from '@arcadia-eternity/data-repository'
-import { PetSchema } from '@arcadia-eternity/schema'
+import { PetSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
-import { fromZodError } from 'zod-validation-error'
-import { ZodError } from 'zod'
 
 export class PetParser {
   static parse(rawData: unknown): Pet {
-    let validated: ReturnType<typeof PetSchema.parse>
+    let validated: ReturnType<typeof parseWithErrors<typeof PetSchema>>
     try {
-      validated = PetSchema.parse(rawData)
+      validated = parseWithErrors(PetSchema, rawData)
     } catch (error) {
-      if (error instanceof ZodError) {
-        const validationError = fromZodError(error, {
-          prefix: '[PetParser] 精灵数据验证失败',
-          prefixSeparator: ': ',
-          issueSeparator: '; ',
-        })
-        throw new Error(validationError.message)
-      }
-      throw error
+      throw new Error(
+        `[PetParser] 精灵数据验证失败: ${error instanceof Error ? error.message : error}`,
+      )
     }
     const uid = validated.id ?? nanoid()
 

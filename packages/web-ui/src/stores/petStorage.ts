@@ -1,10 +1,11 @@
 // src/stores/petStorage.ts
 import { defineStore } from 'pinia'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
-import { PetSchema, PetSetSchema } from '@arcadia-eternity/schema'
+import { PetSchema, PetSetSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { Gender, Nature } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
-import { z } from 'zod'
+import { Type, type Static } from '@sinclair/typebox'
+import { Value } from '@sinclair/typebox/value'
 
 interface Team {
   name: string
@@ -26,24 +27,24 @@ interface PetStorageState {
   lastMatchingConfig: LastMatchingConfig | null
 }
 
-// Zod 校验 schema
-const TeamSchema = z.object({
-  name: z.string().min(1, '队伍名称不能为空'),
-  pets: PetSetSchema.max(6, '队伍最多只能有6只精灵'),
-  ruleSetId: z.string().min(1, '规则集ID不能为空'),
+// TypeBox 校验 schema
+const TeamSchema = Type.Object({
+  name: Type.String({ minLength: 1 }),
+  pets: Type.Array(PetSchema, { maxItems: 6 }),
+  ruleSetId: Type.String({ minLength: 1 }),
 })
 
-const LastMatchingConfigSchema = z.object({
-  teamIndex: z.number().int().min(0),
-  ruleSetId: z.string().min(1),
-  timestamp: z.number(),
+const LastMatchingConfigSchema = Type.Object({
+  teamIndex: Type.Integer({ minimum: 0 }),
+  ruleSetId: Type.String({ minLength: 1 }),
+  timestamp: Type.Number(),
 })
 
-const PetStorageStateSchema = z.object({
-  storage: PetSetSchema,
-  teams: z.array(TeamSchema).min(1, '至少需要一个队伍'),
-  currentTeamIndex: z.number().int().min(0, '当前队伍索引不能为负数'),
-  lastMatchingConfig: LastMatchingConfigSchema.nullable().optional(),
+const PetStorageStateSchema = Type.Object({
+  storage: Type.Array(PetSchema),
+  teams: Type.Array(TeamSchema, { minItems: 1 }),
+  currentTeamIndex: Type.Integer({ minimum: 0 }),
+  lastMatchingConfig: Type.Optional(Type.Union([LastMatchingConfigSchema, Type.Null()])),
 })
 
 // 定义持久化数据的类型（不包含initialized）
@@ -52,7 +53,7 @@ type PersistentPetStorageData = Omit<PetStorageState, 'initialized'>
 // 校验函数
 function validatePetStorageData(data: unknown): { valid: boolean; data?: PersistentPetStorageData; errors?: string[] } {
   try {
-    const validatedData = PetStorageStateSchema.parse(data)
+    const validatedData = parseWithErrors(PetStorageStateSchema, data) as Static<typeof PetStorageStateSchema>
 
     // 额外校验：确保 currentTeamIndex 不超出 teams 数组范围
     if (validatedData.currentTeamIndex >= validatedData.teams.length) {
@@ -72,12 +73,8 @@ function validatePetStorageData(data: unknown): { valid: boolean; data?: Persist
       },
     }
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      const errors = error.issues.map(err => {
-        const path = err.path.length > 0 ? err.path.join('.') : '根对象'
-        return `${path}: ${err.message}`
-      })
-      return { valid: false, errors }
+    if (error instanceof Error) {
+      return { valid: false, errors: [error.message] }
     }
     return { valid: false, errors: ['未知的校验错误'] }
   }
@@ -284,14 +281,13 @@ export const usePetStorageStore = defineStore('petStorage', {
     addToStorage(pet: PetSchemaType) {
       // 先校验单个精灵数据
       try {
-        PetSchema.parse(pet)
+        parseWithErrors(PetSchema, pet)
         this.storage.push(pet)
         this.validateAndSave()
       } catch (error) {
-        if (error instanceof z.ZodError) {
-          const errorMessage = error.issues.map(err => err.message).join('; ')
-          ElMessage.error(`精灵数据校验失败: ${errorMessage}`)
-          console.error('精灵数据校验失败:', error.issues)
+        if (error instanceof Error) {
+          ElMessage.error(`精灵数据校验失败: ${error.message}`)
+          console.error('精灵数据校验失败:', error.message)
         } else {
           ElMessage.error('添加精灵失败')
           console.error('添加精灵失败:', error)

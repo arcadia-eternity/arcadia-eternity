@@ -1,5 +1,6 @@
 import { Router } from 'express'
-import { z } from 'zod'
+import { Type, type Static } from '@sinclair/typebox'
+import { Value } from '@sinclair/typebox/value'
 import { EmailVerificationRepository, PlayerRepository } from '@arcadia-eternity/database'
 import { getContainer, TYPES } from '../../container'
 import type { IEmailService } from '../../interfaces/IEmailService'
@@ -7,46 +8,55 @@ import type { IAuthService } from '../../domain/auth/services/authService'
 import { smartAuth, requireRegisteredUser, playerRateLimit } from '../middlewares/smartAuthMiddleware'
 import pino from 'pino'
 
+class ValidationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ValidationError'
+  }
+}
+
+function parseRequest<T extends import('@sinclair/typebox').TSchema>(schema: T, data: unknown): Static<T> {
+  const converted = Value.Convert(schema, structuredClone(data))
+  const defaulted = Value.Default(schema, converted)
+  if (Value.Check(schema, defaulted)) {
+    return defaulted as Static<T>
+  }
+  const errors = [...Value.Errors(schema, defaulted)]
+  const message = errors.map(e => `${e.path}: ${e.message}`).join('; ')
+  throw new ValidationError(message)
+}
+
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
 })
 
 // 请求验证 schemas
-const SendVerificationCodeSchema = z.object({
-  email: z.string().email('邮箱格式不正确'),
-  playerId: z.string().optional(),
-  purpose: z.enum(['bind', 'recover']),
+const SendVerificationCodeSchema = Type.Object({
+  email: Type.String({ format: 'email' }),
+  playerId: Type.Optional(Type.String()),
+  purpose: Type.Union([Type.Literal('bind'), Type.Literal('recover')]),
 })
 
-const VerifyCodeSchema = z.object({
-  email: z.string().email('邮箱格式不正确'),
-  code: z
-    .string()
-    .length(6, '验证码必须是6位数字')
-    .regex(/^\d{6}$/, '验证码只能包含数字'),
-  purpose: z.enum(['bind', 'recover']),
-  playerId: z.string().optional(),
+const VerifyCodeSchema = Type.Object({
+  email: Type.String({ format: 'email' }),
+  code: Type.String({ minLength: 6, maxLength: 6, pattern: '^\\d{6}$' }),
+  purpose: Type.Union([Type.Literal('bind'), Type.Literal('recover')]),
+  playerId: Type.Optional(Type.String()),
 })
 
-const BindEmailSchema = z.object({
-  email: z.string().email('邮箱格式不正确'),
-  code: z
-    .string()
-    .length(6, '验证码必须是6位数字')
-    .regex(/^\d{6}$/, '验证码只能包含数字'),
-  playerId: z.string().min(1, '玩家ID不能为空'),
+const BindEmailSchema = Type.Object({
+  email: Type.String({ format: 'email' }),
+  code: Type.String({ minLength: 6, maxLength: 6, pattern: '^\\d{6}$' }),
+  playerId: Type.String({ minLength: 1 }),
 })
 
-const RecoverPlayerSchema = z.object({
-  email: z.string().email('邮箱格式不正确'),
-  code: z
-    .string()
-    .length(6, '验证码必须是6位数字')
-    .regex(/^\d{6}$/, '验证码只能包含数字'),
+const RecoverPlayerSchema = Type.Object({
+  email: Type.String({ format: 'email' }),
+  code: Type.String({ minLength: 6, maxLength: 6, pattern: '^\\d{6}$' }),
 })
 
-const UnbindEmailSchema = z.object({
-  playerId: z.string().min(1, '玩家ID不能为空'),
+const UnbindEmailSchema = Type.Object({
+  playerId: Type.String({ minLength: 1 }),
 })
 
 /**
@@ -215,7 +225,7 @@ export function createEmailInheritanceRoutes(): Router {
    */
   router.post('/send-verification-code', async (req: any, res: any) => {
     try {
-      const { email, playerId, purpose } = SendVerificationCodeSchema.parse(req.body)
+      const { email, playerId, purpose } = parseRequest(SendVerificationCodeSchema, req.body)
 
       // 根据用途进行不同的认证和验证
       if (purpose === 'bind') {
@@ -319,10 +329,10 @@ export function createEmailInheritanceRoutes(): Router {
         message: '验证码已发送，请查收邮件',
       })
     } catch (error) {
-      if (error instanceof z.ZodError) {
+      if (error instanceof ValidationError) {
         return res.status(400).json({
           success: false,
-          message: error.issues[0].message,
+          message: error.message,
         })
       }
 
@@ -339,7 +349,7 @@ export function createEmailInheritanceRoutes(): Router {
    */
   router.post('/verify-code', smartAuth, async (req: any, res: any) => {
     try {
-      const { email, code, purpose } = VerifyCodeSchema.parse(req.body)
+      const { email, code, purpose } = parseRequest(VerifyCodeSchema, req.body)
 
       // 查找有效的验证码
       const verificationCode = await emailVerificationRepo.findValidCode(email, code, purpose)
@@ -358,10 +368,10 @@ export function createEmailInheritanceRoutes(): Router {
         valid: true,
       })
     } catch (error) {
-      if (error instanceof z.ZodError) {
+      if (error instanceof ValidationError) {
         return res.status(400).json({
           success: false,
-          message: error.issues[0].message,
+          message: error.message,
           valid: false,
         })
       }
@@ -429,7 +439,7 @@ export function createEmailInheritanceRoutes(): Router {
    */
   router.post('/bind', smartAuth, async (req: any, res: any) => {
     try {
-      const { email, code, playerId } = BindEmailSchema.parse(req.body)
+      const { email, code, playerId } = parseRequest(BindEmailSchema, req.body)
 
       // 验证验证码
       const verificationCode = await emailVerificationRepo.findValidCode(email, code, 'bind')
@@ -480,10 +490,10 @@ export function createEmailInheritanceRoutes(): Router {
         auth: authResult, // 返回新的认证信息
       })
     } catch (error) {
-      if (error instanceof z.ZodError) {
+      if (error instanceof ValidationError) {
         return res.status(400).json({
           success: false,
-          message: error.issues[0].message,
+          message: error.message,
         })
       }
 
@@ -543,7 +553,7 @@ export function createEmailInheritanceRoutes(): Router {
    */
   router.post('/recover', async (req: any, res: any) => {
     try {
-      const { email, code } = RecoverPlayerSchema.parse(req.body)
+      const { email, code } = parseRequest(RecoverPlayerSchema, req.body)
 
       // 验证验证码
       const verificationCode = await emailVerificationRepo.findValidCode(email, code, 'recover')
@@ -582,10 +592,10 @@ export function createEmailInheritanceRoutes(): Router {
         auth: authResult, // 返回认证信息
       })
     } catch (error) {
-      if (error instanceof z.ZodError) {
+      if (error instanceof ValidationError) {
         return res.status(400).json({
           success: false,
-          message: error.issues[0].message,
+          message: error.message,
         })
       }
 
@@ -602,7 +612,7 @@ export function createEmailInheritanceRoutes(): Router {
    */
   router.get('/check-binding', async (req: any, res: any) => {
     try {
-      const email = z.string().email().parse(req.query.email)
+      const email = parseRequest(Type.String({ format: 'email' }), req.query.email)
 
       const boundPlayer = await emailVerificationRepo.findPlayerByEmail(email)
 
@@ -618,7 +628,7 @@ export function createEmailInheritanceRoutes(): Router {
         })
       }
     } catch (error) {
-      if (error instanceof z.ZodError) {
+      if (error instanceof ValidationError) {
         return res.status(400).json({
           success: false,
           message: '邮箱格式不正确',
@@ -638,7 +648,7 @@ export function createEmailInheritanceRoutes(): Router {
    */
   router.post('/unbind', smartAuth, requireRegisteredUser, async (req: any, res: any) => {
     try {
-      const { playerId } = UnbindEmailSchema.parse(req.body)
+      const { playerId } = parseRequest(UnbindEmailSchema, req.body)
 
       // 检查玩家是否存在
       const existingPlayer = await playerRepo.getPlayerById(playerId)
@@ -664,10 +674,10 @@ export function createEmailInheritanceRoutes(): Router {
         message: '邮箱解绑成功',
       })
     } catch (error) {
-      if (error instanceof z.ZodError) {
+      if (error instanceof ValidationError) {
         return res.status(400).json({
           success: false,
-          message: error.issues[0].message,
+          message: error.message,
         })
       }
 

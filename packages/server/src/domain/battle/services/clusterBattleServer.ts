@@ -12,7 +12,8 @@ import type {
 import { PlayerSchema, type PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 import pino from 'pino'
-import { ZodError } from 'zod'
+import { parseWithErrors } from '@arcadia-eternity/schema'
+import type { Static } from '@sinclair/typebox'
 import type { Server, Socket } from 'socket.io'
 import { BattleReportService, type BattleReportConfig } from '../../report/services/battleReportService'
 import type { IAuthService, JWTPayload } from '../../auth/services/authService'
@@ -2487,14 +2488,13 @@ export class ClusterBattleServer {
   /**
    * 验证原始玩家数据格式（不解析为实例）
    */
-  private validateRawPlayerData(rawData: unknown): ReturnType<typeof PlayerSchema.parse> {
+  private validateRawPlayerData(rawData: unknown): Static<typeof PlayerSchema> {
     try {
-      // 使用PlayerSchema进行验证，但不解析为实例
-      return PlayerSchema.parse(rawData)
+      return parseWithErrors(PlayerSchema, rawData)
     } catch (error) {
-      if (error instanceof ZodError) {
-        logger.warn({ error: error.issues, rawData }, 'Raw player data validation failed')
-        throw new Error(`Invalid player data: ${error.issues.map((e: any) => e.message).join(', ')}`)
+      if (error instanceof Error) {
+        logger.warn({ error: error.message, rawData }, 'Raw player data validation failed')
+        throw new Error(`Invalid player data: ${error.message}`)
       }
       throw new Error('Failed to validate raw player data')
     }
@@ -2508,9 +2508,9 @@ export class ClusterBattleServer {
       // 使用PlayerParser进行验证和解析
       return PlayerParser.parse(rawData)
     } catch (error) {
-      if (error instanceof ZodError) {
-        logger.warn({ error: error.issues, rawData }, 'Player data validation failed')
-        throw new Error(`Invalid player data: ${error.issues.map((e: any) => e.message).join(', ')}`)
+      if (error instanceof Error) {
+        logger.warn({ error: error.message, rawData }, 'Player data validation failed')
+        throw new Error(`Invalid player data: ${error.message}`)
       }
       throw new Error('Failed to validate player data')
     }

@@ -51,8 +51,7 @@
     "socket.io": "^4.8.3",
     "ts-morph": "^27.0.2",
     "tsparticles": "^3.9.1",
-    "yaml": "^2.8.2",
-    "zod": "^4.3.6"
+    "yaml": "^2.8.2"
   },
   "devDependencies": {
     "0x": "^6.0.0",

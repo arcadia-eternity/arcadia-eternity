@@ -65,7 +65,7 @@
           <div class="tuple-items">
             <div v-for="(itemSchema, index) in tupleSchemas" :key="index" class="tuple-item">
               <el-input-number
-                v-if="itemSchema instanceof z.ZodNumber"
+                v-if="isNumberSchema(itemSchema)"
                 v-model="localTupleValue[index]"
                 :placeholder="getPlaceholder(itemSchema)"
                 :step="getNumberStep(itemSchema)"
@@ -75,13 +75,13 @@
                 :class="{ 'error-field': tupleError }"
               />
               <el-input
-                v-else-if="itemSchema instanceof z.ZodString"
+                v-else-if="isStringSchema(itemSchema)"
                 v-model="localTupleValue[index]"
                 :placeholder="getPlaceholder(itemSchema)"
                 @change="val => handleTupleChange(index, val)"
                 :class="{ 'error-field': tupleError }"
               />
-              <span v-else class="unsupported-type"> 不支持的类型：{{ itemSchema.constructor.name }} </span>
+              <span v-else class="unsupported-type"> 不支持的类型：{{ (itemSchema as TSchema)[Kind] }} </span>
             </div>
           </div>
 
@@ -118,37 +118,80 @@
 
 <script setup lang="ts">
 import { computed, h, ref, resolveComponent, watch } from 'vue'
-import { z } from 'zod'
+import { type TSchema, type TObject, type TArray, type TUnion, type TNumber, type TInteger, type TString, type TTuple, type TProperties, type TLiteral } from '@sinclair/typebox'
+import { Kind, OptionalKind } from '@sinclair/typebox'
+import { KindGuard } from '@sinclair/typebox/type'
+import { Value } from '@sinclair/typebox/value'
 import { CirclePlus, Close, Remove } from '@element-plus/icons-vue'
 import EnhancedArrayEditor from './EnhancedArrayEditor.vue'
 
+// TypeBox 类型检测辅助函数
+const isNumberSchema = (schema: TSchema): boolean => KindGuard.IsNumber(schema) || KindGuard.IsInteger(schema)
+const isStringSchema = (schema: TSchema): boolean => KindGuard.IsString(schema)
+const isObjectSchema = (schema: TSchema): boolean => KindGuard.IsObject(schema)
+const isArraySchema = (schema: TSchema): boolean => KindGuard.IsArray(schema)
+const isBooleanSchema = (schema: TSchema): boolean => KindGuard.IsBoolean(schema)
+const isTupleSchema = (schema: TSchema): boolean => KindGuard.IsTuple(schema)
+
+// 检测是否为枚举类型（Union of Literals）
+const isEnumSchema = (schema: TSchema): boolean => {
+  if (KindGuard.IsUnion(schema)) {
+    return (schema as TUnion).anyOf.every((s: TSchema) => KindGuard.IsLiteral(s))
+  }
+  return false
+}
+
+// 检测是否包含 Null（Nullable = Union with Null）
+const hasNullInUnion = (schema: TSchema): boolean => {
+  if (KindGuard.IsUnion(schema)) {
+    return (schema as TUnion).anyOf.some((s: TSchema) => KindGuard.IsNull(s))
+  }
+  return false
+}
+
+// 检测是否有 default 值
+const hasDefault = (schema: TSchema): boolean => {
+  return 'default' in schema
+}
+
+// 解包 schema：移除 Optional 标记、Nullable（Union with Null）、Default
+const unwrapSchemaFn = (schema: TSchema): TSchema => {
+  // 如果是 Union 且包含 Null，去掉 Null 部分
+  if (KindGuard.IsUnion(schema) && hasNullInUnion(schema)) {
+    const nonNullTypes = (schema as TUnion).anyOf.filter((s: TSchema) => !KindGuard.IsNull(s))
+    if (nonNullTypes.length === 1) {
+      return unwrapSchemaFn(nonNullTypes[0])
+    }
+  }
+  return schema
+}
+
 // 修改组件props定义
 const props = defineProps<{
-  modelValue: any // 使用更宽松的类型
-  schema: z.ZodTypeAny // 修改为正确的Zod类型
+  modelValue: any
+  schema: TSchema
   label?: string
 }>()
 
 const isOptional = computed(() => {
-  // 递归解包函数
-  const checkOptional = (schema: z.ZodTypeAny): boolean => {
-    if (schema instanceof z.ZodOptional) return true
-    if (schema instanceof z.ZodDefault) return true
+  const checkOptional = (schema: TSchema): boolean => {
+    if (OptionalKind in schema) return true
+    if (hasDefault(schema)) return true
 
-    // 处理特殊包装类型
-    if (schema instanceof z.ZodEffects) {
-      return checkOptional(schema._def.schema)
-    }
-    if (schema instanceof z.ZodNullable) {
-      return checkOptional(schema._def.innerType)
+    // 处理 Nullable（Union with Null）
+    if (KindGuard.IsUnion(schema) && hasNullInUnion(schema)) {
+      const nonNullTypes = (schema as TUnion).anyOf.filter((s: TSchema) => !KindGuard.IsNull(s))
+      if (nonNullTypes.length === 1) {
+        return checkOptional(nonNullTypes[0])
+      }
     }
 
-    // 处理对象和数组类型（可选字段）
-    if (schema instanceof z.ZodObject) {
-      return Object.values(schema.shape).some(fieldSchema => fieldSchema.isOptional())
+    // 处理对象和数组类型
+    if (isObjectSchema(schema)) {
+      return Object.values((schema as TObject<TProperties>).properties).some((fieldSchema: TSchema) => OptionalKind in fieldSchema)
     }
-    if (schema instanceof z.ZodArray) {
-      return schema._def.exactLength === undefined
+    if (isArraySchema(schema)) {
+      return true // 数组总是可以为空
     }
 
     return false
@@ -160,99 +203,59 @@ const isOptional = computed(() => {
 const emit = defineEmits(['update:modelValue'])
 
 const unwrappedSchema = computed(() => {
-  let schema = props.schema
-  while (
-    schema instanceof z.ZodOptional ||
-    schema instanceof z.ZodDefault ||
-    schema instanceof z.ZodNullable ||
-    schema instanceof z.ZodEffects
-  ) {
-    if (schema instanceof z.ZodEffects) {
-      schema = schema._def.schema
-    } else {
-      schema = schema._def.innerType
-    }
-  }
-  return schema
-})
-
-const tupleChecks = computed(() => {
-  try {
-    const checks = []
-    let current: any = props.schema
-    while (current instanceof z.ZodEffects) {
-      checks.push(...current._def.checks)
-      current = current._def.schema
-    }
-    return checks
-  } catch {
-    return []
-  }
+  return unwrapSchemaFn(props.schema)
 })
 
 const isNullable = computed(() => {
-  return props.schema instanceof z.ZodNullable
+  return hasNullInUnion(props.schema)
 })
 
 const isNullValue = computed(() => props.modelValue === null)
 const isUndefined = computed(() => props.modelValue === undefined || props.modelValue === null)
-const isObjectType = computed(() => unwrappedSchema.value instanceof z.ZodObject)
-const isArrayType = computed(() => unwrappedSchema.value instanceof z.ZodArray)
-const isEnumType = computed(() => {
-  return unwrappedSchema.value instanceof z.ZodEnum || unwrappedSchema.value instanceof z.ZodNativeEnum
-})
-const isBooleanType = computed(() => unwrappedSchema.value instanceof z.ZodBoolean)
-const isNumberType = computed(() => unwrappedSchema.value instanceof z.ZodNumber)
-const isTupleType = computed(() => {
-  return unwrappedSchema.value instanceof z.ZodTuple
-})
+const isObjectType = computed(() => isObjectSchema(unwrappedSchema.value))
+const isArrayType = computed(() => isArraySchema(unwrappedSchema.value))
+const isEnumType = computed(() => isEnumSchema(unwrappedSchema.value))
+const isBooleanType = computed(() => isBooleanSchema(unwrappedSchema.value))
+const isNumberType = computed(() => isNumberSchema(unwrappedSchema.value))
+const isTupleType = computed(() => isTupleSchema(unwrappedSchema.value))
 const isNullableTuple = computed(() => {
-  const checkNullable = (schema: z.ZodTypeAny): boolean => {
-    if (schema instanceof z.ZodNullable) return true
-    if (schema instanceof z.ZodEffects) return checkNullable(schema._def.schema)
-    return false
-  }
-  return checkNullable(props.schema) && unwrappedSchema.value instanceof z.ZodTuple
+  return hasNullInUnion(props.schema) && isTupleSchema(unwrappedSchema.value)
 })
 
-// 修改枚举类型处理
-
+// 枚举选项
 const enumOptions = computed(() => {
   if (!isEnumType.value) return []
 
-  let options: string[] = []
+  const schema = unwrappedSchema.value
+  if (KindGuard.IsUnion(schema)) {
+    const options = schema.anyOf
+      .filter((s: TSchema) => KindGuard.IsLiteral(s))
+      .map((s: TSchema) => (s as TLiteral).const)
+      .filter((v): v is string => typeof v === 'string')
 
-  // 处理 ZodEnum（z.enum(["A", "B"])）
-  if (unwrappedSchema.value instanceof z.ZodEnum) {
-    options = (unwrappedSchema.value as z.ZodEnum<[string, ...string[]]>)._def.values
-  }
-  // 处理 ZodNativeEnum（z.nativeEnum(MyEnum)）
-  else if (unwrappedSchema.value instanceof z.ZodNativeEnum) {
-    const enumObj = (unwrappedSchema.value as z.ZodNativeEnum<Record<string, string>>)._def.values
-    // 过滤出字符串值（假设是字符串枚举）
-    options = Object.values(enumObj).filter((v): v is string => typeof v === 'string')
+    return options.map((value: string) => ({
+      value,
+      label: value.replace(/_/g, ' ').toUpperCase(),
+    }))
   }
 
-  return options.map(value => ({
-    value,
-    label: value.replace(/_/g, ' ').toUpperCase(),
-  }))
+  return []
 })
 
 // 数字类型配置
 const numberOptions = computed(() => {
   if (!isNumberType.value) return {}
-  const schema = unwrappedSchema.value as z.ZodNumber
+  const schema = unwrappedSchema.value as TNumber | TInteger
   return {
-    min: schema.minValue ?? -Infinity,
-    max: schema.maxValue ?? Infinity,
-    step: 1,
+    min: schema.minimum ?? -Infinity,
+    max: schema.maximum ?? Infinity,
+    step: schema.multipleOf ?? 1,
   }
 })
 
-const tupleSchemas = computed<z.ZodTypeAny[]>(() => {
-  if (!(unwrappedSchema.value instanceof z.ZodTuple)) return []
-  return unwrappedSchema.value.items
+const tupleSchemas = computed<TSchema[]>(() => {
+  if (!isTupleSchema(unwrappedSchema.value)) return []
+  return (unwrappedSchema.value as TTuple).items || []
 })
 
 // 布尔类型显示配置
@@ -263,8 +266,8 @@ const booleanOptions = computed(() => ({
 
 // 输入类型推断
 const inputType = computed(() => {
-  if (unwrappedSchema.value instanceof z.ZodNumber) return 'number'
-  if (unwrappedSchema.value instanceof z.ZodString) return 'text'
+  if (isNumberSchema(unwrappedSchema.value)) return 'number'
+  if (isStringSchema(unwrappedSchema.value)) return 'text'
   return 'text'
 })
 
@@ -303,16 +306,15 @@ const nestedEditorComponent = computed(() => {
 
 const validateTuple = (value: any[]) => {
   try {
-    // 使用原始 Schema 校验（包含所有 refine 规则）
-    props.schema.parse(value)
-    tupleError.value = null
-    return true
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      tupleError.value = err.errors.map(e => `${e.path.join('.')} ${e.message}`).join('; ')
-    } else {
-      tupleError.value = '无效的元组格式'
+    if (Value.Check(props.schema, value)) {
+      tupleError.value = null
+      return true
     }
+    const errors = [...Value.Errors(props.schema, value)]
+    tupleError.value = errors.map(e => `${e.path} ${e.message}`).join('; ')
+    return false
+  } catch (err) {
+    tupleError.value = '无效的元组格式'
     return false
   }
 }
@@ -321,10 +323,10 @@ const validateTuple = (value: any[]) => {
 const initValue = () => {
   let defaultValue: any
   if (isNullableTuple.value) {
-    const tupleSchema = unwrappedSchema.value as z.ZodTuple
-    const defaultValue = tupleSchema.items.map(s => {
-      if (s instanceof z.ZodNumber) return 0
-      if (s instanceof z.ZodString) return ''
+    const items = (unwrappedSchema.value as TTuple).items || []
+    defaultValue = items.map((s: TSchema) => {
+      if (isNumberSchema(s)) return 0
+      if (isStringSchema(s)) return ''
       return undefined
     })
     handleChange(defaultValue)
@@ -334,10 +336,10 @@ const initValue = () => {
     else if (isBooleanType.value) defaultValue = false
     else if (isNumberType.value) defaultValue = 0
     else if (isTupleType.value) {
-      const tupleSchema = unwrappedSchema.value as z.ZodTuple
-      defaultValue = tupleSchema.items.map(s => {
-        if (s instanceof z.ZodNumber) return 0
-        if (s instanceof z.ZodString) return ''
+      const items = (unwrappedSchema.value as TTuple).items || []
+      defaultValue = items.map((s: TSchema) => {
+        if (isNumberSchema(s)) return 0
+        if (isStringSchema(s)) return ''
         return undefined
       })
     } else defaultValue = ''
@@ -384,37 +386,32 @@ const handleTupleChange = (index: number, value: any) => {
   const newValue = [...localTupleValue.value]
   newValue[index] = value
 
-  // 自动排序（示例：当检测到 refine 包含排序规则时）
-  if (tupleChecks.value.some(c => c.kind === 'sort')) {
-    newValue.sort((a, b) => a - b)
-  }
-
   if (validateTuple(newValue)) {
     emit('update:modelValue', newValue)
   }
 }
 
-const getNumberStep = (schema: z.ZodNumber) => {
-  return schema._def.checks.some((c: any) => c.kind === 'int') ? 1 : 0.1
+const getNumberStep = (schema: TSchema) => {
+  if (KindGuard.IsInteger(schema)) return 1
+  return (schema as TNumber).multipleOf ?? 0.1
 }
 
-const getNumberMin = (schema: z.ZodNumber) => {
-  return schema.minValue ?? -Infinity
+const getNumberMin = (schema: TSchema) => {
+  return (schema as TNumber | TInteger).minimum ?? -Infinity
 }
 
-const getNumberMax = (schema: z.ZodNumber) => {
-  return schema.maxValue ?? Infinity
+const getNumberMax = (schema: TSchema) => {
+  return (schema as TNumber | TInteger).maximum ?? Infinity
 }
 
-const getPlaceholder = (schema: z.ZodTypeAny) => {
-  if (schema instanceof z.ZodNumber) {
-    const checks = schema._def.checks
-    const min = checks.find((c: any) => c.kind === 'min')?.value
-    const max = checks.find((c: any) => c.kind === 'max')?.value
+const getPlaceholder = (schema: TSchema) => {
+  if (isNumberSchema(schema)) {
+    const min = (schema as TNumber | TInteger).minimum
+    const max = (schema as TNumber | TInteger).maximum
     return `请输入${min ?? '-∞'}~${max ?? '+∞'}之间的数值`
   }
-  if (schema instanceof z.ZodString) {
-    const min = schema._def.checks.find((c: any) => c.kind === 'min')?.value
+  if (isStringSchema(schema)) {
+    const min = (schema as TString).minLength
     return `至少${min ?? 0}个字符`
   }
   return '请输入'
@@ -424,11 +421,6 @@ watch(
   () => props.modelValue,
   newVal => {
     if (isNullableTuple.value) {
-      // 当值为 null 时，不初始化本地值，保持显示占位符
-      if (isNullableTuple.value && newVal === null) {
-        localTupleValue.value = []
-        return
-      }
       if (newVal === null) {
         localTupleValue.value = []
         return
@@ -437,8 +429,8 @@ watch(
     if (Array.isArray(newVal)) {
       localTupleValue.value = newVal.map((val, index) => {
         const schema = tupleSchemas.value[index]
-        if (schema instanceof z.ZodNumber) return Number(val) || 0
-        if (schema instanceof z.ZodString) return String(val)
+        if (schema && isNumberSchema(schema)) return Number(val) || 0
+        if (schema && isStringSchema(schema)) return String(val)
         return val
       })
       validateTuple(newVal)

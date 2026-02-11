@@ -1,12 +1,13 @@
 import type { petId, playerId, PlayerSelection, skillId } from '@arcadia-eternity/const'
 import {
   PlayerSelectionSchema,
+  parseWithErrors,
   type PlayerSelectionSchemaType as PlayerSelectionSchemaType,
 } from '@arcadia-eternity/schema'
 
 export class SelectionParser {
   static parse(rawData: unknown): PlayerSelection {
-    const schema = PlayerSelectionSchema.parse(rawData)
+    const schema = parseWithErrors(PlayerSelectionSchema, rawData)
     switch (schema.type) {
       case 'use-skill':
         return {

@@ -1,8 +1,27 @@
 import express, { type Router, type Request, type Response, type NextFunction } from 'express'
 import pino from 'pino'
-import { z } from 'zod'
+import { Type, type Static } from '@sinclair/typebox'
+import { Value } from '@sinclair/typebox/value'
 import type { ClusterAuthService } from '../../domain/auth/services/clusterAuthService'
 import type { SessionManager } from '../../domain/auth/services/sessionManager'
+
+class ValidationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ValidationError'
+  }
+}
+
+function parseRequest<T extends import('@sinclair/typebox').TSchema>(schema: T, data: unknown): Static<T> {
+  const converted = Value.Convert(schema, structuredClone(data))
+  const defaulted = Value.Default(schema, converted)
+  if (Value.Check(schema, defaulted)) {
+    return defaulted as Static<T>
+  }
+  const errors = [...Value.Errors(schema, defaulted)]
+  const message = errors.map(e => `${e.path}: ${e.message}`).join('; ')
+  throw new ValidationError(message)
+}
 
 // 简单的认证中间件
 function authenticateToken(authService: ClusterAuthService) {
@@ -57,17 +76,17 @@ const logger = pino({
 })
 
 // 验证schemas
-const GetSessionsSchema = z.object({
-  playerId: z.string().min(1, '玩家ID不能为空'),
+const GetSessionsSchema = Type.Object({
+  playerId: Type.String({ minLength: 1 }),
 })
 
-const RemoveSessionSchema = z.object({
-  playerId: z.string().min(1, '玩家ID不能为空'),
-  sessionId: z.string().min(1, '会话ID不能为空'),
+const RemoveSessionSchema = Type.Object({
+  playerId: Type.String({ minLength: 1 }),
+  sessionId: Type.String({ minLength: 1 }),
 })
 
-const SessionStatsSchema = z.object({
-  includeDetails: z.boolean().optional().default(false),
+const SessionStatsSchema = Type.Object({
+  includeDetails: Type.Optional(Type.Boolean({ default: false })),
 })
 
 /**
@@ -114,11 +133,11 @@ export function createSessionRoutes(authService: ClusterAuthService, sessionMana
           })),
         },
       })
-    } catch (error) {
-      if (error instanceof z.ZodError) {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message.startsWith('Validation failed')) {
         res.status(400).json({
           success: false,
-          message: error.issues[0].message,
+          message: error.message,
           code: 'VALIDATION_ERROR',
         })
         return
@@ -168,11 +187,11 @@ export function createSessionRoutes(authService: ClusterAuthService, sessionMana
           code: 'SESSION_NOT_FOUND',
         })
       }
-    } catch (error) {
-      if (error instanceof z.ZodError) {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message.startsWith('Validation failed')) {
         res.status(400).json({
           success: false,
-          message: error.issues[0].message,
+          message: error.message,
           code: 'VALIDATION_ERROR',
         })
         return
@@ -225,11 +244,11 @@ export function createSessionRoutes(authService: ClusterAuthService, sessionMana
           code: 'NO_SESSIONS_FOUND',
         })
       }
-    } catch (error) {
-      if (error instanceof z.ZodError) {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message.startsWith('Validation failed')) {
         res.status(400).json({
           success: false,
-          message: error.issues[0].message,
+          message: error.message,
           code: 'VALIDATION_ERROR',
         })
         return
@@ -280,11 +299,11 @@ export function createSessionRoutes(authService: ClusterAuthService, sessionMana
         message: '获取会话统计成功',
         data: responseData,
       })
-    } catch (error) {
-      if (error instanceof z.ZodError) {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message.startsWith('Validation failed')) {
         res.status(400).json({
           success: false,
-          message: error.issues[0].message,
+          message: error.message,
           code: 'VALIDATION_ERROR',
         })
         return

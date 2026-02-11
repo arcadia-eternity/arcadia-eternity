@@ -1,10 +1,16 @@
 import { defineStore } from 'pinia'
-import { z } from 'zod'
-import { PlayerSchema, type PlayerSchemaType } from '@arcadia-eternity/schema'
+import { Type } from '@sinclair/typebox'
+import { PlayerSchema, type PlayerSchemaType, parseWithErrors } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 import { usePetStorageStore } from './petStorage'
 import { useAuthStore, type PlayerInfo, type PlayerStatus } from './auth'
 import { ElMessage } from 'element-plus'
+
+// 用于 pick id + name 的局部 schema
+const PlayerIdNameSchema = Type.Object({
+  id: Type.String(),
+  name: Type.String({ minLength: 1 }),
+})
 
 // 定义状态类型
 interface PlayerState {
@@ -77,16 +83,13 @@ export const usePlayerStore = defineStore('player', {
           name: this.name || `游客-${Date.now().toString(36)}`,
         }
 
-        // 使用Zod验证数据格式
-        const validated = PlayerSchema.pick({
-          id: true,
-          name: true,
-        }).parse(dataToSave)
+        // 使用TypeBox验证数据格式
+        const validated = parseWithErrors(PlayerIdNameSchema, dataToSave)
 
         localStorage.setItem('player', JSON.stringify(validated))
       } catch (err) {
         console.error('保存玩家数据失败:', err)
-        if (err instanceof z.ZodError) {
+        if (err instanceof Error) {
           ElMessage.error('玩家数据格式错误，保存失败')
         }
       }
@@ -126,10 +129,7 @@ export const usePlayerStore = defineStore('player', {
         if (!saved) return
 
         // 解析时进行严格验证
-        const parsed = PlayerSchema.pick({
-          id: true,
-          name: true,
-        }).parse(JSON.parse(saved))
+        const parsed = parseWithErrors(PlayerIdNameSchema, JSON.parse(saved))
 
         this.id = parsed.id
         this.name = parsed.name
@@ -451,7 +451,7 @@ export const usePlayerStore = defineStore('player', {
       try {
         // 验证队伍数据有效性
         const team = petStorage.getCurrentTeam()
-        return PlayerSchema.parse({
+        return parseWithErrors(PlayerSchema, {
           ...state,
           team,
         })

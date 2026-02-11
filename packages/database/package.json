@@ -31,8 +31,7 @@
     "@supabase/supabase-js": "^2.95.3",
     "inversify": "^7.11.0",
     "nanoid": "^5.1.6",
-    "reflect-metadata": "^0.2.2",
-    "zod": "^4.3.6"
+    "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^16.0.3",

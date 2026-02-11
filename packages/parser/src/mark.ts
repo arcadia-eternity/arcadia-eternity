@@ -1,11 +1,11 @@
 import { BaseMark, Effect } from '@arcadia-eternity/battle'
 import { EffectTrigger, type baseMarkId, type effectId } from '@arcadia-eternity/const'
 import { DataRepository } from '@arcadia-eternity/data-repository'
-import { MarkSchema } from '@arcadia-eternity/schema'
+import { MarkSchema, parseWithErrors } from '@arcadia-eternity/schema'
 
 export class MarkParser {
   static parse(rawData: unknown): BaseMark {
-    const validated = MarkSchema.parse(rawData)
+    const validated = parseWithErrors(MarkSchema, rawData)
 
     let effects: Effect<EffectTrigger>[] = []
     if (validated.effect) {

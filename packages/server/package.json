@@ -35,6 +35,7 @@
     "@arcadia-eternity/protocol": "workspace:^",
     "@arcadia-eternity/rules": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
+    "@sinclair/typebox": "^0.34.48",
     "@aws-sdk/client-sesv2": "^3.985.0",
     "@bufbuild/protobuf": "^2.11.0",
     "@grpc/grpc-js": "^1.14.3",
@@ -54,8 +55,7 @@
     "reflect-metadata": "^0.2.2",
     "socket.io": "^4.8.3",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1",
-    "zod": "^4.3.6"
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",

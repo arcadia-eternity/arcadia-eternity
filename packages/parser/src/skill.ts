@@ -1,25 +1,17 @@
 import { BaseSkill, Effect } from '@arcadia-eternity/battle'
 import { EffectTrigger, type baseSkillId, type effectId } from '@arcadia-eternity/const'
 import { DataRepository } from '@arcadia-eternity/data-repository'
-import { SkillSchema } from '@arcadia-eternity/schema'
-import { fromZodError } from 'zod-validation-error'
-import { ZodError } from 'zod'
+import { SkillSchema, parseWithErrors } from '@arcadia-eternity/schema'
 
 export class SkillParser {
   static parse(rawData: unknown): BaseSkill {
-    let validated: ReturnType<typeof SkillSchema.parse>
+    let validated: ReturnType<typeof parseWithErrors<typeof SkillSchema>>
     try {
-      validated = SkillSchema.parse(rawData)
+      validated = parseWithErrors(SkillSchema, rawData)
     } catch (error) {
-      if (error instanceof ZodError) {
-        const validationError = fromZodError(error, {
-          prefix: '[SkillParser] 技能数据验证失败',
-          prefixSeparator: ': ',
-          issueSeparator: '; ',
-        })
-        throw new Error(validationError.message)
-      }
-      throw error
+      throw new Error(
+        `[SkillParser] 技能数据验证失败: ${error instanceof Error ? error.message : error}`,
+      )
     }
 
     let effects: Effect<EffectTrigger>[] = []

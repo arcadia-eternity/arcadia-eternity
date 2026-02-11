@@ -1,41 +1,44 @@
-import { z } from 'zod'
+import { Type, type Static } from '@sinclair/typebox'
 import { ElementSchema } from './element'
 import { Category, IgnoreStageStrategy } from '@arcadia-eternity/const'
 import { AttackTargetOpinion } from '@arcadia-eternity/const'
+import { StringEnum } from './utils'
 
-export const CategorySchema = z.enum(Category)
+export const CategorySchema = StringEnum(Object.values(Category))
 
-export const AttackTargetOpinionSchema = z.enum(AttackTargetOpinion)
+export const AttackTargetOpinionSchema = StringEnum(
+  Object.values(AttackTargetOpinion),
+)
 
-export const ignoreStageStrategySchema = z.enum(IgnoreStageStrategy)
+export const ignoreStageStrategySchema = StringEnum(
+  Object.values(IgnoreStageStrategy),
+)
 
-export const SkillSchema = z.object({
-  id: z.string().min(1),
+export const SkillSchema = Type.Object({
+  id: Type.String({ minLength: 1 }),
   element: ElementSchema,
   category: CategorySchema,
-  power: z.number().int().min(0),
-  rage: z.number().int().min(0),
-  accuracy: z.number().min(0).max(100),
-  priority: z.number().int().optional(),
-  target: AttackTargetOpinionSchema.optional(),
-  multihit: z
-    .union([
-      z.number(),
-      z.tuple([z.number(), z.number()]).refine(([min, max]) => min < max, {
-        message: '第一个元素必须小于第二个元素',
-      }),
-    ])
-    .optional(),
-  sureHit: z.boolean().default(false),
-  sureCrit: z.boolean().default(false),
-  ignoreShield: z.boolean().default(false),
-  ignoreOpponentStageStrategy: ignoreStageStrategySchema.default(IgnoreStageStrategy.none),
-  tags: z.array(z.string()).default([]),
-  effect: z.array(z.string()).optional(),
+  power: Type.Integer({ minimum: 0 }),
+  rage: Type.Integer({ minimum: 0 }),
+  accuracy: Type.Number({ minimum: 0, maximum: 100 }),
+  priority: Type.Optional(Type.Integer()),
+  target: Type.Optional(AttackTargetOpinionSchema),
+  multihit: Type.Optional(
+    Type.Union([Type.Number(), Type.Tuple([Type.Number(), Type.Number()])]),
+  ),
+  sureHit: Type.Boolean({ default: false }),
+  sureCrit: Type.Boolean({ default: false }),
+  ignoreShield: Type.Boolean({ default: false }),
+  ignoreOpponentStageStrategy: Type.Union(
+    Object.values(IgnoreStageStrategy).map(v => Type.Literal(v)),
+    { default: IgnoreStageStrategy.none },
+  ),
+  tags: Type.Array(Type.String(), { default: [] }),
+  effect: Type.Optional(Type.Array(Type.String())),
 })
 
-export type SkillSchemaType = z.infer<typeof SkillSchema>
+export type SkillSchemaType = Static<typeof SkillSchema>
 
-export const SkillDataSetSchema = z.array(SkillSchema)
+export const SkillDataSetSchema = Type.Array(SkillSchema)
 
-export type SkillDataSet = z.infer<typeof SkillDataSetSchema>
+export type SkillDataSet = Static<typeof SkillDataSetSchema>
