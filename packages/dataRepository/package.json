@@ -22,7 +22,7 @@
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
-    "@arcadia-eternity/battle": "workspace:^",
-    "@arcadia-eternity/const": "workspace:^"
+    "@arcadia-eternity/const": "workspace:^",
+    "@arcadia-eternity/schema": "workspace:^"
   }
 }

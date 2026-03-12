@@ -130,7 +130,7 @@ export class ScriptLoader {
       const fileUrl = pathToFileURL(absolutePath).href
 
       // 动态导入脚本
-      const module = await import(fileUrl)
+      const module = await import(/* @vite-ignore */ fileUrl)
 
       // 脚本加载后，声明会自动注册到DataRepository
       console.log(`✅ 脚本加载成功: ${filePath}`)
@@ -146,8 +146,7 @@ export class ScriptLoader {
       console.log(`🌐 加载脚本: ${url}`)
 
       // 在浏览器中动态导入
-      /* @vite-ignore */
-      const module = await import(url)
+      const module = await import(/* @vite-ignore */ url)
 
       console.log(`✅ 脚本加载成功: ${url}`)
     } catch (error) {

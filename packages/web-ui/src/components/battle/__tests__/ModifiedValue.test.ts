@@ -1,10 +1,10 @@
-import { test } from '@japa/runner'
+import { describe, test, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ModifiedValue from '../ModifiedValue.vue'
 import type { AttributeModifierInfo } from '@arcadia-eternity/const'
 
-test.group('ModifiedValue Component', () => {
-  test('should display normal value without modifiers', ({ expect }) => {
+describe('ModifiedValue Component', () => {
+  test('should display normal value without modifiers', () => {
     const wrapper = mount(ModifiedValue, {
       props: {
         value: 100,
@@ -15,7 +15,7 @@ test.group('ModifiedValue Component', () => {
     expect(wrapper.find('.text-green-400').exists()).toBe(false)
   })
 
-  test('should display buffed value with green color', ({ expect }) => {
+  test('should display buffed value with green color', () => {
     const attributeInfo: AttributeModifierInfo = {
       attributeName: 'atk',
       baseValue: 100,
@@ -45,7 +45,7 @@ test.group('ModifiedValue Component', () => {
     expect(wrapper.find('.text-green-400').exists()).toBe(true)
   })
 
-  test('should display debuffed value with red color', ({ expect }) => {
+  test('should display debuffed value with red color', () => {
     const attributeInfo: AttributeModifierInfo = {
       attributeName: 'atk',
       baseValue: 100,
@@ -75,7 +75,7 @@ test.group('ModifiedValue Component', () => {
     expect(wrapper.find('.text-red-400').exists()).toBe(true)
   })
 
-  test('should display clamped value with orange color', ({ expect }) => {
+  test('should display clamped value with orange color', () => {
     const attributeInfo: AttributeModifierInfo = {
       attributeName: 'atk',
       baseValue: 100,
@@ -103,7 +103,7 @@ test.group('ModifiedValue Component', () => {
     expect(wrapper.find('.text-orange-400').exists()).toBe(true)
   })
 
-  test('should display mixed effects with purple color', ({ expect }) => {
+  test('should display mixed effects with purple color', () => {
     const attributeInfo: AttributeModifierInfo = {
       attributeName: 'atk',
       baseValue: 100,
@@ -138,7 +138,7 @@ test.group('ModifiedValue Component', () => {
     expect(wrapper.find('.text-purple-400').exists()).toBe(true)
   })
 
-  test('should work with inline prop', ({ expect }) => {
+  test('should work with inline prop', () => {
     const wrapper = mount(ModifiedValue, {
       props: {
         value: 100,
@@ -149,7 +149,7 @@ test.group('ModifiedValue Component', () => {
     expect(wrapper.find('.inline-block').exists()).toBe(true)
   })
 
-  test('should work with different sizes', ({ expect }) => {
+  test('should work with different sizes', () => {
     const wrapperSm = mount(ModifiedValue, {
       props: {
         value: 100,

@@ -1,0 +1,23 @@
+{
+  "name": "@arcadia-eternity/plugin-transformation",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Generic entity transformation (base swap) system plugin",
+  "main": "./dist/index.js",
+  "types": "./dist/src/index.d.ts",
+  "scripts": {
+    "build": "run-p build:code build:types",
+    "clear": "rm -rf dist",
+    "build:code": "rollup -c",
+    "watch:code": "rollup -c --watch",
+    "watch:types": "tsc --emitDeclarationOnly --watch --preserveWatchOutput",
+    "watch": "run-p watch:code watch:types",
+    "build:types": "tsc --emitDeclarationOnly"
+  },
+  "keywords": [],
+  "author": "yuuinih",
+  "license": "MIT",
+  "dependencies": {
+    "@arcadia-eternity/engine": "workspace:*"
+  }
+}

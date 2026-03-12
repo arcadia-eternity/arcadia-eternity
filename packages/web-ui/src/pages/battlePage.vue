@@ -24,6 +24,7 @@ import { useBattleViewStore } from '@/stores/battleView'
 import { useGameDataStore } from '@/stores/gameData'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import { useResourceStore } from '@/stores/resource'
+import { resolveSpeciesSpriteAsset } from '@/utils/resourceResolver'
 import { logMessagesKey } from '@/symbol/battlelog'
 import {
   BattleMessageType,
@@ -177,6 +178,8 @@ const disconnectTimer = ref<number | null>(null)
 // 自己掉线状态
 const selfDisconnected = ref(false)
 const reconnecting = ref(false)
+const exitingBecauseServerClosed = ref(false)
+const skipSurrenderOnUnmount = ref(false)
 
 // 自定义确认对话框方法
 const showCustomConfirmDialog = (title: string, message: string): Promise<boolean> => {
@@ -267,6 +270,13 @@ const koBannerRef = useTemplateRef('koBannerRef') // 新增：KO横幅的模板�
 
 // 等待对手响应状态 - 使用store中的waitingForResponse
 const isWaitingForOpponent = computed(() => store.waitingForResponse)
+const battleActionsReady = computed(
+  () =>
+    !isReplayMode.value &&
+    !isSpectatorMode.value &&
+    Array.isArray(store.availableActions) &&
+    store.availableActions.length > 0,
+)
 
 // 团队选择相关计算属性
 const currentPlayerTeam = computed(() => {
@@ -521,18 +531,20 @@ const {
   backgroundContainerRef as Ref<HTMLElement | null>,
 )
 
-const leftPetSpeciesNum = computed(
-  () =>
-    gameDataStore.getSpecies(
-      currentPlayer.value?.team?.filter(p => p.id === currentPlayer.value!.activePet)[0]?.speciesID ?? '',
-    )?.num ?? 0,
-)
-const rightPetSpeciesNum = computed(
-  () =>
-    gameDataStore.getSpecies(
-      opponentPlayer.value?.team?.filter(p => p.id === opponentPlayer.value!.activePet)[0]?.speciesID ?? '',
-    )?.num ?? 0,
-)
+const leftActiveSpecies = computed(() => {
+  const activePet = currentPlayer.value?.team?.find(p => p.id === currentPlayer.value?.activePet)
+  return gameDataStore.getSpecies(activePet?.speciesID ?? '')
+})
+const rightActiveSpecies = computed(() => {
+  const activePet = opponentPlayer.value?.team?.find(p => p.id === opponentPlayer.value?.activePet)
+  return gameDataStore.getSpecies(activePet?.speciesID ?? '')
+})
+
+const leftPetSpriteAsset = computed(() => resolveSpeciesSpriteAsset(leftActiveSpecies.value, resourceStore.getPetSwf))
+const rightPetSpriteAsset = computed(() => resolveSpeciesSpriteAsset(rightActiveSpecies.value, resourceStore.getPetSwf))
+
+const leftPetSpeciesNum = computed(() => leftPetSpriteAsset.value.swfNum)
+const rightPetSpeciesNum = computed(() => rightPetSpriteAsset.value.swfNum)
 
 const allTeamMemberSpritesNum = computed<number[]>(() => {
   const allMembers = [...(currentPlayer.value?.team || []), ...(opponentPlayer.value?.team || [])]
@@ -801,7 +813,6 @@ const onTeamSelectionChange = (selection: BattleTeamSelection) => {
 }
 
 const onTeamSelectionConfirm = async (selection: BattleTeamSelection) => {
-  console.log('team selection confirm:', selection)
   try {
     const teamSelectionAction: TeamSelectionAction = {
       type: 'team-selection' as const,
@@ -834,6 +845,7 @@ const onTeamSelectionTimeout = () => {
 let opponentDisconnectedHandler: ((data: { disconnectedPlayerId: string; graceTimeRemaining: number }) => void) | null =
   null
 let opponentReconnectedHandler: ((data: { reconnectedPlayerId: string }) => void) | null = null
+const resyncingAfterReconnect = ref(false)
 
 // 设置掉线重连事件处理
 const setupDisconnectHandlers = () => {
@@ -841,13 +853,11 @@ const setupDisconnectHandlers = () => {
 
   // 防止重复注册
   if (opponentDisconnectedHandler || opponentReconnectedHandler) {
-    console.log('🔄 Disconnect handlers already registered, skipping')
     return
   }
 
   // 监听对手掉线事件
   opponentDisconnectedHandler = (data: { disconnectedPlayerId: string; graceTimeRemaining: number }) => {
-    console.log('对手掉线:', data)
     opponentDisconnected.value = true
     disconnectGraceTime.value = Math.ceil(data.graceTimeRemaining / 1000) // 转换为秒
 
@@ -868,7 +878,6 @@ const setupDisconnectHandlers = () => {
 
   // 监听对手重连事件
   opponentReconnectedHandler = (data: { reconnectedPlayerId: string }) => {
-    console.log('对手重连:', data)
     opponentDisconnected.value = false
 
     if (disconnectTimer.value) {
@@ -879,7 +888,6 @@ const setupDisconnectHandlers = () => {
 
   battleClientStore.on('opponentDisconnected', opponentDisconnectedHandler)
   battleClientStore.on('opponentReconnected', opponentReconnectedHandler)
-  console.log('🔄 Disconnect handlers registered')
 }
 
 // 清理断线事件处理器
@@ -892,7 +900,56 @@ const cleanupDisconnectHandlers = () => {
     battleClientStore.off('opponentReconnected', opponentReconnectedHandler)
     opponentReconnectedHandler = null
   }
-  console.log('🔄 Disconnect handlers cleaned up')
+}
+
+const exitBattleBecauseServerClosed = async (reason: string) => {
+  if (props.replayMode || exitingBecauseServerClosed.value) return
+  if (router.currentRoute.value.name !== 'Battle') return
+
+  exitingBecauseServerClosed.value = true
+  skipSurrenderOnUnmount.value = true
+  store.isBattleEnd = true
+  store.availableActions = []
+  store.waitingForResponse = false
+
+  console.warn('Battle ended on server, leaving battle page', { reason })
+  await router.replace({ path: '/' })
+}
+
+const resyncBattleAfterReconnect = async () => {
+  if (props.replayMode || isSpectatorMode.value) return
+  if (!store.battleInterface || !store.playerId) return
+  if (battleClientStore.currentState.battle !== 'active') return
+  if (resyncingAfterReconnect.value) return
+
+  resyncingAfterReconnect.value = true
+  try {
+    const latestState = await store.battleInterface.getState(store.playerId as playerId, false)
+    store.battleState = latestState
+    store.lastProcessedSequenceId = latestState?.sequenceId ?? store.lastProcessedSequenceId
+
+    if (latestState.status === BattleStatusEnum.Ended || store.isBattleEnd) {
+      store.availableActions = []
+      store.waitingForResponse = false
+      return
+    }
+
+    store.availableActions = await store.fetchAvailableSelection()
+    store.waitingForResponse = false
+    store.errorMessage = null
+
+    const battleClient = battleClientStore._instance as any
+    if (battleClient && typeof battleClient.refreshTimerSnapshotsFromServer === 'function') {
+      await battleClient.refreshTimerSnapshotsFromServer()
+    }
+  } catch (error) {
+    console.warn('Failed to resync battle state after reconnect:', error)
+    if (!store.isBattleEnd) {
+      await exitBattleBecauseServerClosed('reconnect-resync-failed')
+    }
+  } finally {
+    resyncingAfterReconnect.value = false
+  }
 }
 
 const battleResult = computed(() => {
@@ -998,7 +1055,6 @@ const checkAllResourcesLoaded = () => {
   if (allLoaded && !isFullyLoaded.value) {
     isFullyLoaded.value = true
     loadingStatus.value = '加载完成！'
-    console.debug('All battle resources loaded successfully')
   }
 
   return allLoaded
@@ -1010,7 +1066,6 @@ const checkResourceStoreLoaded = async () => {
     loadingStatus.value = '加载游戏资源...'
     await resourceStore.initialize()
     loadingProgress.value.resourceStore = true
-    console.debug('Resource store loaded')
   } catch (error) {
     console.error('Failed to load resource store:', error)
     loadingProgress.value.resourceStore = true // 即使失败也继续
@@ -1023,7 +1078,6 @@ const checkGameDataStoreLoaded = async () => {
     loadingStatus.value = '加载游戏数据...'
     await gameDataStore.initialize()
     loadingProgress.value.gameDataStore = true
-    console.debug('Game data store loaded')
   } catch (error) {
     console.error('Failed to load game data store:', error)
     loadingProgress.value.gameDataStore = true // 即使失败也继续
@@ -1041,12 +1095,9 @@ const checkBackgroundImageLoaded = async () => {
       await new Promise<void>(resolve => {
         const img = new Image()
         img.onload = () => {
-          console.debug('Background image preloaded successfully')
-
           // 获取图片的实际尺寸并更新宽高比
           const imageWidth = img.naturalWidth
           const imageHeight = img.naturalHeight
-          console.debug(`Background image dimensions: ${imageWidth}x${imageHeight}`)
 
           // 更新动画系统中的背景宽高比
           updateBackgroundAspectRatio(imageWidth, imageHeight)
@@ -1059,7 +1110,6 @@ const checkBackgroundImageLoaded = async () => {
               container.style.backgroundSize = 'auto 100%'
               container.style.backgroundPosition = 'center'
               container.style.backgroundRepeat = 'no-repeat'
-              console.debug('Background image applied to DOM via template ref')
             }
           }
 
@@ -1085,12 +1135,9 @@ const checkBackgroundImageLoaded = async () => {
           resolve()
         }, 5000)
       })
-    } else {
-      console.debug('No background image to load')
     }
 
     loadingProgress.value.backgroundImage = true
-    console.debug('Background image check completed')
   } catch (error) {
     console.error('Failed to load background image:', error)
     loadingProgress.value.backgroundImage = true // 即使失败也继续
@@ -1132,7 +1179,6 @@ const checkPetSpritesLoaded = async () => {
           ]
 
           await Promise.all(promisesToWaitFor)
-          console.debug('Pet sprites ready in normal mode')
           break
         }
 
@@ -1147,7 +1193,6 @@ const checkPetSpritesLoaded = async () => {
     }
 
     loadingProgress.value.petSprites = true
-    console.debug('Pet sprites loaded')
   } catch (error) {
     console.error('Failed to load pet sprites:', error)
     loadingProgress.value.petSprites = true // 即使失败也继续
@@ -1161,7 +1206,6 @@ const checkBattleDataLoaded = async () => {
 
     if (isReplayMode.value) {
       // 回放模式等待回放数据加载
-      console.debug('Waiting for replay data to load...')
       if (!isReplayDataLoaded.value) {
         await new Promise<void>(resolve => {
           const timeoutId = setTimeout(() => {
@@ -1174,7 +1218,6 @@ const checkBattleDataLoaded = async () => {
             isReplayDataLoaded,
             loaded => {
               if (loaded) {
-                console.debug('Replay data loaded successfully')
                 if (timeoutId) clearTimeout(timeoutId)
                 unwatch?.()
                 resolve()
@@ -1183,14 +1226,11 @@ const checkBattleDataLoaded = async () => {
             { immediate: true },
           )
         })
-      } else {
-        console.debug('Replay data already loaded')
       }
     }
     // 注意：正常模式下不在这里调用store.ready()，而是在消息订阅设置完成后调用
 
     loadingProgress.value.battleData = true
-    console.debug('Battle data loaded')
   } catch (error) {
     console.error('Failed to load battle data:', error)
     loadingProgress.value.battleData = true // 即使失败也继续
@@ -1200,7 +1240,6 @@ const checkBattleDataLoaded = async () => {
 // 主要的加载初始化函数
 const initializeBattleResources = async () => {
   try {
-    console.debug('Starting battle resources initialization...')
     const backgroundLoadedPromise = checkBackgroundImageLoaded()
 
     // 并行加载基础资源
@@ -1214,14 +1253,16 @@ const initializeBattleResources = async () => {
     // 最后加载精灵（依赖于战斗数据）
     await checkPetSpritesLoaded()
 
-    // 检查是否全部加载完成
+    // 第一轮检查：基础资源、战斗数据、精灵资源
     checkAllResourcesLoaded()
 
     await backgroundLoadedPromise
 
+    // 第二轮检查：背景图完成后再统一收口，否则 isFullyLoaded 会卡在 false
+    checkAllResourcesLoaded()
+
     // 所有资源加载完成后启动音乐
     startMusic()
-    console.debug('Battle resources initialization completed')
   } catch (error) {
     console.error('Error during battle resources initialization:', error)
     // 即使出错也要标记为完成，避免永远卡在加载界面
@@ -1273,40 +1314,27 @@ const checkReplayLoadingStatus = async () => {
   }
 
   try {
-    console.debug('Checking replay loading status...')
 
     // 等待数据加载完成
     if (!isReplayDataLoaded.value) {
-      console.debug('Replay data not loaded yet')
       isReplayFullyLoaded.value = false
       return
     }
 
     // 等待petSprite准备完成
-    console.debug('Checking pet sprites readiness...')
     const spritesReady = await checkPetSpritesReady()
     if (!spritesReady) {
-      console.debug('Pet sprites not ready yet')
       isReplayFullyLoaded.value = false
       return
     }
 
     // 等待store初始化完成
-    console.debug('Checking replay snapshots...', store.replaySnapshots.length)
     if (store.replaySnapshots.length === 0) {
-      console.debug('Replay snapshots not generated yet')
       isReplayFullyLoaded.value = false
       return
     }
 
     isReplayFullyLoaded.value = true
-    console.debug('Replay fully loaded!', {
-      dataLoaded: isReplayDataLoaded.value,
-      spritesReady,
-      snapshotsCount: store.replaySnapshots.length,
-      currentSnapshot: store.currentSnapshotIndex,
-      totalSnapshots: store.totalSnapshots,
-    })
 
     // 清除加载错误状态
     if (loadingError.value) {
@@ -1320,7 +1348,6 @@ const checkReplayLoadingStatus = async () => {
 }
 
 const retryReplayLoading = async () => {
-  console.debug('Retrying replay loading...')
   loadingError.value = null
   loadingStatus.value = '重新加载中...'
   isFullyLoaded.value = false
@@ -1594,7 +1621,12 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   let source = petSprites.value[side]
 
   if (!source) {
-    throw new Error('找不到精灵组件')
+    console.debug('Skipping skill animation: pet sprite component not found', {
+      side,
+      user: useSkill.data.user,
+      skill: useSkill.data.skill,
+    })
+    return
   }
 
   // 根据技能类别设置预期动画时长：climax技能20秒，其他技能5秒
@@ -2155,11 +2187,9 @@ onMounted(async () => {
     try {
       if (props.localReportId) {
         // 本地战报回放模式
-        console.debug('Loading local battle report:', props.localReportId)
         const localReport = battleReportStore.loadLocalBattleReport(props.localReportId)
         if (localReport) {
           battleRecord = localReport.battleRecord
-          console.debug('Local battle record loaded successfully')
         } else {
           loadError = `本地战报未找到: ${props.localReportId}`
           console.error(loadError)
@@ -2168,13 +2198,10 @@ onMounted(async () => {
         // 在线战报回放模式
         const battleId = props.battleRecordId || (route.params.id as string)
         if (battleId) {
-          console.debug('Fetching online battle record:', battleId)
           await battleReportStore.fetchBattleRecord(battleId)
           battleRecord = battleReportStore.currentBattleRecord
 
-          if (battleRecord) {
-            console.debug('Online battle record loaded successfully')
-          } else {
+          if (!battleRecord) {
             loadError = `在线战报加载失败: ${battleId}`
             console.error(loadError)
           }
@@ -2196,14 +2223,12 @@ onMounted(async () => {
     }
 
     if (battleRecord) {
-      console.debug('Initializing replay mode with battle record')
       try {
         store.initReplayMode(
           battleRecord.battle_messages,
           battleRecord.final_state as BattleState,
           battleRecord.player_a_id, // 默认从玩家A视角观看
         )
-        console.debug('Replay mode initialized successfully')
       } catch (error) {
         console.error('Failed to initialize replay mode:', error)
         loadingError.value = `回放初始化失败: ${error instanceof Error ? error.message : String(error)}`
@@ -2221,10 +2246,9 @@ onMounted(async () => {
             currentTurn: 0,
             marks: [],
             players: [],
-          } as BattleState,
+        } as BattleState,
           '',
         )
-        console.debug('Empty replay mode initialized as fallback')
       } catch (error) {
         console.error('Failed to initialize empty replay mode:', error)
         loadingError.value = `回放模式初始化失败: ${error instanceof Error ? error.message : String(error)}`
@@ -2234,7 +2258,6 @@ onMounted(async () => {
     // 回放模式也需要消息订阅来处理动画
     try {
       await setupMessageSubscription()
-      console.debug('Message subscription setup completed for replay mode')
     } catch (error) {
       console.error('Failed to setup message subscription for replay mode:', error)
     }
@@ -2245,14 +2268,12 @@ onMounted(async () => {
     // 检查加载状态
     try {
       await checkReplayLoadingStatus()
-      console.debug('Replay loading status check completed')
     } catch (error) {
       console.error('Failed to check replay loading status:', error)
     }
 
     // 在回放模式下，不自动播放第0回合动画，保持初始状态
     // 用户可以手动点击播放按钮来开始回放
-    console.debug('Replay mode setup completed')
     return
   }
 
@@ -2411,14 +2432,13 @@ onUnmounted(async () => {
   if (isSpectatorMode.value && !props.replayMode) {
     try {
       await battleClientStore.leaveSpectateBattle()
-      console.log('✅ Left spectate battle successfully')
     } catch (err) {
       console.warn('⚠️ Failed to leave spectate battle:', err)
     }
   }
 
   // 清理战斗状态 - 观战者不发送surrender
-  if (isSpectatorMode.value) {
+  if (isSpectatorMode.value || skipSurrenderOnUnmount.value) {
     await store.resetBattleWithoutSurrender()
   } else {
     await store.resetBattle()
@@ -2454,28 +2474,35 @@ watch(
 // 监听自己的连接状态变化
 watch(
   () => battleClientStore.currentState.status,
-  (newStatus, oldStatus) => {
+  async (newStatus, oldStatus) => {
     if (props.replayMode || isSpectatorMode.value) return // 回放模式和观战模式不需要处理掉线
-
-    console.log('🔗 Connection status changed:', { old: oldStatus, new: newStatus })
 
     if (newStatus === 'disconnected' && oldStatus === 'connected') {
       // 从连接状态变为断线状态
       selfDisconnected.value = true
       reconnecting.value = false
-      console.log('🔗 Self disconnected detected')
     } else if (newStatus === 'connecting' && oldStatus === 'disconnected') {
       // 开始重连
       reconnecting.value = true
-      console.log('🔗 Reconnecting...')
     } else if (newStatus === 'connected' && (oldStatus === 'disconnected' || oldStatus === 'connecting')) {
       // 重连成功
       selfDisconnected.value = false
       reconnecting.value = false
-      console.log('🔗 Reconnected successfully')
+      await resyncBattleAfterReconnect()
     }
   },
   { immediate: true },
+)
+
+watch(
+  () => battleClientStore.currentState.battle,
+  async newBattleState => {
+    if (props.replayMode || isSpectatorMode.value) return
+
+    if (newBattleState === 'ended') {
+      await exitBattleBecauseServerClosed('state-ended')
+    }
+  },
 )
 
 watch(
@@ -2547,6 +2574,9 @@ watch(
 
 <template>
   <div class="h-full w-full relative overflow-hidden">
+    <div data-testid="battle-actions-ready" :data-ready="battleActionsReady ? 'true' : 'false'" class="sr-only">
+      {{ battleActionsReady ? 'ready' : 'pending' }}
+    </div>
     <div
       ref="battleContainerRef"
       class="h-full w-full bg-[#1a1a2e] overflow-visible relative flex justify-center items-center"
@@ -2555,6 +2585,7 @@ watch(
       <Transition name="fade">
         <div
           v-if="!isFullyLoaded"
+          data-testid="battle-loading-overlay"
           class="absolute inset-0 bg-gradient-to-br from-[#1a1a2e] via-[#2a2a4a] to-[#1a1a2e] flex items-center justify-center"
           :class="Z_INDEX_CLASS.LOADING_OVERLAY"
         >
@@ -2901,9 +2932,10 @@ watch(
 
             <!-- 左侧精灵 - 绝对定位在画面左侧 -->
             <PetSprite
-              v-if="leftPetSpeciesNum !== 0"
+              v-if="leftPetSpeciesNum !== 0 || !!leftPetSpriteAsset.customSwfUrl"
               ref="leftPetRef"
               :num="leftPetSpeciesNum"
+              :swf-url="leftPetSpriteAsset.customSwfUrl"
               class="absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none"
               :class="Z_INDEX_CLASS.PET_SPRITE"
               @hit="handleAttackHit('left')"
@@ -2911,9 +2943,10 @@ watch(
             />
             <!-- 右侧精灵 - 绝对定位在画面右侧 -->
             <PetSprite
-              v-if="rightPetSpeciesNum !== 0"
+              v-if="rightPetSpeciesNum !== 0 || !!rightPetSpriteAsset.customSwfUrl"
               ref="rightPetRef"
               :num="rightPetSpeciesNum"
+              :swf-url="rightPetSpriteAsset.customSwfUrl"
               :reverse="true"
               class="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none"
               :class="Z_INDEX_CLASS.PET_SPRITE"
@@ -3218,6 +3251,7 @@ watch(
 
                 <!-- 什么都不做按钮 -->
                 <button
+                  data-testid="do-nothing-button"
                   class="group relative p-2 cursor-pointer overflow-visible disabled:opacity-60 disabled:cursor-not-allowed"
                   :disabled="!store.availableActions.find(a => a.type === 'do-nothing')"
                   @click="store.sendplayerSelection(store.availableActions.find(a => a.type === 'do-nothing')!)"
@@ -3280,6 +3314,7 @@ watch(
 
                 <!-- 投降按钮 -->
                 <button
+                  data-testid="surrender-button"
                   class="group relative p-2 cursor-pointer overflow-visible disabled:opacity-60 disabled:cursor-not-allowed"
                   :disabled="!store.availableActions.find(a => a.type === 'surrender')"
                   @click="handleEscape"

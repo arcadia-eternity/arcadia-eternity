@@ -4,24 +4,90 @@ import { useRouter } from 'vue-router'
 import { useBattleClientStore } from './battleClient'
 import { usePlayerStore } from './player'
 import { usePetStorageStore } from './petStorage'
-import type { PrivateRoomInfo, PrivateRoomEvent, CreatePrivateRoomRequest } from '@arcadia-eternity/protocol'
+import { DEFAULT_TIMER_CONFIG, type TimerConfig, type playerId } from '@arcadia-eternity/const'
+import type {
+  CreatePrivateRoomRequest,
+  PrivateRoomEvent,
+  PrivateRoomInfo,
+  PrivateRoomPeerSignalEvent,
+  PrivateRoomPeerSignalPayload,
+} from '@arcadia-eternity/protocol'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
+import { BattleRuleManager } from '@arcadia-eternity/rules'
 
 import { ElMessageBox, ElNotification } from 'element-plus'
 import { useBattleStore } from './battle'
 import { RemoteBattleSystem } from '@arcadia-eternity/client'
+import { useGameDataStore } from './gameData'
+import {
+  closePrivateRoomPeerSession,
+  consumePrivateRoomPeerSignals,
+  createInitialPrivateRoomPeerSessionState,
+  markPrivateRoomPeerConnected,
+  markPrivateRoomPeerFailed,
+  markPrivateRoomPeerReady,
+  preparePrivateRoomPeerSession,
+  pushPrivateRoomPeerSignal,
+  type PrivateRoomPeerSessionState,
+} from '@/p2p/privateRoomPeerSession'
+import { createPrivateRoomSignalBridge, type PrivateRoomSignalBridge } from '@/p2p/privateRoomSignalBridge'
+import { WebRTCPeerTransport as BrowserWebRTCPeerTransport } from '@/p2p/webRtcPeerTransport'
+import { ServerRelayPeerTransport } from '@/p2p/relayPeerTransport'
+import type { PeerTransport } from '@arcadia-eternity/p2p-transport'
+import { createP2PHostBattleSystem, P2PPeerBattleSystem } from '@/p2p/p2pBattleSystem'
+
+type P2PTransportMode = 'auto' | 'webrtc' | 'relay'
+
+const buildRoomPeerTransportId = (roomCode: string, playerId: string): string => {
+  const raw = `ae-${roomCode}-${playerId}`
+  const sanitized = raw.replace(/[^A-Za-z0-9_-]/g, '_').replace(/^[^A-Za-z0-9]+/, '').replace(/[^A-Za-z0-9]+$/, '')
+  return sanitized.length > 0 ? sanitized : `ae-${roomCode}`
+}
+
+const resolvePeerBrokerConfig = () => {
+  const apiBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_WS_URL || window.location.origin
+  const url = new URL(apiBase, window.location.origin)
+  return {
+    host: url.hostname,
+    port: url.port ? Number(url.port) : undefined,
+    path: '/peerjs',
+    secure: url.protocol === 'https:',
+  }
+}
+
+const resolveP2PTimerConfig = (ruleSetId: string): Partial<TimerConfig> => {
+  try {
+    const manager = new BattleRuleManager([ruleSetId])
+    return {
+      ...manager.getRecommendedTimerConfig(),
+      enabled: true,
+    }
+  } catch {
+    return {
+      ...DEFAULT_TIMER_CONFIG,
+      enabled: true,
+    }
+  }
+}
 
 export const usePrivateRoomStore = defineStore('privateRoom', () => {
   const router = useRouter()
   const battleClientStore = useBattleClientStore()
   const playerStore = usePlayerStore()
   const petStorageStore = usePetStorageStore()
+  const gameDataStore = useGameDataStore()
 
   // 状态
   const currentRoom = ref<PrivateRoomInfo | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const selectedTeam = ref<PetSchemaType[]>([]) // 当前选择的队伍
+  const peerSignals = ref<PrivateRoomPeerSignalEvent[]>([])
+  const peerSession = ref<PrivateRoomPeerSessionState>(createInitialPrivateRoomPeerSessionState())
+  let peerTransport: PeerTransport | null = null
+  let peerBridge: PrivateRoomSignalBridge | null = null
+  let peerBattleSnapshotUnsubscribe: (() => void) | null = null
+  let roomPollTimer: ReturnType<typeof setInterval> | null = null
 
   // 计算属性
   const players = computed(() => currentRoom.value?.players || [])
@@ -47,6 +113,25 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     return nonHostPlayers.every(p => p.isReady)
   })
   const isBattleInProgress = computed(() => currentRoom.value?.status === 'started')
+  const isP2PBattle = computed(() => currentRoom.value?.config.battleMode === 'p2p')
+
+  const resolveP2PTransportMode = (): P2PTransportMode => {
+    const configuredMode = currentRoom.value?.config.p2pTransport ?? 'auto'
+    if (configuredMode !== 'auto') {
+      return configuredMode
+    }
+
+    const envMode = import.meta.env.VITE_P2P_TRANSPORT as P2PTransportMode | undefined
+    if (envMode === 'webrtc' || envMode === 'relay') {
+      return envMode
+    }
+
+    if (import.meta.env.MODE === 'test' || navigator.webdriver) {
+      return 'relay'
+    }
+
+    return 'webrtc'
+  }
 
   // 方法
   const createRoom = async (config: CreatePrivateRoomRequest['config']): Promise<string> => {
@@ -60,13 +145,11 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
       // 获取房间信息
       await getRoomInfo(roomCode)
-
-      console.log('✅ Private room created:', roomCode)
+      startRoomPolling()
       return roomCode
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
-      console.error('❌ Failed to create private room:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -85,12 +168,10 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
       // 获取房间信息
       await getRoomInfo(roomCode)
-
-      console.log('✅ Joined private room:', roomCode)
+      startRoomPolling()
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
-      console.error('❌ Failed to join private room:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -108,12 +189,10 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
       // 获取房间信息
       await getRoomInfo(roomCode)
-
-      console.log('✅ Joined as spectator in room:', roomCode)
+      startRoomPolling()
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
-      console.error('❌ Failed to join as spectator:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -129,11 +208,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     try {
       await battleClientStore.leavePrivateRoom()
       cleanup()
-      console.log('✅ Left private room')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
-      console.error('❌ Failed to leave room:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -150,11 +227,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       // 如果要准备，使用当前选择的队伍；如果取消准备，不传队伍
       const teamToSubmit = myReadyStatus.value ? undefined : selectedTeam.value
       await battleClientStore.toggleRoomReady(teamToSubmit)
-      console.log('✅ Toggled ready status')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
-      console.error('❌ Failed to toggle ready:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -173,21 +248,16 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     error.value = null
 
     try {
-      console.log('🚀 Starting battle...')
-
       // 发送开始战斗请求
       // 如果房主是玩家，传递房主队伍；如果房主是观战者，传递空数组或undefined
       const hostTeam = isPlayer.value ? selectedTeam.value : []
       await battleClientStore.startRoomBattle(hostTeam)
-
-      console.log('✅ Battle start request sent, waiting for battleStarted event...')
 
       // 注意：不在这里跳转页面，而是等待 battleStarted 事件
       // 事件处理在 handleRoomEvent 中的 'battleStarted' case
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
-      console.error('❌ Failed to start battle:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -202,11 +272,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
     try {
       await battleClientStore.updatePrivateRoomRuleSet({ ruleSetId })
-      console.log('✅ Rule set updated to:', ruleSetId)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
-      console.error('❌ Failed to update rule set:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -225,11 +293,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
     try {
       await battleClientStore.updatePrivateRoomConfig(configUpdates)
-      console.log('✅ Room config updated:', configUpdates)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
-      console.error('❌ Failed to update room config:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -244,11 +310,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
     try {
       await battleClientStore.transferPrivateRoomHost(targetPlayerId)
-      console.log('✅ Host transferred to:', targetPlayerId)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
-      console.error('❌ Failed to transfer host:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -263,11 +327,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
     try {
       await battleClientStore.kickPlayerFromPrivateRoom(targetPlayerId)
-      console.log('✅ Player kicked:', targetPlayerId)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
-      console.error('❌ Failed to kick player:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -275,6 +337,10 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   }
 
   const joinSpectateBattle = async (): Promise<void> => {
+    if (isP2PBattle.value) {
+      throw new Error('P2P 私人房间暂不支持观战')
+    }
+
     if (!currentRoom.value?.battleRoomId) {
       throw new Error('当前没有正在进行的战斗')
     }
@@ -291,7 +357,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         currentRoute.query.spectate === 'true'
 
       if (isCorrectSpectatorPage) {
-        console.log('✅ Already in correct spectator battle page')
         return
       }
 
@@ -309,11 +374,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         }
 
         await battleStore.initBattle(new RemoteBattleSystem(battleClientStore._instance as any), playerStore.player.id)
-        console.log('🏗️ New battle connection established for spectate')
       } else {
         // 如果已有连接，只需要确保后端知道当前session在观战
         await battleClientStore.joinSpectateBattle(currentRoom.value.battleRoomId)
-        console.log('♻️ Reusing existing battle connection, notified backend')
       }
 
       // 3. 导航到战斗页面
@@ -326,12 +389,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
           spectate: 'true', // 添加一个观战标记
         },
       })
-
-      console.log('✅ Navigating to spectate battle:', currentRoom.value.battleRoomId)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
-      console.error('❌ Failed to join spectate battle:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -343,6 +403,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     ruleSetId: '',
     isPrivate: false,
     password: '',
+    p2pTransport: 'auto' as P2PTransportMode,
   })
 
   // 初始化房间配置表单
@@ -352,6 +413,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         ruleSetId: currentRoom.value.config.ruleSetId,
         isPrivate: currentRoom.value.config.isPrivate,
         password: currentRoom.value.config.password || '',
+        p2pTransport: currentRoom.value.config.p2pTransport ?? 'auto',
       }
     }
   }
@@ -364,11 +426,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
     try {
       await battleClientStore.switchToSpectator()
-      console.log('✅ Switched to spectator')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
-      console.error('❌ Failed to switch to spectator:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -383,11 +443,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
     try {
       await battleClientStore.switchToPlayer(team)
-      console.log('✅ Switched to player')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
-      console.error('❌ Failed to switch to player:', errorMessage)
       throw err
     } finally {
       isLoading.value = false
@@ -399,14 +457,409 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       const response = await battleClientStore.getPrivateRoomInfo(roomCode)
       currentRoom.value = response
     } catch (err) {
-      console.error('❌ Failed to get room info:', err)
       throw err
     }
   }
 
-  const handleRoomEvent = async (event: PrivateRoomEvent): Promise<void> => {
-    console.log('🏠 Private room event received:', event.type, event)
+  const stopRoomPolling = (): void => {
+    if (roomPollTimer) {
+      clearInterval(roomPollTimer)
+      roomPollTimer = null
+    }
+  }
 
+  const synthesizeBattleStartInfo = (room: PrivateRoomInfo): PrivateRoomBattleStartInfo | null => {
+    const battleHostPlayerId = room.battleHost?.playerId ?? room.config.hostPlayerId
+    const battleHostSessionId =
+      room.battleHost?.sessionId ??
+      room.players.find(player => player.playerId === battleHostPlayerId)?.sessionId ??
+      room.spectators.find(spectator => spectator.playerId === battleHostPlayerId)?.sessionId
+
+    if (!battleHostSessionId) {
+      return null
+    }
+
+    return {
+      battleMode: room.config.battleMode,
+      battleRoomId: room.battleRoomId,
+      battleHost: {
+        playerId: battleHostPlayerId,
+        sessionId: battleHostSessionId,
+      },
+    }
+  }
+
+  const ensureP2PBattleHostAvailable = async (): Promise<void> => {
+    if (!currentRoom.value || currentRoom.value.config.battleMode !== 'p2p' || currentRoom.value.status !== 'started') {
+      return
+    }
+    if (peerSession.value.role !== 'peer' || !peerSession.value.battleHost) {
+      return
+    }
+
+    const hostStillPresent = [...currentRoom.value.players, ...currentRoom.value.spectators].some(
+      participant => participant.playerId === peerSession.value.battleHost?.playerId,
+    )
+
+    if (hostStillPresent) {
+      return
+    }
+
+    const battleStore = useBattleStore()
+    const errorMessage = 'P2P 房主已断开连接，对战已中断'
+    battleStore.errorMessage = errorMessage
+    markPeerFailed(errorMessage)
+    await teardownPeerTransport()
+    ElNotification({
+      title: '对战中断',
+      message: errorMessage,
+      type: 'warning',
+      duration: 5000,
+      position: 'top-right',
+    })
+    await router.push(`/room/${currentRoom.value.config.roomCode}`)
+  }
+
+  const sendPeerSignal = async (
+    targetPlayerId: string,
+    signal: PrivateRoomPeerSignalPayload,
+    targetSessionId?: string,
+  ): Promise<void> => {
+    if (!currentRoom.value) {
+      throw new Error('当前不在私人房间中')
+    }
+
+    if (currentRoom.value.config.battleMode === 'p2p' && currentRoom.value.status === 'started') {
+      try {
+        currentRoom.value = await battleClientStore.getPrivateRoomInfo(currentRoom.value.config.roomCode)
+      } catch (error) {
+        console.warn('Failed to refresh room info before sending peer signal:', error)
+      }
+    }
+
+    await battleClientStore.sendPrivateRoomPeerSignal({
+      targetPlayerId,
+      signal,
+    })
+
+    peerSession.value = markPrivateRoomPeerReady(peerSession.value, signal.transport)
+  }
+
+  const consumePeerSignals = (): PrivateRoomPeerSignalEvent[] => {
+    const queuedSignals = [...peerSignals.value]
+    peerSignals.value = []
+    consumePrivateRoomPeerSignals(peerSession.value)
+    return queuedSignals
+  }
+
+  const markPeerConnected = (): void => {
+    peerSession.value = markPrivateRoomPeerConnected(peerSession.value)
+  }
+
+  const markPeerFailed = (reason: string): void => {
+    peerSession.value = markPrivateRoomPeerFailed(peerSession.value, reason)
+  }
+
+  const flushQueuedPeerSignals = async (): Promise<void> => {
+    if (!peerBridge) return
+    const queuedSignals = consumePeerSignals()
+    for (const event of queuedSignals) {
+      await peerBridge.handleSignal(event)
+    }
+  }
+
+  const teardownPeerTransport = async (): Promise<void> => {
+    if (peerBattleSnapshotUnsubscribe) {
+      peerBattleSnapshotUnsubscribe()
+      peerBattleSnapshotUnsubscribe = null
+    }
+    const bridge = peerBridge
+    peerBridge = null
+    peerTransport = null
+    if (bridge) {
+      try {
+        await bridge.close()
+      } catch (error) {
+        console.error('Failed to close peer bridge:', error)
+      }
+    }
+  }
+
+  const setupPeerTransport = async (): Promise<void> => {
+    if (!currentRoom.value || !isP2PBattle.value) return
+    if (peerBridge || peerSession.value.role === 'spectator' || peerSession.value.role === 'none') return
+    const remotePeer = peerSession.value.remotePeer
+    if (!remotePeer) return
+
+    const transportMode = resolveP2PTransportMode()
+    const transport =
+      transportMode === 'relay'
+        ? new ServerRelayPeerTransport()
+        : new BrowserWebRTCPeerTransport({
+            localPeerId: buildRoomPeerTransportId(currentRoom.value.config.roomCode, playerStore.player.id),
+            broker: resolvePeerBrokerConfig(),
+          })
+    transport.onStateChange(state => {
+      if (state === 'connected') {
+        markPeerConnected()
+        return
+      }
+      if (state === 'failed') {
+        markPeerFailed('P2P transport failed')
+        return
+      }
+      if (state === 'closed') {
+        markPeerFailed('P2P transport closed')
+      }
+    })
+
+    const bridge = createPrivateRoomSignalBridge({
+      transport,
+      signalTransport: transportMode === 'relay' ? 'relay' : 'webrtc',
+      onOutgoingSignal: async signal => {
+        await sendPeerSignal(remotePeer.playerId, signal)
+      },
+    })
+
+    peerTransport = transport
+    peerBridge = bridge
+
+    try {
+      await bridge.connect(
+        peerSession.value.role === 'host' ? 'host' : 'peer',
+        transportMode === 'relay'
+          ? remotePeer.playerId
+          : buildRoomPeerTransportId(currentRoom.value.config.roomCode, remotePeer.playerId),
+      )
+      await flushQueuedPeerSignals()
+    } catch (error) {
+      peerBridge = null
+      peerTransport = null
+      markPeerFailed(error instanceof Error ? error.message : 'Failed to connect peer transport')
+      throw error
+    }
+  }
+
+  const initializeP2PBattleRuntime = async (): Promise<void> => {
+    if (!currentRoom.value) {
+      throw new Error('当前房间不存在')
+    }
+    if (!peerBridge || !peerTransport) {
+      throw new Error('P2P transport 尚未建立')
+    }
+    if (peerSession.value.role === 'spectator' || peerSession.value.role === 'none') {
+      throw new Error(`当前角色 ${peerSession.value.role} 暂不支持 P2P 对战`)
+    }
+    if (!gameDataStore.loaded && !gameDataStore.gameDataLoaded) {
+      throw new Error('游戏数据尚未加载完成')
+    }
+
+    const battleStore = useBattleStore()
+    const localPlayerId = playerStore.player.id as playerId
+    const remotePlayer = currentRoom.value.players.find(player => player.playerId !== localPlayerId)
+    if (!remotePlayer) {
+      throw new Error('P2P 房间中未找到对手')
+    }
+    const battleInterface =
+      peerSession.value.role === 'host'
+        ? (() => {
+            const [playerA, playerB] = currentRoom.value!.players
+            if (!playerA?.team || !playerB?.team) {
+              throw new Error('P2P 房间缺少对战队伍数据')
+            }
+            const timerConfig = resolveP2PTimerConfig(currentRoom.value!.config.ruleSetId)
+            return createP2PHostBattleSystem({
+              localPlayerId,
+              remotePlayerId: remotePlayer.playerId as playerId,
+              localPlayerName: playerStore.player.name,
+              remotePlayerName: remotePlayer.playerName,
+              localTeam: playerA.playerId === localPlayerId ? playerA.team : playerB.team,
+              remoteTeam: playerA.playerId === localPlayerId ? playerB.team : playerA.team,
+              dataStore: gameDataStore,
+              bridge: peerBridge,
+              transport: peerTransport,
+              battleConfig: {
+                allowFaintSwitch: true,
+                showHidden: false,
+                timerConfig,
+              },
+            })
+          })()
+        : new P2PPeerBattleSystem(localPlayerId, peerBridge, peerTransport)
+
+    if (battleInterface instanceof P2PPeerBattleSystem) {
+      const battleStore = useBattleStore()
+      peerBattleSnapshotUnsubscribe = battleInterface.onSnapshot(({ battleState, availableSelections }) => {
+        battleStore.replaceP2PPeerState(battleState, availableSelections)
+      })
+    }
+
+    await battleStore.initBattle(battleInterface, localPlayerId)
+
+    if (peerSession.value.role === 'host') {
+      await battleStore.ready()
+    }
+
+    if (battleInterface instanceof P2PPeerBattleSystem) {
+      void (async () => {
+        const recoveryDeadline = Date.now() + 15_000
+        while (
+          battleStore.availableActions.length === 0 &&
+          battleStore.battleState?.status === 'On' &&
+          Date.now() < recoveryDeadline
+        ) {
+          const [battleState, availableSelections] = await Promise.all([
+            battleInterface.getState(),
+            battleInterface.getAvailableSelection(localPlayerId),
+          ])
+
+          if (availableSelections.length > 0) {
+            battleStore.replaceP2PPeerState(battleState, availableSelections)
+            return
+          }
+
+          await new Promise(resolve => setTimeout(resolve, 500))
+        }
+      })().catch(error => {
+        console.warn('Failed to recover peer battle actions after initialization:', error)
+      })
+    }
+  }
+
+  const handleBattleStarted = async (battleStartInfo: PrivateRoomBattleStartInfo): Promise<void> => {
+    try {
+      if (currentRoom.value && battleStartInfo.battleMode === 'p2p') {
+        const roomCode = currentRoom.value.config.roomCode
+        const latestRoom = await battleClientStore.getPrivateRoomInfo(roomCode)
+        if (latestRoom) {
+          currentRoom.value = latestRoom
+        }
+
+        await teardownPeerTransport()
+        peerSession.value = preparePrivateRoomPeerSession(currentRoom.value, playerStore.player.id, battleStartInfo)
+        await setupPeerTransport()
+
+        if (!isSpectator.value) {
+          await initializeP2PBattleRuntime()
+        }
+
+        router.push({
+          path: '/battle',
+          query: {
+            privateRoom: 'true',
+            roomCode: currentRoom.value?.config.roomCode,
+            p2p: 'true',
+            ...(isSpectator.value && { spectate: 'true' }),
+          },
+        })
+        return
+      }
+
+      if (!battleStartInfo.battleRoomId) {
+        throw new Error(`battleRoomId missing for private room battle start (${battleStartInfo.battleMode})`)
+      }
+
+      if (!battleClientStore._instance) {
+        throw new Error('BattleClient instance not available')
+      }
+
+      const clientInstance = battleClientStore._instance as any
+      if (clientInstance && clientInstance.state) {
+        clientInstance.state = {
+          ...clientInstance.state,
+          matchmaking: 'matched',
+          battle: 'active',
+          roomId: battleStartInfo.battleRoomId,
+        }
+      }
+
+      const battleStore = useBattleStore()
+      await battleStore.initBattle(new RemoteBattleSystem(battleClientStore._instance as any), playerStore.player.id)
+
+      router.push({
+        path: '/battle',
+        query: {
+          roomId: battleStartInfo.battleRoomId,
+          privateRoom: 'true',
+          roomCode: currentRoom.value?.config.roomCode,
+          ...(isSpectator.value && { spectate: 'true' }),
+        },
+      })
+    } catch (battleStartError) {
+      console.error('❌ Failed to initialize battle for private room:', battleStartError)
+      if (battleStartInfo.battleMode === 'p2p') {
+        await teardownPeerTransport()
+        const errorMessage = battleStartError instanceof Error ? battleStartError.message : 'P2P 对战初始化失败'
+        error.value = errorMessage
+        ElNotification({
+          title: 'P2P 对战启动失败',
+          message: errorMessage,
+          type: 'error',
+          duration: 5000,
+          position: 'top-right',
+        })
+        return
+      }
+
+      router.push({
+        path: '/battle',
+        query: {
+          roomId: battleStartInfo.battleRoomId,
+          privateRoom: 'true',
+          roomCode: currentRoom.value?.config.roomCode,
+          ...(isSpectator.value && { spectate: 'true' }),
+        },
+      })
+    }
+  }
+
+  const resumeActiveBattle = async (): Promise<void> => {
+    if (!currentRoom.value || currentRoom.value.status !== 'started') {
+      return
+    }
+
+    const battleStartInfo = synthesizeBattleStartInfo(currentRoom.value)
+    if (!battleStartInfo) {
+      return
+    }
+
+    const battleStore = useBattleStore()
+    const currentRoute = router.currentRoute.value
+    if (currentRoute.name === 'Battle' && battleStore.battleInterface) {
+      return
+    }
+
+    await handleBattleStarted(battleStartInfo)
+  }
+
+  const startRoomPolling = (): void => {
+    stopRoomPolling()
+    roomPollTimer = setInterval(async () => {
+      const roomCode = currentRoom.value?.config.roomCode
+      if (!roomCode) {
+        stopRoomPolling()
+        return
+      }
+
+      try {
+        const latestRoom = await battleClientStore.getPrivateRoomInfo(roomCode)
+        const previousStatus = currentRoom.value?.status
+        currentRoom.value = latestRoom
+        await ensureP2PBattleHostAvailable()
+
+        if (latestRoom.status === 'started' && previousStatus !== 'started') {
+          const battleStartInfo = synthesizeBattleStartInfo(latestRoom)
+          if (battleStartInfo) {
+            await handleBattleStarted(battleStartInfo)
+          }
+        }
+      } catch (pollError) {
+        console.warn('Failed to poll private room info:', pollError)
+      }
+    }, 1500)
+  }
+
+  const handleRoomEvent = async (event: PrivateRoomEvent): Promise<void> => {
     switch (event.type) {
       case 'playerJoined':
         if (currentRoom.value) {
@@ -417,6 +870,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       case 'playerLeft':
         if (currentRoom.value) {
           currentRoom.value.players = currentRoom.value.players.filter(p => p.playerId !== event.data.playerId)
+          await ensureP2PBattleHostAvailable()
         }
         break
 
@@ -428,8 +882,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
           // 如果被踢的是当前用户，显示消息并跳转到大厅
           if (event.data.playerId === playerStore.player.id) {
-            console.log('🚫 You have been kicked from the room')
-
             // 显示通知提示
             ElNotification({
               title: '被踢出房间',
@@ -455,7 +907,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
             // 检查当前页面是否在房间内，如果是则导航回大厅
             const currentRoute = router.currentRoute.value
             if (currentRoute.name === 'PrivateRoom' || currentRoute.path.startsWith('/room/')) {
-              console.log('🏠 Navigating back to lobby from room page')
               router.push({ name: 'Lobby' })
             }
           }
@@ -484,116 +935,57 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         break
 
       case 'roomUpdate':
-        console.log('🔄 Room update received:', event.data)
-        console.log('📊 Current room before update:', currentRoom.value)
         currentRoom.value = event.data
-        console.log('📊 Current room after update:', currentRoom.value)
+        await ensureP2PBattleHostAvailable()
         break
 
       case 'battleStarted':
-        console.log('🎯 battleStarted event received in private room')
-        try {
-          if (!battleClientStore._instance) {
-            throw new Error('BattleClient instance not available')
-          }
+        await handleBattleStarted(event.data)
+        break
 
-          console.log('🏗️ Initializing battle system for private room')
-
-          // 私人房间需要手动模拟 matchSuccess 的状态更新
-          // 直接修改客户端状态（模拟 matchSuccess 事件的效果）
-          console.log('🔄 Simulating matchSuccess state update for private room')
-          const clientInstance = battleClientStore._instance as any
-          if (clientInstance && clientInstance.state) {
-            const oldState = { ...clientInstance.state }
-            clientInstance.state = {
-              ...clientInstance.state,
-              matchmaking: 'matched',
-              battle: 'active',
-              roomId: event.data.battleRoomId,
-            }
-            console.log('🔄 Client state manually updated:', {
-              old: oldState,
-              new: clientInstance.state,
-            })
-          }
-
-          const battleStore = useBattleStore()
-
-          // 初始化战斗系统
-          await battleStore.initBattle(
-            new RemoteBattleSystem(battleClientStore._instance as any),
-            playerStore.player.id,
-          )
-
-          console.log('🚀 Navigating to battle page with roomId:', event.data.battleRoomId)
-
-          // 跳转到战斗页面
-          router.push({
-            path: '/battle',
-            query: {
-              roomId: event.data.battleRoomId,
-              privateRoom: 'true',
-              roomCode: currentRoom.value?.config.roomCode,
-              ...(isSpectator.value && { spectate: 'true' }), // 如果是观战者，添加观战标记
-            },
-          })
-        } catch (error) {
-          console.error('❌ Failed to initialize battle for private room:', error)
-          // 如果初始化失败，仍然尝试跳转，让战斗页面处理错误
-          router.push({
-            path: '/battle',
-            query: {
-              roomId: event.data.battleRoomId,
-              privateRoom: 'true',
-              roomCode: currentRoom.value?.config.roomCode,
-              ...(isSpectator.value && { spectate: 'true' }), // 如果是观战者，添加观战标记
-            },
-          })
-        }
+      case 'peerSignal':
+        handlePeerSignal(event.data)
         break
 
       case 'battleFinished':
         // 战斗结束，房间状态将通过 roomUpdate 事件同步
-        console.log('⚔️ Battle finished, waiting for roomUpdate event:', event.data.battleResult)
         break
 
       case 'playerSwitchedToSpectator':
-        // 玩家转换为观战者
-        console.log('👁️ Player switched to spectator:', event.data.playerId, 'View:', event.data.preferredView)
-        if (currentRoom.value && event.data.playerId === playerStore.player.id) {
-          console.log('🔄 Current user switched to spectator, updating local state')
-          console.log('📊 Before switch - isPlayer:', isPlayer.value, 'isSpectator:', isSpectator.value)
-          // 房间状态会通过后续的 roomUpdate 事件更新，这里只是记录日志
-        }
+        // 房间状态会通过后续的 roomUpdate 事件更新
         break
 
       case 'spectatorSwitchedToPlayer':
-        // 观战者转换为玩家
-        console.log('🎮 Spectator switched to player:', event.data.playerId)
         break
 
       case 'ruleSetChanged':
-        // 规则集变更
-        console.log('📋 Rule set changed:', event.data.ruleSetId, 'by:', event.data.changedBy)
-        // 房间信息会通过 roomUpdate 事件更新
         break
 
       case 'roomConfigChanged':
-        // 房间配置变更
-        console.log('⚙️ Room config changed by:', event.data.changedBy)
-        console.log('📊 Old config:', event.data.oldConfig)
-        console.log('📊 New config:', event.data.newConfig)
-        // 房间信息会通过 roomUpdate 事件更新
-        // 同时更新本地配置表单
+        // 房间信息会通过 roomUpdate 事件更新，同时更新本地配置表单
         initializeRoomConfigForm()
         break
 
       case 'roomClosed':
         cleanup()
-        // 可以显示房间关闭的通知
-        console.log('🏠 Room closed:', event.data.reason)
         router.push('/')
         break
+    }
+  }
+
+  const handlePeerSignal = (event: PrivateRoomPeerSignalEvent): void => {
+    if (!currentRoom.value || currentRoom.value.config.roomCode !== event.roomCode) {
+      return
+    }
+    peerSignals.value.push(event)
+    peerSession.value = pushPrivateRoomPeerSignal(peerSession.value, event)
+    if (event.signal.kind === 'ready') {
+      peerSession.value = markPrivateRoomPeerReady(peerSession.value, event.signal.transport)
+    }
+    if (peerBridge) {
+      void peerBridge.handleSignal(event).catch(error => {
+        markPeerFailed(error instanceof Error ? error.message : 'Failed to handle peer signal')
+      })
     }
   }
 
@@ -618,13 +1010,12 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     try {
       const roomInfo = await battleClientStore.getCurrentPrivateRoom()
       if (roomInfo) {
-        console.log('🏠 Current room info:', roomInfo)
         currentRoom.value = roomInfo
+        startRoomPolling()
         initializeSelectedTeam()
       }
       return roomInfo
     } catch (err) {
-      console.error('Failed to check current room:', err)
       return null
     }
   }
@@ -643,23 +1034,28 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
   // 完全清理房间状态（只在真正离开房间时使用）
   const cleanup = (): void => {
+    stopRoomPolling()
+    void teardownPeerTransport()
     currentRoom.value = null
     selectedTeam.value = []
+    peerSignals.value = []
+    peerSession.value = closePrivateRoomPeerSession()
     error.value = null
     isLoading.value = false
   }
 
-  // 在 store 创建时设置一次事件监听器
-  if (!battleClientStore.isInitialized) {
-    battleClientStore.initialize()
-  }
+  // 在 store 创建时设置事件监听器。
+  // battleClient 的真实初始化必须等 playerStore 完成身份初始化后再做，
+  // 否则会带着本地临时 guest id 提前建连，导致 socket middleware 判定 PLAYER_NOT_FOUND。
   battleClientStore.on('privateRoomEvent', handleRoomEvent)
-  console.log('✅ Private room event listener initialized')
+  battleClientStore.on('privateRoomPeerSignal', handlePeerSignal)
 
   return {
     // 状态
     currentRoom,
     selectedTeam,
+    peerSignals,
+    peerSession,
     isLoading,
     error,
     roomConfigForm,
@@ -673,6 +1069,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     myReadyStatus,
     canStartBattle,
     isBattleInProgress,
+    isP2PBattle,
 
     // 方法
     createRoom,
@@ -689,9 +1086,14 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     switchToSpectator,
     switchToPlayer,
     getRoomInfo,
+    sendPeerSignal,
+    consumePeerSignals,
+    markPeerConnected,
+    markPeerFailed,
     updateSelectedTeam,
     initializeSelectedTeam,
     checkCurrentRoom,
+    resumeActiveBattle,
     handlePageLeave,
     cleanup,
     joinSpectateBattle,

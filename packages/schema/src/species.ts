@@ -10,6 +10,7 @@ export const LearnableSkillSchema = Type.Object({
 export const SpeciesSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
   num: Type.Number(),
+  assetRef: Type.Optional(Type.String()),
   element: ElementSchema,
   baseStats: Type.Object({
     hp: Type.Number(),

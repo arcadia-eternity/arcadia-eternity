@@ -16,6 +16,7 @@ export const ignoreStageStrategySchema = StringEnum(
 
 export const SkillSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
+  sfxRef: Type.Optional(Type.String()),
   element: ElementSchema,
   category: CategorySchema,
   power: Type.Integer({ minimum: 0 }),

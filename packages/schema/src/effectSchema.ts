@@ -4,22 +4,19 @@ import {
   EffectTrigger,
   StatTypeWithoutHp,
 } from '@arcadia-eternity/const'
-import { BaseSelector, Extractor } from '@arcadia-eternity/effect-builder'
 import { Type, type TSchema } from '@sinclair/typebox'
 import { MarkConfigSchema } from './mark'
 import { StringEnum } from './utils'
+import { BASE_EXTRACTOR_KEYS, BASE_SELECTOR_KEYS, COMPARE_OPERATORS } from './effectPrimitives'
 
 // --- Base enums ---
-const selectorKeys = Object.keys(BaseSelector)
-export const baseSelectorSchema = StringEnum(selectorKeys)
+export const baseSelectorSchema = StringEnum([...BASE_SELECTOR_KEYS])
 
 const effectTriggerSchema = StringEnum(Object.values(EffectTrigger))
 
-const COMPARE_OPERATORS = ['>', '<', '>=', '<=', '=='] as const
 const compareOperatorSchema = StringEnum([...COMPARE_OPERATORS])
 
-const extractorKeys = Object.keys(Extractor)
-const baseExtractorSchema = StringEnum(extractorKeys)
+const baseExtractorSchema = StringEnum([...BASE_EXTRACTOR_KEYS])
 
 // --- Forward-declared recursive schemas ---
 // TypeBox doesn't support mutual recursion natively like Zod's z.lazy().
@@ -104,6 +101,18 @@ export const extractorSchema = Type.Union([
   Type.Object({
     type: Type.Literal('base'),
     arg: baseExtractorSchema,
+  }),
+  Type.Object({
+    type: Type.Literal('attribute'),
+    key: Type.String(),
+  }),
+  Type.Object({
+    type: Type.Literal('relation'),
+    key: Type.String(),
+  }),
+  Type.Object({
+    type: Type.Literal('field'),
+    path: Type.String(),
   }),
   Type.Object({
     type: Type.Literal('dynamic'),
@@ -248,6 +257,14 @@ export const conditionDSLSchema = Type.Union([
         default: ContinuousUseSkillStrategy.Continuous,
       }),
     ),
+  }),
+  Type.Object({
+    type: Type.Literal('skillSequence'),
+    sequence: Type.Any(),
+    mode: Type.Optional(Type.Union([Type.Literal('exact'), Type.Literal('inOrder'), Type.Literal('withGap')])),
+    maxGap: Type.Optional(Type.Any()),
+    window: Type.Optional(Type.Any()),
+    source: Type.Optional(Type.Union([Type.Literal('self'), Type.Literal('opponent')])),
   }),
   Type.Object({
     type: Type.Literal('statStageChange'),

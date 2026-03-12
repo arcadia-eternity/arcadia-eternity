@@ -6,7 +6,7 @@
     "module": "ESNext",
     "target": "ESNext",
     "paths": {
-      "@data/": ["./data"]
+      "@data/": ["./packages/data-pack-base/data"]
     },
     "outDir": "./dist/",
     "moduleResolution": "bundler",

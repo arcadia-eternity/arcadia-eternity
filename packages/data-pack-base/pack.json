@@ -1,0 +1,45 @@
+{
+  "id": "arcadia-eternity.base",
+  "version": "1.0.0",
+  "engine": "seer2-v2",
+  "assetsRef": "assets.json",
+  "layoutVersion": 1,
+  "paths": {
+    "dataDir": "data",
+    "localesDir": "locales"
+  },
+  "data": {
+    "effects": [
+      "effect_ability.yaml",
+      "effect_emblem.yaml",
+      "effect_global.yaml",
+      "effect_mark.yaml",
+      "effect_skill.yaml"
+    ],
+    "marks": [
+      "mark.yaml",
+      "mark_ability.yaml",
+      "mark_emblem.yaml",
+      "mark_global.yaml"
+    ],
+    "skills": [
+      "skill.yaml"
+    ],
+    "species": [
+      "species.yaml"
+    ]
+  },
+  "locales": {
+    "zh-CN": [
+      "battle",
+      "mark",
+      "mark_ability",
+      "mark_emblem",
+      "mark_global",
+      "nature",
+      "skill",
+      "species",
+      "webui"
+    ]
+  }
+}

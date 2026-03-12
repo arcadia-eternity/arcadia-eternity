@@ -1,5 +1,5 @@
 import type { TimerConfig } from '@arcadia-eternity/const'
-import type { Battle } from '@arcadia-eternity/battle'
+import type { BattleInstance } from '@arcadia-eternity/battle'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import { RuleSystem } from '../core/RuleSystem'
 import { RuleRegistry } from '../core/RuleRegistry'
@@ -118,7 +118,7 @@ export class BattleIntegration {
    * @param battle 战斗实例
    * @param context 规则上下文
    */
-  async applyBattleRules(battle: Battle, context?: RuleContext): Promise<void> {
+  async applyBattleRules(battle: BattleInstance, context?: RuleContext): Promise<void> {
     const ctx: RuleContext = context || {
       battle,
       phase: RulePhase.BATTLE_EXECUTION,
@@ -146,7 +146,7 @@ export class BattleIntegration {
    * 战斗结束后清理规则
    * @param battle 战斗实例
    */
-  async cleanupBattleRules(battle: Battle): Promise<void> {
+  async cleanupBattleRules(battle: BattleInstance): Promise<void> {
     const context: RuleContext = {
       battle,
       phase: RulePhase.BATTLE_END,
@@ -177,7 +177,7 @@ export class BattleIntegration {
    * @param data 操作数据
    * @returns 验证结果
    */
-  validateBattleOperation(battle: Battle, operation: string, data: any): ValidationResult {
+  validateBattleOperation(battle: BattleInstance, operation: string, data: any): ValidationResult {
     const context: RuleContext = {
       battle,
       phase: RulePhase.BATTLE_EXECUTION,

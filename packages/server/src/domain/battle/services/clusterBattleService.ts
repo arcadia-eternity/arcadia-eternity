@@ -1,23 +1,31 @@
-import { Battle, setGlobalLogger, type Player } from '@arcadia-eternity/battle'
+import { setGlobalLogger } from '@arcadia-eternity/battle'
 import {
   type BattleState,
+  BattleStatus,
   BattleMessageType,
   type playerId,
   type BattleMessage,
+  type PlayerSelection,
   type TimerEvent,
   type TimerSnapshot,
   type PlayerTimerState,
   type TimerConfig,
   TimerEventType,
 } from '@arcadia-eternity/const'
-import { SelectionParser } from '@arcadia-eternity/parser'
-import type { PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
+import {
+  PlayerSchema,
+  PlayerSelectionSchema,
+  parseWithErrors,
+  type PlayerSchemaType,
+  type PlayerSelectionSchemaType,
+} from '@arcadia-eternity/schema'
+import type { IBattleSystem, BattleRuntimeSnapshot } from '@arcadia-eternity/interface'
 
 import pino from 'pino'
 import type { ClusterStateManager } from '../../../cluster/core/clusterStateManager'
 import type { DistributedLockManager } from '../../../cluster/redis/distributedLock'
 import type { PerformanceTracker } from '../../../cluster/monitoring/performanceTracker'
-import type { SocketClusterAdapter } from '../../../cluster/communication/socketClusterAdapter'
+import type { RealtimeTransport } from '../../../realtime/realtimeTransport'
 
 import {
   type RoomState,
@@ -30,15 +38,21 @@ import {
 } from '../../../cluster/types'
 import { BattleReportService, type BattleReportConfig } from '../../report/services/battleReportService'
 import { TimerEventBatcher } from './timerEventBatcher'
-import { ServerRuleIntegration, type BattleRuleManager } from '@arcadia-eternity/rules'
 import type { BattleCallbacks, IBattleService } from './interfaces'
 import { TYPES } from '../../../types'
 import { injectable, inject, optional } from 'inversify'
-import { PlayerParser } from '@arcadia-eternity/parser'
 import { nanoid } from 'nanoid'
 import { LOCK_KEYS } from '../../../cluster/redis/distributedLock'
 import type { SessionStateManager } from 'src/domain/session/sessionStateManager'
 import { TTLHelper } from '../../../cluster/config/ttlConfig'
+import {
+  InMemoryBattleRuntimeHost,
+  type LocalBattleRoomData,
+  type LocalBattleRuntimeInstance,
+} from '../runtime/battleRuntimeHost'
+import { LocalBattleRuntimeFactory } from '../runtime/localBattleRuntimeFactory'
+import { cleanupLocalBattleRuntime, startLocalBattleRuntime } from '../runtime/localBattleRuntimeLifecycle'
+import { RedisOwnershipCoordinator, type OwnershipCoordinator, type RuntimeOwnershipRecord } from '../runtime/ownershipCoordinator'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -48,15 +62,14 @@ const logger = pino({
   timestamp: () => `,"time":"${new Date().toISOString()}"`,
 })
 
-type LocalRoomData = {
-  id: string
-  battle: Battle
-  players: string[] // playerIds
-  playersReady: Set<string>
-  status: 'waiting' | 'active' | 'ended'
-  lastActive: number
-  battleRecordId?: string
-  privateRoom?: boolean
+type BattleViewOptions = {
+  viewerId?: playerId
+  showHidden?: boolean
+  showAll?: boolean
+}
+
+type BattleSystemWithView = IBattleSystem & {
+  BattleEvent(callback: (message: BattleMessage) => void, options?: BattleViewOptions): () => void
 }
 
 type DisconnectedPlayerInfo = {
@@ -64,7 +77,48 @@ type DisconnectedPlayerInfo = {
   sessionId: string
   roomId: string
   disconnectTime: number
-  graceTimer: ReturnType<typeof setTimeout>
+  graceTimer?: ReturnType<typeof setTimeout>
+}
+
+type CleanupLocalRoomOptions = {
+  removeRuntimeArtifacts?: boolean
+  releaseOwnership?: boolean
+  publishCleanupEvent?: boolean
+}
+
+type BattleRuntimeBootstrap = {
+  roomId: string
+  player1Data: PlayerSchemaType
+  player2Data: PlayerSchemaType
+  createdAt: number
+}
+
+type RoomRuntimeBootstrapMetadata = {
+  player1Data: PlayerSchemaType
+  player2Data: PlayerSchemaType
+  createdAt: number
+}
+
+type BattleActionLogEntry = {
+  seq: number
+  selection: PlayerSelection
+  recordedAt: number
+}
+
+type PersistedBattleRuntimeSnapshot = BattleRuntimeSnapshot & {
+  actionSeq: number
+  capturedAt: number
+  boundary?: {
+    triggerMessageType: BattleMessageType
+    battleStatus?: string
+    currentTurn?: number
+    currentPhase?: string
+  }
+}
+
+type SnapshotCapableBattleSystem = IBattleSystem & {
+  createRuntimeSnapshot: () => Promise<BattleRuntimeSnapshot>
+  restoreRuntimeSnapshot: (snapshot: BattleRuntimeSnapshot) => Promise<void>
 }
 
 @injectable()
@@ -74,13 +128,13 @@ export class ClusterBattleService implements IBattleService {
     return TTLHelper.getTTLForDataType('disconnect', 'gracePeriod')
   }
 
-  // 本地Battle实例管理
-  private readonly localBattles = new Map<string, Battle>() // roomId -> Battle
-  private readonly localRooms = new Map<string, LocalRoomData>() // roomId -> room data
+  // 本地 battle runtime 管理
+  private readonly runtimeHost = new InMemoryBattleRuntimeHost()
   private readonly disconnectedPlayers = new Map<string, DisconnectedPlayerInfo>() // 掉线玩家管理
   private readonly localSpectators = new Map<string, Set<{ playerId: string; sessionId: string }>>() // roomId -> Set of spectators
+  private ownershipLeaseRenewalTimer: ReturnType<typeof setInterval> | null = null
 
-  // TTL 过期监听器状态
+  // TTL 过期监听器状态（兼容旧逻辑保留字段，当前不再用于战斗判负）
   private ttlExpirationListenerSetup = false
 
   // Timer事件批处理系统
@@ -113,19 +167,30 @@ export class ClusterBattleService implements IBattleService {
     BattleMessageType.TeamSelectionStart,
     BattleMessageType.TeamSelectionComplete,
   ])
+  private readonly RUNTIME_SNAPSHOT_MESSAGE_TYPES = new Set<BattleMessageType>([
+    BattleMessageType.BattleStart,
+    BattleMessageType.TeamSelectionComplete,
+    BattleMessageType.TurnEnd,
+    BattleMessageType.BattleEnd,
+  ])
 
   private battleReportService?: BattleReportService
+  private readonly localBattleFactory: LocalBattleRuntimeFactory
+  private readonly ownershipCoordinator: OwnershipCoordinator
 
   constructor(
     @inject(TYPES.ClusterStateManager) private readonly stateManager: ClusterStateManager,
     @inject(TYPES.DistributedLockManager) private readonly lockManager: DistributedLockManager,
-    @inject(TYPES.SocketClusterAdapter) private readonly socketAdapter: SocketClusterAdapter,
+    @inject(TYPES.ClusterRealtimeGateway) private readonly battleRouting: RealtimeTransport,
     @inject(TYPES.BattleCallbacks) private readonly callbacks: BattleCallbacks,
     @inject(TYPES.InstanceId) private readonly instanceId: string,
     @inject(TYPES.SessionStateManager) private readonly sessionStateManager: SessionStateManager,
     @inject(TYPES.PerformanceTracker) @optional() private readonly performanceTracker?: PerformanceTracker,
     @inject(TYPES.BattleReportConfig) @optional() private readonly _battleReportConfig?: BattleReportConfig,
   ) {
+    this.localBattleFactory = new LocalBattleRuntimeFactory(logger)
+    this.ownershipCoordinator = new RedisOwnershipCoordinator(this.stateManager.redisManager, this.instanceId)
+
     // 初始化Timer批处理系统
     this.timerEventBatcher = new TimerEventBatcher(
       async (
@@ -149,6 +214,152 @@ export class ClusterBattleService implements IBattleService {
     // 设置Battle系统的全局logger
     setGlobalLogger(logger)
     this.subscribeToBattleControlEvents()
+    this.startOwnershipLeaseRenewalLoop()
+  }
+
+  private get OWNERSHIP_LEASE_RENEW_INTERVAL_MS(): number {
+    const leaseTtlMs = TTLHelper.getTTLForDataType('lock')
+    return Math.max(1000, Math.floor(leaseTtlMs / 3))
+  }
+
+  private startOwnershipLeaseRenewalLoop(): void {
+    if (this.ownershipLeaseRenewalTimer) {
+      return
+    }
+
+    this.ownershipLeaseRenewalTimer = setInterval(() => {
+      this.refreshLocalRuntimeOwnershipLeases().catch(error => {
+        logger.warn({ error }, 'Failed to refresh local runtime ownership leases')
+      })
+    }, this.OWNERSHIP_LEASE_RENEW_INTERVAL_MS)
+    this.ownershipLeaseRenewalTimer.unref?.()
+  }
+
+  private stopOwnershipLeaseRenewalLoop(): void {
+    if (!this.ownershipLeaseRenewalTimer) {
+      return
+    }
+    clearInterval(this.ownershipLeaseRenewalTimer)
+    this.ownershipLeaseRenewalTimer = null
+  }
+
+  private async refreshLocalRuntimeOwnershipLeases(): Promise<void> {
+    const roomIds = this.runtimeHost.listRoomIds()
+    if (roomIds.length === 0) {
+      return
+    }
+
+    for (const roomId of roomIds) {
+      try {
+        const claimed = await this.ownershipCoordinator.claim(roomId, this.instanceId)
+        if (claimed.ownerInstanceId !== this.instanceId) {
+          const ownerUnavailable = await this.isOwnerInstanceUnavailable(claimed.ownerInstanceId)
+          if (ownerUnavailable) {
+            logger.warn(
+              {
+                roomId,
+                currentInstance: this.instanceId,
+                staleOwnerInstanceId: claimed.ownerInstanceId,
+              },
+              'Ownership lease points to unavailable owner, forcing ownership preemption',
+            )
+            const preempted = await this.forceClaimRuntimeOwnership(roomId)
+            if (preempted.ownerInstanceId === this.instanceId) {
+              await this.updateRoomRoutingAfterOwnershipPreempt(roomId)
+              continue
+            }
+          }
+          await this.dropLocalRuntimeAfterOwnershipLost(roomId, claimed.ownerInstanceId)
+        }
+      } catch (error) {
+        logger.warn({ roomId, error }, 'Failed to refresh ownership lease for local runtime')
+      }
+    }
+  }
+
+  private async isOwnerInstanceUnavailable(ownerInstanceId: string): Promise<boolean> {
+    const ownerInstance = await this.stateManager.getInstance(ownerInstanceId)
+    if (!ownerInstance) {
+      return true
+    }
+
+    if (ownerInstance.status !== 'healthy') {
+      return true
+    }
+
+    const heartbeatTtlMs = TTLHelper.getTTLForDataType('serviceInstance', 'heartbeat')
+    return Date.now() - ownerInstance.lastHeartbeat > heartbeatTtlMs
+  }
+
+  private async forceClaimRuntimeOwnership(roomId: string): Promise<RuntimeOwnershipRecord> {
+    const now = Date.now()
+    const leaseTtlMs = TTLHelper.getTTLForDataType('lock')
+    const record: RuntimeOwnershipRecord = {
+      roomId,
+      ownerInstanceId: this.instanceId,
+      status: 'active',
+      leaseExpireAt: now + leaseTtlMs,
+      lastUpdatedAt: now,
+    }
+    const ttlSeconds = Math.max(1, Math.ceil(leaseTtlMs / 1000))
+    const client = this.stateManager.redisManager.getClient()
+    await client.setex(REDIS_KEYS.BATTLE_RUNTIME_OWNERSHIP(roomId), ttlSeconds, JSON.stringify(record))
+    return record
+  }
+
+  private async updateRoomRoutingAfterOwnershipPreempt(roomId: string): Promise<void> {
+    try {
+      const roomState = await this.stateManager.getRoomState(roomId)
+      if (!roomState) {
+        return
+      }
+      if (roomState.instanceId === this.instanceId) {
+        return
+      }
+      roomState.instanceId = this.instanceId
+      roomState.lastActive = Date.now()
+      await this.stateManager.setRoomState(roomState)
+    } catch (error) {
+      logger.warn({ roomId, error }, 'Failed to update room routing after ownership preemption')
+    }
+  }
+
+  private async dropLocalRuntimeAfterOwnershipLost(roomId: string, newOwnerInstanceId: string): Promise<void> {
+    const runtime = this.runtimeHost.getInstance(roomId)
+    if (!runtime) {
+      return
+    }
+
+    logger.warn(
+      {
+        roomId,
+        currentInstance: this.instanceId,
+        newOwnerInstanceId,
+      },
+      'Local runtime ownership lost during lease refresh, dropping local runtime to avoid split-brain',
+    )
+
+    try {
+      await cleanupLocalBattleRuntime(runtime.data)
+    } catch (error) {
+      logger.warn({ roomId, error }, 'Failed to cleanup local runtime after ownership loss')
+    }
+
+    this.runtimeHost.remove(roomId)
+    if (this.performanceTracker) {
+      this.performanceTracker.updateActiveBattleRooms(this.runtimeHost.size())
+    }
+
+    try {
+      const roomState = await this.stateManager.getRoomState(roomId)
+      if (roomState && roomState.instanceId === this.instanceId) {
+        roomState.instanceId = newOwnerInstanceId
+        roomState.lastActive = Date.now()
+        await this.stateManager.setRoomState(roomState)
+      }
+    } catch (error) {
+      logger.warn({ roomId, error }, 'Failed to update room routing after ownership loss')
+    }
   }
 
   /**
@@ -204,7 +415,7 @@ export class ClusterBattleService implements IBattleService {
 
     // 找出存在于当前实例的观战者
     const localInstanceSpectators = new Set<{ playerId: string; sessionId: string }>()
-    const localSessionIds = await this.socketAdapter.getLocalSessionIds()
+    const localSessionIds = await this.battleRouting.getLocalSessionIds()
 
     for (const spectator of spectators) {
       if (localSessionIds.has(spectator.sessionId)) {
@@ -251,132 +462,30 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 创建本地Battle实例
    */
-  async createLocalBattle(roomState: RoomState, player1Data: Player, player2Data: Player): Promise<Battle> {
-    // 获取规则集信息
-    const ruleSetId = roomState.metadata?.ruleSetId || 'casual_standard_ruleset'
+  async createLocalBattle(
+    roomState: RoomState,
+    player1Data: PlayerSchemaType,
+    player2Data: PlayerSchemaType,
+    options?: { preserveRuntimeJournal?: boolean },
+  ): Promise<IBattleSystem> {
+    const battle = await this.localBattleFactory.createBattleSystem(roomState, player1Data, player2Data)
+    const localRoom = this.localBattleFactory.createRoomData(roomState, battle, player1Data, player2Data)
 
-    logger.info(
-      {
-        roomId: roomState.id,
-        ruleSetId,
-        player1: player1Data.name,
-        player2: player2Data.name,
-      },
-      'Creating battle with rule set',
-    )
-
-    let battle: Battle
-    let ruleManager: BattleRuleManager | null = null
-
-    try {
-      // 将Player实例的team转换为规则验证所需的Team格式
-      const convertPlayerTeamToSchema = (player: Player) => {
-        return player.team.map(pet => ({
-          id: pet.id,
-          name: pet.name,
-          species: pet.species.id, // 转换Species对象为字符串ID
-          level: pet.level,
-          evs: pet.evs,
-          ivs: pet.ivs,
-          skills: pet.skills.map(skill => skill.id), // 转换Skill对象为字符串ID
-          gender: pet.gender,
-          nature: pet.nature,
-          ability: pet.ability?.id || '', // 转换Mark对象为字符串ID
-          emblem: pet.emblem?.id, // 转换Mark对象为字符串ID
-          height: pet.height,
-          weight: pet.weight,
-        }))
-      }
-
-      // 使用规则系统验证战斗创建并应用规则
-      const battleValidation = await ServerRuleIntegration.validateBattleCreation(
-        convertPlayerTeamToSchema(player1Data),
-        convertPlayerTeamToSchema(player2Data),
-        [ruleSetId],
-        {
-          allowFaintSwitch: true,
-          showHidden: false,
-        },
-      )
-
-      // 检查验证结果
-      if (!battleValidation.validation.isValid) {
-        const errorMessage = `战斗验证失败: ${battleValidation.validation.errors.map(e => e.message).join(', ')}`
-        logger.error(
-          {
-            roomId: roomState.id,
-            ruleSetId,
-            errors: battleValidation.validation.errors,
-          },
-          errorMessage,
-        )
-        throw new Error(errorMessage)
-      }
-
-      // 使用规则修改后的选项创建战斗
-      battle = new Battle(player1Data, player2Data, battleValidation.battleOptions)
-      ruleManager = battleValidation.ruleManager
-
-      // 绑定规则管理器到战斗
-      await ServerRuleIntegration.bindRulesToBattle(battle, ruleManager)
-
-      logger.info(
-        {
-          roomId: roomState.id,
-          ruleSetId,
-          battleOptions: battleValidation.battleOptions,
-        },
-        'Battle created with rule system successfully',
-      )
-    } catch (error) {
-      logger.warn(
-        {
-          roomId: roomState.id,
-          ruleSetId,
-          error: error instanceof Error ? error.message : error,
-        },
-        'Failed to use rule system, falling back to default battle creation',
-      )
-
-      // 如果规则系统失败，回退到默认创建方式
-      battle = new Battle(player1Data, player2Data, {
-        showHidden: false,
-        timerConfig: {
-          enabled: true,
-          turnTimeLimit: 30,
-          totalTimeLimit: 1500,
-          animationPauseEnabled: true,
-          maxAnimationDuration: 20000,
-        },
-        teamSelection: {
-          enabled: false, // 默认不启用团队选择
-        },
-      })
-    }
-
-    // 创建本地房间数据
-    const players = roomState.sessions.map(sessionId => roomState.sessionPlayers[sessionId]).filter(Boolean)
-    const localRoom: LocalRoomData = {
-      id: roomState.id,
-      battle,
-      players: players,
-      playersReady: new Set(),
-      status: 'waiting',
-      lastActive: Date.now(),
-      battleRecordId: roomState.metadata?.battleRecordId,
-      privateRoom: roomState.metadata?.privateRoom,
-    }
-
-    this.localRooms.set(roomState.id, localRoom)
-    this.localBattles.set(roomState.id, battle)
+    this.runtimeHost.register(localRoom)
+    await this.ownershipCoordinator.claim(roomState.id, this.instanceId)
 
     // 更新活跃战斗房间数统计
     if (this.performanceTracker) {
-      this.performanceTracker.updateActiveBattleRooms(this.localRooms.size)
+      this.performanceTracker.updateActiveBattleRooms(this.runtimeHost.size())
     }
 
     // 设置战斗事件监听
     await this.setupBattleEventListeners(battle, roomState.id)
+    await this.persistBattleRuntimeBootstrap(roomState.id, player1Data, player2Data)
+    await this.persistRoomMetadataRuntimeBootstrap(roomState.id, player1Data, player2Data)
+    if (!options?.preserveRuntimeJournal) {
+      await this.resetBattleActionJournal(roomState.id)
+    }
 
     // 不在这里启动战斗，等待所有玩家准备好后再启动
     logger.info({ roomId: roomState.id }, 'Battle instance created, waiting for players to be ready')
@@ -401,7 +510,7 @@ export class ClusterBattleService implements IBattleService {
         // 解析玩家数据 - 现在playerData应该是原始验证过的数据
         let player1Data, player2Data
         try {
-          player1Data = PlayerParser.parse(player1Entry.playerData)
+          player1Data = parseWithErrors(PlayerSchema, player1Entry.playerData)
         } catch (error) {
           logger.error(
             {
@@ -415,7 +524,7 @@ export class ClusterBattleService implements IBattleService {
         }
 
         try {
-          player2Data = PlayerParser.parse(player2Entry.playerData)
+          player2Data = parseWithErrors(PlayerSchema, player2Entry.playerData)
         } catch (error) {
           logger.error(
             {
@@ -438,6 +547,9 @@ export class ClusterBattleService implements IBattleService {
         // 检查是否是私人房间战斗
         const isPrivateRoom = player1Entry.metadata?.privateRoom || player2Entry.metadata?.privateRoom || false
         const roomCode = player1Entry.metadata?.roomCode || player2Entry.metadata?.roomCode
+        const requiredPackLock = player1Entry.metadata?.requiredPackLock || player2Entry.metadata?.requiredPackLock
+        const requiredAssetLock =
+          player1Entry.metadata?.requiredAssetLock || player2Entry.metadata?.requiredAssetLock
 
         // 创建战报记录
         let battleRecordId: string | undefined
@@ -486,6 +598,13 @@ export class ClusterBattleService implements IBattleService {
             ruleSetId, // 添加规则集信息
             privateRoom: isPrivateRoom,
             roomCode: roomCode,
+            requiredPackLock,
+            requiredAssetLock,
+            runtimeBootstrap: {
+              player1Data,
+              player2Data,
+              createdAt: Date.now(),
+            } satisfies RoomRuntimeBootstrapMetadata,
           },
         }
 
@@ -502,8 +621,8 @@ export class ClusterBattleService implements IBattleService {
         logger.info({ roomId }, 'Room state saved with all mappings ready, about to create local battle')
 
         // 创建本地战斗实例
-        const battle = await this.createLocalBattle(tempRoomState, player1Data, player2Data)
-        logger.info({ roomId, battleId: battle.id }, 'Local battle created successfully')
+        await this.createLocalBattle(tempRoomState, player1Data, player2Data)
+        logger.info({ roomId }, 'Local battle created successfully')
 
         // 更新房间状态（不再存储 battleState 到 Redis）
         logger.info({ roomId }, 'About to update room state')
@@ -566,8 +685,8 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 获取本地战斗实例
    */
-  getLocalBattle(roomId: string): Battle | undefined {
-    return this.localBattles.get(roomId)
+  getLocalBattle(roomId: string): IBattleSystem | undefined {
+    return this.runtimeHost.getBattle(roomId)
   }
 
   /**
@@ -580,22 +699,22 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 获取本地房间数据
    */
-  getLocalRoom(roomId: string): LocalRoomData | undefined {
-    return this.localRooms.get(roomId)
+  getLocalRoom(roomId: string): LocalBattleRoomData | undefined {
+    return this.runtimeHost.getRoom(roomId)
   }
 
   /**
    * 获取所有本地房间
    */
-  getAllLocalRooms(): Map<string, LocalRoomData> {
-    return new Map(this.localRooms)
+  getAllLocalRooms(): Map<string, LocalBattleRoomData> {
+    return this.runtimeHost.getAllRooms()
   }
 
   /**
    * 获取所有本地战斗
    */
-  getAllLocalBattles(): Map<string, Battle> {
-    return new Map(this.localBattles)
+  getAllLocalBattles(): Map<string, IBattleSystem> {
+    return this.runtimeHost.getAllBattles()
   }
 
   /**
@@ -606,7 +725,7 @@ export class ClusterBattleService implements IBattleService {
   }
 
   /**
-   * 添加断线玩家信息 - 完全依赖 Redis TTL 管理
+   * 添加断线玩家信息（仅用于重连定位，不再由 server 负责倒计时判负）
    */
   async addDisconnectedPlayer(
     playerId: string,
@@ -632,31 +751,23 @@ export class ClusterBattleService implements IBattleService {
     const client = this.stateManager.redisManager.getClient()
     const redisKey = REDIS_KEYS.DISCONNECTED_PLAYER(playerId, sessionId)
 
-    // 使用 Redis TTL 自动管理过期，不再使用本地定时器
+    // 使用 Redis TTL 自动清理重连索引，不参与战斗判负
     await client.set(redisKey, JSON.stringify(redisInfo), 'PX', gracePeriodTTL)
     await client.sadd(REDIS_KEYS.DISCONNECTED_PLAYERS, redisKey)
 
-    // 设置 Redis 键空间通知监听器来处理过期事件
-    await this.setupTTLExpirationListener()
-
-    // 本地存储仅用于快速查询，不使用本地定时器
+    // 本地存储仅用于快速查询，不包含任何 server 侧倒计时
     const info: DisconnectedPlayerInfo = {
       playerId,
       sessionId,
       roomId,
       disconnectTime,
-      graceTimer:
-        graceTimer ||
-        setTimeout(() => {
-          // 这个定时器现在仅作为备份，主要依赖 Redis TTL
-          this.checkAndHandleExpiredPlayer(key)
-        }, gracePeriodTTL),
+      graceTimer,
     }
     this.disconnectedPlayers.set(key, info)
 
     logger.info(
       { playerId, sessionId, roomId, gracePeriodTTL, expiresAt },
-      '断线玩家信息已添加，依赖 Redis TTL 自动过期',
+      '断线玩家信息已添加（重连索引），战斗判负由 v2 timer 负责',
     )
   }
 
@@ -811,13 +922,46 @@ export class ClusterBattleService implements IBattleService {
 
       // 如果 TTL 已过期（-2）或不存在（-1）
       if (ttl <= 0) {
-        logger.info({ playerId, sessionId, ttl }, 'Player disconnect TTL expired, handling abandonment')
-
         const localInfo = this.disconnectedPlayers.get(playerKey)
-        if (localInfo) {
-          await this.handlePlayerAbandonmentAfterTTLExpiry(localInfo.roomId, playerId, sessionId)
-          this.disconnectedPlayers.delete(playerKey)
+        if (!localInfo) {
+          return
         }
+
+        // Redis key 不存在但玩家已连上，说明可能是跨实例重连后清理了 key，不应误判为掉线超时
+        const connection = await this.stateManager.getPlayerConnectionBySession(playerId, sessionId)
+        if (connection?.status === 'connected') {
+          logger.info(
+            { playerId, sessionId, ttl, roomId: localInfo.roomId },
+            'Disconnect key already cleaned after reconnect, skipping abandonment',
+          )
+          if (localInfo.graceTimer) {
+            clearTimeout(localInfo.graceTimer)
+          }
+          this.disconnectedPlayers.delete(playerKey)
+          return
+        }
+
+        // 房间已结束或玩家会话映射已失效时，仅清理本地缓存，避免重复 terminate
+        const roomState = await this.stateManager.getRoomState(localInfo.roomId)
+        const playerStillBoundToSession =
+          roomState?.status === 'active' &&
+          roomState.sessions.includes(sessionId) &&
+          roomState.sessionPlayers[sessionId] === playerId
+        if (!playerStillBoundToSession) {
+          logger.info(
+            { playerId, sessionId, ttl, roomId: localInfo.roomId },
+            'Disconnect session binding no longer active, skipping abandonment',
+          )
+          if (localInfo.graceTimer) {
+            clearTimeout(localInfo.graceTimer)
+          }
+          this.disconnectedPlayers.delete(playerKey)
+          return
+        }
+
+        logger.info({ playerId, sessionId, ttl, roomId: localInfo.roomId }, 'Player disconnect TTL expired, handling abandonment')
+        await this.handlePlayerAbandonmentAfterTTLExpiry(localInfo.roomId, playerId, sessionId)
+        this.disconnectedPlayers.delete(playerKey)
       }
     } catch (error) {
       logger.error({ error, playerKey }, 'Error checking expired player')
@@ -923,12 +1067,32 @@ export class ClusterBattleService implements IBattleService {
     return this.timerEventBatcher
   }
 
+  private async getRuntimeOrRecover(roomId: string, operation: string): Promise<LocalBattleRuntimeInstance | undefined> {
+    const existing = this.runtimeHost.getInstance(roomId)
+    if (existing) {
+      return existing
+    }
+
+    const recovered = await this.recoverLocalBattleRuntime(roomId)
+    if (!recovered) {
+      logger.warn({ roomId, operation }, 'Local runtime missing and recovery failed')
+      return undefined
+    }
+
+    const runtime = this.runtimeHost.getInstance(roomId)
+    if (!runtime) {
+      logger.warn({ roomId, operation }, 'Local runtime recovery reported success but runtime is still missing')
+      return undefined
+    }
+    return runtime
+  }
+
   /**
    * 设置战斗事件监听
    */
-  private async setupBattleEventListeners(battle: Battle, roomId: string): Promise<void> {
-    const localRoom = this.localRooms.get(roomId)
-    if (!localRoom) {
+  private async setupBattleEventListeners(battle: IBattleSystem, roomId: string): Promise<void> {
+    const runtime = this.runtimeHost.getInstance(roomId)
+    if (!runtime) {
       logger.error({ roomId }, 'Local room not found when setting up battle event listeners')
       return
     }
@@ -941,13 +1105,18 @@ export class ClusterBattleService implements IBattleService {
     }
 
     // 1. 为战斗核心事件（如结束、战报）和观战者设置一个统一的、上帝视角的事件监听器
-    battle.registerListener(
+    const battleWithView = battle as BattleSystemWithView
+    battleWithView.BattleEvent(
       async message => {
         // 优先将消息广播给所有观战者
         await this.addToSpectatorBatch(roomId, message)
 
+        if (this.RUNTIME_SNAPSHOT_MESSAGE_TYPES.has(message.type)) {
+          await this.persistBattleRuntimeWorldSnapshot(roomId, battle, message.type)
+        }
+
         // 记录战报
-        if (this.battleReportService && localRoom.battleRecordId) {
+        if (this.battleReportService && runtime.data.battleRecordId) {
           this.battleReportService.recordBattleMessage(roomId, message)
         }
 
@@ -957,12 +1126,12 @@ export class ClusterBattleService implements IBattleService {
           logger.info({ roomId, winner: battleEndData.winner, reason: battleEndData.reason }, 'Battle ended')
 
           // 更新本地房间状态
-          localRoom.status = 'ended'
-          localRoom.lastActive = Date.now()
+          runtime.status = 'ended'
+          runtime.data.lastActive = Date.now()
           const currentRoomState = await this.stateManager.getRoomState(roomId)!
 
           // 如果是私人房间，发布战斗结束事件
-          if (localRoom.privateRoom && roomState && roomState.metadata?.roomCode) {
+          if (runtime.data.privateRoom && roomState && roomState.metadata?.roomCode) {
             await this.publishPrivateBattleFinishedEvent(roomState.metadata.roomCode, roomId, battleEndData)
             if (currentRoomState)
               await this.sessionStateManager.batchUpdateSessionStates(
@@ -1021,12 +1190,12 @@ export class ClusterBattleService implements IBattleService {
       const playerId = roomState.sessionPlayers[sessionId]
       if (!playerId) continue
 
-      const player = battle.playerA.id === playerId ? battle.playerA : battle.playerB
-      if (player) {
-        player.registerListener(async message => {
+      battleWithView.BattleEvent(
+        async (message: BattleMessage) => {
           await this.addToBatch(playerId, sessionId, message)
-        })
-      }
+        },
+        { viewerId: playerId as playerId },
+      )
     }
 
     // 3. 设置Timer事件监听器
@@ -1036,7 +1205,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 设置Timer事件监听器 - 新架构
    */
-  private setupTimerEventListeners(battle: Battle, roomState: RoomState): void {
+  private setupTimerEventListeners(battle: IBattleSystem, roomState: RoomState): void {
     // 监听Timer快照事件
     battle.onTimerEvent('timerSnapshot', data => {
       // Timer快照包含所有玩家的信息，因为在战斗中玩家需要看到对手的Timer状态
@@ -1109,10 +1278,10 @@ export class ClusterBattleService implements IBattleService {
    * 本地处理玩家选择
    */
   async handleLocalPlayerSelection(roomId: string, playerId: string, data: unknown): Promise<{ status: string }> {
-    const battle = this.getLocalBattle(roomId)
-    if (!battle) {
+    const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalPlayerSelection')
+    if (!runtime) {
       logger.error(
-        { roomId, playerId, availableRooms: Array.from(this.localBattles.keys()) },
+        { roomId, playerId, availableRooms: this.runtimeHost.listRoomIds() },
         'Battle not found for local player selection',
       )
       throw new Error('BATTLE_NOT_FOUND')
@@ -1120,8 +1289,11 @@ export class ClusterBattleService implements IBattleService {
 
     const selection = this.processPlayerSelection(playerId, data)
 
-    if (!battle.setSelection(selection)) {
-      logger.error({ roomId, playerId, selection }, 'Failed to set selection in battle')
+    try {
+      await runtime.submitAction(selection)
+      await this.appendBattleActionLog(roomId, selection)
+    } catch (error) {
+      logger.error({ roomId, playerId, selection, error }, 'Failed to submit selection in battle')
       throw new Error('INVALID_SELECTION')
     }
 
@@ -1132,8 +1304,8 @@ export class ClusterBattleService implements IBattleService {
    * 本地处理状态获取
    */
   async handleLocalGetState(roomId: string, playerId: string): Promise<BattleState> {
-    const battle = this.getLocalBattle(roomId)
-    if (!battle) {
+    const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetState')
+    if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
     }
 
@@ -1141,7 +1313,8 @@ export class ClusterBattleService implements IBattleService {
     const roomState = await this.stateManager.getRoomState(roomId)
     const isSpectator = roomState?.spectators.some(s => s.playerId === playerId) ?? false
 
-    const battleState = battle.getState(playerId as playerId, isSpectator)
+    const battleState = await runtime.getState(playerId as playerId, isSpectator)
+    await this.persistBattleStateSnapshot(roomId, playerId, battleState)
 
     return battleState
   }
@@ -1150,23 +1323,570 @@ export class ClusterBattleService implements IBattleService {
    * 本地处理选择获取
    */
   async handleLocalGetSelection(roomId: string, playerId: string): Promise<PlayerSelectionSchemaType[]> {
-    const battle = this.getLocalBattle(roomId)
-    if (!battle) {
+    const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetSelection')
+    if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
     }
 
-    const availableSelections = battle.getAvailableSelection(playerId as playerId)
-    const serializedSelections = availableSelections.map(v => SelectionParser.serialize(v))
+    const availableSelections = await runtime.getAvailableSelection(playerId as playerId)
+    const serializedSelections = availableSelections.map(v =>
+      parseWithErrors(PlayerSelectionSchema, v),
+    ) as PlayerSelectionSchemaType[]
 
     return serializedSelections
+  }
+
+  private async persistBattleStateSnapshot(roomId: string, playerId: string, battleState: BattleState): Promise<void> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      const ttlSeconds = this.getBattleRuntimeDataTtlSeconds()
+      await client.setex(
+        REDIS_KEYS.BATTLE_RUNTIME_PLAYER_SNAPSHOT(roomId, playerId),
+        ttlSeconds,
+        JSON.stringify(battleState),
+      )
+    } catch (error) {
+      logger.warn({ roomId, playerId, error }, 'Failed to persist battle state snapshot')
+    }
+  }
+
+  private getBattleRuntimeDataTtlSeconds(): number {
+    return Math.max(1, Math.ceil(TTLHelper.getTTLForDataType('room', 'active') / 1000))
+  }
+
+  private async persistBattleRuntimeBootstrap(
+    roomId: string,
+    player1Data: PlayerSchemaType,
+    player2Data: PlayerSchemaType,
+  ): Promise<void> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      const payload: BattleRuntimeBootstrap = {
+        roomId,
+        player1Data,
+        player2Data,
+        createdAt: Date.now(),
+      }
+      await client.setex(
+        REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP(roomId),
+        this.getBattleRuntimeDataTtlSeconds(),
+        JSON.stringify(payload),
+      )
+    } catch (error) {
+      logger.warn({ roomId, error }, 'Failed to persist battle runtime bootstrap payload')
+    }
+  }
+
+  private async appendBattleActionLog(roomId: string, selection: PlayerSelection): Promise<void> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      const ttlSeconds = this.getBattleRuntimeDataTtlSeconds()
+      const seq = await this.nextBattleActionSeq(roomId)
+      const key = REDIS_KEYS.BATTLE_RUNTIME_ACTION_LOG(roomId)
+      const entry: BattleActionLogEntry = {
+        seq,
+        selection,
+        recordedAt: Date.now(),
+      }
+      await client.rpush(key, JSON.stringify(entry))
+      await client.expire(key, ttlSeconds)
+      await client.expire(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ(roomId), ttlSeconds)
+      await this.persistBattleReplayCursor(roomId, seq)
+    } catch (error) {
+      logger.warn({ roomId, selection, error }, 'Failed to append battle action log')
+    }
+  }
+
+  private async readBattleRuntimeBootstrap(roomId: string): Promise<BattleRuntimeBootstrap | null> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      const raw = await client.get(REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP(roomId))
+      if (raw) {
+        const parsed = JSON.parse(raw) as BattleRuntimeBootstrap
+        if (parsed.roomId !== roomId) {
+          return null
+        }
+        return {
+          roomId,
+          player1Data: parsed.player1Data as PlayerSchemaType,
+          player2Data: parsed.player2Data as PlayerSchemaType,
+          createdAt: parsed.createdAt,
+        }
+      }
+
+      // Redis bootstrap 缺失时，从 roomState.metadata 回填，避免接管恢复被单点 key 阻塞
+      const roomState = await this.stateManager.getRoomState(roomId)
+      const metadataBootstrap = this.parseRoomMetadataBootstrap(roomState?.metadata?.runtimeBootstrap)
+      if (!metadataBootstrap) {
+        return null
+      }
+
+      await this.persistBattleRuntimeBootstrap(roomId, metadataBootstrap.player1Data, metadataBootstrap.player2Data)
+
+      logger.warn(
+        { roomId },
+        'Recovered battle runtime bootstrap from room metadata fallback and re-persisted Redis bootstrap key',
+      )
+
+      return {
+        roomId,
+        player1Data: metadataBootstrap.player1Data,
+        player2Data: metadataBootstrap.player2Data,
+        createdAt: metadataBootstrap.createdAt,
+      }
+    } catch (error) {
+      logger.warn({ roomId, error }, 'Failed to read battle runtime bootstrap payload')
+      return null
+    }
+  }
+
+  private parseRoomMetadataBootstrap(raw: unknown): RoomRuntimeBootstrapMetadata | null {
+    try {
+      const candidate = this.normalizeRoomMetadataBootstrap(raw)
+      if (!candidate.player1Data || !candidate.player2Data) {
+        return null
+      }
+
+      const player1Data = parseWithErrors(
+        PlayerSchema,
+        this.parseMaybeJson(candidate.player1Data),
+      ) as PlayerSchemaType
+      const player2Data = parseWithErrors(
+        PlayerSchema,
+        this.parseMaybeJson(candidate.player2Data),
+      ) as PlayerSchemaType
+      const createdAt =
+        typeof candidate.createdAt === 'number' && Number.isFinite(candidate.createdAt)
+          ? candidate.createdAt
+          : Date.now()
+
+      return {
+        player1Data,
+        player2Data,
+        createdAt,
+      }
+    } catch (error) {
+      logger.warn({ error }, 'Invalid room metadata runtime bootstrap payload')
+      return null
+    }
+  }
+
+  private normalizeRoomMetadataBootstrap(raw: unknown): {
+    player1Data?: unknown
+    player2Data?: unknown
+    createdAt?: unknown
+  } {
+    const parsedRaw = this.parseMaybeJson(raw)
+    if (!parsedRaw || typeof parsedRaw !== 'object') {
+      return {}
+    }
+
+    const candidate = parsedRaw as {
+      roomId?: unknown
+      player1Data?: unknown
+      player2Data?: unknown
+      createdAt?: unknown
+      payload?: unknown
+    }
+
+    if (!candidate.player1Data || !candidate.player2Data) {
+      const payload = this.parseMaybeJson(candidate.payload)
+      if (payload && typeof payload === 'object') {
+        const payloadCandidate = payload as {
+          player1Data?: unknown
+          player2Data?: unknown
+          createdAt?: unknown
+        }
+        return {
+          player1Data: payloadCandidate.player1Data,
+          player2Data: payloadCandidate.player2Data,
+          createdAt: payloadCandidate.createdAt,
+        }
+      }
+    }
+
+    return {
+      player1Data: candidate.player1Data,
+      player2Data: candidate.player2Data,
+      createdAt: candidate.createdAt,
+    }
+  }
+
+  private parseMaybeJson(value: unknown): unknown {
+    if (typeof value !== 'string') {
+      return value
+    }
+
+    try {
+      return JSON.parse(value)
+    } catch {
+      return value
+    }
+  }
+
+  private async persistRoomMetadataRuntimeBootstrap(
+    roomId: string,
+    player1Data: PlayerSchemaType,
+    player2Data: PlayerSchemaType,
+  ): Promise<void> {
+    try {
+      const roomState = await this.stateManager.getRoomState(roomId)
+      if (!roomState) {
+        return
+      }
+
+      const existing = this.parseRoomMetadataBootstrap(roomState.metadata?.runtimeBootstrap)
+      if (
+        existing
+        && existing.player1Data.id === player1Data.id
+        && existing.player2Data.id === player2Data.id
+      ) {
+        return
+      }
+
+      roomState.metadata = {
+        ...(roomState.metadata ?? {}),
+        runtimeBootstrap: {
+          player1Data,
+          player2Data,
+          createdAt: Date.now(),
+        } satisfies RoomRuntimeBootstrapMetadata,
+      }
+      await this.stateManager.setRoomState(roomState)
+    } catch (error) {
+      logger.warn({ roomId, error }, 'Failed to persist room metadata runtime bootstrap')
+    }
+  }
+
+  private async readBattleActionLog(roomId: string, afterSeq: number): Promise<BattleActionLogEntry[]> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      const rawEntries = await client.lrange(REDIS_KEYS.BATTLE_RUNTIME_ACTION_LOG(roomId), 0, -1)
+      const entries = rawEntries
+        .map((raw, index) => {
+          const parsed = JSON.parse(raw) as unknown
+          if (parsed && typeof parsed === 'object' && 'seq' in parsed && 'selection' in parsed) {
+            const seq = Number((parsed as { seq: number }).seq)
+            if (!Number.isFinite(seq)) {
+              return null
+            }
+            const selection = parseWithErrors(
+              PlayerSelectionSchema,
+              (parsed as { selection: unknown }).selection,
+            ) as PlayerSelection
+            return {
+              seq,
+              selection,
+              recordedAt: Number((parsed as { recordedAt?: number }).recordedAt ?? Date.now()),
+            } satisfies BattleActionLogEntry
+          }
+
+          // Legacy payload fallback: plain selection JSON without seq.
+          const selection = parseWithErrors(PlayerSelectionSchema, parsed) as PlayerSelection
+          return {
+            seq: index + 1,
+            selection,
+            recordedAt: Date.now(),
+          } satisfies BattleActionLogEntry
+        })
+        .filter((entry): entry is BattleActionLogEntry => entry !== null)
+        .sort((a, b) => a.seq - b.seq)
+
+      return entries.filter(entry => entry.seq > afterSeq)
+    } catch (error) {
+      logger.warn({ roomId, afterSeq, error }, 'Failed to read battle action log')
+      return []
+    }
+  }
+
+  private async nextBattleActionSeq(roomId: string): Promise<number> {
+    const client = this.stateManager.redisManager.getClient()
+    const key = REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ(roomId)
+    return client.incr(key)
+  }
+
+  private async readBattleActionSeq(roomId: string): Promise<number> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      const raw = await client.get(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ(roomId))
+      if (!raw) return 0
+      const parsed = Number(raw)
+      if (!Number.isFinite(parsed) || parsed < 0) return 0
+      return parsed
+    } catch (error) {
+      logger.warn({ roomId, error }, 'Failed to read battle action seq')
+      return 0
+    }
+  }
+
+  private async readBattleReplayCursor(roomId: string): Promise<number> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      const raw = await client.get(REDIS_KEYS.BATTLE_RUNTIME_REPLAY_CURSOR(roomId))
+      if (!raw) {
+        return 0
+      }
+      const parsed = Number(raw)
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        return 0
+      }
+      return parsed
+    } catch (error) {
+      logger.warn({ roomId, error }, 'Failed to read battle replay cursor')
+      return 0
+    }
+  }
+
+  private async persistBattleReplayCursor(roomId: string, cursor: number): Promise<void> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      await client.setex(
+        REDIS_KEYS.BATTLE_RUNTIME_REPLAY_CURSOR(roomId),
+        this.getBattleRuntimeDataTtlSeconds(),
+        String(Math.max(0, Math.floor(cursor))),
+      )
+    } catch (error) {
+      logger.warn({ roomId, cursor, error }, 'Failed to persist battle replay cursor')
+    }
+  }
+
+  private async resetBattleActionJournal(roomId: string): Promise<void> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      await client.del(REDIS_KEYS.BATTLE_RUNTIME_ACTION_LOG(roomId))
+      await client.del(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ(roomId))
+      await client.del(REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT(roomId))
+      await this.persistBattleReplayCursor(roomId, 0)
+    } catch (error) {
+      logger.warn({ roomId, error }, 'Failed to reset battle action journal')
+    }
+  }
+
+  private isSnapshotCapableBattleSystem(battle: IBattleSystem): battle is SnapshotCapableBattleSystem {
+    return (
+      typeof (battle as SnapshotCapableBattleSystem).createRuntimeSnapshot === 'function' &&
+      typeof (battle as SnapshotCapableBattleSystem).restoreRuntimeSnapshot === 'function'
+    )
+  }
+
+  private async persistBattleRuntimeWorldSnapshot(
+    roomId: string,
+    battle: IBattleSystem,
+    triggerMessageType: BattleMessageType,
+  ): Promise<void> {
+    if (!this.isSnapshotCapableBattleSystem(battle)) {
+      return
+    }
+
+    try {
+      const actionSeq = await this.readBattleActionSeq(roomId)
+      const snapshot = await battle.createRuntimeSnapshot()
+      let boundary: PersistedBattleRuntimeSnapshot['boundary'] = {
+        triggerMessageType,
+      }
+      try {
+        const fullState = await battle.getState(undefined, true)
+        boundary = {
+          ...boundary,
+          battleStatus: fullState.status,
+          currentTurn: fullState.currentTurn,
+          currentPhase: fullState.currentPhase,
+        }
+      } catch {
+        // Best-effort metadata, keep persistence path non-blocking.
+      }
+      const payload: PersistedBattleRuntimeSnapshot = {
+        ...snapshot,
+        actionSeq,
+        capturedAt: Date.now(),
+        boundary,
+      }
+      const client = this.stateManager.redisManager.getClient()
+      await client.setex(
+        REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT(roomId),
+        this.getBattleRuntimeDataTtlSeconds(),
+        JSON.stringify(payload),
+      )
+    } catch (error) {
+      logger.warn({ roomId, error }, 'Failed to persist runtime world snapshot')
+    }
+  }
+
+  private async readBattleRuntimeWorldSnapshot(roomId: string): Promise<PersistedBattleRuntimeSnapshot | null> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      const raw = await client.get(REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT(roomId))
+      if (!raw) {
+        return null
+      }
+      const parsed = JSON.parse(raw) as Partial<PersistedBattleRuntimeSnapshot>
+      if (typeof parsed.format !== 'string' || typeof parsed.version !== 'number' || typeof parsed.payload !== 'string') {
+        return null
+      }
+      return {
+        format: parsed.format,
+        version: parsed.version,
+        payload: parsed.payload,
+        actionSeq: Number.isFinite(parsed.actionSeq) ? Number(parsed.actionSeq) : 0,
+        capturedAt: Number.isFinite(parsed.capturedAt) ? Number(parsed.capturedAt) : Date.now(),
+        boundary:
+          parsed.boundary &&
+          typeof parsed.boundary === 'object' &&
+          'triggerMessageType' in parsed.boundary &&
+          Object.values(BattleMessageType).includes(
+            (parsed.boundary as { triggerMessageType?: BattleMessageType }).triggerMessageType as BattleMessageType,
+          )
+            ? {
+                triggerMessageType: (parsed.boundary as { triggerMessageType: BattleMessageType }).triggerMessageType,
+                battleStatus:
+                  typeof (parsed.boundary as { battleStatus?: unknown }).battleStatus === 'string'
+                    ? (parsed.boundary as { battleStatus: string }).battleStatus
+                    : undefined,
+                currentTurn:
+                  typeof (parsed.boundary as { currentTurn?: unknown }).currentTurn === 'number'
+                  && Number.isFinite((parsed.boundary as { currentTurn: number }).currentTurn)
+                    ? (parsed.boundary as { currentTurn: number }).currentTurn
+                    : undefined,
+                currentPhase:
+                  typeof (parsed.boundary as { currentPhase?: unknown }).currentPhase === 'string'
+                    ? (parsed.boundary as { currentPhase: string }).currentPhase
+                    : undefined,
+              }
+            : undefined,
+      }
+    } catch (error) {
+      logger.warn({ roomId, error }, 'Failed to read runtime world snapshot')
+      return null
+    }
+  }
+
+  async recoverLocalBattleRuntime(roomId: string): Promise<boolean> {
+    if (this.runtimeHost.getInstance(roomId)) {
+      return true
+    }
+
+    const roomState = await this.stateManager.getRoomState(roomId)
+    if (!roomState || roomState.status !== 'active') {
+      return false
+    }
+
+    const bootstrap = await this.readBattleRuntimeBootstrap(roomId)
+    if (!bootstrap) {
+      logger.warn({ roomId }, 'Cannot recover local battle runtime: bootstrap payload missing')
+      return false
+    }
+
+    try {
+      await this.createLocalBattle(roomState, bootstrap.player1Data, bootstrap.player2Data, {
+        preserveRuntimeJournal: true,
+      })
+      const runtime = this.runtimeHost.getInstance(roomId)
+      if (!runtime) {
+        return false
+      }
+
+      runtime.status = 'active'
+      runtime.data.playersReady.clear()
+      for (const battlePlayerId of runtime.data.battlePlayerIds) {
+        runtime.data.playersReady.add(battlePlayerId)
+      }
+
+      let replayStartSeq = 0
+      const latestActionSeq = await this.readBattleActionSeq(roomId)
+      const runtimeSnapshot = await this.readBattleRuntimeWorldSnapshot(roomId)
+      if (runtimeSnapshot && this.isSnapshotCapableBattleSystem(runtime.battle)) {
+        try {
+          await runtime.battle.restoreRuntimeSnapshot(runtimeSnapshot)
+          const snapshotActionSeq = Math.max(0, runtimeSnapshot.actionSeq)
+          if (snapshotActionSeq > latestActionSeq) {
+            logger.warn(
+              {
+                roomId,
+                snapshotActionSeq,
+                latestActionSeq,
+                boundary: runtimeSnapshot.boundary,
+              },
+              'Runtime snapshot action seq exceeds action log seq, clamping replay baseline',
+            )
+          }
+          replayStartSeq = Math.min(snapshotActionSeq, latestActionSeq)
+        } catch (snapshotRestoreError) {
+          replayStartSeq = 0
+          logger.warn(
+            { roomId, snapshotRestoreError },
+            'Failed to restore runtime world snapshot, fallback to bootstrap replay',
+          )
+        }
+      }
+
+      const skipBattleLoop = this.shouldSkipBattleLoopForRecoveredSnapshot(
+        runtimeSnapshot,
+        replayStartSeq,
+        latestActionSeq,
+      )
+      if (skipBattleLoop) {
+        runtime.status = 'ended'
+        logger.info(
+          { roomId, replayStartSeq, latestActionSeq, boundary: runtimeSnapshot?.boundary },
+          'Recovered runtime at terminal snapshot boundary, skipping battle loop restart',
+        )
+      } else {
+        await this.startBattleAsync(roomId, runtime.data)
+      }
+
+      const previousCursor = await this.readBattleReplayCursor(roomId)
+      if (previousCursor !== replayStartSeq) {
+        logger.debug(
+          { roomId, previousCursor, replayStartSeq },
+          'Resetting replay cursor for runtime recovery baseline',
+        )
+      }
+      await this.persistBattleReplayCursor(roomId, replayStartSeq)
+
+      const actionLog = await this.readBattleActionLog(roomId, replayStartSeq)
+      let replayCursor = replayStartSeq
+      for (const entry of actionLog) {
+        await runtime.submitAction(entry.selection)
+        replayCursor = entry.seq
+        await this.persistBattleReplayCursor(roomId, replayCursor)
+      }
+
+      logger.info(
+        { roomId, replayedActionCount: actionLog.length, replayCursor },
+        'Recovered local battle runtime from bootstrap payload and action log',
+      )
+      return true
+    } catch (error) {
+      logger.error({ roomId, error }, 'Failed to recover local battle runtime')
+      try {
+        await this.cleanupLocalRoom(roomId, {
+          removeRuntimeArtifacts: false,
+          publishCleanupEvent: false,
+        })
+      } catch (cleanupError) {
+        logger.warn({ roomId, cleanupError }, 'Failed to cleanup partially recovered local runtime')
+      }
+      return false
+    }
+  }
+
+  private shouldSkipBattleLoopForRecoveredSnapshot(
+    snapshot: PersistedBattleRuntimeSnapshot | null,
+    replayStartSeq: number,
+    latestActionSeq: number,
+  ): boolean {
+    if (!snapshot?.boundary) return false
+    if (replayStartSeq !== latestActionSeq) return false
+    if (snapshot.boundary.triggerMessageType === BattleMessageType.BattleEnd) return true
+    return snapshot.boundary.battleStatus === BattleStatus.Ended
   }
 
   /**
    * 处理玩家选择数据
    */
-  private processPlayerSelection(playerId: string, rawData: unknown): ReturnType<typeof SelectionParser.parse> {
+  private processPlayerSelection(playerId: string, rawData: unknown): PlayerSelection {
     try {
-      const selection = SelectionParser.parse(rawData)
+      const selection = parseWithErrors(PlayerSelectionSchema, rawData) as PlayerSelection
 
       // 验证选择是否属于正确的玩家
       if (selection.player !== playerId) {
@@ -1184,60 +1904,59 @@ export class ClusterBattleService implements IBattleService {
    * 本地处理准备状态
    */
   async handleLocalReady(roomId: string, playerId: string): Promise<{ status: string }> {
-    const localRoom = this.localRooms.get(roomId)
-    if (!localRoom) {
+    const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalReady')
+    if (!runtime) {
       throw new Error('ROOM_NOT_FOUND')
     }
 
     // 检查房间状态，如果已经是active或ended，不允许再ready
-    if (localRoom.status !== 'waiting') {
+    if (runtime.status !== 'waiting') {
       logger.debug(
-        { roomId, playerId, currentStatus: localRoom.status },
+        { roomId, playerId, currentStatus: runtime.status },
         'Room is not in waiting status, ignoring ready request',
       )
       return { status: 'READY' }
     }
 
     // 检查玩家是否已经准备过了
-    if (localRoom.playersReady.has(playerId)) {
+    if (runtime.isReadyPlayer(playerId)) {
       logger.debug({ roomId, playerId }, 'Player already ready, ignoring duplicate ready request')
       return { status: 'READY' }
     }
 
     // 检查是否是场上玩家
-    const playersInBattle = [localRoom.battle.playerA.id, localRoom.battle.playerB.id]
-    if (!playersInBattle.includes(playerId as playerId)) {
+    const playersInBattle = runtime.data.battlePlayerIds
+    if (!runtime.isBattlePlayer(playerId as playerId)) {
       logger.debug({ roomId, playerId }, 'Spectator ready request ignored')
       return { status: 'READY' } // 直接返回，不影响战斗开始
     }
 
     // 标记玩家已准备
-    localRoom.playersReady.add(playerId)
-    localRoom.lastActive = Date.now()
+    runtime.markPlayerReady(playerId)
     logger.info(
       {
         roomId,
         playerId,
-        readyCount: localRoom.playersReady.size,
+        readyCount: runtime.data.playersReady.size,
         requiredReadyCount: playersInBattle.length,
-        totalPlayersInRoom: localRoom.players.length,
+        totalPlayersInRoom: runtime.data.players.length,
       },
       'Player marked as ready',
     )
 
     // 检查是否所有场上玩家都已准备
-    const allPlayersReady = playersInBattle.every(pid => localRoom.playersReady.has(pid))
+    const allPlayersReady = runtime.areAllBattlePlayersReady()
 
-    if (allPlayersReady && localRoom.status === 'waiting') {
+    if (allPlayersReady && runtime.status === 'waiting') {
       // 原子性地更新状态，防止重复启动
-      localRoom.status = 'active'
+      runtime.status = 'active'
 
       logger.info({ roomId }, 'All battle players ready, starting battle')
 
       // 异步启动战斗，不阻塞当前方法
-      this.startBattleAsync(roomId, localRoom).catch((error: unknown) => {
+      this.startBattleAsync(roomId, runtime.data).catch((error: unknown) => {
         logger.error({ error, roomId }, 'Error starting local battle')
-        localRoom.status = 'ended'
+        runtime.status = 'ended'
         this.cleanupLocalRoom(roomId)
       })
     }
@@ -1248,42 +1967,25 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 异步启动战斗，不阻塞调用方法
    */
-  private async startBattleAsync(roomId: string, localRoom: LocalRoomData): Promise<void> {
+  private async startBattleAsync(roomId: string, localRoom: LocalBattleRoomData): Promise<void> {
     try {
-      // 再次检查房间状态，确保没有竞态条件
-      if (localRoom.status !== 'active') {
-        logger.warn(
-          { roomId, currentStatus: localRoom.status },
-          'Room status changed before battle start, aborting battle start',
-        )
-        return
-      }
-
-      logger.info({ roomId, battleId: localRoom.battle.id }, 'Starting battle asynchronously')
-
-      // 确保游戏资源已加载完成
-      try {
+      await startLocalBattleRuntime(logger, roomId, localRoom, async () => {
         const { resourceLoadingManager } = await import('../../../resourceLoadingManager')
-        logger.info({ roomId }, 'Waiting for game resources to be ready...')
         await resourceLoadingManager.waitForResourcesReady()
-        logger.info({ roomId }, 'Game resources are ready, proceeding with battle start')
-      } catch (error) {
-        logger.error({ error, roomId }, 'Failed to load game resources, battle cannot start')
-        throw new Error(`游戏资源加载失败: ${error instanceof Error ? error.message : error}`)
+      })
+
+      const runtime = this.runtimeHost.getInstance(roomId)
+      if (runtime) {
+        for (const battlePlayerId of localRoom.battlePlayerIds) {
+          await runtime.startReconnectGraceTimer(
+            battlePlayerId as playerId,
+            this.DISCONNECT_GRACE_PERIOD / 1000,
+          )
+        }
       }
-
-      // 启动战斗，这会一直运行直到战斗结束
-      await localRoom.battle.startBattle()
-
-      logger.info({ roomId, battleId: localRoom.battle.id }, 'Battle completed successfully')
-
-      // 战斗正常结束，清理资源
-      localRoom.status = 'ended'
-      await this.cleanupLocalRoom(roomId)
     } catch (error) {
-      logger.error({ error, roomId, battleId: localRoom.battle.id }, 'Battle ended with error')
+      logger.error({ error, roomId }, 'Battle ended with error')
 
-      // 战斗异常结束，也需要清理资源
       localRoom.status = 'ended'
       await this.cleanupLocalRoom(roomId)
 
@@ -1296,16 +1998,16 @@ export class ClusterBattleService implements IBattleService {
    * 本地处理玩家放弃
    */
   async handleLocalPlayerAbandon(roomId: string, playerId: string): Promise<{ status: string }> {
-    const battle = this.getLocalBattle(roomId)
-    if (!battle) {
+    const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalPlayerAbandon')
+    if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
     }
 
     // 获取房间状态用于清理映射
     const roomState = await this.stateManager.getRoomState(roomId)
 
-    // 调用战斗的放弃方法
-    battle.abandonPlayer(playerId as playerId)
+    // 通过提交投降选择终止玩家战斗
+    await runtime.submitSurrenderSelection(playerId as playerId)
 
     // 立即清理会话到房间的映射，防止重连到已放弃的战斗
     if (roomState) {
@@ -1350,34 +2052,52 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 清理本地房间
    */
-  async cleanupLocalRoom(roomId: string): Promise<void> {
+  async cleanupLocalRoom(roomId: string, options: CleanupLocalRoomOptions = {}): Promise<void> {
+    const {
+      removeRuntimeArtifacts = true,
+      releaseOwnership = true,
+      publishCleanupEvent = true,
+    } = options
+
     try {
-      const localRoom = this.localRooms.get(roomId)
-      if (localRoom) {
-        // 清理战斗
-        localRoom.battle.cleanup()
+      const runtime = this.runtimeHost.getInstance(roomId)
+      if (runtime) {
+        if (removeRuntimeArtifacts) {
+          await this.cleanupBattleStateSnapshots(roomId, runtime.data.players)
+        }
+        if (releaseOwnership) {
+          await this.ownershipCoordinator.markDraining(roomId, this.instanceId)
+        }
+        await cleanupLocalBattleRuntime(runtime.data)
 
         // 从本地映射中移除
-        this.localRooms.delete(roomId)
-        this.localBattles.delete(roomId)
+        this.runtimeHost.remove(roomId)
+        if (releaseOwnership) {
+          await this.ownershipCoordinator.release(roomId, this.instanceId)
+        }
         // this.localSpectators.delete(roomId) // 清理观战者
 
         // 发布清理通知到所有实例
-        try {
-          const publisher = this.stateManager.redisManager.getPublisher()
-          const channel = REDIS_KEYS.BATTLE_CONTROL_CHANNEL
-          const message: CleanupEventPayload = { event: BattleControlEventType.Cleanup, roomId }
-          publisher.publish(channel, JSON.stringify(message))
-        } catch (error) {
-          logger.error({ error, roomId }, 'Failed to publish spectator cleanup message')
+        if (publishCleanupEvent) {
+          try {
+            const publisher = this.stateManager.redisManager.getPublisher()
+            const channel = REDIS_KEYS.BATTLE_CONTROL_CHANNEL
+            const message: CleanupEventPayload = { event: BattleControlEventType.Cleanup, roomId }
+            await publisher.publish(channel, JSON.stringify(message))
+          } catch (error) {
+            logger.error({ error, roomId }, 'Failed to publish spectator cleanup message')
+          }
         }
 
         // 更新活跃战斗房间数统计
         if (this.performanceTracker) {
-          this.performanceTracker.updateActiveBattleRooms(this.localRooms.size)
+          this.performanceTracker.updateActiveBattleRooms(this.runtimeHost.size())
         }
 
-        logger.info({ roomId }, 'Local room cleaned up')
+        logger.info(
+          { roomId, removeRuntimeArtifacts, releaseOwnership, publishCleanupEvent },
+          'Local room cleaned up',
+        )
       }
     } catch (error) {
       logger.error({ error, roomId }, 'Error cleaning up local room')
@@ -1387,17 +2107,49 @@ export class ClusterBattleService implements IBattleService {
     }
   }
 
+  private async cleanupBattleStateSnapshots(roomId: string, battlePlayers: string[]): Promise<void> {
+    try {
+      const roomState = await this.stateManager.getRoomState(roomId)
+      const playerIds = new Set<string>(battlePlayers)
+      if (roomState) {
+        for (const sessionId of roomState.sessions) {
+          const playerId = roomState.sessionPlayers[sessionId]
+          if (playerId) {
+            playerIds.add(playerId)
+          }
+        }
+        for (const spectator of roomState.spectators) {
+          playerIds.add(spectator.playerId)
+        }
+      }
+
+      if (playerIds.size === 0) {
+        return
+      }
+
+      const client = this.stateManager.redisManager.getClient()
+      await Promise.all(
+        Array.from(playerIds).map(playerId => client.del(REDIS_KEYS.BATTLE_RUNTIME_PLAYER_SNAPSHOT(roomId, playerId))),
+      )
+      await client.del(REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP(roomId))
+      await client.del(REDIS_KEYS.BATTLE_RUNTIME_ACTION_LOG(roomId))
+      await client.del(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ(roomId))
+      await client.del(REDIS_KEYS.BATTLE_RUNTIME_REPLAY_CURSOR(roomId))
+      await client.del(REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT(roomId))
+    } catch (error) {
+      logger.warn({ roomId, error }, 'Failed to cleanup battle state snapshots')
+    }
+  }
+
   /**
    * 本地处理计时器启用检查
    */
   async handleLocalIsTimerEnabled(roomId: string, playerId: string): Promise<boolean> {
-    const battle = this.getLocalBattle(roomId)
-    if (!battle) {
+    const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalIsTimerEnabled')
+    if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
     }
-
-    const timerEnabled = battle.isTimerEnabled()
-    return timerEnabled
+    return runtime.isTimerEnabled()
   }
 
   /**
@@ -1408,13 +2160,13 @@ export class ClusterBattleService implements IBattleService {
     playerId: string,
     data: { playerId?: string },
   ): Promise<PlayerTimerState | null> {
-    const battle = this.getLocalBattle(roomId)
-    if (!battle) {
+    const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetPlayerTimerState')
+    if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
     }
 
     const targetPlayerId = data?.playerId || playerId
-    const timerState = battle.getAllPlayerTimerStates().find(state => state.playerId === targetPlayerId) ?? null
+    const timerState = (await runtime.getAllPlayerTimerStates()).find(state => state.playerId === targetPlayerId) ?? null
 
     return timerState
   }
@@ -1423,26 +2175,22 @@ export class ClusterBattleService implements IBattleService {
    * 本地处理所有玩家计时器状态获取
    */
   async handleLocalGetAllPlayerTimerStates(roomId: string, playerId: string): Promise<PlayerTimerState[]> {
-    const battle = this.getLocalBattle(roomId)
-    if (!battle) {
+    const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetAllPlayerTimerStates')
+    if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
     }
-
-    const allTimerStates = battle.getAllPlayerTimerStates()
-    return allTimerStates
+    return runtime.getAllPlayerTimerStates()
   }
 
   /**
    * 本地处理计时器配置获取
    */
   async handleLocalGetTimerConfig(roomId: string, playerId: string): Promise<TimerConfig> {
-    const battle = this.getLocalBattle(roomId)
-    if (!battle) {
+    const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetTimerConfig')
+    if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
     }
-
-    const timerConfig = battle.getTimerConfig()
-    return timerConfig
+    return runtime.getTimerConfig()
   }
 
   /**
@@ -1453,8 +2201,8 @@ export class ClusterBattleService implements IBattleService {
     playerId: string,
     data: { source: string; expectedDuration: number; ownerId: playerId },
   ): Promise<string> {
-    const battle = this.getLocalBattle(roomId)
-    if (!battle) {
+    const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalStartAnimation')
+    if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
     }
 
@@ -1462,7 +2210,7 @@ export class ClusterBattleService implements IBattleService {
       throw new Error('INVALID_ANIMATION_DATA')
     }
 
-    const animationId = battle.startAnimation(data.source, data.expectedDuration, data.ownerId as playerId)
+    const animationId = await runtime.startAnimation(data.source, data.expectedDuration, data.ownerId as playerId)
 
     return animationId
   }
@@ -1475,13 +2223,13 @@ export class ClusterBattleService implements IBattleService {
     playerId: string,
     data: { animationId: string; actualDuration?: number },
   ): Promise<{ status: string }> {
-    const battle = this.getLocalBattle(roomId)
-    if (!battle) {
+    const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalEndAnimation')
+    if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
     }
 
     if (data.animationId) {
-      battle.endAnimation(data.animationId, data.actualDuration)
+      await runtime.endAnimation(data.animationId, data.actualDuration)
     }
 
     return { status: 'SUCCESS' }
@@ -1495,13 +2243,13 @@ export class ClusterBattleService implements IBattleService {
     playerId: string,
     data: { animationId: string; actualDuration?: number },
   ): Promise<{ status: string }> {
-    const battle = this.getLocalBattle(roomId)
-    if (!battle) {
+    const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalReportAnimationEnd')
+    if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
     }
 
     if (data.animationId) {
-      battle.endAnimation(data.animationId, data.actualDuration)
+      await runtime.endAnimation(data.animationId, data.actualDuration)
     }
 
     return { status: 'SUCCESS' }
@@ -1513,13 +2261,12 @@ export class ClusterBattleService implements IBattleService {
    * 允许玩家中途加入观战
    */
   async joinSpectateBattle(roomId: string, spectator: { playerId: string; sessionId: string }): Promise<boolean> {
-    const localRoom = this.localRooms.get(roomId)
-    if (!localRoom || localRoom.status !== 'active') {
+    const runtime = this.runtimeHost.getInstance(roomId)
+    if (!runtime || runtime.status !== 'active') {
       logger.warn({ roomId, spectatorId: spectator.playerId }, 'Cannot join spectate: room not found or not active')
       return false
     }
 
-    const battle = localRoom.battle
     const roomState = await this.stateManager.getRoomState(roomId)
     if (!roomState) {
       logger.error({ roomId }, 'Room state not found for spectate join')
@@ -1555,7 +2302,7 @@ export class ClusterBattleService implements IBattleService {
     }
 
     // 3. 发送一次性的战斗状态快照给新加入的观战者
-    const battleState = battle.getState(spectator.playerId as playerId, true) // true 表示上帝视角
+    const battleState = await runtime.getState(spectator.playerId as playerId, true) // true 表示上帝视角
     await this.callbacks.sendToPlayerSession(spectator.playerId, spectator.sessionId, 'battleEvent', {
       type: BattleMessageType.BattleStart, // 伪装成 BattleStart，让客户端能正确初始化
       data: battleState,
@@ -1678,11 +2425,10 @@ export class ClusterBattleService implements IBattleService {
       // 获取房间状态用于清理映射
       const roomState = await this.stateManager.getRoomState(roomId)
 
-      const battle = this.getLocalBattle(roomId)
-      if (battle) {
-        // 调用战斗的放弃方法，这会触发战斗结束逻辑
-        battle.abandonPlayer(playerId as playerId)
-        logger.info({ roomId, playerId, reason }, 'Local battle terminated via abandonPlayer')
+      const runtime = this.runtimeHost.getInstance(roomId)
+      if (runtime) {
+        await runtime.submitSurrenderSelection(playerId as playerId)
+        logger.info({ roomId, playerId, reason }, 'Local battle terminated via surrender selection')
       }
 
       // 立即清理会话到房间的映射，防止重连到已终止的战斗
@@ -1717,10 +2463,17 @@ export class ClusterBattleService implements IBattleService {
   async cleanup(): Promise<void> {
     try {
       logger.info('开始清理 ClusterBattleService 资源')
+      this.stopOwnershipLeaseRenewalLoop()
 
       // 清理所有本地房间
-      const localRoomIds = Array.from(this.localRooms.keys())
-      await Promise.all(localRoomIds.map(roomId => this.cleanupLocalRoom(roomId)))
+      const localRoomIds = this.runtimeHost.listRoomIds()
+      await Promise.all(
+        localRoomIds.map(roomId =>
+          this.cleanupLocalRoom(roomId, {
+            removeRuntimeArtifacts: false,
+            publishCleanupEvent: false,
+          })),
+      )
 
       // 清理所有断线玩家信息
       this.clearAllDisconnectedPlayers()
@@ -1743,38 +2496,36 @@ export class ClusterBattleService implements IBattleService {
    * 获取战斗状态（详细）
    */
   async handleLocalGetBattleState(roomId: string, playerId: string): Promise<BattleState> {
-    const battle = this.localBattles.get(roomId)
-    if (!battle) {
+    const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetBattleState')
+    if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
     }
-    // 使用现有的 getState 方法
-    return battle.getState()
+    return runtime.getState()
   }
 
   /**
    * 获取战斗历史
    */
   async handleLocalGetBattleHistory(roomId: string, _playerId: string): Promise<BattleState> {
-    const battle = this.localBattles.get(roomId)
-    if (!battle) {
+    const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetBattleHistory')
+    if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
     }
-    // 返回战斗的状态作为历史
-    return battle.getState()
+    return runtime.getState()
   }
 
   /**
    * 获取战斗报告
    */
   async handleLocalGetBattleReport(roomId: string, _playerId: string): Promise<{ battleRecordId: string }> {
-    const localRoom = this.localRooms.get(roomId)
-    if (!localRoom || !localRoom.battleRecordId) {
+    const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetBattleReport')
+    if (!runtime || !runtime.data.battleRecordId) {
       throw new Error('BATTLE_REPORT_NOT_FOUND')
     }
 
     if (this.battleReportService) {
       // 返回战斗记录ID，让客户端自行获取报告
-      return { battleRecordId: localRoom.battleRecordId }
+      return { battleRecordId: runtime.data.battleRecordId }
     }
 
     throw new Error('BATTLE_REPORT_SERVICE_NOT_AVAILABLE')
@@ -1976,29 +2727,43 @@ export class ClusterBattleService implements IBattleService {
    * 暂停战斗计时器（玩家掉线时）
    */
   async pauseBattleForDisconnect(roomId: string, playerId: string): Promise<void> {
-    const battle = this.localBattles.get(roomId)
-    if (battle) {
-      const isSpectator = battle.playerA.id !== playerId && battle.playerB.id !== playerId
-      if (isSpectator) {
-        logger.info({ roomId, playerId }, '观战者掉线，不暂停计时器')
-        return
-      }
-      // 暂停该玩家的计时器
-      battle.timerManager.pauseTimers([playerId as playerId], 'system')
-      logger.info({ roomId, playerId }, '玩家掉线，暂停计时器')
+    const runtime = await this.getRuntimeOrRecover(roomId, 'pauseBattleForDisconnect')
+    if (!runtime) return
+    if (!runtime.isBattlePlayer(playerId)) {
+      logger.info({ roomId, playerId }, '观战者掉线，不暂停计时器')
+      return
     }
+    const started = await runtime.startReconnectGraceTimer(
+      playerId as playerId,
+      this.DISCONNECT_GRACE_PERIOD / 1000,
+    )
+    if (!started) {
+      logger.warn({ roomId, playerId }, '玩家掉线：当前运行时不支持重连宽限计时器')
+      return
+    }
+    logger.info(
+      {
+        roomId,
+        playerId,
+        gracePeriodMs: this.DISCONNECT_GRACE_PERIOD,
+      },
+      '玩家掉线：已启动 v2 重连宽限计时器',
+    )
   }
 
   /**
    * 恢复战斗计时器（玩家重连时）
    */
   async resumeBattleAfterReconnect(roomId: string, playerId: string): Promise<void> {
-    const battle = this.localBattles.get(roomId)
-    if (battle) {
-      // 恢复该玩家的计时器
-      battle.timerManager.resumeTimers([playerId as playerId])
-      logger.info({ roomId, playerId }, '玩家重连，恢复计时器')
+    const runtime = await this.getRuntimeOrRecover(roomId, 'resumeBattleAfterReconnect')
+    if (!runtime) return
+    if (!runtime.isBattlePlayer(playerId)) return
+    const cancelled = await runtime.cancelReconnectGraceTimer(playerId as playerId)
+    if (!cancelled) {
+      logger.debug({ roomId, playerId }, '玩家重连：当前运行时没有活跃重连宽限计时器')
+      return
     }
+    logger.info({ roomId, playerId }, '玩家重连：已取消 v2 重连宽限计时器')
   }
 
   /**
@@ -2029,8 +2794,8 @@ export class ClusterBattleService implements IBattleService {
    */
   async sendBattleStateOnReconnect(roomId: string, playerId: string, sessionId: string): Promise<void> {
     try {
-      const battle = this.localBattles.get(roomId)
-      if (battle) {
+      const runtime = await this.getRuntimeOrRecover(roomId, 'sendBattleStateOnReconnect')
+      if (runtime) {
         // 重连时，让客户端重新获取完整的战斗状态
         // 不需要通过事件发送，客户端会主动调用 getState
         logger.info({ roomId, playerId, sessionId }, '玩家重连，准备发送战斗状态')

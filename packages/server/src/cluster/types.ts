@@ -189,6 +189,14 @@ export const REDIS_KEYS = {
   ROOMS: 'rooms',
   ROOM: (roomId: string) => `room:${roomId}`,
   SESSION_ROOM_MAPPING: (playerId: string, sessionId: string) => `session:rooms:${playerId}:${sessionId}`,
+  BATTLE_RUNTIME_OWNERSHIP: (roomId: string) => `battle:runtime:ownership:${roomId}`,
+  BATTLE_RUNTIME_BOOTSTRAP: (roomId: string) => `battle:runtime:bootstrap:${roomId}`,
+  BATTLE_RUNTIME_ACTION_LOG: (roomId: string) => `battle:runtime:actions:${roomId}`,
+  BATTLE_RUNTIME_ACTION_SEQ: (roomId: string) => `battle:runtime:actions:seq:${roomId}`,
+  BATTLE_RUNTIME_REPLAY_CURSOR: (roomId: string) => `battle:runtime:replay:cursor:${roomId}`,
+  BATTLE_RUNTIME_WORLD_SNAPSHOT: (roomId: string) => `battle:runtime:world-snapshot:${roomId}`,
+  BATTLE_RUNTIME_PLAYER_SNAPSHOT: (roomId: string, playerId: string) =>
+    `battle:runtime:snapshot:${roomId}:player:${playerId}`,
 
   // 匹配队列
   MATCHMAKING_QUEUE: 'matchmaking:queue',
@@ -221,6 +229,7 @@ export const REDIS_KEYS = {
   PRIVATE_ROOM_PLAYER_SESSION: (playerId: string, sessionId: string) => `private_room_player:${playerId}:${sessionId}`,
   PRIVATE_ROOM_PLAYER_SESSIONS: (playerId: string) => `private_room_player_sessions:${playerId}`,
   PRIVATE_ROOM_EVENTS: (roomCode: string) => `private_room_events:${roomCode}`,
+  PRIVATE_ROOM_SIGNAL_EVENTS: (roomCode: string) => `private_room_signal_events:${roomCode}`,
   PRIVATE_BATTLE_FINISHED_EVENTS: 'private_battle_finished',
 } as const
 

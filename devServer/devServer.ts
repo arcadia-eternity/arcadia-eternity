@@ -18,6 +18,7 @@ const logger = pino({
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
+const DATA_DIR = path.join(__dirname, '../../packages/data-pack-base/data')
 
 class DevServer {
   private app: express.Application
@@ -111,7 +112,7 @@ class DevServer {
   private async handleGetFiles(_: express.Request, res: express.Response) {
     try {
       logger.debug('Fetching file list')
-      const files = await fs.readdir(path.join(__dirname, '../../data'))
+      const files = await fs.readdir(DATA_DIR)
       const yamlFiles = files.filter(f => f.endsWith('.yaml') || f.endsWith('.yml'))
       logger.info('Found %d YAML files', yamlFiles.length)
       res.json(yamlFiles)
@@ -125,7 +126,7 @@ class DevServer {
     const filename = req.params.filename
     try {
       logger.debug('Processing file request: %s', filename)
-      const filePath = path.join(__dirname, '../../data', req.params.filename)
+      const filePath = path.join(DATA_DIR, req.params.filename)
       // 获取保留注释
       const { metadata, preservedComments, data } = await this.readFileWithMetadata(filePath)
       const schemaType = metadata.metaType as SchemaType
@@ -155,7 +156,7 @@ class DevServer {
       const schemaType = validatedMetadata.metaType as SchemaType
       const validatedData = parseWithErrors(DATA_SCHEMA_MAP[schemaType], data)
 
-      const filePath = path.join(__dirname, '../../data', req.params.filename)
+      const filePath = path.join(DATA_DIR, req.params.filename)
       // 写入时携带保留注释
       await this.writeFileWithMetadata(filePath, validatedMetadata, validatedData, preservedComments)
 

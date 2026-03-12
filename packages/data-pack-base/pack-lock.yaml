@@ -1,0 +1,37 @@
+lockfileVersion: 1
+generatedAt: 2026-03-10T12:20:04.293Z
+importers:
+  .:
+    specifiers:
+      arcadia-eternity.base: workspace:@arcadia-eternity/data-pack-base#pack.json
+    dependencies:
+      arcadia-eternity.base:
+        specifier: workspace:@arcadia-eternity/data-pack-base#pack.json
+        version: 1.0.0
+        packageKey: /arcadia-eternity.base@1.0.0
+packages:
+  /arcadia-eternity.base@1.0.0:
+    name: arcadia-eternity.base
+    version: 1.0.0
+    kind: data
+    engine: seer2-v2
+    source: workspace:@arcadia-eternity/data-pack-base#pack.json
+    entry: pack.json
+    provenance: workspace
+    resolution:
+      integrity: sha512-rXupIks8o4RA3bK4NEHorC/yiNn5fpB2/7Sxgqka5kFrkaXrDJvO317SEKdjK/yHC22r1eJnWGyCSkRypsG4WA==
+      path: /Users/yuuinih/GitHub/test_battle/packages/data-pack-base/pack.json
+    dependencies:
+      arcadia-eternity.base-assets: /arcadia-eternity.base-assets@1.0.0
+  /arcadia-eternity.base-assets@1.0.0:
+    name: arcadia-eternity.base-assets
+    version: 1.0.0
+    kind: asset
+    engine: seer2-v2
+    source: workspace:@arcadia-eternity/data-pack-base#assets.json
+    entry: assets.json
+    provenance: workspace
+    resolution:
+      integrity: sha512-q0E7pSHhNglysZfyLSMH1kk9YNHIs5eCP/F+Y4kqMqANegQuCTUGvbEiqSOPbPYPPVBK9Stb9f1MyZKg4FZZDg==
+      path: /Users/yuuinih/GitHub/test_battle/packages/data-pack-base/assets.json
+    dependencies: {}

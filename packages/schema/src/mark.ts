@@ -25,6 +25,7 @@ export const MarkConfigSchema = Type.Object(
 
 export const MarkSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
+  iconRef: Type.Optional(Type.String()),
   config: Type.Optional(MarkConfigSchema),
   tags: Type.Optional(Type.Array(Type.String())),
   effect: Type.Optional(Type.Array(Type.String())),

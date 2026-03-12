@@ -312,16 +312,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, watch, computed } from 'vue'
+import { ref, onMounted, reactive, watch, computed, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
 import { usePetStorageStore } from '@/stores/petStorage'
-import { LocalBattleSystem } from '@arcadia-eternity/local-adapter'
-import { HttpLoader } from '@arcadia-eternity/httploader'
-import { AIPlayer, Battle, Player } from '@arcadia-eternity/battle'
-import { PlayerParser } from '@arcadia-eternity/parser'
-import { nanoid } from 'nanoid'
+import { LocalBattleSystemV2, createBattleFromConfig, createRepositoryFromRawData } from '@arcadia-eternity/battle'
+import type { TeamConfig, BattleConfig as V2BattleConfig } from '@arcadia-eternity/battle'
 import { useGameDataStore } from '@/stores/gameData'
 import { DEFAULT_TIMER_CONFIG, type TimerConfig } from '@arcadia-eternity/const'
 
@@ -336,7 +333,6 @@ const isLoading = ref(true)
 // 队伍选择
 const selectedPlayer1TeamIndex = ref(0)
 const selectedPlayer2TeamIndex = ref(0)
-const useAI = ref(false)
 
 // 可用队伍列表（过滤掉空队伍）
 const availableTeams = computed(() => {
@@ -521,6 +517,8 @@ const presets = {
   },
 }
 
+const asRawRecord = (value: unknown): Record<string, unknown> => value as unknown as Record<string, unknown>
+
 // 加载预设配置
 const loadPreset = (presetName: keyof typeof presets) => {
   const preset = presets[presetName]
@@ -536,45 +534,17 @@ const loadPreset = (presetName: keyof typeof presets) => {
   enableTotalTimeLimit.value = preset.enableTotalTimeLimit
 }
 
-// 创建对手队伍数据
-const createOpponentTeam = (teamIndex: number) => {
-  const selectedTeam = petStorage.teams[teamIndex]
-  if (!selectedTeam) {
-    throw new Error('选择的队伍不存在')
-  }
-
-  return {
-    name: `${selectedTeam.name} (AI)`,
-    id: nanoid(),
-    team: selectedTeam.pets.map(pet => ({
-      ...pet,
-      name: `${pet.name} (AI)`,
-      id: nanoid(),
-    })),
-  }
-}
-
-// 初始化HTTP加载器
-onMounted(async () => {
+  onMounted(async () => {
   // 初始化队伍选择
   initializeTeamSelection()
 
-  if (dataStore.gameDataLoaded) {
+  if (dataStore.loaded || dataStore.gameDataLoaded) {
+    dataStore.gameDataLoaded = true
     isLoading.value = false
     return
   }
   try {
-    const loader = new HttpLoader({
-      baseUrl: import.meta.env.VITE_DATA_API_URL || '/data',
-    })
-    await loader.loadGameData()
-    try {
-      console.log('📝 Web端脚本加载功能开发中...')
-      console.log('� 当前使用YAML数据，脚本声明功能在服务器端可用')
-    } catch (scriptError) {
-      console.warn('⚠️ 脚本加载失败，继续使用YAML数据:', scriptError)
-    }
-
+    await dataStore.initialize()
     dataStore.gameDataLoaded = true
   } catch (error) {
     errorMessage.value = `资源加载失败: ${(error as Error).message}`
@@ -594,7 +564,7 @@ const startLocalBattle = async () => {
 
   try {
     // 验证游戏数据是否已加载
-    if (!dataStore.gameDataLoaded) {
+    if (!dataStore.loaded && !dataStore.gameDataLoaded) {
       throw new Error('游戏数据尚未加载完成，请稍后再试')
     }
 
@@ -614,15 +584,8 @@ const startLocalBattle = async () => {
       throw new Error('玩家2队伍为空或不存在，请选择有效的队伍')
     }
 
-    // 获取玩家1数据
-    const rawPlayer1Data = {
-      name: playerStore.name,
-      id: playerStore.id,
-      team: player1Team.pets,
-    }
-
     // 验证玩家1队伍中的精灵数据
-    for (const pet of rawPlayer1Data.team) {
+    for (const pet of player1Team.pets) {
       if (!pet.name || !pet.species) {
         throw new Error(`玩家1精灵 "${pet.name || '未命名'}" 的数据不完整，请检查种族配置`)
       }
@@ -641,59 +604,50 @@ const startLocalBattle = async () => {
       }
     }
 
-    let player1: Player
-    let player2: Player
-    const createAIPlayer = (basePlayer: Player) => new AIPlayer(basePlayer.name, basePlayer.id, basePlayer.team)
+    const toTeamConfig = (name: string, pets: typeof player1Team.pets): TeamConfig => ({
+      name,
+      team: pets.map(pet => ({
+        name: pet.name,
+        species: pet.species,
+        level: pet.level,
+        evs: pet.evs,
+        ivs: pet.ivs,
+        nature: pet.nature,
+        skills: pet.skills,
+        ability: pet.ability || undefined,
+        emblem: pet.emblem || undefined,
+        gender: pet.gender || undefined,
+        weight: pet.weight || undefined,
+        height: pet.height || undefined,
+      })),
+    })
 
-    try {
-      // 解析玩家1数据
-      if (!useAI.value) {
-        player1 = PlayerParser.parse(rawPlayer1Data)
-      } else {
-        player1 = createAIPlayer(PlayerParser.parse(rawPlayer1Data))
-      }
-    } catch (parseError) {
-      throw new Error(`玩家1数据解析失败: ${(parseError as Error).message}`)
-    }
+    const player1Config = toTeamConfig(playerStore.name, player1Team.pets)
+    const player2Config = toTeamConfig(`${player2Team.name} (AI)`, player2Team.pets)
 
-    try {
-      // 创建玩家2队伍数据并解析
-      const player2TeamData = createOpponentTeam(selectedPlayer2TeamIndex.value)
-      player2 = createAIPlayer(PlayerParser.parse(player2TeamData))
-    } catch (parseError) {
-      throw new Error(`玩家2队伍数据解析失败: ${(parseError as Error).message}`)
-    }
+    const repo = createRepositoryFromRawData({
+      effects: dataStore.effects.allIds.map(id => asRawRecord(toRaw(dataStore.effects.byId[id]))),
+      marks: dataStore.marks.allIds.map(id => asRawRecord(toRaw(dataStore.marks.byId[id]))),
+      skills: dataStore.skills.allIds.map(id => asRawRecord(toRaw(dataStore.skills.byId[id]))),
+      species: dataStore.species.allIds.map(id => asRawRecord(toRaw(dataStore.species.byId[id]))),
+    })
 
     // 构建战斗选项
-    const battleOptions: {
-      allowFaintSwitch?: boolean
-      rngSeed?: number
-      showHidden?: boolean
-      timerConfig?: Partial<TimerConfig>
-      teamSelection?: {
-        enabled: boolean
-        config?: {
-          mode?: 'VIEW_ONLY' | 'TEAM_SELECTION' | 'FULL_TEAM'
-          maxTeamSize?: number
-          minTeamSize?: number
-          allowStarterSelection?: boolean
-          showOpponentTeam?: boolean
-          teamInfoVisibility?: 'HIDDEN' | 'BASIC' | 'FULL'
-          timeLimit?: number
-        }
-      }
-    } = {
+    const battleOptions: V2BattleConfig = {
       allowFaintSwitch: battleConfig.allowFaintSwitch,
       showHidden: battleConfig.showHidden,
+      timerConfig: { ...timerConfig },
+      ai: {
+        enabled: true,
+        players: ['playerB'],
+        strategy: 'simple',
+      },
     }
 
     // 添加随机数种子（如果设置了）
     if (battleConfig.rngSeed !== undefined && battleConfig.rngSeed !== null) {
       battleOptions.rngSeed = battleConfig.rngSeed
     }
-
-    // 添加计时器配置
-    battleOptions.timerConfig = { ...timerConfig }
 
     // 添加团队选择配置
     if (battleConfig.teamSelection.enabled) {
@@ -711,19 +665,16 @@ const startLocalBattle = async () => {
       }
     }
 
-    // 创建战斗实例
-    let battle: Battle
-    try {
-      battle = new Battle(player1, player2, battleOptions)
-    } catch (battleError) {
-      throw new Error(`战斗创建失败: ${(battleError as Error).message}`)
+    const battle = createBattleFromConfig(player1Config, player2Config, repo, battleOptions)
+    const localSystem = new LocalBattleSystemV2(battle)
+    const initialState = await localSystem.getState(undefined, true)
+    const playerId = initialState.players[0]?.id
+    if (!playerId) {
+      throw new Error('战斗初始化失败: 无法解析玩家ID')
     }
 
-    // 创建本地战斗系统
-    const localSystem = new LocalBattleSystem(battle)
-
     try {
-      await battleStore.initBattle(localSystem, player1.id)
+      await battleStore.initBattle(localSystem, playerId)
     } catch (initError) {
       throw new Error(`战斗初始化失败: ${(initError as Error).message}`)
     }

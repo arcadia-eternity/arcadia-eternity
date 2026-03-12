@@ -1,8 +1,17 @@
 import fs from 'fs/promises'
 import path from 'path'
 import type { TSchema } from '@sinclair/typebox'
-import { MarkDataSetSchema, SkillDataSetSchema, SpeciesDataSetSchema } from '..'
-import { EffectDSLSetSchema } from '@arcadia-eternity/schema'
+import {
+  AssetLockSchema,
+  AssetManifestSchema,
+  EffectDSLSetSchema,
+  MarkDataSetSchema,
+  PackLockSchema,
+  PackLockfileSchema,
+  PackManifestSchema,
+  SkillDataSetSchema,
+  SpeciesDataSetSchema,
+} from '..'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -16,6 +25,11 @@ const SCHEMA_MAP: Record<string, TSchema> = {
   skill: SkillDataSetSchema,
   species: SpeciesDataSetSchema,
   effect: EffectDSLSetSchema,
+  pack: PackManifestSchema,
+  'pack-lock': PackLockSchema,
+  'pack-lockfile': PackLockfileSchema,
+  assets: AssetManifestSchema,
+  'asset-lock': AssetLockSchema,
 }
 
 // 创建目录（如果不存在）

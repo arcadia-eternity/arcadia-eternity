@@ -3,7 +3,6 @@ import { nanoid } from 'nanoid'
 import pino from 'pino'
 import type { ClusterStateManager } from '../../../cluster/core/clusterStateManager'
 import type { DistributedLockManager } from '../../../cluster/redis/distributedLock'
-import type { SocketClusterAdapter } from '../../../cluster/communication/socketClusterAdapter'
 import { REDIS_KEYS, type MatchmakingEntry } from '../../../cluster/types'
 import type {
   PrivateRoom,
@@ -12,11 +11,20 @@ import type {
   SpectatorEntry,
   PrivateRoomEvent,
   BattleResult,
+  PrivateRoomBattleStartInfo,
 } from '../types/PrivateRoom'
 import type { SessionStateManager } from '../../session/sessionStateManager'
-import type { PetSchemaType } from '@arcadia-eternity/protocol'
+import type {
+  PetSchemaType,
+  PrivateRoomPeerSignalEvent,
+  SendPrivateRoomPeerSignalRequest,
+} from '@arcadia-eternity/protocol'
 import { PrivateRoomError } from '../types/PrivateRoom'
 import { ServerRuleIntegration } from '@arcadia-eternity/rules'
+import { DEFAULT_PACK_LOCK, isAssetLockCompatible, isPackLockCompatible } from '../../battle/pack'
+import { parseWithErrors } from '@arcadia-eternity/schema'
+import { PackLockSchema, type PackLock } from '@arcadia-eternity/schema/src/pack.js'
+import { AssetLockSchema, type AssetLock } from '@arcadia-eternity/schema/src/assets.js'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -42,7 +50,6 @@ export class PrivateRoomService {
   constructor(
     private stateManager: ClusterStateManager,
     private lockManager: DistributedLockManager,
-    private socketAdapter: SocketClusterAdapter,
     private sessionStateManager: SessionStateManager,
   ) {
     // 启动房间清理定时器
@@ -55,6 +62,77 @@ export class PrivateRoomService {
    */
   setBattleCallbacks(callbacks: PrivateRoomBattleCallbacks): void {
     this.battleCallbacks = callbacks
+  }
+
+  private normalizeRequiredPackLock(lock: unknown): PackLock {
+    if (lock === undefined) {
+      return DEFAULT_PACK_LOCK
+    }
+    try {
+      return parseWithErrors(PackLockSchema, lock)
+    } catch (error) {
+      throw new PrivateRoomError(
+        `无效的 requiredPackLock: ${error instanceof Error ? error.message : String(error)}`,
+        'INVALID_CONFIG',
+      )
+    }
+  }
+
+  private validateClientPackLockAlignment(room: PrivateRoom, clientPackLock: unknown): void {
+    if (clientPackLock === undefined) return
+    let parsedClientPackLock: PackLock
+    try {
+      parsedClientPackLock = parseWithErrors(PackLockSchema, clientPackLock)
+    } catch (error) {
+      throw new PrivateRoomError(
+        `无效的 clientPackLock: ${error instanceof Error ? error.message : String(error)}`,
+        'INVALID_CONFIG',
+      )
+    }
+
+    const requiredPackLock = room.config.requiredPackLock ?? DEFAULT_PACK_LOCK
+    if (!isPackLockCompatible(requiredPackLock, parsedClientPackLock)) {
+      throw new PrivateRoomError(
+        `客户端数据包与房间要求不一致，required=${JSON.stringify(requiredPackLock)} client=${JSON.stringify(parsedClientPackLock)}`,
+        'PACK_LOCK_MISMATCH',
+      )
+    }
+  }
+
+  private normalizeRequiredAssetLock(lock: unknown): AssetLock | undefined {
+    if (lock === undefined) {
+      return undefined
+    }
+    try {
+      return parseWithErrors(AssetLockSchema, lock)
+    } catch (error) {
+      throw new PrivateRoomError(
+        `无效的 requiredAssetLock: ${error instanceof Error ? error.message : String(error)}`,
+        'INVALID_CONFIG',
+      )
+    }
+  }
+
+  private validateClientAssetLockAlignment(room: PrivateRoom, clientAssetLock: unknown): void {
+    if (clientAssetLock === undefined) return
+    let parsedClientAssetLock: AssetLock
+    try {
+      parsedClientAssetLock = parseWithErrors(AssetLockSchema, clientAssetLock)
+    } catch (error) {
+      throw new PrivateRoomError(
+        `无效的 clientAssetLock: ${error instanceof Error ? error.message : String(error)}`,
+        'INVALID_CONFIG',
+      )
+    }
+
+    const requiredAssetLock = room.config.requiredAssetLock
+    if (!requiredAssetLock) return
+    if (!isAssetLockCompatible(requiredAssetLock, parsedClientAssetLock)) {
+      throw new PrivateRoomError(
+        `客户端资源包与房间要求不一致，required=${JSON.stringify(requiredAssetLock)} client=${JSON.stringify(parsedClientAssetLock)}`,
+        'ASSET_LOCK_MISMATCH',
+      )
+    }
   }
 
   /**
@@ -219,6 +297,62 @@ export class PrivateRoomService {
   }
 
   /**
+   * 尝试根据 playerId 恢复私人房间会话绑定。
+   * 适用于页面刷新/重连后 sessionId 改变，但玩家仍应留在原房间中的场景。
+   */
+  async restorePlayerSessionCurrentRoom(playerId: string, sessionId: string): Promise<PrivateRoom | null> {
+    const existingRoom = await this.getPlayerSessionCurrentRoom(playerId, sessionId)
+    if (existingRoom) {
+      return existingRoom
+    }
+
+    const room = await this.getPlayerCurrentRoom(playerId)
+    if (!room) {
+      return null
+    }
+
+    return await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(room.config.roomCode), async () => {
+      const latestRoom = await this.getRoom(room.config.roomCode)
+      if (!latestRoom) {
+        return null
+      }
+
+      const playerEntry = latestRoom.players.find(player => player.playerId === playerId)
+      const spectatorEntry = latestRoom.spectators.find(spectator => spectator.playerId === playerId)
+      const participant = playerEntry ?? spectatorEntry
+      if (!participant) {
+        return null
+      }
+
+      participant.sessionId = sessionId
+      participant.connectionStatus = 'online'
+      latestRoom.lastActivity = Date.now()
+
+      await this.saveRoom(latestRoom)
+      await this.addPlayerSessionToRoom(playerId, sessionId, latestRoom.config.roomCode)
+      await this.sessionStateManager.setSessionState(playerId, sessionId, 'private_room', {
+        roomCode: latestRoom.config.roomCode,
+      })
+      await this.broadcastRoomEvent(latestRoom.config.roomCode, {
+        type: 'roomUpdate',
+        data: latestRoom,
+      })
+
+      logger.info(
+        {
+          roomCode: latestRoom.config.roomCode,
+          playerId,
+          sessionId,
+          role: playerEntry ? 'player' : 'spectator',
+        },
+        'Restored player session binding for private room',
+      )
+
+      return latestRoom
+    })
+  }
+
+  /**
    * 踢出玩家
    */
   async kickPlayer(roomCode: string, hostId: string, targetPlayerId: string): Promise<void> {
@@ -375,6 +509,10 @@ export class PrivateRoomService {
           maxPlayers: 2,
           isPrivate: config.isPrivate || false,
           password: config.password,
+          battleMode: config.battleMode ?? 'p2p',
+          p2pTransport: config.p2pTransport ?? 'auto',
+          requiredPackLock: this.normalizeRequiredPackLock(config.requiredPackLock),
+          requiredAssetLock: this.normalizeRequiredAssetLock(config.requiredAssetLock),
         },
         players: [{ ...hostEntry, connectionStatus: 'online' }],
         spectators: [],
@@ -403,7 +541,7 @@ export class PrivateRoomService {
    * 加入房间（支持玩家和观战者）
    */
   async joinRoom(
-    request: { roomCode: string; password?: string },
+    request: { roomCode: string; password?: string; clientPackLock?: unknown; clientAssetLock?: unknown },
     entry: RoomPlayer | SpectatorEntry,
     role: 'player' | 'spectator',
   ): Promise<boolean> {
@@ -422,6 +560,9 @@ export class PrivateRoomService {
       if (room.status !== 'waiting') {
         throw new PrivateRoomError('房间状态不允许加入', 'INVALID_STATE')
       }
+
+      this.validateClientPackLockAlignment(room, request.clientPackLock)
+      this.validateClientAssetLockAlignment(room, request.clientAssetLock)
 
       // 检查密码
       if (room.config.isPrivate && room.config.password !== request.password) {
@@ -858,6 +999,10 @@ export class PrivateRoomService {
       ruleSetId?: string
       isPrivate?: boolean
       password?: string
+      battleMode?: 'p2p' | 'server'
+      p2pTransport?: 'auto' | 'webrtc' | 'relay'
+      requiredPackLock?: PackLock
+      requiredAssetLock?: AssetLock
     },
   ): Promise<void> {
     await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
@@ -910,6 +1055,21 @@ export class PrivateRoomService {
           throw new PrivateRoomError('私密房间密码不能为空', 'INVALID_CONFIG')
         }
         room.config.password = configUpdates.password || undefined
+      }
+
+      if (configUpdates.battleMode !== undefined) {
+        room.config.battleMode = configUpdates.battleMode
+      }
+      if (configUpdates.p2pTransport !== undefined) {
+        room.config.p2pTransport = configUpdates.p2pTransport
+      }
+
+      if (configUpdates.requiredPackLock !== undefined) {
+        room.config.requiredPackLock = this.normalizeRequiredPackLock(configUpdates.requiredPackLock)
+        needsPlayerReadyReset = true
+      }
+      if (configUpdates.requiredAssetLock !== undefined) {
+        room.config.requiredAssetLock = this.normalizeRequiredAssetLock(configUpdates.requiredAssetLock)
       }
 
       room.lastActivity = Date.now()
@@ -1111,6 +1271,33 @@ export class PrivateRoomService {
     }
   }
 
+  private getRoomParticipants(room: PrivateRoom): Array<{
+    playerId: string
+    playerName: string
+    sessionId: string
+    role: 'player' | 'spectator'
+  }> {
+    return [
+      ...room.players.map(player => ({
+        playerId: player.playerId,
+        playerName: player.playerName,
+        sessionId: player.sessionId,
+        role: 'player' as const,
+      })),
+      ...room.spectators.map(spectator => ({
+        playerId: spectator.playerId,
+        playerName: spectator.playerName,
+        sessionId: spectator.sessionId,
+        role: 'spectator' as const,
+      })),
+    ]
+  }
+
+  private async publishPeerSignal(event: PrivateRoomPeerSignalEvent): Promise<void> {
+    const client = this.stateManager.redisManager.getPublisher()
+    await client.publish(REDIS_KEYS.PRIVATE_ROOM_SIGNAL_EVENTS(event.roomCode), JSON.stringify(event))
+  }
+
   /**
    * 自动选择新房主
    */
@@ -1278,7 +1465,11 @@ export class PrivateRoomService {
   /**
    * 开始战斗
    */
-  async startBattle(roomCode: string, hostPlayerId: string, hostTeam: PetSchemaType[]): Promise<string | null> {
+  async startBattle(
+    roomCode: string,
+    hostPlayerId: string,
+    hostTeam: PetSchemaType[],
+  ): Promise<PrivateRoomBattleStartInfo> {
     return await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
       const canStart = await this.canStartBattle(roomCode, hostPlayerId)
       if (!canStart) {
@@ -1346,14 +1537,14 @@ export class PrivateRoomService {
         )
       }
 
-      // 检查是否有战斗创建回调
-      if (!this.battleCallbacks) {
-        throw new PrivateRoomError('战斗系统未初始化', 'INVALID_STATE')
-      }
-
       // 将房间玩家转换为 MatchmakingEntry 格式
       const player1 = room.players[0]
       const player2 = room.players[1]
+      const hostSpectator = room.spectators.find(s => s.playerId === hostPlayerId)
+      const battleHost = {
+        playerId: hostPlayerId,
+        sessionId: hostPlayer?.sessionId ?? hostSpectator?.sessionId ?? '',
+      }
 
       const player1Entry: MatchmakingEntry = {
         playerId: player1.playerId,
@@ -1370,6 +1561,8 @@ export class PrivateRoomService {
           ruleSetId: room.config.ruleSetId,
           privateRoom: true,
           roomCode: roomCode,
+          requiredPackLock: room.config.requiredPackLock,
+          requiredAssetLock: room.config.requiredAssetLock,
         },
       }
 
@@ -1388,43 +1581,131 @@ export class PrivateRoomService {
           ruleSetId: room.config.ruleSetId,
           privateRoom: true,
           roomCode: roomCode,
+          requiredPackLock: room.config.requiredPackLock,
+          requiredAssetLock: room.config.requiredAssetLock,
         },
       }
 
-      // 提取观战者信息
-      const spectators = room.spectators.map(s => ({ playerId: s.playerId, sessionId: s.sessionId }))
+      let battleRoomId: string | undefined
 
-      // 调用战斗系统创建战斗房间
-      const battleRoomId = await this.battleCallbacks.createClusterBattleRoom(player1Entry, player2Entry, spectators)
+      if (room.config.battleMode === 'server') {
+        if (!this.battleCallbacks) {
+          throw new PrivateRoomError('战斗系统未初始化', 'INVALID_STATE')
+        }
 
-      if (!battleRoomId) {
-        throw new PrivateRoomError('创建战斗房间失败', 'INVALID_STATE')
+        const spectators = room.spectators.map(s => ({ playerId: s.playerId, sessionId: s.sessionId }))
+        battleRoomId =
+          (await this.battleCallbacks.createClusterBattleRoom(player1Entry, player2Entry, spectators)) ?? undefined
+        if (!battleRoomId) {
+          throw new PrivateRoomError('创建战斗房间失败', 'INVALID_STATE')
+        }
       }
 
       // 更新房间状态
       room.status = 'started'
       room.lastActivity = Date.now()
+      room.battleHost = battleHost
       room.battleRoomId = battleRoomId
 
       await this.saveRoom(room)
 
+      const startInfo: PrivateRoomBattleStartInfo = {
+        battleMode: room.config.battleMode,
+        battleRoomId,
+        battleHost,
+      }
+
+      await this.broadcastRoomEvent(roomCode, {
+        type: 'roomUpdate',
+        data: room,
+      })
+
       // 广播战斗开始事件
       await this.broadcastRoomEvent(roomCode, {
         type: 'battleStarted',
-        data: { battleRoomId },
+        data: startInfo,
       })
 
       logger.info(
         {
           roomCode,
+          battleMode: room.config.battleMode,
           battleRoomId,
+          battleHost,
           players: room.players.map(p => ({ id: p.playerId, name: p.playerName })),
           ruleSetId: room.config.ruleSetId,
         },
         'Private room battle started successfully',
       )
 
-      return battleRoomId
+      return startInfo
+    })
+  }
+
+  async relayPeerSignal(
+    roomCode: string,
+    senderPlayerId: string,
+    senderSessionId: string,
+    request: SendPrivateRoomPeerSignalRequest,
+  ): Promise<void> {
+    await this.lockManager.withLock(REDIS_KEYS.PRIVATE_ROOM(roomCode), async () => {
+      const room = await this.getRoom(roomCode)
+      if (!room) {
+        throw new PrivateRoomError('房间不存在', 'ROOM_NOT_FOUND')
+      }
+
+      if (room.config.battleMode !== 'p2p') {
+        throw new PrivateRoomError('只有 p2p 房间可以转发点对点信令', 'INVALID_STATE')
+      }
+
+      const participants = this.getRoomParticipants(room)
+      const sender = participants.find(
+        participant => participant.playerId === senderPlayerId && participant.sessionId === senderSessionId,
+      )
+      if (!sender) {
+        throw new PrivateRoomError('发送者不在房间中', 'PLAYER_NOT_FOUND')
+      }
+
+      const targets = participants.filter(participant => {
+        if (participant.playerId !== request.targetPlayerId) return false
+        if (request.targetSessionId !== undefined && participant.sessionId !== request.targetSessionId) return false
+        return true
+      })
+
+      if (targets.length === 0) {
+        throw new PrivateRoomError('目标会话不在房间中', 'SIGNAL_TARGET_NOT_FOUND')
+      }
+
+      const timestamp = Date.now()
+      for (const target of targets) {
+        await this.publishPeerSignal({
+          roomCode,
+          from: {
+            playerId: sender.playerId,
+            sessionId: sender.sessionId,
+          },
+          to: {
+            playerId: target.playerId,
+            sessionId: target.sessionId,
+          },
+          signal: request.signal,
+          timestamp,
+        })
+      }
+
+      logger.info(
+        {
+          roomCode,
+          senderPlayerId,
+          senderSessionId,
+          targetPlayerId: request.targetPlayerId,
+          targetSessionId: request.targetSessionId,
+          transport: request.signal.transport,
+          kind: request.signal.kind,
+          forwardedSessions: targets.length,
+        },
+        'Private room peer signal relayed',
+      )
     })
   }
 

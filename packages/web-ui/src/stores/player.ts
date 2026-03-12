@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
+import { toRaw } from 'vue'
 import { Type } from '@sinclair/typebox'
-import { PlayerSchema, type PlayerSchemaType, parseWithErrors } from '@arcadia-eternity/schema'
+import { type PlayerSchemaType, parseWithErrors } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 import { usePetStorageStore } from './petStorage'
 import { useAuthStore, type PlayerInfo, type PlayerStatus } from './auth'
@@ -281,18 +282,33 @@ export const usePlayerStore = defineStore('player', {
           this.saveToLocal()
           ElMessage.success(`欢迎${this.is_registered ? '注册用户' : '游客'}: ${this.name}`)
         } else {
-          // 玩家在服务器上不存在，需要创建新的游客
+          // 对已存在的本地游客，保持稳定的 playerId。
+          // 否则页面刷新会把房间/战斗里的身份引用全部打断。
+          const isPrivateRoomRecoveryRoute =
+            typeof window !== 'undefined' &&
+            (window.location.pathname.startsWith('/room/') ||
+              (window.location.pathname === '/battle' && window.location.search.includes('privateRoom=true')))
+
+          if (!this.is_registered && this.id && this.name && isPrivateRoomRecoveryRoute) {
+            console.log('Preserving existing local guest identity:', { id: this.id, name: this.name })
+            this.is_registered = false
+            this.requiresAuth = false
+            this.isAuthenticated = true
+            this.isInitialized = true
+            this.saveToLocal()
+            return
+          }
+
+          // 没有可用本地身份时，才向服务端申请新的游客
           try {
             console.log('Creating new guest on server...')
             const authStore = useAuthStore()
             const guestPlayer = await authStore.createGuest()
             console.log('Server returned guest player:', guestPlayer)
 
-            // 使用服务器返回的玩家信息，但保留本地数据作为备份
             const newId = guestPlayer.id
             const newName = guestPlayer.name
 
-            // 只有在服务器返回有效数据时才更新
             if (newId && newName) {
               this.id = newId
               this.name = newName
@@ -306,15 +322,12 @@ export const usePlayerStore = defineStore('player', {
             ElMessage.success(`欢迎新游客: ${this.name}`)
           } catch (error: unknown) {
             console.warn('Failed to create guest on server, using local ID:', error)
-            // 如果创建游客失败，使用本地数据作为离线模式
-            // 保留现有的ID和name，不要覆盖
             this.is_registered = false
             this.requiresAuth = false
             this.isAuthenticated = true
             this.isInitialized = true
             this.saveToLocal()
 
-            // 根据错误类型显示不同的消息
             if (isNetworkError(error)) {
               ElMessage.warning('网络连接异常，使用离线模式')
             } else {
@@ -448,21 +461,11 @@ export const usePlayerStore = defineStore('player', {
   getters: {
     player: (state): PlayerSchemaType => {
       const petStorage = usePetStorageStore()
-      try {
-        // 验证队伍数据有效性
-        const team = petStorage.getCurrentTeam()
-        return parseWithErrors(PlayerSchema, {
-          ...state,
-          team,
-        })
-      } catch (err) {
-        console.error('玩家数据验证失败:', err)
-        ElMessage.error('队伍数据异常，请检查精灵配置')
-        return {
-          ...state,
-          team: [], // 返回空队伍防止崩溃
-        }
-      }
+      const team = petStorage.getCurrentTeam().map(pet => ({ ...toRaw(pet) }))
+      return {
+        ...state,
+        team,
+      } as PlayerSchemaType
     },
 
     /**

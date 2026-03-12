@@ -1,13 +1,12 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { AttackTargetOpinionSchema } from './skill'
 
-const NANOID_PATTERN = '^[A-Za-z0-9_-]{21}$'
-const NanoidString = Type.String({ pattern: NANOID_PATTERN })
+const RuntimeEntityIdSchema = Type.String({ minLength: 1, pattern: '^[A-Za-z0-9_-]+$' })
 
 export const UseSkillSelectionSchema = Type.Object(
   {
     type: Type.Literal('use-skill'),
-    player: NanoidString,
+    player: RuntimeEntityIdSchema,
     skill: Type.String(),
     target: AttackTargetOpinionSchema,
   },
@@ -17,8 +16,8 @@ export const UseSkillSelectionSchema = Type.Object(
 export const SwitchPetSelectionSchema = Type.Object(
   {
     type: Type.Literal('switch-pet'),
-    player: NanoidString,
-    pet: NanoidString,
+    player: RuntimeEntityIdSchema,
+    pet: RuntimeEntityIdSchema,
   },
   { additionalProperties: false },
 )
@@ -26,7 +25,7 @@ export const SwitchPetSelectionSchema = Type.Object(
 export const DoNothingSelectionSchema = Type.Object(
   {
     type: Type.Literal('do-nothing'),
-    player: NanoidString,
+    player: RuntimeEntityIdSchema,
   },
   { additionalProperties: false },
 )
@@ -34,7 +33,7 @@ export const DoNothingSelectionSchema = Type.Object(
 export const SurrenderSelectionSchema = Type.Object(
   {
     type: Type.Literal('surrender'),
-    player: NanoidString,
+    player: RuntimeEntityIdSchema,
   },
   { additionalProperties: false },
 )
@@ -42,9 +41,9 @@ export const SurrenderSelectionSchema = Type.Object(
 export const TeamSelectionSchema = Type.Object(
   {
     type: Type.Literal('team-selection'),
-    player: NanoidString,
-    selectedPets: Type.Array(NanoidString),
-    starterPetId: NanoidString,
+    player: RuntimeEntityIdSchema,
+    selectedPets: Type.Array(RuntimeEntityIdSchema),
+    starterPetId: RuntimeEntityIdSchema,
   },
   { additionalProperties: false },
 )
@@ -61,6 +60,6 @@ export type PlayerSelectionSchemaType = Static<typeof PlayerSelectionSchema>
 
 // 最终命令结构
 export const PlayerSelectionsSchema = Type.Object({
-  playerId: NanoidString,
+  playerId: RuntimeEntityIdSchema,
   selections: PlayerSelectionSchema,
 })

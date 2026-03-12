@@ -1,5 +1,6 @@
 import { Value } from '@sinclair/typebox/value'
 import { type TSchema, type Static, Type } from '@sinclair/typebox'
+import type { TUnion, TLiteral } from '@sinclair/typebox'
 
 /**
  * 解析并验证数据，类似 Zod 的 parse 行为
@@ -8,7 +9,9 @@ import { type TSchema, type Static, Type } from '@sinclair/typebox'
  * 3. 验证数据
  */
 export function parseWithErrors<T extends TSchema>(schema: T, data: unknown): Static<T> {
-  const cloned = structuredClone(data)
+  // structuredClone fails on Vue reactive proxies (used heavily in web-ui stores).
+  // TypeBox Clone can clone plain objects and proxies safely.
+  const cloned = Value.Clone(data)
   const withDefaults = Value.Default(schema, cloned)
   const cleaned = Value.Clean(schema, withDefaults)
   const converted = Value.Convert(schema, cleaned)
@@ -26,9 +29,7 @@ export function parseWithErrors<T extends TSchema>(schema: T, data: unknown): St
  * 保留字面量类型信息
  */
 export function StringEnum<T extends string>(values: readonly T[]) {
-  return Type.Union(
-    values.map(v => Type.Literal(v as T)),
-  ) as import('@sinclair/typebox').TUnion<import('@sinclair/typebox').TLiteral<T>[]>
+  return Type.Union(values.map(v => Type.Literal(v as T))) as TUnion<TLiteral<T>[]>
 }
 
 /**

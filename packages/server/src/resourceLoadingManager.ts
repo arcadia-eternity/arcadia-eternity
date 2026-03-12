@@ -1,7 +1,7 @@
-import { loadGameData, LOADING_STRATEGIES, type LoadingStrategy } from '@arcadia-eternity/fsloader'
 import { ScriptLoader } from '@arcadia-eternity/data-repository'
-import { validateAndPrintGameData } from '@arcadia-eternity/cli-validator'
+import type { V2DataRepository } from '@arcadia-eternity/battle'
 import pino from 'pino'
+import { serverPackManager } from './pack/serverPackManager.js'
 
 const logger = pino({ name: 'ResourceLoadingManager' })
 
@@ -23,9 +23,8 @@ export interface ResourceLoadingProgress {
 }
 
 export interface ResourceLoadingOptions {
-  dataDir?: string
+  packRef?: string
   scriptPaths?: string[]
-  loadingStrategy?: LoadingStrategy
   validateData?: boolean
   continueOnError?: boolean
 }
@@ -44,6 +43,7 @@ export class ResourceLoadingManager {
   }
   private loadingPromise: Promise<void> | null = null
   private options: ResourceLoadingOptions = {}
+  private loadedRepository: V2DataRepository | null = null
 
   static getInstance(): ResourceLoadingManager {
     if (!ResourceLoadingManager.instance) {
@@ -67,7 +67,7 @@ export class ResourceLoadingManager {
     }
 
     this.options = {
-      loadingStrategy: LOADING_STRATEGIES.LENIENT,
+      packRef: 'builtin:base',
       scriptPaths: ['./scripts'],
       validateData: false,
       continueOnError: true,
@@ -128,6 +128,10 @@ export class ResourceLoadingManager {
     return this.progress.status === ResourceLoadingStatus.Completed
   }
 
+  getLoadedRepository(): V2DataRepository | null {
+    return this.loadedRepository
+  }
+
   /**
    * 重置加载状态（用于测试或重新加载）
    */
@@ -139,6 +143,7 @@ export class ResourceLoadingManager {
       validationCompleted: false,
     }
     this.loadingPromise = null
+    this.loadedRepository = null
     logger.info('资源加载状态已重置')
   }
 
@@ -147,10 +152,24 @@ export class ResourceLoadingManager {
    */
   private async performLoading(): Promise<void> {
     try {
-      logger.info('开始加载游戏数据...')
-      await loadGameData(this.options.dataDir, this.options.loadingStrategy)
+      logger.info({ packRef: this.options.packRef }, '开始加载数据包...')
+      const loadResult = await serverPackManager.load(this.options.packRef ?? 'builtin:base', {
+        enforceLockfile: true,
+      })
+      this.loadedRepository = loadResult.repository
+      if (this.options.validateData && loadResult.errors.length > 0 && !this.options.continueOnError) {
+        throw new Error(`数据包校验失败，共 ${loadResult.errors.length} 个错误`)
+      }
       this.progress.gameDataLoaded = true
-      logger.info('游戏数据加载完成')
+      logger.info({
+        errors: loadResult.errors.length,
+        packId: loadResult.pack?.id,
+        packVersion: loadResult.pack?.version,
+        hasLockfile: loadResult.lockfile !== undefined,
+        lockfileVersion: loadResult.lockfile?.lockfileVersion,
+        lockfileIssueCount: loadResult.lockfileIssues?.length ?? 0,
+        assetConflictCount: loadResult.assetConflicts?.length ?? 0,
+      }, '数据包加载完成')
 
       logger.info('开始加载脚本声明...')
       await this.loadScripts()
@@ -158,13 +177,8 @@ export class ResourceLoadingManager {
       logger.info('脚本声明加载完成')
 
       if (this.options.validateData) {
-        logger.info('开始验证数据完整性...')
-        const isValid = await validateAndPrintGameData({ verbose: false })
-        if (!isValid && !this.options.continueOnError) {
-          throw new Error('数据验证失败')
-        }
+        logger.info('数据包校验完成')
         this.progress.validationCompleted = true
-        logger.info('数据验证完成')
       } else {
         this.progress.validationCompleted = true
       }

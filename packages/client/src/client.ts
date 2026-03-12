@@ -1,16 +1,22 @@
 import {
   type BattleState,
+  BattleStatus,
+  BattleMessageType,
   type playerId,
   type PlayerTimerState,
   type TimerConfig,
   type TimerSnapshot,
+  TimerState,
   type Events,
 } from '@arcadia-eternity/const'
 import {
   type ClientToServerEvents,
+  type PrivateRoomPeerSignalEvent,
+  type PrivateRoomPeerSignalPayload,
   type ServerToClientEvents,
   type SuccessResponse,
   type ErrorResponse,
+  type PrivateRoomBattleStartInfo,
 } from '@arcadia-eternity/protocol'
 import { type PlayerSchemaType, type PlayerSelectionSchemaType, type PetSchemaType } from '@arcadia-eternity/schema'
 import { io, type ManagerOptions, type Socket, type SocketOptions } from 'socket.io-client'
@@ -34,6 +40,12 @@ export type JoinPrivateRoomData = {
 
 export type JoinSpectatorData = {
   roomCode: string
+}
+
+export type SendPrivateRoomPeerSignalData = {
+  targetPlayerId: string
+  targetSessionId?: string
+  signal: PrivateRoomPeerSignalPayload
 }
 
 type BattleClientOptions = {
@@ -74,12 +86,12 @@ export class BattleClient {
   // 新架构：Timer快照本地缓存
   private timerSnapshots = new Map<playerId, TimerSnapshot>()
   private lastSnapshotUpdate: number = 0
+  private lastBattleEndEventAt: number = 0
 
   // 多实例支持：会话管理
   private sessionId: string
 
   constructor(options: BattleClientOptions) {
-    console.log('🏗️ Creating new BattleClient instance')
     this.options = {
       autoReconnect: true,
       reconnectAttempts: 5,
@@ -89,7 +101,6 @@ export class BattleClient {
 
     // 使用预设的 sessionId 或创建新的
     this.sessionId = options.sessionId || this.getOrCreateSessionId()
-    console.log('🏗️ BattleClient instance created with sessionId:', this.sessionId)
 
     // 在构造函数中就创建socket
     this.socket = this.createSocket()
@@ -98,7 +109,7 @@ export class BattleClient {
 
   private createSocket() {
     const socketConfig: Partial<ManagerOptions> = {
-      transports: ['websocket'],
+      autoConnect: false,
       reconnection: this.options.autoReconnect,
       reconnectionAttempts: this.options.reconnectAttempts,
       reconnectionDelay: 1000,
@@ -129,21 +140,16 @@ export class BattleClient {
   }
 
   private updateSocketAuth(config?: any) {
-    console.log('🔗 updateSocketAuth called, config:', !!config)
     if (this.options.auth) {
       try {
         const playerId = this.options.auth.getPlayerId?.()
         const token = this.options.auth.getToken?.()
-
-        console.log('🔗 Auth info:', { playerId, hasToken: !!token, sessionId: this.sessionId })
 
         if (playerId) {
           const query: any = {
             playerId,
             sessionId: this.sessionId,
           }
-
-          console.log('🔗 Setting socket query:', { playerId, sessionId: this.sessionId })
 
           if (config) {
             config.query = query
@@ -160,9 +166,6 @@ export class BattleClient {
             // 更新现有socket的auth
             this.socket.auth = { token }
           }
-          console.log('Socket.IO auth configured with token:', token.substring(0, 20) + '...')
-        } else {
-          console.log('Socket.IO: No token available')
         }
       } catch (error) {
         console.warn('Failed to set auth info:', error)
@@ -184,13 +187,13 @@ export class BattleClient {
 
   // 公开的状态重置方法
   resetState() {
-    console.log('🔄 Resetting BattleClient state to idle')
     this.updateState({
       matchmaking: 'idle',
       battle: 'idle',
       roomId: undefined,
       opponent: undefined,
     })
+    this.lastBattleEndEventAt = 0
 
     // 清理Timer快照缓存
     this.clearTimerSnapshots()
@@ -208,13 +211,10 @@ export class BattleClient {
     } catch (error) {
       // 检查是否是认证错误且还有重试次数
       if (this.isAuthError(error) && retryCount < maxRetries) {
-        console.log(`认证失败，尝试重新获取token并重试 (${retryCount + 1}/${maxRetries})`)
-
         // 尝试重新获取token
         if (this.options.auth?.refreshAuth) {
           try {
             await this.options.auth.refreshAuth()
-            console.log('Token刷新成功，重试连接')
             return this.connectWithRetry(retryCount + 1)
           } catch (refreshError) {
             console.error('Token刷新失败:', refreshError)
@@ -306,9 +306,7 @@ export class BattleClient {
       ruleSetId = 'standard'
     }
 
-    console.log('🔍 Starting matchmaking process for player:', playerData.id, 'with rule:', ruleSetId)
     this.updateState({ matchmaking: 'searching' })
-    console.log('🔄 State updated to searching, current state:', this.state.matchmaking)
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -316,7 +314,6 @@ export class BattleClient {
         reject(new Error('Matchmaking timeout'))
       }, this.options.actionTimeout)
 
-      console.log('📤 Sending joinMatchmaking request to server')
       this.socket.emit(
         'joinMatchmaking',
         {
@@ -325,7 +322,6 @@ export class BattleClient {
         },
         response => {
           clearTimeout(timeout)
-          console.log('📥 Received joinMatchmaking response:', response)
           this.handleMatchmakingResponse(response, resolve, reject)
         },
       )
@@ -371,7 +367,8 @@ export class BattleClient {
         if (response.status === 'SUCCESS') {
           resolve()
         } else {
-          reject(this.parseError(response))
+          const error = this.parseError(response)
+          reject(error)
         }
       })
     })
@@ -388,9 +385,14 @@ export class BattleClient {
             reject(new Error('Invalid battle state response'))
             return
           }
-          resolve(response.data as BattleState)
+          const state = response.data as BattleState
+          if (state.status === BattleStatus.Ended) {
+            this.markBattleEnded('state-ended')
+          }
+          resolve(state)
         } else {
-          reject(this.parseError(response))
+          const error = this.parseError(response)
+          reject(error)
         }
       })
     })
@@ -406,7 +408,8 @@ export class BattleClient {
           const data = response.data as PlayerSelectionSchemaType[] | undefined
           resolve(data || [])
         } else {
-          reject(this.parseError(response))
+          const error = this.parseError(response)
+          reject(error)
         }
       })
     })
@@ -484,6 +487,31 @@ export class BattleClient {
         }
       })
     })
+  }
+
+  async refreshTimerSnapshotsFromServer(): Promise<void> {
+    this.verifyBattleActive()
+
+    const [timerStates, timerConfig] = await Promise.all([this.getAllPlayerTimerStates(), this.getTimerConfig()])
+    const now = Date.now()
+    const snapshots: TimerSnapshot[] = timerStates.map(timerState => ({
+      timestamp: now,
+      playerId: timerState.playerId,
+      state: timerState.state,
+      remainingTurnTime: timerState.remainingTurnTime,
+      remainingTotalTime: timerState.remainingTotalTime,
+      config: timerConfig,
+      hasActiveAnimations: false,
+      pauseReason: timerState.state === TimerState.Paused ? 'system' : undefined,
+    }))
+
+    this.updateTimerSnapshots(snapshots)
+
+    const snapshotHandlers = this.timerEventHandlers.get('timerSnapshot')
+    if (snapshotHandlers) {
+      const payload = { snapshots }
+      snapshotHandlers.forEach(handler => handler(payload))
+    }
   }
 
   async startAnimation(source: string, expectedDuration: number, ownerId: playerId): Promise<string> {
@@ -610,7 +638,7 @@ export class BattleClient {
     })
   }
 
-  async startPrivateRoomBattle(hostTeam: PetSchemaType[]): Promise<string> {
+  async startPrivateRoomBattle(hostTeam: PetSchemaType[]): Promise<PrivateRoomBattleStartInfo> {
     this.verifyConnection()
 
     return new Promise((resolve, reject) => {
@@ -621,7 +649,26 @@ export class BattleClient {
       this.socket.emit('startPrivateRoomBattle', { hostTeam }, response => {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
-          resolve(response.data.battleRoomId)
+          resolve(response.data)
+        } else {
+          reject(this.parseError(response))
+        }
+      })
+    })
+  }
+
+  async sendPrivateRoomPeerSignal(data: SendPrivateRoomPeerSignalData): Promise<void> {
+    this.verifyConnection()
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Send private room peer signal timeout'))
+      }, this.options.actionTimeout)
+
+      this.socket.emit('sendPrivateRoomPeerSignal', data, response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') {
+          resolve()
         } else {
           reject(this.parseError(response))
         }
@@ -896,7 +943,7 @@ export class BattleClient {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, new Set())
       // 对于这些事件，不需要重复注册socket监听器，因为它们已经在setupEventListeners中注册了
-      const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent']
+      const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent', 'privateRoomPeerSignal']
       if (!preRegisteredEvents.includes(event)) {
         this.socket.on(event, wrapper as any) // 使用安全类型断言
       }
@@ -915,7 +962,7 @@ export class BattleClient {
       handlers.forEach(h => {
         if (h === handler) {
           // 对于这些事件，不需要移除socket监听器，因为它们是在setupEventListeners中注册的，应该保持活跃
-          const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent']
+          const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent', 'privateRoomPeerSignal']
           if (!preRegisteredEvents.includes(event)) {
             this.socket.off(event, h as any) // 使用安全类型断言
           }
@@ -963,10 +1010,9 @@ export class BattleClient {
     })
 
     this.socket.on('disconnect', () => {
+      // 保留 battle/matchmaking 状态，避免短暂断线被误判为战斗结束
       this.updateState({
         status: 'disconnected',
-        matchmaking: 'idle',
-        battle: 'idle',
       })
     })
 
@@ -980,24 +1026,13 @@ export class BattleClient {
 
     // 游戏事件
     this.socket.on('matchSuccess', response => {
-      console.log('🎯 Received matchSuccess event:', response)
       if (response.status === 'SUCCESS') {
-        console.log('✅ Match success confirmed, updating state:', {
-          roomId: response.data.roomId,
-          opponent: response.data.opponent,
-          previousState: this.state.matchmaking,
-        })
+        this.lastBattleEndEventAt = 0
         this.updateState({
           matchmaking: 'matched',
           battle: 'active',
           roomId: response.data.roomId,
           opponent: response.data.opponent,
-        })
-        console.log('🔄 State updated, new state:', {
-          matchmaking: this.state.matchmaking,
-          battle: this.state.battle,
-          roomId: this.state.roomId,
-          opponent: this.state.opponent,
         })
       } else {
         console.error('❌ Match success event with error status:', response)
@@ -1006,25 +1041,15 @@ export class BattleClient {
 
     // 处理单个战斗事件 - 通过eventHandlers管理系统处理
     this.socket.on('battleEvent', message => {
-      console.log(
-        '🎮 Client received battleEvent:',
-        message.type,
-        'handlers count:',
-        this.eventHandlers.get('battleEvent')?.size || 0,
-      )
-
       // 触发battleEvent处理器
       const handlers = this.eventHandlers.get('battleEvent')
       if (handlers) {
-        console.log('🎮 Calling', handlers.size, 'battleEvent handlers')
         handlers.forEach(handler => handler(message))
-      } else {
-        console.warn('🎮 No battleEvent handlers registered!')
       }
 
       // 检查是否有战斗结束消息
-      if (message.type === 'BATTLE_END') {
-        this.updateState({ battle: 'ended' })
+      if (this.isBattleEndMessageType(message.type)) {
+        this.lastBattleEndEventAt = Date.now()
       }
     })
 
@@ -1035,16 +1060,25 @@ export class BattleClient {
         // 触发单个battleEvent处理器
         const handlers = this.eventHandlers.get('battleEvent')
         if (handlers) {
-          console.log('🎮 Calling', handlers.size, 'battleEvent handlers')
           handlers.forEach(handler => handler(message))
-        } else {
-          console.warn('🎮 No battleEventBatch handlers registered!')
         }
 
         // 检查是否有战斗结束消息
-        if (message.type === 'BATTLE_END') {
-          this.updateState({ battle: 'ended' })
+        if (this.isBattleEndMessageType(message.type)) {
+          this.lastBattleEndEventAt = Date.now()
         }
+      }
+    })
+
+    // 房间关闭通知（服务端强制结束/清理）
+    this.socket.on('roomClosed', message => {
+      const closedSoonAfterBattleEnd = Date.now() - this.lastBattleEndEventAt < 15000
+      if (!closedSoonAfterBattleEnd) {
+        this.markBattleEnded('room-closed')
+      }
+      const handlers = this.eventHandlers.get('roomClosed')
+      if (handlers) {
+        handlers.forEach(handler => handler(message))
       }
     })
 
@@ -1110,7 +1144,6 @@ export class BattleClient {
 
     // 重连测试事件处理（用于验证消息发送是否正常）
     this.socket.on('reconnectTest', data => {
-      console.log('🔄 Reconnect test message received:', data)
       const handlers = this.eventHandlers.get('reconnectTest')
       if (handlers) {
         handlers.forEach(handler => handler(data))
@@ -1119,19 +1152,18 @@ export class BattleClient {
 
     // 私人房间事件处理
     this.socket.on('privateRoomEvent', event => {
-      console.log('🏠 Private room event received in client:', event)
       const handlers = this.eventHandlers.get('privateRoomEvent')
-      console.log('🏠 Handlers for privateRoomEvent:', handlers?.size || 0)
       if (handlers) {
-        console.log('🏠 Calling', handlers.size, 'handlers for privateRoomEvent')
-        let index = 0
         handlers.forEach(handler => {
-          console.log('🏠 Calling handler', index + 1, 'for privateRoomEvent')
           handler(event)
-          index++
         })
-      } else {
-        console.log('🏠 No handlers registered for privateRoomEvent!')
+      }
+    })
+
+    this.socket.on('privateRoomPeerSignal', (event: PrivateRoomPeerSignalEvent) => {
+      const handlers = this.eventHandlers.get('privateRoomPeerSignal')
+      if (handlers) {
+        handlers.forEach(handler => handler(event))
       }
     })
 
@@ -1140,13 +1172,7 @@ export class BattleClient {
   }
 
   private updateState(partialState: Partial<ClientState>) {
-    const oldState = { ...this.state }
     this.state = { ...this.state, ...partialState }
-    console.log('🔄 BattleClient state updated:', {
-      old: oldState,
-      new: this.state,
-      changes: partialState,
-    })
 
     // 触发专门的状态变化监听器
     this.stateChangeListeners.forEach(listener => {
@@ -1190,6 +1216,64 @@ export class BattleClient {
   }
 
   private parseError(response: ErrorResponse): Error {
+    this.handlePotentialBattleUnavailable(response)
     return new Error(response.details ? `${response.code}: ${response.details}` : response.code)
+  }
+
+  private markBattleEnded(reason: string): void {
+    if (this.state.battle === 'ended' && !this.state.roomId && !this.state.opponent) {
+      return
+    }
+
+    this.updateState({
+      matchmaking: 'idle',
+      battle: 'ended',
+      roomId: undefined,
+      opponent: undefined,
+    })
+
+    const handlers = this.eventHandlers.get('battleTerminated')
+    if (handlers) {
+      handlers.forEach(handler => handler({ reason }))
+    }
+  }
+
+  private handlePotentialBattleUnavailable(response: ErrorResponse): void {
+    const code = response.code
+    const details = response.details ?? ''
+    const detailUpper = details.toUpperCase()
+
+    const directTerminalCodes = new Set([
+      'NOT_IN_BATTLE',
+      'BATTLE_NOT_FOUND',
+      'BATTLE_ALREADY_ENDED',
+    ])
+
+    if (directTerminalCodes.has(code)) {
+      this.markBattleEnded(code)
+      return
+    }
+
+    const wrappedTerminalCodes = new Set([
+      'BATTLE_ACTION_ERROR',
+      'GET_SELECTION_ERROR',
+      'GET_STATE_ERROR',
+      'READY_ERROR',
+    ])
+
+    if (wrappedTerminalCodes.has(code)) {
+      const wrappedTerminal =
+        detailUpper.includes('NOT_IN_BATTLE')
+        || detailUpper.includes('BATTLE_NOT_FOUND')
+        || detailUpper.includes('BATTLE_ALREADY_ENDED')
+        || detailUpper.includes('BATTLE IS NOT ACTIVE')
+      if (wrappedTerminal) {
+        this.markBattleEnded(`${code}:${details}`)
+      }
+    }
+  }
+
+  private isBattleEndMessageType(messageType: string): boolean {
+    return messageType === 'BATTLE_END' || messageType === BattleMessageType.BattleEnd
   }
 }

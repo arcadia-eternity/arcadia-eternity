@@ -1,6 +1,5 @@
 import type { TimerConfig } from '@arcadia-eternity/const'
-import type { BaseSkill, BaseMark } from '@arcadia-eternity/battle'
-import type { PetSchemaType, LearnableSkill } from '@arcadia-eternity/schema'
+import type { PetSchemaType, LearnableSkill, SkillSchemaType, MarkSchemaType } from '@arcadia-eternity/schema'
 import type {
   Rule,
   Team,
@@ -65,14 +64,14 @@ export abstract class AbstractRule implements Rule {
   /**
    * 验证技能 - 默认实现返回成功
    */
-  validateSkill(pet: PetSchemaType, skill: BaseSkill, context?: RuleContext): ValidationResult {
+  validateSkill(pet: PetSchemaType, skill: SkillSchemaType, context?: RuleContext): ValidationResult {
     return createSuccessResult()
   }
 
   /**
    * 验证印记 - 默认实现返回成功
    */
-  validateMark(pet: PetSchemaType, mark: BaseMark, context?: RuleContext): ValidationResult {
+  validateMark(pet: PetSchemaType, mark: MarkSchemaType, context?: RuleContext): ValidationResult {
     return createSuccessResult()
   }
 
@@ -86,14 +85,14 @@ export abstract class AbstractRule implements Rule {
   /**
    * 修改技能数据 - 默认实现不做任何修改
    */
-  modifySkill(skill: BaseSkill, context?: RuleContext): void {
+  modifySkill(skill: SkillSchemaType, context?: RuleContext): void {
     // 默认不做任何修改
   }
 
   /**
    * 修改印记数据 - 默认实现不做任何修改
    */
-  modifyMark(mark: BaseMark, context?: RuleContext): void {
+  modifyMark(mark: MarkSchemaType, context?: RuleContext): void {
     // 默认不做任何修改
   }
 

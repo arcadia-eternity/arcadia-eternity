@@ -7,6 +7,7 @@ import { useResourceStore } from '@/stores/resource'
 import { Z_INDEX } from '@/constants/zIndex'
 import i18next from 'i18next'
 import { useGameDataStore } from '@/stores/gameData'
+import { resolveMarkIconUrl } from '@/utils/resourceResolver'
 
 const md = new MarkdownIt({
   html: true,
@@ -26,16 +27,7 @@ const showTooltip = ref(false)
 const stackText = computed(() => `${props.mark.stack}`)
 const markData = computed(() => dataStore.getMark(props.mark.baseId))
 const image = computed(() => {
-  // if (!markData.value) return 'https://seer2-resource.yuuinih.com/png/traitMark/inc.png'
-  if (markData.value && markData.value.tags) {
-    if (markData.value.tags?.includes('ability')) {
-      return 'https://seer2-resource.yuuinih.com/png/markImage/ability.png'
-    }
-    if (markData.value.tags?.includes('emblem')) {
-      return 'https://seer2-resource.yuuinih.com/png/markImage/emblem.png'
-    }
-  }
-  return resourceStore.getMarkImage(props.mark.baseId) ?? 'https://seer2-resource.yuuinih.com/png/traitMark/inc.png'
+  return resolveMarkIconUrl(markData.value, resourceStore.getMarkImage)
 })
 const name = computed(() =>
   i18next.t(`${props.mark.baseId}.name`, {

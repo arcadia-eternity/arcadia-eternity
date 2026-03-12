@@ -30,28 +30,31 @@ const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
 })
 
+const EMAIL_PATTERN = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'
+const EmailStringSchema = Type.String({ minLength: 3, maxLength: 254, pattern: EMAIL_PATTERN })
+
 // 请求验证 schemas
 const SendVerificationCodeSchema = Type.Object({
-  email: Type.String({ format: 'email' }),
+  email: EmailStringSchema,
   playerId: Type.Optional(Type.String()),
   purpose: Type.Union([Type.Literal('bind'), Type.Literal('recover')]),
 })
 
 const VerifyCodeSchema = Type.Object({
-  email: Type.String({ format: 'email' }),
+  email: EmailStringSchema,
   code: Type.String({ minLength: 6, maxLength: 6, pattern: '^\\d{6}$' }),
   purpose: Type.Union([Type.Literal('bind'), Type.Literal('recover')]),
   playerId: Type.Optional(Type.String()),
 })
 
 const BindEmailSchema = Type.Object({
-  email: Type.String({ format: 'email' }),
+  email: EmailStringSchema,
   code: Type.String({ minLength: 6, maxLength: 6, pattern: '^\\d{6}$' }),
   playerId: Type.String({ minLength: 1 }),
 })
 
 const RecoverPlayerSchema = Type.Object({
-  email: Type.String({ format: 'email' }),
+  email: EmailStringSchema,
   code: Type.String({ minLength: 6, maxLength: 6, pattern: '^\\d{6}$' }),
 })
 
@@ -612,7 +615,7 @@ export function createEmailInheritanceRoutes(): Router {
    */
   router.get('/check-binding', async (req: any, res: any) => {
     try {
-      const email = parseRequest(Type.String({ format: 'email' }), req.query.email)
+      const email = parseRequest(EmailStringSchema, req.query.email)
 
       const boundPlayer = await emailVerificationRepo.findPlayerByEmail(email)
 

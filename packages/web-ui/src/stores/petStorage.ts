@@ -5,7 +5,6 @@ import { PetSchema, PetSetSchema, parseWithErrors } from '@arcadia-eternity/sche
 import { Gender, Nature } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 import { Type, type Static } from '@sinclair/typebox'
-import { Value } from '@sinclair/typebox/value'
 
 interface Team {
   name: string
@@ -49,6 +48,17 @@ const PetStorageStateSchema = Type.Object({
 
 // 定义持久化数据的类型（不包含initialized）
 type PersistentPetStorageData = Omit<PetStorageState, 'initialized'>
+
+function createPersistentSnapshot(state: Pick<PetStorageState, 'storage' | 'teams' | 'currentTeamIndex' | 'lastMatchingConfig'>): PersistentPetStorageData {
+  return JSON.parse(
+    JSON.stringify({
+      storage: state.storage,
+      teams: state.teams,
+      currentTeamIndex: state.currentTeamIndex,
+      lastMatchingConfig: state.lastMatchingConfig,
+    }),
+  ) as PersistentPetStorageData
+}
 
 // 校验函数
 function validatePetStorageData(data: unknown): { valid: boolean; data?: PersistentPetStorageData; errors?: string[] } {
@@ -229,12 +239,12 @@ export const usePetStorageStore = defineStore('petStorage', {
 
     // 校验当前状态并保存
     validateAndSave(): boolean {
-      const currentState = {
+      const currentState = createPersistentSnapshot({
         storage: this.storage,
         teams: this.teams,
         currentTeamIndex: this.currentTeamIndex,
         lastMatchingConfig: this.lastMatchingConfig,
-      }
+      })
 
       const validation = validatePetStorageData(currentState)
 
@@ -251,14 +261,15 @@ export const usePetStorageStore = defineStore('petStorage', {
     },
 
     saveToLocal() {
+      const snapshot = createPersistentSnapshot({
+        storage: this.storage,
+        teams: this.teams,
+        currentTeamIndex: this.currentTeamIndex,
+        lastMatchingConfig: this.lastMatchingConfig,
+      })
       localStorage.setItem(
         'petStorage',
-        JSON.stringify({
-          storage: this.storage,
-          teams: this.teams,
-          currentTeamIndex: this.currentTeamIndex,
-          lastMatchingConfig: this.lastMatchingConfig,
-        }),
+        JSON.stringify(snapshot),
       )
     },
 
