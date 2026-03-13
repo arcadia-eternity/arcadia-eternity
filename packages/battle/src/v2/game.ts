@@ -25,6 +25,17 @@ import { createSeer2ExpressionResolver } from './systems/expression-resolver.js'
 import { seer2EffectInterpreter } from './systems/effect-interpreter.js'
 import { V2TransformStrategy } from './systems/transform-strategy.js'
 import { ensureAttributeWriteAllowed } from './systems/interpreter/extractor-runtime.js'
+import { registerOperatorHandlers, type OperatorHandler } from './systems/interpreter/operator-registry.js'
+import { registerDefaultOperatorHandlers } from './systems/interpreter/operators.js'
+import { registerConditionHandlers, type ConditionHandler } from './systems/interpreter/condition-registry.js'
+import { registerDefaultConditionHandlers } from './systems/interpreter/conditions.js'
+import {
+  registerSelectorBaseHandlers,
+  registerSelectorChainHandlers,
+  type SelectorBaseHandler,
+  type SelectorChainHandler,
+} from './systems/interpreter/selector-registry.js'
+import { registerDefaultSelectorHandlers } from './systems/interpreter/selector.js'
 import { registerSeer2Phases } from './phases/index.js'
 import { createBattleState } from './types/battle-state.js'
 import type { BattleSystems } from './types/battle-systems.js'
@@ -58,7 +69,6 @@ export interface BattleConfig {
   // Battle visibility/rules
   allowFaintSwitch?: boolean
   showHidden?: boolean
-  strictExtractorTyping?: boolean
 
   // Runtime features
   timerConfig?: Partial<TimerConfig>
@@ -81,6 +91,16 @@ export interface BattleConfig {
 
   // Rule-engine extension point
   customConfig?: Record<string, unknown>
+
+  // Effect operator extension point
+  operatorHandlers?: Record<string, OperatorHandler>
+
+  // Effect condition extension point
+  conditionHandlers?: Record<string, ConditionHandler>
+
+  // Effect selector extension points
+  selectorBaseHandlers?: Record<string, SelectorBaseHandler>
+  selectorChainHandlers?: Record<string, SelectorChainHandler>
 }
 
 export interface BattleInstance {
@@ -193,7 +213,22 @@ export function createBattle(config: BattleConfig = {}): BattleInstance {
     transformStrategy: new V2TransformStrategy(),
   }
   world.systems = systems as unknown as Record<string, unknown>
-  world.meta.strictExtractorTyping = config.strictExtractorTyping === true
+  registerDefaultConditionHandlers(world)
+  registerDefaultSelectorHandlers(world)
+  registerDefaultOperatorHandlers(world)
+  if (config.conditionHandlers) {
+    registerConditionHandlers(world, config.conditionHandlers)
+  }
+  if (config.selectorBaseHandlers) {
+    registerSelectorBaseHandlers(world, config.selectorBaseHandlers)
+  }
+  if (config.selectorChainHandlers) {
+    registerSelectorChainHandlers(world, config.selectorChainHandlers)
+  }
+  if (config.operatorHandlers) {
+    registerOperatorHandlers(world, config.operatorHandlers)
+  }
+  world.meta.strictExtractorTyping = true
   attrSystem.setWriteGuard(({ world, entityId, key }) => ensureAttributeWriteAllowed(world, systems, entityId, key))
   attrSystem.setBaseValueSetHook(({ world, entityId, key, value }) => {
     if (key !== 'currentHp') return

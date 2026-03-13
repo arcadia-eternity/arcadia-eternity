@@ -84,21 +84,21 @@ describe('V2DataRepository', () => {
 
 describe('parseEffect', () => {
   test('converts string trigger to array', () => {
-    const raw = { id: 'eff_test', trigger: 'OnDamage', priority: 5, apply: { type: 'noop' } }
+    const raw = { id: 'eff_test', trigger: 'OnDamage', priority: 5, apply: { type: 'addPower', target: 'useSkillContext', value: 1 } }
     const result = parseEffect(raw)
     expect(result.triggers).toEqual(['OnDamage'])
     expect(result.priority).toBe(5)
   })
 
   test('keeps array trigger as-is', () => {
-    const raw = { id: 'eff_test', trigger: ['OnDamage', 'OnHit'], priority: 0, apply: {} }
+    const raw = { id: 'eff_test', trigger: ['OnDamage', 'OnHit'], priority: 0, apply: { type: 'addPower', target: 'useSkillContext', value: 1 } }
     const result = parseEffect(raw)
     expect(result.triggers).toEqual(['OnDamage', 'OnHit'])
   })
 
   test('passes condition and apply through opaquely', () => {
-    const apply = { type: 'dealDamage', target: 'opponent' }
-    const condition = { type: 'every', conditions: [] }
+    const apply = { type: 'addPower', target: 'useSkillContext', value: 1 }
+    const condition = { type: 'every', conditions: [{ type: 'selfUseSkill' }] }
     const raw = { id: 'eff_test', trigger: 'OnHit', priority: 0, apply, condition }
     const result = parseEffect(raw)
     expect(result.apply).toBe(apply)
@@ -106,11 +106,104 @@ describe('parseEffect', () => {
   })
 
   test('throws if id is missing', () => {
-    expect(() => parseEffect({ trigger: 'OnDamage', priority: 0, apply: {} })).toThrow('missing "id"')
+    expect(() => parseEffect({ trigger: 'OnDamage', priority: 0, apply: { type: 'addPower', target: 'useSkillContext', value: 1 } })).toThrow('strict compile failed')
   })
 
   test('throws if apply is missing', () => {
-    expect(() => parseEffect({ id: 'x', trigger: 'OnDamage', priority: 0 })).toThrow('missing "apply"')
+    expect(() => parseEffect({ id: 'x', trigger: 'OnDamage', priority: 0 })).toThrow('strict compile failed')
+  })
+
+  test('strict compile rejects invalid operator at parse time', () => {
+    expect(() => parseEffect({
+      id: 'eff_invalid_operator',
+      trigger: 'OnDamage',
+      priority: 0,
+      apply: { type: 'noSuchOperator', target: 'useSkillContext', value: 1 },
+    } as Record<string, unknown>)).toThrow('strict compile failed')
+  })
+
+  test('strict compile rejects unknown selectPath on known owner at parse time', () => {
+    expect(() => parseEffect({
+      id: 'eff_invalid_select_path',
+      trigger: 'OnDamage',
+      priority: 0,
+      condition: {
+        type: 'evaluate',
+        target: {
+          base: 'useSkillContext',
+          chain: [
+            { type: 'selectPath', arg: 'notARealField' },
+          ],
+        },
+        evaluator: { type: 'exist' },
+      },
+      apply: { type: 'addPower', target: 'useSkillContext', value: 1 },
+    } as Record<string, unknown>)).toThrow('selector typing failed')
+  })
+
+  test('strict compile rejects operator selector type mismatch at parse time', () => {
+    expect(() => parseEffect({
+      id: 'eff_invalid_operator_target',
+      trigger: 'OnDamage',
+      priority: 0,
+      apply: { type: 'dealDamage', target: 'useSkillContext', value: 10 },
+    } as Record<string, unknown>)).toThrow('expected id(pet)')
+  })
+
+  test('strict compile rejects condition value type mismatch at parse time', () => {
+    expect(() => parseEffect({
+      id: 'eff_invalid_condition_value',
+      trigger: 'OnDamage',
+      priority: 0,
+      condition: { type: 'continuousUseSkill', times: '2' },
+      apply: { type: 'addPower', target: 'useSkillContext', value: 1 },
+    } as Record<string, unknown>)).toThrow('expected scalar(number)')
+  })
+
+  test('strict compile accepts addTemporaryEffect with effect entity selector value', () => {
+    expect(() => parseEffect({
+      id: 'eff_add_temp_effect',
+      trigger: 'BeforeSort',
+      priority: 0,
+      apply: {
+        type: 'addTemporaryEffect',
+        target: 'skill',
+        effect: {
+          type: 'entity:effect',
+          value: 'effect_placeholder',
+        },
+      },
+    } as Record<string, unknown>)).not.toThrow()
+  })
+
+  test('strict compile rejects executeActions with non-operator object target at parse time', () => {
+    expect(() => parseEffect({
+      id: 'eff_invalid_execute_actions_target',
+      trigger: 'OnDamage',
+      priority: 0,
+      apply: {
+        type: 'executeActions',
+        target: {
+          type: 'selectorValue',
+          value: [{ foo: 'bar' }],
+        },
+      },
+    } as Record<string, unknown>)).toThrow('expected object(dsl:operator)')
+  })
+
+  test('strict compile rejects registerTaggedConfig tags that are not string arrays at parse time', () => {
+    expect(() => parseEffect({
+      id: 'eff_invalid_tagged_config_tags',
+      trigger: 'OnDamage',
+      priority: 0,
+      apply: {
+        type: 'registerTaggedConfig',
+        target: 'self',
+        configKey: 'cfg_test',
+        initialValue: 1,
+        tags: [1, 2, 3],
+      },
+    } as Record<string, unknown>)).toThrow('object(json:stringArray)')
   })
 })
 

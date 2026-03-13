@@ -54,6 +54,30 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData> {
     return value / mult
   }
 
+  private async applyDefeatIfNeeded(
+    world: World,
+    bus: EventBus,
+    ctx: UseSkillContextData,
+  ): Promise<void> {
+    if (ctx.defeated) return
+    if (!ctx.actualTargetId) return
+    if (this.petSystem.isAlive(world, ctx.actualTargetId)) return
+
+    bus.emit(world, 'petDefeated', {
+      petId: ctx.actualTargetId,
+      killerId: ctx.petId,
+    })
+    world.state.lastKillerId = ctx.petId
+    ctx.defeated = true
+
+    await this.effectPipeline.fire(world, EffectTrigger.OnDefeat, {
+      trigger: EffectTrigger.OnDefeat,
+      sourceEntityId: ctx.actualTargetId,
+      context: ctx,
+      killerId: ctx.petId,
+    })
+  }
+
   initialize(_world: World, phase: PhaseDef): SkillPhaseData {
     return phase.data as SkillPhaseData
   }
@@ -177,6 +201,7 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData> {
         sourceEntityId: ctx.petId,
         context: ctx,
       })
+      await this.applyDefeatIfNeeded(world, bus, ctx)
       bus.emit(world, 'skillUseEnd', { petId: ctx.petId })
       return { success: true, state: 'completed', data }
     }
@@ -331,21 +356,7 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData> {
     }
 
     // v1 order: defeat is checked after hit loop, so killing hits still trigger OnHit.
-    if (this.petSystem.isAlive(world, ctx.actualTargetId) === false) {
-      bus.emit(world, 'petDefeated', {
-        petId: ctx.actualTargetId,
-        killerId: ctx.petId,
-      })
-      world.state.lastKillerId = ctx.petId
-      ctx.defeated = true
-
-      await this.effectPipeline.fire(world, EffectTrigger.OnDefeat, {
-        trigger: EffectTrigger.OnDefeat,
-        sourceEntityId: ctx.actualTargetId,
-        context: ctx,
-        killerId: ctx.petId,
-      })
-    }
+    await this.applyDefeatIfNeeded(world, bus, ctx)
 
     await this.effectPipeline.fire(world, EffectTrigger.SkillUseEnd, {
       trigger: EffectTrigger.SkillUseEnd,

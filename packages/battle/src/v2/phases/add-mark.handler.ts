@@ -36,8 +36,6 @@ export class AddMarkHandler implements PhaseHandler<AddMarkPhaseData> {
     if (!baseMark) {
       return { success: false, state: 'failed', error: `BaseMark '${ctx.baseMarkId}' not found` }
     }
-    // v1 compatibility: allow DSL to access addMarkContext.baseMark.*
-    ctx.baseMark = baseMark
 
     await this.effectPipeline.fire(world, EffectTrigger.OnBeforeAddMark, {
       trigger: EffectTrigger.OnBeforeAddMark,

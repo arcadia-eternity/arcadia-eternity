@@ -18,3 +18,31 @@ export { MessageBridge } from './message-bridge.js'
 export { worldToBattleState, type StateSerializerSystems } from './state-serializer.js'
 export { battleExtractorRegistry, getBattleExtractorRegistry } from './extractor-registry.js'
 export { V2TransformStrategy } from './transform-strategy.js'
+export {
+  registerConditionHandler,
+  registerConditionHandlers,
+  clearConditionHandlers,
+  getConditionHandler,
+  type ConditionHandler,
+} from './interpreter/condition-registry.js'
+export {
+  registerOperatorHandler,
+  registerOperatorHandlers,
+  clearOperatorHandlers,
+  getOperatorHandler,
+  type OperatorHandler,
+} from './interpreter/operator-registry.js'
+export {
+  registerSelectorBaseHandler,
+  registerSelectorBaseHandlers,
+  registerSelectorChainHandler,
+  registerSelectorChainHandlers,
+  clearSelectorHandlers,
+  getSelectorBaseHandler,
+  getSelectorChainHandler,
+  type SelectorBaseHandler,
+  type SelectorChainHandler,
+} from './interpreter/selector-registry.js'
+export { registerDefaultConditionHandlers } from './interpreter/conditions.js'
+export { registerDefaultOperatorHandlers } from './interpreter/operators.js'
+export { registerDefaultSelectorHandlers } from './interpreter/selector.js'

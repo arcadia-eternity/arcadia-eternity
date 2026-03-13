@@ -18,21 +18,8 @@ function getByPath(target: unknown, path: string): unknown {
   return current
 }
 
-function getStrictExtractorTyping(world: World): boolean {
-  return world.meta.strictExtractorTyping === true
-}
-
-function reportViolation(world: World, message: string): void {
-  if (getStrictExtractorTyping(world)) {
-    throw new Error(message)
-  }
-  const bucketKey = '__extractorWarnings'
-  const warnings = (isRecord(world.meta[bucketKey]) ? world.meta[bucketKey] : {}) as Record<string, boolean>
-  if (!warnings[message]) {
-    warnings[message] = true
-    world.meta[bucketKey] = warnings
-    console.warn(`[extractor-runtime] ${message}`)
-  }
+function reportViolation(_world: World, message: string): void {
+  throw new Error(message)
 }
 
 function inferEntityKind(world: World, systems: BattleSystems, value: unknown): EntityKind | undefined {
@@ -192,8 +179,8 @@ export function ensureAttributeWriteAllowed(
   if (isAllowedAttributeForOwner(owner, key) && isModifiableAttributeForOwner(owner, key)) return true
   if (!isAllowedAttributeForOwner(owner, key)) {
     reportViolation(world, `attribute '${key}' is not declared for write owner '${owner ?? 'unknown'}'`)
-    return !getStrictExtractorTyping(world)
+    return false
   }
   reportViolation(world, `attribute '${key}' is readonly for owner '${owner ?? 'unknown'}'`)
-  return !getStrictExtractorTyping(world)
+  return false
 }

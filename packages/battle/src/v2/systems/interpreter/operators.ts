@@ -6,7 +6,7 @@ import type { InterpreterContext, InterpreterFireContext } from './context.js'
 import type { UseSkillContextData, DamageContextData } from '../../schemas/context.schema.js'
 import type { BaseMarkData } from '../../schemas/mark.schema.js'
 import type { OperatorDSL, Value } from '@arcadia-eternity/schema'
-import type { ConfigValue, ConfigModifierType, EffectDef } from '@arcadia-eternity/engine'
+import type { ConfigValue, ConfigModifierType, EffectDef, World } from '@arcadia-eternity/engine'
 import {
   getComponent,
   setConfigValue,
@@ -22,6 +22,7 @@ import { resolveSelector } from './selector.js'
 import { resolveValue } from './value.js'
 import { evaluateCondition } from './conditions.js'
 import { isDamageContext, isRecord, isSelectorDsl, isUseSkillContext } from './type-guards.js'
+import { getOperatorHandler, registerOperatorHandler } from './operator-registry.js'
 
 /**
  * Get the current phase ID from the phase stack (for parentId).
@@ -211,7 +212,7 @@ function getCurrentBaseId(
 /**
  * Execute an OperatorDSL.
  */
-export async function executeOperator(ctx: InterpreterContext, operator: ExecutableOperator): Promise<void> {
+async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operator: ExecutableOperator): Promise<void> {
   const op = operator
 
   switch (op.type) {
@@ -1578,6 +1579,124 @@ export async function executeOperator(ctx: InterpreterContext, operator: Executa
       // Unknown operator type, skip silently
       break
   }
+}
+
+const DEFAULT_REGISTERED_OPERATOR_TYPES: OperatorDSL['type'][] = [
+  'dealDamage',
+  'heal',
+  'executeKill',
+  'addMark',
+  'transferMark',
+  'destroyMark',
+  'statStageBuff',
+  'clearStatStage',
+  'reverseStatStage',
+  'transferStatStage',
+  'addRage',
+  'setRage',
+  'stun',
+  'setSureHit',
+  'setSureCrit',
+  'setSureMiss',
+  'setSureNoCrit',
+  'setIgnoreShield',
+  'setSkill',
+  'preventDamage',
+  'setActualTarget',
+  'amplifyPower',
+  'addPower',
+  'addCritRate',
+  'addMultihitResult',
+  'setMultihit',
+  'addModified',
+  'addThreshold',
+  'addAccuracy',
+  'setAccuracy',
+  'setIgnoreStageStrategy',
+  'disableContext',
+  'overrideMarkConfig',
+  'setMarkDuration',
+  'setMarkStack',
+  'setMarkMaxStack',
+  'setMarkPersistent',
+  'setMarkStackable',
+  'setMarkStackStrategy',
+  'setMarkDestroyable',
+  'setMarkIsShield',
+  'setMarkKeepOnSwitchOut',
+  'setMarkTransferOnSwitch',
+  'setMarkInheritOnFaint',
+  'setStatLevelMarkLevel',
+  'addStacks',
+  'consumeStacks',
+  'modifyStackResult',
+  'modifyStat',
+  'addAttributeModifier',
+  'addDynamicAttributeModifier',
+  'addClampMaxModifier',
+  'addClampMinModifier',
+  'addClampModifier',
+  'addSkillAttributeModifier',
+  'addDynamicSkillAttributeModifier',
+  'addSkillClampMaxModifier',
+  'addSkillClampMinModifier',
+  'addSkillClampModifier',
+  'setConfig',
+  'registerConfig',
+  'registerTaggedConfig',
+  'addConfigModifier',
+  'addDynamicConfigModifier',
+  'addTaggedConfigModifier',
+  'addPhaseConfigModifier',
+  'addPhaseDynamicConfigModifier',
+  'addPhaseTypeConfigModifier',
+  'addDynamicPhaseTypeConfigModifier',
+  'transform',
+  'transformWithPreservation',
+  'removeTransformation',
+  'setValue',
+  'addValue',
+  'toggle',
+  'executeActions',
+  'addTemporaryEffect',
+]
+
+export function registerDefaultOperatorHandlers(world: World): void {
+  for (const type of DEFAULT_REGISTERED_OPERATOR_TYPES) {
+    registerOperatorHandler(world, type, async (ctx, operator) => {
+      await executeDefaultRegisteredOperator(ctx, operator)
+    })
+  }
+}
+
+/**
+ * Execute one operator node.
+ * Control-flow operators are always built-in, others are resolved from registry.
+ */
+export async function executeOperator(ctx: InterpreterContext, operator: ExecutableOperator): Promise<void> {
+  const op = operator
+  if (op.type === 'noop' || op.type === 'TODO') return
+
+  if (op.type === 'sequence') {
+    for (const subOp of op.operators) {
+      await executeOperator(ctx, subOp)
+    }
+    return
+  }
+
+  if (op.type === 'conditional') {
+    const condResult = evaluateCondition(ctx, op.condition)
+    if (condResult) {
+      await executeOperator(ctx, op.trueOperator)
+    } else if (op.falseOperator) {
+      await executeOperator(ctx, op.falseOperator)
+    }
+    return
+  }
+
+  const handler = getOperatorHandler(ctx.world, op.type)
+  if (!handler) return
+  await handler(ctx, op as OperatorDSL)
 }
 type InterpreterOperator =
   | { type: 'sequence'; operators: ExecutableOperator[] }

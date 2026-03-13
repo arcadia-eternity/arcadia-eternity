@@ -2,6 +2,21 @@
 // Parse raw YAML effect data → engine EffectDef.
 
 import type { EffectDef } from '@arcadia-eternity/engine'
+import { conditionDSLSchema, operatorDSLSchema } from '@arcadia-eternity/schema'
+import { Type } from '@sinclair/typebox'
+import { Value } from '@sinclair/typebox/value'
+import { validateEffectCompileTyping } from './effect-compile-validator.js'
+import { assertRegisteredEffectTrigger } from './trigger-registry.js'
+
+const effectCompileSchema = Type.Object({
+  id: Type.String(),
+  trigger: Type.Union([Type.String(), Type.Array(Type.String())]),
+  priority: Type.Number(),
+  apply: Type.Union([operatorDSLSchema, Type.Array(operatorDSLSchema)]),
+  condition: Type.Optional(conditionDSLSchema),
+  consumesStacks: Type.Optional(Type.Number()),
+  tags: Type.Optional(Type.Array(Type.String(), { default: [] })),
+})
 
 /**
  * Convert a raw YAML effect object to an engine EffectDef.
@@ -9,13 +24,25 @@ import type { EffectDef } from '@arcadia-eternity/engine'
  * - `apply` and `condition` are passed through as opaque DSL JSON.
  */
 export function parseEffect(raw: Record<string, unknown>): EffectDef {
+  if (!Value.Check(effectCompileSchema, raw)) {
+    const first = [...Value.Errors(effectCompileSchema, raw)][0]
+    const path = first?.path ?? '/'
+    const message = first?.message ?? 'invalid effect DSL'
+    throw new Error(`Effect strict compile failed at ${path}: ${message}`)
+  }
+  validateEffectCompileTyping(raw)
+
   const id = raw.id as string
   if (!id) throw new Error('Effect missing "id"')
 
   const rawTrigger = raw.trigger
   const triggers: string[] = Array.isArray(rawTrigger) ? rawTrigger : [rawTrigger as string]
+  for (let i = 0; i < triggers.length; i++) {
+    const path = Array.isArray(rawTrigger) ? `/trigger/${i}` : '/trigger'
+    assertRegisteredEffectTrigger(triggers[i], path)
+  }
 
-  const priority = (raw.priority as number) ?? 0
+  const priority = raw.priority as number
 
   const apply = raw.apply
   if (apply === undefined) throw new Error(`Effect '${id}' missing "apply"`)

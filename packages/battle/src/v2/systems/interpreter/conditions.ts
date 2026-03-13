@@ -7,11 +7,13 @@ import {
   evaluateCommonCondition,
   evaluateRuntimeEvaluator,
   type RuntimeEvaluator,
+  type World,
 } from '@arcadia-eternity/engine'
 import { ContinuousUseSkillStrategy } from '@arcadia-eternity/const'
 import { resolveSelector } from './selector.js'
 import { resolveValue } from './value.js'
 import { isRecord } from './type-guards.js'
+import { getConditionHandler, registerConditionHandler } from './condition-registry.js'
 
 /**
  * Find a context type by recursively searching world.phaseStack.
@@ -231,13 +233,13 @@ function findTurnDataForCurrentUseSkill(ctx: InterpreterContext): TurnLikeData |
 }
 
 /**
- * Evaluate a ConditionDSL to a boolean result.
+ * Default non-common condition implementations.
  */
-export function evaluateCondition(
+function evaluateDefaultRegisteredCondition(
   ctx: InterpreterContext,
   condition: ConditionDSL | boolean | undefined | null,
 ): boolean
-export function evaluateCondition(
+function evaluateDefaultRegisteredCondition(
   ctx: InterpreterContext,
   condition: ConditionDSL | boolean | undefined | null,
 ): boolean {
@@ -646,6 +648,65 @@ export function evaluateCondition(
       throw new Error(`[effect-interpreter] Unsupported condition type: ${typeText}`)
     }
   }
+}
+
+const DEFAULT_REGISTERED_CONDITION_TYPES: ConditionDSL['type'][] = [
+  'skillSequence',
+  'petIsActive',
+  'selfUseSkill',
+  'checkSelf',
+  'opponentUseSkill',
+  'selfBeDamaged',
+  'opponentBeDamaged',
+  'selfAddMark',
+  'opponentAddMark',
+  'selfBeAddMark',
+  'opponentBeAddMark',
+  'selfBeHeal',
+  'continuousUseSkill',
+  'statStageChange',
+  'isFirstSkillUsedThisTurn',
+  'isLastSkillUsedThisTurn',
+  'selfSwitchIn',
+  'selfSwitchOut',
+  'selfBeSkillTarget',
+  'selfHasMark',
+  'opponentHasMark',
+]
+
+export function registerDefaultConditionHandlers(world: World): void {
+  for (const type of DEFAULT_REGISTERED_CONDITION_TYPES) {
+    registerConditionHandler(world, type, (ctx, condition) => {
+      return evaluateDefaultRegisteredCondition(ctx, condition)
+    })
+  }
+}
+
+/**
+ * Evaluate a ConditionDSL to a boolean result.
+ * Common combinators stay built-in; non-common conditions are resolved by registry.
+ */
+export function evaluateCondition(
+  ctx: InterpreterContext,
+  condition: ConditionDSL | boolean | undefined | null,
+): boolean
+export function evaluateCondition(
+  ctx: InterpreterContext,
+  condition: ConditionDSL | boolean | undefined | null,
+): boolean {
+  if (isCommonCondition(condition)) {
+    const commonResult = evaluateCommonCondition(condition, {
+      evaluateCondition: nested => evaluateCondition(ctx, nested as ConditionDSL | boolean | undefined | null),
+      resolveSelector: selector => resolveSelector(ctx, selector),
+      evaluateEvaluator: (value, evaluator) => evaluateEvaluator(ctx, value, evaluator),
+    })
+    if (commonResult !== undefined) return commonResult
+  }
+  if (condition === undefined || condition === null || typeof condition === 'boolean') return true
+
+  const handler = getConditionHandler(ctx.world, condition.type)
+  if (handler) return handler(ctx, condition)
+  throw new Error(`[effect-interpreter] Unsupported condition type: ${condition.type}`)
 }
 
 /**

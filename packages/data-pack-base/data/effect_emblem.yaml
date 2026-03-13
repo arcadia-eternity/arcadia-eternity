@@ -13,10 +13,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_ruodianjihao
@@ -74,10 +72,11 @@
     target:
       base: selfMarks
       chain:
-        - type: selectPath
-          arg: baseId
-        - type: where
-          arg:
+        - type: whereAttr
+          extractor:
+            type: base
+            arg: baseId
+          evaluator:
             type: same
             value: mark_meihuo
 - id: effect_emblem_set_zhongdu_duration_2
@@ -91,10 +90,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_zhongdu
@@ -123,10 +120,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_liuxie
@@ -145,10 +140,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_shiming
@@ -167,10 +160,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_manxingduyao
@@ -189,10 +180,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_zhixi
@@ -210,10 +199,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_xingzhili
@@ -256,10 +243,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_shaoshang
@@ -278,10 +263,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_xuanyun
@@ -300,10 +283,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_haipa
@@ -335,10 +316,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_yanhuo
@@ -403,7 +382,7 @@
               base: useSkillContext
               chain:
                 - type: selectPath
-                  arg: skill
+                  arg: skillId
                 - type: select
                   arg: baseId
             evaluator:
@@ -414,7 +393,7 @@
               base: useSkillContext
               chain:
                 - type: selectPath
-                  arg: skill
+                  arg: skillId
                 - type: select
                   arg: baseId
             evaluator:
@@ -433,10 +412,8 @@
         target:
           base: useSkillContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: skill
+            - type: selectPath
+              arg: skillId
             - type: select
               arg:
                 type: base
@@ -476,10 +453,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_mianyibuliang
@@ -508,10 +483,8 @@
         target:
           base: useSkillContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: skill
+            - type: selectPath
+              arg: skillId
             - type: select
               arg:
                 type: base
@@ -567,7 +540,7 @@
           base: effectContext
           chain:
             - type: selectPath
-              arg: effect.id
+              arg: effectId
         evaluator:
           type: same
           value: effect_mark_onDamage_over100_recovery
@@ -668,10 +641,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_yinghua
@@ -686,10 +657,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_shazhidanke
@@ -756,10 +725,8 @@
         target:
           base: useSkillContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: skill
+            - type: selectPath
+              arg: skillId
             - type: select
               arg:
                 type: base
@@ -777,7 +744,7 @@
       base: switchPetContext
       chain:
         - type: selectPath
-          arg: switchInPet
+          arg: switchInPetId
     mark:
       type: entity:baseMark
       value: mark_shoudaoshanghaijianshao
@@ -794,7 +761,7 @@
       base: switchPetContext
       chain:
         - type: selectPath
-          arg: switchInPet
+          arg: switchInPetId
     mark:
       type: entity:baseMark
       value: mark_shoudaoshanghaijianshao
@@ -915,10 +882,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: anyOf
           value:
@@ -940,10 +905,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_bizhong
@@ -998,7 +961,9 @@
           base: useSkillContext
           chain:
             - type: selectPath
-              arg: skill.base.id
+              arg: skillId
+            - type: select
+              arg: baseId
         evaluator:
           type: same
           value: skill_bandao
@@ -1028,10 +993,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_huohuanzhixin
@@ -1086,7 +1049,7 @@
           base: useSkillContext
           chain:
             - type: selectPath
-              arg: skill.base.element
+              arg: element
         evaluator:
           type: same
           value: Light
@@ -1095,7 +1058,7 @@
           base: useSkillContext
           chain:
             - type: selectPath
-              arg: skill.base.category
+              arg: category
         evaluator:
           type: same
           value: Climax
@@ -1162,10 +1125,8 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark.id
+            - type: selectPath
+              arg: baseMarkId
         evaluator:
           type: same
           value: mark_leishenjuexing
@@ -1232,10 +1193,8 @@
         target:
           base: useSkillContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: skill
+            - type: selectPath
+              arg: skillId
             - type: select
               arg:
                 type: base
@@ -1302,10 +1261,8 @@
         target:
           base: useSkillContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: skill
+            - type: selectPath
+              arg: skillId
             - type: select
               arg:
                 type: base
@@ -1411,10 +1368,8 @@
         target:
           base: useSkillContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: skill
+            - type: selectPath
+              arg: skillId
             - type: select
               arg:
                 type: base

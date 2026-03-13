@@ -41,10 +41,8 @@
         target:
           base: useSkillContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: skill
+            - type: selectPath
+              arg: skillId
             - type: select
               arg:
                 type: base
@@ -140,7 +138,7 @@
             - type: select
               arg:
                 type: dynamic
-                arg: stat.weight
+                arg: weight
         evaluator:
           type: compare
           operator: '>='
@@ -315,10 +313,8 @@
         target:
           base: useSkillContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: skill
+            - type: selectPath
+              arg: skillId
             - type: select
               arg: baseId
         evaluator:
@@ -424,10 +420,6 @@
         target:
           base: self
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: stat
             - type: select
               arg:
                 type: dynamic
@@ -541,7 +533,7 @@
       - &condition_rage_lt_opponent
         type: evaluate
         target:
-          base: self
+          base: selfPlayer
           chain:
             - type: select
               arg:
@@ -553,7 +545,7 @@
           value:
             type: dynamic
             selector:
-              base: opponent
+              base: opponentPlayer
               chain:
                 - type: select
                   arg:
@@ -584,7 +576,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: self
+          base: selfPlayer
           chain:
             - type: select
               arg:
@@ -596,7 +588,7 @@
           value:
             type: dynamic
             selector:
-              base: opponent
+              base: opponentPlayer
               chain:
                 - type: select
                   arg:
@@ -776,9 +768,11 @@
           base: self
           chain:
             - type: selectPath
-              arg: lastSkill
-            - type: selectPath
-              arg: element
+              arg: lastSkillId
+            - type: select
+              arg:
+                type: field
+                path: element
         evaluator:
           type: same
           value: Flying
@@ -1095,10 +1089,8 @@
         target:
           base: useSkillContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: skill
+            - type: selectPath
+              arg: skillId
             - type: select
               arg:
                 type: base
@@ -1218,14 +1210,10 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark
-            - type: select
-              arg:
-                type: base
-                arg: tags
+            - type: selectPath
+              arg: baseMarkId
+            - type: selectPath
+              arg: tags
             - type: flat
         evaluator:
           type: contain
@@ -1415,14 +1403,10 @@
         target:
           base: addMarkContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark
-            - type: select
-              arg:
-                type: base
-                arg: tags
+            - type: selectPath
+              arg: baseMarkId
+            - type: selectPath
+              arg: tags
             - type: flat
         evaluator:
           type: contain
@@ -1493,33 +1477,15 @@
       selector:
         base: addMarkContext
         chain:
-          - type: select
-            arg:
-              type: dynamic
-              arg: baseMark
-          - type: asStatLevelMark
           - type: selectPath
-            arg: initialLevel
+            arg: statLevelMarkLevel
   condition:
     type: every
     conditions:
       - type: selfAddMark
       - type: statStageChange
         check: up
-      - type: evaluate
-        target:
-          base: addMarkContext
-          chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: baseMark
-            - type: asStatLevelMark
-            - type: selectPath
-              arg: statType
-        evaluator:
-          type: same
-          value: spa
+        stat: spa
 # 喷嚏: 有喷嚏类印记时,造成固定15点伤害
 - id: effect_ability_fixed_damage_15_when_has_penti
   trigger: OnBeforeCalculateDamage
@@ -1624,7 +1590,7 @@
           base: useSkillContext
           chain:
             - type: selectPath
-              arg: skill.base.category
+              arg: category
         evaluator:
           type: same
           value: Climax
@@ -1679,10 +1645,8 @@
         target:
           base: useSkillContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: skill
+            - type: selectPath
+              arg: skillId
             - type: select
               arg:
                 type: base

@@ -1608,7 +1608,7 @@
             - type: select
               arg:
                 type: dynamic
-                arg: stat.weight
+                arg: weight
         evaluator:
           type: compare
           operator: '>'
@@ -1620,7 +1620,7 @@
                 - type: select
                   arg:
                     type: dynamic
-                    arg: stat.weight
+                    arg: weight
 - id: effect_skill_add_mark_zhifanghudun_stack_with_weight
   trigger: OnHit
   priority: 0
@@ -1638,7 +1638,7 @@
           - type: select
             arg:
               type: dynamic
-              arg: stat.weight
+              arg: weight
   condition:
     type: every
     conditions:
@@ -1737,7 +1737,7 @@
           - type: select
             arg:
               type: dynamic
-              arg: stat.weight
+              arg: weight
   condition:
     type: selfUseSkill
 - id: effect_skill_add_mark_zengzhong_2
@@ -1783,7 +1783,7 @@
             - type: select
               arg:
                 type: dynamic
-                arg: stat.weight
+                arg: weight
         evaluator:
           type: compare
           operator: '>'
@@ -3756,10 +3756,6 @@
             - type: select
               arg:
                 type: dynamic
-                arg: stat
-            - type: select
-              arg:
-                type: dynamic
                 arg: height
         evaluator:
           type: compare
@@ -3769,10 +3765,6 @@
             selector:
               base: opponent
               chain:
-                - type: select
-                  arg:
-                    type: dynamic
-                    arg: stat
                 - type: select
                   arg:
                     type: dynamic
@@ -3794,10 +3786,6 @@
         target:
           base: self
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: stat
             - type: select
               arg:
                 type: dynamic
@@ -3838,10 +3826,6 @@
             - type: select
               arg:
                 type: dynamic
-                arg: stat
-            - type: select
-              arg:
-                type: dynamic
                 arg: height
         evaluator:
           type: compare
@@ -3851,10 +3835,6 @@
             selector:
               base: opponent
               chain:
-                - type: select
-                  arg:
-                    type: dynamic
-                    arg: stat
                 - type: select
                   arg:
                     type: dynamic
@@ -3878,10 +3858,6 @@
             - type: select
               arg:
                 type: dynamic
-                arg: stat
-            - type: select
-              arg:
-                type: dynamic
                 arg: height
         evaluator:
           type: compare
@@ -3901,10 +3877,6 @@
           - type: select
             arg:
               type: dynamic
-              arg: stat
-          - type: select
-            arg:
-              type: dynamic
               arg: height
       evaluator:
         type: compare
@@ -3914,10 +3886,6 @@
           selector:
             base: opponent
             chain:
-              - type: select
-                arg:
-                  type: dynamic
-                  arg: stat
               - type: select
                 arg:
                   type: dynamic
@@ -3945,10 +3913,6 @@
       target:
         base: self
         chain:
-          - type: select
-            arg:
-              type: dynamic
-              arg: stat
           - type: select
             arg:
               type: dynamic
@@ -3983,10 +3947,6 @@
           - type: select
             arg:
               type: dynamic
-              arg: stat
-          - type: select
-            arg:
-              type: dynamic
               arg: height
       evaluator:
         type: compare
@@ -3996,10 +3956,6 @@
           selector:
             base: opponent
             chain:
-              - type: select
-                arg:
-                  type: dynamic
-                  arg: stat
               - type: select
                 arg:
                   type: dynamic
@@ -4734,7 +4690,7 @@
       - type: selfUseSkill
       - type: evaluate
         target:
-          base: self
+          base: selfPlayer
           chain:
             - type: select
               arg:
@@ -5215,7 +5171,7 @@
           - type: select
             arg:
               type: dynamic
-              arg: stat.weight
+              arg: weight
   condition:
     type: selfUseSkill
 - id: effect_skill_add_mark_houkongfan
@@ -6502,10 +6458,10 @@
       selector:
         base: useSkillContext
         chain:
+          - type: selectPath
+            arg: skillId
           - type: select
-            arg:
-              type: dynamic
-              arg: skill.base
+            arg: baseId
   condition:
     type: every
     conditions:
@@ -6514,21 +6470,13 @@
         target:
           base: useSkillContext
           chain:
-            - type: select
-              arg:
-                type: dynamic
-                arg: skill.id
+            - type: selectPath
+              arg: skillId
         evaluator:
           type: notSame
           value:
             type: dynamic
-            selector:
-              base: skill
-              chain:
-                - type: select
-                  arg:
-                    type: dynamic
-                    arg: id
+            selector: skill
 # 使用本技能后，清除本技能的变化状态
 - id: effect_skill_clear_transform_when_use
   trigger: SkillUseEnd
@@ -6553,7 +6501,7 @@
           - type: select
             arg:
               type: dynamic
-              arg: stat.def
+              arg: def
           - type: divide
             arg: 4
   condition:
@@ -6574,7 +6522,7 @@
           - type: select
             arg:
               type: dynamic
-              arg: stat.spa
+              arg: spa
           - type: divide
             arg: 6
   condition:
@@ -6594,7 +6542,7 @@
           - type: select
             arg:
               type: dynamic
-              arg: stat.spa
+              arg: spa
           - type: divide
             arg: 6
   condition:
@@ -8409,7 +8357,7 @@
           base: self
           chain:
             - type: selectPath
-              arg: stat.atk
+              arg: atk
         evaluator:
           type: compare
           operator: '>'
@@ -9055,7 +9003,7 @@
           base: opponent
           chain:
             - type: selectPath
-              arg: stat.spa
+              arg: spa
         evaluator:
           type: compare
           operator: '>'
@@ -9065,7 +9013,7 @@
               base: opponent
               chain:
                 - type: selectPath
-                  arg: stat.atk
+                  arg: atk
 # 对手特攻＞物攻时，威力增加35点
 - id: effect_skill_add_power_35_if_opponent_spa_gt_atk
   trigger: AfterUseSkillCheck

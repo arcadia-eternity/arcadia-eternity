@@ -8,6 +8,7 @@ import { Type, type TSchema } from '@sinclair/typebox'
 import { MarkConfigSchema } from './mark'
 import { StringEnum } from './utils'
 import { BASE_EXTRACTOR_KEYS, BASE_SELECTOR_KEYS, COMPARE_OPERATORS } from './effectPrimitives'
+import { effectDslTypingMetadata } from './effectTypingMetadata'
 
 // --- Base enums ---
 export const baseSelectorSchema = StringEnum([...BASE_SELECTOR_KEYS])
@@ -224,11 +225,6 @@ export const valueSchema = Type.Union([
 ])
 
 // --- Condition DSL schema ---
-const cleanStageStrategySchema = StringEnum(Object.values(CleanStageStrategy))
-const continuousUseSkillStrategySchema = StringEnum(
-  Object.values(ContinuousUseSkillStrategy),
-)
-
 export const conditionDSLSchema = Type.Union([
   Type.Object({
     type: Type.Literal('evaluate'),
@@ -713,3 +709,90 @@ export const effectDSLSchema = Type.Object({
 })
 
 export const EffectDSLSetSchema = Type.Array(effectDSLSchema)
+
+type JsonSchemaNode = {
+  anyOf?: unknown[]
+  oneOf?: unknown[]
+  allOf?: unknown[]
+  properties?: Record<string, unknown>
+  const?: unknown
+  xDsl?: unknown
+  [key: string]: unknown
+}
+
+function asNode(value: unknown): JsonSchemaNode | undefined {
+  return typeof value === 'object' && value !== null ? (value as JsonSchemaNode) : undefined
+}
+
+function collectUnionVariants(schema: TSchema | unknown): JsonSchemaNode[] {
+  const node = asNode(schema)
+  if (!node) return []
+  return [...(node.anyOf ?? []), ...(node.oneOf ?? []), ...(node.allOf ?? [])]
+    .map(variant => asNode(variant))
+    .filter((variant): variant is JsonSchemaNode => Boolean(variant))
+}
+
+function getNodeTypeConst(node: JsonSchemaNode): string | undefined {
+  const typeNode = asNode(node.properties?.type)
+  return typeof typeNode?.const === 'string' ? typeNode.const : undefined
+}
+
+function getTypingMeta(node: JsonSchemaNode): Record<string, unknown> | undefined {
+  const meta = asNode(node.xDsl)
+  if (!meta) return undefined
+  const typing = asNode(meta.typing)
+  return typing ? (typing as Record<string, unknown>) : undefined
+}
+
+export function applyDslTypingMetadata(
+  schema: TSchema | unknown,
+  typingByType: Partial<Record<string, unknown>>,
+): void {
+  for (const variant of collectUnionVariants(schema)) {
+    const type = getNodeTypeConst(variant)
+    if (!type) continue
+    const typing = typingByType[type]
+    if (!typing || typeof typing !== 'object') continue
+    const existingTyping = getTypingMeta(variant)
+    if (existingTyping) continue
+    const currentMeta = asNode(variant.xDsl) ?? {}
+    variant.xDsl = {
+      ...currentMeta,
+      typing,
+    }
+  }
+}
+
+export function extractDslTypingMetadata<TRule = unknown>(
+  schema: TSchema | unknown,
+): Partial<Record<string, TRule>> {
+  const out: Partial<Record<string, TRule>> = {}
+  for (const variant of collectUnionVariants(schema)) {
+    const type = getNodeTypeConst(variant)
+    if (!type) continue
+    const typing = getTypingMeta(variant)
+    if (!typing) continue
+    out[type] = typing as TRule
+  }
+  return out
+}
+
+export function extractDslNodeTypes(schema: TSchema | unknown): string[] {
+  const types = collectUnionVariants(schema)
+    .map(getNodeTypeConst)
+    .filter((type): type is string => Boolean(type))
+  return [...new Set(types)].sort()
+}
+
+applyDslTypingMetadata(
+  conditionDSLSchema,
+  effectDslTypingMetadata.condition as Partial<Record<string, unknown>>,
+)
+applyDslTypingMetadata(
+  evaluatorDSLSchema,
+  effectDslTypingMetadata.evaluator as Partial<Record<string, unknown>>,
+)
+applyDslTypingMetadata(
+  operatorDSLSchema,
+  effectDslTypingMetadata.operator as Partial<Record<string, unknown>>,
+)

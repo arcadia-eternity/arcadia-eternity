@@ -36,6 +36,12 @@ type PhaseMessageTransaction = {
   messages: BufferedMessage[]
 }
 
+const IMMEDIATE_MESSAGE_TYPES = new Set<BattleMessageType>([
+  // Switch prompts must be visible before battleSwitch phase commits, otherwise client cannot respond.
+  BattleMessageType.ForcedSwitch,
+  BattleMessageType.FaintSwitch,
+])
+
 export class MessageBridge {
   private subscribers: Subscriber[] = []
   private unsubscribers: Array<() => void> = []
@@ -87,6 +93,10 @@ export class MessageBridge {
   }
 
   private emitMessage(type: BattleMessageType, data: Record<string, unknown>): void {
+    if (IMMEDIATE_MESSAGE_TYPES.has(type)) {
+      this.dispatchMessage(type, data)
+      return
+    }
     const activeTx = this.phaseTransactions[this.phaseTransactions.length - 1]
     if (activeTx) {
       activeTx.messages.push({ type, data })

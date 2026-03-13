@@ -27,7 +27,6 @@ import type { MessageViewOptions } from './systems/message-bridge.js'
 import { TimerSystem } from './systems/timer.system.js'
 
 type RuntimeSnapshotMeta = {
-  strictExtractorTyping: boolean
   rngState: RngState
 }
 
@@ -54,13 +53,11 @@ function isRngState(value: unknown): value is RngState {
 }
 
 function readRuntimeSnapshotMeta(meta: Record<string, unknown>): RuntimeSnapshotMeta {
-  const strictExtractorTyping = meta.strictExtractorTyping === true
   const rngState = meta.rngState
   if (!isRngState(rngState)) {
     throw new Error('Runtime snapshot is missing valid rngState')
   }
   return {
-    strictExtractorTyping,
     rngState,
   }
 }
@@ -274,7 +271,6 @@ export class LocalBattleSystemV2 implements IBattleSystem {
       ...world,
       systems: {},
       meta: {
-        strictExtractorTyping: world.meta.strictExtractorTyping === true,
         rngState,
       },
     }
@@ -300,7 +296,7 @@ export class LocalBattleSystemV2 implements IBattleSystem {
     restoredWorld.systems.rng = GameRng.fromState(runtimeMeta.rngState)
     restoredWorld.meta = {
       ...restoredWorld.meta,
-      strictExtractorTyping: runtimeMeta.strictExtractorTyping,
+      strictExtractorTyping: true,
       dataRepository: currentWorld.meta.dataRepository,
     }
     this.battle.world = restoredWorld
