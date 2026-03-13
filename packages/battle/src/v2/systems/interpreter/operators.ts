@@ -5,7 +5,11 @@
 import type { InterpreterContext, InterpreterFireContext } from './context.js'
 import type { UseSkillContextData, DamageContextData } from '../../schemas/context.schema.js'
 import type { BaseMarkData } from '../../schemas/mark.schema.js'
-import type { OperatorDSL, Value } from '@arcadia-eternity/schema'
+import {
+  getEffectDslManifest,
+  type OperatorDSL,
+  type Value,
+} from '@arcadia-eternity/schema'
 import type { ConfigValue, ConfigModifierType, EffectDef, World } from '@arcadia-eternity/engine'
 import {
   getComponent,
@@ -1581,88 +1585,9 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
   }
 }
 
-const DEFAULT_REGISTERED_OPERATOR_TYPES: OperatorDSL['type'][] = [
-  'dealDamage',
-  'heal',
-  'executeKill',
-  'addMark',
-  'transferMark',
-  'destroyMark',
-  'statStageBuff',
-  'clearStatStage',
-  'reverseStatStage',
-  'transferStatStage',
-  'addRage',
-  'setRage',
-  'stun',
-  'setSureHit',
-  'setSureCrit',
-  'setSureMiss',
-  'setSureNoCrit',
-  'setIgnoreShield',
-  'setSkill',
-  'preventDamage',
-  'setActualTarget',
-  'amplifyPower',
-  'addPower',
-  'addCritRate',
-  'addMultihitResult',
-  'setMultihit',
-  'addModified',
-  'addThreshold',
-  'addAccuracy',
-  'setAccuracy',
-  'setIgnoreStageStrategy',
-  'disableContext',
-  'overrideMarkConfig',
-  'setMarkDuration',
-  'setMarkStack',
-  'setMarkMaxStack',
-  'setMarkPersistent',
-  'setMarkStackable',
-  'setMarkStackStrategy',
-  'setMarkDestroyable',
-  'setMarkIsShield',
-  'setMarkKeepOnSwitchOut',
-  'setMarkTransferOnSwitch',
-  'setMarkInheritOnFaint',
-  'setStatLevelMarkLevel',
-  'addStacks',
-  'consumeStacks',
-  'modifyStackResult',
-  'modifyStat',
-  'addAttributeModifier',
-  'addDynamicAttributeModifier',
-  'addClampMaxModifier',
-  'addClampMinModifier',
-  'addClampModifier',
-  'addSkillAttributeModifier',
-  'addDynamicSkillAttributeModifier',
-  'addSkillClampMaxModifier',
-  'addSkillClampMinModifier',
-  'addSkillClampModifier',
-  'setConfig',
-  'registerConfig',
-  'registerTaggedConfig',
-  'addConfigModifier',
-  'addDynamicConfigModifier',
-  'addTaggedConfigModifier',
-  'addPhaseConfigModifier',
-  'addPhaseDynamicConfigModifier',
-  'addPhaseTypeConfigModifier',
-  'addDynamicPhaseTypeConfigModifier',
-  'transform',
-  'transformWithPreservation',
-  'removeTransformation',
-  'setValue',
-  'addValue',
-  'toggle',
-  'executeActions',
-  'addTemporaryEffect',
-]
-
 export function registerDefaultOperatorHandlers(world: World): void {
-  for (const type of DEFAULT_REGISTERED_OPERATOR_TYPES) {
+  const manifest = getEffectDslManifest()
+  for (const type of Object.keys(manifest.operator)) {
     registerOperatorHandler(world, type, async (ctx, operator) => {
       await executeDefaultRegisteredOperator(ctx, operator)
     })
@@ -1695,8 +1620,11 @@ export async function executeOperator(ctx: InterpreterContext, operator: Executa
   }
 
   const handler = getOperatorHandler(ctx.world, op.type)
-  if (!handler) return
-  await handler(ctx, op as OperatorDSL)
+  if (handler) {
+    await handler(ctx, op as OperatorDSL)
+    return
+  }
+  await executeDefaultRegisteredOperator(ctx, op as OperatorDSL)
 }
 type InterpreterOperator =
   | { type: 'sequence'; operators: ExecutableOperator[] }

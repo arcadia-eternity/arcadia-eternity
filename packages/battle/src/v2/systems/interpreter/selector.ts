@@ -3,7 +3,14 @@
 // Selectors return entity IDs (strings), not class instances.
 
 import type { InterpreterContext } from './context.js'
-import type { SelectorDSL, SelectorChain, ExtractorDSL, Value } from '@arcadia-eternity/schema'
+import {
+  BASE_SELECTOR_KEYS,
+  selectorChainSchema,
+  type SelectorDSL,
+  type SelectorChain,
+  type ExtractorDSL,
+  type Value,
+} from '@arcadia-eternity/schema'
 import {
   applyCommonSelectorChain,
   type CommonSelectorChainStep,
@@ -27,6 +34,32 @@ import {
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
   return isRecord(value) ? value : undefined
+}
+
+type JsonSchemaNode = {
+  anyOf?: unknown[]
+  oneOf?: unknown[]
+  allOf?: unknown[]
+  properties?: Record<string, unknown>
+  const?: unknown
+}
+
+function asSchemaNode(value: unknown): JsonSchemaNode | undefined {
+  return typeof value === 'object' && value !== null ? (value as JsonSchemaNode) : undefined
+}
+
+function listSelectorChainStepTypes(): string[] {
+  const schema = asSchemaNode(selectorChainSchema)
+  if (!schema) return []
+  const variants = [...(schema.anyOf ?? []), ...(schema.oneOf ?? []), ...(schema.allOf ?? [])]
+  const types = variants
+    .map(variant => asSchemaNode(variant))
+    .map(variant => {
+      const typeNode = asSchemaNode(variant?.properties?.type)
+      return typeof typeNode?.const === 'string' ? typeNode.const : undefined
+    })
+    .filter((type): type is string => Boolean(type))
+  return [...new Set(types)]
 }
 
 /**
@@ -313,58 +346,33 @@ function resolveDefaultRegisteredBaseSelector(ctx: InterpreterContext, key: stri
   }
 }
 
-const DEFAULT_BASE_SELECTOR_KEYS = [
-  'self',
-  'opponent',
-  'target',
-  'selfPlayer',
-  'opponentPlayer',
-  'selfTeam',
-  'opponentTeam',
-  'selfMarks',
-  'opponentMarks',
-  'selfSkills',
-  'selfAvailableSkills',
-  'opponentAvailableSkills',
-  'opponentSkills',
-  'dataMarks',
-  'useSkillContext',
-  'damageContext',
-  'healContext',
-  'rageContext',
-  'addMarkContext',
-  'switchPetContext',
-  'turnContext',
-  'stackContext',
-  'consumeStackContext',
-  'effectContext',
-  'currentPhase',
-  'allPhases',
-  'mark',
-  'skill',
-  'battle',
-] as const
-
-const DEFAULT_CHAIN_STEP_TYPES = [
-  'selectPath',
-  'selectObservable',
-  'selectAttribute$',
-  'asStatLevelMark',
-  'sampleBetween',
-  'selectProp',
-] as const
-
 function resolveBaseSelector(ctx: InterpreterContext, key: string): unknown[] {
   const handler = getSelectorBaseHandler(ctx.world, key)
-  if (!handler) return []
-  return handler(ctx, key)
+  if (handler) return handler(ctx, key)
+  return resolveDefaultRegisteredBaseSelector(ctx, key)
+}
+
+function isDefaultRegisteredChainStep(stepType: string): boolean {
+  switch (stepType) {
+    case 'selectPath':
+    case 'selectObservable':
+    case 'selectAttribute$':
+    case 'asStatLevelMark':
+    case 'sampleBetween':
+    case 'selectProp':
+      return true
+    default:
+      return false
+  }
 }
 
 export function registerDefaultSelectorHandlers(world: World): void {
-  for (const base of DEFAULT_BASE_SELECTOR_KEYS) {
+  for (const base of BASE_SELECTOR_KEYS) {
     registerSelectorBaseHandler(world, base, (ctx, key) => resolveDefaultRegisteredBaseSelector(ctx, key))
   }
-  for (const stepType of DEFAULT_CHAIN_STEP_TYPES) {
+  const chainStepTypes = listSelectorChainStepTypes()
+  for (const stepType of chainStepTypes) {
+    if (!isDefaultRegisteredChainStep(stepType)) continue
     registerSelectorChainHandler(world, stepType, (ctx, current, step) => applyDefaultRegisteredChainStep(ctx, current, step))
   }
 }
@@ -624,6 +632,10 @@ export function applyChain(ctx: InterpreterContext, results: unknown[], chain: S
     const registered = getSelectorChainHandler(ctx.world, step.type)
     if (registered) {
       current = registered(ctx, current, step)
+      continue
+    }
+    if (isDefaultRegisteredChainStep(step.type)) {
+      current = applyDefaultRegisteredChainStep(ctx, current, step)
       continue
     }
     current = applyCommonSelectorChain(current, [step as CommonSelectorChainStep], {

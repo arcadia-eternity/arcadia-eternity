@@ -9,7 +9,11 @@ import { tmpdir } from 'node:os'
 import YAML from 'yaml'
 import { V2DataRepository } from '../data/v2-data-repository.js'
 import { loadV2GameData, loadV2GameDataFromPack } from '../data/v2-data-loader.js'
-import { parseEffect } from '../data/parsers/effect-parser.js'
+import { createEffectParser, parseEffect } from '../data/parsers/effect-parser.js'
+import {
+  createEffectCompileTypingValidator,
+  type EffectCompileTypingEnvironment,
+} from '../data/parsers/effect-compile-validator.js'
 import { parseMark } from '../data/parsers/mark-parser.js'
 import { parseSkill } from '../data/parsers/skill-parser.js'
 import { parseSpecies } from '../data/parsers/species-parser.js'
@@ -204,6 +208,64 @@ describe('parseEffect', () => {
         tags: [1, 2, 3],
       },
     } as Record<string, unknown>)).toThrow('object(json:stringArray)')
+  })
+
+  test('default strict compile rejects undeclared custom path on useSkillContext', () => {
+    const raw = {
+      id: 'eff_invalid_custom_path',
+      trigger: 'OnDamage',
+      priority: 0,
+      condition: {
+        type: 'evaluate',
+        target: {
+          base: 'useSkillContext',
+          chain: [{ type: 'selectPath', arg: 'customValue' }],
+        },
+        evaluator: { type: 'exist' },
+      },
+      apply: { type: 'addPower', target: 'useSkillContext', value: 1 },
+    } as Record<string, unknown>
+
+    expect(() => parseEffect(raw)).toThrow("path 'customValue' is not declared")
+  })
+
+  test('compile validator/parser accepts injected typing environment', () => {
+    const customEnvironment: EffectCompileTypingEnvironment = {
+      extractorRegistry: {
+        attributes: [],
+        relations: [],
+        fields: [
+          {
+            path: 'customValue',
+            owners: ['useSkillContext'],
+            valueType: 'number',
+          },
+        ],
+      },
+    }
+    const validate = createEffectCompileTypingValidator(customEnvironment)
+    const parseWithCustomEnvironment = createEffectParser({
+      compileTypingEnvironment: customEnvironment,
+      assertTriggerRegistered: () => undefined,
+    })
+
+    const raw = {
+      id: 'eff_custom_env',
+      trigger: 'OnCustomTrigger',
+      priority: 0,
+      condition: {
+        type: 'evaluate',
+        target: {
+          base: 'useSkillContext',
+          chain: [{ type: 'selectPath', arg: 'customValue' }],
+        },
+        evaluator: { type: 'compare', operator: '>=', value: 1 },
+      },
+      apply: { type: 'addPower', target: 'useSkillContext', value: 1 },
+    } as Record<string, unknown>
+
+    expect(() => validate(raw)).not.toThrow()
+    expect(parseWithCustomEnvironment(raw).triggers).toEqual(['OnCustomTrigger'])
   })
 })
 

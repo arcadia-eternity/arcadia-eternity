@@ -6,6 +6,7 @@ import { basename, dirname, extname, resolve } from 'node:path'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
+import type { EffectDef } from '@arcadia-eternity/engine'
 import { V2DataRepository } from './v2-data-repository.js'
 import { parseEffect, parseMark, parseSkill, parseSpecies } from './parsers/index.js'
 
@@ -45,6 +46,7 @@ export interface LoadOptions {
   validateReferences?: boolean
   packPath?: string
   packRef?: string
+  effectParser?: (raw: Record<string, unknown>) => EffectDef
 }
 
 export interface LoadResult {
@@ -71,7 +73,13 @@ export async function loadV2GameData(
   _dataDir: string,
   options: LoadOptions = {},
 ): Promise<LoadResult> {
-  const { continueOnError = false, validateReferences = true, packPath, packRef = 'builtin:base' } = options
+  const {
+    continueOnError = false,
+    validateReferences = true,
+    packPath,
+    packRef = 'builtin:base',
+    effectParser = parseEffect,
+  } = options
   const errors: string[] = []
   const repository = new V2DataRepository()
   const locales: LocaleBundles = {}
@@ -81,7 +89,13 @@ export async function loadV2GameData(
     if (!resolvedPackPath) throw new Error('Pack reference is required')
     const resolved = await resolvePackLoadOrder(resolvedPackPath, continueOnError, errors)
     for (const item of resolved.order) {
-      await loadEffectsFromPaths(resolvePathList(item.dataRoot, item.manifest.data.effects), repository, errors, continueOnError)
+      await loadEffectsFromPaths(
+        resolvePathList(item.dataRoot, item.manifest.data.effects),
+        repository,
+        errors,
+        continueOnError,
+        effectParser,
+      )
       await loadMarksFromPaths(resolvePathList(item.dataRoot, item.manifest.data.marks), repository, errors, continueOnError)
       await loadSkillsFromPaths(resolvePathList(item.dataRoot, item.manifest.data.skills), repository, errors, continueOnError)
       await loadSpeciesFromPaths(resolvePathList(item.dataRoot, item.manifest.data.species), repository, errors, continueOnError)
@@ -160,8 +174,9 @@ async function loadEffectsFromPaths(
   repo: V2DataRepository,
   errors: string[],
   continueOnError: boolean,
+  effectParser: (raw: Record<string, unknown>) => EffectDef,
 ): Promise<void> {
-  await loadRawArrayFiles(files, parseEffect, effect => repo.registerEffect(effect.id, effect), errors, continueOnError)
+  await loadRawArrayFiles(files, effectParser, effect => repo.registerEffect(effect.id, effect), errors, continueOnError)
 }
 
 async function loadMarksFromPaths(

@@ -2,7 +2,13 @@
 // Condition and evaluator evaluation for effect DSL.
 
 import type { InterpreterContext } from './context.js'
-import type { ConditionDSL, EvaluatorDSL, SelectorDSL, Value } from '@arcadia-eternity/schema'
+import {
+  type ConditionDSL,
+  type EvaluatorDSL,
+  getEffectDslManifest,
+  type SelectorDSL,
+  type Value,
+} from '@arcadia-eternity/schema'
 import {
   evaluateCommonCondition,
   evaluateRuntimeEvaluator,
@@ -650,32 +656,9 @@ function evaluateDefaultRegisteredCondition(
   }
 }
 
-const DEFAULT_REGISTERED_CONDITION_TYPES: ConditionDSL['type'][] = [
-  'skillSequence',
-  'petIsActive',
-  'selfUseSkill',
-  'checkSelf',
-  'opponentUseSkill',
-  'selfBeDamaged',
-  'opponentBeDamaged',
-  'selfAddMark',
-  'opponentAddMark',
-  'selfBeAddMark',
-  'opponentBeAddMark',
-  'selfBeHeal',
-  'continuousUseSkill',
-  'statStageChange',
-  'isFirstSkillUsedThisTurn',
-  'isLastSkillUsedThisTurn',
-  'selfSwitchIn',
-  'selfSwitchOut',
-  'selfBeSkillTarget',
-  'selfHasMark',
-  'opponentHasMark',
-]
-
 export function registerDefaultConditionHandlers(world: World): void {
-  for (const type of DEFAULT_REGISTERED_CONDITION_TYPES) {
+  const manifest = getEffectDslManifest()
+  for (const type of Object.keys(manifest.condition)) {
     registerConditionHandler(world, type, (ctx, condition) => {
       return evaluateDefaultRegisteredCondition(ctx, condition)
     })
@@ -706,7 +689,7 @@ export function evaluateCondition(
 
   const handler = getConditionHandler(ctx.world, condition.type)
   if (handler) return handler(ctx, condition)
-  throw new Error(`[effect-interpreter] Unsupported condition type: ${condition.type}`)
+  return evaluateDefaultRegisteredCondition(ctx, condition)
 }
 
 /**

@@ -6,25 +6,13 @@ import {
   extractDslTypingMetadata,
   type EffectDslFieldTypingRule,
   type EffectDslStateConstraint,
-  type EntityKind,
   type ExtractorValueType,
 } from '@arcadia-eternity/schema'
 import type { TSchema } from '@sinclair/typebox'
-import { battleExtractorRegistry } from '../../systems/extractor-registry.js'
-import { BaseMarkSchema } from '../../schemas/mark.schema.js'
-import { BaseSkillSchema } from '../../schemas/skill.schema.js'
-
-type CompileOwner =
-  | EntityKind
-  | 'baseMark'
-  | 'baseSkill'
-  | 'effectDef'
-  | 'effectContext'
-  | 'unknown'
-
-type CompileScalarType = 'number' | 'string' | 'boolean' | 'unknown'
-type CompileObjectClass =
-  | `path:${CompileOwner}:${string}`
+export type CompileOwner = string
+export type CompileScalarType = 'number' | 'string' | 'boolean' | 'unknown'
+export type CompileObjectClass =
+  | `path:${string}:${string}`
   | 'dsl:operator'
   | 'dsl:condition'
   | 'dsl:evaluator'
@@ -34,44 +22,125 @@ type CompileObjectClass =
   | 'json:stringArray'
   | 'json:record'
 
-type CompileValueState =
+export type CompileValueState =
   | { kind: 'scalar'; valueType: CompileScalarType }
   | { kind: 'object'; objectClass: CompileObjectClass; owner?: CompileOwner; path?: string }
 
-type CompileState =
+export type CompileState =
   | { kind: 'owner'; owner: CompileOwner }
   | { kind: 'id'; target: CompileOwner }
   | CompileValueState
   | { kind: 'propertyRef' }
 
-const baseSelectorKeySet = new Set<string>(BASE_SELECTOR_KEYS)
-const conditionTypeSet = collectNodeTypes(conditionDSLSchema)
-const evaluatorTypeSet = collectNodeTypes(evaluatorDSLSchema)
-const operatorTypeSet = collectNodeTypes(operatorDSLSchema)
 type CompileNodeTypingRule = {
   selectorFields?: Record<string, EffectDslFieldTypingRule>
   valueFields?: Record<string, EffectDslFieldTypingRule>
 }
-const conditionTypingRules = extractDslTypingMetadata<CompileNodeTypingRule>(conditionDSLSchema) as Partial<Record<string, CompileNodeTypingRule>>
-const evaluatorTypingRules = extractDslTypingMetadata<CompileNodeTypingRule>(evaluatorDSLSchema) as Partial<Record<string, CompileNodeTypingRule>>
-const operatorTypingRules = extractDslTypingMetadata<CompileNodeTypingRule>(operatorDSLSchema) as Partial<Record<string, CompileNodeTypingRule>>
+
+const defaultConditionTypeSet = collectNodeTypes(conditionDSLSchema)
+const defaultEvaluatorTypeSet = collectNodeTypes(evaluatorDSLSchema)
+const defaultOperatorTypeSet = collectNodeTypes(operatorDSLSchema)
+const defaultConditionTypingRules = extractDslTypingMetadata<CompileNodeTypingRule>(conditionDSLSchema) as Partial<Record<string, CompileNodeTypingRule>>
+const defaultEvaluatorTypingRules = extractDslTypingMetadata<CompileNodeTypingRule>(evaluatorDSLSchema) as Partial<Record<string, CompileNodeTypingRule>>
+const defaultOperatorTypingRules = extractDslTypingMetadata<CompileNodeTypingRule>(operatorDSLSchema) as Partial<Record<string, CompileNodeTypingRule>>
 
 type RelationMeta = {
   target: CompileOwner
   cardinality: 'one' | 'many'
 }
 
-const attributeKeysByOwner = new Map<CompileOwner, Set<string>>()
-const attributeTypesByOwner = new Map<CompileOwner, Map<string, CompileValueState>>()
-const relationByOwner = new Map<CompileOwner, Map<string, RelationMeta>>()
-const fieldPathsByOwner = new Map<CompileOwner, Set<string>>()
-const fieldTypesByOwner = new Map<CompileOwner, Map<string, CompileValueState>>()
+export type EffectCompileExtractorRegistry = {
+  attributes: Array<{
+    key: string
+    owners: readonly string[]
+    valueType: ExtractorValueType
+  }>
+  fields: Array<{
+    path: string
+    owners: readonly string[]
+    valueType: ExtractorValueType
+  }>
+  relations: Array<{
+    key: string
+    owners: readonly string[]
+    target: string
+    cardinality: 'one' | 'many'
+  }>
+}
+
+export type EffectCompileSchemaOwner = {
+  owner: CompileOwner
+  schema: TSchema | unknown
+}
+
+export type EffectCompileFieldSeed = {
+  owner: CompileOwner
+  path: string
+  valueType: CompileValueState
+}
+
+export type EffectCompileRelationSeed = {
+  owner: CompileOwner
+  key: string
+  target: CompileOwner
+  cardinality: 'one' | 'many'
+}
+
+export type EffectCompileTypingEnvironment = {
+  extractorRegistry: EffectCompileExtractorRegistry
+  baseSelectorKeys?: Iterable<string>
+  baseSelectorStates?: Readonly<Record<string, readonly CompileState[]>>
+  schemaOwners?: readonly EffectCompileSchemaOwner[]
+  fieldSeeds?: readonly EffectCompileFieldSeed[]
+  relationSeeds?: readonly EffectCompileRelationSeed[]
+  conditionTypes?: Iterable<string>
+  evaluatorTypes?: Iterable<string>
+  operatorTypes?: Iterable<string>
+  conditionTypingRules?: Partial<Record<string, CompileNodeTypingRule>>
+  evaluatorTypingRules?: Partial<Record<string, CompileNodeTypingRule>>
+  operatorTypingRules?: Partial<Record<string, CompileNodeTypingRule>>
+}
+
+type CompileTypingContext = {
+  baseSelectorKeySet: Set<string>
+  baseSelectorStateMap: Map<string, CompileState[]>
+  conditionTypeSet: Set<string>
+  evaluatorTypeSet: Set<string>
+  operatorTypeSet: Set<string>
+  conditionTypingRules: Partial<Record<string, CompileNodeTypingRule>>
+  evaluatorTypingRules: Partial<Record<string, CompileNodeTypingRule>>
+  operatorTypingRules: Partial<Record<string, CompileNodeTypingRule>>
+  attributeKeysByOwner: Map<CompileOwner, Set<string>>
+  attributeTypesByOwner: Map<CompileOwner, Map<string, CompileValueState>>
+  relationByOwner: Map<CompileOwner, Map<string, RelationMeta>>
+  fieldPathsByOwner: Map<CompileOwner, Set<string>>
+  fieldTypesByOwner: Map<CompileOwner, Map<string, CompileValueState>>
+}
+
+let activeCompileTypingContext: CompileTypingContext | undefined
+
+function getCompileTypingContext(): CompileTypingContext {
+  if (!activeCompileTypingContext) {
+    throw new Error('Effect compile typing context is not initialized')
+  }
+  return activeCompileTypingContext
+}
+
+function withCompileTypingContext<T>(context: CompileTypingContext, run: () => T): T {
+  const previous = activeCompileTypingContext
+  activeCompileTypingContext = context
+  try {
+    return run()
+  } finally {
+    activeCompileTypingContext = previous
+  }
+}
 
 function pathObjectClass(owner: CompileOwner, path: string): CompileObjectClass {
   return `path:${owner}:${path}`
 }
 
-function pathObjectState(owner: CompileOwner, path: string): CompileValueState {
+export function createPathObjectState(owner: CompileOwner, path: string): CompileValueState {
   return {
     kind: 'object',
     objectClass: pathObjectClass(owner, path),
@@ -80,120 +149,99 @@ function pathObjectState(owner: CompileOwner, path: string): CompileValueState {
   }
 }
 
-for (const attr of battleExtractorRegistry.attributes) {
-  for (const owner of attr.owners) {
-    addSet(attributeKeysByOwner, owner as CompileOwner, attr.key)
-    addTypedKey(
-      attributeTypesByOwner,
-      owner as CompileOwner,
-      attr.key,
-      stateFromExtractorValueType(attr.valueType, owner as CompileOwner, attr.key),
-    )
-  }
+export function createScalarValueState(valueType: CompileScalarType): CompileValueState {
+  return { kind: 'scalar', valueType }
 }
-for (const rel of battleExtractorRegistry.relations) {
-  for (const owner of rel.owners) {
-    let ownerMap = relationByOwner.get(owner as CompileOwner)
+
+function createCompileTypingContext(
+  environment: EffectCompileTypingEnvironment,
+): CompileTypingContext {
+  const attributeKeysByOwner = new Map<CompileOwner, Set<string>>()
+  const attributeTypesByOwner = new Map<CompileOwner, Map<string, CompileValueState>>()
+  const relationByOwner = new Map<CompileOwner, Map<string, RelationMeta>>()
+  const fieldPathsByOwner = new Map<CompileOwner, Set<string>>()
+  const fieldTypesByOwner = new Map<CompileOwner, Map<string, CompileValueState>>()
+
+  for (const attr of environment.extractorRegistry.attributes) {
+    for (const owner of attr.owners) {
+      addSet(attributeKeysByOwner, owner as CompileOwner, attr.key)
+      addTypedKey(
+        attributeTypesByOwner,
+        owner as CompileOwner,
+        attr.key,
+        stateFromExtractorValueType(attr.valueType, owner as CompileOwner, attr.key),
+      )
+    }
+  }
+  for (const rel of environment.extractorRegistry.relations) {
+    for (const owner of rel.owners) {
+      let ownerMap = relationByOwner.get(owner as CompileOwner)
+      if (!ownerMap) {
+        ownerMap = new Map<string, RelationMeta>()
+        relationByOwner.set(owner as CompileOwner, ownerMap)
+      }
+      ownerMap.set(rel.key, {
+        target: rel.target as CompileOwner,
+        cardinality: rel.cardinality,
+      })
+    }
+  }
+  for (const field of environment.extractorRegistry.fields) {
+    for (const owner of field.owners) {
+      addSet(fieldPathsByOwner, owner as CompileOwner, field.path)
+      addTypedKey(
+        fieldTypesByOwner,
+        owner as CompileOwner,
+        field.path,
+        stateFromExtractorValueType(field.valueType, owner as CompileOwner, field.path),
+      )
+    }
+  }
+
+  for (const schemaOwner of environment.schemaOwners ?? []) {
+    for (const field of collectSchemaFields(schemaOwner.owner, schemaOwner.schema)) {
+      addSet(fieldPathsByOwner, schemaOwner.owner, field.path)
+      addTypedKey(fieldTypesByOwner, schemaOwner.owner, field.path, field.valueType)
+    }
+  }
+
+  for (const fieldSeed of environment.fieldSeeds ?? []) {
+    addSet(fieldPathsByOwner, fieldSeed.owner, fieldSeed.path)
+    addTypedKey(fieldTypesByOwner, fieldSeed.owner, fieldSeed.path, fieldSeed.valueType)
+  }
+  for (const relationSeed of environment.relationSeeds ?? []) {
+    let ownerMap = relationByOwner.get(relationSeed.owner)
     if (!ownerMap) {
       ownerMap = new Map<string, RelationMeta>()
-      relationByOwner.set(owner as CompileOwner, ownerMap)
+      relationByOwner.set(relationSeed.owner, ownerMap)
     }
-    ownerMap.set(rel.key, {
-      target: rel.target as CompileOwner,
-      cardinality: rel.cardinality,
+    ownerMap.set(relationSeed.key, {
+      target: relationSeed.target,
+      cardinality: relationSeed.cardinality,
     })
   }
-}
-for (const field of battleExtractorRegistry.fields) {
-  for (const owner of field.owners) {
-    addSet(fieldPathsByOwner, owner as CompileOwner, field.path)
-    addTypedKey(
-      fieldTypesByOwner,
-      owner as CompileOwner,
-      field.path,
-      stateFromExtractorValueType(field.valueType, owner as CompileOwner, field.path),
-    )
-  }
-}
 
-for (const field of collectSchemaFields('baseMark', BaseMarkSchema)) {
-  addSet(fieldPathsByOwner, 'baseMark', field.path)
-  addTypedKey(fieldTypesByOwner, 'baseMark', field.path, field.valueType)
-}
-for (const field of collectSchemaFields('baseSkill', BaseSkillSchema)) {
-  addSet(fieldPathsByOwner, 'baseSkill', field.path)
-  addTypedKey(fieldTypesByOwner, 'baseSkill', field.path, field.valueType)
-}
-
-for (const path of ['id', 'triggers', 'priority', 'condition', 'apply', 'consumesStacks', 'tags']) {
-  addSet(fieldPathsByOwner, 'effectDef', path)
-}
-addTypedKey(fieldTypesByOwner, 'effectDef', 'id', { kind: 'scalar', valueType: 'string' })
-addTypedKey(fieldTypesByOwner, 'effectDef', 'triggers', pathObjectState('effectDef', 'triggers'))
-addTypedKey(fieldTypesByOwner, 'effectDef', 'priority', { kind: 'scalar', valueType: 'number' })
-addTypedKey(fieldTypesByOwner, 'effectDef', 'condition', pathObjectState('effectDef', 'condition'))
-addTypedKey(fieldTypesByOwner, 'effectDef', 'apply', pathObjectState('effectDef', 'apply'))
-addTypedKey(fieldTypesByOwner, 'effectDef', 'consumesStacks', { kind: 'scalar', valueType: 'number' })
-addTypedKey(fieldTypesByOwner, 'effectDef', 'tags', pathObjectState('effectDef', 'tags'))
-for (const path of [
-  'trigger',
-  'sourceEntityId',
-  'triggerSourceEntityId',
-  'effectEntityId',
-  'effectId',
-  'available',
-  'effect',
-  'context',
-  'useSkillContext',
-  'damageContext',
-  'healContext',
-  'rageContext',
-  'addMarkContext',
-  'switchPetContext',
-  'turnContext',
-  'stackContext',
-  'consumeStackContext',
-  'transformContext',
-  'removeMarkContext',
-]) {
-  addSet(fieldPathsByOwner, 'effectContext', path)
-}
-for (const key of ['trigger', 'sourceEntityId', 'triggerSourceEntityId', 'effectEntityId', 'effectId']) {
-  addTypedKey(fieldTypesByOwner, 'effectContext', key, { kind: 'scalar', valueType: 'string' })
-}
-addTypedKey(fieldTypesByOwner, 'effectContext', 'available', { kind: 'scalar', valueType: 'boolean' })
-for (const key of [
-  'effect',
-  'context',
-  'useSkillContext',
-  'damageContext',
-  'healContext',
-  'rageContext',
-  'addMarkContext',
-  'switchPetContext',
-  'turnContext',
-  'stackContext',
-  'consumeStackContext',
-  'transformContext',
-  'removeMarkContext',
-]) {
-  addTypedKey(fieldTypesByOwner, 'effectContext', key, pathObjectState('effectContext', key))
-}
-{
-  let effectContextRelations = relationByOwner.get('effectContext')
-  if (!effectContextRelations) {
-    effectContextRelations = new Map<string, RelationMeta>()
-    relationByOwner.set('effectContext', effectContextRelations)
+  const baseSelectorStateMap = new Map<string, CompileState[]>()
+  if (environment.baseSelectorStates) {
+    for (const [key, states] of Object.entries(environment.baseSelectorStates)) {
+      baseSelectorStateMap.set(key, states.map(state => ({ ...state })))
+    }
   }
-  effectContextRelations.set('effect', { target: 'effectDef', cardinality: 'one' })
-}
-for (const [path, valueType] of fieldTypesByOwner.get('effectDef') ?? []) {
-  const nestedPath = `effect.${path}`
-  addSet(fieldPathsByOwner, 'effectContext', nestedPath)
-  if (valueType.kind === 'object') {
-    addTypedKey(fieldTypesByOwner, 'effectContext', nestedPath, pathObjectState('effectContext', nestedPath))
-  } else {
-    addTypedKey(fieldTypesByOwner, 'effectContext', nestedPath, valueType)
+
+  return {
+    baseSelectorKeySet: new Set<string>(environment.baseSelectorKeys ?? BASE_SELECTOR_KEYS),
+    baseSelectorStateMap,
+    conditionTypeSet: new Set<string>(environment.conditionTypes ?? defaultConditionTypeSet),
+    evaluatorTypeSet: new Set<string>(environment.evaluatorTypes ?? defaultEvaluatorTypeSet),
+    operatorTypeSet: new Set<string>(environment.operatorTypes ?? defaultOperatorTypeSet),
+    conditionTypingRules: environment.conditionTypingRules ?? defaultConditionTypingRules,
+    evaluatorTypingRules: environment.evaluatorTypingRules ?? defaultEvaluatorTypingRules,
+    operatorTypingRules: environment.operatorTypingRules ?? defaultOperatorTypingRules,
+    attributeKeysByOwner,
+    attributeTypesByOwner,
+    relationByOwner,
+    fieldPathsByOwner,
+    fieldTypesByOwner,
   }
 }
 
@@ -235,7 +283,7 @@ function stateFromExtractorValueType(
       return { kind: 'scalar', valueType: 'boolean' }
     case 'id[]':
     case 'object':
-      return pathObjectState(owner, path)
+      return createPathObjectState(owner, path)
     default:
       return { kind: 'scalar', valueType: 'unknown' }
   }
@@ -280,7 +328,7 @@ function inferValueStateFromSchema(owner: CompileOwner, path: string, schema: un
   if (type === 'number' || type === 'integer') return { kind: 'scalar', valueType: 'number' }
   if (type === 'string') return { kind: 'scalar', valueType: 'string' }
   if (type === 'boolean') return { kind: 'scalar', valueType: 'boolean' }
-  if (type === 'array' || type === 'object') return pathObjectState(owner, path)
+  if (type === 'array' || type === 'object') return createPathObjectState(owner, path)
   const variants = [...(node?.anyOf ?? []), ...(node?.oneOf ?? [])]
   if (variants.length > 0) {
     const inferred = variants.map(variant => inferValueStateFromSchema(owner, path, variant))
@@ -340,23 +388,23 @@ function collectSchemaFields(
 }
 
 function hasField(owner: CompileOwner, path: string): boolean {
-  return fieldPathsByOwner.get(owner)?.has(path) === true
+  return getCompileTypingContext().fieldPathsByOwner.get(owner)?.has(path) === true
 }
 
 function hasAttribute(owner: CompileOwner, key: string): boolean {
-  return attributeKeysByOwner.get(owner)?.has(key) === true
+  return getCompileTypingContext().attributeKeysByOwner.get(owner)?.has(key) === true
 }
 
 function getAttributeState(owner: CompileOwner, key: string): CompileValueState | undefined {
-  return attributeTypesByOwner.get(owner)?.get(key)
+  return getCompileTypingContext().attributeTypesByOwner.get(owner)?.get(key)
 }
 
 function getRelation(owner: CompileOwner, key: string): RelationMeta | undefined {
-  return relationByOwner.get(owner)?.get(key)
+  return getCompileTypingContext().relationByOwner.get(owner)?.get(key)
 }
 
 function getFieldState(owner: CompileOwner, path: string): CompileValueState | undefined {
-  return fieldTypesByOwner.get(owner)?.get(path)
+  return getCompileTypingContext().fieldTypesByOwner.get(owner)?.get(path)
 }
 
 function inferIdTarget(owner: CompileOwner, key: string): CompileOwner | undefined {
@@ -507,7 +555,7 @@ function resolvePathFromId(target: CompileOwner, path: string, at: string): Comp
   if (path === 'currentHp' || path === 'maxHp' || path === 'level' || path === 'gender' || path === 'stats') {
     if (target === 'pet') {
       if (path === 'gender') return [{ kind: 'scalar', valueType: 'string' }]
-      if (path === 'stats') return [pathObjectState('pet', 'stats')]
+      if (path === 'stats') return [createPathObjectState('pet', 'stats')]
       return [{ kind: 'scalar', valueType: 'number' }]
     }
     throw new Error(`selector typing failed at ${at}: extractor '${path}' is invalid for '${target}' id`)
@@ -572,6 +620,10 @@ function dedupeStates(states: CompileState[]): CompileState[] {
 }
 
 function baseSelectorStates(base: string, at: string): CompileState[] {
+  const runtimeStates = getCompileTypingContext().baseSelectorStateMap.get(base)
+  if (runtimeStates && runtimeStates.length > 0) {
+    return runtimeStates.map(state => ({ ...state }))
+  }
   switch (base) {
     case 'self':
     case 'opponent':
@@ -633,15 +685,15 @@ function isSelectorRecord(value: unknown): boolean {
 }
 
 function isConditionNode(value: unknown): boolean {
-  return isRecord(value) && typeof value.type === 'string' && conditionTypeSet.has(value.type)
+  return isRecord(value) && typeof value.type === 'string' && getCompileTypingContext().conditionTypeSet.has(value.type)
 }
 
 function isEvaluatorNode(value: unknown): boolean {
-  return isRecord(value) && typeof value.type === 'string' && evaluatorTypeSet.has(value.type)
+  return isRecord(value) && typeof value.type === 'string' && getCompileTypingContext().evaluatorTypeSet.has(value.type)
 }
 
 function isOperatorNode(value: unknown): boolean {
-  return isRecord(value) && typeof value.type === 'string' && operatorTypeSet.has(value.type)
+  return isRecord(value) && typeof value.type === 'string' && getCompileTypingContext().operatorTypeSet.has(value.type)
 }
 
 function isEffectDefLike(value: Record<string, unknown>): boolean {
@@ -652,7 +704,7 @@ function isEffectDefLike(value: Record<string, unknown>): boolean {
 
 function validateSelectorNode(selector: unknown, at: string): CompileState[] {
   if (typeof selector === 'string') {
-    if (!baseSelectorKeySet.has(selector)) {
+    if (!getCompileTypingContext().baseSelectorKeySet.has(selector)) {
       throw new Error(`selector typing failed at ${at}: unknown selector '${selector}'`)
     }
     return baseSelectorStates(selector, at)
@@ -671,7 +723,7 @@ function validateSelectorNode(selector: unknown, at: string): CompileState[] {
   }
 
   if (typeof selector.base === 'string') {
-    if (!baseSelectorKeySet.has(selector.base)) {
+    if (!getCompileTypingContext().baseSelectorKeySet.has(selector.base)) {
       throw new Error(`selector typing failed at ${at}/base: unknown base selector '${selector.base}'`)
     }
     let states = baseSelectorStates(selector.base, `${at}/base`)
@@ -1005,7 +1057,7 @@ function validateConditionNode(condition: unknown, at: string): void {
     return
   }
   const node = condition as Record<string, unknown> & { type: string }
-  const checked = applyNodeTypingRules(at, node, conditionTypingRules[node.type])
+  const checked = applyNodeTypingRules(at, node, getCompileTypingContext().conditionTypingRules[node.type])
   for (const [key, value] of Object.entries(node)) {
     if (checked.has(key)) continue
     walkNode(value, `${at}/${key}`)
@@ -1018,7 +1070,7 @@ function validateEvaluatorNode(evaluator: unknown, at: string): void {
     return
   }
   const node = evaluator as Record<string, unknown> & { type: string }
-  const checked = applyNodeTypingRules(at, node, evaluatorTypingRules[node.type])
+  const checked = applyNodeTypingRules(at, node, getCompileTypingContext().evaluatorTypingRules[node.type])
   for (const [key, value] of Object.entries(node)) {
     if (checked.has(key)) continue
     walkNode(value, `${at}/${key}`)
@@ -1031,7 +1083,7 @@ function validateOperatorNode(operator: unknown, at: string): void {
     return
   }
   const node = operator as Record<string, unknown> & { type: string }
-  const checked = applyNodeTypingRules(at, node, operatorTypingRules[node.type])
+  const checked = applyNodeTypingRules(at, node, getCompileTypingContext().operatorTypingRules[node.type])
   for (const [key, value] of Object.entries(node)) {
     if (checked.has(key)) continue
     walkNode(value, `${at}/${key}`)
@@ -1090,7 +1142,7 @@ function walkNode(node: unknown, at: string): void {
 
   if ('target' in node && (typeof node.target === 'string' || isRecord(node.target))) {
     if (typeof node.target === 'string') {
-      if (baseSelectorKeySet.has(node.target)) {
+      if (getCompileTypingContext().baseSelectorKeySet.has(node.target)) {
         validateSelectorNode(node.target, `${at}/target`)
       }
     } else if (isSelectorRecord(node.target)) {
@@ -1104,11 +1156,30 @@ function walkNode(node: unknown, at: string): void {
   }
 }
 
-export function validateEffectCompileTyping(raw: Record<string, unknown>): void {
+function validateEffectCompileTypingRaw(raw: Record<string, unknown>): void {
   if ('condition' in raw) {
     validateConditionNode(raw.condition, '/condition')
   }
   if ('apply' in raw) {
     walkNode(raw.apply, '/apply')
   }
+}
+
+export function createEffectCompileTypingValidator(
+  environment: EffectCompileTypingEnvironment,
+): (raw: Record<string, unknown>) => void {
+  const context = createCompileTypingContext(environment)
+  return (raw: Record<string, unknown>) => {
+    withCompileTypingContext(context, () => {
+      validateEffectCompileTypingRaw(raw)
+    })
+  }
+}
+
+export function validateEffectCompileTyping(
+  raw: Record<string, unknown>,
+  environment: EffectCompileTypingEnvironment,
+): void {
+  const validate = createEffectCompileTypingValidator(environment)
+  validate(raw)
 }
