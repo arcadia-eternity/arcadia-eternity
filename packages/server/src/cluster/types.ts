@@ -195,6 +195,7 @@ export const REDIS_KEYS = {
   BATTLE_RUNTIME_ACTION_SEQ: (roomId: string) => `battle:runtime:actions:seq:${roomId}`,
   BATTLE_RUNTIME_REPLAY_CURSOR: (roomId: string) => `battle:runtime:replay:cursor:${roomId}`,
   BATTLE_RUNTIME_WORLD_SNAPSHOT: (roomId: string) => `battle:runtime:world-snapshot:${roomId}`,
+  BATTLE_RUNTIME_INFLIGHT_PHASE: (roomId: string) => `battle:runtime:inflight-phase:${roomId}`,
   BATTLE_RUNTIME_PLAYER_SNAPSHOT: (roomId: string, playerId: string) =>
     `battle:runtime:snapshot:${roomId}:player:${playerId}`,
 

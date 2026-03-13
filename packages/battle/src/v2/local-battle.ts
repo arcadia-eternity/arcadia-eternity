@@ -12,8 +12,12 @@ import type {
   playerId,
 } from '@arcadia-eternity/const'
 import { BattleMessageType } from '@arcadia-eternity/const'
-import { createSnapshot, restoreWorld } from '@arcadia-eternity/engine'
-import type { IBattleSystem, BattleRuntimeSnapshot } from '@arcadia-eternity/interface'
+import { createSnapshot, restoreWorld, GameRng, type RngState, type PhaseExecutionEvent } from '@arcadia-eternity/engine'
+import type {
+  IBattleSystem,
+  BattleRuntimeSnapshot,
+  BattlePhaseExecutionEvent,
+} from '@arcadia-eternity/interface'
 import type { BattleInstance } from './game.js'
 import { BattleOrchestrator } from './orchestrator.js'
 import { SelectionSystem } from './systems/selection.system.js'
@@ -22,9 +26,48 @@ import { worldToBattleState } from './systems/state-serializer.js'
 import type { MessageViewOptions } from './systems/message-bridge.js'
 import { TimerSystem } from './systems/timer.system.js'
 
+type RuntimeSnapshotMeta = {
+  strictExtractorTyping: boolean
+  rngState: RngState
+}
+
+function isRngStateReader(value: unknown): value is { getState: () => RngState } {
+  if (!value || typeof value !== 'object') return false
+  return typeof (value as { getState?: unknown }).getState === 'function'
+}
+
+function isRngState(value: unknown): value is RngState {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  const seed = candidate.seed
+  return (
+    (typeof seed === 'string' || typeof seed === 'number') &&
+    typeof candidate.a === 'number' &&
+    Number.isFinite(candidate.a) &&
+    typeof candidate.b === 'number' &&
+    Number.isFinite(candidate.b) &&
+    typeof candidate.c === 'number' &&
+    Number.isFinite(candidate.c) &&
+    typeof candidate.d === 'number' &&
+    Number.isFinite(candidate.d)
+  )
+}
+
+function readRuntimeSnapshotMeta(meta: Record<string, unknown>): RuntimeSnapshotMeta {
+  const strictExtractorTyping = meta.strictExtractorTyping === true
+  const rngState = meta.rngState
+  if (!isRngState(rngState)) {
+    throw new Error('Runtime snapshot is missing valid rngState')
+  }
+  return {
+    strictExtractorTyping,
+    rngState,
+  }
+}
+
 export class LocalBattleSystemV2 implements IBattleSystem {
   private static readonly RUNTIME_SNAPSHOT_FORMAT = 'arcadia.battle.v2.world'
-  private static readonly RUNTIME_SNAPSHOT_VERSION = 1
+  private static readonly RUNTIME_SNAPSHOT_VERSION = 2
 
   private orchestrator: BattleOrchestrator
   private selectionSystem: SelectionSystem
@@ -32,6 +75,8 @@ export class LocalBattleSystemV2 implements IBattleSystem {
   private timerSystem: TimerSystem
   private battlePromise: Promise<void> | null = null
   private resumeFromSnapshot = false
+  private phaseEventSubscribers = new Set<(event: BattlePhaseExecutionEvent) => void | Promise<void>>()
+  private removePhaseExecutionObserver: (() => void) | null = null
 
   constructor(private battle: BattleInstance) {
     this.selectionSystem = new SelectionSystem(
@@ -59,6 +104,32 @@ export class LocalBattleSystemV2 implements IBattleSystem {
         attrSystem: battle.attrSystem,
       },
       battle.config.showHidden ?? false,
+    )
+
+    this.removePhaseExecutionObserver = this.battle.phaseManager.onExecutionEvent(
+      async (_world, event: PhaseExecutionEvent) => {
+        if (event.transition === 'begin') {
+          this.messageBridge.beginPhaseTransaction(event.phase.id)
+        } else if (event.transition === 'commit') {
+          this.messageBridge.commitPhaseTransaction(event.phase.id)
+        } else {
+          this.messageBridge.rollbackPhaseTransaction(event.phase.id)
+        }
+
+        if (this.phaseEventSubscribers.size === 0) return
+        const payload: BattlePhaseExecutionEvent = {
+          transition: event.transition,
+          phaseId: event.phase.id,
+          phaseType: event.phase.type,
+          phaseState: event.phase.state,
+          stackDepth: event.stackDepth,
+          timestamp: Date.now(),
+          error: event.error,
+        }
+        for (const subscriber of this.phaseEventSubscribers) {
+          await subscriber(payload)
+        }
+      },
     )
   }
 
@@ -132,6 +203,15 @@ export class LocalBattleSystemV2 implements IBattleSystem {
     this.timerSystem.off(eventType, handler)
   }
 
+  onPhaseExecutionEvent(
+    handler: (event: BattlePhaseExecutionEvent) => void | Promise<void>,
+  ): () => void {
+    this.phaseEventSubscribers.add(handler)
+    return () => {
+      this.phaseEventSubscribers.delete(handler)
+    }
+  }
+
   // Developer methods
   setDevPetHp(petId: string, hp: number): void {
     const pet = this.battle.petSystem.get(this.world, petId)
@@ -182,11 +262,20 @@ export class LocalBattleSystemV2 implements IBattleSystem {
 
   async createRuntimeSnapshot(): Promise<BattleRuntimeSnapshot> {
     const world = this.battle.world
+    const runtimeRng = world.systems.rng
+    if (!isRngStateReader(runtimeRng)) {
+      throw new Error('Runtime snapshot requires RNG state reader at world.systems.rng')
+    }
+    const rngState = runtimeRng.getState()
+    if (!isRngState(rngState)) {
+      throw new Error('Runtime snapshot RNG state is invalid')
+    }
     const serializableWorld = {
       ...world,
       systems: {},
       meta: {
-        strictExtractorTyping: world.meta.strictExtractorTyping,
+        strictExtractorTyping: world.meta.strictExtractorTyping === true,
+        rngState,
       },
     }
     return {
@@ -206,10 +295,12 @@ export class LocalBattleSystemV2 implements IBattleSystem {
 
     const currentWorld = this.battle.world
     const restoredWorld = restoreWorld(snapshot.payload)
+    const runtimeMeta = readRuntimeSnapshotMeta(restoredWorld.meta)
     restoredWorld.systems = currentWorld.systems
+    restoredWorld.systems.rng = GameRng.fromState(runtimeMeta.rngState)
     restoredWorld.meta = {
       ...restoredWorld.meta,
-      strictExtractorTyping: currentWorld.meta.strictExtractorTyping,
+      strictExtractorTyping: runtimeMeta.strictExtractorTyping,
       dataRepository: currentWorld.meta.dataRepository,
     }
     this.battle.world = restoredWorld
@@ -226,6 +317,11 @@ export class LocalBattleSystemV2 implements IBattleSystem {
     this.orchestrator.stop()
     this.timerSystem.cleanup()
     this.messageBridge.cleanup()
+    this.phaseEventSubscribers.clear()
+    if (this.removePhaseExecutionObserver) {
+      this.removePhaseExecutionObserver()
+      this.removePhaseExecutionObserver = null
+    }
     this.battle.eventBus.clear()
     if (this.battlePromise) {
       await this.battlePromise.catch(() => {})

@@ -1,5 +1,7 @@
 # Pack Roadmap
 
+Last updated: `2026-03-13`
+
 ## 背景
 
 项目已切到 pack 模式，基础包在 `@arcadia-eternity/data-pack-base`，运行时默认引用 `builtin:base`。  
@@ -22,10 +24,11 @@
    - webrtc 在线专项通过
 6. Web 侧已经具备 `p2pTransport: auto | relay | webrtc` 配置与统一测试入口。
 7. Web 侧已经具备复用外部本地服务的在线 E2E 入口，便于稳定复测 `relay / webrtc`。
+8. `server` 模式迁移基线已补强：`runtimeSeed` 持久化、runtime snapshot strict `v2` 门禁、以及 snapshot 不兼容时 replay-from-start 兜底已落地。
 
 ### 未完成
 
-1. `server` authoritative 模式的严格 deterministic snapshot / replay / ownership handoff。
+1. `server` authoritative 模式的严格 deterministic snapshot / replay / ownership handoff（当前已完成 seed + snapshot v2 + replay fallback 基线，仍缺 mid-phase 严格切换协议）。
 2. 真实多进程集群（非 mock）下的 server+p2p 端到端验收。
 3. `Pack Service` 的完整安装体验与创意工坊分发链。
 4. Tauri 端的完整 PackManager 运行链验证。
@@ -141,7 +144,7 @@
 
 ## 当前执行顺序（短期）
 
-1. 完成 `server` 模式严格 deterministic handoff（含 mid-phase 边界策略）
+1. 收口 `server` 模式严格 deterministic handoff（重点：mid-phase 边界策略 + 非请求驱动接管）
 2. 补真实多进程集群 E2E（A/B/C + real Redis + queue/match + p2p reconnect）
 3. 落地 Pack Service 最小可用 API 与 Web 缺包自动安装闭环
 4. 完成 TauriPackManager 验收并收口 PackPolicy 错误码

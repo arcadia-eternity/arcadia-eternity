@@ -38,6 +38,12 @@ pnpm --filter @arcadia-eternity/battle run test:run
 - v2 RNG 回归
 - v2 timer / runtime snapshot 回归
 
+定向回归：
+
+```bash
+pnpm --filter @arcadia-eternity/battle exec vitest run src/v2/__tests__/v2-runtime-snapshot.test.ts
+```
+
 ### 2) server
 
 ```bash
@@ -49,6 +55,14 @@ pnpm --filter @arcadia-eternity/server run test:run
 ```bash
 pnpm --filter @arcadia-eternity/server run test:run:cluster-multi-instance-e2e
 ```
+
+deterministic handoff 定向回归：
+
+```bash
+pnpm --filter @arcadia-eternity/server exec vitest run test/clusterBattleService.v2.test.ts
+```
+
+其中包含 turn 粒度中断恢复回归（inflight checkpoint + replay baseline 回退）。
 
 ### 3) client
 
@@ -116,6 +130,8 @@ pnpm run test:e2e:online:ranked:external
 2. `pnpm --filter @arcadia-eternity/battle run test:run`
 3. `pnpm --filter @arcadia-eternity/server run test:run`
 4. `pnpm --filter @arcadia-eternity/client run test:run`
+5. `pnpm --filter @arcadia-eternity/battle exec vitest run src/v2/__tests__/v2-runtime-snapshot.test.ts`
+6. `pnpm --filter @arcadia-eternity/server exec vitest run test/clusterBattleService.v2.test.ts`
 
 发布前回归（含联机）：
 

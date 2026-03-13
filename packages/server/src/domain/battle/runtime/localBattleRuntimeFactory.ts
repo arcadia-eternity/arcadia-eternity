@@ -50,6 +50,14 @@ function toRuleValidationTeam(player: PlayerSchemaType) {
   }))
 }
 
+function resolveRuntimeSeed(roomState: RoomState): string {
+  const metadataSeed = roomState.metadata?.runtimeSeed
+  if (typeof metadataSeed === 'string' && metadataSeed.length > 0) {
+    return metadataSeed
+  }
+  return `room:${roomState.id}`
+}
+
 export class LocalBattleRuntimeFactory {
   constructor(private readonly logger: Logger) {}
 
@@ -61,12 +69,14 @@ export class LocalBattleRuntimeFactory {
     const ruleSetId = roomState.metadata?.ruleSetId || 'casual_standard_ruleset'
     const requiredPackLock = roomState.metadata?.requiredPackLock as PackLock | undefined
     const packRef = resolvePackRefFromLock(requiredPackLock)
+    const runtimeSeed = resolveRuntimeSeed(roomState)
 
     this.logger.info(
       {
         roomId: roomState.id,
         ruleSetId,
         packRef,
+        runtimeSeed,
         player1: player1Data.name,
         player2: player2Data.name,
       },
@@ -98,6 +108,7 @@ export class LocalBattleRuntimeFactory {
       }
 
       const battleConfig: V2BattleConfig = {
+        seed: runtimeSeed,
         allowFaintSwitch: battleValidation.battleOptions.allowFaintSwitch,
         showHidden: battleValidation.battleOptions.showHidden,
         timerConfig: battleValidation.battleOptions.timerConfig,
@@ -115,6 +126,7 @@ export class LocalBattleRuntimeFactory {
           roomId: roomState.id,
           ruleSetId,
           battleOptions: battleValidation.battleOptions,
+          runtimeSeed,
         },
         'V2 battle created with validated rule options',
       )
@@ -131,6 +143,7 @@ export class LocalBattleRuntimeFactory {
       )
 
       const fallbackConfig: V2BattleConfig = {
+        seed: runtimeSeed,
         showHidden: false,
         timerConfig: {
           enabled: true,

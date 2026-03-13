@@ -19,7 +19,11 @@ import {
   type PlayerSchemaType,
   type PlayerSelectionSchemaType,
 } from '@arcadia-eternity/schema'
-import type { IBattleSystem, BattleRuntimeSnapshot } from '@arcadia-eternity/interface'
+import type {
+  IBattleSystem,
+  BattleRuntimeSnapshot,
+  BattlePhaseExecutionEvent,
+} from '@arcadia-eternity/interface'
 
 import pino from 'pino'
 import type { ClusterStateManager } from '../../../cluster/core/clusterStateManager'
@@ -121,6 +125,38 @@ type SnapshotCapableBattleSystem = IBattleSystem & {
   restoreRuntimeSnapshot: (snapshot: BattleRuntimeSnapshot) => Promise<void>
 }
 
+type PhaseObservableBattleSystem = IBattleSystem & {
+  onPhaseExecutionEvent?: (
+    handler: (event: BattlePhaseExecutionEvent) => void | Promise<void>,
+  ) => () => void
+}
+
+type RuntimePhaseExecutionEntry = {
+  phaseId: string
+  phaseType: string
+  stackDepth: number
+  startedAt: number
+  replayBaselineSeq: number
+}
+
+type PersistedRuntimeInflightPhase = {
+  format: string
+  version: number
+  roomId: string
+  ownerInstanceId: string
+  phaseId: string
+  phaseType: string
+  stackDepth: number
+  replayBaselineSeq: number
+  startedAt: number
+  updatedAt: number
+}
+
+const RUNTIME_SNAPSHOT_FORMAT = 'arcadia.battle.v2.world'
+const RUNTIME_SNAPSHOT_VERSION = 2
+const RUNTIME_INFLIGHT_PHASE_FORMAT = 'arcadia.battle.v2.phase-inflight'
+const RUNTIME_INFLIGHT_PHASE_VERSION = 1
+
 @injectable()
 export class ClusterBattleService implements IBattleService {
   // 使用 TTL 配置管理断线宽限期，完全依赖 Redis TTL
@@ -132,6 +168,9 @@ export class ClusterBattleService implements IBattleService {
   private readonly runtimeHost = new InMemoryBattleRuntimeHost()
   private readonly disconnectedPlayers = new Map<string, DisconnectedPlayerInfo>() // 掉线玩家管理
   private readonly localSpectators = new Map<string, Set<{ playerId: string; sessionId: string }>>() // roomId -> Set of spectators
+  private readonly runtimePhaseStacks = new Map<string, RuntimePhaseExecutionEntry[]>()
+  private readonly runtimeSnapshotSeq = new Map<string, number>()
+  private readonly phaseExecutionUnsubscribers = new Map<string, () => void>()
   private ownershipLeaseRenewalTimer: ReturnType<typeof setInterval> | null = null
 
   // TTL 过期监听器状态（兼容旧逻辑保留字段，当前不再用于战斗判负）
@@ -485,7 +524,10 @@ export class ClusterBattleService implements IBattleService {
     await this.persistRoomMetadataRuntimeBootstrap(roomState.id, player1Data, player2Data)
     if (!options?.preserveRuntimeJournal) {
       await this.resetBattleActionJournal(roomState.id)
+      await this.clearRuntimeInflightPhase(roomState.id)
     }
+    this.runtimeSnapshotSeq.set(roomState.id, 0)
+    this.runtimePhaseStacks.delete(roomState.id)
 
     // 不在这里启动战斗，等待所有玩家准备好后再启动
     logger.info({ roomId: roomState.id }, 'Battle instance created, waiting for players to be ready')
@@ -507,6 +549,7 @@ export class ClusterBattleService implements IBattleService {
 
       // 使用分布式锁确保房间创建的原子性
       return await this.lockManager.withLock(LOCK_KEYS.ROOM_CREATE(roomId), async () => {
+        const runtimeSeed = `room:${roomId}`
         // 解析玩家数据 - 现在playerData应该是原始验证过的数据
         let player1Data, player2Data
         try {
@@ -598,6 +641,7 @@ export class ClusterBattleService implements IBattleService {
             ruleSetId, // 添加规则集信息
             privateRoom: isPrivateRoom,
             roomCode: roomCode,
+            runtimeSeed,
             requiredPackLock,
             requiredAssetLock,
             runtimeBootstrap: {
@@ -1184,6 +1228,18 @@ export class ClusterBattleService implements IBattleService {
       { showAll: true },
     )
 
+    const phaseObservableBattle = battle as PhaseObservableBattleSystem
+    if (typeof phaseObservableBattle.onPhaseExecutionEvent === 'function') {
+      const oldUnsubscribe = this.phaseExecutionUnsubscribers.get(roomId)
+      if (oldUnsubscribe) {
+        oldUnsubscribe()
+      }
+      const unsubscribe = phaseObservableBattle.onPhaseExecutionEvent(async event => {
+        await this.handleRuntimePhaseExecutionEvent(roomId, event)
+      })
+      this.phaseExecutionUnsubscribers.set(roomId, unsubscribe)
+    }
+
     // 2. 为每个玩家设置单独的、具有正确视角的事件监听器
     const playerSessions = roomState.sessions.filter(sessionId => roomState.sessionPlayers[sessionId])
     for (const sessionId of playerSessions) {
@@ -1200,6 +1256,56 @@ export class ClusterBattleService implements IBattleService {
 
     // 3. 设置Timer事件监听器
     this.setupTimerEventListeners(battle, roomState)
+  }
+
+  private async handleRuntimePhaseExecutionEvent(
+    roomId: string,
+    event: BattlePhaseExecutionEvent,
+  ): Promise<void> {
+    const ownership = await this.ownershipCoordinator.get(roomId)
+    if (ownership && ownership.ownerInstanceId !== this.instanceId) {
+      return
+    }
+
+    const stack = this.runtimePhaseStacks.get(roomId) ?? []
+    if (event.transition === 'begin') {
+      const replayBaselineSeq = this.runtimeSnapshotSeq.get(roomId) ?? 0
+      const entry: RuntimePhaseExecutionEntry = {
+        phaseId: event.phaseId,
+        phaseType: event.phaseType,
+        stackDepth: event.stackDepth,
+        startedAt: event.timestamp,
+        replayBaselineSeq,
+      }
+      stack.push(entry)
+      this.runtimePhaseStacks.set(roomId, stack)
+      await this.persistRuntimeInflightPhase(roomId, entry)
+      return
+    }
+
+    const idx = this.findPhaseEntryIndex(stack, event.phaseId)
+    if (idx !== -1) {
+      stack.splice(idx, 1)
+    }
+
+    if (stack.length === 0) {
+      this.runtimePhaseStacks.delete(roomId)
+      await this.clearRuntimeInflightPhase(roomId)
+      return
+    }
+
+    this.runtimePhaseStacks.set(roomId, stack)
+    const top = stack[stack.length - 1]
+    await this.persistRuntimeInflightPhase(roomId, top)
+  }
+
+  private findPhaseEntryIndex(stack: RuntimePhaseExecutionEntry[], phaseId: string): number {
+    for (let i = stack.length - 1; i >= 0; i--) {
+      if (stack[i].phaseId === phaseId) {
+        return i
+      }
+    }
+    return -1
   }
 
   /**
@@ -1656,7 +1762,10 @@ export class ClusterBattleService implements IBattleService {
       await client.del(REDIS_KEYS.BATTLE_RUNTIME_ACTION_LOG(roomId))
       await client.del(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ(roomId))
       await client.del(REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT(roomId))
+      await client.del(REDIS_KEYS.BATTLE_RUNTIME_INFLIGHT_PHASE(roomId))
       await this.persistBattleReplayCursor(roomId, 0)
+      this.runtimeSnapshotSeq.set(roomId, 0)
+      this.runtimePhaseStacks.delete(roomId)
     } catch (error) {
       logger.warn({ roomId, error }, 'Failed to reset battle action journal')
     }
@@ -1707,6 +1816,7 @@ export class ClusterBattleService implements IBattleService {
         this.getBattleRuntimeDataTtlSeconds(),
         JSON.stringify(payload),
       )
+      this.runtimeSnapshotSeq.set(roomId, actionSeq)
     } catch (error) {
       logger.warn({ roomId, error }, 'Failed to persist runtime world snapshot')
     }
@@ -1721,6 +1831,19 @@ export class ClusterBattleService implements IBattleService {
       }
       const parsed = JSON.parse(raw) as Partial<PersistedBattleRuntimeSnapshot>
       if (typeof parsed.format !== 'string' || typeof parsed.version !== 'number' || typeof parsed.payload !== 'string') {
+        return null
+      }
+      if (parsed.format !== RUNTIME_SNAPSHOT_FORMAT || parsed.version !== RUNTIME_SNAPSHOT_VERSION) {
+        logger.warn(
+          {
+            roomId,
+            format: parsed.format,
+            version: parsed.version,
+            expectedFormat: RUNTIME_SNAPSHOT_FORMAT,
+            expectedVersion: RUNTIME_SNAPSHOT_VERSION,
+          },
+          'Ignore incompatible runtime world snapshot during recovery',
+        )
         return null
       }
       return {
@@ -1760,6 +1883,89 @@ export class ClusterBattleService implements IBattleService {
     }
   }
 
+  private async persistRuntimeInflightPhase(
+    roomId: string,
+    entry: RuntimePhaseExecutionEntry,
+  ): Promise<void> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      const payload: PersistedRuntimeInflightPhase = {
+        format: RUNTIME_INFLIGHT_PHASE_FORMAT,
+        version: RUNTIME_INFLIGHT_PHASE_VERSION,
+        roomId,
+        ownerInstanceId: this.instanceId,
+        phaseId: entry.phaseId,
+        phaseType: entry.phaseType,
+        stackDepth: entry.stackDepth,
+        replayBaselineSeq: entry.replayBaselineSeq,
+        startedAt: entry.startedAt,
+        updatedAt: Date.now(),
+      }
+      await client.setex(
+        REDIS_KEYS.BATTLE_RUNTIME_INFLIGHT_PHASE(roomId),
+        this.getBattleRuntimeDataTtlSeconds(),
+        JSON.stringify(payload),
+      )
+    } catch (error) {
+      logger.warn({ roomId, entry, error }, 'Failed to persist runtime inflight phase')
+    }
+  }
+
+  private async clearRuntimeInflightPhase(roomId: string): Promise<void> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      await client.del(REDIS_KEYS.BATTLE_RUNTIME_INFLIGHT_PHASE(roomId))
+    } catch (error) {
+      logger.warn({ roomId, error }, 'Failed to clear runtime inflight phase')
+    }
+  }
+
+  private async readRuntimeInflightPhase(roomId: string): Promise<PersistedRuntimeInflightPhase | null> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      const raw = await client.get(REDIS_KEYS.BATTLE_RUNTIME_INFLIGHT_PHASE(roomId))
+      if (!raw) {
+        return null
+      }
+
+      const parsed = JSON.parse(raw) as Partial<PersistedRuntimeInflightPhase>
+      if (
+        parsed.format !== RUNTIME_INFLIGHT_PHASE_FORMAT ||
+        parsed.version !== RUNTIME_INFLIGHT_PHASE_VERSION ||
+        parsed.roomId !== roomId ||
+        typeof parsed.ownerInstanceId !== 'string' ||
+        typeof parsed.phaseId !== 'string' ||
+        typeof parsed.phaseType !== 'string' ||
+        typeof parsed.stackDepth !== 'number' ||
+        !Number.isFinite(parsed.stackDepth) ||
+        typeof parsed.replayBaselineSeq !== 'number' ||
+        !Number.isFinite(parsed.replayBaselineSeq) ||
+        typeof parsed.startedAt !== 'number' ||
+        !Number.isFinite(parsed.startedAt) ||
+        typeof parsed.updatedAt !== 'number' ||
+        !Number.isFinite(parsed.updatedAt)
+      ) {
+        return null
+      }
+
+      return {
+        format: parsed.format,
+        version: parsed.version,
+        roomId: parsed.roomId,
+        ownerInstanceId: parsed.ownerInstanceId,
+        phaseId: parsed.phaseId,
+        phaseType: parsed.phaseType,
+        stackDepth: Math.max(1, Math.floor(parsed.stackDepth)),
+        replayBaselineSeq: Math.max(0, Math.floor(parsed.replayBaselineSeq)),
+        startedAt: parsed.startedAt,
+        updatedAt: parsed.updatedAt,
+      }
+    } catch (error) {
+      logger.warn({ roomId, error }, 'Failed to read runtime inflight phase')
+      return null
+    }
+  }
+
   async recoverLocalBattleRuntime(roomId: string): Promise<boolean> {
     if (this.runtimeHost.getInstance(roomId)) {
       return true
@@ -1794,6 +2000,7 @@ export class ClusterBattleService implements IBattleService {
       let replayStartSeq = 0
       const latestActionSeq = await this.readBattleActionSeq(roomId)
       const runtimeSnapshot = await this.readBattleRuntimeWorldSnapshot(roomId)
+      const inflightPhase = await this.readRuntimeInflightPhase(roomId)
       if (runtimeSnapshot && this.isSnapshotCapableBattleSystem(runtime.battle)) {
         try {
           await runtime.battle.restoreRuntimeSnapshot(runtimeSnapshot)
@@ -1818,6 +2025,27 @@ export class ClusterBattleService implements IBattleService {
           )
         }
       }
+
+      if (inflightPhase) {
+        const adjustedReplaySeq = Math.min(replayStartSeq, inflightPhase.replayBaselineSeq)
+        if (adjustedReplaySeq !== replayStartSeq) {
+          logger.warn(
+            {
+              roomId,
+              previousReplayStartSeq: replayStartSeq,
+              adjustedReplayStartSeq: adjustedReplaySeq,
+              inflightPhaseId: inflightPhase.phaseId,
+              inflightPhaseType: inflightPhase.phaseType,
+              inflightReplayBaselineSeq: inflightPhase.replayBaselineSeq,
+              inflightOwnerInstanceId: inflightPhase.ownerInstanceId,
+            },
+            'Adjust replay baseline using inflight phase checkpoint',
+          )
+          replayStartSeq = adjustedReplaySeq
+        }
+      }
+
+      this.runtimeSnapshotSeq.set(roomId, replayStartSeq)
 
       const skipBattleLoop = this.shouldSkipBattleLoopForRecoveredSnapshot(
         runtimeSnapshot,
@@ -1850,6 +2078,9 @@ export class ClusterBattleService implements IBattleService {
         replayCursor = entry.seq
         await this.persistBattleReplayCursor(roomId, replayCursor)
       }
+
+      this.runtimePhaseStacks.delete(roomId)
+      await this.clearRuntimeInflightPhase(roomId)
 
       logger.info(
         { roomId, replayedActionCount: actionLog.length, replayCursor },
@@ -2060,6 +2291,14 @@ export class ClusterBattleService implements IBattleService {
     } = options
 
     try {
+      const unsubscribePhaseExecution = this.phaseExecutionUnsubscribers.get(roomId)
+      if (unsubscribePhaseExecution) {
+        unsubscribePhaseExecution()
+        this.phaseExecutionUnsubscribers.delete(roomId)
+      }
+      this.runtimePhaseStacks.delete(roomId)
+      this.runtimeSnapshotSeq.delete(roomId)
+
       const runtime = this.runtimeHost.getInstance(roomId)
       if (runtime) {
         if (removeRuntimeArtifacts) {
@@ -2136,6 +2375,7 @@ export class ClusterBattleService implements IBattleService {
       await client.del(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ(roomId))
       await client.del(REDIS_KEYS.BATTLE_RUNTIME_REPLAY_CURSOR(roomId))
       await client.del(REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT(roomId))
+      await client.del(REDIS_KEYS.BATTLE_RUNTIME_INFLIGHT_PHASE(roomId))
     } catch (error) {
       logger.warn({ roomId, error }, 'Failed to cleanup battle state snapshots')
     }

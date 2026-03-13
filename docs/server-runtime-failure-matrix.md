@@ -1,5 +1,7 @@
 # Server Runtime Failure Matrix
 
+Last updated: `2026-03-13`
+
 本文定义 `battleMode: 'server'` 的故障与调度矩阵，目标是覆盖:
 
 - 实例真实宕机
@@ -56,7 +58,7 @@
 | M03 | O2 | L1 | 非 owner | R1 | 不能清房；返回可重试错误，等待 owner 恢复 | 强一致 | 已实现 |
 | M04 | O2 | L1 | 非 owner | R2 | 可返回 stale/重试提示，不迁移 owner | 最终一致 | 已实现 |
 | M05 | O3 | L1 | 非 owner | R1 | 首次超时不切主；重试窗口后再评估 failover | 强一致 | 已实现 |
-| M06 | O4 | L3/L4 | candidate | R1 | candidate 抢占 lease 并接管，再处理请求 | 强一致 | 已实现（支持 runtime 缺失时 bootstrap + action log 恢复） |
+| M06 | O4 | L3/L4 | candidate | R1 | candidate 抢占 lease 并接管，再处理请求 | 强一致 | 已实现（支持 runtime 缺失时 bootstrap + action log 恢复，且 snapshot 版本不兼容时回退 replay-from-start） |
 | M07 | O4 | L1(残留) | candidate | R1 | 等 lease 过期后接管；期间返回可重试 | 强一致 | 已实现（owner 自动续约 + lease 过期后接管） |
 | M08 | O5 | L2 | 任意 | R1 | 拒绝新 mutation 或重路由到新 owner | 强一致 | 已实现（draining 拒写 + mutation 重路由） |
 | M09 | O5 | L2 | 任意 | R2 | 优先读旧 owner，必要时读快照 | 最终一致 | 已实现（读优先旧 owner + 本地fallback + Redis 快照 fallback） |
@@ -132,6 +134,9 @@
 | T21 | M06 | unit/integration | runtime world snapshot 的 `actionSeq` 超前于 action log 时，恢复基线应夹紧到最新 action seq | 已有（`clusterBattleService.v2.test.ts`） |
 | T22 | M06 | unit/integration | runtime world snapshot 位于终态边界（BattleEnd 且 seq 对齐）时，恢复不应重启 battle loop | 已有（`clusterBattleService.v2.test.ts`） |
 | T23 | M02/M10/M11 | mock e2e | mock 多实例语义下的 ranked/server 匹配 + p2p 私人房间信令转发 | 已实现（`cluster.multi-instance.e2e.test.ts`） |
+| T24 | M06 | unit/integration | snapshot 版本不兼容时忽略 snapshot 并回退 replay baseline=0 | 已有（`clusterBattleService.v2.test.ts`） |
+| T25 | M06 | unit | runtime snapshot 恢复 RNG 状态一致性（deterministic tail） | 已有（`v2-runtime-snapshot.test.ts`） |
+| T26 | M06 | integration | 未完成 turn 的 inflight checkpoint 恢复：仅重放 baseline 之后的 action | 已有（`clusterBattleService.v2.test.ts`） |
 
 ## 7. 下一步落地顺序
 
@@ -151,8 +156,11 @@
 - `M06` 已补 runtime 缺失恢复主链（bootstrap + action log），不再仅限“本地 runtime 仍在”的接管场景。
 - runtime action journal 已升级为 `seq + replay cursor` 基线，并接入清理生命周期。
 - runtime world snapshot 已接入（`BATTLE_RUNTIME_WORLD_SNAPSHOT`），恢复链路可从 `snapshot.actionSeq` 开始增量 replay；严格 deterministic handoff（含 mid-phase 精确恢复）仍待完善。
+- runtime world snapshot 当前采用 strict format/version gate（`arcadia.battle.v2.world@v2`）；不兼容 snapshot 会被拒绝并回退 replay-from-start，避免恢复链路使用旧快照。
 - runtime world snapshot 现已附带边界元信息（触发消息 + state hints），并在恢复时对 `snapshot.actionSeq` 执行上界夹紧，避免异常快照导致 replay baseline 越界。
 - runtime world snapshot 若命中终态边界且 `snapshot.actionSeq` 与 action log 对齐，恢复将直接保持终态并跳过 battle loop 重启。
+- runtime snapshot payload 已补 RNG 状态恢复回归，确保 takeover/recovery 后随机序列可重现。
+- 当前粒度策略已固定为 `phase/turn` 级 checkpoint；暂不下钻 operator 级恢复，以控制复杂度和运行时开销。
 - `M07` 已补 owner 自动续约与 owner 漂移防护（本地 runtime 主动退出），降低 lease 残留窗口的 split-brain 风险。
 - `M09` 已落地（读路由 + local/snapshot 双降级），完整快照级 replay/handoff 仍待补。
 - `M11` 已补关键误判防护（断线 key 被清理后先校验连接/会话绑定再决定是否 abandon）。

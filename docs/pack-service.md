@@ -13,6 +13,7 @@
 - Server 已具备 `ServerPackManager` 基础能力（发现/校验/安装最小闭环）。
 - 私人房间已区分 `battleMode: p2p | server`，且 `p2p` 在线链路（relay/webrtc）已回归通过。
 - 官方约束已明确：ranked/mm 仅允许官方白名单包，且使用 `server` 承载 battle。
+- `server` 运行时迁移基线已补强：`runtimeSeed` 持久化、runtime snapshot strict `v2` 门禁、snapshot 不兼容时 replay-from-start 兜底。
 
 ### 未落地
 

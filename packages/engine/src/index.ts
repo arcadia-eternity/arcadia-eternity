@@ -52,6 +52,9 @@ export {
   type PhaseDef,
   type PhaseResult,
   type PhaseHandler,
+  type PhaseExecutionTransition,
+  type PhaseExecutionEvent,
+  type PhaseExecutionObserver,
   PhaseManager,
 } from './phase.js'
 

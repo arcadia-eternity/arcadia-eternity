@@ -17,6 +17,18 @@ export interface BattleRuntimeSnapshot {
   payload: string
 }
 
+export type BattlePhaseExecutionTransition = 'begin' | 'commit' | 'fail'
+
+export interface BattlePhaseExecutionEvent {
+  transition: BattlePhaseExecutionTransition
+  phaseId: string
+  phaseType: string
+  phaseState: string
+  stackDepth: number
+  timestamp: number
+  error?: string
+}
+
 export interface IBattleSystem {
   ready(): Promise<void>
   getState(playerId?: playerId, showHidden?: boolean): Promise<BattleState>
@@ -50,6 +62,13 @@ export interface IBattleSystem {
    */
   createRuntimeSnapshot?(): Promise<BattleRuntimeSnapshot>
   restoreRuntimeSnapshot?(snapshot: BattleRuntimeSnapshot): Promise<void>
+
+  /**
+   * Optional phase execution lifecycle feed for deterministic host checkpoints.
+   */
+  onPhaseExecutionEvent?(
+    handler: (event: BattlePhaseExecutionEvent) => void | Promise<void>,
+  ): () => void
 }
 
 /**

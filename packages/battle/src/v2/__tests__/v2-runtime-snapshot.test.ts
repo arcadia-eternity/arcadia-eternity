@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { BattleMessageType, BattleStatus, Gender, type BattleMessage, type playerId } from '@arcadia-eternity/const'
+import { GameRng } from '@arcadia-eternity/engine'
 import { createBattleFromConfig } from '../data/battle-factory.js'
 import { LocalBattleSystemV2 } from '../local-battle.js'
 import { getBattlePlayerIds, getTestRepository, makeTeamConfig } from './helpers/regression-helpers.js'
@@ -94,4 +95,28 @@ describe('V2 runtime snapshot', () => {
     expect([BattleStatus.OnBattle, BattleStatus.Ended]).toContain(state2.status)
     await system2.cleanup()
   }, 20_000)
+
+  test('restores RNG state from runtime snapshot deterministically', async () => {
+    const repo = await getTestRepository()
+    const teamA = makeTeamConfig('A', 'pet_dilan', ['skill_shuipao', 'skill_paida'], Gender.Male)
+    const teamB = makeTeamConfig('B', 'pet_dilan', ['skill_shuipao', 'skill_paida'], Gender.Female)
+
+    const battle1 = createBattleFromConfig(teamA, teamB, repo, { seed: 'snapshot-seed-rng-1' })
+    const system1 = new LocalBattleSystemV2(battle1)
+    const rng1 = (battle1.world.systems as { rng: GameRng }).rng
+    for (let i = 0; i < 5; i++) {
+      rng1.next()
+    }
+    const snapshot = await system1.createRuntimeSnapshot()
+    const expectedTail = Array.from({ length: 8 }, () => rng1.next())
+    await system1.cleanup()
+
+    const battle2 = createBattleFromConfig(teamA, teamB, repo, { seed: 'snapshot-seed-rng-2' })
+    const system2 = new LocalBattleSystemV2(battle2)
+    await system2.restoreRuntimeSnapshot(snapshot)
+    const rng2 = (battle2.world.systems as { rng: GameRng }).rng
+    const actualTail = Array.from({ length: 8 }, () => rng2.next())
+    expect(actualTail).toEqual(expectedTail)
+    await system2.cleanup()
+  })
 })

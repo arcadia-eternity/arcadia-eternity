@@ -1,5 +1,7 @@
 # Server V2 Battle Refactor Plan
 
+Last updated: `2026-03-13`
+
 ## Goals
 
 1. Server battle runtime fully switches from v1 `Battle` class to v2 `IBattleSystem` implementation.
@@ -41,10 +43,15 @@ Related matrix:
 20. Runtime world snapshot now persists boundary metadata (`triggerMessageType` + state hints), and recovery clamps `snapshot.actionSeq` to latest action journal seq to avoid replay baseline overshoot.
 21. Runtime recovery now skips battle loop restart when snapshot boundary is terminal (`BattleEnd`) and replay baseline is fully aligned, avoiding unnecessary post-end loop startup.
 22. Legacy v1-only `@arcadia-eternity/local-adapter` wrapper has been removed from workspace dependencies and package tree; local runtime entry is now v2-only.
+23. Room runtime seed is now explicitly persisted in room metadata (`runtimeSeed`) and consumed by runtime factory during (re)construction, so initial run and takeover recovery share deterministic RNG seed.
+24. Runtime world snapshot has been upgraded to strict `version: 2` with RNG state payload, and v2 runtime restore path now reconstructs `GameRng` from snapshot state.
+25. Runtime recovery now rejects incompatible world snapshot format/version and deterministically falls back to replay-from-start baseline instead of restoring unsafe legacy snapshots.
+26. Added regressions for snapshot RNG restoration and snapshot-version fallback behavior in battle/server test suites.
+27. Inflight checkpoint recovery now has turn-granularity regression coverage (unfinished turn replays only post-baseline actions); checkpoint granularity stays at phase/turn for now.
 
 ### Still Pending
 
-1. Redis-based **fully deterministic handoff** is not fully implemented yet（当前是 world snapshot + action seq 基线，仍未覆盖 mid-phase 精确恢复与严格一致性切换协议）。
+1. Redis-based **fully deterministic handoff** is not fully implemented yet（当前已具备 `runtimeSeed + snapshot(v2)+action seq` 基线与兼容性门禁，仍未覆盖 mid-phase 精确恢复与严格一致性切换协议）。
 2. Zero-downtime cross-instance migration is still server-mode only and still pending full implementation.
 3. Timer state machine remains deferred.
 4. Failure matrix 的核心路由/接管场景已覆盖，但仍缺“真实多进程（非 mock）”集群 E2E 与故障注入稳定性验证。
@@ -198,7 +205,7 @@ No direct subscription on game-specific player objects.
 
 ### Current Validation Result
 
-Validation snapshot date: `2026-03-12`
+Validation snapshot date: `2026-03-13`
 
 1. `pnpm --filter @arcadia-eternity/server run build`: pass
 2. `ClusterBattleService.v2` tests: pass
@@ -208,7 +215,7 @@ Validation snapshot date: `2026-03-12`
    - webrtc path: pass
 5. Ownership coordinator tests: pass (includes multi-instance first-owner-wins arbitration, lease-expiry takeover simulation, and non-owner release guard)
 6. Reconnect/ownership regressions: pass (includes socketflow, gRPC forward integration, socket.io e2e, and runtime-recovery takeover path)
-7. Battle runtime snapshot regressions: pass (`packages/battle/src/v2/__tests__/v2-runtime-snapshot.test.ts`, covers pending snapshot restart + active snapshot resume)
+7. Battle runtime snapshot regressions: pass (`packages/battle/src/v2/__tests__/v2-runtime-snapshot.test.ts`, covers pending snapshot restart + active snapshot resume + RNG state restore)
 8. Ranked/matchmaking lane (server-only) regression suite: pass (2026-03-12)
    - `packages/server/test/rule-based-matchmaking.test.ts`
    - `packages/server/test/clusterBattleService.v2.test.ts`
@@ -223,6 +230,8 @@ Validation snapshot date: `2026-03-12`
      - ranked/server lane: multi-instance mocked state queue join -> matchSuccess(session-level)
      - p2p lane: private-room p2p peer signal relay event channel forwarding
 11. Pending: dedicated real multi-process E2E (instance A/B/C + real Redis + queue/match + p2p cross-instance reconnect + failure injection)
+12. Deterministic handoff baseline regressions: pass (2026-03-13)
+   - `packages/server/test/clusterBattleService.v2.test.ts` (`ignore incompatible runtime snapshot version -> replay from start`)
 
 ### Online E2E Commands
 

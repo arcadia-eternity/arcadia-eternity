@@ -26,12 +26,23 @@ interface Subscriber {
   lastState?: BattleState
 }
 
+type BufferedMessage = {
+  type: BattleMessageType
+  data: Record<string, unknown>
+}
+
+type PhaseMessageTransaction = {
+  phaseId: string
+  messages: BufferedMessage[]
+}
+
 export class MessageBridge {
   private subscribers: Subscriber[] = []
   private unsubscribers: Array<() => void> = []
   private diffPatcher: DiffPatcher
   private sequenceId = 0
   private battleId: string
+  private phaseTransactions: PhaseMessageTransaction[] = []
 
   constructor(
     private world: World,
@@ -72,9 +83,47 @@ export class MessageBridge {
     for (const unsub of this.unsubscribers) unsub()
     this.unsubscribers = []
     this.subscribers = []
+    this.phaseTransactions = []
   }
 
   private emitMessage(type: BattleMessageType, data: Record<string, unknown>): void {
+    const activeTx = this.phaseTransactions[this.phaseTransactions.length - 1]
+    if (activeTx) {
+      activeTx.messages.push({ type, data })
+      return
+    }
+    this.dispatchMessage(type, data)
+  }
+
+  beginPhaseTransaction(phaseId: string): void {
+    const parent = this.phaseTransactions[this.phaseTransactions.length - 1]
+    if (parent && parent.messages.length > 0) {
+      this.flushBufferedMessages(parent.messages)
+      parent.messages = []
+    }
+    this.phaseTransactions.push({ phaseId, messages: [] })
+  }
+
+  commitPhaseTransaction(phaseId: string): void {
+    const current = this.phaseTransactions[this.phaseTransactions.length - 1]
+    if (!current || current.phaseId !== phaseId) return
+    this.phaseTransactions.pop()
+    this.flushBufferedMessages(current.messages)
+  }
+
+  rollbackPhaseTransaction(phaseId: string): void {
+    const current = this.phaseTransactions[this.phaseTransactions.length - 1]
+    if (!current || current.phaseId !== phaseId) return
+    this.phaseTransactions.pop()
+  }
+
+  private flushBufferedMessages(messages: BufferedMessage[]): void {
+    for (const message of messages) {
+      this.dispatchMessage(message.type, message.data)
+    }
+  }
+
+  private dispatchMessage(type: BattleMessageType, data: Record<string, unknown>): void {
     this.sequenceId++
     for (const subscriber of this.subscribers) {
       const newState = this.getStateByOptions(subscriber.options)

@@ -208,6 +208,8 @@ describe('ClusterBattleService v2 runtime', () => {
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
 
     await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    const currentBattle = service.getLocalBattle('room_v2_1') as any
+    const runtimeSnapshot = await currentBattle.createRuntimeSnapshot()
 
     const ownershipRaw = await client.get(REDIS_KEYS.BATTLE_RUNTIME_OWNERSHIP('room_v2_1'))
     expect(ownershipRaw).toBeTruthy()
@@ -448,6 +450,8 @@ describe('ClusterBattleService v2 runtime', () => {
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
 
     await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    const liveBattle = service.getLocalBattle('room_v2_1') as any
+    const runtimeSnapshot = await liveBattle.createRuntimeSnapshot()
 
     const p1Selections = await service.handleLocalGetSelection('room_v2_1', player1Id)
     const p2Selections = await service.handleLocalGetSelection('room_v2_1', player2Id)
@@ -476,7 +480,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const runtimeSnapshot = {
       format: 'arcadia.battle.v2.world',
-      version: 1,
+      version: 2,
       payload: '{"meta":"test"}',
     }
     const restoreSnapshotSpy = vi.fn(async () => {})
@@ -510,6 +514,179 @@ describe('ClusterBattleService v2 runtime', () => {
     expect(restoreSnapshotSpy).toHaveBeenCalled()
   })
 
+  it('ignores incompatible runtime world snapshot version and falls back to replay from start', async () => {
+    const { service, client } = createService(roomStateRef)
+    const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
+    const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
+    const restoreSnapshotSpy = vi.fn(async () => {})
+    const originalCreateLocalBattle = service.createLocalBattle.bind(service)
+    vi.spyOn(service, 'createLocalBattle').mockImplementation(async (...args: any[]) => {
+      const battle = await originalCreateLocalBattle(...args)
+      ;(battle as any).restoreRuntimeSnapshot = restoreSnapshotSpy
+      return battle
+    })
+
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await client.setex(
+      REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT('room_v2_1'),
+      60,
+      JSON.stringify({
+        format: 'arcadia.battle.v2.world',
+        version: 1, // incompatible with current strict runtime snapshot version
+        payload: '{"meta":"legacy"}',
+        actionSeq: 5,
+        capturedAt: Date.now(),
+      }),
+    )
+    await client.setex(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ('room_v2_1'), 60, '5')
+    await client.setex(REDIS_KEYS.BATTLE_RUNTIME_REPLAY_CURSOR('room_v2_1'), 60, '3')
+
+    ;(service as any).runtimeHost.remove('room_v2_1')
+    const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
+
+    const recovered = await service.recoverLocalBattleRuntime('room_v2_1')
+    expect(recovered).toBe(true)
+    expect(startBattleSpy).toHaveBeenCalled()
+    expect(restoreSnapshotSpy).not.toHaveBeenCalled()
+    expect(await client.get(REDIS_KEYS.BATTLE_RUNTIME_REPLAY_CURSOR('room_v2_1'))).toBe('0')
+  })
+
+  it('uses inflight phase replay baseline to roll recovery cursor back before unfinished phase', async () => {
+    const { service, client } = createService(roomStateRef)
+    const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
+    const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
+    const runtimeSnapshot = {
+      format: 'arcadia.battle.v2.world',
+      version: 2,
+      payload: '{"meta":"test"}',
+    }
+    const restoreSnapshotSpy = vi.fn(async () => {})
+    const originalCreateLocalBattle = service.createLocalBattle.bind(service)
+    vi.spyOn(service, 'createLocalBattle').mockImplementation(async (...args: any[]) => {
+      const battle = await originalCreateLocalBattle(...args)
+      ;(battle as any).createRuntimeSnapshot = vi.fn(async () => runtimeSnapshot)
+      ;(battle as any).restoreRuntimeSnapshot = restoreSnapshotSpy
+      return battle
+    })
+
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await client.setex(
+      REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT('room_v2_1'),
+      60,
+      JSON.stringify({
+        ...runtimeSnapshot,
+        actionSeq: 5,
+        capturedAt: Date.now(),
+      }),
+    )
+    await client.setex(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ('room_v2_1'), 60, '5')
+    await client.setex(
+      REDIS_KEYS.BATTLE_RUNTIME_INFLIGHT_PHASE('room_v2_1'),
+      60,
+      JSON.stringify({
+        format: 'arcadia.battle.v2.phase-inflight',
+        version: 1,
+        roomId: 'room_v2_1',
+        ownerInstanceId: 'instance-old',
+        phaseId: 'phase_turn_1',
+        phaseType: 'turn',
+        stackDepth: 1,
+        replayBaselineSeq: 2,
+        startedAt: Date.now() - 1_000,
+        updatedAt: Date.now(),
+      }),
+    )
+
+    ;(service as any).runtimeHost.remove('room_v2_1')
+    const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
+
+    const recovered = await service.recoverLocalBattleRuntime('room_v2_1')
+    expect(recovered).toBe(true)
+    expect(startBattleSpy).toHaveBeenCalled()
+    expect(restoreSnapshotSpy).toHaveBeenCalled()
+    expect(await client.get(REDIS_KEYS.BATTLE_RUNTIME_REPLAY_CURSOR('room_v2_1'))).toBe('2')
+    expect(await client.get(REDIS_KEYS.BATTLE_RUNTIME_INFLIGHT_PHASE('room_v2_1'))).toBeNull()
+  })
+
+  it('replays only post-baseline actions for unfinished turn checkpoint during recovery', async () => {
+    const { service, client } = createService(roomStateRef)
+    const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
+    const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
+    const originalCreateLocalBattle = service.createLocalBattle.bind(service)
+
+    let creationCount = 0
+    let recoveredSubmitCalls: PlayerSelectionSchemaType[] = []
+    vi.spyOn(service, 'createLocalBattle').mockImplementation(async (...args: any[]) => {
+      const battle = await originalCreateLocalBattle(...args)
+      creationCount += 1
+      if (creationCount >= 2) {
+        const originalSubmit = battle.submitAction.bind(battle)
+        ;(battle as any).submitAction = async (selection: PlayerSelectionSchemaType) => {
+          recoveredSubmitCalls.push(selection)
+          return originalSubmit(selection)
+        }
+      }
+      return battle
+    })
+
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    const currentBattle = service.getLocalBattle('room_v2_1') as any
+    const runtimeSnapshot = await currentBattle.createRuntimeSnapshot()
+
+    const p1Selections = await service.handleLocalGetSelection('room_v2_1', player1Id)
+    const p2Selections = await service.handleLocalGetSelection('room_v2_1', player2Id)
+    const p1Skill = pickSkillSelection(p1Selections)
+    const p2Skill = pickSkillSelection(p2Selections)
+
+    const actionLog = [
+      { seq: 1, selection: p1Skill, recordedAt: Date.now() - 4000 },
+      { seq: 2, selection: p2Skill, recordedAt: Date.now() - 3000 },
+      { seq: 3, selection: p1Skill, recordedAt: Date.now() - 2000 },
+      { seq: 4, selection: p2Skill, recordedAt: Date.now() - 1000 },
+    ]
+    await client.rpush(REDIS_KEYS.BATTLE_RUNTIME_ACTION_LOG('room_v2_1'), JSON.stringify(actionLog[0]))
+    await client.rpush(REDIS_KEYS.BATTLE_RUNTIME_ACTION_LOG('room_v2_1'), JSON.stringify(actionLog[1]))
+    await client.rpush(REDIS_KEYS.BATTLE_RUNTIME_ACTION_LOG('room_v2_1'), JSON.stringify(actionLog[2]))
+    await client.rpush(REDIS_KEYS.BATTLE_RUNTIME_ACTION_LOG('room_v2_1'), JSON.stringify(actionLog[3]))
+    await client.setex(
+      REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT('room_v2_1'),
+      60,
+      JSON.stringify({
+        ...runtimeSnapshot,
+        actionSeq: 4,
+        capturedAt: Date.now(),
+      }),
+    )
+    await client.setex(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ('room_v2_1'), 60, '4')
+    await client.setex(REDIS_KEYS.BATTLE_RUNTIME_REPLAY_CURSOR('room_v2_1'), 60, '4')
+    await client.setex(
+      REDIS_KEYS.BATTLE_RUNTIME_INFLIGHT_PHASE('room_v2_1'),
+      60,
+      JSON.stringify({
+        format: 'arcadia.battle.v2.phase-inflight',
+        version: 1,
+        roomId: 'room_v2_1',
+        ownerInstanceId: 'instance-old',
+        phaseId: 'phase_turn_unfinished',
+        phaseType: 'turn',
+        stackDepth: 1,
+        replayBaselineSeq: 2,
+        startedAt: Date.now() - 5000,
+        updatedAt: Date.now(),
+      }),
+    )
+
+    ;(service as any).runtimeHost.remove('room_v2_1')
+    const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
+
+    const recovered = await service.recoverLocalBattleRuntime('room_v2_1')
+    expect(recovered).toBe(true)
+    expect(startBattleSpy).toHaveBeenCalled()
+    expect(await client.get(REDIS_KEYS.BATTLE_RUNTIME_REPLAY_CURSOR('room_v2_1'))).toBe('4')
+    expect(recoveredSubmitCalls).toHaveLength(2)
+    expect(recoveredSubmitCalls.map(item => item.player)).toEqual([player1Id, player2Id])
+  })
+
   it('persists runtime world snapshot boundary metadata', async () => {
     const { service, client } = createService(roomStateRef)
     const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
@@ -535,7 +712,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const runtimeSnapshot = {
       format: 'arcadia.battle.v2.world',
-      version: 1,
+      version: 2,
       payload: '{"meta":"test"}',
     }
     const restoreSnapshotSpy = vi.fn(async () => {})
@@ -575,7 +752,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const runtimeSnapshot = {
       format: 'arcadia.battle.v2.world',
-      version: 1,
+      version: 2,
       payload: '{"meta":"test"}',
     }
     const restoreSnapshotSpy = vi.fn(async () => {})

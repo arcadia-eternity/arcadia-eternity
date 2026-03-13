@@ -43,6 +43,20 @@ export interface PhaseResult {
   data?: unknown
 }
 
+export type PhaseExecutionTransition = 'begin' | 'commit' | 'fail'
+
+export interface PhaseExecutionEvent {
+  transition: PhaseExecutionTransition
+  phase: PhaseDef
+  stackDepth: number
+  error?: string
+}
+
+export type PhaseExecutionObserver = (
+  world: World,
+  event: PhaseExecutionEvent,
+) => void | Promise<void>
+
 /**
  * Game layers implement PhaseHandler for each phase type.
  */
@@ -64,6 +78,7 @@ export interface PhaseHandler<TData = unknown> {
 
 export class PhaseManager {
   private handlers = new Map<string, PhaseHandler>()
+  private executionObservers = new Set<PhaseExecutionObserver>()
 
   /**
    * Register a phase handler for a given type.
@@ -87,6 +102,13 @@ export class PhaseManager {
    */
   hasHandler(type: string): boolean {
     return this.handlers.has(type)
+  }
+
+  onExecutionEvent(observer: PhaseExecutionObserver): () => void {
+    this.executionObservers.add(observer)
+    return () => {
+      this.executionObservers.delete(observer)
+    }
   }
 
   /**
@@ -143,15 +165,31 @@ export class PhaseManager {
     // Push onto stack
     world.phaseStack.push(phase)
     phase.state = 'executing'
+    await this.emitExecutionEvent(world, {
+      transition: 'begin',
+      phase,
+      stackDepth: world.phaseStack.length,
+    })
 
     try {
       const result = await handler.execute(world, phase, bus)
       phase.state = result.state
       phase.data = result.data ?? phase.data
+      await this.emitExecutionEvent(world, {
+        transition: 'commit',
+        phase,
+        stackDepth: world.phaseStack.length,
+      })
       return result
     } catch (err) {
       phase.state = 'failed'
       const error = err instanceof Error ? err.message : String(err)
+      await this.emitExecutionEvent(world, {
+        transition: 'fail',
+        phase,
+        stackDepth: world.phaseStack.length,
+        error,
+      })
       return { success: false, state: 'failed', error }
     } finally {
       // Pop from stack
@@ -187,15 +225,31 @@ export class PhaseManager {
 
     world.phaseStack.push(phase)
     phase.state = 'executing'
+    await this.emitExecutionEvent(world, {
+      transition: 'begin',
+      phase,
+      stackDepth: world.phaseStack.length,
+    })
 
     try {
       const result = await handler.resume(world, phase, bus)
       phase.state = result.state
       phase.data = result.data ?? phase.data
+      await this.emitExecutionEvent(world, {
+        transition: 'commit',
+        phase,
+        stackDepth: world.phaseStack.length,
+      })
       return result
     } catch (err) {
       phase.state = 'failed'
       const error = err instanceof Error ? err.message : String(err)
+      await this.emitExecutionEvent(world, {
+        transition: 'fail',
+        phase,
+        stackDepth: world.phaseStack.length,
+        error,
+      })
       return { success: false, state: 'failed', error }
     } finally {
       const idx = world.phaseStack.lastIndexOf(phase)
@@ -249,6 +303,17 @@ export class PhaseManager {
     return {
       activePhaseTypes: this.getActivePhaseTypes(world),
       currentPhaseIds: this.getCurrentPhaseIds(world),
+    }
+  }
+
+  private async emitExecutionEvent(world: World, event: PhaseExecutionEvent): Promise<void> {
+    if (this.executionObservers.size === 0) return
+    for (const observer of this.executionObservers) {
+      try {
+        await observer(world, event)
+      } catch {
+        // Observer failures must not break phase execution.
+      }
     }
   }
 }
