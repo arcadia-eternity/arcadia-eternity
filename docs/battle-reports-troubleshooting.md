@@ -320,63 +320,29 @@ pnpm test:rls:new
 
 ## 测试和验证
 
-### 新增测试脚本
+### 当前可用验证命令
 
-1. **SQL 语法测试**
+> 旧文档中的 `test:sql / test:config / test:battle-reports:* / debug:battle-reports` 等脚本已下线。  
+> 统一测试入口请以 [testing-guide.md](./testing-guide.md) 为准。
 
-   ```bash
-   pnpm test:sql
-   ```
-
-   验证 SQL 文件语法正确性，确保不包含 nanoid 函数
-
-2. **战报记录功能测试**
+1. **类型与构建**
 
    ```bash
-   pnpm test:battle-recording
+   pnpm test:types
+   pnpm --filter @arcadia-eternity/server run build
    ```
 
-   模拟完整的战斗流程，验证战报记录功能
-
-3. **端口配置验证**
+2. **服务端回归**
 
    ```bash
-   pnpm test:config
+   pnpm --filter @arcadia-eternity/server run test:run
    ```
 
-   验证所有配置文件中的端口设置一致性
-
-4. **调试模式**
+3. **数据库/RLS 变更后最小检查**
 
    ```bash
-   pnpm debug:battle-reports
+   pnpm --filter @arcadia-eternity/database run build
    ```
-
-   启动调试模式服务器，实时查看战报功能状态
-
-5. **战报修复验证**
-
-   ```bash
-   pnpm test:battle-fix
-   ```
-
-   验证 "unknown battle" 警告是否已修复
-
-6. **RLS 策略修复**
-
-   ```bash
-   pnpm fix:rls
-   ```
-
-   修复数据库行级安全策略，允许服务端操作
-
-7. **最终综合测试**
-
-   ```bash
-   pnpm test:battle-reports:final
-   ```
-
-   运行完整的战报功能测试
 
 ### 验证步骤
 
@@ -391,22 +357,21 @@ pnpm test:rls:new
    pnpm test:database
    ```
 
-2. **完整战报功能测试**
+2. **服务端回归测试**
 
    ```bash
-   # 运行所有战报相关测试
-   pnpm test:battle-reports
+   pnpm --filter @arcadia-eternity/server run test:run
    ```
 
 3. **手动验证**
 
    ```bash
-   # 启动调试服务器
-   pnpm debug:battle-reports
+   # 启动服务器
+   pnpm cli server --port 8102
    
-   # 在另一个终端检查 API
-   curl http://localhost:8097/health
-   curl http://localhost:8097/api/v1/statistics
+   # 在另一个终端检查 API（按实际端口）
+   curl http://localhost:8102/health
+   curl http://localhost:8102/api/v1/statistics
    ```
 
 ## 最佳实践
@@ -426,8 +391,8 @@ pnpm test:rls:new
 2. **启动开发服务器**
 
    ```bash
-   # 带战报功能的开发服务器
-   pnpm dev:server:battle-reports
+   # 开发服务器
+   pnpm cli server --port 8102
    ```
 
 3. **前端开发**

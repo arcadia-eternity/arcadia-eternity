@@ -135,12 +135,14 @@
 
 ## 7. 下一步落地顺序
 
-1. 先补 `M03`:
-   - 非 owner 转发失败 + lease 仍有效 => 返回可重试，不清理房间。
-2. 再补 `M05`:
-   - 引入失败计数/时间窗，避免单次超时触发迁移。
-3. 最后补 `M06/M08`:
-   - request-driven takeover 与 draining 拒写。
+1. 补真实多进程 E2E（非 mock）：
+   - 实例 A/B/C + real Redis + queue/match + p2p 跨实例重连全链路。
+2. 收口 deterministic handoff 协议：
+   - 从“snapshot + action seq 基线”提升到可验证的严格切换协议（含 mid-phase 边界策略）。
+3. 强化 `M10/M11` 的生产可观测性：
+   - 增加重连恢复耗时、接管成功率、临时不可用重试率等指标。
+4. 补齐失败注入回归：
+   - owner 停机、网络抖动、Redis 短暂不可用下的稳定性回归。
 
 当前阶段：
 
@@ -158,3 +160,4 @@
 - 重连取状态链路已补 owner 解析与 snapshot 兜底，降低迁移窗口内 stale routing / transient unavailable 对重连体验的影响。
 - `M06` 保留 runtime 缺失保护兜底：恢复链路不可用或恢复失败时不做冒进 takeover 清房，统一返回可重试。
 - 已新增 mock 多实例回归基线（`cluster.multi-instance.e2e.test.ts`）：覆盖 ranked/server 匹配与 p2p 私人房间信令转发。
+- 待补重点已从“基础路由与接管逻辑”切换为“真实多进程 E2E + 严格 deterministic handoff + 可观测性”。

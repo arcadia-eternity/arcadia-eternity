@@ -1,8 +1,25 @@
-# Pack Service (Draft)
+# Pack Service
 
 ## 目标
 
 给 Web 提供“像 npm install 一样可用”的安装体验，但不要求浏览器直接访问 npm registry 或拥有 `node_modules`。
+
+## 当前状态（2026-03-13）
+
+### 已落地
+
+- 基础包已切换到 pack 模式，运行时默认 `builtin:base`。
+- Web 已通过 `pack-loader` 支持内置包 + HTTP 加载路径。
+- Server 已具备 `ServerPackManager` 基础能力（发现/校验/安装最小闭环）。
+- 私人房间已区分 `battleMode: p2p | server`，且 `p2p` 在线链路（relay/webrtc）已回归通过。
+- 官方约束已明确：ranked/mm 仅允许官方白名单包，且使用 `server` 承载 battle。
+
+### 未落地
+
+- 独立 Pack Service 的完整 HTTP 实现（版本查询、meta、文件分发、鉴权与限流）。
+- Web 端“缺包自动安装 + 缓存治理”完整体验（目前以加载能力为主）。
+- TauriPackManager 全链路（安装/校验/离线缓存）验收。
+- PackPolicy 在匹配/入房链路的全量错误码与前端提示收口。
 
 ## 角色划分
 
@@ -73,6 +90,14 @@
 ### 4. 获取资源文件
 
 - `GET /packs/:name/:version/files/<path>`
+
+### 协议落地说明
+
+- 上述接口定义作为目标协议保留。
+- 当前仓库已完成 schema 与 lockfile 基建，但“完整 Pack Service 实例”仍在后续阶段实现。
+- 在完整服务落地前：
+  - `server/tauri` 继续使用 npm/workspace/file/git 安装链路；
+  - `web` 继续使用内置基础包 + 已配置的 HTTP 资源来源。
 
 ## 三端职责
 
@@ -145,3 +170,10 @@
 - 官方 ranked/mm 只允许官方基础包和官方白名单扩展
 - 官方 Battle Server 不直接托管包文件
 - 官方 Pack Service 与 Battle Server 必须分离部署
+
+## 下一步（按优先级）
+
+1. 实现 Pack Service 最小可用 API：`/packs/:name`、`/meta`、`/pack.json`、`/assets.json`、`/pack-lock.yaml`、`/files/*`。
+2. 接入 PackPolicy 错误码收口：服务端返回稳定错误，Web/Tauri 给出可读提示。
+3. 完成 TauriPackManager 验收：同一 `packLock` 下与 Web/Server 结果一致（同 seed）。
+4. 增加回归测试矩阵：缺包安装、版本冲突、锁不一致、离线回退、跨实例房间 lock 校验。

@@ -25,10 +25,11 @@
 
 ### 未完成
 
-1. `server` authoritative 模式的 snapshot / replay / ownership handoff。
-2. `Pack Service` 的完整安装体验与创意工坊分发链。
-3. Tauri 端的完整 PackManager 运行链验证。
-4. server mode 与房间/匹配策略的进一步收口。
+1. `server` authoritative 模式的严格 deterministic snapshot / replay / ownership handoff。
+2. 真实多进程集群（非 mock）下的 server+p2p 端到端验收。
+3. `Pack Service` 的完整安装体验与创意工坊分发链。
+4. Tauri 端的完整 PackManager 运行链验证。
+5. server mode 与房间/匹配策略的进一步收口。
 
 ## Phase 1: 协议冻结
 
@@ -140,6 +141,7 @@
 
 ## 当前执行顺序（短期）
 
-1. 收口 `server` authoritative runtime：`BattleRuntimeHost` / `OwnershipCoordinator`
-2. 完成 `server` 模式 snapshot / replay / handoff
-3. 继续推进 `Pack Service` 与双端安装体验
+1. 完成 `server` 模式严格 deterministic handoff（含 mid-phase 边界策略）
+2. 补真实多进程集群 E2E（A/B/C + real Redis + queue/match + p2p reconnect）
+3. 落地 Pack Service 最小可用 API 与 Web 缺包自动安装闭环
+4. 完成 TauriPackManager 验收并收口 PackPolicy 错误码

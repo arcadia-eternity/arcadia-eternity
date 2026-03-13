@@ -47,8 +47,8 @@ Related matrix:
 1. Redis-based **fully deterministic handoff** is not fully implemented yet（当前是 world snapshot + action seq 基线，仍未覆盖 mid-phase 精确恢复与严格一致性切换协议）。
 2. Zero-downtime cross-instance migration is still server-mode only and still pending full implementation.
 3. Timer state machine remains deferred.
-4. Failure matrix still has remaining gaps（重点见 `M10/M11` in `server-runtime-failure-matrix.md`；`T08` 已补齐 server 侧 e2e）。
-5. 需要补齐“集群模式可用性”验收：`matchmaking`（入队/配对/建房）与 `p2p`（跨实例房间、信令、重连）两条链路的端到端确认。
+4. Failure matrix 的核心路由/接管场景已覆盖，但仍缺“真实多进程（非 mock）”集群 E2E 与故障注入稳定性验证。
+5. 需要补齐“集群模式可用性”最终验收：`matchmaking`（入队/配对/建房）与 `p2p`（跨实例房间、信令、重连）在 real Redis + 多实例下的端到端确认。
 
 ## Non-goals
 
@@ -222,7 +222,7 @@ Validation snapshot date: `2026-03-12`
    - covers:
      - ranked/server lane: multi-instance mocked state queue join -> matchSuccess(session-level)
      - p2p lane: private-room p2p peer signal relay event channel forwarding
-11. Pending: dedicated real multi-process E2E (instance A/B/C + real Redis + queue/match + p2p cross-instance reconnect)
+11. Pending: dedicated real multi-process E2E (instance A/B/C + real Redis + queue/match + p2p cross-instance reconnect + failure injection)
 
 ### Online E2E Commands
 
