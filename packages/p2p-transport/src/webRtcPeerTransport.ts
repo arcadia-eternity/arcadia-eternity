@@ -122,14 +122,16 @@ export class WebRTCPeerTransport implements SignalingPeerTransport {
   private createPeerConnection(): RTCPeerConnection {
     const peerConnection = new RTCPeerConnection(this.options.config)
     peerConnection.onicecandidate = event => {
-      if (event.candidate) {
-        this.signalHandlers.forEach(handler =>
-          handler({
-            kind: 'ice-candidate',
-            payload: event.candidate.toJSON ? event.candidate.toJSON() : event.candidate,
-          }),
-        )
+      const candidate = event.candidate
+      if (!candidate) {
+        return
       }
+      this.signalHandlers.forEach(handler =>
+        handler({
+          kind: 'ice-candidate',
+          payload: candidate.toJSON ? candidate.toJSON() : candidate,
+        }),
+      )
     }
     peerConnection.onconnectionstatechange = () => {
       if (peerConnection.connectionState === 'failed' || peerConnection.connectionState === 'disconnected') {
