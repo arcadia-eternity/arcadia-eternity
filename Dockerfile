@@ -62,8 +62,6 @@ COPY --from=builder /app/packages ./packages
 
 # Copy built application and necessary files
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/data ./data
-COPY --from=builder /app/locales ./locales
 COPY --from=builder /app/resource ./resource
 
 # Create scripts directory (application handles missing scripts gracefully)
