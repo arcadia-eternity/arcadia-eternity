@@ -20,7 +20,7 @@ export {
   WeightedLoadStrategy,
 } from './discovery/serviceDiscovery'
 export { FlyIoServiceDiscoveryManager } from './discovery/flyIoServiceDiscovery'
-export { SocketClusterAdapter } from './communication/socketClusterAdapter'
+export { ClusterRealtimeGateway } from './communication/clusterRealtimeGateway'
 export { ClusterBattleServer } from '../domain/battle/services/clusterBattleServer'
 export { createClusterApp } from './core/clusterApp'
 export { TransactionManager, TransactionBuilder } from './redis/transactionManager'

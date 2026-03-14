@@ -21,7 +21,7 @@ export const TYPES = {
 
   // 战斗系统依赖
   ClusterStateManager: Symbol.for('ClusterStateManager'),
-  SocketClusterAdapter: Symbol.for('SocketClusterAdapter'),
+  ClusterRealtimeGateway: Symbol.for('ClusterRealtimeGateway'),
   DistributedLockManager: Symbol.for('DistributedLockManager'),
   RedisManager: Symbol.for('RedisManager'),
   PerformanceTracker: Symbol.for('PerformanceTracker'),
@@ -32,7 +32,7 @@ export const TYPES = {
   BattleCallbacks: Symbol.for('BattleCallbacks'),
 
   // Socket.IO 服务器实例
-  SocketIOServer: Symbol.for('SocketIOServer'),
+  ClientRealtimeGateway: Symbol.for('ClientRealtimeGateway'),
   RpcPort: Symbol.for('RpcPort'),
 
   // Socket管理器

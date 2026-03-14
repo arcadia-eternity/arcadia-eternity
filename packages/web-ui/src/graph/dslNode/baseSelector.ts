@@ -1,11 +1,10 @@
 import { LGraphNode, LiteGraph } from '@comfyorg/litegraph'
-import type { BaseSelector } from '../../../../effectBuilder'
-import type { SelectorDSL } from '@arcadia-eternity/schema'
+import type { BaseSelectorKey, SelectorDSL } from '@arcadia-eternity/schema'
 
 /* ---------- BaseSelector 节点基类 ---------- */
 export abstract class BaseSelectorNode extends LGraphNode {
   // 静态属性定义选择器类型，子类需要覆盖
-  static selectorType: keyof typeof BaseSelector
+  static selectorType: BaseSelectorKey
   isBaseSelectorNode = true
 
   constructor() {
@@ -25,7 +24,7 @@ export abstract class BaseSelectorNode extends LGraphNode {
   }
 
   onExecute() {
-    this.setOutputData(0, this.toDsl())
+    this.setOutputData(0, this.toDsl() as any)
   }
 }
 

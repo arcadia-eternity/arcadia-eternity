@@ -1,13 +1,20 @@
-import { z } from 'zod'
+import { Type, type Static } from '@sinclair/typebox'
+import { parseWithErrors } from './utils'
+
 export type FileMetadata = {
   metaType: 'effect' | 'mark' | 'skill' | 'species'
   version: string
 }
 
-export const MetadataSchema = z.object({
-  metaType: z.enum(['effect', 'mark', 'skill', 'species']),
-  version: z.string().regex(/^\d+\.\d+\.\d+$/),
-}) satisfies z.ZodType<FileMetadata>
+export const MetadataSchema = Type.Object({
+  metaType: Type.Union([
+    Type.Literal('effect'),
+    Type.Literal('mark'),
+    Type.Literal('skill'),
+    Type.Literal('species'),
+  ]),
+  version: Type.String({ pattern: '^\\d+\\.\\d+\\.\\d+$' }),
+})
 
 export function extractMetadata(content: string): FileMetadata {
   const metadata = content
@@ -25,5 +32,5 @@ export function extractMetadata(content: string): FileMetadata {
     )
 
   // 添加类型断言
-  return MetadataSchema.parse(metadata) as FileMetadata
+  return parseWithErrors(MetadataSchema, metadata) as FileMetadata
 }

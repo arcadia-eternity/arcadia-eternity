@@ -1,6 +1,5 @@
 import type { baseSkillId, baseMarkId, speciesId } from '@arcadia-eternity/const'
-import type { BaseSkill, BaseMark } from '@arcadia-eternity/battle'
-import type { PetSchemaType } from '@arcadia-eternity/schema'
+import type { PetSchemaType, SkillSchemaType, MarkSchemaType } from '@arcadia-eternity/schema'
 import type { Team, RuleContext } from '../../interfaces/Rule'
 import { ValidationResultBuilder, ValidationErrorType, type ValidationResult } from '../../interfaces/ValidationResult'
 import { AbstractRule } from '../../core/AbstractRule'
@@ -116,10 +115,10 @@ export class BanRule extends AbstractRule {
   /**
    * 验证技能是否被禁用
    */
-  validateSkill(pet: PetSchemaType, skill: BaseSkill, context?: RuleContext): ValidationResult {
+  validateSkill(pet: PetSchemaType, skill: SkillSchemaType, context?: RuleContext): ValidationResult {
     const builder = new ValidationResultBuilder()
 
-    if (this.bannedSkills.has(skill.id)) {
+    if (this.bannedSkills.has(skill.id as baseSkillId)) {
       builder.addError(
         ValidationErrorType.SKILL_VALIDATION,
         'BANNED_SKILL',
@@ -136,10 +135,10 @@ export class BanRule extends AbstractRule {
   /**
    * 验证印记是否被禁用
    */
-  validateMark(pet: PetSchemaType, mark: BaseMark, context?: RuleContext): ValidationResult {
+  validateMark(pet: PetSchemaType, mark: MarkSchemaType, context?: RuleContext): ValidationResult {
     const builder = new ValidationResultBuilder()
 
-    if (this.bannedMarks.has(mark.id)) {
+    if (this.bannedMarks.has(mark.id as baseMarkId)) {
       builder.addError(
         ValidationErrorType.MARK_VALIDATION,
         'BANNED_MARK',

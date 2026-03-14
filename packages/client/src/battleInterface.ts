@@ -7,7 +7,7 @@ import type {
   TimerConfig,
   Events,
 } from '@arcadia-eternity/const'
-import { SelectionParser } from '@arcadia-eternity/parser'
+import { PlayerSelectionSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import type { BattleClient } from './client'
 
@@ -19,11 +19,13 @@ export class RemoteBattleSystem implements IBattleSystem {
   }
 
   async getAvailableSelection(): Promise<PlayerSelection[]> {
-    return (await this.client.getAvailableSelection()).map(s => SelectionParser.parse(s))
+    return (await this.client.getAvailableSelection()).map(s =>
+      parseWithErrors(PlayerSelectionSchema, s) as PlayerSelection,
+    )
   }
 
   async submitAction(selection: PlayerSelection): Promise<void> {
-    return this.client.sendplayerSelection(SelectionParser.serialize(selection))
+    return this.client.sendplayerSelection(parseWithErrors(PlayerSelectionSchema, selection))
   }
 
   BattleEvent(callback: (message: BattleMessage) => void): () => void {

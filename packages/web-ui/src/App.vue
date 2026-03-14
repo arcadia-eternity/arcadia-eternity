@@ -418,6 +418,7 @@ import {
 import VersionInfo from '@/components/VersionInfo.vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
 import { autoCheckForUpdates } from '@/utils/version'
+import { createAppBootstrap } from '@/app/bootstrap'
 import { useBattleStore } from './stores/battle'
 import { BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
 import { ClientRuleIntegration } from '@arcadia-eternity/rules'
@@ -446,12 +447,38 @@ let battleReconnectHandler: ((event: any) => void) | null = null
 // 设置战斗重连处理器
 const setupBattleReconnectHandler = () => {
   if (battleReconnectHandler) {
-    console.log('🔄 Battle reconnect handler already registered, skipping')
     return
   }
 
   // 使用对象来存储重定向状态
   const redirectState = { isRedirecting: false }
+  const refreshRecoveredBattleRuntime = async (fullBattleState: any) => {
+    battleStore.battleState = fullBattleState
+    battleStore.lastProcessedSequenceId = fullBattleState?.sequenceId ?? -1
+
+    if (fullBattleState?.status === 'Ended' || !battleStore.playerId) {
+      battleStore.availableActions = []
+      battleStore.waitingForResponse = false
+      return
+    }
+
+    try {
+      battleStore.availableActions = await battleStore.fetchAvailableSelection()
+      battleStore.waitingForResponse = false
+      battleStore.errorMessage = null
+    } catch (error) {
+      console.warn('Failed to refresh available actions after reconnect:', error)
+    }
+
+    const battleClient = battleClientStore._instance as any
+    if (battleClient && typeof battleClient.refreshTimerSnapshotsFromServer === 'function') {
+      try {
+        await battleClient.refreshTimerSnapshotsFromServer()
+      } catch (error) {
+        console.warn('Failed to refresh timer snapshots after reconnect:', error)
+      }
+    }
+  }
 
   battleReconnectHandler = async (event: any) => {
     const data = event.detail
@@ -465,8 +492,7 @@ const setupBattleReconnectHandler = () => {
           // 如果已经在战斗页面，复用现有的battleInterface或创建新的
           if (battleStore.battleInterface) {
             // 复用现有接口，只更新状态
-            battleStore.battleState = data.fullBattleState
-            battleStore.lastProcessedSequenceId = data.fullBattleState?.sequenceId ?? -1
+            await refreshRecoveredBattleRuntime(data.fullBattleState)
           } else {
             // 没有现有接口，创建新的
             const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
@@ -476,8 +502,7 @@ const setupBattleReconnectHandler = () => {
           // 不在战斗页面，检查是否有现有的battle接口
           if (battleStore.battleInterface) {
             // 复用现有接口，只更新状态
-            battleStore.battleState = data.fullBattleState
-            battleStore.lastProcessedSequenceId = data.fullBattleState?.sequenceId ?? -1
+            await refreshRecoveredBattleRuntime(data.fullBattleState)
           } else {
             // 没有现有接口，创建新的
             const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
@@ -500,7 +525,6 @@ const setupBattleReconnectHandler = () => {
   }
 
   window.addEventListener('battleReconnect', battleReconnectHandler)
-  console.log('🔄 Battle reconnect handler registered')
 }
 
 // 监听移动端状态变化，当切换到桌面端时自动关闭移动端菜单
@@ -512,69 +536,104 @@ watch(isMobile, newIsMobile => {
 
 // 房间按钮点击处理
 const handleRoomButtonClick = () => {
-  console.log('🏠 Room button clicked')
-  console.log('🏠 Current room:', privateRoomStore.currentRoom)
-
   if (privateRoomStore.currentRoom) {
     const roomCode = privateRoomStore.currentRoom.config.roomCode
-    console.log('🏠 Navigating to room:', roomCode)
     router.push(`/room/${roomCode}`)
-  } else {
-    console.error('🏠 No current room found')
   }
 }
 
 // 初始化连接
 onMounted(async () => {
   try {
-    // 并行初始化基础数据和资源
-    const initDataPromise = dataStore.initialize()
-    const initResourcePromise = resourceStore.initialize()
-    petStorage.loadFromLocal()
+    const bootstrap = createAppBootstrap()
+    let initResourcePromise: Promise<void> | null = null
 
-    // 初始化客户端规则系统
-    const initClientPromise = ClientRuleIntegration.initializeClient().catch(error => {
-      console.error('客户端规则系统初始化失败:', error)
+    bootstrap.register({
+      name: 'pet-storage',
+      phase: 'pre-init',
+      run: () => {
+        petStorage.loadFromLocal()
+      },
+    })
+    bootstrap.register({
+      name: 'client-rules',
+      phase: 'pre-init',
+      critical: false,
+      run: () =>
+        ClientRuleIntegration.initializeClient().catch(error => {
+          console.error('客户端规则系统初始化失败:', error)
+        }),
+    })
+    bootstrap.register({
+      name: 'game-data',
+      phase: 'data-ready',
+      order: 1,
+      run: async () => {
+        initResourcePromise = resourceStore.initialize()
+        await dataStore.initialize()
+      },
+    })
+    bootstrap.register({
+      name: 'species-provider',
+      phase: 'data-ready',
+      order: 2,
+      critical: false,
+      run: () =>
+        ClientRuleIntegration.initializeSpeciesDataProvider(dataStore).catch(error => {
+          console.error('❌ 种族数据提供者初始化失败:', error)
+        }),
+    })
+    bootstrap.register({
+      name: 'player-identity',
+      phase: 'identity-ready',
+      run: async () => {
+        await playerStore.initializePlayer()
+        if (!playerStore.id) {
+          throw new Error('PLAYER_ID_INITIALIZATION_FAILED')
+        }
+      },
+    })
+    bootstrap.register({
+      name: 'battle-client-init',
+      phase: 'network-ready',
+      order: 1,
+      run: async () => {
+        await nextTick()
+        battleClientStore.initialize()
+        setupBattleReconnectHandler()
+      },
+    })
+    bootstrap.register({
+      name: 'battle-client-connect',
+      phase: 'network-ready',
+      order: 2,
+      run: async () => {
+        await Promise.all([initResourcePromise, battleClientStore.connect()])
+      },
+    })
+    bootstrap.register({
+      name: 'resume-private-room',
+      phase: 'network-ready',
+      order: 3,
+      run: async () => {
+        const currentRoom = await privateRoomStore.checkCurrentRoom()
+        if (currentRoom) {
+          await privateRoomStore.resumeActiveBattle()
+        }
+      },
+    })
+    bootstrap.register({
+      name: 'update-check',
+      phase: 'post-init',
+      critical: false,
+      run: () => {
+        setTimeout(() => {
+          autoCheckForUpdates()
+        }, 3000)
+      },
     })
 
-    // 等待基础数据加载完成
-    await initDataPromise
-
-    // 初始化种族数据提供者
-    const initSpeciesPromise = ClientRuleIntegration.initializeSpeciesDataProvider(dataStore).catch(error => {
-      console.error('❌ 种族数据提供者初始化失败:', error)
-    })
-
-    // 初始化玩家状态
-    await playerStore.initializePlayer()
-
-    if (!playerStore.id) {
-      console.error('Player ID is missing after initialization')
-      ElMessage.error('玩家ID初始化失败，请刷新页面重试')
-      return
-    }
-
-    await nextTick()
-
-    // 初始化battleClient
-    battleClientStore.initialize()
-
-    // 设置战斗重连处理器
-    setupBattleReconnectHandler()
-
-    // 并行执行不依赖连接的初始化任务
-    await Promise.all([initResourcePromise, initClientPromise, initSpeciesPromise, battleClientStore.connect()])
-
-    // 在连接完成后检查房间状态
-    const currentRoom = await privateRoomStore.checkCurrentRoom()
-    if (currentRoom) {
-      console.log('🏠 Found existing room:', currentRoom.config.roomCode)
-    }
-
-    // 延迟检查更新
-    setTimeout(() => {
-      autoCheckForUpdates()
-    }, 3000)
+    await bootstrap.runAll()
   } catch (err) {
     console.error('Initialization error:', err)
     ElMessage.error('初始化失败，请刷新页面重试')
@@ -586,7 +645,6 @@ onUnmounted(() => {
   if (battleReconnectHandler) {
     window.removeEventListener('battleReconnect', battleReconnectHandler)
     battleReconnectHandler = null
-    console.log('🔄 Battle reconnect handler cleaned up')
   }
 })
 

@@ -1,6 +1,8 @@
 // src/protocol.ts
 import type { BattleMessage, BattleState, TimerConfig, PlayerTimerState } from '@arcadia-eternity/const'
 import type { PlayerSchemaType, PlayerSelectionSchemaType, PetSchemaType } from '@arcadia-eternity/schema'
+import type { PackLock } from '@arcadia-eternity/schema/src/pack.js'
+import type { AssetLock } from '@arcadia-eternity/schema/src/assets.js'
 
 // 重新导出常用类型
 export type { PetSchemaType, PlayerSchemaType, PlayerSelectionSchemaType }
@@ -68,6 +70,7 @@ export interface ServerToClientEvents {
 
   // 私人房间事件
   privateRoomEvent: (event: PrivateRoomEvent) => void
+  privateRoomPeerSignal: (event: PrivateRoomPeerSignalEvent) => void
 }
 
 export interface ClientToServerEvents {
@@ -120,7 +123,14 @@ export interface ClientToServerEvents {
   joinPrivateRoomAsSpectator: (data: JoinPrivateRoomSpectatorRequest, ack: AckResponse<{ status: 'JOINED' }>) => void
   leavePrivateRoom: (ack: AckResponse<{ status: 'LEFT' }>) => void
   togglePrivateRoomReady: (data: TogglePrivateRoomReadyRequest, ack: AckResponse<{ status: 'READY_TOGGLED' }>) => void
-  startPrivateRoomBattle: (data: StartPrivateRoomBattleRequest, ack: AckResponse<{ battleRoomId: string }>) => void
+  startPrivateRoomBattle: (
+    data: StartPrivateRoomBattleRequest,
+    ack: AckResponse<PrivateRoomBattleStartInfo>,
+  ) => void
+  sendPrivateRoomPeerSignal: (
+    data: SendPrivateRoomPeerSignalRequest,
+    ack: AckResponse<{ status: 'FORWARDED' }>,
+  ) => void
   switchToSpectator: (data: {}, ack: AckResponse<{ status: 'SWITCHED' }>) => void
   switchToPlayer: (data: { team: PetSchemaType[] }, ack: AckResponse<{ status: 'SWITCHED' }>) => void
   getPrivateRoomInfo: (data: { roomCode: string }, ack: AckResponse<PrivateRoomInfo>) => void
@@ -139,16 +149,24 @@ export interface CreatePrivateRoomRequest {
     ruleSetId?: string
     isPrivate?: boolean
     password?: string
+    battleMode?: 'p2p' | 'server'
+    p2pTransport?: 'auto' | 'webrtc' | 'relay'
+    requiredPackLock?: PackLock
+    requiredAssetLock?: AssetLock
   }
 }
 
 export interface JoinPrivateRoomRequest {
   roomCode: string
   password?: string
+  clientPackLock?: PackLock
+  clientAssetLock?: AssetLock
 }
 
 export interface JoinPrivateRoomSpectatorRequest {
   roomCode: string
+  clientPackLock?: PackLock
+  clientAssetLock?: AssetLock
 }
 
 export interface TogglePrivateRoomReadyRequest {
@@ -163,10 +181,45 @@ export interface UpdatePrivateRoomConfigRequest {
   ruleSetId?: string
   isPrivate?: boolean
   password?: string
+  battleMode?: 'p2p' | 'server'
+  p2pTransport?: 'auto' | 'webrtc' | 'relay'
+  requiredPackLock?: PackLock
+  requiredAssetLock?: AssetLock
 }
 
 export interface StartPrivateRoomBattleRequest {
   hostTeam: PetSchemaType[]
+}
+
+export interface PrivateRoomBattleHostInfo {
+  playerId: string
+  sessionId: string
+}
+
+export interface PrivateRoomBattleStartInfo {
+  battleMode: 'p2p' | 'server'
+  battleRoomId?: string
+  battleHost: PrivateRoomBattleHostInfo
+}
+
+export interface PrivateRoomPeerSignalPayload {
+  transport: 'webrtc' | 'webtransport' | 'relay'
+  kind: 'offer' | 'answer' | 'ice-candidate' | 'ready' | 'custom'
+  payload: unknown
+}
+
+export interface SendPrivateRoomPeerSignalRequest {
+  targetPlayerId: string
+  targetSessionId?: string
+  signal: PrivateRoomPeerSignalPayload
+}
+
+export interface PrivateRoomPeerSignalEvent {
+  roomCode: string
+  from: PrivateRoomBattleHostInfo
+  to: PrivateRoomBattleHostInfo
+  signal: PrivateRoomPeerSignalPayload
+  timestamp: number
 }
 
 export interface TransferPrivateRoomHostRequest {
@@ -202,6 +255,10 @@ export interface PrivateRoomInfo {
     maxPlayers: number
     isPrivate: boolean
     password?: string
+    battleMode: 'p2p' | 'server'
+    p2pTransport?: 'auto' | 'webrtc' | 'relay'
+    requiredPackLock?: PackLock
+    requiredAssetLock?: AssetLock
   }
   players: PrivateRoomPlayer[]
   spectators: PrivateRoomSpectator[]
@@ -209,6 +266,7 @@ export interface PrivateRoomInfo {
   createdAt: number
   lastActivity: number
   battleRoomId?: string
+  battleHost?: PrivateRoomBattleHostInfo
   lastBattleResult?: {
     winner: string | null
     reason: string
@@ -227,7 +285,8 @@ export type PrivateRoomEvent =
   | { type: 'playerSwitchedToSpectator'; data: { playerId: string } }
   | { type: 'spectatorSwitchedToPlayer'; data: { playerId: string } }
   | { type: 'roomUpdate'; data: PrivateRoomInfo }
-  | { type: 'battleStarted'; data: { battleRoomId: string } }
+  | { type: 'battleStarted'; data: PrivateRoomBattleStartInfo }
+  | { type: 'peerSignal'; data: PrivateRoomPeerSignalEvent }
   | {
       type: 'battleFinished'
       data: { battleResult: { winner: string | null; reason: string; endedAt: number; battleRoomId: string } }

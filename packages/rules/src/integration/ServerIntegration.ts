@@ -1,5 +1,5 @@
 import type { TimerConfig } from '@arcadia-eternity/const'
-import type { Battle } from '@arcadia-eternity/battle'
+import type { BattleInstance } from '@arcadia-eternity/battle'
 import { BattleRuleManager } from '../battle/BattleRuleManager'
 import { GlobalRuleRegistry } from '../global/GlobalRuleRegistry'
 import { initializeGlobalServerSpeciesDataProvider } from '../providers/ServerSpeciesDataProvider'
@@ -142,7 +142,7 @@ export class ServerRuleIntegration {
    * @param battle 战斗实例
    * @param ruleManager 规则管理器
    */
-  static async bindRulesToBattle(battle: Battle, ruleManager: BattleRuleManager): Promise<void> {
+  static async bindRulesToBattle(battle: BattleInstance, ruleManager: BattleRuleManager): Promise<void> {
     await ruleManager.bindBattle(battle)
   }
 

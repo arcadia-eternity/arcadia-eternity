@@ -1,5 +1,6 @@
 import { Router } from 'express'
-import { z } from 'zod'
+import { Type, type Static } from '@sinclair/typebox'
+import { Value } from '@sinclair/typebox/value'
 import { getContainer, TYPES } from '../../container'
 import type { IAuthService } from '../../domain/auth/services/authService'
 import { PlayerRepository } from '@arcadia-eternity/database'
@@ -8,13 +9,31 @@ import { authenticateToken } from '../middlewares/authMiddleware'
 import { nanoid } from 'nanoid'
 import pino from 'pino'
 
+class ValidationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ValidationError'
+  }
+}
+
+function parseRequest<T extends import('@sinclair/typebox').TSchema>(schema: T, data: unknown): Static<T> {
+  const converted = Value.Convert(schema, structuredClone(data))
+  const defaulted = Value.Default(schema, converted)
+  if (Value.Check(schema, defaulted)) {
+    return defaulted as Static<T>
+  }
+  const errors = [...Value.Errors(schema, defaulted)]
+  const message = errors.map(e => `${e.path}: ${e.message}`).join('; ')
+  throw new ValidationError(message)
+}
+
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
 })
 
 // 请求验证模式
-const refreshSchema = z.object({
-  refreshToken: z.string().min(1, '刷新令牌不能为空'),
+const refreshSchema = Type.Object({
+  refreshToken: Type.String({ minLength: 1 }),
 })
 
 /**
@@ -157,7 +176,7 @@ export function createAuthRoutes(): Router {
    */
   router.post('/refresh', async (req, res) => {
     try {
-      const { refreshToken } = refreshSchema.parse(req.body)
+      const { refreshToken } = parseRequest(refreshSchema, req.body)
 
       // 使用更新后的refreshAccessToken方法
       const authResult = await authService.refreshAccessToken(refreshToken, playerRepo)
@@ -179,10 +198,10 @@ export function createAuthRoutes(): Router {
         data: authResult,
       })
     } catch (error) {
-      if (error instanceof z.ZodError) {
+      if (error instanceof ValidationError) {
         res.status(400).json({
           success: false,
-          message: error.issues[0].message,
+          message: error.message,
           code: 'VALIDATION_ERROR',
         })
         return
@@ -293,12 +312,10 @@ export function createAuthRoutes(): Router {
    */
   router.put('/update-player-name', smartAuth, async (req: any, res: any) => {
     try {
-      const { playerId, name } = z
-        .object({
-          playerId: z.string().min(1, '玩家ID不能为空'),
-          name: z.string().min(1, '玩家名称不能为空').max(30, '名称长度不能超过30个字符'),
-        })
-        .parse(req.body)
+      const { playerId, name } = parseRequest(Type.Object({
+          playerId: Type.String({ minLength: 1 }),
+          name: Type.String({ minLength: 1, maxLength: 30 }),
+        }), req.body)
 
       // 检查玩家是否存在
       const existingPlayer = await playerRepo.getPlayerById(playerId)
@@ -324,10 +341,10 @@ export function createAuthRoutes(): Router {
         },
       })
     } catch (error) {
-      if (error instanceof z.ZodError) {
+      if (error instanceof ValidationError) {
         return res.status(400).json({
           success: false,
-          message: error.issues[0].message,
+          message: error.message,
           code: 'VALIDATION_ERROR',
         })
       }

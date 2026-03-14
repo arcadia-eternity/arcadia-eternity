@@ -1,12 +1,11 @@
 import { injectable, inject, optional } from 'inversify'
-import { PlayerParser } from '@arcadia-eternity/parser'
 import type { AckResponse, ErrorResponse } from '@arcadia-eternity/protocol'
-import { PlayerSchema } from '@arcadia-eternity/schema'
+import { PlayerSchema, parseWithErrors, type PlayerSchemaType } from '@arcadia-eternity/schema'
 import pino from 'pino'
-import { ZodError } from 'zod'
+import type { Static } from '@sinclair/typebox'
 import type { Socket } from 'socket.io'
 import type { ClusterStateManager } from '../../../cluster/core/clusterStateManager'
-import type { SocketClusterAdapter } from '../../../cluster/communication/socketClusterAdapter'
+import type { RealtimeTransport } from '../../../realtime/realtimeTransport'
 import type { DistributedLockManager } from '../../../cluster/redis/distributedLock'
 import { LOCK_KEYS } from '../../../cluster/redis/distributedLock'
 import type { PerformanceTracker } from '../../../cluster/monitoring/performanceTracker'
@@ -41,7 +40,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
 
   constructor(
     @inject(TYPES.ClusterStateManager) private readonly stateManager: ClusterStateManager,
-    @inject(TYPES.SocketClusterAdapter) private readonly socketAdapter: SocketClusterAdapter,
+    @inject(TYPES.ClusterRealtimeGateway) private readonly battleRouting: RealtimeTransport,
     @inject(TYPES.DistributedLockManager) private readonly lockManager: DistributedLockManager,
     @inject(TYPES.MatchmakingCallbacks) private readonly callbacks: MatchmakingCallbacks,
     @inject(TYPES.ResourceLoadingManager) private readonly resourceLoadingManager: IResourceLoadingManager,
@@ -75,6 +74,11 @@ export class ClusterMatchmakingService implements IMatchmakingService {
       // 检查 session 状态，确保不与私人房间冲突
       const stateCheck = await this.sessionStateManager.canEnterMatchmaking(playerId, sessionId)
       if (!stateCheck.allowed) {
+        if (stateCheck.reason === '已在匹配队列中') {
+          logger.info({ playerId, sessionId }, 'Join matchmaking is idempotent for already queued session')
+          ack?.({ status: 'SUCCESS', data: { status: 'QUEUED' } })
+          return
+        }
         logger.warn(
           { playerId, sessionId, reason: stateCheck.reason },
           'Session cannot enter matchmaking due to state conflict',
@@ -179,15 +183,15 @@ export class ClusterMatchmakingService implements IMatchmakingService {
         const teamForValidation = playerData.team.map(pet => ({
           id: pet.id,
           name: pet.name,
-          species: pet.species.id, // 转换Species对象为字符串ID
+          species: pet.species,
           level: pet.level,
           evs: pet.evs,
           ivs: pet.ivs,
-          skills: pet.skills.map(skill => skill.id), // 转换Skill对象为字符串ID
+          skills: pet.skills,
           gender: pet.gender,
           nature: pet.nature,
-          ability: pet.ability?.id || '', // 转换Mark对象为字符串ID
-          emblem: pet.emblem?.id, // 转换Mark对象为字符串ID
+          ability: pet.ability || '',
+          emblem: pet.emblem,
           height: pet.height,
           weight: pet.weight,
         }))
@@ -713,25 +717,25 @@ export class ClusterMatchmakingService implements IMatchmakingService {
     }
   }
 
-  private validateRawPlayerData(rawData: unknown): ReturnType<typeof PlayerSchema.parse> {
+  private validateRawPlayerData(rawData: unknown): Static<typeof PlayerSchema> {
     try {
-      return PlayerSchema.parse(rawData)
+      return parseWithErrors(PlayerSchema, rawData)
     } catch (error) {
-      if (error instanceof ZodError) {
-        logger.warn({ error: error.issues, rawData }, 'Raw player data validation failed')
-        throw new Error(`Invalid player data: ${error.issues.map((e: any) => e.message).join(', ')}`)
+      if (error instanceof Error) {
+        logger.warn({ error: error.message, rawData }, 'Raw player data validation failed')
+        throw new Error(`Invalid player data: ${error.message}`)
       }
       throw new Error('Failed to validate raw player data')
     }
   }
 
-  private validatePlayerData(rawData: unknown): ReturnType<typeof PlayerParser.parse> {
+  private validatePlayerData(rawData: unknown): PlayerSchemaType {
     try {
-      return PlayerParser.parse(rawData)
+      return parseWithErrors(PlayerSchema, rawData)
     } catch (error) {
-      if (error instanceof ZodError) {
-        logger.warn({ error: error.issues, rawData }, 'Player data validation failed')
-        throw new Error(`Invalid player data: ${error.issues.map((e: any) => e.message).join(', ')}`)
+      if (error instanceof Error) {
+        logger.warn({ error: error.message, rawData }, 'Player data validation failed')
+        throw new Error(`Invalid player data: ${error.message}`)
       }
       throw new Error('Failed to validate player data')
     }
@@ -998,8 +1002,8 @@ export class ClusterMatchmakingService implements IMatchmakingService {
       // 先将玩家加入房间，然后发送匹配成功通知
       logger.info({ player1Id, player2Id, session1Id, session2Id, roomId }, 'Adding players to battle room')
 
-      const joinResult1 = await this.socketAdapter.joinPlayerToRoom(player1Id, roomId)
-      const joinResult2 = await this.socketAdapter.joinPlayerToRoom(player2Id, roomId)
+      const joinResult1 = await this.battleRouting.joinPlayerToRoom(player1Id, roomId)
+      const joinResult2 = await this.battleRouting.joinPlayerToRoom(player2Id, roomId)
 
       logger.info(
         {

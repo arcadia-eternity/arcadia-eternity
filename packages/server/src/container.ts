@@ -89,7 +89,7 @@ export function configureBattleServices(
   container: Container,
   dependencies: {
     stateManager: any
-    socketAdapter: any
+    realtimeGateway: any
     lockManager: any
     instanceId: string
     matchmakingCallbacks: any
@@ -106,7 +106,7 @@ export function configureBattleServices(
 
   // 绑定核心依赖
   container.bind(TYPES.ClusterStateManager).toConstantValue(dependencies.stateManager)
-  container.bind(TYPES.SocketClusterAdapter).toConstantValue(dependencies.socketAdapter)
+  container.bind(TYPES.ClusterRealtimeGateway).toConstantValue(dependencies.realtimeGateway)
   container.bind(TYPES.DistributedLockManager).toConstantValue(dependencies.lockManager)
   container.bind(TYPES.InstanceId).toConstantValue(dependencies.instanceId)
   container.bind(TYPES.MatchmakingCallbacks).toConstantValue(dependencies.matchmakingCallbacks)
@@ -135,8 +135,9 @@ export function configureClusterServices(
   container: Container,
   dependencies: {
     io: any
+    clientRealtimeGateway?: any
     stateManager: any
-    socketAdapter: any
+    realtimeGateway: any
     lockManager: any
     redisManager: any // 添加 redisManager
     instanceId: string
@@ -149,14 +150,16 @@ export function configureClusterServices(
   },
 ): { battleServer: ClusterBattleServer; rpcServer: BattleRpcServer } {
   // 绑定基础依赖
-  container.bind(TYPES.SocketIOServer).toConstantValue(dependencies.io)
+  if (dependencies.clientRealtimeGateway) {
+    container.bind(TYPES.ClientRealtimeGateway).toConstantValue(dependencies.clientRealtimeGateway)
+  }
   container.bind(TYPES.ClusterStateManager).toConstantValue(dependencies.stateManager)
-  container.bind(TYPES.SocketClusterAdapter).toConstantValue(dependencies.socketAdapter)
+  container.bind(TYPES.ClusterRealtimeGateway).toConstantValue(dependencies.realtimeGateway)
   container.bind(TYPES.DistributedLockManager).toConstantValue(dependencies.lockManager)
   container.bind(TYPES.RedisManager).toConstantValue(dependencies.redisManager) // 添加绑定
   container.bind(TYPES.InstanceId).toConstantValue(dependencies.instanceId)
 
-  if (dependencies.rpcPort) {
+  if (dependencies.rpcPort !== undefined) {
     container.bind(TYPES.RpcPort).toConstantValue(dependencies.rpcPort)
   }
   if (dependencies.battleReportConfig) {

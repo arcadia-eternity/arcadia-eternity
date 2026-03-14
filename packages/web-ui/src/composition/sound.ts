@@ -4,6 +4,8 @@ import { useResourceStore } from '@/stores/resource'
 import { computed, onMounted, onUnmounted, watch, type ComputedRef } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { baseSkillId } from '@arcadia-eternity/const'
+import { useGameDataStore } from '@/stores/gameData'
+import { resolveSkillSfxUrl } from '@/utils/resourceResolver'
 
 export function useSound(
   allSkillId: ComputedRef<baseSkillId[] | undefined>,
@@ -11,6 +13,7 @@ export function useSound(
 ) {
   const gameSettingStore = useGameSettingStore()
   const resourceStore = useResourceStore()
+  const gameDataStore = useGameDataStore()
   const volume = computed(() => gameSettingStore.soundVolume / 100)
   const { mute, soundMute } = storeToRefs(gameSettingStore)
   const selfMute = computed(() => mute.value || soundMute.value)
@@ -32,7 +35,8 @@ export function useSound(
   }
 
   function registerSkillSound(id: baseSkillId) {
-    const src = resourceStore.getSkillSound(id) ?? 'https://seer2-resource.yuuinih.com/sound/skill/01_1_003.mp3'
+    const skill = gameDataStore.getSkill(id)
+    const src = resolveSkillSfxUrl(skill, resourceStore.getSkillSound)
     const howlerInstance = ensureHowlInstance(src)
     skillHowlerMap.set(id, howlerInstance)
   }
@@ -49,7 +53,7 @@ export function useSound(
   const registerPetSounds = (spriteNums: number[] | undefined) => {
     if (spriteNums) {
       for (const num of spriteNums) {
-        const src = `https://seer2-resource.yuuinih.com/sound/pet/${num}.mp3`
+        const src = resourceStore.getPetSoundByNum(num) ?? `https://seer2-resource.yuuinih.com/sound/pet/${num}.mp3`
         ensureHowlInstance(src)
       }
     }
@@ -88,7 +92,9 @@ export function useSound(
   }
 
   const playPetSound = (petSpriteNum: number) => {
-    const src = `https://seer2-resource.yuuinih.com/sound/pet/${petSpriteNum}.mp3`
+    const src =
+      resourceStore.getPetSoundByNum(petSpriteNum) ??
+      `https://seer2-resource.yuuinih.com/sound/pet/${petSpriteNum}.mp3`
     const howler = ensureHowlInstance(src)
     howler.play()
   }

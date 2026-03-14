@@ -179,6 +179,10 @@ const handleStatusClick = () => {
 
 const handleReconnect = async () => {
   if (isReconnecting.value) return
+  if (!battleClientStore.isInitialized) {
+    ElMessage.info('客户端仍在初始化，请稍后再试')
+    return
+  }
 
   isReconnecting.value = true
 

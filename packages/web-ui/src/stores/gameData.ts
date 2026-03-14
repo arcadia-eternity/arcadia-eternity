@@ -1,7 +1,10 @@
 // src/stores/gameData.ts
 import { defineStore } from 'pinia'
-import { GameDataLoader } from '@/utils/gameLoader'
-import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType, Effect } from '@arcadia-eternity/schema'
+import { PackLoader, type V2DataPackManifest } from '@arcadia-eternity/pack-loader'
+import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType, Effect, LearnableSkill } from '@arcadia-eternity/schema'
+import type { BaseMarkData, BaseSkillData, SpeciesData } from '@arcadia-eternity/battle'
+import type { EffectDef } from '@arcadia-eternity/engine'
+import YAML from 'yaml'
 
 interface GameDataState {
   species: {
@@ -62,19 +65,27 @@ export const useGameDataStore = defineStore('gameData', {
   actions: {
     async initialize() {
       if (this.loaded) return
-      const loader = new GameDataLoader({
-        devBasePath: '/data',
-        prodBaseUrl: import.meta.env.VITE_API_BASE || '/data',
-      })
+      const loader = new PackLoader()
+      const packRef = `${import.meta.env.VITE_API_BASE || ''}/pack.json`
 
       try {
-        // 并行加载所有数据
-        const [rawSpecies, rawSkills, rawMarks, rawEffects] = await Promise.all([
-          this.loadSpecies(loader),
-          this.loadSkills(loader),
-          this.loadMarks(loader),
-          this.loadEffects(loader),
-        ])
+        const result = await loader.load(packRef, {
+          source: 'http',
+          continueOnError: false,
+          validateReferences: true,
+          enforceLockfile: true,
+        })
+        const learnableSkillsMap = await loadLearnableSkillsMap(packRef, result.pack)
+        const rawSpecies = Array.from(result.repository.allSpecies()).map(species => {
+          const learnableSkills = learnableSkillsMap.get(species.id)
+          if (!learnableSkills) {
+            throw new Error(`Species '${species.id}' missing learnable_skills in pack source`)
+          }
+          return speciesToSchema(species, learnableSkills)
+        })
+        const rawSkills = Array.from(result.repository.allSkills()).map(skillToSchema)
+        const rawMarks = Array.from(result.repository.allMarks()).map(markToSchema)
+        const rawEffects = Array.from(result.repository.allEffects()).map(effectToSchema)
 
         // 标准化数据结构
         this.species = this.normalizeData(rawSpecies)
@@ -85,6 +96,14 @@ export const useGameDataStore = defineStore('gameData', {
         // 验证数据完整性
         this.validateDataIntegrity()
 
+        console.log('Pack loaded', {
+          packId: result.pack?.id,
+          packVersion: result.pack?.version,
+          hasLockfile: result.lockfile !== undefined,
+          lockfileVersion: result.lockfile?.lockfileVersion,
+          lockfileIssueCount: result.lockfileIssues?.length ?? 0,
+          assetConflictCount: result.assetConflicts?.length ?? 0,
+        })
         console.log('🎮 Game data store installed')
 
         this.loaded = true
@@ -211,56 +230,135 @@ export const useGameDataStore = defineStore('gameData', {
       })
     },
 
-    // 修改后的加载方法（保持返回原始数组）
-    async loadSpecies(loader: GameDataLoader): Promise<SpeciesSchemaType[]> {
-      const data = await loader.load<SpeciesSchemaType[]>('species')
-      return data
-    },
-
-    async loadSkills(loader: GameDataLoader): Promise<SkillSchemaType[]> {
-      const data = await loader.load<SkillSchemaType[]>('skill')
-      return data
-    },
-
-    async loadMarks(loader: GameDataLoader): Promise<MarkSchemaType[]> {
-      const [data, data1, data2, data3] = await Promise.all([
-        loader.load<MarkSchemaType[]>('mark'),
-        loader.load<MarkSchemaType[]>('mark_ability'),
-        loader.load<MarkSchemaType[]>('mark_emblem'),
-        loader.load<MarkSchemaType[]>('mark_global'),
-      ])
-
-      // 合并前检查ID冲突
-      const allMarks = [...data, ...data1, ...data2, ...data3]
-      const ids = new Set<string>()
-      allMarks.forEach(mark => {
-        if (ids.has(mark.id)) {
-          throw new Error(`发现重复的Mark ID: ${mark.id}`)
-        }
-        ids.add(mark.id)
-      })
-
-      return allMarks
-    },
-
-    async loadEffects(loader: GameDataLoader): Promise<Effect[]> {
-      const [data1, data2, data3, data4, data5] = await Promise.all([
-        loader.load<Effect[]>('effect_ability'),
-        loader.load<Effect[]>('effect_emblem'),
-        loader.load<Effect[]>('effect_mark'),
-        loader.load<Effect[]>('effect_skill'),
-        loader.load<Effect[]>('effect_global'),
-      ])
-      // 合并前检查ID冲突
-      const allEffects = [...data1, ...data2, ...data3, ...data4, ...data5]
-      const ids = new Set<string>()
-      allEffects.forEach(effect => {
-        if (ids.has(effect.id)) {
-          throw new Error(`发现重复的Effect ID: ${effect.id}`)
-        }
-        ids.add(effect.id)
-      })
-      return allEffects
-    },
   },
 })
+
+function markToSchema(mark: BaseMarkData): MarkSchemaType {
+  return {
+    id: mark.id,
+    iconRef: mark.iconRef,
+    config: mark.config,
+    tags: mark.tags,
+    effect: mark.effectIds,
+  }
+}
+
+function skillToSchema(skill: BaseSkillData): SkillSchemaType {
+  return {
+    id: skill.id,
+    sfxRef: skill.sfxRef,
+    element: skill.element,
+    category: skill.category,
+    power: skill.power,
+    rage: skill.rage,
+    accuracy: skill.accuracy,
+    priority: skill.priority,
+    target: skill.target,
+    multihit: skill.multihit,
+    sureHit: skill.sureHit,
+    sureCrit: skill.sureCrit,
+    ignoreShield: skill.ignoreShield,
+    ignoreOpponentStageStrategy: skill.ignoreOpponentStageStrategy,
+    tags: skill.tags,
+    effect: skill.effectIds,
+  }
+}
+
+function speciesToSchema(species: SpeciesData, learnableSkills: LearnableSkill[]): SpeciesSchemaType {
+  return {
+    id: species.id,
+    num: species.num,
+    assetRef: species.assetRef,
+    element: species.element,
+    baseStats: species.baseStats,
+    genderRatio: species.genderRatio,
+    heightRange: species.heightRange,
+    weightRange: species.weightRange,
+    learnable_skills: learnableSkills,
+    ability: species.abilityIds,
+    emblem: species.emblemIds,
+  }
+}
+
+async function loadLearnableSkillsMap(
+  packRef: string,
+  manifest: V2DataPackManifest | undefined,
+): Promise<Map<string, LearnableSkill[]>> {
+  if (!manifest) return new Map()
+  const map = new Map<string, LearnableSkill[]>()
+  const manifestUrl = toAbsoluteHttpUrl(packRef)
+  const dataRoot = resolveDirectoryUrl(manifest.paths?.dataDir ?? '.', manifestUrl)
+
+  for (const file of manifest.data.species) {
+    const fileUrl = new URL(file, dataRoot).toString()
+    const rows = await fetchArray(fileUrl)
+    for (const row of rows) {
+      const speciesId = row.id as string | undefined
+      if (!speciesId) continue
+      const learnableSkills = (Array.isArray(row.learnable_skills) ? row.learnable_skills : []) as LearnableSkill[]
+      map.set(speciesId, learnableSkills)
+    }
+  }
+
+  return map
+}
+
+function resolveDirectoryUrl(dir: string, baseUrl: string): URL {
+  const normalizedDir = dir === '.' ? './' : `${dir.replace(/\/+$/, '')}/`
+  return new URL(normalizedDir, baseUrl)
+}
+
+function toAbsoluteHttpUrl(urlOrPath: string): string {
+  return new URL(urlOrPath, getHttpBaseUrl()).toString()
+}
+
+function getHttpBaseUrl(): string {
+  const maybeLocation = (globalThis as { location?: { href?: string } }).location
+  if (typeof maybeLocation?.href === 'string' && maybeLocation.href.length > 0) {
+    return maybeLocation.href
+  }
+  return 'http://localhost/'
+}
+
+async function fetchArray(url: string): Promise<Record<string, unknown>[]> {
+  try {
+    const text = await fetchText(url)
+    const isJson = url.toLowerCase().endsWith('.json')
+    const parsed = isJson ? JSON.parse(text) : YAML.parse(text, { merge: true })
+    if (!Array.isArray(parsed)) {
+      throw new Error(`Expected array content from ${url}`)
+    }
+    return parsed as Record<string, unknown>[]
+  } catch (error) {
+    if (url.endsWith('.yaml')) {
+      const jsonUrl = url.replace(/\.yaml$/, '.json')
+      const text = await fetchText(jsonUrl)
+      const parsed = JSON.parse(text)
+      if (!Array.isArray(parsed)) {
+        throw new Error(`Expected array content from ${jsonUrl}`)
+      }
+      return parsed as Record<string, unknown>[]
+    }
+    throw error
+  }
+}
+
+async function fetchText(url: string): Promise<string> {
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} for ${url}`)
+  }
+  return response.text()
+}
+
+function effectToSchema(effect: EffectDef): Effect {
+  return {
+    id: effect.id,
+    trigger: effect.triggers,
+    priority: effect.priority,
+    apply: effect.apply as Effect['apply'],
+    condition: effect.condition as Effect['condition'],
+    consumesStacks: effect.consumesStacks,
+    tags: effect.tags,
+  } as Effect
+}

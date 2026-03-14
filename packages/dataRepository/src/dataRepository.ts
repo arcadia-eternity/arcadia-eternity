@@ -1,11 +1,16 @@
-import { type Prototype, type Species, Effect, BaseMark, BaseSkill } from '@arcadia-eternity/battle'
-import {
-  EffectTrigger,
-  type baseMarkId,
-  type baseSkillId,
-  type effectId,
-  type speciesId,
-} from '@arcadia-eternity/const'
+import { type baseMarkId, type baseSkillId, type effectId, type speciesId } from '@arcadia-eternity/const'
+import type { MarkSchemaType, SkillSchemaType, SpeciesSchemaType } from '@arcadia-eternity/schema'
+
+export interface Prototype {
+  id: string
+}
+
+export interface EffectData extends Prototype {
+  trigger?: string | string[]
+  apply?: unknown
+  condition?: unknown
+  [key: string]: unknown
+}
 
 // 脚本声明类型
 export interface ScriptDeclaration {
@@ -84,17 +89,17 @@ class ObjectProxyManager<T extends object> {
 
 export class DataRepository {
   private static instance: DataRepository
-  public species = new Map<string, Species>()
-  public skills = new Map<string, BaseSkill>()
-  public marks = new Map<string, BaseMark>()
-  public effects = new Map<string, Effect<EffectTrigger>>()
+  public species = new Map<string, SpeciesSchemaType>()
+  public skills = new Map<string, SkillSchemaType>()
+  public marks = new Map<string, MarkSchemaType>()
+  public effects = new Map<string, EffectData>()
   private scriptDeclarations = new Map<string, ScriptDeclaration>()
 
   // 代理管理器
-  private speciesProxies = new Map<string, ObjectProxyManager<Species>>()
-  private skillProxies = new Map<string, ObjectProxyManager<BaseSkill>>()
-  private markProxies = new Map<string, ObjectProxyManager<BaseMark>>()
-  private effectProxies = new Map<string, ObjectProxyManager<Effect<EffectTrigger>>>()
+  private speciesProxies = new Map<string, ObjectProxyManager<SpeciesSchemaType>>()
+  private skillProxies = new Map<string, ObjectProxyManager<SkillSchemaType>>()
+  private markProxies = new Map<string, ObjectProxyManager<MarkSchemaType>>()
+  private effectProxies = new Map<string, ObjectProxyManager<EffectData>>()
 
   static getInstance() {
     if (!DataRepository.instance) {
@@ -103,7 +108,7 @@ export class DataRepository {
     return DataRepository.instance
   }
 
-  getSpecies(id: speciesId): Species {
+  getSpecies(id: speciesId): SpeciesSchemaType {
     // 优先返回代理对象
     const proxyManager = this.speciesProxies.get(id)
     if (proxyManager) {
@@ -117,7 +122,7 @@ export class DataRepository {
     return species
   }
 
-  getSkill(id: baseSkillId): BaseSkill {
+  getSkill(id: baseSkillId): SkillSchemaType {
     // 优先返回代理对象
     const proxyManager = this.skillProxies.get(id)
     if (proxyManager) {
@@ -131,7 +136,7 @@ export class DataRepository {
     return skill
   }
 
-  getMark(id: baseMarkId): BaseMark {
+  getMark(id: baseMarkId): MarkSchemaType {
     // 优先返回代理对象
     const proxyManager = this.markProxies.get(id)
     if (proxyManager) {
@@ -145,7 +150,7 @@ export class DataRepository {
     return mark
   }
 
-  getEffect(id: effectId): Effect<EffectTrigger> {
+  getEffect(id: effectId): EffectData {
     // 优先返回代理对象
     const proxyManager = this.effectProxies.get(id)
     if (proxyManager) {
@@ -159,11 +164,11 @@ export class DataRepository {
     return effect
   }
 
-  getAllMarks(): BaseMark[] {
+  getAllMarks(): MarkSchemaType[] {
     return [...this.marks.values()]
   }
 
-  registerSpecies(id: string, species: Species, allowUpdate = false) {
+  registerSpecies(id: string, species: SpeciesSchemaType, allowUpdate = false) {
     if (this.species.has(id) && !allowUpdate) {
       throw new Error(`Species with id "${id}" already exists`)
     }
@@ -180,7 +185,7 @@ export class DataRepository {
     }
   }
 
-  registerSkill(id: string, skill: BaseSkill, allowUpdate = false) {
+  registerSkill(id: string, skill: SkillSchemaType, allowUpdate = false) {
     if (this.skills.has(id) && !allowUpdate) {
       throw new Error(`Skill with id "${id}" already exists`)
     }
@@ -197,7 +202,7 @@ export class DataRepository {
     }
   }
 
-  registerMark(id: string, mark: BaseMark, allowUpdate = false) {
+  registerMark(id: string, mark: MarkSchemaType, allowUpdate = false) {
     if (this.marks.has(id) && !allowUpdate) {
       throw new Error(`Mark with id "${id}" already exists`)
     }
@@ -214,7 +219,7 @@ export class DataRepository {
     }
   }
 
-  registerEffect(id: string, effect: Effect<EffectTrigger>, allowUpdate = false) {
+  registerEffect(id: string, effect: EffectData, allowUpdate = false) {
     if (this.effects.has(id) && !allowUpdate) {
       throw new Error(`Effect with id "${id}" already exists`)
     }
@@ -241,16 +246,16 @@ export class DataRepository {
     // 根据类型注册到对应的Map
     switch (declaration.type) {
       case 'effect':
-        this.registerEffect(declaration.id, declaration.instance as Effect<EffectTrigger>)
+        this.registerEffect(declaration.id, declaration.instance as EffectData)
         break
       case 'species':
-        this.registerSpecies(declaration.id, declaration.instance as Species)
+        this.registerSpecies(declaration.id, declaration.instance as SpeciesSchemaType)
         break
       case 'skill':
-        this.registerSkill(declaration.id, declaration.instance as BaseSkill)
+        this.registerSkill(declaration.id, declaration.instance as SkillSchemaType)
         break
       case 'mark':
-        this.registerMark(declaration.id, declaration.instance as BaseMark)
+        this.registerMark(declaration.id, declaration.instance as MarkSchemaType)
         break
     }
   }
@@ -361,24 +366,24 @@ function createRegisterDecorator<T extends Prototype>(registerFn: (instance: T) 
 }
 
 // 具体装饰器
-export const RegisterEffect = createRegisterDecorator<Effect<EffectTrigger>>(effect =>
+export const RegisterEffect = createRegisterDecorator<EffectData>(effect =>
   DataRepository.getInstance().registerEffect(effect.id, effect),
 )
 
-export const RegisterSpecies = createRegisterDecorator<Species>(species =>
+export const RegisterSpecies = createRegisterDecorator<SpeciesSchemaType>(species =>
   DataRepository.getInstance().registerSpecies(species.id, species),
 )
 
-export const RegisterSkill = createRegisterDecorator<BaseSkill>(skill =>
+export const RegisterSkill = createRegisterDecorator<SkillSchemaType>(skill =>
   DataRepository.getInstance().registerSkill(skill.id, skill),
 )
 
-export const RegisterMark = createRegisterDecorator<BaseMark>(mark =>
+export const RegisterMark = createRegisterDecorator<MarkSchemaType>(mark =>
   DataRepository.getInstance().registerMark(mark.id, mark),
 )
 
 // 函数式API - 作为装饰器的替代方案
-export function declareEffect(effect: Effect<EffectTrigger>) {
+export function declareEffect(effect: EffectData) {
   DataRepository.getInstance().registerScriptDeclaration({
     id: effect.id,
     type: 'effect',
@@ -386,7 +391,7 @@ export function declareEffect(effect: Effect<EffectTrigger>) {
   })
 }
 
-export function declareSpecies(species: Species) {
+export function declareSpecies(species: SpeciesSchemaType) {
   DataRepository.getInstance().registerScriptDeclaration({
     id: species.id,
     type: 'species',
@@ -394,7 +399,7 @@ export function declareSpecies(species: Species) {
   })
 }
 
-export function declareSkill(skill: BaseSkill) {
+export function declareSkill(skill: SkillSchemaType) {
   DataRepository.getInstance().registerScriptDeclaration({
     id: skill.id,
     type: 'skill',
@@ -402,7 +407,7 @@ export function declareSkill(skill: BaseSkill) {
   })
 }
 
-export function declareMark(mark: BaseMark) {
+export function declareMark(mark: MarkSchemaType) {
   DataRepository.getInstance().registerScriptDeclaration({
     id: mark.id,
     type: 'mark',

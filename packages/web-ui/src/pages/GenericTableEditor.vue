@@ -56,8 +56,10 @@ import SpeciesSkillEditor from '@/components/SpeciesSkillEditor.vue'
 import EnhancedArrayEditor from '@/components/EnhancedArrayEditor.vue'
 import OptionalFieldEditor from '@/components/OptionalFieldEditor.vue'
 import ArrayTagCell from '@/components/ArrayTagCell.vue'
-import { generateMock } from '@anatine/zod-mock'
-import { z } from 'zod'
+import { type TSchema, type TObject, type TArray, type TProperties } from '@sinclair/typebox'
+import { OptionalKind } from '@sinclair/typebox'
+import { KindGuard } from '@sinclair/typebox/type'
+import { Value } from '@sinclair/typebox/value'
 import { useGameDataStore } from '@/stores/gameData'
 import type { FileData } from './fileData'
 
@@ -125,6 +127,60 @@ const markDirty = (field: string, index?: number) => {
   dirtyFields.add(fieldPath)
 }
 
+// TypeBox 辅助函数
+const isSchemaOptional = (schema: TSchema): boolean => {
+  return OptionalKind in schema || 'default' in schema
+}
+
+const unwrapSchema = (schema: TSchema): TSchema => {
+  // TypeBox Optional 不包装 schema，只是添加 OptionalKind 符号
+  // 所以不需要像 Zod 那样递归解包
+  return schema
+}
+
+const isSchemaObject = (schema: TSchema): boolean => {
+  return KindGuard.IsObject(schema)
+}
+
+const isSchemaArray = (schema: TSchema): boolean => {
+  return KindGuard.IsArray(schema)
+}
+
+// 生成模板数据（替代 generateMock）
+const createTemplate = (type: keyof typeof SCHEMA_MAP) => {
+  const schema = SCHEMA_MAP[type]
+
+  // 使用 Value.Create 生成默认值
+  const template = Value.Create(schema)
+
+  const cleanOptionalFields = (obj: any, currentSchema: TSchema): any => {
+    const unwrapped = unwrapSchema(currentSchema)
+
+    if (KindGuard.IsObject(unwrapped)) {
+      const properties = (unwrapped as TObject<TProperties>).properties
+      Object.keys(properties).forEach(key => {
+        const fieldSchema = properties[key]
+        if (isSchemaOptional(fieldSchema)) {
+          delete obj[key]
+        } else if (obj[key] !== undefined) {
+          obj[key] = cleanOptionalFields(obj[key], fieldSchema)
+        }
+      })
+    }
+
+    if (KindGuard.IsArray(unwrapped)) {
+      const itemSchema = (unwrapped as TArray).items
+      if (itemSchema && Array.isArray(obj)) {
+        obj = obj.map((item: any) => cleanOptionalFields(item, itemSchema))
+      }
+    }
+
+    return obj
+  }
+
+  return cleanOptionalFields(template, schema)
+}
+
 const addNewItem = () => {
   if (!props.currentData) return
 
@@ -150,74 +206,18 @@ const removeItem = (pageIndex: number) => {
   }
 }
 
-const createTemplate = (type: keyof typeof SCHEMA_MAP) => {
-  const schema = SCHEMA_MAP[type]
-
-  // @ts-ignore
-  const template = generateMock(schema)
-
-  const cleanOptionalFields = (obj: any, currentSchema: z.ZodTypeAny): any => {
-    // 处理 ZodOptional
-    const unwrappedSchema = unwrapSchema(currentSchema)
-
-    if (unwrappedSchema instanceof z.ZodObject) {
-      const shape = unwrappedSchema.shape
-      Object.keys(shape).forEach(key => {
-        const fieldSchema = shape[key]
-        if (isZodOptional(fieldSchema)) {
-          delete obj[key]
-        } else if (obj[key] !== undefined) {
-          obj[key] = cleanOptionalFields(obj[key], fieldSchema)
-        }
-      })
-    }
-
-    // 处理 ZodArray
-    if (unwrappedSchema instanceof z.ZodArray) {
-      obj = obj.map((item: any) => cleanOptionalFields(item, unwrappedSchema.element))
-    }
-
-    return obj
-  }
-
-  return cleanOptionalFields(template, schema)
-}
-
-const isZodOptional = (schema: any): schema is z.ZodOptional<any> => {
-  return schema instanceof z.ZodOptional || schema instanceof z.ZodDefault
-}
-
-const unwrapOptional = (schema: any): z.ZodTypeAny => {
-  return isZodOptional(schema) ? schema.unwrap() : schema
-}
-
-const isZodObject = (schema: any): schema is z.ZodObject<any> => {
-  const unwrapped = unwrapOptional(schema)
-  return unwrapped?._def?.typeName === 'ZodObject'
-}
-
-const isZodArray = (schema: any): schema is z.ZodArray<any> => {
-  const unwrapped = unwrapOptional(schema)
-  return unwrapped?._def?.typeName === 'ZodArray'
-}
-
-// 递归展开所有包装类型
-const unwrapSchema = (schema: any): z.ZodTypeAny => {
-  if (isZodOptional(schema)) return unwrapSchema(schema.unwrap())
-  if (schema instanceof z.ZodDefault) return unwrapSchema(schema.removeDefault())
-  return schema
-}
-
 // 递归生成列配置
-const generateColumns = (schema: z.ZodObject<any>, prefix = ''): ColumnConfig[] => {
+const generateColumns = (schema: TSchema, prefix = ''): ColumnConfig[] => {
+  if (!KindGuard.IsObject(schema)) return []
+
   const fileSign = props.currentData?.metadata.version
   if (!fileSign) return []
 
   const fileVersion = props.currentData?.metadata.version || 'default'
   const columns: ColumnConfig[] = []
-  const shape = schema.shape
+  const properties = (schema as TObject<TProperties>).properties
 
-  Object.entries(shape).forEach(([key, field]) => {
+  Object.entries(properties).forEach(([key, field]) => {
     const cacheKey = `${fileVersion}-${key}`
 
     // 使用缓存列配置
@@ -227,20 +227,12 @@ const generateColumns = (schema: z.ZodObject<any>, prefix = ''): ColumnConfig[] 
     }
 
     const currentPath = prefix ? `${prefix}.${key}` : key
-
-    // 递归解包所有 Zod 包装类型
-    const unwrapped = (() => {
-      let current: any = field
-      while (current instanceof z.ZodOptional || current instanceof z.ZodDefault || current instanceof z.ZodNullable) {
-        current = current._def.innerType
-      }
-      return current
-    })()
+    const fieldSchema = field as TSchema
 
     // 公共配置项
     const baseConfig: ColumnConfig = {
       prop: currentPath,
-      label: `${key.replace(/_/g, ' ').toUpperCase()}${isZodOptional(field) ? ' (可选)' : ''}`,
+      label: `${key.replace(/_/g, ' ').toUpperCase()}${isSchemaOptional(fieldSchema) ? ' (可选)' : ''}`,
     }
 
     // 初始化列配置
@@ -251,13 +243,13 @@ const generateColumns = (schema: z.ZodObject<any>, prefix = ''): ColumnConfig[] 
       columnConfig = handleSpecialField(key, currentPath)
     }
     // 处理嵌套对象
-    else if (unwrapped instanceof z.ZodObject) {
+    else if (KindGuard.IsObject(fieldSchema)) {
       columnConfig = {
         ...baseConfig,
         render: row =>
           h(
             'div',
-            generateColumns(unwrapped, currentPath).map(col =>
+            generateColumns(fieldSchema, currentPath).map(col =>
               h('div', { class: 'nested-column' }, [
                 h('span', { class: 'nested-label' }, col.label),
                 col.render?.(row),
@@ -267,7 +259,7 @@ const generateColumns = (schema: z.ZodObject<any>, prefix = ''): ColumnConfig[] 
       }
     }
     // 处理数组类型
-    else if (unwrapped instanceof z.ZodArray) {
+    else if (KindGuard.IsArray(fieldSchema)) {
       columnConfig = {
         ...baseConfig,
         render: row =>
@@ -287,7 +279,7 @@ const generateColumns = (schema: z.ZodObject<any>, prefix = ''): ColumnConfig[] 
         render: row =>
           h(OptionalFieldEditor, {
             modelValue: getValueByPath(row, currentPath),
-            schema: field,
+            schema: fieldSchema,
             label: key.replace(/_/g, ' '),
             'onUpdate:modelValue': val => {
               const newValue = val
@@ -364,9 +356,9 @@ watch(
   ({ metaType, fileName }) => {
     if (metaType && fileName) {
       const schema = DATA_SCHEMA_MAP[metaType]
-      // @ts-ignore
-      const itemSchema = schema instanceof z.ZodArray ? schema.element : schema
-      columns.value = isZodObject(itemSchema) ? generateColumns(itemSchema) : []
+      // 如果是数组 schema，取其 items；否则直接使用
+      const itemSchema = KindGuard.IsArray(schema) ? (schema as TArray).items : schema
+      columns.value = KindGuard.IsObject(itemSchema) ? generateColumns(itemSchema) : []
     }
   },
   { immediate: true },
@@ -375,18 +367,18 @@ watch(
 const validateData = (data: FileData<any>) => {
   try {
     const schema = DATA_SCHEMA_MAP[data.metadata.metaType]
-    schema.parse(data.data)
-    return { valid: true }
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return {
-        valid: false,
-        errors: err.issues.map(issue => ({
-          path: issue.path.join('.'),
-          message: issue.message,
-        })),
-      }
+    if (Value.Check(schema, data.data)) {
+      return { valid: true }
     }
+    const errors = [...Value.Errors(schema, data.data)]
+    return {
+      valid: false,
+      errors: errors.map(e => ({
+        path: e.path,
+        message: e.message,
+      })),
+    }
+  } catch (err) {
     return { valid: false, errors: [] }
   }
 }

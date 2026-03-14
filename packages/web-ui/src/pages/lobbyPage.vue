@@ -209,6 +209,7 @@
                 :disabled="battleClientStore.currentState.status !== 'connected'"
                 @click="showCreateRoomDialog = true"
                 class="w-full"
+                data-testid="create-private-room-button"
               >
                 创建私人房间
               </el-button>
@@ -224,11 +225,13 @@
                   maxlength="6"
                   class="flex-1"
                   @keyup.enter="joinRoom"
+                  data-testid="join-room-code-input"
                 />
                 <el-button
                   type="primary"
                   :disabled="!joinRoomCode || battleClientStore.currentState.status !== 'connected'"
                   @click="joinRoom"
+                  data-testid="join-private-room-button"
                 >
                   加入
                 </el-button>
@@ -304,11 +307,19 @@
         <el-form-item label="房间密码">
           <el-input v-model="roomConfig.password" placeholder="留空为公开房间" show-password />
         </el-form-item>
+        <el-form-item label="P2P 传输">
+          <el-radio-group v-model="roomConfig.p2pTransport">
+            <el-radio value="auto">自动</el-radio>
+            <el-radio value="webrtc">WebRTC</el-radio>
+            <el-radio value="relay">Relay</el-radio>
+          </el-radio-group>
+          <div class="text-xs text-gray-500 mt-2">自动模式下，浏览器手测优先 WebRTC，受限环境会回退到 Relay。</div>
+        </el-form-item>
       </el-form>
 
       <template #footer>
         <el-button @click="showCreateRoomDialog = false">取消</el-button>
-        <el-button type="primary" @click="createRoom">创建</el-button>
+        <el-button type="primary" data-testid="confirm-create-private-room-button" @click="createRoom">创建</el-button>
       </template>
     </el-dialog>
   </div>
@@ -362,6 +373,7 @@ const showCreateRoomDialog = ref(false)
 const joinRoomCode = ref('')
 const roomConfig = ref({
   password: '',
+  p2pTransport: 'auto' as 'auto' | 'webrtc' | 'relay',
 })
 
 // 计算属性
@@ -548,11 +560,16 @@ const createRoom = async () => {
       ruleSetId: selectedRuleSetId.value,
       isPrivate: !!roomConfig.value.password,
       password: roomConfig.value.password || undefined,
+      p2pTransport: roomConfig.value.p2pTransport,
     }
 
     const roomCode = await privateRoomStore.createRoom(config)
 
     showCreateRoomDialog.value = false
+    roomConfig.value = {
+      password: '',
+      p2pTransport: 'auto',
+    }
     ElMessage.success(`房间创建成功！房间码: ${roomCode}`)
 
     // 跳转到房间页面

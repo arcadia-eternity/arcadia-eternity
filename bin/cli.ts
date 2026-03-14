@@ -3,30 +3,15 @@ import { program } from 'commander'
 import path from 'path'
 import fs from 'fs/promises'
 import yaml from 'yaml'
-import { loadGameData, LOADING_STRATEGIES } from '@arcadia-eternity/fsloader'
-import { PlayerParser } from '@arcadia-eternity/parser'
-import { ScriptLoader } from '@arcadia-eternity/data-repository'
-import { AIPlayer, Battle } from '@arcadia-eternity/battle'
-import { ConsoleUIV2, initI18n } from '@arcadia-eternity/console'
-import type { Player } from '@arcadia-eternity/battle'
-import { BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
-import { PlayerSchema } from '@arcadia-eternity/schema'
-import {
-  type BattleReportConfig,
-  createEmailConfigFromCli,
-  type EmailCliOptions,
-  createClusterApp,
-  createClusterConfigFromCli,
-  type ClusterCliOptions,
-} from '@arcadia-eternity/server'
-import { ServerRuleIntegration } from '@arcadia-eternity/rules'
-import { dataRepo } from '@arcadia-eternity/data-repository'
-import { validateAndPrintGameData } from '@arcadia-eternity/cli-validator'
-import DevServer from '../devServer'
+import type { TeamConfig, V2DataRepository } from '@arcadia-eternity/battle'
+import { PlayerSchema, parseWithErrors, type PlayerSchemaType } from '@arcadia-eternity/schema'
 import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
-import { LocalBattleSystem } from '@arcadia-eternity/local-adapter'
-import type { playerId } from '@arcadia-eternity/const'
+import type { playerId, BattleMessage, PlayerSelection } from '@arcadia-eternity/const'
+import { BattleMessageType } from '@arcadia-eternity/const'
+import {
+  runInMemoryP2PE2E,
+} from '../packages/p2p-transport/index'
 
 // 加载环境变量
 dotenv.config()
@@ -34,8 +19,28 @@ dotenv.config()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
+function toTeamConfig(player: PlayerSchemaType): TeamConfig {
+  return {
+    name: player.name,
+    team: player.team.map(pet => ({
+      name: pet.name,
+      species: pet.species,
+      level: pet.level,
+      evs: pet.evs,
+      ivs: pet.ivs,
+      nature: pet.nature,
+      skills: pet.skills,
+      ability: pet.ability,
+      emblem: pet.emblem,
+      gender: pet.gender,
+      weight: pet.weight,
+      height: pet.height,
+    })),
+  }
+}
+
 // 解析玩家文件
-async function parsePlayerFile(filePath: string, _options: { validateData?: boolean } = {}): Promise<Player> {
+async function parsePlayerFile(filePath: string, _options: { validateData?: boolean } = {}): Promise<PlayerSchemaType> {
   try {
     console.log(`[🔍] 正在解析玩家文件: ${filePath}`)
 
@@ -101,8 +106,8 @@ async function parsePlayerFile(filePath: string, _options: { validateData?: bool
       }
     }
 
-    // 使用PlayerParser进行完整解析
-    const player = PlayerParser.parse(rawData)
+    // 使用 schema 进行完整解析
+    const player = parseWithErrors(PlayerSchema, rawData)
 
     console.log(`[✅] 成功解析玩家: ${player.name} (${player.team.length} 只精灵)`)
     return player
@@ -112,21 +117,59 @@ async function parsePlayerFile(filePath: string, _options: { validateData?: bool
   }
 }
 
-// 加载脚本声明
-async function loadScripts(scriptPaths: string[] = ['./scripts']) {
-  try {
-    console.log('[🔄] 正在加载脚本声明...')
-    const loader = new ScriptLoader({ scriptPaths, recursive: true })
+function createRuleSpeciesRepository(repo: V2DataRepository): {
+  getSpeciesById: (id: string) => unknown
+  getAllSpecies: () => unknown[]
+} {
+  return {
+    getSpeciesById: (id: string) => {
+      const species = repo.findSpecies(id)
+      if (!species) return undefined
+      return {
+        id: species.id,
+        num: species.num,
+        element: species.element,
+        baseStats: species.baseStats,
+      }
+    },
+    getAllSpecies: () => Array.from(repo.allSpecies()).map(species => ({
+      id: species.id,
+      num: species.num,
+      element: species.element,
+      baseStats: species.baseStats,
+    })),
+  }
+}
 
-    for (const scriptPath of scriptPaths) {
-      await loader.loadScriptsFromFileSystem(scriptPath)
+async function preflightPack(options: { strict?: boolean; validateData?: boolean }): Promise<void> {
+  const strict = !!options.strict
+  const validateData = !!options.validateData
+  if (!strict && !validateData) return
+
+  const { PackLoader } = await import('@arcadia-eternity/pack-loader')
+  const packLoader = new PackLoader()
+
+  console.log('[🌀] 正在预加载数据包...')
+  const result = await packLoader.load('builtin:base', {
+    continueOnError: !strict,
+    validateReferences: true,
+  })
+  const summary = packLoader.summarize(result)
+  console.log(
+    `[📦] 数据包 ${summary.packId ?? summary.packRef}@${summary.packVersion ?? 'unknown'} 加载完成: effect=${summary.effectCount}, mark=${summary.markCount}, skill=${summary.skillCount}, species=${summary.speciesCount}`,
+  )
+
+  if (result.errors.length > 0) {
+    const head = result.errors.slice(0, 5)
+    for (const err of head) {
+      console.error(`[❌] ${err}`)
     }
-
-    const stats = loader.getLoadedScriptsStats()
-    console.log('[📊] 脚本加载统计:', stats)
-    console.log('[✅] 脚本声明加载完成')
-  } catch (error) {
-    console.warn('[⚠️] 脚本加载失败，继续使用YAML数据:', error instanceof Error ? error.message : error)
+    if (result.errors.length > head.length) {
+      console.error(`[❌] ... and ${result.errors.length - head.length} more errors`)
+    }
+    if (strict || validateData) {
+      throw new Error(`数据包校验失败，共 ${result.errors.length} 个错误`)
+    }
   }
 }
 
@@ -138,24 +181,17 @@ program
   .option('--validate-data', '启用数据完整性验证', false)
   .action(async options => {
     try {
-      console.log('[🌀] 正在加载游戏数据...')
-      await loadGameData(undefined, LOADING_STRATEGIES.LENIENT)
-      await loadScripts()
+      const [{ BattleClient, RemoteBattleSystem }, { ConsoleUIV2, initI18n }] = await Promise.all([
+        import('@arcadia-eternity/client'),
+        import('@arcadia-eternity/console'),
+      ])
 
-      // 数据完整性验证
-      if (options.validateData) {
-        console.log('[🔍] 正在验证游戏数据完整性...')
-        const isValid = await validateAndPrintGameData({ verbose: true })
-        if (!isValid) {
-          console.error('[❌] 游戏数据验证失败，请修复数据问题后重试')
-          process.exit(1)
-        }
-      }
+      await preflightPack({ validateData: options.validateData, strict: false })
 
       console.log('[🌀] 正在解析玩家数据...')
       const content = await fs.readFile(path.resolve(options.data), 'utf-8')
       const rawData = yaml.parse(content)
-      const player = PlayerSchema.parse(rawData)
+      const player = parseWithErrors(PlayerSchema, rawData)
 
       const client = new BattleClient({
         serverUrl: options.server,
@@ -195,73 +231,202 @@ program
   .option('--validate-data', '启用数据完整性验证', false)
   .action(async options => {
     try {
-      console.log('[🌀] 正在加载游戏数据...')
+      const [{ createLocalBattleFromYAML }, { ConsoleUIV2, initI18n }] = await Promise.all([
+        import('@arcadia-eternity/battle/node'),
+        import('@arcadia-eternity/console'),
+      ])
 
-      // 根据选项选择加载策略
-      let strategy = LOADING_STRATEGIES.LENIENT
-      if (options.strict && options.loadScripts) {
-        strategy = LOADING_STRATEGIES.FULL
-      } else if (options.strict) {
-        strategy = LOADING_STRATEGIES.STRICT
-      } else if (options.loadScripts) {
-        strategy = LOADING_STRATEGIES.DEVELOPMENT
-      }
-
-      console.log(
-        `[📋] 使用加载策略: ${options.strict ? '严格' : '宽松'}模式${options.loadScripts ? ' + 脚本加载' : ''}`,
-      )
-      await loadGameData(undefined, strategy)
-
-      // 如果没有通过策略加载脚本，则单独加载
-      if (!options.loadScripts) {
-        await loadScripts()
-      }
-
-      // 数据完整性验证
-      if (options.validateData || options.strict) {
-        console.log('[🔍] 正在验证游戏数据完整性...')
-        const isValid = await validateAndPrintGameData({
-          verbose: true,
-          validateCrossReferences: options.strict,
-        })
-        if (!isValid) {
-          console.error('[❌] 游戏数据验证失败，请修复数据问题后重试')
-          process.exit(1)
-        }
-      }
+      await preflightPack({
+        validateData: options.validateData,
+        strict: options.strict,
+      })
 
       console.log('[🌀] 正在解析玩家数据...')
       let player1 = await parsePlayerFile(options.player1, { validateData: options.validateData })
       let player2 = await parsePlayerFile(options.player2, { validateData: options.validateData })
 
-      let selfControl = [player1.id, player2.id]
+      const aiControl = new Set<playerId>()
 
-      if (options.ai) {
-        const aiPlayers = options.ai.map((p: string) => p.toLowerCase().trim())
-        const createAIPlayer = (basePlayer: Player) => new AIPlayer(basePlayer.name, basePlayer.id, basePlayer.team)
+      const player1Config = toTeamConfig(player1)
+      const player2Config = toTeamConfig(player2)
 
-        if (aiPlayers.includes('player1')) {
-          player1 = createAIPlayer(player1)
-          console.log('[🤖] 玩家1已设置为AI控制')
-          selfControl = selfControl.filter(p => p != player1.id)
-        }
-        if (aiPlayers.includes('player2')) {
-          player2 = createAIPlayer(player2)
-          console.log('[🤖] 玩家2已设置为AI控制')
-          selfControl = selfControl.filter(p => p != player2.id)
-        }
-      }
-
-      const battle = new Battle(player1, player2, {
+      const battleSystem = await createLocalBattleFromYAML('builtin:base', player1Config, player2Config, {
         allowFaintSwitch: true,
         showHidden: true,
       })
-      const battleSystem = new LocalBattleSystem(battle)
+      const initialState = await battleSystem.getState(undefined, true)
+      const v2Player1Id = initialState.players[0]?.id
+      const v2Player2Id = initialState.players[1]?.id
+      if (!v2Player1Id || !v2Player2Id) {
+        throw new Error('v2 battle 初始化失败：无法解析玩家ID')
+      }
+
+      let selfControl = [v2Player1Id, v2Player2Id]
+      if (options.ai) {
+        const aiPlayers = options.ai.map((p: string) => p.toLowerCase().trim())
+        if (aiPlayers.includes('player1')) {
+          console.log('[🤖] 玩家1已设置为AI控制')
+          aiControl.add(v2Player1Id as playerId)
+          selfControl = selfControl.filter(p => p != v2Player1Id)
+        }
+        if (aiPlayers.includes('player2')) {
+          console.log('[🤖] 玩家2已设置为AI控制')
+          aiControl.add(v2Player2Id as playerId)
+          selfControl = selfControl.filter(p => p != v2Player2Id)
+        }
+      }
+
+      const aiPending = new Set<playerId>()
+      let observedTurn = 0
+      const maxAiTurns = Number(process.env.CLI_MAX_AI_TURNS ?? 120)
+      const runAIIfNeeded = async (pid: playerId): Promise<void> => {
+        if (!aiControl.has(pid) || aiPending.has(pid)) return
+        aiPending.add(pid)
+        try {
+          const available = await battleSystem.getAvailableSelection(pid)
+          if (available.length === 0) return
+
+          const picked = (
+            available.find(a => a.type === 'team-selection') ??
+            available.find(a => a.type === 'use-skill') ??
+            available.find(a => a.type === 'switch-pet') ??
+            available.find(a => a.type === 'do-nothing') ??
+            available.find(a => a.type === 'surrender') ??
+            available[0]
+          ) as PlayerSelection
+          await battleSystem.submitAction(picked)
+        } finally {
+          aiPending.delete(pid)
+        }
+      }
+
+      const triggerAIFromMessage = (msg: BattleMessage): void => {
+        if (msg.type === BattleMessageType.TurnAction) {
+          observedTurn++
+          if (observedTurn > maxAiTurns && aiControl.size > 0) {
+            const fallback = Array.from(aiControl)[0]
+            void battleSystem.submitAction({ player: fallback, type: 'surrender' } as PlayerSelection)
+            return
+          }
+          for (const pid of msg.data.player) {
+            void runAIIfNeeded(pid)
+          }
+          return
+        }
+        if (msg.type === BattleMessageType.ForcedSwitch) {
+          for (const pid of msg.data.player) {
+            void runAIIfNeeded(pid)
+          }
+          return
+        }
+        if (msg.type === BattleMessageType.FaintSwitch) {
+          void runAIIfNeeded(msg.data.player)
+          return
+        }
+        if (msg.type === BattleMessageType.TeamSelectionStart) {
+          for (const pid of [v2Player1Id, v2Player2Id] as playerId[]) {
+            void runAIIfNeeded(pid)
+          }
+        }
+      }
+
+      battleSystem.BattleEvent(triggerAIFromMessage)
+
       await initI18n(options.debug)
       new ConsoleUIV2(battleSystem, ...selfControl)
-      battleSystem.ready()
+      await battleSystem.ready()
     } catch (err) {
       console.error('[💥] 致命错误:', err instanceof Error ? err.message : err)
+      process.exit(1)
+    }
+  })
+
+program
+  .command('p2p-battle-e2e')
+  .description('通过 p2p transport 在 CLI 内跑一局 v2 battle e2e')
+  .requiredOption('-1, --player1 <path>', '玩家1数据文件路径')
+  .requiredOption('-2, --player2 <path>', '玩家2数据文件路径')
+  .option('-r, --rounds <number>', '最多自动推进回合数', '2')
+  .option('--strict', '使用严格模式加载数据（检测缺失引用）', false)
+  .option('--validate-data', '启用数据完整性验证', false)
+  .action(async options => {
+    try {
+      const { runInMemoryP2PBattleE2E } = await import('@arcadia-eternity/p2p-transport/node')
+
+      await preflightPack({
+        validateData: options.validateData,
+        strict: options.strict,
+      })
+
+      console.log('[🌀] 正在解析玩家数据...')
+      const player1 = await parsePlayerFile(options.player1, { validateData: options.validateData })
+      const player2 = await parsePlayerFile(options.player2, { validateData: options.validateData })
+
+      const result = await runInMemoryP2PBattleE2E({
+        playerATeam: toTeamConfig(player1),
+        playerBTeam: toTeamConfig(player2),
+        rounds: Number.parseInt(String(options.rounds), 10),
+      })
+
+      console.log(`[✅] p2p battle e2e 完成`)
+      console.log(`playerA=${result.playerAId}, playerB=${result.playerBId}`)
+      console.log(`roundsPlayed=${result.roundsPlayed}`)
+      console.log(`battleStatus=${result.finalState.status}, currentTurn=${result.finalState.currentTurn}`)
+      console.log(`hostEvents=${result.hostEvents.length}, peerEvents=${result.peerEvents.length}`)
+      console.log(`playerASelections=${result.playerASelections.length}, playerBSelections=${result.playerBSelections.length}`)
+      process.exit(0)
+    } catch (err) {
+      console.error('[💥] 错误:', err instanceof Error ? err.message : err)
+      process.exit(1)
+    }
+  })
+
+program
+  .command('p2p-e2e')
+  .description('使用 in-memory transport 运行一组 P2P CLI 端到端握手与消息交换测试')
+  .option('--rounds <number>', '消息往返轮数', '3')
+  .action(async options => {
+    try {
+      const rounds = Number.parseInt(options.rounds, 10)
+      if (!Number.isFinite(rounds) || rounds <= 0) {
+        throw new Error(`非法 rounds 参数: ${options.rounds}`)
+      }
+
+      const result = await runInMemoryP2PE2E(rounds)
+
+      console.log('[✅] P2P e2e completed')
+      console.log(`[ℹ️] host phase=${result.hostPhase}, peer phase=${result.peerPhase}`)
+      console.log(`[ℹ️] host signals=${result.hostSignals.length}, peer signals=${result.peerSignals.length}`)
+      console.log(`[ℹ️] host received=${result.hostReceived.length}, peer received=${result.peerReceived.length}`)
+      console.log('[📨] peer received sample:', JSON.stringify(result.peerReceived[0] ?? null))
+      console.log('[📨] host received sample:', JSON.stringify(result.hostReceived[0] ?? null))
+    } catch (err) {
+      console.error('[💥] P2P e2e failed:', err instanceof Error ? err.message : err)
+      process.exit(1)
+    }
+  })
+
+program
+  .command('p2p-ws-e2e')
+  .description('使用 websocket relay transport 运行一组 Node/CLI 端到端消息交换测试')
+  .option('--rounds <number>', '消息往返轮数', '3')
+  .action(async options => {
+    try {
+      const rounds = Number.parseInt(options.rounds, 10)
+      if (!Number.isFinite(rounds) || rounds <= 0) {
+        throw new Error(`非法 rounds 参数: ${options.rounds}`)
+      }
+
+      const { runWebSocketP2PE2E } = await import('@arcadia-eternity/p2p-transport/node')
+      const result = await runWebSocketP2PE2E(rounds)
+
+      console.log('[✅] P2P websocket e2e completed')
+      console.log(`[ℹ️] host phase=${result.hostPhase}, peer phase=${result.peerPhase}`)
+      console.log(`[ℹ️] host received=${result.hostReceived.length}, peer received=${result.peerReceived.length}`)
+      console.log('[📨] peer received sample:', JSON.stringify(result.peerReceived[0] ?? null))
+      console.log('[📨] host received sample:', JSON.stringify(result.hostReceived[0] ?? null))
+    } catch (err) {
+      console.error('[💥] P2P websocket e2e failed:', err instanceof Error ? err.message : err)
       process.exit(1)
     }
   })
@@ -331,14 +496,18 @@ program
   )
   .action(async options => {
     try {
-      // 导入资源加载管理器
-      const { resourceLoadingManager } = await import('@arcadia-eternity/server')
+      const [{ resourceLoadingManager, createEmailConfigFromCli, createClusterApp, createClusterConfigFromCli }, { ServerRuleIntegration }, { default: DevServer }] =
+        await Promise.all([
+          import('@arcadia-eternity/server'),
+          import('@arcadia-eternity/rules'),
+          import('../devServer'),
+        ])
 
       console.log('[🌀] 启动异步游戏资源加载...')
       // 启动异步资源加载，不等待完成
       resourceLoadingManager
         .startAsyncLoading({
-          loadingStrategy: LOADING_STRATEGIES.LENIENT,
+          packRef: 'builtin:base',
           validateData: options.validateData,
           continueOnError: true,
         })
@@ -346,7 +515,12 @@ program
           // 资源加载完成后初始化规则系统
           console.log('[⚖️] 正在初始化服务端规则系统...')
           try {
-            await ServerRuleIntegration.initializeServer(dataRepo)
+            const loadedRepository = resourceLoadingManager.getLoadedRepository()
+            if (loadedRepository) {
+              await ServerRuleIntegration.initializeServer(createRuleSpeciesRepository(loadedRepository))
+            } else {
+              await ServerRuleIntegration.initializeServer()
+            }
             console.log('[✅] 服务端规则系统初始化成功')
           } catch (error) {
             console.error('[❌] 服务端规则系统初始化失败:', error)
@@ -359,7 +533,17 @@ program
       console.log('[✅] 异步资源加载已启动，服务器将在后台加载资源')
 
       // 配置战报服务
-      let battleReportConfig: (BattleReportConfig & { enableApi: boolean }) | undefined
+      let battleReportConfig:
+        | {
+            enableReporting: boolean
+            enableApi: boolean
+            database: {
+              supabaseUrl: string
+              supabaseAnonKey: string
+              supabaseServiceKey?: string
+            }
+          }
+        | undefined
 
       // 从环境变量或命令行参数获取配置
       const supabaseUrl = options.supabaseUrl || process.env.SUPABASE_URL
@@ -384,7 +568,7 @@ program
       }
 
       // 创建邮件配置
-      const emailCliOptions: EmailCliOptions = {
+      const emailCliOptions = {
         emailProvider: options.emailProvider,
         emailFrom: options.emailFrom,
         emailFromName: options.emailFromName,
@@ -401,7 +585,7 @@ program
       const emailConfig = createEmailConfigFromCli(emailCliOptions)
 
       // 创建集群配置
-      const clusterCliOptions: ClusterCliOptions = {
+      const clusterCliOptions = {
         redisHost: options.redisHost,
         redisPort: options.redisPort,
         redisPassword: options.redisPassword,
@@ -498,55 +682,44 @@ program
 program
   .command('validate')
   .description('验证游戏数据完整性')
-  .option('--strict', '使用严格模式验证（包含交叉引用检查）', false)
-  .option('--load-scripts', '加载脚本定义后再验证', false)
+  .option('--strict', '使用严格模式验证（发现错误直接失败）', false)
   .option('--verbose', '显示详细的验证信息', false)
   .option('--continue-on-error', '发现错误时继续验证', false)
-  .option('--skip-id-format', '跳过ID格式验证', false)
-  .option('--skip-duplicates', '跳过重复ID检查', false)
+  .option('--pack-ref <ref>', '数据包引用，默认 builtin:base', 'builtin:base')
   .action(async options => {
     try {
-      console.log('[🔍] 开始游戏数据验证...')
-
-      // 根据选项选择加载策略
-      let strategy = LOADING_STRATEGIES.LENIENT
-      if (options.strict && options.loadScripts) {
-        strategy = LOADING_STRATEGIES.FULL
-      } else if (options.strict) {
-        strategy = LOADING_STRATEGIES.STRICT
-      } else if (options.loadScripts) {
-        strategy = LOADING_STRATEGIES.DEVELOPMENT
-      }
-
-      console.log('[🌀] 正在加载游戏数据...')
-      console.log(
-        `[📋] 使用加载策略: ${options.strict ? '严格' : '宽松'}模式${options.loadScripts ? ' + 脚本加载' : ''}`,
-      )
-      await loadGameData(undefined, strategy)
-
-      // 如果没有通过策略加载脚本，则单独加载
-      if (!options.loadScripts) {
-        await loadScripts()
-      }
-
-      // 配置验证选项
-      const validationOptions = {
-        validateCrossReferences: options.strict,
-        validateIdFormat: !options.skipIdFormat,
-        checkDuplicateIds: !options.skipDuplicates,
+      const { PackLoader } = await import('@arcadia-eternity/pack-loader')
+      const packLoader = new PackLoader()
+      console.log('[🔍] 开始数据包验证...')
+      const result = await packLoader.load(options.packRef, {
         continueOnError: options.continueOnError,
-        verbose: options.verbose || true, // 验证命令默认显示详细信息
+        validateReferences: true,
+      })
+      const summary = packLoader.summarize(result)
+
+      console.log(`[📦] pack=${summary.packId ?? summary.packRef}@${summary.packVersion ?? 'unknown'}`)
+      console.log(
+        `[📊] effect=${summary.effectCount}, mark=${summary.markCount}, skill=${summary.skillCount}, species=${summary.speciesCount}`,
+      )
+
+      if (result.errors.length === 0) {
+        console.log('[🎉] 数据包验证通过')
+        process.exit(0)
       }
 
-      console.log('[🔍] 正在验证游戏数据完整性...')
-      const isValid = await validateAndPrintGameData(validationOptions)
+      const outputErrors = options.verbose ? result.errors : result.errors.slice(0, 20)
+      for (const err of outputErrors) {
+        console.error(`[❌] ${err}`)
+      }
+      if (!options.verbose && result.errors.length > outputErrors.length) {
+        console.error(`[❌] ... and ${result.errors.length - outputErrors.length} more errors`)
+      }
 
-      if (isValid) {
-        console.log('[🎉] 所有数据验证通过！')
-        process.exit(0)
-      } else {
-        console.log('[💥] 数据验证失败，请修复上述问题')
+      if (options.strict || !options.continueOnError) {
         process.exit(1)
+      } else {
+        console.warn('[⚠️] 存在错误，但按 continue-on-error 继续')
+        process.exit(0)
       }
     } catch (err) {
       console.error('[💥] 验证过程中发生错误:', err instanceof Error ? err.message : err)

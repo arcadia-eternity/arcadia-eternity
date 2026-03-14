@@ -2,9 +2,8 @@ import { ref, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { nanoid } from 'nanoid'
 import { parse } from 'yaml'
-import { z } from 'zod'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
-import { PetSetSchema } from '@arcadia-eternity/schema'
+import { PetSetSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { Gender } from '@arcadia-eternity/const'
 import { usePetStorageStore } from '@/stores/petStorage'
 import { useGameDataStore } from '@/stores/gameData'
@@ -69,7 +68,7 @@ export function usePetManagement() {
               maxAliasCount: 100,
             })
 
-            const importedTeam = PetSetSchema.parse(parsedData)
+            const importedTeam = parseWithErrors(PetSetSchema, parsedData)
 
             if (importedTeam.length < 1 || importedTeam.length > 6) {
               throw new Error('队伍数量必须在1-6之间')
@@ -103,7 +102,7 @@ export function usePetManagement() {
           } catch (err) {
             console.error('导入失败:', err)
             const errorMsg =
-              err instanceof z.ZodError ? `YAML/JSON格式校验失败: ${err.errors[0].message}` : (err as Error).message
+              err instanceof Error ? `YAML/JSON格式校验失败: ${err.message}` : (err as Error).message
 
             ElMessage.error(`导入失败: ${errorMsg}`)
           }

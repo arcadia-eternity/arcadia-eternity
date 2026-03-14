@@ -1,8 +1,17 @@
 import fs from 'fs/promises'
 import path from 'path'
-import { z } from 'zod'
-import { MarkDataSetSchema, SkillDataSetSchema, SpeciesDataSetSchema } from '..'
-import { EffectDSLSetSchema } from '@arcadia-eternity/schema'
+import type { TSchema } from '@sinclair/typebox'
+import {
+  AssetLockSchema,
+  AssetManifestSchema,
+  EffectDSLSetSchema,
+  MarkDataSetSchema,
+  PackLockSchema,
+  PackLockfileSchema,
+  PackManifestSchema,
+  SkillDataSetSchema,
+  SpeciesDataSetSchema,
+} from '..'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -10,12 +19,17 @@ import { dirname, join } from 'node:path'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-// 定义文件名前缀与 Zod Schema 的映射关系
-const SCHEMA_MAP: Record<string, z.ZodSchema> = {
+// 定义文件名前缀与 Schema 的映射关系
+const SCHEMA_MAP: Record<string, TSchema> = {
   mark: MarkDataSetSchema,
   skill: SkillDataSetSchema,
   species: SpeciesDataSetSchema,
   effect: EffectDSLSetSchema,
+  pack: PackManifestSchema,
+  'pack-lock': PackLockSchema,
+  'pack-lockfile': PackLockfileSchema,
+  assets: AssetManifestSchema,
+  'asset-lock': AssetLockSchema,
 }
 
 // 创建目录（如果不存在）
@@ -33,7 +47,7 @@ async function generateJsonSchema() {
   await ensureDir(schemaDir)
 
   // 为每个 Schema 生成独立的 JSON Schema 文件
-  const uniqueSchemas = new Map<string, z.ZodSchema>()
+  const uniqueSchemas = new Map<string, TSchema>()
   Object.entries(SCHEMA_MAP).forEach(([prefix, schema]) => {
     const schemaName = `${prefix}.schema.json`
     if (!uniqueSchemas.has(schemaName)) {
@@ -42,7 +56,8 @@ async function generateJsonSchema() {
   })
 
   for (const [schemaName, schema] of uniqueSchemas) {
-    const jsonSchema = z.toJSONSchema(schema, { io: 'input' })
+    // TypeBox schemas are already JSON Schema compatible
+    const jsonSchema = schema
 
     const schemaPath = path.join(schemaDir, schemaName)
     await fs.writeFile(schemaPath, JSON.stringify(jsonSchema, null, 2))

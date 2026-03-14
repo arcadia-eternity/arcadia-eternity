@@ -1,8 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { ClusterBattleServer } from '../src/cluster/clusterBattleServer'
-import { ClusterStateManager } from '../src/cluster/clusterStateManager'
-import { RuleBasedQueueManager } from '../src/cluster/ruleBasedQueueManager'
-import { MatchmakingEntry } from '../src/cluster/types'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { RuleBasedQueueManager } from '../src/domain/battle/services/ruleBasedQueueManager'
+import type { MatchmakingEntry } from '../src/cluster/types'
 
 describe('Rule-based Matchmaking', () => {
   let ruleBasedQueueManager: RuleBasedQueueManager
@@ -22,6 +20,7 @@ describe('Rule-based Matchmaking', () => {
       pexpire: vi.fn().mockResolvedValue(1),
       pipeline: vi.fn().mockReturnValue({
         sadd: vi.fn().mockReturnThis(),
+        hgetall: vi.fn().mockReturnThis(),
         hset: vi.fn().mockReturnThis(),
         pexpire: vi.fn().mockReturnThis(),
         exec: vi.fn().mockResolvedValue([]),
@@ -77,13 +76,9 @@ describe('Rule-based Matchmaking', () => {
 
     it('should get active rule set IDs correctly', async () => {
       const mockClient = mockRedisManager.getClient()
-      
-      // Mock keys response to simulate active queues
-      mockClient.keys.mockResolvedValue([
-        'matchmaking:queue:standard',
-        'matchmaking:queue:competitive',
-        'matchmaking:queue:tournament',
-      ])
+
+      // Mock active rule set index members
+      mockClient.smembers.mockResolvedValue(['standard', 'competitive', 'tournament'])
 
       // Mock scard to simulate queue sizes
       mockClient.scard
@@ -122,10 +117,10 @@ describe('Rule-based Matchmaking', () => {
   describe('Queue Retrieval', () => {
     it('should retrieve queue for specific rule set', async () => {
       const mockClient = mockRedisManager.getClient()
-      
+
       // Mock queue members
       mockClient.smembers.mockResolvedValue(['player1:session1', 'player2:session2'])
-      
+
       // Mock player data retrieval
       const pipeline = mockClient.pipeline()
       pipeline.exec.mockResolvedValue([

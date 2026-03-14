@@ -1,6 +1,6 @@
 import type { TimerConfig } from '@arcadia-eternity/const'
-import type { Battle, Pet, BaseSkill, BaseMark } from '@arcadia-eternity/battle'
-import type { PetSchemaType, LearnableSkill } from '@arcadia-eternity/schema'
+import type { BattleInstance } from '@arcadia-eternity/battle'
+import type { PetSchemaType, LearnableSkill, SkillSchemaType, MarkSchemaType, SpeciesSchemaType } from '@arcadia-eternity/schema'
 import type { ValidationResult } from './ValidationResult'
 
 /**
@@ -27,13 +27,13 @@ export interface BattleConfigModifications {
  */
 export interface AdditionalContent {
   /** 额外的技能 */
-  skills?: BaseSkill[]
+  skills?: SkillSchemaType[]
   /** 额外的印记 */
-  marks?: BaseMark[]
+  marks?: MarkSchemaType[]
   /** 额外的精灵种族 */
-  species?: any[]
+  species?: SpeciesSchemaType[]
   /** 额外的效果 */
-  effects?: any[]
+  effects?: Record<string, unknown>[]
   /** 自定义内容 */
   custom?: Record<string, any>
 }
@@ -43,7 +43,7 @@ export interface AdditionalContent {
  */
 export interface RuleContext {
   /** 当前战斗实例 */
-  battle?: Battle
+  battle?: BattleInstance
   /** 规则应用的阶段 */
   phase: RulePhase
   /** 额外的上下文数据 */
@@ -155,7 +155,7 @@ export interface Rule {
    * @param context 规则上下文
    * @returns 验证结果
    */
-  validateSkill(pet: PetSchemaType, skill: BaseSkill, context?: RuleContext): ValidationResult
+  validateSkill(pet: PetSchemaType, skill: SkillSchemaType, context?: RuleContext): ValidationResult
 
   /**
    * 验证印记
@@ -164,7 +164,7 @@ export interface Rule {
    * @param context 规则上下文
    * @returns 验证结果
    */
-  validateMark(pet: PetSchemaType, mark: BaseMark, context?: RuleContext): ValidationResult
+  validateMark(pet: PetSchemaType, mark: MarkSchemaType, context?: RuleContext): ValidationResult
 
   /**
    * 修改精灵数据
@@ -178,14 +178,14 @@ export interface Rule {
    * @param skill 技能数据
    * @param context 规则上下文
    */
-  modifySkill(skill: BaseSkill, context?: RuleContext): void
+  modifySkill(skill: SkillSchemaType, context?: RuleContext): void
 
   /**
    * 修改印记数据
    * @param mark 印记数据
    * @param context 规则上下文
    */
-  modifyMark(mark: BaseMark, context?: RuleContext): void
+  modifyMark(mark: MarkSchemaType, context?: RuleContext): void
 
   /**
    * 获取战斗配置修改

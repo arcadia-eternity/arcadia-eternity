@@ -15,6 +15,8 @@ const props = defineProps<{
 
 <template>
   <div
+    data-testid="battle-log-entry"
+    :data-log-type="message.type"
     class="flex gap-3 p-2 my-1 transition-all duration-300 text-sm text-amber-50 min-w-0 flex-shrink-0"
     :class="{
       'text-red-400!': message.type === 'DAMAGE',

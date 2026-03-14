@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "composite": true,
+    "lib": ["ESNext", "DOM"],
+    "module": "ESNext",
+    "target": "ESNext",
+    "outDir": "./dist/",
+    "verbatimModuleSyntax": true,
+    "moduleResolution": "bundler",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "declaration": true,
+    "declarationMap": true,
+    "types": ["node"]
+  },
+  "include": ["./src/**/*", "./test/**/*", "./index.ts", "./node.ts"],
+  "exclude": ["./node_modules", "./dist"]
+}

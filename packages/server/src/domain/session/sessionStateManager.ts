@@ -1,6 +1,7 @@
 import pino from 'pino'
 import { injectable, inject } from 'inversify'
 import type { ClusterStateManager } from '../../cluster/core/clusterStateManager'
+import { REDIS_KEYS } from '../../cluster/types'
 import { TYPES } from '../../types'
 
 const logger = pino({
@@ -113,15 +114,112 @@ export class SessionStateManager {
     }
 
     switch (currentState.state) {
-      case 'matchmaking':
+      case 'matchmaking': {
+        const inQueue = await this.ensureMatchmakingStateConsistency(playerId, sessionId, currentState)
+        if (!inQueue) {
+          return { allowed: true }
+        }
         return { allowed: false, reason: '已在匹配队列中' }
+      }
       case 'private_room':
         return { allowed: false, reason: '当前在私人房间中，请先离开房间' }
-      case 'battle':
+      case 'battle': {
+        const hasActiveBattle = await this.ensureBattleStateConsistency(playerId, sessionId, currentState)
+        if (!hasActiveBattle) {
+          return { allowed: true }
+        }
         return { allowed: false, reason: '当前在战斗中' }
+      }
       default:
         return { allowed: true }
     }
+  }
+
+  private async ensureMatchmakingStateConsistency(
+    playerId: string,
+    sessionId: string,
+    currentState: SessionStateInfo,
+  ): Promise<boolean> {
+    let inQueue = false
+    try {
+      inQueue = await this.isSessionInMatchmakingQueue(playerId, sessionId)
+    } catch (error) {
+      logger.error(
+        { error, playerId, sessionId },
+        'Failed to verify matchmaking state consistency, keep matchmaking lock as fallback',
+      )
+      return true
+    }
+
+    if (inQueue) {
+      return true
+    }
+
+    await this.setSessionState(playerId, sessionId, 'idle')
+    logger.warn(
+      { playerId, sessionId, previousState: currentState.state },
+      'Detected stale matchmaking session state, auto-healed to idle',
+    )
+    return false
+  }
+
+  private async isSessionInMatchmakingQueue(playerId: string, sessionId: string): Promise<boolean> {
+    const client = this.stateManager.redisManager.getClient()
+    const sessionKey = `${playerId}:${sessionId}`
+    const queueMappingKey = `${REDIS_KEYS.MATCHMAKING_PLAYER(sessionKey)}:queue_mapping`
+    const queueMapping = await client.hgetall(queueMappingKey)
+
+    const hasQueueMapping = queueMapping && typeof queueMapping === 'object' && Object.keys(queueMapping).length > 0
+    if (hasQueueMapping && queueMapping.queueKey) {
+      const inMappedQueue = await this.isSessionMemberOfQueue(client, queueMapping.queueKey, sessionKey)
+      if (inMappedQueue) {
+        return true
+      }
+
+      const mappedRuleSetId = queueMapping.ruleSetId || 'standard'
+      const playerEntryKey = `${REDIS_KEYS.MATCHMAKING_PLAYER(sessionKey)}:${mappedRuleSetId}`
+      await Promise.all([
+        client.srem(queueMapping.queueKey, sessionKey),
+        client.del(playerEntryKey),
+        client.del(queueMappingKey),
+      ])
+      return false
+    }
+
+    const activeRuleSetsKey = `${REDIS_KEYS.MATCHMAKING_QUEUE}:active_rulesets`
+    const activeRuleSetIds = await client.smembers(activeRuleSetsKey)
+    for (const ruleSetId of activeRuleSetIds) {
+      const queueKey = `${REDIS_KEYS.MATCHMAKING_QUEUE}:${ruleSetId}`
+      const exists = await this.isSessionMemberOfQueue(client, queueKey, sessionKey)
+      if (!exists) {
+        continue
+      }
+
+      await client.hset(queueMappingKey, {
+        ruleSetId,
+        queueKey,
+      })
+      return true
+    }
+
+    return false
+  }
+
+  private async isSessionMemberOfQueue(
+    client: {
+      sismember?: (key: string, member: string) => Promise<number>
+      smembers: (key: string) => Promise<string[]>
+    },
+    queueKey: string,
+    sessionKey: string,
+  ): Promise<boolean> {
+    if (typeof client.sismember === 'function') {
+      const result = await client.sismember(queueKey, sessionKey)
+      return result === 1
+    }
+
+    const members = await client.smembers(queueKey)
+    return members.includes(sessionKey)
   }
 
   /**
@@ -139,10 +237,122 @@ export class SessionStateManager {
         return { allowed: false, reason: '当前在匹配队列中，请先取消匹配' }
       case 'private_room':
         return { allowed: false, reason: '已在私人房间中' }
-      case 'battle':
+      case 'battle': {
+        const hasActiveBattle = await this.ensureBattleStateConsistency(playerId, sessionId, currentState)
+        if (!hasActiveBattle) {
+          return { allowed: true }
+        }
         return { allowed: false, reason: '当前在战斗中' }
+      }
       default:
         return { allowed: true }
+    }
+  }
+
+  private async ensureBattleStateConsistency(
+    playerId: string,
+    sessionId: string,
+    currentState: SessionStateInfo,
+  ): Promise<boolean> {
+    let inActiveBattle = false
+    try {
+      inActiveBattle = await this.isSessionInActiveBattle(playerId, sessionId, currentState.context?.battleRoomId)
+    } catch (error) {
+      logger.error(
+        { error, playerId, sessionId, battleRoomId: currentState.context?.battleRoomId },
+        'Failed to verify battle state consistency, keep battle lock as fallback',
+      )
+      return true
+    }
+    if (inActiveBattle) {
+      return true
+    }
+
+    await this.setSessionState(playerId, sessionId, 'idle')
+    logger.warn(
+      { playerId, sessionId, previousState: currentState.state, battleRoomId: currentState.context?.battleRoomId },
+      'Detected stale battle session state, auto-healed to idle',
+    )
+    return false
+  }
+
+  private async isSessionInActiveBattle(
+    playerId: string,
+    sessionId: string,
+    hintedRoomId?: string,
+  ): Promise<boolean> {
+    const client = this.stateManager.redisManager.getClient()
+    const sessionRoomKey = REDIS_KEYS.SESSION_ROOM_MAPPING(playerId, sessionId)
+    const mappedRoomIds = await client.smembers(sessionRoomKey)
+    const roomIds = new Set(mappedRoomIds)
+    if (hintedRoomId) {
+      roomIds.add(hintedRoomId)
+    }
+
+    if (roomIds.size === 0) {
+      return false
+    }
+
+    const staleRoomIds: string[] = []
+    for (const roomId of roomIds) {
+      const roomState = await this.stateManager.getRoomState(roomId)
+      if (!roomState) {
+        staleRoomIds.push(roomId)
+        continue
+      }
+
+      const isBattlePlayer =
+        roomState.status === 'active' &&
+        roomState.sessions.includes(sessionId) &&
+        roomState.sessionPlayers[sessionId] === playerId &&
+        !roomState.spectators.some(s => s.playerId === playerId && s.sessionId === sessionId)
+
+      if (isBattlePlayer) {
+        const leaseActive = await this.hasActiveOwnershipLease(client, roomId)
+        if (!leaseActive) {
+          const ownerInstance = await this.stateManager.getInstance(roomState.instanceId)
+          const ownerHealthy = ownerInstance?.status === 'healthy'
+          if (!ownerHealthy) {
+            staleRoomIds.push(roomId)
+            continue
+          }
+        }
+
+        if (staleRoomIds.length > 0) {
+          await Promise.all(staleRoomIds.map(staleRoomId => client.srem(sessionRoomKey, staleRoomId)))
+        }
+        return true
+      }
+
+      staleRoomIds.push(roomId)
+    }
+
+    if (staleRoomIds.length > 0) {
+      await Promise.all(staleRoomIds.map(roomId => client.srem(sessionRoomKey, roomId)))
+    }
+
+    return false
+  }
+
+  private async hasActiveOwnershipLease(client: { get(key: string): Promise<string | null> }, roomId: string): Promise<boolean> {
+    const ownershipRaw = await client.get(REDIS_KEYS.BATTLE_RUNTIME_OWNERSHIP(roomId))
+    if (!ownershipRaw) {
+      return false
+    }
+
+    try {
+      const ownership = JSON.parse(ownershipRaw) as {
+        leaseExpireAt?: number
+        status?: 'idle' | 'active' | 'draining' | 'released'
+      }
+      const leaseActive =
+        typeof ownership.leaseExpireAt === 'number' &&
+        ownership.leaseExpireAt > Date.now() &&
+        (ownership.status === 'active' || ownership.status === 'draining')
+      return leaseActive
+    } catch (error) {
+      logger.warn({ error, roomId }, 'Failed to parse ownership record while checking session battle consistency')
+      return false
     }
   }
 

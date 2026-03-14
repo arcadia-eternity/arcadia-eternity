@@ -8,6 +8,27 @@ import type {
   Events,
 } from '@arcadia-eternity/const'
 
+export interface BattleRuntimeSnapshot {
+  /** Snapshot format identifier for compatibility checks. */
+  format: string
+  /** Monotonic schema version for this format. */
+  version: number
+  /** Serialized runtime payload (usually engine world snapshot JSON). */
+  payload: string
+}
+
+export type BattlePhaseExecutionTransition = 'begin' | 'commit' | 'fail'
+
+export interface BattlePhaseExecutionEvent {
+  transition: BattlePhaseExecutionTransition
+  phaseId: string
+  phaseType: string
+  phaseState: string
+  stackDepth: number
+  timestamp: number
+  error?: string
+}
+
 export interface IBattleSystem {
   ready(): Promise<void>
   getState(playerId?: playerId, showHidden?: boolean): Promise<BattleState>
@@ -24,6 +45,8 @@ export interface IBattleSystem {
   getTimerConfig(): Promise<TimerConfig>
   startAnimation(source: string, expectedDuration: number, ownerId: playerId): Promise<string>
   endAnimation(animationId: string, actualDuration?: number): Promise<void>
+  startReconnectGraceTimer?(playerId: playerId, durationSec: number): Promise<void>
+  cancelReconnectGraceTimer?(playerId: playerId): Promise<void>
 
   // 计时器事件监听方法
   onTimerEvent<K extends keyof Events>(eventType: K, handler: (data: Events[K]) => void): () => void
@@ -33,6 +56,19 @@ export interface IBattleSystem {
    * Clean up all resources and subscriptions associated with this battle system
    */
   cleanup(): Promise<void>
+
+  /**
+   * Optional runtime snapshot API for host migration/recovery.
+   */
+  createRuntimeSnapshot?(): Promise<BattleRuntimeSnapshot>
+  restoreRuntimeSnapshot?(snapshot: BattleRuntimeSnapshot): Promise<void>
+
+  /**
+   * Optional phase execution lifecycle feed for deterministic host checkpoints.
+   */
+  onPhaseExecutionEvent?(
+    handler: (event: BattlePhaseExecutionEvent) => void | Promise<void>,
+  ): () => void
 }
 
 /**
