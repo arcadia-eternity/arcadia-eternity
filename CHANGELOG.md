@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.0.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.0.1...arcadia-eternity-v3.0.2) (2026-03-15)
+
+
+### 🐛 Bug Fixes
+
+* **server:** use schema package exports for runtime imports ([132b8c7](https://github.com/arcadia-eternity/arcadia-eternity/commit/132b8c798c9d5878d2b3d55615500122961cb01d))
+* **web-ui:** include pack-loader in workspace dependency graph ([2be0170](https://github.com/arcadia-eternity/arcadia-eternity/commit/2be01700422b8524c46d9960d55c9f668130530d))
+
 ## [3.0.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.0.0...arcadia-eternity-v3.0.1) (2026-03-15)
 
 
