@@ -22,7 +22,7 @@
     }
   },
   "scripts": {
-    "build": "run-p build:code build:types",
+    "build": "run-s clear build:code build:types",
     "clear": "rm -rf dist",
     "build:code": "rollup -c",
     "watch:code": "rollup -c --watch",

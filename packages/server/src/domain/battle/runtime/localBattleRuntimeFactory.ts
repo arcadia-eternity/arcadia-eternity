@@ -95,7 +95,7 @@ export class LocalBattleRuntimeFactory {
       )
 
       if (!battleValidation.validation.isValid) {
-        const errorMessage = `战斗验证失败: ${battleValidation.validation.errors.map(e => e.message).join(', ')}`
+        const errorMessage = `战斗验证失败: ${battleValidation.validation.errors.map((e: { message: string }) => e.message).join(', ')}`
         this.logger.error(
           {
             roomId: roomState.id,
