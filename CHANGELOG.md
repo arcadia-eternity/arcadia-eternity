@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.0.2...arcadia-eternity-v3.0.3) (2026-03-15)
+
+
+### 🐛 Bug Fixes
+
+* **data-pack:** add static stat-stage mark definitions ([a20fe13](https://github.com/arcadia-eternity/arcadia-eternity/commit/a20fe13ea712e6709c5d64125e7b6420916325a7))
+
 ## [3.0.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.0.1...arcadia-eternity-v3.0.2) (2026-03-15)
 
 
