@@ -29,8 +29,9 @@
     "format": "prettier --write src/",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "dev:desktop": "run-p dev electron:dev",
-    "electron:dev": "wait-on http://127.0.0.1:5173 && cross-env ARCADIA_ELECTRON_DEV_SERVER_URL=http://127.0.0.1:5173 electron ./electron/main.mjs",
+    "dev:desktop": "run-p dev:desktop:web electron:dev",
+    "dev:desktop:web": "vite --host localhost --port 5173 --strictPort",
+    "electron:dev": "wait-on http://localhost:5173 && cross-env ARCADIA_ELECTRON_DEV_SERVER_URL=http://localhost:5173 electron ./electron/main.mjs",
     "build:desktop": "run-s build electron:pack",
     "electron:pack": "electron-builder",
     "electron:pack:publish": "electron-builder --publish always"
