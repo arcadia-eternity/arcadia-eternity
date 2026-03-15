@@ -8,7 +8,7 @@ import { createBattleFromConfig } from './battle-factory.js'
 import type { TeamConfig } from './team-config.js'
 
 export async function createLocalBattleFromYAML(
-  packRef = 'builtin:base',
+  packRef = 'builtin:workspace',
   playerAConfig: TeamConfig,
   playerBConfig: TeamConfig,
   battleConfig?: BattleConfig,

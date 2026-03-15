@@ -4,8 +4,7 @@ import LobbyView from '../pages/lobbyPage.vue'
 const BattleView = () => import('../pages/battlePage.vue')
 // import LocalBattlePage from '../pages/localBattlePage.vue'
 const LocalBattlePage = () => import('../pages/localBattlePage.vue')
-// import DataEditor from '../pages/dataEditor.vue'
-// import EffectGraphEditor from '@/pages/EffectGraphEditor.vue'
+const PackWorkspaceEditor = () => import('@/pages/PackWorkspaceEditor.vue')
 
 // 路由守卫
 import { battleGuard } from './guards'
@@ -205,29 +204,21 @@ const routes: RouteRecordRaw[] = [
   },
 ]
 
-const devOnlyRoutes: RouteRecordRaw[] = [
-  // {
-  //   path: '/data-editor',
-  //   name: 'DataEditor',
-  //   component: DataEditor,
-  //   meta: {
-  //     title: '数据编辑器',
-  //   },
-  // },
-  // {
-  //   path: '/effect-editor',
-  //   name: 'EffectGraphEditor',
-  //   component: EffectGraphEditor,
-  //   props: true,
-  // },  // 演示页面路由
-]
+const devOnlyRoutes: RouteRecordRaw[] = []
 
 if (import.meta.env.DEV) {
   routes.push(...devOnlyRoutes)
 }
 
 const tauriOnlyRoutes: RouteRecordRaw[] = [
-  // 移除更新页面，使用左下角轻量版本信息代替
+  {
+    path: '/pack-editor',
+    name: 'PackWorkspaceEditor',
+    component: PackWorkspaceEditor,
+    meta: {
+      title: '数据包编辑器',
+    },
+  },
 ]
 
 const webOnlyRoutes: RouteRecordRaw[] = [

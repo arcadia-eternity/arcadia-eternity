@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { GameDataLoader } from '@/utils/gameLoader'
 import type { AssetManifest, MarkImageSchemaType } from '@arcadia-eternity/schema'
 import { PackLoader } from '@arcadia-eternity/pack-loader'
+import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 
 interface ResourceState {
   markImage: {
@@ -111,12 +112,13 @@ export const useResourceStore = defineStore('Resource', {
   actions: {
     async initialize() {
       if (this.loaded) return
+      const packRef = await resolveRuntimePackRef()
+      applyRuntimeAssetBase(packRef)
       const loader = new GameDataLoader({
         devBasePath: '/resource',
         prodBaseUrl: import.meta.env.VITE_API_BASE || '/resource',
       })
       const packLoader = new PackLoader()
-      const packRef = `${import.meta.env.VITE_API_BASE || ''}/pack.json`
 
       try {
         // 并行加载所有数据

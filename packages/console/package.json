@@ -25,15 +25,15 @@
     "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/interface": "workspace:^",
-    "i18next": "^25.8.4",
+    "i18next": "^25.8.18",
     "i18next-chained-backend": "^5.0.2",
     "i18next-fs-backend": "^2.6.1",
     "jsondiffpatch": "^0.7.3",
-    "marked": "^17.0.1",
+    "marked": "^17.0.4",
     "marked-terminal": "^7.3.0"
   },
   "devDependencies": {
     "@types/marked-terminal": "^6.1.1",
-    "@types/node": "^25.2.2"
+    "@types/node": "^25.5.0"
   }
 }

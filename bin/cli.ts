@@ -150,7 +150,7 @@ async function preflightPack(options: { strict?: boolean; validateData?: boolean
   const packLoader = new PackLoader()
 
   console.log('[🌀] 正在预加载数据包...')
-  const result = await packLoader.load('builtin:base', {
+  const result = await packLoader.load('builtin:workspace', {
     continueOnError: !strict,
     validateReferences: true,
   })
@@ -250,7 +250,7 @@ program
       const player1Config = toTeamConfig(player1)
       const player2Config = toTeamConfig(player2)
 
-      const battleSystem = await createLocalBattleFromYAML('builtin:base', player1Config, player2Config, {
+      const battleSystem = await createLocalBattleFromYAML('builtin:workspace', player1Config, player2Config, {
         allowFaintSwitch: true,
         showHidden: true,
       })
@@ -506,7 +506,7 @@ program
       // 启动异步资源加载，不等待完成
       resourceLoadingManager
         .startAsyncLoading({
-          packRef: 'builtin:base',
+          packRef: 'builtin:workspace',
           validateData: options.validateData,
           continueOnError: true,
         })
@@ -681,7 +681,7 @@ program
   .option('--strict', '使用严格模式验证（发现错误直接失败）', false)
   .option('--verbose', '显示详细的验证信息', false)
   .option('--continue-on-error', '发现错误时继续验证', false)
-  .option('--pack-ref <ref>', '数据包引用，默认 builtin:base', 'builtin:base')
+  .option('--pack-ref <ref>', '数据包引用，默认 builtin:workspace', 'builtin:workspace')
   .action(async options => {
     try {
       const { PackLoader } = await import('@arcadia-eternity/pack-loader')

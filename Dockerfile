@@ -11,6 +11,7 @@ WORKDIR /app
 COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
 # Copy packages directory structure for package.json files
 COPY packages/ ./packages/
+COPY packs/ ./packs/
 
 # Install all dependencies (including dev dependencies for building)
 # Use local store to avoid cache conflicts in parallel builds
@@ -34,6 +35,7 @@ WORKDIR /app
 # Copy package files for production dependencies
 COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
 COPY packages/ ./packages/
+COPY packs/ ./packs/
 
 # Install only production dependencies
 # Use local store to avoid cache conflicts in parallel builds
@@ -59,6 +61,7 @@ COPY --from=deps /app/node_modules ./node_modules
 
 # Copy built packages from builder stage
 COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/packs ./packs
 
 # Copy built application and necessary files
 COPY --from=builder /app/dist ./dist

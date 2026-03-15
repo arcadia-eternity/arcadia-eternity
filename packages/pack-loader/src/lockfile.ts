@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
-import { dirname, relative, resolve } from 'node:path'
-import { readFile, stat } from 'node:fs/promises'
+import { basename, dirname, relative, resolve } from 'node:path'
+import { readdir, readFile, stat } from 'node:fs/promises'
 
 type LockProvenance = 'npm' | 'workspace' | 'file' | 'git' | 'http' | 'builtin' | 'unknown'
 
@@ -211,12 +211,15 @@ export async function generatePackLockfileFromEntry(entryPath: string, importer 
 
       const assetRefs = manifest.assetsRef ? (Array.isArray(manifest.assetsRef) ? manifest.assetsRef : [manifest.assetsRef]) : []
       for (const assetRef of assetRefs) {
-        queue.push({
-          absPath: resolve(dirname(current.absPath), assetRef),
-          importer: current.importer,
-          kind: 'asset',
-          parentKey: key,
-        })
+        const resolvedAssetPaths = await resolveAssetManifestPaths(dirname(current.absPath), assetRef)
+        for (const assetPath of resolvedAssetPaths) {
+          queue.push({
+            absPath: assetPath,
+            importer: current.importer,
+            kind: 'asset',
+            parentKey: key,
+          })
+        }
       }
 
       continue
@@ -262,5 +265,33 @@ export async function generatePackLockfileFromEntry(entryPath: string, importer 
     generatedAt: new Date().toISOString(),
     importers,
     packages,
+  }
+}
+
+async function resolveAssetManifestPaths(baseDir: string, assetRef: string): Promise<string[]> {
+  const candidate = resolve(baseDir, assetRef)
+  try {
+    const info = await stat(candidate)
+    if (!info.isDirectory()) {
+      return [candidate]
+    }
+    const entries = await readdir(candidate, { withFileTypes: true })
+    const manifests = entries
+      .filter(entry => entry.isFile() && entry.name.toLowerCase().endsWith('.json'))
+      .map(entry => resolve(candidate, entry.name))
+    if (manifests.length === 0) {
+      return [resolve(candidate, 'assets.json')]
+    }
+    manifests.sort((a, b) => {
+      const aIsDefault = basename(a).toLowerCase() === 'assets.json'
+      const bIsDefault = basename(b).toLowerCase() === 'assets.json'
+      if (aIsDefault && !bIsDefault) return -1
+      if (!aIsDefault && bIsDefault) return 1
+      return a.localeCompare(b)
+    })
+    return manifests
+  } catch {
+    const normalizedRef = assetRef.endsWith('.json') ? assetRef : `${assetRef.replace(/\/+$/, '')}/assets.json`
+    return [resolve(baseDir, normalizedRef)]
   }
 }

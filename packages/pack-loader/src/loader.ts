@@ -584,33 +584,35 @@ export class PackLoader {
     const stack = new Set<string>()
 
     const walk = async (assetRef: string, relativeToPath: string): Promise<void> => {
-      const assetPath = resolve(dirname(relativeToPath), assetRef)
-      if (stack.has(assetPath)) {
-        const message = `asset manifest cycle detected: ${[...stack, assetPath].join(' -> ')}`
-        if (!continueOnError) throw new Error(message)
-        errors.push(message)
-        return
-      }
-      if (visited.has(assetPath)) return
-      stack.add(assetPath)
-      try {
-        const raw = await this.readNodeText(assetPath)
-        const assetManifest = JSON.parse(raw) as AssetManifest
-        for (const dep of assetManifest.dependencies ?? []) {
-          await walk(dep, assetPath)
+      const assetPaths = await this.resolveNodeAssetManifestPaths(assetRef, relativeToPath)
+      for (const assetPath of assetPaths) {
+        if (stack.has(assetPath)) {
+          const message = `asset manifest cycle detected: ${[...stack, assetPath].join(' -> ')}`
+          if (!continueOnError) throw new Error(message)
+          errors.push(message)
+          continue
         }
-        loaded.push({
-          manifest: assetManifest,
-          url: assetPath,
-          raw,
-        })
-        visited.add(assetPath)
-      } catch (error) {
-        const message = `asset manifest load error (${assetRef}): ${error instanceof Error ? error.message : String(error)}`
-        if (!continueOnError) throw error
-        errors.push(message)
-      } finally {
-        stack.delete(assetPath)
+        if (visited.has(assetPath)) continue
+        stack.add(assetPath)
+        try {
+          const raw = await this.readNodeText(assetPath)
+          const assetManifest = JSON.parse(raw) as AssetManifest
+          for (const dep of assetManifest.dependencies ?? []) {
+            await walk(dep, assetPath)
+          }
+          loaded.push({
+            manifest: assetManifest,
+            url: assetPath,
+            raw,
+          })
+          visited.add(assetPath)
+        } catch (error) {
+          const message = `asset manifest load error (${assetRef}): ${error instanceof Error ? error.message : String(error)}`
+          if (!continueOnError) throw error
+          errors.push(message)
+        } finally {
+          stack.delete(assetPath)
+        }
       }
     }
 
@@ -618,6 +620,37 @@ export class PackLoader {
       await walk(ref, packPath)
     }
     return loaded
+  }
+
+  private async resolveNodeAssetManifestPaths(assetRef: string, relativeToPath: string): Promise<string[]> {
+    const { dirname, resolve, basename } = await import('node:path')
+    const { stat, readdir } = await import('node:fs/promises')
+    const basePath = resolve(dirname(relativeToPath), assetRef)
+
+    try {
+      const baseStat = await stat(basePath)
+      if (!baseStat.isDirectory()) {
+        return [basePath]
+      }
+      const entries = await readdir(basePath, { withFileTypes: true })
+      const jsonFiles = entries
+        .filter(entry => entry.isFile() && entry.name.toLowerCase().endsWith('.json'))
+        .map(entry => resolve(basePath, entry.name))
+      if (jsonFiles.length === 0) {
+        return [resolve(basePath, 'assets.json')]
+      }
+      jsonFiles.sort((a, b) => {
+        const aIsDefault = basename(a).toLowerCase() === 'assets.json'
+        const bIsDefault = basename(b).toLowerCase() === 'assets.json'
+        if (aIsDefault && !bIsDefault) return -1
+        if (!aIsDefault && bIsDefault) return 1
+        return a.localeCompare(b)
+      })
+      return jsonFiles
+    } catch {
+      const normalizedRef = assetRef.endsWith('.json') ? assetRef : `${assetRef.replace(/\/+$/, '')}/assets.json`
+      return [resolve(dirname(relativeToPath), normalizedRef)]
+    }
   }
 
   private async readNodeText(path: string): Promise<string> {

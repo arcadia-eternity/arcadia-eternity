@@ -28,6 +28,6 @@
     "yaml": "^2.8.2"
   },
   "devDependencies": {
-    "@types/node": "^25.2.2"
+    "@types/node": "^25.5.0"
   }
 }
