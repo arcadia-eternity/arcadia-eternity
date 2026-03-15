@@ -23,7 +23,7 @@
 
         <!-- 连接中状态 -->
         <el-tag
-          v-else-if="connectionState === 'connecting'"
+          v-else-if="connectionState === 'connecting' || isServerWaking"
           type="warning"
           effect="dark"
           round
@@ -32,7 +32,7 @@
           <el-icon :size="14" class="animate-spin">
             <Loading />
           </el-icon>
-          连接中...
+          {{ isServerWaking ? '唤醒中...' : '连接中...' }}
         </el-tag>
 
         <!-- 断线状态 - 更明显的提示 -->
@@ -125,6 +125,10 @@ const serverState = computed(() => {
   return serverStateStore.serverState
 })
 
+const isServerWaking = computed(() => {
+  return battleClientStore.isServerWaking
+})
+
 const connectionStateText = computed(() => {
   switch (connectionState.value) {
     case 'connected':
@@ -192,7 +196,7 @@ const handleReconnect = async () => {
     showReconnectDialog.value = false
   } catch (error: any) {
     console.error('重连失败:', error)
-    ElMessage.error(error.message || '重连失败，请稍后再试')
+    ElMessage.error(error.message || battleClientStore.serverWarmupHint || '重连失败，请稍后再试')
   } finally {
     isReconnecting.value = false
   }
@@ -217,7 +221,11 @@ watch(connectionState, (newState, oldState) => {
 
   // 连接超时时显示提示
   if (oldState === 'connecting' && newState === 'disconnected') {
-    ElMessage.error('连接超时，请检查网络连接')
+    if (battleClientStore.isServerWaking) {
+      ElMessage.info(battleClientStore.serverWarmupHint || '服务器唤醒中，请稍候')
+    } else {
+      ElMessage.error('连接超时，请检查网络连接')
+    }
   }
 })
 </script>

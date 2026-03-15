@@ -127,6 +127,14 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
 
   // 创建Express应用
   const app = express()
+  type ReadinessState = 'starting' | 'ready' | 'draining'
+  let readinessState: ReadinessState = 'starting'
+  let readinessChangedAt = Date.now()
+
+  const updateReadinessState = (nextState: ReadinessState) => {
+    readinessState = nextState
+    readinessChangedAt = Date.now()
+  }
 
   // 中间件设置
   app.use(cors(finalConfig.cors))
@@ -189,6 +197,26 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
         error: error instanceof Error ? error.message : 'Unknown error',
       })
     }
+  })
+
+  // 客户端连接前就绪探测端点（不阻断认证/业务路由）
+  app.get('/ready', (_req, res) => {
+    const isReady = readinessState === 'ready' && isStarted
+    const payload = {
+      status: isReady ? 'ok' : 'not_ready',
+      state: readinessState,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      stateChangedAt: new Date(readinessChangedAt).toISOString(),
+    }
+
+    if (isReady) {
+      res.json(payload)
+      return
+    }
+
+    res.setHeader('Retry-After', '3')
+    res.status(503).json(payload)
   })
 
   // 集群状态端点
@@ -333,6 +361,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
     }
 
     try {
+      updateReadinessState('starting')
       logger.info({ clusterEnabled }, `Starting in ${clusterEnabled ? 'cluster' : 'single-instance'} mode`)
 
       if (clusterEnabled) {
@@ -499,6 +528,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       return new Promise((resolve, reject) => {
         server.listen(finalConfig.port, () => {
           isStarted = true
+          updateReadinessState('ready')
           logger.info(
             {
               port: finalConfig.port,
@@ -529,6 +559,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       return
     }
 
+    updateReadinessState('draining')
     logger.info('Shutting down cluster server...')
 
     // 设置强制关闭超时时间（15秒）

@@ -32,10 +32,14 @@ const getOrCreateGlobalSessionId = (): string => {
 }
 
 export const useBattleClientStore = defineStore('battleClient', () => {
+  type ServerWarmupState = 'idle' | 'waking' | 'ready' | 'failed'
+
   // 状态
   const _instance = ref<BattleClient | null>(null)
   const _pendingEventHandlers = ref(new Map<string, Set<(...args: any[]) => void>>())
   const isInitialized = ref(false)
+  const serverWarmupState = ref<ServerWarmupState>('idle')
+  const serverWarmupError = ref<string | null>(null)
 
   // 响应式状态触发器
   const _stateUpdateTrigger = ref(0)
@@ -52,6 +56,96 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   const isConnected = computed(() => {
     return currentState.value.status === 'connected'
   })
+
+  const isServerWaking = computed(() => {
+    return serverWarmupState.value === 'waking'
+  })
+
+  const serverWarmupHint = computed(() => {
+    switch (serverWarmupState.value) {
+      case 'waking':
+        return '服务器唤醒中（通常 5-20 秒）'
+      case 'failed':
+        return serverWarmupError.value || '服务器唤醒超时，请稍后再试'
+      case 'ready':
+        return '服务器已就绪'
+      case 'idle':
+      default:
+        return ''
+    }
+  })
+
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+  const resolveReadyUrl = (serverUrl: string): string => {
+    const wsUrl = new URL(serverUrl, window.location.origin)
+    if (wsUrl.protocol === 'ws:') wsUrl.protocol = 'http:'
+    if (wsUrl.protocol === 'wss:') wsUrl.protocol = 'https:'
+    wsUrl.pathname = '/ready'
+    wsUrl.search = ''
+    wsUrl.hash = ''
+    return wsUrl.toString()
+  }
+
+  const waitForServerReady = async (maxWaitMs = 25000): Promise<void> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    const readyUrl = resolveReadyUrl(import.meta.env.VITE_WS_URL)
+    const startedAt = Date.now()
+    serverWarmupState.value = 'waking'
+    serverWarmupError.value = null
+
+    while (Date.now() - startedAt < maxWaitMs) {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 3000)
+      let response: Response | null = null
+
+      try {
+        response = await fetch(readyUrl, {
+          method: 'GET',
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+      } catch {
+        // ignore network errors while server is warming up
+      } finally {
+        clearTimeout(timeout)
+      }
+
+      if (!response) {
+        await delay(1000)
+        continue
+      }
+
+      if (response.ok) {
+        serverWarmupState.value = 'ready'
+        serverWarmupError.value = null
+        return
+      }
+
+      let state = 'starting'
+      try {
+        const body = await response.json()
+        state = body?.state || state
+      } catch {
+        // ignore invalid json
+      }
+
+      if (state === 'draining') {
+        serverWarmupState.value = 'failed'
+        serverWarmupError.value = '服务器正在重启中，请稍后重试'
+        throw new Error(serverWarmupError.value)
+      }
+
+      await delay(1000)
+    }
+
+    serverWarmupState.value = 'failed'
+    serverWarmupError.value = '服务器唤醒超时（超过 25 秒）'
+    throw new Error(serverWarmupError.value)
+  }
 
   // 创建battleClient实例的函数
   const createBattleClient = (): BattleClient => {
@@ -137,10 +231,16 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     registerPendingHandlers()
   }
 
-  const connect = () => {
+  const connect = async () => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
+    if (_instance.value.currentState.status === 'connected') {
+      serverWarmupState.value = 'ready'
+      serverWarmupError.value = null
+      return
+    }
+    await waitForServerReady()
     return _instance.value.connect()
   }
 
@@ -148,6 +248,8 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     if (_instance.value) {
       _instance.value.disconnect()
     }
+    serverWarmupState.value = 'idle'
+    serverWarmupError.value = null
   }
 
   const resetState = () => {
@@ -168,6 +270,8 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     }
     _pendingEventHandlers.value.clear()
     isInitialized.value = false
+    serverWarmupState.value = 'idle'
+    serverWarmupError.value = null
   }
 
   const joinMatchmaking = (data: any) => {
@@ -408,6 +512,9 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     isInitialized,
     currentState,
     isConnected,
+    isServerWaking,
+    serverWarmupState,
+    serverWarmupHint,
     _instance, // 暴露内部实例供特殊情况使用
 
     // Actions
