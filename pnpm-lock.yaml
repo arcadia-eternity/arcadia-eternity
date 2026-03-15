@@ -631,6 +631,9 @@ importers:
       '@arcadia-eternity/p2p-transport':
         specifier: workspace:^
         version: link:../p2p-transport
+      '@arcadia-eternity/pack-loader':
+        specifier: workspace:^
+        version: link:../pack-loader
       '@arcadia-eternity/protocol':
         specifier: workspace:^
         version: link:../protocol
@@ -654,7 +657,7 @@ importers:
         version: 2.2.0(vue@3.5.27(typescript@5.9.3))
       '@ruffle-rs/ruffle':
         specifier: 0.2.0-nightly.2026.2.8
-        version: 0.2.0-nightly.2026.2.8
+        version: link:dist/ruffle
       '@sinclair/typebox':
         specifier: ^0.34.48
         version: 0.34.48
@@ -887,6 +890,8 @@ importers:
       vue-tsc:
         specifier: ^3.2.4
         version: 3.2.4(typescript@5.9.3)
+
+  packages/web-ui/dist/ruffle: {}
 
 packages:
 
@@ -1922,9 +1927,6 @@ packages:
     resolution: {integrity: sha512-mxRFDdHIWRxg3UfIIAwCm6NzvxG0jDX/wBN6KsQFTvKFqqg9vTrWUE68qEjHt19A5wwx5X5aUi2zuZT7YR0jrA==}
     cpu: [x64]
     os: [win32]
-
-  '@ruffle-rs/ruffle@0.2.0-nightly.2026.2.8':
-    resolution: {integrity: sha512-RtvDOreWTMH9PmTVRjF4CDlC5vWQWg9rbXIpwplzi1NvlUjuvmctDZbWzrP4rzrRA2u0VO76ckeWj8bJTCt+Uw==}
 
   '@scarf/scarf@1.4.0':
     resolution: {integrity: sha512-xxeapPiUXdZAE3che6f3xogoJPeZgig6omHEy1rIY5WVsB3H2BHNnZH+gHG6x91SCWyQCzWGsuL2Hh3ClO5/qQ==}
@@ -8616,8 +8618,6 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.57.1':
     optional: true
-
-  '@ruffle-rs/ruffle@0.2.0-nightly.2026.2.8': {}
 
   '@scarf/scarf@1.4.0': {}
 

@@ -39,6 +39,7 @@
     "@arcadia-eternity/database": "workspace:^",
     "@arcadia-eternity/interface": "workspace:^",
     "@arcadia-eternity/p2p-transport": "workspace:^",
+    "@arcadia-eternity/pack-loader": "workspace:^",
     "@arcadia-eternity/protocol": "workspace:^",
     "@arcadia-eternity/rules": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
