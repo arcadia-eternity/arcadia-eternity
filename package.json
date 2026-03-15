@@ -54,7 +54,6 @@
     "yaml": "^2.8.2"
   },
   "devDependencies": {
-    "0x": "^6.0.0",
     "@eslint/js": "^10.0.1",
     "@pinia/testing": "^1.0.3",
     "@rollup/plugin-json": "^6.1.0",
@@ -89,5 +88,10 @@
   "workspaces": [
     "packages/*",
     "packs/*"
-  ]
+  ],
+  "pnpm": {
+    "overrides": {
+      "yauzl": "3.2.1"
+    }
+  }
 }
