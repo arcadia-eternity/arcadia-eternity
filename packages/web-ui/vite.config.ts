@@ -15,8 +15,6 @@ import { execSync } from 'node:child_process'
 // https://vite.dev/config/
 export default defineConfig({
   define: {
-    // eslint-disable-next-line node/prefer-global/process
-    'import.meta.env.VITE_IS_TAURI': `${process.env.VITE_IS_TAURI === 'true'}`,
     // 注入构建时间和commit hash
     'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString()),
     'import.meta.env.VITE_COMMIT_HASH': JSON.stringify(
@@ -39,7 +37,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ['seer2-pet-animator', '@tauri-apps/api/http', '@tauri-apps/api/tauri'],
+    exclude: ['seer2-pet-animator'],
   },
   build: {
     assetsInlineLimit: (filePath, content) => {
@@ -144,10 +142,6 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@data': path.resolve(__dirname, '../../packs/base/data'),
       '@locales': path.resolve(__dirname, '../../packs/base/locales'),
-      // 解决 Tauri API 子路径导入问题
-      '@tauri-apps/api/http': path.resolve(__dirname, './node_modules/@tauri-apps/api/http'),
-      '@tauri-apps/api/tauri': path.resolve(__dirname, './node_modules/@tauri-apps/api/tauri'),
-      '@tauri-apps/api': path.resolve(__dirname, './node_modules/@tauri-apps/api'),
     },
   },
 })

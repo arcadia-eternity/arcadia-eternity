@@ -1,6 +1,5 @@
 import type { V2DataRepository } from '@arcadia-eternity/battle'
-import type { PackManifest } from '@arcadia-eternity/schema/src/pack.js'
-import type { AssetManifest } from '@arcadia-eternity/schema/src/assets.js'
+import type { PackManifest, AssetManifest } from '@arcadia-eternity/schema'
 
 export type PackSource = 'node-fs' | 'http'
 

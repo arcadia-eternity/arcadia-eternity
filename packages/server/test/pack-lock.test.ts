@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { PackLock } from '@arcadia-eternity/schema/src/pack.js'
-import type { AssetLock } from '@arcadia-eternity/schema/src/assets.js'
+import type { PackLock, AssetLock } from '@arcadia-eternity/schema'
 import { isAssetLockCompatible, isPackLockCompatible } from '../src/domain/battle/pack'
 
 const baseLock = (): PackLock => ({

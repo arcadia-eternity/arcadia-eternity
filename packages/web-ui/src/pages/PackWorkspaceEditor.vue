@@ -9,12 +9,12 @@
     </div>
 
     <el-alert
-      v-if="!isTauri"
+      v-if="!isDesktop"
       type="warning"
       show-icon
       :closable="false"
       title="当前为 Web 模式"
-      description="创建数据包仅在 Tauri 桌面端可用。Web 模式下仅尝试读取 /packs/workspace/index.json。"
+      description="创建数据包仅在桌面端可用。Web 模式下仅尝试读取 /packs/workspace/index.json。"
     />
 
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
@@ -65,7 +65,7 @@
           <el-button
             class="w-full"
             type="success"
-            :disabled="!isTauri || !createForm.folderName"
+            :disabled="!isDesktop || !createForm.folderName"
             :loading="creating"
             @click="handleCreatePack"
           >
@@ -112,7 +112,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { isTauri } from '@/utils/env'
+import { isDesktop } from '@/utils/env'
 import {
   createPackFromTemplate,
   listPackTemplates,

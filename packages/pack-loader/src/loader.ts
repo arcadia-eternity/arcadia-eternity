@@ -2,7 +2,7 @@ import { V2DataRepository, parseEffect, parseMark, parseSkill, parseSpecies } fr
 import type { AssetConflict, PackLoadResult, PackLoadSummary, PackLoaderOptions, PackLockfile, PackSource } from './types'
 import YAML from 'yaml'
 import type { V2DataPackManifest } from './types'
-import type { AssetManifest } from '@arcadia-eternity/schema/src/assets.js'
+import type { AssetManifest } from '@arcadia-eternity/schema'
 
 const DEFAULT_SOURCE: PackSource = 'node-fs'
 

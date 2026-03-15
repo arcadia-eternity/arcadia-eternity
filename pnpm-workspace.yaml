@@ -8,6 +8,8 @@ allowBuilds:
   esbuild: true
   protobufjs: true
   vue-demi: true
+  electron: true
+  app-builder-bin: true
 catalog:
   "@typescript/native-preview": 7.0.0-dev.20260315.1
   typescript: 5.9.3

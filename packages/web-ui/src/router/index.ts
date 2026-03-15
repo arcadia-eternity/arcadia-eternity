@@ -11,7 +11,7 @@ import { battleGuard } from './guards'
 import TeamBuilder from '@/pages/teamBuilder.vue'
 import StorageManager from '@/pages/storageManager.vue'
 import AccountPage from '@/pages/accountPage.vue'
-import { isTauri } from '@/utils/env'
+import { isDesktop } from '@/utils/env'
 
 // 战报相关组件
 const BattleRecordList = () => import('@/components/battleReport/BattleRecordList.vue')
@@ -210,7 +210,7 @@ if (import.meta.env.DEV) {
   routes.push(...devOnlyRoutes)
 }
 
-const tauriOnlyRoutes: RouteRecordRaw[] = [
+const desktopOnlyRoutes: RouteRecordRaw[] = [
   {
     path: '/pack-editor',
     name: 'PackWorkspaceEditor',
@@ -232,8 +232,8 @@ const webOnlyRoutes: RouteRecordRaw[] = [
   },
 ]
 
-if (isTauri) {
-  routes.push(...tauriOnlyRoutes)
+if (isDesktop) {
+  routes.push(...desktopOnlyRoutes)
 } else {
   routes.push(...webOnlyRoutes)
 }

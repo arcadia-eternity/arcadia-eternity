@@ -99,7 +99,7 @@ jobs:
               - ✅ Production branch updated
               - 🔄 Cloudflare Pages deployment in progress
               - 🔄 Server deployment in progress
-              - 🔄 Tauri build in progress
+              - 🔄 Desktop app build in progress
               
               **Links:**
               - [Release Notes](https://github.com/${{ github.repository }}/releases/tag/${{ needs.release-please.outputs.tag_name }})

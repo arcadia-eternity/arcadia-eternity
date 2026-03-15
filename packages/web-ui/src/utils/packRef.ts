@@ -1,4 +1,4 @@
-import { isTauri } from './env'
+import { getDesktopApi, isDesktop } from './env'
 
 const runtimeCache = {
   resolvedPackRef: null as string | null,
@@ -23,11 +23,14 @@ async function isReachable(url: string): Promise<boolean> {
   }
 }
 
-async function resolveTauriWorkspacePackRef(): Promise<string | null> {
+async function resolveDesktopWorkspacePackRef(): Promise<string | null> {
+  const api = getDesktopApi()
+  if (!api) return null
+
   try {
-    const { invoke } = await import('@tauri-apps/api/core')
-    const port = await invoke<number | null>('get_local_server_port')
+    const port = await api.getLocalServerPort()
     if (!port || !Number.isFinite(port) || port <= 0) return null
+
     const candidate = `http://127.0.0.1:${port}/packs/workspace/pack.json`
     return (await isReachable(candidate)) ? candidate : null
   } catch {
@@ -41,6 +44,7 @@ function resolveAssetBaseFromPackRef(packRef: string): string {
     const normalizedPath = baseUrl.pathname.endsWith('pack.json')
       ? baseUrl.pathname.slice(0, -'pack.json'.length)
       : `${baseUrl.pathname.replace(/\/+$/, '')}/`
+
     return `${baseUrl.origin}${normalizedPath}`
   } catch {
     return '/'
@@ -55,9 +59,9 @@ export async function resolveRuntimePackRef(): Promise<string> {
     const explicit = (import.meta.env.VITE_PACK_REF || '').trim()
     if (explicit) return explicit
 
-    if (isTauri) {
-      const tauriWorkspace = await resolveTauriWorkspacePackRef()
-      if (tauriWorkspace) return tauriWorkspace
+    if (isDesktop) {
+      const desktopWorkspace = await resolveDesktopWorkspacePackRef()
+      if (desktopWorkspace) return desktopWorkspace
     }
 
     return defaultPackRef()
