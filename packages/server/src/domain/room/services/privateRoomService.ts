@@ -23,8 +23,7 @@ import { PrivateRoomError } from '../types/PrivateRoom'
 import { ServerRuleIntegration } from '@arcadia-eternity/rules'
 import { DEFAULT_PACK_LOCK, isAssetLockCompatible, isPackLockCompatible } from '../../battle/pack'
 import { parseWithErrors } from '@arcadia-eternity/schema'
-import { PackLockSchema, type PackLock } from '@arcadia-eternity/schema/src/pack.js'
-import { AssetLockSchema, type AssetLock } from '@arcadia-eternity/schema/src/assets.js'
+import { PackLockSchema, type PackLock, AssetLockSchema, type AssetLock } from '@arcadia-eternity/schema'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',

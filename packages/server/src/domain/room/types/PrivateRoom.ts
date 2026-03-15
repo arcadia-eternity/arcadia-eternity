@@ -1,6 +1,5 @@
 import type { PetSchemaType } from '@arcadia-eternity/schema'
-import type { PackLock } from '@arcadia-eternity/schema/src/pack.js'
-import type { AssetLock } from '@arcadia-eternity/schema/src/assets.js'
+import type { PackLock, AssetLock } from '@arcadia-eternity/schema'
 import type { PrivateRoomPeerSignalEvent } from '@arcadia-eternity/protocol'
 
 /**
