@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.0.0...arcadia-eternity-v3.0.1) (2026-03-15)
+
+
+### 🐛 Bug Fixes
+
+* **ci:** unblock workspace build after tsgo migration ([c5a51a3](https://github.com/arcadia-eternity/arcadia-eternity/commit/c5a51a3a9044dae7895c41950eccb10aa6e39415))
+
 ## [3.0.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.25.3...arcadia-eternity-v3.0.0) (2026-03-15)
 
 
