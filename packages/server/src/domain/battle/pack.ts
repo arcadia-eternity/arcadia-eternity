@@ -1,5 +1,4 @@
-import type { PackLock } from '@arcadia-eternity/schema/src/pack.js'
-import type { AssetLock } from '@arcadia-eternity/schema/src/assets.js'
+import type { PackLock, AssetLock } from '@arcadia-eternity/schema'
 
 export const BUILTIN_BASE_PACK_SOURCE = 'builtin:base'
 
