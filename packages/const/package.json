@@ -10,9 +10,9 @@
     "clear": "rm -rf dist",
     "build:code": "rollup -c",
     "watch:code": "rollup -c --watch",
-    "watch:types": "tsc --emitDeclarationOnly --preserveSymlinks --skipLibCheck --watch --preserveWatchOutput",
+    "watch:types": "pnpm exec tsgo --emitDeclarationOnly --preserveSymlinks --skipLibCheck --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
-    "build:types": "tsc --emitDeclarationOnly --preserveSymlinks --skipLibCheck"
+    "build:types": "pnpm exec tsgo --emitDeclarationOnly --preserveSymlinks --skipLibCheck"
   },
   "author": "yuuinih",
   "license": "MIT",

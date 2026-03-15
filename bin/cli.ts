@@ -11,7 +11,7 @@ import type { playerId, BattleMessage, PlayerSelection } from '@arcadia-eternity
 import { BattleMessageType } from '@arcadia-eternity/const'
 import {
   runInMemoryP2PE2E,
-} from '../packages/p2p-transport/index'
+} from '@arcadia-eternity/p2p-transport'
 
 // 加载环境变量
 dotenv.config()
@@ -22,7 +22,7 @@ const __dirname = dirname(__filename)
 function toTeamConfig(player: PlayerSchemaType): TeamConfig {
   return {
     name: player.name,
-    team: player.team.map(pet => ({
+    team: player.team.map((pet: any) => ({
       name: pet.name,
       species: pet.species,
       level: pet.level,
@@ -496,11 +496,10 @@ program
   )
   .action(async options => {
     try {
-      const [{ resourceLoadingManager, createEmailConfigFromCli, createClusterApp, createClusterConfigFromCli }, { ServerRuleIntegration }, { default: DevServer }] =
+      const [{ resourceLoadingManager, createEmailConfigFromCli, createClusterApp, createClusterConfigFromCli }, { ServerRuleIntegration }] =
         await Promise.all([
           import('@arcadia-eternity/server'),
           import('@arcadia-eternity/rules'),
-          import('../devServer'),
         ])
 
       console.log('[🌀] 启动异步游戏资源加载...')
@@ -620,9 +619,6 @@ program
         email: emailConfig,
         cluster: clusterConfig,
       })
-
-      // 开发服务器（静态文件等）
-      new DevServer(app)
 
       // 优雅关闭处理
       const gracefulShutdown = async (signal: string) => {

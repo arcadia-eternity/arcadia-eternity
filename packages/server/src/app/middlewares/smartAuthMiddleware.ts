@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from 'express'
+import type { NextFunction, Request, RequestHandler, Response } from 'express'
 import { getContainer, TYPES } from '../../container'
 import type { IAuthService, JWTPayload } from '../../domain/auth/services/authService'
 import { PlayerRepository } from '@arcadia-eternity/database'
@@ -184,7 +184,7 @@ export function guestOnly(req: Request, res: Response, next: NextFunction): void
  */
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
 
-export function playerRateLimit(maxRequests: number = 100, windowMs: number = 60000) {
+export function playerRateLimit(maxRequests: number = 100, windowMs: number = 60000): RequestHandler {
   return (req: Request, res: Response, next: NextFunction): void => {
     const identifier = req.playerId || req.ip || 'unknown'
     const now = Date.now()

@@ -15,9 +15,9 @@
     "clear": "rm -rf dist",
     "build:code": "rollup -c",
     "watch:code": "rollup -c --watch",
-    "watch:types": "tsc --emitDeclarationOnly --watch --preserveWatchOutput",
+    "watch:types": "pnpm exec tsgo --emitDeclarationOnly --skipLibCheck --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
-    "build:types": "tsc -p tsconfig.build.json",
+    "build:types": "pnpm exec tsgo -p tsconfig.build.json --skipLibCheck",
     "test": "vitest",
     "test:run": "vitest run"
   },

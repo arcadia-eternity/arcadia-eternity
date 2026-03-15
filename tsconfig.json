@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "composite": true,
     "lib": ["ESNext"],
     "module": "ESNext",
     "target": "ESNext",
     "paths": {
+      "*": ["./*"],
       "@data/": ["./packages/data-pack-base/data"]
     },
     "outDir": "./dist/",
@@ -15,8 +15,9 @@
     "strict": true,
     "declaration": true,
     "declarationMap": true,
-    "types": ["node"]
+    "types": ["node"],
+    "skipLibCheck": true
   },
-  "include": ["./bin/**/*", "./devServer/**/*"],
+  "include": ["./bin/**/*"],
   "exclude": ["./node_modules", "./dist"]
 }
