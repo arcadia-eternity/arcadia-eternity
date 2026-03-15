@@ -869,7 +869,7 @@ export class PrivateRoomService {
         try {
           const validation = await ServerRuleIntegration.validateTeamWithRuleSet(team, room.config.ruleSetId)
           if (!validation.isValid) {
-            const errorMessage = validation.errors.map(error => error.message).join('; ')
+            const errorMessage = validation.errors.map((error: { message: string }) => error.message).join('; ')
             throw new PrivateRoomError(`队伍不符合当前规则集要求：${errorMessage}`, 'TEAM_VALIDATION_FAILED', {
               errors: validation.errors,
               ruleSetId: room.config.ruleSetId,
@@ -1444,7 +1444,7 @@ export class PrivateRoomService {
       try {
         const validation = await ServerRuleIntegration.validateTeamWithRuleSet(player.team, room.config.ruleSetId)
         if (!validation.isValid) {
-          const playerErrors = validation.errors.map(error => `玩家 ${player.playerName}: ${error.message}`)
+          const playerErrors = validation.errors.map((error: { message: string }) => `玩家 ${player.playerName}: ${error.message}`)
           errors.push(...playerErrors)
         }
       } catch (error) {
@@ -1497,7 +1497,7 @@ export class PrivateRoomService {
         try {
           const validation = await ServerRuleIntegration.validateTeamWithRuleSet(hostTeam, room.config.ruleSetId)
           if (!validation.isValid) {
-            const errorMessage = validation.errors.map(error => error.message).join('; ')
+            const errorMessage = validation.errors.map((error: { message: string }) => error.message).join('; ')
             throw new PrivateRoomError(`房主队伍不符合当前规则集要求：${errorMessage}`, 'TEAM_VALIDATION_FAILED', {
               errors: validation.errors,
               ruleSetId: room.config.ruleSetId,

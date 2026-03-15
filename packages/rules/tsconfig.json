@@ -12,6 +12,7 @@
     "outDir": "./dist/",
     "declaration": true,
     "declarationMap": true,
+    "types": ["node"],
     "strict": true,
     "forceConsistentCasingInFileNames": true
   },
