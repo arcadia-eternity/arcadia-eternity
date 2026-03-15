@@ -1,0 +1,21 @@
+{
+  "name": "@arcadia-eternity/data-pack-base",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Arcadia Eternity base data pack manifest",
+  "arcadiaEternityPack": "pack.json",
+  "arcadiaEternityAssets": "assets.json",
+  "scripts": {
+    "generate:lockfile": "pnpm --filter @arcadia-eternity/pack-loader run generate:lockfile -- ../data-pack-base/pack.json ../data-pack-base/pack-lock.yaml"
+  },
+  "files": [
+    "pack.json",
+    "assets.json",
+    "pack-lock.yaml",
+    "data/**/*",
+    "locales/**/*",
+    "PACK_FORMAT.md",
+    "DATA_README.md"
+  ]
+}

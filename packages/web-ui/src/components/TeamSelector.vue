@@ -27,6 +27,7 @@
         v-for="(team, index) in availableTeams"
         :key="`valid-${index}`"
         @click="selectTeam(index)"
+        :data-testid="`team-option-${index}`"
         class="p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md"
         :class="{
           'border-blue-500 bg-blue-50': selectedTeamIndex === index,

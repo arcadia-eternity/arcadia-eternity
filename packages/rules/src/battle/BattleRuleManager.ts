@@ -1,5 +1,5 @@
 import type { TimerConfig } from '@arcadia-eternity/const'
-import type { Battle } from '@arcadia-eternity/battle'
+import type { BattleInstance } from '@arcadia-eternity/battle'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import { RuleSystem } from '../core/RuleSystem'
 import { RuleRegistry } from '../core/RuleRegistry'
@@ -17,7 +17,7 @@ export class BattleRuleManager {
   private ruleSystem: RuleSystem
   private battleIntegration: BattleIntegration
   private timerIntegration: TimerIntegration
-  private battle: Battle | null = null
+  private battle: BattleInstance | null = null
   private ruleSetIds: string[]
 
   constructor(ruleSetIds?: string[], registry?: RuleRegistry) {
@@ -75,7 +75,7 @@ export class BattleRuleManager {
   /**
    * 绑定战斗实例并应用规则
    */
-  async bindBattle(battle: Battle): Promise<void> {
+  async bindBattle(battle: BattleInstance): Promise<void> {
     this.battle = battle
 
     const context: RuleContext = {

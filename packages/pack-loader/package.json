@@ -1,0 +1,33 @@
+{
+  "name": "@arcadia-eternity/pack-loader",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arcadia-eternity/arcadia-eternity.git"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/src/index.d.ts",
+  "scripts": {
+    "build": "run-s clear build:code build:types",
+    "clear": "rm -rf dist",
+    "build:code": "rollup -c",
+    "watch:code": "rollup -c --watch",
+    "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
+    "watch": "run-p watch:code watch:types",
+    "build:types": "pnpm exec tsgo --emitDeclarationOnly",
+    "generate:lockfile": "pnpm run build && node dist/generate-pack-lockfile.js"
+  },
+  "keywords": [],
+  "author": "yuuinih",
+  "license": "MIT",
+  "dependencies": {
+    "@arcadia-eternity/battle": "workspace:^",
+    "@arcadia-eternity/schema": "workspace:^",
+    "yaml": "^2.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.2"
+  }
+}

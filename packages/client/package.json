@@ -14,9 +14,10 @@
     "clear": "rm -rf dist",
     "build:code": "rollup -c",
     "watch:code": "rollup -c --watch",
-    "watch:types": "tsc --emitDeclarationOnly --watch --preserveWatchOutput",
+    "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
-    "build:types": "tsc --emitDeclarationOnly"
+    "build:types": "pnpm exec tsgo --emitDeclarationOnly",
+    "test:run": "vitest run --config vitest.config.ts"
   },
   "keywords": [],
   "author": "yuuinih",
@@ -24,11 +25,9 @@
   "dependencies": {
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/interface": "workspace:^",
-    "@arcadia-eternity/parser": "workspace:^",
     "@arcadia-eternity/protocol": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
     "nanoid": "^5.1.6",
-    "socket.io-client": "^4.8.1",
-    "zod": "^4.1.12"
+    "socket.io-client": "^4.8.3"
   }
 }

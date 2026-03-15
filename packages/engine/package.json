@@ -1,0 +1,24 @@
+{
+  "name": "@arcadia-eternity/engine",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Generic turn-based game engine with ECS architecture",
+  "main": "./dist/index.js",
+  "types": "./dist/src/index.d.ts",
+  "scripts": {
+    "build": "run-p build:code build:types",
+    "clear": "rm -rf dist",
+    "build:code": "rollup -c",
+    "watch:code": "rollup -c --watch",
+    "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
+    "watch": "run-p watch:code watch:types",
+    "build:types": "pnpm exec tsgo --emitDeclarationOnly"
+  },
+  "keywords": [],
+  "author": "yuuinih",
+  "license": "MIT",
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.33",
+    "nanoid": "^5.1.6"
+  }
+}

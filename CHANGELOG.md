@@ -1,5 +1,28 @@
 # Changelog
 
+## [3.0.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.25.3...arcadia-eternity-v3.0.0) (2026-03-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* force next release to 3.0.0.
+
+### ✨ Features
+
+* handle fly cold start with readiness probe ([4c2e4bb](https://github.com/arcadia-eternity/arcadia-eternity/commit/4c2e4bba24381c2793c9a9dae0d1ddfa8cd40251))
+* trigger release-please major ([022391a](https://github.com/arcadia-eternity/arcadia-eternity/commit/022391acf53dbb2c939aaa2deadbe440e066ac0b))
+
+
+### 🐛 Bug Fixes
+
+* **ci:** guard nullable ICE candidate in WebRTC transport ([0a2fbc7](https://github.com/arcadia-eternity/arcadia-eternity/commit/0a2fbc732b7a20438f33281a97690da882b99968))
+* **ci:** remove legacy data/locales copy from Docker image ([971b21f](https://github.com/arcadia-eternity/arcadia-eternity/commit/971b21f240bf5ca8e697cc95ffb21eb2366f1f20))
+
+
+### ♻️ Code Refactoring
+
+* **v2:** strict DSL typing, registries, and injectable compiler ([#175](https://github.com/arcadia-eternity/arcadia-eternity/issues/175)) ([aebb15c](https://github.com/arcadia-eternity/arcadia-eternity/commit/aebb15c35444ae0e96672494b2e75f376b6884f2))
+
 ## [2.25.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v2.25.2...arcadia-eternity-v2.25.3) (2026-02-08)
 
 

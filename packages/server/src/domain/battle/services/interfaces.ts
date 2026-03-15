@@ -92,6 +92,7 @@ export interface IBattleService {
   handleLocalGetState(roomId: string, playerId: string): Promise<any>
   handleLocalGetSelection(roomId: string, playerId: string): Promise<any>
   handleLocalReady(roomId: string, playerId: string): Promise<{ status: string }>
+  recoverLocalBattleRuntime?(roomId: string): Promise<boolean>
   handleLocalGetBattleState(roomId: string, playerId: string): Promise<any>
   handleLocalGetBattleHistory(roomId: string, playerId: string): Promise<any>
   handleLocalGetBattleReport(roomId: string, playerId: string): Promise<any>

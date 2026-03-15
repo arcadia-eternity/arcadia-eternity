@@ -2,7 +2,9 @@
   "compilerOptions": {
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
+    "paths": {
+      "*": ["./*"]
+    },
     "composite": true,
     "lib": ["ESNext"],
     "module": "ESNext",

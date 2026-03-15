@@ -1,9 +1,9 @@
-import type { MarkInstance } from '@arcadia-eternity/battle'
 import { CleanStageStrategy, ContinuousUseSkillStrategy, EffectTrigger } from '@arcadia-eternity/const'
-import { BaseSelector, Extractor, type CompareOperator } from '@arcadia-eternity/effect-builder'
+import type { MarkSchemaType } from './mark'
+import type { BaseExtractorKey, BaseSelectorKey, CompareOperator } from './effectPrimitives'
 
 export { EffectTrigger }
-export type { CompareOperator }
+export type { BaseSelectorKey, BaseExtractorKey, CompareOperator }
 
 export interface EffectDSL {
   id: string
@@ -324,7 +324,7 @@ export type AddThresholdOperator = {
 export type OverrideMarkConfigOperator = {
   type: 'overrideMarkConfig'
   target: SelectorDSL
-  config: Partial<MarkInstance['config']>
+  config: Partial<NonNullable<MarkSchemaType['config']>>
 }
 
 export type SetMarkDurationOperator = {
@@ -715,8 +715,6 @@ export type Value =
   | ConditionalValue
   | OperatorDSL
 
-export type BaseSelectorKey = keyof typeof BaseSelector
-
 export type ChainSelector = {
   base: BaseSelectorKey
   chain?: Array<SelectorChain>
@@ -748,13 +746,25 @@ export type SelectPropDSL = {
 export type ExtractorDSL =
   | {
       type: 'base'
-      arg: keyof typeof Extractor
+      arg: BaseExtractorKey
+    }
+  | {
+      type: 'attribute'
+      key: string
+    }
+  | {
+      type: 'relation'
+      key: string
+    }
+  | {
+      type: 'field'
+      path: string
     }
   | {
       type: 'dynamic'
       arg: string
     }
-  | keyof typeof Extractor
+  | BaseExtractorKey
 
 export type SelectorChain =
   | SelectStepDSL
@@ -913,6 +923,14 @@ export type ConditionDSL =
       type: 'continuousUseSkill'
       times?: Value
       strategy?: ContinuousUseSkillStrategy
+    }
+  | {
+      type: 'skillSequence'
+      sequence: Value
+      mode?: 'exact' | 'inOrder' | 'withGap'
+      maxGap?: Value
+      window?: Value
+      source?: 'self' | 'opponent'
     }
   | {
       type: 'statStageChange'

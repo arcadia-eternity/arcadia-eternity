@@ -3,7 +3,9 @@ import {
   type CreatePrivateRoomData,
   type JoinPrivateRoomData,
   type JoinSpectatorData,
+  type SendPrivateRoomPeerSignalData,
 } from '@arcadia-eternity/client'
+import type { PrivateRoomBattleStartInfo } from '@arcadia-eternity/protocol'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './auth'
@@ -20,28 +22,24 @@ const getOrCreateGlobalSessionId = (): string => {
       // 直接用 nanoid 生成全局唯一ID
       sessionId = nanoid()
       sessionStorage.setItem('battle-session-id', sessionId)
-      console.log('🆔 Generated new sessionId:', sessionId)
-    } else {
-      console.log('🆔 Reusing existing sessionId:', sessionId)
     }
-
-    console.log('🆔 Final sessionId to use:', sessionId)
-    console.log('🆔 sessionStorage content:', sessionStorage.getItem('battle-session-id'))
 
     return sessionId
   } catch {
     // 如果 sessionStorage 不可用，直接生成
-    const sessionId = nanoid()
-    console.log('🆔 Generated fallback sessionId:', sessionId)
-    return sessionId
+    return nanoid()
   }
 }
 
 export const useBattleClientStore = defineStore('battleClient', () => {
+  type ServerWarmupState = 'idle' | 'waking' | 'ready' | 'failed'
+
   // 状态
   const _instance = ref<BattleClient | null>(null)
   const _pendingEventHandlers = ref(new Map<string, Set<(...args: any[]) => void>>())
   const isInitialized = ref(false)
+  const serverWarmupState = ref<ServerWarmupState>('idle')
+  const serverWarmupError = ref<string | null>(null)
 
   // 响应式状态触发器
   const _stateUpdateTrigger = ref(0)
@@ -59,6 +57,96 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return currentState.value.status === 'connected'
   })
 
+  const isServerWaking = computed(() => {
+    return serverWarmupState.value === 'waking'
+  })
+
+  const serverWarmupHint = computed(() => {
+    switch (serverWarmupState.value) {
+      case 'waking':
+        return '服务器唤醒中（通常 5-20 秒）'
+      case 'failed':
+        return serverWarmupError.value || '服务器唤醒超时，请稍后再试'
+      case 'ready':
+        return '服务器已就绪'
+      case 'idle':
+      default:
+        return ''
+    }
+  })
+
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+  const resolveReadyUrl = (serverUrl: string): string => {
+    const wsUrl = new URL(serverUrl, window.location.origin)
+    if (wsUrl.protocol === 'ws:') wsUrl.protocol = 'http:'
+    if (wsUrl.protocol === 'wss:') wsUrl.protocol = 'https:'
+    wsUrl.pathname = '/ready'
+    wsUrl.search = ''
+    wsUrl.hash = ''
+    return wsUrl.toString()
+  }
+
+  const waitForServerReady = async (maxWaitMs = 25000): Promise<void> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    const readyUrl = resolveReadyUrl(import.meta.env.VITE_WS_URL)
+    const startedAt = Date.now()
+    serverWarmupState.value = 'waking'
+    serverWarmupError.value = null
+
+    while (Date.now() - startedAt < maxWaitMs) {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 3000)
+      let response: Response | null = null
+
+      try {
+        response = await fetch(readyUrl, {
+          method: 'GET',
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+      } catch {
+        // ignore network errors while server is warming up
+      } finally {
+        clearTimeout(timeout)
+      }
+
+      if (!response) {
+        await delay(1000)
+        continue
+      }
+
+      if (response.ok) {
+        serverWarmupState.value = 'ready'
+        serverWarmupError.value = null
+        return
+      }
+
+      let state = 'starting'
+      try {
+        const body = await response.json()
+        state = body?.state || state
+      } catch {
+        // ignore invalid json
+      }
+
+      if (state === 'draining') {
+        serverWarmupState.value = 'failed'
+        serverWarmupError.value = '服务器正在重启中，请稍后重试'
+        throw new Error(serverWarmupError.value)
+      }
+
+      await delay(1000)
+    }
+
+    serverWarmupState.value = 'failed'
+    serverWarmupError.value = '服务器唤醒超时（超过 25 秒）'
+    throw new Error(serverWarmupError.value)
+  }
+
   // 创建battleClient实例的函数
   const createBattleClient = (): BattleClient => {
     const playerStore = usePlayerStore()
@@ -72,31 +160,19 @@ export const useBattleClientStore = defineStore('battleClient', () => {
         getToken: () => {
           // 只有注册用户需要token
           if (playerStore.is_registered && playerStore.requiresAuth) {
-            const token = authStore.getAccessToken()
-            console.log('BattleClient getToken:', {
-              isRegistered: playerStore.is_registered,
-              requiresAuth: playerStore.requiresAuth,
-              isAuthenticated: playerStore.isAuthenticated,
-              hasToken: !!token,
-              tokenPreview: token ? token.substring(0, 20) + '...' : null,
-            })
-            return token
+            return authStore.getAccessToken()
           }
-          console.log('BattleClient getToken: guest user, no token needed')
           return null
         },
         getPlayerId: () => {
           return playerStore.id
         },
         refreshAuth: async () => {
-          console.log('BattleClient refreshAuth: 尝试重新获取token')
           // 注册用户需要通过邮箱恢复获得token，这里只能尝试刷新现有token
           if (playerStore.is_registered) {
             try {
               await authStore.refreshAccessToken()
-              console.log('BattleClient refreshAuth: token刷新成功')
             } catch (error) {
-              console.log('BattleClient refreshAuth: token刷新失败，需要通过邮箱恢复')
               // 触发回退到游客模式
               authStore.fallbackToGuest()
               throw error
@@ -115,7 +191,6 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   // Actions
   const initialize = () => {
     if (isInitialized.value) {
-      console.log('🔄 BattleClient already initialized, skipping')
       return
     }
 
@@ -125,35 +200,19 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     // 设置状态变化监听器 - 当底层client状态变化时触发Vue响应式更新
     const stateUpdateHandler = (state: { status: string; matchmaking: string; battle: string; roomId?: string; opponent?: { id: string; name: string } }) => {
       _stateUpdateTrigger.value++
-      console.log('🔄 BattleClient state updated, triggering Vue reactivity:', state)
     }
 
     // 使用专门的状态变化监听器
     _instance.value.onStateChange(stateUpdateHandler)
 
-    console.log('🔄 BattleClient initialized, state change monitoring active')
-
     // 设置战斗重连监听器（用于页面刷新后自动跳转）
     // 确保只注册一次
     if (!_battleReconnectHandler) {
       _battleReconnectHandler = async (data: { roomId: string; shouldRedirect: boolean; fullBattleState?: any }) => {
-        console.log('🔄 Battle reconnect detected:', data)
-
         if (data.shouldRedirect) {
           // 如果服务器提供了完整的战斗状态，说明战斗确实还在进行中
           if (data.fullBattleState) {
-            console.log('🔄 Server provided full battle state, battle is active')
-
-            // 更新客户端状态
-            console.log('🔄 Current state before update:', _instance.value?.currentState)
-
             // 更新战斗状态
-            if (_instance.value) {
-              console.log('🔄 Updating battle state to active')
-            }
-
-            console.log('🔄 Current state after update:', _instance.value?.currentState)
-
             // 触发全局事件，让 App.vue 处理路由跳转
             // 传递完整的战斗状态数据，避免额外的 getState 调用
             window.dispatchEvent(new CustomEvent('battleReconnect', { detail: data }))
@@ -166,19 +225,22 @@ export const useBattleClientStore = defineStore('battleClient', () => {
       }
 
       _instance.value.on('battleReconnect', _battleReconnectHandler)
-      console.log('🔄 Battle reconnect handler registered')
-    } else {
-      console.log('🔄 Battle reconnect handler already exists, skipping registration')
     }
 
     // 注册之前缓存的事件监听器
     registerPendingHandlers()
   }
 
-  const connect = () => {
+  const connect = async () => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
+    if (_instance.value.currentState.status === 'connected') {
+      serverWarmupState.value = 'ready'
+      serverWarmupError.value = null
+      return
+    }
+    await waitForServerReady()
     return _instance.value.connect()
   }
 
@@ -186,6 +248,8 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     if (_instance.value) {
       _instance.value.disconnect()
     }
+    serverWarmupState.value = 'idle'
+    serverWarmupError.value = null
   }
 
   const resetState = () => {
@@ -200,13 +264,14 @@ export const useBattleClientStore = defineStore('battleClient', () => {
       if (_battleReconnectHandler) {
         _instance.value.off('battleReconnect', _battleReconnectHandler)
         _battleReconnectHandler = null
-        console.log('🔄 Battle reconnect handler cleaned up')
       }
       _instance.value.disconnect()
       _instance.value = null
     }
     _pendingEventHandlers.value.clear()
     isInitialized.value = false
+    serverWarmupState.value = 'idle'
+    serverWarmupError.value = null
   }
 
   const joinMatchmaking = (data: any) => {
@@ -231,15 +296,9 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   }
 
   const on = (event: any, handler: any) => {
-    console.log('🔧 battleClientStore.on called:', event, 'instance available:', !!_instance.value)
-
     if (_instance.value) {
-      console.log('🔧 Registering event handler directly to instance')
-      const unsubscribe = _instance.value.on(event, handler)
-      console.log('🔧 Event handler registered, unsubscribe type:', typeof unsubscribe)
-      return unsubscribe
+      return _instance.value.on(event, handler)
     } else {
-      console.log('🔧 Instance not available, caching event handler')
       // 如果实例还没准备好，缓存事件监听器
       if (!_pendingEventHandlers.value.has(event)) {
         _pendingEventHandlers.value.set(event, new Set())
@@ -332,12 +391,20 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return await _instance.value.togglePrivateRoomReady(team)
   }
 
-  const startRoomBattle = async (hostTeam: any[]): Promise<string> => {
+  const startRoomBattle = async (hostTeam: any[]): Promise<PrivateRoomBattleStartInfo> => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
 
     return await _instance.value.startPrivateRoomBattle(hostTeam)
+  }
+
+  const sendPrivateRoomPeerSignal = async (data: SendPrivateRoomPeerSignalData): Promise<void> => {
+    if (!_instance.value) {
+      throw new Error('BattleClient not initialized')
+    }
+
+    return await _instance.value.sendPrivateRoomPeerSignal(data)
   }
 
   const getPrivateRoomInfo = async (roomCode: string): Promise<any> => {
@@ -445,6 +512,9 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     isInitialized,
     currentState,
     isConnected,
+    isServerWaking,
+    serverWarmupState,
+    serverWarmupHint,
     _instance, // 暴露内部实例供特殊情况使用
 
     // Actions
@@ -467,6 +537,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     leavePrivateRoom,
     toggleRoomReady,
     startRoomBattle,
+    sendPrivateRoomPeerSignal,
     switchToSpectator,
     switchToPlayer,
     getPrivateRoomInfo,

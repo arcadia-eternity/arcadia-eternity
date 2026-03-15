@@ -174,6 +174,7 @@
       >
         <TeamSelector
           v-model="selectedTeam"
+          data-testid="room-team-selector"
           :selected-rule-set-id="privateRoomStore.currentRoom.config.ruleSetId"
           @update:is-valid="isTeamValid = $event"
           @update:validation-errors="teamValidationErrors = $event"
@@ -188,6 +189,7 @@
           <el-button
             v-if="privateRoomStore.currentRoom?.status === 'waiting' && privateRoomStore.canStartBattle"
             type="primary"
+            data-testid="start-battle-button"
             :disabled="privateRoomStore.isLoading"
             @click="startBattle"
           >
@@ -207,11 +209,26 @@
 
         <!-- 观战/战斗中 状态 -->
         <el-button
-          v-if="privateRoomStore.isBattleInProgress && privateRoomStore.isSpectator"
+          v-if="
+            privateRoomStore.isBattleInProgress &&
+            privateRoomStore.isSpectator &&
+            privateRoomStore.currentRoom?.config.battleMode !== 'p2p'
+          "
           type="success"
           @click="joinSpectate"
         >
           进入观战
+        </el-button>
+        <el-button
+          v-else-if="
+            privateRoomStore.isBattleInProgress &&
+            privateRoomStore.isSpectator &&
+            privateRoomStore.currentRoom?.config.battleMode === 'p2p'
+          "
+          type="info"
+          disabled
+        >
+          P2P 观战暂未开放
         </el-button>
         <el-button v-else-if="privateRoomStore.isBattleInProgress" type="info" disabled> 战斗进行中 </el-button>
 
@@ -221,6 +238,7 @@
             !privateRoomStore.isHost && privateRoomStore.isPlayer && privateRoomStore.currentRoom?.status === 'waiting'
           "
           :type="privateRoomStore.myReadyStatus ? 'success' : 'primary'"
+          data-testid="toggle-ready-button"
           :disabled="privateRoomStore.isLoading"
           @click="toggleReady"
         >
@@ -279,9 +297,20 @@
         <!-- 房间隐私设置 -->
         <el-form-item label="房间类型">
           <el-radio-group v-model="privateRoomStore.roomConfigForm.isPrivate">
-            <el-radio :label="false">公开房间</el-radio>
-            <el-radio :label="true">私密房间</el-radio>
+            <el-radio :value="false">公开房间</el-radio>
+            <el-radio :value="true">私密房间</el-radio>
           </el-radio-group>
+        </el-form-item>
+
+        <el-form-item v-if="privateRoomStore.currentRoom?.config.battleMode === 'p2p'" label="P2P 传输">
+          <el-radio-group v-model="privateRoomStore.roomConfigForm.p2pTransport">
+            <el-radio value="auto">自动</el-radio>
+            <el-radio value="webrtc">WebRTC</el-radio>
+            <el-radio value="relay">Relay</el-radio>
+          </el-radio-group>
+          <div class="form-help-text">
+            自动模式下，浏览器手测默认优先 WebRTC；自动化测试和受限环境会回退到 Relay。
+          </div>
         </el-form-item>
 
         <el-form-item v-if="privateRoomStore.roomConfigForm.isPrivate" label="房间密码">
@@ -569,6 +598,7 @@ const saveRoomConfig = async () => {
       ruleSetId?: string
       isPrivate?: boolean
       password?: string
+      p2pTransport?: 'auto' | 'webrtc' | 'relay'
     } = { ...privateRoomStore.roomConfigForm }
 
     // 如果密码为空字符串，设置为undefined
@@ -592,20 +622,36 @@ onMounted(async () => {
   }
 
   const joinRoomAction = async () => {
-    // 检查是否已在该房间
-    const isAlreadyInRoom = privateRoomStore.currentRoom?.config.roomCode === roomCode
-    if (isAlreadyInRoom) {
-      console.log('🏠 Already in room, skipping join logic.')
-      return
-    }
-
     try {
+      const existingRoom =
+        privateRoomStore.currentRoom?.config.roomCode === roomCode
+          ? privateRoomStore.currentRoom
+          : await privateRoomStore.checkCurrentRoom()
+
+      if (existingRoom?.config.roomCode === roomCode) {
+        console.log('🏠 Already in room after restore, skipping join logic.', {
+          roomCode,
+          status: existingRoom.status,
+        })
+        return
+      }
+
       console.log(`🚪 Attempting to join room: ${roomCode}`)
       await privateRoomStore.joinRoom(roomCode)
       console.log(`✅ Successfully joined room: ${roomCode}`)
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      if (errorMessage.includes('ALREADY_IN_ROOM') || errorMessage.includes('已在房间')) {
+        try {
+          await privateRoomStore.getRoomInfo(roomCode)
+          console.log('🏠 Recovered room after ALREADY_IN_ROOM response.', { roomCode })
+          return
+        } catch (recoverError) {
+          console.error(`💥 Failed to recover room after ALREADY_IN_ROOM: ${roomCode}`, recoverError)
+        }
+      }
       console.error(`💥 Failed to join room: ${roomCode}`, error)
-      ElMessage.error(`加入房间失败: ${(error as Error).message}`)
+      ElMessage.error(`加入房间失败: ${errorMessage}`)
       router.push('/')
     }
   }

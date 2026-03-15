@@ -1,18 +1,21 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
+    "paths": {
+      "*": ["./*"]
+    },
     "composite": true,
     "lib": ["ESNext"],
     "module": "ESNext",
     "target": "ESNext",
     "moduleResolution": "bundler",
     "verbatimModuleSyntax": true,
-    "outDir": "./dist/",
+    "outDir": "./dist/types/",
     "declaration": true,
     "declarationMap": true,
+    "types": ["node"],
     "strict": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["./src/**/*"],
-  "exclude": ["./node_modules", "./dist"]
+  "include": ["./index.ts", "./node.ts", "./src/index.ts", "./src/logger.ts", "./src/v2/**/*"],
+  "exclude": ["./node_modules", "./dist", "./src/**/__tests__"]
 }

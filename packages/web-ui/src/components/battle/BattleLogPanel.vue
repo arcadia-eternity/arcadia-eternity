@@ -66,6 +66,9 @@ const DAMAGE_TYPE_MAP: Record<string, string> = {
   Physical: '物理',
   Special: '特殊',
   Effect: '效果',
+  physical: '物理',
+  special: '特殊',
+  effect: '效果',
 }
 
 // 怒气变化原因
@@ -138,7 +141,8 @@ function formatBattleMessage(msg: TimestampedBattleMessage): FormattedBattleMess
         currentHp: number
         maxHp: number
       }
-      content = `${getPetName(data.target as petId)} 受到 ${data.damage} 点 ${DAMAGE_TYPE_MAP[data.damageType]}伤害`
+      const damageTypeLabel = DAMAGE_TYPE_MAP[data.damageType] ?? data.damageType ?? '未知'
+      content = `${getPetName(data.target as petId)} 受到 ${data.damage} 点 ${damageTypeLabel}伤害`
       if (data.isCrit) content += ' (暴击)'
       if (data.effectiveness > 1) content += ' 效果拔群！'
       if (data.effectiveness < 1) content += ' 效果不佳...'
@@ -326,7 +330,7 @@ const formattedMessages = computed(() => {
   return messageArray
     .filter((msg: TimestampedBattleMessage) => gameSettingStore.visibleLogTypes.has(msg.type)) // 根据设置过滤消息类型
     .map(msg => {
-      const cacheKey = `${msg.receivedAt}_${msg.type}_${JSON.stringify(msg.data)}`
+      const cacheKey = `${msg.sequenceId ?? msg.receivedAt}_${msg.type}`
       if (messageCache.has(cacheKey)) {
         return messageCache.get(cacheKey)!
       }
@@ -350,7 +354,7 @@ watch(
 </script>
 
 <template>
-  <div class="bg-black/80 rounded-lg h-full flex flex-col min-w-0 max-h-full overflow-hidden">
+  <div data-testid="battle-log-panel" class="bg-black/80 rounded-lg h-full flex flex-col min-w-0 max-h-full overflow-hidden">
     <!-- 日志面板标题栏 -->
     <div class="flex items-center justify-between px-3 py-1 border-b border-white/10 flex-none">
       <div class="text-xs font-medium text-white/70">战斗日志</div>
@@ -375,6 +379,7 @@ watch(
 
     <!-- 日志内容 -->
     <div
+      data-testid="battle-log-list"
       ref="logContainerRef"
       class="h-full flex-1 overflow-y-auto overflow-x-hidden px-3 py-2 scroll-smooth scrollbar-thin scrollbar-track-white/5 scrollbar-thumb-white/20 scrollbar-thumb-rounded min-w-0 min-h-0"
     >

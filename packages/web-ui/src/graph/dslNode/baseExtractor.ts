@@ -1,10 +1,9 @@
 import { LGraphNode, LiteGraph } from '@comfyorg/litegraph'
-import type { Extractor } from '../../../../effectBuilder'
-import type { ExtractorDSL } from '@arcadia-eternity/schema'
+import type { BaseExtractorKey, ExtractorDSL } from '@arcadia-eternity/schema'
 
 export abstract class BaseExtractorNode extends LGraphNode {
   // 静态属性定义选择器类型，子类需要覆盖
-  static selectorType: keyof typeof Extractor
+  static selectorType: BaseExtractorKey
   IsBaseExtractorNode = true
 
   constructor() {
@@ -31,7 +30,7 @@ export abstract class BaseExtractorNode extends LGraphNode {
 
 // HP 提取器
 export class HpExtractorNode extends BaseExtractorNode {
-  static selectorType: keyof typeof Extractor = 'hp'
+  static selectorType: BaseExtractorKey = 'currentHp'
   constructor() {
     super()
     this.title = 'HP提取器'
@@ -40,7 +39,7 @@ export class HpExtractorNode extends BaseExtractorNode {
 
 // 最大HP提取器
 export class MaxHpExtractorNode extends BaseExtractorNode {
-  static selectorType: keyof typeof Extractor = 'maxhp'
+  static selectorType: BaseExtractorKey = 'maxHp'
   constructor() {
     super()
     this.title = '最大HP提取器'
@@ -49,7 +48,7 @@ export class MaxHpExtractorNode extends BaseExtractorNode {
 
 // 怒气提取器
 export class RageExtractorNode extends BaseExtractorNode {
-  static selectorType: keyof typeof Extractor = 'rage'
+  static selectorType: BaseExtractorKey = 'rage'
   constructor() {
     super()
     this.title = '怒气值提取器'
@@ -58,7 +57,7 @@ export class RageExtractorNode extends BaseExtractorNode {
 
 // 所有者提取器
 export class OwnerExtractorNode extends BaseExtractorNode {
-  static selectorType: keyof typeof Extractor = 'owner'
+  static selectorType: BaseExtractorKey = 'owner'
   constructor() {
     super()
     this.title = '所有者提取器'
@@ -68,7 +67,7 @@ export class OwnerExtractorNode extends BaseExtractorNode {
 
 // 元素类型提取器
 export class ElementTypeExtractorNode extends BaseExtractorNode {
-  static selectorType: keyof typeof Extractor = 'type'
+  static selectorType: BaseExtractorKey = 'element'
   constructor() {
     super()
     this.title = '元素类型提取器'
@@ -77,7 +76,7 @@ export class ElementTypeExtractorNode extends BaseExtractorNode {
 
 // 标记实例提取器
 export class MarksExtractorNode extends BaseExtractorNode {
-  static selectorType: keyof typeof Extractor = 'marks'
+  static selectorType: BaseExtractorKey = 'marks'
   constructor() {
     super()
     this.title = '战斗标记提取器'
@@ -87,7 +86,7 @@ export class MarksExtractorNode extends BaseExtractorNode {
 
 // 战斗属性提取器
 export class StatsExtractorNode extends BaseExtractorNode {
-  static selectorType: keyof typeof Extractor = 'stats'
+  static selectorType: BaseExtractorKey = 'stats'
   constructor() {
     super()
     this.title = '战斗属性提取器'
@@ -96,7 +95,7 @@ export class StatsExtractorNode extends BaseExtractorNode {
 
 // 堆叠数提取器
 export class StackExtractorNode extends BaseExtractorNode {
-  static selectorType: keyof typeof Extractor = 'stack'
+  static selectorType: BaseExtractorKey = 'stack'
   constructor() {
     super()
     this.title = '堆叠数提取器'
@@ -105,7 +104,7 @@ export class StackExtractorNode extends BaseExtractorNode {
 
 // 持续时间提取器
 export class DurationExtractorNode extends BaseExtractorNode {
-  static selectorType: keyof typeof Extractor = 'duration'
+  static selectorType: BaseExtractorKey = 'duration'
   constructor() {
     super()
     this.title = '持续时间提取器'
@@ -114,7 +113,7 @@ export class DurationExtractorNode extends BaseExtractorNode {
 
 // 技能威力提取器
 export class PowerExtractorNode extends BaseExtractorNode {
-  static selectorType: keyof typeof Extractor = 'power'
+  static selectorType: BaseExtractorKey = 'power'
   constructor() {
     super()
     this.title = '技能威力提取器'
@@ -124,7 +123,7 @@ export class PowerExtractorNode extends BaseExtractorNode {
 
 // 技能优先级提取器
 export class PriorityExtractorNode extends BaseExtractorNode {
-  static selectorType: keyof typeof Extractor = 'priority'
+  static selectorType: BaseExtractorKey = 'priority'
   constructor() {
     super()
     this.title = '技能优先级提取器'
@@ -133,7 +132,7 @@ export class PriorityExtractorNode extends BaseExtractorNode {
 
 // 当前出战宠物提取器
 export class ActivePetExtractorNode extends BaseExtractorNode {
-  static selectorType: keyof typeof Extractor = 'activePet'
+  static selectorType: BaseExtractorKey = 'activePet'
   constructor() {
     super()
     this.title = '出战宠物提取器'
@@ -143,7 +142,7 @@ export class ActivePetExtractorNode extends BaseExtractorNode {
 
 // 技能列表提取器
 export class SkillsExtractorNode extends BaseExtractorNode {
-  static selectorType: keyof typeof Extractor = 'skills'
+  static selectorType: BaseExtractorKey = 'skills'
   constructor() {
     super()
     this.title = '技能列表提取器'
@@ -152,7 +151,7 @@ export class SkillsExtractorNode extends BaseExtractorNode {
 
 // 实例ID提取器
 export class IdExtractorNode extends BaseExtractorNode {
-  static selectorType: keyof typeof Extractor = 'id'
+  static selectorType: BaseExtractorKey = 'id'
   constructor() {
     super()
     this.title = '实例ID提取器'
@@ -161,7 +160,7 @@ export class IdExtractorNode extends BaseExtractorNode {
 
 // 原型ID提取器
 export class BaseIdExtractorNode extends BaseExtractorNode {
-  static selectorType: keyof typeof Extractor = 'baseId'
+  static selectorType: BaseExtractorKey = 'baseId'
   constructor() {
     super()
     this.title = '原型ID提取器'
@@ -170,19 +169,19 @@ export class BaseIdExtractorNode extends BaseExtractorNode {
 
 // 标记标签提取器
 export class TagsExtractorNode extends BaseExtractorNode {
-  static selectorType: keyof typeof Extractor = 'tags'
+  static selectorType: BaseExtractorKey = 'tags'
   constructor() {
     super()
     this.title = '标记标签提取器'
   }
 }
 
-const BASE_EXTRACTOR_MAP = {
-  hp: HpExtractorNode,
-  maxhp: MaxHpExtractorNode,
+const BASE_EXTRACTOR_MAP: Partial<Record<BaseExtractorKey, new () => BaseExtractorNode>> = {
+  currentHp: HpExtractorNode,
+  maxHp: MaxHpExtractorNode,
   rage: RageExtractorNode,
   owner: OwnerExtractorNode,
-  type: ElementTypeExtractorNode,
+  element: ElementTypeExtractorNode,
   marks: MarksExtractorNode,
   stats: StatsExtractorNode,
   stack: StackExtractorNode,
@@ -222,6 +221,10 @@ export function registerBaseExtractorNodes() {
   })
 }
 
-export function createBaseExtractorNode(selectorType: keyof typeof Extractor) {
-  return new BASE_EXTRACTOR_MAP[selectorType]()
+export function createBaseExtractorNode(selectorType: BaseExtractorKey) {
+  const NodeClass = BASE_EXTRACTOR_MAP[selectorType]
+  if (!NodeClass) {
+    throw new Error(`Unsupported extractor selector type: ${selectorType}`)
+  }
+  return new NodeClass()
 }

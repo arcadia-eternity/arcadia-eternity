@@ -78,11 +78,15 @@ export default defineConfig({
     }),
     viteStaticCopy({
       targets: [
-        ...['data', 'resource', 'locales'].map(dir => {
-          const baseDir = `../../${dir}`
+        ...[
+          { srcDir: '../../packages/data-pack-base/data', outDir: 'data' },
+          { srcDir: '../../resource', outDir: 'resource' },
+          { srcDir: '../../packages/data-pack-base/locales', outDir: 'locales' },
+        ].map(({ srcDir, outDir }) => {
+          const baseDir = srcDir
           return {
             src: `${baseDir}/**/*.yaml`,
-            dest: dir,
+            dest: outDir,
             rename: (name: any, extension: any, fullPath: string) => {
               const relativePath = path.relative(path.resolve(__dirname, baseDir), fullPath)
               return relativePath.replace(/\.yaml$/, '.json').replace(/\\/g, '/')
@@ -96,6 +100,26 @@ export default defineConfig({
               ),
           }
         }),
+        {
+          src: '../../packages/data-pack-base/pack.json',
+          dest: '.',
+        },
+        {
+          src: '../../packages/data-pack-base/pack-lock.yaml',
+          dest: '.',
+        },
+        {
+          src: '../../packages/data-pack-base/assets.json',
+          dest: '.',
+        },
+        {
+          src: '../../packages/data-pack-base/assets/**/*',
+          dest: 'assets-pack',
+          rename: (name: any, extension: any, fullPath: string) => {
+            const relativePath = path.relative(path.resolve(__dirname, '../../packages/data-pack-base/assets'), fullPath)
+            return relativePath.replace(/\\/g, '/')
+          },
+        },
         // 复制脚本文件（优先复制JavaScript文件）
         {
           src: '../../scripts/**/*.{js,mjs}',
@@ -122,8 +146,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      '@data': path.resolve(__dirname, '../../data'),
-      '@locales': path.resolve(__dirname, '../../locales'),
+      '@data': path.resolve(__dirname, '../../packages/data-pack-base/data'),
+      '@locales': path.resolve(__dirname, '../../packages/data-pack-base/locales'),
       // 解决 Tauri API 子路径导入问题
       '@tauri-apps/api/http': path.resolve(__dirname, './node_modules/@tauri-apps/api/http'),
       '@tauri-apps/api/tauri': path.resolve(__dirname, './node_modules/@tauri-apps/api/tauri'),

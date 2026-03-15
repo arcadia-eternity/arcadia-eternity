@@ -114,7 +114,15 @@ export class ConsoleUIV2 {
 
   private async handleBattleMessage(message: BattleMessage) {
     this.messages.push(message)
-    jsondiffpatch.patch(this.battleState, message.stateDelta)
+    const delta = message.stateDelta as Record<string, unknown> | undefined
+    if (delta && Object.keys(delta).length > 0) {
+      try {
+        jsondiffpatch.patch(this.battleState, delta as any)
+      } catch (_error) {
+        // Delta stream may drift from local base; recover via full snapshot.
+        this.battleState = await this.battleInterface.getState(undefined, true)
+      }
+    }
     this.renderMessage(message)
 
     // 只在需要当前玩家操作时触发输入

@@ -1,9 +1,8 @@
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { nanoid } from 'nanoid'
-import { z } from 'zod'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
-import { PetSchema } from '@arcadia-eternity/schema'
+import { PetSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { usePetStorageStore } from '@/stores/petStorage'
 
 // 仓库数据结构定义
@@ -124,7 +123,7 @@ export function useStorageImportExport() {
       const validatedStorage: PetSchemaType[] = []
       for (const pet of data.storage) {
         try {
-          const validatedPet = PetSchema.parse(pet)
+          const validatedPet = parseWithErrors(PetSchema, pet)
           validatedStorage.push(validatedPet)
         } catch (error) {
           console.warn('跳过无效精灵数据:', pet, error)
@@ -143,7 +142,7 @@ export function useStorageImportExport() {
         if (Array.isArray(team.pets)) {
           for (const pet of team.pets) {
             try {
-              const validatedPet = PetSchema.parse(pet)
+              const validatedPet = parseWithErrors(PetSchema, pet)
               validatedPets.push(validatedPet)
             } catch (error) {
               console.warn('跳过队伍中的无效精灵数据:', pet, error)

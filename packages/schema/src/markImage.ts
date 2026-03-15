@@ -1,5 +1,5 @@
-import { z } from 'zod'
+import { Type, type Static } from '@sinclair/typebox'
 
-export const MarkImageSchema = z.record(z.string(), z.url())
+export const MarkImageSchema = Type.Record(Type.String(), Type.String({ format: 'uri' }))
 
-export type MarkImageSchemaType = z.infer<typeof MarkImageSchema>
+export type MarkImageSchemaType = Static<typeof MarkImageSchema>

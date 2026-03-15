@@ -288,6 +288,9 @@ const particlesLoaded = async () => {
       <template #trigger>
         <button
           :class="[...skillButtonClasses, `z-[${Z_INDEX.SKILL_BUTTON}]`]"
+          data-testid="skill-button"
+          :data-skill-id="skill.id"
+          :data-skill-base-id="skill.baseId"
           :disabled="disabled"
           @click="emit('click', skill.id)"
           @mouseenter="isHovered = true"

@@ -1,6 +1,6 @@
 import { Element, ELEMENT_MAP, ELEMENT_CHART } from '@arcadia-eternity/const'
-import { z } from 'zod'
+import { StringEnum } from './utils'
 
 export { Element, ELEMENT_MAP, ELEMENT_CHART }
 
-export const ElementSchema = z.enum(Element)
+export const ElementSchema = StringEnum(Object.values(Element))

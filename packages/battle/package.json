@@ -8,25 +8,47 @@
   },
   "description": "",
   "main": "./dist/index.js",
-  "types": "./dist/src/index.d.ts",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/types/node.d.ts",
+      "import": "./dist/node.js",
+      "default": "./dist/node.js"
+    }
+  },
   "scripts": {
     "build": "run-p build:code build:types",
     "clear": "rm -rf dist",
     "build:code": "rollup -c",
     "watch:code": "rollup -c --watch",
-    "watch:types": "tsc --emitDeclarationOnly --watch --preserveWatchOutput",
+    "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
-    "build:types": "tsc --emitDeclarationOnly"
+    "build:types": "pnpm exec tsgo --emitDeclarationOnly",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "keywords": [],
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
     "@arcadia-eternity/const": "workspace:*",
+    "@arcadia-eternity/engine": "workspace:*",
+    "@arcadia-eternity/plugin-damage": "workspace:*",
+    "@arcadia-eternity/plugin-element": "workspace:*",
+    "@arcadia-eternity/plugin-transformation": "workspace:*",
+    "@sinclair/typebox": "^0.34.48",
     "jsondiffpatch": "^0.7.3",
     "mitt": "^3.0.1",
     "nanoid": "^5.1.6",
     "prando": "^6.0.1",
     "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.18"
   }
 }

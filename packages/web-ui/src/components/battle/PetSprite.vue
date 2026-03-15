@@ -9,10 +9,12 @@ import { asyncComputed } from '@vueuse/core'
 const props = withDefaults(
   defineProps<{
     num: number
+    swfUrl?: string
     reverse?: boolean
   }>(),
   {
     num: 999,
+    swfUrl: '',
     reverse: false,
   },
 )
@@ -23,8 +25,9 @@ const inited = ref(false)
 const forceHttps = computed(() => window.location.protocol === 'https:')
 
 // 使用 asyncComputed 来异步获取 URL，避免初始化时的空值问题
-const swfUrl = asyncComputed(
+const resolvedSwfUrl = asyncComputed(
   async () => {
+    if (props.swfUrl) return props.swfUrl
     if (!props.num) return ''
     const url = await petResourceCache.getPetSwfUrl(props.num)
     console.log(`PetSprite(${props.num}): 获取到 URL:`, url)
@@ -52,9 +55,9 @@ resetReady()
 
 // 监听 props.num 的变化
 watch(
-  () => props.num,
+  () => [props.num, props.swfUrl],
   () => {
-    console.debug(`PetSprite: num changed to ${props.num}, resetting ready promise.`)
+    console.debug(`PetSprite: source changed for num ${props.num}, resetting ready promise.`)
     resetReady()
   },
   { immediate: false },
@@ -153,10 +156,10 @@ defineExpose({
 <template>
   <div ref="petSpriteRef" class="w-full h-full overflow-visible">
     <pet-render
-      v-if="swfUrl && props.num"
+      v-if="resolvedSwfUrl"
       class="overflow-visible pet-render"
       ref="pet-render"
-      :url="swfUrl"
+      :url="resolvedSwfUrl"
       :reverse="reverse"
       salign="TL"
       :offsetX="275"

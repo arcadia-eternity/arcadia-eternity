@@ -1,7 +1,8 @@
 // src/stores/Resource.ts
 import { defineStore } from 'pinia'
 import { GameDataLoader } from '@/utils/gameLoader'
-import type { MarkImageSchemaType } from '@arcadia-eternity/schema'
+import type { AssetManifest, MarkImageSchemaType } from '@arcadia-eternity/schema'
+import { PackLoader } from '@arcadia-eternity/pack-loader'
 
 interface ResourceState {
   markImage: {
@@ -17,6 +18,14 @@ interface ResourceState {
     allIds: string[]
   }
   skillSound: {
+    byId: Record<string, string>
+    allIds: string[]
+  }
+  petSwf: {
+    byId: Record<string, string>
+    allIds: string[]
+  }
+  petSound: {
     byId: Record<string, string>
     allIds: string[]
   }
@@ -38,6 +47,14 @@ export const useResourceStore = defineStore('Resource', {
       allIds: [],
     },
     skillSound: {
+      byId: {},
+      allIds: [],
+    },
+    petSwf: {
+      byId: {},
+      allIds: [],
+    },
+    petSound: {
       byId: {},
       allIds: [],
     },
@@ -77,6 +94,18 @@ export const useResourceStore = defineStore('Resource', {
         return null
       }
     },
+    getPetSwf: state => (id: string) => {
+      if (state.petSwf.byId[id]) {
+        return state.petSwf.byId[id]
+      } else {
+        return null
+      }
+    },
+    getPetSoundByNum: state => (num: number | string) => {
+      const key = String(num)
+      if (state.petSound.byId[key]) return state.petSound.byId[key]
+      return null
+    },
   },
 
   actions: {
@@ -86,19 +115,38 @@ export const useResourceStore = defineStore('Resource', {
         devBasePath: '/resource',
         prodBaseUrl: import.meta.env.VITE_API_BASE || '/resource',
       })
+      const packLoader = new PackLoader()
+      const packRef = `${import.meta.env.VITE_API_BASE || ''}/pack.json`
 
       try {
         // 并行加载所有数据
-        const [rawMarkImage, rawBackGround, rawMusic, rawSkillSound] = await Promise.all([
+        const [rawMarkImage, rawBackGround, rawMusic, rawSkillSound, rawPetSwf, packResult] = await Promise.all([
           this.loadMarkImage(loader),
           this.loadBackGround(loader),
           this.loadMusic(loader),
           this.loadSkillSound(loader),
+          this.loadPetSwf(loader),
+          packLoader.load(packRef, {
+            source: 'http',
+            continueOnError: true,
+            validateReferences: false,
+            enforceLockfile: false,
+          }),
         ])
         this.markImage = this.normalizeRecordData(rawMarkImage)
         this.background = this.normalizeRecordData(rawBackGround)
         this.music = this.normalizeRecordData(rawMusic)
         this.skillSound = this.normalizeRecordData(rawSkillSound)
+        this.petSwf = this.normalizeRecordData(rawPetSwf)
+        if (packResult.assets && packResult.assets.length > 0) {
+          this.applyAssetManifests(packResult.assets)
+        }
+        if ((packResult.assetConflicts?.length ?? 0) > 0) {
+          console.warn('Asset conflicts detected while loading pack resources', packResult.assetConflicts)
+        }
+        if ((packResult.lockfileIssues?.length ?? 0) > 0) {
+          console.warn('Pack lockfile issues detected while loading resources', packResult.lockfileIssues)
+        }
 
         // 验证数据完整性
         this.validateDataIntegrity()
@@ -171,6 +219,85 @@ export const useResourceStore = defineStore('Resource', {
     async loadSkillSound(loader: GameDataLoader): Promise<any> {
       const data = await loader.load<any>('skill_sound')
       return data
+    },
+
+    async loadPetSwf(loader: GameDataLoader): Promise<Record<string, string>> {
+      try {
+        const data = await loader.load<Record<string, string>>('pet_swf')
+        if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+          return data
+        }
+        return {}
+      } catch {
+        return {}
+      }
+    },
+
+    applyAssetManifests(manifests: AssetManifest[]) {
+      const entries = manifests.flatMap(m => m.assets)
+      const entryById = new Map(entries.map(entry => [entry.id, entry]))
+
+      for (const manifest of manifests) {
+        const speciesMap = manifest.mappings?.species ?? {}
+        for (const [speciesId, assetId] of Object.entries(speciesMap)) {
+          const entry = entryById.get(assetId)
+          if (!entry) continue
+          if (entry.type === 'petSwf') {
+            this.petSwf.byId[speciesId] = entry.uri
+          }
+        }
+
+        const markMap = manifest.mappings?.marks ?? {}
+        for (const [markId, assetId] of Object.entries(markMap)) {
+          const entry = entryById.get(assetId)
+          if (!entry) continue
+          if (entry.type === 'markIcon') {
+            this.markImage.byId[markId] = entry.uri
+          }
+        }
+
+        const skillMap = manifest.mappings?.skills ?? {}
+        for (const [skillId, assetId] of Object.entries(skillMap)) {
+          const entry = entryById.get(assetId)
+          if (!entry) continue
+          if (entry.type === 'skillSfx') {
+            this.skillSound.byId[skillId] = entry.uri
+          }
+        }
+      }
+
+      for (const entry of entries) {
+        if (entry.type === 'petSwf' && !this.petSwf.byId[entry.id]) {
+          this.petSwf.byId[entry.id] = entry.uri
+        }
+        if (entry.type === 'petSfx') {
+          const byPrefix = /^petSound:num:(\d+)$/.exec(entry.id)
+          if (byPrefix?.[1]) {
+            this.petSound.byId[byPrefix[1]] = entry.uri
+          } else if (/^\d+$/.test(entry.id)) {
+            this.petSound.byId[entry.id] = entry.uri
+          }
+        }
+        if (entry.type === 'markIcon' && !this.markImage.byId[entry.id]) {
+          this.markImage.byId[entry.id] = entry.uri
+        }
+        if (entry.type === 'skillSfx' && !this.skillSound.byId[entry.id]) {
+          this.skillSound.byId[entry.id] = entry.uri
+        }
+        if (entry.type === 'uiImage' && !this.background.byId[entry.id]) {
+          this.background.byId[entry.id] = entry.uri
+        }
+        if (entry.type === 'bgm' && !this.music.byId[entry.id]) {
+          this.music.byId[entry.id] = entry.uri
+        }
+      }
+
+      this.markImage.allIds = Object.keys(this.markImage.byId)
+      this.background.allIds = Object.keys(this.background.byId)
+      this.music.allIds = Object.keys(this.music.byId)
+      this.skillSound.allIds = Object.keys(this.skillSound.byId)
+      this.petSwf.allIds = Object.keys(this.petSwf.byId)
+      this.petSound.allIds = Object.keys(this.petSound.byId)
     },
   },
 })

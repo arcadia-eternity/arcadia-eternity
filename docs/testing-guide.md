@@ -1,322 +1,172 @@
-# 测试指南
+# 测试指南（2026-03-13）
 
-本文档介绍如何运行项目的各种测试，确保战报系统功能正常。
+本文档记录当前仓库可用的测试入口与推荐执行顺序。  
+当前项目测试栈以 **Vitest + Playwright** 为主，不再使用旧的 Jest/Japa 入口。
 
-## 测试脚本概览
-
-### 快速测试
+## 一、全仓入口
 
 ```bash
-# 运行所有测试
+# 全量（类型检查 + 包内 test:run）
 pnpm test
 
-# 只运行类型检查
+# 仅类型检查
 pnpm test:types
 
-# 只运行单元测试
-pnpm test:units
+# 仅运行各 package 的 test:run
+pnpm test:run
 
-# 只运行集成测试
-pnpm test:integration
+# watch 模式（各 package 的 test）
+pnpm test:watch
 ```
 
-### 专项测试
+说明：
+
+- `pnpm test:run` 会执行所有声明了 `test:run` 的包（通过 workspace filter）。
+- 若某个包没有 `test:run`，会被自动跳过（`--if-present`）。
+
+## 二、核心包测试入口
+
+### 1) battle
 
 ```bash
-# 测试 CLI 功能
-pnpm test:cli
-
-# 测试 SQL 语法
-pnpm test:sql
-
-# 测试数据库功能（需要 Supabase 配置）
-pnpm test:database
-
-# 测试服务器启动
-pnpm test:server
-
-# 测试战报 API（需要 Supabase 配置）
-pnpm test:battle-reports
-
-# 验证端口配置一致性
-pnpm test:config
+pnpm --filter @arcadia-eternity/battle run test:run
 ```
 
-### 开发服务器
+覆盖重点：
+
+- v2 effect/mark 回归
+- v2 RNG 回归
+- v2 timer / runtime snapshot 回归
+
+定向回归：
 
 ```bash
-# 启动基础游戏服务器
-pnpm dev:server
-
-# 启动带战报功能的服务器
-pnpm dev:server:battle-reports
-
-# 使用示例脚本启动
-pnpm start:example
+pnpm --filter @arcadia-eternity/battle exec vitest run src/v2/__tests__/v2-runtime-snapshot.test.ts
 ```
 
-## 测试环境配置
-
-### 1. 基础测试
-
-基础测试不需要额外配置，包括：
-
-- TypeScript 类型检查
-- CLI 帮助信息测试
-- 服务器启动测试
-
-### 2. 数据库测试
-
-数据库相关测试需要 Supabase 配置：
+### 2) server
 
 ```bash
-# 设置环境变量
-export SUPABASE_URL="https://your-project.supabase.co"
-export SUPABASE_ANON_KEY="your-anon-key"
-export SUPABASE_SERVICE_KEY="your-service-key"
-
-# 运行数据库测试
-pnpm test:database
+pnpm --filter @arcadia-eternity/server run test:run
 ```
 
-### 3. 战报 API 测试
-
-战报 API 测试需要完整的 Supabase 配置：
+集群 mock 多实例专项：
 
 ```bash
-# 运行战报 API 测试
-pnpm test:battle-reports
+pnpm --filter @arcadia-eternity/server run test:run:cluster-multi-instance-e2e
 ```
 
-## 测试详情
+deterministic handoff 定向回归：
 
-### 类型检查 (`test:types`)
-
-验证 TypeScript 类型定义是否正确：
-
-- 检查所有 `.ts` 文件的类型
-- 验证接口定义
-- 确保类型安全
-
-### 单元测试 (`test:units`)
-
-使用 Jest 运行单元测试：
-
-- 数据库服务模拟测试
-- 类型定义验证
-- 基础功能测试
-
-### CLI 测试 (`test:cli`)
-
-测试命令行界面功能：
-
-- 主命令帮助信息
-- server 命令帮助信息
-- 战报选项验证
-
-### SQL 语法测试 (`test:sql`)
-
-测试 SQL 文件语法正确性：
-
-- 检查 SQL 文件是否存在
-- 验证不包含已弃用的函数（如 nanoid）
-- 如果配置了数据库连接，测试 SQL 语法
-- 验证 PostgreSQL UUID 函数使用
-
-### 数据库测试 (`test:database`)
-
-测试数据库功能：
-
-- 玩家创建和查询
-- 战报记录创建和完成
-- 统计信息查询
-- 排行榜功能
-
-### 服务器测试 (`test:server`)
-
-测试服务器启动和基础功能：
-
-- 服务器启动和关闭
-- 健康检查端点
-- 统计端点
-- CLI 选项验证
-
-### 战报 API 测试 (`test:battle-reports`)
-
-测试完整的战报 API 功能：
-
-- 所有 API 端点响应
-- CORS 配置
-- 错误处理
-- 数据库集成
-
-### 配置验证 (`test:config`)
-
-验证端口配置一致性：
-
-- CLI 默认端口
-- 前端 API 端口
-- 环境变量示例
-- 启动脚本配置
-
-## 测试文件结构
-
-```text
-tests/
-├── setup.ts                           # Jest 测试环境设置
-└── database.test.ts                   # 数据库单元测试
-
-examples/
-├── test-cli-help.sh                   # CLI 帮助测试
-├── test-sql-syntax.sh                 # SQL 语法测试
-├── test-server-startup.sh             # 服务器启动测试
-├── test-battle-reports-api.sh         # 战报 API 测试
-└── verify-port-config.sh              # 端口配置验证
-
-packages/database/examples/
-└── test-database.ts                   # 数据库功能测试
+```bash
+pnpm --filter @arcadia-eternity/server exec vitest run test/clusterBattleService.v2.test.ts
 ```
 
-## 持续集成
+其中包含 turn 粒度中断恢复回归（inflight checkpoint + replay baseline 回退）。
 
-### GitHub Actions 示例
+### 3) client
 
-```yaml
-name: Tests
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      - run: npm install -g pnpm
-      - run: pnpm install
-      - run: pnpm build
-      - run: pnpm test:types
-      - run: pnpm test:units
-      - run: pnpm test:cli
-      - run: pnpm test:sql
-      - run: pnpm test:server
-      - run: pnpm test:config
+```bash
+pnpm --filter @arcadia-eternity/client run test:run
 ```
 
-### 带数据库的测试
+覆盖重点：
 
-```yaml
-  test-with-database:
-    runs-on: ubuntu-latest
-    env:
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      - run: npm install -g pnpm
-      - run: pnpm install
-      - run: pnpm build
-      - run: pnpm test:database
-      - run: pnpm test:battle-reports
+- 重连态与 `roomClosed` 行为回归
+- timer snapshot 同步回归
+
+### 4) schema
+
+```bash
+pnpm --filter @arcadia-eternity/schema run test:run
 ```
 
-## 故障排除
+### 5) rules
 
-### 常见问题
+```bash
+pnpm --filter @arcadia-eternity/rules run test:run
+```
 
-1. **端口冲突**
+### 6) p2p-transport
 
-   ```bash
-   # 检查端口使用情况
-   lsof -i :8102
-   
-   # 杀死占用端口的进程
-   kill -9 <PID>
-   ```
+```bash
+pnpm --filter @arcadia-eternity/p2p-transport run test:run
+```
 
-2. **权限问题**
+## 三、Web E2E（Playwright）
 
-   ```bash
-   # 给脚本执行权限
-   chmod +x examples/*.sh
-   ```
+目录：`packages/web-ui/e2e`
 
-3. **依赖问题**
+```bash
+cd packages/web-ui
 
-   ```bash
-   # 重新安装依赖
-   pnpm install
-   
-   # 重新构建
-   pnpm build
-   ```
+# 默认 e2e
+pnpm run test:e2e
 
-4. **数据库连接失败**
+# 在线 relay 链路
+pnpm run test:e2e:online:relay
 
-   ```bash
-   # 检查环境变量
-   echo $SUPABASE_URL
-   echo $SUPABASE_ANON_KEY
+# 在线 webrtc 链路
+pnpm run test:e2e:online:webrtc
 
-   # 测试连接
-   curl -H "apikey: $SUPABASE_ANON_KEY" "$SUPABASE_URL/rest/v1/"
-   ```
+# 在线 ranked 链路
+pnpm run test:e2e:online:ranked
+```
 
-5. **SQL 函数错误**
+使用外部已启动服务（更稳定）：
 
-   ```bash
-   # 如果遇到 "function nanoid() does not exist" 错误
-   # 确保使用的是更新后的 SQL 文件，应该使用：
-   # gen_random_uuid()::text 而不是 nanoid()
+```bash
+cd packages/web-ui
+pnpm run test:e2e:online:relay:external
+pnpm run test:e2e:online:webrtc:external
+pnpm run test:e2e:online:ranked:external
+```
 
-   # 检查 SQL 文件内容
-   grep -n "nanoid" packages/database/sql/*.sql
-   # 应该没有输出，如果有则需要更新 SQL 文件
-   ```
+## 四、推荐回归顺序
 
-### 调试技巧
+提交前最小回归：
 
-1. **查看详细日志**
+1. `pnpm test:types`
+2. `pnpm --filter @arcadia-eternity/battle run test:run`
+3. `pnpm --filter @arcadia-eternity/server run test:run`
+4. `pnpm --filter @arcadia-eternity/client run test:run`
+5. `pnpm --filter @arcadia-eternity/battle exec vitest run src/v2/__tests__/v2-runtime-snapshot.test.ts`
+6. `pnpm --filter @arcadia-eternity/server exec vitest run test/clusterBattleService.v2.test.ts`
 
-   ```bash
-   # 启用详细输出
-   NODE_ENV=development pnpm test:server
-   ```
+发布前回归（含联机）：
 
-2. **单独运行测试**
+1. `pnpm test`
+2. `pnpm --filter @arcadia-eternity/server run test:run:cluster-multi-instance-e2e`
+3. `cd packages/web-ui && pnpm run test:e2e:online:relay:external`
+4. `cd packages/web-ui && pnpm run test:e2e:online:webrtc:external`
+5. `cd packages/web-ui && pnpm run test:e2e:online:ranked:external`
 
-   ```bash
-   # 直接运行测试脚本
-   bash examples/test-server-startup.sh
-   ```
+## 五、常见问题
 
-3. **检查临时文件**
+### 1) 端口冲突
 
-   ```bash
-   # 查看测试日志
-   cat /tmp/server-test.log
-   cat /tmp/battle-reports-test.log
-   ```
+```bash
+lsof -i :8102
+lsof -i :4176
+```
 
-## 最佳实践
+### 2) 依赖或缓存异常
 
-1. **测试前构建**：确保运行测试前项目已构建
-2. **环境隔离**：使用不同端口避免冲突
-3. **清理资源**：测试后清理临时文件和进程
-4. **错误处理**：测试脚本包含适当的错误处理
-5. **文档更新**：添加新测试时更新文档
+```bash
+pnpm install
+pnpm -r run clear
+pnpm build
+```
 
-## 贡献指南
+### 3) E2E 环境不稳定
 
-添加新测试时请：
+- 优先使用 `*:external` 脚本，手动先拉起 server / web。
+- relay 与 webrtc 分开跑，避免同时占用资源。
 
-1. 遵循现有的命名约定
-2. 添加适当的错误处理
-3. 包含清理逻辑
-4. 更新 package.json 脚本
-5. 更新本文档
+## 六、维护约定
+
+当新增测试入口时，必须同步更新：
+
+1. 对应 package 的 `package.json`（`test` / `test:run`）
+2. 本文档
+3. 相关规划文档中的验证清单（如 server/pack 计划）

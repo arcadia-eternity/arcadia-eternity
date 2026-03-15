@@ -202,16 +202,16 @@ export class CLIDataValidator {
   private validateCrossReferences(errors: ValidationError[]) {
     // 验证技能引用的效果
     for (const [skillId, skill] of this.dataRepo.skills) {
-      if (skill.effects && skill.effects.length > 0) {
-        for (const effect of skill.effects) {
-          if (!this.dataRepo.effects.has(effect.id)) {
+      if (skill.effect && skill.effect.length > 0) {
+        for (const effectId of skill.effect) {
+          if (!this.dataRepo.effects.has(effectId)) {
             errors.push({
               type: 'missing_reference',
               category: 'skill',
               itemId: skillId,
-              referencedId: effect.id,
+              referencedId: effectId,
               referencedType: 'effect',
-              message: `技能 "${skillId}" 引用了不存在的效果 "${effect.id}"`,
+              message: `技能 "${skillId}" 引用了不存在的效果 "${effectId}"`,
             })
           }
         }
@@ -220,16 +220,16 @@ export class CLIDataValidator {
 
     // 验证标记引用的效果
     for (const [markId, mark] of this.dataRepo.marks) {
-      if (mark.effects && mark.effects.length > 0) {
-        for (const effect of mark.effects) {
-          if (!this.dataRepo.effects.has(effect.id)) {
+      if (mark.effect && mark.effect.length > 0) {
+        for (const effectId of mark.effect) {
+          if (!this.dataRepo.effects.has(effectId)) {
             errors.push({
               type: 'missing_reference',
               category: 'mark',
               itemId: markId,
-              referencedId: effect.id,
+              referencedId: effectId,
               referencedType: 'effect',
-              message: `标记 "${markId}" 引用了不存在的效果 "${effect.id}"`,
+              message: `标记 "${markId}" 引用了不存在的效果 "${effectId}"`,
             })
           }
         }
@@ -238,44 +238,34 @@ export class CLIDataValidator {
 
     // 验证物种引用的技能和标记
     for (const [speciesId, species] of this.dataRepo.species) {
-      // 注意：Species接口中的ability和emblem是BaseMark[]类型，不是string[]
-      // 这里我们跳过交叉引用验证，因为DataRepository已经处理了这些引用
-      // 如果需要验证，应该在数据加载阶段进行
-
-      // 验证能力标记（如果存在且为数组）
+      // 验证能力标记
       if (species.ability && Array.isArray(species.ability)) {
-        for (const abilityMark of species.ability) {
-          // abilityMark是BaseMark对象，检查其ID是否在marks中存在
-          if (typeof abilityMark === 'object' && abilityMark.id) {
-            if (!this.dataRepo.marks.has(abilityMark.id)) {
-              errors.push({
-                type: 'missing_reference',
-                category: 'species',
-                itemId: speciesId,
-                referencedId: abilityMark.id,
-                referencedType: 'mark',
-                message: `物种 "${speciesId}" 引用了不存在的能力标记 "${abilityMark.id}"`,
-              })
-            }
+        for (const abilityMarkId of species.ability) {
+          if (!this.dataRepo.marks.has(abilityMarkId)) {
+            errors.push({
+              type: 'missing_reference',
+              category: 'species',
+              itemId: speciesId,
+              referencedId: abilityMarkId,
+              referencedType: 'mark',
+              message: `物种 "${speciesId}" 引用了不存在的能力标记 "${abilityMarkId}"`,
+            })
           }
         }
       }
 
-      // 验证徽章标记（如果存在且为数组）
+      // 验证徽章标记
       if (species.emblem && Array.isArray(species.emblem)) {
-        for (const emblemMark of species.emblem) {
-          // emblemMark是BaseMark对象，检查其ID是否在marks中存在
-          if (typeof emblemMark === 'object' && emblemMark.id) {
-            if (!this.dataRepo.marks.has(emblemMark.id)) {
-              errors.push({
-                type: 'missing_reference',
-                category: 'species',
-                itemId: speciesId,
-                referencedId: emblemMark.id,
-                referencedType: 'mark',
-                message: `物种 "${speciesId}" 引用了不存在的徽章标记 "${emblemMark.id}"`,
-              })
-            }
+        for (const emblemMarkId of species.emblem) {
+          if (!this.dataRepo.marks.has(emblemMarkId)) {
+            errors.push({
+              type: 'missing_reference',
+              category: 'species',
+              itemId: speciesId,
+              referencedId: emblemMarkId,
+              referencedType: 'mark',
+              message: `物种 "${speciesId}" 引用了不存在的徽章标记 "${emblemMarkId}"`,
+            })
           }
         }
       }

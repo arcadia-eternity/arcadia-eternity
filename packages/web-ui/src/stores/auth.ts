@@ -154,7 +154,16 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await api.post('/auth/create-guest')
         if (response.data.success) {
-          return response.data.data
+          const guest = response.data.data
+          return {
+            id: guest.id ?? guest.playerId,
+            name: guest.name ?? guest.playerName,
+            isRegistered: guest.isRegistered ?? false,
+            email: guest.email,
+            emailVerified: guest.emailVerified ?? false,
+            emailBoundAt: guest.emailBoundAt,
+            createdAt: guest.createdAt,
+          }
         }
         throw new Error(response.data.message || '创建游客失败')
       } catch (error: any) {

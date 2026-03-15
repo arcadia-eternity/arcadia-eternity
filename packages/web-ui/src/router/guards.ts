@@ -9,6 +9,15 @@ export const battleGuard = (to: RouteLocationNormalized, from: RouteLocationNorm
 
   // 需要有效对战的页面
   if (to.meta.requiresBattle) {
+    const isPrivateRoomBattle = to.query.privateRoom === 'true'
+    const isServerBattle = typeof to.query.roomId === 'string' && to.query.roomId.length > 0
+    const isP2PBattle = to.query.p2p === 'true'
+    const hasRoomCode = typeof to.query.roomCode === 'string' && to.query.roomCode.length > 0
+
+    if (isPrivateRoomBattle && hasRoomCode && (isServerBattle || isP2PBattle)) {
+      return next()
+    }
+
     if (from.name === 'Lobby') {
       if (battleClientStore.currentState.matchmaking === 'idle') {
         ElMessage.warning('请先进入匹配队列')
@@ -18,13 +27,8 @@ export const battleGuard = (to: RouteLocationNormalized, from: RouteLocationNorm
     } else if (from.name === 'LocalBattle') {
       return next()
     } else if (from.name === 'PrivateRoom') {
-      // 私人房间战斗：检查是否有有效的私人房间战斗参数
-      if (to.query.privateRoom === 'true' && to.query.roomId) {
-        return next()
-      } else {
-        ElMessage.warning('无效的私人房间战斗参数')
-        return next('/')
-      }
+      ElMessage.warning('无效的私人房间战斗参数')
+      return next('/')
     } else {
       return next('/')
     }

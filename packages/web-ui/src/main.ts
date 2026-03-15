@@ -11,6 +11,7 @@ import router from './router'
 import { initI18n } from './i18n/i18n'
 import i18next from 'i18next'
 import { useAuthStore } from './stores/auth'
+import { usePrivateRoomStore } from './stores/privateRoom'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -32,5 +33,30 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 // 初始化 auth store
 const authStore = useAuthStore()
 authStore.initialize()
+
+if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
+  ;(window as typeof window & {
+    __APP_DEBUG__?: {
+      pinia: typeof pinia
+      stores: {
+        auth: () => ReturnType<typeof useAuthStore>
+        privateRoom: () => ReturnType<typeof usePrivateRoomStore>
+      }
+      createPrivateRoom: (config: {
+        ruleSetId?: string
+        isPrivate?: boolean
+        password?: string
+        p2pTransport?: 'auto' | 'webrtc' | 'relay'
+      }) => Promise<string>
+    }
+  }).__APP_DEBUG__ = {
+    pinia,
+    stores: {
+      auth: () => useAuthStore(),
+      privateRoom: () => usePrivateRoomStore(),
+    },
+    createPrivateRoom: async config => usePrivateRoomStore().createRoom(config),
+  }
+}
 
 app.mount('#app')

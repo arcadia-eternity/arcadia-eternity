@@ -14,15 +14,15 @@
     "clear": "rm -rf dist",
     "build:code": "rollup -c",
     "watch:code": "rollup -c --watch",
-    "watch:types": "tsc --emitDeclarationOnly --watch --preserveWatchOutput",
+    "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
-    "build:types": "tsc --emitDeclarationOnly"
+    "build:types": "pnpm exec tsgo --emitDeclarationOnly"
   },
   "keywords": [],
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
-    "@arcadia-eternity/battle": "workspace:^",
-    "@arcadia-eternity/const": "workspace:^"
+    "@arcadia-eternity/const": "workspace:^",
+    "@arcadia-eternity/schema": "workspace:^"
   }
 }

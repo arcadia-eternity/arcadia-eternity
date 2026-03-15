@@ -1,4 +1,7 @@
 import type { PetSchemaType } from '@arcadia-eternity/schema'
+import type { PackLock } from '@arcadia-eternity/schema/src/pack.js'
+import type { AssetLock } from '@arcadia-eternity/schema/src/assets.js'
+import type { PrivateRoomPeerSignalEvent } from '@arcadia-eternity/protocol'
 
 /**
  * 私人房间配置
@@ -16,6 +19,14 @@ export interface PrivateRoomConfig {
   isPrivate: boolean
   /** 房间密码（私密房间时必填） */
   password?: string
+  /** 对战承载模式：默认 p2p，官方/裁定房可为 server */
+  battleMode: 'p2p' | 'server'
+  /** p2p 传输模式：auto 由客户端环境自行决策 */
+  p2pTransport?: 'auto' | 'webrtc' | 'relay'
+  /** 本房间要求的 pack lock（用于战斗可复现） */
+  requiredPackLock?: PackLock
+  /** 本房间要求的 asset lock（用于资源/皮肤一致性） */
+  requiredAssetLock?: AssetLock
 }
 
 /**
@@ -73,6 +84,17 @@ export interface BattleResult {
   battleRoomId: string
 }
 
+export interface BattleHostInfo {
+  playerId: string
+  sessionId: string
+}
+
+export interface PrivateRoomBattleStartInfo {
+  battleMode: 'p2p' | 'server'
+  battleRoomId?: string
+  battleHost: BattleHostInfo
+}
+
 /**
  * 私人房间状态
  */
@@ -98,6 +120,8 @@ export interface PrivateRoom {
   lastActivity: number
   /** 战斗房间ID（战斗开始后） */
   battleRoomId?: string
+  /** 本局战斗承载方，p2p 模式下一般为房主或指定 peer */
+  battleHost?: BattleHostInfo
   /** 上一局战斗结果 */
   lastBattleResult?: BattleResult
 }
@@ -143,7 +167,8 @@ export type PrivateRoomEvent =
   | { type: 'playerSwitchedToSpectator'; data: { playerId: string } }
   | { type: 'spectatorSwitchedToPlayer'; data: { playerId: string } }
   | { type: 'roomUpdate'; data: PrivateRoom }
-  | { type: 'battleStarted'; data: { battleRoomId: string } }
+  | { type: 'battleStarted'; data: PrivateRoomBattleStartInfo }
+  | { type: 'peerSignal'; data: PrivateRoomPeerSignalEvent }
   | { type: 'battleFinished'; data: { battleResult: BattleResult } }
   | { type: 'roomReset'; data: { message: string } }
   | { type: 'hostTransferred'; data: { oldHostId: string; newHostId: string; transferredBy: string } }
@@ -185,6 +210,9 @@ export class PrivateRoomError extends Error {
       | 'INVALID_RULESET'
       | 'TEAM_VALIDATION_FAILED'
       | 'INVALID_CONFIG'
+      | 'PACK_LOCK_MISMATCH'
+      | 'ASSET_LOCK_MISMATCH'
+      | 'SIGNAL_TARGET_NOT_FOUND'
       | 'TARGET_NOT_PLAYER'
       | 'CANNOT_TRANSFER_TO_SELF'
       | 'CANNOT_KICK_SELF',

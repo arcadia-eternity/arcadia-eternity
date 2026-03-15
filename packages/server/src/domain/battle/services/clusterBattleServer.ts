@@ -1,24 +1,25 @@
-import { Battle, setGlobalLogger } from '@arcadia-eternity/battle'
+import { setGlobalLogger } from '@arcadia-eternity/battle'
 import { type BattleState, type playerId } from '@arcadia-eternity/const'
-import { PlayerParser, SelectionParser } from '@arcadia-eternity/parser'
+import type { IBattleSystem } from '@arcadia-eternity/interface'
 import type {
   AckResponse,
   ClientToServerEvents,
   ErrorResponse,
+  PrivateRoomPeerSignalEvent,
   ServerState,
   ServerToClientEvents,
   SuccessResponse,
 } from '@arcadia-eternity/protocol'
-import { PlayerSchema, type PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
+import { PlayerSchema, parseWithErrors, type PlayerSchemaType, type PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 import pino from 'pino'
-import { ZodError } from 'zod'
+import type { Static } from '@sinclair/typebox'
 import type { Server, Socket } from 'socket.io'
 import { BattleReportService, type BattleReportConfig } from '../../report/services/battleReportService'
 import type { IAuthService, JWTPayload } from '../../auth/services/authService'
 import { PlayerRepository } from '@arcadia-eternity/database'
 import type { ClusterStateManager } from '../../../cluster/core/clusterStateManager'
-import type { SocketClusterAdapter } from '../../../cluster/communication/socketClusterAdapter'
+import type { RealtimeTransport } from '../../../realtime/realtimeTransport'
 import type { DistributedLockManager } from '../../../cluster/redis/distributedLock'
 import type { PerformanceTracker } from '../../../cluster/monitoring/performanceTracker'
 import type { RoomState, MatchmakingEntry, PlayerConnection, ServiceInstance, RedisDisconnectedPlayerInfo } from '../../../cluster/types'
@@ -33,6 +34,8 @@ import { PrivateRoomHandlers } from '../../room/handlers/privateRoomHandlers'
 import { SessionStateManager } from '../../session/sessionStateManager'
 import { injectable, inject, optional } from 'inversify'
 import { TTLHelper } from '../../../cluster/config/ttlConfig'
+import { ClientRealtimeGateway } from '../../../realtime/clientRealtimeGateway'
+import { RedisOwnershipCoordinator, type RuntimeOwnershipRecord } from '../runtime/ownershipCoordinator'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -52,12 +55,31 @@ type PlayerMeta = {
 interface InterServerEvents {}
 
 interface SocketData {
-  data: ReturnType<typeof PlayerParser.parse>
+  data: PlayerSchemaType
   roomId: string
   user?: JWTPayload
   playerId?: string
   sessionId?: string // 会话ID
   session?: any // 会话数据
+}
+
+const BATTLE_OWNER_TEMP_UNAVAILABLE = 'BATTLE_OWNER_TEMP_UNAVAILABLE'
+
+type ForwardFailureWindow = {
+  failureCount: number
+  firstFailureAt: number
+  lastFailureAt: number
+}
+
+type TakeoverResult =
+  | { kind: 'handled'; result: any }
+  | { kind: 'retry' }
+  | { kind: 'failed' }
+
+type RoomCandidate = {
+  roomId: string
+  roomState: RoomState
+  matchedBy: 'session' | 'player-fallback'
 }
 
 @injectable()
@@ -77,6 +99,16 @@ export class ClusterBattleServer {
   // 保留旧的缓存用于兼容性（逐步迁移）
   private readonly timerStatusCache = new Map<string, { enabled: boolean; timestamp: number }>()
   private readonly TIMER_CACHE_TTL = 30000 // 30秒缓存，大幅减少跨实例调用
+  private readonly forwardFailureWindows = new Map<string, ForwardFailureWindow>()
+  private readonly FORWARD_FAILOVER_THRESHOLD = Math.max(
+    1,
+    parseInt(process.env.BATTLE_FORWARD_FAILOVER_THRESHOLD || '3', 10),
+  )
+  private readonly FORWARD_FAILOVER_WINDOW_MS = Math.max(
+    1000,
+    parseInt(process.env.BATTLE_FORWARD_FAILOVER_WINDOW_MS || '15000', 10),
+  )
+  private ownershipCoordinator?: RedisOwnershipCoordinator
 
   // 服务实例（在初始化时设置）
   private matchmakingService!: IMatchmakingService
@@ -92,10 +124,15 @@ export class ClusterBattleServer {
   // 批量消息处理现在由 clusterBattleService 管理
 
   constructor(
-    @inject(TYPES.SocketIOServer)
-    private readonly io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
+    @inject(TYPES.ClientRealtimeGateway)
+    private readonly clientRealtimeGateway: ClientRealtimeGateway<
+      ClientToServerEvents,
+      ServerToClientEvents,
+      InterServerEvents,
+      SocketData
+    >,
     @inject(TYPES.ClusterStateManager) private readonly stateManager: ClusterStateManager,
-    @inject(TYPES.SocketClusterAdapter) private readonly socketAdapter: SocketClusterAdapter,
+    @inject(TYPES.ClusterRealtimeGateway) private readonly battleRouting: RealtimeTransport,
     @inject(TYPES.DistributedLockManager) private readonly lockManager: DistributedLockManager,
     @inject(TYPES.SessionStateManager) private readonly sessionStateManager: SessionStateManager,
     @inject(TYPES.InstanceId) instanceId: string,
@@ -139,12 +176,11 @@ export class ClusterBattleServer {
     this.privateRoomService = new PrivateRoomService(
       this.stateManager,
       this.lockManager,
-      this.socketAdapter,
       this.sessionStateManager,
     )
 
     // 初始化私人房间处理器
-    this.privateRoomHandlers = new PrivateRoomHandlers(this.privateRoomService, this.socketAdapter)
+    this.privateRoomHandlers = new PrivateRoomHandlers(this.privateRoomService)
 
     // 设置私人房间的战斗创建回调
     this.privateRoomService.setBattleCallbacks({
@@ -217,14 +253,21 @@ export class ClusterBattleServer {
 
       // 订阅所有私人房间事件
       subscriber.psubscribe('private_room_events:*')
+      subscriber.psubscribe('private_room_signal_events:*')
 
       subscriber.on('pmessage', (pattern: string, channel: string, message: string) => {
         try {
-          const data = JSON.parse(message)
-          const { roomCode, event } = data
+          if (pattern === 'private_room_events:*') {
+            const data = JSON.parse(message)
+            const { roomCode, event } = data
+            this.forwardPrivateRoomEvent(roomCode, event)
+            return
+          }
 
-          // 转发事件给房间内的所有客户端
-          this.forwardPrivateRoomEvent(roomCode, event)
+          if (pattern === 'private_room_signal_events:*') {
+            const event = JSON.parse(message) as PrivateRoomPeerSignalEvent
+            this.forwardPrivateRoomPeerSignal(event)
+          }
         } catch (error) {
           logger.error({ error, channel, message }, 'Failed to process private room event')
         }
@@ -252,7 +295,7 @@ export class ClusterBattleServer {
 
       // 向所有参与者发送事件
       for (const participant of allParticipants) {
-        await this.socketAdapter.sendToPlayerSession(
+        await this.battleRouting.sendToPlayerSession(
           participant.playerId,
           participant.sessionId,
           'privateRoomEvent',
@@ -266,6 +309,28 @@ export class ClusterBattleServer {
       )
     } catch (error) {
       logger.error({ error, roomCode, event }, 'Failed to forward private room event')
+    }
+  }
+
+  private async forwardPrivateRoomPeerSignal(event: PrivateRoomPeerSignalEvent): Promise<void> {
+    try {
+      await this.battleRouting.sendToPlayerSession(event.to.playerId, event.to.sessionId, 'privateRoomEvent', {
+        type: 'peerSignal',
+        data: event,
+      })
+
+      logger.debug(
+        {
+          roomCode: event.roomCode,
+          from: event.from,
+          to: event.to,
+          transport: event.signal.transport,
+          kind: event.signal.kind,
+        },
+        'Private room peer signal forwarded',
+      )
+    } catch (error) {
+      logger.error({ error, event }, 'Failed to forward private room peer signal')
     }
   }
 
@@ -341,7 +406,7 @@ export class ClusterBattleServer {
 
   /**
    * 初始化集群战斗服务器
-   * 必须在所有依赖组件（特别是 socketAdapter）准备好后调用
+   * 必须在所有依赖组件（特别是 battleRouting）准备好后调用
    */
   async initialize(): Promise<void> {
     logger.info({ instanceId: this.instanceId }, 'Initializing ClusterBattleServer')
@@ -369,14 +434,11 @@ export class ClusterBattleServer {
   }
 
   private initializeMiddleware() {
-    this.io.use(async (socket, next) => {
+    this.clientRealtimeGateway.use(async (socket, next) => {
       try {
         // 从查询参数中获取玩家ID和会话ID
         const playerId = socket.handshake.query?.playerId as string
         const sessionId = socket.handshake.query?.sessionId as string
-
-        console.log('🔍 Middleware received query:', socket.handshake.query)
-        console.log('🔍 Extracted:', { playerId, sessionId })
 
         if (!playerId) {
           return next(new Error('PLAYER_ID_REQUIRED'))
@@ -395,14 +457,9 @@ export class ClusterBattleServer {
         if (!sessionId) {
           // 如果客户端没有提供sessionId，生成一个新的
           const newSessionId = nanoid()
-          console.log('🆔 No sessionId provided, generating new one:', newSessionId)
           socket.data.sessionId = newSessionId
         } else {
-          console.log('🆔 Client provided sessionId:', sessionId)
-          // 对于刷新重连场景，直接使用客户端提供的 sessionId
-          // 不进行严格验证，因为断线时 session 可能已被清理
           socket.data.sessionId = sessionId
-          console.log('🆔 Using client sessionId:', sessionId)
         }
 
         if (!isRegistered) {
@@ -425,26 +482,6 @@ export class ClusterBattleServer {
           : this.authService.verifyAccessToken(token)
         if (!payload) {
           return next(new Error('INVALID_TOKEN'))
-        }
-
-        // 如果提供了sessionId，验证会话是否存在且有效
-        if (sessionId && this.authService.getSession) {
-          try {
-            const session = await this.authService.getSession(playerId, sessionId)
-            if (!session) {
-              return next(new Error('SESSION_NOT_FOUND'))
-            }
-
-            // 检查会话是否过期
-            if (session.expiry && Date.now() > session.expiry) {
-              return next(new Error('SESSION_EXPIRED'))
-            }
-
-            socket.data.session = session
-          } catch (error) {
-            logger.error({ error, playerId, sessionId }, 'Session validation failed')
-            return next(new Error('SESSION_VALIDATION_ERROR'))
-          }
         }
 
         // 检查token是否在集群黑名单中
@@ -505,7 +542,7 @@ export class ClusterBattleServer {
       }
 
       this.lastBroadcastState = { ...currentState }
-      this.io.emit('updateState', currentState)
+      this.clientRealtimeGateway.emit('updateState', currentState)
 
       logger.debug({ state: currentState }, 'Server state broadcasted')
     } catch (error) {
@@ -600,8 +637,7 @@ export class ClusterBattleServer {
   }
 
   private setupConnectionHandlers() {
-    this.io.on('connection', async socket => {
-      console.log('🔥 NEW CONNECTION DETECTED!', socket.id)
+    this.clientRealtimeGateway.onConnection(async socket => {
       logger.info(
         {
           socketId: socket.id,
@@ -646,7 +682,10 @@ export class ClusterBattleServer {
           const { playerId, sessionId } = socket.data
           if (playerId && sessionId) {
             try {
-              const currentRoom = await this.privateRoomService.getPlayerSessionCurrentRoom(playerId, sessionId)
+              const currentRoom = await this.privateRoomService.restorePlayerSessionCurrentRoom(playerId, sessionId)
+              if (currentRoom) {
+                socket.join(`private_room:${currentRoom.config.roomCode}`)
+              }
               if (currentRoom && currentRoom.status === 'started') {
                 logger.info(
                   { playerId, sessionId, roomCode: currentRoom.config.roomCode },
@@ -674,32 +713,48 @@ export class ClusterBattleServer {
                 // 房间在当前实例，直接获取本地战斗状态
                 const battle = this.getLocalBattle(reconnectInfo.roomId)
                 if (battle) {
-                  fullBattleState = battle.getState(socket.data.playerId! as playerId, false)
+                  fullBattleState = await battle.getState(socket.data.playerId! as playerId, false)
                 }
               } else {
+                const targetInstanceId = await this.resolveRequestOwnerInstanceId(currentRoomState, 'getState')
                 // 房间在其他实例，通过跨实例调用获取战斗状态
                 logger.debug(
                   {
                     roomId: reconnectInfo.roomId,
                     playerId: socket.data.playerId,
                     roomInstance: currentRoomState.instanceId,
+                    targetInstanceId,
                     currentInstance: this.instanceId,
                   },
                   '房间在其他实例，通过跨实例调用获取战斗状态',
                 )
 
                 fullBattleState = await this.forwardPlayerAction(
-                  currentRoomState.instanceId,
+                  targetInstanceId,
                   'getState',
                   socket.data.playerId!,
                   { roomId: reconnectInfo.roomId },
                 )
               }
             } catch (error) {
-              logger.warn(
-                { error, roomId: reconnectInfo.roomId, playerId: socket.data.playerId },
-                '获取战斗状态失败，将发送不包含状态数据的重连事件',
-              )
+              const reconnectPlayerId = socket.data.playerId
+              const snapshot =
+                reconnectPlayerId && reconnectInfo.roomId
+                  ? await this.readBattleStateSnapshot(reconnectInfo.roomId, reconnectPlayerId)
+                  : null
+
+              if (snapshot) {
+                fullBattleState = snapshot
+                logger.warn(
+                  { error, roomId: reconnectInfo.roomId, playerId: reconnectPlayerId },
+                  '获取战斗状态失败，使用 Redis snapshot 作为重连兜底',
+                )
+              } else {
+                logger.warn(
+                  { error, roomId: reconnectInfo.roomId, playerId: reconnectPlayerId },
+                  '获取战斗状态失败，将发送不包含状态数据的重连事件',
+                )
+              }
             }
 
             socket.emit('battleReconnect', {
@@ -779,6 +834,14 @@ export class ClusterBattleServer {
         if (roomState) {
           roomState.lastActive = Date.now()
           await this.stateManager.setRoomState(roomState)
+
+          const isBattlePlayer =
+            roomState.status === 'active' &&
+            roomState.sessionPlayers[sessionId] === playerId &&
+            !roomState.spectators.some(s => s.sessionId === sessionId)
+          if (isBattlePlayer) {
+            await this.routeReconnectTimerAction(roomState.id, playerId, 'startReconnectGraceTimer')
+          }
         }
       })
 
@@ -825,11 +888,8 @@ export class ClusterBattleServer {
         // 玩家在战斗中掉线，启动宽限期
         logger.info({ playerId, sessionId, roomId: roomState.id }, '玩家在战斗中掉线，启动宽限期')
 
-        // 异步更新连接状态
-        this.updateDisconnectedPlayerState(playerId, sessionId).catch((error: any) => {
-          logger.error({ error, playerId, sessionId }, '更新断开连接状态失败')
-        })
-
+        // 先同步更新连接状态，再进入宽限期
+        await this.updateDisconnectedPlayerState(playerId, sessionId)
         await this.startDisconnectGracePeriod(playerId, sessionId, roomState.id)
       } else {
         // 玩家不在战斗中，直接清理连接信息
@@ -867,10 +927,10 @@ export class ClusterBattleServer {
     try {
       const currentRoom = await this.privateRoomService.getPlayerSessionCurrentRoom(playerId, sessionId)
       if (currentRoom) {
-        if (currentRoom.status === 'started') {
+        if (currentRoom.status === 'started' || currentRoom.status === 'waiting') {
           logger.info(
-            { playerId, sessionId, roomCode: currentRoom.config.roomCode },
-            '玩家在私人房间战斗中掉线，更新连接状态',
+            { playerId, sessionId, roomCode: currentRoom.config.roomCode, status: currentRoom.status },
+            '玩家在私人房间中掉线，更新连接状态',
           )
           await this.privateRoomService.handlePlayerDisconnect(currentRoom.config.roomCode, playerId, sessionId)
         } else {
@@ -938,6 +998,9 @@ export class ClusterBattleServer {
     socket.on('leavePrivateRoom', ack => this.privateRoomHandlers?.handleLeaveRoom(socket, ack))
     socket.on('togglePrivateRoomReady', (data, ack) => this.privateRoomHandlers?.handleToggleReady(socket, data, ack))
     socket.on('startPrivateRoomBattle', (data, ack) => this.privateRoomHandlers?.handleStartBattle(socket, data, ack))
+    socket.on('sendPrivateRoomPeerSignal', (data, ack) =>
+      this.privateRoomHandlers?.handleSendPeerSignal(socket, data, ack),
+    )
     socket.on('switchToSpectator', (data, ack) => this.privateRoomHandlers?.handleSwitchToSpectator(socket, data, ack))
     socket.on('switchToPlayer', (data, ack) => this.privateRoomHandlers?.handleSwitchToPlayer(socket, data, ack))
     socket.on('getPrivateRoomInfo', (data, ack) => this.privateRoomHandlers?.handleGetRoomInfo(socket, data, ack))
@@ -1044,19 +1107,33 @@ export class ClusterBattleServer {
         return
       }
 
+      // active/waiting 房间保留用于请求驱动接管恢复，不在此处清理
+      const recoverableRooms = orphanedRooms.filter((room: any) => room.status === 'active' || room.status === 'waiting')
+      const cleanupCandidates = orphanedRooms.filter((room: any) => room.status === 'ended')
+
       logger.warn(
-        { instanceId, orphanedRoomCount: orphanedRooms.length, roomIds: orphanedRooms.map((r: any) => r.id) },
-        'Found orphaned rooms, starting cleanup',
+        {
+          instanceId,
+          orphanedRoomCount: orphanedRooms.length,
+          recoverableRoomCount: recoverableRooms.length,
+          cleanupCandidateCount: cleanupCandidates.length,
+          recoverableRoomIds: recoverableRooms.map((r: any) => r.id),
+          cleanupCandidateRoomIds: cleanupCandidates.map((r: any) => r.id),
+        },
+        'Found orphaned rooms; preserving active/waiting rooms for takeover and cleaning ended rooms only',
       )
 
+      // 对可恢复房间执行自治 takeover
+      await this.batchAutonomousTakeover(recoverableRooms, 'instance-leave')
+
       // 批量清理孤立房间
-      for (const room of orphanedRooms) {
+      for (const room of cleanupCandidates) {
         await this.cleanupOrphanedRoomState(room)
       }
 
       logger.info(
-        { instanceId, cleanedRoomCount: orphanedRooms.length },
-        'Completed cleanup of orphaned rooms from left instance',
+        { instanceId, cleanedRoomCount: cleanupCandidates.length, preservedRoomCount: recoverableRooms.length },
+        'Completed orphaned room cleanup for left instance',
       )
     } catch (error) {
       logger.error({ error, instanceId }, 'Error cleaning up rooms from left instance')
@@ -1075,6 +1152,8 @@ export class ClusterBattleServer {
 
       // 通知目标实例房间被清理（如果实例恢复了）
       await this.notifyRoomCleanup(targetInstanceId, roomId)
+
+      await this.cleanupBattleStateSnapshotsForRoom(room)
 
       // 清理房间状态
       await this.stateManager.removeRoomState(roomId)
@@ -1164,6 +1243,10 @@ export class ClusterBattleServer {
       let errorMessage: string | undefined
 
       try {
+        if (roomId && this.isMutationAction(actionType)) {
+          await this.ensureLocalMutationAllowed(roomId, actionType)
+        }
+
         switch (actionType) {
           case 'submitPlayerSelection':
             // 从data中提取selection数据，如果data包含selection字段则使用，否则使用整个data
@@ -1217,6 +1300,14 @@ export class ClusterBattleServer {
 
           case 'endAnimation':
             result = await this.battleService.handleLocalEndAnimation(roomId, playerId, data)
+            break
+
+          case 'startReconnectGraceTimer':
+            result = await this.battleService.pauseBattleForDisconnect(roomId, playerId)
+            break
+
+          case 'cancelReconnectGraceTimer':
+            result = await this.battleService.resumeBattleAfterReconnect(roomId, playerId)
             break
 
           default:
@@ -1277,15 +1368,16 @@ export class ClusterBattleServer {
       throw new Error('ROOM_NOT_FOUND')
     }
 
-    if (this.isRoomInCurrentInstance(roomState)) {
+    const targetInstanceId = await this.resolveRequestOwnerInstanceId(roomState, 'getState')
+    if (targetInstanceId === this.instanceId) {
       return this.battleService.joinSpectateBattle(roomId, spectator)
     } else {
-      const targetInstance = await this.stateManager.getInstance(roomState.instanceId)
+      const targetInstance = await this.stateManager.getInstance(targetInstanceId)
       if (!targetInstance || !targetInstance.rpcAddress) {
         throw new Error('TARGET_INSTANCE_NOT_AVAILABLE')
       }
       return this.rpcClient.joinSpectateBattle(
-        roomState.instanceId,
+        targetInstanceId,
         targetInstance.rpcAddress,
         roomId,
         spectator.playerId,
@@ -1311,7 +1403,8 @@ export class ClusterBattleServer {
         continue
       }
 
-      if (this.isRoomInCurrentInstance(roomState)) {
+      const targetInstanceId = await this.resolveRequestOwnerInstanceId(roomState, 'getState')
+      if (targetInstanceId === this.instanceId) {
         await this.battleService.removeSpectatorFromRoom(roomId, sessionId)
       } else {
         // 对于远程实例，我们依赖现有的断线检测机制
@@ -1346,7 +1439,7 @@ export class ClusterBattleServer {
         '准备发送消息到玩家会话',
       )
 
-      const result = await this.socketAdapter.sendToPlayerSession(playerId, sessionId, event, data)
+      const result = await this.battleRouting.sendToPlayerSession(playerId, sessionId, event, data)
 
       if (!result) {
         logger.warn(
@@ -1416,75 +1509,180 @@ export class ClusterBattleServer {
       const sessionRoomKey = REDIS_KEYS.SESSION_ROOM_MAPPING(playerId, sessionId)
       const roomIds = await client.smembers(sessionRoomKey)
 
-      // 如果找到映射，直接验证房间状态
+      const mappedCandidates: RoomCandidate[] = []
+
+      // 如果找到映射，先收集候选，再挑选最佳房间
       for (const roomId of roomIds) {
         const roomState = await this.stateManager.getRoomState(roomId)
-        if (roomState) {
-          const isPlayer = roomState.sessions.includes(sessionId) && roomState.sessionPlayers[sessionId] === playerId
-          const isSpectator = roomState.spectators.some(s => s.sessionId === sessionId && s.playerId === playerId)
-
-          if (isPlayer || isSpectator) {
-            return roomState
-          }
+        if (!roomState) {
+          await client.srem(sessionRoomKey, roomId)
+          continue
         }
+
+        if (roomState.status === 'ended') {
+          await client.srem(sessionRoomKey, roomId)
+          continue
+        }
+
+        const isPlayer = roomState.sessions.includes(sessionId) && roomState.sessionPlayers[sessionId] === playerId
+        const isSpectator = roomState.spectators.some(s => s.sessionId === sessionId && s.playerId === playerId)
+
+        if (isPlayer || isSpectator) {
+          mappedCandidates.push({ roomId, roomState, matchedBy: 'session' })
+          continue
+        }
+
+        // 自愈：如果playerId仍在房间中但sessionId已变更，修复后作为候选
+        const hasPlayerInRoom = roomState.sessions.some(roomSessionId => roomState.sessionPlayers[roomSessionId] === playerId)
+        const hasSpectatorInRoom = roomState.spectators.some(s => s.playerId === playerId)
+        if (hasPlayerInRoom || hasSpectatorInRoom) {
+          await this.repairRoomSessionBinding(roomState, playerId, sessionId)
+          mappedCandidates.push({ roomId, roomState, matchedBy: 'player-fallback' })
+          continue
+        }
+
         // 清理无效的映射
         await client.srem(sessionRoomKey, roomId)
       }
 
-      // 如果直接映射查找失败，回退到遍历所有房间（但限制数量）
-      const allRoomIds = await client.smembers(REDIS_KEYS.ROOMS)
-
-      // 批量获取房间状态，减少网络往返
-      const pipeline = client.pipeline()
-      for (const roomId of allRoomIds.slice(0, 50)) {
-        // 限制最多检查50个房间
-        pipeline.hgetall(REDIS_KEYS.ROOM(roomId))
-      }
-      const results = await pipeline.exec()
-
-      if (results) {
-        for (let i = 0; i < results.length; i++) {
-          const [err, roomData] = results[i]
-          if (err || !roomData) continue
-
-          try {
-            const roomState = JSON.parse((roomData as any).data || '{}') as RoomState
-            if (!roomState.id) continue
-
-            // 检查会话匹配（包括观战者）
-            if (sessionId) {
-              const isPlayerInRoom =
-                roomState.sessions.includes(sessionId) && roomState.sessionPlayers[sessionId] === playerId
-              const isSpectatorInRoom = roomState.spectators.some(
-                s => s.sessionId === sessionId && s.playerId === playerId,
-              )
-
-              if (isPlayerInRoom || isSpectatorInRoom) {
-                // 重建映射索引
-                await client.sadd(sessionRoomKey, roomState.id)
-                return roomState
-              }
-            } else {
-              // 向后兼容：检查是否有任何会话对应该playerId（包括观战者）
-              const isPlayer = roomState.sessions.some(
-                roomSessionId => roomState.sessionPlayers[roomSessionId] === playerId,
-              )
-              const isSpectator = roomState.spectators.some(s => s.playerId === playerId)
-
-              if (isPlayer || isSpectator) {
-                return roomState
-              }
-            }
-          } catch (parseError) {
-            logger.warn({ error: parseError, roomId: allRoomIds[i] }, 'Failed to parse room state')
+      const preferredMapped = this.pickPreferredRoomCandidate(mappedCandidates)
+      if (preferredMapped) {
+        // 修复索引：只保留当前会话最优房间映射，避免后续随机命中旧房间
+        for (const candidate of mappedCandidates) {
+          if (candidate.roomId !== preferredMapped.roomId) {
+            await client.srem(sessionRoomKey, candidate.roomId)
           }
         }
+        await client.sadd(sessionRoomKey, preferredMapped.roomId)
+        return preferredMapped.roomState
+      }
+
+      // 如果直接映射查找失败，回退到遍历所有房间（但限制数量）
+      const allRoomIds = await client.smembers(REDIS_KEYS.ROOMS)
+      const candidateRoomIds = allRoomIds.slice(0, 50)
+      const candidateRoomStates = await Promise.all(candidateRoomIds.map(roomId => this.stateManager.getRoomState(roomId)))
+      const fallbackCandidates: RoomCandidate[] = []
+
+      for (let i = 0; i < candidateRoomStates.length; i++) {
+        const roomState = candidateRoomStates[i]
+        if (!roomState) continue
+        if (roomState.status === 'ended') continue
+
+        if (sessionId) {
+          const isPlayerInRoom =
+            roomState.sessions.includes(sessionId) && roomState.sessionPlayers[sessionId] === playerId
+          const isSpectatorInRoom = roomState.spectators.some(
+            s => s.sessionId === sessionId && s.playerId === playerId,
+          )
+
+          if (isPlayerInRoom || isSpectatorInRoom) {
+            fallbackCandidates.push({ roomId: roomState.id, roomState, matchedBy: 'session' })
+            continue
+          }
+
+          const hasPlayerInRoom = roomState.sessions.some(
+            roomSessionId => roomState.sessionPlayers[roomSessionId] === playerId,
+          )
+          const hasSpectatorInRoom = roomState.spectators.some(s => s.playerId === playerId)
+          if (hasPlayerInRoom || hasSpectatorInRoom) {
+            await this.repairRoomSessionBinding(roomState, playerId, sessionId)
+            fallbackCandidates.push({ roomId: roomState.id, roomState, matchedBy: 'player-fallback' })
+            continue
+          }
+        } else {
+          // 向后兼容：检查是否有任何会话对应该playerId（包括观战者）
+          const isPlayer = roomState.sessions.some(
+            roomSessionId => roomState.sessionPlayers[roomSessionId] === playerId,
+          )
+          const isSpectator = roomState.spectators.some(s => s.playerId === playerId)
+
+          if (isPlayer || isSpectator) {
+            fallbackCandidates.push({ roomId: roomState.id, roomState, matchedBy: 'player-fallback' })
+          }
+        }
+      }
+
+      const preferredFallback = this.pickPreferredRoomCandidate(fallbackCandidates)
+      if (preferredFallback) {
+        await client.sadd(sessionRoomKey, preferredFallback.roomId)
+        return preferredFallback.roomState
       }
 
       return null
     } catch (error) {
       logger.error({ error, playerId, sessionId }, 'Error getting player room from cluster')
       throw error
+    }
+  }
+
+  private pickPreferredRoomCandidate(candidates: RoomCandidate[]): RoomCandidate | null {
+    if (candidates.length === 0) {
+      return null
+    }
+
+    const statusScore = (status: RoomState['status']): number => {
+      if (status === 'active') return 2
+      if (status === 'waiting') return 1
+      return 0
+    }
+
+    const matchScore = (matchedBy: RoomCandidate['matchedBy']): number => {
+      if (matchedBy === 'session') return 1
+      return 0
+    }
+
+    const sorted = [...candidates].sort((a, b) => {
+      const statusDelta = statusScore(b.roomState.status) - statusScore(a.roomState.status)
+      if (statusDelta !== 0) return statusDelta
+
+      const matchDelta = matchScore(b.matchedBy) - matchScore(a.matchedBy)
+      if (matchDelta !== 0) return matchDelta
+
+      return (b.roomState.lastActive ?? 0) - (a.roomState.lastActive ?? 0)
+    })
+
+    return sorted[0]
+  }
+
+  private async repairRoomSessionBinding(roomState: RoomState, playerId: string, sessionId: string): Promise<void> {
+    try {
+      const isSpectator = roomState.spectators.some(s => s.playerId === playerId)
+      if (isSpectator) {
+        return
+      }
+
+      const hasPlayerInRoom = roomState.sessions.some(roomSessionId => roomState.sessionPlayers[roomSessionId] === playerId)
+      if (!hasPlayerInRoom) {
+        return
+      }
+
+      if (!roomState.sessions.includes(sessionId)) {
+        roomState.sessions.push(sessionId)
+      }
+      roomState.sessionPlayers[sessionId] = playerId
+      roomState.lastActive = Date.now()
+
+      await this.stateManager.setRoomState(roomState)
+      await this.stateManager.redisManager.getClient().sadd(REDIS_KEYS.SESSION_ROOM_MAPPING(playerId, sessionId), roomState.id)
+
+      logger.warn(
+        {
+          roomId: roomState.id,
+          playerId,
+          sessionId,
+        },
+        'Recovered room session binding by playerId fallback',
+      )
+    } catch (error) {
+      logger.warn(
+        {
+          error,
+          roomId: roomState.id,
+          playerId,
+          sessionId,
+        },
+        'Failed to recover room session binding',
+      )
     }
   }
 
@@ -1549,120 +1747,277 @@ export class ClusterBattleServer {
     data: any,
   ): Promise<any> {
     try {
+      const isMutation = this.isMutationAction(action)
       // 获取目标实例的RPC地址
       const targetInstance = await this.stateManager.getInstance(targetInstanceId)
       if (!targetInstance || !targetInstance.rpcAddress) {
-        // 目标实例不存在，清理相关房间状态
-        logger.warn(
-          { targetInstanceId, action, playerId, roomId: data.roomId },
-          'Target instance not found, cleaning up orphaned room',
-        )
-
-        await this.handleOrphanedRoom(targetInstanceId, data.roomId, playerId)
-
-        // 对于某些操作，返回默认值而不是抛出错误
-        if (action === 'ready') {
-          logger.info({ playerId, roomId: data.roomId }, 'Room cleaned up, player ready action ignored')
-          return { status: 'ROOM_CLEANED' }
+        const roomId = data.roomId
+        if (!isMutation) {
+          logger.warn(
+            { targetInstanceId, action, playerId, roomId },
+            'Target instance unavailable for read action; returning temporary unavailable without cleanup',
+          )
+          throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+        }
+        // mutation 请求优先走请求驱动 takeover，不在此处直接清理房间
+        const takeover = await this.tryRequestDrivenTakeover(targetInstanceId, action, playerId, data)
+        if (takeover.kind === 'handled') {
+          return takeover.result
         }
 
-        throw new Error(`Target instance not available: ${targetInstanceId}`)
+        if (takeover.kind === 'retry') {
+          logger.warn(
+            { targetInstanceId, action, playerId, roomId },
+            'Target instance unavailable; request-driven takeover deferred, retry later',
+          )
+          throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+        }
+
+        logger.warn(
+          { targetInstanceId, action, playerId, roomId },
+          'Target instance unavailable; request-driven takeover failed',
+        )
+        throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
       }
 
       const roomId = data.roomId
-      if (!roomId) {
+      if (!roomId && action !== 'cleanupDisconnectedPlayer') {
         throw new Error('Room ID is required for RPC forwarding')
       }
 
-      // 根据action类型调用相应的RPC方法
+      let result: any
       switch (action) {
         case 'submitPlayerSelection':
-          return await this.rpcClient.submitPlayerSelection(
+          result = await this.rpcClient.submitPlayerSelection(
             targetInstanceId,
             targetInstance.rpcAddress,
             roomId,
             playerId,
             data.selection || data,
           )
+          break
 
         case 'getState':
-          return await this.rpcClient.getBattleState(targetInstanceId, targetInstance.rpcAddress, roomId, playerId)
+          result = await this.rpcClient.getBattleState(targetInstanceId, targetInstance.rpcAddress, roomId, playerId)
+          break
 
         case 'getAvailableSelection':
-          return await this.rpcClient.getAvailableSelection(
+          result = await this.rpcClient.getAvailableSelection(
             targetInstanceId,
             targetInstance.rpcAddress,
             roomId,
             playerId,
           )
+          break
 
         case 'ready':
-          return await this.rpcClient.playerReady(targetInstanceId, targetInstance.rpcAddress, roomId, playerId)
+          result = await this.rpcClient.playerReady(targetInstanceId, targetInstance.rpcAddress, roomId, playerId)
+          break
 
         case 'player-abandon':
-          return await this.rpcClient.playerAbandon(targetInstanceId, targetInstance.rpcAddress, roomId, playerId)
+          result = await this.rpcClient.playerAbandon(targetInstanceId, targetInstance.rpcAddress, roomId, playerId)
+          break
 
         case 'reportAnimationEnd':
-          return await this.rpcClient.reportAnimationEnd(
+          result = await this.rpcClient.reportAnimationEnd(
             targetInstanceId,
             targetInstance.rpcAddress,
             roomId,
             playerId,
             data,
           )
+          break
 
         case 'isTimerEnabled':
-          return await this.rpcClient.isTimerEnabled(targetInstanceId, targetInstance.rpcAddress, roomId, playerId)
+          result = await this.rpcClient.isTimerEnabled(targetInstanceId, targetInstance.rpcAddress, roomId, playerId)
+          break
 
         case 'getPlayerTimerState':
-          return await this.rpcClient.getPlayerTimerState(
+          result = await this.rpcClient.getPlayerTimerState(
             targetInstanceId,
             targetInstance.rpcAddress,
             roomId,
             playerId,
             data,
           )
+          break
 
         case 'cleanupDisconnectedPlayer':
           await this.battleService.removeDisconnectedPlayer(`${data.playerId}:${data.sessionId}`)
-          return { success: true }
+          result = { success: true }
+          break
 
         case 'getAllPlayerTimerStates':
-          return await this.rpcClient.getAllPlayerTimerStates(
+          result = await this.rpcClient.getAllPlayerTimerStates(
             targetInstanceId,
             targetInstance.rpcAddress,
             roomId,
             playerId,
           )
+          break
 
         case 'getTimerConfig':
-          return await this.rpcClient.getTimerConfig(targetInstanceId, targetInstance.rpcAddress, roomId, playerId)
+          result = await this.rpcClient.getTimerConfig(targetInstanceId, targetInstance.rpcAddress, roomId, playerId)
+          break
 
         case 'startAnimation':
-          return await this.rpcClient.startAnimation(
+          result = await this.rpcClient.startAnimation(
             targetInstanceId,
             targetInstance.rpcAddress,
             roomId,
             playerId,
             data,
           )
+          break
 
         case 'endAnimation':
-          return await this.rpcClient.endAnimation(targetInstanceId, targetInstance.rpcAddress, roomId, playerId, data)
+          result = await this.rpcClient.endAnimation(targetInstanceId, targetInstance.rpcAddress, roomId, playerId, data)
+          break
 
         case 'force-terminate-battle':
-          return await this.rpcClient.terminateBattle(
+          result = await this.rpcClient.terminateBattle(
             targetInstanceId,
             targetInstance.rpcAddress,
             roomId,
             playerId,
             data.reason || 'abandon',
           )
+          break
+
+        case 'startReconnectGraceTimer':
+        case 'cancelReconnectGraceTimer':
+          await this.publishCrossInstanceBattleAction(targetInstanceId, {
+            from: this.instanceId,
+            timestamp: Date.now(),
+            action,
+            roomId,
+            playerId,
+            data,
+          })
+          result = { status: 'FORWARDED' }
+          break
 
         default:
           throw new Error(`Unknown action type: ${action}`)
       }
+
+      this.clearForwardFailureWindow(roomId, targetInstanceId)
+      return result
     } catch (error) {
+      const roomId = typeof data?.roomId === 'string' ? data.roomId : undefined
+      const isMutation = this.isMutationAction(action)
+
+      if (error instanceof Error && error.message === BATTLE_OWNER_TEMP_UNAVAILABLE) {
+        throw error
+      }
+
+      if (roomId && !isMutation && this.isRetryableForwardError(error)) {
+        logger.warn(
+          {
+            roomId,
+            targetInstanceId,
+            action,
+          },
+          'Read action forward failed with retryable error; skip failover/cleanup and return temporary unavailable',
+        )
+        throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+      }
+
+      if (roomId && this.isRetryableForwardError(error)) {
+        const window = this.recordForwardFailure(roomId, targetInstanceId)
+        if (window.failureCount < this.FORWARD_FAILOVER_THRESHOLD) {
+          logger.warn(
+            {
+              roomId,
+              targetInstanceId,
+              action,
+              failureCount: window.failureCount,
+              threshold: this.FORWARD_FAILOVER_THRESHOLD,
+              windowMs: this.FORWARD_FAILOVER_WINDOW_MS,
+            },
+            'Forward action failed, below failover threshold; returning temporary unavailable',
+          )
+          throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+        }
+
+        const targetInstance = await this.stateManager.getInstance(targetInstanceId)
+        const targetReachable = targetInstance ? await this.verifyInstanceReachability(targetInstance) : false
+        if (targetReachable) {
+          logger.warn(
+            {
+              roomId,
+              targetInstanceId,
+              action,
+              failureCount: window.failureCount,
+            },
+            'Forward action failures reached threshold but target instance still reachable; suppressing failover',
+          )
+          throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+        }
+
+        const shouldCleanup = await this.shouldCleanupOrphanedRoom(targetInstanceId, roomId)
+        let shouldTryTakeover = shouldCleanup
+        if (!shouldTryTakeover) {
+          const ownership = await this.getOwnershipRecord(roomId)
+          if (ownership && this.isOwnershipLeaseActive(ownership)) {
+            const ownerUnavailable = await this.isOwnerInstanceUnavailable(ownership.ownerInstanceId)
+            if (ownerUnavailable) {
+              shouldTryTakeover = true
+              logger.warn(
+                {
+                  roomId,
+                  targetInstanceId,
+                  action,
+                  ownerInstanceId: ownership.ownerInstanceId,
+                  failureCount: window.failureCount,
+                },
+                'Forward action failures reached threshold and ownership owner is unavailable; trying request-driven takeover',
+              )
+            }
+          }
+        }
+
+        if (shouldTryTakeover) {
+          const takeover = await this.tryRequestDrivenTakeover(targetInstanceId, action, playerId, data)
+          if (takeover.kind === 'handled') {
+            this.clearForwardFailureWindow(roomId, targetInstanceId)
+            return takeover.result
+          }
+          if (takeover.kind === 'retry') {
+            throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+          }
+
+          if (!shouldCleanup) {
+            throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+          }
+
+          logger.warn(
+            { roomId, targetInstanceId, action, playerId, failureCount: window.failureCount },
+            'Forward action failures reached threshold and target is unreachable; cleaning orphaned room',
+          )
+          await this.handleOrphanedRoom(targetInstanceId, roomId, playerId)
+          this.clearForwardFailureWindow(roomId, targetInstanceId)
+
+          if (action === 'ready') {
+            return { status: 'ROOM_CLEANED' }
+          }
+
+          throw new Error(`Target instance not available: ${targetInstanceId}`)
+        }
+
+        logger.warn(
+          {
+            roomId,
+            targetInstanceId,
+            action,
+            failureCount: window.failureCount,
+            ownership: 'lease-valid-or-draining',
+          },
+          'Forward action failures reached threshold but ownership still protected by lease; returning temporary unavailable',
+        )
+        throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+      }
+
       logger.error(
         {
           error: error instanceof Error ? { message: error.message, stack: error.stack, name: error.name } : error,
@@ -1674,6 +2029,509 @@ export class ClusterBattleServer {
       )
       throw error
     }
+  }
+
+  private async publishCrossInstanceBattleAction(targetInstanceId: string, payload: Record<string, unknown>): Promise<void> {
+    const publisher = this.stateManager.redisManager.getPublisher()
+    const channel = `instance:${targetInstanceId}:battle-actions`
+    await publisher.publish(channel, JSON.stringify(payload))
+  }
+
+  private async shouldCleanupOrphanedRoom(targetInstanceId: string, roomId?: string): Promise<boolean> {
+    if (!roomId) {
+      return false
+    }
+
+    const ownership = await this.getOwnershipRecord(roomId)
+    if (!ownership) {
+      return true
+    }
+
+    const leaseValid = this.isOwnershipLeaseActive(ownership)
+    if (leaseValid) {
+      logger.debug(
+        {
+          roomId,
+          targetInstanceId,
+          ownershipOwner: ownership.ownerInstanceId,
+          ownershipStatus: ownership.status,
+          leaseExpireAt: ownership.leaseExpireAt,
+        },
+        'Ownership lease is still valid, room cleanup is blocked',
+      )
+      return false
+    }
+
+    return true
+  }
+
+  private isOwnershipLeaseActive(ownership: RuntimeOwnershipRecord): boolean {
+    const leaseValid = ownership.leaseExpireAt === undefined || ownership.leaseExpireAt > Date.now()
+    const statusActive = ownership.status === 'active' || ownership.status === 'draining'
+    return leaseValid && statusActive
+  }
+
+  private async resolveRequestOwnerInstanceId(roomState: RoomState, action?: string): Promise<string> {
+    const ownership = await this.getOwnershipRecord(roomState.id)
+    if (!ownership) {
+      return roomState.instanceId
+    }
+
+    if (!this.isOwnershipLeaseActive(ownership)) {
+      return roomState.instanceId
+    }
+
+    if (ownership.status === 'draining' && action && this.isMutationAction(action)) {
+      // During draining, mutation prefers room routing target (new owner) when present.
+      if (roomState.instanceId && roomState.instanceId !== ownership.ownerInstanceId) {
+        return roomState.instanceId
+      }
+    }
+
+    return ownership.ownerInstanceId
+  }
+
+  private async getOwnershipRecord(roomId: string): Promise<RuntimeOwnershipRecord | null> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      const raw = await client.get(REDIS_KEYS.BATTLE_RUNTIME_OWNERSHIP(roomId))
+      if (!raw) return null
+      return JSON.parse(raw) as RuntimeOwnershipRecord
+    } catch (error) {
+      logger.warn({ roomId, error }, 'Failed to read ownership record, skip destructive orphan cleanup')
+      return null
+    }
+  }
+
+  private async isOwnerInstanceUnavailable(ownerInstanceId: string): Promise<boolean> {
+    const ownerInstance = await this.stateManager.getInstance(ownerInstanceId)
+    if (!ownerInstance) {
+      return true
+    }
+
+    if (ownerInstance.status !== 'healthy') {
+      return true
+    }
+
+    const heartbeatTtlMs = TTLHelper.getTTLForDataType('serviceInstance', 'heartbeat')
+    return Date.now() - ownerInstance.lastHeartbeat > heartbeatTtlMs
+  }
+
+  private async forceClaimRuntimeOwnership(roomId: string): Promise<RuntimeOwnershipRecord> {
+    const now = Date.now()
+    const leaseTtlMs = TTLHelper.getTTLForDataType('lock')
+    const record: RuntimeOwnershipRecord = {
+      roomId,
+      ownerInstanceId: this.instanceId,
+      status: 'active',
+      leaseExpireAt: now + leaseTtlMs,
+      lastUpdatedAt: now,
+    }
+    const ttlSeconds = Math.max(1, Math.ceil(leaseTtlMs / 1000))
+    const client = this.stateManager.redisManager.getClient()
+    await client.setex(REDIS_KEYS.BATTLE_RUNTIME_OWNERSHIP(roomId), ttlSeconds, JSON.stringify(record))
+    return record
+  }
+
+  private async readBattleStateSnapshot(roomId: string, playerId: string): Promise<BattleState | null> {
+    try {
+      const client = this.stateManager.redisManager.getClient()
+      const raw = await client.get(REDIS_KEYS.BATTLE_RUNTIME_PLAYER_SNAPSHOT(roomId, playerId))
+      if (!raw) {
+        return null
+      }
+      return JSON.parse(raw) as BattleState
+    } catch (error) {
+      logger.warn({ roomId, playerId, error }, 'Failed to read battle state snapshot')
+      return null
+    }
+  }
+
+  private getOwnershipCoordinator(): RedisOwnershipCoordinator {
+    if (!this.ownershipCoordinator) {
+      this.ownershipCoordinator = new RedisOwnershipCoordinator(this.stateManager.redisManager, this.instanceId)
+    }
+    return this.ownershipCoordinator
+  }
+
+  private async claimRuntimeOwnership(roomId: string): Promise<RuntimeOwnershipRecord> {
+    return this.getOwnershipCoordinator().claim(roomId, this.instanceId)
+  }
+
+  private async tryRequestDrivenTakeover(
+    targetInstanceId: string,
+    action: string,
+    playerId: string,
+    data: any,
+  ): Promise<TakeoverResult> {
+    const roomId = typeof data?.roomId === 'string' ? data.roomId : undefined
+    if (!roomId) {
+      return { kind: 'retry' }
+    }
+
+    const localBattle =
+      typeof this.battleService?.getLocalBattle === 'function' ? this.battleService.getLocalBattle(roomId) : undefined
+    const recoverLocalBattleRuntime =
+      typeof this.battleService?.recoverLocalBattleRuntime === 'function'
+        ? this.battleService.recoverLocalBattleRuntime.bind(this.battleService)
+        : undefined
+    if (!localBattle && !recoverLocalBattleRuntime) {
+      await this.markRoomEndedForUnrecoverableTakeover(roomId, {
+        targetInstanceId,
+        action,
+        playerId,
+        trigger: 'request-driven',
+        reason: 'recovery-hook-missing',
+      })
+      logger.warn(
+        {
+          roomId,
+          targetInstanceId,
+          action,
+          playerId,
+        },
+        'Request-driven takeover ended room because local runtime is missing and no recovery hook is available',
+      )
+      return { kind: 'retry' }
+    }
+
+    try {
+      const claimed = await this.claimRuntimeOwnership(roomId)
+      if (claimed.ownerInstanceId !== this.instanceId) {
+        const ownerUnavailable = await this.isOwnerInstanceUnavailable(claimed.ownerInstanceId)
+        if (ownerUnavailable) {
+          logger.warn(
+            {
+              roomId,
+              targetInstanceId,
+              action,
+              claimOwner: claimed.ownerInstanceId,
+              currentInstance: this.instanceId,
+            },
+            'Request-driven takeover detected unavailable owner, forcing ownership preemption',
+          )
+          const preempted = await this.forceClaimRuntimeOwnership(roomId)
+          if (preempted.ownerInstanceId !== this.instanceId) {
+            logger.warn(
+              {
+                roomId,
+                targetInstanceId,
+                action,
+                claimOwner: preempted.ownerInstanceId,
+                currentInstance: this.instanceId,
+              },
+              'Request-driven takeover preemption did not claim ownership, retry later',
+            )
+            return { kind: 'retry' }
+          }
+        } else {
+          logger.warn(
+            {
+              roomId,
+              targetInstanceId,
+              action,
+              claimOwner: claimed.ownerInstanceId,
+              currentInstance: this.instanceId,
+            },
+            'Request-driven takeover lost to another candidate, retry later',
+          )
+          return { kind: 'retry' }
+        }
+      }
+
+      if (!localBattle && recoverLocalBattleRuntime) {
+        const recovered = await recoverLocalBattleRuntime(roomId)
+        if (!recovered) {
+          await this.markRoomEndedForUnrecoverableTakeover(roomId, {
+            targetInstanceId,
+            action,
+            playerId,
+            trigger: 'request-driven',
+            reason: 'runtime-recovery-failed',
+          })
+          try {
+            await this.getOwnershipCoordinator().release(roomId, this.instanceId)
+          } catch (releaseError) {
+            logger.warn(
+              { roomId, releaseError },
+              'Failed to release ownership after unsuccessful request-driven takeover recovery',
+            )
+          }
+
+          logger.warn(
+            {
+              roomId,
+              targetInstanceId,
+              action,
+              playerId,
+            },
+            'Request-driven takeover ended room because local runtime recovery failed',
+          )
+          return { kind: 'retry' }
+        }
+      }
+
+      const roomState = await this.stateManager.getRoomState(roomId)
+      if (roomState) {
+        roomState.instanceId = this.instanceId
+        roomState.lastActive = Date.now()
+        await this.stateManager.setRoomState(roomState)
+      }
+
+      const result = await this.handleActionAsCurrentOwner(action, playerId, data)
+      logger.info({ roomId, action, playerId, previousOwner: targetInstanceId }, 'Request-driven takeover succeeded')
+      return { kind: 'handled', result }
+    } catch (error) {
+      logger.warn(
+        {
+          roomId,
+          targetInstanceId,
+          action,
+          playerId,
+          error: error instanceof Error ? error.message : error,
+        },
+        'Request-driven takeover failed',
+      )
+      return { kind: 'failed' }
+    }
+  }
+
+  private async markRoomEndedForUnrecoverableTakeover(
+    roomId: string,
+    options: {
+      targetInstanceId: string
+      action: string
+      playerId: string
+      trigger: 'request-driven' | 'autonomous'
+      reason: 'recovery-hook-missing' | 'runtime-recovery-failed'
+    },
+  ): Promise<void> {
+    try {
+      const roomState = await this.stateManager.getRoomState(roomId)
+      if (!roomState) {
+        return
+      }
+
+      const now = Date.now()
+      roomState.status = 'ended'
+      roomState.instanceId = this.instanceId
+      roomState.lastActive = now
+      roomState.metadata = {
+        ...(roomState.metadata || {}),
+        terminatedAt: now,
+        terminationReason: 'takeover-recovery-failed',
+        takeoverFailure: {
+          trigger: options.trigger,
+          reason: options.reason,
+          action: options.action,
+          targetInstanceId: options.targetInstanceId,
+          playerId: options.playerId,
+        },
+      }
+
+      await this.stateManager.setRoomState(roomState)
+      await this.cleanupSessionRoomMappings(roomState)
+      await this.cleanupBattleStateSnapshotsForRoom(roomState)
+
+      const sessionRecords: Array<{ playerId: string; sessionId: string }> = []
+      for (const sessionId of roomState.sessions) {
+        const sessionPlayerId = roomState.sessionPlayers[sessionId]
+        if (sessionPlayerId) {
+          sessionRecords.push({ playerId: sessionPlayerId, sessionId })
+        }
+      }
+
+      if (sessionRecords.length > 0) {
+        if (
+          this.sessionStateManager
+          && typeof this.sessionStateManager.batchUpdateSessionStates === 'function'
+        ) {
+          await this.sessionStateManager.batchUpdateSessionStates(sessionRecords, 'idle')
+        }
+        await Promise.all(
+          sessionRecords.map(({ playerId, sessionId }) =>
+            this.sendToPlayerSession(playerId, sessionId, 'roomClosed', { roomId }),
+          ),
+        )
+      }
+
+      if (typeof this.battleService?.cleanupLocalRoom === 'function') {
+        await this.battleService.cleanupLocalRoom(roomId)
+      }
+
+      logger.warn(
+        {
+          roomId,
+          trigger: options.trigger,
+          reason: options.reason,
+          action: options.action,
+          playerId: options.playerId,
+          targetInstanceId: options.targetInstanceId,
+        },
+        'Marked room as ended because takeover runtime recovery is not possible',
+      )
+    } catch (error) {
+      logger.error(
+        {
+          error,
+          roomId,
+          trigger: options.trigger,
+          reason: options.reason,
+          action: options.action,
+          playerId: options.playerId,
+          targetInstanceId: options.targetInstanceId,
+        },
+        'Failed to mark room as ended after takeover recovery failure',
+      )
+    }
+  }
+
+  private async handleActionAsCurrentOwner(action: string, playerId: string, data: any): Promise<any> {
+    const roomId = typeof data?.roomId === 'string' ? data.roomId : undefined
+    if (roomId && this.isMutationAction(action)) {
+      await this.ensureLocalMutationAllowed(roomId, action)
+    }
+
+    switch (action) {
+      case 'submitPlayerSelection':
+        if (!roomId) throw new Error('Room ID is required')
+        return this.battleService.handleLocalPlayerSelection(roomId, playerId, data.selection || data)
+      case 'getState':
+        if (!roomId) throw new Error('Room ID is required')
+        return this.battleService.handleLocalGetState(roomId, playerId)
+      case 'getAvailableSelection':
+        if (!roomId) throw new Error('Room ID is required')
+        return this.battleService.handleLocalGetSelection(roomId, playerId)
+      case 'ready':
+        if (!roomId) throw new Error('Room ID is required')
+        return this.battleService.handleLocalReady(roomId, playerId)
+      case 'player-abandon':
+        if (!roomId) throw new Error('Room ID is required')
+        return this.battleService.handleLocalPlayerAbandon(roomId, playerId)
+      case 'reportAnimationEnd':
+        if (!roomId) throw new Error('Room ID is required')
+        return this.battleService.handleLocalReportAnimationEnd(roomId, playerId, data)
+      case 'isTimerEnabled':
+        if (!roomId) throw new Error('Room ID is required')
+        return this.battleService.handleLocalIsTimerEnabled(roomId, playerId)
+      case 'getPlayerTimerState':
+        if (!roomId) throw new Error('Room ID is required')
+        return this.battleService.handleLocalGetPlayerTimerState(roomId, playerId, data)
+      case 'getAllPlayerTimerStates':
+        if (!roomId) throw new Error('Room ID is required')
+        return this.battleService.handleLocalGetAllPlayerTimerStates(roomId, playerId)
+      case 'getTimerConfig':
+        if (!roomId) throw new Error('Room ID is required')
+        return this.battleService.handleLocalGetTimerConfig(roomId, playerId)
+      case 'startAnimation':
+        if (!roomId) throw new Error('Room ID is required')
+        return this.battleService.handleLocalStartAnimation(roomId, playerId, data)
+      case 'endAnimation':
+        if (!roomId) throw new Error('Room ID is required')
+        return this.battleService.handleLocalEndAnimation(roomId, playerId, data)
+      case 'startReconnectGraceTimer':
+        if (!roomId) throw new Error('Room ID is required')
+        return this.battleService.pauseBattleForDisconnect(roomId, playerId)
+      case 'cancelReconnectGraceTimer':
+        if (!roomId) throw new Error('Room ID is required')
+        return this.battleService.resumeBattleAfterReconnect(roomId, playerId)
+      case 'force-terminate-battle':
+        if (!roomId) throw new Error('Room ID is required')
+        return this.battleService.handleLocalBattleTermination(roomId, playerId, data.reason || 'abandon')
+      case 'cleanupDisconnectedPlayer':
+        await this.battleService.removeDisconnectedPlayer(`${data.playerId}:${data.sessionId}`)
+        return { success: true }
+      default:
+        throw new Error(`Unknown action type: ${action}`)
+    }
+  }
+
+  private isMutationAction(action: string): boolean {
+    return (
+      action === 'submitPlayerSelection' ||
+      action === 'ready' ||
+      action === 'player-abandon' ||
+      action === 'reportAnimationEnd' ||
+      action === 'startAnimation' ||
+      action === 'endAnimation' ||
+      action === 'startReconnectGraceTimer' ||
+      action === 'cancelReconnectGraceTimer' ||
+      action === 'force-terminate-battle'
+    )
+  }
+
+  private async ensureLocalMutationAllowed(roomId: string, action: string): Promise<void> {
+    const ownership = await this.getOwnershipRecord(roomId)
+    if (!ownership) {
+      return
+    }
+
+    const isCurrentOwner = ownership.ownerInstanceId === this.instanceId
+    const activeLease = this.isOwnershipLeaseActive(ownership)
+    const draining = ownership.status === 'draining'
+    if (isCurrentOwner && activeLease && draining) {
+      logger.warn(
+        {
+          roomId,
+          action,
+          ownerInstanceId: ownership.ownerInstanceId,
+          status: ownership.status,
+          leaseExpireAt: ownership.leaseExpireAt,
+        },
+        'Rejecting local mutation while ownership is draining',
+      )
+      throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+    }
+  }
+
+  private getForwardFailureKey(roomId: string, targetInstanceId: string): string {
+    return `${roomId}:${targetInstanceId}`
+  }
+
+  private clearForwardFailureWindow(roomId: string, targetInstanceId: string): void {
+    this.forwardFailureWindows.delete(this.getForwardFailureKey(roomId, targetInstanceId))
+  }
+
+  private recordForwardFailure(roomId: string, targetInstanceId: string): ForwardFailureWindow {
+    const now = Date.now()
+    const key = this.getForwardFailureKey(roomId, targetInstanceId)
+    const existing = this.forwardFailureWindows.get(key)
+
+    if (!existing || now - existing.firstFailureAt > this.FORWARD_FAILOVER_WINDOW_MS) {
+      const created: ForwardFailureWindow = {
+        failureCount: 1,
+        firstFailureAt: now,
+        lastFailureAt: now,
+      }
+      this.forwardFailureWindows.set(key, created)
+      return created
+    }
+
+    const next: ForwardFailureWindow = {
+      failureCount: existing.failureCount + 1,
+      firstFailureAt: existing.firstFailureAt,
+      lastFailureAt: now,
+    }
+    this.forwardFailureWindows.set(key, next)
+    return next
+  }
+
+  private isRetryableForwardError(error: unknown): boolean {
+    if (!error) return false
+
+    const grpcCode = (error as any)?.code
+    if (grpcCode === 4 || grpcCode === 14) {
+      return true
+    }
+
+    const message = error instanceof Error ? error.message : String(error)
+    const lower = message.toLowerCase()
+    if (lower.includes('rpc_timeout')) return true
+    if (lower.includes('forward_action_timeout')) return true
+    if (lower.includes('deadline exceeded')) return true
+    if (lower.includes('timed out')) return true
+    if (lower.includes('unavailable')) return true
+    return false
   }
 
   /**
@@ -1704,6 +2562,7 @@ export class ClusterBattleServer {
       }
 
       // 清理房间状态
+      await this.cleanupBattleStateSnapshotsForRoom(roomState)
       await this.stateManager.removeRoomState(roomId)
 
       // 清理会话房间映射（已在 removeRoomState 中处理）
@@ -1711,6 +2570,45 @@ export class ClusterBattleServer {
       logger.info({ roomId, targetInstanceId }, 'Orphaned room cleaned up successfully')
     } catch (error) {
       logger.error({ error, targetInstanceId, roomId, playerId }, 'Error cleaning up orphaned room')
+    }
+  }
+
+  private async cleanupBattleStateSnapshotsForRoom(room: {
+    id: string
+    sessions?: string[]
+    sessionPlayers?: Record<string, string>
+    spectators?: Array<{ playerId: string; sessionId: string }>
+  }): Promise<void> {
+    try {
+      const playerIds = new Set<string>()
+      if (room.sessions && room.sessionPlayers) {
+        for (const sessionId of room.sessions) {
+          const playerId = room.sessionPlayers[sessionId]
+          if (playerId) {
+            playerIds.add(playerId)
+          }
+        }
+      }
+      if (room.spectators) {
+        for (const spectator of room.spectators) {
+          if (spectator.playerId) {
+            playerIds.add(spectator.playerId)
+          }
+        }
+      }
+
+      if (playerIds.size === 0) {
+        return
+      }
+
+      const client = this.stateManager.redisManager.getClient()
+      await Promise.all(
+        Array.from(playerIds).map(playerId => client.del(REDIS_KEYS.BATTLE_RUNTIME_PLAYER_SNAPSHOT(room.id, playerId))),
+      )
+      await client.del(REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP(room.id))
+      await client.del(REDIS_KEYS.BATTLE_RUNTIME_ACTION_LOG(room.id))
+    } catch (error) {
+      logger.warn({ roomId: room.id, error }, 'Failed to cleanup battle state snapshots for orphaned room')
     }
   }
 
@@ -1950,10 +2848,10 @@ export class ClusterBattleServer {
         throw new Error('BATTLE_NOT_FOUND')
       }
 
-      // 检查房间是否在当前实例
-      if (!this.isRoomInCurrentInstance(roomState)) {
+      const targetInstanceId = await this.resolveRequestOwnerInstanceId(roomState, 'submitPlayerSelection')
+      if (targetInstanceId !== this.instanceId) {
         // 转发到正确的实例并等待响应，传递roomId
-        const result = await this.forwardPlayerAction(roomState.instanceId, 'submitPlayerSelection', playerId, {
+        const result = await this.forwardPlayerAction(targetInstanceId, 'submitPlayerSelection', playerId, {
           roomId: roomState.id,
           selection: rawData,
         })
@@ -1966,6 +2864,7 @@ export class ClusterBattleServer {
       }
 
       // 在当前实例处理
+      await this.ensureLocalMutationAllowed(roomState.id, 'submitPlayerSelection')
       const result = await this.battleService.handleLocalPlayerSelection(roomState.id, playerId, rawData)
 
       ack?.({
@@ -2014,28 +2913,81 @@ export class ClusterBattleServer {
         'Found player room for getState',
       )
 
-      // 检查房间是否在当前实例
-      if (!this.isRoomInCurrentInstance(roomState)) {
+      const targetInstanceId = await this.resolveRequestOwnerInstanceId(roomState, 'getState')
+      if (targetInstanceId !== this.instanceId) {
         logger.debug(
           {
             playerId,
             roomId: roomState.id,
-            targetInstance: roomState.instanceId,
+            targetInstance: targetInstanceId,
             currentInstance: this.instanceId,
           },
           'Forwarding getState to correct instance',
         )
 
         // 转发到正确的实例获取最新状态，传递roomId
-        const result = await this.forwardPlayerAction(roomState.instanceId, 'getState', playerId, {
-          roomId: roomState.id,
-        })
+        let result: any
+        try {
+          result = await this.forwardPlayerAction(targetInstanceId, 'getState', playerId, {
+            roomId: roomState.id,
+          })
+        } catch (forwardError) {
+          const shouldAttemptTakeover =
+            (forwardError instanceof Error && forwardError.message === BATTLE_OWNER_TEMP_UNAVAILABLE)
+            || this.isRetryableForwardError(forwardError)
+
+          if (shouldAttemptTakeover) {
+            const takeover = await this.tryRequestDrivenTakeover(targetInstanceId, 'getState', playerId, {
+              roomId: roomState.id,
+            })
+            if (takeover.kind === 'handled') {
+              result = takeover.result
+            }
+          }
+
+          if (result !== undefined) {
+            ack?.({
+              status: 'SUCCESS',
+              data: result,
+            })
+            return
+          }
+
+          const localBattle = this.getLocalBattle(roomState.id)
+          if (localBattle) {
+            logger.warn(
+              {
+                playerId,
+                roomId: roomState.id,
+                targetInstance: targetInstanceId,
+                error: forwardError instanceof Error ? forwardError.message : forwardError,
+              },
+              'Forward getState failed, serving local fallback state',
+            )
+            result = await this.battleService.handleLocalGetState(roomState.id, playerId)
+          } else {
+            const snapshot = await this.readBattleStateSnapshot(roomState.id, playerId)
+            if (!snapshot) {
+              throw forwardError
+            }
+            logger.warn(
+              {
+                playerId,
+                roomId: roomState.id,
+                targetInstance: targetInstanceId,
+                error: forwardError instanceof Error ? forwardError.message : forwardError,
+              },
+              'Forward getState failed, serving Redis snapshot fallback state',
+            )
+            result = snapshot
+          }
+        }
 
         logger.debug(
           {
             playerId,
             roomId: roomState.id,
-            targetInstance: roomState.instanceId,
+            targetInstance: targetInstanceId,
             result: typeof result,
           },
           'getState forwarding completed',
@@ -2085,17 +3037,36 @@ export class ClusterBattleServer {
         throw new Error('NOT_IN_BATTLE')
       }
 
-      // 检查房间是否在当前实例
-      if (!this.isRoomInCurrentInstance(roomState)) {
-        // 转发到正确的实例，传递roomId
-        const result = await this.forwardPlayerAction(roomState.instanceId, 'getAvailableSelection', playerId, {
-          roomId: roomState.id,
-        })
-        ack?.({
-          status: 'SUCCESS',
-          data: result,
-        })
-        return
+      const targetInstanceId = await this.resolveRequestOwnerInstanceId(roomState, 'getAvailableSelection')
+      if (targetInstanceId !== this.instanceId) {
+        try {
+          // 转发到正确的实例，传递roomId
+          const result = await this.forwardPlayerAction(targetInstanceId, 'getAvailableSelection', playerId, {
+            roomId: roomState.id,
+          })
+          ack?.({
+            status: 'SUCCESS',
+            data: result,
+          })
+          return
+        } catch (forwardError) {
+          const shouldAttemptTakeover =
+            (forwardError instanceof Error && forwardError.message === BATTLE_OWNER_TEMP_UNAVAILABLE)
+            || this.isRetryableForwardError(forwardError)
+          if (shouldAttemptTakeover) {
+            const takeover = await this.tryRequestDrivenTakeover(targetInstanceId, 'getAvailableSelection', playerId, {
+              roomId: roomState.id,
+            })
+            if (takeover.kind === 'handled') {
+              ack?.({
+                status: 'SUCCESS',
+                data: takeover.result,
+              })
+              return
+            }
+          }
+          throw forwardError
+        }
       }
 
       // 在当前实例处理
@@ -2142,11 +3113,11 @@ export class ClusterBattleServer {
         return
       }
 
-      // 检查房间是否在当前实例
-      if (!this.isRoomInCurrentInstance(roomState)) {
+      const targetInstanceId = await this.resolveRequestOwnerInstanceId(roomState, 'ready')
+      if (targetInstanceId !== this.instanceId) {
         // 添加超时保护的转发操作
         const result = await Promise.race([
-          this.forwardPlayerAction(roomState.instanceId, 'ready', playerId, { roomId: roomState.id }),
+          this.forwardPlayerAction(targetInstanceId, 'ready', playerId, { roomId: roomState.id }),
           new Promise<any>((_, reject) => setTimeout(() => reject(new Error('FORWARD_ACTION_TIMEOUT')), 10000)),
         ])
         ack?.({ status: 'SUCCESS', data: { status: result.status as 'READY' } })
@@ -2154,6 +3125,7 @@ export class ClusterBattleServer {
       }
 
       // 在当前实例处理
+      await this.ensureLocalMutationAllowed(roomState.id, 'ready')
       const result = await this.battleService.handleLocalReady(roomState.id, playerId)
 
       logger.info({ socketId: socket.id, roomId: roomState.id, playerId }, '玩家已准备')
@@ -2185,16 +3157,17 @@ export class ClusterBattleServer {
         return
       }
 
-      // 如果房间在当前实例，处理动画结束
-      if (this.isRoomInCurrentInstance(roomState)) {
+      const targetInstanceId = await this.resolveRequestOwnerInstanceId(roomState, 'reportAnimationEnd')
+      if (targetInstanceId === this.instanceId) {
+        await this.ensureLocalMutationAllowed(roomState.id, 'reportAnimationEnd')
         const battle = this.getLocalBattle(roomState.id)
         if (battle && data.animationId) {
           // 结束动画追踪
-          battle.endAnimation(data.animationId, data.actualDuration)
+          await battle.endAnimation(data.animationId, data.actualDuration)
         }
       } else {
         // 转发到正确的实例，传递roomId
-        await this.forwardPlayerAction(roomState.instanceId, 'reportAnimationEnd', playerId, {
+        await this.forwardPlayerAction(targetInstanceId, 'reportAnimationEnd', playerId, {
           ...data,
           roomId: roomState.id,
         })
@@ -2238,14 +3211,14 @@ export class ClusterBattleServer {
       }
 
       let timerEnabled: boolean
-      // 如果房间在当前实例，获取实际状态
-      if (this.isRoomInCurrentInstance(roomState)) {
+      const targetInstanceId = await this.resolveRequestOwnerInstanceId(roomState, 'isTimerEnabled')
+      if (targetInstanceId === this.instanceId) {
         const battle = this.getLocalBattle(roomState.id)
-        timerEnabled = battle?.isTimerEnabled() ?? false
+        timerEnabled = battle ? await battle.isTimerEnabled() : false
       } else {
         try {
           // 转发到正确的实例，传递roomId
-          timerEnabled = await this.forwardPlayerAction(roomState.instanceId, 'isTimerEnabled', playerId, {
+          timerEnabled = await this.forwardPlayerAction(targetInstanceId, 'isTimerEnabled', playerId, {
             roomId: roomState.id,
           })
 
@@ -2263,7 +3236,7 @@ export class ClusterBattleServer {
                   : forwardError,
               playerId,
               roomId: roomState.id,
-              targetInstance: roomState.instanceId,
+              targetInstance: targetInstanceId,
             },
             'Failed to forward isTimerEnabled, returning default value',
           )
@@ -2310,14 +3283,15 @@ export class ClusterBattleServer {
         return
       }
 
-      // 如果房间在当前实例，获取实际状态
-      if (this.isRoomInCurrentInstance(roomState)) {
+      const targetInstanceId = await this.resolveRequestOwnerInstanceId(roomState, 'getPlayerTimerState')
+      if (targetInstanceId === this.instanceId) {
         const battle = this.getLocalBattle(roomState.id)
-        const timerState = battle?.getAllPlayerTimerStates().find(state => state.playerId === playerId) ?? null
+        const allStates = battle ? await battle.getAllPlayerTimerStates() : []
+        const timerState = allStates.find(state => state.playerId === playerId) ?? null
         ack?.({ status: 'SUCCESS', data: timerState })
       } else {
         // 转发到正确的实例，传递roomId
-        const result = await this.forwardPlayerAction(roomState.instanceId, 'getPlayerTimerState', playerId, {
+        const result = await this.forwardPlayerAction(targetInstanceId, 'getPlayerTimerState', playerId, {
           ...data,
           roomId: roomState.id,
         })
@@ -2348,14 +3322,14 @@ export class ClusterBattleServer {
         return
       }
 
-      // 如果房间在当前实例，获取实际状态
-      if (this.isRoomInCurrentInstance(roomState)) {
+      const targetInstanceId = await this.resolveRequestOwnerInstanceId(roomState, 'getAllPlayerTimerStates')
+      if (targetInstanceId === this.instanceId) {
         const battle = this.getLocalBattle(roomState.id)
-        const allTimerStates = battle?.getAllPlayerTimerStates() ?? []
+        const allTimerStates = battle ? await battle.getAllPlayerTimerStates() : []
         ack?.({ status: 'SUCCESS', data: allTimerStates })
       } else {
         // 转发到正确的实例，传递roomId
-        const result = await this.forwardPlayerAction(roomState.instanceId, 'getAllPlayerTimerStates', playerId, {
+        const result = await this.forwardPlayerAction(targetInstanceId, 'getAllPlayerTimerStates', playerId, {
           roomId: roomState.id,
         })
         ack?.({ status: 'SUCCESS', data: result })
@@ -2385,14 +3359,14 @@ export class ClusterBattleServer {
         return
       }
 
-      // 如果房间在当前实例，获取实际配置
-      if (this.isRoomInCurrentInstance(roomState)) {
+      const targetInstanceId = await this.resolveRequestOwnerInstanceId(roomState, 'getTimerConfig')
+      if (targetInstanceId === this.instanceId) {
         const battle = this.getLocalBattle(roomState.id)
-        const timerConfig = battle?.getTimerConfig() ?? {}
+        const timerConfig = battle ? await battle.getTimerConfig() : {}
         ack?.({ status: 'SUCCESS', data: timerConfig })
       } else {
         // 转发到正确的实例，传递roomId
-        const result = await this.forwardPlayerAction(roomState.instanceId, 'getTimerConfig', playerId, {
+        const result = await this.forwardPlayerAction(targetInstanceId, 'getTimerConfig', playerId, {
           roomId: roomState.id,
         })
         ack?.({ status: 'SUCCESS', data: result })
@@ -2422,18 +3396,19 @@ export class ClusterBattleServer {
         return
       }
 
-      // 如果房间在当前实例，处理动画开始
-      if (this.isRoomInCurrentInstance(roomState)) {
+      const targetInstanceId = await this.resolveRequestOwnerInstanceId(roomState, 'startAnimation')
+      if (targetInstanceId === this.instanceId) {
+        await this.ensureLocalMutationAllowed(roomState.id, 'startAnimation')
         const battle = this.getLocalBattle(roomState.id)
         if (battle && data.source && data.expectedDuration && data.ownerId) {
-          const animationId = battle.startAnimation(data.source, data.expectedDuration, data.ownerId as playerId)
+          const animationId = await battle.startAnimation(data.source, data.expectedDuration, data.ownerId as playerId)
           ack?.({ status: 'SUCCESS', data: animationId })
         } else {
           ack?.({ status: 'ERROR', code: 'BATTLE_NOT_FOUND', details: 'Battle instance not found or invalid data' })
         }
       } else {
         // 转发到正确的实例，传递roomId
-        const result = await this.forwardPlayerAction(roomState.instanceId, 'startAnimation', playerId, {
+        const result = await this.forwardPlayerAction(targetInstanceId, 'startAnimation', playerId, {
           ...data,
           roomId: roomState.id,
         })
@@ -2464,15 +3439,16 @@ export class ClusterBattleServer {
         return
       }
 
-      // 如果房间在当前实例，处理动画结束
-      if (this.isRoomInCurrentInstance(roomState)) {
+      const targetInstanceId = await this.resolveRequestOwnerInstanceId(roomState, 'endAnimation')
+      if (targetInstanceId === this.instanceId) {
+        await this.ensureLocalMutationAllowed(roomState.id, 'endAnimation')
         const battle = this.getLocalBattle(roomState.id)
         if (battle && data.animationId) {
-          battle.endAnimation(data.animationId, data.actualDuration)
+          await battle.endAnimation(data.animationId, data.actualDuration)
         }
       } else {
         // 转发到正确的实例，传递roomId
-        await this.forwardPlayerAction(roomState.instanceId, 'endAnimation', playerId, {
+        await this.forwardPlayerAction(targetInstanceId, 'endAnimation', playerId, {
           ...data,
           roomId: roomState.id,
         })
@@ -2487,32 +3463,15 @@ export class ClusterBattleServer {
   /**
    * 验证原始玩家数据格式（不解析为实例）
    */
-  private validateRawPlayerData(rawData: unknown): ReturnType<typeof PlayerSchema.parse> {
+  private validateRawPlayerData(rawData: unknown): Static<typeof PlayerSchema> {
     try {
-      // 使用PlayerSchema进行验证，但不解析为实例
-      return PlayerSchema.parse(rawData)
+      return parseWithErrors(PlayerSchema, rawData)
     } catch (error) {
-      if (error instanceof ZodError) {
-        logger.warn({ error: error.issues, rawData }, 'Raw player data validation failed')
-        throw new Error(`Invalid player data: ${error.issues.map((e: any) => e.message).join(', ')}`)
+      if (error instanceof Error) {
+        logger.warn({ error: error.message, rawData }, 'Raw player data validation failed')
+        throw new Error(`Invalid player data: ${error.message}`)
       }
       throw new Error('Failed to validate raw player data')
-    }
-  }
-
-  /**
-   * 验证并解析玩家数据为Player实例
-   */
-  private validatePlayerData(rawData: unknown): ReturnType<typeof PlayerParser.parse> {
-    try {
-      // 使用PlayerParser进行验证和解析
-      return PlayerParser.parse(rawData)
-    } catch (error) {
-      if (error instanceof ZodError) {
-        logger.warn({ error: error.issues, rawData }, 'Player data validation failed')
-        throw new Error(`Invalid player data: ${error.issues.map((e: any) => e.message).join(', ')}`)
-      }
-      throw new Error('Failed to validate player data')
     }
   }
 
@@ -2720,19 +3679,19 @@ export class ClusterBattleServer {
   private async notifyClientsRoomCleaned(roomId: string, reason: string): Promise<void> {
     try {
       // 获取房间内的所有客户端
-      const roomSockets = this.io.sockets.adapter.rooms.get(roomId)
+      const roomSocketIds = this.clientRealtimeGateway.getRoomSocketIds(roomId)
 
-      if (roomSockets && roomSockets.size > 0) {
-        logger.info({ roomId, clientCount: roomSockets.size, reason }, 'Notifying clients that room was cleaned up')
+      if (roomSocketIds.length > 0) {
+        logger.info({ roomId, clientCount: roomSocketIds.length, reason }, 'Notifying clients that room was cleaned up')
 
         // 向房间内所有客户端发送清理通知
-        this.io.to(roomId).emit('roomClosed', {
+        this.clientRealtimeGateway.emitToRoom(roomId, 'roomClosed', {
           roomId,
         })
 
         // 断开所有客户端与房间的连接
-        for (const socketId of roomSockets) {
-          const socket = this.io.sockets.sockets.get(socketId)
+        for (const socketId of roomSocketIds) {
+          const socket = this.clientRealtimeGateway.getSocketById(socketId)
           if (socket) {
             socket.leave(roomId)
           }
@@ -2748,7 +3707,7 @@ export class ClusterBattleServer {
    */
   private async handleInstanceCrash(instanceId: string): Promise<void> {
     try {
-      logger.warn({ instanceId }, 'Handling instance crash, starting room cleanup')
+      logger.warn({ instanceId }, 'Handling instance crash, evaluating recoverable rooms')
 
       // 获取所有房间
       const allRooms = await this.stateManager.getRooms()
@@ -2761,18 +3720,28 @@ export class ClusterBattleServer {
         return
       }
 
+      // active/waiting 房间保留，等待请求驱动 takeover
+      const recoverableRooms = crashedInstanceRooms.filter((room: any) => room.status === 'active' || room.status === 'waiting')
+      const cleanupCandidates = crashedInstanceRooms.filter((room: any) => room.status === 'ended')
+
       logger.warn(
         {
           instanceId,
           roomCount: crashedInstanceRooms.length,
-          roomIds: crashedInstanceRooms.map((r: any) => r.id),
+          recoverableRoomCount: recoverableRooms.length,
+          cleanupCandidateCount: cleanupCandidates.length,
+          recoverableRoomIds: recoverableRooms.map((r: any) => r.id),
+          cleanupCandidateRoomIds: cleanupCandidates.map((r: any) => r.id),
         },
-        'Found rooms belonging to crashed instance, starting cleanup',
+        'Found rooms of crashed instance; preserving active/waiting rooms for takeover and cleaning ended rooms only',
       )
+
+      // 对可恢复房间执行自治 takeover
+      await this.batchAutonomousTakeover(recoverableRooms, 'instance-crash')
 
       // 批量清理房间
       let cleanedCount = 0
-      for (const room of crashedInstanceRooms) {
+      for (const room of cleanupCandidates) {
         try {
           await this.cleanupOrphanedRoomState(room)
           cleanedCount++
@@ -2782,8 +3751,13 @@ export class ClusterBattleServer {
       }
 
       logger.info(
-        { instanceId, totalRooms: crashedInstanceRooms.length, cleanedRooms: cleanedCount },
-        'Completed cleanup of rooms from crashed instance',
+        {
+          instanceId,
+          totalRooms: crashedInstanceRooms.length,
+          cleanedRooms: cleanedCount,
+          preservedRooms: recoverableRooms.length,
+        },
+        'Completed crashed instance room handling',
       )
     } catch (error) {
       logger.error({ error, instanceId }, 'Error handling instance crash')
@@ -2867,7 +3841,7 @@ export class ClusterBattleServer {
       }
     }, this.CLEANUP_INTERVAL)
 
-    this.io.engine.on('close', () => clearInterval(cleaner))
+    this.clientRealtimeGateway.onEngineClose(() => clearInterval(cleaner))
   }
 
   /**
@@ -2896,6 +3870,7 @@ export class ClusterBattleServer {
       const results = await pipeline.exec()
 
       const roomsToCleanup: { roomId: string; instanceId: string }[] = []
+      const takeoverCandidates: RoomState[] = []
 
       if (results) {
         for (let i = 0; i < results.length; i++) {
@@ -2905,6 +3880,14 @@ export class ClusterBattleServer {
           try {
             const roomState = JSON.parse((roomData as any).data || '{}') as RoomState
             if (!roomState.id || !roomState.lastActive) continue
+
+            if (
+              (roomState.status === 'active' || roomState.status === 'waiting')
+              && roomState.instanceId
+              && roomState.instanceId !== this.instanceId
+            ) {
+              takeoverCandidates.push(roomState)
+            }
 
             // 检查房间是否超时
             if (now - roomState.lastActive > timeout) {
@@ -2916,6 +3899,8 @@ export class ClusterBattleServer {
           }
         }
       }
+
+      await this.batchAutonomousTakeover(takeoverCandidates, 'periodic-cleanup')
 
       // 批量处理需要清理的房间
       await this.batchCleanupRooms(roomsToCleanup)
@@ -2959,6 +3944,122 @@ export class ClusterBattleServer {
     for (const [instanceId, roomIds] of roomsByInstance.entries()) {
       await this.notifyInstanceBatchCleanup(instanceId, roomIds)
     }
+  }
+
+  private async batchAutonomousTakeover(rooms: RoomState[], trigger: string): Promise<void> {
+    if (rooms.length === 0) return
+
+    for (const room of rooms) {
+      try {
+        await this.tryAutonomousTakeover(room, trigger)
+      } catch (error) {
+        logger.warn(
+          {
+            roomId: room.id,
+            trigger,
+            error: error instanceof Error ? error.message : error,
+          },
+          'Autonomous takeover attempt failed',
+        )
+      }
+    }
+  }
+
+  private async tryAutonomousTakeover(roomState: RoomState, trigger: string): Promise<boolean> {
+    if (roomState.instanceId === this.instanceId) {
+      return false
+    }
+    if (roomState.status !== 'active' && roomState.status !== 'waiting') {
+      return false
+    }
+
+    const ownerUnavailable = await this.isOwnerInstanceUnavailable(roomState.instanceId)
+    if (!ownerUnavailable) {
+      return false
+    }
+
+    const roomId = roomState.id
+    const previousOwner = roomState.instanceId
+
+    const claimed = await this.claimRuntimeOwnership(roomId)
+    if (claimed.ownerInstanceId !== this.instanceId) {
+      const claimedOwnerUnavailable = await this.isOwnerInstanceUnavailable(claimed.ownerInstanceId)
+      if (!claimedOwnerUnavailable) {
+        logger.debug(
+          { roomId, trigger, claimedOwner: claimed.ownerInstanceId, previousOwner },
+          'Autonomous takeover skipped: ownership already held by another healthy instance',
+        )
+        return false
+      }
+
+      const preempted = await this.forceClaimRuntimeOwnership(roomId)
+      if (preempted.ownerInstanceId !== this.instanceId) {
+        logger.debug(
+          { roomId, trigger, owner: preempted.ownerInstanceId, previousOwner },
+          'Autonomous takeover skipped: force claim lost',
+        )
+        return false
+      }
+    }
+
+    const battleService = this.battleService
+    if (!battleService) {
+      logger.warn({ roomId, trigger }, 'Autonomous takeover skipped: battleService is not initialized')
+      return false
+    }
+
+    const recoverLocalBattleRuntime =
+      typeof battleService.recoverLocalBattleRuntime === 'function'
+      ? battleService.recoverLocalBattleRuntime.bind(battleService)
+      : undefined
+    if (!recoverLocalBattleRuntime) {
+      await this.markRoomEndedForUnrecoverableTakeover(roomId, {
+        targetInstanceId: previousOwner,
+        action: 'autonomous-takeover',
+        playerId: 'system',
+        trigger: 'autonomous',
+        reason: 'recovery-hook-missing',
+      })
+      logger.warn({ roomId, trigger }, 'Autonomous takeover ended room: runtime recovery is not supported')
+      return false
+    }
+
+    const recovered = await recoverLocalBattleRuntime(roomId)
+    if (!recovered) {
+      await this.markRoomEndedForUnrecoverableTakeover(roomId, {
+        targetInstanceId: previousOwner,
+        action: 'autonomous-takeover',
+        playerId: 'system',
+        trigger: 'autonomous',
+        reason: 'runtime-recovery-failed',
+      })
+      try {
+        await this.getOwnershipCoordinator().release(roomId, this.instanceId)
+      } catch (releaseError) {
+        logger.warn({ roomId, trigger, releaseError }, 'Failed to release ownership after takeover recovery failure')
+      }
+
+      logger.warn(
+        { roomId, trigger, previousOwner },
+        'Autonomous takeover ended room: local runtime recovery failed',
+      )
+      return false
+    }
+
+    roomState.instanceId = this.instanceId
+    roomState.lastActive = Date.now()
+    await this.stateManager.setRoomState(roomState)
+
+    logger.info(
+      {
+        roomId,
+        trigger,
+        previousOwner,
+        currentOwner: this.instanceId,
+      },
+      'Autonomous takeover succeeded',
+    )
+    return true
   }
 
   /**
@@ -3311,7 +4412,7 @@ export class ClusterBattleServer {
       })
     }, this.HEARTBEAT_INTERVAL)
 
-    this.io.engine.on('close', () => clearInterval(timer))
+    this.clientRealtimeGateway.onEngineClose(() => clearInterval(timer))
   }
 
   // setupBatchCleanupTask 已移动到 clusterBattleService
@@ -3364,6 +4465,16 @@ export class ClusterBattleServer {
 
         logger.info({ playerId, sessionId, instanceId: this.instanceId }, 'Setting player connection in cluster')
         await this.stateManager.setPlayerConnection(playerId, connection)
+
+        const activeRoomState = await this.getPlayerRoomFromCluster(playerId, sessionId)
+        if (
+          activeRoomState &&
+          activeRoomState.status === 'active' &&
+          activeRoomState.sessionPlayers[sessionId] === playerId &&
+          !activeRoomState.spectators.some(s => s.sessionId === sessionId)
+        ) {
+          await this.routeReconnectTimerAction(activeRoomState.id, playerId, 'startReconnectGraceTimer')
+        }
 
         // 玩家连接后立即广播服务器状态更新
         this.debouncedBroadcastServerState()
@@ -3489,22 +4600,58 @@ export class ClusterBattleServer {
   // === 掉线宽限期处理 ===
 
   private async startDisconnectGracePeriod(playerId: string, sessionId: string, roomId: string) {
-    logger.warn({ playerId, sessionId, roomId }, '玩家在战斗中掉线，启动基于 TTL 的宽限期')
+    logger.warn({ playerId, sessionId, roomId }, '玩家在战斗中掉线，启动 v2 重连宽限期')
 
-    // 暂停战斗计时器
-    await this.battleService.pauseBattleForDisconnect(roomId, playerId)
-
-    // 使用 TTL-based 断线管理，不再使用本地定时器
-    // battleService 会设置 Redis TTL 并监听过期事件
+    // 仅记录重连索引；判负倒计时由 battle v2 timer 执行
     await this.battleService.addDisconnectedPlayer(playerId, sessionId, roomId)
 
-    // 通知对手玩家掉线，包含 TTL 信息
+    // 通知对手玩家掉线
     await this.battleService.notifyOpponentDisconnect(roomId, playerId)
 
     logger.info(
       { playerId, sessionId, roomId, gracePeriodTTL: this.DISCONNECT_GRACE_PERIOD },
-      '断线宽限期已启动，依赖 Redis TTL 自动处理超时'
+      '断线宽限期已启动，超时判负由 battle v2 timer 处理'
     )
+  }
+
+  private async routeReconnectTimerAction(
+    roomId: string,
+    playerId: string,
+    action: 'startReconnectGraceTimer' | 'cancelReconnectGraceTimer',
+  ): Promise<void> {
+    const roomState = await this.stateManager.getRoomState(roomId)
+    if (!roomState) {
+      logger.warn({ roomId, playerId, action }, 'Cannot route reconnect timer action: room not found')
+      return
+    }
+
+    const targetInstanceId = await this.resolveRequestOwnerInstanceId(roomState, action)
+    if (targetInstanceId === this.instanceId) {
+      if (action === 'startReconnectGraceTimer') {
+        await this.battleService.pauseBattleForDisconnect(roomId, playerId)
+      } else {
+        await this.battleService.resumeBattleAfterReconnect(roomId, playerId)
+      }
+      return
+    }
+
+    try {
+      await this.forwardPlayerAction(targetInstanceId, action, playerId, {
+        roomId,
+        playerId,
+      })
+    } catch (error) {
+      logger.warn(
+        {
+          error,
+          roomId,
+          playerId,
+          action,
+          targetInstanceId,
+        },
+        'Failed to route reconnect timer action to owner instance',
+      )
+    }
   }
 
   // pauseBattleForDisconnect 和 notifyOpponentDisconnect 方法已移动到 clusterBattleService
@@ -3516,8 +4663,8 @@ export class ClusterBattleServer {
     // 强制刷新连接状态
     await this.stateManager.forceRefreshPlayerConnection(playerId, sessionId)
 
-    // 恢复战斗状态
-    await this.battleService.resumeBattleAfterReconnect(roomId, playerId)
+    // 重连后立即续期重连宽限计时（后续由 heartbeat 持续续期）
+    await this.routeReconnectTimerAction(roomId, playerId, 'startReconnectGraceTimer')
 
     // 清理待发送消息批次
     await this.battleService.cleanupPlayerBatches(playerId, sessionId)
@@ -3552,7 +4699,9 @@ export class ClusterBattleServer {
 
     if (disconnectInfo) {
       logger.info({ playerId, sessionId, roomId: disconnectInfo.roomId }, '玩家掉线重连成功')
-      clearTimeout(disconnectInfo.graceTimer)
+      if (disconnectInfo.graceTimer) {
+        clearTimeout(disconnectInfo.graceTimer)
+      }
       await this.battleService.removeDisconnectedPlayer(disconnectKey)
 
       await this.resumeBattle(socket, disconnectInfo.roomId)
@@ -3605,8 +4754,8 @@ export class ClusterBattleServer {
         return
       }
 
-      // 检查房间是否在当前实例
-      if (this.isRoomInCurrentInstance(roomState)) {
+      const targetInstanceId = await this.resolveRequestOwnerInstanceId(roomState, 'getPlayerTimerState')
+      if (targetInstanceId === this.instanceId) {
         // 房间在当前实例，直接获取本地战斗
         const battle = this.getLocalBattle(roomId)
         if (battle) {
@@ -3615,7 +4764,7 @@ export class ClusterBattleServer {
           logger.info({ roomId, playerId }, '玩家重连，等待客户端主动获取战斗状态')
 
           // 发送计时器快照
-          const timerState = battle.timerManager.getPlayerState(playerId)
+          const timerState = await battle.getPlayerTimerState(playerId)
           if (timerState) {
             socket.emit('timerSnapshot', {
               snapshots: [timerState],
@@ -3628,14 +4777,14 @@ export class ClusterBattleServer {
           {
             roomId,
             playerId,
-            roomInstance: roomState.instanceId,
+            roomInstance: targetInstanceId,
             currentInstance: this.instanceId,
           },
           '房间在其他实例，通过跨实例调用获取计时器状态',
         )
 
         try {
-          const timerState = await this.forwardPlayerAction(roomState.instanceId, 'getPlayerTimerState', playerId, {
+          const timerState = await this.forwardPlayerAction(targetInstanceId, 'getPlayerTimerState', playerId, {
             roomId,
             playerId,
           })
@@ -3646,7 +4795,7 @@ export class ClusterBattleServer {
             })
           }
         } catch (error) {
-          logger.warn({ error, roomId, playerId, roomInstance: roomState.instanceId }, '跨实例获取计时器状态失败')
+          logger.warn({ error, roomId, playerId, roomInstance: targetInstanceId }, '跨实例获取计时器状态失败')
         }
       }
     } catch (error) {
@@ -3678,7 +4827,7 @@ export class ClusterBattleServer {
   /**
    * 获取本地战斗实例（委托给战斗服务）
    */
-  private getLocalBattle(roomId: string): Battle | undefined {
+  private getLocalBattle(roomId: string): IBattleSystem | undefined {
     return this.battleService.getLocalBattle(roomId)
   }
 
@@ -3782,6 +4931,7 @@ export class ClusterBattleServer {
    * RPC 委托方法：处理玩家选择（委托给战斗服务）
    */
   async handleLocalPlayerSelection(roomId: string, playerId: string, data: any): Promise<{ status: string }> {
+    await this.ensureLocalMutationAllowed(roomId, 'submitPlayerSelection')
     return await this.battleService.handleLocalPlayerSelection(roomId, playerId, data)
   }
 
@@ -3803,6 +4953,7 @@ export class ClusterBattleServer {
    * RPC 委托方法：玩家准备（委托给战斗服务）
    */
   async handleLocalReady(roomId: string, playerId: string): Promise<{ status: string }> {
+    await this.ensureLocalMutationAllowed(roomId, 'ready')
     return await this.battleService.handleLocalReady(roomId, playerId)
   }
 
@@ -3810,6 +4961,7 @@ export class ClusterBattleServer {
    * RPC 委托方法：玩家放弃（委托给战斗服务）
    */
   async handleLocalPlayerAbandon(roomId: string, playerId: string): Promise<{ status: string }> {
+    await this.ensureLocalMutationAllowed(roomId, 'player-abandon')
     return await this.battleService.handleLocalPlayerAbandon(roomId, playerId)
   }
 
@@ -3817,6 +4969,7 @@ export class ClusterBattleServer {
    * RPC 委托方法：动画结束报告（委托给战斗服务）
    */
   async handleLocalReportAnimationEnd(roomId: string, playerId: string, data: any): Promise<{ status: string }> {
+    await this.ensureLocalMutationAllowed(roomId, 'reportAnimationEnd')
     return await this.battleService.handleLocalReportAnimationEnd(roomId, playerId, data)
   }
 
@@ -3852,6 +5005,7 @@ export class ClusterBattleServer {
    * RPC 委托方法：开始动画（委托给战斗服务）
    */
   async handleLocalStartAnimation(roomId: string, playerId: string, data: any): Promise<string> {
+    await this.ensureLocalMutationAllowed(roomId, 'startAnimation')
     return await this.battleService.handleLocalStartAnimation(roomId, playerId, data)
   }
 
@@ -3859,6 +5013,7 @@ export class ClusterBattleServer {
    * RPC 委托方法：结束动画（委托给战斗服务）
    */
   async handleLocalEndAnimation(roomId: string, playerId: string, data: any): Promise<{ status: string }> {
+    await this.ensureLocalMutationAllowed(roomId, 'endAnimation')
     return await this.battleService.handleLocalEndAnimation(roomId, playerId, data)
   }
 
@@ -3866,6 +5021,7 @@ export class ClusterBattleServer {
    * RPC 委托方法：战斗终止（委托给战斗服务）
    */
   async handleLocalBattleTermination(roomId: string, playerId: string, reason: string): Promise<{ status: string }> {
+    await this.ensureLocalMutationAllowed(roomId, 'force-terminate-battle')
     return await this.battleService.handleLocalBattleTermination(roomId, playerId, reason)
   }
 
@@ -3926,7 +5082,7 @@ export class ClusterBattleServer {
         await this.createSessionRoomMappings(roomState)
       },
       joinPlayerToRoom: async (playerId: string, roomId: string) => {
-        await this.socketAdapter.joinPlayerToRoom(playerId, roomId)
+        await this.battleRouting.joinPlayerToRoom(playerId, roomId)
       },
       handlePrivateRoomBattleFinished: async (
         battleRoomId: string,

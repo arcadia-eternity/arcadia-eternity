@@ -15,11 +15,16 @@ import {
 } from '@arcadia-eternity/const'
 import type { IBattleSystem, IDeveloperBattleSystem } from '@arcadia-eternity/interface'
 import * as jsondiffpatch from 'jsondiffpatch'
-import { markRaw } from 'vue'
+import { markRaw, toRaw } from 'vue'
 import { useCloned } from '@vueuse/core'
 import { ReplayBattleInterface } from './replayBattleInterface'
 import { usePlayerStore } from './player'
 import { useEloStore } from './elo'
+
+type BattleEventWithView = (
+  callback: (message: BattleMessage) => void,
+  options?: { viewerId?: playerId; showHidden?: boolean; showAll?: boolean },
+) => () => void
 
 // 类型守卫函数：检查battleInterface是否支持开发者功能
 function isDeveloperBattleSystem(
@@ -30,6 +35,23 @@ function isDeveloperBattleSystem(
     'setDevPlayerRage' in battleInterface &&
     'forceAISelection' in battleInterface &&
     'getAvailableActionsForPlayer' in battleInterface
+  )
+}
+
+function isP2PPeerBattleSystem(battleInterface: IBattleSystem | null): battleInterface is IBattleSystem & {
+  battleRuntimeType: 'p2p-peer'
+} {
+  return !!battleInterface && 'battleRuntimeType' in battleInterface && battleInterface.battleRuntimeType === 'p2p-peer'
+}
+
+function isBattleUnavailableError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  const upper = message.toUpperCase()
+  return (
+    upper.includes('NOT_IN_BATTLE')
+    || upper.includes('BATTLE_NOT_FOUND')
+    || upper.includes('BATTLE_ALREADY_ENDED')
+    || upper.includes('BATTLE IS NOT ACTIVE')
   )
 }
 
@@ -85,8 +107,8 @@ export const useBattleStore = defineStore('battle', {
 
       this.battleInterface = markRaw(battleInterface)
       this.playerId = playerId
-      this.battleState = await this.battleInterface.getState(playerId as playerId)
-      this.isBattleEnd = false
+      this.battleState = await this.battleInterface.getState(playerId as playerId, false)
+      this.isBattleEnd = this.battleState?.status === 'Ended'
       this.victor = null
       this.errorMessage = null
       // 初始化RxJS流
@@ -97,13 +119,16 @@ export const useBattleStore = defineStore('battle', {
       this.lastProcessedSequenceId = this.battleState?.sequenceId ?? -1
 
       // 注册新的战斗事件监听器并保存清理函数
-      this._battleEventUnsubscribe = this.battleInterface.BattleEvent(msg => {
-        this.waitingForResponse = false
-        this.handleBattleMessage(msg)
-      })
+      this._battleEventUnsubscribe = (this.battleInterface.BattleEvent as BattleEventWithView)(
+        msg => {
+          this.waitingForResponse = false
+          this.handleBattleMessage(msg)
+        },
+        { viewerId: this.playerId as playerId, showHidden: false },
+      )
       console.log('🔄 Registered new battle event listener')
 
-      this.availableActions = await this.fetchAvailableSelection()
+      this.availableActions = this.isBattleEnd ? [] : await this.fetchAvailableSelection()
     },
 
     // 使用服务器提供的战斗状态初始化战斗，避免额外的 getState 调用
@@ -118,7 +143,7 @@ export const useBattleStore = defineStore('battle', {
       this.battleInterface = markRaw(battleInterface)
       this.playerId = playerId
       this.battleState = battleState // 直接使用服务器提供的状态
-      this.isBattleEnd = false
+      this.isBattleEnd = this.battleState?.status === 'Ended'
       this.victor = null
       this.errorMessage = null
       // 初始化RxJS流
@@ -129,13 +154,28 @@ export const useBattleStore = defineStore('battle', {
       this.lastProcessedSequenceId = battleState?.sequenceId ?? -1
 
       // 注册新的战斗事件监听器并保存清理函数
-      this._battleEventUnsubscribe = this.battleInterface.BattleEvent(msg => {
-        this.waitingForResponse = false
-        this.handleBattleMessage(msg)
-      })
+      this._battleEventUnsubscribe = (this.battleInterface.BattleEvent as BattleEventWithView)(
+        msg => {
+          this.waitingForResponse = false
+          this.handleBattleMessage(msg)
+        },
+        { viewerId: this.playerId as playerId, showHidden: false },
+      )
       console.log('🔄 Registered new battle event listener')
 
-      this.availableActions = await this.fetchAvailableSelection()
+      this.availableActions = this.isBattleEnd ? [] : await this.fetchAvailableSelection()
+    },
+
+    replaceP2PPeerState(battleState: BattleState, availableSelections: PlayerSelection[]) {
+      if (!isP2PPeerBattleSystem(this.battleInterface)) {
+        return
+      }
+
+      this.battleState = battleState
+      this.availableActions = availableSelections
+      this.lastProcessedSequenceId = battleState.sequenceId ?? this.lastProcessedSequenceId
+      this.waitingForResponse = false
+      this.errorMessage = null
     },
 
     async ready() {
@@ -147,8 +187,15 @@ export const useBattleStore = defineStore('battle', {
       this.availableActions = []
       this.waitingForResponse = true
       try {
-        await this.battleInterface?.submitAction(selection)
+        await this.battleInterface?.submitAction(toRaw(selection) as PlayerSelection)
       } catch (error) {
+        if (isBattleUnavailableError(error)) {
+          this.waitingForResponse = false
+          this.availableActions = []
+          this.isBattleEnd = true
+          this.errorMessage = '战斗已结束'
+          return
+        }
         this.errorMessage = (error as Error).message
         try {
           this.availableActions = await this.fetchAvailableSelection()
@@ -190,7 +237,11 @@ export const useBattleStore = defineStore('battle', {
       console.debug(`Applying state delta for ${msg.type} (${msg.sequenceId})`)
 
       try {
-        jsondiffpatch.patch(this.battleState, msg.stateDelta)
+        const delta = msg.stateDelta
+        const hasDelta = delta !== undefined && !(typeof delta === 'object' && delta !== null && Object.keys(delta).length === 0)
+        if (hasDelta) {
+          jsondiffpatch.patch(this.battleState, delta)
+        }
 
         // 调试：检查 modifier 信息
         if (import.meta.env.DEV && this.battleState.players) {
@@ -217,9 +268,13 @@ export const useBattleStore = defineStore('battle', {
           this.battleInterface.updateState(this.battleState)
         }
       } catch (error) {
-        console.warn(`Failed to apply state delta for ${msg.type} (${msg.sequenceId}):`, error)
-        console.warn('StateDelta:', msg.stateDelta)
-        console.warn('Current battleState:', this.battleState)
+        if (isP2PPeerBattleSystem(this.battleInterface)) {
+          console.debug(`Skipping incompatible p2p peer state delta for ${msg.type} (${msg.sequenceId})`, error)
+        } else {
+          console.warn(`Failed to apply state delta for ${msg.type} (${msg.sequenceId}):`, error)
+          console.warn('StateDelta:', msg.stateDelta)
+          console.warn('Current battleState:', this.battleState)
+        }
         // 跳过这个有问题的消息，继续处理
       }
       // 添加时间戳并推入日志（回放模式和正常模式都需要）
@@ -434,8 +489,19 @@ export const useBattleStore = defineStore('battle', {
     },
 
     async fetchAvailableSelection() {
-      const res = await this.battleInterface?.getAvailableSelection(this.playerId as playerId)
-      return res as PlayerSelection[]
+      try {
+        const res = await this.battleInterface?.getAvailableSelection(this.playerId as playerId)
+        return res as PlayerSelection[]
+      } catch (error) {
+        if (isBattleUnavailableError(error)) {
+          this.waitingForResponse = false
+          this.availableActions = []
+          this.isBattleEnd = true
+          this.errorMessage = '战斗已结束'
+          return []
+        }
+        throw error
+      }
     },
 
     // 回放模式相关方法
@@ -462,9 +528,12 @@ export const useBattleStore = defineStore('battle', {
       this.battleInterface = markRaw(replayInterface)
 
       // 注册回放模式的事件监听器
-      this._battleEventUnsubscribe = this.battleInterface.BattleEvent(msg => {
-        this.handleBattleMessage(msg)
-      })
+      this._battleEventUnsubscribe = (this.battleInterface.BattleEvent as BattleEventWithView)(
+        msg => {
+          this.handleBattleMessage(msg)
+        },
+        viewerId ? { viewerId: viewerId as playerId, showHidden: false } : undefined,
+      )
       console.log('🔄 Registered replay battle event listener')
 
       // 设置玩家ID，优先使用提供的viewerId，否则使用第一个玩家的ID

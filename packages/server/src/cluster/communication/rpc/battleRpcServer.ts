@@ -185,7 +185,9 @@ export class BattleRpcServer {
     callback: grpc.sendUnaryData<PlayerSelectionResponse>,
   ): Promise<void> {
     try {
-      const { roomId, playerId, selectionData } = call.request
+      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
+      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
+      const selectionData = (call.request as any).selection_data ?? (call.request as any).selectionData
       logger.debug({ roomId, playerId }, 'RPC: SubmitPlayerSelection')
 
       const selectionObj = JSON.parse(selectionData)
@@ -211,7 +213,8 @@ export class BattleRpcServer {
     callback: grpc.sendUnaryData<SelectionResponse>,
   ): Promise<void> {
     try {
-      const { roomId, playerId } = call.request
+      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
+      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
       logger.debug({ roomId, playerId }, 'RPC: GetAvailableSelection')
 
       const result = await this.battleServer.handleLocalGetSelection(roomId, playerId)
@@ -236,23 +239,24 @@ export class BattleRpcServer {
     callback: grpc.sendUnaryData<BattleStateResponse>,
   ): Promise<void> {
     try {
-      const { roomId, playerId } = call.request
+      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
+      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
       logger.debug({ roomId, playerId }, 'RPC: GetBattleState')
 
       const battleState = await this.battleServer.handleLocalGetState(roomId, playerId)
 
       callback(null, {
         success: true,
-        battleState: JSON.stringify(battleState),
+        battle_state: JSON.stringify(battleState),
         error: '',
-      })
+      } as unknown as BattleStateResponse)
     } catch (error) {
       logger.error({ error, request: call.request }, 'RPC error: GetBattleState')
       callback(null, {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        battleState: '',
-      })
+        battle_state: '',
+      } as unknown as BattleStateResponse)
     }
   }
 
@@ -261,7 +265,8 @@ export class BattleRpcServer {
     callback: grpc.sendUnaryData<ReadyResponse>,
   ): Promise<void> {
     try {
-      const { roomId, playerId } = call.request
+      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
+      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
       logger.debug({ roomId, playerId }, 'RPC: PlayerReady')
 
       const result = await this.battleServer.handleLocalReady(roomId, playerId)
@@ -286,7 +291,8 @@ export class BattleRpcServer {
     callback: grpc.sendUnaryData<AbandonResponse>,
   ): Promise<void> {
     try {
-      const { roomId, playerId } = call.request
+      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
+      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
       logger.debug({ roomId, playerId }, 'RPC: PlayerAbandon')
 
       const result = await this.battleServer.handleLocalPlayerAbandon(roomId, playerId)
@@ -311,7 +317,9 @@ export class BattleRpcServer {
     callback: grpc.sendUnaryData<AnimationEndResponse>,
   ): Promise<void> {
     try {
-      const { roomId, playerId, animationData } = call.request
+      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
+      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
+      const animationData = (call.request as any).animation_data ?? (call.request as any).animationData
       logger.debug({ roomId, playerId }, 'RPC: ReportAnimationEnd')
 
       const animationObj = JSON.parse(animationData)
@@ -337,7 +345,8 @@ export class BattleRpcServer {
     callback: grpc.sendUnaryData<TimerEnabledResponse>,
   ): Promise<void> {
     try {
-      const { roomId, playerId } = call.request
+      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
+      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
       logger.debug({ roomId, playerId }, 'RPC: IsTimerEnabled')
 
       const result = await this.battleServer.handleLocalIsTimerEnabled(roomId, playerId)
@@ -362,7 +371,9 @@ export class BattleRpcServer {
     callback: grpc.sendUnaryData<PlayerTimerStateResponse>,
   ): Promise<void> {
     try {
-      const { roomId, playerId, timerData } = call.request
+      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
+      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
+      const timerData = (call.request as any).timer_data ?? (call.request as any).timerData
       logger.debug({ roomId, playerId }, 'RPC: GetPlayerTimerState')
 
       const timerObj = JSON.parse(timerData)
@@ -370,16 +381,16 @@ export class BattleRpcServer {
 
       callback(null, {
         success: true,
-        timerState: JSON.stringify(result),
+        timer_state: JSON.stringify(result),
         error: '',
-      })
+      } as unknown as PlayerTimerStateResponse)
     } catch (error) {
       logger.error({ error, request: call.request }, 'RPC error: GetPlayerTimerState')
       callback(null, {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        timerState: '',
-      })
+        timer_state: '',
+      } as unknown as PlayerTimerStateResponse)
     }
   }
 
@@ -388,23 +399,24 @@ export class BattleRpcServer {
     callback: grpc.sendUnaryData<AllPlayerTimerStatesResponse>,
   ): Promise<void> {
     try {
-      const { roomId, playerId } = call.request
+      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
+      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
       logger.debug({ roomId, playerId }, 'RPC: GetAllPlayerTimerStates')
 
       const result = await this.battleServer.handleLocalGetAllPlayerTimerStates(roomId, playerId)
 
       callback(null, {
         success: true,
-        timerStates: JSON.stringify(result),
+        timer_states: JSON.stringify(result),
         error: '',
-      })
+      } as unknown as AllPlayerTimerStatesResponse)
     } catch (error) {
       logger.error({ error, request: call.request }, 'RPC error: GetAllPlayerTimerStates')
       callback(null, {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        timerStates: '',
-      })
+        timer_states: '',
+      } as unknown as AllPlayerTimerStatesResponse)
     }
   }
 
@@ -413,7 +425,8 @@ export class BattleRpcServer {
     callback: grpc.sendUnaryData<TimerConfigResponse>,
   ): Promise<void> {
     try {
-      const { roomId, playerId } = call.request
+      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
+      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
       logger.debug({ roomId, playerId }, 'RPC: GetTimerConfig')
 
       const result = await this.battleServer.handleLocalGetTimerConfig(roomId, playerId)
@@ -438,7 +451,9 @@ export class BattleRpcServer {
     callback: grpc.sendUnaryData<StartAnimationResponse>,
   ): Promise<void> {
     try {
-      const { roomId, playerId, animationData } = call.request
+      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
+      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
+      const animationData = (call.request as any).animation_data ?? (call.request as any).animationData
       logger.debug({ roomId, playerId }, 'RPC: StartAnimation')
 
       const animationObj = JSON.parse(animationData)
@@ -464,7 +479,9 @@ export class BattleRpcServer {
     callback: grpc.sendUnaryData<EndAnimationResponse>,
   ): Promise<void> {
     try {
-      const { roomId, playerId, animationData } = call.request
+      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
+      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
+      const animationData = (call.request as any).animation_data ?? (call.request as any).animationData
       logger.debug({ roomId, playerId }, 'RPC: EndAnimation')
 
       const animationObj = JSON.parse(animationData)
@@ -490,7 +507,9 @@ export class BattleRpcServer {
     callback: grpc.sendUnaryData<TerminateBattleResponse>,
   ): Promise<void> {
     try {
-      const { roomId, playerId, reason } = call.request
+      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
+      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
+      const reason = (call.request as any).reason
       logger.debug({ roomId, playerId, reason }, 'RPC: TerminateBattle')
 
       const result = await this.battleServer.handleLocalBattleTermination(roomId, playerId, reason)
@@ -515,7 +534,8 @@ export class BattleRpcServer {
     callback: grpc.sendUnaryData<CreateBattleResponse>,
   ): Promise<void> {
     try {
-      const { player1Entry: player1Proto, player2Entry: player2Proto } = call.request
+      const player1Proto = (call.request as any).player1_entry ?? (call.request as any).player1Entry
+      const player2Proto = (call.request as any).player2_entry ?? (call.request as any).player2Entry
 
       if (!player1Proto || !player2Proto) {
         throw new Error('Missing player entries in CreateBattle request')
@@ -523,8 +543,8 @@ export class BattleRpcServer {
 
       logger.info(
         {
-          player1Id: player1Proto.playerId,
-          player2Id: player2Proto.playerId,
+          player1Id: player1Proto.player_id ?? player1Proto.playerId,
+          player2Id: player2Proto.player_id ?? player2Proto.playerId,
           instanceId: this.battleServer.currentInstanceId,
         },
         'RPC: CreateBattle request received',
@@ -532,33 +552,33 @@ export class BattleRpcServer {
 
       // 转换proto消息为MatchmakingEntry格式
       const player1Entry = {
-        playerId: player1Proto.playerId,
-        sessionId: player1Proto.sessionId,
-        playerData: JSON.parse(player1Proto.playerData),
-        ruleSetId: player1Proto.ruleSetId,
-        joinTime: Number(player1Proto.joinTime),
+        playerId: player1Proto.player_id ?? player1Proto.playerId,
+        sessionId: player1Proto.session_id ?? player1Proto.sessionId,
+        playerData: JSON.parse(player1Proto.player_data ?? player1Proto.playerData),
+        ruleSetId: player1Proto.rule_set_id ?? player1Proto.ruleSetId,
+        joinTime: Number(player1Proto.join_time ?? player1Proto.joinTime),
         metadata: {
-          sessionId: player1Proto.sessionId,
-          ruleSetId: player1Proto.ruleSetId,
+          sessionId: player1Proto.session_id ?? player1Proto.sessionId,
+          ruleSetId: player1Proto.rule_set_id ?? player1Proto.ruleSetId,
         },
       }
 
       const player2Entry = {
-        playerId: player2Proto.playerId,
-        sessionId: player2Proto.sessionId,
-        playerData: JSON.parse(player2Proto.playerData),
-        ruleSetId: player2Proto.ruleSetId,
-        joinTime: Number(player2Proto.joinTime),
+        playerId: player2Proto.player_id ?? player2Proto.playerId,
+        sessionId: player2Proto.session_id ?? player2Proto.sessionId,
+        playerData: JSON.parse(player2Proto.player_data ?? player2Proto.playerData),
+        ruleSetId: player2Proto.rule_set_id ?? player2Proto.ruleSetId,
+        joinTime: Number(player2Proto.join_time ?? player2Proto.joinTime),
         metadata: {
-          sessionId: player2Proto.sessionId,
-          ruleSetId: player2Proto.ruleSetId,
+          sessionId: player2Proto.session_id ?? player2Proto.sessionId,
+          ruleSetId: player2Proto.rule_set_id ?? player2Proto.ruleSetId,
         },
       }
 
       // 转换观战者
-      const spectators = (call.request.spectators || []).map(s => ({
-        playerId: s.playerId,
-        sessionId: s.sessionId,
+      const spectators = ((call.request as any).spectators || []).map((s: any) => ({
+        playerId: s.playerId ?? s.player_id,
+        sessionId: s.sessionId ?? s.session_id,
       }))
 
       // 调用本地战斗创建方法
@@ -577,9 +597,9 @@ export class BattleRpcServer {
 
         callback(null, {
           success: true,
-          roomId: roomId,
+          room_id: roomId,
           error: '',
-        })
+        } as unknown as CreateBattleResponse)
       } else {
         logger.warn(
           {
@@ -593,16 +613,16 @@ export class BattleRpcServer {
         callback(null, {
           success: false,
           error: 'Failed to create battle room',
-          roomId: '',
-        })
+          room_id: '',
+        } as unknown as CreateBattleResponse)
       }
     } catch (error) {
       logger.error({ error, request: call.request }, 'RPC error: CreateBattle')
       callback(null, {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        roomId: '',
-      })
+        room_id: '',
+      } as unknown as CreateBattleResponse)
     }
   }
 

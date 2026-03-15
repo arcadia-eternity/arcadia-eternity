@@ -1,12 +1,12 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "composite": true,
     "lib": ["ESNext"],
     "module": "ESNext",
     "target": "ESNext",
     "paths": {
-      "@data/": ["./data"]
+      "*": ["./*"],
+      "@data/": ["./packages/data-pack-base/data"]
     },
     "outDir": "./dist/",
     "moduleResolution": "bundler",
@@ -15,8 +15,9 @@
     "strict": true,
     "declaration": true,
     "declarationMap": true,
-    "types": ["node"]
+    "types": ["node"],
+    "skipLibCheck": true
   },
-  "include": ["./bin/**/*", "./devServer/**/*"],
+  "include": ["./bin/**/*"],
   "exclude": ["./node_modules", "./dist"]
 }

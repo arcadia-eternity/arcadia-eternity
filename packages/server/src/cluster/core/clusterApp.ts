@@ -4,18 +4,23 @@ import express, { type Request, type Response } from 'express'
 import cors from 'cors'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
+import { ExpressPeerServer } from 'peer'
 import pino from 'pino'
 import swaggerUi from 'swagger-ui-express'
 import { ClusterBattleServer } from '../../domain/battle/services/clusterBattleServer'
-import { SocketClusterAdapter } from '../communication/socketClusterAdapter'
+import { ClusterRealtimeGateway } from '../communication/clusterRealtimeGateway'
 import { BattleRpcServer } from '../communication/rpc/battleRpcServer'
 import { ServiceDiscoveryManager, WeightedLoadStrategy } from '../discovery/serviceDiscovery'
 import { FlyIoServiceDiscoveryManager } from '../discovery/flyIoServiceDiscovery'
 import { ClusterManager, createClusterConfigFromEnv } from './clusterManager'
+import { ClusterStateManager } from './clusterStateManager'
 import { getContainer, configureClusterServices } from '../../container'
 import { MonitoringManager } from '../monitoring/monitoringManager'
 import { PerformanceTracker } from '../monitoring/performanceTracker'
+import { DistributedLockManager } from '../redis/distributedLock'
 import { getGlobalRedisDeduplicationStats, getGlobalRedisDeduplicationSavings } from '../redis/redisCallDeduplicator'
+import { RedisClientManager } from '../redis/redisClient'
+import { InMemoryRedisClientManager } from '../redis/inMemoryRedisClient'
 import { createBattleReportRoutes } from '../../app/routes/battleReportRoutes'
 import { createEmailInheritanceRoutes } from '../../app/routes/emailInheritanceRoutes'
 import { createAuthRoutes } from '../../app/routes/authRoutes'
@@ -32,6 +37,7 @@ import { swaggerSpec, swaggerUiOptions } from '../../swagger'
 import { initializeSupabase } from '@arcadia-eternity/database'
 import { ServerRuleIntegration } from '@arcadia-eternity/rules'
 import type { ClusterConfig } from '../types'
+import { ClientRealtimeGateway } from '../../realtime/clientRealtimeGateway'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -72,12 +78,12 @@ const defaultConfig: ClusterServerConfig = {
 export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
   app: express.Application
   server: ReturnType<typeof createServer>
-  clusterManager: ClusterManager
+  clusterManager: ClusterManager | null
   battleServer: ClusterBattleServer
   rpcServer: BattleRpcServer
-  serviceDiscovery: ServiceDiscoveryManager
-  monitoring: MonitoringManager
-  performanceTracker: PerformanceTracker
+  serviceDiscovery: ServiceDiscoveryManager | null
+  monitoring: MonitoringManager | null
+  performanceTracker: PerformanceTracker | null
   start: () => Promise<void>
   stop: () => Promise<void>
 } {
@@ -121,6 +127,14 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
 
   // 创建Express应用
   const app = express()
+  type ReadinessState = 'starting' | 'ready' | 'draining'
+  let readinessState: ReadinessState = 'starting'
+  let readinessChangedAt = Date.now()
+
+  const updateReadinessState = (nextState: ReadinessState) => {
+    readinessState = nextState
+    readinessChangedAt = Date.now()
+  }
 
   // 中间件设置
   app.use(cors(finalConfig.cors))
@@ -183,6 +197,26 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
         error: error instanceof Error ? error.message : 'Unknown error',
       })
     }
+  })
+
+  // 客户端连接前就绪探测端点（不阻断认证/业务路由）
+  app.get('/ready', (_req, res) => {
+    const isReady = readinessState === 'ready' && isStarted
+    const payload = {
+      status: isReady ? 'ok' : 'not_ready',
+      state: readinessState,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      stateChangedAt: new Date(readinessChangedAt).toISOString(),
+    }
+
+    if (isReady) {
+      res.json(payload)
+      return
+    }
+
+    res.setHeader('Retry-After', '3')
+    res.status(503).json(payload)
   })
 
   // 集群状态端点
@@ -257,6 +291,12 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
 
   // 创建 HTTP 服务器
   const server = createServer(app)
+  const peerServer = ExpressPeerServer(server, {
+    path: '/peerjs',
+    proxied: true,
+    corsOptions: finalConfig.cors,
+  })
+  app.use(peerServer)
 
   // 创建 Socket.IO 服务器
   const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
@@ -266,17 +306,21 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
     maxHttpBufferSize: 4e6, // 4MB
   })
 
-  // 初始化集群管理器
-  const clusterManager = ClusterManager.getInstance(finalConfig.cluster)
+  const clusterEnabled = finalConfig.cluster?.cluster.enabled === true
+  const clusterManager = clusterEnabled ? ClusterManager.getInstance(finalConfig.cluster) : null
 
   // 声明集群组件变量，将在启动时初始化
-  let performanceTracker: PerformanceTracker
-  let monitoring: MonitoringManager
-  let serviceDiscovery: ServiceDiscoveryManager
-  let socketAdapter: SocketClusterAdapter
+  let performanceTracker: PerformanceTracker | null = null
+  let monitoring: MonitoringManager | null = null
+  let serviceDiscovery: ServiceDiscoveryManager | null = null
+  let realtimeGateway: ClusterRealtimeGateway
+  let clientRealtimeGateway: ClientRealtimeGateway<ClientToServerEvents, ServerToClientEvents>
   let battleServer: ClusterBattleServer
   let rpcServer: BattleRpcServer
   let sessionManager: any // SessionManager实例
+  let runtimeRedisManager: any
+  let runtimeLockManager: any
+  let runtimeStateManager: any
 
   // 设置基础 API 路由
   const apiRouter = express.Router()
@@ -317,57 +361,78 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
     }
 
     try {
-      logger.info('Starting in cluster mode')
+      updateReadinessState('starting')
+      logger.info({ clusterEnabled }, `Starting in ${clusterEnabled ? 'cluster' : 'single-instance'} mode`)
 
-      // 初始化集群管理器
-      await clusterManager.initialize()
+      if (clusterEnabled) {
+        await clusterManager!.initialize()
+        runtimeRedisManager = clusterManager!.getRedisManager()
+        runtimeLockManager = clusterManager!.getLockManager()
+        runtimeStateManager = clusterManager!.getStateManager()
+      } else {
+        const forceInMemoryRedis = process.env.SINGLE_INSTANCE_INMEMORY_REDIS === 'true'
+        if (!forceInMemoryRedis) {
+          runtimeRedisManager = RedisClientManager.getInstance(finalConfig.cluster!.redis) as any
+          await runtimeRedisManager.initialize()
+          logger.info('Single-instance mode uses external Redis backend')
+        } else {
+          runtimeRedisManager = new InMemoryRedisClientManager(finalConfig.cluster!.redis) as any
+          await runtimeRedisManager.initialize()
+          logger.warn('Single-instance mode forced to use in-memory Redis (non-persistent)')
+        }
+        runtimeLockManager = new DistributedLockManager(runtimeRedisManager) as any
+        runtimeStateManager = new ClusterStateManager(runtimeRedisManager, runtimeLockManager, finalConfig.cluster!) as any
+        await runtimeStateManager.initialize()
+      }
 
       // 初始化规则系统
       await ServerRuleIntegration.initializeServer()
       logger.info('Rule system initialized successfully')
 
       // 创建并初始化集群组件
-      performanceTracker = new PerformanceTracker(clusterManager.getRedisManager(), finalConfig.cluster!.instance.id)
-      monitoring = new MonitoringManager(
-        clusterManager.getStateManager(),
-        clusterManager.getRedisManager(),
-        finalConfig.cluster!.instance.id,
-      )
+      if (clusterEnabled) {
+        performanceTracker = new PerformanceTracker(runtimeRedisManager, finalConfig.cluster!.instance.id)
+        monitoring = new MonitoringManager(runtimeStateManager, runtimeRedisManager, finalConfig.cluster!.instance.id)
+      }
       // LogAggregationManager 已移除以减少 Redis 操作频率
       // 根据环境选择服务发现管理器
-      if (process.env.FLY_APP_NAME) {
+      if (clusterEnabled && process.env.FLY_APP_NAME) {
         // Fly.io 环境，使用专门的服务发现管理器
         serviceDiscovery = new FlyIoServiceDiscoveryManager(
-          clusterManager.getRedisManager(),
-          clusterManager.getStateManager(),
+          runtimeRedisManager,
+          runtimeStateManager,
           new WeightedLoadStrategy(),
           process.env.FLY_APP_NAME,
           process.env.FLY_REGION,
         )
-      } else {
+      } else if (clusterEnabled) {
         // 标准环境
         serviceDiscovery = new ServiceDiscoveryManager(
-          clusterManager.getRedisManager(),
-          clusterManager.getStateManager(),
+          runtimeRedisManager,
+          runtimeStateManager,
           new WeightedLoadStrategy(),
         )
       }
-      socketAdapter = new SocketClusterAdapter(
+      realtimeGateway = new ClusterRealtimeGateway(
         io,
-        clusterManager.getRedisManager(),
-        clusterManager.getStateManager(),
+        runtimeRedisManager,
+        runtimeStateManager,
         finalConfig.cluster!.instance.id,
       )
+      clientRealtimeGateway = new ClientRealtimeGateway(io)
       // 使用 DI 容器创建集群服务（解决循环依赖）
-      const grpcPort = finalConfig.cluster!.instance.grpcPort || 50051
+      const grpcPort =
+        finalConfig.rpcPort ??
+        (clusterEnabled ? (finalConfig.cluster!.instance.grpcPort ?? 50051) : 0)
       const container = getContainer()
 
       const { battleServer: diServer, rpcServer: diRpcServer } = configureClusterServices(container, {
         io,
-        stateManager: clusterManager.getStateManager(),
-        socketAdapter,
-        lockManager: clusterManager.getLockManager(),
-        redisManager: clusterManager.getRedisManager(), // 添加 redisManager
+        clientRealtimeGateway,
+        stateManager: runtimeStateManager,
+        realtimeGateway,
+        lockManager: runtimeLockManager,
+        redisManager: runtimeRedisManager,
         instanceId: finalConfig.cluster!.instance.id,
         rpcPort: grpcPort,
         battleReportConfig: finalConfig.battleReport,
@@ -379,7 +444,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       rpcServer = diRpcServer
 
       const socketManager = container.get<SocketManager>(TYPES.SocketManager)
-      io.on('connection', socket => {
+      clientRealtimeGateway.onConnection(socket => {
         const sessionId = socket.handshake.auth.sessionId
         if (sessionId) {
           socketManager.registerSocket(sessionId, socket)
@@ -392,31 +457,39 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
         })
       })
 
-      logger.info({ grpcPort }, 'gRPC server created and injected into ClusterBattleServer')
+      logger.info({ grpcPort: grpcPort ?? 'auto' }, 'gRPC server created and injected into ClusterBattleServer')
 
       // 初始化性能追踪器
-      await performanceTracker.initialize()
+      if (performanceTracker) {
+        await performanceTracker.initialize()
+      }
 
       // 设置性能追踪器到其他组件
-      clusterManager.getRedisManager().setPerformanceTracker(performanceTracker)
-      socketAdapter.setPerformanceTracker(performanceTracker)
-      battleServer.setPerformanceTracker(performanceTracker)
+      if (performanceTracker) {
+        runtimeRedisManager.setPerformanceTracker(performanceTracker)
+        realtimeGateway.setPerformanceTracker(performanceTracker)
+        battleServer.setPerformanceTracker(performanceTracker)
+      }
 
       // 初始化监控管理器
-      await monitoring.initialize()
+      if (monitoring) {
+        await monitoring.initialize()
+      }
 
       // 日志聚合管理器已移除
 
       // 初始化服务发现
-      await serviceDiscovery.initialize()
+      if (serviceDiscovery) {
+        await serviceDiscovery.initialize()
+      }
 
       // 初始化Socket集群适配器
-      await socketAdapter.initialize()
-      await socketAdapter.setupCrossInstanceCommandListener()
+      await realtimeGateway.initialize()
+      await realtimeGateway.setupCrossInstanceSessionForwarding()
 
       // 创建SessionManager实例
       const { SessionManager } = await import('../../domain/auth/services/sessionManager')
-      sessionManager = new SessionManager(clusterManager.getStateManager(), clusterManager.getLockManager(), {
+      sessionManager = new SessionManager(runtimeStateManager, runtimeLockManager, {
         maxSessions: 5, // 每个玩家最多5个会话
         sessionTimeout: 24 * 60 * 60 * 1000, // 24小时
         cleanupInterval: 60 * 60 * 1000, // 1小时清理一次
@@ -432,7 +505,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
         refreshTokenExpiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || '7d',
       }
 
-      const authService = createClusterAuthService(defaultAuthConfig, clusterManager.getStateManager())
+      const authService = createClusterAuthService(defaultAuthConfig, runtimeStateManager)
 
       apiRouter.use('/sessions', createSessionRoutes(authService, sessionManager))
       logger.info('Session management API enabled at /api/v1/sessions')
@@ -441,7 +514,9 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       await battleServer.initialize()
 
       // 启动观战者广播订阅
-      clusterManager.startSpectatorSubscription(battleServer.battleServiceInstance)
+      if (clusterEnabled) {
+        clusterManager!.startSpectatorSubscription(battleServer.battleServiceInstance)
+      }
 
       // 启动 gRPC 服务器
       await rpcServer.start()
@@ -453,11 +528,12 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       return new Promise((resolve, reject) => {
         server.listen(finalConfig.port, () => {
           isStarted = true
+          updateReadinessState('ready')
           logger.info(
             {
               port: finalConfig.port,
               cors: finalConfig.cors.origin,
-              clusterEnabled: true,
+              clusterEnabled,
               instanceId: finalConfig.cluster!.instance.id,
               battleReportEnabled: !!finalConfig.battleReport?.enableReporting,
               apiEnabled: !!finalConfig.battleReport?.enableApi,
@@ -483,6 +559,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       return
     }
 
+    updateReadinessState('draining')
     logger.info('Shutting down cluster server...')
 
     // 设置强制关闭超时时间（15秒）
@@ -514,8 +591,8 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       if (monitoring) await monitoring.cleanup()
 
       // 清理Socket集群适配器
-      if (socketAdapter) {
-        await socketAdapter.cleanup()
+      if (realtimeGateway) {
+        await realtimeGateway.cleanup()
       }
 
       // 清理服务发现
@@ -524,10 +601,15 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       }
 
       // 清理集群管理器
-      await clusterManager.cleanup()
+      if (clusterEnabled) {
+        await clusterManager!.cleanup()
+      } else if (runtimeStateManager && runtimeRedisManager) {
+        await runtimeStateManager.cleanup()
+        await runtimeRedisManager.cleanup()
+      }
 
       // 关闭 Socket.IO 服务器
-      io.close()
+      clientRealtimeGateway.close()
 
       // 关闭 HTTP 服务器
       await new Promise<void>(resolve => {

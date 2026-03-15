@@ -1,7 +1,6 @@
 import type { Socket } from 'socket.io'
 import pino from 'pino'
 import type { PrivateRoomService } from '../services/privateRoomService'
-import type { SocketClusterAdapter } from '../../../cluster/communication/socketClusterAdapter'
 import type {
   CreatePrivateRoomRequest,
   JoinPrivateRoomRequest,
@@ -10,10 +9,12 @@ import type {
   UpdatePrivateRoomConfigRequest,
   TogglePrivateRoomReadyRequest,
   StartPrivateRoomBattleRequest,
+  SendPrivateRoomPeerSignalRequest,
   TransferPrivateRoomHostRequest,
   KickPlayerFromPrivateRoomRequest,
   AckResponse,
   PrivateRoomInfo,
+  PrivateRoomBattleStartInfo,
 } from '@arcadia-eternity/protocol'
 import type { RoomPlayer, SpectatorEntry, PrivateRoomError } from '../types/PrivateRoom'
 
@@ -30,10 +31,7 @@ interface SocketData {
 }
 
 export class PrivateRoomHandlers {
-  constructor(
-    private roomService: PrivateRoomService,
-    private socketAdapter: SocketClusterAdapter,
-  ) {}
+  constructor(private roomService: PrivateRoomService) {}
 
   /**
    * 处理创建私人房间请求
@@ -181,7 +179,15 @@ export class PrivateRoomHandlers {
         connectionStatus: 'online',
       }
 
-      const success = await this.roomService.joinRoom({ roomCode: data.roomCode }, spectatorEntry, 'spectator')
+      const success = await this.roomService.joinRoom(
+        {
+          roomCode: data.roomCode,
+          clientPackLock: data.clientPackLock,
+          clientAssetLock: data.clientAssetLock,
+        },
+        spectatorEntry,
+        'spectator',
+      )
 
       if (success) {
         // 将Socket加入房间组
@@ -305,7 +311,7 @@ export class PrivateRoomHandlers {
   async handleStartBattle(
     socket: Socket<any, any, any, SocketData>,
     data: StartPrivateRoomBattleRequest,
-    ack?: AckResponse<{ battleRoomId: string }>,
+    ack?: AckResponse<PrivateRoomBattleStartInfo>,
   ) {
     try {
       const playerId = socket.data?.playerId
@@ -323,22 +329,20 @@ export class PrivateRoomHandlers {
         return
       }
 
-      const battleRoomId = await this.roomService.startBattle(currentRoom.config.roomCode, playerId, data.hostTeam)
+      const startInfo = await this.roomService.startBattle(currentRoom.config.roomCode, playerId, data.hostTeam)
 
-      if (battleRoomId) {
-        logger.info(
-          {
-            roomCode: currentRoom.config.roomCode,
-            battleRoomId,
-            playerId,
-          },
-          'Private room battle started successfully',
-        )
+      logger.info(
+        {
+          roomCode: currentRoom.config.roomCode,
+          battleMode: startInfo.battleMode,
+          battleRoomId: startInfo.battleRoomId,
+          battleHost: startInfo.battleHost,
+          playerId,
+        },
+        'Private room battle started successfully',
+      )
 
-        ack?.({ status: 'SUCCESS', data: { battleRoomId } })
-      } else {
-        ack?.({ status: 'ERROR', code: 'START_BATTLE_FAILED', details: '开始战斗失败' })
-      }
+      ack?.({ status: 'SUCCESS', data: startInfo })
     } catch (error) {
       logger.error({ error, playerId: socket.data?.playerId }, 'Failed to start battle')
 
@@ -347,6 +351,40 @@ export class PrivateRoomHandlers {
         ack?.({ status: 'ERROR', code: roomError.code, details: roomError.message })
       } else {
         ack?.({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '开始战斗失败' })
+      }
+    }
+  }
+
+  async handleSendPeerSignal(
+    socket: Socket<any, any, any, SocketData>,
+    data: SendPrivateRoomPeerSignalRequest,
+    ack?: AckResponse<{ status: 'FORWARDED' }>,
+  ) {
+    try {
+      const playerId = socket.data?.playerId
+      const sessionId = socket.data?.sessionId
+
+      if (!playerId || !sessionId) {
+        ack?.({ status: 'ERROR', code: 'AUTHENTICATION_REQUIRED', details: '需要认证' })
+        return
+      }
+
+      const currentRoom = await this.roomService.getPlayerSessionCurrentRoom(playerId, sessionId)
+      if (!currentRoom) {
+        ack?.({ status: 'ERROR', code: 'NOT_IN_ROOM', details: '该会话不在任何房间中' })
+        return
+      }
+
+      await this.roomService.relayPeerSignal(currentRoom.config.roomCode, playerId, sessionId, data)
+      ack?.({ status: 'SUCCESS', data: { status: 'FORWARDED' } })
+    } catch (error) {
+      logger.error({ error, playerId: socket.data?.playerId }, 'Failed to forward private room peer signal')
+
+      if (error instanceof Error && error.name === 'PrivateRoomError') {
+        const roomError = error as PrivateRoomError
+        ack?.({ status: 'ERROR', code: roomError.code, details: roomError.message })
+      } else {
+        ack?.({ status: 'ERROR', code: 'INTERNAL_ERROR', details: '转发点对点信令失败' })
       }
     }
   }
@@ -377,6 +415,10 @@ export class PrivateRoomHandlers {
           maxPlayers: room.config.maxPlayers,
           isPrivate: room.config.isPrivate,
           password: room.config.password,
+          battleMode: room.config.battleMode,
+          p2pTransport: room.config.p2pTransport,
+          requiredPackLock: room.config.requiredPackLock,
+          requiredAssetLock: room.config.requiredAssetLock,
         },
         players: room.players,
         spectators: room.spectators,
@@ -384,6 +426,7 @@ export class PrivateRoomHandlers {
         createdAt: room.createdAt,
         lastActivity: room.lastActivity,
         battleRoomId: room.battleRoomId,
+        battleHost: room.battleHost,
       }
 
       ack?.({ status: 'SUCCESS', data: roomInfo })
@@ -693,12 +736,14 @@ export class PrivateRoomHandlers {
         return
       }
 
-      // 获取该 session 当前所在房间
-      const currentRoom = await this.roomService.getPlayerSessionCurrentRoom(playerId, sessionId)
+      // 优先按当前 session 查，查不到时尝试按 playerId 恢复页面刷新后的新 session 绑定
+      const currentRoom = await this.roomService.restorePlayerSessionCurrentRoom(playerId, sessionId)
       if (!currentRoom) {
         ack?.({ status: 'SUCCESS', data: null })
         return
       }
+
+      socket.join(`private_room:${currentRoom.config.roomCode}`)
 
       // 转换为协议格式
       const roomInfo: PrivateRoomInfo = {
@@ -710,6 +755,10 @@ export class PrivateRoomHandlers {
           maxPlayers: currentRoom.config.maxPlayers,
           isPrivate: currentRoom.config.isPrivate,
           password: currentRoom.config.password,
+          battleMode: currentRoom.config.battleMode,
+          p2pTransport: currentRoom.config.p2pTransport,
+          requiredPackLock: currentRoom.config.requiredPackLock,
+          requiredAssetLock: currentRoom.config.requiredAssetLock,
         },
         players: currentRoom.players,
         spectators: currentRoom.spectators,
@@ -717,6 +766,7 @@ export class PrivateRoomHandlers {
         createdAt: currentRoom.createdAt,
         lastActivity: currentRoom.lastActivity,
         battleRoomId: currentRoom.battleRoomId,
+        battleHost: currentRoom.battleHost,
         lastBattleResult: currentRoom.lastBattleResult,
       }
 

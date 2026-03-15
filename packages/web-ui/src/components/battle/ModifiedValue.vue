@@ -34,6 +34,19 @@ const valueClasses = computed(() => {
   return getModifierClasses(modifierType.value, props.size, props.inline)
 })
 
+const renderedValue = computed(() => {
+  if (!props.attributeInfo || !props.attributeInfo.isModified) return props.value
+
+  const current = props.attributeInfo.currentValue
+
+  if (typeof props.value === 'string') {
+    if (props.value.endsWith('%')) return `${current}%`
+    return String(current)
+  }
+
+  return current
+})
+
 // Tooltip 内容
 const tooltipContent = computed(() => {
   if (!props.attributeInfo || !isModified.value) return ''
@@ -76,7 +89,7 @@ const elementRef = useTemplateRef('elementRef')
     <Tooltip v-if="showTooltip && isModified && tooltipContent" position="bottom">
       <template #trigger>
         <span ref="elementRef" :class="valueClasses">
-          {{ value }}
+          {{ renderedValue }}
         </span>
       </template>
       <div class="text-sm max-w-xs bg-gray-900 border border-gray-700 rounded-lg p-3 shadow-lg">
@@ -96,7 +109,7 @@ const elementRef = useTemplateRef('elementRef')
     </Tooltip>
 
     <span v-else ref="elementRef" :class="valueClasses">
-      {{ value }}
+      {{ renderedValue }}
     </span>
   </div>
 </template>

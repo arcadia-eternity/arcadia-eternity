@@ -1,6 +1,5 @@
 import type { TimerConfig } from '@arcadia-eternity/const'
-import type { BaseSkill, BaseMark } from '@arcadia-eternity/battle'
-import type { PetSchemaType, LearnableSkill } from '@arcadia-eternity/schema'
+import type { PetSchemaType, LearnableSkill, SkillSchemaType, MarkSchemaType } from '@arcadia-eternity/schema'
 import type { Rule, Team, RuleContext, BattleConfigModifications, AdditionalContent } from '../interfaces/Rule'
 import type { RuleSet } from '../interfaces/RuleSet'
 import { ValidationResultBuilder, type ValidationResult } from '../interfaces/ValidationResult'
@@ -133,7 +132,7 @@ export class RuleSystem {
    * @param context 可选的上下文覆盖
    * @returns 验证结果
    */
-  validateSkill(pet: PetSchemaType, skill: BaseSkill, context?: RuleContext): ValidationResult {
+  validateSkill(pet: PetSchemaType, skill: SkillSchemaType, context?: RuleContext): ValidationResult {
     const ctx = context || this.context || undefined
     const builder = new ValidationResultBuilder()
 
@@ -152,7 +151,7 @@ export class RuleSystem {
    * @param context 可选的上下文覆盖
    * @returns 验证结果
    */
-  validateMark(pet: PetSchemaType, mark: BaseMark, context?: RuleContext): ValidationResult {
+  validateMark(pet: PetSchemaType, mark: MarkSchemaType, context?: RuleContext): ValidationResult {
     const ctx = context || this.context || undefined
     const builder = new ValidationResultBuilder()
 
@@ -182,7 +181,7 @@ export class RuleSystem {
    * @param skill 技能数据
    * @param context 可选的上下文覆盖
    */
-  applySkillModifications(skill: BaseSkill, context?: RuleContext): void {
+  applySkillModifications(skill: SkillSchemaType, context?: RuleContext): void {
     const ctx = context || this.context || undefined
 
     for (const rule of this.getActiveRules()) {
@@ -195,7 +194,7 @@ export class RuleSystem {
    * @param mark 印记数据
    * @param context 可选的上下文覆盖
    */
-  applyMarkModifications(mark: BaseMark, context?: RuleContext): void {
+  applyMarkModifications(mark: MarkSchemaType, context?: RuleContext): void {
     const ctx = context || this.context || undefined
 
     for (const rule of this.getActiveRules()) {
