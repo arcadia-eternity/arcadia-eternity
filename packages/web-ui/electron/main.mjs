@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const projectRoot = path.resolve(__dirname, '..')
 const rendererDistDir = path.join(projectRoot, 'dist')
-const preloadPath = path.join(__dirname, 'preload.mjs')
+const preloadPath = path.join(__dirname, 'preload.cjs')
 const devServerUrl = process.env.ARCADIA_ELECTRON_DEV_SERVER_URL
 
 const PET_REMOTE_BASE = 'https://seer2-pet-resource.yuuinih.com/public/fight'
@@ -745,6 +745,21 @@ function createMainWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
+  })
+
+  mainWindow.webContents.on('preload-error', (_event, preloadPathOnError, error) => {
+    console.error(`Electron preload failed (${preloadPathOnError}):`, error)
+  })
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    void mainWindow?.webContents
+      .executeJavaScript('typeof window.arcadiaDesktop !== "undefined"')
+      .then(hasDesktopBridge => {
+        console.log(`Electron desktop bridge status: ${hasDesktopBridge ? 'ready' : 'missing'}`)
+      })
+      .catch(error => {
+        console.warn('Electron desktop bridge probe failed:', error)
+      })
   })
 
   if (devServerUrl) {

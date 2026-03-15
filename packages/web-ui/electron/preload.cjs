@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+const { contextBridge, ipcRenderer } = require('electron')
 
 const desktopApi = {
   getLocalServerPort: () => ipcRenderer.invoke('desktop:get-local-server-port'),

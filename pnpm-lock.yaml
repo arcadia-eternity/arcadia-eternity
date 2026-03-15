@@ -655,7 +655,7 @@ importers:
         version: 2.2.0(vue@3.5.30(typescript@5.9.3))
       '@ruffle-rs/ruffle':
         specifier: 0.2.0-nightly.2026.3.15
-        version: link:dist/ruffle
+        version: 0.2.0-nightly.2026.3.15
       '@sinclair/typebox':
         specifier: ^0.34.48
         version: 0.34.48
@@ -879,8 +879,6 @@ importers:
       wait-on:
         specifier: ^9.0.4
         version: 9.0.4
-
-  packages/web-ui/dist/ruffle: {}
 
   packs/base: {}
 
@@ -2204,6 +2202,9 @@ packages:
     resolution: {integrity: sha512-2HRCml6OztYXyJXAvdDXPKcawukWY2GpR5/nxKp4iBgiO3wcoEGkAaqctIbZcNB6KlUQBIqt8VYkNSj2397EfA==}
     cpu: [x64]
     os: [win32]
+
+  '@ruffle-rs/ruffle@0.2.0-nightly.2026.3.15':
+    resolution: {integrity: sha512-lAWfPyhr3cMNSUEJmffJJbbHFsyB9Gi8tz84qwWQbxmnpKWS6Xqz/gTc9bvl5mj1MrXBUAJJXnI0j36EWRJ8ww==}
 
   '@scarf/scarf@1.4.0':
     resolution: {integrity: sha512-xxeapPiUXdZAE3che6f3xogoJPeZgig6omHEy1rIY5WVsB3H2BHNnZH+gHG6x91SCWyQCzWGsuL2Hh3ClO5/qQ==}
@@ -9790,6 +9791,8 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.59.0':
     optional: true
+
+  '@ruffle-rs/ruffle@0.2.0-nightly.2026.3.15': {}
 
   '@scarf/scarf@1.4.0': {}
 
