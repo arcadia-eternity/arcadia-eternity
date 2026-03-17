@@ -29,6 +29,12 @@ export class HealHandler implements PhaseHandler<HealPhaseData> {
       return { success: true, state: 'completed', data }
     }
 
+    // Defeated pets cannot receive healing unless revive semantics are introduced explicitly.
+    if (!this.petSystem.isAlive(world, ctx.targetId)) {
+      ctx.healResult = 0
+      return { success: true, state: 'completed', data }
+    }
+
     await this.effectPipeline.fire(world, EffectTrigger.OnBeforeHeal, {
       trigger: EffectTrigger.OnBeforeHeal,
       sourceEntityId: ctx.sourceId,
