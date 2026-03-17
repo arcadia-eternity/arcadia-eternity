@@ -135,6 +135,76 @@ describe('v2 mark/stat effect regressions', () => {
     expect(petSystem.getCurrentHp(world, petA.id)).toBe(hpMissingState + 50)
   })
 
+  test('heal phase does not heal defeated pet', async () => {
+    const battle = createBattleFromConfig(
+      makeTeamConfig('A', 'pet_huanli', ['skill_qili'], Gender.Male),
+      makeTeamConfig('B', 'pet_dilan', ['skill_chongfeng'], Gender.Male),
+      repo,
+      { seed: 'regression-heal-defeated-target' },
+    )
+    const { world, playerSystem, phaseManager, eventBus, petSystem } = battle
+    const { playerAId } = getBattlePlayerIds(world)
+    const petA = playerSystem.getActivePet(world, playerAId)
+
+    petSystem.setCurrentHp(world, petA.id, 0)
+    expect(petSystem.isAlive(world, petA.id)).toBe(false)
+
+    await phaseManager.execute(world, 'heal', eventBus, {
+      context: {
+        type: 'heal',
+        parentId: 'heal-dead-target-phase',
+        sourceId: petA.id,
+        targetId: petA.id,
+        baseHeal: 999,
+        ignoreEffect: false,
+        modified: [0, 0],
+        healResult: 0,
+        available: true,
+      },
+    })
+
+    expect(petSystem.getCurrentHp(world, petA.id)).toBe(0)
+    expect(petSystem.isAlive(world, petA.id)).toBe(false)
+  })
+
+  test('guangyinghuanxiang applies random weather mark on hit', async () => {
+    const battle = createBattleFromConfig(
+      makeTeamConfig('A', 'pet_guangyite', ['skill_guangyinghuanxiang'], Gender.Male),
+      makeTeamConfig('B', 'pet_dilan', ['skill_chongfeng'], Gender.Male),
+      repo,
+      { seed: 'regression-guangyinghuanxiang-weather' },
+    )
+    const { world, playerSystem, skillSystem, phaseManager, eventBus, markSystem, effectPipeline } = battle
+    const { playerAId, playerBId } = getBattlePlayerIds(world)
+    const petA = playerSystem.getActivePet(world, playerAId)
+    const petB = playerSystem.getActivePet(world, playerBId)
+    const skillId = findSkillInstanceIdByBaseId(
+      petA.skillIds,
+      'skill_guangyinghuanxiang',
+      sid => skillSystem.get(world, sid)?.baseSkillId,
+    )
+    expect(
+      effectPipeline.getEffectsForTrigger(world, skillId, EffectTrigger.OnHit)
+        .some(effect => effect.id === 'effect_skill_set_field_qingtian_or_yemu'),
+    ).toBe(true)
+
+    playerSystem.setRage(world, playerAId, 100)
+    const ctx = makeUseSkillContextFromSkill({
+      battle,
+      petId: petA.id,
+      skillId,
+      originPlayerId: playerAId,
+      fallbackTargetId: petB.id,
+      parentId: 'guangyinghuanxiang-phase',
+    })
+    await phaseManager.execute(world, 'skill', eventBus, { context: ctx })
+
+    expect(ctx.hitResult).toBe(true)
+    const qingtian = markSystem.findByBaseId(world, 'battle', 'mark_global_qingtian')
+    const yemu = markSystem.findByBaseId(world, 'battle', 'mark_global_yemu')
+    expect(Boolean(qingtian) || Boolean(yemu)).toBe(true)
+  })
+
   test('hunnzhuoshuiyu doubles opponent debuff stage application', async () => {
     const battle = createBattleFromConfig(
       makeTeamConfig('A', 'pet_huanli', ['skill_hunzhuoshuiyu', 'skill_wanyouyinli'], Gender.Male),

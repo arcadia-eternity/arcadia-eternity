@@ -211,7 +211,10 @@ export function resolveRuntimeValue<TValue, TSelector, TChain, TCondition>(
       case 'selectorValue': {
         const base = resolveRuntimeValue(node.value as TValue, hooks)
         if (Array.isArray(node.chain)) {
-          const results = hooks.applyChain([base], node.chain as TChain[])
+          // If base is already an array, treat it as selector result set directly.
+          // This allows `selectorValue + randomPick` to pick from provided candidate list.
+          const source = Array.isArray(base) ? base : [base]
+          const results = hooks.applyChain(source, node.chain as TChain[])
           return results[0]
         }
         return base
