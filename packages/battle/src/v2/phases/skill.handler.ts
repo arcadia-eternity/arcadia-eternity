@@ -234,8 +234,9 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData> {
         // Random factor (85-100%)
         ctx.randomFactor = 0.85 + rng.next() * 0.15
 
-        // Recalculate power (may have been modified by effects)
-        const power = this.skillSystem.getPower(world, ctx.skillId)
+        // Power can be modified by effect pipeline (e.g. first/last turn multipliers).
+        // Keep using context power instead of re-reading static skill config.
+        const power = typeof ctx.power === 'number' ? ctx.power : this.skillSystem.getPower(world, ctx.skillId)
         const level = pet.level
 
         // Climax category: compare atk vs spa to decide physical/special

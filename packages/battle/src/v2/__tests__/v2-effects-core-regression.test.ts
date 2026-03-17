@@ -355,6 +355,76 @@ describe('v2 core effect regressions', () => {
     })
   })
 
+  test('shanguangqie first-turn power boost increases actual damage output', async () => {
+    const battle = createBattleFromConfig(
+      makeTeamConfig('A', 'pet_guangyite', ['skill_shanguangqie'], Gender.Male),
+      makeTeamConfig('B', 'pet_dilan', ['skill_chongfeng'], Gender.Male),
+      repo,
+      { seed: 'regression-shanguangqie-first-damage' },
+    )
+    const { world, playerSystem, petSystem, skillSystem, phaseManager, eventBus, attrSystem } = battle
+    const { playerAId, playerBId } = getBattlePlayerIds(world)
+    const petA = playerSystem.getActivePet(world, playerAId)
+    const petB = playerSystem.getActivePet(world, playerBId)
+    const skillId = findSkillInstanceIdByBaseId(
+      petA.skillIds,
+      'skill_shanguangqie',
+      sid => skillSystem.get(world, sid)?.baseSkillId,
+    )
+    const basePower = skillSystem.getPower(world, skillId)
+    const initialRngState = ((world.systems as { rng: GameRng }).rng).getState()
+    const maxHp = petSystem.getStatValue(world, petB.id, 'maxHp')
+
+    // Keep runs deterministic and avoid crit noise.
+    attrSystem.setBaseValue(world, petA.id, 'critRate', 0)
+
+    const runDamage = async (
+      phaseId: string,
+      plannedSkillPetIds: string[],
+      executedSkillPetIds: string[],
+    ): Promise<{ power: number; damage: number }> => {
+      ;(world.systems as { rng: GameRng }).rng = GameRng.fromState(initialRngState)
+      petSystem.setCurrentHp(world, petB.id, maxHp)
+
+      const ctx = makeUseSkillContextFromSkill({
+        battle,
+        petId: petA.id,
+        skillId,
+        originPlayerId: playerAId,
+        fallbackTargetId: petB.id,
+        parentId: phaseId,
+      })
+      ctx.accuracy = 100
+      ctx.petAccuracy = 100
+      ctx.evasion = 0
+
+      await withTurnPhase(world, phaseId, plannedSkillPetIds, executedSkillPetIds, async () => {
+        await phaseManager.execute(world, 'skill', eventBus, { context: ctx })
+      })
+
+      expect(ctx.hitResult).toBe(true)
+      return {
+        power: ctx.power,
+        damage: maxHp - petSystem.getCurrentHp(world, petB.id),
+      }
+    }
+
+    const first = await runDamage(
+      'turn-phase-shanguangqie-first',
+      [petA.id, petB.id],
+      [petA.id, petB.id],
+    )
+    const notFirst = await runDamage(
+      'turn-phase-shanguangqie-not-first',
+      [petB.id, petA.id],
+      [petB.id, petA.id],
+    )
+
+    expect(first.power).toBe(basePower * 2)
+    expect(notFirst.power).toBe(basePower)
+    expect(first.damage).toBeGreaterThan(notFirst.damage)
+  })
+
   test('ignore stage strategy all ignores both sides stage effects in damage calculation', async () => {
     const battle = createBattleFromConfig(
       makeTeamConfig('A', 'pet_dilan', ['skill_shuipao'], Gender.Male),
