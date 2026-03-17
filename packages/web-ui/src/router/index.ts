@@ -4,15 +4,14 @@ import LobbyView from '../pages/lobbyPage.vue'
 const BattleView = () => import('../pages/battlePage.vue')
 // import LocalBattlePage from '../pages/localBattlePage.vue'
 const LocalBattlePage = () => import('../pages/localBattlePage.vue')
-// import DataEditor from '../pages/dataEditor.vue'
-// import EffectGraphEditor from '@/pages/EffectGraphEditor.vue'
+const PackWorkspaceEditor = () => import('@/pages/PackWorkspaceEditor.vue')
 
 // 路由守卫
 import { battleGuard } from './guards'
 import TeamBuilder from '@/pages/teamBuilder.vue'
 import StorageManager from '@/pages/storageManager.vue'
 import AccountPage from '@/pages/accountPage.vue'
-import { isTauri } from '@/utils/env'
+import { isDesktop } from '@/utils/env'
 
 // 战报相关组件
 const BattleRecordList = () => import('@/components/battleReport/BattleRecordList.vue')
@@ -205,29 +204,21 @@ const routes: RouteRecordRaw[] = [
   },
 ]
 
-const devOnlyRoutes: RouteRecordRaw[] = [
-  // {
-  //   path: '/data-editor',
-  //   name: 'DataEditor',
-  //   component: DataEditor,
-  //   meta: {
-  //     title: '数据编辑器',
-  //   },
-  // },
-  // {
-  //   path: '/effect-editor',
-  //   name: 'EffectGraphEditor',
-  //   component: EffectGraphEditor,
-  //   props: true,
-  // },  // 演示页面路由
-]
+const devOnlyRoutes: RouteRecordRaw[] = []
 
 if (import.meta.env.DEV) {
   routes.push(...devOnlyRoutes)
 }
 
-const tauriOnlyRoutes: RouteRecordRaw[] = [
-  // 移除更新页面，使用左下角轻量版本信息代替
+const desktopOnlyRoutes: RouteRecordRaw[] = [
+  {
+    path: '/pack-editor',
+    name: 'PackWorkspaceEditor',
+    component: PackWorkspaceEditor,
+    meta: {
+      title: '数据包编辑器',
+    },
+  },
 ]
 
 const webOnlyRoutes: RouteRecordRaw[] = [
@@ -241,8 +232,8 @@ const webOnlyRoutes: RouteRecordRaw[] = [
   },
 ]
 
-if (isTauri) {
-  routes.push(...tauriOnlyRoutes)
+if (isDesktop) {
+  routes.push(...desktopOnlyRoutes)
 } else {
   routes.push(...webOnlyRoutes)
 }

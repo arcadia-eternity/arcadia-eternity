@@ -1,6 +1,7 @@
 import type { PackLock, AssetLock } from '@arcadia-eternity/schema'
 
 export const BUILTIN_BASE_PACK_SOURCE = 'builtin:base'
+export const BUILTIN_WORKSPACE_PACK_SOURCE = 'builtin:workspace'
 
 export const DEFAULT_PACK_LOCK: PackLock = {
   lockVersion: 1,
@@ -10,13 +11,13 @@ export const DEFAULT_PACK_LOCK: PackLock = {
       id: 'arcadia-eternity.base',
       version: '1.0.0',
       integrity: 'builtin',
-      source: BUILTIN_BASE_PACK_SOURCE,
+      source: BUILTIN_WORKSPACE_PACK_SOURCE,
     },
   ],
 }
 
 export function resolvePackRefFromLock(lock?: PackLock): string {
-  return lock?.packs[0]?.source ?? BUILTIN_BASE_PACK_SOURCE
+  return lock?.packs[0]?.source ?? BUILTIN_WORKSPACE_PACK_SOURCE
 }
 
 export function isPackLockCompatible(required: PackLock, provided: PackLock): boolean {

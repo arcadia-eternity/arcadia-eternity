@@ -5,6 +5,7 @@ import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType, Effect, Learna
 import type { BaseMarkData, BaseSkillData, SpeciesData } from '@arcadia-eternity/battle'
 import type { EffectDef } from '@arcadia-eternity/engine'
 import YAML from 'yaml'
+import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 
 interface GameDataState {
   species: {
@@ -66,7 +67,8 @@ export const useGameDataStore = defineStore('gameData', {
     async initialize() {
       if (this.loaded) return
       const loader = new PackLoader()
-      const packRef = `${import.meta.env.VITE_API_BASE || ''}/pack.json`
+      const packRef = await resolveRuntimePackRef()
+      applyRuntimeAssetBase(packRef)
 
       try {
         const result = await loader.load(packRef, {

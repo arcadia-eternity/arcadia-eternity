@@ -34,13 +34,13 @@
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-commonjs": "^29.0.2",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-typescript": "^12.3.0",
     "npm-run-all": "^4.1.5",
-    "rollup": "^4.57.1",
+    "rollup": "^4.59.0",
     "typescript": "catalog:",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.0"
   },
   "files": [
     "dist"

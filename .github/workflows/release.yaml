@@ -1,10 +1,8 @@
-name: Release Tauri App
+name: Release Desktop App
 
 on:
-  # 通过repository_dispatch触发
   repository_dispatch:
     types: [production-release]
-  # 手动触发
   workflow_dispatch:
     inputs:
       version:
@@ -13,21 +11,20 @@ on:
         type: string
 
 jobs:
-  publish-tauri:
+  publish-desktop:
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-15' # for Arm based macs (M1 and above).
-            args: '--target aarch64-apple-darwin'
-          - platform: 'macos-15' # for Intel based macs.
-            args: '--target x86_64-apple-darwin'
+          - platform: 'macos-15'
+            args: '--mac zip --x64 --arm64'
           - platform: 'windows-latest'
-            args: ''
+            args: '--win nsis zip --x64'
 
     runs-on: ${{ matrix.platform }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -36,29 +33,19 @@ jobs:
         with:
           version: 10
 
-      - name: setup node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: 'pnpm'
+          cache: pnpm
 
-      - name: install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ startsWith(matrix.platform, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: './packages/web-ui/src-tauri -> target'
-
-      - name: install frontend dependencies
+      - name: Install dependencies
         run: pnpm install
 
       - name: Build workspace packages
         run: pnpm run build:package
 
-      - name: Get version from repository dispatch or workflow dispatch
+      - name: Resolve release version
         id: version
         shell: bash
         run: |
@@ -67,70 +54,34 @@ jobs:
           elif [ "${{ github.event_name }}" = "repository_dispatch" ]; then
             VERSION="${{ github.event.client_payload.tag_name }}"
           else
-            # 从package.json读取版本号作为fallback
             VERSION="v$(node -p "require('./package.json').version")"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Using version: $VERSION"
 
-      - name: Get release ID
-        id: release
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const version = '${{ steps.version.outputs.version }}';
-            console.log(`Looking for release with tag: ${version}`);
-
-            try {
-              const { data: release } = await github.rest.repos.getReleaseByTag({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                tag: version
-              });
-
-              console.log(`Found release ID: ${release.id}`);
-              return release.id;
-            } catch (error) {
-              console.error(`Failed to find release for tag ${version}:`, error.message);
-              throw error;
-            }
-
-      - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
+      - name: Build and publish Electron app
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           CI: true
-          VITE_IS_TAURI: true
           GITHUB_SHA: ${{ github.sha }}
           COMMIT_HASH: ${{ github.sha }}
-        with:
-          # 使用现有的release，不创建新的release
-          releaseId: ${{ steps.release.outputs.result }}
-          updaterJsonPreferNsis: true
-          args: ${{ matrix.args }}
-          projectPath: './packages/web-ui'
-          includeUpdaterJson: true
-          includeDebug: false
-
-      - name: Verify app bundle creation (macOS only)
-        if: startsWith(matrix.platform, 'macos')
         run: |
-          echo "Checking for app bundle files..."
-          find ./packages/web-ui/src-tauri/target -name "*.app" -type d || echo "No app bundle found"
-          ls -la ./packages/web-ui/src-tauri/target/*/release/bundle/macos/ || echo "macOS bundle directory not found"
+          echo "Building desktop artifacts for ${{ steps.version.outputs.version }}"
+          pnpm --filter @arcadia-eternity/web-ui run build
+          pnpm --filter @arcadia-eternity/web-ui run electron:pack:publish -- ${{ matrix.args }}
 
   notify:
-    needs: publish-tauri
+    needs: publish-desktop
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Notify completion
         run: |
-          if [ "${{ needs.publish-tauri.result }}" == "success" ]; then
-            echo "✅ Release completed successfully!"
+          if [ "${{ needs.publish-desktop.result }}" == "success" ]; then
+            echo "✅ Desktop release completed successfully!"
           else
-            echo "❌ Release failed!"
-            echo "Release result: ${{ needs.publish-tauri.result }}"
+            echo "❌ Desktop release failed!"
+            echo "Release result: ${{ needs.publish-desktop.result }}"
           fi

@@ -10,11 +10,11 @@ describe('pack lockfile schema', () => {
       importers: {
         '.': {
           specifiers: {
-            'arcadia-eternity.base': 'file:./packages/data-pack-base/pack.json',
+            'arcadia-eternity.base': 'file:./packs/base/pack.json',
           },
           dependencies: {
             'arcadia-eternity.base': {
-              specifier: 'file:./packages/data-pack-base/pack.json',
+              specifier: 'file:./packs/base/pack.json',
               version: '1.0.0',
               packageKey: '/arcadia-eternity.base@1.0.0',
             },
@@ -27,12 +27,12 @@ describe('pack lockfile schema', () => {
           version: '1.0.0',
           kind: 'data',
           engine: 'seer2-v2',
-          source: 'file:./packages/data-pack-base/pack.json',
+          source: 'file:./packs/base/pack.json',
           entry: 'pack.json',
           provenance: 'file',
           resolution: {
             integrity: 'sha512-abc',
-            path: './packages/data-pack-base/pack.json',
+            path: './packs/base/pack.json',
           },
         },
       },
@@ -41,4 +41,3 @@ describe('pack lockfile schema', () => {
     expect(Value.Check(PackLockfileSchema, lockfile)).toBe(true)
   })
 })
-

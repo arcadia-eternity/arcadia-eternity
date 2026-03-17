@@ -67,7 +67,7 @@ export class ResourceLoadingManager {
     }
 
     this.options = {
-      packRef: 'builtin:base',
+      packRef: 'builtin:workspace',
       scriptPaths: ['./scripts'],
       validateData: false,
       continueOnError: true,
@@ -153,7 +153,7 @@ export class ResourceLoadingManager {
   private async performLoading(): Promise<void> {
     try {
       logger.info({ packRef: this.options.packRef }, '开始加载数据包...')
-      const loadResult = await serverPackManager.load(this.options.packRef ?? 'builtin:base', {
+      const loadResult = await serverPackManager.load(this.options.packRef ?? 'builtin:workspace', {
         enforceLockfile: true,
       })
       this.loadedRepository = loadResult.repository

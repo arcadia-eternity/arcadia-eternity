@@ -1,7 +1,5 @@
 import type { BattleMessage, BattleState, TimerConfig, PlayerTimerState } from '@arcadia-eternity/const';
-import type { PlayerSchemaType, PlayerSelectionSchemaType, PetSchemaType } from '@arcadia-eternity/schema';
-import type { PackLock } from '@arcadia-eternity/schema/src/pack.js';
-import type { AssetLock } from '@arcadia-eternity/schema/src/assets.js';
+import type { PlayerSchemaType, PlayerSelectionSchemaType, PetSchemaType, PackLock, AssetLock } from '@arcadia-eternity/schema';
 export type { PetSchemaType, PlayerSchemaType, PlayerSelectionSchemaType };
 export type SuccessResponse<T = undefined> = {
     status: 'SUCCESS';

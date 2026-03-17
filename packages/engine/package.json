@@ -18,7 +18,7 @@
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
-    "@sinclair/typebox": "^0.34.33",
+    "@sinclair/typebox": "^0.34.48",
     "nanoid": "^5.1.6"
   }
 }

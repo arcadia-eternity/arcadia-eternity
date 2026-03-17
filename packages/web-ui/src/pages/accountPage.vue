@@ -124,7 +124,7 @@
 
               <p class="text-xs text-gray-500">
                 {{
-                  isTauri
+                  isDesktop
                     ? '预先下载所有精灵的动画资源到本地，提升对战体验'
                     : '预先下载所有精灵的动画资源，提升对战体验'
                 }}
@@ -140,7 +140,7 @@
                 plain
               >
                 <el-icon class="mr-2"><Refresh /></el-icon>
-                {{ isTauri ? '清理缓存' : '重置状态' }}
+                {{ isDesktop ? '清理缓存' : '重置状态' }}
               </el-button>
             </div>
           </el-card>
@@ -175,7 +175,7 @@ import { useGameDataStore } from '@/stores/gameData'
 import EmailInheritance from '@/components/EmailInheritance.vue'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { petResourceCache } from '@/services/petResourceCache'
-import { isTauri } from '@/utils/env'
+import { isDesktop } from '@/utils/env'
 
 const playerStore = usePlayerStore()
 const gameDataStore = useGameDataStore()
@@ -318,11 +318,11 @@ const startPrecache = async () => {
 // 重置缓存状态
 const resetCacheStatus = async () => {
   try {
-    const confirmMessage = isTauri
+    const confirmMessage = isDesktop
       ? '确定要清理本地缓存吗？这将删除所有已下载的精灵资源文件，需要重新下载。'
       : '确定要重置缓存状态记录吗？这只会清除我们的缓存状态记录，不会影响浏览器实际缓存的资源。'
 
-    const confirmTitle = isTauri ? '确认清理缓存' : '确认重置状态'
+    const confirmTitle = isDesktop ? '确认清理缓存' : '确认重置状态'
 
     await ElMessageBox.confirm(confirmMessage, confirmTitle, {
       confirmButtonText: '确认',
@@ -332,7 +332,7 @@ const resetCacheStatus = async () => {
 
     await petResourceCache.resetCache()
 
-    const successMessage = isTauri ? '本地缓存已清理' : '缓存状态已重置'
+    const successMessage = isDesktop ? '本地缓存已清理' : '缓存状态已重置'
     ElMessage.success(successMessage)
   } catch {
     // 用户取消操作

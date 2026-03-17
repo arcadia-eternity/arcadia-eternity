@@ -34,8 +34,8 @@
 
         <div class="flex justify-between items-center">
           <span class="text-gray-600">平台:</span>
-          <el-tag :type="versionInfo.isTauri ? 'primary' : 'info'" size="small">
-            {{ versionInfo.isTauri ? 'Tauri桌面版' : 'Web版' }}
+          <el-tag :type="versionInfo.isDesktop ? 'primary' : 'info'" size="small">
+            {{ versionInfo.isDesktop ? 'Electron桌面版' : 'Web版' }}
           </el-tag>
         </div>
 
@@ -49,8 +49,8 @@
           <span class="font-mono text-sm">{{ versionInfo.commitHash.substring(0, 7) }}</span>
         </div>
 
-        <!-- 更新检查按钮（仅Tauri版本） -->
-        <div v-if="versionInfo.isTauri" class="pt-3 border-t">
+        <!-- 更新检查按钮（仅桌面端版本） -->
+        <div v-if="versionInfo.isDesktop" class="pt-3 border-t">
           <el-button
             @click="handleCheckForUpdates"
             :loading="checkingUpdates"
@@ -83,7 +83,7 @@ import {
   getDetailedVersionStringAsync,
   checkForUpdates,
 } from '@/utils/version'
-import { isTauri } from '@/utils/env'
+import { isDesktop } from '@/utils/env'
 
 // 版本信息
 const versionInfo = ref(getVersionInfo())
@@ -94,15 +94,15 @@ const detailedVersionString = ref(getDetailedVersionString())
 const showDetails = ref(false)
 const checkingUpdates = ref(false)
 
-// 在 Tauri 环境下异步更新版本信息
+// 在桌面端环境下异步更新版本信息
 onMounted(async () => {
-  if (isTauri) {
+  if (isDesktop) {
     try {
       versionInfo.value = await getVersionInfoAsync()
       versionString.value = await getVersionStringAsync()
       detailedVersionString.value = await getDetailedVersionStringAsync()
     } catch (error) {
-      console.warn('无法获取 Tauri 版本信息:', error)
+      console.warn('无法获取桌面端版本信息:', error)
     }
   }
 })
@@ -133,10 +133,10 @@ async function copyVersionInfo() {
 }
 
 /**
- * 手动检查更新（仅Tauri版本）
+ * 手动检查更新（仅桌面端版本）
  */
 async function handleCheckForUpdates() {
-  if (!versionInfo.value.isTauri) {
+  if (!versionInfo.value.isDesktop) {
     return
   }
 

@@ -19,8 +19,8 @@ import { parseSkill } from '../data/parsers/skill-parser.js'
 import { parseSpecies } from '../data/parsers/species-parser.js'
 
 const TEST_DIR = fileURLToPath(new URL('.', import.meta.url))
-const DATA_DIR = resolve(TEST_DIR, '../../../../../packages/data-pack-base/data')
-const PACK_PATH = resolve(TEST_DIR, '../../../../../packages/data-pack-base/pack.json')
+const DATA_DIR = resolve(TEST_DIR, '../../../../../packs/base/data')
+const PACK_PATH = resolve(TEST_DIR, '../../../../../packs/base/pack.json')
 
 // ---------------------------------------------------------------------------
 // V2DataRepository unit tests
@@ -512,6 +512,78 @@ describe('loadV2GameData', () => {
       expect(result.locales?.['zh-CN']?.skill).toBeDefined()
       expect(result.locales?.['zh-CN']?.mark).toBeDefined()
     } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  test('loads all packs from ARCADIA_PACKS_DIR via builtin:workspace', async () => {
+    const previousPacksDir = process.env.ARCADIA_PACKS_DIR
+    const root = await mkdtemp(resolve(tmpdir(), 'v2-workspace-pack-'))
+    const packsDir = resolve(root, 'packs')
+    const baseDir = resolve(packsDir, 'base')
+    const modDir = resolve(packsDir, 'mod-alpha')
+
+    await mkdir(resolve(baseDir, 'data'), { recursive: true })
+    await mkdir(resolve(modDir, 'data'), { recursive: true })
+
+    try {
+      await writeFile(resolve(baseDir, 'data/effects.yaml'), YAML.stringify([
+        { id: 'eff_base', trigger: 'OnBattleStart', priority: 0, apply: { type: 'addPower', target: 'useSkillContext', value: 1 } },
+        { id: 'eff_shared', trigger: 'OnBattleStart', priority: 0, apply: { type: 'addPower', target: 'useSkillContext', value: 1 } },
+      ]))
+      await writeFile(resolve(baseDir, 'data/marks.yaml'), YAML.stringify([]))
+      await writeFile(resolve(baseDir, 'data/skills.yaml'), YAML.stringify([]))
+      await writeFile(resolve(baseDir, 'data/species.yaml'), YAML.stringify([]))
+      await writeFile(resolve(baseDir, 'pack.json'), JSON.stringify({
+        id: 'arcadia-eternity.base',
+        version: '1.0.0',
+        engine: 'seer2-v2',
+        layoutVersion: 1,
+        paths: { dataDir: 'data' },
+        data: {
+          effects: ['effects.yaml'],
+          marks: ['marks.yaml'],
+          skills: ['skills.yaml'],
+          species: ['species.yaml'],
+        },
+      }))
+
+      await writeFile(resolve(modDir, 'data/effects.yaml'), YAML.stringify([
+        { id: 'eff_mod', trigger: 'OnBattleStart', priority: 0, apply: { type: 'addPower', target: 'useSkillContext', value: 2 } },
+        { id: 'eff_shared', trigger: 'OnBattleStart', priority: 0, apply: { type: 'addPower', target: 'useSkillContext', value: 9 } },
+      ]))
+      await writeFile(resolve(modDir, 'data/marks.yaml'), YAML.stringify([]))
+      await writeFile(resolve(modDir, 'data/skills.yaml'), YAML.stringify([]))
+      await writeFile(resolve(modDir, 'data/species.yaml'), YAML.stringify([]))
+      await writeFile(resolve(modDir, 'pack.json'), JSON.stringify({
+        id: 'mod.alpha',
+        version: '1.0.0',
+        engine: 'seer2-v2',
+        layoutVersion: 1,
+        paths: { dataDir: 'data' },
+        data: {
+          effects: ['effects.yaml'],
+          marks: ['marks.yaml'],
+          skills: ['skills.yaml'],
+          species: ['species.yaml'],
+        },
+      }))
+
+      process.env.ARCADIA_PACKS_DIR = packsDir
+      const result = await loadV2GameDataFromPack('builtin:workspace', {
+        continueOnError: false,
+        validateReferences: true,
+      })
+      expect(result.pack?.id).toBe('arcadia-eternity.workspace')
+      expect(result.repository.findEffect('eff_base')).toBeDefined()
+      expect(result.repository.findEffect('eff_mod')).toBeDefined()
+      expect((result.repository.findEffect('eff_shared') as any)?.apply?.value).toBe(9)
+    } finally {
+      if (previousPacksDir === undefined) {
+        delete process.env.ARCADIA_PACKS_DIR
+      } else {
+        process.env.ARCADIA_PACKS_DIR = previousPacksDir
+      }
       await rm(root, { recursive: true, force: true })
     }
   })

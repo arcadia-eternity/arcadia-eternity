@@ -15,6 +15,7 @@ on:
     branches: [main, master]
     paths:
       - 'packages/**'
+      - 'packs/**'
       - '!packages/web-ui/**'
       - 'data/**'
       - 'bin/**'

@@ -1,10 +1,12 @@
 // battle/src/v2/data/v2-data-loader.ts
 // Load YAML data files in dependency order and populate V2DataRepository.
 
-import { access, readFile } from 'node:fs/promises'
+import { access, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, extname, resolve } from 'node:path'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
+import { createHash } from 'node:crypto'
+import { tmpdir } from 'node:os'
 import YAML from 'yaml'
 import type { EffectDef } from '@arcadia-eternity/engine'
 import { V2DataRepository } from './v2-data-repository.js'
@@ -15,6 +17,7 @@ export interface V2DataPackManifest {
   version: string
   engine: 'seer2-v2'
   layoutVersion?: 1
+  assetsRef?: string | string[]
   dependencies?: V2DataPackDependency[]
   paths?: {
     dataDir?: string
@@ -77,7 +80,7 @@ export async function loadV2GameData(
     continueOnError = false,
     validateReferences = true,
     packPath,
-    packRef = 'builtin:base',
+    packRef = 'builtin:workspace',
     effectParser = parseEffect,
   } = options
   const errors: string[] = []
@@ -225,7 +228,14 @@ const requireFromLoader = createRequire(import.meta.url)
 async function resolvePackReference(packRef?: string): Promise<string | undefined> {
   if (!packRef || packRef.trim().length === 0) return undefined
   const ref = packRef.trim()
+  if (ref === 'builtin:workspace') {
+    const workspacePath = await resolveBuiltinWorkspacePackPath()
+    if (workspacePath) return workspacePath
+    return resolvePackReference('builtin:base')
+  }
   if (ref === 'builtin:base') {
+    const builtinPath = await resolveBuiltinBasePackPath()
+    if (builtinPath) return builtinPath
     return resolvePackReference('npm:@arcadia-eternity/data-pack-base')
   }
   const candidate = ref.startsWith('npm:') ? ref.slice(4) : ref
@@ -272,19 +282,161 @@ async function findWorkspacePackageJson(packageName: string): Promise<string | u
   if (!pkgLeaf) return undefined
   let current = dirname(fileURLToPath(import.meta.url))
   for (let i = 0; i < 8; i++) {
-    const candidate = resolve(current, 'packages', pkgLeaf, 'package.json')
-    try {
-      await access(candidate)
-      const raw = JSON.parse(await readFile(candidate, 'utf-8')) as { name?: string }
-      if (raw.name === packageName) return candidate
-    } catch {
-      // continue climbing
+    const candidates = [
+      resolve(current, 'packages', pkgLeaf, 'package.json'),
+      resolve(current, 'packs', pkgLeaf, 'package.json'),
+    ]
+    for (const candidate of candidates) {
+      try {
+        await access(candidate)
+        const raw = JSON.parse(await readFile(candidate, 'utf-8')) as { name?: string }
+        if (raw.name === packageName) return candidate
+      } catch {
+        // continue probing candidates
+      }
     }
     const parent = dirname(current)
     if (parent === current) break
     current = parent
   }
   return undefined
+}
+
+async function resolveBuiltinBasePackPath(): Promise<string | undefined> {
+  let current = dirname(fileURLToPath(import.meta.url))
+  for (let i = 0; i < 8; i++) {
+    const candidate = resolve(current, 'packs', 'base', 'pack.json')
+    try {
+      await access(candidate)
+      return candidate
+    } catch {
+      // keep climbing to repo root
+    }
+    const parent = dirname(current)
+    if (parent === current) break
+    current = parent
+  }
+  return undefined
+}
+
+type WorkspacePackDescriptor = {
+  id: string
+  path: string
+  rawFingerprint: string
+  assetRefs: string[]
+}
+
+async function resolveBuiltinWorkspacePackPath(): Promise<string | undefined> {
+  const packsDir = await resolveBuiltinPacksDir()
+  if (!packsDir) return undefined
+  const descriptors = await discoverWorkspacePackDescriptors(packsDir)
+  if (descriptors.length === 0) return undefined
+  if (descriptors.length === 1) return descriptors[0].path
+  return createWorkspaceAggregatePack(packsDir, descriptors)
+}
+
+async function resolveBuiltinPacksDir(): Promise<string | undefined> {
+  const envPath = process.env.ARCADIA_PACKS_DIR?.trim()
+  if (envPath) {
+    const fromEnv = resolve(envPath)
+    try {
+      const info = await stat(fromEnv)
+      if (info.isDirectory()) return fromEnv
+    } catch {
+      // ignore invalid env dir and fall back to auto discovery
+    }
+  }
+
+  let current = dirname(fileURLToPath(import.meta.url))
+  for (let i = 0; i < 8; i++) {
+    const candidate = resolve(current, 'packs')
+    try {
+      const info = await stat(candidate)
+      if (info.isDirectory()) return candidate
+    } catch {
+      // keep climbing to locate workspace packs dir
+    }
+    const parent = dirname(current)
+    if (parent === current) break
+    current = parent
+  }
+  return undefined
+}
+
+async function discoverWorkspacePackDescriptors(packsDir: string): Promise<WorkspacePackDescriptor[]> {
+  const entries = await readdir(packsDir, { withFileTypes: true })
+  const descriptors: WorkspacePackDescriptor[] = []
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue
+    const packPath = resolve(packsDir, entry.name, 'pack.json')
+    try {
+      await access(packPath)
+      const raw = await readFile(packPath, 'utf-8')
+      const parsed = JSON.parse(raw) as { id?: string; assetsRef?: string | string[] }
+      if (!parsed.id) continue
+      const refs = parsed.assetsRef
+        ? (Array.isArray(parsed.assetsRef) ? parsed.assetsRef : [parsed.assetsRef])
+        : []
+      const resolvedRefs = refs.map(ref => {
+        if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(ref)) return ref
+        return resolve(dirname(packPath), ref)
+      })
+      descriptors.push({
+        id: parsed.id,
+        path: packPath,
+        rawFingerprint: raw,
+        assetRefs: resolvedRefs,
+      })
+    } catch {
+      // ignore folders that are not valid pack directories
+    }
+  }
+
+  descriptors.sort((a, b) => {
+    const aBase = a.id === 'arcadia-eternity.base'
+    const bBase = b.id === 'arcadia-eternity.base'
+    if (aBase && !bBase) return -1
+    if (!aBase && bBase) return 1
+    return a.id.localeCompare(b.id)
+  })
+
+  return descriptors
+}
+
+async function createWorkspaceAggregatePack(packsDir: string, descriptors: WorkspacePackDescriptor[]): Promise<string> {
+  const hashInput = descriptors.map(item => `${item.path}\n${item.rawFingerprint}`).join('\n---\n')
+  const hash = createHash('sha1').update(hashInput).digest('hex').slice(0, 16)
+  const outputDir = resolve(tmpdir(), 'arcadia-eternity', 'pack-cache')
+  const outputPath = resolve(outputDir, `workspace-${hash}.json`)
+
+  const allAssetRefs = [...new Set(descriptors.flatMap(item => item.assetRefs))]
+  const aggregate: V2DataPackManifest = {
+    id: 'arcadia-eternity.workspace',
+    version: '1.0.0',
+    engine: 'seer2-v2',
+    layoutVersion: 1,
+    data: {
+      effects: [],
+      marks: [],
+      skills: [],
+      species: [],
+    },
+    dependencies: descriptors.map(item => ({
+      id: item.id,
+      path: item.path,
+    })),
+  }
+
+  if (allAssetRefs.length === 1) {
+    aggregate.assetsRef = allAssetRefs[0]
+  } else if (allAssetRefs.length > 1) {
+    aggregate.assetsRef = allAssetRefs
+  }
+
+  await mkdir(outputDir, { recursive: true })
+  await writeFile(outputPath, JSON.stringify(aggregate, null, 2), 'utf-8')
+  return outputPath
 }
 
 interface ResolvedPack {

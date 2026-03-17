@@ -49,7 +49,7 @@
         <span class="text-sm md:text-base">本地战报</span>
       </router-link>
       <router-link
-        v-if="!isTauri"
+        v-if="!isDesktop"
         to="/download"
         class="flex flex-col items-center gap-2 p-4 md:p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500 min-h-[80px] md:min-h-[auto] touch-manipulation"
       >
@@ -62,6 +62,14 @@
       >
         <el-icon :size="20"><Monitor /></el-icon>
         <span class="text-sm md:text-base">人机对战</span>
+      </router-link>
+      <router-link
+        v-if="isDesktop"
+        to="/pack-editor"
+        class="flex flex-col items-center gap-2 p-4 md:p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500 min-h-[80px] md:min-h-[auto] touch-manipulation"
+      >
+        <el-icon :size="20"><Files /></el-icon>
+        <span class="text-sm md:text-base">数据包编辑</span>
       </router-link>
       <a
         href="https://github.com/arcadia-eternity/arcadia-eternity"
@@ -348,7 +356,7 @@ import {
   Trophy,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { isTauri } from '@/utils/env'
+import { isDesktop } from '@/utils/env'
 import RuleSetTooltip from '@/components/RuleSetTooltip.vue'
 import TeamSelector from '@/components/TeamSelector.vue'
 import { BattleReportService } from '@/services/battleReportService'

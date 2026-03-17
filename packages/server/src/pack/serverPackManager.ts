@@ -1,7 +1,7 @@
 import { readdir, readFile, access } from 'node:fs/promises'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { dirname, resolve, join } from 'node:path'
+import { basename, dirname, resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PackLoader } from '@arcadia-eternity/pack-loader'
 import type { InstalledPack, PackInstallRequest, PackLoadResult, PackLockfile, PackManager, PackResolveResult } from '@arcadia-eternity/pack-loader'
@@ -49,8 +49,8 @@ export class ServerPackManager implements PackManager {
             id: manifest.id,
             version: manifest.version,
             kind: 'data',
-            source: packageRoot.startsWith(resolve(this.workspaceRoot, 'packages')) ? 'workspace' : 'npm',
-            entry: pkg.arcadiaEternityPack,
+            source: this.isWorkspacePackRoot(packageRoot) ? 'workspace' : 'npm',
+            entry: basename(pkg.arcadiaEternityPack),
             root: packageRoot,
             resolved: resolve(packageRoot, pkg.arcadiaEternityPack),
           })
@@ -65,8 +65,8 @@ export class ServerPackManager implements PackManager {
             id: manifest.id,
             version: manifest.version,
             kind: 'asset',
-            source: packageRoot.startsWith(resolve(this.workspaceRoot, 'packages')) ? 'workspace' : 'npm',
-            entry: pkg.arcadiaEternityAssets,
+            source: this.isWorkspacePackRoot(packageRoot) ? 'workspace' : 'npm',
+            entry: basename(pkg.arcadiaEternityAssets),
             root: packageRoot,
             resolved: resolve(packageRoot, pkg.arcadiaEternityAssets),
           })
@@ -142,12 +142,20 @@ export class ServerPackManager implements PackManager {
   private async findCandidatePackageJsonPaths(): Promise<string[]> {
     const results = new Set<string>()
     const workspacePackagesDir = resolve(this.workspaceRoot, 'packages')
+    const workspacePacksDir = resolve(this.workspaceRoot, 'packs')
     const rootNodeModulesDir = resolve(this.workspaceRoot, 'node_modules')
 
     await this.collectPackageJsons(workspacePackagesDir, results, 1)
+    await this.collectPackageJsons(workspacePacksDir, results, 1)
     await this.collectPackageJsons(rootNodeModulesDir, results, 2)
 
     return [...results]
+  }
+
+  private isWorkspacePackRoot(packageRoot: string): boolean {
+    const workspacePackagesRoot = resolve(this.workspaceRoot, 'packages')
+    const workspacePacksRoot = resolve(this.workspaceRoot, 'packs')
+    return packageRoot.startsWith(workspacePackagesRoot) || packageRoot.startsWith(workspacePacksRoot)
   }
 
   private async collectPackageJsons(root: string, out: Set<string>, maxDepth: number): Promise<void> {

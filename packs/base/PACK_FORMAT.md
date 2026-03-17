@@ -5,7 +5,9 @@
 ```text
 <pack-root>/
   pack.json
-  assets.json
+  assets/
+    assets.json
+    *.png|*.jpg|*.webp|*.mp3|...
   data/
     effect_*.yaml
     mark*.yaml
@@ -27,16 +29,22 @@ For this repository's built-in pack package:
 - `version`: pack version
 - `engine`: must be `"seer2-v2"`
 - `layoutVersion`: currently `1`
-- `assetsRef`: optional assets manifest reference (`assets.json` or URL)
+- `assetsRef`: optional asset reference (`assets` directory, `assets.json`, or URL)
 - `paths.dataDir`: base dir for `data.*` file lists
 - `paths.localesDir`: base dir for locale files
 - `dependencies`: dependent pack list, loaded before current pack
 - `data.effects|marks|skills|species`: YAML filenames relative to `dataDir`
 - `locales`: locale -> namespace list (namespace maps to `<localesDir>/<locale>/<namespace>.yaml`)
 
-## `assets.json` (optional but recommended)
+## Assets Manifests (optional but recommended)
 
 Used for resource distribution (sprite/sfx/ui/bgm), and can be consumed directly by Web/Tauri runtime.
+
+When `assetsRef` points to a directory (for example `assets`), loader will:
+
+- prefer `assets/assets.json` as the default manifest
+- also load additional `*.json` manifests in that directory (sorted, default first)
+- keep non-manifest static files (images/audio) available for direct `iconRef/sfxRef/assetRef` usage
 
 Recommended fields:
 
@@ -67,7 +75,7 @@ Both return:
 
 `packRef` supports:
 
-- file path: `./packages/data-pack-base/pack.json`
+- file path: `./packs/base/pack.json`
 - npm package: `npm:@scope/data-pack`
 - npm package with explicit entry: `npm:@scope/data-pack#packs/base/pack.json`
 

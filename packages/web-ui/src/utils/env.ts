@@ -1,19 +1,21 @@
-// Tauri 环境检测
-// 优先使用环境变量，然后检查 window.__TAURI__ 对象
-export const isTauri =
-  import.meta.env.VITE_IS_TAURI === 'true' ||
-  import.meta.env.VITE_IS_TAURI === true ||
-  (typeof window !== 'undefined' && '__TAURI__' in window)
+import type { ArcadiaDesktopApi } from '@/types/desktop'
 
-export function onTauri<T>(cb: () => T) {
-  if (isTauri) return cb()
+export function getDesktopApi(): ArcadiaDesktopApi | null {
+  if (typeof window === 'undefined') return null
+  return window.arcadiaDesktop ?? null
+}
+
+export const isDesktop = getDesktopApi() !== null
+
+export function onDesktop<T>(cb: () => T) {
+  if (isDesktop) return cb()
 }
 
 export function onWeb<T>(cb: () => T) {
-  if (!isTauri) return cb()
+  if (!isDesktop) return cb()
 }
 
-export function runInEnv<T>(implementations: { tauri: () => T; web: () => T }): T {
-  if (isTauri) return implementations.tauri()
-  else return implementations.web()
+export function runInEnv<T>(implementations: { desktop: () => T; web: () => T }): T {
+  if (isDesktop) return implementations.desktop()
+  return implementations.web()
 }

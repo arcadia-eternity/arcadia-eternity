@@ -12,51 +12,62 @@ import { initI18n } from './i18n/i18n'
 import i18next from 'i18next'
 import { useAuthStore } from './stores/auth'
 import { usePrivateRoomStore } from './stores/privateRoom'
+import { ensureRuffleRuntime } from './bootstrap/ruffle'
 
-const app = createApp(App)
-const pinia = createPinia()
-initI18n()
-pinia.use(piniaPluginPersistedstate)
+async function bootstrap() {
+  await ensureRuffleRuntime().catch(error => {
+    console.warn('Ruffle runtime preload failed, fallback loader may be used:', error)
+  })
 
-app.use(pinia)
-app.use(router)
-app.use(I18NextVue, { i18next })
-app.use(Particles, {
-  init: async engine => {
-    await loadFull(engine)
-  },
-})
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component)
-}
+  const app = createApp(App)
+  const pinia = createPinia()
+  initI18n()
+  pinia.use(piniaPluginPersistedstate)
 
-// 初始化 auth store
-const authStore = useAuthStore()
-authStore.initialize()
-
-if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
-  ;(window as typeof window & {
-    __APP_DEBUG__?: {
-      pinia: typeof pinia
-      stores: {
-        auth: () => ReturnType<typeof useAuthStore>
-        privateRoom: () => ReturnType<typeof usePrivateRoomStore>
-      }
-      createPrivateRoom: (config: {
-        ruleSetId?: string
-        isPrivate?: boolean
-        password?: string
-        p2pTransport?: 'auto' | 'webrtc' | 'relay'
-      }) => Promise<string>
-    }
-  }).__APP_DEBUG__ = {
-    pinia,
-    stores: {
-      auth: () => useAuthStore(),
-      privateRoom: () => usePrivateRoomStore(),
+  app.use(pinia)
+  app.use(router)
+  app.use(I18NextVue, { i18next })
+  app.use(Particles, {
+    init: async engine => {
+      await loadFull(engine)
     },
-    createPrivateRoom: async config => usePrivateRoomStore().createRoom(config),
+  })
+  for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+    app.component(key, component)
   }
+
+  // 初始化 auth store
+  const authStore = useAuthStore()
+  authStore.initialize()
+
+  if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
+    ;(window as typeof window & {
+      __APP_DEBUG__?: {
+        pinia: typeof pinia
+        stores: {
+          auth: () => ReturnType<typeof useAuthStore>
+          privateRoom: () => ReturnType<typeof usePrivateRoomStore>
+        }
+        createPrivateRoom: (config: {
+          ruleSetId?: string
+          isPrivate?: boolean
+          password?: string
+          p2pTransport?: 'auto' | 'webrtc' | 'relay'
+        }) => Promise<string>
+      }
+    }).__APP_DEBUG__ = {
+      pinia,
+      stores: {
+        auth: () => useAuthStore(),
+        privateRoom: () => usePrivateRoomStore(),
+      },
+      createPrivateRoom: async config => usePrivateRoomStore().createRoom(config),
+    }
+  }
+
+  app.mount('#app')
 }
 
-app.mount('#app')
+void bootstrap().catch(error => {
+  console.error('Failed to bootstrap web-ui:', error)
+})

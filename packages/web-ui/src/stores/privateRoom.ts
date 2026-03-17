@@ -47,10 +47,12 @@ const buildRoomPeerTransportId = (roomCode: string, playerId: string): string =>
 const resolvePeerBrokerConfig = () => {
   const apiBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_WS_URL || window.location.origin
   const url = new URL(apiBase, window.location.origin)
+  const configuredPath = (import.meta.env.VITE_PEERJS_PATH || '/peerjs').trim()
+  const peerPath = configuredPath.startsWith('/') ? configuredPath : `/${configuredPath}`
   return {
     host: url.hostname,
     port: url.port ? Number(url.port) : undefined,
-    path: '/peerjs',
+    path: peerPath,
     secure: url.protocol === 'https:',
   }
 }
@@ -88,6 +90,10 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   let peerBridge: PrivateRoomSignalBridge | null = null
   let peerBattleSnapshotUnsubscribe: (() => void) | null = null
   let roomPollTimer: ReturnType<typeof setInterval> | null = null
+  let resumeBattleInFlight: Promise<void> | null = null
+  let lastResumeAttemptAt = 0
+  let lastP2PInitErrorMessage: string | null = null
+  let lastP2PInitErrorAt = 0
 
   // 计算属性
   const players = computed(() => currentRoom.value?.players || [])
@@ -468,6 +474,11 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
   }
 
+  const isOnPrivateBattleRoute = (): boolean => {
+    const route = router.currentRoute.value
+    return route.path === '/battle' && route.query.privateRoom === 'true'
+  }
+
   const synthesizeBattleStartInfo = (room: PrivateRoomInfo): PrivateRoomBattleStartInfo | null => {
     const battleHostPlayerId = room.battleHost?.playerId ?? room.config.hostPlayerId
     const battleHostSessionId =
@@ -651,7 +662,8 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       throw new Error(`当前角色 ${peerSession.value.role} 暂不支持 P2P 对战`)
     }
     if (!gameDataStore.loaded && !gameDataStore.gameDataLoaded) {
-      throw new Error('游戏数据尚未加载完成')
+      await gameDataStore.initialize()
+      gameDataStore.gameDataLoaded = true
     }
 
     const battleStore = useBattleStore()
@@ -791,13 +803,18 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         await teardownPeerTransport()
         const errorMessage = battleStartError instanceof Error ? battleStartError.message : 'P2P 对战初始化失败'
         error.value = errorMessage
-        ElNotification({
-          title: 'P2P 对战启动失败',
-          message: errorMessage,
-          type: 'error',
-          duration: 5000,
-          position: 'top-right',
-        })
+        const now = Date.now()
+        if (errorMessage !== lastP2PInitErrorMessage || now - lastP2PInitErrorAt > 10_000) {
+          ElNotification({
+            title: 'P2P 对战启动失败',
+            message: errorMessage,
+            type: 'error',
+            duration: 5000,
+            position: 'top-right',
+          })
+          lastP2PInitErrorMessage = errorMessage
+          lastP2PInitErrorAt = now
+        }
         return
       }
 
@@ -832,6 +849,34 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     await handleBattleStarted(battleStartInfo)
   }
 
+  const maybeResumeActiveBattle = async (throttleMs = 3000): Promise<void> => {
+    if (!currentRoom.value || currentRoom.value.status !== 'started') {
+      return
+    }
+    if (isOnPrivateBattleRoute()) {
+      return
+    }
+    if (resumeBattleInFlight) {
+      return
+    }
+
+    const now = Date.now()
+    if (now - lastResumeAttemptAt < throttleMs) {
+      return
+    }
+
+    lastResumeAttemptAt = now
+    resumeBattleInFlight = resumeActiveBattle()
+      .catch(error => {
+        console.warn('Failed to resume active private-room battle:', error)
+      })
+      .finally(() => {
+        resumeBattleInFlight = null
+      })
+
+    await resumeBattleInFlight
+  }
+
   const startRoomPolling = (): void => {
     stopRoomPolling()
     roomPollTimer = setInterval(async () => {
@@ -852,6 +897,8 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
           if (battleStartInfo) {
             await handleBattleStarted(battleStartInfo)
           }
+        } else if (latestRoom.status === 'started') {
+          await maybeResumeActiveBattle()
         }
       } catch (pollError) {
         console.warn('Failed to poll private room info:', pollError)
@@ -937,6 +984,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       case 'roomUpdate':
         currentRoom.value = event.data
         await ensureP2PBattleHostAvailable()
+        if (event.data.status === 'started') {
+          await maybeResumeActiveBattle()
+        }
         break
 
       case 'battleStarted':
@@ -1042,6 +1092,10 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     peerSession.value = closePrivateRoomPeerSession()
     error.value = null
     isLoading.value = false
+    resumeBattleInFlight = null
+    lastResumeAttemptAt = 0
+    lastP2PInitErrorMessage = null
+    lastP2PInitErrorAt = 0
   }
 
   // 在 store 创建时设置事件监听器。

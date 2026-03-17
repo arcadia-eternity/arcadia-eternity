@@ -546,14 +546,27 @@ export class P2PPeerBattleSystem implements IBattleSystem {
     })
   }
 
-  private async waitForTransportConnected(): Promise<void> {
+  private async waitForTransportConnected(timeoutMs = 20_000): Promise<void> {
     if (this.transport.getState() === 'connected') return
     await new Promise<void>((resolve, reject) => {
+      let settled = false
+      const timeout = setTimeout(() => {
+        if (settled) return
+        settled = true
+        off()
+        reject(new Error(`Timed out waiting for P2P transport connection after ${timeoutMs}ms`))
+      }, timeoutMs)
+
       const off = this.transport.onStateChange(state => {
+        if (settled) return
         if (state === 'connected') {
+          settled = true
+          clearTimeout(timeout)
           off()
           resolve()
         } else if (state === 'failed' || state === 'closed') {
+          settled = true
+          clearTimeout(timeout)
           off()
           reject(new Error(`P2P transport became ${state} before battle sync`))
         }

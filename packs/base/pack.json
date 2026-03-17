@@ -2,7 +2,7 @@
   "id": "arcadia-eternity.base",
   "version": "1.0.0",
   "engine": "seer2-v2",
-  "assetsRef": "assets.json",
+  "assetsRef": "assets",
   "layoutVersion": 1,
   "paths": {
     "dataDir": "data",

@@ -226,7 +226,7 @@ class HostBattleRelay {
 }
 
 export async function runInMemoryP2PBattleE2E(options) {
-  const packRef = options.packRef ?? 'builtin:base'
+  const packRef = options.packRef ?? 'builtin:workspace'
   const maxRounds = options.rounds ?? 2
   const peerActionMode = options.peerActionMode ?? 'normal'
   if (!Number.isFinite(maxRounds) || maxRounds <= 0) {

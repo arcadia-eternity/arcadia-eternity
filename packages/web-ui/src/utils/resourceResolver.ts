@@ -12,6 +12,14 @@ function isProtocolUrl(value: string): boolean {
   return /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value)
 }
 
+function resolveRuntimeAssetUrl(value: string): string {
+  const normalizedPath = value.replace(/^\.?\//, '')
+  const runtimeBase = (globalThis as typeof globalThis & { __ARCADIA_ASSET_BASE__?: string }).__ARCADIA_ASSET_BASE__
+  const base = (runtimeBase ?? import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '')
+  if (!base) return `/${normalizedPath}`
+  return `${base}/${normalizedPath}`
+}
+
 export function resolveMarkIconUrl(
   mark: MarkSchemaType | undefined,
   getMarkImage: (id: string) => string | null,
@@ -21,6 +29,7 @@ export function resolveMarkIconUrl(
     if (isHttpUrl(mark.iconRef) || isProtocolUrl(mark.iconRef)) return mark.iconRef
     const mapped = getMarkImage(mark.iconRef)
     if (mapped) return mapped
+    return resolveRuntimeAssetUrl(mark.iconRef)
   }
   const byId = getMarkImage(mark.id)
   if (byId) return byId
@@ -42,6 +51,7 @@ export function resolveSkillSfxUrl(
     if (isHttpUrl(skill.sfxRef) || isProtocolUrl(skill.sfxRef)) return skill.sfxRef
     const mapped = getSkillSound(skill.sfxRef)
     if (mapped) return mapped
+    return resolveRuntimeAssetUrl(skill.sfxRef)
   }
   return getSkillSound(skill.id) ?? SKILL_SFX_FALLBACK
 }
@@ -69,6 +79,11 @@ export function resolveSpeciesSpriteAsset(
         return { swfNum: species.num ?? 0, customSwfUrl: mapped }
       }
     }
+    const lower = species.assetRef.toLowerCase()
+    if (lower.endsWith('.swf')) {
+      return { swfNum: species.num ?? 0, customSwfUrl: resolveRuntimeAssetUrl(species.assetRef) }
+    }
+    return { swfNum: species.num ?? 0, customImageUrl: resolveRuntimeAssetUrl(species.assetRef) }
   }
   return { swfNum: species.num ?? 0 }
 }
@@ -76,6 +91,7 @@ export function resolveSpeciesSpriteAsset(
 export function resolveSpeciesPortraitUrl(species: SpeciesSchemaType | undefined): string {
   if (!species) return PET_IMAGE_FALLBACK
   if (species.assetRef && isHttpUrl(species.assetRef)) return species.assetRef
+  if (species.assetRef && !isProtocolUrl(species.assetRef)) return resolveRuntimeAssetUrl(species.assetRef)
   if (typeof species.num === 'number' && species.num > 0) {
     return `https://seer2-resource.yuuinih.com/png/pet/${species.num}.png`
   }

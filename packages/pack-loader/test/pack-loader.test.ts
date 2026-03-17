@@ -58,7 +58,10 @@ packages:
       [`${base}/effect.yaml`]: `- id: effect_demo
   trigger: OnDamage
   priority: 0
-  apply: {}
+  apply:
+    type: addPower
+    target: useSkillContext
+    value: 1
 `,
       [`${base}/mark.yaml`]: `- id: mark_demo
   effect:
