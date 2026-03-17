@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.1.2...arcadia-eternity-v3.1.3) (2026-03-17)
+
+
+### 🐛 Bug Fixes
+
+* **battle:** block heal on defeated targets and restore guangyinghuanxiang weather ([b11c4c8](https://github.com/arcadia-eternity/arcadia-eternity/commit/b11c4c84d3a73f1be804326699dd96b54079ba32))
+
 ## [3.1.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.1.1...arcadia-eternity-v3.1.2) (2026-03-17)
 
 
