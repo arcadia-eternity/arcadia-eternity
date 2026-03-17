@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.1.0...arcadia-eternity-v3.1.1) (2026-03-17)
+
+
+### 🐛 Bug Fixes
+
+* **web-ui:** harden ruffle asset path and cache headers ([e2be64c](https://github.com/arcadia-eternity/arcadia-eternity/commit/e2be64c1761c64a196ae2d7b2e1f0869035be9dc))
+
 ## [3.1.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.0.3...arcadia-eternity-v3.1.0) (2026-03-17)
 
 
