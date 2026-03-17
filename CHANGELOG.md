@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.1.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.0.3...arcadia-eternity-v3.1.0) (2026-03-17)
+
+
+### ✨ Features
+
+* migrate desktop runtime from tauri to electron ([a881749](https://github.com/arcadia-eternity/arcadia-eternity/commit/a8817494942583252c6cba275c909f55db7ddc5f))
+* migrate pack workspace, rebuild editor, and refresh dependencies ([7ab35fa](https://github.com/arcadia-eternity/arcadia-eternity/commit/7ab35faa63b8067365804accfb4b586e274783d8))
+
+
+### 🐛 Bug Fixes
+
+* align desktop dev host between vite and electron ([9b92ede](https://github.com/arcadia-eternity/arcadia-eternity/commit/9b92ede7593215cc74bcdc51a788497be6205d73))
+* restore electron desktop bridge and sync ruffle lockfile ([0dd5b88](https://github.com/arcadia-eternity/arcadia-eternity/commit/0dd5b88f70c4d81a93145983bd46f98bea5bbf21))
+* **security:** resolve dependabot npm alerts ([f008564](https://github.com/arcadia-eternity/arcadia-eternity/commit/f008564d98eef5a3f66cee6469c8dec77153af48))
+* **web-ui:** load ruffle from bundled runtime asset ([6d88c83](https://github.com/arcadia-eternity/arcadia-eternity/commit/6d88c8368e309ed225a696829e4173b74edaf4ba))
+* **web-ui:** recover stuck private-room p2p reconnect ([313250f](https://github.com/arcadia-eternity/arcadia-eternity/commit/313250f61f935ed514a0fd6ac34489540f93fe9a))
+
 ## [3.0.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.0.2...arcadia-eternity-v3.0.3) (2026-03-15)
 
 
