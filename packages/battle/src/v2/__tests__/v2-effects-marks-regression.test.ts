@@ -205,6 +205,52 @@ describe('v2 mark/stat effect regressions', () => {
     expect(Boolean(qingtian) || Boolean(yemu)).toBe(true)
   })
 
+  test('guangyinghuanxiang weather effect triggers only on first hit', async () => {
+    const battle = createBattleFromConfig(
+      makeTeamConfig('A', 'pet_guangyite', ['skill_guangyinghuanxiang'], Gender.Male),
+      makeTeamConfig('B', 'pet_dilan', ['skill_chongfeng'], Gender.Male),
+      repo,
+      { seed: 'regression-guangyinghuanxiang-first-hit-only' },
+    )
+    const { world, playerSystem, skillSystem, effectPipeline, markSystem } = battle
+    const { playerAId, playerBId } = getBattlePlayerIds(world)
+    const petA = playerSystem.getActivePet(world, playerAId)
+    const petB = playerSystem.getActivePet(world, playerBId)
+    const skillId = findSkillInstanceIdByBaseId(
+      petA.skillIds,
+      'skill_guangyinghuanxiang',
+      sid => skillSystem.get(world, sid)?.baseSkillId,
+    )
+
+    const ctx = makeUseSkillContextFromSkill({
+      battle,
+      petId: petA.id,
+      skillId,
+      originPlayerId: playerAId,
+      fallbackTargetId: petB.id,
+      parentId: 'guangyinghuanxiang-onhit-phase',
+    })
+
+    ctx.currentHitCount = 2
+    await effectPipeline.fire(world, EffectTrigger.OnHit, {
+      trigger: EffectTrigger.OnHit,
+      sourceEntityId: petA.id,
+      context: ctx,
+    })
+    expect(markSystem.findByBaseId(world, 'battle', 'mark_global_qingtian')).toBeUndefined()
+    expect(markSystem.findByBaseId(world, 'battle', 'mark_global_yemu')).toBeUndefined()
+
+    ctx.currentHitCount = 1
+    await effectPipeline.fire(world, EffectTrigger.OnHit, {
+      trigger: EffectTrigger.OnHit,
+      sourceEntityId: petA.id,
+      context: ctx,
+    })
+    const qingtian = markSystem.findByBaseId(world, 'battle', 'mark_global_qingtian')
+    const yemu = markSystem.findByBaseId(world, 'battle', 'mark_global_yemu')
+    expect(Boolean(qingtian) || Boolean(yemu)).toBe(true)
+  })
+
   test('hunnzhuoshuiyu doubles opponent debuff stage application', async () => {
     const battle = createBattleFromConfig(
       makeTeamConfig('A', 'pet_huanli', ['skill_hunzhuoshuiyu', 'skill_wanyouyinli'], Gender.Male),

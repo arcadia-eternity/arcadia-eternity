@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.1.3...arcadia-eternity-v3.1.4) (2026-03-17)
+
+
+### 🐛 Bug Fixes
+
+* **data:** trigger guangyinghuanxiang weather only on first hit ([b47378a](https://github.com/arcadia-eternity/arcadia-eternity/commit/b47378a7f871c2f2d1911867c3e587bab8e19e96))
+
 ## [3.1.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.1.2...arcadia-eternity-v3.1.3) (2026-03-17)
 
 
