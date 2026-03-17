@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.1.1...arcadia-eternity-v3.1.2) (2026-03-17)
+
+
+### 🐛 Bug Fixes
+
+* **battle:** apply first-turn power modifiers in actual damage ([8fd6173](https://github.com/arcadia-eternity/arcadia-eternity/commit/8fd6173fd9e7e6c6278d526af00c9ae256e2eaec))
+
 ## [3.1.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.1.0...arcadia-eternity-v3.1.1) (2026-03-17)
 
 
