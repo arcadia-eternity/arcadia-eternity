@@ -15,10 +15,12 @@
           round
           :class="['transition-all duration-300', !isMobile ? 'hover:scale-105 hover:shadow-lg cursor-pointer' : '']"
         >
-          <el-icon :size="14" class="animate-pulse">
-            <Connection />
-          </el-icon>
-          已连接
+          <span class="inline-flex items-center gap-1">
+            <el-icon :size="14" class="animate-pulse">
+              <Connection />
+            </el-icon>
+            已连接
+          </span>
         </el-tag>
 
         <!-- 连接中状态 -->
@@ -29,10 +31,12 @@
           round
           class="transition-all duration-300"
         >
-          <el-icon :size="14" class="animate-spin">
-            <Loading />
-          </el-icon>
-          {{ isServerWaking ? '唤醒中...' : '连接中...' }}
+          <span class="inline-flex items-center gap-1">
+            <el-icon :size="14" class="animate-spin">
+              <Loading />
+            </el-icon>
+            {{ isServerWaking ? '唤醒中...' : '连接中...' }}
+          </span>
         </el-tag>
 
         <!-- 断线状态 -->
@@ -44,10 +48,12 @@
           class="transition-all duration-300 hover:scale-105 cursor-pointer animate-pulse"
           @click="handleReconnect"
         >
-          <el-icon :size="14">
-            <Refresh />
-          </el-icon>
-          已断开
+          <span class="inline-flex items-center gap-1">
+            <el-icon :size="14">
+              <Refresh />
+            </el-icon>
+            已断开
+          </span>
         </el-tag>
       </div>
     </transition>

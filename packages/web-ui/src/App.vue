@@ -24,8 +24,10 @@
         <div class="flex items-center gap-2">
           <ConnectionStatus />
           <el-tag type="info" effect="dark" class="text-xs" size="small">
-            <el-icon :size="12"><User /></el-icon>
-            {{ serverState.serverState.onlinePlayers }}
+            <span class="inline-flex items-center gap-1">
+              <el-icon :size="12"><User /></el-icon>
+              {{ serverState.serverState.onlinePlayers }}
+            </span>
           </el-tag>
           <el-button type="default" size="small" @click="showEditDialog = true" class="min-w-0 p-2">
             <el-icon><Setting /></el-icon>
@@ -82,8 +84,10 @@
           <ConnectionStatus />
 
           <el-tag type="info" effect="dark">
-            <el-icon><User /></el-icon>
-            在线人数：{{ serverState.serverState.onlinePlayers }}
+            <span class="inline-flex items-center gap-1">
+              <el-icon><User /></el-icon>
+              在线人数：{{ serverState.serverState.onlinePlayers }}
+            </span>
           </el-tag>
 
           <el-button type="default" @click="showEditDialog = true" size="small">
